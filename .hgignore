@@ -12,3 +12,4 @@ M CMakeLists.txt
 M testcode/testscript.sh
 ^testcode/filetest$
 ^testcode/mainlooptest$
+^doxygen/.*
