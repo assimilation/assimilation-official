@@ -1,0 +1,14 @@
+Syntax: regex
+^CMakeFiles/.*
+.*/CMakeFiles
+.*/CMakeFiles/.*
+CMakeCache.txt
+.*\.so$
+.*\.a$
+/Makefile$
+^Makefile$
+.*\.cmake$
+M CMakeLists.txt
+M testcode/testscript.sh
+^testcode/filetest$
+^testcode/mainlooptest$
