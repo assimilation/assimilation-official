@@ -13,4 +13,4 @@ ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 
 add_subdirectory(clientlib)
 add_subdirectory(serverlib)
-add_subdirectory(tests)
+add_subdirectory(testcode)
