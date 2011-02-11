@@ -1,0 +1,15 @@
+For reasons unclear to me, Cmake likes to put lots of full pathnames into its files.
+I woudl hope it would be sufficient to say cmake before making things and it should go from there.
+
+However, failing that, try removing files named like these:
+	CMakeCache.txt
+	cmake_install.cmake
+	Makefile
+	CMakeDirectoryInformation.cmake
+	CMakeOutput.log
+	Makefile2
+	TargetDirectories.txt
+
+The only files I created are named *.c *.h, README, CMakeLists.txt, Doxyfile and *oui.txt
+	(the latter of which aren't really used)
+
