@@ -41,7 +41,7 @@ struct _Frame {
 };
 #define	FRAME_INITSIZE	4	///< (sizeof(Frame.type) + sizeof(Frame.length)) - each 2 bytes
 Frame* frame_new(guint16 frame_type, gsize framesize);
-Frame* frame_tlvconstructor(gpointer tlvstart, gpointer pktend);
+Frame* frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 void _frame_default_valuefinalize(gpointer value);
 ///@}
 

@@ -22,7 +22,7 @@ struct _UnknownFrame {
 };
 
 UnknownFrame* unknownframe_new(guint16 frame_type); // Derived classes not possible.
-Frame* unknownframe_tlvconstructor(gpointer tlvstart, gpointer pktend);
+Frame* unknownframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 #endif /* _UNKNOWNFRAME_H */

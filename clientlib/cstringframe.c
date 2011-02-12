@@ -66,7 +66,7 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 /// return the corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-cstringframe_tlvconstructor(gpointer tlvstart, gpointer pktend)
+cstringframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

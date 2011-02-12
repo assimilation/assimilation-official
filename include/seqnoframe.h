@@ -33,7 +33,7 @@ struct _SeqnoFrame {
 	guint16 _qid;						///< value of this SeqnoFrame queue id
 };
 SeqnoFrame* seqnoframe_new(guint16 frametype, int objsize);
-Frame* seqnoframe_tlvconstructor(gpointer tlvstart, gpointer pktend);
+Frame* seqnoframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 

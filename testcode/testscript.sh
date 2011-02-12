@@ -1,2 +1,2 @@
-filetest > tests/filetest.new.txt
-sudo tests/mainlooptest 2 >mainloop.new.txt
+testcode/filetest > filetest.new.txt
+sudo testcode/mainlooptest 2 >mainloop.new.txt

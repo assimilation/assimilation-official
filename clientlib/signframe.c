@@ -191,4 +191,24 @@ signframe_new(GChecksumType sigtype,	///< signature type
 	ret->signaturetype = sigtype;
 	return ret;
 }
+/// Given marshalled data corresponding to a SignFrame (signature frame), return that corresponding Frame
+/// In other words, un-marshall the data...
+/// @note when we add more subtypes to signatures (which will surely happen), then
+/// this code will have to be updated to deal with that...
+Frame*
+signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+{
+	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
+	//guint8		subtype = tlv_get_guint8(framevalue, pktend);
+	GChecksumType	cksumtype = tlv_get_guint8(framevalue+1, pktend);
+	SignFrame *		ret;
+
+	g_return_val_if_fail(framelength < 2, NULL);
+
+	/// @note we currently ignore the subtype - since we only support one...
+	ret = signframe_new(cksumtype, 0);
+	ret->baseclass.length = framelength;
+	return CASTTOCLASS(Frame, ret);
+}
 ///@}

@@ -125,7 +125,7 @@ addrframe_new(guint16 frame_type,	///< TLV type of AddrFrame
 /// Given marshalled packet data corresponding to an AddrFrame (address), return the corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-addrframe_tlvconstructor(gpointer tlvstart, gpointer pktend)
+addrframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

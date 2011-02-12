@@ -142,7 +142,7 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 /// Given marshalled data corresponding to a Frame (basic binary frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-frame_tlvconstructor(gpointer tlvstart, gpointer pktend)
+frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

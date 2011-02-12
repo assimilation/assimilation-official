@@ -18,10 +18,10 @@
 
 typedef struct _FrameTypeToFrame FrameTypeToFrame;
 
-typedef Frame*            (*FramePktConstructor)       (gpointer tlvstart, gpointer pktend);
+typedef Frame*            (*FramePktConstructor)       (gconstpointer tlvstart, gconstpointer pktend);
 struct _FrameTypeToFrame {
 	int			frametype; ///< One of the @ref IndividualFrameFormats "Defined Frame Formats" from frameformats.h
 	FramePktConstructor	constructor;
 };
-GSList*		pktdata_to_frameset_list(gpointer pktstart, gpointer pktend);
+GSList*		pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend);
 #endif /* DECODE_PACKET_H */

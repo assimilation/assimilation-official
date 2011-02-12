@@ -175,7 +175,7 @@ intframe_new(guint16 frametype,	///< Type of frame to create with this value
 /// Given marshalled data corresponding to an IntFrame (integer frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-intframe_tlvconstructor(gpointer tlvstart, gpointer pktend)
+intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

@@ -25,7 +25,7 @@ struct _AddrFrame {
 };
 
 AddrFrame* addrframe_new(guint16 frame_type, gsize framesize);
-Frame* addrframe_tlvconstructor(gpointer tlvstart, gpointer pktend);
+Frame* addrframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 #endif /* _ADDRFRAME_H */

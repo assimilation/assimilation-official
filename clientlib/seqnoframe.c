@@ -109,12 +109,12 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	return sframe;
 }
 Frame*
-seqnoframe_tlvconstructor(gpointer tlvstart, gpointer pktend)
+seqnoframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 {
 	SeqnoFrame*	ret;
 	guint16		length  = get_generic_tlv_len(tlvstart, pktend);
 	guint16		tlvtype = get_generic_tlv_type(tlvstart, pktend);
-	guint8* valpos = get_generic_tlv_nonconst_value(tlvstart, pktend);
+	const guint8* valpos = get_generic_tlv_value(tlvstart, pktend);
 
 	g_return_val_if_fail(length < (sizeof(guint64)+sizeof(guint16)), NULL);
 

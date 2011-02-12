@@ -34,7 +34,7 @@ struct _IntFrame {
 };
 
 IntFrame* intframe_new(guint16 frametype, int intlength);
-Frame* intframe_tlvconstructor(gpointer tlvstart, gpointer pktend);
+Frame* intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 ///@}
 
 #endif /* _INTFRAME_H */
