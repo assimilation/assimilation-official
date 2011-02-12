@@ -62,4 +62,21 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 
 	return CASTTOCLASS(CstringFrame, baseframe);
 }
+/// Given marshalled packet data corresponding to an CstringFrame (C-style string),
+/// return the corresponding Frame
+/// In other words, un-marshall the data...
+Frame*
+cstringframe_tlvconstructor(gpointer tlvstart, gpointer pktend)
+{
+	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
+	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
+	CstringFrame *	ret = cstringframe_new(frametype, 0);
+	Frame *		fret = CASTTOCLASS(Frame, ret);
+	g_return_val_if_fail(ret != NULL, NULL);
+
+	ret->baseclass.length = framelength;
+	ret->baseclass.setvalue(fret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
+	return fret;
+}
 ///@}

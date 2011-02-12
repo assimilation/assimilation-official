@@ -60,6 +60,7 @@ The format and length of the digital signature depends on the type of signature.
 #define	FRAMETYPE_SIG		1
 /**
 Encryption (frametype 2) Frame Format - this optional frame is always second in a frameset - when present.
+  C-Class: @ref SignFrame
 <PRE>
 +---------------+-----------+------------------------+
 | frametype = 2 | f_length  | encryption information |
@@ -92,6 +93,7 @@ single integer saying which compression method was used.
 #define	FRAMETYPE_COMPRESS		3
 /**
   Request ID (frametype 4) Frame Format - this is basically a transaction sequence number
+  C-Class: @ref SeqnoFrame.
 <PRE>
 +---------------+---------------+-------------+-----------+
 | frametype = 4 | f_length = 8  |  request id | queue id  |
@@ -114,6 +116,7 @@ that it will be repeated until a corresponding REPLYID is received.
 /**
   Reply ID (frametype 5) Frame Format - this is basically the transaction sequence number of a request
   being replied to.
+  C-Class: @ref SeqnoFrame.
 <PRE>
 +---------------+---------------+-------------+-----------+
 | frametype = 5 | f_length = 8  |  request id | queue id  |
@@ -131,7 +134,8 @@ Note that this frame format is identical to that of a @ref FRAMETYPE_REQID (requ
 #define	FRAMETYPE_REPLYID	5
 
 /**
-  Client Packet(frametype 6) Frame Format - this is what packets are encapsulated in.
+  Raw Packet(frametype 6) Frame Format - this is what packets are encapsulated in.
+  C-Class: @ref Frame.
 <PRE>
 +---------------+----------------+------------------+
 | frametype = 6 | f_length = 'n' |  raw packet data |
@@ -146,6 +150,7 @@ network interface via libpcap.
 
 /**
   Wall Clock time(frametype 7) Frame Format - 64-bit local time.
+  C-Class: @ref IntFrame.
 <PRE>
 +---------------+--------------+--------------------------------+
 | frametype = 7 | f_length = 8 | g_get_real_time() return value |
@@ -160,15 +165,16 @@ Its corresponding @ref Frame class is @ref IntFrame.
 #define	FRAMETYPE_WALLCLOCK	7
 
 /**
-  Interface name (frametype 8) Frame Format - interface name as a string.
+  Interface name (frametype 8) Frame Format - interface name as a C-style string.
+  C-Class: @ref CstringFrame
 <PRE>
 +---------------+----------------+----------------+
 | frametype = 8 | f_length = 'n' | interface name |
-|   (16 bits)   |    (16-bits)   |   (string)     |
+|   (16 bits)   |    (16-bits)   |   (C-string)     |
 +---------------+----------------+----------------+
 </PRE>
 This frame provides the name of the network interface
-associated with the FrameSet.
+associated with the FrameSet as NUL-terminated C-style string.
 */
 #define	FRAMETYPE_INTERFACE	8
 ///@}

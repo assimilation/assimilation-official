@@ -63,6 +63,14 @@ _frame_default_finalize(Frame * self) ///< Frame to finalize
 	memset(self, 0x00, sizeof(Frame));
 	FREECLASSOBJ(self);
 }
+/// Finalize a Frame
+FSTATIC void
+_frame_default_valuefinalize(gpointer value) ///< Value to finalize
+{
+	if (value) {
+		FREE(value);
+	}
+}
 
 /// Return total space required to put this frame in a packet (marshalled size)
 FSTATIC gsize
@@ -130,5 +138,20 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 		newframe->valuefinalize  = NULL;
 	}
 	return newframe;
+}
+/// Given marshalled data corresponding to a Frame (basic binary frame), return that corresponding Frame
+/// In other words, un-marshall the data...
+Frame*
+frame_tlvconstructor(gpointer tlvstart, gpointer pktend)
+{
+	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
+	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
+	Frame *		ret = frame_new(frametype, 0);
+	g_return_val_if_fail(ret != NULL, NULL);
+
+	ret->length = framelength;
+	ret->setvalue(ret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
+	return ret;
 }
 ///@}

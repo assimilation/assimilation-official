@@ -22,7 +22,7 @@
 #include <address_family_numbers.h>
 
 FSTATIC gboolean _addrframe_default_isvalid(Frame *, gconstpointer, gconstpointer);
-FSTATIC void _addrframe_setaddr(AddrFrame* f, guint16 frametype, gpointer addr, gsize addrlen);
+FSTATIC void _addrframe_setaddr(AddrFrame* f, guint16 frametype, gconstpointer addr, gsize addrlen);
 FSTATIC void _addrframe_addr_finalize(void * addr);
 ///@}
 
@@ -78,7 +78,7 @@ _addrframe_default_isvalid(Frame * self,	///< AddrFrame object ('this')
 FSTATIC void
 _addrframe_setaddr(AddrFrame* f,	// Frame to set the address type for 
 		  guint16 addrtype,	// IANA address type
-		  gpointer addr,	// Address blob
+		  gconstpointer addr,	// Address blob
 		  gsize addrlen)	// size of address
 {
 	gsize		blobsize = addrlen +  sizeof(guint16);
@@ -122,4 +122,22 @@ addrframe_new(guint16 frame_type,	///< TLV type of AddrFrame
 	return aframe;
 }
 
+/// Given marshalled packet data corresponding to an AddrFrame (address), return the corresponding Frame
+/// In other words, un-marshall the data...
+Frame*
+addrframe_tlvconstructor(gpointer tlvstart, gpointer pktend)
+{
+	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
+	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
+	AddrFrame *	ret = addrframe_new(frametype, 0);
+	guint16		address_family;
+	g_return_val_if_fail(ret != NULL, NULL);
+
+	address_family = tlv_get_guint16(framevalue, pktend);
+
+	ret->baseclass.length = framelength;
+	ret->setaddr(ret, address_family, framevalue+sizeof(guint16), framelength-sizeof(guint16));
+	return CASTTOCLASS(Frame, ret);
+}
 ///@}

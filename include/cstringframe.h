@@ -23,6 +23,7 @@ struct _CstringFrame {
 };
 
 CstringFrame* cstringframe_new(guint16 frame_type, gsize framesize);
+Frame* cstringframe_tlvconstructor(gpointer tlvstart, gpointer pktend);
 
 ///@}
 

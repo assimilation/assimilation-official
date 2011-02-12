@@ -13,3 +13,4 @@ M testcode/testscript.sh
 ^testcode/filetest$
 ^testcode/mainlooptest$
 ^doxygen/.*
+/\..*\.swp$

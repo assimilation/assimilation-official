@@ -172,5 +172,40 @@ intframe_new(guint16 frametype,	///< Type of frame to create with this value
 	iframe->baseclass.length = intbytes;
 	return iframe;
 }
+/// Given marshalled data corresponding to an IntFrame (integer frame), return that corresponding Frame
+/// In other words, un-marshall the data...
+Frame*
+intframe_tlvconstructor(gpointer tlvstart, gpointer pktend)
+{
+	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
+	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
+	IntFrame *	ret = intframe_new(frametype, framelength);
+	guint64		intvalue = 0xffffffffffffffffULL;
+	g_return_val_if_fail(ret != NULL, NULL);
+
+	ret->baseclass.length = framelength;
+	switch (ret->baseclass.length) {
+		case 1:
+			intvalue = tlv_get_guint8(framevalue, pktend);
+			break;
+		case 2:
+			intvalue = tlv_get_guint16(framevalue, pktend);
+			break;
+		case 3:
+			intvalue = tlv_get_guint24(framevalue, pktend);
+			break;
+		case 4:
+			intvalue = tlv_get_guint32(framevalue, pktend);
+			break;
+		case 8:
+			intvalue = tlv_get_guint64(framevalue, pktend);
+			break;
+	}
+	ret->setint(ret, intvalue);
+	return CASTTOCLASS(Frame, ret);
+}
+
+
 ///@}
 ///@}

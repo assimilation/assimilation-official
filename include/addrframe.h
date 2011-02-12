@@ -21,10 +21,11 @@ typedef struct _AddrFrame AddrFrame;
 /// @ingroup AddrFrame
 struct _AddrFrame {
 	Frame		baseclass;
-	void(*setaddr)	(AddrFrame* f, guint16 addrtype, gpointer addr, gsize addrlen);
+	void(*setaddr)	(AddrFrame* f, guint16 addrtype, gconstpointer addr, gsize addrlen);
 };
 
 AddrFrame* addrframe_new(guint16 frame_type, gsize framesize);
+Frame* addrframe_tlvconstructor(gpointer tlvstart, gpointer pktend);
 
 ///@}
 #endif /* _ADDRFRAME_H */

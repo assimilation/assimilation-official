@@ -26,6 +26,7 @@ struct _SignFrame {
 };
 
 SignFrame* signframe_new(GChecksumType sigtype, gsize framesize);
+Frame* signframe_tlvconstructor(gpointer tlvstart, gpointer pktend);
 
 ///@}
 
