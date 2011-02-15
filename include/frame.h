@@ -35,14 +35,15 @@ struct _Frame {
 	void		(*setvalue)(Frame* self,
 				    gpointer value,
 				    guint16 length,
-				    GDestroyNotify valfinal);
+				    GDestroyNotify valfinal);		///< member function for setting value
+	void		(*dump)(Frame* self, const char * prefix);	///< member function for dumping Frame
 	GDestroyNotify	valuefinalize;			///< optional method for finalizing value
 	void		(*finalize)(Frame*);		///< Frame Destructor
 };
 #define	FRAME_INITSIZE	4	///< (sizeof(Frame.type) + sizeof(Frame.length)) - each 2 bytes
-Frame* frame_new(guint16 frame_type, gsize framesize);
-Frame* frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
-void _frame_default_valuefinalize(gpointer value);
+Frame*	frame_new(guint16 frame_type, gsize framesize);
+Frame*	frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+void	_frame_default_valuefinalize(gpointer value);
 ///@}
 
 #endif /* _FRAME_H */

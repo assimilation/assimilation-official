@@ -136,9 +136,9 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	GSList*		curframe;		// Current frame as we marshall packet...
 	gpointer	curpktpos;		// Current position as we marshall packet...
 	gsize		pktsize;
+	gsize		fssize = 6;		// "frameset" overhead size
 	g_return_if_fail(NULL != fs);
 	g_return_if_fail(NULL != sigframe);
-	g_return_if_fail(NULL != fs->framelist);
 	g_return_if_fail(NULL != fs->framelist);
 
 	/*
@@ -159,7 +159,8 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		fs->packet = NULL;
 		fs->pktend = NULL;
 	}
-	// Remove any current signature, compression, encryption, and end frames...
+	// Remove any current signature, compression, or encryption frames...
+	// (this method only works if they're first, and all together - but that's OK)
 	while (fs->framelist) {
 		Frame*	item = CASTTOCLASS(Frame, fs->framelist->data);
 		g_return_if_fail(NULL != item);
@@ -167,7 +168,6 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 			case FRAMETYPE_SIG:
 			case FRAMETYPE_CRYPT:
 			case FRAMETYPE_COMPRESS:
-			case FRAMETYPE_END:
 				item->finalize(item);
 				fs->framelist->data = NULL;
 				fs->framelist = g_slist_delete_link(fs->framelist, fs->framelist);
@@ -207,10 +207,12 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	// Reverse list...
 	fs->framelist = g_slist_reverse(fs->framelist);
 
-	// Add "end" frame to the "end"
-	frameset_prepend_frame(fs, frame_new(FRAMETYPE_END, 0));
+	// Add "end" frame to the "end" - if not already present...
+	if (CASTTOCLASS(Frame, fs->framelist->data)->type != FRAMETYPE_END) {
+		frameset_prepend_frame(fs, frame_new(FRAMETYPE_END, 0));
+	}
 
-	pktsize = 0;
+	pktsize = fssize;
 	for (curframe=fs->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
 		Frame* frame = CASTTOCLASS(Frame, curframe->data);
 		pktsize += frame->dataspace(frame);
@@ -235,9 +237,13 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 			, proj_class_classname(frame));
 		}
 	}
-	g_return_if_fail(curpktpos == fs->packet);
+	g_return_if_fail(curpktpos == (((guint8*)fs->packet)+fssize));
 	// Reverse list - putting it back in the right order
 	fs->framelist = g_slist_reverse(fs->framelist);
+	// Write out the initial FrameSet header.
+	set_generic_tlv_type(fs->packet, fs->fstype, ((guint8*)fs->packet)+fssize);
+	set_generic_tlv_len(fs->packet, pktsize-fssize, ((guint8*)fs->packet)+fssize);
+	tlv_set_guint16(((guint8*)fs->packet)+4, fs->fsflags, ((guint8*)fs->packet)+fssize);
 }
 
 /// Return the flags currently set on this FrameSet.
@@ -254,7 +260,6 @@ frameset_set_flags(FrameSet* fs,	///< FrameSet to fetch flags for
 		   guint16 flagbits)	///< Bits to set
 {
 	g_return_val_if_fail(NULL != fs, 0xffff);
-	g_return_val_if_fail(flagbits != 0x0000, fs->fsflags);
 	fs->fsflags |= flagbits;
 	return fs->fsflags;
 }
@@ -293,5 +298,17 @@ frame_append_to_frameset_packet(FrameSet* fs,		///< FrameSet to append frame to
 	}
 	curpos += f->length;
 	return (gpointer)curpos;
+}
+/// Dump out a FrameSet
+void
+frameset_dump(FrameSet* fs)	///< FrameSet to dump
+{
+	GSList*	curframe;
+	g_debug("BEGIN Dumping FrameSet:");
+	for (curframe=fs->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
+		Frame* frame = CASTTOCLASS(Frame, curframe->data);
+		frame->dump(frame, ".... ");
+	}
+	g_debug("END FrameSet dump");
 }
 ///@}

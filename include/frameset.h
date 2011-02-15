@@ -45,4 +45,5 @@ guint16		frameset_get_flags(FrameSet* fs);
 guint16		frameset_set_flags(FrameSet* f, guint16 flagbits);
 guint16		frameset_clear_flags(FrameSet* f, guint16 flagbits);
 gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
+void		frameset_dump(FrameSet*);
 #endif /* _FRAMESET_H */

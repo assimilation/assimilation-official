@@ -39,7 +39,7 @@ static const FrameTypeToFrame	framemap[] =
 	{FRAMETYPE_INTERFACE,	cstringframe_tlvconstructor},
 };
 static FramePktConstructor*	frametypemap;
-static int			maxframetype;
+static int			maxframetype = 0;
 static gboolean		_decode_packet_inityet = FALSE;
 FSTATIC void		_decode_packet_init(void);
 #define			INITDECODE	{if (!_decode_packet_inityet) {		\
@@ -57,7 +57,6 @@ void
 _decode_packet_init(void)
 {
 	int	j;
-	int	maxframetype = 0;
 
 	for (j=0; j < DIMOF(framemap); ++j) {
 		if (framemap[j].frametype > maxframetype) {
@@ -85,6 +84,7 @@ _decode_packet_framedata_to_frameobject(gconstpointer pktstart, gconstpointer pk
 	}else{ 
 		ret =  unknownframe_tlvconstructor(pktstart, pktend);
 	}
+	g_return_val_if_fail(ret != NULL, NULL);
 	*nextframe = (gconstpointer) ((const guint8*)pktstart + ret->dataspace(ret));
 	return ret;
 }

@@ -48,6 +48,7 @@ FSTATIC gsize _frame_total_size(Frame* f);
 FSTATIC gboolean _frame_default_isvalid(Frame *, gconstpointer,	gconstpointer);
 FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
+FSTATIC void _frame_dump(Frame *, const char * prefix);
 
 ///@defgroup Frame Frame class
 ///@{
@@ -130,12 +131,13 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 		newframe->type = frame_type;
 		newframe->length = 0;
 		newframe->value = NULL;
-		newframe->dataspace = _frame_total_size;
-		newframe->finalize  = _frame_default_finalize;
-		newframe->isvalid   = _frame_default_isvalid;
-		newframe->setvalue  = _frame_setvalue;
-		newframe->updatedata= _frame_updatedata;
-		newframe->valuefinalize  = NULL;
+		newframe->dataspace	= _frame_total_size;
+		newframe->finalize	= _frame_default_finalize;
+		newframe->isvalid	= _frame_default_isvalid;
+		newframe->setvalue	= _frame_setvalue;
+		newframe->updatedata	= _frame_updatedata;
+		newframe->dump		= _frame_dump;
+		newframe->valuefinalize	= NULL;
 	}
 	return newframe;
 }
@@ -153,5 +155,14 @@ frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 	ret->length = framelength;
 	ret->setvalue(ret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
 	return ret;
+}
+void
+_frame_dump(Frame * f, const char * prefix)
+{
+	g_debug("%s%s: type = %d, length = %d", 
+		prefix,
+	        proj_class_classname(f),
+		f->type,
+		f->length);
 }
 ///@}

@@ -174,7 +174,7 @@ signframe_new(GChecksumType sigtype,	///< signature type
 	gssize		cksumsize;
 	guint16		frame_type = FRAMETYPE_SIG;
 
-	if (framesize < sizeof(SignFrame)){
+	if (framesize < sizeof(SignFrame)) {
 		framesize = sizeof(SignFrame);
 	}
 	cksumsize = g_checksum_type_get_length(sigtype);
@@ -204,7 +204,7 @@ signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 	GChecksumType	cksumtype = tlv_get_guint8(framevalue+1, pktend);
 	SignFrame *		ret;
 
-	g_return_val_if_fail(framelength < 2, NULL);
+	g_return_val_if_fail(framelength > 2, NULL);
 
 	/// @note we currently ignore the subtype - since we only support one...
 	ret = signframe_new(cksumtype, 0);
