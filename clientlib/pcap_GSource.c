@@ -41,29 +41,6 @@
 ///@defgroup GSource_Pcap GSource_Pcap class
 ///@{
 ///@ingroup C_Classes
-typedef struct _GSource_Pcap	GSource_Pcap_t;
-
-/// g_main_loop GSource object for creating events from libpcap (pcap_t) objects
-/// We manage this with our @ref ProjectClass system to help catch errors.
-struct _GSource_Pcap {
-	GSource		gs;		///< Parent GSource Object
-	GPollFD		gfd;		///< Poll/select object for gmainloop
-	pcap_t*		capture;	///< Pcap capture object
-	int		capturefd;	///< Underlying file descriptor
-	const char*	capturedev;	///< Capture device name
-	unsigned	listenmask;	///< Protocols selected from @ref pcap_protocols
-	gint		gsourceid;	///< Source ID from g_source_attach()
-        ///[in] user dispatch function - we call it when a packet is read
-        gboolean (*dispatch)(pcap_t* capstruct, ///<[in] Pointer to structure doing the capturing for us
-                             const u_char * pkt,	///<[in] Pointer to the packet just read in
-                             const u_char * pend,	///<[in] Pointer to first byte past 'pkt'
-                             const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header
-                             const char * capturedev,	///<[in] Device being captured
-                             gpointer userdata);	///<[in] User data given to us in g_source_pcap_new()
-					///<[in] called when new pcap data has arrived
-	gpointer	userdata;	///<[in] Initial user data
-	GDestroyNotify	destroynote;	///<[in] function to call when we're destroyed...
-};
 
 FSTATIC gboolean g_source_pcap_prepare(GSource* source, gint* timeout);
 FSTATIC gboolean g_source_pcap_check(GSource* source);
@@ -95,31 +72,34 @@ GSource*
 g_source_pcap_new(const char * dev,	///<[in]Capture device name
 		  unsigned listenmask,	///<[in] bit mask of @ref pcap_protocols "supported protocols"
 					///[in] called when new pcap data has arrived
-        	  gboolean (*dispatch)(pcap_t* capstruct, ///<[in] Pointer to structure capturing for us
+        	  gboolean (*dispatch)(GSource_pcap_t*	gsource, ///< Gsource object causing dispatch
+			     pcap_t* capstruct,		///<[in] Pointer to structure capturing for us
                              const u_char * pkt,	///<[in] Pointer to the packet just read in
                              const u_char * pend,	///<[in] Pointer to first byte past 'pkt'
                              const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header
-                             const char * capturedev,	///<[in] Device being captured
-                             gpointer userdata),	///<[in] User data given to us in g_source_pcap_new()
-		  gpointer userdata,	///<[in] passed to dispatch and notify
+                             const char * capturedev),	///<[in] Device being captured
 		  GDestroyNotify notify,///<[in] Called when this object is being destroyed -
 					///< can be NULL.
 		  gint priority,	///<[in] g_main_loop
 					///< <a href="http://library.gnome.org/devel/glib/unstable/glib-The-Main-Event-Loop.html#G-PRIORITY-HIGH:CAPS">dispatch priority</a>
 		  gboolean can_recurse,	///<[in] TRUE if dispatch recursion is allowed
-                  GMainContext* context ///<[in] GMainContext or NULL
+                  GMainContext* context, ///<[in] GMainContext or NULL
+		  gsize	objectsize	///<[in] size of pcap_g_source object to create (or zero)
                   )
 {
 	pcap_t*		captureobj;
 	GSource*	src;
-	GSource_Pcap_t*	ret;
+	GSource_pcap_t*	ret;
+
+	if (objectsize < sizeof(GSource_pcap_t)) {
+		objectsize = sizeof(GSource_pcap_t);
+	}
 
 	// Try and create a GSource object for us to eventually return...
-	if (NULL == (src = g_source_new(&g_source_pcap_gsourcefuncs,
-	                                sizeof(GSource_Pcap_t)))) {
-		return NULL;
-	}
-	proj_class_register_object(src, "GSource_Pcap_t");
+	src = g_source_new(&g_source_pcap_gsourcefuncs, objectsize);
+	g_return_val_if_fail(src != NULL, NULL);
+
+	proj_class_register_object(src, "GSource_pcap_t");
 
 	// OK, now create the capture object to associate with it
 	if (NULL == (captureobj = create_pcap_listener(dev, listenmask))) {
@@ -127,13 +107,13 @@ g_source_pcap_new(const char * dev,	///<[in]Capture device name
 		g_source_unref(src);
 		return NULL;
 	}
-	ret = CASTTOCLASS(GSource_Pcap_t, src);
+	ret = CASTTOCLASS(GSource_pcap_t, src);
 	ret->capture = captureobj;
 	ret->capturedev = dev; /// @todo: make a copy of this device.
 	ret->listenmask = listenmask;
 	ret->dispatch = dispatch;
-	ret->destroynote = notify;
 	ret->capturefd = pcap_get_selectable_fd(ret->capture);
+	ret->destroynote = notify;
 	ret->gfd.fd = ret->capturefd;
 	ret->gfd.events =  G_IO_IN|G_IO_ERR|G_IO_HUP;
 	ret->gfd.revents =  0;
@@ -163,7 +143,7 @@ g_source_pcap_prepare(GSource* source, ///<[in] Gsource being prepared for
 gboolean
 g_source_pcap_check(GSource* src) ///<[in] source being <i>check</i>ed
 {
-	GSource_Pcap_t*	psrc = CASTTOCLASS(GSource_Pcap_t, src);
+	GSource_pcap_t*	psrc = CASTTOCLASS(GSource_pcap_t, src);
 	
 	// revents: received events...
 	// @todo: should check for errors in revents
@@ -175,7 +155,7 @@ g_source_pcap_dispatch(GSource* src, ///<[in] source being <i>dispatch</i>ed
                        GSourceFunc callback, ///<[in] dispatch function (ignored)
                        gpointer user_data)   ///<[in] user data (ignored)
 {
-	GSource_Pcap_t*	psrc = CASTTOCLASS(GSource_Pcap_t, src);
+	GSource_pcap_t*	psrc = CASTTOCLASS(GSource_pcap_t, src);
 	const u_char *		pkt;
 	struct pcap_pkthdr*	hdr;
 	int			rc; // Meaning of various rc values:
@@ -186,10 +166,8 @@ g_source_pcap_dispatch(GSource* src, ///<[in] source being <i>dispatch</i>ed
 	// Process all the packets we can find.
 	while (1 == (rc = pcap_next_ex(psrc->capture, &hdr, &pkt))) {
 		const u_char* pktend = pkt + hdr->caplen;
-		if (!psrc->dispatch(psrc->capture, pkt, pktend,
-				    hdr,
-                                    psrc->capturedev,
-                                    psrc->userdata)) {
+		if (!psrc->dispatch(psrc, psrc->capture, pkt, pktend, hdr,
+                                    psrc->capturedev)) {
 			g_source_remove_poll(src, &psrc->gfd);
 			g_source_unref(src);
 			return FALSE;
@@ -203,9 +181,9 @@ g_source_pcap_dispatch(GSource* src, ///<[in] source being <i>dispatch</i>ed
 void
 g_source_pcap_finalize(GSource* src)
 {
-	GSource_Pcap_t*	psrc = CASTTOCLASS(GSource_Pcap_t, src);
+	GSource_pcap_t*	psrc = CASTTOCLASS(GSource_pcap_t, src);
 	if (psrc->destroynote) {
-		psrc->destroynote(psrc->userdata);
+		psrc->destroynote(psrc);
 	}
 	pcap_close(psrc->capture);
 	proj_class_dissociate(src);
