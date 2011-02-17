@@ -117,7 +117,7 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart, gconstpointer vpktend, 
 
 /// Constructs a GSList list of @ref FrameSet objects from a datagram/packet.
 /// That is, it decodes the datagram/packet.
-/// @ret GSList of @ref FrameSet object pointers.
+/// @return GSList of @ref FrameSet object pointers.
 GSList*
 pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend)
 {
