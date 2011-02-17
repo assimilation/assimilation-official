@@ -46,4 +46,16 @@ guint16		frameset_set_flags(FrameSet* f, guint16 flagbits);
 guint16		frameset_clear_flags(FrameSet* f, guint16 flagbits);
 gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
 void		frameset_dump(FrameSet*);
+
+#define		FRAMESETTYPE_HEARTBEAT		1	///< A heartbeat packet
+#define		FRAMESETTYPE_NAK		2	///< We don't like the frameset mentioned
+#define		FRAMESETTYPE_PING		3	///< Are you alive?
+#define		FRAMESETTYPE_PONG		4	///< yes, I'm alive
+
+#define		FRAMESETTYPE_HBDEAD		16	///< System named in packet appears to be dead.
+#define		FRAMESETTYPE_CLIENTCONFIG	17	///< Packet contains client configuration directives
+#define		FRAMESETTYPE_SWDISCOVER		18	///< Packet encapsulates switch discovery packet
+#define		FRAMESETTYPE_LOCALNETDISCOVER	19	///< Packet contains local network config data
+#define		FRAMESETTYPE_ARPDISCOVER	20	///< Packet contains ARP table data
+
 #endif /* _FRAMESET_H */

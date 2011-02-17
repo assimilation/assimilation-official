@@ -47,15 +47,15 @@
 #define CDP_CAPMASK_REPEATER	0x40	///< Repeater
 /// @}
 
-guint8 get_cdp_vers(const void* pktptr, const void* pktend);
-guint8 get_cdp_ttl(const void* pktptr, const void* pktend);
-guint16 get_cdp_cksum(const void* pktptr, const void* pktend);
-guint16 get_cdptlv_type(const void* tlv_vp, const void* pktend);
-gsize get_cdptlv_len(const void* tlv_vp, const void* pktend);
-gsize get_cdptlv_vlen(const void* tlv_vp, const void* pktend);
-const void * get_cdptlv_body(const void* tlv_vp, const void* pktend);
-const void * get_cdptlv_first(const void* pkt, const void* pktend);
-const void * get_cdptlv_next(const void* tlv_vp, const void* pktend);
-const void* get_cdp_chassis_id(const void* packet, gsize* idlength, const void* pktend);
-const void* get_cdp_port_id(const void* packet, gsize* idlength, const void* pktend);
-gboolean is_valid_cdp_packet(const void* packet, const void* pktend);
+guint8 get_cdp_vers(gconstpointer pktptr, gconstpointer pktend);
+guint8 get_cdp_ttl(gconstpointer pktptr, gconstpointer pktend);
+guint16 get_cdp_cksum(gconstpointer pktptr, gconstpointer pktend);
+guint16 get_cdptlv_type(gconstpointer tlv_vp, gconstpointer pktend);
+gsize get_cdptlv_len(gconstpointer tlv_vp, gconstpointer pktend);
+gsize get_cdptlv_vlen(gconstpointer tlv_vp, gconstpointer pktend);
+gconstpointer get_cdptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
+gconstpointer get_cdptlv_first(gconstpointer pkt, gconstpointer pktend);
+gconstpointer get_cdptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
+gconstpointer get_cdp_chassis_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
+gconstpointer get_cdp_port_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
+gboolean is_valid_cdp_packet(gconstpointer packet, gconstpointer pktend);

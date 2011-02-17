@@ -203,9 +203,9 @@ find_next_lldptlv_type(const void* tlv_vp,	///< [in] Pointer to the current TLV
 /// Return a pointer to the chassis id Value entry, and its length.
 ///@return pointer to the chassis ID value, and its length.
 const void *
-get_lldp_chassis_id(const void*	tlv_vp,		///<[in] Pointer to beginning of LLDP packet
-                    gsize*	idlength,	///<[out] Length of the chassis id
-                    const void*	pktend)	///<[in] Pointer to first byte beyond packet.
+get_lldp_chassis_id(gconstpointer	tlv_vp,		///<[in] Pointer to beginning of LLDP packet
+                    gssize*		idlength,	///<[out] Length of the chassis id
+                    gconstpointer	pktend)	///<[in] Pointer to first byte beyond packet.
 {
 	const void *	tlventry;
 	tlventry = find_next_lldptlv_type(tlv_vp, LLDP_TLV_CHID, pktend);
@@ -219,9 +219,9 @@ get_lldp_chassis_id(const void*	tlv_vp,		///<[in] Pointer to beginning of LLDP p
 /// Return a pointer to the port id Value entry, and its length.
 ///@return pointer to the port ID value, and its length.
 const void *
-get_lldp_port_id(const void * tlv_vp,	///<[in] Pointer to beginning of LLDP packet
-                 gsize* idlength,	///<[out] Length of the port id value
-                 const void* pktend)	///<[in] Pointer to first byte beyond packet.
+get_lldp_port_id(gconstpointer tlv_vp,	///<[in] Pointer to beginning of LLDP packet
+                 gssize* idlength,	///<[out] Length of the port id value
+                 gconstpointer pktend)	///<[in] Pointer to first byte beyond packet.
 {
 	const void *	tlventry;
 	tlventry = find_next_lldptlv_type(tlv_vp, LLDP_TLV_PID, pktend);

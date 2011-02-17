@@ -104,16 +104,16 @@
 /// @} 
 
 
-unsigned	get_lldp_chassis_id_type(const void * tlv_vp, const void* tlv_vpend);
-const void *	get_lldp_chassis_id(const void * tlv_vp, gsize* idlength, const void* tlv_vpend);
-const void *	get_lldp_port_id(const void * tlv_vp, gsize* idlength, const void* tlv_vpend);
-unsigned	get_lldp_port_id_type(const void * tlv_vp, const void* tlv_vpend);
+unsigned	get_lldp_chassis_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+gconstpointer	get_lldp_chassis_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
+gconstpointer	get_lldp_port_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
+unsigned	get_lldp_port_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
 
-guint8		get_lldptlv_type(const void * tlvp_vp, const void* pktend);
-gsize		get_lldptlv_len(const void * tlvp_vp, const void* pktend);
-const void *	get_lldptlv_first(const void* tlv_vp, const void* pktend);
-const void *	get_lldptlv_next(const void* tlv_vp, const void* pktend);
-const void *	get_lldptlv_body(const void* tlv_vp, const void* pktend);
-const void *	find_next_lldptlv_type(const void* tlv_vp, unsigned tlvtype, const void* tlv_vpend);
-gboolean	is_valid_lldp_packet(const void* tlv_vp, const void* tlv_vpend);
+guint8		get_lldptlv_type(gconstpointer tlvp_vp, gconstpointer pktend);
+gsize		get_lldptlv_len(gconstpointer tlvp_vp, gconstpointer pktend);
+gconstpointer	get_lldptlv_first(gconstpointer tlv_vp, gconstpointer pktend);
+gconstpointer	get_lldptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
+gconstpointer	get_lldptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
+gconstpointer	find_next_lldptlv_type(gconstpointer tlv_vp, unsigned tlvtype, gconstpointer tlv_vpend);
+gboolean	is_valid_lldp_packet(gconstpointer tlv_vp, gconstpointer tlv_vpend);
 #endif /* _LLDP_H */

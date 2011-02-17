@@ -74,17 +74,20 @@ g_source_pcap_new(const char * dev,	///<[in]Capture device name
 					///[in] called when new pcap data has arrived
         	  gboolean (*dispatch)(GSource_pcap_t*	gsource, ///< Gsource object causing dispatch
 			     pcap_t* capstruct,		///<[in] Pointer to structure capturing for us
-                             const u_char * pkt,	///<[in] Pointer to the packet just read in
-                             const u_char * pend,	///<[in] Pointer to first byte past 'pkt'
+                             gconstpointer pkt,		///<[in] Pointer to the packet just read in
+                             gconstpointer pend,	///<[in] Pointer to first byte past 'pkt'
                              const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header
-                             const char * capturedev),	///<[in] Device being captured
+                             const char * capturedev,	///<[in] Device being captured
+			     gpointer userdata),	///<[in/out] user-object
+
 		  GDestroyNotify notify,///<[in] Called when this object is being destroyed -
 					///< can be NULL.
 		  gint priority,	///<[in] g_main_loop
 					///< <a href="http://library.gnome.org/devel/glib/unstable/glib-The-Main-Event-Loop.html#G-PRIORITY-HIGH:CAPS">dispatch priority</a>
 		  gboolean can_recurse,	///<[in] TRUE if dispatch recursion is allowed
                   GMainContext* context, ///<[in] GMainContext or NULL
-		  gsize	objectsize	///<[in] size of pcap_g_source object to create (or zero)
+		  gsize	objectsize,	///<[in] size of pcap_g_source object to create (or zero)
+		  gpointer userdata	///<[in/out] pointer to user object for dispatch function
                   )
 {
 	pcap_t*		captureobj;
@@ -117,6 +120,7 @@ g_source_pcap_new(const char * dev,	///<[in]Capture device name
 	ret->gfd.fd = ret->capturefd;
 	ret->gfd.events =  G_IO_IN|G_IO_ERR|G_IO_HUP;
 	ret->gfd.revents =  0;
+	ret->userdata = userdata;
 	g_source_add_poll(src, &ret->gfd);
 	g_source_set_priority(src, priority);
 	g_source_set_can_recurse(src, can_recurse);
@@ -167,7 +171,7 @@ g_source_pcap_dispatch(GSource* src, ///<[in] source being <i>dispatch</i>ed
 	while (1 == (rc = pcap_next_ex(psrc->capture, &hdr, &pkt))) {
 		const u_char* pktend = pkt + hdr->caplen;
 		if (!psrc->dispatch(psrc, psrc->capture, pkt, pktend, hdr,
-                                    psrc->capturedev)) {
+                                    psrc->capturedev, psrc->userdata)) {
 			g_source_remove_poll(src, &psrc->gfd);
 			g_source_unref(src);
 			return FALSE;

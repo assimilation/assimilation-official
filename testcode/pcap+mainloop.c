@@ -29,7 +29,7 @@ gint64 maxpkts  = G_MAXINT64;
 gint64 pktcount = 0;
 GMainLoop*	loop = NULL;
 FrameSet* encapsulate_packet(gpointer, gpointer, const char *);
-gboolean gotapacket(GSource_pcap_t*, pcap_t *, const guchar *, const guchar*, const struct pcap_pkthdr *, const char *);
+gboolean gotapacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
 
 FrameSet*
 encapsulate_packet(gpointer packet, gpointer pktend, const char * dev)
@@ -42,10 +42,11 @@ encapsulate_packet(gpointer packet, gpointer pktend, const char * dev)
 gboolean
 gotapacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	   pcap_t *capfd,			///<[in]pcap capture object
-           const guchar *pkt,			///<[in]captured packet
-           const guchar *pend,			///<[in]end of captured packet
+           gconstpointer pkt,			///<[in]captured packet
+           gconstpointer pend,			///<[in]end of captured packet
            const struct pcap_pkthdr *hdr,	///<[in]pcap header
-           const char *dev)			///<[in]name of capture device
+           const char *dev,			///<[in]name of capture device
+	   gpointer userdatanotused)		///<[unused] unused userdata pointer
 {
 	FrameSet *	fs;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
@@ -130,7 +131,8 @@ main(int argc, char **argv)
 
 
 	/// Create a packet source, and connect it up to run in the default context
-	pktsource = g_source_pcap_new(dev, protocols, gotapacket, NULL, G_PRIORITY_DEFAULT, FALSE, NULL, 0);
+	pktsource = g_source_pcap_new(dev, protocols, gotapacket, NULL,
+                                      G_PRIORITY_DEFAULT, FALSE, NULL, 0, NULL);
 
 	if (NULL == pktsource) {
 		fprintf(stderr, "Cannot create new packet source!\n");

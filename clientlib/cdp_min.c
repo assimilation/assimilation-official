@@ -244,9 +244,9 @@ get_cdptlv_next(const void* tlv_vp, 	///< [in]Pointer to first byte of current T
 /// Get the chassis ID associated with this CDP packet.
 /// @return pointer to chassis ID memory area and also length of the chassis ID
 const void*
-get_cdp_chassis_id(const void* packet,		///< [in]Pointer to a the start of a CDP packet
-                   gsize*     idlength,	///< [out]length of chassis id
-                   const void* pktend)		///< [in]Pointer of first byte past end of CDP packet
+get_cdp_chassis_id(gconstpointer packet,		///< [in]Pointer to a the start of a CDP packet
+                   gssize*     idlength,	///< [out]length of chassis id
+                   gconstpointer pktend)		///< [in]Pointer of first byte past end of CDP packet
 {
 	const void *	tlv_vp;
 	for (tlv_vp=get_cdptlv_first(packet, pktend);
@@ -265,9 +265,9 @@ get_cdp_chassis_id(const void* packet,		///< [in]Pointer to a the start of a CDP
 /// get the port ID associated with this CDP packet
 /// @return pointer to port ID memory area and also length of the port ID
 const void*
-get_cdp_port_id(const void* packet,	///< [in]Pointer to a the start of a CDP packet
-                gsize*     idlength,	///< [out]length of chassis id
-                const void* pktend)	///< [in]Pointer of first byte past end of CDP packet
+get_cdp_port_id(gconstpointer packet,	///< [in]Pointer to a the start of a CDP packet
+                gssize*     idlength,	///< [out]length of chassis id
+                gconstpointer pktend)	///< [in]Pointer of first byte past end of CDP packet
 {
 	const void *	tlv_vp;
 	for (tlv_vp=get_cdptlv_first(packet, pktend);

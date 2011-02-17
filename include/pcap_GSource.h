@@ -25,13 +25,15 @@ struct _GSource_pcap {
 	const char*	capturedev;	///< Capture device name
 	unsigned	listenmask;	///< Protocols selected from @ref pcap_protocols
 	gint		gsourceid;	///< Source ID from g_source_attach()
+	gpointer	userdata;	///< Saved user data	
         ///[in] user dispatch function - we call it when a packet is read
         gboolean (*dispatch)(GSource_pcap_t* gsource,	///<[in] object causing the dispatch
 			     pcap_t* capstruct,		///<[in] Pointer to structure doing the capturing for us
-                             const u_char * pkt,	///<[in] Pointer to the packet just read in
-                             const u_char * pend,	///<[in] Pointer to first byte past 'pkt'
+                             gconstpointer pkt,	///<[in] Pointer to the packet just read in
+                             gconstpointer pend,	///<[in] Pointer to first byte past 'pkt'
                              const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header
-                             const char * capturedev);	///<[in] Device being captured
+                             const char * capturedev,	///<[in] capture device name
+			     gpointer userdata);	///<[in] Device being captured
 					///<[in] called when new pcap data has arrived
 	GDestroyNotify	destroynote;	///<[in] function to call when we're destroyed...
 };
@@ -41,16 +43,18 @@ GSource* g_source_pcap_new(const char * dev,
         	  	   gboolean (*dispatch)
                             (GSource_pcap_t*	gsource, ///< Gsource object causing dispatch
                              pcap_t* capstruct,		///<[in] Pointer to structure capturing for us
-                             const u_char * pkt,	///<[in] Pointer to the packet just read in
-                             const u_char * pend,	///<[in] Pointer to first byte past 'pkt'
+                             gconstpointer pkt,	///<[in] Pointer to the packet just read in
+                             gconstpointer pend,	///<[in] Pointer to first byte past 'pkt'
                              const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header
-                             const char * capturedev	///<[in] Device being captured
+                             const char * capturedev,	///<[in] Device being captured
+			     gpointer userdata		///<[in/out] user object pointer
 			    ),
 			   GDestroyNotify notify,
 			   gint priority,
 			   gboolean can_recurse,
 			   GMainContext* context,
-			   gsize objectsize
+			   gsize objectsize,
+			   gpointer userdata
 			  );
 FrameSet* construct_pcap_frameset(guint16 framesettype, gconstpointer pkt, gconstpointer pktend,
 				  const struct pcap_pkthdr* pkthdr, const char * interface);
