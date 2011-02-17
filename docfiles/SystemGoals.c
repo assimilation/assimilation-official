@@ -21,4 +21,13 @@
 @section LesserSystemGoals Sexy or otherwise good goals to consider
 - Mobile clients - iPad, iPhone, Android all come to mind...
 - Lifecycle management (update mechanisms) may show up as a GoodThing&tm; eventually...
+
+@section UltimateGoals Long Term Road Map
+This is the long term road map for where I'd like to see the project go:
+- provide a reliable host monitoring service
+- provide a reliable service monitoring service (integrating the LRM at least on Linux)
+- provide a service discovery capability
+- provide a statistics collection service
+- provide system control facilities (using the LRM)
+- provide overall server collection management facilities (cloud workload management)
 */
