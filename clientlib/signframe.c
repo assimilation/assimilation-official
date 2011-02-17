@@ -26,7 +26,7 @@ FSTATIC gpointer _signframe_compute_cksum(GChecksumType, gconstpointer tlvptr, g
 ///@defgroup SignFrame SignFrame class
 /// Class for holding/storing C-style null-terminated strings
 /// @{
-/// @ingroup C_Classes
+/// @ingroup Frame
 
 /// Internal helper routine for computing checksum on data in a frame.
 /// It is used both for computing checksums on "new" data and verifying checksums on received packets.

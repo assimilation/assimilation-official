@@ -31,7 +31,7 @@ FSTATIC void _addrframe_addr_finalize(void * addr);
 ///@defgroup AddrFrame AddrFrame class
 /// Class for holding/storing various kinds of self-identifying network addresses.
 /// @{
-/// @ingroup C_Classes
+/// @ingroup Frame
 
 /// Default @ref AddrFrame 'isvalid' member function (always returns TRUE)
 FSTATIC gboolean

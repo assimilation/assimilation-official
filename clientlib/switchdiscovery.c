@@ -22,7 +22,7 @@ FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gco
 ///@defgroup SwitchDiscovery SwitchDiscovery class
 /// Class providing a SwitchDiscovery class for discovering network switches
 /// @{
-/// @ingroup C_Classes
+/// @ingroup Discovery
 
 /// finalize a SwitchDiscovery object
 FSTATIC void

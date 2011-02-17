@@ -24,9 +24,9 @@ struct _SwitchDiscovery {
 	GSource*	source;
 	void		(*finalize)(Discovery* self); /// Parent class destructor
 	gpointer	switchid;
-	gint		switchidlen;
+	gssize		switchidlen;
 	gpointer	portid;
-	gint		portidlen;
+	gssize		portidlen;
 };
 
 SwitchDiscovery* switchdiscovery_new(gsize, const char *, guint, gint, GMainContext*);

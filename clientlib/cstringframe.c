@@ -23,7 +23,7 @@ FSTATIC gboolean _cstringframe_default_isvalid(Frame *, gconstpointer, gconstpoi
 ///@defgroup CstringFrame CstringFrame class
 /// Class for holding/storing C-style null-terminated strings
 /// @{
-/// @ingroup C_Classes
+/// @ingroup Frame
 
 /// @ref CstringFrame 'isvalid' member function (checks for valid C-style string)
 FSTATIC gboolean
