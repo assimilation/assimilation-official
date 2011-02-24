@@ -102,7 +102,7 @@ switchdiscovery_new(gsize objsize, const char * dev, guint listenmask, gint prio
 }
 
 typedef struct _SwitchDiscoveryType SwitchDiscoveryType;
-struct _SwitchDiscoveryType {
+static struct _SwitchDiscoveryType {
 	const char *	discoverytype;
 	gboolean (*isthistype)(gconstpointer tlv_vp, gconstpointer pktend);
 	gconstpointer (*get_switch_id)(gconstpointer tlv_vp, gssize* idlength, gconstpointer pktend);
@@ -120,6 +120,7 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
                            gconstpointer pktend)   ///<[in] Pointer to first byte past 'pkt'
 {
 	int		j;
+	///@todo deal with switches that send both LLDP and CDP packets
 
 	for (j=0; j < DIMOF(discovery_types); ++j) {
 		gconstpointer	curswitchid;
@@ -152,5 +153,4 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 	}
 	return FALSE;
 }
-
 ///@}

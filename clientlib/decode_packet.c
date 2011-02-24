@@ -71,6 +71,7 @@ _decode_packet_init(void)
 		frametypemap[framemap[j].frametype] = framemap[j].constructor;
 	}
 }
+
 /// Given a pointer to a TLV entry for the data corresponding to a Frame, construct a corresponding Frame
 FSTATIC Frame*
 _decode_packet_framedata_to_frameobject(gconstpointer pktstart, gconstpointer pktend, void const ** nextframe)
@@ -146,6 +147,4 @@ pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend)
 	}
 	return ret;
 }
-
-
 ///@}
