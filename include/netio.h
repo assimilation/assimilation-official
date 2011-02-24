@@ -28,8 +28,11 @@ struct _NetIO {
 	SignFrame*	_signframe;
 	Frame*		_cryptframe;
 	Frame*		_compressframe;
+	gint		_maxpktsize;
 	gboolean	(*bindaddr)(NetIO*, const NetAddr*);	///< Bind this object to the given address
 	gint		(*getfd)(const NetIO* self);		///< Return file/socket descriptor
+	gsize		(*getmaxpktsize)(const NetIO* self);	///< Return maximum packet size
+	gsize		(*setmaxpktsize)(NetIO*, gsize);	///< Set maximum packet size
 	void		(*sendframesets)			///< Send a FrameSet list.
 								///< @pre must have non-NULL _signframe
 				(NetIO* self,			///< 'this' object pointer

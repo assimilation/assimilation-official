@@ -11,7 +11,8 @@
 #ifndef _PROJECTCOMMON_H
 #define _PROJECTCOMMON_H
 #define	DIMOF(a)	(sizeof(a)/sizeof(a[0]))	///< Return dimension of array.
-#define	MALLOC0(nbytes)	g_try_malloc(nbytes)		///< should it just call g_malloc?
+#define	MALLOC0(nbytes)	g_try_malloc0(nbytes)		///< should it just call g_malloc?
+#define	MALLOC(nbytes)	g_try_malloc(nbytes)		///< should it just call g_malloc?
 #define	MALLOCTYPE(t)	(g_try_new0(t, 1))		///< malloc an object of type 't'.
 							///< Or should it just call g_new0?
 #define	FREE(m)		g_free(m)			///< Our interface to free
