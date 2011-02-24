@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <glib.h>
+#include <decode_packet.h>
 #include <address_family_numbers.h>
 #include <proj_classes.h>
 #include <netio.h>
@@ -235,8 +236,21 @@ FSTATIC GSList*
 _netio_recvframesets(NetIO*self , NetAddr** src)
 {
 	GSList*		ret = NULL;
+	gpointer	pkt;
+	gpointer	pktend;
+	socklen_t	addrlen;
+	struct sockaddr	srcaddr;
 
+	pkt = _netio_recvapacket(self, &pktend, &srcaddr, &addrlen);
+
+	if (NULL != pkt) {
+		ret = pktdata_to_frameset_list(pkt, pktend);
+		if (NULL != ret) {
+			*src = netaddr_new_from_sockaddr(&srcaddr, addrlen);
+		}else{
+			FREE(ret); ret = NULL;
+		}
+	}
 	return ret;
 }
-
 ///@}
