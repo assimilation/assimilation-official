@@ -20,9 +20,11 @@ typedef struct _Frame Frame;
 
 ///@{
 /// @ingroup Frame
-/// This is the base class @ref Frame object (in-memory <b>TLV</b> (type, length, value)).
+
+/// This is the base @ref Frame object (in-memory <b>TLV</b> (type, length, value))
+/// for every general component of a packet.
 /// It is an in-memory representation of Frames which might come from or go to the wire.
-/// It is basically a class from which we make many subclasses,
+/// It is the base class for all @ref Frame objects,
 /// and is managed by our @ref ProjectClass system.
 struct _Frame {
 	guint16		type;				///< Frame <b>T</b>ype (see @ref IndividualFrameFormats - frameformats.h )
