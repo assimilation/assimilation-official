@@ -65,9 +65,9 @@ so that it can be easily distributed by the system administrator.
 If the client monitors and captures contents of the local ARP cache and periodically announces
 the appearance of new IP and/or MAC addresses, then this could be valuable to the discovery
 process.
-Presumably having the central server monitor DHCP address assignment could also be interesting.
-I would assume that the probing of OS and so on would be performed by the central monitoring
-authority.
+Presumably having the central server monitor DHCP address assignment could be interesting.
+Current thinking is that network probing of OS, services and so on would be performed by
+the central monitoring authority - for those cases where a local agent cannot be installed.
 
 @subsection lldp_cdp The role of LLDP and CDP in the configuration process.
 In order to be as topology sensitive as we would like to be, it is necessary to know some things
@@ -83,6 +83,8 @@ of information available - IEEE's 801.2AB (LLDP) protocol and Cisco's - Cisco Di
 Both of these provide a unique identifier of which switch a server is connected to.
 So, we collect this information and send it up to the central monitoring entity when it is available.
 
+For more details on this see the
+@ref AutoConfigureStrategy "Autoconfigure Strategy and Philosophy" page.  
 */
 /** @defgroup todos_project Project-wide (global) todos
  *  @{ 
