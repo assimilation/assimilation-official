@@ -181,8 +181,8 @@ get_generic_tlv_next(gconstpointer tlv_vp,		///<[in] Pointer to  current TLV ent
 
 /// Return pointer to the next TLV entry of the given type at or after the current location
 gconstpointer
-find_next_generic_tlv_type(gconstpointer tlv_vp,	///< [in] Pointer to the current TLV
-                       guint16 tlvtype,	///< [in] Type of TLV we're looking for
+find_next_generic_tlv_type(gconstpointer tlv_vp,///< [in] Pointer to the current TLV
+                       guint16 tlvtype,		///< [in] Type of TLV we're looking for
                        gconstpointer pktend)	///< [in] Pointer to first byte beyond the packet.
 {
 	while (NULL != tlv_vp && ((const guint8*)tlv_vp+GENERICTLV_HDRSZ) <= (const guint8*)pktend) {

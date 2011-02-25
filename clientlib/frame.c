@@ -28,7 +28,7 @@
  * @defgroup FrameFormats 'Frame' data format on the wire
  * @{
  * @ingroup GenericFrameFormats
- * Below is the general format for a frame.
+ * Below is the general format for a Frame.
  * <PRE>
  * +--------------+-----------+------------------+
  * |   frametype  | f_length  |  frame-value(s)  |
@@ -40,15 +40,16 @@
  * and structure of "frameval" is.
  * The formats of individual frame types are documented above the #defines for each frame type in the
  * group @ref IndividualFrameFormats.
+ * The generic (base class) Frame is a simple binary object (blob) type Frame.
  * @}
  * @}
  */
 FSTATIC void _frame_default_finalize(Frame * self);
 FSTATIC gsize _frame_total_size(Frame* f);
-FSTATIC gboolean _frame_default_isvalid(Frame *, gconstpointer,	gconstpointer);
+FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpointer);
 FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
-FSTATIC void _frame_dump(Frame *, const char * prefix);
+FSTATIC void _frame_dump(const Frame *, const char * prefix);
 
 ///@defgroup Frame Frame class
 ///@{
@@ -83,7 +84,7 @@ _frame_total_size(Frame* f)	///< Frame to return the marshalled size of
 
 /// Default @ref Frame 'isvalid' member function (always returns TRUE)
 FSTATIC gboolean
-_frame_default_isvalid(Frame * self,		///< Frame object ('this')
+_frame_default_isvalid(const Frame * self,		///< Frame object ('this')
 		       gconstpointer tlvptr,	///< Pointer to the TLV for this Frame
 		       gconstpointer pktend)	///< Pointer to one byte past the end of the packet
 {
@@ -93,7 +94,7 @@ _frame_default_isvalid(Frame * self,		///< Frame object ('this')
 /// 'setvalue' @ref Frame member function.
 FSTATIC void
 _frame_setvalue(Frame * self,			///< Frame object ('this')
-		gpointer value,		///< Value to save away
+		gpointer value,			///< Value to save away
 		guint16	length,			///< Length of value
 		GDestroyNotify valnotify)	///< Value destructor.
 {
@@ -144,7 +145,8 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 /// Given marshalled data corresponding to a Frame (basic binary frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Frame
+		     gconstpointer pktend)	///<[in] first invalid byte past 'tlvstart'
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
@@ -156,8 +158,11 @@ frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 	ret->setvalue(ret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
 	return ret;
 }
+/// Basic "dump a frame" member function - we use g_debug() for output.
+/// It would be nice for derived classes to override this as appropriate.
 void
-_frame_dump(Frame * f, const char * prefix)
+_frame_dump(const Frame * f,			///<[in
+	    const char * prefix)
 {
 	g_debug("%s%s: type = %d, length = %d", 
 		prefix,

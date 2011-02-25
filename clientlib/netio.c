@@ -44,7 +44,7 @@ FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
 
 /// Member function to return the file descriptor underlying this NetIO object
 FSTATIC gint
-_netio_getfd(const NetIO* self)
+_netio_getfd(const NetIO* self)	///< [in] The object whose file descriptor is being returned
 {
 	g_return_val_if_fail(NULL != self, -1);
 	g_return_val_if_fail(NULL != self->giosock, -1);
@@ -53,7 +53,8 @@ _netio_getfd(const NetIO* self)
 
 /// Member function to bind this NewIO object to a NetAddr address
 FSTATIC gboolean
-_netio_bindaddr(NetIO* self, const NetAddr* src)
+_netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
+		const NetAddr* src)	///<[in] The address to bind it to
 {
 	gint			sockfd;
 	struct sockaddr_in6	saddr;
@@ -93,7 +94,7 @@ _netio_bindaddr(NetIO* self, const NetAddr* src)
 }
 /// Member function to free this NetIO object.
 FSTATIC void
-_netio_finalize(NetIO* self)
+_netio_finalize(NetIO* self)	///<[in/out] The object being freed
 {
 	g_return_if_fail(self != NULL);
 	if (self->giosock) {
@@ -106,13 +107,13 @@ _netio_finalize(NetIO* self)
 }
 
 FSTATIC gsize
-_netio_getmaxpktsize(const NetIO* self)
+_netio_getmaxpktsize(const NetIO* self)	///<[in] The object whose max pkt size is being returned
 {
 	return self->_maxpktsize;
 }
 
 FSTATIC gsize
-_netio_setmaxpktsize(NetIO* self, gsize maxpktsize)
+_netio_setmaxpktsize(NetIO* self, gsize maxpktsize) ///<[in] The object whose max packet size to set
 {
 	self->_maxpktsize = maxpktsize;
 	return self->getmaxpktsize(self);
@@ -120,7 +121,7 @@ _netio_setmaxpktsize(NetIO* self, gsize maxpktsize)
 
 /// NetIO constructor.
 NetIO*
-netio_new(gsize objsize)
+netio_new(gsize objsize)	///<[in] The size of the object to construct (or zero)
 {
 	NetIO* ret;
 
@@ -141,7 +142,10 @@ netio_new(gsize objsize)
 
 /// NetIO internal function to send a packet (datagram)
 FSTATIC void
-_netio_sendapacket(NetIO* self, gconstpointer packet, gconstpointer pktend, const NetAddr* destaddr)
+_netio_sendapacket(NetIO* self,
+		   gconstpointer packet,	///<[in] Packet to send
+		   gconstpointer pktend,	///<[in] one byte past end of packet
+		   const NetAddr* destaddr)	///<[in] where to send it
 {
 	struct sockaddr_in6 v6addr = destaddr->ipv6addr(destaddr);
 	gssize length = (const guint8*)pktend - (const guint8*)packet;
@@ -154,10 +158,12 @@ _netio_sendapacket(NetIO* self, gconstpointer packet, gconstpointer pktend, cons
 
 /// NetIO member function to send a GSList of FrameSets.
 /// @todo consider optimizing this code to send multiple FrameSets in a single datagram -
-/// assuming we start constructing GSLists with more than one FrameSet in it on a regular
-/// basis.
+/// using sendmsg(2) assuming we start constructing GSLists with more than one FrameSet
+/// in it on a regular basis.
 FSTATIC void
-_netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets)
+_netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the sending
+		     const NetAddr* destaddr,	///< [in] Where to send the FrameSets
+		     GSList* framesets)		///< [in] The framesets being sent
 {
 	GSList*	curfsl;
 	g_return_if_fail(self != NULL);
@@ -170,7 +176,8 @@ _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets)
 	/// and would be followed by a sendmsg(2) call - eliminating sendapacket() above.
 	for (curfsl=framesets; curfsl != NULL; curfsl=curfsl->next) {
 		FrameSet* curfs = CASTTOCLASS(FrameSet, curfsl->data);
-		frameset_construct_packet(curfs, self->signframe(self), self->cryptframe(self), self->compressframe(self));
+		frameset_construct_packet(curfs, self->signframe(self),
+		                          self->cryptframe(self), self->compressframe(self));
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 	}
 }
@@ -183,7 +190,10 @@ _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets)
 /// - check for errors
 /// - return received message, length, etc.
 FSTATIC gpointer
-_netio_recvapacket(NetIO* self, gpointer* pktend, struct sockaddr* srcaddr, socklen_t* addrlen)
+_netio_recvapacket(NetIO* self,
+		   gpointer* pktend,		///<[out] Pointer to one past end of packet
+		   struct sockaddr* srcaddr,	///<[*out] Pointer to source address as sockaddr
+		   socklen_t* addrlen)		///<[out] length of address in 'srcaddr'
 {
 	char		dummy[8]; // Make GCC stack protection happy...
 	ssize_t		msglen;
@@ -233,7 +243,9 @@ _netio_recvapacket(NetIO* self, gpointer* pktend, struct sockaddr* srcaddr, sock
 }
 /// Member function to receive a collection of FrameSets (GSList*) out of our NetIO object
 FSTATIC GSList*
-_netio_recvframesets(NetIO*self , NetAddr** src)
+_netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of FrameSets
+					///< from a single address.
+		     NetAddr** src)	///<[out] constructed source address for FrameSets
 {
 	GSList*		ret = NULL;
 	gpointer	pkt;

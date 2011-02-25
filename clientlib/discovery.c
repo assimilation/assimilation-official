@@ -16,21 +16,21 @@
 /// @{
 /// @ingroup C_Classes
 
-FSTATIC const char *	_discovery_discoveryname(Discovery* self);
-FSTATIC guint		_discovery_discoverintervalsecs(Discovery* self);
+FSTATIC const char *	_discovery_discoveryname(const Discovery* self);
+FSTATIC guint		_discovery_discoverintervalsecs(const Discovery* self);
 FSTATIC void		_discovery_finalize(Discovery* self);
-FSTATIC gboolean	_discovery_rediscover(void* vself);
+FSTATIC gboolean	_discovery_rediscover(gpointer vself);
 
 /// internal function return the type of Discovery object
 FSTATIC const char *
-_discovery_discoveryname(Discovery* self)
+_discovery_discoveryname(const Discovery* self)	///<[in] object whose type to return
 {
 	return proj_class_classname(self);
 }
 
 /// default function return zero for discovery interval
 FSTATIC guint
-_discovery_discoverintervalsecs(Discovery* self)
+_discovery_discoverintervalsecs(const Discovery* self)	///<[in] Object whose interval to return
 {
 	return 0;
 }
@@ -38,7 +38,7 @@ static GSList * _discovery_timers = NULL;
 
 /// Finalizing function for Discovery objects
 FSTATIC void
-_discovery_finalize(Discovery* self)
+_discovery_finalize(Discovery* self)	///<[in/out] Object to finalize (free)
 {
 	if (self->_timerid >= 0) {
 		g_source_remove(self->_timerid);
@@ -50,7 +50,7 @@ _discovery_finalize(Discovery* self)
 /// GSourceFunc function to invoke discover member function at the timed interval.
 /// This function is called by the g_main_loop mechanism when the rediscover timeout elapses.
 FSTATIC gboolean
-_discovery_rediscover(void* vself)
+_discovery_rediscover(gpointer vself)	///<[in/out] Object to perform discovery on
 {
 	Discovery*	self = CASTTOCLASS(Discovery, vself);
 
@@ -62,7 +62,7 @@ _discovery_rediscover(void* vself)
 /// That is certainly what will happen if you try and construct one of these objects directly and
 /// then use it.
 Discovery*
-discovery_new(gsize objsize)
+discovery_new(gsize objsize)	///<[in] number of bytes to malloc for the object (or zero)
 {
 	Discovery * ret = MALLOCCLASS(Discovery, objsize < sizeof(Discovery) ? sizeof(Discovery) : objsize);
 	g_return_val_if_fail(ret != NULL, NULL);
@@ -73,24 +73,23 @@ discovery_new(gsize objsize)
 	ret->_timerid			= -1;
 	return ret;
 }
-/// Function for registering a discovery function with the discovery infrastructure.
+
+/// Function for registering a discovery object with the discovery infrastructure.
 /// It runs the discover function, then schedules it for repeated discovery - if appropriate.
 /// It "knows" how often to rediscover things by calling the discoverintervalsecs() member
 /// function.  If that function returns a value greater than zero, then this discovery object
 /// will be "re-discovered" according to the number of seconds returned.
 ///
 void
-discovery_register(Discovery* self)
+discovery_register(Discovery* self)	///<[in/out] Discovery object to register
 {
 	gint	timeout;
 	self->discover(self);
 	timeout = self->discoverintervalsecs(self);
 	if (timeout > 0) {
 		self->_timerid = g_timeout_add_seconds(timeout, _discovery_rediscover, self);
-		if (self->_timerid >= 0) {
-			_discovery_timers = g_slist_prepend(_discovery_timers, self);
-		}
 	}
+	_discovery_timers = g_slist_prepend(_discovery_timers, self);
 }
 
 ///@}

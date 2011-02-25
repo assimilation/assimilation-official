@@ -1,9 +1,9 @@
 /**
  * @file
- * @brief Implements minimal client-oriented Frame and Frameset capabilities.
- * @details This file contains the minimal Frameset capabilities for a client -
- * enough for it to be able to construct, understand and validate Frames
- * and Framesets.
+ * @brief Implements basic Frame class.
+ * @details This Frame base class defines semantics for simple binary (blob) frames
+ * without any further refined semantics.  It is used as the base class for
+ * several derived classes.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
@@ -30,13 +30,13 @@ struct _Frame {
 	gpointer	value;				///< Frame <b>V</b>alue (pointer)
 	gsize		(*dataspace)(Frame* self);	///< How much space is needed to marshall this Frame?
 	void		(*updatedata)(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs); ///< Update packet data
-	gboolean	(*isvalid)(Frame* self, gconstpointer tlvptr, gconstpointer pktend); ///< TRUE if TLV data looks valid...
+	gboolean	(*isvalid)(const Frame* self, gconstpointer tlvptr, gconstpointer pktend); ///< TRUE if TLV data looks valid...
 	
 	void		(*setvalue)(Frame* self,
 				    gpointer value,
 				    guint16 length,
 				    GDestroyNotify valfinal);		///< member function for setting value
-	void		(*dump)(Frame* self, const char * prefix);	///< member function for dumping Frame
+	void		(*dump)(const Frame* self, const char * prefix);///< member function for dumping Frame
 	GDestroyNotify	valuefinalize;			///< optional method for finalizing value
 	void		(*finalize)(Frame*);		///< Frame Destructor
 };

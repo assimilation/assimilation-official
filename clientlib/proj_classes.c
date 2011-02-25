@@ -159,7 +159,7 @@ proj_class_castas(gpointer object,		///< Object to be "casted"
 
 /// Return the class name of one of our managed objects
 const char *
-proj_class_classname(gpointer object) ///< pointer to the object whose name we want to find
+proj_class_classname(gconstpointer object) ///< pointer to the object whose name we want to find
 {
 	GQuark		objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
 	return (objquark == 0 ? "(unknown class)" : g_quark_to_string(objquark));

@@ -2,6 +2,7 @@
  * @file
  * @brief Implements the @ref UnknownFrame class - A frame for C-style null-terminated strings
  * @details UnknownFrames are a frame that we don't recognize.
+ * These can be caused by software version mismatches between communicating systems.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
@@ -17,7 +18,7 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 
-FSTATIC gboolean _unknownframe_default_isvalid(Frame *, gconstpointer, gconstpointer);
+FSTATIC gboolean _unknownframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 
 ///@defgroup UnknownFrame UnknownFrame class
 /// Class representing an unrecogized or unknown type of frame in a packet.
@@ -26,10 +27,11 @@ FSTATIC gboolean _unknownframe_default_isvalid(Frame *, gconstpointer, gconstpoi
 
 /// @ref UnknownFrame 'isvalid' member function (always returns FALSE)
 FSTATIC gboolean
-_unknownframe_default_isvalid(Frame * self,		///<[in] UnknownFrame object ('this')
+_unknownframe_default_isvalid(const Frame * self,		///<[in] UnknownFrame object ('this')
 			      gconstpointer tlvptr,	///<[in] Pointer to the TLV for this UnknownFrame
 			      gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
+	///@todo think about whether unknown frames are always valid, or always invalid...
 	return FALSE;
 }
 

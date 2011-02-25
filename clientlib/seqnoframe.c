@@ -21,7 +21,7 @@ FSTATIC guint64 _seqnoframe_getreqid(SeqnoFrame * self);
 FSTATIC void _seqnoframe_setqid(SeqnoFrame * self, guint16 value);
 FSTATIC guint16 _seqnoframe_getqid(SeqnoFrame * self);
 FSTATIC void _seqnoframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
-FSTATIC gboolean _seqnoframe_isvalid(Frame*, gconstpointer, gconstpointer);
+FSTATIC gboolean _seqnoframe_isvalid(const Frame*, gconstpointer, gconstpointer);
 
 ///@defgroup SeqnoFrame SeqnoFrame class
 ///@{
@@ -74,7 +74,7 @@ _seqnoframe_updatedata(Frame* fself,		///< object whose data will be put into Fr
 
 /// Return TRUE if this integer is valid - basically is it of one of our supported lengths...
 FSTATIC gboolean
-_seqnoframe_isvalid(Frame* self,			///< Frame to validate
+_seqnoframe_isvalid(const Frame* self,			///< Frame to validate
 		  gconstpointer tlvptr,		///< TLV pointer to our TLV
 		  gconstpointer pktend)		///< pointer to one byte past end of packet
 {
@@ -108,8 +108,10 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	sframe->baseclass.length = sizeof(guint64)+sizeof(guint16);
 	return sframe;
 }
+/// Construct Frame (SeqnoFrame) object from marshalled packet data
 Frame*
-seqnoframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+seqnoframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of SeqnoFrame TLV area
+			  gconstpointer pktend)		///<[in] first byte past end of packet
 {
 	SeqnoFrame*	ret;
 	guint16		length  = get_generic_tlv_len(tlvstart, pktend);

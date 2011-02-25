@@ -1,11 +1,7 @@
 
 /**
  * @file
- * @brief Implements minimal client-oriented Frame and Frameset capabilities.
- * @details This file contains the minimal Frameset capabilities for a client -
- * enough for it to be able to construct, understand and validate Frames
- * and Framesets.
- *
+ * @brief IETF/IANA Address family assignments
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -20,14 +16,15 @@
 ///@{
 /// This information was taken from
 /// http://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
-/// as described by RFC 3232
+/// as described by RFC 3232.  There are a LOT more.  This is more than we have any idea
+/// what to do with as it is...
 ///
 #define ADDR_FAMILY_IPV4	1	///< IPv4
 #define ADDR_FAMILY_IPV6	2	///< IPv7
 #define ADDR_FAMILY_NSAP	3
 #define ADDR_FAMILY_HDLC	4
 #define ADDR_FAMILY_BBN1822	5
-#define ADDR_FAMILY_802		6
+#define ADDR_FAMILY_802		6	///< Level 2 physical (MAC) addresses
 #define ADDR_FAMILY_E163	7
 #define ADDR_FAMILY_E164	8
 #define ADDR_FAMILY_F69		9

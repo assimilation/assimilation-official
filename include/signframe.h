@@ -1,7 +1,9 @@
 
 /**
  * @file
- * @brief Describes interfaces to C-String Frame (Signframe) C-Class - providing digital signatures
+ * @brief Describes interfaces to Signature Frame (Signframe) C-Class - providing digital signatures
+ * @details Base class for digital signatures.  They can be simple (like the current implementation)
+ * and provide data integrity, but not data security, or eventually full-fledged digital signatures.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -18,6 +20,7 @@ typedef struct _SignFrame SignFrame;
 /// This is a fairly special type of @ref Frame - it has no data of its own, and it
 /// constructs data based on the portion of the packet that comes after it in the
 /// FrameList-constructed packet.
+/// Not too surprising for a digital signature Frame.
 ///@{
 /// @ingroup SignFrame
 struct _SignFrame {

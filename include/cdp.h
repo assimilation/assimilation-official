@@ -1,6 +1,8 @@
 /**
  * @file
  * @brief Header file for various basic CDP (Cisco Discovery Protocol definitions and accessor functions.
+ * There is a lot that's not documented and not understood about this protocol.
+ * But what we understand is somewhat documented here.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

@@ -1,6 +1,9 @@
 /**
  * @file
- * @brief Simple pcap interface code header file
+ * @brief Simple libpcap interface definitions
+ * @details Creates a libpcap <b>pcap_t</b> listener for the given set of protocols.
+ * This is a <i>much</i> higher level, but much less flexible approach than the native libpcap interface.
+ *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

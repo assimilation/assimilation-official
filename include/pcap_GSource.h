@@ -1,7 +1,9 @@
 /**
  * @file
  * @brief libpcap Packet capture Gsource interface description
+ * @details
  * This code creates a GSource object for capturing our LLDP or libpcap packets.
+ * @todo recode the g_source_pcap stuff to be classes in our C-Class system.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

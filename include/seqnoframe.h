@@ -12,8 +12,6 @@
 
 #ifndef _SEQNOFRAME_H
 #define _SEQNOFRAME_H
-#include <seqnoframe.h>
-
 
 /// This is an @ref SeqnoFrame <b>TLV</b> (type, length, value) frame.
 /// It is a subclass of the @ref Frame.

@@ -19,7 +19,7 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 
-FSTATIC gboolean _signframe_isvalid(Frame *, gconstpointer, gconstpointer);
+FSTATIC gboolean _signframe_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void _signframe_updatedata(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs);
 FSTATIC gpointer _signframe_compute_cksum(GChecksumType, gconstpointer tlvptr, gconstpointer pktend);
 
@@ -80,7 +80,7 @@ _signframe_compute_cksum(GChecksumType cksumtype,	///<[in] checksum type
 
 /// @ref SignFrame 'isvalid' member function - verifies the digital signature.
 FSTATIC gboolean
-_signframe_isvalid(Frame * self,		///< SignFrame object ('this')
+_signframe_isvalid(const Frame * self,		///< SignFrame object ('this')
 		   gconstpointer tlvptr,	///< Pointer to the TLV for this SignFrame
 		   gconstpointer pktend)	///< Pointer to one byte past the end of the packet
 {

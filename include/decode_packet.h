@@ -1,10 +1,6 @@
 /**
  * @file
- * @brief Implements minimal client-oriented Frame and Frameset capabilities.
- * @details This file contains the minimal Frameset capabilities for a client -
- * enough for it to be able to construct, understand and validate Frames
- * and Framesets.
- *
+ * @brief  This file defines a few functions and interfaces for unmarshalling packet data into FrameSets.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

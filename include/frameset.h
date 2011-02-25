@@ -45,7 +45,7 @@ guint16		frameset_get_flags(FrameSet* fs);
 guint16		frameset_set_flags(FrameSet* f, guint16 flagbits);
 guint16		frameset_clear_flags(FrameSet* f, guint16 flagbits);
 gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
-void		frameset_dump(FrameSet*);
+void		frameset_dump(const FrameSet*);
 
 #define		FRAMESETTYPE_HEARTBEAT		1	///< A heartbeat packet
 #define		FRAMESETTYPE_NAK		2	///< We don't like the frameset mentioned

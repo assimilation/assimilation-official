@@ -1,8 +1,8 @@
 /**
  * @file
  * @brief TLV helper functions.
- * The file provides a variety of getter and setter functions for TLV integers - all with error
- * checking.
+ * The file provides a variety of getter and setter functions for TLV integers -
+ * all with lots of error checking.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

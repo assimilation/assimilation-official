@@ -4,6 +4,7 @@
  * @details 
  * This code walks through an packet and creates a collection of @ref FrameSet "FramSet"s that correspond to
  * the @ref FrameSet "FrameSet"s that the originator created.
+ * In a lot of ways, this is all auxilliary functions for the @ref FrameSet objects.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -73,8 +74,11 @@ _decode_packet_init(void)
 }
 
 /// Given a pointer to a TLV entry for the data corresponding to a Frame, construct a corresponding Frame
+/// @return a decoded frame <i>plus</i> pointer to the first byte past this Frame (in 'nextframe')
 FSTATIC Frame*
-_decode_packet_framedata_to_frameobject(gconstpointer pktstart, gconstpointer pktend, void const ** nextframe)
+_decode_packet_framedata_to_frameobject(gconstpointer pktstart,	///<[in] Pointer to marshalled Frame data
+					gconstpointer pktend,	///<[in] Pointer to first invalid byte past 'pktstart'
+					void const ** nextframe)///<[out] Start of next frame (if any)
 {
 	guint16		frametype = get_generic_tlv_type(pktstart, pktend);
 	Frame*	ret;
@@ -90,8 +94,11 @@ _decode_packet_framedata_to_frameobject(gconstpointer pktstart, gconstpointer pk
 	return ret;
 }
 
+/// Construct a basic FrameSet object from the initial marshalled FrameSet data in a packet
 FSTATIC FrameSet*
-_decode_packet_get_frameset_data(gconstpointer vfsstart, gconstpointer vpktend, const void ** fsnext)
+_decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this FrameSet
+				 gconstpointer vpktend,		///<[in] First invalid byte after 'vfsstart'
+				 const void ** fsnext)		///<[out] Pointer to first byte after this FrameSet
 {
 	const guint8*	fsstart = vfsstart;
 	const guint8*	pktend = vpktend;
@@ -120,7 +127,8 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart, gconstpointer vpktend, 
 /// That is, it decodes the datagram/packet.
 /// @return GSList of @ref FrameSet object pointers.
 GSList*
-pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend)
+pktdata_to_frameset_list(gconstpointer pktstart,	///<[in] start of packet
+			 gconstpointer pktend)		///<[in] first byte past end of packet
 {
 	gconstpointer	curframeset = pktstart;
 	GSList*		ret = NULL;
@@ -129,14 +137,16 @@ pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend)
 		gconstpointer nextframeset = pktend;
 		gconstpointer curframe = (gconstpointer)((const guint8*)curframeset + FRAMESET_HDR_SIZE);
 		FrameSet* fs = _decode_packet_get_frameset_data(curframeset, pktend, &nextframeset);
+
 		g_return_val_if_fail(fs != NULL && nextframeset <= pktend, ret);
+
 		while (curframe < nextframeset) {
 			gconstpointer nextframe = nextframeset;
 			Frame* newframe;
 			newframe = _decode_packet_framedata_to_frameobject(curframe, nextframeset, &nextframe);
 			if (nextframe > nextframeset) {
 				newframe->finalize(newframe); newframe=NULL;
-				///@todo fix this: frameset_finalize(fs);
+				///@todo fix this: frameset_finalize(fs) for the error case
 				return ret;
 			}
 			frameset_append_frame(fs, newframe);

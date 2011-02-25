@@ -2,6 +2,7 @@
 /**
  * @file
  * @brief Describes interfaces to C-String Frame (Cstringframe) C-Class 
+ * It holds conventional zero-terminated byte strings.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

@@ -207,6 +207,7 @@ proj_get_real_time(void)
 	return ret;
 	
 }
+/// Convert <b>struct timeval</b> to g_get_real_time() style value
 FSTATIC guint64
 proj_timeval_to_g_real_time(const struct timeval * tv)
 {
@@ -216,6 +217,7 @@ proj_timeval_to_g_real_time(const struct timeval * tv)
 	return ret;
 }
 
+/// Construct a PCAP capture FrameSet from a PCAP packet
 FrameSet*
 construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create Frameset with
 			gconstpointer pkt,		  ///<[in] captured packet

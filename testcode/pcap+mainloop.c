@@ -31,14 +31,22 @@ GMainLoop*	loop = NULL;
 FrameSet* encapsulate_packet(gpointer, gpointer, const char *);
 gboolean gotapacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
 
+/// Test routine for encapsulating a packet in a FrameSet
+/// Eventually this will include the packet data, the interface information, and the source address
+/// of the packet.  These can be a Frame, CstringFrame, and an AddrFrame respectively.
+/// In this case, the AddrFrame will be for the MAC address - since there is no higher level
+/// protocol for these link level discovery protocols.
 FrameSet*
-encapsulate_packet(gpointer packet, gpointer pktend, const char * dev)
+encapsulate_packet(gpointer packet,
+		   gpointer pktend,
+		   const char * dev)
 {
 	///@todo finish encapsulate_packet
 	return NULL;
 
 }
 
+/// Routine called when a packet is received from the g_main_loop() mechanisms.
 gboolean
 gotapacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	   pcap_t *capfd,			///<[in]pcap capture object
@@ -109,6 +117,7 @@ gotapacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	return TRUE;
 }
 
+/// Test program looping and reading LLDP/CDP packets.
 int
 main(int argc, char **argv)
 {

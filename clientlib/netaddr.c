@@ -27,7 +27,11 @@
 
 /// Generic NetAddr constructor.
 NetAddr*
-netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen)
+netaddr_new(gsize objsize,				///<[in] Size of object to construct
+	    guint16 port,				///<[in] Port (if applicable)
+	    guint16 addrtype,				///<[in] IETF/IANA address type
+	    gconstpointer addrbody,			///<[in] Pointer to address body
+	    guint16 addrlen)				///<[in] Length of address
 {
 	NetAddr*	self;
 
@@ -51,7 +55,8 @@ netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbod
 }
 /// Create new NetAddr from a MAC address
 NetAddr*
-netaddr_new_from_macaddr(gconstpointer macbuf, guint16 maclen)
+netaddr_new_from_macaddr(gconstpointer macbuf,	///<[in] Pointer to physical (MAC) address
+			 guint16 maclen)	///<[in] length of 'macbuf'
 {
 	
 	g_return_val_if_fail(maclen >= 6, NULL);
@@ -61,10 +66,11 @@ netaddr_new_from_macaddr(gconstpointer macbuf, guint16 maclen)
 
 /// Create new NetAddr from a <b>struct sockaddr</b>
 NetAddr*
-netaddr_new_from_sockaddr(struct sockaddr *sa, socklen_t length)
+netaddr_new_from_sockaddr(const struct sockaddr *sa,	///<[in] struct sockaddr to construct address from
+			  socklen_t length)		///<[in] number of bytes in 'sa'
 {
-	struct sockaddr_in*	sa_in = (struct sockaddr_in*)sa;
-	struct sockaddr_in6*	sa_in6 = (struct sockaddr_in6*)sa;
+	const struct sockaddr_in*	sa_in = (const struct sockaddr_in*)sa;
+	const struct sockaddr_in6*	sa_in6 = (const struct sockaddr_in6*)sa;
 
 	switch(sa_in->sin_family) {
 		case AF_INET:

@@ -1,8 +1,9 @@
 /**
  * @file
- * @brief Implements the @ref CstringFrame class - A frame for C-style null-terminated strings
- * @details CstringFrames are
- * All we really add is validation that they have exactly one zero, and that one at the end...
+ * @brief Implements the @ref CstringFrame class - A Frame for C-style null-terminated strings
+ * @details All we really add above basic Frame objects
+ * is validation that they have exactly one zero, and that one at the end - normal 'C' string
+ * semantics.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
@@ -18,7 +19,7 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 
-FSTATIC gboolean _cstringframe_default_isvalid(Frame *, gconstpointer, gconstpointer);
+FSTATIC gboolean _cstringframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 
 ///@defgroup CstringFrame CstringFrame class
 /// Class for holding/storing C-style null-terminated strings
@@ -27,9 +28,9 @@ FSTATIC gboolean _cstringframe_default_isvalid(Frame *, gconstpointer, gconstpoi
 
 /// @ref CstringFrame 'isvalid' member function (checks for valid C-style string)
 FSTATIC gboolean
-_cstringframe_default_isvalid(Frame * self,	///< CstringFrame object ('this')
-			      gconstpointer tlvptr,	///< Pointer to the TLV for this CstringFrame
-			      gconstpointer pktend)	///< Pointer to one byte past the end of the packet
+_cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object ('this')
+			      gconstpointer tlvptr,	///<[in] Pointer to the TLV for this CstringFrame
+			      gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
 	gsize		length = get_generic_tlv_len(tlvptr, pktend);
 	const guint8*	stringstart = get_generic_tlv_value(tlvptr, pktend);
@@ -66,7 +67,8 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 /// return the corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-cstringframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+cstringframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
+			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

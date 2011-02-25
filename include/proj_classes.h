@@ -19,7 +19,7 @@ gpointer	proj_class_castas(gpointer object, const char * castclass);
 void		proj_class_register_subclassed(gpointer object, const char * static_subclassname);
 void		proj_class_quark_add_superclass_relationship(GQuark superclass, GQuark subclass);
 gboolean	proj_class_quark_is_a(GQuark objectclass, GQuark testclass);
-const char *	proj_class_classname(gpointer object);
+const char *	proj_class_classname(gconstpointer object);
 
 
 void proj_class_dump_live_objects(void);

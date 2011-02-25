@@ -1,6 +1,8 @@
 /**
  * @file
- * TLV helper interfaces definitions.
+ * @brief TLV helper interfaces definitions.
+ * @details Provides a bunch of generic getters and putters for TLV-style integer information.
+ * Used by all our TLV implementations (3 of them at this writing)
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

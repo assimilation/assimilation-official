@@ -1,7 +1,8 @@
 /**
  * @file
- * @brief Defines an abstract Network I/O interface (class)
+ * @brief Defines an abstract Network I/O class
  * @details This is an abstract class and should not be instantiated directly.
+ * It defines capabilities for sending and receiving @ref FrameSet "FrameSet"s.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
@@ -42,9 +43,9 @@ struct _NetIO {
 	SignFrame*	(*signframe)(NetIO*self);		///< return a copied SignFrame
 	Frame*		(*cryptframe)(NetIO*self);		///< return a copied encryption frame
 	Frame*		(*compressframe)(NetIO*self);		///< return a copied compression frame
-	void		(*set_signframe)(NetIO* self, SignFrame* sign);
-	void		(*set_cryptframe)(NetIO* self, Frame* crypt);
-	void		(*set_compressframe)(NetIO* self, Frame* compress);
+	void		(*set_signframe)(NetIO* self, SignFrame* sign);//< Set digital signature object
+	void		(*set_cryptframe)(NetIO* self, Frame* crypt);//< Set encryption object
+	void		(*set_compressframe)(NetIO* self, Frame* compress);//< Set compression object
 	void		(*finalize)(NetIO* self);		///< Finalize this NetIO object
 };
 NetIO*	netio_new(gsize objsize); // Don't call this directly! - this is an abstract class...

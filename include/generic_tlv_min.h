@@ -1,6 +1,8 @@
 /**
  * @file
- * @brief Provides definitions for using minimal client-oriented Generic TLV capabilities.
+ * @brief Provides definitions for using our generic TLV capabilities.
+ * @details We structure our packet bodies using this TLV (Type, Length, Value) approach
+ * so all the Frame-derived classes make good use of these generic TLV functions.
  * @see Frame
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>

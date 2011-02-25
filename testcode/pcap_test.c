@@ -2,7 +2,7 @@
  * @file
  * @brief Simple pcap testing code.
  * Reads a few packets from pcap capture files, and then listens for LLDP packets on the network.
- * Probably a short-lived piece of test code.
+ * Also does a few other basic unit tests that don't require a network.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -36,6 +36,7 @@ FSTATIC void cast_tests(void);
 pcap_t* create_pcap_listener(const char * dev, unsigned listenmask);
 
 
+/// Basic tests of our Class system, and for good measure testing of some Frame and FrameSet objects.
 FSTATIC void
 cast_tests(void)
 {
@@ -84,7 +85,7 @@ cast_tests(void)
 	fs->finalize(fs);
 	fs = NULL;
 	proj_class_dump_live_objects();
-	printf("C-class cast tests complete! - check output for errors.\n");
+	printf("C-class cast tests complete! - please check the output for errors.\n");
 }
 
 
@@ -93,6 +94,7 @@ cast_tests(void)
 
 #define PCAP	"pcap/"
 
+/// Main program for performing tests that don't need a network.
 int
 main(int argc, char **argv)
 {
@@ -103,8 +105,8 @@ main(int argc, char **argv)
 	const char * lldpfilenames []	= {PCAP "lldp.detailed.pcap", PCAP "procurve.lldp.pcap", PCAP "lldpmed_civicloc.pcap"};
 	const char * cdpfilenames  []	= {PCAP "cdp.pcap", PCAP "n0.eth2.cdp.pcap"};
 	
-	// make CRITICAL errors terminate the program too...
-	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	// make CRITICAL and WARNING errors terminate the program too...
+	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL|G_LOG_LEVEL_WARNING);
 	cast_tests();
 
 	// Parse some existing CDP files

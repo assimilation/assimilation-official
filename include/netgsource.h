@@ -2,6 +2,8 @@
  * @file
  * @brief Implements NetIO GSource object
  * @details This file contains the header definitions for NetIOGSource objects
+ * NetIOGsource objects are derived from the Glib GSource object type.
+ * We treat these as Classes in our C-Class implementation.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>

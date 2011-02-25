@@ -1,8 +1,9 @@
 /**
  * @file
  * @brief Defines a set of value types - used for semi-intelligent dumping of TLV data.
- * It defines a set of <i>data</i> types. Each <i>TLV</i> type is an object of a certain data type.
+ * @details It defines a set of <i>data</i> types. Each <i>TLV</i> type is an object of a certain data type.
  * We define those common sets of data types here.
+ * BUT THIS HEADER DOESN'T SEEM TO BE USED! - and I think the concept has changed since I wrote it. (?)
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

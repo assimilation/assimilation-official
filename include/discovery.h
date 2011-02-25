@@ -2,7 +2,18 @@
  * @file
  * @brief Semi-Abstract class (yes, really) defining discovery objects
  * @details It is only instantiated by derived classes.
+ * The basic idea of the Discovery base class is that we will want to discover a number of things locally
+ * and the way we can keep track of all the kinds of things we can discover, how often we should
+ * poll to re-discover them and so on is through this common base class.
  *
+ * We may also eventually add some class-common caching routines as well.
+ *
+ * Examples of things we probably eventually want to discover are:
+ * - Local switch configuration (LLDP/CDP) - implemented by the SwitchDiscovery class.
+ * - Local peers through the ARP cache (or whatever is analogous for ipv6)
+ * - Local network configuration (via ifconfig/ip et al)
+ * - Local network port usage
+ * - Local services running
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -18,11 +29,11 @@
 
 typedef struct _Discovery Discovery;
 struct _Discovery {
-	const char*	(*discoveryname)	(Discovery* self);	///< Which discovery object is this?
-	gboolean	(*discover)		(Discovery* self);	///< Perform the discovery
-	void		(*finalize)		(Discovery* self);	///< called during object destruction
-	guint		(*discoverintervalsecs)	(Discovery* self);	///< How often to re-discover this? (in seconds)
-	guint		_timerid;				///< Timer id for repeating discovery
+	const char*	(*discoveryname)	(const Discovery* self);	///< Which discovery object is this?
+	gboolean	(*discover)		(Discovery* self);		///< Perform the discovery
+	void		(*finalize)		(Discovery* self);		///< called during object destruction
+	guint		(*discoverintervalsecs)	(const Discovery* self);	///< How often to re-discover this? (in seconds)
+	guint		_timerid;						///< Timer id for repeating discovery
 };
 
 Discovery* discovery_new(gsize objsize);

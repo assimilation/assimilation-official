@@ -1,6 +1,8 @@
 /**
  * @file
  * @brief Describes interfaces to the Unknown Frame (UnknownFrame) C-Class
+ * @details Unknown frame types occur when one side sends a frame and the other side has older
+ * software that doesn't know about that Frame type.  Or due to bugs or simlar things :-D
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

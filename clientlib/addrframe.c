@@ -3,7 +3,7 @@
  * @brief Implements the @ref AddrFrame class - A frame for generic network addresses
  * @details AddrFrames consist of a two-byte IANA address family number plus the address.
  * These fields are generally stored in network byte order.
- * We have explicit support for three types, and the rest just come along for the ride...
+ * We have explicit support for three types, and the rest hopefully can come along for the ride...
  * @see Frame, FrameSet, GenericTLV
  * @see http://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
  *
@@ -21,7 +21,7 @@
 #include <tlvhelper.h>
 #include <address_family_numbers.h>
 
-FSTATIC gboolean _addrframe_default_isvalid(Frame *, gconstpointer, gconstpointer);
+FSTATIC gboolean _addrframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void _addrframe_setaddr(AddrFrame* f, guint16 frametype, gconstpointer addr, gsize addrlen);
 FSTATIC void _addrframe_addr_finalize(void * addr);
 ///@}
@@ -35,7 +35,7 @@ FSTATIC void _addrframe_addr_finalize(void * addr);
 
 /// Default @ref AddrFrame 'isvalid' member function (always returns TRUE)
 FSTATIC gboolean
-_addrframe_default_isvalid(Frame * self,	///< AddrFrame object ('this')
+_addrframe_default_isvalid(const Frame * self,	///< AddrFrame object ('this')
 		       gconstpointer tlvptr,	///< Pointer to the TLV for this AddrFrame
 		       gconstpointer pktend)	///< Pointer to one byte past the end of the packet
 {
@@ -125,7 +125,9 @@ addrframe_new(guint16 frame_type,	///< TLV type of AddrFrame
 /// Given marshalled packet data corresponding to an AddrFrame (address), return the corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-addrframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
+			 gconstpointer pktend)		///<[in] pointer to the first invalid address past tlvstart
+
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

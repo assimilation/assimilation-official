@@ -64,7 +64,7 @@ FSTATIC int _intframe_intlength(IntFrame *);
 FSTATIC void _intframe_setint(IntFrame * self, guint64 value);
 FSTATIC guint64 _intframe_getint(IntFrame * self);
 FSTATIC void _intframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
-FSTATIC gboolean _intframe_isvalid(Frame*, gconstpointer, gconstpointer);
+FSTATIC gboolean _intframe_isvalid(const Frame*, gconstpointer, gconstpointer);
 
 ///@defgroup IntFrame IntFrame class
 ///@{
@@ -135,7 +135,7 @@ _intframe_updatedata(Frame* fself,		///< object whose data will be put into Fram
 
 /// Return TRUE if this integer is valid - basically is it of one of our supported lengths...
 FSTATIC gboolean
-_intframe_isvalid(Frame* self,			///< Frame to validate
+_intframe_isvalid(const Frame* self,			///< Frame to validate
 		  gconstpointer tlvptr,		///< TLV pointer to our TLV
 		  gconstpointer pktend)		///< pointer to one byte past end of packet
 {
@@ -175,7 +175,8 @@ intframe_new(guint16 frametype,	///< Type of frame to create with this value
 /// Given marshalled data corresponding to an IntFrame (integer frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+intframe_tlvconstructor(gconstpointer tlvstart,	///<[in] First byte of the IntFrame TLV
+			gconstpointer pktend)	///<[in] First invalid byte past pktend
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

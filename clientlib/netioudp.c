@@ -23,15 +23,16 @@
 
 
 /// This is our basic NetIOudp object.
-/// It can perform network writes and reads.
-/// It is a class from which we might eventually make subclasses,
+/// It can perform network writes and reads on UDP sockets.
+/// It is a class from which we might eventually make subclasses (but it doesn't seem likely),
 /// and is managed by our @ref ProjectClass system.
 /// Except for the constructor, it is identical to the NetIO class.
 ///@{
 /// @ingroup NetIOudp
 
+/// Construct new UDP NetIO object (and its socket, etc)
 NetIOudp*
-netioudp_new(gsize objsize)
+netioudp_new(gsize objsize)	/// Size of NetIOudp object, or zero.
 {
 	NetIO*		iret;
 	NetIOudp*	ret;
@@ -57,5 +58,4 @@ netioudp_new(gsize objsize)
 	g_io_channel_set_close_on_unref(ret->baseclass.giosock, TRUE);
 	return ret;
 }
-
 ///@}

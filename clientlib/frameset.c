@@ -301,7 +301,7 @@ frame_append_to_frameset_packet(FrameSet* fs,		///< FrameSet to append frame to
 }
 /// Dump out a FrameSet
 void
-frameset_dump(FrameSet* fs)	///< FrameSet to dump
+frameset_dump(const FrameSet* fs)	///< FrameSet to dump
 {
 	GSList*	curframe;
 	g_debug("BEGIN Dumping FrameSet:");

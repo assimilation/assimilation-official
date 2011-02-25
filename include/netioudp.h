@@ -2,6 +2,7 @@
  * @file
  * @brief Implements UDP network I/O (NetIOudp) class.
  * @details It knows how to construct UDP sockets, write to them, bind them, and get packets from them.
+ * This is a subclass of the @ref NetIO class.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>

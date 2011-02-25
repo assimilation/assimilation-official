@@ -35,7 +35,10 @@ static GSourceFuncs _netgsource_gsourcefuncs = {
 };
 /// Create a new (abstract) NetGSource object
 NetGSource*
-netgsource_new(NetIO* iosrc, NetGSourceDispatch dispatch, gpointer userdata, gsize objsize)
+netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
+	       NetGSourceDispatch dispatch,	///<[in] Dispatch function to call when a packet arrives
+	       gpointer userdata,		///<[in/out] Userdata to pass to dispatch function
+	       gsize objsize)			///<[in] number of bytes in NetGSource object - or zero
 {
 	GSource*	gsret;
 	NetGSource*	ret;
@@ -62,26 +65,35 @@ netgsource_new(NetIO* iosrc, NetGSourceDispatch dispatch, gpointer userdata, gsi
 	return ret;
 }
 
-/// GSource dispatch routine for NetGSource - always returns TRUE
+/// GSource prepare routine for NetGSource - always returns TRUE
+/// Called before going into the select/poll call - to get things ready for the poll call.
 FSTATIC gboolean
-_netgsource_prepare(GSource* source, gint* timeout)
+_netgsource_prepare(GSource* source,	///<[unused] - GSource object
+		    gint* timeout)	///<[unused] - timeout
 {
 	return TRUE;
 }
 
-/// GSource dispatch routine for NetGSource.
+/// GSource check routine for NetGSource.
+/// Called after the select/poll call completes.
 /// @return TRUE if if a packet is present, FALSE otherwise
 FSTATIC gboolean
-_netgsource_check(GSource* gself)
+_netgsource_check(GSource* gself)	///<[in] NetGSource object being 'check'ed.
 {
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	// revents: received events...
 	// @todo: should check for errors in revents
 	return 0 != self->_gfd.revents;
 }
-///
+/// GSource dispatch routine for NetGSource.
+/// Called after our check function returns TRUE.
+/// If a bunch of events are fired at once, then this call will be dispatched before the next prepare
+/// call, but perhaps not quite right away - depending on what other events (with possibly higher
+/// priority) get dispatched ahead of us, and how long they take to complete.
 FSTATIC gboolean
-_netgsource_dispatch(GSource* gself, GSourceFunc ignore_callback, gpointer ignore_userdata)
+_netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being dispatched
+		     GSourceFunc ignore_callback,	///<[ignore] callback not being used
+		     gpointer ignore_userdata)		///<[ignore] userdata not being used
 {
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	GSList*		gsl;
@@ -94,8 +106,9 @@ _netgsource_dispatch(GSource* gself, GSourceFunc ignore_callback, gpointer ignor
 	return TRUE;
 }
 
+/// Finalize (free) the NetGSource object
 FSTATIC void
-_netgsource_finalize(GSource* gself)
+_netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 {
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 
@@ -115,4 +128,3 @@ _netgsource_finalize(GSource* gself)
 	}
 }
 ///@}
-

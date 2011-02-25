@@ -1,7 +1,7 @@
 /**
  * @file
- * @brief Semi-Abstract class (yes, really) defining discovery objects
- * @details It is only instantiated by derived classes.
+ * @brief Class for discovering Link-Level (switch) information (using CDP or LLDP or some future analogous protocol).
+ * @details
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
@@ -20,13 +20,13 @@
 
 typedef struct _SwitchDiscovery SwitchDiscovery;
 struct _SwitchDiscovery {
-	Discovery	baseclass;
-	GSource*	source;
-	void		(*finalize)(Discovery* self); /// Parent class destructor
-	gpointer	switchid;
-	gssize		switchidlen;
-	gpointer	portid;
-	gssize		portidlen;
+	Discovery	baseclass;			/// Base class object
+	GSource*	source;				/// GSource for the pcap data
+	void		(*finalize)(Discovery* self);	/// Saved parent class destructor
+	gpointer	switchid;			/// Current switch identification information
+	gssize		switchidlen;			/// Length of 'switchid'
+	gpointer	portid;				/// Current port id information.
+	gssize		portidlen;			/// Length of 'portid'
 };
 
 SwitchDiscovery* switchdiscovery_new(gsize, const char *, guint, gint, GMainContext*);

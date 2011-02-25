@@ -1,7 +1,7 @@
 /**
  * @file
  * @brief C-class defining the SwitchDiscovery classj
- * @details it is for discovering switches via LLDP or CDP.
+ * @details it is for discovering switch configuration information via LLDP or CDP.
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n

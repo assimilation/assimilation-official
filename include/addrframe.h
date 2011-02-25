@@ -1,8 +1,10 @@
 
 /**
  * @file
- * @brief Describes interfaces to Address Frame (AddrFrame) C-Class
- *
+ * @brief Describes interfaces to Address Frame (AddrFrame) C-Class.
+ * AddrFrames are Frames that contain some type of network address.
+ * The types of addresses we support are defined by the @ref AddressFamilyNumbers "IETF/IANA Address type assignments".
+ * @see AddressFamilyNumbers
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option.
