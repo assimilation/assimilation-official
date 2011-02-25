@@ -36,9 +36,10 @@ struct _NetIO {
 	gsize		(*setmaxpktsize)(NetIO*, gsize);	///< Set maximum packet size
 	void		(*sendframesets)			///< Send a FrameSet list.
 								///< @pre must have non-NULL _signframe
-				(NetIO* self,			///< 'this' object pointer
-				 const NetAddr* destaddr,	///< destination address
-				 GSList* framesets);		///< List of FrameSets to send
+				(NetIO* self,			///<[in/out] 'this' object pointer
+				 const NetAddr* destaddr,	///<[in] destination address
+				 GSList* framesets)		///<[in] List of FrameSets to send
+				 ;
 	GSList*		(*recvframesets)(NetIO*, NetAddr** src);///< Receive a single datagram's framesets
 	SignFrame*	(*signframe)(NetIO*self);		///< return a copied SignFrame
 	Frame*		(*cryptframe)(NetIO*self);		///< return a copied encryption frame

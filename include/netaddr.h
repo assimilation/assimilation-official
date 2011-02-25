@@ -25,7 +25,7 @@ typedef struct _NetAddr NetAddr;
 /// @ingroup NetADDR
 struct _NetAddr {
 	guint16		(*port)(const NetAddr* self);		///< Return port from this address
-	guint16		(*addrtype)(const NetAddr* self);	///< Return @refAddressFamilyNumbers address type
+	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
 	gconstpointer	(*addrinnetorder)(const NetAddr* self, gsize* addrlen);///< Return the address in network byte order
 	struct sockaddr_in6(*ipv6addr)(const NetAddr* self);	///< Return the ipv6 address corresponding to this address
 	void		(*finalize)(gpointer self);		///< Finalize this object.

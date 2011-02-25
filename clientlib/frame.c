@@ -161,8 +161,8 @@ frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Fram
 /// Basic "dump a frame" member function - we use g_debug() for output.
 /// It would be nice for derived classes to override this as appropriate.
 void
-_frame_dump(const Frame * f,			///<[in
-	    const char * prefix)
+_frame_dump(const Frame * f,			///<[in] Frame being dumped
+	    const char * prefix)		///<[in] Prefix to put out before each line when dumping it
 {
 	g_debug("%s%s: type = %d, length = %d", 
 		prefix,

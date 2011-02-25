@@ -106,14 +106,17 @@ _netio_finalize(NetIO* self)	///<[in/out] The object being freed
 	FREECLASSOBJ(self); self=NULL;
 }
 
+/// Get the max packet size for this NetIO transport
 FSTATIC gsize
 _netio_getmaxpktsize(const NetIO* self)	///<[in] The object whose max pkt size is being returned
 {
 	return self->_maxpktsize;
 }
 
+/// Set the max packet size for this NetIO transport
 FSTATIC gsize
-_netio_setmaxpktsize(NetIO* self, gsize maxpktsize) ///<[in] The object whose max packet size to set
+_netio_setmaxpktsize(NetIO* self,	///<[in/out] The object whose max packet size to set
+		    gsize maxpktsize)	///<[in] Size to set the max packet size to.
 {
 	self->_maxpktsize = maxpktsize;
 	return self->getmaxpktsize(self);
@@ -142,7 +145,7 @@ netio_new(gsize objsize)	///<[in] The size of the object to construct (or zero)
 
 /// NetIO internal function to send a packet (datagram)
 FSTATIC void
-_netio_sendapacket(NetIO* self,
+_netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 		   gconstpointer packet,	///<[in] Packet to send
 		   gconstpointer pktend,	///<[in] one byte past end of packet
 		   const NetAddr* destaddr)	///<[in] where to send it
@@ -190,7 +193,7 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 /// - check for errors
 /// - return received message, length, etc.
 FSTATIC gpointer
-_netio_recvapacket(NetIO* self,
+_netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		   gpointer* pktend,		///<[out] Pointer to one past end of packet
 		   struct sockaddr* srcaddr,	///<[*out] Pointer to source address as sockaddr
 		   socklen_t* addrlen)		///<[out] length of address in 'srcaddr'
