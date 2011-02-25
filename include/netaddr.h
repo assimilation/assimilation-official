@@ -17,9 +17,9 @@
 #include <netinet/in.h>
 typedef struct _NetAddr NetAddr;
 
-/// This is our basic NetAddr object.
+/// This is our basic @ref NetAddr network address object.
 /// It represents network addresses
-/// It is a class from which we might eventually make subclasses,
+/// It is a class from which we <i>might</i> eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 ///@{
 /// @ingroup NetADDR

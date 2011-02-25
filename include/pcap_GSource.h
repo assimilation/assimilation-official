@@ -19,6 +19,7 @@ typedef struct _GSource_pcap	GSource_pcap_t;
 
 /// g_main_loop GSource object for creating events from libpcap (pcap_t) objects
 /// We manage this with our @ref ProjectClass system to help catch errors.
+/// @todo make this fit better into the @ref ProjectClass system.
 struct _GSource_pcap {
 	GSource		gs;		///< Parent GSource Object
 	GPollFD		gfd;		///< Poll/select object for gmainloop

@@ -17,13 +17,14 @@
 #include <netaddr.h>
 #include <frame.h>
 #include <signframe.h>
-typedef struct _NetIO NetIO;
 
-/// This is a basic NetIO abstract class for doing network I/O via the g_main_loop construct (GSource).
-/// It is a class from which you must make subclasses,
-/// and is managed by our @ref ProjectClass system.
 ///@{
 /// @ingroup NetIO
+typedef struct _NetIO NetIO;
+
+/// This is a basic @ref NetIO abstract class for doing network I/O.
+/// It is an abstract class from which you <b>must</b> make subclasses,
+/// and is managed by our @ref ProjectClass system.
 struct _NetIO {
 	GIOChannel*	giosock;				///< Glib GIOChannel for this socket
 	SignFrame*	_signframe;

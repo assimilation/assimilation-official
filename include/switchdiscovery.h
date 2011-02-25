@@ -19,6 +19,7 @@
 /// @ingroup SwitchDiscovery
 
 typedef struct _SwitchDiscovery SwitchDiscovery;
+/// @ref SwitchDiscovery C-class - for discovering switch and port configuration via LLDP, CDP and similar protocols captured using <i>libpcap</i>.
 struct _SwitchDiscovery {
 	Discovery	baseclass;			/// Base class object
 	GSource*	source;				/// GSource for the pcap data

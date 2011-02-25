@@ -18,21 +18,22 @@
 #include <netgsource.h>
 #include <netaddr.h>
 #include <netio.h>
+///@{
+/// @ingroup NetGSource
+
 typedef struct _NetGSource NetGSource;
 
-/// Dispatch function for NetGSource objects - called when new data has arrived
+/// Dispatch function for @ref NetGSource objects - called when new data has arrived
 typedef gboolean (*NetGSourceDispatch)
 		   (NetGSource* gs,	///<[in/out] 'this' object causing the dispatch
 		    GSList* gsl,	///<[in/out] GSList of FrameSets in this datagram.
 		    NetAddr*srcaddr,	///<[in] Source address for this datagram
 		    gpointer userdata);	///<[in/out] User data passed in during _new function.
 
-/// This is our basic NetGSource object.
+/// This is our basic @ref NetGSource object.
 /// It is used for reading from network sockets, and managing flow control to them.
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
-///@{
-/// @ingroup NetGSource
 struct _NetGSource {
 	GSource*		baseclass;	///< Parent GSource Object pointer
 	GPollFD			_gfd;		///< Poll/select object for gmainloop

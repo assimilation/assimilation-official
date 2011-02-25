@@ -15,7 +15,7 @@
 #include <frame.h>
 typedef struct _UnknownFrame UnknownFrame;
 
-/// This is our UnknownFrame object.
+/// This is our @ref UnknownFrame object - for unrecognized @ref Frame "Frame"s.
 /// It is a binary frame of an unrecognized type.
 ///@{
 /// @ingroup UnknownFrame

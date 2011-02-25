@@ -13,14 +13,15 @@
 #ifndef _SEQNOFRAME_H
 #define _SEQNOFRAME_H
 
+///@{
+/// @ingroup SeqnoFrame
+typedef struct _SeqnoFrame SeqnoFrame;
+
 /// This is an @ref SeqnoFrame <b>TLV</b> (type, length, value) frame.
 /// It is a subclass of the @ref Frame.
 /// and is manged by our @ref ProjectClass system.
 /// @note This class does not use the 'value' field in the
 /// base class, and does not implement the setvalue() member function.
-///@{
-/// @ingroup SeqnoFrame
-typedef struct _SeqnoFrame SeqnoFrame;
 struct _SeqnoFrame {
 	Frame	baseclass;					///< base @ref Frame object
 	guint64	(*getreqid)(SeqnoFrame* self);			///< get value of request id in this SeqnoFrame

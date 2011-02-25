@@ -17,12 +17,13 @@
 #include <frame.h>
 
 
+///@{
+/// @ingroup IntFrame
+
+typedef struct _IntFrame IntFrame;
 /// This is an @ref IntFrame <b>TLV</b> (type, length, value) frame.
 /// It is a subclass of the @ref Frame.
 /// and is manged by our @ref ProjectClass system.
-///@{
-/// @ingroup IntFrame
-typedef struct _IntFrame IntFrame;
 struct _IntFrame {
 	Frame	baseclass;					///< base @ref Frame object
 	int	(*intlength)(IntFrame* self);			///< get length of integer this IntFrame supports

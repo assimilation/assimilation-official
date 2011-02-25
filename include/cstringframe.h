@@ -12,13 +12,14 @@
 
 #ifndef _CSTRINGFRAME_H
 #define _CSTRINGFRAME_H
-typedef struct _CstringFrame CstringFrame;
 
-/// This is our CstringFrame object - used for holding C-style NULL terminated strings
-/// It has some different member functions implementations than its base @ref Frame -
-/// but mainly for validating packet contents.
 ///@{
 /// @ingroup CstringFrame
+typedef struct _CstringFrame CstringFrame;
+
+/// This is our @ref CstringFrame object - used for holding C-style NULL terminated strings
+/// It has some different member functions implementations than its base @ref Frame -
+/// but mainly for validating packet contents.
 struct _CstringFrame {
 	Frame		baseclass;
 };

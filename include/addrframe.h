@@ -16,7 +16,7 @@
 #include <frame.h>
 typedef struct _AddrFrame AddrFrame;
 
-/// This is our AddrFrame object - used for holding network addresses.
+/// This is our @ref AddrFrame object - used for holding network addresses.
 /// It has some different member functions implementations than its base @ref Frame -
 /// mainly for validating packet contents.
 ///@{

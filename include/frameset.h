@@ -17,8 +17,9 @@
 
 #ifndef _FRAMESET_H
 #define _FRAMESET_H
-/// This is our basic FrameSet collection data structure - used for collecting @ref Frame "Frame"s
-/// when not on the wire, and for marshalling/demarshalling them for the wire.
+/// This is our basic @ref FrameSet collection data structure - used for collecting
+/// @ref Frame "Frame"s when not on the wire, and for marshalling/demarshalling them
+/// for/from the wire.
 /// There are a few "special" frames that have to appear first, and in a certain order.
 /// These frames have their values computed based on the values of the frames which follow them
 /// in the <i>framelist</i>.  Some of them (notably encryption) can restructure and modify the

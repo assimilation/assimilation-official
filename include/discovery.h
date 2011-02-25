@@ -28,6 +28,7 @@
 /// @ingroup DiscoveryClass
 
 typedef struct _Discovery Discovery;
+/// @ref Discovery abstract C-class - it supports discovering "things" through subclasses for different kinds of things.
 struct _Discovery {
 	const char*	(*discoveryname)	(const Discovery* self);	///< Which discovery object is this?
 	gboolean	(*discover)		(Discovery* self);		///< Perform the discovery

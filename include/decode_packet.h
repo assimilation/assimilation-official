@@ -15,6 +15,8 @@
 typedef struct _FrameTypeToFrame FrameTypeToFrame;
 
 typedef Frame*            (*FramePktConstructor)       (gconstpointer tlvstart, gconstpointer pktend);
+/// Data structure defining the mapping between frametype integers and corresponding demarshalling
+/// modules.
 struct _FrameTypeToFrame {
 	int			frametype; ///< One of the @ref IndividualFrameFormats "Defined Frame Formats" from frameformats.h
 	FramePktConstructor	constructor;

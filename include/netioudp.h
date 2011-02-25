@@ -17,12 +17,12 @@
 #include <netio.h>
 typedef struct _NetIOudp NetIOudp;
 
-/// This is a UDP NetIO object.
+///@{
+/// @ingroup NetIOudp
+/// @ref NetIOudp  is a UDP @ref NetIO object.
 /// It can perform network writes and reads, binds, etc. for UDP sockets
 /// It is a class from which we might eventually make subclasses (but I'm not quite sure why),
 /// and is managed by our @ref ProjectClass system.
-///@{
-/// @ingroup NetIOudp
 struct _NetIOudp {
 	NetIO		baseclass;	///< Base class (NetIO) object.
 	GDestroyNotify	_finalize;	///< Saved (base class) finalize routine

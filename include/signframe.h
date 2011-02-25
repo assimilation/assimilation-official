@@ -14,15 +14,16 @@
 #ifndef _SIGNFRAME_H
 #define _SIGNFRAME_H
 #include <glib.h>
-typedef struct _SignFrame SignFrame;
-
-/// This is our SignFrame object - implementing digital signatures for FrameSets.
-/// This is a fairly special type of @ref Frame - it has no data of its own, and it
-/// constructs data based on the portion of the packet that comes after it in the
-/// FrameList-constructed packet.
-/// Not too surprising for a digital signature Frame.
 ///@{
 /// @ingroup SignFrame
+
+typedef struct _SignFrame SignFrame;
+
+/// The @ref SignFrame object - implements digital signatures for @ref FrameSet "FrameSet"s.
+/// This is a fairly special type of @ref Frame - it has no data of its own, and it
+/// constructs data based on the portion of the packet that comes after it in the
+/// @ref FrameSet "FrameSet"-constructed packet.
+/// Not too surprising for a digital signature Frame.
 struct _SignFrame {
 	Frame		baseclass;	// Base Frame class object.
 	GChecksumType	signaturetype;	// Type of signature...

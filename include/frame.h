@@ -18,12 +18,12 @@
 typedef struct _FrameSet FrameSet;
 typedef struct _Frame Frame;
 
-/// This is our basic Frame <b>TLV</b> (type, length, value) format.
+///@{
+/// @ingroup Frame
+/// This is the base class @ref Frame object (in-memory <b>TLV</b> (type, length, value)).
 /// It is an in-memory representation of Frames which might come from or go to the wire.
 /// It is basically a class from which we make many subclasses,
 /// and is managed by our @ref ProjectClass system.
-///@{
-/// @ingroup Frame
 struct _Frame {
 	guint16		type;				///< Frame <b>T</b>ype (see @ref IndividualFrameFormats - frameformats.h )
 	guint16		length;				///< Frame <b>L</b>ength
