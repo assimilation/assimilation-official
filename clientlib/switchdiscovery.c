@@ -19,10 +19,10 @@ FSTATIC void _switchdiscovery_finalize(Discovery* self);
 FSTATIC gboolean _switchdiscovery_cache_info(SwitchDiscovery* self, gconstpointer pkt, gconstpointer pend);
 FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconstpointer, gconstpointer,
                           const struct pcap_pkthdr*, const char *, gpointer selfptr);
-///@defgroup SwitchDiscovery SwitchDiscovery class
+///@defgroup SwitchDiscoveryClass SwitchDiscovery class
 /// Class providing a SwitchDiscovery class for discovering network switches
 /// @{
-/// @ingroup Discovery
+/// @ingroup DiscoveryClass
 
 /// finalize a SwitchDiscovery object
 FSTATIC void

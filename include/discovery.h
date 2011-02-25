@@ -25,7 +25,7 @@
 #define _DISCOVERY_H
 #include <projectcommon.h>
 ///@{
-/// @ingroup Discovery
+/// @ingroup DiscoveryClass
 
 typedef struct _Discovery Discovery;
 struct _Discovery {

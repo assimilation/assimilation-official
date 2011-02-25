@@ -11,7 +11,7 @@
 
 #include <projectcommon.h>
 #include <discovery.h>
-///@defgroup Discovery Discovery class
+///@defgroup DiscoveryClass Discovery class
 /// Class providing a Discovery abstract base class.
 /// @{
 /// @ingroup C_Classes
