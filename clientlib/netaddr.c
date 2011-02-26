@@ -20,7 +20,7 @@
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 ///@{
-/// @ingroup NetADDR
+/// @ingroup NetAddr
 
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...

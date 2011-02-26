@@ -39,6 +39,8 @@
 #include <frameformats.h>
 
 ///@defgroup GSource_Pcap GSource_Pcap class
+/// Class representing a pcap GSource object - for capturing packets in the g_main_loop paradigm.
+/// This is technically a subclass of GSource (which isn't part of this project).
 ///@{
 ///@ingroup C_Classes
 

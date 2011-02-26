@@ -30,8 +30,7 @@ typedef gboolean (*NetGSourceDispatch)
 		    NetAddr*srcaddr,	///<[in] Source address for this datagram
 		    gpointer userdata);	///<[in/out] User data passed in during _new function.
 
-/// This is our basic @ref NetGSource object.
-/// It is used for reading from network sockets, and managing flow control to them.
+/// The @ref NetGSource objects integrate @ref NetIO objects into the g_main_loop paradigm.
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 struct _NetGSource {

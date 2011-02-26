@@ -52,6 +52,7 @@ FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC void _frame_dump(const Frame *, const char * prefix);
 
 ///@defgroup Frame Frame class
+/// Class for holding/storing binary blobs -  Base class for all the other Frame types.
 ///@{
 ///@ingroup C_Classes
 

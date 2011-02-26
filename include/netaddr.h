@@ -17,12 +17,11 @@
 #include <netinet/in.h>
 typedef struct _NetAddr NetAddr;
 
-/// This is our basic @ref NetAddr network address object.
-/// It represents network addresses
+/// The @ref NetAddr class represents a general network address.
 /// It is a class from which we <i>might</i> eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 ///@{
-/// @ingroup NetADDR
+/// @ingroup NetAddr
 struct _NetAddr {
 	guint16		(*port)(const NetAddr* self);		///< Return port from this address
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type

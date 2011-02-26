@@ -21,7 +21,7 @@
 /// @ingroup IntFrame
 
 typedef struct _IntFrame IntFrame;
-/// This is an @ref IntFrame <b>TLV</b> (type, length, value) frame.
+/// This is an @ref IntFrame <b>TLV</b> (type, length, value) frame - representing an integer of some specified length.
 /// It is a subclass of the @ref Frame.
 /// and is manged by our @ref ProjectClass system.
 struct _IntFrame {

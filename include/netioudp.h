@@ -15,13 +15,13 @@
 #define _NETIOUDP_H
 #include <glib.h>
 #include <netio.h>
-typedef struct _NetIOudp NetIOudp;
 
 ///@{
 /// @ingroup NetIOudp
-/// @ref NetIOudp  is a UDP @ref NetIO object.
+typedef struct _NetIOudp NetIOudp;
+/// NetIOudp  is a @ref NetIO subclass specialized to UDP connections.
 /// It can perform network writes and reads, binds, etc. for UDP sockets
-/// It is a class from which we might eventually make subclasses (but I'm not quite sure why),
+/// It is a class from which we <i>could</i> make subclasses (but I'm not quite sure why),
 /// and is managed by our @ref ProjectClass system.
 struct _NetIOudp {
 	NetIO		baseclass;	///< Base class (NetIO) object.

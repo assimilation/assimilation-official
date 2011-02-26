@@ -13,6 +13,7 @@
  *
  *  @todo To figure out what the MAC address of an interface on Windows is, 
  *  use the GetAdapterAddresses function - http://msdn.microsoft.com/en-us/library/aa365915(v=vs.85).aspx
+ * @todo convert all the messaging over to use the various glib logging functions.
  *
  */
 
@@ -29,6 +30,7 @@
 
 pcap_t* create_pcap_listener(const char * dev, unsigned listenmask);
 
+/// Structure mapping @ref pcap_protocols bits to the corresponding pcap filter expressions.
 static struct pcap_filter_info {
 	const unsigned	filterbit;
 	const char *	filter;
@@ -107,6 +109,7 @@ create_pcap_listener(const char * dev		///< [in] Device name to listen on
 	pcap_setdirection(pcdescr, PCAP_D_IN);
 	pcap_setnonblock(pcdescr, FALSE, errbuf);
 	pcap_set_snaplen(pcdescr, 1500);
+	/// @todo deal with pcap_set_timeout() call here.
 	pcap_set_timeout(pcdescr, 240*1000);
 	//pcap_set_buffer_size(pcdescr, 3000);
       

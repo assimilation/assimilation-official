@@ -17,9 +17,9 @@
 /// @ingroup CstringFrame
 typedef struct _CstringFrame CstringFrame;
 
-/// This is our @ref CstringFrame object - used for holding C-style NULL terminated strings
+/// This is our @ref CstringFrame object - used for holding C-style NULL terminated strings.
 /// It has some different member functions implementations than its base @ref Frame -
-/// but mainly for validating packet contents.
+/// but mainly for validating packet contents to ensure they're well-formed C strings.
 struct _CstringFrame {
 	Frame		baseclass;
 };

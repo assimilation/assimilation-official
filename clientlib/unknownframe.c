@@ -21,7 +21,7 @@
 FSTATIC gboolean _unknownframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 
 ///@defgroup UnknownFrame UnknownFrame class
-/// Class representing an unrecogized or unknown type of frame in a packet.
+/// Class representing an unrecogized or unknown type of frame in a packet - subclass of @ref Frame.
 /// @{
 /// @ingroup Frame
 

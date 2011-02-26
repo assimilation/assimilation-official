@@ -46,6 +46,9 @@ FSTATIC void frameset_indir_finalize(void* f);
 FSTATIC void frameset_finalize(FrameSet* fs);
 
 ///@defgroup FrameSet FrameSet class
+/// Class representing a collection of @ref Frame "Frame"s to be sent in a single datagram.
+/// Note that more than one FrameSet can be sent in a datagram, but a FrameSet may not
+/// be split across datagrams.
 ///@{
 ///@ingroup C_Classes
 

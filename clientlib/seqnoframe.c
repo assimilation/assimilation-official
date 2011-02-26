@@ -24,6 +24,7 @@ FSTATIC void _seqnoframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _seqnoframe_isvalid(const Frame*, gconstpointer, gconstpointer);
 
 ///@defgroup SeqnoFrame SeqnoFrame class
+/// Class representing packet "sequence numbers" - subclass of @ref Frame.
 ///@{
 ///@ingroup Frame
 

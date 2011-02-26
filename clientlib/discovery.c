@@ -12,7 +12,7 @@
 #include <projectcommon.h>
 #include <discovery.h>
 ///@defgroup DiscoveryClass Discovery class
-/// Class providing a Discovery abstract base class.
+/// Discovery abstract base class - supporting the discovery of various local things by our subclasses.
 /// @{
 /// @ingroup C_Classes
 

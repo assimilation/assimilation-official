@@ -20,7 +20,8 @@ FSTATIC gboolean _switchdiscovery_cache_info(SwitchDiscovery* self, gconstpointe
 FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconstpointer, gconstpointer,
                           const struct pcap_pkthdr*, const char *, gpointer selfptr);
 ///@defgroup SwitchDiscoveryClass SwitchDiscovery class
-/// Class providing a SwitchDiscovery class for discovering network switches
+/// Class providing a switch discovery class for discovering network switch properties - subclass of @ref DiscoveryClass.
+/// We deal with things like CDP, LDP and so on in order to "hear" our switch/port configuration.
 /// @{
 /// @ingroup DiscoveryClass
 

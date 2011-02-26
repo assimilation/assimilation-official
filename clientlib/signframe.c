@@ -24,7 +24,7 @@ FSTATIC void _signframe_updatedata(Frame* self, gpointer tlvptr, gconstpointer p
 FSTATIC gpointer _signframe_compute_cksum(GChecksumType, gconstpointer tlvptr, gconstpointer pktend);
 
 ///@defgroup SignFrame SignFrame class
-/// Class for holding/storing C-style null-terminated strings
+/// Class representing digital signatures - subclass of @ref Frame.
 /// @{
 /// @ingroup Frame
 

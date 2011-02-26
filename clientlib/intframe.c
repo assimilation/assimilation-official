@@ -67,6 +67,7 @@ FSTATIC void _intframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _intframe_isvalid(const Frame*, gconstpointer, gconstpointer);
 
 ///@defgroup IntFrame IntFrame class
+/// Class representing various length of integers - subclass of @ref Frame.
 ///@{
 ///@ingroup Frame
 

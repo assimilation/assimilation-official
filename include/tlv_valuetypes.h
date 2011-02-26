@@ -13,6 +13,7 @@
 /**
  * @defgroup TLV_common_data_types Data Types corresponding our various TLV types
  * Each of the types below has a method associated with it which knows how to convert it to a string.
+ * I think this header isn't used for anything.  IGNOREME?
  *  @{ 
  */
 #define	TLV_DTYPE_BINARY		1	///< Just raw binary - no special meaning
