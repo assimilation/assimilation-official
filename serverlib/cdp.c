@@ -7,17 +7,13 @@
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
+#include <projectcommon.h>
 #include <stdio.h>
 #include <netinet/in.h>
 #include "cdp.h"
 #include <server_dump.h>
-#ifndef	NULL
-#	define	NULL	((void*)0)
-#endif /* NULL */
-#define DIMOF(a)	((sizeof(a)) / sizeof(a[0]))
 
-
-/*
+/**
  * Map of CDP types into strings...
  */
 static const char*	cdptypenames[] = 
@@ -39,10 +35,10 @@ static const char*	cdptypenames[] =
 ,	"*UNKNOWNCDPTYPE-16*"
 ,	"*UNKNOWNCDPTYPE-17*"
 ,	"*UNKNOWNCDPTYPE-18*"
-,	"*UNKNOWNCDPTYPE-19*"	// Have actually seen these -- Wonder what they are...
-,	"*UNKNOWNCDPTYPE-20*"	// Have actually seen these -- Wonder what they are...
+,	"*UNKNOWNCDPTYPE-19*"	///< Have actually seen these -- Wonder what they are...
+,	"*UNKNOWNCDPTYPE-20*"	///< Have actually seen these -- Wonder what they are...
 ,	"*UNKNOWNCDPTYPE-21*"
-,	"*UNKNOWNCDPTYPE-22*"	// Others report seeing these...
+,	"*UNKNOWNCDPTYPE-22*"	///< Others report seeing these...
 ,	"*UNKNOWNCDPTYPE-23*"
 ,	"*UNKNOWNCDPTYPE-24*"
 ,	"*UNKNOWNCDPTYPE-25*"
