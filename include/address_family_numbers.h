@@ -14,6 +14,7 @@
 
 /// @defgroup AddressFamilyNumbers IANA Address Family Numbers
 ///@{
+///@ingroup DefineEnums
 /// This information was taken from
 /// http://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
 /// as described by RFC 3232.  There are a LOT more.  This is more than we have any idea

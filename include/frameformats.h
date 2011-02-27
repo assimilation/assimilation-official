@@ -22,15 +22,19 @@
 @}
 */
 /**
-@defgroup IndividualFrameFormats Individual 'Frame' data types and layouts on the wire.
+@defgroup IndividualFrameFormats Individual TLV 'Frame' data types and layouts (by TLV type)
 @{
-Below is the set of individual frame types and data layouts.
+Below is the set of individual frame types and data layouts - organized by TLV type.
+Note that a given Frame subclass can appear be associated with many different TLV types.
+This file organizes this data by the TLV type, not by the underlying Frame subclass.
 @ingroup FrameFormats
+@ingroup DefineEnums
 @{
 */
 
 /**
   End (frametype 0) Frame format - this frame is always last in a frameset.
+  C-Class: @ref Frame.
 <PRE>
 +---------------+----------+
 | frametype = 0 | f_length |
@@ -39,6 +43,7 @@ Below is the set of individual frame types and data layouts.
 </PRE>
 The last frame in a frameset is required to be an End frame.
 End frames are of type zero and have length zero.
+Its corresponding @ref Frame class is @ref Frame.
 */
 #define	FRAMETYPE_END		0
 /**
@@ -56,11 +61,12 @@ on all the bytes in the frameset beginning with the first byte after
 the end of this frame, extending through and including the last byte of the frameset.
 Note that this will include the encryption frame if present.
 The format and length of the digital signature depends on the type of signature.
+Its corresponding @ref Frame class is @ref SignFrame.
 */
 #define	FRAMETYPE_SIG		1
 /**
 Encryption (frametype 2) Frame Format - this optional frame is always second in a frameset - when present.
-  C-Class: @ref SignFrame
+  C-Class: not yet implemented.
 <PRE>
 +---------------+-----------+------------------------+
 | frametype = 2 | f_length  | encryption information |
@@ -72,10 +78,12 @@ frame in the frameset.  All frames in the frameset after this frame
 are encrypted according information in the encryption information value segment.
 The format of the encryption information value segment is not yet defined,
 and will likely depend on the type of encryption method employed.
+Its corresponding @ref Frame subclass is as-yet-undetermined.
 */
 #define	FRAMETYPE_CRYPT		2
 /**
 Compression (frametype 3) Frame Format - this optional frame is is either second or third in a frameset - when present.  It is second when there is no encryption frame, and third when there is an encryption frame.
+  C-Class: not yet implemented.
 <PRE>
 +---------------+-----------+------------------------+
 | frametype = 3 | f_length  | compression information |
@@ -89,10 +97,11 @@ When this frame is present, then all the frames following
 are compreseed according information in the compression information value segment.
 The format of the compression information value segment will likely be a
 single integer saying which compression method was used.
+Its corresponding @ref Frame subclass is as-yet-undetermined.
 */
 #define	FRAMETYPE_COMPRESS		3
 /**
-  Request ID (frametype 4) Frame Format - this is basically a transaction sequence number
+  Request ID (frametype 4) Frame Format - this is basically a transaction sequence number.
   C-Class: @ref SeqnoFrame.
 <PRE>
 +---------------+---------------+-------------+-----------+
@@ -178,7 +187,7 @@ associated with the FrameSet as NUL-terminated C-style string.
 */
 #define	FRAMETYPE_INTERFACE	8
 /**
-  IP Address (frametype 9) Frame Format - IP address either v4 or v6
+  IP Address (frametype 9) Frame Format - IP address either v4 or v6 format.
   C-Class: @ref AddrFrame
 <PRE>
 +---------------+----------------+------------------+--------------+
@@ -193,13 +202,12 @@ associated with the FrameSet as NUL-terminated C-style string.
 +---------------+----------------+------------------+--------------+
 </PRE>
 This frame provides an IP address - either in IPv4 or IPv6 format.
-In either case, it is translated into an @ref AddrFrame.
 */
 #define	FRAMETYPE_IPADDR	9
 /**
   IP Address (frametype 9) Frame Format - MAC address either in
   6-byte EUI-48 format or 8-byte EUI-64 format.
-  C-Class: @ref AddrFrame
+  C-Class: @ref AddrFrame.
 <PRE>
 +---------------+----------------+------------------+-------------+
 | frametype = 9 | f_length = 8   | Address Type = 6 | MAC address |
@@ -212,8 +220,7 @@ In either case, it is translated into an @ref AddrFrame.
 |   (16 bits)   |    (16-bits)   |    2 bytes       |  (8 bytes)  |
 +---------------+----------------+------------------+-------------+
 </PRE>
-This frame provides a MAC address either a 6 or 8 byte format.
-In either case, it is translated into an @ref AddrFrame.
+This frame provides a MAC address either a 6 byte (EUI-48) or 8 byte (EUI-64) format.
 */
 #define	FRAMETYPE_MACADDR	9
 ///@}

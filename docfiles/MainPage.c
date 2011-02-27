@@ -1,10 +1,17 @@
 /**
-@mainpage The Assimilation Monitoring Project (or whatever we wind up calling it)
+@mainpage The Assimilation Monitoring Project - Incredibly scalable, Incredibly easy to configure
 @section intro Introduction
 Welcome to the Assimilation monitoring project.
+
+What we do: monitoring servers with near-zero overhead both on the servers and on their administrators.
+- Monitor services
+- Monitor services
+- Low overhead
+- Easy to configure and manage
+
 This is a new project designed to to monitor servers and services on a network of potentially unlimited size,
 without significant growth in centralized resources.  The work of monitoring is delegated in tiny pieces to
-the various machines being monitored in a network-aware topology.
+the various machines being monitored in a network-aware topology - minimizing the network overhead.
 
 The general idea is to distribute the monitoring task out as broadly as possible, and in a network-aware fashion,
 and to auto-configure as much as possible.
@@ -14,19 +21,18 @@ The original idea was outlined in two different articles
 
 @subsection architecture Architecture
 This concept has two kinds of participating entities:
- - a Centralized Monitoring Entity
+ - a Centralized Monitoring Authority - monitoring the collective
  - a potentially very large number of lightweight monitoring agents
 
 @subsection Autoconfiguration
-One of the key aspects of this system is it be largely auto-configuring - at least for host monitoring.
-It is expected that a customer will drop the various client packages onto the clients being
+One of the key aspects of this system is it be largely auto-configuring, and incorporates discovery into its
+basic philosophy.
+It is expected that a customer will drop the various nanoprobes onto the clients being
 monitored, and once those are running, the systems register themselves and get automatically
-configured into the system once the client packages are installed and activated.
-It will initially be necessary to configure services like web servers and so on, until autodetection
-of these services is implemented.
+configured into the system once the nanoprobes are installed and activated.
 
 @subsection lightweight Lightweight monitoring agents
-The client code will be written largely in C and will minimize use of:
+The nanoprobe code is written largely in C and minimizes use of:
  - CPU
  - memory
  - disk
@@ -35,12 +41,12 @@ The client code will be written largely in C and will minimize use of:
 To do this, we will follow a <i>no news is good news</i> philosophy for exception monitoring -
 when nothing is wrong, nothing will be reported.
 Although the server part of the code will likely be only available on POSIX systems, 
-the lightweight client portion will be available on various flavors of Windows as well.
+the nanoprobes  will be available on various flavors of Windows as well.
 
 @subsection service_mon Service Monitoring
-To the degree possible, we will monitor services (exception monitoring) on the machine they're provided on - which 
+To the degree possible, we will perform exception monitoring of services on the machine they're provided on - which 
 imples zero network overhead to monitor working services.  Stated another way, we follow a
-no news is good news philosophy.
+<i>no news is good news</i> philosophy.
 
 @subsection server_mon Server Monitoring
 For server monitoring, we follow a ring monitoring where each memeber of a ring sends heartbeats
@@ -50,42 +56,22 @@ There is also a hierarchy of rings, one for the local (TOR) switch, one for the 
 one connecting all subnets.  No machine would need to participate in more than two of these rings - hence
 will only need to directly communicate with at most four machines - with the overwhelming majority of systems
 only needing to talk to two other ring members.
-This is all controlled and directed by the centralized entity - which is expected to typically be configured to run
-in an HA cluster using a product like Pacemaker.
+This is all controlled and directed by the collective monitoring authority (CMA) -
+which is designed to be configured to run in an HA cluster using a product like Pacemaker.
 
 @section AutoconfigurationStrategy Autoconfiguration Strategy
-@subsection Discovery System Discovery
-Initially there will be no automatic discovery of new entities to monitor,
-and no automatic installation of monitoring software on these machines.
-It is currently planned that subsequent releases will include these capabilities.
-Initial releases will provide a tool for easy packaging of client software and local configuration
-so that it can be easily distributed by the system administrator.
+For details on this, see the separate
+@ref AutoConfigureStrategy "Autoconfiguration Strategy and Philosophy" page.  
 
-@subsubsection DiscoveryThoughts Thoughts about Discovery
-If the client monitors and captures contents of the local ARP cache and periodically announces
-the appearance of new IP and/or MAC addresses, then this could be valuable to the discovery
-process.
-Presumably having the central server monitor DHCP address assignment could be interesting.
-Current thinking is that network probing of OS, services and so on would be performed by
-the central monitoring authority - for those cases where a local agent cannot be installed.
 
-@subsection lldp_cdp The role of LLDP and CDP in the configuration process.
-In order to be as topology sensitive as we would like to be, it is necessary to know some things
-about the network topology.  These include:
- - subnet connectivity - that is, which subnets is each machine on
- - switch connectivity - that is, which switch is each machine connected to
-
-The first item is easily extracted from the local network configuration.  The second item (switch
-connectivity) is more difficult.  What we want to know here is which
-machines are connected to which switches.  In general, this kind of layer 2 topology information is
-hidden from the hosts.  However, there are a couple of protocols which make this kind
-of information available - IEEE's 801.2AB (LLDP) protocol and Cisco's - Cisco Discovery Protocol (CDP).
-Both of these provide a unique identifier of which switch a server is connected to.
-So, we collect this information and send it up to the central monitoring entity when it is available.
-
-For more details on this see the
-@ref AutoConfigureStrategy "Autoconfigure Strategy and Philosophy" page.  
 */
+
+/** @defgroup DefineEnums #define enumerations
+ *  @{ 
+ *  @} 
+ */
+
+
 /** @defgroup todos_project Project-wide (global) todos
  *  @{ 
  *  @} 

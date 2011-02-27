@@ -22,6 +22,20 @@ FSTATIC void _seqnoframe_setqid(SeqnoFrame * self, guint16 value);
 FSTATIC guint16 _seqnoframe_getqid(SeqnoFrame * self);
 FSTATIC void _seqnoframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _seqnoframe_isvalid(const Frame*, gconstpointer, gconstpointer);
+/**
+ * @defgroup SeqnoFrameFormats C-class SeqNoFrame wire format
+ * @{
+ * @ingroup FrameFormats
+ * Here is the wire format we use for sequence numbers.
+<PRE>
++-----------+---------------+------------+-----------+
+| frametype | f_length = 8  | request id | queue id  |
+| (16 bits) |   (16-bits)   |  (8 bytes) | (2 bytes) |
++-----------+---------------+------------+-----------+
+</PRE>
+The request ID is a 64-bit integer in network byte order.
+ * @}
+ */
 
 ///@defgroup SeqnoFrame SeqnoFrame class
 /// Class representing packet "sequence numbers" - subclass of @ref Frame.

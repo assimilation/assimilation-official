@@ -16,7 +16,7 @@
 #include <tlvhelper.h>
 #define	DIMOF(a)	(sizeof(a)/sizeof(a[0]))
 /** @defgroup lldp_format Layout of LLDP packets
- *  @ingroup GenericFrameFormats
+ *  @ingroup WireDataFormats
  * The Link Layer Discovery Protocol is a layer two discovery protocol which we receive and interpret, but do not send.
  * The LLDP protocol is defined by the 802.1AB specification, described in IEEE document entitled
  * Station and Media Access Control Connectivity Discovery.

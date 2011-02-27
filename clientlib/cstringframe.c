@@ -18,6 +18,19 @@
 #include <frameformats.h>
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
+/**
+ * @defgroup CstringFrameFormats C-Class C-string wire format
+ * @{
+ * @ingroup FrameFormats
+ * Here is the format we use for packaging a NUL-terminated C-style string for the wire.
+<PRE>
++-------------+----------------+------------------+------------+
+| frametype   |    f_length    |    String Data   |  NUL char  |
+|  16 bits)   |    (16-bits)   | f_length-1 bytes |  (1 byte)  |
++-------------+----------------+------------------+------------+
+</PRE>
+*@}
+*/
 
 FSTATIC gboolean _cstringframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 

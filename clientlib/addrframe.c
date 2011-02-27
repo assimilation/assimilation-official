@@ -26,7 +26,21 @@ FSTATIC void _addrframe_setaddr(AddrFrame* f, guint16 frametype, gconstpointer a
 FSTATIC void _addrframe_addr_finalize(void * addr);
 ///@}
 
-
+/**
+ * @defgroup AddrFrameFormats C-Class AddrFrame wire format
+ * @{
+ * @ingroup FrameFormats
+ * Here is the format we use for packaging an @ref AddrFrame for the wire.
+ * Note that different types of addresses are different lengths.
+ * The address types are as per the @ref AddressFamilyNumbers "IANA Address Family" numbering scheme.
+<PRE>
++-------------+----------------+------------------+--------------------+
+| frametype   |    f_length    | Address Type     |    address-data    |
+|  16 bits)   |    (16-bits)   |    2 bytes       | (f_length-2 bytes) |
++-------------+----------------+------------------+--------------------+
+</PRE>
+*@}
+*/
 
 ///@defgroup AddrFrame AddrFrame class
 /// Class for holding/storing various kinds of network addresses - subclass of @ref Frame.
@@ -37,7 +51,7 @@ FSTATIC void _addrframe_addr_finalize(void * addr);
 /// Note that this checking is more thorough for IPV4, IPV5 and MAC addresses than for
 /// any other types.
 /// Right now it <i>does</i> allow other address types, but perhaps they should be disallowed?
-/// Each of the classes that use this class should make sure that the address held in an @ref Addrframe
+/// Each of the classes that use this class should make sure that the address held in an @ref AddrFrame
 /// is suitable to the purpose at hand.
 /// We need to support MAC addresses, but they can't be used in a context that requires
 /// some kind of IP address.  So, <i>caveat emptor</i> has to be the rule of the day anyway.
@@ -192,7 +206,7 @@ addrframe_mac64_new(guint16 frame_type, gconstpointer addr)
 
 /// Given marshalled packet data corresponding to an AddrFrame (address), return the corresponding @ref Frame
 /// In other words, un-marshall the data...
-/// Note that this always returns an @ref AddrFrame (a subclass of @Frame)
+/// Note that this always returns an @ref AddrFrame (a subclass of @ref Frame)
 Frame*
 addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
 			 gconstpointer pktend)		///<[in] pointer to the first invalid address past tlvstart

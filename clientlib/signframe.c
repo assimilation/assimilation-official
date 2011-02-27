@@ -22,6 +22,22 @@
 FSTATIC gboolean _signframe_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void _signframe_updatedata(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs);
 FSTATIC gpointer _signframe_compute_cksum(GChecksumType, gconstpointer tlvptr, gconstpointer pktend);
+/**
+ * @defgroup SignFrameFormats C-class SignFrame wire format
+ * @{
+ * @ingroup FrameFormats
+ * Here is the wire format we use for digital signatures
+<PRE>
++---------------+-----------+-----------------+--------------------+
+| frametype = 1 | f_length  | signature-type  | digital signature  |
+|   (16 bits)   | (16-bits) |   (16 bits)     | (f_length-2 bytes) |
++---------------+-----------+-----------------+--------------------+
+</PRE>
+@note
+Because of their special nature, all digital signature frames <b>must</b> have frametype 1
+and be the first frame in the frameset.
+ * @}
+ */
 
 ///@defgroup SignFrame SignFrame class
 /// Class representing digital signatures - subclass of @ref Frame.

@@ -21,6 +21,7 @@
  *  Since they are used to create a bit mask, each #define must be a power of two.
  *  @see create_pcap_listener
  *  @{ 
+ *  @ingroup DefineEnums
  */
 ///	Enable LLDP protocol
 #	define	ENABLE_LLDP	0x1

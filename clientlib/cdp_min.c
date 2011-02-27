@@ -20,7 +20,7 @@
 #define DIMOF(a)	((sizeof(a)) / sizeof(a[0]))
 /**
  * @defgroup cdp_format Layout of CDP Packets
- * @ingroup GenericFrameFormats
+ * @ingroup WireDataFormats
  * CDP is the Cisco Discovery Protocol - which we receive and interpret, but don't send.
  * CDP packets consist of a 4-byte initial header, followed by any number of Type/Length/Value (TLV)
  * sections.  A CDP packet should never exceed 1500 bytes,

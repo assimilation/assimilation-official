@@ -19,16 +19,18 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 /**
- * @defgroup GenericFrameFormats Data Formats on the Wire
+ * @defgroup WireDataFormats Data Formats on the Wire (sent and/or received)
+ * @{
  * On the wire we send datagrams.
  * Each datagram is a set of one or more @ref FrameSet "FrameSet"s.
  * Each @ref FrameSet "FrameSet" contains a set of one or more @ref Frame "Frame"s.
  * Reliable delivery is handled at the @ref FrameSet "FrameSet" level.
+ * @}
  *
  * @defgroup FrameFormats 'Frame' data format on the wire
  * @{
- * @ingroup GenericFrameFormats
- * Below is the general format for a Frame.
+ * @ingroup WireDataFormats
+ * Below is the general format for a Frame - which holds general binary data.
  * <PRE>
  * +--------------+-----------+------------------+
  * |   frametype  | f_length  |  frame-value(s)  |
@@ -41,7 +43,6 @@
  * The formats of individual frame types are documented above the #defines for each frame type in the
  * group @ref IndividualFrameFormats.
  * The generic (base class) Frame is a simple binary object (blob) type Frame.
- * @}
  * @}
  */
 FSTATIC void _frame_default_finalize(Frame * self);

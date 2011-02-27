@@ -13,7 +13,7 @@
 /**
  * @defgroup FrameSetFormats 'FrameSet' data format on the wire
  * @{
- * @ingroup GenericFrameFormats
+ * @ingroup WireDataFormats
  * As noted earlier, Framesets are logical packets.
  * Here is my current thinking about the layout of frameset data - which is a variant
  * of Type, Length, Value (TLV) entries like those used by LLDP and CDP.

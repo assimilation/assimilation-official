@@ -15,6 +15,7 @@
  * Each of the types below has a method associated with it which knows how to convert it to a string.
  * I think this header isn't used for anything.  IGNOREME?
  *  @{ 
+ *  @ingroup DefineEnums
  */
 #define	TLV_DTYPE_BINARY		1	///< Just raw binary - no special meaning
 #define	TLV_DTYPE_UINT8			2	///< 8-bit unsigned integer

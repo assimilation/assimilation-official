@@ -14,6 +14,7 @@
  *  @see get_cdptlv_type
  *  @{ 
  *  @ingroup cdp_format
+ *  @ingroup DefineEnums
  */
 #define	CDP_TLV_DEVID		0x0001	///< Hostname of the device or hardware serial number in ASCII.
 					///< **This is one of the two CDP values our client code pays attention to.
@@ -39,6 +40,7 @@
  *  @see CDP_TLV_CAPS
  *  @{ 
  *  @ingroup cdp_format
+ *  @ingroup DefineEnums
  */
 #define CDP_CAPMASK_ROUTER	0x01	///< L3 Router
 #define CDP_CAPMASK_TBBRIDGE	0x02	///< TB Bridge

@@ -16,9 +16,9 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 /**
- * @defgroup IntFrameFormats 'IntFrame' data format on the wire
+ * @defgroup IntFrameFormats C-Class IntFrame wire format
  * @{
- * @ingroup GenericFrameFormats
+ * @ingroup FrameFormats
  * Here are the various frame formats that we use for packaging single integers
  * as whole frames.
  *

@@ -1,5 +1,5 @@
 /**
-@page OverallArchitecture System Architecture
+@page OverallArchitecture System Goals and Architecture
 Some background:
 
  - Our @subpage SystemGoals "System Goals".
