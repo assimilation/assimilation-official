@@ -170,12 +170,51 @@ Its corresponding @ref Frame class is @ref IntFrame.
 <PRE>
 +---------------+----------------+----------------+
 | frametype = 8 | f_length = 'n' | interface name |
-|   (16 bits)   |    (16-bits)   |   (C-string)     |
+|   (16 bits)   |    (16-bits)   |   (C-string)   |
 +---------------+----------------+----------------+
 </PRE>
 This frame provides the name of the network interface
 associated with the FrameSet as NUL-terminated C-style string.
 */
 #define	FRAMETYPE_INTERFACE	8
+/**
+  IP Address (frametype 9) Frame Format - IP address either v4 or v6
+  C-Class: @ref AddrFrame
+<PRE>
++---------------+----------------+------------------+--------------+
+| frametype = 9 | f_length = 4   | Address Type = 1 | IPv4 address |
+|   (16 bits)   |    (16-bits)   |    2 bytes       | (4 bytes)    |
++---------------+----------------+------------------+--------------+
+</PRE>
+<PRE>
++---------------+----------------+------------------+--------------+
+| frametype = 9 | f_length = 18  | Address Type = 2 | IPv6 address |
+|   (16 bits)   |    (16-bits)   |    2 bytes       |  (16 bytes)  |
++---------------+----------------+------------------+--------------+
+</PRE>
+This frame provides an IP address - either in IPv4 or IPv6 format.
+In either case, it is translated into an @ref AddrFrame.
+*/
+#define	FRAMETYPE_IPADDR	9
+/**
+  IP Address (frametype 9) Frame Format - MAC address either in
+  6-byte EUI-48 format or 8-byte EUI-64 format.
+  C-Class: @ref AddrFrame
+<PRE>
++---------------+----------------+------------------+-------------+
+| frametype = 9 | f_length = 8   | Address Type = 6 | MAC address |
+|   (16 bits)   |    (16-bits)   |    2 bytes       |  (6 bytes)  |
++---------------+----------------+------------------+-------------+
+</PRE>
+<PRE>
++---------------+----------------+------------------+-------------+
+| frametype = 9 | f_length = 10  | Address Type = 6 | MAC address |
+|   (16 bits)   |    (16-bits)   |    2 bytes       |  (8 bytes)  |
++---------------+----------------+------------------+-------------+
+</PRE>
+This frame provides a MAC address either a 6 or 8 byte format.
+In either case, it is translated into an @ref AddrFrame.
+*/
+#define	FRAMETYPE_MACADDR	9
 ///@}
 ///@}

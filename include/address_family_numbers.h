@@ -20,7 +20,7 @@
 /// what to do with as it is...
 ///
 #define ADDR_FAMILY_IPV4	1	///< IPv4
-#define ADDR_FAMILY_IPV6	2	///< IPv7
+#define ADDR_FAMILY_IPV6	2	///< IPv6
 #define ADDR_FAMILY_NSAP	3
 #define ADDR_FAMILY_HDLC	4
 #define ADDR_FAMILY_BBN1822	5

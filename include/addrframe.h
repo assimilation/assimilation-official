@@ -27,6 +27,10 @@ struct _AddrFrame {
 };
 
 AddrFrame* addrframe_new(guint16 frame_type, gsize framesize);
+AddrFrame* addrframe_ipv4_new(guint16 frame_type, gconstpointer addr);
+AddrFrame* addrframe_ipv6_new(guint16 frame_type, gconstpointer addr);
+AddrFrame* addrframe_mac48_new(guint16 frame_type, gconstpointer addr);
+AddrFrame* addrframe_mac64_new(guint16 frame_type, gconstpointer addr);
 Frame* addrframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
