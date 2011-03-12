@@ -15,12 +15,13 @@
 #include <netaddr.h>
 #include <address_family_numbers.h>
 
+/// @defgroup NetAddr NetAddr class
+///@{
+/// @ingroup C_Classes
 /// This is our basic NetAddr object.
-/// It represents network addresses of a variety of types.
+/// It represents network addresses of any of a wide variety of well-known @ref AddressFamilyNumbers "well-known types".
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
-///@{
-/// @ingroup NetAddr
 
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...

@@ -25,6 +25,7 @@
 #include <frame.h>
 #include <addrframe.h>
 #include <cstringframe.h>
+#include <netio.h>
 #include <intframe.h>
 #include <frameformats.h>
 #include <tlvhelper.h>
@@ -93,9 +94,9 @@ cast_frameset_tests(void)
 FSTATIC void
 address_tests(void)
 {
-	const guint8	addr_ipv4_localhost[4] = {127, 0, 0, 1};
+	const guint8	addr_ipv4_localhost[4] = CONST_IPV4_LOOPBACK;
 	const guint8	addr_ipv4_other[4] = {10, 10, 10, 5};
-	const guint8	addr_ipv6_localhost[16] =  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+	const guint8	addr_ipv6_localhost[16] =  CONST_IPV6_LOOPBACK;
 	const guint8	addr_ipv46_localhost[16] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff,127,0,0,1};
 	const guint8	addr_macaddr48 [6]= {0x00, 0x1b, 0xfc, 0x1b, 0xa8, 0x73};
 	const guint8	addr_macaddr64 [8]= {0x00, 0x1b, 0xfc, 0x1b, 0xa8, 0x73, 0x42, 0x42};

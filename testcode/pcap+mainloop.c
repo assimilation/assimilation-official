@@ -29,7 +29,7 @@ gint64 maxpkts  = G_MAXINT64;
 gint64 pktcount = 0;
 GMainLoop*	loop = NULL;
 FrameSet* encapsulate_packet(gpointer, gpointer, const char *);
-gboolean gotapacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
+gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
 
 /// Test routine for encapsulating a packet in a FrameSet
 /// Eventually this will include the packet data, the interface information, and the source address
@@ -48,7 +48,7 @@ encapsulate_packet(gpointer packet,
 
 /// Routine called when a packet is received from the g_main_loop() mechanisms.
 gboolean
-gotapacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
+gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	   pcap_t *capfd,			///<[in]pcap capture object
            gconstpointer pkt,			///<[in]captured packet
            gconstpointer pend,			///<[in]end of captured packet
@@ -140,7 +140,7 @@ main(int argc, char **argv)
 
 
 	/// Create a packet source, and connect it up to run in the default context
-	pktsource = g_source_pcap_new(dev, protocols, gotapacket, NULL,
+	pktsource = g_source_pcap_new(dev, protocols, gotapcappacket, NULL,
                                       G_PRIORITY_DEFAULT, FALSE, NULL, 0, NULL);
 
 	if (NULL == pktsource) {

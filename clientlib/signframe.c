@@ -22,6 +22,7 @@
 FSTATIC gboolean _signframe_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void _signframe_updatedata(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs);
 FSTATIC gpointer _signframe_compute_cksum(GChecksumType, gconstpointer tlvptr, gconstpointer pktend);
+FSTATIC SignFrame*	 _signframe_copy(const SignFrame* self);
 /**
  * @defgroup SignFrameFormats C-class SignFrame wire format
  * @{
@@ -34,7 +35,7 @@ FSTATIC gpointer _signframe_compute_cksum(GChecksumType, gconstpointer tlvptr, g
 +---------------+-----------+-----------------+--------------------+
 </PRE>
 @note
-Because of their special nature, all digital signature frames <b>must</b> have frametype 1
+Because of their special nature, all digital signature frames <b>must</b> have frametype <b>1</b>
 and be the first frame in the frameset.
  * @}
  */
@@ -207,6 +208,13 @@ signframe_new(GChecksumType sigtype,	///< signature type
 	ret->signaturetype = sigtype;
 	return ret;
 }
+
+FSTATIC SignFrame*
+_signframe_copy(const SignFrame* self)
+{
+	return signframe_new(self->signaturetype, 0);
+}
+
 /// Given marshalled data corresponding to a SignFrame (signature frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 /// @note when we add more subtypes to signatures (which will surely happen), then

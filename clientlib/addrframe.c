@@ -43,7 +43,7 @@ FSTATIC void _addrframe_addr_finalize(void * addr);
 */
 
 ///@defgroup AddrFrame AddrFrame class
-/// Class for holding/storing various kinds of network addresses - subclass of @ref Frame.
+/// Class for holding/storing various kinds of @ref NetAddr network addresses. We're a subclass of @ref Frame.
 /// @{
 /// @ingroup Frame
 

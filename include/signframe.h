@@ -25,8 +25,9 @@ typedef struct _SignFrame SignFrame;
 /// @ref FrameSet "FrameSet"-constructed packet.
 /// Not too surprising for a digital signature Frame.
 struct _SignFrame {
-	Frame		baseclass;	// Base Frame class object.
-	GChecksumType	signaturetype;	// Type of signature...
+	Frame		baseclass;			///< Base @ref Frame object.
+	SignFrame*	(*copy)(const SignFrame*);	///< Make a copy of the @ref SignFrame object.
+	GChecksumType	signaturetype;			///< Type of signature...
 };
 
 SignFrame* signframe_new(GChecksumType sigtype, gsize framesize);

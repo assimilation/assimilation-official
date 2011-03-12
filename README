@@ -1,5 +1,5 @@
 For reasons unclear to me, Cmake likes to put lots of full pathnames into its files.
-I woudl hope it would be sufficient to say cmake before making things and it should go from there.
+I would hope it would be sufficient to say cmake before making things and it should go from there.
 
 However, failing that, try removing files named like these:
 	CMakeCache.txt

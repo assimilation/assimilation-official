@@ -13,12 +13,13 @@
 #include <glib.h>
 #include <netgsource.h>
 
+/// @defgroup NetGSource NetGSource class
+///@{
+/// @ingroup C_Classes
 /// This is our basic NetGSource object.
-/// It is used for reading from network sockets, and managing flow control to them.
+/// It is used for reading from @ref NetIO objects in the context of the g_main_loop GSource paradigm.
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
-///@{
-/// @ingroup NetGSource
 
 FSTATIC gboolean _netgsource_prepare(GSource* source, gint* timeout);
 FSTATIC gboolean _netgsource_check(GSource* source);

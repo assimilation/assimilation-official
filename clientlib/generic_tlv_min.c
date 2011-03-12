@@ -20,6 +20,10 @@
 
 ///@defgroup GenericTLV Generic TLV capabilities
 ///@{
+///@brief Implements a set of client-oriented TLV (Type, Length, Value) capabilities.
+///@details These capabilities are the core of our packet assembly/disassembly infrastructure.
+///Everything we send is wrapped in a @ref Frame, or a @ref FrameSet, and those both make extensive
+///use of the capabilties defined here.
 
 /// Size of Generic TLV header -  ((type + length) == 4)
 #define	GENERICTLV_HDRSZ	(sizeof(guint16)+sizeof(guint16))

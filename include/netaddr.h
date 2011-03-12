@@ -17,7 +17,7 @@
 #include <netinet/in.h>
 typedef struct _NetAddr NetAddr;
 
-/// The @ref NetAddr class represents a general network address.
+/// The @ref NetAddr class represents a general network address - whether IP, MAC, or @ref AddressFamilyNumbers "any other type of address".
 /// It is a class from which we <i>might</i> eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 ///@{
@@ -31,11 +31,19 @@ struct _NetAddr {
 	gpointer	_addrbody;				///< private: Address body
 	guint16		_addrtype;				///< private: Address type
 	guint16		_addrlen;				///< private: Length of _addrbody
-	guint16		_addrport;				///< privaet: Address port (if applicable)
+	guint16		_addrport;				///< private: Address port (if applicable)
 };
 NetAddr*	netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen);
 NetAddr*	netaddr_new_from_sockaddr(const struct sockaddr *, socklen_t);
 NetAddr*	netaddr_new_from_macaddr(gconstpointer addrbody, guint16 maclen);
+
+#define	CONST_IPV6_LOOPBACK	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}
+#define	CONST_IPV4_LOOPBACK	{127,0,0,1}
+#define	CONST_IPV6_IPV4SPACE	0,0,0,0,0,0,0,0,0,0,0xff,0xff
+#define	CONST_IPV6_IPV4START	{IPV4SPACE, 0, 0, 0, 0}
+#define	CONST_IPV6_MACSPACE	0xFE, 0x80, 0, 0, 0, 0, 0, 0x02
+#define	CONST_IPV6_MACSTART	{CONST_IPV6_MACSPACE, 0, 0, 0, 0, 0, 0, 0, 0}
+
 ///@}
 
 #endif /* _NETADDR_H */

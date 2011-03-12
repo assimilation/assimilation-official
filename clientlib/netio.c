@@ -35,12 +35,12 @@ FSTATIC gsize _netio_getmaxpktsize(const NetIO* self);
 FSTATIC gsize _netio_setmaxpktsize(NetIO* self, gsize maxpktsize);
 FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
 
-/// This is our basic NetIO object.
-/// It can perform network writes and reads.
-/// It is a class from which we might eventually make subclasses,
-/// and is managed by our @ref ProjectClass system.
+/// @defgroup NetIO NetIO class
 ///@{
-/// @ingroup NetIO
+///@ingroup C_Classes
+/// (Abstract) NetIO objects are able to perform network writes and reads.
+/// It is a class from which we <i>must</i> make subclasses,
+/// and is managed by our @ref ProjectClass system.
 
 /// Member function to return the file descriptor underlying this NetIO object
 FSTATIC gint
@@ -177,9 +177,9 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 	/// @todo change netio_sendframesets to use sendmsg(2) instead of sendto(2)...
 	/// This loop would then be to set up a <b>struct iovec</b>,
 	/// and would be followed by a sendmsg(2) call - eliminating sendapacket() above.
-	for (curfsl=framesets; curfsl != NULL; curfsl=curfsl->next) {
+	for (curfsl=framesets; curfsl != NULL;) {
 		FrameSet* curfs = CASTTOCLASS(FrameSet, curfsl->data);
-		frameset_construct_packet(curfs, self->signframe(self),
+		frameset_construct_packet(curfs, self->_signframe->copy(self->_signframe),
 		                          self->cryptframe(self), self->compressframe(self));
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 	}

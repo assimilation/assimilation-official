@@ -22,13 +22,13 @@
 #include <frameset.h>
 
 
-/// This is our basic NetIOudp object.
-/// It can perform network writes and reads on UDP sockets.
+/// @defgroup NetIOudp NetIOudp class
+///@{
+///@ingroup C_Classes
+/// A NetIOudp object performs network writes and reads on UDP sockets.
 /// It is a class from which we might eventually make subclasses (but it doesn't seem likely),
 /// and is managed by our @ref ProjectClass system.
 /// Except for the constructor, it is identical to the NetIO class.
-///@{
-/// @ingroup NetIOudp
 
 /// Construct new UDP NetIO object (and its socket, etc)
 NetIOudp*
