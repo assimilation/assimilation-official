@@ -24,7 +24,7 @@
 
 /// @defgroup NetIOudp NetIOudp class
 ///@{
-///@ingroup C_Classes
+///@ingroup NetIO
 /// A NetIOudp object performs network writes and reads on UDP sockets.
 /// It is a class from which we might eventually make subclasses (but it doesn't seem likely),
 /// and is managed by our @ref ProjectClass system.
