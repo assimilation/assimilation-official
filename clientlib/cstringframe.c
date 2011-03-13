@@ -22,7 +22,7 @@
  * @defgroup CstringFrameFormats C-Class C-string wire format
  * @{
  * @ingroup FrameFormats
- * Here is the format we use for packaging a NUL-terminated C-style string for the wire.
+ * Here is the format we use for packaging a NUL-terminated C-style string (@ref CstringFrame) for the wire.
 <PRE>
 +-------------+----------------+------------------+------------+
 | frametype   |    f_length    |    String Data   |  NUL char  |
