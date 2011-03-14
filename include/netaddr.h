@@ -26,7 +26,7 @@ struct _NetAddr {
 	guint16		(*port)(const NetAddr* self);		///< Return port from this address
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
 	gconstpointer	(*addrinnetorder)(const NetAddr* self, gsize* addrlen);///< Return the address in network byte order
-	struct sockaddr_in6(*ipv6addr)(const NetAddr* self);	///< Return the ipv6 address corresponding to this address
+	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 address corresponding to this address
 	void		(*finalize)(gpointer self);		///< Finalize this object.
 	gpointer	_addrbody;				///< private: Address body
 	guint16		_addrtype;				///< private: Address type
@@ -34,8 +34,13 @@ struct _NetAddr {
 	guint16		_addrport;				///< private: Address port (if applicable)
 };
 NetAddr*	netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen);
-NetAddr*	netaddr_new_from_sockaddr(const struct sockaddr *, socklen_t);
-NetAddr*	netaddr_new_from_macaddr(gconstpointer addrbody, guint16 maclen);
+NetAddr*	netaddr_sockaddr_new(const struct sockaddr *, socklen_t);
+NetAddr*	netaddr_macaddr_new(gconstpointer macbuf, guint16 maclen);
+NetAddr*	netaddr_mac48_new(gconstpointer macbuf);
+NetAddr*	netaddr_mac64_new(gconstpointer macbuf);
+NetAddr*	netaddr_ipv4_new(gconstpointer	ipbuf, guint16	port);
+NetAddr*	netaddr_ipv6_new(gconstpointer ipbuf, guint16	port);
+
 
 #define	CONST_IPV6_LOOPBACK	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}
 #define	CONST_IPV4_LOOPBACK	{127,0,0,1}

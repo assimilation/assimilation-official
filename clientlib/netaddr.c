@@ -12,6 +12,7 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 
+#include <memory.h>
 #include <netaddr.h>
 #include <address_family_numbers.h>
 
@@ -25,6 +26,7 @@
 
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...
+FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
 
 /// Generic NetAddr constructor.
 NetAddr*
@@ -48,7 +50,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->_addrport = port;
 	self->_addrtype = addrtype;
 	self->_addrlen = addrlen;
-
+	self->ipv6sockaddr = _netaddr_ipv6sockaddr;
 	self->_addrbody = g_memdup(addrbody, addrlen);
 
 	return self;
@@ -56,19 +58,51 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 }
 /// Create new NetAddr from a MAC address
 NetAddr*
-netaddr_new_from_macaddr(gconstpointer macbuf,	///<[in] Pointer to physical (MAC) address
+netaddr_macaddr_new(gconstpointer macbuf,	///<[in] Pointer to physical (MAC) address
 			 guint16 maclen)	///<[in] length of 'macbuf'
 {
 	
-	g_return_val_if_fail(maclen >= 6, NULL);
-	g_return_val_if_fail(maclen <= 32, NULL);
+	g_return_val_if_fail(maclen == 6 || maclen == 8, NULL);
 	return netaddr_new(0, 0, ADDR_FAMILY_802, macbuf, maclen);
 }
 
+/// Create new NetAddr from a MAC48 address
+NetAddr*
+netaddr_mac48_new(gconstpointer macbuf)	///<[in] Pointer to physical (MAC) address
+{
+	return netaddr_macaddr_new(macbuf, 6);
+}
+
+/// Create new NetAddr from a MAC64 address
+NetAddr*
+netaddr_mac64_new(gconstpointer macbuf)	///<[in] Pointer to physical (MAC) address
+{
+	return netaddr_macaddr_new(macbuf, 6);
+}
+
+/// Create new NetAddr from a IPv4 address
+NetAddr*
+netaddr_ipv4_new(gconstpointer	ipbuf,	///<[in] Pointer to 4-byte IPv4 address
+		 guint16	port)	///<[in] Port (or zero for non-port-specific IP address)
+{
+	return	netaddr_new(0, port, ADDR_FAMILY_IPV4, ipbuf, 4);
+}
+
+/// Create new NetAddr from a IPv6 address
+NetAddr*
+netaddr_ipv6_new(gconstpointer ipbuf,	///<[in] Pointer to 8-byte IPv6 address
+		 guint16	port)	///<[in] Port (or zero for non-port-specific IP address)
+{
+	return	netaddr_new(0, port, ADDR_FAMILY_IPV6, ipbuf, 8);
+}
+
+
+
+
 /// Create new NetAddr from a <b>struct sockaddr</b>
 NetAddr*
-netaddr_new_from_sockaddr(const struct sockaddr *sa,	///<[in] struct sockaddr to construct address from
-			  socklen_t length)		///<[in] number of bytes in 'sa'
+netaddr_sockaddr_new(const struct sockaddr *sa,	///<[in] struct sockaddr to construct address from
+			  socklen_t length)	///<[in] number of bytes in 'sa'
 {
 	const struct sockaddr_in*	sa_in = (const struct sockaddr_in*)sa;
 	const struct sockaddr_in6*	sa_in6 = (const struct sockaddr_in6*)sa;
@@ -80,7 +114,7 @@ netaddr_new_from_sockaddr(const struct sockaddr *sa,	///<[in] struct sockaddr to
 			break;
 
 		case AF_INET6:
-			/// @todo convert IPv4 encapsulated addresses to real IPv4 addresses
+			/// @todo convert IPv4 encapsulated addresses to real IPv4 addresses??
 			return netaddr_new(0, sa_in6->sin6_port, 
 					   ADDR_FAMILY_IPV6, &sa_in6->sin6_addr, 16);
 			break;
@@ -89,3 +123,31 @@ netaddr_new_from_sockaddr(const struct sockaddr *sa,	///<[in] struct sockaddr to
 }
 ///@}
 
+FSTATIC struct sockaddr_in6
+_netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to ipv6 sockaddr
+{
+	struct sockaddr_in6	saddr;
+
+	memset(&saddr, 0x00, sizeof(saddr));
+
+	switch (self->_addrtype) {
+		case ADDR_FAMILY_IPV4:
+			g_return_val_if_fail(4 != self->_addrlen, saddr);
+			/// @todo May need to account for the "any" ipv4 address here and
+			/// translate it into the "any" ipv6 address...
+			// (this works because saddr is initialized to zero)
+			saddr.sin6_addr.s6_addr[10] =  0xff;
+			saddr.sin6_addr.s6_addr[11] =  0xff;
+			memcpy(saddr.sin6_addr.s6_addr+12, self->_addrbody, self->_addrlen);
+			break;
+
+		case ADDR_FAMILY_IPV6:
+			g_return_val_if_fail(16 != self->_addrlen, saddr);
+			memcpy(&saddr.sin6_addr, self->_addrbody, self->_addrlen);
+			break;
+
+		default:
+			g_return_val_if_reached(saddr);
+	}
+	return saddr;
+}

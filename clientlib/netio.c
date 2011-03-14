@@ -69,26 +69,9 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 	saddr.sin6_port = src->port(src);
 	addrptr = src->addrinnetorder(src, &addrlen);
 	g_return_val_if_fail(NULL != addrptr, FALSE);
+	g_return_val_if_fail(src->addrtype(src) == ADDR_FAMILY_IPV4 || src->addrtype(src) == ADDR_FAMILY_IPV6, FALSE);
 
-	switch (src->addrtype(src)) {
-		case ADDR_FAMILY_IPV4:
-			g_return_val_if_fail(4 != addrlen, FALSE);
-			/// @todo May need to account for the "any" ipv4 address here and
-			/// translate it into the "any" ipv6 address...
-			// s6_addr is all zeros when we get here...
-			saddr.sin6_addr.s6_addr[10] =  0xff;
-			saddr.sin6_addr.s6_addr[11] =  0xff;
-			memcpy(saddr.sin6_addr.s6_addr+12, addrptr, addrlen);
-			break;
-
-		case ADDR_FAMILY_IPV6:
-			g_return_val_if_fail(16 != addrlen, FALSE);
-			memcpy(&saddr.sin6_addr, addrptr, addrlen);
-			break;
-
-		default:
-			return FALSE;
-	}
+	saddr = src->ipv6sockaddr(src);
 	rc = bind(sockfd, (struct sockaddr*)&saddr, sizeof(saddr));
 	return rc == 0;
 }
@@ -150,7 +133,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 		   gconstpointer pktend,	///<[in] one byte past end of packet
 		   const NetAddr* destaddr)	///<[in] where to send it
 {
-	struct sockaddr_in6 v6addr = destaddr->ipv6addr(destaddr);
+	struct sockaddr_in6 v6addr = destaddr->ipv6sockaddr(destaddr);
 	gssize length = (const guint8*)pktend - (const guint8*)packet;
 	gssize rc;
 	guint flags = 0x00;
@@ -261,7 +244,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	if (NULL != pkt) {
 		ret = pktdata_to_frameset_list(pkt, pktend);
 		if (NULL != ret) {
-			*src = netaddr_new_from_sockaddr(&srcaddr, addrlen);
+			*src = netaddr_sockaddr_new(&srcaddr, addrlen);
 		}else{
 			FREE(ret); ret = NULL;
 		}
