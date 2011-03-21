@@ -33,9 +33,9 @@ gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer,
 
 /// Test routine for encapsulating a packet in a FrameSet
 /// Eventually this will include the packet data, the interface information, and the source address
-/// of the packet.  These can be a Frame, CstringFrame, and an AddrFrame respectively.
-/// In this case, the AddrFrame will be for the MAC address - since there is no higher level
-/// protocol for these link level discovery protocols.
+/// of the packet.  These can be a Frame and a CstringFrame.  But I think I already have a function
+/// which does most of this...  Better look into that...
+/// The name is "construct_pcap_frameset".
 FrameSet*
 encapsulate_packet(gpointer packet,
 		   gpointer pktend,

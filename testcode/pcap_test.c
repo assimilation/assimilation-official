@@ -62,14 +62,23 @@ cast_frameset_tests(void)
 
 	g_message("Performing c-class cast tests");
 	fcast = CASTTOCLASS(Frame, f);
+	(void)fcast;
 	fcast = CASTTOCLASS(Frame, csf);
+	(void)fcast;
 	fcast = CASTTOCLASS(Frame, af);
+	(void)fcast;
 	fcast = CASTTOCLASS(Frame, intf);
+	(void)fcast;
 	fcast = CASTTOCLASS(Frame, sigf);
+	(void)fcast;
 	cscast = CASTTOCLASS(CstringFrame, csf);
+	(void)cscast;
 	afcast = CASTTOCLASS(AddrFrame, af);
+	(void)afcast;
 	intfcast = CASTTOCLASS(IntFrame, intf);
+	(void)intfcast;
 	sigf = CASTTOCLASS(SignFrame, sigf);
+	(void)sigf;
 
 
 	f->setvalue(f, fred, strlen(fred), NULL);

@@ -167,12 +167,11 @@ gconstpointer
 get_generic_tlv_next(gconstpointer tlv_vp,		///<[in] Pointer to  current TLV entry
                   gconstpointer pktend)	///<[in] Pointer to first byte after the end of the TLV packet
 {
-	guint16	tlv_type;
 	const guint8*	nexttlv;
 	const guint8*	nextend;
 	if (tlv_vp == NULL
         ||  ((const guint8*)tlv_vp+GENERICTLV_HDRSZ) > (const guint8*)pktend
-        ||  (tlv_type = get_generic_tlv_type(tlv_vp, pktend)) == FRAMETYPE_END) {
+        ||  get_generic_tlv_type(tlv_vp, pktend) == FRAMETYPE_END) {
 		return NULL;
 	}
 	nexttlv = (const guint8*)tlv_vp  + GENERICTLV_HDRSZ + get_generic_tlv_len(tlv_vp, pktend);

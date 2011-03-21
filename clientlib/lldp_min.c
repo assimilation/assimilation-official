@@ -104,7 +104,9 @@ is_valid_lldp_packet(const void* tlv_vp,	//<[in] pointer to beginning pf LLDP pa
 {
 	const unsigned	reqtypes [] = {LLDP_TLV_CHID,LLDP_TLV_PID, LLDP_TLV_TTL};
 	int		j = 0;
+#ifdef PEDANTIC_LLDP_NERD
 	int		lasttype = -1;
+#endif
 	if (NULL == tlv_vp || ((const guint8*)tlv_vp+NETTLV_HDRSZ)  > (const guint8*)pktend) {
 		fprintf(stderr, "LLDP Invalid because packet is too short\n");
 		return FALSE;
@@ -120,7 +122,9 @@ is_valid_lldp_packet(const void* tlv_vp,	//<[in] pointer to beginning pf LLDP pa
 			return FALSE;
 		}
 		ttype = get_lldptlv_type(tlv_vp, pktend);
+#ifdef PEDANTIC_LLDP_NERD
 		lasttype = ttype;
+#endif
 		length = get_lldptlv_len(tlv_vp, pktend);
 		next = (const guint8*)tlv_vp + (length+NETTLV_HDRSZ);
 		if (next > (const guint8*)pktend) {
@@ -169,12 +173,11 @@ const void *
 get_lldptlv_next(const void* tlv_vp,		///<[in] Pointer to  current LLDP TLV entry
                   const void* pktend)	///<[in] Pointer to first byte after the end of the LLDP packet
 {
-	unsigned	tlv_type;
 	const guint8 *	nexttlv;
 	const void*	nextend;
 	if (tlv_vp == NULL
         ||  ((const guint8*)tlv_vp+NETTLV_HDRSZ) > (const guint8*)pktend
-        ||  (tlv_type = get_lldptlv_type(tlv_vp, pktend)) == LLDP_TLV_END) {
+        ||  get_lldptlv_type(tlv_vp, pktend) == LLDP_TLV_END) {
 		return NULL;
 	}
 	nexttlv = (const guint8*)tlv_vp  + NETTLV_HDRSZ + get_lldptlv_len(tlv_vp, pktend);

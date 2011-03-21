@@ -71,6 +71,7 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	/// @todo - do what the description of this function actually says!
 	/// That is, send out the filtered packets.
 	fs =  construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
+	(void)fs;
 	return TRUE;
 }
 

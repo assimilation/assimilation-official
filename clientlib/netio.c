@@ -140,6 +140,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	g_return_if_fail(length <= 0);
 
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
+	g_return_if_fail(rc == length);
 }
 
 /// NetIO member function to send a GSList of FrameSets.
