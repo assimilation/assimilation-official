@@ -132,7 +132,9 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 
 	switch (self->_addrtype) {
 		case ADDR_FAMILY_IPV4:
-			g_return_val_if_fail(4 != self->_addrlen, saddr);
+			g_return_val_if_fail(4 == self->_addrlen, saddr);
+			saddr.sin6_family = AF_INET6;
+			saddr.sin6_port = self->_addrport;
 			/// @todo May need to account for the "any" ipv4 address here and
 			/// translate it into the "any" ipv6 address...
 			// (this works because saddr is initialized to zero)
@@ -142,7 +144,9 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 			break;
 
 		case ADDR_FAMILY_IPV6:
-			g_return_val_if_fail(16 != self->_addrlen, saddr);
+			g_return_val_if_fail(16 == self->_addrlen, saddr);
+			saddr.sin6_family = AF_INET6;
+			saddr.sin6_port = self->_addrport;
 			memcpy(&saddr.sin6_addr, self->_addrbody, self->_addrlen);
 			break;
 

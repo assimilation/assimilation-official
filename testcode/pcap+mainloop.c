@@ -22,13 +22,15 @@
 #include <server_dump.h>
 #include <pcap_GSource.h>
 #include <decode_packet.h>
+#include <netioudp.h>
+#include <netaddr.h>
 
-#define PCAP	"pcap/"
-
-gint64 maxpkts  = G_MAXINT64;
-gint64 pktcount = 0;
+gint64		maxpkts  = G_MAXINT64;
+gint64		pktcount = 0;
 GMainLoop*	loop = NULL;
-FrameSet* encapsulate_packet(gpointer, gpointer, const char *);
+NetIO*		transport;
+NetAddr*	destaddr;
+void encapsulate_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
 gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
 
 /// Test routine for encapsulating a packet in a FrameSet
@@ -36,14 +38,18 @@ gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer,
 /// of the packet.  These can be a Frame and a CstringFrame.  But I think I already have a function
 /// which does most of this...  Better look into that...
 /// The name is "construct_pcap_frameset".
-FrameSet*
-encapsulate_packet(gpointer packet,
-		   gpointer pktend,
-		   const char * dev)
+void
+encapsulate_packet(gconstpointer packet,			///<[in] pcap packet data
+		   gconstpointer pktend,			///<[in] one byte past end of pkt
+           	   const struct pcap_pkthdr *hdr,	///<[in] pcap header
+		   const char * dev)			///<[in] capture device
 {
-	///@todo finish encapsulate_packet
-	return NULL;
-
+	FrameSet *	fs;
+	GSList*		list;
+	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, packet, pktend, hdr, dev);
+	list = g_slist_append(NULL, fs);
+	fprintf(stderr, "Forwarding a frameset containing a capture packet packet.\n");
+	transport->sendframesets(transport, destaddr, list);
 }
 
 /// Routine called when a packet is received from the g_main_loop() mechanisms.
@@ -104,10 +110,10 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 			copyfs = NULL;
 		}
 	}
-
 	fs->finalize(fs);
 	fs = NULL;
 	fprintf(stderr, "Frameset for constructed packet - freed!\n");
+	encapsulate_packet(pkt, pend, hdr, dev);
 	++pktcount;
 	if (pktcount >= maxpkts) {
 		fprintf(stderr, "QUITTING NOW!\n");
@@ -121,10 +127,13 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 int
 main(int argc, char **argv)
 {
-	char *			dev;					// Device to listen on
-	GSource*		pktsource;				// GSource for packets
-	unsigned		protocols = ENABLE_LLDP|ENABLE_CDP;	// Protocols to watch for...
-	char			errbuf[PCAP_ERRBUF_SIZE];		// Error buffer...
+	char *		dev;					// Device to listen on
+	GSource*	pktsource;				// GSource for packets
+	unsigned	protocols = ENABLE_LLDP|ENABLE_CDP;	// Protocols to watch for...
+	char		errbuf[PCAP_ERRBUF_SIZE];		// Error buffer...
+	const guint8	loopback[] = CONST_IPV4_LOOPBACK;
+	guint16		testport = 1984;
+	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
@@ -142,14 +151,19 @@ main(int argc, char **argv)
 	/// Create a packet source, and connect it up to run in the default context
 	pktsource = g_source_pcap_new(dev, protocols, gotapcappacket, NULL,
                                       G_PRIORITY_DEFAULT, FALSE, NULL, 0, NULL);
+	g_return_val_if_fail(NULL != pktsource, 1);
 
-	if (NULL == pktsource) {
-		fprintf(stderr, "Cannot create new packet source!\n");
-	}
+	transport = CASTTOCLASS(NetIO, netioudp_new(0));
+	g_return_val_if_fail(NULL != transport, 2);
+	transport->set_signframe(transport, signature);
+
+	destaddr =  netaddr_ipv4_new(loopback, testport);
+	g_return_val_if_fail(NULL != destaddr, 3);
+
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_main_loop_run(loop);
 	g_main_loop_unref(loop); loop=NULL; pktsource=NULL;
-	// g_main_loop_unref() calls g_source_unref() - so we should not call it ourselves.
+	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
 	proj_class_dump_live_objects();
 	return(0);
 }

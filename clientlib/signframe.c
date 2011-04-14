@@ -206,6 +206,7 @@ signframe_new(GChecksumType sigtype,	///< signature type
 
 	ret = CASTTOCLASS(SignFrame, baseframe);
 	ret->signaturetype = sigtype;
+	ret->copy = _signframe_copy;
 	return ret;
 }
 

@@ -34,6 +34,9 @@ FSTATIC gpointer _netio_recvapacket(NetIO*, gpointer*, struct sockaddr*, socklen
 FSTATIC gsize _netio_getmaxpktsize(const NetIO* self);
 FSTATIC gsize _netio_setmaxpktsize(NetIO* self, gsize maxpktsize);
 FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
+FSTATIC void _netio_set_signframe (NetIO *self, SignFrame *sign);
+FSTATIC void _netio_set_cryptframe (NetIO *self, Frame *crypt);
+FSTATIC void _netio_set_compressframe (NetIO *self, Frame *compress);
 
 /// @defgroup NetIO NetIO class
 ///@{
@@ -104,6 +107,21 @@ _netio_setmaxpktsize(NetIO* self,	///<[in/out] The object whose max packet size 
 	self->_maxpktsize = maxpktsize;
 	return self->getmaxpktsize(self);
 }
+FSTATIC void
+_netio_set_signframe (NetIO *self, SignFrame *sign)
+{
+	self->_signframe = sign;
+}
+FSTATIC void
+_netio_set_cryptframe (NetIO *self, Frame *crypt)
+{
+	self->_cryptframe = crypt;
+}
+FSTATIC void
+_netio_set_compressframe (NetIO *self, Frame *compress)
+{
+	self->_compressframe = compress;
+}
 
 /// NetIO constructor.
 NetIO*
@@ -122,6 +140,9 @@ netio_new(gsize objsize)	///<[in] The size of the object to construct (or zero)
 	ret->getmaxpktsize = _netio_getmaxpktsize;
 	ret->setmaxpktsize = _netio_setmaxpktsize;
 	ret->recvframesets = _netio_recvframesets;
+	ret->set_signframe = _netio_set_signframe;
+	ret->set_cryptframe = _netio_set_cryptframe;
+	ret->set_compressframe = _netio_set_compressframe;
 	ret->_maxpktsize = 65300;
 	return ret;
 }
@@ -137,7 +158,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	gssize length = (const guint8*)pktend - (const guint8*)packet;
 	gssize rc;
 	guint flags = 0x00;
-	g_return_if_fail(length <= 0);
+	g_return_if_fail(length > 0);
 
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
 	g_return_if_fail(rc == length);
@@ -161,11 +182,13 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 	/// @todo change netio_sendframesets to use sendmsg(2) instead of sendto(2)...
 	/// This loop would then be to set up a <b>struct iovec</b>,
 	/// and would be followed by a sendmsg(2) call - eliminating sendapacket() above.
-	for (curfsl=framesets; curfsl != NULL;) {
+	for (curfsl=framesets; curfsl != NULL; curfsl=curfsl->next) {
 		FrameSet* curfs = CASTTOCLASS(FrameSet, curfsl->data);
 		frameset_construct_packet(curfs, self->_signframe->copy(self->_signframe),
-		                          self->cryptframe(self), self->compressframe(self));
+		                          self->cryptframe    ? self->cryptframe(self) : NULL,
+					  self->compressframe ? self->compressframe(self) : NULL);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
+		
 	}
 }
 
