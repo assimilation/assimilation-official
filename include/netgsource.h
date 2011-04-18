@@ -34,7 +34,7 @@ typedef gboolean (*NetGSourceDispatch)
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 struct _NetGSource {
-	GSource*		baseclass;	///< Parent GSource Object pointer
+	GSource			baseclass;	///< Parent GSource Object pointer
 	GPollFD			_gfd;		///< Poll/select object for gmainloop
 	int			_socket;	///< Underlying socket descriptor
 	gint			_gsourceid;	///< Source ID from g_source_attach()
@@ -42,9 +42,9 @@ struct _NetGSource {
 	GSourceFuncs*		_gsfuncs;	///< pointers to GSource functions
 	NetIO*			_netio;		///< netio this object is based on
 	NetGSourceDispatch	_dispatch;	///< Called when new data has arrived
-	GDestroyNotify 		finalize;	///< Function to call when we're destroyed
+	GDestroyNotify 		_finalize;	///< Function to call when we're destroyed
 };
-NetGSource*	netgsource_new(NetIO* source, NetGSourceDispatch, gpointer userdata, gsize objsize);
-///@}
-
+NetGSource* netgsource_new(NetIO* iosrc, NetGSourceDispatch dispatch, GDestroyNotify notify,
+	       		   gint priority, gboolean can_recurse, GMainContext* context,
+	       		   gsize objsize, gpointer userdata);
 #endif /* _NETGSOURCE_H */

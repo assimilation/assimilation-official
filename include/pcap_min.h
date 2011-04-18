@@ -29,4 +29,4 @@
 #	define	ENABLE_CDP	0x2 
 /// @}
 
-pcap_t* create_pcap_listener(const char * dev, unsigned listenmask);
+pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask);

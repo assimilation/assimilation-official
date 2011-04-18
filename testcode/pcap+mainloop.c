@@ -22,6 +22,7 @@
 #include <server_dump.h>
 #include <pcap_GSource.h>
 #include <decode_packet.h>
+#include <netgsource.h>
 #include <netioudp.h>
 #include <netaddr.h>
 
@@ -32,6 +33,7 @@ NetIO*		transport;
 NetAddr*	destaddr;
 void encapsulate_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
 gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
+gboolean gotnetpkt(NetGSource* gs, GSList* framesets, NetAddr* srcaddr, gpointer ignored);
 
 /// Test routine for encapsulating a packet in a FrameSet
 /// Eventually this will include the packet data, the interface information, and the source address
@@ -123,6 +125,25 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	return TRUE;
 }
 
+gboolean
+gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
+	  GSList* framesets,	///<[in/out] Framesets received
+	  NetAddr* srcaddr,	///<[in] Source address of this packet
+	  gpointer ignored	///<[ignored] User data (ignored)
+	  )
+{
+	GSList*		fslist;
+	FrameSet *	fs;
+	g_message("Received a packet over the 'wire'!");
+	g_message("DUMPING packet received over 'wire':");
+	for (fslist = framesets; fslist != NULL; fslist=fslist->next) {
+		fs = CASTTOCLASS(FrameSet, fslist->data);
+		frameset_dump(fs);
+	}
+	g_message("END of packet received over 'wire':");
+	return TRUE;
+}
+
 /// Test program looping and reading LLDP/CDP packets.
 int
 main(int argc, char **argv)
@@ -134,6 +155,7 @@ main(int argc, char **argv)
 	const guint8	loopback[] = CONST_IPV4_LOOPBACK;
 	guint16		testport = 1984;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	NetGSource*	netpkt;
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
@@ -159,6 +181,11 @@ main(int argc, char **argv)
 
 	destaddr =  netaddr_ipv4_new(loopback, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
+
+	// Listen for our own packets...
+	g_return_val_if_fail(transport->bindaddr(transport, destaddr),4);
+	netpkt = netgsource_new(transport, gotnetpkt, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
+	
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_main_loop_run(loop);

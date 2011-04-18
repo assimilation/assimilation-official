@@ -27,6 +27,21 @@
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...
 FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
+FSTATIC guint16 _netaddr_port(const NetAddr* self);
+FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
+FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
+
+FSTATIC guint16
+_netaddr_port(const NetAddr* self)
+{
+	return self->_addrport;
+}
+
+FSTATIC guint16
+_netaddr_addrtype(const NetAddr* self)
+{
+	return self->_addrtype;
+}
 
 /// Generic NetAddr constructor.
 NetAddr*
@@ -52,6 +67,8 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->_addrlen = addrlen;
 	self->ipv6sockaddr = _netaddr_ipv6sockaddr;
 	self->_addrbody = g_memdup(addrbody, addrlen);
+	self->port = _netaddr_port;
+	self->addrtype = _netaddr_addrtype;
 
 	return self;
 

@@ -61,17 +61,13 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 {
 	gint			sockfd;
 	struct sockaddr_in6	saddr;
-	gsize			addrlen;
-	gconstpointer		addrptr;
 	int			rc;
-	g_return_val_if_fail(NULL != self, -1);
-	g_return_val_if_fail(NULL != self->giosock, -1);
+	g_return_val_if_fail(NULL != self, FALSE);
+	g_return_val_if_fail(NULL != self->giosock, FALSE);
 	sockfd = self->getfd(self);
 	memset(&saddr, 0x00, sizeof(saddr));
 	saddr.sin6_family = AF_INET6;
 	saddr.sin6_port = src->port(src);
-	addrptr = src->addrinnetorder(src, &addrlen);
-	g_return_val_if_fail(NULL != addrptr, FALSE);
 	g_return_val_if_fail(src->addrtype(src) == ADDR_FAMILY_IPV4 || src->addrtype(src) == ADDR_FAMILY_IPV6, FALSE);
 
 	saddr = src->ipv6sockaddr(src);
@@ -215,8 +211,10 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_DONTWAIT|MSG_PEEK|MSG_TRUNC,
 		          srcaddr, addrlen);
 	if (msglen < 0) {
-		g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)"
-		,      self->getfd(self), strerror(errno), __FILE__, __func__, __LINE__);
+		if (errno != EAGAIN) {
+			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)"
+			,      self->getfd(self), strerror(errno), __FILE__, __func__, __LINE__);
+		}
 		return NULL;
 	}
 	if (msglen == 0) {
@@ -249,6 +247,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	}
 	// Hah! Looks good!
 	*pktend = (void*) (msgbuf + msglen);
+	g_debug("netio: Received %zd byte message", msglen);
 	return msgbuf;
 }
 /// Member function to receive a collection of FrameSets (GSList*) out of our NetIO object

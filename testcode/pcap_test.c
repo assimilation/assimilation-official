@@ -35,7 +35,6 @@
 FSTATIC void frameset_tests(void);
 FSTATIC void cast_frameset_tests(void);
 FSTATIC void address_tests(void);
-pcap_t* create_pcap_listener(const char * dev, unsigned listenmask);
 
 
 /// Basic tests of our Class system, and for good measure testing of some Frame and FrameSet objects.

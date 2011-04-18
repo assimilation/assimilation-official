@@ -28,7 +28,6 @@
 
 #define DIMOF(a)	(sizeof(a)/sizeof(a[0]))
 
-pcap_t* create_pcap_listener(const char * dev, unsigned listenmask);
 
 /// Structure mapping @ref pcap_protocols bits to the corresponding pcap filter expressions.
 static struct pcap_filter_info {
@@ -48,8 +47,9 @@ static struct pcap_filter_info {
  *  @see pcap_protocols
  */
 pcap_t*
-create_pcap_listener(const char * dev		///< [in] Device name to listen on
-,		     unsigned listenmask)	///< [in] Bit mask of protocols to listen for
+create_pcap_listener(const char * dev		///<[in] Device name to listen on
+,		     gboolean blocking		///<[in] TRUE if this is a blocking connection
+,		     unsigned listenmask)	///<[in] Bit mask of protocols to listen for
 						/// (see @ref pcap_protocols "list of valid bits")
 {
 	pcap_t*			pcdescr;
@@ -107,10 +107,14 @@ create_pcap_listener(const char * dev		///< [in] Device name to listen on
 	pcap_set_promisc(pcdescr, FALSE);
 	pcap_set_rfmon(pcdescr, FALSE);
 	pcap_setdirection(pcdescr, PCAP_D_IN);
-	pcap_setnonblock(pcdescr, FALSE, errbuf);
+	pcap_setnonblock(pcdescr, !blocking, errbuf);
 	pcap_set_snaplen(pcdescr, 1500);
 	/// @todo deal with pcap_set_timeout() call here.
-	pcap_set_timeout(pcdescr, 240*1000);
+	if (blocking) {
+		pcap_set_timeout(pcdescr, 240*1000);
+	}else{
+		pcap_set_timeout(pcdescr, 1);
+	}
 	//pcap_set_buffer_size(pcdescr, 3000);
       
 	if (pcap_activate(pcdescr) != 0) {
