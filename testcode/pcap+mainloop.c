@@ -185,6 +185,7 @@ main(int argc, char **argv)
 	// Listen for our own packets...
 	g_return_val_if_fail(transport->bindaddr(transport, destaddr),4);
 	netpkt = netgsource_new(transport, gotnetpkt, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
+	(void)netpkt;
 	
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
