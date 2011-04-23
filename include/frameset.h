@@ -29,9 +29,12 @@ struct _FrameSet {
 					/// @todo figure out if GSlist or GQueue is better...
 	gpointer	packet;		///< Pointer to packet (when constructed)
 	gpointer	pktend;		///< Last byte past the end of the packet.
+	guint		refcount;	///< Reference counter;
 	guint16		fstype;		///< Type of frameset.
 	guint16		fsflags;	///< Flags for frameset.
-	void		(*finalize)(FrameSet*); ///< FrameSet Destructor
+	void		(*ref)(FrameSet*);	///< Add reference
+	void		(*unref)(FrameSet*);	///< Drop reference
+	void		(*_finalize)(FrameSet*); ///< FrameSet Destructor
 };
 #define	FRAMESET_INITSIZE	6	///< type+length+flags - each 2 bytes
 

@@ -1,7 +1,11 @@
 /**
  * @file
- * @brief Implements NetIO GSource object
- * @details This file contains the header definitions for NetIOGSource objects
+ * @brief Implements NetIO GSource (NetGSource) object 
+ * @details This file contains source code implementing NetGSource objects.
+ * NetGSource objects construct GSource objects from NetIO objects, so that
+ * input from NetIO objects can be incorporated into the Glib g_main_loop event-driven
+ * programming paradigm as a GSource derived class. As a result, functions can
+ * be dispatched when NetIO packets arrive.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
@@ -76,16 +80,21 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 	ret->_gfd.fd = ret->_socket;
 	ret->_gfd.events = G_IO_IN|G_IO_ERR|G_IO_HUP;
 	ret->_gfd.revents = 0;
+
 	g_source_add_poll(gsret, &ret->_gfd);
 	g_source_set_priority(gsret, priority);
 	g_source_set_can_recurse(gsret, can_recurse);
+
 	ret->_gsourceid = g_source_attach(gsret, context);
+
 	if (ret->_gsourceid == 0) {
+		FREECLASSOBJ(gsf);
 		g_source_remove_poll(gsret, &ret->_gfd);
 		memset(ret, 0, sizeof(*ret));
 		g_source_unref(gsret);
 		gsret = NULL;
 		ret = NULL;
+		g_return_val_if_reached(NULL);
 	}
 	return ret;
 }
@@ -107,19 +116,7 @@ _netgsource_check(GSource* gself)	///<[in] NetGSource object being 'check'ed.
 {
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	// revents: received events...
-	// @todo: should check for errors in revents
-	if (self->_gfd.revents & G_IO_IN) {
-		g_debug("Got input packet");
-	}
-	if (self->_gfd.revents & G_IO_ERR) {
-		g_debug("Got i/o error");
-	}
-	if (self->_gfd.revents & G_IO_HUP) {
-		g_debug("Got HUP");
-	}
-	if ((self->_gfd.revents & (G_IO_IN|G_IO_ERR|G_IO_HUP)) == 0) {
-		g_debug("Got NOTHING: 0x%04x", self->_gfd.revents);
-	}
+	// @todo: probably should check for errors in revents
 	return 0 != self->_gfd.revents;
 }
 /// GSource dispatch routine for NetGSource.
@@ -135,25 +132,7 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	GSList*		gsl;
 	NetAddr*	srcaddr;
-	if (self->_gfd.revents & G_IO_IN) {
-		g_debug("Dispatched due to input packet");
-	}
-	if (self->_gfd.revents & G_IO_OUT) {
-		g_debug("Dispatched due to G_IO_OUT ");
-	}
-	if (self->_gfd.revents & G_IO_PRI) {
-		g_debug("Dispatched due to G_IO_PRI");
-	}
-	if (self->_gfd.revents & G_IO_NVAL) {
-		g_debug("Dispatched due to G_IO_NVAL");
-	}
-	if (self->_gfd.revents & G_IO_ERR) {
-		g_debug("Dispatched due to i/o error");
-	}
-	if (self->_gfd.revents & G_IO_HUP) {
-		g_debug("Dispatched due to HUP");
-	}
-	if ((self->_gfd.revents & (G_IO_IN|G_IO_ERR|G_IO_HUP)) == 0) {
+	if ((self->_gfd.revents & (G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL|G_IO_PRI)) == 0) {
 		g_debug("Dispatched due to UNKNOWN REASON: 0x%04x", self->_gfd.revents);
 	}
 	while(NULL != (gsl = self->_netio->recvframesets(self->_netio, &srcaddr))) {

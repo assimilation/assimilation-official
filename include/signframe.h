@@ -26,7 +26,6 @@ typedef struct _SignFrame SignFrame;
 /// Not too surprising for a digital signature Frame.
 struct _SignFrame {
 	Frame		baseclass;			///< Base @ref Frame object.
-	SignFrame*	(*copy)(const SignFrame*);	///< Make a copy of the @ref SignFrame object.
 	GChecksumType	signaturetype;			///< Type of signature...
 };
 

@@ -145,7 +145,7 @@ pktdata_to_frameset_list(gconstpointer pktstart,	///<[in] start of packet
 			Frame* newframe;
 			newframe = _decode_packet_framedata_to_frameobject(curframe, nextframeset, &nextframe);
 			if (nextframe > nextframeset) {
-				newframe->finalize(newframe); newframe=NULL;
+				newframe->unref(newframe); newframe=NULL;
 				///@todo fix this: frameset_finalize(fs) for the error case
 				return ret;
 			}

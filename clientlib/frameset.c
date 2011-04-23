@@ -42,8 +42,10 @@
 #include <frameformats.h>
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
-FSTATIC void frameset_indir_finalize(void* f);
-FSTATIC void frameset_finalize(FrameSet* fs);
+FSTATIC void _frameset_indir_finalize(void* f);
+FSTATIC void _frameset_finalize(FrameSet* self);
+FSTATIC void _frameset_ref(FrameSet* self);
+FSTATIC void _frameset_unref(FrameSet* self);
 
 ///@defgroup FrameSet FrameSet class
 /// Class representing a collection of @ref Frame "Frame"s to be sent in a single datagram.
@@ -52,25 +54,43 @@ FSTATIC void frameset_finalize(FrameSet* fs);
 ///@{
 ///@ingroup C_Classes
 
+FSTATIC void
+_frameset_ref(FrameSet* self)
+{
+	self->refcount += 1;
+}
+FSTATIC void
+_frameset_unref(FrameSet* self)
+{
+	g_return_if_fail(self->refcount > 0);
+
+	self->refcount -= 1;
+
+	if (self->refcount == 0) {
+		self->_finalize(self);
+		self = NULL;
+	}
+}
+
+
 /// static: finalize (free) frame
 FSTATIC void
-frameset_indir_finalize(void* f)	///< Frame to finalize
+_frameset_indir_finalize(void* f)	///< Frame to finalize
 {
 	Frame*	frame = CASTTOCLASS(Frame, f);
-	g_return_if_fail(frame && frame->finalize);
-	frame->finalize(f);
+	frame->unref(f);
 }
 
 /// static: finalize (free) frameset and all its constituent frames...
 FSTATIC void
-frameset_finalize(FrameSet* fs)	///< frameset to finalize
+_frameset_finalize(FrameSet* fs)	///< frameset to finalize
 {
 	g_return_if_fail(NULL != fs);
 	/// @todo should only do this if the frameset won't need retransmitting.
 	if (fs->framelist) {
 		// Would rather use g_slist_free_full() - but it's too new to be widely deployed...
 		while (NULL != fs->framelist) {
-			frameset_indir_finalize(fs->framelist->data);
+			_frameset_indir_finalize(fs->framelist->data);
 			fs->framelist->data = NULL;
 			fs->framelist = g_slist_delete_link(fs->framelist, fs->framelist);
 		}
@@ -80,7 +100,7 @@ frameset_finalize(FrameSet* fs)	///< frameset to finalize
 		fs->packet = NULL;
 		fs->pktend = NULL;
 	}
-	fs->finalize = NULL;
+	fs->_finalize = NULL;
 	memset(fs, 0x0, sizeof(*fs));
 	FREECLASSOBJ(fs);
 }
@@ -98,7 +118,11 @@ frameset_new(guint16 frameset_type) ///< Type of frameset to create
 	s->packet = NULL;
 	s->pktend = NULL;
 	s->fsflags = 0;
-	s->finalize = frameset_finalize;
+	s->_finalize = _frameset_finalize;
+	s->ref = _frameset_ref;
+	s->unref = _frameset_unref;
+	s->refcount = 1;
+	
 	return s;
 }
 
@@ -171,7 +195,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 			case FRAMETYPE_SIG:
 			case FRAMETYPE_CRYPT:
 			case FRAMETYPE_COMPRESS:
-				item->finalize(item);
+				item->unref(item);
 				fs->framelist->data = NULL;
 				fs->framelist = g_slist_delete_link(fs->framelist, fs->framelist);
 				continue;

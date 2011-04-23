@@ -52,6 +52,9 @@ encapsulate_packet(gconstpointer packet,			///<[in] pcap packet data
 	list = g_slist_append(NULL, fs);
 	fprintf(stderr, "Forwarding a frameset containing a capture packet packet.\n");
 	transport->sendframesets(transport, destaddr, list);
+	fs->unref(fs);
+	list->data = NULL;
+	g_slist_free(list);
 }
 
 /// Routine called when a packet is received from the g_main_loop() mechanisms.
@@ -108,11 +111,11 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 				}
 			}
 			fprintf(stderr, "Frameset for copy packet - freed!\n");
-			copyfs->finalize(copyfs);
+			copyfs->unref(copyfs);
 			copyfs = NULL;
 		}
 	}
-	fs->finalize(fs);
+	fs->unref(fs);
 	fs = NULL;
 	fprintf(stderr, "Frameset for constructed packet - freed!\n");
 	encapsulate_packet(pkt, pend, hdr, dev);
@@ -125,6 +128,8 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	return TRUE;
 }
 
+///
+/// Test routine called when a NetIO packet is received.
 gboolean
 gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
 	  GSList* framesets,	///<[in/out] Framesets received
@@ -139,7 +144,10 @@ gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
 	for (fslist = framesets; fslist != NULL; fslist=fslist->next) {
 		fs = CASTTOCLASS(FrameSet, fslist->data);
 		frameset_dump(fs);
+		fs->unref(fs);
+		fslist->data = NULL;
 	}
+	g_slist_free(framesets);
 	g_message("END of packet received over 'wire':");
 	return TRUE;
 }
@@ -191,6 +199,7 @@ main(int argc, char **argv)
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_main_loop_run(loop);
 	g_main_loop_unref(loop); loop=NULL; pktsource=NULL;
+	transport->finalize(transport); transport = NULL;
 	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
 	proj_class_dump_live_objects();
 	return(0);

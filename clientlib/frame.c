@@ -51,6 +51,8 @@ FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpoin
 FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC void _frame_dump(const Frame *, const char * prefix);
+FSTATIC void _frame_ref(Frame *);
+FSTATIC void _frame_unref(Frame *);
 
 ///@defgroup Frame Frame class
 /// Class for holding/storing binary blobs -  Base class for all the other Frame types.
@@ -118,6 +120,20 @@ _frame_updatedata(Frame * self,			///< Frame object ('this')
 	// set_generic_tlv_value does pretty exhaustive error checking.
 	set_generic_tlv_value(tlvptr, self->value, self->length, pktend);
 }
+FSTATIC void
+_frame_ref(Frame * self)
+{
+	self->refcount += 1;
+}
+FSTATIC void
+_frame_unref(Frame * self)
+{
+	g_return_if_fail(self->refcount >= 1);
+	self->refcount -= 1;
+	if (self->refcount == 0) {
+		self->_finalize(self);
+	}
+}
 
 /// Construct a new frame - allowing for "derived" frame types...
 /// This can be used directly for creating basic binary frames, or by derived classes.
@@ -135,12 +151,15 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 		newframe->length = 0;
 		newframe->value = NULL;
 		newframe->dataspace	= _frame_total_size;
-		newframe->finalize	= _frame_default_finalize;
+		newframe->_finalize	= _frame_default_finalize;
 		newframe->isvalid	= _frame_default_isvalid;
 		newframe->setvalue	= _frame_setvalue;
 		newframe->updatedata	= _frame_updatedata;
 		newframe->dump		= _frame_dump;
 		newframe->valuefinalize	= NULL;
+		newframe->refcount	= 1;
+		newframe->ref		= _frame_ref;
+		newframe->unref		= _frame_unref;
 	}
 	return newframe;
 }

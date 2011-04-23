@@ -92,7 +92,7 @@ cast_frameset_tests(void)
 	frameset_construct_packet(fs, sigf, NULL, NULL);
 	proj_class_dump_live_objects();
 	g_message("finalizing the FrameSet (and presumably frames)");
-	fs->finalize(fs);
+	fs->unref(fs);
 	fs = NULL;
 	proj_class_dump_live_objects();
 	g_message("C-class cast tests complete! - please check the output for errors.");
@@ -140,7 +140,7 @@ address_tests(void)
 		frameset_append_frame(gfs, CASTTOCLASS(Frame, af));
 	}
 	frameset_construct_packet(gfs, gsigf, NULL, NULL);
-	gfs->finalize(gfs); gfs = NULL; gsigf=NULL;
+	gfs->unref(gfs); gfs = NULL; gsigf=NULL;
 
 
 	bframeipv4_1->setaddr(bframeipv4_1, ADDR_FAMILY_IPV4, addr_ipv46_localhost, 3);
@@ -157,7 +157,8 @@ address_tests(void)
 		if (af->baseclass.isvalid(CASTTOCLASS(Frame, af), NULL, NULL)) {
 			g_critical("Bad AddressFrame %d SHOULD NOT BE valid!", j);
 		}
-		af->baseclass.finalize(CASTTOCLASS(Frame, af));
+		af->baseclass.unref(CASTTOCLASS(Frame, af));
+		bframes[j] = NULL;
 	}
 
 	proj_class_dump_live_objects();

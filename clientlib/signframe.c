@@ -22,7 +22,6 @@
 FSTATIC gboolean _signframe_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void _signframe_updatedata(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs);
 FSTATIC gpointer _signframe_compute_cksum(GChecksumType, gconstpointer tlvptr, gconstpointer pktend);
-FSTATIC SignFrame*	 _signframe_copy(const SignFrame* self);
 /**
  * @defgroup SignFrameFormats C-class SignFrame wire format
  * @{
@@ -206,15 +205,9 @@ signframe_new(GChecksumType sigtype,	///< signature type
 
 	ret = CASTTOCLASS(SignFrame, baseframe);
 	ret->signaturetype = sigtype;
-	ret->copy = _signframe_copy;
 	return ret;
 }
 
-FSTATIC SignFrame*
-_signframe_copy(const SignFrame* self)
-{
-	return signframe_new(self->signaturetype, 0);
-}
 
 /// Given marshalled data corresponding to a SignFrame (signature frame), return that corresponding Frame
 /// In other words, un-marshall the data...

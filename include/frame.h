@@ -30,6 +30,7 @@ struct _Frame {
 	guint16		type;				///< Frame <b>T</b>ype (see @ref IndividualFrameFormats - frameformats.h )
 	guint16		length;				///< Frame <b>L</b>ength
 	gpointer	value;				///< Frame <b>V</b>alue (pointer)
+	gint		refcount;
 	gsize		(*dataspace)(Frame* self);	///< How much space is needed to marshall this Frame?
 	void		(*updatedata)(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs); ///< Update packet data
 	gboolean	(*isvalid)(const Frame* self, gconstpointer tlvptr, gconstpointer pktend); ///< TRUE if TLV data looks valid...
@@ -39,8 +40,10 @@ struct _Frame {
 				    guint16 length,
 				    GDestroyNotify valfinal);		///< member function for setting value
 	void		(*dump)(const Frame* self, const char * prefix);///< member function for dumping Frame
-	GDestroyNotify	valuefinalize;			///< optional method for finalizing value
-	void		(*finalize)(Frame*);		///< Frame Destructor
+	GDestroyNotify	valuefinalize;					///< method for finalizing value
+	void		(*ref)(Frame*);					///< Increment reference count
+	void		(*unref)(Frame*);				///< Decrement reference count
+	void		(*_finalize)(Frame*);				///< Frame Destructor
 };
 #define	FRAME_INITSIZE	4	///< (sizeof(Frame.type) + sizeof(Frame.length)) - each 2 bytes
 Frame*	frame_new(guint16 frame_type, gsize framesize);

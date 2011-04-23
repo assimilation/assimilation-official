@@ -37,6 +37,9 @@ FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
 FSTATIC void _netio_set_signframe (NetIO *self, SignFrame *sign);
 FSTATIC void _netio_set_cryptframe (NetIO *self, Frame *crypt);
 FSTATIC void _netio_set_compressframe (NetIO *self, Frame *compress);
+FSTATIC SignFrame* _netio_signframe (NetIO *self);
+FSTATIC Frame* _netio_cryptframe (NetIO *self);
+FSTATIC Frame* _netio_compressframe (NetIO *self);
 
 /// @defgroup NetIO NetIO class
 ///@{
@@ -108,15 +111,30 @@ _netio_set_signframe (NetIO *self, SignFrame *sign)
 {
 	self->_signframe = sign;
 }
+FSTATIC SignFrame*
+_netio_signframe (NetIO *self)
+{
+	return self->_signframe;
+}
 FSTATIC void
 _netio_set_cryptframe (NetIO *self, Frame *crypt)
 {
 	self->_cryptframe = crypt;
 }
+FSTATIC Frame*
+_netio_cryptframe (NetIO *self)
+{
+	return self->_cryptframe;
+}
 FSTATIC void
 _netio_set_compressframe (NetIO *self, Frame *compress)
 {
 	self->_compressframe = compress;
+}
+FSTATIC Frame*
+_netio_compressframe (NetIO *self)
+{
+	return self->_compressframe;
 }
 
 /// NetIO constructor.
@@ -139,6 +157,9 @@ netio_new(gsize objsize)	///<[in] The size of the object to construct (or zero)
 	ret->set_signframe = _netio_set_signframe;
 	ret->set_cryptframe = _netio_set_cryptframe;
 	ret->set_compressframe = _netio_set_compressframe;
+	ret->signframe = _netio_signframe;
+	ret->cryptframe = _netio_cryptframe;
+	ret->compressframe = _netio_compressframe;
 	ret->_maxpktsize = 65300;
 	return ret;
 }
@@ -179,10 +200,17 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 	/// This loop would then be to set up a <b>struct iovec</b>,
 	/// and would be followed by a sendmsg(2) call - eliminating sendapacket() above.
 	for (curfsl=framesets; curfsl != NULL; curfsl=curfsl->next) {
-		FrameSet* curfs = CASTTOCLASS(FrameSet, curfsl->data);
-		frameset_construct_packet(curfs, self->_signframe->copy(self->_signframe),
-		                          self->cryptframe    ? self->cryptframe(self) : NULL,
-					  self->compressframe ? self->compressframe(self) : NULL);
+		FrameSet* curfs		= CASTTOCLASS(FrameSet, curfsl->data);
+		SignFrame* signframe	= self->signframe(self);
+		Frame*	cryptframe	= self->cryptframe(self);
+		Frame*	compressframe	= self->compressframe(self);
+		if (cryptframe) {
+			cryptframe->ref(cryptframe);
+		}
+		if (compressframe) {
+			compressframe->ref(compressframe);
+		}
+		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		
 	}
