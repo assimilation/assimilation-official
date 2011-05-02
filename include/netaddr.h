@@ -25,13 +25,16 @@ typedef struct _NetAddr NetAddr;
 struct _NetAddr {
 	guint16		(*port)(const NetAddr* self);		///< Return port from this address
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
-	gconstpointer	(*addrinnetorder)(const NetAddr* self, gsize* addrlen);///< Return the address in network byte order
 	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 address corresponding to this address
-	void		(*finalize)(gpointer self);		///< Finalize this object.
+	gboolean	(*equal)(const NetAddr*,const NetAddr*);///< Compare NetAddrs
+	void		(*ref)(NetAddr* self);			///< Add a reference to this object
+	void		(*unref)(NetAddr* self);		///< Add a reference to this object
+	void		(*_finalize)(NetAddr* self);		///< Finalize this object.
 	gpointer	_addrbody;				///< private: Address body
 	guint16		_addrtype;				///< private: Address type
 	guint16		_addrlen;				///< private: Length of _addrbody
 	guint16		_addrport;				///< private: Address port (if applicable)
+	guint16		_refcount;				///< private: Reference count
 };
 NetAddr*	netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen);
 NetAddr*	netaddr_sockaddr_new(const struct sockaddr *, socklen_t);

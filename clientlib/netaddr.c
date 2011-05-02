@@ -16,6 +16,14 @@
 #include <netaddr.h>
 #include <address_family_numbers.h>
 
+FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
+FSTATIC void _netaddr_ref(NetAddr* self);
+FSTATIC void _netaddr_unref(NetAddr* self);
+FSTATIC void _netaddr_finalize(NetAddr* self);
+FSTATIC guint16 _netaddr_port(const NetAddr* self);
+FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
+FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
+FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 /// @defgroup NetAddr NetAddr class
 ///@{
 /// @ingroup C_Classes
@@ -26,10 +34,45 @@
 
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...
-FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
-FSTATIC guint16 _netaddr_port(const NetAddr* self);
-FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
-FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
+
+FSTATIC gboolean
+_netaddr_equal(const NetAddr*self, const NetAddr*other)
+{
+	/// @todo Perhaps ought to allow comparision between ipv4 and equivalent ipv6 addrs,
+	/// and who knows, maybe even the same thing for MAC addresses ;-)
+	if (proj_class_classname(self) != proj_class_classname(other)
+	||  self->_addrtype != other->_addrtype
+	||  self->_addrlen != other->_addrlen
+	||  self->_addrport != other->_addrport) {
+		return FALSE;
+	}
+	return (memcmp(self->_addrbody, other->_addrbody, self->_addrlen) == 0);
+}
+
+FSTATIC void
+_netaddr_ref(NetAddr* self)
+{
+	self->_refcount += 1;
+}
+
+FSTATIC void
+_netaddr_unref(NetAddr* self)
+{
+	g_return_if_fail(self->_refcount > 0);
+	self->_refcount -= 1;
+	if (self->_refcount == 0) {
+		self->_finalize(self);
+		self=NULL;
+	}
+}
+
+FSTATIC void
+_netaddr_finalize(NetAddr* self)
+{
+	FREECLASSOBJ(self);
+	self = NULL;
+}
+
 
 FSTATIC guint16
 _netaddr_port(const NetAddr* self)
@@ -69,6 +112,11 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->_addrbody = g_memdup(addrbody, addrlen);
 	self->port = _netaddr_port;
 	self->addrtype = _netaddr_addrtype;
+	self->_finalize = _netaddr_finalize;
+	self->ref = _netaddr_ref;
+	self->unref = _netaddr_unref;
+	self->equal = _netaddr_equal;
+	self->_refcount = 1;
 
 	return self;
 
