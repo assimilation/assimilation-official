@@ -1,8 +1,8 @@
 /**
  * @file
- * @brief Implements Heartbeat Listener class
- * @details This class implements the Heartbeat Listener class.  It listens for
- * heartbeats from a particular sender.
+ * @brief Defines Heartbeat Listener interfaces
+ * @details This file defines interfaces for the Heartbeat Listener class.  It listens for
+ * heartbeats from designated senders - allowing them to be added and dropped at run time.
  *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
@@ -17,6 +17,11 @@
 #include <netaddr.h>
 typedef struct _HbListener HbListener;
 
+typedef enum {
+	HbPacketsBeingReceived = 1,
+	HbPacketsTimedOut = 2,
+}HbNodeStatus;
+
 ///@{
 /// @ingroup HbListener
 
@@ -28,13 +33,20 @@ struct _HbListener {
 	void		(*_finalize)(HbListener*);	///< Frame Destructor
 	guint64		_expected_interval;		///< How often to expect heartbeats
 	guint64		_warn_interval;			///< When to warn about late heartbeats
-	guint64		_nexttime;			///< When next heartbeat is due
-	guint64		_warntime;			///< Warn heartbeat time
-	int		_refcount;
-	NetAddr*	_listenaddr;
+	guint64		nexttime;			///< When next heartbeat is due
+	guint64		warntime;			///< Warn heartbeat time
+	int		_refcount;			///< Current reference count
+	NetAddr*	listenaddr;			///< What address are we listening for?
+	HbNodeStatus	status;				///< What status is this node in?
 };
-#define	DEFAULT_DEADTIME	60
-HbListener* hblistener_new(NetAddr*, gsize);
+#define	DEFAULT_DEADTIME	60 // seconds
+
+HbListener* hblistener_new(NetAddr*, gsize hblisten_objsize);
+void hblistener_unlisten(NetAddr* unlistenaddr);
+void hblistener_set_deadtime_callback(void (*)(HbListener* who));
+void hblistener_set_warntime_callback(void (*)(HbListener* who, guint64 howlate));
+void hblistener_set_comealive_callback(void (*)(HbListener* who, guint64 howlate));
+void hblistener_set_martian_callback(void (*)(const NetAddr* who));
 ///@}
 
 #endif /* _FRAME_H */
