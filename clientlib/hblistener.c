@@ -221,3 +221,4 @@ hblistener_set_martian_callback(void (*callback)(const NetAddr* who))
 {
 	_hblistener_martiancallback = callback;
 }
+///@}
