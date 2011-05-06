@@ -159,8 +159,8 @@ _hblistener_finalize(HbListener * self) ///< Listener to finalize
 ///@todo Create scan tag - create GSource, attach to context, write dispatch code
 /// to call _hblistener_hbarrived() - ensuring we don't call it any more often than every second or so.
 HbListener*
-hblistener_new(NetAddr*	listenaddr,
-	       gsize objsize)	///< size of HbListener structure (or zero for sizeof(HbListener))
+hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
+	       gsize objsize)	///<[in] size of HbListener structure (or zero for sizeof(HbListener))
 {
 	HbListener * newlistener;
 	if (objsize < sizeof(HbListener)) {
