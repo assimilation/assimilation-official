@@ -54,6 +54,7 @@ void		frameset_dump(const FrameSet*);
 /// @defgroup FrameSetTypes	FrameSet Types
 ///@{
 /// @ingroup DefineEnums
+#define		FRAMESETTYPE_NONEOFTHEABOVE	0	///< Some other type of packet
 #define		FRAMESETTYPE_HEARTBEAT		1	///< A heartbeat packet
 #define		FRAMESETTYPE_NAK		2	///< We don't like the frameset mentioned
 #define		FRAMESETTYPE_PING		3	///< Are you alive?

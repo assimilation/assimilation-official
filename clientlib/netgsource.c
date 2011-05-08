@@ -16,6 +16,7 @@
 
 #include <memory.h>
 #include <glib.h>
+#include <frameset.h>
 #include <netgsource.h>
 
 /// @defgroup NetGSource NetGSource class
@@ -30,6 +31,7 @@ FSTATIC gboolean _netgsource_prepare(GSource* source, gint* timeout);
 FSTATIC gboolean _netgsource_check(GSource* source);
 FSTATIC gboolean _netgsource_dispatch(GSource* source, GSourceFunc callback, gpointer user_data);
 FSTATIC void     _netgsource_finalize(GSource* source);
+FSTATIC void	_netgsource_addDispatch(NetGSource*, guint16, NetGSourceDispatch);
 
 static GSourceFuncs _netgsource_gsourcefuncs = {
 	_netgsource_prepare,
@@ -42,7 +44,6 @@ static GSourceFuncs _netgsource_gsourcefuncs = {
 /// Create a new (abstract) NetGSource object
 NetGSource*
 netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
-	       NetGSourceDispatch dispatch,	///<[in] Dispatch function to call when a packet arrives
 	       GDestroyNotify notify,		///<[in] Called when object destroyed
 	       gint priority,			///<[in] g_main_loop
 						///< <a href="http://library.gnome.org/devel/glib/unstable/glib-The-Main-Event-Loop.html#G-PRIORITY-HIGH:CAPS">dispatch priority</a>
@@ -72,7 +73,6 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 	ret = CASTTOCLASS(NetGSource, gsret);
 
 	ret->_gsfuncs = gsf;
-	ret->_dispatch = dispatch;
 	ret->_userdata = userdata;
 	ret->_netio = iosrc;
 	ret->_socket = iosrc->getfd(iosrc);
@@ -80,6 +80,7 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 	ret->_gfd.fd = ret->_socket;
 	ret->_gfd.events = G_IO_IN|G_IO_ERR|G_IO_HUP;
 	ret->_gfd.revents = 0;
+	ret->addDispatch = _netgsource_addDispatch;
 
 	g_source_add_poll(gsret, &ret->_gfd);
 	g_source_set_priority(gsret, priority);
@@ -96,6 +97,7 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 		ret = NULL;
 		g_return_val_if_reached(NULL);
 	}
+	ret->_dispatchers = g_hash_table_new(NULL, NULL);
 	return ret;
 }
 
@@ -136,9 +138,20 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 		g_debug("Dispatched due to UNKNOWN REASON: 0x%04x", self->_gfd.revents);
 	}
 	while(NULL != (gsl = self->_netio->recvframesets(self->_netio, &srcaddr))) {
-		self->_dispatch(self, gsl, srcaddr, self->_userdata);
-		///< @todo Figure out the lifetime of packets and addresses
-		/// probably need to add some reference counters.
+		for (; NULL != gsl; gsl = gsl->next) {
+			NetGSourceDispatch	disp = NULL;
+			FrameSet*		fs = CASTTOCLASS(FrameSet, gsl->data);
+			disp = g_hash_table_lookup(self->_dispatchers, GUINT_TO_POINTER(fs->fstype));
+			if (NULL == disp) {
+				disp = (NetGSourceDispatch)g_hash_table_lookup(self->_dispatchers, NULL);
+			}
+			if (NULL != disp) {
+				disp(self, fs, srcaddr, self->_userdata);
+			}else{ 
+				g_warning("No dispatcher for FrameSet type %d", fs->fstype);
+			}
+		}
+		srcaddr->unref(srcaddr); srcaddr = NULL;
 	}
 	return TRUE;
 }
@@ -148,7 +161,6 @@ FSTATIC void
 _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 {
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
-
 	if (self->_finalize) {
 		self->_finalize(self->_userdata);
 	}else{
@@ -163,5 +175,13 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 		FREECLASSOBJ(self->_gsfuncs);
 		self->_gsfuncs = NULL;
 	}
+	proj_class_dissociate(gself);// Avoid dangling reference in class system
+}
+FSTATIC void
+_netgsource_addDispatch(NetGSource* self,	///<[in/out] Object being modified
+			guint16 fstype,		///<[in] FrameSet fstype
+			NetGSourceDispatch disp)///<[in] dispatch function
+{
+	g_hash_table_replace(self->_dispatchers, GUINT_TO_POINTER(fstype), disp);
 }
 ///@}

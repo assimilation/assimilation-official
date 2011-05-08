@@ -88,6 +88,18 @@ _netio_finalize(NetIO* self)	///<[in/out] The object being freed
 		g_io_channel_unref(self->giosock);
 		self->giosock = NULL;
 	}
+	if (self->_signframe) {
+		self->_signframe->baseclass.unref(CASTTOCLASS(Frame, self->_signframe));
+		self->_signframe = NULL;
+	}
+	if (self->_cryptframe) {
+		self->_cryptframe->unref(self->_cryptframe);
+		self->_cryptframe = NULL;
+	}
+	if (self->_compressframe) {
+		self->_compressframe->unref(self->_compressframe);
+		self->_compressframe = NULL;
+	}
 	FREECLASSOBJ(self); self=NULL;
 }
 
@@ -109,7 +121,11 @@ _netio_setmaxpktsize(NetIO* self,	///<[in/out] The object whose max packet size 
 FSTATIC void
 _netio_set_signframe (NetIO *self, SignFrame *sign)
 {
+	if (self->_signframe) {
+		self->_signframe->baseclass.unref(CASTTOCLASS(Frame, self->_signframe));
+	}
 	self->_signframe = sign;
+	sign->baseclass.ref(CASTTOCLASS(Frame, sign));
 }
 FSTATIC SignFrame*
 _netio_signframe (NetIO *self)
@@ -120,6 +136,7 @@ FSTATIC void
 _netio_set_cryptframe (NetIO *self, Frame *crypt)
 {
 	self->_cryptframe = crypt;
+	crypt->ref(crypt);
 }
 FSTATIC Frame*
 _netio_cryptframe (NetIO *self)
@@ -130,6 +147,7 @@ FSTATIC void
 _netio_set_compressframe (NetIO *self, Frame *compress)
 {
 	self->_compressframe = compress;
+	compress->ref(compress);
 }
 FSTATIC Frame*
 _netio_compressframe (NetIO *self)

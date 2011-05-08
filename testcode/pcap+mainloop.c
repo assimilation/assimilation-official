@@ -33,7 +33,7 @@ NetIO*		transport;
 NetAddr*	destaddr;
 void encapsulate_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
 gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
-gboolean gotnetpkt(NetGSource* gs, GSList* framesets, NetAddr* srcaddr, gpointer ignored);
+gboolean gotnetpkt(NetGSource* gs, FrameSet* fs, NetAddr* srcaddr, gpointer ignored);
 
 /// Test routine for encapsulating a packet in a FrameSet
 /// Eventually this will include the packet data, the interface information, and the source address
@@ -82,6 +82,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	fs = construct_pcap_frameset(0xfeed, pkt, pend, hdr, dev);
 	fprintf(stderr, "Constructing a capture packet packet from the constructed frameset.\n");
 	frameset_construct_packet(fs, signature, NULL, NULL);
+	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
 	if (!fs->packet) {
 		fprintf(stderr, "fs is NULL!\n");
 	}else{
@@ -95,6 +96,8 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 			FrameSet*	copyfs = CASTTOCLASS(FrameSet, fslist->data);
 			SignFrame*	newsig = signframe_new(G_CHECKSUM_SHA256, 0);
 			frameset_construct_packet(copyfs, newsig, NULL, NULL);
+			newsig->baseclass.unref(CASTTOCLASS(Frame, newsig));
+			newsig = NULL;
 			if (!copyfs->packet) {
 				fprintf(stderr, "copyfs->packet is NULL!\n");
 			}else{
@@ -132,22 +135,15 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 /// Test routine called when a NetIO packet is received.
 gboolean
 gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
-	  GSList* framesets,	///<[in/out] Framesets received
+	  FrameSet* fs,	///<[in/out] Framesets received
 	  NetAddr* srcaddr,	///<[in] Source address of this packet
 	  gpointer ignored	///<[ignored] User data (ignored)
 	  )
 {
-	GSList*		fslist;
-	FrameSet *	fs;
 	g_message("Received a packet over the 'wire'!");
 	g_message("DUMPING packet received over 'wire':");
-	for (fslist = framesets; fslist != NULL; fslist=fslist->next) {
-		fs = CASTTOCLASS(FrameSet, fslist->data);
-		frameset_dump(fs);
-		fs->unref(fs);
-		fslist->data = NULL;
-	}
-	g_slist_free(framesets);
+	frameset_dump(fs);
+	fs->unref(fs);
 	g_message("END of packet received over 'wire':");
 	return TRUE;
 }
@@ -192,15 +188,18 @@ main(int argc, char **argv)
 
 	// Listen for our own packets...
 	g_return_val_if_fail(transport->bindaddr(transport, destaddr),4);
-	netpkt = netgsource_new(transport, gotnetpkt, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
-	(void)netpkt;
-	
+	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
+	netpkt->addDispatch(netpkt, 0, gotnetpkt);	// Get all unclaimed packets...
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_main_loop_run(loop);
 	g_main_loop_unref(loop); loop=NULL; pktsource=NULL;
 	transport->finalize(transport); transport = NULL;
 	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
+	g_main_context_unref(g_main_context_default());
+	g_source_unref(CASTTOCLASS(GSource, netpkt));
+	FREECLASSOBJ(destaddr); destaddr = NULL;
+	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
 	proj_class_dump_live_objects();
 	return(0);
 }

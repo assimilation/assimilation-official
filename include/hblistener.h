@@ -15,6 +15,7 @@
 #define _HBLISTENER_H
 #include <projectcommon.h>
 #include <netaddr.h>
+#include <netgsource.h>
 typedef struct _HbListener HbListener;
 
 typedef enum {
@@ -47,6 +48,8 @@ void hblistener_set_deadtime_callback(void (*)(HbListener* who));
 void hblistener_set_warntime_callback(void (*)(HbListener* who, guint64 howlate));
 void hblistener_set_comealive_callback(void (*)(HbListener* who, guint64 howlate));
 void hblistener_set_martian_callback(void (*)(const NetAddr* who));
+gboolean hblistener_netgsource_dispatch(NetGSource*, FrameSet*, NetAddr*,gpointer);
+
 ///@}
 
 #endif /* _FRAME_H */

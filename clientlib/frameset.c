@@ -224,12 +224,15 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	/// 
 	if (NULL != compressframe) {
 		frameset_prepend_frame(fs, compressframe);
+		compressframe->ref(compressframe);
 	}
 	if (NULL != cryptframe) {
 		frameset_prepend_frame(fs, cryptframe);
+		cryptframe->ref(cryptframe);
 	}
 	// "sigframe" cannot be NULL (see check above)
 	frameset_prepend_frame(fs, CASTTOCLASS(Frame, sigframe));
+	sigframe->baseclass.ref( CASTTOCLASS(Frame, sigframe));
 
 	// Reverse list...
 	fs->framelist = g_slist_reverse(fs->framelist);

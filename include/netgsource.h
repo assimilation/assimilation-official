@@ -26,7 +26,7 @@ typedef struct _NetGSource NetGSource;
 /// Dispatch function for @ref NetGSource objects - called when new data has arrived
 typedef gboolean (*NetGSourceDispatch)
 		   (NetGSource* gs,	///<[in/out] 'this' object causing the dispatch
-		    GSList* gsl,	///<[in/out] GSList of FrameSets in this datagram.
+		    FrameSet* fs,	///<[in/out] FrameSet given to this dispatch routine
 		    NetAddr*srcaddr,	///<[in] Source address for this datagram
 		    gpointer userdata);	///<[in/out] User data passed in during _new function.
 
@@ -41,10 +41,11 @@ struct _NetGSource {
 	gpointer		_userdata;	///< Saved user data	
 	GSourceFuncs*		_gsfuncs;	///< pointers to GSource functions
 	NetIO*			_netio;		///< netio this object is based on
-	NetGSourceDispatch	_dispatch;	///< Called when new data has arrived
+	GHashTable*		_dispatchers;	///< Table of dispatch functions.
 	GDestroyNotify 		_finalize;	///< Function to call when we're destroyed
+	void(*addDispatch)(NetGSource*,guint16, NetGSourceDispatch);///< Register a new dispatch function
 };
-NetGSource* netgsource_new(NetIO* iosrc, NetGSourceDispatch dispatch, GDestroyNotify notify,
+NetGSource* netgsource_new(NetIO* iosrc, GDestroyNotify notify,
 	       		   gint priority, gboolean can_recurse, GMainContext* context,
 	       		   gsize objsize, gpointer userdata);
 #endif /* _NETGSOURCE_H */
