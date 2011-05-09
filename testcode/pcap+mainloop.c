@@ -25,6 +25,7 @@
 #include <netgsource.h>
 #include <netioudp.h>
 #include <netaddr.h>
+#include <hblistener.h>
 
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
@@ -50,7 +51,7 @@ encapsulate_packet(gconstpointer packet,			///<[in] pcap packet data
 	GSList*		list;
 	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, packet, pktend, hdr, dev);
 	list = g_slist_append(NULL, fs);
-	fprintf(stderr, "Forwarding a frameset containing a capture packet packet.\n");
+	g_message("Forwarding a frameset containing a capture packet packet.");
 	transport->sendframesets(transport, destaddr, list);
 	fs->unref(fs);
 	list->data = NULL;
@@ -70,28 +71,28 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	FrameSet *	fs;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	if (is_valid_lldp_packet(pkt, pend)) {
-		fprintf(stderr, "Found a %d/%d byte LLDP packet!\n", hdr->caplen, hdr->len);
+		g_message("Found a %d/%d byte LLDP packet!", hdr->caplen, hdr->len);
 		dump_lldp_packet(pkt, pend);
 	}else if (is_valid_cdp_packet(pkt, pend)) {
-		fprintf(stderr, "Found a %d/%d byte CDP packet!\n", hdr->caplen, hdr->len);
+		g_message("Found a %d/%d byte CDP packet!", hdr->caplen, hdr->len);
 		dump_cdp_packet(pkt, pend);
 	}else{
-		fprintf(stderr, "Found a %d/%d byte INVALID packet!\n", hdr->caplen, hdr->len);
+		g_warning("Found a %d/%d byte INVALID packet!", hdr->caplen, hdr->len);
 	}
-	fprintf(stderr, "Constructing a frameset for this %d byte captured packet.\n", hdr->caplen);
+	g_message("Constructing a frameset for this %d byte captured packet.", hdr->caplen);
 	fs = construct_pcap_frameset(0xfeed, pkt, pend, hdr, dev);
-	fprintf(stderr, "Constructing a capture packet packet from the constructed frameset.\n");
+	g_message("Constructing a capture packet packet from the constructed frameset.");
 	frameset_construct_packet(fs, signature, NULL, NULL);
 	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
 	if (!fs->packet) {
-		fprintf(stderr, "fs is NULL!\n");
+		g_critical("fs is NULL!");
 	}else{
 		GSList*		fslist;
 		int	size = (guint8*)fs->pktend - (guint8*) fs->packet;
-		fprintf(stderr, "Constructed packet is %d bytes\n", size);
+		g_message("Constructed packet is %d bytes", size);
 		fslist = pktdata_to_frameset_list(fs->packet, fs->pktend);
 		if (fslist == NULL) {
-			fprintf(stderr, "fslist is NULL!\n");
+			g_warning("fslist is NULL!");
 		}else{
 			FrameSet*	copyfs = CASTTOCLASS(FrameSet, fslist->data);
 			SignFrame*	newsig = signframe_new(G_CHECKSUM_SHA256, 0);
@@ -99,32 +100,34 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 			newsig->baseclass.unref(CASTTOCLASS(Frame, newsig));
 			newsig = NULL;
 			if (!copyfs->packet) {
-				fprintf(stderr, "copyfs->packet is NULL!\n");
+				g_warning("copyfs->packet is NULL!");
 			}else{
 				int	cpsize = (guint8*)copyfs->pktend - (guint8*) copyfs->packet;
-				fprintf(stderr, "Second Constructed packet is %d bytes\n", cpsize);
+				g_message("Second Constructed packet is %d bytes", cpsize);
 				frameset_dump(fs);
 				frameset_dump(copyfs);
 				if (size == cpsize) {
 					if (memcmp(fs->packet, copyfs->packet, size) == 0) {
-						fprintf(stderr, "Packets are identical!\n");
+						g_message("Packets are identical!");
 					}else{
-						fprintf(stderr, "Packets are different :-(\n");
+						g_warning("Packets are different :-(");
 					}
+				}else{
+					g_warning("Packets are different sizes:-(");
 				}
 			}
-			fprintf(stderr, "Frameset for copy packet - freed!\n");
+			g_message("Frameset for copy packet - freed!");
 			copyfs->unref(copyfs);
 			copyfs = NULL;
 		}
 	}
 	fs->unref(fs);
 	fs = NULL;
-	fprintf(stderr, "Frameset for constructed packet - freed!\n");
+	g_message("Frameset for constructed packet - freed!");
 	encapsulate_packet(pkt, pend, hdr, dev);
 	++pktcount;
 	if (pktcount >= maxpkts) {
-		fprintf(stderr, "QUITTING NOW!\n");
+		g_message("QUITTING NOW!");
 		g_main_loop_quit(loop);
 		return FALSE;
 	}
@@ -160,6 +163,7 @@ main(int argc, char **argv)
 	guint16		testport = 1984;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	NetGSource*	netpkt;
+	HbListener*	hblisten;
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
@@ -168,10 +172,10 @@ main(int argc, char **argv)
 	
 	dev = pcap_lookupdev(errbuf);	// Find name of default network device...
 	if (dev == NULL) {
-		fprintf(stderr, "Couldn't find default device: %s\n", errbuf);
+		g_critical("Couldn't find default device: %s", errbuf);
 		return(2);
 	}
-	printf("PCAP capture device is: %s\n", dev);
+	g_message("PCAP capture device is: %s", dev);
 
 
 	/// Create a packet source, and connect it up to run in the default context
@@ -190,6 +194,8 @@ main(int argc, char **argv)
 	g_return_val_if_fail(transport->bindaddr(transport, destaddr),4);
 	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 	netpkt->addDispatch(netpkt, 0, gotnetpkt);	// Get all unclaimed packets...
+	hblisten = hblistener_new(destaddr, 0);
+	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, hblistener_netgsource_dispatch);
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_main_loop_run(loop);
@@ -200,6 +206,8 @@ main(int argc, char **argv)
 	g_source_unref(CASTTOCLASS(GSource, netpkt));
 	FREECLASSOBJ(destaddr); destaddr = NULL;
 	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
+	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
+	hblisten->unref(hblisten); hblisten = NULL;
 	proj_class_dump_live_objects();
 	return(0);
 }

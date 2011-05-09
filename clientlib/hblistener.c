@@ -33,7 +33,7 @@ guint64 proj_get_real_time(void); 	///@todo - make this a real global function
 ///@{
 ///@ingroup C_Classes
 
-static GList*	_hb_listeners = NULL;
+static GSList*	_hb_listeners = NULL;
 static gint	_hb_listener_count = 0;
 static guint64	_hb_listener_lastcheck = 0;
 static void	(*_hblistener_deadcallback)(HbListener* who) = NULL;
@@ -51,7 +51,7 @@ _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 		g_timeout_add_seconds(1, _hblistener_gsourcefunc, NULL);
 		///@todo start listening for packets...
 	}
-	_hb_listeners = g_list_prepend(_hb_listeners, self);
+	_hb_listeners = g_slist_prepend(_hb_listeners, self);
 	_hb_listener_count += 1;
 	self->ref(self);
 }
@@ -60,8 +60,8 @@ _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 FSTATIC void
 _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our list
 {
-	if (g_list_find(_hb_listeners, self) != NULL) {
-		_hb_listeners = g_list_remove(_hb_listeners, self);
+	if (g_slist_find(_hb_listeners, self) != NULL) {
+		_hb_listeners = g_slist_remove(_hb_listeners, self);
 		_hb_listener_count -= 1;
 		self->unref(self);
 		return;
@@ -74,7 +74,7 @@ FSTATIC void
 _hblistener_checktimeouts(gboolean urgent)///<[in]True if you want it checked now anyway...
 {
 	guint64		now = proj_get_real_time();
-	GList*		obj;
+	GSList*		obj;
 	if (!urgent && (now - _hb_listener_lastcheck) < ONESEC) {
 		return;
 	}
@@ -104,7 +104,7 @@ _hblistener_gsourcefunc(gpointer ignored) ///<[ignored] Ignored
 FSTATIC void
 _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
 {
-	GList*		obj;
+	GSList*		obj;
 	guint64		now = proj_get_real_time();
 	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
 		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
@@ -151,6 +151,14 @@ _hblistener_unref(HbListener* self)	///<[in/out] Object to decrement reference c
 {
 	g_return_if_fail(self->_refcount > 0);
 	self->_refcount -= 1;
+	if (self->_refcount == 1) {
+		// Our listener list holds an extra reference count...
+		_hblistener_dellist(self);
+		// hblistener_dellist will decrement reference count by 1
+		g_return_if_fail(self->_refcount == 0);
+		self = NULL;
+		return;
+	}
 	if (self->_refcount == 0) {
 		self->_finalize(self);
 		self = NULL;
@@ -188,6 +196,7 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 		newlistener->ref = _hblistener_ref;
 		newlistener->unref = _hblistener_unref;
 		newlistener->_finalize = _hblistener_finalize;
+		newlistener->_finalize = _hblistener_finalize;
 		newlistener->_expected_interval = DEFAULT_DEADTIME * 1000000;
 		newlistener->_warn_interval = newlistener->_expected_interval / 4;
 		newlistener->nexttime = proj_get_real_time() + newlistener->_expected_interval;
@@ -202,7 +211,7 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 void
 hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from list
 {
-	GList*		obj;
+	GSList*		obj;
 	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
 		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
 		if (unlistenaddr->equal(unlistenaddr, listener->listenaddr)) {
