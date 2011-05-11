@@ -2,7 +2,18 @@
  * @file
  * @brief Simple pcap testing code using 'mainloop'.
  * Listens for CDP or LLDP packets on the network - all using the mainloop dispatch code.
- * Probably a short-lived piece of test code.
+ * Probably a short-lived piece of test code.  Well... Maybe not so short-lived, but definitely
+ * basic testing.
+ *
+ * Here's what it does at the moment:
+ *	+ listen for LLDP or CDP packets and:
+ *		demarshall them and remarshall them to see if they're the same
+ *	+ listen for heartbeats - and there won't be any at first
+ *		When we have declared ourself dead, we begin to send ourselves heartbeats.
+ *		The first one will be declared late, but the remaining ones should be on time.
+ *	The software is built to expect this behavior from itself and print info messages when
+ *	things go as they should, and warning messages when things deviate from expectations.
+ *
  *
  * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -32,30 +43,23 @@ gint64		pktcount = 0;
 GMainLoop*	loop = NULL;
 NetIO*		transport;
 NetAddr*	destaddr;
-void encapsulate_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
+void send_encapsulated_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
 gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
 gboolean gotnetpkt(NetGSource* gs, FrameSet* fs, NetAddr* srcaddr, gpointer ignored);
+void real_deadtime_agent(HbListener* who);
+void initial_deadtime_agent(HbListener* who);
 
-/// Test routine for encapsulating a packet in a FrameSet
-/// Eventually this will include the packet data, the interface information, and the source address
-/// of the packet.  These can be a Frame and a CstringFrame.  But I think I already have a function
-/// which does most of this...  Better look into that...
-/// The name is "construct_pcap_frameset".
+/// Test routine for sending an encapsulated Pcap packet.
 void
-encapsulate_packet(gconstpointer packet,			///<[in] pcap packet data
+send_encapsulated_packet(gconstpointer packet,			///<[in] pcap packet data
 		   gconstpointer pktend,			///<[in] one byte past end of pkt
            	   const struct pcap_pkthdr *hdr,	///<[in] pcap header
 		   const char * dev)			///<[in] capture device
 {
-	FrameSet *	fs;
-	GSList*		list;
-	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, packet, pktend, hdr, dev);
-	list = g_slist_append(NULL, fs);
-	g_message("Forwarding a frameset containing a capture packet packet.");
-	transport->sendframesets(transport, destaddr, list);
-	fs->unref(fs);
-	list->data = NULL;
-	g_slist_free(list);
+	FrameSet *	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, packet, pktend, hdr, dev);
+	g_message("Sending a frameset containing an encapsulated capture packet.");
+	transport->sendaframeset(transport, destaddr, fs);
+	fs->unref(fs); fs = NULL;
 }
 
 /// Routine called when a packet is received from the g_main_loop() mechanisms.
@@ -124,7 +128,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	fs->unref(fs);
 	fs = NULL;
 	g_message("Frameset for constructed packet - freed!");
-	encapsulate_packet(pkt, pend, hdr, dev);
+	send_encapsulated_packet(pkt, pend, hdr, dev);
 	++pktcount;
 	if (pktcount >= maxpkts) {
 		g_message("QUITTING NOW!");
@@ -149,6 +153,19 @@ gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
 	fs->unref(fs);
 	g_message("END of packet received over 'wire':");
 	return TRUE;
+}
+
+void
+real_deadtime_agent(HbListener* who)
+{
+	///@todo start sending heartbeats...
+	g_warning("Subsequent (unexpected) deadtime event occurred.");
+}
+void
+initial_deadtime_agent(HbListener* who)
+{
+	g_message("Expected deadtime event occurred (once)");
+	hblistener_set_deadtime_callback(real_deadtime_agent);
 }
 
 /// Test program looping and reading LLDP/CDP packets.
@@ -195,6 +212,8 @@ main(int argc, char **argv)
 	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 	netpkt->addDispatch(netpkt, 0, gotnetpkt);	// Get all unclaimed packets...
 	hblisten = hblistener_new(destaddr, 0);
+	hblisten->set_deadtime(hblisten, 10*1000000);
+	hblistener_set_deadtime_callback(initial_deadtime_agent);
 	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, hblistener_netgsource_dispatch);
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);

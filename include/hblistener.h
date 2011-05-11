@@ -31,7 +31,11 @@ typedef enum {
 struct _HbListener {
 	void		(*ref)(HbListener*);		///< Increment reference count
 	void		(*unref)(HbListener*);		///< Decrement reference count
-	void		(*_finalize)(HbListener*);	///< Frame Destructor
+	void		(*_finalize)(HbListener*);	///< HbListener destructor
+	guint64		(*get_deadtime)(HbListener*);	///< Retrieve deadtime
+	void		(*set_deadtime)(HbListener*, guint64);	///< Set deadtime
+	guint64		(*get_warntime)(HbListener*);	///< Retrieve warntime
+	void		(*set_warntime)(HbListener*, guint64);	///< Set warntime
 	guint64		_expected_interval;		///< How often to expect heartbeats
 	guint64		_warn_interval;			///< When to warn about late heartbeats
 	guint64		nexttime;			///< When next heartbeat is due

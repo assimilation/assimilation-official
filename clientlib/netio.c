@@ -28,6 +28,7 @@
 FSTATIC gint _netio_getfd(const NetIO* self);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src);
 FSTATIC void _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets);
+FSTATIC void _netio_sendaframeset(NetIO* self, const NetAddr* destaddr, FrameSet* frameset);
 FSTATIC void _netio_finalize(NetIO* self);
 FSTATIC void _netio_sendapacket(NetIO* self, gconstpointer packet, gconstpointer pktend, const NetAddr* destaddr);
 FSTATIC gpointer _netio_recvapacket(NetIO*, gpointer*, struct sockaddr*, socklen_t*addrlen);
@@ -168,6 +169,7 @@ netio_new(gsize objsize)	///<[in] The size of the object to construct (or zero)
 	ret->getfd = _netio_getfd;
 	ret->bindaddr = _netio_bindaddr;
 	ret->sendframesets = _netio_sendframesets;
+	ret->sendaframeset = _netio_sendaframeset;
 	ret->finalize = _netio_finalize;
 	ret->getmaxpktsize = _netio_getmaxpktsize;
 	ret->setmaxpktsize = _netio_setmaxpktsize;
@@ -232,6 +234,28 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		
 	}
+}
+FSTATIC void
+_netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the sending
+		     const NetAddr* destaddr,	///< [in] Where to send the FrameSets
+		     FrameSet* frameset)	///< [in] The framesets being sent
+{
+	SignFrame* signframe	= self->signframe(self);
+	Frame*	cryptframe	= self->cryptframe(self);
+	Frame*	compressframe	= self->compressframe(self);
+	g_return_if_fail(self != NULL);
+	g_return_if_fail(self->_signframe != NULL);
+	g_return_if_fail(frameset != NULL);
+	g_return_if_fail(destaddr != NULL);
+
+	if (cryptframe) {
+		cryptframe->ref(cryptframe);
+	}
+	if (compressframe) {
+		compressframe->ref(compressframe);
+	}
+	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
+	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);
 }
 
 /// Internal function to receive a packet from our NetIO object

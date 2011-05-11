@@ -41,6 +41,12 @@ struct _NetIO {
 	gsize		(*setmaxpktsize)		///< Set maximum packet size
 				(NetIO*,		///< 'this' object
 				 gsize);		///< size to set max pkt size to
+	void		(*sendaframeset)		///< Send a single FrameSet to a @ref NetIO
+							///< @pre must have non-NULL _signframe
+				(NetIO* self,		///<[in/out] 'this' object pointer
+				 const NetAddr* dest,	///<[in] destination address
+				 FrameSet* frameset)	///<[in] The FrameSet to send
+						   ;	// ";" is here to work around a doxygen bug
 	void		(*sendframesets)		///< Send a FrameSet list to a @ref NetIO
 							///< @pre must have non-NULL _signframe
 				(NetIO* self,		///<[in/out] 'this' object pointer

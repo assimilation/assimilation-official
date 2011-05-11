@@ -39,7 +39,8 @@ FSTATIC gboolean
 _netaddr_equal(const NetAddr*self, const NetAddr*other)
 {
 	/// @todo Perhaps ought to allow comparision between ipv4 and equivalent ipv6 addrs,
-	/// and who knows, maybe even the same thing for MAC addresses ;-)
+	/// and who knows, maybe even the same thing for MAC addresses and ipv6 ;-)
+	/// @todo add tostring member function to the class.
 	if (proj_class_classname(self) != proj_class_classname(other)
 	||  self->_addrtype != other->_addrtype
 	||  self->_addrlen != other->_addrlen

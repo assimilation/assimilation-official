@@ -24,6 +24,10 @@ FSTATIC void _hblistener_checktimeouts(gboolean urgent);
 FSTATIC void _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr);
 FSTATIC void _hblistener_addlist(HbListener* self);
 FSTATIC void _hblistener_dellist(HbListener* self);
+FSTATIC void _hblistener_set_deadtime(HbListener* self, guint64 deadtime);
+FSTATIC void _hblistener_set_warntime(HbListener* self, guint64 warntime);
+FSTATIC guint64 _hblistener_get_deadtime(HbListener* self);
+FSTATIC guint64 _hblistener_get_warntime(HbListener* self);
 FSTATIC gboolean _hblistener_gsourcefunc(gpointer);
 
 guint64 proj_get_real_time(void); 	///@todo - make this a real global function
@@ -85,8 +89,9 @@ _hblistener_checktimeouts(gboolean urgent)///<[in]True if you want it checked no
 		if (now > listener->nexttime && listener->status == HbPacketsBeingReceived) {
 			if (_hblistener_deadcallback) {
 				_hblistener_deadcallback(listener);
+			}else{
+				g_warning("our node looks dead from here...");
 			}
-			g_warning("our node looks dead from here...");
 			listener->status = HbPacketsTimedOut;
 		}
 	}
@@ -113,18 +118,20 @@ _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
 			/// - probably add yet another callback?
 			if (listener->status == HbPacketsTimedOut) {
 				guint64 howlate = now - listener->nexttime;
-				g_message("A node is now back alive!");
+				listener->status = HbPacketsBeingReceived;
 				if (_hblistener_comealivecallback) {
 					_hblistener_comealivecallback(listener, howlate);
+				}else{
+					g_message("A node is now back alive!");
 				}
-				listener->status = HbPacketsBeingReceived;
 			} else if (now > listener->warntime) {
 				guint64 howlate = now - listener->warntime;
 				howlate /= 1000;
-				g_warning("A node was %lums late in sending heartbeat..."
-				,	howlate);
 				if (_hblistener_warncallback) {
 					_hblistener_warncallback(listener, howlate);
+				}else{
+					g_warning("A node was %lums late in sending heartbeat..."
+					,	howlate);
 				}
 			}
 			listener->nexttime = now + listener->_expected_interval;
@@ -134,8 +141,9 @@ _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
 	}
 	if (_hblistener_martiancallback) {
 		_hblistener_martiancallback(srcaddr);
+	}else{
+		g_warn_if_reached();
 	}
-	g_warn_if_reached();
 }
 
 /// Increment the reference count by one.
@@ -196,16 +204,50 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 		newlistener->ref = _hblistener_ref;
 		newlistener->unref = _hblistener_unref;
 		newlistener->_finalize = _hblistener_finalize;
-		newlistener->_finalize = _hblistener_finalize;
-		newlistener->_expected_interval = DEFAULT_DEADTIME * 1000000;
-		newlistener->_warn_interval = newlistener->_expected_interval / 4;
-		newlistener->nexttime = proj_get_real_time() + newlistener->_expected_interval;
-		newlistener->warntime = proj_get_real_time() + newlistener->_warn_interval;
+		newlistener->set_deadtime = _hblistener_set_deadtime;
+		newlistener->get_deadtime = _hblistener_get_deadtime;
+		newlistener->set_warntime = _hblistener_set_warntime;
+		newlistener->get_warntime = _hblistener_get_warntime;
+		newlistener->set_deadtime(newlistener, DEFAULT_DEADTIME*1000000);
+		newlistener->set_warntime(newlistener, DEFAULT_DEADTIME*1000000/4);
 		newlistener->status = HbPacketsBeingReceived;
 		_hblistener_addlist(newlistener);
 	}
 	return newlistener;
 }
+
+/// Set deadtime
+FSTATIC void
+_hblistener_set_deadtime(HbListener* self,	///<[in/out] Object to set deadtime for
+			guint64 deadtime)	///<[in] deadtime to set in usec
+{
+	guint64		now = proj_get_real_time();
+	self->_expected_interval = deadtime;
+	self->nexttime = now + self->_expected_interval;
+
+}
+/// Return deadtime
+FSTATIC guint64
+_hblistener_get_deadtime(HbListener* self)
+{
+	return self->_expected_interval;
+}
+/// Set warntime
+FSTATIC void
+_hblistener_set_warntime(HbListener* self,	///<[in/out] Object to set warntime for
+			guint64 warntime)	///<[in] warntime to set in usec
+{
+	guint64		now = proj_get_real_time();
+	self->_warn_interval = warntime;
+	self->warntime = now + self->_warn_interval;
+}
+/// Return warntime
+FSTATIC guint64
+_hblistener_get_warntime(HbListener* self)
+{
+	return self->_warn_interval;
+}
+
 
 /// Stop expecting (listening for) heartbeats from a particular address
 void
