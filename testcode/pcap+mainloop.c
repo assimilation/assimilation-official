@@ -167,7 +167,7 @@ void
 initial_deadtime_agent(HbListener* who)
 {
 	g_message("Expected deadtime event occurred (once)");
-	sender = hbsender_new(destaddr, transport, 1,  3, 60, 0);
+	sender = hbsender_new(destaddr, transport, 1,  0);
 	hblistener_set_deadtime_callback(real_deadtime_agent);
 	
 }

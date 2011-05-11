@@ -113,8 +113,6 @@ HbSender*
 hbsender_new(NetAddr* sendaddr,	///<[in] Address to send to
 	     NetIO* outmethod,	///<[in] Mechanism for sending packets
 	     guint  interval,	///<[in] How often to send, in seconds
-	     guint  warntime,	///<[in] Receiver warntime, in seconds
-	     guint  deadtime,	///<[in] Receiver deadtime, in seconds
 	     gsize objsize)	///<[in] size of HbSender structure (0 for sizeof(HbSender))
 {
 	HbSender * newsender;
@@ -132,8 +130,6 @@ hbsender_new(NetAddr* sendaddr,	///<[in] Address to send to
 		newsender->unref = _hbsender_unref;
 		newsender->_finalize = _hbsender_finalize;
 		newsender->_expected_interval = interval;
-		newsender->_warntime = warntime;
-		newsender->_deadtime = deadtime;
 		newsender->timeout_source = g_timeout_add_seconds
                                        (interval, _hbsender_gsourcefunc, newsender);
 		g_message("timeout source is: %d", newsender->timeout_source);

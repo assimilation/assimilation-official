@@ -28,8 +28,6 @@ struct _HbSender {
 	void		(*unref)(HbSender*);		///< Decrement reference count
 	void		(*_finalize)(HbSender*);	///< HbSender destructor
 	guint64		_expected_interval;		///< How often to expect heartbeats
-	guint64		_warntime;			///< Receiver warntime
-	guint64		_deadtime;			///< Receiver deadtime
 	NetIO*		_outmethod;			///< How to send out heartbeats
 	NetAddr*	_sendaddr;			///< What address are we sending to?
 	int		_refcount;			///< Current reference count
@@ -37,7 +35,7 @@ struct _HbSender {
 };
 #define	DEFAULT_DEADTIME	60 // seconds
 
-HbSender* hbsender_new(NetAddr*, NetIO*, guint interval, guint warntime, guint deadtime, gsize hblisten_objsize);
+HbSender* hbsender_new(NetAddr*, NetIO*, guint interval, gsize hblisten_objsize);
 void hbsender_stopsend(NetAddr* unlistenaddr);
 
 ///@}
