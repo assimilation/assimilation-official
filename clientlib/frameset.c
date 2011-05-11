@@ -166,7 +166,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	gsize		fssize = 6;		// "frameset" overhead size
 	g_return_if_fail(NULL != fs);
 	g_return_if_fail(NULL != sigframe);
-	g_return_if_fail(NULL != fs->framelist);
+	// g_return_if_fail(NULL != fs->framelist); // Is an empty frame list OK?
 
 	/*
 	 * The general method we employ here is to:

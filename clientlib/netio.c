@@ -31,7 +31,7 @@ FSTATIC void _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* 
 FSTATIC void _netio_sendaframeset(NetIO* self, const NetAddr* destaddr, FrameSet* frameset);
 FSTATIC void _netio_finalize(NetIO* self);
 FSTATIC void _netio_sendapacket(NetIO* self, gconstpointer packet, gconstpointer pktend, const NetAddr* destaddr);
-FSTATIC gpointer _netio_recvapacket(NetIO*, gpointer*, struct sockaddr*, socklen_t*addrlen);
+FSTATIC gpointer _netio_recvapacket(NetIO*, gpointer*, struct sockaddr_in6*, socklen_t*addrlen);
 FSTATIC gsize _netio_getmaxpktsize(const NetIO* self);
 FSTATIC gsize _netio_setmaxpktsize(NetIO* self, gsize maxpktsize);
 FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
@@ -268,7 +268,7 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 FSTATIC gpointer
 _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		   gpointer* pktend,		///<[out] Pointer to one past end of packet
-		   struct sockaddr* srcaddr,	///<[*out] Pointer to source address as sockaddr
+		   struct sockaddr_in6* srcaddr,	///<[*out] Pointer to source address as sockaddr
 		   socklen_t* addrlen)		///<[out] length of address in 'srcaddr'
 {
 	char		dummy[8]; // Make GCC stack protection happy...
@@ -279,7 +279,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	// First we peek and see how long the message is...
 	*addrlen = sizeof(*srcaddr);
 	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_DONTWAIT|MSG_PEEK|MSG_TRUNC,
-		          srcaddr, addrlen);
+		          (struct sockaddr*)srcaddr, addrlen);
 	if (msglen < 0) {
 		if (errno != EAGAIN) {
 			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)"
@@ -299,7 +299,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	// Receive the message
 	*addrlen = sizeof(*srcaddr);
 	msglen2 = recvfrom(self->getfd(self), msgbuf, msglen, MSG_DONTWAIT|MSG_TRUNC,
-			   srcaddr, addrlen);
+			   (struct sockaddr *)srcaddr, addrlen);
 
 	// Was there an error?
 	if (msglen2 < 0) {
@@ -317,7 +317,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	}
 	// Hah! Looks good!
 	*pktend = (void*) (msgbuf + msglen);
-	g_debug("netio: Received %zd byte message", msglen);
+	//g_debug("netio: Received %zd byte message", msglen);
 	return msgbuf;
 }
 /// Member function to receive a collection of FrameSets (GSList*) out of our NetIO object
@@ -330,7 +330,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	gpointer	pkt;
 	gpointer	pktend;
 	socklen_t	addrlen;
-	struct sockaddr	srcaddr;
+	struct sockaddr_in6	srcaddr;
 
 	pkt = _netio_recvapacket(self, &pktend, &srcaddr, &addrlen);
 

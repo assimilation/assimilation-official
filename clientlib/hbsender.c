@@ -125,6 +125,7 @@ hbsender_new(NetAddr* sendaddr,	///<[in] Address to send to
 	if (newsender != NULL) {
 		hbsender_stopsend(sendaddr);
 		newsender->_sendaddr = sendaddr;
+		sendaddr->ref(sendaddr);
 		newsender->_refcount = 1;
 		newsender->ref = _hbsender_ref;
 		newsender->_outmethod = outmethod;
@@ -135,6 +136,7 @@ hbsender_new(NetAddr* sendaddr,	///<[in] Address to send to
 		newsender->_deadtime = deadtime;
 		newsender->timeout_source = g_timeout_add_seconds
                                        (interval, _hbsender_gsourcefunc, newsender);
+		g_message("timeout source is: %d", newsender->timeout_source);
 		_hbsender_addlist(newsender);
 		_hbsender_sendheartbeat(newsender);
 	}
@@ -154,7 +156,6 @@ hbsender_stopsend(NetAddr* sendaddr)///<[in/out] Sender to remove from list
 			return;
 		}
 	}
-	g_warning("Attempt to stop sending heartbeats to an unregistered address");
 }
 FSTATIC void
 _hbsender_sendheartbeat(HbSender* self)

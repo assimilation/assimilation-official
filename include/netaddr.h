@@ -27,6 +27,7 @@ struct _NetAddr {
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
 	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 address corresponding to this address
 	gboolean	(*equal)(const NetAddr*,const NetAddr*);///< Compare NetAddrs
+	gchar *		(*toString)(const NetAddr* self);	///< Convert to g_malloced (!) string
 	void		(*ref)(NetAddr* self);			///< Add a reference to this object
 	void		(*unref)(NetAddr* self);		///< Add a reference to this object
 	void		(*_finalize)(NetAddr* self);		///< Finalize this object.
@@ -37,7 +38,7 @@ struct _NetAddr {
 	guint16		_refcount;				///< private: Reference count
 };
 NetAddr*	netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen);
-NetAddr*	netaddr_sockaddr_new(const struct sockaddr *, socklen_t);
+NetAddr*	netaddr_sockaddr_new(const struct sockaddr_in6 *, socklen_t);
 NetAddr*	netaddr_macaddr_new(gconstpointer macbuf, guint16 maclen);
 NetAddr*	netaddr_mac48_new(gconstpointer macbuf);
 NetAddr*	netaddr_mac64_new(gconstpointer macbuf);

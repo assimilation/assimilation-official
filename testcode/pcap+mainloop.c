@@ -37,12 +37,14 @@
 #include <netioudp.h>
 #include <netaddr.h>
 #include <hblistener.h>
+#include <hbsender.h>
 
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
 GMainLoop*	loop = NULL;
 NetIO*		transport;
 NetAddr*	destaddr;
+HbSender*	sender = NULL;
 void send_encapsulated_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
 gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
 gboolean gotnetpkt(NetGSource* gs, FrameSet* fs, NetAddr* srcaddr, gpointer ignored);
@@ -165,7 +167,9 @@ void
 initial_deadtime_agent(HbListener* who)
 {
 	g_message("Expected deadtime event occurred (once)");
+	sender = hbsender_new(destaddr, transport, 1,  3, 60, 0);
 	hblistener_set_deadtime_callback(real_deadtime_agent);
+	
 }
 
 /// Test program looping and reading LLDP/CDP packets.
@@ -176,7 +180,7 @@ main(int argc, char **argv)
 	GSource*	pktsource;				// GSource for packets
 	unsigned	protocols = ENABLE_LLDP|ENABLE_CDP;	// Protocols to watch for...
 	char		errbuf[PCAP_ERRBUF_SIZE];		// Error buffer...
-	const guint8	loopback[] = CONST_IPV4_LOOPBACK;
+	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
 	guint16		testport = 1984;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	NetGSource*	netpkt;
@@ -204,11 +208,11 @@ main(int argc, char **argv)
 	g_return_val_if_fail(NULL != transport, 2);
 	transport->set_signframe(transport, signature);
 
-	destaddr =  netaddr_ipv4_new(loopback, testport);
+	destaddr =  netaddr_ipv6_new(loopback, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
 
 	// Listen for our own packets...
-	g_return_val_if_fail(transport->bindaddr(transport, destaddr),4);
+	g_return_val_if_fail(transport->bindaddr(transport, destaddr),16);
 	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 	netpkt->addDispatch(netpkt, 0, gotnetpkt);	// Get all unclaimed packets...
 	hblisten = hblistener_new(destaddr, 0);
@@ -227,6 +231,9 @@ main(int argc, char **argv)
 	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
 	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
 	hblisten->unref(hblisten); hblisten = NULL;
+	if (sender) {
+		sender->unref(sender); sender = NULL;
+	}
 	proj_class_dump_live_objects();
 	return(0);
 }

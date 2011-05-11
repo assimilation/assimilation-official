@@ -12,6 +12,7 @@
 #include <memory.h>
 #include <glib.h>
 #include <frame.h>
+#include <frameset.h>
 #include <hblistener.h>
 /**
  */
@@ -114,6 +115,7 @@ _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
 	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
 		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
 		if (srcaddr->equal(srcaddr, listener->listenaddr)) {
+			g_message("Received heartbeat...");
 			///@todo ADD CODE TO PROCESS PACKET, not just observe that it arrived??
 			/// - probably add yet another callback?
 			if (listener->status == HbPacketsTimedOut) {
@@ -136,14 +138,18 @@ _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
 			}
 			listener->nexttime = now + listener->_expected_interval;
 			listener->warntime = now + listener->_warn_interval;
+			fs->unref(fs);
 			return;
 		}
 	}
 	if (_hblistener_martiancallback) {
 		_hblistener_martiancallback(srcaddr);
-	}else{
-		g_warn_if_reached();
+	}else{ 
+		gchar *	saddr = srcaddr->toString(srcaddr);
+		g_warning("Received 'martian' packet from address %s", saddr);
+		g_free(saddr); saddr = NULL;
 	}
+	fs->unref(fs);
 }
 
 /// Increment the reference count by one.

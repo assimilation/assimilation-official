@@ -24,6 +24,7 @@ FSTATIC guint16 _netaddr_port(const NetAddr* self);
 FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
+FSTATIC gchar * _netaddr_toString(const NetAddr* self);
 /// @defgroup NetAddr NetAddr class
 ///@{
 /// @ingroup C_Classes
@@ -34,6 +35,29 @@ FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...
+
+FSTATIC gchar *
+_netaddr_toString(const NetAddr* self)
+{
+	gchar *		ret = NULL;
+	GString*	gsret = g_string_new("");
+	int		nbyte;
+	switch (self->_addrtype) {
+		case ADDR_FAMILY_IPV4:
+			return g_strdup_printf("%d.%d.%d.%d",
+					      ((const gchar*)self->_addrbody)[0],
+					      ((const gchar*) self->_addrbody)[1],
+					      ((const gchar*)self->_addrbody)[2],
+					      ((const gchar*)self->_addrbody)[3]);
+	}
+	for (nbyte = 0; nbyte < self->_addrlen; ++nbyte) {
+		g_string_append_printf(gsret, (nbyte == 0 ? "0x%02x": ":0x%02x"),
+                                       ((const gchar*)self->_addrbody)[nbyte]);
+	}
+	ret = gsret->str;
+	g_string_free(gsret, FALSE);
+	return ret;
+}
 
 FSTATIC gboolean
 _netaddr_equal(const NetAddr*self, const NetAddr*other)
@@ -114,6 +138,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->port = _netaddr_port;
 	self->addrtype = _netaddr_addrtype;
 	self->_finalize = _netaddr_finalize;
+	self->toString = _netaddr_toString;
 	self->ref = _netaddr_ref;
 	self->unref = _netaddr_unref;
 	self->equal = _netaddr_equal;
@@ -156,10 +181,10 @@ netaddr_ipv4_new(gconstpointer	ipbuf,	///<[in] Pointer to 4-byte IPv4 address
 
 /// Create new NetAddr from a IPv6 address
 NetAddr*
-netaddr_ipv6_new(gconstpointer ipbuf,	///<[in] Pointer to 8-byte IPv6 address
+netaddr_ipv6_new(gconstpointer ipbuf,	///<[in] Pointer to 16-byte IPv6 address
 		 guint16	port)	///<[in] Port (or zero for non-port-specific IP address)
 {
-	return	netaddr_new(0, port, ADDR_FAMILY_IPV6, ipbuf, 8);
+	return	netaddr_new(0, port, ADDR_FAMILY_IPV6, ipbuf, 16);
 }
 
 
@@ -167,11 +192,10 @@ netaddr_ipv6_new(gconstpointer ipbuf,	///<[in] Pointer to 8-byte IPv6 address
 
 /// Create new NetAddr from a <b>struct sockaddr</b>
 NetAddr*
-netaddr_sockaddr_new(const struct sockaddr *sa,	///<[in] struct sockaddr to construct address from
+netaddr_sockaddr_new(const struct sockaddr_in6 *sa_in6,	///<[in] struct sockaddr to construct address from
 			  socklen_t length)	///<[in] number of bytes in 'sa'
 {
-	const struct sockaddr_in*	sa_in = (const struct sockaddr_in*)sa;
-	const struct sockaddr_in6*	sa_in6 = (const struct sockaddr_in6*)sa;
+	const struct sockaddr_in*	sa_in = (const struct sockaddr_in*)sa_in6;
 
 	switch(sa_in->sin_family) {
 		case AF_INET:
