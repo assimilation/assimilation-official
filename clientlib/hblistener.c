@@ -48,7 +48,8 @@ static void	(*_hblistener_martiancallback)(const NetAddr* who) = NULL;
 
 #define	ONESEC	1000000
 
-/// Add an HbListener to our global list of HBListeners
+/// Add an HbListener to our global list of HBListeners.
+/// @todo make sure we don't duplicate listen addresses...
 FSTATIC void
 _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 {

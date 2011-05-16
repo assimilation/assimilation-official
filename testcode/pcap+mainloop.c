@@ -199,41 +199,72 @@ main(int argc, char **argv)
 	g_message("PCAP capture device is: %s", dev);
 
 
-	/// Create a packet source, and connect it up to run in the default context
+	// Create a pcap packet Gsource for the g_main_loop environment,
+	// and connect it up to run in the default context
+
 	pktsource = g_source_pcap_new(dev, protocols, gotapcappacket, NULL,
                                       G_PRIORITY_DEFAULT, FALSE, NULL, 0, NULL);
 	g_return_val_if_fail(NULL != pktsource, 1);
 
+	// Create a network transport object (UDP packets)
 	transport = CASTTOCLASS(NetIO, netioudp_new(0));
 	g_return_val_if_fail(NULL != transport, 2);
 	transport->set_signframe(transport, signature);
 
+	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
 	destaddr =  netaddr_ipv6_new(loopback, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
 
 	// Listen for our own packets...
 	g_return_val_if_fail(transport->bindaddr(transport, destaddr),16);
+
+	// Connect up our network transport into the g_main_loop paradigm
+	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 	netpkt->addDispatch(netpkt, 0, gotnetpkt);	// Get all unclaimed packets...
+
+	// Create a heartbeat listener
 	hblisten = hblistener_new(destaddr, 0);
 	hblisten->set_deadtime(hblisten, 10*1000000);
 	hblistener_set_deadtime_callback(initial_deadtime_agent);
+
+	// Intercept incoming heartbeat packets - direct them to heartbeat listener
 	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, hblistener_netgsource_dispatch);
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
+
+	// Start up the main loop - run the program...
 	g_main_loop_run(loop);
+
+
+	// Main loop is over - shut everything down, free everything...
 	g_main_loop_unref(loop); loop=NULL; pktsource=NULL;
+
 	transport->finalize(transport); transport = NULL;
+
 	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
 	g_main_context_unref(g_main_context_default());
-	g_source_unref(CASTTOCLASS(GSource, netpkt));
-	FREECLASSOBJ(destaddr); destaddr = NULL;
-	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
+
+	// Unlink heartbeat dispatcher (not sure if it's necessary)
 	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
+
+	// Except of course, it doesn't seem to unreference all sources... sigh...
+	g_source_unref(CASTTOCLASS(GSource, netpkt)); netpkt = NULL;
+
+	// Free destination address
+	FREECLASSOBJ(destaddr); destaddr = NULL;
+
+	// Free signature frame
+	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
+
+	// Free the heartbeat listener
 	hblisten->unref(hblisten); hblisten = NULL;
+
 	if (sender) {
+		// Free heartbeat sender
 		sender->unref(sender); sender = NULL;
 	}
+	// At this point - nothing should show up - we should have freed everything
 	proj_class_dump_live_objects();
 	return(0);
 }
