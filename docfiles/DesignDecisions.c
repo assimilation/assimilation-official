@@ -38,4 +38,12 @@ In addition, having multiple ports complicates adoption of the software.
 
 As a result, I believe that both kinds of messages should go over the same UDP port.
 
+@section NextSteps What needs to happen next
+ - create python code to talk to the libraries from the CMA side
+ - decide on a persistence method for packets sent to CMA - 
+ - create code to send packets persistently until they're ACKed - in C or python?
+ - add the capability to ACK packets that are marked as needing an ACK when they've been "acted on"
+ - integrate the two capabilities above
+ -
+
 */

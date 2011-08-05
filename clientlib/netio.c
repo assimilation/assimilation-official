@@ -84,8 +84,7 @@ _netio_finalize(NetIO* self)	///<[in/out] The object being freed
 {
 	g_return_if_fail(self != NULL);
 	if (self->giosock) {
-		GError*	err;
-		g_io_channel_shutdown(self->giosock, TRUE, &err);
+		g_io_channel_shutdown(self->giosock, TRUE, NULL);
 		g_io_channel_unref(self->giosock);
 		self->giosock = NULL;
 	}
