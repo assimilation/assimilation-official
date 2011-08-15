@@ -21,7 +21,7 @@
 #define	TLV_DTYPE_UINT8			2	///< 8-bit unsigned integer
 #define	TLV_DTYPE_UINT16		3	///< 16-bit unsigned integer - network byte order
 #define	TLV_DTYPE_UINT32		4	///< 32-bit unsigned integer - network byte order
-#define	TLV_DTYPE_UINT32		5	///< 64-bit unsigned integer - network byte order
+#define	TLV_DTYPE_UINT64		5	///< 64-bit unsigned integer - network byte order
 #define	TLV_DTYPE_OUI			6	///< IEEE 3-byte Organizationally Unique Identifier
 #define	TLV_DTYPE_MACADDR		7	///< Variable-length MAC address
 #define	TLV_DTYPE_IPV4ADDR		8	///< IPV4 address

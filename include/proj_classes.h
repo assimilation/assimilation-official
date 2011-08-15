@@ -30,18 +30,18 @@ void proj_class_dump_live_objects(void);
 /// Allocate memory for a C-class object of base class <i>class</i> (not to be further subclassed) - and register it with our C-Class system
 /// @param class	name of class to malloc data for.  Amount malloced will be <i>sizeof(class)</i>, return type is <i>class</i>*.
 /// @returns sizeof(class) bytes of newly allocated heap data of type <i>class</i>*.  Don't forget to give it to @ref FREECLASSOBJ eventually.
-#define MALLOCBASECLASS(class)	((class *) proj_class_new(sizeof(class), #class))
+#define MALLOCBASECLASS(Cclass)	((Cclass *) proj_class_new(sizeof(Cclass), #Cclass))
 
 /// Allocate memory for an object (which might be further subclassed) - and register it with our C-Class system
 /// @param class name of class to malloc data for
 /// @param size number of bytes to malloc
 /// @returns <i>size</i> bytes of newly allocated heap data of type <i>class</i>*.  Don't forget to give it to @ref FREECLASSOBJ eventually.
-#define MALLOCCLASS(class, size)	((class *) proj_class_new(size, #class))
+#define MALLOCCLASS(Cclass, size)	((Cclass *) proj_class_new(size, #Cclass))
 
 /// Safely cast 'obj' to C-class 'class' - verifying that it was registerd as being of type <i>class</i>
 /// @param class class to cast <i>obj</i> (the object) to.
 /// @param obj the object to be cast to type <i>class</i>
-#define CASTTOCLASS(class, obj)		((class *) proj_class_castas(obj, #class))
+#define CASTTOCLASS(Cclass, obj)		((Cclass *) proj_class_castas(obj, #Cclass))
 
 /// Free a C-class object.
 /// @param obj the object to be freed.  Should be registered as a class object.
