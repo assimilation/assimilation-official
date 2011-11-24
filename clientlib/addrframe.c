@@ -57,9 +57,9 @@ FSTATIC void _addrframe_addr_finalize(void * addr);
 /// We need to support MAC addresses, but they can't be used in a context that requires
 /// some kind of IP address.  So, <i>caveat emptor</i> has to be the rule of the day anyway.
 FSTATIC gboolean
-_addrframe_default_isvalid(const Frame * self,	///< AddrFrame object ('this')
-		       gconstpointer tlvptr,	///< Pointer to the TLV for this AddrFrame
-		       gconstpointer pktend)	///< Pointer to one byte past the end of the packet
+_addrframe_default_isvalid(const Frame * self,	///<[in/out] AddrFrame object ('this')
+		       gconstpointer tlvptr,	///<[in] Pointer to the TLV for this AddrFrame
+		       gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
 	guint16		tlvlen = 0;
 	guint16		address_family = 0;
@@ -111,10 +111,10 @@ _addrframe_default_isvalid(const Frame * self,	///< AddrFrame object ('this')
 
 /// Assign an address to this @ref AddrFrame object
 FSTATIC void
-_addrframe_setaddr(AddrFrame* f,	// Frame to set the address type for 
-		  guint16 addrtype,	// IANA address type
-		  gconstpointer addr,	// Address blob
-		  gsize addrlen)	// size of address
+_addrframe_setaddr(AddrFrame* f,	//<[in/out] Frame to set the address type for 
+		  guint16 addrtype,	//<[in] IANA address type
+		  gconstpointer addr,	//<[in] Address blob
+		  gsize addrlen)	//<[in] size of address
 {
 	gsize		blobsize = addrlen +  sizeof(guint16);
 	guint8*		blob = MALLOC(blobsize);
@@ -134,8 +134,8 @@ _addrframe_setaddr(AddrFrame* f,	// Frame to set the address type for
 
 /// Assign a NetAddr to this @ref AddrFrame object
 FSTATIC void
-_addrframe_setnetaddr(AddrFrame* f,	/// AddrFrame whose address we're setting...
-                   NetAddr* naddr)	/// NetAddr value to set it to
+_addrframe_setnetaddr(AddrFrame* f,	///<[in/out] AddrFrame whose address we're setting...
+                   NetAddr* naddr)	///<[in] NetAddr value to set it to
 {
 	_addrframe_setaddr(f, naddr->addrtype(naddr), naddr->_addrbody, naddr->_addrlen);
 }
@@ -152,8 +152,8 @@ _addrframe_addr_finalize(void * addr) ///< @ref AddrFrame object to free (FREE)
 /// Construct a new @ref AddrFrame - allowing for "derived" frame types...
 /// This can be used directly for creating @ref AddrFrame frames, or by derived classes.
 AddrFrame*
-addrframe_new(guint16 frame_type,	///< TLV type of the @ref AddrFrame (not address type) frame
-	      gsize framesize)		///< size of frame structure (or zero for sizeof(AddrFrame))
+addrframe_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
+	      gsize framesize)		///<[in] size of frame structure (or zero for sizeof(AddrFrame))
 {
 	Frame*		baseframe;
 	AddrFrame*	aframe;
@@ -175,7 +175,8 @@ addrframe_new(guint16 frame_type,	///< TLV type of the @ref AddrFrame (not addre
 
 /// Construct and initialize an IPv4 @ref AddrFrame
 AddrFrame*
-addrframe_ipv4_new(guint16 frame_type, gconstpointer addr)
+addrframe_ipv4_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
+		   gconstpointer addr)	///<[in] pointer to the (binary) IPv4 address data
 {
 	AddrFrame*	ret;
 	ret = addrframe_new(frame_type, 0);
@@ -186,7 +187,8 @@ addrframe_ipv4_new(guint16 frame_type, gconstpointer addr)
 
 /// Construct and initialize an IPv6 @ref AddrFrame
 AddrFrame*
-addrframe_ipv6_new(guint16 frame_type, gconstpointer addr)
+addrframe_ipv6_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
+		   gconstpointer addr)	///<[in] pointer to the (binary) IPv6 address data
 {
 	AddrFrame*	ret;
 	ret = addrframe_new(frame_type, 0);
@@ -197,7 +199,8 @@ addrframe_ipv6_new(guint16 frame_type, gconstpointer addr)
 
 /// Construct and initialize a 48-bit MAC address @ref AddrFrame
 AddrFrame*
-addrframe_mac48_new(guint16 frame_type, gconstpointer addr)
+addrframe_mac48_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
+                    gconstpointer addr)	///<[in] pointer to the (binary) MAC address data
 {
 	AddrFrame*	ret;
 	ret = addrframe_new(frame_type, 0);
@@ -207,7 +210,8 @@ addrframe_mac48_new(guint16 frame_type, gconstpointer addr)
 }
 /// Construct and initialize a 64-bit MAC address @ref AddrFrame
 AddrFrame*
-addrframe_mac64_new(guint16 frame_type, gconstpointer addr)
+addrframe_mac64_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
+		    gconstpointer addr)	///<[in] pointer to the (binary) MAC address data
 {
 	AddrFrame*	ret;
 	ret = addrframe_new(frame_type, 0);
