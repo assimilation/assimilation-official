@@ -197,6 +197,7 @@ netaddr_sockaddr_new(const struct sockaddr_in6 *sa_in6,	///<[in] struct sockaddr
 {
 	const struct sockaddr_in*	sa_in = (const struct sockaddr_in*)sa_in6;
 
+	(void)length;
 	switch(sa_in->sin_family) {
 		case AF_INET:
 			return netaddr_new(0, sa_in->sin_port, 

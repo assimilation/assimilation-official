@@ -42,6 +42,7 @@ _switchdiscovery_finalize(Discovery* dself)
 FSTATIC gboolean
 _switchdiscovery_discover(Discovery* self)  ///<[in/out] 
 {
+	(void)self;
 	return FALSE;
 }
 
@@ -65,6 +66,7 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	SwitchDiscovery*	self = CASTTOCLASS(SwitchDiscovery, selfptr);
 	
 	FrameSet* fs;
+	(void)gsource; (void)capstruct;
 	if (!_switchdiscovery_cache_info(self, pkt, pend)) {
 		return TRUE;
 	}
@@ -121,7 +123,7 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 			   gconstpointer pkt,	   ///<[in] Pointer to the packet just read in
                            gconstpointer pktend)   ///<[in] Pointer to first byte past 'pkt'
 {
-	int		j;
+	gsize	j;
 	///@todo deal with switches that send both LLDP and CDP packets
 
 	for (j=0; j < DIMOF(discovery_types); ++j) {

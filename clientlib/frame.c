@@ -92,6 +92,9 @@ _frame_default_isvalid(const Frame * self,		///< Frame object ('this')
 		       gconstpointer tlvptr,	///< Pointer to the TLV for this Frame
 		       gconstpointer pktend)	///< Pointer to one byte past the end of the packet
 {
+	(void)self;
+	(void)tlvptr;
+	(void)pktend;
 	return TRUE;
 }
 
@@ -117,6 +120,7 @@ _frame_updatedata(Frame * self,			///< Frame object ('this')
 		  gconstpointer pktend,		///< End of packet
 		  FrameSet* fs)			///< Frameset to update (or not)
 {
+	(void)fs;
 	// set_generic_tlv_value does pretty exhaustive error checking.
 	set_generic_tlv_value(tlvptr, self->value, self->length, pktend);
 }

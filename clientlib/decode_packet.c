@@ -40,9 +40,9 @@ static const FrameTypeToFrame	framemap[] =
 	{FRAMETYPE_INTERFACE,	cstringframe_tlvconstructor},
 };
 static FramePktConstructor*	frametypemap;
-static int			maxframetype = 0;
-static gboolean		_decode_packet_inityet = FALSE;
-FSTATIC void		_decode_packet_init(void);
+static guint16			maxframetype = 0;
+static gboolean			_decode_packet_inityet = FALSE;
+FSTATIC void			_decode_packet_init(void);
 #define			INITDECODE	{if (!_decode_packet_inityet) {		\
 						_decode_packet_inityet = TRUE;	\
 						_decode_packet_init();		\
@@ -57,7 +57,7 @@ FSTATIC Frame* _decode_packet_framedata_to_frameobject(gconstpointer, gconstpoin
 void
 _decode_packet_init(void)
 {
-	int	j;
+	unsigned	j;
 
 	for (j=0; j < DIMOF(framemap); ++j) {
 		if (framemap[j].frametype > maxframetype) {
@@ -109,7 +109,7 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this 
 	FrameSet*	ret;
 
 	*fsnext = vpktend;
-	if  (bytesleft < FRAMESET_HDR_SIZE) {
+	if  (bytesleft < (gssize)FRAMESET_HDR_SIZE) {
 		return NULL;
 	}
 	fstype = tlv_get_guint16(fsstart, pktend);

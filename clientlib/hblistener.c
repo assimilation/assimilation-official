@@ -103,6 +103,7 @@ _hblistener_checktimeouts(gboolean urgent)///<[in]True if you want it checked no
 FSTATIC gboolean
 _hblistener_gsourcefunc(gpointer ignored) ///<[ignored] Ignored
 {
+	(void)ignored;
 	_hblistener_checktimeouts(TRUE);
 	return _hb_listeners != NULL;
 }
@@ -133,7 +134,7 @@ _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
 				if (_hblistener_warncallback) {
 					_hblistener_warncallback(listener, howlate);
 				}else{
-					g_warning("A node was %lums late in sending heartbeat..."
+					g_warning("A node was " FMT_64BIT "u ms late in sending heartbeat..."
 					,	howlate);
 				}
 			}
@@ -305,6 +306,7 @@ hblistener_netgsource_dispatch(NetGSource* gs,		///<[in] NetGSource input source
 			       NetAddr* srcaddr, 	///<[in] source address
 			       gpointer ignoreme)	///<[ignore] ignore me
 {
+	(void)gs; (void)ignoreme;
 	_hblistener_hbarrived(fs, srcaddr);
 	return TRUE;
 }

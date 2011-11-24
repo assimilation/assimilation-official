@@ -31,6 +31,7 @@ _unknownframe_default_isvalid(const Frame * self,		///<[in] UnknownFrame object 
 			      gconstpointer tlvptr,	///<[in] Pointer to the TLV for this UnknownFrame
 			      gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
+	(void)self; (void)tlvptr; (void)pktend;
 	///@todo think about whether unknown frames are always valid, or always invalid...
 	return FALSE;
 }

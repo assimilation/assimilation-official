@@ -59,7 +59,7 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	char			errbuf[PCAP_ERRBUF_SIZE];
 	char *			expr;
 	int			filterlen = 1;
-	int			j;
+	unsigned		j;
 	int			cnt=0;
 	const char ORWORD [] = " or ";
 

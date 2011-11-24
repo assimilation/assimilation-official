@@ -81,7 +81,7 @@ is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
 {
 	const unsigned	reqtypes [] = {1};	// The set of required initial TLV types
 						// The LLDP list is slighly more impressive ;-)
-	int		j = 0;
+	unsigned	j = 0;
 	const void*	tlv_vp;			// Pointer to a TLV entry in the CDP packet.
 	const void*	next = NULL;
 	unsigned	vers;

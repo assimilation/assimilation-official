@@ -18,6 +18,7 @@
 #define	FREE(m)		g_free(m)			///< Our interface to free
 
 #define	FSTATIC		/* Static function */
+#define	FMT_64BIT	"%ll"				///< Format designator for a 64 bit integer
 #include <glib.h>
 #include <proj_classes.h>
 

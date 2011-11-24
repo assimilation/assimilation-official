@@ -107,6 +107,7 @@ FSTATIC gboolean
 _netgsource_prepare(GSource* source,	///<[unused] - GSource object
 		    gint* timeout)	///<[unused] - timeout
 {
+	(void)source; (void)timeout;
 	return FALSE;
 }
 
@@ -134,6 +135,7 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	GSList*		gsl;
 	NetAddr*	srcaddr;
+	(void)ignore_callback; (void)ignore_userdata;
 	if ((self->_gfd.revents & (G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL|G_IO_PRI)) == 0) {
 		g_debug("Dispatched due to UNKNOWN REASON: 0x%04x", self->_gfd.revents);
 	}
@@ -141,7 +143,7 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 		for (; NULL != gsl; gsl = gsl->next) {
 			NetGSourceDispatch	disp = NULL;
 			FrameSet*		fs = CASTTOCLASS(FrameSet, gsl->data);
-			disp = g_hash_table_lookup(self->_dispatchers, GUINT_TO_POINTER(fs->fstype));
+			disp = g_hash_table_lookup(self->_dispatchers, GUINT_TO_POINTER((size_t)fs->fstype));
 			if (NULL == disp) {
 				disp = (NetGSourceDispatch)g_hash_table_lookup(self->_dispatchers, NULL);
 			}
@@ -182,6 +184,6 @@ _netgsource_addDispatch(NetGSource* self,	///<[in/out] Object being modified
 			guint16 fstype,		///<[in] FrameSet fstype
 			NetGSourceDispatch disp)///<[in] dispatch function
 {
-	g_hash_table_replace(self->_dispatchers, GUINT_TO_POINTER(fstype), disp);
+	g_hash_table_replace(self->_dispatchers, GUINT_TO_POINTER((size_t)fstype), disp);
 }
 ///@}

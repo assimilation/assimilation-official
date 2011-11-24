@@ -50,9 +50,10 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 	const guint8*	endplace = stringstart + length;
 	const guint8*	expectedplace = endplace-1;
 
+	(void)self;
 	g_return_val_if_fail(NULL != tlvptr, FALSE);
 	g_return_val_if_fail(NULL != pktend, FALSE);
-	g_return_val_if_fail(length >= 0,  FALSE);
+	g_return_val_if_fail(length > 0,  FALSE);
 
 	return expectedplace == memchr(stringstart, 0x00, length);
 }

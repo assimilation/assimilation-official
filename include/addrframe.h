@@ -14,6 +14,7 @@
 #ifndef _ADDRFRAME_H
 #define _ADDRFRAME_H
 #include <frame.h>
+#include <netaddr.h>
 typedef struct _AddrFrame AddrFrame;
 
 /// This is our @ref AddrFrame object - used for holding @ref NetAddr network addresses.
@@ -24,6 +25,7 @@ typedef struct _AddrFrame AddrFrame;
 struct _AddrFrame {
 	Frame		baseclass;
 	void(*setaddr)	(AddrFrame* f, guint16 addrtype, gconstpointer addr, gsize addrlen);
+	void(*setnetaddr)(AddrFrame* f, NetAddr* addr);
 };
 
 AddrFrame* addrframe_new(guint16 frame_type, gsize framesize);

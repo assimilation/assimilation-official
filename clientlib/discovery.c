@@ -28,10 +28,11 @@ _discovery_discoveryname(const Discovery* self)	///<[in] object whose type to re
 	return proj_class_classname(self);
 }
 
-/// default function return zero for discovery interval
+/// default function - return zero for discovery interval
 FSTATIC guint
 _discovery_discoverintervalsecs(const Discovery* self)	///<[in] Object whose interval to return
 {
+	(void)self;
 	return 0;
 }
 static GSList * _discovery_timers = NULL;
@@ -40,7 +41,7 @@ static GSList * _discovery_timers = NULL;
 FSTATIC void
 _discovery_finalize(Discovery* self)	///<[in/out] Object to finalize (free)
 {
-	if (self->_timerid >= 0) {
+	if (self->_timerid > 0) {
 		g_source_remove(self->_timerid);
 		self->_timerid = -1;
 		_discovery_timers = g_slist_remove(_discovery_timers, self);

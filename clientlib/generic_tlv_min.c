@@ -70,6 +70,7 @@ get_generic_tlv_value(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV
 		 gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
 {
 	const guint8*	tlvbytes = tlv_vp;
+	(void)pktend;
 	return (tlvbytes + GENERICTLV_HDRSZ);
 }
 
@@ -79,6 +80,7 @@ get_generic_tlv_nonconst_value(gpointer tlv_vp,	///<[in] Pointer to beginning of
 		 gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
 {
 	guint8*	tlvbytes = tlv_vp;
+	(void)pktend;
 	return (tlvbytes + GENERICTLV_HDRSZ);
 }
 
@@ -102,7 +104,7 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,	//<[in] pointer to beginning o
                      gconstpointer pktend)	//<[in] pointer to first byte past the end of the packet
 {
 	const guint16	reqtypes [] = {FRAMETYPE_SIG};
-	int		j = 0;
+	unsigned	j = 0;
 	int		lasttype = -1;
 	if (NULL == tlv_vp || ((const guint8*)tlv_vp+GENERICTLV_HDRSZ)  > (const guint8*)pktend) {
 		fprintf(stderr, "TLV Invalid because packet is too short\n");

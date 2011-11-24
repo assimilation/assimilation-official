@@ -85,7 +85,7 @@ _signframe_compute_cksum(GChecksumType cksumtype,	///<[in] checksum type
 		// Accumulate the checksum itself - into binary digest form
 		g_checksum_get_digest(cksumobj, cksumbuf, &bufsize);
 
-		if (bufsize != cksumsize) {
+		if (bufsize != (gsize)cksumsize) {
 			FREE(cksumbuf);
 			cksumbuf=NULL;
 		}
@@ -107,6 +107,8 @@ _signframe_isvalid(const Frame * self,		///< SignFrame object ('this')
 	gssize		cksumsize;
 	guint8*		cksumbuf;
 	gboolean	ret = TRUE;
+
+	(void)self;
 	g_return_val_if_fail(framedata != NULL, FALSE);
 	g_return_val_if_fail(framelen > 2, FALSE);
 	
@@ -154,6 +156,8 @@ _signframe_updatedata(Frame* fself,		///<[in] SignFrame signature Frame
 	gssize		cksumsize;
 	guint8*		cksumbuf;
 	guint8*		framedata = get_generic_tlv_nonconst_value(tlvptr, pktend);
+
+	(void)fs;
 	g_return_if_fail(framedata != NULL);
 	
 	// Compute the checksum

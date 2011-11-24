@@ -75,7 +75,7 @@ static struct {
 const char *
 get_oui_string(unsigned oui)	///<[in] A (three-byte) OUI as an unsigned
 {
-	int	j;
+	unsigned	j;
 	static char	ret[64];
 
 	for (j=0; j < DIMOF(ouimap); ++j) {

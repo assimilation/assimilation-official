@@ -127,7 +127,7 @@ address_tests(void)
 	AddrFrame*	bframes[] = {bframeipv4_1, bframeipv4_2, bframeipv6_1, bframeipv6_2, bframemac_1, bframemac_2, bframemac_3};
 	AddrFrame*	af;
 	SignFrame*	gsigf = signframe_new(G_CHECKSUM_SHA256, 0);
-	int		j;
+	unsigned	j;
 	FrameSet*	gfs = frameset_new(42);
 
 
@@ -177,10 +177,11 @@ main(int argc, char **argv)
 	char			errbuf[PCAP_ERRBUF_SIZE];
 	struct pcap_pkthdr 	hdr;
 	const	guchar*		packet;
-	int			j;
+	unsigned		j;
 	const char * lldpfilenames []	= {PCAP "lldp.detailed.pcap", PCAP "procurve.lldp.pcap", PCAP "lldpmed_civicloc.pcap"};
 	const char * cdpfilenames  []	= {PCAP "cdp.pcap", PCAP "n0.eth2.cdp.pcap"};
 	
+	(void)argc; (void)argv;
 	// make CRITICAL messages terminate the program too...
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	cast_frameset_tests();

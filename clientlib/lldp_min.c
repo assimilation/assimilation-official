@@ -93,6 +93,7 @@ const const void *
 get_lldptlv_body(const void * tlv_vp,	///<[in] Pointer to beginning of TLV entry,
 		 const void* pktend)	///<[in] Pointer to one byte past end of packet
 {
+	(void)pktend;
 	return ((const guint8*)tlv_vp + NETTLV_HDRSZ);
 }
 
@@ -103,7 +104,7 @@ is_valid_lldp_packet(const void* tlv_vp,	//<[in] pointer to beginning pf LLDP pa
                      const void* pktend)	//<[in] pointer to first byte past the end of the packet
 {
 	const unsigned	reqtypes [] = {LLDP_TLV_CHID,LLDP_TLV_PID, LLDP_TLV_TTL};
-	int		j = 0;
+	unsigned	j = 0;
 #ifdef PEDANTIC_LLDP_NERD
 	int		lasttype = -1;
 #endif

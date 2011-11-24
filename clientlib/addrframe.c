@@ -23,6 +23,7 @@
 
 FSTATIC gboolean _addrframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void _addrframe_setaddr(AddrFrame* f, guint16 frametype, gconstpointer addr, gsize addrlen);
+FSTATIC void _addrframe_setnetaddr(AddrFrame* f, NetAddr*netaddr);
 FSTATIC void _addrframe_addr_finalize(void * addr);
 ///@}
 
@@ -131,6 +132,16 @@ _addrframe_setaddr(AddrFrame* f,	// Frame to set the address type for
 	f->baseclass.value = blob;
 }
 
+/// Assign a NetAddr to this @ref AddrFrame object
+FSTATIC void
+_addrframe_setnetaddr(AddrFrame* f,	/// AddrFrame whose address we're setting...
+                   NetAddr* naddr)	/// NetAddr value to set it to
+{
+	_addrframe_setaddr(f, naddr->addrtype(naddr), naddr->_addrbody, naddr->_addrlen);
+}
+
+
+
 /// Finalize address blob
 FSTATIC void
 _addrframe_addr_finalize(void * addr) ///< @ref AddrFrame object to free (FREE)
@@ -158,6 +169,7 @@ addrframe_new(guint16 frame_type,	///< TLV type of the @ref AddrFrame (not addre
 	aframe = CASTTOCLASS(AddrFrame, baseframe);
 	
 	aframe->setaddr = _addrframe_setaddr;
+	aframe->setnetaddr = _addrframe_setnetaddr;
 	return aframe;
 }
 

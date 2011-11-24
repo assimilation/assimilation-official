@@ -143,6 +143,8 @@ g_source_pcap_prepare(GSource* source, ///<[in] Gsource being prepared for
                       gint* timeout)   ///<[in,out] timeout - neither referenced nor set
 {
 	// Don't need to do anything prior to a poll(2) call...
+	(void)source;
+	(void)timeout;
 	return FALSE;
 }
 /// The GMainLoop <i>check</i> function for libpcap packet capturing
@@ -168,7 +170,8 @@ g_source_pcap_dispatch(GSource* src, ///<[in] source being <i>dispatch</i>ed
 				    // 1 - read a single packet
 				    // 0 - no packets to read at the moment
 				    // negative - various kinds of errors
-
+	(void)callback;
+	(void)user_data;
 	// Process all the packets we can find.
 	while (1 == (rc = pcap_next_ex(psrc->capture, &hdr, &pkt))) {
 		const u_char* pktend = pkt + hdr->caplen;

@@ -81,18 +81,21 @@ _seqnoframe_updatedata(Frame* fself,		///< object whose data will be put into Fr
 	// NOTE - this gets rid of the "const" coming out of get_generic_tlv_value...
 	///@todo add a new get_generic_nonconst_tlv_value() function.
 	guint8* pktpos = get_generic_tlv_nonconst_value(tlvptr, pktend);
+	(void)fs;
 	g_return_if_fail(NULL != pktpos);
 
 	tlv_set_guint64(pktpos, self->_reqid, pktend);
 	tlv_set_guint16(pktpos+sizeof(guint64), self->_qid, pktend);
 }
 
-/// Return TRUE if this integer is valid - basically is it of one of our supported lengths...
+/// Return TRUE if this sequence number is valid - if it's the right size
 FSTATIC gboolean
-_seqnoframe_isvalid(const Frame* self,			///< Frame to validate
+_seqnoframe_isvalid(const Frame* self,		///< Frame to validate
 		  gconstpointer tlvptr,		///< TLV pointer to our TLV
 		  gconstpointer pktend)		///< pointer to one byte past end of packet
 {
+	(void)tlvptr;
+	(void)pktend;
 	return self->length == (sizeof(guint64)+sizeof(guint16));
 }
 
@@ -104,7 +107,7 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	Frame*	frame;
 	SeqnoFrame*	sframe;
 
-	if (objsize < sizeof(SeqnoFrame)) {
+	if (objsize < ((gssize)sizeof(SeqnoFrame))) {
 		objsize = sizeof(SeqnoFrame);
 	}
 

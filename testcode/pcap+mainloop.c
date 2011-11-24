@@ -76,6 +76,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 {
 	FrameSet *	fs;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	(void)srcobj; (void)capfd; (void)userdatanotused;
 	if (is_valid_lldp_packet(pkt, pend)) {
 		g_message("Found a %d/%d byte LLDP packet!", hdr->caplen, hdr->len);
 		dump_lldp_packet(pkt, pend);
@@ -149,6 +150,7 @@ gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
 	  gpointer ignored	///<[ignored] User data (ignored)
 	  )
 {
+	(void)gs; (void)srcaddr; (void)ignored;
 	g_message("Received a packet over the 'wire'!");
 	g_message("DUMPING packet received over 'wire':");
 	frameset_dump(fs);
@@ -160,12 +162,14 @@ gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
 void
 real_deadtime_agent(HbListener* who)
 {
+	(void)who;
 	///@todo start sending heartbeats...
 	g_warning("Subsequent (unexpected) deadtime event occurred.");
 }
 void
 initial_deadtime_agent(HbListener* who)
 {
+	(void)who;
 	g_message("Expected deadtime event occurred (once)");
 	sender = hbsender_new(destaddr, transport, 1,  0);
 	hblistener_set_deadtime_callback(real_deadtime_agent);
