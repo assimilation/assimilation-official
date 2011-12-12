@@ -35,7 +35,7 @@
 
 /** @defgroup cdp_capapbility_bits CDP: Capability (CDP_TLV_CAPS) mask bits.
  *  The TLV type CDP_TLV_CAPS value is a field with a set of bits defining the capabilities which a given
- *  switch or router might implement.  These #defines below define which capabilities correspond to which
+ *  switch or router might implement.  The macro definitions below define which capabilities correspond to which
  *  bits in a CDP packet.
  *  @see CDP_TLV_CAPS
  *  @{ 

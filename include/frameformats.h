@@ -10,7 +10,7 @@
 /**
 @addtogroup FrameFormats
 @{
-  Below is the set of frame formats and corresponding #defines
+  Below is the set of frame formats and corresponding macro definitions
   This section will document the format of the individual frame types.
   The first frame in a frameset must be a signature frame.
   If an encryption frame is present, it must be the  frame in the frameset.
@@ -18,15 +18,15 @@
   if present, or after the signature frame, if there is no encryption frame.
  
   The final frame in a frameset must be an End frame (which will be
-  added automatically).
+  added automatically by the @ref FrameSet marshalling classes).
 @}
 */
 /**
 @defgroup IndividualFrameFormats Individual TLV 'Frame' data types and layouts (by TLV type)
 @{
 Below is the set of individual frame types and data layouts - organized by TLV type.
-Note that a given Frame subclass can appear be associated with many different TLV types.
-This file organizes this data by the TLV type, not by the underlying Frame subclass.
+Note that a given @ref Frame subclass can appear be associated with many different TLV types.
+This file organizes this data by the TLV type, not by the underlying @ref Frame subclass.
 @ingroup FrameFormats
 @ingroup DefineEnums
 @{
@@ -34,6 +34,7 @@ This file organizes this data by the TLV type, not by the underlying Frame subcl
 
 /**
   End (frametype 0) Frame format - this frame is always last in a frameset.
+  Note that this @ref Frame is added automatically when marshalling a @ref FrameSet.
   C-Class: @ref Frame.
 <PRE>
 +---------------+----------+

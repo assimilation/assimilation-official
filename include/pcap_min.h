@@ -18,7 +18,7 @@
 /** @defgroup pcap_protocols Protocols known to (supported by) create_pcap_listener().
  *  These protocols can be ored together to create the complete set of interesting protocols to be
  *  passed as the 'listenmask' argument.
- *  Since they are used to create a bit mask, each #define must be a power of two.
+ *  Since they are used to create a bit mask, each "enum" value must be a power of two.
  *  @see create_pcap_listener
  *  @{ 
  *  @ingroup DefineEnums
