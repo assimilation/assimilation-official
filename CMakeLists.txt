@@ -26,6 +26,7 @@ ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 add_subdirectory(clientlib)
 add_subdirectory(serverlib)
 add_subdirectory(testcode)
+#add_subdirectory(pyclasswrappers)
 
 # Doxygen documentation stuff...
 find_package(Doxygen)

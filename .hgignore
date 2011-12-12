@@ -14,4 +14,5 @@ M testcode/testscript.sh
 ^testcode/mainlooptest$
 ^doxygen/.*
 Doxyfile
+/.*\.pyc$
 /\..*\.swp$
