@@ -1,10 +1,13 @@
 #!/usr/bin/python
+'''
+A collection of classes which wrap our @ref C-Classes and provide Pythonic interfaces to these C-classes.
+'''
 
 from AssimCtypes import *
 
 class TLV:
     '''Type/Length/Value abstract class.
-    We expect to create IEEE (LLDP), or Cisco (CDP) or our local variants (generic) subclasses...
+    We expect to create IEEE (LLDP), Cisco (CDP) and our local variants (generic) subclasses...
     '''
     def __init__(self, tlvtype, tlvvalue):
         'Initialize the TLV using a string_buffer or similar'
@@ -16,11 +19,25 @@ class TLV:
         for i in range(0, vlen-1):
             self.value[i] =  chr(tlvvalue[i])
 
+    def get_tlvtype(self):
+        'Return the TLV type of this TLV object'
+        return self.tlvtype;
+
+    def get_tlvlen(self):
+        'Return the length of this TLV value'
+        return self.length;
+
+    def get_tlvvalue(self):
+        'Return the string buffer corresponding to the value of this TLV object'
+        return self.value;
+
     def get_buf(self):
+	'Abstract member function - returns the internal data representation of this TLV object'
         raise NotImplementedError("Abstract Member Function")
 
     @classmethod
     def from_buf(self):
+	'Abstract member function - effectively a constructor which is passed the internal layout of this TLV object'
         raise NotImplementedError("Abstract Member Function")
 
 
@@ -39,7 +56,7 @@ class GenericTLV(TLV):
 
     @classmethod
     def from_buf(Class, buf):
-        'Construct a GenericTLV from a string_buffer containing the value to init it to'
+        'Construct a GenericTLV from a string_buffer containing the value to initalize it to'
         ptype = POINTER(guint8)
         bufend= cast(buf, ptype)+len(buf)
         tlvtype = get_generic_tlv_type(buf, bufend)
@@ -52,7 +69,9 @@ class GenericTLV(TLV):
 
 class CDPTLV(TLV):
     '''A TLV implementation based on the Cisco TLV layout as used by their CDP protocol
-       It has a checksum at the beginning followed by a sequence of one byte types and 2-byte lengths'''
+       It has a checksum at the beginning followed by a sequence of one byte types and 2-byte lengths.
+       This is all implemented by our underlying C code.'''
+
     @classmethod
     def from_buf(Class, buf):
         'Construct a CDPTLV from a string_buffer containing the value to initialize it to'
@@ -68,7 +87,8 @@ class CDPTLV(TLV):
 
 class LLDPTLV(TLV):
     '''A TLV implementation based on the IEEE TLV layout as used by the LLDP protocol
-       It has a 7-bit type followed by a 9-bit length field.'''
+       It has a 7-bit type followed by a 9-bit length field.
+       This is all implemented by our underlying C code.'''
     @classmethod
     def from_buf(Class, buf):
         'Construct a LLDPTLV from a string_buffer containing the value to initialize it to'
@@ -83,7 +103,7 @@ class LLDPTLV(TLV):
         return Class(tlvtype, value)
 
 class pyNetAddr:
-    '''This class represents the Python version of our C-class NetAddr - represented by the struct _NetAddr.
+    '''This class represents the Python version of our C-class @ref NetAddr - represented by the struct _NetAddr.
     '''
     def __init__(self, addrstring, port=None):
         '''This constructor needs a list of integers of the right length as its first argument.
@@ -131,7 +151,7 @@ class pyNetAddr:
         return base.addrtype(self._Cstruct)
 
     def addrlen(self):
-        "Return the length in bytes of this pyNetAddr object"
+        "Return the number of bytes necessary to represent this pyNetAddr object on the wire."
 	base=self._Cstruct[0]
         while (type(base) is not NetAddr):
 	    base=base.baseclass
@@ -156,8 +176,9 @@ class pyNetAddr:
 
 
 class pyFrame:
-    '''This class represents the Python version of our C-class Frame - represented by the struct _Frame.
+    '''This class represents the Python version of our C-class @ref Frame - represented by the struct _Frame.
     This class is a base class for several different pyFrame subclasses.
+    Each of these various pyFrame subclasses have a corresponding C-class @ref Frame subclass.
     '''
     def __init__(self, initval, makeCstruct=True):
         "Initializer for the pyFrame object."
@@ -210,7 +231,7 @@ class pyFrame:
         
 
     def dump(self, prefix):
-        'Dump out this Frame'
+        'Dump out this Frame (using C-class "dump" member function)'
 	base=self._Cstruct[0]
         while (type(base) is not Frame):
 	    base=base.baseclass

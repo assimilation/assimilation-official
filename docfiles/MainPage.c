@@ -1,23 +1,31 @@
 /**
-@mainpage The Assimilation Monitoring Project - Incredibly scalable, Incredibly easy to configure
+@mainpage The Assimilation Monitoring Project - Incredibly scalable, Incredibly easy to configure, easy on your network.
 @section intro Introduction
 Welcome to the Assimilation monitoring project.
 
 What we do: monitoring servers with near-zero overhead both on the servers and on their administrators.
-- Monitor services
-- Monitor services
-- Low overhead
+- Monitor servers and services with very low overhead
+- Stealth discovery (server and service)
 - Easy to configure and manage
 
-This is a new project designed to to monitor servers and services on a network of potentially unlimited size,
-without significant growth in centralized resources.  The work of monitoring is delegated in tiny pieces to
-the various machines being monitored in a network-aware topology - minimizing the network overhead.
+This is a new project designed to to monitor servers and services on a network of
+potentially unlimited size, without significant growth in centralized resources.
+The work of monitoring is delegated uniformly in tiny pieces to the various
+machines being monitored in a network-aware topology - minimizing network overhead
+and being naturally geographically sensitive.
 
-The general idea is to distribute the monitoring task out as broadly as possible, and in a network-aware fashion,
-and to auto-configure as much as possible.
-The original idea was outlined in two different articles
+The two main ideas are:
+-  distribute the monitoring as broadly as possible in a network-aware fashion.
+-  use autoconfiguration and stealth discovery techniques to simplify configuration
+during the initial installation and during ongoing server addition and maintenance.
+
+The original scalability idea was outlined in two different articles
  -# http://techthoughts.typepad.com/managing_computers/2010/10/big-clusters-scalable-membership-proposal.html
  -# http://techthoughts.typepad.com/managing_computers/2010/11/a-proposed-network-discovery-design-for-scalable-membership-and-monitoring.html
+
+These two main ideas create a system which will have both a great out-of-the-box
+experience for new users and smooth accommodation of growth to virtually
+all environments.
 
 @subsection architecture Architecture
 This concept has two kinds of participating entities:
@@ -25,11 +33,15 @@ This concept has two kinds of participating entities:
  - a potentially very large number of lightweight monitoring agents
 
 @subsection Autoconfiguration
-One of the key aspects of this system is it be largely auto-configuring, and incorporates discovery into its
-basic philosophy.
+One of the key aspects of this system is it be largely auto-configuring,
+and incorporates discovery into its basic philosophy.
 It is expected that a customer will drop the various nanoprobes onto the clients being
-monitored, and once those are running, the systems register themselves and get automatically
-configured into the system once the nanoprobes are installed and activated.
+monitored, and once those are running, the systems register themselves
+and get automatically configured into the system once the nanoprobes are
+installed and activated.
+
+Furthermore, these nanoprobes use stealth discovery methods to discover servers
+not being monitored and services on the systems being monitored.
 
 @subsection lightweight Lightweight monitoring agents
 The nanoprobe code is written largely in C and minimizes use of:
@@ -42,6 +54,23 @@ To do this, we will follow a <i>no news is good news</i> philosophy for exceptio
 when nothing is wrong, nothing will be reported.
 Although the server part of the code will likely be only available on POSIX systems, 
 the nanoprobes  will be available on various flavors of Windows as well.
+
+@subsection Stealth What is Stealth Discovery?
+Stealth discovery is a process of discovering servers and services without using
+active probes which might trigger security alarms.  Some examples of current
+and anticipated stealth discovery techniques include:
+ - Discovery of newly installed systems by auto-registration
+ - Discovery of network topology using LLDP and CDP aggregation
+ - Discovery of services using netstat -tnlp
+ - Discovery of services using "service" command and related techniques
+ - Discovery of systems using arp -n
+ - Discovery of systems using netstat -tnp
+
+These techniques will not immediately provide a complete list of all servers
+in the environment.  However as nanoprobes are activated on systems discovered
+in this way, this process will converge to include the complete set of servers
+and edge switches in the environment - without setting off even the most
+sensitive security alarms.
 
 @subsection service_mon Service Monitoring
 To the degree possible, we will perform exception monitoring of services on the machine they're provided on - which 
