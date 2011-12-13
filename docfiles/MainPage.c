@@ -3,12 +3,12 @@
 @section intro Introduction
 Welcome to the Assimilation monitoring project.
 
-What we do: monitoring servers with near-zero overhead both on the servers and on their administrators.
-- Monitor servers and services with very low overhead
-- Stealth discovery (server and service)
+What we do: monitoring systems with near-zero overhead both on the systems and on their administrators.
+- Monitor systems and services with very low overhead
+- Stealth discovery (system and service)
 - Easy to configure and manage
 
-This is a new project designed to to monitor servers and services on a network of
+This is a new project designed to to monitor systems and services on a network of
 potentially unlimited size, without significant growth in centralized resources.
 The work of monitoring is delegated uniformly in tiny pieces to the various
 machines being monitored in a network-aware topology - minimizing network overhead
@@ -17,7 +17,7 @@ and being naturally geographically sensitive.
 The two main ideas are:
 -  distribute the monitoring as broadly as possible in a network-aware fashion.
 -  use autoconfiguration and stealth discovery techniques to simplify configuration
-during the initial installation and during ongoing server addition and maintenance.
+during the initial installation and during ongoing system addition and maintenance.
 
 The original scalability idea was outlined in two different articles
  -# http://techthoughts.typepad.com/managing_computers/2010/10/big-clusters-scalable-membership-proposal.html
@@ -40,7 +40,7 @@ monitored, and once those are running, the systems register themselves
 and get automatically configured into the system once the nanoprobes are
 installed and activated.
 
-Furthermore, these nanoprobes use stealth discovery methods to discover servers
+Furthermore, these nanoprobes use stealth discovery methods to discover systems
 not being monitored and services on the systems being monitored.
 
 @subsection lightweight Lightweight monitoring agents
@@ -52,11 +52,11 @@ The nanoprobe code is written largely in C and minimizes use of:
 
 To do this, we will follow a <i>no news is good news</i> philosophy for exception monitoring -
 when nothing is wrong, nothing will be reported.
-Although the server part of the code will likely be only available on POSIX systems, 
-the nanoprobes  will be available on various flavors of Windows as well.
+Although the central part of the code will likely be only available on POSIX systems, 
+the nanoprobes are expected to be available on various flavors of Windows as well.
 
 @subsection Stealth What is Stealth Discovery?
-Stealth discovery is a process of discovering servers and services without using
+Stealth discovery is a process of discovering systems and services without using
 active probes which might trigger security alarms.  Some examples of current
 and anticipated stealth discovery techniques include:
  - Discovery of newly installed systems by auto-registration
@@ -66,9 +66,9 @@ and anticipated stealth discovery techniques include:
  - Discovery of systems using arp -n
  - Discovery of systems using netstat -tnp
 
-These techniques will not immediately provide a complete list of all servers
+These techniques will not immediately provide a complete list of all systems
 in the environment.  However as nanoprobes are activated on systems discovered
-in this way, this process will converge to include the complete set of servers
+in this way, this process will converge to include the complete set of systems
 and edge switches in the environment - without setting off even the most
 sensitive security alarms.
 
@@ -77,14 +77,16 @@ To the degree possible, we will perform exception monitoring of services on the 
 imples zero network overhead to monitor working services.  Stated another way, we follow a
 <i>no news is good news</i> philosophy.
 
-@subsection server_mon Server Monitoring
-For server monitoring, we follow a ring monitoring where each memeber of a ring sends heartbeats
-to the the machine ahead of it in the ring, and the machine after it, and expects heartbeats from
-each in the same fashion.
-There is also a hierarchy of rings, one for the local (TOR) switch, one for the switches on a subnet, and
-one connecting all subnets.  No machine would need to participate in more than two of these rings - hence
-will only need to directly communicate with at most four machines - with the overwhelming majority of systems
-only needing to talk to two other ring members.
+@subsection server_mon System Monitoring
+For system monitoring, we follow a ring monitoring where each member of a ring sends
+heartbeats to the the machine ahead of it in the ring, and the machine after it,
+and expects heartbeats from each in the same fashion.
+There is also a hierarchy of rings, one for the local (edge or top of rack) switch,
+one for the switches on a subnet, and one connecting all subnets.
+No machine would need to participate in more than two of these rings -
+hence will only need to directly communicate with at most four machines -
+with the overwhelming majority of systems only needing to talk to two other
+ring members.
 This is all controlled and directed by the collective monitoring authority (CMA) -
 which is designed to be configured to run in an HA cluster using a product like Pacemaker.
 
