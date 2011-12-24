@@ -61,7 +61,7 @@ active probes which might trigger security alarms.  Some examples of current
 and anticipated stealth discovery techniques include:
  - Discovery of newly installed systems by auto-registration
  - Discovery of network topology using LLDP and CDP aggregation
- - Discovery of services using netstat -tnlp
+ - Discovery of services using netstat -utnlp
  - Discovery of services using "service" command and related techniques
  - Discovery of systems using arp -n
  - Discovery of systems using netstat -tnp

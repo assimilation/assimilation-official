@@ -77,7 +77,6 @@ _intframe_intlength(IntFrame * self)
 {
 	return self->baseclass.length;
 }
-
 /// Set the integer value associated with an IntFrame
 FSTATIC void
 _intframe_setint(IntFrame * self, guint64 value)
