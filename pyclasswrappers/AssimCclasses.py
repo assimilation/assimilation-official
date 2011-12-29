@@ -525,7 +525,7 @@ class pyFrameSet:
         return count
 
     def iter(self):
-        'Generator yielding the set of C-level Frames in this pyFrameSet'
+        'Generator yielding the set of pyFrames in this pyFrameSet'
         curframe = self._Cstruct[0].framelist;
         Frame_p = POINTER(Frame)
         while curframe:
