@@ -90,6 +90,39 @@ ring members.
 This is all controlled and directed by the collective monitoring authority (CMA) -
 which is designed to be configured to run in an HA cluster using a product like Pacemaker.
 
+@section TestingStrategy Testing Strategy
+There are three kinds of testing I see as necessary
+- junit/pyunit et al level of testing for the python code
+- Testing for the C nanobots in situ
+- System level (simulated) testing for the CMA
+Each of these areas is discussed below.
+
+@subsection PyunitTesting Unit-level testing
+We are currently using the Testify software written by the folks at Yelp.
+Probably will try some of the alternatives as well.
+Very pleased with the results it's bringing.
+The nice thing about this is much of the detailed gnarly C code is wrapped
+by the python code, so when I run the python tests of those wrappers, the
+C code under it gets well tested as well.
+
+@subsection NanobotTesting Testing of the Nanobots
+Not quite sure how to best accomplish this.  Some of it can just
+be my home network, but I suppose I could also spin up some cloud
+VMs too...  Not sure yet...  Automation is a GoodThing(TM).
+
+@subsection CMATesting Testing of the Collective Management Code
+I have been thinking about this quite a bit, and have what I think is a
+reasonable idea about it.  It involves writing a simulator
+to simulate up to hundreds of thousands of nanobot clients through
+a separate python process - probably using the Twisted framework.
+It would accept and ACK requests from the CMA and randomly create failure
+conditions similar to those in the "real world" - except at a
+radically faster rate.  This is a big investment, but likely
+worth it.  It helps to have this in mind while designing
+the CMA as well - since there are things that it could do to
+make this job a little easier.
+
+
 @section AutoconfigurationStrategy Autoconfiguration Strategy
 For details on this, see the separate
 @ref AutoConfigureStrategy "Autoconfiguration Strategy and Philosophy" page.  
