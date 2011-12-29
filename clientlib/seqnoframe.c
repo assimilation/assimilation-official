@@ -22,6 +22,7 @@ FSTATIC void _seqnoframe_setqid(SeqnoFrame * self, guint16 value);
 FSTATIC guint16 _seqnoframe_getqid(SeqnoFrame * self);
 FSTATIC void _seqnoframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _seqnoframe_isvalid(const Frame*, gconstpointer, gconstpointer);
+FSTATIC gboolean _seqnoframe_equal(SeqnoFrame * self, SeqnoFrame* rhs);
 /**
  * @defgroup SeqnoFrameFormats C-class SeqNoFrame wire format
  * @{
@@ -69,6 +70,16 @@ _seqnoframe_getqid(SeqnoFrame * self)
 {
 	return self->_qid;
 }
+
+/// Compare two SeqnoFrames
+FSTATIC gboolean
+_seqnoframe_equal(SeqnoFrame * self, SeqnoFrame* rhs)
+{
+	return ((self->getqid(self) == rhs->getqid(rhs))
+	&&	(self->getreqid(self) == rhs->getreqid(rhs)));
+}
+
+
 
 /// Update packet data from the frame
 FSTATIC void
@@ -118,6 +129,7 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	sframe->setqid = _seqnoframe_setqid;
 	sframe->getreqid = _seqnoframe_getreqid;
 	sframe->getqid = _seqnoframe_getqid;
+	sframe->equal = _seqnoframe_equal;
 	sframe->baseclass.updatedata = _seqnoframe_updatedata;
 	sframe->baseclass.isvalid = _seqnoframe_isvalid;
 	sframe->baseclass.value = NULL;

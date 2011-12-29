@@ -100,8 +100,8 @@ _signframe_isvalid(const Frame * self,		///< SignFrame object ('this')
 		   gconstpointer tlvptr,	///< Pointer to the TLV for this SignFrame
 		   gconstpointer pktend)	///< Pointer to one byte past the end of the packet
 {
-	const guint8*	framedata = get_generic_tlv_value(tlvptr, pktend);
-	guint16		framelen  = get_generic_tlv_len(tlvptr, pktend);
+	const guint8*	framedata;
+	guint16		framelen;
 	guint8		subtype;
 	GChecksumType	cksumtype;
 	gssize		cksumsize;
@@ -109,6 +109,13 @@ _signframe_isvalid(const Frame * self,		///< SignFrame object ('this')
 	gboolean	ret = TRUE;
 
 	(void)self;
+
+	if (tlvptr == NULL) {
+		const SignFrame*	sframe = CASTTOCONSTCLASS(SignFrame, self);
+		return (g_checksum_type_get_length(sframe->signaturetype) >= 1);
+	}
+	framedata = get_generic_tlv_value(tlvptr, pktend);
+	framelen  = get_generic_tlv_len(tlvptr, pktend);
 	g_return_val_if_fail(framedata != NULL, FALSE);
 	g_return_val_if_fail(framelen > 2, FALSE);
 	
@@ -198,8 +205,9 @@ signframe_new(GChecksumType sigtype,	///< signature type
 		framesize = sizeof(SignFrame);
 	}
 	cksumsize = g_checksum_type_get_length(sigtype);
-	g_return_val_if_fail(cksumsize > 1, NULL);
-
+	if (cksumsize <= 1) {
+		return NULL;
+	}
 	baseframe = frame_new(frame_type, framesize);
 	baseframe->isvalid = _signframe_isvalid;
 	baseframe->updatedata = _signframe_updatedata;

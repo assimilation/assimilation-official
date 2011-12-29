@@ -140,8 +140,12 @@ _intframe_isvalid(const Frame* self,			///< Frame to validate
 		  gconstpointer tlvptr,		///< TLV pointer to our TLV
 		  gconstpointer pktend)		///< pointer to one byte past end of packet
 {
-	if (self->length != get_generic_tlv_len(tlvptr, pktend)) {
-		return FALSE;
+	int	length = self->length;
+	if (tlvptr != NULL) {
+		int	tlvlen = get_generic_tlv_len(tlvptr, pktend);
+		if (length != tlvlen) {
+			return FALSE;
+		}
 	}
 	switch (self->length) {
 		case 1: case 2: case 3: case 4: case 8:
@@ -157,7 +161,9 @@ intframe_new(guint16 frametype,	///< Type of frame to create with this value
 {
 	Frame*	frame;
 	IntFrame*	iframe;
-	g_return_val_if_fail(intbytes == 1 || intbytes == 2 || intbytes == 3 || intbytes == 4 || intbytes == 8, NULL);
+	if (intbytes != 1 && intbytes != 2 && intbytes != 3 && intbytes != 4 && intbytes != 8) {
+		return NULL;
+	}
 	frame = frame_new(frametype, sizeof(IntFrame));
 	proj_class_register_subclassed(frame, "IntFrame");
 	iframe = CASTTOCLASS(IntFrame, frame);

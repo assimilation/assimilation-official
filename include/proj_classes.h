@@ -16,6 +16,7 @@ void		proj_class_dissociate(gpointer object);
 void		proj_class_free(gpointer object);
 void		proj_class_register_object(gpointer object, const char * static_classname);
 gpointer	proj_class_castas(gpointer object, const char * castclass);
+gconstpointer	proj_class_castasconst(gconstpointer object, const char * castclass);
 void		proj_class_register_subclassed(gpointer object, const char * static_subclassname);
 void		proj_class_quark_add_superclass_relationship(GQuark superclass, GQuark subclass);
 gboolean	proj_class_quark_is_a(GQuark objectclass, GQuark testclass);
@@ -23,6 +24,7 @@ const char *	proj_class_classname(gconstpointer object);
 
 
 void proj_class_dump_live_objects(void);
+guint32 proj_class_live_object_count(void);
 
 ///@{
 ///@ingroup ProjectClass
@@ -42,6 +44,10 @@ void proj_class_dump_live_objects(void);
 /// @param Cclass class to cast <i>obj</i> (the object) to.
 /// @param obj the object to be cast to type <i>class</i>
 #define CASTTOCLASS(Cclass, obj)		((Cclass *) proj_class_castas(obj, #Cclass))
+/// Safely cast 'obj' to const C-class 'class' - verifying that it was registerd as being of type <i>class</i>
+/// @param Cclass class to cast <i>obj</i> (the object) to.
+/// @param obj the object to be cast to type <i>class</i>
+#define CASTTOCONSTCLASS(Cclass, obj)		((const Cclass *) proj_class_castasconst(obj, #Cclass))
 
 /// Free a C-class object.
 /// @param obj the object to be freed.  Should be registered as a class object.

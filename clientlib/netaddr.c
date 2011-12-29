@@ -40,19 +40,53 @@ FSTATIC gchar *
 _netaddr_toString(const NetAddr* self)
 {
 	gchar *		ret = NULL;
-	GString*	gsret = g_string_new("");
+	GString*	gsret = NULL;
 	int		nbyte;
-	switch (self->_addrtype) {
-		case ADDR_FAMILY_IPV4:
-			return g_strdup_printf("%d.%d.%d.%d",
-					      ((const gchar*)self->_addrbody)[0],
-					      ((const gchar*) self->_addrbody)[1],
-					      ((const gchar*)self->_addrbody)[2],
-					      ((const gchar*)self->_addrbody)[3]);
+	if (self->_addrtype == ADDR_FAMILY_IPV4) {
+		return g_strdup_printf("%d.%d.%d.%d",
+				      ((const gchar*)self->_addrbody)[0],
+				      ((const gchar*)self->_addrbody)[1],
+				      ((const gchar*)self->_addrbody)[2],
+				      ((const gchar*)self->_addrbody)[3]);
 	}
-	for (nbyte = 0; nbyte < self->_addrlen; ++nbyte) {
-		g_string_append_printf(gsret, (nbyte == 0 ? "0x%02x": ":0x%02x"),
-                                       ((const gchar*)self->_addrbody)[nbyte]);
+	
+	gsret = g_string_new("");
+	if (self->_addrtype == ADDR_FAMILY_IPV6) {
+		gboolean	doublecolonyet = FALSE;
+		gboolean	justhaddoublecolon = FALSE;
+		int		zerocount = 0;
+		for (nbyte = 0; nbyte < self->_addrlen; nbyte += 2) {
+			guint16 byte0 = ((const guchar*)self->_addrbody)[nbyte];
+			guint16 byte1 = ((const guchar*)self->_addrbody)[nbyte+1];
+			guint16 word = (byte0 << 8 | byte1);
+			if (!doublecolonyet &&  word == 0x00) {
+				++zerocount;
+				continue;
+			}
+			if (zerocount == 1) {
+				g_string_append_printf(gsret, (nbyte == 2 ? "0" : ":0"));
+				zerocount=0;
+			}else if (zerocount > 1) {
+				g_string_append_printf(gsret, "::");
+				zerocount=0;
+				doublecolonyet = TRUE;
+				justhaddoublecolon = TRUE;
+			}
+			g_string_append_printf(gsret
+			,	((nbyte == 0 || justhaddoublecolon) ? "%x" : ":%x"), word);
+			justhaddoublecolon = FALSE;
+		}
+		if (zerocount == 1) {
+			g_string_append_printf(gsret, ":00");
+		}else if (zerocount > 1) {
+			g_string_append_printf(gsret, "::");
+		}
+		
+	}else{
+		for (nbyte = 0; nbyte < self->_addrlen; ++nbyte) {
+			g_string_append_printf(gsret, (nbyte == 0 ? "%02x" : ":%02x"),
+					       ((const gchar*)self->_addrbody)[nbyte]);
+		}
 	}
 	ret = gsret->str;
 	g_string_free(gsret, FALSE);
@@ -168,7 +202,7 @@ netaddr_mac48_new(gconstpointer macbuf)	///<[in] Pointer to physical (MAC) addre
 NetAddr*
 netaddr_mac64_new(gconstpointer macbuf)	///<[in] Pointer to physical (MAC) address
 {
-	return netaddr_macaddr_new(macbuf, 6);
+	return netaddr_macaddr_new(macbuf, 8);
 }
 
 /// Create new NetAddr from a IPv4 address

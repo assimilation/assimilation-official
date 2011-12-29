@@ -132,6 +132,7 @@ frameset_prepend_frame(FrameSet* fs,	///< FrameSet to fetch flags for
 		       Frame* f)	///< Frame to put at the front of the frame list
 {
 	g_return_if_fail(NULL != fs && NULL != f);
+	f->ref(f);
 	fs->framelist = g_slist_prepend(fs->framelist, f);
 }
 
@@ -141,6 +142,7 @@ frameset_append_frame(FrameSet* fs,	///< FrameSet to fetch flags for
 		      Frame* f)		///< Frame to put at the back of the frame list
 {
 	g_return_if_fail(NULL != fs && NULL != f);
+	f->ref(f);
 	fs->framelist = g_slist_append(fs->framelist, f);
 }
 
@@ -224,22 +226,21 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	/// 
 	if (NULL != compressframe) {
 		frameset_prepend_frame(fs, compressframe);
-		compressframe->ref(compressframe);
 	}
 	if (NULL != cryptframe) {
 		frameset_prepend_frame(fs, cryptframe);
-		cryptframe->ref(cryptframe);
 	}
 	// "sigframe" cannot be NULL (see check above)
 	frameset_prepend_frame(fs, CASTTOCLASS(Frame, sigframe));
-	sigframe->baseclass.ref( CASTTOCLASS(Frame, sigframe));
 
 	// Reverse list...
 	fs->framelist = g_slist_reverse(fs->framelist);
 
 	// Add "end" frame to the "end" - if not already present...
 	if (CASTTOCLASS(Frame, fs->framelist->data)->type != FRAMETYPE_END) {
-		frameset_prepend_frame(fs, frame_new(FRAMETYPE_END, 0));
+                Frame* endframe = frame_new(FRAMETYPE_END, 0);
+		frameset_prepend_frame(fs, endframe);
+                endframe->unref(endframe);
 	}
 
 	pktsize = fssize;

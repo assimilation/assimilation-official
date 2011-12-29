@@ -28,6 +28,7 @@ struct _SeqnoFrame {
 	guint16	(*getqid)(SeqnoFrame* self);			///< get value of queue id in this SeqnoFrame
 	void	(*setreqid)(SeqnoFrame* self, guint64 value);	///< set the request id to the given value
 	void	(*setqid)(SeqnoFrame* self, guint16 value);	///< set the queue id to the given value
+	gboolean(*equal)(SeqnoFrame* self, SeqnoFrame*rhs);	///< Compare two SeqnoFrames
 	guint64 _reqid;						///< value of this SeqnoFrame request id
 	guint16 _qid;						///< value of this SeqnoFrame queue id
 };

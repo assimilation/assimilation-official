@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py -o pyclasswrappers/AssimCtypes.py -l libclientlib.so -L ../../bin/clientlib/ -I include -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include include/address_family_numbers.h include/addrframe.h include/cdp.h include/cstringframe.h include/decode_packet.h include/discovery.h include/frameformats.h include/frame.h include/frameset.h include/generic_tlv_min.h include/hblistener.h include/hbsender.h include/intframe.h include/lldp.h include/netaddr.h include/netgsource.h include/netio.h include/netioudp.h include/pcap_GSource.h include/pcap_min.h include/proj_classes.h include/projectcommon.h include/seqnoframe.h include/server_dump.h include/signframe.h include/switchdiscovery.h include/tlvhelper.h include/tlv_valuetypes.h include/unknownframe.h
+/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/cdp.h ../include/cstringframe.h ../include/decode_packet.h ../include/discovery.h ../include/frame.h ../include/frameformats.h ../include/frameset.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlv_valuetypes.h ../include/tlvhelper.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -303,7 +303,7 @@ class _variadic_function(object):
 # End preamble
 
 _libs = {}
-_libdirs = ['../../bin/clientlib/']
+_libdirs = ['../../bin/clientlib', '/home/alanr/monitor/bin/clientlib', '/usr/lib/i386-linux-gnu']
 
 # Begin loader
 
@@ -585,16 +585,19 @@ del loaderclass
 
 # End loader
 
-add_library_search_dirs(['../../bin/clientlib/'])
+add_library_search_dirs(['../../bin/clientlib', '/home/alanr/monitor/bin/clientlib', '/usr/lib/i386-linux-gnu'])
 
 # Begin libraries
 
 _libs["libclientlib.so"] = load_library("libclientlib.so")
+_libs["glib-2.0"] = load_library("glib-2.0")
 
-# 1 libraries
+# 2 libraries
 # End libraries
 
 # No modules
+
+NULL = None # <built-in>
 
 guint8 = c_ubyte # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 39
 
@@ -632,7 +635,13 @@ gpointer = POINTER(None) # /usr/include/glib-2.0/glib/gtypes.h: 78
 
 gconstpointer = POINTER(None) # /usr/include/glib-2.0/glib/gtypes.h: 79
 
+GCompareFunc = CFUNCTYPE(UNCHECKED(gint), gconstpointer, gconstpointer) # /usr/include/glib-2.0/glib/gtypes.h: 81
+
+GCompareDataFunc = CFUNCTYPE(UNCHECKED(gint), gconstpointer, gconstpointer, gpointer) # /usr/include/glib-2.0/glib/gtypes.h: 83
+
 GDestroyNotify = CFUNCTYPE(UNCHECKED(None), gpointer) # /usr/include/glib-2.0/glib/gtypes.h: 88
+
+GFunc = CFUNCTYPE(UNCHECKED(None), gpointer, gpointer) # /usr/include/glib-2.0/glib/gtypes.h: 89
 
 GQuark = guint32 # /usr/include/glib-2.0/glib/gquark.h: 38
 
@@ -654,31 +663,22 @@ struct__GError._fields_ = [
 ]
 
 # /usr/include/glib-2.0/glib/gmem.h: 71
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'g_free'):
-        continue
-    g_free = _lib.g_free
+if hasattr(_libs['libclientlib.so'], 'g_free'):
+    g_free = _libs['libclientlib.so'].g_free
     g_free.argtypes = [gpointer]
     g_free.restype = None
-    break
 
 # /usr/include/glib-2.0/glib/gmem.h: 77
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'g_try_malloc'):
-        continue
-    g_try_malloc = _lib.g_try_malloc
+if hasattr(_libs['libclientlib.so'], 'g_try_malloc'):
+    g_try_malloc = _libs['libclientlib.so'].g_try_malloc
     g_try_malloc.argtypes = [gsize]
     g_try_malloc.restype = gpointer
-    break
 
 # /usr/include/glib-2.0/glib/gmem.h: 78
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'g_try_malloc0'):
-        continue
-    g_try_malloc0 = _lib.g_try_malloc0
+if hasattr(_libs['libclientlib.so'], 'g_try_malloc0'):
+    g_try_malloc0 = _libs['libclientlib.so'].g_try_malloc0
     g_try_malloc0.argtypes = [gsize]
     g_try_malloc0.restype = gpointer
-    break
 
 enum_anon_46 = c_int # /usr/include/glib-2.0/glib/gchecksum.h: 50
 
@@ -727,6 +727,186 @@ struct__GSList._fields_ = [
     ('data', gpointer),
     ('next', POINTER(GSList)),
 ]
+
+# /usr/include/glib-2.0/glib/gslist.h: 48
+if hasattr(_libs['libclientlib.so'], 'g_slist_alloc'):
+    g_slist_alloc = _libs['libclientlib.so'].g_slist_alloc
+    g_slist_alloc.argtypes = []
+    g_slist_alloc.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 49
+if hasattr(_libs['libclientlib.so'], 'g_slist_free'):
+    g_slist_free = _libs['libclientlib.so'].g_slist_free
+    g_slist_free.argtypes = [POINTER(GSList)]
+    g_slist_free.restype = None
+
+# /usr/include/glib-2.0/glib/gslist.h: 50
+if hasattr(_libs['libclientlib.so'], 'g_slist_free_1'):
+    g_slist_free_1 = _libs['libclientlib.so'].g_slist_free_1
+    g_slist_free_1.argtypes = [POINTER(GSList)]
+    g_slist_free_1.restype = None
+
+# /usr/include/glib-2.0/glib/gslist.h: 52
+if hasattr(_libs['libclientlib.so'], 'g_slist_free_full'):
+    g_slist_free_full = _libs['libclientlib.so'].g_slist_free_full
+    g_slist_free_full.argtypes = [POINTER(GSList), GDestroyNotify]
+    g_slist_free_full.restype = None
+
+# /usr/include/glib-2.0/glib/gslist.h: 54
+if hasattr(_libs['libclientlib.so'], 'g_slist_append'):
+    g_slist_append = _libs['libclientlib.so'].g_slist_append
+    g_slist_append.argtypes = [POINTER(GSList), gpointer]
+    g_slist_append.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 56
+if hasattr(_libs['libclientlib.so'], 'g_slist_prepend'):
+    g_slist_prepend = _libs['libclientlib.so'].g_slist_prepend
+    g_slist_prepend.argtypes = [POINTER(GSList), gpointer]
+    g_slist_prepend.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 58
+if hasattr(_libs['libclientlib.so'], 'g_slist_insert'):
+    g_slist_insert = _libs['libclientlib.so'].g_slist_insert
+    g_slist_insert.argtypes = [POINTER(GSList), gpointer, gint]
+    g_slist_insert.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 61
+if hasattr(_libs['libclientlib.so'], 'g_slist_insert_sorted'):
+    g_slist_insert_sorted = _libs['libclientlib.so'].g_slist_insert_sorted
+    g_slist_insert_sorted.argtypes = [POINTER(GSList), gpointer, GCompareFunc]
+    g_slist_insert_sorted.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 64
+if hasattr(_libs['libclientlib.so'], 'g_slist_insert_sorted_with_data'):
+    g_slist_insert_sorted_with_data = _libs['libclientlib.so'].g_slist_insert_sorted_with_data
+    g_slist_insert_sorted_with_data.argtypes = [POINTER(GSList), gpointer, GCompareDataFunc, gpointer]
+    g_slist_insert_sorted_with_data.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 68
+if hasattr(_libs['libclientlib.so'], 'g_slist_insert_before'):
+    g_slist_insert_before = _libs['libclientlib.so'].g_slist_insert_before
+    g_slist_insert_before.argtypes = [POINTER(GSList), POINTER(GSList), gpointer]
+    g_slist_insert_before.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 71
+if hasattr(_libs['libclientlib.so'], 'g_slist_concat'):
+    g_slist_concat = _libs['libclientlib.so'].g_slist_concat
+    g_slist_concat.argtypes = [POINTER(GSList), POINTER(GSList)]
+    g_slist_concat.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 73
+if hasattr(_libs['libclientlib.so'], 'g_slist_remove'):
+    g_slist_remove = _libs['libclientlib.so'].g_slist_remove
+    g_slist_remove.argtypes = [POINTER(GSList), gconstpointer]
+    g_slist_remove.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 75
+if hasattr(_libs['libclientlib.so'], 'g_slist_remove_all'):
+    g_slist_remove_all = _libs['libclientlib.so'].g_slist_remove_all
+    g_slist_remove_all.argtypes = [POINTER(GSList), gconstpointer]
+    g_slist_remove_all.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 77
+if hasattr(_libs['libclientlib.so'], 'g_slist_remove_link'):
+    g_slist_remove_link = _libs['libclientlib.so'].g_slist_remove_link
+    g_slist_remove_link.argtypes = [POINTER(GSList), POINTER(GSList)]
+    g_slist_remove_link.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 79
+if hasattr(_libs['libclientlib.so'], 'g_slist_delete_link'):
+    g_slist_delete_link = _libs['libclientlib.so'].g_slist_delete_link
+    g_slist_delete_link.argtypes = [POINTER(GSList), POINTER(GSList)]
+    g_slist_delete_link.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 81
+if hasattr(_libs['libclientlib.so'], 'g_slist_reverse'):
+    g_slist_reverse = _libs['libclientlib.so'].g_slist_reverse
+    g_slist_reverse.argtypes = [POINTER(GSList)]
+    g_slist_reverse.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 82
+if hasattr(_libs['libclientlib.so'], 'g_slist_copy'):
+    g_slist_copy = _libs['libclientlib.so'].g_slist_copy
+    g_slist_copy.argtypes = [POINTER(GSList)]
+    g_slist_copy.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 83
+if hasattr(_libs['libclientlib.so'], 'g_slist_nth'):
+    g_slist_nth = _libs['libclientlib.so'].g_slist_nth
+    g_slist_nth.argtypes = [POINTER(GSList), guint]
+    g_slist_nth.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 85
+if hasattr(_libs['libclientlib.so'], 'g_slist_find'):
+    g_slist_find = _libs['libclientlib.so'].g_slist_find
+    g_slist_find.argtypes = [POINTER(GSList), gconstpointer]
+    g_slist_find.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 87
+if hasattr(_libs['libclientlib.so'], 'g_slist_find_custom'):
+    g_slist_find_custom = _libs['libclientlib.so'].g_slist_find_custom
+    g_slist_find_custom.argtypes = [POINTER(GSList), gconstpointer, GCompareFunc]
+    g_slist_find_custom.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 90
+if hasattr(_libs['libclientlib.so'], 'g_slist_position'):
+    g_slist_position = _libs['libclientlib.so'].g_slist_position
+    g_slist_position.argtypes = [POINTER(GSList), POINTER(GSList)]
+    g_slist_position.restype = gint
+
+# /usr/include/glib-2.0/glib/gslist.h: 92
+if hasattr(_libs['libclientlib.so'], 'g_slist_index'):
+    g_slist_index = _libs['libclientlib.so'].g_slist_index
+    g_slist_index.argtypes = [POINTER(GSList), gconstpointer]
+    g_slist_index.restype = gint
+
+# /usr/include/glib-2.0/glib/gslist.h: 94
+if hasattr(_libs['libclientlib.so'], 'g_slist_last'):
+    g_slist_last = _libs['libclientlib.so'].g_slist_last
+    g_slist_last.argtypes = [POINTER(GSList)]
+    g_slist_last.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 95
+if hasattr(_libs['libclientlib.so'], 'g_slist_length'):
+    g_slist_length = _libs['libclientlib.so'].g_slist_length
+    g_slist_length.argtypes = [POINTER(GSList)]
+    g_slist_length.restype = guint
+
+# /usr/include/glib-2.0/glib/gslist.h: 96
+if hasattr(_libs['libclientlib.so'], 'g_slist_foreach'):
+    g_slist_foreach = _libs['libclientlib.so'].g_slist_foreach
+    g_slist_foreach.argtypes = [POINTER(GSList), GFunc, gpointer]
+    g_slist_foreach.restype = None
+
+# /usr/include/glib-2.0/glib/gslist.h: 99
+if hasattr(_libs['libclientlib.so'], 'g_slist_sort'):
+    g_slist_sort = _libs['libclientlib.so'].g_slist_sort
+    g_slist_sort.argtypes = [POINTER(GSList), GCompareFunc]
+    g_slist_sort.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 101
+if hasattr(_libs['libclientlib.so'], 'g_slist_sort_with_data'):
+    g_slist_sort_with_data = _libs['libclientlib.so'].g_slist_sort_with_data
+    g_slist_sort_with_data.argtypes = [POINTER(GSList), GCompareDataFunc, gpointer]
+    g_slist_sort_with_data.restype = POINTER(GSList)
+
+# /usr/include/glib-2.0/glib/gslist.h: 104
+if hasattr(_libs['libclientlib.so'], 'g_slist_nth_data'):
+    g_slist_nth_data = _libs['libclientlib.so'].g_slist_nth_data
+    g_slist_nth_data.argtypes = [POINTER(GSList), guint]
+    g_slist_nth_data.restype = gpointer
+
+# /usr/include/glib-2.0/glib/gslist.h: 110
+if hasattr(_libs['libclientlib.so'], 'g_slist_push_allocator'):
+    g_slist_push_allocator = _libs['libclientlib.so'].g_slist_push_allocator
+    g_slist_push_allocator.argtypes = [gpointer]
+    g_slist_push_allocator.restype = None
+
+# /usr/include/glib-2.0/glib/gslist.h: 111
+if hasattr(_libs['libclientlib.so'], 'g_slist_pop_allocator'):
+    g_slist_pop_allocator = _libs['libclientlib.so'].g_slist_pop_allocator
+    g_slist_pop_allocator.argtypes = []
+    g_slist_pop_allocator.restype = None
 
 # /usr/include/glib-2.0/glib/gmain.h: 39
 class struct__GMainContext(Structure):
@@ -936,13 +1116,13 @@ struct__GIOFuncs._fields_ = [
 class struct__FrameSet(Structure):
     pass
 
-FrameSet = struct__FrameSet # include/frame.h: 18
+FrameSet = struct__FrameSet # ../include/frame.h: 18
 
-# include/frame.h: 29
+# ../include/frame.h: 29
 class struct__Frame(Structure):
     pass
 
-Frame = struct__Frame # include/frame.h: 19
+Frame = struct__Frame # ../include/frame.h: 19
 
 struct__Frame.__slots__ = [
     'type',
@@ -975,126 +1155,99 @@ struct__Frame._fields_ = [
     ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(Frame))),
 ]
 
-# include/frame.h: 49
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frame_new'):
-        continue
-    frame_new = _lib.frame_new
+# ../include/frame.h: 49
+if hasattr(_libs['libclientlib.so'], 'frame_new'):
+    frame_new = _libs['libclientlib.so'].frame_new
     frame_new.argtypes = [guint16, gsize]
     frame_new.restype = POINTER(Frame)
-    break
 
-# include/frame.h: 50
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frame_tlvconstructor'):
-        continue
-    frame_tlvconstructor = _lib.frame_tlvconstructor
+# ../include/frame.h: 50
+if hasattr(_libs['libclientlib.so'], 'frame_tlvconstructor'):
+    frame_tlvconstructor = _libs['libclientlib.so'].frame_tlvconstructor
     frame_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     frame_tlvconstructor.restype = POINTER(Frame)
-    break
 
-# include/frame.h: 51
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, '_frame_default_valuefinalize'):
-        continue
-    _frame_default_valuefinalize = _lib._frame_default_valuefinalize
+# ../include/frame.h: 51
+if hasattr(_libs['libclientlib.so'], '_frame_default_valuefinalize'):
+    _frame_default_valuefinalize = _libs['libclientlib.so']._frame_default_valuefinalize
     _frame_default_valuefinalize.argtypes = [gpointer]
     _frame_default_valuefinalize.restype = None
-    break
 
-# include/proj_classes.h: 14
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_new'):
-        continue
-    proj_class_new = _lib.proj_class_new
+# ../include/proj_classes.h: 14
+if hasattr(_libs['libclientlib.so'], 'proj_class_new'):
+    proj_class_new = _libs['libclientlib.so'].proj_class_new
     proj_class_new.argtypes = [gsize, String]
     proj_class_new.restype = gpointer
-    break
 
-# include/proj_classes.h: 15
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_dissociate'):
-        continue
-    proj_class_dissociate = _lib.proj_class_dissociate
+# ../include/proj_classes.h: 15
+if hasattr(_libs['libclientlib.so'], 'proj_class_dissociate'):
+    proj_class_dissociate = _libs['libclientlib.so'].proj_class_dissociate
     proj_class_dissociate.argtypes = [gpointer]
     proj_class_dissociate.restype = None
-    break
 
-# include/proj_classes.h: 16
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_free'):
-        continue
-    proj_class_free = _lib.proj_class_free
+# ../include/proj_classes.h: 16
+if hasattr(_libs['libclientlib.so'], 'proj_class_free'):
+    proj_class_free = _libs['libclientlib.so'].proj_class_free
     proj_class_free.argtypes = [gpointer]
     proj_class_free.restype = None
-    break
 
-# include/proj_classes.h: 17
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_register_object'):
-        continue
-    proj_class_register_object = _lib.proj_class_register_object
+# ../include/proj_classes.h: 17
+if hasattr(_libs['libclientlib.so'], 'proj_class_register_object'):
+    proj_class_register_object = _libs['libclientlib.so'].proj_class_register_object
     proj_class_register_object.argtypes = [gpointer, String]
     proj_class_register_object.restype = None
-    break
 
-# include/proj_classes.h: 18
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_castas'):
-        continue
-    proj_class_castas = _lib.proj_class_castas
+# ../include/proj_classes.h: 18
+if hasattr(_libs['libclientlib.so'], 'proj_class_castas'):
+    proj_class_castas = _libs['libclientlib.so'].proj_class_castas
     proj_class_castas.argtypes = [gpointer, String]
     proj_class_castas.restype = gpointer
-    break
 
-# include/proj_classes.h: 19
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_register_subclassed'):
-        continue
-    proj_class_register_subclassed = _lib.proj_class_register_subclassed
+# ../include/proj_classes.h: 19
+if hasattr(_libs['libclientlib.so'], 'proj_class_castasconst'):
+    proj_class_castasconst = _libs['libclientlib.so'].proj_class_castasconst
+    proj_class_castasconst.argtypes = [gconstpointer, String]
+    proj_class_castasconst.restype = gconstpointer
+
+# ../include/proj_classes.h: 20
+if hasattr(_libs['libclientlib.so'], 'proj_class_register_subclassed'):
+    proj_class_register_subclassed = _libs['libclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
     proj_class_register_subclassed.restype = None
-    break
 
-# include/proj_classes.h: 20
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_quark_add_superclass_relationship'):
-        continue
-    proj_class_quark_add_superclass_relationship = _lib.proj_class_quark_add_superclass_relationship
+# ../include/proj_classes.h: 21
+if hasattr(_libs['libclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
+    proj_class_quark_add_superclass_relationship = _libs['libclientlib.so'].proj_class_quark_add_superclass_relationship
     proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
     proj_class_quark_add_superclass_relationship.restype = None
-    break
 
-# include/proj_classes.h: 21
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_quark_is_a'):
-        continue
-    proj_class_quark_is_a = _lib.proj_class_quark_is_a
+# ../include/proj_classes.h: 22
+if hasattr(_libs['libclientlib.so'], 'proj_class_quark_is_a'):
+    proj_class_quark_is_a = _libs['libclientlib.so'].proj_class_quark_is_a
     proj_class_quark_is_a.argtypes = [GQuark, GQuark]
     proj_class_quark_is_a.restype = gboolean
-    break
 
-# include/proj_classes.h: 22
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_classname'):
-        continue
-    proj_class_classname = _lib.proj_class_classname
+# ../include/proj_classes.h: 23
+if hasattr(_libs['libclientlib.so'], 'proj_class_classname'):
+    proj_class_classname = _libs['libclientlib.so'].proj_class_classname
     proj_class_classname.argtypes = [gconstpointer]
     if sizeof(c_int) == sizeof(c_void_p):
         proj_class_classname.restype = ReturnString
     else:
         proj_class_classname.restype = String
         proj_class_classname.errcheck = ReturnString
-    break
 
-# include/proj_classes.h: 25
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_dump_live_objects'):
-        continue
-    proj_class_dump_live_objects = _lib.proj_class_dump_live_objects
+# ../include/proj_classes.h: 26
+if hasattr(_libs['libclientlib.so'], 'proj_class_dump_live_objects'):
+    proj_class_dump_live_objects = _libs['libclientlib.so'].proj_class_dump_live_objects
     proj_class_dump_live_objects.argtypes = []
     proj_class_dump_live_objects.restype = None
-    break
+
+# ../include/proj_classes.h: 27
+if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
+    proj_class_live_object_count = _libs['libclientlib.so'].proj_class_live_object_count
+    proj_class_live_object_count.argtypes = []
+    proj_class_live_object_count.restype = guint32
 
 u_int = __u_int # /usr/include/sys/types.h: 36
 
@@ -1162,11 +1315,11 @@ struct_sockaddr_in6._fields_ = [
     ('sin6_scope_id', c_uint32),
 ]
 
-# include/netaddr.h: 25
+# ../include/netaddr.h: 25
 class struct__NetAddr(Structure):
     pass
 
-NetAddr = struct__NetAddr # include/netaddr.h: 18
+NetAddr = struct__NetAddr # ../include/netaddr.h: 18
 
 struct__NetAddr.__slots__ = [
     'port',
@@ -1199,68 +1352,47 @@ struct__NetAddr._fields_ = [
     ('_refcount', guint16),
 ]
 
-# include/netaddr.h: 40
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netaddr_new'):
-        continue
-    netaddr_new = _lib.netaddr_new
+# ../include/netaddr.h: 40
+if hasattr(_libs['libclientlib.so'], 'netaddr_new'):
+    netaddr_new = _libs['libclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
-    break
 
-# include/netaddr.h: 41
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netaddr_sockaddr_new'):
-        continue
-    netaddr_sockaddr_new = _lib.netaddr_sockaddr_new
+# ../include/netaddr.h: 41
+if hasattr(_libs['libclientlib.so'], 'netaddr_sockaddr_new'):
+    netaddr_sockaddr_new = _libs['libclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
-    break
 
-# include/netaddr.h: 42
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netaddr_macaddr_new'):
-        continue
-    netaddr_macaddr_new = _lib.netaddr_macaddr_new
+# ../include/netaddr.h: 42
+if hasattr(_libs['libclientlib.so'], 'netaddr_macaddr_new'):
+    netaddr_macaddr_new = _libs['libclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
-    break
 
-# include/netaddr.h: 43
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netaddr_mac48_new'):
-        continue
-    netaddr_mac48_new = _lib.netaddr_mac48_new
+# ../include/netaddr.h: 43
+if hasattr(_libs['libclientlib.so'], 'netaddr_mac48_new'):
+    netaddr_mac48_new = _libs['libclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
-    break
 
-# include/netaddr.h: 44
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netaddr_mac64_new'):
-        continue
-    netaddr_mac64_new = _lib.netaddr_mac64_new
+# ../include/netaddr.h: 44
+if hasattr(_libs['libclientlib.so'], 'netaddr_mac64_new'):
+    netaddr_mac64_new = _libs['libclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
-    break
 
-# include/netaddr.h: 45
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netaddr_ipv4_new'):
-        continue
-    netaddr_ipv4_new = _lib.netaddr_ipv4_new
+# ../include/netaddr.h: 45
+if hasattr(_libs['libclientlib.so'], 'netaddr_ipv4_new'):
+    netaddr_ipv4_new = _libs['libclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
-    break
 
-# include/netaddr.h: 46
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netaddr_ipv6_new'):
-        continue
-    netaddr_ipv6_new = _lib.netaddr_ipv6_new
+# ../include/netaddr.h: 46
+if hasattr(_libs['libclientlib.so'], 'netaddr_ipv6_new'):
+    netaddr_ipv6_new = _libs['libclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv6_new.restype = POINTER(NetAddr)
-    break
 
 # /home/alanr/monitor/src/include/addrframe.h: 25
 class struct__AddrFrame(Structure):
@@ -1280,166 +1412,112 @@ struct__AddrFrame._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/addrframe.h: 31
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'addrframe_new'):
-        continue
-    addrframe_new = _lib.addrframe_new
+if hasattr(_libs['libclientlib.so'], 'addrframe_new'):
+    addrframe_new = _libs['libclientlib.so'].addrframe_new
     addrframe_new.argtypes = [guint16, gsize]
     addrframe_new.restype = POINTER(AddrFrame)
-    break
 
 # /home/alanr/monitor/src/include/addrframe.h: 32
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'addrframe_ipv4_new'):
-        continue
-    addrframe_ipv4_new = _lib.addrframe_ipv4_new
+if hasattr(_libs['libclientlib.so'], 'addrframe_ipv4_new'):
+    addrframe_ipv4_new = _libs['libclientlib.so'].addrframe_ipv4_new
     addrframe_ipv4_new.argtypes = [guint16, gconstpointer]
     addrframe_ipv4_new.restype = POINTER(AddrFrame)
-    break
 
 # /home/alanr/monitor/src/include/addrframe.h: 33
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'addrframe_ipv6_new'):
-        continue
-    addrframe_ipv6_new = _lib.addrframe_ipv6_new
+if hasattr(_libs['libclientlib.so'], 'addrframe_ipv6_new'):
+    addrframe_ipv6_new = _libs['libclientlib.so'].addrframe_ipv6_new
     addrframe_ipv6_new.argtypes = [guint16, gconstpointer]
     addrframe_ipv6_new.restype = POINTER(AddrFrame)
-    break
 
 # /home/alanr/monitor/src/include/addrframe.h: 34
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'addrframe_mac48_new'):
-        continue
-    addrframe_mac48_new = _lib.addrframe_mac48_new
+if hasattr(_libs['libclientlib.so'], 'addrframe_mac48_new'):
+    addrframe_mac48_new = _libs['libclientlib.so'].addrframe_mac48_new
     addrframe_mac48_new.argtypes = [guint16, gconstpointer]
     addrframe_mac48_new.restype = POINTER(AddrFrame)
-    break
 
 # /home/alanr/monitor/src/include/addrframe.h: 35
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'addrframe_mac64_new'):
-        continue
-    addrframe_mac64_new = _lib.addrframe_mac64_new
+if hasattr(_libs['libclientlib.so'], 'addrframe_mac64_new'):
+    addrframe_mac64_new = _libs['libclientlib.so'].addrframe_mac64_new
     addrframe_mac64_new.argtypes = [guint16, gconstpointer]
     addrframe_mac64_new.restype = POINTER(AddrFrame)
-    break
 
 # /home/alanr/monitor/src/include/addrframe.h: 36
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'addrframe_tlvconstructor'):
-        continue
-    addrframe_tlvconstructor = _lib.addrframe_tlvconstructor
+if hasattr(_libs['libclientlib.so'], 'addrframe_tlvconstructor'):
+    addrframe_tlvconstructor = _libs['libclientlib.so'].addrframe_tlvconstructor
     addrframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     addrframe_tlvconstructor.restype = POINTER(Frame)
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 54
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdp_vers'):
-        continue
-    get_cdp_vers = _lib.get_cdp_vers
+if hasattr(_libs['libclientlib.so'], 'get_cdp_vers'):
+    get_cdp_vers = _libs['libclientlib.so'].get_cdp_vers
     get_cdp_vers.argtypes = [gconstpointer, gconstpointer]
     get_cdp_vers.restype = guint8
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 55
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdp_ttl'):
-        continue
-    get_cdp_ttl = _lib.get_cdp_ttl
+if hasattr(_libs['libclientlib.so'], 'get_cdp_ttl'):
+    get_cdp_ttl = _libs['libclientlib.so'].get_cdp_ttl
     get_cdp_ttl.argtypes = [gconstpointer, gconstpointer]
     get_cdp_ttl.restype = guint8
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 56
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdp_cksum'):
-        continue
-    get_cdp_cksum = _lib.get_cdp_cksum
+if hasattr(_libs['libclientlib.so'], 'get_cdp_cksum'):
+    get_cdp_cksum = _libs['libclientlib.so'].get_cdp_cksum
     get_cdp_cksum.argtypes = [gconstpointer, gconstpointer]
     get_cdp_cksum.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 57
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdptlv_type'):
-        continue
-    get_cdptlv_type = _lib.get_cdptlv_type
+if hasattr(_libs['libclientlib.so'], 'get_cdptlv_type'):
+    get_cdptlv_type = _libs['libclientlib.so'].get_cdptlv_type
     get_cdptlv_type.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_type.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 58
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdptlv_len'):
-        continue
-    get_cdptlv_len = _lib.get_cdptlv_len
+if hasattr(_libs['libclientlib.so'], 'get_cdptlv_len'):
+    get_cdptlv_len = _libs['libclientlib.so'].get_cdptlv_len
     get_cdptlv_len.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_len.restype = gsize
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 59
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdptlv_vlen'):
-        continue
-    get_cdptlv_vlen = _lib.get_cdptlv_vlen
+if hasattr(_libs['libclientlib.so'], 'get_cdptlv_vlen'):
+    get_cdptlv_vlen = _libs['libclientlib.so'].get_cdptlv_vlen
     get_cdptlv_vlen.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_vlen.restype = gsize
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 60
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdptlv_body'):
-        continue
-    get_cdptlv_body = _lib.get_cdptlv_body
+if hasattr(_libs['libclientlib.so'], 'get_cdptlv_body'):
+    get_cdptlv_body = _libs['libclientlib.so'].get_cdptlv_body
     get_cdptlv_body.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_body.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 61
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdptlv_first'):
-        continue
-    get_cdptlv_first = _lib.get_cdptlv_first
+if hasattr(_libs['libclientlib.so'], 'get_cdptlv_first'):
+    get_cdptlv_first = _libs['libclientlib.so'].get_cdptlv_first
     get_cdptlv_first.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_first.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 62
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdptlv_next'):
-        continue
-    get_cdptlv_next = _lib.get_cdptlv_next
+if hasattr(_libs['libclientlib.so'], 'get_cdptlv_next'):
+    get_cdptlv_next = _libs['libclientlib.so'].get_cdptlv_next
     get_cdptlv_next.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_next.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 63
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdp_chassis_id'):
-        continue
-    get_cdp_chassis_id = _lib.get_cdp_chassis_id
+if hasattr(_libs['libclientlib.so'], 'get_cdp_chassis_id'):
+    get_cdp_chassis_id = _libs['libclientlib.so'].get_cdp_chassis_id
     get_cdp_chassis_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_cdp_chassis_id.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 64
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_cdp_port_id'):
-        continue
-    get_cdp_port_id = _lib.get_cdp_port_id
+if hasattr(_libs['libclientlib.so'], 'get_cdp_port_id'):
+    get_cdp_port_id = _libs['libclientlib.so'].get_cdp_port_id
     get_cdp_port_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_cdp_port_id.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/cdp.h: 65
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'is_valid_cdp_packet'):
-        continue
-    is_valid_cdp_packet = _lib.is_valid_cdp_packet
+if hasattr(_libs['libclientlib.so'], 'is_valid_cdp_packet'):
+    is_valid_cdp_packet = _libs['libclientlib.so'].is_valid_cdp_packet
     is_valid_cdp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_cdp_packet.restype = gboolean
-    break
 
 # /home/alanr/monitor/src/include/cstringframe.h: 23
 class struct__CstringFrame(Structure):
@@ -1455,22 +1533,16 @@ struct__CstringFrame._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/cstringframe.h: 27
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'cstringframe_new'):
-        continue
-    cstringframe_new = _lib.cstringframe_new
+if hasattr(_libs['libclientlib.so'], 'cstringframe_new'):
+    cstringframe_new = _libs['libclientlib.so'].cstringframe_new
     cstringframe_new.argtypes = [guint16, gsize]
     cstringframe_new.restype = POINTER(CstringFrame)
-    break
 
 # /home/alanr/monitor/src/include/cstringframe.h: 28
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'cstringframe_tlvconstructor'):
-        continue
-    cstringframe_tlvconstructor = _lib.cstringframe_tlvconstructor
+if hasattr(_libs['libclientlib.so'], 'cstringframe_tlvconstructor'):
+    cstringframe_tlvconstructor = _libs['libclientlib.so'].cstringframe_tlvconstructor
     cstringframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     cstringframe_tlvconstructor.restype = POINTER(Frame)
-    break
 
 # /home/alanr/monitor/src/include/decode_packet.h: 20
 class struct__FrameTypeToFrame(Structure):
@@ -1490,13 +1562,10 @@ struct__FrameTypeToFrame._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/decode_packet.h: 24
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'pktdata_to_frameset_list'):
-        continue
-    pktdata_to_frameset_list = _lib.pktdata_to_frameset_list
+if hasattr(_libs['libclientlib.so'], 'pktdata_to_frameset_list'):
+    pktdata_to_frameset_list = _libs['libclientlib.so'].pktdata_to_frameset_list
     pktdata_to_frameset_list.argtypes = [gconstpointer, gconstpointer]
     pktdata_to_frameset_list.restype = POINTER(GSList)
-    break
 
 # /home/alanr/monitor/src/include/discovery.h: 32
 class struct__Discovery(Structure):
@@ -1520,28 +1589,22 @@ struct__Discovery._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/discovery.h: 40
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'discovery_new'):
-        continue
-    discovery_new = _lib.discovery_new
+if hasattr(_libs['libclientlib.so'], 'discovery_new'):
+    discovery_new = _libs['libclientlib.so'].discovery_new
     discovery_new.argtypes = [gsize]
     discovery_new.restype = POINTER(Discovery)
-    break
 
 # /home/alanr/monitor/src/include/discovery.h: 41
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'discovery_register'):
-        continue
-    discovery_register = _lib.discovery_register
+if hasattr(_libs['libclientlib.so'], 'discovery_register'):
+    discovery_register = _libs['libclientlib.so'].discovery_register
     discovery_register.argtypes = [POINTER(Discovery)]
     discovery_register.restype = None
-    break
 
-# include/signframe.h: 27
+# ../include/signframe.h: 27
 class struct__SignFrame(Structure):
     pass
 
-SignFrame = struct__SignFrame # include/signframe.h: 20
+SignFrame = struct__SignFrame # ../include/signframe.h: 20
 
 struct__SignFrame.__slots__ = [
     'baseclass',
@@ -1552,23 +1615,17 @@ struct__SignFrame._fields_ = [
     ('signaturetype', GChecksumType),
 ]
 
-# include/signframe.h: 32
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'signframe_new'):
-        continue
-    signframe_new = _lib.signframe_new
+# ../include/signframe.h: 32
+if hasattr(_libs['libclientlib.so'], 'signframe_new'):
+    signframe_new = _libs['libclientlib.so'].signframe_new
     signframe_new.argtypes = [GChecksumType, gsize]
     signframe_new.restype = POINTER(SignFrame)
-    break
 
-# include/signframe.h: 33
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'signframe_tlvconstructor'):
-        continue
-    signframe_tlvconstructor = _lib.signframe_tlvconstructor
+# ../include/signframe.h: 33
+if hasattr(_libs['libclientlib.so'], 'signframe_tlvconstructor'):
+    signframe_tlvconstructor = _libs['libclientlib.so'].signframe_tlvconstructor
     signframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     signframe_tlvconstructor.restype = POINTER(Frame)
-    break
 
 struct__FrameSet.__slots__ = [
     'framelist',
@@ -1594,130 +1651,88 @@ struct__FrameSet._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/frameset.h: 42
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_new'):
-        continue
-    frameset_new = _lib.frameset_new
+if hasattr(_libs['libclientlib.so'], 'frameset_new'):
+    frameset_new = _libs['libclientlib.so'].frameset_new
     frameset_new.argtypes = [guint16]
     frameset_new.restype = POINTER(FrameSet)
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 43
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_prepend_frame'):
-        continue
-    frameset_prepend_frame = _lib.frameset_prepend_frame
+if hasattr(_libs['libclientlib.so'], 'frameset_prepend_frame'):
+    frameset_prepend_frame = _libs['libclientlib.so'].frameset_prepend_frame
     frameset_prepend_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_prepend_frame.restype = None
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 44
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_append_frame'):
-        continue
-    frameset_append_frame = _lib.frameset_append_frame
+if hasattr(_libs['libclientlib.so'], 'frameset_append_frame'):
+    frameset_append_frame = _libs['libclientlib.so'].frameset_append_frame
     frameset_append_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_append_frame.restype = None
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 45
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_construct_packet'):
-        continue
-    frameset_construct_packet = _lib.frameset_construct_packet
+if hasattr(_libs['libclientlib.so'], 'frameset_construct_packet'):
+    frameset_construct_packet = _libs['libclientlib.so'].frameset_construct_packet
     frameset_construct_packet.argtypes = [POINTER(FrameSet), POINTER(SignFrame), POINTER(Frame), POINTER(Frame)]
     frameset_construct_packet.restype = None
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 46
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frame_new'):
-        continue
-    frame_new = _lib.frame_new
+if hasattr(_libs['libclientlib.so'], 'frame_new'):
+    frame_new = _libs['libclientlib.so'].frame_new
     frame_new.argtypes = [guint16, gsize]
     frame_new.restype = POINTER(Frame)
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 47
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_get_flags'):
-        continue
-    frameset_get_flags = _lib.frameset_get_flags
+if hasattr(_libs['libclientlib.so'], 'frameset_get_flags'):
+    frameset_get_flags = _libs['libclientlib.so'].frameset_get_flags
     frameset_get_flags.argtypes = [POINTER(FrameSet)]
     frameset_get_flags.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 48
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_set_flags'):
-        continue
-    frameset_set_flags = _lib.frameset_set_flags
+if hasattr(_libs['libclientlib.so'], 'frameset_set_flags'):
+    frameset_set_flags = _libs['libclientlib.so'].frameset_set_flags
     frameset_set_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_set_flags.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 49
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_clear_flags'):
-        continue
-    frameset_clear_flags = _lib.frameset_clear_flags
+if hasattr(_libs['libclientlib.so'], 'frameset_clear_flags'):
+    frameset_clear_flags = _libs['libclientlib.so'].frameset_clear_flags
     frameset_clear_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_clear_flags.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 50
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frame_append_to_frameset_packet'):
-        continue
-    frame_append_to_frameset_packet = _lib.frame_append_to_frameset_packet
+if hasattr(_libs['libclientlib.so'], 'frame_append_to_frameset_packet'):
+    frame_append_to_frameset_packet = _libs['libclientlib.so'].frame_append_to_frameset_packet
     frame_append_to_frameset_packet.argtypes = [POINTER(FrameSet), POINTER(Frame), gpointer]
     frame_append_to_frameset_packet.restype = gpointer
-    break
 
 # /home/alanr/monitor/src/include/frameset.h: 51
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'frameset_dump'):
-        continue
-    frameset_dump = _lib.frameset_dump
+if hasattr(_libs['libclientlib.so'], 'frameset_dump'):
+    frameset_dump = _libs['libclientlib.so'].frameset_dump
     frameset_dump.argtypes = [POINTER(FrameSet)]
     frameset_dump.restype = None
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 15
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_generic_tlv_type'):
-        continue
-    get_generic_tlv_type = _lib.get_generic_tlv_type
+if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_type'):
+    get_generic_tlv_type = _libs['libclientlib.so'].get_generic_tlv_type
     get_generic_tlv_type.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_type.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 16
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_generic_tlv_len'):
-        continue
-    get_generic_tlv_len = _lib.get_generic_tlv_len
+if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_len'):
+    get_generic_tlv_len = _libs['libclientlib.so'].get_generic_tlv_len
     get_generic_tlv_len.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_len.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 17
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_generic_tlv_value'):
-        continue
-    get_generic_tlv_value = _lib.get_generic_tlv_value
+if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_value'):
+    get_generic_tlv_value = _libs['libclientlib.so'].get_generic_tlv_value
     get_generic_tlv_value.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_value.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 18
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_generic_tlv_nonconst_value'):
-        continue
-    get_generic_tlv_nonconst_value = _lib.get_generic_tlv_nonconst_value
+if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_nonconst_value'):
+    get_generic_tlv_nonconst_value = _libs['libclientlib.so'].get_generic_tlv_nonconst_value
     get_generic_tlv_nonconst_value.argtypes = [gpointer, gconstpointer]
     get_generic_tlv_nonconst_value.restype = gpointer
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 19
 for _lib in _libs.itervalues():
@@ -1729,73 +1744,52 @@ for _lib in _libs.itervalues():
     break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 20
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'is_valid_generic_tlv_packet'):
-        continue
-    is_valid_generic_tlv_packet = _lib.is_valid_generic_tlv_packet
+if hasattr(_libs['libclientlib.so'], 'is_valid_generic_tlv_packet'):
+    is_valid_generic_tlv_packet = _libs['libclientlib.so'].is_valid_generic_tlv_packet
     is_valid_generic_tlv_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_generic_tlv_packet.restype = gboolean
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 21
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_generic_tlv_first'):
-        continue
-    get_generic_tlv_first = _lib.get_generic_tlv_first
+if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_first'):
+    get_generic_tlv_first = _libs['libclientlib.so'].get_generic_tlv_first
     get_generic_tlv_first.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_first.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 22
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_generic_tlv_next'):
-        continue
-    get_generic_tlv_next = _lib.get_generic_tlv_next
+if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_next'):
+    get_generic_tlv_next = _libs['libclientlib.so'].get_generic_tlv_next
     get_generic_tlv_next.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_next.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 23
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'find_next_generic_tlv_type'):
-        continue
-    find_next_generic_tlv_type = _lib.find_next_generic_tlv_type
+if hasattr(_libs['libclientlib.so'], 'find_next_generic_tlv_type'):
+    find_next_generic_tlv_type = _libs['libclientlib.so'].find_next_generic_tlv_type
     find_next_generic_tlv_type.argtypes = [gconstpointer, guint16, gconstpointer]
     find_next_generic_tlv_type.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 24
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'set_generic_tlv_type'):
-        continue
-    set_generic_tlv_type = _lib.set_generic_tlv_type
+if hasattr(_libs['libclientlib.so'], 'set_generic_tlv_type'):
+    set_generic_tlv_type = _libs['libclientlib.so'].set_generic_tlv_type
     set_generic_tlv_type.argtypes = [gpointer, guint16, gconstpointer]
     set_generic_tlv_type.restype = None
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 25
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'set_generic_tlv_len'):
-        continue
-    set_generic_tlv_len = _lib.set_generic_tlv_len
+if hasattr(_libs['libclientlib.so'], 'set_generic_tlv_len'):
+    set_generic_tlv_len = _libs['libclientlib.so'].set_generic_tlv_len
     set_generic_tlv_len.argtypes = [gpointer, guint16, gconstpointer]
     set_generic_tlv_len.restype = None
-    break
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 26
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'set_generic_tlv_value'):
-        continue
-    set_generic_tlv_value = _lib.set_generic_tlv_value
+if hasattr(_libs['libclientlib.so'], 'set_generic_tlv_value'):
+    set_generic_tlv_value = _libs['libclientlib.so'].set_generic_tlv_value
     set_generic_tlv_value.argtypes = [gpointer, POINTER(None), guint16, gconstpointer]
     set_generic_tlv_value.restype = None
-    break
 
-# include/netio.h: 28
+# ../include/netio.h: 28
 class struct__NetIO(Structure):
     pass
 
-NetIO = struct__NetIO # include/netio.h: 23
+NetIO = struct__NetIO # ../include/netio.h: 23
 
 struct__NetIO.__slots__ = [
     'giosock',
@@ -1840,22 +1834,19 @@ struct__NetIO._fields_ = [
     ('finalize', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO))),
 ]
 
-# include/netio.h: 82
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netio_new'):
-        continue
-    netio_new = _lib.netio_new
+# ../include/netio.h: 82
+if hasattr(_libs['libclientlib.so'], 'netio_new'):
+    netio_new = _libs['libclientlib.so'].netio_new
     netio_new.argtypes = [gsize]
     netio_new.restype = POINTER(NetIO)
-    break
 
-# include/netgsource.h: 36
+# ../include/netgsource.h: 36
 class struct__NetGSource(Structure):
     pass
 
-NetGSource = struct__NetGSource # include/netgsource.h: 24
+NetGSource = struct__NetGSource # ../include/netgsource.h: 24
 
-NetGSourceDispatch = CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetGSource), POINTER(FrameSet), POINTER(NetAddr), gpointer) # include/netgsource.h: 27
+NetGSourceDispatch = CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetGSource), POINTER(FrameSet), POINTER(NetAddr), gpointer) # ../include/netgsource.h: 27
 
 struct__NetGSource.__slots__ = [
     'baseclass',
@@ -1882,14 +1873,11 @@ struct__NetGSource._fields_ = [
     ('addDispatch', CFUNCTYPE(UNCHECKED(None), POINTER(NetGSource), guint16, NetGSourceDispatch)),
 ]
 
-# include/netgsource.h: 48
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netgsource_new'):
-        continue
-    netgsource_new = _lib.netgsource_new
+# ../include/netgsource.h: 48
+if hasattr(_libs['libclientlib.so'], 'netgsource_new'):
+    netgsource_new = _libs['libclientlib.so'].netgsource_new
     netgsource_new.argtypes = [POINTER(NetIO), GDestroyNotify, gint, gboolean, POINTER(GMainContext), gsize, gpointer]
     netgsource_new.restype = POINTER(NetGSource)
-    break
 
 # /home/alanr/monitor/src/include/hblistener.h: 31
 class struct__HbListener(Structure):
@@ -1939,67 +1927,46 @@ struct__HbListener._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/hblistener.h: 49
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hblistener_new'):
-        continue
-    hblistener_new = _lib.hblistener_new
+if hasattr(_libs['libclientlib.so'], 'hblistener_new'):
+    hblistener_new = _libs['libclientlib.so'].hblistener_new
     hblistener_new.argtypes = [POINTER(NetAddr), gsize]
     hblistener_new.restype = POINTER(HbListener)
-    break
 
 # /home/alanr/monitor/src/include/hblistener.h: 50
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hblistener_unlisten'):
-        continue
-    hblistener_unlisten = _lib.hblistener_unlisten
+if hasattr(_libs['libclientlib.so'], 'hblistener_unlisten'):
+    hblistener_unlisten = _libs['libclientlib.so'].hblistener_unlisten
     hblistener_unlisten.argtypes = [POINTER(NetAddr)]
     hblistener_unlisten.restype = None
-    break
 
 # /home/alanr/monitor/src/include/hblistener.h: 51
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hblistener_set_deadtime_callback'):
-        continue
-    hblistener_set_deadtime_callback = _lib.hblistener_set_deadtime_callback
+if hasattr(_libs['libclientlib.so'], 'hblistener_set_deadtime_callback'):
+    hblistener_set_deadtime_callback = _libs['libclientlib.so'].hblistener_set_deadtime_callback
     hblistener_set_deadtime_callback.argtypes = [CFUNCTYPE(UNCHECKED(None), POINTER(HbListener))]
     hblistener_set_deadtime_callback.restype = None
-    break
 
 # /home/alanr/monitor/src/include/hblistener.h: 52
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hblistener_set_warntime_callback'):
-        continue
-    hblistener_set_warntime_callback = _lib.hblistener_set_warntime_callback
+if hasattr(_libs['libclientlib.so'], 'hblistener_set_warntime_callback'):
+    hblistener_set_warntime_callback = _libs['libclientlib.so'].hblistener_set_warntime_callback
     hblistener_set_warntime_callback.argtypes = [CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64)]
     hblistener_set_warntime_callback.restype = None
-    break
 
 # /home/alanr/monitor/src/include/hblistener.h: 53
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hblistener_set_comealive_callback'):
-        continue
-    hblistener_set_comealive_callback = _lib.hblistener_set_comealive_callback
+if hasattr(_libs['libclientlib.so'], 'hblistener_set_comealive_callback'):
+    hblistener_set_comealive_callback = _libs['libclientlib.so'].hblistener_set_comealive_callback
     hblistener_set_comealive_callback.argtypes = [CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64)]
     hblistener_set_comealive_callback.restype = None
-    break
 
 # /home/alanr/monitor/src/include/hblistener.h: 54
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hblistener_set_martian_callback'):
-        continue
-    hblistener_set_martian_callback = _lib.hblistener_set_martian_callback
+if hasattr(_libs['libclientlib.so'], 'hblistener_set_martian_callback'):
+    hblistener_set_martian_callback = _libs['libclientlib.so'].hblistener_set_martian_callback
     hblistener_set_martian_callback.argtypes = [CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr))]
     hblistener_set_martian_callback.restype = None
-    break
 
 # /home/alanr/monitor/src/include/hblistener.h: 55
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hblistener_netgsource_dispatch'):
-        continue
-    hblistener_netgsource_dispatch = _lib.hblistener_netgsource_dispatch
+if hasattr(_libs['libclientlib.so'], 'hblistener_netgsource_dispatch'):
+    hblistener_netgsource_dispatch = _libs['libclientlib.so'].hblistener_netgsource_dispatch
     hblistener_netgsource_dispatch.argtypes = [POINTER(NetGSource), POINTER(FrameSet), POINTER(NetAddr), gpointer]
     hblistener_netgsource_dispatch.restype = gboolean
-    break
 
 # /home/alanr/monitor/src/include/hbsender.h: 26
 class struct__HbSender(Structure):
@@ -2029,22 +1996,16 @@ struct__HbSender._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/hbsender.h: 38
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hbsender_new'):
-        continue
-    hbsender_new = _lib.hbsender_new
+if hasattr(_libs['libclientlib.so'], 'hbsender_new'):
+    hbsender_new = _libs['libclientlib.so'].hbsender_new
     hbsender_new.argtypes = [POINTER(NetAddr), POINTER(NetIO), guint, gsize]
     hbsender_new.restype = POINTER(HbSender)
-    break
 
 # /home/alanr/monitor/src/include/hbsender.h: 39
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'hbsender_stopsend'):
-        continue
-    hbsender_stopsend = _lib.hbsender_stopsend
+if hasattr(_libs['libclientlib.so'], 'hbsender_stopsend'):
+    hbsender_stopsend = _libs['libclientlib.so'].hbsender_stopsend
     hbsender_stopsend.argtypes = [POINTER(NetAddr)]
     hbsender_stopsend.restype = None
-    break
 
 # /home/alanr/monitor/src/include/intframe.h: 27
 class struct__IntFrame(Structure):
@@ -2068,22 +2029,16 @@ struct__IntFrame._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/intframe.h: 35
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'intframe_new'):
-        continue
-    intframe_new = _lib.intframe_new
+if hasattr(_libs['libclientlib.so'], 'intframe_new'):
+    intframe_new = _libs['libclientlib.so'].intframe_new
     intframe_new.argtypes = [guint16, c_int]
     intframe_new.restype = POINTER(IntFrame)
-    break
 
 # /home/alanr/monitor/src/include/intframe.h: 36
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'intframe_tlvconstructor'):
-        continue
-    intframe_tlvconstructor = _lib.intframe_tlvconstructor
+if hasattr(_libs['libclientlib.so'], 'intframe_tlvconstructor'):
+    intframe_tlvconstructor = _libs['libclientlib.so'].intframe_tlvconstructor
     intframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     intframe_tlvconstructor.restype = POINTER(Frame)
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 107
 for _lib in _libs.itervalues():
@@ -2095,22 +2050,16 @@ for _lib in _libs.itervalues():
     break
 
 # /home/alanr/monitor/src/include/lldp.h: 108
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_lldp_chassis_id'):
-        continue
-    get_lldp_chassis_id = _lib.get_lldp_chassis_id
+if hasattr(_libs['libclientlib.so'], 'get_lldp_chassis_id'):
+    get_lldp_chassis_id = _libs['libclientlib.so'].get_lldp_chassis_id
     get_lldp_chassis_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_lldp_chassis_id.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 109
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_lldp_port_id'):
-        continue
-    get_lldp_port_id = _lib.get_lldp_port_id
+if hasattr(_libs['libclientlib.so'], 'get_lldp_port_id'):
+    get_lldp_port_id = _libs['libclientlib.so'].get_lldp_port_id
     get_lldp_port_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_lldp_port_id.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 110
 for _lib in _libs.itervalues():
@@ -2122,67 +2071,46 @@ for _lib in _libs.itervalues():
     break
 
 # /home/alanr/monitor/src/include/lldp.h: 112
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_lldptlv_type'):
-        continue
-    get_lldptlv_type = _lib.get_lldptlv_type
+if hasattr(_libs['libclientlib.so'], 'get_lldptlv_type'):
+    get_lldptlv_type = _libs['libclientlib.so'].get_lldptlv_type
     get_lldptlv_type.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_type.restype = guint8
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 113
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_lldptlv_len'):
-        continue
-    get_lldptlv_len = _lib.get_lldptlv_len
+if hasattr(_libs['libclientlib.so'], 'get_lldptlv_len'):
+    get_lldptlv_len = _libs['libclientlib.so'].get_lldptlv_len
     get_lldptlv_len.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_len.restype = gsize
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 114
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_lldptlv_first'):
-        continue
-    get_lldptlv_first = _lib.get_lldptlv_first
+if hasattr(_libs['libclientlib.so'], 'get_lldptlv_first'):
+    get_lldptlv_first = _libs['libclientlib.so'].get_lldptlv_first
     get_lldptlv_first.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_first.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 115
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_lldptlv_next'):
-        continue
-    get_lldptlv_next = _lib.get_lldptlv_next
+if hasattr(_libs['libclientlib.so'], 'get_lldptlv_next'):
+    get_lldptlv_next = _libs['libclientlib.so'].get_lldptlv_next
     get_lldptlv_next.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_next.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 116
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'get_lldptlv_body'):
-        continue
-    get_lldptlv_body = _lib.get_lldptlv_body
+if hasattr(_libs['libclientlib.so'], 'get_lldptlv_body'):
+    get_lldptlv_body = _libs['libclientlib.so'].get_lldptlv_body
     get_lldptlv_body.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_body.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 117
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'find_next_lldptlv_type'):
-        continue
-    find_next_lldptlv_type = _lib.find_next_lldptlv_type
+if hasattr(_libs['libclientlib.so'], 'find_next_lldptlv_type'):
+    find_next_lldptlv_type = _libs['libclientlib.so'].find_next_lldptlv_type
     find_next_lldptlv_type.argtypes = [gconstpointer, c_uint, gconstpointer]
     find_next_lldptlv_type.restype = gconstpointer
-    break
 
 # /home/alanr/monitor/src/include/lldp.h: 118
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'is_valid_lldp_packet'):
-        continue
-    is_valid_lldp_packet = _lib.is_valid_lldp_packet
+if hasattr(_libs['libclientlib.so'], 'is_valid_lldp_packet'):
+    is_valid_lldp_packet = _libs['libclientlib.so'].is_valid_lldp_packet
     is_valid_lldp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_lldp_packet.restype = gboolean
-    break
 
 # /home/alanr/monitor/src/include/netioudp.h: 26
 class struct__NetIOudp(Structure):
@@ -2200,13 +2128,10 @@ struct__NetIOudp._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/netioudp.h: 30
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'netioudp_new'):
-        continue
-    netioudp_new = _lib.netioudp_new
+if hasattr(_libs['libclientlib.so'], 'netioudp_new'):
+    netioudp_new = _libs['libclientlib.so'].netioudp_new
     netioudp_new.argtypes = [gsize]
     netioudp_new.restype = POINTER(NetIOudp)
-    break
 
 bpf_u_int32 = u_int # /usr/include/pcap/bpf.h: 68
 
@@ -2231,14 +2156,11 @@ struct_pcap_pkthdr._fields_ = [
     ('len', bpf_u_int32),
 ]
 
-# include/pcap_min.h: 32
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'create_pcap_listener'):
-        continue
-    create_pcap_listener = _lib.create_pcap_listener
+# ../include/pcap_min.h: 32
+if hasattr(_libs['libclientlib.so'], 'create_pcap_listener'):
+    create_pcap_listener = _libs['libclientlib.so'].create_pcap_listener
     create_pcap_listener.argtypes = [String, gboolean, c_uint]
     create_pcap_listener.restype = POINTER(pcap_t)
-    break
 
 # /home/alanr/monitor/src/include/pcap_GSource.h: 23
 class struct__GSource_pcap(Structure):
@@ -2272,125 +2194,98 @@ struct__GSource_pcap._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/pcap_GSource.h: 44
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'g_source_pcap_new'):
-        continue
-    g_source_pcap_new = _lib.g_source_pcap_new
+if hasattr(_libs['libclientlib.so'], 'g_source_pcap_new'):
+    g_source_pcap_new = _libs['libclientlib.so'].g_source_pcap_new
     g_source_pcap_new.argtypes = [String, c_uint, CFUNCTYPE(UNCHECKED(gboolean), POINTER(GSource_pcap_t), POINTER(pcap_t), gconstpointer, gconstpointer, POINTER(struct_pcap_pkthdr), String, gpointer), GDestroyNotify, gint, gboolean, POINTER(GMainContext), gsize, gpointer]
     g_source_pcap_new.restype = POINTER(GSource)
-    break
 
 # /home/alanr/monitor/src/include/pcap_GSource.h: 62
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'construct_pcap_frameset'):
-        continue
-    construct_pcap_frameset = _lib.construct_pcap_frameset
+if hasattr(_libs['libclientlib.so'], 'construct_pcap_frameset'):
+    construct_pcap_frameset = _libs['libclientlib.so'].construct_pcap_frameset
     construct_pcap_frameset.argtypes = [guint16, gconstpointer, gconstpointer, POINTER(struct_pcap_pkthdr), String]
     construct_pcap_frameset.restype = POINTER(FrameSet)
-    break
 
 # /home/alanr/monitor/src/include/pcap_min.h: 32
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'create_pcap_listener'):
-        continue
-    create_pcap_listener = _lib.create_pcap_listener
+if hasattr(_libs['libclientlib.so'], 'create_pcap_listener'):
+    create_pcap_listener = _libs['libclientlib.so'].create_pcap_listener
     create_pcap_listener.argtypes = [String, gboolean, c_uint]
     create_pcap_listener.restype = POINTER(pcap_t)
-    break
 
 # /home/alanr/monitor/src/include/proj_classes.h: 14
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_new'):
-        continue
-    proj_class_new = _lib.proj_class_new
+if hasattr(_libs['libclientlib.so'], 'proj_class_new'):
+    proj_class_new = _libs['libclientlib.so'].proj_class_new
     proj_class_new.argtypes = [gsize, String]
     proj_class_new.restype = gpointer
-    break
 
 # /home/alanr/monitor/src/include/proj_classes.h: 15
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_dissociate'):
-        continue
-    proj_class_dissociate = _lib.proj_class_dissociate
+if hasattr(_libs['libclientlib.so'], 'proj_class_dissociate'):
+    proj_class_dissociate = _libs['libclientlib.so'].proj_class_dissociate
     proj_class_dissociate.argtypes = [gpointer]
     proj_class_dissociate.restype = None
-    break
 
 # /home/alanr/monitor/src/include/proj_classes.h: 16
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_free'):
-        continue
-    proj_class_free = _lib.proj_class_free
+if hasattr(_libs['libclientlib.so'], 'proj_class_free'):
+    proj_class_free = _libs['libclientlib.so'].proj_class_free
     proj_class_free.argtypes = [gpointer]
     proj_class_free.restype = None
-    break
 
 # /home/alanr/monitor/src/include/proj_classes.h: 17
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_register_object'):
-        continue
-    proj_class_register_object = _lib.proj_class_register_object
+if hasattr(_libs['libclientlib.so'], 'proj_class_register_object'):
+    proj_class_register_object = _libs['libclientlib.so'].proj_class_register_object
     proj_class_register_object.argtypes = [gpointer, String]
     proj_class_register_object.restype = None
-    break
 
 # /home/alanr/monitor/src/include/proj_classes.h: 18
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_castas'):
-        continue
-    proj_class_castas = _lib.proj_class_castas
+if hasattr(_libs['libclientlib.so'], 'proj_class_castas'):
+    proj_class_castas = _libs['libclientlib.so'].proj_class_castas
     proj_class_castas.argtypes = [gpointer, String]
     proj_class_castas.restype = gpointer
-    break
 
 # /home/alanr/monitor/src/include/proj_classes.h: 19
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_register_subclassed'):
-        continue
-    proj_class_register_subclassed = _lib.proj_class_register_subclassed
-    proj_class_register_subclassed.argtypes = [gpointer, String]
-    proj_class_register_subclassed.restype = None
-    break
+if hasattr(_libs['libclientlib.so'], 'proj_class_castasconst'):
+    proj_class_castasconst = _libs['libclientlib.so'].proj_class_castasconst
+    proj_class_castasconst.argtypes = [gconstpointer, String]
+    proj_class_castasconst.restype = gconstpointer
 
 # /home/alanr/monitor/src/include/proj_classes.h: 20
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_quark_add_superclass_relationship'):
-        continue
-    proj_class_quark_add_superclass_relationship = _lib.proj_class_quark_add_superclass_relationship
-    proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
-    proj_class_quark_add_superclass_relationship.restype = None
-    break
+if hasattr(_libs['libclientlib.so'], 'proj_class_register_subclassed'):
+    proj_class_register_subclassed = _libs['libclientlib.so'].proj_class_register_subclassed
+    proj_class_register_subclassed.argtypes = [gpointer, String]
+    proj_class_register_subclassed.restype = None
 
 # /home/alanr/monitor/src/include/proj_classes.h: 21
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_quark_is_a'):
-        continue
-    proj_class_quark_is_a = _lib.proj_class_quark_is_a
-    proj_class_quark_is_a.argtypes = [GQuark, GQuark]
-    proj_class_quark_is_a.restype = gboolean
-    break
+if hasattr(_libs['libclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
+    proj_class_quark_add_superclass_relationship = _libs['libclientlib.so'].proj_class_quark_add_superclass_relationship
+    proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
+    proj_class_quark_add_superclass_relationship.restype = None
 
 # /home/alanr/monitor/src/include/proj_classes.h: 22
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_classname'):
-        continue
-    proj_class_classname = _lib.proj_class_classname
+if hasattr(_libs['libclientlib.so'], 'proj_class_quark_is_a'):
+    proj_class_quark_is_a = _libs['libclientlib.so'].proj_class_quark_is_a
+    proj_class_quark_is_a.argtypes = [GQuark, GQuark]
+    proj_class_quark_is_a.restype = gboolean
+
+# /home/alanr/monitor/src/include/proj_classes.h: 23
+if hasattr(_libs['libclientlib.so'], 'proj_class_classname'):
+    proj_class_classname = _libs['libclientlib.so'].proj_class_classname
     proj_class_classname.argtypes = [gconstpointer]
     if sizeof(c_int) == sizeof(c_void_p):
         proj_class_classname.restype = ReturnString
     else:
         proj_class_classname.restype = String
         proj_class_classname.errcheck = ReturnString
-    break
 
-# /home/alanr/monitor/src/include/proj_classes.h: 25
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'proj_class_dump_live_objects'):
-        continue
-    proj_class_dump_live_objects = _lib.proj_class_dump_live_objects
+# /home/alanr/monitor/src/include/proj_classes.h: 26
+if hasattr(_libs['libclientlib.so'], 'proj_class_dump_live_objects'):
+    proj_class_dump_live_objects = _libs['libclientlib.so'].proj_class_dump_live_objects
     proj_class_dump_live_objects.argtypes = []
     proj_class_dump_live_objects.restype = None
-    break
+
+# /home/alanr/monitor/src/include/proj_classes.h: 27
+if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
+    proj_class_live_object_count = _libs['libclientlib.so'].proj_class_live_object_count
+    proj_class_live_object_count.argtypes = []
+    proj_class_live_object_count.restype = guint32
 
 # /home/alanr/monitor/src/include/seqnoframe.h: 25
 class struct__SeqnoFrame(Structure):
@@ -2404,6 +2299,7 @@ struct__SeqnoFrame.__slots__ = [
     'getqid',
     'setreqid',
     'setqid',
+    'equal',
     '_reqid',
     '_qid',
 ]
@@ -2413,27 +2309,22 @@ struct__SeqnoFrame._fields_ = [
     ('getqid', CFUNCTYPE(UNCHECKED(guint16), POINTER(SeqnoFrame))),
     ('setreqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint64)),
     ('setqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint16)),
+    ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
     ('_reqid', guint64),
     ('_qid', guint16),
 ]
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 34
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'seqnoframe_new'):
-        continue
-    seqnoframe_new = _lib.seqnoframe_new
+# /home/alanr/monitor/src/include/seqnoframe.h: 35
+if hasattr(_libs['libclientlib.so'], 'seqnoframe_new'):
+    seqnoframe_new = _libs['libclientlib.so'].seqnoframe_new
     seqnoframe_new.argtypes = [guint16, c_int]
     seqnoframe_new.restype = POINTER(SeqnoFrame)
-    break
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 35
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'seqnoframe_tlvconstructor'):
-        continue
-    seqnoframe_tlvconstructor = _lib.seqnoframe_tlvconstructor
+# /home/alanr/monitor/src/include/seqnoframe.h: 36
+if hasattr(_libs['libclientlib.so'], 'seqnoframe_tlvconstructor'):
+    seqnoframe_tlvconstructor = _libs['libclientlib.so'].seqnoframe_tlvconstructor
     seqnoframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     seqnoframe_tlvconstructor.restype = POINTER(Frame)
-    break
 
 bool_t = c_int # /home/alanr/monitor/src/include/server_dump.h: 10
 
@@ -2473,32 +2364,23 @@ for _lib in _libs.itervalues():
     dump_mem.restype = None
     break
 
-# include/pcap_min.h: 32
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'create_pcap_listener'):
-        continue
-    create_pcap_listener = _lib.create_pcap_listener
+# ../include/pcap_min.h: 32
+if hasattr(_libs['libclientlib.so'], 'create_pcap_listener'):
+    create_pcap_listener = _libs['libclientlib.so'].create_pcap_listener
     create_pcap_listener.argtypes = [String, gboolean, c_uint]
     create_pcap_listener.restype = POINTER(pcap_t)
-    break
 
-# include/pcap_GSource.h: 44
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'g_source_pcap_new'):
-        continue
-    g_source_pcap_new = _lib.g_source_pcap_new
+# ../include/pcap_GSource.h: 44
+if hasattr(_libs['libclientlib.so'], 'g_source_pcap_new'):
+    g_source_pcap_new = _libs['libclientlib.so'].g_source_pcap_new
     g_source_pcap_new.argtypes = [String, c_uint, CFUNCTYPE(UNCHECKED(gboolean), POINTER(GSource_pcap_t), POINTER(pcap_t), gconstpointer, gconstpointer, POINTER(struct_pcap_pkthdr), String, gpointer), GDestroyNotify, gint, gboolean, POINTER(GMainContext), gsize, gpointer]
     g_source_pcap_new.restype = POINTER(GSource)
-    break
 
-# include/pcap_GSource.h: 62
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'construct_pcap_frameset'):
-        continue
-    construct_pcap_frameset = _lib.construct_pcap_frameset
+# ../include/pcap_GSource.h: 62
+if hasattr(_libs['libclientlib.so'], 'construct_pcap_frameset'):
+    construct_pcap_frameset = _libs['libclientlib.so'].construct_pcap_frameset
     construct_pcap_frameset.argtypes = [guint16, gconstpointer, gconstpointer, POINTER(struct_pcap_pkthdr), String]
     construct_pcap_frameset.restype = POINTER(FrameSet)
-    break
 
 # /home/alanr/monitor/src/include/switchdiscovery.h: 23
 class struct__SwitchDiscovery(Structure):
@@ -2526,103 +2408,70 @@ struct__SwitchDiscovery._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/switchdiscovery.h: 33
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'switchdiscovery_new'):
-        continue
-    switchdiscovery_new = _lib.switchdiscovery_new
+if hasattr(_libs['libclientlib.so'], 'switchdiscovery_new'):
+    switchdiscovery_new = _libs['libclientlib.so'].switchdiscovery_new
     switchdiscovery_new.argtypes = [gsize, String, guint, gint, POINTER(GMainContext)]
     switchdiscovery_new.restype = POINTER(SwitchDiscovery)
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 14
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_get_guint8'):
-        continue
-    tlv_get_guint8 = _lib.tlv_get_guint8
+if hasattr(_libs['libclientlib.so'], 'tlv_get_guint8'):
+    tlv_get_guint8 = _libs['libclientlib.so'].tlv_get_guint8
     tlv_get_guint8.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint8.restype = guint8
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 15
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_get_guint16'):
-        continue
-    tlv_get_guint16 = _lib.tlv_get_guint16
+if hasattr(_libs['libclientlib.so'], 'tlv_get_guint16'):
+    tlv_get_guint16 = _libs['libclientlib.so'].tlv_get_guint16
     tlv_get_guint16.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint16.restype = guint16
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 16
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_get_guint24'):
-        continue
-    tlv_get_guint24 = _lib.tlv_get_guint24
+if hasattr(_libs['libclientlib.so'], 'tlv_get_guint24'):
+    tlv_get_guint24 = _libs['libclientlib.so'].tlv_get_guint24
     tlv_get_guint24.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint24.restype = guint32
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 17
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_get_guint32'):
-        continue
-    tlv_get_guint32 = _lib.tlv_get_guint32
+if hasattr(_libs['libclientlib.so'], 'tlv_get_guint32'):
+    tlv_get_guint32 = _libs['libclientlib.so'].tlv_get_guint32
     tlv_get_guint32.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint32.restype = guint32
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 18
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_get_guint64'):
-        continue
-    tlv_get_guint64 = _lib.tlv_get_guint64
+if hasattr(_libs['libclientlib.so'], 'tlv_get_guint64'):
+    tlv_get_guint64 = _libs['libclientlib.so'].tlv_get_guint64
     tlv_get_guint64.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint64.restype = guint64
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 19
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_set_guint8'):
-        continue
-    tlv_set_guint8 = _lib.tlv_set_guint8
+if hasattr(_libs['libclientlib.so'], 'tlv_set_guint8'):
+    tlv_set_guint8 = _libs['libclientlib.so'].tlv_set_guint8
     tlv_set_guint8.argtypes = [POINTER(None), guint8, POINTER(None)]
     tlv_set_guint8.restype = None
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 20
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_set_guint16'):
-        continue
-    tlv_set_guint16 = _lib.tlv_set_guint16
+if hasattr(_libs['libclientlib.so'], 'tlv_set_guint16'):
+    tlv_set_guint16 = _libs['libclientlib.so'].tlv_set_guint16
     tlv_set_guint16.argtypes = [POINTER(None), guint16, POINTER(None)]
     tlv_set_guint16.restype = None
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 21
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_set_guint24'):
-        continue
-    tlv_set_guint24 = _lib.tlv_set_guint24
+if hasattr(_libs['libclientlib.so'], 'tlv_set_guint24'):
+    tlv_set_guint24 = _libs['libclientlib.so'].tlv_set_guint24
     tlv_set_guint24.argtypes = [POINTER(None), guint32, POINTER(None)]
     tlv_set_guint24.restype = None
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 22
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_set_guint32'):
-        continue
-    tlv_set_guint32 = _lib.tlv_set_guint32
+if hasattr(_libs['libclientlib.so'], 'tlv_set_guint32'):
+    tlv_set_guint32 = _libs['libclientlib.so'].tlv_set_guint32
     tlv_set_guint32.argtypes = [POINTER(None), guint32, POINTER(None)]
     tlv_set_guint32.restype = None
-    break
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 23
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'tlv_set_guint64'):
-        continue
-    tlv_set_guint64 = _lib.tlv_set_guint64
+if hasattr(_libs['libclientlib.so'], 'tlv_set_guint64'):
+    tlv_set_guint64 = _libs['libclientlib.so'].tlv_set_guint64
     tlv_set_guint64.argtypes = [POINTER(None), guint64, POINTER(None)]
     tlv_set_guint64.restype = None
-    break
 
 # /home/alanr/monitor/src/include/unknownframe.h: 22
 class struct__UnknownFrame(Structure):
@@ -2638,22 +2487,16 @@ struct__UnknownFrame._fields_ = [
 ]
 
 # /home/alanr/monitor/src/include/unknownframe.h: 26
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'unknownframe_new'):
-        continue
-    unknownframe_new = _lib.unknownframe_new
+if hasattr(_libs['libclientlib.so'], 'unknownframe_new'):
+    unknownframe_new = _libs['libclientlib.so'].unknownframe_new
     unknownframe_new.argtypes = [guint16]
     unknownframe_new.restype = POINTER(UnknownFrame)
-    break
 
 # /home/alanr/monitor/src/include/unknownframe.h: 27
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'unknownframe_tlvconstructor'):
-        continue
-    unknownframe_tlvconstructor = _lib.unknownframe_tlvconstructor
+if hasattr(_libs['libclientlib.so'], 'unknownframe_tlvconstructor'):
+    unknownframe_tlvconstructor = _libs['libclientlib.so'].unknownframe_tlvconstructor
     unknownframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     unknownframe_tlvconstructor.restype = POINTER(Frame)
-    break
 
 # /home/alanr/monitor/src/include/address_family_numbers.h: 23
 try:
@@ -2751,29 +2594,39 @@ try:
 except:
     pass
 
-# include/frame.h: 48
+# /usr/include/glib-2.0/glib/gslist.h: 51
+try:
+    g_slist_free1 = g_slist_free_1
+except:
+    pass
+
+# /usr/include/glib-2.0/glib/gslist.h: 107
+def g_slist_next(slist):
+    return slist and (slist.contents.next) or NULL
+
+# ../include/frame.h: 48
 try:
     FRAME_INITSIZE = 4
 except:
     pass
 
-# include/projectcommon.h: 13
+# ../include/projectcommon.h: 13
 def DIMOF(a):
     return (sizeof(a) / sizeof((a [0])))
 
-# include/projectcommon.h: 14
+# ../include/projectcommon.h: 14
 def MALLOC0(nbytes):
     return (g_try_malloc0 (nbytes))
 
-# include/projectcommon.h: 15
+# ../include/projectcommon.h: 15
 def MALLOC(nbytes):
     return (g_try_malloc (nbytes))
 
-# include/projectcommon.h: 18
+# ../include/projectcommon.h: 18
 def FREE(m):
     return (g_free (m))
 
-# include/projectcommon.h: 21
+# ../include/projectcommon.h: 21
 try:
     FMT_64BIT = '%ll'
 except:
@@ -3277,13 +3130,13 @@ try:
 except:
     pass
 
-# include/pcap_min.h: 27
+# ../include/pcap_min.h: 27
 try:
     ENABLE_LLDP = 1
 except:
     pass
 
-# include/pcap_min.h: 29
+# ../include/pcap_min.h: 29
 try:
     ENABLE_CDP = 2
 except:
@@ -3301,13 +3154,13 @@ try:
 except:
     pass
 
-# include/pcap_min.h: 27
+# ../include/pcap_min.h: 27
 try:
     ENABLE_LLDP = 1
 except:
     pass
 
-# include/pcap_min.h: 29
+# ../include/pcap_min.h: 29
 try:
     ENABLE_CDP = 2
 except:
@@ -3469,11 +3322,13 @@ try:
 except:
     pass
 
+_GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 40
+
 _FrameSet = struct__FrameSet # /home/alanr/monitor/src/include/frameset.h: 27
 
-_Frame = struct__Frame # include/frame.h: 29
+_Frame = struct__Frame # ../include/frame.h: 29
 
-_NetAddr = struct__NetAddr # include/netaddr.h: 25
+_NetAddr = struct__NetAddr # ../include/netaddr.h: 25
 
 _AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 25
 
@@ -3483,11 +3338,11 @@ _FrameTypeToFrame = struct__FrameTypeToFrame # /home/alanr/monitor/src/include/d
 
 _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 32
 
-_SignFrame = struct__SignFrame # include/signframe.h: 27
+_SignFrame = struct__SignFrame # ../include/signframe.h: 27
 
-_NetIO = struct__NetIO # include/netio.h: 28
+_NetIO = struct__NetIO # ../include/netio.h: 28
 
-_NetGSource = struct__NetGSource # include/netgsource.h: 36
+_NetGSource = struct__NetGSource # ../include/netgsource.h: 36
 
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 31
 

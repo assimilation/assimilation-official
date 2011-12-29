@@ -86,14 +86,18 @@ cast_frameset_tests(void)
 	tlv_set_guint16(address, 1, address + DIMOF(address));
 	af->setaddr(af, ADDR_FAMILY_IPV4, address, sizeof(address));
 	frameset_append_frame(fs, CASTTOCLASS(Frame,f));
+        f->unref(f); f = NULL;
 	frameset_append_frame(fs, CASTTOCLASS(Frame, csf));
+        csf->baseclass.unref(CASTTOCLASS(Frame, csf)); csf = NULL;
 	frameset_append_frame(fs, CASTTOCLASS(Frame, af));
+        af->baseclass.unref(CASTTOCLASS(Frame, af)); af = NULL;
 	frameset_append_frame(fs, CASTTOCLASS(Frame, intf));
+        intf->baseclass.unref(CASTTOCLASS(Frame, intf)); intf = NULL;
 	frameset_construct_packet(fs, sigf, NULL, NULL);
+        sigf->baseclass.unref(CASTTOCLASS(Frame, sigf)); sigf = NULL;
 	proj_class_dump_live_objects();
 	g_message("finalizing the FrameSet (and presumably frames)");
-	fs->unref(fs);
-	fs = NULL;
+	fs->unref(fs); fs = NULL;
 	proj_class_dump_live_objects();
 	g_message("C-class cast tests complete! - please check the output for errors.");
 }
@@ -133,13 +137,17 @@ address_tests(void)
 
 	g_message("Starting Known Good AddressFrame tests.");
 	for (j=0; j < DIMOF(gframes); ++j) {
+                Frame * faf;
 		af = gframes[j];
-		if (!af->baseclass.isvalid(CASTTOCLASS(Frame, af), NULL, NULL)) {
+                faf = CASTTOCLASS(Frame, af);
+		if (!af->baseclass.isvalid(faf, NULL, NULL)) {
 			g_critical("OOPS Good AddressFrame %d is NOT valid!", j);
 		}
-		frameset_append_frame(gfs, CASTTOCLASS(Frame, af));
+		frameset_append_frame(gfs, faf);
+                af->baseclass.unref(faf);
 	}
 	frameset_construct_packet(gfs, gsigf, NULL, NULL);
+	gsigf->baseclass.unref(CASTTOCLASS(Frame, gsigf));
 	gfs->unref(gfs); gfs = NULL; gsigf=NULL;
 
 
@@ -168,7 +176,7 @@ address_tests(void)
 
 
 
-#define PCAP	"pcap/"
+#define PCAP	"../pcap/"
 
 /// Main program for performing tests that don't need a network.
 int

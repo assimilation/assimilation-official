@@ -157,6 +157,31 @@ proj_class_castas(gpointer object,		///< Object to be "casted"
 	return object;
 }
 
+/// "Safely" cast an object to a const given class type.
+/// What we mean by that, is that before returning, we verify that the object in question
+/// <b>ISA</b> <i>castclass</i> object.
+/// If it's not, we abort.  Better a semi-predictable abort than a random and unpredictable crash.
+gconstpointer
+proj_class_castasconst(gconstpointer object,		///< Object to be "casted"
+		  const char * castclass)	///< Class to cast it as
+{
+	GQuark		objquark;
+	GQuark		castquark;
+	objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
+	castquark = g_quark_from_string(castclass);
+
+	if (objquark != castquark || castquark == 0) {
+		if (!proj_class_quark_is_a(objquark, castquark)) {
+			const char *objclass =  (0 == objquark  ? "(unknown class)" : g_quark_to_string(objquark));
+			const char *castclass = (0 == castquark ? "(unknown class)" : g_quark_to_string(castquark));
+			g_error("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
+		}
+	}
+	return object;
+}
+
+/// Return the class name of one of our managed objects
+
 /// Return the class name of one of our managed objects
 const char *
 proj_class_classname(gconstpointer object) ///< pointer to the object whose name we want to find
@@ -198,12 +223,33 @@ proj_class_dump_live_objects(void)
 	gpointer	quarkp;
 
 	g_debug("START of live C Class object dump:");
-	g_hash_table_iter_init(&iter, ObjectClassAssociation);
-	while (g_hash_table_iter_next(&iter, &object, &quarkp)) {
-		g_debug("        Object at %p is type %s", object, proj_class_classname(object));
+	if (ObjectClassAssociation) {
+		g_hash_table_iter_init(&iter, ObjectClassAssociation);
+		while (g_hash_table_iter_next(&iter, &object, &quarkp)) {
+			g_debug("        Object at %p is type %s", object, proj_class_classname(object));
+		}
 	}
 	g_debug("END of live C Class object dump.");
 }
 
+
+/// Return the count of live C class objects
+guint32
+proj_class_live_object_count(void)
+{
+	GHashTableIter	iter;
+	gpointer	object;
+	gpointer	quarkp;
+	guint32		count = 0;
+	
+
+	if (ObjectClassAssociation) {
+		g_hash_table_iter_init(&iter, ObjectClassAssociation);
+		while (g_hash_table_iter_next(&iter, &object, &quarkp)) {
+			count += 1;
+		}
+	}
+	return count;
+}
 
 ///@}

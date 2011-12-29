@@ -44,7 +44,7 @@ tlv_get_guint16(const void * vitem,	///< Location to get int from
 	const guint16* itemptr = (const guint16*)vitem;
 	guint16 item;
 	if (!(vitem != NULL && ((itemptr+1) <= (const guint16*)bufend))) {
-		g_error("UhOh!");
+		g_error("UhOh! vitem is %p and bufend is %p", vitem, bufend);
 	}
 	g_return_val_if_fail(vitem != NULL && ((const void*)(itemptr+1) <= bufend), (guint16)0xffff);
 	memcpy(&item, vitem, sizeof(item));

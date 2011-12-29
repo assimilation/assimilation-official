@@ -115,14 +115,21 @@ class pyNetAddr:
          16 bytes == ipv6 address
         This is slightly sleazy but it should work for the forseeable future.
         '''
+        self._Cstruct = None
         if (Cstruct is not None):
+            assert type(Cstruct) is not int
             self._Cstruct = Cstruct
             return
         alen = len(addrstring)
-        assert alen >= 4
         addr = create_string_buffer(alen)
-        for i in range(0, alen-1):
-            addr[i] =  chr(addrstring[i])
+        #print "ADDRTYPE:", type(addr)
+        for i in range(0, alen):
+            #print "ADDRSTRINGTYPE", type(addrstring[i])
+            asi = addrstring[i]
+            if type(asi) is str:
+                addr[i] = asi
+            else:
+                addr[i] = chr(asi)
         if alen == 4:		# ipv4
             if port == None:
                 port = 0
@@ -130,13 +137,13 @@ class pyNetAddr:
         elif alen == 16:	# ipv6
             if port == None:
                 port = 0
-            self._Cstruct = netaddr_ipv6_new(addrstring, port)
+            self._Cstruct = netaddr_ipv6_new(addr, port)
         elif alen == 6:		# "Normal" 48-bit MAC address
             assert port == None
-            self._Cstruct = netaddr_mac48_new(addrstring)
+            self._Cstruct = netaddr_mac48_new(addr)
         elif alen == 8:		# Extended 64-bit MAC address
             assert port == None
-            self._Cstruct = netaddr_mac64_new(addrstring)
+            self._Cstruct = netaddr_mac64_new(addr)
         else:
             raise ValueError("Invalid address length - not 4, 6, 8, or 16")
 
@@ -167,14 +174,16 @@ class pyNetAddr:
         while (type(base) is not NetAddr):
 	    base=base.baseclass
         cstringret = base.toString(self._Cstruct)
-        ## @TODO: Create better workaround.  This one sucks as it stands...
-        libc = CDLL("libc.so.6")
-        strcat = libc.strcat
-        strcat.restype = c_char_p
-        strcat.argtypes = (c_char_p, c_char_p)
-        ret = strcat(cast(cstringret, c_char_p), "") # No-op to work around ctypes bug/limitation...
+        ret = string_at(cstringret)
         g_free(cstringret)
         return ret
+
+    def __eq__(self, rhs):
+        'Compare this pyNetAddr to another pyNetAddr'
+        lhsbase = self._Cstruct[0]
+        while (type(lhsbase) is not NetAddr):
+	    lhsbase=lhsbase.baseclass
+        return lhsbase.equal(self._Cstruct, rhs._Cstruct)
          
 
     # Do we need to define an addrbody() member function?
@@ -186,9 +195,11 @@ class pyNetAddr:
         return base.equal(self._Cstruct, other._Cstruct)
 
     def __del__(self):
-        "Free up the underlying Cstruct for this pyNetAddr object"
+        'Free up the underlying Cstruct for this pyNetAddr object.'
+        if self._Cstruct is None:
+            return
 	base=self._Cstruct[0]
-	# I have no idea why the type(base) is not NetAddr doesn't work here...
+	# I have no idea why the type(base) is not Frame doesn't work here...
 	# This 'hasattr' construct only works because we are a base C-class
         while (hasattr(base, 'baseclass')):
 	    base=base.baseclass
@@ -215,7 +226,7 @@ class pyFrame:
     #			to act as a pseudo-constructor.  This method/constructor is used to create
     #			Python objects from incoming packet data.
     #
-    def __init__(self, initval, Cstruct=True):
+    def __init__(self, initval, Cstruct=None):
         "Initializer for the pyFrame object."
 	if Cstruct is None:
             try:
@@ -223,9 +234,12 @@ class pyFrame:
             except:
                 frametype = int(initval)
             # If we don't do this, then a subclass __init__ function must do it instead...
-            self._CStruct = frame_new(frametype, 0)
+            self._Cstruct = frame_new(frametype, 0)
         else:
             self._Cstruct = Cstruct
+	base=self._Cstruct[0]
+        while (type(base)is not Frame):
+	    base=base.baseclass
 
     def frametype(self):
         "Return the TLV type for the pyFrame object."
@@ -242,11 +256,14 @@ class pyFrame:
         return base.length
    
     def framevalue(self):
-        'Return a C-style pointer to the underlying raw TLV data (if any)'
-        return self._Cstruct[0].baseclass.value
+        'Return a C-style pointer (as an int) to the underlying raw TLV data (if any)'
+	base=self._Cstruct[0]
+        while (type(base)is not Frame):
+	    base=base.baseclass
+        return pointer(cast(base.value, c_char_p))
 
     def dataspace(self):
-        'Return the amount of space this frame needs - is this always the same as framelen?'
+        'Return the amount of space this frame needs - including type and length'
 	base=self._Cstruct[0]
         while (type(base) is not Frame):
 	    base=base.baseclass
@@ -257,18 +274,35 @@ class pyFrame:
 	base=self._Cstruct[0]
         while (type(base) is not Frame):
 	    base=base.baseclass
-        return (int(base.isvalid(self._Cstruct)) != 0)
+        pstart = pointer(cast(base.value, c_char_p))
+#        if pstart[0] is None:
+#            return False
+        return (int(base.isvalid(self._Cstruct, None, None)) != 0)
 
     def setvalue(self, value):
         'Assign a chunk of memory to the Value portion of this Frame'
         vlen = len(value)
-        valbuf = create_string_buffer(vlen)
-        for i in range(0, vlen-1):
-            valbuf[i] =  chr(value[i])
+        if type(value) is str:
+            valbuf = create_string_buffer(vlen+1)
+            for i in range(0, vlen):
+                vi = value[i]
+                valbuf[i] =  vi
+            valbuf[vlen] = chr(0)
+            vlen += 1
+        else:
+            valbuf = create_string_buffer(vlen)
+            for i in range(0, vlen):
+                vi = value[i]
+                valbuf[i] =  int(vi)
 	base=self._Cstruct[0]
+        valptr = MALLOC(vlen)
+        memmove(valptr, valbuf, vlen)
         while (type(base) is not Frame):
 	    base=base.baseclass
-        base.setvalue(self._Cstruct, vlen, None)
+        base.setvalue(self._Cstruct, valptr, vlen, cast(None, GDestroyNotify))
+
+    def cclassname(self):
+        return proj_class_classname(self._Cstruct)
 
     def dump(self, prefix):
         'Dump out this Frame (using C-class "dump" member function)'
@@ -279,6 +313,8 @@ class pyFrame:
 
     def __del__(self):
         'Free up the underlying Cstruct for this pyFrame object.'
+        if self._Cstruct is None or self._Cstruct[0] is None:
+            return
 	base=self._Cstruct[0]
 	# I have no idea why the type(base) is not Frame doesn't work here...
 	# This 'hasattr' construct only works because we are a base C-class
@@ -288,48 +324,46 @@ class pyFrame:
 
 class pyAddrFrame(pyFrame):
     '''This class represents the Python version of our C-class AddrFrame - represented by the struct _AddrFrame.
-    @FIXME: This code doesn't even look close at the moment. Sigh...
     '''
     def __init__(self, frametype, addrstring=None, port=None, Cstruct=None):
         "Initializer for the pyAddrFrame object."
-        if Cstruct is not None:
-            self._Cstruct = Cstruct;
-            self._pyNetAddr = pyNetAddr(Cstruct=Cstruct[0].value)
-            return
-
-        assert addrstring is not None
-        Cstruct = addrframe_new(frametype, 0);
-        Cstruct[0]._setnetaddr(self._Cstruct, self._pyAddr._Cstruct)
+        self._Cstruct = None
+        if Cstruct is None:
+            # Doing this duplicately to avoid losing track of Cstruct if addrstring is bad
+            self._pyNetAddr = pyNetAddr(addrstring, port=None)
+            Cstruct = addrframe_new(frametype, 0);
+        else:
+            Cstruct = cast(Cstruct, POINTER(AddrFrame))
+            addrstr = Cstruct[0].baseclass.value
+            addrlen = Cstruct[0].baseclass.length
+            addrstring = create_string_buffer(addrlen)
+            memmove(addrstring, addrstr, addrlen)
+            # Doing this duplicately to avoid losing track of Cstruct if addrstring is bad
+            self._pyNetAddr = pyNetAddr(addrstring, port=None)
+        Cstruct[0].setnetaddr(Cstruct, self._pyNetAddr._Cstruct)
         pyFrame.__init__(self, frametype, Cstruct)
-        self._pyNetAddr = pyNetAddr(addrstring, port)
+
+    def addrtype(self):
+        return self._pyNetAddr.addrtype()
+
+    def __str__(self):
+       return ("pyAddrFrame(%s)" % str(self._pyNetAddr))
 
 
 class pyCstringFrame(pyFrame):
     '''This class represents the Python version of our C-class CstringFrame - represented by the struct _CstringFrame
     This class represents a Frame standard NUL-terminated C string.
     '''
-    def __init__(self, frametype, initval=None):
+    def __init__(self, frametype, initval=None, Cstruct=None):
 	'Constructor for pyCstringFrame object - initial value should be something that looks a lot like a Python string'
-        self._Cstruct=cstringframe_new(frametype, 0)
+        if Cstruct is None:
+           Cstruct=cstringframe_new(frametype, 0)
+        pyFrame.__init__(self, frametype, Cstruct)
         if initval is not None:
             self.setvalue(initval)
-            
-    def setvalue(self, value):
-	'Assign a Python String to our C-string TLV value'
-        vlen = len(value)
-        self._Cstruct[0].baseclass.setvalue(self._Cstruct, cast(value, c_char_p), vlen+1, cast(None, GDestroyNotify))
-
     def __str__(self) :
 	'Convert the underlying C-string Value into a Python String.'
-	vlen = self.framelen()-1 # Ignore the obligatory NUL ('\0')character at the end of the string
-        rawret =  cast(self._Cstruct[0].baseclass.value, POINTER(c_char))
-	EOS=chr(0)
-	ret=""
-	for i in range(0,vlen):
-	    if rawret[i] == EOS:
-		break;
-	    ret += rawret[i]
-        return ret
+        return string_at(self._Cstruct[0].baseclass.value)
 
 class pyIntFrame(pyFrame):
     '''This class represents the Python version of our IntFrame C-class - represented by the struct _IntFrame
@@ -337,8 +371,11 @@ class pyIntFrame(pyFrame):
     '''
     def __init__(self, frametype, initval=None, intbytes=4, Cstruct=None):
 	'Constructor for pyIntFrame object - initial value should be something that looks a lot like an integer'
+        self._Cstruct = None
         if Cstruct is None:
             Cstruct=intframe_new(frametype, intbytes)
+        if not Cstruct:
+            raise ValueError, ("Invalid integer size (%d) in pyIntFrame constructor" % intbytes)
         pyFrame.__init__(self, frametype, Cstruct=Cstruct)
         if initval is not None:
             self.setint(initval)
@@ -376,23 +413,51 @@ class pyUnknownFrame(pyFrame):
 
 class pySeqnoFrame(pyFrame):
     'Class for a Sequence Number Frame - for reliable UDP packet transmission.'
-    def __init__(self, frametype, Cstruct=None):
+    def __init__(self, frametype, initval=None, Cstruct=None):
         'Initializer for pySeqnoFrame'
+        self._Cstruct = None
         # TODO(?): Need to allow for initialization of seqno frames.
         if Cstruct is None:
-            Cstruct=seqnoframe_new(frametype)
+            Cstruct=seqnoframe_new(frametype, 0)
+        if not Cstruct:
+            raise ValueError, "Constructor error for PySeqnoFrame()"
         pyFrame.__init__(self, frametype, Cstruct=Cstruct)
+        if initval is not None:
+            self.setqid(initval[0])
+            self.setreqid(initval[1])
+
+    def setreqid(self, reqid):
+        self._Cstruct[0].setreqid(self._Cstruct, reqid)
+
+    def setqid(self, qid):
+        self._Cstruct[0].setqid(self._Cstruct, qid)
+
+    def getreqid(self):
+        return self._Cstruct[0].getreqid(self._Cstruct)
+
+    def getqid(self):
+        return self._Cstruct[0].getqid(self._Cstruct)
+
+    def __eq__(self, rhs):
+        'Compare this pySeqnoFrame to another pySeqnoFrame'
+        lhsbase = self._Cstruct[0]
+        while (type(lhsbase) is not SeqnoFrame):
+	    lhsbase=lhsbase.baseclass
+        return lhsbase.equal(self._Cstruct, rhs._Cstruct)
+
+    def __str__(self):
+       return "(%d,%d)" % (self.getqid(), self.getreqid())
 
 class pySignFrame(pyFrame):
     'Class for Digital Signature Frames - for authenticating data (subclasses will authenticate senders)'
     def __init__(self, gchecksumtype, Cstruct=None):
         'Initializer for pySignFrame'
+        self._Cstruct = None
         if Cstruct is None:
-            Cstruct=signframe_new(FRAMETYPE_SIG, gchecksumtype)
-        pyFrame.__init__(self, FRAMETYPE_SIG, Cstruct=Cstruct)
-#
-#	Here are the remaining classes not yet wrapped:
-#	FrameSet
+            Cstruct=signframe_new(gchecksumtype, 0)
+        if not Cstruct:
+            raise ValueError, ("Invalid checksum type (%s) for PySignFrame()" % gchecksumtype)
+        pyFrame.__init__(self, initval=FRAMETYPE_SIG, Cstruct=Cstruct)
 
 class pyFrameSet:
     'Class for Frame Sets - for collections of Frames making up a logical packet'
@@ -418,7 +483,11 @@ class pyFrameSet:
             cf = cryptframe._Cstruct
         if compressframe is not None:
             cmpf = compressframe._Cstruct
-        frameset_construct_packet(self._Cstruct, cryptframe._Cstruct, cf, cmpf)
+        frameset_construct_packet(self._Cstruct, signframe._Cstruct, cf, cmpf)
+
+    def get_framesettype(self):
+        'Return frameset type of this FrameSet'
+        return self._Cstruct[0].fstype
 
     def get_flags(self):
         'Return current flags for this FrameSet'
@@ -438,6 +507,8 @@ class pyFrameSet:
 
     def __del__(self):
         "Free up the underlying Cstruct for this pyFrameSet object"
+        if self._Cstruct is None:
+            return
 	base=self._Cstruct[0]
 	# I have no idea why the type(base) is not NetAddr doesn't work here...
 	# This 'hasattr' construct only works because we are a base C-class
@@ -445,24 +516,29 @@ class pyFrameSet:
 	    base=base.baseclass
         base.unref(self._Cstruct)
 
-addr = pyNetAddr([10,10,10,10],80)
-print "port is ", addr.port()
-print "addrtype is ", addr.addrtype()
-print "addrlen is ", addr.addrlen()
-print "Address is [%s]" % pyNetAddr([10,11,12,13],80)
-print pyNetAddr([10,10,10,10],8080).port()
-Sframe = pyCstringFrame(100,"Hello, world.")
-print ("Sframe is [%s]"% str(Sframe))
-for ilen in (1,2,3,4,8):
-    HhGttGIntFrame = pyIntFrame(101, 42, intbytes=ilen)
-    print ("Iframe is [%d], length is %d bytes." % (int(HhGttGIntFrame), HhGttGIntFrame.intlength()))
-HhGttGSframe = pyCstringFrame(100, str(HhGttGIntFrame))
-print ("CStringframe is [%s]" % HhGttGSframe)
-print ("TLV location: %s" %  str(HhGttGSframe.framevalue()))
-print "Hello, " + str(HhGttGIntFrame) + "."
-HhGttGSframe.dump("The answer to the ultimate question of life, the universe, and everything: ")
-fs = pyFrameSet(42)
-fs.append(Sframe)
-fs.append(HhGttGIntFrame)
-fs.append(HhGttGSframe)
-fs.dump()
+    def __len__(self):
+        curframe = self._Cstruct[0].framelist;
+        count=0
+        while curframe:
+            count += 1
+            curframe=g_slist_next(curframe)
+        return count
+
+    def iter(self):
+        'Generator yielding the set of C-level Frames in this pyFrameSet'
+        curframe = self._Cstruct[0].framelist;
+        Frame_p = POINTER(Frame)
+        while curframe:
+            frameptr = cast(curframe[0].data, Frame_p)
+            frametype = frameptr[0].type
+            Cclassname = proj_class_classname(frameptr)
+            pyclassname = "py" + Cclassname
+            # I suspect (but don't know) that the 'ref' call below is always necessary
+            frameptr[0].ref(frameptr)
+            if Cclassname == "NetAddr":
+                statement = "%s(%d, None, Cstruct=frameptr)" % (pyclassname, frametype)
+            else:
+                statement = "%s(%d, Cstruct=frameptr)" % (pyclassname, frametype)
+            #print statement
+            yield eval(statement)
+            curframe=g_slist_next(curframe)

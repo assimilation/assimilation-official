@@ -45,16 +45,28 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 			      gconstpointer tlvptr,	///<[in] Pointer to the TLV for this CstringFrame
 			      gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
-	gsize		length = get_generic_tlv_len(tlvptr, pktend);
-	const guint8*	stringstart = get_generic_tlv_value(tlvptr, pktend);
-	const guint8*	endplace = stringstart + length;
-	const guint8*	expectedplace = endplace-1;
+	gsize		length;
+	const guint8*	stringstart;
+	const guint8*	endplace;
+	const guint8*	expectedplace;
 
 	(void)self;
-	g_return_val_if_fail(NULL != tlvptr, FALSE);
-	g_return_val_if_fail(NULL != pktend, FALSE);
-	g_return_val_if_fail(length > 0,  FALSE);
+	if (tlvptr == NULL) {
+		if (self->value == NULL) {
+			return FALSE;
+		}
+		length = self->length;
+		stringstart = self->value;
+	}else{
+		length = get_generic_tlv_len(tlvptr, pktend);
+		stringstart = get_generic_tlv_value(tlvptr, pktend);
+		g_return_val_if_fail(NULL != tlvptr, FALSE);
+		g_return_val_if_fail(NULL != pktend, FALSE);
+		g_return_val_if_fail(length > 0,  FALSE);
+	}
 
+	endplace = stringstart + length;
+	expectedplace = endplace-1;
 	return expectedplace == memchr(stringstart, 0x00, length);
 }
 

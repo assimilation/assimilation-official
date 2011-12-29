@@ -150,6 +150,7 @@ pktdata_to_frameset_list(gconstpointer pktstart,	///<[in] start of packet
 				return ret;
 			}
 			frameset_append_frame(fs, newframe);
+                        newframe->unref(newframe); newframe = NULL;
 			curframe = nextframe;
 		}
 		ret = g_slist_append(ret, fs);
