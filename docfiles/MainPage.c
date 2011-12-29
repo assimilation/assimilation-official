@@ -27,6 +27,10 @@ These two main ideas create a system which will have both a great out-of-the-box
 experience for new users and smooth accommodation of growth to virtually
 all environments.
 
+@subsection ProgressReports Progress Reports on the project
+The team currently posts updates in the following places:
+- Twitter - fairly frequent from @OSSAlanR
+- linux-ha-dev mailing list - less frequent - lists.linux-ha.org/mailman/listinfo/linux-ha-dev
 @subsection architecture Architecture
 This concept has two kinds of participating entities:
  - a Centralized Monitoring Authority - monitoring the collective
