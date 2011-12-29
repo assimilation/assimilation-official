@@ -29,7 +29,7 @@ all environments.
 
 @subsection ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
-- Twitter - fairly frequent from @OSSAlanR
+- Twitter - fairly frequent from @@OSSAlanR
 - linux-ha-dev mailing list - less frequent - lists.linux-ha.org/mailman/listinfo/linux-ha-dev
 @subsection architecture Architecture
 This concept has two kinds of participating entities:
