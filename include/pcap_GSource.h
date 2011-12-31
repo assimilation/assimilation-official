@@ -59,6 +59,7 @@ GSource* g_source_pcap_new(const char * dev,
 			   gsize objectsize,
 			   gpointer userdata
 			  );
+void g_source_pcap_finalize(GSource* src); // Here to work around some Glib bugs/misunderstandings...
 FrameSet* construct_pcap_frameset(guint16 framesettype, gconstpointer pkt, gconstpointer pktend,
 				  const struct pcap_pkthdr* pkthdr, const char * interface);
 

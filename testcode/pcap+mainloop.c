@@ -203,7 +203,6 @@ main(int argc, char **argv)
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	NetGSource*	netpkt;
 	HbListener*	hblisten;
-	void g_source_pcap_finalize(GSource* src);
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
