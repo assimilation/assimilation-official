@@ -163,6 +163,7 @@ FSTATIC void
 _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 {
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
+	g_message("***********IN %s()", __FUNCTION__);
 	if (self->_finalize) {
 		self->_finalize(self->_userdata);
 	}else{
@@ -174,6 +175,7 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 		}
 	}
 	if (self->_gsfuncs) {
+		g_message("***********FREEING GSFUNCS %s()", __FUNCTION__);
 		FREECLASSOBJ(self->_gsfuncs);
 		self->_gsfuncs = NULL;
 	}

@@ -86,7 +86,8 @@ FSTATIC void
 _frameset_finalize(FrameSet* fs)	///< frameset to finalize
 {
 	g_return_if_fail(NULL != fs);
-	/// @todo should only do this if the frameset won't need retransmitting.
+	/// @todo should only do this if the frameset won't need retransmitting -
+	/// - of course that should be handled by reference counts - not by special code here...
 	if (fs->framelist) {
 		// Would rather use g_slist_free_full() - but it's too new to be widely deployed...
 		while (NULL != fs->framelist) {

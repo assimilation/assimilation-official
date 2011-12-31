@@ -69,6 +69,7 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 	if (g_slist_find(_hb_listeners, self) != NULL) {
 		_hb_listeners = g_slist_remove(_hb_listeners, self);
 		_hb_listener_count -= 1;
+                // We get called by unref - and it expects us to do this...
 		self->unref(self);
 		return;
 	}
@@ -168,14 +169,12 @@ _hblistener_unref(HbListener* self)	///<[in/out] Object to decrement reference c
 	g_return_if_fail(self->_refcount > 0);
 	self->_refcount -= 1;
 	if (self->_refcount == 1) {
-		// Our listener list holds an extra reference count...
+		// Our listener list should hold an extra reference count...
 		_hblistener_dellist(self);
-		// hblistener_dellist will decrement reference count by 1
-		g_return_if_fail(self->_refcount == 0);
+		// hblistener_dellist will normally decrement reference count by 1
+		// We will have gotten called recursively and finished the 'unref' work there...
 		self = NULL;
-		return;
-	}
-	if (self->_refcount == 0) {
+	}else if (self->_refcount == 0) {
 		self->_finalize(self);
 		self = NULL;
 	}

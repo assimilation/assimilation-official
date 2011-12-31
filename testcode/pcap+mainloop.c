@@ -45,6 +45,9 @@ GMainLoop*	loop = NULL;
 NetIO*		transport;
 NetAddr*	destaddr;
 HbSender*	sender = NULL;
+int		wirepktcount = 0;
+int		errcount = 0;
+int		pcapcount = 0;
 void send_encapsulated_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
 gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
 gboolean gotnetpkt(NetGSource* gs, FrameSet* fs, NetAddr* srcaddr, gpointer ignored);
@@ -59,7 +62,7 @@ send_encapsulated_packet(gconstpointer packet,			///<[in] pcap packet data
 		   const char * dev)			///<[in] capture device
 {
 	FrameSet *	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, packet, pktend, hdr, dev);
-	g_message("Sending a frameset containing an encapsulated capture packet.");
+	//g_message("Sending a frameset containing an encapsulated capture packet.");
 	transport->sendaframeset(transport, destaddr, fs);
 	fs->unref(fs); fs = NULL;
 }
@@ -75,24 +78,28 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	   gpointer userdatanotused)		///<[unused] unused userdata pointer
 {
 	FrameSet *	fs;
-	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	SignFrame*	signature;
 	(void)srcobj; (void)capfd; (void)userdatanotused;
+	++pcapcount;
 	if (is_valid_lldp_packet(pkt, pend)) {
 		g_message("Found a %d/%d byte LLDP packet!", hdr->caplen, hdr->len);
-		dump_lldp_packet(pkt, pend);
+		//dump_lldp_packet(pkt, pend);
 	}else if (is_valid_cdp_packet(pkt, pend)) {
 		g_message("Found a %d/%d byte CDP packet!", hdr->caplen, hdr->len);
-		dump_cdp_packet(pkt, pend);
+		//dump_cdp_packet(pkt, pend);
 	}else{
 		g_warning("Found a %d/%d byte INVALID packet!", hdr->caplen, hdr->len);
+		++errcount;
 	}
-	g_message("Constructing a frameset for this %d byte captured packet.", hdr->caplen);
+	signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	//g_message("Constructing a frameset for this %d byte captured packet.", hdr->caplen);
 	fs = construct_pcap_frameset(0xfeed, pkt, pend, hdr, dev);
-	g_message("Constructing a capture packet packet from the constructed frameset.");
+	//g_message("Constructing a capture packet packet from the constructed frameset.");
 	frameset_construct_packet(fs, signature, NULL, NULL);
 	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
 	if (!fs->packet) {
 		g_critical("fs is NULL!");
+		++errcount;
 	}else{
 		GSList*		fslist;
 		int	size = (guint8*)fs->pktend - (guint8*) fs->packet;
@@ -100,6 +107,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 		fslist = pktdata_to_frameset_list(fs->packet, fs->pktend);
 		if (fslist == NULL) {
 			g_warning("fslist is NULL!");
+			++errcount;
 		}else{
 			FrameSet*	copyfs = CASTTOCLASS(FrameSet, fslist->data);
 			SignFrame*	newsig = signframe_new(G_CHECKSUM_SHA256, 0);
@@ -108,22 +116,25 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 			newsig = NULL;
 			if (!copyfs->packet) {
 				g_warning("copyfs->packet is NULL!");
+				++errcount;
 			}else{
 				int	cpsize = (guint8*)copyfs->pktend - (guint8*) copyfs->packet;
-				g_message("Second Constructed packet is %d bytes", cpsize);
-				frameset_dump(fs);
-				frameset_dump(copyfs);
+				//g_message("Second Constructed packet is %d bytes", cpsize);
+				//frameset_dump(fs);
+				//frameset_dump(copyfs);
 				if (size == cpsize) {
 					if (memcmp(fs->packet, copyfs->packet, size) == 0) {
 						g_message("Packets are identical!");
 					}else{
 						g_warning("Packets are different :-(");
+						++errcount;
 					}
 				}else{
 					g_warning("Packets are different sizes:-(");
+					++errcount;
 				}
 			}
-			g_message("Frameset for copy packet - freed!");
+			//g_message("Frameset for copy packet - freed!");
 			copyfs->unref(copyfs);
 			copyfs = NULL;
 			g_slist_free(fslist);
@@ -131,14 +142,9 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	}
 	fs->unref(fs);
 	fs = NULL;
-	g_message("Frameset for constructed packet - freed!");
+	//g_message("Frameset for constructed packet - freed!");
 	send_encapsulated_packet(pkt, pend, hdr, dev);
 	++pktcount;
-	if (pktcount >= maxpkts) {
-		g_message("QUITTING NOW!");
-		g_main_loop_quit(loop);
-		return FALSE;
-	}
 	return TRUE;
 }
 
@@ -146,17 +152,23 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 /// Test routine called when a NetIO packet is received.
 gboolean
 gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
-	  FrameSet* fs,	///<[in/out] Framesets received
+	  FrameSet* fs,		///<[in/out] Framesets received
 	  NetAddr* srcaddr,	///<[in] Source address of this packet
 	  gpointer ignored	///<[ignored] User data (ignored)
 	  )
 {
 	(void)gs; (void)srcaddr; (void)ignored;
+	++wirepktcount;
 	g_message("Received a packet over the 'wire'!");
-	g_message("DUMPING packet received over 'wire':");
-	frameset_dump(fs);
+	//g_message("DUMPING packet received over 'wire':");
+	//frameset_dump(fs);
+	//g_message("END of packet received over 'wire':");
 	fs->unref(fs);
-	g_message("END of packet received over 'wire':");
+	if (wirepktcount >= maxpkts) {
+		g_message("QUITTING NOW!");
+		g_main_loop_quit(loop);
+		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -166,6 +178,7 @@ real_deadtime_agent(HbListener* who)
 	(void)who;
 	///@todo start sending heartbeats...
 	g_warning("Subsequent (unexpected) deadtime event occurred.");
+	++errcount;
 }
 void
 initial_deadtime_agent(HbListener* who)
@@ -190,6 +203,8 @@ main(int argc, char **argv)
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	NetGSource*	netpkt;
 	HbListener*	hblisten;
+	void g_source_pcap_finalize(GSource* src);
+
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
@@ -200,6 +215,7 @@ main(int argc, char **argv)
 	dev = pcap_lookupdev(errbuf);	// Find name of default network device...
 	if (dev == NULL) {
 		g_critical("Couldn't find default device: %s", errbuf);
+		++errcount;
 		return(2);
 	}
 	g_message("PCAP capture device is: %s", dev);
@@ -242,23 +258,20 @@ main(int argc, char **argv)
 	// Start up the main loop - run the program...
 	g_main_loop_run(loop);
 
-
-	// Main loop is over - shut everything down, free everything...
-	g_main_loop_unref(loop); loop=NULL; pktsource=NULL;
-
 	transport->finalize(transport); transport = NULL;
+	if (sender) {
+		sender->unref(sender); sender = NULL;
+	}
+	g_source_pcap_finalize((GSource*)pktsource);
 
 	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
 	g_main_context_unref(g_main_context_default());
 
+	// Main loop is over - shut everything down, free everything...
+	g_main_loop_unref(loop); loop=NULL; pktsource=NULL;
+
 	// Unlink heartbeat dispatcher (not sure if it's necessary)
 	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
-
-	// Except of course, it doesn't seem to unreference all sources... sigh...
-	g_source_unref(CASTTOCLASS(GSource, netpkt)); netpkt = NULL;
-
-	// Free destination address
-	FREECLASSOBJ(destaddr); destaddr = NULL;
 
 	// Free signature frame
 	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
@@ -266,11 +279,19 @@ main(int argc, char **argv)
 	// Free the heartbeat listener
 	hblisten->unref(hblisten); hblisten = NULL;
 
-	if (sender) {
-		// Free heartbeat sender
-		sender->unref(sender); sender = NULL;
-	}
+	// Free destination address
+        destaddr->unref(destaddr);
+
+
 	// At this point - nothing should show up - we should have freed everything
 	proj_class_dump_live_objects();
-	return(0);
+	if (proj_class_live_object_count() > 2) {
+		g_warning("Too many objects (%d) alive at end of test.", 
+			proj_class_live_object_count());
+		++errcount;
+	}
+	g_message("Count of pcap packets received:\t%d", pcapcount);
+	g_message("Count of pkts received over wire:\t%d", wirepktcount);
+	g_message("Count of errors:\t\t\t%d", errcount);
+	return(errcount <= 127 ? errcount : 127);
 }

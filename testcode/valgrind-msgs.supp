@@ -1,0 +1,42 @@
+{
+   Setsockopt bad parameter
+   Memcheck:Param
+   socketcall.setsockopt(optval)
+   fun:setsockopt
+   ...
+}
+{
+   g_source_add_poll leak
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.2800.6
+   fun:g_slice_alloc
+   fun:g_slist_prepend
+   ...
+}
+{
+   g_log leak
+   Memcheck:Leak
+   ...
+   fun:g_slice_alloc
+   ...
+   fun:g_log_default_handler
+   fun:g_logv
+   fun:g_log
+   ...
+}
+{
+   g_checksum_new (g_slice_alloc)
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.2800.6
+   fun:g_slice_alloc
+   fun:g_slice_alloc0
+   fun:g_checksum_new
+   fun:_signframe_compute_cksum
+   fun:_signframe_updatedata
+   fun:frameset_construct_packet
+   ...
+}

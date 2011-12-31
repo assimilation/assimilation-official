@@ -340,6 +340,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 		}else{
 			FREE(ret); ret = NULL;
 		}
+		FREE(pkt);
 	}
 	return ret;
 }

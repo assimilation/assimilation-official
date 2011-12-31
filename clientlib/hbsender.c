@@ -83,8 +83,7 @@ _hbsender_unref(HbSender* self)	///<[in/out] Object to decrement reference count
 	if (self->_refcount == 1) {
 		// Our sender list holds an extra reference count...
 		_hbsender_dellist(self);
-		// hbsender_dellist will decrement reference count by 1
-		g_return_if_fail(self->_refcount == 0);
+		// hbsender_dellist will/should decrement reference count by 1
 		self = NULL;
 		return;
 	}

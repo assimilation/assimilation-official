@@ -125,9 +125,14 @@ _netaddr_unref(NetAddr* self)
 	}
 }
 
+#include <stdlib.h>
 FSTATIC void
 _netaddr_finalize(NetAddr* self)
 {
+	if (self->_addrbody) {
+		FREE(self->_addrbody);
+		self->_addrbody = NULL;
+	}
 	FREECLASSOBJ(self);
 	self = NULL;
 }
