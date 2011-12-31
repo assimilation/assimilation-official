@@ -148,7 +148,7 @@ seqnoframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of SeqnoFrame T
 	guint16		tlvtype = get_generic_tlv_type(tlvstart, pktend);
 	const guint8* valpos = get_generic_tlv_value(tlvstart, pktend);
 
-	g_return_val_if_fail(length < (sizeof(guint64)+sizeof(guint16)), NULL);
+	g_return_val_if_fail(length == (sizeof(guint64)+sizeof(guint16)), NULL);
 
 	ret = seqnoframe_new(tlvtype, 0);
 	ret->setreqid(ret, tlv_get_guint64(valpos, pktend));

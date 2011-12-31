@@ -129,7 +129,7 @@ that it will be repeated until a corresponding REPLYID is received.
   C-Class: @ref SeqnoFrame.
 <PRE>
 +---------------+---------------+-------------+-----------+
-| frametype = 5 | f_length = 8  |  request id | queue id  |
+| frametype = 5 | f_length = 8  |  reply id   | queue id  |
 |   (16 bits)   |   (16-bits)   |  (8 bytes)  | (2 bytes) |
 +---------------+---------------+-------------+-----------+
 </PRE>
@@ -206,8 +206,7 @@ This frame provides an IP address - either in IPv4 or IPv6 format.
 */
 #define	FRAMETYPE_IPADDR	9
 /**
-  IP Address (frametype 9) Frame Format - MAC address either in
-  6-byte EUI-48 format or 8-byte EUI-64 format.
+  IP Address (frametype 9) Frame Format - either in ipv4 or ipv6 format.
   C-Class: @ref AddrFrame.
 <PRE>
 +---------------+----------------+------------------+-------------+
@@ -223,6 +222,6 @@ This frame provides an IP address - either in IPv4 or IPv6 format.
 </PRE>
 This frame provides a MAC address either a 6 byte (EUI-48) or 8 byte (EUI-64) format.
 */
-#define	FRAMETYPE_MACADDR	9
+#define	FRAMETYPE_MACADDR	10
 ///@}
 ///@}

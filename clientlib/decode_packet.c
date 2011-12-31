@@ -38,6 +38,8 @@ static const FrameTypeToFrame	framemap[] =
 	{FRAMETYPE_PKTDATA,	frame_tlvconstructor},
 	{FRAMETYPE_WALLCLOCK,	intframe_tlvconstructor},
 	{FRAMETYPE_INTERFACE,	cstringframe_tlvconstructor},
+	{FRAMETYPE_IPADDR,	addrframe_tlvconstructor},
+	{FRAMETYPE_MACADDR,	addrframe_tlvconstructor},
 };
 static FramePktConstructor*	frametypemap;
 static guint16			maxframetype = 0;
@@ -153,7 +155,7 @@ pktdata_to_frameset_list(gconstpointer pktstart,	///<[in] start of packet
                         newframe->unref(newframe); newframe = NULL;
 			curframe = nextframe;
 		}
-		ret = g_slist_append(ret, fs);
+		ret = g_slist_append(ret, fs); fs = NULL;
 		curframeset = nextframeset;
 	}
 	return ret;

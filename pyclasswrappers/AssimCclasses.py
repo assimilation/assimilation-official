@@ -505,6 +505,11 @@ class pyFrameSet:
         'Dump out the given frameset'
         frameset_dump(self._Cstruct)
 
+    def getpacket(self):
+        if not self._Cstruct[0].packet:
+            raise ValueError, "No packet constructed for frameset"
+        return (self._Cstruct[0].packet, self._Cstruct[0].pktend)
+
     def __del__(self):
         "Free up the underlying Cstruct for this pyFrameSet object"
         if self._Cstruct is None:
@@ -542,3 +547,17 @@ class pyFrameSet:
             #print statement
             yield eval(statement)
             curframe=g_slist_next(curframe)
+
+    @staticmethod
+    def fslist_from_pktdata(pktlocation):
+        'Make a list of FrameSets out of a packet.'
+        frameset_list = []
+        fs_gslist = pktdata_to_frameset_list(pktlocation[0], pktlocation[1])
+        curfs = fs_gslist
+        while curfs:
+            cfs = cast(curfs[0].data, POINTER(FrameSet))
+            fs = pyFrameSet(None, Cstruct=cfs)
+            frameset_list.append(fs)
+            curfs = g_slist_next(curfs)
+        g_slist_free(fs_gslist)
+        return frameset_list

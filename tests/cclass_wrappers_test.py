@@ -338,6 +338,34 @@ class pyFrameSetTest(TestCase):
            self.assertEqual(f.frametype(), y.frametype())
            self.assertEqual(type(f), type(y))
 
+    def test_buildpacket(self):
+        'Build a FrameSet, then make it into a packet, and make a frameset list out of the packet'
+        pyfs = pyFrameSet(801)
+        sign = pySignFrame(1) # digital signature frame
+        flist = (pyAddrFrame(9, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
+                 pySeqnoFrame(5, (42, 424242424242)))
+        for frame in flist:
+            pyfs.append(frame)
+        pyfs.construct_packet(sign)
+        xlist=[]
+        for frame in pyfs.iter():
+            xlist.append(frame)
+        pktdata = pyfs.getpacket()
+        cp_pyfs = pyFrameSet.fslist_from_pktdata(pktdata)
+        fs0 = cp_pyfs[0]
+        ylist=[]
+        for frame in fs0.iter():
+            ylist.append(frame)
+        for i in range(0,len(xlist)):
+           x=xlist[i]
+           y=ylist[i]
+           self.assertEqual(x.frametype(), y.frametype())
+           self.assertEqual(x.framelen(),  y.framelen())
+           self.assertEqual(x.dataspace(), y.dataspace())
+           self.assertEqual(type(x), type(y))
+           self.assertEqual(str(x), str(y))
+
+
     @class_teardown
     def tearDown(self):
         assert_no_dangling_Cclasses()

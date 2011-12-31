@@ -126,6 +126,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 			g_message("Frameset for copy packet - freed!");
 			copyfs->unref(copyfs);
 			copyfs = NULL;
+			g_slist_free(fslist);
 		}
 	}
 	fs->unref(fs);
@@ -193,6 +194,7 @@ main(int argc, char **argv)
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
+                g_debug("Max LLDP/CDP packet count is %lld", maxpkts);
 	}
 	
 	dev = pcap_lookupdev(errbuf);	// Find name of default network device...
