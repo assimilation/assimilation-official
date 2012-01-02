@@ -25,6 +25,7 @@ FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC gchar * _netaddr_toString(const NetAddr* self);
+FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self);
 /// @defgroup NetAddr NetAddr class
 ///@{
 /// @ingroup C_Classes
@@ -36,6 +37,15 @@ FSTATIC gchar * _netaddr_toString(const NetAddr* self);
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...
 
+FSTATIC gchar *
+_netaddr_toString_ipv6_ipv4(const NetAddr* self)
+{
+	return g_strdup_printf("::ffff:%d.%d.%d.%d",
+			      ((const gchar*)self->_addrbody)[12],
+			      ((const gchar*)self->_addrbody)[13],
+			      ((const gchar*)self->_addrbody)[14],
+			      ((const gchar*)self->_addrbody)[15]);
+}
 FSTATIC gchar *
 _netaddr_toString(const NetAddr* self)
 {
@@ -55,6 +65,13 @@ _netaddr_toString(const NetAddr* self)
 		gboolean	doublecolonyet = FALSE;
 		gboolean	justhaddoublecolon = FALSE;
 		int		zerocount = 0;
+		guchar		ipv4prefix[] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff};
+                if (self->_addrlen != 16) {
+			return g_strdup("{invalid ipv6}");
+		}
+		if (memcmp(self->_addrbody, ipv4prefix, sizeof(ipv4prefix)) == 0) {
+			return _netaddr_toString_ipv6_ipv4(self);
+		}
 		for (nbyte = 0; nbyte < self->_addrlen; nbyte += 2) {
 			guint16 byte0 = ((const guchar*)self->_addrbody)[nbyte];
 			guint16 byte1 = ((const guchar*)self->_addrbody)[nbyte+1];

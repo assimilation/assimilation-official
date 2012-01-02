@@ -69,11 +69,10 @@ class pyNetAddrTest(TestCase):
         ipv6 = pyNetAddr((0,0,0,0,0,2,0,3,0,4,0,5,0,6,0,7),)
         self.assertEqual(str(ipv6),"::2:3:4:5:6:7")
         # Example below is from http://en.wikipedia.org/wiki/IPv6_address
-        # Note that we don't convert it into the equivalent IPv4 address as
+        # Note that we now convert it into the equivalent IPv4 address as
 	# suggested: ::ffff:192.0.2.128
-	## @TODO: Probably ought to fix this ipv4 special case...
         ipv6 = pyNetAddr((0,0,0,0,0,0,0,0,0,0,255,255,192,0,2,128),)
-        self.assertEqual(str(ipv6),"::ffff:c000:280")
+        self.assertEqual(str(ipv6),"::ffff:192.0.2.128")
 
     @class_teardown
     def tearDown(self):
@@ -363,7 +362,11 @@ class pyFrameSetTest(TestCase):
            self.assertEqual(x.framelen(),  y.framelen())
            self.assertEqual(x.dataspace(), y.dataspace())
            self.assertEqual(type(x), type(y))
-           self.assertEqual(str(x), str(y))
+           self.assertEqual(x.__class__, y.__class__)
+           # Not all our classes have a __str__ method defined.
+           strx = re.sub(str(x), ' instance at .*>', ' instance at -somewhere- >')
+           stry = re.sub(str(y), ' instance at .*>', ' instance at -somewhere- >')
+           self.assertEqual(strx, stry)
 
 
     @class_teardown

@@ -5,6 +5,18 @@ A collection of classes which wrap our @ref C-Classes and provide Pythonic inter
 
 from AssimCtypes import *
 
+class cClass:
+    NetAddr = POINTER(NetAddr)
+    Frame = POINTER(Frame)
+    AddrFrame = POINTER(AddrFrame)
+    IntFrame = POINTER(IntFrame)
+    SeqnoFrame = POINTER(SeqnoFrame)
+    CstringFrame = POINTER(CstringFrame)
+    UnknownFrame = POINTER(UnknownFrame)
+    SignFrame = POINTER(SignFrame)
+    FrameSet = POINTER(FrameSet)
+    guint8 = POINTER(guint8)
+
 class TLV:
     '''Type/Length/Value abstract class.
     We expect to create IEEE (LLDP), Cisco (CDP) and our local variants (generic) subclasses...
@@ -48,7 +60,7 @@ class GenericTLV(TLV):
         'Return a string_buffer containing the value of this TLV field'
         bufsize = sizeof(guint16)+sizeof(guint16)+len(self.value)
         buf = create_string_buffer(bufsize)
-        bufend= cast(buf, POINTER(guint8))+bufsize
+        bufend= cast(buf, cClass.guint8)+bufsize
         set_generic_tlv_type(buf, self.tlvtype, buf, bufend)
         set_generic_tlv_len(buf, self.tlvlen, bufend)
         set_generic_tlv_value(buf, self.value, bufend)
@@ -57,7 +69,7 @@ class GenericTLV(TLV):
     @classmethod
     def from_buf(Class, buf):
         'Construct a GenericTLV from a string_buffer containing the value to initalize it to'
-        ptype = POINTER(guint8)
+        ptype = cClass.guint8
         bufend= cast(buf, ptype)+len(buf)
         tlvtype = get_generic_tlv_type(buf, bufend)
         tlvlen = get_generic_tlv_len(buf, bufend)
@@ -75,7 +87,7 @@ class CDPTLV(TLV):
     @classmethod
     def from_buf(Class, buf):
         'Construct a CDPTLV from a string_buffer containing the value to initialize it to'
-        ptype = POINTER(guint8)
+        ptype = cClass.guint8
         bufend= cast(buf, ptype)+len(buf)
         tlvtype = get_cdptlv_type(buf, bufend)
         tlvlen = get_cdptlv_len(buf, bufend)
@@ -93,7 +105,7 @@ class LLDPTLV(TLV):
     @classmethod
     def from_buf(Class, buf):
         'Construct a LLDPTLV from a string_buffer containing the value to initialize it to'
-        ptype = POINTER(guint8)
+        ptype = cClass.guint8
         bufend= cast(buf, ptype)+len(buf)
         tlvtype = get_lldp_tlv_type(buf, bufend)
         tlvlen = get_lldp_tlv_vlen(buf, bufend) # vlen is the length of the value portion only
@@ -333,7 +345,7 @@ class pyAddrFrame(pyFrame):
             self._pyNetAddr = pyNetAddr(addrstring, port=None)
             Cstruct = addrframe_new(frametype, 0);
         else:
-            Cstruct = cast(Cstruct, POINTER(AddrFrame))
+            Cstruct = cast(Cstruct, cClass.AddrFrame)
             addrstr = Cstruct[0].baseclass.value
             addrlen = Cstruct[0].baseclass.length
             addrstring = create_string_buffer(addrlen)
@@ -364,6 +376,7 @@ class pyCstringFrame(pyFrame):
     def __str__(self) :
 	'Convert the underlying C-string Value into a Python String.'
         return string_at(self._Cstruct[0].baseclass.value)
+
 
 class pyIntFrame(pyFrame):
     '''This class represents the Python version of our IntFrame C-class - represented by the struct _IntFrame
@@ -532,18 +545,17 @@ class pyFrameSet:
     def iter(self):
         'Generator yielding the set of pyFrames in this pyFrameSet'
         curframe = self._Cstruct[0].framelist;
-        Frame_p = POINTER(Frame)
         while curframe:
-            frameptr = cast(curframe[0].data, Frame_p)
+            frameptr = cast(curframe[0].data, cClass.Frame)
             frametype = frameptr[0].type
             Cclassname = proj_class_classname(frameptr)
             pyclassname = "py" + Cclassname
             # I suspect (but don't know) that the 'ref' call below is always necessary
             frameptr[0].ref(frameptr)
             if Cclassname == "NetAddr":
-                statement = "%s(%d, None, Cstruct=frameptr)" % (pyclassname, frametype)
+                statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
             else:
-                statement = "%s(%d, Cstruct=frameptr)" % (pyclassname, frametype)
+                statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
             #print statement
             yield eval(statement)
             curframe=g_slist_next(curframe)
@@ -555,7 +567,7 @@ class pyFrameSet:
         fs_gslist = pktdata_to_frameset_list(pktlocation[0], pktlocation[1])
         curfs = fs_gslist
         while curfs:
-            cfs = cast(curfs[0].data, POINTER(FrameSet))
+            cfs = cast(curfs[0].data, cClass.FrameSet)
             fs = pyFrameSet(None, Cstruct=cfs)
             frameset_list.append(fs)
             curfs = g_slist_next(curfs)
