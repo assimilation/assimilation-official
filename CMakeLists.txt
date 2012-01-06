@@ -6,6 +6,7 @@ include_directories("/usr/lib/glib-2.0/include")
 include_directories("/usr/include/glib-2.0")
 include_directories("/usr/lib/i386-linux-gnu/glib-2.0/include")
 include_directories("/usr/include/i386-linux-gnu")
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "clang")
   message(STATUS "found clang!")
 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
@@ -26,14 +27,8 @@ ENDIF(CMAKE_COMPILER_IS_GNUCXX)
 add_subdirectory(clientlib)
 add_subdirectory(serverlib)
 add_subdirectory(testcode)
+add_subdirectory(include)
 #add_subdirectory(pyclasswrappers)
-ADD_CUSTOM_COMMAND(
-   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/framesettypes.h
-   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/bar.h ${CMAKE_CURRENT_BINARY_DIR}/foo.h
-   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyclasswrappers/frameinfo.py framesettypes ${CMAKE_CURRENT_BINARY_DIR}/include/framesettypes.h
-   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/pyclasswrappers/frameinfo.py
-   )
-
 # Doxygen documentation stuff...
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
