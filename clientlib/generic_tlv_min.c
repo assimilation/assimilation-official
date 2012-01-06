@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <tlvhelper.h>
-#include <frameformats.h>
+#include <frametypes.h>
 #include <generic_tlv_min.h>
 
 ///@defgroup GenericTLV Generic TLV capabilities

@@ -14,7 +14,7 @@
 #include <projectcommon.h>
 #include <frameset.h>
 #include <unknownframe.h>
-#include <frameformats.h>
+#include <frametypes.h>
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 

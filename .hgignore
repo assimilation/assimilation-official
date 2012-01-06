@@ -8,6 +8,10 @@ CMakeCache.txt
 /Makefile$
 ^Makefile$
 .*\.cmake$
+.*\.swp$
+.*\.bak$
+.*\.pyc$
+.*\.i$
 M CMakeLists.txt
 M testcode/testscript.sh
 ^testcode/filetest$
@@ -16,3 +20,5 @@ M testcode/testscript.sh
 Doxyfile
 /.*\.pyc$
 /\..*\.swp$
+include/framesettypes.h
+include/frametypes.h

@@ -36,7 +36,7 @@
 #include <intframe.h>
 #include <addrframe.h>
 #include <cstringframe.h>
-#include <frameformats.h>
+#include <frametypes.h>
 
 ///@defgroup GSource_Pcap GSource_Pcap class
 /// Class representing a pcap GSource object - for capturing packets in the g_main_loop paradigm.

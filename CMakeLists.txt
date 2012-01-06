@@ -27,6 +27,12 @@ add_subdirectory(clientlib)
 add_subdirectory(serverlib)
 add_subdirectory(testcode)
 #add_subdirectory(pyclasswrappers)
+ADD_CUSTOM_COMMAND(
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/framesettypes.h
+   COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/bar.h ${CMAKE_CURRENT_BINARY_DIR}/foo.h
+   COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/pyclasswrappers/frameinfo.py framesettypes ${CMAKE_CURRENT_BINARY_DIR}/include/framesettypes.h
+   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/pyclasswrappers/frameinfo.py
+   )
 
 # Doxygen documentation stuff...
 find_package(Doxygen)

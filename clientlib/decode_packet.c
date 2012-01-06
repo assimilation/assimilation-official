@@ -12,10 +12,12 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 #include <projectcommon.h>
-#include <frameset.h>
-#include <signframe.h>
-#include <frameformats.h>
 #include <generic_tlv_min.h>
+#include <frameset.h>
+#include <frametypes.h>
+#include <signframe.h>
+#include <cryptframe.h>
+#include <compressframe.h>
 #include <tlvhelper.h>
 #include <decode_packet.h>
 #include <intframe.h>
@@ -23,24 +25,14 @@
 #include <signframe.h>
 #include <cstringframe.h>
 #include <seqnoframe.h>
+#include <nvpairframe.h>
 #include <unknownframe.h>
 
 /// @{
 
 #define	FRAMESET_HDR_SIZE	(3*sizeof(guint16))
 
-static const FrameTypeToFrame	framemap[] =
-{
-	{FRAMETYPE_END,		frame_tlvconstructor},
-	{FRAMETYPE_SIG,		signframe_tlvconstructor},
-	{FRAMETYPE_REQID,	seqnoframe_tlvconstructor},
-	{FRAMETYPE_REPLYID,	seqnoframe_tlvconstructor},
-	{FRAMETYPE_PKTDATA,	frame_tlvconstructor},
-	{FRAMETYPE_WALLCLOCK,	intframe_tlvconstructor},
-	{FRAMETYPE_INTERFACE,	cstringframe_tlvconstructor},
-	{FRAMETYPE_IPADDR,	addrframe_tlvconstructor},
-	{FRAMETYPE_MACADDR,	addrframe_tlvconstructor},
-};
+static const FrameTypeToFrame	framemap[] = FRAMETYPEMAP;
 static FramePktConstructor*	frametypemap;
 static guint16			maxframetype = 0;
 static gboolean			_decode_packet_inityet = FALSE;

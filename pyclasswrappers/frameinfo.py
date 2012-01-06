@@ -15,7 +15,7 @@ class pyCstringFrame:
   pass
 class pyAddrFrame:
   pass
-class pyNvpairFrame:
+class pyNVpairFrame:
   pass
 
 class FrameTypes:
@@ -146,12 +146,12 @@ The format and length of the digital signature depends on the type of signature.
   	2:  (pyCryptFrame, 'CRYPT', 'Encryption frame',
 '''If an encryption frame is present it must be the second
 frame in the frameset, and can only be preceded by a @ref FRAMETYPE_SIG frame.
-It must have frametype <b>2</b>
+It must have frametype <b>2</b>.
 When this frame is present, then all the frames following
 are encrypted according information in the encryption information value segment.
 '''),
   	3:  (pyCompressFrame, 'COMPRESS', 'Compression frame',
-'''If a compression frame is present (<b>frametype = 2</b>) it must be the second
+'''If a compression frame is present (<b>frametype = 3</b>) it must be the second
 or third frame in the frameset, and can only be preceded by a @ref FRAMETYPE_SIG
 and @ref FRAMETYPE_CRYPT frames.
 When this frame is present, then all the frames following
@@ -198,7 +198,7 @@ The Address Type for a MAC address is 6.
   	12:  (pyCstringFrame, 'PATHNAME', 'file name',
 '''This frame contains a pathname for a file as a C string.
 '''),
-  	13:  (pyNvpairFrame, 'NVPAIR', 'Name/value pair',
+  	13:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
 '''This frame contains a name/value pair - each of which is a NUL-terminated C-style string.
 '''),
 
@@ -217,10 +217,10 @@ The Address Type for a MAC address is 6.
             return _intframetypes[int(key)]
 
     @classmethod
-    def c_defines(bar=None):
+    def c_defines(cls, f):
         l = FrameTypes._intframetypes.keys()
         l.sort()
-        print FrameTypes.fileheader % __file__
+        f.write(FrameTypes.fileheader % __file__)
         # Create pretty ASCII art pictures and #defines of all our different packet formats
         for i in l:
             tuple=FrameTypes._intframetypes[i]
@@ -230,21 +230,21 @@ The Address Type for a MAC address is 6.
             framedesc=tuple[1]
             frametext=tuple[3]
             Cclassname = re.sub('^py', '', pyclass)
-            print "/**\n FRAMETYPE_%s Frame (<b>frametype %d</b>) Frame subclass - @ref %s" % (framename, frametype, Cclassname)
-            print '<PRE>%s</PRE>\n%s\n */' % (FrameTypes.asciiart[pyclass] % i, frametext)
-            print "#define FRAMETYPE_%s\t%d\t///< %s: @ref %s" % (tuple[1], i, tuple[2], Cclassname)
-        print '///@}'
-        print '///@}'
+            f.write('/**\n FRAMETYPE_%s Frame (<b>frametype %d</b>) Frame subclass - @ref %s\n' % (framename, frametype, Cclassname))
+            f.write('<PRE>%s</PRE>\n%s\n */\n' % (FrameTypes.asciiart[pyclass] % i, frametext))
+            f.write('#define FRAMETYPE_%s\t%d\t///< %s: @ref %s\n' % (tuple[1], i, tuple[2], Cclassname))
+        f.write('///@}\n')
+        f.write('///@}\n')
             
         # Create the frame type map - mapping frame types to function names in the 'C' code.
-        print '#define	FRAMETYPEMAP	{\t\t\t\t\t\\'
+        f.write('#define	FRAMETYPEMAP	{\t\t\t\t\t\\\n')
         for i in l:
             tup = FrameTypes._intframetypes[i]
             clsname = tup[0].__name__
             Cclassname = re.sub('^py', '', clsname) + '_tlvconstructor'
             Cfuncname = Cclassname.lower()
-            print '        {FRAMETYPE_%s,\t/*%d*/ %s},	\\' % (tup[1], i, Cfuncname)
-        print '}'
+            f.write('        {FRAMETYPE_%s,\t/*%d*/ %s},	\\\n' % (tup[1], i, Cfuncname))
+        f.write('}\n')
 # Create conventional class.DEFINENAME attributes
 for s in FrameTypes._strframetypes.keys():
     setattr(FrameTypes, s, FrameTypes._strframetypes[s][0])
@@ -296,27 +296,40 @@ class FrameSetTypes:
             return _intframetypes[int(key)]
 
     @classmethod
-    def c_defines(bar=None):
+    def c_defines(cls, f):
         'Print out the C #defines that go with this set of definitions'
-        print FrameSetTypes._fileheader % __file__
+        f.write(FrameSetTypes._fileheader % __file__)
         l = FrameSetTypes._intframetypes.keys()
         l.sort()
         for i in l:
             tuple = FrameSetTypes._intframetypes[i]
-            print "#define FRAMESETTYPE_%s\t%d\t///< %s" % (tuple[0], i, tuple[1])
-        print '///@}'
-        print '\n#define	FRAMESETTYPEMAP	{\t\t\t\t\t\t\\'
+            f.write('#define FRAMESETTYPE_%s\t%d\t///< %s\n' % (tuple[0], i, tuple[1]))
+        f.write('///@}\n')
+        f.write('\n#define	FRAMESETTYPEMAP	{\t\t\t\t\t\t\\\n')
         for i in l:
             tup = FrameSetTypes._intframetypes[i]
             Cfuncname = "got_frameset_" + tup[0].lower()
-            print '        {FRAMESETTYPE_%s,\t/*%d*/ %s},	\\' % (tup[0], i, Cfuncname)
-        print '}'
+            f.write('        {FRAMESETTYPE_%s,\t/*%d*/ %s},	\\\n' % (tup[0], i, Cfuncname))
+        f.write('}\n')
             
-        print '#endif /* _FRAMESETTYPES_H */'
+        f.write('#endif /* _FRAMESETTYPES_H */\n')
 # Create conventional class.DEFINENAME attributes
 for s in FrameSetTypes._strframetypes.keys():
     setattr(FrameSetTypes, s, FrameSetTypes._strframetypes[s][0])
      
 
-FrameTypes.c_defines()
-FrameSetTypes.c_defines()
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 3 \
+    or	( sys.argv[1] != "frametypes" and sys.argv[1] != "framesettypes"):
+        sys.stderr.write("Usage: python %s (frametypes|framesettypes) output-filename\n" % sys.argv[0]);
+        raise SystemExit(1)
+    f = open(sys.argv[2], 'w')
+    if sys.argv[1] == "frametypes":
+        FrameTypes.c_defines(f)
+        sys.exit(0)
+    elif sys.argv[1] == "framesettypes":
+        FrameSetTypes.c_defines(f)
+        sys.exit(0)
+    raise SystemExit(1)
+

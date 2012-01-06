@@ -16,7 +16,7 @@
 #include <projectcommon.h>
 #include <frameset.h>
 #include <addrframe.h>
-#include <frameformats.h>
+#include <frametypes.h>
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 #include <address_family_numbers.h>
