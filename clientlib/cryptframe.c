@@ -42,6 +42,7 @@ _cryptframe_default_isvalid(const Frame * self,	///<[in] CryptFrame object ('thi
 	}else{
 		length = get_generic_tlv_len(tlvptr, pktend);
 	}
+	(void)length;
 
 	/// @todo: Not yet implemented
 	return FALSE;
