@@ -23,7 +23,7 @@ struct _CompressFrame {
 	guint16		compression_method;
 };
 
-CompressFrame* compressframe_new(guint16 frame_type, guint16 compression_method, gsize framesize);
+CompressFrame* compressframe_new(guint16 frame_type, guint16 compression_method);
 Frame* compressframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}

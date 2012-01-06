@@ -118,7 +118,7 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 |   (16 bits)    |    (16-bits)   |    2 bytes    | (n-2 bytes)  |
 +----------------+----------------+---------------+--------------+
 ''',
-	'pyNvpairFrame':
+	'pyNVpairFrame':
 '''
 +----------------+---------------+--------+-----------------+-------+------+
 | frametype = %2d | f_length = n  | nm_len |  name    | NUL  |       | NUL  |

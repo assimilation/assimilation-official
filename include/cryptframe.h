@@ -21,9 +21,10 @@ typedef struct _CryptFrame CryptFrame;
 struct _CryptFrame {
 	Frame		baseclass;
 	int		encryption_method;
+	void*		encryption_key_info;
 };
 
-CryptFrame* cryptframe_new(guint16 frame_type, guint16 encryption_method, gsize framesize);
+CryptFrame* cryptframe_new(guint16 frame_type, guint16 encryption_method, void* encryption_info);
 Frame* cryptframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
