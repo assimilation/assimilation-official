@@ -23,12 +23,12 @@ FSTATIC gboolean _compressframe_default_isvalid(const Frame *, gconstpointer, gc
 
 ///@defgroup CompressFrame CompressFrame class
 /// Class for compressing FrameSets   Subclass of @ref Frame.
-/// @TODO: Not yet implemented
+/// @todo: Not yet implemented
 /// @{
 /// @ingroup Frame
 
 /// @ref CompressFrame 'isvalid' member function (checks for valid compression method).
-/// @TODO: Not yet implemented.
+/// @todo: Not yet implemented.
 FSTATIC gboolean
 _compressframe_default_isvalid(const Frame * self,	///<[in] CompressFrame object ('this')
 			      gconstpointer tlvptr,	///<[in] Pointer to the TLV for this CompressFrame
@@ -45,7 +45,7 @@ _compressframe_default_isvalid(const Frame * self,	///<[in] CompressFrame object
 
 
 /// Construct a new CompressFrame - derived frame types are not allowed.
-/// @TODO: Not yet implemented.
+/// @todo: Not yet implemented.
 CompressFrame*
 compressframe_new(guint16 frame_type,	///< TLV type of CompressFrame
 	  guint16 compression_method)	///< Compression method.
@@ -65,7 +65,7 @@ compressframe_new(guint16 frame_type,	///< TLV type of CompressFrame
 /// Given marshalled packet data corresponding to an CompressFrame (C-style string),
 /// return the corresponding Frame
 /// In other words, un-marshall the data...
-/// @TODO: Not yet implemented.
+/// @todo: Not yet implemented.
 Frame*
 compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
 			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'

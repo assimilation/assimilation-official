@@ -43,7 +43,7 @@ _cryptframe_default_isvalid(const Frame * self,	///<[in] CryptFrame object ('thi
 		length = get_generic_tlv_len(tlvptr, pktend);
 	}
 
-	/// @TODO: Not yet implemented
+	/// @todo: Not yet implemented
 	return FALSE;
 }
 
@@ -78,7 +78,7 @@ cryptframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled C
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
-	/// @TODO: Not yet implemented
+	/// @todo: Not yet implemented
 	CryptFrame *	cret = cryptframe_new(frametype, 0, NULL);
 	Frame *		ret = CASTTOCLASS(Frame, cret);
 	g_return_val_if_fail(cret != NULL, NULL);
@@ -88,7 +88,7 @@ cryptframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled C
 	(void)framelength;
 	(void)framevalue;
 	(void)ret;
-	/// @TODO: Not yet implemented
+	/// @todo: Not yet implemented
 	return NULL;
 }
 ///@}

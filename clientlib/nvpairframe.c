@@ -111,8 +111,8 @@ nvpairframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled 
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;
-	///@FIXME: @TODO this code is probably wrong...
-	///@FIXME: @TODO CERTAINLY ARE MEMORY LEAKS HERE!
+	///@todo FIXMEthis code is probably wrong...
+	///@todo FIXME CERTAINLY ARE MEMORY LEAKS HERE!
 	ret->baseclass.setvalue(fret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
 	return fret;
 }
