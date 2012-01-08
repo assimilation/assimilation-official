@@ -89,7 +89,7 @@ get_lldptlv_len(const void* tlv_vp,	///<[in] Pointer to beginning of TLV entry
 }
 
 /// Return the 'Value' of the given LLDP TL<b>V</b> entry
-const const void *
+const void *
 get_lldptlv_body(const void * tlv_vp,	///<[in] Pointer to beginning of TLV entry,
 		 const void* pktend)	///<[in] Pointer to one byte past end of packet
 {

@@ -79,7 +79,10 @@ struct _NetIO {
 	void		(*finalize)			///< Finalize this NetIO object
 				(NetIO* self);		///<[in] 'this' object
 };
-NetIO*	netio_new(gsize objsize); // Don't call this directly! - this is an abstract class...
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#endif
+EXP_FUNC NetIO*	netio_new(gsize objsize); // Don't call this directly! - this is an abstract class...
 ///@}
 
 #endif /* _NETIO_H */

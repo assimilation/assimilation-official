@@ -46,8 +46,19 @@ struct _Frame {
 	void		(*_finalize)(Frame*);				///< Frame Destructor
 };
 #define	FRAME_INITSIZE	4	///< (sizeof(Frame.type) + sizeof(Frame.length)) - each 2 bytes
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 Frame*	frame_new(guint16 frame_type, gsize framesize);
+
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 Frame*	frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 void	_frame_default_valuefinalize(gpointer value);
 ///@}
 

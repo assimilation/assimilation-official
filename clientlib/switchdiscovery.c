@@ -8,6 +8,9 @@
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option.
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
+#ifdef _MSC_VER
+#define _W64
+#endif
 
 #include <projectcommon.h>
 #include <switchdiscovery.h>

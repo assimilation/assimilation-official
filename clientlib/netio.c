@@ -16,8 +16,13 @@
 #include <errno.h>
 #include <memory.h>
 #include <sys/types.h>
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
 #include <glib.h>
 #include <decode_packet.h>
 #include <address_family_numbers.h>
@@ -271,14 +276,23 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		   socklen_t* addrlen)		///<[out] length of address in 'srcaddr'
 {
 	char		dummy[8]; // Make GCC stack protection happy...
+#ifndef ssize_t
+#define ssize_t int
+#define __func__ "_netio_recvapacket"
+#endif
 	ssize_t		msglen;
 	ssize_t		msglen2;
 	guint8*		msgbuf;
 
 	// First we peek and see how long the message is...
 	*addrlen = sizeof(*srcaddr);
+#ifdef _MSC_VER
+	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_PEEK,
+		          (struct sockaddr*)srcaddr, addrlen);
+#else
 	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_DONTWAIT|MSG_PEEK|MSG_TRUNC,
 		          (struct sockaddr*)srcaddr, addrlen);
+#endif
 	if (msglen < 0) {
 		if (errno != EAGAIN) {
 			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)"
@@ -297,8 +311,13 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 
 	// Receive the message
 	*addrlen = sizeof(*srcaddr);
+#ifdef _MSC_VER
+	msglen2 = recvfrom(self->getfd(self), msgbuf, msglen, 0,
+			   (struct sockaddr *)srcaddr, addrlen);
+#else
 	msglen2 = recvfrom(self->getfd(self), msgbuf, msglen, MSG_DONTWAIT|MSG_TRUNC,
 			   (struct sockaddr *)srcaddr, addrlen);
+#endif
 
 	// Was there an error?
 	if (msglen2 < 0) {

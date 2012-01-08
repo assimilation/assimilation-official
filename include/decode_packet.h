@@ -21,5 +21,8 @@ struct _FrameTypeToFrame {
 	int			frametype; ///< One of the @ref IndividualFrameFormats "Defined Frame Formats" from frameformats.h
 	FramePktConstructor	constructor;
 };
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 GSList*		pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend);
 #endif /* DECODE_PACKET_H */

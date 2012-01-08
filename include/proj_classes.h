@@ -11,20 +11,25 @@
  */
 #include <glib.h>
 
-gpointer	proj_class_new(gsize objsize, const char * static_classname);
-void		proj_class_dissociate(gpointer object);
-void		proj_class_free(gpointer object);
-void		proj_class_register_object(gpointer object, const char * static_classname);
-gpointer	proj_class_castas(gpointer object, const char * castclass);
-gconstpointer	proj_class_castasconst(gconstpointer object, const char * castclass);
-void		proj_class_register_subclassed(gpointer object, const char * static_subclassname);
-void		proj_class_quark_add_superclass_relationship(GQuark superclass, GQuark subclass);
-gboolean	proj_class_quark_is_a(GQuark objectclass, GQuark testclass);
-const char *	proj_class_classname(gconstpointer object);
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#else 
+#define EXP_FUNC
+#endif
+EXP_FUNC gpointer	proj_class_new(gsize objsize, const char * static_classname);
+EXP_FUNC void		proj_class_dissociate(gpointer object);
+EXP_FUNC void		proj_class_free(gpointer object);
+EXP_FUNC void		proj_class_register_object(gpointer object, const char * static_classname);
+EXP_FUNC gpointer	proj_class_castas(gpointer object, const char * castclass);
+EXP_FUNC gconstpointer	proj_class_castasconst(gconstpointer object, const char * castclass);
+EXP_FUNC void		proj_class_register_subclassed(gpointer object, const char * static_subclassname);
+EXP_FUNC void		proj_class_quark_add_superclass_relationship(GQuark superclass, GQuark subclass);
+EXP_FUNC gboolean	proj_class_quark_is_a(GQuark objectclass, GQuark testclass);
+EXP_FUNC const char *	proj_class_classname(gconstpointer object);
 
 
-void proj_class_dump_live_objects(void);
-guint32 proj_class_live_object_count(void);
+EXP_FUNC void proj_class_dump_live_objects(void);
+EXP_FUNC guint32 proj_class_live_object_count(void);
 
 ///@{
 ///@ingroup ProjectClass

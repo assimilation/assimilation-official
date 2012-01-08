@@ -32,8 +32,11 @@ struct _SeqnoFrame {
 	guint64 _reqid;						///< value of this SeqnoFrame request id
 	guint16 _qid;						///< value of this SeqnoFrame queue id
 };
-SeqnoFrame* seqnoframe_new(guint16 frametype, int objsize);
-Frame* seqnoframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#endif
+EXP_FUNC SeqnoFrame* seqnoframe_new(guint16 frametype, int objsize);
+EXP_FUNC Frame* seqnoframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 

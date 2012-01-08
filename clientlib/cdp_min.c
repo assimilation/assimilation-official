@@ -11,7 +11,13 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 #include <stdio.h>
+
+#ifdef _MSC_VER
+#include <winsock.h>
+#else
 #include <netinet/in.h>
+#endif
+
 #include <cdp.h>
 #include <tlvhelper.h>
 #ifndef	NULL
@@ -188,7 +194,7 @@ get_cdptlv_vlen(const void* tlv_vp,  ///< [in]Should be the a CDP TLV object fro
 /// @return pointer to the value blob of a CDP TLV triplet.
 /// Length of this blob is given by get_cdptlv_vlen().
 /// @see get_cdptlv_vlen
-const const void *
+const void *
 get_cdptlv_body(const void* tlv_vp,	///< [in]Should be the a CDP TLV object from get_cdbtlv_first()
 					///< or get_cdp_tlv_next(), etc.
                 const void* pktend)     ///<[in]Pointer of first byte past end of CDP packet

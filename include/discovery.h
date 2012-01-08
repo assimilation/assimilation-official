@@ -37,7 +37,14 @@ struct _Discovery {
 	guint		_timerid;						///< Timer id for repeating discovery
 };
 
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 Discovery* discovery_new(gsize objsize);
+
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 void discovery_register(Discovery* self);
 
 ///@}

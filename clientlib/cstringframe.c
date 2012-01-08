@@ -73,6 +73,9 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 
 /// Construct a new CstringFrame - allowing for "derived" frame types...
 /// This can be used directly for creating CstringFrame frames, or by derived classes.
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 CstringFrame*
 cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 	  gsize framesize)	///< size of frame structure (or zero for sizeof(CstringFrame))
@@ -92,6 +95,9 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 /// Given marshalled packet data corresponding to an CstringFrame (C-style string),
 /// return the corresponding Frame
 /// In other words, un-marshall the data...
+#ifdef _MSC_VER
+__declspec( dllexport )
+#endif
 Frame*
 cstringframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
 			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'

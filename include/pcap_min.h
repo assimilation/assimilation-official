@@ -28,5 +28,7 @@
 ///	Enable CDP protocol
 #	define	ENABLE_CDP	0x2 
 /// @}
-
-pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask);
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#endif
+EXP_FUNC pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask);

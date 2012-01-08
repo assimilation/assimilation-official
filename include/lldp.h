@@ -103,17 +103,22 @@
 #define LLDP_ORG802_3_MTU		4	///< Section G.5 - MTU
 /// @} 
 
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#else
+#define EXP_FUNC
+#endif
 
-unsigned	get_lldp_chassis_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
-gconstpointer	get_lldp_chassis_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
+EXP_FUNC unsigned	get_lldp_chassis_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+EXP_FUNC gconstpointer	get_lldp_chassis_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
 gconstpointer	get_lldp_port_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
-unsigned	get_lldp_port_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+EXP_FUNC unsigned	get_lldp_port_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
 
-guint8		get_lldptlv_type(gconstpointer tlvp_vp, gconstpointer pktend);
-gsize		get_lldptlv_len(gconstpointer tlvp_vp, gconstpointer pktend);
-gconstpointer	get_lldptlv_first(gconstpointer tlv_vp, gconstpointer pktend);
-gconstpointer	get_lldptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
-gconstpointer	get_lldptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
-gconstpointer	find_next_lldptlv_type(gconstpointer tlv_vp, unsigned tlvtype, gconstpointer tlv_vpend);
-gboolean	is_valid_lldp_packet(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+EXP_FUNC guint8		get_lldptlv_type(gconstpointer tlvp_vp, gconstpointer pktend);
+EXP_FUNC gsize		get_lldptlv_len(gconstpointer tlvp_vp, gconstpointer pktend);
+EXP_FUNC gconstpointer	get_lldptlv_first(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gconstpointer	get_lldptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gconstpointer	get_lldptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gconstpointer	find_next_lldptlv_type(gconstpointer tlv_vp, unsigned tlvtype, gconstpointer tlv_vpend);
+EXP_FUNC gboolean	is_valid_lldp_packet(gconstpointer tlv_vp, gconstpointer tlv_vpend);
 #endif /* _LLDP_H */

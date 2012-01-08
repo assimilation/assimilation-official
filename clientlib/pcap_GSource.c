@@ -27,6 +27,9 @@
  *
  *
  */
+#ifdef _MSC_VER
+#define _W64
+#endif 
 
 #include <memory.h>
 #include <projectcommon.h>
@@ -117,7 +120,11 @@ g_source_pcap_new(const char * dev,	///<[in]Capture device name
 	ret->capturedev = dev; /// @todo: make a copy of this device.
 	ret->listenmask = listenmask;
 	ret->dispatch = dispatch;
+#ifdef _MSC_VER
+	ret->capturefd = pcap_fileno(ret->capture);
+#else
 	ret->capturefd = pcap_get_selectable_fd(ret->capture);
+#endif
 	ret->destroynote = notify;
 	ret->gfd.fd = ret->capturefd;
 	ret->gfd.events =  G_IO_IN|G_IO_ERR|G_IO_HUP;
@@ -207,7 +214,11 @@ proj_get_real_time(void)
 
 	g_get_current_time(&tv);
 
+#ifdef _MSC_VER
+	ret = (guint64)tv.tv_sec * (guint64)1000000U;
+#else
 	ret = (guint64)tv.tv_sec * (guint64)1000000ULL;
+#endif
 	ret += (guint64)tv.tv_usec;
 	return ret;
 	
@@ -217,7 +228,11 @@ FSTATIC guint64
 proj_timeval_to_g_real_time(const struct timeval * tv)
 {
 	guint64		ret;
+#ifdef _MSC_VER
+	ret = (guint64)tv->tv_sec * (guint64)1000000U;
+#else
 	ret =  (guint64)tv->tv_sec * (guint64)1000000ULL;
+#endif
 	ret += (guint64)tv->tv_usec;
 	return ret;
 }
@@ -228,7 +243,11 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create Framese
 			gconstpointer pkt,		  ///<[in] captured packet
 			gconstpointer pktend,		  ///<[in] one byte past end of pkt
 			const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header
+#ifdef _MSC_VER
+			const char * interfacep)		  ///<[in] interface it was captured on
+#else
 			const char * interface)		  ///<[in] interface it was captured on
+#endif
 {
 	IntFrame*	timeframe = intframe_new(FRAMETYPE_WALLCLOCK, sizeof(proj_timeval_to_g_real_time(NULL)));
 	Frame* 		pktframe = frame_new(FRAMETYPE_PKTDATA, 0);
@@ -246,7 +265,11 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create Framese
 	memcpy(cppkt, pkt, pktlen);
 	timeframe->setint(timeframe, proj_timeval_to_g_real_time(&(pkthdr->ts)));
 	pktframe->setvalue(pktframe, cppkt, pktlen, g_free);
+#ifdef _MSC_VER
+	intfname->baseclass.setvalue(CASTTOCLASS(Frame, intfname), g_strdup(interfacep), strlen(interfacep)+1, g_free);
+#else
 	intfname->baseclass.setvalue(CASTTOCLASS(Frame, intfname), g_strdup(interface), strlen(interface)+1, g_free);
+#endif
 	frameset_append_frame(fs, CASTTOCLASS(Frame, timeframe));
         timeframe->baseclass.unref(CASTTOCLASS(Frame, timeframe));
 	frameset_append_frame(fs, CASTTOCLASS(Frame, intfname));

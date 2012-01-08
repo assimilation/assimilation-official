@@ -10,7 +10,9 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  *
  */
-
+#ifdef _MSC_VER
+#define _W64
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

@@ -9,7 +9,11 @@
  */
 #include <projectcommon.h>
 #include <stdio.h>
+#ifdef _MSC_VER
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
+#endif
 #include "cdp.h"
 #include <server_dump.h>
 

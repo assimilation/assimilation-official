@@ -16,7 +16,9 @@
  * @todo convert all the messaging over to use the various glib logging functions.
  *
  */
-
+#ifdef _MSC_VER
+#define _W64
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -105,7 +107,9 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		return NULL;
 	}
 	pcap_set_promisc(pcdescr, FALSE);
+#ifndef _MSC_VER
 	pcap_set_rfmon(pcdescr, FALSE);
+#endif
 	pcap_setdirection(pcdescr, PCAP_D_IN);
 	pcap_setnonblock(pcdescr, !blocking, errbuf);
 	pcap_set_snaplen(pcdescr, 1500);

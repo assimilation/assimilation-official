@@ -32,8 +32,11 @@ struct _IntFrame {
 	guint64 _value;						///< network byte order value of this IntFrame
 };
 
-IntFrame* intframe_new(guint16 frametype, int intlength);
-Frame* intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#endif
+EXP_FUNC IntFrame* intframe_new(guint16 frametype, int intlength);
+EXP_FUNC Frame* intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 ///@}
 
 #endif /* _INTFRAME_H */

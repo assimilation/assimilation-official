@@ -38,17 +38,19 @@ struct _FrameSet {
 };
 #define	FRAMESET_INITSIZE	6	///< type+length+flags - each 2 bytes
 
-
-FrameSet*	frameset_new(guint16 frameset_type);
-void		frameset_prepend_frame(FrameSet* fs, Frame* f);
-void		frameset_append_frame(FrameSet* fs, Frame* f);
-void		frameset_construct_packet(FrameSet* fs, SignFrame* sign, Frame* crypt, Frame* compress);
-Frame*		frame_new(guint16 frame_type, gsize framesize);
-guint16		frameset_get_flags(FrameSet* fs);
-guint16		frameset_set_flags(FrameSet* f, guint16 flagbits);
-guint16		frameset_clear_flags(FrameSet* f, guint16 flagbits);
-gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
-void		frameset_dump(const FrameSet*);
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#endif
+EXP_FUNC FrameSet*	frameset_new(guint16 frameset_type);
+EXP_FUNC void		frameset_prepend_frame(FrameSet* fs, Frame* f);
+EXP_FUNC void		frameset_append_frame(FrameSet* fs, Frame* f);
+EXP_FUNC void		frameset_construct_packet(FrameSet* fs, SignFrame* sign, Frame* crypt, Frame* compress);
+EXP_FUNC Frame*		frame_new(guint16 frame_type, gsize framesize);
+EXP_FUNC guint16		frameset_get_flags(FrameSet* fs);
+EXP_FUNC guint16		frameset_set_flags(FrameSet* f, guint16 flagbits);
+EXP_FUNC guint16		frameset_clear_flags(FrameSet* f, guint16 flagbits);
+EXP_FUNC gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
+EXP_FUNC void		frameset_dump(const FrameSet*);
 
 
 /// @defgroup FrameSetTypes	FrameSet Types

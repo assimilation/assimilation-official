@@ -13,12 +13,14 @@
 #include <ctype.h>
 #include <glib.h>
 #include <lldp.h>
+#include <server_dump.h>
 
 
-gboolean is_all_ascii(const void*, const void *);
-void dump_mem(const void *, const void *);
+//const gboolean is_all_ascii(const void*, const void *);
+//void dump_mem(const void *, const void *);
 
 /// return TRUE if this memory is all printable ASCII
+EXP_FUNC
 gboolean
 is_all_ascii(const void* vmem, const void* vend)
 {
