@@ -16,3 +16,10 @@ An online version of these documents that corresponds to this source can be foun
 http://linux-ha.org/source-doc/assimilation/html/index.html
 
 */
+/**
+@page ContactInfo Contact Information 
+- Project Twitter Hash Tag  \#AssimMon
+- Project Web Site	http://assimmon.com/
+- Alan Robertson - email: alanr@@unix.sh - Twitter: @@OSSAlanR
+- Roger Massey - email: sadsaddle (a) gmail (dot) com - Twitter @@rhm84119
+*/

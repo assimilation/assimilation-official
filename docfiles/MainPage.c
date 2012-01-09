@@ -57,7 +57,7 @@ The nanoprobe code is written largely in C and minimizes use of:
 To do this, we will follow a <i>no news is good news</i> philosophy for exception monitoring -
 when nothing is wrong, nothing will be reported.
 Although the central part of the code will likely be only available on POSIX systems, 
-the nanoprobes are expected to be available on various flavors of Windows as well.
+the nanoprobes will also be available on various flavors of Windows as well.
 
 @subsection Stealth What is Stealth Discovery?
 Stealth discovery is a process of discovering systems and services without using
@@ -68,13 +68,17 @@ and anticipated stealth discovery techniques include:
  - Discovery of services using netstat -utnlp
  - Discovery of services using "service" command and related techniques
  - Discovery of systems using arp -n
- - Discovery of systems using netstat -tnp
+ - Discovery of systems using netstat -utnp
+ - Discovery of network filesystem mount dependencies using the mount table
 
 These techniques will not immediately provide a complete list of all systems
 in the environment.  However as nanoprobes are activated on systems discovered
 in this way, this process will converge to include the complete set of systems
 and edge switches in the environment - without setting off even the most
 sensitive security alarms.
+
+In addition, the netstat information correlated across the servers also
+provides information about dependencies and service groups.
 
 @subsection service_mon Service Monitoring
 To the degree possible, we will perform exception monitoring of services on the machine they're provided on - which 
@@ -148,7 +152,7 @@ For details on this, see the separate
 /**  @defgroup todos_staffing Staffing - People to look for 
  *  @{ 
  *  @ingroup todos_project
- *  @todo Find someone to do the Windows port
+ *  @todo Find someone to do the Windows port -- <i>Got someone great</i> - <b>Roger Massey</b>
  *
  *  @todo Find someone interested in structuring the testing effort - <b>automated testing is an absolute necessity</b>.
  *
@@ -182,7 +186,7 @@ For details on this, see the separate
  *  @ingroup todos_project
  *  @todo Think more about server architecture
  *
- *  @todo What tool set to use on Windows? - do winpcap or glib have constraints?
+ *  @todo What tool set to use on Windows? - do winpcap or glib have constraints? - Roger is looking into that...
  *
  *  @todo "portable" methods of grabbing the local ARP cache (for discovery)
  *
