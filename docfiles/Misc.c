@@ -19,8 +19,9 @@ http://linux-ha.org/source-doc/assimilation/html/index.html
 */
 /**
 @page ContactInfo Contact Information 
+@section ContactInfoSection Contact Information
 - Project Twitter Hash Tag  \#AssimMon
-- Project Web Site	http://assimmon.com/
+- Project Web Site	http://assimmon.org/
 - Alan Robertson - email: alanr@@unix.sh - Twitter: @@OSSAlanR
-- Roger Massey - email: sadsaddle (a) gmail (dot) com - Twitter @@rhm84119
+- Roger Massey - email: sadsaddle (a) gmail (and-the-usual-ending) - Twitter @@rhm84119
 */
