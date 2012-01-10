@@ -10,7 +10,8 @@ Those files are also provided under these same terms.
 
 @section SourceLocation Where To Find The Current Project Source
 As of this writing, the source to the latest version of this software is stored under Mercurial
-and can be found at http://hg.linux-ha.org/.
+and can be found at http://hg.linux-ha.org/
+or more specifically at http://hg.linux-ha.org/|experimental/assimilation/
 
 An online version of these documents that corresponds to this source can be found here:
 http://linux-ha.org/source-doc/assimilation/html/index.html
