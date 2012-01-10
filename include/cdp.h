@@ -51,15 +51,21 @@
 #define CDP_CAPMASK_REPEATER	0x40	///< Repeater
 /// @}
 
-guint8 get_cdp_vers(gconstpointer pktptr, gconstpointer pktend);
-guint8 get_cdp_ttl(gconstpointer pktptr, gconstpointer pktend);
-guint16 get_cdp_cksum(gconstpointer pktptr, gconstpointer pktend);
-guint16 get_cdptlv_type(gconstpointer tlv_vp, gconstpointer pktend);
-gsize get_cdptlv_len(gconstpointer tlv_vp, gconstpointer pktend);
-gsize get_cdptlv_vlen(gconstpointer tlv_vp, gconstpointer pktend);
-gconstpointer get_cdptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
-gconstpointer get_cdptlv_first(gconstpointer pkt, gconstpointer pktend);
-gconstpointer get_cdptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
-gconstpointer get_cdp_chassis_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
-gconstpointer get_cdp_port_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
-gboolean is_valid_cdp_packet(gconstpointer packet, gconstpointer pktend);
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#else
+#define EXP_FUNC
+
+#endif
+EXP_FUNC guint8 get_cdp_vers(gconstpointer pktptr, gconstpointer pktend);
+EXP_FUNC guint8 get_cdp_ttl(gconstpointer pktptr, gconstpointer pktend);
+EXP_FUNC guint16 get_cdp_cksum(gconstpointer pktptr, gconstpointer pktend);
+EXP_FUNC guint16 get_cdptlv_type(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gsize get_cdptlv_len(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gsize get_cdptlv_vlen(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gconstpointer get_cdptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gconstpointer get_cdptlv_first(gconstpointer pkt, gconstpointer pktend);
+EXP_FUNC gconstpointer get_cdptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
+EXP_FUNC gconstpointer get_cdp_chassis_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
+EXP_FUNC gconstpointer get_cdp_port_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
+EXP_FUNC gboolean is_valid_cdp_packet(gconstpointer packet, gconstpointer pktend);

@@ -28,12 +28,16 @@ struct _AddrFrame {
 	void(*setnetaddr)(AddrFrame* f, NetAddr* addr);
 };
 
-AddrFrame* addrframe_new(guint16 frame_type, gsize framesize);
-AddrFrame* addrframe_ipv4_new(guint16 frame_type, gconstpointer addr);
-AddrFrame* addrframe_ipv6_new(guint16 frame_type, gconstpointer addr);
-AddrFrame* addrframe_mac48_new(guint16 frame_type, gconstpointer addr);
-AddrFrame* addrframe_mac64_new(guint16 frame_type, gconstpointer addr);
-Frame* addrframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+#ifdef _MSC_VER
+#define EXP_FUNC __declspec( dllexport )
+#endif
+
+EXP_FUNC AddrFrame* addrframe_new(guint16 frame_type, gsize framesize);
+EXP_FUNC AddrFrame* addrframe_ipv4_new(guint16 frame_type, gconstpointer addr);
+EXP_FUNC AddrFrame* addrframe_ipv6_new(guint16 frame_type, gconstpointer addr);
+EXP_FUNC AddrFrame* addrframe_mac48_new(guint16 frame_type, gconstpointer addr);
+EXP_FUNC AddrFrame* addrframe_mac64_new(guint16 frame_type, gconstpointer addr);
+EXP_FUNC Frame* addrframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 #endif /* _ADDRFRAME_H */

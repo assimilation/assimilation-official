@@ -151,7 +151,7 @@ _addrframe_addr_finalize(void * addr) ///< @ref AddrFrame object to free (FREE)
 
 /// Construct a new @ref AddrFrame - allowing for "derived" frame types...
 /// This can be used directly for creating @ref AddrFrame frames, or by derived classes.
-AddrFrame*
+EXP_FUNC AddrFrame*
 addrframe_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
 	      gsize framesize)		///<[in] size of frame structure (or zero for sizeof(AddrFrame))
 {
@@ -174,7 +174,7 @@ addrframe_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not a
 }
 
 /// Construct and initialize an IPv4 @ref AddrFrame
-AddrFrame*
+EXP_FUNC AddrFrame*
 addrframe_ipv4_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
 		   gconstpointer addr)	///<[in] pointer to the (binary) IPv4 address data
 {
@@ -186,7 +186,7 @@ addrframe_ipv4_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (
 }
 
 /// Construct and initialize an IPv6 @ref AddrFrame
-AddrFrame*
+EXP_FUNC AddrFrame*
 addrframe_ipv6_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
 		   gconstpointer addr)	///<[in] pointer to the (binary) IPv6 address data
 {
@@ -198,7 +198,7 @@ addrframe_ipv6_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (
 }
 
 /// Construct and initialize a 48-bit MAC address @ref AddrFrame
-AddrFrame*
+EXP_FUNC AddrFrame*
 addrframe_mac48_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
                     gconstpointer addr)	///<[in] pointer to the (binary) MAC address data
 {
@@ -209,7 +209,7 @@ addrframe_mac48_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame 
 	return ret;
 }
 /// Construct and initialize a 64-bit MAC address @ref AddrFrame
-AddrFrame*
+EXP_FUNC AddrFrame*
 addrframe_mac64_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not address type) frame
 		    gconstpointer addr)	///<[in] pointer to the (binary) MAC address data
 {
@@ -223,7 +223,7 @@ addrframe_mac64_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame 
 /// Given marshalled packet data corresponding to an AddrFrame (address), return the corresponding @ref Frame
 /// In other words, un-marshall the data...
 /// Note that this always returns an @ref AddrFrame (a subclass of @ref Frame)
-Frame*
+EXP_FUNC Frame*
 addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
 			 gconstpointer pktend)		///<[in] pointer to the first invalid address past tlvstart
 
