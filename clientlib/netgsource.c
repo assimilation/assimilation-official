@@ -163,7 +163,9 @@ FSTATIC void
 _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 {
 #ifdef _MSC_VER
+#ifndef __FUNCTION__
 #define __FUNCTION__ "_netgsource_finalize"
+#endif
 #endif
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	g_message("***********IN %s()", __FUNCTION__);

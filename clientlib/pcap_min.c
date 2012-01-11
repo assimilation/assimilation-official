@@ -65,7 +65,8 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	int			cnt=0;
 	const char ORWORD [] = " or ";
 
-	setbuf(stdout, NULL);
+//	setbuf(stdout, NULL);
+	setvbuf(stdout, NULL, _IONBF, 0);
 	///@todo: probably shouldn't be using perror() and pcap_perror()...
 
 	// Search the list of valid bits so we can construct the libpcap filter
@@ -95,9 +96,20 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		if (listenmask & filterinfo[j].filterbit) {
 			++cnt;
 			if (cnt > 1) {
-				strcat(expr, ORWORD);
+// clean up a security warning
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+				strcat_s(expr, sizeof(expr) - 1, ORWORD);
+#else
+				strncat(expr, ORWORD, sizeof(expr) - 1);
+#endif
 			}
-			strcat(expr, filterinfo[j].filter);
+
+// clean up a security warning
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+			strcat_s(expr, sizeof(expr) - 1, filterinfo[j].filter);
+#else
+			strncat(expr, filterinfo[j].filter, sizeof(expr) - 1);
+#endif
 		}
 	}
 	pcap_lookupnet(dev, &netp, &maskp, errbuf);

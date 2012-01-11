@@ -283,6 +283,9 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	ssize_t		msglen;
 	ssize_t		msglen2;
 	guint8*		msgbuf;
+#ifdef _MSC_VER
+	char        errmsg[80];
+#endif
 
 	// First we peek and see how long the message is...
 	*addrlen = sizeof(*srcaddr);
@@ -295,14 +298,26 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 #endif
 	if (msglen < 0) {
 		if (errno != EAGAIN) {
-			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)"
-			,      self->getfd(self), strerror(errno), __FILE__, __func__, __LINE__);
+#if _MSC_VER > 1310
+			strerror_s(errmsg, sizeof(errmsg)-1, errno);
+			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)",
+				self->getfd(self), errmsg, __FILE__, __func__, __LINE__);
+#else
+			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)",
+				self->getfd(self), strerror(errno), __FILE__, __func__, __LINE__);
+#endif
 		}
 		return NULL;
 	}
 	if (msglen == 0) {
+#if _MSC_VER > 1310
+		strerror_s(errmsg, sizeof(errmsg)-1, errno);
+		g_warning("recvfrom(%d, ... MSG_PEEK) returned zero: %s (in %s:%s:%d)"
+		,      self->getfd(self), errmsg, __FILE__, __func__, __LINE__);
+#else
 		g_warning("recvfrom(%d, ... MSG_PEEK) returned zero: %s (in %s:%s:%d)"
 		,      self->getfd(self), strerror(errno), __FILE__, __func__, __LINE__);
+#endif
 		return NULL;
 	}
 
@@ -321,8 +336,14 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 
 	// Was there an error?
 	if (msglen2 < 0) {
+#if _MSC_VER > 1310
+		strerror_s(errmsg, sizeof(errmsg)-1, errno);
+		g_warning("recvfrom(%d, ... MSG_DONTWAIT) failed: %s (in %s:%s:%d)"
+		,      self->getfd(self), errmsg, __FILE__, __func__, __LINE__);
+#else
 		g_warning("recvfrom(%d, ... MSG_DONTWAIT) failed: %s (in %s:%s:%d)"
 		,      self->getfd(self), strerror(errno), __FILE__, __func__, __LINE__);
+#endif
 		FREE(msgbuf); msgbuf = NULL;
 		return NULL;
 	}

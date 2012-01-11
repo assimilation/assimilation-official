@@ -17,8 +17,10 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 
-#ifdef _MSC_VER
-size_t  strnlen(const char*  str, size_t  maxlen)
+
+#if defined(_MSC_VER) && _MSC_VER < 1400
+#ifndef strnlen
+size_t  strnlen(char*  str, size_t  maxlen)
 {
 	char*  p = memchr(str, 0, maxlen);
  
@@ -28,6 +30,8 @@ size_t  strnlen(const char*  str, size_t  maxlen)
 		return (p - str);
 }
 #endif
+#endif
+
 
 FSTATIC gboolean _nvpairframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 
