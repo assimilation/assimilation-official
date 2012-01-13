@@ -87,11 +87,7 @@ _intframe_setint(IntFrame * self, guint64 value)
 			break;
 		case 2:	limit = G_MAXUINT16;
 			break;
-#ifdef _MSC_VER
-		case 3:	limit = ((2UL<<24)-1);
-#else
-		case 3:	limit = ((2ULL<<24)-1);
-#endif
+		case 3:	limit = ((((unsigned long long)2UL)<<24)-1UL);
 			break;
 		case 4:	limit = G_MAXUINT32;
 			break;
@@ -193,11 +189,7 @@ intframe_tlvconstructor(gconstpointer tlvstart,	///<[in] First byte of the IntFr
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	IntFrame *	ret = intframe_new(frametype, framelength);
-#ifdef _MSC_VER
-	guint64		intvalue = 0xffffffffffffffff;
-#else
-	guint64		intvalue = 0xffffffffffffffffULL;
-#endif
+	guint64		intvalue = 0xffffffffffffffffUL;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;

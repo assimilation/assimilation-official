@@ -16,9 +16,6 @@
  * @todo convert all the messaging over to use the various glib logging functions.
  *
  */
-#ifdef _MSC_VER
-#define _W64
-#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -96,20 +93,9 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		if (listenmask & filterinfo[j].filterbit) {
 			++cnt;
 			if (cnt > 1) {
-// clean up a security warning
-#if defined(_MSC_VER) && _MSC_VER >= 1400
-				strcat_s(expr, sizeof(expr) - 1, ORWORD);
-#else
-				strncat(expr, ORWORD, sizeof(expr) - 1);
-#endif
+				g_strlcat(expr, ORWORD, filterlen);
 			}
-
-// clean up a security warning
-#if defined(_MSC_VER) && _MSC_VER >= 1400
-			strcat_s(expr, sizeof(expr) - 1, filterinfo[j].filter);
-#else
-			strncat(expr, filterinfo[j].filter, sizeof(expr) - 1);
-#endif
+			g_strlcat(expr, filterinfo[j].filter, filterlen);
 		}
 	}
 	pcap_lookupnet(dev, &netp, &maskp, errbuf);
@@ -119,7 +105,7 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		return NULL;
 	}
 	pcap_set_promisc(pcdescr, FALSE);
-#ifndef _MSC_VER
+#ifdef HAVE_PCAP_SET_RFMON
 	pcap_set_rfmon(pcdescr, FALSE);
 #endif
 	pcap_setdirection(pcdescr, PCAP_D_IN);
@@ -141,6 +127,7 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	}
 	if (pcap_compile(pcdescr, &fp, expr, FALSE, maskp) < 0) {
 		pcap_perror(pcdescr, expr);
+		g_warning("pcap_compile failed: [%s]", expr);
 		return(NULL);
 	}
 	if (pcap_setfilter(pcdescr, &fp) < 0) {

@@ -29,13 +29,8 @@ struct _SignFrame {
 	GChecksumType	signaturetype;			///< Type of signature...
 };
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#else
-#define EXP_FUNC
-#endif
-EXP_FUNC SignFrame* signframe_new(GChecksumType sigtype, gsize framesize);
-EXP_FUNC Frame* signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+WINEXPORT SignFrame* signframe_new(GChecksumType sigtype, gsize framesize);
+WINEXPORT Frame* signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 

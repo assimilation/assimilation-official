@@ -19,6 +19,17 @@
 
 #define	FSTATIC		/* Static function */
 #define	FMT_64BIT	"%ll"				///< Format designator for a 64 bit integer
+
+#ifdef _MSC_VER
+#	define _W64
+#	define	WINEXPORT __declspec( dllexport )
+#	define MSG_DONTWAIT	0	// This could be trouble!!
+#	define MSG_TRUNC	0
+#else
+#	define	WINEXPORT /* Nothing */
+#	define HAVE_PCAP_SET_RFMON	1	// We should test for this...
+#endif
+
 #include <glib.h>
 #include <proj_classes.h>
 

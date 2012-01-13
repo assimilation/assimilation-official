@@ -14,6 +14,7 @@
 
 #ifndef _NETGSOURCE_H
 #define _NETGSOURCE_H
+#include <projectcommon.h>
 #include <glib.h>
 #include <netgsource.h>
 #include <netaddr.h>
@@ -45,10 +46,7 @@ struct _NetGSource {
 	GDestroyNotify 		_finalize;	///< Function to call when we're destroyed
 	void(*addDispatch)(NetGSource*,guint16, NetGSourceDispatch);///< Register a new dispatch function
 };
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC NetGSource* netgsource_new(NetIO* iosrc, GDestroyNotify notify,
+WINEXPORT NetGSource* netgsource_new(NetIO* iosrc, GDestroyNotify notify,
 	       		   gint priority, gboolean can_recurse, GMainContext* context,
 	       		   gsize objsize, gpointer userdata);
 #endif /* _NETGSOURCE_H */

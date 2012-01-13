@@ -162,10 +162,8 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 FSTATIC void
 _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 {
-#ifdef _MSC_VER
 #ifndef __FUNCTION__
-#define __FUNCTION__ "_netgsource_finalize"
-#endif
+#	define __FUNCTION__ "_netgsource_finalize"
 #endif
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	g_message("***********IN %s()", __FUNCTION__);

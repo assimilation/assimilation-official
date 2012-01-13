@@ -17,11 +17,11 @@
 #include <memory.h>
 #include <sys/types.h>
 #ifdef _MSC_VER
-#include <winsock2.h>
-#include <ws2tcpip.h>
+#	include <winsock2.h>
+#	include <ws2tcpip.h>
 #else
-#include <sys/socket.h>
-#include <netinet/in.h>
+#	include <sys/socket.h>
+#	include <netinet/in.h>
 #endif
 #include <glib.h>
 #include <decode_packet.h>
@@ -276,33 +276,27 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		   socklen_t* addrlen)		///<[out] length of address in 'srcaddr'
 {
 	char		dummy[8]; // Make GCC stack protection happy...
-#ifndef ssize_t
-#define ssize_t int
-#define __func__ "_netio_recvapacket"
+#ifndef __FUNCTION__
+#	define __FUNCTION__ "_netio_recvapacket"
 #endif
-	ssize_t		msglen;
-	ssize_t		msglen2;
+	gssize		msglen;
+	gssize		msglen2;
 	guint8*		msgbuf;
 
 	// First we peek and see how long the message is...
 	*addrlen = sizeof(*srcaddr);
-#ifdef _MSC_VER
-	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_PEEK,
-		          (struct sockaddr*)srcaddr, addrlen);
-#else
 	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_DONTWAIT|MSG_PEEK|MSG_TRUNC,
 		          (struct sockaddr*)srcaddr, addrlen);
-#endif
 	if (msglen < 0) {
 		if (errno != EAGAIN) {
 			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)",
-				self->getfd(self), g_strerror(errno), __FILE__, __func__, __LINE__);
+				self->getfd(self), g_strerror(errno), __FILE__, __FUNCTION__, __LINE__);
 		}
 		return NULL;
 	}
 	if (msglen == 0) {
 		g_warning("recvfrom(%d, ... MSG_PEEK) returned zero: %s (in %s:%s:%d)"
-		,      self->getfd(self), g_strerror(errno), __FILE__, __func__, __LINE__);
+		,      self->getfd(self), g_strerror(errno), __FILE__, __FUNCTION__, __LINE__);
 		return NULL;
 	}
 
@@ -311,25 +305,20 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 
 	// Receive the message
 	*addrlen = sizeof(*srcaddr);
-#ifdef _MSC_VER
-	msglen2 = recvfrom(self->getfd(self), msgbuf, msglen, 0,
-			   (struct sockaddr *)srcaddr, addrlen);
-#else
 	msglen2 = recvfrom(self->getfd(self), msgbuf, msglen, MSG_DONTWAIT|MSG_TRUNC,
 			   (struct sockaddr *)srcaddr, addrlen);
-#endif
 
 	// Was there an error?
 	if (msglen2 < 0) {
 		g_warning("recvfrom(%d, ... MSG_DONTWAIT) failed: %s (in %s:%s:%d)"
-		,      self->getfd(self), g_strerror(errno), __FILE__, __func__, __LINE__);
+		,      self->getfd(self), g_strerror(errno), __FILE__, __FUNCTION__, __LINE__);
 		FREE(msgbuf); msgbuf = NULL;
 		return NULL;
 	}
 	// Does everything look good?
 	if (msglen2 != msglen) {
 		g_warning("recvfrom(%d, ... MSG_DONTWAIT) returned %zd instead of %zd (in %s:%s:%d)"
-		,      self->getfd(self), msglen2, msglen, __FILE__, __func__ ,	__LINE__);
+		,      self->getfd(self), msglen2, msglen, __FILE__, __FUNCTION__ ,	__LINE__);
 		FREE(msgbuf); msgbuf = NULL;
 		return NULL;
 	}

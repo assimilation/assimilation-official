@@ -10,6 +10,7 @@
 
 #ifndef _DECODE_PACKET_H
 #define _DECODE_PACKET_H
+#include <projectcommon.h>
 #include <frame.h>
 
 typedef struct _FrameTypeToFrame FrameTypeToFrame;
@@ -21,8 +22,5 @@ struct _FrameTypeToFrame {
 	int			frametype; ///< One of the @ref IndividualFrameFormats "Defined Frame Formats" from frameformats.h
 	FramePktConstructor	constructor;
 };
-#ifdef _MSC_VER
-__declspec( dllexport )
-#endif
-GSList*		pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend);
+WINEXPORT GSList*		pktdata_to_frameset_list(gconstpointer pktstart, gconstpointer pktend);
 #endif /* DECODE_PACKET_H */

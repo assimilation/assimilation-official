@@ -13,6 +13,7 @@
 
 #ifndef _NETIO_H
 #define _NETIO_H
+#include <projectcommon.h>
 #include <glib.h>
 #include <netaddr.h>
 #include <frame.h>
@@ -79,10 +80,7 @@ struct _NetIO {
 	void		(*finalize)			///< Finalize this NetIO object
 				(NetIO* self);		///<[in] 'this' object
 };
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC NetIO*	netio_new(gsize objsize); // Don't call this directly! - this is an abstract class...
+WINEXPORT NetIO*	netio_new(gsize objsize); // Don't call this directly! - this is an abstract class...
 ///@}
 
 #endif /* _NETIO_H */

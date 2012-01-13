@@ -1,16 +1,13 @@
 /**
  * @file
- * @brief C-class defining the SwitchDiscovery classj
- * @details it is for discovering switch configuration information via LLDP or CDP.
+ * @brief functions for handling standard client incoming packet dispatch.
+ * @details It passes off incoming packets to the appropriate functions.
  *
- * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
+ * @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
  * @n
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option.
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
-#ifdef _MSC_VER
-#define _W64
-#endif
 
 #include <projectcommon.h>
 #include <switchdiscovery.h>

@@ -278,10 +278,13 @@ class FrameSetTypes:
 	'PING':		(3, 'Are you alive?'),
 	'PONG':		(4,  'I am alive'),
 	'HBDEAD':	(16, 'System named in packet appears to be dead.'),
-	'CLIENTCONFIG':	(17, 'Packet contains client configuration directives'),
-	'SWDISCOV':	(18, 'Packet encapsulates switch discovery packet'),
-	'LOCALNETDISCOV':(19, 'Packet contains local network config data'),
-	'ARPDISCOVER':	(20, 'Packet contains ARP table data'),
+	'SWDISCOVER':	(17, 'Packet encapsulates switch discovery packet'),
+	'LOCALNETDISCOVER':(18, 'Packet contains local network config data'),
+	'ARPDISCOVER':	(19, 'Packet contains ARP table data'),
+	'CLIENTCONFIG':	(32, 'Packet contains client configuration directives'),
+	'SENDHB':	(33, 'Send Heartbeats to this address'),
+	'EXPECTHB':	(34, 'Expect Heartbeats from this address'),
+	'SENDEXPECTHB':	(35, 'Send Heartbeats to this address, and expect them as well.'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():

@@ -13,17 +13,13 @@
 #include <stdio.h>
 
 #ifdef _MSC_VER
-#include <winsock.h>
+#	include <winsock.h>
 #else
-#include <netinet/in.h>
+#	include <netinet/in.h>
 #endif
 
 #include <cdp.h>
 #include <tlvhelper.h>
-#ifndef	NULL
-#	define	NULL	((void*)0)
-#endif /* NULL */
-#define DIMOF(a)	((sizeof(a)) / sizeof(a[0]))
 /**
  * @defgroup cdp_format Layout of CDP Packets
  * @ingroup WireDataFormats
@@ -81,7 +77,7 @@
 /// issues in the structure of the packet.
 /// @return TRUE if this is a valid CDP packet, FALSE otherwise.
 /// @todo validate dest MAC address (01:00:0c:cc:cc:cc) before looking at anything else...
-EXP_FUNC gboolean
+WINEXPORT gboolean
 is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
                     const void* pktend)	///< [in]First byte after the last CDP packet byte
 {
@@ -130,7 +126,7 @@ is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
 
 /// Return the CDP protocol version for this packet.  This is normally 2.
 /// The CDP protocol version is not part of the TLVs in a CDP packet.
-EXP_FUNC guint8
+WINEXPORT guint8
 get_cdp_vers(const void* pktptr, ///<[in] Pointer to beginning of the CDP packet
              const void* pktend) ///<[in]Pointer of first byte past end of CDP packet
 {
@@ -141,7 +137,7 @@ get_cdp_vers(const void* pktptr, ///<[in] Pointer to beginning of the CDP packet
 /// Return the time to live for this CDP packet.
 /// The TTL is not part of the TLVs in a CDP packet.
 /// @return time to live (TTL) in seconds
-EXP_FUNC guint8
+WINEXPORT guint8
 get_cdp_ttl(const void* pktptr, ///< [in]Pointer to beginning of the CDP packet
             const void* pktend) ///<[in]Pointer of first byte past end of CDP packet
 {
@@ -151,7 +147,7 @@ get_cdp_ttl(const void* pktptr, ///< [in]Pointer to beginning of the CDP packet
 /// Return the 16-bit checksum for this CDP packet.
 /// The checksum is not part of the TLVs, so the input pointer is to the CDP packet
 /// not the first TLV in the packet.
-EXP_FUNC guint16
+WINEXPORT guint16
 get_cdp_cksum(const void* pktptr, ///< [in]Pointer to beginning of CDP packet
               const void* pktend) ///<[in]Pointer of first byte past end of CDP packet
 {
@@ -161,7 +157,7 @@ get_cdp_cksum(const void* pktptr, ///< [in]Pointer to beginning of CDP packet
 
 /// Return type from the given TLV triplet in a CDP packet.
 /// @return type value from CDP TLV triple
-EXP_FUNC guint16
+WINEXPORT guint16
 get_cdptlv_type(const void* tlv_vp,  ///< [in]Should be the a CDP TLV object from get_cdbtlv_first
 				     ///< or get_cdp_tlv_next, etc.
               const void* pktend)    ///<[in]Pointer of first byte past end of CDP packet
@@ -171,7 +167,7 @@ get_cdptlv_type(const void* tlv_vp,  ///< [in]Should be the a CDP TLV object fro
 
 /// Return size of the given TLV triplet.
 /// @return size of the entire TLV triplet - including size of T and L as well as V.
-EXP_FUNC gsize
+WINEXPORT gsize
 get_cdptlv_len(const void* tlv_vp,   ///< [in]Should be the a CDP TLV object from get_cdbtlv_first
 				     ///< or get_cdp_tlv_next, etc.
                const void* pktend)    ///<[in]Pointer of first byte past end of CDP packet
@@ -182,7 +178,7 @@ get_cdptlv_len(const void* tlv_vp,   ///< [in]Should be the a CDP TLV object fro
 /// Return length of the value blob int a given TLV triplet in a CDP packet - value size only.
 /// @return number of bytes in the Value portion of the CDP TLV pointed to in the input
 /// @see get_cdptlv_body
-EXP_FUNC gsize
+WINEXPORT gsize
 get_cdptlv_vlen(const void* tlv_vp,  ///< [in]Should be the a CDP TLV object from get_cdbtlv_first(),
 				     ///< or get_cdp_tlv_next(), etc.
                 const void* pktend)  ///<[in]Pointer of first byte past end of CDP packet
@@ -194,7 +190,7 @@ get_cdptlv_vlen(const void* tlv_vp,  ///< [in]Should be the a CDP TLV object fro
 /// @return pointer to the value blob of a CDP TLV triplet.
 /// Length of this blob is given by get_cdptlv_vlen().
 /// @see get_cdptlv_vlen
-EXP_FUNC const void *
+WINEXPORT const void *
 get_cdptlv_body(const void* tlv_vp,	///< [in]Should be the a CDP TLV object from get_cdbtlv_first()
 					///< or get_cdp_tlv_next(), etc.
                 const void* pktend)     ///<[in]Pointer of first byte past end of CDP packet
@@ -205,7 +201,7 @@ get_cdptlv_body(const void* tlv_vp,	///< [in]Should be the a CDP TLV object from
 /// Return the first CDP TLV triple in a CDP packet.
 /// @return pointer to the first CDP TLV triple in the packet - or NULL if none.
 /// Note that this will <B>never</B> return a pointer to a TLV which extends past tlv_vpend.
-EXP_FUNC const void *
+WINEXPORT const void *
 get_cdptlv_first(const void* pkt,	///< [in]Pointer to start of CDP packet
                  const void* pktend)	///< [in]First byte after the last CDP packet byte
 {
@@ -227,7 +223,7 @@ get_cdptlv_first(const void* pkt,	///< [in]Pointer to start of CDP packet
 /// Locate the next CDP TLV triple (iterator).
 /// @return pointer to the next CDP TLV triple in the sequence - or NULL if none.
 /// Note that this will <B>never</B> return a pointer to a TLV which extends past tlv_vpend.
-EXP_FUNC const void *
+WINEXPORT const void *
 get_cdptlv_next(const void* tlv_vp, 	///< [in]Pointer to first byte of current TLV triple
                 const void* tlv_vpend)	///< [in]First byte after the last CDP packet byte
 {
@@ -249,7 +245,7 @@ get_cdptlv_next(const void* tlv_vp, 	///< [in]Pointer to first byte of current T
 
 /// Get the chassis ID associated with this CDP packet.
 /// @return pointer to chassis ID memory area and also length of the chassis ID
-EXP_FUNC const void*
+WINEXPORT const void*
 get_cdp_chassis_id(gconstpointer packet,		///< [in]Pointer to a the start of a CDP packet
                    gssize*     idlength,	///< [out]length of chassis id
                    gconstpointer pktend)		///< [in]Pointer of first byte past end of CDP packet
@@ -270,7 +266,7 @@ get_cdp_chassis_id(gconstpointer packet,		///< [in]Pointer to a the start of a C
 
 /// get the port ID associated with this CDP packet
 /// @return pointer to port ID memory area and also length of the port ID
-EXP_FUNC const void*
+WINEXPORT const void*
 get_cdp_port_id(gconstpointer packet,	///< [in]Pointer to a the start of a CDP packet
                 gssize*     idlength,	///< [out]length of chassis id
                 gconstpointer pktend)	///< [in]Pointer of first byte past end of CDP packet

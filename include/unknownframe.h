@@ -23,11 +23,8 @@ struct _UnknownFrame {
 	Frame		baseclass;
 };
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC UnknownFrame* unknownframe_new(guint16 frame_type); // Derived classes not possible.
-EXP_FUNC Frame* unknownframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+WINEXPORT UnknownFrame* unknownframe_new(guint16 frame_type); // Derived classes not possible.
+WINEXPORT Frame* unknownframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 #endif /* _UNKNOWNFRAME_H */

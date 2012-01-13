@@ -13,6 +13,7 @@
  */
 #ifndef _LLDP_H
 #define _LLDP_H
+#	include <projectcommon.h>
 #	include <sys/types.h>
 #	include <glib.h>
 /*
@@ -103,22 +104,17 @@
 #define LLDP_ORG802_3_MTU		4	///< Section G.5 - MTU
 /// @} 
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#else
-#define EXP_FUNC
-#endif
 
-EXP_FUNC unsigned	get_lldp_chassis_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
-EXP_FUNC gconstpointer	get_lldp_chassis_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
+WINEXPORT unsigned	get_lldp_chassis_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+WINEXPORT gconstpointer	get_lldp_chassis_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
 gconstpointer	get_lldp_port_id(gconstpointer tlv_vp, gssize* idlength, gconstpointer tlv_vpend);
-EXP_FUNC unsigned	get_lldp_port_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+WINEXPORT unsigned	get_lldp_port_id_type(gconstpointer tlv_vp, gconstpointer tlv_vpend);
 
-EXP_FUNC guint8		get_lldptlv_type(gconstpointer tlvp_vp, gconstpointer pktend);
-EXP_FUNC gsize		get_lldptlv_len(gconstpointer tlvp_vp, gconstpointer pktend);
-EXP_FUNC gconstpointer	get_lldptlv_first(gconstpointer tlv_vp, gconstpointer pktend);
-EXP_FUNC gconstpointer	get_lldptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
-EXP_FUNC gconstpointer	get_lldptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
-EXP_FUNC gconstpointer	find_next_lldptlv_type(gconstpointer tlv_vp, unsigned tlvtype, gconstpointer tlv_vpend);
-EXP_FUNC gboolean	is_valid_lldp_packet(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+WINEXPORT guint8		get_lldptlv_type(gconstpointer tlvp_vp, gconstpointer pktend);
+WINEXPORT gsize		get_lldptlv_len(gconstpointer tlvp_vp, gconstpointer pktend);
+WINEXPORT gconstpointer	get_lldptlv_first(gconstpointer tlv_vp, gconstpointer pktend);
+WINEXPORT gconstpointer	get_lldptlv_next(gconstpointer tlv_vp, gconstpointer pktend);
+WINEXPORT gconstpointer	get_lldptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
+WINEXPORT gconstpointer	find_next_lldptlv_type(gconstpointer tlv_vp, unsigned tlvtype, gconstpointer tlv_vpend);
+WINEXPORT gboolean	is_valid_lldp_packet(gconstpointer tlv_vp, gconstpointer tlv_vpend);
 #endif /* _LLDP_H */

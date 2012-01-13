@@ -15,10 +15,10 @@
 #define _NETADDR_H
 #include <projectcommon.h>
 #ifdef _MSC_VER
-#include <winsock2.h>
-typedef int socklen_t;
+#	include <winsock2.h>
+	typedef int socklen_t;
 #else
-#include <netinet/in.h>
+#	include <netinet/in.h>
 #endif
 typedef struct _NetAddr NetAddr;
 
@@ -42,16 +42,13 @@ struct _NetAddr {
 	guint16		_addrport;				///< private: Address port (if applicable)
 	guint16		_refcount;				///< private: Reference count
 };
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC NetAddr*	netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen);
-EXP_FUNC NetAddr*	netaddr_sockaddr_new(const struct sockaddr_in6 *, socklen_t);
-EXP_FUNC NetAddr*	netaddr_macaddr_new(gconstpointer macbuf, guint16 maclen);
-EXP_FUNC NetAddr*	netaddr_mac48_new(gconstpointer macbuf);
-EXP_FUNC NetAddr*	netaddr_mac64_new(gconstpointer macbuf);
-EXP_FUNC NetAddr*	netaddr_ipv4_new(gconstpointer	ipbuf, guint16	port);
-EXP_FUNC NetAddr*	netaddr_ipv6_new(gconstpointer ipbuf, guint16	port);
+WINEXPORT NetAddr*	netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen);
+WINEXPORT NetAddr*	netaddr_sockaddr_new(const struct sockaddr_in6 *, socklen_t);
+WINEXPORT NetAddr*	netaddr_macaddr_new(gconstpointer macbuf, guint16 maclen);
+WINEXPORT NetAddr*	netaddr_mac48_new(gconstpointer macbuf);
+WINEXPORT NetAddr*	netaddr_mac64_new(gconstpointer macbuf);
+WINEXPORT NetAddr*	netaddr_ipv4_new(gconstpointer	ipbuf, guint16	port);
+WINEXPORT NetAddr*	netaddr_ipv6_new(gconstpointer ipbuf, guint16	port);
 
 
 #define	CONST_IPV6_LOOPBACK	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}

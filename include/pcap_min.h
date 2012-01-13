@@ -12,6 +12,7 @@
  *
  */
 
+#include <projectcommon.h>
 #include <pcap.h>
 
 
@@ -28,7 +29,4 @@
 ///	Enable CDP protocol
 #	define	ENABLE_CDP	0x2 
 /// @}
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask);
+WINEXPORT pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask);

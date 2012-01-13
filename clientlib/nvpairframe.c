@@ -19,17 +19,17 @@
 
 
 #if defined(_MSC_VER) && _MSC_VER < 1400
-#ifndef strnlen
-size_t  strnlen(char*  str, size_t  maxlen)
+// Probably should be defined in some other file - for the case the system doesn't supply it.
+gsize
+strnlen(char*  str, size_t  maxlen)
 {
-	char*  p = memchr(str, 0, maxlen);
+	char*  p = memchr(str, '\0', maxlen);
  
-	if (p == NULL)
+	if (p == NULL) {
 		return maxlen;
-	else
-		return (p - str);
+	}
+	return (p - str);
 }
-#endif
 #endif
 
 

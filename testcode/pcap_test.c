@@ -10,14 +10,11 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  *
  */
-#ifdef _MSC_VER
-#define _W64
-#endif
+#include <projectcommon.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <projectcommon.h>
 #include <cdp.h>
 #include <lldp.h>
 #include <address_family_numbers.h>

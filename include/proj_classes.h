@@ -9,27 +9,22 @@
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
+#include <projectcommon.h>
 #include <glib.h>
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#else 
-#define EXP_FUNC
-#endif
-EXP_FUNC gpointer	proj_class_new(gsize objsize, const char * static_classname);
-EXP_FUNC void		proj_class_dissociate(gpointer object);
-EXP_FUNC void		proj_class_free(gpointer object);
-EXP_FUNC void		proj_class_register_object(gpointer object, const char * static_classname);
-EXP_FUNC gpointer	proj_class_castas(gpointer object, const char * castclass);
-EXP_FUNC gconstpointer	proj_class_castasconst(gconstpointer object, const char * castclass);
-EXP_FUNC void		proj_class_register_subclassed(gpointer object, const char * static_subclassname);
-EXP_FUNC void		proj_class_quark_add_superclass_relationship(GQuark superclass, GQuark subclass);
-EXP_FUNC gboolean	proj_class_quark_is_a(GQuark objectclass, GQuark testclass);
-EXP_FUNC const char *	proj_class_classname(gconstpointer object);
+WINEXPORT gpointer	proj_class_new(gsize objsize, const char * static_classname);
+WINEXPORT void		proj_class_dissociate(gpointer object);
+WINEXPORT void		proj_class_free(gpointer object);
+WINEXPORT void		proj_class_register_object(gpointer object, const char * static_classname);
+WINEXPORT gpointer	proj_class_castas(gpointer object, const char * castclass);
+WINEXPORT gconstpointer	proj_class_castasconst(gconstpointer object, const char * castclass);
+WINEXPORT void		proj_class_register_subclassed(gpointer object, const char * static_subclassname);
+WINEXPORT void		proj_class_quark_add_superclass_relationship(GQuark superclass, GQuark subclass);
+WINEXPORT gboolean	proj_class_quark_is_a(GQuark objectclass, GQuark testclass);
+WINEXPORT const char *	proj_class_classname(gconstpointer object);
 
-
-EXP_FUNC void proj_class_dump_live_objects(void);
-EXP_FUNC guint32 proj_class_live_object_count(void);
+WINEXPORT void proj_class_dump_live_objects(void);
+WINEXPORT guint32 proj_class_live_object_count(void);
 
 ///@{
 ///@ingroup ProjectClass

@@ -35,11 +35,8 @@ struct _HbSender {
 };
 #define	DEFAULT_DEADTIME	60 // seconds
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC HbSender* hbsender_new(NetAddr*, NetIO*, guint interval, gsize hblisten_objsize);
-EXP_FUNC void hbsender_stopsend(NetAddr* unlistenaddr);
+WINEXPORT HbSender* hbsender_new(NetAddr*, NetIO*, guint interval, gsize hblisten_objsize);
+WINEXPORT void hbsender_stopsend(NetAddr* unlistenaddr);
 
 ///@}
 

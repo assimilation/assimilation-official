@@ -30,10 +30,7 @@ struct _SwitchDiscovery {
 	gssize		portidlen;			/// Length of 'portid'
 };
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC SwitchDiscovery* switchdiscovery_new(gsize, const char *, guint, gint, GMainContext*);
+WINEXPORT SwitchDiscovery* switchdiscovery_new(gsize, const char *, guint, gint, GMainContext*);
 
 ///@}
 

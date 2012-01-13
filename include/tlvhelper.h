@@ -10,19 +10,15 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  *
  */
+#include <projectcommon.h>
 #include <glib.h>
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#else
-#define EXP_FUNC
-#endif
-EXP_FUNC guint8 tlv_get_guint8 (const void* vitem,  const void* bufend);
-EXP_FUNC guint16 tlv_get_guint16(const void* vitem, const void* bufend);
-EXP_FUNC guint32 tlv_get_guint24(const void* vitem, const void* bufend);
-EXP_FUNC guint32 tlv_get_guint32(const void* vitem, const void* bufend);
-EXP_FUNC guint64 tlv_get_guint64(const void* vitem, const void* bufend);
-EXP_FUNC void tlv_set_guint8 (void* vitem, guint8  item, const void* bufend);
-EXP_FUNC void tlv_set_guint16(void* vitem, guint16 item, const void* bufend);
-EXP_FUNC void tlv_set_guint24(void* vitem, guint32 item, const void* bufend);
-EXP_FUNC void tlv_set_guint32(void* vitem, guint32 item, const void* bufend);
-EXP_FUNC void tlv_set_guint64(void* vitem, guint64 item, const void* bufend);
+WINEXPORT guint8 tlv_get_guint8 (const void* vitem,  const void* bufend);
+WINEXPORT guint16 tlv_get_guint16(const void* vitem, const void* bufend);
+WINEXPORT guint32 tlv_get_guint24(const void* vitem, const void* bufend);
+WINEXPORT guint32 tlv_get_guint32(const void* vitem, const void* bufend);
+WINEXPORT guint64 tlv_get_guint64(const void* vitem, const void* bufend);
+WINEXPORT void tlv_set_guint8 (void* vitem, guint8  item, const void* bufend);
+WINEXPORT void tlv_set_guint16(void* vitem, guint16 item, const void* bufend);
+WINEXPORT void tlv_set_guint24(void* vitem, guint32 item, const void* bufend);
+WINEXPORT void tlv_set_guint32(void* vitem, guint32 item, const void* bufend);
+WINEXPORT void tlv_set_guint64(void* vitem, guint64 item, const void* bufend);

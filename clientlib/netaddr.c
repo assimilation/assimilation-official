@@ -16,7 +16,7 @@
 #include <netaddr.h>
 #include <address_family_numbers.h>
 #ifdef _MSC_VER
-#include <ws2tcpip.h>
+#	include <ws2tcpip.h>
 #endif
 
 FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);

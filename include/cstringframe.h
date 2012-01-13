@@ -24,15 +24,8 @@ struct _CstringFrame {
 	Frame		baseclass;
 };
 
-#ifdef _MSC_VER
-__declspec( dllexport )
-#endif
-CstringFrame* cstringframe_new(guint16 frame_type, gsize framesize);
-
-#ifdef _MSC_VER
-__declspec( dllexport )
-#endif
-Frame* cstringframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+WINEXPORT CstringFrame* cstringframe_new(guint16 frame_type, gsize framesize);
+WINEXPORT Frame* cstringframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
 

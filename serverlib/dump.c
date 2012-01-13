@@ -20,8 +20,7 @@
 //void dump_mem(const void *, const void *);
 
 /// return TRUE if this memory is all printable ASCII
-EXP_FUNC
-gboolean
+WINEXPORT gboolean
 is_all_ascii(const void* vmem, const void* vend)
 {
 	const guchar*	mem = vmem;

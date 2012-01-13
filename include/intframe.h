@@ -14,8 +14,8 @@
 
 #ifndef _INTFRAME_H
 #define _INTFRAME_H
+#include <projectcommon.h>
 #include <frame.h>
-
 
 ///@{
 /// @ingroup IntFrame
@@ -32,11 +32,8 @@ struct _IntFrame {
 	guint64 _value;						///< network byte order value of this IntFrame
 };
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC IntFrame* intframe_new(guint16 frametype, int intlength);
-EXP_FUNC Frame* intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+WINEXPORT IntFrame* intframe_new(guint16 frametype, int intlength);
+WINEXPORT Frame* intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 ///@}
 
 #endif /* _INTFRAME_H */

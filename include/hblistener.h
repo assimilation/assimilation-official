@@ -46,16 +46,13 @@ struct _HbListener {
 };
 #define	DEFAULT_DEADTIME	60 // seconds
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC HbListener* hblistener_new(NetAddr*, gsize hblisten_objsize);
-EXP_FUNC void hblistener_unlisten(NetAddr* unlistenaddr);
-EXP_FUNC void hblistener_set_deadtime_callback(void (*)(HbListener* who));
-EXP_FUNC void hblistener_set_warntime_callback(void (*)(HbListener* who, guint64 howlate));
-EXP_FUNC void hblistener_set_comealive_callback(void (*)(HbListener* who, guint64 howlate));
-EXP_FUNC void hblistener_set_martian_callback(void (*)(const NetAddr* who));
-EXP_FUNC gboolean hblistener_netgsource_dispatch(NetGSource*, FrameSet*, NetAddr*,gpointer);
+WINEXPORT HbListener* hblistener_new(NetAddr*, gsize hblisten_objsize);
+WINEXPORT void hblistener_unlisten(NetAddr* unlistenaddr);
+WINEXPORT void hblistener_set_deadtime_callback(void (*)(HbListener* who));
+WINEXPORT void hblistener_set_warntime_callback(void (*)(HbListener* who, guint64 howlate));
+WINEXPORT void hblistener_set_comealive_callback(void (*)(HbListener* who, guint64 howlate));
+WINEXPORT void hblistener_set_martian_callback(void (*)(const NetAddr* who));
+WINEXPORT gboolean hblistener_netgsource_dispatch(NetGSource*, FrameSet*, NetAddr*,gpointer);
 
 ///@}
 

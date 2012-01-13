@@ -12,6 +12,7 @@
  *
  *
  */
+#include <projectcommon.h>
 #include <glib.h>
 #include <pcap_min.h>
 #include <frameset.h>
@@ -41,10 +42,7 @@ struct _GSource_pcap {
 	GDestroyNotify	destroynote;	///<[in] function to call when we're destroyed...
 };
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC GSource* g_source_pcap_new(const char * dev,
+WINEXPORT GSource* g_source_pcap_new(const char * dev,
 		  	   unsigned listenmask,
         	  	   gboolean (*dispatch)
                             (GSource_pcap_t*	gsource, ///< Gsource object causing dispatch
@@ -62,7 +60,6 @@ EXP_FUNC GSource* g_source_pcap_new(const char * dev,
 			   gsize objectsize,
 			   gpointer userdata
 			  );
-EXP_FUNC void g_source_pcap_finalize(GSource* src); // Here to work around some Glib bugs/misunderstandings...
-//rhm changed interface to interfacep as interface is reserved word in vc6
-EXP_FUNC FrameSet* construct_pcap_frameset(guint16 framesettype, gconstpointer pkt, gconstpointer pktend,
+WINEXPORT void g_source_pcap_finalize(GSource* src); // Here to work around some Glib bugs/misunderstandings...
+WINEXPORT FrameSet* construct_pcap_frameset(guint16 framesettype, gconstpointer pkt, gconstpointer pktend,
 				  const struct pcap_pkthdr* pkthdr, const char * interfacep);

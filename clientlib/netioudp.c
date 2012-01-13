@@ -9,17 +9,15 @@
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option.
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
-#ifndef _MSC_VER
-#include <unistd.h>
-#endif
 #include <memory.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #ifdef _MSC_VER
-#include <winsock2.h>
+#	include <winsock2.h>
 #else
-#include <sys/socket.h>
-#include <netinet/in.h>
+#	include <unistd.h>
+#	include <sys/socket.h>
+#	include <netinet/in.h>
 #endif
 #include <address_family_numbers.h>
 #include <proj_classes.h>

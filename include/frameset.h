@@ -11,12 +11,14 @@
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
+#ifndef _FRAMESET_H
+#define _FRAMESET_H
+#include <projectcommon.h>
 #include <glib.h>
 #include <frame.h>
 #include <signframe.h>
+#include <framesettypes.h>
 
-#ifndef _FRAMESET_H
-#define _FRAMESET_H
 /// @ref FrameSet - used for collecting @ref Frame "Frame"s when not on the wire,
 /// and for marshalling/demarshalling them for/from the wire.
 /// There are a few "special" frames that have to appear first, and in a certain order.
@@ -38,35 +40,15 @@ struct _FrameSet {
 };
 #define	FRAMESET_INITSIZE	6	///< type+length+flags - each 2 bytes
 
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC FrameSet*	frameset_new(guint16 frameset_type);
-EXP_FUNC void		frameset_prepend_frame(FrameSet* fs, Frame* f);
-EXP_FUNC void		frameset_append_frame(FrameSet* fs, Frame* f);
-EXP_FUNC void		frameset_construct_packet(FrameSet* fs, SignFrame* sign, Frame* crypt, Frame* compress);
-EXP_FUNC Frame*		frame_new(guint16 frame_type, gsize framesize);
-EXP_FUNC guint16		frameset_get_flags(FrameSet* fs);
-EXP_FUNC guint16		frameset_set_flags(FrameSet* f, guint16 flagbits);
-EXP_FUNC guint16		frameset_clear_flags(FrameSet* f, guint16 flagbits);
-EXP_FUNC gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
-EXP_FUNC void		frameset_dump(const FrameSet*);
-
-
-/// @defgroup FrameSetTypes	FrameSet Types
-///@{
-/// @ingroup DefineEnums
-#define		FRAMESETTYPE_NONEOFTHEABOVE	0	///< Some other type of packet
-#define		FRAMESETTYPE_HEARTBEAT		1	///< A heartbeat packet
-#define		FRAMESETTYPE_NAK		2	///< We don't like the frameset mentioned
-#define		FRAMESETTYPE_PING		3	///< Are you alive?
-#define		FRAMESETTYPE_PONG		4	///< Yes, I'm alive
-
-#define		FRAMESETTYPE_HBDEAD		16	///< System named in packet appears to be dead.
-#define		FRAMESETTYPE_CLIENTCONFIG	17	///< Packet contains client configuration directives
-#define		FRAMESETTYPE_SWDISCOVER		18	///< Packet encapsulates switch discovery packet
-#define		FRAMESETTYPE_LOCALNETDISCOVER	19	///< Packet contains local network config data
-#define		FRAMESETTYPE_ARPDISCOVER	20	///< Packet contains ARP table data
-///@}
+WINEXPORT FrameSet*	frameset_new(guint16 frameset_type);
+WINEXPORT void		frameset_prepend_frame(FrameSet* fs, Frame* f);
+WINEXPORT void		frameset_append_frame(FrameSet* fs, Frame* f);
+WINEXPORT void		frameset_construct_packet(FrameSet* fs, SignFrame* sign, Frame* crypt, Frame* compress);
+WINEXPORT Frame*		frame_new(guint16 frame_type, gsize framesize);
+WINEXPORT guint16		frameset_get_flags(FrameSet* fs);
+WINEXPORT guint16		frameset_set_flags(FrameSet* f, guint16 flagbits);
+WINEXPORT guint16		frameset_clear_flags(FrameSet* f, guint16 flagbits);
+WINEXPORT gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
+WINEXPORT void		frameset_dump(const FrameSet*);
 
 #endif /* _FRAMESET_H */

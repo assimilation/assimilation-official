@@ -13,6 +13,7 @@
 
 #ifndef _NETIOUDP_H
 #define _NETIOUDP_H
+#include <projectcommon.h>
 #include <glib.h>
 #include <netio.h>
 
@@ -27,10 +28,7 @@ struct _NetIOudp {
 	NetIO		baseclass;	///< Base class (NetIO) object.
 	GDestroyNotify	_finalize;	///< Saved (base class) finalize routine
 };
-#ifdef _MSC_VER
-#define EXP_FUNC __declspec( dllexport )
-#endif
-EXP_FUNC NetIOudp*	netioudp_new(gsize objsize);
+WINEXPORT NetIOudp*	netioudp_new(gsize objsize);
 ///@}
 
 #endif /* _NETIOUDP_H */
