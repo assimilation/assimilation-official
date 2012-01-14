@@ -87,7 +87,7 @@ _intframe_setint(IntFrame * self, guint64 value)
 			break;
 		case 2:	limit = G_MAXUINT16;
 			break;
-		case 3:	limit = ((((unsigned long long)2UL)<<24)-1UL);
+		case 3:	limit = 0x00ffffffL;
 			break;
 		case 4:	limit = G_MAXUINT32;
 			break;
