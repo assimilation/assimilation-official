@@ -19,17 +19,11 @@
 #include <netgsource.h>
 #include <netaddr.h>
 #include <netio.h>
+#include <listener.h>
 ///@{
 /// @ingroup NetGSource
 
 typedef struct _NetGSource NetGSource;
-
-/// Dispatch function for @ref NetGSource objects - called when new data has arrived
-typedef gboolean (*NetGSourceDispatch)
-		   (NetGSource* gs,	///<[in/out] 'this' object causing the dispatch
-		    FrameSet* fs,	///<[in/out] FrameSet given to this dispatch routine
-		    NetAddr*srcaddr,	///<[in] Source address for this datagram
-		    gpointer userdata);	///<[in/out] User data passed in during _new function.
 
 /// The @ref NetGSource objects integrate @ref NetIO objects into the g_main_loop paradigm.
 /// It is a class from which we might eventually make subclasses,
@@ -44,7 +38,7 @@ struct _NetGSource {
 	NetIO*			_netio;		///< netio this object is based on
 	GHashTable*		_dispatchers;	///< Table of dispatch functions.
 	GDestroyNotify 		_finalize;	///< Function to call when we're destroyed
-	void(*addDispatch)(NetGSource*,guint16, NetGSourceDispatch);///< Register a new dispatch function
+	void(*addListener)(NetGSource*,guint16, Listener*);///< Register a new listener
 };
 WINEXPORT NetGSource* netgsource_new(NetIO* iosrc, GDestroyNotify notify,
 	       		   gint priority, gboolean can_recurse, GMainContext* context,

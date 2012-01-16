@@ -131,7 +131,7 @@ hbsender_new(NetAddr* sendaddr,	///<[in] Address to send to
 		newsender->_expected_interval = interval;
 		newsender->timeout_source = g_timeout_add_seconds
                                        (interval, _hbsender_gsourcefunc, newsender);
-		g_message("timeout source is: %d", newsender->timeout_source);
+		g_message("Sender timeout source is: %d", newsender->timeout_source);
 		_hbsender_addlist(newsender);
 		_hbsender_sendheartbeat(newsender);
 	}

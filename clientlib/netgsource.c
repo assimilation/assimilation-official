@@ -14,6 +14,7 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 
+#include <projectcommon.h>
 #include <memory.h>
 #include <glib.h>
 #include <frameset.h>
@@ -31,7 +32,8 @@ FSTATIC gboolean _netgsource_prepare(GSource* source, gint* timeout);
 FSTATIC gboolean _netgsource_check(GSource* source);
 FSTATIC gboolean _netgsource_dispatch(GSource* source, GSourceFunc callback, gpointer user_data);
 FSTATIC void     _netgsource_finalize(GSource* source);
-FSTATIC void	_netgsource_addDispatch(NetGSource*, guint16, NetGSourceDispatch);
+FSTATIC void	_netgsource_addListener(NetGSource*, guint16, Listener*);
+FSTATIC void	_netgsource_del_listener(gpointer);
 
 static GSourceFuncs _netgsource_gsourcefuncs = {
 	_netgsource_prepare,
@@ -41,6 +43,13 @@ static GSourceFuncs _netgsource_gsourcefuncs = {
 	NULL,
 	NULL
 };
+FSTATIC void
+_netgsource_del_listener(gpointer lptr)
+{
+	Listener*	lobj = CASTTOCLASS(Listener, lptr);
+	lobj->unref(lobj);
+}
+
 /// Create a new (abstract) NetGSource object
 NetGSource*
 netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
@@ -80,7 +89,7 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 	ret->_gfd.fd = ret->_socket;
 	ret->_gfd.events = G_IO_IN|G_IO_ERR|G_IO_HUP;
 	ret->_gfd.revents = 0;
-	ret->addDispatch = _netgsource_addDispatch;
+	ret->addListener = _netgsource_addListener;
 
 	g_source_add_poll(gsret, &ret->_gfd);
 	g_source_set_priority(gsret, priority);
@@ -97,7 +106,7 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 		ret = NULL;
 		g_return_val_if_reached(NULL);
 	}
-	ret->_dispatchers = g_hash_table_new(NULL, NULL);
+	ret->_dispatchers = g_hash_table_new_full(NULL, NULL, NULL, _netgsource_del_listener);
 	return ret;
 }
 
@@ -141,14 +150,14 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 	}
 	while(NULL != (gsl = self->_netio->recvframesets(self->_netio, &srcaddr))) {
 		for (; NULL != gsl; gsl = gsl->next) {
-			NetGSourceDispatch	disp = NULL;
+			Listener*	disp = NULL;
 			FrameSet*		fs = CASTTOCLASS(FrameSet, gsl->data);
 			disp = g_hash_table_lookup(self->_dispatchers, GUINT_TO_POINTER((size_t)fs->fstype));
 			if (NULL == disp) {
-				disp = (NetGSourceDispatch)g_hash_table_lookup(self->_dispatchers, NULL);
+				disp = CASTTOCLASS(Listener, g_hash_table_lookup(self->_dispatchers, NULL));
 			}
 			if (NULL != disp) {
-				disp(self, fs, srcaddr, self->_userdata);
+				disp->got_frameset(disp, fs, srcaddr);
 			}else{ 
 				g_warning("No dispatcher for FrameSet type %d", fs->fstype);
 			}
@@ -182,13 +191,17 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 		FREECLASSOBJ(self->_gsfuncs);
 		self->_gsfuncs = NULL;
 	}
+	g_hash_table_unref(self->_dispatchers);
 	proj_class_dissociate(gself);// Avoid dangling reference in class system
 }
 FSTATIC void
-_netgsource_addDispatch(NetGSource* self,	///<[in/out] Object being modified
+_netgsource_addListener(NetGSource* self,	///<[in/out] Object being modified
 			guint16 fstype,		///<[in] FrameSet fstype
-			NetGSourceDispatch disp)///<[in] dispatch function
+			Listener* disp)		///<[in] dispatch function
 {
+	if (disp) {
+		disp->ref(disp);
+	}
 	g_hash_table_replace(self->_dispatchers, GUINT_TO_POINTER((size_t)fstype), disp);
 }
 ///@}

@@ -104,7 +104,8 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		fprintf(stderr, "OOPS! pcap_create failed  [%s]\n", errbuf);
 		return NULL;
 	}
-	pcap_set_promisc(pcdescr, FALSE);
+	//pcap_set_promisc(pcdescr, FALSE);
+	pcap_set_promisc(pcdescr, TRUE);	/// @todo: figure out why we need promiscuous mode.
 #ifdef HAVE_PCAP_SET_RFMON
 	pcap_set_rfmon(pcdescr, FALSE);
 #endif

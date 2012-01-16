@@ -50,9 +50,10 @@ int		errcount = 0;
 int		pcapcount = 0;
 void send_encapsulated_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
 gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
-gboolean gotnetpkt(NetGSource* gs, FrameSet* fs, NetAddr* srcaddr, gpointer ignored);
+gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void real_deadtime_agent(HbListener* who);
 void initial_deadtime_agent(HbListener* who);
+void got_heartbeat(HbListener* who);
 
 /// Test routine for sending an encapsulated Pcap packet.
 void
@@ -151,13 +152,12 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 ///
 /// Test routine called when a NetIO packet is received.
 gboolean
-gotnetpkt(NetGSource* gs,	///<[in/out] Input GSource
+gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	  FrameSet* fs,		///<[in/out] Framesets received
-	  NetAddr* srcaddr,	///<[in] Source address of this packet
-	  gpointer ignored	///<[ignored] User data (ignored)
+	  NetAddr* srcaddr	///<[in] Source address of this packet
 	  )
 {
-	(void)gs; (void)srcaddr; (void)ignored;
+	(void)l; (void)srcaddr;
 	++wirepktcount;
 	g_message("Received a packet over the 'wire'!");
 	//g_message("DUMPING packet received over 'wire':");
@@ -176,9 +176,14 @@ void
 real_deadtime_agent(HbListener* who)
 {
 	(void)who;
-	///@todo start sending heartbeats...
 	g_warning("Subsequent (unexpected) deadtime event occurred.");
 	++errcount;
+}
+void
+got_heartbeat(HbListener* who)
+{
+	(void)who;
+	//g_debug("Got heartbeat()");
 }
 void
 initial_deadtime_agent(HbListener* who)
@@ -186,7 +191,7 @@ initial_deadtime_agent(HbListener* who)
 	(void)who;
 	g_message("Expected deadtime event occurred (once)");
 	sender = hbsender_new(destaddr, transport, 1,  0);
-	hblistener_set_deadtime_callback(real_deadtime_agent);
+	who->set_deadtime_callback(who, real_deadtime_agent);
 	
 }
 
@@ -195,7 +200,7 @@ int
 main(int argc, char **argv)
 {
 	char *		dev;					// Device to listen on
-	GSource*	pktsource;				// GSource for packets
+	GSource*	pcapsource;				// GSource for packets
 	unsigned	protocols = ENABLE_LLDP|ENABLE_CDP;	// Protocols to watch for...
 	char		errbuf[PCAP_ERRBUF_SIZE];		// Error buffer...
 	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
@@ -203,6 +208,7 @@ main(int argc, char **argv)
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	NetGSource*	netpkt;
 	HbListener*	hblisten;
+	Listener*	otherlistener;
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
@@ -223,9 +229,9 @@ main(int argc, char **argv)
 	// Create a pcap packet Gsource for the g_main_loop environment,
 	// and connect it up to run in the default context
 
-	pktsource = g_source_pcap_new(dev, protocols, gotapcappacket, NULL,
+	pcapsource = g_source_pcap_new(dev, protocols, gotapcappacket, NULL,
                                       G_PRIORITY_DEFAULT, FALSE, NULL, 0, NULL);
-	g_return_val_if_fail(NULL != pktsource, 1);
+	g_return_val_if_fail(NULL != pcapsource, 1);
 
 	// Create a network transport object (UDP packets)
 	transport = CASTTOCLASS(NetIO, netioudp_new(0));
@@ -242,15 +248,22 @@ main(int argc, char **argv)
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
-	netpkt->addDispatch(netpkt, 0, gotnetpkt);	// Get all unclaimed packets...
+	otherlistener = listener_new(0);
+	otherlistener->got_frameset = gotnetpkt;
+	netpkt->addListener(netpkt, 0, otherlistener);	// Get all unclaimed packets...
+	// Unref the "other" listener
+	otherlistener->unref(otherlistener); otherlistener = NULL;
 
 	// Create a heartbeat listener
 	hblisten = hblistener_new(destaddr, 0);
 	hblisten->set_deadtime(hblisten, 10*1000000);
-	hblistener_set_deadtime_callback(initial_deadtime_agent);
+	hblisten->set_heartbeat_callback(hblisten, got_heartbeat);
+	hblisten->set_deadtime_callback(hblisten, initial_deadtime_agent);
 
 	// Intercept incoming heartbeat packets - direct them to heartbeat listener
-	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, hblistener_netgsource_dispatch);
+	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, CASTTOCLASS(Listener, hblisten));
+	// Unref the heartbeat listener
+	hblisten->baseclass.unref(CASTTOCLASS(Listener, hblisten)); hblisten = NULL;
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
@@ -261,22 +274,22 @@ main(int argc, char **argv)
 	if (sender) {
 		sender->unref(sender); sender = NULL;
 	}
-	g_source_pcap_finalize((GSource*)pktsource);
+	g_source_pcap_finalize((GSource*)pcapsource);
 
 	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
 	g_main_context_unref(g_main_context_default());
 
 	// Main loop is over - shut everything down, free everything...
-	g_main_loop_unref(loop); loop=NULL; pktsource=NULL;
+	g_main_loop_unref(loop); loop=NULL; pcapsource=NULL;
 
-	// Unlink heartbeat dispatcher (not sure if it's necessary)
-	netpkt->addDispatch(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
+	// Unlink heartbeat dispatcher - this should NOT be necessary...
+	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
+
+	// Unlink misc dispatcher - this should NOT be necessary...
+	netpkt->addListener(netpkt, 0, NULL);
 
 	// Free signature frame
 	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
-
-	// Free the heartbeat listener
-	hblisten->unref(hblisten); hblisten = NULL;
 
 	// Free destination address
         destaddr->unref(destaddr);

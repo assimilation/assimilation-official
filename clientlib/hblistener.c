@@ -16,13 +16,12 @@
 #include <hblistener.h>
 /**
  */
-FSTATIC void _hblistener_finalize(HbListener * self);
-FSTATIC void _hblistener_ref(HbListener * self);
-FSTATIC void _hblistener_unref(HbListener * self);
+FSTATIC void _hblistener_finalize(Listener * self);
+FSTATIC void _hblistener_unref(Listener * self);
 FSTATIC void _hblistener_addlist(HbListener* self);
 FSTATIC void _hblistener_dellist(HbListener* self);
 FSTATIC void _hblistener_checktimeouts(gboolean urgent);
-FSTATIC void _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr);
+FSTATIC gboolean _hblistener_got_frameset(Listener*, FrameSet*, NetAddr*);
 FSTATIC void _hblistener_addlist(HbListener* self);
 FSTATIC void _hblistener_dellist(HbListener* self);
 FSTATIC void _hblistener_set_deadtime(HbListener* self, guint64 deadtime);
@@ -30,6 +29,11 @@ FSTATIC void _hblistener_set_warntime(HbListener* self, guint64 warntime);
 FSTATIC guint64 _hblistener_get_deadtime(HbListener* self);
 FSTATIC guint64 _hblistener_get_warntime(HbListener* self);
 FSTATIC gboolean _hblistener_gsourcefunc(gpointer);
+FSTATIC void _hblistener_unlisten(NetAddr* unlistenaddr);
+FSTATIC void _hblistener_set_deadtime_callback(HbListener*, void (*callback)(HbListener* who));
+FSTATIC void _hblistener_set_heartbeat_callback(HbListener*, void (*callback)(HbListener* who));
+FSTATIC void _hblistener_set_warntime_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
+FSTATIC void _hblistener_set_comealive_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
 
 guint64 proj_get_real_time(void); 	///@todo - make this a real global function
 
@@ -41,9 +45,6 @@ guint64 proj_get_real_time(void); 	///@todo - make this a real global function
 static GSList*	_hb_listeners = NULL;
 static gint	_hb_listener_count = 0;
 static guint64	_hb_listener_lastcheck = 0;
-static void	(*_hblistener_deadcallback)(HbListener* who) = NULL;
-static void 	(*_hblistener_warncallback)(HbListener* who, guint64 howlate) = NULL;
-static void 	(*_hblistener_comealivecallback)(HbListener* who, guint64 howlate) = NULL;
 static void	(*_hblistener_martiancallback)(const NetAddr* who) = NULL;
 
 #define	ONESEC	1000000
@@ -59,7 +60,7 @@ _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 	}
 	_hb_listeners = g_slist_prepend(_hb_listeners, self);
 	_hb_listener_count += 1;
-	self->ref(self);
+	self->baseclass.ref(CASTTOCLASS(Listener, self));
 }
 
 /// Remove an HbListener from our global list of HBListeners
@@ -70,7 +71,7 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 		_hb_listeners = g_slist_remove(_hb_listeners, self);
 		_hb_listener_count -= 1;
                 // We get called by unref - and it expects us to do this...
-		self->unref(self);
+		self->baseclass.unref(CASTTOCLASS(Listener, self));
 		return;
 	}
 	g_warn_if_reached();
@@ -90,8 +91,8 @@ _hblistener_checktimeouts(gboolean urgent)///<[in]True if you want it checked no
 	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
 		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
 		if (now > listener->nexttime && listener->status == HbPacketsBeingReceived) {
-			if (_hblistener_deadcallback) {
-				_hblistener_deadcallback(listener);
+			if (listener->_deadtime_callback) {
+				listener->_deadtime_callback(listener);
 			}else{
 				g_warning("our node looks dead from here...");
 			}
@@ -109,41 +110,38 @@ _hblistener_gsourcefunc(gpointer ignored) ///<[ignored] Ignored
 	return _hb_listeners != NULL;
 }
 
-/// Function called when a heartbeat @ref Frame arrived from the given @ref NetAddr
-FSTATIC void
-_hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
+/// Function called when a heartbeat @ref FrameSet arrived from the given @ref NetAddr
+FSTATIC gboolean
+_hblistener_got_frameset(Listener* basethis, FrameSet* fs, NetAddr* srcaddr)
 {
-	GSList*		obj;
 	guint64		now = proj_get_real_time();
-	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
-		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
-		if (srcaddr->equal(srcaddr, listener->listenaddr)) {
-			g_message("Received heartbeat...");
-			///@todo ADD CODE TO PROCESS PACKET, not just observe that it arrived??
-			/// - probably add yet another callback?
-			if (listener->status == HbPacketsTimedOut) {
-				guint64 howlate = now - listener->nexttime;
-				listener->status = HbPacketsBeingReceived;
-				if (_hblistener_comealivecallback) {
-					_hblistener_comealivecallback(listener, howlate);
-				}else{
-					g_message("A node is now back alive!");
-				}
-			} else if (now > listener->warntime) {
-				guint64 howlate = now - listener->warntime;
-				howlate /= 1000;
-				if (_hblistener_warncallback) {
-					_hblistener_warncallback(listener, howlate);
-				}else{
-					g_warning("A node was " FMT_64BIT "u ms late in sending heartbeat..."
-					,	howlate);
-				}
+	HbListener* listener = CASTTOCLASS(HbListener, basethis);
+	if (srcaddr->equal(srcaddr, listener->listenaddr)) {
+		if (listener->status == HbPacketsTimedOut) {
+			guint64 howlate = now - listener->nexttime;
+			listener->status = HbPacketsBeingReceived;
+			if (listener->_comealive_callback) {
+				listener->_comealive_callback(listener, howlate);
+			}else{
+				g_message("A node is now back alive!");
 			}
-			listener->nexttime = now + listener->_expected_interval;
-			listener->warntime = now + listener->_warn_interval;
-			fs->unref(fs);
-			return;
+		} else if (now > listener->warntime) {
+			guint64 howlate = now - listener->warntime;
+			howlate /= 1000;
+			if (listener->_warntime_callback) {
+				listener->_warntime_callback(listener, howlate);
+			}else{
+				g_warning("A node was " FMT_64BIT "u ms late in sending heartbeat..."
+				,	howlate);
+			}
 		}
+		if (listener->_heartbeat_callback) {
+			listener->_heartbeat_callback(listener);
+		}
+		listener->nexttime = now + listener->_expected_interval;
+		listener->warntime = now + listener->_warn_interval;
+		fs->unref(fs);
+		return TRUE;
 	}
 	if (_hblistener_martiancallback) {
 		_hblistener_martiancallback(srcaddr);
@@ -153,24 +151,18 @@ _hblistener_hbarrived(FrameSet* fs, NetAddr* srcaddr)
 		g_free(saddr); saddr = NULL;
 	}
 	fs->unref(fs);
-}
-
-/// Increment the reference count by one.
-FSTATIC void
-_hblistener_ref(HbListener* self)	///<[in/out] Object to increment reference count for
-{
-	self->_refcount += 1;
+	return TRUE;
 }
 
 /// Decrement the reference count by one - possibly freeing up the object.
 FSTATIC void
-_hblistener_unref(HbListener* self)	///<[in/out] Object to decrement reference count for
+_hblistener_unref(Listener* self)	///<[in/out] Object to decrement reference count for
 {
 	g_return_if_fail(self->_refcount > 0);
 	self->_refcount -= 1;
 	if (self->_refcount == 1) {
 		// Our listener list should hold an extra reference count...
-		_hblistener_dellist(self);
+		_hblistener_dellist(CASTTOCLASS(HbListener, self));
 		// hblistener_dellist will normally decrement reference count by 1
 		// We will have gotten called recursively and finished the 'unref' work there...
 		self = NULL;
@@ -182,39 +174,46 @@ _hblistener_unref(HbListener* self)	///<[in/out] Object to decrement reference c
 
 /// Finalize an HbListener
 FSTATIC void
-_hblistener_finalize(HbListener * self) ///<[in/out] Listener to finalize
+_hblistener_finalize(Listener * self) ///<[in/out] Listener to finalize
 {
-	self->listenaddr->unref(self->listenaddr);
-	// self->listenaddr = NULL;
-	memset(self, 0x00, sizeof(*self));
-	FREECLASSOBJ(self);
+	HbListener *hbself = CASTTOCLASS(HbListener, self);
+	hbself->listenaddr->unref(hbself->listenaddr);
+	// hbself->listenaddr = NULL;
+	memset(hbself, 0x00, sizeof(*hbself));
+	FREECLASSOBJ(hbself);
+	self = NULL; hbself = NULL;
 }
 
 
 /// Construct a new HbListener - setting up GSource and timeout data structures for it.
 /// This can be used directly or by derived classes.
-///@todo Create Gsource for packet reception, attach to context, write dispatch code,
-/// to call _hblistener_hbarrived()
 HbListener*
 hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	       gsize objsize)		///<[in] size of HbListener structure (0 for sizeof(HbListener))
 {
-	HbListener * newlistener;
+	HbListener *	newlistener;
+	Listener *	base;
 	if (objsize < sizeof(HbListener)) {
 		objsize = sizeof(HbListener);
 	}
-	newlistener = MALLOCCLASS(HbListener, objsize);
+	base = listener_new(objsize);
+	proj_class_register_subclassed(base, "HbListener");
+	newlistener = CASTTOCLASS(HbListener, base);
 	if (newlistener != NULL) {
+		base->unref = _hblistener_unref;
+		base->_finalize = _hblistener_finalize;
+		base->got_frameset = _hblistener_got_frameset;
 		newlistener->listenaddr = listenaddr;
 		listenaddr->ref(listenaddr);
 		newlistener->_refcount = 1;
-		newlistener->ref = _hblistener_ref;
-		newlistener->unref = _hblistener_unref;
-		newlistener->_finalize = _hblistener_finalize;
 		newlistener->set_deadtime = _hblistener_set_deadtime;
 		newlistener->get_deadtime = _hblistener_get_deadtime;
 		newlistener->set_warntime = _hblistener_set_warntime;
 		newlistener->get_warntime = _hblistener_get_warntime;
+		newlistener->set_deadtime_callback = _hblistener_set_deadtime_callback;
+		newlistener->set_warntime_callback = _hblistener_set_warntime_callback;
+		newlistener->set_comealive_callback = _hblistener_set_comealive_callback;
+		newlistener->set_heartbeat_callback = _hblistener_set_heartbeat_callback;
 		newlistener->set_deadtime(newlistener, DEFAULT_DEADTIME*1000000);
 		newlistener->set_warntime(newlistener, DEFAULT_DEADTIME*1000000/4);
 		newlistener->status = HbPacketsBeingReceived;
@@ -257,8 +256,8 @@ _hblistener_get_warntime(HbListener* self)
 
 
 /// Stop expecting (listening for) heartbeats from a particular address
-void
-hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from list
+FSTATIC void
+_hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from list
 {
 	GSList*		obj;
 	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
@@ -272,41 +271,37 @@ hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from l
 }
 
 /// Call to set a callback to be called when a node apparently dies
-void
-hblistener_set_deadtime_callback(void (*callback)(HbListener* who))
+FSTATIC void
+_hblistener_set_deadtime_callback(HbListener* self, void (*callback)(HbListener* who))
 {
-	_hblistener_deadcallback = callback;
+	self->_deadtime_callback = callback;
+}
+
+/// Call to set a callback to be called when a heartbeat is received
+FSTATIC void
+_hblistener_set_heartbeat_callback(HbListener* self, void (*callback)(HbListener* who))
+{
+	self->_heartbeat_callback = callback;
 }
 
 /// Call to set a callback to be called when a node passes warntime before heartbeating again
-void
-hblistener_set_warntime_callback(void (*callback)(HbListener* who, guint64 howlate))
+FSTATIC void
+_hblistener_set_warntime_callback(HbListener* self, void (*callback)(HbListener* who, guint64 howlate))
 {
-	_hblistener_warncallback = callback;
+	self->_warntime_callback = callback;
 }
 
 /// Call to set a callback to be called when a node passes deadtime but heartbeats again
-void
-hblistener_set_comealive_callback(void (*callback)(HbListener* who, guint64 howlate))
+FSTATIC void
+_hblistener_set_comealive_callback(HbListener* self, void (*callback)(HbListener* who, guint64 howlate))
 {
-	_hblistener_comealivecallback = callback;
+	self->_comealive_callback = callback;
 }
 
 /// Call to set a callback to be called when an unrecognized node sends us a heartbeat
-void
+FSTATIC void
 hblistener_set_martian_callback(void (*callback)(const NetAddr* who))
 {
 	_hblistener_martiancallback = callback;
-}
-
-gboolean
-hblistener_netgsource_dispatch(NetGSource* gs,		///<[in] NetGSource input source
-			       FrameSet* fs,		///<[in] FrameSet
-			       NetAddr* srcaddr, 	///<[in] source address
-			       gpointer ignoreme)	///<[ignore] ignore me
-{
-	(void)gs; (void)ignoreme;
-	_hblistener_hbarrived(fs, srcaddr);
-	return TRUE;
 }
 ///@}
