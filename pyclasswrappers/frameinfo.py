@@ -308,14 +308,16 @@ class FrameSetTypes:
             tuple = FrameSetTypes._intframetypes[i]
             f.write('#define FRAMESETTYPE_%s\t%d\t///< %s\n' % (tuple[0], i, tuple[1]))
         f.write('///@}\n')
-        f.write('\n#define	FRAMESETTYPEMAP	{\t\t\t\t\t\t\\\n')
+	# Don't currently want this map - probably not needed (or even a good idea...)
+        #f.write('\n#define	FRAMESETTYPEMAP	{\t\t\t\t\t\t\\\n')
         for i in l:
             tup = FrameSetTypes._intframetypes[i]
-            Cfuncname = "got_frameset_" + tup[0].lower()
-            f.write('        {FRAMESETTYPE_%s,\t/*%d*/ %s},	\\\n' % (tup[0], i, Cfuncname))
-        f.write('}\n')
+            Cobjname = "frameset_listener_" + tup[0].lower()
+            #f.write('        {FRAMESETTYPE_%s,\t/*%d*/ %s},	\\\n' % (tup[0], i, Cobjname))
+        #f.write('}\n')
             
         f.write('#endif /* _FRAMESETTYPES_H */\n')
+
 # Create conventional class.DEFINENAME attributes
 for s in FrameSetTypes._strframetypes.keys():
     setattr(FrameSetTypes, s, FrameSetTypes._strframetypes[s][0])
