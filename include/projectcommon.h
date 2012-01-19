@@ -21,10 +21,14 @@
 #define	FMT_64BIT	"%ll"				///< Format designator for a 64 bit integer
 
 #ifdef _MSC_VER
+#ifndef _W64
 #	define _W64
+#endif
 #	define	WINEXPORT __declspec( dllexport )
 #	define MSG_DONTWAIT	0	// This could be trouble!!
+#if _MSC_VER < 1300
 #	define MSG_TRUNC	0
+#endif
 #else
 #	define	WINEXPORT /* Nothing */
 #	define HAVE_PCAP_SET_RFMON	1	// We should test for this...
