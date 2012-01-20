@@ -22,11 +22,14 @@ FSTATIC void _hblistener_addlist(HbListener* self);
 FSTATIC void _hblistener_dellist(HbListener* self);
 FSTATIC void _hblistener_checktimeouts(gboolean urgent);
 FSTATIC gboolean _hblistener_got_frameset(Listener*, FrameSet*, NetAddr*);
+FSTATIC void _hblistener_addlist(HbListener* self);
+FSTATIC void _hblistener_dellist(HbListener* self);
 FSTATIC void _hblistener_set_deadtime(HbListener* self, guint64 deadtime);
 FSTATIC void _hblistener_set_warntime(HbListener* self, guint64 warntime);
 FSTATIC guint64 _hblistener_get_deadtime(HbListener* self);
 FSTATIC guint64 _hblistener_get_warntime(HbListener* self);
 FSTATIC gboolean _hblistener_gsourcefunc(gpointer);
+FSTATIC void _hblistener_unlisten(NetAddr* unlistenaddr);
 FSTATIC void _hblistener_set_deadtime_callback(HbListener*, void (*callback)(HbListener* who));
 FSTATIC void _hblistener_set_heartbeat_callback(HbListener*, void (*callback)(HbListener* who));
 FSTATIC void _hblistener_set_warntime_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
@@ -74,24 +77,9 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 	g_warn_if_reached();
 }
 
-/// Find the listener that's listening to a particular address
-HbListener*
-hblistener_find_by_address(const NetAddr* which)
-{
-	GSList*		obj;
-	for (obj = _hb_listeners; obj != NULL; obj=g_slist_next(obj)) {
-		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
-		if (which->equal(which, listener->listenaddr)) {
-			return listener;
-		}
-	}
-	return NULL;
-}
-
-
 /// Function called when it's time to see if anyone timed out...
 FSTATIC void
-_hblistener_checktimeouts(gboolean urgent)	///<[in]True if you want it checked now anyway...
+_hblistener_checktimeouts(gboolean urgent)///<[in]True if you want it checked now anyway...
 {
 	guint64		now = proj_get_real_time();
 	GSList*		obj;
@@ -100,7 +88,7 @@ _hblistener_checktimeouts(gboolean urgent)	///<[in]True if you want it checked n
 	}
 	_hb_listener_lastcheck = now;
 
-	for (obj = _hb_listeners; obj != NULL; obj=g_slist_next(obj)) {
+	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
 		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
 		if (now > listener->nexttime && listener->status == HbPacketsBeingReceived) {
 			if (listener->_deadtime_callback) {
@@ -218,15 +206,14 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 		newlistener->listenaddr = listenaddr;
 		listenaddr->ref(listenaddr);
 		newlistener->_refcount = 1;
-		newlistener->get_deadtime = _hblistener_get_deadtime;
 		newlistener->set_deadtime = _hblistener_set_deadtime;
-		newlistener->get_warntime = _hblistener_get_warntime;
+		newlistener->get_deadtime = _hblistener_get_deadtime;
 		newlistener->set_warntime = _hblistener_set_warntime;
+		newlistener->get_warntime = _hblistener_get_warntime;
 		newlistener->set_deadtime_callback = _hblistener_set_deadtime_callback;
 		newlistener->set_warntime_callback = _hblistener_set_warntime_callback;
 		newlistener->set_comealive_callback = _hblistener_set_comealive_callback;
 		newlistener->set_heartbeat_callback = _hblistener_set_heartbeat_callback;
-
 		newlistener->set_deadtime(newlistener, DEFAULT_DEADTIME*1000000);
 		newlistener->set_warntime(newlistener, DEFAULT_DEADTIME*1000000/4);
 		newlistener->status = HbPacketsBeingReceived;
@@ -245,14 +232,12 @@ _hblistener_set_deadtime(HbListener* self,	///<[in/out] Object to set deadtime f
 	self->nexttime = now + self->_expected_interval;
 
 }
-
 /// Return deadtime
 FSTATIC guint64
 _hblistener_get_deadtime(HbListener* self)
 {
 	return self->_expected_interval;
 }
-
 /// Set warntime
 FSTATIC void
 _hblistener_set_warntime(HbListener* self,	///<[in/out] Object to set warntime for
@@ -272,12 +257,15 @@ _hblistener_get_warntime(HbListener* self)
 
 /// Stop expecting (listening for) heartbeats from a particular address
 FSTATIC void
-hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from list
+_hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from list
 {
-	HbListener* listener = hblistener_find_by_address(unlistenaddr);
-	if (listener != NULL) {
-		_hblistener_dellist(listener);
-		return;
+	GSList*		obj;
+	for (obj = _hb_listeners; obj != NULL; obj=obj->next) {
+		HbListener* listener = CASTTOCLASS(HbListener, obj->data);
+		if (unlistenaddr->equal(unlistenaddr, listener->listenaddr)) {
+			_hblistener_dellist(listener);
+			return;
+		}
 	}
 	g_warning("Attempt to unlisten an unregistered address");
 }

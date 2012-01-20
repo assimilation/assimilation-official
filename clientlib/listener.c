@@ -4,7 +4,7 @@
  * @details We are told what addresses to listen for, what ones to stop listening for at run time
  * and time out both warning times, and fatal (dead) times.
  *
- * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
+ * @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
  * @n
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.

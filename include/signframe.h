@@ -14,6 +14,7 @@
 #ifndef _SIGNFRAME_H
 #define _SIGNFRAME_H
 #include <glib.h>
+#include <frame.h>
 ///@{
 /// @ingroup SignFrame
 

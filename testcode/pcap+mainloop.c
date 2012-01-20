@@ -46,6 +46,7 @@ NetIO*		transport;
 NetAddr*	destaddr;
 HbSender*	sender = NULL;
 int		wirepktcount = 0;
+int		heartbeatcount = 0;
 int		errcount = 0;
 int		pcapcount = 0;
 void send_encapsulated_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
@@ -183,6 +184,7 @@ void
 got_heartbeat(HbListener* who)
 {
 	(void)who;
+	++heartbeatcount;
 	//g_debug("Got heartbeat()");
 }
 void
@@ -304,6 +306,7 @@ main(int argc, char **argv)
 	}
 	g_message("Count of pcap packets received:\t%d", pcapcount);
 	g_message("Count of pkts received over wire:\t%d", wirepktcount);
+	g_message("Count of heartbeats received:\t%d", heartbeatcount);
 	g_message("Count of errors:\t\t\t%d", errcount);
 	return(errcount <= 127 ? errcount : 127);
 }
