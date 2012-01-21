@@ -142,6 +142,14 @@ _configcontext_finalize(ConfigContext* self)
 		self->signframe->baseclass.unref(CASTTOCLASS(Frame, self->signframe));
 		self->signframe = NULL;
 	}
+	if (self->_intvalues) {
+		g_hash_table_destroy(self->_intvalues);
+		self->_intvalues = NULL;
+	}
+	if (self->_strvalues) {
+		g_hash_table_destroy(self->_strvalues);
+		self->_strvalues = NULL;
+	}
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self); self = NULL;
 }
