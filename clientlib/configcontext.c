@@ -1,7 +1,7 @@
 /**
  * @file
  * @brief Implements the @ref ConfigContext class.
- * @details This file provides a place to remember and pass configuration defaults around.
+ * @details This file provides a place to remember and pass configuration values around.
  *
  * @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -27,9 +27,12 @@ FSTATIC NetAddr*_configcontext_getaddr(ConfigContext*, const char *);
 FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
 FSTATIC Frame*	_configcontext_getframe(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
+/// @defgroup ConfigContext ConfigContext class
+/// A base class for remembering configuration values of various types.
+///@{
+///@ingroup C_Classes
 
-
-/// Construct a new ConfigContext object - with some values defaulted
+/// Construct a new ConfigContext object - with no values defaulted
 ConfigContext*
 configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero for min size)
 {
@@ -243,3 +246,4 @@ _configcontext_finalize(ConfigContext* self)	///<[in/out] ConfigContext object b
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self); self = NULL;
 }
+///@}
