@@ -66,7 +66,8 @@ errout:
 
 /// Get an integer value
 FSTATIC gint
-_configcontext_getint(ConfigContext* self, const char *name)
+_configcontext_getint(ConfigContext* self	///<[in] ConfigContext object
+	,	      const char *name)		///<[in] Name to get the associated int value of
 {
 	gpointer	lookupkey = NULL;
 	gpointer	lookupvalue = NULL;
@@ -83,7 +84,9 @@ _configcontext_getint(ConfigContext* self, const char *name)
 
 /// Set a name to an integer value
 FSTATIC void
-_configcontext_setint(ConfigContext* self, const char *name, gint value)
+_configcontext_setint(ConfigContext* self	///<[in/out] ConfigContext Object
+	,	      const char *name		///<[in] Name to set the associated int value of
+	,	      gint value)		///<[in] Int value to set the 'name' to
 {
 	char *	cpname = g_strdup(name);
 	if (NULL == self->_intvalues) {
@@ -94,7 +97,8 @@ _configcontext_setint(ConfigContext* self, const char *name, gint value)
 
 /// Return the value of a string name
 FSTATIC const char*
-_configcontext_getstring(ConfigContext* self, const char *name)
+_configcontext_getstring(ConfigContext* self	///<[in] ConfigContext object
+		,	 const char *name)	///<[in] Name to get the associated string value of
 {
 	if (NULL == self->_strvalues) {
 		return NULL;
@@ -104,7 +108,9 @@ _configcontext_getstring(ConfigContext* self, const char *name)
 
 /// Set a name to a string value
 FSTATIC void
-_configcontext_setstring(ConfigContext* self, const char *name, const char *value)
+_configcontext_setstring(ConfigContext* self	///<[in/out] ConfigContext object
+			,const char *name	///<[in] Name to set the string value of (we copy it)
+			,const char *value)	///<[in] Value to set 'name' to (we copy it)
 {
 	char *	cpname = g_strdup(name);
 	char *	cpvalue = g_strdup(value);
@@ -118,7 +124,8 @@ _configcontext_setstring(ConfigContext* self, const char *name, const char *valu
 
 /// Return the NetAddr value of a name
 FSTATIC  NetAddr*
-_configcontext_getaddr(ConfigContext* self, const char *name)
+_configcontext_getaddr(ConfigContext* self	///<[in] ConfigContext object
+		,      const char *name)	///<[in] Name to get the NetAddr value of
 {
 	gpointer	addr;
 	if (NULL == self->_addrvalues) {
@@ -128,9 +135,11 @@ _configcontext_getaddr(ConfigContext* self, const char *name)
 	return addr == NULL ? NULL : CASTTOCLASS(NetAddr, addr);
 }
 
-/// Set the a Frame value
+/// Set the NetAddr value of a name
 FSTATIC void
-_configcontext_setaddr(ConfigContext* self, const char * name, NetAddr* addr)
+_configcontext_setaddr(ConfigContext* self	///[in/out] ConfigContext object
+		,      const char * name	///[in] Name to set to 'addr' (we copy it)
+		,      NetAddr* addr)		///[in/out] Address to set it to (we hold a ref to it)
 {
 	char *	cpname;
 	g_return_if_fail(addr != NULL);
@@ -143,9 +152,10 @@ _configcontext_setaddr(ConfigContext* self, const char * name, NetAddr* addr)
 	g_hash_table_insert(self->_addrvalues, cpname, addr);
 }
 
-/// Return the Frame value of a name
+/// Return the @ref Frame value of a name
 FSTATIC Frame*
-_configcontext_getframe(ConfigContext* self, const char *name)
+_configcontext_getframe(ConfigContext* self	///<[in] ConfigContext object
+		,       const char *name)	///<[in] Name to retrieve the @ref Frame value of
 {
 	gpointer	frame;
 	if (NULL == self->_framevalues) {
@@ -157,7 +167,10 @@ _configcontext_getframe(ConfigContext* self, const char *name)
 
 /// Set the signature frame to the given SignFrame
 FSTATIC void
-_configcontext_setframe(ConfigContext* self, const char * name, Frame* frame)
+_configcontext_setframe(ConfigContext* self	///[in/out] ConfigContext object
+		,	const char * name	///[in] name to set value of (we copy it)
+		,	Frame* frame)		///[in/out] @ref Frame value to set 'name' to
+						/// (we hold a ref to it)
 {
 	char *	cpname;
 	g_return_if_fail(frame != NULL);
@@ -172,14 +185,14 @@ _configcontext_setframe(ConfigContext* self, const char * name, Frame* frame)
 
 /// Free a malloced object (likely a string)
 FSTATIC void
-_configcontext_free(gpointer thing)
+_configcontext_free(gpointer thing)	///<[in/out] Thing being freed
 {
 	FREE(thing);
 }
 
 /// Free a Frame object
 FSTATIC void
-_configcontext_freeFrame(gpointer thing)
+_configcontext_freeFrame(gpointer thing) ///<[in/out] @ref Frame being freed
 {
 	Frame*	f = CASTTOCLASS(Frame, thing);
 	f->unref(f);
@@ -187,7 +200,7 @@ _configcontext_freeFrame(gpointer thing)
 
 /// Free a NetAddr object
 FSTATIC void
-_configcontext_freeNetAddr(gpointer thing)
+_configcontext_freeNetAddr(gpointer thing) ///<[in/out] @ref NetAddr being freed
 {
 	NetAddr* a = CASTTOCLASS(NetAddr, thing);
 	a->unref(a);
@@ -195,14 +208,14 @@ _configcontext_freeNetAddr(gpointer thing)
 
 /// Increment ConfigContext reference count
 FSTATIC void
-_configcontext_ref(ConfigContext* self)
+_configcontext_ref(ConfigContext* self)		///<[in/out] ConfigContext object
 {
 	self->_refcount += 1;
 }
 
-/// Decrement ConfigContext reference count
+/// Decrement ConfigContext reference count - possibly freeing it
 FSTATIC void
-_configcontext_unref(ConfigContext* self)
+_configcontext_unref(ConfigContext* self)	///<[in/out] ConfigContext object being unrefed
 {
 	g_return_if_fail(self != NULL && self->_refcount > 0);
 	self->_refcount -= 1;
@@ -213,7 +226,7 @@ _configcontext_unref(ConfigContext* self)
 
 /// Finalize (free) ConfigContext object
 FSTATIC void
-_configcontext_finalize(ConfigContext* self)
+_configcontext_finalize(ConfigContext* self)	///[in/out] ConfigContext object being freed
 {
 	if (self->_intvalues) {
 		g_hash_table_destroy(self->_intvalues); self->_intvalues = NULL;

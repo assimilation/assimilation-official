@@ -134,16 +134,21 @@ proj_class_free(gpointer object) ///< Object be freed
 	FREE(object);
 }
 
-/// "Safely" cast an object to a given class type.
+/// "Safely" cast an object to a given C-class.
 /// What we mean by that, is that before returning, we verify that the object in question
 /// <b>ISA</b> <i>castclass</i> object.
 /// If it's not, we abort.  Better a semi-predictable abort than a random and unpredictable crash.
 gpointer
-proj_class_castas(gpointer object,		///< Object to be "casted"
-		  const char * castclass)	///< Class to cast it as
+proj_class_castas(gpointer object,		///< Object to be "cast" as "castclass"
+		  const char * castclass)	///< Class to cast "object" as
 {
 	GQuark		objquark;
 	GQuark		castquark;
+
+	if (NULL == object) {
+		return object;
+	}
+
 	objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
 	castquark = g_quark_from_string(castclass);
 
@@ -157,16 +162,20 @@ proj_class_castas(gpointer object,		///< Object to be "casted"
 	return object;
 }
 
-/// "Safely" cast an object to a const given class type.
+/// "Safely" cast an object to a <i>const</i> object of the given C-class.
 /// What we mean by that, is that before returning, we verify that the object in question
 /// <b>ISA</b> <i>castclass</i> object.
 /// If it's not, we abort.  Better a semi-predictable abort than a random and unpredictable crash.
 gconstpointer
-proj_class_castasconst(gconstpointer object,		///< Object to be "casted"
-		  const char * castclass)	///< Class to cast it as
+proj_class_castasconst(gconstpointer object,	///< Object to be "cast" to "castclass"
+		  const char * castclass)	///< Class to cast "object" as
 {
 	GQuark		objquark;
 	GQuark		castquark;
+
+	if (NULL == object) {
+		return object;
+	}
 	objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
 	castquark = g_quark_from_string(castclass);
 
