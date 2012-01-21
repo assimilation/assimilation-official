@@ -26,22 +26,24 @@ typedef struct _ConfigContext ConfigContext;
 /// and is managed by our @ref ProjectClass system.
 /// It provides the analog of global variables for remembering configuration defaults, etc.
 struct _ConfigContext {
-	int		_refcount;
-	void		(*ref)(ConfigContext*);
-	void		(*unref)(ConfigContext*);
-	void		(*_finalize)(ConfigContext*);
-	GHashTable*	_intvalues;
-	GHashTable*	_strvalues;
-	NetAddr*	collectivemgmtaddr;
-	SignFrame*	signframe;
-	void		(*setmgmtaddr)(ConfigContext*, NetAddr*);
-	void		(*setsignframe)(ConfigContext*, SignFrame*);
-	gint		(*getintvalue)(ConfigContext*, const char *name);
-	void		(*setintvalue)(ConfigContext*, const char *name, gint value);
-	const char*	(*getstringvalue)(ConfigContext*, const char *name);
-	void		(*setstringvalue)(ConfigContext*, const char *name, const char *value);
+	int		_refcount;			///< Reference count (private)
+	void		(*ref)(ConfigContext*);		///< Increment reference count
+	void		(*unref)(ConfigContext*);	///< Decrement reference count
+	void		(*_finalize)(ConfigContext*);	///< Free object (private)
+	GHashTable*	_intvalues;			///< Integer value table
+	GHashTable*	_strvalues;			///< String value table
+	GHashTable*	_framevalues;			///< Frame value table
+	GHashTable*	_addrvalues;			///< NetAddr value table
+	gint		(*getint)(ConfigContext*, const char *name);	///< Get integer value
+	void		(*setint)(ConfigContext*, const char *name, gint value);	///< Set integer value
+	const char*	(*getstring)(ConfigContext*, const char *name);	///< Get String value
+	void		(*setstring)(ConfigContext*, const char *name, const char *value);
+	Frame*		(*getframe)(ConfigContext*, const char*);	///< Get Frame value
+	void		(*setframe)(ConfigContext*, const char*,Frame*);///< Set Frame value
+	NetAddr*	(*getaddr)(ConfigContext*, const char* name);	///< Get NetAddr value
+	void		(*setaddr)(ConfigContext*,const char *,NetAddr*);///< Set NetAddr value
 };
-WINEXPORT ConfigContext*	configcontext_new(gsize objsize);
+WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext constructor
 
 #define	CONFIG_DEFAULT_DEADTIME	10
 #define	CONFIG_DEFAULT_HBTIME	1

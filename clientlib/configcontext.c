@@ -13,55 +13,47 @@
 
 FSTATIC void	_configcontext_setmgmtaddr(ConfigContext*, NetAddr*);
 FSTATIC void	_configcontext_setsignframe(ConfigContext* self, SignFrame* signframe);
+FSTATIC void	_configcontext_ref(ConfigContext* self);
+FSTATIC void	_configcontext_unref(ConfigContext* self);
 FSTATIC void	_configcontext_finalize(ConfigContext* self);
 FSTATIC void	_configcontext_free(void* thing);
-FSTATIC gint	_configcontext_getintvalue(ConfigContext*, const char *name);
-FSTATIC void	_configcontext_setintvalue(ConfigContext*, const char *name, gint value);
-FSTATIC const char* _configcontext_getstringvalue(ConfigContext*, const char *name);
-FSTATIC void	_configcontext_setstringvalue(ConfigContext*, const char *name, const char *value);
+FSTATIC void	_configcontext_freeNetAddr(void* thing);
+FSTATIC void	_configcontext_freeFrame(void* thing);
+FSTATIC gint	_configcontext_getint(ConfigContext*, const char *name);
+FSTATIC void	_configcontext_setint(ConfigContext*, const char *name, gint value);
+FSTATIC const char* _configcontext_getstring(ConfigContext*, const char *name);
+FSTATIC void	_configcontext_setstring(ConfigContext*, const char *name, const char *value);
+FSTATIC NetAddr*_configcontext_getaddr(ConfigContext*, const char *);
+FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
+FSTATIC Frame*	_configcontext_getframe(ConfigContext*, const char *name);
+FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
 
-static struct configintdefaults {
-	const char *	name;
-	int		value;
-}	idefaults [] = CONFIGINTDEFAULTS;
 
 /// Construct a new ConfigContext object - with some values defaulted
 ConfigContext*
 configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero for min size)
 {
 	ConfigContext * newcontext = NULL;
-	unsigned char	addrbody[] = CONFIG_DEFAULT_ADDR;
-	int		j;
 
 	if (objsize < sizeof(ConfigContext)) {
 		objsize = sizeof(ConfigContext);
 	}
 	newcontext = MALLOCCLASS(ConfigContext, objsize);
 	memset(newcontext, 0x00, objsize);
-	newcontext->setsignframe =	_configcontext_setsignframe;
-	newcontext->setmgmtaddr	=	_configcontext_setmgmtaddr;
-	newcontext->setintvalue	=	_configcontext_setintvalue;
-	newcontext->getintvalue	=	_configcontext_getintvalue;
-	newcontext->setstringvalue=	_configcontext_setstringvalue;
-	newcontext->getstringvalue=	_configcontext_getstringvalue;
+	newcontext->setint	=	_configcontext_setint;
+	newcontext->getint	=	_configcontext_getint;
+	newcontext->setstring=		_configcontext_setstring;
+	newcontext->getstring=		_configcontext_getstring;
+	newcontext->getframe=		_configcontext_getframe;
+	newcontext->setframe=		_configcontext_setframe;
+	newcontext->getaddr=		_configcontext_getaddr;
+	newcontext->setaddr=		_configcontext_setaddr;
 	newcontext->_finalize	=	_configcontext_finalize;
+	newcontext->ref =		_configcontext_ref;
+	newcontext->unref =		_configcontext_unref;
 	newcontext->_refcount	=	1;
-	newcontext->_intvalues = g_hash_table_new_full(g_str_hash, g_str_equal, _configcontext_free, NULL);
-	newcontext->_strvalues = g_hash_table_new_full(g_str_hash, g_str_equal
-				,	_configcontext_free, _configcontext_free);
 	if (NULL == newcontext) {
 		goto errout;
-	}
-	newcontext->collectivemgmtaddr = netaddr_new(0, 0, CONFIG_DEFAULT_ADDRTYPE, addrbody, sizeof(addrbody));
-	if (NULL == newcontext->collectivemgmtaddr) {
-		goto errout;
-	}
-	newcontext->signframe = signframe_new(CONFIG_DEFAULT_SIGNFRAME_TYPE, 0);
-	if (NULL == newcontext->signframe) {
-		goto errout;
-	}
-	for (j=0; j < (int)DIMOF(idefaults); ++j) {
-		newcontext->setintvalue(newcontext, idefaults[j].name, idefaults[j].value);
 	}
 	return newcontext;
 errout:
@@ -72,21 +64,16 @@ errout:
 	g_return_val_if_reached(NULL);
 }
 
-FSTATIC void
-_configcontext_setsignframe(ConfigContext* self, SignFrame* signframe)
-{
-	g_return_if_fail(signframe != NULL);
-	self->signframe->baseclass.unref(CASTTOCLASS(Frame, self->signframe));
-	signframe->baseclass.ref(CASTTOCLASS(Frame, signframe));
-	self->signframe = signframe;
-}
-
+/// Get an integer value
 FSTATIC gint
-_configcontext_getintvalue(ConfigContext* self, const char *name)
+_configcontext_getint(ConfigContext* self, const char *name)
 {
 	gpointer	lookupkey = NULL;
 	gpointer	lookupvalue = NULL;
 
+	if (NULL == self->_intvalues) {
+		return -1;
+	}
 	g_hash_table_lookup_extended(self->_intvalues, name, &lookupkey, &lookupvalue);
 	if (lookupkey == NULL) {
 		return -1;
@@ -94,61 +81,147 @@ _configcontext_getintvalue(ConfigContext* self, const char *name)
 	return GPOINTER_TO_INT(lookupvalue);
 }
 
+/// Set a name to an integer value
 FSTATIC void
-_configcontext_setintvalue(ConfigContext* self, const char *name, gint value)
+_configcontext_setint(ConfigContext* self, const char *name, gint value)
 {
 	char *	cpname = g_strdup(name);
+	if (NULL == self->_intvalues) {
+		self->_intvalues = g_hash_table_new_full(g_str_hash, g_str_equal, _configcontext_free, NULL);
+	}
 	g_hash_table_insert(self->_intvalues, cpname, GINT_TO_POINTER(value));
 }
 
+/// Return the value of a string name
 FSTATIC const char*
-_configcontext_getstringvalue(ConfigContext* self, const char *name)
+_configcontext_getstring(ConfigContext* self, const char *name)
 {
+	if (NULL == self->_strvalues) {
+		return NULL;
+	}
 	return (const char *)g_hash_table_lookup(self->_strvalues, name);
 }
 
+/// Set a name to a string value
 FSTATIC void
-_configcontext_setstringvalue(ConfigContext* self, const char *name, const char *value)
+_configcontext_setstring(ConfigContext* self, const char *name, const char *value)
 {
 	char *	cpname = g_strdup(name);
 	char *	cpvalue = g_strdup(value);
+	if (NULL == self->_strvalues) {
+		self->_strvalues = g_hash_table_new_full(g_str_hash, g_str_equal
+		,	_configcontext_free, _configcontext_free);
+	}
 	g_hash_table_insert(self->_strvalues, cpname, cpvalue);
 }
 
-FSTATIC void
-_configcontext_setmgmtaddr(ConfigContext* self, NetAddr* addr)
+
+/// Return the NetAddr value of a name
+FSTATIC  NetAddr*
+_configcontext_getaddr(ConfigContext* self, const char *name)
 {
-	g_return_if_fail(addr != NULL);
-	self->collectivemgmtaddr->unref(self->collectivemgmtaddr);
-	self->collectivemgmtaddr = addr;
-	addr->ref(addr);
+	gpointer	addr;
+	if (NULL == self->_addrvalues) {
+		return NULL;
+	}
+	addr = g_hash_table_lookup(self->_addrvalues, name);
+	return addr == NULL ? NULL : CASTTOCLASS(NetAddr, addr);
 }
 
+/// Set the a Frame value
+FSTATIC void
+_configcontext_setaddr(ConfigContext* self, const char * name, NetAddr* addr)
+{
+	char *	cpname;
+	g_return_if_fail(addr != NULL);
+	cpname = g_strdup(name);
+	addr->ref(addr);
+	if (NULL == self->_addrvalues) {
+		self->_addrvalues = g_hash_table_new_full(g_str_hash, g_str_equal
+		,	_configcontext_free, _configcontext_freeNetAddr);
+	}
+	g_hash_table_insert(self->_addrvalues, cpname, addr);
+}
 
+/// Return the Frame value of a name
+FSTATIC Frame*
+_configcontext_getframe(ConfigContext* self, const char *name)
+{
+	gpointer	frame;
+	if (NULL == self->_framevalues) {
+		return NULL;
+	}
+	frame = g_hash_table_lookup(self->_framevalues, name);
+	return frame == NULL ? NULL : CASTTOCLASS(Frame, frame);
+}
+
+/// Set the signature frame to the given SignFrame
+FSTATIC void
+_configcontext_setframe(ConfigContext* self, const char * name, Frame* frame)
+{
+	char *	cpname;
+	g_return_if_fail(frame != NULL);
+	cpname = g_strdup(name);
+	frame->ref(frame);
+	if (NULL == self->_addrvalues) {
+		self->_framevalues = g_hash_table_new_full(g_str_hash, g_str_equal
+		,	_configcontext_free, _configcontext_freeFrame);
+	}
+	g_hash_table_insert(self->_framevalues, cpname, frame);
+}
+
+/// Free a malloced object (likely a string)
 FSTATIC void
 _configcontext_free(gpointer thing)
 {
 	FREE(thing);
 }
 
+/// Free a Frame object
+FSTATIC void
+_configcontext_freeFrame(gpointer thing)
+{
+	Frame*	f = CASTTOCLASS(Frame, thing);
+	f->unref(f);
+}
+
+/// Free a NetAddr object
+FSTATIC void
+_configcontext_freeNetAddr(gpointer thing)
+{
+	NetAddr* a = CASTTOCLASS(NetAddr, thing);
+	a->unref(a);
+}
+
+FSTATIC void
+_configcontext_ref(ConfigContext* self)
+{
+	self->_refcount += 1;
+}
+FSTATIC void
+_configcontext_unref(ConfigContext* self)
+{
+	g_return_if_fail(self != NULL && self->_refcount > 0);
+	self->_refcount -= 1;
+	if (self->_refcount == 0) {
+		self->_finalize(self); self = NULL;
+	}
+}
+
 FSTATIC void
 _configcontext_finalize(ConfigContext* self)
 {
-	if (self->collectivemgmtaddr) {
-		self->collectivemgmtaddr->unref(self->collectivemgmtaddr);
-		self->collectivemgmtaddr = NULL;
-	}
-	if (self->signframe) {
-		self->signframe->baseclass.unref(CASTTOCLASS(Frame, self->signframe));
-		self->signframe = NULL;
-	}
 	if (self->_intvalues) {
-		g_hash_table_destroy(self->_intvalues);
-		self->_intvalues = NULL;
+		g_hash_table_destroy(self->_intvalues); self->_intvalues = NULL;
 	}
 	if (self->_strvalues) {
-		g_hash_table_destroy(self->_strvalues);
-		self->_strvalues = NULL;
+		g_hash_table_destroy(self->_strvalues); self->_strvalues = NULL;
+	}
+	if (self->_framevalues) {
+		g_hash_table_destroy(self->_framevalues); self->_framevalues = NULL;
+	}
+	if (self->_addrvalues) {
+		g_hash_table_destroy(self->_addrvalues); self->_addrvalues = NULL;
 	}
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self); self = NULL;
