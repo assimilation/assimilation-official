@@ -45,22 +45,24 @@ struct _ConfigContext {
 };
 WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext constructor
 
-#define	CONFIG_DEFAULT_DEADTIME	10
-#define	CONFIG_DEFAULT_HBTIME	1
-#define	CONFIG_DEFAULT_WARNTIME	3
+#define	CONFIG_DEFAULT_DEADTIME	30		///< Default "deadtime"
+#define	CONFIG_DEFAULT_HBTIME	3		///< Default heartbeat interval
+#define	CONFIG_DEFAULT_WARNTIME	10		///< Default warning time
 #define	CONFIG_DEFAULT_ADDR	{127,0,0,1}
 #define	CONFIG_DEFAULT_ADDRTYPE	ADDR_FAMILY_IPV4
 #define	CONFIG_DEFAULT_SIGNFRAME_TYPE	G_CHECKSUM_SHA256
 
-#define CONFIGINAME_DEADTIME	"deadtime"
-#define CONFIGINAME_WARNTIME	"warntime"
-#define CONFIGINAME_HBTIME	"hbtime"
+#define CONFIGNAME_DEADTIME	"deadtime"	///< How long w/o heartbeats before declaring a system dead?
+#define CONFIGNAME_WARNTIME	"warntime"	///< How long w/o heartbeats before whining?
+#define CONFIGNAME_HBTIME	"hbtime"	///< How long to wait between heartbeats?
+#define CONFIGNAME_CMAADDR	"colladdr"	///< Address of the Collective Management authority
+#define CONFIGNAME_OUTSIG	"outsig"	///< SignFrame to use to sign outbound packets
 
 /// Default values for some (integer) configuration values
 #define	CONFIGINTDEFAULTS {					\
-	{CONFIGINAME_DEADTIME,	CONFIG_DEFAULT_DEADTIME},	\
-	{CONFIGINAME_WARNTIME,	CONFIG_DEFAULT_WARNTIME},	\
-	{CONFIGINAME_HBTIME,	CONFIG_DEFAULT_HBTIME},		\
+	{CONFIGNAME_DEADTIME,	CONFIG_DEFAULT_DEADTIME},	\
+	{CONFIGNAME_WARNTIME,	CONFIG_DEFAULT_WARNTIME},	\
+	{CONFIGNAME_HBTIME,	CONFIG_DEFAULT_HBTIME},		\
 	}
 ///@}
 #endif /* _CONFIGCONTEXT_H */

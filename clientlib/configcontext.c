@@ -193,11 +193,14 @@ _configcontext_freeNetAddr(gpointer thing)
 	a->unref(a);
 }
 
+/// Increment ConfigContext reference count
 FSTATIC void
 _configcontext_ref(ConfigContext* self)
 {
 	self->_refcount += 1;
 }
+
+/// Decrement ConfigContext reference count
 FSTATIC void
 _configcontext_unref(ConfigContext* self)
 {
@@ -208,6 +211,7 @@ _configcontext_unref(ConfigContext* self)
 	}
 }
 
+/// Finalize (free) ConfigContext object
 FSTATIC void
 _configcontext_finalize(ConfigContext* self)
 {
