@@ -137,9 +137,9 @@ _configcontext_getaddr(ConfigContext* self	///<[in] ConfigContext object
 
 /// Set the NetAddr value of a name
 FSTATIC void
-_configcontext_setaddr(ConfigContext* self	///[in/out] ConfigContext object
-		,      const char * name	///[in] Name to set to 'addr' (we copy it)
-		,      NetAddr* addr)		///[in/out] Address to set it to (we hold a ref to it)
+_configcontext_setaddr(ConfigContext* self	///<[in/out] ConfigContext object
+		,      const char * name	///<[in] Name to set to 'addr' (we copy it)
+		,      NetAddr* addr)		///<[in/out] Address to set it to (we hold a ref to it)
 {
 	char *	cpname;
 	g_return_if_fail(addr != NULL);
@@ -167,9 +167,9 @@ _configcontext_getframe(ConfigContext* self	///<[in] ConfigContext object
 
 /// Set the signature frame to the given SignFrame
 FSTATIC void
-_configcontext_setframe(ConfigContext* self	///[in/out] ConfigContext object
-		,	const char * name	///[in] name to set value of (we copy it)
-		,	Frame* frame)		///[in/out] @ref Frame value to set 'name' to
+_configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
+		,	const char * name	///<[in] name to set value of (we copy it)
+		,	Frame* frame)		///<[in/out] @ref Frame value to set 'name' to
 						/// (we hold a ref to it)
 {
 	char *	cpname;
@@ -226,7 +226,7 @@ _configcontext_unref(ConfigContext* self)	///<[in/out] ConfigContext object bein
 
 /// Finalize (free) ConfigContext object
 FSTATIC void
-_configcontext_finalize(ConfigContext* self)	///[in/out] ConfigContext object being freed
+_configcontext_finalize(ConfigContext* self)	///<[in/out] ConfigContext object being freed
 {
 	if (self->_intvalues) {
 		g_hash_table_destroy(self->_intvalues); self->_intvalues = NULL;
