@@ -343,6 +343,7 @@ class pyFrameSetTest(TestCase):
         sign = pySignFrame(1) # digital signature frame
         flist = (pyAddrFrame(9, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
                  pySeqnoFrame(5, (42, 424242424242)))
+        decoder = pyPacketDecoder(0)
         for frame in flist:
             pyfs.append(frame)
         pyfs.construct_packet(sign)
@@ -350,7 +351,7 @@ class pyFrameSetTest(TestCase):
         for frame in pyfs.iter():
             xlist.append(frame)
         pktdata = pyfs.getpacket()
-        cp_pyfs = pyFrameSet.fslist_from_pktdata(pktdata)
+        cp_pyfs = decoder.fslist_from_pktdata(pktdata)
         fs0 = cp_pyfs[0]
         ylist=[]
         for frame in fs0.iter():

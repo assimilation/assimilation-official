@@ -35,7 +35,9 @@
 
 /// Construct new UDP NetIO object (and its socket, etc)
 NetIOudp*
-netioudp_new(gsize objsize)	/// Size of NetIOudp object, or zero.
+netioudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
+	,    ConfigContext* config	///<[in/out] config info
+	,    PacketDecoder* decoder)	///<[in/out] packet decoder
 {
 	NetIO*		iret;
 	NetIOudp*	ret;
@@ -44,7 +46,7 @@ netioudp_new(gsize objsize)	/// Size of NetIOudp object, or zero.
 	if (objsize < sizeof(NetIOudp)) {
 		objsize = sizeof(NetIOudp);
 	}
-	iret = netio_new(objsize);
+	iret = netio_new(objsize, config, decoder);
 	proj_class_register_subclassed(iret, "NetIOudp");
 	ret = CASTTOCLASS(NetIOudp, iret);
 	sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);

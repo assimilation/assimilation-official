@@ -28,7 +28,7 @@ struct _NetIOudp {
 	NetIO		baseclass;	///< Base class (NetIO) object.
 	GDestroyNotify	_finalize;	///< Saved (base class) finalize routine
 };
-WINEXPORT NetIOudp*	netioudp_new(gsize objsize);
+WINEXPORT NetIOudp* netioudp_new(gsize objsize, ConfigContext* config,    PacketDecoder* decoder);
 ///@}
 
 #endif /* _NETIOUDP_H */

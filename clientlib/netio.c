@@ -40,9 +40,6 @@ FSTATIC gpointer _netio_recvapacket(NetIO*, gpointer*, struct sockaddr_in6*, soc
 FSTATIC gsize _netio_getmaxpktsize(const NetIO* self);
 FSTATIC gsize _netio_setmaxpktsize(NetIO* self, gsize maxpktsize);
 FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
-FSTATIC void _netio_set_signframe (NetIO *self, SignFrame *sign);
-FSTATIC void _netio_set_cryptframe (NetIO *self, Frame *crypt);
-FSTATIC void _netio_set_compressframe (NetIO *self, Frame *compress);
 FSTATIC SignFrame* _netio_signframe (NetIO *self);
 FSTATIC Frame* _netio_cryptframe (NetIO *self);
 FSTATIC Frame* _netio_compressframe (NetIO *self);
@@ -105,6 +102,9 @@ _netio_finalize(NetIO* self)	///<[in/out] The object being freed
 		self->_compressframe->unref(self->_compressframe);
 		self->_compressframe = NULL;
 	}
+	if (self->_decoder) {
+		self->_decoder->baseclass.unref(self->_decoder);
+	}
 	FREECLASSOBJ(self); self=NULL;
 }
 
@@ -123,48 +123,31 @@ _netio_setmaxpktsize(NetIO* self,	///<[in/out] The object whose max packet size 
 	self->_maxpktsize = maxpktsize;
 	return self->getmaxpktsize(self);
 }
-FSTATIC void
-_netio_set_signframe (NetIO *self, SignFrame *sign)
-{
-	if (self->_signframe) {
-		self->_signframe->baseclass.unref(CASTTOCLASS(Frame, self->_signframe));
-	}
-	self->_signframe = sign;
-	sign->baseclass.ref(CASTTOCLASS(Frame, sign));
-}
-FSTATIC SignFrame*
-_netio_signframe (NetIO *self)
-{
-	return self->_signframe;
-}
-FSTATIC void
-_netio_set_cryptframe (NetIO *self, Frame *crypt)
-{
-	self->_cryptframe = crypt;
-	crypt->ref(crypt);
-}
-FSTATIC Frame*
-_netio_cryptframe (NetIO *self)
-{
-	return self->_cryptframe;
-}
-FSTATIC void
-_netio_set_compressframe (NetIO *self, Frame *compress)
-{
-	self->_compressframe = compress;
-	compress->ref(compress);
-}
 FSTATIC Frame*
 _netio_compressframe (NetIO *self)
 {
 	return self->_compressframe;
 }
+FSTATIC Frame*
+_netio_cryptframe(NetIO *self)
+{
+	return self->_cryptframe;
+}
+
+FSTATIC SignFrame*
+_netio_signframe (NetIO *self)
+{
+	return self->_signframe;
+}
 
 /// NetIO constructor.
 NetIO*
-netio_new(gsize objsize)	///<[in] The size of the object to construct (or zero)
+netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
+	, ConfigContext* config		///<[in] Configuration Information
+	, PacketDecoder*decoder)	///<[in] Packet decoder
 {
 	NetIO* ret;
+	Frame*	f;
 
 	if (objsize < sizeof(NetIO)) {
 		objsize = sizeof(NetIO);
@@ -178,13 +161,25 @@ netio_new(gsize objsize)	///<[in] The size of the object to construct (or zero)
 	ret->getmaxpktsize = _netio_getmaxpktsize;
 	ret->setmaxpktsize = _netio_setmaxpktsize;
 	ret->recvframesets = _netio_recvframesets;
-	ret->set_signframe = _netio_set_signframe;
-	ret->set_cryptframe = _netio_set_cryptframe;
-	ret->set_compressframe = _netio_set_compressframe;
 	ret->signframe = _netio_signframe;
 	ret->cryptframe = _netio_cryptframe;
 	ret->compressframe = _netio_compressframe;
 	ret->_maxpktsize = 65300;
+	ret->_configinfo = config;
+	ret->_decoder = decoder;
+	decoder->baseclass.ref(decoder);
+	f =  config->getframe(config, CONFIGNAME_OUTSIG);
+	g_return_val_if_fail(f != NULL, NULL);
+	f->ref(f);
+	ret->_signframe = CASTTOCLASS(SignFrame, f);
+	ret->_cryptframe = config->getframe(config, CONFIGNAME_CRYPT);
+	if (ret->_cryptframe) {
+		ret->_cryptframe->ref(ret->_cryptframe);
+	}
+	ret->_compressframe = config->getframe(config, CONFIGNAME_COMPRESS);
+	if (ret->_compressframe) {
+		ret->_compressframe->ref(ret->_compressframe);
+	}
 	return ret;
 }
 
@@ -342,7 +337,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	pkt = _netio_recvapacket(self, &pktend, &srcaddr, &addrlen);
 
 	if (NULL != pkt) {
-		ret = pktdata_to_frameset_list(pkt, pktend);
+		ret = self->_decoder->pktdata_to_framesetlist(self->_decoder, pkt, pktend);
 		if (NULL != ret) {
 			*src = netaddr_sockaddr_new(&srcaddr, addrlen);
 		}else{

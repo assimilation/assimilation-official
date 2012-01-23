@@ -38,6 +38,15 @@
 #include <netaddr.h>
 #include <hblistener.h>
 #include <hbsender.h>
+#include <signframe.h>
+#include <cryptframe.h>
+#include <compressframe.h>
+#include <intframe.h>
+#include <addrframe.h>
+#include <cstringframe.h>
+#include <nvpairframe.h>
+#include <seqnoframe.h>
+#include <frametypes.h>
 
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
@@ -58,8 +67,8 @@ void got_heartbeat(HbListener* who);
 
 /// Test routine for sending an encapsulated Pcap packet.
 void
-send_encapsulated_packet(gconstpointer packet,			///<[in] pcap packet data
-		   gconstpointer pktend,			///<[in] one byte past end of pkt
+send_encapsulated_packet(gconstpointer packet,		///<[in] pcap packet data
+		   gconstpointer pktend,		///<[in] one byte past end of pkt
            	   const struct pcap_pkthdr *hdr,	///<[in] pcap header
 		   const char * dev)			///<[in] capture device
 {
@@ -77,11 +86,13 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
            gconstpointer pend,			///<[in]end of captured packet
            const struct pcap_pkthdr *hdr,	///<[in]pcap header
            const char *dev,			///<[in]name of capture device
-	   gpointer userdatanotused)		///<[unused] unused userdata pointer
+	   gpointer vdecoder)			///<[in]PacketDecoder object
 {
 	FrameSet *	fs;
 	SignFrame*	signature;
-	(void)srcobj; (void)capfd; (void)userdatanotused;
+	PacketDecoder*	decoder = CASTTOCLASS(PacketDecoder, vdecoder);
+	(void)srcobj; (void)capfd;
+	
 	++pcapcount;
 	if (is_valid_lldp_packet(pkt, pend)) {
 		g_message("Found a %d/%d byte LLDP packet!", hdr->caplen, hdr->len);
@@ -106,7 +117,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 		GSList*		fslist;
 		int	size = (guint8*)fs->pktend - (guint8*) fs->packet;
 		g_message("Constructed packet is %d bytes", size);
-		fslist = pktdata_to_frameset_list(fs->packet, fs->pktend);
+		fslist = decoder->pktdata_to_framesetlist(decoder, fs->packet, fs->pktend);
 		if (fslist == NULL) {
 			g_warning("fslist is NULL!");
 			++errcount;
@@ -197,6 +208,8 @@ initial_deadtime_agent(HbListener* who)
 	
 }
 
+FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
+
 /// Test program looping and reading LLDP/CDP packets.
 int
 main(int argc, char **argv)
@@ -211,6 +224,8 @@ main(int argc, char **argv)
 	NetGSource*	netpkt;
 	HbListener*	hblisten;
 	Listener*	otherlistener;
+	ConfigContext*	config = configcontext_new(0);
+	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
@@ -232,13 +247,14 @@ main(int argc, char **argv)
 	// and connect it up to run in the default context
 
 	pcapsource = g_source_pcap_new(dev, protocols, gotapcappacket, NULL,
-                                      G_PRIORITY_DEFAULT, FALSE, NULL, 0, NULL);
+                                      G_PRIORITY_DEFAULT, FALSE, NULL, 0, decoder);
 	g_return_val_if_fail(NULL != pcapsource, 1);
 
+	config->setframe(config, CONFIGNAME_OUTSIG, CASTTOCLASS(Frame, signature));
+
 	// Create a network transport object (UDP packets)
-	transport = CASTTOCLASS(NetIO, netioudp_new(0));
+	transport = CASTTOCLASS(NetIO, netioudp_new(0, config, decoder));
 	g_return_val_if_fail(NULL != transport, 2);
-	transport->set_signframe(transport, signature);
 
 	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
 	destaddr =  netaddr_ipv6_new(loopback, testport);
@@ -295,6 +311,12 @@ main(int argc, char **argv)
 
 	// Free destination address
         destaddr->unref(destaddr);
+
+	// Free packet decoder
+	decoder->baseclass.unref(decoder);
+
+	// Free config object
+	config->unref(config);
 
 
 	// At this point - nothing should show up - we should have freed everything

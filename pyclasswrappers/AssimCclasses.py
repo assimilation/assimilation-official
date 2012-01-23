@@ -475,7 +475,7 @@ class pySignFrame(pyFrame):
 class pyFrameSet:
     'Class for Frame Sets - for collections of Frames making up a logical packet'
     def __init__(self, framesettype, Cstruct=None):
-        'Initializer for pySignFrame'
+        'Initializer for pyFrameSet'
         if Cstruct is None:
             Cstruct=frameset_new(framesettype)
         self._Cstruct = Cstruct
@@ -560,11 +560,34 @@ class pyFrameSet:
             yield eval(statement)
             curframe=g_slist_next(curframe)
 
-    @staticmethod
-    def fslist_from_pktdata(pktlocation):
+
+class pyPacketDecoder:
+    'Class for Decoding packets - for returning an array of FrameSets from a physical packet.'
+    def __init__(self, FrameMap=None, Cstruct=None):
+        'Initializer for pyPacketDecoder'
+        if Cstruct is None:
+            Cstruct=packetdecoder_new(0, None, 0)
+        self._Cstruct = Cstruct
+
+    def __del__(self):
+        "Free up the underlying Cstruct for this pyFrameSet object"
+        if self._Cstruct is None:
+            return
+	base=self._Cstruct[0]
+	# I have no idea why the type(base) is not NetAddr doesn't work here...
+	# This 'hasattr' construct only works because we are a base C-class
+        while (hasattr(base, 'baseclass')):
+	    base=base.baseclass
+        base.unref(self._Cstruct)
+
+    def fslist_from_pktdata(self, pktlocation):
         'Make a list of FrameSets out of a packet.'
         frameset_list = []
-        fs_gslist = pktdata_to_frameset_list(pktlocation[0], pktlocation[1])
+	base=self._Cstruct[0]
+        while (type(base)is not PacketDecoder):
+	    base=base.baseclass
+        fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct, pktlocation[0], pktlocation[1])
+        fs_gslist = cast(fs_gslistint, POINTER(GSList))
         curfs = fs_gslist
         while curfs:
             cfs = cast(curfs[0].data, cClass.FrameSet)

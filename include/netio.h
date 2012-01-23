@@ -18,6 +18,8 @@
 #include <netaddr.h>
 #include <frame.h>
 #include <signframe.h>
+#include <configcontext.h>
+#include <decode_packet.h>
 
 ///@{
 /// @ingroup NetIO
@@ -28,10 +30,12 @@ typedef struct _NetIO NetIO;
 /// and is managed by our @ref ProjectClass system.
 struct _NetIO {
 	GIOChannel*	giosock;				///< Glib GIOChannel for this socket
+	gint		_maxpktsize;
+	ConfigContext*	_configinfo;
+	PacketDecoder*	_decoder;
 	SignFrame*	_signframe;
 	Frame*		_cryptframe;
 	Frame*		_compressframe;
-	gint		_maxpktsize;
 	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*);	///<[in] Address to bind it to
@@ -65,22 +69,11 @@ struct _NetIO {
 	Frame*		(*compressframe)		///< return a copied compression frame for sending
 				(NetIO*self)		///<[in] 'this' object
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*set_signframe)		///< Set digital signature for this NetIO channel
-				(NetIO* self,		///<[in] 'this' object
-				 SignFrame* sign)	///<[in] signature @ref SignFrame
-						   ;	// ";" is here to work around a doxygen bug
-	void		(*set_cryptframe)		///< Set encryption object
-				(NetIO* self,		///<[in] 'this' object
-				 Frame* crypt)		///<[in] encryption @ref Frame
-						   ;	// ";" is here to work around a doxygen bug
-	void		(*set_compressframe)		///< Set compression object
-				(NetIO* self,		///<[in] 'this' object
-				 Frame* compress)	///<[in] compression @ref Frame
-						   ;	// ";" is here to work around a doxygen bug
 	void		(*finalize)			///< Finalize this NetIO object
 				(NetIO* self);		///<[in] 'this' object
 };
-WINEXPORT NetIO*	netio_new(gsize objsize); // Don't call this directly! - this is an abstract class...
+WINEXPORT NetIO*	netio_new(gsize objsize, ConfigContext*, PacketDecoder*);
+							///< Don't call this directly! - this is an abstract class...
 ///@}
 
 #endif /* _NETIO_H */

@@ -11,6 +11,7 @@
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
+#include <memory.h>
 #include <projectcommon.h>
 #include <generic_tlv_min.h>
 #include <frameset.h>
@@ -27,59 +28,88 @@
 #include <seqnoframe.h>
 #include <nvpairframe.h>
 #include <unknownframe.h>
+#include <frametypes.h>
 
 /// @{
 
 #define	FRAMESET_HDR_SIZE	(3*sizeof(guint16))
 
-static const FrameTypeToFrame	framemap[] = FRAMETYPEMAP;
-static FramePktConstructor*	frametypemap;
-static guint16			maxframetype = 0;
-static gboolean			_decode_packet_inityet = FALSE;
-FSTATIC void			_decode_packet_init(void);
-#define			INITDECODE	{if (!_decode_packet_inityet) {		\
-						_decode_packet_inityet = TRUE;	\
-						_decode_packet_init();		\
-					}}
-FSTATIC Frame*	_framedata_to_frameobject(gconstpointer tlvstart, gconstpointer gconstpointer);
+
+FSTATIC Frame*	_framedata_to_frameobject(PacketDecoder*, gconstpointer, gconstpointer gconstpointer);
 FSTATIC FrameSet* _decode_packet_get_frameset_data(gconstpointer, gconstpointer, void const **);
-FSTATIC Frame* _decode_packet_framedata_to_frameobject(gconstpointer, gconstpointer, void const ** nextframe);
+FSTATIC Frame* _decode_packet_framedata_to_frameobject(PacketDecoder*, gconstpointer, gconstpointer, void const **);
+FSTATIC GSList* _pktdata_to_framesetlist(PacketDecoder*, gconstpointer, gconstpointer);
+
+FSTATIC void _packetdecoder_finalize(AssimObj*);
+
+FSTATIC void
+_packetdecoder_finalize(AssimObj* selfobj)
+{
+	PacketDecoder* self = CASTTOCLASS(PacketDecoder, selfobj);
+
+	FREE(self->_frametypemap);	self->_frametypemap = NULL;
+	self->_pfinalize(selfobj);
+}
+
+static FrameTypeToFrame _defaultmap[] = FRAMETYPEMAP;
 
 /// Initialize our frame type map.
-/// Should only be called by the INITDECODE macro.
 /// Post-condition:  Every element of 'frametypemap' is initialized with a valid function pointer.
-void
-_decode_packet_init(void)
+PacketDecoder*
+packetdecoder_new(guint objsize, const FrameTypeToFrame* framemap, gint mapsize)
 {
-	unsigned	j;
+	gint		j;
+	AssimObj*	baseobj;
+	PacketDecoder*	self;
+	
+	if (objsize < sizeof(PacketDecoder)) {
+		objsize = sizeof(PacketDecoder);
+	}
+	if (NULL == framemap) {
+		framemap = _defaultmap;
+		mapsize = DIMOF(_defaultmap);
+	}
 
-	for (j=0; j < DIMOF(framemap); ++j) {
-		if (framemap[j].frametype > maxframetype) {
-			maxframetype = framemap[j].frametype;
+	baseobj = assimobject_new(objsize);
+	proj_class_register_subclassed(baseobj, "PacketDecoder");
+	self = CASTTOCLASS(PacketDecoder, baseobj);
+	
+
+	self->_pfinalize = baseobj->_finalize;
+	baseobj->_finalize = _packetdecoder_finalize;
+	self->pktdata_to_framesetlist = _pktdata_to_framesetlist;
+	self->_maxframetype = 0;
+	self->_framemap = framemap;
+	self->_framemaplen = mapsize;
+
+	for (j=0; j < self->_framemaplen; ++j) {
+		if (self->_framemap[j].frametype > self->_maxframetype) {
+			self->_maxframetype = self->_framemap[j].frametype;
 		}
 	}
-	frametypemap = MALLOC0((maxframetype+1)*sizeof(gpointer));
-	for (j=0; j <= maxframetype; ++j) {
-		frametypemap[j] = unknownframe_tlvconstructor;
+	self->_frametypemap = MALLOC0((self->_maxframetype+1)*sizeof(gpointer));
+	for (j=0; j <= self->_maxframetype; ++j) {
+		self->_frametypemap[j] = unknownframe_tlvconstructor;
 	}
-	for (j=0; j < DIMOF(framemap); ++j) {
-		frametypemap[framemap[j].frametype] = framemap[j].constructor;
+	for (j=0; j < self->_framemaplen; ++j) {
+		self->_frametypemap[self->_framemap[j].frametype] = self->_framemap[j].constructor;
 	}
+	return self;
 }
 
 /// Given a pointer to a TLV entry for the data corresponding to a Frame, construct a corresponding Frame
 /// @return a decoded frame <i>plus</i> pointer to the first byte past this Frame (in 'nextframe')
 FSTATIC Frame*
-_decode_packet_framedata_to_frameobject(gconstpointer pktstart,	///<[in] Pointer to marshalled Frame data
-					gconstpointer pktend,	///<[in] Pointer to first invalid byte past 'pktstart'
+_decode_packet_framedata_to_frameobject(PacketDecoder*self,	///<[in/out] PacketDecoder object
+					gconstpointer pktstart,	///<[in] Pointer to marshalled Frame data
+					gconstpointer pktend,	///<[in] Pointer to first byte past end of pkt
 					void const ** nextframe)///<[out] Start of next frame (if any)
 {
 	guint16		frametype = get_generic_tlv_type(pktstart, pktend);
 	Frame*	ret;
 
-	INITDECODE;
-	if (frametype <= maxframetype) {
-		ret = frametypemap[frametype](pktstart, pktend);
+	if (frametype <= self->_maxframetype) {
+		ret = self->_frametypemap[frametype](pktstart, pktend);
 	}else{ 
 		ret =  unknownframe_tlvconstructor(pktstart, pktend);
 	}
@@ -91,8 +121,9 @@ _decode_packet_framedata_to_frameobject(gconstpointer pktstart,	///<[in] Pointer
 /// Construct a basic FrameSet object from the initial marshalled FrameSet data in a packet
 FSTATIC FrameSet*
 _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this FrameSet
-				 gconstpointer vpktend,		///<[in] First invalid byte after 'vfsstart'
+				 gconstpointer vpktend,		///<[in] First byte past end of packet
 				 const void ** fsnext)		///<[out] Pointer to first byte after this FrameSet
+								///<(that is, the first byte of contained frames)
 {
 	const guint8*	fsstart = vfsstart;
 	const guint8*	pktend = vpktend;
@@ -121,7 +152,8 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this 
 /// That is, it decodes the datagram/packet.
 /// @return GSList of @ref FrameSet object pointers.
 GSList*
-pktdata_to_frameset_list(gconstpointer pktstart,	///<[in] start of packet
+_pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
+			 gconstpointer pktstart,	///<[in] start of packet
 			 gconstpointer pktend)		///<[in] first byte past end of packet
 {
 	gconstpointer	curframeset = pktstart;
@@ -137,10 +169,10 @@ pktdata_to_frameset_list(gconstpointer pktstart,	///<[in] start of packet
 		while (curframe < nextframeset) {
 			gconstpointer nextframe = nextframeset;
 			Frame* newframe;
-			newframe = _decode_packet_framedata_to_frameobject(curframe, nextframeset, &nextframe);
+			newframe = _decode_packet_framedata_to_frameobject(self, curframe, nextframeset, &nextframe);
 			if (nextframe > nextframeset) {
 				newframe->unref(newframe); newframe=NULL;
-				///@todo fix this: frameset_finalize(fs) for the error case
+				fs->unref(fs);
 				return ret;
 			}
 			frameset_append_frame(fs, newframe);
@@ -153,3 +185,55 @@ pktdata_to_frameset_list(gconstpointer pktstart,	///<[in] start of packet
 	return ret;
 }
 ///@}
+
+FSTATIC void _assimobj_ref(gpointer self);
+FSTATIC void _assimobj_unref(gpointer self);
+FSTATIC void _assimobj_finalize(AssimObj* self);
+FSTATIC char * _assimobj_toString(gpointer self);
+
+FSTATIC void
+_assimobj_ref(gpointer vself)
+{
+	AssimObj* self = CASTTOCLASS(AssimObj, vself);
+	g_return_if_fail(self->_refcount > 0);
+	self->_refcount += 1;
+}
+FSTATIC void
+_assimobj_unref(gpointer vself)
+{
+	AssimObj* self = CASTTOCLASS(AssimObj, vself);
+	g_return_if_fail(self->_refcount > 0);
+	self->_refcount -= 1;
+	if (self->_refcount == 0) {
+		self->_finalize(self); self=NULL;
+	}
+}
+
+FSTATIC void
+_assimobj_finalize(AssimObj* self)
+{
+	FREECLASSOBJ(self);
+}
+
+FSTATIC char *
+_assimobj_toString(gpointer vself)
+{
+	AssimObj* self = CASTTOCLASS(AssimObj,vself);
+	return g_strdup_printf("{%s object at 0x%p}", proj_class_classname(self), self);
+}
+
+AssimObj*
+assimobject_new(guint objsize)
+{
+	AssimObj* self;
+	if (objsize < sizeof(AssimObj)) {
+		objsize = sizeof(AssimObj);
+	}
+	self = MALLOCCLASS(AssimObj, objsize);
+	self->_refcount = 1;
+	self->ref = _assimobj_ref;
+	self->unref = _assimobj_unref;
+	self->_finalize = _assimobj_finalize;
+	self->toString = _assimobj_toString;
+	return self;
+}
