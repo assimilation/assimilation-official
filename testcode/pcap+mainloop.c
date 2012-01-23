@@ -109,7 +109,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	fs = construct_pcap_frameset(0xfeed, pkt, pend, hdr, dev);
 	//g_message("Constructing a capture packet packet from the constructed frameset.");
 	frameset_construct_packet(fs, signature, NULL, NULL);
-	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
+	signature->baseclass.baseclass.unref(signature); signature = NULL;
 	if (!fs->packet) {
 		g_critical("fs is NULL!");
 		++errcount;
@@ -125,7 +125,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 			FrameSet*	copyfs = CASTTOCLASS(FrameSet, fslist->data);
 			SignFrame*	newsig = signframe_new(G_CHECKSUM_SHA256, 0);
 			frameset_construct_packet(copyfs, newsig, NULL, NULL);
-			newsig->baseclass.unref(CASTTOCLASS(Frame, newsig));
+			newsig->baseclass.baseclass.unref(newsig);
 			newsig = NULL;
 			if (!copyfs->packet) {
 				g_warning("copyfs->packet is NULL!");
@@ -307,7 +307,7 @@ main(int argc, char **argv)
 	netpkt->addListener(netpkt, 0, NULL);
 
 	// Free signature frame
-	signature->baseclass.unref(CASTTOCLASS(Frame, signature)); signature = NULL;
+	signature->baseclass.baseclass.unref(signature); signature = NULL;
 
 	// Free destination address
         destaddr->unref(destaddr);

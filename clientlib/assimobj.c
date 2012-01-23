@@ -22,7 +22,7 @@
 
 FSTATIC void _assimobj_ref(gpointer self);
 FSTATIC void _assimobj_unref(gpointer self);
-FSTATIC void _assimobj_finalize(AssimObj* self);
+void _assimobj_finalize(AssimObj* self);
 FSTATIC char * _assimobj_toString(gpointer self);
 
 FSTATIC void
@@ -43,7 +43,7 @@ _assimobj_unref(gpointer vself)
 	}
 }
 
-FSTATIC void
+void
 _assimobj_finalize(AssimObj* self)
 {
 	FREECLASSOBJ(self);

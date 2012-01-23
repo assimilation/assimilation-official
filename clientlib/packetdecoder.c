@@ -176,12 +176,12 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			Frame* newframe;
 			newframe = _decode_packet_framedata_to_frameobject(self, curframe, nextframeset, &nextframe);
 			if (nextframe > nextframeset) {
-				newframe->unref(newframe); newframe=NULL;
+				newframe->baseclass.unref(newframe); newframe=NULL;
 				fs->unref(fs);
 				return ret;
 			}
 			frameset_append_frame(fs, newframe);
-                        newframe->unref(newframe); newframe = NULL;
+                        newframe->baseclass.unref(newframe); newframe = NULL;
 			curframe = nextframe;
 		}
 		ret = g_slist_append(ret, fs); fs = NULL;

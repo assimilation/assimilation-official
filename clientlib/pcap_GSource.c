@@ -253,11 +253,11 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create Framese
 	pktframe->setvalue(pktframe, cppkt, pktlen, g_free);
 	intfname->baseclass.setvalue(CASTTOCLASS(Frame, intfname), g_strdup(interfacep), strlen(interfacep)+1, g_free);
 	frameset_append_frame(fs, CASTTOCLASS(Frame, timeframe));
-        timeframe->baseclass.unref(CASTTOCLASS(Frame, timeframe));
+        timeframe->baseclass.baseclass.unref(timeframe);
 	frameset_append_frame(fs, CASTTOCLASS(Frame, intfname));
-        intfname->baseclass.unref(CASTTOCLASS(Frame, intfname));
+        intfname->baseclass.baseclass.unref(intfname);
 	frameset_append_frame(fs, pktframe);
-        pktframe->unref(pktframe);
+        pktframe->baseclass.unref(pktframe);
 
 	return fs;
 }

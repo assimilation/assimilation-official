@@ -91,15 +91,15 @@ _netio_finalize(NetIO* self)	///<[in/out] The object being freed
 		self->giosock = NULL;
 	}
 	if (self->_signframe) {
-		self->_signframe->baseclass.unref(CASTTOCLASS(Frame, self->_signframe));
+		self->_signframe->baseclass.baseclass.unref(self->_signframe);
 		self->_signframe = NULL;
 	}
 	if (self->_cryptframe) {
-		self->_cryptframe->unref(self->_cryptframe);
+		self->_cryptframe->baseclass.unref(self->_cryptframe);
 		self->_cryptframe = NULL;
 	}
 	if (self->_compressframe) {
-		self->_compressframe->unref(self->_compressframe);
+		self->_compressframe->baseclass.unref(self->_compressframe);
 		self->_compressframe = NULL;
 	}
 	if (self->_decoder) {
@@ -170,15 +170,15 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	decoder->baseclass.ref(decoder);
 	f =  config->getframe(config, CONFIGNAME_OUTSIG);
 	g_return_val_if_fail(f != NULL, NULL);
-	f->ref(f);
+	f->baseclass.ref(f);
 	ret->_signframe = CASTTOCLASS(SignFrame, f);
 	ret->_cryptframe = config->getframe(config, CONFIGNAME_CRYPT);
 	if (ret->_cryptframe) {
-		ret->_cryptframe->ref(ret->_cryptframe);
+		ret->_cryptframe->baseclass.ref(ret->_cryptframe);
 	}
 	ret->_compressframe = config->getframe(config, CONFIGNAME_COMPRESS);
 	if (ret->_compressframe) {
-		ret->_compressframe->ref(ret->_compressframe);
+		ret->_compressframe->baseclass.ref(ret->_compressframe);
 	}
 	return ret;
 }
@@ -224,10 +224,10 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		Frame*	cryptframe	= self->cryptframe(self);
 		Frame*	compressframe	= self->compressframe(self);
 		if (cryptframe) {
-			cryptframe->ref(cryptframe);
+			cryptframe->baseclass.ref(cryptframe);
 		}
 		if (compressframe) {
-			compressframe->ref(compressframe);
+			compressframe->baseclass.ref(compressframe);
 		}
 		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
@@ -248,10 +248,10 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 	g_return_if_fail(destaddr != NULL);
 
 	if (cryptframe) {
-		cryptframe->ref(cryptframe);
+		cryptframe->baseclass.ref(cryptframe);
 	}
 	if (compressframe) {
-		compressframe->ref(compressframe);
+		compressframe->baseclass.ref(compressframe);
 	}
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);

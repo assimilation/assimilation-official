@@ -178,7 +178,7 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 	char *	cpname;
 	g_return_if_fail(frame != NULL);
 	cpname = g_strdup(name);
-	frame->ref(frame);
+	frame->baseclass.ref(frame);
 	if (NULL == self->_addrvalues) {
 		self->_framevalues = g_hash_table_new_full(g_str_hash, g_str_equal
 		,	_configcontext_free, _configcontext_freeFrame);
@@ -198,7 +198,7 @@ FSTATIC void
 _configcontext_freeFrame(gpointer thing) ///<[in/out] @ref Frame being freed
 {
 	Frame*	f = CASTTOCLASS(Frame, thing);
-	f->unref(f);
+	f->baseclass.unref(f);
 }
 
 /// Free a NetAddr object

@@ -551,7 +551,7 @@ class pyFrameSet:
             Cclassname = proj_class_classname(frameptr)
             pyclassname = "py" + Cclassname
             # I suspect (but don't know) that the 'ref' call below is always necessary
-            frameptr[0].ref(frameptr)
+            frameptr[0].baseclass.ref(frameptr)
             if Cclassname == "NetAddr":
                 statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
             else:

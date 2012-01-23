@@ -14,14 +14,13 @@
 /**
  *
  */
-FSTATIC void _frame_default_finalize(Frame * self);
+FSTATIC void _frame_default_finalize(AssimObj * self);
 FSTATIC gsize _frame_total_size(Frame* f);
 FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpointer);
 FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC void _frame_dump(const Frame *, const char * prefix);
-FSTATIC void _frame_ref(Frame *);
-FSTATIC void _frame_unref(Frame *);
+FSTATIC void _frame_default_valuefinalize(gpointer value);
 
 ///@defgroup Frame Frame class
 /// Class for holding/storing binary blobs -  Base class for all the other Frame types.
@@ -30,13 +29,14 @@ FSTATIC void _frame_unref(Frame *);
 
 /// Finalize a Frame
 FSTATIC void
-_frame_default_finalize(Frame * self) ///< Frame to finalize
+_frame_default_finalize(AssimObj * obj) ///< Frame to finalize
 {
+	Frame*	self = CASTTOCLASS(Frame, obj);
 	if (self->value && self->valuefinalize) {
 		self->valuefinalize(self->value);
 	}
 	memset(self, 0x00, sizeof(Frame));
-	FREECLASSOBJ(self);
+	_assimobj_finalize(obj);
 }
 /// Finalize a Frame
 FSTATIC void
@@ -93,20 +93,6 @@ _frame_updatedata(Frame * self,			///< Frame object ('this')
 	// set_generic_tlv_value does pretty exhaustive error checking.
 	set_generic_tlv_value(tlvptr, self->value, self->length, pktend);
 }
-FSTATIC void
-_frame_ref(Frame * self)
-{
-	self->refcount += 1;
-}
-FSTATIC void
-_frame_unref(Frame * self)
-{
-	g_return_if_fail(self->refcount >= 1);
-	self->refcount -= 1;
-	if (self->refcount == 0) {
-		self->_finalize(self);
-	}
-}
 
 /// Construct a new frame - allowing for "derived" frame types...
 /// This can be used directly for creating basic binary frames, or by derived classes.
@@ -114,25 +100,25 @@ Frame*
 frame_new(guint16 frame_type,	///< TLV type of Frame
 	  gsize framesize)	///< size of frame structure (or zero for sizeof(Frame))
 {
-	Frame * newframe;
+	AssimObj * newobj;
+	Frame * newframe = NULL;
 	if (framesize < sizeof(Frame)) {
 		framesize = sizeof(Frame);
 	}
-	newframe = MALLOCCLASS(Frame, framesize);
-	if (newframe != NULL) {
-		newframe->type = frame_type;
-		newframe->length = 0;
-		newframe->value = NULL;
+	newobj   = assimobj_new(framesize);
+	if (newobj != NULL) {
+		proj_class_register_subclassed(newobj, "Frame");
+		newframe = CASTTOCLASS(Frame, newobj);
+		newobj->_finalize	= _frame_default_finalize;
+		newframe->type		= frame_type;
+		newframe->length	= 0;
+		newframe->value		= NULL;
 		newframe->dataspace	= _frame_total_size;
-		newframe->_finalize	= _frame_default_finalize;
 		newframe->isvalid	= _frame_default_isvalid;
 		newframe->setvalue	= _frame_setvalue;
 		newframe->updatedata	= _frame_updatedata;
 		newframe->dump		= _frame_dump;
 		newframe->valuefinalize	= NULL;
-		newframe->refcount	= 1;
-		newframe->ref		= _frame_ref;
-		newframe->unref		= _frame_unref;
 	}
 	return newframe;
 }

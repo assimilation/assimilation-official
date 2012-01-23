@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/decode_packet.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1194,62 +1194,95 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count.argtypes = []
     proj_class_live_object_count.restype = guint32
 
+# ../include/proj_classes.h: 28
+if hasattr(_libs['libclientlib.so'], 'proj_class_finalize_sys'):
+    proj_class_finalize_sys = _libs['libclientlib.so'].proj_class_finalize_sys
+    proj_class_finalize_sys.argtypes = []
+    proj_class_finalize_sys.restype = None
+
+# ../include/assimobj.h: 20
+class struct__AssimObj(Structure):
+    pass
+
+AssimObj = struct__AssimObj # ../include/assimobj.h: 18
+
+struct__AssimObj.__slots__ = [
+    '_refcount',
+    '_finalize',
+    'ref',
+    'unref',
+    'toString',
+]
+struct__AssimObj._fields_ = [
+    ('_refcount', c_int),
+    ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
+    ('ref', CFUNCTYPE(UNCHECKED(None), gpointer)),
+    ('unref', CFUNCTYPE(UNCHECKED(None), gpointer)),
+    ('toString', CFUNCTYPE(UNCHECKED(String), gpointer)),
+]
+
+# ../include/assimobj.h: 27
+if hasattr(_libs['libclientlib.so'], 'assimobj_new'):
+    assimobj_new = _libs['libclientlib.so'].assimobj_new
+    assimobj_new.argtypes = [guint]
+    assimobj_new.restype = POINTER(AssimObj)
+
+# ../include/assimobj.h: 28
+if hasattr(_libs['libclientlib.so'], '_assimobj_finalize'):
+    _assimobj_finalize = _libs['libclientlib.so']._assimobj_finalize
+    _assimobj_finalize.argtypes = [POINTER(AssimObj)]
+    _assimobj_finalize.restype = None
+
 # /home/alanr/monitor/src/include/frameset.h: 29
 class struct__FrameSet(Structure):
     pass
 
-FrameSet = struct__FrameSet # ../include/frame.h: 18
+FrameSet = struct__FrameSet # ../include/frame.h: 19
 
-# ../include/frame.h: 29
+# ../include/frame.h: 30
 class struct__Frame(Structure):
     pass
 
-Frame = struct__Frame # ../include/frame.h: 19
+Frame = struct__Frame # ../include/frame.h: 20
 
 struct__Frame.__slots__ = [
+    'baseclass',
     'type',
     'length',
     'value',
-    'refcount',
     'dataspace',
     'updatedata',
     'isvalid',
     'setvalue',
     'dump',
     'valuefinalize',
-    'ref',
-    'unref',
-    '_finalize',
 ]
 struct__Frame._fields_ = [
+    ('baseclass', AssimObj),
     ('type', guint16),
     ('length', guint16),
     ('value', gpointer),
-    ('refcount', gint),
     ('dataspace', CFUNCTYPE(UNCHECKED(gsize), POINTER(Frame))),
     ('updatedata', CFUNCTYPE(UNCHECKED(None), POINTER(Frame), gpointer, gconstpointer, POINTER(FrameSet))),
     ('isvalid', CFUNCTYPE(UNCHECKED(gboolean), POINTER(Frame), gconstpointer, gconstpointer)),
     ('setvalue', CFUNCTYPE(UNCHECKED(None), POINTER(Frame), gpointer, guint16, GDestroyNotify)),
     ('dump', CFUNCTYPE(UNCHECKED(None), POINTER(Frame), String)),
     ('valuefinalize', GDestroyNotify),
-    ('ref', CFUNCTYPE(UNCHECKED(None), POINTER(Frame))),
-    ('unref', CFUNCTYPE(UNCHECKED(None), POINTER(Frame))),
-    ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(Frame))),
 ]
 
-# ../include/frame.h: 49
+# ../include/frame.h: 47
 if hasattr(_libs['libclientlib.so'], 'frame_new'):
     frame_new = _libs['libclientlib.so'].frame_new
     frame_new.argtypes = [guint16, gsize]
     frame_new.restype = POINTER(Frame)
 
-# ../include/frame.h: 50
+# ../include/frame.h: 48
 if hasattr(_libs['libclientlib.so'], 'frame_tlvconstructor'):
     frame_tlvconstructor = _libs['libclientlib.so'].frame_tlvconstructor
     frame_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     frame_tlvconstructor.restype = POINTER(Frame)
 
-# ../include/frame.h: 51
+# ../include/frame.h: 49
 if hasattr(_libs['libclientlib.so'], '_frame_default_valuefinalize'):
     _frame_default_valuefinalize = _libs['libclientlib.so']._frame_default_valuefinalize
     _frame_default_valuefinalize.argtypes = [gpointer]
@@ -1682,81 +1715,6 @@ if hasattr(_libs['libclientlib.so'], 'cstringframe_tlvconstructor'):
     cstringframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     cstringframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/decode_packet.h: 21
-class struct__FrameTypeToFrame(Structure):
-    pass
-
-FrameTypeToFrame = struct__FrameTypeToFrame # /home/alanr/monitor/src/include/decode_packet.h: 16
-
-FramePktConstructor = CFUNCTYPE(UNCHECKED(POINTER(Frame)), gconstpointer, gconstpointer) # /home/alanr/monitor/src/include/decode_packet.h: 18
-
-struct__FrameTypeToFrame.__slots__ = [
-    'frametype',
-    'constructor',
-]
-struct__FrameTypeToFrame._fields_ = [
-    ('frametype', c_int),
-    ('constructor', FramePktConstructor),
-]
-
-# /home/alanr/monitor/src/include/decode_packet.h: 31
-class struct__AssimObj(Structure):
-    pass
-
-AssimObj = struct__AssimObj # /home/alanr/monitor/src/include/decode_packet.h: 29
-
-struct__AssimObj.__slots__ = [
-    '_refcount',
-    '_finalize',
-    'ref',
-    'unref',
-    'toString',
-]
-struct__AssimObj._fields_ = [
-    ('_refcount', c_int),
-    ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
-    ('ref', CFUNCTYPE(UNCHECKED(None), gpointer)),
-    ('unref', CFUNCTYPE(UNCHECKED(None), gpointer)),
-    ('toString', CFUNCTYPE(UNCHECKED(String), gpointer)),
-]
-
-# /home/alanr/monitor/src/include/decode_packet.h: 38
-if hasattr(_libs['libclientlib.so'], 'assimobject_new'):
-    assimobject_new = _libs['libclientlib.so'].assimobject_new
-    assimobject_new.argtypes = [guint]
-    assimobject_new.restype = POINTER(AssimObj)
-
-# /home/alanr/monitor/src/include/decode_packet.h: 45
-class struct__PacketDecoder(Structure):
-    pass
-
-PacketDecoder = struct__PacketDecoder # /home/alanr/monitor/src/include/decode_packet.h: 44
-
-struct__PacketDecoder.__slots__ = [
-    'baseclass',
-    '_pfinalize',
-    '_framemaplen',
-    '_framemap',
-    '_maxframetype',
-    '_frametypemap',
-    'pktdata_to_framesetlist',
-]
-struct__PacketDecoder._fields_ = [
-    ('baseclass', AssimObj),
-    ('_pfinalize', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
-    ('_framemaplen', c_int),
-    ('_framemap', POINTER(FrameTypeToFrame)),
-    ('_maxframetype', c_int),
-    ('_frametypemap', POINTER(FramePktConstructor)),
-    ('pktdata_to_framesetlist', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(PacketDecoder), gconstpointer, gconstpointer)),
-]
-
-# /home/alanr/monitor/src/include/decode_packet.h: 55
-if hasattr(_libs['libclientlib.so'], 'packetdecoder_new'):
-    packetdecoder_new = _libs['libclientlib.so'].packetdecoder_new
-    packetdecoder_new.argtypes = [guint, POINTER(FrameTypeToFrame), gint]
-    packetdecoder_new.restype = POINTER(PacketDecoder)
-
 # /home/alanr/monitor/src/include/discovery.h: 32
 class struct__Discovery(Structure):
     pass
@@ -1947,6 +1905,54 @@ if hasattr(_libs['libclientlib.so'], 'set_generic_tlv_value'):
     set_generic_tlv_value = _libs['libclientlib.so'].set_generic_tlv_value
     set_generic_tlv_value.argtypes = [gpointer, POINTER(None), guint16, gconstpointer]
     set_generic_tlv_value.restype = None
+
+# ../include/packetdecoder.h: 25
+class struct__FrameTypeToFrame(Structure):
+    pass
+
+FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 20
+
+FramePktConstructor = CFUNCTYPE(UNCHECKED(POINTER(Frame)), gconstpointer, gconstpointer) # ../include/packetdecoder.h: 22
+
+struct__FrameTypeToFrame.__slots__ = [
+    'frametype',
+    'constructor',
+]
+struct__FrameTypeToFrame._fields_ = [
+    ('frametype', c_int),
+    ('constructor', FramePktConstructor),
+]
+
+# ../include/packetdecoder.h: 32
+class struct__PacketDecoder(Structure):
+    pass
+
+PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 31
+
+struct__PacketDecoder.__slots__ = [
+    'baseclass',
+    '_pfinalize',
+    '_framemaplen',
+    '_framemap',
+    '_maxframetype',
+    '_frametypemap',
+    'pktdata_to_framesetlist',
+]
+struct__PacketDecoder._fields_ = [
+    ('baseclass', AssimObj),
+    ('_pfinalize', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
+    ('_framemaplen', c_int),
+    ('_framemap', POINTER(FrameTypeToFrame)),
+    ('_maxframetype', c_int),
+    ('_frametypemap', POINTER(FramePktConstructor)),
+    ('pktdata_to_framesetlist', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(PacketDecoder), gconstpointer, gconstpointer)),
+]
+
+# ../include/packetdecoder.h: 42
+if hasattr(_libs['libclientlib.so'], 'packetdecoder_new'):
+    packetdecoder_new = _libs['libclientlib.so'].packetdecoder_new
+    packetdecoder_new.argtypes = [guint, POINTER(FrameTypeToFrame), gint]
+    packetdecoder_new.restype = POINTER(PacketDecoder)
 
 # ../include/netio.h: 31
 class struct__NetIO(Structure):
@@ -2520,6 +2526,12 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count.argtypes = []
     proj_class_live_object_count.restype = guint32
 
+# /home/alanr/monitor/src/include/proj_classes.h: 28
+if hasattr(_libs['libclientlib.so'], 'proj_class_finalize_sys'):
+    proj_class_finalize_sys = _libs['libclientlib.so'].proj_class_finalize_sys
+    proj_class_finalize_sys.argtypes = []
+    proj_class_finalize_sys.restype = None
+
 # /home/alanr/monitor/src/include/seqnoframe.h: 25
 class struct__SeqnoFrame(Structure):
     pass
@@ -2869,7 +2881,7 @@ except:
 def g_slist_next(slist):
     return slist and (slist.contents.next) or NULL
 
-# ../include/frame.h: 48
+# ../include/frame.h: 46
 try:
     FRAME_INITSIZE = 4
 except:
@@ -3741,9 +3753,11 @@ except:
 
 _GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 40
 
+_AssimObj = struct__AssimObj # ../include/assimobj.h: 20
+
 _FrameSet = struct__FrameSet # /home/alanr/monitor/src/include/frameset.h: 29
 
-_Frame = struct__Frame # ../include/frame.h: 29
+_Frame = struct__Frame # ../include/frame.h: 30
 
 _NetAddr = struct__NetAddr # ../include/netaddr.h: 30
 
@@ -3759,13 +3773,11 @@ _CryptFrame = struct__CryptFrame # /home/alanr/monitor/src/include/cryptframe.h:
 
 _CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringframe.h: 23
 
-_FrameTypeToFrame = struct__FrameTypeToFrame # /home/alanr/monitor/src/include/decode_packet.h: 21
-
-_AssimObj = struct__AssimObj # /home/alanr/monitor/src/include/decode_packet.h: 31
-
-_PacketDecoder = struct__PacketDecoder # /home/alanr/monitor/src/include/decode_packet.h: 45
-
 _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 32
+
+_FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 25
+
+_PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 32
 
 _NetIO = struct__NetIO # ../include/netio.h: 31
 
