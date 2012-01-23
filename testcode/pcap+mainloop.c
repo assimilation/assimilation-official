@@ -32,7 +32,7 @@
 #include <lldp.h>
 #include <server_dump.h>
 #include <pcap_GSource.h>
-#include <decode_packet.h>
+#include <packetdecoder.h>
 #include <netgsource.h>
 #include <netioudp.h>
 #include <netaddr.h>

@@ -31,8 +31,8 @@
 #include <unknownframe.h>
 #include <frametypes.h>
 /// @defgroup PacketDecoder PacketDecoder class
-/// A base class for transforming an incoming packet into a GSList of @ref Frameset objects.
-/// Each @ref Frameset is composed of a series of @ref Frame "Frames".
+/// A base class for transforming an incoming packet into a GSList of @ref FrameSet objects.
+/// Each @ref FrameSet is composed of a series of @ref Frame "Frames".
 ///@{
 ///@ingroup C_Classes
 

@@ -24,7 +24,7 @@
 #	include <netinet/in.h>
 #endif
 #include <glib.h>
-#include <decode_packet.h>
+#include <packetdecoder.h>
 #include <address_family_numbers.h>
 #include <proj_classes.h>
 #include <netio.h>

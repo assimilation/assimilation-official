@@ -19,7 +19,7 @@
 #include <frame.h>
 #include <signframe.h>
 #include <configcontext.h>
-#include <decode_packet.h>
+#include <packetdecoder.h>
 
 ///@{
 /// @ingroup NetIO
