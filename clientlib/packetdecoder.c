@@ -6,13 +6,14 @@
  * the @ref FrameSet "FrameSet"s that the originator created.
  * In a lot of ways, this is all auxilliary functions for the @ref FrameSet objects.
  *
- * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
+ * @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
  * @n
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 #include <memory.h>
 #include <projectcommon.h>
+#include <assimobj.h>
 #include <generic_tlv_min.h>
 #include <frameset.h>
 #include <frametypes.h>
@@ -20,7 +21,7 @@
 #include <cryptframe.h>
 #include <compressframe.h>
 #include <tlvhelper.h>
-#include <decode_packet.h>
+#include <packetdecoder.h>
 #include <intframe.h>
 #include <addrframe.h>
 #include <signframe.h>
@@ -29,8 +30,11 @@
 #include <nvpairframe.h>
 #include <unknownframe.h>
 #include <frametypes.h>
-
-/// @{
+/// @defgroup PacketDecoder PacketDecoder class
+/// A base class for transforming an incoming packet into a GSList of @ref Frameset objects.
+/// Each @ref Frameset is composed of a series of @ref Frame "Frames".
+///@{
+///@ingroup C_Classes
 
 #define	FRAMESET_HDR_SIZE	(3*sizeof(guint16))
 
@@ -42,6 +46,7 @@ FSTATIC GSList* _pktdata_to_framesetlist(PacketDecoder*, gconstpointer, gconstpo
 
 FSTATIC void _packetdecoder_finalize(AssimObj*);
 
+/// Function for finalizing
 FSTATIC void
 _packetdecoder_finalize(AssimObj* selfobj)
 {
@@ -70,7 +75,7 @@ packetdecoder_new(guint objsize, const FrameTypeToFrame* framemap, gint mapsize)
 		mapsize = DIMOF(_defaultmap);
 	}
 
-	baseobj = assimobject_new(objsize);
+	baseobj = assimobj_new(objsize);
 	proj_class_register_subclassed(baseobj, "PacketDecoder");
 	self = CASTTOCLASS(PacketDecoder, baseobj);
 	
@@ -185,55 +190,3 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 	return ret;
 }
 ///@}
-
-FSTATIC void _assimobj_ref(gpointer self);
-FSTATIC void _assimobj_unref(gpointer self);
-FSTATIC void _assimobj_finalize(AssimObj* self);
-FSTATIC char * _assimobj_toString(gpointer self);
-
-FSTATIC void
-_assimobj_ref(gpointer vself)
-{
-	AssimObj* self = CASTTOCLASS(AssimObj, vself);
-	g_return_if_fail(self->_refcount > 0);
-	self->_refcount += 1;
-}
-FSTATIC void
-_assimobj_unref(gpointer vself)
-{
-	AssimObj* self = CASTTOCLASS(AssimObj, vself);
-	g_return_if_fail(self->_refcount > 0);
-	self->_refcount -= 1;
-	if (self->_refcount == 0) {
-		self->_finalize(self); self=NULL;
-	}
-}
-
-FSTATIC void
-_assimobj_finalize(AssimObj* self)
-{
-	FREECLASSOBJ(self);
-}
-
-FSTATIC char *
-_assimobj_toString(gpointer vself)
-{
-	AssimObj* self = CASTTOCLASS(AssimObj,vself);
-	return g_strdup_printf("{%s object at 0x%p}", proj_class_classname(self), self);
-}
-
-AssimObj*
-assimobject_new(guint objsize)
-{
-	AssimObj* self;
-	if (objsize < sizeof(AssimObj)) {
-		objsize = sizeof(AssimObj);
-	}
-	self = MALLOCCLASS(AssimObj, objsize);
-	self->_refcount = 1;
-	self->ref = _assimobj_ref;
-	self->unref = _assimobj_unref;
-	self->_finalize = _assimobj_finalize;
-	self->toString = _assimobj_toString;
-	return self;
-}

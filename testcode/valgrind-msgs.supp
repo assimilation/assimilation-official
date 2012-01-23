@@ -40,3 +40,25 @@
    fun:frameset_construct_packet
    ...
 }
+
+{
+   g_log_set_fatal_mask
+   Memcheck:Leak
+   ...
+   fun:g_log_set_fatal_mask
+   ...
+}
+{
+   g_get_charset
+   Memcheck:Leak
+   ...
+   fun:g_get_charset
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   ...
+   fun:g_quark_from_static_string
+   ...
+}

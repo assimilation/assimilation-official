@@ -330,5 +330,6 @@ main(int argc, char **argv)
 	g_message("Count of pkts received over wire:\t%d", wirepktcount);
 	g_message("Count of heartbeats received:\t%d", heartbeatcount);
 	g_message("Count of errors:\t\t\t%d", errcount);
+        proj_class_finalize_sys(); /// Shut down object system to make valgrind happy :-D
 	return(errcount <= 127 ? errcount : 127);
 }

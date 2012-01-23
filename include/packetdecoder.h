@@ -2,16 +2,20 @@
  * @file
  * @brief  This file defines a few functions and interfaces for unmarshalling packet data into FrameSets.
  *
- * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
+ * @author &copy; 2011-2012 - Alan Robertson <alanr@unix.sh>
  * @n
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 
-#ifndef _DECODE_PACKET_H
-#define _DECODE_PACKET_H
+#ifndef _PACKETDECODER_H
+#define _PACKETDECODER_H
 #include <projectcommon.h>
+#include <assimobj.h>
 #include <frame.h>
+
+///@{
+/// @ingroup PacketDecoder
 
 typedef struct _FrameTypeToFrame FrameTypeToFrame;
 
@@ -24,23 +28,6 @@ struct _FrameTypeToFrame {
 	FramePktConstructor	constructor;
 };
 
-///@{
-/// @ingroup AssimObj
-typedef struct _AssimObj	AssimObj;
-
-struct _AssimObj {
-	int		_refcount;			///< Reference count (private)
-	void		(*_finalize)(AssimObj*);	///< Free object (private)
-	void		(*ref)(gpointer);		///< Increment reference count
-	void		(*unref)(gpointer);		///< Decrement reference count
-	char*		(*toString)(gpointer);		///< Produce malloc-ed string representation
-};
-WINEXPORT AssimObj*		assimobject_new(guint objsize);
-///@}
-
-
-///@{
-/// @ingroup PacketDecoder
 typedef struct _PacketDecoder	PacketDecoder;
 struct _PacketDecoder {
 	AssimObj		baseclass;
@@ -55,4 +42,4 @@ struct _PacketDecoder {
 WINEXPORT PacketDecoder*	packetdecoder_new(guint objsize, const FrameTypeToFrame* framemap, gint mapsize);
 
 ///@}
-#endif /* DECODE_PACKET_H */
+#endif /* PACKETDECODER_H */

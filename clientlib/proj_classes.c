@@ -54,6 +54,13 @@ _init_proj_class_module(void)
 	ObjectClassAssociation  = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 	SuperClassAssociation   = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 }
+/// Shut down (finalize) our object class system.  Only do on shutdown to make valgrind happy :-D
+void
+proj_class_finalize_sys(void)
+{
+	g_hash_table_destroy(ObjectClassAssociation); ObjectClassAssociation = NULL;
+	g_hash_table_destroy(SuperClassAssociation); SuperClassAssociation = NULL;
+}
 
 /// Log the creation of a new object, and its association with a given type.
 /// This involves locating (or registering) the class, and creating an
