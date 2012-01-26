@@ -13,6 +13,7 @@
  */
 
 #include <memory.h>
+#include <projectcommon.h>
 #include <netaddr.h>
 #include <address_family_numbers.h>
 #ifdef _MSC_VER
@@ -20,14 +21,12 @@
 #endif
 
 FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
-FSTATIC void _netaddr_ref(NetAddr* self);
-FSTATIC void _netaddr_unref(NetAddr* self);
-FSTATIC void _netaddr_finalize(NetAddr* self);
+FSTATIC void _netaddr_finalize(AssimObj* self);
 FSTATIC guint16 _netaddr_port(const NetAddr* self);
 FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
-FSTATIC gchar * _netaddr_toString(const NetAddr* self);
+FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self);
 /// @defgroup NetAddr NetAddr class
 ///@{
@@ -50,11 +49,12 @@ _netaddr_toString_ipv6_ipv4(const NetAddr* self)
 			      ((const gchar*)self->_addrbody)[15]);
 }
 FSTATIC gchar *
-_netaddr_toString(const NetAddr* self)
+_netaddr_toString(gconstpointer baseobj)
 {
 	gchar *		ret = NULL;
 	GString*	gsret = NULL;
 	int		nbyte;
+	const NetAddr*	self = CASTTOCONSTCLASS(NetAddr, baseobj);
 	if (self->_addrtype == ADDR_FAMILY_IPV4) {
 		return g_strdup_printf("%d.%d.%d.%d",
 				      ((const gchar*)self->_addrbody)[0],
@@ -128,27 +128,12 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 	return (memcmp(self->_addrbody, other->_addrbody, self->_addrlen) == 0);
 }
 
-FSTATIC void
-_netaddr_ref(NetAddr* self)
-{
-	self->_refcount += 1;
-}
-
-FSTATIC void
-_netaddr_unref(NetAddr* self)
-{
-	g_return_if_fail(self->_refcount > 0);
-	self->_refcount -= 1;
-	if (self->_refcount == 0) {
-		self->_finalize(self);
-		self=NULL;
-	}
-}
 
 #include <stdlib.h>
 FSTATIC void
-_netaddr_finalize(NetAddr* self)
+_netaddr_finalize(AssimObj* base)
 {
+	NetAddr*	self = CASTTOCLASS(NetAddr, base);
 	if (self->_addrbody) {
 		FREE(self->_addrbody);
 		self->_addrbody = NULL;
@@ -178,6 +163,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	    gconstpointer addrbody,			///<[in] Pointer to address body
 	    guint16 addrlen)				///<[in] Length of address
 {
+	AssimObj*	baseobj;
 	NetAddr*	self;
 
 	if (objsize < sizeof(NetAddr)) {
@@ -186,9 +172,15 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	g_return_val_if_fail(addrbody != NULL, NULL);
 	g_return_val_if_fail(addrlen >= 4, NULL);
 
-	self = MALLOCCLASS(NetAddr, objsize);
+	
+
+	baseobj = assimobj_new(objsize);
+	proj_class_register_subclassed(baseobj, "NetAddr");
+	self = CASTTOCLASS(NetAddr, baseobj);
 	g_return_val_if_fail(self != NULL, NULL);
 
+	baseobj->_finalize = _netaddr_finalize;
+	baseobj->toString = _netaddr_toString;
 	self->_addrport = port;
 	self->_addrtype = addrtype;
 	self->_addrlen = addrlen;
@@ -196,12 +188,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->_addrbody = g_memdup(addrbody, addrlen);
 	self->port = _netaddr_port;
 	self->addrtype = _netaddr_addrtype;
-	self->_finalize = _netaddr_finalize;
-	self->toString = _netaddr_toString;
-	self->ref = _netaddr_ref;
-	self->unref = _netaddr_unref;
 	self->equal = _netaddr_equal;
-	self->_refcount = 1;
 
 	return self;
 

@@ -147,7 +147,7 @@ _configcontext_setaddr(ConfigContext* self	///<[in/out] ConfigContext object
 	char *	cpname;
 	g_return_if_fail(addr != NULL);
 	cpname = g_strdup(name);
-	addr->ref(addr);
+	addr->baseclass.ref(addr);
 	if (NULL == self->_addrvalues) {
 		self->_addrvalues = g_hash_table_new_full(g_str_hash, g_str_equal
 		,	_configcontext_free, _configcontext_freeNetAddr);
@@ -206,7 +206,7 @@ FSTATIC void
 _configcontext_freeNetAddr(gpointer thing) ///<[in/out] @ref NetAddr being freed
 {
 	NetAddr* a = CASTTOCLASS(NetAddr, thing);
-	a->unref(a);
+	a->baseclass.unref(a);
 }
 
 /// Increment ConfigContext reference count

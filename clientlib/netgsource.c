@@ -162,7 +162,7 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 				g_warning("No dispatcher for FrameSet type %d", fs->fstype);
 			}
 		}
-		srcaddr->unref(srcaddr); srcaddr = NULL;
+		srcaddr->baseclass.unref(srcaddr); srcaddr = NULL;
 	}
 	return TRUE;
 }

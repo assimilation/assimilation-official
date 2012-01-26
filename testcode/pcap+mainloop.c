@@ -310,7 +310,7 @@ main(int argc, char **argv)
 	signature->baseclass.baseclass.unref(signature); signature = NULL;
 
 	// Free destination address
-        destaddr->unref(destaddr);
+        destaddr->baseclass.unref(destaddr);
 
 	// Free packet decoder
 	decoder->baseclass.unref(decoder);

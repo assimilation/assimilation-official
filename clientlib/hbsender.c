@@ -98,7 +98,7 @@ FSTATIC void
 _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 {
 	g_source_remove(self->timeout_source);
-	self->_sendaddr->unref(self->_sendaddr);
+	self->_sendaddr->baseclass.unref(self->_sendaddr);
 	// self->_sendaddr = NULL;
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self);
@@ -122,7 +122,7 @@ hbsender_new(NetAddr* sendaddr,	///<[in] Address to send to
 	if (newsender != NULL) {
 		hbsender_stopsend(sendaddr);
 		newsender->_sendaddr = sendaddr;
-		sendaddr->ref(sendaddr);
+		sendaddr->baseclass.ref(sendaddr);
 		newsender->_refcount = 1;
 		newsender->ref = _hbsender_ref;
 		newsender->_outmethod = outmethod;

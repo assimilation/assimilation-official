@@ -23,7 +23,7 @@
 FSTATIC void _assimobj_ref(gpointer self);
 FSTATIC void _assimobj_unref(gpointer self);
 void _assimobj_finalize(AssimObj* self);
-FSTATIC char * _assimobj_toString(gpointer self);
+FSTATIC char * _assimobj_toString(gconstpointer self);
 
 FSTATIC void
 _assimobj_ref(gpointer vself)
@@ -50,9 +50,9 @@ _assimobj_finalize(AssimObj* self)
 }
 
 FSTATIC char *
-_assimobj_toString(gpointer vself)
+_assimobj_toString(gconstpointer vself)
 {
-	AssimObj* self = CASTTOCLASS(AssimObj,vself);
+	const AssimObj* self = CASTTOCONSTCLASS(AssimObj,vself);
 	return g_strdup_printf("{%s object at 0x%p}", proj_class_classname(self), self);
 }
 

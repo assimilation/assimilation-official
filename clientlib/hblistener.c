@@ -158,7 +158,7 @@ _hblistener_got_frameset(Listener* basethis, FrameSet* fs, NetAddr* srcaddr)
 	if (_hblistener_martiancallback) {
 		_hblistener_martiancallback(srcaddr);
 	}else{ 
-		gchar *	saddr = srcaddr->toString(srcaddr);
+		gchar *	saddr = srcaddr->baseclass.toString(srcaddr);
 		g_warning("Received 'martian' packet from address %s", saddr);
 		g_free(saddr); saddr = NULL;
 	}
@@ -189,7 +189,7 @@ FSTATIC void
 _hblistener_finalize(Listener * self) ///<[in/out] Listener to finalize
 {
 	HbListener *hbself = CASTTOCLASS(HbListener, self);
-	hbself->listenaddr->unref(hbself->listenaddr);
+	hbself->listenaddr->baseclass.unref(hbself->listenaddr);
 	// hbself->listenaddr = NULL;
 	memset(hbself, 0x00, sizeof(*hbself));
 	FREECLASSOBJ(hbself);
@@ -216,7 +216,7 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 		base->_finalize = _hblistener_finalize;
 		base->got_frameset = _hblistener_got_frameset;
 		newlistener->listenaddr = listenaddr;
-		listenaddr->ref(listenaddr);
+		listenaddr->baseclass.ref(listenaddr);
 		newlistener->_refcount = 1;
 		newlistener->get_deadtime = _hblistener_get_deadtime;
 		newlistener->set_deadtime = _hblistener_set_deadtime;

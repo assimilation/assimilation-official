@@ -5,7 +5,7 @@ Welcome to the Assimilation monitoring project.
 
 What we do: monitoring systems with near-zero overhead both on the systems and on their administrators.
 - Monitor systems and services with very low overhead
-- Stealth discovery (system and service)
+- Stealth discovery&tm; (system and service)
 - Easy to configure and manage
 
 This is a new project designed to to monitor systems and services on a network of
@@ -26,6 +26,15 @@ The original scalability idea was outlined in two different articles
 These two main ideas create a system which will have both a great out-of-the-box
 experience for new users and smooth accommodation of growth to virtually
 all environments.
+
+The picture below shows the architecture for discovering system outages.
+@image html MultiRingHeartbeat.png "Multi-Ring Heartbeating Architecture"
+Several things are notable about this kind of heartbeat architecture:
+- Each system talks to no more than 4 systems - no matter how big the collection being monitored
+- Approximately 96% of all monitoring traffic stays within edge switches.
+- This architecture is naturally geographically sensitive.  Very little traffic would need to go between sites to monitor multiple sites from a
+central system.
+
 
 @subsection ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
@@ -59,7 +68,7 @@ when nothing is wrong, nothing will be reported.
 Although the central part of the code will likely be only available on POSIX systems, 
 the nanoprobes will also be available on various flavors of Windows as well.
 
-@subsection Stealth What is Stealth Discovery?
+@subsection Stealth What is Stealth Discovery&tm;?
 Stealth discovery is a process of discovering systems and services without using
 active probes which might trigger security alarms.  Some examples of current
 and anticipated stealth discovery techniques include:
@@ -69,6 +78,7 @@ and anticipated stealth discovery techniques include:
  - Discovery of services using "service" command and related techniques
  - Discovery of systems using arp -n
  - Discovery of systems using netstat -utnp
+ - Discovery of service interdependencies using netstat -utnp
  - Discovery of network filesystem mount dependencies using the mount table
 
 These techniques will not immediately provide a complete list of all systems
@@ -116,7 +126,7 @@ C code under it gets well tested as well.
 @subsection NanobotTesting Testing of the Nanobots
 Not quite sure how to best accomplish this.  Some of it can just
 be my home network, but I suppose I could also spin up some cloud
-VMs too...  Not sure yet...  Automation is a GoodThing(TM).
+VMs too...  Not sure yet...  Automation is a GoodThing.
 
 @subsection CMATesting Testing of the Collective Management Code
 I have been thinking about this quite a bit, and have what I think is a
