@@ -64,6 +64,7 @@ installed and activated.
 
 Furthermore, these nanoprobes use stealth discovery methods to discover systems
 not being monitored and services on the systems being monitored.
+@image html DiscoveryMethods.png "Stealth Discovery Process"
 
 @subsection lightweight Lightweight monitoring agents
 The nanoprobe code is written largely in C and minimizes use of:
