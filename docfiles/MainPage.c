@@ -54,7 +54,7 @@ This concept has two kinds of participating entities:
  - a Centralized Monitoring Authority - monitoring the collective
  - a potentially very large number of lightweight monitoring agents
 
-@subsection Autoconfiguration
+@subsection Autoconfiguration through Stealth Discovery
 One of the key aspects of this system is it be largely auto-configuring,
 and incorporates discovery into its basic philosophy.
 It is expected that a customer will drop the various nanoprobes onto the clients being
@@ -64,6 +64,13 @@ installed and activated.
 
 Furthermore, these nanoprobes use stealth discovery methods to discover systems
 not being monitored and services on the systems being monitored.
+Stealth discovery methods are methods which cannot trip even the most sensitive network
+security alarm - because no probes are sent over the network.
+
+This discovery process is intended to achieve these goals:
+- Simplify initial installation
+- Provide a continuous audit of the monitoring configuration
+- Create a rich collection of information about the data center
 @image html DiscoveryMethods.png "Stealth Discovery Process"
 
 @subsection lightweight Lightweight monitoring agents
@@ -149,7 +156,6 @@ radically faster rate.  This is a big investment, but likely
 worth it.  It helps to have this in mind while designing
 the CMA as well - since there are things that it could do to
 make this job a little easier.
-
 
 @section AutoconfigurationStrategy Autoconfiguration Strategy
 For details on this, see the separate
