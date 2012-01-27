@@ -29,11 +29,20 @@ all environments.
 
 The picture below shows the architecture for discovering system outages.
 @image html MultiRingHeartbeat.png "Multi-Ring Heartbeating Architecture"
+Each of the blue boxes represents a server.  Each of the connecting arcs represent bidirectional heartbeat paths.
+When a failure occurs, the systems which observe it report directly to the central collective management
+authority (not shown on this diagram).
 Several things are notable about this kind of heartbeat architecture:
-- Each system talks to no more than 4 systems - no matter how big the collection being monitored
+- It has no single points of failure.  Each system is monitored by at least two other systems.
+- It is simple to detect the difference between a switch failure and a host failure by which systems
+report the failure, and which ones do not.
+- Each system talks to no more than 4 systems - no matter how big the collection being monitored.
+Since the central system only hears from the monitored systems when a failure occurs, the work to perform
+monitoring of systems does not go up as the number of systems being monitored goes up.
 - Approximately 96% of all monitoring traffic stays within edge switches.
 - This architecture is naturally geographically sensitive.  Very little traffic would need to go between sites to monitor multiple sites from a
 central system.
+- This architecture is simple and easy to understand.
 
 
 @subsection ProgressReports Progress Reports on the project
