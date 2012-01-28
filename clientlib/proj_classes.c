@@ -83,7 +83,7 @@ proj_class_register_object(gpointer object,			///< Object to be registered
 
 /// Log the creation of a subclassed object from a superclassed object.
 /// The subclass name given must be the immediate subclass of the class of the object, not through multiple levels of subclassing.
-void
+gpointer
 proj_class_register_subclassed(gpointer object,				///< Object (currently registered as superclass)
 			       const char * static_subclassname)	///< Subclass to register it as
 {
@@ -96,12 +96,13 @@ proj_class_register_subclassed(gpointer object,				///< Object (currently regist
 	}
 	superclassquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
 	if (0 == superclassquark) {
-		g_error("Attempt to subclass an object that's not superclassed %p", object);
+		g_error("Attempt to subclass an object that's not a class object %p", object);
 	}
 	///todo create a superclass/subclass hierarchy...
 	proj_class_quark_add_superclass_relationship(superclassquark, subclassquark);
 	g_hash_table_remove(ObjectClassAssociation, object);
 	g_hash_table_insert(ObjectClassAssociation, object, GINT_TO_POINTER(subclassquark));
+	return object;
 }
 
 /// Malloc a new object and register it in our class system.

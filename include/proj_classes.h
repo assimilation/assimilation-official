@@ -18,7 +18,7 @@ WINEXPORT void		proj_class_free(gpointer object);
 WINEXPORT void		proj_class_register_object(gpointer object, const char * static_classname);
 WINEXPORT gpointer	proj_class_castas(gpointer object, const char * castclass);
 WINEXPORT gconstpointer	proj_class_castasconst(gconstpointer object, const char * castclass);
-WINEXPORT void		proj_class_register_subclassed(gpointer object, const char * static_subclassname);
+WINEXPORT gpointer	proj_class_register_subclassed(gpointer object, const char * static_subclassname);
 WINEXPORT void		proj_class_quark_add_superclass_relationship(GQuark superclass, GQuark subclass);
 WINEXPORT gboolean	proj_class_quark_is_a(GQuark objectclass, GQuark testclass);
 WINEXPORT const char *	proj_class_classname(gconstpointer object);
@@ -45,7 +45,8 @@ WINEXPORT void proj_class_finalize_sys(void);
 /// @param Cclass class to cast <i>obj</i> (the object) to.
 /// @param obj the object to be cast to type <i>class</i>
 #define CASTTOCLASS(Cclass, obj)		((Cclass *) proj_class_castas(obj, #Cclass))
-/// Safely cast 'obj' to const C-class 'class' - verifying that it was registerd as being of type <i>class</i>
+#define NEWSUBCLASS(Cclass, obj)		((Cclass *) proj_class_register_subclassed(obj, #Cclass))
+/// Safely cast 'obj' to const C-class 'class' - verifying that it was registered as being of type <i>class</i>
 /// @param Cclass class to cast <i>obj</i> (the object) to.
 /// @param obj the object to be cast to type <i>class</i>
 #define CASTTOCONSTCLASS(Cclass, obj)		((const Cclass *) proj_class_castasconst(obj, #Cclass))

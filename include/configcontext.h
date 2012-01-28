@@ -14,6 +14,7 @@
 #ifndef _CONFIGCONTEXT_H
 #define _CONFIGCONTEXT_H
 #include <projectcommon.h>
+#include <assimobj.h>
 #include <netaddr.h>
 #include <signframe.h>
 #include <address_family_numbers.h>
@@ -26,10 +27,7 @@ typedef struct _ConfigContext ConfigContext;
 /// and is managed by our @ref ProjectClass system.
 /// It provides the analog of global variables for remembering configuration defaults, etc.
 struct _ConfigContext {
-	int		_refcount;			///< Reference count (private)
-	void		(*ref)(ConfigContext*);		///< Increment reference count
-	void		(*unref)(ConfigContext*);	///< Decrement reference count
-	void		(*_finalize)(ConfigContext*);	///< Free object (private)
+	AssimObj	baseclass;
 	GHashTable*	_intvalues;			///< Integer value table
 	GHashTable*	_strvalues;			///< String value table
 	GHashTable*	_framevalues;			///< Frame value table

@@ -15,7 +15,7 @@ FSTATIC void	_configcontext_setmgmtaddr(ConfigContext*, NetAddr*);
 FSTATIC void	_configcontext_setsignframe(ConfigContext* self, SignFrame* signframe);
 FSTATIC void	_configcontext_ref(ConfigContext* self);
 FSTATIC void	_configcontext_unref(ConfigContext* self);
-FSTATIC void	_configcontext_finalize(ConfigContext* self);
+FSTATIC void	_configcontext_finalize(AssimObj* self);
 FSTATIC void	_configcontext_free(void* thing);
 FSTATIC void	_configcontext_freeNetAddr(void* thing);
 FSTATIC void	_configcontext_freeFrame(void* thing);
@@ -36,12 +36,17 @@ FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
 ConfigContext*
 configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero for min size)
 {
+	AssimObj * baseobj = NULL;
 	ConfigContext * newcontext = NULL;
 
 	if (objsize < sizeof(ConfigContext)) {
 		objsize = sizeof(ConfigContext);
 	}
-	newcontext = MALLOCCLASS(ConfigContext, objsize);
+	baseobj = assimobj_new(objsize);
+	if (NULL == baseobj) {
+		goto errout;
+	}
+	newcontext = NEWSUBCLASS(ConfigContext, baseobj);
 	memset(newcontext, 0x00, objsize);
 	newcontext->setint	=	_configcontext_setint;
 	newcontext->getint	=	_configcontext_getint;
@@ -51,18 +56,13 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->setframe=		_configcontext_setframe;
 	newcontext->getaddr=		_configcontext_getaddr;
 	newcontext->setaddr=		_configcontext_setaddr;
-	newcontext->_finalize	=	_configcontext_finalize;
-	newcontext->ref =		_configcontext_ref;
-	newcontext->unref =		_configcontext_unref;
-	newcontext->_refcount	=	1;
-	if (NULL == newcontext) {
-		goto errout;
-	}
+	baseobj->_finalize	=	_configcontext_finalize;
 	return newcontext;
 errout:
-	if (newcontext) {
-		newcontext->_finalize(newcontext);
+	if (baseobj) {
+		baseobj->_finalize(CASTTOCLASS(AssimObj,newcontext));
 		newcontext = NULL;
+		baseobj = NULL;
 	}
 	g_return_val_if_reached(NULL);
 }
@@ -209,28 +209,11 @@ _configcontext_freeNetAddr(gpointer thing) ///<[in/out] @ref NetAddr being freed
 	a->baseclass.unref(a);
 }
 
-/// Increment ConfigContext reference count
-FSTATIC void
-_configcontext_ref(ConfigContext* self)		///<[in/out] ConfigContext object
-{
-	self->_refcount += 1;
-}
-
-/// Decrement ConfigContext reference count - possibly freeing it
-FSTATIC void
-_configcontext_unref(ConfigContext* self)	///<[in/out] ConfigContext object being unrefed
-{
-	g_return_if_fail(self != NULL && self->_refcount > 0);
-	self->_refcount -= 1;
-	if (self->_refcount == 0) {
-		self->_finalize(self); self = NULL;
-	}
-}
-
 /// Finalize (free) ConfigContext object
 FSTATIC void
-_configcontext_finalize(ConfigContext* self)	///<[in/out] ConfigContext object being freed
+_configcontext_finalize(AssimObj* oself)	///<[in/out] ConfigContext object being freed
 {
+	ConfigContext * self = CASTTOCLASS(ConfigContext, oself);
 	if (self->_intvalues) {
 		g_hash_table_destroy(self->_intvalues); self->_intvalues = NULL;
 	}

@@ -316,8 +316,7 @@ main(int argc, char **argv)
 	decoder->baseclass.unref(decoder);
 
 	// Free config object
-	config->unref(config);
-
+	config->baseclass.unref(config);
 
 	// At this point - nothing should show up - we should have freed everything
 	proj_class_dump_live_objects();
