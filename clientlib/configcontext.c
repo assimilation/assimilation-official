@@ -47,7 +47,6 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 		goto errout;
 	}
 	newcontext = NEWSUBCLASS(ConfigContext, baseobj);
-	memset(newcontext, 0x00, objsize);
 	newcontext->setint	=	_configcontext_setint;
 	newcontext->getint	=	_configcontext_getint;
 	newcontext->setstring=		_configcontext_setstring;
