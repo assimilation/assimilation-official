@@ -1,3 +1,12 @@
+This code builds with cmake, not the autofoo tools...
+There are currently two test modules that you can run after building it.  They are:
+	python tests/alltests.py
+	cd testcode; sh ./grind.sh	# Assumes you have valgrind installed.
+
+If you want to build the documentation, you can just say "make doc".  If you just want
+to view the latest version online, go to http://assimmon.org/
+
+--------------------------------------------------------------------------------
 For reasons unclear to me, Cmake likes to put lots of full pathnames into its files.
 I would hope it would be sufficient to say cmake before making things and it should go from there.
 
@@ -9,7 +18,3 @@ However, failing that, try removing files named like these:
 	CMakeOutput.log
 	Makefile2
 	TargetDirectories.txt
-
-The only files I created are named *.c *.h, README, CMakeLists.txt, Doxyfile and *oui.txt
-	(the latter of which aren't really used)
-
