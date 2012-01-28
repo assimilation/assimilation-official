@@ -12,14 +12,14 @@ The preferred method of discovery is to have the client be discover machines bei
 communicated with via our local agents (probes), then get these agents installed
 on the newly discovered machines.
 
-Once installed, these agents would monitor the server and
+Once installed, these agents monitor the server and
 discover services and so on as described below.
 The admins would in turn be prompted to monitor the discovered services (or at
 least services of types we know about).
 
 Of course, some of the discovered systems will not be able to run our agents
 (network switches, appliances, etc),
-so we will need the ability to do network-discovery of services on these machines
+so we need the ability to do network-discovery of services on these machines
 through port scanning, and similar techniques.
 
 And lastly we will still need the ability to just add a service manually.
@@ -35,5 +35,17 @@ Some like the SwitchDiscovery class tell us when things have changed.
 Others will need to be polled for.
 The @ref DiscoveryClass base class has provisions for both kinds of discovery
 mechanisms.
+
+@subsection DiscoveringServers Discovering Systems
+There are at least two ways in which other systems can be discovered without sending out any packets.
+These are:
+- Examining the ARP cache
+- Examining the output of netstat -ntup
+
+@subsection DiscoveringServices Discovering Services
+For UNIX systems, there is a set of directories and files which describe all the services which
+are installed.  Examining these
+These are:
+@subsection DiscoveringServices Discovering Service Dependencies
 
 */

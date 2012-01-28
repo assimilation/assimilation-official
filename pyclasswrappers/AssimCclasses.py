@@ -115,7 +115,38 @@ class LLDPTLV(TLV):
             value[i] =  chr(valptr[i])
         return Class(tlvtype, value)
 
-class pyNetAddr:
+class pyAssimObj:
+    def __init__(self, Cstruct=None):
+        'Create a base pyAssimObj object'
+        self._Cstruct = None
+        if (Cstruct is not None):
+            assert type(Cstruct) is not int
+            self._Cstruct = Cstruct
+            return
+        self._Cstruct = assimobj_new(0)
+
+    def __str__(self):
+        'Convert this AssimObj into a printable string'
+        base = self._Cstruct[0]
+        while (type(base) is not AssimObj):
+	    base=base.baseclass
+        cstringret = base.toString(self._Cstruct)
+        ret = string_at(cstringret)
+        g_free(cstringret)
+        return ret
+
+    def __del__(self):
+        'Free up the underlying Cstruct for this pyNetAddr object.'
+        if self._Cstruct is None:
+            return
+	base=self._Cstruct[0]
+	# I have no idea why the type(base) is not Frame doesn't work here...
+	# This 'hasattr' construct only works because we are a base C-class
+        while (hasattr(base, 'baseclass')):
+	    base=base.baseclass
+        base.unref(self._Cstruct)
+
+class pyNetAddr(pyAssimObj):
     '''This class represents the Python version of our C-class @ref NetAddr - represented by the struct _NetAddr.
     '''
     def __init__(self, addrstring, port=None, Cstruct=None):
@@ -180,16 +211,6 @@ class pyNetAddr:
 	    base=base.baseclass
         return base._addrlen
 
-    def __str__(self):
-        "Convert this address into a printable string"
-        base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
-	    base=base.baseclass
-        cstringret = base.toString(self._Cstruct)
-        ret = string_at(cstringret)
-        g_free(cstringret)
-        return ret
-
     def __eq__(self, rhs):
         'Compare this pyNetAddr to another pyNetAddr'
         lhsbase = self._Cstruct[0]
@@ -206,19 +227,9 @@ class pyNetAddr:
 	    base=base.baseclass
         return base.equal(self._Cstruct, other._Cstruct)
 
-    def __del__(self):
-        'Free up the underlying Cstruct for this pyNetAddr object.'
-        if self._Cstruct is None:
-            return
-	base=self._Cstruct[0]
-	# I have no idea why the type(base) is not Frame doesn't work here...
-	# This 'hasattr' construct only works because we are a base C-class
-        while (hasattr(base, 'baseclass')):
-	    base=base.baseclass
-        base.unref(self._Cstruct)
 
 
-class pyFrame:
+class pyFrame(pyAssimObj):
     '''This class represents the Python version of our C-class @ref Frame - represented by the struct _Frame.
     This class is a base class for several different pyFrame subclasses.
     Each of these various pyFrame subclasses have a corresponding C-class @ref Frame subclass.
@@ -249,9 +260,6 @@ class pyFrame:
             self._Cstruct = frame_new(frametype, 0)
         else:
             self._Cstruct = Cstruct
-	base=self._Cstruct[0]
-        while (type(base)is not Frame):
-	    base=base.baseclass
 
     def frametype(self):
         "Return the TLV type for the pyFrame object."
@@ -322,17 +330,6 @@ class pyFrame:
         while (type(base) is not Frame):
 	    base=base.baseclass
         base.dump(self._Cstruct, cast(prefix, c_char_p))
-
-    def __del__(self):
-        'Free up the underlying Cstruct for this pyFrame object.'
-        if self._Cstruct is None or self._Cstruct[0] is None:
-            return
-	base=self._Cstruct[0]
-	# I have no idea why the type(base) is not Frame doesn't work here...
-	# This 'hasattr' construct only works because we are a base C-class
-        while (hasattr(base, 'baseclass')):
-	    base=base.baseclass
-        base.unref(self._Cstruct)
 
 class pyAddrFrame(pyFrame):
     '''This class represents the Python version of our C-class AddrFrame - represented by the struct _AddrFrame.
@@ -472,7 +469,28 @@ class pySignFrame(pyFrame):
             raise ValueError, ("Invalid checksum type (%s) for PySignFrame()" % gchecksumtype)
         pyFrame.__init__(self, initval=FRAMETYPE_SIG, Cstruct=Cstruct)
 
-class pyFrameSet:
+class pyNVpairFrame(pyFrame):
+    'Class for a Frame containing a single name/value pair'
+    def __init__(self, frametype, name, value, Cstruct=None):
+        'Initializer for pyNVpairFrame'
+        self._Cstruct = None
+        if Cstruct is None:
+            Cstruct=nvpairframe_new(frametype, name, value, 0)
+        if not Cstruct:
+            raise ValueError, ("Invalid NVpair initializer for pyNVPairFrame()")
+        pyFrame.__init__(self, initval=frametype, Cstruct=Cstruct)
+
+    def name(self):
+        'Return the name portion of a pyNVpairFrame'
+        return string_at(self._Cstruct[0].name)
+
+    def value(self):
+        'Return the name portion of a pyNVpairFrame'
+        return string_at(self._Cstruct[0].value)
+        
+
+
+class pyFrameSet(pyAssimObj):
     'Class for Frame Sets - for collections of Frames making up a logical packet'
     def __init__(self, framesettype, Cstruct=None):
         'Initializer for pyFrameSet'
@@ -523,17 +541,6 @@ class pyFrameSet:
             raise ValueError, "No packet constructed for frameset"
         return (self._Cstruct[0].packet, self._Cstruct[0].pktend)
 
-    def __del__(self):
-        "Free up the underlying Cstruct for this pyFrameSet object"
-        if self._Cstruct is None:
-            return
-	base=self._Cstruct[0]
-	# I have no idea why the type(base) is not NetAddr doesn't work here...
-	# This 'hasattr' construct only works because we are a base C-class
-        while (hasattr(base, 'baseclass')):
-	    base=base.baseclass
-        base.unref(self._Cstruct)
-
     def __len__(self):
         curframe = self._Cstruct[0].framelist;
         count=0
@@ -561,24 +568,13 @@ class pyFrameSet:
             curframe=g_slist_next(curframe)
 
 
-class pyPacketDecoder:
+class pyPacketDecoder(pyAssimObj):
     'Class for Decoding packets - for returning an array of FrameSets from a physical packet.'
     def __init__(self, FrameMap=None, Cstruct=None):
         'Initializer for pyPacketDecoder'
         if Cstruct is None:
             Cstruct=packetdecoder_new(0, None, 0)
         self._Cstruct = Cstruct
-
-    def __del__(self):
-        "Free up the underlying Cstruct for this pyFrameSet object"
-        if self._Cstruct is None:
-            return
-	base=self._Cstruct[0]
-	# I have no idea why the type(base) is not NetAddr doesn't work here...
-	# This 'hasattr' construct only works because we are a base C-class
-        while (hasattr(base, 'baseclass')):
-	    base=base.baseclass
-        base.unref(self._Cstruct)
 
     def fslist_from_pktdata(self, pktlocation):
         'Make a list of FrameSets out of a packet.'

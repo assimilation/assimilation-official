@@ -56,9 +56,31 @@
    ...
 }
 {
-   <insert_a_suppression_name_here>
+   Quark leak
    Memcheck:Leak
    ...
    fun:g_quark_from_static_string
+   ...
+}
+#
+#	This is here because I can't figure out how to get the mainloop code
+#	to free sources...
+#
+{
+   g_source_pcap_new()
+   Memcheck:Leak
+   ...
+   fun:g_source_pcap_new
+   ...
+}
+#
+#	This is here because I can't figure out how to get the mainloop code
+#	to free sources...
+#
+{
+   netgsource_new()
+   Memcheck:Leak
+   ...
+   fun:netgsource_new
    ...
 }

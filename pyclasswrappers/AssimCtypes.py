@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameformats.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlv_valuetypes.h ../include/tlvhelper.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1218,7 +1218,7 @@ struct__AssimObj._fields_ = [
     ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
     ('ref', CFUNCTYPE(UNCHECKED(None), gpointer)),
     ('unref', CFUNCTYPE(UNCHECKED(None), gpointer)),
-    ('toString', CFUNCTYPE(UNCHECKED(String), gpointer)),
+    ('toString', CFUNCTYPE(UNCHECKED(POINTER(gchar)), gconstpointer)),
 ]
 
 # ../include/assimobj.h: 27
@@ -1354,80 +1354,72 @@ struct_sockaddr_in6._fields_ = [
     ('sin6_scope_id', c_uint32),
 ]
 
-# ../include/netaddr.h: 30
+# ../include/netaddr.h: 31
 class struct__NetAddr(Structure):
     pass
 
-NetAddr = struct__NetAddr # ../include/netaddr.h: 23
+NetAddr = struct__NetAddr # ../include/netaddr.h: 24
 
 struct__NetAddr.__slots__ = [
+    'baseclass',
     'port',
     'addrtype',
     'ipv6sockaddr',
     'equal',
-    'toString',
-    'ref',
-    'unref',
-    '_finalize',
     '_addrbody',
     '_addrtype',
     '_addrlen',
     '_addrport',
-    '_refcount',
 ]
 struct__NetAddr._fields_ = [
+    ('baseclass', AssimObj),
     ('port', CFUNCTYPE(UNCHECKED(guint16), POINTER(NetAddr))),
     ('addrtype', CFUNCTYPE(UNCHECKED(guint16), POINTER(NetAddr))),
     ('ipv6sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in6), POINTER(NetAddr))),
     ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr), POINTER(NetAddr))),
-    ('toString', CFUNCTYPE(UNCHECKED(POINTER(gchar)), POINTER(NetAddr))),
-    ('ref', CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr))),
-    ('unref', CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr))),
-    ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr))),
     ('_addrbody', gpointer),
     ('_addrtype', guint16),
     ('_addrlen', guint16),
     ('_addrport', guint16),
-    ('_refcount', guint16),
 ]
 
-# ../include/netaddr.h: 45
+# ../include/netaddr.h: 42
 if hasattr(_libs['libclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 46
+# ../include/netaddr.h: 43
 if hasattr(_libs['libclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 47
+# ../include/netaddr.h: 44
 if hasattr(_libs['libclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 48
+# ../include/netaddr.h: 45
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 49
+# ../include/netaddr.h: 46
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 50
+# ../include/netaddr.h: 47
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 51
+# ../include/netaddr.h: 48
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
@@ -3759,7 +3751,7 @@ _FrameSet = struct__FrameSet # /home/alanr/monitor/src/include/frameset.h: 29
 
 _Frame = struct__Frame # ../include/frame.h: 30
 
-_NetAddr = struct__NetAddr # ../include/netaddr.h: 30
+_NetAddr = struct__NetAddr # ../include/netaddr.h: 31
 
 _AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 26
 
