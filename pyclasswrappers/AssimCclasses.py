@@ -136,7 +136,7 @@ class pyAssimObj:
         return ret
 
     def __del__(self):
-        'Free up the underlying Cstruct for this pyNetAddr object.'
+        'Free up the underlying Cstruct for this pyAssimObj object.'
         if self._Cstruct is None:
             return
 	base=self._Cstruct[0]
@@ -145,6 +145,12 @@ class pyAssimObj:
         while (hasattr(base, 'baseclass')):
 	    base=base.baseclass
         base.unref(self._Cstruct)
+
+    def _ref(self):
+	base=self._Cstruct[0]
+        while (type(base) is not AssimObj):
+	    base=base.baseclass
+        base.ref(self._Cstruct)
 
 class pyNetAddr(pyAssimObj):
     '''This class represents the Python version of our C-class @ref NetAddr - represented by the struct _NetAddr.
@@ -260,6 +266,7 @@ class pyFrame(pyAssimObj):
             self._Cstruct = frame_new(frametype, 0)
         else:
             self._Cstruct = Cstruct
+	    base=self._Cstruct[0]
 
     def frametype(self):
         "Return the TLV type for the pyFrame object."
@@ -366,7 +373,7 @@ class pyCstringFrame(pyFrame):
     def __init__(self, frametype, initval=None, Cstruct=None):
 	'Constructor for pyCstringFrame object - initial value should be something that looks a lot like a Python string'
         if Cstruct is None:
-           Cstruct=cstringframe_new(frametype, 0)
+            Cstruct=cstringframe_new(frametype, 0)
         pyFrame.__init__(self, frametype, Cstruct)
         if initval is not None:
             self.setvalue(initval)
@@ -567,7 +574,6 @@ class pyFrameSet(pyAssimObj):
             yield eval(statement)
             curframe=g_slist_next(curframe)
 
-
 class pyPacketDecoder(pyAssimObj):
     'Class for Decoding packets - for returning an array of FrameSets from a physical packet.'
     def __init__(self, FrameMap=None, Cstruct=None):
@@ -592,3 +598,69 @@ class pyPacketDecoder(pyAssimObj):
             curfs = g_slist_next(curfs)
         g_slist_free(fs_gslist)
         return frameset_list
+
+class pyConfigContext(pyAssimObj):
+    'Class for Holding configuration information.'
+
+    def __init__(self, init=None, Cstruct=None):
+        'Initializer for pyConfigContext'
+        if Cstruct is None:
+            Cstruct=configcontext_new(0)
+        self._Cstruct = Cstruct
+        if init is not None:
+            for key in init.keys():
+                self[key] = init[key]
+
+    def getint(self, name):
+        'Return the integer associated with "name"'
+        return self._Cstruct[0].getint(self._Cstruct, name)
+
+    def setint(self, name, value):
+        'Set the integer associated with "name"'
+        self._Cstruct[0].setint(self._Cstruct, name, value)
+
+    def getaddr(self, name):
+        'Return the NetAddr associated with "name"'
+        naddr = self._Cstruct[0].getaddr(self._Cstruct, name)
+        if naddr:
+            naddr = cast(naddr, cClass.NetAddr)
+            naddr[0].baseclass.ref(naddr)
+            return pyNetAddr(None, Cstruct=naddr)
+        raise IndexError("No such NetAddr value")
+
+    def setaddr(self, name, value):
+        'Set the NetAddr associated with "name"'
+        self._Cstruct[0].setaddr(self._Cstruct, name, value._Cstruct)
+
+    def getstring(self, name):
+        'Return the string associated with "name"'
+        ret = self._Cstruct[0].getstring(self._Cstruct, name)
+        if ret:
+            return string_at(ret)
+        raise IndexError("No such String value")
+
+    def setstring(self, name, value):
+        'Return the string associated with "name"'
+        self._Cstruct[0].setstring(self._Cstruct, name, value)
+
+    def __getitem__(self, name):
+        'Return a value associated with "name"'
+        try:
+            ret = self.getstring(name)
+            return ret
+        except (IndexError):
+            pass
+        try:
+            ret = self.getaddr(name)
+            return ret
+        except (IndexError):
+            pass
+        return self.getint(name)
+
+    def __setitem__(self, name, value):
+        'Set a value associated with "name" - in the appropriate table'
+        if isinstance(value, str):
+            return self.setstring(name, value)
+        if isinstance(value, pyNetAddr):
+            return self.setaddr(name, value)
+        self.setint(name, int(value))

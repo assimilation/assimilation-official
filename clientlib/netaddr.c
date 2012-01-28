@@ -73,6 +73,7 @@ _netaddr_toString(gconstpointer baseobj)
 			return g_strdup("{invalid ipv6}");
 		}
 		if (memcmp(self->_addrbody, ipv4prefix, sizeof(ipv4prefix)) == 0) {
+			g_string_free(gsret, FALSE); gsret = NULL;
 			return _netaddr_toString_ipv6_ipv4(self);
 		}
 		for (nbyte = 0; nbyte < self->_addrlen; nbyte += 2) {

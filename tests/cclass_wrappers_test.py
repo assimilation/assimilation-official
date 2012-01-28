@@ -374,5 +374,25 @@ class pyFrameSetTest(TestCase):
     def tearDown(self):
         assert_no_dangling_Cclasses()
 
+class pyConfigContextTest(TestCase):
+
+    def test_constructor(self):
+        pyConfigContext()
+        foo = pyConfigContext(init={"int1": 42, "str1": "forty-two", "bar": pyNetAddr((1,2,3,4),)})
+        self.assertEqual(foo.getint("int1"), 42)
+        self.assertEqual(foo.getstring("str1"), "forty-two")
+        self.assertRaises(IndexError, foo.getaddr, ("int1"))
+        self.assertRaises(IndexError, foo.getstring, ("int1"))
+        self.assertRaises(IndexError, foo.getaddr, ("str1"))
+        self.assertEqual(foo["int1"], 42)
+        self.assertEqual(foo["str1"], "forty-two")
+        self.assertEqual(foo.getint("fred"), -1)
+        self.assertEqual(str(foo["bar"]), "1.2.3.4")
+        self.assertEqual(foo["bar"], pyNetAddr((1,2,3,4),))
+
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
+
 if __name__ == "__main__":
     run()

@@ -178,7 +178,7 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 	g_return_if_fail(frame != NULL);
 	cpname = g_strdup(name);
 	frame->baseclass.ref(frame);
-	if (NULL == self->_addrvalues) {
+	if (NULL == self->_framevalues) {
 		self->_framevalues = g_hash_table_new_full(g_str_hash, g_str_equal
 		,	_configcontext_free, _configcontext_freeFrame);
 	}

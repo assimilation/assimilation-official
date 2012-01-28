@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameformats.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlv_valuetypes.h ../include/tlvhelper.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1158,7 +1158,7 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_castasconst'):
 if hasattr(_libs['libclientlib.so'], 'proj_class_register_subclassed'):
     proj_class_register_subclassed = _libs['libclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
-    proj_class_register_subclassed.restype = None
+    proj_class_register_subclassed.restype = gpointer
 
 # ../include/proj_classes.h: 22
 if hasattr(_libs['libclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
@@ -1604,17 +1604,14 @@ if hasattr(_libs['libclientlib.so'], 'signframe_tlvconstructor'):
     signframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     signframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/configcontext.h: 28
+# /home/alanr/monitor/src/include/configcontext.h: 29
 class struct__ConfigContext(Structure):
     pass
 
-ConfigContext = struct__ConfigContext # /home/alanr/monitor/src/include/configcontext.h: 20
+ConfigContext = struct__ConfigContext # /home/alanr/monitor/src/include/configcontext.h: 21
 
 struct__ConfigContext.__slots__ = [
-    '_refcount',
-    'ref',
-    'unref',
-    '_finalize',
+    'baseclass',
     '_intvalues',
     '_strvalues',
     '_framevalues',
@@ -1629,10 +1626,7 @@ struct__ConfigContext.__slots__ = [
     'setaddr',
 ]
 struct__ConfigContext._fields_ = [
-    ('_refcount', c_int),
-    ('ref', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext))),
-    ('unref', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext))),
-    ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext))),
+    ('baseclass', AssimObj),
     ('_intvalues', POINTER(GHashTable)),
     ('_strvalues', POINTER(GHashTable)),
     ('_framevalues', POINTER(GHashTable)),
@@ -1647,7 +1641,7 @@ struct__ConfigContext._fields_ = [
     ('setaddr', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, POINTER(NetAddr))),
 ]
 
-# /home/alanr/monitor/src/include/configcontext.h: 46
+# /home/alanr/monitor/src/include/configcontext.h: 44
 if hasattr(_libs['libclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
@@ -2482,7 +2476,7 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_castasconst'):
 if hasattr(_libs['libclientlib.so'], 'proj_class_register_subclassed'):
     proj_class_register_subclassed = _libs['libclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
-    proj_class_register_subclassed.restype = None
+    proj_class_register_subclassed.restype = gpointer
 
 # /home/alanr/monitor/src/include/proj_classes.h: 22
 if hasattr(_libs['libclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
@@ -2999,73 +2993,73 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 48
+# /home/alanr/monitor/src/include/configcontext.h: 46
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 49
+# /home/alanr/monitor/src/include/configcontext.h: 47
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 50
+# /home/alanr/monitor/src/include/configcontext.h: 48
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 52
+# /home/alanr/monitor/src/include/configcontext.h: 50
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 53
+# /home/alanr/monitor/src/include/configcontext.h: 51
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 55
+# /home/alanr/monitor/src/include/configcontext.h: 53
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 56
+# /home/alanr/monitor/src/include/configcontext.h: 54
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 57
+# /home/alanr/monitor/src/include/configcontext.h: 55
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 58
+# /home/alanr/monitor/src/include/configcontext.h: 56
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 59
+# /home/alanr/monitor/src/include/configcontext.h: 57
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 60
+# /home/alanr/monitor/src/include/configcontext.h: 58
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# /home/alanr/monitor/src/include/configcontext.h: 61
+# /home/alanr/monitor/src/include/configcontext.h: 59
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
@@ -3759,7 +3753,7 @@ _CompressFrame = struct__CompressFrame # /home/alanr/monitor/src/include/compres
 
 _SignFrame = struct__SignFrame # ../include/signframe.h: 28
 
-_ConfigContext = struct__ConfigContext # /home/alanr/monitor/src/include/configcontext.h: 28
+_ConfigContext = struct__ConfigContext # /home/alanr/monitor/src/include/configcontext.h: 29
 
 _CryptFrame = struct__CryptFrame # /home/alanr/monitor/src/include/cryptframe.h: 21
 
