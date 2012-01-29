@@ -125,6 +125,9 @@ class pyAssimObj:
             return
         self._Cstruct = assimobj_new(0)
 
+    def cclassname(self):
+        return proj_class_classname(self._Cstruct)
+
     def __str__(self):
         'Convert this AssimObj into a printable string'
         base = self._Cstruct[0]
@@ -328,15 +331,26 @@ class pyFrame(pyAssimObj):
 	    base=base.baseclass
         base.setvalue(self._Cstruct, valptr, vlen, cast(None, GDestroyNotify))
 
-    def cclassname(self):
-        return proj_class_classname(self._Cstruct)
-
     def dump(self, prefix):
         'Dump out this Frame (using C-class "dump" member function)'
 	base=self._Cstruct[0]
         while (type(base) is not Frame):
 	    base=base.baseclass
         base.dump(self._Cstruct, cast(prefix, c_char_p))
+
+    @staticmethod
+    def Cstruct2Frame(frameptr):
+        frameptr = cast(frameptr, cClass.Frame)
+        frametype = frameptr[0].type
+        Cclassname = proj_class_classname(frameptr)
+        pyclassname = "py" + Cclassname
+        frameptr[0].baseclass.ref(frameptr)
+        if Cclassname == "NetAddr":
+            statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
+        else:
+            statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
+        #print statement
+        return eval(statement)
 
 class pyAddrFrame(pyFrame):
     '''This class represents the Python version of our C-class AddrFrame - represented by the struct _AddrFrame.
@@ -377,10 +391,6 @@ class pyCstringFrame(pyFrame):
         pyFrame.__init__(self, frametype, Cstruct)
         if initval is not None:
             self.setvalue(initval)
-    def __str__(self) :
-	'Convert the underlying C-string Value into a Python String.'
-        return string_at(self._Cstruct[0].baseclass.value)
-
 
 class pyIntFrame(pyFrame):
     '''This class represents the Python version of our IntFrame C-class - represented by the struct _IntFrame
@@ -560,19 +570,9 @@ class pyFrameSet(pyAssimObj):
         'Generator yielding the set of pyFrames in this pyFrameSet'
         curframe = self._Cstruct[0].framelist;
         while curframe:
-            frameptr = cast(curframe[0].data, cClass.Frame)
-            frametype = frameptr[0].type
-            Cclassname = proj_class_classname(frameptr)
-            pyclassname = "py" + Cclassname
-            # I suspect (but don't know) that the 'ref' call below is always necessary
-            frameptr[0].baseclass.ref(frameptr)
-            if Cclassname == "NetAddr":
-                statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
-            else:
-                statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
-            #print statement
-            yield eval(statement)
+            yield pyFrame.Cstruct2Frame(curframe[0].data)
             curframe=g_slist_next(curframe)
+
 
 class pyPacketDecoder(pyAssimObj):
     'Class for Decoding packets - for returning an array of FrameSets from a physical packet.'
@@ -626,18 +626,29 @@ class pyConfigContext(pyAssimObj):
             naddr = cast(naddr, cClass.NetAddr)
             naddr[0].baseclass.ref(naddr)
             return pyNetAddr(None, Cstruct=naddr)
-        raise IndexError("No such NetAddr value")
+        raise IndexError("No such NetAddr value [%s]" % name)
 
     def setaddr(self, name, value):
-        'Set the NetAddr associated with "name"'
+        'Set the @ref NetAddr associated with "name"'
         self._Cstruct[0].setaddr(self._Cstruct, name, value._Cstruct)
+
+    def getframe(self, name):
+        'Return the Frame associated with "name"'
+        faddr = self._Cstruct[0].getframe(self._Cstruct, name)
+        if faddr:
+            return pyFrame.Cstruct2Frame(faddr)
+        raise IndexError("No such Frame value [%s]" % name)
+
+    def setframe(self, name, value):
+        'Set the @ref Frame associated with "name"'
+        self._Cstruct[0].setframe(self._Cstruct, name, value._Cstruct)
 
     def getstring(self, name):
         'Return the string associated with "name"'
         ret = self._Cstruct[0].getstring(self._Cstruct, name)
         if ret:
             return string_at(ret)
-        raise IndexError("No such String value")
+        raise IndexError("No such String value [%s]" % name)
 
     def setstring(self, name, value):
         'Return the string associated with "name"'
@@ -655,6 +666,11 @@ class pyConfigContext(pyAssimObj):
             return ret
         except (IndexError):
             pass
+        try:
+            ret = self.getframe(name)
+            return ret
+        except (IndexError):
+            pass
         return self.getint(name)
 
     def __setitem__(self, name, value):
@@ -663,4 +679,6 @@ class pyConfigContext(pyAssimObj):
             return self.setstring(name, value)
         if isinstance(value, pyNetAddr):
             return self.setaddr(name, value)
+        if isinstance(value, pyFrame):
+            return self.setframe(name, value)
         self.setint(name, int(value))

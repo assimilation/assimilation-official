@@ -230,12 +230,12 @@ class pyCstringFrameTest(TestCase):
     def test_constructor(self): 
         pyf = pyCstringFrame(600, "Hello, World.")
         self.assertTrue(pyf.isvalid())
-        self.assertEqual(str(pyf), "Hello, World.")
+        self.assertEqual(str(pyf), 'CstringFrame(600, "Hello, World.")')
         pyf2 = pyCstringFrame(601)
         self.assertFalse(pyf2.isvalid())
         pyf2.setvalue("42")
         self.assertTrue(pyf2.isvalid())
-        self.assertEqual(str(pyf2), "42")
+        self.assertEqual(str(pyf2), 'CstringFrame(601, "42")')
 
     @class_teardown
     def tearDown(self):
@@ -378,17 +378,49 @@ class pyConfigContextTest(TestCase):
 
     def test_constructor(self):
         pyConfigContext()
-        foo = pyConfigContext(init={"int1": 42, "str1": "forty-two", "bar": pyNetAddr((1,2,3,4),)})
-        self.assertEqual(foo.getint("int1"), 42)
-        self.assertEqual(foo.getstring("str1"), "forty-two")
-        self.assertRaises(IndexError, foo.getaddr, ("int1"))
-        self.assertRaises(IndexError, foo.getstring, ("int1"))
-        self.assertRaises(IndexError, foo.getaddr, ("str1"))
-        self.assertEqual(foo["int1"], 42)
-        self.assertEqual(foo["str1"], "forty-two")
-        self.assertEqual(foo.getint("fred"), -1)
-        self.assertEqual(str(foo["bar"]), "1.2.3.4")
-        self.assertEqual(foo["bar"], pyNetAddr((1,2,3,4),))
+        foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),), 'csf': pyCstringFrame(42, '41+1')})
+        self.assertEqual(foo.getint('int1'), 42)
+        self.assertEqual(foo.getstring('str1'), 'forty-two')
+        self.assertRaises(IndexError, foo.getaddr, ('int1'))
+        self.assertRaises(IndexError, foo.getstring, ('int1'))
+        self.assertRaises(IndexError, foo.getaddr, ('str1'))
+        self.assertRaises(IndexError, foo.getframe, ('str1'))
+        self.assertRaises(IndexError, foo.getframe, ('int1'))
+        self.assertEqual(foo['int1'], 42)
+        self.assertEqual(foo['str1'], 'forty-two')
+        self.assertEqual(foo.getint('fred'), -1)
+        self.assertEqual(str(foo['bar']), '1.2.3.4')
+        self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
+        self.assertEqual(str(foo['csf']), 'CstringFrame(42, "41+1")')
+        self.assertEqual(foo['csf'].__class__, pyCstringFrame(1).__class__)
+
+    def test_string(self):
+        foo = pyConfigContext()
+        foo['arthur'] = 'dent'
+        foo['seven'] = 'ofnine'
+        foo['JeanLuc'] = 'Picard'
+        foo['important'] = 'towel'
+        self.assertEqual(foo['arthur'], 'dent')
+        self.assertEqual(foo['seven'], 'ofnine')
+        self.assertEqual(foo['JeanLuc'], 'Picard')
+        self.assertEqual(foo['important'], 'towel')
+        self.assertRaises(IndexError, foo.getstring, ('towel'))
+        foo['seven'] = '7'
+        self.assertEqual(foo['seven'], '7')
+        self.assertEqual(type(foo['seven']), str)
+        foo['JeanLuc'] = 'Locutus'
+        self.assertEqual(foo['JeanLuc'], 'Locutus')
+
+    def test_int(self):
+        foo = pyConfigContext()
+        foo['arthur'] = 42
+        foo['seven'] = 9
+        self.assertEqual(foo['arthur'], 42)
+        self.assertEqual(foo['seven'], 9)
+        foo['seven'] = 7
+        self.assertEqual(type(foo['seven']), int)
+        self.assertEqual(foo["seven"], 7)
+        
 
     @class_teardown
     def tearDown(self):

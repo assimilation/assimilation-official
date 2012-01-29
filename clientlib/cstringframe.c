@@ -33,6 +33,7 @@
 */
 
 FSTATIC gboolean _cstringframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
+FSTATIC gchar* _cstringframe_toString(gconstpointer);
 
 ///@defgroup CstringFrame CstringFrame class
 /// Class for holding/storing C-style null-terminated strings -  Subclass of @ref Frame.
@@ -70,6 +71,15 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 	return expectedplace == memchr(stringstart, 0x00, length);
 }
 
+FSTATIC
+gchar*
+_cstringframe_toString(gconstpointer obj)
+{
+	const CstringFrame* self = CASTTOCONSTCLASS(CstringFrame, obj);
+	return g_strdup_printf("CstringFrame(%d, \"%s\")"
+	,	self->baseclass.type, (gchar*)self->baseclass.value);
+}
+
 
 /// Construct a new CstringFrame - allowing for "derived" frame types...
 /// This can be used directly for creating CstringFrame frames, or by derived classes.
@@ -85,9 +95,9 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 
 	baseframe = frame_new(frame_type, framesize);
 	baseframe->isvalid = _cstringframe_default_isvalid;
-	proj_class_register_subclassed (baseframe, "CstringFrame");
+	baseframe->baseclass.toString = _cstringframe_toString;
+	return NEWSUBCLASS(CstringFrame, baseframe);
 
-	return CASTTOCLASS(CstringFrame, baseframe);
 }
 /// Given marshalled packet data corresponding to an CstringFrame (C-style string),
 /// return the corresponding Frame
