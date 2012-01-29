@@ -27,6 +27,16 @@ These two main ideas create a system which will have both a great out-of-the-box
 experience for new users and smooth accommodation of growth to virtually
 all environments.
 
+@section ProgressReports Progress Reports on the project
+The team currently posts updates in the following places:
+- Twitter - fairly frequent from @@OSSAlanR
+- linux-ha-dev mailing list - less frequent - lists.linux-ha.org/mailman/listinfo/linux-ha-dev
+
+@section architecture Architecture
+This concept has two kinds of participating entities:
+ - a Centralized Monitoring Authority - monitoring the collective
+
+@section Scalability Scalable Monitoring
 The picture below shows the architecture for discovering system outages.
 @image html MultiRingHeartbeat.png "Multi-Ring Heartbeating Architecture"
 Each of the blue boxes represents a server.  Each of the connecting arcs represent bidirectional heartbeat paths.
@@ -40,51 +50,22 @@ report the failure, and which ones do not.
 Since the central system only hears from the monitored systems when a failure occurs, the work to perform
 monitoring of systems does not go up as the number of systems being monitored goes up.
 - Approximately 96% of all monitoring traffic stays within edge switches.
-- This architecture is naturally geographically sensitive.  Very little traffic would need to go between sites to monitor multiple sites from a
-central system.
+- This architecture is naturally geographically sensitive.
+Very little traffic goes between sites to monitor multiple sites from a central location.
 - This architecture is simple and easy to understand.
+ - a potentially very large number of lightweight monitoring agents (aka <i>nanoprobes</i>)
+
+This is all controlled and directed by the collective monitoring authority (CMA) -
+which is designed to be configured to run in an HA cluster using a product like Pacemaker.
 
 
-@subsection ProgressReports Progress Reports on the project
-The team currently posts updates in the following places:
-- Twitter - fairly frequent from @@OSSAlanR
-- linux-ha-dev mailing list - less frequent - lists.linux-ha.org/mailman/listinfo/linux-ha-dev
-@subsection architecture Architecture
-This concept has two kinds of participating entities:
- - a Centralized Monitoring Authority - monitoring the collective
- - a potentially very large number of lightweight monitoring agents
-
-@subsection autoconfiguration Autoconfiguration through Stealth Discovery
+@section autoconfiguration Autoconfiguration through Stealth Discovery
 One of the key aspects of this system is it be largely auto-configuring,
 and incorporates discovery into its basic philosophy.
 It is expected that a customer will drop the various nanoprobes onto the clients being
 monitored, and once those are running, the systems register themselves
 and get automatically configured into the system once the nanoprobes are
 installed and activated.
-
-Furthermore, these nanoprobes use stealth discovery methods to discover systems
-not being monitored and services on the systems being monitored.
-Stealth discovery methods are methods which cannot trip even the most sensitive network
-security alarm - because no probes are sent over the network.
-
-This discovery process is intended to achieve these goals:
-- Simplify initial installation
-- Provide a continuous audit of the monitoring configuration
-- Create a rich collection of information about the data center
-@image html DiscoveryMethods.png "Stealth Discovery Process"
-
-@subsection lightweight Lightweight monitoring agents
-The nanoprobe code is written largely in C and minimizes use of:
- - CPU
- - memory
- - disk
- - network resources
-
-To do this, we will follow a <i>no news is good news</i> philosophy for exception monitoring -
-when nothing is wrong, nothing will be reported.
-Although the central part of the code will likely be only available on POSIX systems, 
-the nanoprobes will also be available on various flavors of Windows as well.
-
 @subsection Stealth What is Stealth Discovery&tm;?
 Stealth discovery is a process of discovering systems and services without using
 active probes which might trigger security alarms.  Some examples of current
@@ -107,32 +88,44 @@ sensitive security alarms.
 In addition, the netstat information correlated across the servers also
 provides information about dependencies and service groups.
 
+Furthermore, these nanoprobes use stealth discovery methods to discover systems
+not being monitored and services on the systems being monitored.
+Stealth discovery methods are methods which cannot trip even the most sensitive network
+security alarm - because no probes are sent over the network.
+
+This discovery process is intended to achieve these goals:
+- Simplify initial installation
+- Provide a continuous audit of the monitoring configuration
+- Create a rich collection of information about the data center
+@image html DiscoveryMethods.png "Stealth Discovery Process"
+
+@section lightweight Lightweight monitoring agents
+The nanoprobe code is written largely in C and minimizes use of:
+ - CPU
+ - memory
+ - disk
+ - network resources
+
+To do this, we will follow a <i>no news is good news</i> philosophy for exception monitoring -
+when nothing is wrong, nothing will be reported.
+Although the central part of the code will likely be only available on POSIX systems, 
+the nanoprobes will also be available on various flavors of Windows as well.
+
 @subsection service_mon Service Monitoring
 To the degree possible, we will perform exception monitoring of services on the machine they're provided on - which 
-imples zero network overhead to monitor working services.  Stated another way, we follow a
+implies zero network overhead to monitor working services.  Stated another way, we follow a
 <i>no news is good news</i> philosophy.
-
-@subsection server_mon System Monitoring
-For system monitoring, we follow a ring monitoring where each member of a ring sends
-heartbeats to the the machine ahead of it in the ring, and the machine after it,
-and expects heartbeats from each in the same fashion.
-There is also a hierarchy of rings, one for the local (edge or top of rack) switch,
-one for the switches on a subnet, and one connecting all subnets.
-No machine would need to participate in more than two of these rings -
-hence will only need to directly communicate with at most four machines -
-with the overwhelming majority of systems only needing to talk to two other
-ring members.
-This is all controlled and directed by the collective monitoring authority (CMA) -
-which is designed to be configured to run in an HA cluster using a product like Pacemaker.
+Our primary tool for monitoring services is through the use of the Local Resource Manager
+from the Linux-HA project.
 
 @section TestingStrategy Testing Strategy
 There are three kinds of testing I see as necessary
 - junit/pyunit et al level of testing for the python code
-- Testing for the C nanobots in situ
+- Testing for the C nanoprobes in situ
 - System level (simulated) testing for the CMA
 Each of these areas is discussed below.
 
-@subsection PyunitTesting Unit-level testing
+@subsection UnitTesting Unit-level testing
 We are currently using the Testify software written by the folks at Yelp.
 Probably will try some of the alternatives as well.
 Very pleased with the results it's bringing.
@@ -140,7 +133,7 @@ The nice thing about this is much of the detailed gnarly C code is wrapped
 by the python code, so when I run the python tests of those wrappers, the
 C code under it gets well tested as well.
 
-@subsection NanobotTesting Testing of the Nanobots
+@subsection NanobotTesting Testing of the Nanoprobes
 Not quite sure how to best accomplish this.  Some of it can just
 be my home network, but I suppose I could also spin up some cloud
 VMs too...  Not sure yet...  Automation is a GoodThing.
@@ -148,7 +141,7 @@ VMs too...  Not sure yet...  Automation is a GoodThing.
 @subsection CMATesting Testing of the Collective Management Code
 I have been thinking about this quite a bit, and have what I think is a
 reasonable idea about it.  It involves writing a simulator
-to simulate up to hundreds of thousands of nanobot clients through
+to simulate up to hundreds of thousands of nanoprobe clients through
 a separate python process - probably using the Twisted framework.
 It would accept and ACK requests from the CMA and randomly create failure
 conditions similar to those in the "real world" - except at a
@@ -156,10 +149,6 @@ radically faster rate.  This is a big investment, but likely
 worth it.  It helps to have this in mind while designing
 the CMA as well - since there are things that it could do to
 make this job a little easier.
-
-@section AutoconfigurationStrategy Autoconfiguration Strategy
-For details on this, see the separate
-@ref AutoConfigureStrategy "Autoconfiguration Strategy and Philosophy" page.  
 
 
 */
@@ -178,11 +167,9 @@ For details on this, see the separate
 /**  @defgroup todos_staffing Staffing - People to look for 
  *  @{ 
  *  @ingroup todos_project
- *  @todo Find someone to do the Windows port -- <i>Got someone great</i> - <b>Roger Massey</b>
- *
  *  @todo Find someone interested in structuring the testing effort - <b>automated testing is an absolute necessity</b>.
  *
- *  @todo Find people interested in doing test deployments
+ *  @todo Find people interested in doing test deployments - making good progress on that - but always looking for more.
  *  @} 
  *
  *  @defgroup todos_near_term Nearer term TODOs
@@ -200,9 +187,6 @@ For details on this, see the separate
  *
  *  @todo What should we do about logging? - glib logging?
  *
- *  @todo implement the frameset/frame abstraction.
- *
- *  @todo implement a UDP GSource which connects to the frameset abstraction, and also supports packet transmission...
  *  Carefully check the heartbeat IPC GSource code to make sure we understand how to respond to
  *  back-pressure and resume transmitting after the flow control is removed.
  *  @} 
