@@ -37,7 +37,7 @@ If not, you can follow these instructions for *NIX type systems.
 @section TestingIt Running our Tests
 There are currently two test modules that you can run after building it.  They can be run
 like this:
-- python tests/alltests.py
+- cd tests; python ./alltests.py # Listens for LLDP or CDP packets
 - cd testcode; sh ./grind.sh	# Assumes you have valgrind installed.
 
 Note that the "grind.sh" test assumes you have LLDP or CDP packets visible to the

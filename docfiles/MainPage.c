@@ -54,7 +54,7 @@ This concept has two kinds of participating entities:
  - a Centralized Monitoring Authority - monitoring the collective
  - a potentially very large number of lightweight monitoring agents
 
-@subsection Autoconfiguration through Stealth Discovery
+@subsection autoconfiguration Autoconfiguration through Stealth Discovery
 One of the key aspects of this system is it be largely auto-configuring,
 and incorporates discovery into its basic philosophy.
 It is expected that a customer will drop the various nanoprobes onto the clients being
