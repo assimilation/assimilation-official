@@ -35,6 +35,7 @@ The team currently posts updates in the following places:
 @section architecture Architecture
 This concept has two kinds of participating entities:
  - a Centralized Monitoring Authority - monitoring the collective
+ - a potentially very large number of lightweight monitoring agents (aka <i>nanoprobes</i>)
 
 @section Scalability Scalable Monitoring
 The picture below shows the architecture for discovering system outages.
@@ -53,7 +54,6 @@ monitoring of systems does not go up as the number of systems being monitored go
 - This architecture is naturally geographically sensitive.
 Very little traffic goes between sites to monitor multiple sites from a central location.
 - This architecture is simple and easy to understand.
- - a potentially very large number of lightweight monitoring agents (aka <i>nanoprobes</i>)
 
 This is all controlled and directed by the collective monitoring authority (CMA) -
 which is designed to be configured to run in an HA cluster using a product like Pacemaker.
