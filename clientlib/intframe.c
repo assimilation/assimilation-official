@@ -65,6 +65,7 @@ FSTATIC void _intframe_setint(IntFrame * self, guint64 value);
 FSTATIC guint64 _intframe_getint(IntFrame * self);
 FSTATIC void _intframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _intframe_isvalid(const Frame*, gconstpointer, gconstpointer);
+FSTATIC gchar* _intframe_toString(gconstpointer obj);
 
 ///@defgroup IntFrame IntFrame class
 /// Class representing various length of integers - subclass of @ref Frame.
@@ -154,6 +155,15 @@ _intframe_isvalid(const Frame* self,			///< Frame to validate
 	return FALSE;
 }
 
+/// Return a printable representation of our IntFrame object
+FSTATIC gchar*
+_intframe_toString(gconstpointer obj)
+{
+	const IntFrame* self = CASTTOCONSTCLASS(IntFrame, obj);
+	return g_strdup_printf("IntFrame(%d, %d, %lld)"
+	,	self->baseclass.type, self->baseclass.length, self->_value);
+}
+
 /// Construct new IntFrame object
 IntFrame*
 intframe_new(guint16 frametype,	///< Type of frame to create with this value
@@ -177,6 +187,7 @@ intframe_new(guint16 frametype,	///< Type of frame to create with this value
 	iframe->baseclass.setvalue = NULL;
 	iframe->baseclass.valuefinalize = NULL;
 	iframe->baseclass.length = intbytes;
+	iframe->baseclass.baseclass.toString = _intframe_toString;
 	return iframe;
 }
 /// Given marshalled data corresponding to an IntFrame (integer frame), return that corresponding Frame
