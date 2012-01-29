@@ -1,7 +1,7 @@
 /**
 @mainpage The Assimilation Monitoring Project - Incredibly scalable, Incredibly easy to configure, easy on your network.
 @section intro Introduction
-Welcome to the Assimilation monitoring project.
+Welcome to the Assimilation monitoring project. (@ref README "README")
 
 What we do: monitoring systems with near-zero overhead both on the systems and on their administrators.
 - Monitor systems and services with very low overhead
