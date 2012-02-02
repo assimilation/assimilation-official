@@ -31,6 +31,7 @@ all environments.
 The team currently posts updates in the following places:
 - Twitter - fairly frequent from @@OSSAlanR
 - linux-ha-dev mailing list - less frequent - lists.linux-ha.org/mailman/listinfo/linux-ha-dev
+- Pegby work in progress list - https://www.pegby.com/board/view/assimilationproject.alanr
 
 @section architecture Architecture
 This concept has two kinds of participating entities:

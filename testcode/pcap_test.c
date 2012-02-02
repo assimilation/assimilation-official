@@ -57,6 +57,7 @@ cast_frameset_tests(void)
 	FrameSet*	fs = frameset_new(42);
 
 	stackprotectionstuff[0] = '\0';	// Make it think we need stackprotection stuff...
+	(void)stackprotectionstuff;
 
 	g_message("Performing c-class cast tests");
 	fcast = CASTTOCLASS(Frame, f);
