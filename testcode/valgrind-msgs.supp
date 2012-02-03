@@ -29,15 +29,8 @@
 {
    g_checksum_new (g_slice_alloc)
    Memcheck:Leak
-   fun:memalign
-   fun:posix_memalign
-   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.2800.6
+   ...
    fun:g_slice_alloc
-   fun:g_slice_alloc0
-   fun:g_checksum_new
-   fun:_signframe_compute_cksum
-   fun:_signframe_updatedata
-   fun:frameset_construct_packet
    ...
 }
 
@@ -59,7 +52,53 @@
    Quark leak
    Memcheck:Leak
    ...
+   fun:g
+   ...
+}
+{
+   Quark leak
+   Memcheck:Leak
+   ...
    fun:g_quark_from_static_string
+   ...
+}
+{
+   Weird calloc leak...
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   obj:*
+}
+{
+   Second weird calloc leak...
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   Weird memdup leak...
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:g_malloc
+   fun:g_memdup
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   g_thread_self()
+   Memcheck:Leak
+   ...
+   fun:g_thread_self
    ...
 }
 #

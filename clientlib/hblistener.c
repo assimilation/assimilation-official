@@ -16,8 +16,8 @@
 #include <hblistener.h>
 /**
  */
-FSTATIC void _hblistener_finalize(Listener * self);
-FSTATIC void _hblistener_unref(Listener * self);
+FSTATIC void _hblistener_finalize(AssimObj * self);
+FSTATIC void _hblistener_unref(gpointer self);
 FSTATIC void _hblistener_addlist(HbListener* self);
 FSTATIC void _hblistener_dellist(HbListener* self);
 FSTATIC void _hblistener_checktimeouts(gboolean urgent);
@@ -57,7 +57,7 @@ _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 	}
 	_hb_listeners = g_slist_prepend(_hb_listeners, self);
 	_hb_listener_count += 1;
-	self->baseclass.ref(CASTTOCLASS(Listener, self));
+	self->baseclass.baseclass.ref(self);
 }
 
 /// Remove an HbListener from our global list of HBListeners
@@ -68,7 +68,7 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 		_hb_listeners = g_slist_remove(_hb_listeners, self);
 		_hb_listener_count -= 1;
                 // We get called by unref - and it expects us to do this...
-		self->baseclass.unref(CASTTOCLASS(Listener, self));
+		self->baseclass.baseclass.unref(CASTTOCLASS(Listener, self));
 		return;
 	}
 	g_warn_if_reached();
@@ -165,28 +165,27 @@ _hblistener_got_frameset(Listener* basethis, FrameSet* fs, NetAddr* srcaddr)
 	fs->unref(fs);
 	return TRUE;
 }
-
-/// Decrement the reference count by one - possibly freeing up the object.
 FSTATIC void
-_hblistener_unref(Listener* self)	///<[in/out] Object to decrement reference count for
+_hblistener_unref(gpointer obj)	///<[in/out] Object to decrement reference count for
 {
-	g_return_if_fail(self->_refcount > 0);
-	self->_refcount -= 1;
-	if (self->_refcount == 1) {
+	HbListener* self = CASTTOCLASS(HbListener, obj);
+	g_return_if_fail(self->baseclass.baseclass._refcount > 0);
+	self->baseclass.baseclass._refcount -= 1;
+	if (self->baseclass.baseclass._refcount == 1) {
 		// Our listener list should hold an extra reference count...
 		_hblistener_dellist(CASTTOCLASS(HbListener, self));
 		// hblistener_dellist will normally decrement reference count by 1
 		// We will have gotten called recursively and finished the 'unref' work there...
 		self = NULL;
-	}else if (self->_refcount == 0) {
-		self->_finalize(self);
+	}else if (self->baseclass.baseclass._refcount == 0) {
+		self->baseclass.baseclass._finalize((AssimObj*)self);
 		self = NULL;
 	}
 }
 
 /// Finalize an HbListener
 FSTATIC void
-_hblistener_finalize(Listener * self) ///<[in/out] Listener to finalize
+_hblistener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	HbListener *hbself = CASTTOCLASS(HbListener, self);
 	hbself->listenaddr->baseclass.unref(hbself->listenaddr);
@@ -212,12 +211,11 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	proj_class_register_subclassed(base, "HbListener");
 	newlistener = CASTTOCLASS(HbListener, base);
 	if (newlistener != NULL) {
-		base->unref = _hblistener_unref;
-		base->_finalize = _hblistener_finalize;
+		base->baseclass.unref = _hblistener_unref;
+		base->baseclass._finalize = _hblistener_finalize;
 		base->got_frameset = _hblistener_got_frameset;
 		newlistener->listenaddr = listenaddr;
 		listenaddr->baseclass.ref(listenaddr);
-		newlistener->_refcount = 1;
 		newlistener->get_deadtime = _hblistener_get_deadtime;
 		newlistener->set_deadtime = _hblistener_set_deadtime;
 		newlistener->get_warntime = _hblistener_get_warntime;

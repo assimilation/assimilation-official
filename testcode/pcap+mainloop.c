@@ -270,7 +270,7 @@ main(int argc, char **argv)
 	otherlistener->got_frameset = gotnetpkt;
 	netpkt->addListener(netpkt, 0, otherlistener);	// Get all unclaimed packets...
 	// Unref the "other" listener
-	otherlistener->unref(otherlistener); otherlistener = NULL;
+	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
 
 	// Create a heartbeat listener
 	hblisten = hblistener_new(destaddr, 0);
@@ -281,7 +281,7 @@ main(int argc, char **argv)
 	// Intercept incoming heartbeat packets - direct them to heartbeat listener
 	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, CASTTOCLASS(Listener, hblisten));
 	// Unref the heartbeat listener
-	hblisten->baseclass.unref(CASTTOCLASS(Listener, hblisten)); hblisten = NULL;
+	hblisten->baseclass.baseclass.unref(CASTTOCLASS(Listener, hblisten)); hblisten = NULL;
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 

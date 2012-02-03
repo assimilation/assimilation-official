@@ -14,6 +14,7 @@
 #ifndef _LISTENER_H
 #define _LISTENER_H
 #include <projectcommon.h>
+#include <assimobj.h>
 #include <netaddr.h>
 #include <frameset.h>
 typedef struct _Listener Listener;
@@ -23,10 +24,7 @@ typedef struct _Listener Listener;
 
 /// This is the @ref Listener object - which generically listens for packets
 struct _Listener {
-	int		_refcount;			///< Current reference count
-	void		(*ref)(Listener*);		///< Increment reference count
-	void		(*unref)(Listener*);		///< Decrement reference count
-	void		(*_finalize)(Listener*);	///< Listener destructor
+	AssimObj	baseclass;
 	gboolean	(*got_frameset)(Listener*, FrameSet*, NetAddr*);
 							//< Called when a FrameSet arrives
 };

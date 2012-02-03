@@ -17,9 +17,7 @@
 #include <listener.h>
 /**
  */
-FSTATIC void _listener_finalize(Listener * self);
-FSTATIC void _listener_ref(Listener * self);
-FSTATIC void _listener_unref(Listener * self);
+FSTATIC void _listener_finalize(AssimObj * self);
 FSTATIC gboolean _listener_got_frameset(Listener* self, FrameSet*, NetAddr*);
 
 ///@defgroup Listener Listener class.
@@ -38,28 +36,9 @@ _listener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 	return TRUE;
 }
 
-/// Increment the reference count by one.
-FSTATIC void
-_listener_ref(Listener* self)	///<[in/out] Object to increment reference count for
-{
-	self->_refcount += 1;
-}
-
-/// Decrement the reference count by one - possibly freeing up the object.
-FSTATIC void
-_listener_unref(Listener* self)	///<[in/out] Object to decrement reference count for
-{
-	g_return_if_fail(self->_refcount > 0);
-	self->_refcount -= 1;
-	if (self->_refcount == 0) {
-		self->_finalize(self);
-		self = NULL;
-	}
-}
-
 /// Finalize a Listener
 FSTATIC void
-_listener_finalize(Listener * self) ///<[in/out] Listener to finalize
+_listener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self);
@@ -75,12 +54,9 @@ listener_new(gsize objsize)		///<[in] size of Listener structure (0 for sizeof(L
 	if (objsize < sizeof(Listener)) {
 		objsize = sizeof(Listener);
 	}
-	newlistener = MALLOCCLASS(Listener, objsize);
+	newlistener = NEWSUBCLASS(Listener, assimobj_new(objsize));
 	if (newlistener != NULL) {
-		newlistener->_refcount = 1;
-		newlistener->ref = _listener_ref;
-		newlistener->unref = _listener_unref;
-		newlistener->_finalize = _listener_finalize;
+		newlistener->baseclass._finalize = _listener_finalize;
 		newlistener->got_frameset = _listener_got_frameset;
 	}
 	return newlistener;

@@ -47,7 +47,7 @@ FSTATIC void
 _netgsource_del_listener(gpointer lptr)
 {
 	Listener*	lobj = CASTTOCLASS(Listener, lptr);
-	lobj->unref(lobj);
+	lobj->baseclass.unref(lobj);
 }
 
 /// Create a new (abstract) NetGSource object
@@ -200,7 +200,7 @@ _netgsource_addListener(NetGSource* self,	///<[in/out] Object being modified
 			Listener* disp)		///<[in] dispatch function
 {
 	if (disp) {
-		disp->ref(disp);
+		disp->baseclass.ref(disp);
 	}
 	g_hash_table_replace(self->_dispatchers, GUINT_TO_POINTER((size_t)fstype), disp);
 }
