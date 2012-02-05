@@ -22,9 +22,11 @@
 #include <address_family_numbers.h>
 
 FSTATIC gboolean _addrframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
-FSTATIC void _addrframe_setaddr(AddrFrame* f, guint16 frametype, gconstpointer addr, gsize addrlen);
-FSTATIC void _addrframe_setnetaddr(AddrFrame* f, NetAddr*netaddr);
-FSTATIC void _addrframe_addr_finalize(void * addr);
+FSTATIC void _addrframe_setaddr(AddrFrame* self, guint16 frametype, gconstpointer addr, gsize addrlen);
+FSTATIC NetAddr* _addrframe_getnetaddr(AddrFrame* self);
+FSTATIC void _addrframe_setnetaddr(AddrFrame* self, NetAddr*netaddr);
+FSTATIC void _addrframe_setport(AddrFrame *, guint16 port);
+FSTATIC void _addrframe_finalize(AssimObj*);
 ///@}
 
 /**
@@ -130,23 +132,51 @@ _addrframe_setaddr(AddrFrame* f,	//<[in/out] Frame to set the address type for
 	memcpy(blob+sizeof(guint16), addr, addrlen);
 	f->baseclass.length = blobsize;
 	f->baseclass.value = blob;
+	f->_addr = netaddr_new(0, 0, addrtype, addr, addrlen);
+}
+
+FSTATIC void
+_addrframe_setport(AddrFrame* self, guint16 port)
+{
+	if (self && self->_addr) {
+		self->_addr->_addrport = port;
+	}
+	
+}
+
+
+FSTATIC NetAddr*
+_addrframe_getnetaddr(AddrFrame* self)
+{
+	return self->_addr;
 }
 
 /// Assign a NetAddr to this @ref AddrFrame object
 FSTATIC void
-_addrframe_setnetaddr(AddrFrame* f,	///<[in/out] AddrFrame whose address we're setting...
-                   NetAddr* naddr)	///<[in] NetAddr value to set it to
+_addrframe_setnetaddr(AddrFrame* self,	///<[in/out] AddrFrame whose address we're setting...
+                   NetAddr* naddr)	///<[in] NetAddr value to set it to.
+					///< We hold a reference to it.
 {
-	_addrframe_setaddr(f, naddr->addrtype(naddr), naddr->_addrbody, naddr->_addrlen);
+	self->setaddr(self, naddr->addrtype(naddr), naddr->_addrbody, naddr->_addrlen);
+	self->_addr = naddr;
+	naddr->baseclass.ref(naddr);
 }
 
 
 
-/// Finalize address blob
 FSTATIC void
-_addrframe_addr_finalize(void * addr) ///< @ref AddrFrame object to free (FREE)
+_addrframe_finalize(AssimObj*obj)
 {
-	FREE(addr);
+	AddrFrame*	self = CASTTOCLASS(AddrFrame, obj);
+	if (self->_addr) {
+		self->_addr->baseclass.unref(self->_addr);
+		self->_addr = NULL;
+	}
+	if (self->baseclass.value) {
+		FREE(self->baseclass.value);
+		self->baseclass.value = NULL;
+	}
+	self->_basefinal((AssimObj*)self); self = NULL;
 }
 
 /// Construct a new @ref AddrFrame - allowing for "derived" frame types...
@@ -165,11 +195,15 @@ addrframe_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not a
 	baseframe = frame_new(frame_type, framesize);
 	baseframe->isvalid = _addrframe_default_isvalid;
 	proj_class_register_subclassed (baseframe, "AddrFrame");
-	baseframe->valuefinalize = _addrframe_addr_finalize;
 	aframe = CASTTOCLASS(AddrFrame, baseframe);
 	
 	aframe->setaddr = _addrframe_setaddr;
 	aframe->setnetaddr = _addrframe_setnetaddr;
+	aframe->getnetaddr = _addrframe_getnetaddr;
+	aframe->setport = _addrframe_setport;
+	aframe->_basefinal = baseframe->baseclass._finalize;
+	baseframe->baseclass._finalize = _addrframe_finalize;
+	aframe->_addr = NULL;
 	return aframe;
 }
 

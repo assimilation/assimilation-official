@@ -193,12 +193,21 @@ IPv6 addresses are address type 2 and are 16 bytes long, and have Address types 
 The Address Type for a MAC address is 6.
 '''),
   	11:  (pyIntFrame, 'PORTNUM', 'Port number.',
-'''This frame is 16-bit IP port number.
+'''This frame is a 16-bit IP port number.
 '''),
-  	12:  (pyCstringFrame, 'PATHNAME', 'file name',
+  	12:  (pyIntFrame, 'HBINTERVAL', 'Heartbeat interval.',
+'''This frame is a heartbeat sending interval measured in seconds.
+'''),
+  	13:  (pyIntFrame, 'HBDEADTIME', 'Heartbeat deadtime.',
+'''This frame is a heartbeat deadtime measured in seconds.
+'''),
+  	14:  (pyIntFrame, 'HBWARNTIME', 'Heartbeat warntime.',
+'''This frame is a heartbeat warning time measured in seconds.
+'''),
+  	15:  (pyCstringFrame, 'PATHNAME', 'file name',
 '''This frame contains a pathname for a file as a C string.
 '''),
-  	13:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
+  	16:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
 '''This frame contains a name/value pair - each of which is a NUL-terminated C-style string.
 '''),
 

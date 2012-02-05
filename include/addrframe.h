@@ -24,9 +24,13 @@ typedef struct _AddrFrame AddrFrame;
 ///@{
 /// @ingroup AddrFrame
 struct _AddrFrame {
-	Frame		baseclass;
-	void(*setaddr)	(AddrFrame* f, guint16 addrtype, gconstpointer addr, gsize addrlen);
-	void(*setnetaddr)(AddrFrame* f, NetAddr* addr);
+	Frame	baseclass;
+	NetAddr*_addr;
+	void	(*_basefinal)(AssimObj*);	///< Free object (private)
+	void	(*setaddr)(AddrFrame* f, guint16 addrtype, gconstpointer addr, gsize addrlen);
+	void	(*setnetaddr)(AddrFrame* f, NetAddr* addr);
+	NetAddr*(*getnetaddr)(AddrFrame*f);
+	void	(*setport)(AddrFrame*f, guint16 port);
 };
 
 WINEXPORT AddrFrame* addrframe_new(guint16 frame_type, gsize framesize);

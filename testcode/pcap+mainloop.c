@@ -64,6 +64,10 @@ gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void real_deadtime_agent(HbListener* who);
 void initial_deadtime_agent(HbListener* who);
 void got_heartbeat(HbListener* who);
+void obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetIO*transport);
+void obey_sendhb(FrameSet* fs, ConfigContext* config, NetIO* transport);
+void obey_expecthb(FrameSet* fs, ConfigContext* config, NetIO* transport);
+FrameSet* create_sendexpecthb(ConfigContext*, NetAddr** addrs, int addrcount);
 
 /// Test routine for sending an encapsulated Pcap packet.
 void
@@ -207,6 +211,232 @@ initial_deadtime_agent(HbListener* who)
 	who->set_deadtime_callback(who, real_deadtime_agent);
 	
 }
+
+/**
+ * Create a @ref FrameSet to send and expect heartbeats from the same sets of addresses.
+ * Keep in mind the entire packet needs to fit in a UDP packet (<64K).
+ * The port, hbtime, deadtime, and warntime parameters apply to all given addresses.
+ */
+FrameSet*
+create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
+		,   NetAddr** addrs		///<[in/out] Addresses to include
+		,   int addrcount)		///<[in] Count of 'addrs' provided
+{
+	FrameSet* ret = frameset_new(FRAMESETTYPE_SENDEXPECTHB);
+	int	count = 0;
+
+	// Put the port in the message (if asked)
+	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
+		gint	port = config->getint(config, CONFIGNAME_HBPORT);
+		IntFrame * intf = intframe_new(FRAMETYPE_PORTNUM, 2);
+		intf->setint(intf, port);
+		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		intf->baseclass.baseclass.unref(intf); intf = NULL;
+	}
+	// Put the heartbeat interval in the message (if asked)
+	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
+		gint	hbtime = config->getint(config, CONFIGNAME_HBTIME);
+		IntFrame * intf = intframe_new(FRAMETYPE_HBINTERVAL, 4);
+		intf->setint(intf, hbtime);
+		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		intf->baseclass.baseclass.unref(intf); intf = NULL;
+	}
+	// Put the heartbeat deadtime in the message (if asked)
+	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
+		gint deadtime = config->getint(config, CONFIGNAME_DEADTIME);
+		IntFrame * intf = intframe_new(FRAMETYPE_HBDEADTIME, 4);
+		intf->setint(intf, deadtime);
+		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		intf->baseclass.baseclass.unref(intf); intf = NULL;
+	}
+	// Put the heartbeat warntime in the message (if asked)
+	if (config->getint(config, CONFIGNAME_WARNTIME) > 0) {
+		gint warntime = config->getint(config, CONFIGNAME_WARNTIME);
+		IntFrame * intf = intframe_new(FRAMETYPE_HBWARNTIME, 4);
+		intf->setint(intf, warntime);
+		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		intf->baseclass.baseclass.unref(intf); intf = NULL;
+	}
+
+	// Put all the addresses we were given in the message.
+	for (count=0; count < addrcount; ++count) {
+		AddrFrame* hbaddr = addrframe_new(FRAMETYPE_IPADDR, 0);
+		hbaddr->setnetaddr(hbaddr, addrs[count]);
+		frameset_append_frame(ret, CASTTOCLASS(Frame, hbaddr));
+		hbaddr->baseclass.baseclass.unref(hbaddr); hbaddr = NULL;
+	}
+	return  ret;
+}
+
+/**
+ * Act on (obey) a FrameSet telling us to send heartbeats.
+ * Such framesets are sent when the Collective Authority wants us to send
+ * Heartbeats to various addresses. This might be from a @ref FRAMESETTYPE_SENDHB
+ * FrameSet or a @ref FRAMESETTYPE_SENDEXPECTHB FrameSet.
+ * The send interval, and port number can come from the FrameSet or from the
+ * @ref ConfigContext parameter we're given - with the FrameSet taking priority.
+ *
+ * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPADDR
+ * @ref AddrFrame in the FrameSet.
+ */
+void
+obey_sendhb(FrameSet* fs		///<[in] Frameset indicating who to send HBs to
+	,   ConfigContext* config	///<[in] Various default parameters
+	,   NetIO* transport)		///<[in/out] Transport for sending heartbeats
+{
+
+	GSList*		slframe;
+	guint		addrcount = 0;
+
+	int		port = 0;
+	guint16		sendinterval = 0;
+
+	g_return_if_fail(fs != NULL);
+	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
+		port = config->getint(config, CONFIGNAME_HBPORT);
+	}
+	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
+		sendinterval = config->getint(config, CONFIGNAME_HBTIME);
+	}
+
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		int	frametype = frame->type;
+		switch(frametype) {
+			IntFrame*	iframe;
+			AddrFrame*	aframe;
+
+			case FRAMETYPE_PORTNUM:
+				iframe = CASTTOCLASS(IntFrame, frame);
+				port = iframe->getint(iframe);
+				if (port <= 0 || port >= 65536) {
+					g_warning("invalid port (%d) in %s"
+					, port, __FUNCTION__);
+					port = 0;
+					continue;
+				}
+				break;
+			case FRAMETYPE_HBINTERVAL:
+				iframe = CASTTOCLASS(IntFrame, frame);
+				sendinterval = iframe->getint(iframe);
+				break;
+			case FRAMETYPE_IPADDR:
+				if (0 == sendinterval) {
+					g_warning("Send interval is zero in %s", __FUNCTION__);
+					continue;
+				}
+				if (0 == port) {
+					g_warning("Port is zero in %s", __FUNCTION__);
+					continue;
+				}
+				aframe = CASTTOCLASS(AddrFrame, frame);
+				addrcount++;
+				aframe->setport(aframe, port);
+				hbsender_new(aframe->getnetaddr(aframe), transport, sendinterval, 0);
+				break;
+		}
+	}
+}
+/**
+ * Act on (obey) a FrameSet telling us to expect heartbeats.
+ * Such framesets are sent when the Collective Authority wants us to expect
+ * Heartbeats from various addresses.  This might be from a @ref FRAMESETTYPE_EXPECTHB
+ * FrameSet or a @ref FRAMESETTYPE_SENDEXPECTHB FrameSet.
+ * The deadtime, warntime, and port number can come from the FrameSet or the
+ * @ref ConfigContext parameter we're given - with the FrameSet taking priority.
+ *
+ * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPADDR
+ * @ref AddrFrame in the FrameSet.
+ */
+void
+obey_expecthb(FrameSet* fs, ConfigContext* config, NetIO* transport)
+{
+
+	GSList*	slframe = fs->framelist;
+	guint		addrcount = 0;
+
+	gint		port = 0;
+	guint16		deadtime = 0;
+	guint16		warntime = 0;
+
+	(void)transport;
+
+	g_return_if_fail(fs != NULL);
+	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
+		port = config->getint(config, CONFIGNAME_HBPORT);
+	}
+	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
+		deadtime = config->getint(config, CONFIGNAME_DEADTIME);
+	}
+	if (config->getint(config, CONFIGNAME_WARNTIME) > 0) {
+		warntime = config->getint(config, CONFIGNAME_WARNTIME);
+	}
+
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		int	frametype = frame->type;
+		switch(frametype) {
+			HbListener*	hblisten;
+			IntFrame*	iframe;
+			AddrFrame*	aframe;
+
+			case FRAMETYPE_PORTNUM:
+				iframe = CASTTOCLASS(IntFrame, frame);
+				port = iframe->getint(iframe);
+				if (port <= 0 || port > 65536) {
+					g_warning("invalid port (%d) in %s"
+					, port, __FUNCTION__);
+					port = 0;
+					continue;
+				}
+				break;
+			case FRAMETYPE_HBDEADTIME:
+				iframe = CASTTOCLASS(IntFrame, frame);
+				deadtime = iframe->getint(iframe);
+				break;
+			case FRAMETYPE_HBWARNTIME:
+				iframe = CASTTOCLASS(IntFrame, frame);
+				warntime = iframe->getint(iframe);
+				break;
+			case FRAMETYPE_IPADDR:
+				if (0 == port) {
+					g_warning("Port is zero in %s", __FUNCTION__);
+					continue;
+				}
+				//FIXME: This is no doubt not right!
+				aframe = CASTTOCLASS(AddrFrame, frame);
+				addrcount++;
+				aframe->setport(aframe, port);
+				hblisten = hblistener_new(aframe->getnetaddr(aframe), 0);
+				if (deadtime > 0) {
+					hblisten->set_deadtime(hblisten, deadtime);
+				}
+				if (warntime > 0) {
+					hblisten->set_warntime(hblisten, warntime);
+				}
+				break;
+		}
+	}
+}
+
+/**
+ * Act on (obey) a @ref FRAMESETTYPE_SENDEXPECTHB @ref FrameSet.
+ * This frameset is sent when the Collective Authority wants us to both send
+ * Heartbeats to an address and expect heartbeats back from them.
+ * The deadtime, warntime, send interval and port number can come from the
+ * FrameSet or from the @ref ConfigContext parameter we're given.
+ * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPADDR
+ * @ref AddrFrame in the FrameSet.
+ */
+void
+obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetIO*transport)
+{
+	g_return_if_fail(fs != NULL && fs->fstype == FRAMESETTYPE_SENDEXPECTHB);
+
+	obey_sendhb(fs, config, transport);
+	obey_expecthb(fs, config, transport);
+}
+
 
 FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 

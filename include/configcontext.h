@@ -53,6 +53,7 @@ WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext co
 #define CONFIGNAME_DEADTIME	"deadtime"	///< How long w/o heartbeats before declaring a system dead?
 #define CONFIGNAME_WARNTIME	"warntime"	///< How long w/o heartbeats before whining?
 #define CONFIGNAME_HBTIME	"hbtime"	///< How long to wait between heartbeats?
+#define CONFIGNAME_HBPORT	"hbport"	///< Default Port for sending heartbeats
 #define CONFIGNAME_CMAADDR	"cmaaddr"	///< Address of the Collective Management authority
 #define CONFIGNAME_OUTSIG	"outsig"	///< SignFrame to use to sign/verify packets
 #define CONFIGNAME_CRYPT	"crypt"		///< Frame to use for encrypting/decrypting packets
