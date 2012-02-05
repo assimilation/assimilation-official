@@ -352,7 +352,7 @@ void
 obey_expecthb(FrameSet* fs, ConfigContext* config, NetIO* transport)
 {
 
-	GSList*	slframe = fs->framelist;
+	GSList*	slframe;
 	guint		addrcount = 0;
 
 	gint		port = 0;
