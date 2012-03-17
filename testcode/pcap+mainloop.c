@@ -211,6 +211,7 @@ initial_deadtime_agent(HbListener* who)
 	who->set_deadtime_callback(who, real_deadtime_agent);
 	
 }
+#if 0
 
 /**
  * Create a @ref FrameSet to send and expect heartbeats from the same sets of addresses.
@@ -437,6 +438,7 @@ obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetIO*transport)
 	obey_expecthb(fs, config, transport);
 }
 
+#endif
 
 FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 

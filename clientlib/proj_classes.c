@@ -10,6 +10,7 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 #include <projectcommon.h>
+#include <assimobj.h>
 
 /// @defgroup C_Classes C-Classes
 
@@ -142,30 +143,42 @@ proj_class_free(gpointer object) ///< Object be freed
 	FREE(object);
 }
 
+/// Return TRUE if the given <i>object</i> <b>ISA</b> <i>castclass</i> object.
+gboolean
+proj_class_is_a(gconstpointer object,		///<[i] Object to be queried
+		const char * Cclass)		///<[i] Class to be queried
+{
+	GQuark		objquark;
+	GQuark		classquark;
+
+	if (NULL == object) {
+		return TRUE;
+	}
+
+	objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
+	classquark = g_quark_from_string(Cclass);
+
+	if (objquark != classquark || classquark == 0) {
+		if (!proj_class_quark_is_a(objquark, classquark)) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+/// "Safely" cast an object to a <i>const</i> object of the given C-class.
+
 /// "Safely" cast an object to a given C-class.
 /// What we mean by that, is that before returning, we verify that the object in question
 /// <b>ISA</b> <i>castclass</i> object.
 /// If it's not, we abort.  Better a semi-predictable abort than a random and unpredictable crash.
 gpointer
-proj_class_castas(gpointer object,		///< Object to be "cast" as "castclass"
+proj_class_castas(gpointer     object,		///< Object to be "cast" as "castclass"
 		  const char * castclass)	///< Class to cast "object" as
 {
-	GQuark		objquark;
-	GQuark		castquark;
-
-	if (NULL == object) {
-		return object;
-	}
-
-	objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
-	castquark = g_quark_from_string(castclass);
-
-	if (objquark != castquark || castquark == 0) {
-		if (!proj_class_quark_is_a(objquark, castquark)) {
-			const char *objclass =  (0 == objquark  ? "(unknown class)" : g_quark_to_string(objquark));
-			const char *castclass = (0 == castquark ? "(unknown class)" : g_quark_to_string(castquark));
-			g_error("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
-		}
+	if (!OBJ_IS_A(object, castclass)) {
+		const char *objclass =  proj_class_classname(object);
+		g_error("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
 	}
 	return object;
 }
@@ -178,21 +191,9 @@ gconstpointer
 proj_class_castasconst(gconstpointer object,	///< Object to be "cast" to "castclass"
 		  const char * castclass)	///< Class to cast "object" as
 {
-	GQuark		objquark;
-	GQuark		castquark;
-
-	if (NULL == object) {
-		return object;
-	}
-	objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
-	castquark = g_quark_from_string(castclass);
-
-	if (objquark != castquark || castquark == 0) {
-		if (!proj_class_quark_is_a(objquark, castquark)) {
-			const char *objclass =  (0 == objquark  ? "(unknown class)" : g_quark_to_string(objquark));
-			const char *castclass = (0 == castquark ? "(unknown class)" : g_quark_to_string(castquark));
-			g_error("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
-		}
+	if (!proj_class_is_a(object, castclass)) {
+		const char *objclass =  proj_class_classname(object);
+		g_error("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
 	}
 	return object;
 }
@@ -243,7 +244,15 @@ proj_class_dump_live_objects(void)
 	if (ObjectClassAssociation) {
 		g_hash_table_iter_init(&iter, ObjectClassAssociation);
 		while (g_hash_table_iter_next(&iter, &object, &quarkp)) {
-			g_debug("        Object at %p is type %s", object, proj_class_classname(object));
+			if (OBJ_IS_A(object, "AssimObj")) {
+				AssimObj*	obj = CASTTOCLASS(AssimObj, object);
+				char *		str = obj->toString(obj);
+				g_debug("        %s object %s at %p ref count %d"
+				,		proj_class_classname(obj), str, obj, obj->_refcount);
+				g_free(str);
+			}else{
+				g_debug("       %s object at %p", proj_class_classname(object), object);
+			}
 		}
 	}
 	g_debug("END of live C Class object dump.");

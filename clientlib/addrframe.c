@@ -157,9 +157,14 @@ _addrframe_setnetaddr(AddrFrame* self,	///<[in/out] AddrFrame whose address we'r
                    NetAddr* naddr)	///<[in] NetAddr value to set it to.
 					///< We hold a reference to it.
 {
+        if (self->_addr) {
+            self->_addr->baseclass.unref(self);
+            self->_addr = NULL;
+	}
 	self->setaddr(self, naddr->addrtype(naddr), naddr->_addrbody, naddr->_addrlen);
-	self->_addr = naddr;
-	naddr->baseclass.ref(naddr);
+	if (!_addrframe_default_isvalid((Frame*)self, NULL, NULL)) {
+		g_error("supplied netaddr for addrframe is invalid");
+	}
 }
 
 
@@ -176,7 +181,7 @@ _addrframe_finalize(AssimObj*obj)
 		FREE(self->baseclass.value);
 		self->baseclass.value = NULL;
 	}
-	self->_basefinal((AssimObj*)self); self = NULL;
+	self->_basefinal(CASTTOCLASS(AssimObj, self)); self = NULL;
 }
 
 /// Construct a new @ref AddrFrame - allowing for "derived" frame types...
@@ -273,6 +278,9 @@ addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of wh
 
 	ret->baseclass.length = framelength;
 	ret->setaddr(ret, address_family, framevalue+sizeof(guint16), framelength-sizeof(guint16));
+	if (!_addrframe_default_isvalid((Frame*)ret, tlvstart, pktend)) {
+		g_error("supplied TLV data for addrframe is invalid");
+	}
 	return CASTTOCLASS(Frame, ret);
 }
 ///@}

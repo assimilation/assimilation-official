@@ -167,7 +167,7 @@ class pyNetAddr(pyAssimObj):
          16 bytes == ipv6 address
         This is slightly sleazy but it should work for the forseeable future.
         '''
-        self._Cstruct = None
+        self._Cstruct = None	# Silence error messages in failure cases
         if (Cstruct is not None):
             assert type(Cstruct) is not int
             self._Cstruct = Cstruct
@@ -176,25 +176,22 @@ class pyNetAddr(pyAssimObj):
         addr = create_string_buffer(alen)
         #print "ADDRTYPE:", type(addr)
         for i in range(0, alen):
-            #print "ADDRSTRINGTYPE", type(addrstring[i])
             asi = addrstring[i]
             if type(asi) is str:
                 addr[i] = asi
             else:
                 addr[i] = chr(asi)
+        if port == None:
+            port = 0
         if alen == 4:		# ipv4
-            if port == None:
-                port = 0
             self._Cstruct = netaddr_ipv4_new(addr, port)
         elif alen == 16:	# ipv6
-            if port == None:
-                port = 0
             self._Cstruct = netaddr_ipv6_new(addr, port)
         elif alen == 6:		# "Normal" 48-bit MAC address
-            assert port == None
+            assert port == 0
             self._Cstruct = netaddr_mac48_new(addr)
         elif alen == 8:		# Extended 64-bit MAC address
-            assert port == None
+            assert port == 0
             self._Cstruct = netaddr_mac64_new(addr)
         else:
             raise ValueError("Invalid address length - not 4, 6, 8, or 16")
@@ -269,7 +266,6 @@ class pyFrame(pyAssimObj):
             self._Cstruct = frame_new(frametype, 0)
         else:
             self._Cstruct = Cstruct
-	    base=self._Cstruct[0]
 
     def frametype(self):
         "Return the TLV type for the pyFrame object."
@@ -290,7 +286,7 @@ class pyFrame(pyAssimObj):
 	base=self._Cstruct[0]
         while (type(base)is not Frame):
 	    base=base.baseclass
-        return pointer(cast(base.value, c_char_p))
+        return cast(base.value, c_char_p)
 
     def dataspace(self):
         'Return the amount of space this frame needs - including type and length'
@@ -349,7 +345,7 @@ class pyFrame(pyAssimObj):
             statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
         else:
             statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
-        #print statement
+        #print "EVAL:", statement
         return eval(statement)
 
 class pyAddrFrame(pyFrame):
@@ -357,27 +353,31 @@ class pyAddrFrame(pyFrame):
     '''
     def __init__(self, frametype, addrstring=None, port=None, Cstruct=None):
         "Initializer for the pyAddrFrame object."
-        self._Cstruct = None
+        self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
-            # Doing this duplicately to avoid losing track of Cstruct if addrstring is bad
-            self._pyNetAddr = pyNetAddr(addrstring, port=None)
+            self._pyNetAddr = pyNetAddr(addrstring, port=port)
             Cstruct = addrframe_new(frametype, 0);
+            if addrstring is not None:
+                Cstruct[0].setnetaddr(Cstruct, self._pyNetAddr._Cstruct)
         else:
-            Cstruct = cast(Cstruct, cClass.AddrFrame)
-            addrstr = Cstruct[0].baseclass.value
+            assert port is None
+            assert addrstring is None
             addrlen = Cstruct[0].baseclass.length
+            assert addrlen == 4 or addrlen == 6 or addrlen == 8 or addrlen == 16, ("addrlen is %d" % addrlen)
+            addrstr = Cstruct[0].baseclass.value
             addrstring = create_string_buffer(addrlen)
             memmove(addrstring, addrstr, addrlen)
-            # Doing this duplicately to avoid losing track of Cstruct if addrstring is bad
             self._pyNetAddr = pyNetAddr(addrstring, port=None)
-        Cstruct[0].setnetaddr(Cstruct, self._pyNetAddr._Cstruct)
         pyFrame.__init__(self, frametype, Cstruct)
 
     def addrtype(self):
         return self._pyNetAddr.addrtype()
 
+    def getnetaddr(self):
+        return self._pyNetAddr
+
     def __str__(self):
-       return ("pyAddrFrame(%s)" % str(self._pyNetAddr))
+       return ("pyAddrFrame(%d, (%s))" % (self.frametype(), str(self._pyNetAddr)))
 
 
 class pyCstringFrame(pyFrame):
@@ -570,8 +570,23 @@ class pyFrameSet(pyAssimObj):
         'Generator yielding the set of pyFrames in this pyFrameSet'
         curframe = self._Cstruct[0].framelist;
         while curframe:
-            yield pyFrame.Cstruct2Frame(curframe[0].data)
+            cast(curframe[0].data, struct__GSList._fields_[0][1])
+            yieldval =  pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
+            if not yieldval.isvalid():
+                print "OOPS!  Constructed frame from iter() is not valid"
+            #print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            yield yieldval
             curframe=g_slist_next(curframe)
+
+    def __str__(self):
+        'Convert pyFrameSet to string'
+        result = "{"
+        for frame in self.iter():
+            if result != "{":
+                result += ", "
+            result += str(frame)
+        result += "}"
+        return result
 
 
 class pyPacketDecoder(pyAssimObj):

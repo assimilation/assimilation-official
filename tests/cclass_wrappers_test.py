@@ -93,7 +93,7 @@ class pyFrameTest(TestCase):
         self.assertTrue(pyf.isvalid(), "PyFrame('fred') failed isvalid())")
         self.assertEqual(pyf.framelen(), 5)
         self.assertEqual(pyf.dataspace(), 9) # Total space for this Frame on the wire
-        self.assertEqual(pyf.framevalue()[0], 'fred') # Raw from 'C'
+        self.assertEqual(string_at(pyf.framevalue()), 'fred') # Raw from 'C'
 
     @class_teardown
     def tearDown(self):
@@ -105,7 +105,7 @@ class pyAddrFrameTest(TestCase):
         pyf = pyAddrFrame(200, addrstring=(1,2,3,4))
         self.assertEqual(pyf.frametype(), 200)
         self.assertEqual(pyf.framelen(), 6)
-        self.assertEqual(str(pyf), 'pyAddrFrame(1.2.3.4)')
+        self.assertEqual(str(pyf), 'pyAddrFrame(200, (1.2.3.4))')
         self.assertEqual(pyf.addrtype(), 1)
         self.assertTrue(pyf.isvalid(), "AddrFrame(200, (1,2,3,4)) failed isvalid()")
         self.assertRaises(ValueError, pyAddrFrame, 201, addrstring=(1,2,3))
@@ -331,11 +331,11 @@ class pyFrameSetTest(TestCase):
         for frame in pyfs.iter():
             ylist.append(frame)
         for i in range(0,len(flist)):
-           f=flist[i]
-           y=ylist[4-i]
-           # This isn't exhaustive, but it isn't bad.
-           self.assertEqual(f.frametype(), y.frametype())
-           self.assertEqual(type(f), type(y))
+            f=flist[i]
+            y=ylist[4-i]
+            # This isn't exhaustive, but it isn't bad.
+            self.assertEqual(f.frametype(), y.frametype())
+            self.assertEqual(type(f), type(y))
 
     def test_buildpacket(self):
         'Build a FrameSet, then make it into a packet, and make a frameset list out of the packet'

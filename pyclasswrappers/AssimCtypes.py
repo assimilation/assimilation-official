@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L/usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameformats.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlv_valuetypes.h ../include/tlvhelper.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -613,13 +613,13 @@ gssize = c_int # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 65
 
 gsize = c_uint # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 66
 
-__u_int = c_uint # /usr/include/bits/types.h: 33
+__u_int = c_uint # /usr/include/i386-linux-gnu/bits/types.h: 33
 
-__time_t = c_long # /usr/include/bits/types.h: 149
+__time_t = c_long # /usr/include/i386-linux-gnu/bits/types.h: 149
 
-__suseconds_t = c_long # /usr/include/bits/types.h: 151
+__suseconds_t = c_long # /usr/include/i386-linux-gnu/bits/types.h: 151
 
-__socklen_t = c_uint # /usr/include/bits/types.h: 192
+__socklen_t = c_uint # /usr/include/i386-linux-gnu/bits/types.h: 192
 
 gchar = c_char # /usr/include/glib-2.0/glib/gtypes.h: 47
 
@@ -645,11 +645,11 @@ GFunc = CFUNCTYPE(UNCHECKED(None), gpointer, gpointer) # /usr/include/glib-2.0/g
 
 GQuark = guint32 # /usr/include/glib-2.0/glib/gquark.h: 38
 
-# /usr/include/glib-2.0/glib/gerror.h: 36
+# /usr/include/glib-2.0/glib/gerror.h: 45
 class struct__GError(Structure):
     pass
 
-GError = struct__GError # /usr/include/glib-2.0/glib/gerror.h: 34
+GError = struct__GError # /usr/include/glib-2.0/glib/gerror.h: 43
 
 struct__GError.__slots__ = [
     'domain',
@@ -680,7 +680,7 @@ if hasattr(_libs['libclientlib.so'], 'g_try_malloc0'):
     g_try_malloc0.argtypes = [gsize]
     g_try_malloc0.restype = gpointer
 
-enum_anon_46 = c_int # /usr/include/glib-2.0/glib/gchecksum.h: 50
+enum_anon_48 = c_int # /usr/include/glib-2.0/glib/gchecksum.h: 50
 
 G_CHECKSUM_MD5 = 0 # /usr/include/glib-2.0/glib/gchecksum.h: 50
 
@@ -688,7 +688,7 @@ G_CHECKSUM_SHA1 = (G_CHECKSUM_MD5 + 1) # /usr/include/glib-2.0/glib/gchecksum.h:
 
 G_CHECKSUM_SHA256 = (G_CHECKSUM_SHA1 + 1) # /usr/include/glib-2.0/glib/gchecksum.h: 50
 
-GChecksumType = enum_anon_46 # /usr/include/glib-2.0/glib/gchecksum.h: 50
+GChecksumType = enum_anon_48 # /usr/include/glib-2.0/glib/gchecksum.h: 50
 
 # /usr/include/glib-2.0/glib/gconvert.h: 77
 class struct__GIConv(Structure):
@@ -920,7 +920,7 @@ class struct__GMainContext(Structure):
 
 GMainContext = struct__GMainContext # /usr/include/glib-2.0/glib/gmain.h: 39
 
-# /usr/include/glib-2.0/glib/gmain.h: 140
+# /usr/include/glib-2.0/glib/gmain.h: 150
 class struct__GSource(Structure):
     pass
 
@@ -932,19 +932,19 @@ class struct__GSourcePrivate(Structure):
 
 GSourcePrivate = struct__GSourcePrivate # /usr/include/glib-2.0/glib/gmain.h: 56
 
-# /usr/include/glib-2.0/glib/gmain.h: 165
+# /usr/include/glib-2.0/glib/gmain.h: 175
 class struct__GSourceCallbackFuncs(Structure):
     pass
 
 GSourceCallbackFuncs = struct__GSourceCallbackFuncs # /usr/include/glib-2.0/glib/gmain.h: 68
 
-# /usr/include/glib-2.0/glib/gmain.h: 177
+# /usr/include/glib-2.0/glib/gmain.h: 193
 class struct__GSourceFuncs(Structure):
     pass
 
 GSourceFuncs = struct__GSourceFuncs # /usr/include/glib-2.0/glib/gmain.h: 115
 
-GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), gpointer) # /usr/include/glib-2.0/glib/gmain.h: 126
+GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), gpointer) # /usr/include/glib-2.0/glib/gmain.h: 136
 
 struct__GSource.__slots__ = [
     'callback_data',
@@ -988,7 +988,7 @@ struct__GSourceCallbackFuncs._fields_ = [
     ('get', CFUNCTYPE(UNCHECKED(None), gpointer, POINTER(GSource), POINTER(GSourceFunc), POINTER(gpointer))),
 ]
 
-GSourceDummyMarshal = CFUNCTYPE(UNCHECKED(None), ) # /usr/include/glib-2.0/glib/gmain.h: 175
+GSourceDummyMarshal = CFUNCTYPE(UNCHECKED(None), ) # /usr/include/glib-2.0/glib/gmain.h: 191
 
 struct__GSourceFuncs.__slots__ = [
     'prepare',
@@ -1007,7 +1007,7 @@ struct__GSourceFuncs._fields_ = [
     ('closure_marshal', GSourceDummyMarshal),
 ]
 
-# /usr/include/glib-2.0/glib/gstring.h: 43
+# /usr/include/glib-2.0/glib/gstring.h: 55
 class struct__GString(Structure):
     pass
 
@@ -1036,21 +1036,21 @@ class struct__GIOFuncs(Structure):
 
 GIOFuncs = struct__GIOFuncs # /usr/include/glib-2.0/glib/giochannel.h: 44
 
-enum_anon_61 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 77
+enum_anon_64 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 77
 
-GIOStatus = enum_anon_61 # /usr/include/glib-2.0/glib/giochannel.h: 77
+GIOStatus = enum_anon_64 # /usr/include/glib-2.0/glib/giochannel.h: 77
 
-enum_anon_62 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 84
+enum_anon_65 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 84
 
-GSeekType = enum_anon_62 # /usr/include/glib-2.0/glib/giochannel.h: 84
+GSeekType = enum_anon_65 # /usr/include/glib-2.0/glib/giochannel.h: 84
 
-enum_anon_63 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 94
+enum_anon_66 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 94
 
-GIOCondition = enum_anon_63 # /usr/include/glib-2.0/glib/giochannel.h: 94
+GIOCondition = enum_anon_66 # /usr/include/glib-2.0/glib/giochannel.h: 94
 
-enum_anon_64 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 106
+enum_anon_67 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 106
 
-GIOFlags = enum_anon_64 # /usr/include/glib-2.0/glib/giochannel.h: 106
+GIOFlags = enum_anon_67 # /usr/include/glib-2.0/glib/giochannel.h: 106
 
 struct__GIOChannel.__slots__ = [
     'ref_count',
@@ -1288,9 +1288,9 @@ if hasattr(_libs['libclientlib.so'], '_frame_default_valuefinalize'):
     _frame_default_valuefinalize.argtypes = [gpointer]
     _frame_default_valuefinalize.restype = None
 
-u_int = __u_int # /usr/include/sys/types.h: 36
+u_int = __u_int # /usr/include/i386-linux-gnu/sys/types.h: 36
 
-# /usr/include/bits/time.h: 75
+# /usr/include/i386-linux-gnu/bits/time.h: 75
 class struct_timeval(Structure):
     pass
 
@@ -1303,22 +1303,22 @@ struct_timeval._fields_ = [
     ('tv_usec', __suseconds_t),
 ]
 
-socklen_t = __socklen_t # /usr/include/bits/socket.h: 35
+socklen_t = __socklen_t # /usr/include/i386-linux-gnu/bits/socket.h: 35
 
-sa_family_t = c_uint # /usr/include/bits/sockaddr.h: 29
+sa_family_t = c_uint # /usr/include/i386-linux-gnu/bits/sockaddr.h: 29
 
 in_port_t = c_uint16 # /usr/include/netinet/in.h: 97
 
 # /usr/include/netinet/in.h: 200
-class union_anon_98(Union):
+class union_anon_101(Union):
     pass
 
-union_anon_98.__slots__ = [
+union_anon_101.__slots__ = [
     '__u6_addr8',
     '__u6_addr16',
     '__u6_addr32',
 ]
-union_anon_98._fields_ = [
+union_anon_101._fields_ = [
     ('__u6_addr8', c_uint8 * 16),
     ('__u6_addr16', c_uint16 * 8),
     ('__u6_addr32', c_uint32 * 4),
@@ -1332,7 +1332,7 @@ struct_in6_addr.__slots__ = [
     '__in6_u',
 ]
 struct_in6_addr._fields_ = [
-    ('__in6_u', union_anon_98),
+    ('__in6_u', union_anon_101),
 ]
 
 # /usr/include/netinet/in.h: 239
@@ -1433,46 +1433,54 @@ AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 19
 
 struct__AddrFrame.__slots__ = [
     'baseclass',
+    '_addr',
+    '_basefinal',
     'setaddr',
     'setnetaddr',
+    'getnetaddr',
+    'setport',
 ]
 struct__AddrFrame._fields_ = [
     ('baseclass', Frame),
+    ('_addr', POINTER(NetAddr)),
+    ('_basefinal', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
     ('setaddr', CFUNCTYPE(UNCHECKED(None), POINTER(AddrFrame), guint16, gconstpointer, gsize)),
     ('setnetaddr', CFUNCTYPE(UNCHECKED(None), POINTER(AddrFrame), POINTER(NetAddr))),
+    ('getnetaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(AddrFrame))),
+    ('setport', CFUNCTYPE(UNCHECKED(None), POINTER(AddrFrame), guint16)),
 ]
 
-# /home/alanr/monitor/src/include/addrframe.h: 32
+# /home/alanr/monitor/src/include/addrframe.h: 36
 if hasattr(_libs['libclientlib.so'], 'addrframe_new'):
     addrframe_new = _libs['libclientlib.so'].addrframe_new
     addrframe_new.argtypes = [guint16, gsize]
     addrframe_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 33
+# /home/alanr/monitor/src/include/addrframe.h: 37
 if hasattr(_libs['libclientlib.so'], 'addrframe_ipv4_new'):
     addrframe_ipv4_new = _libs['libclientlib.so'].addrframe_ipv4_new
     addrframe_ipv4_new.argtypes = [guint16, gconstpointer]
     addrframe_ipv4_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 34
+# /home/alanr/monitor/src/include/addrframe.h: 38
 if hasattr(_libs['libclientlib.so'], 'addrframe_ipv6_new'):
     addrframe_ipv6_new = _libs['libclientlib.so'].addrframe_ipv6_new
     addrframe_ipv6_new.argtypes = [guint16, gconstpointer]
     addrframe_ipv6_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 35
+# /home/alanr/monitor/src/include/addrframe.h: 39
 if hasattr(_libs['libclientlib.so'], 'addrframe_mac48_new'):
     addrframe_mac48_new = _libs['libclientlib.so'].addrframe_mac48_new
     addrframe_mac48_new.argtypes = [guint16, gconstpointer]
     addrframe_mac48_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 36
+# /home/alanr/monitor/src/include/addrframe.h: 40
 if hasattr(_libs['libclientlib.so'], 'addrframe_mac64_new'):
     addrframe_mac64_new = _libs['libclientlib.so'].addrframe_mac64_new
     addrframe_mac64_new.argtypes = [guint16, gconstpointer]
     addrframe_mac64_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 37
+# /home/alanr/monitor/src/include/addrframe.h: 41
 if hasattr(_libs['libclientlib.so'], 'addrframe_tlvconstructor'):
     addrframe_tlvconstructor = _libs['libclientlib.so'].addrframe_tlvconstructor
     addrframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
@@ -1993,28 +2001,22 @@ if hasattr(_libs['libclientlib.so'], 'netio_new'):
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/listener.h: 25
+# ../include/listener.h: 26
 class struct__Listener(Structure):
     pass
 
-Listener = struct__Listener # ../include/listener.h: 19
+Listener = struct__Listener # ../include/listener.h: 20
 
 struct__Listener.__slots__ = [
-    '_refcount',
-    'ref',
-    'unref',
-    '_finalize',
+    'baseclass',
     'got_frameset',
 ]
 struct__Listener._fields_ = [
-    ('_refcount', c_int),
-    ('ref', CFUNCTYPE(UNCHECKED(None), POINTER(Listener))),
-    ('unref', CFUNCTYPE(UNCHECKED(None), POINTER(Listener))),
-    ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(Listener))),
+    ('baseclass', AssimObj),
     ('got_frameset', CFUNCTYPE(UNCHECKED(gboolean), POINTER(Listener), POINTER(FrameSet), POINTER(NetAddr))),
 ]
 
-# ../include/listener.h: 34
+# ../include/listener.h: 32
 if hasattr(_libs['libclientlib.so'], 'listener_new'):
     listener_new = _libs['libclientlib.so'].listener_new
     listener_new.argtypes = [gsize]
@@ -2063,13 +2065,13 @@ class struct__HbListener(Structure):
 
 HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 20
 
-enum_anon_99 = c_int # /home/alanr/monitor/src/include/hblistener.h: 25
+enum_anon_102 = c_int # /home/alanr/monitor/src/include/hblistener.h: 25
 
 HbPacketsBeingReceived = 1 # /home/alanr/monitor/src/include/hblistener.h: 25
 
 HbPacketsTimedOut = 2 # /home/alanr/monitor/src/include/hblistener.h: 25
 
-HbNodeStatus = enum_anon_99 # /home/alanr/monitor/src/include/hblistener.h: 25
+HbNodeStatus = enum_anon_102 # /home/alanr/monitor/src/include/hblistener.h: 25
 
 struct__HbListener.__slots__ = [
     'baseclass',
@@ -3043,23 +3045,29 @@ except:
 
 # /home/alanr/monitor/src/include/configcontext.h: 56
 try:
-    CONFIGNAME_CMAADDR = 'cmaaddr'
+    CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
 # /home/alanr/monitor/src/include/configcontext.h: 57
 try:
-    CONFIGNAME_OUTSIG = 'outsig'
+    CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
 # /home/alanr/monitor/src/include/configcontext.h: 58
 try:
-    CONFIGNAME_CRYPT = 'crypt'
+    CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
 # /home/alanr/monitor/src/include/configcontext.h: 59
+try:
+    CONFIGNAME_CRYPT = 'crypt'
+except:
+    pass
+
+# /home/alanr/monitor/src/include/configcontext.h: 60
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
@@ -3281,15 +3289,33 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 224
+# /home/alanr/monitor/src/include/frametypes.h: 225
 try:
-    FRAMETYPE_PATHNAME = 12
+    FRAMETYPE_HBINTERVAL = 12
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 237
+# /home/alanr/monitor/src/include/frametypes.h: 238
 try:
-    FRAMETYPE_NVPAIR = 13
+    FRAMETYPE_HBDEADTIME = 13
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 251
+try:
+    FRAMETYPE_HBWARNTIME = 14
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 263
+try:
+    FRAMETYPE_PATHNAME = 15
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 276
+try:
+    FRAMETYPE_NVPAIR = 16
 except:
     pass
 
@@ -3767,7 +3793,7 @@ _PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 32
 
 _NetIO = struct__NetIO # ../include/netio.h: 31
 
-_Listener = struct__Listener # ../include/listener.h: 25
+_Listener = struct__Listener # ../include/listener.h: 26
 
 _NetGSource = struct__NetGSource # ../include/netgsource.h: 31
 

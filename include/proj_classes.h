@@ -16,6 +16,7 @@ WINEXPORT gpointer	proj_class_new(gsize objsize, const char * static_classname);
 WINEXPORT void		proj_class_dissociate(gpointer object);
 WINEXPORT void		proj_class_free(gpointer object);
 WINEXPORT void		proj_class_register_object(gpointer object, const char * static_classname);
+WINEXPORT gboolean	proj_class_is_a(gconstpointer object, const char * castclass);
 WINEXPORT gpointer	proj_class_castas(gpointer object, const char * castclass);
 WINEXPORT gconstpointer	proj_class_castasconst(gconstpointer object, const char * castclass);
 WINEXPORT gpointer	proj_class_register_subclassed(gpointer object, const char * static_subclassname);
@@ -50,6 +51,7 @@ WINEXPORT void proj_class_finalize_sys(void);
 /// @param Cclass class to cast <i>obj</i> (the object) to.
 /// @param obj the object to be cast to type <i>class</i>
 #define CASTTOCONSTCLASS(Cclass, obj)		((const Cclass *) proj_class_castasconst(obj, #Cclass))
+#define OBJ_IS_A(obj, Cclass)			proj_class_is_a(obj, Cclass)
 
 /// Free a C-class object.
 /// @param obj the object to be freed.  Should be registered as a class object.
