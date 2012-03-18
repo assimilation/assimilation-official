@@ -28,14 +28,14 @@ struct _HbSender {
 	void		(*unref)(HbSender*);		///< Decrement reference count
 	void		(*_finalize)(HbSender*);	///< HbSender destructor
 	guint64		_expected_interval;		///< How often to expect heartbeats
-	NetIO*		_outmethod;			///< How to send out heartbeats
+	NetGSource*	_outmethod;			///< How to send out heartbeats
 	NetAddr*	_sendaddr;			///< What address are we sending to?
 	int		_refcount;			///< Current reference count
 	guint		timeout_source;			///< timeout source id
 };
 #define	DEFAULT_DEADTIME	60 // seconds
 
-WINEXPORT HbSender* hbsender_new(NetAddr*, NetIO*, guint interval, gsize hblisten_objsize);
+WINEXPORT HbSender* hbsender_new(NetAddr*, NetGSource*, guint interval, gsize hblisten_objsize);
 WINEXPORT void hbsender_stopsend(NetAddr* unlistenaddr);
 
 ///@}

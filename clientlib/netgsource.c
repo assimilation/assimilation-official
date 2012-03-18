@@ -34,6 +34,8 @@ FSTATIC gboolean _netgsource_dispatch(GSource* source, GSourceFunc callback, gpo
 FSTATIC void     _netgsource_finalize(GSource* source);
 FSTATIC void	_netgsource_addListener(NetGSource*, guint16, Listener*);
 FSTATIC void	_netgsource_del_listener(gpointer);
+FSTATIC void	_netgsource_sendaframeset(NetGSource*,const NetAddr*, FrameSet*);
+FSTATIC void	_netgsource_sendframesets(NetGSource*,const NetAddr*, GSList*);
 
 static GSourceFuncs _netgsource_gsourcefuncs = {
 	_netgsource_prepare,
@@ -90,6 +92,8 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 	ret->_gfd.events = G_IO_IN|G_IO_ERR|G_IO_HUP;
 	ret->_gfd.revents = 0;
 	ret->addListener = _netgsource_addListener;
+	ret->sendframesets = _netgsource_sendframesets;
+	ret->sendaframeset = _netgsource_sendaframeset;
 
 	g_source_add_poll(gsret, &ret->_gfd);
 	g_source_set_priority(gsret, priority);
@@ -193,6 +197,24 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 	}
 	g_hash_table_unref(self->_dispatchers);
 	proj_class_dissociate(gself);// Avoid dangling reference in class system
+}
+/// Send a single frameset to the given address
+FSTATIC void
+_netgsource_sendaframeset(NetGSource*		self,	///< @ref NetGSource Object to send via
+			  const NetAddr*	addr,	///< @ref NetAddr address to send to
+			  FrameSet*		fs)	///< @ref Frameset to send
+{
+	NetIO* nio = self->_netio;
+	nio->sendaframeset(nio, addr, fs);
+}
+/// Send a (GSList) list of @ref "Frameset"s to the given address
+FSTATIC void
+_netgsource_sendframesets(NetGSource*		self,	///< @ref NetGSource object to send via
+			  const NetAddr*	addr,	///< @ref NetAddr address to send to
+			  GSList*		fslist)	///< GSList of @ref Frameset objects to send
+{
+	NetIO* nio = self->_netio;
+	nio->sendframesets(nio, addr, fslist);
 }
 FSTATIC void
 _netgsource_addListener(NetGSource* self,	///<[in/out] Object being modified

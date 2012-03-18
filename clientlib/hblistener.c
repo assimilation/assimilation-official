@@ -210,27 +210,28 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	base = listener_new(objsize);
 	proj_class_register_subclassed(base, "HbListener");
 	newlistener = CASTTOCLASS(HbListener, base);
-	if (newlistener != NULL) {
-		base->baseclass.unref = _hblistener_unref;
-		base->baseclass._finalize = _hblistener_finalize;
-		base->got_frameset = _hblistener_got_frameset;
-		newlistener->listenaddr = listenaddr;
-		listenaddr->baseclass.ref(listenaddr);
-		newlistener->get_deadtime = _hblistener_get_deadtime;
-		newlistener->set_deadtime = _hblistener_set_deadtime;
-		newlistener->get_warntime = _hblistener_get_warntime;
-		newlistener->set_warntime = _hblistener_set_warntime;
-		newlistener->set_deadtime_callback = _hblistener_set_deadtime_callback;
-		newlistener->set_warntime_callback = _hblistener_set_warntime_callback;
-		newlistener->set_comealive_callback = _hblistener_set_comealive_callback;
-		newlistener->set_heartbeat_callback = _hblistener_set_heartbeat_callback;
-
-		newlistener->set_deadtime(newlistener, DEFAULT_DEADTIME*1000000);
-		newlistener->set_warntime(newlistener, DEFAULT_DEADTIME*1000000/4);
-		newlistener->status = HbPacketsBeingReceived;
-		_hblistener_addlist(newlistener);
+	if (NULL == newlistener) {
+		return NULL;
 	}
-	return newlistener;
+	base->baseclass.unref = _hblistener_unref;
+	base->baseclass._finalize = _hblistener_finalize;
+	base->got_frameset = _hblistener_got_frameset;
+	newlistener->listenaddr = listenaddr;
+	listenaddr->baseclass.ref(listenaddr);
+	newlistener->get_deadtime = _hblistener_get_deadtime;
+	newlistener->set_deadtime = _hblistener_set_deadtime;
+	newlistener->get_warntime = _hblistener_get_warntime;
+	newlistener->set_warntime = _hblistener_set_warntime;
+	newlistener->set_deadtime_callback = _hblistener_set_deadtime_callback;
+	newlistener->set_warntime_callback = _hblistener_set_warntime_callback;
+	newlistener->set_comealive_callback = _hblistener_set_comealive_callback;
+	newlistener->set_heartbeat_callback = _hblistener_set_heartbeat_callback;
+
+	newlistener->set_deadtime(newlistener, DEFAULT_DEADTIME*1000000);
+	newlistener->set_warntime(newlistener, DEFAULT_DEADTIME*1000000/4);
+	newlistener->status = HbPacketsBeingReceived;
+	_hblistener_addlist(newlistener);
+        return newlistener;
 }
 
 /// Set deadtime

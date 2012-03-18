@@ -109,10 +109,10 @@ _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 /// This can be used directly or by derived classes.
 ///@todo write code to actually send the heartbeats ;-)
 HbSender*
-hbsender_new(NetAddr* sendaddr,	///<[in] Address to send to
-	     NetIO* outmethod,	///<[in] Mechanism for sending packets
-	     guint  interval,	///<[in] How often to send, in seconds
-	     gsize objsize)	///<[in] size of HbSender structure (0 for sizeof(HbSender))
+hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
+	     NetGSource* outmethod,	///<[in] Mechanism for sending packets
+	     guint  interval,		///<[in] How often to send, in seconds
+	     gsize objsize)		///<[in] size of HbSender structure (0 for sizeof(HbSender))
 {
 	HbSender * newsender;
 	if (objsize < sizeof(HbSender)) {

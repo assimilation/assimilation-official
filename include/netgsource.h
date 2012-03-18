@@ -38,6 +38,8 @@ struct _NetGSource {
 	NetIO*			_netio;		///< netio this object is based on
 	GHashTable*		_dispatchers;	///< Table of dispatch functions.
 	GDestroyNotify 		_finalize;	///< Function to call when we're destroyed
+	void			(*sendaframeset)(NetGSource*,const NetAddr*, FrameSet*);///< Send a single frameset
+	void			(*sendframesets)(NetGSource*,const NetAddr*, GSList*);  ///< Send a frameset list
 	void(*addListener)(NetGSource*,guint16, Listener*);///< Register a new listener
 };
 WINEXPORT NetGSource* netgsource_new(NetIO* iosrc, GDestroyNotify notify,

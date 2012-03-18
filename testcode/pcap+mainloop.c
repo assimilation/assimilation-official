@@ -52,6 +52,7 @@ gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
 GMainLoop*	loop = NULL;
 NetIO*		transport;
+NetGSource*	netpkt;
 NetAddr*	destaddr;
 HbSender*	sender = NULL;
 int		wirepktcount = 0;
@@ -64,9 +65,9 @@ gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void real_deadtime_agent(HbListener* who);
 void initial_deadtime_agent(HbListener* who);
 void got_heartbeat(HbListener* who);
-void obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetIO*transport);
-void obey_sendhb(FrameSet* fs, ConfigContext* config, NetIO* transport);
-void obey_expecthb(FrameSet* fs, ConfigContext* config, NetIO* transport);
+void obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetGSource*);
+void obey_sendhb(FrameSet* fs, ConfigContext* config, NetGSource*);
+void obey_expecthb(FrameSet* fs, ConfigContext* config, NetGSource*);
 FrameSet* create_sendexpecthb(ConfigContext*, NetAddr** addrs, int addrcount);
 
 /// Test routine for sending an encapsulated Pcap packet.
@@ -207,11 +208,10 @@ initial_deadtime_agent(HbListener* who)
 {
 	(void)who;
 	g_message("Expected deadtime event occurred (once)");
-	sender = hbsender_new(destaddr, transport, 1,  0);
+	sender = hbsender_new(destaddr, netpkt, 1,  0);
 	who->set_deadtime_callback(who, real_deadtime_agent);
 	
 }
-#if 0
 
 /**
  * Create a @ref FrameSet to send and expect heartbeats from the same sets of addresses.
@@ -283,7 +283,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 void
 obey_sendhb(FrameSet* fs		///<[in] Frameset indicating who to send HBs to
 	,   ConfigContext* config	///<[in] Various default parameters
-	,   NetIO* transport)		///<[in/out] Transport for sending heartbeats
+	,   NetGSource* transport)	///<[in/out] Transport for sending heartbeats
 {
 
 	GSList*		slframe;
@@ -350,7 +350,9 @@ obey_sendhb(FrameSet* fs		///<[in] Frameset indicating who to send HBs to
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_expecthb(FrameSet* fs, ConfigContext* config, NetIO* transport)
+obey_expecthb(FrameSet*		fs,		///< @ref FrameSet to 'obey'
+	      ConfigContext*	config,		///< configuration parameters
+	      NetGSource*	transport)	///< I/O path for the @ref FrameSet
 {
 
 	GSList*	slframe;
@@ -377,45 +379,56 @@ obey_expecthb(FrameSet* fs, ConfigContext* config, NetIO* transport)
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
 		int	frametype = frame->type;
 		switch(frametype) {
-			HbListener*	hblisten;
 			IntFrame*	iframe;
-			AddrFrame*	aframe;
 
 			case FRAMETYPE_PORTNUM:
 				iframe = CASTTOCLASS(IntFrame, frame);
 				port = iframe->getint(iframe);
-				if (port <= 0 || port > 65536) {
+				if (port <= 0 || port > 65535) {
 					g_warning("invalid port (%d) in %s"
 					, port, __FUNCTION__);
 					port = 0;
 					continue;
 				}
 				break;
+
 			case FRAMETYPE_HBDEADTIME:
 				iframe = CASTTOCLASS(IntFrame, frame);
 				deadtime = iframe->getint(iframe);
 				break;
+
 			case FRAMETYPE_HBWARNTIME:
 				iframe = CASTTOCLASS(IntFrame, frame);
 				warntime = iframe->getint(iframe);
 				break;
-			case FRAMETYPE_IPADDR:
+
+			case FRAMETYPE_IPADDR: {
+				HbListener*	hblisten;
+				AddrFrame*	aframe;
 				if (0 == port) {
 					g_warning("Port is zero in %s", __FUNCTION__);
 					continue;
 				}
-				//FIXME: This is no doubt not right!
 				aframe = CASTTOCLASS(AddrFrame, frame);
 				addrcount++;
 				aframe->setport(aframe, port);
 				hblisten = hblistener_new(aframe->getnetaddr(aframe), 0);
 				if (deadtime > 0) {
+					// Otherwise we get the default deadtime
 					hblisten->set_deadtime(hblisten, deadtime);
 				}
 				if (warntime > 0) {
+					// Otherwise we get the default warntime
 					hblisten->set_warntime(hblisten, warntime);
 				}
-				break;
+				/// TODO: Need to set up hblistener callbacks!
+				// Intercept incoming heartbeat packets
+				netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT
+				,		    CASTTOCLASS(Listener, hblisten));
+				// Unref this heartbeat listener, and NULL out our reference.
+				hblisten->baseclass.baseclass.unref(hblisten); hblisten = NULL;
+			}
+			break;
 		}
 	}
 }
@@ -430,7 +443,7 @@ obey_expecthb(FrameSet* fs, ConfigContext* config, NetIO* transport)
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetIO*transport)
+obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetGSource*transport)
 {
 	g_return_if_fail(fs != NULL && fs->fstype == FRAMESETTYPE_SENDEXPECTHB);
 
@@ -438,7 +451,6 @@ obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetIO*transport)
 	obey_expecthb(fs, config, transport);
 }
 
-#endif
 
 FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 
@@ -453,7 +465,6 @@ main(int argc, char **argv)
 	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
 	guint16		testport = 1984;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
-	NetGSource*	netpkt;
 	HbListener*	hblisten;
 	Listener*	otherlistener;
 	ConfigContext*	config = configcontext_new(0);
