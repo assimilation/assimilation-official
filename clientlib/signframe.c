@@ -156,7 +156,7 @@ FSTATIC void
 _signframe_updatedata(Frame* fself,		///<[in] SignFrame signature Frame
 		      gpointer tlvptr,		///<[in/out] Pointer to our TLV data in the packet
 		      gconstpointer pktend,	///<[in] One byte past end of packet
-		      FrameSet* fs)		///<[ignored] Frameset to update
+		      FrameSet* fs)		///<[ignored] FrameSet to update
 {
 	SignFrame*	self = CASTTOCLASS(SignFrame, fself);
 	GChecksumType	cksumtype = self->signaturetype;

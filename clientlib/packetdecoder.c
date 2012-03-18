@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Implements the inbound frame decoding function: Packet-chunk->Frameset-list
+ * @brief Implements the inbound frame decoding function: Packet-chunk->FrameSet-list
  * @details 
  * This code walks through an packet and creates a collection of @ref FrameSet "FramSet"s that correspond to
  * the @ref FrameSet "FrameSet"s that the originator created.

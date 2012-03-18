@@ -229,7 +229,7 @@ proj_timeval_to_g_real_time(const struct timeval * tv)
 
 /// Construct a PCAP capture FrameSet from a PCAP packet
 FrameSet*
-construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create Frameset with
+construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSet with
 			gconstpointer pkt,		  ///<[in] captured packet
 			gconstpointer pktend,		  ///<[in] one byte past end of pkt
 			const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header

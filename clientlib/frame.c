@@ -87,7 +87,7 @@ FSTATIC void
 _frame_updatedata(Frame * self,			///< Frame object ('this')
 		  gpointer tlvptr,		///< Where the Frame TLV is
 		  gconstpointer pktend,		///< End of packet
-		  FrameSet* fs)			///< Frameset to update (or not)
+		  FrameSet* fs)			///< FrameSet to update (or not)
 {
 	(void)fs;
 	// set_generic_tlv_value does pretty exhaustive error checking.

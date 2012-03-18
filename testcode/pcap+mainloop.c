@@ -152,7 +152,7 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 					++errcount;
 				}
 			}
-			//g_message("Frameset for copy packet - freed!");
+			//g_message("FrameSet for copy packet - freed!");
 			copyfs->unref(copyfs);
 			copyfs = NULL;
 			g_slist_free(fslist);
@@ -160,17 +160,16 @@ gotapcappacket(GSource_pcap_t* srcobj,		///<[in]GSource object causing this call
 	}
 	fs->unref(fs);
 	fs = NULL;
-	//g_message("Frameset for constructed packet - freed!");
+	//g_message("FrameSet for constructed packet - freed!");
 	send_encapsulated_packet(pkt, pend, hdr, dev);
 	++pktcount;
 	return TRUE;
 }
 
-///
 /// Test routine called when a NetIO packet is received.
 gboolean
 gotnetpkt(Listener* l,		///<[in/out] Input GSource
-	  FrameSet* fs,		///<[in/out] Framesets received
+	  FrameSet* fs,		///<[in/out] @ref FrameSet "FrameSet"s received
 	  NetAddr* srcaddr	///<[in] Source address of this packet
 	  )
 {
@@ -270,10 +269,10 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 }
 
 /**
- * Act on (obey) a FrameSet telling us to send heartbeats.
- * Such framesets are sent when the Collective Authority wants us to send
- * Heartbeats to various addresses. This might be from a @ref FRAMESETTYPE_SENDHB
- * FrameSet or a @ref FRAMESETTYPE_SENDEXPECTHB FrameSet.
+ * Act on (obey) a @ref FrameSet telling us to send heartbeats.
+ * Such FrameSets are sent when the Collective Authority wants us to send
+ * Heartbeats to various addresses. This might be from a FRAMESETTYPE_SENDHB
+ * FrameSet or a FRAMESETTYPE_SENDEXPECTHB FrameSet.
  * The send interval, and port number can come from the FrameSet or from the
  * @ref ConfigContext parameter we're given - with the FrameSet taking priority.
  *
@@ -281,7 +280,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_sendhb(FrameSet* fs		///<[in] Frameset indicating who to send HBs to
+obey_sendhb(FrameSet* fs		///<[in] @ref FrameSet indicating who to send HBs to
 	,   ConfigContext* config	///<[in] Various default parameters
 	,   NetGSource* transport)	///<[in/out] Transport for sending heartbeats
 {
@@ -339,10 +338,10 @@ obey_sendhb(FrameSet* fs		///<[in] Frameset indicating who to send HBs to
 	}
 }
 /**
- * Act on (obey) a FrameSet telling us to expect heartbeats.
+ * Act on (obey) a @ref FrameSet telling us to expect heartbeats.
  * Such framesets are sent when the Collective Authority wants us to expect
- * Heartbeats from various addresses.  This might be from a @ref FRAMESETTYPE_EXPECTHB
- * FrameSet or a @ref FRAMESETTYPE_SENDEXPECTHB FrameSet.
+ * Heartbeats from various addresses.  This might be from a FRAMESETTYPE_EXPECTHB
+ * FrameSet or a FRAMESETTYPE_SENDEXPECTHB FrameSet.
  * The deadtime, warntime, and port number can come from the FrameSet or the
  * @ref ConfigContext parameter we're given - with the FrameSet taking priority.
  *
@@ -434,7 +433,7 @@ obey_expecthb(FrameSet*		fs,		///< @ref FrameSet to 'obey'
 }
 
 /**
- * Act on (obey) a @ref FRAMESETTYPE_SENDEXPECTHB @ref FrameSet.
+ * Act on (obey) a FRAMESETTYPE_SENDEXPECTHB @ref FrameSet.
  * This frameset is sent when the Collective Authority wants us to both send
  * Heartbeats to an address and expect heartbeats back from them.
  * The deadtime, warntime, send interval and port number can come from the

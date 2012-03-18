@@ -14,7 +14,7 @@
  * @defgroup FrameSetFormats 'FrameSet' data format on the wire
  * @{
  * @ingroup WireDataFormats
- * As noted earlier, Framesets are logical packets.
+ * As noted earlier, FrameSets are logical packets.
  * Here is my current thinking about the layout of frameset data - which is a variant
  * of Type, Length, Value (TLV) entries like those used by LLDP and CDP.
  * Below you will see a number of 2-byte integers, which are all in network-byte order.

@@ -202,16 +202,16 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 FSTATIC void
 _netgsource_sendaframeset(NetGSource*		self,	///< @ref NetGSource Object to send via
 			  const NetAddr*	addr,	///< @ref NetAddr address to send to
-			  FrameSet*		fs)	///< @ref Frameset to send
+			  FrameSet*		fs)	///< @ref FrameSet to send
 {
 	NetIO* nio = self->_netio;
 	nio->sendaframeset(nio, addr, fs);
 }
-/// Send a (GSList) list of @ref "Frameset"s to the given address
+/// Send a (GSList) list of @ref FrameSet "FrameSet"s to the given address
 FSTATIC void
 _netgsource_sendframesets(NetGSource*		self,	///< @ref NetGSource object to send via
 			  const NetAddr*	addr,	///< @ref NetAddr address to send to
-			  GSList*		fslist)	///< GSList of @ref Frameset objects to send
+			  GSList*		fslist)	///< GSList of @ref FrameSet objects to send
 {
 	NetIO* nio = self->_netio;
 	nio->sendframesets(nio, addr, fslist);
