@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameformats.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlv_valuetypes.h ../include/tlvhelper.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbreqlistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1143,36 +1143,42 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_register_object'):
     proj_class_register_object.restype = None
 
 # ../include/proj_classes.h: 19
+if hasattr(_libs['libclientlib.so'], 'proj_class_is_a'):
+    proj_class_is_a = _libs['libclientlib.so'].proj_class_is_a
+    proj_class_is_a.argtypes = [gconstpointer, String]
+    proj_class_is_a.restype = gboolean
+
+# ../include/proj_classes.h: 20
 if hasattr(_libs['libclientlib.so'], 'proj_class_castas'):
     proj_class_castas = _libs['libclientlib.so'].proj_class_castas
     proj_class_castas.argtypes = [gpointer, String]
     proj_class_castas.restype = gpointer
 
-# ../include/proj_classes.h: 20
+# ../include/proj_classes.h: 21
 if hasattr(_libs['libclientlib.so'], 'proj_class_castasconst'):
     proj_class_castasconst = _libs['libclientlib.so'].proj_class_castasconst
     proj_class_castasconst.argtypes = [gconstpointer, String]
     proj_class_castasconst.restype = gconstpointer
 
-# ../include/proj_classes.h: 21
+# ../include/proj_classes.h: 22
 if hasattr(_libs['libclientlib.so'], 'proj_class_register_subclassed'):
     proj_class_register_subclassed = _libs['libclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
     proj_class_register_subclassed.restype = gpointer
 
-# ../include/proj_classes.h: 22
+# ../include/proj_classes.h: 23
 if hasattr(_libs['libclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
     proj_class_quark_add_superclass_relationship = _libs['libclientlib.so'].proj_class_quark_add_superclass_relationship
     proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
     proj_class_quark_add_superclass_relationship.restype = None
 
-# ../include/proj_classes.h: 23
+# ../include/proj_classes.h: 24
 if hasattr(_libs['libclientlib.so'], 'proj_class_quark_is_a'):
     proj_class_quark_is_a = _libs['libclientlib.so'].proj_class_quark_is_a
     proj_class_quark_is_a.argtypes = [GQuark, GQuark]
     proj_class_quark_is_a.restype = gboolean
 
-# ../include/proj_classes.h: 24
+# ../include/proj_classes.h: 25
 if hasattr(_libs['libclientlib.so'], 'proj_class_classname'):
     proj_class_classname = _libs['libclientlib.so'].proj_class_classname
     proj_class_classname.argtypes = [gconstpointer]
@@ -1182,19 +1188,19 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_classname'):
         proj_class_classname.restype = String
         proj_class_classname.errcheck = ReturnString
 
-# ../include/proj_classes.h: 26
+# ../include/proj_classes.h: 27
 if hasattr(_libs['libclientlib.so'], 'proj_class_dump_live_objects'):
     proj_class_dump_live_objects = _libs['libclientlib.so'].proj_class_dump_live_objects
     proj_class_dump_live_objects.argtypes = []
     proj_class_dump_live_objects.restype = None
 
-# ../include/proj_classes.h: 27
+# ../include/proj_classes.h: 28
 if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count = _libs['libclientlib.so'].proj_class_live_object_count
     proj_class_live_object_count.argtypes = []
     proj_class_live_object_count.restype = guint32
 
-# ../include/proj_classes.h: 28
+# ../include/proj_classes.h: 29
 if hasattr(_libs['libclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
@@ -2038,6 +2044,8 @@ struct__NetGSource.__slots__ = [
     '_netio',
     '_dispatchers',
     '_finalize',
+    'sendaframeset',
+    'sendframesets',
     'addListener',
 ]
 struct__NetGSource._fields_ = [
@@ -2050,10 +2058,12 @@ struct__NetGSource._fields_ = [
     ('_netio', POINTER(NetIO)),
     ('_dispatchers', POINTER(GHashTable)),
     ('_finalize', GDestroyNotify),
+    ('sendaframeset', CFUNCTYPE(UNCHECKED(None), POINTER(NetGSource), POINTER(NetAddr), POINTER(FrameSet))),
+    ('sendframesets', CFUNCTYPE(UNCHECKED(None), POINTER(NetGSource), POINTER(NetAddr), POINTER(GSList))),
     ('addListener', CFUNCTYPE(UNCHECKED(None), POINTER(NetGSource), guint16, POINTER(Listener))),
 ]
 
-# ../include/netgsource.h: 43
+# ../include/netgsource.h: 45
 if hasattr(_libs['libclientlib.so'], 'netgsource_new'):
     netgsource_new = _libs['libclientlib.so'].netgsource_new
     netgsource_new.argtypes = [POINTER(NetIO), GDestroyNotify, gint, gboolean, POINTER(GMainContext), gsize, gpointer]
@@ -2181,7 +2191,7 @@ struct__HbSender._fields_ = [
     ('unref', CFUNCTYPE(UNCHECKED(None), POINTER(HbSender))),
     ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(HbSender))),
     ('_expected_interval', guint64),
-    ('_outmethod', POINTER(NetIO)),
+    ('_outmethod', POINTER(NetGSource)),
     ('_sendaddr', POINTER(NetAddr)),
     ('_refcount', c_int),
     ('timeout_source', guint),
@@ -2190,7 +2200,7 @@ struct__HbSender._fields_ = [
 # /home/alanr/monitor/src/include/hbsender.h: 38
 if hasattr(_libs['libclientlib.so'], 'hbsender_new'):
     hbsender_new = _libs['libclientlib.so'].hbsender_new
-    hbsender_new.argtypes = [POINTER(NetAddr), POINTER(NetIO), guint, gsize]
+    hbsender_new.argtypes = [POINTER(NetAddr), POINTER(NetGSource), guint, gsize]
     hbsender_new.restype = POINTER(HbSender)
 
 # /home/alanr/monitor/src/include/hbsender.h: 39
@@ -2463,36 +2473,42 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_register_object'):
     proj_class_register_object.restype = None
 
 # /home/alanr/monitor/src/include/proj_classes.h: 19
+if hasattr(_libs['libclientlib.so'], 'proj_class_is_a'):
+    proj_class_is_a = _libs['libclientlib.so'].proj_class_is_a
+    proj_class_is_a.argtypes = [gconstpointer, String]
+    proj_class_is_a.restype = gboolean
+
+# /home/alanr/monitor/src/include/proj_classes.h: 20
 if hasattr(_libs['libclientlib.so'], 'proj_class_castas'):
     proj_class_castas = _libs['libclientlib.so'].proj_class_castas
     proj_class_castas.argtypes = [gpointer, String]
     proj_class_castas.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 20
+# /home/alanr/monitor/src/include/proj_classes.h: 21
 if hasattr(_libs['libclientlib.so'], 'proj_class_castasconst'):
     proj_class_castasconst = _libs['libclientlib.so'].proj_class_castasconst
     proj_class_castasconst.argtypes = [gconstpointer, String]
     proj_class_castasconst.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 21
+# /home/alanr/monitor/src/include/proj_classes.h: 22
 if hasattr(_libs['libclientlib.so'], 'proj_class_register_subclassed'):
     proj_class_register_subclassed = _libs['libclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
     proj_class_register_subclassed.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 22
+# /home/alanr/monitor/src/include/proj_classes.h: 23
 if hasattr(_libs['libclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
     proj_class_quark_add_superclass_relationship = _libs['libclientlib.so'].proj_class_quark_add_superclass_relationship
     proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
     proj_class_quark_add_superclass_relationship.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 23
+# /home/alanr/monitor/src/include/proj_classes.h: 24
 if hasattr(_libs['libclientlib.so'], 'proj_class_quark_is_a'):
     proj_class_quark_is_a = _libs['libclientlib.so'].proj_class_quark_is_a
     proj_class_quark_is_a.argtypes = [GQuark, GQuark]
     proj_class_quark_is_a.restype = gboolean
 
-# /home/alanr/monitor/src/include/proj_classes.h: 24
+# /home/alanr/monitor/src/include/proj_classes.h: 25
 if hasattr(_libs['libclientlib.so'], 'proj_class_classname'):
     proj_class_classname = _libs['libclientlib.so'].proj_class_classname
     proj_class_classname.argtypes = [gconstpointer]
@@ -2502,19 +2518,19 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_classname'):
         proj_class_classname.restype = String
         proj_class_classname.errcheck = ReturnString
 
-# /home/alanr/monitor/src/include/proj_classes.h: 26
+# /home/alanr/monitor/src/include/proj_classes.h: 27
 if hasattr(_libs['libclientlib.so'], 'proj_class_dump_live_objects'):
     proj_class_dump_live_objects = _libs['libclientlib.so'].proj_class_dump_live_objects
     proj_class_dump_live_objects.argtypes = []
     proj_class_dump_live_objects.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 27
+# /home/alanr/monitor/src/include/proj_classes.h: 28
 if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count = _libs['libclientlib.so'].proj_class_live_object_count
     proj_class_live_object_count.argtypes = []
     proj_class_live_object_count.restype = guint32
 
-# /home/alanr/monitor/src/include/proj_classes.h: 28
+# /home/alanr/monitor/src/include/proj_classes.h: 29
 if hasattr(_libs['libclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
@@ -2868,6 +2884,10 @@ except:
 # /usr/include/glib-2.0/glib/gslist.h: 107
 def g_slist_next(slist):
     return slist and (slist.contents.next) or NULL
+
+# ../include/proj_classes.h: 54
+def OBJ_IS_A(obj, Cclass):
+    return (proj_class_is_a (obj, Cclass))
 
 # ../include/frame.h: 46
 try:
@@ -3594,6 +3614,10 @@ try:
     ENABLE_CDP = 2
 except:
     pass
+
+# /home/alanr/monitor/src/include/proj_classes.h: 54
+def OBJ_IS_A(obj, Cclass):
+    return (proj_class_is_a (obj, Cclass))
 
 # ../include/pcap_min.h: 28
 try:
