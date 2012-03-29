@@ -37,6 +37,7 @@
 #include <netioudp.h>
 #include <netaddr.h>
 #include <hblistener.h>
+#include <authlistener.h>
 #include <hbsender.h>
 #include <signframe.h>
 #include <cryptframe.h>
@@ -51,7 +52,7 @@
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
 GMainLoop*	loop = NULL;
-NetIO*		transport;
+NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
 HbSender*	sender = NULL;
@@ -67,18 +68,15 @@ void real_deadtime_agent(HbListener* who);
 void initial_deadtime_agent(HbListener* who);
 void got_heartbeat(HbListener* who);
 
-void obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetGSource*);
-void obey_sendhb(FrameSet* fs, ConfigContext* config, NetGSource*);
-void obey_expecthb(FrameSet* fs, ConfigContext* config, NetGSource*);
+void obey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
+void obey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
+void obey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
 
-///	Structure mapping @ref FrameSet types to actions when they're received
-struct ObeyFrameset {
-	int	framesettype;							///< @ref FrameSet type
-	void    (*obey_expecthb)(FrameSet*, ConfigContext*, NetGSource*);	///< What to do when we get it
-}obeylist[] = {
+ObeyFrameSetTypeMap obeylist [] = {
 	{FRAMESETTYPE_SENDHB,		obey_sendhb},
 	{FRAMESETTYPE_EXPECTHB,		obey_expecthb},
 	{FRAMESETTYPE_SENDEXPECTHB,	obey_sendexpecthb},
+	{0,				NULL},
 };
 	
 
@@ -93,7 +91,7 @@ send_encapsulated_packet(gconstpointer packet,		///<[in] pcap packet data
 {
 	FrameSet *	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, packet, pktend, hdr, dev);
 	//g_message("Sending a frameset containing an encapsulated capture packet.");
-	transport->sendaframeset(transport, destaddr, fs);
+	nettransport->sendaframeset(nettransport, destaddr, fs);
 	fs->unref(fs); fs = NULL;
 }
 
@@ -294,18 +292,20 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_sendhb(FrameSet* fs		///<[in] @ref FrameSet indicating who to send HBs to
-	,   ConfigContext* config	///<[in] Various default parameters
-	,   NetGSource* transport)	///<[in/out] Transport for sending heartbeats
+obey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
+	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
 
 	GSList*		slframe;
 	guint		addrcount = 0;
-
+	ConfigContext*	config = parent->baseclass.config;
 	int		port = 0;
 	guint16		sendinterval = 0;
+	
 
 	g_return_if_fail(fs != NULL);
+	(void)fromaddr;
 	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
 		port = config->getint(config, CONFIGNAME_HBPORT);
 	}
@@ -346,7 +346,7 @@ obey_sendhb(FrameSet* fs		///<[in] @ref FrameSet indicating who to send HBs to
 				aframe = CASTTOCLASS(AddrFrame, frame);
 				addrcount++;
 				aframe->setport(aframe, port);
-				hbsender_new(aframe->getnetaddr(aframe), transport, sendinterval, 0);
+				hbsender_new(aframe->getnetaddr(aframe), parent->transport, sendinterval, 0);
 				break;
 		}
 	}
@@ -363,19 +363,20 @@ obey_sendhb(FrameSet* fs		///<[in] @ref FrameSet indicating who to send HBs to
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_expecthb(FrameSet*		fs,		///< @ref FrameSet to 'obey'
-	      ConfigContext*	config,		///< configuration parameters
-	      NetGSource*	transport)	///< I/O path for the @ref FrameSet
+obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
+	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
 
-	GSList*	slframe;
+	GSList*		slframe;
+	ConfigContext*	config = parent->baseclass.config;
 	guint		addrcount = 0;
 
 	gint		port = 0;
 	guint16		deadtime = 0;
 	guint16		warntime = 0;
 
-	(void)transport;
+	(void)fromaddr;
 
 	g_return_if_fail(fs != NULL);
 	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
@@ -456,12 +457,14 @@ obey_expecthb(FrameSet*		fs,		///< @ref FrameSet to 'obey'
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetGSource*transport)
+obey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
+	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
 	g_return_if_fail(fs != NULL && fs->fstype == FRAMESETTYPE_SENDEXPECTHB);
 
-	obey_sendhb(fs, config, transport);
-	obey_expecthb(fs, config, transport);
+	obey_sendhb  (parent, fs, fromaddr);
+	obey_expecthb(parent, fs, fromaddr);
 }
 
 
@@ -509,19 +512,19 @@ main(int argc, char **argv)
 	config->setframe(config, CONFIGNAME_OUTSIG, CASTTOCLASS(Frame, signature));
 
 	// Create a network transport object (UDP packets)
-	transport = CASTTOCLASS(NetIO, netioudp_new(0, config, decoder));
-	g_return_val_if_fail(NULL != transport, 2);
+	nettransport = CASTTOCLASS(NetIO, netioudp_new(0, config, decoder));
+	g_return_val_if_fail(NULL != nettransport, 2);
 
 	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
 	destaddr =  netaddr_ipv6_new(loopback, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
 
 	// Listen for our own packets...
-	g_return_val_if_fail(transport->bindaddr(transport, destaddr),16);
+	g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
 
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
-	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
+	netpkt = netgsource_new(nettransport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 	otherlistener = listener_new(config, 0);
 	otherlistener->got_frameset = gotnetpkt;
 	netpkt->addListener(netpkt, 0, otherlistener);	// Get all unclaimed packets...
@@ -544,7 +547,7 @@ main(int argc, char **argv)
 	// Start up the main loop - run the program...
 	g_main_loop_run(loop);
 
-	transport->finalize(transport); transport = NULL;
+	nettransport->finalize(nettransport); nettransport = NULL;
 	if (sender) {
 		sender->unref(sender); sender = NULL;
 	}
