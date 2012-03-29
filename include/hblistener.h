@@ -53,7 +53,7 @@ struct _HbListener {
 };
 #define	DEFAULT_DEADTIME	60 // seconds
 
-WINEXPORT HbListener*	hblistener_new(NetAddr*, gsize hblisten_objsize);
+WINEXPORT HbListener*	hblistener_new(NetAddr*, ConfigContext* config, gsize hblisten_objsize);
 WINEXPORT void 		hblistener_unlisten(NetAddr* unlistenaddr);
 WINEXPORT void		hblistener_set_martian_callback(void (*)(const NetAddr* who));
 WINEXPORT HbListener*	hblistener_find_by_address(const NetAddr* which);

@@ -17,19 +17,25 @@
 #include <assimobj.h>
 #include <netaddr.h>
 #include <frameset.h>
+#include <configcontext.h>
 typedef struct _Listener Listener;
+#include <netgsource.h>
 
 ///@{
 /// @ingroup Listener
+typedef struct _Listener Listener;
 
 /// This is the @ref Listener object - which generically listens for packets
 struct _Listener {
 	AssimObj	baseclass;
-	gboolean	(*got_frameset)(Listener*, FrameSet*, NetAddr*);
-							//< Called when a FrameSet arrives
+	ConfigContext*	config;
+	gboolean	(*got_frameset)(Listener* self,	///< Listener 'self' object
+					FrameSet* fs,	///< Incoming @ref FrameSet
+					NetAddr* na	///< Address 'fs' came from
+					);		//< got_frameset called when FrameSet arrives
 };
 
-WINEXPORT Listener* listener_new(gsize listen_objsize);
+WINEXPORT Listener* listener_new(ConfigContext* config, gsize listen_objsize);
 
 ///@}
 

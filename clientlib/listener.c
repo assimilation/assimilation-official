@@ -1,9 +1,6 @@
 /**
  * @file
- * @brief Implements the @ref Listener class - for listening to heartbeats.
- * @details We are told what addresses to listen for, what ones to stop listening for at run time
- * and time out both warning times, and fatal (dead) times.
- *
+ * @brief Implements the @ref Listener class - for listening for incoming FrameSets
  * @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
  * @n
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
@@ -21,7 +18,7 @@ FSTATIC void _listener_finalize(AssimObj * self);
 FSTATIC gboolean _listener_got_frameset(Listener* self, FrameSet*, NetAddr*);
 
 ///@defgroup Listener Listener class.
-/// Class for heartbeat Listeners - We listen for heartbeats and time out those which are late.
+/// Base Listener class - Listen for @ref FrameSet "FrameSet"s
 ///@{
 ///@ingroup C_Classes
 #define	ONESEC	1000000
@@ -40,7 +37,9 @@ _listener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 FSTATIC void
 _listener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
-	memset(self, 0x00, sizeof(*self));
+	Listener* lself = CASTTOCLASS(Listener, self);
+	lself->config->baseclass.unref(lself->config);
+	memset(lself, 0x00, sizeof(*lself));
 	FREECLASSOBJ(self);
 }
 
@@ -48,7 +47,8 @@ _listener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 /// Construct a new Listener - setting up GSource and timeout data structures for it.
 /// This can be used directly or by derived classes.
 Listener*
-listener_new(gsize objsize)		///<[in] size of Listener structure (0 for sizeof(Listener))
+listener_new(ConfigContext* config,	///<[in/out] configuration context
+	     gsize objsize)		///<[in] size of Listener structure (0 for sizeof(Listener))
 {
 	Listener * newlistener;
 	if (objsize < sizeof(Listener)) {
@@ -58,6 +58,8 @@ listener_new(gsize objsize)		///<[in] size of Listener structure (0 for sizeof(L
 	if (newlistener != NULL) {
 		newlistener->baseclass._finalize = _listener_finalize;
 		newlistener->got_frameset = _listener_got_frameset;
+		newlistener->config = config;
+		config->baseclass.ref(config);
 	}
 	return newlistener;
 }

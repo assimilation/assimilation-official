@@ -189,7 +189,8 @@ _hblistener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	HbListener *hbself = CASTTOCLASS(HbListener, self);
 	hbself->listenaddr->baseclass.unref(hbself->listenaddr);
-	// hbself->listenaddr = NULL;
+	hbself->listenaddr = NULL;
+	hbself->baseclass.config->baseclass.unref(hbself->baseclass.config);
 	memset(hbself, 0x00, sizeof(*hbself));
 	FREECLASSOBJ(hbself);
 	self = NULL; hbself = NULL;
@@ -200,6 +201,7 @@ _hblistener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 /// This can be used directly or by derived classes.
 HbListener*
 hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
+	       ConfigContext*cfg,	///<[in/out] Configuration context
 	       gsize objsize)		///<[in] size of HbListener structure (0 for sizeof(HbListener))
 {
 	HbListener *	newlistener;
@@ -207,7 +209,7 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	if (objsize < sizeof(HbListener)) {
 		objsize = sizeof(HbListener);
 	}
-	base = listener_new(objsize);
+	base = listener_new(cfg, objsize);
 	proj_class_register_subclassed(base, "HbListener");
 	newlistener = CASTTOCLASS(HbListener, base);
 	if (NULL == newlistener) {

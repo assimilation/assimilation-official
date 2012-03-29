@@ -60,14 +60,28 @@ int		heartbeatcount = 0;
 int		errcount = 0;
 int		pcapcount = 0;
 void send_encapsulated_packet(gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *);
-gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *, const char *, gpointer);
+gboolean gotapcappacket(GSource_pcap_t*, pcap_t *, gconstpointer, gconstpointer, const struct pcap_pkthdr *
+,			const char *, gpointer);
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void real_deadtime_agent(HbListener* who);
 void initial_deadtime_agent(HbListener* who);
 void got_heartbeat(HbListener* who);
+
 void obey_sendexpecthb(FrameSet* fs, ConfigContext* config, NetGSource*);
 void obey_sendhb(FrameSet* fs, ConfigContext* config, NetGSource*);
 void obey_expecthb(FrameSet* fs, ConfigContext* config, NetGSource*);
+
+///	Structure mapping @ref FrameSet types to actions when they're received
+struct ObeyFrameset {
+	int	framesettype;							///< @ref FrameSet type
+	void    (*obey_expecthb)(FrameSet*, ConfigContext*, NetGSource*);	///< What to do when we get it
+}obeylist[] = {
+	{FRAMESETTYPE_SENDHB,		obey_sendhb},
+	{FRAMESETTYPE_EXPECTHB,		obey_expecthb},
+	{FRAMESETTYPE_SENDEXPECTHB,	obey_sendexpecthb},
+};
+	
+
 FrameSet* create_sendexpecthb(ConfigContext*, NetAddr** addrs, int addrcount);
 
 /// Test routine for sending an encapsulated Pcap packet.
@@ -411,7 +425,7 @@ obey_expecthb(FrameSet*		fs,		///< @ref FrameSet to 'obey'
 				aframe = CASTTOCLASS(AddrFrame, frame);
 				addrcount++;
 				aframe->setport(aframe, port);
-				hblisten = hblistener_new(aframe->getnetaddr(aframe), 0);
+				hblisten = hblistener_new(aframe->getnetaddr(aframe), config, 0);
 				if (deadtime > 0) {
 					// Otherwise we get the default deadtime
 					hblisten->set_deadtime(hblisten, deadtime);
@@ -508,14 +522,14 @@ main(int argc, char **argv)
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(transport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
-	otherlistener = listener_new(0);
+	otherlistener = listener_new(config, 0);
 	otherlistener->got_frameset = gotnetpkt;
 	netpkt->addListener(netpkt, 0, otherlistener);	// Get all unclaimed packets...
 	// Unref the "other" listener
 	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
 
 	// Create a heartbeat listener
-	hblisten = hblistener_new(destaddr, 0);
+	hblisten = hblistener_new(destaddr, config, 0);
 	hblisten->set_deadtime(hblisten, 10*1000000);
 	hblisten->set_heartbeat_callback(hblisten, got_heartbeat);
 	hblisten->set_deadtime_callback(hblisten, initial_deadtime_agent);
