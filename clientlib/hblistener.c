@@ -46,14 +46,17 @@ static void	(*_hblistener_martiancallback)(const NetAddr* who) = NULL;
 
 #define	ONESEC	1000000
 
-/// Add an HbListener to our global list of HBListeners.
-/// @todo make sure we don't duplicate listen addresses...
+/// Add an HbListener to our global list of HBListeners,
+/// and unref (and neuter) any old HbListeners listening to this same address
 FSTATIC void
 _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 {
+	HbListener*	old;
 	if (_hb_listeners == NULL) {
 		g_timeout_add_seconds(1, _hblistener_gsourcefunc, NULL);
 		///@todo start listening for packets...
+	}else if ((old=hblistener_find_by_address(self->listenaddr)) != NULL) {
+		_hblistener_dellist(old);
 	}
 	_hb_listeners = g_slist_prepend(_hb_listeners, self);
 	_hb_listener_count += 1;
@@ -124,37 +127,40 @@ _hblistener_gsourcefunc(gpointer ignored) ///<[ignored] Ignored
 
 /// Function called when a heartbeat @ref FrameSet arrived from the given @ref NetAddr
 FSTATIC gboolean
-_hblistener_got_frameset(Listener* basethis, FrameSet* fs, NetAddr* srcaddr)
+_hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 {
 	guint64		now = proj_get_real_time();
-	HbListener* listener = CASTTOCLASS(HbListener, basethis);
-	if (srcaddr->equal(srcaddr, listener->listenaddr)) {
-		if (listener->status == HbPacketsTimedOut) {
-			guint64 howlate = now - listener->nexttime;
-			listener->status = HbPacketsBeingReceived;
-			if (listener->_comealive_callback) {
-				listener->_comealive_callback(listener, howlate);
+	HbListener* addmatch = hblistener_find_by_address(srcaddr);
+
+	(void)self;  // Odd, but true...
+	if (addmatch != NULL) {
+		if (addmatch->status == HbPacketsTimedOut) {
+			guint64 howlate = now - addmatch->nexttime;
+			addmatch->status = HbPacketsBeingReceived;
+			if (addmatch->_comealive_callback) {
+				addmatch->_comealive_callback(addmatch, howlate);
 			}else{
 				g_message("A node is now back alive!");
 			}
-		} else if (now > listener->warntime) {
-			guint64 howlate = now - listener->warntime;
+		} else if (now > addmatch->warntime) {
+			guint64 howlate = now - addmatch->warntime;
 			howlate /= 1000;
-			if (listener->_warntime_callback) {
-				listener->_warntime_callback(listener, howlate);
+			if (addmatch->_warntime_callback) {
+				addmatch->_warntime_callback(addmatch, howlate);
 			}else{
 				g_warning("A node was " FMT_64BIT "u ms late in sending heartbeat..."
 				,	howlate);
 			}
 		}
-		if (listener->_heartbeat_callback) {
-			listener->_heartbeat_callback(listener);
+		if (addmatch->_heartbeat_callback) {
+			addmatch->_heartbeat_callback(addmatch);
 		}
-		listener->nexttime = now + listener->_expected_interval;
-		listener->warntime = now + listener->_warn_interval;
+		addmatch->nexttime = now + addmatch->_expected_interval;
+		addmatch->warntime = now + addmatch->_warn_interval;
 		fs->unref(fs);
 		return TRUE;
 	}
+	// The 'martian' callback is necessarily global to all heartbeat listeners
 	if (_hblistener_martiancallback) {
 		_hblistener_martiancallback(srcaddr);
 	}else{ 

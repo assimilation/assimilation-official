@@ -572,7 +572,9 @@ main(int argc, char **argv)
 
 	// Dissociate packet actions from the packet source.
 	obeycollective->dissociate(obeycollective);
+	// Unref the AuthListener object
 	obeycollective->baseclass.baseclass.unref(obeycollective);
+	obeycollective = NULL;
 
 	// Free signature frame
 	signature->baseclass.baseclass.unref(signature); signature = NULL;
