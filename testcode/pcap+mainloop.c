@@ -442,6 +442,17 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 				,		    CASTTOCLASS(Listener, hblisten));
 				// Unref this heartbeat listener, and NULL out our reference.
 				hblisten->baseclass.baseclass.unref(hblisten); hblisten = NULL;
+				// That still leaves two references to 'hblisten':
+				//   - in the netpkt dispatch table
+				//   - in the global heartbeat listener table
+				// Also note that we become the 'proxy' for all incoming heartbeats
+				// but we dispatch them to the right HbListener object.
+				// Since we've become the proxy for all incoming heartbeats, if
+				// we displace the old proxy, this all still works nicely, because
+				// the netpkt object gets rid of its old reference to the old
+				// 'proxy' object.
+				/// @todo These comments are too valuable to reside only in a piece of
+				/// test code.
 			}
 			break;
 		}
@@ -541,7 +552,7 @@ main(int argc, char **argv)
 
 	// Intercept incoming heartbeat packets - direct them to heartbeat listener
 	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, CASTTOCLASS(Listener, hblisten));
-	// Unref the heartbeat listener
+	// Unref the heartbeat listener - the listener table holds a reference to it
 	hblisten->baseclass.baseclass.unref(CASTTOCLASS(Listener, hblisten)); hblisten = NULL;
 	// Listen for packets from the Collective Management Authority
 	obeycollective = authlistener_new(obeylist, config, 0);

@@ -130,9 +130,10 @@ FSTATIC gboolean
 _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 {
 	guint64		now = proj_get_real_time();
-	HbListener* addmatch = hblistener_find_by_address(srcaddr);
+	HbListener*	addmatch;
 
-	(void)self;  // Odd, but true...
+	(void)self;  // Odd, but true - because we're a proxy for all hblisteners...
+	addmatch = hblistener_find_by_address(srcaddr);
 	if (addmatch != NULL) {
 		if (addmatch->status == HbPacketsTimedOut) {
 			guint64 howlate = now - addmatch->nexttime;
