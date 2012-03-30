@@ -14,7 +14,7 @@
 #include <listener.h>
 /**
  */
-FSTATIC void _listener_finalize(AssimObj * self);
+void _listener_finalize(AssimObj * self);
 FSTATIC gboolean _listener_got_frameset(Listener* self, FrameSet*, NetAddr*);
 
 ///@defgroup Listener Listener class.
@@ -34,7 +34,7 @@ _listener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 }
 
 /// Finalize a Listener
-FSTATIC void
+void
 _listener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	Listener* lself = CASTTOCLASS(Listener, self);

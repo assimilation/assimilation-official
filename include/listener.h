@@ -23,7 +23,7 @@ typedef struct _Listener Listener;
 
 ///@{
 /// @ingroup Listener
-typedef struct _Listener Listener;
+//typedef struct _Listener Listener;
 
 /// This is the @ref Listener object - which generically listens for packets
 struct _Listener {
@@ -36,6 +36,9 @@ struct _Listener {
 };
 
 WINEXPORT Listener* listener_new(ConfigContext* config, gsize listen_objsize);
+#ifdef IS_LISTENER_SUBCLASS
+WINEXPORT void _listener_finalize(AssimObj* self);
+#endif
 
 ///@}
 

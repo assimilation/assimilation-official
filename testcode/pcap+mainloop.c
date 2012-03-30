@@ -435,7 +435,8 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 					// Otherwise we get the default warntime
 					hblisten->set_warntime(hblisten, warntime);
 				}
-				/// TODO: Need to set up hblistener callbacks!
+				hblisten->set_deadtime_callback(hblisten, real_deadtime_agent);
+				hblisten->set_heartbeat_callback(hblisten, got_heartbeat);
 				// Intercept incoming heartbeat packets
 				netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT
 				,		    CASTTOCLASS(Listener, hblisten));
@@ -485,6 +486,7 @@ main(int argc, char **argv)
 	Listener*	otherlistener;
 	ConfigContext*	config = configcontext_new(0);
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
+	AuthListener*	obeycollective;
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
@@ -541,6 +543,9 @@ main(int argc, char **argv)
 	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, CASTTOCLASS(Listener, hblisten));
 	// Unref the heartbeat listener
 	hblisten->baseclass.baseclass.unref(CASTTOCLASS(Listener, hblisten)); hblisten = NULL;
+	// Listen for packets from the Collective Management Authority
+	obeycollective = authlistener_new(obeylist, config, 0);
+	obeycollective->associate(obeycollective, netpkt);
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
@@ -564,6 +569,10 @@ main(int argc, char **argv)
 
 	// Unlink misc dispatcher - this should NOT be necessary...
 	netpkt->addListener(netpkt, 0, NULL);
+
+	// Dissociate packet actions from the packet source.
+	obeycollective->dissociate(obeycollective);
+	obeycollective->baseclass.baseclass.unref(obeycollective);
 
 	// Free signature frame
 	signature->baseclass.baseclass.unref(signature); signature = NULL;

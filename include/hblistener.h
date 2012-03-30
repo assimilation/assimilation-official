@@ -37,7 +37,7 @@ struct _HbListener {
 	void		(*set_warntime)(HbListener*, guint64);	///< Set warntime
 	void		(*set_heartbeat_callback)(HbListener*, void (*)(HbListener* who));
 	void		(*set_deadtime_callback)(HbListener*, void (*)(HbListener* who));
-	void		(*set_warntime_callback)(HbListener*, void (*)(HbListener* who, guint64 howlate));
+	void		(*set_warntime_callback)(HbListener*, void (*)(HbListener* who,  guint64 howlate));
 	void		(*set_comealive_callback)(HbListener*, void (*)(HbListener* who, guint64 howlate));
 	guint64		_expected_interval;		///< How often to expect heartbeats
 	guint64		_warn_interval;			///< When to warn about late heartbeats

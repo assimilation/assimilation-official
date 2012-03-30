@@ -13,6 +13,7 @@
 #include <glib.h>
 #include <frame.h>
 #include <frameset.h>
+#define	IS_LISTENER_SUBCLASS
 #include <hblistener.h>
 /**
  */
@@ -178,10 +179,7 @@ _hblistener_finalize(Listener * self) ///<[in/out] Listener to finalize
 {
 	HbListener *hbself = CASTTOCLASS(HbListener, self);
 	hbself->listenaddr->unref(hbself->listenaddr);
-	// hbself->listenaddr = NULL;
-	memset(hbself, 0x00, sizeof(*hbself));
-	FREECLASSOBJ(hbself);
-	self = NULL; hbself = NULL;
+	_listener_finalize(self);
 }
 
 

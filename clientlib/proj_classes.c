@@ -247,7 +247,7 @@ proj_class_dump_live_objects(void)
 			if (OBJ_IS_A(object, "AssimObj")) {
 				AssimObj*	obj = CASTTOCLASS(AssimObj, object);
 				char *		str = obj->toString(obj);
-				g_debug("        %s object %s at %p ref count %d"
+				g_debug("       %s object %s at %p ref count %d"
 				,		proj_class_classname(obj), str, obj, obj->_refcount);
 				g_free(str);
 			}else{
