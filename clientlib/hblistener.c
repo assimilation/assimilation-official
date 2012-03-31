@@ -14,6 +14,7 @@
 #include <frame.h>
 #include <frameset.h>
 #include <hblistener.h>
+#include <stdlib.h>
 /**
  */
 FSTATIC void _hblistener_finalize(AssimObj * self);
@@ -74,7 +75,13 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 		self->baseclass.baseclass.unref(CASTTOCLASS(Listener, self));
 		return;
 	}
-	g_warn_if_reached();
+#if 0
+	{
+		char *	s = self->baseclass.baseclass.toString(self);
+		g_warning("hb_listener not in _hb_listeners list: %s", s);
+		g_free(s);
+	}
+#endif
 }
 
 /// Find the listener that's listening to a particular address
@@ -125,7 +132,7 @@ _hblistener_gsourcefunc(gpointer ignored) ///<[ignored] Ignored
 	return _hb_listeners != NULL;
 }
 
-/// Function called when a heartbeat @ref FrameSet arrived from the given @ref NetAddr
+/// Function called when a heartbeat @ref FrameSet (fs) arrived from the given @ref NetAddr (srcaddr)
 FSTATIC gboolean
 _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 {
@@ -138,10 +145,11 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 		if (addmatch->status == HbPacketsTimedOut) {
 			guint64 howlate = now - addmatch->nexttime;
 			addmatch->status = HbPacketsBeingReceived;
+			howlate /= 1000;
 			if (addmatch->_comealive_callback) {
 				addmatch->_comealive_callback(addmatch, howlate);
 			}else{
-				g_message("A node is now back alive!");
+				g_message("A node is now back alive! late by "FMT_64BIT "d ms", howlate);
 			}
 		} else if (now > addmatch->warntime) {
 			guint64 howlate = now - addmatch->warntime;
@@ -251,7 +259,7 @@ _hblistener_set_deadtime(HbListener* self,	///<[in/out] Object to set deadtime f
 	guint64		now = proj_get_real_time();
 	self->_expected_interval = deadtime;
 	self->nexttime = now + self->_expected_interval;
-
+	//g_debug("Setting HbListener deadtime to " FMT_64BIT "d ms", deadtime/1000);
 }
 
 /// Return deadtime

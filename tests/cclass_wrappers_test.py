@@ -4,6 +4,7 @@ from testify import *
 
 from AssimCclasses import *
 import gc
+import re
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
@@ -255,6 +256,13 @@ class pySignFrameTest(TestCase):
 
 class pyFrameSetTest(TestCase):
     'A FrameSet is a collection of frames - typically to be sent over the wire'
+
+    @staticmethod
+    def cmpstring(frame):
+        s=str(frame)
+        s = re.sub(' at 0x[^{}]*', ' at 0xsomewhere', s)
+        return s
+
     def test_constructor(self): 
         pyf = pyFrameSet(700) # The 700 is the frameset (message) type
         self.assertEqual(pyf.get_framesettype(), 700)
@@ -342,7 +350,10 @@ class pyFrameSetTest(TestCase):
         pyfs = pyFrameSet(801)
         sign = pySignFrame(1) # digital signature frame
         flist = (pyAddrFrame(9, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
-                 pySeqnoFrame(5, (42, 424242424242)))
+                 pyIntFrame(11,3000000, intbytes=4),
+                 pyIntFrame(12,3000000000000, intbytes=8),
+                 pySeqnoFrame(5, (42, 424242424242)),
+                 pyIntFrame(11,4242, intbytes=3))
         decoder = pyPacketDecoder(0)
         for frame in flist:
             pyfs.append(frame)
@@ -368,6 +379,9 @@ class pyFrameSetTest(TestCase):
            strx = re.sub(str(x), ' instance at .*>', ' instance at -somewhere- >')
            stry = re.sub(str(y), ' instance at .*>', ' instance at -somewhere- >')
            self.assertEqual(strx, stry)
+           print pyFrameSetTest.cmpstring(x)
+           print pyFrameSetTest.cmpstring(y)
+	   self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
 
 
     @class_teardown

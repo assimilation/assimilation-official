@@ -100,6 +100,7 @@ _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 	g_source_remove(self->timeout_source);
 	self->_sendaddr->baseclass.unref(self->_sendaddr);
 	// self->_sendaddr = NULL;
+	g_debug("finalizing hbsender %p", self);
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self);
 }
@@ -129,9 +130,13 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 		newsender->unref = _hbsender_unref;
 		newsender->_finalize = _hbsender_finalize;
 		newsender->_expected_interval = interval;
+		if (interval < 500000) {
+			interval = 1000000;
+		}
 		newsender->timeout_source = g_timeout_add_seconds
-                                       (interval, _hbsender_gsourcefunc, newsender);
-		g_message("Sender timeout source is: %d", newsender->timeout_source);
+                                       ((interval/1000000), _hbsender_gsourcefunc, newsender);
+		g_message("Sender %p timeout source is: %d, interval is %d", newsender
+		,	  newsender->timeout_source, interval);
 		_hbsender_addlist(newsender);
 		_hbsender_sendheartbeat(newsender);
 	}
@@ -156,6 +161,7 @@ FSTATIC void
 _hbsender_sendheartbeat(HbSender* self)
 {
 	FrameSet*	heartbeat = frameset_new(FRAMESETTYPE_HEARTBEAT);
+	//g_debug("Sending a heartbeat...");
 	self->_outmethod->sendaframeset(self->_outmethod, self->_sendaddr, heartbeat);
 	heartbeat->unref(heartbeat); heartbeat = NULL;
 }

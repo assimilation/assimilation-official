@@ -23,6 +23,7 @@ typedef struct _HbSender HbSender;
 /// @ingroup HbSender
 
 /// This is the base @ref HbSender object - which sends heartbeats to particular listeners.
+/// @todo Need to make this a subclass of AssimObj
 struct _HbSender {
 	void		(*ref)(HbSender*);		///< Increment reference count
 	void		(*unref)(HbSender*);		///< Decrement reference count

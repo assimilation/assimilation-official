@@ -67,6 +67,7 @@ gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void real_deadtime_agent(HbListener* who);
 void initial_deadtime_agent(HbListener* who);
 void got_heartbeat(HbListener* who);
+void got_heartbeat2(HbListener* who);
 
 void obey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 void obey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
@@ -80,7 +81,7 @@ ObeyFrameSetTypeMap obeylist [] = {
 };
 	
 
-FrameSet* create_sendexpecthb(ConfigContext*, NetAddr** addrs, int addrcount);
+FrameSet* create_sendexpecthb(ConfigContext*, NetAddr* addrs, int addrcount);
 
 /// Test routine for sending an encapsulated Pcap packet.
 void
@@ -214,24 +215,37 @@ got_heartbeat(HbListener* who)
 	++heartbeatcount;
 	//g_debug("Got heartbeat()");
 }
+
+void
+got_heartbeat2(HbListener* who)
+{
+	(void)who;
+	++heartbeatcount;
+	//g_debug("Got heartbeat2()");
+}
+
 void
 initial_deadtime_agent(HbListener* who)
 {
+	FrameSet * pkt;
 	(void)who;
 	g_message("Expected deadtime event occurred (once)");
-	sender = hbsender_new(destaddr, netpkt, 1,  0);
-	who->set_deadtime_callback(who, real_deadtime_agent);
-	
+	// Send ourselves a message so that we send heartbeats to ourselves
+	// and also expect to hear them from ourselves.
+	// This will set up the proper callbacks for "normal" operation
+	pkt = create_sendexpecthb(who->baseclass.config, destaddr, 1);
+	netpkt->sendaframeset(netpkt, destaddr, pkt);
+	pkt->unref(pkt);
 }
 
 /**
  * Create a @ref FrameSet to send and expect heartbeats from the same sets of addresses.
- * Keep in mind the entire packet needs to fit in a UDP packet (<64K).
+ * Keep in mind the entire packet needs to fit in a UDP packet (< 64K).
  * The port, hbtime, deadtime, and warntime parameters apply to all given addresses.
  */
 FrameSet*
 create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
-		,   NetAddr** addrs		///<[in/out] Addresses to include
+		,   NetAddr* addrs		///<[in/out] Addresses to include
 		,   int addrcount)		///<[in] Count of 'addrs' provided
 {
 	FrameSet* ret = frameset_new(FRAMESETTYPE_SENDEXPECTHB);
@@ -273,7 +287,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 	// Put all the addresses we were given in the message.
 	for (count=0; count < addrcount; ++count) {
 		AddrFrame* hbaddr = addrframe_new(FRAMETYPE_IPADDR, 0);
-		hbaddr->setnetaddr(hbaddr, addrs[count]);
+		hbaddr->setnetaddr(hbaddr, &addrs[count]);
 		frameset_append_frame(ret, CASTTOCLASS(Frame, hbaddr));
 		hbaddr->baseclass.baseclass.unref(hbaddr); hbaddr = NULL;
 	}
@@ -319,6 +333,7 @@ obey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 		switch(frametype) {
 			IntFrame*	iframe;
 			AddrFrame*	aframe;
+			HbSender*	hb;
 
 			case FRAMETYPE_PORTNUM:
 				iframe = CASTTOCLASS(IntFrame, frame);
@@ -346,7 +361,10 @@ obey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 				aframe = CASTTOCLASS(AddrFrame, frame);
 				addrcount++;
 				aframe->setport(aframe, port);
-				hbsender_new(aframe->getnetaddr(aframe), parent->transport, sendinterval, 0);
+				hb = hbsender_new(aframe->getnetaddr(aframe), parent->transport
+				,	sendinterval, 0);
+				(void)hb;
+				//hb->unref(hb);
 				break;
 		}
 	}
@@ -373,8 +391,8 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 	guint		addrcount = 0;
 
 	gint		port = 0;
-	guint16		deadtime = 0;
-	guint16		warntime = 0;
+	guint64		deadtime = 0;
+	guint64		warntime = 0;
 
 	(void)fromaddr;
 
@@ -436,7 +454,7 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 					hblisten->set_warntime(hblisten, warntime);
 				}
 				hblisten->set_deadtime_callback(hblisten, real_deadtime_agent);
-				hblisten->set_heartbeat_callback(hblisten, got_heartbeat);
+				hblisten->set_heartbeat_callback(hblisten, got_heartbeat2);
 				// Intercept incoming heartbeat packets
 				netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT
 				,		    CASTTOCLASS(Listener, hblisten));
@@ -448,9 +466,9 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 				// Also note that we become the 'proxy' for all incoming heartbeats
 				// but we dispatch them to the right HbListener object.
 				// Since we've become the proxy for all incoming heartbeats, if
-				// we displace the old proxy, this all still works nicely, because
-				// the netpkt object gets rid of its old reference to the old
-				// 'proxy' object.
+				// we displace and free the old proxy, this all still works nicely,
+				// because the netpkt object gets rid of its old reference to the
+				// old 'proxy' object.
 				/// @todo These comments are too valuable to reside only in a piece of
 				/// test code.
 			}
@@ -523,6 +541,9 @@ main(int argc, char **argv)
 	g_return_val_if_fail(NULL != pcapsource, 1);
 
 	config->setframe(config, CONFIGNAME_OUTSIG, CASTTOCLASS(Frame, signature));
+	config->setint(config, CONFIGNAME_HBPORT, testport);
+	config->setint(config, CONFIGNAME_HBTIME, 1000000);
+	config->setint(config, CONFIGNAME_DEADTIME, 3*1000000);
 
 	// Create a network transport object (UDP packets)
 	nettransport = CASTTOCLASS(NetIO, netioudp_new(0, config, decoder));
