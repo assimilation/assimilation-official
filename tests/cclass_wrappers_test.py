@@ -379,8 +379,6 @@ class pyFrameSetTest(TestCase):
            strx = re.sub(str(x), ' instance at .*>', ' instance at -somewhere- >')
            stry = re.sub(str(y), ' instance at .*>', ' instance at -somewhere- >')
            self.assertEqual(strx, stry)
-           print pyFrameSetTest.cmpstring(x)
-           print pyFrameSetTest.cmpstring(y)
 	   self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
 
 
