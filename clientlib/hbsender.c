@@ -15,6 +15,7 @@
 #include <hbsender.h>
 /**
  */
+FSTATIC void _hbsender_notify_function(gpointer data);
 FSTATIC void _hbsender_finalize(HbSender * self);
 FSTATIC void _hbsender_ref(HbSender * self);
 FSTATIC void _hbsender_unref(HbSender * self);
@@ -92,15 +93,24 @@ _hbsender_unref(HbSender* self)	///<[in/out] Object to decrement reference count
 		self = NULL;
 	}
 }
+// Callback function from the GSource world - notifying us when we're getting shut down from their end
+FSTATIC void
+_hbsender_notify_function(gpointer data)
+{
+	HbSender* self = CASTTOCLASS(HbSender, data);
+	self->timeout_source = 0;
+	self->unref(self);
+}
 
 /// Finalize an HbSender
 FSTATIC void
 _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 {
-	g_source_remove(self->timeout_source);
+	if (self->timeout_source != 0) {
+		g_source_remove(self->timeout_source);
+	}
 	self->_sendaddr->baseclass.unref(self->_sendaddr);
 	// self->_sendaddr = NULL;
-	g_debug("finalizing hbsender %p", self);
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self);
 }
@@ -133,8 +143,9 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 		if (interval < 500000) {
 			interval = 1000000;
 		}
-		newsender->timeout_source = g_timeout_add_seconds
-                                       ((interval/1000000), _hbsender_gsourcefunc, newsender);
+		newsender->timeout_source = g_timeout_add_seconds_full
+					    (G_PRIORITY_HIGH, (interval/1000000), _hbsender_gsourcefunc
+					,    newsender, _hbsender_notify_function);
 		g_message("Sender %p timeout source is: %d, interval is %d", newsender
 		,	  newsender->timeout_source, interval);
 		_hbsender_addlist(newsender);
