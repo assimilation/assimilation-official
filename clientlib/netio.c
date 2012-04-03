@@ -265,7 +265,7 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 FSTATIC gpointer
 _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		   gpointer* pktend,		///<[out] Pointer to one past end of packet
-		   struct sockaddr_in6* srcaddr,	///<[*out] Pointer to source address as sockaddr
+		   struct sockaddr_in6* srcaddr,///<[*out] Pointer to source address as sockaddr
 		   socklen_t* addrlen)		///<[out] length of address in 'srcaddr'
 {
 	char		dummy[8]; // Make GCC stack protection happy...

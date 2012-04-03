@@ -49,12 +49,20 @@
 #include <seqnoframe.h>
 #include <frametypes.h>
 
+
+
+#define		TESTPORT	1984
+
+int		expected_dead_count = 1;
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
 GMainLoop*	loop = NULL;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
+NetAddr*	otheraddr;
+NetAddr*	otheraddr2;
+NetAddr*	anyaddr;
 HbSender*	sender = NULL;
 int		wirepktcount = 0;
 int		heartbeatcount = 0;
@@ -204,9 +212,19 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 void
 real_deadtime_agent(HbListener* who)
 {
-	(void)who;
-	g_warning("Subsequent (unexpected) deadtime event occurred.");
-	++errcount;
+	char *	addrstring;
+	static int deadcount = 0;
+	addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
+	++deadcount;
+	if (deadcount > expected_dead_count) {
+		g_warning("Subsequent (unexpected) deadtime event occurred for address %s."
+		,	addrstring);
+		++errcount;
+	}else{
+		g_message("Subsequent (expected) deadtime event occurred for address %s."
+		,	addrstring);
+	}
+	g_free(addrstring);
 }
 void
 got_heartbeat(HbListener* who)
@@ -235,7 +253,13 @@ initial_deadtime_agent(HbListener* who)
 	// This will set up the proper callbacks for "normal" operation
 	pkt = create_sendexpecthb(who->baseclass.config, destaddr, 1);
 	netpkt->sendaframeset(netpkt, destaddr, pkt);
-	pkt->unref(pkt);
+	pkt->unref(pkt); pkt = NULL;
+	pkt = create_sendexpecthb(who->baseclass.config, otheraddr, 1);
+	netpkt->sendaframeset(netpkt, destaddr, pkt);
+	pkt->unref(pkt); pkt = NULL;
+	pkt = create_sendexpecthb(who->baseclass.config, otheraddr2, 1);
+	netpkt->sendaframeset(netpkt, destaddr, pkt);
+	pkt->unref(pkt); pkt = NULL;
 }
 
 /**
@@ -458,10 +482,12 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 				// Intercept incoming heartbeat packets
 				netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT
 				,		    CASTTOCLASS(Listener, hblisten));
-				// Unref this heartbeat listener, and NULL out our reference.
+				// Unref this heartbeat listener, and forget our reference.
 				hblisten->baseclass.baseclass.unref(hblisten); hblisten = NULL;
 				// That still leaves two references to 'hblisten':
 				//   - in the netpkt dispatch table
+				//   - in the global heartbeat listener table
+				// And one reference to the previous 'hblisten' object:
 				//   - in the global heartbeat listener table
 				// Also note that we become the 'proxy' for all incoming heartbeats
 				// but we dispatch them to the right HbListener object.
@@ -509,7 +535,10 @@ main(int argc, char **argv)
 	unsigned	protocols = ENABLE_LLDP|ENABLE_CDP;	// Protocols to watch for...
 	char		errbuf[PCAP_ERRBUF_SIZE];		// Error buffer...
 	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
-	guint16		testport = 1984;
+	const guint8	otheradstring[] = {10,10,10,5};
+	const guint8	otheradstring2[] = {10,10,10,4};
+	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	guint16		testport = TESTPORT;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	HbListener*	hblisten;
 	Listener*	otherlistener;
@@ -553,8 +582,19 @@ main(int argc, char **argv)
 	destaddr =  netaddr_ipv6_new(loopback, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
 
+	// Construct another couple of NetAddrs to talk to and listen from
+	otheraddr =  netaddr_ipv4_new(otheradstring, testport);
+	g_return_val_if_fail(NULL != otheraddr, 4);
+	otheraddr2 =  netaddr_ipv4_new(otheradstring2, testport);
+	g_return_val_if_fail(NULL != otheraddr2, 4);
+
+	// Construct another NetAddr to bind to (anything)
+	anyaddr =  netaddr_ipv6_new(anyadstring, testport);
+	g_return_val_if_fail(NULL != destaddr, 5);
+
 	// Listen for our own packets...
-	g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
+	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyaddr),16);
+	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
 
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
@@ -611,8 +651,11 @@ main(int argc, char **argv)
 	// Free signature frame
 	signature->baseclass.baseclass.unref(signature); signature = NULL;
 
-	// Free destination address
-        destaddr->baseclass.unref(destaddr);
+	// Free misc addresses
+        destaddr-> baseclass.unref(destaddr);
+        otheraddr->baseclass.unref(otheraddr);
+        otheraddr2->baseclass.unref(otheraddr2);
+        anyaddr->  baseclass.unref(anyaddr);
 
 	// Free packet decoder
 	decoder->baseclass.unref(decoder);

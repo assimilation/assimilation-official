@@ -119,18 +119,34 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 {
 	/// @todo Perhaps ought to allow comparision between ipv4 and equivalent ipv6 addrs,
 	/// and who knows, maybe even the same thing for MAC addresses and ipv6 ;-)
-	/// @todo add tostring member function to the class.
-	if (proj_class_classname(self) != proj_class_classname(other)
-	||  self->_addrtype != other->_addrtype
-	||  self->_addrlen != other->_addrlen
-	||  self->_addrport != other->_addrport) {
+	const guchar ipv6v4   [] = {CONST_IPV6_IPV4SPACE};
+	const guchar ipv6loop [] = CONST_IPV6_LOOPBACK;
+	const guchar ipv4loop [] = CONST_IPV4_LOOPBACK;
+
+	if (self->_addrtype == ADDR_FAMILY_IPV6 && other->_addrtype == ADDR_FAMILY_IPV4) {
+		const guchar *selfabody = self->_addrbody;
+		// Check for equivalent ipv4 and ipv6 addresses
+		if (memcmp(selfabody, ipv6v4, sizeof(ipv6v4)) == 0
+	        &&  memcmp(selfabody+12, other->_addrbody, 4) == 0) {
+			return TRUE;
+		}
+		// Check for the equivalent *any* addresses between ipv4 and ipv6
+		if (memcmp(self->_addrbody,  ipv6loop, sizeof(ipv6loop)) == 0
+		&&  memcmp(other->_addrbody, ipv4loop, sizeof(ipv4loop)) == 0) {
+			return TRUE;
+		}
+		return FALSE;
+	}else if (self->_addrtype == ADDR_FAMILY_IPV4 && other->_addrtype == ADDR_FAMILY_IPV6) {
+		// Switch the operands and try again...
+		return _netaddr_equal(other, self);
+	}
+	if (self->_addrtype != other->_addrtype || self->_addrlen  != other->_addrlen) {
 		return FALSE;
 	}
 	return (memcmp(self->_addrbody, other->_addrbody, self->_addrlen) == 0);
 }
 
 
-#include <stdlib.h>
 FSTATIC void
 _netaddr_finalize(AssimObj* base)
 {
@@ -247,7 +263,7 @@ netaddr_sockaddr_new(const struct sockaddr_in6 *sa_in6,	///<[in] struct sockaddr
 	(void)length;
 	switch(sa_in->sin_family) {
 		case AF_INET:
-			return netaddr_new(0, sa_in->sin_port, 
+			return netaddr_new(0, ntohs(sa_in->sin_port), 
 					   ADDR_FAMILY_IPV4, &sa_in->sin_addr, 4);
 			break;
 
@@ -272,7 +288,7 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 		case ADDR_FAMILY_IPV4:
 			g_return_val_if_fail(4 == self->_addrlen, saddr);
 			saddr.sin6_family = AF_INET6;
-			saddr.sin6_port = self->_addrport;
+			saddr.sin6_port = htons(self->_addrport);
 			/// @todo May need to account for the "any" ipv4 address here and
 			/// translate it into the "any" ipv6 address...
 			// (this works because saddr is initialized to zero)
@@ -284,7 +300,7 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 		case ADDR_FAMILY_IPV6:
 			g_return_val_if_fail(16 == self->_addrlen, saddr);
 			saddr.sin6_family = AF_INET6;
-			saddr.sin6_port = self->_addrport;
+			saddr.sin6_port = htons(self->_addrport);
 			memcpy(&saddr.sin6_addr, self->_addrbody, self->_addrlen);
 			break;
 

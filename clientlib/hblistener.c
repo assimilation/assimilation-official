@@ -17,6 +17,7 @@
 #include <stdlib.h>
 /**
  */
+FSTATIC void _hblistener_notify_function(gpointer ignoreddata);
 FSTATIC void _hblistener_finalize(AssimObj * self);
 FSTATIC void _hblistener_unref(gpointer self);
 FSTATIC void _hblistener_addlist(HbListener* self);
@@ -54,7 +55,8 @@ _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 {
 	HbListener*	old;
 	if (_hb_listeners == NULL) {
-		g_timeout_add_seconds(1, _hblistener_gsourcefunc, NULL);
+		g_timeout_add_seconds_full(G_PRIORITY_LOW, 1, _hblistener_gsourcefunc
+		,			   NULL, _hblistener_notify_function);
 		///@todo start listening for packets...
 	}else if ((old=hblistener_find_by_address(self->listenaddr)) != NULL) {
 		_hblistener_dellist(old);
@@ -71,7 +73,6 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 	if (g_slist_find(_hb_listeners, self) != NULL) {
 		_hb_listeners = g_slist_remove(_hb_listeners, self);
 		_hb_listener_count -= 1;
-                // We get called by unref - and it expects us to do this...
 		self->baseclass.baseclass.unref(CASTTOCLASS(Listener, self));
 		return;
 	}
@@ -174,7 +175,7 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 		_hblistener_martiancallback(srcaddr);
 	}else{ 
 		gchar *	saddr = srcaddr->baseclass.toString(srcaddr);
-		g_warning("Received 'martian' packet from address %s", saddr);
+		g_warning("Received 'martian' packet from address [%s]", saddr);
 		g_free(saddr); saddr = NULL;
 	}
 	fs->unref(fs);
@@ -186,17 +187,27 @@ _hblistener_unref(gpointer obj)	///<[in/out] Object to decrement reference count
 	HbListener* self = CASTTOCLASS(HbListener, obj);
 	g_return_if_fail(self->baseclass.baseclass._refcount > 0);
 	self->baseclass.baseclass._refcount -= 1;
-	if (self->baseclass.baseclass._refcount == 1) {
-		// Our listener list should hold an extra reference count...
-		_hblistener_dellist(CASTTOCLASS(HbListener, self));
-		// hblistener_dellist will normally decrement reference count by 1
-		// We will have gotten called recursively and finished the 'unref' work there...
-		self = NULL;
-	}else if (self->baseclass.baseclass._refcount == 0) {
+	if (self->baseclass.baseclass._refcount == 0) {
 		self->baseclass.baseclass._finalize((AssimObj*)self);
 		self = NULL;
 	}
 }
+
+FSTATIC void
+_hblistener_notify_function(gpointer ignored)	///<[unused] Unused
+{
+	GSList* this = _hb_listeners;
+	GSList* next = NULL;
+	(void)ignored;
+		
+	// Unref all our listener objects...
+	for (this = _hb_listeners; this; this=next) {
+		HbListener* listener = CASTTOCLASS(HbListener, this->data);
+		next = this->next;
+		listener->baseclass.baseclass.unref(listener);
+	}
+}
+
 
 /// Finalize an HbListener
 FSTATIC void
@@ -287,6 +298,10 @@ _hblistener_get_warntime(HbListener* self)
 
 
 /// Stop expecting (listening for) heartbeats from a particular address
+/// @todo - this can cause a bug if the NetGSource object still has a reference to us
+/// and we delete ourselves - then it will have a bad reference to us.
+/// So, we ought to check for this case and replace ourselves with any other listener
+/// in the list -- if any, and do something more drastic if we're the last listener in the list.
 FSTATIC void
 hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from list
 {
