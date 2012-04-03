@@ -554,9 +554,9 @@ main(int argc, char **argv)
 	}
 
 	if (netio_is_dual_ipv4v6_stack()) {
-		g_message("Our OS supports a dual ipv4/v6 stack. Hurray!");
+		g_message("Our OS supports dual ipv4/v6 sockets. Hurray!");
 	}else{
-		g_warning("Our OS DOES NOT support a dual ipv4/v6 stack - this may not work");
+		g_warning("Our OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
 	}
 	
 	dev = pcap_lookupdev(errbuf);	// Find name of default network device...

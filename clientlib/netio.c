@@ -350,6 +350,9 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 #	include <netdb.h>
 #	include <unistd.h>
 
+/// Return TRUE if our OS supports dual ipv4/ipv6 sockets.  That is,
+/// can a single socket receive and send both ipv4 and ipv6 packets?
+/// If so, then return TRUE, otherwise return FALSE.
 gboolean
 netio_is_dual_ipv4v6_stack(void)
 {
@@ -368,7 +371,7 @@ netio_is_dual_ipv4v6_stack(void)
 	g_return_val_if_fail(proto != NULL, FALSE);
 	
 	sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-	g_return_val_if_fail(sockfd > 0, FALSE);
+	g_return_val_if_fail(sockfd >= 0, FALSE);
 	
 	optlen = sizeof(retval);
 	optval = TRUE;
@@ -380,12 +383,13 @@ netio_is_dual_ipv4v6_stack(void)
 	// Should never happen...
 	g_return_val_if_fail(optlen == sizeof(retval), FALSE);
 #ifdef WIN32
-	// http://msdn.microsoft.com/en-us/library/windows/desktop/bb513665%28v=vs.85%29.aspx
+	// See http://msdn.microsoft.com/en-us/library/windows/desktop/bb513665%28v=vs.85%29.aspx
 	// This might be OK for other OSes too...
 	if (optval) {
 		optval = FALSE;
 		if (setsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, &optval, &optlen) < 0) {
 			/// @todo this isn't perfect yet - see Microsoft note for ipv6-only stacks
+			///	(presuming someone would disable ipv4 support from their machine)
 			optval = TRUE;
 		}
 	}
