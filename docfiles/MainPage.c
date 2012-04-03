@@ -58,6 +58,14 @@ Very little traffic goes between sites to monitor multiple sites from a central 
 
 This is all controlled and directed by the collective monitoring authority (CMA) -
 which is designed to be configured to run in an HA cluster using a product like Pacemaker.
+The disadvantage of this approach is the getting started after a complete data center outage/shutdown
+can take a while - this part is <i>not</i> <i>O</i>(1).
+
+An alternative approach would be to make the rings self-organizing.  The advantage of this is
+that startup after an full datacenter outage would happen much more quickly.  The disadvantage
+is that this solution is much more complex, and embeds knowledge of the desired topology
+(which is to some degree a policy issue) into the nanoprobes.  It also is not likely to work
+as well when CDP or LLDP are not available.
 
 
 @section autoconfiguration Autoconfiguration through Stealth Discovery
