@@ -32,6 +32,7 @@ The team currently posts updates in the following places:
 - Twitter - fairly frequent from @@OSSAlanR
 - linux-ha-dev mailing list - less frequent - lists.linux-ha.org/mailman/listinfo/linux-ha-dev
 - Pegby work in progress list - https://www.pegby.com/board/view/assimilationproject.alanr
+  This gives a very good overview of the project goals, current and future work items along with <b>open project roles</b>.  Come find your future here!
 
 @section architecture Architecture
 This concept has two kinds of participating entities:
