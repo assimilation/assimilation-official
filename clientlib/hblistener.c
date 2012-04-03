@@ -196,7 +196,7 @@ _hblistener_unref(gpointer obj)	///<[in/out] Object to decrement reference count
 FSTATIC void
 _hblistener_notify_function(gpointer ignored)	///<[unused] Unused
 {
-	GSList* this = _hb_listeners;
+	GSList* this;
 	GSList* next = NULL;
 	(void)ignored;
 		
