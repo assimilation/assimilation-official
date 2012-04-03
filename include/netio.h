@@ -74,6 +74,7 @@ struct _NetIO {
 };
 WINEXPORT NetIO*	netio_new(gsize objsize, ConfigContext*, PacketDecoder*);
 							///< Don't call this directly! - this is an abstract class...
+WINEXPORT gboolean	netio_is_dual_ipv4v6_stack(void);
 ///@}
 
 #endif /* _NETIO_H */

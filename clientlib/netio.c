@@ -345,4 +345,62 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	}
 	return ret;
 }
+
+#ifdef IPV6_V6ONLY
+#	include <netdb.h>
+#	include <unistd.h>
+
+gboolean
+netio_is_dual_ipv4v6_stack(void)
+{
+	static gboolean	computed_yet = FALSE;
+	static gboolean	retval = FALSE;
+	gboolean	optval;
+	int		sockfd;
+	socklen_t	optlen;
+	struct protoent*proto;
+
+	if (computed_yet) {
+		return retval;
+	}
+	proto = getprotobyname("ipv6");
+	endprotoent();
+	g_return_val_if_fail(proto != NULL, FALSE);
+	
+	sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+	g_return_val_if_fail(sockfd > 0, FALSE);
+	
+	optlen = sizeof(retval);
+	optval = TRUE;
+	if (getsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, &optval, &optlen) < 0) {
+		g_warning("getsockopt failed: errno %d", errno);
+		close(sockfd);
+		return FALSE;
+	}
+	// Should never happen...
+	g_return_val_if_fail(optlen == sizeof(retval), FALSE);
+#ifdef WIN32
+	// http://msdn.microsoft.com/en-us/library/windows/desktop/bb513665%28v=vs.85%29.aspx
+	// This might be OK for other OSes too...
+	if (optval) {
+		optval = FALSE;
+		if (setsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, &optval, &optlen) < 0) {
+			/// @todo this isn't perfect yet - see Microsoft note for ipv6-only stacks
+			optval = TRUE;
+		}
+	}
+#endif
+	close(sockfd);
+	computed_yet = TRUE;
+	retval = !optval;
+	return retval;
+}
+#else /* IPV6_V6ONLY */
+gboolean
+netio_is_dual_ipv4v6_stack(void)
+{
+	return FALSE;
+}
+#endif
+
 ///@}

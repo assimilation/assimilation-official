@@ -552,6 +552,12 @@ main(int argc, char **argv)
 		maxpkts = atol(argv[1]);
                 g_debug("Max LLDP/CDP packet count is %lld", maxpkts);
 	}
+
+	if (netio_is_dual_ipv4v6_stack()) {
+		g_message("Our OS supports a dual ipv4/v6 stack. Hurray!");
+	}else{
+		g_warning("Our OS DOES NOT support a dual ipv4/v6 stack - this may not work");
+	}
 	
 	dev = pcap_lookupdev(errbuf);	// Find name of default network device...
 	if (dev == NULL) {
