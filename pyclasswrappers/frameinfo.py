@@ -287,9 +287,10 @@ class FrameSetTypes:
 	'PING':		(3, 'Are you alive?'),
 	'PONG':		(4,  'I am alive'),
 	'HBDEAD':	(16, 'System named in packet appears to be dead.'),
-	'SWDISCOVER':	(17, 'Packet encapsulates switch discovery packet'),
-	'LOCALNETDISCOVER':(18, 'Packet contains local network config data'),
-	'ARPDISCOVER':	(19, 'Packet contains ARP table data'),
+	'PROBEALIVE':	(17, 'Packet issued by nanoprobe on startup - asking to be configured.'),
+	'SWDISCOVER':	(18, 'Packet encapsulates switch discovery packet'),
+	'LOCALNETDISCOVER':(19, 'Packet contains local network config data'),
+	'ARPDISCOVER':	(20, 'Packet contains ARP table data'),
 	'CLIENTCONFIG':	(32, 'Packet contains client configuration directives'),
 	'SENDHB':	(33, 'Send Heartbeats to this address'),
 	'EXPECTHB':	(34, 'Expect Heartbeats from this address'),
@@ -346,4 +347,3 @@ if __name__ == "__main__":
         FrameSetTypes.c_defines(f)
         sys.exit(0)
     raise SystemExit(1)
-
