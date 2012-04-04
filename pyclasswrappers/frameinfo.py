@@ -293,7 +293,7 @@ class FrameSetTypes:
 	'ARPDISCOVER':	(20, 'Packet contains ARP table data'),
 	'CLIENTCONFIG':	(32, 'Packet contains client configuration directives'),
 	'SENDHB':	(33, 'Send Heartbeats to this address'),
-	'EXPECTHB':	(34, 'Expect Heartbeats from this address'),
+	'EXPECTHB':	(34, 'Expect (listen for) Heartbeats from this address'),
 	'SENDEXPECTHB':	(35, 'Send Heartbeats to this address, and expect them as well.'),
     }
     _intframetypes = dict()
