@@ -66,6 +66,7 @@ discover() {
   test ! -d "$NETDIR" -o ! -x "$IP" && return 1
 
   DEVICES=`ls "$NETDIR"`
+  DEFAULTGW=`cat /proc/net/route | cut -c1-14 | grep '^[^	]*	00000000' | cut -f1 | head -1`
   printf '{\n'
   printf '  "discovertype": "netconfig",\n'
   printf '  "description": "IP Network Configuration",\n'
@@ -89,16 +90,17 @@ discover() {
       case $value in
         "")	;;
         *:*|*.*)	printf "	\"$field\": \"$value\",\n";;
-        [0-9]*)	    printf "	\"$field\": $value,\n";;
+        [0-9]*)		printf "	\"$field\": $value,\n";;
         *)	        printf "	\"$field\": \"$value\",\n";;
       esac
     done
+    case $device in
+      $DEFAULTGW) 	printf '	"default_gw": true,\n'
+    esac
     if
-      [ ! -d "$NETDIR/$device/wireless" ]
+      [ -d "$NETDIR/$device/wireless" ]
     then
-      printf '	"is_wireless": false,\n'
-    else
-      printf '	"is_wireless": true,\n'
+      #printf '	"is_wireless": true,\n'
         # sample iwconfig output:
         #wlan0     IEEE 802.11abgn  ESSID:"robertsons"  
         #          Mode:Managed  Frequency:2.417 GHz  Access Point: C4:3D:C7:A8:1B:5B   
