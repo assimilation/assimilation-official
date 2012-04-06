@@ -33,14 +33,12 @@
 #	"duplex": "full",
 #	"mtu": 1500,
 #	"speed": 1000,
-#	"is_wireless": false,
 #	"ipaddrs": [ {"inet": "10.10.10.5/24", "brd": "10.10.10.255", "scope": "global", "name": "eth0"}, {"inet6": "fe80::21b:fcff:fe1b:a873/64", "scope": "link"}]
 #    }, 
 #    "lo": {
 #	"address": "00:00:00:00:00:00",
 #	"carrier": 1,
 #	"mtu": 16436,
-#	"is_wireless": false,
 #	"ipaddrs": [ {"inet": "127.0.0.1/8", "scope": "host"}, {"inet6": "::1/128", "scope": "host"}]
 #    }
 #    "wlan0": {

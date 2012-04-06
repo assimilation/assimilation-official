@@ -210,6 +210,9 @@ The Address Type for a MAC address is 6.
   	16:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
 '''This frame contains a name/value pair - each of which is a NUL-terminated C-style string.
 '''),
+  	17:  (pyNVpairFrame, 'JSDISCOVER', 'JSON-formatted discovery data',
+'''This frame contains JSON-formatted output from a discovery process.  The type of discovery data and program collecting it are inside.
+'''),
 
     }
     _strframetypes = dict()
@@ -282,19 +285,21 @@ class FrameSetTypes:
  */
 '''
     _strframetypes = {
+	# nanoprobe peer-peer packets
 	'HEARTBEAT':	(1, 'A heartbeat packet'),
 	'NAK':		(2, "We don't like the frameset mentioned"),
-	'PING':		(3, 'Are you alive?'),
+	'PING':		(3, 'Are you alive? (can also come from the CMA)'),
 	'PONG':		(4,  'I am alive'),
-	'HBDEAD':	(16, 'System named in packet appears to be dead.'),
-	'PROBEALIVE':	(17, 'Packet issued by nanoprobe on startup - asking to be configured.'),
-	'SWDISCOVER':	(18, 'Packet encapsulates switch discovery packet'),
-	'LOCALNETDISCOVER':(19, 'Packet contains local network config data'),
-	'ARPDISCOVER':	(20, 'Packet contains ARP table data'),
-	'CLIENTCONFIG':	(32, 'Packet contains client configuration directives'),
-	'SENDHB':	(33, 'Send Heartbeats to this address'),
-	'EXPECTHB':	(34, 'Expect (listen for) Heartbeats from this address'),
-	'SENDEXPECTHB':	(35, 'Send Heartbeats to this address, and expect them as well.'),
+	# nanoprobe packets sent to collective management authority
+	'STARTUP':	(16, 'System originating packet looking for heartbeat configuratin.'),
+	'HBDEAD':	(17, 'System named in packet appears to be dead.'),
+	'PROBEALIVE':	(18, 'Packet issued by nanoprobe on startup - asking to be configured.'),
+	'SWDISCOVER':	(19, 'Packet encapsulates switch discovery packet'),
+	'JSDISCOVERY':	(20, 'Packet contains JSON-formatted discovery data'),
+	# Privileged packets sent from the CMA to nanoprobes
+	'SENDHB':	(64, 'Send Heartbeats to this address'),
+	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from this address'),
+	'SENDEXPECTHB':	(66, 'Send Heartbeats to this address, and expect them as well.'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():

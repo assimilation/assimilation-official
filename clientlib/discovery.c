@@ -10,6 +10,7 @@
  */
 
 #include <projectcommon.h>
+#define	DISCOVERY_SUBCLASS
 #include <discovery.h>
 ///@defgroup DiscoveryClass Discovery class
 /// Discovery abstract base class - supporting the discovery of various local things by our subclasses.
@@ -18,7 +19,6 @@
 
 FSTATIC const char *	_discovery_discoveryname(const Discovery* self);
 FSTATIC guint		_discovery_discoverintervalsecs(const Discovery* self);
-FSTATIC void		_discovery_finalize(Discovery* self);
 FSTATIC gboolean	_discovery_rediscover(gpointer vself);
 
 /// internal function return the type of Discovery object
@@ -65,7 +65,8 @@ _discovery_rediscover(gpointer vself)	///<[in/out] Object to perform discovery o
 Discovery*
 discovery_new(gsize objsize)	///<[in] number of bytes to malloc for the object (or zero)
 {
-	Discovery * ret = MALLOCCLASS(Discovery, objsize < sizeof(Discovery) ? sizeof(Discovery) : objsize);
+	gsize	size = objsize < sizeof(Discovery) ? sizeof(Discovery) : objsize;
+	Discovery * ret = NEWSUBCLASS(Discovery, assimobj_new(size));
 	g_return_val_if_fail(ret != NULL, NULL);
 	ret->discoveryname		= _discovery_discoveryname;
 	ret->discoverintervalsecs	= _discovery_discoverintervalsecs;

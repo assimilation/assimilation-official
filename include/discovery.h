@@ -24,12 +24,14 @@
 #ifndef _DISCOVERY_H
 #define _DISCOVERY_H
 #include <projectcommon.h>
+#include <assimobj.h>
 ///@{
 /// @ingroup DiscoveryClass
 
 typedef struct _Discovery Discovery;
 /// @ref DiscoveryClass abstract C-class - it supports discovering "things" through subclasses for different kinds of things.
 struct _Discovery {
+	AssimObj	baseclass;						///< Base object class
 	const char*	(*discoveryname)	(const Discovery* self);	///< Which discovery object is this?
 	gboolean	(*discover)		(Discovery* self);		///< Perform the discovery
 	void		(*finalize)		(Discovery* self);		///< called during object destruction
@@ -39,6 +41,10 @@ struct _Discovery {
 
 WINEXPORT Discovery* discovery_new(gsize objsize);
 WINEXPORT void discovery_register(Discovery* self);
+#ifdef DISCOVERY_SUBCLASS
+WINEXPORT void		_discovery_finalize(Discovery* self);
+#endif
+
 
 ///@}
 
