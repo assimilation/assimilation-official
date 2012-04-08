@@ -265,7 +265,7 @@ initial_deadtime_agent(HbListener* who)
 
 	discover_netconfig = jsondiscovery_new(
 		"/home/alanr/monitor/src/discovery_agents/netconfig"
-		,			       2, 0);
+		,			       2, netpkt, who->baseclass.config, 0);
 	discover_netconfig->baseclass.discover(CASTTOCLASS(Discovery, discover_netconfig));
 	discover_netconfig->baseclass.baseclass.unref(discover_netconfig);
 }

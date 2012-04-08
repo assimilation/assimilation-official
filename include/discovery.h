@@ -25,6 +25,8 @@
 #define _DISCOVERY_H
 #include <projectcommon.h>
 #include <assimobj.h>
+#include <netgsource.h>
+#include <configcontext.h>
 ///@{
 /// @ingroup DiscoveryClass
 
@@ -32,13 +34,17 @@ typedef struct _Discovery Discovery;
 /// @ref DiscoveryClass abstract C-class - it supports discovering "things" through subclasses for different kinds of things.
 struct _Discovery {
 	AssimObj	baseclass;						///< Base object class
-	const char*	(*discoveryname)	(const Discovery* self);	///< Which discovery object is this?
+	const char*	(*discoveryname)	(const Discovery* self);	///< Which object is this?
 	gboolean	(*discover)		(Discovery* self);		///< Perform the discovery
-	guint		(*discoverintervalsecs)	(const Discovery* self);	///< How often to re-discover this? (in seconds)
+	guint		(*discoverintervalsecs)	(const Discovery* self);	///< How often to re-discover?
+										///< (in seconds)
 	guint		_timerid;						///< Timer id for repeating discovery
+	NetGSource*	_iosource;						///< How to send packets
+	ConfigContext*	_config;						///< Configuration Parameters -
+										///< has address of CMA.
 };
 
-WINEXPORT Discovery* discovery_new(gsize objsize);
+WINEXPORT Discovery* discovery_new(NetGSource*, ConfigContext*, gsize objsize);
 WINEXPORT void discovery_register(Discovery* self);
 WINEXPORT void discovery_unregister_all(void);
 #ifdef DISCOVERY_SUBCLASS

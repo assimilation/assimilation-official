@@ -27,6 +27,7 @@ struct _JsonDiscovery {
 	guint		_sourceid;	///< Gmainloop source id of our child watch source.
 	guint		_intervalsecs;	///< How often to run this discovery method?
 };
-WINEXPORT JsonDiscovery* jsondiscovery_new(const char * pathname, int intervalsecs, gsize objsize);
+WINEXPORT JsonDiscovery* jsondiscovery_new(const char * pathname, int intervalsecs
+,					   NetGSource*, ConfigContext*, gsize);
 ///@}
 #endif /* _JSONDISCOVERY_H */

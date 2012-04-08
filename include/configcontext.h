@@ -54,7 +54,11 @@ WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext co
 #define CONFIGNAME_WARNTIME	"warntime"	///< How long w/o heartbeats before whining?
 #define CONFIGNAME_HBTIME	"hbtime"	///< How long to wait between heartbeats?
 #define CONFIGNAME_HBPORT	"hbport"	///< Default Port for sending heartbeats
+#define CONFIGNAME_CMAINIT	"cmainit"	///< Initial startup contact address for the CMA
+						///< (could be a multicast address)
 #define CONFIGNAME_CMAADDR	"cmaaddr"	///< Address of the Collective Management authority
+#define CONFIGNAME_CMADISCOVER	"cmadisc"	///< Address of where to send discovery reports
+#define CONFIGNAME_CMAFAIL	"cmafail"	///< Address of where to send failure reports
 #define CONFIGNAME_OUTSIG	"outsig"	///< SignFrame to use to sign/verify packets
 #define CONFIGNAME_CRYPT	"crypt"		///< Frame to use for encrypting/decrypting packets
 #define CONFIGNAME_COMPRESS	"compress"	///< Frame to use for compressing/decompressing

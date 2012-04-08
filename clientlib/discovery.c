@@ -62,7 +62,9 @@ _discovery_rediscover(gpointer vself)	///<[in/out] Object to perform discovery o
 /// That is certainly what will happen if you try and construct one of these objects directly and
 /// then use it.
 Discovery*
-discovery_new(gsize objsize)	///<[in] number of bytes to malloc for the object (or zero)
+discovery_new(NetGSource*	iosource,	///<[in/out] I/O object
+	      ConfigContext*	context,	///<[in/out] configuration context
+	      gsize objsize)			///<[in] number of bytes to malloc for the object (or zero)
 {
 	gsize	size = objsize < sizeof(Discovery) ? sizeof(Discovery) : objsize;
 	Discovery * ret = NEWSUBCLASS(Discovery, assimobj_new(size));
@@ -72,6 +74,8 @@ discovery_new(gsize objsize)	///<[in] number of bytes to malloc for the object (
 	ret->baseclass._finalize	= _discovery_finalize;
 	ret->discover			= NULL;
 	ret->_timerid			= -1;
+	ret->_iosource			= iosource;
+	ret->_config			= context;
 	return ret;
 }
 

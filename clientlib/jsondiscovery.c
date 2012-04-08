@@ -129,10 +129,13 @@ quitchild:
 JsonDiscovery*
 jsondiscovery_new(const char *	pathname,	///<[in] pathname of program (script) to run
 		  gint		intervalsecs,	///<[in] How often to run this discovery
+		  NetGSource*	iosource,	///<[in/out] I/O object
+		  ConfigContext*context,	///<[in/out] Configuration context
 		  gsize		objsize)	///<[in] number of bytes to malloc for the object (or zero)
 {
-	JsonDiscovery* ret =NEWSUBCLASS(JsonDiscovery
-	,		    discovery_new(objsize < sizeof(JsonDiscovery) ? sizeof(JsonDiscovery) : objsize));
+	JsonDiscovery* ret=NEWSUBCLASS(JsonDiscovery
+	,		   discovery_new(iosource, context
+			    ,		 objsize < sizeof(JsonDiscovery) ? sizeof(JsonDiscovery) : objsize));
 	g_return_val_if_fail(ret != NULL, NULL);
 	ret->baseclass.discoveryname		= _jsondiscovery_discoveryname;
 	ret->baseclass.discoverintervalsecs	= _jsondiscovery_discoverintervalsecs;

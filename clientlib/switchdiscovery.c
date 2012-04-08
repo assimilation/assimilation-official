@@ -81,9 +81,16 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 /// SwitchDiscovery constructor.
 /// Good for discovering switch information via pcap-enabled discovery protocols (like LLDP and CDP)
 SwitchDiscovery*
-switchdiscovery_new(gsize objsize, const char * dev, guint listenmask, gint priority, GMainContext* context)
+switchdiscovery_new(const char * dev		///<[in] device to listen on
+,		    guint listenmask		///<[in] what protocols to listen to
+,		    gint priority		///<[in] source priority
+,		    GMainContext* 	mcontext///<[in/out] mainloop context
+,	            NetGSource*		iosrc	///<[in/out] I/O object
+,	            ConfigContext*	config	///<[in/out] configuration context
+,	            gsize objsize)		///<[in] object size
 {
-	Discovery * dret = discovery_new(objsize < sizeof(SwitchDiscovery) ? sizeof(SwitchDiscovery) : objsize);
+	Discovery * dret = discovery_new(iosrc, config
+	,		                 objsize < sizeof(SwitchDiscovery) ? sizeof(SwitchDiscovery) : objsize);
 	SwitchDiscovery* ret;
 	g_return_val_if_fail(dret != NULL, NULL);
 	proj_class_register_subclassed(dret, "SwitchDiscovery");
@@ -93,7 +100,7 @@ switchdiscovery_new(gsize objsize, const char * dev, guint listenmask, gint prio
 	ret->finalize = dret->baseclass._finalize;
 	dret->baseclass._finalize = _switchdiscovery_finalize;
 	dret->discover = _switchdiscovery_discover;
-	ret->source = g_source_pcap_new(dev, listenmask, _switchdiscovery_dispatch, NULL, priority, FALSE, context, 0, ret);
+	ret->source = g_source_pcap_new(dev, listenmask, _switchdiscovery_dispatch, NULL, priority, FALSE, mcontext, 0, ret);
 
 	if (objsize == sizeof(SwitchDiscovery)) {
 		// We assume we're not a constructor for a subclass...
