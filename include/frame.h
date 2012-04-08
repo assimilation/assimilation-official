@@ -46,7 +46,7 @@ struct _Frame {
 #define	FRAME_INITSIZE	4	///< (sizeof(Frame.type) + sizeof(Frame.length)) - each 2 bytes
 WINEXPORT Frame*	frame_new(guint16 frame_type, gsize framesize);
 WINEXPORT Frame*	frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
-WINEXPORT void _frame_default_valuefinalize(gpointer value);
+FSTATIC void frame_default_valuefinalize(gpointer value);
 ///@}
 
 #endif /* _FRAME_H */

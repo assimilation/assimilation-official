@@ -20,7 +20,6 @@ FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpoin
 FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC void _frame_dump(const Frame *, const char * prefix);
-FSTATIC void _frame_default_valuefinalize(gpointer value);
 
 ///@defgroup Frame Frame class
 /// Class for holding/storing binary blobs -  Base class for all the other Frame types.
@@ -40,7 +39,7 @@ _frame_default_finalize(AssimObj * obj) ///< Frame to finalize
 }
 /// Finalize a Frame
 FSTATIC void
-_frame_default_valuefinalize(gpointer value) ///< Value to finalize
+frame_default_valuefinalize(gpointer value) ///< Value to finalize
 {
 	if (value) {
 		FREE(value);
@@ -135,7 +134,7 @@ frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Fram
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->length = framelength;
-	ret->setvalue(ret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
+	ret->setvalue(ret, g_memdup(framevalue, framelength), framelength, frame_default_valuefinalize);
 	return ret;
 }
 /// Basic "dump a frame" member function - we use g_debug() for output.

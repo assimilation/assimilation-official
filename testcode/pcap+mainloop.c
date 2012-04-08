@@ -587,6 +587,8 @@ main(int argc, char **argv)
 	config->setint(config, CONFIGNAME_HBPORT, testport);
 	config->setint(config, CONFIGNAME_HBTIME, 1000000);
 	config->setint(config, CONFIGNAME_DEADTIME, 3*1000000);
+	config->setint(config, CONFIGNAME_CMAPORT, 1984);
+	config->setint(config, CONFIGNAME_HBPORT, 1984);
 
 	// Create a network transport object (UDP packets)
 	nettransport = CASTTOCLASS(NetIO, netioudp_new(0, config, decoder));
@@ -595,6 +597,9 @@ main(int argc, char **argv)
 	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
 	destaddr =  netaddr_ipv6_new(loopback, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
+	config->setaddr(config, CONFIGNAME_CMAADDR, destaddr);
+	config->setaddr(config, CONFIGNAME_CMAFAIL, destaddr);
+	config->setaddr(config, CONFIGNAME_CMADISCOVER, destaddr);
 
 	// Construct another couple of NetAddrs to talk to and listen from
 	otheraddr =  netaddr_ipv4_new(otheradstring, testport);

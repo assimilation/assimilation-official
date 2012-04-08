@@ -46,6 +46,8 @@ WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext co
 #define	CONFIG_DEFAULT_DEADTIME	30		///< Default "deadtime"
 #define	CONFIG_DEFAULT_HBTIME	3		///< Default heartbeat interval
 #define	CONFIG_DEFAULT_WARNTIME	10		///< Default warning time
+#define	CONFIG_DEFAULT_HBPORT	1984		///< Default Heartbeat port
+#define	CONFIG_DEFAULT_CMAPORT	1984		///< Default CMA port
 #define	CONFIG_DEFAULT_ADDR	{127,0,0,1}
 #define	CONFIG_DEFAULT_ADDRTYPE	ADDR_FAMILY_IPV4
 #define	CONFIG_DEFAULT_SIGNFRAME_TYPE	G_CHECKSUM_SHA256
@@ -54,6 +56,7 @@ WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext co
 #define CONFIGNAME_WARNTIME	"warntime"	///< How long w/o heartbeats before whining?
 #define CONFIGNAME_HBTIME	"hbtime"	///< How long to wait between heartbeats?
 #define CONFIGNAME_HBPORT	"hbport"	///< Default Port for sending heartbeats
+#define CONFIGNAME_CMAPORT	"cmaport"	///< Default Port for contacting the CMA
 #define CONFIGNAME_CMAINIT	"cmainit"	///< Initial startup contact address for the CMA
 						///< (could be a multicast address)
 #define CONFIGNAME_CMAADDR	"cmaaddr"	///< Address of the Collective Management authority
@@ -68,6 +71,8 @@ WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext co
 	{CONFIGNAME_DEADTIME,	CONFIG_DEFAULT_DEADTIME},	\
 	{CONFIGNAME_WARNTIME,	CONFIG_DEFAULT_WARNTIME},	\
 	{CONFIGNAME_HBTIME,	CONFIG_DEFAULT_HBTIME},		\
+	{CONFIGNAME_HBPORT,	CONFIG_DEFAULT_HBPORT},		\
+	{CONFIGNAME_CMAPORT,	CONFIG_DEFAULT_CMAPORT},		\
 	}
 ///@}
 #endif /* _CONFIGCONTEXT_H */

@@ -114,7 +114,7 @@ cstringframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;
-	ret->baseclass.setvalue(fret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
+	ret->baseclass.setvalue(fret, g_memdup(framevalue, framelength), framelength, frame_default_valuefinalize);
 	return fret;
 }
 ///@}

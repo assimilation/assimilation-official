@@ -65,7 +65,7 @@ unknownframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;
-	fret->setvalue(fret, g_memdup(framevalue, framelength), framelength, _frame_default_valuefinalize);
+	fret->setvalue(fret, g_memdup(framevalue, framelength), framelength, frame_default_valuefinalize);
 	return fret;
 }
 ///@}
