@@ -48,6 +48,7 @@
 #include <nvpairframe.h>
 #include <seqnoframe.h>
 #include <frametypes.h>
+#include <jsondiscovery.h>
 
 
 
@@ -246,6 +247,7 @@ void
 initial_deadtime_agent(HbListener* who)
 {
 	FrameSet * pkt;
+	JsonDiscovery*	discover_netconfig;
 	(void)who;
 	g_message("Expected deadtime event occurred (once)");
 	// Send ourselves a message so that we send heartbeats to ourselves
@@ -260,6 +262,12 @@ initial_deadtime_agent(HbListener* who)
 	pkt = create_sendexpecthb(who->baseclass.config, otheraddr2, 1);
 	netpkt->sendaframeset(netpkt, destaddr, pkt);
 	pkt->unref(pkt); pkt = NULL;
+
+	discover_netconfig = jsondiscovery_new(
+		"/home/alanr/monitor/src/discovery_agents/netconfig"
+		,			       2, 0);
+	discover_netconfig->baseclass.discover(CASTTOCLASS(Discovery, discover_netconfig));
+	discover_netconfig->baseclass.baseclass.unref(discover_netconfig);
 }
 
 /**
@@ -650,6 +658,10 @@ main(int argc, char **argv)
 
 	// Dissociate packet actions from the packet source.
 	obeycollective->dissociate(obeycollective);
+
+	// Stop all our discovery activities.
+	discovery_unregister_all();
+
 	// Unref the AuthListener object
 	obeycollective->baseclass.baseclass.unref(obeycollective);
 	obeycollective = NULL;

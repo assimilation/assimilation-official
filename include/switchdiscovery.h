@@ -23,7 +23,7 @@ typedef struct _SwitchDiscovery SwitchDiscovery;
 struct _SwitchDiscovery {
 	Discovery	baseclass;			/// Base class object
 	GSource*	source;				/// GSource for the pcap data
-	void		(*finalize)(Discovery* self);	/// Saved parent class destructor
+	void		(*finalize)(AssimObj* self);	/// Saved parent class destructor
 	gpointer	switchid;			/// Current switch identification information
 	gssize		switchidlen;			/// Length of 'switchid'
 	gpointer	portid;				/// Current port id information.

@@ -35,6 +35,10 @@
 #endif
 
 #include <glib.h>
+#if !HAVE_G_UNLINK
+	/* #if (GLIB_MINOR_VERSION < 6) - but this doesn't work as I expected */
+#	define	g_unlink(arg)	unlink(arg)
+#endif
 #include <proj_classes.h>
 
 #endif /* _PROJECTCOMMON_H */

@@ -34,15 +34,15 @@ struct _Discovery {
 	AssimObj	baseclass;						///< Base object class
 	const char*	(*discoveryname)	(const Discovery* self);	///< Which discovery object is this?
 	gboolean	(*discover)		(Discovery* self);		///< Perform the discovery
-	void		(*finalize)		(Discovery* self);		///< called during object destruction
 	guint		(*discoverintervalsecs)	(const Discovery* self);	///< How often to re-discover this? (in seconds)
 	guint		_timerid;						///< Timer id for repeating discovery
 };
 
 WINEXPORT Discovery* discovery_new(gsize objsize);
 WINEXPORT void discovery_register(Discovery* self);
+WINEXPORT void discovery_unregister_all(void);
 #ifdef DISCOVERY_SUBCLASS
-WINEXPORT void		_discovery_finalize(Discovery* self);
+WINEXPORT void		_discovery_finalize(AssimObj* self);
 #endif
 
 

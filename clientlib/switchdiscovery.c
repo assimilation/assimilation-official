@@ -15,7 +15,7 @@
 #include <cdp.h>
 #include <memory.h>
 FSTATIC gboolean _switchdiscovery_discover(Discovery* self);
-FSTATIC void _switchdiscovery_finalize(Discovery* self);
+FSTATIC void _switchdiscovery_finalize(AssimObj* self);
 FSTATIC gboolean _switchdiscovery_cache_info(SwitchDiscovery* self, gconstpointer pkt, gconstpointer pend);
 FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconstpointer, gconstpointer,
                           const struct pcap_pkthdr*, const char *, gpointer selfptr);
@@ -27,7 +27,7 @@ FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gco
 
 /// finalize a SwitchDiscovery object
 FSTATIC void
-_switchdiscovery_finalize(Discovery* dself)
+_switchdiscovery_finalize(AssimObj* dself)
 {
 	SwitchDiscovery * self = CASTTOCLASS(SwitchDiscovery, dself);
 	if (self->source) {
@@ -35,7 +35,7 @@ _switchdiscovery_finalize(Discovery* dself)
 		self->source = NULL;
 	}
 	// Call base object finalization routine (which we saved away)
-	self->finalize(dself);
+	self->finalize(CASTTOCLASS(AssimObj, self));
 }
 
 /// Discover member function for timed discovery -- not applicable -- return FALSE
@@ -90,8 +90,8 @@ switchdiscovery_new(gsize objsize, const char * dev, guint listenmask, gint prio
 
 	ret = CASTTOCLASS(SwitchDiscovery, dret);
 
-	ret->finalize = dret->finalize;
-	dret->finalize = _switchdiscovery_finalize;
+	ret->finalize = dret->baseclass._finalize;
+	dret->baseclass._finalize = _switchdiscovery_finalize;
 	dret->discover = _switchdiscovery_discover;
 	ret->source = g_source_pcap_new(dev, listenmask, _switchdiscovery_dispatch, NULL, priority, FALSE, context, 0, ret);
 

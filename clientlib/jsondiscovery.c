@@ -21,10 +21,9 @@
 
 FSTATIC const char *	_jsondiscovery_discoveryname(const Discovery* self);
 FSTATIC guint		_jsondiscovery_discoverintervalsecs(const Discovery* self);
-FSTATIC void		_jsondiscovery_finalize(Discovery* self);
+FSTATIC void		_jsondiscovery_finalize(AssimObj* self);
 FSTATIC gboolean	_jsondiscovery_discover(Discovery* dself);
 FSTATIC void		_jsondiscovery_childwatch(GPid, gint, gpointer);
-FSTATIC void		_jsondiscovery_notify(gpointer gself);
 
 /// internal function return the type of Discovery object
 FSTATIC const char *
@@ -44,9 +43,10 @@ _jsondiscovery_discoverintervalsecs(const Discovery* dself)	///<[in] Object whos
 
 /// Finalizing function for Discovery objects
 FSTATIC void
-_jsondiscovery_finalize(Discovery* dself)	///<[in/out] Object to finalize (free)
+_jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 {
 	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
+	g_warning("jsondiscovery_finalize: FREEING %p", self);
 	g_free(self->pathname);
 	self->pathname = NULL;
 	g_warn_if_fail(self->_sourceid == 0);
@@ -64,17 +64,21 @@ _jsondiscovery_discover(Discovery* dself)
 		g_warning("JSON discovery process still running - skipping this iteration.");
 		return TRUE;
 	}
+	self->_tmpfilename = strdup("/var/tmp/discovery-XXXXXXXXXXX.json");
+	close(g_mkstemp_full(self->_tmpfilename, 0, 0644));
 	argv[0] = strdup("/bin/sh");
 	argv[1] = strdup("-c");
 	argv[2] = g_strdup_printf("%s > %s", self->pathname, self->_tmpfilename);
 	argv[3] = NULL;
 	
 	if (!g_spawn_async(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD
-	,				NULL, NULL, &self->_child_pid, &errs)) {
+	,		   NULL, NULL, &self->_child_pid, &errs)) {
 		g_warning("JSON discovery fork error: %s", errs->message);
 	}else{
 		self->_sourceid = g_child_watch_add_full(G_PRIORITY_LOW, self->_child_pid, _jsondiscovery_childwatch
-	,					 self, _jsondiscovery_notify);
+		,					 self, NULL);
+		// Don't want us going away while we have a child out there...
+		self->baseclass.baseclass.ref(self);
 	}
 	for (j=0; j < 3; ++j) {
 		g_free(argv[j]); argv[j] = NULL;
@@ -103,23 +107,22 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 		g_warning("JSON discovery [%s] produced no output.", self->pathname);
 		goto quitchild;
 	}
+	g_message("Got %d bytes of JSON TEXT: [%s]", jsonlen, jsonout);
 
 quitchild:
 	///@todo should this be g_source_destroy instead??
 	g_source_remove(self->_sourceid);
 	self->_sourceid = 0;
 	memset(&(self->_child_pid), 0, sizeof(self->_child_pid));
-#if 0
-	g_unlink(self->pathname);
-#else
-	unlink(self->pathname);
-#endif
-}
-FSTATIC void
-_jsondiscovery_notify(gpointer gself)
-{
-	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, gself);
-	g_message("Destroying jsondiscovery object at %p", gself);
+	if (jsonout) {
+		g_free(jsonout);
+	}
+	if (self->_tmpfilename) {
+		g_unlink(self->_tmpfilename);
+		g_free(self->_tmpfilename);
+		self->_tmpfilename = NULL;
+	}
+	// We did a 'ref' in _jsondiscovery_discover above to keep us from disappearing while child was running.
 	self->baseclass.baseclass.unref(self);
 }
 
@@ -134,10 +137,12 @@ jsondiscovery_new(const char *	pathname,	///<[in] pathname of program (script) t
 	g_return_val_if_fail(ret != NULL, NULL);
 	ret->baseclass.discoveryname		= _jsondiscovery_discoveryname;
 	ret->baseclass.discoverintervalsecs	= _jsondiscovery_discoverintervalsecs;
-	ret->baseclass.finalize			= _jsondiscovery_finalize;
+	ret->baseclass.baseclass._finalize	= _jsondiscovery_finalize;
 	ret->baseclass.discover			= _jsondiscovery_discover;
 	ret->pathname = g_strdup(pathname);
 	ret->_intervalsecs = intervalsecs;
+	discovery_register(CASTTOCLASS(Discovery, ret));
+	g_debug("jsondiscovery_new: registered %p", ret);
 	return ret;
 }
 ///@}

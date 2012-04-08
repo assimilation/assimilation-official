@@ -39,8 +39,10 @@ static GSList * _discovery_timers = NULL;
 
 /// Finalizing function for Discovery objects
 FSTATIC void
-_discovery_finalize(Discovery* self)	///<[in/out] Object to finalize (free)
+_discovery_finalize(AssimObj* gself)	///<[in/out] Object to finalize (free)
 {
+	Discovery* self = CASTTOCLASS(Discovery, gself);
+	
 	if (self->_timerid > 0) {
 		g_source_remove(self->_timerid);
 		self->_timerid = -1;
@@ -70,7 +72,7 @@ discovery_new(gsize objsize)	///<[in] number of bytes to malloc for the object (
 	g_return_val_if_fail(ret != NULL, NULL);
 	ret->discoveryname		= _discovery_discoveryname;
 	ret->discoverintervalsecs	= _discovery_discoverintervalsecs;
-	ret->finalize			= _discovery_finalize;
+	ret->baseclass._finalize	= _discovery_finalize;
 	ret->discover			= NULL;
 	ret->_timerid			= -1;
 	return ret;
@@ -92,6 +94,21 @@ discovery_register(Discovery* self)	///<[in/out] Discovery object to register
 		self->_timerid = g_timeout_add_seconds(timeout, _discovery_rediscover, self);
 	}
 	_discovery_timers = g_slist_prepend(_discovery_timers, self);
+	self->baseclass.ref(self);
+}
+
+/// Unregister all discovery methods in preparation for shutting down - to make valgrind happy :-D
+void
+discovery_unregister_all(void)
+{
+	GSList * this;
+	GSList * next;
+
+	for (this = _discovery_timers; this; this = next) {
+		Discovery*	d = CASTTOCLASS(Discovery, this->data);
+		next = this->next;
+		d->baseclass.unref(d);
+	}
 }
 
 ///@}
