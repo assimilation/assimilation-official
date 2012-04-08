@@ -102,6 +102,19 @@
    ...
 }
 #
+#	This is a worrisome cumulative memory leak - or so it seems
+#	May want to stop using the "read file into memory" code.
+#
+{
+   g_get_filename_charsets 
+   Memcheck:Leak
+   ...
+   fun:g_get_filename_charsets
+   fun:g_filename_display_name
+   ...
+}
+
+#
 #	This is here because I can't figure out how to get the mainloop code
 #	to free sources...
 #
@@ -123,3 +136,4 @@
    fun:netgsource_new
    ...
 }
+

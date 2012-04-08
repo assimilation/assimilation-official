@@ -43,11 +43,8 @@ _discovery_finalize(AssimObj* gself)	///<[in/out] Object to finalize (free)
 {
 	Discovery* self = CASTTOCLASS(Discovery, gself);
 	
-	if (self->_timerid > 0) {
-		g_source_remove(self->_timerid);
-		self->_timerid = -1;
-		_discovery_timers = g_slist_remove(_discovery_timers, self);
-	}
+	self->_timerid = -1;
+	_discovery_timers = g_slist_remove(_discovery_timers, self);
 	FREECLASSOBJ(self); self=NULL;
 }
 /// GSourceFunc function to invoke discover member function at the timed interval.

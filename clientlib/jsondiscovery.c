@@ -46,7 +46,6 @@ FSTATIC void
 _jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 {
 	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
-	g_warning("jsondiscovery_finalize: FREEING %p", self);
 	g_free(self->pathname);
 	self->pathname = NULL;
 	g_warn_if_fail(self->_sourceid == 0);
@@ -93,7 +92,6 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 	gsize		jsonlen = 0;
 	GError*		err;
 
-	(void)pid;
 
 	if (status != 0) {
 		g_warning("JSON discovery from %s failed with status 0x%x (%d)", self->pathname, status, status);
@@ -111,7 +109,8 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 
 quitchild:
 	///@todo should this be g_source_destroy instead??
-	g_source_remove(self->_sourceid);
+	g_spawn_close_pid(pid);
+	//g_source_remove(self->_sourceid); ???
 	self->_sourceid = 0;
 	memset(&(self->_child_pid), 0, sizeof(self->_child_pid));
 	if (jsonout) {
