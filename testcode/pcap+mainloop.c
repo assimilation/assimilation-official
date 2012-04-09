@@ -83,17 +83,23 @@ void obey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 void obey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
 void obey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
 void obey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
+void fakecma_startup(AuthListener*, FrameSet* fs, NetAddr*);
 
 ObeyFrameSetTypeMap obeylist [] = {
 	{FRAMESETTYPE_SENDHB,		obey_sendhb},
 	{FRAMESETTYPE_EXPECTHB,		obey_expecthb},
 	{FRAMESETTYPE_SENDEXPECTHB,	obey_sendexpecthb},
+	{FRAMESETTYPE_SETCONFIG,	obey_setconfig},
+	{FRAMESETTYPE_STARTUP,		fakecma_startup},
 	{0,				NULL},
 };
 	
 
 FrameSet* create_sendexpecthb(ConfigContext*, NetAddr* addrs, int addrcount);
 FrameSet* create_setconfig(ConfigContext * cfg);
+gboolean nano_startup(gpointer gcruft);
+gboolean nano_reqconfig(gpointer gcruft);
+ConfigContext*	nanoconfig;
 
 /// Test routine for sending an encapsulated Pcap packet.
 void
@@ -558,6 +564,7 @@ obey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking u
 	guint16		port = 0;
 
 	(void)fromaddr;
+	g_debug("In %s", __FUNCTION__);
 
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
@@ -565,15 +572,8 @@ obey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking u
 		switch (frametype) {
 
 			case FRAMETYPE_PARAMNAME: { // Parameter name to set
-				g_return_if_fail(paramname != NULL);
 				paramname = frame->value;
-			}
-			break;
-
-			case FRAMETYPE_PORTNUM: { // Port number for subsequent IP address
-				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
 				g_return_if_fail(paramname != NULL);
-				port = intf->getint(intf); // remember for later
 			}
 			break;
 
@@ -592,6 +592,13 @@ obey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking u
 			}
 			break;
 
+			case FRAMETYPE_PORTNUM: { // Port number for subsequent IP address
+				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
+				g_return_if_fail(paramname != NULL);
+				port = intf->getint(intf); // remember for later
+			}
+			break;
+
 			case FRAMETYPE_IPADDR: { // NetAddr value to set 'paramname' to
 				AddrFrame* af = CASTTOCLASS(AddrFrame, frame);
 				NetAddr*	addr = af->getnetaddr(af);
@@ -606,9 +613,41 @@ obey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking u
 				paramname = NULL;
 			}
 			break;
+
 		}//endswitch
 	}//endfor
 }//obey_setconfig
+
+/// Routine to pretend to be the initial CMA
+void
+fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
+{
+	FrameSet*	pkt;
+	NetGSource*	netpkt = auth->transport;
+	char *		nanostr = nanoaddr->baseclass.toString(nanoaddr);
+
+	(void)ifs;
+	g_debug("Hurray, got a startup message from %s/%d!!", nanostr, nanoaddr->port(nanoaddr));
+	g_free(nanostr); nanostr = NULL;
+
+	// Send the configuration data to our new "client"
+	pkt = create_setconfig(nanoconfig);
+	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	pkt->unref(pkt); pkt = NULL;
+
+	// Now tell them to send/expect heartbeats to various places
+	pkt = create_sendexpecthb(auth->baseclass.config, destaddr, 1);
+	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	pkt->unref(pkt); pkt = NULL;
+
+	pkt = create_sendexpecthb(auth->baseclass.config, otheraddr, 1);
+	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	pkt->unref(pkt); pkt = NULL;
+
+	pkt = create_sendexpecthb(auth->baseclass.config, otheraddr2, 1);
+	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	pkt->unref(pkt); pkt = NULL;
+}
 
 /// Create a FRAMESETTYPE_SETCONFIG @ref FrameSet.
 /// We create it from a ConfigContext containing <i>only</i> values we want to go into
@@ -628,61 +667,179 @@ create_setconfig(ConfigContext * cfg)
 	// Lastly we go through the NetAddr values (if any)
 
 	// Integer values
-	g_hash_table_iter_init(&iter, cfg->_intvalues);
-	while (g_hash_table_iter_next(&iter, &key, &data)) {
-		char *		name = key;
-		int		value = GPOINTER_TO_INT(data);
-		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-		IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 4);
-		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
-		,		      frame_default_valuefinalize);
-		v->setint(v, value);
-		frameset_append_frame(fs, &n->baseclass);
-		frameset_append_frame(fs, &v->baseclass);
+	if (cfg->_intvalues) {
+		g_hash_table_iter_init(&iter, cfg->_intvalues);
+		while (g_hash_table_iter_next(&iter, &key, &data)) {
+			char *		name = key;
+			int		value = GPOINTER_TO_INT(data);
+			CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
+			IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 4);
+			n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
+			,		      frame_default_valuefinalize);
+			v->setint(v, value);
+			frameset_append_frame(fs, &n->baseclass);
+			frameset_append_frame(fs, &v->baseclass);
+			n->baseclass.baseclass.unref(n);
+			v->baseclass.baseclass.unref(v);
+		}
 	}
 	
 	// String values
-	g_hash_table_iter_init(&iter, cfg->_strvalues);
-	while (g_hash_table_iter_next(&iter, &key, &data)) {
-		char *		name = key;
-		char *		value = data;
-		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-		CstringFrame*	v = cstringframe_new(FRAMETYPE_CSTRINGVAL, 0);
-		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
-		,		      frame_default_valuefinalize);
-		v->baseclass.setvalue(&v->baseclass, strdup(value), strlen(value)+1
-		,		      frame_default_valuefinalize);
-		frameset_append_frame(fs, &n->baseclass);
-		frameset_append_frame(fs, &v->baseclass);
+	if (cfg->_strvalues) {
+		g_hash_table_iter_init(&iter, cfg->_strvalues);
+		while (g_hash_table_iter_next(&iter, &key, &data)) {
+			char *		name = key;
+			char *		value = data;
+			CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
+			CstringFrame*	v = cstringframe_new(FRAMETYPE_CSTRINGVAL, 0);
+			n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
+			,		      frame_default_valuefinalize);
+			v->baseclass.setvalue(&v->baseclass, strdup(value), strlen(value)+1
+			,		      frame_default_valuefinalize);
+			frameset_append_frame(fs, &n->baseclass);
+			frameset_append_frame(fs, &v->baseclass);
+			n->baseclass.baseclass.unref(n);
+			v->baseclass.baseclass.unref(v);
+		}
 	}
 
 	// NetAddr values
-	g_hash_table_iter_init(&iter, cfg->_addrvalues);
-	while (g_hash_table_iter_next(&iter, &key, &data)) {
-		char *		name = key;
-		NetAddr*	value = data;
-		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-		AddrFrame*	v = addrframe_new(FRAMETYPE_IPADDR, 0);
-		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
-		,		      frame_default_valuefinalize);
-		frameset_append_frame(fs, &n->baseclass);
-		// The port doesn't come through when going across the wire
-		if (value->port(value) != 0) {
-			IntFrame*	p = intframe_new(FRAMETYPE_CINTVAL, 4);
-			p->setint(p, value->port(value));
-			frameset_append_frame(fs, &p->baseclass);
+	if (cfg->_addrvalues) {
+		g_hash_table_iter_init(&iter, cfg->_addrvalues);
+		while (g_hash_table_iter_next(&iter, &key, &data)) {
+			char *		name = key;
+			NetAddr*	value = data;
+			CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
+			AddrFrame*	v = addrframe_new(FRAMETYPE_IPADDR, 0);
+			n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
+			,		      frame_default_valuefinalize);
+			frameset_append_frame(fs, &n->baseclass);
+			// The port doesn't come through when going across the wire
+			if (value->port(value) != 0) {
+				IntFrame*	p = intframe_new(FRAMETYPE_PORTNUM, 4);
+				p->setint(p, value->port(value));
+				frameset_append_frame(fs, &p->baseclass);
+				p->baseclass.baseclass.unref(p);
+			}
+			v->setnetaddr(v, value);
+			frameset_append_frame(fs, &v->baseclass);
+			n->baseclass.baseclass.unref(n);
+			v->baseclass.baseclass.unref(v);
 		}
-		v->setnetaddr(v, value);
-		frameset_append_frame(fs, &v->baseclass);
 	}
 
 	return fs;
 }
 
+struct startup_cruft {
+	const char *	initdiscover;
+	int		discover_interval;
+	NetGSource*	iosource;
+	ConfigContext*	context;
+};
+
+/// Nanoprobe bootstrap routine.
+/// We are an g_main_loop idle function which kicks off a discovery action
+/// and continues to run as idle until the discovery finishes, then
+/// we schedule a request for configuration - which will run periodically
+/// until we get our configuration information safely stored away in our
+/// ConfigContext.
+gboolean
+nano_startup(gpointer gcruft)
+{
+	static enum istate {INIT=3, WAIT=5, DONE=7} state = INIT;
+	struct startup_cruft* cruft = gcruft;
+	const char *	cfgname = strrchr(cruft->initdiscover, '/');
+
+	g_warning("In nano_startup(state:%d) - looking for %s in config"
+	,	  state, cfgname);
+	if (state == DONE) {
+		return FALSE;
+	}
+	if (cfgname == NULL) {
+		cfgname = cruft->initdiscover;
+	}
+	if (state == INIT) {
+		JsonDiscovery* jd = jsondiscovery_new(cruft->initdiscover
+		,	cruft->discover_interval
+		,	cruft->iosource, cruft->context, 0);
+		g_warning("In nano_startup - starting discovery code");
+		jd->baseclass.baseclass.unref(jd);
+		state = WAIT;
+		return TRUE;
+	}
+	if (cruft->context->getstring(cruft->context, cfgname)) {
+		state = DONE;
+		// Call it once, and arrange for it to repeat until we hear back.
+		nano_reqconfig(gcruft);
+		g_timeout_add_seconds(5, nano_reqconfig, gcruft);
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/// Function to request our configuration data
+/// This is called from a g_main_loop timeout, and directly (once).
+gboolean
+nano_reqconfig(gpointer gcruft)
+{
+	struct startup_cruft* cruft = gcruft;
+	FrameSet*	fs;
+	CstringFrame*	csf;
+	const char *	cfgname = strrchr(cruft->initdiscover, '/');
+	ConfigContext*	context = cruft->context;
+	NetAddr *	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
+
+	// We <i>have</i> to know our initial request address
+	g_return_val_if_fail(cmainit != NULL, FALSE);
+
+	// Our configuration response should contain these parameters.
+	if (context->getaddr(context, CONFIGNAME_CMAADDR) != NULL
+	&&  context->getaddr(context, CONFIGNAME_CMAFAIL) != NULL
+	&&  context->getaddr(context, CONFIGNAME_CMADISCOVER) != NULL
+	&&  context->getint(context, CONFIGNAME_CMAPORT) > 0) {
+		return FALSE;
+	}
+	fs = frameset_new(FRAMESETTYPE_STARTUP);
+	csf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
+	csf->baseclass.setvalue(&csf->baseclass, strdup(cfgname), strlen(cfgname)+1
+	,			frame_default_valuefinalize);
+	
+	frameset_append_frame(fs, &csf->baseclass);
+	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
+	fs->unref(fs);
+	csf->baseclass.baseclass.unref(csf);
+	return TRUE;
+}
 
 FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 
-/// Test program looping and reading LLDP/CDP packets.
+
+/**
+ * Test program looping and reading LLDP/CDP packets and exercising most of the packet
+ * send/receive mechanism and a good bit of nanoprobe and CMA basic infrastructure.
+ *
+ * It plays both sides of the game - the CMA and the nanoprobe.
+ *
+ * It needs to work this way now:
+ *
+ * 1.	Submit a network discovery request from an idle task, rescheduling until it completes.
+ *	(or this could be done every 10ms or so via a timer) {nano_startup()}
+ *
+ * 2.	Send out a "request for configuration" packet (role: nanoprobe) once the discovery
+ *	shows up in the config context. {nano_reqconfig()}
+ *
+ * 3.	When the CMA receives this request (role: CMA) it sends out a SETCONFIG packet
+ *	and a series of SENDEXPECTHB heartbeat packets {fakecma_startup()}
+ *
+ * 4.	When the SETCONFIG packet is received (role: nanoprobe), it enables the sending of
+ *	discovery data from all (JSON and switch (LLDP/CDP)) sources.  {obey_setconfig()}
+ *
+ * 5.	When the SENDEXPECTHB packet is received (role: nanoprobe), it starts sending
+ *	heartbeats and timing heartbeats to flag "dead" machines.
+ *
+ * 6.	Now everything is running in "normal" mode.
+ */
 int
 main(int argc, char **argv)
 {
@@ -696,11 +853,16 @@ main(int argc, char **argv)
 	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	guint16		testport = TESTPORT;
 	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
-	HbListener*	hblisten;
 	Listener*	otherlistener;
 	ConfigContext*	config = configcontext_new(0);
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
 	AuthListener*	obeycollective;
+	struct startup_cruft cruft = {
+		"/home/alanr/monitor/src/discovery_agents/netconfig",
+		3600,
+		NULL,
+		config
+	};
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
@@ -732,10 +894,11 @@ main(int argc, char **argv)
 	g_return_val_if_fail(NULL != pcapsource, 1);
 
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
-	config->setint(config, CONFIGNAME_HBPORT, testport);
-	config->setint(config, CONFIGNAME_HBTIME, 1000000);
-	config->setint(config, CONFIGNAME_DEADTIME, 3*1000000);
-	config->setint(config, CONFIGNAME_CMAPORT, testport);
+	nanoconfig = configcontext_new(0);
+	nanoconfig->setint(nanoconfig, CONFIGNAME_HBPORT, testport);
+	nanoconfig->setint(nanoconfig, CONFIGNAME_HBTIME, 1000000);
+	nanoconfig->setint(nanoconfig, CONFIGNAME_DEADTIME, 3*1000000);
+	nanoconfig->setint(nanoconfig, CONFIGNAME_CMAPORT, testport);
 
 	// Create a network transport object (UDP packets)
 	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
@@ -744,9 +907,10 @@ main(int argc, char **argv)
 	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
 	destaddr =  netaddr_ipv6_new(loopback, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
-	config->setaddr(config, CONFIGNAME_CMAADDR, destaddr);
-	config->setaddr(config, CONFIGNAME_CMAFAIL, destaddr);
-	config->setaddr(config, CONFIGNAME_CMADISCOVER, destaddr);
+	config->setaddr(config, CONFIGNAME_CMAINIT, destaddr);
+	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMAADDR, destaddr);
+	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMAFAIL, destaddr);
+	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMADISCOVER, destaddr);
 
 	// Construct another couple of NetAddrs to talk to and listen from
 	otheraddr =  netaddr_ipv4_new(otheradstring, testport);
@@ -771,19 +935,24 @@ main(int argc, char **argv)
 	// Unref the "other" listener
 	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
 
-	// Create a heartbeat listener
-	hblisten = hblistener_new(destaddr, config, 0);
-	hblisten->set_deadtime(hblisten, 10*1000000);
-	hblisten->set_heartbeat_callback(hblisten, got_heartbeat);
-	hblisten->set_deadtime_callback(hblisten, initial_deadtime_agent);
+	//// Create a heartbeat listener
+	//hblisten = hblistener_new(destaddr, config, 0);
+	//hblisten->set_deadtime(hblisten, 10*1000000);
+	//hblisten->set_heartbeat_callback(hblisten, got_heartbeat);
+	//hblisten->set_deadtime_callback(hblisten, initial_deadtime_agent);
 
 	// Intercept incoming heartbeat packets - direct them to heartbeat listener
-	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, &hblisten->baseclass);
+	//netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, &hblisten->baseclass);
 	// Unref the heartbeat listener - the listener table holds a reference to it
-	hblisten->baseclass.baseclass.unref(&hblisten->baseclass.baseclass); hblisten = NULL;
+	//hblisten->baseclass.baseclass.unref(&hblisten->baseclass.baseclass); hblisten = NULL;
 	// Listen for packets from the Collective Management Authority
 	obeycollective = authlistener_new(obeylist, config, 0);
 	obeycollective->associate(obeycollective, netpkt);
+
+	// Set up our bootstrapping mechanism
+	cruft.iosource = netpkt;
+	//nano_startup(&cruft);
+	g_idle_add(nano_startup, &cruft);
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
@@ -832,6 +1001,7 @@ main(int argc, char **argv)
 
 	// Free config object
 	config->baseclass.unref(config);
+	nanoconfig->baseclass.unref(nanoconfig);
 
 	// At this point - nothing should show up - we should have freed everything
 	proj_class_dump_live_objects();

@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -612,6 +612,8 @@ guint64 = c_ulonglong # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 5
 gssize = c_int # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 65
 
 gsize = c_uint # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 66
+
+GPid = c_int # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 231
 
 __u_int = c_uint # /usr/include/i386-linux-gnu/bits/types.h: 33
 
@@ -1289,10 +1291,10 @@ if hasattr(_libs['libclientlib.so'], 'frame_tlvconstructor'):
     frame_tlvconstructor.restype = POINTER(Frame)
 
 # ../include/frame.h: 49
-if hasattr(_libs['libclientlib.so'], '_frame_default_valuefinalize'):
-    _frame_default_valuefinalize = _libs['libclientlib.so']._frame_default_valuefinalize
-    _frame_default_valuefinalize.argtypes = [gpointer]
-    _frame_default_valuefinalize.restype = None
+if hasattr(_libs['libclientlib.so'], 'frame_default_valuefinalize'):
+    frame_default_valuefinalize = _libs['libclientlib.so'].frame_default_valuefinalize
+    frame_default_valuefinalize.argtypes = [gpointer]
+    frame_default_valuefinalize.restype = None
 
 u_int = __u_int # /usr/include/i386-linux-gnu/sys/types.h: 36
 
@@ -1368,6 +1370,7 @@ NetAddr = struct__NetAddr # ../include/netaddr.h: 24
 
 struct__NetAddr.__slots__ = [
     'baseclass',
+    'setport',
     'port',
     'addrtype',
     'ipv6sockaddr',
@@ -1379,6 +1382,7 @@ struct__NetAddr.__slots__ = [
 ]
 struct__NetAddr._fields_ = [
     ('baseclass', AssimObj),
+    ('setport', CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr), guint16)),
     ('port', CFUNCTYPE(UNCHECKED(guint16), POINTER(NetAddr))),
     ('addrtype', CFUNCTYPE(UNCHECKED(guint16), POINTER(NetAddr))),
     ('ipv6sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in6), POINTER(NetAddr))),
@@ -1389,43 +1393,43 @@ struct__NetAddr._fields_ = [
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 42
+# ../include/netaddr.h: 43
 if hasattr(_libs['libclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 43
+# ../include/netaddr.h: 44
 if hasattr(_libs['libclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 44
+# ../include/netaddr.h: 45
 if hasattr(_libs['libclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 45
+# ../include/netaddr.h: 46
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 46
+# ../include/netaddr.h: 47
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 47
+# ../include/netaddr.h: 48
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 48
+# ../include/netaddr.h: 49
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
@@ -1752,6 +1756,12 @@ if hasattr(_libs['libclientlib.so'], 'netio_new'):
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
+# ../include/netio.h: 77
+if hasattr(_libs['libclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
+    netio_is_dual_ipv4v6_stack = _libs['libclientlib.so'].netio_is_dual_ipv4v6_stack
+    netio_is_dual_ipv4v6_stack.argtypes = []
+    netio_is_dual_ipv4v6_stack.restype = gboolean
+
 # ../include/netgsource.h: 31
 class struct__NetGSource(Structure):
     pass
@@ -2007,38 +2017,50 @@ if hasattr(_libs['libclientlib.so'], 'cstringframe_tlvconstructor'):
     cstringframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     cstringframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/discovery.h: 32
+# /home/alanr/monitor/src/include/discovery.h: 35
 class struct__Discovery(Structure):
     pass
 
-Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 30
+Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 33
 
 struct__Discovery.__slots__ = [
+    'baseclass',
     'discoveryname',
     'discover',
-    'finalize',
     'discoverintervalsecs',
     '_timerid',
+    '_iosource',
+    '_config',
+    '_sentyet',
 ]
 struct__Discovery._fields_ = [
+    ('baseclass', AssimObj),
     ('discoveryname', CFUNCTYPE(UNCHECKED(String), POINTER(Discovery))),
     ('discover', CFUNCTYPE(UNCHECKED(gboolean), POINTER(Discovery))),
-    ('finalize', CFUNCTYPE(UNCHECKED(None), POINTER(Discovery))),
     ('discoverintervalsecs', CFUNCTYPE(UNCHECKED(guint), POINTER(Discovery))),
     ('_timerid', guint),
+    ('_iosource', POINTER(NetGSource)),
+    ('_config', POINTER(ConfigContext)),
+    ('_sentyet', gboolean),
 ]
 
-# /home/alanr/monitor/src/include/discovery.h: 40
+# /home/alanr/monitor/src/include/discovery.h: 48
 if hasattr(_libs['libclientlib.so'], 'discovery_new'):
     discovery_new = _libs['libclientlib.so'].discovery_new
-    discovery_new.argtypes = [gsize]
+    discovery_new.argtypes = [POINTER(NetGSource), POINTER(ConfigContext), gsize]
     discovery_new.restype = POINTER(Discovery)
 
-# /home/alanr/monitor/src/include/discovery.h: 41
+# /home/alanr/monitor/src/include/discovery.h: 49
 if hasattr(_libs['libclientlib.so'], 'discovery_register'):
     discovery_register = _libs['libclientlib.so'].discovery_register
     discovery_register.argtypes = [POINTER(Discovery)]
     discovery_register.restype = None
+
+# /home/alanr/monitor/src/include/discovery.h: 50
+if hasattr(_libs['libclientlib.so'], 'discovery_unregister_all'):
+    discovery_unregister_all = _libs['libclientlib.so'].discovery_unregister_all
+    discovery_unregister_all.argtypes = []
+    discovery_unregister_all.restype = None
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 15
 if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_type'):
@@ -2269,6 +2291,35 @@ if hasattr(_libs['libclientlib.so'], 'intframe_tlvconstructor'):
     intframe_tlvconstructor = _libs['libclientlib.so'].intframe_tlvconstructor
     intframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     intframe_tlvconstructor.restype = POINTER(Frame)
+
+# /home/alanr/monitor/src/include/jsondiscovery.h: 22
+class struct__JsonDiscovery(Structure):
+    pass
+
+JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 20
+
+struct__JsonDiscovery.__slots__ = [
+    'baseclass',
+    'pathname',
+    '_tmpfilename',
+    '_child_pid',
+    '_sourceid',
+    '_intervalsecs',
+]
+struct__JsonDiscovery._fields_ = [
+    ('baseclass', Discovery),
+    ('pathname', String),
+    ('_tmpfilename', String),
+    ('_child_pid', GPid),
+    ('_sourceid', guint),
+    ('_intervalsecs', guint),
+]
+
+# /home/alanr/monitor/src/include/jsondiscovery.h: 30
+if hasattr(_libs['libclientlib.so'], 'jsondiscovery_new'):
+    jsondiscovery_new = _libs['libclientlib.so'].jsondiscovery_new
+    jsondiscovery_new.argtypes = [String, c_int, POINTER(NetGSource), POINTER(ConfigContext), gsize]
+    jsondiscovery_new.restype = POINTER(JsonDiscovery)
 
 # /home/alanr/monitor/src/include/lldp.h: 108
 for _lib in _libs.itervalues():
@@ -2681,7 +2732,7 @@ struct__SwitchDiscovery.__slots__ = [
 struct__SwitchDiscovery._fields_ = [
     ('baseclass', Discovery),
     ('source', POINTER(GSource)),
-    ('finalize', CFUNCTYPE(UNCHECKED(None), POINTER(Discovery))),
+    ('finalize', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
     ('switchid', gpointer),
     ('switchidlen', gssize),
     ('portid', gpointer),
@@ -2691,7 +2742,7 @@ struct__SwitchDiscovery._fields_ = [
 # /home/alanr/monitor/src/include/switchdiscovery.h: 33
 if hasattr(_libs['libclientlib.so'], 'switchdiscovery_new'):
     switchdiscovery_new = _libs['libclientlib.so'].switchdiscovery_new
-    switchdiscovery_new.argtypes = [gsize, String, guint, gint, POINTER(GMainContext)]
+    switchdiscovery_new.argtypes = [String, guint, gint, POINTER(GMainContext), POINTER(NetGSource), POINTER(ConfigContext), gsize]
     switchdiscovery_new.restype = POINTER(SwitchDiscovery)
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 15
@@ -2949,49 +3000,55 @@ except:
 
 # ../include/framesettypes.h: 23
 try:
-    FRAMESETTYPE_HBDEAD = 16
+    FRAMESETTYPE_STARTUP = 16
 except:
     pass
 
 # ../include/framesettypes.h: 24
 try:
-    FRAMESETTYPE_SWDISCOVER = 17
+    FRAMESETTYPE_HBDEAD = 17
 except:
     pass
 
 # ../include/framesettypes.h: 25
 try:
-    FRAMESETTYPE_LOCALNETDISCOVER = 18
+    FRAMESETTYPE_PROBEALIVE = 18
 except:
     pass
 
 # ../include/framesettypes.h: 26
 try:
-    FRAMESETTYPE_ARPDISCOVER = 19
+    FRAMESETTYPE_SWDISCOVER = 19
 except:
     pass
 
 # ../include/framesettypes.h: 27
 try:
-    FRAMESETTYPE_CLIENTCONFIG = 32
+    FRAMESETTYPE_JSDISCOVERY = 20
 except:
     pass
 
 # ../include/framesettypes.h: 28
 try:
-    FRAMESETTYPE_SENDHB = 33
+    FRAMESETTYPE_SENDHB = 64
 except:
     pass
 
 # ../include/framesettypes.h: 29
 try:
-    FRAMESETTYPE_EXPECTHB = 34
+    FRAMESETTYPE_EXPECTHB = 65
 except:
     pass
 
 # ../include/framesettypes.h: 30
 try:
-    FRAMESETTYPE_SENDEXPECTHB = 35
+    FRAMESETTYPE_SENDEXPECTHB = 66
+except:
+    pass
+
+# ../include/framesettypes.h: 31
+try:
+    FRAMESETTYPE_SETCONFIG = 67
 except:
     pass
 
@@ -3019,61 +3076,97 @@ try:
 except:
     pass
 
+# ../include/configcontext.h: 49
+try:
+    CONFIG_DEFAULT_HBPORT = 1984
+except:
+    pass
+
 # ../include/configcontext.h: 50
+try:
+    CONFIG_DEFAULT_CMAPORT = 1984
+except:
+    pass
+
+# ../include/configcontext.h: 52
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 51
+# ../include/configcontext.h: 53
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 53
+# ../include/configcontext.h: 55
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 54
+# ../include/configcontext.h: 56
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 55
+# ../include/configcontext.h: 57
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 56
+# ../include/configcontext.h: 58
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 57
+# ../include/configcontext.h: 59
+try:
+    CONFIGNAME_CMAPORT = 'cmaport'
+except:
+    pass
+
+# ../include/configcontext.h: 60
+try:
+    CONFIGNAME_CMAINIT = 'cmainit'
+except:
+    pass
+
+# ../include/configcontext.h: 62
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 58
+# ../include/configcontext.h: 63
+try:
+    CONFIGNAME_CMADISCOVER = 'cmadisc'
+except:
+    pass
+
+# ../include/configcontext.h: 64
+try:
+    CONFIGNAME_CMAFAIL = 'cmafail'
+except:
+    pass
+
+# ../include/configcontext.h: 65
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 59
+# ../include/configcontext.h: 66
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 60
+# ../include/configcontext.h: 67
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
@@ -3364,6 +3457,30 @@ except:
 # /home/alanr/monitor/src/include/frametypes.h: 276
 try:
     FRAMETYPE_NVPAIR = 16
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 288
+try:
+    FRAMETYPE_JSDISCOVER = 17
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 299
+try:
+    FRAMETYPE_PARAMNAME = 19
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 310
+try:
+    FRAMETYPE_CSTRINGVAL = 20
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 322
+try:
+    FRAMETYPE_CINTVAL = 21
 except:
     pass
 
@@ -3845,13 +3962,15 @@ _CryptFrame = struct__CryptFrame # /home/alanr/monitor/src/include/cryptframe.h:
 
 _CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringframe.h: 23
 
-_Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 32
+_Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 35
 
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 32
 
 _HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 27
 
 _IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 27
+
+_JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 22
 
 _NetIOudp = struct__NetIOudp # /home/alanr/monitor/src/include/netioudp.h: 27
 

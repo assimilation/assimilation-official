@@ -279,7 +279,7 @@ netaddr_sockaddr_new(const struct sockaddr_in6 *sa_in6,	///<[in] struct sockaddr
 
 		case AF_INET6:
 			/// @todo convert IPv4 encapsulated addresses to real IPv4 addresses??
-			return netaddr_new(0, sa_in6->sin6_port, 
+			return netaddr_new(0, ntohs(sa_in6->sin6_port), 
 					   ADDR_FAMILY_IPV6, &sa_in6->sin6_addr, 16);
 			break;
 	}

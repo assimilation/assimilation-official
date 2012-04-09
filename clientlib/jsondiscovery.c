@@ -64,10 +64,17 @@ _jsondiscovery_discover(Discovery* dself)
 	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
 	GError*		errs;
 	gchar*		argv[4];
-	int		j;
+	gsize		j;
+	ConfigContext*	cfg = self->baseclass._config;
 	if (self->_sourceid != 0) {
-		g_warning("JSON discovery process still running - skipping this iteration.");
+		g_warning("%s: JSON discovery process still running - skipping this iteration."
+		,	  __FUNCTION__);
 		return TRUE;
+	}
+	if (cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER) == NULL) {
+		g_warning("%s: don't have CMA [%s] address yet - continuing [%s] anyway..." 
+		,	  __FUNCTION__, CONFIGNAME_CMADISCOVER, self->pathname);
+		//return TRUE;
 	}
 	self->_tmpfilename = strdup("/var/tmp/discovery-XXXXXXXXXXX.json");
 	close(g_mkstemp_full(self->_tmpfilename, 0, 0644));
@@ -80,12 +87,14 @@ _jsondiscovery_discover(Discovery* dself)
 	,		   NULL, NULL, &self->_child_pid, &errs)) {
 		g_warning("JSON discovery fork error: %s", errs->message);
 	}else{
-		self->_sourceid = g_child_watch_add_full(G_PRIORITY_LOW, self->_child_pid, _jsondiscovery_childwatch
+        	g_warning("Started %s successfully - watching for child", argv[2]);
+		self->_sourceid = g_child_watch_add_full(G_PRIORITY_HIGH, self->_child_pid, _jsondiscovery_childwatch
 		,					 self, NULL);
 		// Don't want us going away while we have a child out there...
 		self->baseclass.baseclass.ref(self);
 	}
-	for (j=0; j < 3; ++j) {
+        g_warning("Started %s successfully.", argv[2]);
+	for (j=0; j < DIMOF(argv) && argv[j]; ++j) {
 		g_free(argv[j]); argv[j] = NULL;
 	}
 	return TRUE;
@@ -99,6 +108,7 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 	GError*		err;
 
 
+        g_warning("in %s.", __FUNCTION__);
 	if (status != 0) {
 		g_warning("JSON discovery from %s failed with status 0x%x (%d)", self->pathname, status, status);
 		goto quitchild;
@@ -117,14 +127,11 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 	_jsondiscovery_send(self, jsonout, jsonlen);
 
 quitchild:
-	///@todo should this be g_source_destroy instead??
 	g_spawn_close_pid(pid);
+	///@todo should this be g_source_destroy instead??
 	//g_source_remove(self->_sourceid); ???
 	self->_sourceid = 0;
 	memset(&(self->_child_pid), 0, sizeof(self->_child_pid));
-//	if (jsonout) {
-//		g_free(jsonout);
-//	}
 	if (self->_tmpfilename) {
 		g_unlink(self->_tmpfilename);
 		g_free(self->_tmpfilename);
@@ -142,14 +149,32 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	ConfigContext*	cfg = self->baseclass._config;
 	NetGSource*	io = self->baseclass._iosource;
 	NetAddr*	cma;
+	const char *	basename = strrchr(self->pathname, '/');
+	if (!basename) {
+		basename = self->pathname;
+	}
 
 	g_return_if_fail(cfg != NULL && io != NULL);
+
+	// Primitive caching - don't send what we've already sent.
+	if (self->baseclass._sentyet) {
+		const char *	oldvalue = cfg->getstring(cfg, basename);
+		if (oldvalue != NULL && strcmp(jsonout, oldvalue) == 0) {
+			g_free(jsonout);
+			return;
+		}
+	}
+	cfg->setstring(cfg, basename, jsonout);
 	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
-	g_return_if_fail(cma != NULL);
+	if (cma == NULL) {
+		g_free(jsonout);
+		return;
+	}
+	self->baseclass._sentyet = TRUE;
 
 	fs = frameset_new(FRAMESETTYPE_JSDISCOVERY);
 	jsf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
-	fsf = CASTTOCLASS(Frame, jsf);	// jsf cast as/to its base class (Frame)
+	fsf = &jsf->baseclass;	// base class object of jsf
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
 	frameset_append_frame(fs, fsf);
 	io->sendaframeset(io, cma, fs);
@@ -175,7 +200,7 @@ jsondiscovery_new(const char *	pathname,	///<[in] pathname of program (script) t
 	ret->baseclass.discover			= _jsondiscovery_discover;
 	ret->pathname = g_strdup(pathname);
 	ret->_intervalsecs = intervalsecs;
-	discovery_register(CASTTOCLASS(Discovery, ret));
+	discovery_register(&ret->baseclass);
 	g_debug("jsondiscovery_new: registered %p", ret);
 	return ret;
 }

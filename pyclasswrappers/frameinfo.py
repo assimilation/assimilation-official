@@ -210,14 +210,14 @@ The Address Type for a MAC address is 6.
   	16:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
 '''This frame contains a name/value pair - each of which is a NUL-terminated C-style string.
 '''),
-  	17:  (pyNVpairFrame, 'JSDISCOVER', 'JSON-formatted discovery data',
+  	17:  (pyCstringFrame, 'JSDISCOVER', 'JSON-formatted discovery data',
 '''This frame contains JSON-formatted output from a discovery process.  The type of discovery data and program collecting it are inside.
 '''),
-  	19:  (pyNVpairFrame, 'PARAMNAME', 'Config parameter name',
+  	19:  (pyCstringFrame, 'PARAMNAME', 'Config parameter name',
 '''This frame contains the name of a parameter to set in nanoprobe configuration - could be followed by a CSTRINGAL or an IPADDR'''),
-  	20:  (pyNVpairFrame, 'CSTRINGVAL', 'String configuration value',
+  	20:  (pyCstringFrame, 'CSTRINGVAL', 'String configuration value',
 'This frame contains a string value to set in nanoprobe configuration.'),
-  	21:  (pyNVpairFrame, 'CINTVAL', 'Integer configuration value',
+  	21:  (pyIntFrame, 'CINTVAL', 'Integer configuration value',
 'This frame contains an integer value to set into nanoprobe configuration.'),
 
     }

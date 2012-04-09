@@ -262,6 +262,8 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 /// - receive message into malloced buffer
 /// - check for errors
 /// - return received message, length, etc.
+#include <stdlib.h>
+#include <memory.h>
 FSTATIC gpointer
 _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		   gpointer* pktend,		///<[out] Pointer to one past end of packet
@@ -278,6 +280,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 
 	// First we peek and see how long the message is...
 	*addrlen = sizeof(*srcaddr);
+memset(srcaddr, 0, sizeof(*srcaddr));
 	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_DONTWAIT|MSG_PEEK|MSG_TRUNC,
 		          (struct sockaddr*)srcaddr, addrlen);
 	if (msglen < 0) {

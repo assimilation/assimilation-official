@@ -42,6 +42,7 @@ struct _Discovery {
 	NetGSource*	_iosource;						///< How to send packets
 	ConfigContext*	_config;						///< Configuration Parameters -
 										///< has address of CMA.
+	gboolean	_sentyet;						///< TRUE if we've sent this yet.
 };
 
 WINEXPORT Discovery* discovery_new(NetGSource*, ConfigContext*, gsize objsize);
