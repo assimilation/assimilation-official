@@ -23,6 +23,7 @@
 FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
 FSTATIC void _netaddr_finalize(AssimObj* self);
 FSTATIC guint16 _netaddr_port(const NetAddr* self);
+FSTATIC void _netaddr_setport(NetAddr* self, guint16);
 FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
@@ -166,6 +167,14 @@ _netaddr_port(const NetAddr* self)
 	return self->_addrport;
 }
 
+
+FSTATIC void
+_netaddr_setport(NetAddr* self, guint16 port)
+{
+	self->_addrport = port;
+}
+
+
 FSTATIC guint16
 _netaddr_addrtype(const NetAddr* self)
 {
@@ -204,6 +213,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->ipv6sockaddr = _netaddr_ipv6sockaddr;
 	self->_addrbody = g_memdup(addrbody, addrlen);
 	self->port = _netaddr_port;
+	self->setport = _netaddr_setport;
 	self->addrtype = _netaddr_addrtype;
 	self->equal = _netaddr_equal;
 

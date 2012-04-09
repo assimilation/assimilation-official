@@ -30,6 +30,7 @@ typedef struct _NetAddr NetAddr;
 /// @ingroup NetAddr
 struct _NetAddr {
 	AssimObj	baseclass;
+	void		(*setport)(NetAddr*, guint16);          ///< Set port for this NetAddr
 	guint16		(*port)(const NetAddr* self);		///< Return port from this address
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
 	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 address corresponding to this address

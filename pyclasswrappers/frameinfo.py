@@ -213,6 +213,12 @@ The Address Type for a MAC address is 6.
   	17:  (pyNVpairFrame, 'JSDISCOVER', 'JSON-formatted discovery data',
 '''This frame contains JSON-formatted output from a discovery process.  The type of discovery data and program collecting it are inside.
 '''),
+  	19:  (pyNVpairFrame, 'PARAMNAME', 'Config parameter name',
+'''This frame contains the name of a parameter to set in nanoprobe configuration - could be followed by a CSTRINGAL or an IPADDR'''),
+  	20:  (pyNVpairFrame, 'CSTRINGVAL', 'String configuration value',
+'This frame contains a string value to set in nanoprobe configuration.'),
+  	21:  (pyNVpairFrame, 'CINTVAL', 'Integer configuration value',
+'This frame contains an integer value to set into nanoprobe configuration.'),
 
     }
     _strframetypes = dict()
@@ -300,6 +306,7 @@ class FrameSetTypes:
 	'SENDHB':	(64, 'Send Heartbeats to this address'),
 	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from this address'),
 	'SENDEXPECTHB':	(66, 'Send Heartbeats to this address, and expect them as well.'),
+	'SETCONFIG':	(67, 'Initial configuration packet'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():

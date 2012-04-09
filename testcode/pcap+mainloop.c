@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <projectcommon.h>
+#include <framesettypes.h>
 #include <frameset.h>
 #include <ctype.h>
 #include <cdp.h>
@@ -81,6 +82,7 @@ void got_heartbeat2(HbListener* who);
 void obey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 void obey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
 void obey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
+void obey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
 
 ObeyFrameSetTypeMap obeylist [] = {
 	{FRAMESETTYPE_SENDHB,		obey_sendhb},
@@ -91,6 +93,7 @@ ObeyFrameSetTypeMap obeylist [] = {
 	
 
 FrameSet* create_sendexpecthb(ConfigContext*, NetAddr* addrs, int addrcount);
+FrameSet* create_setconfig(ConfigContext * cfg);
 
 /// Test routine for sending an encapsulated Pcap packet.
 void
@@ -266,7 +269,7 @@ initial_deadtime_agent(HbListener* who)
 	discover_netconfig = jsondiscovery_new(
 		"/home/alanr/monitor/src/discovery_agents/netconfig"
 		,			       2, netpkt, who->baseclass.config, 0);
-	discover_netconfig->baseclass.discover(CASTTOCLASS(Discovery, discover_netconfig));
+	discover_netconfig->baseclass.discover(&discover_netconfig->baseclass);
 	discover_netconfig->baseclass.baseclass.unref(discover_netconfig);
 }
 
@@ -288,7 +291,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		gint	port = config->getint(config, CONFIGNAME_HBPORT);
 		IntFrame * intf = intframe_new(FRAMETYPE_PORTNUM, 2);
 		intf->setint(intf, port);
-		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		frameset_append_frame(ret, &intf->baseclass);
 		intf->baseclass.baseclass.unref(intf); intf = NULL;
 	}
 	// Put the heartbeat interval in the message (if asked)
@@ -296,7 +299,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		gint	hbtime = config->getint(config, CONFIGNAME_HBTIME);
 		IntFrame * intf = intframe_new(FRAMETYPE_HBINTERVAL, 4);
 		intf->setint(intf, hbtime);
-		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		frameset_append_frame(ret, &intf->baseclass);
 		intf->baseclass.baseclass.unref(intf); intf = NULL;
 	}
 	// Put the heartbeat deadtime in the message (if asked)
@@ -304,7 +307,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		gint deadtime = config->getint(config, CONFIGNAME_DEADTIME);
 		IntFrame * intf = intframe_new(FRAMETYPE_HBDEADTIME, 4);
 		intf->setint(intf, deadtime);
-		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		frameset_append_frame(ret, &intf->baseclass);
 		intf->baseclass.baseclass.unref(intf); intf = NULL;
 	}
 	// Put the heartbeat warntime in the message (if asked)
@@ -312,7 +315,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		gint warntime = config->getint(config, CONFIGNAME_WARNTIME);
 		IntFrame * intf = intframe_new(FRAMETYPE_HBWARNTIME, 4);
 		intf->setint(intf, warntime);
-		frameset_append_frame(ret, CASTTOCLASS(Frame, intf));
+		frameset_append_frame(ret, &intf->baseclass);
 		intf->baseclass.baseclass.unref(intf); intf = NULL;
 	}
 
@@ -320,7 +323,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 	for (count=0; count < addrcount; ++count) {
 		AddrFrame* hbaddr = addrframe_new(FRAMETYPE_IPADDR, 0);
 		hbaddr->setnetaddr(hbaddr, &addrs[count]);
-		frameset_append_frame(ret, CASTTOCLASS(Frame, hbaddr));
+		frameset_append_frame(ret, &hbaddr->baseclass);
 		hbaddr->baseclass.baseclass.unref(hbaddr); hbaddr = NULL;
 	}
 	return  ret;
@@ -531,6 +534,151 @@ obey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 	obey_expecthb(parent, fs, fromaddr);
 }
 
+/*
+ * Act on (obey) a FRAMESETTYPE_SETCONFIG @ref FrameSet.
+ * This frameset is sent during the initial configuration phase.
+ * It contains name value pairs to save into our configuration (ConfigContext).
+ * These might be {string,string} pairs or {string,ipaddr} pairs, or
+ * {string, integer} pairs.  We process them all.
+ * The frame types that we receive for these are:
+ * FRAMETYPE_PARAMNAME - parameter name to set
+ * FRAMETYPE_CSTRINGVAL - string value to associate with name
+ * FRAMETYPE_CINTVAL - integer value to associate with naem
+ * FRAMETYPE_PORTNUM - port number for subsequent IP address
+ * FRAMETYPE_IPADDR - IP address to associate with name
+ */
+void
+obey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,      FrameSet*	fs	///<[in] @ref FrameSet to process
+	,      NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+	GSList*		slframe;
+	ConfigContext*	cfg = parent->baseclass.config;
+	char *		paramname = NULL;
+	guint16		port = 0;
+
+	(void)fromaddr;
+
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		int	frametype = frame->type;
+		switch (frametype) {
+
+			case FRAMETYPE_PARAMNAME: { // Parameter name to set
+				g_return_if_fail(paramname != NULL);
+				paramname = frame->value;
+			}
+			break;
+
+			case FRAMETYPE_PORTNUM: { // Port number for subsequent IP address
+				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
+				g_return_if_fail(paramname != NULL);
+				port = intf->getint(intf); // remember for later
+			}
+			break;
+
+			case FRAMETYPE_CSTRINGVAL: { // String value to set 'paramname' to
+				g_return_if_fail(paramname != NULL);
+				cfg->setstring(cfg, paramname, frame->value);
+				paramname = NULL;
+			}
+			break;
+
+			case FRAMETYPE_CINTVAL: { // Integer value to set 'paramname' to
+				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
+				g_return_if_fail(paramname != NULL);
+				cfg->setint(cfg, paramname, intf->getint(intf));
+				paramname = NULL;
+			}
+			break;
+
+			case FRAMETYPE_IPADDR: { // NetAddr value to set 'paramname' to
+				AddrFrame* af = CASTTOCLASS(AddrFrame, frame);
+				NetAddr*	addr = af->getnetaddr(af);
+				g_return_if_fail(paramname != NULL);
+				if (port != 0) {
+					addr->setport(addr, port);
+					port = 0;
+				}else{
+					g_warning("Setting IP address [%s] without port", paramname);
+				}
+				cfg->setaddr(cfg, paramname, addr);
+				paramname = NULL;
+			}
+			break;
+		}//endswitch
+	}//endfor
+}//obey_setconfig
+
+/// Create a FRAMESETTYPE_SETCONFIG @ref FrameSet.
+/// We create it from a ConfigContext containing <i>only</i> values we want to go into
+/// the SETCONFIG message.  We ignore frames in the ConfigContext (shouldn't be any).
+/// We are effectively a "friend" function to the ConfigContext object - either that
+/// or we cheat in order to iterate through its hash tables
+FrameSet*
+create_setconfig(ConfigContext * cfg)
+{
+	FrameSet*	fs = frameset_new(FRAMESETTYPE_SETCONFIG);
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	data;
+
+	// First we go through the integer values (if any)
+	// Next we go through the string values (if any)
+	// Lastly we go through the NetAddr values (if any)
+
+	// Integer values
+	g_hash_table_iter_init(&iter, cfg->_intvalues);
+	while (g_hash_table_iter_next(&iter, &key, &data)) {
+		char *		name = key;
+		int		value = GPOINTER_TO_INT(data);
+		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
+		IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 4);
+		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
+		,		      frame_default_valuefinalize);
+		v->setint(v, value);
+		frameset_append_frame(fs, &n->baseclass);
+		frameset_append_frame(fs, &v->baseclass);
+	}
+	
+	// String values
+	g_hash_table_iter_init(&iter, cfg->_strvalues);
+	while (g_hash_table_iter_next(&iter, &key, &data)) {
+		char *		name = key;
+		char *		value = data;
+		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
+		CstringFrame*	v = cstringframe_new(FRAMETYPE_CSTRINGVAL, 0);
+		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
+		,		      frame_default_valuefinalize);
+		v->baseclass.setvalue(&v->baseclass, strdup(value), strlen(value)+1
+		,		      frame_default_valuefinalize);
+		frameset_append_frame(fs, &n->baseclass);
+		frameset_append_frame(fs, &v->baseclass);
+	}
+
+	// NetAddr values
+	g_hash_table_iter_init(&iter, cfg->_addrvalues);
+	while (g_hash_table_iter_next(&iter, &key, &data)) {
+		char *		name = key;
+		NetAddr*	value = data;
+		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
+		AddrFrame*	v = addrframe_new(FRAMETYPE_IPADDR, 0);
+		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
+		,		      frame_default_valuefinalize);
+		frameset_append_frame(fs, &n->baseclass);
+		// The port doesn't come through when going across the wire
+		if (value->port(value) != 0) {
+			IntFrame*	p = intframe_new(FRAMETYPE_CINTVAL, 4);
+			p->setint(p, value->port(value));
+			frameset_append_frame(fs, &p->baseclass);
+		}
+		v->setnetaddr(v, value);
+		frameset_append_frame(fs, &v->baseclass);
+	}
+
+	return fs;
+}
+
 
 FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 
@@ -583,15 +731,14 @@ main(int argc, char **argv)
                                       G_PRIORITY_DEFAULT, FALSE, NULL, 0, decoder);
 	g_return_val_if_fail(NULL != pcapsource, 1);
 
-	config->setframe(config, CONFIGNAME_OUTSIG, CASTTOCLASS(Frame, signature));
+	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 	config->setint(config, CONFIGNAME_HBPORT, testport);
 	config->setint(config, CONFIGNAME_HBTIME, 1000000);
 	config->setint(config, CONFIGNAME_DEADTIME, 3*1000000);
-	config->setint(config, CONFIGNAME_CMAPORT, 1984);
-	config->setint(config, CONFIGNAME_HBPORT, 1984);
+	config->setint(config, CONFIGNAME_CMAPORT, testport);
 
 	// Create a network transport object (UDP packets)
-	nettransport = CASTTOCLASS(NetIO, netioudp_new(0, config, decoder));
+	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
 
 	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
@@ -631,9 +778,9 @@ main(int argc, char **argv)
 	hblisten->set_deadtime_callback(hblisten, initial_deadtime_agent);
 
 	// Intercept incoming heartbeat packets - direct them to heartbeat listener
-	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, CASTTOCLASS(Listener, hblisten));
+	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, &hblisten->baseclass);
 	// Unref the heartbeat listener - the listener table holds a reference to it
-	hblisten->baseclass.baseclass.unref(CASTTOCLASS(Listener, hblisten)); hblisten = NULL;
+	hblisten->baseclass.baseclass.unref(&hblisten->baseclass.baseclass); hblisten = NULL;
 	// Listen for packets from the Collective Management Authority
 	obeycollective = authlistener_new(obeylist, config, 0);
 	obeycollective->associate(obeycollective, netpkt);
