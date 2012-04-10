@@ -11,11 +11,20 @@ The only things they do on their own are:
  - Announce its presence when starting, and after a resume operation
  - Listen to LLDP/CDP information and send it when it changes
  - Gather local network configuration, and send it when it changes
- - listen to the CMA
- - send heartbeat packets as directed
- - listen for heartbeat packets, and compute timeouts
- - Report things back to the CMA.
+ - listen to the CMA - and do what it says ;-)
+ - send heartbeat packets as directed by the CMA
+ - listen for heartbeat packets (as directed by the CMA), and compute timeouts
+ - Report failures and changes back to the CMA.
  - (eventually) provide proxy services for the LRM (potentially other entities)
+
+@section NanoprobeStartupProcess Nanoprobe Startup Process
+The process that the nanoprobes go through when booting/rejoining/starting up looks a lot like this:
+ -# <b>nanoprobe:</b> Submit a network discovery request from an idle task, which will run until the discovery completes (a small fraction of a second).
+ -# <b>nanoprobe:</b> Send out a <b>STARTUP</b> packet once the discovery data shows up in the config context structure.
+ -# <b>CMA:</b> When the CMA receives this request, it sends out a <b>SETCONFIG</b> packet and a series of <b><SENDEXPECTHB</b> heartbeat packets.
+ -# <b>nanoprobe:</b> When the <b>SETCONFIG</b> packet is received, it enables the sending of discovery data from all (JSON and switch (LLDP/CDP)) sources.
+ -# <b>nanoprobe:</b> When the <b>SENDEXPECTHB</b> packet is receivedit starts sending heartbeats and timing heartbeats to flag "dead" machines.
+ -# <b>All:</b> Now everything is running in "normal" mode.
 
 @section ClientArchSpecialCases Some Special Cases for the client to consider
 @subsection ClientArchSwitchDeath When A Switch Dies
