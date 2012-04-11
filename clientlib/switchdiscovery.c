@@ -64,16 +64,21 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 			  )
 {
 	SwitchDiscovery*	self = CASTTOCLASS(SwitchDiscovery, selfptr);
+	Discovery*		dself = &(self->baseclass);
+	NetGSource*		transport = dself->_iosource;
+	NetAddr*		dest = dself->_config->getaddr(dself->_config, CONFIGNAME_CMADISCOVER);
+	FrameSet*		fs;
 	
-	FrameSet* fs;
 	(void)gsource; (void)capstruct;
-	if (!_switchdiscovery_cache_info(self, pkt, pend)) {
+	/// Don't cache if we can't send - and don't send if we have sent this info previously.
+	if (!dest || !_switchdiscovery_cache_info(self, pkt, pend)) {
 		return TRUE;
 	}
 	/// @todo - do what the description of this function actually says!
 	/// That is, send out the filtered packets.
-	fs =  construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
-	(void)fs;
+	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
+	transport->sendaframeset(transport, dest, fs);
+	fs->unref(fs);
 	return TRUE;
 }
 
