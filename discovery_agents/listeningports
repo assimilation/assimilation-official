@@ -24,6 +24,7 @@
 # Licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
 #
 
+skiplocal=yes
 
 US=`basename $0`
 #
@@ -48,6 +49,13 @@ procinfo() {
 	"gid": "$GID",
 	"cwd": "`readlink /proc/$procpid/cwd`"
 	!FOO
+}
+
+shouldskip() {
+  case "$1/$skiplocal" in
+    "127.0.0.1/yes"|"::1/yes")	return 0;; # true
+  esac
+  return 1 # false
 }
 
 #
@@ -83,6 +91,8 @@ discover() {
     while
        read proto addr port pid other
     do
+      shouldskip "$addr" && continue
+      
       key="$proto/$addr/$port"
       printf "$comma"
       cat <<-!FOO

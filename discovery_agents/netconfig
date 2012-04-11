@@ -33,7 +33,7 @@
 #	"duplex": "full",
 #	"mtu": 1500,
 #	"speed": 1000,
-#	"ipaddrs": [ {"inet": "10.10.10.5/24", "brd": "10.10.10.255", "scope": "global", "name": "eth0"}, {"inet6": "fe80::21b:fcff:fe1b:a873/64", "scope": "link"}]
+#       "ipaddrs": { "10.10.10.5/24": {"brd":"10.10.10.255", "scope":"global", "name":"eth0"}, "fe80::21b:fcff:fe1b:a873/64": {"scope":"link"}}
 #    }, 
 #    "lo": {
 #	"address": "00:00:00:00:00:00",
@@ -50,10 +50,11 @@
 #        "ESSID": "robertsons",
 #        "AccessPoint": "C4:3D:C7:A8:1B:5B",
 #        "WirelessModes": "802.11abgn",
-#        "ipaddrs": [ {"inet": "10.10.10.39/24", "brd": "10.10.10.255", "scope": "global", "name": "wlan0"}, {"inet6": "fe80::226:c6ff:fe78:6a56/64", "scope": "link"}]
+#        "ipaddrs": {"10.10.10.39/24":{"brd": "10.10.10.255", "scope": "global", "name": "wlan0"}, "fe80::226:c6ff:fe78:6a56/64": {"scope": "link"}}
 #    }
 #  }
 #}
+
 
 NETDIR=/sys/class/net
 IP=/sbin/ip
@@ -124,7 +125,7 @@ discover() {
 
     # We are currently only interested in the lines that start with 'inet'
 
-    printf '	"ipaddrs": [ '
+    printf '	"ipaddrs": { '
     innercomma=''
     #
     $IP addr show "$device" | grep '^ *inet' |
@@ -140,9 +141,10 @@ discover() {
         inet*)	
                   printf "$innercomma"
                   innercomma=', '
-  		  printf "{\"$inet\":\"$addr\""
+  		  #printf "{\"$inet\":\"$addr\""
+  		  printf "\"$addr\": {" 
                   case $brd in
-                    *brd*|scope) printf ", \"$brd\":\"$baddr\"";;
+                    *brd*|scope) printf "\"$brd\":\"$baddr\"";;
                   esac
                   case $scopeword in
                     scope) printf ", \"scope\":\"$scope\"";;
@@ -157,7 +159,7 @@ discover() {
   		;;
       esac
     done
-    printf ']\n'
+    printf '}\n'
     printf '    }'
   done
   printf '\n  }\n'
