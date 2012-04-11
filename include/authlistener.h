@@ -28,11 +28,7 @@ typedef struct _ObeyFrameSetTypeMap ObeyFrameSetTypeMap;
 //
 struct _AuthListener {
 	Listener	baseclass;
-	NetGSource*	transport;
 	GHashTable*	actionmap;
-	void		(*associate) (AuthListener* self, /// AuthListener 'self' object
-				      NetGSource* source);/// @ref NetGSource to associate with
-	void		(*dissociate) (AuthListener* self);/// Dissociate us from our source
 };
 
 

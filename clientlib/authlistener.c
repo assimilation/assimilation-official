@@ -19,8 +19,8 @@
  */
 FSTATIC void _authlistener_finalize(AssimObj * self);
 FSTATIC gboolean _authlistener_got_frameset(Listener* self, FrameSet*, NetAddr*);
-FSTATIC void _authlistener_associate(AuthListener* self, NetGSource* transport);
-FSTATIC void _authlistener_dissociate(AuthListener* self);
+FSTATIC void _authlistener_associate(Listener* self, NetGSource* transport);
+FSTATIC void _authlistener_dissociate(Listener* self);
 
 ///@defgroup AuthListener Listener class.
 /// Class for listening, authenticating, and obeying packets from the Collectiv e Authority
@@ -50,50 +50,51 @@ returnout:
 	return TRUE;
 }
 FSTATIC void
-_authlistener_associate(AuthListener* self, NetGSource* transport)
+_authlistener_associate(Listener* lself, NetGSource* transport)
 {
+	AuthListener*	self = CASTTOCLASS(AuthListener, lself);
 	GHashTableIter	iter;
 	gpointer	key;
 	gpointer	value;
-	Listener*	lself = CASTTOCLASS(Listener, self);
-	if (self->transport) {
-		self->dissociate(self);
+	if (lself->transport) {
+		lself->dissociate(lself);
 	}
 	g_hash_table_iter_init(&iter, self->actionmap);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		guint16	fstype = GPOINTER_TO_INT(key);
 		transport->addListener(transport, fstype, lself);
 	}
-	self->transport = transport;
+	lself->transport = transport;
 }
 FSTATIC void
-_authlistener_dissociate(AuthListener* self)
+_authlistener_dissociate(Listener* lself)
 {
+	AuthListener*	self = CASTTOCLASS(AuthListener, lself);
 	GHashTableIter	iter;
 	gpointer	key;
 	gpointer	value;
-	if (!self->transport) {
+	if (!lself->transport) {
 		return;
 	}
 	g_hash_table_iter_init(&iter, self->actionmap);
 	while (g_hash_table_iter_next(&iter, &key, &value)) {
 		guint16	fstype = GPOINTER_TO_INT(key);
-		self->transport->addListener(self->transport, fstype, NULL);
+		lself->transport->addListener(lself->transport, fstype, NULL);
 	}
-	self->transport = NULL;
+	lself->transport = NULL;
 }
 
 /// Finalize a Listener
 FSTATIC void
-_authlistener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
+_authlistener_finalize(AssimObj * aself) ///<[in/out] Listener to finalize
 {
-	AuthListener*		aself = CASTTOCLASS(AuthListener, self);
-	aself->dissociate(aself);
-	if (aself->actionmap) {
-		g_hash_table_destroy(aself->actionmap);
-		aself->actionmap = NULL;
+	AuthListener*		self = CASTTOCLASS(AuthListener, aself);
+	self->baseclass.dissociate(&self->baseclass);
+	if (self->actionmap) {
+		g_hash_table_destroy(self->actionmap);
+		self->actionmap = NULL;
 	}
-	_listener_finalize(self);
+	_listener_finalize(aself);
 }
 
 
@@ -113,8 +114,8 @@ authlistener_new(ObeyFrameSetTypeMap*map,///<[in] NULL-terminated map of FrameSe
 		GHashTable* hash;
 		newlistener->baseclass.baseclass._finalize = _authlistener_finalize;
 		newlistener->baseclass.got_frameset = _authlistener_got_frameset;
-		newlistener->associate = _authlistener_associate;
-		newlistener->dissociate = _authlistener_dissociate;
+		newlistener->baseclass.associate = _authlistener_associate;
+		newlistener->baseclass.dissociate = _authlistener_dissociate;
 		hash = g_hash_table_new(NULL, NULL);
 		for (; map->action; ++map) {
 			g_hash_table_insert(hash, GINT_TO_POINTER(map->framesettype), map->action);

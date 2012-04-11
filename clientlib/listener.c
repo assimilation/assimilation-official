@@ -16,6 +16,8 @@
  */
 void _listener_finalize(AssimObj * self);
 FSTATIC gboolean _listener_got_frameset(Listener* self, FrameSet*, NetAddr*);
+FSTATIC void _listener_associate(Listener* self, NetGSource* source);
+FSTATIC void _listener_dissociate(Listener* self);
 
 ///@defgroup Listener Listener class.
 /// Base Listener class - Listen for @ref FrameSet "FrameSet"s
@@ -39,9 +41,26 @@ _listener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	Listener* lself = CASTTOCLASS(Listener, self);
 	lself->config->baseclass.unref(lself->config);
+	lself->dissociate(lself);
 	memset(lself, 0x00, sizeof(*lself));
 	FREECLASSOBJ(self);
 }
+
+/// Associate the given NetGSource with this @ref Listener
+FSTATIC void
+_listener_associate(Listener* self, NetGSource* source)
+{
+	// We kinda have to just hope that 'source' lives as long as we do...
+	self->transport = source;
+}
+
+/// Associate the current NetGSource from this @ref Listener
+FSTATIC void
+_listener_dissociate(Listener* self)
+{
+	self->transport = NULL;
+}
+
 
 
 /// Construct a new Listener - setting up GSource and timeout data structures for it.
@@ -58,6 +77,8 @@ listener_new(ConfigContext* config,	///<[in/out] configuration context
 	if (newlistener != NULL) {
 		newlistener->baseclass._finalize = _listener_finalize;
 		newlistener->got_frameset = _listener_got_frameset;
+		newlistener->associate = _listener_associate;
+		newlistener->dissociate = _listener_dissociate;
 		newlistener->config = config;
 		config->baseclass.ref(config);
 	}

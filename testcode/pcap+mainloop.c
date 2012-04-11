@@ -52,7 +52,6 @@
 #include <jsondiscovery.h>
 
 
-
 #define		TESTPORT	1984
 
 int		expected_dead_count = 1;
@@ -79,17 +78,17 @@ void initial_deadtime_agent(HbListener* who);
 void got_heartbeat(HbListener* who);
 void got_heartbeat2(HbListener* who);
 
-void obey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
-void obey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
-void obey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
-void obey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
+void nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
+void nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
+void nanoobey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
+void nanoobey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
 void fakecma_startup(AuthListener*, FrameSet* fs, NetAddr*);
 
 ObeyFrameSetTypeMap obeylist [] = {
-	{FRAMESETTYPE_SENDHB,		obey_sendhb},
-	{FRAMESETTYPE_EXPECTHB,		obey_expecthb},
-	{FRAMESETTYPE_SENDEXPECTHB,	obey_sendexpecthb},
-	{FRAMESETTYPE_SETCONFIG,	obey_setconfig},
+	{FRAMESETTYPE_SENDHB,		nanoobey_sendhb},
+	{FRAMESETTYPE_EXPECTHB,		nanoobey_expecthb},
+	{FRAMESETTYPE_SENDEXPECTHB,	nanoobey_sendexpecthb},
+	{FRAMESETTYPE_SETCONFIG,	nanoobey_setconfig},
 	{FRAMESETTYPE_STARTUP,		fakecma_startup},
 	{0,				NULL},
 };
@@ -347,7 +346,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
 	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
@@ -402,7 +401,7 @@ obey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 				aframe = CASTTOCLASS(AddrFrame, frame);
 				addrcount++;
 				aframe->setport(aframe, port);
-				hb = hbsender_new(aframe->getnetaddr(aframe), parent->transport
+				hb = hbsender_new(aframe->getnetaddr(aframe), parent->baseclass.transport
 				,	sendinterval, 0);
 				(void)hb;
 				//hb->unref(hb);
@@ -422,7 +421,7 @@ obey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
 	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
@@ -486,6 +485,7 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 				addrcount++;
 				aframe->setport(aframe, port);
 				hblisten = hblistener_new(aframe->getnetaddr(aframe), config, 0);
+				hblisten->baseclass.associate(&hblisten->baseclass, parent->baseclass.transport);
 				if (deadtime > 0) {
 					// Otherwise we get the default deadtime
 					hblisten->set_deadtime(hblisten, deadtime);
@@ -530,14 +530,14 @@ obey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
  * @ref AddrFrame in the FrameSet.
  */
 void
-obey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+nanoobey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
 	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
 	g_return_if_fail(fs != NULL && fs->fstype == FRAMESETTYPE_SENDEXPECTHB);
 
-	obey_sendhb  (parent, fs, fromaddr);
-	obey_expecthb(parent, fs, fromaddr);
+	nanoobey_sendhb  (parent, fs, fromaddr);
+	nanoobey_expecthb(parent, fs, fromaddr);
 }
 
 /*
@@ -554,7 +554,7 @@ obey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
  * FRAMETYPE_IPADDR - IP address to associate with name
  */
 void
-obey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking us
 	,      FrameSet*	fs	///<[in] @ref FrameSet to process
 	,      NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
@@ -616,14 +616,14 @@ obey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking u
 
 		}//endswitch
 	}//endfor
-}//obey_setconfig
+}//nanoobey_setconfig
 
 /// Routine to pretend to be the initial CMA
 void
 fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 {
 	FrameSet*	pkt;
-	NetGSource*	netpkt = auth->transport;
+	NetGSource*	netpkt = auth->baseclass.transport;
 	char *		nanostr = nanoaddr->baseclass.toString(nanoaddr);
 
 	(void)ifs;
@@ -751,8 +751,6 @@ nano_startup(gpointer gcruft)
 	struct startup_cruft* cruft = gcruft;
 	const char *	cfgname = strrchr(cruft->initdiscover, '/');
 
-	g_warning("In nano_startup(state:%d) - looking for %s in config"
-	,	  state, cfgname);
 	if (state == DONE) {
 		return FALSE;
 	}
@@ -833,7 +831,7 @@ FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
  *	and a series of SENDEXPECTHB heartbeat packets {fakecma_startup()}
  *
  * 4.	When the SETCONFIG packet is received (role: nanoprobe), it enables the sending of
- *	discovery data from all (JSON and switch (LLDP/CDP)) sources.  {obey_setconfig()}
+ *	discovery data from all (JSON and switch (LLDP/CDP)) sources.  {nanoobey_setconfig()}
  *
  * 5.	When the SENDEXPECTHB packet is received (role: nanoprobe), it starts sending
  *	heartbeats and timing heartbeats to flag "dead" machines.
@@ -932,6 +930,7 @@ main(int argc, char **argv)
 	otherlistener = listener_new(config, 0);
 	otherlistener->got_frameset = gotnetpkt;
 	netpkt->addListener(netpkt, 0, otherlistener);	// Get all unclaimed packets...
+	otherlistener->associate(otherlistener,netpkt);
 	// Unref the "other" listener
 	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
 
@@ -947,7 +946,7 @@ main(int argc, char **argv)
 	//hblisten->baseclass.baseclass.unref(&hblisten->baseclass.baseclass); hblisten = NULL;
 	// Listen for packets from the Collective Management Authority
 	obeycollective = authlistener_new(obeylist, config, 0);
-	obeycollective->associate(obeycollective, netpkt);
+	obeycollective->baseclass.associate(&obeycollective->baseclass, netpkt);
 
 	// Set up our bootstrapping mechanism
 	cruft.iosource = netpkt;
@@ -978,7 +977,7 @@ main(int argc, char **argv)
 	netpkt->addListener(netpkt, 0, NULL);
 
 	// Dissociate packet actions from the packet source.
-	obeycollective->dissociate(obeycollective);
+	obeycollective->baseclass.dissociate(&obeycollective->baseclass);
 
 	// Stop all our discovery activities.
 	discovery_unregister_all();

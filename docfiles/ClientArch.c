@@ -1,26 +1,28 @@
 /**
-@page ClientArch Client Architecture
-@section PolicyFreeClient Clients are Policy-free and Mostly Passive
-Clients are mostly passive, and policy-free.  They do what the central monitoring agency tells them to do.
+@page ClientArch Nanoprobe Architecture
+@section PolicyFreeClient Nanoprobes are Policy-free and Mostly Passive
+Nanoprobes are mostly policy-free.  They do what the central monitoring agency tells them to do.
 The only things they do on their own are:
- - Announce itself when it starts (it needs to be configured where to announce itself)
+ - Announce itself and request configuratin when it starts (it needs to "know" where to announce itself to)
  - Gather local network configuration and send it along to the CMA initially (and when it changes?)
  - Gather LLDP or CDP information and send to the CMA when it changes
  - Eventually gather ARP cache information and send it along in the same fashion
-@section BasicClientCapabilities Basic Client capabilities
+@section BasicClientCapabilities Basic Nanoprobe capabilities
  - Announce its presence when starting, and after a resume operation
- - Listen to LLDP/CDP information and send it when it changes
- - Gather local network configuration, and send it when it changes
  - listen to the CMA - and do what it says ;-)
- - send heartbeat packets as directed by the CMA
- - listen for heartbeat packets (as directed by the CMA), and compute timeouts
+   - send heartbeat packets as directed by the CMA
+   - listen for heartbeat packets as directed by the CMA, and compute timeouts
+   - Perform prescribed discovery operations
+     - Listen to LLDP/CDP information and send it when it changes
+     - Gather local network configuration, and send it when it changes
+     - Other discovery operations as requested by the CMA
+   - (eventually) provide proxy services from the CMA to the LRM
  - Report failures and changes back to the CMA.
- - (eventually) provide proxy services for the LRM (potentially other entities)
 
 @section NanoprobeStartupProcess Nanoprobe Startup Process
-The process that the nanoprobes go through when booting/rejoining/starting up looks a lot like this:
- -# <b>nanoprobe:</b> Submit a network discovery request from an idle task, which will run until the discovery completes (a small fraction of a second).
- -# <b>nanoprobe:</b> Send out a <b>STARTUP</b> packet once the discovery data shows up in the config context structure.
+The process that the nanoprobes go through when booting/rejoining/starting up looks like this:
+ -# <b>nanoprobe:</b> Submit a network discovery request from an idle task, which will poll until the discovery completes (a small fraction of a second). When the data is available, it is written into the config structure.
+ -# <b>nanoprobe:</b> Send out a <b>STARTUP</b> packet once the discovery data shows up in the config structure.
  -# <b>CMA:</b> When the CMA receives this request, it sends out a <b>SETCONFIG</b> packet and a series of <b><SENDEXPECTHB</b> heartbeat packets.
  -# <b>nanoprobe:</b> When the <b>SETCONFIG</b> packet is received, it enables the sending of discovery data from all (JSON and switch (LLDP/CDP)) sources.
  -# <b>nanoprobe:</b> When the <b>SENDEXPECTHB</b> packet is receivedit starts sending heartbeats and timing heartbeats to flag "dead" machines.

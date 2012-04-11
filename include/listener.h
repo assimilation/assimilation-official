@@ -29,10 +29,14 @@ typedef struct _Listener Listener;
 struct _Listener {
 	AssimObj	baseclass;
 	ConfigContext*	config;
-	gboolean	(*got_frameset)(Listener* self,	///< Listener 'self' object
-					FrameSet* fs,	///< Incoming @ref FrameSet
-					NetAddr* na	///< Address 'fs' came from
-					);		//< got_frameset called when FrameSet arrives
+	NetGSource*	transport;
+	gboolean	(*got_frameset)(Listener* self,		///< Listener 'self' object
+					FrameSet* fs,		///< Incoming @ref FrameSet
+					NetAddr* na		///< Address 'fs' came from
+					);			///< called when a FrameSet arrives
+	void		(*associate) (Listener* self,		///< Listener 'self' object
+				      NetGSource* source);	///< @ref NetGSource to associate with
+	void		(*dissociate) (Listener* self);		///< Dissociate us from our source
 };
 
 WINEXPORT Listener* listener_new(ConfigContext* config, gsize listen_objsize);

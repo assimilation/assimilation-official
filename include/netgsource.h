@@ -19,11 +19,11 @@
 #include <netgsource.h>
 #include <netaddr.h>
 #include <netio.h>
+typedef struct _NetGSource NetGSource;
 #include <listener.h>
 ///@{
 /// @ingroup NetGSource
 
-typedef struct _NetGSource NetGSource;
 
 /// The @ref NetGSource objects integrate @ref NetIO objects into the g_main_loop paradigm.
 /// It is a class from which we might eventually make subclasses,
