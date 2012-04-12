@@ -50,6 +50,7 @@
 #include <seqnoframe.h>
 #include <frametypes.h>
 #include <jsondiscovery.h>
+#include <switchdiscovery.h>
 
 
 #define		TESTPORT	1984
@@ -205,7 +206,8 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 {
 	(void)l; (void)srcaddr;
 	++wirepktcount;
-	g_message("Received a packet over the 'wire'!");
+	g_message("Received a FrameSet of type %d over the 'wire'!"
+	,	  fs->fstype);
 	//g_message("DUMPING packet received over 'wire':");
 	//frameset_dump(fs);
 	//g_message("END of packet received over 'wire':");
@@ -841,10 +843,12 @@ FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 int
 main(int argc, char **argv)
 {
+#if 0
 	char *		dev;					// Device to listen on
 	GSource*	pcapsource;				// GSource for packets
 	unsigned	protocols = ENABLE_LLDP|ENABLE_CDP;	// Protocols to watch for...
 	char		errbuf[PCAP_ERRBUF_SIZE];		// Error buffer...
+#endif
 	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
 	const guint8	otheradstring[] = {10,10,10,5};
 	const guint8	otheradstring2[] = {10,10,10,4};
@@ -855,6 +859,7 @@ main(int argc, char **argv)
 	ConfigContext*	config = configcontext_new(0);
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
 	AuthListener*	obeycollective;
+	SwitchDiscovery*	sdisc;
 	struct startup_cruft cruft = {
 		"/home/alanr/monitor/src/discovery_agents/netconfig",
 		3600,
@@ -875,6 +880,7 @@ main(int argc, char **argv)
 		g_warning("Our OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
 	}
 	
+#if 0
 	dev = pcap_lookupdev(errbuf);	// Find name of default network device...
 	if (dev == NULL) {
 		g_critical("Couldn't find default device: %s", errbuf);
@@ -890,6 +896,8 @@ main(int argc, char **argv)
 	pcapsource = g_source_pcap_new(dev, protocols, gotapcappacket, NULL,
                                       G_PRIORITY_DEFAULT, FALSE, NULL, 0, decoder);
 	g_return_val_if_fail(NULL != pcapsource, 1);
+#endif
+	
 
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 	nanoconfig = configcontext_new(0);
@@ -901,6 +909,7 @@ main(int argc, char **argv)
 	// Create a network transport object (UDP packets)
 	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
+
 
 	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
 	destaddr =  netaddr_ipv6_new(loopback, testport);
@@ -927,6 +936,11 @@ main(int argc, char **argv)
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(nettransport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
+	// Listen for switch discovery packets
+	sdisc = switchdiscovery_new("eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
+	,			    g_main_context_default(), netpkt, config, 0);
+	
+
 	otherlistener = listener_new(config, 0);
 	otherlistener->got_frameset = gotnetpkt;
 	netpkt->addListener(netpkt, 0, otherlistener);	// Get all unclaimed packets...
@@ -962,13 +976,18 @@ main(int argc, char **argv)
 	if (sender) {
 		sender->unref(sender); sender = NULL;
 	}
+#if 0
 	g_source_pcap_finalize((GSource*)pcapsource);
+#endif
 
 	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
 	g_main_context_unref(g_main_context_default());
 
 	// Main loop is over - shut everything down, free everything...
-	g_main_loop_unref(loop); loop=NULL; pcapsource=NULL;
+	g_main_loop_unref(loop); loop=NULL;
+#if 0
+	pcapsource=NULL;
+#endif
 
 	// Unlink heartbeat dispatcher - this should NOT be necessary...
 	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
@@ -988,6 +1007,9 @@ main(int argc, char **argv)
 
 	// Free signature frame
 	signature->baseclass.baseclass.unref(signature); signature = NULL;
+
+	// Free switch discovery object
+	sdisc->baseclass.baseclass.unref(sdisc);
 
 	// Free misc addresses
         destaddr-> baseclass.unref(destaddr);

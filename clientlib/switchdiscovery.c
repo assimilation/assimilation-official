@@ -31,9 +31,10 @@ _switchdiscovery_finalize(AssimObj* dself)
 {
 	SwitchDiscovery * self = CASTTOCLASS(SwitchDiscovery, dself);
 	if (self->source) {
-		g_source_destroy(CASTTOCLASS(GSource, self->source));
+		g_source_pcap_finalize(self->source);
 		self->source = NULL;
 	}
+	
 	// Call base object finalization routine (which we saved away)
 	self->finalize(CASTTOCLASS(AssimObj, self));
 }
@@ -70,18 +71,19 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	FrameSet*		fs;
 	
 	(void)gsource; (void)capstruct;
+	//g_debug("Got an incoming LLDP/CDP packet");
 	/// Don't cache if we can't send - and don't send if we have sent this info previously.
 	if (!dest || !_switchdiscovery_cache_info(self, pkt, pend)) {
 		return TRUE;
 	}
 	/// @todo - do what the description of this function actually says!
 	/// That is, send out the filtered packets.
+	g_debug("Sending out LLDP/CDP packet - hurray!");
 	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
 	transport->sendaframeset(transport, dest, fs);
 	fs->unref(fs);
 	return TRUE;
 }
-
 
 /// SwitchDiscovery constructor.
 /// Good for discovering switch information via pcap-enabled discovery protocols (like LLDP and CDP)
@@ -108,8 +110,8 @@ switchdiscovery_new(const char * dev		///<[in] device to listen on
 	ret->source = g_source_pcap_new(dev, listenmask, _switchdiscovery_dispatch, NULL, priority, FALSE, mcontext, 0, ret);
 
 	if (objsize == sizeof(SwitchDiscovery)) {
-		// We assume we're not a constructor for a subclass...
-		// Not a perfect assumption, but workable...
+		// Subclass constructors need to register themselves, but we'll register
+		// ourselves.
 		discovery_register(dret);
 	}
 	ret->switchid = NULL;	ret->switchidlen = -1;
@@ -144,13 +146,15 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 		gconstpointer	curportid;
 		gssize		curportidlen = -1;
 
-		if (!discovery_types[j].isthistype) {
+		if (!discovery_types[j].isthistype(pkt, pktend)) {
 			continue;
 		}
+		//g_debug("Got packet of type %s", discovery_types[j].discoverytype);
 		curswitchid = discovery_types[j].get_switch_id(pkt, &curswitchidlen, pktend);
 		curportid = discovery_types[j].get_port_id(pkt, &curportidlen, pktend);
 		g_return_val_if_fail(curswitchid != NULL, FALSE);
 		g_return_val_if_fail(curportid != NULL, FALSE);
+
 		if (self->switchid == NULL || self->portid == NULL
                     || curportidlen != self->portidlen || curswitchidlen != self->switchidlen
 		    || memcmp(curswitchid, self->switchid, curswitchidlen) != 0
@@ -164,8 +168,11 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 			}
 			self->switchid = g_memdup(curswitchid, curswitchidlen);
 			self->portid = g_memdup(curportid, curportidlen);
+			self->switchidlen = curswitchidlen;
+			self->portidlen = curportidlen;
 			return TRUE;
 		}
+		break;
 	}
 	return FALSE;
 }

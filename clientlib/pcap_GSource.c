@@ -104,7 +104,8 @@ g_source_pcap_new(const char * dev,	///<[in]Capture device name
 	src = g_source_new(&g_source_pcap_gsourcefuncs, objectsize);
 	g_return_val_if_fail(src != NULL, NULL);
 
-	proj_class_register_object(src, "GSource_pcap_t");
+	proj_class_register_object(src, "GSource");
+	proj_class_register_subclassed(src, "GSource_pcap_t");
 
 	// OK, now create the capture object to associate with it
 	if (NULL == (captureobj = create_pcap_listener(dev, FALSE, listenmask))) {

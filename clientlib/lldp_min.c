@@ -109,7 +109,7 @@ is_valid_lldp_packet(const void* tlv_vp,	//<[in] pointer to beginning pf LLDP pa
 	int		lasttype = -1;
 #endif
 	if (NULL == tlv_vp || ((const guint8*)tlv_vp+NETTLV_HDRSZ)  > (const guint8*)pktend) {
-		fprintf(stderr, "LLDP Invalid because packet is too short\n");
+		g_warning("LLDP Invalid because packet is too short\n");
 		return FALSE;
 	}
 	for (tlv_vp = get_lldptlv_first(tlv_vp, pktend)
@@ -129,26 +129,27 @@ is_valid_lldp_packet(const void* tlv_vp,	//<[in] pointer to beginning pf LLDP pa
 		length = get_lldptlv_len(tlv_vp, pktend);
 		next = (const guint8*)tlv_vp + (length+NETTLV_HDRSZ);
 		if (next > (const guint8*)pktend) {
-			fprintf(stderr, "LLDP Invalid because TLV entry extends past end\n");
+			g_warning("LLDP Invalid because TLV entry extends past end\n");
 			return FALSE;
 		}
 		if (ttype == LLDP_TLV_END) {
 			if (get_lldptlv_body(tlv_vp, pktend) == pktend) {
 				return length == 0;
 			}else{
-				fprintf(stderr, "LLDP Invalid because END item isn't at end of packet\n");
+				g_warning("LLDP Invalid because END item isn't at end of packet\n");
 				return FALSE;
 			}
 		}
 		if (j < DIMOF(reqtypes) && ttype != reqtypes[j]) {
-			fprintf(stderr, "LLDP Invalid because required TLV types aren't present in right order\n");
+			g_warning("LLDP Invalid because required TLV type [%d] isn't present in right position (%d)\n"
+			,	reqtypes[j], j);
 			return FALSE;
 		}
 		j += 1;
 	}
 #ifdef PEDANTIC_LLDP_NERD
 	if (lasttype != LLDP_TLV_END) {
-		fprintf(stderr, "LLDP Invalid because final type wasn't LLDP_TLV_END (it was %d)\n"
+		g_warning("LLDP Invalid because final type wasn't LLDP_TLV_END (it was %d)\n"
 		,	lasttype);
 		return FALSE;
 	}
@@ -209,9 +210,10 @@ find_next_lldptlv_type(const void* tlv_vp,	///< [in] Pointer to the current TLV
 const void *
 get_lldp_chassis_id(gconstpointer	tlv_vp,		///<[in] Pointer to beginning of LLDP packet
                     gssize*		idlength,	///<[out] Length of the chassis id
-                    gconstpointer	pktend)	///<[in] Pointer to first byte beyond packet.
+                    gconstpointer	pktend)		///<[in] Pointer to first byte beyond packet.
 {
 	const void *	tlventry;
+	tlv_vp = get_lldptlv_first(tlv_vp, pktend);
 	tlventry = find_next_lldptlv_type(tlv_vp, LLDP_TLV_CHID, pktend);
 	if (tlventry == NULL) {
 		return NULL;
@@ -228,6 +230,7 @@ get_lldp_port_id(gconstpointer tlv_vp,	///<[in] Pointer to beginning of LLDP pac
                  gconstpointer pktend)	///<[in] Pointer to first byte beyond packet.
 {
 	const void *	tlventry;
+	tlv_vp = get_lldptlv_first(tlv_vp, pktend);
 	tlventry = find_next_lldptlv_type(tlv_vp, LLDP_TLV_PID, pktend);
 	if (tlventry == NULL) {
 		return NULL;
