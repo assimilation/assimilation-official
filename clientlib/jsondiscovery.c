@@ -71,6 +71,7 @@ _jsondiscovery_discover(Discovery* dself)
 		,	  __FUNCTION__);
 		return TRUE;
 	}
+	++ self->baseclass.discovercount;
 	if (cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER) == NULL) {
 		g_warning("%s: don't have CMA [%s] address yet - continuing [%s] anyway..." 
 		,	  __FUNCTION__, CONFIGNAME_CMADISCOVER, self->pathname);
@@ -178,6 +179,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
 	frameset_append_frame(fs, fsf);
 	io->sendaframeset(io, cma, fs);
+	++ self->baseclass.reportcount;
 	fsf->baseclass.unref(fsf); fsf = NULL; jsf = NULL;
 	fs->unref(fs); fs = NULL;
 }
