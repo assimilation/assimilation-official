@@ -66,6 +66,7 @@ NetAddr*	otheraddr;
 NetAddr*	otheraddr2;
 NetAddr*	anyaddr;
 HbSender*	sender = NULL;
+SwitchDiscovery*	sdisc;
 int		wirepktcount = 0;
 int		heartbeatcount = 0;
 int		errcount = 0;
@@ -84,6 +85,7 @@ void nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
 void nanoobey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
 void nanoobey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
 void fakecma_startup(AuthListener*, FrameSet* fs, NetAddr*);
+gboolean timeout_agent(gpointer ignored);
 
 ObeyFrameSetTypeMap obeylist [] = {
 	{FRAMESETTYPE_SENDHB,		nanoobey_sendhb},
@@ -220,6 +222,19 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	return TRUE;
 }
 
+gboolean
+timeout_agent(gpointer ignored)
+{
+	(void)ignored;
+	if (sdisc->baseclass.discovercount > (unsigned)maxpkts) {
+		g_message("QUITTING NOW! (discover)");
+		g_main_loop_quit(loop);
+		return FALSE;
+		
+	}
+	return TRUE;
+}
+
 void
 real_deadtime_agent(HbListener* who)
 {
@@ -237,12 +252,17 @@ real_deadtime_agent(HbListener* who)
 	}
 	g_free(addrstring);
 }
+
 void
 got_heartbeat(HbListener* who)
 {
 	(void)who;
 	++heartbeatcount;
 	//g_debug("Got heartbeat()");
+	if (heartbeatcount >maxpkts) {
+		g_message("QUITTING NOW (heartbeats)!");
+		g_main_loop_quit(loop);
+	}
 }
 
 void
@@ -859,7 +879,6 @@ main(int argc, char **argv)
 	ConfigContext*	config = configcontext_new(0);
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
 	AuthListener*	obeycollective;
-	SwitchDiscovery*	sdisc;
 	struct startup_cruft cruft = {
 		"/home/alanr/monitor/src/discovery_agents/netconfig",
 		3600,
@@ -967,10 +986,18 @@ main(int argc, char **argv)
 	//nano_startup(&cruft);
 	g_idle_add(nano_startup, &cruft);
 
+	g_timeout_add_seconds(1, timeout_agent, NULL);
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
 	// Start up the main loop - run the program...
 	g_main_loop_run(loop);
+
+	g_message("Count of LLDP/CDP pkts sent upstream:\t"FMT_64BIT"d", sdisc->baseclass.reportcount);
+	g_message("Count of LLDP/CDP pkts received:\t"FMT_64BIT"d", sdisc->baseclass.discovercount);
+
+	g_message("Count of pkts received over 'wire':\t%d", wirepktcount);
+	g_message("Count of heartbeats received:\t%d", heartbeatcount);
+	g_message("Count of errors:\t\t\t%d", errcount);
 
 	nettransport->finalize(nettransport); nettransport = NULL;
 	if (sender) {
@@ -1031,10 +1058,6 @@ main(int argc, char **argv)
 			proj_class_live_object_count());
 		++errcount;
 	}
-	g_message("Count of pcap packets received:\t%d", pcapcount);
-	g_message("Count of pkts received over wire:\t%d", wirepktcount);
-	g_message("Count of heartbeats received:\t%d", heartbeatcount);
-	g_message("Count of errors:\t\t\t%d", errcount);
         proj_class_finalize_sys(); /// Shut down object system to make valgrind happy :-D
 	return(errcount <= 127 ? errcount : 127);
 }

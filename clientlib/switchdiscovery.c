@@ -34,6 +34,12 @@ _switchdiscovery_finalize(AssimObj* dself)
 		g_source_pcap_finalize(self->source);
 		self->source = NULL;
 	}
+	if (self->switchid) {
+		g_free(self->switchid);
+	}
+	if (self->portid) {
+		g_free(self->portid);
+	}
 	
 	// Call base object finalization routine (which we saved away)
 	self->finalize(CASTTOCLASS(AssimObj, self));
@@ -73,11 +79,11 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	(void)gsource; (void)capstruct;
 	//g_debug("Got an incoming LLDP/CDP packet");
 	/// Don't cache if we can't send - and don't send if we have sent this info previously.
+	++ self->baseclass.discovercount;
 	if (!dest || !_switchdiscovery_cache_info(self, pkt, pend)) {
 		return TRUE;
 	}
-	/// @todo - do what the description of this function actually says!
-	/// That is, send out the filtered packets.
+	++ self->baseclass.reportcount;
 	g_debug("Sending out LLDP/CDP packet - hurray!");
 	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
 	transport->sendaframeset(transport, dest, fs);

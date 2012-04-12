@@ -38,6 +38,10 @@ struct _Discovery {
 	gboolean	(*discover)		(Discovery* self);		///< Perform the discovery
 	guint		(*discoverintervalsecs)	(const Discovery* self);	///< How often to re-discover?
 										///< (in seconds)
+	guint64		reportcount;						///< How many times have we reported
+										///< anything new upstream.
+	guint64		discovercount;						///< How many times have we discovered
+										///< something.
 	guint		_timerid;						///< Timer id for repeating discovery
 	NetGSource*	_iosource;						///< How to send packets
 	ConfigContext*	_config;						///< Configuration Parameters -
