@@ -568,7 +568,7 @@ nanoobey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object inv
  * It contains name value pairs to save into our configuration (ConfigContext).
  * These might be {string,string} pairs or {string,ipaddr} pairs, or
  * {string, integer} pairs.  We process them all.
- * The frame types that we receive for these are:
+ * The frame types that we receive for are:
  * FRAMETYPE_PARAMNAME - parameter name to set
  * FRAMETYPE_CSTRINGVAL - string value to associate with name
  * FRAMETYPE_CINTVAL - integer value to associate with naem
@@ -586,8 +586,6 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	guint16		port = 0;
 
 	(void)fromaddr;
-	g_debug("In %s", __FUNCTION__);
-
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
 		int	frametype = frame->type;
@@ -783,7 +781,6 @@ nano_startup(gpointer gcruft)
 		JsonDiscovery* jd = jsondiscovery_new(cruft->initdiscover
 		,	cruft->discover_interval
 		,	cruft->iosource, cruft->context, 0);
-		g_warning("In nano_startup - starting discovery code");
 		jd->baseclass.baseclass.unref(jd);
 		state = WAIT;
 		return TRUE;

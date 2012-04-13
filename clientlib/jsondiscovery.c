@@ -73,9 +73,8 @@ _jsondiscovery_discover(Discovery* dself)
 	}
 	++ self->baseclass.discovercount;
 	if (cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER) == NULL) {
-		g_warning("%s: don't have CMA [%s] address yet - continuing [%s] anyway..." 
-		,	  __FUNCTION__, CONFIGNAME_CMADISCOVER, self->pathname);
-		//return TRUE;
+		g_message("%s: don't have [%s] address yet - continuing." 
+		,	  __FUNCTION__, CONFIGNAME_CMADISCOVER);
 	}
 	self->_tmpfilename = strdup("/var/tmp/discovery-XXXXXXXXXXX.json");
 	close(g_mkstemp_full(self->_tmpfilename, 0, 0644));
@@ -88,13 +87,11 @@ _jsondiscovery_discover(Discovery* dself)
 	,		   NULL, NULL, &self->_child_pid, &errs)) {
 		g_warning("JSON discovery fork error: %s", errs->message);
 	}else{
-        	g_warning("Started %s successfully - watching for child", argv[2]);
 		self->_sourceid = g_child_watch_add_full(G_PRIORITY_HIGH, self->_child_pid, _jsondiscovery_childwatch
 		,					 self, NULL);
 		// Don't want us going away while we have a child out there...
 		self->baseclass.baseclass.ref(self);
 	}
-        g_warning("Started %s successfully.", argv[2]);
 	for (j=0; j < DIMOF(argv) && argv[j]; ++j) {
 		g_free(argv[j]); argv[j] = NULL;
 	}
@@ -109,7 +106,6 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 	GError*		err;
 
 
-        g_warning("in %s.", __FUNCTION__);
 	if (status != 0) {
 		g_warning("JSON discovery from %s failed with status 0x%x (%d)", self->pathname, status, status);
 		goto quitchild;
@@ -122,9 +118,7 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 		g_warning("JSON discovery [%s] produced no output.", self->pathname);
 		goto quitchild;
 	}
-	g_message("Got %d bytes of JSON TEXT: [%s]", jsonlen, jsonout);
-	
-	g_message("Sending %d bytes of JSON text", jsonlen);
+	//g_message("Got %d bytes of JSON TEXT: [%s]", jsonlen, jsonout);
 	_jsondiscovery_send(self, jsonout, jsonlen);
 
 quitchild:
@@ -165,6 +159,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 			return;
 		}
 	}
+	g_message("Sending %d bytes of JSON text", jsonlen);
 	cfg->setstring(cfg, basename, jsonout);
 	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
 	if (cma == NULL) {
@@ -203,7 +198,6 @@ jsondiscovery_new(const char *	pathname,	///<[in] pathname of program (script) t
 	ret->pathname = g_strdup(pathname);
 	ret->_intervalsecs = intervalsecs;
 	discovery_register(&ret->baseclass);
-	g_debug("jsondiscovery_new: registered %p", ret);
 	return ret;
 }
 ///@}
