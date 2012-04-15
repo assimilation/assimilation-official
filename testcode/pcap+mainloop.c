@@ -393,7 +393,7 @@ main(int argc, char **argv)
 	g_main_loop_run(loop);
 
 	nano_shutdown(TRUE);
-	g_message("Count of pkts received over 'wire':\t%d", wirepktcount);
+	g_message("Count of 'other' pkts received:\t%d", wirepktcount);
 
 	nettransport->finalize(nettransport); nettransport = NULL;
 

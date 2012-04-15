@@ -22,6 +22,7 @@ struct _NanoHbStats {
 	guint	dead_count;
 	guint	warntime_count;
 	guint	comealive_count;
+	guint	martian_count;
 };
 extern NanoHbStats nano_hbstats;
 

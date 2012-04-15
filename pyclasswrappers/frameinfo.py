@@ -219,6 +219,10 @@ The Address Type for a MAC address is 6.
 'This frame contains a string value to set in nanoprobe configuration.'),
   	21:  (pyIntFrame, 'CINTVAL', 'Integer configuration value',
 'This frame contains an integer value to set into nanoprobe configuration.'),
+  	22:  (pyIntFrame, 'ELAPSEDTIME', '64-bit elapsed time (usec)',
+'''This frame provides elapsed time (measured locally) in microseconds.
+In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer.
+'''),
 
     }
     _strframetypes = dict()
@@ -299,9 +303,12 @@ class FrameSetTypes:
 	# nanoprobe packets sent to collective management authority
 	'STARTUP':	(16, 'System originating packet looking for heartbeat configuratin.'),
 	'HBDEAD':	(17, 'System named in packet appears to be dead.'),
-	'PROBEALIVE':	(18, 'Packet issued by nanoprobe on startup - asking to be configured.'),
-	'SWDISCOVER':	(19, 'Packet encapsulates switch discovery packet'),
-	'JSDISCOVERY':	(20, 'Packet contains JSON-formatted discovery data'),
+	'HBLATE':	(18, 'System named in packet appears to be dead.'),
+	'HBBACKALIVE':	(19, 'System named in packet appears to be dead.'),
+	'HBMARTIAN':	(20, 'System named in packet appears gave unexpected heartbeat.'),
+	'PROBEALIVE':	(21, 'Packet issued by nanoprobe on startup - asking to be configured.'),
+	'SWDISCOVER':	(22, 'Packet encapsulates switch discovery packet'),
+	'JSDISCOVERY':	(23, 'Packet contains JSON-formatted discovery data'),
 	# Privileged packets sent from the CMA to nanoprobes
 	'SENDHB':	(64, 'Send Heartbeats to this address'),
 	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from this address'),

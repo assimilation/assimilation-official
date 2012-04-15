@@ -38,7 +38,7 @@ void (*nanoprobe_deadtime_agent)(HbListener*)			= NULL;
 void (*nanoprobe_heartbeat_agent)(HbListener*)			= NULL;
 void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
 void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
-NanoHbStats nano_hbstats = {0U, 0U, 0U, 0U};
+NanoHbStats nano_hbstats = {0U, 0U, 0U, 0U, 0U};
 
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
@@ -50,9 +50,13 @@ FSTATIC void		_real_heartbeat_agent(HbListener* who);
 FSTATIC void		_real_deadtime_agent(HbListener* who);
 FSTATIC void		_real_warntime_agent(HbListener* who, guint64 howlate);
 FSTATIC void		_real_comealive_agent(HbListener* who, guint64 howlate);
+FSTATIC void		_real_martian_agent(NetAddr* who);
 FSTATIC HbListener*	_real_hblistener_new(NetAddr*, ConfigContext*);
+FSTATIC void		nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, guint64 howlate);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
+static NetAddr*		nanofailreportaddr = NULL;
+static NetGSource*	nanotransport = NULL;
 
 /// Default HbListener constructor.
 /// Supply your own in nanoprobe_hblistener_new if you need to construct a subclass object.
@@ -62,6 +66,42 @@ _real_hblistener_new(NetAddr* addr, ConfigContext* context)
 	return hblistener_new(addr, context, 0);
 }
 
+/// Construct a frameset reporting something - and send it upstream
+FSTATIC void
+nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, guint64 howlate)
+{
+		FrameSet*	fs		= frameset_new(reporttype);
+		AddrFrame*	peeraddr	= addrframe_new(FRAMETYPE_IPADDR, 0);
+
+		// Construct and send a frameset reporting this event...
+		if (howlate > 0) {
+			IntFrame*	lateframe	= intframe_new(FRAMETYPE_ELAPSEDTIME, 0);
+			lateframe->setint(lateframe, howlate);
+			frameset_append_frame(fs, &lateframe->baseclass);
+		}
+		peeraddr->setnetaddr(peeraddr, who);
+		frameset_append_frame(fs, &peeraddr->baseclass);
+		nanotransport->sendaframeset(nanotransport, nanofailreportaddr, fs);
+
+		fs->unref(fs);
+		peeraddr->baseclass.baseclass.unref(peeraddr);
+}
+
+/// Standard nanoprobe 'martian heartbeat received' agent.
+FSTATIC void
+_real_martian_agent(NetAddr* who)
+{
+	++nano_hbstats.martian_count;
+	{
+		char *		addrstring;
+
+		addrstring = who->baseclass.toString(who);
+		g_warning("System at address %s is sending unexpected heartbeats.", addrstring);
+		g_free(addrstring);
+		
+		nanoprobe_report_upstream(FRAMESETTYPE_HBMARTIAN, who, 0);
+	}
+}
 /// Standard nanoprobe 'deadtime elapsed' agent.
 /// Supply your own in nanoprobe_deadtime_agent if you want us to call it.
 FSTATIC void
@@ -72,21 +112,12 @@ _real_deadtime_agent(HbListener* who)
 		nanoprobe_deadtime_agent(who);
 	}else{
 		char *		addrstring;
-		NetAddr*	reportaddr = who->baseclass.config->getaddr(who->baseclass.config, CONFIGNAME_CMAFAIL);
-		FrameSet*	fs		= frameset_new(FRAMESETTYPE_HBDEAD);
-		AddrFrame*	peeraddr	= addrframe_new(FRAMETYPE_IPADDR, 0);
 
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
 		g_warning("Peer at address %s is dead (has timed out).", addrstring);
 		g_free(addrstring);
-
-		peeraddr->setnetaddr(peeraddr, who->listenaddr);
-		frameset_append_frame(fs, &peeraddr->baseclass);
-		g_return_if_fail(who->baseclass.transport != NULL);
-		who->baseclass.transport->sendaframeset(who->baseclass.transport, reportaddr, fs);
-		fs->unref(fs);
-		peeraddr->baseclass.baseclass.unref(peeraddr);
 		
+		nanoprobe_report_upstream(FRAMESETTYPE_HBDEAD, who->listenaddr, 0);
 	}
 }
 
@@ -116,6 +147,7 @@ _real_warntime_agent(HbListener* who, guint64 howlate)
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
 		g_warning("Heartbeat from peer at address %s was "FMT_64BIT"d ms late.", addrstring, mslate);
 		g_free(addrstring);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBLATE, who->listenaddr, howlate);
 	}
 }
 /// Standard nanoprobe 'returned-from-the-dead' agent - called when a heartbeats arrive after 'deadtime'.
@@ -132,6 +164,7 @@ _real_comealive_agent(HbListener* who, guint64 howlate)
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
 		g_warning("Peer at address %s came alive after being dead for %g seconds.", addrstring, secsdead);
 		g_free(addrstring);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBBACKALIVE, who->listenaddr, howlate);
 	}
 }
 
@@ -419,6 +452,16 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 
 		}//endswitch
 	}//endfor
+	if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != NULL) {
+		if (nanofailreportaddr == NULL) {
+			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
+			nanofailreportaddr->baseclass.ref(nanofailreportaddr);
+		}else if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {
+			nanofailreportaddr->baseclass.unref(nanofailreportaddr);
+			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
+			nanofailreportaddr->baseclass.ref(nanofailreportaddr);
+		}
+	}
 }//nanoobey_setconfig
 
 /// Stuff we need only for passing parameters through our glib infrastructures - to start up nanoprobes.
@@ -566,7 +609,10 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 		io,
 		config
 	};
+	hblistener_set_martian_callback(_real_martian_agent);
 	cruftiness = initcrufty;
+	// We have to just hope nanotransport doesn't go away before we stop using it...
+	nanotransport = io;
 
 	// Get our local switch discovery information.
 	// To be really right, we probably ought to wait until we know our local network
@@ -584,12 +630,15 @@ void
 nano_shutdown(gboolean report)
 {
 	if (report) {
-		g_message("Count of heartbeats:\t"FMT_64BIT"d", nano_hbstats.heartbeat_count);
-		g_message("Count of deadtimes:\t\t%d", nano_hbstats.dead_count);
-		g_message("Count of warntimes:\t\t%d", nano_hbstats.warntime_count);
+		g_message("Count of heartbeats:\t\t"FMT_64BIT"d", nano_hbstats.heartbeat_count);
+		g_message("Count of deadtimes:\t\t\t%d", nano_hbstats.dead_count);
+		g_message("Count of warntimes:\t\t\t%d", nano_hbstats.warntime_count);
 		g_message("Count of comealives:\t\t%d", nano_hbstats.comealive_count);
-		g_message("Count of LLDP/CDP pkts sent upstream:\t"FMT_64BIT"d", swdisc->baseclass.reportcount);
+		g_message("Count of LLDP/CDP pkts sent:\t"FMT_64BIT"d", swdisc->baseclass.reportcount);
 		g_message("Count of LLDP/CDP pkts received:\t"FMT_64BIT"d", swdisc->baseclass.discovercount);
+	}
+	if (nanofailreportaddr) {
+		nanofailreportaddr->baseclass.unref(nanofailreportaddr); nanofailreportaddr = NULL;
 	}
 	// Free Switch Discovery module (unnecessary?)
 	if (swdisc) {

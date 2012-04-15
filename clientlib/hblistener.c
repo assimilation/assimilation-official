@@ -44,7 +44,7 @@ guint64 proj_get_real_time(void); 	///@todo - make this a real global function
 static GSList*	_hb_listeners = NULL;
 static gint	_hb_listener_count = 0;
 static guint64	_hb_listener_lastcheck = 0;
-static void	(*_hblistener_martiancallback)(const NetAddr* who) = NULL;
+static void	(*_hblistener_martiancallback)(NetAddr* who) = NULL;
 
 #define	ONESEC	1000000
 
@@ -343,7 +343,7 @@ _hblistener_set_comealive_callback(HbListener* self, void (*callback)(HbListener
 
 /// Call to set a callback to be called when an unrecognized node sends us a heartbeat
 FSTATIC void
-hblistener_set_martian_callback(void (*callback)(const NetAddr* who))
+hblistener_set_martian_callback(void (*callback)(NetAddr* who))
 {
 	_hblistener_martiancallback = callback;
 }
