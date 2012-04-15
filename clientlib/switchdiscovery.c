@@ -84,7 +84,7 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 		return TRUE;
 	}
 	++ self->baseclass.reportcount;
-	g_debug("Sending out LLDP/CDP packet - hurray!");
+	//g_debug("Sending out LLDP/CDP packet - hurray!");
 	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
 	transport->sendaframeset(transport, dest, fs);
 	fs->unref(fs);

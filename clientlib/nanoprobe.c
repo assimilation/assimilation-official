@@ -634,6 +634,7 @@ nano_shutdown(gboolean report)
 		g_message("Count of deadtimes:\t\t\t%d", nano_hbstats.dead_count);
 		g_message("Count of warntimes:\t\t\t%d", nano_hbstats.warntime_count);
 		g_message("Count of comealives:\t\t%d", nano_hbstats.comealive_count);
+		g_message("Count of martians:\t\t\t%d", nano_hbstats.martian_count);
 		g_message("Count of LLDP/CDP pkts sent:\t"FMT_64BIT"d", swdisc->baseclass.reportcount);
 		g_message("Count of LLDP/CDP pkts received:\t"FMT_64BIT"d", swdisc->baseclass.discovercount);
 	}

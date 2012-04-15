@@ -193,7 +193,8 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	char *		nanostr = nanoaddr->baseclass.toString(nanoaddr);
 
 	(void)ifs;
-	g_debug("Hurray, got a startup message from %s/%d!!", nanostr, nanoaddr->port(nanoaddr));
+	g_message("CMA received startup message from nanoprobe at address %s/%d!!"
+	,	nanostr, nanoaddr->port(nanoaddr));
 	g_free(nanostr); nanostr = NULL;
 
 	// Send the configuration data to our new "client"
@@ -323,7 +324,7 @@ main(int argc, char **argv)
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
-                g_debug("Max LLDP/CDP packet count is %lld", maxpkts);
+                g_debug("Max packet count is %lld", maxpkts);
 	}
 
 	if (netio_is_dual_ipv4v6_stack()) {
