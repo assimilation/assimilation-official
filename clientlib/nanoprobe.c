@@ -28,10 +28,17 @@
 #include <hblistener.h>
 #include <hbsender.h>
 #include <configcontext.h>
+#include <pcap_min.h>
 #include <jsondiscovery.h>
+#include <switchdiscovery.h>
+#include <nanoprobe.h>
 
-void nano_start_full(const char *initdiscoverpath, guint discover_interval, NetGSource* io, ConfigContext* config);
-void nano_shutdown(void);
+
+void (*nanoprobe_deadtime_agent)(HbListener*)			= NULL;
+void (*nanoprobe_heartbeat_agent)(HbListener*)			= NULL;
+void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
+void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
+NanoHbStats nano_hbstats = {0U, 0U, 0U, 0U};
 
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
@@ -44,15 +51,7 @@ FSTATIC void		_real_deadtime_agent(HbListener* who);
 FSTATIC void		_real_warntime_agent(HbListener* who, guint64 howlate);
 FSTATIC void		_real_comealive_agent(HbListener* who, guint64 howlate);
 FSTATIC HbListener*	_real_hblistener_new(NetAddr*, ConfigContext*);
-static int _nano_dead_count = 0;
-static int _nano_heartbeat_count = 0;
-static int _nano_warntime_count = 0;
-static int _nano_comealive_count = 0;
 
-void (*nanoprobe_deadtime_agent)(HbListener*)			= NULL;
-void (*nanoprobe_heartbeat_agent)(HbListener*)			= NULL;
-void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
-void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 
 /// Default HbListener constructor.
@@ -63,20 +62,31 @@ _real_hblistener_new(NetAddr* addr, ConfigContext* context)
 	return hblistener_new(addr, context, 0);
 }
 
-
 /// Standard nanoprobe 'deadtime elapsed' agent.
 /// Supply your own in nanoprobe_deadtime_agent if you want us to call it.
 FSTATIC void
 _real_deadtime_agent(HbListener* who)
 {
-	++_nano_dead_count;
+	++nano_hbstats.dead_count;
 	if (nanoprobe_deadtime_agent) {
 		nanoprobe_deadtime_agent(who);
 	}else{
-		char *	addrstring;
+		char *		addrstring;
+		NetAddr*	reportaddr = who->baseclass.config->getaddr(who->baseclass.config, CONFIGNAME_CMAFAIL);
+		FrameSet*	fs		= frameset_new(FRAMESETTYPE_HBDEAD);
+		AddrFrame*	peeraddr	= addrframe_new(FRAMETYPE_IPADDR, 0);
+
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
 		g_warning("Peer at address %s is dead (has timed out).", addrstring);
 		g_free(addrstring);
+
+		peeraddr->setnetaddr(peeraddr, who->listenaddr);
+		frameset_append_frame(fs, &peeraddr->baseclass);
+		g_return_if_fail(who->baseclass.transport != NULL);
+		who->baseclass.transport->sendaframeset(who->baseclass.transport, reportaddr, fs);
+		fs->unref(fs);
+		peeraddr->baseclass.baseclass.unref(peeraddr);
+		
 	}
 }
 
@@ -85,7 +95,7 @@ _real_deadtime_agent(HbListener* who)
 FSTATIC void
 _real_heartbeat_agent(HbListener* who)
 {
-	++_nano_heartbeat_count;
+	++nano_hbstats.heartbeat_count;
 	if (nanoprobe_heartbeat_agent) {
 		nanoprobe_heartbeat_agent(who);
 	}
@@ -97,7 +107,7 @@ _real_heartbeat_agent(HbListener* who)
 FSTATIC void
 _real_warntime_agent(HbListener* who, guint64 howlate)
 {
-	++_nano_warntime_count;
+	++nano_hbstats.warntime_count;
 	if (nanoprobe_warntime_agent) {
 		nanoprobe_warntime_agent(who, howlate);
 	}else{
@@ -108,12 +118,12 @@ _real_warntime_agent(HbListener* who, guint64 howlate)
 		g_free(addrstring);
 	}
 }
-/// Standard nanoprobe 'warntime elapsed' agent - called when a heartbeats arrive after 'deadtime'.
+/// Standard nanoprobe 'returned-from-the-dead' agent - called when a heartbeats arrive after 'deadtime'.
 /// Supply your own in nanoprobe_comealive_agent if you want us to call it.
 FSTATIC void
 _real_comealive_agent(HbListener* who, guint64 howlate)
 {
-	++_nano_comealive_count;
+	++nano_hbstats.comealive_count;
 	if (nanoprobe_comealive_agent) {
 		nanoprobe_comealive_agent(who, howlate);
 	}else{
@@ -277,6 +287,7 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 				addrcount++;
 				aframe->setport(aframe, port);
 				hblisten = hblistener_new(aframe->getnetaddr(aframe), config, 0);
+				hblisten->baseclass.associate(&hblisten->baseclass, transport);
 				if (deadtime > 0) {
 					// Otherwise we get the default deadtime
 					hblisten->set_deadtime(hblisten, deadtime);
@@ -334,17 +345,17 @@ nanoobey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object inv
 }
 
 /*
- * Act on (obey) a FRAMESETTYPE_SETCONFIG @ref FrameSet.
+ * Act on (obey) a <b>FRAMESETTYPE_SETCONFIG</b> @ref FrameSet.
  * This frameset is sent during the initial configuration phase.
  * It contains name value pairs to save into our configuration (ConfigContext).
  * These might be {string,string} pairs or {string,ipaddr} pairs, or
  * {string, integer} pairs.  We process them all.
  * The frame types that we receive for these are:
- * FRAMETYPE_PARAMNAME - parameter name to set
- * FRAMETYPE_CSTRINGVAL - string value to associate with name
- * FRAMETYPE_CINTVAL - integer value to associate with naem
- * FRAMETYPE_PORTNUM - port number for subsequent IP address
- * FRAMETYPE_IPADDR - IP address to associate with name
+ * <b>FRAMETYPE_PARAMNAME</b> - parameter name to set
+ * <b>FRAMETYPE_CSTRINGVAL</b> - string value to associate with name
+ * <b>FRAMETYPE_CINTVAL</b> - integer value to associate with naem
+ * <b>FRAMETYPE_PORTNUM</b> - port number for subsequent IP address
+ * <b>FRAMETYPE_IPADDR</b> - IP address to associate with name
  */
 void
 nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking us
@@ -357,7 +368,6 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	guint16		port = 0;
 
 	(void)fromaddr;
-	g_debug("In %s", __FUNCTION__);
 
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
@@ -411,6 +421,7 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	}//endfor
 }//nanoobey_setconfig
 
+/// Stuff we need only for passing parameters through our glib infrastructures - to start up nanoprobes.
 struct startup_cruft {
 	const char *	initdiscover;
 	int		discover_interval;
@@ -431,8 +442,6 @@ nano_startupidle(gpointer gcruft)
 	struct startup_cruft* cruft = gcruft;
 	const char *	cfgname = strrchr(cruft->initdiscover, '/');
 
-	g_warning("In nano_startupidle(state:%d) - looking for %s in config"
-	,	  state, cfgname);
 	if (state == DONE) {
 		return FALSE;
 	}
@@ -443,7 +452,6 @@ nano_startupidle(gpointer gcruft)
 		JsonDiscovery* jd = jsondiscovery_new(cruft->initdiscover
 		,	cruft->discover_interval
 		,	cruft->iosource, cruft->context, 0);
-		g_warning("In nano_startupidle - starting discovery code");
 		jd->baseclass.baseclass.unref(jd);
 		state = WAIT;
 		return TRUE;
@@ -458,8 +466,8 @@ nano_startupidle(gpointer gcruft)
 	return TRUE;
 }
 
-/// Function to request our configuration data
-/// This is called from a g_main_loop timeout, and directly (once).
+/// Function to request our initial configuration data
+/// This is typically called from a g_main_loop timeout, and is also called directly - at startup.
 gboolean
 nano_reqconfig(gpointer gcruft)
 {
@@ -470,10 +478,10 @@ nano_reqconfig(gpointer gcruft)
 	ConfigContext*	context = cruft->context;
 	NetAddr *	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
 
-	// We <i>have</i> to know our initial request address
+	// We <i>have</i> to know our initial request address - or all is lost.
 	g_return_val_if_fail(cmainit != NULL, FALSE);
 
-	// Our configuration response should contain these parameters.
+	// Our initial configuration message must contain these parameters.
 	if (context->getaddr(context, CONFIGNAME_CMAADDR) != NULL
 	&&  context->getaddr(context, CONFIGNAME_CMAFAIL) != NULL
 	&&  context->getaddr(context, CONFIGNAME_CMADISCOVER) != NULL
@@ -492,48 +500,110 @@ nano_reqconfig(gpointer gcruft)
 	return TRUE;
 }
 
-FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
+static PacketDecoder*	decoder = NULL;
+static SwitchDiscovery*	swdisc = NULL;
+static AuthListener*	obeycollective = NULL;
+
+
+// The set of Collective Management Authority FrameTypes we know about - and what to do when we get them.
+// Resistance is futile...
+ObeyFrameSetTypeMap collective_obeylist [] = {
+	{FRAMESETTYPE_SENDHB,		nanoobey_sendhb},
+	{FRAMESETTYPE_EXPECTHB,		nanoobey_expecthb},
+	{FRAMESETTYPE_SENDEXPECTHB,	nanoobey_sendexpecthb},
+	{FRAMESETTYPE_SETCONFIG,	nanoobey_setconfig},
+	{0,				NULL},
+};
+
+// Return our nanoprobe packet decoder map.
+// Kind of like a secret decoder ring, but more useful ;-).
+PacketDecoder*
+nano_packet_decoder(void)
+{
+	static FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
+	// Set up our packet decoder
+	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
+	return decoder;
+}
+
 
 /**
  * Here is how the startup process works:
  *
  * 1.	Submit a network discovery request from an idle task, rescheduling until it completes.
- *	(or this could be done every 10ms or so via a timer) {nano_startupidle()}
+ *	Go to next step when this is done.						nano_startupidle()
  *
- * 2.	Send out a "request for configuration" packet (role: nanoprobe) once the discovery
- *	shows up in the config context. {nano_reqconfig()}
+ * 2.	Repeatedly send out a "request for configuration" packet once the discovery data
+ *	shows up in the config context, until the rest of our config comes in		nano_reqconfig()
  *
- * 3.	When the CMA receives this request (role: CMA) it sends out a SETCONFIG packet
- *	and a series of SENDEXPECTHB heartbeat packets {fakecma_startup()}
+ * 3.	When the CMA receives this request it will send outout a FRAMESETTYPE_SETCONFIG @ref FrameSet
+ *	and a series of SENDEXPECTHB heartbeat packets.  We'll just keep asking until we receive the
+ *	SETCONFIG we're looking for (currently every 5 seconds).
  *
- * 4.	When the SETCONFIG packet is received (role: nanoprobe), it enables the sending of
- *	discovery data from all (JSON and switch (LLDP/CDP)) sources.  {nanoobey_setconfig()}
+ * 4.	When the FRAMESETTYPE_SETCONFIG packet is received, this enables the sending of
+ *	discovery data from all (JSON and switch (LLDP/CDP)) sources.			nanoobey_setconfig()
+ *	In the case of the SwitchDiscovery data, we're already trying to collect it.
  *
- * 5.	When the SENDEXPECTHB packet is received (role: nanoprobe), it starts sending
- *	heartbeats and timing heartbeats to flag "dead" machines.
+ * 5.	When we receive FRAMESETTYPE_SENDEXPECTHB packets (or similar), we start sending
+ *	heartbeats and timing heartbeats to flag "dead" machines as we were told.
+ *					nanoobey_sendhb(), nanoobey_expecthb(), and/or nanoobey_sendexpecthb()
  *
- * 6.	Now everything is running in "normal" mode.
+ * 6.	Now everything is running in "normal" mode.  Happy days!
+ *	Eventually we may be told to do other things (monitor services, set up discovery, other queries)
+ *	but we'll always go through these steps.
  */
 
-static PacketDecoder*	decoder;
 void
-nano_start_full(const char *initdiscoverpath, guint discover_interval, NetGSource* io, ConfigContext* config)
+nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial network discovery agent
+	,	guint discover_interval		///<[in] discovery interval for agent above
+	,	NetGSource* io			///<[in/out] network connectivity object
+	,	ConfigContext* config)		///<[in/out] configuration object
 {
-	static struct startup_cruft the_real_cruft;
-	struct startup_cruft cruft = {
+	static struct startup_cruft cruftiness;
+	struct startup_cruft initcrufty = {
 		initdiscoverpath,
 		discover_interval,
 		io,
 		config
 	};
-	the_real_cruft = cruft;
+	cruftiness = initcrufty;
 
-	g_idle_add(nano_startupidle, &the_real_cruft);
-	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
+	// Get our local switch discovery information.
+	// To be really right, we probably ought to wait until we know our local network
+	// configuration - and start it up on all interfaces assigned addresses of global scope.
+	///@todo - eventually change switch discovery to be sensitive to our local network configuration
+	swdisc = switchdiscovery_new("eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
+	,			    g_main_context_default(), io, config, 0);
+	obeycollective = authlistener_new(collective_obeylist, config, 0);
+	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
+	// Initiate the startup process
+	g_idle_add(nano_startupidle, &cruftiness);
 }
+/// Shut down the things started up by nano_start_full() - mainly free storage to make valgrind happy...
 void
-nano_shutdown(void)
+nano_shutdown(gboolean report)
 {
+	if (report) {
+		g_message("Count of heartbeats:\t"FMT_64BIT"d", nano_hbstats.heartbeat_count);
+		g_message("Count of deadtimes:\t\t%d", nano_hbstats.dead_count);
+		g_message("Count of warntimes:\t\t%d", nano_hbstats.warntime_count);
+		g_message("Count of comealives:\t\t%d", nano_hbstats.comealive_count);
+		g_message("Count of LLDP/CDP pkts sent upstream:\t"FMT_64BIT"d", swdisc->baseclass.reportcount);
+		g_message("Count of LLDP/CDP pkts received:\t"FMT_64BIT"d", swdisc->baseclass.discovercount);
+	}
+	// Free Switch Discovery module (unnecessary?)
+	if (swdisc) {
+		swdisc->baseclass.baseclass.unref(swdisc);
+		swdisc = NULL;
+	}
 	// Free packet decoder
-	decoder->baseclass.unref(decoder);
+	if (decoder) {
+		decoder->baseclass.unref(decoder);
+		decoder = NULL;
+	}
+	// Unregister all discovery modules.
+	discovery_unregister_all();
+	obeycollective->baseclass.dissociate(&obeycollective->baseclass);
+	obeycollective->baseclass.baseclass.unref(&obeycollective->baseclass.baseclass);
+	obeycollective = NULL;
 }

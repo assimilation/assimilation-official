@@ -57,7 +57,7 @@ _switchdiscovery_discover(Discovery* self)  ///<[in/out]
 /// Internal pcap gsource dispatch routine - called when we get a packet.
 /// It examines the packet and sees if it is the same switch id and port ID as previously.
 /// If there is no previous packet, or something has changed, it constructs a packet
-/// encapsulating the captured packet, then sends this encapsulation packet "upstream"
+/// encapsulating the captured packet, then sends this encapsulated packet "upstream"
 /// to the CMA.
 /// All we care about about are those two fields - the rest we leave to the CMA.
 FSTATIC gboolean
