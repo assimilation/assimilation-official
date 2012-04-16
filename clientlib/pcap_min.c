@@ -49,8 +49,8 @@ pcap_t*
 create_pcap_listener(const char * dev		///<[in] Device name to listen on
 ,		     gboolean blocking		///<[in] TRUE if this is a blocking connection
 ,		     unsigned listenmask	///<[in] Bit mask of protocols to listen for
-,		     struct bpf_program*prog)
-						/// (see @ref pcap_protocols "list of valid bits")
+						///< (see @ref pcap_protocols "list of valid bits")
+,		     struct bpf_program*prog)	///<[out] Compiled PCAP program
 {
 	pcap_t*			pcdescr;
 	bpf_u_int32		maskp;
