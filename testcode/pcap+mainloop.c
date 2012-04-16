@@ -87,19 +87,19 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	++wirepktcount;
 	switch(fs->fstype) {
 	case FRAMESETTYPE_HBDEAD:
-		g_message("CMA Received dead host notification (type %d) over the 'wire'!"
+		g_message("CMA Received dead host notification (type %d) over the 'wire.!"
 		,	  fs->fstype);
 		break;
 	case FRAMESETTYPE_SWDISCOVER:
-		g_message("CMA Received switch discovery data (type %d) over the 'wire'!"
+		g_message("CMA Received switch discovery data (type %d) over the 'wire'."
 		,	  fs->fstype);
 		break;
 	case FRAMESETTYPE_JSDISCOVERY:
-		g_message("CMA Received JSON discovery data (type %d) over the 'wire'!"
+		g_message("CMA Received JSON discovery data (type %d) over the 'wire'."
 		,	  fs->fstype);
 		break;
 	default:
-		g_message("CMA Received a FrameSet of type %d over the 'wire'!"
+		g_message("CMA Received a FrameSet of type %d over the 'wire'."
 		,	  fs->fstype);
 	}
 	//g_message("DUMPING packet received over 'wire':");
@@ -220,7 +220,7 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 /// We create it from a ConfigContext containing <i>only</i> values we want to go into
 /// the SETCONFIG message.  We ignore frames in the ConfigContext (shouldn't be any).
 /// We are effectively a "friend" function to the ConfigContext object - either that
-/// or we cheat in order to iterate through its hash tables
+/// or we cheated in order to iterate through its hash tables ;-)
 FrameSet*
 create_setconfig(ConfigContext * cfg)
 {
@@ -335,13 +335,16 @@ main(int argc, char **argv)
 	
 
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
+
+	// Set up the parameters the 'CMA' is going to send to our 'nanoprobe'
+	// in response to their request for configuration data.
 	nanoconfig = configcontext_new(0);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_HBPORT, testport);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_HBTIME, 1000000);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_DEADTIME, 3*1000000);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_CMAPORT, testport);
 
-	// Create a network transport object (UDP packets)
+	// Create a network transport object for normal UDP packets
 	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
 
@@ -355,6 +358,7 @@ main(int argc, char **argv)
 	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMADISCOVER, destaddr);
 
 	// Construct another couple of NetAddrs to talk to and listen from
+	// for good measure...
 	otheraddr =  netaddr_ipv4_new(otheradstring, testport);
 	g_return_val_if_fail(NULL != otheraddr, 4);
 	otheraddr2 =  netaddr_ipv4_new(otheradstring2, testport);
@@ -372,14 +376,16 @@ main(int argc, char **argv)
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(nettransport, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 
+	// Set up so that we can observe all unclaimed packets
 	otherlistener = listener_new(config, 0);
 	otherlistener->got_frameset = gotnetpkt;
-	netpkt->addListener(netpkt, 0, otherlistener);	// Get all unclaimed packets...
+	netpkt->addListener(netpkt, 0, otherlistener);
 	otherlistener->associate(otherlistener,netpkt);
-	// Unref the "other" listener
+
+	// Unref the "other" listener - we hold other references to it
 	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
 
-	// Pretend to be the CMA:
+	// Pretend to be the CMA...
 	// Listen for packets from our nanoprobes - scattered throughout space...
 	listentonanoprobes = authlistener_new(cmalist, config, 0);
 	listentonanoprobes->baseclass.associate(&listentonanoprobes->baseclass, netpkt);
@@ -390,22 +396,26 @@ main(int argc, char **argv)
 	g_timeout_add_seconds(1, timeout_agent, NULL);
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
-	// Start up the main loop - run the program...
+	/********************************************************************
+	 *	Start up the main loop - run our test program...
+	 *	(the one pretending to be both the nanoprobe and the CMA)
+	 ********************************************************************/
 	g_main_loop_run(loop);
 
-	nano_shutdown(TRUE);
+	/********************************************************************
+	 *	We exited the main loop.  Shut things down.
+	 ********************************************************************/
+
+	nano_shutdown(TRUE);	// Tell it to shutdown and print stats
 	g_message("Count of 'other' pkts received:\t%d", wirepktcount);
 
 	nettransport->finalize(nettransport); nettransport = NULL;
 
-	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
-	g_main_context_unref(g_main_context_default());
-
 	// Main loop is over - shut everything down, free everything...
 	g_main_loop_unref(loop); loop=NULL;
 
-	// Unlink heartbeat dispatcher - this should NOT be necessary...
-	netpkt->addListener(netpkt, FRAMESETTYPE_HEARTBEAT, NULL);
+
+
 
 	// Unlink misc dispatcher - this should NOT be necessary...
 	netpkt->addListener(netpkt, 0, NULL);
@@ -416,6 +426,10 @@ main(int argc, char **argv)
 	// Unref the AuthListener object
 	listentonanoprobes->baseclass.baseclass.unref(listentonanoprobes);
 	listentonanoprobes = NULL;
+
+	g_source_unref(CASTTOCLASS(GSource, netpkt));
+	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
+	g_main_context_unref(g_main_context_default());
 
 	// Free signature frame
 	signature->baseclass.baseclass.unref(signature); signature = NULL;
@@ -431,11 +445,13 @@ main(int argc, char **argv)
 	nanoconfig->baseclass.unref(nanoconfig);
 
 	// At this point - nothing should show up - we should have freed everything
-	proj_class_dump_live_objects();
-	if (proj_class_live_object_count() > 2) {
+	if (proj_class_live_object_count() > 0) {
+		proj_class_dump_live_objects();
 		g_warning("Too many objects (%d) alive at end of test.", 
 			proj_class_live_object_count());
 		++errcount;
+	}else{
+		g_message("No objects left alive.  Awesome!");
 	}
         proj_class_finalize_sys(); /// Shut down object system to make valgrind happy :-D
 	return(errcount <= 127 ? errcount : 127);

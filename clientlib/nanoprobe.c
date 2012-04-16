@@ -611,7 +611,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	};
 	hblistener_set_martian_callback(_real_martian_agent);
 	cruftiness = initcrufty;
-	// We have to just hope nanotransport doesn't go away before we stop using it...
+	g_source_ref(CASTTOCLASS(GSource, io));
 	nanotransport = io;
 
 	// Get our local switch discovery information.
@@ -640,6 +640,11 @@ nano_shutdown(gboolean report)
 	}
 	if (nanofailreportaddr) {
 		nanofailreportaddr->baseclass.unref(nanofailreportaddr); nanofailreportaddr = NULL;
+	}
+	if (nanotransport) {
+		// Unlink heartbeat dispatcher - this should NOT be necessary - but it seems to be...
+		nanotransport->addListener(nanotransport, FRAMESETTYPE_HEARTBEAT, NULL);
+		g_source_unref(CASTTOCLASS(GSource, nanotransport));
 	}
 	// Free Switch Discovery module (unnecessary?)
 	if (swdisc) {

@@ -113,27 +113,18 @@
    fun:g_filename_display_name
    ...
 }
-
-#
-#	This is here because I can't figure out how to get the mainloop code
-#	to free sources...
-#
 {
-   g_source_pcap_new()
+   4-byte libpcap memory leak - unknown origin and cure
    Memcheck:Leak
-   ...
+   fun:malloc
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
    fun:g_source_pcap_new
-   ...
-}
-#
-#	This is here because I can't figure out how to get the mainloop code
-#	to free sources...
-#
-{
-   netgsource_new()
-   Memcheck:Leak
-   ...
-   fun:netgsource_new
+   fun:switchdiscovery_new
    ...
 }
 

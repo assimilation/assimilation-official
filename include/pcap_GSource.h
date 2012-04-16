@@ -27,6 +27,7 @@ struct _GSource_pcap {
 	GSource		gs;		///< Parent GSource Object
 	GPollFD		gfd;		///< Poll/select object for gmainloop
 	pcap_t*		capture;	///< Pcap capture object
+	struct bpf_program pcprog;	///< Pcap program
 	int		capturefd;	///< Underlying file descriptor
 	const char*	capturedev;	///< Capture device name
 	unsigned	listenmask;	///< Protocols selected from @ref pcap_protocols

@@ -48,8 +48,11 @@ static GSourceFuncs _netgsource_gsourcefuncs = {
 FSTATIC void
 _netgsource_del_listener(gpointer lptr)
 {
-	Listener*	lobj = CASTTOCLASS(Listener, lptr);
-	lobj->baseclass.unref(lobj);
+	Listener*	lobj;
+	if (lptr) {
+		lobj = CASTTOCLASS(Listener, lptr);
+		lobj->baseclass.unref(lobj);
+	}
 }
 
 /// Create a new (abstract) NetGSource object
@@ -179,7 +182,6 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 #	define __FUNCTION__ "_netgsource_finalize"
 #endif
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
-	g_message("***********IN %s()", __FUNCTION__);
 	if (self->_finalize) {
 		self->_finalize(self->_userdata);
 	}else{
@@ -191,7 +193,6 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 		}
 	}
 	if (self->_gsfuncs) {
-		g_message("***********FREEING GSFUNCS %s()", __FUNCTION__);
 		FREECLASSOBJ(self->_gsfuncs);
 		self->_gsfuncs = NULL;
 	}

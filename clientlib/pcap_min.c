@@ -48,13 +48,13 @@ static struct pcap_filter_info {
 pcap_t*
 create_pcap_listener(const char * dev		///<[in] Device name to listen on
 ,		     gboolean blocking		///<[in] TRUE if this is a blocking connection
-,		     unsigned listenmask)	///<[in] Bit mask of protocols to listen for
+,		     unsigned listenmask	///<[in] Bit mask of protocols to listen for
+,		     struct bpf_program*prog)
 						/// (see @ref pcap_protocols "list of valid bits")
 {
 	pcap_t*			pcdescr;
 	bpf_u_int32		maskp;
 	bpf_u_int32		netp;
-	struct bpf_program	fp;
 	char			errbuf[PCAP_ERRBUF_SIZE];
 	char *			expr;
 	int			filterlen = 1;
@@ -126,12 +126,12 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		pcap_perror(pcdescr, msg);
 		return(NULL);
 	}
-	if (pcap_compile(pcdescr, &fp, expr, FALSE, maskp) < 0) {
+	if (pcap_compile(pcdescr, prog, expr, FALSE, maskp) < 0) {
 		pcap_perror(pcdescr, expr);
 		g_warning("pcap_compile failed: [%s]", expr);
 		return(NULL);
 	}
-	if (pcap_setfilter(pcdescr, &fp) < 0) {
+	if (pcap_setfilter(pcdescr, prog) < 0) {
 		// Broken pcap_error prototype...
 		static char msg[] = "setfilter failure";
 		pcap_perror(pcdescr, msg);

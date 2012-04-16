@@ -29,4 +29,4 @@
 ///	Enable CDP protocol
 #	define	ENABLE_CDP	0x2 
 /// @}
-WINEXPORT pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask);
+WINEXPORT pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask, struct bpf_program*);

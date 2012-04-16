@@ -107,13 +107,13 @@ g_source_pcap_new(const char * dev,	///<[in]Capture device name
 	proj_class_register_object(src, "GSource");
 	proj_class_register_subclassed(src, "GSource_pcap_t");
 
+	ret = CASTTOCLASS(GSource_pcap_t, src);
 	// OK, now create the capture object to associate with it
-	if (NULL == (captureobj = create_pcap_listener(dev, FALSE, listenmask))) {
+	if (NULL == (captureobj = create_pcap_listener(dev, FALSE, listenmask, &ret->pcprog))) {
 		// OOPS! Didn't work...  Give up.
 		g_source_unref(src);
 		return NULL;
 	}
-	ret = CASTTOCLASS(GSource_pcap_t, src);
 	ret->capture = captureobj;
 	ret->capturedev = dev; /// @todo: make a copy of this device.
 	ret->listenmask = listenmask;
@@ -200,7 +200,11 @@ g_source_pcap_finalize(GSource* src)
 	if (psrc->destroynote) {
 		psrc->destroynote(psrc);
 	}
-	pcap_close(psrc->capture);
+	if (psrc->capture) {
+		pcap_close(psrc->capture);
+		pcap_freecode(&psrc->pcprog);
+		psrc->capture = NULL;
+	}
 	proj_class_dissociate(src);
 }
 
