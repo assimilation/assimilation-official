@@ -87,7 +87,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	++wirepktcount;
 	switch(fs->fstype) {
 	case FRAMESETTYPE_HBDEAD:
-		g_message("CMA Received dead host notification (type %d) over the 'wire.!"
+		g_message("CMA Received dead host notification (type %d) over the 'wire'."
 		,	  fs->fstype);
 		break;
 	case FRAMESETTYPE_SWDISCOVER:
