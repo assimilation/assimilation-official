@@ -193,7 +193,7 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	char *		nanostr = nanoaddr->baseclass.toString(nanoaddr);
 
 	(void)ifs;
-	g_message("CMA received startup message from nanoprobe at address %s/%d!!"
+	g_message("CMA received startup message from nanoprobe at address %s/%d."
 	,	nanostr, nanoaddr->port(nanoaddr));
 	g_free(nanostr); nanostr = NULL;
 
