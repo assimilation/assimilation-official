@@ -61,6 +61,39 @@ IP=/sbin/ip
 IWCONFIG=/sbin/iwconfig
 US=`basename $0`
 
+isanumber() {
+  test \( "$1" -le 0 \) -o \( "$1" -ge 0 \) 2>/dev/null
+}
+
+scalarfmt() {
+  if
+    isanumber "$1"
+  then
+    printf '%s'   "$1"
+  else
+    printf '"%s"' "$1"
+  fi
+}
+
+scalarval() {
+  name="$1"
+  value="$2"
+  printf '"%s": %s' "$field" "$(scalarfmt "$value")"
+}
+
+arrayval() {
+   arraycomma=''
+   separator="$1"
+   shift
+   ret=''
+   for value in "$@"
+   do
+     ret=$(printf '%s%s%s%s' "$ret" "$arraycomma" "$separator" "$(scalarfmt $value)")
+     arraycomma=', '
+   done
+   printf '[ %s ]' "$ret"
+}
+
 discover() {
   test ! -d "$NETDIR" -o ! -x "$IP" && return 1
 
@@ -73,8 +106,11 @@ discover() {
   printf '  "host": "'`uname -n`'",\n'
   printf '  "data": {\n'
   outercomma=''
+
+
   for device in $DEVICES
   do
+    test ! -d "$NETDIR/$device" && continue
     printf  "$outercomma"
     outercomma=', \n'
     printf "    \"$device\": {\n"
@@ -86,12 +122,8 @@ discover() {
       file="$NETDIR/$device/$field"
       [ ! -f "$file" ] && continue
       value=`cat $file 2>/dev/null`
-      case $value in
-        "")	;;
-        *:*|*.*)	printf "	\"$field\": \"$value\",\n";;
-        [0-9]*)		printf "	\"$field\": $value,\n";;
-        *)	        printf "	\"$field\": \"$value\",\n";;
-      esac
+      [ -z "$value" ] && continue
+      printf '	%s,\n' "$(scalarval "$field" "$value" )"
     done
     case $device in
       $DEFAULTGW) 	printf '	"default_gw": true,\n'
@@ -113,6 +145,31 @@ discover() {
       printf "$IWCFG" | grep 'ESSID:'        | sed -e 's%^.*ESSID:%	"ESSID": %' -e 's%" *$%",%'
       printf "$IWCFG" | grep 'Access Point:' | sed -e 's%^.*Access Point: *%	"AccessPoint": "%' -e 's% *$%",%'
       printf "$IWCFG" | grep 'IEEE 802.11'   | sed -e 's%^.*IEEE %%' -e 's% .*$%%' -e 's%.*%	"WirelessModes": "&",%'
+    fi
+    # Is it a bonded link?
+    if
+      [ -d "$NETDIR/$device/bonding" ]
+    then
+      # Array fields
+      for field in slaves
+      do
+        if 
+          [ -f "$NETDIR/$device/bonding/$field" ]
+        then
+          value=$(cat "$NETDIR/$device/bonding/$field")
+          printf '\t"%s": %s,\n' "bonding_$field" "$(arrayval "" $value)"
+        fi 
+      done
+      # Scalar fields
+      for field in mode
+      do
+        if 
+          [ -f "$NETDIR/$device/bonding/$field" ]
+        then
+          value=$(cat "$NETDIR/$device/bonding/$field" )
+          printf '	"%s": %s,\n' "bonding_$field" "$(scalarfmt "$value")"
+        fi 
+      done
     fi
     #
     # Get IP address information for this device/interface using 'ip addr show $device'
