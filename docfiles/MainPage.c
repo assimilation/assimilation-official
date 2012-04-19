@@ -30,8 +30,8 @@ all environments.
 @section ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
-- linux-ha-dev mailing list - less frequent - lists.linux-ha.org/mailman/listinfo/linux-ha-dev
-- Pegby work in progress list - https://www.pegby.com/board/view/assimilationproject.alanr
+- <a href="http://lists.linux-ha.org/mailman/listinfo/linux-ha-dev">linux-ha-dev mailing list</a> - less frequent
+- <a href="https://www.pegby.com/board/view/assimilationproject.alanr">Pegby work in progress list</a>.
   This gives a very good overview of the project goals, current and future work items along with <b>open project roles</b>.  Come find your future here!
 
 @section architecture Architecture
