@@ -28,6 +28,9 @@ The process that the nanoprobes go through when booting/rejoining/starting up lo
  -# <b>nanoprobe:</b> When the <b>SENDEXPECTHB</b> packet is receivedit starts sending heartbeats and timing heartbeats to flag "dead" machines.
  -# <b>All:</b> Now everything is running in "normal" mode.
 
+Step 1 above will be configured to default to a multicast operation - to our <i>reserved multicast address</i>.
+This address is <tt>224.0.2.5</tt> - and officially belongs to the Assimilation project.
+
 @section ClientArchSpecialCases Some Special Cases for the client to consider
 @subsection ClientArchSwitchDeath When A Switch Dies
 If a client discovers that one of its peers is dead, and it has not received an ACK from the CMA
