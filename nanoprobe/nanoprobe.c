@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 #include <projectcommon.h>
 #include <framesettypes.h>
 #include <frameset.h>
@@ -39,17 +40,24 @@ GMainLoop*	loop = NULL;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
-NetAddr*	anyaddr;
+NetAddr*	anyv6addrdr;
 int		heartbeatcount = 0;
 int		errcount = 0;
 int		pcapcount = 0;
 int		wirepktcount = 0;
 
-gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
-void got_heartbeat(HbListener* who);
-void got_heartbeat2(HbListener* who);
+//		Signals...
+gboolean	sigint	= FALSE;
+gboolean	sigterm = FALSE;
+gboolean	sighup	= FALSE;
+gboolean	sigusr1 = FALSE;
+gboolean	sigusr2 = FALSE;
 
-void fakecma_startup(AuthListener*, FrameSet* fs, NetAddr*);
+const char *	procname = "nanoprobe";
+
+void catch_a_signal(int signum);
+gboolean check_for_signals(gpointer ignored);
+gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
@@ -62,26 +70,66 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	(void)l; (void)srcaddr;
 	++wirepktcount;
 	switch(fs->fstype) {
-	case FRAMESETTYPE_HBDEAD:
-		g_message("CMA Received dead host notification (type %d) over the 'wire'."
-		,	  fs->fstype);
-		break;
-	case FRAMESETTYPE_SWDISCOVER:
-		g_message("CMA Received switch discovery data (type %d) over the 'wire'."
-		,	  fs->fstype);
-		break;
-	case FRAMESETTYPE_JSDISCOVERY:
-		g_message("CMA Received JSON discovery data (type %d) over the 'wire'."
-		,	  fs->fstype);
-		break;
-	default:
-		g_message("CMA Received a FrameSet of type %d over the 'wire'."
-		,	  fs->fstype);
+		case FRAMESETTYPE_HBBACKALIVE:
+			g_message("Received back alive notification (type %d) over the 'wire'."
+			,	  fs->fstype);
+			break;
+
+		default:
+			if (fs->fstype >= FRAMESETTYPE_STARTUP && fs->fstype < FRAMESETTYPE_SENDHB) {
+				g_message("Received a FrameSet of type %d over the 'wire' (OOPS!)."
+				,	  fs->fstype);
+			}else{
+				g_message("Received a FrameSet of type %d over the 'wire'."
+				,	  fs->fstype);
+			}
 	}
 	//g_message("DUMPING packet received over 'wire':");
 	//frameset_dump(fs);
 	//g_message("END of packet received over 'wire':");
 	fs->unref(fs);
+	return TRUE;
+}
+
+/// Signal reception function - signals stop by here...
+void
+catch_a_signal(int signum)
+{
+	switch(signum) {
+		case SIGINT:
+			sigint = TRUE;
+			break;
+		case SIGTERM:
+			sigterm = TRUE;
+			break;
+		case SIGHUP:
+			sighup = TRUE;
+			break;
+		case SIGUSR1:
+			sigusr1 = TRUE;
+			break;
+		case SIGUSR2:
+			sigusr2 = TRUE;
+			break;
+	}
+}
+
+/// Check for signals periodically
+gboolean
+check_for_signals(gpointer ignored)
+{
+	(void)ignored;
+	if (sigterm || sigint) {
+		g_message("%s: exiting on %s.", procname, (sigterm ? "SIGTERM" : "SIGINT"));
+		g_main_loop_quit(loop);
+		return FALSE;
+	}
+	if (sigusr1) {
+		sigusr1 = FALSE;
+	}
+	if (sigusr2) {
+		sigusr2 = FALSE;
+	}
 	return TRUE;
 }
 
@@ -93,13 +141,14 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 int
 main(int argc, char **argv)
 {
-	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
-	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	guint16		testport = DEFAULT_PORT;
-	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
-	Listener*	otherlistener;
-	ConfigContext*	config = configcontext_new(0);
-	PacketDecoder*	decoder = nano_packet_decoder();
+	const guint8		loopback[] = CONST_IPV6_LOOPBACK;
+	const guint8		anyv6addrstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	guint16			testport = DEFAULT_PORT;
+	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	Listener*		otherlistener;
+	ConfigContext*		config = configcontext_new(0);
+	PacketDecoder*		decoder = nano_packet_decoder();
+	struct sigaction	sigact;
 
 	/// @todo handle signals - SIGINT, SIGTERM, (SIGUSR1, SIGUSR2?).
 	/// @todo initialize from a setup file - initial IP address, port, debug - anything else?
@@ -112,6 +161,12 @@ main(int argc, char **argv)
 	if (!netio_is_dual_ipv4v6_stack()) {
 		g_warning("This OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
 	}
+	memset(&sigact, 0,  sizeof(sigact));
+	sigact.sa_handler = catch_a_signal;
+	sigaction(SIGTERM, &sigact, NULL);
+	sigaction(SIGINT,  &sigact, NULL); // Need to check to see if it's already blocked.
+	sigaction(SIGUSR1, &sigact, NULL);
+	sigaction(SIGUSR2, &sigact, NULL);
 
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 
@@ -126,13 +181,13 @@ main(int argc, char **argv)
 	config->setaddr(config, CONFIGNAME_CMAINIT, destaddr);
 
 	// Construct a NetAddr to bind to (i.e. ANY address)
-	anyaddr =  netaddr_ipv6_new(anyadstring, testport);
+	anyv6addrdr =  netaddr_ipv6_new(anyv6addrstring, testport);
 	g_return_val_if_fail(NULL != destaddr, 5);
 
 	// Bind to ANY address (as noted above)
-	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyaddr),16);
-        anyaddr->  baseclass.unref(anyaddr);
-	anyaddr = NULL;
+	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyv6addrdr),16);
+        anyv6addrdr->  baseclass.unref(anyv6addrdr);
+	anyv6addrdr = NULL;
 	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
 
 	// Connect up our network transport into the g_main_loop paradigm
@@ -144,6 +199,7 @@ main(int argc, char **argv)
 	otherlistener->got_frameset = gotnetpkt;
 	netpkt->addListener(netpkt, 0, otherlistener);
 	otherlistener->associate(otherlistener,netpkt);
+	g_timeout_add_seconds(1, check_for_signals, NULL);
 
 	// Unref the "other" listener - netpkt et al holds references to it
 	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
