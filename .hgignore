@@ -22,3 +22,4 @@ Doxyfile
 /\..*\.swp$
 include/framesettypes.h
 include/frametypes.h
+nanoprobe/nanoprobe
