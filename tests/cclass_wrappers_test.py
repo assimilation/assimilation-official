@@ -392,7 +392,6 @@ class pyConfigContextTest(TestCase):
         pyConfigContext()
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),) })
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),), 'csf': pyCstringFrame(42, '41+1')})
-	print str(foo), '\n'
         self.assertEqual(foo.getint('int1'), 42)
         self.assertEqual(foo.getstring('str1'), 'forty-two')
         self.assertRaises(IndexError, foo.getaddr, ('int1'))
@@ -406,9 +405,10 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(str(foo['bar']), '1.2.3.4')
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
         self.assertEqual(str(foo['csf']), 'CstringFrame(42, "41+1")')
-        self.assertEqual(foo['csf'].__class__, pyCstringFrame(1).__class__)
-	#  @todo This next item is really wrong - because the "s should be escaped... Sigh...
-	self.assertEqual(str(foo), '{"int1":42,"str1":"forty-two","bar":"1.2.3.4","csf":"CstringFrame(42, "41+1")"}')
+	self.assertEqual(str(foo), '{"int1":42,"str1":"forty-two","bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")"}')
+	foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)
+	self.assertEqual(str(foo),
+		'{"int1":42,"str1":"forty-two","bar":"1.2.3.4","isf":"IntFrame(310, 3, 42)","csf":"CstringFrame(42, \\"41+1\\")"}')
 
     def test_string(self):
         foo = pyConfigContext()

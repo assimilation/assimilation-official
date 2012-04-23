@@ -20,6 +20,19 @@
 #include <address_family_numbers.h>
 typedef struct _ConfigContext ConfigContext;
 
+enum ConfigValType {
+	CFG_EEXIST,	// Name does not exist
+	CFG_NULL,	// JSON null object
+	CFG_BOOL,	// JSON boolean object
+	CFG_INT64,	// Signed 64-bit Integer
+	CFG_STRING,	// String
+	CFG_FLOAT,	// Floating point
+	CFG_ARRAY,	// JSON Array -- not yet implemented.
+	CFG_CFGCTX,	// ConfigContext (recursive) object
+	CFG_NETADDR,	// NetAddr object
+	CFG_FRAME,	// Frame object
+};
+
 ///@{
 /// @ingroup ConfigContext
 
@@ -28,10 +41,7 @@ typedef struct _ConfigContext ConfigContext;
 /// It provides the analog of global variables for remembering configuration defaults, etc.
 struct _ConfigContext {
 	AssimObj	baseclass;
-	GHashTable*	_intvalues;			///< Integer value table
-	GHashTable*	_strvalues;			///< String value table
-	GHashTable*	_framevalues;			///< Frame value table
-	GHashTable*	_addrvalues;			///< NetAddr value table
+	GHashTable*	_values;			///< table of Values
 	gint		(*getint)(ConfigContext*, const char *name);	///< Get integer value
 	void		(*setint)(ConfigContext*, const char *name, gint value);	///< Set integer value
 	const char*	(*getstring)(ConfigContext*, const char *name);	///< Get String value
@@ -40,6 +50,8 @@ struct _ConfigContext {
 	void		(*setframe)(ConfigContext*, const char*,Frame*);///< Set Frame value
 	NetAddr*	(*getaddr)(ConfigContext*, const char* name);	///< Get NetAddr value
 	void		(*setaddr)(ConfigContext*,const char *,NetAddr*);///< Set NetAddr value
+	enum ConfigValType
+			(*gettype)(ConfigContext*, const char *);	///< Return type
 };
 WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext constructor
 

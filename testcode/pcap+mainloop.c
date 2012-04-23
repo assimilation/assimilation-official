@@ -234,67 +234,74 @@ create_setconfig(ConfigContext * cfg)
 	// Lastly we go through the NetAddr values (if any)
 
 	// Integer values
-	if (cfg->_intvalues) {
-		g_hash_table_iter_init(&iter, cfg->_intvalues);
-		while (g_hash_table_iter_next(&iter, &key, &data)) {
-			char *		name = key;
-			int		value = GPOINTER_TO_INT(data);
-			CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-			IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 4);
-			n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
-			,		      frame_default_valuefinalize);
-			v->setint(v, value);
-			frameset_append_frame(fs, &n->baseclass);
-			frameset_append_frame(fs, &v->baseclass);
-			n->baseclass.baseclass.unref(n);
-			v->baseclass.baseclass.unref(v);
-		}
+	if (!cfg->_values) {
+		return NULL;
 	}
-	
-	// String values
-	if (cfg->_strvalues) {
-		g_hash_table_iter_init(&iter, cfg->_strvalues);
-		while (g_hash_table_iter_next(&iter, &key, &data)) {
-			char *		name = key;
-			char *		value = data;
-			CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-			CstringFrame*	v = cstringframe_new(FRAMETYPE_CSTRINGVAL, 0);
-			n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
-			,		      frame_default_valuefinalize);
-			v->baseclass.setvalue(&v->baseclass, strdup(value), strlen(value)+1
-			,		      frame_default_valuefinalize);
-			frameset_append_frame(fs, &n->baseclass);
-			frameset_append_frame(fs, &v->baseclass);
-			n->baseclass.baseclass.unref(n);
-			v->baseclass.baseclass.unref(v);
-		}
-	}
+	g_hash_table_iter_init(&iter, cfg->_values);
+	while (g_hash_table_iter_next(&iter, &key, &data)) {
+		char *		name = key;
+		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
 
-	// NetAddr values
-	if (cfg->_addrvalues) {
-		g_hash_table_iter_init(&iter, cfg->_addrvalues);
-		while (g_hash_table_iter_next(&iter, &key, &data)) {
-			char *		name = key;
-			NetAddr*	value = data;
-			CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-			AddrFrame*	v = addrframe_new(FRAMETYPE_IPADDR, 0);
-			n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
-			,		      frame_default_valuefinalize);
-			frameset_append_frame(fs, &n->baseclass);
-			// The port doesn't come through when going across the wire
-			if (value->port(value) != 0) {
-				IntFrame*	p = intframe_new(FRAMETYPE_PORTNUM, 4);
-				p->setint(p, value->port(value));
-				frameset_append_frame(fs, &p->baseclass);
-				p->baseclass.baseclass.unref(p);
+		switch (cfg->gettype(cfg, key)) {
+			case CFG_INT64:
+			case CFG_STRING:
+			case CFG_NETADDR:
+					break;
+			default:	// Completely ignore everything else
+					continue;
+		}
+
+		// Put the name into the frameset
+		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
+		,		      frame_default_valuefinalize);
+		frameset_append_frame(fs, &n->baseclass);
+		n->baseclass.baseclass.unref(n); n = NULL;
+
+		// Now put the value in...
+		switch(cfg->gettype(cfg, key)) {
+			case CFG_EEXIST:
+			case CFG_NULL:
+			case CFG_BOOL:
+			case CFG_FLOAT:
+			case CFG_ARRAY:
+			case CFG_CFGCTX:
+			case CFG_FRAME:
+				break;	// Ignore these...
+
+			case CFG_INT64: {
+				gint64		value = cfg->getint(cfg, name);
+				IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 8);
+				v->setint(v, value);
+				frameset_append_frame(fs, &v->baseclass);
+				v->baseclass.baseclass.unref(v);
+				break;
 			}
-			v->setnetaddr(v, value);
-			frameset_append_frame(fs, &v->baseclass);
-			n->baseclass.baseclass.unref(n);
-			v->baseclass.baseclass.unref(v);
+			case CFG_STRING: {
+				const char *	value = cfg->getstring(cfg, name);
+				CstringFrame*	v = cstringframe_new(FRAMETYPE_CSTRINGVAL, 0);
+				v->baseclass.setvalue(&v->baseclass, g_strdup(value)
+				,		      strlen(value)+1, frame_default_valuefinalize);
+				frameset_append_frame(fs, &v->baseclass);
+				v->baseclass.baseclass.unref(v);
+				break;
+			}
+			case CFG_NETADDR: {
+				NetAddr *	value = cfg->getaddr(cfg, name);
+				AddrFrame*	v = addrframe_new(FRAMETYPE_IPADDR, 0);
+				// The port doesn't come through when going across the wire
+				if (value->port(value) != 0) {
+					IntFrame*	p = intframe_new(FRAMETYPE_PORTNUM, 4);
+					p->setint(p, value->port(value));
+					frameset_append_frame(fs, &p->baseclass);
+					p->baseclass.baseclass.unref(p); p = NULL;
+				}
+				v->setnetaddr(v, value);
+				frameset_append_frame(fs, &v->baseclass);
+				v->baseclass.baseclass.unref(v); v = NULL;
+				break;
+			}
 		}
 	}
-
 	return fs;
 }
 
