@@ -18,6 +18,9 @@
 #include <frametypes.h>
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
+
+DEBUGDECLARATIONS;
+
 /**
  * @defgroup CstringFrameFormats C-Class C-string wire format
  * @{
@@ -89,11 +92,15 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 {
 	Frame*	baseframe;
 
+	BINDDEBUG(CstringFrame);
 	if (framesize < sizeof(CstringFrame)){
 		framesize = sizeof(CstringFrame);
 	}
 
 	baseframe = frame_new(frame_type, framesize);
+	if (framesize == sizeof(CstringFrame)) {
+		DEBUGMSG3("%s: Constructing New CstringFrame at 0x%p", __FUNCTION__, baseframe);
+	}
 	baseframe->isvalid = _cstringframe_default_isvalid;
 	baseframe->baseclass.toString = _cstringframe_toString;
 	return NEWSUBCLASS(CstringFrame, baseframe);

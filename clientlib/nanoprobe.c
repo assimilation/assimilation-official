@@ -44,6 +44,9 @@ FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
+FSTATIC void		nanoobey_change_debug(gint plusminus, AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		nanoobey_incrdebug(AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		nanoobey_decrdebug(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC gboolean	nano_startupidle(gpointer gcruft);
 FSTATIC	gboolean	nano_reqconfig(gpointer gcruft);
 FSTATIC void		_real_heartbeat_agent(HbListener* who);
@@ -464,6 +467,70 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	}
 }//nanoobey_setconfig
 
+/**
+ * Act on (obey) a @ref FrameSet telling us to increment or decrement debug levels
+ * either on a specific set of classes, or on all classes.
+ */
+FSTATIC void
+nanoobey_change_debug(gint plusminus		///<[in] +1 or -1 - for incrementing/decrementing
+	,	      AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,	      FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
+	,	      NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+
+	GSList*		slframe;
+	guint		changecount = 0;
+
+	(void)parent;
+	(void)fromaddr;
+
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		int	frametype = frame->type;
+		switch (frametype) {
+			case FRAMETYPE_CSTRINGVAL: { // String value to set 'paramname' to
+				++changecount;
+				if (plusminus < 0) {
+					proj_class_decr_debug((char*)frame->value);
+				}else{
+					proj_class_incr_debug((char*)frame->value);
+				}
+			}
+			break;
+		}
+	}
+	if (changecount == 0) {
+		if (plusminus < 0) {
+			proj_class_decr_debug(NULL);
+		}else{
+			proj_class_incr_debug(NULL);
+		}
+	}
+}
+/**
+ * Act on (obey) a @ref FrameSet telling us to increment debug levels
+ * either on a specific set of classes, or on all classes.
+ */
+FSTATIC void
+nanoobey_incrdebug(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,	      FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
+	,	      NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+	nanoobey_change_debug(+1, parent, fs, fromaddr);
+}
+/**
+ * Act on (obey) a @ref FrameSet telling us to decrement debug levels
+ * either on a specific set of classes, or on all classes.
+ */
+FSTATIC void
+nanoobey_decrdebug(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,	      FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
+	,	      NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+	nanoobey_change_debug(-1, parent, fs, fromaddr);
+}
+					
+
 /// Stuff we need only for passing parameters through our glib infrastructures - to start up nanoprobes.
 struct startup_cruft {
 	const char *	initdiscover;
@@ -555,6 +622,8 @@ ObeyFrameSetTypeMap collective_obeylist [] = {
 	{FRAMESETTYPE_EXPECTHB,		nanoobey_expecthb},
 	{FRAMESETTYPE_SENDEXPECTHB,	nanoobey_sendexpecthb},
 	{FRAMESETTYPE_SETCONFIG,	nanoobey_setconfig},
+	{FRAMESETTYPE_INCRDEBUG,	nanoobey_incrdebug},
+	{FRAMESETTYPE_DECRDEBUG,	nanoobey_decrdebug},
 	{0,				NULL},
 };
 

@@ -314,6 +314,8 @@ class FrameSetTypes:
 	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from this address'),
 	'SENDEXPECTHB':	(66, 'Send Heartbeats to this address, and expect them as well.'),
 	'SETCONFIG':	(67, 'Initial configuration packet'),
+	'INCRDEBUG':	(68, 'Increment debug for some or all classes'),
+	'DECRDEBUG':	(69, 'Increment debug for some or all classes'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():

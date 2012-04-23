@@ -4,7 +4,7 @@
  * @details We have a variety of classes and subclasses which we use, and this
  * class system permits us to track them and catch errors in casting, parameter passing, etc.
  *
- * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
+ * @author &copy; 2011,2012 - Alan Robertson <alanr@unix.sh>
  * @n
  * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
  * excluding the provision allowing for relicensing under the GPL at your option.
@@ -46,7 +46,9 @@
 
 static GHashTable* ObjectClassAssociation = NULL;	///< Map of objects -> class quarks
 static GHashTable* SuperClassAssociation = NULL;	///< Map of subclass-quarks -> superclass-quarks
+static GHashTable* DebugClassAssociation = NULL;	///< Map of class -> debug variables
 FSTATIC void _init_proj_class_module(void);
+FSTATIC void proj_class_change_debug(const char * Cclass, gint incr);
 
 /// Initialize our object system tables.
 FSTATIC void
@@ -54,6 +56,7 @@ _init_proj_class_module(void)
 {
 	ObjectClassAssociation  = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 	SuperClassAssociation   = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
+	DebugClassAssociation   = g_hash_table_new(g_str_hash, g_str_equal);
 }
 /// Shut down (finalize) our object class system.  Only do on shutdown to make valgrind happy :-D
 void
@@ -61,6 +64,7 @@ proj_class_finalize_sys(void)
 {
 	g_hash_table_destroy(ObjectClassAssociation); ObjectClassAssociation = NULL;
 	g_hash_table_destroy(SuperClassAssociation); SuperClassAssociation = NULL;
+	g_hash_table_destroy(DebugClassAssociation); DebugClassAssociation = NULL;
 }
 
 /// Log the creation of a new object, and its association with a given type.
@@ -82,6 +86,62 @@ proj_class_register_object(gpointer object,			///< Object to be registered
 	g_hash_table_insert(ObjectClassAssociation, GINT_TO_POINTER(object), GINT_TO_POINTER(classquark));
 }
 
+void
+proj_class_register_debug_counter(const char * classname, guint * debugcount)
+{
+	if (NULL == ObjectClassAssociation) {
+		_init_proj_class_module();
+	}
+	// Sleazy - the double cast is to make the 'const' go away - but safe
+	// since we aren't going to modify the strings we were given...
+	g_hash_table_replace(DebugClassAssociation, GINT_TO_POINTER(GPOINTER_TO_INT(classname)), debugcount);
+	
+}
+
+
+/// Increment debug level for this class and all its subclasses by one.
+/// NULL class <i>Cclass</i> name means all classes.
+void
+proj_class_incr_debug(const char * Cclass)
+{
+	proj_class_change_debug(Cclass, +1);
+}
+
+/// Decrement debug level for this class and all its subclasses by one.
+/// NULL class <i>Cclass</i> name means all classes.
+void
+proj_class_decr_debug(const char * Cclass)
+{
+	proj_class_change_debug(Cclass, -1);
+}
+
+/// Change debug level for this class and all its subclasses by 'incr'.
+/// NULL class <i>Cclass</i> name means all classes.
+FSTATIC void
+proj_class_change_debug(const char * Cclass, gint incr)
+{
+	GHashTableIter	iter;
+	gpointer	classname;
+	gpointer	gdebugptr;
+	GQuark		CclassQuark = g_quark_from_static_string(Cclass);
+
+	g_hash_table_iter_init(&iter, DebugClassAssociation);
+
+	// Search through all our debug pointers.
+	// Modify (+/-) the debug variables for each class that 'is_a' Cclass object.
+	while (g_hash_table_iter_next(&iter, &classname, &gdebugptr)) {
+		guint*	debug = gdebugptr;
+		GQuark	classQ = g_quark_from_static_string(classname);
+		if (Cclass == NULL || proj_class_quark_is_a(classQ, CclassQuark)) {
+			if (incr < 0 && (guint)-incr >= *debug) {
+				*debug = 0;
+			}else{
+				*debug += incr;
+			}
+		}
+	}
+}
+
 /// Log the creation of a subclassed object from a superclassed object.
 /// The subclass name given must be the immediate subclass of the class of the object, not through multiple levels of subclassing.
 gpointer
@@ -101,8 +161,7 @@ proj_class_register_subclassed(gpointer object,				///< Object (currently regist
 	}
 	///todo create a superclass/subclass hierarchy...
 	proj_class_quark_add_superclass_relationship(superclassquark, subclassquark);
-	g_hash_table_remove(ObjectClassAssociation, object);
-	g_hash_table_insert(ObjectClassAssociation, object, GINT_TO_POINTER(subclassquark));
+	g_hash_table_replace(ObjectClassAssociation, object, GINT_TO_POINTER(subclassquark));
 	return object;
 }
 
@@ -156,7 +215,7 @@ proj_class_is_a(gconstpointer object,		///<[i] Object to be queried
 	}
 
 	objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
-	classquark = g_quark_from_string(Cclass);
+	classquark = g_quark_from_static_string(Cclass);
 
 	if (objquark != classquark || classquark == 0) {
 		if (!proj_class_quark_is_a(objquark, classquark)) {

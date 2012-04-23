@@ -27,6 +27,7 @@ FSTATIC NetAddr*_configcontext_getaddr(ConfigContext*, const char *);
 FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
 FSTATIC Frame*	_configcontext_getframe(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
+FSTATIC char *	_configcontext_toString(gconstpointer aself);
 /// @defgroup ConfigContext ConfigContext class
 /// A base class for remembering configuration values of various types.
 ///@{
@@ -56,6 +57,7 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->getaddr=		_configcontext_getaddr;
 	newcontext->setaddr=		_configcontext_setaddr;
 	baseobj->_finalize	=	_configcontext_finalize;
+	baseobj->toString	=	_configcontext_toString;
 	return newcontext;
 errout:
 	if (baseobj) {
@@ -228,4 +230,65 @@ _configcontext_finalize(AssimObj* oself)	///<[in/out] ConfigContext object being
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self); self = NULL;
 }
+
+
+
+/// Convert a ConfigContext to a printable string (in JSON notation)
+FSTATIC char *
+_configcontext_toString(gconstpointer aself)
+{
+	const ConfigContext*	self = CASTTOCONSTCLASS(ConfigContext, aself);
+
+	GString*	gsret = g_string_new("{");
+	GHashTableIter	iter;
+	const char *	comma = "";
+	gpointer	gkey;
+	gpointer	gvalue;
+	
+	if (self->_intvalues) {
+		g_hash_table_iter_init(&iter, self->_intvalues);
+		while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
+			g_string_append_printf(gsret, "%s\"%s\":%d"
+			,	comma, (const char *)gkey,  GPOINTER_TO_INT(gvalue));
+			comma=",";
+		}
+	}
+	if (self->_strvalues) {
+		g_hash_table_iter_init(&iter, self->_strvalues);
+		while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
+			g_string_append_printf(gsret, "%s\"%s\":\"%s\""
+			,	comma, (const char *)gkey,  (const char*)gvalue);
+			comma=",";
+		}
+	}
+	// Probably not very useful except for debugging...
+	if (self->_addrvalues) {
+		g_hash_table_iter_init(&iter, self->_addrvalues);
+		while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
+			
+			NetAddr*	netaddr = CASTTOCLASS(NetAddr, gvalue);
+			char *		addrstr = netaddr->baseclass.toString(netaddr);
+			g_string_append_printf(gsret, "%s\"%s\":\"%s\""
+			,	comma, (const char *)gkey,  addrstr);
+			comma=",";
+			g_free(addrstr); addrstr = NULL;
+		}
+	}
+
+	if (self->_framevalues) {
+		g_hash_table_iter_init(&iter, self->_framevalues);
+		while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
+			
+			Frame*	f = CASTTOCLASS(Frame, gvalue);
+			char *		framestr = f->baseclass.toString(f);
+			g_string_append_printf(gsret, "%s\"%s\":\"%s\""
+			,	comma, (const char *)gkey,  framestr);
+			comma=",";
+			g_free(framestr); framestr = NULL;
+		}
+	}
+	g_string_append(gsret, "}");
+	return g_string_free(gsret, FALSE);
+}
+
 ///@}

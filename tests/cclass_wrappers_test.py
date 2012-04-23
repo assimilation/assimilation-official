@@ -390,7 +390,9 @@ class pyConfigContextTest(TestCase):
 
     def test_constructor(self):
         pyConfigContext()
+        foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),) })
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),), 'csf': pyCstringFrame(42, '41+1')})
+	print str(foo), '\n'
         self.assertEqual(foo.getint('int1'), 42)
         self.assertEqual(foo.getstring('str1'), 'forty-two')
         self.assertRaises(IndexError, foo.getaddr, ('int1'))
@@ -405,6 +407,8 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
         self.assertEqual(str(foo['csf']), 'CstringFrame(42, "41+1")')
         self.assertEqual(foo['csf'].__class__, pyCstringFrame(1).__class__)
+	#  @todo This next item is really wrong - because the "s should be escaped... Sigh...
+	self.assertEqual(str(foo), '{"int1":42,"str1":"forty-two","bar":"1.2.3.4","csf":"CstringFrame(42, "41+1")"}')
 
     def test_string(self):
         foo = pyConfigContext()
@@ -412,16 +416,20 @@ class pyConfigContextTest(TestCase):
         foo['seven'] = 'ofnine'
         foo['JeanLuc'] = 'Picard'
         foo['important'] = 'towel'
+        foo['integer'] = 42
         self.assertEqual(foo['arthur'], 'dent')
         self.assertEqual(foo['seven'], 'ofnine')
         self.assertEqual(foo['JeanLuc'], 'Picard')
         self.assertEqual(foo['important'], 'towel')
         self.assertRaises(IndexError, foo.getstring, ('towel'))
+	self.assertEqual(str(foo), '{"integer":42,"arthur":"dent","JeanLuc":"Picard","important":"towel","seven":"ofnine"}')
         foo['seven'] = '7'
         self.assertEqual(foo['seven'], '7')
         self.assertEqual(type(foo['seven']), str)
         foo['JeanLuc'] = 'Locutus'
         self.assertEqual(foo['JeanLuc'], 'Locutus')
+	self.assertEqual(str(foo), '{"integer":42,"arthur":"dent","JeanLuc":"Locutus","important":"towel","seven":"7"}')
+	
 
     def test_int(self):
         foo = pyConfigContext()
@@ -429,9 +437,11 @@ class pyConfigContextTest(TestCase):
         foo['seven'] = 9
         self.assertEqual(foo['arthur'], 42)
         self.assertEqual(foo['seven'], 9)
+	self.assertEqual(str(foo), '{"arthur":42,"seven":9}')
         foo['seven'] = 7
         self.assertEqual(type(foo['seven']), int)
         self.assertEqual(foo["seven"], 7)
+	self.assertEqual(str(foo), '{"arthur":42,"seven":7}')
         
 
     @class_teardown

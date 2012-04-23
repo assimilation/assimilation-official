@@ -106,9 +106,11 @@ catch_a_signal(int signum)
 			sighup = TRUE;
 			break;
 		case SIGUSR1:
+			proj_class_incr_debug(NULL);
 			sigusr1 = TRUE;
 			break;
 		case SIGUSR2:
+			proj_class_decr_debug(NULL);
 			sigusr2 = TRUE;
 			break;
 	}

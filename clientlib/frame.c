@@ -21,6 +21,8 @@ FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotif
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC void _frame_dump(const Frame *, const char * prefix);
 
+DEBUGDECLARATIONS
+
 ///@defgroup Frame Frame class
 /// Class for holding/storing binary blobs -  Base class for all the other Frame types.
 ///@{
@@ -31,6 +33,7 @@ FSTATIC void
 _frame_default_finalize(AssimObj * obj) ///< Frame to finalize
 {
 	Frame*	self = CASTTOCLASS(Frame, obj);
+	DEBUGMSG3("%s: Finalizing Frame at 0x%p", __FUNCTION__, self);
 	if (self->value && self->valuefinalize) {
 		self->valuefinalize(self->value);
 	}
@@ -42,6 +45,7 @@ FSTATIC void
 frame_default_valuefinalize(gpointer value) ///< Value to finalize
 {
 	if (value) {
+		DEBUGMSG4("%s: freeing Frame value at 0x%p", __FUNCTION__, value);
 		FREE(value);
 	}
 }
@@ -101,10 +105,15 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 {
 	AssimObj * newobj;
 	Frame * newframe = NULL;
+
+	BINDDEBUG(Frame);
 	if (framesize < sizeof(Frame)) {
 		framesize = sizeof(Frame);
 	}
 	newobj   = assimobj_new(framesize);
+	if (framesize == sizeof(Frame)) {
+		DEBUGMSG3("%s: Constructing New Frame at 0x%p", __FUNCTION__, newobj);
+	}
 	if (newobj != NULL) {
 		proj_class_register_subclassed(newobj, "Frame");
 		newframe = CASTTOCLASS(Frame, newobj);
