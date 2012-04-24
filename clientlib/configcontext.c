@@ -276,6 +276,8 @@ _configcontext_toString(gconstpointer aself)
 	if (!self->_values) {
 		return NULL;
 	}
+	/// @todo - return this string with keys in canonical (sorted) order
+	/// - at least for tests - unsure if this will be needed.
 	g_hash_table_iter_init(&iter, self->_values);
 	while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
 		ConfigValue*	val = CASTTOCLASS(ConfigValue, gvalue);
