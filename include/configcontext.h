@@ -55,7 +55,8 @@ struct _ConfigContext {
 	enum ConfigValType
 			(*gettype)(ConfigContext*, const char *);	///< Return type
 };
-WINEXPORT ConfigContext*	configcontext_new(gsize objsize); ///< ConfigContext constructor
+WINEXPORT ConfigContext*	configcontext_new(gsize objsize); // ConfigContext constructor
+WINEXPORT ConfigContext*	configcontext_new_JSON_string(const char * jsontext);// Constructor
 
 #define	CONFIG_DEFAULT_DEADTIME	30		///< Default "deadtime"
 #define	CONFIG_DEFAULT_HBTIME	3		///< Default heartbeat interval

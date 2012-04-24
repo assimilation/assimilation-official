@@ -15,6 +15,7 @@ class cClass:
     UnknownFrame = POINTER(UnknownFrame)
     SignFrame = POINTER(SignFrame)
     FrameSet = POINTER(FrameSet)
+    ConfigContext = POINTER(ConfigContext)
     guint8 = POINTER(guint8)
 
 class TLV:
@@ -619,10 +620,12 @@ class pyConfigContext(pyAssimObj):
 
     def __init__(self, init=None, Cstruct=None):
         'Initializer for pyConfigContext'
+        if Cstruct is None and isinstance(init, str):
+            Cstruct = configcontext_new_JSON_string(init)
         if Cstruct is None:
             Cstruct=configcontext_new(0)
         self._Cstruct = Cstruct
-        if init is not None:
+        if init is not None and not isinstance(init, str):
             for key in init.keys():
                 self[key] = init[key]
 
@@ -661,8 +664,9 @@ class pyConfigContext(pyAssimObj):
     def getconfig(self, name):
         'Return the pyConfigContext object associated with "name"'
         caddr = self._Cstruct[0].getconfig(self._Cstruct, name)
-	return
         if caddr:
+            caddr=cast(caddr, cClass.ConfigContext)
+            caddr[0].baseclass.ref(caddr)
             return pyConfigContext(Cstruct=caddr)
         raise IndexError("No such ConfigContext value [%s]" % name)
 
@@ -683,6 +687,11 @@ class pyConfigContext(pyAssimObj):
 
     def __getitem__(self, name):
         'Return a value associated with "name"'
+        try:
+            ret = self.getconfig(name)
+            return ret
+        except (IndexError):
+            pass
         try:
             ret = self.getstring(name)
             return ret

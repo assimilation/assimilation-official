@@ -449,10 +449,20 @@ class pyConfigContextTest(TestCase):
         foo['ford'] = 'prefect'
         baz = pyConfigContext()
         baz['Kathryn'] = 'Janeway'
+        baz['there\'s no place like'] = pyNetAddr((127,0,0,1),)
         bar = pyConfigContext()
         bar['hhgttg'] = foo
         bar['voyager'] = baz
-        self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"Kathryn":"Janeway"}}')
+        self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"there\'s no place like":"127.0.0.1","Kathryn":"Janeway"}}')
+	# We make a new pyConfigContext object from the str() of another one.  Cool!
+        bar2 = pyConfigContext(str(bar))
+        self.assertEqual(str(bar), str(bar2))
+        self.assertEqual(bar["voyager"]["Kathryn"], "Janeway")
+        self.assertEqual(bar["hhgttg"]["ford"], "prefect")
+        self.assertEqual(bar2["voyager"]["Kathryn"], "Janeway")
+        self.assertEqual(bar2["hhgttg"]["ford"], "prefect")
+        #	However... The pyNetAddr() was turned into a mere string :-( - at least for the moment... Sigh...
+	
         
 
     @class_teardown

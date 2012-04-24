@@ -39,7 +39,9 @@ FSTATIC void	_configcontext_setconfig(ConfigContext*,const char *,ConfigContext*
 
 FSTATIC char *	_configcontext_toString(gconstpointer aself);
 FSTATIC char *	JSONquotestring(char * s, gboolean ismalloced);
+FSTATIC ConfigContext* _configcontext_JSON_parse_string(const char * json);
 FSTATIC GScanner* _configcontext_JSON_GScanner_new(void);
+FSTATIC ConfigContext* _configcontext_JSON_parse_objandEOF(GScanner* scan);
 FSTATIC ConfigContext* _configcontext_JSON_parse_object(GScanner* scan);
 FSTATIC ConfigContext* _configcontext_JSON_parse_members(GScanner* scan, ConfigContext* cfg);
 FSTATIC ConfigContext* _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg);
@@ -358,7 +360,9 @@ _configcontext_toString(gconstpointer aself)
 				break;
 			}
 			case CFG_ARRAY:
-			case CFG_NETADDR:
+			case CFG_NETADDR:	/// @todo - make NetAddrs into things that we
+						/// can recognize and make back into a NetAddr
+						/// when we parse the JSON.
 			case CFG_FRAME: {
 				AssimObj*	obj = CASTTOCLASS(AssimObj, val->objvalue);
 				char *	str = obj->toString(obj);
@@ -369,7 +373,6 @@ _configcontext_toString(gconstpointer aself)
 				break;
 			}
 		}
-		
 		comma=",";
 	}
 	g_string_append(gsret, "}");
@@ -436,13 +439,42 @@ _configcontext_JSON_GScanner_new(void)
 #define TOKEN_COLON	':'
 #define	GULP	(void)g_scanner_get_next_token(scan)
 
+#define SYNERROR(scan, token, symbol, msg)	\
+		g_scanner_unexp_token(scan, token, "keyword", "keyword", symbol, msg, TRUE)
+
+/// Construct a ConfigContext object from the given JSON string
+ConfigContext*
+configcontext_new_JSON_string(const char * jsontext)
+{
+	GScanner*	scanner = _configcontext_JSON_GScanner_new();
+	ConfigContext*	ret;
+
+	g_scanner_input_text(scanner, jsontext, strlen(jsontext));
+	ret = _configcontext_JSON_parse_objandEOF(scanner);
+	g_scanner_destroy(scanner);
+	return ret;
+}
+
+FSTATIC ConfigContext*
+_configcontext_JSON_parse_objandEOF(GScanner* scan)
+{
+	ConfigContext * ret = _configcontext_JSON_parse_object(scan);
+
+	if (ret != NULL && g_scanner_get_next_token(scan) != G_TOKEN_EOF) {
+		SYNERROR(scan, G_TOKEN_EOF, NULL, NULL);
+		ret->baseclass.unref(ret); ret = NULL;
+	}
+	return ret;
+}
+
 FSTATIC ConfigContext*
 _configcontext_JSON_parse_object(GScanner* scan)
 {
 	ConfigContext*	ret;
 	ConfigContext*	membersret;
 	if (g_scanner_peek_next_token(scan) != G_TOKEN_LEFT_CURLY) {
-		// Syntax error
+		GULP;
+		SYNERROR(scan, G_TOKEN_LEFT_CURLY, NULL, NULL);
 		return NULL;
 	}
 	GULP;	// Swallow '{'
@@ -461,6 +493,7 @@ _configcontext_JSON_parse_object(GScanner* scan)
 
 	if (g_scanner_get_next_token(scan) != G_TOKEN_RIGHT_CURLY) {
 		// Syntax error...
+		SYNERROR(scan, G_TOKEN_RIGHT_CURLY, NULL, NULL);
 		ret->baseclass.unref(ret); ret = NULL;
 		return ret;
 	}
@@ -501,6 +534,8 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 	}
 	GULP;
 	if (g_scanner_peek_next_token(scan) != TOKEN_COLON) {
+		GULP;
+		SYNERROR(scan, TOKEN_COLON, NULL, NULL);
 		// Syntax error
 		return NULL;
 	}
@@ -529,6 +564,7 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 				/// @todo fix the case of null value
 				cfg->setint(cfg, name, 0);
 			}else{
+				SYNERROR(scan, G_TOKEN_NONE, NULL, "- expecting value");
 				// Syntax error
 				g_free(name); name = NULL;
 				return NULL;
@@ -537,17 +573,18 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 		}
 	
 
-		// Things we don't  support properly (yet)
 		case G_TOKEN_LEFT_CURLY:{	// Object
 			ConfigContext*	child;
-			/// @todo: add objects to the ConfigContext object
 			child = _configcontext_JSON_parse_object(scan);
 			if (child == NULL) {
 				// Syntax error - detected by child object
 				g_free(name); name = NULL;
 				return NULL;
 			}
-			cfg->setconfig(cfg, name, child); child = NULL;
+			cfg->setconfig(cfg, name, child);
+			// We don't need the reference we have - setconfig
+			// has grabbed his own..
+			child->baseclass.unref(child); child = NULL;
 			break;
 		}
 
@@ -560,6 +597,7 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 		case G_TOKEN_LEFT_BRACE:	// Array
 		default:
 			// Syntax error
+			SYNERROR(scan, G_TOKEN_NONE, NULL, "arrays not yet supported.");
 			if (name) {
 				g_free(name); name = NULL;
 			}
