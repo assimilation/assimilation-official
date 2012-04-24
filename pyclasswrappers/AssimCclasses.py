@@ -687,6 +687,9 @@ class pyConfigContext(pyAssimObj):
 
     def __getitem__(self, name):
         'Return a value associated with "name"'
+        # This method really sucks.  There is now a better way calling gettype() first.
+        # Really ought to implement keys() too when I get around to it too...
+
         try:
             ret = self.getconfig(name)
             return ret
