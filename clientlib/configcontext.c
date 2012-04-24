@@ -272,6 +272,48 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
+FSTATIC ConfigValue*
+_configcontext_value_new(enum ConfigValType t)
+{
+	ConfigValue*	ret;
+
+	ret = MALLOCBASECLASS(ConfigValue);
+	if (ret) {
+		ret->valtype = t;
+		ret->objvalue = NULL;
+	}
+	return ret;
+}
+
+FSTATIC void
+_configcontext_value_finalize(gpointer vself)
+{
+	ConfigValue*	self;
+
+	self = CASTTOCLASS(ConfigValue, vself);
+	switch (self->valtype) {
+		case CFG_STRING:
+			g_free(self->objvalue); self->objvalue = NULL;
+			break;
+		case CFG_CFGCTX:
+		case CFG_NETADDR:
+		case CFG_FRAME: {
+			AssimObj*	obj = CASTTOCLASS(AssimObj, self->objvalue);
+			obj->unref(obj); obj = NULL; self->objvalue = NULL;
+			break;
+		}
+
+		default: {
+			// Do nothing
+			break;
+		}
+	}
+	FREECLASSOBJ(self);
+	vself = NULL;
+}
+
+///@}
+
 #define	JSONQUOTES	"\\\""
 FSTATIC char *
 JSONquotestring(char * s, gboolean ismalloced)
@@ -546,6 +588,7 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 	switch(g_scanner_peek_next_token(scan)) {
 		case G_TOKEN_STRING:{		// String
 			GULP;
+			/// @todo recognize NetAddr objects encoded as strings and reconstitute them
 			cfg->setstring(cfg, name, scan->value.v_string);
 			break;
 		}
@@ -609,45 +652,3 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 	return cfg;
 	
 }
-
-FSTATIC ConfigValue*
-_configcontext_value_new(enum ConfigValType t)
-{
-	ConfigValue*	ret;
-
-	ret = MALLOCBASECLASS(ConfigValue);
-	if (ret) {
-		ret->valtype = t;
-		ret->objvalue = NULL;
-	}
-	return ret;
-}
-
-FSTATIC void
-_configcontext_value_finalize(gpointer vself)
-{
-	ConfigValue*	self;
-
-	self = CASTTOCLASS(ConfigValue, vself);
-	switch (self->valtype) {
-		case CFG_STRING:
-			g_free(self->objvalue); self->objvalue = NULL;
-			break;
-		case CFG_CFGCTX:
-		case CFG_NETADDR:
-		case CFG_FRAME: {
-			AssimObj*	obj = CASTTOCLASS(AssimObj, self->objvalue);
-			obj->unref(obj); obj = NULL; self->objvalue = NULL;
-			break;
-		}
-
-		default: {
-			// Do nothing
-			break;
-		}
-	}
-	FREECLASSOBJ(self);
-	vself = NULL;
-}
-
-///@}
