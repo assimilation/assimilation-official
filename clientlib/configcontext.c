@@ -31,6 +31,12 @@ FSTATIC NetAddr*_configcontext_getaddr(ConfigContext*, const char *);
 FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
 FSTATIC Frame*	_configcontext_getframe(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
+FSTATIC ConfigContext*
+		_configcontext_getconfig(ConfigContext*, const char*);
+FSTATIC void	_configcontext_setconfig(ConfigContext*,const char *,ConfigContext*);
+
+
+
 FSTATIC char *	_configcontext_toString(gconstpointer aself);
 FSTATIC char *	JSONquotestring(char * s, gboolean ismalloced);
 FSTATIC GScanner* _configcontext_JSON_GScanner_new(void);
@@ -61,17 +67,19 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext = NEWSUBCLASS(ConfigContext, baseobj);
 	newcontext->setint	=	_configcontext_setint;
 	newcontext->getint	=	_configcontext_getint;
-	newcontext->setstring=		_configcontext_setstring;
-	newcontext->getstring=		_configcontext_getstring;
-	newcontext->getframe=		_configcontext_getframe;
-	newcontext->setframe=		_configcontext_setframe;
-	newcontext->getaddr=		_configcontext_getaddr;
-	newcontext->setaddr=		_configcontext_setaddr;
-	newcontext->gettype=		_configcontext_gettype;
+	newcontext->setstring	=	_configcontext_setstring;
+	newcontext->getstring	=	_configcontext_getstring;
+	newcontext->getframe	=	_configcontext_getframe;
+	newcontext->setframe	=	_configcontext_setframe;
+	newcontext->getaddr	=	_configcontext_getaddr;
+	newcontext->setaddr	=	_configcontext_setaddr;
+	newcontext->setconfig	=	_configcontext_setconfig;
+	newcontext->getconfig	=	_configcontext_getconfig;
+	newcontext->gettype	=	_configcontext_gettype;
+	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, g_free
+					,		      _configcontext_value_finalize);
 	baseobj->_finalize	=	_configcontext_finalize;
 	baseobj->toString	=	_configcontext_toString;
-	newcontext->_values = g_hash_table_new_full(g_str_hash, g_str_equal, g_free
-	,					    _configcontext_value_finalize);
 	return newcontext;
 errout:
 	if (baseobj) {
@@ -236,6 +244,31 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
+FSTATIC ConfigContext*
+_configcontext_getconfig(ConfigContext* self , const char* name)
+{
+	gpointer	ret = g_hash_table_lookup(self->_values, name);
+	ConfigValue*	cfg;
+
+	if (ret == NULL) {
+		return NULL;
+	}
+	cfg = CASTTOCLASS(ConfigValue, ret);
+	if (cfg->valtype != CFG_CFGCTX) {
+		return NULL;
+	}
+	return CASTTOCLASS(ConfigContext, cfg->objvalue);
+}
+FSTATIC void
+_configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* value)
+{
+	char *	cpname = g_strdup(name);
+	ConfigValue* val = _configcontext_value_new(CFG_CFGCTX);
+
+	value->baseclass.ref(value);
+	val->objvalue = value;
+	g_hash_table_replace(self->_values, cpname, val);
+}
 
 #define	JSONQUOTES	"\\\""
 FSTATIC char *
@@ -316,8 +349,15 @@ _configcontext_toString(gconstpointer aself)
 				break;
 			}
 
+			case CFG_CFGCTX: {
+				AssimObj*	obj = CASTTOCLASS(AssimObj, val->objvalue);
+				char *	str = obj->toString(obj);
+				g_string_append_printf(gsret, "%s\"%s\":%s"
+				,	comma, (const char *)gkey,  str);
+				g_free(str); str = NULL;
+				break;
+			}
 			case CFG_ARRAY:
-			case CFG_CFGCTX:
 			case CFG_NETADDR:
 			case CFG_FRAME: {
 				AssimObj*	obj = CASTTOCLASS(AssimObj, val->objvalue);
@@ -498,10 +538,18 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 	
 
 		// Things we don't  support properly (yet)
-		case G_TOKEN_LEFT_CURLY:	// Object
+		case G_TOKEN_LEFT_CURLY:{	// Object
+			ConfigContext*	child;
 			/// @todo: add objects to the ConfigContext object
-			(void)_configcontext_JSON_parse_object(scan);
+			child = _configcontext_JSON_parse_object(scan);
+			if (child == NULL) {
+				// Syntax error - detected by child object
+				g_free(name); name = NULL;
+				return NULL;
+			}
+			cfg->setconfig(cfg, name, child); child = NULL;
 			break;
+		}
 
 		// Things we don't support (yet)
 

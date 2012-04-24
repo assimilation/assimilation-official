@@ -1671,6 +1671,8 @@ struct__ConfigContext.__slots__ = [
     'setframe',
     'getaddr',
     'setaddr',
+    'getconfig',
+    'setconfig',
     'gettype',
 ]
 struct__ConfigContext._fields_ = [
@@ -1684,10 +1686,12 @@ struct__ConfigContext._fields_ = [
     ('setframe', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, POINTER(Frame))),
     ('getaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(ConfigContext), String)),
     ('setaddr', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, POINTER(NetAddr))),
+    ('getconfig', CFUNCTYPE(UNCHECKED(POINTER(ConfigContext)), POINTER(ConfigContext), String)),
+    ('setconfig', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, POINTER(ConfigContext))),
     ('gettype', CFUNCTYPE(UNCHECKED(enum_ConfigValType), POINTER(ConfigContext), String)),
 ]
 
-# ../include/configcontext.h: 56
+# ../include/configcontext.h: 58
 if hasattr(_libs['libclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
@@ -3237,115 +3241,115 @@ try:
 except:
     pass
 
-# ../include/configcontext.h: 58
+# ../include/configcontext.h: 60
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# ../include/configcontext.h: 59
+# ../include/configcontext.h: 61
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# ../include/configcontext.h: 60
+# ../include/configcontext.h: 62
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# ../include/configcontext.h: 61
+# ../include/configcontext.h: 63
 try:
     CONFIG_DEFAULT_HBPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 62
+# ../include/configcontext.h: 64
 try:
     CONFIG_DEFAULT_CMAPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 64
+# ../include/configcontext.h: 66
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 65
+# ../include/configcontext.h: 67
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 67
+# ../include/configcontext.h: 69
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 68
+# ../include/configcontext.h: 70
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 69
+# ../include/configcontext.h: 71
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 70
+# ../include/configcontext.h: 72
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 71
+# ../include/configcontext.h: 73
 try:
     CONFIGNAME_CMAPORT = 'cmaport'
 except:
     pass
 
-# ../include/configcontext.h: 72
+# ../include/configcontext.h: 74
 try:
     CONFIGNAME_CMAINIT = 'cmainit'
 except:
     pass
 
-# ../include/configcontext.h: 74
+# ../include/configcontext.h: 76
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 75
+# ../include/configcontext.h: 77
 try:
     CONFIGNAME_CMADISCOVER = 'cmadisc'
 except:
     pass
 
-# ../include/configcontext.h: 76
+# ../include/configcontext.h: 78
 try:
     CONFIGNAME_CMAFAIL = 'cmafail'
 except:
     pass
 
-# ../include/configcontext.h: 77
+# ../include/configcontext.h: 79
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 78
+# ../include/configcontext.h: 80
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 79
+# ../include/configcontext.h: 81
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:

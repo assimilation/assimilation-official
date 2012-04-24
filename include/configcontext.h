@@ -50,6 +50,8 @@ struct _ConfigContext {
 	void		(*setframe)(ConfigContext*, const char*,Frame*);///< Set Frame value
 	NetAddr*	(*getaddr)(ConfigContext*, const char* name);	///< Get NetAddr value
 	void		(*setaddr)(ConfigContext*,const char *,NetAddr*);///< Set NetAddr value
+	ConfigContext*	(*getconfig)(ConfigContext*, const char* name);	///< Get ConfigContext value
+	void		(*setconfig)(ConfigContext*,const char *,ConfigContext*);///< Set ConfigContext value
 	enum ConfigValType
 			(*gettype)(ConfigContext*, const char *);	///< Return type
 };

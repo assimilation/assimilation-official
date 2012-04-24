@@ -658,6 +658,18 @@ class pyConfigContext(pyAssimObj):
         'Set the @ref Frame associated with "name"'
         self._Cstruct[0].setframe(self._Cstruct, name, value._Cstruct)
 
+    def getconfig(self, name):
+        'Return the pyConfigContext object associated with "name"'
+        caddr = self._Cstruct[0].getconfig(self._Cstruct, name)
+	return
+        if caddr:
+            return pyConfigContext(Cstruct=caddr)
+        raise IndexError("No such ConfigContext value [%s]" % name)
+
+    def setconfig(self, name, value):
+        'Set the @ref ConfigContext associated with "name"'
+        self._Cstruct[0].setconfig(self._Cstruct, name, value._Cstruct)
+
     def getstring(self, name):
         'Return the string associated with "name"'
         ret = self._Cstruct[0].getstring(self._Cstruct, name)
@@ -696,4 +708,6 @@ class pyConfigContext(pyAssimObj):
             return self.setaddr(name, value)
         if isinstance(value, pyFrame):
             return self.setframe(name, value)
+        if isinstance(value, pyConfigContext):
+            return self.setconfig(name, value)
         self.setint(name, int(value))

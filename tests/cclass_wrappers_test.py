@@ -71,7 +71,7 @@ class pyNetAddrTest(TestCase):
         self.assertEqual(str(ipv6),"::2:3:4:5:6:7")
         # Example below is from http://en.wikipedia.org/wiki/IPv6_address
         # Note that we now convert it into the equivalent IPv4 address as
-	# suggested: ::ffff:192.0.2.128
+        # suggested: ::ffff:192.0.2.128
         ipv6 = pyNetAddr((0,0,0,0,0,0,0,0,0,0,255,255,192,0,2,128),)
         self.assertEqual(str(ipv6),"::ffff:192.0.2.128")
 
@@ -306,7 +306,7 @@ class pyFrameSetTest(TestCase):
            self.assertEqual(f.frametype(), y.frametype())
            self.assertEqual(type(f), type(y))
         # Constructing the packet will add a signature frame at the beginning
-	# and an END (type 0) frame at the end
+        # and an END (type 0) frame at the end
         pyfs.construct_packet(sign)
         # So we do it over again to make sure everything still looks OK
         ylist = []
@@ -379,7 +379,7 @@ class pyFrameSetTest(TestCase):
            strx = re.sub(str(x), ' instance at .*>', ' instance at -somewhere- >')
            stry = re.sub(str(y), ' instance at .*>', ' instance at -somewhere- >')
            self.assertEqual(strx, stry)
-	   self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
+           self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
 
 
     @class_teardown
@@ -405,11 +405,11 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(str(foo['bar']), '1.2.3.4')
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
         self.assertEqual(str(foo['csf']), 'CstringFrame(42, "41+1")')
-	self.assertEqual(str(foo), '{"str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
+        self.assertEqual(str(foo), '{"str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
 
-	foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)
-	self.assertEqual(str(foo),
-		'{"isf":"IntFrame(310, 3, 42)","str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
+        foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)
+        self.assertEqual(str(foo),
+        	'{"isf":"IntFrame(310, 3, 42)","str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
 
     def test_string(self):
         foo = pyConfigContext()
@@ -423,14 +423,14 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['JeanLuc'], 'Picard')
         self.assertEqual(foo['important'], 'towel')
         self.assertRaises(IndexError, foo.getstring, ('towel'))
-	self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Picard","important":"towel","integer":42,"seven":"ofnine"}')
+        self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Picard","important":"towel","integer":42,"seven":"ofnine"}')
         foo['seven'] = '7'
         self.assertEqual(foo['seven'], '7')
         self.assertEqual(type(foo['seven']), str)
         foo['JeanLuc'] = 'Locutus'
         self.assertEqual(foo['JeanLuc'], 'Locutus')
-	self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Locutus","important":"towel","integer":42,"seven":"7"}')
-	
+        self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Locutus","important":"towel","integer":42,"seven":"7"}')
+
 
     def test_int(self):
         foo = pyConfigContext()
@@ -438,11 +438,21 @@ class pyConfigContextTest(TestCase):
         foo['seven'] = 9
         self.assertEqual(foo['arthur'], 42)
         self.assertEqual(foo['seven'], 9)
-	self.assertEqual(str(foo), '{"arthur":42,"seven":9}')
+        self.assertEqual(str(foo), '{"arthur":42,"seven":9}')
         foo['seven'] = 7
         self.assertEqual(type(foo['seven']), int)
         self.assertEqual(foo["seven"], 7)
-	self.assertEqual(str(foo), '{"arthur":42,"seven":7}')
+        self.assertEqual(str(foo), '{"arthur":42,"seven":7}')
+
+    def test_child_ConfigContext(self):
+        foo = pyConfigContext()
+        foo['ford'] = 'prefect'
+        baz = pyConfigContext()
+        baz['Kathryn'] = 'Janeway'
+        bar = pyConfigContext()
+        bar['hhgttg'] = foo
+        bar['voyager'] = baz
+        self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"Kathryn":"Janeway"}}')
         
 
     @class_teardown
