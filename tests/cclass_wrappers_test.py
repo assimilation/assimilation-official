@@ -405,10 +405,11 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(str(foo['bar']), '1.2.3.4')
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
         self.assertEqual(str(foo['csf']), 'CstringFrame(42, "41+1")')
-	self.assertEqual(str(foo), '{"int1":42,"str1":"forty-two","bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")"}')
+	self.assertEqual(str(foo), '{"str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
+
 	foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)
 	self.assertEqual(str(foo),
-		'{"int1":42,"str1":"forty-two","bar":"1.2.3.4","isf":"IntFrame(310, 3, 42)","csf":"CstringFrame(42, \\"41+1\\")"}')
+		'{"isf":"IntFrame(310, 3, 42)","str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
 
     def test_string(self):
         foo = pyConfigContext()
@@ -422,13 +423,13 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['JeanLuc'], 'Picard')
         self.assertEqual(foo['important'], 'towel')
         self.assertRaises(IndexError, foo.getstring, ('towel'))
-	self.assertEqual(str(foo), '{"integer":42,"arthur":"dent","JeanLuc":"Picard","important":"towel","seven":"ofnine"}')
+	self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Picard","important":"towel","integer":42,"seven":"ofnine"}')
         foo['seven'] = '7'
         self.assertEqual(foo['seven'], '7')
         self.assertEqual(type(foo['seven']), str)
         foo['JeanLuc'] = 'Locutus'
         self.assertEqual(foo['JeanLuc'], 'Locutus')
-	self.assertEqual(str(foo), '{"integer":42,"arthur":"dent","JeanLuc":"Locutus","important":"towel","seven":"7"}')
+	self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Locutus","important":"towel","integer":42,"seven":"7"}')
 	
 
     def test_int(self):

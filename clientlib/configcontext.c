@@ -320,7 +320,8 @@ _configcontext_toString(gconstpointer aself)
 			case CFG_FRAME: {
 				AssimObj*	obj = CASTTOCLASS(AssimObj, val->objvalue);
 				char *	str = obj->toString(obj);
-				g_string_append_printf(gsret, "%s\"%s\":%s"
+				str = JSONquotestring(str, TRUE);
+				g_string_append_printf(gsret, "%s\"%s\":\"%s\""
 				,	comma, (const char *)gkey,  str);
 				g_free(str); str = NULL;
 				break;
