@@ -43,6 +43,9 @@ NanoHbStats nano_hbstats = {0U, 0U, 0U, 0U, 0U};
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_expecthb(AuthListener*, FrameSet* fs, NetAddr*);
+FSTATIC void		nanoobey_stopsendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
+FSTATIC void		nanoobey_stopsendhb(AuthListener*, FrameSet* fs, NetAddr*);
+FSTATIC void		nanoobey_stopexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_change_debug(gint plusminus, AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_incrdebug(AuthListener*, FrameSet*, NetAddr*);
@@ -379,6 +382,77 @@ nanoobey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object inv
 	nanoobey_sendhb  (parent, fs, fromaddr);
 	nanoobey_expecthb(parent, fs, fromaddr);
 }
+/**
+ * Act on (obey) a @ref FrameSet telling us to stop sending heartbeats.
+ * Such FrameSets are sent when the Collective Authority wants us to stop heartbeating
+ * a machine because of a machine coming alive or dying (reconfiguration).
+ * This might be from a FRAMESETTYPE_STOPSENDHB
+ * FrameSet or a FRAMESETTYPE_STOPSENDEXPECTHB FrameSet.
+ */
+void
+nanoobey_stopsendhb(AuthListener* parent///<[in] @ref AuthListener object invoking us
+	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to stop sending HBs to
+	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+	GSList*		slframe;
+	(void)parent;
+	(void)fromaddr;
+
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		switch(frame->type) {
+			case FRAMETYPE_IPADDR: {
+				// This is _so_ much simpler than the code to send them ;-)
+				AddrFrame*	aframe = CASTTOCLASS(AddrFrame, frame);
+				hbsender_stopsend(aframe->getnetaddr(aframe));
+				break;
+			}
+		}//endswitch
+	}//endfor
+}
+
+/**
+ * Act on (obey) a @ref FrameSet telling us to stop expecting heartbeats.
+ * Such FrameSets are sent when the Collective Authority wants us to stop listening to
+ * a machine because of a machine coming alive or dying (reconfiguration).
+ * This might be from a FRAMESETTYPE_STOPEXPECTHB
+ * FrameSet or a FRAMESETTYPE_STOPSENDEXPECTHB FrameSet.
+ */
+void
+nanoobey_stopexpecthb(AuthListener* parent///<[in] @ref AuthListener object invoking us
+	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to stop expecting HBs from
+	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+	GSList*		slframe;
+	(void)parent;
+	(void)fromaddr;
+
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		switch(frame->type) {
+			case FRAMETYPE_IPADDR: {
+				// This is _so_ much simpler than the code to listen for heartbeats...
+				AddrFrame*	aframe = CASTTOCLASS(AddrFrame, frame);
+				hblistener_unlisten(aframe->getnetaddr(aframe));
+				break;
+			}
+		}//endswitch
+	}//endfor
+}
+
+/**
+ * Act on (obey) a @ref FrameSet telling us to stop sending and expecting heartbeats.
+ * Such FrameSets are sent when the Collective Authority wants us to communicating with
+ * a machine because of a machine coming alive or dying (reconfiguration).
+ */
+void
+nanoobey_stopsendexpecthb(AuthListener* parent///<[in] @ref AuthListener object invoking us
+	,   FrameSet*	fs		///<[in] @ref FrameSet indicating who to stop talking to
+	,   NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+	nanoobey_stopexpecthb(parent, fs, fromaddr);
+	nanoobey_stopsendhb  (parent, fs, fromaddr);
+}
 
 /*
  * Act on (obey) a <b>FRAMESETTYPE_SETCONFIG</b> @ref FrameSet.
@@ -618,9 +692,13 @@ static AuthListener*	obeycollective = NULL;
 // The set of Collective Management Authority FrameTypes we know about - and what to do when we get them.
 // Resistance is futile...
 ObeyFrameSetTypeMap collective_obeylist [] = {
+	// This is the complete set of commands that nanoprobes know how to obey - so far...
 	{FRAMESETTYPE_SENDHB,		nanoobey_sendhb},
 	{FRAMESETTYPE_EXPECTHB,		nanoobey_expecthb},
 	{FRAMESETTYPE_SENDEXPECTHB,	nanoobey_sendexpecthb},
+	{FRAMESETTYPE_STOPSENDHB,	nanoobey_stopsendhb},
+	{FRAMESETTYPE_STOPEXPECTHB,	nanoobey_stopexpecthb},
+	{FRAMESETTYPE_STOPSENDEXPECTHB, nanoobey_stopsendexpecthb},
 	{FRAMESETTYPE_SETCONFIG,	nanoobey_setconfig},
 	{FRAMESETTYPE_INCRDEBUG,	nanoobey_incrdebug},
 	{FRAMESETTYPE_DECRDEBUG,	nanoobey_decrdebug},

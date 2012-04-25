@@ -309,13 +309,16 @@ class FrameSetTypes:
 	'PROBEALIVE':	(21, 'Packet issued by nanoprobe on startup - asking to be configured.'),
 	'SWDISCOVER':	(22, 'Packet encapsulates switch discovery packet'),
 	'JSDISCOVERY':	(23, 'Packet contains JSON-formatted discovery data'),
-	# Privileged packets sent from the CMA to nanoprobes
+	# 'Privileged' packets sent from the CMA to nanoprobes
 	'SENDHB':	(64, 'Send Heartbeats to this address'),
 	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from this address'),
 	'SENDEXPECTHB':	(66, 'Send Heartbeats to this address, and expect them as well.'),
-	'SETCONFIG':	(67, 'Initial configuration packet'),
-	'INCRDEBUG':	(68, 'Increment debug for some or all classes'),
-	'DECRDEBUG':	(69, 'Increment debug for some or all classes'),
+	'STOPSENDHB':	(67, 'Stop sending Heartbeats to this address'),
+	'STOPEXPECTHB':	(68, 'Stop expecting (listening for) Heartbeats from this address'),
+	'STOPSENDEXPECTHB':(69, 'Stop sending Heartbeats to this address, and stop expecting them as well.'),
+	'SETCONFIG':	(70, 'Initial configuration packet'),
+	'INCRDEBUG':	(71, 'Increment debug for some or all classes'),
+	'DECRDEBUG':	(72, 'Increment debug for some or all classes'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():
