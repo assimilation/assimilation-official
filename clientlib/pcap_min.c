@@ -17,13 +17,14 @@
  *
  */
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <projectcommon.h>
 #include <cdp.h>
 #include <lldp.h>
 #include <pcap_min.h>
 #include <addrframe.h>
+#include <proj_classes.h>
 
 #define DIMOF(a)	(sizeof(a)/sizeof(a[0]))
 
@@ -39,6 +40,7 @@ static struct pcap_filter_info {
 
 };
 
+DEBUGDECLARATIONS
 
 /**
  *  Set up pcap listener for the given interfaces and protocols.
@@ -60,11 +62,13 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	int			filterlen = 1;
 	unsigned		j;
 	int			cnt=0;
+	int			rc;
 	const char ORWORD [] = " or ";
 
+	BINDDEBUG(pcap_t);
 //	setbuf(stdout, NULL);
 	setvbuf(stdout, NULL, _IONBF, 0);
-	///@todo: probably shouldn't be using perror() and pcap_perror()...
+	errbuf[0] = '\0';
 
 	// Search the list of valid bits so we can construct the libpcap filter
 	// for the given set of protocols on the fly...
@@ -80,10 +84,11 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	}
 	
 	if (filterlen < 2) {
+		g_warning("Constructed filter is too short - invalid mask argument.");
 		return NULL;
 	}
 	if (NULL == (expr = malloc(filterlen))) {
-		perror("Out of memory");
+		g_error("Out of memory!");
 		return NULL;
 	}
 	// Same song, different verse...
@@ -98,10 +103,13 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 			g_strlcat(expr, filterinfo[j].filter, filterlen);
 		}
 	}
-	pcap_lookupnet(dev, &netp, &maskp, errbuf);
+	if (pcap_lookupnet(dev, &netp, &maskp, errbuf) != 0) {
+		g_warning("pcap_lookupnet failed: [%s]", errbuf);
+		return NULL;
+	}
 	
 	if (NULL == (pcdescr = pcap_create(dev, errbuf))) {
-		fprintf(stderr, "OOPS! pcap_create failed  [%s]\n", errbuf);
+		g_warning("pcap_create failed: [%s]", errbuf);
 		return NULL;
 	}
 	//pcap_set_promisc(pcdescr, FALSE);
@@ -110,7 +118,13 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	pcap_set_rfmon(pcdescr, FALSE);
 #endif
 	pcap_setdirection(pcdescr, PCAP_D_IN);
-	pcap_setnonblock(pcdescr, !blocking, errbuf);
+	// Weird bug - returns -3 and doesn't show an error message...
+	// And pcap_getnonblock also returns -3... Neither should happen AFAIK...
+	if ((rc = pcap_setnonblock(pcdescr, !blocking, errbuf)) < 0 && errbuf[0] != '\0') {
+		g_warning("pcap_setnonblock(%d) failed: [%s] [rc=%d]", !blocking, errbuf, rc);
+		g_warning("Have no idea why this happens - current blocking state is: %d."
+		,	pcap_getnonblock(pcdescr, errbuf));
+	}
 	pcap_set_snaplen(pcdescr, 1500);
 	/// @todo deal with pcap_set_timeout() call here.
 	if (blocking) {
@@ -118,26 +132,21 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	}else{
 		pcap_set_timeout(pcdescr, 1);
 	}
-	//pcap_set_buffer_size(pcdescr, 3000);
+	//pcap_set_buffer_size(pcdescr, 1500);
       
 	if (pcap_activate(pcdescr) != 0) {
-		// Broken pcap_error prototype...
-		static char msg[] = "pcap_activate failure";
-		pcap_perror(pcdescr, msg);
+		g_warning("pcap_activate failed: [%s]", pcap_geterr(pcdescr));
 		return(NULL);
 	}
 	if (pcap_compile(pcdescr, prog, expr, FALSE, maskp) < 0) {
-		pcap_perror(pcdescr, expr);
-		g_warning("pcap_compile failed: [%s]", expr);
+		g_warning("pcap_compile of [%s] failed: [%s]", expr, pcap_geterr(pcdescr));
 		return(NULL);
 	}
 	if (pcap_setfilter(pcdescr, prog) < 0) {
-		// Broken pcap_error prototype...
-		static char msg[] = "setfilter failure";
-		pcap_perror(pcdescr, msg);
+		g_warning("pcap_setfilter on [%s] failed: [%s]", expr, pcap_geterr(pcdescr));
 		return(NULL);
 	}
-	fprintf(stderr, "Compile of %s worked!\n", expr);
+	DEBUGMSG1("Compile of [%s] worked!\n", expr);
 	free(expr); expr = NULL;
 	return(pcdescr);
 }

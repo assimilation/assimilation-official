@@ -41,7 +41,7 @@ FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
 FSTATIC SignFrame* _netio_signframe (NetIO *self);
 FSTATIC Frame* _netio_cryptframe (NetIO *self);
 FSTATIC Frame* _netio_compressframe (NetIO *self);
-
+FSTATIC gboolean _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr);
 /// @defgroup NetIO NetIO class
 ///@{
 ///@ingroup C_Classes
@@ -56,6 +56,73 @@ _netio_getfd(const NetIO* self)	///< [in] The object whose file descriptor is be
 	g_return_val_if_fail(NULL != self, -1);
 	g_return_val_if_fail(NULL != self->giosock, -1);
 	return g_io_channel_unix_get_fd(self->giosock);
+}
+
+/// Set up a NetIO object to listen to (join) a particular multicast group.
+///@todo DOES NOT APPEAR TO WORK FOR V4 addresses
+FSTATIC gboolean
+_netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr)
+{
+	int			rc = -1;
+
+
+
+	errno = 0;
+
+	if (!src->ismcast(src)) {
+		g_warning("%s: Cannot join multicast group with non-multicast address"
+		,	__FUNCTION__);
+		return FALSE;
+	}
+	if (localaddr != NULL && src->_addrtype != localaddr->_addrtype) {
+		g_warning("%s: Cannot join multicast group with differing address types"
+		,	__FUNCTION__);
+		return FALSE;
+	}
+
+	if (ADDR_FAMILY_IPV6 == src->_addrtype ) {
+		struct ipv6_mreq	multicast_request;
+		struct sockaddr_in6	saddr;
+		saddr = src->ipv6sockaddr(src);
+		memset(&multicast_request, 0, sizeof(multicast_request));
+		memcpy(&multicast_request.ipv6mr_multiaddr, &saddr
+		,	sizeof(multicast_request.ipv6mr_multiaddr));
+
+		if (localaddr != NULL) {
+			struct sockaddr_in6	laddr;
+			laddr = localaddr->ipv6sockaddr(localaddr);
+			memcpy(&multicast_request.ipv6mr_interface, &laddr
+			,	sizeof(multicast_request.ipv6mr_interface));
+		}
+		
+		rc = setsockopt(self->getfd(self), IPPROTO_IPV6, IPV6_JOIN_GROUP
+		,	(gpointer)&multicast_request, sizeof(multicast_request));
+		if (rc != 0) {
+			g_warning("%s: Cannot join multicast group [%s (errno:%d)]"
+			,	__FUNCTION__, g_strerror(errno), errno);
+		}
+	}else if (ADDR_FAMILY_IPV4 == src->_addrtype) {
+		struct ip_mreq	multicast_request;
+		struct sockaddr_in	saddr;
+		saddr = src->ipv4sockaddr(src);
+		memcpy(&multicast_request.imr_multiaddr, &saddr
+		,	sizeof(multicast_request.imr_multiaddr));
+
+		if (localaddr != NULL) {
+			struct sockaddr_in	laddr;
+			laddr = localaddr->ipv4sockaddr(localaddr);
+			memcpy(&multicast_request.imr_interface, &laddr
+			,	sizeof(multicast_request.imr_interface));
+		}
+		
+		rc = setsockopt(self->getfd(self), IPPROTO_IP, IP_ADD_MEMBERSHIP
+		,	(gpointer)&multicast_request, sizeof(multicast_request));
+	}
+	if (rc != 0) {
+		g_warning("%s: Cannot join multicast group [%s (errno:%d)]"
+		,	__FUNCTION__, g_strerror(errno), errno);
+	}
+	return (rc == 0);
 }
 
 /// Member function to bind this NewIO object to a NetAddr address
@@ -76,6 +143,10 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 
 	saddr = src->ipv6sockaddr(src);
 	rc = bind(sockfd, (struct sockaddr*)&saddr, sizeof(saddr));
+	if (rc != 0) {
+		g_warning("%s: Cannot bind to address [%s (errno:%d)]"
+		,	__FUNCTION__, g_strerror(errno), errno);
+	}
 	return rc == 0;
 }
 /// Member function to free this NetIO object.
@@ -159,6 +230,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->getmaxpktsize = _netio_getmaxpktsize;
 	ret->setmaxpktsize = _netio_setmaxpktsize;
 	ret->recvframesets = _netio_recvframesets;
+	ret->mcastjoin = _netio_mcastjoin;
 	ret->signframe = _netio_signframe;
 	ret->cryptframe = _netio_cryptframe;
 	ret->compressframe = _netio_compressframe;

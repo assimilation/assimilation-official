@@ -689,8 +689,8 @@ static SwitchDiscovery*	swdisc = NULL;
 static AuthListener*	obeycollective = NULL;
 
 
-// The set of Collective Management Authority FrameTypes we know about - and what to do when we get them.
-// Resistance is futile...
+/// The set of Collective Management Authority FrameTypes we know about - and what to do when we get them.
+/// Resistance is futile...
 ObeyFrameSetTypeMap collective_obeylist [] = {
 	// This is the complete set of commands that nanoprobes know how to obey - so far...
 	{FRAMESETTYPE_SENDHB,		nanoobey_sendhb},
@@ -705,8 +705,8 @@ ObeyFrameSetTypeMap collective_obeylist [] = {
 	{0,				NULL},
 };
 
-// Return our nanoprobe packet decoder map.
-// Kind of like a secret decoder ring, but more useful ;-).
+/// Return our nanoprobe packet decoder map.
+/// Kind of like a secret decoder ring, but more useful ;-).
 PacketDecoder*
 nano_packet_decoder(void)
 {

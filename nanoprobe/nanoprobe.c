@@ -40,7 +40,7 @@ GMainLoop*	loop = NULL;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
-NetAddr*	anyv6addrdr;
+NetAddr*	localbindaddr;
 int		heartbeatcount = 0;
 int		errcount = 0;
 int		pcapcount = 0;
@@ -143,8 +143,11 @@ check_for_signals(gpointer ignored)
 int
 main(int argc, char **argv)
 {
-	const guint8		loopback[] = CONST_IPV6_LOOPBACK;
-	const guint8		anyv6addrstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	//const guint8		loopback[] = CONST_IPV6_LOOPBACK;
+	//const guint8		defaultCMAaddr[] = CONST_ASSIM_DEFAULT_V4_MCAST;
+	const guint8		defaultCMAaddr[] = {10,10,10,4};
+	//const guint8		anyv6addrstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	const guint8		localv4address[] = {10,10,10,5};
 	guint16			testport = DEFAULT_PORT;
 	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	Listener*		otherlistener;
@@ -152,7 +155,6 @@ main(int argc, char **argv)
 	PacketDecoder*		decoder = nano_packet_decoder();
 	struct sigaction	sigact;
 
-	/// @todo handle signals - SIGINT, SIGTERM, (SIGUSR1, SIGUSR2?).
 	/// @todo initialize from a setup file - initial IP address, port, debug - anything else?
 
 
@@ -177,19 +179,23 @@ main(int argc, char **argv)
 	g_return_val_if_fail(NULL != nettransport, 2);
 
 
-	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
-	destaddr =  netaddr_ipv6_new(loopback, testport);
+	// Construct the NetAddr we'll talk to (it will default to be mcast when we get that working)
+	destaddr =  netaddr_ipv4_new(defaultCMAaddr, testport);
 	g_return_val_if_fail(NULL != destaddr, 3);
 	config->setaddr(config, CONFIGNAME_CMAINIT, destaddr);
+	if (destaddr->ismcast(destaddr)) {
+		nettransport->mcastjoin(nettransport, destaddr, NULL);	// Broken!
+	}
 
-	// Construct a NetAddr to bind to (i.e. ANY address)
-	anyv6addrdr =  netaddr_ipv6_new(anyv6addrstring, testport);
+	// Construct a NetAddr to bind to (listen from) (normally ANY address)
+	//localbindaddr =  netaddr_ipv6_new(anyv6addrstring, testport);
+	localbindaddr =  netaddr_ipv4_new(localv4address, testport);
 	g_return_val_if_fail(NULL != destaddr, 5);
 
 	// Bind to ANY address (as noted above)
-	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyv6addrdr),16);
-        anyv6addrdr->  baseclass.unref(anyv6addrdr);
-	anyv6addrdr = NULL;
+	g_return_val_if_fail(nettransport->bindaddr(nettransport, localbindaddr),16);
+        localbindaddr->  baseclass.unref(localbindaddr);
+	localbindaddr = NULL;
 	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
 
 	// Connect up our network transport into the g_main_loop paradigm

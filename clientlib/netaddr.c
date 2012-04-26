@@ -21,10 +21,12 @@
 #endif
 
 FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
+FSTATIC struct sockaddr_in _netaddr_ipv4sockaddr(const NetAddr* self);
 FSTATIC void _netaddr_finalize(AssimObj* self);
 FSTATIC guint16 _netaddr_port(const NetAddr* self);
 FSTATIC void _netaddr_setport(NetAddr* self, guint16);
 FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
+FSTATIC gboolean _netaddr_ismcast(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
@@ -40,6 +42,7 @@ FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self);
 ///@todo Figure out the byte order issues so that we store them in a consistent
 ///	 format - ipv4, ipv6 and MAC addresses...
 
+/// Convert this ipv6-encapsulated ipv4 NetAddr to a string
 FSTATIC gchar *
 _netaddr_toString_ipv6_ipv4(const NetAddr* self)
 {
@@ -49,6 +52,7 @@ _netaddr_toString_ipv6_ipv4(const NetAddr* self)
 			      ((const gchar*)self->_addrbody)[14],
 			      ((const gchar*)self->_addrbody)[15]);
 }
+/// Convert this NetAddr to a string
 FSTATIC gchar *
 _netaddr_toString(gconstpointer baseobj)
 {
@@ -115,11 +119,11 @@ _netaddr_toString(gconstpointer baseobj)
 	return ret;
 }
 
+/// Return TRUE if these two addresses are "equal" (equivalent)
 FSTATIC gboolean
 _netaddr_equal(const NetAddr*self, const NetAddr*other)
 {
-	/// @todo Perhaps ought to allow comparision between ipv4 and equivalent ipv6 addrs,
-	/// and who knows, maybe even the same thing for MAC addresses and ipv6 ;-)
+	/// Perhaps we ought to eventually maybe compare for MAC addresses and ipv6 equivalents ;-)
 	const guchar ipv6v4   [] = {CONST_IPV6_IPV4SPACE};
 	const guchar ipv6loop [] = CONST_IPV6_LOOPBACK;
 	const guchar ipv4loop [] = CONST_IPV4_LOOPBACK;
@@ -148,6 +152,7 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 }
 
 
+/// Finalize (free) this object
 FSTATIC void
 _netaddr_finalize(AssimObj* base)
 {
@@ -161,6 +166,7 @@ _netaddr_finalize(AssimObj* base)
 }
 
 
+/// Return the port of this NetAddr
 FSTATIC guint16
 _netaddr_port(const NetAddr* self)
 {
@@ -168,6 +174,7 @@ _netaddr_port(const NetAddr* self)
 }
 
 
+/// Set the port of this NetAddr
 FSTATIC void
 _netaddr_setport(NetAddr* self, guint16 port)
 {
@@ -175,10 +182,28 @@ _netaddr_setport(NetAddr* self, guint16 port)
 }
 
 
+/// Return the address type of this NetAddr
 FSTATIC guint16
 _netaddr_addrtype(const NetAddr* self)
 {
 	return self->_addrtype;
+}
+
+/// Return TRUE if this is a multicast address
+FSTATIC gboolean
+_netaddr_ismcast(const NetAddr* self)
+{
+	if (self->_addrbody == NULL) {
+		return FALSE;
+	}
+	switch (self->_addrtype) {
+		case ADDR_FAMILY_IPV4: {
+			guint8 byte0 = ((guint8*)self->_addrbody)[0];
+			return (byte0 >= 224 && byte0 <= 239);
+		}
+		break;;
+	}
+	return	FALSE;
 }
 
 /// Generic NetAddr constructor.
@@ -211,10 +236,12 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->_addrtype = addrtype;
 	self->_addrlen = addrlen;
 	self->ipv6sockaddr = _netaddr_ipv6sockaddr;
+	self->ipv4sockaddr = _netaddr_ipv4sockaddr;
 	self->_addrbody = g_memdup(addrbody, addrlen);
 	self->port = _netaddr_port;
 	self->setport = _netaddr_setport;
 	self->addrtype = _netaddr_addrtype;
+	self->ismcast = _netaddr_ismcast;
 	self->equal = _netaddr_equal;
 
 	return self;
@@ -285,7 +312,6 @@ netaddr_sockaddr_new(const struct sockaddr_in6 *sa_in6,	///<[in] struct sockaddr
 	}
 	g_return_val_if_reached(NULL);
 }
-///@}
 
 FSTATIC struct sockaddr_in6
 _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to ipv6 sockaddr
@@ -319,3 +345,25 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 	}
 	return saddr;
 }
+
+FSTATIC struct sockaddr_in
+_netaddr_ipv4sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to ipv4 sockaddr
+{
+	struct sockaddr_in	saddr;
+
+	memset(&saddr, 0x00, sizeof(saddr));
+
+	switch (self->_addrtype) {
+		case ADDR_FAMILY_IPV4:
+			g_return_val_if_fail(4 == self->_addrlen, saddr);
+			saddr.sin_family = AF_INET;
+			saddr.sin_port = htons(self->_addrport);
+			memcpy(&saddr.sin_addr, self->_addrbody, 4);
+			break;
+
+		default:
+			g_return_val_if_reached(saddr);
+	}
+	return saddr;
+}
+///@}

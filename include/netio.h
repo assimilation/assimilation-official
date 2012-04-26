@@ -39,6 +39,10 @@ struct _NetIO {
 	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*);	///<[in] Address to bind it to
+	gboolean	(*mcastjoin)			///<Join multicast group
+				(NetIO* self,		///<[in/out] Object to bind
+				 const NetAddr*,	///<[in] Mcast addr to join
+				 const NetAddr*);	///<[in] local if addr or NULL
 	gint		(*getfd)			///<[in] Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
 	gsize		(*getmaxpktsize)		///< Return maximum packet size for this NetIO

@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameformats.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlv_valuetypes.h ../include/tlvhelper.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1399,6 +1399,7 @@ struct__NetAddr.__slots__ = [
     'setport',
     'port',
     'addrtype',
+    'ismcast',
     'ipv6sockaddr',
     'equal',
     '_addrbody',
@@ -1411,6 +1412,7 @@ struct__NetAddr._fields_ = [
     ('setport', CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr), guint16)),
     ('port', CFUNCTYPE(UNCHECKED(guint16), POINTER(NetAddr))),
     ('addrtype', CFUNCTYPE(UNCHECKED(guint16), POINTER(NetAddr))),
+    ('ismcast', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr))),
     ('ipv6sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in6), POINTER(NetAddr))),
     ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr), POINTER(NetAddr))),
     ('_addrbody', gpointer),
@@ -1419,43 +1421,43 @@ struct__NetAddr._fields_ = [
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 43
+# ../include/netaddr.h: 44
 if hasattr(_libs['libclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 44
+# ../include/netaddr.h: 45
 if hasattr(_libs['libclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 45
+# ../include/netaddr.h: 46
 if hasattr(_libs['libclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 46
+# ../include/netaddr.h: 47
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 47
+# ../include/netaddr.h: 48
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 48
+# ../include/netaddr.h: 49
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 49
+# ../include/netaddr.h: 50
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
@@ -1698,13 +1700,10 @@ if hasattr(_libs['libclientlib.so'], 'configcontext_new'):
     configcontext_new.restype = POINTER(ConfigContext)
 
 # ../include/configcontext.h: 59
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'configcontext_new_JSON_string'):
-        continue
-    configcontext_new_JSON_string = _lib.configcontext_new_JSON_string
+if hasattr(_libs['libclientlib.so'], 'configcontext_new_JSON_string'):
+    configcontext_new_JSON_string = _libs['libclientlib.so'].configcontext_new_JSON_string
     configcontext_new_JSON_string.argtypes = [String]
     configcontext_new_JSON_string.restype = POINTER(ConfigContext)
-    break
 
 # ../include/listener.h: 29
 class struct__Listener(Structure):
@@ -3228,19 +3227,37 @@ except:
 
 # ../include/framesettypes.h: 34
 try:
-    FRAMESETTYPE_SETCONFIG = 67
+    FRAMESETTYPE_STOPSENDHB = 67
 except:
     pass
 
 # ../include/framesettypes.h: 35
 try:
-    FRAMESETTYPE_INCRDEBUG = 68
+    FRAMESETTYPE_STOPEXPECTHB = 68
 except:
     pass
 
 # ../include/framesettypes.h: 36
 try:
-    FRAMESETTYPE_DECRDEBUG = 69
+    FRAMESETTYPE_STOPSENDEXPECTHB = 69
+except:
+    pass
+
+# ../include/framesettypes.h: 37
+try:
+    FRAMESETTYPE_SETCONFIG = 70
+except:
+    pass
+
+# ../include/framesettypes.h: 38
+try:
+    FRAMESETTYPE_INCRDEBUG = 71
+except:
+    pass
+
+# ../include/framesettypes.h: 39
+try:
+    FRAMESETTYPE_DECRDEBUG = 72
 except:
     pass
 

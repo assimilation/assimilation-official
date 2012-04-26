@@ -33,7 +33,9 @@ struct _NetAddr {
 	void		(*setport)(NetAddr*, guint16);          ///< Set port for this NetAddr
 	guint16		(*port)(const NetAddr* self);		///< Return port from this address
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
-	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 address corresponding to this address
+	gboolean	(*ismcast)(const NetAddr* self);	///< Return TRUE if this address is a multicast address
+	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 sockaddr corresponding to this address
+	struct sockaddr_in(*ipv4sockaddr)(const NetAddr* self);///< Return the ipv4 sockaddr corresponding to this address
 	gboolean	(*equal)(const NetAddr*,const NetAddr*);///< Compare NetAddrs
 	gpointer	_addrbody;		///< private: Address body
 	guint16		_addrtype;		///< private: Address type
@@ -49,12 +51,15 @@ WINEXPORT NetAddr*	netaddr_ipv4_new(gconstpointer	ipbuf, guint16	port);
 WINEXPORT NetAddr*	netaddr_ipv6_new(gconstpointer ipbuf, guint16	port);
 
 
-#define	CONST_IPV6_LOOPBACK	{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}
-#define	CONST_IPV4_LOOPBACK	{127,0,0,1}
-#define	CONST_IPV6_IPV4SPACE	0,0,0,0,0,0,0,0,0,0,0xff,0xff
-#define	CONST_IPV6_IPV4START	{IPV4SPACE, 0, 0, 0, 0}
-#define	CONST_IPV6_MACSPACE	0xFE, 0x80, 0, 0, 0, 0, 0, 0x02
-#define	CONST_IPV6_MACSTART	{CONST_IPV6_MACSPACE, 0, 0, 0, 0, 0, 0, 0, 0}
+#define	CONST_IPV6_LOOPBACK		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}
+#define	CONST_IPV4_LOOPBACK		{127,0,0,1}
+#define	CONST_IPV6_IPV4SPACE		0,0,0,0,0,0,0,0,0,0,0xff,0xff
+#define	CONST_IPV6_IPV4START		{IPV4SPACE, 0, 0, 0, 0}
+#define	CONST_IPV6_MACSPACE		0xFE, 0x80, 0, 0, 0, 0, 0, 0x02
+#define	CONST_IPV6_MACSTART		{CONST_IPV6_MACSPACE, 0, 0, 0, 0, 0, 0, 0, 0}
+
+
+#define	CONST_ASSIM_DEFAULT_V4_MCAST	{224,0,2,5}	///< This is our reserved multicast address
 
 ///@}
 
