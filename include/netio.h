@@ -48,8 +48,9 @@ struct _NetIO {
 	gint		(*getfd)			///<[in] Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
 	void		(*setblockio)			///<[in] Set blocking/non-blocking mode
-				(const NetIO* self,	///<[in/out] 'this' Object
-				 gboolean blocking);	///<[in] TRUE if you want it to block
+				(const NetIO* self,	///<[in/out] 'this' Object.
+				 gboolean blocking)	///<[in] TRUE if you want it to block
+				;
 	gsize		(*getmaxpktsize)		///< Return maximum packet size for this NetIO
 				(const NetIO* self);	///< 'this' object
 	gsize		(*setmaxpktsize)		///< Set maximum packet size
