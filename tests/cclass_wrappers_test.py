@@ -501,20 +501,23 @@ class pyNetIOudpTest(TestCase):
 
 
     def test_constructor(self):
+        if DEBUG: print "test_constructor(pyNetIOudpTest)"
         config = pyConfigContext(init={'outsig': pySignFrame(1)})
         io = pyNetIOudp(config, pyPacketDecoder(0))
         self.assertTrue(io.getfd() >  2)
 
     def test_members(self):
+        if DEBUG: print "test_members(pyNetIOudpTest)"
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
         self.assertTrue(io.getmaxpktsize() >  65000)
         self.assertTrue(io.getmaxpktsize() <  65535)
-        save = io.getmaxpktsize()
         io.setmaxpktsize(1500)
         self.assertEqual(io.getmaxpktsize(), 1500)
+	# Does signframe really work?  Next statement seems to crash things
         #self.assertEqual(type(io.signframe()), type(pySignFrame(1)))
 
     def test_send(self):
+        if DEBUG: print "test_send(pyNetIOudpTest)"
         home = pyNetAddr((127,0,0,1),1984)
         fs = pyFrameSet(801)
         flist = (pyAddrFrame(9, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
@@ -529,6 +532,7 @@ class pyNetIOudpTest(TestCase):
         io.sendframesets(home, (fs,fs,fs))
 
     def test_receiveandsend(self):
+        if DEBUG: print "test_receiveandsend(pyNetIOudpTest)"
         home = pyNetAddr((127,0,0,1),1984)
         anyaddr = pyNetAddr((0,0,0,0),1984)
         fs = pyFrameSet(801)
@@ -543,7 +547,7 @@ class pyNetIOudpTest(TestCase):
             fs.append(frame)
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
         io.bindaddr(anyaddr)
-        io.sendframesets(home, fs)		# Send a packet with a frameset full of frames
+        io.sendframesets(home, fs)		# Send a packet with a single frameset containing a bunch of frames
         (addr, frameset) = io.recvframesets()	# Receive a packet - with some framesets in it
         self.assertEqual(addr, home)
         self.assertEqual(len(frameset), 1)

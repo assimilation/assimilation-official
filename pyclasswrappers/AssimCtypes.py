@@ -1822,6 +1822,7 @@ struct__NetIO.__slots__ = [
     'bindaddr',
     'mcastjoin',
     'getfd',
+    'setblockio',
     'getmaxpktsize',
     'setmaxpktsize',
     'sendaframeset',
@@ -1843,6 +1844,7 @@ struct__NetIO._fields_ = [
     ('bindaddr', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr))),
     ('mcastjoin', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), POINTER(NetAddr))),
     ('getfd', CFUNCTYPE(UNCHECKED(gint), POINTER(NetIO))),
+    ('setblockio', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
     ('getmaxpktsize', CFUNCTYPE(UNCHECKED(gsize), POINTER(NetIO))),
     ('setmaxpktsize', CFUNCTYPE(UNCHECKED(gsize), POINTER(NetIO), gsize)),
     ('sendaframeset', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
@@ -1853,13 +1855,13 @@ struct__NetIO._fields_ = [
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 79
+# ../include/netio.h: 82
 if hasattr(_libs['libclientlib.so'], 'netio_new'):
     netio_new = _libs['libclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 81
+# ../include/netio.h: 84
 if hasattr(_libs['libclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
