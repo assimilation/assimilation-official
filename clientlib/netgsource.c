@@ -89,6 +89,7 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 	ret->_gsfuncs = gsf;
 	ret->_userdata = userdata;
 	ret->_netio = iosrc;
+	iosrc->setblockio(iosrc, FALSE);
 	ret->_socket = iosrc->getfd(iosrc);
 	ret->_finalize = notify;
 	ret->_gfd.fd = ret->_socket;

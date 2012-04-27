@@ -13,6 +13,8 @@
 #include <projectcommon.h>
 #include <errno.h>
 #include <memory.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #ifdef _MSC_VER
 #	include <winsock2.h>
@@ -29,10 +31,11 @@
 #include <frameset.h>
 
 FSTATIC gint _netio_getfd(const NetIO* self);
+FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src);
 FSTATIC void _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets);
 FSTATIC void _netio_sendaframeset(NetIO* self, const NetAddr* destaddr, FrameSet* frameset);
-FSTATIC void _netio_finalize(NetIO* self);
+FSTATIC void _netio_finalize(AssimObj* self);
 FSTATIC void _netio_sendapacket(NetIO* self, gconstpointer packet, gconstpointer pktend, const NetAddr* destaddr);
 FSTATIC gpointer _netio_recvapacket(NetIO*, gpointer*, struct sockaddr_in6*, socklen_t*addrlen);
 FSTATIC gsize _netio_getmaxpktsize(const NetIO* self);
@@ -42,6 +45,9 @@ FSTATIC SignFrame* _netio_signframe (NetIO *self);
 FSTATIC Frame* _netio_cryptframe (NetIO *self);
 FSTATIC Frame* _netio_compressframe (NetIO *self);
 FSTATIC gboolean _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr);
+
+DEBUGDECLARATIONS
+
 /// @defgroup NetIO NetIO class
 ///@{
 ///@ingroup C_Classes
@@ -57,6 +63,30 @@ _netio_getfd(const NetIO* self)	///< [in] The object whose file descriptor is be
 	g_return_val_if_fail(NULL != self->giosock, -1);
 	return g_io_channel_unix_get_fd(self->giosock);
 }
+
+/// Member function to set blocking/non-blocking mode on our sockets
+FSTATIC void
+_netio_setblockio(const NetIO* self, gboolean blocking)
+{
+	int	chanflags = g_io_channel_get_flags(self->giosock);
+#ifndef WIN32
+	int fcntlflags = fcntl (self->getfd(self), F_GETFL, 0);
+	if (blocking) {
+		fcntlflags |= O_NONBLOCK;
+	}else{
+		fcntlflags &= ~O_NONBLOCK;
+	}
+	fcntl(self->getfd(self), F_SETFL, fcntlflags);
+#endif
+	chanflags = g_io_channel_get_flags(self->giosock);
+	if (blocking) {
+		chanflags |= G_IO_FLAG_NONBLOCK;
+	}else{
+		chanflags &= ~G_IO_FLAG_NONBLOCK;
+	}
+	g_io_channel_set_flags(self->giosock, chanflags, NULL);
+}
+
 
 /// Set up a NetIO object to listen to (join) a particular multicast group.
 ///@todo DOES NOT APPEAR TO WORK FOR V4 addresses
@@ -151,9 +181,9 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 }
 /// Member function to free this NetIO object.
 FSTATIC void
-_netio_finalize(NetIO* self)	///<[in/out] The object being freed
+_netio_finalize(AssimObj* aself)	///<[in/out] The object being freed
 {
-	g_return_if_fail(self != NULL);
+	NetIO*	self = CASTTOCLASS(NetIO, aself);
 	if (self->giosock) {
 		g_io_channel_shutdown(self->giosock, TRUE, NULL);
 		g_io_channel_unref(self->giosock);
@@ -174,7 +204,7 @@ _netio_finalize(NetIO* self)	///<[in/out] The object being freed
 	if (self->_decoder) {
 		self->_decoder->baseclass.unref(self->_decoder);
 	}
-	FREECLASSOBJ(self); self=NULL;
+	_assimobj_finalize(aself); self = NULL; aself = NULL;
 }
 
 /// Get the max packet size for this NetIO transport
@@ -218,15 +248,17 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	NetIO* ret;
 	Frame*	f;
 
+	BINDDEBUG(NetIO);
 	if (objsize < sizeof(NetIO)) {
 		objsize = sizeof(NetIO);
 	}
-	ret = MALLOCCLASS(NetIO, objsize);
+	ret = NEWSUBCLASS(NetIO, assimobj_new(objsize));
+	ret->baseclass._finalize = _netio_finalize;
 	ret->getfd = _netio_getfd;
+	ret->setblockio = _netio_setblockio;
 	ret->bindaddr = _netio_bindaddr;
 	ret->sendframesets = _netio_sendframesets;
 	ret->sendaframeset = _netio_sendaframeset;
-	ret->finalize = _netio_finalize;
 	ret->getmaxpktsize = _netio_getmaxpktsize;
 	ret->setmaxpktsize = _netio_setmaxpktsize;
 	ret->recvframesets = _netio_recvframesets;
@@ -267,6 +299,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	g_return_if_fail(length > 0);
 
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
+	DEBUGMSG1("%s: sendto returned %d with errno %s", __FUNCTION__, rc, g_strerror(errno));
 	g_return_if_fail(rc == length);
 }
 

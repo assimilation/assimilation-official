@@ -416,7 +416,7 @@ main(int argc, char **argv)
 	nano_shutdown(TRUE);	// Tell it to shutdown and print stats
 	g_message("Count of 'other' pkts received:\t%d", wirepktcount);
 
-	nettransport->finalize(nettransport); nettransport = NULL;
+	nettransport->baseclass.unref(nettransport); nettransport = NULL;
 
 	// Main loop is over - shut everything down, free everything...
 	g_main_loop_unref(loop); loop=NULL;

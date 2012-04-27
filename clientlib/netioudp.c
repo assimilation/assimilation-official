@@ -10,7 +10,6 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 #include <memory.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #ifdef _MSC_VER
 #	include <winsock2.h>
@@ -57,7 +56,6 @@ netioudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	}
 	ret->baseclass.giosock = g_io_channel_win32_new_socket(sockfd);
 #else
-	fcntl(sockfd, F_SETFL, O_NONBLOCK);
 	ret->baseclass.giosock = g_io_channel_unix_new(sockfd);
 #endif
 	g_io_channel_set_close_on_unref(ret->baseclass.giosock, TRUE);

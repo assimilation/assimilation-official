@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameformats.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlv_valuetypes.h ../include/tlvhelper.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1341,7 +1341,33 @@ socklen_t = __socklen_t # /usr/include/i386-linux-gnu/bits/socket.h: 35
 
 sa_family_t = c_uint # /usr/include/i386-linux-gnu/bits/sockaddr.h: 29
 
+# /usr/include/i386-linux-gnu/bits/socket.h: 178
+class struct_sockaddr(Structure):
+    pass
+
+struct_sockaddr.__slots__ = [
+    'sa_family',
+    'sa_data',
+]
+struct_sockaddr._fields_ = [
+    ('sa_family', sa_family_t),
+    ('sa_data', c_char * 14),
+]
+
 in_port_t = c_uint16 # /usr/include/netinet/in.h: 97
+
+in_addr_t = c_uint32 # /usr/include/netinet/in.h: 141
+
+# /usr/include/netinet/in.h: 142
+class struct_in_addr(Structure):
+    pass
+
+struct_in_addr.__slots__ = [
+    's_addr',
+]
+struct_in_addr._fields_ = [
+    ('s_addr', in_addr_t),
+]
 
 # /usr/include/netinet/in.h: 200
 class union_anon_101(Union):
@@ -1367,6 +1393,23 @@ struct_in6_addr.__slots__ = [
 ]
 struct_in6_addr._fields_ = [
     ('__in6_u', union_anon_101),
+]
+
+# /usr/include/netinet/in.h: 225
+class struct_sockaddr_in(Structure):
+    pass
+
+struct_sockaddr_in.__slots__ = [
+    'sin_family',
+    'sin_port',
+    'sin_addr',
+    'sin_zero',
+]
+struct_sockaddr_in._fields_ = [
+    ('sin_family', sa_family_t),
+    ('sin_port', in_port_t),
+    ('sin_addr', struct_in_addr),
+    ('sin_zero', c_ubyte * (((sizeof(struct_sockaddr) - sizeof(c_uint)) - sizeof(in_port_t)) - sizeof(struct_in_addr))),
 ]
 
 # /usr/include/netinet/in.h: 239
@@ -1401,6 +1444,7 @@ struct__NetAddr.__slots__ = [
     'addrtype',
     'ismcast',
     'ipv6sockaddr',
+    'ipv4sockaddr',
     'equal',
     '_addrbody',
     '_addrtype',
@@ -1414,6 +1458,7 @@ struct__NetAddr._fields_ = [
     ('addrtype', CFUNCTYPE(UNCHECKED(guint16), POINTER(NetAddr))),
     ('ismcast', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr))),
     ('ipv6sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in6), POINTER(NetAddr))),
+    ('ipv4sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in), POINTER(NetAddr))),
     ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr), POINTER(NetAddr))),
     ('_addrbody', gpointer),
     ('_addrtype', guint16),
@@ -1421,43 +1466,43 @@ struct__NetAddr._fields_ = [
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 44
+# ../include/netaddr.h: 45
 if hasattr(_libs['libclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 45
+# ../include/netaddr.h: 46
 if hasattr(_libs['libclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 46
+# ../include/netaddr.h: 47
 if hasattr(_libs['libclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 47
+# ../include/netaddr.h: 48
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 48
+# ../include/netaddr.h: 49
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 49
+# ../include/netaddr.h: 50
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 50
+# ../include/netaddr.h: 51
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
@@ -1759,13 +1804,14 @@ if hasattr(_libs['libclientlib.so'], 'packetdecoder_new'):
     packetdecoder_new.argtypes = [guint, POINTER(FrameTypeToFrame), gint]
     packetdecoder_new.restype = POINTER(PacketDecoder)
 
-# ../include/netio.h: 31
+# ../include/netio.h: 32
 class struct__NetIO(Structure):
     pass
 
-NetIO = struct__NetIO # ../include/netio.h: 26
+NetIO = struct__NetIO # ../include/netio.h: 27
 
 struct__NetIO.__slots__ = [
+    'baseclass',
     'giosock',
     '_maxpktsize',
     '_configinfo',
@@ -1774,6 +1820,7 @@ struct__NetIO.__slots__ = [
     '_cryptframe',
     '_compressframe',
     'bindaddr',
+    'mcastjoin',
     'getfd',
     'getmaxpktsize',
     'setmaxpktsize',
@@ -1783,9 +1830,9 @@ struct__NetIO.__slots__ = [
     'signframe',
     'cryptframe',
     'compressframe',
-    'finalize',
 ]
 struct__NetIO._fields_ = [
+    ('baseclass', AssimObj),
     ('giosock', POINTER(GIOChannel)),
     ('_maxpktsize', gint),
     ('_configinfo', POINTER(ConfigContext)),
@@ -1794,6 +1841,7 @@ struct__NetIO._fields_ = [
     ('_cryptframe', POINTER(Frame)),
     ('_compressframe', POINTER(Frame)),
     ('bindaddr', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr))),
+    ('mcastjoin', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), POINTER(NetAddr))),
     ('getfd', CFUNCTYPE(UNCHECKED(gint), POINTER(NetIO))),
     ('getmaxpktsize', CFUNCTYPE(UNCHECKED(gsize), POINTER(NetIO))),
     ('setmaxpktsize', CFUNCTYPE(UNCHECKED(gsize), POINTER(NetIO), gsize)),
@@ -1803,16 +1851,15 @@ struct__NetIO._fields_ = [
     ('signframe', CFUNCTYPE(UNCHECKED(POINTER(SignFrame)), POINTER(NetIO))),
     ('cryptframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
-    ('finalize', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 75
+# ../include/netio.h: 79
 if hasattr(_libs['libclientlib.so'], 'netio_new'):
     netio_new = _libs['libclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 77
+# ../include/netio.h: 81
 if hasattr(_libs['libclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -4151,7 +4198,7 @@ _FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 25
 
 _PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 32
 
-_NetIO = struct__NetIO # ../include/netio.h: 31
+_NetIO = struct__NetIO # ../include/netio.h: 32
 
 _NetGSource = struct__NetGSource # ../include/netgsource.h: 31
 

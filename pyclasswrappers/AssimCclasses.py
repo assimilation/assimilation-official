@@ -4,6 +4,9 @@ A collection of classes which wrap our @ref C-Classes and provide Pythonic inter
 '''
 
 from AssimCtypes import *
+import collections
+import traceback
+import sys
 
 class cClass:
     NetAddr = POINTER(NetAddr)
@@ -175,7 +178,7 @@ class pyNetAddr(pyAssimObj):
             return
         alen = len(addrstring)
         addr = create_string_buffer(alen)
-        #print "ADDRTYPE:", type(addr)
+        #print >>sys.stderr, "ADDRTYPE:", type(addr)
         for i in range(0, alen):
             asi = addrstring[i]
             if type(asi) is str:
@@ -246,8 +249,6 @@ class pyFrame(pyAssimObj):
     Deliberately leaving out the updatedata() C-class member function - at least for mow.
     I suspect that the Python code will only need the corresponding calls in a @ref FrameSet - which would
     then update the corresponding @ref Frame member functions...
-    Similarly, I don't think the Python level code needs the valuefinalize, ref and unref member functions.
-    The __del__ member function below should deal with all those things one way or another...
     '''
     #
     #	Our subclasses need to implement these methods:
@@ -363,9 +364,9 @@ class pyAddrFrame(pyFrame):
         else:
             assert port is None
             assert addrstring is None
-            addrlen = Cstruct[0].baseclass.length
+            addrlen = Cstruct[0].baseclass.length - 2 # Allow for prefixed address type - two bytes
             assert addrlen == 4 or addrlen == 6 or addrlen == 8 or addrlen == 16, ("addrlen is %d" % addrlen)
-            addrstr = Cstruct[0].baseclass.value
+            addrstr = Cstruct[0].baseclass.value+2
             addrstring = create_string_buffer(addrlen)
             memmove(addrstring, addrstr, addrlen)
             self._pyNetAddr = pyNetAddr(addrstring, port=None)
@@ -600,12 +601,17 @@ class pyPacketDecoder(pyAssimObj):
 
     def fslist_from_pktdata(self, pktlocation):
         'Make a list of FrameSets out of a packet.'
-        frameset_list = []
 	base=self._Cstruct[0]
         while (type(base)is not PacketDecoder):
 	    base=base.baseclass
         fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct, pktlocation[0], pktlocation[1])
-        fs_gslist = cast(fs_gslistint, POINTER(GSList))
+        return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
+
+    @staticmethod
+    def fslist_to_pyfs_array(listheadint):
+        'Converts a GSList of FrameSets to a python array of pyFrameSets'
+        fs_gslist = cast(listheadint, POINTER(GSList))
+        frameset_list = []
         curfs = fs_gslist
         while curfs:
             cfs = cast(curfs[0].data, cClass.FrameSet)
@@ -620,6 +626,7 @@ class pyConfigContext(pyAssimObj):
 
     def __init__(self, init=None, Cstruct=None):
         'Initializer for pyConfigContext'
+        self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None and isinstance(init, str):
             Cstruct = configcontext_new_JSON_string(init)
         if Cstruct is None:
@@ -723,3 +730,104 @@ class pyConfigContext(pyAssimObj):
         if isinstance(value, pyConfigContext):
             return self.setconfig(name, value)
         self.setint(name, int(value))
+
+class pyNetIO(pyAssimObj):
+    def __init__(self, configobj, packetdecoder, Cstruct=None):
+        'Initializer for pyNetIO'
+        self._Cstruct = None # Keep error legs from complaining.
+        if Cstruct is None:
+            Cstruct=netio_new(0, configobj._Cstruct, packetdecoder._Cstruct)
+        self._Cstruct = Cstruct
+
+    def getfd(self):
+        'Return the file descriptor for this pyNetIO object'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'getfd')):
+            base=base.baseclass
+        return base.getfd(self._Cstruct)
+
+    def bindaddr(self, addr):
+        'Bind the socket underneath this NetIO object to the given address'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'bindaddr')):
+            base=base.baseclass
+        return base.bindaddr(self._Cstruct, addr._Cstruct)
+
+    def getmaxpktsize(self):
+        'Return the max packet size for this pyNetIO'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'getmaxpktsize')):
+            base=base.baseclass
+        return base.getmaxpktsize(self._Cstruct)
+
+    def setmaxpktsize(self, size):
+        'Set the max packet size for this pyNetIO'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'setmaxpktsize')):
+            base=base.baseclass
+        return base.setmaxpktsize(self._Cstruct, int(size))
+
+    def compressframe(self):
+        'Return the compression frame for this pyNetIO - may be None'
+        # Doesn't make a py class object out of it yet...
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'compressframe')):
+            base=base.baseclass
+        return base.compressframe(self._Cstruct)
+
+    def cryptframe(self):
+        'Return the encryption frame for this pyNetIO - may be None'
+        # Doesn't make a py class object out of it yet...
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'cryptframe')):
+            base=base.baseclass
+        return base.cryptframe(self._Cstruct)
+
+    def signframe(self):
+        'Return the digital signature frame for this pyNetIO'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'signframe')):
+            base=base.baseclass
+        return pySignFrame(0,Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
+
+    def sendframesets(self, destaddr, framesetlist):
+        'Send the (collection of) frameset(s) out on this pyNetIO'
+	if not isinstance(framesetlist, collections.Sequence):
+            framesetlist = (framesetlist, )
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'sendaframeset')):
+            base=base.baseclass
+        # We ought to eventually construct a GSList of them and then call sendframesets
+        # But this is easy for now...
+        for frame in framesetlist:
+            base.sendaframeset(self._Cstruct, destaddr._Cstruct, frame._Cstruct)
+        
+    def recvframesets(self):
+        '''Receive a collection of framesets read from this pyNetIO - all from the same Address.
+         @return The return value is a tuple (address, framesetlist). '''
+	#GSList * 	_netio_recvframesets (NetIO *self,NetAddr **src)
+
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'recvframesets')):
+            base=base.baseclass
+        netaddr =  netaddr_ipv4_new(create_string_buffer(4), 101)
+        netaddr[0].baseclass.unref(netaddr)	# We're about to replace it...
+        fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
+        fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
+        address = pyNetAddr(None, Cstruct=netaddr)
+        return (address, fslist)
+
+    @staticmethod
+    def is_dual_ipv4v6_stack():
+        return netio_is_dual_ipv4v6stack()
+
+class pyNetIOudp(pyNetIO):
+    'UDP version of the pyNetIO abstract base class'
+    def __init__(self, config, packetdecoder, Cstruct=None):
+        'Initializer for pyNetIOudp'
+        self._Cstruct = None # Keep error legs from complaining.
+        if Cstruct is None:
+            Cstruct=netioudp_new(0, config._Cstruct, packetdecoder._Cstruct)
+        if not Cstruct:
+            raise ValueError, ("Invalid parameters to pyNetIOudp constructor")
+        pyNetIO.__init__(self, config, packetdecoder, Cstruct=Cstruct)

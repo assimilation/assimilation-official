@@ -14,6 +14,7 @@
 #ifndef _NETIO_H
 #define _NETIO_H
 #include <projectcommon.h>
+#include <assimobj.h>
 #include <glib.h>
 #include <netaddr.h>
 #include <frame.h>
@@ -29,6 +30,7 @@ typedef struct _NetIO NetIO;
 /// It is an abstract class from which you <b>must</b> make subclasses,
 /// and is managed by our @ref ProjectClass system.
 struct _NetIO {
+	AssimObj	baseclass;
 	GIOChannel*	giosock;				///< Glib GIOChannel for this socket
 	gint		_maxpktsize;
 	ConfigContext*	_configinfo;
@@ -45,6 +47,9 @@ struct _NetIO {
 				 const NetAddr*);	///<[in] local if addr or NULL
 	gint		(*getfd)			///<[in] Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
+	void		(*setblockio)			///<[in] Set blocking/non-blocking mode
+				(const NetIO* self,	///<[in/out] 'this' Object
+				 gboolean blocking);	///<[in] TRUE if you want it to block
 	gsize		(*getmaxpktsize)		///< Return maximum packet size for this NetIO
 				(const NetIO* self);	///< 'this' object
 	gsize		(*setmaxpktsize)		///< Set maximum packet size
@@ -73,8 +78,6 @@ struct _NetIO {
 	Frame*		(*compressframe)		///< return a copied compression frame for sending
 				(NetIO*self)		///<[in] 'this' object
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*finalize)			///< Finalize this NetIO object
-				(NetIO* self);		///<[in] 'this' object
 };
 WINEXPORT NetIO*	netio_new(gsize objsize, ConfigContext*, PacketDecoder*);
 							///< Don't call this directly! - this is an abstract class...

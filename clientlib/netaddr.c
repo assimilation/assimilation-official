@@ -31,6 +31,9 @@ FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self);
+
+DEBUGDECLARATIONS
+
 /// @defgroup NetAddr NetAddr class
 ///@{
 /// @ingroup C_Classes
@@ -128,6 +131,8 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 	const guchar ipv6loop [] = CONST_IPV6_LOOPBACK;
 	const guchar ipv4loop [] = CONST_IPV4_LOOPBACK;
 
+	DEBUGMSG5("Place 1: self:%p, other:%p", self, other);
+
 	if (self->_addrtype == ADDR_FAMILY_IPV6 && other->_addrtype == ADDR_FAMILY_IPV4) {
 		const guchar *selfabody = self->_addrbody;
 		// Check for equivalent ipv4 and ipv6 addresses
@@ -145,9 +150,14 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 		// Switch the operands and try again...
 		return _netaddr_equal(other, self);
 	}
+	DEBUGMSG5("Place 2: self:%p, other:%p", self, other);
+	DEBUGMSG5("Place 3: self->addrtype:%d, other->addrtype:%d", self->_addrtype, other->_addrtype);
+	DEBUGMSG5("Place 4: self->addrlen:%d, other->addrlen:%d", self->_addrlen, other->_addrlen);
 	if (self->_addrtype != other->_addrtype || self->_addrlen  != other->_addrlen) {
 		return FALSE;
 	}
+	DEBUGMSG5("Place 5: self:%p, other:%p", self, other);
+	DEBUGMSG5("Place 6: self->_addrbody:%p, other->_addrbody:%p", self->_addrbody, other->_addrbody);
 	return (memcmp(self->_addrbody, other->_addrbody, self->_addrlen) == 0);
 }
 
@@ -217,6 +227,8 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	AssimObj*	baseobj;
 	NetAddr*	self;
 
+	
+	BINDDEBUG(NetAddr);
 	if (objsize < sizeof(NetAddr)) {
 		objsize = sizeof(NetAddr);
 	}
