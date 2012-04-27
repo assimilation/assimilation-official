@@ -78,7 +78,6 @@ _netio_setblockio(const NetIO* self, gboolean blocking)
 	}
 	fcntl(self->getfd(self), F_SETFL, fcntlflags);
 #endif
-	chanflags = g_io_channel_get_flags(self->giosock);
 	if (blocking) {
 		chanflags |= G_IO_FLAG_NONBLOCK;
 	}else{
