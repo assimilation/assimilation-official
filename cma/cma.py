@@ -80,6 +80,10 @@ class DroneInfo:
     droneset = {}
     def __init__(self, name):
         self.name = name
+        self.addresses = {}
+
+    def addaddr(self, addr, ifname=None):
+        self.addresses[str(addr)] = (addr, ifname)
 
     @staticmethod
     def find(name):
@@ -101,27 +105,41 @@ class DispatchTarget:
         pass
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
-        print "Received FrameSet of type [%s] from [%s]" %(FrameSetTypes.get(fstype)[0], str(origaddr))
+        print "Received FrameSet of type [%s] from [%s]" \
+        %     (FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
-            print "\tframe type [%s]: [%s]" % (FrameTypes.get(frametype)[1], str(frame))
+            print "\tframe type [%s]: [%s]" \
+            %     (FrameTypes.get(frametype)[1], str(frame))
 
     def setconfig(self, io, config):
         self.io = io
         self.config = config
         
 class DispatchSTARTUP(DispatchTarget):
+    'Base class for handling incoming STARTUP FrameSets'
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
         print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
 	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        for frame in frameset.iter():
+            frametype=frame.frametype()
+            if frametype == FrameTypes.HOSTNAME:
+                sysname = frame.getstr()
         print "Creating SetConfig FrameSet..."
         fs = CMAlib.create_setconfig(self.config)
-        print 'Telling them to heartbeat themselves.'
-        fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
-        ,		origaddr)
+        #print 'Telling them to heartbeat themselves.'
+        #fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
+        #,		origaddr)
         print 'Sending SetConfig frameset'
-        self.io.sendframesets(origaddr, (fs,fs2))
+        #self.io.sendframesets(origaddr, (fs,fs2))
+        self.io.sendframesets(origaddr, fs)
+        DroneInfo.add(sysname)
+        drone = DroneInfo.find(sysname)
+        drone.firstaddr=origaddr
+        drone.addaddr(origaddr)
+        print DroneInfo.find(sysname).firstaddr
+        print DroneInfo.find(sysname).addresses
         
 
 class MessageDispatcher:
@@ -209,6 +227,3 @@ disp = MessageDispatcher(
 config = pyConfigContext(init=configinit)
 listener = PacketListener(config, disp)
 listener.listen()
-
-
-

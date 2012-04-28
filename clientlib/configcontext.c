@@ -14,9 +14,12 @@
 typedef struct _ConfigValue ConfigValue;
 struct _ConfigValue {
 	enum ConfigValType	valtype;
-	gint64			intvalue;	// Or boolean
-	double			floatvalue;
-	gpointer		objvalue;
+	union {
+		gint64			intvalue;	// Or boolean
+		double			floatvalue;
+		GSList*			arrayvalue;
+		gpointer		objvalue;
+	}u;
 };
 
 FSTATIC void	_configcontext_ref(ConfigContext* self);
@@ -40,6 +43,7 @@ FSTATIC gint	_configcontext_key_compare(gconstpointer a, gconstpointer b);
 
 
 FSTATIC char *	_configcontext_toString(gconstpointer aself);
+FSTATIC char * _configcontext_elem_toString(ConfigValue* val);
 FSTATIC char *	JSONquotestring(char * s, gboolean ismalloced);
 FSTATIC ConfigContext* _configcontext_JSON_parse_string(const char * json);
 FSTATIC GScanner* _configcontext_JSON_GScanner_new(void);
@@ -49,10 +53,12 @@ FSTATIC ConfigContext* _configcontext_JSON_parse_members(GScanner* scan, ConfigC
 FSTATIC ConfigContext* _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg);
 FSTATIC ConfigValue* _configcontext_value_new(enum ConfigValType);
 FSTATIC void _configcontext_value_finalize(gpointer vself);
-/// @defgroup ConfigContext ConfigContext class
-/// A base class for remembering configuration values of various types.
-///@{
-///@ingroup C_Classes
+/**
+ * @defgroup ConfigContext ConfigContext class
+ * A base class for remembering configuration values of various types.
+ * @{
+ * @ingroup C_Classes
+ */
 
 /// Construct a new ConfigContext object - with no values defaulted
 ConfigContext*
@@ -165,7 +171,7 @@ _configcontext_getint(ConfigContext* self	///<[in] ConfigContext object
 		return -1;
 	}
 
-	return cfg->intvalue;
+	return cfg->u.intvalue;
 }
 
 /// Set a name to an integer value
@@ -177,7 +183,7 @@ _configcontext_setint(ConfigContext* self	///<[in/out] ConfigContext Object
 	ConfigValue* val = _configcontext_value_new(CFG_INT64);
 	char *	cpname = g_strdup(name);
 
-	val->intvalue = value;
+	val->u.intvalue = value;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -196,7 +202,7 @@ _configcontext_getstring(ConfigContext* self	///<[in] ConfigContext object
 	if (cfg->valtype != CFG_STRING) {
 		return NULL;
 	}
-	return (const char *)cfg->objvalue;
+	return (const char *)cfg->u.objvalue;
 }
 
 /// Set a name to a string value
@@ -209,7 +215,7 @@ _configcontext_setstring(ConfigContext* self	///<[in/out] ConfigContext object
 	char *	cpvalue = g_strdup(value);
 	ConfigValue* val = _configcontext_value_new(CFG_STRING);
 
-	val->objvalue = cpvalue;
+	val->u.objvalue = cpvalue;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -229,7 +235,7 @@ _configcontext_getaddr(ConfigContext* self	///<[in] ConfigContext object
 	if (cfg->valtype != CFG_NETADDR) {
 		return NULL;
 	}
-	return CASTTOCLASS(NetAddr, cfg->objvalue);
+	return CASTTOCLASS(NetAddr, cfg->u.objvalue);
 }
 
 /// Set the NetAddr value of a name
@@ -242,7 +248,7 @@ _configcontext_setaddr(ConfigContext* self	///<[in/out] ConfigContext object
 	ConfigValue* val = _configcontext_value_new(CFG_NETADDR);
 
 	addr->baseclass.ref(addr);
-	val->objvalue = addr;
+	val->u.objvalue = addr;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -261,7 +267,7 @@ _configcontext_getframe(ConfigContext* self	///<[in] ConfigContext object
 	if (cfg->valtype != CFG_FRAME) {
 		return NULL;
 	}
-	return CASTTOCLASS(Frame, cfg->objvalue);
+	return CASTTOCLASS(Frame, cfg->u.objvalue);
 }
 
 /// Set the signature frame to the given SignFrame
@@ -275,7 +281,7 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 	ConfigValue* val = _configcontext_value_new(CFG_FRAME);
 
 	frame->baseclass.ref(frame);
-	val->objvalue = frame;
+	val->u.objvalue = frame;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -293,7 +299,7 @@ _configcontext_getconfig(ConfigContext* self , const char* name)
 	if (cfg->valtype != CFG_CFGCTX) {
 		return NULL;
 	}
-	return CASTTOCLASS(ConfigContext, cfg->objvalue);
+	return CASTTOCLASS(ConfigContext, cfg->u.objvalue);
 }
 /// Save/Set a ConfigContext value associated with a given name
 FSTATIC void
@@ -303,7 +309,7 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 	ConfigValue* val = _configcontext_value_new(CFG_CFGCTX);
 
 	value->baseclass.ref(value);
-	val->objvalue = value;
+	val->u.objvalue = value;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -316,7 +322,8 @@ _configcontext_value_new(enum ConfigValType t)
 	ret = MALLOCBASECLASS(ConfigValue);
 	if (ret) {
 		ret->valtype = t;
-		ret->objvalue = NULL;
+		memset(&ret->u, 0, sizeof(ret->u));
+		ret->u.objvalue = NULL;
 	}
 	return ret;
 }
@@ -330,13 +337,13 @@ _configcontext_value_finalize(gpointer vself)
 	self = CASTTOCLASS(ConfigValue, vself);
 	switch (self->valtype) {
 		case CFG_STRING:
-			g_free(self->objvalue); self->objvalue = NULL;
+			g_free(self->u.objvalue); self->u.objvalue = NULL;
 			break;
 		case CFG_CFGCTX:
 		case CFG_NETADDR:
 		case CFG_FRAME: {
-			AssimObj*	obj = CASTTOCLASS(AssimObj, self->objvalue);
-			obj->unref(obj); obj = NULL; self->objvalue = NULL;
+			AssimObj*	obj = CASTTOCLASS(AssimObj, self->u.objvalue);
+			obj->unref(obj); obj = NULL; self->u.objvalue = NULL;
 			break;
 		}
 
@@ -345,6 +352,7 @@ _configcontext_value_finalize(gpointer vself)
 			break;
 		}
 	}
+	self->valtype = CFG_EEXIST;
 	FREECLASSOBJ(self);
 	vself = NULL;
 }
@@ -396,67 +404,72 @@ _configcontext_toString(gconstpointer aself)
 	g_hash_table_iter_init(&iter, self->_values);
 	while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
 		ConfigValue*	val = CASTTOCLASS(ConfigValue, gvalue);
-
-		switch(val->valtype) {
-			case CFG_EEXIST:
-			case CFG_NULL:
-				g_string_append_printf(gsret, "%s\"%s\":null"
-				,	comma, (const char *)gkey);
-				break;
-
-			case CFG_BOOL:
-				g_string_append_printf(gsret, "%s\"%s\":%s"
-				,	comma, (const char *)gkey
-				,	(val->intvalue? "true" : "false"));
-
-			case CFG_INT64:
-				g_string_append_printf(gsret, "%s\"%s\":"FMT_64BIT"d"
-				,	comma, (const char *)gkey, val->intvalue);
-				break;
-
-			case CFG_FLOAT:
-				g_string_append_printf(gsret, "%s\"%s\":%g"
-				,	comma, (const char *)gkey
-				,	val->floatvalue);
-				break;
-
-			case CFG_STRING: {
-				char *	quotedstr = JSONquotestring((char*)val->objvalue
-						    ,		    FALSE);
-				g_string_append_printf(gsret, "%s\"%s\":\"%s\""
-				,	comma, (const char *)gkey,  quotedstr);
-				if (quotedstr != (char*) val->objvalue) {
-					g_free(quotedstr); quotedstr = NULL;
-				}
-				break;
-			}
-
-			case CFG_CFGCTX: {
-				AssimObj*	obj = CASTTOCLASS(AssimObj, val->objvalue);
-				char *	str = obj->toString(obj);
-				g_string_append_printf(gsret, "%s\"%s\":%s"
-				,	comma, (const char *)gkey,  str);
-				g_free(str); str = NULL;
-				break;
-			}
-			case CFG_ARRAY:
-			case CFG_NETADDR:	/// @todo - make NetAddrs into things that we
-						/// can recognize and make back into a NetAddr
-						/// when we parse the JSON.
-			case CFG_FRAME: {
-				AssimObj*	obj = CASTTOCLASS(AssimObj, val->objvalue);
-				char *	str = obj->toString(obj);
-				str = JSONquotestring(str, TRUE);
-				g_string_append_printf(gsret, "%s\"%s\":\"%s\""
-				,	comma, (const char *)gkey,  str);
-				g_free(str); str = NULL;
-				break;
-			}
-		}
+		gchar*		elem = _configcontext_elem_toString(val);
+		g_string_append_printf(gsret, "%s\"%s\":%s", comma, (const char *)gkey, elem);
+		g_free(elem);
 		comma=",";
 	}
 	g_string_append(gsret, "}");
 	return g_string_free(gsret, FALSE);
+}
+FSTATIC char *
+_configcontext_elem_toString(ConfigValue* val)
+{
+	switch (val->valtype) {
+		case CFG_BOOL:
+			return g_strdup(val->u.intvalue? "true" : "false");
+
+		case CFG_INT64:
+			return g_strdup_printf(FMT_64BIT"d", val->u.intvalue);
+
+		case CFG_FLOAT:
+			return g_strdup_printf("%g", val->u.floatvalue);
+
+		case CFG_STRING: {
+			char *	quotedstr = JSONquotestring((gchar*)val->u.objvalue, FALSE);
+			char *	retstr = g_strdup_printf("\"%s\"", quotedstr);
+			if (quotedstr != (char*) val->u.objvalue) {
+				g_free(quotedstr);
+			}
+			quotedstr = NULL;
+			return retstr;
+		}
+
+		case CFG_CFGCTX: {
+			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.objvalue);
+			return obj->toString(obj);
+		}
+		case CFG_ARRAY: {
+			const char *	acomma = "";
+			GString*	ret = g_string_new("[");
+			GSList*		this;
+
+			for (this = val->u.arrayvalue; this; this = this->next) {
+				ConfigValue*	val = CASTTOCLASS(ConfigValue, this->data);
+				gchar*	elem = _configcontext_elem_toString(val);
+				g_string_append_printf(ret, "%s%s", acomma, elem);
+				acomma=",";
+			}
+			g_string_append(ret, "]");
+			return g_string_free(ret, FALSE);
+		}
+		case CFG_NETADDR:	/// @todo - make NetAddrs into things that we
+					/// can recognize and make back into a NetAddr
+					/// when we parse the JSON.
+		case CFG_FRAME: {
+			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.objvalue);
+			gchar*		qstr = JSONquotestring(obj->toString(obj), TRUE);
+			char *	retstr = g_strdup_printf("\"%s\"", qstr);
+			g_free(qstr);
+			return retstr;
+		}
+		case CFG_EEXIST:
+		case CFG_NULL:
+			return g_strdup("null");
+
+	}//endswitch
+	/*NOTREACHED*/
+	return g_strdup("null");
 }
 
 ///

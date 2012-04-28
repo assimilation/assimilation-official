@@ -2,6 +2,7 @@ import sys
 sys.path.append("../pyclasswrappers")
 from testify import *
 
+from frameinfo import *
 from AssimCclasses import *
 import gc
 import re
@@ -372,20 +373,25 @@ class pyFrameSetTest(TestCase):
         if DEBUG: print "test_buildpacket(pyFrameSetTest)"
         pyfs = pyFrameSet(801)
         sign = pySignFrame(1) # digital signature frame
-        flist = (pyAddrFrame(9, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
-                 pyIntFrame(11,3000000, intbytes=4),
-                 pyIntFrame(12,3000000000000, intbytes=8),
-                 pySeqnoFrame(5, (42, 424242424242)),
-                 pyIntFrame(11,4242, intbytes=3))
+        flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.WALLCLOCK,42), pyCstringFrame(FrameTypes.INTERFACE, "HhGttG"),
+                 pyIntFrame(FrameTypes.CINTVAL,3000000, intbytes=4),
+                 pyIntFrame(FrameTypes.CINTVAL,3000000000000, intbytes=8),
+                 pySeqnoFrame(FrameTypes.REQID, (42, 424242424242)),
+                 pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
+        if DEBUG: print "flist:", flist
         decoder = pyPacketDecoder(0)
         for frame in flist:
             pyfs.append(frame)
         pyfs.construct_packet(sign)
+        if DEBUG: print "packet constructed"
         xlist=[]
         for frame in pyfs.iter():
             xlist.append(frame)
+        if DEBUG: print "xlist constructed"
         pktdata = pyfs.getpacket()
+        if DEBUG: print "getpacket done", pktdata
         cp_pyfs = decoder.fslist_from_pktdata(pktdata)
+        if DEBUG: print "decoder done", cp_pyfs
         fs0 = cp_pyfs[0]
         ylist=[]
         for frame in fs0.iter():
@@ -527,11 +533,11 @@ class pyNetIOudpTest(TestCase):
         if DEBUG: print "test_send(pyNetIOudpTest)"
         home = pyNetAddr((127,0,0,1),1984)
         fs = pyFrameSet(801)
-        flist = (pyAddrFrame(9, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
-                 pyIntFrame(11,3000000, intbytes=4),
-                 pyIntFrame(12,3000000000000, intbytes=8),
-                 pySeqnoFrame(5, (42, 424242424242)),
-                 pyIntFrame(11,4242, intbytes=3))
+        flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.HBWARNTIME,42), pyCstringFrame(FrameTypes.HOSTNAME, "HhGttG"),
+                 pyIntFrame(FrameTypes.PORTNUM,3000000, intbytes=4),
+                 pyIntFrame(FrameTypes.HBINTERVAL,3000000000000, intbytes=8),
+                 pySeqnoFrame(FrameTypes.REPLYID, (42, 424242424242)),
+                 pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
         for frame in flist:
             fs.append(frame)
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
@@ -544,12 +550,12 @@ class pyNetIOudpTest(TestCase):
         anyaddr = pyNetAddr((0,0,0,0),1984)
         fs = pyFrameSet(801)
         #flist = (pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
-        flist = (pyAddrFrame(9, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
-                 pyAddrFrame(9,(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)),
-                 pyIntFrame(11,3000000, intbytes=4),
-                 pyIntFrame(12,3000000000000, intbytes=8),
-                 pySeqnoFrame(5, (42, 424242424242)),
-                 pyIntFrame(11,4242, intbytes=3))
+        flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
+                 pyAddrFrame(FrameTypes.IPADDR,(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)),
+                 pyIntFrame(FrameTypes.HBINTERVAL,3000000, intbytes=4),
+                 pyIntFrame(FrameTypes.HBDEADTIME,3000000000000, intbytes=8),
+                 pySeqnoFrame(FrameTypes.REPLYID, (42, 424242424242)),
+                 pyIntFrame(FrameTypes.PORTNUM,4242, intbytes=3))
         for frame in flist:
             fs.append(frame)
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))

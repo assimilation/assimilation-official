@@ -189,42 +189,45 @@ In spite of the apparent variability permitted above, it is an 8-byte (64-bit) i
 '''This frame provides the name of a network interface as a
 NUL-terminated C-style string.
 '''),
-  	9:  (pyAddrFrame, 'IPADDR', 'IP address in either IPv4 or IPv6 format.',
+  	9:  (pyCstringFrame, 'HOSTNAME', 'Name of host as a C-style string',
+'''This frame provides the name of a host as a NUL-terminated C-style string.
+'''),
+  	10:  (pyAddrFrame, 'IPADDR', 'IP address in either IPv4 or IPv6 format.',
 '''IPv4 addresses are address type 1 and are 4 bytes long.
 IPv6 addresses are address type 2 and are 16 bytes long, and have Address types 1 and 2 respectively.
 '''),
-  	10:  (pyAddrFrame, 'MACADDR', 'MAC Address.',
+  	11:  (pyAddrFrame, 'MACADDR', 'MAC Address.',
 '''This frame can be either a 6 byte (EUI-48) or an 8 byte (EUI-64) format MAC address.
 The Address Type for a MAC address is 6.
 '''),
-  	11:  (pyIntFrame, 'PORTNUM', 'Port number.',
+  	12:  (pyIntFrame, 'PORTNUM', 'Port number.',
 '''This frame is a 16-bit IP port number.
 '''),
-  	12:  (pyIntFrame, 'HBINTERVAL', 'Heartbeat interval.',
+  	13:  (pyIntFrame, 'HBINTERVAL', 'Heartbeat interval.',
 '''This frame is a heartbeat sending interval measured in seconds.
 '''),
-  	13:  (pyIntFrame, 'HBDEADTIME', 'Heartbeat deadtime.',
+  	14:  (pyIntFrame, 'HBDEADTIME', 'Heartbeat deadtime.',
 '''This frame is a heartbeat deadtime measured in seconds.
 '''),
-  	14:  (pyIntFrame, 'HBWARNTIME', 'Heartbeat warntime.',
+  	16:  (pyIntFrame, 'HBWARNTIME', 'Heartbeat warntime.',
 '''This frame is a heartbeat warning time measured in seconds.
 '''),
-  	15:  (pyCstringFrame, 'PATHNAME', 'file name',
+  	17:  (pyCstringFrame, 'PATHNAME', 'file name',
 '''This frame contains a pathname for a file as a C string.
 '''),
-  	16:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
+  	18:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
 '''This frame contains a name/value pair - each of which is a NUL-terminated C-style string.
 '''),
-  	17:  (pyCstringFrame, 'JSDISCOVER', 'JSON-formatted discovery data',
+  	19:  (pyCstringFrame, 'JSDISCOVER', 'JSON-formatted discovery data',
 '''This frame contains JSON-formatted output from a discovery process.  The type of discovery data and program collecting it are inside.
 '''),
-  	19:  (pyCstringFrame, 'PARAMNAME', 'Config parameter name',
+  	20:  (pyCstringFrame, 'PARAMNAME', 'Config parameter name',
 '''This frame contains the name of a parameter to set in nanoprobe configuration - could be followed by a CSTRINGAL or an IPADDR'''),
-  	20:  (pyCstringFrame, 'CSTRINGVAL', 'String configuration value',
+  	21:  (pyCstringFrame, 'CSTRINGVAL', 'String configuration value',
 'This frame contains a string value to set in nanoprobe configuration.'),
-  	21:  (pyIntFrame, 'CINTVAL', 'Integer configuration value',
+  	22:  (pyIntFrame, 'CINTVAL', 'Integer configuration value',
 'This frame contains an integer value to set into nanoprobe configuration.'),
-  	22:  (pyIntFrame, 'ELAPSEDTIME', '64-bit elapsed time (usec)',
+  	23:  (pyIntFrame, 'ELAPSEDTIME', '64-bit elapsed time (usec)',
 '''This frame provides elapsed time (measured locally) in microseconds.
 In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer.
 '''),

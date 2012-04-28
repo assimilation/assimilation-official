@@ -26,7 +26,7 @@
 #include <cstringframe.h>
 #include <netio.h>
 #include <intframe.h>
-#include <frameformats.h>
+#include <frametypes.h>
 #include <tlvhelper.h>
 
 #define DIMOF(a)	(sizeof(a)/sizeof(a[0]))

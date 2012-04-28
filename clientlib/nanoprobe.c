@@ -10,6 +10,7 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  *
  */
+#include <sys/utsname.h>
 #include <projectcommon.h>
 #include <string.h>
 #include <frameset.h>
@@ -659,9 +660,12 @@ nano_reqconfig(gpointer gcruft)
 	struct startup_cruft* cruft = gcruft;
 	FrameSet*	fs;
 	CstringFrame*	csf;
+	CstringFrame*	usf;
 	const char *	cfgname = strrchr(cruft->initdiscover, '/');
 	ConfigContext*	context = cruft->context;
 	NetAddr *	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
+	const char *		jsontext;
+	struct utsname	un;	// System name, etc.
 
 	// We <i>have</i> to know our initial request address - or all is lost.
 	g_return_val_if_fail(cmainit != NULL, FALSE);
@@ -674,8 +678,19 @@ nano_reqconfig(gpointer gcruft)
 		return FALSE;
 	}
 	fs = frameset_new(FRAMESETTYPE_STARTUP);
+
+	uname(&un);
+	// Put in the system name
+	usf = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
+	usf->baseclass.setvalue(&usf->baseclass, strdup(un.nodename), strlen(un.nodename)+1
+	,			frame_default_valuefinalize);
+	frameset_append_frame(fs, &usf->baseclass);
+	usf->baseclass.baseclass.unref(usf);
+
+	// Put in the JSON discovery text
+	jsontext = context->getstring(context, cfgname);
 	csf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
-	csf->baseclass.setvalue(&csf->baseclass, strdup(cfgname), strlen(cfgname)+1
+	csf->baseclass.setvalue(&csf->baseclass, strdup(jsontext), strlen(jsontext)+1
 	,			frame_default_valuefinalize);
 	
 	frameset_append_frame(fs, &csf->baseclass);

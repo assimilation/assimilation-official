@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -3564,72 +3564,6 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/frameformats.h: 49
-try:
-    FRAMETYPE_END = 0
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 67
-try:
-    FRAMETYPE_SIG = 1
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 84
-try:
-    FRAMETYPE_CRYPT = 2
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 103
-try:
-    FRAMETYPE_COMPRESS = 3
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 124
-try:
-    FRAMETYPE_REQID = 4
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 144
-try:
-    FRAMETYPE_REPLYID = 5
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 159
-try:
-    FRAMETYPE_PKTDATA = 6
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 175
-try:
-    FRAMETYPE_WALLCLOCK = 7
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 189
-try:
-    FRAMETYPE_INTERFACE = 8
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 207
-try:
-    FRAMETYPE_IPADDR = 9
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frameformats.h: 225
-try:
-    FRAMETYPE_MACADDR = 10
-except:
-    pass
-
 # /home/alanr/monitor/src/include/frametypes.h: 50
 try:
     FRAMETYPE_END = 0
@@ -3684,81 +3618,87 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 186
+# /home/alanr/monitor/src/include/frametypes.h: 185
 try:
-    FRAMETYPE_IPADDR = 9
+    FRAMETYPE_HOSTNAME = 9
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 199
+# /home/alanr/monitor/src/include/frametypes.h: 198
 try:
-    FRAMETYPE_MACADDR = 10
+    FRAMETYPE_IPADDR = 10
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 212
+# /home/alanr/monitor/src/include/frametypes.h: 211
 try:
-    FRAMETYPE_PORTNUM = 11
+    FRAMETYPE_MACADDR = 11
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 225
+# /home/alanr/monitor/src/include/frametypes.h: 224
 try:
-    FRAMETYPE_HBINTERVAL = 12
+    FRAMETYPE_PORTNUM = 12
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 238
+# /home/alanr/monitor/src/include/frametypes.h: 237
 try:
-    FRAMETYPE_HBDEADTIME = 13
+    FRAMETYPE_HBINTERVAL = 13
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 251
+# /home/alanr/monitor/src/include/frametypes.h: 250
 try:
-    FRAMETYPE_HBWARNTIME = 14
+    FRAMETYPE_HBDEADTIME = 14
 except:
     pass
 
 # /home/alanr/monitor/src/include/frametypes.h: 263
 try:
-    FRAMETYPE_PATHNAME = 15
+    FRAMETYPE_HBWARNTIME = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 276
+# /home/alanr/monitor/src/include/frametypes.h: 275
 try:
-    FRAMETYPE_NVPAIR = 16
+    FRAMETYPE_PATHNAME = 17
 except:
     pass
 
 # /home/alanr/monitor/src/include/frametypes.h: 288
 try:
-    FRAMETYPE_JSDISCOVER = 17
+    FRAMETYPE_NVPAIR = 18
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 299
+# /home/alanr/monitor/src/include/frametypes.h: 300
 try:
-    FRAMETYPE_PARAMNAME = 19
+    FRAMETYPE_JSDISCOVER = 19
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 310
+# /home/alanr/monitor/src/include/frametypes.h: 311
 try:
-    FRAMETYPE_CSTRINGVAL = 20
+    FRAMETYPE_PARAMNAME = 20
 except:
     pass
 
 # /home/alanr/monitor/src/include/frametypes.h: 322
 try:
-    FRAMETYPE_CINTVAL = 21
+    FRAMETYPE_CSTRINGVAL = 21
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 336
+# /home/alanr/monitor/src/include/frametypes.h: 334
 try:
-    FRAMETYPE_ELAPSEDTIME = 22
+    FRAMETYPE_CINTVAL = 22
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 348
+try:
+    FRAMETYPE_ELAPSEDTIME = 23
 except:
     pass
 

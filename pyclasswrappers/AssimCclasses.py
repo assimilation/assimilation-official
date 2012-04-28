@@ -398,6 +398,12 @@ class pyCstringFrame(pyFrame):
         if initval is not None:
             self.setvalue(initval)
 
+    def getstr(self):
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'value')):
+            base=base.baseclass
+        return string_at(base.value)
+
 class pyIntFrame(pyFrame):
     '''This class represents the Python version of our IntFrame C-class - represented by the struct _IntFrame
     This class represents an integer of 1, 2, 3, 4 or 8 bytes.
