@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frameformats.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1721,6 +1721,7 @@ struct__ConfigContext.__slots__ = [
     'getconfig',
     'setconfig',
     'gettype',
+    'keys',
 ]
 struct__ConfigContext._fields_ = [
     ('baseclass', AssimObj),
@@ -1736,15 +1737,16 @@ struct__ConfigContext._fields_ = [
     ('getconfig', CFUNCTYPE(UNCHECKED(POINTER(ConfigContext)), POINTER(ConfigContext), String)),
     ('setconfig', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, POINTER(ConfigContext))),
     ('gettype', CFUNCTYPE(UNCHECKED(enum_ConfigValType), POINTER(ConfigContext), String)),
+    ('keys', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext))),
 ]
 
-# ../include/configcontext.h: 58
+# ../include/configcontext.h: 59
 if hasattr(_libs['libclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
     configcontext_new.restype = POINTER(ConfigContext)
 
-# ../include/configcontext.h: 59
+# ../include/configcontext.h: 60
 if hasattr(_libs['libclientlib.so'], 'configcontext_new_JSON_string'):
     configcontext_new_JSON_string = _libs['libclientlib.so'].configcontext_new_JSON_string
     configcontext_new_JSON_string.argtypes = [String]
@@ -1855,13 +1857,13 @@ struct__NetIO._fields_ = [
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 82
+# ../include/netio.h: 83
 if hasattr(_libs['libclientlib.so'], 'netio_new'):
     netio_new = _libs['libclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 84
+# ../include/netio.h: 85
 if hasattr(_libs['libclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2040,6 +2042,18 @@ if hasattr(_libs['libclientlib.so'], 'is_valid_cdp_packet'):
     is_valid_cdp_packet = _libs['libclientlib.so'].is_valid_cdp_packet
     is_valid_cdp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_cdp_packet.restype = gboolean
+
+# /home/alanr/monitor/src/include/cmalib.h: 19
+if hasattr(_libs['libclientlib.so'], 'create_sendexpecthb'):
+    create_sendexpecthb = _libs['libclientlib.so'].create_sendexpecthb
+    create_sendexpecthb.argtypes = [POINTER(ConfigContext), guint16, POINTER(NetAddr), c_int]
+    create_sendexpecthb.restype = POINTER(FrameSet)
+
+# /home/alanr/monitor/src/include/cmalib.h: 20
+if hasattr(_libs['libclientlib.so'], 'create_setconfig'):
+    create_setconfig = _libs['libclientlib.so'].create_setconfig
+    create_setconfig.argtypes = [POINTER(ConfigContext)]
+    create_setconfig.restype = POINTER(FrameSet)
 
 # /home/alanr/monitor/src/include/compressframe.h: 21
 class struct__CompressFrame(Structure):
@@ -3316,115 +3330,115 @@ try:
 except:
     pass
 
-# ../include/configcontext.h: 61
+# ../include/configcontext.h: 62
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# ../include/configcontext.h: 62
+# ../include/configcontext.h: 63
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# ../include/configcontext.h: 63
+# ../include/configcontext.h: 64
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# ../include/configcontext.h: 64
+# ../include/configcontext.h: 65
 try:
     CONFIG_DEFAULT_HBPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 65
+# ../include/configcontext.h: 66
 try:
     CONFIG_DEFAULT_CMAPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 67
+# ../include/configcontext.h: 68
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 68
+# ../include/configcontext.h: 69
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 70
+# ../include/configcontext.h: 71
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 71
+# ../include/configcontext.h: 72
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 72
+# ../include/configcontext.h: 73
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 73
+# ../include/configcontext.h: 74
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 74
+# ../include/configcontext.h: 75
 try:
     CONFIGNAME_CMAPORT = 'cmaport'
 except:
     pass
 
-# ../include/configcontext.h: 75
+# ../include/configcontext.h: 76
 try:
     CONFIGNAME_CMAINIT = 'cmainit'
 except:
     pass
 
-# ../include/configcontext.h: 77
+# ../include/configcontext.h: 78
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 78
+# ../include/configcontext.h: 79
 try:
     CONFIGNAME_CMADISCOVER = 'cmadisc'
 except:
     pass
 
-# ../include/configcontext.h: 79
+# ../include/configcontext.h: 80
 try:
     CONFIGNAME_CMAFAIL = 'cmafail'
 except:
     pass
 
-# ../include/configcontext.h: 80
+# ../include/configcontext.h: 81
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 81
+# ../include/configcontext.h: 82
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 82
+# ../include/configcontext.h: 83
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:

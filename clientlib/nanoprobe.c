@@ -81,9 +81,10 @@ nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, guint64 howlate)
 
 		// Construct and send a frameset reporting this event...
 		if (howlate > 0) {
-			IntFrame*	lateframe	= intframe_new(FRAMETYPE_ELAPSEDTIME, 0);
+			IntFrame*	lateframe	= intframe_new(FRAMETYPE_ELAPSEDTIME, 8);
 			lateframe->setint(lateframe, howlate);
 			frameset_append_frame(fs, &lateframe->baseclass);
+			lateframe->baseclass.baseclass.unref(lateframe);
 		}
 		peeraddr->setnetaddr(peeraddr, who);
 		frameset_append_frame(fs, &peeraddr->baseclass);

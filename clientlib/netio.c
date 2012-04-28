@@ -439,6 +439,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	socklen_t	addrlen;
 	struct sockaddr_in6	srcaddr;
 
+	*src = NULL;	// Make python happy in case we fail...
 	pkt = _netio_recvapacket(self, &pktend, &srcaddr, &addrlen);
 
 	if (NULL != pkt) {

@@ -54,6 +54,7 @@ struct _ConfigContext {
 	void		(*setconfig)(ConfigContext*,const char *,ConfigContext*);///< Set ConfigContext value
 	enum ConfigValType
 			(*gettype)(ConfigContext*, const char *);	///< Return type
+	GSList*		(*keys)(ConfigContext*);			///< Return list of keys
 };
 WINEXPORT ConfigContext*	configcontext_new(gsize objsize); // ConfigContext constructor
 WINEXPORT ConfigContext*	configcontext_new_JSON_string(const char * jsontext);// Constructor

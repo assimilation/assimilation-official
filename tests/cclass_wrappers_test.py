@@ -457,7 +457,6 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['JeanLuc'], 'Locutus')
         self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Locutus","important":"towel","integer":42,"seven":"7"}')
 
-
     def test_int(self):
         if DEBUG: print "test_int(pyConfigContextTest)"
         foo = pyConfigContext()
@@ -491,6 +490,15 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(bar2["hhgttg"]["ford"], "prefect")
         #	However... The pyNetAddr() was turned into a mere string :-( - at least for the moment... Sigh...
 	
+
+    def test_keys(self):
+        foo = pyConfigContext()
+        foo['arthur'] = 'dent'
+        foo['seven'] = 'ofnine'
+        foo['JeanLuc'] = 'Picard'
+        foo['important'] = 'towel'
+        foo['integer'] = 42
+        self.assertEqual(str(foo.keys()), "['JeanLuc', 'arthur', 'important', 'integer', 'seven']")
         
 
     @class_teardown
@@ -498,7 +506,6 @@ class pyConfigContextTest(TestCase):
         assert_no_dangling_Cclasses()
 
 class pyNetIOudpTest(TestCase):
-
 
     def test_constructor(self):
         if DEBUG: print "test_constructor(pyNetIOudpTest)"

@@ -134,6 +134,8 @@ class pyAssimObj:
 
     def __str__(self):
         'Convert this AssimObj into a printable string'
+        if not self._Cstruct:
+            return "[None]"
         base = self._Cstruct[0]
         while (type(base) is not AssimObj):
 	    base=base.baseclass
@@ -144,7 +146,7 @@ class pyAssimObj:
 
     def __del__(self):
         'Free up the underlying Cstruct for this pyAssimObj object.'
-        if self._Cstruct is None:
+        if not self._Cstruct or self._Cstruct is None:
             return
 	base=self._Cstruct[0]
 	# I have no idea why the type(base) is not Frame doesn't work here...
@@ -232,6 +234,8 @@ class pyNetAddr(pyAssimObj):
     # Do we need to define an addrbody() member function?
     def __eq__(self, other):
         "Return True if the two pyNetAddrs are equal"
+        if not other._Cstruct or not self._Cstruct:
+            return False
 	base=self._Cstruct[0]
         while (type(base) is not NetAddr):
 	    base=base.baseclass
@@ -692,6 +696,17 @@ class pyConfigContext(pyAssimObj):
         'Return the string associated with "name"'
         self._Cstruct[0].setstring(self._Cstruct, name, value)
 
+    def keys(self):
+        l = []
+        keylist = cast(self._Cstruct[0].keys(self._Cstruct), POINTER(GSList));
+        curkey = keylist
+        while curkey:
+            l.append(string_at(curkey[0].data))
+            curkey=g_slist_next(curkey)
+        g_slist_free(keylist)
+        return l
+        
+
     def __getitem__(self, name):
         'Return a value associated with "name"'
         # This method really sucks.  There is now a better way calling gettype() first.
@@ -738,6 +753,13 @@ class pyNetIO(pyAssimObj):
         if Cstruct is None:
             Cstruct=netio_new(0, configobj._Cstruct, packetdecoder._Cstruct)
         self._Cstruct = Cstruct
+
+    def setblockio(self, mode):
+        'Return the file descriptor for this pyNetIO object'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'setblockio')):
+            base=base.baseclass
+        return base.setblockio(self._Cstruct, int(mode))
 
     def getfd(self):
         'Return the file descriptor for this pyNetIO object'
@@ -815,6 +837,11 @@ class pyNetIO(pyAssimObj):
         fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
         address = pyNetAddr(None, Cstruct=netaddr)
+        if netaddr:
+            netaddr[0].baseclass.ref(netaddr)
+            address = pyNetAddr(None, Cstruct=netaddr)
+        else:
+            address = None
         return (address, fslist)
 
     @staticmethod
@@ -831,3 +858,16 @@ class pyNetIOudp(pyNetIO):
         if not Cstruct:
             raise ValueError, ("Invalid parameters to pyNetIOudp constructor")
         pyNetIO.__init__(self, config, packetdecoder, Cstruct=Cstruct)
+
+class CMAlib:
+    @staticmethod
+    def create_setconfig(cfg):
+        fs =  cast(create_setconfig(cfg._Cstruct), cClass.FrameSet)
+        return pyFrameSet(None, Cstruct=fs)
+
+    @staticmethod
+    def create_sendexpecthb(cfg, msgtype, address):
+        ucfs =  create_sendexpecthb(cfg._Cstruct, int(msgtype)
+	,	address._Cstruct, 1);
+        fs = cast(ucfs, cClass.FrameSet)
+        return pyFrameSet(None, Cstruct=fs)

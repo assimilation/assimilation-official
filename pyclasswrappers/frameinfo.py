@@ -1,3 +1,8 @@
+#!/usr/bin/python
+'''
+A collection of classes which provide constants for FrameTypes and FrameSetTypes
+'''
+
 import re
 class pyFrame:
   pass
@@ -231,12 +236,12 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
         key = data[1]
         _strframetypes[key] = (i, data[0], key, data[1], data[2])
     
-    @classmethod
+    @staticmethod
     def get(key):
         if type(key) is str:
-            return _strframetypes[key]
+            return FrameTypes._strframetypes[key]
         else:
-            return _intframetypes[int(key)]
+            return FrameTypes._intframetypes[int(key)]
 
     @classmethod
     def c_defines(cls, f):
@@ -301,7 +306,7 @@ class FrameSetTypes:
 	'PING':		(3, 'Are you alive? (can also come from the CMA)'),
 	'PONG':		(4,  'I am alive'),
 	# nanoprobe packets sent to collective management authority
-	'STARTUP':	(16, 'System originating packet looking for heartbeat configuratin.'),
+	'STARTUP':	(16, 'System originating packet looking for heartbeat configuration.'),
 	'HBDEAD':	(17, 'System named in packet appears to be dead.'),
 	'HBLATE':	(18, 'System named in packet appears to be dead.'),
 	'HBBACKALIVE':	(19, 'System named in packet appears to be dead.'),
@@ -325,12 +330,12 @@ class FrameSetTypes:
         i = _strframetypes[s][0]
         _intframetypes[i] = (s, _strframetypes[s][1])
 
-    @classmethod
+    @staticmethod
     def get(key):
         if type(key) is str:
-            return _strframetypes[key]
+            return FrameSetTypes._strframetypes[key]
         else:
-            return _intframetypes[int(key)]
+            return FrameSetTypes._intframetypes[int(key)]
 
     @classmethod
     def c_defines(cls, f):

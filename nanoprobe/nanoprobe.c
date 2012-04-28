@@ -145,7 +145,7 @@ main(int argc, char **argv)
 {
 	//const guint8		loopback[] = CONST_IPV6_LOOPBACK;
 	//const guint8		defaultCMAaddr[] = CONST_ASSIM_DEFAULT_V4_MCAST;
-	const guint8		defaultCMAaddr[] = {10,10,10,4};
+	const guint8		defaultCMAaddr[] = {10,10,10,200};
 	//const guint8		anyv6addrstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	const guint8		localv4address[] = {10,10,10,5};
 	guint16			testport = DEFAULT_PORT;

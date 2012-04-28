@@ -41,6 +41,7 @@
 #include <cstringframe.h>
 #include <frametypes.h>
 #include <nanoprobe.h>
+#include <cmalib.h>
 
 
 #define		TESTPORT	1984
@@ -72,8 +73,6 @@ ObeyFrameSetTypeMap cmalist [] = {
 };
 	
 
-FrameSet* create_sendexpecthb(ConfigContext*, NetAddr* addrs, int addrcount);
-FrameSet* create_setconfig(ConfigContext * cfg);
 ConfigContext*	nanoconfig;
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
@@ -128,62 +127,6 @@ timeout_agent(gpointer ignored)
 	return TRUE;
 }
 
-/**
- * Create a @ref FrameSet to send and expect heartbeats from the same sets of addresses.
- * Keep in mind the entire packet needs to fit in a UDP packet (< 64K).
- * The port, hbtime, deadtime, and warntime parameters apply to all given addresses.
- */
-FrameSet*
-create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
-		,   NetAddr* addrs		///<[in/out] Addresses to include
-		,   int addrcount)		///<[in] Count of 'addrs' provided
-{
-	FrameSet* ret = frameset_new(FRAMESETTYPE_SENDEXPECTHB);
-	int	count = 0;
-
-	// Put the port in the message (if asked)
-	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
-		gint	port = config->getint(config, CONFIGNAME_HBPORT);
-		IntFrame * intf = intframe_new(FRAMETYPE_PORTNUM, 2);
-		intf->setint(intf, port);
-		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
-	}
-	// Put the heartbeat interval in the message (if asked)
-	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
-		gint	hbtime = config->getint(config, CONFIGNAME_HBTIME);
-		IntFrame * intf = intframe_new(FRAMETYPE_HBINTERVAL, 4);
-		intf->setint(intf, hbtime);
-		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
-	}
-	// Put the heartbeat deadtime in the message (if asked)
-	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
-		gint deadtime = config->getint(config, CONFIGNAME_DEADTIME);
-		IntFrame * intf = intframe_new(FRAMETYPE_HBDEADTIME, 4);
-		intf->setint(intf, deadtime);
-		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
-	}
-	// Put the heartbeat warntime in the message (if asked)
-	if (config->getint(config, CONFIGNAME_WARNTIME) > 0) {
-		gint warntime = config->getint(config, CONFIGNAME_WARNTIME);
-		IntFrame * intf = intframe_new(FRAMETYPE_HBWARNTIME, 4);
-		intf->setint(intf, warntime);
-		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
-	}
-
-	// Put all the addresses we were given in the message.
-	for (count=0; count < addrcount; ++count) {
-		AddrFrame* hbaddr = addrframe_new(FRAMETYPE_IPADDR, 0);
-		hbaddr->setnetaddr(hbaddr, &addrs[count]);
-		frameset_append_frame(ret, &hbaddr->baseclass);
-		hbaddr->baseclass.baseclass.unref(hbaddr); hbaddr = NULL;
-	}
-	return  ret;
-}
-
 /// Routine to pretend to be the initial CMA
 void
 fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
@@ -203,106 +146,17 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	pkt->unref(pkt); pkt = NULL;
 
 	// Now tell them to send/expect heartbeats to various places
-	pkt = create_sendexpecthb(auth->baseclass.config, destaddr, 1);
+	pkt = create_sendexpecthb(auth->baseclass.config,FRAMESETTYPE_SENDEXPECTHB, destaddr, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
 	pkt->unref(pkt); pkt = NULL;
 
-	pkt = create_sendexpecthb(auth->baseclass.config, otheraddr, 1);
+	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
 	pkt->unref(pkt); pkt = NULL;
 
-	pkt = create_sendexpecthb(auth->baseclass.config, otheraddr2, 1);
+	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr2, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
 	pkt->unref(pkt); pkt = NULL;
-}
-
-/// Create a FRAMESETTYPE_SETCONFIG @ref FrameSet.
-/// We create it from a ConfigContext containing <i>only</i> values we want to go into
-/// the SETCONFIG message.  We ignore frames in the ConfigContext (shouldn't be any).
-/// We are effectively a "friend" function to the ConfigContext object - either that
-/// or we cheated in order to iterate through its hash tables ;-)
-FrameSet*
-create_setconfig(ConfigContext * cfg)
-{
-	FrameSet*	fs = frameset_new(FRAMESETTYPE_SETCONFIG);
-	GHashTableIter	iter;
-	gpointer	key;
-	gpointer	data;
-
-	// First we go through the integer values (if any)
-	// Next we go through the string values (if any)
-	// Lastly we go through the NetAddr values (if any)
-
-	// Integer values
-	if (!cfg->_values) {
-		return NULL;
-	}
-	g_hash_table_iter_init(&iter, cfg->_values);
-	while (g_hash_table_iter_next(&iter, &key, &data)) {
-		char *		name = key;
-		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-
-		switch (cfg->gettype(cfg, key)) {
-			case CFG_INT64:
-			case CFG_STRING:
-			case CFG_NETADDR:
-					break;
-			default:	// Completely ignore everything else
-					continue;
-		}
-
-		// Put the name into the frameset
-		n->baseclass.setvalue(&n->baseclass, strdup(name), strlen(name)+1
-		,		      frame_default_valuefinalize);
-		frameset_append_frame(fs, &n->baseclass);
-		n->baseclass.baseclass.unref(n); n = NULL;
-
-		// Now put the value in...
-		switch(cfg->gettype(cfg, key)) {
-			case CFG_EEXIST:
-			case CFG_NULL:
-			case CFG_BOOL:
-			case CFG_FLOAT:
-			case CFG_ARRAY:
-			case CFG_CFGCTX:
-			case CFG_FRAME:
-				break;	// Ignore these...
-
-			case CFG_INT64: {
-				gint64		value = cfg->getint(cfg, name);
-				IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 8);
-				v->setint(v, value);
-				frameset_append_frame(fs, &v->baseclass);
-				v->baseclass.baseclass.unref(v);
-				break;
-			}
-			case CFG_STRING: {
-				const char *	value = cfg->getstring(cfg, name);
-				CstringFrame*	v = cstringframe_new(FRAMETYPE_CSTRINGVAL, 0);
-				v->baseclass.setvalue(&v->baseclass, g_strdup(value)
-				,		      strlen(value)+1, frame_default_valuefinalize);
-				frameset_append_frame(fs, &v->baseclass);
-				v->baseclass.baseclass.unref(v);
-				break;
-			}
-			case CFG_NETADDR: {
-				NetAddr *	value = cfg->getaddr(cfg, name);
-				AddrFrame*	v = addrframe_new(FRAMETYPE_IPADDR, 0);
-				// The port doesn't come through when going across the wire
-				if (value->port(value) != 0) {
-					IntFrame*	p = intframe_new(FRAMETYPE_PORTNUM, 4);
-					p->setint(p, value->port(value));
-					frameset_append_frame(fs, &p->baseclass);
-					p->baseclass.baseclass.unref(p); p = NULL;
-				}
-				v->setnetaddr(v, value);
-				frameset_append_frame(fs, &v->baseclass);
-				v->baseclass.baseclass.unref(v); v = NULL;
-				break;
-			}
-		}
-	}
-	return fs;
 }
 
 /**

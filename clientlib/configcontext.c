@@ -23,6 +23,7 @@ FSTATIC void	_configcontext_ref(ConfigContext* self);
 FSTATIC void	_configcontext_unref(ConfigContext* self);
 FSTATIC void	_configcontext_finalize(AssimObj* self);
 FSTATIC enum ConfigValType	_configcontext_gettype(ConfigContext*, const char *name);
+FSTATIC GSList*	_configcontext_keys(ConfigContext*);
 FSTATIC gint	_configcontext_getint(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setint(ConfigContext*, const char *name, gint value);
 FSTATIC const char* _configcontext_getstring(ConfigContext*, const char *name);
@@ -34,6 +35,7 @@ FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
 FSTATIC ConfigContext*
 		_configcontext_getconfig(ConfigContext*, const char*);
 FSTATIC void	_configcontext_setconfig(ConfigContext*,const char *,ConfigContext*);
+FSTATIC gint	_configcontext_key_compare(gconstpointer a, gconstpointer b);
 
 
 
@@ -78,6 +80,7 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->setconfig	=	_configcontext_setconfig;
 	newcontext->getconfig	=	_configcontext_getconfig;
 	newcontext->gettype	=	_configcontext_gettype;
+	newcontext->keys	=	_configcontext_keys;
 	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, g_free
 					,		      _configcontext_value_finalize);
 	baseobj->_finalize	=	_configcontext_finalize;
@@ -92,6 +95,7 @@ errout:
 	g_return_val_if_reached(NULL);
 }
 
+/// Finalize (free) a ConfigContext object
 FSTATIC void
 _configcontext_finalize(AssimObj* aself)
 {
@@ -104,6 +108,35 @@ _configcontext_finalize(AssimObj* aself)
 	FREECLASSOBJ(self);
 }
 
+/// Compare two string keys (for GSList sorting)
+FSTATIC gint
+_configcontext_key_compare(gconstpointer a, gconstpointer b)
+{
+	return strcmp((const char *)a, (const char*)b);
+}
+
+/// Return a GSList of all the keys in a ConfigContext object
+FSTATIC GSList*
+_configcontext_keys(ConfigContext* cfg)
+{
+	GSList*		keylist = NULL;
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	data;
+
+	if (!cfg->_values) {
+		return NULL;
+	}
+
+	g_hash_table_iter_init(&iter, cfg->_values);
+	while (g_hash_table_iter_next(&iter, &key, &data)) {
+		keylist = g_slist_prepend(keylist, key);
+	}
+	keylist= g_slist_sort(keylist, _configcontext_key_compare);
+	return keylist;
+}
+
+/// Return a the type of value associated with a given name
 FSTATIC enum ConfigValType
 _configcontext_gettype(ConfigContext* self, const char *name)
 {
@@ -246,6 +279,7 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
+/// Return a the a ConfigContext value associated with a given name
 FSTATIC ConfigContext*
 _configcontext_getconfig(ConfigContext* self , const char* name)
 {
@@ -261,6 +295,7 @@ _configcontext_getconfig(ConfigContext* self , const char* name)
 	}
 	return CASTTOCLASS(ConfigContext, cfg->objvalue);
 }
+/// Save/Set a ConfigContext value associated with a given name
 FSTATIC void
 _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* value)
 {
@@ -272,6 +307,7 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
+/// Create a ConfigValue object (containing an object and its type)
 FSTATIC ConfigValue*
 _configcontext_value_new(enum ConfigValType t)
 {
@@ -285,6 +321,7 @@ _configcontext_value_new(enum ConfigValType t)
 	return ret;
 }
 
+/// Finalize (free) a ConfigValue object
 FSTATIC void
 _configcontext_value_finalize(gpointer vself)
 {
@@ -315,6 +352,7 @@ _configcontext_value_finalize(gpointer vself)
 ///@}
 
 #define	JSONQUOTES	"\\\""
+/// Escape characters in a string according to JSON conventions...
 FSTATIC char *
 JSONquotestring(char * s, gboolean ismalloced)
 {
@@ -497,6 +535,7 @@ configcontext_new_JSON_string(const char * jsontext)
 	return ret;
 }
 
+/// Parse complete JSON object followed by EOF
 FSTATIC ConfigContext*
 _configcontext_JSON_parse_objandEOF(GScanner* scan)
 {
@@ -509,6 +548,7 @@ _configcontext_JSON_parse_objandEOF(GScanner* scan)
 	return ret;
 }
 
+/// Parse a JSON object
 FSTATIC ConfigContext*
 _configcontext_JSON_parse_object(GScanner* scan)
 {
@@ -541,6 +581,7 @@ _configcontext_JSON_parse_object(GScanner* scan)
 	}
 	return ret;
 }
+/// Parse a JSON (object) members (a list of "name" : "value" pairs)
 FSTATIC ConfigContext*
 _configcontext_JSON_parse_members(GScanner* scan, ConfigContext* cfg)
 {
@@ -555,7 +596,7 @@ _configcontext_JSON_parse_members(GScanner* scan, ConfigContext* cfg)
 	return cfg;
 }
 
-// Parse a "name": value pair
+// Parse a JSON "name": value pair
 FSTATIC ConfigContext*
 _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 {
@@ -650,5 +691,4 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 		g_free(name); name = NULL;
 	}
 	return cfg;
-	
 }

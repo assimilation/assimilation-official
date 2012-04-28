@@ -70,6 +70,145 @@
 #	We will need a database RealSoonNow :-D.
 #
 
+import sys, time
+sys.path.append("../pyclasswrappers")
+sys.path.append("pyclasswrappers")
+from frameinfo import FrameTypes, FrameSetTypes
+from AssimCclasses import *
 
-class PacketReceiver
+class DroneInfo:
+    droneset = {}
+    def __init__(self, name):
+        self.name = name
+
+    @staticmethod
+    def find(name):
+        if DroneInfo.droneset.has_key(name):
+            return DroneInfo.droneset[name]
+        return None
+
+    @staticmethod
+    def add(name):
+        if DroneInfo.droneset.has_key(name):
+            return DroneInfo.droneset[name]
+        ret = DroneInfo(name)
+        DroneInfo.droneset[name] = ret
+        return ret
+
+class DispatchTarget:
+    'Base class for handling incoming FrameSets'
+    def __init__(self):
+        pass
+    def dispatch(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        print "Received FrameSet of type [%s] from [%s]" %(FrameSetTypes.get(fstype)[0], str(origaddr))
+        for frame in frameset.iter():
+            frametype=frame.frametype()
+            print "\tframe type [%s]: [%s]" % (FrameTypes.get(frametype)[1], str(frame))
+
+    def setconfig(self, io, config):
+        self.io = io
+        self.config = config
+        
+class DispatchSTARTUP(DispatchTarget):
+    def dispatch(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
+	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        print "Creating SetConfig FrameSet..."
+        fs = CMAlib.create_setconfig(self.config)
+        print 'Telling them to heartbeat themselves.'
+        fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
+        ,		origaddr)
+        print 'Sending SetConfig frameset'
+        self.io.sendframesets(origaddr, (fs,fs2))
+        
+
+class MessageDispatcher:
+    def __init__(self, dispatchtable):
+        self.dispatchtable = dispatchtable
+        self.default = DispatchTarget()
+        pass
+    def dispatch(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        if self.dispatchtable.has_key(fstype):
+            self.dispatchtable[fstype].dispatch(origaddr, frameset)
+        else:
+            self.default.dispatch(origaddr, frameset)
+
+    def setconfig(self, io, config):
+        self.io = io
+        self.default.setconfig(io, config)
+        for msgtype in self.dispatchtable.keys():
+            self.dispatchtable[msgtype].setconfig(io, config)
+        
+       
+    
+
+class PacketListener:
+    'Listen for packets and dispatch them'
+    def __init__(self, config, dispatch):
+        # Our configuration object should contain these keys:
+        #   cmainit	NetAddr - our initial address - we bind to it
+        #   cmaaddr	NetAddr - ought to be the same for now
+        #   cmadisc	NetAddr - ought to be the same for now
+        #   cmafail	NetAddr - ought to be the same for now
+        #   cmaport	int - port number for CMA communication
+        #   outsig	SignFrame
+        #   deadtime	int - time before declaring drone dead
+        #   warntime	int - time before whining about slow drone
+        #   hbtime	int - how often to heartbeat
+        #   hbport	int - port number for heartbeat communication
+        self.config = config
+	self.io = pyNetIOudp(config, pyPacketDecoder())
+
+        dispatch.setconfig(self.io, config)
+
+	self.io.bindaddr(config["cmainit"])
+        self.io.setblockio(True)
+        print "IO[socket=%d,maxpacket=%d] created." % (self.io.getfd(), self.io.getmaxpktsize())
+        self.dispatcher = dispatch
+        
+    def listen(self):
+      discover = FrameSetTypes.get("STARTUP")
+      while True:
+        (fromaddr, framesetlist) = self.io.recvframesets()
+        if fromaddr is None:
+            # BROKEN! ought to be able to set blocking mode on the socket...
+            #print "Failed to get a packet - sleeping."
+            time.sleep(1.0)
+        else:
+            #print "Received packet from [%s]" % (str(fromaddr))
+            for frameset in framesetlist:
+                self.dispatcher.dispatch(fromaddr, frameset)
+
+#
+#	"Main" program starts below...
+#
+#
+#
+
+print FrameTypes.get(1)[2]
+
+OurAddr = pyNetAddr((10,10,10,200),1984)
+configinit = {
+	'cmainit':	OurAddr,	# Initial 'hello' address
+	'cmaaddr':	OurAddr,	# not sure what this one does...
+	'cmadisc':	OurAddr,	# Discovery packets sent here
+	'cmafail':	OurAddr,	# Failure packets sent here
+	'cmaport':	1984,
+	'hbport':	1984,
+	'outsig':	pySignFrame(1),
+	'deadtime':	10*1000000,
+	'warntime':	3*1000000,
+	'hbtime':	1*1000000,
+}
+disp = MessageDispatcher(
+	{	FrameSetTypes.STARTUP: DispatchSTARTUP()
+	})
+config = pyConfigContext(init=configinit)
+listener = PacketListener(config, disp)
+listener.listen()
+
+
 
