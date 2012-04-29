@@ -63,6 +63,7 @@ int		pcapcount = 0;
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void got_heartbeat(HbListener* who);
 void got_heartbeat2(HbListener* who);
+void check_JSON(FrameSet* fs);
 
 void fakecma_startup(AuthListener*, FrameSet* fs, NetAddr*);
 gboolean timeout_agent(gpointer ignored);
@@ -74,6 +75,40 @@ ObeyFrameSetTypeMap cmalist [] = {
 	
 
 ConfigContext*	nanoconfig;
+
+void
+check_JSON(FrameSet* fs)
+{
+	GSList*	fptr;
+	int	jsoncount = 0;
+	int	errcount = 0;
+
+	g_debug("Frameset type is: %d", fs->fstype);
+	for (fptr=fs->framelist; fptr; fptr=fptr->next) {
+		Frame*	frame = CASTTOCLASS(Frame, fptr->data);
+		CstringFrame*	csf;
+		ConfigContext *	config;
+		g_debug("Frame type is: %d", frame->type);
+		if (frame->type != FRAMETYPE_JSDISCOVER) {
+			continue;
+		}
+		++jsoncount;
+		// Ahh!  JSON data.  Let's parse it!
+		csf = CASTTOCLASS(CstringFrame, frame);
+		config = configcontext_new_JSON_string(csf->baseclass.value);
+		if (config == NULL) {
+			g_warning("JSON text did not parse correctly [%s]"
+			,	(char*)csf->baseclass.value);
+			++errcount;
+		}else{
+			char *	tostr = config->baseclass.toString(config);
+			g_message("PARSED JSON: %s", tostr);
+			g_free(tostr); tostr = NULL;
+		}
+		config->baseclass.unref(config); config = NULL;
+	}
+	g_message("%d JSON strings parsed.  %d errors.", jsoncount, errcount);
+}
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
 gboolean
@@ -96,6 +131,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	case FRAMESETTYPE_JSDISCOVERY:
 		g_message("CMA Received JSON discovery data (type %d) over the 'wire'."
 		,	  fs->fstype);
+		check_JSON(fs);
 		break;
 	default:
 		g_message("CMA Received a FrameSet of type %d over the 'wire'."
@@ -139,6 +175,7 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	g_message("CMA received startup message from nanoprobe at address %s/%d."
 	,	nanostr, nanoaddr->port(nanoaddr));
 	g_free(nanostr); nanostr = NULL;
+	check_JSON(ifs);
 
 	// Send the configuration data to our new "client"
 	pkt = create_setconfig(nanoconfig);

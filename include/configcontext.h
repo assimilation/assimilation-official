@@ -32,6 +32,19 @@ enum ConfigValType {
 	CFG_NETADDR,	// NetAddr object
 	CFG_FRAME,	// Frame object
 };
+typedef struct _ConfigValue ConfigValue;
+struct _ConfigValue {
+	enum ConfigValType	valtype;
+	struct {
+		gint64			intvalue;	// Or boolean
+		double			floatvalue;
+		GSList*			arrayvalue;	// Each element pointing to a ConfigValue object
+		char*			strvalue;	// A string
+		ConfigContext*		cfgctxvalue;	// Another ConfigContext object
+		NetAddr*		addrvalue;	// A NetAddr value
+		Frame*			framevalue;	// A Frame value
+	}u;
+};
 
 ///@{
 /// @ingroup ConfigContext
@@ -44,6 +57,10 @@ struct _ConfigContext {
 	GHashTable*	_values;			///< table of Values
 	gint		(*getint)(ConfigContext*, const char *name);	///< Get integer value
 	void		(*setint)(ConfigContext*, const char *name, gint value);	///< Set integer value
+	double		(*getdouble)(ConfigContext*, const char *name);	///< Get double value
+	void		(*setdouble)(ConfigContext*, const char *name, double value);	///< Set double value
+	GSList*		(*getarray)(ConfigContext*, const char *name);	///< Get array value
+	void		(*setarray)(ConfigContext*, const char *name, GSList*);	///< Set array double value
 	const char*	(*getstring)(ConfigContext*, const char *name);	///< Get String value
 	void		(*setstring)(ConfigContext*, const char *name, const char *value);
 	Frame*		(*getframe)(ConfigContext*, const char*);	///< Get Frame value

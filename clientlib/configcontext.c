@@ -10,17 +10,7 @@
  */
 #include <configcontext.h>
 #include <memory.h>
-
-typedef struct _ConfigValue ConfigValue;
-struct _ConfigValue {
-	enum ConfigValType	valtype;
-	union {
-		gint64			intvalue;	// Or boolean
-		double			floatvalue;
-		GSList*			arrayvalue;
-		gpointer		objvalue;
-	}u;
-};
+#include <stdlib.h>
 
 FSTATIC void	_configcontext_ref(ConfigContext* self);
 FSTATIC void	_configcontext_unref(ConfigContext* self);
@@ -44,15 +34,26 @@ FSTATIC gint	_configcontext_key_compare(gconstpointer a, gconstpointer b);
 
 FSTATIC char *	_configcontext_toString(gconstpointer aself);
 FSTATIC char * _configcontext_elem_toString(ConfigValue* val);
-FSTATIC char *	JSONquotestring(char * s, gboolean ismalloced);
-FSTATIC ConfigContext* _configcontext_JSON_parse_string(const char * json);
-FSTATIC GScanner* _configcontext_JSON_GScanner_new(void);
-FSTATIC ConfigContext* _configcontext_JSON_parse_objandEOF(GScanner* scan);
-FSTATIC ConfigContext* _configcontext_JSON_parse_object(GScanner* scan);
-FSTATIC ConfigContext* _configcontext_JSON_parse_members(GScanner* scan, ConfigContext* cfg);
-FSTATIC ConfigContext* _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg);
+FSTATIC char *	JSONquotestring(char * s);
+FSTATIC ConfigContext*	_configcontext_JSON_parse_string(const char * json);
+FSTATIC GScanner*	_configcontext_JSON_GScanner_new(void);
+FSTATIC ConfigContext*	_configcontext_JSON_parse_objandEOF(GScanner* scan);
+FSTATIC ConfigContext*	_configcontext_JSON_parse_object(GScanner* scan);
+FSTATIC ConfigContext*	_configcontext_JSON_parse_members(GScanner* scan, ConfigContext* cfg);
+FSTATIC ConfigContext*	_configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg);
+FSTATIC ConfigValue*	_configcontext_JSON_parse_value(GScanner* scan);
+FSTATIC gboolean	_configcontext_JSON_parse_array(GScanner* scan, GSList** retval);
 FSTATIC ConfigValue* _configcontext_value_new(enum ConfigValType);
 FSTATIC void _configcontext_value_finalize(gpointer vself);
+FSTATIC void _key_free(gpointer vself);
+
+FSTATIC void
+_key_free(gpointer vself)
+{
+	//g_message("Freeing pointer at %p", vself);
+	g_free(vself);
+}
+
 /**
  * @defgroup ConfigContext ConfigContext class
  * A base class for remembering configuration values of various types.
@@ -87,7 +88,7 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->getconfig	=	_configcontext_getconfig;
 	newcontext->gettype	=	_configcontext_gettype;
 	newcontext->keys	=	_configcontext_keys;
-	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, g_free
+	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, _key_free
 					,		      _configcontext_value_finalize);
 	baseobj->_finalize	=	_configcontext_finalize;
 	baseobj->toString	=	_configcontext_toString;
@@ -202,7 +203,7 @@ _configcontext_getstring(ConfigContext* self	///<[in] ConfigContext object
 	if (cfg->valtype != CFG_STRING) {
 		return NULL;
 	}
-	return (const char *)cfg->u.objvalue;
+	return cfg->u.strvalue;
 }
 
 /// Set a name to a string value
@@ -211,12 +212,10 @@ _configcontext_setstring(ConfigContext* self	///<[in/out] ConfigContext object
 			,const char *name	///<[in] Name to set the string value of (we copy it)
 			,const char *value)	///<[in] Value to set 'name' to (we copy it)
 {
-	char *	cpname = g_strdup(name);
-	char *	cpvalue = g_strdup(value);
 	ConfigValue* val = _configcontext_value_new(CFG_STRING);
 
-	val->u.objvalue = cpvalue;
-	g_hash_table_replace(self->_values, cpname, val);
+	val->u.strvalue = g_strdup(value);
+	g_hash_table_replace(self->_values, g_strdup(name), val);
 }
 
 
@@ -235,7 +234,7 @@ _configcontext_getaddr(ConfigContext* self	///<[in] ConfigContext object
 	if (cfg->valtype != CFG_NETADDR) {
 		return NULL;
 	}
-	return CASTTOCLASS(NetAddr, cfg->u.objvalue);
+	return cfg->u.addrvalue;
 }
 
 /// Set the NetAddr value of a name
@@ -248,7 +247,7 @@ _configcontext_setaddr(ConfigContext* self	///<[in/out] ConfigContext object
 	ConfigValue* val = _configcontext_value_new(CFG_NETADDR);
 
 	addr->baseclass.ref(addr);
-	val->u.objvalue = addr;
+	val->u.addrvalue = addr;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -267,7 +266,7 @@ _configcontext_getframe(ConfigContext* self	///<[in] ConfigContext object
 	if (cfg->valtype != CFG_FRAME) {
 		return NULL;
 	}
-	return CASTTOCLASS(Frame, cfg->u.objvalue);
+	return cfg->u.framevalue;
 }
 
 /// Set the signature frame to the given SignFrame
@@ -281,7 +280,7 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 	ConfigValue* val = _configcontext_value_new(CFG_FRAME);
 
 	frame->baseclass.ref(frame);
-	val->u.objvalue = frame;
+	val->u.framevalue = frame;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -299,7 +298,7 @@ _configcontext_getconfig(ConfigContext* self , const char* name)
 	if (cfg->valtype != CFG_CFGCTX) {
 		return NULL;
 	}
-	return CASTTOCLASS(ConfigContext, cfg->u.objvalue);
+	return cfg->u.cfgctxvalue;
 }
 /// Save/Set a ConfigContext value associated with a given name
 FSTATIC void
@@ -309,7 +308,7 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 	ConfigValue* val = _configcontext_value_new(CFG_CFGCTX);
 
 	value->baseclass.ref(value);
-	val->u.objvalue = value;
+	val->u.cfgctxvalue = value;
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
@@ -323,7 +322,6 @@ _configcontext_value_new(enum ConfigValType t)
 	if (ret) {
 		ret->valtype = t;
 		memset(&ret->u, 0, sizeof(ret->u));
-		ret->u.objvalue = NULL;
 	}
 	return ret;
 }
@@ -337,13 +335,21 @@ _configcontext_value_finalize(gpointer vself)
 	self = CASTTOCLASS(ConfigValue, vself);
 	switch (self->valtype) {
 		case CFG_STRING:
-			g_free(self->u.objvalue); self->u.objvalue = NULL;
+			g_free(self->u.strvalue); self->u.strvalue = NULL;
 			break;
-		case CFG_CFGCTX:
-		case CFG_NETADDR:
+		case CFG_CFGCTX: {
+			AssimObj*	obj = &self->u.cfgctxvalue->baseclass;
+			obj->unref(obj); obj = NULL; self->u.cfgctxvalue = NULL;
+			break;
+		}
+		case CFG_NETADDR: {
+			AssimObj*	obj = &self->u.addrvalue->baseclass;
+			obj->unref(obj); obj = NULL; self->u.addrvalue = NULL;
+			break;
+		}
 		case CFG_FRAME: {
-			AssimObj*	obj = CASTTOCLASS(AssimObj, self->u.objvalue);
-			obj->unref(obj); obj = NULL; self->u.objvalue = NULL;
+			AssimObj*	obj = &self->u.framevalue->baseclass;
+			obj->unref(obj); obj = NULL; self->u.framevalue = NULL;
 			break;
 		}
 
@@ -362,24 +368,20 @@ _configcontext_value_finalize(gpointer vself)
 #define	JSONQUOTES	"\\\""
 /// Escape characters in a string according to JSON conventions...
 FSTATIC char *
-JSONquotestring(char * s, gboolean ismalloced)
+JSONquotestring(char * s)
 {
 	GString*	ret;
 	char *		str;
-	if (strpbrk(s, JSONQUOTES) == NULL)  {
-		return s;
-	}
-	ret = g_string_sized_new(strlen(s)+3);
+	ret = g_string_sized_new(strlen(s)+5);
+	g_string_append_c(ret, '"');
 	
-	for (str=s;*str ; ++str ) {
+	for (str=s; *str; ++str ) {
 		if (strchr(JSONQUOTES, *str )) {
 			g_string_append_c(ret, '\\');
 		}
 		g_string_append_c(ret, *str);
 	}
-	if (ismalloced) {
-		g_free(s);
-	}
+	g_string_append_c(ret, '"');
 	return g_string_free(ret, FALSE);
 }
 
@@ -426,18 +428,13 @@ _configcontext_elem_toString(ConfigValue* val)
 			return g_strdup_printf("%g", val->u.floatvalue);
 
 		case CFG_STRING: {
-			char *	quotedstr = JSONquotestring((gchar*)val->u.objvalue, FALSE);
-			char *	retstr = g_strdup_printf("\"%s\"", quotedstr);
-			if (quotedstr != (char*) val->u.objvalue) {
-				g_free(quotedstr);
-			}
-			quotedstr = NULL;
-			return retstr;
+			//g_message("Got string pointer: %p", val->u.strvalue);
+			//g_message("Got string: %s", val->u.strvalue);
+			return JSONquotestring(val->u.strvalue);
 		}
 
 		case CFG_CFGCTX: {
-			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.objvalue);
-			return obj->toString(obj);
+			return val->u.cfgctxvalue->baseclass.toString(val->u.cfgctxvalue);
 		}
 		case CFG_ARRAY: {
 			const char *	acomma = "";
@@ -457,10 +454,11 @@ _configcontext_elem_toString(ConfigValue* val)
 					/// can recognize and make back into a NetAddr
 					/// when we parse the JSON.
 		case CFG_FRAME: {
-			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.objvalue);
-			gchar*		qstr = JSONquotestring(obj->toString(obj), TRUE);
-			char *	retstr = g_strdup_printf("\"%s\"", qstr);
-			g_free(qstr);
+			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.framevalue);
+			char*		tostring = obj->toString(obj);
+			gchar*		retstr = JSONquotestring(tostring);
+
+			tostring = NULL; g_free(tostring);
 			return retstr;
 		}
 		case CFG_EEXIST:
@@ -516,7 +514,7 @@ _configcontext_JSON_GScanner_new(void)
 	config.int_2_float = FALSE;
 	config.identifier_2_string = FALSE;
 	config.char_2_token = TRUE;
-	config.symbol_2_token = TRUE; // ???
+	config.symbol_2_token = FALSE; // ???
 	config.scope_0_fallback = TRUE;
 	config.store_int64 = TRUE;
 
@@ -533,7 +531,7 @@ _configcontext_JSON_GScanner_new(void)
 #define	GULP	(void)g_scanner_get_next_token(scan)
 
 #define SYNERROR(scan, token, symbol, msg)	\
-		g_scanner_unexp_token(scan, token, "keyword", "keyword", symbol, msg, TRUE)
+		{g_warning("In Function %s line %d", __FUNCTION__, __LINE__);g_scanner_unexp_token(scan, token, "keyword", "keyword", symbol, msg, TRUE);}
 
 /// Construct a ConfigContext object from the given JSON string
 ConfigContext*
@@ -575,7 +573,7 @@ _configcontext_JSON_parse_object(GScanner* scan)
 	GULP;	// Swallow '{'
 	ret = configcontext_new(0);
 	if (g_scanner_peek_next_token(scan) == G_TOKEN_RIGHT_CURLY) {
-		// Empty 'object'
+		// Empty 'object' - which is just fine...
 		GULP;
 		return ret;
 	}
@@ -590,6 +588,7 @@ _configcontext_JSON_parse_object(GScanner* scan)
 		// Syntax error...
 		SYNERROR(scan, G_TOKEN_RIGHT_CURLY, NULL, NULL);
 		ret->baseclass.unref(ret); ret = NULL;
+		abort();
 		return ret;
 	}
 	return ret;
@@ -614,6 +613,7 @@ FSTATIC ConfigContext*
 _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 {
 	char *		name = NULL;
+	ConfigValue*	value;
 	// "name" : _value_	pairs
 	//
 	// Name is always a string -
@@ -629,79 +629,153 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 		return NULL;
 	}
 	GULP;
-	if (g_scanner_peek_next_token(scan) != TOKEN_COLON) {
-		GULP;
-		SYNERROR(scan, TOKEN_COLON, NULL, NULL);
-		// Syntax error
-		return NULL;
-	}
 	// Get value of G_TOKEN_STRING
 	name = g_strdup(scan->value.v_string);
+	if (g_scanner_peek_next_token(scan) != TOKEN_COLON) {
+		SYNERROR(scan, TOKEN_COLON, NULL, NULL);
+		// Syntax error
+		g_free(name); name = NULL;
+		return NULL;
+	}
 	GULP;	// Swallow TOKEN_COLON
-	// OK - we now have several next symbol possibilties:
-	switch(g_scanner_peek_next_token(scan)) {
+	if (g_scanner_peek_next_token(scan) == TOKEN_COLON) {
+		abort();
+	}
+	// Next is a value...
+	value = _configcontext_JSON_parse_value(scan);
+	if (value == NULL) {
+		// Syntax error - already noted by the lower layers...
+		g_free(name); name = NULL;
+		return NULL;
+	}
+	g_hash_table_replace(cfg->_values, name, value);
+	return cfg;
+}
+
+FSTATIC ConfigValue*
+_configcontext_JSON_parse_value(GScanner* scan)
+{
+	guint	toktype = g_scanner_peek_next_token(scan);
+	switch(toktype) {
 		case G_TOKEN_STRING:{		// String
-			GULP;
 			/// @todo recognize NetAddr objects encoded as strings and reconstitute them
-			cfg->setstring(cfg, name, scan->value.v_string);
-			break;
-		}
-		case G_TOKEN_INT: {		// Integer
+			ConfigValue* val = _configcontext_value_new(CFG_STRING);
 			GULP;
-			cfg->setint(cfg, name, scan->value.v_int64);
-			break;
+			val->u.strvalue = g_strdup(scan->value.v_string);
+			return val;
 		}
+
+		case G_TOKEN_INT: {		// Integer
+			ConfigValue* val = _configcontext_value_new(CFG_INT64);
+			GULP;
+			val->u.intvalue = scan->value.v_int64;
+			return val;
+		}
+		break;
+
+		case G_TOKEN_FLOAT: {		// Double value
+			ConfigValue* val = _configcontext_value_new(CFG_FLOAT);
+			GULP;
+			val->u.floatvalue = scan->value.v_float;
+			return val;
+		}
+		break;
+	
 		case G_TOKEN_SYMBOL: {		// true, false, null
 			GULP;
-			if (strcmp(scan->value.v_string, "true") == 0) {
-				cfg->setint(cfg, name, 1);
-			}else if (strcmp(scan->value.v_string, "false") == 0) {
-				cfg->setint(cfg, name, 0);
+			if (strcmp(scan->value.v_string, "true") == 0 || strcmp(scan->value.v_string, "false") == 0) {
+				ConfigValue* val = _configcontext_value_new(CFG_BOOL);
+				val->u.intvalue = (strcmp(scan->value.v_string, "true") == 0);
+				return val;
 			}else if (strcmp(scan->value.v_string, "null") == 0) {
-				/// @todo fix the case of null value
-				cfg->setint(cfg, name, 0);
+				return _configcontext_value_new(CFG_NULL);
 			}else{
-				SYNERROR(scan, G_TOKEN_NONE, NULL, "- expecting value");
+				SYNERROR(scan, G_TOKEN_NONE, NULL, "- expecting JSON value");
 				// Syntax error
-				g_free(name); name = NULL;
 				return NULL;
 			}
-			break;
 		}
+		break;
 	
 
 		case G_TOKEN_LEFT_CURLY:{	// Object
+			ConfigValue* val;
 			ConfigContext*	child;
 			child = _configcontext_JSON_parse_object(scan);
 			if (child == NULL) {
 				// Syntax error - detected by child object
-				g_free(name); name = NULL;
 				return NULL;
 			}
-			cfg->setconfig(cfg, name, child);
-			// We don't need the reference we have - setconfig
-			// has grabbed his own..
-			child->baseclass.unref(child); child = NULL;
-			break;
+			val = _configcontext_value_new(CFG_CFGCTX);
+			val->u.cfgctxvalue = child;
+			return val;
 		}
+		break;
 
-		// Things we don't support (yet)
 
-		/// @todo: add Floats to the ConfigContext object
-		case G_TOKEN_FLOAT:		// Floating point number
+		case G_TOKEN_LEFT_BRACE: {	// Array
+			ConfigValue*	val;
+			GSList*		child = NULL;
+			if (!_configcontext_JSON_parse_array(scan, &child)) {
+				// Syntax error - detected by child object
+				return NULL;
+			}
+			val = _configcontext_value_new(CFG_ARRAY);
+			val->u.arrayvalue = child;
+			return val;
+		}
+		break;
 
-		/// @todo: add Arrays to the ConfigContext object
-		case G_TOKEN_LEFT_BRACE:	// Array
+		// Things we don't support...
 		default:
 			// Syntax error
-			SYNERROR(scan, G_TOKEN_NONE, NULL, "arrays not yet supported.");
-			if (name) {
-				g_free(name); name = NULL;
-			}
+			g_warning("Got token type %u", g_scanner_get_next_token(scan));
+			//GULP;
+			SYNERROR(scan, G_TOKEN_NONE, NULL, "Unexpected symbol.");
+			abort();
 			return NULL;
 	}
-	if (name) {
-		g_free(name); name = NULL;
+	/*NOTREACHED*/
+	g_warning("Got token type %u", g_scanner_get_next_token(scan));
+	SYNERROR(scan, G_TOKEN_NONE, NULL, "Unexpected symbol.");
+	return NULL;
+}
+FSTATIC gboolean
+_configcontext_JSON_parse_array(GScanner* scan, GSList** retval)
+{
+	*retval = NULL;
+	if (g_scanner_peek_next_token(scan) != G_TOKEN_LEFT_BRACE) {
+		GULP;
+		SYNERROR(scan, G_TOKEN_LEFT_BRACE, NULL, NULL);
+		// Syntax error
+		return FALSE;
 	}
-	return cfg;
+	while (g_scanner_peek_next_token(scan) != G_TOKEN_RIGHT_BRACE
+	&&     !g_scanner_eof(scan)) {
+		ConfigValue * value;
+
+		// Parse the value
+		value = _configcontext_JSON_parse_value(scan);
+		if (value == NULL) {
+			if (*retval != NULL) {
+				g_slist_free_full(*retval, _configcontext_value_finalize);
+				*retval = NULL;
+				return FALSE;
+			}
+		}
+		// Expect a comma
+		if (g_scanner_peek_next_token(scan) == G_TOKEN_COMMA) {
+			GULP;
+		}else if (g_scanner_peek_next_token(scan) != G_TOKEN_RIGHT_BRACE) {
+			SYNERROR(scan, G_TOKEN_RIGHT_BRACE, NULL, NULL);
+			GULP;
+			return FALSE;
+		}
+	}
+	if (g_scanner_peek_next_token(scan) == G_TOKEN_RIGHT_BRACE) {
+		GULP;
+		return TRUE;
+	}
+	SYNERROR(scan, G_TOKEN_RIGHT_BRACE, NULL, NULL);
+	return FALSE;
 }
