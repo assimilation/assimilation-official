@@ -703,6 +703,7 @@ class pyConfigContext(pyAssimObj):
         self._Cstruct[0].setstring(self._Cstruct, name, value)
 
     def keys(self):
+        'Return the set of keys for this object'
         l = []
         keylist = cast(self._Cstruct[0].keys(self._Cstruct), POINTER(GSList));
         curkey = keylist
@@ -711,34 +712,30 @@ class pyConfigContext(pyAssimObj):
             curkey=g_slist_next(curkey)
         g_slist_free(keylist)
         return l
+
+    def has_key(self, key):
+        'return True if it has the given key'
+        ktype = self._Cstruct[0].gettype(self._Cstruct, key)
+        return ktype != CFG_EEXIST
+    
         
 
     def __getitem__(self, name):
         'Return a value associated with "name"'
-        # This method really sucks.  There is now a better way calling gettype() first.
-        # Really ought to implement keys() too when I get around to it too...
-
-        try:
-            ret = self.getconfig(name)
-            return ret
-        except (IndexError):
-            pass
-        try:
-            ret = self.getstring(name)
-            return ret
-        except (IndexError):
-            pass
-        try:
-            ret = self.getaddr(name)
-            return ret
-        except (IndexError):
-            pass
-        try:
-            ret = self.getframe(name)
-            return ret
-        except (IndexError):
-            pass
-        return self.getint(name)
+        ktype = self._Cstruct[0].gettype(self._Cstruct, name)
+        if ktype == CFG_EEXIST:
+            raise IndexError("No such String value [%s]" % name)
+        if ktype == CFG_CFGCTX:
+            return self.getconfig(name)
+        if ktype == CFG_STRING:
+            return self.getstring(name)
+        if ktype == CFG_NETADDR:
+            return self.getaddr(name)
+        if ktype == CFG_FRAME:
+            return self.getframe(name)
+        if ktype == CFG_INT64:
+            return self.getint(name)
+        return None
 
     def __setitem__(self, name, value):
         'Set a value associated with "name" - in the appropriate table'

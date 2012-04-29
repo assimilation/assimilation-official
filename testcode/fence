@@ -1,0 +1,2 @@
+export LD_PRELOAD=libefence.so.0.0 
+./mainlooptest 10

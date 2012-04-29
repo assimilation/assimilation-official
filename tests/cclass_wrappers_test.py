@@ -495,7 +495,7 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(bar2["voyager"]["Kathryn"], "Janeway")
         self.assertEqual(bar2["hhgttg"]["ford"], "prefect")
         #	However... The pyNetAddr() was turned into a mere string :-( - at least for the moment... Sigh...
-	
+
 
     def test_keys(self):
         foo = pyConfigContext()

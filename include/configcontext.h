@@ -60,7 +60,7 @@ struct _ConfigContext {
 	double		(*getdouble)(ConfigContext*, const char *name);	///< Get double value
 	void		(*setdouble)(ConfigContext*, const char *name, double value);	///< Set double value
 	GSList*		(*getarray)(ConfigContext*, const char *name);	///< Get array value
-	void		(*setarray)(ConfigContext*, const char *name, GSList*);	///< Set array double value
+	void		(*setarray)(ConfigContext*, const char *name, GSList*);	///< Set array value
 	const char*	(*getstring)(ConfigContext*, const char *name);	///< Get String value
 	void		(*setstring)(ConfigContext*, const char *name, const char *value);
 	Frame*		(*getframe)(ConfigContext*, const char*);	///< Get Frame value

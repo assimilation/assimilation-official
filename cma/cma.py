@@ -69,6 +69,12 @@
 #
 #	We will need a database RealSoonNow :-D.
 #
+################################################################################
+#
+# It is readily observable that the code is headed that way, but is a long
+# way from that structure...
+#
+################################################################################
 
 import sys, time
 sys.path.append("../pyclasswrappers")
@@ -77,22 +83,56 @@ from frameinfo import FrameTypes, FrameSetTypes
 from AssimCclasses import *
 
 class DroneInfo:
+    'Everything about Drones - those things that run our nanoprobes'
     droneset = {}
     def __init__(self, name):
         self.name = name
         self.addresses = {}
+        self.jsondiscovery = {}
 
     def addaddr(self, addr, ifname=None):
+        'Record what IPs this drone has - and on what interfaces'
+        print 'Address %s is on interface %s on %s' % \
+            (addr, ifname, self.name)
         self.addresses[str(addr)] = (addr, ifname)
 
+    def logjson(self, jsontext):
+       'Process and save away JSON discovery data'
+       jsonobj = pyConfigContext(jsontext)
+       if not jsonobj.has_key('discovertype') or not jsonobj.has_key('data'):
+           print 'Invalid JSON discovery packet.'
+           return
+       dtype = jsonobj['discovertype']
+       #print "Saved discovery type %s for endpoint %s." % \
+       #   (dtype, self.name)
+       self.jsondiscovery[dtype] = jsonobj
+       if dtype == 'netconfig':
+           self.add_netconfig_addresses(jsonobj)
+
+    def add_netconfig_addresses(self, jsonobj):
+        'Save away the network configuration data we got from JSON discovery.'
+        # Ought to protect this code by try blocks...
+        data = jsonobj['data']
+        for intf in data.keys(): # List of interfaces
+            ifinfo = data[intf]
+            iptable = ifinfo['ipaddrs']
+            for ip in iptable.keys(): # ip/mask in CIDR format
+                ipinfo = iptable[ip]
+                if ipinfo['scope'] != 'global':
+                    continue
+                (iponly,mask) = ip.split('/')
+                self.addaddr(iponly, intf)
+
     @staticmethod
-    def find(name):
-        if DroneInfo.droneset.has_key(name):
-            return DroneInfo.droneset[name]
+    def find(designation):
+        'Find a drone with the given designation.'
+        if DroneInfo.droneset.has_key(designation):
+            return DroneInfo.droneset[designation]
         return None
 
     @staticmethod
     def add(name):
+        "Add a drone to our set if it isn't already there."
         if DroneInfo.droneset.has_key(name):
             return DroneInfo.droneset[name]
         ret = DroneInfo(name)
@@ -100,7 +140,10 @@ class DroneInfo:
         return ret
 
 class DispatchTarget:
-    'Base class for handling incoming FrameSets'
+    '''Base class for handling incoming FrameSets.
+    The FrameSet stops here - so to speak.
+    This base class is designated to handle unhandled FrameSets.
+    '''
     def __init__(self):
         pass
     def dispatch(self, origaddr, frameset):
@@ -117,8 +160,9 @@ class DispatchTarget:
         self.config = config
         
 class DispatchSTARTUP(DispatchTarget):
-    'Base class for handling incoming STARTUP FrameSets'
+    'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
     def dispatch(self, origaddr, frameset):
+        json = None
         fstype = frameset.get_framesettype()
         print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
 	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
@@ -126,23 +170,26 @@ class DispatchSTARTUP(DispatchTarget):
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
                 sysname = frame.getstr()
-        print "Creating SetConfig FrameSet..."
+            if frametype == FrameTypes.JSDISCOVER:
+                json = frame.getstr()
         fs = CMAlib.create_setconfig(self.config)
         #print 'Telling them to heartbeat themselves.'
         #fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
         #,		origaddr)
-        print 'Sending SetConfig frameset'
+        print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
         DroneInfo.add(sysname)
         drone = DroneInfo.find(sysname)
-        drone.firstaddr=origaddr
+        drone.commaddr=origaddr
         drone.addaddr(origaddr)
-        print DroneInfo.find(sysname).firstaddr
-        print DroneInfo.find(sysname).addresses
+        if json is not None:
+            drone.logjson(json)
+        
         
 
 class MessageDispatcher:
+    'We dispatch messages where they need to go'
     def __init__(self, dispatchtable):
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()
@@ -164,19 +211,8 @@ class MessageDispatcher:
     
 
 class PacketListener:
-    'Listen for packets and dispatch them'
+    'Listen for packets and get them dispatched'
     def __init__(self, config, dispatch):
-        # Our configuration object should contain these keys:
-        #   cmainit	NetAddr - our initial address - we bind to it
-        #   cmaaddr	NetAddr - ought to be the same for now
-        #   cmadisc	NetAddr - ought to be the same for now
-        #   cmafail	NetAddr - ought to be the same for now
-        #   cmaport	int - port number for CMA communication
-        #   outsig	SignFrame
-        #   deadtime	int - time before declaring drone dead
-        #   warntime	int - time before whining about slow drone
-        #   hbtime	int - how often to heartbeat
-        #   hbport	int - port number for heartbeat communication
         self.config = config
 	self.io = pyNetIOudp(config, pyPacketDecoder())
 
@@ -184,11 +220,12 @@ class PacketListener:
 
 	self.io.bindaddr(config["cmainit"])
         self.io.setblockio(True)
-        print "IO[socket=%d,maxpacket=%d] created." % (self.io.getfd(), self.io.getmaxpktsize())
+        print "IO[socket=%d,maxpacket=%d] created." \
+	%	(self.io.getfd(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
         
     def listen(self):
-      discover = FrameSetTypes.get("STARTUP")
+      'Listen for packets.  Get them dispatched.'
       while True:
         (fromaddr, framesetlist) = self.io.recvframesets()
         if fromaddr is None:
@@ -202,8 +239,6 @@ class PacketListener:
 
 #
 #	"Main" program starts below...
-#
-#
 #
 
 print FrameTypes.get(1)[2]
