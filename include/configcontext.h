@@ -35,7 +35,7 @@ enum ConfigValType {
 typedef struct _ConfigValue ConfigValue;
 struct _ConfigValue {
 	enum ConfigValType	valtype;
-	struct {
+	union {
 		gint64			intvalue;	// Or boolean
 		double			floatvalue;
 		GSList*			arrayvalue;	// Each element pointing to a ConfigValue object
