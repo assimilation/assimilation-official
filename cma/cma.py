@@ -349,9 +349,10 @@ class MessageDispatcher:
 
 class PacketListener:
     'Listen for packets and get them dispatched as any good packet ought to be.'
-    def __init__(self, config, dispatch):
+    def __init__(self, config, dispatch, io=None):
         self.config = config
-	self.io = pyNetIOudp(config, pyPacketDecoder())
+        if io is None:
+	    self.io = pyNetIOudp(config, pyPacketDecoder())
 
         dispatch.setconfig(self.io, config)
 
@@ -374,14 +375,15 @@ class PacketListener:
             for frameset in framesetlist:
                 self.dispatcher.dispatch(fromaddr, frameset)
 
-#
-#	"Main" program starts below...
-#
+if __name__ == '__main__':
+    #
+    #	"Main" program starts below...
+    #
 
-print FrameTypes.get(1)[2]
+    print FrameTypes.get(1)[2]
 
-OurAddr = pyNetAddr((10,10,10,200),1984)
-configinit = {
+    OurAddr = pyNetAddr((10,10,10,200),1984)
+    configinit = {
 	'cmainit':	OurAddr,	# Initial 'hello' address
 	'cmaaddr':	OurAddr,	# not sure what this one does...
 	'cmadisc':	OurAddr,	# Discovery packets sent here
@@ -392,10 +394,10 @@ configinit = {
 	'deadtime':	10*1000000,
 	'warntime':	3*1000000,
 	'hbtime':	1*1000000,
-}
-disp = MessageDispatcher(
+    }
+    disp = MessageDispatcher(
 	{	FrameSetTypes.STARTUP: DispatchSTARTUP()
 	})
-config = pyConfigContext(init=configinit)
-listener = PacketListener(config, disp)
-listener.listen()
+    config = pyConfigContext(init=configinit)
+    listener = PacketListener(config, disp)
+    listener.listen()
