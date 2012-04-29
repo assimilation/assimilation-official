@@ -82,18 +82,107 @@ sys.path.append("pyclasswrappers")
 from frameinfo import FrameTypes, FrameSetTypes
 from AssimCclasses import *
 
+class HbRing:
+    'Class defining the behavior of a heartbeat ring.'
+    SWITCH      =  1
+    SUBNET      =  2
+    THEONERING  =  3 # And The One Ring to rule them all...
+    members = {}
+    memberlist = []
+
+    def __init__(self, name, ringtype, parentring=None):
+        'Constructor for a heartbeat ring.'
+        if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
+            raise ValueError("Invalid ring type [%s]" % str(ringtype))
+        self.ringtype = ringtype
+        self.name = str(name)
+        self.parentring = parentring
+
+    def join(self, drone):
+        'Add this drone to our ring'
+        if self.members.has_key(drone.designation):
+            raise ValueError("Drone %s is already a member of this ring [%s]"
+            %               (drone.designation, self.name))
+
+        drone.ringmemberships[self.name] = self
+        partners = self._findringpartners(drone)
+        print 'Adding drone %s to talk to partners'%drone.designation, partners
+        if partners == None: return
+        if len(partners) == 1:
+            drone.start_heartbeat(self, partners[0])
+            partners[0].start_heartbeat(self, drone)
+            return
+        partners[0].stop_heartbeat(partners[1])
+        partners[1].stop_heartbeat(partners[0])
+        drone.start_heartbeat(self, partners[0], partners[1])
+        partners[0].start_heartbeat(self, drone)
+        partners[1].start_heartbeat(self, drone)
+
+    def leave(self, drone):
+        'Remove a drone from this heartbeat Ring.'
+        if not self.members.has_key(drone.designation):
+            raise ValueError("Drone %s is not a member of this ring [%s]"
+            %               (drone.designation, self.name))
+        location = self.memberlist.index(drone)
+
+        del self.members[drone.designation]
+        del self.memberlist[location]
+        del drone.ringmemberships[self.name]
+
+        if len(self.memberlist) == 0:  return   # Previous length: 1
+        if len(self.memberlist) == 1:           # Previous length: 2
+            drone.stop_heartbeat(self.memberlist[0])
+            memberlist[0].stop_heartbeat(drone)
+            return
+        # Previous length had to be >= 3
+        partner1=location
+        partner2=location-1
+        if location >= len(self.memberlist):
+            partner1 = 0
+        if location == 0:
+            partner2 = len(self.memberlist)-1
+
+        partner1.stop_heartbeat(drone)
+        partner2.stop_heartbeat(drone)
+        partner1.start_heartbeat(self, partner2)
+        partner2.start_heartbeat(self, partner1)
+        # Poor drone -- all alone in the universe... (maybe even dead...)
+        drone.stop_heartbeat(partner1,partner2)
+        
+    def _findringpartners(self, drone):
+        'Find (one or) two partners for this drone to heartbeat with.'
+        # It would be nice to not keep updating the drone on the end of the list
+        # I suppose walking through the ring would be a good choice
+        # or maybe choosing a random insert position.
+        self.memberlist.insert(0,drone)
+        nummember = len(self.memberlist)
+        if nummember == 1: return None
+        if nummember == 2: return (self.memberlist[1],)
+        return (self.memberlist[0], self.memberlist[nummember-1])
+
+    def __len__(self):
+        'Length function - returns number of members in this ring.'
+        return len(self.memberlist)
+
+    def __str__(self):
+        return 'Ring %s' % self.name
+
+TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
+
 class DroneInfo:
-    'Everything about Drones - those things that run our nanoprobes'
+    'Everything about Drones - endpoints that run our nanoprobes'
     droneset = {}
     def __init__(self, name):
-        self.name = name
+        self.designation = name
         self.addresses = {}
         self.jsondiscovery = {}
+        self.ringpeers = {}
+        self.ringmemberships = {}
 
     def addaddr(self, addr, ifname=None):
         'Record what IPs this drone has - and on what interfaces'
         print 'Address %s is on interface %s on %s' % \
-            (addr, ifname, self.name)
+            (addr, ifname, self.designation)
         self.addresses[str(addr)] = (addr, ifname)
 
     def logjson(self, jsontext):
@@ -104,7 +193,7 @@ class DroneInfo:
            return
        dtype = jsonobj['discovertype']
        #print "Saved discovery type %s for endpoint %s." % \
-       #   (dtype, self.name)
+       #   (dtype, self.designation)
        self.jsondiscovery[dtype] = jsonobj
        if dtype == 'netconfig':
            self.add_netconfig_addresses(jsonobj)
@@ -112,16 +201,61 @@ class DroneInfo:
     def add_netconfig_addresses(self, jsonobj):
         'Save away the network configuration data we got from JSON discovery.'
         # Ought to protect this code by try blocks...
-        data = jsonobj['data']
-        for intf in data.keys(): # List of interfaces
+        # Also ought to figure out which IP is the primary IP for contacting
+	# this system
+        data = jsonobj['data'] # The data portion of the JSON message
+        primaryip = None
+        for intf in data.keys(): # List of interfaces just below the data cection
             ifinfo = data[intf]
-            iptable = ifinfo['ipaddrs']
-            for ip in iptable.keys(): # ip/mask in CIDR format
+            isprimaryif= ifinfo.has_key('default_gw')
+            iptable = ifinfo['ipaddrs'] # look in the 'ipaddrs' section
+            for ip in iptable.keys():   # keys are 'ip/mask' in CIDR format
                 ipinfo = iptable[ip]
                 if ipinfo['scope'] != 'global':
                     continue
                 (iponly,mask) = ip.split('/')
                 self.addaddr(iponly, intf)
+                if isprimaryif and primaryip == None:
+                    primaryip = iponly
+                    self.primaryIP = iponly
+                    self.primaryIF = intf
+
+    def select_partner_ip(self, ring, partner):
+        'Select an appropriate IP address for talking to this partner on this ring'
+        # Not really good enough for the long term, but good enough for now...
+        # In particular, when talking on a particular switch ring, or
+	# subnet ring, we want to choose an IP that's on that subnet.
+	# For TheOneRing, we want their primary IP address.
+        try:
+            return partner.primaryIP
+        except AttributeError as e:
+            # This shouldn't happen, but it's a reasonable recovery,
+            # because we _have_ to know the address they're sending from.
+            return partner.startaddr
+
+    def start_heartbeat(self, ring, partner1, partner2=None):
+        'Start heartbeating to the given partners'
+        partner1ip = self.select_partner_ip(ring, partner1)
+        if partner2 is not None:
+            partner2ip = self.select_partner_ip(ring, partner2)
+        else:
+            partner2ip = None
+        print 'We want to start heartbeating %s to %s' % (self.name, partner1ip)
+        if partner2 is not None:
+            print 'We also want to start heartbeating %s to %s' \
+            %		(self.name, partner2ip)
+
+    def stop_heartbeat(self, partner1, partner2=None):
+        'Stop heartbeating to the given partners.'
+        partner1ip = self.select_partner_ip(ring, partner1)
+        if partner2 is not None:
+            partner2ip = self.select_partner_ip(ring, partner2)
+        else:
+            partner2ip = None
+        print 'We want to stop heartbeating %s to %s' % (self.name, partner1ip)
+        if partner2 is not None:
+            print 'We also want to stop heartbeating %s to %s' \
+            %		(self.name, partner2ip)
 
     @staticmethod
     def find(designation):
@@ -131,18 +265,22 @@ class DroneInfo:
         return None
 
     @staticmethod
-    def add(name):
+    def add(designation):
         "Add a drone to our set if it isn't already there."
-        if DroneInfo.droneset.has_key(name):
-            return DroneInfo.droneset[name]
-        ret = DroneInfo(name)
-        DroneInfo.droneset[name] = ret
+        if DroneInfo.droneset.has_key(designation):
+            return DroneInfo.droneset[designation]
+        ret = DroneInfo(designation)
+        DroneInfo.droneset[designation] = ret
         return ret
+
+    def __str__(self):
+        'Give out our designation'
+        return 'Drone %s' % self.designation
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
-    The FrameSet stops here - so to speak.
     This base class is designated to handle unhandled FrameSets.
+    All it does is print that we received them.
     '''
     def __init__(self):
         pass
@@ -181,20 +319,21 @@ class DispatchSTARTUP(DispatchTarget):
         self.io.sendframesets(origaddr, fs)
         DroneInfo.add(sysname)
         drone = DroneInfo.find(sysname)
-        drone.commaddr=origaddr
-        drone.addaddr(origaddr)
+        drone.startaddr=origaddr
         if json is not None:
             drone.logjson(json)
-        
+        TheOneRing.join(drone)
         
 
 class MessageDispatcher:
-    'We dispatch messages where they need to go'
+    'We dispatch incoming messages where they need to go.'
     def __init__(self, dispatchtable):
+        'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()
-        pass
+
     def dispatch(self, origaddr, frameset):
+        'Dispatch a frameset where it will get handled.'
         fstype = frameset.get_framesettype()
         if self.dispatchtable.has_key(fstype):
             self.dispatchtable[fstype].dispatch(origaddr, frameset)
@@ -202,16 +341,14 @@ class MessageDispatcher:
             self.default.dispatch(origaddr, frameset)
 
     def setconfig(self, io, config):
+        'Save our configuration away.  We need it before we can do anything.'
         self.io = io
         self.default.setconfig(io, config)
         for msgtype in self.dispatchtable.keys():
             self.dispatchtable[msgtype].setconfig(io, config)
-        
-       
-    
 
 class PacketListener:
-    'Listen for packets and get them dispatched'
+    'Listen for packets and get them dispatched as any good packet ought to be.'
     def __init__(self, config, dispatch):
         self.config = config
 	self.io = pyNetIOudp(config, pyPacketDecoder())
