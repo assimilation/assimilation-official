@@ -1679,7 +1679,7 @@ if hasattr(_libs['libclientlib.so'], 'frameset_dump'):
     frameset_dump.argtypes = [POINTER(FrameSet)]
     frameset_dump.restype = None
 
-# ../include/configcontext.h: 42
+# ../include/configcontext.h: 55
 class struct__ConfigContext(Structure):
     pass
 
@@ -1707,11 +1707,53 @@ CFG_NETADDR = (CFG_CFGCTX + 1) # ../include/configcontext.h: 23
 
 CFG_FRAME = (CFG_NETADDR + 1) # ../include/configcontext.h: 23
 
+# ../include/configcontext.h: 36
+class struct__ConfigValue(Structure):
+    pass
+
+ConfigValue = struct__ConfigValue # ../include/configcontext.h: 35
+
+# ../include/configcontext.h: 38
+class struct_anon_102(Structure):
+    pass
+
+struct_anon_102.__slots__ = [
+    'intvalue',
+    'floatvalue',
+    'arrayvalue',
+    'strvalue',
+    'cfgctxvalue',
+    'addrvalue',
+    'framevalue',
+]
+struct_anon_102._fields_ = [
+    ('intvalue', gint64),
+    ('floatvalue', c_double),
+    ('arrayvalue', POINTER(GSList)),
+    ('strvalue', String),
+    ('cfgctxvalue', POINTER(ConfigContext)),
+    ('addrvalue', POINTER(NetAddr)),
+    ('framevalue', POINTER(Frame)),
+]
+
+struct__ConfigValue.__slots__ = [
+    'valtype',
+    'u',
+]
+struct__ConfigValue._fields_ = [
+    ('valtype', enum_ConfigValType),
+    ('u', struct_anon_102),
+]
+
 struct__ConfigContext.__slots__ = [
     'baseclass',
     '_values',
     'getint',
     'setint',
+    'getdouble',
+    'setdouble',
+    'getarray',
+    'setarray',
     'getstring',
     'setstring',
     'getframe',
@@ -1728,6 +1770,10 @@ struct__ConfigContext._fields_ = [
     ('_values', POINTER(GHashTable)),
     ('getint', CFUNCTYPE(UNCHECKED(gint), POINTER(ConfigContext), String)),
     ('setint', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, gint)),
+    ('getdouble', CFUNCTYPE(UNCHECKED(c_double), POINTER(ConfigContext), String)),
+    ('setdouble', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, c_double)),
+    ('getarray', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext), String)),
+    ('setarray', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, POINTER(GSList))),
     ('getstring', CFUNCTYPE(UNCHECKED(String), POINTER(ConfigContext), String)),
     ('setstring', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, String)),
     ('getframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(ConfigContext), String)),
@@ -1740,13 +1786,13 @@ struct__ConfigContext._fields_ = [
     ('keys', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext))),
 ]
 
-# ../include/configcontext.h: 59
+# ../include/configcontext.h: 76
 if hasattr(_libs['libclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
     configcontext_new.restype = POINTER(ConfigContext)
 
-# ../include/configcontext.h: 60
+# ../include/configcontext.h: 77
 if hasattr(_libs['libclientlib.so'], 'configcontext_new_JSON_string'):
     configcontext_new_JSON_string = _libs['libclientlib.so'].configcontext_new_JSON_string
     configcontext_new_JSON_string.argtypes = [String]
@@ -2266,13 +2312,13 @@ class struct__HbListener(Structure):
 
 HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 20
 
-enum_anon_102 = c_int # /home/alanr/monitor/src/include/hblistener.h: 25
+enum_anon_103 = c_int # /home/alanr/monitor/src/include/hblistener.h: 25
 
 HbPacketsBeingReceived = 1 # /home/alanr/monitor/src/include/hblistener.h: 25
 
 HbPacketsTimedOut = 2 # /home/alanr/monitor/src/include/hblistener.h: 25
 
-HbNodeStatus = enum_anon_102 # /home/alanr/monitor/src/include/hblistener.h: 25
+HbNodeStatus = enum_anon_103 # /home/alanr/monitor/src/include/hblistener.h: 25
 
 struct__HbListener.__slots__ = [
     'baseclass',
@@ -3330,115 +3376,115 @@ try:
 except:
     pass
 
-# ../include/configcontext.h: 62
+# ../include/configcontext.h: 79
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# ../include/configcontext.h: 63
+# ../include/configcontext.h: 80
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# ../include/configcontext.h: 64
+# ../include/configcontext.h: 81
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# ../include/configcontext.h: 65
+# ../include/configcontext.h: 82
 try:
     CONFIG_DEFAULT_HBPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 66
+# ../include/configcontext.h: 83
 try:
     CONFIG_DEFAULT_CMAPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 68
+# ../include/configcontext.h: 85
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 69
+# ../include/configcontext.h: 86
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 71
+# ../include/configcontext.h: 88
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 72
+# ../include/configcontext.h: 89
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 73
+# ../include/configcontext.h: 90
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 74
+# ../include/configcontext.h: 91
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 75
+# ../include/configcontext.h: 92
 try:
     CONFIGNAME_CMAPORT = 'cmaport'
 except:
     pass
 
-# ../include/configcontext.h: 76
+# ../include/configcontext.h: 93
 try:
     CONFIGNAME_CMAINIT = 'cmainit'
 except:
     pass
 
-# ../include/configcontext.h: 78
+# ../include/configcontext.h: 95
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 79
+# ../include/configcontext.h: 96
 try:
     CONFIGNAME_CMADISCOVER = 'cmadisc'
 except:
     pass
 
-# ../include/configcontext.h: 80
+# ../include/configcontext.h: 97
 try:
     CONFIGNAME_CMAFAIL = 'cmafail'
 except:
     pass
 
-# ../include/configcontext.h: 81
+# ../include/configcontext.h: 98
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 82
+# ../include/configcontext.h: 99
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 83
+# ../include/configcontext.h: 100
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
@@ -4146,7 +4192,9 @@ _AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 26
 
 _SignFrame = struct__SignFrame # ../include/signframe.h: 28
 
-_ConfigContext = struct__ConfigContext # ../include/configcontext.h: 42
+_ConfigContext = struct__ConfigContext # ../include/configcontext.h: 55
+
+_ConfigValue = struct__ConfigValue # ../include/configcontext.h: 36
 
 _Listener = struct__Listener # ../include/listener.h: 29
 

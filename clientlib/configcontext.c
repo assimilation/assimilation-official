@@ -450,9 +450,15 @@ _configcontext_elem_toString(ConfigValue* val)
 			g_string_append(ret, "]");
 			return g_string_free(ret, FALSE);
 		}
-		case CFG_NETADDR:	/// @todo - make NetAddrs into things that we
+		case CFG_NETADDR: {	/// @todo - make NetAddrs into things that we
 					/// can recognize and make back into a NetAddr
 					/// when we parse the JSON.
+			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.addrvalue);
+			char*		tostring = obj->toString(obj);
+			gchar*		retstr = JSONquotestring(tostring);
+			tostring = NULL; g_free(tostring);
+			return retstr;
+		}
 		case CFG_FRAME: {
 			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.framevalue);
 			char*		tostring = obj->toString(obj);
