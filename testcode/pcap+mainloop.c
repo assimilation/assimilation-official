@@ -104,8 +104,8 @@ check_JSON(FrameSet* fs)
 			char *	tostr = config->baseclass.toString(config);
 			g_message("PARSED JSON: %s", tostr);
 			g_free(tostr); tostr = NULL;
+			config->baseclass.unref(config); config = NULL;
 		}
-		config->baseclass.unref(config); config = NULL;
 	}
 	g_message("%d JSON strings parsed.  %d errors.", jsoncount, errcount);
 }
