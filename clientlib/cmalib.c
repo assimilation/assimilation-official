@@ -103,7 +103,7 @@ create_setconfig(ConfigContext * cfg)
 	g_hash_table_iter_init(&iter, cfg->_values);
 	while (g_hash_table_iter_next(&iter, &key, &data)) {
 		char *		name = key;
-		CstringFrame*	n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
+		CstringFrame*	n;
 
 		switch (cfg->gettype(cfg, key)) {
 			case CFG_INT64:
@@ -114,6 +114,7 @@ create_setconfig(ConfigContext * cfg)
 					continue;
 		}
 
+		n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
 		// Put the name into the frameset
 		n->baseclass.setvalue(&n->baseclass, g_strdup(name), strlen(name)+1
 		,		      frame_default_valuefinalize);

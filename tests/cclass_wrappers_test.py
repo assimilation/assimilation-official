@@ -561,11 +561,11 @@ class pyNetIOudpTest(TestCase):
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
         io.bindaddr(anyaddr)
         io.sendframesets(home, fs)		# Send a packet with a single frameset containing a bunch of frames
-        (addr, frameset) = io.recvframesets()	# Receive a packet - with some framesets in it
+        (addr, framesetlist) = io.recvframesets()	# Receive a packet - with some framesets in it
         self.assertEqual(addr, home)
-        self.assertEqual(len(frameset), 1)
+        self.assertEqual(len(framesetlist), 1)
         ylist = []
-        for frame in frameset[0].iter():
+        for frame in framesetlist[0].iter():
             ylist.append(frame)
         self.assertEqual(len(flist), len(ylist)-2)
         for i in range(0,len(flist)):
@@ -577,6 +577,10 @@ class pyNetIOudpTest(TestCase):
            self.assertEqual(type(x), type(y))
            self.assertEqual(x.__class__, y.__class__)
            self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
+
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
 
 if __name__ == "__main__":
     run()

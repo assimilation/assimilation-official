@@ -20,6 +20,7 @@ M testcode/testscript.sh
 Doxyfile
 /.*\.pyc$
 /\..*\.swp$
+/\..*\.swo$
 include/framesettypes.h
 include/frametypes.h
 nanoprobe/nanoprobe

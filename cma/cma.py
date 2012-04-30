@@ -104,6 +104,7 @@ class HbRing:
             raise ValueError("Drone %s is already a member of this ring [%s]"
             %               (drone.designation, self.name))
 
+        self.members[drone.designation] = drone
         drone.ringmemberships[self.name] = self
         partners = self._findringpartners(drone)
         print 'Adding drone %s to talk to partners'%drone.designation, partners
@@ -166,6 +167,11 @@ class HbRing:
 
     def __str__(self):
         return 'Ring %s' % self.name
+
+    @staticmethod
+    def reset():
+        HbRing.members = {}
+        HbRing.memberlist = []
 
 TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
 
@@ -257,6 +263,10 @@ class DroneInfo:
             print 'We also want to stop heartbeating %s to %s' \
             %		(self.name, partner2ip)
 
+    def __str__(self):
+        'Give out our designation'
+        return 'Drone %s' % self.designation
+
     @staticmethod
     def find(designation):
         'Find a drone with the given designation.'
@@ -272,10 +282,10 @@ class DroneInfo:
         ret = DroneInfo(designation)
         DroneInfo.droneset[designation] = ret
         return ret
-
-    def __str__(self):
-        'Give out our designation'
-        return 'Drone %s' % self.designation
+   
+    @staticmethod
+    def reset():
+        DroneInfo.droneset = {}
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
@@ -353,6 +363,8 @@ class PacketListener:
         self.config = config
         if io is None:
 	    self.io = pyNetIOudp(config, pyPacketDecoder())
+        else:
+	    self.io = io
 
         dispatch.setconfig(self.io, config)
 
