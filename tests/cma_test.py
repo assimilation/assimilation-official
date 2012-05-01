@@ -263,7 +263,7 @@ class TestCMABasic(TestCase):
         OurAddr = pyNetAddr((10,10,10,200),1984)
         configinit = geninitconfig(OurAddr)
         fsin = []
-        for droneid in range(1,1001):
+        for droneid in range(1,11):
             droneip = droneipaddress(droneid)
             designation = dronedesignation(droneid)
             designationframe=pyCstringFrame(FrameTypes.HOSTNAME, designation)
