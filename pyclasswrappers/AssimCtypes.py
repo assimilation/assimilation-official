@@ -1508,6 +1508,12 @@ if hasattr(_libs['libclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv6_new.restype = POINTER(NetAddr)
 
+# ../include/netaddr.h: 52
+if hasattr(_libs['libclientlib.so'], 'netaddr_string_new'):
+    netaddr_string_new = _libs['libclientlib.so'].netaddr_string_new
+    netaddr_string_new.argtypes = [String, guint16]
+    netaddr_string_new.restype = POINTER(NetAddr)
+
 # /home/alanr/monitor/src/include/addrframe.h: 26
 class struct__AddrFrame(Structure):
     pass
@@ -1714,10 +1720,10 @@ class struct__ConfigValue(Structure):
 ConfigValue = struct__ConfigValue # ../include/configcontext.h: 35
 
 # ../include/configcontext.h: 38
-class struct_anon_102(Structure):
+class union_anon_102(Union):
     pass
 
-struct_anon_102.__slots__ = [
+union_anon_102.__slots__ = [
     'intvalue',
     'floatvalue',
     'arrayvalue',
@@ -1726,7 +1732,7 @@ struct_anon_102.__slots__ = [
     'addrvalue',
     'framevalue',
 ]
-struct_anon_102._fields_ = [
+union_anon_102._fields_ = [
     ('intvalue', gint64),
     ('floatvalue', c_double),
     ('arrayvalue', POINTER(GSList)),
@@ -1742,7 +1748,7 @@ struct__ConfigValue.__slots__ = [
 ]
 struct__ConfigValue._fields_ = [
     ('valtype', enum_ConfigValType),
-    ('u', struct_anon_102),
+    ('u', union_anon_102),
 ]
 
 struct__ConfigContext.__slots__ = [

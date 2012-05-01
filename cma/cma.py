@@ -106,15 +106,16 @@ class HbRing:
 
         self.members[drone.designation] = drone
         drone.ringmemberships[self.name] = self
-        partners = self._findringpartners(drone)
-        print 'Adding drone %s to talk to partners'%drone.designation, partners
+        partners = self._findringpartners(drone)	# Also adds drone to memberlist
+        #print >>sys.stderr,'Adding drone %s to talk to partners'%drone.designation, partners
         if partners == None: return
-        if len(partners) == 1:
+        if len(self.memberlist) == 2:
             drone.start_heartbeat(self, partners[0])
             partners[0].start_heartbeat(self, drone)
             return
-        partners[0].stop_heartbeat(partners[1])
-        partners[1].stop_heartbeat(partners[0])
+        elif len(self.memberlist) > 3:
+            partners[0].stop_heartbeat(self, partners[1])
+            partners[1].stop_heartbeat(self, partners[0])
         drone.start_heartbeat(self, partners[0], partners[1])
         partners[0].start_heartbeat(self, drone)
         partners[1].start_heartbeat(self, drone)
@@ -132,8 +133,8 @@ class HbRing:
 
         if len(self.memberlist) == 0:  return   # Previous length: 1
         if len(self.memberlist) == 1:           # Previous length: 2
-            drone.stop_heartbeat(self.memberlist[0])
-            memberlist[0].stop_heartbeat(drone)
+            drone.stop_heartbeat(self, self.memberlist[0])
+            memberlist[0].stop_heartbeat(self, drone)
             return
         # Previous length had to be >= 3
         partner1=location
@@ -143,12 +144,12 @@ class HbRing:
         if location == 0:
             partner2 = len(self.memberlist)-1
 
-        partner1.stop_heartbeat(drone)
-        partner2.stop_heartbeat(drone)
+        partner1.stop_heartbeat(self, drone)
+        partner2.stop_heartbeat(self, drone)
         partner1.start_heartbeat(self, partner2)
         partner2.start_heartbeat(self, partner1)
         # Poor drone -- all alone in the universe... (maybe even dead...)
-        drone.stop_heartbeat(partner1,partner2)
+        drone.stop_heartbeat(self, partner1,partner2)
         
     def _findringpartners(self, drone):
         'Find (one or) two partners for this drone to heartbeat with.'
@@ -159,14 +160,21 @@ class HbRing:
         nummember = len(self.memberlist)
         if nummember == 1: return None
         if nummember == 2: return (self.memberlist[1],)
-        return (self.memberlist[0], self.memberlist[nummember-1])
+        return (self.memberlist[1], self.memberlist[nummember-1])
 
     def __len__(self):
         'Length function - returns number of members in this ring.'
         return len(self.memberlist)
 
     def __str__(self):
-        return 'Ring %s' % self.name
+        ret = 'Ring("%s", [' % self.name
+        comma=''
+        for drone in memberlist:
+            ret += '%s%s' % (comma, drone)
+            comma=','
+        ret += ']'
+        return ret
+        
 
     @staticmethod
     def reset():
@@ -178,24 +186,25 @@ TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
     droneset = {}
-    def __init__(self, name):
+    def __init__(self, name, io):
         self.designation = name
         self.addresses = {}
         self.jsondiscovery = {}
         self.ringpeers = {}
         self.ringmemberships = {}
+        self.io = io
 
     def addaddr(self, addr, ifname=None):
         'Record what IPs this drone has - and on what interfaces'
-        print 'Address %s is on interface %s on %s' % \
-            (addr, ifname, self.designation)
+        #print >>sys.stderr, 'Address %s is on interface %s on %s' % \
+        #    (addr, ifname, self.designation)
         self.addresses[str(addr)] = (addr, ifname)
 
     def logjson(self, jsontext):
        'Process and save away JSON discovery data'
        jsonobj = pyConfigContext(jsontext)
        if not jsonobj.has_key('discovertype') or not jsonobj.has_key('data'):
-           print 'Invalid JSON discovery packet.'
+           print >>sys.stderr, 'Invalid JSON discovery packet.'
            return
        dtype = jsonobj['discovertype']
        #print "Saved discovery type %s for endpoint %s." % \
@@ -226,7 +235,7 @@ class DroneInfo:
                     self.primaryIP = iponly
                     self.primaryIF = intf
 
-    def select_partner_ip(self, ring, partner):
+    def select_ip(self, ring, partner):
         'Select an appropriate IP address for talking to this partner on this ring'
         # Not really good enough for the long term, but good enough for now...
         # In particular, when talking on a particular switch ring, or
@@ -238,34 +247,61 @@ class DroneInfo:
             # This shouldn't happen, but it's a reasonable recovery,
             # because we _have_ to know the address they're sending from.
             return partner.startaddr
+    
+    def send_hbmsg(self, dest, fstype, port, addrlist):
+        fs = pyFrameSet(fstype)
+        pframe = None
+        if port is not None and port > 0 and port < 65536:
+           pframe = pyIntFrame(FrameTypes.sPORTNUM, intbytes=2, initval=int(port))
+        for addr in addrlist:
+            if addr is None: continue
+            if pframe is not None:
+                fs.addframe(pframe)
+            aframe = pyAddrFrame(FrameTypes.IPADDR, addrstring=addr)
+            fs.append(aframe)
+        self.io.sendframesets(dest, (fs,))
+            
+            
 
     def start_heartbeat(self, ring, partner1, partner2=None):
         'Start heartbeating to the given partners'
-        partner1ip = self.select_partner_ip(ring, partner1)
+        ourip = self.select_ip(ring, self)
+        partner1ip = self.select_ip(ring, partner1)
         if partner2 is not None:
-            partner2ip = self.select_partner_ip(ring, partner2)
+            partner2ip = self.select_ip(ring, partner2)
         else:
             partner2ip = None
-        print 'We want to start heartbeating %s to %s' % (self.name, partner1ip)
+        #print >>sys.stderr, 'We want to start heartbeating %s to %s' % (self.designation, partner1ip)
+        #print >>sys.stderr, "%s now peering with %s" % (self, partner1)
+        self.ringpeers[partner1.designation] = partner1
         if partner2 is not None:
-            print 'We also want to start heartbeating %s to %s' \
-            %		(self.name, partner2ip)
+            #print >>sys.stderr, 'We also want to start heartbeating %s to %s' \
+            #%		(self.designation, partner2ip)
+            self.ringpeers[partner2.designation] = partner2
+            #print >>sys.stderr, "%s now peering with %s" % (self, partner2)
+        #print >>sys.stderr, self, self.ringpeers
+        self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, 0, (partner1ip, partner2ip))
 
-    def stop_heartbeat(self, partner1, partner2=None):
+    def stop_heartbeat(self, ring, partner1, partner2=None):
         'Stop heartbeating to the given partners.'
-        partner1ip = self.select_partner_ip(ring, partner1)
+        ourip = self.select_ip(ring, self)
+        partner1ip = self.select_ip(ring, partner1)
         if partner2 is not None:
-            partner2ip = self.select_partner_ip(ring, partner2)
+            partner2ip = self.select_ip(ring, partner2)
         else:
             partner2ip = None
-        print 'We want to stop heartbeating %s to %s' % (self.name, partner1ip)
+        #print >>sys.stderr, 'We want to stop heartbeating %s to %s' % (self.designation, partner1ip)
+        del self.ringpeers[partner1.designation]
         if partner2 is not None:
-            print 'We also want to stop heartbeating %s to %s' \
-            %		(self.name, partner2ip)
+            print >>sys.stderr, 'We also want to stop heartbeating %s to %s' \
+            %		(self.designation, partner2ip)
+            del self.ringpeers[partner2.designation]
+        #print >>sys.stderr, self, self.ringpeers
+        self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, 0, (partner1ip, partner2ip))
 
     def __str__(self):
         'Give out our designation'
-        return 'Drone %s' % self.designation
+        return 'Drone(%s)' % self.designation
 
     @staticmethod
     def find(designation):
@@ -275,11 +311,11 @@ class DroneInfo:
         return None
 
     @staticmethod
-    def add(designation):
+    def add(designation, io):
         "Add a drone to our set if it isn't already there."
         if DroneInfo.droneset.has_key(designation):
             return DroneInfo.droneset[designation]
-        ret = DroneInfo(designation)
+        ret = DroneInfo(designation, io)
         DroneInfo.droneset[designation] = ret
         return ret
    
@@ -312,8 +348,8 @@ class DispatchSTARTUP(DispatchTarget):
     def dispatch(self, origaddr, frameset):
         json = None
         fstype = frameset.get_framesettype()
-        print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
-	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        #print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
+	#%		(FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
@@ -324,10 +360,10 @@ class DispatchSTARTUP(DispatchTarget):
         #print 'Telling them to heartbeat themselves.'
         #fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
         #,		origaddr)
-        print 'Sending SetConfig frameset to %s' % origaddr
+        #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
-        DroneInfo.add(sysname)
+        DroneInfo.add(sysname, self.io)
         drone = DroneInfo.find(sysname)
         drone.startaddr=origaddr
         if json is not None:
@@ -370,8 +406,8 @@ class PacketListener:
 
 	self.io.bindaddr(config["cmainit"])
         self.io.setblockio(True)
-        print "IO[socket=%d,maxpacket=%d] created." \
-	%	(self.io.getfd(), self.io.getmaxpktsize())
+        #print "IO[socket=%d,maxpacket=%d] created." \
+	#%	(self.io.getfd(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
         
     def listen(self):

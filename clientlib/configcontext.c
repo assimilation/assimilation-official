@@ -456,7 +456,7 @@ _configcontext_elem_toString(ConfigValue* val)
 			AssimObj*	obj = CASTTOCLASS(AssimObj, val->u.addrvalue);
 			char*		tostring = obj->toString(obj);
 			gchar*		retstr = JSONquotestring(tostring);
-			tostring = NULL; g_free(tostring);
+			g_free(tostring); tostring = NULL;
 			return retstr;
 		}
 		case CFG_FRAME: {
@@ -665,9 +665,18 @@ _configcontext_JSON_parse_value(GScanner* scan)
 	switch(toktype) {
 		case G_TOKEN_STRING:{		// String
 			/// @todo recognize NetAddr objects encoded as strings and reconstitute them
-			ConfigValue* val = _configcontext_value_new(CFG_STRING);
+			ConfigValue* val;
+			NetAddr* encoded;
 			GULP;
-			val->u.strvalue = g_strdup(scan->value.v_string);
+			// See if we can convert it to a NetAddr...
+			if ((encoded = netaddr_string_new(scan->value.v_string, 0)) != NULL) {
+				val = _configcontext_value_new(CFG_NETADDR);
+				val->u.addrvalue = encoded;
+                                encoded = NULL;
+			}else{
+				val = _configcontext_value_new(CFG_STRING);
+				val->u.strvalue = g_strdup(scan->value.v_string);
+			}
 			return val;
 		}
 

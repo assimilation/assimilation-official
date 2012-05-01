@@ -173,11 +173,20 @@ class pyNetAddr(pyAssimObj):
          16 bytes == ipv6 address
         This is slightly sleazy but it should work for the forseeable future.
         '''
+
         self._Cstruct = None	# Silence error messages in failure cases
+
         if (Cstruct is not None):
             assert type(Cstruct) is not int
             self._Cstruct = Cstruct
             return
+
+        if port == None: port = 0
+
+        if isinstance(addrstring, str):
+            self._Cstruct = netaddr_string_new(addrstring, port)
+            return
+        
         alen = len(addrstring)
         addr = create_string_buffer(alen)
         #print >>sys.stderr, "ADDRTYPE:", type(addr)
@@ -187,8 +196,6 @@ class pyNetAddr(pyAssimObj):
                 addr[i] = asi
             else:
                 addr[i] = chr(asi)
-        if port == None:
-            port = 0
         if alen == 4:		# ipv4
             self._Cstruct = netaddr_ipv4_new(addr, port)
         elif alen == 16:	# ipv6
@@ -361,7 +368,10 @@ class pyAddrFrame(pyFrame):
         "Initializer for the pyAddrFrame object."
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
-            self._pyNetAddr = pyNetAddr(addrstring, port=port)
+            if isinstance(addrstring, pyNetAddr):
+                self._pyNetAddr = addrstring
+            else:
+                self._pyNetAddr = pyNetAddr(addrstring, port=port)
             Cstruct = addrframe_new(frametype, 0);
             if addrstring is not None:
                 Cstruct[0].setnetaddr(Cstruct, self._pyNetAddr._Cstruct)

@@ -12,6 +12,7 @@
  * excluding the provision allowing for relicensing under the GPL at your option.
  */
 
+#include <stdlib.h>
 #include <memory.h>
 #include <projectcommon.h>
 #include <netaddr.h>
@@ -31,6 +32,7 @@ FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self);
+FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr, guint16 port);
 
 DEBUGDECLARATIONS
 
@@ -70,7 +72,6 @@ _netaddr_toString(gconstpointer baseobj)
 				      ((const gchar*)self->_addrbody)[2],
 				      ((const gchar*)self->_addrbody)[3]);
 	}
-	
 	gsret = g_string_new("");
 	if (self->_addrtype == ADDR_FAMILY_IPV6) {
 		gboolean	doublecolonyet = FALSE;
@@ -259,6 +260,101 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	return self;
 
 }
+
+/// Convert a string to an IPv4 NetAddr
+FSTATIC NetAddr*
+_netaddr_string_ipv4_new(const char* addrstr, guint16 port)
+{
+	// Must have four numbers [0-255] in decimal - nothing else.
+	int	dotpositions[3];
+	guint8	addresses[4];
+	guint	whichdot = 0;
+	int	byte;
+	NetAddr*	ret;
+	
+	guint	j;
+	int	debug = FALSE;
+
+	//debug = g_ascii_isdigit(addrstr[0]);
+
+	if (debug) {
+		g_debug("CHECKING [%s]", addrstr);
+	}
+
+	// Scruffy IPv4 string format verification
+	for (j=0; addrstr[j]; ++j) {
+		if (debug) {
+			g_debug("Looking at '%c'", addrstr[j]);
+		}
+		switch(addrstr[j]) {
+			case '0': case '1': case '2': case '3': case '4':
+			case '5': case '6': case '7': case '8': case '9':
+			continue;
+
+			case '.':
+				if (whichdot >= DIMOF(dotpositions)) {
+					return NULL;
+				}
+				dotpositions[whichdot] = j;
+				whichdot += 1;
+				continue;
+
+			case '\0':
+				break;
+
+			default:
+				if (debug) {
+					g_debug("Illegal character [%c]", addrstr[j]);
+				}
+					
+				return NULL;
+		}
+		if (j > 16) {
+			return NULL;
+		}
+	}
+	if (debug) {
+            g_debug("whichdot = %d", whichdot);
+	}
+	if (whichdot != 3) {
+		return NULL;
+	}
+	byte = atoi(addrstr);
+	if (debug) {
+	    g_debug("byte %d = %d", 0, byte);
+	}
+	if (byte < 0 || byte > 255) {
+		return NULL;
+	}
+	addresses[0] = byte;
+
+	for (j=0; j < DIMOF(dotpositions); ++j) {
+		byte = atoi(addrstr+dotpositions[j]+1);
+		if (debug) {
+		    g_debug("byte %d = %d", j, byte);
+		}
+		if (byte < 0 || byte > 255) {
+			return NULL;
+		}
+		addresses[j+1] = (guint8)byte;
+	}
+	if (debug) {
+		g_debug("Returning good IPV4 address!");
+	}
+	ret =  netaddr_ipv4_new(addresses, port);
+	if (debug) {
+		g_debug("Returning good IPV4 address [%p]!", ret);
+	}
+	return ret;
+}
+
+NetAddr*
+netaddr_string_new(const char* addrstr, guint16 port)
+{
+	return _netaddr_string_ipv4_new(addrstr, port);
+}
+
+
 /// Create new NetAddr from a MAC address
 NetAddr*
 netaddr_macaddr_new(gconstpointer macbuf,	///<[in] Pointer to physical (MAC) address
