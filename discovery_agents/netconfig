@@ -22,49 +22,50 @@
 #
 #
 #{
-#  "discovertype": "netconfig", 
-#  "description": "IP Network Configuration", 
-#  "source": "discover_netconfig",
-#  "host": "paul",
+#  "discovertype": "netconfig",
+#  "description": "IP Network Configuration",
+#  "source": "netconfig",
+#  "host": "servidor",
 #  "data": {
 #    "eth0": {
 #	"address": "00:1b:fc:1b:a8:73",
 #	"carrier": 1,
 #	"duplex": "full",
 #	"mtu": 1500,
+#	"operstate": "up",
 #	"speed": 1000,
-#       "ipaddrs": { "10.10.10.5/24": {"brd":"10.10.10.255", "scope":"global", "name":"eth0"}, "fe80::21b:fcff:fe1b:a873/64": {"scope":"link"}}
+#	"default_gw": true,
+#	"ipaddrs": {
+#		"10.10.10.5/24":	{"brd":"10.10.10.255", "scope":"global", "name":"eth0"}, 
+#		"10.10.10.200/24":	{"scope":"global", "name":"eth0:mon"}, 
+#		"fe80::21b:fcff:fe1b:a873/64":	{"scope":"link"}
+#	}
 #    }, 
 #    "lo": {
 #	"address": "00:00:00:00:00:00",
 #	"carrier": 1,
 #	"mtu": 16436,
-#	"ipaddrs": [ {"inet": "127.0.0.1/8", "scope": "host"}, {"inet6": "::1/128", "scope": "host"}]
-#    }
-#    "wlan0": {
-#        "address": "00:26:c6:78:6a:56",
-#        "carrier": 1,
-#        "mtu": 1500,
-#        "operstate": "up",
-#        "is_wireless": true,
-#        "ESSID": "robertsons",
-#        "AccessPoint": "C4:3D:C7:A8:1B:5B",
-#        "WirelessModes": "802.11abgn",
-#        "ipaddrs": {"10.10.10.39/24":{"brd": "10.10.10.255", "scope": "global", "name": "wlan0"}, "fe80::226:c6ff:fe78:6a56/64": {"scope": "link"}}
+#	"operstate": "unknown",
+#	"ipaddrs": {
+#		"127.0.0.1/8":	{"scope":"host"}, 
+#		"::1/128":	{"scope":"host"}
+#	}
 #    }
 #  }
 #}
-
 
 NETDIR=/sys/class/net
 IP=/sbin/ip
 IWCONFIG=/sbin/iwconfig
 US=`basename $0`
 
+# Return true if the argument is a number...
 isanumber() {
   test \( "$1" -le 0 \) -o \( "$1" -ge 0 \) 2>/dev/null
 }
 
+
+# Format a scalar in the proper JSON format
 scalarfmt() {
   if
     isanumber "$1"
@@ -75,12 +76,14 @@ scalarfmt() {
   fi
 }
 
+# Print out a scalar name/value pair in JSON notation
 scalarval() {
   name="$1"
   value="$2"
   printf '"%s": %s' "$field" "$(scalarfmt "$value")"
 }
 
+# Print out an array of scalars in JSON notation
 arrayval() {
    arraycomma=''
    separator="$1"
@@ -94,10 +97,13 @@ arrayval() {
    printf '[ %s ]' "$ret"
 }
 
+#
+#	Network discovery
+#
 discover() {
   test ! -d "$NETDIR" -o ! -x "$IP" && return 1
 
-  DEVICES=`ls "$NETDIR"`
+  DEVICES=$(ls "$NETDIR")
   DEFAULTGW=`cat /proc/net/route | cut -c1-14 | grep '^[^	]*	00000000' | cut -f1 | head -1`
   printf '{\n'
   printf '  "discovertype": "netconfig",\n'
@@ -128,6 +134,8 @@ discover() {
     case $device in
       $DEFAULTGW) 	printf '	"default_gw": true,\n'
     esac
+
+    # Is this a wireless connection?
     if
       [ -d "$NETDIR/$device/wireless" ]
     then
@@ -146,6 +154,7 @@ discover() {
       printf "$IWCFG" | grep 'Access Point:' | sed -e 's%^.*Access Point: *%	"AccessPoint": "%' -e 's% *$%",%'
       printf "$IWCFG" | grep 'IEEE 802.11'   | sed -e 's%^.*IEEE %%' -e 's% .*$%%' -e 's%.*%	"WirelessModes": "&",%'
     fi
+
     # Is it a bonded link?
     if
       [ -d "$NETDIR/$device/bonding" ]
@@ -182,7 +191,7 @@ discover() {
 
     # We are currently only interested in the lines that start with 'inet'
 
-    printf '	"ipaddrs": { '
+    printf '	"ipaddrs": {'
     innercomma=''
     #
     $IP addr show "$device" | grep '^ *inet' |
@@ -196,10 +205,9 @@ discover() {
       # It might be less crufty to make them arguments and use shift and so on to parse them...
       case $inet in
         inet*)	
-                  printf "$innercomma"
+                  printf "$innercomma\n\t\t"
                   innercomma=', '
-  		  #printf "{\"$inet\":\"$addr\""
-  		  printf "\"$addr\": {" 
+  		  printf "\"$addr\":\t{" 
                   case $brd in
                     *brd*|scope) printf "\"$brd\":\"$baddr\"";;
                   esac
@@ -216,7 +224,7 @@ discover() {
   		;;
       esac
     done
-    printf '}\n'
+    printf '\n\t}\n'
     printf '    }'
   done
   printf '\n  }\n'
