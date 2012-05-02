@@ -1,23 +1,26 @@
 #!/bin/sh
-#	@brief Command to discover processes listening for connections (tcp) or packets (udp) and output the results in JSON format.
+#	@brief Command to discover processes listening for connections (tcp) or packets (udp)
+#	and output the results in JSON format.
 #	@details Output validated at jsonlint.com (good to validate future versions there too!)
 #
-#	It makes use of netstat -[tu]lnp to get the active listening connections, and /proc to get more detailed information about
-#	the processes we discovered with netstat.
+#	It makes use of netstat -[tu]lnp to get the active listening connections, and /proc to
+#	get more detailed information about the processes we discovered with netstat.
 #
-#	We get the listening protocol, port, protocol, address and process listening that address.  We get the binary full pathname,
-#	its arguments (if not modified by the application), uid and gid, current directory and so on of the process communicating.
+#	We get the listening protocol, port, protocol, address and process listening that address.
+#	We get the binary full pathname, its arguments (if not modified by the application),
+#	uid and gid, current directory and so on of the process communicating.
 #
-#	For TCP programs we only output listening processes.  For UDP, there is no such thing as listening processes, so you
-#	get the whole set of processes prepared to receive (or send) UDP packets.
+#	For TCP programs we only output listening processes.  For UDP, there is no such thing
+#	as listening processes, so you get the whole set of processes prepared to receive
+#	(or send) UDP packets.
 #
-#	This isn't exactly rocket science, but integrating the /proc info with the netstat info works out nicely,
-#	and the JSON output is pretty readable to humans and nicely structured for machines - which is a plus.
-#	I deliberately left the pid out of the output because it might change periodically.
+#	This isn't exactly rocket science, but integrating the /proc info with the netstat
+#	info works out nicely, and the JSON output is nicely readable to humans and nicely
+#	structured for machines - which is a plus.
 #
-#	You must be root to get full value out of this program (and avoid some warnings).  Sorry :-(
-#	Although we can get the listening ports without root, we cannot get detailed information about
-#	the processes that are communicating - which is definitely worth having.
+#	You must be root to get full value out of this program (and avoid some warnings).
+#	Sorry :-( Although we can get the listening ports without root, we cannot get detailed
+#	information about the processes that are communicating - which is definitely worth having.
 #
 # @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
 # @n
@@ -26,7 +29,7 @@
 
 skiplocal=yes
 
-US=`basename $0`
+US=$(basename $0)
 #
 #	Grab interesting information from /proc for our processes
 #
@@ -38,19 +41,23 @@ procinfo() {
     printf '"exe": "unknown"\n'
     return
   fi
-  EXE=`readlink /proc/$procpid/exe`
-  CMD=`tr '\0' '' < /proc/$procpid/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%"cmdline": [ "&" ],\n%'`
-  UID=`ls -ld /proc/$procpid | cut -d' ' -f3`
-  GID=`ls -ld /proc/$procpid | cut -d' ' -f4`
+  EXE=$(readlink /proc/$procpid/exe)
+  CMD=$(tr '\0' '' < /proc/$procpid/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%"cmdline": [ "&" ],\n%')
+  UID=$(ls -ld /proc/$procpid | cut -d' ' -f3)
+  GID=$(ls -ld /proc/$procpid | cut -d' ' -f4)
   cat <<-!FOO
+	"pid": $pid,
 	"exe": "$EXE",
 	$CMD
 	"uid": "$UID",
 	"gid": "$GID",
-	"cwd": "`readlink /proc/$procpid/cwd`"
+	"cwd": "$(readlink /proc/$procpid/cwd)"
 	!FOO
 }
 
+#
+#	return True (exit code zero) if we should skip this IP address
+#
 shouldskip() {
   case "$1/$skiplocal" in
     "127.0.0.1/yes"|"::1/yes")	return 0;; # true
@@ -67,7 +74,7 @@ discover() {
 	    "discovertype": "listeningprocs",
 	    "description": "${1-all} Listening Processes",
 	    "source": "$US",
-	    "host": "`uname -n`",
+	    "host": "$(uname -n)",
 	    "data": {
 	!EOF
     case $1 in
