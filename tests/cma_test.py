@@ -123,13 +123,14 @@ class AUDITS(TestCase):
             # Make sure we're listed under our designation
             self.assertTrue(ring.members[drone.designation] is drone)
             self.assertEqual(len(ring.members), len(ring.memberlist))
-        # We have to be members of at least one ring...
-        self.assertTrue(ringcount >= 1)
+        if drone.status != 'dead':
+            # We have to be members of at least one ring...
+            self.assertTrue(ringcount >= 1)
+            # Drone should be a member of one ring (for now)
+            self.assertEqual(len(drone.ringmemberships),1)
         # Do we have the right number of ring peers?
         #print >>sys.stderr, "Checking peer count for drone %s (%d)" % (drone, len(drone.ringpeers))
         self.assertEqual(len(drone.ringpeers), peercount)
-        # Drone should be a member of one ring (for now)
-        self.assertEqual(len(drone.ringmemberships),1)
 
     def auditSETCONFIG(self, packetreturn, droneid, configinit):
         toaddr = packetreturn[0]
@@ -263,7 +264,7 @@ class TestCMABasic(TestCase):
         OurAddr = pyNetAddr((10,10,10,200),1984)
         configinit = geninitconfig(OurAddr)
         fsin = []
-        for droneid in range(1,11):
+        for droneid in range(1,5):
             droneip = droneipaddress(droneid)
             designation = dronedesignation(droneid)
             designationframe=pyCstringFrame(FrameTypes.HOSTNAME, designation)
@@ -273,8 +274,19 @@ class TestCMABasic(TestCase):
             fs.append(designationframe)
             fs.append(discoveryframe)
             fsin.append((droneip, (fs,)))
+        addrone = droneipaddress(1)
+        maxdrones = droneid
+        for droneid in range(2,maxdrones+1):
+            droneip = droneipaddress(droneid)
+            deadframe=pyAddrFrame(FrameTypes.IPADDR, addrstring=droneip)
+            fs = pyFrameSet(FrameSetTypes.HBDEAD)
+            fs.append(deadframe)
+            fsin.append((addrone, (fs,)))
         io = TestIO(fsin)
-        disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()})
+        disp = MessageDispatcher( {
+		FrameSetTypes.STARTUP: DispatchSTARTUP(),
+		FrameSetTypes.HBDEAD: DispatchHBDEAD(),
+		})
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io)
         # We send the CMA a BUNCH of intial STARTUP packets
@@ -282,7 +294,7 @@ class TestCMABasic(TestCase):
 	# We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how may drones we just registered
-        self.assertEqual(len(DroneInfo.droneset), droneid)
+        self.assertEqual(len(DroneInfo.droneset), maxdrones)
 
         print "The CMA read %d packets."  % io.packetsread
         print "The CMA wrote %d packets." % len(io.packetswritten)

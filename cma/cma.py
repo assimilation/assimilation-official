@@ -87,13 +87,18 @@ class HbRing:
     SWITCH      =  1
     SUBNET      =  2
     THEONERING  =  3 # And The One Ring to rule them all...
-    members = {}
-    memberlist = []
+
+    ringnames = {}
 
     def __init__(self, name, ringtype, parentring=None):
         'Constructor for a heartbeat ring.'
         if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
+        if HbRing.ringnames.has_key(name):
+            raise ValueError("ring name [%s] already exists." % str(naem))
+        HbRing.ringnames[name] = self
+        self.members = {}
+        self.memberlist = []
         self.ringtype = ringtype
         self.name = str(name)
         self.parentring = parentring
@@ -101,6 +106,7 @@ class HbRing:
     def join(self, drone):
         'Add this drone to our ring'
         if self.members.has_key(drone.designation):
+            print self.members
             raise ValueError("Drone %s is already a member of this ring [%s]"
             %               (drone.designation, self.name))
 
@@ -134,22 +140,26 @@ class HbRing:
         if len(self.memberlist) == 0:  return   # Previous length: 1
         if len(self.memberlist) == 1:           # Previous length: 2
             drone.stop_heartbeat(self, self.memberlist[0])
-            memberlist[0].stop_heartbeat(self, drone)
+            self.memberlist[0].stop_heartbeat(self, drone)
             return
         # Previous length had to be >= 3
-        partner1=location
-        partner2=location-1
+        partner1loc=location
+        partner2loc=location-1
         if location >= len(self.memberlist):
-            partner1 = 0
+            partner1loc = 0
         if location == 0:
-            partner2 = len(self.memberlist)-1
+            partner2loc = len(self.memberlist)-1
 
+	partner1 = self.memberlist[partner1loc]
+        partner2 = None
         partner1.stop_heartbeat(self, drone)
-        partner2.stop_heartbeat(self, drone)
-        partner1.start_heartbeat(self, partner2)
-        partner2.start_heartbeat(self, partner1)
+        if partner1loc != partner2loc:
+            partner2 = self.memberlist[partner2loc]
+            partner2.stop_heartbeat(self, drone)
+            partner1.start_heartbeat(self, partner2)
+            partner2.start_heartbeat(self, partner1)
         # Poor drone -- all alone in the universe... (maybe even dead...)
-        drone.stop_heartbeat(self, partner1,partner2)
+        drone.stop_heartbeat(self, partner1, partner2)
         
     def _findringpartners(self, drone):
         'Find (one or) two partners for this drone to heartbeat with.'
@@ -178,14 +188,16 @@ class HbRing:
 
     @staticmethod
     def reset():
-        HbRing.members = {}
-        HbRing.memberlist = []
+        global TheOneRing
+        HbRing.ringnames = {}
+        TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
 
 TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
 
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
     droneset = {}
+    droneIPs = {}
     def __init__(self, name, io):
         self.designation = name
         self.addresses = {}
@@ -230,6 +242,8 @@ class DroneInfo:
                     continue
                 (iponly,mask) = ip.split('/')
                 self.addaddr(iponly, intf)
+                DroneInfo.droneIPs[iponly] = self
+		
                 if isprimaryif and primaryip == None:
                     primaryip = iponly
                     self.primaryIP = iponly
@@ -249,6 +263,8 @@ class DroneInfo:
             return partner.startaddr
     
     def send_hbmsg(self, dest, fstype, port, addrlist):
+        '''Send a message with an attached address list and optional port.
+           This is intended primarily for start or stop heartbeating messages.'''
         fs = pyFrameSet(fstype)
         pframe = None
         if port is not None and port > 0 and port < 65536:
@@ -260,8 +276,21 @@ class DroneInfo:
             aframe = pyAddrFrame(FrameTypes.IPADDR, addrstring=addr)
             fs.append(aframe)
         self.io.sendframesets(dest, (fs,))
-            
-            
+
+    def death_report(self, status, reason, fromaddr, frameset):
+        'Process a death/shutdown report for us.  RIP us.'
+        print >>sys.stderr, "Node %s has been reported as %s by address %s. Reason: %s" \
+        %	(self.designation, status, str(fromaddr), reason)
+        self.status = status
+        self.reason = reason
+        # There is a need for us to be a little more sophisticated
+        # in terms of the number of peers this particular drone had
+        # It's here in this place that we will eventually add the ability
+        # to distinguish death of a switch or subnet or site from death of a single drone
+        ringlist = self.ringmemberships.keys()
+        for ring in ringlist:
+	    HbRing.ringnames[ring].leave(self)
+
 
     def start_heartbeat(self, ring, partner1, partner2=None):
         'Start heartbeating to the given partners'
@@ -271,7 +300,8 @@ class DroneInfo:
             partner2ip = self.select_ip(ring, partner2)
         else:
             partner2ip = None
-        #print >>sys.stderr, 'We want to start heartbeating %s to %s' % (self.designation, partner1ip)
+        #print >>sys.stderr, 'We want to start heartbeating %s to %s' \
+        #%	(self.designation, partner1ip)
         #print >>sys.stderr, "%s now peering with %s" % (self, partner1)
         self.ringpeers[partner1.designation] = partner1
         if partner2 is not None:
@@ -290,7 +320,8 @@ class DroneInfo:
             partner2ip = self.select_ip(ring, partner2)
         else:
             partner2ip = None
-        #print >>sys.stderr, 'We want to stop heartbeating %s to %s' % (self.designation, partner1ip)
+        #print >>sys.stderr, 'We want to stop heartbeating %s to %s' \
+        #        % (self.designation, partner1ip)
         del self.ringpeers[partner1.designation]
         if partner2 is not None:
             print >>sys.stderr, 'We also want to stop heartbeating %s to %s' \
@@ -305,17 +336,27 @@ class DroneInfo:
 
     @staticmethod
     def find(designation):
-        'Find a drone with the given designation.'
-        if DroneInfo.droneset.has_key(designation):
-            return DroneInfo.droneset[designation]
+        'Find a drone with the given designation or IP address.'
+        if isinstance(designation, str):
+            if DroneInfo.droneset.has_key(designation):
+                return DroneInfo.droneset[designation]
+        elif isinstance(designation, pyNetAddr):
+            #Is there a concern about non-canonical IP address formats?
+            saddr = str(designation)
+            if DroneInfo.droneIPs.has_key(saddr):
+                return DroneInfo.droneIPs[saddr]
         return None
 
     @staticmethod
-    def add(designation, io):
+    def add(designation, io, reason, status='up'):
         "Add a drone to our set if it isn't already there."
-        if DroneInfo.droneset.has_key(designation):
-            return DroneInfo.droneset[designation]
-        ret = DroneInfo(designation, io)
+        ret = DroneInfo.find(designation);
+        if ret is not None:
+            return ret
+        else:
+            ret = DroneInfo(designation, io)
+        ret.reason = reason
+        ret.status = status
         DroneInfo.droneset[designation] = ret
         return ret
    
@@ -343,13 +384,28 @@ class DispatchTarget:
         self.io = io
         self.config = config
         
+class DispatchHBDEAD(DispatchTarget):
+    'DispatchTarget subclass for handling incoming HBDEAD FrameSets.'
+    def dispatch(self, origaddr, frameset):
+        'Dispatch function for HBDEAD FrameSets'
+        json = None
+        fstype = frameset.get_framesettype()
+        fromdrone = DroneInfo.find(origaddr)
+        print "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
+	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        for frame in frameset.iter():
+            frametype=frame.frametype()
+            if frametype == FrameTypes.IPADDR:
+                deaddrone = DroneInfo.find(frame.getnetaddr())
+                deaddrone.death_report('dead', 'HBDEAD packet', origaddr, frameset)
+
 class DispatchSTARTUP(DispatchTarget):
     'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
     def dispatch(self, origaddr, frameset):
         json = None
         fstype = frameset.get_framesettype()
-        #print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
-	#%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
+	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
@@ -363,7 +419,7 @@ class DispatchSTARTUP(DispatchTarget):
         #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
-        DroneInfo.add(sysname, self.io)
+        DroneInfo.add(sysname, self.io, 'STARTUP packet')
         drone = DroneInfo.find(sysname)
         drone.startaddr=origaddr
         if json is not None:
