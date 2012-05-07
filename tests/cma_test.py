@@ -146,11 +146,40 @@ class AUDITS(TestCase):
         expectedlen = 2 * configlen + 4 # each address has a port that goes with it
         self.assertEqual(expectedlen, len(sentfs))	# Was it the right size?
 
+    def auditaRing(self, ringname):
+        'Verify that each ring has its neighbor pairs set up properly'
+        # Check that each element of the ring is connected to its neighbors...
+        ring = HbRing.ringnames[ringname]
+        for droneid in range(0, len(ring.memberlist)):
+           drone = ring.memberlist
+           partner1id = droneid-1
+           if droneid == 0: partner1id = len(ring.memberlist)-1
+           partner2id = droneid+1
+           if droneid == len(ring.memberlist)-1: partner2id = 0
+           if partner1id < len(ring.memberlist):	break
+           if partner2id >= 0:				break
+           partner1 = ring.memberberlist[partner1id]
+           self.assertTrue(drone.ringpeers[partner1.designation] is partner1)
+           self.assertTrue(partner1.ringpeers[drone.designation] is drone)
+
+           partner2 = ring.memberberlist[partner2id]
+           self.assertTrue(drone.ringpeers[partner2.designation] is partner2)
+           self.assertTrue(partner2.ringpeers[drone.designation] is drone)
+           
+            
+        
+        
+
 def auditalldrones():
     audit = AUDITS()
     dronecount= len(DroneInfo.droneset)
     for droneid in range(1,dronecount+1):
         audit.auditadrone(droneid)
+
+def auditallrings():
+    audit = AUDITS()
+    for ring in HbRing.ringnames:
+        audit.auditaRing(ring)
 
 class TestIO(turtle.Turtle):
     '''A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read' and in turn
@@ -169,6 +198,7 @@ class TestIO(turtle.Turtle):
     def recvframesets(self):
         # Audit after each packet is processed - and once before the first packet.
         auditalldrones()
+        auditallrings()
         if self.index >= len(self.inframes):
             time.sleep(self.sleepatend)
             raise StopIteration('End of Packets')
@@ -261,10 +291,10 @@ class TestCMABasic(TestCase):
 	# Drone and Ring tables are automatically audited after each packet
 
     def test_several_startups(self):
-        OurAddr = pyNetAddr((10,10,10,200),1984)
+        OurAddr = pyNetAddr((10,10,10,200), 1984)
         configinit = geninitconfig(OurAddr)
         fsin = []
-        for droneid in range(1,5):
+        for droneid in range(1,4):
             droneip = droneipaddress(droneid)
             designation = dronedesignation(droneid)
             designationframe=pyCstringFrame(FrameTypes.HOSTNAME, designation)
@@ -295,10 +325,21 @@ class TestCMABasic(TestCase):
         # The auditing code will make sure all is well...
         # But it doesn't know how may drones we just registered
         self.assertEqual(len(DroneInfo.droneset), maxdrones)
+        partnercount = 0
+        livecount = 0
+        ringcount = 0
+        for designation in DroneInfo.droneset.keys():
+            drone = DroneInfo.droneset[designation]
+            partnercount += len(drone.ringpeers)
+            ringcount += len(drone.ringmemberships)
+            if drone.status != 'dead': livecount += 1
+        self.assertEqual(partnercount, 0)
+        self.assertEqual(livecount, 1)
+        self.assertEqual(ringcount, 1)
 
         print "The CMA read %d packets."  % io.packetsread
         print "The CMA wrote %d packets." % len(io.packetswritten)
-        #io.dumppackets()
+        io.dumppackets()
 
 
     @class_teardown

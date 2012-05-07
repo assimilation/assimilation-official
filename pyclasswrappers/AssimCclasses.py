@@ -4,6 +4,7 @@ A collection of classes which wrap our @ref C-Classes and provide Pythonic inter
 '''
 
 from AssimCtypes import *
+from frameinfo import FrameTypes, FrameSetTypes
 import collections
 import traceback
 import sys
@@ -347,6 +348,15 @@ class pyFrame(pyAssimObj):
 	    base=base.baseclass
         base.dump(self._Cstruct, cast(prefix, c_char_p))
 
+    def __str__(self):
+        base = self._Cstruct[0]
+        while (type(base) is not AssimObj):
+	    base=base.baseclass
+        cstringret = base.toString(self._Cstruct)
+        ret = string_at(cstringret)
+        g_free(cstringret)
+        return '%s: %s' % (FrameTypes.get(self.frametype())[1] , ret)
+
     @staticmethod
     def Cstruct2Frame(frameptr):
         frameptr = cast(frameptr, cClass.Frame)
@@ -393,7 +403,7 @@ class pyAddrFrame(pyFrame):
         return self._pyNetAddr
 
     def __str__(self):
-       return ("pyAddrFrame(%d, (%s))" % (self.frametype(), str(self._pyNetAddr)))
+       return ("pyAddrFrame(%s, (%s))" % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr)))
 
 
 class pyCstringFrame(pyFrame):
@@ -435,7 +445,7 @@ class pyIntFrame(pyFrame):
 
     def __str__(self):
         'Return a string representation of this pyIntFrame (the integer value).'
-        return str(int(self))
+        return ("pyIntFrame(%s, (%d))" % (FrameTypes.get(self.frametype())[1], int(self)))
 
     def getint(self):
         'Return the integer value of this pyIntFrame - same as __int__.'
@@ -495,7 +505,7 @@ class pySeqnoFrame(pyFrame):
         return lhsbase.equal(self._Cstruct, rhs._Cstruct)
 
     def __str__(self):
-       return "(%d,%d)" % (self.getqid(), self.getreqid())
+        return ("pySeqNo(%s: (%d, %d))" % (FrameTypes.get(self.frametype())[1], self.getqid(), self.getreqid()))
 
 class pySignFrame(pyFrame):
     'Class for Digital Signature Frames - for authenticating data (subclasses will authenticate senders)'
@@ -602,11 +612,11 @@ class pyFrameSet(pyAssimObj):
 
     def __str__(self):
         'Convert pyFrameSet to string'
-        result = "{"
+        result = '%s:{' % FrameSetTypes.get(self.get_framesettype())[0]
+        comma=''
         for frame in self.iter():
-            if result != "{":
-                result += ", "
-            result += str(frame)
+            result += '%s%s' % (comma, str(frame))
+            comma=', '
         result += "}"
         return result
 
