@@ -1,11 +1,14 @@
+_suites = ['all', 'cclass']
 import sys
 sys.path.append("../pyclasswrappers")
+sys.path.append("pyclasswrappers")
 from testify import *
 
 from frameinfo import *
 from AssimCclasses import *
 import gc
 import re
+
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
@@ -135,7 +138,7 @@ class pyIntFrameTest(TestCase):
             self.assertTrue(pyf.isvalid())
             self.assertEqual(pyf.intlength(), size)
             self.assertEqual(int(pyf), 42)
-            self.assertEqual(str(pyf), '42')
+            self.assertEqual(str(pyf), 'pyIntFrame(%d, (42))' % (310+size))
 
     def test_set(self): 
         'Test setting integer values for all the size integers'
@@ -145,7 +148,7 @@ class pyIntFrameTest(TestCase):
             val = 42 + size
             pyf.setint(val)
             self.assertEqual(int(pyf), val)
-            self.assertEqual(str(pyf), str(val))
+            self.assertEqual(str(pyf), ('pyIntFrame(320, (%d))' % val))
         
 
     @class_teardown
@@ -246,12 +249,12 @@ class pyCstringFrameTest(TestCase):
         if DEBUG: print "test_constructor(pyCstringFrameTest)"
         pyf = pyCstringFrame(600, "Hello, World.")
         self.assertTrue(pyf.isvalid())
-        self.assertEqual(str(pyf), 'CstringFrame(600, "Hello, World.")')
+        self.assertEqual(str(pyf), '600: CstringFrame(600, "Hello, World.")')
         pyf2 = pyCstringFrame(601)
         self.assertFalse(pyf2.isvalid())
         pyf2.setvalue("42")
         self.assertTrue(pyf2.isvalid())
-        self.assertEqual(str(pyf2), 'CstringFrame(601, "42")')
+        self.assertEqual(str(pyf2), '601: CstringFrame(601, "42")')
 
     @class_teardown
     def tearDown(self):
@@ -433,7 +436,7 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo.getint('fred'), -1)
         self.assertEqual(str(foo['bar']), '1.2.3.4')
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
-        self.assertEqual(str(foo['csf']), 'CstringFrame(42, "41+1")')
+        self.assertEqual(str(foo['csf']), '42: CstringFrame(42, "41+1")')
         self.assertEqual(str(foo), '{"str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
 
         foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)

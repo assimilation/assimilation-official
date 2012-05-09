@@ -76,7 +76,7 @@
 #
 ################################################################################
 
-import sys, time
+import sys, time, weakref
 sys.path.append("../pyclasswrappers")
 sys.path.append("pyclasswrappers")
 from frameinfo import FrameTypes, FrameSetTypes
@@ -105,14 +105,17 @@ class HbRing:
 
     def join(self, drone):
         'Add this drone to our ring'
+        # Make sure he's not already in our ring according to our 'database'
         if self.members.has_key(drone.designation):
             print self.members
             raise ValueError("Drone %s is already a member of this ring [%s]"
             %               (drone.designation, self.name))
 
-        self.members[drone.designation] = drone
-        drone.ringmemberships[self.name] = self
+        # Insert this drone into our 'database', and us into the drone's
+        self.members[drone.designation] = weakref.proxy(drone)
+        drone.ringmemberships[self.name] = weakref.proxy(self)
         partners = self._findringpartners(drone)	# Also adds drone to memberlist
+
         #print >>sys.stderr,'Adding drone %s to talk to partners'%drone.designation, partners
         if partners == None: return
         if len(self.memberlist) == 2:
@@ -131,10 +134,14 @@ class HbRing:
         if not self.members.has_key(drone.designation):
             raise ValueError("Drone %s is not a member of this ring [%s]"
             %               (drone.designation, self.name))
-        location = self.memberlist.index(drone)
-
-        del self.members[drone.designation]
+        location = None
+        for j in range(0,len(self.memberlist)): # Index won't work due to weakproxy
+            if self.memberlist[j].designation == drone.designation:
+                location = j
+                break
+        # Remove the associations from the 'database'
         del self.memberlist[location]
+        del self.members[drone.designation]
         del drone.ringmemberships[self.name]
 
         if len(self.memberlist) == 0:  return   # Previous length: 1
@@ -166,7 +173,9 @@ class HbRing:
         # It would be nice to not keep updating the drone on the end of the list
         # I suppose walking through the ring would be a good choice
         # or maybe choosing a random insert position.
-        self.memberlist.insert(0,drone)
+
+	# Insert the partner into the 'database'
+        self.memberlist.insert(0, weakref.proxy(drone))
         nummember = len(self.memberlist)
         if nummember == 1: return None
         if nummember == 2: return (self.memberlist[1],)
@@ -205,6 +214,11 @@ class DroneInfo:
         self.ringpeers = {}
         self.ringmemberships = {}
         self.io = io
+   
+    @staticmethod
+    def reset():
+        DroneInfo.droneset = {}
+        DroneInfo.droneIPs = {}
 
     def addaddr(self, addr, ifname=None):
         'Record what IPs this drone has - and on what interfaces'
@@ -322,10 +336,14 @@ class DroneInfo:
             partner2ip = None
         #print >>sys.stderr, 'We want to stop heartbeating %s to %s' \
         #        % (self.designation, partner1ip)
+        #print >>sys.stderr, "IN STOP: %s, %s" % (self.designation, partner1.designation)
+	#print >>sys.stderr, "PARTNERS:", self.ringpeers.keys()
+        # Remove partner1 from our 'database'
         del self.ringpeers[partner1.designation]
         if partner2 is not None:
-            print >>sys.stderr, 'We also want to stop heartbeating %s to %s' \
-            %		(self.designation, partner2ip)
+            #print >>sys.stderr, 'We also want to stop heartbeating %s to %s' \
+            #%		(self.designation, partner2ip)
+            # Remove partner2 from our 'database'
             del self.ringpeers[partner2.designation]
         #print >>sys.stderr, self, self.ringpeers
         self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, 0, (partner1ip, partner2ip))
@@ -359,10 +377,6 @@ class DroneInfo:
         ret.status = status
         DroneInfo.droneset[designation] = ret
         return ret
-   
-    @staticmethod
-    def reset():
-        DroneInfo.droneset = {}
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
@@ -391,7 +405,7 @@ class DispatchHBDEAD(DispatchTarget):
         json = None
         fstype = frameset.get_framesettype()
         fromdrone = DroneInfo.find(origaddr)
-        print "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
+        print>>sys.stderr, "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
 	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
@@ -404,7 +418,7 @@ class DispatchSTARTUP(DispatchTarget):
     def dispatch(self, origaddr, frameset):
         json = None
         fstype = frameset.get_framesettype()
-        print "DispatchSTARTUP: received [%s] FrameSet from [%s]" \
+        print >>sys.stderr,"DispatchSTARTUP: received [%s] FrameSet from [%s]" \
 	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()

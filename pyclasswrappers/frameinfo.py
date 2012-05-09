@@ -244,7 +244,9 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
         if type(key) is str:
             return FrameTypes._strframetypes[key]
         else:
-            return FrameTypes._intframetypes[int(key)]
+            if FrameTypes._intframetypes.has_key(int(key)):
+                return FrameTypes._intframetypes[int(key)]
+            return (None, str(key), str(key), str(key))
 
     @classmethod
     def c_defines(cls, f):
@@ -338,7 +340,9 @@ class FrameSetTypes:
         if type(key) is str:
             return FrameSetTypes._strframetypes[key]
         else:
-            return FrameSetTypes._intframetypes[int(key)]
+            if FrameSetTypes._intframetypes.has_key(int(key)):
+                return FrameSetTypes._intframetypes[int(key)]
+            return (None, str(int(key)), str(int(key)), str(int(key)))
 
     @classmethod
     def c_defines(cls, f):
