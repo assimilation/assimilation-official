@@ -29,6 +29,7 @@ WINEXPORT void		proj_class_decr_debug(const char * Cclass);
 
 WINEXPORT void proj_class_dump_live_objects(void);
 WINEXPORT guint32 proj_class_live_object_count(void);
+WINEXPORT guint32 proj_class_max_object_count(void);
 WINEXPORT void proj_class_finalize_sys(void);
 
 ///@{

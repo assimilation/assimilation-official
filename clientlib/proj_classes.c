@@ -44,9 +44,13 @@
  */
 
 
-static GHashTable* ObjectClassAssociation = NULL;	///< Map of objects -> class quarks
-static GHashTable* SuperClassAssociation = NULL;	///< Map of subclass-quarks -> superclass-quarks
-static GHashTable* DebugClassAssociation = NULL;	///< Map of class -> debug variables
+static GHashTable*	ObjectClassAssociation= NULL;	///< Map of objects -> class quarks
+static GHashTable*	SuperClassAssociation = NULL;	///< Map of subclass-quarks -> superclass-quarks
+static GHashTable*	DebugClassAssociation = NULL;	///< Map of class -> debug variables
+static GHashTable*	FreedClassAssociation = NULL;	///< Map of class -> freed 
+static guint32		proj_class_obj_count = 0;
+static guint32		proj_class_max_obj_count = 0;
+
 FSTATIC void _init_proj_class_module(void);
 FSTATIC void proj_class_change_debug(const char * Cclass, gint incr);
 
@@ -55,6 +59,7 @@ FSTATIC void
 _init_proj_class_module(void)
 {
 	ObjectClassAssociation  = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
+	FreedClassAssociation	= g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 	SuperClassAssociation   = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 	DebugClassAssociation   = g_hash_table_new(g_str_hash, g_str_equal);
 }
@@ -62,9 +67,10 @@ _init_proj_class_module(void)
 void
 proj_class_finalize_sys(void)
 {
-	g_hash_table_destroy(ObjectClassAssociation); ObjectClassAssociation = NULL;
-	g_hash_table_destroy(SuperClassAssociation); SuperClassAssociation = NULL;
-	g_hash_table_destroy(DebugClassAssociation); DebugClassAssociation = NULL;
+	g_hash_table_destroy(ObjectClassAssociation);	ObjectClassAssociation = NULL;
+	g_hash_table_destroy(FreedClassAssociation);	FreedClassAssociation = NULL;
+	g_hash_table_destroy(SuperClassAssociation);	SuperClassAssociation = NULL;
+	g_hash_table_destroy(DebugClassAssociation);	DebugClassAssociation = NULL;
 }
 
 /// Log the creation of a new object, and its association with a given type.
@@ -84,6 +90,10 @@ proj_class_register_object(gpointer object,			///< Object to be registered
 		g_error("Attempt to re-allocate memory already allocated at address %p", object);
 	}
 	g_hash_table_insert(ObjectClassAssociation, GINT_TO_POINTER(object), GINT_TO_POINTER(classquark));
+	++ proj_class_obj_count;
+	if (proj_class_obj_count > proj_class_max_obj_count) {
+		proj_class_max_obj_count = proj_class_obj_count;
+	}
 }
 
 void
@@ -184,10 +194,15 @@ void
 proj_class_dissociate(gpointer object) ///< Object be 'dissociated' from class
 {
 	GQuark		objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
+	-- proj_class_obj_count;
 	if (objquark == 0) {
-		g_error("Attempt to free memory not currently shown as allocated to a class object");
+		GQuark		freedquark = GPOINTER_TO_INT(g_hash_table_lookup(FreedClassAssociation, object));
+		const char * 	oldclass = (freedquark == 0 ? "(unknown class)" : g_quark_to_string(freedquark));
+		g_error("Attempt to free memory not currently shown as allocated to a class object - former class: %s"
+		,	oldclass);
 	}else{
 		//g_warning("Freeing object %p of type %s", object, proj_class_classname(object));
+		g_hash_table_insert(FreedClassAssociation, GINT_TO_POINTER(object), GINT_TO_POINTER(objquark));
 		g_hash_table_remove(ObjectClassAssociation, object);
 	}
 }
@@ -236,8 +251,11 @@ proj_class_castas(gpointer     object,		///< Object to be "cast" as "castclass"
 		  const char * castclass)	///< Class to cast "object" as
 {
 	if (!OBJ_IS_A(object, castclass)) {
-		const char *objclass =  proj_class_classname(object);
-		g_error("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
+		const char *	objclass =  proj_class_classname(object);
+		GQuark		freedquark = GPOINTER_TO_INT(g_hash_table_lookup(FreedClassAssociation, object));
+		const char * 	oldclass = (freedquark == 0 ? "(unknown class)" : g_quark_to_string(freedquark));
+		g_error("Attempt to cast %s pointer at address %p to %s (formerly a %s)", objclass, object, castclass
+		,	oldclass);
 	}
 	return object;
 }
@@ -334,7 +352,15 @@ proj_class_live_object_count(void)
 			count += 1;
 		}
 	}
+	g_assert(count == proj_class_obj_count);
 	return count;
+}
+
+/// Return the maximum number of live C class objects that we've ever had
+guint32
+proj_class_max_object_count(void)
+{
+	return proj_class_max_obj_count;
 }
 
 ///@}
