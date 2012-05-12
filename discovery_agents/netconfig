@@ -59,22 +59,43 @@ IP=/sbin/ip
 IWCONFIG=/sbin/iwconfig
 US=`basename $0`
 
+# Return true if the argument is a floating point number
+isfloating() {
+  # We need BC to do this right - but it might not be installed.
+  # Our caller has pre-filtered our arguments to likely be floating point numbers
+  # Hope we have BC or that's good enough...
+  test -x "$BC" || return 0
+  test ! -z "$(echo "scale=10; $1" | "$BC" 2>/dev/null)"
+}
+
 # Return true if the argument is a number...
 isanumber() {
+  case "$1" in
+    *.*.*|*[A-Za-z]*|*:*)	return 1;;
+    [0-9]*.*[0-9*])		isfloating "$1"; return;;
+  esac
   test \( "$1" -le 0 \) -o \( "$1" -ge 0 \) 2>/dev/null
 }
 
 
-# Format a scalar in the proper JSON format
+# Format a scalar in the proper JSON format according to its type
 scalarfmt() {
+  case "$1" in
+      true|false|null)	printf "$1";	return;;
+      # We allow yes or no for true and false respectively
+      # because /proc uses that notation in some places.
+      yes)		printf 'true';	return;;
+      no)		printf 'false';	return;;
+  esac
   if
     isanumber "$1"
   then
-    printf '%s'   "$1"
+    printf '%s'		"$1"
   else
-    printf '"%s"' "$1"
+    printf '"%s"'	"$1"
   fi
 }
+
 
 # Print out a scalar name/value pair in JSON notation
 scalarval() {
@@ -129,6 +150,11 @@ discover() {
       [ ! -f "$file" ] && continue
       value=`cat $file 2>/dev/null`
       [ -z "$value" ] && continue
+      # Change carrier from a {0,1} integer to a boolean
+      case "$field:$value" in
+         'carrier:1')	value=true;;
+         'carrier:0')	value=false;;
+      esac
       printf '	%s,\n' "$(scalarval "$field" "$value" )"
     done
     case $device in
