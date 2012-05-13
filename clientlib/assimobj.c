@@ -29,14 +29,14 @@ FSTATIC void
 _assimobj_ref(gpointer vself)
 {
 	AssimObj* self = CASTTOCLASS(AssimObj, vself);
-	g_return_if_fail(self->_refcount > 0);
+	g_return_if_fail(self != NULL && self->_refcount > 0);
 	self->_refcount += 1;
 }
 FSTATIC void
 _assimobj_unref(gpointer vself)
 {
 	AssimObj* self = CASTTOCLASS(AssimObj, vself);
-	g_return_if_fail(self->_refcount > 0);
+	g_return_if_fail(self != NULL && self->_refcount > 0);
 	self->_refcount -= 1;
 	if (self->_refcount == 0) {
 		self->_finalize(self); self=NULL;

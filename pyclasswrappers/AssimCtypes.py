@@ -1225,6 +1225,12 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count.restype = guint32
 
 # ../include/proj_classes.h: 32
+if hasattr(_libs['libclientlib.so'], 'proj_class_max_object_count'):
+    proj_class_max_object_count = _libs['libclientlib.so'].proj_class_max_object_count
+    proj_class_max_object_count.argtypes = []
+    proj_class_max_object_count.restype = guint32
+
+# ../include/proj_classes.h: 33
 if hasattr(_libs['libclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
@@ -1262,6 +1268,12 @@ if hasattr(_libs['libclientlib.so'], '_assimobj_finalize'):
     _assimobj_finalize = _libs['libclientlib.so']._assimobj_finalize
     _assimobj_finalize.argtypes = [POINTER(AssimObj)]
     _assimobj_finalize.restype = None
+
+# ../include/assimobj.h: 29
+try:
+    badfree = (gboolean).in_dll(_libs['libclientlib.so'], 'badfree')
+except:
+    pass
 
 # ../include/frameset.h: 29
 class struct__FrameSet(Structure):
@@ -2910,6 +2922,12 @@ if hasattr(_libs['libclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count.restype = guint32
 
 # /home/alanr/monitor/src/include/proj_classes.h: 32
+if hasattr(_libs['libclientlib.so'], 'proj_class_max_object_count'):
+    proj_class_max_object_count = _libs['libclientlib.so'].proj_class_max_object_count
+    proj_class_max_object_count.argtypes = []
+    proj_class_max_object_count.restype = guint32
+
+# /home/alanr/monitor/src/include/proj_classes.h: 33
 if hasattr(_libs['libclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
@@ -3240,7 +3258,7 @@ except:
 def g_slist_next(slist):
     return slist and (slist.contents.next) or NULL
 
-# ../include/proj_classes.h: 57
+# ../include/proj_classes.h: 58
 def OBJ_IS_A(obj, Cclass):
     return (proj_class_is_a (obj, Cclass))
 
@@ -4024,7 +4042,7 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/proj_classes.h: 57
+# /home/alanr/monitor/src/include/proj_classes.h: 58
 def OBJ_IS_A(obj, Cclass):
     return (proj_class_is_a (obj, Cclass))
 

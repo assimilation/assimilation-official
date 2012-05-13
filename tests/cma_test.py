@@ -14,9 +14,10 @@ from cma import *
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
 DEBUG=False
-DoAudit=False
-SavePackets=False
-doHBDEAD=False
+DoAudit=True
+SavePackets=True
+MaxDrone=100
+doHBDEAD=True
 
 
 def assert_no_dangling_Cclasses():
@@ -314,7 +315,7 @@ class TestCMABasic(TestCase):
         configinit = geninitconfig(OurAddr)
         fsin = []
         droneid=0
-        for droneid in range(1,72):
+        for droneid in range(1,MaxDrone+1):
             droneip = droneipaddress(droneid)
             designation = dronedesignation(droneid)
             designationframe=pyCstringFrame(FrameTypes.HOSTNAME, designation)

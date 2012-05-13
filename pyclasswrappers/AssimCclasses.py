@@ -154,7 +154,14 @@ class pyAssimObj:
 	# This 'hasattr' construct only works because we are a base C-class
         while (hasattr(base, 'baseclass')):
 	    base=base.baseclass
+        global badfree
+        badfree=0
         base.unref(self._Cstruct)
+        if badfree != 0:
+            print >>sys.stderr, "Attempt to free something already freed(%s)" % str(self._Cstruct)
+            traceback.print_stack()
+            badfree = 0
+        self._Cstruct = None
 
     def _ref(self):
 	base=self._Cstruct[0]

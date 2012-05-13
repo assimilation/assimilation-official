@@ -12,6 +12,13 @@
 #include <projectcommon.h>
 #include <assimobj.h>
 
+#undef	NULL_FOR_BAD_CAST
+#ifdef	NULL_FOR_BAD_CAST
+#	define	BADCASTMSG	g_critical
+#else
+#	define	BADCASTMSG	g_error
+#endif
+
 /// @defgroup C_Classes C-Classes
 
 /**
@@ -50,6 +57,7 @@ static GHashTable*	DebugClassAssociation = NULL;	///< Map of class -> debug vari
 static GHashTable*	FreedClassAssociation = NULL;	///< Map of class -> freed 
 static guint32		proj_class_obj_count = 0;
 static guint32		proj_class_max_obj_count = 0;
+gboolean		badfree = FALSE;
 
 FSTATIC void _init_proj_class_module(void);
 FSTATIC void proj_class_change_debug(const char * Cclass, gint incr);
@@ -198,8 +206,9 @@ proj_class_dissociate(gpointer object) ///< Object be 'dissociated' from class
 	if (objquark == 0) {
 		GQuark		freedquark = GPOINTER_TO_INT(g_hash_table_lookup(FreedClassAssociation, object));
 		const char * 	oldclass = (freedquark == 0 ? "(unknown class)" : g_quark_to_string(freedquark));
-		g_error("Attempt to free memory not currently shown as allocated to a class object - former class: %s"
+		BADCASTMSG("Attempt to free memory not currently shown as allocated to a class object - former class: %s"
 		,	oldclass);
+		badfree = TRUE;
 	}else{
 		//g_warning("Freeing object %p of type %s", object, proj_class_classname(object));
 		g_hash_table_insert(FreedClassAssociation, GINT_TO_POINTER(object), GINT_TO_POINTER(objquark));
@@ -254,8 +263,10 @@ proj_class_castas(gpointer     object,		///< Object to be "cast" as "castclass"
 		const char *	objclass =  proj_class_classname(object);
 		GQuark		freedquark = GPOINTER_TO_INT(g_hash_table_lookup(FreedClassAssociation, object));
 		const char * 	oldclass = (freedquark == 0 ? "(unknown class)" : g_quark_to_string(freedquark));
-		g_error("Attempt to cast %s pointer at address %p to %s (formerly a %s)", objclass, object, castclass
+		BADCASTMSG("Attempt to cast %s pointer at address %p to %s (formerly a %s)", objclass, object, castclass
 		,	oldclass);
+		object = NULL;
+		badfree = TRUE;
 	}
 	return object;
 }
@@ -270,7 +281,8 @@ proj_class_castasconst(gconstpointer object,	///< Object to be "cast" to "castcl
 {
 	if (!proj_class_is_a(object, castclass)) {
 		const char *objclass =  proj_class_classname(object);
-		g_error("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
+		BADCASTMSG("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
+		object = NULL;
 	}
 	return object;
 }
