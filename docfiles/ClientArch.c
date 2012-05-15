@@ -3,7 +3,7 @@
 @section PolicyFreeClient Nanoprobes are Policy-free and Mostly Passive
 Nanoprobes are mostly policy-free.  They do what the central monitoring agency tells them to do.
 The only things they do on their own are:
- - Announce itself and request configuratin when it starts (it needs to "know" where to announce itself to)
+ - Announce itself and request configuration when it starts (it needs to "know" where to announce itself to)
  - Gather local network configuration and send it along to the CMA initially (and when it changes?)
  - Gather LLDP or CDP information and send to the CMA when it changes
  - Eventually gather ARP cache information and send it along in the same fashion
@@ -44,7 +44,7 @@ client could tell that the link status had gone away on its own NIC (see below) 
 the event and keep letting timers pop until the NIC comes back - or it starts hearing heartbeats.
 In fact, it should probably cancel it until the NIC comes back.
 
-@subsection ClientArchSwitchDeath Misc Linux Notes about Nic configuration
+@subsection ClientArchSwitchDeath Misc Linux Notes about NIC configuration
 This command:
 <PRE>
     $ for j in address addr_len  duplex mtu speed  carrier; do printf '%%s: ' $j; cat /sys/class/net/eth0/$j; done
