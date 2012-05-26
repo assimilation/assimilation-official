@@ -160,7 +160,7 @@ FSTATIC gchar*
 _intframe_toString(gconstpointer obj)
 {
 	const IntFrame* self = CASTTOCONSTCLASS(IntFrame, obj);
-	return g_strdup_printf("IntFrame(%d, %d, %lld)"
+	return g_strdup_printf("IntFrame(%d, %d, "FMT_64BIT"d)"
 	,	self->baseclass.type, self->baseclass.length, self->_value);
 }
 

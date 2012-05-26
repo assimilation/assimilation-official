@@ -159,7 +159,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 			return;
 		}
 	}
-	g_message("Sending %d bytes of JSON text", jsonlen);
+	g_message("Sending %"G_GSIZE_FORMAT" bytes of JSON text", jsonlen);
 	cfg->setstring(cfg, basename, jsonout);
 	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
 	if (cma == NULL) {

@@ -298,7 +298,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	g_return_if_fail(length > 0);
 
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
-	DEBUGMSG1("%s: sendto returned %d with errno %s", __FUNCTION__, rc, g_strerror(errno));
+	DEBUGMSG1("%s: sendto returned %"G_GSSIZE_FORMAT " with errno %s", __FUNCTION__, rc, g_strerror(errno));
 	g_return_if_fail(rc == length);
 }
 

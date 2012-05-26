@@ -18,7 +18,7 @@
 #define	FREE(m)		g_free(m)			///< Our interface to free
 
 #define	FSTATIC		/* Static function */
-#define	FMT_64BIT	"%ll"				///< Format designator for a 64 bit integer
+#define	FMT_64BIT	"%"G_GINT64_MODIFIER				///< Format designator for a 64 bit integer
 
 #ifdef _MSC_VER
 #ifndef _W64

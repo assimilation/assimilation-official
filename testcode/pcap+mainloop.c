@@ -222,7 +222,7 @@ main(int argc, char **argv)
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
-                g_debug("Max packet count is %lld", maxpkts);
+                g_debug("Max packet count is "FMT_64BIT"d", maxpkts);
 	}
 
 	if (netio_is_dual_ipv4v6_stack()) {
