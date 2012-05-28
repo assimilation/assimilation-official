@@ -97,7 +97,7 @@ proj_class_register_object(gpointer object,			///< Object to be registered
 	if (NULL != g_hash_table_lookup(ObjectClassAssociation, object)) {
 		g_error("Attempt to re-allocate memory already allocated at address %p", object);
 	}
-	g_hash_table_insert(ObjectClassAssociation, GINT_TO_POINTER(object), GINT_TO_POINTER(classquark));
+	g_hash_table_insert(ObjectClassAssociation, object, GUINT_TO_POINTER(classquark));
 	++ proj_class_obj_count;
 	if (proj_class_obj_count > proj_class_max_obj_count) {
 		proj_class_max_obj_count = proj_class_obj_count;
@@ -107,12 +107,13 @@ proj_class_register_object(gpointer object,			///< Object to be registered
 void
 proj_class_register_debug_counter(const char * classname, guint * debugcount)
 {
+	guint64		intclassname = (guint64)classname;
 	if (NULL == ObjectClassAssociation) {
 		_init_proj_class_module();
 	}
 	// Sleazy - the double cast is to make the 'const' go away - but safe
 	// since we aren't going to modify the strings we were given...
-	g_hash_table_replace(DebugClassAssociation, GINT_TO_POINTER(GPOINTER_TO_INT(classname)), debugcount);
+	g_hash_table_replace(DebugClassAssociation, (gpointer)(intclassname), debugcount);
 	
 }
 
@@ -179,7 +180,7 @@ proj_class_register_subclassed(gpointer object,				///< Object (currently regist
 	}
 	///todo create a superclass/subclass hierarchy...
 	proj_class_quark_add_superclass_relationship(superclassquark, subclassquark);
-	g_hash_table_replace(ObjectClassAssociation, object, GINT_TO_POINTER(subclassquark));
+	g_hash_table_replace(ObjectClassAssociation, object, GUINT_TO_POINTER(subclassquark));
 	return object;
 }
 
@@ -211,7 +212,7 @@ proj_class_dissociate(gpointer object) ///< Object be 'dissociated' from class
 		badfree = TRUE;
 	}else{
 		//g_warning("Freeing object %p of type %s", object, proj_class_classname(object));
-		g_hash_table_insert(FreedClassAssociation, GINT_TO_POINTER(object), GINT_TO_POINTER(objquark));
+		g_hash_table_insert(FreedClassAssociation, object, GUINT_TO_POINTER(objquark));
 		g_hash_table_remove(ObjectClassAssociation, object);
 	}
 }
@@ -303,7 +304,7 @@ void
 proj_class_quark_add_superclass_relationship(GQuark superclass,	///< Quark for Superclass
 					     GQuark subclass)	///< Quark for Subclass
 {
-	g_hash_table_insert(SuperClassAssociation, GINT_TO_POINTER(subclass), GINT_TO_POINTER(superclass));
+	g_hash_table_insert(SuperClassAssociation, GUINT_TO_POINTER(subclass), GUINT_TO_POINTER(superclass));
 	
 }
 /// Determine whether an 'objectclass' ISA member of 'testclass' - with quarks of types as arguments
@@ -316,7 +317,7 @@ proj_class_quark_is_a(GQuark objectclass,	///< Object to be tested
 		if (objectclass == testclass) {
 			return TRUE;
 		}
-		objectclass = GPOINTER_TO_INT(g_hash_table_lookup(GINT_TO_POINTER(SuperClassAssociation), GINT_TO_POINTER(objectclass)));
+		objectclass = GPOINTER_TO_INT(g_hash_table_lookup(SuperClassAssociation, GUINT_TO_POINTER(objectclass)));
 	}
 	return FALSE;
 }
