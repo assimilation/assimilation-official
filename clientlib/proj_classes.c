@@ -281,9 +281,13 @@ proj_class_castasconst(gconstpointer object,	///< Object to be "cast" to "castcl
 		  const char * castclass)	///< Class to cast "object" as
 {
 	if (!proj_class_is_a(object, castclass)) {
-		const char *objclass =  proj_class_classname(object);
-		BADCASTMSG("Attempt to cast %s pointer at address %p to %s", objclass, object, castclass);
+		const char *	objclass =  proj_class_classname(object);
+		GQuark		freedquark = GPOINTER_TO_INT(g_hash_table_lookup(FreedClassAssociation, object));
+		const char * 	oldclass = (freedquark == 0 ? "(unknown class)" : g_quark_to_string(freedquark));
+		BADCASTMSG("Attempt to cast %s pointer at address %p to a const %s (formerly a %s)", objclass, object, castclass
+		,	oldclass);
 		object = NULL;
+		badfree = TRUE;
 	}
 	return object;
 }
