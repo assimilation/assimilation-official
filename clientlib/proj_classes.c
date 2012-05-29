@@ -107,19 +107,18 @@ proj_class_register_object(gpointer object,			///< Object to be registered
 void
 proj_class_register_debug_counter(const char * classname, guint * debugcount)
 {
-	guint64		intclassname = (guint64)classname;
 	if (NULL == ObjectClassAssociation) {
 		_init_proj_class_module();
 	}
 	// Sleazy - the double cast is to make the 'const' go away - but safe
-	// since we aren't going to modify the strings we were given...
-	g_hash_table_replace(DebugClassAssociation, (gpointer)(intclassname), debugcount);
-	
+	// since we we never modify the strings we were given - we expect them to be constants
+	// and we just point at them.
+	g_hash_table_replace(DebugClassAssociation, (gpointer)((guintptr)classname), debugcount);
 }
 
 
 /// Increment debug level for this class and all its subclasses by one.
-/// NULL class <i>Cclass</i> name means all classes.
+/// NULL <i>Cclass</i> class name means increment debug for <i>all</i> classes.
 void
 proj_class_incr_debug(const char * Cclass)
 {
@@ -127,7 +126,7 @@ proj_class_incr_debug(const char * Cclass)
 }
 
 /// Decrement debug level for this class and all its subclasses by one.
-/// NULL class <i>Cclass</i> name means all classes.
+/// NULL <i>Cclass</i> class name means decrement debug for <i>all</i> classes.
 void
 proj_class_decr_debug(const char * Cclass)
 {
@@ -135,7 +134,7 @@ proj_class_decr_debug(const char * Cclass)
 }
 
 /// Change debug level for this class and all its subclasses by 'incr'.
-/// NULL class <i>Cclass</i> name means all classes.
+/// NULL <i>Cclass</i> class name means modify debug for <i>all</i> classes.
 FSTATIC void
 proj_class_change_debug(const char * Cclass, gint incr)
 {
