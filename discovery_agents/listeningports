@@ -36,7 +36,7 @@ US=$(basename $0)
 procinfo() {
   procpid="$1"
   if
-    [ ! -f /proc/$procpid/cmdline -o ! -r /proc/$procpid/cmdline ]
+    [ -z "$1" -o ! -f /proc/$procpid/cmdline -o ! -r /proc/$procpid/cmdline ]
   then
     printf '"exe": "unknown"\n'
     return
@@ -88,16 +88,20 @@ discover() {
     #
     # Examine all our netstat output (after mangling it) to see what services we're offering
     #
-    netstat $flags | cut -c1-6,21-44,81- |
-      sed -r -e 's%:[0-9][0-9]*  *% &%' 		\
-	     -e 's% :([0-9])% &%'  			\
-             -e 's%  *%\t%g' -e 's%/.*%%'  		\
-             -e 's%	:([0-9])%	\1%' 		\
-             -e 's%	:	%	::	%' |
-      tail -n +3  |
+    netstat $flags | 
     while
-       read proto addr port pid other
+       read proto rcvq sendq localaddr foreignaddr state pid_prog
     do
+      : proto $proto rcvq $rcvq sendq $sendq localaddr $localaddr foreignaddr $foreignaddr state $state pid_prog $pid_prog
+      case $state in
+        LISTEN)	: OK;;
+        */*)	pid_prog="$state";;
+        *)	: state is ["$state"] ; continue;;
+      esac
+      addr=$(echo "$localaddr" | sed 's%:[^:]*$%%')	# Strip all starting from last ':'
+      port=$(echo "$localaddr" | sed 's%.*:%%')		# Strip all before & including last ':'
+      pid=$(echo "$pid_prog"| sed 's%/.*%%')		# Strip all after & including /
+      
       shouldskip "$addr" && continue
       
       key="$proto/$addr/$port"
