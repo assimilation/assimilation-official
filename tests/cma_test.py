@@ -2,6 +2,7 @@ _suites = ['all', 'cma']
 import sys
 sys.path.append("../pyclasswrappers")
 sys.path.append("../cma")
+sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from testify import *
 from testify.utils import turtle
 
@@ -16,9 +17,16 @@ WorstDanglingCount = 0
 DEBUG=False
 DoAudit=True
 SavePackets=True
+MaxDrone=300000
 MaxDrone=100
 doHBDEAD=True
 
+t1 = MaxDrone
+if t1 < 1000: t1 = 1000
+t2 = MaxDrone/100
+if t2 < 10: t2 = 10
+t3 = t2
+#gc.set_threshold(t1, t2, t3)
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -204,8 +212,9 @@ class TestIO:
     def recvframesets(self):
         # Audit after each packet is processed - and once before the first packet.
         if DoAudit:
-            auditalldrones()
-            auditallrings()
+            if self.packetsread < 200 or (self.packetsread % 500) == 0:
+                auditalldrones()
+                auditallrings()
         if self.index >= len(self.inframes):
             time.sleep(self.sleepatend)
             raise StopIteration('End of Packets')
@@ -363,6 +372,9 @@ class TestCMABasic(TestCase):
             self.assertEqual(partnercount, 0)
             self.assertEqual(livecount, 1)
             self.assertEqual(ringcount, 1)
+        if DoAudit:
+            auditalldrones()
+            auditallrings()
 
         print "The CMA read %d packets."  % io.packetsread
         print "The CMA wrote %d packets." % io.writecount
