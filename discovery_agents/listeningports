@@ -43,14 +43,14 @@ procinfo() {
   fi
   EXE=$(readlink /proc/$procpid/exe)
   CMD=$(tr '\0' '' < /proc/$procpid/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%"cmdline": [ "&" ],\n%')
-  UID=$(ls -ld /proc/$procpid | cut -d' ' -f3)
-  GID=$(ls -ld /proc/$procpid | cut -d' ' -f4)
+  USERID=$(ls -ld /proc/$procpid | cut -d' ' -f3)
+  GROUPID=$(ls -ld /proc/$procpid | cut -d' ' -f4)
   cat <<-!FOO
 	"pid": $pid,
 	"exe": "$EXE",
 	$CMD
-	"uid": "$UID",
-	"gid": "$GID",
+	"uid": "$USERID",
+	"gid": "$GROUPID",
 	"cwd": "$(readlink /proc/$procpid/cwd)"
 	!FOO
 }
