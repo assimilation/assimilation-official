@@ -191,17 +191,23 @@ class pyNetAddr(pyAssimObj):
 
         if port == None: port = 0
 
-        if isinstance(addrstring, str):
+        if isinstance(addrstring, unicode):
+           addrstring = str(addrstring)
+        if isinstance(addrstring, str) or isinstance(addrstring, unicode):
             self._Cstruct = netaddr_string_new(addrstring, port)
             return
         
         alen = len(addrstring)
         addr = create_string_buffer(alen)
         #print >>sys.stderr, "ADDRTYPE:", type(addr)
+        #print >>sys.stderr, "ADDRSTRINGTYPE:", type(addrstring)
         for i in range(0, alen):
             asi = addrstring[i]
+            #print >>sys.stderr, "ASI_TYPE: (%s,%s)" % (type(asi), asi)
             if type(asi) is str:
                 addr[i] = asi
+            elif type(asi) is unicode:
+                addr[i] = str(asi)
             else:
                 addr[i] = chr(asi)
         if alen == 4:		# ipv4
