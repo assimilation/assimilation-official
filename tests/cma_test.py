@@ -8,31 +8,32 @@ from testify.utils import turtle
 
 from frameinfo import *
 from AssimCclasses import *
-import gc, sys, time, collections
-from cma import *
+import gc, sys, time, collections, os
+from newcma import *
 
 
-CheckForDanglingClasses = True
+CheckForDanglingClasses = False
 WorstDanglingCount = 0
 DEBUG=False
-DoAudit=True
+DoAudit=False
 SavePackets=True
-MaxDrone=300000
+MaxDrone=5
 MaxDrone=100
-doHBDEAD=True
+doHBDEAD=False
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
 t2 = MaxDrone/100
 if t2 < 10: t2 = 10
 t3 = t2
+
+
+
 #gc.set_threshold(t1, t2, t3)
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
     global WorstDanglingCount
-    HbRing.reset()	# Clean up static Ring data
-    DroneInfo.reset()	# Clean up static Drone data
     gc.collect()	# For good measure...
     count =  proj_class_live_object_count()
     #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
@@ -251,6 +252,7 @@ class TestTestInfrastructure(TestCase):
         return
         framesets=[]
         io = TestIO(framesets, 0)
+        CMAdb.initglobal(io, True)
         # just make sure it seems to do the right thing
         self.assertRaises(StopIteration, io.recvframesets)
         assert_no_dangling_Cclasses()
@@ -264,6 +266,8 @@ class TestTestInfrastructure(TestCase):
         fs.append(strframe1)
         framesets=((otherguy, (strframe1,)),)
         io = TestIO(framesets, 0)
+        CMAdb.initglobal(io, True)
+        CMAdb.cdb.delete_all()
         gottenfs = io.recvframesets()
         self.assertEqual(len(gottenfs), 2)
         self.assertEqual(gottenfs, framesets[0])
@@ -278,6 +282,7 @@ class TestTestInfrastructure(TestCase):
         otherguy = pyNetAddr([1,2,3,4],)
         framesets=((otherguy, (strframe1,)),)
         io = TestIO(framesets, 0)
+        CMAdb.initglobal(io, True)
         fslist = io.recvframesets()		# read in a packet
         self.assertEqual(len(fslist), 2)
         self.assertEqual(fslist, framesets[0])
@@ -306,6 +311,7 @@ class TestCMABasic(TestCase):
         fs.append(discoveryframe)
         fsin = ((droneip, (fs,)),)
         io = TestIO(fsin,0)
+        CMAdb.initglobal(io, True)
         OurAddr = pyNetAddr((10,10,10,200),1984)
         disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()})
         configinit = geninitconfig(OurAddr)
@@ -344,6 +350,7 @@ class TestCMABasic(TestCase):
                 fs.append(deadframe)
                 fsin.append((addrone, (fs,)))
         io = TestIO(fsin)
+        CMAdb.initglobal(io, True)
         disp = MessageDispatcher( {
 		FrameSetTypes.STARTUP: DispatchSTARTUP(),
 		FrameSetTypes.HBDEAD: DispatchHBDEAD(),
@@ -359,7 +366,10 @@ class TestCMABasic(TestCase):
 	# We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
-        self.assertEqual(len(DroneInfo.droneset), maxdrones)
+        droneroot = CMAdb.cdb.nodetypetbl['Drone']
+        print >>sys.stderr, 'Drone Root is %d' %  droneroot.id
+        Dronerels = droneroot.get_relationships('incoming', 'IS_A')
+        self.assertEqual(len(Dronerels), maxdrones)
         if doHBDEAD:
             partnercount = 0
             livecount = 0
