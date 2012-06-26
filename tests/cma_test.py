@@ -17,9 +17,9 @@ WorstDanglingCount = 0
 DEBUG=False
 DoAudit=False
 SavePackets=True
+MaxDrone=10
 MaxDrone=5
-MaxDrone=100
-doHBDEAD=False
+doHBDEAD=True
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
@@ -374,11 +374,16 @@ class TestCMABasic(TestCase):
             partnercount = 0
             livecount = 0
             ringcount = 0
-            for designation in DroneInfo.droneset.keys():
-                drone = DroneInfo.droneset[designation]
-                partnercount += len(drone.ringpeers)
-                ringcount += len(drone.ringmemberships)
-                if drone.status != 'dead': livecount += 1
+            for dronerel in Dronerels:
+                drone1 = DroneInfo(dronerel.start_node)
+                if drone1.node['status'] != 'dead': livecount += 1
+                drone1rels = drone1.node.get_relationships()
+                for rel in drone1rels:
+                    reltype = rel.type
+                    if reltype.startswith(HbRing.memberprefix):
+                         ringcount += 1
+                    if reltype.startswith(HbRing.nextprefix):
+                         partnercount += 1
             self.assertEqual(partnercount, 0)
             self.assertEqual(livecount, 1)
             self.assertEqual(ringcount, 1)

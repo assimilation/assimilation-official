@@ -152,6 +152,7 @@ class CMAdb:
         self.ipindex = self.indextbl['IPaddr']
         self.macindex = self.indextbl['NIC']
         self.switchindex = self.indextbl['Switch']
+        self.droneindex = self.indextbl['Drone']
 
     @staticmethod
     def initglobal(io, cleanoutdb=False):
@@ -218,6 +219,8 @@ class CMAdb:
         'Create a new drone (or return a pre-existing one), and put it in the drone index'
         #print 'Adding drone', designation
         drone = self.node_new('Drone', designation, unique=True, **kw)
+        if not 'status' in drone:
+            drone['status'] = 'created'
         return drone
 
     def new_nic(self, nicname, macaddr, drone, **kw):
@@ -267,12 +270,15 @@ class CMAdb:
                 indexes[nodetype].remove(nodetype, name)
             l.append(l.get_relationships())
             self.db.delete(*l)
+            l = None
         
 class HbRing:
     'Class defining the behavior of a heartbeat ring.'
     SWITCH      =  1
     SUBNET      =  2
     THEONERING  =  3 # And The One Ring to rule them all...
+    memberprefix = 'RingMember_'
+    nextprefix = 'RingNext_'
 
     ringnames = {}
 
@@ -288,8 +294,8 @@ class HbRing:
         self.ringtype = ringtype
         self.name = str(name)
         self.parentring = parentring
-        self.ourreltype = 'RingMember_' + self.name # Our relationship type
-        self.ournexttype = 'RingNext_' + self.name # Our 'next' relationship type
+        self.ourreltype = HbRing.memberprefix + self.name # Our relationship type
+        self.ournexttype = HbRing.nextprefix + self.name # Our 'next' relationship type
         self.insertpoint1 = None
         self.insertpoint2 = None
 
@@ -309,6 +315,7 @@ class HbRing:
 	# For the moment, let's make the entirely inadequate assumption that
 	# the data in the database is correct.
 	## FIXME - assumption about database being correct
+        HbRing.ringnames[self.name] = self
 
         
     def _findringpartners(self, drone):
@@ -373,6 +380,7 @@ class HbRing:
         self.insertpoint2.start_heartbeat(self, drone)
         point1rel = self.insertpoint1.node.get_single_relationship('outgoing', self.ournexttype)
         point1rel.delete()
+        point1rel = None
         # In the future we might want to mark these relationships with the IP addresses involved
         # so that even if the systems change network configurations we can still know what IP to
         # remove.  Right now we rely on the configuration not changing "too much".
@@ -403,11 +411,16 @@ class HbRing:
 		return
 
 	# Clean out the next link relationships to our dearly departed drone
+        ringrel = drone.node.get_single_relationship('outgoing', self.ourreltype)
+        ringrel.delete()
+        ringrel = None
+	# Clean out the next link relationships to our dearly departed drone
         relationships = drone.node.get_relationships('all', self.ournexttype)
         # Should have exactly two link relationships (one incoming and one outgoing)
         assert len(relationships) == 2
         for rel in relationships:
             rel.delete()
+            rel = None
         relationships = None
         rel = None
 
@@ -417,7 +430,7 @@ class HbRing:
             partner = DroneInfo(node)
             drone.stop_heartbeat(self, partner)
             partner.stop_heartbeat(self, drone)
-            prevnode.create_relationship_to(nextnode, self.ournexttype)
+            #prevnode.create_relationship_to(nextnode, self.ournexttype)
             self.insertpoint2 = None
             self.insertpoint1 = partner
             return
@@ -556,17 +569,23 @@ class DroneInfo:
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
-        print >>sys.stderr, "Node %s has been reported as %s by address %s. Reason: %s" \
+        print >>sys.stderr, 'Node %s has been reported as %s by address %s. Reason: %s' \
         %	(self.node['name'], status, str(fromaddr), reason)
         self.status = status
         self.reason = reason
+        print >>sys.stderr, 'Drone %s is %s because of %s' %(self, status, reason)
+        self.node['status'] = status
+        self.node['reason'] = reason
         # There is a need for us to be a little more sophisticated
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        ringlist = self.ringmemberships.keys()
-        for ring in ringlist:
-	    HbRing.ringnames[ring].leave(self)
+        rellist = self.node.get_relationships(direction='outgoing')
+        for rel in rellist:
+            if rel.type.startswith(HbRing.memberprefix):
+                ringname = rel.end_node['name']
+                print >>sys.stderr, 'Drone %s is a member of ring %s' % (self, ringname)
+	        HbRing.ringnames[ringname].leave(self)
 
 
     def start_heartbeat(self, ring, partner1, partner2=None):
@@ -618,14 +637,16 @@ class DroneInfo:
 
     @staticmethod
     def add(designation, reason, status='up'):
-        "Add a drone to our set if it isn't already there."
+        'Add a drone to our set unless it is already there.'
         ret = DroneInfo.find(designation)
         if ret is not None:
+            ret.node['reason'] = reason
+            ret.node['status'] = status
             return ret
         else:
             ret = DroneInfo(designation)
-        ret.reason = reason
-        ret.status = status
+        ret.node['reason'] = reason
+        ret.node['status'] = status
         return ret
 
 class DispatchTarget:
