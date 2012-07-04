@@ -12,14 +12,15 @@ import gc, sys, time, collections, os
 from newcma import *
 
 
-CheckForDanglingClasses = False
 WorstDanglingCount = 0
+CheckForDanglingClasses = True
 DEBUG=False
-DoAudit=False
+DoAudit=True
 SavePackets=True
-MaxDrone=10
-MaxDrone=5
 doHBDEAD=True
+MaxDrone=10
+MaxDrone=4
+MaxDrone=5
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
@@ -34,6 +35,10 @@ t3 = t2
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
     global WorstDanglingCount
+    CMAdb.cdb = None
+    CMAdb.io = None
+    CMAdb.TheOneRing = None
+    HbRing.ringnames = None
     gc.collect()	# For good measure...
     count =  proj_class_live_object_count()
     #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
@@ -110,19 +115,31 @@ class AUDITS(TestCase):
     def auditadrone(self, droneid):
         designation = dronedesignation(droneid)
         droneip = droneipaddress(droneid)
-        dronecount = len(DroneInfo.droneset)
         droneipstr = str(droneip)
         # Did the drone get put in the DroneInfo table?
         drone=DroneInfo.find(designation)
         self.assertTrue(drone is not None)
         # Did the drone's list of addresses get updated?
-        self.assertEqual(len(drone.addresses), 1)
+        ipnodes = drone.node.get_related_nodes('incoming', 'iphost')
+        self.assertEqual(len(ipnodes), 1)
+        ipnode = ipnodes[0]
+        ipnodeaddr = ipnode['name']
+        ipnodeaddrfoo = ipnodeaddr + '/16'
+        json = drone['JSON_netconfig']
+        jsobj = pyConfigContext(init=json)
+        jsdata = jsobj['data']
+        eth0obj = jsdata['eth0']
         # Does the drone address table match the info from JSON?
-        self.assertEqual(drone.addresses[droneipstr], (droneipstr, 'eth0'))
+        eth0addrs = eth0obj['ipaddrs']
+        self.assertTrue(eth0addrs.has_key(ipnodeaddrfoo))
+        # Do we know that eth0 is the default gateway?
+        self.assertEqual(eth0obj['default_gw'], 1)
+        
         # the JSON should have exactly 5 top-level keys
-        self.assertEqual(len(drone.jsondiscovery['netconfig'].keys()), 5)
+        self.assertEqual(len(jsobj.keys()), 5)
         # Was the JSON host name saved away correctly?
-        self.assertEqual(drone.jsondiscovery['netconfig']['host'], designation)
+        self.assertEqual(jsobj['host'], designation)
+        return
     
         peercount=0
         ringcount=0
@@ -167,29 +184,26 @@ class AUDITS(TestCase):
         'Verify that each ring has its neighbor pairs set up properly'
         # Check that each element of the ring is connected to its neighbors...
         ring = HbRing.ringnames[ringname]
-        for droneid in range(0, len(ring.memberlist)):
-           drone = ring.memberlist
-           partner1id = droneid-1
-           if droneid == 0: partner1id = len(ring.memberlist)-1
-           partner2id = droneid+1
-           if droneid == len(ring.memberlist)-1: partner2id = 0
-           if partner1id < len(ring.memberlist):	break
-           if partner2id >= 0:				break
-           partner1 = ring.memberberlist[partner1id]
-           self.assertTrue(drone.ringpeers[partner1.designation] is partner1)
-           self.assertTrue(partner1.ringpeers[drone.designation] is drone)
-
-           partner2 = ring.memberberlist[partner2id]
-           self.assertTrue(drone.ringpeers[partner2.designation] is partner2)
-           self.assertTrue(partner2.ringpeers[drone.designation] is drone)
-           
-            
+        #print "Ring %s: %s" % (ringname, str(ring))
+        listmembers = {}
+        ringmembers = {}
+        for drone in ring.members():
+            ringmembers[drone.node['name']] = None
+        for drone in ring.membersfromlist():
+            listmembers[drone.node['name']] = None
+        for drone in listmembers.keys():
+            self.assertTrue(drone in ringmembers)
+        for drone in ringmembers.keys():
+            self.assertTrue(drone in listmembers)
+        
 
 def auditalldrones():
     audit = AUDITS()
-    dronecount= len(DroneInfo.droneset)
-    for droneid in range(1,dronecount+1):
-        audit.auditadrone(droneid)
+    dronetype = CMAdb.cdb.nodetypetbl['Drone']
+    droneobjs = dronetype.get_related_nodes('incoming', 'IS_A')
+    numdrones = len(droneobjs)
+    for droneid in range(0,numdrones):
+        audit.auditadrone(droneid+1)
 
 def auditallrings():
     audit = AUDITS()
@@ -367,7 +381,6 @@ class TestCMABasic(TestCase):
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
         droneroot = CMAdb.cdb.nodetypetbl['Drone']
-        print >>sys.stderr, 'Drone Root is %d' %  droneroot.id
         Dronerels = droneroot.get_relationships('incoming', 'IS_A')
         self.assertEqual(len(Dronerels), maxdrones)
         if doHBDEAD:

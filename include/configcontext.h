@@ -57,6 +57,8 @@ struct _ConfigContext {
 	GHashTable*	_values;			///< table of Values
 	gint		(*getint)(ConfigContext*, const char *name);	///< Get integer value
 	void		(*setint)(ConfigContext*, const char *name, gint value);	///< Set integer value
+	gboolean	(*getbool)(ConfigContext*, const char *name);	///< Get boolean value
+	void		(*setbool)(ConfigContext*, const char *name, gboolean);	///< Set bool value
 	double		(*getdouble)(ConfigContext*, const char *name);	///< Get double value
 	void		(*setdouble)(ConfigContext*, const char *name, double value);	///< Set double value
 	GSList*		(*getarray)(ConfigContext*, const char *name);	///< Get array value

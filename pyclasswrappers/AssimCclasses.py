@@ -670,12 +670,12 @@ class pyConfigContext(pyAssimObj):
     def __init__(self, init=None, Cstruct=None):
         'Initializer for pyConfigContext'
         self._Cstruct = None # Keep error legs from complaining.
-        if Cstruct is None and isinstance(init, str):
-            Cstruct = configcontext_new_JSON_string(init)
+        if Cstruct is None and (isinstance(init, str) or isinstance(init, unicode)):
+            Cstruct = configcontext_new_JSON_string(str(init))
         if Cstruct is None:
             Cstruct=configcontext_new(0)
         self._Cstruct = Cstruct
-        if init is not None and not isinstance(init, str):
+        if init is not None and not isinstance(init, str) and not isinstance(init, unicode):
             for key in init.keys():
                 self[key] = init[key]
 
@@ -686,6 +686,14 @@ class pyConfigContext(pyAssimObj):
     def setint(self, name, value):
         'Set the integer associated with "name"'
         self._Cstruct[0].setint(self._Cstruct, name, value)
+
+    def getbool(self, name):
+        'Return the boolean associated with "name"'
+        return self._Cstruct[0].getbool(self._Cstruct, name) != 0
+
+    def setbool(self, name, value):
+        'Set the boolean associated with "name"'
+        self._Cstruct[0].setbool(self._Cstruct, name, int(value))
 
     def getaddr(self, name):
         'Return the NetAddr associated with "name"'
@@ -748,7 +756,7 @@ class pyConfigContext(pyAssimObj):
 
     def has_key(self, key):
         'return True if it has the given key'
-        ktype = self._Cstruct[0].gettype(self._Cstruct, key)
+        ktype = self._Cstruct[0].gettype(self._Cstruct, str(key))
         return ktype != CFG_EEXIST
     
         
@@ -768,6 +776,8 @@ class pyConfigContext(pyAssimObj):
             return self.getframe(name)
         if ktype == CFG_INT64:
             return self.getint(name)
+        if ktype == CFG_BOOL:
+            return self.getbool(name)
         return None
 
     def __setitem__(self, name, value):

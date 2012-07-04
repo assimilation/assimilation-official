@@ -19,6 +19,8 @@ FSTATIC enum ConfigValType	_configcontext_gettype(ConfigContext*, const char *na
 FSTATIC GSList*	_configcontext_keys(ConfigContext*);
 FSTATIC gint	_configcontext_getint(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setint(ConfigContext*, const char *name, gint value);
+FSTATIC gboolean _configcontext_getbool(ConfigContext*, const char *name);
+FSTATIC void	_configcontext_setbool(ConfigContext*, const char *name, gboolean value);
 FSTATIC const char* _configcontext_getstring(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setstring(ConfigContext*, const char *name, const char *value);
 FSTATIC NetAddr*_configcontext_getaddr(ConfigContext*, const char *);
@@ -78,6 +80,8 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext = NEWSUBCLASS(ConfigContext, baseobj);
 	newcontext->setint	=	_configcontext_setint;
 	newcontext->getint	=	_configcontext_getint;
+	newcontext->getbool	=	_configcontext_getbool;
+	newcontext->setbool	=	_configcontext_setbool;
 	newcontext->setstring	=	_configcontext_setstring;
 	newcontext->getstring	=	_configcontext_getstring;
 	newcontext->getframe	=	_configcontext_getframe;
@@ -182,6 +186,38 @@ _configcontext_setint(ConfigContext* self	///<[in/out] ConfigContext Object
 	,	      gint value)		///<[in] Int value to set the 'name' to
 {
 	ConfigValue* val = _configcontext_value_new(CFG_INT64);
+	char *	cpname = g_strdup(name);
+
+	val->u.intvalue = value;
+	g_hash_table_replace(self->_values, cpname, val);
+}
+
+/// Get an boolean value
+FSTATIC gboolean
+_configcontext_getbool(ConfigContext* self	///<[in] ConfigContext object
+	,	      const char *name)		///<[in] Name to get the associated int value of
+{
+	gpointer	ret = g_hash_table_lookup(self->_values, name);
+	ConfigValue*	cfg;
+
+	if (ret == NULL) {
+		return -1;
+	}
+	cfg = CASTTOCLASS(ConfigValue, ret);
+	if (cfg->valtype != CFG_BOOL) {
+		return -1;
+	}
+
+	return (gboolean)cfg->u.intvalue;
+}
+
+/// Set a name to an integer value
+FSTATIC void
+_configcontext_setbool(ConfigContext* self	///<[in/out] ConfigContext Object
+	,	      const char *name		///<[in] Name to set the associated int value of
+	,	      gint value)		///<[in] Int value to set the 'name' to
+{
+	ConfigValue* val = _configcontext_value_new(CFG_BOOL);
 	char *	cpname = g_strdup(name);
 
 	val->u.intvalue = value;

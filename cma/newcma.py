@@ -110,12 +110,14 @@ class CMAdb:
 #       ringip		ring            ipaddr
 #       ringmember	ring            drone
 #       parentring      ring            ring
+    debug = False
 
     def __init__(self, host='localhost', port=7474):
         url = ('http://%s:%d/db/data/' % (host, port))
         self.db = neo4j.GraphDatabaseService(url)
         self.dbversion = self.db.neo4j_version
-        print 'Neo4j version: %s' % str(self.dbversion)
+        if CMAdb.debug:
+            print 'Neo4j version: %s' % str(self.dbversion)
         #
 	#	Make sure all our indexes are present and that we
 	#	have a top level node for each node type for creating
@@ -166,13 +168,12 @@ class CMAdb:
         CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
 
     def delete_all(self):
-        query = cypher.Query(self.db, 'start n=node(0) match n-[r?]-() delete r')
-        print >>sys.stderr, 'Cypher query to delete node zero relationships executing:', query
-        print >>sys.stderr, 'Execution results:', query.execute()
         query = cypher.Query(self.db
         ,	'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
-        print >>sys.stderr, 'Cypher query to delete all data executing:', query
-        print >>sys.stderr, 'Execution results:', query.execute()
+        result = query.execute()
+        if CMAdb.debug:
+            print >>sys.stderr, 'Cypher query to delete all relationships and nonzero nodes executing:', query
+            print >>sys.stderr, 'Execution results:', result
 
     def node_new(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
@@ -184,6 +185,7 @@ class CMAdb:
         Note that the nodetype has to be in the nodetypetable - even if it's NULL
 			(for error detection).
         The IS_A relationship may be useful -- or not.  Hard to say at this point...'''
+        assert nodetype is not None and nodename is not None
         properties['nodetype'] = nodetype
         properties['name'] = nodename
         if self.indextbl.has_key(nodetype):
@@ -195,6 +197,7 @@ class CMAdb:
              tbl['name'] = nodename
              #print 'CREATING A [%s] object named [%s] with attributes %s' % (nodetype, nodename, str(tbl.keys()))
              if unique:
+                 #print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' % (nodetype, nodename, str(tbl))
                  obj = idx.get_or_create(nodetype, nodename, tbl)
              else:
                  obj = self.db.create_node(tbl)
@@ -300,15 +303,16 @@ class HbRing:
         self.insertpoint2 = None
 
         try:
-            ip1node = self.node.get_single_related_node('incoming', self.ourreltype)
-            self.insertpoint1 = DroneInfo(ip1node)
-            if self.insertpoint1 is not None:
-                try:
-                  #print 'INSERTPOINT1: ', self.insertpoint1
-                  ip2 = self.insertpoint1.node.get_single_related_node('outgoing', self.ournexttype)
-                  self.insertpoint2 = DroneInfo(ip2)
-                except ValueError:
-                    pass
+            ip1node = self.node.get_single_related_node('outgoing', self.ourreltype)
+            if ip1node is not None:
+                self.insertpoint1 = DroneInfo(ip1node)
+                if self.insertpoint1 is not None:
+                    try:
+                      #print 'INSERTPOINT1: ', self.insertpoint1
+                      ip2 = self.insertpoint1.node.get_single_related_node('outgoing', self.ournexttype)
+                      self.insertpoint2 = DroneInfo(ip2)
+                    except ValueError:
+                        pass
         except ValueError:
             pass
 	# Need to figure out what to do about pre-existing members of this ring...
@@ -348,8 +352,9 @@ class HbRing:
         #print >>sys.stderr,'Adding drone %s to talk to partners'%drone.node['name'], self.insertpoint1, self.insertpoint2
 
         if self.insertpoint1 is None:	# Zero nodes previously
-           self.insertpoint1 = drone
-           return
+            self.insertpoint1 = drone
+            #print >>sys.stderr, 'RING1 IS NOW:', str(self)
+            return
 
         if self.insertpoint2 is None:	# One node previously
 	    # Create the initial circular list.
@@ -361,6 +366,7 @@ class HbRing:
             self.insertpoint1.start_heartbeat(self, drone)
             self.insertpoint2 = self.insertpoint1
             self.insertpoint1 = drone
+            #print >>sys.stderr, 'RING2 IS NOW:', str(self)
             return
         
         #print >>sys.stderr, 'Finding insert point [%s: %s]' % \
@@ -392,6 +398,7 @@ class HbRing:
         # insert point in the ring - spreading the work to the new guys as they arrive.
         #self.insertpoint2 = self.insertpoint1
         self.insertpoint1 = drone
+        #print >>sys.stderr, 'RING3 IS NOW:', str(self), 'DRONE ADDED:', drone
 
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
@@ -451,51 +458,63 @@ class HbRing:
         self.insertpoint2 = nextdrone
         prevnode.create_relationship_to(nextnode, self.ournexttype)
 
+    def members(self):
+        ret = []
+        for node in self.node.get_related_nodes('incoming', self.ourreltype):
+            ret.append(DroneInfo.find(node))
+        return ret
+
+    def membersfromlist(self):
+        firstdrone=self.insertpoint1
+        if firstdrone is None:
+           return []
+        ret = [firstdrone]
+        firstdrone = firstdrone.node
+        nextdrone = firstdrone
+        while True:
+            nextdrone = nextdrone.get_single_related_node('outgoing', self.ournexttype)
+            if nextdrone is None or nextdrone.id == firstdrone.id:  break
+            ret.append(DroneInfo.find(nextdrone))
+        return ret
+
     def __str__(self):
         ret = 'Ring("%s", [' % self.node['name']
-        firstdrone=self.insertpoint1
-        if firstdrone is not None:
-           print >>sys.stderr, 'firstdrone:', type(firstdrone), firstdrone
-           firstdrone = firstdrone.node
-           ret += firstdrone['name']
-           nextdrone=firstdrone
-           while True:
-             try:
-                 #print >>sys.stderr, 'nextdrone:', type(firstdrone), firstdrone
-                 nextdrone = nextdrone.get_single_related_node('outgoing', self.ournexttype)
-                 if nextdrone is None or nextdrone.id == firstdrone.id:  break
-                 ret += ', %s' % nextdrone['name']
-             except ValueError:
-                 break
+        comma=''
+        for drone in self.membersfromlist():
+             ret += '%s%s' % (comma, drone.node['name'])
+             comma=', '
         ret += '])'
         return ret
-        
-
+      
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
+    _droneweakrefs = {}
     def __init__(self, designation, node=None, **kw):
         self.io = CMAdb.io
         if isinstance(designation, neo4j.Node):
             self.node = designation
         else:
+            #print >>sys.stderr, 'New DroneInfo(designation = %s", kw=%s)' % (designation, str(**kw))
             self.node = CMAdb.cdb.new_drone(designation, **kw)
+        DroneInfo._droneweakrefs[designation] = weakref.ref(self)
+        
 
     def __getitem__(self, key):
        return self.node[key]
         
    
     def logjson(self, jsontext):
-       'Process and save away JSON discovery data'
-       jsonobj = pyConfigContext(jsontext)
-       if not jsonobj.has_key('discovertype') or not jsonobj.has_key('data'):
-           print >>sys.stderr, 'Invalid JSON discovery packet.'
-           return
-       dtype = jsonobj['discovertype']
-       #print "Saved discovery type %s for endpoint %s." % \
-       #   (dtype, self.designation)
-       self.node['JSON_' + dtype] = jsontext
-       if dtype == 'netconfig':
-           self.add_netconfig_addresses(jsonobj)
+        'Process and save away JSON discovery data'
+        jsonobj = pyConfigContext(jsontext)
+        if not jsonobj.has_key('discovertype') or not jsonobj.has_key('data'):
+            print >>sys.stderr, 'Invalid JSON discovery packet.'
+            return
+        dtype = jsonobj['discovertype']
+        #print "Saved discovery type %s for endpoint %s." % \
+        #   (dtype, self.designation)
+        self.node['JSON_' + dtype] = jsontext
+        if dtype == 'netconfig':
+            self.add_netconfig_addresses(jsonobj)
 
     def add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from JSON discovery.
@@ -569,11 +588,12 @@ class DroneInfo:
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
-        print >>sys.stderr, 'Node %s has been reported as %s by address %s. Reason: %s' \
-        %	(self.node['name'], status, str(fromaddr), reason)
+        if CMAdb.debug:
+            print >>sys.stderr, 'Node %s has been reported as %s by address %s. Reason: %s' \
+            %	(self.node['name'], status, str(fromaddr), reason)
         self.status = status
         self.reason = reason
-        print >>sys.stderr, 'Drone %s is %s because of %s' %(self, status, reason)
+        #print >>sys.stderr, 'Drone %s is %s because of %s' %(self, status, reason)
         self.node['status'] = status
         self.node['reason'] = reason
         # There is a need for us to be a little more sophisticated
@@ -584,7 +604,7 @@ class DroneInfo:
         for rel in rellist:
             if rel.type.startswith(HbRing.memberprefix):
                 ringname = rel.end_node['name']
-                print >>sys.stderr, 'Drone %s is a member of ring %s' % (self, ringname)
+                #print >>sys.stderr, 'Drone %s is a member of ring %s' % (self, ringname)
 	        HbRing.ringnames[ringname].leave(self)
 
 
@@ -622,28 +642,44 @@ class DroneInfo:
 
     @staticmethod
     def find(designation):
-        'Find a drone with the given designation or IP address.'
+        'Find a drone with the given designation or IP address, or Neo4J node.'
         if isinstance(designation, str):
-            return DroneInfo(designation)
-        elif isinstance(designation, pyNetAddr):
+            drone = None
+            if designation in DroneInfo._droneweakrefs:
+                drone = DroneInfo._droneweakrefs[designation]()
+            if drone is None:
+                drone = DroneInfo(designation)
+            assert drone.node['name'] == designation
+            return drone
+        if isinstance(designation, pyNetAddr):
             #Is there a concern about non-canonical IP address formats?
             ipaddrs = CMAdb.cdb.ipindex.get('IPaddr', str(designation))
             for ip in ipaddrs:
                 # Shouldn't have duplicates, but they happen...
                 # FIXME: Think about how to manage duplicate IP addresses...
                 # Do we really want to be looking up just by IP addresses here?
-                return DroneInfo(ip.get_single_related_node('outgoing', 'iphost'))
+                node = ip.get_single_related_node('outgoing', 'iphost')
+                return DroneInfo.find(node)
+        if isinstance(designation, neo4j.Node):
+            nodedesig = designation['name']
+            if nodedesig in DroneInfo._droneweakrefs:
+                ret = DroneInfo._droneweakrefs[nodedesig]()
+                if ret is not None:  return ret
+            return DroneInfo(designation)
+           
+        if designation in DroneInfo._droneweakrefs:
+            ret = DroneInfo._droneweakrefs[designation]()
         return None
 
     @staticmethod
     def add(designation, reason, status='up'):
         'Add a drone to our set unless it is already there.'
-        ret = DroneInfo.find(designation)
-        if ret is not None:
-            ret.node['reason'] = reason
-            ret.node['status'] = status
-            return ret
-        else:
+        ret = None
+        if designation in DroneInfo._droneweakrefs:
+            ret = DroneInfo._droneweakrefs[designation]()
+        if ret is None:
+            ret = DroneInfo.find(designation)
+        if ret is None:
             ret = DroneInfo(designation)
         ret.node['reason'] = reason
         ret.node['status'] = status
@@ -676,8 +712,8 @@ class DispatchHBDEAD(DispatchTarget):
         json = None
         fstype = frameset.get_framesettype()
         fromdrone = DroneInfo.find(origaddr)
-        print>>sys.stderr, "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
-	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        #print>>sys.stderr, "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
+	#%		(FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.IPADDR:
@@ -689,8 +725,9 @@ class DispatchSTARTUP(DispatchTarget):
     def dispatch(self, origaddr, frameset):
         json = None
         fstype = frameset.get_framesettype()
-        print >>sys.stderr,"DispatchSTARTUP: received [%s] FrameSet from [%s]" \
-	%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        if CMAdb.debug:
+            print >>sys.stderr,"DispatchSTARTUP: received [%s] FrameSet from [%s]" \
+	    %		(FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:

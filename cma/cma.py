@@ -76,11 +76,191 @@
 #
 ################################################################################
 
-import sys, time, weakref
+import sys, time, weakref, os
 sys.path.append("../pyclasswrappers")
 sys.path.append("pyclasswrappers")
 from frameinfo import FrameTypes, FrameSetTypes
 from AssimCclasses import *
+
+
+class CMAdb:
+    '''Class defining our Neo4J database.'''
+#       Indexes:
+#       ringindex - index of all Ring objects [nodetype=ring]
+#       droneindex - index of all Drone objects [nodetype=drone]
+#       ipindex - index of all IP address objects [nodetype=ipaddr]
+#       macindex - index of all interfaces by MAC address [nodetype=nic]
+
+#       Node types [nodetype enumeration values]:
+#       ring    - heartbeat ring objects
+#       drone   - systems running our nanoprobes
+#       nic     - interfaces on drones
+#       ipaddr  - IP addresses (ipv4 or ipv6)
+
+#       Relationship types [reltype enumeration values]
+#       ------------------------------------------
+#       reltype         fromnodetype    tonodetype
+#       --------        ------------    ----------
+#       nichost         nic             drone
+#       iphost          ipaddr          drone
+#       ipowner         ipaddr          nic
+#       ringnext        drone           drone
+#       ringmember      ring            ipaddr
+
+    def __init__(self, pathname):
+        # Code for the Java-deficient (like me)
+        if not os.environ.has_key('JAVA_HOME'):
+            altjava='/etc/alternatives/java'
+            if os.path.islink(altjava):
+                javahome = os.path.dirname(os.path.dirname(os.readlink(altjava)))
+                os.environ['JAVA_HOME'] = javahome
+        import neo4j
+        self.db = neo4j.GraphDatabase(pathname)
+        indexes = {'ringindex':'exact', 'droneindex':'exact', 'ipindex':'exact', 'macindex':'exact'}
+        for idx in indexes.keys():
+            if not self.db.node.indexes.exists(idx):
+                self.db.node.indexes.create(idx, type=indexes[idx])
+        self.ringindex = self.db.node.indexes.get('ringindex')		# Rings
+        self.droneindex = self.db.node.indexes.get('droneindex')	# Drones
+        self.ipindex = self.db.node.indexes.get('ipindex')		# IP addresses
+        self.macindex = self.db.node.indexes.get('macindex')		# MAC addresses
+
+    def getring(self, name):
+        'Find a unique ring in the ring index'
+        ringhits = self.ringindex['name'][name]
+        for ring in ringhits:
+            ringhits.close()
+            return ring
+        ringhits.close()
+        return None
+
+    def add_ringindex(self, node):
+        'Add this ring node to our ring index'
+        name = node['name']
+        assert node['nodetype'] == 'ring'
+        assert self.getring(name) is None
+        self.ringindex['name'][name] = node
+
+    def getdrone(self, designation):
+        'Find a unique drone node in the drone index'
+        dronehits = self.droneindex['designation'][designation]
+        try:
+            for drone in dronehits:
+                dronehits.close()
+                return drone
+        except RuntimeError as e:
+            print 'Caught runtime error searching drone index'
+        dronehits.close()
+        return None
+
+    def add_droneindex(self, drone):
+        'Add this drone node to our drone index'
+        designation = drone['designation']
+        assert drone['nodetype'] == 'drone'
+        assert self.getdrone(designation) is None
+        self.ringindex['designation'][designation] = drone
+
+    def getMACaddr(self, address):
+        'Find an interface node with a unique MAC address in the MAC address index'
+        machits = self.macindex['macaddr'][address]
+        for mac in machits:
+            machits.close()
+            return mac
+        machits.close()
+        return None
+
+    def add_MACindex(self, node):
+        'Add this NIC node to our MAC address index'
+        mac = node['macaddr']
+        assert node['nodetype'] == 'nic'
+        assert self.getMACaddr(mac) is None  # Probably too strict
+        self.ringindex['macaddr'][mac] = node
+
+    def getIPaddr(self, address):
+        'Find a unique IP address node in our IP address index'
+        iphits = self.ringindex['ipaddr'][address]
+        for ip in iphits:
+            iphits.close()
+            return ip
+        iphits.close()
+        return None
+
+    def add_IPindex(self, node):
+        'Add this IP address node to our IP address index'
+        ip = node['ipaddr']
+        assert node['nodetype'] == 'ipaddr'
+        assert self.getIPaddr(ip) is None  # Probably too strict
+        self.ringindex['ipaddr'][ip] = node
+
+    def new_ring(self, name, **kw):
+        'Create a new ring (or return a pre-existing one), and put it in the ring index'
+        ring = self.getring(name)
+        if ring is not None:
+            print >>sys.stderr, 'Returning pre-existing ring [%s]' % ring.name
+            return ring
+        with self.db.transaction:
+            ring = self.db.node(nodetype='ring', name=name, **kw)
+            self.add_ringindex(ring)
+            print >>sys.stderr, 'Creating new ring [%s]' % ring.name
+        return ring
+
+    def new_drone(self, designation, **kw):
+        'Create a new drone (or return a pre-existing one), and put it in the drone index'
+        print 'Adding drone', designation
+        drone = self.getdrone(designation)
+        if drone is not None:
+            print 'Found drone %s in drone index' %  designation
+            return drone
+        with self.db.transaction:
+            print self
+            print self.db
+            print self.db.node
+            drone = self.db.node(nodetype='drone', designation=designation, **kw)
+            self.add_droneindex(drone)
+        return drone
+
+    def new_nic(self, drone, macaddr, **kw):
+        '''Create a new NIC (or return a pre-existing one), and put it in the mac address index,
+        and point it at its parent drone.'''
+        machits = self.macindex['macaddr'][macaddr]
+        for mac in machits:
+            if mac.ipowner[0].outgoing.designation == drone.designation:
+                machits.close()
+                return mac
+            else:
+                print "Duplicate MAC address for %s: %s vs %s" % \
+                    (macaddr, drone.designation, mac.ipowner[0].outgoing.designation)
+        machits.close()
+        with self.db.transaction:
+            nic = self.db.node(nodetype='nic', macaddr=macaddr, **kw)
+            self.add_MACindex(nic)
+            # Point this NIC at the drone that owns it.
+            nic.relationships.create('nichost', drone, hostname=drone['designation'], reltype='nichost')
+        return nic
+
+    def new_IPaddr(self, nic, ipaddr, **kw):
+        '''Create a new IP address (or return a pre-existing one), and point it at its parent
+        NIC and its grandparent drone'''
+        iphits = self.ipindex['ipaddr'][macaddr]
+        drone =  nic.nichost[0].outgoing
+        for ip in iphits:
+            # This works because we point at our grandparent as well as our parent...
+            if ip.iphost[0].outgoing.designation == drone.designation:
+                iphits.close()
+                return ip
+            else:
+                print "Duplicate IP address for %s: %s vs %s" % \
+                    (ipaddr, drone.designation, ip.ipowner[0].outgoing.designation)
+        iphits.close()
+        with self.db.transaction:
+            ip = self.db.node(nodetype='ipaddr', ipaddr=ipaddr, **kw)
+            self.add_IPindex(ip)
+            # Point this IP address at the NIC that owns it.
+            nic.relationships.create('ipowner', nic, reltype='ipowner')
+            # Also point this IP address at the drone that owns its NIC (our grandparent)
+            nic.relationships.create('iphost', drone, reltype='iphost')
+        return ip
+
 
 class HbRing:
     'Class defining the behavior of a heartbeat ring.'
@@ -102,6 +282,7 @@ class HbRing:
         self.ringtype = ringtype
         self.name = str(name)
         self.parentring = parentring
+        NEO.new_ring(name, ringtype=ringtype)
 
     def join(self, drone):
         'Add this drone to our ring'
@@ -201,19 +382,19 @@ class HbRing:
         HbRing.ringnames = {}
         TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
 
-TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
 
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
     droneset = {}
     droneIPs = {}
-    def __init__(self, name, io):
-        self.designation = name
+    def __init__(self, designation, io,**kw):
+        self.designation = designation
         self.addresses = {}
         self.jsondiscovery = {}
         self.ringpeers = {}
         self.ringmemberships = {}
         self.io = io
+        self.drone = NEO.new_drone(designation, **kw)
    
     @staticmethod
     def reset():
@@ -433,6 +614,7 @@ class DispatchSTARTUP(DispatchTarget):
         #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
+        print 'ADDING DRONE for system %s' % sysname
         DroneInfo.add(sysname, self.io, 'STARTUP packet')
         drone = DroneInfo.find(sysname)
         drone.startaddr=origaddr
@@ -497,6 +679,11 @@ if __name__ == '__main__':
     #
     #	"Main" program starts below...
     #
+
+    NEO =  CMAdb('/backups/neo1')
+
+    TheOneRing = HbRing('The One Ring', HbRing.THEONERING)
+    print 'Ring created!!'
 
     print FrameTypes.get(1)[2]
 

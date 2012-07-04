@@ -1768,6 +1768,8 @@ struct__ConfigContext.__slots__ = [
     '_values',
     'getint',
     'setint',
+    'getbool',
+    'setbool',
     'getdouble',
     'setdouble',
     'getarray',
@@ -1788,6 +1790,8 @@ struct__ConfigContext._fields_ = [
     ('_values', POINTER(GHashTable)),
     ('getint', CFUNCTYPE(UNCHECKED(gint), POINTER(ConfigContext), String)),
     ('setint', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, gint)),
+    ('getbool', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ConfigContext), String)),
+    ('setbool', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, gboolean)),
     ('getdouble', CFUNCTYPE(UNCHECKED(c_double), POINTER(ConfigContext), String)),
     ('setdouble', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, c_double)),
     ('getarray', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext), String)),
@@ -1804,13 +1808,13 @@ struct__ConfigContext._fields_ = [
     ('keys', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext))),
 ]
 
-# ../include/configcontext.h: 76
+# ../include/configcontext.h: 78
 if hasattr(_libs['libclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
     configcontext_new.restype = POINTER(ConfigContext)
 
-# ../include/configcontext.h: 77
+# ../include/configcontext.h: 79
 if hasattr(_libs['libclientlib.so'], 'configcontext_new_JSON_string'):
     configcontext_new_JSON_string = _libs['libclientlib.so'].configcontext_new_JSON_string
     configcontext_new_JSON_string.argtypes = [String]
@@ -3236,12 +3240,6 @@ def MALLOC(nbytes):
 def FREE(m):
     return (g_free (m))
 
-# ../include/projectcommon.h: 21
-try:
-    FMT_64BIT = '%ll'
-except:
-    pass
-
 # ../include/projectcommon.h: 34
 try:
     HAVE_PCAP_SET_RFMON = 1
@@ -3400,115 +3398,115 @@ try:
 except:
     pass
 
-# ../include/configcontext.h: 79
+# ../include/configcontext.h: 81
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# ../include/configcontext.h: 80
+# ../include/configcontext.h: 82
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# ../include/configcontext.h: 81
+# ../include/configcontext.h: 83
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# ../include/configcontext.h: 82
+# ../include/configcontext.h: 84
 try:
     CONFIG_DEFAULT_HBPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 83
+# ../include/configcontext.h: 85
 try:
     CONFIG_DEFAULT_CMAPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 85
+# ../include/configcontext.h: 87
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 86
+# ../include/configcontext.h: 88
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 88
+# ../include/configcontext.h: 90
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 89
+# ../include/configcontext.h: 91
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 90
+# ../include/configcontext.h: 92
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 91
+# ../include/configcontext.h: 93
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 92
+# ../include/configcontext.h: 94
 try:
     CONFIGNAME_CMAPORT = 'cmaport'
 except:
     pass
 
-# ../include/configcontext.h: 93
+# ../include/configcontext.h: 95
 try:
     CONFIGNAME_CMAINIT = 'cmainit'
 except:
     pass
 
-# ../include/configcontext.h: 95
+# ../include/configcontext.h: 97
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 96
+# ../include/configcontext.h: 98
 try:
     CONFIGNAME_CMADISCOVER = 'cmadisc'
 except:
     pass
 
-# ../include/configcontext.h: 97
+# ../include/configcontext.h: 99
 try:
     CONFIGNAME_CMAFAIL = 'cmafail'
 except:
     pass
 
-# ../include/configcontext.h: 98
+# ../include/configcontext.h: 100
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 99
+# ../include/configcontext.h: 101
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 100
+# ../include/configcontext.h: 102
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
