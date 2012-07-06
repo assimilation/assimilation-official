@@ -3,9 +3,13 @@
 @section intro Introduction
 Welcome to the Assimilation monitoring project. (@ref README "README")
 
+We provide incredibly scalable monitoring driven by integrated continuous Stealth Discovery™, and address these system management problems:
+- System configuration information is out of date because discovery is incomplete, expensive and problematic to run - or manual
+- Monitoring is incomplete, out-of-date, easily confused, expensive to configure, complex and expensive to scale
+
 What we do: monitoring systems with near-zero overhead both on the systems and on their administrators.
 - Monitor systems and services with very low overhead
-- Stealth discovery&tm; (system and service)
+- Stealth discovery&tm; (system, service, and dependencies)
 - Easy to configure and manage
 
 This is a new project designed to to monitor systems and services on a network of
