@@ -17,15 +17,25 @@
 /// @{
 /// @ingroup C_Classes
 
-FSTATIC const char *	_discovery_discoveryname(const Discovery* self);
+FSTATIC char *		_discovery_instancename(const Discovery* self);
+FSTATIC void		_discovery_flushcache(Discovery* self);
 FSTATIC guint		_discovery_discoverintervalsecs(const Discovery* self);
 FSTATIC gboolean	_discovery_rediscover(gpointer vself);
+gboolean		_discovery_unregister_truefunc(gpointer key, gpointer value, gpointer user_data);
+FSTATIC void		_discovery_destructor(gpointer gdiscovery);
 
 /// internal function return the type of Discovery object
-FSTATIC const char *
-_discovery_discoveryname(const Discovery* self)	///<[in] object whose type to return
+FSTATIC char *
+_discovery_instancename(const Discovery* self)	///<[in] object whose instance name to return
 {
-	return proj_class_classname(self);
+	return self->_instancename;
+}
+
+/// default (do-nothing) 'flush cache' function
+FSTATIC void
+_discovery_flushcache(Discovery* self)	///< object whose cache we're suppossed to flush...
+{
+	(void)self;
 }
 
 /// default function - return zero for discovery interval
@@ -35,16 +45,24 @@ _discovery_discoverintervalsecs(const Discovery* self)	///<[in] Object whose int
 	(void)self;
 	return 0;
 }
-static GSList * _discovery_timers = NULL;
+static GHashTable * _discovery_timers = NULL;
 
 /// Finalizing function for Discovery objects
 FSTATIC void
 _discovery_finalize(AssimObj* gself)	///<[in/out] Object to finalize (free)
 {
-	Discovery* self = CASTTOCLASS(Discovery, gself);
+	Discovery*	self = CASTTOCLASS(Discovery, gself);
+	const char *	instancename = self->instancename(self);
 	
-	self->_timerid = -1;
-	_discovery_timers = g_slist_remove(_discovery_timers, self);
+	if (self->_timerid > 0) {
+		g_source_remove(self->_timerid);
+		self->_timerid = 0;
+	}
+	
+	if (_discovery_timers) {
+		g_hash_table_remove(_discovery_timers, instancename);
+		_discovery_timers = NULL;
+	}
 	FREECLASSOBJ(self); self=NULL;
 }
 /// GSourceFunc function to invoke discover member function at the timed interval.
@@ -62,21 +80,35 @@ _discovery_rediscover(gpointer vself)	///<[in/out] Object to perform discovery o
 /// That is certainly what will happen if you try and construct one of these objects directly and
 /// then use it.
 Discovery*
-discovery_new(NetGSource*	iosource,	///<[in/out] I/O object
+discovery_new(const char *	instname,	///<[in] instance name
+	      NetGSource*	iosource,	///<[in/out] I/O object
 	      ConfigContext*	context,	///<[in/out] configuration context
 	      gsize objsize)			///<[in] number of bytes to malloc for the object (or zero)
 {
 	gsize	size = objsize < sizeof(Discovery) ? sizeof(Discovery) : objsize;
 	Discovery * ret = NEWSUBCLASS(Discovery, assimobj_new(size));
 	g_return_val_if_fail(ret != NULL, NULL);
-	ret->discoveryname		= _discovery_discoveryname;
+	ret->_instancename		= g_strdup(instname);
+	ret->instancename		= _discovery_instancename;
 	ret->discoverintervalsecs	= _discovery_discoverintervalsecs;
 	ret->baseclass._finalize	= _discovery_finalize;
 	ret->discover			= NULL;
-	ret->_timerid			= -1;
+	ret->_timerid			= 0;
 	ret->_iosource			= iosource;
 	ret->_config			= context;
 	return ret;
+}
+
+
+/// Discovery Destructor function for the GHashTable
+FSTATIC void
+_discovery_destructor(gpointer gdiscovery)
+{
+	Discovery*	discovery = CASTTOCLASS(Discovery, gdiscovery);
+        g_return_if_fail(discovery != NULL);
+	discovery->baseclass.unref(&discovery->baseclass);
+	discovery = NULL;
+	gdiscovery = NULL;
 }
 
 /// Function for registering a discovery object with the discovery infrastructure.
@@ -94,22 +126,34 @@ discovery_register(Discovery* self)	///<[in/out] Discovery object to register
 	if (timeout > 0) {
 		self->_timerid = g_timeout_add_seconds(timeout, _discovery_rediscover, self);
 	}
-	_discovery_timers = g_slist_prepend(_discovery_timers, self);
+	if (NULL == _discovery_timers) {
+		_discovery_timers = g_hash_table_new_full(g_str_hash, g_str_equal
+		,	NULL, _discovery_destructor);
+	}
+	g_hash_table_replace(_discovery_timers, self->instancename(self), self);
 	self->baseclass.ref(self);
+}
+FSTATIC void
+discovery_unregister(const char* instance)
+{
+	g_hash_table_remove(_discovery_timers, instance);
+}
+
+/// Function returning TRUE for any arguments
+gboolean
+_discovery_unregister_truefunc(gpointer key, gpointer value, gpointer user_data)
+{
+	(void)key;
+	(void)value;
+	(void)user_data;
+	return TRUE;
 }
 
 /// Unregister all discovery methods in preparation for shutting down - to make valgrind happy :-D
 void
 discovery_unregister_all(void)
 {
-	GSList * this;
-	GSList * next;
-
-	for (this = _discovery_timers; this; this = next) {
-		Discovery*	d = CASTTOCLASS(Discovery, this->data);
-		next = this->next;
-		d->baseclass.unref(d);
-	}
+	g_hash_table_foreach_remove(_discovery_timers, _discovery_unregister_truefunc, NULL);
 }
 
 ///@}

@@ -17,17 +17,26 @@
 ///@{
 /// @ingroup DiscoveryClass
 
+/// TODO: Total hack - full pathname coded in!
+#define JSONAGENTROOT	"/home/alanr/monitor/src/discovery_agents"
+
 typedef struct _JsonDiscovery JsonDiscovery;
 /// @ref JsonDiscovery abstract C-class - it supports discovering "things" through running commands outputting JSON
 struct _JsonDiscovery {
 	Discovery	baseclass;	///< Base discovery object
-	char *		pathname;	///< Pathname of command to run
+	char *		instancename;	///< Instance name
+	char *		_fullpath;	///< Full pathname of the discovery agent
 	char *		_tmpfilename;	///< Pathname of a temporary file name containing JSON output
 	GPid		_child_pid;	///< Non-zero if we currently have a child active
 	guint		_sourceid;	///< Gmainloop source id of our child watch source.
 	guint		_intervalsecs;	///< How often to run this discovery method?
+	ConfigContext	jsonparams;	///< Parameters to the resource agent.
+	const char *	(*fullpath)(JsonDiscovery*);///< Return full pathname of agent
 };
-WINEXPORT JsonDiscovery* jsondiscovery_new(const char * pathname, int intervalsecs
-,					   NetGSource*, ConfigContext*, gsize);
+WINEXPORT JsonDiscovery* jsondiscovery_new(const char * discoverytype,
+					   const char * instancename,
+					   int intervalsecs,
+					   ConfigContext* jsonparams,
+					   NetGSource*, ConfigContext*, gsize);
 ///@}
 #endif /* _JSONDISCOVERY_H */

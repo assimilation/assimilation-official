@@ -39,7 +39,7 @@ void (*nanoprobe_deadtime_agent)(HbListener*)			= NULL;
 void (*nanoprobe_heartbeat_agent)(HbListener*)			= NULL;
 void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
 void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
-NanoHbStats nano_hbstats = {0U, 0U, 0U, 0U, 0U};
+NanoHbStats		nano_hbstats = {0U, 0U, 0U, 0U, 0U};
 
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
@@ -51,6 +51,11 @@ FSTATIC void		nanoobey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_change_debug(gint plusminus, AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_incrdebug(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_decrdebug(AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		nanoobey_startdiscover(AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		nanoobey_stopdiscover(AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		nano_schedule_discovery(const char *name, guint32 interval,const char* json
+			,	ConfigContext*, NetGSource* transport, NetAddr* fromaddr);
+FSTATIC void		nano_stop_discovery(const char * discoveryname, NetGSource*, NetAddr*);
 FSTATIC gboolean	nano_startupidle(gpointer gcruft);
 FSTATIC	gboolean	nano_reqconfig(gpointer gcruft);
 FSTATIC void		_real_heartbeat_agent(HbListener* who);
@@ -106,7 +111,7 @@ _real_martian_agent(NetAddr* who)
 		addrstring = who->baseclass.toString(who);
 		g_warning("System at address %s is sending unexpected heartbeats.", addrstring);
 		g_free(addrstring);
-		
+
 		nanoprobe_report_upstream(FRAMESETTYPE_HBMARTIAN, who, 0);
 	}
 }
@@ -124,7 +129,7 @@ _real_deadtime_agent(HbListener* who)
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
 		g_warning("Peer at address %s is dead (has timed out).", addrstring);
 		g_free(addrstring);
-		
+
 		nanoprobe_report_upstream(FRAMESETTYPE_HBDEAD, who->listenaddr, 0);
 	}
 }
@@ -198,7 +203,7 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 	ConfigContext*	config = parent->baseclass.config;
 	int		port = 0;
 	guint16		sendinterval = 0;
-	
+
 
 	g_return_if_fail(fs != NULL);
 	(void)fromaddr;
@@ -605,7 +610,132 @@ nanoobey_decrdebug(AuthListener* parent	///<[in] @ref AuthListener object invoki
 {
 	nanoobey_change_debug(-1, parent, fs, fromaddr);
 }
-					
+
+/**
+ * Act on (obey) a @ref FrameSet telling us to perform a possibly repeating discovery action.
+ * <b>FRAMETYPE_DISCNAME</b> - Name of this particular discovery action
+ * Everything else we need to know comes through as a JSON string.
+ * Having the discovery name be separate is handy for putting them in a table.
+ * Don't need the interval once it's started, so no reason to put it in the JSON.
+ */
+FSTATIC void
+nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,	      FrameSet*	fs		///<[in] @ref FrameSet giving operational details
+	,	      NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+
+	GSList*		slframe;
+	guint		interval = 0;
+	const char *	discoveryname = NULL;
+
+	(void)parent;
+	(void)fromaddr;
+	
+
+	// Loop over the frames, looking for those we know what to do with ;-)
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		int	frametype = frame->type;
+
+		switch (frametype) {
+			case FRAMETYPE_DISCNAME: { // Discovery instance name
+				CstringFrame* strf = CASTTOCLASS(CstringFrame, frame);
+				g_return_if_fail(strf != NULL);
+				g_return_if_fail(discoveryname == NULL);
+				discoveryname = strf->baseclass.value;
+			}
+			break;
+
+			case FRAMETYPE_DISCINTERVAL: { // Discovery interval
+				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
+				interval = intf->getint(intf);
+			}
+			break;
+
+			case FRAMETYPE_DISCJSON: { // Discovery JSON string (parameters)
+				CstringFrame* strf = CASTTOCLASS(CstringFrame, frame);
+				const char *  jsonstring;
+				g_return_if_fail(strf != NULL);
+				jsonstring = strf->baseclass.value;
+				g_return_if_fail(discoveryname != NULL);
+				nano_schedule_discovery(discoveryname, interval, jsonstring
+				,			parent->baseclass.config
+				,			parent->baseclass.transport
+				,			fromaddr);
+			}
+			interval = 0;
+			discoveryname = NULL;
+			break;
+		}
+	}
+}
+
+/**
+ * Act on (obey) a @ref FrameSet telling us to stop a repeating discovery action.
+ * <b>FRAMETYPE_DISCNAME</b> - Name of this particular discovery action
+ */
+FSTATIC void
+nanoobey_stopdiscover(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,	      FrameSet*	fs		///<[in] @ref FrameSet giving operational details
+	,	      NetAddr*	fromaddr)	///<[in/out] Address this message came from
+{
+
+	GSList*		slframe;
+
+	(void)parent;
+	(void)fromaddr;
+	
+
+	// Loop over the frames, looking for the one we know what to do with ;-)
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		int	frametype = frame->type;
+
+		switch (frametype) {
+			case FRAMETYPE_DISCNAME: { // Discovery instance name
+				CstringFrame* strf = CASTTOCLASS(CstringFrame, frame);
+				const char *	discoveryname;
+				g_return_if_fail(strf != NULL);
+				discoveryname = strf->baseclass.value;
+				g_return_if_fail(discoveryname == NULL);
+                                discovery_unregister(discoveryname);
+			}
+			break;
+
+		}
+	}
+}
+
+
+/**
+ * Schedule a discovery instance, potentially repetitively.
+ */
+FSTATIC void	
+nano_schedule_discovery(const char *instance,	///<[in] Name of this particular instance
+			guint32 interval,	///<[in] How often to run (0 == one-shot)
+			const char* json,	///<[in] JSON data specifying the discovery
+			ConfigContext* config,	///<[in] Configuration context
+			NetGSource* transport,	///<[in/out] Network Transport
+			NetAddr* fromaddr)	///<[in/out] Requestor's address
+{
+	ConfigContext*	jsonroot;
+	ConfigContext*	jsonparams;
+	JsonDiscovery*	discovery;
+	const char*	disctype;
+
+	(void)fromaddr;
+
+	jsonroot = configcontext_new_JSON_string(json);
+	g_return_if_fail(jsonroot != NULL);
+        jsonparams = jsonroot->getconfig(jsonroot, "parameters");
+	g_return_if_fail(jsonparams != NULL);
+	disctype = jsonroot->getstring(jsonroot, "type");
+	g_return_if_fail(disctype != NULL);
+	discovery = jsondiscovery_new(disctype, instance, interval, jsonparams
+	,			      transport, config, 0);
+        discovery_register(&discovery->baseclass);
+	
+}
 
 /// Stuff we need only for passing parameters through our glib infrastructures - to start up nanoprobes.
 struct startup_cruft {
@@ -627,6 +757,8 @@ nano_startupidle(gpointer gcruft)
 	static enum istate {INIT=3, WAIT=5, DONE=7} state = INIT;
 	struct startup_cruft* cruft = gcruft;
 	const char *	cfgname = strrchr(cruft->initdiscover, '/');
+	const char * jsontext = "{\"parameters\":{}}";
+	ConfigContext*	jsondata = configcontext_new_JSON_string(jsontext);
 
 	if (state == DONE) {
 		return FALSE;
@@ -635,8 +767,11 @@ nano_startupidle(gpointer gcruft)
 		cfgname = cruft->initdiscover;
 	}
 	if (state == INIT) {
-		JsonDiscovery* jd = jsondiscovery_new(cruft->initdiscover
+		JsonDiscovery* jd = jsondiscovery_new
+		(	cruft->initdiscover
+		,	"discover_network"
 		,	cruft->discover_interval
+		,	jsondata
 		,	cruft->iosource, cruft->context, 0);
 		jd->baseclass.baseclass.unref(jd);
 		state = WAIT;
@@ -645,8 +780,8 @@ nano_startupidle(gpointer gcruft)
 	if (cruft->context->getstring(cruft->context, cfgname)) {
 		state = DONE;
 		// Call it once, and arrange for it to repeat until we hear back.
-		nano_reqconfig(gcruft);
 		g_timeout_add_seconds(5, nano_reqconfig, gcruft);
+		nano_reqconfig(gcruft);
 		return FALSE;
 	}
 	return TRUE;
@@ -692,7 +827,7 @@ nano_reqconfig(gpointer gcruft)
 	csf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
 	csf->baseclass.setvalue(&csf->baseclass, strdup(jsontext), strlen(jsontext)+1
 	,			frame_default_valuefinalize);
-	
+
 	frameset_append_frame(fs, &csf->baseclass);
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
 	fs->unref(fs);
@@ -705,7 +840,8 @@ static SwitchDiscovery*	swdisc = NULL;
 static AuthListener*	obeycollective = NULL;
 
 
-/// The set of Collective Management Authority FrameTypes we know about - and what to do when we get them.
+/// The set of Collective Management Authority FrameTypes we know about,
+/// and what to do when we get them.
 /// Resistance is futile...
 ObeyFrameSetTypeMap collective_obeylist [] = {
 	// This is the complete set of commands that nanoprobes know how to obey - so far...
@@ -772,7 +908,8 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 		io,
 		config
 	};
-	hblistener_set_martian_callback(_real_martian_agent);
+	
+ 	hblistener_set_martian_callback(_real_martian_agent);
 	cruftiness = initcrufty;
 	g_source_ref(CASTTOCLASS(GSource, io));
 	nanotransport = io;
@@ -781,7 +918,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	// To be really right, we probably ought to wait until we know our local network
 	// configuration - and start it up on all interfaces assigned addresses of global scope.
 	///@todo - eventually change switch discovery to be sensitive to our local network configuration
-	swdisc = switchdiscovery_new("eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
+	swdisc = switchdiscovery_new("switchdiscovery_eth0", "eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
 	,			    g_main_context_default(), io, config, 0);
 	obeycollective = authlistener_new(collective_obeylist, config, 0);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);

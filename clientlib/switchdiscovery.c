@@ -94,7 +94,8 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 /// SwitchDiscovery constructor.
 /// Good for discovering switch information via pcap-enabled discovery protocols (like LLDP and CDP)
 SwitchDiscovery*
-switchdiscovery_new(const char * dev		///<[in] device to listen on
+switchdiscovery_new(const char *	instance///<[in] instance name
+,		    const char *	dev	///<[in] device to listen on
 ,		    guint listenmask		///<[in] what protocols to listen to
 ,		    gint priority		///<[in] source priority
 ,		    GMainContext* 	mcontext///<[in/out] mainloop context
@@ -102,7 +103,7 @@ switchdiscovery_new(const char * dev		///<[in] device to listen on
 ,	            ConfigContext*	config	///<[in/out] configuration context
 ,	            gsize objsize)		///<[in] object size
 {
-	Discovery * dret = discovery_new(iosrc, config
+	Discovery * dret = discovery_new(instance, iosrc, config
 	,		                 objsize < sizeof(SwitchDiscovery) ? sizeof(SwitchDiscovery) : objsize);
 	SwitchDiscovery* ret;
 	g_return_val_if_fail(dret != NULL, NULL);

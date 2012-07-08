@@ -33,25 +33,28 @@
 typedef struct _Discovery Discovery;
 /// @ref DiscoveryClass abstract C-class - it supports discovering "things" through subclasses for different kinds of things.
 struct _Discovery {
-	AssimObj	baseclass;						///< Base object class
-	const char*	(*discoveryname)	(const Discovery* self);	///< Which object is this?
-	gboolean	(*discover)		(Discovery* self);		///< Perform the discovery
+	AssimObj	baseclass;				///< Base object class
+	char*		(*instancename)(const Discovery* self);	///< Which object is this?
+	void		(*flushcache)(Discovery* self);		///< Flush any cache held
+	gboolean	(*discover)(Discovery* self);		///< Perform the discovery
 	guint		(*discoverintervalsecs)	(const Discovery* self);	///< How often to re-discover?
 										///< (in seconds)
-	guint64		reportcount;						///< How many times have we reported
+	guint64		reportcount;	///< How many times have we reported
 										///< anything new upstream.
-	guint64		discovercount;						///< How many times have we discovered
-										///< something.
-	guint		_timerid;						///< Timer id for repeating discovery
-	NetGSource*	_iosource;						///< How to send packets
-	ConfigContext*	_config;						///< Configuration Parameters -
-										///< has address of CMA.
-	gboolean	_sentyet;						///< TRUE if we've sent this yet.
+	guint64		discovercount;	///< How many times have we discovered
+					///< something.
+	char*		_instancename;	///< Timer id for repeating discovery
+	guint		_timerid;	///< Timer id for repeating discovery
+	NetGSource*	_iosource;	///< How to send packets
+	ConfigContext*	_config;	///< Configuration Parameters -
+					///< has address of CMA.
+	gboolean	_sentyet;	///< TRUE if we've sent this yet.
 };
 
-WINEXPORT Discovery* discovery_new(NetGSource*, ConfigContext*, gsize objsize);
+WINEXPORT Discovery* discovery_new(const char *,NetGSource*, ConfigContext*, gsize objsize);
 WINEXPORT void discovery_register(Discovery* self);
 WINEXPORT void discovery_unregister_all(void);
+WINEXPORT void discovery_unregister(const char *);
 #ifdef DISCOVERY_SUBCLASS
 WINEXPORT void		_discovery_finalize(AssimObj* self);
 #endif

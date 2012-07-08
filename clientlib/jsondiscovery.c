@@ -19,25 +19,18 @@
 #include <frametypes.h>
 #include <framesettypes.h>
 #include <jsondiscovery.h>
-///@defgroup JsonDiscoveryClass Discovery of things through commands producing JSON output to stdout
-/// JSONDiscovery class - supporting the discovery of various things through scripts that produce JSON output.
+///@defgroup JsonDiscoveryClass JSON discovery class.
+/// JSONDiscovery class - supporting the discovery of various things through scripts that
+/// produce JSON output to stdout.  Parameters are passed to these scripts through the environment.
 /// @{
 /// @ingroup DiscoveryClass
 
-FSTATIC const char *	_jsondiscovery_discoveryname(const Discovery* self);
 FSTATIC guint		_jsondiscovery_discoverintervalsecs(const Discovery* self);
 FSTATIC void		_jsondiscovery_finalize(AssimObj* self);
 FSTATIC gboolean	_jsondiscovery_discover(Discovery* dself);
 FSTATIC void		_jsondiscovery_childwatch(GPid, gint, gpointer);
 FSTATIC void		_jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen);
-
-/// internal function return the type of Discovery object
-FSTATIC const char *
-_jsondiscovery_discoveryname(const Discovery* dself)	///<[in] object whose type to return
-{
-	const JsonDiscovery* self = CASTTOCONSTCLASS(JsonDiscovery, dself);
-	return self->pathname;
-}
+FSTATIC void		_jsondiscovery_fullpath(JsonDiscovery* self);
 
 /// default function - return zero for discovery interval
 FSTATIC guint
@@ -52,8 +45,8 @@ FSTATIC void
 _jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 {
 	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
-	g_free(self->pathname);
-	self->pathname = NULL;
+	g_free(self->fullpath);
+	self->fullpath = NULL;
 	g_warn_if_fail(self->_sourceid == 0);
 	_discovery_finalize(dself);
 }
@@ -80,7 +73,7 @@ _jsondiscovery_discover(Discovery* dself)
 	close(g_mkstemp_full(self->_tmpfilename, 0, 0644));
 	argv[0] = strdup("/bin/sh");
 	argv[1] = strdup("-c");
-	argv[2] = g_strdup_printf("%s > %s", self->pathname, self->_tmpfilename);
+	argv[2] = g_strdup_printf("%s > %s", self->_fullpath, self->_tmpfilename);
 	argv[3] = NULL;
 	
 	if (!g_spawn_async(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD
@@ -107,15 +100,15 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 
 
 	if (status != 0) {
-		g_warning("JSON discovery from %s failed with status 0x%x (%d)", self->pathname, status, status);
+		g_warning("JSON discovery from %s failed with status 0x%x (%d)", self->_fullpath, status, status);
 		goto quitchild;
 	}
 	if (!g_file_get_contents(self->_tmpfilename, &jsonout, &jsonlen, &err)) {
-		g_warning("Could not get JSON contents of %s [%s]", self->pathname, err->message);
+		g_warning("Could not get JSON contents of %s [%s]", self->_fullpath, err->message);
 		goto quitchild;
 	}
 	if (jsonlen == 0) {
-		g_warning("JSON discovery [%s] produced no output.", self->pathname);
+		g_warning("JSON discovery [%s] produced no output.", self->_fullpath);
 		goto quitchild;
 	}
 	//g_message("Got %d bytes of JSON TEXT: [%s]", jsonlen, jsonout);
@@ -144,10 +137,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	ConfigContext*	cfg = self->baseclass._config;
 	NetGSource*	io = self->baseclass._iosource;
 	NetAddr*	cma;
-	const char *	basename = strrchr(self->pathname, '/');
-	if (!basename) {
-		basename = self->pathname;
-	}
+	const char *	basename = self->baseclass.instancename(&self->baseclass);
 
 	g_return_if_fail(cfg != NULL && io != NULL);
 
@@ -181,23 +171,36 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 
 /// JsonDiscovery constructor.
 JsonDiscovery*
-jsondiscovery_new(const char *	pathname,	///<[in] pathname of program (script) to run
+jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discovery object
+		  const char *	instancename,	///<[in] instance name of this particular discovery object
 		  gint		intervalsecs,	///<[in] How often to run this discovery
+		  ConfigContext*jsoninst,	///<[in] JSON data describing this discovery instance
 		  NetGSource*	iosource,	///<[in/out] I/O object
 		  ConfigContext*context,	///<[in/out] Configuration context
 		  gsize		objsize)	///<[in] number of bytes to malloc for the object (or zero)
 {
-	JsonDiscovery* ret=NEWSUBCLASS(JsonDiscovery
-	,		   discovery_new(iosource, context
+	const char *	basedir = NULL;
+	ConfigContext*	jsonparams;
+	JsonDiscovery*	ret;
+
+	g_return_val_if_fail(jsoninst != NULL, NULL);
+	jsonparams = jsoninst->getconfig(jsoninst, "parameters");
+	g_return_val_if_fail(jsonparams != NULL, NULL);
+	jsonparams->baseclass.ref(&jsonparams->baseclass);
+	ret=NEWSUBCLASS(JsonDiscovery
+	,		   discovery_new(instancename, iosource, context
 			    ,		 objsize < sizeof(JsonDiscovery) ? sizeof(JsonDiscovery) : objsize));
 	g_return_val_if_fail(ret != NULL, NULL);
-	ret->baseclass.discoveryname		= _jsondiscovery_discoveryname;
 	ret->baseclass.discoverintervalsecs	= _jsondiscovery_discoverintervalsecs;
 	ret->baseclass.baseclass._finalize	= _jsondiscovery_finalize;
 	ret->baseclass.discover			= _jsondiscovery_discover;
-	ret->pathname = g_strdup(pathname);
 	ret->_intervalsecs = intervalsecs;
 	discovery_register(&ret->baseclass);
+	basedir = context->getstring(context, "JSONAGENTROOT");
+	if (NULL == basedir) {
+		basedir = JSONAGENTROOT;
+	}
+        ret->_fullpath = g_strdup_printf("%s%s%s", basedir, "/", discoverytype);
 	return ret;
 }
 ///@}

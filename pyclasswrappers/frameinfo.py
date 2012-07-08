@@ -222,7 +222,7 @@ The Address Type for a MAC address is 6.
 '''This frame contains JSON-formatted output from a discovery process.  The type of discovery data and program collecting it are inside.
 '''),
   	20:  (pyCstringFrame, 'PARAMNAME', 'Config parameter name',
-'''This frame contains the name of a parameter to set in nanoprobe configuration - could be followed by a CSTRINGAL or an IPADDR'''),
+'''This frame contains the name of a parameter to set in nanoprobe configuration - could be followed by a CSTRINGVAL or an IPADDR'''),
   	21:  (pyCstringFrame, 'CSTRINGVAL', 'String configuration value',
 'This frame contains a string value to set in nanoprobe configuration.'),
   	22:  (pyIntFrame, 'CINTVAL', 'Integer configuration value',
@@ -230,6 +230,16 @@ The Address Type for a MAC address is 6.
   	23:  (pyIntFrame, 'ELAPSEDTIME', '64-bit elapsed time (usec)',
 '''This frame provides elapsed time (measured locally) in microseconds.
 In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer.
+'''),
+  	24:  (pyCstringFrame, 'DISCNAME', 'name of this discovery action',
+'''This frame is a name to give this instance of a discovery action.
+'''),
+  	25:  (pyIntFrame, 'DISCINTERVAL', 'Discovery interval',
+'''This frame is a discovery repeat interval measured in seconds as an @ref IntFrame.
+'''),
+  	26:  (pyIntFrame, 'DISCJSON', 'Discovery JSON string',
+'''This frame provides the data describing the discovery action in detail.
+   It must be preceded by a FRAMETYPE_DISCNAME.
 '''),
 
     }
@@ -329,6 +339,8 @@ class FrameSetTypes:
 	'SETCONFIG':	(70, 'Initial configuration packet'),
 	'INCRDEBUG':	(71, 'Increment debug for some or all classes'),
 	'DECRDEBUG':	(72, 'Increment debug for some or all classes'),
+	'DODISCOVER':	(73, 'Perform (repeating) discovery action'),
+	'STOPDISCOVER':	(74, 'Stop a repeating discovery action'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():
