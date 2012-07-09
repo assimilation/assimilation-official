@@ -104,11 +104,16 @@ proj_class_register_object(gpointer object,			///< Object to be registered
 	}
 }
 
+static guint	global_debug_counter = 0;
+
 void
 proj_class_register_debug_counter(const char * classname, guint * debugcount)
 {
 	if (NULL == ObjectClassAssociation) {
 		_init_proj_class_module();
+	}
+	if (*debugcount == 0) {
+		*debugcount = global_debug_counter;
 	}
 	// Sleazy - the double cast is to make the 'const' go away - but safe
 	// since we we never modify the strings we were given - we expect them to be constants
@@ -156,6 +161,13 @@ proj_class_change_debug(const char * Cclass, gint incr)
 			}else{
 				*debug += incr;
 			}
+		}
+	}
+	if (Cclass == NULL) {
+		if (incr < 0 && (guint)-incr >= global_debug_counter) {
+			global_debug_counter = 0;
+		}else{
+			global_debug_counter += incr;
 		}
 	}
 }

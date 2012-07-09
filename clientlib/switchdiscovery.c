@@ -36,13 +36,15 @@ _switchdiscovery_finalize(AssimObj* dself)
 	}
 	if (self->switchid) {
 		g_free(self->switchid);
+		self->switchid = NULL;
 	}
 	if (self->portid) {
 		g_free(self->portid);
+		self->portid = NULL;
 	}
 	
 	// Call base object finalization routine (which we saved away)
-	self->finalize(CASTTOCLASS(AssimObj, self));
+	self->finalize(&self->baseclass.baseclass);
 }
 
 /// Discover member function for timed discovery -- not applicable -- return FALSE

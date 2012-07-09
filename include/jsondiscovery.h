@@ -30,7 +30,7 @@ struct _JsonDiscovery {
 	GPid		_child_pid;	///< Non-zero if we currently have a child active
 	guint		_sourceid;	///< Gmainloop source id of our child watch source.
 	guint		_intervalsecs;	///< How often to run this discovery method?
-	ConfigContext	jsonparams;	///< Parameters to the resource agent.
+	ConfigContext*	jsonparams;	///< Parameters to the resource agent.
 	const char *	(*fullpath)(JsonDiscovery*);///< Return full pathname of agent
 };
 WINEXPORT JsonDiscovery* jsondiscovery_new(const char * discoverytype,

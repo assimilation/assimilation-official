@@ -19,6 +19,7 @@
 #include <frametypes.h>
 #include <framesettypes.h>
 #include <jsondiscovery.h>
+#include <assert.h>
 ///@defgroup JsonDiscoveryClass JSON discovery class.
 /// JSONDiscovery class - supporting the discovery of various things through scripts that
 /// produce JSON output to stdout.  Parameters are passed to these scripts through the environment.
@@ -31,6 +32,7 @@ FSTATIC gboolean	_jsondiscovery_discover(Discovery* dself);
 FSTATIC void		_jsondiscovery_childwatch(GPid, gint, gpointer);
 FSTATIC void		_jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen);
 FSTATIC void		_jsondiscovery_fullpath(JsonDiscovery* self);
+DEBUGDECLARATIONS;
 
 /// default function - return zero for discovery interval
 FSTATIC guint
@@ -45,8 +47,16 @@ FSTATIC void
 _jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 {
 	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
-	g_free(self->fullpath);
-	self->fullpath = NULL;
+	g_free(self->_fullpath);
+	self->_fullpath = NULL;
+	if (self->_tmpfilename) {
+		g_free(self->_tmpfilename);
+		self->_tmpfilename = NULL;
+	}
+	if (self->jsonparams) {
+		self->jsonparams->baseclass.unref(self->jsonparams);
+		self->jsonparams = NULL;
+	}
 	g_warn_if_fail(self->_sourceid == 0);
 	_discovery_finalize(dself);
 }
@@ -75,6 +85,9 @@ _jsondiscovery_discover(Discovery* dself)
 	argv[1] = strdup("-c");
 	argv[2] = g_strdup_printf("%s > %s", self->_fullpath, self->_tmpfilename);
 	argv[3] = NULL;
+	assert(self->_fullpath != NULL);
+
+	DEBUGMSG1("Running Discovery [%s] [%s] [%s]", argv[0], argv[1], argv[2]);
 	
 	if (!g_spawn_async(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD
 	,		   NULL, NULL, &self->_child_pid, &errs)) {
@@ -153,6 +166,8 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	cfg->setstring(cfg, basename, jsonout);
 	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
 	if (cma == NULL) {
+	        g_message("%s address is unknown - skipping send"
+		,	CONFIGNAME_CMADISCOVER);
 		g_free(jsonout);
 		return;
 	}
@@ -163,6 +178,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	fsf = &jsf->baseclass;	// base class object of jsf
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
 	frameset_append_frame(fs, fsf);
+	g_message("Sending a %"G_GSIZE_FORMAT" bytes JSON frameset", jsonlen);
 	io->sendaframeset(io, cma, fs);
 	++ self->baseclass.reportcount;
 	fsf->baseclass.unref(fsf); fsf = NULL; jsf = NULL;
@@ -183,24 +199,27 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 	ConfigContext*	jsonparams;
 	JsonDiscovery*	ret;
 
+	BINDDEBUG(JsonDiscovery);
 	g_return_val_if_fail(jsoninst != NULL, NULL);
 	jsonparams = jsoninst->getconfig(jsoninst, "parameters");
 	g_return_val_if_fail(jsonparams != NULL, NULL);
 	jsonparams->baseclass.ref(&jsonparams->baseclass);
 	ret=NEWSUBCLASS(JsonDiscovery
-	,		   discovery_new(instancename, iosource, context
-			    ,		 objsize < sizeof(JsonDiscovery) ? sizeof(JsonDiscovery) : objsize));
+	,		discovery_new(instancename, iosource, context
+			,	      objsize < sizeof(JsonDiscovery) ? sizeof(JsonDiscovery) : objsize));
 	g_return_val_if_fail(ret != NULL, NULL);
 	ret->baseclass.discoverintervalsecs	= _jsondiscovery_discoverintervalsecs;
 	ret->baseclass.baseclass._finalize	= _jsondiscovery_finalize;
 	ret->baseclass.discover			= _jsondiscovery_discover;
 	ret->_intervalsecs = intervalsecs;
-	discovery_register(&ret->baseclass);
 	basedir = context->getstring(context, "JSONAGENTROOT");
 	if (NULL == basedir) {
 		basedir = JSONAGENTROOT;
 	}
+	ret->jsonparams = jsonparams;
         ret->_fullpath = g_strdup_printf("%s%s%s", basedir, "/", discoverytype);
+	DEBUGMSG1("json_discovery_new: FULLPATH=[%s]", ret->_fullpath);
+	discovery_register(&ret->baseclass);
 	return ret;
 }
 ///@}

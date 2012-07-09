@@ -733,7 +733,7 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 	g_return_if_fail(disctype != NULL);
 	discovery = jsondiscovery_new(disctype, instance, interval, jsonparams
 	,			      transport, config, 0);
-        discovery_register(&discovery->baseclass);
+	discovery->baseclass.baseclass.unref(discovery);
 	
 }
 
@@ -756,23 +756,21 @@ nano_startupidle(gpointer gcruft)
 {
 	static enum istate {INIT=3, WAIT=5, DONE=7} state = INIT;
 	struct startup_cruft* cruft = gcruft;
-	const char *	cfgname = strrchr(cruft->initdiscover, '/');
-	const char * jsontext = "{\"parameters\":{}}";
-	ConfigContext*	jsondata = configcontext_new_JSON_string(jsontext);
+	const char *	cfgname = cruft->initdiscover;
 
 	if (state == DONE) {
 		return FALSE;
 	}
-	if (cfgname == NULL) {
-		cfgname = cruft->initdiscover;
-	}
 	if (state == INIT) {
+		const char * jsontext = "{\"parameters\":{}}";
+		ConfigContext*	jsondata = configcontext_new_JSON_string(jsontext);
 		JsonDiscovery* jd = jsondiscovery_new
 		(	cruft->initdiscover
-		,	"discover_network"
+		,	cruft->initdiscover
 		,	cruft->discover_interval
 		,	jsondata
 		,	cruft->iosource, cruft->context, 0);
+		jsondata->baseclass.unref(jsondata); jsondata = NULL;
 		jd->baseclass.baseclass.unref(jd);
 		state = WAIT;
 		return TRUE;
@@ -796,7 +794,7 @@ nano_reqconfig(gpointer gcruft)
 	FrameSet*	fs;
 	CstringFrame*	csf;
 	CstringFrame*	usf;
-	const char *	cfgname = strrchr(cruft->initdiscover, '/');
+	const char *	cfgname = cruft->initdiscover;
 	ConfigContext*	context = cruft->context;
 	NetAddr *	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
 	const char *		jsontext;
@@ -938,6 +936,7 @@ nano_shutdown(gboolean report)
 		g_message("Count of LLDP/CDP pkts sent:\t"FMT_64BIT"d", swdisc->baseclass.reportcount);
 		g_message("Count of LLDP/CDP pkts received:\t"FMT_64BIT"d", swdisc->baseclass.discovercount);
 	}
+	swdisc->baseclass.baseclass.unref(swdisc); swdisc = NULL;
 	if (nanofailreportaddr) {
 		nanofailreportaddr->baseclass.unref(nanofailreportaddr); nanofailreportaddr = NULL;
 	}
@@ -945,11 +944,6 @@ nano_shutdown(gboolean report)
 		// Unlink heartbeat dispatcher - this should NOT be necessary - but it seems to be...
 		nanotransport->addListener(nanotransport, FRAMESETTYPE_HEARTBEAT, NULL);
 		g_source_unref(CASTTOCLASS(GSource, nanotransport));
-	}
-	// Free Switch Discovery module (unnecessary?)
-	if (swdisc) {
-		swdisc->baseclass.baseclass.unref(swdisc);
-		swdisc = NULL;
 	}
 	// Free packet decoder
 	if (decoder) {

@@ -220,6 +220,7 @@ main(int argc, char **argv)
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	//proj_class_incr_debug(NULL);
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
                 g_debug("Max packet count is "FMT_64BIT"d", maxpkts);
@@ -234,6 +235,10 @@ main(int argc, char **argv)
 
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 
+	// Create a network transport object for normal UDP packets
+	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
+	g_return_val_if_fail(NULL != nettransport, 2);
+
 	// Set up the parameters the 'CMA' is going to send to our 'nanoprobe'
 	// in response to their request for configuration data.
 	nanoconfig = configcontext_new(0);
@@ -241,10 +246,6 @@ main(int argc, char **argv)
 	nanoconfig->setint(nanoconfig, CONFIGNAME_HBTIME, 1000000);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_DEADTIME, 3*1000000);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_CMAPORT, testport);
-
-	// Create a network transport object for normal UDP packets
-	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
-	g_return_val_if_fail(NULL != nettransport, 2);
 
 
 	// Construct the NetAddr we'll talk to (i.e., ourselves) and listen from
@@ -288,8 +289,7 @@ main(int argc, char **argv)
 	listentonanoprobes = authlistener_new(cmalist, config, 0);
 	listentonanoprobes->baseclass.associate(&listentonanoprobes->baseclass, netpkt);
 
-	nano_start_full("/home/alanr/monitor/src/discovery_agents/netconfig"
-	,	900, netpkt, config);
+	nano_start_full("netconfig", 900, netpkt, config);
 
 	g_timeout_add_seconds(1, timeout_agent, NULL);
 	loop = g_main_loop_new(g_main_context_default(), TRUE);

@@ -12,6 +12,7 @@
 #include <projectcommon.h>
 #define	DISCOVERY_SUBCLASS
 #include <discovery.h>
+#include <assert.h>
 ///@defgroup DiscoveryClass Discovery class
 /// Discovery abstract base class - supporting the discovery of various local things by our subclasses.
 /// @{
@@ -21,8 +22,9 @@ FSTATIC char *		_discovery_instancename(const Discovery* self);
 FSTATIC void		_discovery_flushcache(Discovery* self);
 FSTATIC guint		_discovery_discoverintervalsecs(const Discovery* self);
 FSTATIC gboolean	_discovery_rediscover(gpointer vself);
-gboolean		_discovery_unregister_truefunc(gpointer key, gpointer value, gpointer user_data);
 FSTATIC void		_discovery_destructor(gpointer gdiscovery);
+
+DEBUGDECLARATIONS
 
 /// internal function return the type of Discovery object
 FSTATIC char *
@@ -52,17 +54,19 @@ FSTATIC void
 _discovery_finalize(AssimObj* gself)	///<[in/out] Object to finalize (free)
 {
 	Discovery*	self = CASTTOCLASS(Discovery, gself);
-	const char *	instancename = self->instancename(self);
 	
 	if (self->_timerid > 0) {
 		g_source_remove(self->_timerid);
 		self->_timerid = 0;
 	}
-	
 	if (_discovery_timers) {
-		g_hash_table_remove(_discovery_timers, instancename);
-		_discovery_timers = NULL;
+		g_hash_table_remove(_discovery_timers, self->_instancename);
 	}
+	if (self->_instancename) {
+		g_free(self->_instancename);
+		self->_instancename = NULL;
+	}
+	
 	FREECLASSOBJ(self); self=NULL;
 }
 /// GSourceFunc function to invoke discover member function at the timed interval.
@@ -88,6 +92,7 @@ discovery_new(const char *	instname,	///<[in] instance name
 	gsize	size = objsize < sizeof(Discovery) ? sizeof(Discovery) : objsize;
 	Discovery * ret = NEWSUBCLASS(Discovery, assimobj_new(size));
 	g_return_val_if_fail(ret != NULL, NULL);
+	BINDDEBUG(Discovery);
 	ret->_instancename		= g_strdup(instname);
 	ret->instancename		= _discovery_instancename;
 	ret->discoverintervalsecs	= _discovery_discoverintervalsecs;
@@ -121,39 +126,39 @@ void
 discovery_register(Discovery* self)	///<[in/out] Discovery object to register
 {
 	gint	timeout;
+	if (NULL == _discovery_timers) {
+		_discovery_timers = g_hash_table_new_full(g_str_hash, g_str_equal
+		,	NULL, _discovery_destructor);
+		assert(_discovery_timers != NULL);
+	}
 	self->discover(self);
 	timeout = self->discoverintervalsecs(self);
 	if (timeout > 0) {
 		self->_timerid = g_timeout_add_seconds(timeout, _discovery_rediscover, self);
 	}
-	if (NULL == _discovery_timers) {
-		_discovery_timers = g_hash_table_new_full(g_str_hash, g_str_equal
-		,	NULL, _discovery_destructor);
-	}
-	g_hash_table_replace(_discovery_timers, self->instancename(self), self);
 	self->baseclass.ref(self);
+	g_hash_table_replace(_discovery_timers, self->instancename(self), self);
 }
 FSTATIC void
 discovery_unregister(const char* instance)
 {
-	g_hash_table_remove(_discovery_timers, instance);
-}
-
-/// Function returning TRUE for any arguments
-gboolean
-_discovery_unregister_truefunc(gpointer key, gpointer value, gpointer user_data)
-{
-	(void)key;
-	(void)value;
-	(void)user_data;
-	return TRUE;
+	if (_discovery_timers) {
+		g_hash_table_remove(_discovery_timers, instance);
+	}
 }
 
 /// Unregister all discovery methods in preparation for shutting down - to make valgrind happy :-D
 void
 discovery_unregister_all(void)
 {
-	g_hash_table_foreach_remove(_discovery_timers, _discovery_unregister_truefunc, NULL);
+	if (_discovery_timers != NULL) {
+		GHashTable*	timers = _discovery_timers;
+		_discovery_timers = NULL;
+		g_hash_table_remove_all(timers);
+		g_hash_table_destroy(timers); timers = NULL;
+	}else{
+		DEBUGMSG1("Discovery timers were NULL");
+	}
 }
 
 ///@}
