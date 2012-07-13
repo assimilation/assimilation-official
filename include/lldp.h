@@ -117,4 +117,5 @@ WINEXPORT gconstpointer	get_lldptlv_next(gconstpointer tlv_vp, gconstpointer pkt
 WINEXPORT gconstpointer	get_lldptlv_body(gconstpointer tlv_vp, gconstpointer pktend);
 WINEXPORT gconstpointer	find_next_lldptlv_type(gconstpointer tlv_vp, unsigned tlvtype, gconstpointer tlv_vpend);
 WINEXPORT gboolean	is_valid_lldp_packet(gconstpointer tlv_vp, gconstpointer tlv_vpend);
+WINEXPORT gboolean	enable_lldp_packets(gboolean enableme);
 #endif /* _LLDP_H */

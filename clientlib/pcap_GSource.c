@@ -115,7 +115,7 @@ g_source_pcap_new(const char * dev,	///<[in]Capture device name
 		return NULL;
 	}
 	ret->capture = captureobj;
-	ret->capturedev = dev; /// @todo: make a copy of this device.
+	ret->capturedev = g_strdup(dev);
 	ret->listenmask = listenmask;
 	ret->dispatch = dispatch;
 #ifdef _MSC_VER
@@ -201,9 +201,11 @@ g_source_pcap_finalize(GSource* src)
 		psrc->destroynote(psrc);
 	}
 	if (psrc->capture) {
-		pcap_close(psrc->capture);
 		pcap_freecode(&psrc->pcprog);
+		close_pcap_listener(psrc->capture, psrc->capturedev, psrc->listenmask);
 		psrc->capture = NULL;
+		g_free(psrc->capturedev);
+		psrc->capturedev = NULL;
 	}
 	proj_class_dissociate(src);
 }

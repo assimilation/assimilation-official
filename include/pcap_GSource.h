@@ -29,7 +29,7 @@ struct _GSource_pcap {
 	pcap_t*		capture;	///< Pcap capture object
 	struct bpf_program pcprog;	///< Pcap program
 	int		capturefd;	///< Underlying file descriptor
-	const char*	capturedev;	///< Capture device name
+	char*		capturedev;	///< Capture device name
 	unsigned	listenmask;	///< Protocols selected from @ref pcap_protocols
 	gint		gsourceid;	///< Source ID from g_source_attach()
 	gpointer	userdata;	///< Saved user data	

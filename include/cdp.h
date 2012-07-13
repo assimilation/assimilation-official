@@ -64,3 +64,4 @@ WINEXPORT gconstpointer get_cdptlv_next(gconstpointer tlv_vp, gconstpointer pkte
 WINEXPORT gconstpointer get_cdp_chassis_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
 WINEXPORT gconstpointer get_cdp_port_id(gconstpointer packet, gssize* idlength, gconstpointer pktend);
 WINEXPORT gboolean is_valid_cdp_packet(gconstpointer packet, gconstpointer pktend);
+WINEXPORT gboolean enable_cdp_packets(gboolean enableme);
