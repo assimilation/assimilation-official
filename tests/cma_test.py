@@ -38,7 +38,7 @@ def assert_no_dangling_Cclasses():
     CMAdb.cdb = None
     CMAdb.io = None
     CMAdb.TheOneRing = None
-    HbRing.ringnames = None
+    HbRing.ringnames = {}
     gc.collect()	# For good measure...
     count =  proj_class_live_object_count()
     #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
@@ -223,6 +223,7 @@ class TestIO:
         self.sleepatend=sleepatend
         self.index=0
         self.writecount=0
+        self.config = {CONFIGNAME_CMAPORT: 1984}
 
     def recvframesets(self):
         # Audit after each packet is processed - and once before the first packet.
@@ -263,7 +264,6 @@ class TestIO:
 class TestTestInfrastructure(TestCase):
     def test_eof(self):
         'Get EOF with empty input'
-        return
         framesets=[]
         io = TestIO(framesets, 0)
         CMAdb.initglobal(io, True)
@@ -272,7 +272,6 @@ class TestTestInfrastructure(TestCase):
         assert_no_dangling_Cclasses()
 
     def test_get1pkt(self):
-        return
         'Read a single packet'
         otherguy = pyNetAddr([1,2,3,4],)
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
@@ -281,7 +280,6 @@ class TestTestInfrastructure(TestCase):
         framesets=((otherguy, (strframe1,)),)
         io = TestIO(framesets, 0)
         CMAdb.initglobal(io, True)
-        CMAdb.cdb.delete_all()
         gottenfs = io.recvframesets()
         self.assertEqual(len(gottenfs), 2)
         self.assertEqual(gottenfs, framesets[0])
@@ -289,7 +287,6 @@ class TestTestInfrastructure(TestCase):
 
     def test_echo1pkt(self):
         'Read a packet and write it back out'
-        return
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
         fs.append(strframe1)
@@ -313,7 +310,6 @@ class TestCMABasic(TestCase):
     def test_startup(self):
         '''A semi-interesting test: We send a STARTUP message and get back a
         SETCONFIG message with lots of good stuff in it.'''
-        return
         droneid = 1
         droneip = droneipaddress(droneid)
         designation = dronedesignation(droneid)
@@ -335,7 +331,9 @@ class TestCMABasic(TestCase):
         self.assertRaises(StopIteration, listener.listen) # We audit after each packet is processed
         # Let's see what happened...
 
-        self.assertEqual(len(io.packetswritten), 1) # Did we get back one packet?
+        self.assertEqual(len(io.packetswritten), 5) # Did we get back five packets?
+						    # Note that this might increase over time
+						    # As we add more discovery options.
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
 	# Drone and Ring tables are automatically audited after each packet
 

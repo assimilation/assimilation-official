@@ -160,13 +160,12 @@ class CMAdb:
 
     @staticmethod
     def initglobal(io, cleanoutdb=False):
+        CMAdb.io = io
         CMAdb.cdb = CMAdb()
         if cleanoutdb:
-            CMAdb.cdb.delete_all()
-            CMAdb.cdb = None
             #print >>sys.stderr, 'Re-initializing the database'
+            CMAdb.cdb.delete_all()
             CMAdb.cdb = CMAdb()
-        CMAdb.io = io
         CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
 
     def delete_all(self):
@@ -289,9 +288,9 @@ class HbRing:
 
     def __init__(self, name, ringtype, parentring=None):
         '''Constructor for a heartbeat ring.
-    Although we generally avoid keeping hash tables of nodes in the
-    database, I'm currently making an exception for rings.  There are
-    many fewer of those than any other kind of node.
+        Although we generally avoid keeping hash tables of nodes in the
+        database, I'm currently making an exception for rings.  There are
+        many fewer of those than any other kind of node.
         '''
         if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
@@ -317,10 +316,10 @@ class HbRing:
                         pass
         except ValueError:
             pass
-    # Need to figure out what to do about pre-existing members of this ring...
-    # For the moment, let's make the entirely inadequate assumption that
-    # the data in the database is correct.
-    ## FIXME - assumption about database being correct
+        # Need to figure out what to do about pre-existing members of this ring...
+        # For the moment, let's make the entirely inadequate assumption that
+        # the data in the database is correct.
+        ## FIXME - assumption about database being correct
         HbRing.ringnames[self.name] = self
 
         
@@ -558,7 +557,7 @@ class DroneInfo:
                 if isprimaryif and primaryip == None and ipname == ifname:
                     isprimaryip = True
                     primaryip = iponly
-                    print >>sys.stderr, 'PRIMARY IP is %s' % iponly
+                    #print >>sys.stderr, 'PRIMARY IP is %s' % iponly
                 ipnode = CMAdb.cdb.new_IPaddr(nicnode, iponly, ifname=ifname, hostname=self.node['name'])
                 # Save away whichever IP address is our primary IP address...
                 if isprimaryip:
@@ -663,7 +662,7 @@ class DroneInfo:
         '''
         fs = pyFrameSet(FrameSetTypes.DODISCOVER)
         discname = pyCstringFrame(FrameTypes.DISCNAME)
-        print >>sys.stderr, 'SETTING VALUE TO: (%s)' % instance
+        #print >>sys.stderr, 'SETTING VALUE TO: (%s)' % instance
         discname.setvalue(instance)
         fs.append(discname)
         if interval is not None and interval > 0:
