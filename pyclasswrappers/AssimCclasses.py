@@ -23,6 +23,18 @@ class cClass:
     ConfigContext = POINTER(ConfigContext)
     guint8 = POINTER(guint8)
 
+def CCref(obj):
+    base = obj[0]
+    while (type(base) is not AssimObj):
+        base=base.baseclass
+    base.ref(obj)
+
+def CCunref(obj):
+    base = obj[0]
+    while (type(base) is not AssimObj):
+        base=base.baseclass
+    base.unref(obj)
+
 class TLV:
     '''Type/Length/Value abstract class.
     We expect to create IEEE (LLDP), Cisco (CDP) and our local variants (generic) subclasses...
@@ -39,23 +51,23 @@ class TLV:
 
     def get_tlvtype(self):
         'Return the TLV type of this TLV object'
-        return self.tlvtype;
+        return self.tlvtype
 
     def get_tlvlen(self):
         'Return the length of this TLV value'
-        return self.length;
+        return self.length
 
     def get_tlvvalue(self):
         'Return the string buffer corresponding to the value of this TLV object'
-        return self.value;
+        return self.value
 
     def get_buf(self):
-	'Abstract member function - returns the internal data representation of this TLV object'
+        'Abstract member function - returns the internal data representation of this TLV object'
         raise NotImplementedError("Abstract Member Function")
 
     @classmethod
     def from_buf(Class):
-	'Abstract member function - effectively a constructor which is passed the underlying C structure'
+        'Abstract member function - effectively a constructor which is passed the underlying C structure'
         raise NotImplementedError("Abstract Member Function")
 
 
@@ -79,7 +91,7 @@ class GenericTLV(TLV):
         bufend= cast(buf, ptype)+len(buf)
         tlvtype = get_generic_tlv_type(buf, bufend)
         tlvlen = get_generic_tlv_len(buf, bufend)
-        valptr = cast(get_generic_tlv_value(buf, bufend), ptype);
+        valptr = cast(get_generic_tlv_value(buf, bufend), ptype)
         value = create_string_buffer(tlvlen)
         for i in range(0, vlen-1):
             value[i] =  chr(valptr[i])
@@ -97,7 +109,7 @@ class CDPTLV(TLV):
         bufend= cast(buf, ptype)+len(buf)
         tlvtype = get_cdptlv_type(buf, bufend)
         tlvlen = get_cdptlv_len(buf, bufend)
-        valptr = cast(get_cdptlv_value(buf, bufend), ptype);
+        valptr = cast(get_cdptlv_value(buf, bufend), ptype)
         value = create_string_buffer(tlvlen)
         for i in range(0, vlen-1):
             value[i] =  chr(valptr[i])
@@ -115,7 +127,7 @@ class LLDPTLV(TLV):
         bufend= cast(buf, ptype)+len(buf)
         tlvtype = get_lldp_tlv_type(buf, bufend)
         tlvlen = get_lldp_tlv_vlen(buf, bufend) # vlen is the length of the value portion only
-        valptr = cast(get_lldp_tlv_value(buf, bufend), ptype);
+        valptr = cast(get_lldp_tlv_value(buf, bufend), ptype)
         value = create_string_buffer(tlvlen)
         for i in range(0, vlen-1):
             value[i] =  chr(valptr[i])
@@ -128,8 +140,10 @@ class pyAssimObj:
         if (Cstruct is not None):
             assert type(Cstruct) is not int
             self._Cstruct = Cstruct
-            return
-        self._Cstruct = assimobj_new(0)
+        else:
+            self._Cstruct = assimobj_new(0)
+        #print 'ASSIMOBJ:init: %s' % (Cstruct)
+        #CCref(Cstruct)
 
     def cclassname(self):
         return proj_class_classname(self._Cstruct)
@@ -140,7 +154,7 @@ class pyAssimObj:
             return "[None]"
         base = self._Cstruct[0]
         while (type(base) is not AssimObj):
-	    base=base.baseclass
+            base=base.baseclass
         cstringret = base.toString(self._Cstruct)
         ret = string_at(cstringret)
         g_free(cstringret)
@@ -150,11 +164,11 @@ class pyAssimObj:
         'Free up the underlying Cstruct for this pyAssimObj object.'
         if not self._Cstruct or self._Cstruct is None:
             return
-	base=self._Cstruct[0]
-	# I have no idea why the type(base) is not Frame doesn't work here...
-	# This 'hasattr' construct only works because we are a base C-class
+        base=self._Cstruct[0]
+        # I have no idea why the type(base) is not Frame doesn't work here...
+        # This 'hasattr' construct only works because we are a base C-class
         while (hasattr(base, 'baseclass')):
-	    base=base.baseclass
+            base=base.baseclass
         global badfree
         badfree=0
         base.unref(self._Cstruct)
@@ -165,10 +179,7 @@ class pyAssimObj:
         self._Cstruct = None
 
     def _ref(self):
-	base=self._Cstruct[0]
-        while (type(base) is not AssimObj):
-	    base=base.baseclass
-        base.ref(self._Cstruct)
+        CCref(self)
 
 class pyNetAddr(pyAssimObj):
     '''This class represents the Python version of our C-class @ref NetAddr - represented by the struct _NetAddr.
@@ -187,15 +198,15 @@ class pyNetAddr(pyAssimObj):
 
         if (Cstruct is not None):
             assert type(Cstruct) is not int
-            self._Cstruct = Cstruct
+            pyAssimObj.__init__(self, Cstruct=Cstruct)
             return
 
-        if port == None: port = 0
+        if port is None: port = 0
 
         if isinstance(addrstring, unicode):
            addrstring = str(addrstring)
         if isinstance(addrstring, str) or isinstance(addrstring, unicode):
-            self._Cstruct = netaddr_string_new(addrstring, port)
+            pyAssimObj.__init__(self, Cstruct=netaddr_string_new(addrstring, port))
             return
         
         alen = len(addrstring)
@@ -211,45 +222,47 @@ class pyNetAddr(pyAssimObj):
                 addr[i] = str(asi)
             else:
                 addr[i] = chr(asi)
+        #print >>sys.stderr, 'ADDR = %s'  % addr
         if alen == 4:		# ipv4
-            self._Cstruct = netaddr_ipv4_new(addr, port)
+            NA = netaddr_ipv4_new(addr, port)
+            pyAssimObj.__init__(self, Cstruct=NA)
         elif alen == 16:	# ipv6
-            self._Cstruct = netaddr_ipv6_new(addr, port)
+            pyAssimObj.__init__(self, netaddr_ipv6_new(addr, port))
         elif alen == 6:		# "Normal" 48-bit MAC address
             assert port == 0
-            self._Cstruct = netaddr_mac48_new(addr)
+            pyAssimObj.__init__(self, netaddr_mac48_new(addr, port))
         elif alen == 8:		# Extended 64-bit MAC address
             assert port == 0
-            self._Cstruct = netaddr_mac64_new(addr)
+            pyAssimObj.__init__(self, netaddr_mac64_new(addr, port))
         else:
             raise ValueError("Invalid address length - not 4, 6, 8, or 16")
 
     def port(self):
         "Return the port (if any) for this pyNetAddr object"
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base) is not NetAddr):
-	    base=base.baseclass
+            base=base.baseclass
         return base.port(self._Cstruct)
 
     def addrtype(self):
         "Return the type of address for this pyNetAddr object"
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base) is not NetAddr):
-	    base=base.baseclass
+            base=base.baseclass
         return base.addrtype(self._Cstruct)
 
     def addrlen(self):
         "Return the number of bytes necessary to represent this pyNetAddr object on the wire."
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base) is not NetAddr):
-	    base=base.baseclass
+            base=base.baseclass
         return base._addrlen
 
     def __eq__(self, rhs):
         'Compare this pyNetAddr to another pyNetAddr'
         lhsbase = self._Cstruct[0]
         while (type(lhsbase) is not NetAddr):
-	    lhsbase=lhsbase.baseclass
+            lhsbase=lhsbase.baseclass
         return lhsbase.equal(self._Cstruct, rhs._Cstruct)
          
 
@@ -258,9 +271,9 @@ class pyNetAddr(pyAssimObj):
         "Return True if the two pyNetAddrs are equal"
         if not other._Cstruct or not self._Cstruct:
             return False
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base) is not NetAddr):
-	    base=base.baseclass
+            base=base.baseclass
         return base.equal(self._Cstruct, other._Cstruct)
 
 
@@ -285,49 +298,49 @@ class pyFrame(pyAssimObj):
     #
     def __init__(self, initval, Cstruct=None):
         "Initializer for the pyFrame object."
-	if Cstruct is None:
+        if Cstruct is None:
             try:
                 frametype = initval.tlvtype
             except:
                 frametype = int(initval)
             # If we don't do this, then a subclass __init__ function must do it instead...
-            self._Cstruct = frame_new(frametype, 0)
+            pyAssimObj.__init__(self, Cstruct=frame_new(frametype, 0))
         else:
-            self._Cstruct = Cstruct
+            pyAssimObj.__init__(self, Cstruct=Cstruct)
 
     def frametype(self):
         "Return the TLV type for the pyFrame object."
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base)is not Frame):
-	    base=base.baseclass
+            base=base.baseclass
         return base.type
 
     def framelen(self):
         "Return the length of this frame in bytes (TLV length)."
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base)is not Frame):
-	    base=base.baseclass
+            base=base.baseclass
         return base.length
    
     def framevalue(self):
         'Return a C-style pointer (as an int) to the underlying raw TLV data (if any)'
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base)is not Frame):
-	    base=base.baseclass
+            base=base.baseclass
         return cast(base.value, c_char_p)
 
     def dataspace(self):
         'Return the amount of space this frame needs - including type and length'
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base) is not Frame):
-	    base=base.baseclass
+            base=base.baseclass
         return base.dataspace(self._Cstruct)
 
     def isvalid(self):
         "Return True if this Frame is valid"
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base) is not Frame):
-	    base=base.baseclass
+            base=base.baseclass
         pstart = pointer(cast(base.value, c_char_p))
 #        if pstart[0] is None:
 #            return False
@@ -348,24 +361,24 @@ class pyFrame(pyAssimObj):
             for i in range(0, vlen):
                 vi = value[i]
                 valbuf[i] =  int(vi)
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         valptr = MALLOC(vlen)
         memmove(valptr, valbuf, vlen)
         while (type(base) is not Frame):
-	    base=base.baseclass
+            base=base.baseclass
         base.setvalue(self._Cstruct, valptr, vlen, cast(None, GDestroyNotify))
 
     def dump(self, prefix):
         'Dump out this Frame (using C-class "dump" member function)'
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base) is not Frame):
-	    base=base.baseclass
+            base=base.baseclass
         base.dump(self._Cstruct, cast(prefix, c_char_p))
 
     def __str__(self):
         base = self._Cstruct[0]
         while (type(base) is not AssimObj):
-	    base=base.baseclass
+            base=base.baseclass
         cstringret = base.toString(self._Cstruct)
         ret = string_at(cstringret)
         g_free(cstringret)
@@ -374,10 +387,10 @@ class pyFrame(pyAssimObj):
     @staticmethod
     def Cstruct2Frame(frameptr):
         frameptr = cast(frameptr, cClass.Frame)
+        CCref(frameptr)
         frametype = frameptr[0].type
         Cclassname = proj_class_classname(frameptr)
         pyclassname = "py" + Cclassname
-        frameptr[0].baseclass.ref(frameptr)
         if Cclassname == "NetAddr":
             statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
         else:
@@ -396,7 +409,7 @@ class pyAddrFrame(pyFrame):
                 self._pyNetAddr = addrstring
             else:
                 self._pyNetAddr = pyNetAddr(addrstring, port=port)
-            Cstruct = addrframe_new(frametype, 0);
+            Cstruct=addrframe_new(frametype, 0)
             if addrstring is not None:
                 Cstruct[0].setnetaddr(Cstruct, self._pyNetAddr._Cstruct)
         else:
@@ -408,7 +421,7 @@ class pyAddrFrame(pyFrame):
             addrstring = create_string_buffer(addrlen)
             memmove(addrstring, addrstr, addrlen)
             self._pyNetAddr = pyNetAddr(addrstring, port=None)
-        pyFrame.__init__(self, frametype, Cstruct)
+        pyFrame.__init__(self, frametype, Cstruct=Cstruct)
 
     def addrtype(self):
         return self._pyNetAddr.addrtype()
@@ -425,7 +438,7 @@ class pyCstringFrame(pyFrame):
     This class represents a Frame standard NUL-terminated C string.
     '''
     def __init__(self, frametype, initval=None, Cstruct=None):
-	'Constructor for pyCstringFrame object - initial value should be something that looks a lot like a Python string'
+        'Constructor for pyCstringFrame object - initial value should be something that looks a lot like a Python string'
         if Cstruct is None:
             Cstruct=cstringframe_new(frametype, 0)
         pyFrame.__init__(self, frametype, Cstruct)
@@ -443,7 +456,7 @@ class pyIntFrame(pyFrame):
     This class represents an integer of 1, 2, 3, 4 or 8 bytes.
     '''
     def __init__(self, frametype, initval=None, intbytes=4, Cstruct=None):
-	'Constructor for pyIntFrame object - initial value should be something that looks a lot like an integer'
+        'Constructor for pyIntFrame object - initial value should be something that looks a lot like an integer'
         self._Cstruct = None
         if Cstruct is None:
             Cstruct=intframe_new(frametype, intbytes)
@@ -515,7 +528,7 @@ class pySeqnoFrame(pyFrame):
         'Compare this pySeqnoFrame to another pySeqnoFrame'
         lhsbase = self._Cstruct[0]
         while (type(lhsbase) is not SeqnoFrame):
-	    lhsbase=lhsbase.baseclass
+            lhsbase=lhsbase.baseclass
         return lhsbase.equal(self._Cstruct, rhs._Cstruct)
 
     def __str__(self):
@@ -559,7 +572,7 @@ class pyFrameSet(pyAssimObj):
         'Initializer for pyFrameSet'
         if Cstruct is None:
             Cstruct=frameset_new(framesettype)
-        self._Cstruct = Cstruct
+        pyAssimObj.__init__(self, Cstruct=Cstruct)
 
     def append(self, frame):
         'Append a frame to the end of a @ref FrameSet'
@@ -605,7 +618,7 @@ class pyFrameSet(pyAssimObj):
         return (self._Cstruct[0].packet, self._Cstruct[0].pktend)
 
     def __len__(self):
-        curframe = self._Cstruct[0].framelist;
+        curframe = self._Cstruct[0].framelist
         count=0
         while curframe:
             count += 1
@@ -614,7 +627,7 @@ class pyFrameSet(pyAssimObj):
 
     def iter(self):
         'Generator yielding the set of pyFrames in this pyFrameSet'
-        curframe = self._Cstruct[0].framelist;
+        curframe = self._Cstruct[0].framelist
         while curframe:
             cast(curframe[0].data, struct__GSList._fields_[0][1])
             yieldval =  pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
@@ -641,13 +654,13 @@ class pyPacketDecoder(pyAssimObj):
         'Initializer for pyPacketDecoder'
         if Cstruct is None:
             Cstruct=packetdecoder_new(0, None, 0)
-        self._Cstruct = Cstruct
+        pyAssimObj.__init__(self, Cstruct=Cstruct)
 
     def fslist_from_pktdata(self, pktlocation):
         'Make a list of FrameSets out of a packet.'
-	base=self._Cstruct[0]
+        base=self._Cstruct[0]
         while (type(base)is not PacketDecoder):
-	    base=base.baseclass
+            base=base.baseclass
         fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct, pktlocation[0], pktlocation[1])
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
 
@@ -671,14 +684,17 @@ class pyConfigContext(pyAssimObj):
     def __init__(self, init=None, Cstruct=None):
         'Initializer for pyConfigContext'
         self._Cstruct = None # Keep error legs from complaining.
-        if Cstruct is None and (isinstance(init, str) or isinstance(init, unicode)):
-            Cstruct = configcontext_new_JSON_string(str(init))
         if Cstruct is None:
-            Cstruct=configcontext_new(0)
+            if Cstruct is None and (isinstance(init, str) or isinstance(init, unicode)):
+                Cstruct = configcontext_new_JSON_string(str(init))
+                init = None
+                #CCref(Cstruct)
+            else:
+                Cstruct=configcontext_new(0)
         else:
-            Cstruct[0].baseclass.ref(Cstruct)
-        self._Cstruct = Cstruct
-        if init is not None and not isinstance(init, str) and not isinstance(init, unicode):
+            CCref(Cstruct)
+        pyAssimObj.__init__(self, Cstruct=Cstruct)
+        if init is not None:
             for key in init.keys():
                 self[key] = init[key]
 
@@ -703,7 +719,7 @@ class pyConfigContext(pyAssimObj):
         naddr = self._Cstruct[0].getaddr(self._Cstruct, name)
         if naddr:
             naddr = cast(naddr, cClass.NetAddr)
-            naddr[0].baseclass.ref(naddr)
+            CCref(naddr)
             return pyNetAddr(None, Cstruct=naddr)
         raise IndexError("No such NetAddr value [%s]" % name)
 
@@ -727,7 +743,6 @@ class pyConfigContext(pyAssimObj):
         caddr = self._Cstruct[0].getconfig(self._Cstruct, name)
         if caddr:
             caddr=cast(caddr, cClass.ConfigContext)
-            caddr[0].baseclass.ref(caddr)
             return pyConfigContext(Cstruct=caddr)
         raise IndexError("No such ConfigContext value [%s]" % name)
 
@@ -749,7 +764,7 @@ class pyConfigContext(pyAssimObj):
     def keys(self):
         'Return the set of keys for this object'
         l = []
-        keylist = cast(self._Cstruct[0].keys(self._Cstruct), POINTER(GSList));
+        keylist = cast(self._Cstruct[0].keys(self._Cstruct), POINTER(GSList))
         curkey = keylist
         while curkey:
             l.append(string_at(curkey[0].data))
@@ -804,7 +819,7 @@ class pyNetIO(pyAssimObj):
             self.config = configobj
         else:
             self.config = pyConfigContext(Cstruct=Cstruct[0].baseclass._configinfo)
-        self._Cstruct = Cstruct
+        pyAssimObj.__init__(self, Cstruct=Cstruct)
 
     def setblockio(self, mode):
         'Set this NetIO object to blocking IO mode'
@@ -890,7 +905,7 @@ class pyNetIO(pyAssimObj):
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
         address = pyNetAddr(None, Cstruct=netaddr)
         if netaddr:
-            netaddr[0].baseclass.ref(netaddr)
+            CCref(netaddr)
             address = pyNetAddr(None, Cstruct=netaddr)
         else:
             address = None
@@ -920,6 +935,6 @@ class CMAlib:
     @staticmethod
     def create_sendexpecthb(cfg, msgtype, address):
         ucfs =  create_sendexpecthb(cfg._Cstruct, int(msgtype)
-	,	address._Cstruct, 1);
+        ,	address._Cstruct, 1)
         fs = cast(ucfs, cClass.FrameSet)
         return pyFrameSet(None, Cstruct=fs)

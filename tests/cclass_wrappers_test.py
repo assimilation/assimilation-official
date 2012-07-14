@@ -28,7 +28,11 @@ def assert_no_dangling_Cclasses():
 class pyNetAddrTest(TestCase):
     "A pyNetAddr is a network address of some kind... - let's test it"
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pyNetAddrTest)"
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
         ipv4 = pyNetAddr((1,2,3,4),)
         ipv4b = pyNetAddr((1,2,3,5),)
         mac48 = pyNetAddr((1,2,3,4,5,6),)
@@ -65,7 +69,7 @@ class pyNetAddrTest(TestCase):
 
     def test_ipv6_str(self): 
         'Test the str() function for ipv6 - worth a separate test.'
-        if DEBUG: print "test_ipv6_str(pyNetAddrTest)"
+        if DEBUG: print >>sys.stderr, "===============test_ipv6_str(pyNetAddrTest)"
         ipv6 = pyNetAddr((0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),)
         self.assertEqual(str(ipv6),"::")
         ipv6 = pyNetAddr((0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,01),)
@@ -91,13 +95,13 @@ class pyFrameTest(TestCase):
        This base class just has a generic binary blob with no special
        properties.  They are all valid (if they have a value)'''
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pyFrameTest)"
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyFrameTest)"
         pyf = pyFrame(100)
         self.assertEqual(pyf.frametype(), 100)
         self.assertTrue(pyf.isvalid())
 
     def test_setvalue(self): 
-        if DEBUG: print "test_setvalue(pyFrameTest)"
+        if DEBUG: print >>sys.stderr, "===============test_setvalue(pyFrameTest)"
         pyf = pyFrame(101)
         pyf.setvalue('fred')
         self.assertTrue(pyf.isvalid(), "PyFrame('fred') failed isvalid())")
@@ -112,7 +116,7 @@ class pyFrameTest(TestCase):
 class pyAddrFrameTest(TestCase):
     'An AddrFrame wraps a NetAddr for sending on the wire'
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pyAddrFrameTest)"
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyAddrFrameTest)"
         pyf = pyAddrFrame(200, addrstring=(1,2,3,4))
         self.assertEqual(pyf.frametype(), 200)
         self.assertEqual(pyf.framelen(), 6)
@@ -128,7 +132,7 @@ class pyAddrFrameTest(TestCase):
 class pyIntFrameTest(TestCase):
     'An IntFrame wraps various sizes of unsigned integers for sending on the wire'
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pyIntFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(pyIntFrameTest)"
         # Test a variety of illegal/unsupported integer sizes
         for size in (5, 6, 7, 9, 10):
             self.assertRaises(ValueError, pyIntFrame, 300+size-1, intbytes=size)
@@ -142,7 +146,7 @@ class pyIntFrameTest(TestCase):
 
     def test_set(self): 
         'Test setting integer values for all the size integers'
-        if DEBUG: print "test_set(pyIntFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_set(pyIntFrameTest)"
         for size in (1, 2, 3, 4, 8):
             pyf = pyIntFrame(320, initval=0, intbytes=size)
             val = 42 + size
@@ -158,7 +162,7 @@ class pyIntFrameTest(TestCase):
 class pyUnknownFrameTest(TestCase):
     "An unknown frame is one we don't recognize the type of."
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pyUnknownFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(pyUnknownFrameTest)"
         pyf = pyUnknownFrame(400)
         self.assertEqual(pyf.frametype(), 400)
         # All Unknown frames are invalid...
@@ -172,7 +176,7 @@ class pyUnknownFrameTest(TestCase):
 class pySeqnoFrameTest(TestCase):
     'A SeqnoFrame is a frame wrapping an ordered pair for a sequence number'
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pySeqnoFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(pySeqnoFrameTest)"
         pyf = pySeqnoFrame(500)
         self.assertEqual(pyf.frametype(), 500)
         self.assertTrue(pyf.isvalid(), 'pySeqnoFrame(500) did not pass isvalid()')
@@ -182,7 +186,7 @@ class pySeqnoFrameTest(TestCase):
 
     def test_reqid(self):
         'reqid is the request id of a sequence number'
-        if DEBUG: print "test_reqid(pySeqnoFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_reqid(pySeqnoFrameTest)"
         pyf = pySeqnoFrame(502)
         pyf.setreqid(42)
         self.assertTrue(pyf.getreqid, 42)
@@ -191,7 +195,7 @@ class pySeqnoFrameTest(TestCase):
 
     def test_qid(self):
         'qid is analogous to a port - it is the id of a queue on the other side'
-        if DEBUG: print "test_qid(pySeqnoFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_qid(pySeqnoFrameTest)"
         pyf = pySeqnoFrame(503)
         pyf.setqid(6)
         self.assertTrue(pyf.getqid, 6)
@@ -200,7 +204,7 @@ class pySeqnoFrameTest(TestCase):
 
     def test_equal(self):
         'A bit of overkill, but nothing really wrong with it'
-        if DEBUG: print "test_equal(pySeqnoFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_equal(pySeqnoFrameTest)"
         seqFrame1 = pySeqnoFrame( 504, (1,1))
         seqFrame1b = pySeqnoFrame(505, (1,1))
         seqFrame2 = pySeqnoFrame( 506, (1,2))
@@ -246,7 +250,7 @@ class pyCstringFrameTest(TestCase):
     '''A CstringFrame is a frame which can only hold NUL-terminated C strings.
        The last byte must be the one and only NUL character in a CstringFrame value.'''
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pyCstringFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(pyCstringFrameTest)"
         pyf = pyCstringFrame(600, "Hello, World.")
         self.assertTrue(pyf.isvalid())
         self.assertEqual(str(pyf), '600: CstringFrame(600, "Hello, World.")')
@@ -263,7 +267,7 @@ class pyCstringFrameTest(TestCase):
 class pySignFrameTest(TestCase):
     'A SignFrame is a digital signature frame.'
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pySignFrameTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(pySignFrameTest)"
         pyf = pySignFrame(1) # the 1 determines the type of digital signature
         self.assertTrue(pyf.isvalid())
         self.assertRaises(ValueError, pySignFrame, 935) # Just a random invalid signature type
@@ -283,12 +287,12 @@ class pyFrameSetTest(TestCase):
         return s
 
     def test_constructor(self): 
-        if DEBUG: print "test_constructor(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(pyFrameSetTest)"
         pyf = pyFrameSet(700) # The 700 is the frameset (message) type
         self.assertEqual(pyf.get_framesettype(), 700)
 
     def test_flags(self): 
-        if DEBUG: print "test_flags(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_flags(pyFrameSetTest)"
         'Flags are bit masks, to be turned on or off. They are 16-bits only.'
         pyf = pyFrameSet(701)
         self.assertEqual(pyf.get_flags(), 0x00)
@@ -307,7 +311,7 @@ class pyFrameSetTest(TestCase):
 
     def test_buildlistforward(self):
         'Build a FrameSet using append and verify that it gets built right'
-        if DEBUG: print "test_buildlistforward(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_buildlistforward(pyFrameSetTest)"
         pyfs = pyFrameSet(702)
         sign = pySignFrame(1) # digital signature frame
         flist = (pyFrame(703), pyAddrFrame(704, (42,42,42,42)), pyIntFrame(705,42), pyCstringFrame(706, "HhGttG"),
@@ -349,7 +353,7 @@ class pyFrameSetTest(TestCase):
     def test_buildlistbackwards(self):
         '''Build a FrameSet using prepend and verify that it gets built right.
            Similar to the append testing above, but backwards ;-)'''
-        if DEBUG: print "test_buildlistbackwards(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_buildlistbackwards(pyFrameSetTest)"
         pyfs = pyFrameSet(707)
         sign = pySignFrame(1)
         flist = (pyFrame(708), pyAddrFrame(709, (42,42,42,42)), pyIntFrame(710,42), pyCstringFrame(711, "HhGttG"),
@@ -368,12 +372,12 @@ class pyFrameSetTest(TestCase):
             self.assertEqual(f.frametype(), y.frametype())
             self.assertEqual(type(f), type(y))
             self.assertEqual(f.__class__, y.__class__)
-            if DEBUG: print "Classes are", f.__class__, "lens are", f.framelen(), y.framelen()
+            if DEBUG: print >>sys.stderr, "Classes are", f.__class__, "lens are", f.framelen(), y.framelen()
             self.assertEqual(f.framelen(), y.framelen())
 
     def test_buildpacket(self):
         'Build a FrameSet, then make it into a packet, and make a frameset list out of the packet'
-        if DEBUG: print "test_buildpacket(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_buildpacket(pyFrameSetTest)"
         pyfs = pyFrameSet(801)
         sign = pySignFrame(1) # digital signature frame
         flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.WALLCLOCK,42), pyCstringFrame(FrameTypes.INTERFACE, "HhGttG"),
@@ -381,20 +385,20 @@ class pyFrameSetTest(TestCase):
                  pyIntFrame(FrameTypes.CINTVAL,3000000000000, intbytes=8),
                  pySeqnoFrame(FrameTypes.REQID, (42, 424242424242)),
                  pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
-        if DEBUG: print "flist:", flist
+        if DEBUG: print >>sys.stderr, "flist:", flist
         decoder = pyPacketDecoder(0)
         for frame in flist:
             pyfs.append(frame)
         pyfs.construct_packet(sign)
-        if DEBUG: print "packet constructed"
+        if DEBUG: print >>sys.stderr, "packet constructed"
         xlist=[]
         for frame in pyfs.iter():
             xlist.append(frame)
-        if DEBUG: print "xlist constructed"
+        if DEBUG: print >>sys.stderr, "xlist constructed"
         pktdata = pyfs.getpacket()
-        if DEBUG: print "getpacket done", pktdata
+        if DEBUG: print >>sys.stderr, "getpacket done", pktdata
         cp_pyfs = decoder.fslist_from_pktdata(pktdata)
-        if DEBUG: print "decoder done", cp_pyfs
+        if DEBUG: print >>sys.stderr, "decoder done", cp_pyfs
         fs0 = cp_pyfs[0]
         ylist=[]
         for frame in fs0.iter():
@@ -422,6 +426,7 @@ class pyConfigContextTest(TestCase):
 
     def test_constructor(self):
         pyConfigContext()
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyConfigContextTest)"
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),) })
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),), 'csf': pyCstringFrame(42, '41+1')})
         self.assertEqual(foo.getint('int1'), 42)
@@ -434,19 +439,20 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['int1'], 42)
         self.assertEqual(foo['str1'], 'forty-two')
         self.assertEqual(foo.getint('fred'), -1)
-        self.assertEqual(str(foo['bar']), '1.2.3.4')
+	foo['bar']
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
+        self.assertEqual(str(foo['bar']), '1.2.3.4')
         self.assertEqual(str(foo['csf']), '42: CstringFrame(42, "41+1")')
         self.assertEqual(str(foo), '{"str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
 
         foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)
-        if DEBUG: print "test_constructor.18(pyConfigContextTest)"
+        if DEBUG: print >>sys.stderr, "test_constructor.18(pyConfigContextTest)"
         self.assertEqual(str(foo),
         	'{"isf":"IntFrame(310, 3, 42)","str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
-        if DEBUG: print "test_constructor.19(pyConfigContextTest)"
+        if DEBUG: print >>sys.stderr, "test_constructor.19(pyConfigContextTest)"
 
     def test_string(self):
-        if DEBUG: print "test_string(pyConfigContextTest)"
+        if DEBUG: print >>sys.stderr, "test_string(pyConfigContextTest)"
         foo = pyConfigContext()
         foo['arthur'] = 'dent'
         foo['seven'] = 'ofnine'
@@ -467,7 +473,7 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Locutus","important":"towel","integer":42,"seven":"7"}')
 
     def test_int(self):
-        if DEBUG: print "test_int(pyConfigContextTest)"
+        if DEBUG: print >>sys.stderr, "test_int(pyConfigContextTest)"
         foo = pyConfigContext()
         foo['arthur'] = 42
         foo['seven'] = 9
@@ -480,7 +486,7 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(str(foo), '{"arthur":42,"seven":7}')
 
     def test_child_ConfigContext(self):
-        if DEBUG: print "test_child_ConfigContext(pyConfigContextTest)"
+        if DEBUG: print >>sys.stderr, "========================test_child_ConfigContext(pyConfigContextTest)"
         foo = pyConfigContext()
         foo['ford'] = 'prefect'
         baz = pyConfigContext()
@@ -489,18 +495,24 @@ class pyConfigContextTest(TestCase):
         bar = pyConfigContext()
         bar['hhgttg'] = foo
         bar['voyager'] = baz
+        if DEBUG: print >>sys.stderr, "EQUAL TEST"
         self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"there\'s no place like":"127.0.0.1","Kathryn":"Janeway"}}')
 	# We make a new pyConfigContext object from the str() of another one.  Cool!
+        if DEBUG: print >>sys.stderr, "JSON TEST"
         bar2 = pyConfigContext(str(bar))
+        if DEBUG: print >>sys.stderr, "JSON COMPARE"
         self.assertEqual(str(bar), str(bar2))
         self.assertEqual(bar["voyager"]["Kathryn"], "Janeway")
         self.assertEqual(bar["hhgttg"]["ford"], "prefect")
         self.assertEqual(bar2["voyager"]["Kathryn"], "Janeway")
         self.assertEqual(bar2["hhgttg"]["ford"], "prefect")
+        if DEBUG: print >>sys.stderr, "COMPARE DONE"
         #	However... The pyNetAddr() was turned into a mere string :-( - at least for the moment... Sigh...
+        if DEBUG: print >>sys.stderr, "END OF ========================test_child_ConfigContext(pyConfigContextTest)"
 
 
     def test_keys(self):
+        if DEBUG: print >>sys.stderr, "===============test_keys(pyConfigContextTest)"
         foo = pyConfigContext()
         foo['arthur'] = 'dent'
         foo['seven'] = 'ofnine'
@@ -517,13 +529,13 @@ class pyConfigContextTest(TestCase):
 class pyNetIOudpTest(TestCase):
 
     def test_constructor(self):
-        if DEBUG: print "test_constructor(pyNetIOudpTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(pyNetIOudpTest)"
         config = pyConfigContext(init={'outsig': pySignFrame(1)})
         io = pyNetIOudp(config, pyPacketDecoder(0))
         self.assertTrue(io.getfd() >  2)
 
     def test_members(self):
-        if DEBUG: print "test_members(pyNetIOudpTest)"
+        if DEBUG: print >>sys.stderr, "========================test_members(pyNetIOudpTest)"
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
         self.assertTrue(io.getmaxpktsize() >  65000)
         self.assertTrue(io.getmaxpktsize() <  65535)
@@ -533,7 +545,7 @@ class pyNetIOudpTest(TestCase):
         #self.assertEqual(type(io.signframe()), type(pySignFrame(1)))
 
     def test_send(self):
-        if DEBUG: print "test_send(pyNetIOudpTest)"
+        if DEBUG: print >>sys.stderr, "========================test_send(pyNetIOudpTest)"
         home = pyNetAddr((127,0,0,1),1984)
         fs = pyFrameSet(801)
         flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.HBWARNTIME,42), pyCstringFrame(FrameTypes.HOSTNAME, "HhGttG"),
@@ -548,7 +560,7 @@ class pyNetIOudpTest(TestCase):
         io.sendframesets(home, (fs,fs,fs))
 
     def test_receiveandsend(self):
-        if DEBUG: print "test_receiveandsend(pyNetIOudpTest)"
+        if DEBUG: print >>sys.stderr, "========================test_receiveandsend(pyNetIOudpTest)"
         home = pyNetAddr((127,0,0,1),1984)
         anyaddr = pyNetAddr((0,0,0,0),1984)
         fs = pyFrameSet(801)

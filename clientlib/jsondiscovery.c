@@ -212,6 +212,7 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 	ret->baseclass.baseclass._finalize	= _jsondiscovery_finalize;
 	ret->baseclass.discover			= _jsondiscovery_discover;
 	ret->jsonparams = jsonparams;
+	ret->jsonparams->baseclass.ref(ret->jsonparams);
 	ret->_intervalsecs = intervalsecs;
 	basedir = context->getstring(context, "JSONAGENTROOT");
 	if (NULL == basedir) {
