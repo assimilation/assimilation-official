@@ -1,73 +1,75 @@
-#
-#	Design outline:
-#
-#	All incoming network messages come in and get sent to a client who is a dispatcher.
-#
-#	The dispatcher looks at the message type and computes which queue to send the
-#	message to based on the message type and contents.
-#
-#		For death notices, the dispatcher forwards the message to the worker
-#		assigned to the switch the system is on - if known, or the worker
-#		assigned to the subnet.
-#
-#	Each worker handles one or more rings - probably handling the per-switch rings
-#	for a subnet and the subnet ring as well.  It is important to ensure that a ring
-#	is handled by only one worker.  This eliminates locking concerns.  When a given
-#	worker receives a death notice for a drone that is also in higher-level rings,
-#	it does its at its level and also forwards the request to the worker handling
-#	the higher level ring as well.  The first subnet worker will also handle the work
-#	for the top-level (global) ring.
-#
-#	Packets are ACKed by workers after all work has been completed.  In the case of
-#	a drone on multiple rings, it is only ACKed after both rings have been fully
-#	repaired.
-#
-#	The reason for this is that until it is fully repaired, the system might crash
-#	before completing its work.  Retransmission timeouts will need to be set
-#	accordingly...
-#
-#	Although congestion is normally very unlikely, this is not true for full
-#	datacenter powerons - where it is reasonably likely - depending on how
-#	quickly one can power on the servers and not pop circuit breakers or
-#	damage UPSes
-#		(it would be good to know how fast hosts can come up worst case).
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab
 #
 #
-#	Misc Workers with well-known-names
-#	Request-To-Create-Ring
+#   Design outline:
+#
+#   All incoming network messages come in and get sent to a client who is a dispatcher.
+#
+#   The dispatcher looks at the message type and computes which queue to send the
+#   message to based on the message type and contents.
+#
+#       For death notices, the dispatcher forwards the message to the worker
+#       assigned to the switch the system is on - if known, or the worker
+#       assigned to the subnet.
+#
+#   Each worker handles one or more rings - probably handling the per-switch rings
+#   for a subnet and the subnet ring as well.  It is important to ensure that a ring
+#   is handled by only one worker.  This eliminates locking concerns.  When a given
+#   worker receives a death notice for a drone that is also in higher-level rings,
+#   it does its at its level and also forwards the request to the worker handling
+#   the higher level ring as well.  The first subnet worker will also handle the work
+#   for the top-level (global) ring.
+#
+#   Packets are ACKed by workers after all work has been completed.  In the case of
+#   a drone on multiple rings, it is only ACKed after both rings have been fully
+#   repaired.
+#
+#   The reason for this is that until it is fully repaired, the system might crash
+#   before completing its work.  Retransmission timeouts will need to be set
+#   accordingly...
+#
+#   Although congestion is normally very unlikely, this is not true for full
+#   datacenter powerons - where it is reasonably likely - depending on how
+#   quickly one can power on the servers and not pop circuit breakers or
+#   damage UPSes
+#       (it would be good to know how fast hosts can come up worst case).
 #
 #
-#	Mappings:
-#
-#	Drone-related information-------------------------
-#	NetAddr-to-drone-name
-#	drone-name to NetAddr
-#	(drone-name,ifname) to interface-info (including switch info)
-#	drone-neighbor-info:
-#		drone-name-to-neighbor-info (drone-name, NetAddr, ring-name)
-#
-#	Ring-related information--------------------------
-#	drone-name to ring-name(s)
-#	ring-names to ring-information (level, #members, etc)
-#	ring-links-info	??
-#	Subnet-to-ring-name
-#	Switch-to-ring-name
-#	Global-ring-name [TheOneRing]
-#
-#	Discovery-related information---------------------
-#	(drone-name, Interface-name) to LLDP/CDP packet
-#	(drone-name, discovery-type) to JSON info
+#   Misc Workers with well-known-names
+#   Request-To-Create-Ring
 #
 #
-#	Misc Info-----------------------------------------
-#	NetAddr(MAC)-to-NetAddr(IP)
+#   Mappings:
+#
+#   Drone-related information-------------------------
+#   NetAddr-to-drone-name
+#   drone-name to NetAddr
+#   (drone-name,ifname) to interface-info (including switch info)
+#   drone-neighbor-info:
+#       drone-name-to-neighbor-info (drone-name, NetAddr, ring-name)
+#
+#   Ring-related information--------------------------
+#   drone-name to ring-name(s)
+#   ring-names to ring-information (level, #members, etc)
+#   ring-links-info ??
+#   Subnet-to-ring-name
+#   Switch-to-ring-name
+#   Global-ring-name [TheOneRing]
+#
+#   Discovery-related information---------------------
+#   (drone-name, Interface-name) to LLDP/CDP packet
+#   (drone-name, discovery-type) to JSON info
 #
 #
-#	Dispatcher logic:
-#	For now sends all requests to TheOneRing because we don't have
-#	a database yet ;-)
+#   Misc Info-----------------------------------------
+#   NetAddr(MAC)-to-NetAddr(IP)
 #
-#	We will need a database RealSoonNow :-D.
+#
+#   Dispatcher logic:
+#   For now sends all requests to TheOneRing because we don't have
+#   a database yet ;-)
+#
+#   We will need a database RealSoonNow :-D.
 #
 ################################################################################
 #
@@ -107,8 +109,8 @@ class CMAdb:
 #       iphost          ipaddr          drone
 #       ipowner         ipaddr          nic
 #       ringnext        drone           drone
-#       ringip		ring            ipaddr
-#       ringmember	ring            drone
+#       ringip      ring            ipaddr
+#       ringmember  ring            drone
 #       parentring      ring            ring
     debug = False
 
@@ -118,19 +120,19 @@ class CMAdb:
         self.dbversion = self.db.neo4j_version
         if CMAdb.debug:
             print 'Neo4j version: %s' % str(self.dbversion)
-        #
-	#	Make sure all our indexes are present and that we
-	#	have a top level node for each node type for creating
-	#	IS_A relationships to.  Not sure if the IS_A relationships
-	#	are really needed, but they're kinda cool...
-	#
-        nodetypes = {	'Ring':		True
-		,	'Drone':	True
-		,	'Switch':	True
-		,	'NIC':		True	# NICs are indexed by MAC address
-						# MAC addresses are not always unique...
-		,	'IPaddr':	True	# Note that IPaddrs also might not be unique
-		}
+    #
+    #   Make sure all our indexes are present and that we
+    #   have a top level node for each node type for creating
+    #   IS_A relationships to.  Not sure if the IS_A relationships
+    #   are really needed, but they're kinda cool...
+    #
+        nodetypes = {   'Ring':     True
+        ,   'Drone':    True
+        ,   'Switch':   True
+        ,   'NIC':      True    # NICs are indexed by MAC address
+                        # MAC addresses are not always unique...
+        ,   'IPaddr':   True    # Note that IPaddrs also might not be unique
+        }
         
         indices = [key for key in nodetypes.keys() if nodetypes[key]]
         self.indextbl = {}
@@ -144,7 +146,7 @@ class CMAdb:
         nodezero = self.db.get_node(0)
         for index in nodetypes.keys():
             top =  nodetypeindex.get_or_create('nodetype', index
-	    ,				       {'name':index, 'nodetype':'nodetype'})
+        ,                      {'name':index, 'nodetype':'nodetype'})
             self.nodetypetbl[index] = top
             #print >>sys.stderr, 'Relating type %s to node zero' % index
             if not top.has_relationship_with(nodezero):
@@ -169,7 +171,7 @@ class CMAdb:
 
     def delete_all(self):
         query = cypher.Query(self.db
-        ,	'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
+        ,   'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
         result = query.execute()
         if CMAdb.debug:
             print >>sys.stderr, 'Cypher query to delete all relationships and nonzero nodes executing:', query
@@ -177,13 +179,13 @@ class CMAdb:
 
     def node_new(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
-	relationship with the nodetype object corresponding its nodetype.
+    relationship with the nodetype object corresponding its nodetype.
         It is created and added to indexes if it doesn't already exist in its corresponding index
-	- if there is one.
+    - if there is one.
         If it already exists, the pre-existing node is returned.
         If this object type doesn't have an index, it will always be created.
         Note that the nodetype has to be in the nodetypetable - even if it's NULL
-			(for error detection).
+            (for error detection).
         The IS_A relationship may be useful -- or not.  Hard to say at this point...'''
         assert nodetype is not None and nodename is not None
         properties['nodetype'] = nodetype
@@ -287,9 +289,9 @@ class HbRing:
 
     def __init__(self, name, ringtype, parentring=None):
         '''Constructor for a heartbeat ring.
-	Although we generally avoid keeping hash tables of nodes in the
-	database, I'm currently making an exception for rings.  There are
-	many fewer of those than any other kind of node.
+    Although we generally avoid keeping hash tables of nodes in the
+    database, I'm currently making an exception for rings.  There are
+    many fewer of those than any other kind of node.
         '''
         if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
@@ -315,10 +317,10 @@ class HbRing:
                         pass
         except ValueError:
             pass
-	# Need to figure out what to do about pre-existing members of this ring...
-	# For the moment, let's make the entirely inadequate assumption that
-	# the data in the database is correct.
-	## FIXME - assumption about database being correct
+    # Need to figure out what to do about pre-existing members of this ring...
+    # For the moment, let's make the entirely inadequate assumption that
+    # the data in the database is correct.
+    ## FIXME - assumption about database being correct
         HbRing.ringnames[self.name] = self
 
         
@@ -351,17 +353,17 @@ class HbRing:
 
         #print >>sys.stderr,'Adding drone %s to talk to partners'%drone.node['name'], self.insertpoint1, self.insertpoint2
 
-        if self.insertpoint1 is None:	# Zero nodes previously
+        if self.insertpoint1 is None:   # Zero nodes previously
             self.insertpoint1 = drone
             #print >>sys.stderr, 'RING1 IS NOW:', str(self)
             return
 
-        if self.insertpoint2 is None:	# One node previously
-	    # Create the initial circular list.
-            ## FIXME: Ought to label link relationships with IP addresses involved
+        if self.insertpoint2 is None:   # One node previously
+        # Create the initial circular list.
+            ## FIXME: Ought to label ring membership relationships with IP involved
             # (see comments below)
             CMAdb.cdb.db.relate((drone.node, self.ournexttype, self.insertpoint1.node),
-            		  (self.insertpoint1.node, self.ournexttype, drone.node))
+                      (self.insertpoint1.node, self.ournexttype, drone.node))
             drone.start_heartbeat(self, self.insertpoint1)
             self.insertpoint1.start_heartbeat(self, drone)
             self.insertpoint2 = self.insertpoint1
@@ -370,7 +372,7 @@ class HbRing:
             return
         
         #print >>sys.stderr, 'Finding insert point [%s: %s]' % \
-	#	(self.insertpoint2.node['name'], self.ournexttype)
+    #   (self.insertpoint2.node['name'], self.ournexttype)
         # Two or more nodes previously
         #print >>sys.stderr, 'DRONE:', drone.node
         #print >>sys.stderr, 'INSERTPOINT1:', self.insertpoint1.node
@@ -411,17 +413,17 @@ class HbRing:
         except ValueError:
             nextnode = None
 
-        if nextnode is None and prevnode is None:	# Previous length:	1
-                self.insertpoint1 = None		# result length:	0
+        if nextnode is None and prevnode is None:   # Previous length:  1
+                self.insertpoint1 = None        # result length:    0
                 self.insertpoint2 = None
                 # No database links to remove
-		return
+        return
 
-	# Clean out the next link relationships to our dearly departed drone
+    # Clean out the next link relationships to our dearly departed drone
         ringrel = drone.node.get_single_relationship('outgoing', self.ourreltype)
         ringrel.delete()
         ringrel = None
-	# Clean out the next link relationships to our dearly departed drone
+    # Clean out the next link relationships to our dearly departed drone
         relationships = drone.node.get_relationships('all', self.ournexttype)
         # Should have exactly two link relationships (one incoming and one outgoing)
         assert len(relationships) == 2
@@ -431,8 +433,8 @@ class HbRing:
         relationships = None
         rel = None
 
-        if prevnode.id == nextnode.id:			# Previous length:	2
-            node = prevnode				# Result length:	1
+        if prevnode.id == nextnode.id:          # Previous length:  2
+            node = prevnode             # Result length:    1
             if node is None: node = nextnode
             partner = DroneInfo(node)
             drone.stop_heartbeat(self, partner)
@@ -442,19 +444,19 @@ class HbRing:
             self.insertpoint1 = partner
             return
 
-        # Previous length had to be >= 3		# Previous length:	>=3
-							# Result length:	>=2
+        # Previous length had to be >= 3        # Previous length:  >=3
+                            # Result length:    >=2
         prevdrone = DroneInfo(prevnode['name'])
         nextdrone = DroneInfo(nextnode['name'])
         nextnext = nextnode.get_single_related_node('outgoing', self.ournexttype)
         prevdrone.stop_heartbeat(self, drone)
         nextdrone.stop_heartbeat(self, drone)
-        if nextnext.id != prevnode.id:			# Previous length:	>= 4
-            nextdrone.start_heartbeat(self, prevdrone)	# Result length:	>= 3
+        if nextnext.id != prevnode.id:          # Previous length:  >= 4
+            nextdrone.start_heartbeat(self, prevdrone)  # Result length:    >= 3
             prevdrone.start_heartbeat(self, nextdrone)
         # Poor drone -- all alone in the universe... (maybe even dead...)
         drone.stop_heartbeat(self, prevdrone, nextdrone)
-        self.insertpoint1 = prevdrone	# non-minimal, but correct and cheap change
+        self.insertpoint1 = prevdrone   # non-minimal, but correct and cheap change
         self.insertpoint2 = nextdrone
         prevnode.create_relationship_to(nextnode, self.ournexttype)
 
@@ -501,6 +503,10 @@ class DroneInfo:
 
     def __getitem__(self, key):
        return self.node[key]
+
+    def getport(self):
+        '''Return the port we talk to this drone on'''
+        return self.io.config[CONFIGNAME_CMAPORT]
         
    
     def logjson(self, jsontext):
@@ -525,7 +531,7 @@ class DroneInfo:
         '''
         # Ought to protect this code by try blocks...
         # Also ought to figure out which IP is the primary IP for contacting
-	# this system
+    # this system
         data = jsonobj['data'] # The data portion of the JSON message
         primaryip = None
         for ifname in data.keys(): # List of interfaces just below the data section
@@ -542,13 +548,17 @@ class DroneInfo:
             iptable = ifinfo['ipaddrs'] # look in the 'ipaddrs' section
             for ip in iptable.keys():   # keys are 'ip/mask' in CIDR format
                 ipinfo = iptable[ip]
+                ipname = ':::INVALID:::'
+                if ipinfo.has_key('name'):
+                    ipname = ipinfo['name']
                 if ipinfo['scope'] != 'global':
                     continue
                 (iponly,mask) = ip.split('/')
                 isprimaryip = False
-                if isprimaryif and primaryip == None:
+                if isprimaryif and primaryip == None and ipname == ifname:
                     isprimaryip = True
                     primaryip = iponly
+                    print >>sys.stderr, 'PRIMARY IP is %s' % iponly
                 ipnode = CMAdb.cdb.new_IPaddr(nicnode, iponly, ifname=ifname, hostname=self.node['name'])
                 # Save away whichever IP address is our primary IP address...
                 if isprimaryip:
@@ -560,16 +570,21 @@ class DroneInfo:
                       CMAdb.cdb.db.relate((self.node, 'primaryip', ipnode),)
 
 
-    def select_ip(self, ring):
-        'Select an appropriate IP address for talking to a partner on this ring'
-        # Current code is not really good enough for the long term,
-	# but is good enough for now...
-        # In particular, when talking on a particular switch ring, or
-	# subnet ring, we want to choose an IP that's on that subnet,
-	# and preferably on that particular switch for a switch-level ring.
-	# For TheOneRing, we want their primary IP address.
+    def primary_ip(self, ring=None):
+        '''Return the "primary" IP for this host'''
         primaryIP = self.node.get_single_related_node('outgoing', 'primaryip')
-        return primaryIP['name']
+        return str(primaryIP['name'])
+
+    def select_ip(self, ring=None):
+        '''Select an appropriate IP address for talking to a partner on this ring
+        or our primary IP if ring is None'''
+        # Current code is not really good enough for the long term,
+        # but is good enough for now...
+        # In particular, when talking on a particular switch ring, or
+        # subnet ring, we want to choose an IP that's on that subnet,
+        # and preferably on that particular switch for a switch-level ring.
+        # For TheOneRing, we want their primary IP address.
+        return self.primary_ip()
     
     def send_hbmsg(self, dest, fstype, port, addrlist):
         '''Send a message with an attached address list and optional port.
@@ -590,7 +605,7 @@ class DroneInfo:
         'Process a death/shutdown report for us.  RIP us.'
         if CMAdb.debug:
             print >>sys.stderr, 'Node %s has been reported as %s by address %s. Reason: %s' \
-            %	(self.node['name'], status, str(fromaddr), reason)
+            %   (self.node['name'], status, str(fromaddr), reason)
         self.status = status
         self.reason = reason
         #print >>sys.stderr, 'Drone %s is %s because of %s' %(self, status, reason)
@@ -605,7 +620,7 @@ class DroneInfo:
             if rel.type.startswith(HbRing.memberprefix):
                 ringname = rel.end_node['name']
                 #print >>sys.stderr, 'Drone %s is a member of ring %s' % (self, ringname)
-	        HbRing.ringnames[ringname].leave(self)
+            HbRing.ringnames[ringname].leave(self)
 
 
     def start_heartbeat(self, ring, partner1, partner2=None):
@@ -624,9 +639,9 @@ class DroneInfo:
 
     def stop_heartbeat(self, ring, partner1, partner2=None):
         '''Stop heartbeating to the given partners.'
-	We don't know which node is our forward link and which our back link,
+    We don't know which node is our forward link and which our back link,
         but we need to remove them either way ;-).
-	'''
+    '''
         ourip = self.select_ip(ring)
         partner1ip = partner1.select_ip(ring)
         if partner2 is not None:
@@ -635,6 +650,43 @@ class DroneInfo:
             partner2ip = None
         # Stop sending the heartbeat messages between these (former) peers
         self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, 0, (partner1ip, partner2ip))
+
+    def request_discovery(self
+    ,                    instance   ##< Which (unique) discovery instance is this?
+    ,                    interval=0 ##< How often to perform it?
+    ,                    json=None):##< JSON string (or ConfigContext) describing discovery
+                                    ##< If json is None, then instance is used for JSON type
+        '''Send our drone a request to perform discovery
+        We send a           DISCNAME frame with the instance name
+        then an optional    DISCINTERVAL frame with the repeat interval
+        then a              DISCJSON frame with the JSON data for the discovery operation.
+        '''
+        fs = pyFrameSet(FrameSetTypes.DODISCOVER)
+        discname = pyCstringFrame(FrameTypes.DISCNAME)
+        print >>sys.stderr, 'SETTING VALUE TO: (%s)' % instance
+        discname.setvalue(instance)
+        fs.append(discname)
+        if interval is not None and interval > 0:
+            discint = pyIntFrame(FrameTypes.DISCINTERVAL, intbytes=4, initval=int(interval))
+            fs.append(discint)
+        instframe = pyCstringFrame(FrameTypes.DISCNAME)
+        if isinstance(json, pyConfigContext):
+            json = str(json)
+        elif json is None:
+            json = instance
+        if not json.startswith('{'):
+            json = '{"type":"%s","parameters":{}}' % json
+        jsonframe = pyCstringFrame(FrameTypes.DISCJSON)
+        jsonframe.setvalue(json)
+        fs.append(jsonframe)
+        # This doesn't work if the client has bound to a VIP
+        ourip = self.primary_ip()    # meaning select our primary IP
+        ourip = pyNetAddr(ourip, port=self.getport())
+        self.io.sendframesets(ourip, (fs,))
+        if True or CMAdb.debug:
+            print >>sys.stderr, 'Sent Discovery request(%s,%s) to %s Framesets: %s' \
+            %	(instance, str(interval), str(ourip), str(fs))
+
 
     def __str__(self):
         'Give out our designation'
@@ -713,7 +765,7 @@ class DispatchHBDEAD(DispatchTarget):
         fstype = frameset.get_framesettype()
         fromdrone = DroneInfo.find(origaddr)
         #print>>sys.stderr, "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
-	#%		(FrameSetTypes.get(fstype)[0], str(origaddr))
+    #%      (FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.IPADDR:
@@ -727,7 +779,7 @@ class DispatchSTARTUP(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             print >>sys.stderr,"DispatchSTARTUP: received [%s] FrameSet from [%s]" \
-	    %		(FrameSetTypes.get(fstype)[0], str(origaddr))
+        %       (FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
@@ -737,7 +789,7 @@ class DispatchSTARTUP(DispatchTarget):
         fs = CMAlib.create_setconfig(self.config)
         #print 'Telling them to heartbeat themselves.'
         #fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
-        #,		origaddr)
+        #,      origaddr)
         #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
@@ -749,7 +801,32 @@ class DispatchSTARTUP(DispatchTarget):
         if json is not None:
             drone.logjson(json)
         CMAdb.cdb.TheOneRing.join(drone)
-        
+        drone.request_discovery('listeningports', 60)
+        drone.request_discovery('cpu')
+        drone.request_discovery('os')
+        drone.request_discovery('arpcache', 45)
+
+class DispatchJSDISCOVERY(DispatchTarget):
+    'DispatchTarget subclass for handling incoming JSDISCOVERY FrameSets.'
+    def dispatch(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        if CMAdb.debug:
+            print >>sys.stderr,"DispatchTARGET: received [%s] FrameSet from [%s]" \
+        %       (FrameSetTypes.get(fstype)[0], str(origaddr))
+        sysname = None
+        for frame in frameset.iter():
+            frametype=frame.frametype()
+            if frametype == FrameTypes.HOSTNAME:
+                sysname = frame.getstr()
+            if frametype == FrameTypes.JSDISCOVER:
+                json = frame.getstr()
+                if sysname is None:
+                    jsonconfig = pyConfigContext(init=json)
+                    sysname = jsonconfig.getstring('host')
+                drone = DroneInfo.find(sysname)
+                drone.logjson(json)
+                sysname = None
+
 
 class MessageDispatcher:
     'We dispatch incoming messages where they need to go.'
@@ -778,16 +855,15 @@ class PacketListener:
     def __init__(self, config, dispatch, io=None):
         self.config = config
         if io is None:
-	    self.io = pyNetIOudp(config, pyPacketDecoder())
+            self.io = pyNetIOudp(config, pyPacketDecoder())
         else:
-	    self.io = io
-
+            self.io = io
         dispatch.setconfig(self.io, config)
 
-	self.io.bindaddr(config["cmainit"])
+        self.io.bindaddr(config["cmainit"])
         self.io.setblockio(True)
         #print "IO[socket=%d,maxpacket=%d] created." \
-	#%	(self.io.getfd(), self.io.getmaxpktsize())
+        #%  (self.io.getfd(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
         
     def listen(self):
@@ -797,41 +873,44 @@ class PacketListener:
         if fromaddr is None:
             # BROKEN! ought to be able to set blocking mode on the socket...
             #print "Failed to get a packet - sleeping."
-            time.sleep(1.0)
+            time.sleep(0.5)
         else:
-            #print "Received packet from [%s]" % (str(fromaddr))
+            if CMAdb.debug: print "Received packet from [%s]" % (str(fromaddr))
             for frameset in framesetlist:
                 self.dispatcher.dispatch(fromaddr, frameset)
 
 if __name__ == '__main__':
     #
-    #	"Main" program starts below...
+    #   "Main" program starts below...
     #   It is a test program intended to run with some real nanoprobes running
-    #	somewhere out there...
+    #   somewhere out there...
     #
 
-    #NEO =  CMAdb('/backups/neo1')
+
+    OurPort = 1984
+    OurAddr = pyNetAddr((10,10,10,200),OurPort)
+    configinit = {
+    	CONFIGNAME_CMAINIT:	OurAddr,    # Initial 'hello' address
+    	CONFIGNAME_CMAADDR:	OurAddr,    # not sure what this one does...
+    	CONFIGNAME_CMADISCOVER:	OurAddr,    # Discovery packets sent here
+    	CONFIGNAME_CMAFAIL:	OurAddr,    # Failure packets sent here
+    	CONFIGNAME_CMAPORT:	OurPort,
+    	CONFIGNAME_HBPORT:	OurPort,
+    	CONFIGNAME_OUTSIG:	pySignFrame(1),
+    	CONFIGNAME_DEADTIME:	10*1000000,
+    	CONFIGNAME_WARNTIME:	3*1000000,
+    	CONFIGNAME_HBTIME:	1*1000000,
+	CONFIGNAME_OUTSIG:	pySignFrame(1),
+    }
+    config = pyConfigContext(init=configinit)
+    io = pyNetIOudp(config, pyPacketDecoder(0))
     CMAdb.initglobal(io, True)
     print 'Ring created!! - id = %d' % CMAdb.TheOneRing.node.id
 
     print FrameTypes.get(1)[2]
-
-    OurAddr = pyNetAddr((10,10,10,200),1984)
-    configinit = {
-	'cmainit':	OurAddr,	# Initial 'hello' address
-	'cmaaddr':	OurAddr,	# not sure what this one does...
-	'cmadisc':	OurAddr,	# Discovery packets sent here
-	'cmafail':	OurAddr,	# Failure packets sent here
-	'cmaport':	1984,
-	'hbport':	1984,
-	'outsig':	pySignFrame(1),
-	'deadtime':	10*1000000,
-	'warntime':	3*1000000,
-	'hbtime':	1*1000000,
-    }
     disp = MessageDispatcher(
-	{	FrameSetTypes.STARTUP: DispatchSTARTUP()
-	})
-    config = pyConfigContext(init=configinit)
+    {   FrameSetTypes.STARTUP: DispatchSTARTUP(),
+        FrameSetTypes.JSDISCOVERY: DispatchJSDISCOVERY()
+    })
     listener = PacketListener(config, disp)
     listener.listen()

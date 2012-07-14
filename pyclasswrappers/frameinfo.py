@@ -237,7 +237,7 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
   	25:  (pyIntFrame, 'DISCINTERVAL', 'Discovery interval',
 '''This frame is a discovery repeat interval measured in seconds as an @ref IntFrame.
 '''),
-  	26:  (pyIntFrame, 'DISCJSON', 'Discovery JSON string',
+  	26:  (pyCstringFrame, 'DISCJSON', 'Discovery JSON string',
 '''This frame provides the data describing the discovery action in detail.
    It must be preceded by a FRAMETYPE_DISCNAME.
 '''),

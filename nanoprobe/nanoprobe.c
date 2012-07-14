@@ -218,8 +218,7 @@ main(int argc, char **argv)
 	// Free misc addresses
         destaddr-> baseclass.unref(destaddr); destaddr = NULL;
 
-	nano_start_full("/home/alanr/monitor/src/discovery_agents/netconfig"
-	,	900, netpkt, config);
+	nano_start_full("netconfig", 900, netpkt, config);
 
 	// Free config object
 	config->baseclass.unref(config); config = NULL;

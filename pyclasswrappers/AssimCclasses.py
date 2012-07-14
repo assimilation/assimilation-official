@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab
 '''
 A collection of classes which wrap our @ref C-Classes and provide Pythonic interfaces to these C-classes.
 '''
@@ -674,6 +675,8 @@ class pyConfigContext(pyAssimObj):
             Cstruct = configcontext_new_JSON_string(str(init))
         if Cstruct is None:
             Cstruct=configcontext_new(0)
+        else:
+            Cstruct[0].baseclass.ref(Cstruct)
         self._Cstruct = Cstruct
         if init is not None and not isinstance(init, str) and not isinstance(init, unicode):
             for key in init.keys():
@@ -765,7 +768,7 @@ class pyConfigContext(pyAssimObj):
         'Return a value associated with "name"'
         ktype = self._Cstruct[0].gettype(self._Cstruct, name)
         if ktype == CFG_EEXIST:
-            raise IndexError("No such String value [%s]" % name)
+            raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
         if ktype == CFG_CFGCTX:
             return self.getconfig(name)
         if ktype == CFG_STRING:
@@ -798,10 +801,13 @@ class pyNetIO(pyAssimObj):
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
             Cstruct=netio_new(0, configobj._Cstruct, packetdecoder._Cstruct)
+            self.config = configobj
+        else:
+            self.config = pyConfigContext(Cstruct=Cstruct[0].baseclass._configinfo)
         self._Cstruct = Cstruct
 
     def setblockio(self, mode):
-        'Return the file descriptor for this pyNetIO object'
+        'Set this NetIO object to blocking IO mode'
         base = self._Cstruct[0]
         while (not hasattr(base, 'setblockio')):
             base=base.baseclass
@@ -860,7 +866,7 @@ class pyNetIO(pyAssimObj):
 
     def sendframesets(self, destaddr, framesetlist):
         'Send the (collection of) frameset(s) out on this pyNetIO'
-	if not isinstance(framesetlist, collections.Sequence):
+        if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist, )
         base = self._Cstruct[0]
         while (not hasattr(base, 'sendaframeset')):
@@ -873,7 +879,7 @@ class pyNetIO(pyAssimObj):
     def recvframesets(self):
         '''Receive a collection of framesets read from this pyNetIO - all from the same Address.
          @return The return value is a tuple (address, framesetlist). '''
-	#GSList * 	_netio_recvframesets (NetIO *self,NetAddr **src)
+         #GSList * 	_netio_recvframesets (NetIO *self,NetAddr **src)
 
         base = self._Cstruct[0]
         while (not hasattr(base, 'recvframesets')):

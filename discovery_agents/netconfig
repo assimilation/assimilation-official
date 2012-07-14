@@ -227,6 +227,7 @@ discover() {
       #    inet  10.10.10.21/32              brd   10.10.10.149  scope      global  eth0:home
       read inet  addr                        brd   baddr         scopeword  scope   stuff
     do
+      : WE FOUND inet [$inet] addr [$addr] brd [$brd] baddr [$baddr] scopeword [$scopeword] scope [$scope] stuff [$stuff]
       # Semi-Crufty code to deal with a few variations in output (as shown above)
       # It might be less crufty to make them arguments and use shift and so on to parse them...
       case $inet in
@@ -245,6 +246,9 @@ discover() {
                 esac
                 case $stuff in
                   $device|$device:*)	printf ", \"name\":\"$stuff\"";;
+                esac
+                case $scopeword in
+                  $device|$device:*)	printf ", \"name\":\"$scopeword\"";;
                 esac
                 printf '}'
   		;;

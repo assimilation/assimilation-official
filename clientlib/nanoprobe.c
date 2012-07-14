@@ -70,6 +70,8 @@ HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblist
 static NetAddr*		nanofailreportaddr = NULL;
 static NetGSource*	nanotransport = NULL;
 
+DEBUGDECLARATIONS
+
 /// Default HbListener constructor.
 /// Supply your own in nanoprobe_hblistener_new if you need to construct a subclass object.
 FSTATIC HbListener*
@@ -632,6 +634,7 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 	(void)fromaddr;
 	
 
+	DEBUGMSG2("%s - got frameset", __FUNCTION__);
 	// Loop over the frames, looking for those we know what to do with ;-)
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
@@ -643,12 +646,14 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 				g_return_if_fail(strf != NULL);
 				g_return_if_fail(discoveryname == NULL);
 				discoveryname = strf->baseclass.value;
+				DEBUGMSG2("%s - got DISCOVERYNAME %s", __FUNCTION__, discoveryname);
 			}
 			break;
 
 			case FRAMETYPE_DISCINTERVAL: { // Discovery interval
 				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
 				interval = intf->getint(intf);
+				DEBUGMSG2("%s - got DISCOVERYINTERVAL %d", __FUNCTION__, interval);
 			}
 			break;
 
@@ -658,6 +663,7 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 				g_return_if_fail(strf != NULL);
 				jsonstring = strf->baseclass.value;
 				g_return_if_fail(discoveryname != NULL);
+				DEBUGMSG2("Got DISCJSON frame: %s %d %s" , discoveryname, interval, jsonstring);
 				nano_schedule_discovery(discoveryname, interval, jsonstring
 				,			parent->baseclass.config
 				,			parent->baseclass.transport
@@ -666,6 +672,7 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 			interval = 0;
 			discoveryname = NULL;
 			break;
+
 		}
 	}
 }
@@ -719,19 +726,17 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 			NetAddr* fromaddr)	///<[in/out] Requestor's address
 {
 	ConfigContext*	jsonroot;
-	ConfigContext*	jsonparams;
 	JsonDiscovery*	discovery;
 	const char*	disctype;
 
 	(void)fromaddr;
 
+	g_message("%s(%s,%d,%s)", __FUNCTION__, instance, interval, json);
 	jsonroot = configcontext_new_JSON_string(json);
 	g_return_if_fail(jsonroot != NULL);
-        jsonparams = jsonroot->getconfig(jsonroot, "parameters");
-	g_return_if_fail(jsonparams != NULL);
 	disctype = jsonroot->getstring(jsonroot, "type");
 	g_return_if_fail(disctype != NULL);
-	discovery = jsondiscovery_new(disctype, instance, interval, jsonparams
+	discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
 	,			      transport, config, 0);
 	discovery->baseclass.baseclass.unref(discovery);
 	
@@ -852,6 +857,8 @@ ObeyFrameSetTypeMap collective_obeylist [] = {
 	{FRAMESETTYPE_SETCONFIG,	nanoobey_setconfig},
 	{FRAMESETTYPE_INCRDEBUG,	nanoobey_incrdebug},
 	{FRAMESETTYPE_DECRDEBUG,	nanoobey_decrdebug},
+	{FRAMESETTYPE_DODISCOVER,	nanoobey_startdiscover},
+	{FRAMESETTYPE_STOPDISCOVER,	nanoobey_stopdiscover},
 	{0,				NULL},
 };
 
@@ -906,6 +913,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 		io,
 		config
 	};
+	BINDDEBUG(nanoprobe_main);
 	
  	hblistener_set_martian_callback(_real_martian_agent);
 	cruftiness = initcrufty;

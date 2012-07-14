@@ -801,6 +801,7 @@ _configcontext_JSON_parse_array(GScanner* scan, GSList** retval)
 		// Syntax error
 		return FALSE;
 	}
+	GULP; // Swallow left square bracket (G_TOKEN_LEFT_BRACE)
 	while (g_scanner_peek_next_token(scan) != G_TOKEN_RIGHT_BRACE
 	&&     !g_scanner_eof(scan)) {
 		ConfigValue * value;
