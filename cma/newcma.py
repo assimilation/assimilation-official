@@ -800,8 +800,8 @@ class DispatchSTARTUP(DispatchTarget):
         if json is not None:
             drone.logjson(json)
         CMAdb.cdb.TheOneRing.join(drone)
-        drone.request_discovery('listeningports', 60)
-        drone.request_discovery('cpu')
+        drone.request_discovery('tcplisteners', 3555)
+        drone.request_discovery('cpu',36000)
         drone.request_discovery('os')
         drone.request_discovery('arpcache', 45)
 
