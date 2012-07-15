@@ -12,6 +12,9 @@ CMakeCache.txt
 .*\.bak$
 .*\.pyc$
 .*\.i$
+.*\.shell_history$
+.*\.nfs0000.*$
+.*\foo$
 M CMakeLists.txt
 M testcode/testscript.sh
 ^testcode/filetest$

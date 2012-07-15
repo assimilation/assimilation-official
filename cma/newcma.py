@@ -682,7 +682,7 @@ class DroneInfo:
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip, port=self.getport())
         self.io.sendframesets(ourip, (fs,))
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             print >>sys.stderr, 'Sent Discovery request(%s,%s) to %s Framesets: %s' \
             %	(instance, str(interval), str(ourip), str(fs))
 
