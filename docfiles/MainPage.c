@@ -35,9 +35,10 @@ all environments.
 The team currently posts updates in the following places:
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
 - <a href="http://techthoughts.typepad.com/managing_computers/">Managing Computers with Automation Blog</a> - about weekly
-- <a href="http://lists.linux-ha.org/mailman/listinfo/linux-ha-dev">linux-ha-dev mailing list</a> - less frequent
+- <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">Assimilation Mailing List> - less frequet
 - <a href="https://www.pegby.com/board/view/assimilationproject.alanr">Pegby work in progress list</a>.
   This gives a very good overview of the project goals, current and future work items along with <b>open project roles</b>.  Come find your future here!
+- <a href="http://lists.linux-ha.org/mailman/listinfo/linux-ha-dev">linux-ha-dev mailing list</a> - parent project
 
 @section architecture Architecture
 This concept has two kinds of participating entities:
