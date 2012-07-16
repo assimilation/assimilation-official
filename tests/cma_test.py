@@ -1,3 +1,4 @@
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab
 _suites = ['all', 'cma']
 import sys
 sys.path.append("../pyclasswrappers")
@@ -21,6 +22,7 @@ doHBDEAD=False
 MaxDrone=10
 MaxDrone=4
 MaxDrone=5
+MaxDrone=1
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
@@ -39,7 +41,7 @@ def assert_no_dangling_Cclasses():
     CMAdb.io = None
     CMAdb.TheOneRing = None
     HbRing.ringnames = {}
-    gc.collect()	# For good measure...
+    gc.collect()    # For good measure...
     count =  proj_class_live_object_count()
     #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
     # Avoid cluttering the output up with redundant messages...
@@ -58,21 +60,21 @@ netdiscoveryformat='''
   "host": "%s",
   "data": {
     "eth0": {
-	"address": "00:1b:fc:1b:%02x:%02x",
-	"carrier": 1,
-	"duplex": "full",
-	"mtu": 1500,
-	"operstate": "up",
-	"speed": 1000,
-	"default_gw": true,
-	"ipaddrs": { "%s/16": {"brd":"10.20.255.255", "scope":"global", "name":"eth0"}}
+    "address": "00:1b:fc:1b:%02x:%02x",
+    "carrier": 1,
+    "duplex": "full",
+    "mtu": 1500,
+    "operstate": "up",
+    "speed": 1000,
+    "default_gw": true,
+    "ipaddrs": { "%s/16": {"brd":"10.20.255.255", "scope":"global", "name":"eth0"}}
     }, 
     "lo": {
-	"address": "00:00:00:00:00:00",
-	"carrier": 1,
-	"mtu": 16436,
-	"operstate": "unknown",
-	"ipaddrs": { "127.0.0.1/8": {"scope":"host"}, "::1/128": {"scope":"host"}}
+    "address": "00:00:00:00:00:00",
+    "carrier": 1,
+    "mtu": 16436,
+    "operstate": "unknown",
+    "ipaddrs": { "127.0.0.1/8": {"scope":"host"}, "::1/128": {"scope":"host"}}
     }
   }
 }
@@ -99,16 +101,16 @@ def hostdiscoveryinfo(hostnumber):
     
 def geninitconfig(ouraddr):
     return {
-	    'cmainit':	ouraddr,	# Initial 'hello' address
-	    'cmaaddr':	ouraddr,	# not sure what this one does...
-	    'cmadisc':	ouraddr,	# Discovery packets sent here
-	    'cmafail':	ouraddr,	# Failure packets sent here
-	    'cmaport':	1984,
-	    'hbport':	1984,
-	    'outsig':	pySignFrame(1),
-	    'deadtime':	10*1000000,
-	    'warntime':	3*1000000,
-	    'hbtime':	1*1000000,
+        'cmainit':  ouraddr,    # Initial 'hello' address
+        'cmaaddr':  ouraddr,    # not sure what this one does...
+        'cmadisc':  ouraddr,    # Discovery packets sent here
+        'cmafail':  ouraddr,    # Failure packets sent here
+        'cmaport':  1984,
+        'hbport':   1984,
+        'outsig':   pySignFrame(1),
+        'deadtime': 10*1000000,
+        'warntime': 3*1000000,
+        'hbtime':   1*1000000,
         }
 
 class AUDITS(TestCase):
@@ -139,7 +141,6 @@ class AUDITS(TestCase):
         self.assertEqual(len(jsobj.keys()), 5)
         # Was the JSON host name saved away correctly?
         self.assertEqual(jsobj['host'], designation)
-        return
     
         peercount=0
         ringcount=0
@@ -178,7 +179,7 @@ class AUDITS(TestCase):
         # Lets check the number of Frames in the SETCONFIG Frameset
         configlen =  len(configinit)-1  # We do not send Frames in configinfo
         expectedlen = 2 * configlen + 4 # each address has a port that goes with it
-        self.assertEqual(expectedlen, len(sentfs))	# Was it the right size?
+        self.assertEqual(expectedlen, len(sentfs))  # Was it the right size?
 
     def auditaRing(self, ringname):
         'Verify that each ring has its neighbor pairs set up properly'
@@ -240,7 +241,7 @@ class TestIO:
         return ret
 
     def sendframesets(self, dest, fslist):
-	if not isinstance(fslist, collections.Sequence):
+        if not isinstance(fslist, collections.Sequence):
             return self._sendaframeset(dest, fslist)
         for fs in fslist:
             self._sendaframeset(dest, fs)
@@ -250,10 +251,10 @@ class TestIO:
         if SavePackets:
             self.packetswritten.append((dest,fslist))
 
-    def getmaxpktsize(self):	return 60000
-    def getfd(self):		return 4
-    def bindaddr(self, addr):	return
-    def setblockio(self, tf):	return
+    def getmaxpktsize(self):    return 60000
+    def getfd(self):        return 4
+    def bindaddr(self, addr):   return
+    def setblockio(self, tf):   return
 
     def dumppackets(self):
         print >>sys.stderr, 'Sent %d packets' % len(self.packetswritten)
@@ -294,10 +295,10 @@ class TestTestInfrastructure(TestCase):
         framesets=((otherguy, (strframe1,)),)
         io = TestIO(framesets, 0)
         CMAdb.initglobal(io, True)
-        fslist = io.recvframesets()		# read in a packet
+        fslist = io.recvframesets()     # read in a packet
         self.assertEqual(len(fslist), 2)
         self.assertEqual(fslist, framesets[0])
-        io.sendframesets(fslist[0], fslist[1])	# echo it back out
+        io.sendframesets(fslist[0], fslist[1])  # echo it back out
         self.assertEqual(len(io.packetswritten), 1)
         self.assertEqual(len(io.packetswritten), len(framesets))
         self.assertRaises(StopIteration, io.recvframesets)
@@ -332,12 +333,14 @@ class TestCMABasic(TestCase):
         # Let's see what happened...
 
         self.assertEqual(len(io.packetswritten), 5) # Did we get back five packets?
-						    # Note that this might increase over time
-						    # As we add more discovery options.
+                            # Note that this might increase over time
+                            # As we add more discovery options.
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
-	# Drone and Ring tables are automatically audited after each packet
+    # Drone and Ring tables are automatically audited after each packet
 
     def test_several_startups(self):
+        '''A very interesting test: We send a STARTUP message and get back a
+        SETCONFIG message and then send back a bunch of discovery requests.'''
         OurAddr = pyNetAddr((10,10,10,200), 1984)
         configinit = geninitconfig(OurAddr)
         fsin = []
@@ -364,9 +367,9 @@ class TestCMABasic(TestCase):
         io = TestIO(fsin)
         CMAdb.initglobal(io, True)
         disp = MessageDispatcher( {
-		FrameSetTypes.STARTUP: DispatchSTARTUP(),
-		FrameSetTypes.HBDEAD: DispatchHBDEAD(),
-		})
+        FrameSetTypes.STARTUP: DispatchSTARTUP(),
+        FrameSetTypes.HBDEAD: DispatchHBDEAD(),
+        })
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io)
         # We send the CMA a BUNCH of intial STARTUP packets
@@ -375,7 +378,7 @@ class TestCMABasic(TestCase):
         except StopIteration as foo:
             pass
         #self.assertRaises(StopIteration, listener.listen)
-	# We audit after each packet is processed
+    # We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
         droneroot = CMAdb.cdb.nodetypetbl['Drone']

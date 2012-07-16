@@ -738,6 +738,7 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 	g_return_if_fail(disctype != NULL);
 	discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
 	,			      transport, config, 0);
+	jsonroot->baseclass.unref(jsonroot);
 	discovery->baseclass.baseclass.unref(discovery);
 	
 }

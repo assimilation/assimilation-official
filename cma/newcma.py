@@ -554,6 +554,8 @@ class DroneInfo:
                     continue
                 (iponly,mask) = ip.split('/')
                 isprimaryip = False
+                ## FIXME: May want to consider looking at 'brd' for broadcast as well...
+                ## otherwise this can be a little fragile...
                 if isprimaryif and primaryip == None and ipname == ifname:
                     isprimaryip = True
                     primaryip = iponly
@@ -682,7 +684,7 @@ class DroneInfo:
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip, port=self.getport())
         self.io.sendframesets(ourip, (fs,))
-        if CMAdb.debug:
+        if True or CMAdb.debug:
             print >>sys.stderr, 'Sent Discovery request(%s,%s) to %s Framesets: %s' \
             %	(instance, str(interval), str(ourip), str(fs))
 
@@ -909,6 +911,7 @@ if __name__ == '__main__':
     print FrameTypes.get(1)[2]
     disp = MessageDispatcher(
     {   FrameSetTypes.STARTUP: DispatchSTARTUP(),
+        FrameSetTypes.HBDEAD: DispatchHBDEAD(),
         FrameSetTypes.JSDISCOVERY: DispatchJSDISCOVERY()
     })
     listener = PacketListener(config, disp)
