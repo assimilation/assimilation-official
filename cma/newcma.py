@@ -490,6 +490,7 @@ class HbRing:
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
     _droneweakrefs = {}
+    _JSONprocessors = {}
     def __init__(self, designation, node=None, **kw):
         self.io = CMAdb.io
         if isinstance(designation, neo4j.Node):
@@ -518,8 +519,11 @@ class DroneInfo:
         #print "Saved discovery type %s for endpoint %s." % \
         #   (dtype, self.designation)
         self.node['JSON_' + dtype] = jsontext
-        if dtype == 'netconfig':
-            self.add_netconfig_addresses(jsonobj)
+        if dtype in DroneInfo._JSONprocessors:
+            if CMAdb.debug: print >>sys.stderr, ('Processed %s JSON data into graph.' % dtype)
+            DroneInfo._JSONprocessors[dtype](self, jsonobj)
+        else:
+            print >>sys.stderr, ('Stored %s JSON data without processing.' % dtype)
 
     def add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from JSON discovery.
@@ -652,34 +656,53 @@ class DroneInfo:
         # Stop sending the heartbeat messages between these (former) peers
         self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, 0, (partner1ip, partner2ip))
 
-    def request_discovery(self
-    ,                    instance   ##< Which (unique) discovery instance is this?
-    ,                    interval=0 ##< How often to perform it?
-    ,                    json=None):##< JSON string (or ConfigContext) describing discovery
-                                    ##< If json is None, then instance is used for JSON type
+    def request_discovery(self, *args): ##< A vector of arguments formed like this:
+        ##< instance       Which (unique) discovery instance is this?
+        ##< interval=0     How often to perform it?
+        ##< json=None):    JSON string (or ConfigContext) describing discovery
+        ##<                If json is None, then instance is used for JSON type
         '''Send our drone a request to perform discovery
         We send a           DISCNAME frame with the instance name
         then an optional    DISCINTERVAL frame with the repeat interval
         then a              DISCJSON frame with the JSON data for the discovery operation.
         '''
         fs = pyFrameSet(FrameSetTypes.DODISCOVER)
-        discname = pyCstringFrame(FrameTypes.DISCNAME)
-        #print >>sys.stderr, 'SETTING VALUE TO: (%s)' % instance
-        discname.setvalue(instance)
-        fs.append(discname)
-        if interval is not None and interval > 0:
-            discint = pyIntFrame(FrameTypes.DISCINTERVAL, intbytes=4, initval=int(interval))
-            fs.append(discint)
-        instframe = pyCstringFrame(FrameTypes.DISCNAME)
-        if isinstance(json, pyConfigContext):
-            json = str(json)
-        elif json is None:
-            json = instance
-        if not json.startswith('{'):
-            json = '{"type":"%s","parameters":{}}' % json
-        jsonframe = pyCstringFrame(FrameTypes.DISCJSON)
-        jsonframe.setvalue(json)
-        fs.append(jsonframe)
+        if type(args[0]) is str:
+            if len(args) == 1:
+                args = ((args[0], 0, None),)
+            elif len(args) == 2:
+                args = ((args[0], args[1], None),)
+            elif len(args) == 3:
+                args = ((args[0], args[1], args[2]),)
+            else:
+               raise ValueError('Incorrect argument length: %d vs 1,2 or 3' % len(args))
+
+        for tuple in args:
+            if len(tuple) != 2 and len(tuple) != 3:
+               print "Arguments are:", args
+               raise ValueError('Incorrect argument tuple length: %d vs 2 or 3' % len(tuple))
+            instance = tuple[0]
+            interval = tuple[1]
+            json = None
+            if len(tuple) == 3: json = tuple[2]
+
+            discname = pyCstringFrame(FrameTypes.DISCNAME)
+            #print >>sys.stderr, 'SETTING VALUE TO: (%s)' % instance
+            discname.setvalue(instance)
+            fs.append(discname)
+            if interval is not None and interval > 0:
+                discint = pyIntFrame(FrameTypes.DISCINTERVAL, intbytes=4, initval=int(interval))
+                fs.append(discint)
+            instframe = pyCstringFrame(FrameTypes.DISCNAME)
+            if isinstance(json, pyConfigContext):
+                json = str(json)
+            elif json is None:
+                json = instance
+            if not json.startswith('{'):
+                json = '{"type":"%s","parameters":{}}' % json
+            jsonframe = pyCstringFrame(FrameTypes.DISCJSON)
+            jsonframe.setvalue(json)
+            fs.append(jsonframe)
         # This doesn't work if the client has bound to a VIP
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip, port=self.getport())
@@ -738,6 +761,11 @@ class DroneInfo:
         ret.node['status'] = status
         return ret
 
+    @staticmethod
+    def add_json_processors(*args):
+        for tuple in args:
+            DroneInfo._JSONprocessors[tuple[0]] = tuple[1]
+
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
     This base class is designated to handle unhandled FrameSets.
@@ -747,7 +775,7 @@ class DispatchTarget:
         pass
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
-        print "Received FrameSet of type [%s] from [%s]" \
+        print "Received unhandled FrameSet of type [%s] from [%s]" \
         %     (FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
@@ -802,10 +830,11 @@ class DispatchSTARTUP(DispatchTarget):
         if json is not None:
             drone.logjson(json)
         CMAdb.cdb.TheOneRing.join(drone)
-        drone.request_discovery('tcplisteners', 3555)
-        drone.request_discovery('cpu',36000)
-        drone.request_discovery('os')
-        drone.request_discovery('arpcache', 45)
+        drone.request_discovery(('tcplisteners',    3555),
+                                ('tcpclients',      3333),
+                                ('cpu',             36000),
+                                ('os',              0),
+                                ('arpcache',        45))
 
 class DispatchJSDISCOVERY(DispatchTarget):
     'DispatchTarget subclass for handling incoming JSDISCOVERY FrameSets.'
@@ -879,6 +908,9 @@ class PacketListener:
             if CMAdb.debug: print "Received packet from [%s]" % (str(fromaddr))
             for frameset in framesetlist:
                 self.dispatcher.dispatch(fromaddr, frameset)
+
+
+DroneInfo.add_json_processors(('netconfig', DroneInfo.add_netconfig_addresses),)
 
 if __name__ == '__main__':
     #
