@@ -1,25 +1,21 @@
 #!/bin/sh
-#	@brief Command to discover processes listening for connections (tcp)
-#	and output the results in JSON format.
+#	@brief Command to discover processes that are clients of TCP services and output
+#	the resuin JSON format.
 #	@details Output validated at jsonlint.com (good to validate future versions there too!)
 #
-#	It makes use of netstat -[tu]lnp to get the active listening connections, and /proc to
+#	It makes use of netstat -tunp to get the active outbound connections, and /proc to
 #	get more detailed information about the processes we discovered with netstat.
 #
 #	We get the listening protocol, port, protocol, address and process listening that address.
 #	We get the binary full pathname, its arguments (if not modified by the application),
 #	uid and gid, current directory and so on of the process communicating.
 #
-#	For TCP programs we only output listening processes.  For UDP, there is no such thing
-#	as listening processes, so you get the whole set of processes prepared to receive
-#	(or send) UDP packets.
-#
 #	This isn't exactly rocket science, but integrating the /proc info with the netstat
 #	info works out nicely, and the JSON output is nicely readable to humans and nicely
 #	structured for machines - which is a plus.
 #
 #	You must be root to get full value out of this program (and avoid some warnings).
-#	Sorry :-( Although we can get the listening ports without root, we cannot get detailed
+#	Sorry :-( Although we can get the ports without root, we cannot get detailed
 #	information about the processes that are communicating - which is definitely worth having.
 #
 # @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
@@ -28,6 +24,15 @@
 #
 
 skiplocal=yes
+uid=`id -u`
+if
+  [ "$uid" -eq 0 ]
+then
+  asroot=yes
+else
+  asroot=no
+fi
+
 
 US=$(basename $0)
 #
@@ -35,12 +40,6 @@ US=$(basename $0)
 #
 procinfo() {
   procpid="$1"
-  if
-    [ -z "$procpid" -o "x$procpid" = "x-" -o ! -f /proc/$procpid/cmdline -o ! -r /proc/$procpid/cmdline ]
-  then
-    printf '"exe": "unknown"\n'
-    return
-  fi
   EXE=$(readlink /proc/$procpid/exe)
   CMD=$(tr '\0' '' < /proc/$procpid/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%"cmdline": [ "&" ],\n%')
   USERID=$(ls -ld /proc/$procpid | cut -d' ' -f3)
@@ -67,64 +66,9 @@ shouldskip() {
 #
 #	Output info on the set of listening processes, ports, ip addresses and so on...
 #
-discover() {
-  cat <<-!EOF
-	{
-	    "discovertype": "listeningprocs",
-	    "description": "${1-all} Listening Processes",
-	    "source": "$US",
-	    "host": "$(uname -n)",
-	    "data": {
-	!EOF
-    case $1 in
-      tcp)	flags=-tnlp;;
-      udp)	flags=-unlp;;
-      *)	flags=-utnlp;;
-    esac
-
-    # This 'comma' variable is for avoiding ending the set of object values with a comma
-    comma=''
-    #
-    # Examine all our netstat output (after mangling it) to see what services we're offering
-    #
-    netstat $flags | 
-    while
-       read proto rcvq sendq localaddr foreignaddr state pid_prog
-    do
-      : proto $proto rcvq $rcvq sendq $sendq localaddr $localaddr foreignaddr $foreignaddr state $state pid_prog $pid_prog
-      case $state in
-        LISTEN)	: OK;;
-        */*)	pid_prog="$state";;
-        *)	: state is ["$state"] ; continue;;
-      esac
-      addr=$(echo "$localaddr" | sed 's%:[^:]*$%%')	# Strip all starting from last ':'
-      port=$(echo "$localaddr" | sed 's%.*:%%')		# Strip all before & including last ':'
-      pid=$(echo "$pid_prog"| sed 's%/.*%%')		# Strip all after & including /
-      
-      shouldskip "$addr" && continue
-      
-      key="$proto/$addr/$port"
-      printf "$comma"
-      cat <<-!FOO
-	"$key": {
-	    "proto": "$proto",
-	    "addr": "$addr",
-	    "port": $port,
-	!FOO
-      procinfo "$pid" | sed 's%^%    %'
-      printf "}"  # newline deliberately omitted - see $comma below
-      comma=",\n" # Any future outputs will have a comma in front of them.
-    done | sed 's%^%	%'
-    # This leaves us one newline short, so it appears first thing below.
-    cat <<-!FOO2
-
-	    }
-	}
-	!FOO2
-}
 #Output something good to sort this pid on...
-# In the best case it will be the basename of the executable and the pid
-# In the worst case it will be the port twice...
+# In the best case (as root) it will be the basename of the executable and the pid
+# In the worst case (non-root) it will be the port twice...
 procsortinfo() {
   procpid="$1"
   procport="$2"
@@ -142,20 +86,19 @@ procsortinfo() {
 
 netstatinfo()
 {
-  flags=-tnlp
-    netstat $flags |
+  flags=-ntp
+    netstat $flags | 
     while
        read proto rcvq sendq localaddr foreignaddr state pid_prog
     do
       case $state in
-        LISTEN)	: OK;;
-        */*)	pid_prog="$state";;
+        [A-Z][A-Z]*)	: OK;;
         *)	: state is ["$state"] ; continue;;
       esac
 
-      pid=$(dirname "$pid_prog")		# Strip all after & including /
-      addr=$(echo "$localaddr" | sed 's%:[^:]*$%%')	# Strip all starting from last ':'
-      port=$(echo "$localaddr" | sed 's%.*:%%')		# Strip all before & including last ':'
+      pid=$(dirname "$pid_prog")			# Strip all after & including /
+      addr=$(echo "$foreignaddr" | sed 's%:[^:]*$%%')	# Strip all starting from last ':'
+      port=$(echo "$foreignaddr" | sed 's%.*:%%')	# Strip all before & including last ':'
       pid=$(echo "$pid_prog"| sed 's%/.*%%')		# Strip all after & including /
       shouldskip "$addr" && continue
       printf "$(procsortinfo "$pid" "$port")\t${proto}\t${addr}\t${port}\n"
@@ -169,8 +112,8 @@ process_netstat()
   innercomma=''
   cat <<-!EOF
 	{
-	  "discovertype": "listeningprocs",
-	  "description": "TCP Listening Processes",
+	  "discovertype": "tcpclients",
+	  "description": "TCP Client Processes",
 	  "source": "$US",
 	  "host": "$(uname -n)",
 	  "data": {
@@ -208,8 +151,15 @@ process_netstat()
           [ "$name" != "$pid" ]
 	then
           procinfo "$pid" | sed 's%^%      %'
+        elif
+          [ "$asroot" = yes ]
+        then
+          printf '      "exe": "(kernel)",\n'
+        else
+          printf '      "exe": "unknown",\n'
+          
         fi
-        printf '      "listenaddrs": {\n'
+        printf '      "clientaddrs": {\n'
       fi
       cat <<-!FOO
 	${innercomma}        "${addr}:${port}": {

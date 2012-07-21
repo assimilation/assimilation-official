@@ -22,7 +22,7 @@ doHBDEAD=False
 MaxDrone=10
 MaxDrone=4
 MaxDrone=5
-MaxDrone=1
+MaxDrone=3
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
@@ -253,7 +253,7 @@ class TestIO:
             self.packetswritten.append((dest,fslist))
 
     def getmaxpktsize(self):    return 60000
-    def getfd(self):        return 4
+    def getfd(self):        	return 4
     def bindaddr(self, addr):   return
     def setblockio(self, tf):   return
 
