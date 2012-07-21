@@ -126,11 +126,12 @@ class CMAdb:
     #   IS_A relationships to.  Not sure if the IS_A relationships
     #   are really needed, but they're kinda cool...
     #
-        nodetypes = {   'Ring':     True
+        nodetypes = {
+            'Ring':     True
         ,   'Drone':    True
         ,   'Switch':   True
         ,   'NIC':      True    # NICs are indexed by MAC address
-                        # MAC addresses are not always unique...
+                                # MAC addresses are not always unique...
         ,   'IPaddr':   True    # Note that IPaddrs also might not be unique
         }
         
@@ -707,7 +708,7 @@ class DroneInfo:
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip, port=self.getport())
         self.io.sendframesets(ourip, (fs,))
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             print >>sys.stderr, 'Sent Discovery request(%s,%s) to %s Framesets: %s' \
             %	(instance, str(interval), str(ourip), str(fs))
 

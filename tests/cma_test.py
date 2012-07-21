@@ -14,6 +14,7 @@ from newcma import *
 
 
 WorstDanglingCount = 0
+CheckForDanglingClasses = False
 CheckForDanglingClasses = True
 DEBUG=False
 DoAudit=True
@@ -333,9 +334,9 @@ class TestCMABasic(TestCase):
         self.assertRaises(StopIteration, listener.listen) # We audit after each packet is processed
         # Let's see what happened...
 
-        self.assertEqual(len(io.packetswritten), 5) # Did we get back five packets?
-                            # Note that this might increase over time
-                            # As we add more discovery options.
+        self.assertEqual(len(io.packetswritten), 2) # Did we send out two packets?
+                            # Note that this change over time
+                            # As we change discovery...
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
     # Drone and Ring tables are automatically audited after each packet
 
