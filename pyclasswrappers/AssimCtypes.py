@@ -2111,6 +2111,15 @@ if hasattr(_libs['libclientlib.so'], 'is_valid_cdp_packet'):
     is_valid_cdp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_cdp_packet.restype = gboolean
 
+# /home/alanr/monitor/src/include/cdp.h: 67
+for _lib in _libs.itervalues():
+    if not hasattr(_lib, 'enable_cdp_packets'):
+        continue
+    enable_cdp_packets = _lib.enable_cdp_packets
+    enable_cdp_packets.argtypes = [gboolean]
+    enable_cdp_packets.restype = gboolean
+    break
+
 # /home/alanr/monitor/src/include/cmalib.h: 19
 if hasattr(_libs['libclientlib.so'], 'create_sendexpecthb'):
     create_sendexpecthb = _libs['libclientlib.so'].create_sendexpecthb
@@ -2212,11 +2221,13 @@ Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 33
 
 struct__Discovery.__slots__ = [
     'baseclass',
-    'discoveryname',
+    'instancename',
+    'flushcache',
     'discover',
     'discoverintervalsecs',
     'reportcount',
     'discovercount',
+    '_instancename',
     '_timerid',
     '_iosource',
     '_config',
@@ -2224,34 +2235,42 @@ struct__Discovery.__slots__ = [
 ]
 struct__Discovery._fields_ = [
     ('baseclass', AssimObj),
-    ('discoveryname', CFUNCTYPE(UNCHECKED(String), POINTER(Discovery))),
+    ('instancename', CFUNCTYPE(UNCHECKED(String), POINTER(Discovery))),
+    ('flushcache', CFUNCTYPE(UNCHECKED(None), POINTER(Discovery))),
     ('discover', CFUNCTYPE(UNCHECKED(gboolean), POINTER(Discovery))),
     ('discoverintervalsecs', CFUNCTYPE(UNCHECKED(guint), POINTER(Discovery))),
     ('reportcount', guint64),
     ('discovercount', guint64),
+    ('_instancename', String),
     ('_timerid', guint),
     ('_iosource', POINTER(NetGSource)),
     ('_config', POINTER(ConfigContext)),
     ('_sentyet', gboolean),
 ]
 
-# /home/alanr/monitor/src/include/discovery.h: 52
+# /home/alanr/monitor/src/include/discovery.h: 54
 if hasattr(_libs['libclientlib.so'], 'discovery_new'):
     discovery_new = _libs['libclientlib.so'].discovery_new
-    discovery_new.argtypes = [POINTER(NetGSource), POINTER(ConfigContext), gsize]
+    discovery_new.argtypes = [String, POINTER(NetGSource), POINTER(ConfigContext), gsize]
     discovery_new.restype = POINTER(Discovery)
 
-# /home/alanr/monitor/src/include/discovery.h: 53
+# /home/alanr/monitor/src/include/discovery.h: 55
 if hasattr(_libs['libclientlib.so'], 'discovery_register'):
     discovery_register = _libs['libclientlib.so'].discovery_register
     discovery_register.argtypes = [POINTER(Discovery)]
     discovery_register.restype = None
 
-# /home/alanr/monitor/src/include/discovery.h: 54
+# /home/alanr/monitor/src/include/discovery.h: 56
 if hasattr(_libs['libclientlib.so'], 'discovery_unregister_all'):
     discovery_unregister_all = _libs['libclientlib.so'].discovery_unregister_all
     discovery_unregister_all.argtypes = []
     discovery_unregister_all.restype = None
+
+# /home/alanr/monitor/src/include/discovery.h: 57
+if hasattr(_libs['libclientlib.so'], 'discovery_unregister'):
+    discovery_unregister = _libs['libclientlib.so'].discovery_unregister
+    discovery_unregister.argtypes = [String]
+    discovery_unregister.restype = None
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 15
 if hasattr(_libs['libclientlib.so'], 'get_generic_tlv_type'):
@@ -2483,33 +2502,39 @@ if hasattr(_libs['libclientlib.so'], 'intframe_tlvconstructor'):
     intframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     intframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/jsondiscovery.h: 22
+# /home/alanr/monitor/src/include/jsondiscovery.h: 25
 class struct__JsonDiscovery(Structure):
     pass
 
-JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 20
+JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 23
 
 struct__JsonDiscovery.__slots__ = [
     'baseclass',
-    'pathname',
+    'instancename',
+    '_fullpath',
     '_tmpfilename',
     '_child_pid',
     '_sourceid',
     '_intervalsecs',
+    'jsonparams',
+    'fullpath',
 ]
 struct__JsonDiscovery._fields_ = [
     ('baseclass', Discovery),
-    ('pathname', String),
+    ('instancename', String),
+    ('_fullpath', String),
     ('_tmpfilename', String),
     ('_child_pid', GPid),
     ('_sourceid', guint),
     ('_intervalsecs', guint),
+    ('jsonparams', POINTER(ConfigContext)),
+    ('fullpath', CFUNCTYPE(UNCHECKED(String), POINTER(JsonDiscovery))),
 ]
 
-# /home/alanr/monitor/src/include/jsondiscovery.h: 30
+# /home/alanr/monitor/src/include/jsondiscovery.h: 36
 if hasattr(_libs['libclientlib.so'], 'jsondiscovery_new'):
     jsondiscovery_new = _libs['libclientlib.so'].jsondiscovery_new
-    jsondiscovery_new.argtypes = [String, c_int, POINTER(NetGSource), POINTER(ConfigContext), gsize]
+    jsondiscovery_new.argtypes = [String, String, c_int, POINTER(ConfigContext), POINTER(NetGSource), POINTER(ConfigContext), gsize]
     jsondiscovery_new.restype = POINTER(JsonDiscovery)
 
 # /home/alanr/monitor/src/include/lldp.h: 108
@@ -2583,6 +2608,15 @@ if hasattr(_libs['libclientlib.so'], 'is_valid_lldp_packet'):
     is_valid_lldp_packet = _libs['libclientlib.so'].is_valid_lldp_packet
     is_valid_lldp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_lldp_packet.restype = gboolean
+
+# /home/alanr/monitor/src/include/lldp.h: 120
+for _lib in _libs.itervalues():
+    if not hasattr(_lib, 'enable_lldp_packets'):
+        continue
+    enable_lldp_packets = _lib.enable_lldp_packets
+    enable_lldp_packets.argtypes = [gboolean]
+    enable_lldp_packets.restype = gboolean
+    break
 
 # /home/alanr/monitor/src/include/nanoprobe.h: 20
 class struct__NanoHbStats(Structure):
@@ -2768,6 +2802,12 @@ if hasattr(_libs['libclientlib.so'], 'create_pcap_listener'):
     create_pcap_listener.argtypes = [String, gboolean, c_uint, POINTER(struct_bpf_program)]
     create_pcap_listener.restype = POINTER(pcap_t)
 
+# ../include/pcap_min.h: 33
+if hasattr(_libs['libclientlib.so'], 'close_pcap_listener'):
+    close_pcap_listener = _libs['libclientlib.so'].close_pcap_listener
+    close_pcap_listener.argtypes = [POINTER(pcap_t), String, c_uint]
+    close_pcap_listener.restype = None
+
 # /home/alanr/monitor/src/include/pcap_GSource.h: 26
 class struct__GSource_pcap(Structure):
     pass
@@ -2824,6 +2864,12 @@ if hasattr(_libs['libclientlib.so'], 'create_pcap_listener'):
     create_pcap_listener = _libs['libclientlib.so'].create_pcap_listener
     create_pcap_listener.argtypes = [String, gboolean, c_uint, POINTER(struct_bpf_program)]
     create_pcap_listener.restype = POINTER(pcap_t)
+
+# /home/alanr/monitor/src/include/pcap_min.h: 33
+if hasattr(_libs['libclientlib.so'], 'close_pcap_listener'):
+    close_pcap_listener = _libs['libclientlib.so'].close_pcap_listener
+    close_pcap_listener.argtypes = [POINTER(pcap_t), String, c_uint]
+    close_pcap_listener.restype = None
 
 # /home/alanr/monitor/src/include/proj_classes.h: 15
 if hasattr(_libs['libclientlib.so'], 'proj_class_new'):
@@ -3040,7 +3086,7 @@ struct__SwitchDiscovery._fields_ = [
 # /home/alanr/monitor/src/include/switchdiscovery.h: 33
 if hasattr(_libs['libclientlib.so'], 'switchdiscovery_new'):
     switchdiscovery_new = _libs['libclientlib.so'].switchdiscovery_new
-    switchdiscovery_new.argtypes = [String, guint, gint, POINTER(GMainContext), POINTER(NetGSource), POINTER(ConfigContext), gsize]
+    switchdiscovery_new.argtypes = [String, String, guint, gint, POINTER(GMainContext), POINTER(NetGSource), POINTER(ConfigContext), gsize]
     switchdiscovery_new.restype = POINTER(SwitchDiscovery)
 
 # /home/alanr/monitor/src/include/tlvhelper.h: 15
@@ -3389,6 +3435,18 @@ except:
 # ../include/framesettypes.h: 39
 try:
     FRAMESETTYPE_DECRDEBUG = 72
+except:
+    pass
+
+# ../include/framesettypes.h: 40
+try:
+    FRAMESETTYPE_DODISCOVER = 73
+except:
+    pass
+
+# ../include/framesettypes.h: 41
+try:
+    FRAMESETTYPE_STOPDISCOVER = 74
 except:
     pass
 
@@ -3770,6 +3828,24 @@ try:
 except:
     pass
 
+# /home/alanr/monitor/src/include/frametypes.h: 360
+try:
+    FRAMETYPE_DISCNAME = 24
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 373
+try:
+    FRAMETYPE_DISCINTERVAL = 25
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 386
+try:
+    FRAMETYPE_DISCJSON = 26
+except:
+    pass
+
 # /home/alanr/monitor/src/include/hblistener.h: 54
 try:
     DEFAULT_DEADTIME = 60
@@ -3779,6 +3855,12 @@ except:
 # /home/alanr/monitor/src/include/hbsender.h: 37
 try:
     DEFAULT_DEADTIME = 60
+except:
+    pass
+
+# /home/alanr/monitor/src/include/jsondiscovery.h: 21
+try:
+    JSONAGENTROOT = '/home/alanr/monitor/src/discovery_agents'
 except:
     pass
 
@@ -4246,7 +4328,7 @@ _HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 27
 
 _IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 27
 
-_JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 22
+_JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 25
 
 _NanoHbStats = struct__NanoHbStats # /home/alanr/monitor/src/include/nanoprobe.h: 20
 

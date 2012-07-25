@@ -21,7 +21,9 @@ class cClass:
     SignFrame = POINTER(SignFrame)
     FrameSet = POINTER(FrameSet)
     ConfigContext = POINTER(ConfigContext)
+    ConfigValue = POINTER(ConfigValue)
     guint8 = POINTER(guint8)
+    GSList = POINTER(GSList)
 
 def CCref(obj):
     base = obj[0]
@@ -761,6 +763,23 @@ class pyConfigContext(pyAssimObj):
         'Return the string associated with "name"'
         self._Cstruct[0].setstring(self._Cstruct, name, value)
 
+    def getarray(self, name):
+        'Return the array value associated with "name"'
+        l=  self._Cstruct[0].getarray(self._Cstruct, name)
+        print "GETARRAY (%s) type %s" % (l, type(l))
+        print "GSLIST (%s) POINTER(GSlist) %s" % (POINTER(GSList), type(POINTER(GSList)))
+        curlist = cast(self._Cstruct[0].getarray(self._Cstruct, name), cClass.GSList)
+        #curlist = cast(POINTER(GSList), self._Cstruct[0].getarray(self._Cstruct, name))
+        print >>sys.stderr, 'CURLIST(%s) IS: %s' % (name, curlist)
+        ret = []
+        while curlist:
+            #cfgval = pyConfigValue(cast(cClass.ConfigValue, curlist[0].data).get())
+            data = cast(curlist[0].data, cClass.ConfigValue)
+            cfgval = pyConfigValue(data).get()
+            ret.append(cfgval)
+            curlist=g_slist_next(curlist)
+        return ret
+
     def keys(self):
         'Return the set of keys for this object'
         l = []
@@ -774,14 +793,18 @@ class pyConfigContext(pyAssimObj):
 
     def has_key(self, key):
         'return True if it has the given key'
+        #print >>sys.stderr, 'has_key(%s)' % str(key)
         ktype = self._Cstruct[0].gettype(self._Cstruct, str(key))
         return ktype != CFG_EEXIST
     
+    def gettype(self, name):
+        #print >>sys.stderr, 'gettype(%s)' % str(name)
+        return self._Cstruct[0].gettype(self._Cstruct, str(name))
         
 
     def __getitem__(self, name):
         'Return a value associated with "name"'
-        ktype = self._Cstruct[0].gettype(self._Cstruct, name)
+        ktype = self.gettype(name)
         if ktype == CFG_EEXIST:
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
         if ktype == CFG_CFGCTX:
@@ -796,6 +819,9 @@ class pyConfigContext(pyAssimObj):
             return self.getint(name)
         if ktype == CFG_BOOL:
             return self.getbool(name)
+        if ktype == CFG_ARRAY:
+            return self.getarray(name)
+            return None
         return None
 
     def __setitem__(self, name, value):
@@ -809,6 +835,44 @@ class pyConfigContext(pyAssimObj):
         if isinstance(value, pyConfigContext):
             return self.setconfig(name, value)
         self.setint(name, int(value))
+
+class pyConfigValue:
+    def __init__(self, Cstruct):
+        'Initializer for pyConfigValue. NOTE: we make no provisions for object life...'
+        self._Cstruct = Cstruct
+
+    def get(self):
+        vtype = self._Cstruct[0].valtype
+        if vtype == CFG_BOOL:
+            return self._Cstruct[0].u.intvalue != 0
+        if vtype == CFG_INT64:
+            return int(self._Cstruct[0].u.intvalue)
+        if vtype == CFG_STRING:
+            print >>sys.stderr, 'Value [%s], type[%s]' % (self._Cstruct[0].u.strvalue, type(self._Cstruct[0].u.strvalue))
+            return self._Cstruct[0].u.strvalue
+        if vtype == CFG_FLOAT:
+            return float(self._Cstruct[0].u.floatvalue)
+        if vtype == CFG_CFGCTX:
+            return pyConfigContext(Cstruct=self._Cstruct[0].u.cfgctxvalue)
+        if vtype == CFG_NETADDR:
+            return pyNetAddr(None, Cstruct=self._Cstruct[0].u.addrvalue)
+        if vtype == CFG_FRAME:
+            return pyFrame.Cstruct2Frame(self._Cstruct[0].u.framevalue)
+        if vtype == CFG_ARRAY:
+            # An Array is a linked list of ConfigValue objects...
+            ret = []
+            this = self._Cstruct.arrayvalue
+            while this:
+                dataptr = cast(this[0].data, struct__GSList._fields_[0][1])
+                thisdata = pyConfigValue(cast(dataptr, cClass.ConfigValue))
+                this = g_slist_next(this)
+                ret.append(thisdata.get())
+            return ret
+
+
+
+
+        raise ValueError('Invalid valtype (%s)in pyConfigValue object' % self._Cstruct.valtype)
 
 class pyNetIO(pyAssimObj):
     def __init__(self, configobj, packetdecoder, Cstruct=None):

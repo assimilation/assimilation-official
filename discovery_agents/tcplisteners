@@ -67,61 +67,6 @@ shouldskip() {
 #
 #	Output info on the set of listening processes, ports, ip addresses and so on...
 #
-discover() {
-  cat <<-!EOF
-	{
-	    "discovertype": "listeningprocs",
-	    "description": "${1-all} Listening Processes",
-	    "source": "$US",
-	    "host": "$(uname -n)",
-	    "data": {
-	!EOF
-    case $1 in
-      tcp)	flags=-tnlp;;
-      udp)	flags=-unlp;;
-      *)	flags=-utnlp;;
-    esac
-
-    # This 'comma' variable is for avoiding ending the set of object values with a comma
-    comma=''
-    #
-    # Examine all our netstat output (after mangling it) to see what services we're offering
-    #
-    netstat $flags | 
-    while
-       read proto rcvq sendq localaddr foreignaddr state pid_prog
-    do
-      : proto $proto rcvq $rcvq sendq $sendq localaddr $localaddr foreignaddr $foreignaddr state $state pid_prog $pid_prog
-      case $state in
-        LISTEN)	: OK;;
-        */*)	pid_prog="$state";;
-        *)	: state is ["$state"] ; continue;;
-      esac
-      addr=$(echo "$localaddr" | sed 's%:[^:]*$%%')	# Strip all starting from last ':'
-      port=$(echo "$localaddr" | sed 's%.*:%%')		# Strip all before & including last ':'
-      pid=$(echo "$pid_prog"| sed 's%/.*%%')		# Strip all after & including /
-      
-      shouldskip "$addr" && continue
-      
-      key="$proto/$addr/$port"
-      printf "$comma"
-      cat <<-!FOO
-	"$key": {
-	    "proto": "$proto",
-	    "addr": "$addr",
-	    "port": $port,
-	!FOO
-      procinfo "$pid" | sed 's%^%    %'
-      printf "}"  # newline deliberately omitted - see $comma below
-      comma=",\n" # Any future outputs will have a comma in front of them.
-    done | sed 's%^%	%'
-    # This leaves us one newline short, so it appears first thing below.
-    cat <<-!FOO2
-
-	    }
-	}
-	!FOO2
-}
 #Output something good to sort this pid on...
 # In the best case it will be the basename of the executable and the pid
 # In the worst case it will be the port twice...
@@ -161,7 +106,8 @@ netstatinfo()
       printf "$(procsortinfo "$pid" "$port")\t${proto}\t${addr}\t${port}\n"
     done | sort
 }
-process_netstat()
+
+discover()
 {
   lastpid=None
   lastname=None
@@ -169,7 +115,7 @@ process_netstat()
   innercomma=''
   cat <<-!EOF
 	{
-	  "discovertype": "listeningprocs",
+	  "discovertype": "tcplisteners",
 	  "description": "TCP Listening Processes",
 	  "source": "$US",
 	  "host": "$(uname -n)",
@@ -237,6 +183,4 @@ process_netstat()
 #	I get smart enough to see what I should have done in the first place.
 #
 #netstatinfo
-process_netstat
-exit 0
-discover ${1-tcp}
+discover

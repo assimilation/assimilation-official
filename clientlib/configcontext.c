@@ -23,6 +23,8 @@ FSTATIC gboolean _configcontext_getbool(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setbool(ConfigContext*, const char *name, gboolean value);
 FSTATIC const char* _configcontext_getstring(ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setstring(ConfigContext*, const char *name, const char *value);
+FSTATIC GSList*	_configcontext_getarray(ConfigContext*, const char *name);
+FSTATIC void	_configcontext_setarray(ConfigContext*, const char *name, GSList*value);
 FSTATIC NetAddr*_configcontext_getaddr(ConfigContext*, const char *);
 FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
 FSTATIC Frame*	_configcontext_getframe(ConfigContext*, const char *name);
@@ -90,6 +92,8 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->setaddr	=	_configcontext_setaddr;
 	newcontext->setconfig	=	_configcontext_setconfig;
 	newcontext->getconfig	=	_configcontext_getconfig;
+	newcontext->setarray	=	_configcontext_setarray;
+	newcontext->getarray	=	_configcontext_getarray;
 	newcontext->gettype	=	_configcontext_gettype;
 	newcontext->keys	=	_configcontext_keys;
 	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, _key_free
@@ -253,6 +257,33 @@ _configcontext_setstring(ConfigContext* self	///<[in/out] ConfigContext object
 	val->u.strvalue = g_strdup(value);
 	g_hash_table_replace(self->_values, g_strdup(name), val);
 }
+FSTATIC GSList*
+_configcontext_getarray(ConfigContext* self, const char *name)
+{
+	gpointer	ret = g_hash_table_lookup(self->_values, name);
+	ConfigValue*	cfg;
+
+	if (ret == NULL) {
+		return NULL;
+	}
+	cfg = CASTTOCLASS(ConfigValue, ret);
+	if (cfg->valtype != CFG_ARRAY) {
+		g_warning("getarray called on object of type %d", cfg->valtype);
+		return NULL;
+	}
+	//g_warning("getarray[%s] on %s gives %p", name, self->baseclass.toString(self), cfg->u.arrayvalue);
+	return cfg->u.arrayvalue;
+}
+FSTATIC void
+_configcontext_setarray(ConfigContext*self, const char *name, GSList*value)
+{
+	char *	cpname = g_strdup(name);
+	ConfigValue* val = _configcontext_value_new(CFG_ARRAY);
+	val->u.arrayvalue = value;
+
+	/// TODO FIXME: WHAT ABOUT OBJECT LIFE??
+	g_hash_table_replace(self->_values, cpname, val);
+}
 
 
 /// Return the NetAddr value of a name
@@ -388,6 +419,11 @@ _configcontext_value_finalize(gpointer vself)
 			obj->unref(obj); obj = NULL; self->u.framevalue = NULL;
 			break;
 		}
+		case CFG_ARRAY: {
+			GSList*	list = self->u.arrayvalue;
+			g_slist_free_full(list, _configcontext_value_finalize);
+			break;
+		}
 
 		default: {
 			// Do nothing
@@ -481,6 +517,7 @@ _configcontext_elem_toString(ConfigValue* val)
 				ConfigValue*	val = CASTTOCLASS(ConfigValue, this->data);
 				gchar*	elem = _configcontext_elem_toString(val);
 				g_string_append_printf(ret, "%s%s", acomma, elem);
+				g_free(elem);
 				acomma=",";
 			}
 			g_string_append(ret, "]");
@@ -814,6 +851,8 @@ _configcontext_JSON_parse_array(GScanner* scan, GSList** retval)
 				*retval = NULL;
 				return FALSE;
 			}
+		}else{
+			*retval = g_slist_append(*retval, value);
 		}
 		// Expect a comma
 		if (g_scanner_peek_next_token(scan) == G_TOKEN_COMMA) {

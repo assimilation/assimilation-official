@@ -520,7 +520,12 @@ class pyConfigContextTest(TestCase):
         foo['important'] = 'towel'
         foo['integer'] = 42
         self.assertEqual(str(foo.keys()), "['JeanLuc', 'arthur', 'important', 'integer', 'seven']")
-        
+
+    def test_ConfigContext_array(self):
+	array1str = '{"a":[1,2,3,4,"a",{"b":true},[5,6,7,8,3.14]]}'
+        array1config = pyConfigContext(array1str)
+	self.assertEqual(array1str, str(array1config))
+
 
     @class_teardown
     def tearDown(self):
@@ -577,6 +582,7 @@ class pyNetIOudpTest(TestCase):
         io.bindaddr(anyaddr)
         io.sendframesets(home, fs)		# Send a packet with a single frameset containing a bunch of frames
         (addr, framesetlist) = io.recvframesets()	# Receive a packet - with some framesets in it
+	#print >>sys.stderr, 'ADDR: [%s] HOME: [%s]' % (addr, home)
         self.assertEqual(addr, home)
         self.assertEqual(len(framesetlist), 1)
         ylist = []

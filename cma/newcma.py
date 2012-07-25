@@ -89,29 +89,40 @@ import re
 
 class CMAdb:
     '''Class defining our Neo4J database.'''
+
+#########################################################################
 #       Indexes:
 #       ringindex - index of all Ring objects [nodetype=ring]
 #       droneindex - index of all Drone objects [nodetype=drone]
 #       ipindex - index of all IP address objects [nodetype=ipaddr]
 #       macindex - index of all interfaces by MAC address [nodetype=nic]
-
+#########################################################################
+#
 #       Node types [nodetype enumeration values]:
-#       ring    - heartbeat ring objects
-#       drone   - systems running our nanoprobes
-#       nic     - interfaces on drones
-#       ipaddr  - IP addresses (ipv4 or ipv6)
-
+#
+    NODE_nodetype   = 'nodetype'    # A type node - for all nodes of that type
+    NODE_ring       = 'Ring'        # A ring of Drones
+    NODE_drone      = 'Drone'       # A server running our nanoprobes
+    NODE_switch     = 'Switch'      # An IP communications device
+    NODE_NIC        = 'NIC'         # A network interface card (connection)
+    NODE_ipaddr     = 'IPaddr'      # IP address
+    NODE_ipproc     = 'ipproc'      # A client and/or server process
+    NODE_ipport     = 'IP_port'     # (ip, port) tuple for a listening host
+#
 #       Relationship types [reltype enumeration values]
-#       ------------------------------------------
-#       reltype         fromnodetype    tonodetype
-#       --------        ------------    ----------
-#       nichost         nic             drone
-#       iphost          ipaddr          drone
-#       ipowner         ipaddr          nic
-#       ringnext        drone           drone
-#       ringip      ring            ipaddr
-#       ringmember  ring            drone
-#       parentring      ring            ring
+# ---------------------------------------------------------------
+#   Constant name    reltype        fromnodetype       tonodetype
+# ---------------    --------       ------------       ----------
+    REL_isa         = 'IS_A'        # Any node      ->  NODE_nodetype
+    REL_nicowner    = 'nicowner'    # NODE_NIC      ->  NODE_drone
+    REL_iphost      = 'iphost'      # NODE_ipaddr   ->  NODE_drone
+    REL_ipowner     = 'ipowner'     # NODE_ipaddr   ->  NODE_NIC
+    REL_parentring  = 'parentring'  # NODE_ring     ->  NODE_ring
+    REL_ipservice   = 'ipservice'   # NODE_ipaddr   ->  NODE_ipport
+    REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
+    REL_ipclient    = 'ipclient'    # NODE_ipproc   ->  NODE_ipport
+    REL_ipprochost  = 'ipprochost'  # NODE_ipproc   ->  NODE_drone
+
     debug = False
 
     def __init__(self, host='localhost', port=7474):
@@ -127,12 +138,14 @@ class CMAdb:
     #   are really needed, but they're kinda cool...
     #
         nodetypes = {
-            'Ring':     True
-        ,   'Drone':    True
-        ,   'Switch':   True
-        ,   'NIC':      True    # NICs are indexed by MAC address
-                                # MAC addresses are not always unique...
-        ,   'IPaddr':   True    # Note that IPaddrs also might not be unique
+            CMAdb.NODE_ring:    True
+        ,   CMAdb.NODE_drone:   True
+        ,   CMAdb.NODE_switch:  True
+        ,   CMAdb.NODE_NIC:     True    # NICs are indexed by MAC address
+                                        # MAC addresses are not always unique...
+        ,   CMAdb.NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
+        ,   CMAdb.NODE_ipport:  False   # Should we index NODE_ipport?
+        ,   CMAdb.NODE_ipproc:  False
         }
         
         indices = [key for key in nodetypes.keys() if nodetypes[key]]
@@ -151,13 +164,13 @@ class CMAdb:
             self.nodetypetbl[index] = top
             #print >>sys.stderr, 'Relating type %s to node zero' % index
             if not top.has_relationship_with(nodezero):
-               top.create_relationship_to(nodezero, 'IS_A')
+               top.create_relationship_to(nodezero, CMAdb.REL_isa)
             
-        self.ringindex = self.indextbl['Ring']
-        self.ipindex = self.indextbl['IPaddr']
-        self.macindex = self.indextbl['NIC']
-        self.switchindex = self.indextbl['Switch']
-        self.droneindex = self.indextbl['Drone']
+        self.ringindex = self.indextbl[CMAdb.NODE_ring]
+        self.ipindex = self.indextbl[CMAdb.NODE_ipaddr]
+        self.macindex = self.indextbl[CMAdb.NODE_NIC]
+        self.switchindex = self.indextbl[CMAdb.NODE_switch]
+        self.droneindex = self.indextbl[CMAdb.NODE_drone]
 
     @staticmethod
     def initglobal(io, cleanoutdb=False):
@@ -190,40 +203,42 @@ class CMAdb:
         assert nodetype is not None and nodename is not None
         properties['nodetype'] = nodetype
         properties['name'] = nodename
+        tbl = {}
+        for key in properties.keys():
+            tbl[key] = properties[key]
+        tbl['nodetype'] = nodetype
+        tbl['name'] = nodename
         if self.indextbl.has_key(nodetype):
              idx = self.indextbl[nodetype]
-             tbl = {}
-             for key in properties.keys():
-                tbl[key] = properties[key]
-             tbl['nodetype'] = nodetype
-             tbl['name'] = nodename
              #print 'CREATING A [%s] object named [%s] with attributes %s' % (nodetype, nodename, str(tbl.keys()))
              if unique:
-                 #print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' % (nodetype, nodename, str(tbl))
+                 print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' % (nodetype, nodename, str(tbl))
                  obj = idx.get_or_create(nodetype, nodename, tbl)
              else:
                  obj = self.db.create_node(tbl)
                  idx.add(nodetype, nodename, obj)
         else:
-            obj = self.db.create(properties)
+            print 'self.db.CREATING A [%s] object named [%s] with attributes %s [%s]' % (nodetype, nodename, str(tbl.keys()), str(tbl))
+            print 'self.db.attribute: attribute table: %s' % (str(tbl))
+
+            obj = self.db.create_node(tbl)
         ntt = self.nodetypetbl[nodetype]
-        if ntt is not None:
-            self.db.relate((obj, 'IS_A', ntt),)
+        self.db.relate((obj, CMAdb.REL_isa, ntt),)
         #print 'CREATED/reused %s object with id %d' % (nodetype, obj.id)
         return obj
 
 
     def new_ring(self, name, parentring=None, **kw):
         'Create a new ring (or return a pre-existing one), and put it in the ring index'
-        ring = self.node_new('Ring', name, unique=True,  **kw)
+        ring = self.node_new(CMAdb.NODE_ring, name, unique=True,  **kw)
         if parentring is not None:
-            self.db.relate((ring, 'parentring', parentring.node),)
+            self.db.relate((ring, CMAdb.REL_parentring, parentring.node),)
         return ring
 
     def new_drone(self, designation, **kw):
         'Create a new drone (or return a pre-existing one), and put it in the drone index'
         #print 'Adding drone', designation
-        drone = self.node_new('Drone', designation, unique=True, **kw)
+        drone = self.node_new(CMAdb.NODE_drone, designation, unique=True, **kw)
         if not 'status' in drone:
             drone['status'] = 'created'
         return drone
@@ -232,36 +247,79 @@ class CMAdb:
         '''Create a new NIC (or return a pre-existing one), and put it in the mac address index,
         and point it at its parent drone.'''
         
-        macnics = self.macindex.get('NIC', macaddr)
+        macnics = self.macindex.get(CMAdb.NODE_NIC, macaddr)
         for mac in macnics:
             print 'MAC IS:', mac
-            if mac.is_related_to(drone.node, 'outgoing', 'nicowner'):
+            if mac.is_related_to(drone.node, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner):
                 print 'MAC %s is nicowner related to drone %s' % (str(mac), str(drone))
                 print 'MAC address = %s, NICname = %s for drone %s' % (mac['address'], mac['nicname'], drone)
             else:
                 print 'MAC %s is NOT nicowner related to drone %s' (str(mac), str(drone))
                 
-            if mac.is_related_to(drone.node, 'outgoing', 'nicowner') \
+            if mac.is_related_to(drone.node, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner) \
             and mac['address'] == macaddr and mac['nicname'] == nicname:
                 return mac
-        mac = self.node_new('NIC', macaddr, address=macaddr, unique=False, nicname=nicname, **kw)
-        mac.create_relationship_to(drone.node, 'nicowner')
+        mac = self.node_new(CMAdb.NODE_NIC, macaddr, address=macaddr, unique=False, nicname=nicname, **kw)
+        mac.create_relationship_to(drone.node, CMAdb.REL_nicowner)
         return mac
 
     def new_IPaddr(self, nic, ipaddr, **kw):
         '''Create a new IP address (or return a pre-existing one), and point it at its parent
         NIC and its grandparent drone'''
         #print 'Adding IP address %s' % (ipaddr)
-        ipaddrs = self.ipindex.get('IPaddr', ipaddr)
+        ipaddrs = self.ipindex.get(CMAdb.NODE_ipaddr, ipaddr)
         for ip in ipaddrs:
-            if ip.is_related_to(nic, 'outgoing', 'ipowner'):
+            if ip.is_related_to(nic, neo4j.Direction.OUTGOING, CMAdb.REL_ipowner):
                 print 'Found this IP address (%s) ipowner-related to NIC %s' % (ipaddr, nic)
                 return ip
-        ip = self.node_new('IPaddr', ipaddr, unique=False, **kw)
-        ip.create_relationship_to(nic, 'ipowner')
-        drone = nic.get_single_related_node('outgoing', 'nicowner')
-        ip.create_relationship_to(drone, 'iphost')
+        ip = self.node_new(CMAdb.NODE_ipaddr, ipaddr, unique=False, **kw)
+        ip.create_relationship_to(nic, CMAdb.REL_ipowner)
+        drone = nic.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_nicowner)
+        ip.create_relationship_to(drone, CMAdb.REL_iphost)
         return ip
+
+    #NODE_ipproc     = 'ipproc'      # A client and/or server process
+    def new_ipproc(self,            ##< Self... The usual self object
+                   name,            ##< What should we be called? (no index)
+                   jsonobj):        ##< The JSON ConfigContext object for us alone...
+        '''Create a new ipproc object from its JSON discovery data'''
+        table = {}
+        for key in jsonobj.keys():
+            type = jsonobj.gettype(key)
+            if not (type == CFG_BOOL or type == CFG_INT64 or type == CFG_STRING
+            or      type == CFG_FLOAT or type == CFG_ARRAY):
+                continue
+            # FIXME: BUG WORKAROUND!!!
+            if jsonobj[key] is None: continue
+            # We assume any arrays are of same-typed objects (presumably Strings)
+            # This is a reasonable assumption for our process discovery data
+            table[key] = jsonobj[key]
+        print >>sys.stderr, 'TABLE: %s' % table
+        ipproc = self.node_new(CMAdb.NODE_ipproc, name, unique=False, **table)
+        print >>sys.stderr, 'IPPROC CREATED: %s' % ipproc
+
+    #NODE_ipport     = 'IP_port'     # (ip, port) tuple for a listening host
+    #REL_ipservice   = 'ipservice'   # NODE_ipaddr   ->  NODE_ipport
+    #REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
+    #REL_ipclient    = 'ipclient'    # NODE_ipproc   ->  NODE_ipport
+    def new_ipport(self,            ##< Self... The usual self object
+                   name,            ##< What is our name? (not indexed - yet)
+                   jsonobj,         ##< The JSON object for this listen object
+                   ipaddrnode):     ##< A Neo4j IPaddr node
+        '''Create a new (ip, port) object related to some IPaddr object'''
+        port = jsonobj['port']
+        table = {}
+        for key in jsonobj.keys():
+            type = jsonobj.gettype(key)
+            if not (type == CFG_BOOL or type == CFG_INT64 or type == CFG_STRING
+            or      type == CFG_FLOAT or type == CFG_ARRAY):
+                continue
+            table[key] = jsonobj[key]
+        ipport = self.node_new(CMAdb.NODE_ipport, name, unique=False, **table)
+        ## FIXME? Should I make this relationship a REL_ipservice + ':' + port type?
+        ipaddrnode.create_relationship_to(ipport, CMAdb.REL_ipservice, port=port)
+
+
 
     def empty(self):
         indexes = self.db.get_node_indexes()
@@ -305,13 +363,13 @@ class HbRing:
         self.insertpoint2 = None
 
         try:
-            ip1node = self.node.get_single_related_node('outgoing', self.ourreltype)
+            ip1node = self.node.get_single_related_node(neo4j.Direction.OUTGOING, self.ourreltype)
             if ip1node is not None:
                 self.insertpoint1 = DroneInfo(ip1node)
                 if self.insertpoint1 is not None:
                     try:
                       #print 'INSERTPOINT1: ', self.insertpoint1
-                      ip2 = self.insertpoint1.node.get_single_related_node('outgoing', self.ournexttype)
+                      ip2 = self.insertpoint1.node.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
                       self.insertpoint2 = DroneInfo(ip2)
                     except ValueError:
                         pass
@@ -340,7 +398,7 @@ class HbRing:
         'Add this drone to our ring'
         #print 'Adding Drone %s to ring %s' % (str(drone), str(self))
         # Make sure he's not already in our ring according to our 'database'
-        if drone.node.has_relationship_with(self.node, 'outgoing', self.ourreltype):
+        if drone.node.has_relationship_with(self.node, neo4j.Direction.OUTGOING, self.ourreltype):
             print ("Drone %s is already a member of this ring [%s] - removing and re-adding."
             %               (drone.node['name'], self.name))
             self.leave(drone)
@@ -378,7 +436,7 @@ class HbRing:
         #print >>sys.stderr, 'INSERTPOINT1:', self.insertpoint1.node
         #print >>sys.stderr, 'INSERTPOINT2:', self.insertpoint2.node
         #print >>sys.stderr, 'OURNEXTTYPE:', self.ournexttype
-        nextnext = self.insertpoint2.node.get_single_related_node('outgoing', self.ournexttype)
+        nextnext = self.insertpoint2.node.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
         if nextnext is not None and nextnext.id != self.insertpoint1.node.id:
             # At least 3 nodes before
             self.insertpoint1.stop_heartbeat(self, self.insertpoint2)
@@ -386,7 +444,7 @@ class HbRing:
         drone.start_heartbeat(self, self.insertpoint1, self.insertpoint2)
         self.insertpoint1.start_heartbeat(self, drone)
         self.insertpoint2.start_heartbeat(self, drone)
-        point1rel = self.insertpoint1.node.get_single_relationship('outgoing', self.ournexttype)
+        point1rel = self.insertpoint1.node.get_single_relationship(neo4j.Direction.OUTGOING, self.ournexttype)
         point1rel.delete()
         point1rel = None
         # In the future we might want to mark these relationships with the IP addresses involved
@@ -405,11 +463,11 @@ class HbRing:
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
         try: 
-            prevnode = drone.node.get_single_related_node('incoming', self.ournexttype)
+            prevnode = drone.node.get_single_related_node(neo4j.Direction.INCOMING, self.ournexttype)
         except ValueError:
             prevnode = None
         try: 
-            nextnode = drone.node.get_single_related_node('outgoing', self.ournexttype)
+            nextnode = drone.node.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
         except ValueError:
             nextnode = None
 
@@ -420,7 +478,7 @@ class HbRing:
         return
 
     # Clean out the next link relationships to our dearly departed drone
-        ringrel = drone.node.get_single_relationship('outgoing', self.ourreltype)
+        ringrel = drone.node.get_single_relationship(neo4j.Direction.OUTGOING, self.ourreltype)
         ringrel.delete()
         ringrel = None
     # Clean out the next link relationships to our dearly departed drone
@@ -448,7 +506,7 @@ class HbRing:
                             # Result length:    >=2
         prevdrone = DroneInfo(prevnode['name'])
         nextdrone = DroneInfo(nextnode['name'])
-        nextnext = nextnode.get_single_related_node('outgoing', self.ournexttype)
+        nextnext = nextnode.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
         prevdrone.stop_heartbeat(self, drone)
         nextdrone.stop_heartbeat(self, drone)
         if nextnext.id != prevnode.id:          # Previous length:  >= 4
@@ -462,7 +520,7 @@ class HbRing:
 
     def members(self):
         ret = []
-        for node in self.node.get_related_nodes('incoming', self.ourreltype):
+        for node in self.node.get_related_nodes(neo4j.Direction.INCOMING, self.ourreltype):
             ret.append(DroneInfo.find(node))
         return ret
 
@@ -474,7 +532,7 @@ class HbRing:
         firstdrone = firstdrone.node
         nextdrone = firstdrone
         while True:
-            nextdrone = nextdrone.get_single_related_node('outgoing', self.ournexttype)
+            nextdrone = nextdrone.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
             if nextdrone is None or nextdrone.id == firstdrone.id:  break
             ret.append(DroneInfo.find(nextdrone))
         return ret
@@ -521,7 +579,7 @@ class DroneInfo:
         #   (dtype, self.designation)
         self.node['JSON_' + dtype] = jsontext
         if dtype in DroneInfo._JSONprocessors:
-            if CMAdb.debug: print >>sys.stderr, ('Processed %s JSON data into graph.' % dtype)
+            if True or CMAdb.debug: print >>sys.stderr, ('Processed %s JSON data into graph.' % dtype)
             DroneInfo._JSONprocessors[dtype](self, jsonobj)
         else:
             print >>sys.stderr, ('Stored %s JSON data without processing.' % dtype)
@@ -534,8 +592,6 @@ class DroneInfo:
         in one swell foop - or at most two...
         '''
         # Ought to protect this code by try blocks...
-        # Also ought to figure out which IP is the primary IP for contacting
-    # this system
         data = jsonobj['data'] # The data portion of the JSON message
         primaryip = None
         for ifname in data.keys(): # List of interfaces just below the data section
@@ -568,17 +624,43 @@ class DroneInfo:
                 ipnode = CMAdb.cdb.new_IPaddr(nicnode, iponly, ifname=ifname, hostname=self.node['name'])
                 # Save away whichever IP address is our primary IP address...
                 if isprimaryip:
-                    rel = self.node.get_single_relationship('outgoing', 'primaryip')
+                    rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING, 'primaryip')
                     if rel is not None and rel.end_node.id != ipnode.id:
                         rel.delete()
                         rel = None
                     if rel is None:
                       CMAdb.cdb.db.relate((self.node, 'primaryip', ipnode),)
 
+#       ipservice       ip_port         ip
+#       serving         ipproc          ip_port
+#       client          ipproc          ip_port
+#       prochost        ipproc          drone
+#       iphost          ip_port         drone
+#    def new_ipport(self,            ##< Self... The usual self object
+#                   name,            ##< What is our name? (not indexed - yet)
+#                   jsonobj,         ##< The JSON object for this listen object
+#                   ipaddrnode)      ##< A Neo4j IPaddr node
+#    def new_ipproc(self,            ##< Self... The usual self object
+#                   name,            ##< What should we be called? (no index)
+#                   jsonobj):        ##< The JSON ConfigContext object for us alone...
+    def add_tcplisteners(self, jsonobj, **kw):
+        data = jsonobj['data'] # The data portion of the JSON message
+        primaryip = None
+        allourips = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_iphost)
+        print >>sys.stderr, 'ALL OUR IPs: [%s]' % allourips
+        print >>sys.stderr, 'ALL OUR keys: %s' % data.keys()
+        for listenname in data.keys(): # List of names of processes...
+            listenerinfo = data[listenname]
+            print >>sys.stderr, 'LISTENRINFO: %s' % listenerinfo
+            CMAdb.cdb.new_ipproc(listenname, listenerinfo)
+            ipportinfo = listenerinfo['listenaddrs']
+            for ipport in ipportinfo:
+                print >>sys.stderr, 'self.add_ipport("%s")' % ipport
+
 
     def primary_ip(self, ring=None):
         '''Return the "primary" IP for this host'''
-        primaryIP = self.node.get_single_related_node('outgoing', 'primaryip')
+        primaryIP = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
         return str(primaryIP['name'])
 
     def select_ip(self, ring=None):
@@ -621,7 +703,7 @@ class DroneInfo:
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        rellist = self.node.get_relationships(direction='outgoing')
+        rellist = self.node.get_relationships(direction=neo4j.Direction.OUTGOING)
         for rel in rellist:
             if rel.type.startswith(HbRing.memberprefix):
                 ringname = rel.end_node['name']
@@ -730,12 +812,12 @@ class DroneInfo:
             return drone
         if isinstance(designation, pyNetAddr):
             #Is there a concern about non-canonical IP address formats?
-            ipaddrs = CMAdb.cdb.ipindex.get('IPaddr', str(designation))
+            ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, str(designation))
             for ip in ipaddrs:
                 # Shouldn't have duplicates, but they happen...
                 # FIXME: Think about how to manage duplicate IP addresses...
                 # Do we really want to be looking up just by IP addresses here?
-                node = ip.get_single_related_node('outgoing', 'iphost')
+                node = ip.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_iphost)
                 return DroneInfo.find(node)
         if isinstance(designation, neo4j.Node):
             nodedesig = designation['name']
@@ -912,6 +994,7 @@ class PacketListener:
 
 
 DroneInfo.add_json_processors(('netconfig', DroneInfo.add_netconfig_addresses),)
+DroneInfo.add_json_processors(('tcplisteners', DroneInfo.add_tcplisteners),)
 
 if __name__ == '__main__':
     #

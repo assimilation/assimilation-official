@@ -14,22 +14,29 @@ from newcma import *
 
 
 WorstDanglingCount = 0
-CheckForDanglingClasses = False
 CheckForDanglingClasses = True
 DEBUG=False
 DoAudit=True
 SavePackets=True
 doHBDEAD=False
-MaxDrone=10
 MaxDrone=4
 MaxDrone=5
 MaxDrone=3
+MaxDrone=10000
+BuildListOnly = True
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
 t2 = MaxDrone/100
 if t2 < 10: t2 = 10
 t3 = t2
+
+if BuildListOnly:
+    doHBDEAD=False
+    SavePackets=False
+    DoAudit=False
+    CheckForDanglingClasses=False
+    DEBUG=False
 
 
 
@@ -267,6 +274,7 @@ class TestIO:
 class TestTestInfrastructure(TestCase):
     def test_eof(self):
         'Get EOF with empty input'
+        if BuildListOnly: return
         framesets=[]
         io = TestIO(framesets, 0)
         CMAdb.initglobal(io, True)
@@ -276,6 +284,7 @@ class TestTestInfrastructure(TestCase):
 
     def test_get1pkt(self):
         'Read a single packet'
+        if BuildListOnly: return
         otherguy = pyNetAddr([1,2,3,4],)
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
@@ -290,6 +299,7 @@ class TestTestInfrastructure(TestCase):
 
     def test_echo1pkt(self):
         'Read a packet and write it back out'
+        if BuildListOnly: return
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
         fs.append(strframe1)
@@ -313,6 +323,7 @@ class TestCMABasic(TestCase):
     def test_startup(self):
         '''A semi-interesting test: We send a STARTUP message and get back a
         SETCONFIG message with lots of good stuff in it.'''
+        if BuildListOnly: return
         droneid = 1
         droneip = droneipaddress(droneid)
         designation = dronedesignation(droneid)
