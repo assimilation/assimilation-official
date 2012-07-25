@@ -324,9 +324,10 @@ class CMAdb:
             table[key] = jsonobj[key]
         ipport = self.node_new(CMAdb.NODE_ipport, name, unique=True, **table)
         ## FIXME? Should I make this relationship a REL_ipservice + ':' + port type?
-        ipaddrnode.create_relationship_from(ipport, CMAdb.REL_ipservice, {'port':port})
-        ipport.create_relationship_to(dronenode, CMAdb.REL_ipphost)
-        ipproc.create_relationship_to(ipport, CMAdb.REL_ipserver)
+        CMAdb.cdb.db.relate(
+            (ipaddrnode,    CMAdb.REL_ipservice,    ipport, {'port':port}),
+            (ipport,        CMAdb.REL_ipphost,      dronenode),
+            (ipproc,        CMAdb.REL_ipserver,     ipport))
 
 
 
