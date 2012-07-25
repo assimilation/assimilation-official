@@ -121,6 +121,7 @@ class CMAdb:
     REL_ipservice   = 'ipservice'   # NODE_ipaddr   ->  NODE_ipport
     REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
     REL_ipclient    = 'ipclient'    # NODE_ipproc   ->  NODE_ipport
+    REL_ipserver    = 'ipserver'    # NODE_ipproc   ->  NODE_ipport
     REL_ipprochost  = 'ipprochost'  # NODE_ipproc   ->  NODE_drone
 
     debug = False
@@ -144,7 +145,7 @@ class CMAdb:
         ,   CMAdb.NODE_NIC:     True    # NICs are indexed by MAC address
                                         # MAC addresses are not always unique...
         ,   CMAdb.NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
-        ,   CMAdb.NODE_ipport:  False   # Should we index NODE_ipport?
+        ,   CMAdb.NODE_ipport:  True    # We index IP and port - handy to have...
         ,   CMAdb.NODE_ipproc:  False
         }
         
@@ -287,24 +288,30 @@ class CMAdb:
         for key in jsonobj.keys():
             type = jsonobj.gettype(key)
             if not (type == CFG_BOOL or type == CFG_INT64 or type == CFG_STRING
-            or      type == CFG_FLOAT or type == CFG_ARRAY):
+            #or      type == CFG_FLOAT or type == CFG_ARRAY):
+            or      type == CFG_FLOAT):
+############ FIXME: Need to re-enable CFG_ARRAY for the arguments to the process
                 continue
             # FIXME: BUG WORKAROUND!!!
             if jsonobj[key] is None: continue
-            # We assume any arrays are of same-typed objects (presumably Strings)
+            # We assume any arrays are of same-typed simple objects (presumably Strings)
             # This is a reasonable assumption for our process discovery data
             table[key] = jsonobj[key]
         print >>sys.stderr, 'TABLE: %s' % table
         ipproc = self.node_new(CMAdb.NODE_ipproc, name, unique=False, **table)
         print >>sys.stderr, 'IPPROC CREATED: %s' % ipproc
+        return ipproc
 
     #NODE_ipport     = 'IP_port'     # (ip, port) tuple for a listening host
     #REL_ipservice   = 'ipservice'   # NODE_ipaddr   ->  NODE_ipport
     #REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
-    #REL_ipclient    = 'ipclient'    # NODE_ipproc   ->  NODE_ipport
+    #REL_ipserver    = 'ipserver'    # NODE_ipproc   ->  NODE_ipport
+
     def new_ipport(self,            ##< Self... The usual self object
                    name,            ##< What is our name? (not indexed - yet)
                    jsonobj,         ##< The JSON object for this listen object
+                   dronenode,       ##< The drone hosting this service
+                   ipproc,          ##< The process running here...
                    ipaddrnode):     ##< A Neo4j IPaddr node
         '''Create a new (ip, port) object related to some IPaddr object'''
         port = jsonobj['port']
@@ -315,9 +322,11 @@ class CMAdb:
             or      type == CFG_FLOAT or type == CFG_ARRAY):
                 continue
             table[key] = jsonobj[key]
-        ipport = self.node_new(CMAdb.NODE_ipport, name, unique=False, **table)
+        ipport = self.node_new(CMAdb.NODE_ipport, name, unique=True, **table)
         ## FIXME? Should I make this relationship a REL_ipservice + ':' + port type?
-        ipaddrnode.create_relationship_to(ipport, CMAdb.REL_ipservice, port=port)
+        ipaddrnode.create_relationship_from(ipport, CMAdb.REL_ipservice, {'port':port})
+        ipport.create_relationship_to(dronenode, CMAdb.REL_ipphost)
+        ipproc.create_relationship_to(ipport, CMAdb.REL_ipserver)
 
 
 
@@ -651,11 +660,35 @@ class DroneInfo:
         print >>sys.stderr, 'ALL OUR keys: %s' % data.keys()
         for listenname in data.keys(): # List of names of processes...
             listenerinfo = data[listenname]
-            print >>sys.stderr, 'LISTENRINFO: %s' % listenerinfo
-            CMAdb.cdb.new_ipproc(listenname, listenerinfo)
+            print >>sys.stderr, 'LISTENERINFO: %s' % listenerinfo
+            ipproc = CMAdb.cdb.new_ipproc(listenname, listenerinfo)
+            print >>sys.stderr, '==================IPPROC:', ipproc
+            print >>sys.stderr, 'LISTENADDRS: "%s"' % str(listenerinfo['listenaddrs'])
             ipportinfo = listenerinfo['listenaddrs']
-            for ipport in ipportinfo:
-                print >>sys.stderr, 'self.add_ipport("%s")' % ipport
+            for ipport in ipportinfo.keys():
+                self.add_ipports(ipportinfo[ipport], ipproc, allourips)
+
+    def add_ipports(self, jsonobj, ipproc, allourips):
+        '''We create ipports objects that correspond to the given json object in
+        the context of the set of IP addresses that we support - including support
+        for the ANY ipv4 and ipv6 addresses'''
+        print >>sys.stderr, '---------------------IPPROC:', ipproc
+        addr = str(jsonobj['addr'])
+        port = jsonobj['port']
+        # Were we given the ANY address?
+        if addr == '0.0.0.0' or addr == '::':
+            for ipaddr in allourips:
+                print '>>>>>>>>>>>>MATCHING ALLOURIPS[%s]' % ipaddr['name']
+                name = str(ipaddr['name']) + ':' + str(port)
+                ipport = CMAdb.cdb.new_ipport(name, jsonobj, self.node, ipproc, ipaddr)
+        else:
+            for ipaddr in allourips:
+                if ipaddr['name'] == addr:
+                    name = str(addr) + ':' + str(port)
+                    CMAdb.cdb.new_ipport(name, jsonobj, self.node, ipproc, ipaddr)
+                    return
+            raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
+                            % (self.node['name'], addr))
 
 
     def primary_ip(self, ring=None):
