@@ -213,7 +213,7 @@ class CMAdb:
              idx = self.indextbl[nodetype]
              #print 'CREATING A [%s] object named [%s] with attributes %s' % (nodetype, nodename, str(tbl.keys()))
              if unique:
-                 print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' % (nodetype, nodename, str(tbl))
+                 #print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' % (nodetype, nodename, str(tbl))
                  obj = idx.get_or_create(nodetype, nodename, tbl)
              else:
                  obj = self.db.create_node(tbl)
@@ -589,7 +589,7 @@ class DroneInfo:
         #   (dtype, self.designation)
         self.node['JSON_' + dtype] = jsontext
         if dtype in DroneInfo._JSONprocessors:
-            if True or CMAdb.debug: print >>sys.stderr, ('Processed %s JSON data into graph.' % dtype)
+            if CMAdb.debug: print >>sys.stderr, ('Processed %s JSON data into graph.' % dtype)
             DroneInfo._JSONprocessors[dtype](self, jsonobj)
         else:
             print >>sys.stderr, ('Stored %s JSON data without processing.' % dtype)

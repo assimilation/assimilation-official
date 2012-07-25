@@ -20,9 +20,9 @@ DoAudit=True
 SavePackets=True
 doHBDEAD=False
 MaxDrone=4
-MaxDrone=5
 MaxDrone=3
 MaxDrone=10000
+MaxDrone=5
 BuildListOnly = True
 
 t1 = MaxDrone
