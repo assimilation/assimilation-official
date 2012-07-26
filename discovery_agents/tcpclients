@@ -92,7 +92,8 @@ netstatinfo()
        read proto rcvq sendq localaddr foreignaddr state pid_prog
     do
       case $state in
-        [A-Z][A-Z]*)	: OK;;
+        CLOS*|FIN*|LAST_ACK|TIME_WAIT)	continue;;
+        ESTABLISHED)	: OK;;
         *)	: state is ["$state"] ; continue;;
       esac
 
@@ -135,6 +136,7 @@ process_netstat()
           seq=1
           pname="${name}"
         fi
+	#if [ "$pname" != ssh ] ; then continue; fi
         if
           [ "$innercomma" != '' ]
         then

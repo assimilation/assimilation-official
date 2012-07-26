@@ -793,7 +793,11 @@ class pyConfigContext(pyAssimObj):
 
     def has_key(self, key):
         'return True if it has the given key'
-        #print >>sys.stderr, 'has_key(%s)' % str(key)
+        ktype = self._Cstruct[0].gettype(self._Cstruct, str(key))
+        return ktype != CFG_EEXIST
+
+    def __contains__(self, key):
+        'return True if our object contains the given key'
         ktype = self._Cstruct[0].gettype(self._Cstruct, str(key))
         return ktype != CFG_EEXIST
     

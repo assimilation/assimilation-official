@@ -106,8 +106,8 @@ class CMAdb:
     NODE_switch     = 'Switch'      # An IP communications device
     NODE_NIC        = 'NIC'         # A network interface card (connection)
     NODE_ipaddr     = 'IPaddr'      # IP address
-    NODE_ipproc     = 'ipproc'      # A client and/or server process
-    NODE_ipport     = 'IP_port'     # (ip, port) tuple for a listening host
+    NODE_ipproc     = 'tcp-process' # A TCP client and/or server process
+    NODE_ipport     = 'IP:port'     # (ip, port) tuple for a listening host
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
@@ -118,11 +118,13 @@ class CMAdb:
     REL_iphost      = 'iphost'      # NODE_ipaddr   ->  NODE_drone
     REL_ipowner     = 'ipowner'     # NODE_ipaddr   ->  NODE_NIC
     REL_parentring  = 'parentring'  # NODE_ring     ->  NODE_ring
-    REL_ipservice   = 'ipservice'   # NODE_ipaddr   ->  NODE_ipport
+    REL_ipservice   = 'ipservice'   # NODE_ipport   ->  NODE_ipaddr
     REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
+    REL_ippclient   = 'ippclient'   # NODE_ipport   ->  NODE_drone
     REL_ipclient    = 'ipclient'    # NODE_ipproc   ->  NODE_ipport
-    REL_ipserver    = 'ipserver'    # NODE_ipproc   ->  NODE_ipport
-    REL_ipprochost  = 'ipprochost'  # NODE_ipproc   ->  NODE_drone
+    REL_ipserver    = 'ipserver'    # NODE_ipport   ->  NODE_ipproc
+    REL_runningon   = 'runningon'   # NODE_ipproc   ->  NODE_drone
+    REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
 
     debug = False
 
@@ -209,7 +211,7 @@ class CMAdb:
             tbl[key] = properties[key]
         tbl['nodetype'] = nodetype
         tbl['name'] = nodename
-        if self.indextbl.has_key(nodetype):
+        if nodetype in self.indextbl:
              idx = self.indextbl[nodetype]
              #print 'CREATING A [%s] object named [%s] with attributes %s' % (nodetype, nodename, str(tbl.keys()))
              if unique:
@@ -219,8 +221,8 @@ class CMAdb:
                  obj = self.db.create_node(tbl)
                  idx.add(nodetype, nodename, obj)
         else:
-            print 'self.db.CREATING A [%s] object named [%s] with attributes %s [%s]' % (nodetype, nodename, str(tbl.keys()), str(tbl))
-            print 'self.db.attribute: attribute table: %s' % (str(tbl))
+            #print >>sys.stderr, 'self.db.CREATING AN UNINDEXED[%s] object named [%s] with attributes %s [%s]' % (nodetype, nodename, str(tbl.keys()), str(tbl))
+            #print >>sys.stderr, 'self.db.attribute: attribute table: %s' % (str(tbl))
 
             obj = self.db.create_node(tbl)
         ntt = self.nodetypetbl[nodetype]
@@ -250,12 +252,14 @@ class CMAdb:
         
         macnics = self.macindex.get(CMAdb.NODE_NIC, macaddr)
         for mac in macnics:
-            print 'MAC IS:', mac
-            if mac.is_related_to(drone.node, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner):
-                print 'MAC %s is nicowner related to drone %s' % (str(mac), str(drone))
-                print 'MAC address = %s, NICname = %s for drone %s' % (mac['address'], mac['nicname'], drone)
-            else:
-                print 'MAC %s is NOT nicowner related to drone %s' (str(mac), str(drone))
+            if CMAdb.debug:
+                print 'MAC IS:', mac
+                if mac.is_related_to(drone.node, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner):
+                    print 'MAC %s is nicowner related to drone %s' % (str(mac), str(drone))
+                    print 'MAC address = %s, NICname = %s for drone %s' % (mac['address'], mac['nicname'], drone)
+                else:
+                    print 'MAC %s is NOT nicowner related to drone %s' (str(mac), str(drone))
+                
                 
             if mac.is_related_to(drone.node, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner) \
             and mac['address'] == macaddr and mac['nicname'] == nicname:
@@ -269,20 +273,26 @@ class CMAdb:
         NIC and its grandparent drone'''
         #print 'Adding IP address %s' % (ipaddr)
         ipaddrs = self.ipindex.get(CMAdb.NODE_ipaddr, ipaddr)
-        for ip in ipaddrs:
-            if ip.is_related_to(nic, neo4j.Direction.OUTGOING, CMAdb.REL_ipowner):
-                print 'Found this IP address (%s) ipowner-related to NIC %s' % (ipaddr, nic)
-                return ip
-        ip = self.node_new(CMAdb.NODE_ipaddr, ipaddr, unique=False, **kw)
-        ip.create_relationship_to(nic, CMAdb.REL_ipowner)
-        drone = nic.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_nicowner)
-        ip.create_relationship_to(drone, CMAdb.REL_iphost)
+        if nic is not None:
+            for ip in ipaddrs:
+                if ip.is_related_to(nic, neo4j.Direction.OUTGOING, CMAdb.REL_ipowner):
+                    #print 'Found this IP address (%s) ipowner-related to NIC %s' % (ipaddr, nic)
+                    return ip
+        if len(ipaddrs) == 0:
+            ip = self.node_new(CMAdb.NODE_ipaddr, ipaddr, unique=False, **kw)
+        else:
+            ip = ipaddrs[0] # May have been created by a client - pick the first one...
+        if nic is not None:
+            ip.create_relationship_to(nic, CMAdb.REL_ipowner)
+            drone = nic.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_nicowner)
+            ip.create_relationship_to(drone, CMAdb.REL_iphost)
         return ip
 
-    #NODE_ipproc     = 'ipproc'      # A client and/or server process
+    #NODE_ipproc     = 'ipproc'     # A client and/or server process
     def new_ipproc(self,            ##< Self... The usual self object
                    name,            ##< What should we be called? (no index)
-                   jsonobj):        ##< The JSON ConfigContext object for us alone...
+                   jsonobj,         ##< The JSON ConfigContext object for us alone...
+                   drone):          ##< Drone we are running on
         '''Create a new ipproc object from its JSON discovery data'''
         table = {}
         for key in jsonobj.keys():
@@ -297,18 +307,15 @@ class CMAdb:
             # We assume any arrays are of same-typed simple objects (presumably Strings)
             # This is a reasonable assumption for our process discovery data
             table[key] = jsonobj[key]
-        print >>sys.stderr, 'TABLE: %s' % table
         ipproc = self.node_new(CMAdb.NODE_ipproc, name, unique=False, **table)
-        print >>sys.stderr, 'IPPROC CREATED: %s' % ipproc
+        self.db.relate((ipproc, CMAdb.REL_runningon, drone),)
+
         return ipproc
 
-    #NODE_ipport     = 'IP_port'     # (ip, port) tuple for a listening host
-    #REL_ipservice   = 'ipservice'   # NODE_ipaddr   ->  NODE_ipport
-    #REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
-    #REL_ipserver    = 'ipserver'    # NODE_ipproc   ->  NODE_ipport
 
     def new_ipport(self,            ##< Self... The usual self object
                    name,            ##< What is our name? (not indexed - yet)
+                   isserver,        ##< Either CMAdb.REL_
                    jsonobj,         ##< The JSON object for this listen object
                    dronenode,       ##< The drone hosting this service
                    ipproc,          ##< The process running here...
@@ -324,10 +331,16 @@ class CMAdb:
             table[key] = jsonobj[key]
         ipport = self.node_new(CMAdb.NODE_ipport, name, unique=True, **table)
         ## FIXME? Should I make this relationship a REL_ipservice + ':' + port type?
-        CMAdb.cdb.db.relate(
-            (ipaddrnode,    CMAdb.REL_ipservice,    ipport, {'port':port}),
-            (ipport,        CMAdb.REL_ipphost,      dronenode),
-            (ipproc,        CMAdb.REL_ipserver,     ipport))
+        if isserver:
+            args =    (
+                (ipport,    CMAdb.REL_ipservice,    ipaddrnode, {'port':port}),
+                (ipport,    CMAdb.REL_ipserver,     ipproc),
+                (ipport,    CMAdb.REL_ipphost,      dronenode))
+        else:
+            args =    (
+                (ipport,    CMAdb.REL_ipservice,    ipaddrnode, {'port':port}),
+                (ipproc,    CMAdb.REL_ipclient,     ipport))
+        CMAdb.cdb.db.relate(*args)
 
 
 
@@ -654,42 +667,45 @@ class DroneInfo:
 #                   name,            ##< What should we be called? (no index)
 #                   jsonobj):        ##< The JSON ConfigContext object for us alone...
     def add_tcplisteners(self, jsonobj, **kw):
+        '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
         primaryip = None
         allourips = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_iphost)
-        print >>sys.stderr, 'ALL OUR IPs: [%s]' % allourips
-        print >>sys.stderr, 'ALL OUR keys: %s' % data.keys()
-        for listenname in data.keys(): # List of names of processes...
-            listenerinfo = data[listenname]
-            print >>sys.stderr, 'LISTENERINFO: %s' % listenerinfo
-            ipproc = CMAdb.cdb.new_ipproc(listenname, listenerinfo)
-            print >>sys.stderr, '==================IPPROC:', ipproc
-            print >>sys.stderr, 'LISTENADDRS: "%s"' % str(listenerinfo['listenaddrs'])
-            ipportinfo = listenerinfo['listenaddrs']
-            for ipport in ipportinfo.keys():
-                self.add_ipports(ipportinfo[ipport], ipproc, allourips)
+        for procname in data.keys(): # List of names of processes...
+            procinfo = data[procname]
+            ipproc = CMAdb.cdb.new_ipproc(procname, procinfo, self.node)
+            if 'listenaddrs' in procinfo:
+                ipportinfo = procinfo['listenaddrs']
+                for ipport in ipportinfo.keys():
+                    self.add_ipports(True, ipportinfo[ipport], ipproc, allourips)
+            if 'clientaddrs' in procinfo:
+                ipportinfo = procinfo['clientaddrs']
+                for ipport in ipportinfo.keys():
+                    self.add_ipports(False, ipportinfo[ipport], ipproc, None)
 
-    def add_ipports(self, jsonobj, ipproc, allourips):
+    def add_ipports(self, isserver, jsonobj, ipproc, allourips):
         '''We create ipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
         for the ANY ipv4 and ipv6 addresses'''
-        print >>sys.stderr, '---------------------IPPROC:', ipproc
         addr = str(jsonobj['addr'])
         port = jsonobj['port']
+        name = addr + ':' + str(port)
         # Were we given the ANY address?
-        if addr == '0.0.0.0' or addr == '::':
+        if isserver and (addr == '0.0.0.0' or addr == '::'):
             for ipaddr in allourips:
-                print '>>>>>>>>>>>>MATCHING ALLOURIPS[%s]' % ipaddr['name']
-                name = str(ipaddr['name']) + ':' + str(port)
-                ipport = CMAdb.cdb.new_ipport(name, jsonobj, self.node, ipproc, ipaddr)
-        else:
+                name = ipaddr['name'] + ':' + str(port)
+                ipport = CMAdb.cdb.new_ipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
+        elif isserver:
             for ipaddr in allourips:
                 if ipaddr['name'] == addr:
-                    name = str(addr) + ':' + str(port)
-                    CMAdb.cdb.new_ipport(name, jsonobj, self.node, ipproc, ipaddr)
+                    CMAdb.cdb.new_ipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
                     return
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
                             % (self.node['name'], addr))
+        else:
+            name = addr + ':' + str(port)
+            ipaddr = CMAdb.cdb.new_IPaddr(None, addr)
+            CMAdb.cdb.new_ipport(name, isserver, jsonobj, None, ipproc, ipaddr)
 
 
     def primary_ip(self, ring=None):
@@ -796,8 +812,7 @@ class DroneInfo:
 
         for tuple in args:
             if len(tuple) != 2 and len(tuple) != 3:
-               print "Arguments are:", args
-               raise ValueError('Incorrect argument tuple length: %d vs 2 or 3' % len(tuple))
+               raise ValueError('Incorrect argument tuple length: %d vs 2 or 3 [%s]' % (len(tuple), args))
             instance = tuple[0]
             interval = tuple[1]
             json = None
@@ -1029,6 +1044,7 @@ class PacketListener:
 
 DroneInfo.add_json_processors(('netconfig', DroneInfo.add_netconfig_addresses),)
 DroneInfo.add_json_processors(('tcplisteners', DroneInfo.add_tcplisteners),)
+DroneInfo.add_json_processors(('tcpclients', DroneInfo.add_tcplisteners),)
 
 if __name__ == '__main__':
     #
