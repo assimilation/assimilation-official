@@ -72,14 +72,38 @@ class SwitchDiscovery:
         return int(cast(pktstart, cClass.guint8)[1])
 
     @staticmethod
+    def _byteN(pktstart, n):
+        return int(cast(pktstart, cClass.guint8)[n])
+
+    @staticmethod
     def _byte1addr(pktstart):
         addr = addressof(pktstart.contents) + 1
         return pointer(type(pktstart.contents).from_address(addr))
 
     @staticmethod
-    def _byte2addr(pktstart):
-        addr = addressof(pktstart.contents) + 1
+    def _byteNaddr(pktstart, n):
+        addr = addressof(pktstart.contents) + n
         return pointer(type(pktstart.contents).from_address(addr))
+
+    @staticmethod
+    def _decode_netaddr(addrstart, addrlen):
+        byte0 = SwitchDiscovery._byte0(addrstart)
+        byte1addr = SwitchDiscovery._byte1addr(addrstart)
+        CnetAddr = None
+        if byte0 == ADDR_FAMILY_IPV6:
+            if addrlen != 17:    return None
+            Cnetaddr = netaddr_ipv6_new(byte1addr, 0)
+        elif byte0 == ADDR_FAMILY_IPV4:
+            if addrlen != 5:     return None
+            Cnetaddr = netaddr_ipv4_new(byte1addr, 0)
+        elif byte0 == ADDR_FAMILY_802:
+            if addrlen == 7:
+                Cnetaddr = netaddr_mac48_new(byte1addr)
+            elif addrlen == 9:
+                Cnetaddr = netaddr_mac64_new(byte1addr)
+        if Cnetaddr is not None:
+            return str(pyNetAddr(None, Cstruct=Cnetaddr))
+        return None
 
     @staticmethod
     def decode_discovery(pktstart, pktend):
@@ -101,15 +125,18 @@ class SwitchDiscovery:
                 print >>sys.stderr, 'Cannot find tlvtype %d' % tlvtype
                 continue
             tlvtypename = SwitchDiscovery.lldpnames[tlvtype]
+
             if (tlvtype == LLDP_TLV_PORT_DESCR or tlvtype == LLDP_TLV_SYS_NAME or 
                 tlvtype == LLDP_TLV_SYS_DESCR):
                 ret[tlvtypename] = string_at(tlvptr, tlvlen)
+
             elif tlvtype == LLDP_TLV_PID:
                 pidtype = SwitchDiscovery._byte0(tlvptr)
                 if (pidtype == LLDP_PIDTYPE_ALIAS or pidtype == LLDP_PIDTYPE_IFNAME
                 or  pidtype == LLDP_PIDTYPE_LOCAL):
                     sloc = SwitchDiscovery._byte1addr(tlvptr)
                     ret[tlvtypename] = string_at(sloc, tlvlen-1)
+
             elif tlvtype == LLDP_TLV_CHID:
                 chidtype = SwitchDiscovery._byte0(tlvptr)
                 if (chidtype == LLDP_CHIDTYPE_COMPONENT or chidtype == LLDP_CHIDTYPE_ALIAS
@@ -126,22 +153,18 @@ class SwitchDiscovery:
                     if Cmacaddr is not None:
                         ret[tlvtypename] = str(pyNetAddr(None, Cstruct=Cmacaddr))
                 elif chidtype == LLDP_CHIDTYPE_NETADDR:
-                    byte1 = SwitchDiscovery._byte1(tlvptr)
-                    byte2addr = SwitchDiscovery._byte2addr(tlvptr)
-                    CnetAddr = None
-                    if byte1 == ADDR_FAMILY_IPV6:
-                        if tlvlen != 18:    continue
-                        Cnetaddr = netaddr_ipv6_new(byte2addr, 0)
-                    elif byte1 == ADDR_FAMILY_IPV4:
-                        if tlvlen != 6:     continue
-                        Cnetaddr = netaddr_ipv4_new(byte2addr, 0)
-                    elif byte1 == ADDR_FAMILY_802:
-                        if tlvlen == 8:
-                            Cmacaddr = netaddr_mac48_new(byte2addr)
-                        elif tlvlen == 10:
-                            Cmacaddr = netaddr_mac64_new(byte2addr)
-                        if Cnetaddr is not None:
-                            ret[tlvtypename] = str(pyNetAddr(None, Cstruct=Cnetaddr))
+                    byte1addr = SwitchDiscovery._byte1addr(tlvptr)
+                    decode = SwitchDiscovery._decode_netaddr(byte1addr, tlvlen-1)
+                    if decode is not None:
+                        ret[tlvtypename] = decode
+
+            elif tlvtype == LLDP_TLV_MGMT_ADDR:
+                addrlen = SwitchDiscovery._byte0(tlvptr)
+                byte1addr = SwitchDiscovery._byte1addr(tlvptr)
+                decode = SwitchDiscovery._decode_netaddr(byte1addr, addrlen)
+                if decode is not None:
+                    ret[tlvtypename] = decode
+                
 
                 
             this = get_lldptlv_next(this, pktend)
