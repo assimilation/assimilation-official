@@ -264,7 +264,7 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSe
 	g_return_val_if_fail(cppkt != NULL, NULL);
 
 	// System name
-	fsysname->baseclass.setvalue(&fsysname->baseclass, g_strdup(sysname), strlen(sysname)+1, g_free);
+	fsysname->baseclass.setvalue(&fsysname->baseclass, sysname, strlen(sysname)+1, g_free);
 	frameset_append_frame(fs, &fsysname->baseclass);
         fsysname->baseclass.baseclass.unref(fsysname);
 
