@@ -39,28 +39,28 @@ def CCunref(obj):
 
 class SwitchDiscovery:
     lldpnames = {
-            LLDP_TLV_END:           'END',
-            LLDP_TLV_CHID:          'ChassisId',
-            LLDP_TLV_PID:           'PortId',
-            LLDP_TLV_TTL:           'TTL',
-            LLDP_TLV_PORT_DESCR:    'PortDescription',
-            LLDP_TLV_SYS_NAME:      'SystemName',
-            LLDP_TLV_SYS_DESCR:     'SystemDescription',
-            LLDP_TLV_SYS_CAPS:      'SystemCapabilities',
-            LLDP_TLV_MGMT_ADDR:     'ManagementAddress',
-            LLDP_TLV_ORG_SPECIFIC:  '(OrgSpecific)',
+            LLDP_TLV_END:           ('END', True),
+            LLDP_TLV_CHID:          ('ChassisId', True),
+            LLDP_TLV_PID:           ('PortId', True),
+            LLDP_TLV_TTL:           ('TTL', True),
+            LLDP_TLV_PORT_DESCR:    ('PortDescription', False),
+            LLDP_TLV_SYS_NAME:      ('SystemName', True),
+            LLDP_TLV_SYS_DESCR:     ('SystemDescription', True),
+            LLDP_TLV_SYS_CAPS:      ('SystemCapabilities', True),
+            LLDP_TLV_MGMT_ADDR:     ('ManagementAddress', True),
+            LLDP_TLV_ORG_SPECIFIC:  ('(OrgSpecific)', True),
     }
     lldp802_1names = {
-            LLDP_ORG802_1_VLAN_PVID:        'VlanPvId',
-            LLDP_ORG802_1_VLAN_PORTPROTO:   'VlanPortProtocol',
-            LLDP_ORG802_1_VLAN_NAME:        'VlanName',
-            LLDP_ORG802_1_VLAN_PROTOID:     'VlanProtocolId',
+            LLDP_ORG802_1_VLAN_PVID:        ('VlanPvId', False),
+            LLDP_ORG802_1_VLAN_PORTPROTO:   ('VlanPortProtocol', False),
+            LLDP_ORG802_1_VLAN_NAME:        ('VlanName', False),
+            LLDP_ORG802_1_VLAN_PROTOID:     ('VlanProtocolId', False),
     }
     lldp802_3names = {
-            LLDP_ORG802_3_PHY_CONFIG:   'PhysicalConfiguration',
-            LLDP_ORG802_3_POWERVIAMDI:  'PowerViaMDI',
-            LLDP_ORG802_3_LINKAGG:      'LinkAggregation',
-            LLDP_ORG802_3_MTU:          'MTU',
+            LLDP_ORG802_3_PHY_CONFIG:   ('PhysicalConfiguration', False),
+            LLDP_ORG802_3_POWERVIAMDI:  ('PowerViaMDI', False),
+            LLDP_ORG802_3_LINKAGG:      ('LinkAggregation', False),
+            LLDP_ORG802_3_MTU:          ('MTU', False),
     }
 
     @staticmethod
@@ -68,17 +68,13 @@ class SwitchDiscovery:
         return int(cast(pktstart, cClass.guint8)[0])
 
     @staticmethod
-    def _byte1(pktstart):
-        return int(cast(pktstart, cClass.guint8)[1])
+    def _byte1addr(pktstart):
+        addr = addressof(pktstart.contents) + 1
+        return pointer(type(pktstart.contents).from_address(addr))
 
     @staticmethod
     def _byteN(pktstart, n):
         return int(cast(pktstart, cClass.guint8)[n])
-
-    @staticmethod
-    def _byte1addr(pktstart):
-        addr = addressof(pktstart.contents) + 1
-        return pointer(type(pktstart.contents).from_address(addr))
 
     @staticmethod
     def _byteNaddr(pktstart, n):
@@ -106,74 +102,114 @@ class SwitchDiscovery:
         return None
 
     @staticmethod
-    def decode_discovery(pktstart, pktend):
+    def decode_discovery(host, interface, wallclock, pktstart, pktend):
         if is_valid_lldp_packet(pktstart, pktend):
-            return SwitchDiscovery._decode_lldp(pktstart, pktend)
+            return SwitchDiscovery._decode_lldp(host, interface, wallclock, pktstart, pktend)
         if is_valid_cdp_packet(pktstart, pktend):
-            return SwitchDiscovery._decode_cdp(pktstart, pktend)
+            return SwitchDiscovery._decode_cdp(host, interface, wallclock, pktstart, pktend)
         raise ValueError('Malformed Switch Discovery Packet')
 
     @staticmethod
-    def _decode_lldp(pktstart, pktend):
+    def _decode_lldp(host, interface, wallclock, pktstart, pktend):
+        'Decode LLDP packet into a JSON discovery packet'
+        thisportinfo = pyConfigContext(init={
+                'ConnectsToHost':       host,
+                'ConnectsToInterface':  interface,
+            }
+        )
+        switchinfo = pyConfigContext(init = {'ports': pyConfigContext()})
+        metadata = pyConfigContext(init={
+                'discovertype':         '#switchdiscoveryprotocol',
+                'description':          'Link Level Switch Discovery (lldp)',
+                'source':               '_decode_lldp()',
+                'host':                 host,
+                'localtime':            str(wallclock),
+                'data':                 switchinfo,
+            }
+        )
+
         this = get_lldptlv_first(pktstart, pktend)
-        ret = {}
         while this and this < pktend:
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
             tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
+            value = None
             if tlvtype not in SwitchDiscovery.lldpnames:
                 print >>sys.stderr, 'Cannot find tlvtype %d' % tlvtype
-                continue
-            tlvtypename = SwitchDiscovery.lldpnames[tlvtype]
+                tlvtype = None
+            else:
+                (tlvname,isswitchinfo)  = SwitchDiscovery.lldpnames[tlvtype]
 
             if (tlvtype == LLDP_TLV_PORT_DESCR or tlvtype == LLDP_TLV_SYS_NAME or 
-                tlvtype == LLDP_TLV_SYS_DESCR):
-                ret[tlvtypename] = string_at(tlvptr, tlvlen)
+                tlvtype == LLDP_TLV_SYS_DESCR): #########################################
+                value = string_at(tlvptr, tlvlen)
 
-            elif tlvtype == LLDP_TLV_PID:
+            elif tlvtype == LLDP_TLV_PID: ###############################################
                 pidtype = SwitchDiscovery._byte0(tlvptr)
                 if (pidtype == LLDP_PIDTYPE_ALIAS or pidtype == LLDP_PIDTYPE_IFNAME
                 or  pidtype == LLDP_PIDTYPE_LOCAL):
                     sloc = SwitchDiscovery._byte1addr(tlvptr)
-                    ret[tlvtypename] = string_at(sloc, tlvlen-1)
+                    value = string_at(sloc, tlvlen-1)
 
-            elif tlvtype == LLDP_TLV_CHID:
+            elif tlvtype == LLDP_TLV_CHID: #############################################
                 chidtype = SwitchDiscovery._byte0(tlvptr)
+
                 if (chidtype == LLDP_CHIDTYPE_COMPONENT or chidtype == LLDP_CHIDTYPE_ALIAS
                 or      chidtype == LLDP_CHIDTYPE_IFNAME or chidtype == LLDP_CHIDTYPE_LOCAL):
                     sloc = SwitchDiscovery._byte1addr(tlvptr)
-                    ret[tlvtypename] = string_at(sloc, tlvlen-1)
+                    value = string_at(sloc, tlvlen-1)
                 elif chidtype == LLDP_CHIDTYPE_MACADDR:
-                    byte1 = SwitchDiscovery._byte1addr(tlvptr)
+                    byte1addr = SwitchDiscovery._byte1addr(tlvptr)
                     Cmacaddr = None
                     if tlvlen == 7:
-                        Cmacaddr = netaddr_mac48_new(byte1)
+                        Cmacaddr = netaddr_mac48_new(byte1addr)
                     elif tlvlen == 9:
-                        Cmacaddr = netaddr_mac64_new(byte1)
+                        Cmacaddr = netaddr_mac64_new(byte1addr)
                     if Cmacaddr is not None:
-                        ret[tlvtypename] = str(pyNetAddr(None, Cstruct=Cmacaddr))
+                        value = pyNetAddr(None, Cstruct=Cmacaddr)
                 elif chidtype == LLDP_CHIDTYPE_NETADDR:
                     byte1addr = SwitchDiscovery._byte1addr(tlvptr)
-                    decode = SwitchDiscovery._decode_netaddr(byte1addr, tlvlen-1)
-                    if decode is not None:
-                        ret[tlvtypename] = decode
+                    value = SwitchDiscovery._decode_netaddr(byte1addr, tlvlen-1)
 
-            elif tlvtype == LLDP_TLV_MGMT_ADDR:
+            elif tlvtype == LLDP_TLV_MGMT_ADDR: #########################################
                 addrlen = SwitchDiscovery._byte0(tlvptr)
                 byte1addr = SwitchDiscovery._byte1addr(tlvptr)
-                decode = SwitchDiscovery._decode_netaddr(byte1addr, addrlen)
-                if decode is not None:
-                    ret[tlvtypename] = decode
-                
+                value = SwitchDiscovery._decode_netaddr(byte1addr, addrlen)
 
-                
+            elif tlvtype == LLDP_TLV_ORG_SPECIFIC: ######################################
+                print >>sys.stderr, 'Found LLDP org-specific extensions (not processed)'
+
+            if value is not None:
+                if tlvtype == LLDP_TLV_PID:
+                    switchinfo['ports'][value] = thisportinfo
+                else:
+                    if isswitchinfo:
+                        switchinfo[tlvname] = value
+                    else:
+                        thisportinfo[tlvname] = value
             this = get_lldptlv_next(this, pktend)
-        return ret
+        return metadata
         
         
     @staticmethod
-    def _decode_cdp(pktstart, pktend):
-        return {}
+    def _decode_cdp(host, interface, wallclock, pktstart, pktend):
+        'Decode CDP packet into a JSON discovery packet'
+        thisportinfo = pyConfigContext(init={
+                'ConnectsToHost':       host,
+                'ConnectsToInterface':  interface,
+            }
+        )
+        switchinfo = pyConfigContext(init = {'ports': pyConfigContext()})
+        metadata = pyConfigContext(init={
+                'discovertype':         '#switchdiscoveryprotocol',
+                'description':          'Link Level Switch Discovery (cdp)',
+                'source':               '_decode_cdp()',
+                'host':                 host,
+                'localtime':            str(wallclock),
+                'data':                 switchinfo,
+            }
+        )
+        return metadata
 
     
 

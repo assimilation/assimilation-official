@@ -29,6 +29,7 @@
  */
 
 #include <memory.h>
+#include <sys/utsname.h>
 #include <projectcommon.h>
 #include <proj_classes.h>
 #include <pcap_min.h>
@@ -245,24 +246,41 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSe
 	IntFrame*	timeframe = intframe_new(FRAMETYPE_WALLCLOCK, sizeof(proj_timeval_to_g_real_time(NULL)));
 	Frame* 		pktframe = frame_new(FRAMETYPE_PKTDATA, 0);
 	CstringFrame*	intfname = cstringframe_new(FRAMETYPE_INTERFACE, 0);
+	CstringFrame*	fsysname = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
 	FrameSet*	fs = frameset_new(framesettype);
 	const guint8*	bpkt = (const guint8*) pkt;
 	gsize		pktlen = ((const guint8*)pktend-bpkt);
 	guint8*		cppkt = MALLOC0(pktlen);
+	struct utsname	un;
+	gchar*		sysname;
 
+	g_return_val_if_fail(uname(&un) >= 0 , NULL);
+	sysname = g_strdup(un.nodename);
+	g_return_val_if_fail(NULL != sysname, NULL);
+	g_return_val_if_fail(fsysname != NULL, NULL);
 	g_return_val_if_fail(timeframe != NULL, NULL);
 	g_return_val_if_fail(pktframe != NULL, NULL);
 	g_return_val_if_fail(intfname != NULL, NULL);
 	g_return_val_if_fail(cppkt != NULL, NULL);
 
-	memcpy(cppkt, pkt, pktlen);
-	timeframe->setint(timeframe, proj_timeval_to_g_real_time(&(pkthdr->ts)));
-	pktframe->setvalue(pktframe, cppkt, pktlen, g_free);
-	intfname->baseclass.setvalue(CASTTOCLASS(Frame, intfname), g_strdup(interfacep), strlen(interfacep)+1, g_free);
-	frameset_append_frame(fs, CASTTOCLASS(Frame, timeframe));
-        timeframe->baseclass.baseclass.unref(timeframe);
-	frameset_append_frame(fs, CASTTOCLASS(Frame, intfname));
+	// System name
+	fsysname->baseclass.setvalue(&fsysname->baseclass, g_strdup(sysname), strlen(sysname)+1, g_free);
+	frameset_append_frame(fs, &fsysname->baseclass);
+        fsysname->baseclass.baseclass.unref(fsysname);
+
+	// Interface name
+	intfname->baseclass.setvalue(&intfname->baseclass, g_strdup(interfacep), strlen(interfacep)+1, g_free);
+	frameset_append_frame(fs, &intfname->baseclass);
         intfname->baseclass.baseclass.unref(intfname);
+
+	// Local time stamp
+	timeframe->setint(timeframe, proj_timeval_to_g_real_time(&(pkthdr->ts)));
+	frameset_append_frame(fs, &timeframe->baseclass);
+        timeframe->baseclass.baseclass.unref(timeframe);
+
+	// Packet data
+	memcpy(cppkt, pkt, pktlen);
+	pktframe->setvalue(pktframe, cppkt, pktlen, g_free);
 	frameset_append_frame(fs, pktframe);
         pktframe->baseclass.unref(pktframe);
 

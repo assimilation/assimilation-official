@@ -978,24 +978,31 @@ class DispatchSWDISCOVER(DispatchTarget):
 
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             print >>sys.stderr,"DispatchSWDISCOVER: received [%s] FrameSet from [%s]" \
         %       (FrameSetTypes.get(fstype)[0], str(origaddr))
         wallclock = None
         interface = None
+        designation = None
         for frame in frameset.iter():
             frametype=frame.frametype()
-            if frametype == FrameTypes.WALLCLOCK:
-                wallclock = frame.getint()
+            if frametype == FrameTypes.HOSTNAME:
+                designation = frame.getstr()
             if frametype == FrameTypes.INTERFACE:
                 interface = frame.getstr()
+            if frametype == FrameTypes.WALLCLOCK:
+                wallclock = frame.getint()
             if frametype == FrameTypes.PKTDATA:
-                if wallclock is None or interface is None:
+                if wallclock is None or interface is None or designation is None:
                     raise ValueError('Incomplete Switch Discovery Packet')
                 pktstart = frame.framevalue()
                 pktend = frame.frameend()
-                switchinfo = SwitchDiscovery.decode_discovery(pktstart, pktend)
-                print 'OOOH!! GOT SWITCH INFO from %s: %s' % (interface, str(switchinfo))
+                switchjson = SwitchDiscovery.decode_discovery(designation, interface
+                ,               wallclock, pktstart, pktend)
+                if CMAdb.debug:
+                    print 'GOT Link Discovery INFO from %s: %s' % (interface, str(switchjson))
+                drone = DroneInfo.find(designation)
+                drone.logjson(str(switchjson))
                 break
 
 
@@ -1054,6 +1061,7 @@ class PacketListener:
 DroneInfo.add_json_processors(('netconfig', DroneInfo.add_netconfig_addresses),)
 DroneInfo.add_json_processors(('tcplisteners', DroneInfo.add_tcplisteners),)
 DroneInfo.add_json_processors(('tcpclients', DroneInfo.add_tcplisteners),)
+#DroneInfo.add_json_processors(('#switchdiscoveryprotocol', DroneInfo.add_tcplisteners),)
 
 if __name__ == '__main__':
     #
