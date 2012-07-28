@@ -133,8 +133,6 @@ class SwitchDiscovery:
             return metadata
         Cmacaddr = netaddr_mac48_new(sourcemacptr)
         sourcemac = pyNetAddr(None, Cstruct=Cmacaddr)
-        print >>sys.stderr, 'GOT MAC: %s' % (str(sourcemac))
-        switchinfo['sourceMAC'] = sourcemac
 
 
         this = get_lldptlv_first(pktstart, pktend)
@@ -195,13 +193,14 @@ class SwitchDiscovery:
                     while len(numericpart) > 0 and not numericpart.isdigit():
                         numericpart = numericpart[1:]
                     if len > 0 and numericpart.isdigit():
-                        thisportinfo['port#'] = int(numericpart)
+                        thisportinfo['_PORTNO'] = int(numericpart)
                 else:
                     if isswitchinfo:
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
             this = get_lldptlv_next(this, pktend)
+        thisportinfo['sourceMAC'] = sourcemac
         return metadata
         
         

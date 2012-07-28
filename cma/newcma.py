@@ -114,8 +114,9 @@ class CMAdb:
 #   Constant name    reltype        fromnodetype       tonodetype
 # ---------------    --------       ------------       ----------
     REL_isa         = 'IS_A'        # Any node          ->  NODE_nodetype
-    REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_drone
-    REL_iphost      = 'iphost'      # NODE_ipaddr       ->  NODE_drone
+    REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_drone (or NODE_switch)
+    REL_wiredto     = 'wiredto'     # NODE_NIC          ->  NODE_drone (or NODE_switch)
+    REL_iphost      = 'iphost'      # NODE_ipaddr       ->  NODE_drone (or NODE_switch)
     REL_ipowner     = 'ipowner'     # NODE_ipaddr       ->  NODE_NIC
     REL_parentring  = 'parentring'  # NODE_ring         ->  NODE_ring
     REL_baseip      = 'baseip'      # NODE_tcpipport    ->  NODE_ipaddr
@@ -245,26 +246,39 @@ class CMAdb:
             drone['status'] = 'created'
         return drone
 
-    def new_nic(self, nicname, macaddr, drone, **kw):
+    def new_switch(self, designation, **kw):
+        'Create a new switch (or return a pre-existing one), and put it in the switch index'
+        #print 'Adding switch', designation
+        switch = self.node_new(CMAdb.NODE_switch, designation, unique=True, **kw)
+        if not 'status' in switch:
+            switch['status'] = 'created'
+        return switch
+
+    def new_nic(self, nicname, macaddr, owner, **kw):
         '''Create a new NIC (or return a pre-existing one), and put it in the mac address index,
-        and point it at its parent drone.'''
+        and point it at its parent owner.'''
+
+        try:
+            owningnode = owner.node
+        except AttributeError:
+            owningnode = owner
         
         macnics = self.macindex.get(CMAdb.NODE_NIC, macaddr)
         for mac in macnics:
             if CMAdb.debug:
                 print 'MAC IS:', mac
-                if mac.is_related_to(drone.node, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner):
-                    print 'MAC %s is nicowner related to drone %s' % (str(mac), str(drone))
-                    print 'MAC address = %s, NICname = %s for drone %s' % (mac['address'], mac['nicname'], drone)
+                if mac.is_related_to(owningnode, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner):
+                    print 'MAC %s is nicowner related to owner %s' % (str(mac), str(owner))
+                    print 'MAC address = %s, NICname = %s for owner %s' % (mac['address'], mac['nicname'], owner)
                 else:
-                    print 'MAC %s is NOT nicowner related to drone %s' (str(mac), str(drone))
+                    print 'MAC %s is NOT nicowner related to owner %s' (str(mac), str(owner))
                 
                 
-            if mac.is_related_to(drone.node, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner) \
+            if mac.is_related_to(owningnode, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner) \
             and mac['address'] == macaddr and mac['nicname'] == nicname:
                 return mac
         mac = self.node_new(CMAdb.NODE_NIC, macaddr, address=macaddr, unique=False, nicname=nicname, **kw)
-        mac.create_relationship_to(drone.node, CMAdb.REL_nicowner)
+        mac.create_relationship_to(owningnode, CMAdb.REL_nicowner)
         return mac
 
     def new_IPaddr(self, nic, ipaddr, **kw):
@@ -692,7 +706,51 @@ class DroneInfo:
             CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, None, ipproc, ipaddr)
 
     def add_linkdiscovery(self, jsonobj, **kw):
-        print 'Oh... Ignoring TCP Listener JSON: %s' % (jsonobj)
+        data = jsonobj['data']
+        if 'ChassisId' not in data:
+            print >>sys.stderr, 'Chassis ID missing for switch [%s]' (str(data))
+            return
+        ChassisId = data['ChassisId']
+        attrs = {}
+        for key in data.keys():
+            if key == 'ports':  continue
+            value = data[key]
+            if isinstance(value, pyNetAddr):
+                value = str(value)
+            attrs[key] = value
+        switch = CMAdb.cdb.new_switch(ChassisId, **attrs)
+        if ('ManagementAddress' in attrs):
+            mgmtaddr = attrs['ManagementAddress']
+            adminnic = CMAdb.cdb.new_nic('(adminNIC)', ChassisId, switch)
+            CMAdb.cdb.new_IPaddr(adminnic, mgmtaddr)
+        ports = data['ports']
+        for portname in ports.keys():
+            attrs = {}
+            thisport = ports[portname]
+            for key in thisport.keys():
+                value = thisport[key]
+                if isinstance(value, pyNetAddr):
+                    value = str(value)
+                attrs[key] = value
+            if 'sourceMAC' in thisport:
+                nicmac = thisport['sourceMAC']
+            else:
+                nicmac = ChassisId # Hope that works ;-)
+            nicnode = CMAdb.cdb.new_nic(portname, nicmac, switch, **attrs)
+            try:
+                assert thisport['ConnectsToHost'] == self.node['name']
+                matchnic = thisport['ConnectsToInterface']
+                niclist = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_nicowner)
+                for dronenic in niclist:
+                    if dronenic['nicname'] == matchnic:
+                        nicnode.create_relationship_from(dronenic, CMAdb.REL_wiredto)
+                        break
+            except KeyError:
+                print 'OOPS! got an exception...'
+                pass
+
+
+
 
     def primary_ip(self, ring=None):
         '''Return the "primary" IP for this host'''
