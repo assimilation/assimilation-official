@@ -339,8 +339,8 @@ class FrameSetTypes:
 	'SETCONFIG':	(70, 'Initial configuration packet'),
 	'INCRDEBUG':	(71, 'Increment debug for some or all classes'),
 	'DECRDEBUG':	(72, 'Increment debug for some or all classes'),
-	'DODISCOVER':	(73, 'Perform (repeating) discovery action'),
-	'STOPDISCOVER':	(74, 'Stop a repeating discovery action'),
+	'DODISCOVER':	(73, 'Perform (repeating) JSON discovery action'),
+	'STOPDISCOVER':	(74, 'Stop a repeating JSON discovery action'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():

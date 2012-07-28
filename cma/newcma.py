@@ -107,24 +107,23 @@ class CMAdb:
     NODE_NIC        = 'NIC'         # A network interface card (connection)
     NODE_ipaddr     = 'IPaddr'      # IP address
     NODE_ipproc     = 'tcp-process' # A TCP client and/or server process
-    NODE_ipport     = 'IP:port'     # (ip, port) tuple for a listening host
+    NODE_tcpipport  = 'IP:tcpport'  # (ip, port) tuple for a TCP service
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
 #   Constant name    reltype        fromnodetype       tonodetype
 # ---------------    --------       ------------       ----------
-    REL_isa         = 'IS_A'        # Any node      ->  NODE_nodetype
-    REL_nicowner    = 'nicowner'    # NODE_NIC      ->  NODE_drone
-    REL_iphost      = 'iphost'      # NODE_ipaddr   ->  NODE_drone
-    REL_ipowner     = 'ipowner'     # NODE_ipaddr   ->  NODE_NIC
-    REL_parentring  = 'parentring'  # NODE_ring     ->  NODE_ring
-    REL_ipservice   = 'ipservice'   # NODE_ipport   ->  NODE_ipaddr
-    REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
-    REL_ippclient   = 'ippclient'   # NODE_ipport   ->  NODE_drone
-    REL_ipclient    = 'ipclient'    # NODE_ipproc   ->  NODE_ipport
-    REL_ipserver    = 'ipserver'    # NODE_ipport   ->  NODE_ipproc
-    REL_runningon   = 'runningon'   # NODE_ipproc   ->  NODE_drone
-    REL_ipphost     = 'ipphost'     # NODE_ipport   ->  NODE_drone
+    REL_isa         = 'IS_A'        # Any node          ->  NODE_nodetype
+    REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_drone
+    REL_iphost      = 'iphost'      # NODE_ipaddr       ->  NODE_drone
+    REL_ipowner     = 'ipowner'     # NODE_ipaddr       ->  NODE_NIC
+    REL_parentring  = 'parentring'  # NODE_ring         ->  NODE_ring
+    REL_baseip      = 'baseip'      # NODE_tcpipport    ->  NODE_ipaddr
+    REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_drone
+    REL_tcpservice  = 'tcpservice'  # NODE_tcpipport    ->  NODE_ipproc
+    REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_drone
+    REL_runningon   = 'runningon'   # NODE_ipproc       ->  NODE_drone
+    REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
 
     debug = False
 
@@ -147,7 +146,7 @@ class CMAdb:
         ,   CMAdb.NODE_NIC:     True    # NICs are indexed by MAC address
                                         # MAC addresses are not always unique...
         ,   CMAdb.NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
-        ,   CMAdb.NODE_ipport:  True    # We index IP and port - handy to have...
+        ,   CMAdb.NODE_tcpipport:  True    # We index IP and port - handy to have...
         ,   CMAdb.NODE_ipproc:  False
         }
         
@@ -298,11 +297,8 @@ class CMAdb:
         for key in jsonobj.keys():
             type = jsonobj.gettype(key)
             if not (type == CFG_BOOL or type == CFG_INT64 or type == CFG_STRING
-            #or      type == CFG_FLOAT or type == CFG_ARRAY):
-            or      type == CFG_FLOAT):
-############ FIXME: Need to re-enable CFG_ARRAY for the arguments to the process
+            or      type == CFG_FLOAT or type == CFG_ARRAY):
                 continue
-            # FIXME: BUG WORKAROUND!!!
             if jsonobj[key] is None: continue
             # We assume any arrays are of same-typed simple objects (presumably Strings)
             # This is a reasonable assumption for our process discovery data
@@ -313,7 +309,7 @@ class CMAdb:
         return ipproc
 
 
-    def new_ipport(self,            ##< Self... The usual self object
+    def new_tcpipport(self,            ##< Self... The usual self object
                    name,            ##< What is our name? (not indexed - yet)
                    isserver,        ##< Either CMAdb.REL_
                    jsonobj,         ##< The JSON object for this listen object
@@ -329,17 +325,17 @@ class CMAdb:
             or      type == CFG_FLOAT or type == CFG_ARRAY):
                 continue
             table[key] = jsonobj[key]
-        ipport = self.node_new(CMAdb.NODE_ipport, name, unique=True, **table)
-        ## FIXME? Should I make this relationship a REL_ipservice + ':' + port type?
+        tcpipport = self.node_new(CMAdb.NODE_tcpipport, name, unique=True, **table)
+        ## FIXME? Should I make this relationship a REL_baseip + ':' + port type?
         if isserver:
             args =    (
-                (ipport,    CMAdb.REL_ipservice,    ipaddrnode, {'port':port}),
-                (ipport,    CMAdb.REL_ipserver,     ipproc),
-                (ipport,    CMAdb.REL_ipphost,      dronenode))
+                (tcpipport,    CMAdb.REL_baseip,        ipaddrnode, {'port':port}),
+                (tcpipport,    CMAdb.REL_tcpservice,    ipproc),
+                (tcpipport,    CMAdb.REL_ipphost,       dronenode))
         else:
             args =    (
-                (ipport,    CMAdb.REL_ipservice,    ipaddrnode, {'port':port}),
-                (ipproc,    CMAdb.REL_ipclient,     ipport))
+                (tcpipport, CMAdb.REL_baseip,           ipaddrnode, {'port':port}),
+                (ipproc,    CMAdb.REL_tcpclient,        tcpipport))
         CMAdb.cdb.db.relate(*args)
 
 
@@ -654,18 +650,6 @@ class DroneInfo:
                     if rel is None:
                       CMAdb.cdb.db.relate((self.node, 'primaryip', ipnode),)
 
-#       ipservice       ip_port         ip
-#       serving         ipproc          ip_port
-#       client          ipproc          ip_port
-#       prochost        ipproc          drone
-#       iphost          ip_port         drone
-#    def new_ipport(self,            ##< Self... The usual self object
-#                   name,            ##< What is our name? (not indexed - yet)
-#                   jsonobj,         ##< The JSON object for this listen object
-#                   ipaddrnode)      ##< A Neo4j IPaddr node
-#    def new_ipproc(self,            ##< Self... The usual self object
-#                   name,            ##< What should we be called? (no index)
-#                   jsonobj):        ##< The JSON ConfigContext object for us alone...
     def add_tcplisteners(self, jsonobj, **kw):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
@@ -675,16 +659,16 @@ class DroneInfo:
             procinfo = data[procname]
             ipproc = CMAdb.cdb.new_ipproc(procname, procinfo, self.node)
             if 'listenaddrs' in procinfo:
-                ipportinfo = procinfo['listenaddrs']
-                for ipport in ipportinfo.keys():
-                    self.add_ipports(True, ipportinfo[ipport], ipproc, allourips)
+                tcpipportinfo = procinfo['listenaddrs']
+                for tcpipport in tcpipportinfo.keys():
+                    self.add_tcpipports(True, tcpipportinfo[tcpipport], ipproc, allourips)
             if 'clientaddrs' in procinfo:
-                ipportinfo = procinfo['clientaddrs']
-                for ipport in ipportinfo.keys():
-                    self.add_ipports(False, ipportinfo[ipport], ipproc, None)
+                tcpipportinfo = procinfo['clientaddrs']
+                for tcpipport in tcpipportinfo.keys():
+                    self.add_tcpipports(False, tcpipportinfo[tcpipport], ipproc, None)
 
-    def add_ipports(self, isserver, jsonobj, ipproc, allourips):
-        '''We create ipports objects that correspond to the given json object in
+    def add_tcpipports(self, isserver, jsonobj, ipproc, allourips):
+        '''We create tcpipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
         for the ANY ipv4 and ipv6 addresses'''
         addr = str(jsonobj['addr'])
@@ -694,18 +678,18 @@ class DroneInfo:
         if isserver and (addr == '0.0.0.0' or addr == '::'):
             for ipaddr in allourips:
                 name = ipaddr['name'] + ':' + str(port)
-                ipport = CMAdb.cdb.new_ipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
+                tcpipport = CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
         elif isserver:
             for ipaddr in allourips:
                 if ipaddr['name'] == addr:
-                    CMAdb.cdb.new_ipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
+                    CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
                     return
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
                             % (self.node['name'], addr))
         else:
             name = addr + ':' + str(port)
             ipaddr = CMAdb.cdb.new_IPaddr(None, addr)
-            CMAdb.cdb.new_ipport(name, isserver, jsonobj, None, ipproc, ipaddr)
+            CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, None, ipproc, ipaddr)
 
 
     def primary_ip(self, ring=None):
@@ -973,7 +957,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
-            print >>sys.stderr,"DispatchTARGET: received [%s] FrameSet from [%s]" \
+            print >>sys.stderr,"DispatchJSDISCOVERY: received [%s] FrameSet from [%s]" \
         %       (FrameSetTypes.get(fstype)[0], str(origaddr))
         sysname = None
         for frame in frameset.iter():
@@ -988,6 +972,31 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 drone = DroneInfo.find(sysname)
                 drone.logjson(json)
                 sysname = None
+
+class DispatchSWDISCOVER(DispatchTarget):
+    'DispatchTarget subclass for handling incoming SWDISCOVER FrameSets.'
+
+    def dispatch(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        if True or CMAdb.debug:
+            print >>sys.stderr,"DispatchSWDISCOVER: received [%s] FrameSet from [%s]" \
+        %       (FrameSetTypes.get(fstype)[0], str(origaddr))
+        wallclock = None
+        interface = None
+        for frame in frameset.iter():
+            frametype=frame.frametype()
+            if frametype == FrameTypes.WALLCLOCK:
+                wallclock = frame.getint()
+            if frametype == FrameTypes.INTERFACE:
+                interface = frame.getstr()
+            if frametype == FrameTypes.PKTDATA:
+                if wallclock is None or interface is None:
+                    raise ValueError('Incomplete Switch Discovery Packet')
+                pktstart = frame.framevalue()
+                pktend = frame.frameend()
+                switchinfo = SwitchDiscovery.decode_discovery(pktstart, pktend)
+                print 'OOOH!! GOT SWITCH INFO from %s: %s' % (interface, str(switchinfo))
+                break
 
 
 class MessageDispatcher:
@@ -1078,7 +1087,8 @@ if __name__ == '__main__':
     disp = MessageDispatcher(
     {   FrameSetTypes.STARTUP: DispatchSTARTUP(),
         FrameSetTypes.HBDEAD: DispatchHBDEAD(),
-        FrameSetTypes.JSDISCOVERY: DispatchJSDISCOVERY()
+        FrameSetTypes.JSDISCOVERY: DispatchJSDISCOVERY(),
+        FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER()
     })
     listener = PacketListener(config, disp)
     listener.listen()

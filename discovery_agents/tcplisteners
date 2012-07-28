@@ -138,7 +138,7 @@ discover()
           seq=1
           pname="${name}"
         fi
-	#if [ "$pname" != sshd ] ; then continue; fi
+	if [ "$pname" != sshd ] ; then continue; fi
         if
           [ "$innercomma" != '' ]
         then

@@ -136,7 +136,7 @@ process_netstat()
           seq=1
           pname="${name}"
         fi
-	#if [ "$pname" != ssh ] ; then continue; fi
+	if [ "$pname" != ssh ] ; then continue; fi
         if
           [ "$innercomma" != '' ]
         then

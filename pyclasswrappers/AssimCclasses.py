@@ -37,103 +37,123 @@ def CCunref(obj):
         base=base.baseclass
     base.unref(obj)
 
-class TLV:
-    '''Type/Length/Value abstract class.
-    We expect to create IEEE (LLDP), Cisco (CDP) and our local variants (generic) subclasses...
-    '''
-    def __init__(self, tlvtype, tlvvalue):
-        'Initialize the TLV using a string_buffer or similar'
-        assert tlvtype >= 0
-        self.tlvtype = tlvtype
-        self.length = len(self.value)
-        vlen = len(tlvvalue)
-        self.value = create_string_buffer(vlen)
-        for i in range(0, vlen-1):
-            self.value[i] =  chr(tlvvalue[i])
+class SwitchDiscovery:
+    lldpnames = {
+            LLDP_TLV_END:           'END',
+            LLDP_TLV_CHID:          'ChassisId',
+            LLDP_TLV_PID:           'PortId',
+            LLDP_TLV_TTL:           'TTL',
+            LLDP_TLV_PORT_DESCR:    'PortDescription',
+            LLDP_TLV_SYS_NAME:      'SystemName',
+            LLDP_TLV_SYS_DESCR:     'SystemDescription',
+            LLDP_TLV_SYS_CAPS:      'SystemCapabilities',
+            LLDP_TLV_MGMT_ADDR:     'ManagementAddress',
+            LLDP_TLV_ORG_SPECIFIC:  '(OrgSpecific)',
+    }
+    lldp802_1names = {
+            LLDP_ORG802_1_VLAN_PVID:        'VlanPvId',
+            LLDP_ORG802_1_VLAN_PORTPROTO:   'VlanPortProtocol',
+            LLDP_ORG802_1_VLAN_NAME:        'VlanName',
+            LLDP_ORG802_1_VLAN_PROTOID:     'VlanProtocolId',
+    }
+    lldp802_3names = {
+            LLDP_ORG802_3_PHY_CONFIG:   'PhysicalConfiguration',
+            LLDP_ORG802_3_POWERVIAMDI:  'PowerViaMDI',
+            LLDP_ORG802_3_LINKAGG:      'LinkAggregation',
+            LLDP_ORG802_3_MTU:          'MTU',
+    }
 
-    def get_tlvtype(self):
-        'Return the TLV type of this TLV object'
-        return self.tlvtype
+    @staticmethod
+    def _byte0(pktstart):
+        return int(cast(pktstart, cClass.guint8)[0])
 
-    def get_tlvlen(self):
-        'Return the length of this TLV value'
-        return self.length
+    @staticmethod
+    def _byte1(pktstart):
+        return int(cast(pktstart, cClass.guint8)[1])
 
-    def get_tlvvalue(self):
-        'Return the string buffer corresponding to the value of this TLV object'
-        return self.value
+    @staticmethod
+    def _byte1addr(pktstart):
+        addr = addressof(pktstart.contents) + 1
+        return pointer(type(pktstart.contents).from_address(addr))
 
-    def get_buf(self):
-        'Abstract member function - returns the internal data representation of this TLV object'
-        raise NotImplementedError("Abstract Member Function")
+    @staticmethod
+    def _byte2addr(pktstart):
+        addr = addressof(pktstart.contents) + 1
+        return pointer(type(pktstart.contents).from_address(addr))
 
-    @classmethod
-    def from_buf(Class):
-        'Abstract member function - effectively a constructor which is passed the underlying C structure'
-        raise NotImplementedError("Abstract Member Function")
+    @staticmethod
+    def decode_discovery(pktstart, pktend):
+        if is_valid_lldp_packet(pktstart, pktend):
+            return SwitchDiscovery._decode_lldp(pktstart, pktend)
+        if is_valid_cdp_packet(pktstart, pktend):
+            return SwitchDiscovery._decode_cdp(pktstart, pktend)
+        raise ValueError('Malformed Switch Discovery Packet')
 
+    @staticmethod
+    def _decode_lldp(pktstart, pktend):
+        this = get_lldptlv_first(pktstart, pktend)
+        ret = {}
+        while this and this < pktend:
+            tlvtype = get_lldptlv_type(this, pktend)
+            tlvlen = get_lldptlv_len(this, pktend)
+            tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
+            if tlvtype not in SwitchDiscovery.lldpnames:
+                print >>sys.stderr, 'Cannot find tlvtype %d' % tlvtype
+                continue
+            tlvtypename = SwitchDiscovery.lldpnames[tlvtype]
+            if (tlvtype == LLDP_TLV_PORT_DESCR or tlvtype == LLDP_TLV_SYS_NAME or 
+                tlvtype == LLDP_TLV_SYS_DESCR):
+                ret[tlvtypename] = string_at(tlvptr, tlvlen)
+            elif tlvtype == LLDP_TLV_PID:
+                pidtype = SwitchDiscovery._byte0(tlvptr)
+                if (pidtype == LLDP_PIDTYPE_ALIAS or pidtype == LLDP_PIDTYPE_IFNAME
+                or  pidtype == LLDP_PIDTYPE_LOCAL):
+                    sloc = SwitchDiscovery._byte1addr(tlvptr)
+                    ret[tlvtypename] = string_at(sloc, tlvlen-1)
+            elif tlvtype == LLDP_TLV_CHID:
+                chidtype = SwitchDiscovery._byte0(tlvptr)
+                if (chidtype == LLDP_CHIDTYPE_COMPONENT or chidtype == LLDP_CHIDTYPE_ALIAS
+                or      chidtype == LLDP_CHIDTYPE_IFNAME or chidtype == LLDP_CHIDTYPE_LOCAL):
+                    sloc = SwitchDiscovery._byte1addr(tlvptr)
+                    ret[tlvtypename] = string_at(sloc, tlvlen-1)
+                elif chidtype == LLDP_CHIDTYPE_MACADDR:
+                    byte1 = SwitchDiscovery._byte1addr(tlvptr)
+                    Cmacaddr = None
+                    if tlvlen == 7:
+                        Cmacaddr = netaddr_mac48_new(byte1)
+                    elif tlvlen == 9:
+                        Cmacaddr = netaddr_mac64_new(byte1)
+                    if Cmacaddr is not None:
+                        ret[tlvtypename] = str(pyNetAddr(None, Cstruct=Cmacaddr))
+                elif chidtype == LLDP_CHIDTYPE_NETADDR:
+                    byte1 = SwitchDiscovery._byte1(tlvptr)
+                    byte2addr = SwitchDiscovery._byte2addr(tlvptr)
+                    CnetAddr = None
+                    if byte1 == ADDR_FAMILY_IPV6:
+                        if tlvlen != 18:    continue
+                        Cnetaddr = netaddr_ipv6_new(byte2addr, 0)
+                    elif byte1 == ADDR_FAMILY_IPV4:
+                        if tlvlen != 6:     continue
+                        Cnetaddr = netaddr_ipv4_new(byte2addr, 0)
+                    elif byte1 == ADDR_FAMILY_802:
+                        if tlvlen == 8:
+                            Cmacaddr = netaddr_mac48_new(byte2addr)
+                        elif tlvlen == 10:
+                            Cmacaddr = netaddr_mac64_new(byte2addr)
+                        if Cnetaddr is not None:
+                            ret[tlvtypename] = str(pyNetAddr(None, Cstruct=Cnetaddr))
 
-class GenericTLV(TLV):
-    '''Our local (generic) TLV implementation with 2 bytes for type and 2 for length - very simple.
-       This is all implemented by our underlying C implementation'''
-    def get_buf(self):
-        'Return a string_buffer containing the value of this TLV field'
-        bufsize = sizeof(guint16)+sizeof(guint16)+len(self.value)
-        buf = create_string_buffer(bufsize)
-        bufend= cast(buf, cClass.guint8)+bufsize
-        set_generic_tlv_type(buf, self.tlvtype, buf, bufend)
-        set_generic_tlv_len(buf, self.tlvlen, bufend)
-        set_generic_tlv_value(buf, self.value, bufend)
-        return buf
+                
+            this = get_lldptlv_next(this, pktend)
+        return ret
+        
+        
+    @staticmethod
+    def _decode_cdp(pktstart, pktend):
+        return {}
 
-    @classmethod
-    def from_buf(Class, buf):
-        'Construct a GenericTLV from a string_buffer containing the value to initalize it to'
-        ptype = cClass.guint8
-        bufend= cast(buf, ptype)+len(buf)
-        tlvtype = get_generic_tlv_type(buf, bufend)
-        tlvlen = get_generic_tlv_len(buf, bufend)
-        valptr = cast(get_generic_tlv_value(buf, bufend), ptype)
-        value = create_string_buffer(tlvlen)
-        for i in range(0, vlen-1):
-            value[i] =  chr(valptr[i])
-        return Class(tlvtype, value)
+    
 
-class CDPTLV(TLV):
-    '''A TLV implementation based on the Cisco TLV layout as used by their CDP protocol
-       It has a checksum at the beginning followed by a sequence of one byte types and 2-byte lengths.
-       This is all implemented by our underlying C code.'''
-
-    @classmethod
-    def from_buf(Class, buf):
-        'Construct a CDPTLV from a string_buffer containing the value to initialize it to'
-        ptype = cClass.guint8
-        bufend= cast(buf, ptype)+len(buf)
-        tlvtype = get_cdptlv_type(buf, bufend)
-        tlvlen = get_cdptlv_len(buf, bufend)
-        valptr = cast(get_cdptlv_value(buf, bufend), ptype)
-        value = create_string_buffer(tlvlen)
-        for i in range(0, vlen-1):
-            value[i] =  chr(valptr[i])
-        return Class(tlvtype, value)
-
-class LLDPTLV(TLV):
-    '''A TLV implementation based on the IEEE TLV layout as used by the LLDP protocol
-       It has a 7-bit type followed by a 9-bit length field.
-       This is all implemented by our underlying C code.'''
-
-    @classmethod
-    def from_buf(Class, buf):
-        'Construct a LLDPTLV from a string_buffer containing the value to initialize it to'
-        ptype = cClass.guint8
-        bufend= cast(buf, ptype)+len(buf)
-        tlvtype = get_lldp_tlv_type(buf, bufend)
-        tlvlen = get_lldp_tlv_vlen(buf, bufend) # vlen is the length of the value portion only
-        valptr = cast(get_lldp_tlv_value(buf, bufend), ptype)
-        value = create_string_buffer(tlvlen)
-        for i in range(0, vlen-1):
-            value[i] =  chr(valptr[i])
-        return Class(tlvtype, value)
 
 class pyAssimObj:
     def __init__(self, Cstruct=None):
@@ -325,11 +345,18 @@ class pyFrame(pyAssimObj):
         return base.length
    
     def framevalue(self):
-        'Return a C-style pointer (as an int) to the underlying raw TLV data (if any)'
+        'Return a C-style pointer to the underlying raw TLV data (if any)'
         base=self._Cstruct[0]
         while (type(base)is not Frame):
             base=base.baseclass
         return cast(base.value, c_char_p)
+
+    def frameend(self):
+        'Return a C-style pointer to the underlying raw TLV data (if any)'
+        base=self._Cstruct[0]
+        while (type(base)is not Frame):
+            base=base.baseclass
+        return cast(base.value+base.length, c_char_p)
 
     def dataspace(self):
         'Return the amount of space this frame needs - including type and length'
@@ -766,11 +793,8 @@ class pyConfigContext(pyAssimObj):
     def getarray(self, name):
         'Return the array value associated with "name"'
         l=  self._Cstruct[0].getarray(self._Cstruct, name)
-        print "GETARRAY (%s) type %s" % (l, type(l))
-        print "GSLIST (%s) POINTER(GSlist) %s" % (POINTER(GSList), type(POINTER(GSList)))
         curlist = cast(self._Cstruct[0].getarray(self._Cstruct, name), cClass.GSList)
         #curlist = cast(POINTER(GSList), self._Cstruct[0].getarray(self._Cstruct, name))
-        print >>sys.stderr, 'CURLIST(%s) IS: %s' % (name, curlist)
         ret = []
         while curlist:
             #cfgval = pyConfigValue(cast(cClass.ConfigValue, curlist[0].data).get())
@@ -852,8 +876,7 @@ class pyConfigValue:
         if vtype == CFG_INT64:
             return int(self._Cstruct[0].u.intvalue)
         if vtype == CFG_STRING:
-            print >>sys.stderr, 'Value [%s], type[%s]' % (self._Cstruct[0].u.strvalue, type(self._Cstruct[0].u.strvalue))
-            return self._Cstruct[0].u.strvalue
+            return str(self._Cstruct[0].u.strvalue)
         if vtype == CFG_FLOAT:
             return float(self._Cstruct[0].u.floatvalue)
         if vtype == CFG_CFGCTX:

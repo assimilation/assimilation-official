@@ -2537,7 +2537,7 @@ if hasattr(_libs['libclientlib.so'], 'jsondiscovery_new'):
     jsondiscovery_new.argtypes = [String, String, c_int, POINTER(ConfigContext), POINTER(NetGSource), POINTER(ConfigContext), gsize]
     jsondiscovery_new.restype = POINTER(JsonDiscovery)
 
-# /home/alanr/monitor/src/include/lldp.h: 108
+# /home/alanr/monitor/src/include/lldp.h: 109
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'get_lldp_chassis_id_type'):
         continue
@@ -2546,19 +2546,19 @@ for _lib in _libs.itervalues():
     get_lldp_chassis_id_type.restype = c_uint
     break
 
-# /home/alanr/monitor/src/include/lldp.h: 109
+# /home/alanr/monitor/src/include/lldp.h: 110
 if hasattr(_libs['libclientlib.so'], 'get_lldp_chassis_id'):
     get_lldp_chassis_id = _libs['libclientlib.so'].get_lldp_chassis_id
     get_lldp_chassis_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_lldp_chassis_id.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 110
+# /home/alanr/monitor/src/include/lldp.h: 111
 if hasattr(_libs['libclientlib.so'], 'get_lldp_port_id'):
     get_lldp_port_id = _libs['libclientlib.so'].get_lldp_port_id
     get_lldp_port_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_lldp_port_id.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 111
+# /home/alanr/monitor/src/include/lldp.h: 112
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'get_lldp_port_id_type'):
         continue
@@ -2567,49 +2567,49 @@ for _lib in _libs.itervalues():
     get_lldp_port_id_type.restype = c_uint
     break
 
-# /home/alanr/monitor/src/include/lldp.h: 113
+# /home/alanr/monitor/src/include/lldp.h: 114
 if hasattr(_libs['libclientlib.so'], 'get_lldptlv_type'):
     get_lldptlv_type = _libs['libclientlib.so'].get_lldptlv_type
     get_lldptlv_type.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_type.restype = guint8
 
-# /home/alanr/monitor/src/include/lldp.h: 114
+# /home/alanr/monitor/src/include/lldp.h: 115
 if hasattr(_libs['libclientlib.so'], 'get_lldptlv_len'):
     get_lldptlv_len = _libs['libclientlib.so'].get_lldptlv_len
     get_lldptlv_len.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_len.restype = gsize
 
-# /home/alanr/monitor/src/include/lldp.h: 115
+# /home/alanr/monitor/src/include/lldp.h: 116
 if hasattr(_libs['libclientlib.so'], 'get_lldptlv_first'):
     get_lldptlv_first = _libs['libclientlib.so'].get_lldptlv_first
     get_lldptlv_first.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_first.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 116
+# /home/alanr/monitor/src/include/lldp.h: 117
 if hasattr(_libs['libclientlib.so'], 'get_lldptlv_next'):
     get_lldptlv_next = _libs['libclientlib.so'].get_lldptlv_next
     get_lldptlv_next.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_next.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 117
+# /home/alanr/monitor/src/include/lldp.h: 118
 if hasattr(_libs['libclientlib.so'], 'get_lldptlv_body'):
     get_lldptlv_body = _libs['libclientlib.so'].get_lldptlv_body
     get_lldptlv_body.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_body.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 118
+# /home/alanr/monitor/src/include/lldp.h: 119
 if hasattr(_libs['libclientlib.so'], 'find_next_lldptlv_type'):
     find_next_lldptlv_type = _libs['libclientlib.so'].find_next_lldptlv_type
     find_next_lldptlv_type.argtypes = [gconstpointer, c_uint, gconstpointer]
     find_next_lldptlv_type.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 119
+# /home/alanr/monitor/src/include/lldp.h: 120
 if hasattr(_libs['libclientlib.so'], 'is_valid_lldp_packet'):
     is_valid_lldp_packet = _libs['libclientlib.so'].is_valid_lldp_packet
     is_valid_lldp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_lldp_packet.restype = gboolean
 
-# /home/alanr/monitor/src/include/lldp.h: 120
+# /home/alanr/monitor/src/include/lldp.h: 121
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'enable_lldp_packets'):
         continue
@@ -3920,179 +3920,185 @@ except:
 
 # /home/alanr/monitor/src/include/lldp.h: 38
 try:
+    LLDP_TLV_MGMT_ADDR = 8
+except:
+    pass
+
+# /home/alanr/monitor/src/include/lldp.h: 39
+try:
     LLDP_TLV_ORG_SPECIFIC = 127
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 46
+# /home/alanr/monitor/src/include/lldp.h: 47
 try:
     LLDP_CHIDTYPE_COMPONENT = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 48
+# /home/alanr/monitor/src/include/lldp.h: 49
 try:
     LLDP_CHIDTYPE_ALIAS = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 49
+# /home/alanr/monitor/src/include/lldp.h: 50
 try:
     LLDP_CHIDTYPE_PORT = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 51
+# /home/alanr/monitor/src/include/lldp.h: 52
 try:
     LLDP_CHIDTYPE_MACADDR = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 52
+# /home/alanr/monitor/src/include/lldp.h: 53
 try:
     LLDP_CHIDTYPE_NETADDR = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 53
+# /home/alanr/monitor/src/include/lldp.h: 54
 try:
     LLDP_CHIDTYPE_IFNAME = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 54
+# /home/alanr/monitor/src/include/lldp.h: 55
 try:
     LLDP_CHIDTYPE_LOCAL = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 62
+# /home/alanr/monitor/src/include/lldp.h: 63
 try:
     LLDP_PIDTYPE_ALIAS = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 63
+# /home/alanr/monitor/src/include/lldp.h: 64
 try:
     LLDP_PIDTYPE_COMPONENT = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 65
+# /home/alanr/monitor/src/include/lldp.h: 66
 try:
     LLDP_PIDTYPE_MACADDR = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 66
+# /home/alanr/monitor/src/include/lldp.h: 67
 try:
     LLDP_PIDTYPE_NETADDR = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 67
+# /home/alanr/monitor/src/include/lldp.h: 68
 try:
     LLDP_PIDTYPE_IFNAME = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 68
+# /home/alanr/monitor/src/include/lldp.h: 69
 try:
     LLDP_PIDTYPE_CIRCUITID = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 69
+# /home/alanr/monitor/src/include/lldp.h: 70
 try:
     LLDP_PIDTYPE_LOCAL = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 76
+# /home/alanr/monitor/src/include/lldp.h: 77
 try:
     LLDP_CAPMASK_REPEATER = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 77
+# /home/alanr/monitor/src/include/lldp.h: 78
 try:
     LLDP_CAPMASK_BRIDGE = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 78
+# /home/alanr/monitor/src/include/lldp.h: 79
 try:
     LLDP_CAPMASK_WLAN_AP = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 79
+# /home/alanr/monitor/src/include/lldp.h: 80
 try:
     LLDP_CAPMASK_ROUTER = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 80
+# /home/alanr/monitor/src/include/lldp.h: 81
 try:
     LLDP_CAPMASK_PHONE = 32
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 81
+# /home/alanr/monitor/src/include/lldp.h: 82
 try:
     LLDP_CAPMASK_DOCSIS = 64
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 82
+# /home/alanr/monitor/src/include/lldp.h: 83
 try:
     LLDP_CAPMASK_STATION = 128
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 90
+# /home/alanr/monitor/src/include/lldp.h: 91
 try:
     LLDP_ORG802_1_VLAN_PVID = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 91
+# /home/alanr/monitor/src/include/lldp.h: 92
 try:
     LLDP_ORG802_1_VLAN_PORTPROTO = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 92
+# /home/alanr/monitor/src/include/lldp.h: 93
 try:
     LLDP_ORG802_1_VLAN_NAME = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 93
+# /home/alanr/monitor/src/include/lldp.h: 94
 try:
     LLDP_ORG802_1_VLAN_PROTOID = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 101
+# /home/alanr/monitor/src/include/lldp.h: 102
 try:
     LLDP_ORG802_3_PHY_CONFIG = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 102
+# /home/alanr/monitor/src/include/lldp.h: 103
 try:
     LLDP_ORG802_3_POWERVIAMDI = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 103
+# /home/alanr/monitor/src/include/lldp.h: 104
 try:
     LLDP_ORG802_3_LINKAGG = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 104
+# /home/alanr/monitor/src/include/lldp.h: 105
 try:
     LLDP_ORG802_3_MTU = 4
 except:

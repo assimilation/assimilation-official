@@ -35,6 +35,7 @@
 #define	LLDP_TLV_SYS_NAME	5	///< System name
 #define	LLDP_TLV_SYS_DESCR	6	///< System description
 #define	LLDP_TLV_SYS_CAPS	7	///< System capabilities
+#define	LLDP_TLV_MGMT_ADDR	8	///< System capabilities
 #define	LLDP_TLV_ORG_SPECIFIC	127	///< So-called organizationally specific TLVs
 /// @} 
 
