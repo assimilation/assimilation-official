@@ -119,7 +119,7 @@ class SwitchDiscovery:
         )
         switchinfo = pyConfigContext(init = {'ports': pyConfigContext()})
         metadata = pyConfigContext(init={
-                'discovertype':         '#switchdiscoveryprotocol',
+                'discovertype':         '#LinkDiscovery',
                 'description':          'Link Level Switch Discovery (lldp)',
                 'source':               '_decode_lldp()',
                 'host':                 host,
@@ -215,7 +215,7 @@ class SwitchDiscovery:
         )
         switchinfo = pyConfigContext(init = {'ports': pyConfigContext()})
         metadata = pyConfigContext(init={
-                'discovertype':         '#switchdiscoveryprotocol',
+                'discovertype':         '#LinkDiscovery',
                 'description':          'Link Level Switch Discovery (cdp)',
                 'source':               '_decode_cdp()',
                 'host':                 host,

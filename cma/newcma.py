@@ -691,6 +691,8 @@ class DroneInfo:
             ipaddr = CMAdb.cdb.new_IPaddr(None, addr)
             CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, None, ipproc, ipaddr)
 
+    def add_linkdiscovery(self, jsonobj, **kw):
+        print 'Oh... Ignoring TCP Listener JSON: %s' % (jsonobj)
 
     def primary_ip(self, ring=None):
         '''Return the "primary" IP for this host'''
@@ -999,7 +1001,7 @@ class DispatchSWDISCOVER(DispatchTarget):
                 pktend = frame.frameend()
                 switchjson = SwitchDiscovery.decode_discovery(designation, interface
                 ,               wallclock, pktstart, pktend)
-                if True or CMAdb.debug:
+                if CMAdb.debug:
                     print 'GOT Link Discovery INFO from %s: %s' % (interface, str(switchjson))
                 drone = DroneInfo.find(designation)
                 drone.logjson(str(switchjson))
@@ -1061,7 +1063,7 @@ class PacketListener:
 DroneInfo.add_json_processors(('netconfig', DroneInfo.add_netconfig_addresses),)
 DroneInfo.add_json_processors(('tcplisteners', DroneInfo.add_tcplisteners),)
 DroneInfo.add_json_processors(('tcpclients', DroneInfo.add_tcplisteners),)
-#DroneInfo.add_json_processors(('#switchdiscoveryprotocol', DroneInfo.add_tcplisteners),)
+DroneInfo.add_json_processors(('#LinkDiscovery', DroneInfo.add_linkdiscovery),)
 
 if __name__ == '__main__':
     #
