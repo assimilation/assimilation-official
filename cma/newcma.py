@@ -1048,11 +1048,11 @@ class DispatchSWDISCOVER(DispatchTarget):
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
                 designation = frame.getstr()
-            if frametype == FrameTypes.INTERFACE:
+            elif frametype == FrameTypes.INTERFACE:
                 interface = frame.getstr()
-            if frametype == FrameTypes.WALLCLOCK:
+            elif frametype == FrameTypes.WALLCLOCK:
                 wallclock = frame.getint()
-            if frametype == FrameTypes.PKTDATA:
+            elif frametype == FrameTypes.PKTDATA:
                 if wallclock is None or interface is None or designation is None:
                     raise ValueError('Incomplete Switch Discovery Packet')
                 pktstart = frame.framevalue()
