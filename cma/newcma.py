@@ -999,7 +999,7 @@ class DispatchSWDISCOVER(DispatchTarget):
                 pktend = frame.frameend()
                 switchjson = SwitchDiscovery.decode_discovery(designation, interface
                 ,               wallclock, pktstart, pktend)
-                if CMAdb.debug:
+                if True or CMAdb.debug:
                     print 'GOT Link Discovery INFO from %s: %s' % (interface, str(switchjson))
                 drone = DroneInfo.find(designation)
                 drone.logjson(str(switchjson))
