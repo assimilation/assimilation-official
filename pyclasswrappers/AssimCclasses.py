@@ -22,6 +22,7 @@ class cClass:
     FrameSet = POINTER(FrameSet)
     ConfigContext = POINTER(ConfigContext)
     ConfigValue = POINTER(ConfigValue)
+    IpPortFrame = POINTER(IpPortFrame)
     guint8 = POINTER(guint8)
     GSList = POINTER(GSList)
 
@@ -492,11 +493,13 @@ class pyFrame(pyAssimObj):
         frametype = frameptr[0].type
         Cclassname = proj_class_classname(frameptr)
         pyclassname = "py" + Cclassname
-        if Cclassname == "NetAddr":
+        if Cclassname == 'NetAddr':
             statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
+        elif Cclassname == Cclassname == 'IpPortFrame':
+            statement = "%s(%d, None, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
         else:
             statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
-        #print "EVAL:", statement
+        print >>sys.stderr, "EVAL:", statement
         return eval(statement)
 
 class pyAddrFrame(pyFrame):
@@ -532,6 +535,52 @@ class pyAddrFrame(pyFrame):
 
     def __str__(self):
        return ("pyAddrFrame(%s, (%s))" % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr)))
+
+class pyIpPortFrame(pyFrame):
+    '''This class represents the Python version of our C-class IpPortFrame - represented by the struct _IpPortFrame.
+    '''
+    def __init__(self, frametype, addrstring, port, Cstruct=None):
+        "Initializer for the pyIpPortFrame object."
+        self._Cstruct = None # Keep error legs from complaining.
+        if Cstruct is None:
+            addrlen = len(addrstring)
+            if isinstance(addrstring, pyNetAddr):
+                self._pyNetAddr = addrstring
+            else:
+                self._pyNetAddr = pyNetAddr(addrstring, port=port)
+
+            addrstr = create_string_buffer(addrlen)
+            for j in range(0, addrlen):
+                addrstr[j] = chr(addrstring[j])
+            if addrlen == 4:
+                Cstruct=ipportframe_ipv4_new(frametype, port, addrstr)
+            elif addrlen == 16:
+                Cstruct=ipportframe_ipv6_new(frametype, port, addrstr)
+            else:
+                raise ValueError('Bad address length: %d' % addrlen)
+            self.port = port
+        else:
+            assert port is None
+            assert addrstring is None
+            addrlen = Cstruct[0].baseclass.length - 4 # Allow for prefixed port and address type
+            if addrlen != 4 and addrlen != 16:
+                raise ValueError("Bad addrlen: %d" % addrlen)
+            port = Cstruct[0].port
+            self.port = port
+            addrstr = Cstruct[0].baseclass.value+4
+            addrstring = create_string_buffer(addrlen)
+            memmove(addrstring, addrstr, addrlen)
+            self._pyNetAddr = pyNetAddr(addrstring, port=port)
+        pyFrame.__init__(self, frametype, Cstruct=Cstruct)
+
+    def addrtype(self):
+        return self._pyNetAddr.addrtype()
+
+    def getnetaddr(self):
+        return self._pyNetAddr
+
+    def __str__(self):
+       return ("pyIpPortFrame(%s, (%s:%d))" % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr), self.port))
 
 
 class pyCstringFrame(pyFrame):

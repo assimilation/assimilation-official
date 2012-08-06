@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -2502,6 +2502,54 @@ if hasattr(_libs['libclientlib.so'], 'intframe_tlvconstructor'):
     intframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     intframe_tlvconstructor.restype = POINTER(Frame)
 
+# /home/alanr/monitor/src/include/ipportframe.h: 27
+class struct__IpPortFrame(Structure):
+    pass
+
+IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 19
+
+struct__IpPortFrame.__slots__ = [
+    'baseclass',
+    '_addr',
+    'port',
+    '_basefinal',
+    'getnetaddr',
+]
+struct__IpPortFrame._fields_ = [
+    ('baseclass', Frame),
+    ('_addr', POINTER(NetAddr)),
+    ('port', guint16),
+    ('_basefinal', CFUNCTYPE(UNCHECKED(None), POINTER(AssimObj))),
+    ('getnetaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(IpPortFrame))),
+]
+
+# /home/alanr/monitor/src/include/ipportframe.h: 35
+for _lib in _libs.itervalues():
+    if not hasattr(_lib, 'ipportframe_netaddr_new'):
+        continue
+    ipportframe_netaddr_new = _lib.ipportframe_netaddr_new
+    ipportframe_netaddr_new.argtypes = [guint16, POINTER(NetAddr)]
+    ipportframe_netaddr_new.restype = POINTER(IpPortFrame)
+    break
+
+# /home/alanr/monitor/src/include/ipportframe.h: 36
+if hasattr(_libs['libclientlib.so'], 'ipportframe_ipv4_new'):
+    ipportframe_ipv4_new = _libs['libclientlib.so'].ipportframe_ipv4_new
+    ipportframe_ipv4_new.argtypes = [guint16, guint16, gconstpointer]
+    ipportframe_ipv4_new.restype = POINTER(IpPortFrame)
+
+# /home/alanr/monitor/src/include/ipportframe.h: 37
+if hasattr(_libs['libclientlib.so'], 'ipportframe_ipv6_new'):
+    ipportframe_ipv6_new = _libs['libclientlib.so'].ipportframe_ipv6_new
+    ipportframe_ipv6_new.argtypes = [guint16, guint16, gconstpointer]
+    ipportframe_ipv6_new.restype = POINTER(IpPortFrame)
+
+# /home/alanr/monitor/src/include/ipportframe.h: 38
+if hasattr(_libs['libclientlib.so'], 'ipportframe_tlvconstructor'):
+    ipportframe_tlvconstructor = _libs['libclientlib.so'].ipportframe_tlvconstructor
+    ipportframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
+    ipportframe_tlvconstructor.restype = POINTER(Frame)
+
 # /home/alanr/monitor/src/include/jsondiscovery.h: 25
 class struct__JsonDiscovery(Structure):
     pass
@@ -4333,6 +4381,8 @@ _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h:
 _HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 27
 
 _IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 27
+
+_IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 27
 
 _JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 25
 

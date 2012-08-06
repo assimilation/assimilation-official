@@ -1,3 +1,4 @@
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab
 _suites = ['all', 'cclass']
 import sys
 sys.path.append("../pyclasswrappers")
@@ -124,6 +125,29 @@ class pyAddrFrameTest(TestCase):
         self.assertEqual(pyf.addrtype(), 1)
         self.assertTrue(pyf.isvalid(), "AddrFrame(200, (1,2,3,4)) failed isvalid()")
         self.assertRaises(ValueError, pyAddrFrame, 201, addrstring=(1,2,3))
+
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
+
+
+class pyIpPortFrameTest(TestCase):
+    'An AddrFrame wraps a NetAddr *with a port* for sending on the wire'
+    def test_constructor(self): 
+        if DEBUG: print >>sys.stderr, "===============test_constructor(pyIpAddrFrameTest)"
+        pyf = pyIpPortFrame(200, (1,2,3,4), 1984)
+        self.assertEqual(pyf.frametype(), 200)
+        self.assertEqual(pyf.framelen(), 8)
+        self.assertEqual(str(pyf), 'pyIpPortFrame(200, (1.2.3.4:1984))')
+        self.assertEqual(pyf.addrtype(), 1)
+        self.assertTrue(pyf.isvalid(), "pyIpPortFrame(200, (1,2,3,4:1984)) failed isvalid()")
+        self.assertRaises(ValueError, pyIpPortFrame, 201, (1,2,3),80)
+        pyf = pyIpPortFrame(202, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 1984)
+        self.assertEqual(pyf.frametype(), 202)
+        self.assertEqual(pyf.framelen(), 20)
+        self.assertEqual(pyf.addrtype(), 2)
+        self.assertTrue(pyf.isvalid(), 'pyIpPortFrame(202, (102:304:506:708:90a:b0c:d0e:f10:1984))')
+        self.assertEqual(str(pyf), 'pyIpPortFrame(202, (102:304:506:708:90a:b0c:d0e:f10:1984))')
 
     @class_teardown
     def tearDown(self):
@@ -314,11 +338,15 @@ class pyFrameSetTest(TestCase):
         if DEBUG: print >>sys.stderr, "========================test_buildlistforward(pyFrameSetTest)"
         pyfs = pyFrameSet(702)
         sign = pySignFrame(1) # digital signature frame
-        flist = (pyFrame(703), pyAddrFrame(704, (42,42,42,42)), pyIntFrame(705,42), pyCstringFrame(706, "HhGttG"),
-                 pySeqnoFrame(707, (42, 424242424242)))
+        flist = (pyFrame(703), pyAddrFrame(704, (42,42,42,42)), pyIntFrame(705,42),
+                 pyCstringFrame(706, "HhGttG"),
+                 pySeqnoFrame(707, (42, 424242424242)),
+                 pyIpPortFrame(200, (1,2,3,4), 1984),
+                 pyIpPortFrame(202, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 1984)
+                 )
         for frame in flist:
             pyfs.append(frame)
-        self.assertEqual(len(pyfs), 5)
+        self.assertEqual(len(pyfs), 7)
         #pyfs.dump()
         ylist = []
         # The iter member function is a generator.  I love it.
@@ -338,7 +366,7 @@ class pyFrameSetTest(TestCase):
         ylist = []
         for frame in pyfs.iter():
             ylist.append(frame)
-        self.assertEqual(len(pyfs), 7)
+        self.assertEqual(len(pyfs), 9)
         self.assertEqual(len(ylist), len(pyfs)) # len(pyfs) traverses the linked list
         for i in range(0,len(flist)):
            f=flist[i]
@@ -348,7 +376,7 @@ class pyFrameSetTest(TestCase):
            self.assertEqual(type(f), type(y))
         # Check on our automatically added frames.
         self.assertEqual(ylist[0].frametype(), 1)
-        self.assertEqual(ylist[6].frametype(), 0)
+        self.assertEqual(ylist[8].frametype(), 0)
         
     def test_buildlistbackwards(self):
         '''Build a FrameSet using prepend and verify that it gets built right.
@@ -439,7 +467,7 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['int1'], 42)
         self.assertEqual(foo['str1'], 'forty-two')
         self.assertEqual(foo.getint('fred'), -1)
-	foo['bar']
+        foo['bar']
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
         self.assertEqual(str(foo['bar']), '1.2.3.4')
         self.assertEqual(str(foo['csf']), '42: CstringFrame(42, "41+1")')
@@ -497,7 +525,7 @@ class pyConfigContextTest(TestCase):
         bar['voyager'] = baz
         if DEBUG: print >>sys.stderr, "EQUAL TEST"
         self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"there\'s no place like":"127.0.0.1","Kathryn":"Janeway"}}')
-	# We make a new pyConfigContext object from the str() of another one.  Cool!
+        # We make a new pyConfigContext object from the str() of another one.  Cool!
         if DEBUG: print >>sys.stderr, "JSON TEST"
         bar2 = pyConfigContext(str(bar))
         if DEBUG: print >>sys.stderr, "JSON COMPARE"
@@ -522,9 +550,9 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(str(foo.keys()), "['JeanLuc', 'arthur', 'important', 'integer', 'seven']")
 
     def test_ConfigContext_array(self):
-	array1str = '{"a":[1,2,3,4,"a",{"b":true},[5,6,7,8,3.14]]}'
+        array1str = '{"a":[1,2,3,4,"a",{"b":true},[5,6,7,8,3.14]]}'
         array1config = pyConfigContext(array1str)
-	self.assertEqual(array1str, str(array1config))
+        self.assertEqual(array1str, str(array1config))
 
 
     @class_teardown
@@ -546,7 +574,7 @@ class pyNetIOudpTest(TestCase):
         self.assertTrue(io.getmaxpktsize() <  65535)
         io.setmaxpktsize(1500)
         self.assertEqual(io.getmaxpktsize(), 1500)
-	# Does signframe really work?  Next statement seems to crash things
+        # Does signframe really work?  Next statement seems to crash things
         #self.assertEqual(type(io.signframe()), type(pySignFrame(1)))
 
     def test_send(self):
@@ -582,7 +610,7 @@ class pyNetIOudpTest(TestCase):
         io.bindaddr(anyaddr)
         io.sendframesets(home, fs)		# Send a packet with a single frameset containing a bunch of frames
         (addr, framesetlist) = io.recvframesets()	# Receive a packet - with some framesets in it
-	#print >>sys.stderr, 'ADDR: [%s] HOME: [%s]' % (addr, home)
+        #print >>sys.stderr, 'ADDR: [%s] HOME: [%s]' % (addr, home)
         self.assertEqual(addr, home)
         self.assertEqual(len(framesetlist), 1)
         ylist = []
