@@ -16,7 +16,7 @@ ADD_CUSTOM_COMMAND(
    )
 ADD_CUSTOM_TARGET(generate_frametypes DEPENDS ${FT_H})
 
-add_library (clientlib SHARED proj_classes.c cdp_min.c lldp_min.c pcap_min.c generic_tlv_min.c pcap_GSource.c tlvhelper.c frameset.c frame.c intframe.c addrframe.c cstringframe.c signframe.c unknownframe.c seqnoframe.c packetdecoder.c discovery.c switchdiscovery.c netio.c netioudp.c netgsource.c netaddr.c hblistener.c hbsender.c cryptframe.c compressframe.c nvpairframe.c listener.c configcontext.c assimobj.c authlistener.c jsondiscovery.c nanoprobe.c cmalib.c)
+add_library (clientlib SHARED proj_classes.c cdp_min.c lldp_min.c pcap_min.c generic_tlv_min.c pcap_GSource.c tlvhelper.c frameset.c frame.c intframe.c addrframe.c cstringframe.c signframe.c unknownframe.c seqnoframe.c packetdecoder.c discovery.c switchdiscovery.c netio.c netioudp.c netgsource.c netaddr.c hblistener.c hbsender.c cryptframe.c compressframe.c nvpairframe.c listener.c configcontext.c assimobj.c authlistener.c jsondiscovery.c nanoprobe.c cmalib.c ipportframe.c)
 SET_SOURCE_FILES_PROPERTIES(${FST_H} PROPERTIES GENERATED 1)
 SET_SOURCE_FILES_PROPERTIES(${FT_H} PROPERTIES GENERATED 1)
 ADD_DEPENDENCIES(clientlib generate_framesettypes generate_frametypes)
