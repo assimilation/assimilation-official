@@ -499,7 +499,7 @@ class pyFrame(pyAssimObj):
             statement = "%s(%d, None, None, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
         else:
             statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (pyclassname, frametype, Cclassname)
-        print >>sys.stderr, "EVAL:", statement
+        #print >>sys.stderr, "EVAL:", statement
         return eval(statement)
 
 class pyAddrFrame(pyFrame):
