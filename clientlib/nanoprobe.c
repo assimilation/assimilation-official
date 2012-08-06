@@ -21,6 +21,7 @@
 #include <intframe.h>
 #include <cstringframe.h>
 #include <addrframe.h>
+#include <ipportframe.h>
 #include <seqnoframe.h>
 #include <packetdecoder.h>
 #include <netgsource.h>

@@ -22,6 +22,8 @@ class pyAddrFrame:
   pass
 class pyNVpairFrame:
   pass
+class pyIpPortFrame:
+  pass
 
 class FrameTypes:
     'Class defining the universe of FrameSets - including code to generate a C header file'
@@ -123,6 +125,13 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 |   (16 bits)    |    (16-bits)   |    2 bytes    | (n-2 bytes)  |
 +----------------+----------------+---------------+--------------+
 ''',
+	'pyIpPortFrame':
+'''
++----------------+----------------+-------------+--------------+---------------+
+| frametype = %2d | f_length = n   | Port Number | Address Type  |  address     |
+|   (16 bits)    |    (16-bits)   |   2 bytes   |    2 bytes    | (n-4 bytes)  |
++----------------+----------------+-------------+--------------+---------------+
+''',
 	'pyNVpairFrame':
 '''
 +----------------+---------------+--------+-----------------+-------+------+
@@ -203,10 +212,13 @@ The Address Type for a MAC address is 6.
   	12:  (pyIntFrame, 'PORTNUM', 'Port number.',
 '''This frame is a 16-bit IP port number.
 '''),
-  	13:  (pyIntFrame, 'HBINTERVAL', 'Heartbeat interval.',
+  	13:  (pyIpPortFrame, 'IPPORT', 'IP w/Port.',
+'''This frame is a 16-bit IP port number along with an IPv4 or IPv6 address.
+'''),
+  	14:  (pyIntFrame, 'HBINTERVAL', 'Heartbeat interval.',
 '''This frame is a heartbeat sending interval measured in seconds.
 '''),
-  	14:  (pyIntFrame, 'HBDEADTIME', 'Heartbeat deadtime.',
+  	15:  (pyIntFrame, 'HBDEADTIME', 'Heartbeat deadtime.',
 '''This frame is a heartbeat deadtime measured in seconds.
 '''),
   	16:  (pyIntFrame, 'HBWARNTIME', 'Heartbeat warntime.',

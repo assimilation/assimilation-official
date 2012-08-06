@@ -24,6 +24,7 @@
 #include <packetdecoder.h>
 #include <intframe.h>
 #include <addrframe.h>
+#include <ipportframe.h>
 #include <signframe.h>
 #include <cstringframe.h>
 #include <seqnoframe.h>
