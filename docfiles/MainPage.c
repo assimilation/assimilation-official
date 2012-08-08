@@ -31,6 +31,9 @@ These two main ideas create a system which will have both a great out-of-the-box
 experience for new users and smooth accommodation of growth to virtually
 all environments.
 
+For source and licensing information see the
+- <a href="_source_and_license.html">Source and Licensing</a> page.
+
 @section ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
