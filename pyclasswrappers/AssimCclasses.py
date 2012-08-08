@@ -580,7 +580,7 @@ class pyIpPortFrame(pyFrame):
         return self._pyNetAddr
 
     def __str__(self):
-       return ("pyIpPortFrame(%s, (%s:%d))" % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr), self.port))
+       return ("pyIpPortFrame(%s, (%s))" % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr)))
 
 
 class pyCstringFrame(pyFrame):

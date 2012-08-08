@@ -146,8 +146,8 @@ class pyIpPortFrameTest(TestCase):
         self.assertEqual(pyf.frametype(), 202)
         self.assertEqual(pyf.framelen(), 20)
         self.assertEqual(pyf.addrtype(), 2)
-        self.assertTrue(pyf.isvalid(), 'pyIpPortFrame(202, (102:304:506:708:90a:b0c:d0e:f10:1984))')
-        self.assertEqual(str(pyf), 'pyIpPortFrame(202, (102:304:506:708:90a:b0c:d0e:f10:1984))')
+        self.assertTrue(pyf.isvalid(), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
+        self.assertEqual(str(pyf), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
 
     @class_teardown
     def tearDown(self):

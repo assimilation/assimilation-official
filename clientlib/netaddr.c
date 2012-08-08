@@ -295,7 +295,7 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	guint		whichdot = 0;
 	int		byte;
 	NetAddr*	ret;
-	int		port;
+	int		port = 0;
 	
 	guint	j;
 	int	debug = FALSE;
