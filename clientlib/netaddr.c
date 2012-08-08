@@ -476,6 +476,12 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 	struct sockaddr_in6	saddr;
 
 	memset(&saddr, 0x00, sizeof(saddr));
+	if (self->_addrport == 0) {
+		char *	addrstr = self->baseclass.toString(self);
+		g_warning("%s: IP address %s has port == 0", __FUNCTION__, addrstr);
+		g_free(addrstr);	addrstr = NULL;
+		return saddr;
+	}
 
 	switch (self->_addrtype) {
 		case ADDR_FAMILY_IPV4:

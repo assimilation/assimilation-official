@@ -301,7 +301,10 @@ class pyNetAddr(pyAssimObj):
         if isinstance(addrstring, unicode):
            addrstring = str(addrstring)
         if isinstance(addrstring, str) or isinstance(addrstring, unicode):
-            pyAssimObj.__init__(self, Cstruct=netaddr_string_new(addrstring, port))
+            cs = netaddr_string_new(addrstring, port)
+            if not cs:
+                raise ValueError('Illegal NetAddr initial value: "%s"' % addrstring)
+            pyAssimObj.__init__(self, Cstruct=cs)
             return
         
         alen = len(addrstring)
@@ -338,6 +341,13 @@ class pyNetAddr(pyAssimObj):
         while (type(base) is not NetAddr):
             base=base.baseclass
         return base.port(self._Cstruct)
+
+    def setport(self, port):
+        "Return the port (if any) for this pyNetAddr object"
+        base=self._Cstruct[0]
+        while (type(base) is not NetAddr):
+            base=base.baseclass
+        return base.setport(self._Cstruct, port)
 
     def addrtype(self):
         "Return the type of address for this pyNetAddr object"
@@ -1093,6 +1103,8 @@ class pyNetIO(pyAssimObj):
 
     def sendframesets(self, destaddr, framesetlist):
         'Send the (collection of) frameset(s) out on this pyNetIO'
+        if destaddr.port() == 0:
+            raise ValueError("Zero Port in sendframesets: destaddr=%s" % str(destaddr))
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist, )
         base = self._Cstruct[0]

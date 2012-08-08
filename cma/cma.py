@@ -463,7 +463,7 @@ class DroneInfo:
         fs = pyFrameSet(fstype)
         pframe = None
         if port is not None and port > 0 and port < 65536:
-           pframe = pyIntFrame(FrameTypes.sPORTNUM, intbytes=2, initval=int(port))
+           pframe = pyIntFrame(FrameTypes.PORTNUM, intbytes=2, initval=int(port))
         for addr in addrlist:
             if addr is None: continue
             if pframe is not None:
@@ -614,7 +614,7 @@ class DispatchSTARTUP(DispatchTarget):
         #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
-        print 'ADDING DRONE for system %s' % sysname
+        #print 'ADDING DRONE for system %s' % sysname
         DroneInfo.add(sysname, self.io, 'STARTUP packet')
         drone = DroneInfo.find(sysname)
         drone.startaddr=origaddr

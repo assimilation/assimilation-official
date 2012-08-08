@@ -774,7 +774,7 @@ class DroneInfo:
         fs = pyFrameSet(fstype)
         pframe = None
         if port is not None and port > 0 and port < 65536:
-           pframe = pyIntFrame(FrameTypes.sPORTNUM, intbytes=2, initval=int(port))
+           pframe = pyIntFrame(FrameTypes.PORTNUM, intbytes=2, initval=int(port))
         for addr in addrlist:
             if addr is None: continue
             if pframe is not None:
@@ -881,7 +881,9 @@ class DroneInfo:
             fs.append(jsonframe)
         # This doesn't work if the client has bound to a VIP
         ourip = self.primary_ip()    # meaning select our primary IP
-        ourip = pyNetAddr(ourip, port=self.getport())
+        ourip = pyNetAddr(ourip)
+        ourip.setport(self.getport())
+        #print 'PORT IS ', self.getport()
         self.io.sendframesets(ourip, (fs,))
         if CMAdb.debug:
             print >>sys.stderr, 'Sent Discovery request(%s,%s) to %s Framesets: %s' \
@@ -998,7 +1000,7 @@ class DispatchSTARTUP(DispatchTarget):
         #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
-        #print 'ADDING DRONE for system %s' % sysname
+        print 'Drone %s registered from address %s' % (sysname, origaddr)
         DroneInfo.add(sysname, 'STARTUP packet')
         drone = DroneInfo.find(sysname)
         #print >>sys.stderr, 'DRONE from find: ', drone, type(drone)
@@ -1129,10 +1131,32 @@ if __name__ == '__main__':
     #   It is a test program intended to run with some real nanoprobes running
     #   somewhere out there...
     #
+    OurAddr = None
+    DefaultPort = 1984
+    OurPort = None
 
+    skipme = False
+    for narg in range(1,len(sys.argv)):
+        if skipme:
+            skipme = False
+            continue
+        if sys.argv[narg] == '--bind':
+            OurAddr = pyNetAddr(sys.argv[narg+1])
+            if OurAddr.port() > 0:
+                OurPort = OurAddr.port()
+            else:
+                OurAddr.setport(OurPort)
+            skipme = True
+        else:
+            print >> sys.stderr, 'Bad argument [%s]' % sys.argv[narg]
 
-    OurPort = 1984
-    OurAddr = pyNetAddr((10,10,10,200),OurPort)
+    if OurPort is None:
+        OurPort = 1984
+    if OurAddr is None:
+        OurAddr = pyNetAddr((10,10,10,200),OurPort)
+
+    print 'Binding to Address: %s' % str(OurAddr)
+
     configinit = {
     	CONFIGNAME_CMAINIT:	OurAddr,    # Initial 'hello' address
     	CONFIGNAME_CMAADDR:	OurAddr,    # not sure what this one does...
@@ -1144,7 +1168,7 @@ if __name__ == '__main__':
     	CONFIGNAME_DEADTIME:	10*1000000,
     	CONFIGNAME_WARNTIME:	3*1000000,
     	CONFIGNAME_HBTIME:	1*1000000,
-	CONFIGNAME_OUTSIG:	pySignFrame(1),
+        CONFIGNAME_OUTSIG:	pySignFrame(1),
     }
     config = pyConfigContext(init=configinit)
     io = pyNetIOudp(config, pyPacketDecoder(0))

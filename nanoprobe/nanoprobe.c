@@ -12,10 +12,11 @@
  *
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <getopt.h>
 #include <projectcommon.h>
 #include <framesettypes.h>
 #include <frameset.h>
@@ -143,24 +144,55 @@ check_for_signals(gpointer ignored)
 int
 main(int argc, char **argv)
 {
-	//const guint8		loopback[] = CONST_IPV6_LOOPBACK;
-	//const guint8		defaultCMAaddr[] = CONST_ASSIM_DEFAULT_V4_MCAST;
-	const guint8		defaultCMAaddr[] = {10,10,10,200};
-	//const guint8		anyv6addrstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	const guint8		localv4address[] = {10,10,10,5};
-	guint16			testport = DEFAULT_PORT;
+	const char		defaultCMAaddr[] = "10.10.10.200:1984";
+	const char		defaultlocaladdress [] = "0.0.0.0:1984";
 	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);
 	PacketDecoder*		decoder = nano_packet_decoder();
 	struct sigaction	sigact;
-
+	const char *		cmaaddr = defaultCMAaddr;
+	const char *		localaddr = defaultlocaladdress;
+	int			c;
+	static struct option 	long_options[] = {
+		{"cmaaddr",	required_argument,	0, 'c'},
+		{"localaddr",	required_argument,	0, 'l'},
+		{NULL, 0, 0, 0}
+	};
+	gboolean		moreopts = TRUE;
+	int			option_index = 0;
 	/// @todo initialize from a setup file - initial IP address, port, debug - anything else?
 
 
-	(void)argc;
-	(void)argv;
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	while (moreopts) {
+		c = getopt_long(argc, argv, "c:", long_options, &option_index);
+		switch(c) {
+			case -1:
+				moreopts = FALSE;
+				break;
+			case 0:		// It already set a flag
+				break;
+
+			case 'c':
+				cmaaddr = optarg;
+				break;
+
+			case 'l':
+				localaddr = optarg;
+				break;
+
+			case '?':	// Already printed an error message
+				break;
+
+			default:
+				g_error("Default case in getopt_long()");
+				break;
+		}
+	}
+
+
+
 
 	if (!netio_is_dual_ipv4v6_stack()) {
 		g_warning("This OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
@@ -178,25 +210,30 @@ main(int argc, char **argv)
 	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
 
+	
+
 
 	// Construct the NetAddr we'll talk to (it will default to be mcast when we get that working)
-	destaddr =  netaddr_ipv4_new(defaultCMAaddr, testport);
+	destaddr =  netaddr_string_new(cmaaddr);
+	g_message("CMA address: %s", cmaaddr);
+
+
+
 	g_return_val_if_fail(NULL != destaddr, 3);
+	g_return_val_if_fail(destaddr->port(destaddr) != 0, 4);
 	config->setaddr(config, CONFIGNAME_CMAINIT, destaddr);
-	if (destaddr->ismcast(destaddr)) {
-		nettransport->mcastjoin(nettransport, destaddr, NULL);	// Broken!
-	}
 
 	// Construct a NetAddr to bind to (listen from) (normally ANY address)
-	//localbindaddr =  netaddr_ipv6_new(anyv6addrstring, testport);
-	localbindaddr =  netaddr_ipv4_new(localv4address, testport);
-	g_return_val_if_fail(NULL != destaddr, 5);
+	localbindaddr =  netaddr_string_new(localaddr);
+	g_return_val_if_fail(NULL != localbindaddr, 5);
+	g_return_val_if_fail(localbindaddr->port(localbindaddr) != 0, 5);
 
-	// Bind to ANY address (as noted above)
+	// Bind to the requested address (defaults to ANY as noted above)
 	g_return_val_if_fail(nettransport->bindaddr(nettransport, localbindaddr),16);
         localbindaddr->  baseclass.unref(localbindaddr);
 	localbindaddr = NULL;
 	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
+	g_message("Local address: %s", localaddr);
 
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
