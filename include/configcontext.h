@@ -18,6 +18,15 @@
 #include <netaddr.h>
 #include <signframe.h>
 #include <address_family_numbers.h>
+
+///@{
+/// @ingroup ConfigContext
+
+/// This is the base @ref ConfigContext object providing configuration context for our clients,
+/// and is managed by our @ref ProjectClass system.
+/// It provides the analog of global variables for remembering configuration defaults, etc,
+/// but in a hash table, with capabilities to go to and from JSON.
+
 typedef struct _ConfigContext ConfigContext;
 
 enum ConfigValType {
@@ -46,12 +55,6 @@ struct _ConfigValue {
 	}u;
 };
 
-///@{
-/// @ingroup ConfigContext
-
-/// This is the base @ref ConfigContext object providing configuration context for our clients,
-/// and is managed by our @ref ProjectClass system.
-/// It provides the analog of global variables for remembering configuration defaults, etc.
 struct _ConfigContext {
 	AssimObj	baseclass;
 	GHashTable*	_values;			///< table of Values

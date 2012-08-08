@@ -32,7 +32,7 @@ FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self);
-FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr, guint16 port);
+FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr);
 
 DEBUGDECLARATIONS
 
@@ -51,11 +51,19 @@ DEBUGDECLARATIONS
 FSTATIC gchar *
 _netaddr_toString_ipv6_ipv4(const NetAddr* self)
 {
+	if (self->_addrport) {
+		return g_strdup_printf("[::ffff:%d.%d.%d.%d]:%d",
+				       ((const gchar*)self->_addrbody)[12],
+				       ((const gchar*)self->_addrbody)[13],
+				       ((const gchar*)self->_addrbody)[14],
+				       ((const gchar*)self->_addrbody)[15],
+				       self->_addrport);
+	}
 	return g_strdup_printf("::ffff:%d.%d.%d.%d",
-			      ((const gchar*)self->_addrbody)[12],
-			      ((const gchar*)self->_addrbody)[13],
-			      ((const gchar*)self->_addrbody)[14],
-			      ((const gchar*)self->_addrbody)[15]);
+			       ((const gchar*)self->_addrbody)[12],
+			       ((const gchar*)self->_addrbody)[13],
+			       ((const gchar*)self->_addrbody)[14],
+			       ((const gchar*)self->_addrbody)[15]);
 }
 /// Convert this NetAddr to a string
 FSTATIC gchar *
@@ -66,6 +74,14 @@ _netaddr_toString(gconstpointer baseobj)
 	int		nbyte;
 	const NetAddr*	self = CASTTOCONSTCLASS(NetAddr, baseobj);
 	if (self->_addrtype == ADDR_FAMILY_IPV4) {
+		if (self->_addrport) {
+			return g_strdup_printf("%d.%d.%d.%d:%d",
+					      ((const gchar*)self->_addrbody)[0],
+					      ((const gchar*)self->_addrbody)[1],
+					      ((const gchar*)self->_addrbody)[2],
+					      ((const gchar*)self->_addrbody)[3],
+					      self->_addrport);
+		}
 		return g_strdup_printf("%d.%d.%d.%d",
 				      ((const gchar*)self->_addrbody)[0],
 				      ((const gchar*)self->_addrbody)[1],
@@ -79,17 +95,21 @@ _netaddr_toString(gconstpointer baseobj)
 		int		zerocount = 0;
 		guchar		ipv4prefix[] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff};
                 if (self->_addrlen != 16) {
+			g_string_free(gsret, TRUE); gsret = NULL;
 			return g_strdup("{invalid ipv6}");
 		}
+		if (self->_addrport) {
+			g_string_append(gsret, "[");
+		}
 		if (memcmp(self->_addrbody, ipv4prefix, sizeof(ipv4prefix)) == 0) {
-			g_string_free(gsret, FALSE); gsret = NULL;
+			g_string_free(gsret, TRUE); gsret = NULL;
 			return _netaddr_toString_ipv6_ipv4(self);
 		}
 		for (nbyte = 0; nbyte < self->_addrlen; nbyte += 2) {
 			guint16 byte0 = ((const guchar*)self->_addrbody)[nbyte];
 			guint16 byte1 = ((const guchar*)self->_addrbody)[nbyte+1];
 			guint16 word = (byte0 << 8 | byte1);
-			if (!doublecolonyet &&  word == 0x00) {
+			if (!doublecolonyet && word == 0x00) {
 				++zerocount;
 				continue;
 			}
@@ -110,6 +130,9 @@ _netaddr_toString(gconstpointer baseobj)
 			g_string_append_printf(gsret, ":00");
 		}else if (zerocount > 1) {
 			g_string_append_printf(gsret, "::");
+		}
+		if (self->_addrport) {
+			g_string_append_printf(gsret, "]:%d", self->_addrport);
 		}
 		
 	}else{
@@ -263,17 +286,20 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 
 /// Convert a string to an IPv4 NetAddr
 FSTATIC NetAddr*
-_netaddr_string_ipv4_new(const char* addrstr, guint16 port)
+_netaddr_string_ipv4_new(const char* addrstr)
 {
-	// Must have four numbers [0-255] in decimal - nothing else.
-	int	dotpositions[3];
-	guint8	addresses[4];
-	guint	whichdot = 0;
-	int	byte;
+	// Must have four numbers [0-255] in decimal - optionally followed by : port number...
+	int		dotpositions[3];
+	int		colonpos = -1;
+	guint8		addresses[4];
+	guint		whichdot = 0;
+	int		byte;
 	NetAddr*	ret;
+	int		port;
 	
 	guint	j;
 	int	debug = FALSE;
+	int	lastpos = 0;
 
 	//debug = g_ascii_isdigit(addrstr[0]);
 
@@ -292,7 +318,8 @@ _netaddr_string_ipv4_new(const char* addrstr, guint16 port)
 			continue;
 
 			case '.':
-				if (whichdot >= DIMOF(dotpositions)) {
+				if (whichdot >= DIMOF(dotpositions)
+				||	colonpos >= 0) {
 					return NULL;
 				}
 				dotpositions[whichdot] = j;
@@ -300,6 +327,12 @@ _netaddr_string_ipv4_new(const char* addrstr, guint16 port)
 				continue;
 
 			case '\0':
+				break;
+			case ':':
+				if (colonpos >= 0) {
+					return NULL;
+				}
+				colonpos = j;
 				break;
 
 			default:
@@ -309,10 +342,11 @@ _netaddr_string_ipv4_new(const char* addrstr, guint16 port)
 					
 				return NULL;
 		}
-		if (j > 16) {
+		if (j > 21) {
 			return NULL;
 		}
 	}
+	lastpos = j;
 	if (debug) {
             g_debug("whichdot = %d", whichdot);
 	}
@@ -328,6 +362,7 @@ _netaddr_string_ipv4_new(const char* addrstr, guint16 port)
 	}
 	addresses[0] = byte;
 
+
 	for (j=0; j < DIMOF(dotpositions); ++j) {
 		byte = atoi(addrstr+dotpositions[j]+1);
 		if (debug) {
@@ -337,6 +372,19 @@ _netaddr_string_ipv4_new(const char* addrstr, guint16 port)
 			return NULL;
 		}
 		addresses[j+1] = (guint8)byte;
+	}
+	if (colonpos >= 0) {
+		if (colonpos > (lastpos - 2)) {
+			return NULL;
+		}
+		port = atoi(addrstr+colonpos+1);
+		if (port == 0 || port > 65535) {
+			g_debug("found bad (%s) IPV4 port", addrstr+colonpos+1);
+			return NULL;
+		}
+		if (debug) {
+			g_debug("found good IPV4 port [%d]", port);
+		}
 	}
 	if (debug) {
 		g_debug("Returning good IPV4 address!");
@@ -349,9 +397,10 @@ _netaddr_string_ipv4_new(const char* addrstr, guint16 port)
 }
 
 NetAddr*
-netaddr_string_new(const char* addrstr, guint16 port)
+netaddr_string_new(const char* addrstr)
 {
-	return _netaddr_string_ipv4_new(addrstr, port);
+	/// FIXME: Need to write _netaddr_string_ipv6_new (with provisions for port numbers!)
+	return _netaddr_string_ipv4_new(addrstr);
 }
 
 

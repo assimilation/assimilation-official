@@ -49,7 +49,7 @@ WINEXPORT NetAddr*	netaddr_mac48_new(gconstpointer macbuf);
 WINEXPORT NetAddr*	netaddr_mac64_new(gconstpointer macbuf);
 WINEXPORT NetAddr*	netaddr_ipv4_new(gconstpointer	ipbuf, guint16	port);
 WINEXPORT NetAddr*	netaddr_ipv6_new(gconstpointer ipbuf, guint16	port);
-WINEXPORT NetAddr*	netaddr_string_new(const char* addrstr, guint16 port);
+WINEXPORT NetAddr*	netaddr_string_new(const char* addrstr);
 
 
 #define	CONST_IPV6_LOOPBACK		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}

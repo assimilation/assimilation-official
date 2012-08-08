@@ -51,6 +51,14 @@ FSTATIC ConfigValue* _configcontext_value_new(enum ConfigValType);
 FSTATIC void _configcontext_value_finalize(gpointer vself);
 FSTATIC void _key_free(gpointer vself);
 
+/**
+ * @defgroup ConfigContext ConfigContext class
+ * A base class for remembering configuration values of various types in a hash table
+ * with capabilities to go to and from JSON.
+ * @{
+ * @ingroup C_Classes
+ */
+
 FSTATIC void
 _key_free(gpointer vself)
 {
@@ -58,12 +66,6 @@ _key_free(gpointer vself)
 	g_free(vself);
 }
 
-/**
- * @defgroup ConfigContext ConfigContext class
- * A base class for remembering configuration values of various types.
- * @{
- * @ingroup C_Classes
- */
 
 /// Construct a new ConfigContext object - with no values defaulted
 ConfigContext*
@@ -742,7 +744,8 @@ _configcontext_JSON_parse_value(GScanner* scan)
 			NetAddr* encoded;
 			GULP;
 			// See if we can convert it to a NetAddr...
-			if ((encoded = netaddr_string_new(scan->value.v_string, 0)) != NULL) {
+			/// FIXME: Need to make the conversion to a NetAddr optional...
+			if ((encoded = netaddr_string_new(scan->value.v_string)) != NULL) {
 				val = _configcontext_value_new(CFG_NETADDR);
 				val->u.addrvalue = encoded;
                                 encoded = NULL;
@@ -870,3 +873,5 @@ _configcontext_JSON_parse_array(GScanner* scan, GSList** retval)
 	SYNERROR(scan, G_TOKEN_RIGHT_BRACE, NULL, NULL);
 	return FALSE;
 }
+/// @}
+/// @ingroup AssimObj
