@@ -15,7 +15,7 @@ or more specifically at <a href="http://hg.linux-ha.org/|experimental/assimilati
 http://hg.linux-ha.org/|experimental/assimilation/</a>.
 You can get your own copy of the Mercurial repository using this command:
 @code
-  hg clone hg.linux-ha.org\|experimental/assimilation/
+  hg clone 'http://hg.linux-ha.org/%7Cexperimental/assimilation/'
 @endcode
 
 An online version of these documents that corresponds to the latest version of the source can be found here:
