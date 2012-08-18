@@ -347,7 +347,7 @@ class pyNetAddr(pyAssimObj):
         base=self._Cstruct[0]
         while (type(base) is not NetAddr):
             base=base.baseclass
-        return base.setport(self._Cstruct, port)
+        base.setport(self._Cstruct, port)
 
     def addrtype(self):
         "Return the type of address for this pyNetAddr object"
@@ -362,6 +362,17 @@ class pyNetAddr(pyAssimObj):
         while (type(base) is not NetAddr):
             base=base.baseclass
         return base._addrlen
+
+    def __repr__(self):
+        'Return a canonical representation of this NetAddr'
+        base=self._Cstruct[0]
+        while (type(base) is not NetAddr):
+            base=base.baseclass
+        cstringret =  base.canonStr(self._Cstruct)
+        ret = string_at(cstringret)
+        g_free(cstringret)
+        return ret
+
 
     def __eq__(self, rhs):
         'Compare this pyNetAddr to another pyNetAddr'
@@ -847,8 +858,10 @@ class pyConfigContext(pyAssimObj):
         if Cstruct is None:
             if Cstruct is None and (isinstance(init, str) or isinstance(init, unicode)):
                 Cstruct = configcontext_new_JSON_string(str(init))
-                init = None
                 #CCref(Cstruct)
+                if not Cstruct:
+                    raise ValueError('Bad JSON [%s]' % str(init))
+                init = None
             else:
                 Cstruct=configcontext_new(0)
         else:

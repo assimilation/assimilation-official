@@ -1458,6 +1458,7 @@ struct__NetAddr.__slots__ = [
     'ipv6sockaddr',
     'ipv4sockaddr',
     'equal',
+    'canonStr',
     '_addrbody',
     '_addrtype',
     '_addrlen',
@@ -1472,58 +1473,59 @@ struct__NetAddr._fields_ = [
     ('ipv6sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in6), POINTER(NetAddr))),
     ('ipv4sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in), POINTER(NetAddr))),
     ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr), POINTER(NetAddr))),
+    ('canonStr', CFUNCTYPE(UNCHECKED(String), POINTER(NetAddr))),
     ('_addrbody', gpointer),
     ('_addrtype', guint16),
     ('_addrlen', guint16),
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 45
+# ../include/netaddr.h: 46
 if hasattr(_libs['libclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 46
+# ../include/netaddr.h: 47
 if hasattr(_libs['libclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 47
+# ../include/netaddr.h: 48
 if hasattr(_libs['libclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 48
+# ../include/netaddr.h: 49
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 49
+# ../include/netaddr.h: 50
 if hasattr(_libs['libclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 50
+# ../include/netaddr.h: 51
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 51
+# ../include/netaddr.h: 52
 if hasattr(_libs['libclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv6_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 52
+# ../include/netaddr.h: 53
 if hasattr(_libs['libclientlib.so'], 'netaddr_string_new'):
     netaddr_string_new = _libs['libclientlib.so'].netaddr_string_new
-    netaddr_string_new.argtypes = [String, guint16]
+    netaddr_string_new.argtypes = [String]
     netaddr_string_new.restype = POINTER(NetAddr)
 
 # /home/alanr/monitor/src/include/addrframe.h: 26
@@ -1697,41 +1699,41 @@ if hasattr(_libs['libclientlib.so'], 'frameset_dump'):
     frameset_dump.argtypes = [POINTER(FrameSet)]
     frameset_dump.restype = None
 
-# ../include/configcontext.h: 55
+# ../include/configcontext.h: 58
 class struct__ConfigContext(Structure):
     pass
 
-ConfigContext = struct__ConfigContext # ../include/configcontext.h: 21
+ConfigContext = struct__ConfigContext # ../include/configcontext.h: 30
 
-enum_ConfigValType = c_int # ../include/configcontext.h: 23
+enum_ConfigValType = c_int # ../include/configcontext.h: 32
 
-CFG_EEXIST = 0 # ../include/configcontext.h: 23
+CFG_EEXIST = 0 # ../include/configcontext.h: 32
 
-CFG_NULL = (CFG_EEXIST + 1) # ../include/configcontext.h: 23
+CFG_NULL = (CFG_EEXIST + 1) # ../include/configcontext.h: 32
 
-CFG_BOOL = (CFG_NULL + 1) # ../include/configcontext.h: 23
+CFG_BOOL = (CFG_NULL + 1) # ../include/configcontext.h: 32
 
-CFG_INT64 = (CFG_BOOL + 1) # ../include/configcontext.h: 23
+CFG_INT64 = (CFG_BOOL + 1) # ../include/configcontext.h: 32
 
-CFG_STRING = (CFG_INT64 + 1) # ../include/configcontext.h: 23
+CFG_STRING = (CFG_INT64 + 1) # ../include/configcontext.h: 32
 
-CFG_FLOAT = (CFG_STRING + 1) # ../include/configcontext.h: 23
+CFG_FLOAT = (CFG_STRING + 1) # ../include/configcontext.h: 32
 
-CFG_ARRAY = (CFG_FLOAT + 1) # ../include/configcontext.h: 23
+CFG_ARRAY = (CFG_FLOAT + 1) # ../include/configcontext.h: 32
 
-CFG_CFGCTX = (CFG_ARRAY + 1) # ../include/configcontext.h: 23
+CFG_CFGCTX = (CFG_ARRAY + 1) # ../include/configcontext.h: 32
 
-CFG_NETADDR = (CFG_CFGCTX + 1) # ../include/configcontext.h: 23
+CFG_NETADDR = (CFG_CFGCTX + 1) # ../include/configcontext.h: 32
 
-CFG_FRAME = (CFG_NETADDR + 1) # ../include/configcontext.h: 23
+CFG_FRAME = (CFG_NETADDR + 1) # ../include/configcontext.h: 32
 
-# ../include/configcontext.h: 36
+# ../include/configcontext.h: 45
 class struct__ConfigValue(Structure):
     pass
 
-ConfigValue = struct__ConfigValue # ../include/configcontext.h: 35
+ConfigValue = struct__ConfigValue # ../include/configcontext.h: 44
 
-# ../include/configcontext.h: 38
+# ../include/configcontext.h: 47
 class union_anon_102(Union):
     pass
 
@@ -1808,13 +1810,13 @@ struct__ConfigContext._fields_ = [
     ('keys', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext))),
 ]
 
-# ../include/configcontext.h: 78
+# ../include/configcontext.h: 81
 if hasattr(_libs['libclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
     configcontext_new.restype = POINTER(ConfigContext)
 
-# ../include/configcontext.h: 79
+# ../include/configcontext.h: 82
 if hasattr(_libs['libclientlib.so'], 'configcontext_new_JSON_string'):
     configcontext_new_JSON_string = _libs['libclientlib.so'].configcontext_new_JSON_string
     configcontext_new_JSON_string.argtypes = [String]
@@ -3504,115 +3506,115 @@ try:
 except:
     pass
 
-# ../include/configcontext.h: 81
+# ../include/configcontext.h: 84
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# ../include/configcontext.h: 82
+# ../include/configcontext.h: 85
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# ../include/configcontext.h: 83
+# ../include/configcontext.h: 86
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# ../include/configcontext.h: 84
+# ../include/configcontext.h: 87
 try:
     CONFIG_DEFAULT_HBPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 85
+# ../include/configcontext.h: 88
 try:
     CONFIG_DEFAULT_CMAPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 87
+# ../include/configcontext.h: 90
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 88
+# ../include/configcontext.h: 91
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 90
+# ../include/configcontext.h: 93
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 91
+# ../include/configcontext.h: 94
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 92
+# ../include/configcontext.h: 95
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 93
+# ../include/configcontext.h: 96
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 94
+# ../include/configcontext.h: 97
 try:
     CONFIGNAME_CMAPORT = 'cmaport'
 except:
     pass
 
-# ../include/configcontext.h: 95
+# ../include/configcontext.h: 98
 try:
     CONFIGNAME_CMAINIT = 'cmainit'
 except:
     pass
 
-# ../include/configcontext.h: 97
+# ../include/configcontext.h: 100
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 98
+# ../include/configcontext.h: 101
 try:
     CONFIGNAME_CMADISCOVER = 'cmadisc'
 except:
     pass
 
-# ../include/configcontext.h: 99
+# ../include/configcontext.h: 102
 try:
     CONFIGNAME_CMAFAIL = 'cmafail'
 except:
     pass
 
-# ../include/configcontext.h: 100
+# ../include/configcontext.h: 103
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 101
+# ../include/configcontext.h: 104
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 102
+# ../include/configcontext.h: 105
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
@@ -3816,79 +3818,85 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 237
+# /home/alanr/monitor/src/include/frametypes.h: 236
 try:
-    FRAMETYPE_HBINTERVAL = 13
+    FRAMETYPE_IPPORT = 13
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 250
+# /home/alanr/monitor/src/include/frametypes.h: 249
 try:
-    FRAMETYPE_HBDEADTIME = 14
+    FRAMETYPE_HBINTERVAL = 14
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 263
+# /home/alanr/monitor/src/include/frametypes.h: 262
 try:
-    FRAMETYPE_HBWARNTIME = 16
+    FRAMETYPE_HBDEADTIME = 15
 except:
     pass
 
 # /home/alanr/monitor/src/include/frametypes.h: 275
 try:
-    FRAMETYPE_PATHNAME = 17
+    FRAMETYPE_HBWARNTIME = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 288
+# /home/alanr/monitor/src/include/frametypes.h: 287
 try:
-    FRAMETYPE_NVPAIR = 18
+    FRAMETYPE_PATHNAME = 17
 except:
     pass
 
 # /home/alanr/monitor/src/include/frametypes.h: 300
 try:
+    FRAMETYPE_NVPAIR = 18
+except:
+    pass
+
+# /home/alanr/monitor/src/include/frametypes.h: 312
+try:
     FRAMETYPE_JSDISCOVER = 19
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 311
+# /home/alanr/monitor/src/include/frametypes.h: 323
 try:
     FRAMETYPE_PARAMNAME = 20
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 322
+# /home/alanr/monitor/src/include/frametypes.h: 334
 try:
     FRAMETYPE_CSTRINGVAL = 21
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 334
+# /home/alanr/monitor/src/include/frametypes.h: 346
 try:
     FRAMETYPE_CINTVAL = 22
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 348
+# /home/alanr/monitor/src/include/frametypes.h: 360
 try:
     FRAMETYPE_ELAPSEDTIME = 23
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 360
+# /home/alanr/monitor/src/include/frametypes.h: 372
 try:
     FRAMETYPE_DISCNAME = 24
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 373
+# /home/alanr/monitor/src/include/frametypes.h: 385
 try:
     FRAMETYPE_DISCINTERVAL = 25
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 386
+# /home/alanr/monitor/src/include/frametypes.h: 398
 try:
     FRAMETYPE_DISCJSON = 26
 except:
@@ -4350,9 +4358,9 @@ _AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 26
 
 _SignFrame = struct__SignFrame # ../include/signframe.h: 28
 
-_ConfigContext = struct__ConfigContext # ../include/configcontext.h: 55
+_ConfigContext = struct__ConfigContext # ../include/configcontext.h: 58
 
-_ConfigValue = struct__ConfigValue # ../include/configcontext.h: 36
+_ConfigValue = struct__ConfigValue # ../include/configcontext.h: 45
 
 _Listener = struct__Listener # ../include/listener.h: 29
 

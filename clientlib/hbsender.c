@@ -42,7 +42,6 @@ _hbsender_addlist(HbSender* self)	///<[in]The sender to add
 {
 	_hb_senders = g_slist_prepend(_hb_senders, self);
 	_hb_sender_count += 1;
-	self->ref(self);
 }
 
 /// Remove an HbSender from our global list of HbSenders
@@ -52,7 +51,6 @@ _hbsender_dellist(HbSender* self)	///<[in]The sender to remove from our list
 	if (g_slist_find(_hb_senders, self) != NULL) {
 		_hb_senders = g_slist_remove(_hb_senders, self);
 		_hb_sender_count -= 1;
-		self->unref(self);
 		return;
 	}
 	g_warn_if_reached();
@@ -81,14 +79,8 @@ _hbsender_unref(HbSender* self)	///<[in/out] Object to decrement reference count
 {
 	g_return_if_fail(self->_refcount > 0);
 	self->_refcount -= 1;
-	if (self->_refcount == 1) {
-		// Our sender list holds an extra reference count...
-		_hbsender_dellist(self);
-		// hbsender_dellist will/should decrement reference count by 1
-		self = NULL;
-		return;
-	}
 	if (self->_refcount == 0) {
+		_hbsender_dellist(self);
 		self->_finalize(self);
 		self = NULL;
 	}
@@ -99,18 +91,19 @@ _hbsender_notify_function(gpointer data)
 {
 	HbSender* self = CASTTOCLASS(HbSender, data);
 	self->timeout_source = 0;
-	self->unref(self);
 }
 
 /// Finalize an HbSender
 FSTATIC void
 _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 {
+	if (self->_sendaddr) {
+		self->_sendaddr->baseclass.unref(self->_sendaddr);
+		self->_sendaddr = NULL;
+	}
 	if (self->timeout_source != 0) {
 		g_source_remove(self->timeout_source);
 	}
-	self->_sendaddr->baseclass.unref(self->_sendaddr);
-	// self->_sendaddr = NULL;
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self);
 }
@@ -118,7 +111,6 @@ _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 
 /// Construct a new HbSender - setting up timeout data structures for it.
 /// This can be used directly or by derived classes.
-///@todo write code to actually send the heartbeats ;-)
 HbSender*
 hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 	     NetGSource* outmethod,	///<[in] Mechanism for sending packets
@@ -131,7 +123,6 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 	}
 	newsender = MALLOCCLASS(HbSender, objsize);
 	if (newsender != NULL) {
-		hbsender_stopsend(sendaddr);
 		newsender->_sendaddr = sendaddr;
 		sendaddr->baseclass.ref(sendaddr);
 		newsender->_refcount = 1;
@@ -149,7 +140,8 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 		g_message("Sender %p timeout source is: %d, interval is %d", newsender
 		,	  newsender->timeout_source, interval);
 		_hbsender_addlist(newsender);
-		_hbsender_sendheartbeat(newsender);
+		// Avoid Martian packets - don't send the first one right away...
+		//	_hbsender_sendheartbeat(newsender);
 	}
 	return newsender;
 }
@@ -163,7 +155,7 @@ hbsender_stopsend(NetAddr* sendaddr)///<[in/out] Sender to remove from list
 	for (obj = _hb_senders; obj != NULL; obj=obj->next) {
 		HbSender* sender = CASTTOCLASS(HbSender, obj->data);
 		if (sendaddr->equal(sendaddr, sender->_sendaddr)) {
-			_hbsender_dellist(sender);
+			sender->unref(sender);
 			return;
 		}
 	}
@@ -175,5 +167,13 @@ _hbsender_sendheartbeat(HbSender* self)
 	//g_debug("Sending a heartbeat...");
 	self->_outmethod->sendaframeset(self->_outmethod, self->_sendaddr, heartbeat);
 	heartbeat->unref(heartbeat); heartbeat = NULL;
+}
+void
+hbsender_stopallsenders(void)
+{
+	while (_hb_senders) {
+		HbSender* sender = CASTTOCLASS(HbSender, _hb_senders->data);
+		sender->unref(sender);
+	}
 }
 ///@}

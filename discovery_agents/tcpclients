@@ -91,6 +91,7 @@ netstatinfo()
     while
        read proto rcvq sendq localaddr foreignaddr state pid_prog
     do
+      : proto $proto rcvq $rcvq sendq $sendq localaddr $localaddr foreignaddr $foreignaddr state $state pid $pid_prog
       case $state in
         CLOS*|FIN*|LAST_ACK|TIME_WAIT)	continue;;
         ESTABLISHED)	: OK;;
@@ -122,7 +123,20 @@ process_netstat()
   seq=1
   netstatinfo |
   while
+    if
       read name pid proto addr port
+    then
+       true
+    else
+      if
+         [ "x$outercomma"  != 'x' ]
+      then
+	printf '\n        }\n'
+	printf '      }\n'
+	printf '    }'
+      fi
+      false
+    fi
   do
       if
         [ "X$pid" != "X$lastpid" -o "X$name" != "X$lastname" ]
@@ -136,7 +150,7 @@ process_netstat()
           seq=1
           pname="${name}"
         fi
-	if [ "$pname" != ssh ] ; then continue; fi
+	#if [ "$pname" != ssh ] ; then continue; fi
         if
           [ "$innercomma" != '' ]
         then
@@ -175,9 +189,6 @@ process_netstat()
   done
   cat <<-!STAT
 
-	        }
-	      }
-	    }
 	  }
 	}
 	!STAT
@@ -191,4 +202,3 @@ process_netstat()
 #netstatinfo
 process_netstat
 exit 0
-discover ${1-tcp}

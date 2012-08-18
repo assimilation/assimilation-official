@@ -66,10 +66,8 @@
 #
 #
 #   Dispatcher logic:
-#   For now sends all requests to TheOneRing because we don't have
-#   a database yet ;-)
+#   For now sends all requests to TheOneRing because we need to write more code ;-)
 #
-#   We will need a database RealSoonNow :-D.
 #
 ################################################################################
 #
@@ -195,14 +193,15 @@ class CMAdb:
 
     def node_new(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
-    relationship with the nodetype object corresponding its nodetype.
+        relationship with the nodetype object corresponding its nodetype.
         It is created and added to indexes if it doesn't already exist in its corresponding index
-    - if there is one.
+        - if there is one.
         If it already exists, the pre-existing node is returned.
         If this object type doesn't have an index, it will always be created.
         Note that the nodetype has to be in the nodetypetable - even if it's NULL
             (for error detection).
-        The IS_A relationship may be useful -- or not.  Hard to say at this point...'''
+        The IS_A relationship may be useful -- or not.  Hard to say at this point...
+        '''
         assert nodetype is not None and nodename is not None
         properties['nodetype'] = nodetype
         properties['name'] = nodename
@@ -781,6 +780,9 @@ class DroneInfo:
                 fs.addframe(pframe)
             aframe = pyAddrFrame(FrameTypes.IPADDR, addrstring=addr)
             fs.append(aframe)
+        if type(dest) is str or type(dest) is unicode:
+            dest = pyNetAddr(dest)
+            dest.setport(self.port)
         self.io.sendframesets(dest, (fs,))
 
     def death_report(self, status, reason, fromaddr, frameset):
@@ -802,7 +804,7 @@ class DroneInfo:
             if rel.type.startswith(HbRing.memberprefix):
                 ringname = rel.end_node['name']
                 #print >>sys.stderr, 'Drone %s is a member of ring %s' % (self, ringname)
-            HbRing.ringnames[ringname].leave(self)
+                HbRing.ringnames[ringname].leave(self)
 
 
     def start_heartbeat(self, ring, partner1, partner2=None):
@@ -817,13 +819,17 @@ class DroneInfo:
             partner2ip = partner2.select_ip(ring)
         else:
             partner2ip = None
+        if True or CMAdb.debug:
+            print >>sys.stderr,                                                     \
+                'STARTING heartbeat(s) from %s [%s] to %s [%s] and possibly %s [%s]' % \
+                (self, ourip, partner1, partner1ip, partner2, partner2ip)
         self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, 0, (partner1ip, partner2ip))
 
     def stop_heartbeat(self, ring, partner1, partner2=None):
         '''Stop heartbeating to the given partners.'
-    We don't know which node is our forward link and which our back link,
+        We don't know which node is our forward link and which our back link,
         but we need to remove them either way ;-).
-    '''
+        '''
         ourip = self.select_ip(ring)
         partner1ip = partner1.select_ip(ring)
         if partner2 is not None:
@@ -831,6 +837,11 @@ class DroneInfo:
         else:
             partner2ip = None
         # Stop sending the heartbeat messages between these (former) peers
+        if True or CMAdb.debug:
+            print >>sys.stderr,                                                     \
+                'STOPPING heartbeat(s) from %s [%s] to %s [%s] and possibly %s [%s]' % \
+                (self, ourip, partner1, partner1ip, partner2, partner2ip)
+        #self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, 0, (partner1ip, partner2ip))
         self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, 0, (partner1ip, partner2ip))
 
     def request_discovery(self, *args): ##< A vector of arguments formed like this:
@@ -907,13 +918,14 @@ class DroneInfo:
             return drone
         if isinstance(designation, pyNetAddr):
             #Is there a concern about non-canonical IP address formats?
-            ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, str(designation))
+            ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, repr(designation))
             for ip in ipaddrs:
                 # Shouldn't have duplicates, but they happen...
                 # FIXME: Think about how to manage duplicate IP addresses...
                 # Do we really want to be looking up just by IP addresses here?
                 node = ip.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_iphost)
                 return DroneInfo.find(node)
+            print 'UHOH... COULD NOT FIND IP ADDRESS... %s' % repr(designation)
         if isinstance(designation, neo4j.Node):
             nodedesig = designation['name']
             if nodedesig in DroneInfo._droneweakrefs:
@@ -921,7 +933,8 @@ class DroneInfo:
                 if ret is not None:  return ret
             return DroneInfo(designation)
            
-        if designation in DroneInfo._droneweakrefs:
+        print "DESIGNATION repr(%s) = %s", (designation, repr(designation))
+        if repr(designation) in DroneInfo._droneweakrefs:
             ret = DroneInfo._droneweakrefs[designation]()
         return None
 
@@ -983,10 +996,11 @@ class DispatchSTARTUP(DispatchTarget):
     'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
     def dispatch(self, origaddr, frameset):
         json = None
+        addrstr = repr(origaddr)
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             print >>sys.stderr,"DispatchSTARTUP: received [%s] FrameSet from [%s]" \
-        %       (FrameSetTypes.get(fstype)[0], str(origaddr))
+        %       (FrameSetTypes.get(fstype)[0], addrstr)
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
@@ -1000,9 +1014,10 @@ class DispatchSTARTUP(DispatchTarget):
         #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendframesets(origaddr, (fs,fs2))
         self.io.sendframesets(origaddr, fs)
-        print 'Drone %s registered from address %s' % (sysname, origaddr)
+        print 'Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr)
         DroneInfo.add(sysname, 'STARTUP packet')
         drone = DroneInfo.find(sysname)
+        drone.port = origaddr.port()
         #print >>sys.stderr, 'DRONE from find: ', drone, type(drone)
         drone.startaddr=origaddr
         if json is not None:
@@ -1020,7 +1035,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             print >>sys.stderr,"DispatchJSDISCOVERY: received [%s] FrameSet from [%s]" \
-        %       (FrameSetTypes.get(fstype)[0], str(origaddr))
+        %       (FrameSetTypes.get(fstype)[0], repr(origaddr))
         sysname = None
         for frame in frameset.iter():
             frametype=frame.frametype()
@@ -1028,8 +1043,12 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 sysname = frame.getstr()
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
+                #print 'JSON received: ', json
                 if sysname is None:
                     jsonconfig = pyConfigContext(init=json)
+                    if not jsonconfig:
+                        print 'BAD JSON [%s]' % json
+                        return
                     sysname = jsonconfig.getstring('host')
                 drone = DroneInfo.find(sysname)
                 drone.logjson(json)
@@ -1115,7 +1134,9 @@ class PacketListener:
             #print "Failed to get a packet - sleeping."
             time.sleep(0.5)
         else:
-            if CMAdb.debug: print "Received packet from [%s]" % (str(fromaddr))
+            fromstr = repr(fromaddr)
+            if CMAdb.debug: print "Received packet from [%s]" % (fromstr)
+
             for frameset in framesetlist:
                 self.dispatcher.dispatch(fromaddr, frameset)
 

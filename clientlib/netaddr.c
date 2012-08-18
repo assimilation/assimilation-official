@@ -30,8 +30,10 @@ FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gboolean _netaddr_ismcast(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
+FSTATIC gchar * _netaddr_toStringflex(const NetAddr*, gboolean canonformat);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
-FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self);
+FSTATIC gchar * _netaddr_canonStr(const NetAddr*);
+FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format);
 FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr);
 
 DEBUGDECLARATIONS
@@ -49,30 +51,59 @@ DEBUGDECLARATIONS
 
 /// Convert this ipv6-encapsulated ipv4 NetAddr to a string
 FSTATIC gchar *
-_netaddr_toString_ipv6_ipv4(const NetAddr* self)
+_netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format)
 {
+	const char *	prefix;
+	const char *	suffix;
 	if (self->_addrport) {
-		return g_strdup_printf("[::ffff:%d.%d.%d.%d]:%d",
+		prefix = (ipv4format ? ""  : "[::ffff:");
+		suffix = (ipv4format ? ":" : "]:"      );
+	}else{
+		prefix = (ipv4format ? ""  : "::ffff:");
+		suffix = ""; // Not used
+	}
+		
+	if (self->_addrport) {
+		return g_strdup_printf("%s%d.%d.%d.%d%s%d",
+				       prefix,
 				       ((const gchar*)self->_addrbody)[12],
 				       ((const gchar*)self->_addrbody)[13],
 				       ((const gchar*)self->_addrbody)[14],
 				       ((const gchar*)self->_addrbody)[15],
+				       suffix,
 				       self->_addrport);
 	}
-	return g_strdup_printf("::ffff:%d.%d.%d.%d",
+	return g_strdup_printf("%s%d.%d.%d.%d",
+			       prefix,
 			       ((const gchar*)self->_addrbody)[12],
 			       ((const gchar*)self->_addrbody)[13],
 			       ((const gchar*)self->_addrbody)[14],
 			       ((const gchar*)self->_addrbody)[15]);
 }
+/// Convert this IPv6-encapsulated IPv4 NetAddr to an IPv4 representation
 /// Convert this NetAddr to a string
 FSTATIC gchar *
 _netaddr_toString(gconstpointer baseobj)
 {
+	const NetAddr*	self = CASTTOCONSTCLASS(NetAddr, baseobj);
+	return _netaddr_toStringflex(self, FALSE);
+}
+
+FSTATIC gchar *
+_netaddr_canonStr(const NetAddr* self)
+{
+	return _netaddr_toStringflex(self, TRUE);
+}
+
+
+/// Convert this IPv6-encapsulated IPv4 NetAddr to an IPv4 representation
+/// Convert this NetAddr to a string
+FSTATIC gchar *
+_netaddr_toStringflex(const NetAddr* self, gboolean canon_format)
+{
 	gchar *		ret = NULL;
 	GString*	gsret = NULL;
 	int		nbyte;
-	const NetAddr*	self = CASTTOCONSTCLASS(NetAddr, baseobj);
 	if (self->_addrtype == ADDR_FAMILY_IPV4) {
 		if (self->_addrport) {
 			return g_strdup_printf("%d.%d.%d.%d:%d",
@@ -103,7 +134,7 @@ _netaddr_toString(gconstpointer baseobj)
 		}
 		if (memcmp(self->_addrbody, ipv4prefix, sizeof(ipv4prefix)) == 0) {
 			g_string_free(gsret, TRUE); gsret = NULL;
-			return _netaddr_toString_ipv6_ipv4(self);
+			return _netaddr_toString_ipv6_ipv4(self, canon_format);
 		}
 		for (nbyte = 0; nbyte < self->_addrlen; nbyte += 2) {
 			guint16 byte0 = ((const guchar*)self->_addrbody)[nbyte];
@@ -268,6 +299,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 
 	baseobj->_finalize = _netaddr_finalize;
 	baseobj->toString = _netaddr_toString;
+	self->canonStr = _netaddr_canonStr;
 	self->_addrport = port;
 	self->_addrtype = addrtype;
 	self->_addrlen = addrlen;

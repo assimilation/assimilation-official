@@ -38,6 +38,7 @@ struct _HbSender {
 
 WINEXPORT HbSender* hbsender_new(NetAddr*, NetGSource*, guint interval, gsize hblisten_objsize);
 WINEXPORT void hbsender_stopsend(NetAddr* unlistenaddr);
+WINEXPORT void hbsender_stopallsenders(void);
 
 ///@}
 

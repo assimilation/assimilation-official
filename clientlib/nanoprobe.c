@@ -946,6 +946,7 @@ nano_shutdown(gboolean report)
 		g_message("Count of LLDP/CDP pkts sent:\t"FMT_64BIT"d", swdisc->baseclass.reportcount);
 		g_message("Count of LLDP/CDP pkts received:\t"FMT_64BIT"d", swdisc->baseclass.discovercount);
 	}
+	hbsender_stopallsenders();
 	swdisc->baseclass.baseclass.unref(swdisc); swdisc = NULL;
 	if (nanofailreportaddr) {
 		nanofailreportaddr->baseclass.unref(nanofailreportaddr); nanofailreportaddr = NULL;

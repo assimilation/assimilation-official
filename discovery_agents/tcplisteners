@@ -92,6 +92,7 @@ netstatinfo()
     while
        read proto rcvq sendq localaddr foreignaddr state pid_prog
     do
+      : proto $proto rcvq $rcvq sendq $sendq localaddr $localaddr foreignaddr $foreignaddr state $state pid_prog $pid_prog
       case $state in
         LISTEN)	: OK;;
         */*)	pid_prog="$state";;
@@ -124,7 +125,20 @@ discover()
   seq=1
   netstatinfo |
   while
+    if
       read name pid proto addr port
+    then
+       true
+    else
+      if
+         [ "x$outercomma"  != 'x' ]
+      then
+	printf '\n        }\n'
+	printf '      }\n'
+	printf '    }'
+      fi
+      false
+    fi
   do
       if
         [ "X$pid" != "X$lastpid" -o "X$name" != "X$lastname" ]
@@ -138,7 +152,6 @@ discover()
           seq=1
           pname="${name}"
         fi
-	if [ "$pname" != sshd ] ; then continue; fi
         if
           [ "$innercomma" != '' ]
         then
@@ -170,9 +183,6 @@ discover()
   done
   cat <<-!STAT
 
-	        }
-	      }
-	    }
 	  }
 	}
 	!STAT

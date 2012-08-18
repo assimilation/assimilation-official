@@ -37,6 +37,7 @@ struct _NetAddr {
 	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 sockaddr corresponding to this address
 	struct sockaddr_in(*ipv4sockaddr)(const NetAddr* self);///< Return the ipv4 sockaddr corresponding to this address
 	gboolean	(*equal)(const NetAddr*,const NetAddr*);///< Compare NetAddrs
+	char *		(*canonStr)(const NetAddr*);		///< Canonical form toString
 	gpointer	_addrbody;		///< private: Address body
 	guint16		_addrtype;		///< private: Address type
 	guint16		_addrlen;		///< private: Length of _addrbody
