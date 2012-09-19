@@ -134,7 +134,7 @@ dump_lldp_packet(const void* tlv_vpv, 	///<[in] Pointer to the first byte of the
 		if (ttype == LLDP_TLV_ORG_SPECIFIC) {
 			unsigned oui = get_oui(tbody);
 			unsigned subtype = tbody[3];
-			fprintf(stdout, "Org Specific TLV, %s subtype=%d sublength: %zd, values: "
+			fprintf(stdout, "Org Specific TLV, %s subtype=%d sublength: %"G_GSIZE_FORMAT", values: "
 			,	get_oui_string(oui),	subtype, tlen-4);
 			dump_mem(tbody+4, tbody+tlen);
 			fprintf(stdout, "\n");

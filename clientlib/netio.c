@@ -302,7 +302,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 		char *	tostring = destaddr->baseclass.toString(destaddr);
 		g_warning(
 		"%s: sendto returned %"G_GSSIZE_FORMAT " vs %"G_GSSIZE_FORMAT" with errno %s"
-		,	__FUNCTION__, rc, (size_t)length, g_strerror(errno));
+		,	__FUNCTION__, rc, (gssize)length, g_strerror(errno));
 		g_warning("%s: destaddr:[%s] ", __FUNCTION__, tostring);
 		g_free(tostring); tostring = NULL;
 	}
@@ -424,7 +424,7 @@ memset(srcaddr, 0, sizeof(*srcaddr));
 	}
 	// Does everything look good?
 	if (msglen2 != msglen) {
-		g_warning("recvfrom(%d, ... MSG_DONTWAIT) returned %zd instead of %zd (in %s:%s:%d)"
+		g_warning("recvfrom(%d, ... MSG_DONTWAIT) returned %"G_GSSIZE_FORMAT" instead of %"G_GSSIZE_FORMAT" (in %s:%s:%d)"
 		,      self->getfd(self), msglen2, msglen, __FILE__, __FUNCTION__ ,	__LINE__);
 		FREE(msgbuf); msgbuf = NULL;
 		return NULL;

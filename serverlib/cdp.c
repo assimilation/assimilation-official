@@ -95,7 +95,7 @@ dump_cdp_packet(const void* vpacket,	///< [in]Pointer to a the start of a CDP pa
 		gsize			tlen	= get_cdptlv_vlen(tlv_vp, pktend);
 		const unsigned char*	tbody	= get_cdptlv_body(tlv_vp, pktend);
 
-		fprintf(stdout, "CDP TLV type: %s, length: %zd, values: "
+		fprintf(stdout, "CDP TLV type: %s, length: %"G_GSIZE_FORMAT", values: "
 		,	get_cdp_type_string(ttype), tlen);
 		dump_mem(tbody, tbody+tlen);
 		fprintf(stdout, "\n");
