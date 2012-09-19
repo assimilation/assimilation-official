@@ -41,6 +41,11 @@ if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
 elseif("${CMAKE_C_COMPILER}" MATCHES ".*/gcc")
   message(STATUS "found gnu")
 endif()
+#
+#	For some older versions of gcc and/or glib (not sure quite which versions)
+#	Add -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
+#	Remove -Wcast-qual
+#
 IF(CMAKE_COMPILER_IS_GNUCC)
   add_definitions("-Wall -Werror -ggdb3 -Wformat=2 -Wstack-protector -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra")
 

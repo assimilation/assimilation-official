@@ -39,6 +39,12 @@
 	/* #if (GLIB_MINOR_VERSION < 6) - but this doesn't work as I expected */
 #	define	g_unlink(arg)	unlink(arg)
 #endif
+
+// This is a totally broken way to do this - but it seems to work at the moment...
+#if GLIB_MINOR_VERSION < 25
+void g_slist_free_full(GSList *list, GDestroyNotify free_func);
+#endif
+
 #include <proj_classes.h>
 
 #endif /* _PROJECTCOMMON_H */

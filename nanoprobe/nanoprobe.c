@@ -166,16 +166,20 @@ main(int argc, char **argv)
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	while (moreopts) {
-		c = getopt_long(argc, argv, "c:", long_options, &option_index);
+		c = getopt_long(argc, argv, "dc:l:", long_options, &option_index);
 		switch(c) {
 			case -1:
 				moreopts = FALSE;
 				break;
-			case 0:		// It already set a flag
+			case  0:	// It already set a flag
 				break;
 
 			case 'c':
 				cmaaddr = optarg;
+				break;
+
+			case 'd':
+				proj_class_incr_debug(NULL);
 				break;
 
 			case 'l':

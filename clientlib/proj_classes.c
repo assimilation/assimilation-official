@@ -391,4 +391,21 @@ proj_class_max_object_count(void)
 	return proj_class_max_obj_count;
 }
 
+/* Not really sure when this came in, but it was 25 or later */
+/* and it's a lousy to check for it anyway... */
+#if GLIB_MINOR_VERSION < 25
+void
+g_slist_free_full(GSList *list, GDestroyNotify free_func)
+{
+    while (list) {
+        GSList* next;
+            free_func(list);
+        next = g_slist_next(list);
+        g_slist_free(list);
+        list = next;
+    }
+}
+#endif
+
+
 ///@}

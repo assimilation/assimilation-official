@@ -324,6 +324,7 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	int		dotpositions[3];
 	int		colonpos = -1;
 	guint8		addresses[4];
+	guint8		stack_protector_dummy[8];
 	guint		whichdot = 0;
 	int		byte;
 	NetAddr*	ret;
@@ -333,6 +334,7 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	int	debug = FALSE;
 	int	lastpos = 0;
 
+	(void)stack_protector_dummy;
 	//debug = g_ascii_isdigit(addrstr[0]);
 
 	if (debug) {
