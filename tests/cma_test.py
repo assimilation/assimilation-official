@@ -10,7 +10,7 @@ from testify.utils import turtle
 from frameinfo import *
 from AssimCclasses import *
 import gc, sys, time, collections, os
-from newcma import *
+from cma import *
 
 
 WorstDanglingCount = 0
