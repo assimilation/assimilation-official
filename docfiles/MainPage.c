@@ -3,11 +3,11 @@
 @section intro Introduction
 Welcome to the Assimilation monitoring project. (@ref README "README")
 
-We provide incredibly scalable monitoring driven by integrated continuous Stealth Discovery™, and address these system management problems:
+We provide hyperscale monitoring driven by integrated continuous Stealth Discovery&tm; and address these system management problems:
 - System configuration information is out of date because discovery is incomplete, expensive and problematic to run - or manual
 - Monitoring is incomplete, out-of-date, easily confused, expensive to configure, complex and expensive to scale
 
-What we do: monitoring systems with near-zero overhead both on the systems and on their administrators.
+What we do: monitoring systems with near-zero overhead both on the systems and their administrators.
 - Monitor systems and services with very low overhead
 - Stealth discovery&tm; (system, service, and dependencies)
 - Easy to configure and manage
@@ -30,6 +30,9 @@ The original scalability idea was outlined in two different articles
 These two main ideas create a system which will have both a great out-of-the-box
 experience for new users and smooth accommodation of growth to virtually
 all environments.
+
+For a human-driven overview, we recommend our
+<a href="http://bit.ly/OD6bY6:">overview video</a> - from LinuxCon NA 2012 in San Diego.
 
 For source and licensing information see the
 - <a href="_source_and_license.html">Source and Licensing</a> page.
