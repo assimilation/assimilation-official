@@ -1095,12 +1095,15 @@ class MessageDispatcher:
         self.default = DispatchTarget()
 
     def dispatch(self, origaddr, frameset):
-        'Dispatch a frameset where it will get handled.'
+        'Dispatch a Frameset where it will get handled.'
         fstype = frameset.get_framesettype()
-        if self.dispatchtable.has_key(fstype):
-            self.dispatchtable[fstype].dispatch(origaddr, frameset)
-        else:
-            self.default.dispatch(origaddr, frameset)
+        try:
+            if fstype in self.dispatchtable:
+                self.dispatchtable[fstype].dispatch(origaddr, frameset)
+            else:
+                self.default.dispatch(origaddr, frameset)
+        except Exception as e:
+            print 'ERROR: MessageDispatcher Exception [%s] occurred while handling Frameset [%s]' % (e, str(frameset))
 
     def setconfig(self, io, config):
         'Save our configuration away.  We need it before we can do anything.'
