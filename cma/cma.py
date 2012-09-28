@@ -1097,13 +1097,27 @@ class MessageDispatcher:
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
         fstype = frameset.get_framesettype()
+        #
+        # Eventually handling incoming packets needs to be transactional in nature.
+        #
+        # Once that happens, this is a reasonable place to implement transactions.
+        # Need to think medium-hard about how to deal with doing this in a queueing system
+        # where a single packet might trigger a transaction on several systems for a node
+        # which appears on several rings.
+        #
         try:
+            # May eventually begin a transaction here
+            # Of course, this transaction needs to span both the database and the network
             if fstype in self.dispatchtable:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
             else:
                 self.default.dispatch(origaddr, frameset)
         except Exception as e:
-            print 'ERROR: MessageDispatcher Exception [%s] occurred while handling Frameset [%s]' % (e, str(frameset))
+            print 'ERROR: MessageDispatcher exception [%s] occurred while handling Frameset [%s]' % (e, str(frameset))
+            # Eventually will want to abort the transaction here
+        else:
+            # Eventually will want to commit the transaction here
+            pass
 
     def setconfig(self, io, config):
         'Save our configuration away.  We need it before we can do anything.'
