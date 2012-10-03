@@ -167,7 +167,7 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 		}
 		addmatch->nexttime = now + addmatch->_expected_interval;
 		addmatch->warntime = now + addmatch->_warn_interval;
-		fs->unref(fs);
+		fs->baseclass.unref(&fs->baseclass);
 		return TRUE;
 	}
 	// The 'martian' callback is necessarily global to all heartbeat listeners
@@ -178,7 +178,7 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 		g_warning("Received 'martian' packet from address [%s]", saddr);
 		g_free(saddr); saddr = NULL;
 	}
-	fs->unref(fs);
+	fs->baseclass.unref(&fs->baseclass);
 	return TRUE;
 }
 FSTATIC void

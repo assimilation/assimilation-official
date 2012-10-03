@@ -88,7 +88,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	//g_message("DUMPING packet received over 'wire':");
 	//frameset_dump(fs);
 	//g_message("END of packet received over 'wire':");
-	fs->unref(fs);
+	fs->baseclass.unref(&fs->baseclass); fs = NULL;
 	return TRUE;
 }
 

@@ -140,7 +140,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	//g_message("DUMPING packet received over 'wire':");
 	//frameset_dump(fs);
 	//g_message("END of packet received over 'wire':");
-	fs->unref(fs);
+	fs->baseclass.unref(&fs->baseclass);
 	if (wirepktcount >= maxpkts) {
 		g_message("QUITTING NOW!");
 		g_main_loop_quit(loop);
@@ -180,20 +180,20 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	// Send the configuration data to our new "client"
 	pkt = create_setconfig(nanoconfig);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->unref(pkt); pkt = NULL;
+	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
 
 	// Now tell them to send/expect heartbeats to various places
 	pkt = create_sendexpecthb(auth->baseclass.config,FRAMESETTYPE_SENDEXPECTHB, destaddr, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->unref(pkt); pkt = NULL;
+	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
 
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->unref(pkt); pkt = NULL;
+	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
 
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr2, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->unref(pkt); pkt = NULL;
+	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
 }
 
 /**

@@ -182,7 +182,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	io->sendaframeset(io, cma, fs);
 	++ self->baseclass.reportcount;
 	fsf->baseclass.unref(fsf); fsf = NULL; jsf = NULL;
-	fs->unref(fs); fs = NULL;
+	fs->baseclass.unref(&fs->baseclass); fs = NULL;
 }
 
 /// JsonDiscovery constructor.

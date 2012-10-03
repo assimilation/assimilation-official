@@ -99,7 +99,7 @@ nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, guint64 howlate)
 		frameset_append_frame(fs, &peeraddr->baseclass);
 		nanotransport->sendaframeset(nanotransport, nanofailreportaddr, fs);
 
-		fs->unref(fs);
+		fs->baseclass.unref(&fs->baseclass);
 		peeraddr->baseclass.baseclass.unref(peeraddr);
 }
 
@@ -835,7 +835,7 @@ nano_reqconfig(gpointer gcruft)
 
 	frameset_append_frame(fs, &csf->baseclass);
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
-	fs->unref(fs);
+	fs->baseclass.unref(&fs->baseclass); fs = NULL;
 	csf->baseclass.baseclass.unref(csf);
 	return TRUE;
 }

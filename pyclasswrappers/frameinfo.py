@@ -327,21 +327,22 @@ class FrameSetTypes:
  */
 '''
     _strframetypes = {
-	# nanoprobe peer-peer packets
+	# nanoprobe peer-peer FrameSets
 	'HEARTBEAT':	(1, 'A heartbeat packet'),
-	'NAK':		(2, "We don't like the frameset mentioned"),
-	'PING':		(3, 'Are you alive? (can also come from the CMA)'),
-	'PONG':		(4,  'I am alive'),
-	# nanoprobe packets sent to collective management authority
-	'STARTUP':	(16, 'System originating packet looking for heartbeat configuration.'),
-	'HBDEAD':	(17, 'System named in packet appears to be dead.'),
-	'HBLATE':	(18, 'System named in packet appears to be dead.'),
-	'HBBACKALIVE':	(19, 'System named in packet appears to be dead.'),
-	'HBMARTIAN':	(20, 'System named in packet appears gave unexpected heartbeat.'),
-	'PROBEALIVE':	(21, 'Packet issued by nanoprobe on startup - asking to be configured.'),
-	'SWDISCOVER':	(22, 'Packet encapsulates switch discovery packet'),
-	'JSDISCOVERY':	(23, 'Packet contains JSON-formatted discovery data'),
-	# 'Privileged' packets sent from the CMA to nanoprobes
+	'PING':		(2, 'Are you alive? (can also come from the CMA)'),
+	'PONG':		(3,  'I am alive (can also go to the CMA)'),
+	# nanoprobe FrameSets sent to collective management authority
+	'ACK':		(16, 'Frame referred to has been acted on. (can also come from the CMA)'),
+	'NACK':		(17, 'Frame referred to will not be acted on (has been rejected). (can also come from the CMA)'),
+	'STARTUP':	(18, 'System originating packet looking for heartbeat configuration.'),
+	'HBDEAD':	(19, 'System named in packet appears to be dead.'),
+	'HBLATE':	(20, 'System named in packet sent a late heartbeat.'),
+	'HBBACKALIVE':	(21, 'System named in packet sent heartbeat after being marked dead.'),
+	'HBMARTIAN':	(22, 'System named in packet appears gave unexpected heartbeat.'),
+	'PROBEALIVE':	(23, 'Packet issued by nanoprobe on startup - asking to be configured.'),
+	'SWDISCOVER':	(24, 'Packet encapsulates switch discovery packet'),
+	'JSDISCOVERY':	(25, 'Packet contains JSON-formatted discovery data'),
+	# 'Privileged' FrameSets sent from the CMA to nanoprobes
 	'SENDHB':	(64, 'Send Heartbeats to these addresses'),
 	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from these addresses'),
 	'SENDEXPECTHB':	(66, 'Send Heartbeats to these addresses, and expect them as well.'),

@@ -30,7 +30,7 @@ FSTATIC gboolean
 _listener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 {
 	(void)self;
-	fs->unref(fs);
+	fs->baseclass.unref(&fs->baseclass);
 	(void)addr;
 	return TRUE;
 }

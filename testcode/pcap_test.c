@@ -97,7 +97,7 @@ cast_frameset_tests(void)
         sigf->baseclass.baseclass.unref(sigf); sigf = NULL;
 	proj_class_dump_live_objects();
 	g_message("finalizing the FrameSet (and presumably frames)");
-	fs->unref(fs); fs = NULL;
+	fs->baseclass.unref(&fs->baseclass); fs = NULL;
 	proj_class_dump_live_objects();
 	g_message("C-class cast tests complete! - please check the output for errors.");
 }
@@ -147,8 +147,8 @@ address_tests(void)
                 af->baseclass.baseclass.unref(faf);
 	}
 	frameset_construct_packet(gfs, gsigf, NULL, NULL);
-	gsigf->baseclass.baseclass.unref(gsigf);
-	gfs->unref(gfs); gfs = NULL; gsigf=NULL;
+	gsigf->baseclass.baseclass.unref(gsigf); gsigf = NULL;
+	gfs->baseclass.unref(&gfs->baseclass); gfs = NULL;
 
 
 	bframeipv4_1->setaddr(bframeipv4_1, ADDR_FAMILY_IPV4, addr_ipv46_localhost, 3);

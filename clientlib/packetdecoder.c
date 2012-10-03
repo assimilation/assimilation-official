@@ -178,7 +178,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			newframe = _decode_packet_framedata_to_frameobject(self, curframe, nextframeset, &nextframe);
 			if (nextframe > nextframeset) {
 				newframe->baseclass.unref(newframe); newframe=NULL;
-				fs->unref(fs);
+				fs->baseclass.unref(&fs->baseclass);
 				return ret;
 			}
 			frameset_append_frame(fs, newframe);

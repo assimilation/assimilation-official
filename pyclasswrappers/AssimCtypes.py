@@ -1275,7 +1275,7 @@ try:
 except:
     pass
 
-# ../include/frameset.h: 29
+# ../include/frameset.h: 30
 class struct__FrameSet(Structure):
     pass
 
@@ -1617,83 +1617,77 @@ if hasattr(_libs['libclientlib.so'], 'signframe_tlvconstructor'):
     signframe_tlvconstructor.restype = POINTER(Frame)
 
 struct__FrameSet.__slots__ = [
+    'baseclass',
     'framelist',
     'packet',
     'pktend',
-    'refcount',
     'fstype',
     'fsflags',
-    'ref',
-    'unref',
-    '_finalize',
 ]
 struct__FrameSet._fields_ = [
+    ('baseclass', AssimObj),
     ('framelist', POINTER(GSList)),
     ('packet', gpointer),
     ('pktend', gpointer),
-    ('refcount', guint),
     ('fstype', guint16),
     ('fsflags', guint16),
-    ('ref', CFUNCTYPE(UNCHECKED(None), POINTER(FrameSet))),
-    ('unref', CFUNCTYPE(UNCHECKED(None), POINTER(FrameSet))),
-    ('_finalize', CFUNCTYPE(UNCHECKED(None), POINTER(FrameSet))),
 ]
 
-# ../include/frameset.h: 43
+# ../include/frameset.h: 41
 if hasattr(_libs['libclientlib.so'], 'frameset_new'):
     frameset_new = _libs['libclientlib.so'].frameset_new
     frameset_new.argtypes = [guint16]
     frameset_new.restype = POINTER(FrameSet)
 
-# ../include/frameset.h: 44
+# ../include/frameset.h: 42
 if hasattr(_libs['libclientlib.so'], 'frameset_prepend_frame'):
     frameset_prepend_frame = _libs['libclientlib.so'].frameset_prepend_frame
     frameset_prepend_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_prepend_frame.restype = None
 
-# ../include/frameset.h: 45
+# ../include/frameset.h: 43
 if hasattr(_libs['libclientlib.so'], 'frameset_append_frame'):
     frameset_append_frame = _libs['libclientlib.so'].frameset_append_frame
     frameset_append_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_append_frame.restype = None
 
-# ../include/frameset.h: 46
+# ../include/frameset.h: 44
 if hasattr(_libs['libclientlib.so'], 'frameset_construct_packet'):
     frameset_construct_packet = _libs['libclientlib.so'].frameset_construct_packet
     frameset_construct_packet.argtypes = [POINTER(FrameSet), POINTER(SignFrame), POINTER(Frame), POINTER(Frame)]
     frameset_construct_packet.restype = None
 
-# ../include/frameset.h: 47
+# ../include/frameset.h: 45
 if hasattr(_libs['libclientlib.so'], 'frame_new'):
     frame_new = _libs['libclientlib.so'].frame_new
     frame_new.argtypes = [guint16, gsize]
     frame_new.restype = POINTER(Frame)
 
-# ../include/frameset.h: 48
+# ../include/frameset.h: 46
 if hasattr(_libs['libclientlib.so'], 'frameset_get_flags'):
     frameset_get_flags = _libs['libclientlib.so'].frameset_get_flags
     frameset_get_flags.argtypes = [POINTER(FrameSet)]
     frameset_get_flags.restype = guint16
 
-# ../include/frameset.h: 49
+# ../include/frameset.h: 47
 if hasattr(_libs['libclientlib.so'], 'frameset_set_flags'):
     frameset_set_flags = _libs['libclientlib.so'].frameset_set_flags
     frameset_set_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_set_flags.restype = guint16
 
-# ../include/frameset.h: 50
+# ../include/frameset.h: 48
 if hasattr(_libs['libclientlib.so'], 'frameset_clear_flags'):
     frameset_clear_flags = _libs['libclientlib.so'].frameset_clear_flags
     frameset_clear_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_clear_flags.restype = guint16
 
-# ../include/frameset.h: 51
+# ../include/frameset.h: 49
 if hasattr(_libs['libclientlib.so'], 'frame_append_to_frameset_packet'):
     frame_append_to_frameset_packet = _libs['libclientlib.so'].frame_append_to_frameset_packet
     frame_append_to_frameset_packet.argtypes = [POINTER(FrameSet), POINTER(Frame), gpointer]
     frame_append_to_frameset_packet.restype = gpointer
 
-# ../include/frameset.h: 52
+# ../include/frameset.h: 50
 if hasattr(_libs['libclientlib.so'], 'frameset_dump'):
     frameset_dump = _libs['libclientlib.so'].frameset_dump
     frameset_dump.argtypes = [POINTER(FrameSet)]
@@ -2470,6 +2464,12 @@ if hasattr(_libs['libclientlib.so'], 'hbsender_stopsend'):
     hbsender_stopsend = _libs['libclientlib.so'].hbsender_stopsend
     hbsender_stopsend.argtypes = [POINTER(NetAddr)]
     hbsender_stopsend.restype = None
+
+# /home/alanr/monitor/src/include/hbsender.h: 41
+if hasattr(_libs['libclientlib.so'], 'hbsender_stopallsenders'):
+    hbsender_stopallsenders = _libs['libclientlib.so'].hbsender_stopallsenders
+    hbsender_stopallsenders.argtypes = []
+    hbsender_stopallsenders.restype = None
 
 # /home/alanr/monitor/src/include/intframe.h: 27
 class struct__IntFrame(Structure):
@@ -3370,137 +3370,143 @@ except:
 
 # ../include/framesettypes.h: 20
 try:
-    FRAMESETTYPE_NAK = 2
+    FRAMESETTYPE_PING = 2
 except:
     pass
 
 # ../include/framesettypes.h: 21
 try:
-    FRAMESETTYPE_PING = 3
+    FRAMESETTYPE_PONG = 3
 except:
     pass
 
 # ../include/framesettypes.h: 22
 try:
-    FRAMESETTYPE_PONG = 4
+    FRAMESETTYPE_ACK = 16
 except:
     pass
 
 # ../include/framesettypes.h: 23
 try:
-    FRAMESETTYPE_STARTUP = 16
+    FRAMESETTYPE_NACK = 17
 except:
     pass
 
 # ../include/framesettypes.h: 24
 try:
-    FRAMESETTYPE_HBDEAD = 17
+    FRAMESETTYPE_STARTUP = 18
 except:
     pass
 
 # ../include/framesettypes.h: 25
 try:
-    FRAMESETTYPE_HBLATE = 18
+    FRAMESETTYPE_HBDEAD = 19
 except:
     pass
 
 # ../include/framesettypes.h: 26
 try:
-    FRAMESETTYPE_HBBACKALIVE = 19
+    FRAMESETTYPE_HBLATE = 20
 except:
     pass
 
 # ../include/framesettypes.h: 27
 try:
-    FRAMESETTYPE_HBMARTIAN = 20
+    FRAMESETTYPE_HBBACKALIVE = 21
 except:
     pass
 
 # ../include/framesettypes.h: 28
 try:
-    FRAMESETTYPE_PROBEALIVE = 21
+    FRAMESETTYPE_HBMARTIAN = 22
 except:
     pass
 
 # ../include/framesettypes.h: 29
 try:
-    FRAMESETTYPE_SWDISCOVER = 22
+    FRAMESETTYPE_PROBEALIVE = 23
 except:
     pass
 
 # ../include/framesettypes.h: 30
 try:
-    FRAMESETTYPE_JSDISCOVERY = 23
+    FRAMESETTYPE_SWDISCOVER = 24
 except:
     pass
 
 # ../include/framesettypes.h: 31
 try:
-    FRAMESETTYPE_SENDHB = 64
+    FRAMESETTYPE_JSDISCOVERY = 25
 except:
     pass
 
 # ../include/framesettypes.h: 32
 try:
-    FRAMESETTYPE_EXPECTHB = 65
+    FRAMESETTYPE_SENDHB = 64
 except:
     pass
 
 # ../include/framesettypes.h: 33
 try:
-    FRAMESETTYPE_SENDEXPECTHB = 66
+    FRAMESETTYPE_EXPECTHB = 65
 except:
     pass
 
 # ../include/framesettypes.h: 34
 try:
-    FRAMESETTYPE_STOPSENDHB = 67
+    FRAMESETTYPE_SENDEXPECTHB = 66
 except:
     pass
 
 # ../include/framesettypes.h: 35
 try:
-    FRAMESETTYPE_STOPEXPECTHB = 68
+    FRAMESETTYPE_STOPSENDHB = 67
 except:
     pass
 
 # ../include/framesettypes.h: 36
 try:
-    FRAMESETTYPE_STOPSENDEXPECTHB = 69
+    FRAMESETTYPE_STOPEXPECTHB = 68
 except:
     pass
 
 # ../include/framesettypes.h: 37
 try:
-    FRAMESETTYPE_SETCONFIG = 70
+    FRAMESETTYPE_STOPSENDEXPECTHB = 69
 except:
     pass
 
 # ../include/framesettypes.h: 38
 try:
-    FRAMESETTYPE_INCRDEBUG = 71
+    FRAMESETTYPE_SETCONFIG = 70
 except:
     pass
 
 # ../include/framesettypes.h: 39
 try:
-    FRAMESETTYPE_DECRDEBUG = 72
+    FRAMESETTYPE_INCRDEBUG = 71
 except:
     pass
 
 # ../include/framesettypes.h: 40
 try:
-    FRAMESETTYPE_DODISCOVER = 73
+    FRAMESETTYPE_DECRDEBUG = 72
 except:
     pass
 
 # ../include/framesettypes.h: 41
 try:
+    FRAMESETTYPE_DODISCOVER = 73
+except:
+    pass
+
+# ../include/framesettypes.h: 42
+try:
     FRAMESETTYPE_STOPDISCOVER = 74
 except:
     pass
 
-# ../include/frameset.h: 41
+# ../include/frameset.h: 39
 try:
     FRAMESET_INITSIZE = 6
 except:
@@ -4348,7 +4354,7 @@ _GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 40
 
 _AssimObj = struct__AssimObj # ../include/assimobj.h: 20
 
-_FrameSet = struct__FrameSet # ../include/frameset.h: 29
+_FrameSet = struct__FrameSet # ../include/frameset.h: 30
 
 _Frame = struct__Frame # ../include/frame.h: 30
 

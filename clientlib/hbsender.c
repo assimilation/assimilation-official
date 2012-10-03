@@ -166,7 +166,7 @@ _hbsender_sendheartbeat(HbSender* self)
 	FrameSet*	heartbeat = frameset_new(FRAMESETTYPE_HEARTBEAT);
 	//g_debug("Sending a heartbeat...");
 	self->_outmethod->sendaframeset(self->_outmethod, self->_sendaddr, heartbeat);
-	heartbeat->unref(heartbeat); heartbeat = NULL;
+	heartbeat->baseclass.unref(&heartbeat->baseclass); heartbeat = NULL;
 }
 void
 hbsender_stopallsenders(void)

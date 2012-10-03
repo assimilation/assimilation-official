@@ -43,9 +43,7 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 FSTATIC void _frameset_indir_finalize(void* f);
-FSTATIC void _frameset_finalize(FrameSet* self);
-FSTATIC void _frameset_ref(FrameSet* self);
-FSTATIC void _frameset_unref(FrameSet* self);
+FSTATIC void _frameset_finalize(AssimObj* self);
 
 ///@defgroup FrameSet FrameSet class
 /// Class representing a collection of @ref Frame "Frame"s to be sent in a single datagram.
@@ -53,24 +51,6 @@ FSTATIC void _frameset_unref(FrameSet* self);
 /// be split across datagrams.
 ///@{
 ///@ingroup C_Classes
-
-FSTATIC void
-_frameset_ref(FrameSet* self)
-{
-	self->refcount += 1;
-}
-FSTATIC void
-_frameset_unref(FrameSet* self)
-{
-	g_return_if_fail(self->refcount > 0);
-
-	self->refcount -= 1;
-
-	if (self->refcount == 0) {
-		self->_finalize(self);
-		self = NULL;
-	}
-}
 
 
 /// static: finalize (free) frame
@@ -83,8 +63,9 @@ _frameset_indir_finalize(void* f)	///< Frame to finalize
 
 /// static: finalize (free) frameset and all its constituent frames...
 FSTATIC void
-_frameset_finalize(FrameSet* fs)	///< frameset to finalize
+_frameset_finalize(AssimObj* obj)	///< frameset to finalize
 {
+	FrameSet* fs = CASTTOCLASS(FrameSet, obj);
 	g_return_if_fail(NULL != fs);
 	/// @todo should only do this if the frameset won't need retransmitting -
 	/// - of course that should be handled by reference counts - not by special code here...
@@ -101,7 +82,6 @@ _frameset_finalize(FrameSet* fs)	///< frameset to finalize
 		fs->packet = NULL;
 		fs->pktend = NULL;
 	}
-	fs->_finalize = NULL;
 	memset(fs, 0x0, sizeof(*fs));
 	FREECLASSOBJ(fs);
 }
@@ -112,18 +92,15 @@ _frameset_finalize(FrameSet* fs)	///< frameset to finalize
 FrameSet*
 frameset_new(guint16 frameset_type) ///< Type of frameset to create
 {
-	FrameSet*	s = MALLOCBASECLASS(FrameSet); // Already zeroed.
+	AssimObj*	obj = assimobj_new(sizeof(FrameSet));
+	FrameSet*	s = NEWSUBCLASS(FrameSet, obj);
 	g_return_val_if_fail(s != NULL, NULL);
 	s->fstype = frameset_type;
 	s->framelist = NULL;
 	s->packet = NULL;
 	s->pktend = NULL;
 	s->fsflags = 0;
-	s->_finalize = _frameset_finalize;
-	s->ref = _frameset_ref;
-	s->unref = _frameset_unref;
-	s->refcount = 1;
-	
+	s->baseclass._finalize = _frameset_finalize;
 	return s;
 }
 
