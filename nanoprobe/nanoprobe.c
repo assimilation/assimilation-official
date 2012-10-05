@@ -146,6 +146,7 @@ main(int argc, char **argv)
 {
 	const char		defaultCMAaddr[] = "10.10.10.200:1984";
 	const char		defaultlocaladdress [] = "0.0.0.0:1984";
+	const char		secondtrylocaladdress [] = "0.0.0.0:0";
 	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);
@@ -153,6 +154,7 @@ main(int argc, char **argv)
 	struct sigaction	sigact;
 	const char *		cmaaddr = defaultCMAaddr;
 	const char *		localaddr = defaultlocaladdress;
+	gboolean		anyportpermitted = TRUE;
 	int			c;
 	static struct option 	long_options[] = {
 		{"cmaaddr",	required_argument,	0, 'c'},
@@ -184,6 +186,7 @@ main(int argc, char **argv)
 
 			case 'l':
 				localaddr = optarg;
+				anyportpermitted = FALSE;
 				break;
 
 			case '?':	// Already printed an error message
@@ -230,10 +233,23 @@ main(int argc, char **argv)
 	// Construct a NetAddr to bind to (listen from) (normally ANY address)
 	localbindaddr =  netaddr_string_new(localaddr);
 	g_return_val_if_fail(NULL != localbindaddr, 5);
+
+	// FIXME: Probably want to allow this...
 	g_return_val_if_fail(localbindaddr->port(localbindaddr) != 0, 5);
 
 	// Bind to the requested address (defaults to ANY as noted above)
-	g_return_val_if_fail(nettransport->bindaddr(nettransport, localbindaddr),16);
+	if (!nettransport->bindaddr(nettransport, localbindaddr)) {
+		// OOPS! Port already busy...
+		if (anyportpermitted) {
+			localbindaddr->baseclass.unref(&localbindaddr->baseclass);
+			localaddr = secondtrylocaladdress;
+			localbindaddr =  netaddr_string_new(localaddr);
+			g_return_val_if_fail(NULL != localbindaddr, 5);
+		}else{
+			g_warning("Cannot bind to local address [%s] and cannot use any free port.", localaddr);
+			return(5);
+		}
+	}
         localbindaddr->  baseclass.unref(localbindaddr);
 	localbindaddr = NULL;
 	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);

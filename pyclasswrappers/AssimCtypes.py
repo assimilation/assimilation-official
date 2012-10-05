@@ -1886,6 +1886,7 @@ struct__NetIO.__slots__ = [
     '_cryptframe',
     '_compressframe',
     'bindaddr',
+    'boundaddr',
     'mcastjoin',
     'getfd',
     'setblockio',
@@ -1908,6 +1909,7 @@ struct__NetIO._fields_ = [
     ('_cryptframe', POINTER(Frame)),
     ('_compressframe', POINTER(Frame)),
     ('bindaddr', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr))),
+    ('boundaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(NetIO))),
     ('mcastjoin', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), POINTER(NetAddr))),
     ('getfd', CFUNCTYPE(UNCHECKED(gint), POINTER(NetIO))),
     ('setblockio', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
@@ -1921,13 +1923,13 @@ struct__NetIO._fields_ = [
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 83
+# ../include/netio.h: 84
 if hasattr(_libs['libclientlib.so'], 'netio_new'):
     netio_new = _libs['libclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 85
+# ../include/netio.h: 86
 if hasattr(_libs['libclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []

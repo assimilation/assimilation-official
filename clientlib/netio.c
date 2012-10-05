@@ -33,6 +33,7 @@
 FSTATIC gint _netio_getfd(const NetIO* self);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src);
+FSTATIC NetAddr* _netio_boundaddr(const NetIO* self);
 FSTATIC void _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets);
 FSTATIC void _netio_sendaframeset(NetIO* self, const NetAddr* destaddr, FrameSet* frameset);
 FSTATIC void _netio_finalize(AssimObj* self);
@@ -178,6 +179,28 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 	}
 	return rc == 0;
 }
+/// Member function to return the bound NetAddr (with port) of this NetIO object
+FSTATIC NetAddr*
+_netio_boundaddr(const NetIO* self)		///<[in] The object being examined
+{
+	gint			sockfd = self->getfd(self);
+	struct sockaddr		saddr;
+	socklen_t		saddrlen = sizeof(saddr);
+	socklen_t		retsize = saddrlen;
+
+	
+	if (getsockname(sockfd, &saddr, &retsize) < 0) {
+		g_warning("%s: Cannot retrieve bound address [%s]", __FUNCTION__, g_strerror(errno));
+		return NULL;
+	}
+	if (retsize != saddrlen) {
+		g_warning("%s: Truncated getsockname() return [%d/%d bytes]", __FUNCTION__, retsize, saddrlen);
+		return NULL;
+	}
+	return netaddr_sockaddr_new((const struct sockaddr_in6*)&saddr, saddrlen);
+	
+}
+
 /// Member function to free this NetIO object.
 FSTATIC void
 _netio_finalize(AssimObj* aself)	///<[in/out] The object being freed

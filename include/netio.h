@@ -41,6 +41,7 @@ struct _NetIO {
 	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*);	///<[in] Address to bind it to
+	NetAddr*	(*boundaddr)(const NetIO* self);///<[in] Object to return bound address/port of
 	gboolean	(*mcastjoin)			///<Join multicast group
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*,	///<[in] Mcast addr to join
