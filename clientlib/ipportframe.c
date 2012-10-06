@@ -163,22 +163,18 @@ FSTATIC IpPortFrame*
 ipportframe_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFrame (not address type) frame
 	      gsize framesize)		///<[in] size of frame structure (or zero for sizeof(IpPortFrame))
 {
-	Frame*		baseframe;
 	IpPortFrame*	aframe;
 
 	if (framesize < sizeof(IpPortFrame)){
 		framesize = sizeof(IpPortFrame);
 	}
 
-	baseframe = frame_new(frame_type, framesize);
-	baseframe->isvalid = _ipportframe_default_isvalid;
-	proj_class_register_subclassed (baseframe, "IpPortFrame");
-	aframe = CASTTOCLASS(IpPortFrame, baseframe);
+	aframe = NEWSUBCLASS(IpPortFrame, frame_new(frame_type, framesize));
+	aframe->baseclass.isvalid = _ipportframe_default_isvalid;
 	
 	aframe->getnetaddr = _ipportframe_getnetaddr;
-	aframe->_basefinal = baseframe->baseclass._finalize;
-	baseframe->baseclass._finalize = _ipportframe_finalize;
-	aframe->_addr = NULL;
+	aframe->_basefinal = aframe->baseclass.baseclass._finalize;
+	aframe->baseclass.baseclass._finalize = _ipportframe_finalize;
 	return aframe;
 }
 
@@ -211,6 +207,24 @@ ipportframe_ipv6_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFra
 	g_return_val_if_fail(ret != NULL, NULL);
 	_ipportframe_setaddr(ret, ADDR_FAMILY_IPV6, port, addr, 16);
 	return ret;
+}
+
+/// Construct and initialize an @ref IpPortFrame from a IP @ref NetAddr
+IpPortFrame*
+ipportframe_netaddr_new(guint16 frame_type, NetAddr* addr)
+{
+	guint16		port = addr->port(addr);
+	gpointer	body = addr->_addrbody;
+
+	switch(addr->addrtype(addr)) {
+		case ADDR_FAMILY_IPV4:
+			return ipportframe_ipv4_new(frame_type, port, body);
+			break;
+		case ADDR_FAMILY_IPV6:
+			return ipportframe_ipv6_new(frame_type, port, body);
+			break;
+	}
+	return NULL;
 }
 
 

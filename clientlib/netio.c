@@ -284,6 +284,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->getmaxpktsize = _netio_getmaxpktsize;
 	ret->setmaxpktsize = _netio_setmaxpktsize;
 	ret->recvframesets = _netio_recvframesets;
+	ret->boundaddr = _netio_boundaddr;
 	ret->mcastjoin = _netio_mcastjoin;
 	ret->signframe = _netio_signframe;
 	ret->cryptframe = _netio_cryptframe;

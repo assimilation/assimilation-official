@@ -27,6 +27,7 @@
 #include <netgsource.h>
 #include <authlistener.h>
 #include <nvpairframe.h>
+#include <ipportframe.h>
 #include <hblistener.h>
 #include <hbsender.h>
 #include <configcontext.h>
@@ -803,7 +804,8 @@ nano_reqconfig(gpointer gcruft)
 	CstringFrame*	usf;
 	const char *	cfgname = cruft->initdiscover;
 	ConfigContext*	context = cruft->context;
-	NetAddr *	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
+	NetAddr*	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
+	NetAddr*	boundaddr;
 	const char *		jsontext;
 	struct utsname	un;	// System name, etc.
 
@@ -827,6 +829,15 @@ nano_reqconfig(gpointer gcruft)
 	frameset_append_frame(fs, &usf->baseclass);
 	usf->baseclass.baseclass.unref(usf);
 
+	// Put in our listening address
+	boundaddr = cruft->iosource->_netio->boundaddr(cruft->iosource->_netio);
+	if (boundaddr) {
+		// I _think_ we should always have a boundaddr - but just in case...
+		IpPortFrame*	ippf = ipportframe_netaddr_new(FRAMETYPE_IPPORT, boundaddr);
+		boundaddr->baseclass.unref(&boundaddr->baseclass);
+		frameset_append_frame(fs, &ippf->baseclass);
+	}
+
 	// Put in the JSON discovery text
 	jsontext = context->getstring(context, cfgname);
 	csf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
@@ -834,9 +845,11 @@ nano_reqconfig(gpointer gcruft)
 	,			frame_default_valuefinalize);
 
 	frameset_append_frame(fs, &csf->baseclass);
+	csf->baseclass.baseclass.unref(csf);
+
+	// We've constructed the frameset - now send it.
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
 	fs->baseclass.unref(&fs->baseclass); fs = NULL;
-	csf->baseclass.baseclass.unref(csf);
 	return TRUE;
 }
 
