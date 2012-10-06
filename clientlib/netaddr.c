@@ -412,7 +412,7 @@ _netaddr_string_ipv4_new(const char* addrstr)
 			return NULL;
 		}
 		port = atoi(addrstr+colonpos+1);
-		if (port == 0 || port > 65535) {
+		if (port > 65535) {
 			g_debug("found bad (%s) IPV4 port", addrstr+colonpos+1);
 			return NULL;
 		}

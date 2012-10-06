@@ -186,7 +186,6 @@ ipportframe_ipv4_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFra
 		     gconstpointer addr)	///<[in] pointer to the (binary) IPv4 address data
 {
 	IpPortFrame*	ret;
-	g_return_val_if_fail(port != 0, NULL);
 	g_return_val_if_fail(addr != NULL, NULL);
 	ret = ipportframe_new(frame_type, 0);
 	g_return_val_if_fail(ret != NULL, NULL);
@@ -201,7 +200,6 @@ ipportframe_ipv6_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFra
 		   gconstpointer addr)	///<[in] pointer to the (binary) IPv6 address data
 {
 	IpPortFrame*	ret;
-	g_return_val_if_fail(port != 0, NULL);
 	g_return_val_if_fail(addr != NULL, NULL);
 	ret = ipportframe_new(frame_type, 0);
 	g_return_val_if_fail(ret != NULL, NULL);

@@ -184,12 +184,12 @@ FSTATIC NetAddr*
 _netio_boundaddr(const NetIO* self)		///<[in] The object being examined
 {
 	gint			sockfd = self->getfd(self);
-	struct sockaddr		saddr;
+	struct sockaddr_in6	saddr;
 	socklen_t		saddrlen = sizeof(saddr);
 	socklen_t		retsize = saddrlen;
 
 	
-	if (getsockname(sockfd, &saddr, &retsize) < 0) {
+	if (getsockname(sockfd, (struct sockaddr*)&saddr, &retsize) < 0) {
 		g_warning("%s: Cannot retrieve bound address [%s]", __FUNCTION__, g_strerror(errno));
 		return NULL;
 	}
@@ -197,7 +197,7 @@ _netio_boundaddr(const NetIO* self)		///<[in] The object being examined
 		g_warning("%s: Truncated getsockname() return [%d/%d bytes]", __FUNCTION__, retsize, saddrlen);
 		return NULL;
 	}
-	return netaddr_sockaddr_new((const struct sockaddr_in6*)&saddr, saddrlen);
+	return netaddr_sockaddr_new(&saddr, saddrlen);
 	
 }
 

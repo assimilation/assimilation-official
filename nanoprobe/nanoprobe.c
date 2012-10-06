@@ -157,13 +157,14 @@ main(int argc, char **argv)
 	gboolean		anyportpermitted = TRUE;
 	int			c;
 	static struct option 	long_options[] = {
-		{"cmaaddr",	required_argument,	0, 'c'},
-		{"localaddr",	required_argument,	0, 'l'},
-		{NULL, 0, 0, 0}
+		{"cmaaddr",	required_argument,	0,	'c'},
+		{"localaddr",	required_argument,	0,	'l'},
+		{"debug",	no_argument,		0,	'd'},
+		{NULL, 		no_argument,		0,	0}
 	};
 	gboolean		moreopts = TRUE;
 	int			option_index = 0;
-	/// @todo initialize from a setup file - initial IP address, port, debug - anything else?
+	/// @todo initialize from a setup file - initial IP address:port, debug - anything else?
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);

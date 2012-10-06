@@ -564,22 +564,22 @@ class pyIpPortFrame(pyFrame):
         "Initializer for the pyIpPortFrame object."
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
-            addrlen = len(addrstring)
             if isinstance(addrstring, pyNetAddr):
                 self._pyNetAddr = addrstring
             else:
+                addrlen = len(addrstring)
                 self._pyNetAddr = pyNetAddr(addrstring, port=port)
 
-            addrstr = create_string_buffer(addrlen)
-            for j in range(0, addrlen):
-                addrstr[j] = chr(addrstring[j])
-            if addrlen == 4:
-                Cstruct=ipportframe_ipv4_new(frametype, port, addrstr)
-            elif addrlen == 16:
-                Cstruct=ipportframe_ipv6_new(frametype, port, addrstr)
-            else:
-                raise ValueError('Bad address length: %d' % addrlen)
-            self.port = port
+                addrstr = create_string_buffer(addrlen)
+                for j in range(0, addrlen):
+                    addrstr[j] = chr(addrstring[j])
+                if addrlen == 4:
+                    Cstruct=ipportframe_ipv4_new(frametype, port, addrstr)
+                elif addrlen == 16:
+                    Cstruct=ipportframe_ipv6_new(frametype, port, addrstr)
+                else:
+                    raise ValueError('Bad address length: %d' % addrlen)
+                self.port = port
         else:
             assert port is None
             assert addrstring is None

@@ -1005,6 +1005,8 @@ class DispatchSTARTUP(DispatchTarget):
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
                 sysname = frame.getstr()
+            if frametype == FrameTypes.IPPORT:
+                print >>sys.stderr, 'GOT IPPORT frame [%s]' % (str(frame))
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
         fs = CMAlib.create_setconfig(self.config)

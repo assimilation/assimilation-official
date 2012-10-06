@@ -139,6 +139,7 @@ class pyIpPortFrameTest(TestCase):
         self.assertEqual(pyf.frametype(), 200)
         self.assertEqual(pyf.framelen(), 8)
         self.assertEqual(str(pyf), 'pyIpPortFrame(200, (1.2.3.4:1984))')
+        self.assertEqual(pyf.getnetaddr(), pyNetAddr('1.2.3.4:1984'))
         self.assertEqual(pyf.addrtype(), 1)
         self.assertTrue(pyf.isvalid(), "pyIpPortFrame(200, (1,2,3,4:1984)) failed isvalid()")
         self.assertRaises(ValueError, pyIpPortFrame, 201, (1,2,3),80)
@@ -148,6 +149,12 @@ class pyIpPortFrameTest(TestCase):
         self.assertEqual(pyf.addrtype(), 2)
         self.assertTrue(pyf.isvalid(), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
         self.assertEqual(str(pyf), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
+        sameaddr = pyNetAddr([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10], port=1984)
+        self.assertEqual(pyf.getnetaddr(), sameaddr)
+        pyf = pyIpPortFrame(202, sameaddr, None)
+        self.assertEqual(str(pyf), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
+        self.assertEqual(pyf.getnetaddr(), sameaddr)
+
 
     @class_teardown
     def tearDown(self):

@@ -833,9 +833,17 @@ nano_reqconfig(gpointer gcruft)
 	boundaddr = cruft->iosource->_netio->boundaddr(cruft->iosource->_netio);
 	if (boundaddr) {
 		// I _think_ we should always have a boundaddr - but just in case...
+		// Not clear we need to send this at all...
 		IpPortFrame*	ippf = ipportframe_netaddr_new(FRAMETYPE_IPPORT, boundaddr);
-		boundaddr->baseclass.unref(&boundaddr->baseclass);
 		frameset_append_frame(fs, &ippf->baseclass);
+		ippf->baseclass.baseclass.unref(&ippf->baseclass.baseclass); ippf = NULL;
+		{
+			char* foo = boundaddr->baseclass.toString(&boundaddr->baseclass);
+			g_warning("BOUND ADDRESS IS %s.", foo);
+			g_free(foo); foo = NULL;
+		}
+		boundaddr->baseclass.unref(&boundaddr->baseclass);
+		
 	}
 
 	// Put in the JSON discovery text
