@@ -1,6 +1,6 @@
 SET (FST_H ${CMAKE_CURRENT_BINARY_DIR}/../include/framesettypes.h)
 SET (FT_H ${CMAKE_CURRENT_BINARY_DIR}/../include/frametypes.h)
-SET (GENCMD ${CMAKE_CURRENT_SOURCE_DIR}/../pyclasswrappers/frameinfo.py)
+SET (GENCMD ${CMAKE_CURRENT_SOURCE_DIR}/../cma/frameinfo.py)
 
 ADD_CUSTOM_COMMAND(
    OUTPUT ${FST_H}
