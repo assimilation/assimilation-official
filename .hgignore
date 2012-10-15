@@ -26,4 +26,5 @@ Doxyfile
 /\..*\.swo$
 include/framesettypes.h
 include/frametypes.h
+include/projectcommon.h
 nanoprobe/nanoprobe
