@@ -1167,6 +1167,7 @@ DroneInfo.add_json_processors(('tcpclients', DroneInfo.add_tcplisteners),)
 DroneInfo.add_json_processors(('#LinkDiscovery', DroneInfo.add_linkdiscovery),)
 
 if __name__ == '__main__':
+    import optparse
     #
     #   "Main" program starts below...
     #   It is a test program intended to run with some real nanoprobes running
@@ -1176,25 +1177,20 @@ if __name__ == '__main__':
     DefaultPort = 1984
     OurPort = None
 
-    skipme = False
-    for narg in range(1,len(sys.argv)):
-        if skipme:
-            skipme = False
-            continue
-        if sys.argv[narg] == '--bind':
-            OurAddr = pyNetAddr(sys.argv[narg+1])
-            if OurAddr.port() > 0:
-                OurPort = OurAddr.port()
-            else:
-                OurAddr.setport(OurPort)
-            skipme = True
-        else:
-            print >> sys.stderr, 'Bad argument [%s]' % sys.argv[narg]
+    parser = optparse.OptionParser(prog='CMA', version='0.0.1',
+        description='Collective Management Authority for the Assimilation System',
+        usage='cma.py [--bind address:port]')
 
-    if OurPort is None:
-        OurPort = 1984
-    if OurAddr is None:
-        OurAddr = pyNetAddr((10,10,10,200),OurPort)
+    parser.add_option('-b', '--bind', action='store', default='10.10.10.200:1984', dest='bind'
+    ,   metavar='address:port-to-bind-to'
+    ,   help='Address:port to listen to - for nanoprobes to connect to')
+    opt, args = parser.parse_args()
+
+    OurAddr = pyNetAddr(opt.bind)
+    if OurAddr.port() > 0:
+        OurPort = OurAddr.port()
+    else:
+        OurAddr.setport(1984)
 
     print 'Binding to Address: %s' % str(OurAddr)
 
