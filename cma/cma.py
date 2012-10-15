@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
 #
 #
@@ -77,8 +78,8 @@
 ################################################################################
 
 import sys, time, weakref, os
-sys.path.append("../pyclasswrappers")
-sys.path.append("pyclasswrappers")
+#sys.path.append("../pyclasswrappers")
+#sys.path.append("pyclasswrappers")
 from frameinfo import FrameTypes, FrameSetTypes
 from AssimCclasses import *
 from py2neo import neo4j, cypher

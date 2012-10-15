@@ -10,4 +10,5 @@ set (GLIB_LIB )
 ENDIF(WIN32)
 
 add_executable (nanoprobe nanoprobe.c)
-target_link_libraries(nanoprobe  clientlib serverlib ${PCAP_LIB} ${GLIB_LIB})
+target_link_libraries(nanoprobe  ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
+install(TARGETS nanoprobe COMPONENT nanoprobe DESTINATION ${CMAKE_INSTALL_PREFIX}/sbin)

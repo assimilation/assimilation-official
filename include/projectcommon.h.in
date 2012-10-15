@@ -45,6 +45,11 @@
 void g_slist_free_full(GSList *list, GDestroyNotify free_func);
 #endif
 
+
+#define	DISCOVERY_DIR	"@DISCOVERYINSTALL@"
+
+
+
 #include <proj_classes.h>
 
 #endif /* _PROJECTCOMMON_H */

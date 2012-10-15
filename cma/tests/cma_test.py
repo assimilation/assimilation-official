@@ -1,7 +1,6 @@
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
 _suites = ['all', 'cma']
 import sys
-sys.path.append("../pyclasswrappers")
 sys.path.append("../cma")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from testify import *

@@ -18,7 +18,8 @@
 /// @ingroup DiscoveryClass
 
 /// TODO: Total hack - full pathname coded in!
-#define JSONAGENTROOT	"/home/alanr/monitor/src/discovery_agents"
+
+#define JSONAGENTROOT	DISCOVERY_DIR
 
 typedef struct _JsonDiscovery JsonDiscovery;
 /// @ref JsonDiscovery abstract C-class - it supports discovering "things" through running commands outputting JSON

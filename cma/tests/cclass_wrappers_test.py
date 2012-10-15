@@ -1,8 +1,7 @@
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
 _suites = ['all', 'cclass']
 import sys
-sys.path.append("../pyclasswrappers")
-sys.path.append("pyclasswrappers")
+sys.path.append("../cma")
 from testify import *
 
 from frameinfo import *
