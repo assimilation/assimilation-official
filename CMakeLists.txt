@@ -22,7 +22,7 @@ set (CLIENTLIB ${PROJECT_NAME}clientlib)
 set (SERVERLIB ${PROJECT_NAME}serverlib)
 # Figure out where to install our python code
 # This isn't perfect, but it should get things going...
-execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python buildtools/install-path.py)
+execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/buildtools/install-path.py)
 set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
 set (DAGENTS discovery_agents)
@@ -62,9 +62,19 @@ if(WIN32)
       INCLUDE_DIRECTORIES(${CMAKE_INCLUDE_PATH})
 endif(WIN32)
 
+#
+#	Compiler flags for various compilers and platforms...
+#
+set (Best_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
+set (Lesser_GNUCC_FLAGS "Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast-Wcast-qual")
+set (Best_CLANG_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
+
+set (Active_CLANG_FLAGS ${Best_CLANG_FLAGS})
+
 
 if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
-  add_definitions("-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
+  message(STATUS "found CLANG")
+  add_definitions(${Active_CLANG_FLAGS})
   # Kludges to work around in older Clang versions
   if ("${GLIB2_INCLUDE_DIRS}" MATCHES ".*/i386-linux-gnu/.*")
     include_directories("/usr/include/i386-linux-gnu")
@@ -74,20 +84,33 @@ if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
   endif()
 elseif("${CMAKE_C_COMPILER}" MATCHES ".*/gcc")
   message(STATUS "found gnu")
-endif()
-#
-#	For some older versions of gcc and/or glib (not sure quite which versions)
-#	Add -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
-#	Remove -Wcast-qual
-#
-IF(CMAKE_COMPILER_IS_GNUCC)
-  add_definitions("-Wall -Werror -ggdb3 -Wformat=2 -Wstack-protector -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra")
-
-ENDIF(CMAKE_COMPILER_IS_GNUCC)
-
-IF(CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions("-Wall -Werror -ggdb3 -Wformat=2 -Wstack-protector")
-ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+  IF(CMAKE_COMPILER_IS_GNUCC)
+  #
+  # Some versions of GCC combined with versions of glib don't like our most strict flags.
+  # So we try and figure out the strictest flags we can enable and hav it compile.
+  #
+  file (WRITE ${CMAKE_BINARY_DIR}/CmakeTmp/testflags.c
+"#include <glib.h>
+int main(int argc, char **argv) {
+	GQuark	q = 0; (void)argc; (void)argv;
+	return GUINT_TO_POINTER(q) == NULL;
+}")
+    TRY_COMPILE(GOOD_GCC_FLAGS_WORK
+	${CMAKE_BINARY_DIR}
+	${CMAKE_BINARY_DIR}/CmakeTmp/testflags.c
+	COMPILE_DEFINITIONS ${GLIB2_STATIC_CFLAGS} ${Best_GNUCC_FLAGS}
+	)
+     execute_process (COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/CmakeTmp)
+    
+    if (GOOD_GCC_FLAGS_WORK)
+      message(STATUS "Notice: Enabling the most strict GCC flags.")
+      add_definitions(${Best_GNUCC_FLAGS})
+    else (GOOD_GCC_FLAGS_WORK)
+      message(STATUS "WARNING: Enabling somewhat less strict GCC flags.")
+      add_definitions(${Lesser_GNUCC_FLAGS})
+    endif (GOOD_GCC_FLAGS_WORK)
+  ENDIF(CMAKE_COMPILER_IS_GNUCC)
+endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
 
 add_subdirectory(clientlib)
 add_subdirectory(serverlib)
