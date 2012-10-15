@@ -42,6 +42,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_D
 include(FindPkgConfig)
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 if (PKG_CONFIG_FOUND)
+    message(STATUS "GLIB include directories ${GLIB2_INCLUDE_DIRS} ------------------------------------------------------------------------------------")
     include_directories(${GLIB2_INCLUDE_DIRS})
 else (PKG_CONFIG_FOUND)
   # Hopefully this isn't needed any more...
@@ -66,7 +67,7 @@ endif(WIN32)
 #	Compiler flags for various compilers and platforms...
 #
 set (Best_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
-set (Lesser_GNUCC_FLAGS "Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast-Wcast-qual")
+set (Lesser_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast-Wcast-qual")
 set (Best_CLANG_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
 
 set (Active_CLANG_FLAGS ${Best_CLANG_FLAGS})
@@ -108,6 +109,9 @@ int main(int argc, char **argv) {
     else (GOOD_GCC_FLAGS_WORK)
       message(STATUS "WARNING: Enabling somewhat less strict GCC flags.")
       add_definitions(${Lesser_GNUCC_FLAGS})
+      # Sleazy -- should be unnecessary - but glibconfig seems broken for me on these older platforms...
+      message(STATUS "ADDING: /usr/lib/glib-2.0/include")
+      include_directories("/usr/lib/glib-2.0/include")
     endif (GOOD_GCC_FLAGS_WORK)
   ENDIF(CMAKE_COMPILER_IS_GNUCC)
 endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
