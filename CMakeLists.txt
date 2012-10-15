@@ -42,7 +42,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_D
 include(FindPkgConfig)
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 if (PKG_CONFIG_FOUND)
-    message(STATUS "GLIB include directories ${GLIB2_INCLUDE_DIRS} ------------------------------------------------------------------------------------")
     include_directories(${GLIB2_INCLUDE_DIRS})
 else (PKG_CONFIG_FOUND)
   # Hopefully this isn't needed any more...
