@@ -16,12 +16,12 @@ project(assimilation C)
 set(CMAKE_INSTALL_PREFIX /usr)
 #Supposedly this isn't necessary...
 #execute_process (OUTPUT_VARIABLE LIB_DIRNAME OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python buildtools/determinelibdir.py)
-set(LIB_DIRNAME lib${LIB_SUFFIX})
-set(InstallLIBS ${CMAKE_INSTALL_PREFIX}/${LIB_DIRNAME})
+set (LIB_DIRNAME lib${LIB_SUFFIX})
+set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/${LIB_DIRNAME})
 set (CLIENTLIB ${PROJECT_NAME}clientlib)
 set (SERVERLIB ${PROJECT_NAME}serverlib)
 # Figure out where to install our python code
-# This isn't perfect, but it should get things going...
+# This isn't perfect, but it should be good enough for us to get things going...
 execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/buildtools/install-path.py)
 set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
@@ -39,6 +39,10 @@ endif(WIN32)
 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}/include)
+
+#
+#	Get options for glib2 from pkg-config (for both Linux and Windows)
+#
 include(FindPkgConfig)
 pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 if (PKG_CONFIG_FOUND)
@@ -87,7 +91,7 @@ elseif("${CMAKE_C_COMPILER}" MATCHES ".*/gcc")
   IF(CMAKE_COMPILER_IS_GNUCC)
   #
   # Some versions of GCC combined with versions of glib don't like our most strict flags.
-  # So we try and figure out the strictest flags we can enable and hav it compile.
+  # So we try and figure out the strictest flags we can enable and have it compile.
   #
   file (WRITE ${CMAKE_BINARY_DIR}/CmakeTmp/testflags.c
 "#include <glib.h>
@@ -115,14 +119,18 @@ int main(int argc, char **argv) {
   ENDIF(CMAKE_COMPILER_IS_GNUCC)
 endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
 
+#
+#	Add all our various subdirectories... Order matters...
+#
 add_subdirectory(clientlib)
 add_subdirectory(serverlib)
 add_subdirectory(testcode)
 add_subdirectory(nanoprobe)
 add_subdirectory(include)
 add_subdirectory(cma)
-#add_subdirectory(pyclasswrappers)
+#
 # Doxygen documentation stuff...
+#
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
@@ -132,6 +140,12 @@ if(DOXYGEN_FOUND)
   COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
+#
+#	Create a header file with some of our project (install) directories defined
+#
 configure_file(${PROJECT_SOURCE_DIR}/include/projectcommon.h.in ${PROJECT_BINARY_DIR}/include/projectcommon.h)
+#
+#	Install our discovery agents under /usr/share/assimilation.  Retain permissions from source control.
+#
 install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe DESTINATION ${USRSHARE} USE_SOURCE_PERMISSIONS
 	PATTERN ".nfs*" EXCLUDE PATTERN "*.out" EXCLUDE PATTERN "*.txt" EXCLUDE)
