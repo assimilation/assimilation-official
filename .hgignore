@@ -29,3 +29,5 @@ include/frametypes.h
 include/projectcommon.h
 nanoprobe/nanoprobe
 install_manifest.txt
+discovery_agents/.*\.out
+discovery_agents/.*\.txt
