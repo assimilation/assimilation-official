@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
      execute_process (COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/CmakeTmp)
     
     if (GOOD_GCC_FLAGS_WORK)
-      message(STATUS "Notice: Enabling the most strict GCC flags.")
+      message(STATUS "Notice: Enabling the strictest GCC flags.")
       add_definitions(${Best_GNUCC_FLAGS})
     else (GOOD_GCC_FLAGS_WORK)
       message(STATUS "WARNING: Enabling somewhat less strict GCC flags.")

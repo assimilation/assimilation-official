@@ -59,6 +59,7 @@ const char *	procname = "nanoprobe";
 void catch_a_signal(int signum);
 gboolean check_for_signals(gpointer ignored);
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
+void usage(const char * cmdname);
 
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
@@ -135,6 +136,15 @@ check_for_signals(gpointer ignored)
 	}
 	return TRUE;
 }
+void
+usage(const char * cmdname)
+{
+	fprintf(stderr, "usage: %s [arguments...]\n", cmdname);
+	fprintf(stderr, "Legal arguments are:\n");
+	fprintf(stderr, "\t-c --cmaaddr address:port-of-CMA\n");
+	fprintf(stderr, "\t-b --bind address:port-to-listen-on-locally\n");
+	fprintf(stderr, "\t-d --debug (increment debug level)\n");
+}
 
 /**
  * Nanoprobe main program.
@@ -158,11 +168,12 @@ main(int argc, char **argv)
 	int			c;
 	static struct option 	long_options[] = {
 		{"cmaaddr",	required_argument,	0,	'c'},
-		{"localaddr",	required_argument,	0,	'l'},
+		{"bind",	required_argument,	0,	'b'},
 		{"debug",	no_argument,		0,	'd'},
 		{NULL, 		no_argument,		0,	0}
 	};
 	gboolean		moreopts = TRUE;
+	gboolean		optionerror = FALSE;
 	int			option_index = 0;
 	/// @todo initialize from a setup file - initial IP address:port, debug - anything else?
 
@@ -191,12 +202,19 @@ main(int argc, char **argv)
 				break;
 
 			case '?':	// Already printed an error message
+				optionerror = TRUE;
 				break;
 
 			default:
 				g_error("Default case in getopt_long()");
+				optionerror = TRUE;
 				break;
 		}
+	}
+
+	if (optionerror) {
+		usage(argv[0]);
+		exit(1);
 	}
 
 
