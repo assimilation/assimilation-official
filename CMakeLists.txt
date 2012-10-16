@@ -120,9 +120,11 @@ int main(int argc, char **argv) {
     else (GOOD_GCC_FLAGS_WORK)
       message(STATUS "WARNING: Enabling somewhat less strict GCC flags.")
       add_definitions(${Lesser_GNUCC_FLAGS})
-      # Sleazy -- should be unnecessary - but glibconfig seems broken for me on these older platforms...
-      message(STATUS "ADDING: /usr/lib/glib-2.0/include")
-      include_directories("/usr/lib/glib-2.0/include")
+      if (IS_DIRECTORY "/usr/lib/glib-2.0/include")
+          # Sleazy -- should be unnecessary - but glibconfig seems broken for me on some older platforms...
+          message(STATUS "ADDING: /usr/lib/glib-2.0/include")
+          include_directories("/usr/lib/glib-2.0/include")
+      endif (IS_DIRECTORY "/usr/lib/glib-2.0/include")
     endif (GOOD_GCC_FLAGS_WORK)
   ENDIF(CMAKE_COMPILER_IS_GNUCC)
 endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
