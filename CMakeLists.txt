@@ -10,6 +10,8 @@ project(assimilation C)
 #	USRSHARE		Our subdirectory under /usr/share
 #	DAGENTS			the relative directory name we source discovery agents from
 #	DISCOVERYINSTALL	Where we install our discovery scripts
+#	CMAADDR			Default address and port of the CMA
+#	NANOLISTENADDR		Default address/port to listen to for nanoprobes
 #	
 #
 #
@@ -27,6 +29,12 @@ set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
 set (DAGENTS discovery_agents)
 set (DISCOVERYINSTALL ${USRSHARE}/${DAGENTS})
+if (NOT CMAADDR) 
+  set(CMAADDR "10.10.10.200:1984")
+endif (NOT CMAADDR) 
+if (NOT NANOLISTENADDR) 
+  set(NANOLISTENADDR "0.0.0.0:1984")
+endif (NOT NANOLISTENADDR) 
 #####################################################################################
 
 include (CheckSymbolExists)

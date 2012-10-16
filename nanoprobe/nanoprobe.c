@@ -154,8 +154,8 @@ usage(const char * cmdname)
 int
 main(int argc, char **argv)
 {
-	const char		defaultCMAaddr[] = "10.10.10.200:1984";
-	const char		defaultlocaladdress [] = "0.0.0.0:1984";
+	const char		defaultCMAaddr[] = CMAADDR;
+	const char		defaultlocaladdress [] = NANOLISTENADDR;
 	const char		secondtrylocaladdress [] = "0.0.0.0:0";
 	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	Listener*		otherlistener;
