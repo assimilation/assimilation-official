@@ -598,7 +598,14 @@ class DroneInfo:
 
     def getport(self):
         '''Return the port we talk to this drone on'''
-        return self.io.config[CONFIGNAME_CMAPORT]
+        if not hasattr(self, 'port'):
+            self.port = self.node['port']
+        return self.port
+
+    def setport(self, port):
+        '''Set the port we talk to this drone on'''
+        self.port = port
+        self.node['port'] = port
         
    
     def logjson(self, jsontext):
@@ -754,6 +761,7 @@ class DroneInfo:
 
     def primary_ip(self, ring=None):
         '''Return the "primary" IP for this host'''
+        # Should this come from our initial contact with the node?
         primaryIP = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
         return str(primaryIP['name'])
 
@@ -895,7 +903,6 @@ class DroneInfo:
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip)
         ourip.setport(self.getport())
-        #print 'PORT IS ', self.getport()
         self.io.sendframesets(ourip, (fs,))
         if CMAdb.debug:
             print >>sys.stderr, 'Sent Discovery request(%s,%s) to %s Framesets: %s' \
@@ -1020,8 +1027,8 @@ class DispatchSTARTUP(DispatchTarget):
         print 'Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr)
         DroneInfo.add(sysname, 'STARTUP packet')
         drone = DroneInfo.find(sysname)
-        drone.port = origaddr.port()
-        #print >>sys.stderr, 'DRONE from find: ', drone, type(drone)
+        drone.setport(origaddr.port())
+        #print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
         drone.startaddr=origaddr
         if json is not None:
             drone.logjson(json)
@@ -1139,7 +1146,8 @@ class PacketListener:
             self.io = io
         dispatch.setconfig(self.io, config)
 
-        self.io.bindaddr(config["cmainit"])
+        if not self.io.bindaddr(config['cmainit']):
+            raise NameError('Cannot bind to address %s' % (str(config['cmainit'])))
         self.io.setblockio(True)
         #print "IO[socket=%d,maxpacket=%d] created." \
         #%  (self.io.getfd(), self.io.getmaxpktsize())
@@ -1181,7 +1189,7 @@ if __name__ == '__main__':
         description='Collective Management Authority for the Assimilation System',
         usage='cma.py [--bind address:port]')
 
-    parser.add_option('-b', '--bind', action='store', default='10.10.10.200:1984', dest='bind'
+    parser.add_option('-b', '--bind', action='store', default='0.0.0.0:1984', dest='bind'
     ,   metavar='address:port-to-bind-to'
     ,   help='Address:port to listen to - for nanoprobes to connect to')
     opt, args = parser.parse_args()
