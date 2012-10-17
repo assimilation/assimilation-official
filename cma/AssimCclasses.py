@@ -1070,12 +1070,27 @@ class pyNetIO(pyAssimObj):
             base=base.baseclass
         return base.getfd(self._Cstruct)
 
-    def bindaddr(self, addr):
+    def bindaddr(self, addr, silent=False):
         'Bind the socket underneath this NetIO object to the given address'
         base = self._Cstruct[0]
         while (not hasattr(base, 'bindaddr')):
             base=base.baseclass
-        return base.bindaddr(self._Cstruct, addr._Cstruct)
+        return base.bindaddr(self._Cstruct, addr._Cstruct, silent)
+
+    def boundaddr(self):
+        'Bind the socket underneath this NetIO object to the given address'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'bindaddr')):
+            base=base.baseclass
+        boundaddr = base.boundaddr(self._Cstruct)
+        return pyNetAddr(None, Cstruct=boundaddr)
+
+    def mcastjoin(self, addr):
+        'Join the underlying socket to the given multicast address'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'mcastjoin')):
+            base=base.baseclass
+        return base.mcastjoin(self._Cstruct, addr._Cstruct, None)
 
     def getmaxpktsize(self):
         'Return the max packet size for this pyNetIO'

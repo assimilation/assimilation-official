@@ -156,7 +156,6 @@ main(int argc, char **argv)
 {
 	const char		defaultCMAaddr[] = CMAADDR;
 	const char		defaultlocaladdress [] = NANOLISTENADDR;
-	const char		secondtrylocaladdress [] = "0.0.0.0:0";
 	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);
@@ -175,6 +174,7 @@ main(int argc, char **argv)
 	gboolean		moreopts = TRUE;
 	gboolean		optionerror = FALSE;
 	int			option_index = 0;
+	gboolean		bindret;
 	/// @todo initialize from a setup file - initial IP address:port, debug - anything else?
 
 
@@ -196,7 +196,7 @@ main(int argc, char **argv)
 				proj_class_incr_debug(NULL);
 				break;
 
-			case 'l':
+			case 'b':
 				localaddr = optarg;
 				anyportpermitted = FALSE;
 				break;
@@ -206,7 +206,7 @@ main(int argc, char **argv)
 				break;
 
 			default:
-				g_error("Default case in getopt_long()");
+				g_error("OOPS! Default case in getopt_long(%c)", c);
 				optionerror = TRUE;
 				break;
 		}
@@ -253,26 +253,36 @@ main(int argc, char **argv)
 	localbindaddr =  netaddr_string_new(localaddr);
 	g_return_val_if_fail(NULL != localbindaddr, 5);
 
-	// FIXME: Probably want to allow this...
-	g_return_val_if_fail(localbindaddr->port(localbindaddr) != 0, 5);
 
 	// Bind to the requested address (defaults to ANY as noted above)
-	if (!nettransport->bindaddr(nettransport, localbindaddr)) {
-		// OOPS! Port already busy...
+	bindret = nettransport->bindaddr(nettransport, localbindaddr, anyportpermitted);
+	localbindaddr->baseclass.unref(&localbindaddr->baseclass);
+	localbindaddr = NULL;
+	if (!bindret) {
+		// OOPS! Address:Port already busy...
 		if (anyportpermitted) {
-			localbindaddr->baseclass.unref(&localbindaddr->baseclass);
-			localaddr = secondtrylocaladdress;
-			localbindaddr =  netaddr_string_new(localaddr);
+			guint8 anyaddr[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+			localbindaddr =  netaddr_ipv6_new(anyaddr, 0);
 			g_return_val_if_fail(NULL != localbindaddr, 5);
+			bindret = nettransport->bindaddr(nettransport, localbindaddr, FALSE);
+			localbindaddr->baseclass.unref(&localbindaddr->baseclass);
+			localbindaddr = NULL;
+			g_return_val_if_fail(bindret, 6);
 		}else{
 			g_warning("Cannot bind to local address [%s] and cannot use any free port.", localaddr);
 			return(5);
 		}
 	}
-        localbindaddr->  baseclass.unref(localbindaddr);
-	localbindaddr = NULL;
-	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
-	g_message("Local address: %s", localaddr);
+	{
+		NetAddr*	boundaddr = nettransport->boundaddr(nettransport);
+		if (boundaddr) {
+			char *		boundstr = boundaddr->baseclass.toString(&boundaddr->baseclass);
+			g_message("Local address: %s", boundstr);
+			g_free(boundstr);
+		}else{
+			g_message("Unable to determine local address!");
+		}
+	}
 
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive

@@ -271,7 +271,7 @@ main(int argc, char **argv)
 	g_return_val_if_fail(NULL != destaddr, 5);
 
 	// Bind to ANY address (as noted above)
-	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyaddr),16);
+	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyaddr, FALSE),16);
 	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
 
 	g_message("Joining multicast address.");
