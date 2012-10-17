@@ -32,7 +32,7 @@
 
 FSTATIC gint _netio_getfd(const NetIO* self);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
-FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src);
+FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src, gboolean silent);
 FSTATIC NetAddr* _netio_boundaddr(const NetIO* self);
 FSTATIC void _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets);
 FSTATIC void _netio_sendaframeset(NetIO* self, const NetAddr* destaddr, FrameSet* frameset);
@@ -190,7 +190,8 @@ getout:
 /// Member function to bind this NewIO object to a NetAddr address
 FSTATIC gboolean
 _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
-		const NetAddr* src)	///<[in] The address to bind it to
+		const NetAddr* src,	///<[in] The address to bind it to
+		gboolean silent)	///<[in] TRUE if no message on error
 {
 	gint			sockfd;
 	struct sockaddr_in6	saddr;
@@ -210,7 +211,7 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 
 	saddr = src->ipv6sockaddr(src);
 	rc = bind(sockfd, (struct sockaddr*)&saddr, sizeof(saddr));
-	if (rc != 0) {
+	if (rc != 0 && !silent) {
 		g_warning("%s: Cannot bind to address [%s (errno:%d)]"
 		,	__FUNCTION__, g_strerror(errno), errno);
 	}
