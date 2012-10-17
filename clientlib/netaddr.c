@@ -261,6 +261,7 @@ _netaddr_ismcast(const NetAddr* self)
 	if (self->_addrbody == NULL) {
 		return FALSE;
 	}
+	///@TODO recognize IPv6 multicast addresses too...
 	switch (self->_addrtype) {
 		case ADDR_FAMILY_IPV4: {
 			guint8 byte0 = ((guint8*)self->_addrbody)[0];
