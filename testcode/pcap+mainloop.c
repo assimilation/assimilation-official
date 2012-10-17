@@ -208,6 +208,8 @@ int
 main(int argc, char **argv)
 {
 	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
+	const guint8	mcastaddrstring[] = CONST_ASSIM_DEFAULT_V4_MCAST;
+	NetAddr*	mcastaddr;
 	const guint8	otheradstring[] = {10,10,10,5};
 	const guint8	otheradstring2[] = {10,10,10,4};
 	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -256,6 +258,7 @@ main(int argc, char **argv)
 	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMAFAIL, destaddr);
 	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMADISCOVER, destaddr);
 
+
 	// Construct another couple of NetAddrs to talk to and listen from
 	// for good measure...
 	otheraddr =  netaddr_ipv4_new(otheradstring, testport);
@@ -270,6 +273,12 @@ main(int argc, char **argv)
 	// Bind to ANY address (as noted above)
 	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyaddr),16);
 	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
+
+	g_message("Joining multicast address.");
+	mcastaddr =  netaddr_ipv4_new(mcastaddrstring, testport);
+	g_return_val_if_fail(nettransport->mcastjoin(nettransport, mcastaddr, NULL), 17);
+	mcastaddr->baseclass.unref(mcastaddr); mcastaddr = NULL;
+	g_message("multicast join succeeded.");
 
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
@@ -336,7 +345,7 @@ main(int argc, char **argv)
         destaddr-> baseclass.unref(destaddr);
         otheraddr->baseclass.unref(otheraddr);
         otheraddr2->baseclass.unref(otheraddr2);
-        anyaddr->  baseclass.unref(anyaddr);
+        anyaddr->baseclass.unref(anyaddr); anyaddr = NULL;
 
 	// Free config object
 	config->baseclass.unref(config);
@@ -351,6 +360,6 @@ main(int argc, char **argv)
 	}else{
 		g_message("No objects left alive.  Awesome!");
 	}
-        proj_class_finalize_sys(); /// Shut down object system to make valgrind happy :-D
+        proj_class_finalize_sys(); // Shut down object system to make valgrind happy :-D
 	return(errcount <= 127 ? errcount : 127);
 }
