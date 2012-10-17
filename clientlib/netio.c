@@ -182,7 +182,7 @@ _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr)
 getout:
 	if (genlocal) {
 		genlocal->baseclass.unref(&genlocal->baseclass);
-		localaddr = genlocal = NULL;
+		genlocal = NULL;
 	}
 	return (rc == 0);
 }
