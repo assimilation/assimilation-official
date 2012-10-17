@@ -261,7 +261,8 @@ class TestIO:
 
     def getmaxpktsize(self):    return 60000
     def getfd(self):        	return 4
-    def bindaddr(self, addr):   return
+    def bindaddr(self, addr):   return True
+    def mcastjoin(self, addr):  return True
     def setblockio(self, tf):   return
 
     def dumppackets(self):
@@ -335,7 +336,7 @@ class TestCMABasic(TestCase):
         fsin = ((droneip, (fs,)),)
         io = TestIO(fsin,0)
         CMAdb.initglobal(io, True)
-        OurAddr = pyNetAddr((10,10,10,200),1984)
+        OurAddr = pyNetAddr((127,0,0,1),1984)
         disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()})
         configinit = geninitconfig(OurAddr)
         config = pyConfigContext(init=configinit)
@@ -353,7 +354,7 @@ class TestCMABasic(TestCase):
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
         SETCONFIG message and then send back a bunch of discovery requests.'''
-        OurAddr = pyNetAddr((10,10,10,200), 1984)
+        OurAddr = pyNetAddr((10,10,10,5), 1984)
         configinit = geninitconfig(OurAddr)
         fsin = []
         droneid=0

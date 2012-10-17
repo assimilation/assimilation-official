@@ -3359,7 +3359,7 @@ except:
 
 # ../include/projectcommon.h: 50
 try:
-    CMAADDR = '10.10.10.200:1984'
+    CMAADDR = '224.0.2.5:1984'
 except:
     pass
 
