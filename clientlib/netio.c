@@ -46,6 +46,7 @@ FSTATIC SignFrame* _netio_signframe (NetIO *self);
 FSTATIC Frame* _netio_cryptframe (NetIO *self);
 FSTATIC Frame* _netio_compressframe (NetIO *self);
 FSTATIC gboolean _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr);
+FSTATIC gboolean _netio_setmcast_ttl(NetIO* self, guint8 ttl);
 
 DEBUGDECLARATIONS
 
@@ -89,7 +90,6 @@ _netio_setblockio(const NetIO* self, gboolean blocking)
 
 
 /// Set up a NetIO object to listen to (join) a particular multicast group.
-///@todo DOES NOT APPEAR TO WORK FOR V4 addresses
 FSTATIC gboolean
 _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr)
 {
@@ -177,6 +177,9 @@ _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr)
 		if (rc != 0) {
 			g_warning("%s: Cannot join v4 multicast group [%s (errno:%d)]"
 			,	__FUNCTION__, g_strerror(errno), errno);
+		}else{
+			// Default to the largest organizational scope defined...
+			self->setmcast_ttl(self, 31);
 		}
 	}
 getout:
@@ -184,7 +187,24 @@ getout:
 		genlocal->baseclass.unref(&genlocal->baseclass);
 		genlocal = NULL;
 	}
+	
 	return (rc == 0);
+}
+
+/// Set up the multicast TTL for this NetIO object
+gboolean
+_netio_setmcast_ttl(NetIO*	self,		///<[in/out] netIO object to set the TTL of
+		     guint8	ttlin)		///<[in] multicast TTL
+///<  TTL     Scope
+///<    0    Restricted to the same host. Won't be output by any interface.
+///<    1    Restricted to the same subnet. Won't be forwarded by a router.
+///<  <32    Restricted to the same site, organization or department.
+///<  <64    Restricted to the same region.
+///< <128    Restricted to the same continent.
+///< <255    Unrestricted in scope. Global.
+{
+	int	ttl = ttlin;
+        return setsockopt(self->getfd(self), IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
 }
 
 /// Member function to bind this NewIO object to a NetAddr address
@@ -324,6 +344,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->recvframesets = _netio_recvframesets;
 	ret->boundaddr = _netio_boundaddr;
 	ret->mcastjoin = _netio_mcastjoin;
+	ret->setmcast_ttl = _netio_setmcast_ttl;
 	ret->signframe = _netio_signframe;
 	ret->cryptframe = _netio_cryptframe;
 	ret->compressframe = _netio_compressframe;

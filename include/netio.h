@@ -41,12 +41,16 @@ struct _NetIO {
 	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*,	///<[in] Address to bind it to
-				 gboolean silent);	///<[in] TRUE if no message on failure
+				 gboolean silent)	///<[in] TRUE if no message on failure
+				;			// (separate line to work around doxygen bug)
 	NetAddr*	(*boundaddr)(const NetIO* self);///<[in] Object to return bound address/port of
 	gboolean	(*mcastjoin)			///<Join multicast group
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*,	///<[in] Mcast addr to join
 				 const NetAddr*);	///<[in] local if addr or NULL
+	gboolean	(*setmcast_ttl)
+				(NetIO* self,		///<[in/out] Object to set mcast TTL for
+				 guint8 ttl);		///<[in] Multicast TTL value
 	gint		(*getfd)			///<[in] Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
 	void		(*setblockio)			///<[in] Set blocking/non-blocking mode
