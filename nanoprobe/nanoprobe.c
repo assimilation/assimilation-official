@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #include <getopt.h>
 #include <projectcommon.h>
 #include <framesettypes.h>
@@ -165,9 +166,11 @@ main(int argc, char **argv)
 	const char *		localaddr = defaultlocaladdress;
 	gboolean		anyportpermitted = TRUE;
 	int			c;
+	int			mcast_ttl = 31;
 	static struct option 	long_options[] = {
 		{"cmaaddr",	required_argument,	0,	'c'},
 		{"bind",	required_argument,	0,	'b'},
+		{"ttl",		required_argument,	0,	't'},
 		{"debug",	no_argument,		0,	'd'},
 		{NULL, 		no_argument,		0,	0}
 	};
@@ -194,6 +197,10 @@ main(int argc, char **argv)
 
 			case 'd':
 				proj_class_incr_debug(NULL);
+				break;
+
+			case 't':
+				mcast_ttl = atoi(optarg);
 				break;
 
 			case 'b':
@@ -236,18 +243,21 @@ main(int argc, char **argv)
 	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
 
-	
-
 
 	// Construct the NetAddr we'll talk to (it will default to be mcast when we get that working)
 	destaddr =  netaddr_string_new(cmaaddr);
 	g_message("CMA address: %s", cmaaddr);
-
-
+	if (destaddr->ismcast(destaddr)) {
+		if (!nettransport->setmcast_ttl(nettransport, mcast_ttl)) {
+			g_warning("Unable to set multicast TTL to %d [%s %d]", mcast_ttl
+			,	g_strerror(errno), errno);
+		}
+	}
 
 	g_return_val_if_fail(NULL != destaddr, 3);
 	g_return_val_if_fail(destaddr->port(destaddr) != 0, 4);
 	config->setaddr(config, CONFIGNAME_CMAINIT, destaddr);
+
 
 	// Construct a NetAddr to bind to (listen from) (normally ANY address)
 	localbindaddr =  netaddr_string_new(localaddr);
