@@ -76,7 +76,7 @@ _jsondiscovery_discover(Discovery* dself)
 	}
 	++ self->baseclass.discovercount;
 	if (cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER) == NULL) {
-		g_message("%s: don't have [%s] address yet - continuing." 
+		DEBUGMSG1("%s: don't have [%s] address yet - continuing." 
 		,	  __FUNCTION__, CONFIGNAME_CMADISCOVER);
 	}
 	self->_tmpfilename = strdup("/var/tmp/discovery-XXXXXXXXXXX.json");
@@ -124,7 +124,7 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 		g_warning("JSON discovery [%s] produced no output.", self->_fullpath);
 		goto quitchild;
 	}
-	//g_message("Got %d bytes of JSON TEXT: [%s]", jsonlen, jsonout);
+	//g_debug("Got %d bytes of JSON TEXT: [%s]", jsonlen, jsonout);
 	_jsondiscovery_send(self, jsonout, jsonlen);
 
 quitchild:
@@ -162,11 +162,11 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 			return;
 		}
 	}
-	g_message("Sending %"G_GSIZE_FORMAT" bytes of JSON text", jsonlen);
+	DEBUGMSG1("Sending %"G_GSIZE_FORMAT" bytes of JSON text", jsonlen);
 	cfg->setstring(cfg, basename, jsonout);
 	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
 	if (cma == NULL) {
-	        g_message("%s address is unknown - skipping send"
+	        DEBUGMSG1("%s address is unknown - skipping send"
 		,	CONFIGNAME_CMADISCOVER);
 		g_free(jsonout);
 		return;
@@ -178,7 +178,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	fsf = &jsf->baseclass;	// base class object of jsf
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
 	frameset_append_frame(fs, fsf);
-	g_message("Sending a %"G_GSIZE_FORMAT" bytes JSON frameset", jsonlen);
+	DEBUGMSG1("Sending a %"G_GSIZE_FORMAT" bytes JSON frameset", jsonlen);
 	io->sendaframeset(io, cma, fs);
 	++ self->baseclass.reportcount;
 	fsf->baseclass.unref(fsf); fsf = NULL; jsf = NULL;
@@ -220,7 +220,7 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 	}
 	ret->jsonparams = jsonparams;
         ret->_fullpath = g_strdup_printf("%s%s%s", basedir, "/", discoverytype);
-	g_message("json_discovery_new: FULLPATH=[%s] discoverytype[%s]", ret->_fullpath
+	DEBUGMSG1("json_discovery_new: FULLPATH=[%s] discoverytype[%s]", ret->_fullpath
 	,	discoverytype);
 	discovery_register(&ret->baseclass);
 	return ret;
