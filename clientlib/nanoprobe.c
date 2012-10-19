@@ -733,7 +733,7 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 
 	(void)fromaddr;
 
-	g_message("%s(%s,%d,%s)", __FUNCTION__, instance, interval, json);
+	DEBUGMSG1("%s(%s,%d,%s)", __FUNCTION__, instance, interval, json);
 	jsonroot = configcontext_new_JSON_string(json);
 	g_return_if_fail(jsonroot != NULL);
 	disctype = jsonroot->getstring(jsonroot, "type");
@@ -805,7 +805,6 @@ nano_reqconfig(gpointer gcruft)
 	const char *	cfgname = cruft->initdiscover;
 	ConfigContext*	context = cruft->context;
 	NetAddr*	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
-	NetAddr*	boundaddr;
 	const char *		jsontext;
 	struct utsname	un;	// System name, etc.
 
@@ -828,17 +827,6 @@ nano_reqconfig(gpointer gcruft)
 	,			frame_default_valuefinalize);
 	frameset_append_frame(fs, &usf->baseclass);
 	usf->baseclass.baseclass.unref(usf);
-
-	// Put in our listening address
-	boundaddr = cruft->iosource->_netio->boundaddr(cruft->iosource->_netio);
-	if (boundaddr) {
-		// I _think_ we should always have a boundaddr - but just in case...
-		char* foo = boundaddr->baseclass.toString(&boundaddr->baseclass);
-		g_message("Nanoprobe listening on address %s.", foo);
-		g_free(foo); foo = NULL;
-		boundaddr->baseclass.unref(&boundaddr->baseclass);
-		boundaddr = NULL;
-	}
 
 	// Put in the JSON discovery text
 	jsontext = context->getstring(context, cfgname);
@@ -953,13 +941,13 @@ void
 nano_shutdown(gboolean report)
 {
 	if (report) {
-		g_message("Count of heartbeats:\t\t"FMT_64BIT"d", nano_hbstats.heartbeat_count);
-		g_message("Count of deadtimes:\t\t\t%d", nano_hbstats.dead_count);
-		g_message("Count of warntimes:\t\t\t%d", nano_hbstats.warntime_count);
-		g_message("Count of comealives:\t\t%d", nano_hbstats.comealive_count);
-		g_message("Count of martians:\t\t\t%d", nano_hbstats.martian_count);
-		g_message("Count of LLDP/CDP pkts sent:\t"FMT_64BIT"d", swdisc->baseclass.reportcount);
-		g_message("Count of LLDP/CDP pkts received:\t"FMT_64BIT"d", swdisc->baseclass.discovercount);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of heartbeats:", nano_hbstats.heartbeat_count);
+		g_info("%-35s %8d", "Count of deadtimes:", nano_hbstats.dead_count);
+		g_info("%-35s %8d", "Count of warntimes:", nano_hbstats.warntime_count);
+		g_info("%-35s %8d", "Count of comealives:", nano_hbstats.comealive_count);
+		g_info("%-35s %8d", "Count of martians:", nano_hbstats.martian_count);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts sent:", swdisc->baseclass.reportcount);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
 	}
 	hbsender_stopallsenders();
 	swdisc->baseclass.baseclass.unref(swdisc); swdisc = NULL;

@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <getopt.h>
+#include <syslog.h>
 #include <projectcommon.h>
 #include <framesettypes.h>
 #include <frameset.h>
@@ -47,6 +48,9 @@ int		heartbeatcount = 0;
 int		errcount = 0;
 int		pcapcount = 0;
 int		wirepktcount = 0;
+const char *	syslog_id;
+int		syslog_options = LOG_PID|LOG_NDELAY;
+int		syslog_facility = LOG_DAEMON;
 
 //		Signals...
 gboolean	sigint	= FALSE;
@@ -61,6 +65,7 @@ void catch_a_signal(int signum);
 gboolean check_for_signals(gpointer ignored);
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void usage(const char * cmdname);
+void nanoprobe_logger(	const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data);
 
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
@@ -74,22 +79,22 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	++wirepktcount;
 	switch(fs->fstype) {
 		case FRAMESETTYPE_HBBACKALIVE:
-			g_message("Received back alive notification (type %d) over the 'wire'."
+			g_debug("Received back alive notification (type %d) over the 'wire'."
 			,	  fs->fstype);
 			break;
 
 		default:
 			if (fs->fstype >= FRAMESETTYPE_STARTUP && fs->fstype < FRAMESETTYPE_SENDHB) {
-				g_message("Received a FrameSet of type %d over the 'wire' (OOPS!)."
+				g_debug("Received a FrameSet of type %d over the 'wire' (OOPS!)."
 				,	  fs->fstype);
 			}else{
-				g_message("Received a FrameSet of type %d over the 'wire'."
+				g_debug("Received a FrameSet of type %d over the 'wire'."
 				,	  fs->fstype);
 			}
 	}
-	//g_message("DUMPING packet received over 'wire':");
+	//g_debug("DUMPING packet received over 'wire':");
 	//frameset_dump(fs);
-	//g_message("END of packet received over 'wire':");
+	//g_debug("END of packet received over 'wire':");
 	fs->baseclass.unref(&fs->baseclass); fs = NULL;
 	return TRUE;
 }
@@ -182,6 +187,12 @@ main(int argc, char **argv)
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	syslog_id = strrchr(argv[0], '/');
+	if (syslog_id) {
+		syslog_id += 1;
+	}else{
+		syslog_id = argv[0];
+	}
 	while (moreopts) {
 		c = getopt_long(argc, argv, "dc:l:", long_options, &option_index);
 		switch(c) {
@@ -224,8 +235,8 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-
-
+	g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION
+	,	nanoprobe_logger, NULL);
 
 	if (!netio_is_dual_ipv4v6_stack()) {
 		g_warning("This OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
@@ -246,7 +257,7 @@ main(int argc, char **argv)
 
 	// Construct the NetAddr we'll talk to (it will default to be mcast when we get that working)
 	destaddr =  netaddr_string_new(cmaaddr);
-	g_message("CMA address: %s", cmaaddr);
+	g_info("CMA address: %s", cmaaddr);
 	if (destaddr->ismcast(destaddr)) {
 		if (!nettransport->setmcast_ttl(nettransport, mcast_ttl)) {
 			g_warning("Unable to set multicast TTL to %d [%s %d]", mcast_ttl
@@ -287,10 +298,12 @@ main(int argc, char **argv)
 		NetAddr*	boundaddr = nettransport->boundaddr(nettransport);
 		if (boundaddr) {
 			char *		boundstr = boundaddr->baseclass.toString(&boundaddr->baseclass);
-			g_message("Local address: %s", boundstr);
+			g_info("Local address: %s", boundstr);
 			g_free(boundstr);
+			boundaddr->baseclass.unref(&boundaddr->baseclass);
+			boundaddr = NULL;
 		}else{
-			g_message("Unable to determine local address!");
+			g_warning("Unable to determine local address!");
 		}
 	}
 
@@ -332,7 +345,7 @@ main(int argc, char **argv)
 	 ********************************************************************/
 
 	nano_shutdown(TRUE);	// Tell it to shutdown and print stats
-	g_message("Count of 'other' pkts received:\t%d", wirepktcount);
+	g_info("%-35s %8d", "Count of 'other' pkts received:", wirepktcount);
 
 	nettransport->baseclass.unref(nettransport); nettransport = NULL;
 
@@ -354,8 +367,55 @@ main(int argc, char **argv)
 			proj_class_live_object_count());
 		++errcount;
 	}else{
-		g_message("No objects left alive.  Awesome!");
+		g_info("No objects left alive.  Awesome!");
 	}
         proj_class_finalize_sys(); /// Shut down object system to make valgrind happy :-D
 	return(errcount <= 127 ? errcount : 127);
+}
+
+void
+nanoprobe_logger(	const gchar *log_domain,
+			GLogLevelFlags log_level,
+			const gchar *message,
+			gpointer user_data)
+{
+	static gboolean	syslog_opened = FALSE;
+	int		syslogprio = LOG_INFO;
+	const char *	prefix = "INFO:";
+
+	(void)user_data;
+	if (!syslog_opened) {
+		openlog(syslog_id, syslog_options, syslog_facility);
+		syslog_opened = TRUE;
+	}
+	if (log_level & G_LOG_LEVEL_DEBUG) {
+		syslogprio = LOG_DEBUG;
+		prefix = "DEBUG";
+	}
+	if (log_level & G_LOG_LEVEL_INFO) {
+		syslogprio = LOG_INFO;
+		prefix = "INFO";
+	}
+	if (log_level & G_LOG_LEVEL_MESSAGE) {
+		syslogprio = LOG_NOTICE;
+		prefix = "NOTICE";
+	}
+	if (log_level & G_LOG_LEVEL_WARNING) {
+		syslogprio = LOG_WARNING;
+		prefix = "WARN";
+	}
+	if (log_level & G_LOG_LEVEL_CRITICAL) {
+		syslogprio = LOG_ERR;
+		prefix = "ERROR";
+	}
+	if (log_level & G_LOG_LEVEL_ERROR) {
+		syslogprio = LOG_EMERG; // Or maybe LOG_CRIT ?
+		prefix = "EMERG";
+	}
+	syslog(syslogprio, "%s:%s %s", prefix
+	,	log_domain == NULL ? "" : log_domain
+	,	message);
+	fprintf(stderr, "%s: %s:%s %s\n", syslog_id, prefix
+	,	log_domain == NULL ? "" : log_domain
+	,	message);
 }

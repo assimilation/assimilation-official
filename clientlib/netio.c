@@ -204,7 +204,7 @@ _netio_setmcast_ttl(NetIO*	self,		///<[in/out] netIO object to set the TTL of
 ///< <255    Unrestricted in scope. Global.
 {
 	int	ttl = ttlin;
-        return setsockopt(self->getfd(self), IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+        return setsockopt(self->getfd(self), IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl) == 0);
 }
 
 /// Member function to bind this NewIO object to a NetAddr address

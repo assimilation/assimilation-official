@@ -40,6 +40,10 @@
 #	define	g_unlink(arg)	unlink(arg)
 #endif
 
+#ifndef g_info
+#	define g_info(...)	g_log(G_LOG_DOMAIN, G_LOG_LEVEL_INFO, __VA_ARGS__)
+#endif
+
 // This is a totally broken way to do this - but it seems to work at the moment...
 #if GLIB_MINOR_VERSION < 25
 void g_slist_free_full(GSList *list, GDestroyNotify free_func);
