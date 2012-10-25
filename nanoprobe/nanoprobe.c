@@ -164,15 +164,17 @@ daemonize_me(gboolean stay_in_foreground)
 	int			nullfd;
 	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
 	getrlimit(RLIMIT_NOFILE, &nofile_limits);
-	for (j=0; j < DIMOF(nullperms); ++j) {
-		close(j);
-		nullfd = open("/dev/null", nullperms[j]);
-		// Even more paranoia
-		if (nullfd != (int)j) {
-			if (dup2(nullfd, j) != (int)j) {
-				g_error("dup2(%d,%d) failed.  World coming to end.", nullfd, j);
+	if (!stay_in_foreground) {
+		for (j=0; j < DIMOF(nullperms); ++j) {
+			close(j);
+			nullfd = open("/dev/null", nullperms[j]);
+			// Even more paranoia
+			if (nullfd != (int)j) {
+				if (dup2(nullfd, j) != (int)j) {
+					g_error("dup2(%d,%d) failed.  World coming to end.", nullfd, j);
+				}
+				(void)close(nullfd);
 			}
-			(void)close(nullfd);
 		}
 	}
 	// A bit paranoid - but not so much as you might think...
