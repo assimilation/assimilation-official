@@ -321,7 +321,20 @@ main(int argc, char **argv)
 	memset(&sigact, 0,  sizeof(sigact));
 	sigact.sa_handler = catch_a_signal;
 	sigaction(SIGTERM, &sigact, NULL);
-	sigaction(SIGINT,  &sigact, NULL); // Need to check to see if it's already blocked.
+	if (stay_in_foreground) {
+		struct sigaction	oldact;
+		sigaction(SIGINT,  &sigact, &oldact); // Need to check to see if it's already blocked.
+		if (oldact.sa_handler == SIG_IGN) {
+			// OOPS - put it back like it was
+			sigaction(SIGINT, &oldact, NULL);
+		}
+	}else{
+		// Always ignore SIGINT when in the background
+		struct sigaction	ignoreme;
+		memset(&ignoreme, 0,  sizeof(ignoreme));
+		ignoreme.sa_handler = SIG_IGN;
+		sigaction(SIGINT, &ignoreme, NULL);
+	}
 	sigaction(SIGUSR1, &sigact, NULL);
 	sigaction(SIGUSR2, &sigact, NULL);
 
