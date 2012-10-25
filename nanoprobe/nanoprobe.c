@@ -19,6 +19,11 @@
 #include <errno.h>
 #include <getopt.h>
 #include <syslog.h>
+#include <unistd.h>
+#include <sys/resource.h>
+#include <sys/types.h>
+#include <sys/fcntl.h>
+#include <sys/stat.h>
 #include <projectcommon.h>
 #include <framesettypes.h>
 #include <frameset.h>
@@ -37,6 +42,11 @@
 #include <nanoprobe.h>
 
 #define	DEFAULT_PORT	1984
+#ifdef WIN32
+#	undef HAS_FORK
+#else
+#	define	HAS_FORK
+#endif
 
 gint64		pktcount = 0;
 GMainLoop*	loop = NULL;
@@ -66,6 +76,7 @@ gboolean check_for_signals(gpointer ignored);
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void usage(const char * cmdname);
 void nanoprobe_logger(	const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data);
+void daemonize_me(gboolean stay_in_foreground);
 
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
@@ -142,6 +153,55 @@ check_for_signals(gpointer ignored)
 	}
 	return TRUE;
 }
+
+/// Make us into a proper daemon
+void
+daemonize_me(gboolean stay_in_foreground)
+{
+
+	struct rlimit		nofile_limits;
+	unsigned		j;
+	int			nullfd;
+	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
+	getrlimit(RLIMIT_NOFILE, &nofile_limits);
+	for (j=0; j < DIMOF(nullperms); ++j) {
+		close(j);
+		nullfd = open("/dev/null", nullperms[j]);
+		// Even more paranoia
+		if (nullfd != (int)j) {
+			if (dup2(nullfd, j) != (int)j) {
+				g_error("dup2(%d,%d) failed.  World coming to end.", nullfd, j);
+			}
+			(void)close(nullfd);
+		}
+	}
+	// A bit paranoid - but not so much as you might think...
+	for (j=DIMOF(nullperms); j < nofile_limits.rlim_cur; ++j) {
+		close(j);
+	}
+	// NOTE: probably can't drop a core in '/'
+	chdir("/");
+	umask(027);
+#ifdef HAS_FORK
+	if (!stay_in_foreground) {
+		int	childpid;
+
+		(void)setsid();
+
+		childpid = fork();
+		if (childpid < 0) {
+			g_error("Cannot fork [%s %d]", g_strerror(errno), errno);
+			exit(1);
+		}
+		if (childpid > 0) {
+			exit(0);
+		}
+		// Otherwise, we're the child.
+	}
+#else
+	(void)stay_in_foreground;
+#endif
+}
 void
 usage(const char * cmdname)
 {
@@ -149,6 +209,9 @@ usage(const char * cmdname)
 	fprintf(stderr, "Legal arguments are:\n");
 	fprintf(stderr, "\t-c --cmaaddr address:port-of-CMA\n");
 	fprintf(stderr, "\t-b --bind address:port-to-listen-on-locally\n");
+#ifdef HAS_FORK
+	fprintf(stderr, "\t-f --foreground stay in foreground.\n");
+#endif
 	fprintf(stderr, "\t-d --debug (increment debug level)\n");
 }
 
@@ -172,11 +235,15 @@ main(int argc, char **argv)
 	gboolean		anyportpermitted = TRUE;
 	int			c;
 	int			mcast_ttl = 31;
+	gboolean		stay_in_foreground = FALSE;
 	static struct option 	long_options[] = {
 		{"cmaaddr",	required_argument,	0,	'c'},
 		{"bind",	required_argument,	0,	'b'},
 		{"ttl",		required_argument,	0,	't'},
 		{"debug",	no_argument,		0,	'd'},
+#ifdef HAS_FORK
+		{"foreground",	no_argument,		0,	'f'},
+#endif
 		{NULL, 		no_argument,		0,	0}
 	};
 	gboolean		moreopts = TRUE;
@@ -210,6 +277,12 @@ main(int argc, char **argv)
 				proj_class_incr_debug(NULL);
 				break;
 
+#ifdef HAS_FORK
+			case 'f':
+				stay_in_foreground = TRUE;
+				break;
+#endif
+
 			case 't':
 				mcast_ttl = atoi(optarg);
 				break;
@@ -238,6 +311,8 @@ main(int argc, char **argv)
 	g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION
 	,	nanoprobe_logger, NULL);
 
+	daemonize_me(stay_in_foreground);
+
 	if (!netio_is_dual_ipv4v6_stack()) {
 		g_warning("This OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
 	}
@@ -255,7 +330,7 @@ main(int argc, char **argv)
 	g_return_val_if_fail(NULL != nettransport, 2);
 
 
-	// Construct the NetAddr we'll talk to (it will default to be mcast when we get that working)
+	// Construct the NetAddr we'll talk to (it defaults to a mcast address nowadays)
 	destaddr =  netaddr_string_new(cmaaddr);
 	g_info("CMA address: %s", cmaaddr);
 	if (destaddr->ismcast(destaddr)) {
