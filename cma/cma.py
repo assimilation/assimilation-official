@@ -196,7 +196,7 @@ class CMAdb:
         result = query.execute()
         if CMAdb.debug:
             CMAdb.log.debug('Cypher query to delete all relationships and nonzero nodes executing: %s' % query)
-            CMAdb.log.debug('Execution results: %s' % result)
+            CMAdb.log.debug('Execution results: %s' % str(result))
 
     def node_new(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
@@ -622,12 +622,13 @@ class DroneInfo:
         dtype = jsonobj['discovertype']
         #print "Saved discovery type %s for endpoint %s." % \
         #   (dtype, self.designation)
+        designation = self.node['name']
         self.node['JSON_' + dtype] = jsontext
         if dtype in DroneInfo._JSONprocessors:
-            if CMAdb.debug: CMAdb.log.debug('Processed %s JSON data into graph.' % dtype)
+            if CMAdb.debug: CMAdb.log.debug('Processed %s JSON data from %s into graph.' % (dtype, designation))
             DroneInfo._JSONprocessors[dtype](self, jsonobj)
         else:
-            CMAdb.log.info('Stored %s JSON data without processing.' % dtype)
+            CMAdb.log.info('Stored %s JSON data from %s without processing.' % (dtype, designation))
 
     def add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from JSON discovery.
@@ -791,7 +792,7 @@ class DroneInfo:
         for addr in addrlist:
             if addr is None: continue
             if pframe is not None:
-                fs.addframe(pframe)
+                fs.append(pframe)
             aframe = pyAddrFrame(FrameTypes.IPADDR, addrstring=addr)
             fs.append(aframe)
         if type(dest) is str or type(dest) is unicode:
@@ -831,12 +832,18 @@ class DroneInfo:
         partner1ip = partner1.select_ip(ring)
         if partner2 is not None:
             partner2ip = partner2.select_ip(ring)
+            partner2port = partner2.port
         else:
             partner2ip = None
+            partner2port = None
         if True or CMAdb.debug:
-            CMAdb.log.debug('STARTING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' %
-                (self, ourip, partner1, partner1ip, partner2, partner2ip))
-        self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, 0, (partner1ip, partner2ip))
+            CMAdb.log.debug('STARTING heartbeat(s) from %s [%s:%s] to %s [%s:%s] and %s [%s:%s]' %
+                (self, ourip, self.port, partner1, partner1ip, partner1.port, partner2, partner2ip, partner2port))
+	if partner2 is None or partner2.port == partner1.port:
+        	self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, partner1.port, (partner1ip, partner2ip))
+	else:
+        	self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, partner1.port, (partner1ip, None))
+        	self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, partner2port, (partner2ip, None))
 
     def stop_heartbeat(self, ring, partner1, partner2=None):
         '''Stop heartbeating to the given partners.'
@@ -851,10 +858,10 @@ class DroneInfo:
             partner2ip = None
         # Stop sending the heartbeat messages between these (former) peers
         if True or CMAdb.debug:
-            CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and possibly %s [%s]' % 
+            CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' % 
                 (self, ourip, partner1, partner1ip, partner2, partner2ip))
         #self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, 0, (partner1ip, partner2ip))
-        self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, 0, (partner1ip, partner2ip))
+        self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, None, (partner1ip, partner2ip))
 
     def request_discovery(self, *args): ##< A vector of arguments formed like this:
         ##< instance       Which (unique) discovery instance is this?
@@ -946,7 +953,7 @@ class DroneInfo:
             return DroneInfo(designation)
            
         if CMAdb.debug:
-            CMAdb.log.debug("DESIGNATION repr(%s) = %s", (designation, repr(designation)))
+            CMAdb.log.debug("DESIGNATION repr(%s) = %s" % (designation, repr(designation)))
         if repr(designation) in DroneInfo._droneweakrefs:
             ret = DroneInfo._droneweakrefs[designation]()
         return None
@@ -1168,7 +1175,7 @@ class PacketListener:
             time.sleep(0.5)
         else:
             fromstr = repr(fromaddr)
-            if CMAdb.debug: print "Received packet from [%s]" % (fromstr)
+            if CMAdb.debug: CMAdb.log.debug("Received packet from [%s]" % (fromstr))
 
             for frameset in framesetlist:
                 self.dispatcher.dispatch(fromaddr, frameset)
