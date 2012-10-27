@@ -3,12 +3,9 @@
  * @brief nanoprobe main program.
  * Starts up a nanoprobe and does nanoprobie things - deferring most of the work to others.
  *
- *
- *
  * @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
  * @n
- * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
- * excluding the provision allowing for relicensing under the GPL at your option.
+ * Licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
  *
  */
 
@@ -41,7 +38,6 @@
 #include <frametypes.h>
 #include <nanoprobe.h>
 
-#define	DEFAULT_PORT	1984
 #ifdef WIN32
 #	undef HAS_FORK
 #else
