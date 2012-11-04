@@ -13,6 +13,7 @@ This document represents the "current thinking" on what we ought to be testing f
  - CDP switch discovery
  - UDP peer discovery
  - Incorporating (processing) ARP, OS or CPU discovery into Neo4j beyond JSON
+ - Only a single "ring" - no taking advantage of topology awareness.
  - No live ARP listening
  - Pacemaker?
   - would be nice to discover (at least) resource configuration
