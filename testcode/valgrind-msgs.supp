@@ -1,0 +1,130 @@
+{
+   Setsockopt bad parameter
+   Memcheck:Param
+   socketcall.setsockopt(optval)
+   fun:setsockopt
+   ...
+}
+{
+   g_source_add_poll leak
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.2800.6
+   fun:g_slice_alloc
+   fun:g_slist_prepend
+   ...
+}
+{
+   g_log leak
+   Memcheck:Leak
+   ...
+   fun:g_slice_alloc
+   ...
+   fun:g_log_default_handler
+   fun:g_logv
+   fun:g_log
+   ...
+}
+{
+   g_checksum_new (g_slice_alloc)
+   Memcheck:Leak
+   ...
+   fun:g_slice_alloc
+   ...
+}
+
+{
+   g_log_set_fatal_mask
+   Memcheck:Leak
+   ...
+   fun:g_log_set_fatal_mask
+   ...
+}
+{
+   g_get_charset
+   Memcheck:Leak
+   ...
+   fun:g_get_charset
+   ...
+}
+{
+   Quark leak
+   Memcheck:Leak
+   ...
+   fun:g
+   ...
+}
+{
+   Quark leak
+   Memcheck:Leak
+   ...
+   fun:g_quark_from_static_string
+   ...
+}
+{
+   Weird calloc leak...
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   obj:*
+}
+{
+   Second weird calloc leak...
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   Weird memdup leak...
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:g_malloc
+   fun:g_memdup
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   g_thread_self()
+   Memcheck:Leak
+   ...
+   fun:g_thread_self
+   ...
+}
+#
+#	This is a worrisome cumulative memory leak - or so it seems
+#	May want to stop using the "read file into memory" code.
+#
+{
+   g_get_filename_charsets 
+   Memcheck:Leak
+   ...
+   fun:g_get_filename_charsets
+   fun:g_filename_display_name
+   ...
+}
+{
+   4-byte libpcap memory leak - unknown origin and cure
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   fun:g_source_pcap_new
+   fun:switchdiscovery_new
+   ...
+}
+
