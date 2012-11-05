@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
 	COMPILE_DEFINITIONS ${GLIB2_STATIC_CFLAGS} ${Best_GNUCC_FLAGS}
 	)
      execute_process (COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/CmakeTmp)
-    
+
     if (GOOD_GCC_FLAGS_WORK)
       message(STATUS "Notice: Enabling the strictest GCC flags.")
       add_definitions(${Best_GNUCC_FLAGS})
