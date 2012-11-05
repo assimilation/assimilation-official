@@ -2,8 +2,11 @@
 @page SourceAndLicense Source Availability and License Terms
 
 @section LicenseTerms License Terms
-The version of the source from which these documents were created is licensed under the GNU Lesser General Public License (LGPL) version 3
-or any later version at your option, excluding the provision allowing for relicensing under the GPL at your option.
+The version of the source from which these documents were created is licensed under the GNU General Public License (LGPL) version 3
+or any later version at your option.
+
+It is the intent of the project to provide the same product under a commercial license through the use of a
+not-yet-created contributor agreement with a copyright-sharing (<b>not</b> assignment) arrangement.
 
 If there are any source files which are not marked in this fashion, it is a clerical error.
 Those files are also provided under these same terms.
@@ -16,6 +19,11 @@ http://hg.linux-ha.org/|experimental/assimilation/</a>.
 You can get your own copy of the Mercurial repository using this command:
 @code
   hg clone 'http://hg.linux-ha.org/%7Cexperimental/assimilation/'
+@endcode
+
+You can get and install a tar ball from the current Mercurial tip usinga command found here:
+@code
+   wget http://hg.linux-ha.org/|experimental/assimilation/raw-file/tip/buildtools/assimDnI
 @endcode
 
 An online version of these documents that corresponds to the latest version of the source can be found here:

@@ -20,11 +20,23 @@
  * - <a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gpointer">gpointer</a> - generic pointer
  * - <a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gint">gint</a> - generic integer
  *
- * @author &copy; 2011 - Alan Robertson <alanr@unix.sh>
- * @n
- * Licensed under the GNU Lesser General Public License (LGPL) version 3 or any later version at your option,
- * excluding the provision allowing for relicensing under the GPL at your option.
  *
+ * This file is part of the Assimilation Project.
+ *
+ * @author Copyright &copy; 2011, 2012 - Alan Robertson <alanr@unix.sh>
+ * @n
+ *  The Assimilation software is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  The Assimilation software is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  *
  */
 
@@ -202,8 +214,8 @@ g_source_pcap_finalize(GSource* src)
 		psrc->destroynote(psrc);
 	}
 	if (psrc->capture) {
-		pcap_freecode(&psrc->pcprog);
 		close_pcap_listener(psrc->capture, psrc->capturedev, psrc->listenmask);
+		pcap_freecode(&psrc->pcprog);
 		psrc->capture = NULL;
 		g_free(psrc->capturedev);
 		psrc->capturedev = NULL;
