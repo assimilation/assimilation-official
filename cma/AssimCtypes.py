@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1124,67 +1124,67 @@ struct__GIOFuncs._fields_ = [
     ('io_get_flags', CFUNCTYPE(UNCHECKED(GIOFlags), POINTER(GIOChannel))),
 ]
 
-# ../include/proj_classes.h: 15
+# ../include/proj_classes.h: 27
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_new'):
     proj_class_new = _libs['libassimilationclientlib.so'].proj_class_new
     proj_class_new.argtypes = [gsize, String]
     proj_class_new.restype = gpointer
 
-# ../include/proj_classes.h: 16
+# ../include/proj_classes.h: 28
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dissociate'):
     proj_class_dissociate = _libs['libassimilationclientlib.so'].proj_class_dissociate
     proj_class_dissociate.argtypes = [gpointer]
     proj_class_dissociate.restype = None
 
-# ../include/proj_classes.h: 17
+# ../include/proj_classes.h: 29
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_free'):
     proj_class_free = _libs['libassimilationclientlib.so'].proj_class_free
     proj_class_free.argtypes = [gpointer]
     proj_class_free.restype = None
 
-# ../include/proj_classes.h: 18
+# ../include/proj_classes.h: 30
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_object'):
     proj_class_register_object = _libs['libassimilationclientlib.so'].proj_class_register_object
     proj_class_register_object.argtypes = [gpointer, String]
     proj_class_register_object.restype = None
 
-# ../include/proj_classes.h: 19
+# ../include/proj_classes.h: 31
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_is_a'):
     proj_class_is_a = _libs['libassimilationclientlib.so'].proj_class_is_a
     proj_class_is_a.argtypes = [gconstpointer, String]
     proj_class_is_a.restype = gboolean
 
-# ../include/proj_classes.h: 20
+# ../include/proj_classes.h: 32
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castas'):
     proj_class_castas = _libs['libassimilationclientlib.so'].proj_class_castas
     proj_class_castas.argtypes = [gpointer, String]
     proj_class_castas.restype = gpointer
 
-# ../include/proj_classes.h: 21
+# ../include/proj_classes.h: 33
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castasconst'):
     proj_class_castasconst = _libs['libassimilationclientlib.so'].proj_class_castasconst
     proj_class_castasconst.argtypes = [gconstpointer, String]
     proj_class_castasconst.restype = gconstpointer
 
-# ../include/proj_classes.h: 22
+# ../include/proj_classes.h: 34
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_subclassed'):
     proj_class_register_subclassed = _libs['libassimilationclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
     proj_class_register_subclassed.restype = gpointer
 
-# ../include/proj_classes.h: 23
+# ../include/proj_classes.h: 35
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
     proj_class_quark_add_superclass_relationship = _libs['libassimilationclientlib.so'].proj_class_quark_add_superclass_relationship
     proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
     proj_class_quark_add_superclass_relationship.restype = None
 
-# ../include/proj_classes.h: 24
+# ../include/proj_classes.h: 36
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_is_a'):
     proj_class_quark_is_a = _libs['libassimilationclientlib.so'].proj_class_quark_is_a
     proj_class_quark_is_a.argtypes = [GQuark, GQuark]
     proj_class_quark_is_a.restype = gboolean
 
-# ../include/proj_classes.h: 25
+# ../include/proj_classes.h: 37
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
     proj_class_classname = _libs['libassimilationclientlib.so'].proj_class_classname
     proj_class_classname.argtypes = [gconstpointer]
@@ -1194,53 +1194,53 @@ if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
         proj_class_classname.restype = String
         proj_class_classname.errcheck = ReturnString
 
-# ../include/proj_classes.h: 26
+# ../include/proj_classes.h: 38
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_debug_counter'):
     proj_class_register_debug_counter = _libs['libassimilationclientlib.so'].proj_class_register_debug_counter
     proj_class_register_debug_counter.argtypes = [String, POINTER(guint)]
     proj_class_register_debug_counter.restype = None
 
-# ../include/proj_classes.h: 27
+# ../include/proj_classes.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_incr_debug'):
     proj_class_incr_debug = _libs['libassimilationclientlib.so'].proj_class_incr_debug
     proj_class_incr_debug.argtypes = [String]
     proj_class_incr_debug.restype = None
 
-# ../include/proj_classes.h: 28
+# ../include/proj_classes.h: 40
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_decr_debug'):
     proj_class_decr_debug = _libs['libassimilationclientlib.so'].proj_class_decr_debug
     proj_class_decr_debug.argtypes = [String]
     proj_class_decr_debug.restype = None
 
-# ../include/proj_classes.h: 30
+# ../include/proj_classes.h: 42
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dump_live_objects'):
     proj_class_dump_live_objects = _libs['libassimilationclientlib.so'].proj_class_dump_live_objects
     proj_class_dump_live_objects.argtypes = []
     proj_class_dump_live_objects.restype = None
 
-# ../include/proj_classes.h: 31
+# ../include/proj_classes.h: 43
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count = _libs['libassimilationclientlib.so'].proj_class_live_object_count
     proj_class_live_object_count.argtypes = []
     proj_class_live_object_count.restype = guint32
 
-# ../include/proj_classes.h: 32
+# ../include/proj_classes.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_max_object_count'):
     proj_class_max_object_count = _libs['libassimilationclientlib.so'].proj_class_max_object_count
     proj_class_max_object_count.argtypes = []
     proj_class_max_object_count.restype = guint32
 
-# ../include/proj_classes.h: 33
+# ../include/proj_classes.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libassimilationclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
     proj_class_finalize_sys.restype = None
 
-# ../include/assimobj.h: 20
+# ../include/assimobj.h: 32
 class struct__AssimObj(Structure):
     pass
 
-AssimObj = struct__AssimObj # ../include/assimobj.h: 18
+AssimObj = struct__AssimObj # ../include/assimobj.h: 30
 
 struct__AssimObj.__slots__ = [
     '_refcount',
@@ -1257,35 +1257,35 @@ struct__AssimObj._fields_ = [
     ('toString', CFUNCTYPE(UNCHECKED(POINTER(gchar)), gconstpointer)),
 ]
 
-# ../include/assimobj.h: 27
+# ../include/assimobj.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'assimobj_new'):
     assimobj_new = _libs['libassimilationclientlib.so'].assimobj_new
     assimobj_new.argtypes = [guint]
     assimobj_new.restype = POINTER(AssimObj)
 
-# ../include/assimobj.h: 28
+# ../include/assimobj.h: 40
 if hasattr(_libs['libassimilationclientlib.so'], '_assimobj_finalize'):
     _assimobj_finalize = _libs['libassimilationclientlib.so']._assimobj_finalize
     _assimobj_finalize.argtypes = [POINTER(AssimObj)]
     _assimobj_finalize.restype = None
 
-# ../include/assimobj.h: 29
+# ../include/assimobj.h: 41
 try:
     badfree = (gboolean).in_dll(_libs['libassimilationclientlib.so'], 'badfree')
 except:
     pass
 
-# ../include/frameset.h: 30
+# ../include/frameset.h: 42
 class struct__FrameSet(Structure):
     pass
 
-FrameSet = struct__FrameSet # ../include/frame.h: 19
+FrameSet = struct__FrameSet # ../include/frame.h: 31
 
-# ../include/frame.h: 30
+# ../include/frame.h: 42
 class struct__Frame(Structure):
     pass
 
-Frame = struct__Frame # ../include/frame.h: 20
+Frame = struct__Frame # ../include/frame.h: 32
 
 struct__Frame.__slots__ = [
     'baseclass',
@@ -1312,19 +1312,19 @@ struct__Frame._fields_ = [
     ('valuefinalize', GDestroyNotify),
 ]
 
-# ../include/frame.h: 47
+# ../include/frame.h: 59
 if hasattr(_libs['libassimilationclientlib.so'], 'frame_new'):
     frame_new = _libs['libassimilationclientlib.so'].frame_new
     frame_new.argtypes = [guint16, gsize]
     frame_new.restype = POINTER(Frame)
 
-# ../include/frame.h: 48
+# ../include/frame.h: 60
 if hasattr(_libs['libassimilationclientlib.so'], 'frame_tlvconstructor'):
     frame_tlvconstructor = _libs['libassimilationclientlib.so'].frame_tlvconstructor
     frame_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     frame_tlvconstructor.restype = POINTER(Frame)
 
-# ../include/frame.h: 49
+# ../include/frame.h: 61
 if hasattr(_libs['libassimilationclientlib.so'], 'frame_default_valuefinalize'):
     frame_default_valuefinalize = _libs['libassimilationclientlib.so'].frame_default_valuefinalize
     frame_default_valuefinalize.argtypes = [gpointer]
@@ -1443,11 +1443,11 @@ struct_sockaddr_in6._fields_ = [
     ('sin6_scope_id', c_uint32),
 ]
 
-# ../include/netaddr.h: 31
+# ../include/netaddr.h: 43
 class struct__NetAddr(Structure):
     pass
 
-NetAddr = struct__NetAddr # ../include/netaddr.h: 24
+NetAddr = struct__NetAddr # ../include/netaddr.h: 36
 
 struct__NetAddr.__slots__ = [
     'baseclass',
@@ -1480,59 +1480,59 @@ struct__NetAddr._fields_ = [
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 46
+# ../include/netaddr.h: 58
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libassimilationclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 47
+# ../include/netaddr.h: 59
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libassimilationclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 48
+# ../include/netaddr.h: 60
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libassimilationclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 49
+# ../include/netaddr.h: 61
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libassimilationclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 50
+# ../include/netaddr.h: 62
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libassimilationclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 51
+# ../include/netaddr.h: 63
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libassimilationclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 52
+# ../include/netaddr.h: 64
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libassimilationclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv6_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 53
+# ../include/netaddr.h: 65
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_string_new'):
     netaddr_string_new = _libs['libassimilationclientlib.so'].netaddr_string_new
     netaddr_string_new.argtypes = [String]
     netaddr_string_new.restype = POINTER(NetAddr)
 
-# /home/alanr/monitor/src/include/addrframe.h: 26
+# /home/alanr/monitor/src/include/addrframe.h: 38
 class struct__AddrFrame(Structure):
     pass
 
-AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 19
+AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 31
 
 struct__AddrFrame.__slots__ = [
     'baseclass',
@@ -1553,47 +1553,47 @@ struct__AddrFrame._fields_ = [
     ('setport', CFUNCTYPE(UNCHECKED(None), POINTER(AddrFrame), guint16)),
 ]
 
-# /home/alanr/monitor/src/include/addrframe.h: 36
+# /home/alanr/monitor/src/include/addrframe.h: 48
 if hasattr(_libs['libassimilationclientlib.so'], 'addrframe_new'):
     addrframe_new = _libs['libassimilationclientlib.so'].addrframe_new
     addrframe_new.argtypes = [guint16, gsize]
     addrframe_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 37
+# /home/alanr/monitor/src/include/addrframe.h: 49
 if hasattr(_libs['libassimilationclientlib.so'], 'addrframe_ipv4_new'):
     addrframe_ipv4_new = _libs['libassimilationclientlib.so'].addrframe_ipv4_new
     addrframe_ipv4_new.argtypes = [guint16, gconstpointer]
     addrframe_ipv4_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 38
+# /home/alanr/monitor/src/include/addrframe.h: 50
 if hasattr(_libs['libassimilationclientlib.so'], 'addrframe_ipv6_new'):
     addrframe_ipv6_new = _libs['libassimilationclientlib.so'].addrframe_ipv6_new
     addrframe_ipv6_new.argtypes = [guint16, gconstpointer]
     addrframe_ipv6_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 39
+# /home/alanr/monitor/src/include/addrframe.h: 51
 if hasattr(_libs['libassimilationclientlib.so'], 'addrframe_mac48_new'):
     addrframe_mac48_new = _libs['libassimilationclientlib.so'].addrframe_mac48_new
     addrframe_mac48_new.argtypes = [guint16, gconstpointer]
     addrframe_mac48_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 40
+# /home/alanr/monitor/src/include/addrframe.h: 52
 if hasattr(_libs['libassimilationclientlib.so'], 'addrframe_mac64_new'):
     addrframe_mac64_new = _libs['libassimilationclientlib.so'].addrframe_mac64_new
     addrframe_mac64_new.argtypes = [guint16, gconstpointer]
     addrframe_mac64_new.restype = POINTER(AddrFrame)
 
-# /home/alanr/monitor/src/include/addrframe.h: 41
+# /home/alanr/monitor/src/include/addrframe.h: 53
 if hasattr(_libs['libassimilationclientlib.so'], 'addrframe_tlvconstructor'):
     addrframe_tlvconstructor = _libs['libassimilationclientlib.so'].addrframe_tlvconstructor
     addrframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     addrframe_tlvconstructor.restype = POINTER(Frame)
 
-# ../include/signframe.h: 28
+# ../include/signframe.h: 40
 class struct__SignFrame(Structure):
     pass
 
-SignFrame = struct__SignFrame # ../include/signframe.h: 21
+SignFrame = struct__SignFrame # ../include/signframe.h: 33
 
 struct__SignFrame.__slots__ = [
     'baseclass',
@@ -1604,13 +1604,13 @@ struct__SignFrame._fields_ = [
     ('signaturetype', GChecksumType),
 ]
 
-# ../include/signframe.h: 33
+# ../include/signframe.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'signframe_new'):
     signframe_new = _libs['libassimilationclientlib.so'].signframe_new
     signframe_new.argtypes = [GChecksumType, gsize]
     signframe_new.restype = POINTER(SignFrame)
 
-# ../include/signframe.h: 34
+# ../include/signframe.h: 46
 if hasattr(_libs['libassimilationclientlib.so'], 'signframe_tlvconstructor'):
     signframe_tlvconstructor = _libs['libassimilationclientlib.so'].signframe_tlvconstructor
     signframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
@@ -1633,101 +1633,101 @@ struct__FrameSet._fields_ = [
     ('fsflags', guint16),
 ]
 
-# ../include/frameset.h: 41
+# ../include/frameset.h: 53
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_new'):
     frameset_new = _libs['libassimilationclientlib.so'].frameset_new
     frameset_new.argtypes = [guint16]
     frameset_new.restype = POINTER(FrameSet)
 
-# ../include/frameset.h: 42
+# ../include/frameset.h: 54
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_prepend_frame'):
     frameset_prepend_frame = _libs['libassimilationclientlib.so'].frameset_prepend_frame
     frameset_prepend_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_prepend_frame.restype = None
 
-# ../include/frameset.h: 43
+# ../include/frameset.h: 55
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_append_frame'):
     frameset_append_frame = _libs['libassimilationclientlib.so'].frameset_append_frame
     frameset_append_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_append_frame.restype = None
 
-# ../include/frameset.h: 44
+# ../include/frameset.h: 56
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_construct_packet'):
     frameset_construct_packet = _libs['libassimilationclientlib.so'].frameset_construct_packet
     frameset_construct_packet.argtypes = [POINTER(FrameSet), POINTER(SignFrame), POINTER(Frame), POINTER(Frame)]
     frameset_construct_packet.restype = None
 
-# ../include/frameset.h: 45
+# ../include/frameset.h: 57
 if hasattr(_libs['libassimilationclientlib.so'], 'frame_new'):
     frame_new = _libs['libassimilationclientlib.so'].frame_new
     frame_new.argtypes = [guint16, gsize]
     frame_new.restype = POINTER(Frame)
 
-# ../include/frameset.h: 46
+# ../include/frameset.h: 58
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_get_flags'):
     frameset_get_flags = _libs['libassimilationclientlib.so'].frameset_get_flags
     frameset_get_flags.argtypes = [POINTER(FrameSet)]
     frameset_get_flags.restype = guint16
 
-# ../include/frameset.h: 47
+# ../include/frameset.h: 59
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_set_flags'):
     frameset_set_flags = _libs['libassimilationclientlib.so'].frameset_set_flags
     frameset_set_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_set_flags.restype = guint16
 
-# ../include/frameset.h: 48
+# ../include/frameset.h: 60
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_clear_flags'):
     frameset_clear_flags = _libs['libassimilationclientlib.so'].frameset_clear_flags
     frameset_clear_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_clear_flags.restype = guint16
 
-# ../include/frameset.h: 49
+# ../include/frameset.h: 61
 if hasattr(_libs['libassimilationclientlib.so'], 'frame_append_to_frameset_packet'):
     frame_append_to_frameset_packet = _libs['libassimilationclientlib.so'].frame_append_to_frameset_packet
     frame_append_to_frameset_packet.argtypes = [POINTER(FrameSet), POINTER(Frame), gpointer]
     frame_append_to_frameset_packet.restype = gpointer
 
-# ../include/frameset.h: 50
+# ../include/frameset.h: 62
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_dump'):
     frameset_dump = _libs['libassimilationclientlib.so'].frameset_dump
     frameset_dump.argtypes = [POINTER(FrameSet)]
     frameset_dump.restype = None
 
-# ../include/configcontext.h: 58
+# ../include/configcontext.h: 70
 class struct__ConfigContext(Structure):
     pass
 
-ConfigContext = struct__ConfigContext # ../include/configcontext.h: 30
+ConfigContext = struct__ConfigContext # ../include/configcontext.h: 42
 
-enum_ConfigValType = c_int # ../include/configcontext.h: 32
+enum_ConfigValType = c_int # ../include/configcontext.h: 44
 
-CFG_EEXIST = 0 # ../include/configcontext.h: 32
+CFG_EEXIST = 0 # ../include/configcontext.h: 44
 
-CFG_NULL = (CFG_EEXIST + 1) # ../include/configcontext.h: 32
+CFG_NULL = (CFG_EEXIST + 1) # ../include/configcontext.h: 44
 
-CFG_BOOL = (CFG_NULL + 1) # ../include/configcontext.h: 32
+CFG_BOOL = (CFG_NULL + 1) # ../include/configcontext.h: 44
 
-CFG_INT64 = (CFG_BOOL + 1) # ../include/configcontext.h: 32
+CFG_INT64 = (CFG_BOOL + 1) # ../include/configcontext.h: 44
 
-CFG_STRING = (CFG_INT64 + 1) # ../include/configcontext.h: 32
+CFG_STRING = (CFG_INT64 + 1) # ../include/configcontext.h: 44
 
-CFG_FLOAT = (CFG_STRING + 1) # ../include/configcontext.h: 32
+CFG_FLOAT = (CFG_STRING + 1) # ../include/configcontext.h: 44
 
-CFG_ARRAY = (CFG_FLOAT + 1) # ../include/configcontext.h: 32
+CFG_ARRAY = (CFG_FLOAT + 1) # ../include/configcontext.h: 44
 
-CFG_CFGCTX = (CFG_ARRAY + 1) # ../include/configcontext.h: 32
+CFG_CFGCTX = (CFG_ARRAY + 1) # ../include/configcontext.h: 44
 
-CFG_NETADDR = (CFG_CFGCTX + 1) # ../include/configcontext.h: 32
+CFG_NETADDR = (CFG_CFGCTX + 1) # ../include/configcontext.h: 44
 
-CFG_FRAME = (CFG_NETADDR + 1) # ../include/configcontext.h: 32
+CFG_FRAME = (CFG_NETADDR + 1) # ../include/configcontext.h: 44
 
-# ../include/configcontext.h: 45
+# ../include/configcontext.h: 57
 class struct__ConfigValue(Structure):
     pass
 
-ConfigValue = struct__ConfigValue # ../include/configcontext.h: 44
+ConfigValue = struct__ConfigValue # ../include/configcontext.h: 56
 
-# ../include/configcontext.h: 47
+# ../include/configcontext.h: 59
 class union_anon_102(Union):
     pass
 
@@ -1804,31 +1804,31 @@ struct__ConfigContext._fields_ = [
     ('keys', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext))),
 ]
 
-# ../include/configcontext.h: 81
+# ../include/configcontext.h: 93
 if hasattr(_libs['libassimilationclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libassimilationclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
     configcontext_new.restype = POINTER(ConfigContext)
 
-# ../include/configcontext.h: 82
+# ../include/configcontext.h: 94
 if hasattr(_libs['libassimilationclientlib.so'], 'configcontext_new_JSON_string'):
     configcontext_new_JSON_string = _libs['libassimilationclientlib.so'].configcontext_new_JSON_string
     configcontext_new_JSON_string.argtypes = [String]
     configcontext_new_JSON_string.restype = POINTER(ConfigContext)
 
-# ../include/listener.h: 29
+# ../include/listener.h: 41
 class struct__Listener(Structure):
     pass
 
-Listener = struct__Listener # ../include/listener.h: 21
+Listener = struct__Listener # ../include/listener.h: 33
 
-# ../include/packetdecoder.h: 25
+# ../include/packetdecoder.h: 37
 class struct__FrameTypeToFrame(Structure):
     pass
 
-FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 20
+FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 32
 
-FramePktConstructor = CFUNCTYPE(UNCHECKED(POINTER(Frame)), gconstpointer, gconstpointer) # ../include/packetdecoder.h: 22
+FramePktConstructor = CFUNCTYPE(UNCHECKED(POINTER(Frame)), gconstpointer, gconstpointer) # ../include/packetdecoder.h: 34
 
 struct__FrameTypeToFrame.__slots__ = [
     'frametype',
@@ -1839,11 +1839,11 @@ struct__FrameTypeToFrame._fields_ = [
     ('constructor', FramePktConstructor),
 ]
 
-# ../include/packetdecoder.h: 32
+# ../include/packetdecoder.h: 44
 class struct__PacketDecoder(Structure):
     pass
 
-PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 31
+PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 43
 
 struct__PacketDecoder.__slots__ = [
     'baseclass',
@@ -1864,17 +1864,17 @@ struct__PacketDecoder._fields_ = [
     ('pktdata_to_framesetlist', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(PacketDecoder), gconstpointer, gconstpointer)),
 ]
 
-# ../include/packetdecoder.h: 42
+# ../include/packetdecoder.h: 54
 if hasattr(_libs['libassimilationclientlib.so'], 'packetdecoder_new'):
     packetdecoder_new = _libs['libassimilationclientlib.so'].packetdecoder_new
     packetdecoder_new.argtypes = [guint, POINTER(FrameTypeToFrame), gint]
     packetdecoder_new.restype = POINTER(PacketDecoder)
 
-# ../include/netio.h: 32
+# ../include/netio.h: 44
 class struct__NetIO(Structure):
     pass
 
-NetIO = struct__NetIO # ../include/netio.h: 27
+NetIO = struct__NetIO # ../include/netio.h: 39
 
 struct__NetIO.__slots__ = [
     'baseclass',
@@ -1925,23 +1925,23 @@ struct__NetIO._fields_ = [
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 89
+# ../include/netio.h: 101
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 91
+# ../include/netio.h: 103
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
     netio_is_dual_ipv4v6_stack.restype = gboolean
 
-# ../include/netgsource.h: 31
+# ../include/netgsource.h: 43
 class struct__NetGSource(Structure):
     pass
 
-NetGSource = struct__NetGSource # ../include/netgsource.h: 22
+NetGSource = struct__NetGSource # ../include/netgsource.h: 34
 
 struct__NetGSource.__slots__ = [
     'baseclass',
@@ -1972,7 +1972,7 @@ struct__NetGSource._fields_ = [
     ('addListener', CFUNCTYPE(UNCHECKED(None), POINTER(NetGSource), guint16, POINTER(Listener))),
 ]
 
-# ../include/netgsource.h: 45
+# ../include/netgsource.h: 57
 if hasattr(_libs['libassimilationclientlib.so'], 'netgsource_new'):
     netgsource_new = _libs['libassimilationclientlib.so'].netgsource_new
     netgsource_new.argtypes = [POINTER(NetIO), GDestroyNotify, gint, gboolean, POINTER(GMainContext), gsize, gpointer]
@@ -1995,23 +1995,23 @@ struct__Listener._fields_ = [
     ('dissociate', CFUNCTYPE(UNCHECKED(None), POINTER(Listener))),
 ]
 
-# ../include/listener.h: 42
+# ../include/listener.h: 54
 if hasattr(_libs['libassimilationclientlib.so'], 'listener_new'):
     listener_new = _libs['libassimilationclientlib.so'].listener_new
     listener_new.argtypes = [POINTER(ConfigContext), gsize]
     listener_new.restype = POINTER(Listener)
 
-# /home/alanr/monitor/src/include/authlistener.h: 29
+# /home/alanr/monitor/src/include/authlistener.h: 41
 class struct__AuthListener(Structure):
     pass
 
-AuthListener = struct__AuthListener # /home/alanr/monitor/src/include/authlistener.h: 19
+AuthListener = struct__AuthListener # /home/alanr/monitor/src/include/authlistener.h: 31
 
-# /home/alanr/monitor/src/include/authlistener.h: 37
+# /home/alanr/monitor/src/include/authlistener.h: 49
 class struct__ObeyFrameSetTypeMap(Structure):
     pass
 
-ObeyFrameSetTypeMap = struct__ObeyFrameSetTypeMap # /home/alanr/monitor/src/include/authlistener.h: 24
+ObeyFrameSetTypeMap = struct__ObeyFrameSetTypeMap # /home/alanr/monitor/src/include/authlistener.h: 36
 
 struct__AuthListener.__slots__ = [
     'baseclass',
@@ -2022,7 +2022,7 @@ struct__AuthListener._fields_ = [
     ('actionmap', POINTER(GHashTable)),
 ]
 
-AuthListenerAction = CFUNCTYPE(UNCHECKED(None), POINTER(AuthListener), POINTER(FrameSet), POINTER(NetAddr)) # /home/alanr/monitor/src/include/authlistener.h: 35
+AuthListenerAction = CFUNCTYPE(UNCHECKED(None), POINTER(AuthListener), POINTER(FrameSet), POINTER(NetAddr)) # /home/alanr/monitor/src/include/authlistener.h: 47
 
 struct__ObeyFrameSetTypeMap.__slots__ = [
     'framesettype',
@@ -2033,85 +2033,85 @@ struct__ObeyFrameSetTypeMap._fields_ = [
     ('action', AuthListenerAction),
 ]
 
-# /home/alanr/monitor/src/include/authlistener.h: 44
+# /home/alanr/monitor/src/include/authlistener.h: 56
 if hasattr(_libs['libassimilationclientlib.so'], 'authlistener_new'):
     authlistener_new = _libs['libassimilationclientlib.so'].authlistener_new
     authlistener_new.argtypes = [POINTER(ObeyFrameSetTypeMap), POINTER(ConfigContext), gsize]
     authlistener_new.restype = POINTER(AuthListener)
 
-# /home/alanr/monitor/src/include/cdp.h: 55
+# /home/alanr/monitor/src/include/cdp.h: 68
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdp_vers'):
     get_cdp_vers = _libs['libassimilationclientlib.so'].get_cdp_vers
     get_cdp_vers.argtypes = [gconstpointer, gconstpointer]
     get_cdp_vers.restype = guint8
 
-# /home/alanr/monitor/src/include/cdp.h: 56
+# /home/alanr/monitor/src/include/cdp.h: 69
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdp_ttl'):
     get_cdp_ttl = _libs['libassimilationclientlib.so'].get_cdp_ttl
     get_cdp_ttl.argtypes = [gconstpointer, gconstpointer]
     get_cdp_ttl.restype = guint8
 
-# /home/alanr/monitor/src/include/cdp.h: 57
+# /home/alanr/monitor/src/include/cdp.h: 70
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdp_cksum'):
     get_cdp_cksum = _libs['libassimilationclientlib.so'].get_cdp_cksum
     get_cdp_cksum.argtypes = [gconstpointer, gconstpointer]
     get_cdp_cksum.restype = guint16
 
-# /home/alanr/monitor/src/include/cdp.h: 58
+# /home/alanr/monitor/src/include/cdp.h: 71
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdptlv_type'):
     get_cdptlv_type = _libs['libassimilationclientlib.so'].get_cdptlv_type
     get_cdptlv_type.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_type.restype = guint16
 
-# /home/alanr/monitor/src/include/cdp.h: 59
+# /home/alanr/monitor/src/include/cdp.h: 72
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdptlv_len'):
     get_cdptlv_len = _libs['libassimilationclientlib.so'].get_cdptlv_len
     get_cdptlv_len.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_len.restype = gsize
 
-# /home/alanr/monitor/src/include/cdp.h: 60
+# /home/alanr/monitor/src/include/cdp.h: 73
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdptlv_vlen'):
     get_cdptlv_vlen = _libs['libassimilationclientlib.so'].get_cdptlv_vlen
     get_cdptlv_vlen.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_vlen.restype = gsize
 
-# /home/alanr/monitor/src/include/cdp.h: 61
+# /home/alanr/monitor/src/include/cdp.h: 74
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdptlv_body'):
     get_cdptlv_body = _libs['libassimilationclientlib.so'].get_cdptlv_body
     get_cdptlv_body.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_body.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/cdp.h: 62
+# /home/alanr/monitor/src/include/cdp.h: 75
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdptlv_first'):
     get_cdptlv_first = _libs['libassimilationclientlib.so'].get_cdptlv_first
     get_cdptlv_first.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_first.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/cdp.h: 63
+# /home/alanr/monitor/src/include/cdp.h: 76
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdptlv_next'):
     get_cdptlv_next = _libs['libassimilationclientlib.so'].get_cdptlv_next
     get_cdptlv_next.argtypes = [gconstpointer, gconstpointer]
     get_cdptlv_next.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/cdp.h: 64
+# /home/alanr/monitor/src/include/cdp.h: 77
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdp_chassis_id'):
     get_cdp_chassis_id = _libs['libassimilationclientlib.so'].get_cdp_chassis_id
     get_cdp_chassis_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_cdp_chassis_id.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/cdp.h: 65
+# /home/alanr/monitor/src/include/cdp.h: 78
 if hasattr(_libs['libassimilationclientlib.so'], 'get_cdp_port_id'):
     get_cdp_port_id = _libs['libassimilationclientlib.so'].get_cdp_port_id
     get_cdp_port_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_cdp_port_id.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/cdp.h: 66
+# /home/alanr/monitor/src/include/cdp.h: 79
 if hasattr(_libs['libassimilationclientlib.so'], 'is_valid_cdp_packet'):
     is_valid_cdp_packet = _libs['libassimilationclientlib.so'].is_valid_cdp_packet
     is_valid_cdp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_cdp_packet.restype = gboolean
 
-# /home/alanr/monitor/src/include/cdp.h: 67
+# /home/alanr/monitor/src/include/cdp.h: 80
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'enable_cdp_packets'):
         continue
@@ -2120,23 +2120,23 @@ for _lib in _libs.itervalues():
     enable_cdp_packets.restype = gboolean
     break
 
-# /home/alanr/monitor/src/include/cmalib.h: 19
+# /home/alanr/monitor/src/include/cmalib.h: 31
 if hasattr(_libs['libassimilationclientlib.so'], 'create_sendexpecthb'):
     create_sendexpecthb = _libs['libassimilationclientlib.so'].create_sendexpecthb
     create_sendexpecthb.argtypes = [POINTER(ConfigContext), guint16, POINTER(NetAddr), c_int]
     create_sendexpecthb.restype = POINTER(FrameSet)
 
-# /home/alanr/monitor/src/include/cmalib.h: 20
+# /home/alanr/monitor/src/include/cmalib.h: 32
 if hasattr(_libs['libassimilationclientlib.so'], 'create_setconfig'):
     create_setconfig = _libs['libassimilationclientlib.so'].create_setconfig
     create_setconfig.argtypes = [POINTER(ConfigContext)]
     create_setconfig.restype = POINTER(FrameSet)
 
-# /home/alanr/monitor/src/include/compressframe.h: 21
+# /home/alanr/monitor/src/include/compressframe.h: 33
 class struct__CompressFrame(Structure):
     pass
 
-CompressFrame = struct__CompressFrame # /home/alanr/monitor/src/include/compressframe.h: 18
+CompressFrame = struct__CompressFrame # /home/alanr/monitor/src/include/compressframe.h: 30
 
 struct__CompressFrame.__slots__ = [
     'baseclass',
@@ -2147,23 +2147,23 @@ struct__CompressFrame._fields_ = [
     ('compression_method', guint16),
 ]
 
-# /home/alanr/monitor/src/include/compressframe.h: 26
+# /home/alanr/monitor/src/include/compressframe.h: 38
 if hasattr(_libs['libassimilationclientlib.so'], 'compressframe_new'):
     compressframe_new = _libs['libassimilationclientlib.so'].compressframe_new
     compressframe_new.argtypes = [guint16, guint16]
     compressframe_new.restype = POINTER(CompressFrame)
 
-# /home/alanr/monitor/src/include/compressframe.h: 27
+# /home/alanr/monitor/src/include/compressframe.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'compressframe_tlvconstructor'):
     compressframe_tlvconstructor = _libs['libassimilationclientlib.so'].compressframe_tlvconstructor
     compressframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     compressframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/cryptframe.h: 21
+# /home/alanr/monitor/src/include/cryptframe.h: 33
 class struct__CryptFrame(Structure):
     pass
 
-CryptFrame = struct__CryptFrame # /home/alanr/monitor/src/include/cryptframe.h: 18
+CryptFrame = struct__CryptFrame # /home/alanr/monitor/src/include/cryptframe.h: 30
 
 struct__CryptFrame.__slots__ = [
     'baseclass',
@@ -2176,23 +2176,23 @@ struct__CryptFrame._fields_ = [
     ('encryption_key_info', POINTER(None)),
 ]
 
-# /home/alanr/monitor/src/include/cryptframe.h: 27
+# /home/alanr/monitor/src/include/cryptframe.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'cryptframe_new'):
     cryptframe_new = _libs['libassimilationclientlib.so'].cryptframe_new
     cryptframe_new.argtypes = [guint16, guint16, POINTER(None)]
     cryptframe_new.restype = POINTER(CryptFrame)
 
-# /home/alanr/monitor/src/include/cryptframe.h: 28
+# /home/alanr/monitor/src/include/cryptframe.h: 40
 if hasattr(_libs['libassimilationclientlib.so'], 'cryptframe_tlvconstructor'):
     cryptframe_tlvconstructor = _libs['libassimilationclientlib.so'].cryptframe_tlvconstructor
     cryptframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     cryptframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/cstringframe.h: 23
+# /home/alanr/monitor/src/include/cstringframe.h: 35
 class struct__CstringFrame(Structure):
     pass
 
-CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringframe.h: 18
+CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringframe.h: 30
 
 struct__CstringFrame.__slots__ = [
     'baseclass',
@@ -2201,23 +2201,23 @@ struct__CstringFrame._fields_ = [
     ('baseclass', Frame),
 ]
 
-# /home/alanr/monitor/src/include/cstringframe.h: 27
+# /home/alanr/monitor/src/include/cstringframe.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'cstringframe_new'):
     cstringframe_new = _libs['libassimilationclientlib.so'].cstringframe_new
     cstringframe_new.argtypes = [guint16, gsize]
     cstringframe_new.restype = POINTER(CstringFrame)
 
-# /home/alanr/monitor/src/include/cstringframe.h: 28
+# /home/alanr/monitor/src/include/cstringframe.h: 40
 if hasattr(_libs['libassimilationclientlib.so'], 'cstringframe_tlvconstructor'):
     cstringframe_tlvconstructor = _libs['libassimilationclientlib.so'].cstringframe_tlvconstructor
     cstringframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     cstringframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/discovery.h: 35
+# /home/alanr/monitor/src/include/discovery.h: 47
 class struct__Discovery(Structure):
     pass
 
-Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 33
+Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 45
 
 struct__Discovery.__slots__ = [
     'baseclass',
@@ -2248,55 +2248,55 @@ struct__Discovery._fields_ = [
     ('_sentyet', gboolean),
 ]
 
-# /home/alanr/monitor/src/include/discovery.h: 54
+# /home/alanr/monitor/src/include/discovery.h: 66
 if hasattr(_libs['libassimilationclientlib.so'], 'discovery_new'):
     discovery_new = _libs['libassimilationclientlib.so'].discovery_new
     discovery_new.argtypes = [String, POINTER(NetGSource), POINTER(ConfigContext), gsize]
     discovery_new.restype = POINTER(Discovery)
 
-# /home/alanr/monitor/src/include/discovery.h: 55
+# /home/alanr/monitor/src/include/discovery.h: 67
 if hasattr(_libs['libassimilationclientlib.so'], 'discovery_register'):
     discovery_register = _libs['libassimilationclientlib.so'].discovery_register
     discovery_register.argtypes = [POINTER(Discovery)]
     discovery_register.restype = None
 
-# /home/alanr/monitor/src/include/discovery.h: 56
+# /home/alanr/monitor/src/include/discovery.h: 68
 if hasattr(_libs['libassimilationclientlib.so'], 'discovery_unregister_all'):
     discovery_unregister_all = _libs['libassimilationclientlib.so'].discovery_unregister_all
     discovery_unregister_all.argtypes = []
     discovery_unregister_all.restype = None
 
-# /home/alanr/monitor/src/include/discovery.h: 57
+# /home/alanr/monitor/src/include/discovery.h: 69
 if hasattr(_libs['libassimilationclientlib.so'], 'discovery_unregister'):
     discovery_unregister = _libs['libassimilationclientlib.so'].discovery_unregister
     discovery_unregister.argtypes = [String]
     discovery_unregister.restype = None
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 15
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 27
 if hasattr(_libs['libassimilationclientlib.so'], 'get_generic_tlv_type'):
     get_generic_tlv_type = _libs['libassimilationclientlib.so'].get_generic_tlv_type
     get_generic_tlv_type.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_type.restype = guint16
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 16
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 28
 if hasattr(_libs['libassimilationclientlib.so'], 'get_generic_tlv_len'):
     get_generic_tlv_len = _libs['libassimilationclientlib.so'].get_generic_tlv_len
     get_generic_tlv_len.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_len.restype = guint16
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 17
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 29
 if hasattr(_libs['libassimilationclientlib.so'], 'get_generic_tlv_value'):
     get_generic_tlv_value = _libs['libassimilationclientlib.so'].get_generic_tlv_value
     get_generic_tlv_value.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_value.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 18
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 30
 if hasattr(_libs['libassimilationclientlib.so'], 'get_generic_tlv_nonconst_value'):
     get_generic_tlv_nonconst_value = _libs['libassimilationclientlib.so'].get_generic_tlv_nonconst_value
     get_generic_tlv_nonconst_value.argtypes = [gpointer, gconstpointer]
     get_generic_tlv_nonconst_value.restype = gpointer
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 19
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 31
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'get_generic_tlv_totalsize'):
         continue
@@ -2305,61 +2305,61 @@ for _lib in _libs.itervalues():
     get_generic_tlv_totalsize.restype = guint16
     break
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 20
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 32
 if hasattr(_libs['libassimilationclientlib.so'], 'is_valid_generic_tlv_packet'):
     is_valid_generic_tlv_packet = _libs['libassimilationclientlib.so'].is_valid_generic_tlv_packet
     is_valid_generic_tlv_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_generic_tlv_packet.restype = gboolean
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 21
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 33
 if hasattr(_libs['libassimilationclientlib.so'], 'get_generic_tlv_first'):
     get_generic_tlv_first = _libs['libassimilationclientlib.so'].get_generic_tlv_first
     get_generic_tlv_first.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_first.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 22
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 34
 if hasattr(_libs['libassimilationclientlib.so'], 'get_generic_tlv_next'):
     get_generic_tlv_next = _libs['libassimilationclientlib.so'].get_generic_tlv_next
     get_generic_tlv_next.argtypes = [gconstpointer, gconstpointer]
     get_generic_tlv_next.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 23
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 35
 if hasattr(_libs['libassimilationclientlib.so'], 'find_next_generic_tlv_type'):
     find_next_generic_tlv_type = _libs['libassimilationclientlib.so'].find_next_generic_tlv_type
     find_next_generic_tlv_type.argtypes = [gconstpointer, guint16, gconstpointer]
     find_next_generic_tlv_type.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 24
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 36
 if hasattr(_libs['libassimilationclientlib.so'], 'set_generic_tlv_type'):
     set_generic_tlv_type = _libs['libassimilationclientlib.so'].set_generic_tlv_type
     set_generic_tlv_type.argtypes = [gpointer, guint16, gconstpointer]
     set_generic_tlv_type.restype = None
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 25
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 37
 if hasattr(_libs['libassimilationclientlib.so'], 'set_generic_tlv_len'):
     set_generic_tlv_len = _libs['libassimilationclientlib.so'].set_generic_tlv_len
     set_generic_tlv_len.argtypes = [gpointer, guint16, gconstpointer]
     set_generic_tlv_len.restype = None
 
-# /home/alanr/monitor/src/include/generic_tlv_min.h: 26
+# /home/alanr/monitor/src/include/generic_tlv_min.h: 38
 if hasattr(_libs['libassimilationclientlib.so'], 'set_generic_tlv_value'):
     set_generic_tlv_value = _libs['libassimilationclientlib.so'].set_generic_tlv_value
     set_generic_tlv_value.argtypes = [gpointer, POINTER(None), guint16, gconstpointer]
     set_generic_tlv_value.restype = None
 
-# /home/alanr/monitor/src/include/hblistener.h: 32
+# /home/alanr/monitor/src/include/hblistener.h: 44
 class struct__HbListener(Structure):
     pass
 
-HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 20
+HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 32
 
-enum_anon_103 = c_int # /home/alanr/monitor/src/include/hblistener.h: 25
+enum_anon_103 = c_int # /home/alanr/monitor/src/include/hblistener.h: 37
 
-HbPacketsBeingReceived = 1 # /home/alanr/monitor/src/include/hblistener.h: 25
+HbPacketsBeingReceived = 1 # /home/alanr/monitor/src/include/hblistener.h: 37
 
-HbPacketsTimedOut = 2 # /home/alanr/monitor/src/include/hblistener.h: 25
+HbPacketsTimedOut = 2 # /home/alanr/monitor/src/include/hblistener.h: 37
 
-HbNodeStatus = enum_anon_103 # /home/alanr/monitor/src/include/hblistener.h: 25
+HbNodeStatus = enum_anon_103 # /home/alanr/monitor/src/include/hblistener.h: 37
 
 struct__HbListener.__slots__ = [
     'baseclass',
@@ -2406,35 +2406,35 @@ struct__HbListener._fields_ = [
     ('_comealive_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64)),
 ]
 
-# /home/alanr/monitor/src/include/hblistener.h: 56
+# /home/alanr/monitor/src/include/hblistener.h: 68
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_new'):
     hblistener_new = _libs['libassimilationclientlib.so'].hblistener_new
     hblistener_new.argtypes = [POINTER(NetAddr), POINTER(ConfigContext), gsize]
     hblistener_new.restype = POINTER(HbListener)
 
-# /home/alanr/monitor/src/include/hblistener.h: 57
+# /home/alanr/monitor/src/include/hblistener.h: 69
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_unlisten'):
     hblistener_unlisten = _libs['libassimilationclientlib.so'].hblistener_unlisten
     hblistener_unlisten.argtypes = [POINTER(NetAddr)]
     hblistener_unlisten.restype = None
 
-# /home/alanr/monitor/src/include/hblistener.h: 58
+# /home/alanr/monitor/src/include/hblistener.h: 70
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_set_martian_callback'):
     hblistener_set_martian_callback = _libs['libassimilationclientlib.so'].hblistener_set_martian_callback
     hblistener_set_martian_callback.argtypes = [CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr))]
     hblistener_set_martian_callback.restype = None
 
-# /home/alanr/monitor/src/include/hblistener.h: 59
+# /home/alanr/monitor/src/include/hblistener.h: 71
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_find_by_address'):
     hblistener_find_by_address = _libs['libassimilationclientlib.so'].hblistener_find_by_address
     hblistener_find_by_address.argtypes = [POINTER(NetAddr)]
     hblistener_find_by_address.restype = POINTER(HbListener)
 
-# /home/alanr/monitor/src/include/hbsender.h: 27
+# /home/alanr/monitor/src/include/hbsender.h: 39
 class struct__HbSender(Structure):
     pass
 
-HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 20
+HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 32
 
 struct__HbSender.__slots__ = [
     'ref',
@@ -2457,29 +2457,29 @@ struct__HbSender._fields_ = [
     ('timeout_source', guint),
 ]
 
-# /home/alanr/monitor/src/include/hbsender.h: 39
+# /home/alanr/monitor/src/include/hbsender.h: 51
 if hasattr(_libs['libassimilationclientlib.so'], 'hbsender_new'):
     hbsender_new = _libs['libassimilationclientlib.so'].hbsender_new
     hbsender_new.argtypes = [POINTER(NetAddr), POINTER(NetGSource), guint, gsize]
     hbsender_new.restype = POINTER(HbSender)
 
-# /home/alanr/monitor/src/include/hbsender.h: 40
+# /home/alanr/monitor/src/include/hbsender.h: 52
 if hasattr(_libs['libassimilationclientlib.so'], 'hbsender_stopsend'):
     hbsender_stopsend = _libs['libassimilationclientlib.so'].hbsender_stopsend
     hbsender_stopsend.argtypes = [POINTER(NetAddr)]
     hbsender_stopsend.restype = None
 
-# /home/alanr/monitor/src/include/hbsender.h: 41
+# /home/alanr/monitor/src/include/hbsender.h: 53
 if hasattr(_libs['libassimilationclientlib.so'], 'hbsender_stopallsenders'):
     hbsender_stopallsenders = _libs['libassimilationclientlib.so'].hbsender_stopallsenders
     hbsender_stopallsenders.argtypes = []
     hbsender_stopallsenders.restype = None
 
-# /home/alanr/monitor/src/include/intframe.h: 27
+# /home/alanr/monitor/src/include/intframe.h: 39
 class struct__IntFrame(Structure):
     pass
 
-IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 23
+IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 35
 
 struct__IntFrame.__slots__ = [
     'baseclass',
@@ -2496,23 +2496,23 @@ struct__IntFrame._fields_ = [
     ('_value', guint64),
 ]
 
-# /home/alanr/monitor/src/include/intframe.h: 35
+# /home/alanr/monitor/src/include/intframe.h: 47
 if hasattr(_libs['libassimilationclientlib.so'], 'intframe_new'):
     intframe_new = _libs['libassimilationclientlib.so'].intframe_new
     intframe_new.argtypes = [guint16, c_int]
     intframe_new.restype = POINTER(IntFrame)
 
-# /home/alanr/monitor/src/include/intframe.h: 36
+# /home/alanr/monitor/src/include/intframe.h: 48
 if hasattr(_libs['libassimilationclientlib.so'], 'intframe_tlvconstructor'):
     intframe_tlvconstructor = _libs['libassimilationclientlib.so'].intframe_tlvconstructor
     intframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     intframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/ipportframe.h: 27
+# /home/alanr/monitor/src/include/ipportframe.h: 40
 class struct__IpPortFrame(Structure):
     pass
 
-IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 19
+IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 32
 
 struct__IpPortFrame.__slots__ = [
     'baseclass',
@@ -2529,35 +2529,35 @@ struct__IpPortFrame._fields_ = [
     ('getnetaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(IpPortFrame))),
 ]
 
-# /home/alanr/monitor/src/include/ipportframe.h: 35
+# /home/alanr/monitor/src/include/ipportframe.h: 48
 if hasattr(_libs['libassimilationclientlib.so'], 'ipportframe_netaddr_new'):
     ipportframe_netaddr_new = _libs['libassimilationclientlib.so'].ipportframe_netaddr_new
     ipportframe_netaddr_new.argtypes = [guint16, POINTER(NetAddr)]
     ipportframe_netaddr_new.restype = POINTER(IpPortFrame)
 
-# /home/alanr/monitor/src/include/ipportframe.h: 36
+# /home/alanr/monitor/src/include/ipportframe.h: 49
 if hasattr(_libs['libassimilationclientlib.so'], 'ipportframe_ipv4_new'):
     ipportframe_ipv4_new = _libs['libassimilationclientlib.so'].ipportframe_ipv4_new
     ipportframe_ipv4_new.argtypes = [guint16, guint16, gconstpointer]
     ipportframe_ipv4_new.restype = POINTER(IpPortFrame)
 
-# /home/alanr/monitor/src/include/ipportframe.h: 37
+# /home/alanr/monitor/src/include/ipportframe.h: 50
 if hasattr(_libs['libassimilationclientlib.so'], 'ipportframe_ipv6_new'):
     ipportframe_ipv6_new = _libs['libassimilationclientlib.so'].ipportframe_ipv6_new
     ipportframe_ipv6_new.argtypes = [guint16, guint16, gconstpointer]
     ipportframe_ipv6_new.restype = POINTER(IpPortFrame)
 
-# /home/alanr/monitor/src/include/ipportframe.h: 38
+# /home/alanr/monitor/src/include/ipportframe.h: 51
 if hasattr(_libs['libassimilationclientlib.so'], 'ipportframe_tlvconstructor'):
     ipportframe_tlvconstructor = _libs['libassimilationclientlib.so'].ipportframe_tlvconstructor
     ipportframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     ipportframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/jsondiscovery.h: 26
+# /home/alanr/monitor/src/include/jsondiscovery.h: 36
 class struct__JsonDiscovery(Structure):
     pass
 
-JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 24
+JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 34
 
 struct__JsonDiscovery.__slots__ = [
     'baseclass',
@@ -2582,13 +2582,13 @@ struct__JsonDiscovery._fields_ = [
     ('fullpath', CFUNCTYPE(UNCHECKED(String), POINTER(JsonDiscovery))),
 ]
 
-# /home/alanr/monitor/src/include/jsondiscovery.h: 37
+# /home/alanr/monitor/src/include/jsondiscovery.h: 47
 if hasattr(_libs['libassimilationclientlib.so'], 'jsondiscovery_new'):
     jsondiscovery_new = _libs['libassimilationclientlib.so'].jsondiscovery_new
     jsondiscovery_new.argtypes = [String, String, c_int, POINTER(ConfigContext), POINTER(NetGSource), POINTER(ConfigContext), gsize]
     jsondiscovery_new.restype = POINTER(JsonDiscovery)
 
-# /home/alanr/monitor/src/include/lldp.h: 109
+# /home/alanr/monitor/src/include/lldp.h: 121
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'get_lldp_chassis_id_type'):
         continue
@@ -2597,19 +2597,19 @@ for _lib in _libs.itervalues():
     get_lldp_chassis_id_type.restype = c_uint
     break
 
-# /home/alanr/monitor/src/include/lldp.h: 110
+# /home/alanr/monitor/src/include/lldp.h: 122
 if hasattr(_libs['libassimilationclientlib.so'], 'get_lldp_chassis_id'):
     get_lldp_chassis_id = _libs['libassimilationclientlib.so'].get_lldp_chassis_id
     get_lldp_chassis_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_lldp_chassis_id.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 111
+# /home/alanr/monitor/src/include/lldp.h: 123
 if hasattr(_libs['libassimilationclientlib.so'], 'get_lldp_port_id'):
     get_lldp_port_id = _libs['libassimilationclientlib.so'].get_lldp_port_id
     get_lldp_port_id.argtypes = [gconstpointer, POINTER(gssize), gconstpointer]
     get_lldp_port_id.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 112
+# /home/alanr/monitor/src/include/lldp.h: 124
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'get_lldp_port_id_type'):
         continue
@@ -2618,49 +2618,49 @@ for _lib in _libs.itervalues():
     get_lldp_port_id_type.restype = c_uint
     break
 
-# /home/alanr/monitor/src/include/lldp.h: 114
+# /home/alanr/monitor/src/include/lldp.h: 126
 if hasattr(_libs['libassimilationclientlib.so'], 'get_lldptlv_type'):
     get_lldptlv_type = _libs['libassimilationclientlib.so'].get_lldptlv_type
     get_lldptlv_type.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_type.restype = guint8
 
-# /home/alanr/monitor/src/include/lldp.h: 115
+# /home/alanr/monitor/src/include/lldp.h: 127
 if hasattr(_libs['libassimilationclientlib.so'], 'get_lldptlv_len'):
     get_lldptlv_len = _libs['libassimilationclientlib.so'].get_lldptlv_len
     get_lldptlv_len.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_len.restype = gsize
 
-# /home/alanr/monitor/src/include/lldp.h: 116
+# /home/alanr/monitor/src/include/lldp.h: 128
 if hasattr(_libs['libassimilationclientlib.so'], 'get_lldptlv_first'):
     get_lldptlv_first = _libs['libassimilationclientlib.so'].get_lldptlv_first
     get_lldptlv_first.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_first.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 117
+# /home/alanr/monitor/src/include/lldp.h: 129
 if hasattr(_libs['libassimilationclientlib.so'], 'get_lldptlv_next'):
     get_lldptlv_next = _libs['libassimilationclientlib.so'].get_lldptlv_next
     get_lldptlv_next.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_next.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 118
+# /home/alanr/monitor/src/include/lldp.h: 130
 if hasattr(_libs['libassimilationclientlib.so'], 'get_lldptlv_body'):
     get_lldptlv_body = _libs['libassimilationclientlib.so'].get_lldptlv_body
     get_lldptlv_body.argtypes = [gconstpointer, gconstpointer]
     get_lldptlv_body.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 119
+# /home/alanr/monitor/src/include/lldp.h: 131
 if hasattr(_libs['libassimilationclientlib.so'], 'find_next_lldptlv_type'):
     find_next_lldptlv_type = _libs['libassimilationclientlib.so'].find_next_lldptlv_type
     find_next_lldptlv_type.argtypes = [gconstpointer, c_uint, gconstpointer]
     find_next_lldptlv_type.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/lldp.h: 120
+# /home/alanr/monitor/src/include/lldp.h: 132
 if hasattr(_libs['libassimilationclientlib.so'], 'is_valid_lldp_packet'):
     is_valid_lldp_packet = _libs['libassimilationclientlib.so'].is_valid_lldp_packet
     is_valid_lldp_packet.argtypes = [gconstpointer, gconstpointer]
     is_valid_lldp_packet.restype = gboolean
 
-# /home/alanr/monitor/src/include/lldp.h: 121
+# /home/alanr/monitor/src/include/lldp.h: 133
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'enable_lldp_packets'):
         continue
@@ -2669,11 +2669,20 @@ for _lib in _libs.itervalues():
     enable_lldp_packets.restype = gboolean
     break
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 20
+# /home/alanr/monitor/src/include/misc.h: 27
+for _lib in _libs.itervalues():
+    if not hasattr(_lib, 'daemonize_me'):
+        continue
+    daemonize_me = _lib.daemonize_me
+    daemonize_me.argtypes = [gboolean, String]
+    daemonize_me.restype = None
+    break
+
+# /home/alanr/monitor/src/include/nanoprobe.h: 32
 class struct__NanoHbStats(Structure):
     pass
 
-NanoHbStats = struct__NanoHbStats # /home/alanr/monitor/src/include/nanoprobe.h: 19
+NanoHbStats = struct__NanoHbStats # /home/alanr/monitor/src/include/nanoprobe.h: 31
 
 struct__NanoHbStats.__slots__ = [
     'heartbeat_count',
@@ -2690,65 +2699,65 @@ struct__NanoHbStats._fields_ = [
     ('martian_count', guint),
 ]
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 27
+# /home/alanr/monitor/src/include/nanoprobe.h: 39
 try:
     nano_hbstats = (NanoHbStats).in_dll(_libs['libassimilationclientlib.so'], 'nano_hbstats')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 29
+# /home/alanr/monitor/src/include/nanoprobe.h: 41
 if hasattr(_libs['libassimilationclientlib.so'], 'nano_start_full'):
     nano_start_full = _libs['libassimilationclientlib.so'].nano_start_full
     nano_start_full.argtypes = [String, guint, POINTER(NetGSource), POINTER(ConfigContext)]
     nano_start_full.restype = None
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 31
+# /home/alanr/monitor/src/include/nanoprobe.h: 43
 if hasattr(_libs['libassimilationclientlib.so'], 'nano_shutdown'):
     nano_shutdown = _libs['libassimilationclientlib.so'].nano_shutdown
     nano_shutdown.argtypes = [gboolean]
     nano_shutdown.restype = None
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 32
+# /home/alanr/monitor/src/include/nanoprobe.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'nano_packet_decoder'):
     nano_packet_decoder = _libs['libassimilationclientlib.so'].nano_packet_decoder
     nano_packet_decoder.argtypes = []
     nano_packet_decoder.restype = POINTER(PacketDecoder)
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 35
+# /home/alanr/monitor/src/include/nanoprobe.h: 47
 try:
     nanoprobe_deadtime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_deadtime_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 37
+# /home/alanr/monitor/src/include/nanoprobe.h: 49
 try:
     nanoprobe_heartbeat_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_heartbeat_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 39
+# /home/alanr/monitor/src/include/nanoprobe.h: 51
 try:
     nanoprobe_warntime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_warntime_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 41
+# /home/alanr/monitor/src/include/nanoprobe.h: 53
 try:
     nanoprobe_comealive_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_comealive_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 43
+# /home/alanr/monitor/src/include/nanoprobe.h: 55
 try:
     nanoprobe_hblistener_new = (POINTER(CFUNCTYPE(UNCHECKED(POINTER(HbListener)), POINTER(NetAddr), POINTER(ConfigContext)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_hblistener_new')
 except:
     pass
 
-# /home/alanr/monitor/src/include/netioudp.h: 27
+# /home/alanr/monitor/src/include/netioudp.h: 39
 class struct__NetIOudp(Structure):
     pass
 
-NetIOudp = struct__NetIOudp # /home/alanr/monitor/src/include/netioudp.h: 22
+NetIOudp = struct__NetIOudp # /home/alanr/monitor/src/include/netioudp.h: 34
 
 struct__NetIOudp.__slots__ = [
     'baseclass',
@@ -2759,17 +2768,17 @@ struct__NetIOudp._fields_ = [
     ('_finalize', GDestroyNotify),
 ]
 
-# /home/alanr/monitor/src/include/netioudp.h: 31
+# /home/alanr/monitor/src/include/netioudp.h: 43
 if hasattr(_libs['libassimilationclientlib.so'], 'netioudp_new'):
     netioudp_new = _libs['libassimilationclientlib.so'].netioudp_new
     netioudp_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netioudp_new.restype = POINTER(NetIOudp)
 
-# /home/alanr/monitor/src/include/nvpairframe.h: 21
+# /home/alanr/monitor/src/include/nvpairframe.h: 33
 class struct__NVpairFrame(Structure):
     pass
 
-NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe.h: 18
+NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe.h: 30
 
 struct__NVpairFrame.__slots__ = [
     'baseclass',
@@ -2782,13 +2791,13 @@ struct__NVpairFrame._fields_ = [
     ('value', POINTER(gchar)),
 ]
 
-# /home/alanr/monitor/src/include/nvpairframe.h: 27
+# /home/alanr/monitor/src/include/nvpairframe.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'nvpairframe_new'):
     nvpairframe_new = _libs['libassimilationclientlib.so'].nvpairframe_new
     nvpairframe_new.argtypes = [guint16, POINTER(gchar), POINTER(gchar), gsize]
     nvpairframe_new.restype = POINTER(NVpairFrame)
 
-# /home/alanr/monitor/src/include/nvpairframe.h: 28
+# /home/alanr/monitor/src/include/nvpairframe.h: 40
 if hasattr(_libs['libassimilationclientlib.so'], 'nvpairframe_tlvconstructor'):
     nvpairframe_tlvconstructor = _libs['libassimilationclientlib.so'].nvpairframe_tlvconstructor
     nvpairframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
@@ -2847,23 +2856,23 @@ struct_pcap_pkthdr._fields_ = [
     ('len', bpf_u_int32),
 ]
 
-# ../include/pcap_min.h: 32
+# ../include/pcap_min.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'create_pcap_listener'):
     create_pcap_listener = _libs['libassimilationclientlib.so'].create_pcap_listener
     create_pcap_listener.argtypes = [String, gboolean, c_uint, POINTER(struct_bpf_program)]
     create_pcap_listener.restype = POINTER(pcap_t)
 
-# ../include/pcap_min.h: 33
+# ../include/pcap_min.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'close_pcap_listener'):
     close_pcap_listener = _libs['libassimilationclientlib.so'].close_pcap_listener
     close_pcap_listener.argtypes = [POINTER(pcap_t), String, c_uint]
     close_pcap_listener.restype = None
 
-# /home/alanr/monitor/src/include/pcap_GSource.h: 26
+# /home/alanr/monitor/src/include/pcap_GSource.h: 38
 class struct__GSource_pcap(Structure):
     pass
 
-GSource_pcap_t = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 21
+GSource_pcap_t = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 33
 
 struct__GSource_pcap.__slots__ = [
     'gs',
@@ -2892,97 +2901,97 @@ struct__GSource_pcap._fields_ = [
     ('destroynote', GDestroyNotify),
 ]
 
-# /home/alanr/monitor/src/include/pcap_GSource.h: 48
+# /home/alanr/monitor/src/include/pcap_GSource.h: 60
 if hasattr(_libs['libassimilationclientlib.so'], 'g_source_pcap_new'):
     g_source_pcap_new = _libs['libassimilationclientlib.so'].g_source_pcap_new
     g_source_pcap_new.argtypes = [String, c_uint, CFUNCTYPE(UNCHECKED(gboolean), POINTER(GSource_pcap_t), POINTER(pcap_t), gconstpointer, gconstpointer, POINTER(struct_pcap_pkthdr), String, gpointer), GDestroyNotify, gint, gboolean, POINTER(GMainContext), gsize, gpointer]
     g_source_pcap_new.restype = POINTER(GSource)
 
-# /home/alanr/monitor/src/include/pcap_GSource.h: 66
+# /home/alanr/monitor/src/include/pcap_GSource.h: 78
 if hasattr(_libs['libassimilationclientlib.so'], 'g_source_pcap_finalize'):
     g_source_pcap_finalize = _libs['libassimilationclientlib.so'].g_source_pcap_finalize
     g_source_pcap_finalize.argtypes = [POINTER(GSource)]
     g_source_pcap_finalize.restype = None
 
-# /home/alanr/monitor/src/include/pcap_GSource.h: 67
+# /home/alanr/monitor/src/include/pcap_GSource.h: 79
 if hasattr(_libs['libassimilationclientlib.so'], 'construct_pcap_frameset'):
     construct_pcap_frameset = _libs['libassimilationclientlib.so'].construct_pcap_frameset
     construct_pcap_frameset.argtypes = [guint16, gconstpointer, gconstpointer, POINTER(struct_pcap_pkthdr), String]
     construct_pcap_frameset.restype = POINTER(FrameSet)
 
-# /home/alanr/monitor/src/include/pcap_min.h: 32
+# /home/alanr/monitor/src/include/pcap_min.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'create_pcap_listener'):
     create_pcap_listener = _libs['libassimilationclientlib.so'].create_pcap_listener
     create_pcap_listener.argtypes = [String, gboolean, c_uint, POINTER(struct_bpf_program)]
     create_pcap_listener.restype = POINTER(pcap_t)
 
-# /home/alanr/monitor/src/include/pcap_min.h: 33
+# /home/alanr/monitor/src/include/pcap_min.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'close_pcap_listener'):
     close_pcap_listener = _libs['libassimilationclientlib.so'].close_pcap_listener
     close_pcap_listener.argtypes = [POINTER(pcap_t), String, c_uint]
     close_pcap_listener.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 15
+# /home/alanr/monitor/src/include/proj_classes.h: 27
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_new'):
     proj_class_new = _libs['libassimilationclientlib.so'].proj_class_new
     proj_class_new.argtypes = [gsize, String]
     proj_class_new.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 16
+# /home/alanr/monitor/src/include/proj_classes.h: 28
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dissociate'):
     proj_class_dissociate = _libs['libassimilationclientlib.so'].proj_class_dissociate
     proj_class_dissociate.argtypes = [gpointer]
     proj_class_dissociate.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 17
+# /home/alanr/monitor/src/include/proj_classes.h: 29
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_free'):
     proj_class_free = _libs['libassimilationclientlib.so'].proj_class_free
     proj_class_free.argtypes = [gpointer]
     proj_class_free.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 18
+# /home/alanr/monitor/src/include/proj_classes.h: 30
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_object'):
     proj_class_register_object = _libs['libassimilationclientlib.so'].proj_class_register_object
     proj_class_register_object.argtypes = [gpointer, String]
     proj_class_register_object.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 19
+# /home/alanr/monitor/src/include/proj_classes.h: 31
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_is_a'):
     proj_class_is_a = _libs['libassimilationclientlib.so'].proj_class_is_a
     proj_class_is_a.argtypes = [gconstpointer, String]
     proj_class_is_a.restype = gboolean
 
-# /home/alanr/monitor/src/include/proj_classes.h: 20
+# /home/alanr/monitor/src/include/proj_classes.h: 32
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castas'):
     proj_class_castas = _libs['libassimilationclientlib.so'].proj_class_castas
     proj_class_castas.argtypes = [gpointer, String]
     proj_class_castas.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 21
+# /home/alanr/monitor/src/include/proj_classes.h: 33
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castasconst'):
     proj_class_castasconst = _libs['libassimilationclientlib.so'].proj_class_castasconst
     proj_class_castasconst.argtypes = [gconstpointer, String]
     proj_class_castasconst.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 22
+# /home/alanr/monitor/src/include/proj_classes.h: 34
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_subclassed'):
     proj_class_register_subclassed = _libs['libassimilationclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
     proj_class_register_subclassed.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 23
+# /home/alanr/monitor/src/include/proj_classes.h: 35
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
     proj_class_quark_add_superclass_relationship = _libs['libassimilationclientlib.so'].proj_class_quark_add_superclass_relationship
     proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
     proj_class_quark_add_superclass_relationship.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 24
+# /home/alanr/monitor/src/include/proj_classes.h: 36
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_is_a'):
     proj_class_quark_is_a = _libs['libassimilationclientlib.so'].proj_class_quark_is_a
     proj_class_quark_is_a.argtypes = [GQuark, GQuark]
     proj_class_quark_is_a.restype = gboolean
 
-# /home/alanr/monitor/src/include/proj_classes.h: 25
+# /home/alanr/monitor/src/include/proj_classes.h: 37
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
     proj_class_classname = _libs['libassimilationclientlib.so'].proj_class_classname
     proj_class_classname.argtypes = [gconstpointer]
@@ -2992,53 +3001,53 @@ if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
         proj_class_classname.restype = String
         proj_class_classname.errcheck = ReturnString
 
-# /home/alanr/monitor/src/include/proj_classes.h: 26
+# /home/alanr/monitor/src/include/proj_classes.h: 38
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_debug_counter'):
     proj_class_register_debug_counter = _libs['libassimilationclientlib.so'].proj_class_register_debug_counter
     proj_class_register_debug_counter.argtypes = [String, POINTER(guint)]
     proj_class_register_debug_counter.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 27
+# /home/alanr/monitor/src/include/proj_classes.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_incr_debug'):
     proj_class_incr_debug = _libs['libassimilationclientlib.so'].proj_class_incr_debug
     proj_class_incr_debug.argtypes = [String]
     proj_class_incr_debug.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 28
+# /home/alanr/monitor/src/include/proj_classes.h: 40
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_decr_debug'):
     proj_class_decr_debug = _libs['libassimilationclientlib.so'].proj_class_decr_debug
     proj_class_decr_debug.argtypes = [String]
     proj_class_decr_debug.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 30
+# /home/alanr/monitor/src/include/proj_classes.h: 42
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dump_live_objects'):
     proj_class_dump_live_objects = _libs['libassimilationclientlib.so'].proj_class_dump_live_objects
     proj_class_dump_live_objects.argtypes = []
     proj_class_dump_live_objects.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 31
+# /home/alanr/monitor/src/include/proj_classes.h: 43
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count = _libs['libassimilationclientlib.so'].proj_class_live_object_count
     proj_class_live_object_count.argtypes = []
     proj_class_live_object_count.restype = guint32
 
-# /home/alanr/monitor/src/include/proj_classes.h: 32
+# /home/alanr/monitor/src/include/proj_classes.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_max_object_count'):
     proj_class_max_object_count = _libs['libassimilationclientlib.so'].proj_class_max_object_count
     proj_class_max_object_count.argtypes = []
     proj_class_max_object_count.restype = guint32
 
-# /home/alanr/monitor/src/include/proj_classes.h: 33
+# /home/alanr/monitor/src/include/proj_classes.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libassimilationclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
     proj_class_finalize_sys.restype = None
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 25
+# /home/alanr/monitor/src/include/seqnoframe.h: 37
 class struct__SeqnoFrame(Structure):
     pass
 
-SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 18
+SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 30
 
 struct__SeqnoFrame.__slots__ = [
     'baseclass',
@@ -3061,19 +3070,19 @@ struct__SeqnoFrame._fields_ = [
     ('_qid', guint16),
 ]
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 35
+# /home/alanr/monitor/src/include/seqnoframe.h: 47
 if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_new'):
     seqnoframe_new = _libs['libassimilationclientlib.so'].seqnoframe_new
     seqnoframe_new.argtypes = [guint16, c_int]
     seqnoframe_new.restype = POINTER(SeqnoFrame)
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 36
+# /home/alanr/monitor/src/include/seqnoframe.h: 48
 if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_tlvconstructor'):
     seqnoframe_tlvconstructor = _libs['libassimilationclientlib.so'].seqnoframe_tlvconstructor
     seqnoframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     seqnoframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/server_dump.h: 10
+# /home/alanr/monitor/src/include/server_dump.h: 22
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'dump_cdp_packet'):
         continue
@@ -3082,7 +3091,7 @@ for _lib in _libs.itervalues():
     dump_cdp_packet.restype = None
     break
 
-# /home/alanr/monitor/src/include/server_dump.h: 11
+# /home/alanr/monitor/src/include/server_dump.h: 23
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'dump_lldp_packet'):
         continue
@@ -3091,7 +3100,7 @@ for _lib in _libs.itervalues():
     dump_lldp_packet.restype = None
     break
 
-# /home/alanr/monitor/src/include/server_dump.h: 12
+# /home/alanr/monitor/src/include/server_dump.h: 24
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'is_all_ascii'):
         continue
@@ -3100,7 +3109,7 @@ for _lib in _libs.itervalues():
     is_all_ascii.restype = gboolean
     break
 
-# /home/alanr/monitor/src/include/server_dump.h: 13
+# /home/alanr/monitor/src/include/server_dump.h: 25
 for _lib in _libs.itervalues():
     if not hasattr(_lib, 'dump_mem'):
         continue
@@ -3109,11 +3118,11 @@ for _lib in _libs.itervalues():
     dump_mem.restype = None
     break
 
-# /home/alanr/monitor/src/include/switchdiscovery.h: 23
+# /home/alanr/monitor/src/include/switchdiscovery.h: 34
 class struct__SwitchDiscovery(Structure):
     pass
 
-SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 21
+SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 32
 
 struct__SwitchDiscovery.__slots__ = [
     'baseclass',
@@ -3134,77 +3143,77 @@ struct__SwitchDiscovery._fields_ = [
     ('portidlen', gssize),
 ]
 
-# /home/alanr/monitor/src/include/switchdiscovery.h: 33
+# /home/alanr/monitor/src/include/switchdiscovery.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'switchdiscovery_new'):
     switchdiscovery_new = _libs['libassimilationclientlib.so'].switchdiscovery_new
     switchdiscovery_new.argtypes = [String, String, guint, gint, POINTER(GMainContext), POINTER(NetGSource), POINTER(ConfigContext), gsize]
     switchdiscovery_new.restype = POINTER(SwitchDiscovery)
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 15
+# /home/alanr/monitor/src/include/tlvhelper.h: 27
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_get_guint8'):
     tlv_get_guint8 = _libs['libassimilationclientlib.so'].tlv_get_guint8
     tlv_get_guint8.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint8.restype = guint8
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 16
+# /home/alanr/monitor/src/include/tlvhelper.h: 28
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_get_guint16'):
     tlv_get_guint16 = _libs['libassimilationclientlib.so'].tlv_get_guint16
     tlv_get_guint16.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint16.restype = guint16
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 17
+# /home/alanr/monitor/src/include/tlvhelper.h: 29
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_get_guint24'):
     tlv_get_guint24 = _libs['libassimilationclientlib.so'].tlv_get_guint24
     tlv_get_guint24.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint24.restype = guint32
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 18
+# /home/alanr/monitor/src/include/tlvhelper.h: 30
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_get_guint32'):
     tlv_get_guint32 = _libs['libassimilationclientlib.so'].tlv_get_guint32
     tlv_get_guint32.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint32.restype = guint32
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 19
+# /home/alanr/monitor/src/include/tlvhelper.h: 31
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_get_guint64'):
     tlv_get_guint64 = _libs['libassimilationclientlib.so'].tlv_get_guint64
     tlv_get_guint64.argtypes = [POINTER(None), POINTER(None)]
     tlv_get_guint64.restype = guint64
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 20
+# /home/alanr/monitor/src/include/tlvhelper.h: 32
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_set_guint8'):
     tlv_set_guint8 = _libs['libassimilationclientlib.so'].tlv_set_guint8
     tlv_set_guint8.argtypes = [POINTER(None), guint8, POINTER(None)]
     tlv_set_guint8.restype = None
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 21
+# /home/alanr/monitor/src/include/tlvhelper.h: 33
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_set_guint16'):
     tlv_set_guint16 = _libs['libassimilationclientlib.so'].tlv_set_guint16
     tlv_set_guint16.argtypes = [POINTER(None), guint16, POINTER(None)]
     tlv_set_guint16.restype = None
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 22
+# /home/alanr/monitor/src/include/tlvhelper.h: 34
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_set_guint24'):
     tlv_set_guint24 = _libs['libassimilationclientlib.so'].tlv_set_guint24
     tlv_set_guint24.argtypes = [POINTER(None), guint32, POINTER(None)]
     tlv_set_guint24.restype = None
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 23
+# /home/alanr/monitor/src/include/tlvhelper.h: 35
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_set_guint32'):
     tlv_set_guint32 = _libs['libassimilationclientlib.so'].tlv_set_guint32
     tlv_set_guint32.argtypes = [POINTER(None), guint32, POINTER(None)]
     tlv_set_guint32.restype = None
 
-# /home/alanr/monitor/src/include/tlvhelper.h: 24
+# /home/alanr/monitor/src/include/tlvhelper.h: 36
 if hasattr(_libs['libassimilationclientlib.so'], 'tlv_set_guint64'):
     tlv_set_guint64 = _libs['libassimilationclientlib.so'].tlv_set_guint64
     tlv_set_guint64.argtypes = [POINTER(None), guint64, POINTER(None)]
     tlv_set_guint64.restype = None
 
-# /home/alanr/monitor/src/include/unknownframe.h: 22
+# /home/alanr/monitor/src/include/unknownframe.h: 34
 class struct__UnknownFrame(Structure):
     pass
 
-UnknownFrame = struct__UnknownFrame # /home/alanr/monitor/src/include/unknownframe.h: 16
+UnknownFrame = struct__UnknownFrame # /home/alanr/monitor/src/include/unknownframe.h: 28
 
 struct__UnknownFrame.__slots__ = [
     'baseclass',
@@ -3213,109 +3222,109 @@ struct__UnknownFrame._fields_ = [
     ('baseclass', Frame),
 ]
 
-# /home/alanr/monitor/src/include/unknownframe.h: 26
+# /home/alanr/monitor/src/include/unknownframe.h: 38
 if hasattr(_libs['libassimilationclientlib.so'], 'unknownframe_new'):
     unknownframe_new = _libs['libassimilationclientlib.so'].unknownframe_new
     unknownframe_new.argtypes = [guint16]
     unknownframe_new.restype = POINTER(UnknownFrame)
 
-# /home/alanr/monitor/src/include/unknownframe.h: 27
+# /home/alanr/monitor/src/include/unknownframe.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'unknownframe_tlvconstructor'):
     unknownframe_tlvconstructor = _libs['libassimilationclientlib.so'].unknownframe_tlvconstructor
     unknownframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     unknownframe_tlvconstructor.restype = POINTER(Frame)
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 23
+# /home/alanr/monitor/src/include/address_family_numbers.h: 35
 try:
     ADDR_FAMILY_IPV4 = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 24
+# /home/alanr/monitor/src/include/address_family_numbers.h: 36
 try:
     ADDR_FAMILY_IPV6 = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 25
+# /home/alanr/monitor/src/include/address_family_numbers.h: 37
 try:
     ADDR_FAMILY_NSAP = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 26
+# /home/alanr/monitor/src/include/address_family_numbers.h: 38
 try:
     ADDR_FAMILY_HDLC = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 27
+# /home/alanr/monitor/src/include/address_family_numbers.h: 39
 try:
     ADDR_FAMILY_BBN1822 = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 28
+# /home/alanr/monitor/src/include/address_family_numbers.h: 40
 try:
     ADDR_FAMILY_802 = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 29
+# /home/alanr/monitor/src/include/address_family_numbers.h: 41
 try:
     ADDR_FAMILY_E163 = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 30
+# /home/alanr/monitor/src/include/address_family_numbers.h: 42
 try:
     ADDR_FAMILY_E164 = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 31
+# /home/alanr/monitor/src/include/address_family_numbers.h: 43
 try:
     ADDR_FAMILY_F69 = 9
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 32
+# /home/alanr/monitor/src/include/address_family_numbers.h: 44
 try:
     ADDR_FAMILY_X121 = 10
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 33
+# /home/alanr/monitor/src/include/address_family_numbers.h: 45
 try:
     ADDR_FAMILY_IPX = 11
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 34
+# /home/alanr/monitor/src/include/address_family_numbers.h: 46
 try:
     ADDR_FAMILY_APPLETALK = 12
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 35
+# /home/alanr/monitor/src/include/address_family_numbers.h: 47
 try:
     ADDR_FAMILY_DECNET = 13
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 36
+# /home/alanr/monitor/src/include/address_family_numbers.h: 48
 try:
     ADDR_FAMILY_BANYANVINES = 14
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 37
+# /home/alanr/monitor/src/include/address_family_numbers.h: 49
 try:
     ADDR_FAMILY_E164_NSAP = 15
 except:
     pass
 
-# /home/alanr/monitor/src/include/address_family_numbers.h: 38
+# /home/alanr/monitor/src/include/address_family_numbers.h: 50
 try:
     ADDR_FAMILY_DNS = 16
 except:
@@ -3353,1017 +3362,1017 @@ except:
 def g_slist_next(slist):
     return slist and (slist.contents.next) or NULL
 
-# ../include/projectcommon.h: 49
+# ../include/projectcommon.h: 59
 try:
     DISCOVERY_DIR = '/usr/share/assimilation/discovery_agents'
 except:
     pass
 
-# ../include/projectcommon.h: 50
+# ../include/projectcommon.h: 60
 try:
     CMAADDR = '224.0.2.5:1984'
 except:
     pass
 
-# ../include/projectcommon.h: 51
+# ../include/projectcommon.h: 61
 try:
     NANOLISTENADDR = '0.0.0.0:1984'
 except:
     pass
 
-# ../include/proj_classes.h: 58
+# ../include/proj_classes.h: 70
 def OBJ_IS_A(obj, Cclass):
     return (proj_class_is_a (obj, Cclass))
 
-# ../include/frame.h: 46
+# ../include/frame.h: 58
 try:
     FRAME_INITSIZE = 4
 except:
     pass
 
-# ../include/framesettypes.h: 19
+# ../include/framesettypes.h: 32
 try:
     FRAMESETTYPE_HEARTBEAT = 1
 except:
     pass
 
-# ../include/framesettypes.h: 20
+# ../include/framesettypes.h: 33
 try:
     FRAMESETTYPE_PING = 2
 except:
     pass
 
-# ../include/framesettypes.h: 21
+# ../include/framesettypes.h: 34
 try:
     FRAMESETTYPE_PONG = 3
 except:
     pass
 
-# ../include/framesettypes.h: 22
+# ../include/framesettypes.h: 35
 try:
     FRAMESETTYPE_ACK = 16
 except:
     pass
 
-# ../include/framesettypes.h: 23
+# ../include/framesettypes.h: 36
 try:
     FRAMESETTYPE_NACK = 17
 except:
     pass
 
-# ../include/framesettypes.h: 24
+# ../include/framesettypes.h: 37
 try:
     FRAMESETTYPE_STARTUP = 18
 except:
     pass
 
-# ../include/framesettypes.h: 25
+# ../include/framesettypes.h: 38
 try:
     FRAMESETTYPE_HBDEAD = 19
 except:
     pass
 
-# ../include/framesettypes.h: 26
+# ../include/framesettypes.h: 39
 try:
     FRAMESETTYPE_HBLATE = 20
 except:
     pass
 
-# ../include/framesettypes.h: 27
+# ../include/framesettypes.h: 40
 try:
     FRAMESETTYPE_HBBACKALIVE = 21
 except:
     pass
 
-# ../include/framesettypes.h: 28
+# ../include/framesettypes.h: 41
 try:
     FRAMESETTYPE_HBMARTIAN = 22
 except:
     pass
 
-# ../include/framesettypes.h: 29
+# ../include/framesettypes.h: 42
 try:
     FRAMESETTYPE_PROBEALIVE = 23
 except:
     pass
 
-# ../include/framesettypes.h: 30
+# ../include/framesettypes.h: 43
 try:
     FRAMESETTYPE_SWDISCOVER = 24
 except:
     pass
 
-# ../include/framesettypes.h: 31
+# ../include/framesettypes.h: 44
 try:
     FRAMESETTYPE_JSDISCOVERY = 25
 except:
     pass
 
-# ../include/framesettypes.h: 32
+# ../include/framesettypes.h: 45
 try:
     FRAMESETTYPE_SENDHB = 64
 except:
     pass
 
-# ../include/framesettypes.h: 33
+# ../include/framesettypes.h: 46
 try:
     FRAMESETTYPE_EXPECTHB = 65
 except:
     pass
 
-# ../include/framesettypes.h: 34
+# ../include/framesettypes.h: 47
 try:
     FRAMESETTYPE_SENDEXPECTHB = 66
 except:
     pass
 
-# ../include/framesettypes.h: 35
+# ../include/framesettypes.h: 48
 try:
     FRAMESETTYPE_STOPSENDHB = 67
 except:
     pass
 
-# ../include/framesettypes.h: 36
+# ../include/framesettypes.h: 49
 try:
     FRAMESETTYPE_STOPEXPECTHB = 68
 except:
     pass
 
-# ../include/framesettypes.h: 37
+# ../include/framesettypes.h: 50
 try:
     FRAMESETTYPE_STOPSENDEXPECTHB = 69
 except:
     pass
 
-# ../include/framesettypes.h: 38
+# ../include/framesettypes.h: 51
 try:
     FRAMESETTYPE_SETCONFIG = 70
 except:
     pass
 
-# ../include/framesettypes.h: 39
+# ../include/framesettypes.h: 52
 try:
     FRAMESETTYPE_INCRDEBUG = 71
 except:
     pass
 
-# ../include/framesettypes.h: 40
+# ../include/framesettypes.h: 53
 try:
     FRAMESETTYPE_DECRDEBUG = 72
 except:
     pass
 
-# ../include/framesettypes.h: 41
+# ../include/framesettypes.h: 54
 try:
     FRAMESETTYPE_DODISCOVER = 73
 except:
     pass
 
-# ../include/framesettypes.h: 42
+# ../include/framesettypes.h: 55
 try:
     FRAMESETTYPE_STOPDISCOVER = 74
 except:
     pass
 
-# ../include/frameset.h: 39
+# ../include/frameset.h: 51
 try:
     FRAMESET_INITSIZE = 6
 except:
     pass
 
-# ../include/configcontext.h: 84
+# ../include/configcontext.h: 96
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# ../include/configcontext.h: 85
+# ../include/configcontext.h: 97
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# ../include/configcontext.h: 86
+# ../include/configcontext.h: 98
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# ../include/configcontext.h: 87
+# ../include/configcontext.h: 99
 try:
     CONFIG_DEFAULT_HBPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 88
+# ../include/configcontext.h: 100
 try:
     CONFIG_DEFAULT_CMAPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 90
+# ../include/configcontext.h: 102
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 91
+# ../include/configcontext.h: 103
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 93
+# ../include/configcontext.h: 105
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 94
+# ../include/configcontext.h: 106
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 95
+# ../include/configcontext.h: 107
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 96
+# ../include/configcontext.h: 108
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 97
+# ../include/configcontext.h: 109
 try:
     CONFIGNAME_CMAPORT = 'cmaport'
 except:
     pass
 
-# ../include/configcontext.h: 98
+# ../include/configcontext.h: 110
 try:
     CONFIGNAME_CMAINIT = 'cmainit'
 except:
     pass
 
-# ../include/configcontext.h: 100
+# ../include/configcontext.h: 112
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 101
+# ../include/configcontext.h: 113
 try:
     CONFIGNAME_CMADISCOVER = 'cmadisc'
 except:
     pass
 
-# ../include/configcontext.h: 102
+# ../include/configcontext.h: 114
 try:
     CONFIGNAME_CMAFAIL = 'cmafail'
 except:
     pass
 
-# ../include/configcontext.h: 103
+# ../include/configcontext.h: 115
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 104
+# ../include/configcontext.h: 116
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 105
+# ../include/configcontext.h: 117
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 20
+# /home/alanr/monitor/src/include/cdp.h: 33
 try:
     CDP_TLV_DEVID = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 22
+# /home/alanr/monitor/src/include/cdp.h: 35
 try:
     CDP_TLV_ADDRESS = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 23
+# /home/alanr/monitor/src/include/cdp.h: 36
 try:
     CDP_TLV_PORTID = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 25
+# /home/alanr/monitor/src/include/cdp.h: 38
 try:
     CDP_TLV_CAPS = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 26
+# /home/alanr/monitor/src/include/cdp.h: 39
 try:
     CDP_TLV_VERS = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 27
+# /home/alanr/monitor/src/include/cdp.h: 40
 try:
     CDP_TLV_PLATFORM = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 28
+# /home/alanr/monitor/src/include/cdp.h: 41
 try:
     CDP_TLV_IPPREFIX = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 29
+# /home/alanr/monitor/src/include/cdp.h: 42
 try:
     CDP_TLV_HELLO = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 30
+# /home/alanr/monitor/src/include/cdp.h: 43
 try:
     CDP_TLV_VTPDOMAIN = 9
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 31
+# /home/alanr/monitor/src/include/cdp.h: 44
 try:
     CDP_TLV_NATIVEVLAN = 10
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 32
+# /home/alanr/monitor/src/include/cdp.h: 45
 try:
     CDP_TLV_DUPLEX = 11
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 33
+# /home/alanr/monitor/src/include/cdp.h: 46
 try:
     CDP_TLV_APPLID = 14
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 34
+# /home/alanr/monitor/src/include/cdp.h: 47
 try:
     CDP_TLV_POWER = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 46
+# /home/alanr/monitor/src/include/cdp.h: 59
 try:
     CDP_CAPMASK_ROUTER = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 47
+# /home/alanr/monitor/src/include/cdp.h: 60
 try:
     CDP_CAPMASK_TBBRIDGE = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 48
+# /home/alanr/monitor/src/include/cdp.h: 61
 try:
     CDP_CAPMASK_SPBRIDGE = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 49
+# /home/alanr/monitor/src/include/cdp.h: 62
 try:
     CDP_CAPMASK_SWITCH = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 50
+# /home/alanr/monitor/src/include/cdp.h: 63
 try:
     CDP_CAPMASK_HOST = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 51
+# /home/alanr/monitor/src/include/cdp.h: 64
 try:
     CDP_CAPMASK_IGMPFILTER = 32
 except:
     pass
 
-# /home/alanr/monitor/src/include/cdp.h: 52
+# /home/alanr/monitor/src/include/cdp.h: 65
 try:
     CDP_CAPMASK_REPEATER = 64
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 50
+# /home/alanr/monitor/src/include/frametypes.h: 62
 try:
     FRAMETYPE_END = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 68
+# /home/alanr/monitor/src/include/frametypes.h: 80
 try:
     FRAMETYPE_SIG = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 84
+# /home/alanr/monitor/src/include/frametypes.h: 96
 try:
     FRAMETYPE_CRYPT = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 102
+# /home/alanr/monitor/src/include/frametypes.h: 114
 try:
     FRAMETYPE_COMPRESS = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 118
+# /home/alanr/monitor/src/include/frametypes.h: 130
 try:
     FRAMETYPE_REQID = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 131
+# /home/alanr/monitor/src/include/frametypes.h: 143
 try:
     FRAMETYPE_REPLYID = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 145
+# /home/alanr/monitor/src/include/frametypes.h: 157
 try:
     FRAMETYPE_PKTDATA = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 160
+# /home/alanr/monitor/src/include/frametypes.h: 172
 try:
     FRAMETYPE_WALLCLOCK = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 173
+# /home/alanr/monitor/src/include/frametypes.h: 185
 try:
     FRAMETYPE_INTERFACE = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 185
+# /home/alanr/monitor/src/include/frametypes.h: 197
 try:
     FRAMETYPE_HOSTNAME = 9
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 198
+# /home/alanr/monitor/src/include/frametypes.h: 210
 try:
     FRAMETYPE_IPADDR = 10
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 211
+# /home/alanr/monitor/src/include/frametypes.h: 223
 try:
     FRAMETYPE_MACADDR = 11
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 224
+# /home/alanr/monitor/src/include/frametypes.h: 236
 try:
     FRAMETYPE_PORTNUM = 12
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 236
+# /home/alanr/monitor/src/include/frametypes.h: 248
 try:
     FRAMETYPE_IPPORT = 13
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 249
+# /home/alanr/monitor/src/include/frametypes.h: 261
 try:
     FRAMETYPE_HBINTERVAL = 14
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 262
+# /home/alanr/monitor/src/include/frametypes.h: 274
 try:
     FRAMETYPE_HBDEADTIME = 15
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 275
+# /home/alanr/monitor/src/include/frametypes.h: 287
 try:
     FRAMETYPE_HBWARNTIME = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 287
+# /home/alanr/monitor/src/include/frametypes.h: 299
 try:
     FRAMETYPE_PATHNAME = 17
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 300
+# /home/alanr/monitor/src/include/frametypes.h: 312
 try:
     FRAMETYPE_NVPAIR = 18
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 312
+# /home/alanr/monitor/src/include/frametypes.h: 324
 try:
     FRAMETYPE_JSDISCOVER = 19
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 323
+# /home/alanr/monitor/src/include/frametypes.h: 335
 try:
     FRAMETYPE_PARAMNAME = 20
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 334
+# /home/alanr/monitor/src/include/frametypes.h: 346
 try:
     FRAMETYPE_CSTRINGVAL = 21
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 346
+# /home/alanr/monitor/src/include/frametypes.h: 358
 try:
     FRAMETYPE_CINTVAL = 22
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 360
+# /home/alanr/monitor/src/include/frametypes.h: 372
 try:
     FRAMETYPE_ELAPSEDTIME = 23
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 372
+# /home/alanr/monitor/src/include/frametypes.h: 384
 try:
     FRAMETYPE_DISCNAME = 24
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 385
+# /home/alanr/monitor/src/include/frametypes.h: 397
 try:
     FRAMETYPE_DISCINTERVAL = 25
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 398
+# /home/alanr/monitor/src/include/frametypes.h: 410
 try:
     FRAMETYPE_DISCJSON = 26
 except:
     pass
 
-# /home/alanr/monitor/src/include/hblistener.h: 54
+# /home/alanr/monitor/src/include/hblistener.h: 66
 try:
     DEFAULT_DEADTIME = 60
 except:
     pass
 
-# /home/alanr/monitor/src/include/hbsender.h: 37
+# /home/alanr/monitor/src/include/hbsender.h: 49
 try:
     DEFAULT_DEADTIME = 60
 except:
     pass
 
-# /home/alanr/monitor/src/include/jsondiscovery.h: 22
+# /home/alanr/monitor/src/include/jsondiscovery.h: 32
 try:
     JSONAGENTROOT = DISCOVERY_DIR
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 23
+# /home/alanr/monitor/src/include/lldp.h: 35
 try:
     LLDP_INVAL = 65535
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 30
+# /home/alanr/monitor/src/include/lldp.h: 42
 try:
     LLDP_TLV_END = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 31
+# /home/alanr/monitor/src/include/lldp.h: 43
 try:
     LLDP_TLV_CHID = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 32
+# /home/alanr/monitor/src/include/lldp.h: 44
 try:
     LLDP_TLV_PID = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 33
+# /home/alanr/monitor/src/include/lldp.h: 45
 try:
     LLDP_TLV_TTL = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 34
+# /home/alanr/monitor/src/include/lldp.h: 46
 try:
     LLDP_TLV_PORT_DESCR = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 35
+# /home/alanr/monitor/src/include/lldp.h: 47
 try:
     LLDP_TLV_SYS_NAME = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 36
+# /home/alanr/monitor/src/include/lldp.h: 48
 try:
     LLDP_TLV_SYS_DESCR = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 37
+# /home/alanr/monitor/src/include/lldp.h: 49
 try:
     LLDP_TLV_SYS_CAPS = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 38
+# /home/alanr/monitor/src/include/lldp.h: 50
 try:
     LLDP_TLV_MGMT_ADDR = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 39
+# /home/alanr/monitor/src/include/lldp.h: 51
 try:
     LLDP_TLV_ORG_SPECIFIC = 127
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 47
+# /home/alanr/monitor/src/include/lldp.h: 59
 try:
     LLDP_CHIDTYPE_COMPONENT = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 49
+# /home/alanr/monitor/src/include/lldp.h: 61
 try:
     LLDP_CHIDTYPE_ALIAS = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 50
+# /home/alanr/monitor/src/include/lldp.h: 62
 try:
     LLDP_CHIDTYPE_PORT = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 52
+# /home/alanr/monitor/src/include/lldp.h: 64
 try:
     LLDP_CHIDTYPE_MACADDR = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 53
+# /home/alanr/monitor/src/include/lldp.h: 65
 try:
     LLDP_CHIDTYPE_NETADDR = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 54
+# /home/alanr/monitor/src/include/lldp.h: 66
 try:
     LLDP_CHIDTYPE_IFNAME = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 55
+# /home/alanr/monitor/src/include/lldp.h: 67
 try:
     LLDP_CHIDTYPE_LOCAL = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 63
+# /home/alanr/monitor/src/include/lldp.h: 75
 try:
     LLDP_PIDTYPE_ALIAS = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 64
+# /home/alanr/monitor/src/include/lldp.h: 76
 try:
     LLDP_PIDTYPE_COMPONENT = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 66
+# /home/alanr/monitor/src/include/lldp.h: 78
 try:
     LLDP_PIDTYPE_MACADDR = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 67
+# /home/alanr/monitor/src/include/lldp.h: 79
 try:
     LLDP_PIDTYPE_NETADDR = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 68
+# /home/alanr/monitor/src/include/lldp.h: 80
 try:
     LLDP_PIDTYPE_IFNAME = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 69
+# /home/alanr/monitor/src/include/lldp.h: 81
 try:
     LLDP_PIDTYPE_CIRCUITID = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 70
+# /home/alanr/monitor/src/include/lldp.h: 82
 try:
     LLDP_PIDTYPE_LOCAL = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 77
+# /home/alanr/monitor/src/include/lldp.h: 89
 try:
     LLDP_CAPMASK_REPEATER = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 78
+# /home/alanr/monitor/src/include/lldp.h: 90
 try:
     LLDP_CAPMASK_BRIDGE = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 79
+# /home/alanr/monitor/src/include/lldp.h: 91
 try:
     LLDP_CAPMASK_WLAN_AP = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 80
+# /home/alanr/monitor/src/include/lldp.h: 92
 try:
     LLDP_CAPMASK_ROUTER = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 81
+# /home/alanr/monitor/src/include/lldp.h: 93
 try:
     LLDP_CAPMASK_PHONE = 32
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 82
+# /home/alanr/monitor/src/include/lldp.h: 94
 try:
     LLDP_CAPMASK_DOCSIS = 64
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 83
+# /home/alanr/monitor/src/include/lldp.h: 95
 try:
     LLDP_CAPMASK_STATION = 128
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 91
+# /home/alanr/monitor/src/include/lldp.h: 103
 try:
     LLDP_ORG802_1_VLAN_PVID = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 92
+# /home/alanr/monitor/src/include/lldp.h: 104
 try:
     LLDP_ORG802_1_VLAN_PORTPROTO = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 93
+# /home/alanr/monitor/src/include/lldp.h: 105
 try:
     LLDP_ORG802_1_VLAN_NAME = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 94
+# /home/alanr/monitor/src/include/lldp.h: 106
 try:
     LLDP_ORG802_1_VLAN_PROTOID = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 102
+# /home/alanr/monitor/src/include/lldp.h: 114
 try:
     LLDP_ORG802_3_PHY_CONFIG = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 103
+# /home/alanr/monitor/src/include/lldp.h: 115
 try:
     LLDP_ORG802_3_POWERVIAMDI = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 104
+# /home/alanr/monitor/src/include/lldp.h: 116
 try:
     LLDP_ORG802_3_LINKAGG = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/lldp.h: 105
+# /home/alanr/monitor/src/include/lldp.h: 117
 try:
     LLDP_ORG802_3_MTU = 4
 except:
     pass
 
-# ../include/pcap_min.h: 28
+# ../include/pcap_min.h: 40
 try:
     ENABLE_LLDP = 1
 except:
     pass
 
-# ../include/pcap_min.h: 30
+# ../include/pcap_min.h: 42
 try:
     ENABLE_CDP = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/pcap_min.h: 28
+# /home/alanr/monitor/src/include/pcap_min.h: 40
 try:
     ENABLE_LLDP = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/pcap_min.h: 30
+# /home/alanr/monitor/src/include/pcap_min.h: 42
 try:
     ENABLE_CDP = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/proj_classes.h: 58
+# /home/alanr/monitor/src/include/proj_classes.h: 70
 def OBJ_IS_A(obj, Cclass):
     return (proj_class_is_a (obj, Cclass))
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 20
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 32
 try:
     TLV_DTYPE_BINARY = 1
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 21
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 33
 try:
     TLV_DTYPE_UINT8 = 2
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 22
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 34
 try:
     TLV_DTYPE_UINT16 = 3
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 23
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 35
 try:
     TLV_DTYPE_UINT32 = 4
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 24
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 36
 try:
     TLV_DTYPE_UINT64 = 5
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 25
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 37
 try:
     TLV_DTYPE_OUI = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 26
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 38
 try:
     TLV_DTYPE_MACADDR = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 27
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 39
 try:
     TLV_DTYPE_IPV4ADDR = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 28
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 40
 try:
     TLV_DTYPE_IPV6ADDR = 9
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 29
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 41
 try:
     TLV_DTYPE_GENADDR = 10
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 30
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 42
 try:
     TLV_DTYPE_LLCHASSIS = 11
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 31
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 43
 try:
     TLV_DTYPE_LLPORTID = 12
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 32
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 44
 try:
     TLV_DTYPE_LLCAPS = 13
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 33
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 45
 try:
     TLV_DTYPE_LLMGMTADDR = 14
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 34
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 46
 try:
     TLV_DTYPE_LL8021_VLANID = 15
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 35
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 47
 try:
     TLV_DTYPE_LL8021_PPVLANID = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 36
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 48
 try:
     TLV_DTYPE_LL8021_VLANNAME = 17
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 37
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 49
 try:
     TLV_DTYPE_LL8021_PROTOID = 18
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 38
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 50
 try:
     TLV_DTYPE_LL8023_MACPHY = 19
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 39
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 51
 try:
     TLV_DTYPE_LL8023_POWER = 20
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 40
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 52
 try:
     TLV_DTYPE_LL8023_LINKAGGR = 21
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 41
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 53
 try:
     TLV_DTYPE_LL8023_MTU = 22
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 42
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 54
 try:
     TLV_DTYPE_FSTYPE = 23
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 43
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 55
 try:
     TLV_DTYPE_FSFLAGS = 24
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 44
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 56
 try:
     TLV_DTYPE_FRAMETYPE = 25
 except:
     pass
 
-# /home/alanr/monitor/src/include/tlv_valuetypes.h: 45
+# /home/alanr/monitor/src/include/tlv_valuetypes.h: 57
 try:
     TLV_DTYPE_FR_REQTYPE = 26
 except:
@@ -4371,67 +4380,67 @@ except:
 
 _GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 40
 
-_AssimObj = struct__AssimObj # ../include/assimobj.h: 20
+_AssimObj = struct__AssimObj # ../include/assimobj.h: 32
 
-_FrameSet = struct__FrameSet # ../include/frameset.h: 30
+_FrameSet = struct__FrameSet # ../include/frameset.h: 42
 
-_Frame = struct__Frame # ../include/frame.h: 30
+_Frame = struct__Frame # ../include/frame.h: 42
 
-_NetAddr = struct__NetAddr # ../include/netaddr.h: 31
+_NetAddr = struct__NetAddr # ../include/netaddr.h: 43
 
-_AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 26
+_AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 38
 
-_SignFrame = struct__SignFrame # ../include/signframe.h: 28
+_SignFrame = struct__SignFrame # ../include/signframe.h: 40
 
-_ConfigContext = struct__ConfigContext # ../include/configcontext.h: 58
+_ConfigContext = struct__ConfigContext # ../include/configcontext.h: 70
 
-_ConfigValue = struct__ConfigValue # ../include/configcontext.h: 45
+_ConfigValue = struct__ConfigValue # ../include/configcontext.h: 57
 
-_Listener = struct__Listener # ../include/listener.h: 29
+_Listener = struct__Listener # ../include/listener.h: 41
 
-_FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 25
+_FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 37
 
-_PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 32
+_PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 44
 
-_NetIO = struct__NetIO # ../include/netio.h: 32
+_NetIO = struct__NetIO # ../include/netio.h: 44
 
-_NetGSource = struct__NetGSource # ../include/netgsource.h: 31
+_NetGSource = struct__NetGSource # ../include/netgsource.h: 43
 
-_AuthListener = struct__AuthListener # /home/alanr/monitor/src/include/authlistener.h: 29
+_AuthListener = struct__AuthListener # /home/alanr/monitor/src/include/authlistener.h: 41
 
-_ObeyFrameSetTypeMap = struct__ObeyFrameSetTypeMap # /home/alanr/monitor/src/include/authlistener.h: 37
+_ObeyFrameSetTypeMap = struct__ObeyFrameSetTypeMap # /home/alanr/monitor/src/include/authlistener.h: 49
 
-_CompressFrame = struct__CompressFrame # /home/alanr/monitor/src/include/compressframe.h: 21
+_CompressFrame = struct__CompressFrame # /home/alanr/monitor/src/include/compressframe.h: 33
 
-_CryptFrame = struct__CryptFrame # /home/alanr/monitor/src/include/cryptframe.h: 21
+_CryptFrame = struct__CryptFrame # /home/alanr/monitor/src/include/cryptframe.h: 33
 
-_CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringframe.h: 23
+_CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringframe.h: 35
 
-_Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 35
+_Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
-_HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 32
+_HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 44
 
-_HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 27
+_HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 39
 
-_IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 27
+_IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 39
 
-_IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 27
+_IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 40
 
-_JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 26
+_JsonDiscovery = struct__JsonDiscovery # /home/alanr/monitor/src/include/jsondiscovery.h: 36
 
-_NanoHbStats = struct__NanoHbStats # /home/alanr/monitor/src/include/nanoprobe.h: 20
+_NanoHbStats = struct__NanoHbStats # /home/alanr/monitor/src/include/nanoprobe.h: 32
 
-_NetIOudp = struct__NetIOudp # /home/alanr/monitor/src/include/netioudp.h: 27
+_NetIOudp = struct__NetIOudp # /home/alanr/monitor/src/include/netioudp.h: 39
 
-_NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe.h: 21
+_NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe.h: 33
 
-_GSource_pcap = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 26
+_GSource_pcap = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 38
 
-_SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 25
+_SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 37
 
-_SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 23
+_SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 34
 
-_UnknownFrame = struct__UnknownFrame # /home/alanr/monitor/src/include/unknownframe.h: 22
+_UnknownFrame = struct__UnknownFrame # /home/alanr/monitor/src/include/unknownframe.h: 34
 
 # No inserted files
 

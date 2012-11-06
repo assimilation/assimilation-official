@@ -34,6 +34,12 @@
 #	define HAVE_PCAP_SET_RFMON	1	// We should test for this...
 #endif
 
+#ifdef WIN32
+#	undef HAS_FORK
+#else
+#	define	HAS_FORK
+#endif
+
 #include <glib.h>
 #if !HAVE_G_UNLINK
 	/* #if (GLIB_MINOR_VERSION < 6) - but this doesn't work as I expected */
