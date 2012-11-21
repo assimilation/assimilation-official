@@ -35,18 +35,26 @@ FSTATIC guint16 _seqnoframe_getqid(SeqnoFrame * self);
 FSTATIC void _seqnoframe_updatedata(Frame*, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _seqnoframe_isvalid(const Frame*, gconstpointer, gconstpointer);
 FSTATIC gboolean _seqnoframe_equal(SeqnoFrame * self, SeqnoFrame* rhs);
+FSTATIC int _seqnoframe_compare(SeqnoFrame * self, SeqnoFrame* rhs);
+FSTATIC guint32 _seqnoframe_getsessionid(SeqnoFrame * self);
+FSTATIC void _seqnoframe_initsessionid(void);
+
+static guint32 _sessionId = 0;
+
 /**
  * @defgroup SeqnoFrameFormats C-class SeqNoFrame wire format
  * @{
  * @ingroup FrameFormats
  * Here is the wire format we use for sequence numbers.
 <PRE>
-+-----------+---------------+------------+-----------+
-| frametype | f_length = 8  | request id | queue id  |
-| (16 bits) |   (16-bits)   |  (8 bytes) | (2 bytes) |
-+-----------+---------------+------------+-----------+
++-----------+---------------+------------+------------+-----------+
+| frametype | f_length = 14 | session id | request id | queue id  |
+| (16 bits) |   (16-bits)   |  (4 bytes) | (8 bytes)  | (2 bytes) |
++-----------+---------------+------------+------------+-----------+
 </PRE>
+The session ID is a 32-bit integer in network byte order.
 The request ID is a 64-bit integer in network byte order.
+The queue ID is a 16-bit integer in network byte order.
  * @}
  */
 
@@ -56,39 +64,84 @@ The request ID is a 64-bit integer in network byte order.
 ///@ingroup Frame
 
 
-/// Set the request id value associated with an SeqnoFrame
+/// Initialize our session ID to something monotonically increasing.
+/// There are a couple of ways of achieving this...
+/// - One method is to store a sequence number in a file - but this has problems
+///		when you restore machines or if you can't create persistent files
+/// - Another method is to use the time of day - but if the clock gets set back
+///		to a time before the previous session id, then this doesn't work.
+/// - The best idea seems to be to use the time of day, but also store that
+///		value in a file.  If the time gets set back before the previous session id,
+///		then use the previous session id + 1.
+FSTATIC void
+_seqnoframe_initsessionid(void)
+{
+#	define		FIVESECONDS	5000000
+	guint64	now	= g_get_real_time();
+	now /= FIVESECONDS;
+	/// TODO: cache this on disk and so on as described above...
+}
+
+/// Set the request id value associated with a SeqnoFrame
 FSTATIC void
 _seqnoframe_setreqid(SeqnoFrame * self, guint64 value)
 {
 	self->_reqid = value;
 }
 
-/// Set the Queue id value associated with an SeqnoFrame
+/// Set the Queue id value associated with a SeqnoFrame
 FSTATIC void
 _seqnoframe_setqid(SeqnoFrame * self, guint16 value)
 {
 	self->_qid = value;
 }
 
-/// Get the request id associated with an SeqnoFrame
+/// Get the request id associated with a SeqnoFrame
 FSTATIC guint64
 _seqnoframe_getreqid(SeqnoFrame * self)
 {
 	return self->_reqid;
 }
-/// Get the queue id associated with an SeqnoFrame
+/// Get the queue id associated with a SeqnoFrame
 FSTATIC guint16
 _seqnoframe_getqid(SeqnoFrame * self)
 {
 	return self->_qid;
 }
+/// Get the session id associated with a SeqnoFrame
+FSTATIC guint32
+_seqnoframe_getsessionid(SeqnoFrame * self)
+{
+	return self->_sessionid;
+}
 
-/// Compare two SeqnoFrames
+/// Compare two SeqnoFrames for equality including the queue id
 FSTATIC gboolean
 _seqnoframe_equal(SeqnoFrame * self, SeqnoFrame* rhs)
 {
-	return ((self->getqid(self) == rhs->getqid(rhs))
-	&&	(self->getreqid(self) == rhs->getreqid(rhs)));
+	if (self->_qid != rhs->_qid) {
+		return FALSE;
+	}
+	return self->compare(self, rhs) == 0;
+}
+/// Compare two SeqnoFrames - ignoring the queue id
+FSTATIC int
+_seqnoframe_compare(SeqnoFrame * self, SeqnoFrame* rhs)
+{
+	if (self->getsessionid(self) == self->getsessionid(rhs)) {
+		if (self->getreqid(self) < rhs->getreqid(rhs)) {
+			return -1;
+		}
+		if (self->getreqid(self) > rhs->getreqid(rhs)) {
+			return 1;
+		}
+		return 0;
+	}
+		
+	if (self->getsessionid(self) < rhs->getsessionid(rhs)) {
+		return -1;
+	}
+	return 1;
 }
 
 
@@ -107,8 +160,27 @@ _seqnoframe_updatedata(Frame* fself,		///< object whose data will be put into Fr
 	(void)fs;
 	g_return_if_fail(NULL != pktpos);
 
-	tlv_set_guint64(pktpos, self->_reqid, pktend);
-	tlv_set_guint16(pktpos+sizeof(guint64), self->_qid, pktend);
+	tlv_set_guint32(pktpos,                                self->_sessionid, pktend);
+	tlv_set_guint64(pktpos+sizeof(guint32),                self->_reqid, pktend);
+	tlv_set_guint16(pktpos+sizeof(guint32)+sizeof(guint64),self->_qid, pktend);
+}
+/// Construct Frame (SeqnoFrame) object from marshalled packet data
+Frame*
+seqnoframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of SeqnoFrame TLV area
+			  gconstpointer pktend)		///<[in] first byte past end of packet
+{
+	SeqnoFrame*	ret;
+	guint16		length  = get_generic_tlv_len(tlvstart, pktend);
+	guint16		tlvtype = get_generic_tlv_type(tlvstart, pktend);
+	const guint8* valpos = get_generic_tlv_value(tlvstart, pktend);
+
+	g_return_val_if_fail(length == (sizeof(guint64)+sizeof(guint16)+sizeof(guint32)), NULL);
+
+	ret = seqnoframe_new(tlvtype, 0);
+	ret->_sessionid = tlv_get_guint32(valpos, pktend);
+	ret->setreqid(ret, tlv_get_guint64(valpos+sizeof(guint32), pktend));
+	ret->setqid(ret, tlv_get_guint16(valpos+sizeof(guint32)+sizeof(guint64), pktend));
+	return CASTTOCLASS(Frame, ret);
 }
 
 /// Return TRUE if this sequence number is valid - if it's the right size
@@ -119,8 +191,9 @@ _seqnoframe_isvalid(const Frame* self,		///< Frame to validate
 {
 	(void)tlvptr;
 	(void)pktend;
-	return self->length == (sizeof(guint64)+sizeof(guint16));
+	return self->length == (sizeof(guint32)+sizeof(guint64)+sizeof(guint16));
 }
+
 
 /// Construct new SeqnoFrame object
 SeqnoFrame*
@@ -135,36 +208,37 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	}
 
 	frame = frame_new(frametype, objsize);
-	proj_class_register_subclassed(frame, "SeqnoFrame");
-	sframe = CASTTOCLASS(SeqnoFrame, frame);
+	sframe = NEWSUBCLASS(SeqnoFrame, frame);
+	if (_sessionId == 0) {
+		_seqnoframe_initsessionid();
+	}
 	sframe->setreqid = _seqnoframe_setreqid;
 	sframe->setqid = _seqnoframe_setqid;
 	sframe->getreqid = _seqnoframe_getreqid;
 	sframe->getqid = _seqnoframe_getqid;
+	sframe->getsessionid = _seqnoframe_getsessionid;
 	sframe->equal = _seqnoframe_equal;
+	sframe->compare = _seqnoframe_compare;
 	sframe->baseclass.updatedata = _seqnoframe_updatedata;
 	sframe->baseclass.isvalid = _seqnoframe_isvalid;
 	sframe->baseclass.value = NULL;
 	sframe->baseclass.setvalue = NULL;
 	sframe->baseclass.valuefinalize = NULL;
-	sframe->baseclass.length = sizeof(guint64)+sizeof(guint16);
+	sframe->baseclass.length = sizeof(guint32)+sizeof(guint64)+sizeof(guint16);
+	sframe->_sessionid = _sessionId;
 	return sframe;
 }
-/// Construct Frame (SeqnoFrame) object from marshalled packet data
-Frame*
-seqnoframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of SeqnoFrame TLV area
-			  gconstpointer pktend)		///<[in] first byte past end of packet
+/// Construct a fully-iniitialized SeqnoFrame object
+SeqnoFrame*
+seqnoframe_new_init(guint16 frametype,	///< Type of frame to create with this value
+		    guint64 reqid,	///< Request id
+		    guint16 qid)	///< Queue id
 {
-	SeqnoFrame*	ret;
-	guint16		length  = get_generic_tlv_len(tlvstart, pktend);
-	guint16		tlvtype = get_generic_tlv_type(tlvstart, pktend);
-	const guint8* valpos = get_generic_tlv_value(tlvstart, pktend);
-
-	g_return_val_if_fail(length == (sizeof(guint64)+sizeof(guint16)), NULL);
-
-	ret = seqnoframe_new(tlvtype, 0);
-	ret->setreqid(ret, tlv_get_guint64(valpos, pktend));
-	ret->setqid(ret, tlv_get_guint16(valpos+sizeof(guint64), pktend));
-	return CASTTOCLASS(Frame, ret);
+	SeqnoFrame*	ret = seqnoframe_new(frametype, 0);
+	if (ret) {
+		ret->setreqid(ret, reqid);
+		ret->setqid(ret, qid);
+	}
+	return ret;
 }
 ///@}

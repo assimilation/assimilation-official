@@ -2670,13 +2670,10 @@ for _lib in _libs.itervalues():
     break
 
 # /home/alanr/monitor/src/include/misc.h: 27
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'daemonize_me'):
-        continue
-    daemonize_me = _lib.daemonize_me
+if hasattr(_libs['libassimilationclientlib.so'], 'daemonize_me'):
+    daemonize_me = _libs['libassimilationclientlib.so'].daemonize_me
     daemonize_me.argtypes = [gboolean, String]
     daemonize_me.restype = None
-    break
 
 # /home/alanr/monitor/src/include/nanoprobe.h: 32
 class struct__NanoHbStats(Structure):
@@ -3043,40 +3040,52 @@ if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys.argtypes = []
     proj_class_finalize_sys.restype = None
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 37
+# /home/alanr/monitor/src/include/seqnoframe.h: 42
 class struct__SeqnoFrame(Structure):
     pass
 
-SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 30
+SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 34
 
 struct__SeqnoFrame.__slots__ = [
     'baseclass',
     'getreqid',
+    'getsessionid',
     'getqid',
     'setreqid',
     'setqid',
     'equal',
+    'compare',
     '_reqid',
+    '_sessionid',
     '_qid',
 ]
 struct__SeqnoFrame._fields_ = [
     ('baseclass', Frame),
     ('getreqid', CFUNCTYPE(UNCHECKED(guint64), POINTER(SeqnoFrame))),
+    ('getsessionid', CFUNCTYPE(UNCHECKED(guint32), POINTER(SeqnoFrame))),
     ('getqid', CFUNCTYPE(UNCHECKED(guint16), POINTER(SeqnoFrame))),
     ('setreqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint64)),
     ('setqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint16)),
-    ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
+    ('equal', CFUNCTYPE(UNCHECKED(c_int), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
+    ('compare', CFUNCTYPE(UNCHECKED(c_int), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
     ('_reqid', guint64),
+    ('_sessionid', guint32),
     ('_qid', guint16),
 ]
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 47
+# /home/alanr/monitor/src/include/seqnoframe.h: 55
 if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_new'):
     seqnoframe_new = _libs['libassimilationclientlib.so'].seqnoframe_new
     seqnoframe_new.argtypes = [guint16, c_int]
     seqnoframe_new.restype = POINTER(SeqnoFrame)
 
-# /home/alanr/monitor/src/include/seqnoframe.h: 48
+# /home/alanr/monitor/src/include/seqnoframe.h: 56
+if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_new_init'):
+    seqnoframe_new_init = _libs['libassimilationclientlib.so'].seqnoframe_new_init
+    seqnoframe_new_init.argtypes = [guint16, guint64, guint16]
+    seqnoframe_new_init.restype = POINTER(SeqnoFrame)
+
+# /home/alanr/monitor/src/include/seqnoframe.h: 57
 if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_tlvconstructor'):
     seqnoframe_tlvconstructor = _libs['libassimilationclientlib.so'].seqnoframe_tlvconstructor
     seqnoframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
@@ -4436,7 +4445,7 @@ _NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe
 
 _GSource_pcap = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 38
 
-_SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 37
+_SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 42
 
 _SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 34
 

@@ -3,6 +3,10 @@
  * @brief Implements the SeqnoFrame class
  * @details @ref SeqnoFrame "SeqNoFrame"s are used to provide sequence numbers for
  * reliable @ref FrameSet transmission.
+ * Each @ref SeqNoFrame consists of four components:
+ *  - A Session ID (32 bits)
+ *  - A Queue ID (16 bits)
+ *  - A FrameSet request ID (48 bits)
  *
  * This file is part of the Assimilation Project.
  *
@@ -31,20 +35,25 @@ typedef struct _SeqnoFrame SeqnoFrame;
 
 /// This is an @ref SeqnoFrame <b>TLV</b> (type, length, value) frame.
 /// It is a subclass of the @ref Frame.
+/// Note that all transmitted SeqNoFrames use the current session id.
 /// and is manged by our @ref ProjectClass system.
 /// @note This class does not use the 'value' field in the
 /// base class, and does not implement the setvalue() member function.
 struct _SeqnoFrame {
 	Frame	baseclass;					///< base @ref Frame object
-	guint64	(*getreqid)(SeqnoFrame* self);			///< get value of request id in this SeqnoFrame
-	guint16	(*getqid)(SeqnoFrame* self);			///< get value of queue id in this SeqnoFrame
-	void	(*setreqid)(SeqnoFrame* self, guint64 value);	///< set the request id to the given value
-	void	(*setqid)(SeqnoFrame* self, guint16 value);	///< set the queue id to the given value
-	gboolean(*equal)(SeqnoFrame* self, SeqnoFrame*rhs);	///< Compare two SeqnoFrames
-	guint64 _reqid;						///< value of this SeqnoFrame request id
-	guint16 _qid;						///< value of this SeqnoFrame queue id
+	guint64	(*getreqid)(SeqnoFrame* self);			///< get value of request id 
+	guint32	(*getsessionid)(SeqnoFrame* self);		///< get value of session id
+	guint16	(*getqid)(SeqnoFrame* self);			///< get value of queue id
+	void	(*setreqid)(SeqnoFrame* self, guint64 value);	///< set the request id
+	void	(*setqid)(SeqnoFrame* self, guint16 value);	///< set the queue id
+	int	(*equal)(SeqnoFrame* self, SeqnoFrame*rhs);	///< Equal compare two SeqnoFrames including qid
+	int	(*compare)(SeqnoFrame* self, SeqnoFrame*rhs);	///< Compare two SeqnoFrames: -1, 0, +1
+	guint64 _reqid;						///< value of this request id
+	guint32 _sessionid;					///< value of this session id
+	guint16 _qid;						///< value of this queue id
 };
 WINEXPORT SeqnoFrame* seqnoframe_new(guint16 frametype, int objsize);
+WINEXPORT SeqnoFrame* seqnoframe_new_init(guint16 frametype, guint64 requestid, guint16 qid);
 WINEXPORT Frame* seqnoframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
