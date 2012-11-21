@@ -102,9 +102,50 @@ import sys, time, weakref, os
 from frameinfo import FrameTypes, FrameSetTypes
 from AssimCclasses import *
 from py2neo import neo4j, cypher
+import os
 import re
 
 import logging, logging.handlers
+
+def pydaemonize_me(stayinforeground=False, chdirto="/", umask=0700):
+    if stayinforeground:
+        loopcount=0
+    else:
+        loopcount=2
+    # Make a second child to ensure that we can't ever acquire a controlling terminal
+    for loop in range(0, loopcount):
+        print 'Fork loop: %s' % loop
+        try:
+            pid = os.fork()
+        except OSError, err:
+            raise Exception, "%s [%d]" % (err.strerror, err.errno)
+        if pid != 0:
+            print 'Child pid: %d' % pid
+            os._exit(0)
+        if loop == 0:
+            os.setsid()
+            print 'Did sendsid'
+    # Now we're ready to go...
+    os.chdir(chdirto)
+    print 'Did chdir %s' % chdirto
+    os.umask(umask)
+    print 'Did umask 0%o' % umask
+    os.system('ls -l /proc/%d/fd' % os.getpid())
+    if not stayinforeground:
+        import resource
+        maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
+        if maxfd == resource.RLIM_INFINITY:
+            maxfd = 4096
+        for fd in range(3, maxfd):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        os.open(os.devnull, os.O_RDONLY)
+        os.open(os.devnull, os.O_WRONLY)
+        os.open(os.devnull, os.O_WRONLY)
+    print 'Returning from damonize_me'
+
 
 class CMAdb:
     '''Class defining our Neo4J database.'''
@@ -146,11 +187,7 @@ class CMAdb:
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
 
     debug = False
-    log = logging.getLogger('cma')
-    syslog = logging.handlers.SysLogHandler(address="/dev/log", facility=logging.handlers.SysLogHandler.LOG_DAEMON)
-    syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
-    log.addHandler(syslog)
-    log.setLevel(logging.DEBUG)
+
 
     def __init__(self, host='localhost', port=7474):
         url = ('http://%s:%d/db/data/' % (host, port))
@@ -208,6 +245,12 @@ class CMAdb:
             CMAdb.cdb.delete_all()
             CMAdb.cdb = CMAdb()
         CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
+        CMAdb.log = logging.getLogger('cma')
+        syslog = logging.handlers.SysLogHandler(address='/dev/log'
+        ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
+        syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
+        CMAdb.log.addHandler(syslog)
+        CMAdb.log.setLevel(logging.DEBUG)
 
     def delete_all(self):
         query = cypher.Query(self.db
@@ -1223,6 +1266,11 @@ if __name__ == '__main__':
     parser.add_option('-b', '--bind', action='store', default='0.0.0.0:1984', dest='bind'
     ,   metavar='address:port-to-bind-to'
     ,   help='Address:port to listen to - for nanoprobes to connect to')
+
+    parser.add_option('-f', '--foreground', action='store_true', default=False, dest='foreground'
+    ,   help='keep the CMA from going into the background')
+
+
     opt, args = parser.parse_args()
 
     OurAddr = pyNetAddr(opt.bind)
@@ -1231,7 +1279,8 @@ if __name__ == '__main__':
     else:
         OurAddr.setport(1984)
 
-    CMAdb.log.info('Listening on Address: %s' % str(OurAddr))
+    #daemonize_me(stayinforeground=False)
+    pydaemonize_me(False, '/')
 
     configinit = {
     	CONFIGNAME_CMAINIT:	OurAddr,    # Initial 'hello' address
@@ -1249,6 +1298,7 @@ if __name__ == '__main__':
     config = pyConfigContext(init=configinit)
     io = pyNetIOudp(config, pyPacketDecoder(0))
     CMAdb.initglobal(io, True)
+    CMAdb.log.info('Listening on Address: %s' % str(OurAddr))
     CMAdb.log.info('TheOneRing created - id = %d' % CMAdb.TheOneRing.node.id)
 
     print FrameTypes.get(1)[2]
