@@ -1,9 +1,9 @@
 /**
  * @file
  * @brief Implements the SeqnoFrame class
- * @details @ref SeqnoFrame "SeqNoFrame"s are used to provide sequence numbers for
+ * @details @ref SeqnoFrame "SeqnoFrame"s are used to provide sequence numbers for
  * reliable @ref FrameSet transmission.
- * Each @ref SeqNoFrame consists of four components:
+ * Each @ref SeqnoFrame consists of four components:
  *  - A Session ID (32 bits)
  *  - A Queue ID (16 bits)
  *  - A FrameSet request ID (48 bits)
@@ -35,8 +35,8 @@ typedef struct _SeqnoFrame SeqnoFrame;
 
 /// This is an @ref SeqnoFrame <b>TLV</b> (type, length, value) frame.
 /// It is a subclass of the @ref Frame.
-/// Note that all transmitted SeqNoFrames use the current session id.
-/// and is manged by our @ref ProjectClass system.
+/// and is managed by our @ref ProjectClass system.
+/// Every transmitted @SeqnoFrame uses the current session id.
 /// @note This class does not use the 'value' field in the
 /// base class, and does not implement the setvalue() member function.
 struct _SeqnoFrame {
