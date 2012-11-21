@@ -80,6 +80,7 @@ _seqnoframe_initsessionid(void)
 	guint64	now	= g_get_real_time();
 	now /= FIVESECONDS;
 	/// TODO: cache this on disk and so on as described above...
+	_sessionId = (guint32)now;
 }
 
 /// Set the request id value associated with a SeqnoFrame
