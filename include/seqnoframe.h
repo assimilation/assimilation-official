@@ -36,7 +36,7 @@ typedef struct _SeqnoFrame SeqnoFrame;
 /// This is an @ref SeqnoFrame <b>TLV</b> (type, length, value) frame.
 /// It is a subclass of the @ref Frame.
 /// and is managed by our @ref ProjectClass system.
-/// Every transmitted @SeqnoFrame uses the current session id.
+/// Every transmitted @ref SeqnoFrame uses the current session id.
 /// @note This class does not use the 'value' field in the
 /// base class, and does not implement the setvalue() member function.
 struct _SeqnoFrame {
