@@ -24,6 +24,7 @@ import sys
 import logging, logging.handlers
 from py2neo import neo4j, cypher
 from hbring import HbRing
+from AssimCtypes import *
 
 class CMAdb:
     '''Class defining our Neo4J database.'''
