@@ -29,7 +29,14 @@ from testify.utils import turtle
 from frameinfo import *
 from AssimCclasses import *
 import gc, sys, time, collections, os
-from cma import *
+from cmadb import CMAdb
+from packetlistener import PacketListener
+from messagedispatcher import MessageDispatcher
+from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
+from hbring import HbRing
+from droneinfo import DroneInfo
+import optparse
+from cmadb import CMAdb
 
 
 WorstDanglingCount = 0
