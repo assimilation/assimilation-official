@@ -96,104 +96,8 @@
 #
 ################################################################################
 
-import sys, time, weakref, os
-from frameinfo import FrameTypes, FrameSetTypes
-from AssimCclasses import *
-from py2neo import neo4j, cypher
-import os
-import re
-
-import logging, logging.handlers
-
-def pydaemonize_me(stayinforeground=False, chdirto="/", umask=0700):
-    if stayinforeground:
-        loopcount=0
-    else:
-        loopcount=2
-    # Make a second child to ensure that we can't ever acquire a controlling terminal
-    for loop in range(0, loopcount):
-        print 'Fork loop: %s' % loop
-        try:
-            pid = os.fork()
-        except OSError, err:
-            raise Exception, "%s [%d]" % (err.strerror, err.errno)
-        if pid != 0:
-            print 'Child pid: %d' % pid
-            os._exit(0)
-        if loop == 0:
-            os.setsid()
-            print 'Did sendsid'
-    # Now we're ready to go...
-    os.chdir(chdirto)
-    print 'Did chdir %s' % chdirto
-    os.umask(umask)
-    print 'Did umask 0%o' % umask
-    os.system('ls -l /proc/%d/fd' % os.getpid())
-    if not stayinforeground:
-        import resource
-        maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-        if maxfd == resource.RLIM_INFINITY:
-            maxfd = 4096
-        for fd in range(3, maxfd):
-            try:
-                os.close(fd)
-            except OSError:
-                pass
-        os.open(os.devnull, os.O_RDONLY)
-        os.open(os.devnull, os.O_WRONLY)
-        os.open(os.devnull, os.O_WRONLY)
-    print 'Returning from damonize_me'
-
-
-class MessageDispatcher:
-    'We dispatch incoming messages where they need to go.'
-    def __init__(self, dispatchtable):
-        'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
-        self.dispatchtable = dispatchtable
-        self.default = DispatchTarget()
-
-    def dispatch(self, origaddr, frameset):
-        'Dispatch a Frameset where it will get handled.'
-        fstype = frameset.get_framesettype()
-        #
-        # Eventually handling incoming packets needs to be transactional in nature.
-        #
-        # Once that happens, this is a reasonable place to implement transactions.
-        # Need to think medium-hard about how to deal with doing this in a queueing system
-        # where a single packet might trigger a transaction on several systems for a node
-        # which appears on several rings.
-        #
-        try:
-            # May eventually begin a transaction here
-            # Of course, this transaction needs to span both the database and the network
-            if fstype in self.dispatchtable:
-                self.dispatchtable[fstype].dispatch(origaddr, frameset)
-            else:
-                self.default.dispatch(origaddr, frameset)
-        except Exception as e:
-            CMAdb.log.exception('MessageDispatcher exception [%s] occurred while handling Frameset [%s]' % (e, str(frameset)))
-            # Eventually will want to abort the transaction here
-        else:
-            # Eventually will want to commit the transaction here
-            pass
-
-    def setconfig(self, io, config):
-        'Save our configuration away.  We need it before we can do anything.'
-        self.io = io
-        self.default.setconfig(io, config)
-        for msgtype in self.dispatchtable.keys():
-            self.dispatchtable[msgtype].setconfig(io, config)
-
-
-
 if __name__ == '__main__':
-    from packetlistener import PacketListener
-    from messagedispatcher import MessageDispatcher
-    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
-    from hbring import HbRing
-    from droneinfo import DroneInfo
     import optparse
-    from cmadb import CMAdb
     #
     #   "Main" program starts below...
     #   It is a test program intended to run with some real nanoprobes running
@@ -217,14 +121,22 @@ if __name__ == '__main__':
 
     opt, args = parser.parse_args()
 
+
+    from AssimCtypes import daemonize_me
+    daemonize_me(opt.foreground, '/')
+    from packetlistener import PacketListener
+    from messagedispatcher import MessageDispatcher
+    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
+    from cmadb import CMAdb
+    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyNetIOudp, pyPacketDecoder
+    from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG
+    from frameinfo import FrameTypes, FrameSetTypes
     OurAddr = pyNetAddr(opt.bind)
     if OurAddr.port() > 0:
         OurPort = OurAddr.port()
     else:
         OurAddr.setport(1984)
 
-    #daemonize_me(stayinforeground=False)
-    #pydaemonize_me(False, '/')
 
     configinit = {
     	CONFIGNAME_CMAINIT:	OurAddr,    # Initial 'hello' address
