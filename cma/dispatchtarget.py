@@ -59,6 +59,28 @@ class DispatchHBDEAD(DispatchTarget):
                 deaddrone = DroneInfo.find(frame.getnetaddr())
                 deaddrone.death_report('dead', 'HBDEAD packet', origaddr, frameset)
 
+class DispatchHBSHUTDOWN(DispatchTarget):
+    'DispatchTarget subclass for handling incoming HBHBDEAD FrameSets.'
+    def dispatch(self, origaddr, frameset):
+        'Dispatch function for HBDEAD FrameSets'
+        json = None
+        fstype = frameset.get_framesettype()
+        CMAdb.log.debug("DispatchHBSHUTDOWN: received [%s] FrameSet from [%s]" 
+        %      (FrameSetTypes.get(fstype)[0], str(origaddr)))
+        for frame in frameset.iter():
+            frametype=frame.frametype()
+            if frametype == FrameTypes.HOSTNAME:
+                fromdrone = DroneInfo.find(frame.getstr())
+                if fromdrone is not None:
+                    fromdrone.death_report('dead', 'HBSHUTDOWN packet', origaddr, frameset)
+                else:
+                    CMAdb.log.error("DispatchHBSHUTDOWN: received FrameSet from unknown drone at [%s]"
+                    %   str(origaddr))
+                return
+        CMAdb.log.error("DispatchHBSHUTDOWN: received invalid FrameSet from drone at [%s] [%s]"
+        %   str(origaddr, str(frameset)))
+
+
 class DispatchSTARTUP(DispatchTarget):
     'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
     def dispatch(self, origaddr, frameset):

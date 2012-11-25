@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
 #
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     daemonize_me(opt.foreground, '/')
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher
-    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
+    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER, DispatchHBSHUTDOWN
     from cmadb import CMAdb
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyNetIOudp, pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG
@@ -162,7 +162,8 @@ if __name__ == '__main__':
     {   FrameSetTypes.STARTUP: DispatchSTARTUP(),
         FrameSetTypes.HBDEAD: DispatchHBDEAD(),
         FrameSetTypes.JSDISCOVERY: DispatchJSDISCOVERY(),
-        FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER()
+        FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER(),
+        FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN()
     })
     listener = PacketListener(config, disp)
     listener.listen()

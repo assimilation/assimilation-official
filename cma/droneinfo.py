@@ -19,11 +19,12 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+import weakref
 from cmadb import CMAdb
 from frameinfo import *
 from AssimCclasses import *
 from py2neo import neo4j
-import weakref
+from hbring import HbRing
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
     _droneweakrefs = {}
@@ -242,12 +243,10 @@ class DroneInfo:
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
-        if CMAdb.debug:
-            CMAdb.log.warning('Node %s has been reported as %s by address %s. Reason: %s'
-            %   (self.node['name'], status, str(fromaddr), reason))
+        CMAdb.log.warning('Node %s has been reported as %s by address %s. Reason: %s'
+        %   (self.node['name'], status, str(fromaddr), reason))
         self.status = status
         self.reason = reason
-        #print >>sys.stderr, 'Drone %s is %s because of %s' %(self, status, reason)
         self.node['status'] = status
         self.node['reason'] = reason
         # There is a need for us to be a little more sophisticated
@@ -258,7 +257,8 @@ class DroneInfo:
         for rel in rellist:
             if rel.type.startswith(HbRing.memberprefix):
                 ringname = rel.end_node['name']
-                #print >>sys.stderr, 'Drone %s is a member of ring %s' % (self, ringname)
+                if True or CMAdb.debug:
+                    CMAdb.log.debug('Drone %s is (was) a member of ring %s' % (self, ringname))
                 HbRing.ringnames[ringname].leave(self)
 
 

@@ -64,6 +64,8 @@ class CMAdb:
     REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_drone
     REL_runningon   = 'runningon'   # NODE_ipproc       ->  NODE_drone
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
+    #                  RingMember_* # NODE_drone        ->  NODE_ring
+    #                  RingNext_*   # NODE_drone        ->  NODE_drone
 
     debug = False
 

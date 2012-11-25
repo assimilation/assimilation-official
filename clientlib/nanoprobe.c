@@ -78,7 +78,6 @@ FSTATIC void		_real_warntime_agent(HbListener* who, guint64 howlate);
 FSTATIC void		_real_comealive_agent(HbListener* who, guint64 howlate);
 FSTATIC void		_real_martian_agent(NetAddr* who);
 FSTATIC HbListener*	_real_hblistener_new(NetAddr*, ConfigContext*);
-FSTATIC void		nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, guint64 howlate);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 static NetAddr*		nanofailreportaddr = NULL;
@@ -95,11 +94,10 @@ _real_hblistener_new(NetAddr* addr, ConfigContext* context)
 }
 
 /// Construct a frameset reporting something - and send it upstream
-FSTATIC void
-nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, guint64 howlate)
+void
+nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname, guint64 howlate)
 {
 		FrameSet*	fs		= frameset_new(reporttype);
-		AddrFrame*	peeraddr	= addrframe_new(FRAMETYPE_IPADDR, 0);
 
 		// Construct and send a frameset reporting this event...
 		if (howlate > 0) {
@@ -108,12 +106,24 @@ nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, guint64 howlate)
 			frameset_append_frame(fs, &lateframe->baseclass);
 			lateframe->baseclass.baseclass.unref(lateframe);
 		}
-		peeraddr->setnetaddr(peeraddr, who);
-		frameset_append_frame(fs, &peeraddr->baseclass);
+		// Add the address - if any...
+		if (who != NULL) {
+			AddrFrame*	peeraddr	= addrframe_new(FRAMETYPE_IPADDR, 0);
+			peeraddr->setnetaddr(peeraddr, who);
+			frameset_append_frame(fs, &peeraddr->baseclass);
+			peeraddr->baseclass.baseclass.unref(peeraddr);
+		}
+		// Add the system name - if any...
+		if (sysname != NULL) {
+			CstringFrame* usf = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
+			usf->baseclass.setvalue(&usf->baseclass, strdup(sysname), strlen(sysname)+1
+			,			frame_default_valuefinalize);
+			frameset_append_frame(fs, &usf->baseclass);
+			usf->baseclass.baseclass.unref(usf);
+		}
 		nanotransport->sendaframeset(nanotransport, nanofailreportaddr, fs);
-
 		fs->baseclass.unref(&fs->baseclass);
-		peeraddr->baseclass.baseclass.unref(peeraddr);
+		DEBUGMSG1("%s - sending frameset of type %d", __FUNCTION__, reporttype);
 }
 
 /// Standard nanoprobe 'martian heartbeat received' agent.
@@ -124,11 +134,12 @@ _real_martian_agent(NetAddr* who)
 	{
 		char *		addrstring;
 
+		/// @TODO: need to limit the frequency of martian messages
 		addrstring = who->baseclass.toString(who);
 		g_warning("System at address %s is sending unexpected heartbeats.", addrstring);
 		g_free(addrstring);
 
-		nanoprobe_report_upstream(FRAMESETTYPE_HBMARTIAN, who, 0);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBMARTIAN, who, NULL, 0);
 	}
 }
 /// Standard nanoprobe 'deadtime elapsed' agent.
@@ -146,7 +157,7 @@ _real_deadtime_agent(HbListener* who)
 		g_warning("Peer at address %s is dead (has timed out).", addrstring);
 		g_free(addrstring);
 
-		nanoprobe_report_upstream(FRAMESETTYPE_HBDEAD, who->listenaddr, 0);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBDEAD, who->listenaddr, NULL, 0);
 	}
 }
 
@@ -176,7 +187,7 @@ _real_warntime_agent(HbListener* who, guint64 howlate)
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
 		g_warning("Heartbeat from peer at address %s was "FMT_64BIT"d ms late.", addrstring, mslate);
 		g_free(addrstring);
-		nanoprobe_report_upstream(FRAMESETTYPE_HBLATE, who->listenaddr, howlate);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBLATE, who->listenaddr, NULL, howlate);
 	}
 }
 /// Standard nanoprobe 'returned-from-the-dead' agent - called when a heartbeats arrive after 'deadtime'.
@@ -193,7 +204,7 @@ _real_comealive_agent(HbListener* who, guint64 howlate)
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
 		g_warning("Peer at address %s came alive after being dead for %g seconds.", addrstring, secsdead);
 		g_free(addrstring);
-		nanoprobe_report_upstream(FRAMESETTYPE_HBBACKALIVE, who->listenaddr, howlate);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBBACKALIVE, who->listenaddr, NULL, howlate);
 	}
 }
 
