@@ -134,7 +134,7 @@ _real_martian_agent(NetAddr* who)
 	{
 		char *		addrstring;
 
-		/// @TODO: need to limit the frequency of martian messages
+		/// @todo: need to limit the frequency of martian messages
 		addrstring = who->baseclass.toString(who);
 		g_warning("System at address %s is sending unexpected heartbeats.", addrstring);
 		g_free(addrstring);
