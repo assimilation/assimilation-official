@@ -42,6 +42,7 @@ void				nano_start_full(const char *initdiscoverpath, guint discover_interval
 ,						NetGSource* io, ConfigContext* config);
 void				nano_shutdown(gboolean statreport);
 WINEXPORT PacketDecoder*	nano_packet_decoder(void);
+WINEXPORT void			nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname, guint64 howlate);
 
 // Override this if you want to set up a non-standard deadtime agent. */
 void (*nanoprobe_deadtime_agent)(HbListener*);

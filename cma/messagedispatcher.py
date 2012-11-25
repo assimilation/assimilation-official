@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
 #
@@ -21,6 +21,8 @@
 
 from cmadb import CMAdb
 from dispatchtarget import DispatchTarget
+from hbring import HbRing
+import sys
 class MessageDispatcher:
     'We dispatch incoming messages where they need to go.'
     def __init__(self, dispatchtable):
@@ -31,6 +33,7 @@ class MessageDispatcher:
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
         fstype = frameset.get_framesettype()
+        #print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
         #
         # Eventually handling incoming packets needs to be transactional in nature.
         #

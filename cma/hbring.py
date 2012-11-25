@@ -158,17 +158,17 @@ class HbRing:
         except ValueError:
             nextnode = None
 
-        if nextnode is None and prevnode is None:   # Previous length:  1
-                self.insertpoint1 = None        # result length:    0
-                self.insertpoint2 = None
-                # No database links to remove
-        return
-
-    # Clean out the next link relationships to our dearly departed drone
+        # Clean out the next link relationships to our dearly departed drone
         ringrel = drone.node.get_single_relationship(neo4j.Direction.OUTGOING, self.ourreltype)
         ringrel.delete()
         ringrel = None
-    # Clean out the next link relationships to our dearly departed drone
+        if nextnode is None and prevnode is None:   # Previous length:  1
+            self.insertpoint1 = None        # result length:    0
+            self.insertpoint2 = None
+            # No other database links to remove
+            return
+
+        # Clean out the next link relationships to our dearly departed drone
         relationships = drone.node.get_relationships('all', self.ournexttype)
         # Should have exactly two link relationships (one incoming and one outgoing)
         assert len(relationships) == 2

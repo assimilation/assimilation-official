@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <syslog.h>
+#include <sys/utsname.h>
 #include <projectcommon.h>
 #include <framesettypes.h>
 #include <frameset.h>
@@ -144,7 +145,10 @@ check_for_signals(gpointer ignored)
 {
 	(void)ignored;
 	if (sigterm || sigint) {
+		struct utsname	un;	// System name, etc.
 		g_message("%s: exiting on %s.", procname, (sigterm ? "SIGTERM" : "SIGINT"));
+		uname(&un);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
 		g_main_loop_quit(loop);
 		return FALSE;
 	}
