@@ -31,6 +31,7 @@
 #include <frame.h>
 #include <signframe.h>
 #include <framesettypes.h>
+#include <seqnoframe.h>
 
 /// @ref FrameSet - used for collecting @ref Frame "Frame"s when not on the wire,
 /// and for marshalling/demarshalling them for/from the wire.
@@ -47,6 +48,8 @@ struct _FrameSet {
 	gpointer	pktend;		///< Last byte past the end of the packet.
 	guint16		fstype;		///< Type of frameset.
 	guint16		fsflags;	///< Flags for frameset.
+	SeqnoFrame*	_seqframe;	///< sequence number for this frameset
+	SeqnoFrame*	(*getseqno)(FrameSet*);	///< Return the sequence number for this frameset (if any)
 };
 #define	FRAMESET_INITSIZE	6	///< type+length+flags - each 2 bytes
 
