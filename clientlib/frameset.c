@@ -64,6 +64,7 @@ FSTATIC void _frameset_finalize(AssimObj* self);
 ///@{
 ///@ingroup C_Classes
 
+FSTATIC SeqnoFrame* _frameset_getseqno(FrameSet* self);
 
 /// static: finalize (free) frame
 FSTATIC void
@@ -113,6 +114,7 @@ frameset_new(guint16 frameset_type) ///< Type of frameset to create
 	s->pktend = NULL;
 	s->fsflags = 0;
 	s->baseclass._finalize = _frameset_finalize;
+	s->getseqno = _frameset_getseqno;
 	return s;
 }
 
@@ -331,5 +333,21 @@ frameset_dump(const FrameSet* fs)	///< FrameSet to dump
 		frame->dump(frame, ".... ");
 	}
 	g_debug("END FrameSet dump");
+}
+FSTATIC SeqnoFrame*
+_frameset_getseqno(FrameSet* self)
+{
+	GSList*	curframe;
+	if (self->_seqframe) {
+		return self->_seqframe;
+	}
+	for (curframe=self->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
+		Frame* frame = CASTTOCLASS(Frame, curframe->data);
+		if (frame->type == FRAMETYPE_REQID) {
+			self->_seqframe = CASTTOCLASS(SeqnoFrame, frame);
+			return self->_seqframe;
+		}
+	}
+	return NULL;
 }
 ///@}
