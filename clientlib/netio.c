@@ -41,7 +41,6 @@
 #include <proj_classes.h>
 #include <netio.h>
 #include <frameset.h>
-
 FSTATIC gint _netio_getfd(const NetIO* self);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src, gboolean silent);

@@ -42,6 +42,7 @@ FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gboolean _netaddr_ismcast(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
+FSTATIC guint _netaddr_hash(const NetAddr*);
 FSTATIC gchar * _netaddr_toStringflex(const NetAddr*, gboolean canonformat);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_canonStr(const NetAddr*);
@@ -228,6 +229,33 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 	return (memcmp(self->_addrbody, other->_addrbody, self->_addrlen) == 0);
 }
 
+#ifndef CHAR_BIT
+#	define	CHAR_BIT	8
+#endif
+/// NetAddr hash function which worries about denial of service via hash collisions.
+/// Note that this function will produce results unique to this process.
+FSTATIC guint
+_netaddr_hash(const NetAddr* self)
+{
+	// For an explanation of the random hash seed see https://lwn.net/Articles/474912/
+	const	guint	shift	 = 7;
+	static	guint	hashseed = 0;
+	int		j;
+	guint		result;
+	while (0 == hashseed) {
+		hashseed = (guint)g_random_int();
+	}
+	result = (guint)self->addrtype ^ hashseed;
+	for (j=0; j < self->_addrlen; ++j) {
+		// Circular shift with addrbody xored in...
+		// Addresses are typically either 4 bytes or 16 bytes (6 and 8 bytes are also possible)
+		// So 4 bytes means the first byte gets shifted by 28 bits, and 16 means it 
+		// all wraps around a lot ;-)
+		result	=  ((result << shift) | (result >> (sizeof(result)*CHAR_BIT - shift)))
+			^ ((guint)((guint8*)self->_addrbody)[j]);
+	}
+	return result;
+}
 
 /// Finalize (free) this object
 FSTATIC void
