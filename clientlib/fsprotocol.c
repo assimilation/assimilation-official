@@ -134,8 +134,8 @@ FSTATIC gboolean
 _fsprotocol_protoelem_equal(gconstpointer lhs	///< FsProtoElem left hand side to compare
 ,			    gconstpointer rhs)	///< FsProtoElem right hand side to compare
 {
-	FsProtoElem *	lhselem = (FsProtoElem*)lhs;
-	FsProtoElem *	rhselem = (FsProtoElem*)rhs;
+	const FsProtoElem *	lhselem = (const FsProtoElem*)lhs;
+	const FsProtoElem *	rhselem = (const FsProtoElem*)rhs;
 
 	return lhselem->endpoint->equal(lhselem->endpoint, rhselem->endpoint);
 
@@ -145,7 +145,7 @@ _fsprotocol_protoelem_equal(gconstpointer lhs	///< FsProtoElem left hand side to
 FSTATIC guint
 _fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing)	///< FsProtoElem to hash
 {
-	FsProtoElem *	key = (FsProtoElem*)fsprotoelemthing;
+	const FsProtoElem *	key = (const FsProtoElem*)fsprotoelemthing;
 	/// FIXME - need to take the queue id into account
 	return key->endpoint->hash(key->endpoint);
 }
@@ -211,8 +211,8 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 			return ret;
 		}
 		g_warn_if_reached();
+		TRYXMIT(fspe);
 	}
-	TRYXMIT(fspe);
 	return NULL;
 }
 
