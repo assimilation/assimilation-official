@@ -31,6 +31,7 @@
 DEBUGDECLARATIONS
 
 FSTATIC gboolean	_fsqueue_enq(FsQueue* self, FrameSet* fs);
+FSTATIC gboolean	_fsqueue_inqsorted(FsQueue* self, FrameSet* fs);
 FSTATIC FrameSet*	_fsqueue_qhead(FsQueue* self);
 FSTATIC FrameSet*	_fsqueue_deq(FsQueue* self);
 FSTATIC guint		_fsqueue_ackthrough(FsQueue* self, SeqnoFrame*);
@@ -52,8 +53,9 @@ _fsqueue_enq(FsQueue* self, FrameSet* fs)
 {
 	SeqnoFrame*	seqno;
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
-	g_return_val_if_fail(self->_curqlen < self->_maxqlen, FALSE);
+	g_return_val_if_fail(self->_curqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
+
 	frameset_prepend_frame(fs, &seqno->baseclass);
 	g_queue_push_tail(self->_q, fs);
 
@@ -80,6 +82,44 @@ _fsqueue_deq(FsQueue* self)
 	gpointer	ret = g_queue_pop_head(self->_q);
 	--self->_curqlen;
 	return ret ? CASTTOCLASS(FrameSet, ret) : NULL;
+}
+
+/// Enqueue a @ref FrameSet onto an @ref FsQueue - sorted by sequence number - NO dups allowed
+/// This method is used for queues used for received packets.
+FSTATIC gboolean
+_fsqueue_inqsorted(FsQueue* self, FrameSet* fs)
+{
+	GQueue*		Q = self->_q;
+	GList*		this = Q->head;
+	SeqnoFrame*	seqno;
+
+	seqno = fs->_seqframe ? fs->_seqframe : fs->getseqno(fs);
+
+	// Frames without sequence number go to the head of the queue
+	if (seqno == NULL) {
+		g_queue_push_head(Q, fs);
+		return TRUE;
+	}
+
+	g_return_val_if_fail(self->_curqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
+
+	for (this = Q->head; this; this=this->next)  {
+		FrameSet*	tfs = CASTTOCLASS(FrameSet, this->data);
+		SeqnoFrame*	thisseq = tfs->getseqno(tfs);
+		int		diff = seqno->compare(seqno, thisseq);
+		if (diff < 0) {
+			g_queue_insert_before(Q, this, fs);
+			return TRUE;
+		}else if (diff == 0) {
+			// Dup - throw it away...
+			fs->baseclass.unref(&fs->baseclass); fs = NULL;
+			return TRUE;
+		}
+	}
+	// Either the list is empty, or this belongs after the last list element
+	// Regardless of which is true, we can call g_queue_push_tail...
+	g_queue_push_tail(Q, fs);
+	return TRUE;
 }
 
 /// Acknowledge and flush all framesets up through and including the given sequence number
@@ -189,9 +229,9 @@ fsqueue_new(guint objsize, NetAddr* dest, guint16 qid)
 	self->hasqspace1 =	_fsqueue_hasqspace1;
 	self->hasqspace =	_fsqueue_hasqspace;
 	self->_q =		g_queue_new();
+	self->_qid =		qid;
 	self->_maxqlen =	DEFAULT_FSQMAX;
 	self->_curqlen =	0;
-	self->_qid =		qid;
 	self->_destaddr =	dest;
 	self->_nextseqno =	1;
 	dest->baseclass.ref(&dest->baseclass);

@@ -86,6 +86,29 @@ struct _NetIO {
 				 const NetAddr* dest,	///<[in] destination address
 				 GSList* framesets)	///<[in] List of FrameSets to send
 						   ;	// ";" is here to work around a doxygen bug
+	void		(*sendamessage)			///< RELIABLY send a single FrameSet to a @ref NetIO
+				(NetIO* self,		///<[in/out] 'this' object pointer
+				 const NetAddr* dest,	///<[in] destination address
+				 FrameSet* frameset)	///<[in] The FrameSet to send
+						   ;	// ";" is here to work around a doxygen bug
+	void		(*sendmessages)			///< RELIABLY Send a FrameSet list to a @ref NetIO
+							///< @pre must have non-NULL _signframe
+				(NetIO* self,		///<[in/out] 'this' object pointer
+				 const NetAddr* dest,	///<[in] destination address
+				 GSList* framesets)	///<[in] List of FrameSets to send
+						   ;	// ";" is here to work around a doxygen bug
+	void		(*ackamessage)
+				(NetIO* self,		///<[in/out] 'this' object pointer
+				 const NetAddr* dest,	///<[in] destination address
+				 FrameSet* frameset)	///<[in] The FrameSet to ACK - note that it must
+				 			///< have a sequence number
+						   ;	// ";" is here to work around a doxygen bug
+	void		(*nackamessage)
+				(NetIO* self,		///<[in/out] 'this' object pointer
+				 const NetAddr* dest,	///<[in] destination address
+				 FrameSet* frameset)	///<[in] The FrameSet to NAK - note that it must
+				 			///< have a sequence number
+						   ;	// ";" is here to work around a doxygen bug
 	GSList*		(*recvframesets)		///< Receive a single datagram's framesets
 							///<@return GSList of FrameSets from packet
 				(NetIO*,		///<[in/out] 'this' object

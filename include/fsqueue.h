@@ -41,13 +41,16 @@ typedef struct _FsQueue FsQueue;
 /// and is managed by our @ref ProjectClass system.
 struct _FsQueue {
 	AssimObj	baseclass;				///< base @ref AssimObj object
-	guint64		_nextseqno;
-	guint		_maxqlen;
-	guint		_curqlen;
-	GQueue*		_q;
-	guint16		_qid;
-	NetAddr*	_destaddr;
-	gboolean	(*enq)(FsQueue* self, FrameSet* fs);	///< Enqueue a FrameSet
+	guint64		_nextseqno;				///< Next sequence number
+	guint		_maxqlen;				///< Maximum queue length
+	guint		_curqlen;				///< Current queue length
+	GQueue*		_q;					///< @ref FrameSet queue
+	NetAddr*	_destaddr;				///< Far endpoint address
+	guint16		_qid;					///< Far endpoint queue id
+	gboolean	isready;				///< TRUE when ready for I or O (depending)
+	gboolean	(*enq)(FsQueue* self, FrameSet* fs);	///< Enqueue an outgoing FrameSet - adding seqno
+	gboolean	(*inqsorted)(FsQueue*, FrameSet* fs);	///< Enqueue an incoming FrameSet - sorted by
+								///< by sequence # - no dups allowed
 	FrameSet*	(*qhead)(FsQueue* self);		///< return packet at head of queue
 	FrameSet*	(*deq)(FsQueue* self);			///< return and remove head packet
 	guint		(*ackthrough)(FsQueue* self, SeqnoFrame*);///< ACK packets through given seqno
@@ -58,10 +61,9 @@ struct _FsQueue {
 	guint		(*getmaxqlen)(FsQueue* self);		///< return max q length
 	gboolean	(*hasqspace1)(FsQueue* self);		///< TRUE if space for one more FrameSet
 	gboolean	(*hasqspace)(FsQueue* self, guint);	///< TRUE if space for desired packets available
-	
 };
 WINEXPORT FsQueue* fsqueue_new(guint objsize, NetAddr* dest, guint16 qid);
-#define	DEFAULT_FSQMAX	8
+#define	DEFAULT_FSQMAX	0	///< Default to unlimited queue length
 
 ///@}
 

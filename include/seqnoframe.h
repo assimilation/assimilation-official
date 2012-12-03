@@ -42,10 +42,10 @@ typedef struct _SeqnoFrame SeqnoFrame;
 struct _SeqnoFrame {
 	Frame	baseclass;					///< base @ref Frame object
 	guint64	(*getreqid)(SeqnoFrame* self);			///< get value of request id 
-	guint32	(*getsessionid)(SeqnoFrame* self);		///< get value of session id
-	guint16	(*getqid)(SeqnoFrame* self);			///< get value of queue id
 	void	(*setreqid)(SeqnoFrame* self, guint64 value);	///< set the request id
+	guint16	(*getqid)(SeqnoFrame* self);			///< get value of queue id 
 	void	(*setqid)(SeqnoFrame* self, guint16 value);	///< set the queue id
+	guint32	(*getsessionid)(SeqnoFrame* self);		///< get value of session id
 	int	(*equal)(SeqnoFrame* self, SeqnoFrame*rhs);	///< Equal compare two SeqnoFrames including qid
 	int	(*compare)(SeqnoFrame* self, SeqnoFrame*rhs);	///< Compare two SeqnoFrames: -1, 0, +1
 	guint64 _reqid;						///< value of this request id
