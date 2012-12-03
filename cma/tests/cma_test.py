@@ -41,7 +41,7 @@ from cmadb import CMAdb
 
 WorstDanglingCount = 0
 CheckForDanglingClasses = True
-DEBUG=False
+DEBUG=True
 DoAudit=True
 SavePackets=True
 doHBDEAD=False
