@@ -39,6 +39,8 @@ FSTATIC void		_fsprotocol_receive(FsProtocol*, NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_send1(FsProtocol*, FrameSet*, guint16 qid, NetAddr*);
 FSTATIC gboolean	_fsprotocol_send(FsProtocol*, GSList*, guint16 qid, NetAddr*);
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
+FSTATIC void		_fsprotocol_flushall(FsProtocol* self, NetAddr* addr, enum ioflush op);
+FSTATIC void		_fsprotocol_flush1(FsProtocol* self, NetAddr* addr, enum ioflush op);
 
 DEBUGDECLARATIONS
 /// @defgroup FsProtocol FsProtocol class
@@ -61,7 +63,9 @@ _fsprotocol_find(FsProtocol*self	///< typical FsProtocol 'self' object
 
 /// Find the FsProtoElem that goes with the given packet.  It can have a sequence number - or not.
 FSTATIC FsProtoElem*
-_fsprotocol_findbypkt(FsProtocol* self, NetAddr* addr, FrameSet* fs)
+_fsprotocol_findbypkt(FsProtocol* self	///< The FsProtocol object we're operating on
+,		      NetAddr* addr	///< The Network address we're looking for
+,		      FrameSet* fs)	///< The FrameSet whose queue id we'll use in looking for it
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
 	return self->find(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
@@ -112,6 +116,7 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 	self->receive =		_fsprotocol_receive;
 	self->send1 =		_fsprotocol_send1;
 	self->send =		_fsprotocol_send;
+	self->flushall =	_fsprotocol_flushall;
 	self->io =		io;
 	io->baseclass.ref(&io->baseclass);
 	/// The key and the data are in fact the same object
@@ -124,7 +129,7 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 }
 /// Finalize function for our @ref FsProtocol objects
 FSTATIC void
-_fsprotocol_finalize(AssimObj* aself)
+_fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 {
 	FsProtocol*	self = CASTTOCLASS(FsProtocol, aself);
 	self->io->baseclass.ref(&self->io->baseclass); self->io = NULL;
@@ -309,7 +314,7 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 }
 /// Our role in life is to send any packets that need sending.
 FSTATIC void
-_fsprotocol_xmitifwecan(FsProtoElem* fspe)
+_fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to operate on
 {
 	FsQueue*	outq = fspe->outq;
 	FrameSet*	fs;
@@ -332,6 +337,30 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)
 		// Ensure that this 'fspe' is on the list of fspe's with unacked packets
 		if (!g_list_find(fspe->parent->unacked, fspe)) {
 			fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
+		}
+	}
+}
+///< Flush all queues that connect to the given address
+FSTATIC void
+_fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating on
+,		     NetAddr* addr	///< The address we should flush to/from
+,		     enum ioflush op)	///< What kind of flush to perform?
+{
+	GHashTableIter	iter;
+	FsProtoElem*	fspe;
+	/// @TODO If we actually _have_ a million servers, this will have to be looked at again -
+	/// We will have to have a list of queues per server -- or this will be horribly slow
+
+	g_hash_table_iter_init(&iter, self->endpoints);
+	while (g_hash_table_iter_next(&iter, (gpointer*)&fspe, NULL)) {
+		if (!addr->equal(addr, fspe->endpoint)) {
+			continue;
+		}
+		if (op == FsProtoFLUSHIN || op == FsProtoFLUSHBOTH) {
+			fspe->inq->flush(fspe->inq);
+		}
+		if (op == FsProtoFLUSHOUT || op == FsProtoFLUSHBOTH) {
+			fspe->outq->flush(fspe->outq);
 		}
 	}
 }

@@ -50,7 +50,8 @@ FSTATIC gboolean	_fsqueue_hasqspace(FsQueue* self, guint);
 
 /// Enqueue a @ref FrameSet onto an @ref FsQueue
 FSTATIC gboolean
-_fsqueue_enq(FsQueue* self, FrameSet* fs)
+_fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
+,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our object
 {
 	SeqnoFrame*	seqno;
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
@@ -70,7 +71,7 @@ _fsqueue_enq(FsQueue* self, FrameSet* fs)
 
 /// Return the @ref FrameSet from the head of the @ref FsQueue
 FSTATIC FrameSet*
-_fsqueue_qhead(FsQueue* self)
+_fsqueue_qhead(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	gpointer	ret = g_queue_peek_head(self->_q);
 	return ret ? CASTTOCLASS(FrameSet, ret) : NULL;
@@ -78,7 +79,7 @@ _fsqueue_qhead(FsQueue* self)
 
 /// Return the @ref FrameSet from the head of the queue - and remove it from the queue
 FSTATIC FrameSet*
-_fsqueue_deq(FsQueue* self)
+_fsqueue_deq(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	gpointer	ret = g_queue_pop_head(self->_q);
 	--self->_curqlen;
@@ -88,7 +89,8 @@ _fsqueue_deq(FsQueue* self)
 /// Enqueue a @ref FrameSet onto an @ref FsQueue - sorted by sequence number - NO dups allowed
 /// This method is used for queues used for received packets.
 FSTATIC gboolean
-_fsqueue_inqsorted(FsQueue* self, FrameSet* fs)
+_fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating on
+,		   FrameSet* fs)		///< The @ref FrameSet object to enqueue
 {
 	GQueue*		Q = self->_q;
 	GList*		this;
@@ -125,7 +127,8 @@ _fsqueue_inqsorted(FsQueue* self, FrameSet* fs)
 
 /// Acknowledge and flush all framesets up through and including the given sequence number
 FSTATIC guint
-_fsqueue_ackthrough(FsQueue* self, SeqnoFrame*seq)
+_fsqueue_ackthrough(FsQueue* self		///< The @ref FsQueue object we're operating on
+,		    SeqnoFrame*seq)		///< The sequence number to ACK through
 {
 	FrameSet*	fs;
 	guint64		reqid = seq->getreqid(seq);
@@ -145,7 +148,7 @@ _fsqueue_ackthrough(FsQueue* self, SeqnoFrame*seq)
 
 /// Flush <b>all</b> framesets from the queue (if any).
 FSTATIC void
-_fsqueue_flush(FsQueue* self)
+_fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	gpointer	qelem;
 	while (NULL != (qelem = g_queue_pop_head(self->_q))) {
@@ -158,7 +161,7 @@ _fsqueue_flush(FsQueue* self)
 
 /// Flush only the first frameset from the queue (if any).
 FSTATIC void
-_fsqueue_flush1(FsQueue* self)
+_fsqueue_flush1(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	gpointer	qelem = g_queue_pop_head(self->_q);
 	if (qelem) {
@@ -171,35 +174,37 @@ _fsqueue_flush1(FsQueue* self)
 
 /// Return the current length of this queue
 FSTATIC guint
-_fsqueue_qlen(FsQueue* self)
+_fsqueue_qlen(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	return self->_curqlen;
 }
 
 /// Set the maximum number of queue elements
 FSTATIC void
-_fsqueue_setmaxqlen(FsQueue* self, guint max)
+_fsqueue_setmaxqlen(FsQueue* self		///< The @ref FsQueue object we're operating on
+,		    guint max)			///< The new maximum queue length
 {
 	self->_maxqlen = max;
 }
 
 /// Return the maximum number of queue elements
 FSTATIC guint
-_fsqueue_getmaxqlen(FsQueue* self)
+_fsqueue_getmaxqlen(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	return self->_maxqlen;
 }
 
 /// Does this queue have room for one more element?
 FSTATIC gboolean
-_fsqueue_hasqspace1(FsQueue* self)
+_fsqueue_hasqspace1(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	return self->_maxqlen > g_queue_get_length(self->_q);
 }
 
 /// Does this queue have room for 'desired' more elements?
 FSTATIC gboolean
-_fsqueue_hasqspace(FsQueue* self, guint desired)
+_fsqueue_hasqspace(FsQueue* self		///< The @ref FsQueue object we're operating on
+,		   guint desired)		///< The number of queue elements we're hoping for
 {
 	return self->_maxqlen + desired >= g_queue_get_length(self->_q);
 
@@ -207,7 +212,9 @@ _fsqueue_hasqspace(FsQueue* self, guint desired)
 
 /// Construct an FsQueue object
 WINEXPORT FsQueue*
-fsqueue_new(guint objsize, NetAddr* dest, guint16 qid)
+fsqueue_new(guint objsize		///< Size of the FsQueue object we should create
+,	    NetAddr* dest		///< Destination address for this FsQueue
+,	    guint16 qid)		///< Associated queue ID for this FsQueue
 {
 	FsQueue*	self;
 	BINDDEBUG(FsQueue);
@@ -234,14 +241,14 @@ fsqueue_new(guint objsize, NetAddr* dest, guint16 qid)
 	self->_qid =		qid;
 	self->_maxqlen =	DEFAULT_FSQMAX;
 	self->_curqlen =	0;
-	self->_destaddr =	dest;
 	self->_nextseqno =	1;
+	self->_destaddr =	dest;
 	dest->baseclass.ref(&dest->baseclass);
 	return self;
 }
 /// Finalize routine for our @ref FsQueue objects
 FSTATIC void
-_fsqueue_finalize(AssimObj* aself)
+_fsqueue_finalize(AssimObj* aself)		///< The @ref FsQueue object we're operating on
 {
 	FsQueue*	self = CASTTOCLASS(FsQueue, aself);
 	GList*		this;
