@@ -90,7 +90,7 @@ FSTATIC gboolean
 _fsqueue_inqsorted(FsQueue* self, FrameSet* fs)
 {
 	GQueue*		Q = self->_q;
-	GList*		this = Q->head;
+	GList*		this;
 	SeqnoFrame*	seqno;
 
 	seqno = fs->_seqframe ? fs->_seqframe : fs->getseqno(fs);
