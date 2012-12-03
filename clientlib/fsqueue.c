@@ -30,6 +30,7 @@
 
 DEBUGDECLARATIONS
 
+FSTATIC void		_fsqueue_finalize(AssimObj* aself);
 FSTATIC gboolean	_fsqueue_enq(FsQueue* self, FrameSet* fs);
 FSTATIC gboolean	_fsqueue_inqsorted(FsQueue* self, FrameSet* fs);
 FSTATIC FrameSet*	_fsqueue_qhead(FsQueue* self);
@@ -217,6 +218,7 @@ fsqueue_new(guint objsize, NetAddr* dest, guint16 qid)
 	if (!self) {
 		return NULL;
 	}
+	self->baseclass._finalize=_fsqueue_finalize;
 	self->enq =		_fsqueue_enq;
 	self->qhead =		_fsqueue_qhead;
 	self->deq =		_fsqueue_deq;
@@ -236,5 +238,20 @@ fsqueue_new(guint objsize, NetAddr* dest, guint16 qid)
 	self->_nextseqno =	1;
 	dest->baseclass.ref(&dest->baseclass);
 	return self;
+}
+/// Finalize routine for our @ref FsQueue objects
+FSTATIC void
+_fsqueue_finalize(AssimObj* aself)
+{
+	FsQueue*	self = CASTTOCLASS(FsQueue, aself);
+	GList*		this;
+
+	self->_destaddr->baseclass.unref(&self->_destaddr->baseclass); self->_destaddr = NULL;
+	for (this = self->_q->head; this; this=this->next)  {
+		FsQueue*	fsq = CASTTOCLASS(FsQueue, this->data);
+		fsq->baseclass.unref(&fsq->baseclass);
+	}
+	g_queue_free(self->_q);
+	FREECLASSOBJ(self);
 }
 ///@}
