@@ -25,9 +25,11 @@
 #include <projectcommon.h>
 #include <fsprotocol.h>
 
-FSTATIC guint _fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
-FSTATIC void _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
-FSTATIC gboolean _fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rhs);
+FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
+FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
+FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rhs);
+
+FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, NetAddr*, FrameSet*);
@@ -101,6 +103,7 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 	if (!self) {
 		return NULL;
 	}
+	self->baseclass._finalize = _fsprotocol_finalize;
 	self->find =		_fsprotocol_find;
 	self->findbypkt =	_fsprotocol_findbypkt;
 	self->addconn =		_fsprotocol_addconn;
@@ -118,6 +121,20 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 	self->unacked = NULL;
 	self->ipend = NULL;
 	return self;
+}
+/// Finalize function for our @ref FsProtocol objects
+FSTATIC void
+_fsprotocol_finalize(AssimObj* aself)
+{
+	FsProtocol*	self = CASTTOCLASS(FsProtocol, aself);
+	self->io->baseclass.ref(&self->io->baseclass); self->io = NULL;
+	g_list_free(self->unacked);		// No additional 'ref's were taken for this list
+	self->unacked = NULL;
+	g_list_free(self->ipend);		// No additional 'ref's were taken for this list either
+	self->ipend = NULL;
+	g_hash_table_destroy(self->endpoints);	// It will free the FsProtoElems contained therein
+	self->endpoints = NULL;
+	FREECLASSOBJ(self);
 }
 /// Finalize function suitable for GHashTables holding FsProtoElems
 FSTATIC void
