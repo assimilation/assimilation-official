@@ -54,6 +54,12 @@ struct _FsProtoElem {
 	FsProtocol*	parent;		///< Our parent FsProtocol object
 };
 
+enum ioflush {
+	FsProtoFLUSHIN,
+	FsProtoFLUSHOUT,
+	FsProtoFLUSHBOTH,
+};
+
 /// This is an @ref FsProtocol object - designed for managing our reliable user-level @ref FrameSet delivery system
 /// It is a subclass of the @ref AssimObj and is managed by our @ref ProjectClass system.
 struct _FsProtocol {
@@ -70,6 +76,7 @@ struct _FsProtocol {
 	void		(*receive)(FsProtocol*, NetAddr*, FrameSet*);	///< Enqueue a received input packet
 	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one packet
 	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of packets
+	void		(*flushall)(FsProtocol*,NetAddr*,enum ioflush);	///< Flush packets to given address
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj);
 #define	DEFAULT_FSP_QID	0 ///< What is the Queue ID of a packet w/o a sequence number?
