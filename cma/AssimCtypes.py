@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -686,6 +686,23 @@ if hasattr(_libs['libassimilationclientlib.so'], 'g_try_malloc0'):
     g_try_malloc0.argtypes = [gsize]
     g_try_malloc0.restype = gpointer
 
+# /usr/include/glib-2.0/glib/glist.h: 40
+class struct__GList(Structure):
+    pass
+
+GList = struct__GList # /usr/include/glib-2.0/glib/glist.h: 38
+
+struct__GList.__slots__ = [
+    'data',
+    'next',
+    'prev',
+]
+struct__GList._fields_ = [
+    ('data', gpointer),
+    ('next', POINTER(GList)),
+    ('prev', POINTER(GList)),
+]
+
 enum_anon_48 = c_int # /usr/include/glib-2.0/glib/gchecksum.h: 50
 
 G_CHECKSUM_MD5 = 0 # /usr/include/glib-2.0/glib/gchecksum.h: 50
@@ -1124,6 +1141,23 @@ struct__GIOFuncs._fields_ = [
     ('io_get_flags', CFUNCTYPE(UNCHECKED(GIOFlags), POINTER(GIOChannel))),
 ]
 
+# /usr/include/glib-2.0/glib/gqueue.h: 49
+class struct__GQueue(Structure):
+    pass
+
+GQueue = struct__GQueue # /usr/include/glib-2.0/glib/gqueue.h: 38
+
+struct__GQueue.__slots__ = [
+    'head',
+    'tail',
+    'length',
+]
+struct__GQueue._fields_ = [
+    ('head', POINTER(GList)),
+    ('tail', POINTER(GList)),
+    ('length', guint),
+]
+
 # ../include/proj_classes.h: 27
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_new'):
     proj_class_new = _libs['libassimilationclientlib.so'].proj_class_new
@@ -1275,7 +1309,7 @@ try:
 except:
     pass
 
-# ../include/frameset.h: 42
+# ../include/frameset.h: 43
 class struct__FrameSet(Structure):
     pass
 
@@ -1458,6 +1492,7 @@ struct__NetAddr.__slots__ = [
     'ipv6sockaddr',
     'ipv4sockaddr',
     'equal',
+    'hash',
     'canonStr',
     '_addrbody',
     '_addrtype',
@@ -1473,6 +1508,7 @@ struct__NetAddr._fields_ = [
     ('ipv6sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in6), POINTER(NetAddr))),
     ('ipv4sockaddr', CFUNCTYPE(UNCHECKED(struct_sockaddr_in), POINTER(NetAddr))),
     ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr), POINTER(NetAddr))),
+    ('hash', CFUNCTYPE(UNCHECKED(guint), POINTER(NetAddr))),
     ('canonStr', CFUNCTYPE(UNCHECKED(String), POINTER(NetAddr))),
     ('_addrbody', gpointer),
     ('_addrtype', guint16),
@@ -1480,49 +1516,49 @@ struct__NetAddr._fields_ = [
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 58
+# ../include/netaddr.h: 59
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libassimilationclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 59
+# ../include/netaddr.h: 60
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libassimilationclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 60
+# ../include/netaddr.h: 61
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libassimilationclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 61
+# ../include/netaddr.h: 62
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libassimilationclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 62
+# ../include/netaddr.h: 63
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libassimilationclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 63
+# ../include/netaddr.h: 64
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libassimilationclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 64
+# ../include/netaddr.h: 65
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libassimilationclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv6_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 65
+# ../include/netaddr.h: 66
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_string_new'):
     netaddr_string_new = _libs['libassimilationclientlib.so'].netaddr_string_new
     netaddr_string_new.argtypes = [String]
@@ -1616,6 +1652,57 @@ if hasattr(_libs['libassimilationclientlib.so'], 'signframe_tlvconstructor'):
     signframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     signframe_tlvconstructor.restype = POINTER(Frame)
 
+# ../include/seqnoframe.h: 42
+class struct__SeqnoFrame(Structure):
+    pass
+
+SeqnoFrame = struct__SeqnoFrame # ../include/seqnoframe.h: 34
+
+struct__SeqnoFrame.__slots__ = [
+    'baseclass',
+    'getreqid',
+    'setreqid',
+    'getqid',
+    'setqid',
+    'getsessionid',
+    'equal',
+    'compare',
+    '_reqid',
+    '_sessionid',
+    '_qid',
+]
+struct__SeqnoFrame._fields_ = [
+    ('baseclass', Frame),
+    ('getreqid', CFUNCTYPE(UNCHECKED(guint64), POINTER(SeqnoFrame))),
+    ('setreqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint64)),
+    ('getqid', CFUNCTYPE(UNCHECKED(guint16), POINTER(SeqnoFrame))),
+    ('setqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint16)),
+    ('getsessionid', CFUNCTYPE(UNCHECKED(guint32), POINTER(SeqnoFrame))),
+    ('equal', CFUNCTYPE(UNCHECKED(c_int), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
+    ('compare', CFUNCTYPE(UNCHECKED(c_int), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
+    ('_reqid', guint64),
+    ('_sessionid', guint32),
+    ('_qid', guint16),
+]
+
+# ../include/seqnoframe.h: 55
+if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_new'):
+    seqnoframe_new = _libs['libassimilationclientlib.so'].seqnoframe_new
+    seqnoframe_new.argtypes = [guint16, c_int]
+    seqnoframe_new.restype = POINTER(SeqnoFrame)
+
+# ../include/seqnoframe.h: 56
+if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_new_init'):
+    seqnoframe_new_init = _libs['libassimilationclientlib.so'].seqnoframe_new_init
+    seqnoframe_new_init.argtypes = [guint16, guint64, guint16]
+    seqnoframe_new_init.restype = POINTER(SeqnoFrame)
+
+# ../include/seqnoframe.h: 57
+if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_tlvconstructor'):
+    seqnoframe_tlvconstructor = _libs['libassimilationclientlib.so'].seqnoframe_tlvconstructor
+    seqnoframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
+    seqnoframe_tlvconstructor.restype = POINTER(Frame)
+
 struct__FrameSet.__slots__ = [
     'baseclass',
     'framelist',
@@ -1623,6 +1710,8 @@ struct__FrameSet.__slots__ = [
     'pktend',
     'fstype',
     'fsflags',
+    '_seqframe',
+    'getseqno',
 ]
 struct__FrameSet._fields_ = [
     ('baseclass', AssimObj),
@@ -1631,63 +1720,65 @@ struct__FrameSet._fields_ = [
     ('pktend', gpointer),
     ('fstype', guint16),
     ('fsflags', guint16),
+    ('_seqframe', POINTER(SeqnoFrame)),
+    ('getseqno', CFUNCTYPE(UNCHECKED(POINTER(SeqnoFrame)), POINTER(FrameSet))),
 ]
 
-# ../include/frameset.h: 53
+# ../include/frameset.h: 56
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_new'):
     frameset_new = _libs['libassimilationclientlib.so'].frameset_new
     frameset_new.argtypes = [guint16]
     frameset_new.restype = POINTER(FrameSet)
 
-# ../include/frameset.h: 54
+# ../include/frameset.h: 57
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_prepend_frame'):
     frameset_prepend_frame = _libs['libassimilationclientlib.so'].frameset_prepend_frame
     frameset_prepend_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_prepend_frame.restype = None
 
-# ../include/frameset.h: 55
+# ../include/frameset.h: 58
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_append_frame'):
     frameset_append_frame = _libs['libassimilationclientlib.so'].frameset_append_frame
     frameset_append_frame.argtypes = [POINTER(FrameSet), POINTER(Frame)]
     frameset_append_frame.restype = None
 
-# ../include/frameset.h: 56
+# ../include/frameset.h: 59
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_construct_packet'):
     frameset_construct_packet = _libs['libassimilationclientlib.so'].frameset_construct_packet
     frameset_construct_packet.argtypes = [POINTER(FrameSet), POINTER(SignFrame), POINTER(Frame), POINTER(Frame)]
     frameset_construct_packet.restype = None
 
-# ../include/frameset.h: 57
+# ../include/frameset.h: 60
 if hasattr(_libs['libassimilationclientlib.so'], 'frame_new'):
     frame_new = _libs['libassimilationclientlib.so'].frame_new
     frame_new.argtypes = [guint16, gsize]
     frame_new.restype = POINTER(Frame)
 
-# ../include/frameset.h: 58
+# ../include/frameset.h: 61
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_get_flags'):
     frameset_get_flags = _libs['libassimilationclientlib.so'].frameset_get_flags
     frameset_get_flags.argtypes = [POINTER(FrameSet)]
     frameset_get_flags.restype = guint16
 
-# ../include/frameset.h: 59
+# ../include/frameset.h: 62
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_set_flags'):
     frameset_set_flags = _libs['libassimilationclientlib.so'].frameset_set_flags
     frameset_set_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_set_flags.restype = guint16
 
-# ../include/frameset.h: 60
+# ../include/frameset.h: 63
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_clear_flags'):
     frameset_clear_flags = _libs['libassimilationclientlib.so'].frameset_clear_flags
     frameset_clear_flags.argtypes = [POINTER(FrameSet), guint16]
     frameset_clear_flags.restype = guint16
 
-# ../include/frameset.h: 61
+# ../include/frameset.h: 64
 if hasattr(_libs['libassimilationclientlib.so'], 'frame_append_to_frameset_packet'):
     frame_append_to_frameset_packet = _libs['libassimilationclientlib.so'].frame_append_to_frameset_packet
     frame_append_to_frameset_packet.argtypes = [POINTER(FrameSet), POINTER(Frame), gpointer]
     frame_append_to_frameset_packet.restype = gpointer
 
-# ../include/frameset.h: 62
+# ../include/frameset.h: 65
 if hasattr(_libs['libassimilationclientlib.so'], 'frameset_dump'):
     frameset_dump = _libs['libassimilationclientlib.so'].frameset_dump
     frameset_dump.argtypes = [POINTER(FrameSet)]
@@ -1895,6 +1986,10 @@ struct__NetIO.__slots__ = [
     'setmaxpktsize',
     'sendaframeset',
     'sendframesets',
+    'sendamessage',
+    'sendmessages',
+    'ackamessage',
+    'nackamessage',
     'recvframesets',
     'signframe',
     'cryptframe',
@@ -1919,19 +2014,23 @@ struct__NetIO._fields_ = [
     ('setmaxpktsize', CFUNCTYPE(UNCHECKED(gsize), POINTER(NetIO), gsize)),
     ('sendaframeset', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
     ('sendframesets', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(GSList))),
+    ('sendamessage', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
+    ('sendmessages', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(GSList))),
+    ('ackamessage', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
+    ('nackamessage', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
     ('recvframesets', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(NetIO), POINTER(POINTER(NetAddr)))),
     ('signframe', CFUNCTYPE(UNCHECKED(POINTER(SignFrame)), POINTER(NetIO))),
     ('cryptframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 101
+# ../include/netio.h: 124
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 103
+# ../include/netio.h: 126
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2271,6 +2370,127 @@ if hasattr(_libs['libassimilationclientlib.so'], 'discovery_unregister'):
     discovery_unregister = _libs['libassimilationclientlib.so'].discovery_unregister
     discovery_unregister.argtypes = [String]
     discovery_unregister.restype = None
+
+# ../include/fsqueue.h: 42
+class struct__FsQueue(Structure):
+    pass
+
+FsQueue = struct__FsQueue # ../include/fsqueue.h: 37
+
+struct__FsQueue.__slots__ = [
+    'baseclass',
+    '_nextseqno',
+    '_maxqlen',
+    '_curqlen',
+    '_q',
+    '_destaddr',
+    '_qid',
+    'isready',
+    'enq',
+    'inqsorted',
+    'qhead',
+    'deq',
+    'ackthrough',
+    'flush',
+    'flush1',
+    'qlen',
+    'setmaxqlen',
+    'getmaxqlen',
+    'hasqspace1',
+    'hasqspace',
+]
+struct__FsQueue._fields_ = [
+    ('baseclass', AssimObj),
+    ('_nextseqno', guint64),
+    ('_maxqlen', guint),
+    ('_curqlen', guint),
+    ('_q', POINTER(GQueue)),
+    ('_destaddr', POINTER(NetAddr)),
+    ('_qid', guint16),
+    ('isready', gboolean),
+    ('enq', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), POINTER(FrameSet))),
+    ('inqsorted', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), POINTER(FrameSet))),
+    ('qhead', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsQueue))),
+    ('deq', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsQueue))),
+    ('ackthrough', CFUNCTYPE(UNCHECKED(guint), POINTER(FsQueue), POINTER(SeqnoFrame))),
+    ('flush', CFUNCTYPE(UNCHECKED(None), POINTER(FsQueue))),
+    ('flush1', CFUNCTYPE(UNCHECKED(None), POINTER(FsQueue))),
+    ('qlen', CFUNCTYPE(UNCHECKED(guint), POINTER(FsQueue))),
+    ('setmaxqlen', CFUNCTYPE(UNCHECKED(None), POINTER(FsQueue), guint)),
+    ('getmaxqlen', CFUNCTYPE(UNCHECKED(guint), POINTER(FsQueue))),
+    ('hasqspace1', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue))),
+    ('hasqspace', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), guint)),
+]
+
+# ../include/fsqueue.h: 65
+if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
+    fsqueue_new = _libs['libassimilationclientlib.so'].fsqueue_new
+    fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
+    fsqueue_new.restype = POINTER(FsQueue)
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 59
+class struct__FsProtocol(Structure):
+    pass
+
+FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 45
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 49
+class struct__FsProtoElem(Structure):
+    pass
+
+FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 46
+
+struct__FsProtoElem.__slots__ = [
+    'endpoint',
+    '_qid',
+    'outq',
+    'inq',
+    'parent',
+]
+struct__FsProtoElem._fields_ = [
+    ('endpoint', POINTER(NetAddr)),
+    ('_qid', guint16),
+    ('outq', POINTER(FsQueue)),
+    ('inq', POINTER(FsQueue)),
+    ('parent', POINTER(FsProtocol)),
+]
+
+struct__FsProtocol.__slots__ = [
+    'baseclass',
+    'io',
+    'endpoints',
+    'unacked',
+    'ipend',
+    'find',
+    'findbypkt',
+    'addconn',
+    'iready',
+    'read',
+    'receive',
+    'send1',
+    'send',
+]
+struct__FsProtocol._fields_ = [
+    ('baseclass', AssimObj),
+    ('io', POINTER(NetIO)),
+    ('endpoints', POINTER(GHashTable)),
+    ('unacked', POINTER(GList)),
+    ('ipend', POINTER(GList)),
+    ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
+    ('findbypkt', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
+    ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
+    ('iready', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
+    ('read', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsProtocol), POINTER(POINTER(NetAddr)))),
+    ('receive', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
+    ('send1', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(FrameSet), guint16, POINTER(NetAddr))),
+    ('send', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(GSList), guint16, POINTER(NetAddr))),
+]
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 74
+if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
+    fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
+    fsprotocol_new.argtypes = [guint, POINTER(NetIO)]
+    fsprotocol_new.restype = POINTER(FsProtocol)
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 27
 if hasattr(_libs['libassimilationclientlib.so'], 'get_generic_tlv_type'):
@@ -2720,31 +2940,37 @@ if hasattr(_libs['libassimilationclientlib.so'], 'nano_packet_decoder'):
     nano_packet_decoder.argtypes = []
     nano_packet_decoder.restype = POINTER(PacketDecoder)
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 47
+# /home/alanr/monitor/src/include/nanoprobe.h: 45
+if hasattr(_libs['libassimilationclientlib.so'], 'nanoprobe_report_upstream'):
+    nanoprobe_report_upstream = _libs['libassimilationclientlib.so'].nanoprobe_report_upstream
+    nanoprobe_report_upstream.argtypes = [guint16, POINTER(NetAddr), String, guint64]
+    nanoprobe_report_upstream.restype = None
+
+# /home/alanr/monitor/src/include/nanoprobe.h: 48
 try:
     nanoprobe_deadtime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_deadtime_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 49
+# /home/alanr/monitor/src/include/nanoprobe.h: 50
 try:
     nanoprobe_heartbeat_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_heartbeat_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 51
+# /home/alanr/monitor/src/include/nanoprobe.h: 52
 try:
     nanoprobe_warntime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_warntime_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 53
+# /home/alanr/monitor/src/include/nanoprobe.h: 54
 try:
     nanoprobe_comealive_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_comealive_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 55
+# /home/alanr/monitor/src/include/nanoprobe.h: 56
 try:
     nanoprobe_hblistener_new = (POINTER(CFUNCTYPE(UNCHECKED(POINTER(HbListener)), POINTER(NetAddr), POINTER(ConfigContext)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_hblistener_new')
 except:
@@ -3039,57 +3265,6 @@ if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libassimilationclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
     proj_class_finalize_sys.restype = None
-
-# /home/alanr/monitor/src/include/seqnoframe.h: 42
-class struct__SeqnoFrame(Structure):
-    pass
-
-SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 34
-
-struct__SeqnoFrame.__slots__ = [
-    'baseclass',
-    'getreqid',
-    'getsessionid',
-    'getqid',
-    'setreqid',
-    'setqid',
-    'equal',
-    'compare',
-    '_reqid',
-    '_sessionid',
-    '_qid',
-]
-struct__SeqnoFrame._fields_ = [
-    ('baseclass', Frame),
-    ('getreqid', CFUNCTYPE(UNCHECKED(guint64), POINTER(SeqnoFrame))),
-    ('getsessionid', CFUNCTYPE(UNCHECKED(guint32), POINTER(SeqnoFrame))),
-    ('getqid', CFUNCTYPE(UNCHECKED(guint16), POINTER(SeqnoFrame))),
-    ('setreqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint64)),
-    ('setqid', CFUNCTYPE(UNCHECKED(None), POINTER(SeqnoFrame), guint16)),
-    ('equal', CFUNCTYPE(UNCHECKED(c_int), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
-    ('compare', CFUNCTYPE(UNCHECKED(c_int), POINTER(SeqnoFrame), POINTER(SeqnoFrame))),
-    ('_reqid', guint64),
-    ('_sessionid', guint32),
-    ('_qid', guint16),
-]
-
-# /home/alanr/monitor/src/include/seqnoframe.h: 55
-if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_new'):
-    seqnoframe_new = _libs['libassimilationclientlib.so'].seqnoframe_new
-    seqnoframe_new.argtypes = [guint16, c_int]
-    seqnoframe_new.restype = POINTER(SeqnoFrame)
-
-# /home/alanr/monitor/src/include/seqnoframe.h: 56
-if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_new_init'):
-    seqnoframe_new_init = _libs['libassimilationclientlib.so'].seqnoframe_new_init
-    seqnoframe_new_init.argtypes = [guint16, guint64, guint16]
-    seqnoframe_new_init.restype = POINTER(SeqnoFrame)
-
-# /home/alanr/monitor/src/include/seqnoframe.h: 57
-if hasattr(_libs['libassimilationclientlib.so'], 'seqnoframe_tlvconstructor'):
-    seqnoframe_tlvconstructor = _libs['libassimilationclientlib.so'].seqnoframe_tlvconstructor
-    seqnoframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
-    seqnoframe_tlvconstructor.restype = POINTER(Frame)
 
 # /home/alanr/monitor/src/include/server_dump.h: 22
 for _lib in _libs.itervalues():
@@ -3443,107 +3618,113 @@ except:
 
 # ../include/framesettypes.h: 39
 try:
-    FRAMESETTYPE_HBLATE = 20
+    FRAMESETTYPE_HBSHUTDOWN = 20
 except:
     pass
 
 # ../include/framesettypes.h: 40
 try:
-    FRAMESETTYPE_HBBACKALIVE = 21
+    FRAMESETTYPE_HBLATE = 21
 except:
     pass
 
 # ../include/framesettypes.h: 41
 try:
-    FRAMESETTYPE_HBMARTIAN = 22
+    FRAMESETTYPE_HBBACKALIVE = 22
 except:
     pass
 
 # ../include/framesettypes.h: 42
 try:
-    FRAMESETTYPE_PROBEALIVE = 23
+    FRAMESETTYPE_HBMARTIAN = 23
 except:
     pass
 
 # ../include/framesettypes.h: 43
 try:
-    FRAMESETTYPE_SWDISCOVER = 24
+    FRAMESETTYPE_PROBEALIVE = 24
 except:
     pass
 
 # ../include/framesettypes.h: 44
 try:
-    FRAMESETTYPE_JSDISCOVERY = 25
+    FRAMESETTYPE_SWDISCOVER = 25
 except:
     pass
 
 # ../include/framesettypes.h: 45
 try:
-    FRAMESETTYPE_SENDHB = 64
+    FRAMESETTYPE_JSDISCOVERY = 26
 except:
     pass
 
 # ../include/framesettypes.h: 46
 try:
-    FRAMESETTYPE_EXPECTHB = 65
+    FRAMESETTYPE_SENDHB = 64
 except:
     pass
 
 # ../include/framesettypes.h: 47
 try:
-    FRAMESETTYPE_SENDEXPECTHB = 66
+    FRAMESETTYPE_EXPECTHB = 65
 except:
     pass
 
 # ../include/framesettypes.h: 48
 try:
-    FRAMESETTYPE_STOPSENDHB = 67
+    FRAMESETTYPE_SENDEXPECTHB = 66
 except:
     pass
 
 # ../include/framesettypes.h: 49
 try:
-    FRAMESETTYPE_STOPEXPECTHB = 68
+    FRAMESETTYPE_STOPSENDHB = 67
 except:
     pass
 
 # ../include/framesettypes.h: 50
 try:
-    FRAMESETTYPE_STOPSENDEXPECTHB = 69
+    FRAMESETTYPE_STOPEXPECTHB = 68
 except:
     pass
 
 # ../include/framesettypes.h: 51
 try:
-    FRAMESETTYPE_SETCONFIG = 70
+    FRAMESETTYPE_STOPSENDEXPECTHB = 69
 except:
     pass
 
 # ../include/framesettypes.h: 52
 try:
-    FRAMESETTYPE_INCRDEBUG = 71
+    FRAMESETTYPE_SETCONFIG = 70
 except:
     pass
 
 # ../include/framesettypes.h: 53
 try:
-    FRAMESETTYPE_DECRDEBUG = 72
+    FRAMESETTYPE_INCRDEBUG = 71
 except:
     pass
 
 # ../include/framesettypes.h: 54
 try:
-    FRAMESETTYPE_DODISCOVER = 73
+    FRAMESETTYPE_DECRDEBUG = 72
 except:
     pass
 
 # ../include/framesettypes.h: 55
 try:
+    FRAMESETTYPE_DODISCOVER = 73
+except:
+    pass
+
+# ../include/framesettypes.h: 56
+try:
     FRAMESETTYPE_STOPDISCOVER = 74
 except:
     pass
 
-# ../include/frameset.h: 51
+# ../include/frameset.h: 54
 try:
     FRAMESET_INITSIZE = 6
 except:
@@ -3942,6 +4123,18 @@ except:
 # /home/alanr/monitor/src/include/frametypes.h: 410
 try:
     FRAMETYPE_DISCJSON = 26
+except:
+    pass
+
+# ../include/fsqueue.h: 66
+try:
+    DEFAULT_FSQMAX = 0
+except:
+    pass
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 75
+try:
+    DEFAULT_FSP_QID = 0
 except:
     pass
 
@@ -4391,7 +4584,7 @@ _GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 40
 
 _AssimObj = struct__AssimObj # ../include/assimobj.h: 32
 
-_FrameSet = struct__FrameSet # ../include/frameset.h: 42
+_FrameSet = struct__FrameSet # ../include/frameset.h: 43
 
 _Frame = struct__Frame # ../include/frame.h: 42
 
@@ -4400,6 +4593,8 @@ _NetAddr = struct__NetAddr # ../include/netaddr.h: 43
 _AddrFrame = struct__AddrFrame # /home/alanr/monitor/src/include/addrframe.h: 38
 
 _SignFrame = struct__SignFrame # ../include/signframe.h: 40
+
+_SeqnoFrame = struct__SeqnoFrame # ../include/seqnoframe.h: 42
 
 _ConfigContext = struct__ConfigContext # ../include/configcontext.h: 70
 
@@ -4427,6 +4622,12 @@ _CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringfr
 
 _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
+_FsQueue = struct__FsQueue # ../include/fsqueue.h: 42
+
+_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 59
+
+_FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 49
+
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 44
 
 _HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 39
@@ -4444,8 +4645,6 @@ _NetIOudp = struct__NetIOudp # /home/alanr/monitor/src/include/netioudp.h: 39
 _NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe.h: 33
 
 _GSource_pcap = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 38
-
-_SeqnoFrame = struct__SeqnoFrame # /home/alanr/monitor/src/include/seqnoframe.h: 42
 
 _SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 34
 
