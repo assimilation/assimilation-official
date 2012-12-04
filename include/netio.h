@@ -43,13 +43,13 @@ typedef struct _NetIO NetIO;
 /// and is managed by our @ref ProjectClass system.
 struct _NetIO {
 	AssimObj	baseclass;
-	GIOChannel*	giosock;				///< Glib GIOChannel for this socket
-	gint		_maxpktsize;
-	ConfigContext*	_configinfo;
-	PacketDecoder*	_decoder;
-	SignFrame*	_signframe;
-	Frame*		_cryptframe;
-	Frame*		_compressframe;
+	GIOChannel*	giosock;			///< Glib GIOChannel for this socket
+	gint		_maxpktsize;			///< Maximum packet size for this transport
+	ConfigContext*	_configinfo;			///< I/O and other configuration information
+	PacketDecoder*	_decoder;			///< Decodes packets into FrameSets
+	SignFrame*	_signframe;			///< Signature frame to use in signing FrameSets
+	Frame*		_cryptframe;			///< Encryption frame to use in encrypting FrameSets
+	Frame*		_compressframe;			///< Compression frame to use in compressing FrameSets
 	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*,	///<[in] Address to bind it to
@@ -74,11 +74,11 @@ struct _NetIO {
 	gsize		(*setmaxpktsize)		///< Set maximum packet size
 				(NetIO*,		///< 'this' object
 				 gsize);		///< size to set max pkt size to
-	void		(*sendaframeset)		///< Send a single FrameSet to a @ref NetIO
+	void		(*sendaframeset)		///< Send a FrameSet list to a @ref NetIO
 							///< @pre must have non-NULL _signframe
 				(NetIO* self,		///<[in/out] 'this' object pointer
 				 const NetAddr* dest,	///<[in] destination address
-				 FrameSet* frameset)	///<[in] The FrameSet to send
+				 FrameSet* frameset)	///<[in] FrameSet to send
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*sendframesets)		///< Send a FrameSet list to a @ref NetIO
 							///< @pre must have non-NULL _signframe
@@ -86,6 +86,7 @@ struct _NetIO {
 				 const NetAddr* dest,	///<[in] destination address
 				 GSList* framesets)	///<[in] List of FrameSets to send
 						   ;	// ";" is here to work around a doxygen bug
+#if 0
 	void		(*sendamessage)			///< RELIABLY send a single FrameSet to a @ref NetIO
 				(NetIO* self,		///<[in/out] 'this' object pointer
 				 const NetAddr* dest,	///<[in] destination address
@@ -97,18 +98,7 @@ struct _NetIO {
 				 const NetAddr* dest,	///<[in] destination address
 				 GSList* framesets)	///<[in] List of FrameSets to send
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*ackamessage)
-				(NetIO* self,		///<[in/out] 'this' object pointer
-				 const NetAddr* dest,	///<[in] destination address
-				 FrameSet* frameset)	///<[in] The FrameSet to ACK - note that it must
-				 			///< have a sequence number
-						   ;	// ";" is here to work around a doxygen bug
-	void		(*nackamessage)
-				(NetIO* self,		///<[in/out] 'this' object pointer
-				 const NetAddr* dest,	///<[in] destination address
-				 FrameSet* frameset)	///<[in] The FrameSet to NAK - note that it must
-				 			///< have a sequence number
-						   ;	// ";" is here to work around a doxygen bug
+#endif
 	GSList*		(*recvframesets)		///< Receive a single datagram's framesets
 							///<@return GSList of FrameSets from packet
 				(NetIO*,		///<[in/out] 'this' object
