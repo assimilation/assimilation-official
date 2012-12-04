@@ -37,11 +37,15 @@
 typedef struct _FsQueue FsQueue;
 
 /// This is an @ref FsQueue object - designed for queueuing up @ref FrameSet objects for transmission.
+/// These objects are suitable for either transmit or receive queues - but not both at the same time ;-).
+/// Some member functions should only be used for transmit queues, and some are generally used for
+/// receive queues.
 /// It is a subclass of the @ref AssimObj.
 /// and is managed by our @ref ProjectClass system.
 struct _FsQueue {
 	AssimObj	baseclass;				///< base @ref AssimObj object
 	guint64		_nextseqno;				///< Next sequence number
+	guint32		_sessionid;				///< Current session id for this Queue
 	guint		_maxqlen;				///< Maximum queue length
 	guint		_curqlen;				///< Current queue length
 	GQueue*		_q;					///< @ref FrameSet queue
@@ -49,11 +53,17 @@ struct _FsQueue {
 	guint16		_qid;					///< Far endpoint queue id
 	gboolean	isready;				///< TRUE when ready for I or O (depending)
 	gboolean	(*enq)(FsQueue* self, FrameSet* fs);	///< Enqueue an outgoing FrameSet - adding seqno
-	gboolean	(*inqsorted)(FsQueue*, FrameSet* fs);	///< Enqueue an incoming FrameSet - sorted by
+								///< ONLY for output queues.
+	gboolean	(*inqsorted)(FsQueue*, FrameSet* fs);	///< Enqueue an incoming FrameSet - sorted
 								///< by sequence # - no dups allowed
+								///< Used ONLY for input queues, or unsequenced
+								///< frames on output queues.
 	FrameSet*	(*qhead)(FsQueue* self);		///< return packet at head of queue
 	FrameSet*	(*deq)(FsQueue* self);			///< return and remove head packet
-	guint		(*ackthrough)(FsQueue* self, SeqnoFrame*);///< ACK packets through given seqno
+	guint		(*ackthrough)(FsQueue* self, SeqnoFrame*);///< ACK packets through given seqno.
+								///< Note that this is called by the end-user
+								///< code, once the packet has been processed
+								///< not automatically by the protocol code.
 	void		(*flush)(FsQueue* self);		///< flush all FrameSet in the queue
 	void		(*flush1)(FsQueue* self);		///< flush head FrameSet in the queue
 	guint		(*qlen)(FsQueue* self);			///< return current queue length
@@ -63,7 +73,7 @@ struct _FsQueue {
 	gboolean	(*hasqspace)(FsQueue* self, guint);	///< TRUE if space for desired packets available
 };
 WINEXPORT FsQueue* fsqueue_new(guint objsize, NetAddr* dest, guint16 qid);
-#define	DEFAULT_FSQMAX	0	///< Default to unlimited queue length
+#define	DEFAULT_FSQMAX	0	///< Default maximum length for these queues - zero means unlimited
 
 ///@}
 

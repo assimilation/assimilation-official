@@ -4,15 +4,13 @@
  * @details @ref FsProtocol objects implement a protocol that provides reliable @ref FrameSet transmission.
  * This sits in the middle of packet transmission and reception.
  *
- * I think I want one of these objects to manage all the various destinations we have - so that there is one
- * for each @ref NetIO object, not <i>many</i> per NetIO object (i.e., not one per destination).
  *
- * Incoming packets get filtered here to make sure we send ACKs, and receive them in sequence number order.
+ * Incoming packets come into FsQueues, and we make sure we process ACKs, and give them to our
+ * clients in sequence number order.
  *
  * Outgoing packets go out through the FsQueue object, and we schedule retransmissions when ACKs are not forthcoming.
  *
  * This class is related to @ref FsQueue and @ref FrameSet objects.
- *
  *
  * @author Copyright &copy; 2012 - Alan Robertson <alanr@unix.sh>
  * @n
@@ -46,6 +44,9 @@ typedef struct _FsProtocol FsProtocol;
 typedef struct _FsProtoElem FsProtoElem;
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.
+/// Note that the @ref FsProtocol class is a glorified hash table of these FsProtoElem structures
+/// @TODO: Do we need to eventuall add a method for deleting an FsProtoElem endpoint from our
+/// FsProtocol hash tables?
 struct _FsProtoElem {
 	NetAddr*	endpoint;	///< Who is our partner in this?
 	guint16		_qid;		///< Queue id of far endpoint
@@ -54,10 +55,11 @@ struct _FsProtoElem {
 	FsProtocol*	parent;		///< Our parent FsProtocol object
 };
 
+/// What kind of flush operation do you want?
 enum ioflush {
-	FsProtoFLUSHIN,
-	FsProtoFLUSHOUT,
-	FsProtoFLUSHBOTH,
+	FsProtoFLUSHIN,		///< flush input queues only
+	FsProtoFLUSHOUT,	///< flush output queues only
+	FsProtoFLUSHBOTH,	///< flush both input and output queues
 };
 
 /// This is an @ref FsProtocol object - designed for managing our reliable user-level @ref FrameSet delivery system

@@ -48,23 +48,37 @@ FSTATIC gboolean	_fsqueue_hasqspace(FsQueue* self, guint);
 ///@{
 /// @ingroup C_Classes
 
-/// Enqueue a @ref FrameSet onto an @ref FsQueue
+/// Enqueue a @ref FrameSet onto an @ref FsQueue - exclusively for output queues
 FSTATIC gboolean
 _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 ,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our object
 {
 	SeqnoFrame*	seqno;
+	// This FrameSet shouldn't already have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
 	g_return_val_if_fail(self->_curqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
+	g_return_val_if_fail(seqno != NULL, FALSE);
 
+	// Of course, the session id on outbound packets should _never_ change
+	// But an uninitialized FsQueue session id is zero
+	// So, this test could be more strict
+	if (seqno->_sessionid < self->_sessionid) {
+		seqno->baseclass.baseclass.unref(&seqno->baseclass.baseclass); seqno = NULL;
+		g_return_val_if_reached(FALSE);
+	}
+	self->_sessionid = seqno->_sessionid;
+
+	// Put the frame at the beginning of the frameset
 	frameset_prepend_frame(fs, &seqno->baseclass);
 	g_queue_push_tail(self->_q, fs);
 
 	// Now do all the paperwork :-D
 	++self->_nextseqno;
 	++self->_curqlen;
+	// We need for the FrameSet to be kept around for potentially a long time...
 	fs->baseclass.ref(&fs->baseclass);
+	// But we're done with the seqno frame (prepending it to the frameset bumped the ref count)
 	seqno->baseclass.baseclass.unref(&seqno->baseclass.baseclass);
 	return TRUE;
 }
@@ -87,7 +101,7 @@ _fsqueue_deq(FsQueue* self)		///< The @ref FsQueue object we're operating on
 }
 
 /// Enqueue a @ref FrameSet onto an @ref FsQueue - sorted by sequence number - NO dups allowed
-/// This method is used for queues used for received packets.
+/// This method is used ONLY for received packets or <i>unsequenced</i> output packets.
 FSTATIC gboolean
 _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating on
 ,		   FrameSet* fs)		///< The @ref FrameSet object to enqueue
@@ -98,13 +112,25 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	seqno = fs->_seqframe ? fs->_seqframe : fs->getseqno(fs);
 
-	// Frames without sequence number go to the head of the queue
-	if (seqno == NULL) {
-		g_queue_push_head(Q, fs);
+	if (seqno && seqno->_sessionid < self->_sessionid) {
+		// Replay attack?
+		g_warning("Possible replay attack? Current session id: %d, incoming session id: %d"
+		,	self->_sessionid, seqno->_sessionid);
+		return TRUE;
+	}
+	if (seqno && seqno->_reqid < self->_nextseqno) {
+		// We've already delivered this packet to our customers...
 		return TRUE;
 	}
 
 	g_return_val_if_fail(self->_curqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
+
+	// Frames without sequence numbers go to the head of the queue
+	if (seqno == NULL) {
+		g_queue_push_head(Q, fs);
+		fs->baseclass.ref(&fs->baseclass);
+		return TRUE;
+	}
 
 	for (this = Q->head; this; this=this->next)  {
 		FrameSet*	tfs = CASTTOCLASS(FrameSet, this->data);
@@ -112,28 +138,34 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 		int		diff = seqno->compare(seqno, thisseq);
 		if (diff < 0) {
 			g_queue_insert_before(Q, this, fs);
+			fs->baseclass.ref(&fs->baseclass);
 			return TRUE;
 		}else if (diff == 0) {
-			// Dup - throw it away...
-			fs->baseclass.unref(&fs->baseclass); fs = NULL;
+			// Dup - don't keep it...
 			return TRUE;
 		}
 	}
 	// Either the list is empty, or this belongs after the last list element
 	// Regardless of which is true, we can call g_queue_push_tail...
+	fs->baseclass.ref(&fs->baseclass);
 	g_queue_push_tail(Q, fs);
 	return TRUE;
 }
 
 /// Acknowledge and flush all framesets up through and including the given sequence number
+/// This is used exclusively for output queues - and is the result of the application on
+/// the other end sending us an ACK packet.
 FSTATIC guint
 _fsqueue_ackthrough(FsQueue* self		///< The @ref FsQueue object we're operating on
 ,		    SeqnoFrame*seq)		///< The sequence number to ACK through
 {
 	FrameSet*	fs;
-	guint64		reqid = seq->getreqid(seq);
+	guint64		reqid;
 	guint		count = 0;
-	
+
+	g_return_val_if_fail(seq && seq->_reqid > self->_nextseqno, 0);
+	self->_nextseqno = seq->_reqid;
+	reqid = seq->getreqid(seq);
 	
 	while((fs = self->qhead(self)) != NULL) {
 		SeqnoFrame*	fseq = fs->getseqno(fs);
@@ -147,6 +179,9 @@ _fsqueue_ackthrough(FsQueue* self		///< The @ref FsQueue object we're operating 
 }
 
 /// Flush <b>all</b> framesets from the queue (if any).
+/// TODO: This is basically a protocol reset - what effect should this have upon
+/// sequence numbers and generation numbers (if any)?
+/// Normally this is used if we think the machine has died...
 FSTATIC void
 _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
@@ -160,6 +195,7 @@ _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 }
 
 /// Flush only the first frameset from the queue (if any).
+/// Could be used on either input or output queues.
 FSTATIC void
 _fsqueue_flush1(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
@@ -206,11 +242,11 @@ FSTATIC gboolean
 _fsqueue_hasqspace(FsQueue* self		///< The @ref FsQueue object we're operating on
 ,		   guint desired)		///< The number of queue elements we're hoping for
 {
-	return self->_maxqlen + desired >= g_queue_get_length(self->_q);
+	return (self->_maxqlen + desired) >= g_queue_get_length(self->_q);
 
 }
 
-/// Construct an FsQueue object
+/// Construct an FsQueue object - from a (far endpoint address, Queue Id) pair
 WINEXPORT FsQueue*
 fsqueue_new(guint objsize		///< Size of the FsQueue object we should create
 ,	    NetAddr* dest		///< Destination address for this FsQueue
@@ -225,8 +261,10 @@ fsqueue_new(guint objsize		///< Size of the FsQueue object we should create
 	if (!self) {
 		return NULL;
 	}
+	// Initialize member functions
 	self->baseclass._finalize=_fsqueue_finalize;
 	self->enq =		_fsqueue_enq;
+	self->inqsorted =	_fsqueue_inqsorted;
 	self->qhead =		_fsqueue_qhead;
 	self->deq =		_fsqueue_deq;
 	self->ackthrough =	_fsqueue_ackthrough;
@@ -237,13 +275,15 @@ fsqueue_new(guint objsize		///< Size of the FsQueue object we should create
 	self->getmaxqlen =	_fsqueue_getmaxqlen;
 	self->hasqspace1 =	_fsqueue_hasqspace1;
 	self->hasqspace =	_fsqueue_hasqspace;
+
+	// Initialize data members
 	self->_q =		g_queue_new();
 	self->_qid =		qid;
 	self->_maxqlen =	DEFAULT_FSQMAX;
 	self->_curqlen =	0;
 	self->_nextseqno =	1;
-	self->_destaddr =	dest;
-	dest->baseclass.ref(&dest->baseclass);
+	self->_sessionid =	0;
+	self->_destaddr =	dest;	dest->baseclass.ref(&dest->baseclass);
 	return self;
 }
 /// Finalize routine for our @ref FsQueue objects
@@ -251,14 +291,16 @@ FSTATIC void
 _fsqueue_finalize(AssimObj* aself)		///< The @ref FsQueue object we're operating on
 {
 	FsQueue*	self = CASTTOCLASS(FsQueue, aself);
-	GList*		this;
 
+	// Let our 'destaddr' object go...
 	self->_destaddr->baseclass.unref(&self->_destaddr->baseclass); self->_destaddr = NULL;
-	for (this = self->_q->head; this; this=this->next)  {
-		FsQueue*	fsq = CASTTOCLASS(FsQueue, this->data);
-		fsq->baseclass.unref(&fsq->baseclass);
-	}
-	g_queue_free(self->_q);
+
+	// Now flush (free up) any framesets that are still hanging around...
+	self->flush(self);
+
+	// And free up the queue itself
+	g_queue_free(self->_q);		self->_q = NULL;
+	// And finally, free up our direct storage
 	FREECLASSOBJ(self);
 }
 ///@}
