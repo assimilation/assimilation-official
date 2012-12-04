@@ -31,16 +31,16 @@ FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rh
 
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
-FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, NetAddr* destaddr);
-FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, NetAddr*, FrameSet*);
+FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr);
+FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, const NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_iready(FsProtocol*);
 FSTATIC FrameSet*	_fsprotocol_read(FsProtocol*, NetAddr**);
-FSTATIC void		_fsprotocol_receive(FsProtocol*, NetAddr*, FrameSet*);
+FSTATIC void		_fsprotocol_receive(FsProtocol*, const NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_send1(FsProtocol*, FrameSet*, guint16 qid, NetAddr*);
 FSTATIC gboolean	_fsprotocol_send(FsProtocol*, GSList*, guint16 qid, NetAddr*);
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
-FSTATIC void		_fsprotocol_flushall(FsProtocol* self, NetAddr* addr, enum ioflush op);
-FSTATIC void		_fsprotocol_flush1(FsProtocol* self, NetAddr* addr, enum ioflush op);
+FSTATIC void		_fsprotocol_flushall(FsProtocol* self, const NetAddr* addr, enum ioflush op);
+FSTATIC void		_fsprotocol_flush1(FsProtocol* self, const NetAddr* addr, enum ioflush op);
 
 DEBUGDECLARATIONS
 /// @defgroup FsProtocol FsProtocol class
@@ -51,11 +51,11 @@ DEBUGDECLARATIONS
 
 /// Locate the FsProtoElem structure that corresponds to this (destaddr, qid) pair
 FSTATIC FsProtoElem*
-_fsprotocol_find(FsProtocol*self	///< typical FsProtocol 'self' object
-,		 guint16 qid		///< Queue id of far endpoint
-,		 NetAddr* destaddr)	///< destination address
+_fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
+,		 guint16 qid			///< Queue id of far endpoint
+,		 const NetAddr* destaddr)	///< destination address
 {
-	FsProtoElem	elem;
+	FsProtoElemSearchKey	elem;
 	elem.endpoint	= destaddr;
 	elem._qid	= qid;
 	return (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
@@ -64,9 +64,9 @@ _fsprotocol_find(FsProtocol*self	///< typical FsProtocol 'self' object
 /// Find the FsProtoElem that corresponds to the given @ref FrameSet.
 /// The FrameSet can have a sequence number - or not.
 FSTATIC FsProtoElem*
-_fsprotocol_findbypkt(FsProtocol* self	///< The FsProtocol object we're operating on
-,		      NetAddr* addr	///< The Network address we're looking for
-,		      FrameSet* fs)	///< The FrameSet whose queue id we'll use in looking for it
+_fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operating on
+,		      const NetAddr* addr	///< The Network address we're looking for
+,		      FrameSet* fs)		///< The FrameSet whose queue id we'll use in looking for it
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
 	return self->find(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
@@ -75,8 +75,8 @@ _fsprotocol_findbypkt(FsProtocol* self	///< The FsProtocol object we're operatin
 /// Add and return a FsProtoElem connection to our collection of connections...
 /// Note that if it's already there, the exiting connection will be returned.
 FSTATIC FsProtoElem*
-_fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
-,		    guint16 qid		///< Queue id for the connection
+_fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
+,		    guint16 qid			///< Queue id for the connection
 ,		    NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	ret;
@@ -260,7 +260,9 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 
 /// Enqueue a received packet - handling ACKs (and NAKs) when they show up
 FSTATIC void
-_fsprotocol_receive(FsProtocol* self, NetAddr* fromaddr, FrameSet* fs)
+_fsprotocol_receive(FsProtocol* self			///< Self pointer
+,				const NetAddr* fromaddr	///< Address that this FrameSet comes from
+,				FrameSet* fs)		///< Frameset that was received
 {
 	FsProtoElem*	fspe = self->findbypkt(self, fromaddr, fs);
 	SeqnoFrame*	seq = fs->getseqno(fs);
@@ -371,7 +373,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 ///< Flush all queues that connect to the given address - happens when an endpoint dies
 FSTATIC void
 _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating on
-,		     NetAddr* addr	///< The address we should flush to/from
+,		     const NetAddr* addr///< The address we should flush to/from
 ,		     enum ioflush op)	///< What kind of flush to perform?
 {
 	GHashTableIter	iter;

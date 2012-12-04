@@ -42,6 +42,7 @@
 
 typedef struct _FsProtocol FsProtocol;
 typedef struct _FsProtoElem FsProtoElem;
+typedef struct _FsProtoElemSearchKey FsProtoElemSearchKey;
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.
 /// Note that the @ref FsProtocol class is a glorified hash table of these FsProtoElem structures
@@ -54,6 +55,12 @@ struct _FsProtoElem {
 	FsQueue*	inq;		///< Queue of incoming messages - perhaps missing packets...
 	FsProtocol*	parent;		///< Our parent FsProtocol object
 };
+
+struct _FsProtoElemSearchKey {
+	const NetAddr*	endpoint;	///< Who is our partner in this?
+	guint16		_qid;		///< Queue id of far endpoint
+};
+	
 
 /// What kind of flush operation do you want?
 enum ioflush {
@@ -70,15 +77,15 @@ struct _FsProtocol {
 	GHashTable*	endpoints;					///< All our FsProtoElem endpoints
 	GList*		unacked;					///< List of FsProtoElems awaiting ACKs
 	GList*		ipend;						///< List of FsProtoElems ready to be read
-	FsProtoElem*	(*find)(FsProtocol*,guint16, NetAddr*);		///< Find a connection to the given endpoint
-	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find a connection to the given endpoint
-	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
+	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);	///< Find a connection to the given endpoint
+	FsProtoElem*	(*findbypkt)(FsProtocol*, const NetAddr*, FrameSet*);///< Find a connection to the given endpoint
+	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);///< Add a connection to the given endpoint
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
 	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next packet
-	void		(*receive)(FsProtocol*, NetAddr*, FrameSet*);	///< Enqueue a received input packet
+	void		(*receive)(FsProtocol*, const NetAddr*, FrameSet*);///< Enqueue a received input packet
 	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one packet
 	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of packets
-	void		(*flushall)(FsProtocol*,NetAddr*,enum ioflush);	///< Flush packets to given address
+	void		(*flushall)(FsProtocol*,const NetAddr*,enum ioflush);///< Flush packets to given address
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj);
 #define	DEFAULT_FSP_QID	0 ///< What is the Queue ID of a packet w/o a sequence number?
