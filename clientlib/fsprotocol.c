@@ -49,7 +49,7 @@ DEBUGDECLARATIONS
 
 #define		TRYXMIT(fspe)	{_fsprotocol_xmitifwecan(fspe);}
 
-/// Locate the FsProtoElem structure that corresponds to this (qid, destaddr) pair
+/// Locate the FsProtoElem structure that corresponds to this (destaddr, qid) pair
 FSTATIC FsProtoElem*
 _fsprotocol_find(FsProtocol*self	///< typical FsProtocol 'self' object
 ,		 guint16 qid		///< Queue id of far endpoint
@@ -61,7 +61,8 @@ _fsprotocol_find(FsProtocol*self	///< typical FsProtocol 'self' object
 	return (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
 }
 
-/// Find the FsProtoElem that goes with the given packet.  It can have a sequence number - or not.
+/// Find the FsProtoElem that corresponds to the given @ref FrameSet.
+/// The FrameSet can have a sequence number - or not.
 FSTATIC FsProtoElem*
 _fsprotocol_findbypkt(FsProtocol* self	///< The FsProtocol object we're operating on
 ,		      NetAddr* addr	///< The Network address we're looking for
@@ -72,12 +73,14 @@ _fsprotocol_findbypkt(FsProtocol* self	///< The FsProtocol object we're operatin
 }
 
 /// Add and return a FsProtoElem connection to our collection of connections...
+/// Note that if it's already there, the exiting connection will be returned.
 FSTATIC FsProtoElem*
 _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 ,		    guint16 qid		///< Queue id for the connection
 ,		    NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	ret;
+
 	if ((ret = self->find(self, qid, destaddr))) {
 		return ret;
 	}
@@ -96,7 +99,7 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 /// Construct an FsQueue object
 WINEXPORT FsProtocol*
 fsprotocol_new(guint objsize	///< Size of object to be constructed
-	,      NetIO* io)	///< Pointer to NetIO for us to reference
+,	      NetIO* io)	///< Pointer to NetIO for us to reference
 {
 	FsProtocol*		self;
 	BINDDEBUG(FsProtocol);
@@ -107,6 +110,7 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 	if (!self) {
 		return NULL;
 	}
+	// Initialize our (virtual) member functions
 	self->baseclass._finalize = _fsprotocol_finalize;
 	self->find =		_fsprotocol_find;
 	self->findbypkt =	_fsprotocol_findbypkt;
@@ -117,8 +121,9 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 	self->send1 =		_fsprotocol_send1;
 	self->send =		_fsprotocol_send;
 	self->flushall =	_fsprotocol_flushall;
-	self->io =		io;
-	io->baseclass.ref(&io->baseclass);
+
+	// Initialize our data members
+	self->io =		io; io->baseclass.ref(&io->baseclass);
 	/// The key and the data are in fact the same object
 	/// Don't want to free the object twice ;-) - hence the final NULL argument
 	self->endpoints = g_hash_table_new_full(_fsprotocol_protoelem_hash,_fsprotocol_protoelem_equal
@@ -127,21 +132,32 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 	self->ipend = NULL;
 	return self;
 }
+
 /// Finalize function for our @ref FsProtocol objects
 FSTATIC void
 _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 {
 	FsProtocol*	self = CASTTOCLASS(FsProtocol, aself);
-	self->io->baseclass.ref(&self->io->baseclass); self->io = NULL;
+
+	self->io->baseclass.unref(&self->io->baseclass); self->io = NULL;
+
+	// Free up the unacked list
 	g_list_free(self->unacked);		// No additional 'ref's were taken for this list
 	self->unacked = NULL;
+
+	// Free up the input pending list
 	g_list_free(self->ipend);		// No additional 'ref's were taken for this list either
 	self->ipend = NULL;
+
+	// Free up our hash table of endpoints
 	g_hash_table_destroy(self->endpoints);	// It will free the FsProtoElems contained therein
 	self->endpoints = NULL;
+
+	// Lastly free our base storage
 	FREECLASSOBJ(self);
 }
-/// Finalize function suitable for GHashTables holding FsProtoElems
+
+/// Finalize function suitable for GHashTables holding FsProtoElems as keys (and values)
 FSTATIC void
 _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to destroy
 {
@@ -163,13 +179,15 @@ _fsprotocol_protoelem_equal(gconstpointer lhs	///< FsProtoElem left hand side to
 
 
 }
+
 /// Hash function over FsProtoElem structures suitable for GHashTables
 FSTATIC guint
 _fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing)	///< FsProtoElem to hash
 {
 	const FsProtoElem *	key = (const FsProtoElem*)fsprotoelemthing;
-	/// FIXME - need to take the queue id into account
-	return key->endpoint->hash(key->endpoint);
+	// One could imagine doing a random circular rotate on the Queue Id before xoring it...
+	// But this is probably good enough...
+	return (key->endpoint->hash(key->endpoint) ^ key->_qid);
 }
 
 /// Return TRUE if there are any packets available to read
@@ -184,7 +202,8 @@ FSTATIC FrameSet*
 _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 ,		 NetAddr** fromaddr)	///< Where return result is coming from
 {
-	GList*	list;
+	GList*	list;	// List of all our FsQueues which have input
+
 	// Loop over all the FSqueues which we think are ready to read...
 	for (list=self->ipend; list != NULL; list=list->next) {
 		FrameSet*	fs;
@@ -197,6 +216,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 		}
 		if (!fspe->inq->isready) {
 			g_warn_if_reached();
+			// But trudge on anyway...
 		}
 		seq = fs->getseqno(fs);
 		// Look to see if there is something ready to be read on this queue
@@ -212,7 +232,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 			ret = iq->deq(iq);
 			// Now look and see if there will _still_ be something
 			// ready to be read on this input queue.  If not, then
-			// We should remove this FsProtoElem from the 'ipend' queue
+			// we should remove this FsProtoElem from the 'ipend' queue
 			fs = iq->qhead(iq);
 			if (fs == NULL) {
 				// Our FsQueue is empty. Remove our FsProtoElem from the ipend queue
@@ -238,9 +258,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 	return NULL;
 }
 
-
-
-/// Enqueue a received packet - handling ACKs when they show up
+/// Enqueue a received packet - handling ACKs (and NAKs) when they show up
 FSTATIC void
 _fsprotocol_receive(FsProtocol* self, NetAddr* fromaddr, FrameSet* fs)
 {
@@ -249,6 +267,7 @@ _fsprotocol_receive(FsProtocol* self, NetAddr* fromaddr, FrameSet* fs)
 	gboolean is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
 
 	g_return_if_fail(fspe != NULL);
+	
 	if (is_acknack) {
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
@@ -261,19 +280,21 @@ _fsprotocol_receive(FsProtocol* self, NetAddr* fromaddr, FrameSet* fs)
 		// NACKs get treated like ACKs, except they're also passed along to the application
 		// like a regular FrameSet
 	}
-	// Queue up frameset, and possibly add to the list of fspe's with input ready to read
-	/// FIXME - need to look at the length of the queue of incoming packets
+	// Queue up the received frameset
 	fspe->inq->inqsorted(fspe->inq, fs);
+
+	// If this queue wasn't shown as ready before - see if it is ready for reading now...
 	if (!fspe->inq->isready) {
 		if (seq == NULL || seq->_reqid == fspe->inq->_nextseqno) {
-			fspe->parent->unacked = g_list_prepend(self->ipend, fspe);
+			// Now ready to read - put our fspe on the list of fspes with input pending
+			self->ipend = g_list_prepend(self->ipend, fspe);
 			fspe->inq->isready = TRUE;
 		}
 	}
 	TRYXMIT(fspe);
 }
 
-/// Enqueue and reliably send a single frameset
+/// Enqueue and send a single reliable frameset
 FSTATIC gboolean
 _fsprotocol_send1(FsProtocol* self	///< Our object
 ,		  FrameSet* frameset	///< Frameset to send
@@ -289,7 +310,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	TRYXMIT(fspe);
 	return ret;
 }
-/// Enqueue and reliably send a list of FrameSets 
+/// Enqueue and send a list of reliable FrameSets (send all or none)
 FSTATIC gboolean
 _fsprotocol_send(FsProtocol* self	///< Our object
 ,		 GSList* framesets	///< Framesets to be sent
@@ -305,13 +326,16 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 		for (this=framesets; this; this=this->next) {
 			fspe->outq->enq(fspe->outq, CASTTOCLASS(FrameSet, this->data));
 		}
+		// Add this fspe to the list of fspes with un-ACKed FrameSets - if not already on it
 		if (!g_list_find(fspe->parent->unacked, fspe)) {
 			fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
+			// This might eventually need to be improved for efficiency...
 		}
 	}
 	TRYXMIT(fspe);
 	return ret;
 }
+
 /// Our role in life is to send any packets that need sending.
 FSTATIC void
 _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to operate on
@@ -319,6 +343,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 	FsQueue*	outq = fspe->outq;
 	FrameSet*	fs;
 	(void)fspe;
+
 	// At this point we _ought_ to have at least one packet to transmit...
 	while (NULL != (fs = outq->qhead(outq))) {
 		SeqnoFrame*	seq = fs->getseqno(fs);
@@ -331,16 +356,19 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 		}
 	}
 	if (fs != NULL) {
-		// No more packets to send...
+		// No more packets to send... No harm done if not on the list
 		fspe->parent->unacked = g_list_remove(fspe->parent->unacked, fspe);
+		// See comment in the _send function regarding eventual efficiency concerns
 	}else{
 		// Ensure that this 'fspe' is on the list of fspe's with unacked packets
 		if (!g_list_find(fspe->parent->unacked, fspe)) {
 			fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
+			// See comment in the _send function regarding eventual efficiency concerns
 		}
 	}
 }
-///< Flush all queues that connect to the given address
+
+///< Flush all queues that connect to the given address - happens when an endpoint dies
 FSTATIC void
 _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating on
 ,		     NetAddr* addr	///< The address we should flush to/from
@@ -349,7 +377,7 @@ _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating
 	GHashTableIter	iter;
 	FsProtoElem*	fspe;
 	/// @TODO If we actually _have_ a million servers, this will have to be looked at again -
-	/// We will have to have a list of queues per server -- or this will be horribly slow
+	/// We may eventually need to create a list of queues per server -- or this will be horribly slow
 
 	g_hash_table_iter_init(&iter, self->endpoints);
 	while (g_hash_table_iter_next(&iter, (gpointer*)&fspe, NULL)) {

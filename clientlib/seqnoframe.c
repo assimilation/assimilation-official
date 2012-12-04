@@ -213,20 +213,26 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	if (_sessionId == 0) {
 		_seqnoframe_initsessionid();
 	}
-	sframe->setreqid = _seqnoframe_setreqid;
-	sframe->setqid = _seqnoframe_setqid;
 	sframe->getreqid = _seqnoframe_getreqid;
+	sframe->setreqid = _seqnoframe_setreqid;
 	sframe->getqid = _seqnoframe_getqid;
+	sframe->setqid = _seqnoframe_setqid;
 	sframe->getsessionid = _seqnoframe_getsessionid;
 	sframe->equal = _seqnoframe_equal;
 	sframe->compare = _seqnoframe_compare;
+
+	// Base class member functions
 	sframe->baseclass.updatedata = _seqnoframe_updatedata;
 	sframe->baseclass.isvalid = _seqnoframe_isvalid;
 	sframe->baseclass.value = NULL;
 	sframe->baseclass.setvalue = NULL;
 	sframe->baseclass.valuefinalize = NULL;
 	sframe->baseclass.length = sizeof(guint32)+sizeof(guint64)+sizeof(guint16);
+
+	// Subclass (i.e., SeqnoFrame) data
 	sframe->_sessionid = _sessionId;
+	sframe->_reqid = 0;
+	sframe->_qid = 0;
 	return sframe;
 }
 /// Construct a fully-iniitialized SeqnoFrame object
