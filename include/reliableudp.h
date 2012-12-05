@@ -43,43 +43,46 @@ struct _ReliableUDP {
 	FsProtocol*	_protocol;	///< Queuing, ordering, retransmission and ACKing discipline
 	double		_rcvloss;	///< Fraction of input packets to lose
 	double		_xmitloss;	///< Fraction of output packets to lose
-	gboolean	_shouldlosepkts;///< TRUE if we should force packet loss - FALSE is default ;-)
+	gboolean	_shouldlosepkts;///< TRUE if we should force packet loss - FALSE is default :-D
 	gboolean	(*sendreliable)		///< Send a single FrameSet via @ref ReliableUDP
 							///< @pre must have non-NULL _signframe
 			    (ReliableUDP*self,		///<[in/out] 'this' object pointer
-			     NetAddr* dest,	///<[in] destination address
+			     NetAddr* dest,		///<[in] destination address
 			     guint16 queueid,		///<[in] The queue id to send it to
 			     FrameSet* frameset)	///<[in] The FrameSet to send
 						   ;	// ";" is here to work around a doxygen bug
-	gboolean	(*sendreliableM)		///< Send a multiple FrameSets via @ref ReliableUDP
+	gboolean	(*sendreliableM)	///< Send a multiple FrameSets via @ref ReliableUDP
 							///< @pre must have non-NULL _signframe
 			    (ReliableUDP*self,		///<[in/out] 'this' object pointer
-			     NetAddr* dest,	///<[in] destination address
+			     NetAddr* dest,		///<[in] destination address
 			     guint16 queueid,		///<[in] The queue id to send it to
 			     GSList* fslist)		///<[in] The list of FrameSets to send
 						   ;	// ";" is here to work around a doxygen bug
-	gboolean	(*ackmessage)
+	gboolean	(*ackmessage)		///< ACK a message
 				(ReliableUDP* self,	///<[in/out] 'this' object pointer
-				 NetAddr* dest,	///<[in] destination address
+				 NetAddr* dest,		///<[in] destination address
 				 FrameSet* frameset)	///<[in] The FrameSet to ACK - note that it must
-				 			///< have a sequence number
+				 			///< have a sequence number.  Good thing to remember
+							///< that the client (that is <i>you</i> has to 
+							///< ACK or NAK packets or they won't get ACKed -
+							///< which will totally ball things up...
 						   ;	// ";" is here to work around a doxygen bug
-	gboolean	(*nackmessage)
+	gboolean	(*nackmessage)		///< NAK a message
 				(ReliableUDP* self,	///<[in/out] 'this' object pointer
-				 NetAddr* dest,	///<[in] destination address
+				 NetAddr* dest,		///<[in] destination address
 				 FrameSet* frameset)	///<[in] The FrameSet to NAK - note that it must
 				 			///< have a sequence number
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*setpktloss)			/// Force loss of packets FOR TESTING ONLY
+	void		(*setpktloss)		/// Force loss of packets FOR TESTING ONLY
 			    (ReliableUDP* self,		///<[in/out] 'this' object pointer
 			     double rcvloss,		/// Fraction of input packets to "lose" at random
 			     double xmitloss)		/// Fraction of output packets to "lose" at random
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*enablepktloss)		/// Enable or disable testing packet loss
+	void		(*enablepktloss)	/// Enable or disable testing packet loss
 			     (ReliableUDP* self,	///<[in/out] 'this' object pointer
 			      gboolean enable)		/// TRUE to enable packet loss
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*flushall)			///< Flush packets in queues to this address
+	void		(*flushall)		///< Flush packets in queues to this address
 			      (ReliableUDP* self,	///< 'this' object pointer
 			       const NetAddr* destaddr, ///< Address we're flushing for
 			       enum ioflush flushtype)  ///< Flush input, output or both

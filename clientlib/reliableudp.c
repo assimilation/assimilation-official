@@ -1,8 +1,9 @@
 /**
  * @file
  * @brief Implements the ReliableUDP class - providing reliable transmission for UDP
- * @details It adds reliable packet transmission to the @ref NetIOudp class without
- * modifying the functions it already provides.
+ * @details It adds reliable packet transmission to the @ref NetIOudp class
+ * through use of the @ref FsProtocol class.
+ * 
  *
  * This file is part of the Assimilation Project.
  *
@@ -29,18 +30,20 @@
 #include <frametypes.h>
 
 
-/// @defgroup NetIOudp NetIOudp class
+/// @defgroup ReliableUDP ReliableUDP class
 ///@{
-///@ingroup NetIO
-/// A NetIOudp object performs network writes and reads on UDP sockets.
-/// It is a class from which we might eventually make subclasses (but it doesn't seem likely),
-/// and is managed by our @ref ProjectClass system.
-/// Except for the constructor, it is identical to the NetIO class.
+///@ingroup NetIOudp
+/// A ReliableUDP object implements a protocol to make UDP reliable.
+/// It is a class from which we might eventually make subclasses and is managed
+/// by our @ref ProjectClass system.
+/// It takes great advantage of all the @ref FsProtocol class - which does much of the work.
 
+// Saved base class functions - so we call them w/o storing a copy in every object
 static void (*_baseclass_finalize)(AssimObj*);
+static GSList* (*_baseclass_rcvmany)(NetIO*, NetAddr**);
+// These two could probably be eliminated...
 static void (*_baseclass_sendone)(NetIO*, const NetAddr*, FrameSet*);
 static void (*_baseclass_sendmany)(NetIO*, const NetAddr*, GSList*);
-static GSList* (*_baseclass_rcvmany)(NetIO*, NetAddr**);
 
 FSTATIC gboolean _reliableudp_sendreliable(ReliableUDP*self, NetAddr*, guint16, FrameSet*);
 FSTATIC gboolean _reliableudp_sendreliableM(ReliableUDP*self, NetAddr*, guint16, GSList*);
@@ -50,6 +53,7 @@ FSTATIC void	 _reliableudp_setpktloss (ReliableUDP* self, double rcvloss, double
 FSTATIC void	 _reliableudp_enablepktloss (ReliableUDP* self, gboolean enable);
 FSTATIC void	 _reliableudp_flushall(ReliableUDP*self, const NetAddr* dest, enum ioflush);
 
+// Our functions that override base class functions...
 FSTATIC void _reliableudp_finalize(AssimObj*);
 FSTATIC void _reliableudp_sendaframeset(NetIO*, const NetAddr*, FrameSet*);
 FSTATIC void _reliableudp_sendframesets(NetIO*, const NetAddr*, GSList*);
@@ -84,10 +88,13 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		self->nackmessage = _reliableudp_nackmessage;
 		self->enablepktloss = _reliableudp_enablepktloss;
 		self->flushall = _reliableudp_flushall;
+		// Now for the base class functions which we override
 		self->baseclass.baseclass.baseclass._finalize = _reliableudp_finalize;
+		self->baseclass.baseclass.recvframesets = _reliableudp_recvframesets;
+		// These next two don't really do anything different - and could be eliminated
+		// as of now.
 		self->baseclass.baseclass.sendframesets = _reliableudp_sendframesets;
 		self->baseclass.baseclass.sendaframeset = _reliableudp_sendaframeset;
-		self->baseclass.baseclass.recvframesets = _reliableudp_recvframesets;
 	}
 	return self;
 }
@@ -99,6 +106,7 @@ _reliableudp_finalize(AssimObj* obj)
 	ReliableUDP*	self = CASTTOCLASS(ReliableUDP, obj);
 	if (self) {
 		if (self->_protocol) {
+			// Un-ref that puppy!
 			self->_protocol->baseclass.unref(&self->_protocol->baseclass);
 			self->_protocol = NULL;
 		}
@@ -125,7 +133,7 @@ _reliableudp_sendframesets(NetIO* nself, const NetAddr* dest, GSList* fslist)
 /// Reliable UDP verison of 'recvframesets' from base class
 /// We get called when the user thinks he might have some packets to receive.
 /// We intervene here, and queue them up, making sure they arrive in order and so on.
-/// ACKing the packets is the responsibility of our client code.
+/// ACKing the packets remains the responsibility of our client code.
 FSTATIC GSList*
 _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 {
@@ -137,10 +145,6 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 	GSList*		retval = NULL;
 
 	fsread = _baseclass_rcvmany(nself, &oursrcaddr);
-	if (fsread == NULL) {
-		/// @TODO Is this right? - or should we check our input queues anyway?
-		return NULL;
-	}
 	self = CASTTOCLASS(ReliableUDP, nself);
 	proto = self->_protocol;
 
@@ -177,6 +181,7 @@ _reliableudp_sendreliable(ReliableUDP*self, NetAddr* dest, guint16 qid, FrameSet
 	if (self->_shouldlosepkts && g_random_double() < self->_xmitloss) {
 		return TRUE;
 	}
+	// Nope - we get to send it out!
 	return self->_protocol->send1(self->_protocol, fs, qid, dest);
 }
 
@@ -186,12 +191,13 @@ _reliableudp_sendreliableM(ReliableUDP*self, NetAddr* dest, guint16 qid, GSList*
 {
 	// See if we've been requested to drop a packet for testing
 	if (self->_shouldlosepkts && g_random_double() < self->_xmitloss) {
+		// It's easier to drop all or none - that's probably good enough for testing...
 		return TRUE;
 	}
 	return self->_protocol->send(self->_protocol, fslist, qid, dest);
 }
 
-/// Send an ACK for for the packet we've been handed
+/// Send an ACK (as requested) for for the packet we've been handed
 FSTATIC gboolean
 _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 {
@@ -213,7 +219,7 @@ _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 	return TRUE;
 }
 
-/// Send a NAK for for the packet we've been handed
+/// Send a NAK (as requested) for the packet we've been handed
 FSTATIC gboolean
 _reliableudp_nackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 {
