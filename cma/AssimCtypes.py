@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -1986,10 +1986,6 @@ struct__NetIO.__slots__ = [
     'setmaxpktsize',
     'sendaframeset',
     'sendframesets',
-    'sendamessage',
-    'sendmessages',
-    'ackamessage',
-    'nackamessage',
     'recvframesets',
     'signframe',
     'cryptframe',
@@ -2014,23 +2010,19 @@ struct__NetIO._fields_ = [
     ('setmaxpktsize', CFUNCTYPE(UNCHECKED(gsize), POINTER(NetIO), gsize)),
     ('sendaframeset', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
     ('sendframesets', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(GSList))),
-    ('sendamessage', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
-    ('sendmessages', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(GSList))),
-    ('ackamessage', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
-    ('nackamessage', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
     ('recvframesets', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(NetIO), POINTER(POINTER(NetAddr)))),
     ('signframe', CFUNCTYPE(UNCHECKED(POINTER(SignFrame)), POINTER(NetIO))),
     ('cryptframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 124
+# ../include/netio.h: 114
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 126
+# ../include/netio.h: 116
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2371,7 +2363,7 @@ if hasattr(_libs['libassimilationclientlib.so'], 'discovery_unregister'):
     discovery_unregister.argtypes = [String]
     discovery_unregister.restype = None
 
-# ../include/fsqueue.h: 42
+# ../include/fsqueue.h: 45
 class struct__FsQueue(Structure):
     pass
 
@@ -2380,6 +2372,7 @@ FsQueue = struct__FsQueue # ../include/fsqueue.h: 37
 struct__FsQueue.__slots__ = [
     'baseclass',
     '_nextseqno',
+    '_sessionid',
     '_maxqlen',
     '_curqlen',
     '_q',
@@ -2402,6 +2395,7 @@ struct__FsQueue.__slots__ = [
 struct__FsQueue._fields_ = [
     ('baseclass', AssimObj),
     ('_nextseqno', guint64),
+    ('_sessionid', guint32),
     ('_maxqlen', guint),
     ('_curqlen', guint),
     ('_q', POINTER(GQueue)),
@@ -2422,23 +2416,29 @@ struct__FsQueue._fields_ = [
     ('hasqspace', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), guint)),
 ]
 
-# ../include/fsqueue.h: 65
+# ../include/fsqueue.h: 75
 if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
     fsqueue_new = _libs['libassimilationclientlib.so'].fsqueue_new
     fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
     fsqueue_new.restype = POINTER(FsQueue)
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 59
+# /home/alanr/monitor/src/include/fsprotocol.h: 74
 class struct__FsProtocol(Structure):
     pass
 
-FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 45
+FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 43
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 49
+# /home/alanr/monitor/src/include/fsprotocol.h: 51
 class struct__FsProtoElem(Structure):
     pass
 
-FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 46
+FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 44
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 59
+class struct__FsProtoElemSearchKey(Structure):
+    pass
+
+FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 45
 
 struct__FsProtoElem.__slots__ = [
     'endpoint',
@@ -2455,6 +2455,23 @@ struct__FsProtoElem._fields_ = [
     ('parent', POINTER(FsProtocol)),
 ]
 
+struct__FsProtoElemSearchKey.__slots__ = [
+    'endpoint',
+    '_qid',
+]
+struct__FsProtoElemSearchKey._fields_ = [
+    ('endpoint', POINTER(NetAddr)),
+    ('_qid', guint16),
+]
+
+enum_ioflush = c_int # /home/alanr/monitor/src/include/fsprotocol.h: 66
+
+FsProtoFLUSHIN = 0 # /home/alanr/monitor/src/include/fsprotocol.h: 66
+
+FsProtoFLUSHOUT = (FsProtoFLUSHIN + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 66
+
+FsProtoFLUSHBOTH = (FsProtoFLUSHOUT + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 66
+
 struct__FsProtocol.__slots__ = [
     'baseclass',
     'io',
@@ -2469,6 +2486,7 @@ struct__FsProtocol.__slots__ = [
     'receive',
     'send1',
     'send',
+    'flushall',
 ]
 struct__FsProtocol._fields_ = [
     ('baseclass', AssimObj),
@@ -2484,9 +2502,10 @@ struct__FsProtocol._fields_ = [
     ('receive', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('send1', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(FrameSet), guint16, POINTER(NetAddr))),
     ('send', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(GSList), guint16, POINTER(NetAddr))),
+    ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), enum_ioflush)),
 ]
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 74
+# /home/alanr/monitor/src/include/fsprotocol.h: 90
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
     fsprotocol_new.argtypes = [guint, POINTER(NetIO)]
@@ -3265,6 +3284,50 @@ if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libassimilationclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
     proj_class_finalize_sys.restype = None
+
+# /home/alanr/monitor/src/include/reliableudp.h: 41
+class struct__ReliableUDP(Structure):
+    pass
+
+ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.h: 37
+
+struct__ReliableUDP.__slots__ = [
+    'baseclass',
+    '_protocol',
+    '_rcvloss',
+    '_xmitloss',
+    '_shouldlosepkts',
+    'sendreliable',
+    'sendreliableM',
+    'ackmessage',
+    'nackmessage',
+    'setpktloss',
+    'enablepktloss',
+    'flushall',
+]
+struct__ReliableUDP._fields_ = [
+    ('baseclass', NetIOudp),
+    ('_protocol', POINTER(FsProtocol)),
+    ('_rcvloss', c_double),
+    ('_xmitloss', c_double),
+    ('_shouldlosepkts', gboolean),
+    ('sendreliable', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(FrameSet))),
+    ('sendreliableM', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(GSList))),
+    ('ackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), POINTER(FrameSet))),
+    ('nackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), POINTER(FrameSet))),
+    ('setpktloss', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), c_double, c_double)),
+    ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), gboolean)),
+    ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), POINTER(NetAddr), enum_ioflush)),
+]
+
+# /home/alanr/monitor/src/include/reliableudp.h: 91
+for _lib in _libs.itervalues():
+    if not hasattr(_lib, 'reliableudp_new'):
+        continue
+    reliableudp_new = _lib.reliableudp_new
+    reliableudp_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
+    reliableudp_new.restype = POINTER(ReliableUDP)
+    break
 
 # /home/alanr/monitor/src/include/server_dump.h: 22
 for _lib in _libs.itervalues():
@@ -4126,13 +4189,13 @@ try:
 except:
     pass
 
-# ../include/fsqueue.h: 66
+# ../include/fsqueue.h: 76
 try:
     DEFAULT_FSQMAX = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 75
+# /home/alanr/monitor/src/include/fsprotocol.h: 91
 try:
     DEFAULT_FSP_QID = 0
 except:
@@ -4622,11 +4685,13 @@ _CstringFrame = struct__CstringFrame # /home/alanr/monitor/src/include/cstringfr
 
 _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
-_FsQueue = struct__FsQueue # ../include/fsqueue.h: 42
+_FsQueue = struct__FsQueue # ../include/fsqueue.h: 45
 
-_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 59
+_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 74
 
-_FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 49
+_FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 51
+
+_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 59
 
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 44
 
@@ -4645,6 +4710,8 @@ _NetIOudp = struct__NetIOudp # /home/alanr/monitor/src/include/netioudp.h: 39
 _NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe.h: 33
 
 _GSource_pcap = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 38
+
+_ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.h: 41
 
 _SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 34
 
