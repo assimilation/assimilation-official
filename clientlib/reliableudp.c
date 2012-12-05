@@ -74,6 +74,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	}
 	uret = netioudp_new(objsize, config, decoder);
 	if (uret) {
+		self = CASTTOCLASS(ReliableUDP, uret);
 		if (!_baseclass_finalize) {
 			proj_class_register_subclassed(uret, "ReliableUDP");
 			_baseclass_finalize = self->baseclass.baseclass.baseclass._finalize;
@@ -81,7 +82,6 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 			_baseclass_sendmany = self->baseclass.baseclass.sendframesets;
 			_baseclass_rcvmany = self->baseclass.baseclass.recvframesets;
 		}
-		self = CASTTOCLASS(ReliableUDP, uret);
 		self->sendreliable = _reliableudp_sendreliable;
 		self->sendreliableM = _reliableudp_sendreliableM;
 		self->ackmessage = _reliableudp_ackmessage;
