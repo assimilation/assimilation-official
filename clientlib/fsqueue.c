@@ -101,7 +101,7 @@ _fsqueue_deq(FsQueue* self)		///< The @ref FsQueue object we're operating on
 }
 
 /// Enqueue a @ref FrameSet onto an @ref FsQueue - sorted by sequence number - NO dups allowed
-/// This method is used ONLY for received packets or <i>unsequenced</i> output packets.
+/// This method is used ONLY for received packets or it could be used for <i>unsequenced</i> output packets.
 FSTATIC gboolean
 _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating on
 ,		   FrameSet* fs)		///< The @ref FrameSet object to enqueue
@@ -116,13 +116,17 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 		// Replay attack?
 		g_warning("Possible replay attack? Current session id: %d, incoming session id: %d"
 		,	self->_sessionid, seqno->_sessionid);
-		return TRUE;
+		return FALSE;
 	}
 	if (seqno && seqno->_reqid < self->_nextseqno) {
 		// We've already delivered this packet to our customers...
-		return TRUE;
+		// We need to see if we've already sent the ACK for this packet.
+		// If so, we need to ACK it again...
+		return FALSE;
 	}
 
+	// Probably this shouldn't really log an error - but I'd like to see it happen
+	// if it does -- unless of course, it turns out to happen a lot (unlikely...)
 	g_return_val_if_fail(self->_curqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
 
 	// Frames without sequence numbers go to the head of the queue

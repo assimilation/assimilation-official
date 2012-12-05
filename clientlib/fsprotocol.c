@@ -24,6 +24,7 @@
 #include <string.h>
 #include <projectcommon.h>
 #include <fsprotocol.h>
+#include <frametypes.h>
 
 FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
@@ -33,6 +34,7 @@ FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, const NetAddr*, FrameSet*);
+FSTATIC void		_fsprotocol_updateack(FsProtoElem* fspe, FrameSet* seq);
 FSTATIC gboolean	_fsprotocol_iready(FsProtocol*);
 FSTATIC FrameSet*	_fsprotocol_read(FsProtocol*, NetAddr**);
 FSTATIC void		_fsprotocol_receive(FsProtocol*, const NetAddr*, FrameSet*);
@@ -70,6 +72,19 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
 	return self->find(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
+}
+
+/// (possibly) Update the last ACKed sequence number in our FsProtoElem
+FSTATIC void
+_fsprotocol_updateack(FsProtoElem* fspe, FrameSet* fs)
+{
+	SeqnoFrame*	seq = fs->getseqno(fs);
+	if (seq && fspe->lastacksent->compare(fspe->lastacksent, seq) < 0) {
+		fspe->lastacksent->baseclass.baseclass.unref(&fspe->lastacksent->baseclass.baseclass);
+		fspe->lastacksent = seq;
+		seq->baseclass.baseclass.unref(&seq->baseclass.baseclass);
+		
+	}
 }
 
 /// Add and return a FsProtoElem connection to our collection of connections...
@@ -283,7 +298,26 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		// like a regular FrameSet
 	}
 	// Queue up the received frameset
-	fspe->inq->inqsorted(fspe->inq, fs);
+	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
+		// One reason for not queueing it is that we've already sent it to our client
+		// If they have already ACKed it, then we will ACK it again automatically -
+		// because our application won't be shown this packet again - so they can't ACK it
+		// and our ACK might have gotten lost, so we need to send it again...
+		if (seq && fspe->lastacksent && seq->_sessionid == fspe->lastacksent->_sessionid
+		&&	seq->compare(seq, fspe->lastacksent) < 0) {
+			// We've already sent an ACK for this packet, send it again...
+			FrameSet*	fs;
+			SeqnoFrame*	ackseq;
+
+			fs = frameset_new(FRAMESETTYPE_ACK);
+			ackseq = seqnoframe_new_init(FRAMETYPE_REPLYID, seq->getreqid(seq), seq->getqid(seq));
+			frameset_append_frame(fs, &ackseq->baseclass);
+			ackseq->baseclass.baseclass.unref(&ackseq->baseclass.baseclass); ackseq = NULL;
+
+			self->io->sendaframeset(self->io, fspe->endpoint, fs);
+			fs->baseclass.unref(&fs->baseclass); ackseq = NULL;
+		}
+	}
 
 	// If this queue wasn't shown as ready before - see if it is ready for reading now...
 	if (!fspe->inq->isready) {
@@ -299,15 +333,21 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 /// Enqueue and send a single reliable frameset
 FSTATIC gboolean
 _fsprotocol_send1(FsProtocol* self	///< Our object
-,		  FrameSet* frameset	///< Frameset to send
+,		  FrameSet* fs	///< Frameset to send
 ,		  guint16   qid		///< Far endpoint queue id
 ,		  NetAddr* toaddr)	///< Where to send it
 {
 	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret;
-	ret =  fspe->outq->enq(fspe->outq, frameset);
+	gboolean is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
+	ret =  fspe->outq->enq(fspe->outq, fs);
 	if (!g_list_find(fspe->parent->unacked, fspe)) {
+		///@todo: This might be slow if we send a lot of packets to an endpoing
+		/// before getting a response, but that's not very likely.
 		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
+	}
+	if (is_acknack) {
+		_fsprotocol_updateack(fspe, fs);
 	}
 	TRYXMIT(fspe);
 	return ret;
@@ -326,7 +366,14 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 	if (ret) {
 		GSList*	this;
 		for (this=framesets; this; this=this->next) {
-			fspe->outq->enq(fspe->outq, CASTTOCLASS(FrameSet, this->data));
+			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
+			gboolean is_acknack;
+			g_return_val_if_fail(fs != NULL, FALSE);
+			is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
+			fspe->outq->enq(fspe->outq, fs);
+			if (is_acknack) {
+				_fsprotocol_updateack(fspe, fs);
+			}
 		}
 		// Add this fspe to the list of fspes with un-ACKed FrameSets - if not already on it
 		if (!g_list_find(fspe->parent->unacked, fspe)) {

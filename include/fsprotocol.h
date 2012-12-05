@@ -53,6 +53,7 @@ struct _FsProtoElem {
 	guint16		_qid;		///< Queue id of far endpoint
 	FsQueue*	outq;		///< Queue of outbound messages
 	FsQueue*	inq;		///< Queue of incoming messages - perhaps missing packets...
+	SeqnoFrame*	lastacksent;	///< What is the highest sequence number we've ACKed?
 	FsProtocol*	parent;		///< Our parent FsProtocol object
 };
 
