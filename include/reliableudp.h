@@ -2,7 +2,7 @@
  * @file
  * @brief Implements the Reliable UDP network I/O transport (ReliableUDP) class.
  * @details It knows how to construct UDP sockets, write to them, bind them, and get packets from them.
- * This is a subclass of the @ref NetIOUDP class.
+ * This is a subclass of the @ref NetIOudp class.
  *
  *
  * This file is part of the Assimilation Project.
@@ -75,12 +75,12 @@ struct _ReliableUDP {
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*setpktloss)		/// Force loss of packets FOR TESTING ONLY
 			    (ReliableUDP* self,		///<[in/out] 'this' object pointer
-			     double rcvloss,		/// Fraction of input packets to "lose" at random
-			     double xmitloss)		/// Fraction of output packets to "lose" at random
+			     double rcvloss,		///< Fraction of input packets to "lose" at random
+			     double xmitloss)		///< Fraction of output packets to "lose" at random
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*enablepktloss)	/// Enable or disable testing packet loss
 			     (ReliableUDP* self,	///<[in/out] 'this' object pointer
-			      gboolean enable)		/// TRUE to enable packet loss
+			      gboolean enable)		///< TRUE to enable packet loss
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*flushall)		///< Flush packets in queues to this address
 			      (ReliableUDP* self,	///< 'this' object pointer
