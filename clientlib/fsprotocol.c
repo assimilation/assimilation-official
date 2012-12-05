@@ -378,7 +378,7 @@ _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating
 {
 	GHashTableIter	iter;
 	FsProtoElem*	fspe;
-	/// @TODO If we actually _have_ a million servers, this will have to be looked at again -
+	/// @todo If we actually _have_ a million servers, this will have to be looked at again -
 	/// We may eventually need to create a list of queues per server -- or this will be horribly slow
 
 	g_hash_table_iter_init(&iter, self->endpoints);
