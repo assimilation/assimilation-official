@@ -654,7 +654,7 @@ EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/clientlib/CMakeFiles \
                          @CMAKE_CURRENT_SOURCE_DIR@/CMakeFiles \
                          @CMAKE_CURRENT_SOURCE_DIR@/serverlib/CMakeFiles \
                          @CMAKE_CURRENT_SOURCE_DIR@/tests/CMakeFiles	\
-			 @CMAKE_CURRENT_SOURCE_DIR@/pyclasswrappers/AssimCtypes.py \
+			 @CMAKE_CURRENT_SOURCE_DIR@/cma/AssimCtypes.py \
 			 @CMAKE_CURRENT_SOURCE_DIR@/.hg
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or 

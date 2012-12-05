@@ -79,7 +79,7 @@ struct _FsProtocol {
 	GList*		ipend;						///< List of FsProtoElems ready to be read
 	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);	///< Find a connection to the given endpoint
 	FsProtoElem*	(*findbypkt)(FsProtocol*, const NetAddr*, FrameSet*);///< Find a connection to the given endpoint
-	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);///< Add a connection to the given endpoint
+	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
 	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next packet
 	void		(*receive)(FsProtocol*, const NetAddr*, FrameSet*);///< Enqueue a received input packet
