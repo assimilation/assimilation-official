@@ -74,6 +74,10 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	,	(fs->fstype == FRAMESETTYPE_PING ? "ping" : "pong")
 	,	fs->fstype
 	,	addrstr);
+	
+	
+	fprintf(stderr, "Sending an ACK packet to %s\n", addrstr);
+	transport->ackmessage(transport, fromaddr, fs);
 	if (fs->fstype == FRAMESETTYPE_PING) {
 		FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
@@ -102,27 +106,45 @@ main(int argc, char **argv)
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
 	SignFrame*      signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	ConfigContext*	config = configcontext_new(0);
+	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	NetAddr* anyaddr = netaddr_ipv6_new(anyadstring, PORT);
+	NetGSource*	netpkt;
+	AuthListener*	act_on_packets;
+	GMainLoop*	loop;
 
+	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	proj_class_incr_debug(NULL);
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 	transport = reliableudp_new(0, config, decoder);
+	g_return_val_if_fail(transport->baseclass.baseclass.bindaddr(&transport->baseclass.baseclass, anyaddr, FALSE),16);
+	// Connect up our network transport into the g_main_loop paradigm
+	// so we get dispatched when packets arrive
+	netpkt = netgsource_new(CASTTOCLASS(NetIO, transport), NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
+	act_on_packets = authlistener_new(doit, config, 0);
+	act_on_packets->baseclass.associate(&act_on_packets->baseclass, netpkt);
+	g_source_ref(CASTTOCLASS(GSource, netpkt));
+	
 	// Kick everything off with a pingy-dingy
 	for (j=1; j < argc; ++j) {
 		FrameSet*	ping;
 		NetAddr*	toaddr = netaddr_string_new(argv[j]);
-		char *	addrstr;
 		if (toaddr == NULL) {
 			fprintf(stderr, "WARNING: %s is not a legit ipv4/v6 address"
 			,	argv[j]);
 			continue;
 		}
 		toaddr->setport(toaddr, PORT);
-		addrstr = toaddr->baseclass.toString(&toaddr->baseclass);
-		fprintf(stderr, "Sending an initial PING to %s\n", addrstr);
-		g_free(addrstr); addrstr = NULL;
+		{
+			char *	addrstr= toaddr->baseclass.toString(&toaddr->baseclass);
+			fprintf(stderr, "Sending an initial PING to %s\n", addrstr);
+			g_free(addrstr); addrstr = NULL;
+		}
 		ping = frameset_new(FRAMESETTYPE_PING);
 		transport->sendreliable(transport, toaddr, 0, ping);
 		ping->baseclass.unref(&ping->baseclass);
 		toaddr->baseclass.unref(&toaddr->baseclass); toaddr = NULL;
 	}
+	loop = g_main_loop_new(g_main_context_default(), TRUE);
+	g_main_loop_run(loop);
 	return 0;
 }

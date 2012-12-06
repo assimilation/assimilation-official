@@ -51,12 +51,12 @@ FSTATIC gboolean	_fsqueue_hasqspace(FsQueue* self, guint);
 /// Enqueue a @ref FrameSet onto an @ref FsQueue - exclusively for output queues
 FSTATIC gboolean
 _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
-,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our object
+,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our queue - must have sequence#
 {
 	SeqnoFrame*	seqno;
 	// This FrameSet shouldn't already have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
-	g_return_val_if_fail(self->_curqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
+	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
 	g_return_val_if_fail(seqno != NULL, FALSE);
 
@@ -127,7 +127,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	// Probably this shouldn't really log an error - but I'd like to see it happen
 	// if it does -- unless of course, it turns out to happen a lot (unlikely...)
-	g_return_val_if_fail(self->_curqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
+	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
 
 	// Frames without sequence numbers go to the head of the queue
 	if (seqno == NULL) {
@@ -160,14 +160,14 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 /// This is used exclusively for output queues - and is the result of the application on
 /// the other end sending us an ACK packet.
 FSTATIC guint
-_fsqueue_ackthrough(FsQueue* self		///< The @ref FsQueue object we're operating on
+_fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're operating on
 ,		    SeqnoFrame*seq)		///< The sequence number to ACK through
 {
 	FrameSet*	fs;
 	guint64		reqid;
 	guint		count = 0;
 
-	g_return_val_if_fail(seq && seq->_reqid > self->_nextseqno, 0);
+	g_return_val_if_fail(seq && seq->_reqid < self->_nextseqno, 0);
 	self->_nextseqno = seq->_reqid;
 	reqid = seq->getreqid(seq);
 	

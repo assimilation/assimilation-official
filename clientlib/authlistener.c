@@ -35,7 +35,7 @@ FSTATIC void _authlistener_associate(Listener* self, NetGSource* transport);
 FSTATIC void _authlistener_dissociate(Listener* self);
 
 ///@defgroup AuthListener Listener class.
-/// Class for listening, authenticating, and obeying packets from the Collectiv e Authority
+/// Class for listening, authenticating, and obeying packets from the Collective Authority
 ///@{
 ///@ingroup Listener
 #define	ONESEC	1000000
