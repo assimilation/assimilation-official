@@ -25,6 +25,7 @@
 #include <projectcommon.h>
 #include <fsprotocol.h>
 #include <frametypes.h>
+#include <stdio.h>
 
 FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
@@ -33,11 +34,11 @@ FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rh
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr);
-FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, const NetAddr*, FrameSet*);
+FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, NetAddr*, FrameSet*);
 FSTATIC void		_fsprotocol_updateack(FsProtoElem* fspe, FrameSet* seq);
 FSTATIC gboolean	_fsprotocol_iready(FsProtocol*);
 FSTATIC FrameSet*	_fsprotocol_read(FsProtocol*, NetAddr**);
-FSTATIC void		_fsprotocol_receive(FsProtocol*, const NetAddr*, FrameSet*);
+FSTATIC void		_fsprotocol_receive(FsProtocol*, NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_send1(FsProtocol*, FrameSet*, guint16 qid, NetAddr*);
 FSTATIC gboolean	_fsprotocol_send(FsProtocol*, GSList*, guint16 qid, NetAddr*);
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
@@ -67,11 +68,11 @@ _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 /// The FrameSet can have a sequence number - or not.
 FSTATIC FsProtoElem*
 _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operating on
-,		      const NetAddr* addr	///< The Network address we're looking for
+,		      NetAddr* addr		///< The Network address we're looking for
 ,		      FrameSet* fs)		///< The FrameSet whose queue id we'll use in looking for it
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
-	return self->find(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
+	return self->addconn(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
 }
 
 /// (possibly) Update the last ACKed sequence number in our FsProtoElem
@@ -103,6 +104,7 @@ _fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	if (ret) {
 		destaddr->baseclass.ref(&destaddr->baseclass);
 		ret->endpoint = destaddr;
+		ret->inq  = fsqueue_new(0, destaddr, qid);
 		ret->outq = fsqueue_new(0, destaddr, qid);
 		ret->parent = self;
 		ret->_qid = qid;
@@ -276,7 +278,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 /// Enqueue a received packet - handling ACKs (and NAKs) when they show up
 FSTATIC void
 _fsprotocol_receive(FsProtocol* self			///< Self pointer
-,				const NetAddr* fromaddr	///< Address that this FrameSet comes from
+,				NetAddr* fromaddr	///< Address that this FrameSet comes from
 ,				FrameSet* fs)		///< Frameset that was received
 {
 	FsProtoElem*	fspe = self->findbypkt(self, fromaddr, fs);
@@ -288,6 +290,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	if (is_acknack) {
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
+		char *	fsout = fs->baseclass.toString(&fs->baseclass);
+		fprintf(stderr, "Received this FrameSet: [%s]\n", fsout);
+		g_free(fsout); fsout = NULL;
 		g_return_if_fail(seq != NULL);
 		fspe->outq->ackthrough(fspe->outq, seq);
 		if (fs->fstype == FRAMESETTYPE_ACK) {

@@ -57,6 +57,8 @@
 FSTATIC void _frameset_indir_finalize(void* f);
 FSTATIC void _frameset_finalize(AssimObj* self);
 
+DEBUGDECLARATIONS
+
 ///@defgroup FrameSet FrameSet class
 /// Class representing a collection of @ref Frame "Frame"s to be sent in a single datagram.
 /// Note that more than one FrameSet can be sent in a datagram, but a FrameSet may not
@@ -107,6 +109,8 @@ frameset_new(guint16 frameset_type) ///< Type of frameset to create
 {
 	AssimObj*	obj = assimobj_new(sizeof(FrameSet));
 	FrameSet*	s = NEWSUBCLASS(FrameSet, obj);
+
+	BINDDEBUG(FrameSet);
 	g_return_val_if_fail(s != NULL, NULL);
 	s->fstype = frameset_type;
 	s->framelist = NULL;
@@ -343,7 +347,8 @@ _frameset_getseqno(FrameSet* self)
 	}
 	for (curframe=self->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
 		Frame* frame = CASTTOCLASS(Frame, curframe->data);
-		if (frame->type == FRAMETYPE_REQID) {
+		DEBUGMSG1("LOOKING AT FRAME TYPE %d\n", frame->type);
+		if (frame->type == FRAMETYPE_REQID || frame->type == FRAMETYPE_REPLYID) {
 			self->_seqframe = CASTTOCLASS(SeqnoFrame, frame);
 			return self->_seqframe;
 		}

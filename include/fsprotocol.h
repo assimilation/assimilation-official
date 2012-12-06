@@ -78,12 +78,12 @@ struct _FsProtocol {
 	GHashTable*	endpoints;					///< All our FsProtoElem endpoints
 	GList*		unacked;					///< List of FsProtoElems awaiting ACKs
 	GList*		ipend;						///< List of FsProtoElems ready to be read
-	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);	///< Find a connection to the given endpoint
-	FsProtoElem*	(*findbypkt)(FsProtocol*, const NetAddr*, FrameSet*);///< Find a connection to the given endpoint
+	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);		///< Find a connection to the given endpoint
+	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find a connection to the given endpoint
 	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
 	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next packet
-	void		(*receive)(FsProtocol*, const NetAddr*, FrameSet*);///< Enqueue a received input packet
+	void		(*receive)(FsProtocol*, NetAddr*, FrameSet*);	///< Enqueue a received input packet
 	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one packet
 	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of packets
 	void		(*flushall)(FsProtocol*,const NetAddr*,enum ioflush);///< Flush packets to given address
