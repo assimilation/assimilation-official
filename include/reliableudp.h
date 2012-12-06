@@ -30,6 +30,8 @@
 #include <netioudp.h>
 #include <netaddr.h>
 #include <frameset.h>
+#include <configcontext.h>
+#include <packetdecoder.h>
 #include <fsprotocol.h>
 
 ///@{
@@ -66,12 +68,6 @@ struct _ReliableUDP {
 							///< that the client (that is <i>you</i> has to 
 							///< ACK or NAK packets or they won't get ACKed -
 							///< which will totally ball things up...
-						   ;	// ";" is here to work around a doxygen bug
-	gboolean	(*nackmessage)		///< NAK a message
-				(ReliableUDP* self,	///<[in/out] 'this' object pointer
-				 NetAddr* dest,		///<[in] destination address
-				 FrameSet* frameset)	///<[in] The FrameSet to NAK - note that it must
-				 			///< have a sequence number
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*setpktloss)		/// Force loss of packets FOR TESTING ONLY
 			    (ReliableUDP* self,		///<[in/out] 'this' object pointer

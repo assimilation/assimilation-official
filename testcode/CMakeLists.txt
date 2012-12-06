@@ -20,6 +20,7 @@
 #
 add_executable (filetest pcap_test.c)
 add_executable (mainlooptest pcap+mainloop.c)
+add_executable (pinger pinger.c)
 
 IF(WIN32)
  
@@ -32,5 +33,6 @@ IF(WIN32)
 ELSE(WIN32)
   target_link_libraries (filetest ${CLIENTLIB} ${SERVERLIB} -lpcap )
   target_link_libraries (mainlooptest ${CLIENTLIB} ${SERVERLIB} -lpcap )
+  target_link_libraries (pinger ${CLIENTLIB} ${SERVERLIB})
 ENDIF(WIN32)
 

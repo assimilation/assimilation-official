@@ -74,18 +74,17 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	}
 	uret = netioudp_new(objsize, config, decoder);
 	if (uret) {
-		self = CASTTOCLASS(ReliableUDP, uret);
 		if (!_baseclass_finalize) {
 			proj_class_register_subclassed(uret, "ReliableUDP");
-			_baseclass_finalize = self->baseclass.baseclass.baseclass._finalize;
-			_baseclass_sendone = self->baseclass.baseclass.sendaframeset;
-			_baseclass_sendmany = self->baseclass.baseclass.sendframesets;
-			_baseclass_rcvmany = self->baseclass.baseclass.recvframesets;
+			_baseclass_finalize = uret->baseclass.baseclass._finalize;
+			_baseclass_sendone = uret->baseclass.sendaframeset;
+			_baseclass_sendmany = uret->baseclass.sendframesets;
+			_baseclass_rcvmany = uret->baseclass.recvframesets;
 		}
+		self = CASTTOCLASS(ReliableUDP, uret);
 		self->sendreliable = _reliableudp_sendreliable;
 		self->sendreliableM = _reliableudp_sendreliableM;
 		self->ackmessage = _reliableudp_ackmessage;
-		self->nackmessage = _reliableudp_nackmessage;
 		self->enablepktloss = _reliableudp_enablepktloss;
 		self->flushall = _reliableudp_flushall;
 		// Now for the base class functions which we override
@@ -95,6 +94,8 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		// as of now.
 		self->baseclass.baseclass.sendframesets = _reliableudp_sendframesets;
 		self->baseclass.baseclass.sendaframeset = _reliableudp_sendaframeset;
+
+		self->_protocol = fsprotocol_new(0, &uret->baseclass);
 	}
 	return self;
 }
@@ -144,8 +145,10 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 	FsProtocol*	proto;
 	GSList*		retval = NULL;
 
+	g_return_val_if_fail(nself != NULL, NULL);
 	fsread = _baseclass_rcvmany(nself, &oursrcaddr);
 	self = CASTTOCLASS(ReliableUDP, nself);
+	g_return_val_if_fail(self != NULL, NULL);
 	proto = self->_protocol;
 
 	// Loop over all the packets we read in, and put them in our protocol queues
@@ -216,26 +219,6 @@ _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 	self->baseclass.baseclass.sendaframeset(&self->baseclass.baseclass, dest, fs);
 	fs->baseclass.unref(&fs->baseclass); ackseq = NULL;
 
-	return TRUE;
-}
-
-/// Send a NAK (as requested) for the packet we've been handed
-FSTATIC gboolean
-_reliableudp_nackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
-{
-	SeqnoFrame*	seq = frameset->getseqno(frameset);
-	SeqnoFrame*	nackseq;
-	FrameSet*	fs;
-
-	g_return_val_if_fail(seq != NULL, TRUE);
-
-	fs = frameset_new(FRAMESETTYPE_NACK);
-	nackseq = seqnoframe_new_init(FRAMETYPE_REPLYID, seq->getreqid(seq), seq->getqid(seq));
-
-	frameset_append_frame(fs, &nackseq->baseclass);
-	nackseq->baseclass.baseclass.unref(&nackseq->baseclass.baseclass); nackseq = NULL;
-
-	self->baseclass.baseclass.sendaframeset(&self->baseclass.baseclass, dest, fs);
 	return TRUE;
 }
 
