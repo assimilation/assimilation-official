@@ -35,6 +35,7 @@ project(assimilation C)
 #	
 #
 #
+set(CMAKE_BUILD_TYPE debug)
 set(CMAKE_INSTALL_PREFIX /usr)
 #Supposedly this isn't necessary...
 #execute_process (OUTPUT_VARIABLE LIB_DIRNAME OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python buildtools/determinelibdir.py)

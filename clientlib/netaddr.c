@@ -352,6 +352,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->addrtype = _netaddr_addrtype;
 	self->ismcast = _netaddr_ismcast;
 	self->equal = _netaddr_equal;
+	self->hash = _netaddr_hash;
 
 	return self;
 
