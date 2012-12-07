@@ -291,7 +291,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
 		char *	fsout = fs->baseclass.toString(&fs->baseclass);
-		fprintf(stderr, "Received this FrameSet: [%s]\n", fsout);
+		DEBUGMSG1("%s: Received this FrameSet: [%s]", __FUNCTION__, fsout);
 		g_free(fsout); fsout = NULL;
 		g_return_if_fail(seq != NULL);
 		fspe->outq->ackthrough(fspe->outq, seq);
@@ -403,6 +403,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 		SeqnoFrame*	seq = fs->getseqno(fs);
 		if (seq == NULL || seq->_reqid <= outq->_nextseqno) {
 			NetIO*	io = fspe->parent->io;
+			DEBUGMSG1("%s: Sending a frameset.", __FUNCTION__);
 			io->sendaframeset(io, fspe->endpoint, fs);
 			outq->flush1(outq);
 		}else{
