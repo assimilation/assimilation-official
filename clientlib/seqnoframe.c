@@ -38,6 +38,7 @@ FSTATIC gboolean _seqnoframe_equal(SeqnoFrame * self, SeqnoFrame* rhs);
 FSTATIC int _seqnoframe_compare(SeqnoFrame * self, SeqnoFrame* rhs);
 FSTATIC guint32 _seqnoframe_getsessionid(SeqnoFrame * self);
 FSTATIC void _seqnoframe_initsessionid(void);
+FSTATIC char * _seqnoframe_toString(gconstpointer vself);
 
 static guint32 _sessionId = 0;
 
@@ -222,6 +223,7 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	sframe->compare = _seqnoframe_compare;
 
 	// Base class member functions
+	sframe->baseclass.baseclass.toString = _seqnoframe_toString;
 	sframe->baseclass.updatedata = _seqnoframe_updatedata;
 	sframe->baseclass.isvalid = _seqnoframe_isvalid;
 	sframe->baseclass.value = NULL;
@@ -247,5 +249,13 @@ seqnoframe_new_init(guint16 frametype,	///< Type of frame to create with this va
 		ret->setqid(ret, qid);
 	}
 	return ret;
+}
+
+FSTATIC char *
+_seqnoframe_toString(gconstpointer vself)
+{
+	const SeqnoFrame*	self = CASTTOCONSTCLASS(SeqnoFrame, vself);
+	return g_strdup_printf("SeqnoFrame(type=%d, (%d,%d,"FMT_64BIT"d))", self->baseclass.type, self->_sessionid
+	,	self->_qid, self->_reqid);
 }
 ///@}
