@@ -195,7 +195,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 }
 
 /// Flush <b>all</b> framesets from the queue (if any).
-/// TODO: This is basically a protocol reset - what effect should this have upon
+/// @todo: This is basically a protocol reset - what effect should this have upon
 /// sequence numbers and generation numbers (if any)?
 /// Normally this is used if we think the machine has died...
 FSTATIC void

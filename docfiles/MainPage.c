@@ -37,6 +37,12 @@ For a human-driven overview, we recommend our
 For source and licensing information see the
 - <a href="_source_and_license.html">Source and Licensing</a> page.
 
+@section ProjectSwag Assimilation Swag
+We now have a store featuring swag for the Assimilation Project.
+$5 from every purchase supports the project.
+Check it out at <b>http://www.printfection.com/AssimilationProject</b>
+
+
 @section ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
