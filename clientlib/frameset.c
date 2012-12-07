@@ -56,6 +56,7 @@
 #include <tlvhelper.h>
 FSTATIC void _frameset_indir_finalize(void* f);
 FSTATIC void _frameset_finalize(AssimObj* self);
+FSTATIC char * _frameset_toString(gconstpointer);
 
 DEBUGDECLARATIONS
 
@@ -118,6 +119,7 @@ frameset_new(guint16 frameset_type) ///< Type of frameset to create
 	s->pktend = NULL;
 	s->fsflags = 0;
 	s->baseclass._finalize = _frameset_finalize;
+	s->baseclass.toString = _frameset_toString;
 	s->getseqno = _frameset_getseqno;
 	return s;
 }
@@ -326,6 +328,7 @@ frame_append_to_frameset_packet(FrameSet* fs,		///< FrameSet to append frame to
 	curpos += f->length;
 	return (gpointer)curpos;
 }
+
 /// Dump out a FrameSet
 void
 frameset_dump(const FrameSet* fs)	///< FrameSet to dump
@@ -338,6 +341,7 @@ frameset_dump(const FrameSet* fs)	///< FrameSet to dump
 	}
 	g_debug("END FrameSet dump");
 }
+
 FSTATIC SeqnoFrame*
 _frameset_getseqno(FrameSet* self)
 {
@@ -355,4 +359,33 @@ _frameset_getseqno(FrameSet* self)
 	}
 	return NULL;
 }
+
+FSTATIC char *
+_frameset_toString(gconstpointer vself)
+{
+	GString*	gsret = NULL;
+	char*		ret = NULL;
+	const FrameSet*	self = CASTTOCONSTCLASS(FrameSet, vself);
+	GSList*		curframe;
+	const char *	comma = "";
+
+	g_return_val_if_fail(self != NULL, NULL);
+	gsret = g_string_new("");
+	g_string_append_printf(gsret, "FrameSet(fstype=%d, [", self->fstype);
+
+	for (curframe=self->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
+		Frame*	frame = CASTTOCLASS(Frame, curframe->data);
+		char*	fstr;
+		g_return_val_if_fail(frame != NULL, NULL);
+		fstr = frame->baseclass.toString(&frame->baseclass);
+		g_string_append_printf(gsret, "%s[%s]", comma, fstr);
+		comma = ", ";
+		g_free(fstr); fstr = NULL;
+	}
+	g_string_append_printf(gsret, "])");
+	ret = gsret->str;
+	g_string_free(gsret, FALSE);
+	return ret;
+}
+
 ///@}

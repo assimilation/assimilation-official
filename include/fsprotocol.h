@@ -46,7 +46,7 @@ typedef struct _FsProtoElemSearchKey FsProtoElemSearchKey;
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.
 /// Note that the @ref FsProtocol class is a glorified hash table of these FsProtoElem structures
-/// @todo: Do we need to eventuall add a method for deleting an FsProtoElem endpoint from our
+/// @todo: Do we need to eventually add a method for deleting an FsProtoElem endpoint from our
 /// FsProtocol hash tables?
 struct _FsProtoElem {
 	NetAddr*	endpoint;	///< Who is our partner in this?

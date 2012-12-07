@@ -167,8 +167,18 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	guint64		reqid;
 	guint		count = 0;
 
-	g_return_val_if_fail(seq && seq->_reqid < self->_nextseqno, 0);
-	self->_nextseqno = seq->_reqid;
+	g_return_val_if_fail(seq != NULL, 0);
+	if (seq->getsessionid(seq) != self->_sessionid) {
+		g_warning("Incoming ACK packet has invalid session id [%d instead of %d]"
+		,	seq->getsessionid(seq), self->_sessionid);
+		return 0;
+	}
+		
+	if (seq->getreqid(seq) >= self->_nextseqno) {
+		g_warning("Incoming ACK packet sequence number "FMT_64BIT"d is >= "FMT_64BIT"d"
+		,	seq->getreqid(seq), self->_nextseqno);
+		return 0;
+	}
 	reqid = seq->getreqid(seq);
 	
 	while((fs = self->qhead(self)) != NULL) {
