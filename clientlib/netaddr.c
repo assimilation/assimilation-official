@@ -245,7 +245,7 @@ _netaddr_hash(const NetAddr* self)
 	while (0 == hashseed) {
 		hashseed = (guint)g_random_int();
 	}
-	result = (guint)self->addrtype ^ hashseed;
+	result = (guint)(self->_addrtype) ^ hashseed;
 	for (j=0; j < self->_addrlen; ++j) {
 		// Circular shift with addrbody xored in...
 		// Addresses are typically either 4 bytes or 16 bytes (6 and 8 bytes are also possible)
