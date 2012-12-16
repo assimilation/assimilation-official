@@ -53,7 +53,9 @@ struct _FsQueue {
 	guint16		_qid;					///< Far endpoint queue id
 	gboolean	isready;				///< TRUE when ready for I or O (depending)
 	gboolean	(*enq)(FsQueue* self, FrameSet* fs);	///< Enqueue an outgoing FrameSet - adding seqno
-								///< ONLY for output queues.
+								///< ONLY for output queues.  Note that it
+								///< appends to the tail of the queue, not 
+								///< inserting at the head.
 	gboolean	(*inqsorted)(FsQueue*, FrameSet* fs);	///< Enqueue an incoming FrameSet - sorted
 								///< by sequence # - no dups allowed
 								///< Used ONLY for input queues, or unsequenced

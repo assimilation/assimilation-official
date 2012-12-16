@@ -43,18 +43,19 @@ FSTATIC void		_fsqueue_setmaxqlen(FsQueue* self, guint max);
 FSTATIC guint		_fsqueue_getmaxqlen(FsQueue* self);
 FSTATIC gboolean	_fsqueue_hasqspace1(FsQueue* self);
 FSTATIC gboolean	_fsqueue_hasqspace(FsQueue* self, guint);
+FSTATIC char*		_fsqueue_toString(gconstpointer);
 
 /// @defgroup FsQueue FsQueue class
 ///@{
 /// @ingroup C_Classes
 
-/// Enqueue a @ref FrameSet onto an @ref FsQueue - exclusively for output queues
+/// Enqueue a @ref FrameSet onto an @ref FsQueue - exclusively for output queues - adds sequence number
 FSTATIC gboolean
 _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
-,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our queue - must have sequence#
+,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our queue - must NOT have sequence#
 {
 	SeqnoFrame*	seqno;
-	// This FrameSet shouldn't already have a sequence number frame yet...
+	// This FrameSet shouldn't have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
 	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
@@ -71,6 +72,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 
 	// Put the frame at the beginning of the frameset
 	frameset_prepend_frame(fs, &seqno->baseclass);
+	// And put this FrameSet at the end of the queue
 	g_queue_push_tail(self->_q, fs);
 
 	// Now do all the paperwork :-D
@@ -80,6 +82,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	fs->baseclass.ref(&fs->baseclass);
 	// But we're done with the seqno frame (prepending it to the frameset bumped the ref count)
 	seqno->baseclass.baseclass.unref(&seqno->baseclass.baseclass);
+	DUMP2(__FUNCTION__, &self->baseclass, "");
 	return TRUE;
 }
 
@@ -153,6 +156,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	// Regardless of which is true, we can call g_queue_push_tail...
 	fs->baseclass.ref(&fs->baseclass);
 	g_queue_push_tail(Q, fs);
+	DUMP2(__FUNCTION__, &self->baseclass, "");
 	return TRUE;
 }
 
@@ -190,6 +194,10 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 		}
 		self->flush1(self);
 		count += 1;
+	}
+	if (DEBUG > 0) {
+		DEBUGMSG1("%s: returning %d - remaining (output) queue length is %d"
+		,	__FUNCTION__, count,	g_queue_get_length(self->_q));
 	}
 	return count;
 }
@@ -279,6 +287,7 @@ fsqueue_new(guint objsize		///< Size of the FsQueue object we should create
 	}
 	// Initialize member functions
 	self->baseclass._finalize=_fsqueue_finalize;
+	self->baseclass.toString=_fsqueue_toString;
 	self->enq =		_fsqueue_enq;
 	self->inqsorted =	_fsqueue_inqsorted;
 	self->qhead =		_fsqueue_qhead;
@@ -318,5 +327,38 @@ _fsqueue_finalize(AssimObj* aself)		///< The @ref FsQueue object we're operating
 	g_queue_free(self->_q);		self->_q = NULL;
 	// And finally, free up our direct storage
 	FREECLASSOBJ(self);
+}
+
+FSTATIC char*
+_fsqueue_toString(gconstpointer vself)
+{
+	GString*	fsqret = NULL;
+	char*		ret = NULL;
+	char*		tmp = NULL;
+	const FsQueue*	self = CASTTOCONSTCLASS(FsQueue, vself);
+	GList*		curfs;
+	const char *	comma = "";
+
+	g_return_val_if_fail(self != NULL, NULL);
+	fsqret = g_string_new("");
+	
+	tmp = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
+	g_string_append_printf(fsqret, "FsQueue(dest=%s//q=%d, [", tmp, self->_qid);
+	g_free(tmp); tmp=NULL;
+
+	for (curfs=self->_q->head; curfs != NULL; curfs = g_list_next(curfs)) {
+		FrameSet*	fs = CASTTOCLASS(FrameSet, curfs->data);
+		
+		tmp = fs->baseclass.toString(&fs->baseclass);
+		g_string_append_printf(fsqret, "%s%s", comma, tmp);
+		g_free(tmp); tmp = NULL;
+		comma=", ";
+	}
+	g_string_append_printf(fsqret, "])");
+	ret = fsqret->str;
+	g_string_free(fsqret, FALSE);
+	return ret;
+	
+	
 }
 ///@}

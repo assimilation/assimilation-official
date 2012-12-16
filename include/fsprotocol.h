@@ -54,6 +54,9 @@ struct _FsProtoElem {
 	FsQueue*	outq;		///< Queue of outbound messages
 	FsQueue*	inq;		///< Queue of incoming messages - perhaps missing packets...
 	SeqnoFrame*	lastacksent;	///< What is the highest sequence number we've ACKed?
+	SeqnoFrame*	lastseqsent;	///< Last sequence number which has been sent at least once
+	guint		outstanding_acks;///<How many ACKs are pending?
+	gint64		nextrexmit;	///< When to retransmit next...
 	FsProtocol*	parent;		///< Our parent FsProtocol object
 };
 
@@ -78,8 +81,10 @@ struct _FsProtocol {
 	GHashTable*	endpoints;					///< All our FsProtoElem endpoints
 	GList*		unacked;					///< List of FsProtoElems awaiting ACKs
 	GList*		ipend;						///< List of FsProtoElems ready to be read
-	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);		///< Find a connection to the given endpoint
-	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find a connection to the given endpoint
+	guint		window_size;					///< Window size of our connections
+	gint64		rexmit_interval;				///< How often to retransmit - in uS
+	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);	///< Find connection to given endpoint
+	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
 	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
 	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next packet

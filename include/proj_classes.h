@@ -22,6 +22,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 #include <projectcommon.h>
+#include <assimobj.h>
 #include <glib.h>
 
 WINEXPORT gpointer	proj_class_new(gsize objsize, const char * static_classname);
@@ -38,6 +39,7 @@ WINEXPORT const char *	proj_class_classname(gconstpointer object);
 WINEXPORT void		proj_class_register_debug_counter(const char * Cclass, guint*debugcount);
 WINEXPORT void		proj_class_incr_debug(const char * Cclass);
 WINEXPORT void		proj_class_decr_debug(const char * Cclass);
+WINEXPORT void		proj_class_debug_dump(const char * prefix, const AssimObj* obj, const char *suffix);
 
 WINEXPORT void proj_class_dump_live_objects(void);
 WINEXPORT guint32 proj_class_live_object_count(void);
@@ -89,5 +91,12 @@ WINEXPORT void proj_class_finalize_sys(void);
 #define DEBUGMSG3(...) DEBUGMSGn(3, __VA_ARGS__)
 #define DEBUGMSG4(...) DEBUGMSGn(4, __VA_ARGS__)
 #define DEBUGMSG5(...) DEBUGMSGn(5, __VA_ARGS__)
+#define	DUMP(prefix, obj, suffix)	{proj_class_debug_dump(prefix, obj, suffix);}
+#define	DUMP1(prefix, obj, suffix)	{if (DEBUG>=1) {DUMP(prefix, obj, suffix);};}
+#define	DUMP2(prefix, obj, suffix)	{if (DEBUG>=2) {DUMP(prefix, obj, suffix);};}
+#define	DUMP3(prefix, obj, suffix)	{if (DEBUG>=3) {DUMP(prefix, obj, suffix);};}
+#define	DUMP4(prefix, obj, suffix)	{if (DEBUG>=4) {DUMP(prefix, obj, suffix);};}
+#define	DUMP5(prefix, obj, suffix)	{if (DEBUG>=5) {DUMP(prefix, obj, suffix);};}
+
 
 ///@}

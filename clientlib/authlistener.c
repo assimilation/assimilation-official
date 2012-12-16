@@ -34,7 +34,7 @@ FSTATIC gboolean _authlistener_got_frameset(Listener* self, FrameSet*, NetAddr*)
 FSTATIC void _authlistener_associate(Listener* self, NetGSource* transport);
 FSTATIC void _authlistener_dissociate(Listener* self);
 
-///@defgroup AuthListener Listener class.
+///@defgroup AuthListener AuthListener class.
 /// Class for listening, authenticating, and obeying packets from the Collective Authority
 ///@{
 ///@ingroup Listener

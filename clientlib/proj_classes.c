@@ -375,6 +375,26 @@ proj_class_dump_live_objects(void)
 	g_debug("END of live C Class object dump.");
 }
 
+/// Send the object in question to g_debug() for printing...
+void
+proj_class_debug_dump(const char * prefix, const AssimObj* obj, const char *suffix)
+{
+	char * objstr = obj->toString(obj);
+	const char * pad = "";
+
+	if (prefix != NULL) {
+		pad = ": ";
+	}
+	g_debug("%s%s%s%s"
+	,	(prefix == NULL ? "" : prefix)
+	,	pad
+	,	(obj == NULL ? "<NULL OBJECT>" : objstr)
+	,	(suffix == NULL ? "" : suffix));
+	if (objstr) {
+		g_free(objstr); objstr = NULL;
+	}
+}
+
 
 /// Return the count of live C class objects
 guint32

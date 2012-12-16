@@ -338,7 +338,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 /// Enqueue and send a single reliable frameset
 FSTATIC gboolean
 _fsprotocol_send1(FsProtocol* self	///< Our object
-,		  FrameSet* fs	///< Frameset to send
+,		  FrameSet* fs		///< Frameset to send
 ,		  guint16   qid		///< Far endpoint queue id
 ,		  NetAddr* toaddr)	///< Where to send it
 {
@@ -347,7 +347,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	gboolean is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
 	ret =  fspe->outq->enq(fspe->outq, fs);
 	if (!g_list_find(fspe->parent->unacked, fspe)) {
-		///@todo: This might be slow if we send a lot of packets to an endpoing
+		///@todo: This might be slow if we send a lot of packets to an endpoint
 		/// before getting a response, but that's not very likely.
 		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
 	}
@@ -391,35 +391,84 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 }
 
 /// Our role in life is to send any packets that need sending.
+///
+///	Find every packet which is eligible to be sent and send it out
+///
+///	What makes a packet eligible to be sent?
+///
+///	It hasn't been sent yet and there are not too many ACKs outstanding on this fspe
+///		Too many means: fspe->outstanding_acks >= parent->window_size.
+///
+///	OR it is time to retransmit.
+///
+///	When do we perform re-transmission of unACKed packets?
+///		When it's been longer than parent->rexmit_period seconds
+///			since the last re-transmission of this fspe
+///
+///	What do we do when it's time to perform a re-transmission?
+///		We retransmit only the oldest FrameSet awaiting an ACK.
+//
 FSTATIC void
 _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to operate on
 {
 	FsQueue*	outq = fspe->outq;
-	FrameSet*	fs;
-	(void)fspe;
+	FsProtocol*	parent = fspe->parent;
+	SeqnoFrame*	lastseq = fspe->lastseqsent;
+	GList*		qelem;
+	NetIO*		io = parent->io;
+	guint		orig_outstanding = fspe->outstanding_acks;
+	gint64		now;
 
-	// At this point we _ought_ to have at least one packet to transmit...
-	while (NULL != (fs = outq->qhead(outq))) {
-		SeqnoFrame*	seq = fs->getseqno(fs);
-		if (seq == NULL || seq->_reqid <= outq->_nextseqno) {
-			NetIO*	io = fspe->parent->io;
-			DEBUGMSG1("%s: Sending a frameset.", __FUNCTION__);
+	// Look for any new packets that might have showed up to send
+	// 	Check to see if we've exceeded our window size...
+	if (fspe->outstanding_acks < parent->window_size) {
+		// Nope.  Look for packets that we haven't yet sent.
+		// This code is sub-optimal when congestion occurs and we have a larger
+		// window size (i.e. when we have a number of un-ACKed packets)
+		for (qelem=outq->_q->head; NULL != qelem; qelem=qelem->next) {
+			FrameSet*	fs = CASTTOCLASS(FrameSet, qelem->data);
+			SeqnoFrame*	seq = fs->getseqno(fs);
+			if (NULL != lastseq && NULL != seq && seq->compare(seq, lastseq) <= 0) {
+				// Not a new packet (we've sent it before)
+				continue;
+			}
+			DUMP1(__FUNCTION__, &seq->baseclass.baseclass, " is frame being sent");
 			io->sendaframeset(io, fspe->endpoint, fs);
-			outq->flush1(outq);
-		}else{
-			break;
+			fspe->lastseqsent = seq;
+			// lastseq = seq; -- is not necessary
+			// This FrameSet will be removed from the queue when its ACK arrives...
+			++fspe->outstanding_acks;
+			if (fspe->outstanding_acks >= parent->window_size) {
+				break;
+			}
 		}
 	}
-	if (fs != NULL) {
-		// No more packets to send... No harm done if not on the list
-		fspe->parent->unacked = g_list_remove(fspe->parent->unacked, fspe);
-		// See comment in the _send function regarding eventual efficiency concerns
-	}else{
-		// Ensure that this 'fspe' is on the list of fspe's with unacked packets
-		if (!g_list_find(fspe->parent->unacked, fspe)) {
-			fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
-			// See comment in the _send function regarding eventual efficiency concerns
+	now = g_get_monotonic_time();
+
+	if (fspe->nextrexmit == 0 && fspe->outstanding_acks > 0) {
+		// Next retransmission time not yet set...
+		fspe->nextrexmit = now + parent->rexmit_interval;
+	} else if (now > fspe->nextrexmit) {
+		FrameSet*	fs = outq->qhead(outq);
+		// It's time to retransmit something.  Hurray!
+		/// @todo: SHOULD THIS BE IN ITS OWN FUNCTION?
+		if (NULL != fs) {
+			// Update next retransmission time...
+			fspe->nextrexmit = now + parent->rexmit_interval;
+			DUMP1(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
+			io->sendaframeset(io, fspe->endpoint, fs);
+		}else{
+			g_warn_if_reached();
+			fspe->nextrexmit = 0;
 		}
+	}
+
+
+	// Make sure we remember to check this periodicially for retransmits...
+	if (orig_outstanding == 0 && fspe->outstanding_acks > 0) {
+		// Put 'fspe' on the list of fspe's with unacked packets
+		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
+		// See comment in the _send function regarding eventual efficiency concerns
 	}
 }
 
