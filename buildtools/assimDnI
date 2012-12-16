@@ -1,0 +1,84 @@
+#
+#	AssimDnI	Download and Install the Assimilation code from source control tip
+#
+#	Downloads, unpacks, compiles, installs and starts a nanoprobe
+#
+#
+#	Copyright (C) 2012 Alan Robertson <alanr@unix.sh>
+#	Licensed under the GNU GPL version 3 or later
+#
+#	We use these commands:
+#		bunzip2 or gunzip or unzip - whichever one is available
+#		wget
+#		sudo
+#		cmake
+#		make and related compiling friends
+#		python (needed for compiling)
+#		sudo for installing
+#		cmp, tar, killall, mkdir, rm, whereis
+#
+#	If you want to run the CMA, it has lot more prerequisites
+#
+set -e
+URL="http://hg.linux-ha.org/|experimental/assimilation/archive"
+BDIR="-B /bin /usr/bin /usr/local/bin -f"
+TMPDIR=/usr/
+findcmd() {
+	PATH=$(whereis $BDIR "$1" | sed -e 's%.*: *%%' -e 's% .*%%')
+	echo $PATH
+}
+#
+#	Some OSes don't have a tar that includes compression...
+#	So we'll uncompress it manually
+#
+for cmd in bunzip2 gunzip unzip
+do
+  cmd="$(findcmd "$cmd")"
+  if
+    [ -f "$cmd" -a -x "$cmd" ]
+  then
+    case $cmd in
+      */bunzip2)	suffix='tip.tar.bz2';;
+      */gunzip)		suffix='tip.tar.gz';;
+      */unzip)		suffix='tip.zip';;
+    esac
+    break
+  fi
+done
+GETFILE=assimilation.${suffix}
+TARFILE=assimilation.tip.tar
+LASTCOPY=/var/tmp/$TARFILE
+#	mktemp is not universally available
+TMPDIR=/var/tmp/$$.$RANDOM.grabandinstall
+
+mkdir $TMPDIR
+trap 'cd /; rm -fr $TMPDIR' 0
+cd $TMPDIR
+wget -q -N "$URL/${suffix}" -O $GETFILE
+#
+#	Uncompress the tar ball
+#
+$cmd $GETFILE
+if
+  cmp $TARFILE $LASTCOPY 2>/dev/null
+then
+  : Already installed this version...
+  exit 0
+fi
+#
+#	Unpack the tar ball
+#
+tar xf $TARFILE
+DIR=$(echo $PWD/Experimental-Assimilation*)
+mkdir bin
+cd bin
+cmake $DIR
+make && sudo make install
+if
+  sudo killall nanoprobe
+then
+  : Killed currently running nanoprobe version
+  sleep 5
+fi
+nohup /usr/sbin/nanoprobe >/dev/null 2>&1 &
+cp ../$TARFILE $LASTCOPY

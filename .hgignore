@@ -1,0 +1,33 @@
+Syntax: regex
+^CMakeFiles/.*
+.*/CMakeFiles
+.*/CMakeFiles/.*
+CMakeCache.txt
+.*\.so$
+.*\.a$
+/Makefile$
+^Makefile$
+.*\.cmake$
+.*\.swp$
+.*\.bak$
+.*\.pyc$
+.*\.i$
+.*\.shell_history$
+.*\.nfs0000.*$
+.*\foo$
+M CMakeLists.txt
+M testcode/testscript.sh
+^testcode/filetest$
+^testcode/mainlooptest$
+^doxygen/.*
+Doxyfile
+/.*\.pyc$
+/\..*\.swp$
+/\..*\.swo$
+include/framesettypes.h
+include/frametypes.h
+include/projectcommon.h
+nanoprobe/nanoprobe
+install_manifest.txt
+discovery_agents/.*\.out
+discovery_agents/.*\.txt

@@ -1,0 +1,25 @@
+#
+#	Discover operating system characteristics
+#
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "OS",
+	  "description": "OS information",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+  for j in nodename operating-system machine processor hardware-platform kernel-name kernel-release kernel-version
+  do
+    printf '    "%s": "%s",\n' "$j" "$(uname --$j)"
+  done
+  for j in -i -d -r
+  do
+    lsb_release $j | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%",%'
+  done
+  lsb_release -c   | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%"%'
+  printf '  }\n}\n'
+}
+
+discover
