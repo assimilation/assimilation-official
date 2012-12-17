@@ -1158,118 +1158,6 @@ struct__GQueue._fields_ = [
     ('length', guint),
 ]
 
-# ../include/proj_classes.h: 27
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_new'):
-    proj_class_new = _libs['libassimilationclientlib.so'].proj_class_new
-    proj_class_new.argtypes = [gsize, String]
-    proj_class_new.restype = gpointer
-
-# ../include/proj_classes.h: 28
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dissociate'):
-    proj_class_dissociate = _libs['libassimilationclientlib.so'].proj_class_dissociate
-    proj_class_dissociate.argtypes = [gpointer]
-    proj_class_dissociate.restype = None
-
-# ../include/proj_classes.h: 29
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_free'):
-    proj_class_free = _libs['libassimilationclientlib.so'].proj_class_free
-    proj_class_free.argtypes = [gpointer]
-    proj_class_free.restype = None
-
-# ../include/proj_classes.h: 30
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_object'):
-    proj_class_register_object = _libs['libassimilationclientlib.so'].proj_class_register_object
-    proj_class_register_object.argtypes = [gpointer, String]
-    proj_class_register_object.restype = None
-
-# ../include/proj_classes.h: 31
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_is_a'):
-    proj_class_is_a = _libs['libassimilationclientlib.so'].proj_class_is_a
-    proj_class_is_a.argtypes = [gconstpointer, String]
-    proj_class_is_a.restype = gboolean
-
-# ../include/proj_classes.h: 32
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castas'):
-    proj_class_castas = _libs['libassimilationclientlib.so'].proj_class_castas
-    proj_class_castas.argtypes = [gpointer, String]
-    proj_class_castas.restype = gpointer
-
-# ../include/proj_classes.h: 33
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castasconst'):
-    proj_class_castasconst = _libs['libassimilationclientlib.so'].proj_class_castasconst
-    proj_class_castasconst.argtypes = [gconstpointer, String]
-    proj_class_castasconst.restype = gconstpointer
-
-# ../include/proj_classes.h: 34
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_subclassed'):
-    proj_class_register_subclassed = _libs['libassimilationclientlib.so'].proj_class_register_subclassed
-    proj_class_register_subclassed.argtypes = [gpointer, String]
-    proj_class_register_subclassed.restype = gpointer
-
-# ../include/proj_classes.h: 35
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
-    proj_class_quark_add_superclass_relationship = _libs['libassimilationclientlib.so'].proj_class_quark_add_superclass_relationship
-    proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
-    proj_class_quark_add_superclass_relationship.restype = None
-
-# ../include/proj_classes.h: 36
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_is_a'):
-    proj_class_quark_is_a = _libs['libassimilationclientlib.so'].proj_class_quark_is_a
-    proj_class_quark_is_a.argtypes = [GQuark, GQuark]
-    proj_class_quark_is_a.restype = gboolean
-
-# ../include/proj_classes.h: 37
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
-    proj_class_classname = _libs['libassimilationclientlib.so'].proj_class_classname
-    proj_class_classname.argtypes = [gconstpointer]
-    if sizeof(c_int) == sizeof(c_void_p):
-        proj_class_classname.restype = ReturnString
-    else:
-        proj_class_classname.restype = String
-        proj_class_classname.errcheck = ReturnString
-
-# ../include/proj_classes.h: 38
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_debug_counter'):
-    proj_class_register_debug_counter = _libs['libassimilationclientlib.so'].proj_class_register_debug_counter
-    proj_class_register_debug_counter.argtypes = [String, POINTER(guint)]
-    proj_class_register_debug_counter.restype = None
-
-# ../include/proj_classes.h: 39
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_incr_debug'):
-    proj_class_incr_debug = _libs['libassimilationclientlib.so'].proj_class_incr_debug
-    proj_class_incr_debug.argtypes = [String]
-    proj_class_incr_debug.restype = None
-
-# ../include/proj_classes.h: 40
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_decr_debug'):
-    proj_class_decr_debug = _libs['libassimilationclientlib.so'].proj_class_decr_debug
-    proj_class_decr_debug.argtypes = [String]
-    proj_class_decr_debug.restype = None
-
-# ../include/proj_classes.h: 42
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dump_live_objects'):
-    proj_class_dump_live_objects = _libs['libassimilationclientlib.so'].proj_class_dump_live_objects
-    proj_class_dump_live_objects.argtypes = []
-    proj_class_dump_live_objects.restype = None
-
-# ../include/proj_classes.h: 43
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_live_object_count'):
-    proj_class_live_object_count = _libs['libassimilationclientlib.so'].proj_class_live_object_count
-    proj_class_live_object_count.argtypes = []
-    proj_class_live_object_count.restype = guint32
-
-# ../include/proj_classes.h: 44
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_max_object_count'):
-    proj_class_max_object_count = _libs['libassimilationclientlib.so'].proj_class_max_object_count
-    proj_class_max_object_count.argtypes = []
-    proj_class_max_object_count.restype = guint32
-
-# ../include/proj_classes.h: 45
-if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
-    proj_class_finalize_sys = _libs['libassimilationclientlib.so'].proj_class_finalize_sys
-    proj_class_finalize_sys.argtypes = []
-    proj_class_finalize_sys.restype = None
-
 # ../include/assimobj.h: 32
 class struct__AssimObj(Structure):
     pass
@@ -1308,6 +1196,124 @@ try:
     badfree = (gboolean).in_dll(_libs['libassimilationclientlib.so'], 'badfree')
 except:
     pass
+
+# ../include/proj_classes.h: 28
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_new'):
+    proj_class_new = _libs['libassimilationclientlib.so'].proj_class_new
+    proj_class_new.argtypes = [gsize, String]
+    proj_class_new.restype = gpointer
+
+# ../include/proj_classes.h: 29
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dissociate'):
+    proj_class_dissociate = _libs['libassimilationclientlib.so'].proj_class_dissociate
+    proj_class_dissociate.argtypes = [gpointer]
+    proj_class_dissociate.restype = None
+
+# ../include/proj_classes.h: 30
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_free'):
+    proj_class_free = _libs['libassimilationclientlib.so'].proj_class_free
+    proj_class_free.argtypes = [gpointer]
+    proj_class_free.restype = None
+
+# ../include/proj_classes.h: 31
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_object'):
+    proj_class_register_object = _libs['libassimilationclientlib.so'].proj_class_register_object
+    proj_class_register_object.argtypes = [gpointer, String]
+    proj_class_register_object.restype = None
+
+# ../include/proj_classes.h: 32
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_is_a'):
+    proj_class_is_a = _libs['libassimilationclientlib.so'].proj_class_is_a
+    proj_class_is_a.argtypes = [gconstpointer, String]
+    proj_class_is_a.restype = gboolean
+
+# ../include/proj_classes.h: 33
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castas'):
+    proj_class_castas = _libs['libassimilationclientlib.so'].proj_class_castas
+    proj_class_castas.argtypes = [gpointer, String]
+    proj_class_castas.restype = gpointer
+
+# ../include/proj_classes.h: 34
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castasconst'):
+    proj_class_castasconst = _libs['libassimilationclientlib.so'].proj_class_castasconst
+    proj_class_castasconst.argtypes = [gconstpointer, String]
+    proj_class_castasconst.restype = gconstpointer
+
+# ../include/proj_classes.h: 35
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_subclassed'):
+    proj_class_register_subclassed = _libs['libassimilationclientlib.so'].proj_class_register_subclassed
+    proj_class_register_subclassed.argtypes = [gpointer, String]
+    proj_class_register_subclassed.restype = gpointer
+
+# ../include/proj_classes.h: 36
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
+    proj_class_quark_add_superclass_relationship = _libs['libassimilationclientlib.so'].proj_class_quark_add_superclass_relationship
+    proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
+    proj_class_quark_add_superclass_relationship.restype = None
+
+# ../include/proj_classes.h: 37
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_is_a'):
+    proj_class_quark_is_a = _libs['libassimilationclientlib.so'].proj_class_quark_is_a
+    proj_class_quark_is_a.argtypes = [GQuark, GQuark]
+    proj_class_quark_is_a.restype = gboolean
+
+# ../include/proj_classes.h: 38
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
+    proj_class_classname = _libs['libassimilationclientlib.so'].proj_class_classname
+    proj_class_classname.argtypes = [gconstpointer]
+    if sizeof(c_int) == sizeof(c_void_p):
+        proj_class_classname.restype = ReturnString
+    else:
+        proj_class_classname.restype = String
+        proj_class_classname.errcheck = ReturnString
+
+# ../include/proj_classes.h: 39
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_debug_counter'):
+    proj_class_register_debug_counter = _libs['libassimilationclientlib.so'].proj_class_register_debug_counter
+    proj_class_register_debug_counter.argtypes = [String, POINTER(guint)]
+    proj_class_register_debug_counter.restype = None
+
+# ../include/proj_classes.h: 40
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_incr_debug'):
+    proj_class_incr_debug = _libs['libassimilationclientlib.so'].proj_class_incr_debug
+    proj_class_incr_debug.argtypes = [String]
+    proj_class_incr_debug.restype = None
+
+# ../include/proj_classes.h: 41
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_decr_debug'):
+    proj_class_decr_debug = _libs['libassimilationclientlib.so'].proj_class_decr_debug
+    proj_class_decr_debug.argtypes = [String]
+    proj_class_decr_debug.restype = None
+
+# ../include/proj_classes.h: 42
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_debug_dump'):
+    proj_class_debug_dump = _libs['libassimilationclientlib.so'].proj_class_debug_dump
+    proj_class_debug_dump.argtypes = [String, POINTER(AssimObj), String]
+    proj_class_debug_dump.restype = None
+
+# ../include/proj_classes.h: 44
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dump_live_objects'):
+    proj_class_dump_live_objects = _libs['libassimilationclientlib.so'].proj_class_dump_live_objects
+    proj_class_dump_live_objects.argtypes = []
+    proj_class_dump_live_objects.restype = None
+
+# ../include/proj_classes.h: 45
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_live_object_count'):
+    proj_class_live_object_count = _libs['libassimilationclientlib.so'].proj_class_live_object_count
+    proj_class_live_object_count.argtypes = []
+    proj_class_live_object_count.restype = guint32
+
+# ../include/proj_classes.h: 46
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_max_object_count'):
+    proj_class_max_object_count = _libs['libassimilationclientlib.so'].proj_class_max_object_count
+    proj_class_max_object_count.argtypes = []
+    proj_class_max_object_count.restype = guint32
+
+# ../include/proj_classes.h: 47
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
+    proj_class_finalize_sys = _libs['libassimilationclientlib.so'].proj_class_finalize_sys
+    proj_class_finalize_sys.argtypes = []
+    proj_class_finalize_sys.restype = None
 
 # ../include/frameset.h: 43
 class struct__FrameSet(Structure):
@@ -1494,6 +1500,7 @@ struct__NetAddr.__slots__ = [
     'equal',
     'hash',
     'canonStr',
+    'toIPv6',
     '_addrbody',
     '_addrtype',
     '_addrlen',
@@ -1510,55 +1517,56 @@ struct__NetAddr._fields_ = [
     ('equal', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetAddr), POINTER(NetAddr))),
     ('hash', CFUNCTYPE(UNCHECKED(guint), POINTER(NetAddr))),
     ('canonStr', CFUNCTYPE(UNCHECKED(String), POINTER(NetAddr))),
+    ('toIPv6', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(NetAddr))),
     ('_addrbody', gpointer),
     ('_addrtype', guint16),
     ('_addrlen', guint16),
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 59
+# ../include/netaddr.h: 62
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libassimilationclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 60
+# ../include/netaddr.h: 63
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libassimilationclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 61
+# ../include/netaddr.h: 64
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libassimilationclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 62
+# ../include/netaddr.h: 65
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libassimilationclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 63
+# ../include/netaddr.h: 66
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libassimilationclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 64
+# ../include/netaddr.h: 67
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libassimilationclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 65
+# ../include/netaddr.h: 68
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libassimilationclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv6_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 66
+# ../include/netaddr.h: 69
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_string_new'):
     netaddr_string_new = _libs['libassimilationclientlib.so'].netaddr_string_new
     netaddr_string_new.argtypes = [String]
@@ -1976,6 +1984,7 @@ struct__NetIO.__slots__ = [
     '_signframe',
     '_cryptframe',
     '_compressframe',
+    'input_queued',
     'bindaddr',
     'boundaddr',
     'mcastjoin',
@@ -2000,6 +2009,7 @@ struct__NetIO._fields_ = [
     ('_signframe', POINTER(SignFrame)),
     ('_cryptframe', POINTER(Frame)),
     ('_compressframe', POINTER(Frame)),
+    ('input_queued', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO))),
     ('bindaddr', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), gboolean)),
     ('boundaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(NetIO))),
     ('mcastjoin', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), POINTER(NetAddr))),
@@ -2016,13 +2026,13 @@ struct__NetIO._fields_ = [
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
 ]
 
-# ../include/netio.h: 114
+# ../include/netio.h: 115
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 116
+# ../include/netio.h: 117
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2416,13 +2426,13 @@ struct__FsQueue._fields_ = [
     ('hasqspace', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), guint)),
 ]
 
-# ../include/fsqueue.h: 75
+# ../include/fsqueue.h: 77
 if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
     fsqueue_new = _libs['libassimilationclientlib.so'].fsqueue_new
     fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
     fsqueue_new.restype = POINTER(FsQueue)
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 74
+# /home/alanr/monitor/src/include/fsprotocol.h: 78
 class struct__FsProtocol(Structure):
     pass
 
@@ -2434,7 +2444,7 @@ class struct__FsProtoElem(Structure):
 
 FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 44
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 59
+# /home/alanr/monitor/src/include/fsprotocol.h: 63
 class struct__FsProtoElemSearchKey(Structure):
     pass
 
@@ -2445,6 +2455,10 @@ struct__FsProtoElem.__slots__ = [
     '_qid',
     'outq',
     'inq',
+    'lastacksent',
+    'lastseqsent',
+    'outstanding_acks',
+    'nextrexmit',
     'parent',
 ]
 struct__FsProtoElem._fields_ = [
@@ -2452,6 +2466,10 @@ struct__FsProtoElem._fields_ = [
     ('_qid', guint16),
     ('outq', POINTER(FsQueue)),
     ('inq', POINTER(FsQueue)),
+    ('lastacksent', POINTER(SeqnoFrame)),
+    ('lastseqsent', POINTER(SeqnoFrame)),
+    ('outstanding_acks', guint),
+    ('nextrexmit', gint64),
     ('parent', POINTER(FsProtocol)),
 ]
 
@@ -2464,13 +2482,13 @@ struct__FsProtoElemSearchKey._fields_ = [
     ('_qid', guint16),
 ]
 
-enum_ioflush = c_int # /home/alanr/monitor/src/include/fsprotocol.h: 66
+enum_ioflush = c_int # /home/alanr/monitor/src/include/fsprotocol.h: 70
 
-FsProtoFLUSHIN = 0 # /home/alanr/monitor/src/include/fsprotocol.h: 66
+FsProtoFLUSHIN = 0 # /home/alanr/monitor/src/include/fsprotocol.h: 70
 
-FsProtoFLUSHOUT = (FsProtoFLUSHIN + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 66
+FsProtoFLUSHOUT = (FsProtoFLUSHIN + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 70
 
-FsProtoFLUSHBOTH = (FsProtoFLUSHOUT + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 66
+FsProtoFLUSHBOTH = (FsProtoFLUSHOUT + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 70
 
 struct__FsProtocol.__slots__ = [
     'baseclass',
@@ -2478,6 +2496,8 @@ struct__FsProtocol.__slots__ = [
     'endpoints',
     'unacked',
     'ipend',
+    'window_size',
+    'rexmit_interval',
     'find',
     'findbypkt',
     'addconn',
@@ -2494,6 +2514,8 @@ struct__FsProtocol._fields_ = [
     ('endpoints', POINTER(GHashTable)),
     ('unacked', POINTER(GList)),
     ('ipend', POINTER(GList)),
+    ('window_size', guint),
+    ('rexmit_interval', gint64),
     ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('findbypkt', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
@@ -2505,7 +2527,7 @@ struct__FsProtocol._fields_ = [
     ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), enum_ioflush)),
 ]
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 90
+# /home/alanr/monitor/src/include/fsprotocol.h: 96
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
     fsprotocol_new.argtypes = [guint, POINTER(NetIO)]
@@ -3173,67 +3195,67 @@ if hasattr(_libs['libassimilationclientlib.so'], 'close_pcap_listener'):
     close_pcap_listener.argtypes = [POINTER(pcap_t), String, c_uint]
     close_pcap_listener.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 27
+# /home/alanr/monitor/src/include/proj_classes.h: 28
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_new'):
     proj_class_new = _libs['libassimilationclientlib.so'].proj_class_new
     proj_class_new.argtypes = [gsize, String]
     proj_class_new.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 28
+# /home/alanr/monitor/src/include/proj_classes.h: 29
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dissociate'):
     proj_class_dissociate = _libs['libassimilationclientlib.so'].proj_class_dissociate
     proj_class_dissociate.argtypes = [gpointer]
     proj_class_dissociate.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 29
+# /home/alanr/monitor/src/include/proj_classes.h: 30
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_free'):
     proj_class_free = _libs['libassimilationclientlib.so'].proj_class_free
     proj_class_free.argtypes = [gpointer]
     proj_class_free.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 30
+# /home/alanr/monitor/src/include/proj_classes.h: 31
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_object'):
     proj_class_register_object = _libs['libassimilationclientlib.so'].proj_class_register_object
     proj_class_register_object.argtypes = [gpointer, String]
     proj_class_register_object.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 31
+# /home/alanr/monitor/src/include/proj_classes.h: 32
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_is_a'):
     proj_class_is_a = _libs['libassimilationclientlib.so'].proj_class_is_a
     proj_class_is_a.argtypes = [gconstpointer, String]
     proj_class_is_a.restype = gboolean
 
-# /home/alanr/monitor/src/include/proj_classes.h: 32
+# /home/alanr/monitor/src/include/proj_classes.h: 33
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castas'):
     proj_class_castas = _libs['libassimilationclientlib.so'].proj_class_castas
     proj_class_castas.argtypes = [gpointer, String]
     proj_class_castas.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 33
+# /home/alanr/monitor/src/include/proj_classes.h: 34
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_castasconst'):
     proj_class_castasconst = _libs['libassimilationclientlib.so'].proj_class_castasconst
     proj_class_castasconst.argtypes = [gconstpointer, String]
     proj_class_castasconst.restype = gconstpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 34
+# /home/alanr/monitor/src/include/proj_classes.h: 35
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_subclassed'):
     proj_class_register_subclassed = _libs['libassimilationclientlib.so'].proj_class_register_subclassed
     proj_class_register_subclassed.argtypes = [gpointer, String]
     proj_class_register_subclassed.restype = gpointer
 
-# /home/alanr/monitor/src/include/proj_classes.h: 35
+# /home/alanr/monitor/src/include/proj_classes.h: 36
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_add_superclass_relationship'):
     proj_class_quark_add_superclass_relationship = _libs['libassimilationclientlib.so'].proj_class_quark_add_superclass_relationship
     proj_class_quark_add_superclass_relationship.argtypes = [GQuark, GQuark]
     proj_class_quark_add_superclass_relationship.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 36
+# /home/alanr/monitor/src/include/proj_classes.h: 37
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_quark_is_a'):
     proj_class_quark_is_a = _libs['libassimilationclientlib.so'].proj_class_quark_is_a
     proj_class_quark_is_a.argtypes = [GQuark, GQuark]
     proj_class_quark_is_a.restype = gboolean
 
-# /home/alanr/monitor/src/include/proj_classes.h: 37
+# /home/alanr/monitor/src/include/proj_classes.h: 38
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
     proj_class_classname = _libs['libassimilationclientlib.so'].proj_class_classname
     proj_class_classname.argtypes = [gconstpointer]
@@ -3243,53 +3265,59 @@ if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_classname'):
         proj_class_classname.restype = String
         proj_class_classname.errcheck = ReturnString
 
-# /home/alanr/monitor/src/include/proj_classes.h: 38
+# /home/alanr/monitor/src/include/proj_classes.h: 39
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_register_debug_counter'):
     proj_class_register_debug_counter = _libs['libassimilationclientlib.so'].proj_class_register_debug_counter
     proj_class_register_debug_counter.argtypes = [String, POINTER(guint)]
     proj_class_register_debug_counter.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 39
+# /home/alanr/monitor/src/include/proj_classes.h: 40
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_incr_debug'):
     proj_class_incr_debug = _libs['libassimilationclientlib.so'].proj_class_incr_debug
     proj_class_incr_debug.argtypes = [String]
     proj_class_incr_debug.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 40
+# /home/alanr/monitor/src/include/proj_classes.h: 41
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_decr_debug'):
     proj_class_decr_debug = _libs['libassimilationclientlib.so'].proj_class_decr_debug
     proj_class_decr_debug.argtypes = [String]
     proj_class_decr_debug.restype = None
 
 # /home/alanr/monitor/src/include/proj_classes.h: 42
+if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_debug_dump'):
+    proj_class_debug_dump = _libs['libassimilationclientlib.so'].proj_class_debug_dump
+    proj_class_debug_dump.argtypes = [String, POINTER(AssimObj), String]
+    proj_class_debug_dump.restype = None
+
+# /home/alanr/monitor/src/include/proj_classes.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_dump_live_objects'):
     proj_class_dump_live_objects = _libs['libassimilationclientlib.so'].proj_class_dump_live_objects
     proj_class_dump_live_objects.argtypes = []
     proj_class_dump_live_objects.restype = None
 
-# /home/alanr/monitor/src/include/proj_classes.h: 43
+# /home/alanr/monitor/src/include/proj_classes.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_live_object_count'):
     proj_class_live_object_count = _libs['libassimilationclientlib.so'].proj_class_live_object_count
     proj_class_live_object_count.argtypes = []
     proj_class_live_object_count.restype = guint32
 
-# /home/alanr/monitor/src/include/proj_classes.h: 44
+# /home/alanr/monitor/src/include/proj_classes.h: 46
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_max_object_count'):
     proj_class_max_object_count = _libs['libassimilationclientlib.so'].proj_class_max_object_count
     proj_class_max_object_count.argtypes = []
     proj_class_max_object_count.restype = guint32
 
-# /home/alanr/monitor/src/include/proj_classes.h: 45
+# /home/alanr/monitor/src/include/proj_classes.h: 47
 if hasattr(_libs['libassimilationclientlib.so'], 'proj_class_finalize_sys'):
     proj_class_finalize_sys = _libs['libassimilationclientlib.so'].proj_class_finalize_sys
     proj_class_finalize_sys.argtypes = []
     proj_class_finalize_sys.restype = None
 
-# /home/alanr/monitor/src/include/reliableudp.h: 41
+# /home/alanr/monitor/src/include/reliableudp.h: 43
 class struct__ReliableUDP(Structure):
     pass
 
-ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.h: 37
+ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.h: 39
 
 struct__ReliableUDP.__slots__ = [
     'baseclass',
@@ -3300,7 +3328,6 @@ struct__ReliableUDP.__slots__ = [
     'sendreliable',
     'sendreliableM',
     'ackmessage',
-    'nackmessage',
     'setpktloss',
     'enablepktloss',
     'flushall',
@@ -3314,20 +3341,16 @@ struct__ReliableUDP._fields_ = [
     ('sendreliable', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(FrameSet))),
     ('sendreliableM', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(GSList))),
     ('ackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), POINTER(FrameSet))),
-    ('nackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), POINTER(FrameSet))),
     ('setpktloss', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), c_double, c_double)),
     ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), gboolean)),
     ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), POINTER(NetAddr), enum_ioflush)),
 ]
 
-# /home/alanr/monitor/src/include/reliableudp.h: 91
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'reliableudp_new'):
-        continue
-    reliableudp_new = _lib.reliableudp_new
+# /home/alanr/monitor/src/include/reliableudp.h: 87
+if hasattr(_libs['libassimilationclientlib.so'], 'reliableudp_new'):
+    reliableudp_new = _libs['libassimilationclientlib.so'].reliableudp_new
     reliableudp_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     reliableudp_new.restype = POINTER(ReliableUDP)
-    break
 
 # /home/alanr/monitor/src/include/server_dump.h: 22
 for _lib in _libs.itervalues():
@@ -3627,7 +3650,7 @@ try:
 except:
     pass
 
-# ../include/proj_classes.h: 70
+# ../include/proj_classes.h: 72
 def OBJ_IS_A(obj, Cclass):
     return (proj_class_is_a (obj, Cclass))
 
@@ -4189,15 +4212,27 @@ try:
 except:
     pass
 
-# ../include/fsqueue.h: 76
+# ../include/fsqueue.h: 78
 try:
     DEFAULT_FSQMAX = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 91
+# /home/alanr/monitor/src/include/fsprotocol.h: 97
 try:
     DEFAULT_FSP_QID = 0
+except:
+    pass
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 98
+try:
+    FSPROTO_WINDOWSIZE = 7
+except:
+    pass
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 99
+try:
+    FSPROTO_REXMITINTERVAL = 2000000
 except:
     pass
 
@@ -4483,7 +4518,7 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/proj_classes.h: 70
+# /home/alanr/monitor/src/include/proj_classes.h: 72
 def OBJ_IS_A(obj, Cclass):
     return (proj_class_is_a (obj, Cclass))
 
@@ -4687,11 +4722,11 @@ _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
 _FsQueue = struct__FsQueue # ../include/fsqueue.h: 45
 
-_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 74
+_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 78
 
 _FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 51
 
-_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 59
+_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 63
 
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 44
 
@@ -4711,7 +4746,7 @@ _NVpairFrame = struct__NVpairFrame # /home/alanr/monitor/src/include/nvpairframe
 
 _GSource_pcap = struct__GSource_pcap # /home/alanr/monitor/src/include/pcap_GSource.h: 38
 
-_ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.h: 41
+_ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.h: 43
 
 _SwitchDiscovery = struct__SwitchDiscovery # /home/alanr/monitor/src/include/switchdiscovery.h: 34
 
