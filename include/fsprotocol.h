@@ -83,6 +83,7 @@ struct _FsProtocol {
 	GList*		ipend;						///< List of FsProtoElems ready to be read
 	guint		window_size;					///< Window size of our connections
 	gint64		rexmit_interval;				///< How often to retransmit - in uS
+	guint		_timersrc;					///< gmainloop timer source id
 	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);	///< Find connection to given endpoint
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
 	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
@@ -93,7 +94,7 @@ struct _FsProtocol {
 	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of packets
 	void		(*flushall)(FsProtocol*,const NetAddr*,enum ioflush);///< Flush packets to given address
 };
-WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj);
+WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_timer_uS);
 #define	DEFAULT_FSP_QID		0		///< Queue ID of a packet w/o a sequence number?
 #define FSPROTO_WINDOWSIZE	7		///< FsProtocol window size
 #define FSPROTO_REXMITINTERVAL	(2000000)	///< FsProtocol retransmit interval in microseconds

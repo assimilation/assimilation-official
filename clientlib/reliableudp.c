@@ -50,8 +50,6 @@ FSTATIC gboolean _reliableudp_sendreliable(ReliableUDP*self, NetAddr*, guint16, 
 FSTATIC gboolean _reliableudp_sendreliableM(ReliableUDP*self, NetAddr*, guint16, GSList*);
 FSTATIC gboolean _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset);
 FSTATIC gboolean _reliableudp_nackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset);
-FSTATIC void	 _reliableudp_setpktloss (ReliableUDP* self, double rcvloss, double xmitloss);
-FSTATIC void	 _reliableudp_enablepktloss (ReliableUDP* self, gboolean enable);
 FSTATIC void	 _reliableudp_flushall(ReliableUDP*self, const NetAddr* dest, enum ioflush);
 
 // Our functions that override base class functions...
@@ -66,7 +64,8 @@ FSTATIC GSList* _reliableudp_recvframesets(NetIO*, NetAddr**);
 ReliableUDP*
 reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	,	ConfigContext* config	///<[in/out] config info
-	,	PacketDecoder* decoder)	///<[in/out] packet decoder
+	,	PacketDecoder* decoder	///<[in/out] packet decoder
+	,	guint rexmit_timer_uS)	///<[in] How often to check for retransmission?
 {
 	NetIOudp*	uret;
 	ReliableUDP*	self = NULL;
@@ -78,17 +77,15 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	uret = netioudp_new(objsize, config, decoder);
 	if (uret) {
 		if (!_baseclass_finalize) {
-			proj_class_register_subclassed(uret, "ReliableUDP");
 			_baseclass_finalize = uret->baseclass.baseclass._finalize;
 			_baseclass_sendone = uret->baseclass.sendaframeset;
 			_baseclass_sendmany = uret->baseclass.sendframesets;
 			_baseclass_rcvmany = uret->baseclass.recvframesets;
 		}
-		self = CASTTOCLASS(ReliableUDP, uret);
+		self = NEWSUBCLASS(ReliableUDP, uret);
 		self->sendreliable = _reliableudp_sendreliable;
 		self->sendreliableM = _reliableudp_sendreliableM;
 		self->ackmessage = _reliableudp_ackmessage;
-		self->enablepktloss = _reliableudp_enablepktloss;
 		self->flushall = _reliableudp_flushall;
 		// Now for the base class functions which we override
 		self->baseclass.baseclass.baseclass._finalize = _reliableudp_finalize;
@@ -99,7 +96,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		self->baseclass.baseclass.sendframesets = _reliableudp_sendframesets;
 		self->baseclass.baseclass.sendaframeset = _reliableudp_sendaframeset;
 
-		self->_protocol = fsprotocol_new(0, &uret->baseclass);
+		self->_protocol = fsprotocol_new(0, &uret->baseclass, rexmit_timer_uS);
 	}
 	return self;
 }
@@ -199,11 +196,6 @@ FSTATIC gboolean
 _reliableudp_sendreliableM(ReliableUDP*self, NetAddr* dest, guint16 qid, GSList* fslist)
 {
 	// See if we've been requested to drop a packet for testing
-	/// @todo THIS IS NOT THE PLACE TO LOSE PACKETS - it should be at a lower level...
-	if (self->_shouldlosepkts && g_random_double() < self->_xmitloss) {
-		// It's easier to drop all or none - that's probably good enough for testing...
-		return TRUE;
-	}
 	return self->_protocol->send(self->_protocol, fslist, qid, dest);
 }
 
@@ -234,21 +226,6 @@ FSTATIC void
 _reliableudp_flushall(ReliableUDP*self, const NetAddr* dest, enum ioflush flushtype)
 {
 	self->_protocol->flushall(self->_protocol, dest,  flushtype);
-}
-
-/// Set the desired level of packet loss - doesn't take effect from this call alone
-FSTATIC void
-_reliableudp_setpktloss (ReliableUDP* self, double rcvloss, double xmitloss)
-{
-	self->_rcvloss = rcvloss;
-	self->_xmitloss = xmitloss;
-}
-
-/// Enable (or disable) packet loss as requested
-FSTATIC void
-_reliableudp_enablepktloss (ReliableUDP* self, gboolean enable)
-{
-	self->_shouldlosepkts = enable;
 }
 
 ///@}

@@ -50,6 +50,9 @@ struct _NetIO {
 	SignFrame*	_signframe;			///< Signature frame to use in signing FrameSets
 	Frame*		_cryptframe;			///< Encryption frame to use in encrypting FrameSets
 	Frame*		_compressframe;			///< Compression frame to use in compressing FrameSets
+	double		_rcvloss;			///< private: Receive loss fraction
+	double		_xmitloss;			///< private: Transmit loss fraction
+	gboolean	_shouldlosepkts;		///< private: TRUE to enable packet loss...
 	gboolean	(*input_queued)(const NetIO* self);///<[in] TRUE if input is queued ready to be read
 	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
@@ -87,19 +90,6 @@ struct _NetIO {
 				 const NetAddr* dest,	///<[in] destination address
 				 GSList* framesets)	///<[in] List of FrameSets to send
 						   ;	// ";" is here to work around a doxygen bug
-#if 0
-	void		(*sendamessage)			///< RELIABLY send a single FrameSet to a @ref NetIO
-				(NetIO* self,		///<[in/out] 'this' object pointer
-				 const NetAddr* dest,	///<[in] destination address
-				 FrameSet* frameset)	///<[in] The FrameSet to send
-						   ;	// ";" is here to work around a doxygen bug
-	void		(*sendmessages)			///< RELIABLY Send a FrameSet list to a @ref NetIO
-							///< @pre must have non-NULL _signframe
-				(NetIO* self,		///<[in/out] 'this' object pointer
-				 const NetAddr* dest,	///<[in] destination address
-				 GSList* framesets)	///<[in] List of FrameSets to send
-						   ;	// ";" is here to work around a doxygen bug
-#endif
 	GSList*		(*recvframesets)		///< Receive a single datagram's framesets
 							///<@return GSList of FrameSets from packet
 				(NetIO*,		///<[in/out] 'this' object
@@ -111,6 +101,13 @@ struct _NetIO {
 	Frame*		(*compressframe)		///< return a copied compression frame for sending
 				(NetIO*self)		///<[in] 'this' object
 						   ;	// ";" is here to work around a doxygen bug
+	void		(*setpktloss)			///< Set desired fraction of packet loss
+				(NetIO* self,		///<[in/out] 'this' object
+				 double rcv,		///< Packet receive loss fraction (0:1]
+				 double xmit);		///< Packet transmission loss (0:1]
+	void		(*enablepktloss)		///< enable packet loss (as set above)
+				(NetIO* self,		///<[in/out] 'this' object	
+				 gboolean enable);	///TRUE == enable, FALSE == disable
 };
 WINEXPORT NetIO*	netio_new(gsize objsize, ConfigContext*, PacketDecoder*);
 							///< Don't call this directly! - this is an abstract class...

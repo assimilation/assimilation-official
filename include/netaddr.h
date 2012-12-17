@@ -58,6 +58,7 @@ struct _NetAddr {
 	guint16		_addrtype;		///< private: Address type
 	guint16		_addrlen;		///< private: Length of _addrbody
 	guint16		_addrport;		///< private: Address port (if applicable)
+
 };
 WINEXPORT NetAddr*	netaddr_new(gsize objsize, guint16 port, guint16 addrtype, gconstpointer addrbody, guint16 addrlen);
 WINEXPORT NetAddr*	netaddr_sockaddr_new(const struct sockaddr_in6 *, socklen_t);
