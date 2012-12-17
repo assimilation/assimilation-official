@@ -531,9 +531,10 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	guint		chunkindex = 0;
 	int		coloncolonindex = -1;
 	guint		coloncolonlength;
-	char*		firstbadhexchar;
+	char*		firstbadhexchar = NULL;
 	NetAddr*	retval;
 
+	memset(addrchunks, 0, sizeof(addrchunks));
 
 	if (*addrstr == '[') {
 		// Then we have a port number - look for ']' and ':'
@@ -547,7 +548,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 		lastaddrdigit = rbracketpos - 1;
 		port = strtol(rbracketpos+2, &firstbadchar, 10);
 		if (*firstbadchar != '\0' || port <= 0 || port >= 65536) {
-			DEBUGMSG2("%s: Not IPV6 format due to bad port number syntax", __FUNCTION__);
+			DEBUGMSG2("%s: Not IPv6 format due to bad port number syntax", __FUNCTION__);
 			return NULL;
 		}
 	}
@@ -558,14 +559,19 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	}
 	curaddrdigit = firstaddrdigit;
 	for (chunkindex=0; chunkindex < DIMOF(addrchunks) && curaddrdigit <= lastaddrdigit; ++chunkindex) {
-		addrchunks[chunkindex] = strtol(curaddrdigit, &firstbadhexchar, 16);
+		long	chunk = strtol(curaddrdigit, &firstbadhexchar, 16);
+		if (chunk < 0 || chunk > 65535) {
+			DEBUGMSG2("%s: Not IPv6 format due to invalid chunk value [%ld]", __FUNCTION__, chunk);
+			return NULL;
+		}
+		addrchunks[chunkindex] = (guint16)chunk;
 		if (firstbadhexchar <= lastaddrdigit && *firstbadhexchar != ':') {
-			DEBUGMSG2("%s: Not IPV6 format due to invalid character [%c]", __FUNCTION__, *firstbadhexchar);
+			DEBUGMSG2("%s: Not IPv6 format due to invalid character [%c]", __FUNCTION__, *firstbadhexchar);
 			return NULL;
 		}
 		if (firstbadhexchar[1] == ':' && firstbadhexchar[1] == ':') {
 			if (coloncolonindex >= 0) {
-				DEBUGMSG2("%s: Not IPV6 format due to multiple ::'s", __FUNCTION__);
+				DEBUGMSG2("%s: Not IPv6 format due to multiple ::'s", __FUNCTION__);
 				return NULL;
 			}
 			coloncolonindex = chunkindex + 1;
@@ -576,15 +582,15 @@ _netaddr_string_ipv6_new(const char* addrstr)
 		}
 	}
 	if (firstbadhexchar != lastaddrdigit + 1) {
-		DEBUGMSG2("%s: Not IPV6 format due to excess length.", __FUNCTION__);
+		DEBUGMSG2("%s: Not IPv6 format due to excess length.", __FUNCTION__);
 		return NULL;
 	}
 	if (coloncolonindex >= 0 && chunkindex == DIMOF(addrchunks)-1) {
-		DEBUGMSG2("%s: Not IPV6 format due to full length with :: present", __FUNCTION__);
+		DEBUGMSG2("%s: Not IPv6 format due to full length with :: present", __FUNCTION__);
 		return NULL;
 	}
 	if (coloncolonindex < 0 && chunkindex != DIMOF(addrchunks)-1) {
-		DEBUGMSG2("%s: Not IPV6 format due to too few digits.", __FUNCTION__);
+		DEBUGMSG2("%s: Not IPv6 format due to too few digits.", __FUNCTION__);
 		return NULL;
 	}
 	// OK --- now we have something that looks a lot like a legit IPv6 address.
@@ -604,7 +610,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 			memset(addrptr, 0, coloncolonlength*2);
 			addrptr += 2*coloncolonlength;
 		}
-		addrptr[0] = (addrchunks[j] >> 8) & 0xff;
+		addrptr[0] = (((addrchunks[j]) >> 8) & 0xff);
 		addrptr[1] = addrchunks[j] & 0xff;
 		addrptr += 2;
 	}
