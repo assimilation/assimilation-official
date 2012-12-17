@@ -30,6 +30,7 @@
 #include <frametypes.h>
 
 
+DEBUGDECLARATIONS
 /// @defgroup ReliableUDP ReliableUDP class
 ///@{
 ///@ingroup NetIOudp
@@ -55,6 +56,7 @@ FSTATIC void	 _reliableudp_flushall(ReliableUDP*self, const NetAddr* dest, enum 
 
 // Our functions that override base class functions...
 FSTATIC void _reliableudp_finalize(AssimObj*);
+FSTATIC gboolean _reliableudp_input_queued(const NetIO*);
 FSTATIC void _reliableudp_sendaframeset(NetIO*, const NetAddr*, FrameSet*);
 FSTATIC void _reliableudp_sendframesets(NetIO*, const NetAddr*, GSList*);
 FSTATIC GSList* _reliableudp_recvframesets(NetIO*, NetAddr**);
@@ -69,6 +71,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	NetIOudp*	uret;
 	ReliableUDP*	self = NULL;
 
+	BINDDEBUG(ReliableUDP);
 	if (objsize < sizeof(ReliableUDP)) {
 		objsize = sizeof(ReliableUDP);
 	}
@@ -90,6 +93,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		// Now for the base class functions which we override
 		self->baseclass.baseclass.baseclass._finalize = _reliableudp_finalize;
 		self->baseclass.baseclass.recvframesets = _reliableudp_recvframesets;
+		self->baseclass.baseclass.input_queued = _reliableudp_input_queued;
 		// These next two don't really do anything different - and could be eliminated
 		// as of now.
 		self->baseclass.baseclass.sendframesets = _reliableudp_sendframesets;
@@ -113,6 +117,17 @@ _reliableudp_finalize(AssimObj* obj)
 		}
 	}
 	_baseclass_finalize(&self->baseclass.baseclass.baseclass);
+}
+
+FSTATIC gboolean
+_reliableudp_input_queued(const NetIO* nself)
+{
+	const ReliableUDP*	self = CASTTOCONSTCLASS(ReliableUDP, nself);
+	gboolean		retval;
+	g_return_val_if_fail(nself != NULL, FALSE);
+	retval = self->_protocol->iready(self->_protocol);
+	DEBUGMSG2("%s: Checking input ready: returning %s", __FUNCTION__, (retval?"True":"False"));
+	return retval;
 }
 
 /// Reliable UDP verison of 'sendaframeset' from base class.
@@ -152,13 +167,8 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 	proto = self->_protocol;
 
 	// Loop over all the packets we read in, and put them in our protocol queues
-	// unless of course, we decide to lose some to help test things...
 	for (lelem=fsread; lelem; lelem=lelem->next) {
 		FrameSet*	fs = CASTTOCLASS(FrameSet, lelem->data);
-		// Should we "lose" this packet for testing purposes?
-		if (self->_shouldlosepkts && g_random_double() < self->_rcvloss) {
-			continue;
-		}
 		// Put that puppy in the queue...
 		proto->receive(proto, oursrcaddr, fs);
 	}
@@ -180,11 +190,7 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 FSTATIC gboolean
 _reliableudp_sendreliable(ReliableUDP*self, NetAddr* dest, guint16 qid, FrameSet* fs)
 {
-	// See if we've been requested to drop a packet for testing
-	if (self->_shouldlosepkts && g_random_double() < self->_xmitloss) {
-		return TRUE;
-	}
-	// Nope - we get to send it out!
+	// Send it out!
 	return self->_protocol->send1(self->_protocol, fs, qid, dest);
 }
 
@@ -213,7 +219,7 @@ _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 
 	fs = frameset_new(FRAMESETTYPE_ACK);
 
-	ackseq = seqnoframe_new_init(FRAMETYPE_REPLYID, seq->getreqid(seq), seq->getqid(seq));
+	ackseq = seqnoframe_new_init(FRAMETYPE_REQID, seq->getreqid(seq), seq->getqid(seq));
 	frameset_append_frame(fs, &ackseq->baseclass);
 	ackseq->baseclass.baseclass.unref(&ackseq->baseclass.baseclass); ackseq = NULL;
 

@@ -83,7 +83,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
 		GSList*		flist;
 		flist = g_slist_prepend(NULL, ping);
-		flist = g_slist_prepend(flist, pong);
+		//flist = g_slist_prepend(flist, pong);
 		
 		fprintf(stderr, "Sending a PONG/PING pair to %s\n"
 		,	addrstr);
@@ -129,21 +129,25 @@ main(int argc, char **argv)
 	for (j=1; j < argc; ++j) {
 		FrameSet*	ping;
 		NetAddr*	toaddr = netaddr_string_new(argv[j]);
+		NetAddr*	v6addr;
 		if (toaddr == NULL) {
 			fprintf(stderr, "WARNING: %s is not a legit ipv4/v6 address"
 			,	argv[j]);
 			continue;
 		}
-		toaddr->setport(toaddr, PORT);
+		v6addr = toaddr->toIPv6(toaddr);
+		toaddr->baseclass.unref(&toaddr->baseclass); toaddr = NULL;
+		
+		v6addr->setport(v6addr, PORT);
 		{
-			char *	addrstr= toaddr->baseclass.toString(&toaddr->baseclass);
+			char *	addrstr= v6addr->baseclass.toString(&v6addr->baseclass);
 			fprintf(stderr, "Sending an initial PING to %s\n", addrstr);
 			g_free(addrstr); addrstr = NULL;
 		}
 		ping = frameset_new(FRAMESETTYPE_PING);
-		transport->sendreliable(transport, toaddr, 0, ping);
+		transport->sendreliable(transport, v6addr, 0, ping);
 		ping->baseclass.unref(&ping->baseclass);
-		toaddr->baseclass.unref(&toaddr->baseclass); toaddr = NULL;
+		v6addr->baseclass.unref(&v6addr->baseclass); v6addr = NULL;
 	}
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_main_loop_run(loop);

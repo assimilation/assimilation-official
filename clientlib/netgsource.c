@@ -137,7 +137,7 @@ _netgsource_prepare(GSource* source,	///<[unused] - GSource object
 		    gint* timeout)	///<[unused] - timeout
 {
 	(void)source; (void)timeout;
-	return FALSE;
+	return _netgsource_check(source);
 }
 
 /// GSource check routine for NetGSource.
@@ -149,7 +149,7 @@ _netgsource_check(GSource* gself)	///<[in] NetGSource object being 'check'ed.
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
 	// revents: received events...
 	// @todo: probably should check for errors in revents
-	return 0 != self->_gfd.revents;
+	return ((0 != self->_gfd.revents) || self->_netio->input_queued(self->_netio));
 }
 /// GSource dispatch routine for NetGSource.
 /// Called after our check function returns TRUE.

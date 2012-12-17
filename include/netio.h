@@ -50,6 +50,7 @@ struct _NetIO {
 	SignFrame*	_signframe;			///< Signature frame to use in signing FrameSets
 	Frame*		_cryptframe;			///< Encryption frame to use in encrypting FrameSets
 	Frame*		_compressframe;			///< Compression frame to use in compressing FrameSets
+	gboolean	(*input_queued)(const NetIO* self);///<[in] TRUE if input is queued ready to be read
 	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*,	///<[in] Address to bind it to

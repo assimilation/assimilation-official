@@ -46,8 +46,10 @@ FSTATIC guint _netaddr_hash(const NetAddr*);
 FSTATIC gchar * _netaddr_toStringflex(const NetAddr*, gboolean canonformat);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_canonStr(const NetAddr*);
+FSTATIC NetAddr* _netaddr_toIPv6(NetAddr*);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format);
 FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr);
+FSTATIC NetAddr* _netaddr_string_ipv6_new(const char* addrstr);
 
 DEBUGDECLARATIONS
 
@@ -108,8 +110,29 @@ _netaddr_canonStr(const NetAddr* self)
 	return _netaddr_toStringflex(self, TRUE);
 }
 
-
 /// Convert this IPv6-encapsulated IPv4 NetAddr to an IPv4 representation
+NetAddr*
+_netaddr_toIPv6(NetAddr* self)
+{
+	const int	ipv4prefixlen = 12;
+	guchar		ipv6addr[16] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff, 0, 0, 0, 0};
+	
+	switch (self->_addrtype) {
+		
+		case ADDR_FAMILY_IPV6:
+			self->baseclass.ref(&self->baseclass);
+			return self;
+		case ADDR_FAMILY_IPV4:
+			break;
+		default:
+			return NULL;
+	}
+	// We have an IPv4 address we want to convert to an IPv6 address
+	memcpy(ipv6addr+ipv4prefixlen, self->_addrbody, 4);
+	return netaddr_ipv6_new(ipv6addr, self->_addrport);
+}
+
+
 /// Convert this NetAddr to a string
 FSTATIC gchar *
 _netaddr_toStringflex(const NetAddr* self, gboolean canon_format)
@@ -233,7 +256,7 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 #	define	CHAR_BIT	8
 #endif
 /// NetAddr hash function which worries about denial of service via hash collisions.
-/// Note that this function will produce results unique to this process.
+/// Note that this function will produce results unique to this process instance.
 FSTATIC guint
 _netaddr_hash(const NetAddr* self)
 {
@@ -341,6 +364,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	baseobj->_finalize = _netaddr_finalize;
 	baseobj->toString = _netaddr_toString;
 	self->canonStr = _netaddr_canonStr;
+	self->toIPv6 = _netaddr_toIPv6;
 	self->_addrport = port;
 	self->_addrtype = addrtype;
 	self->_addrlen = addrlen;
@@ -472,11 +496,146 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	return ret;
 }
 
+FSTATIC NetAddr*
+_netaddr_string_ipv6_new(const char* addrstr)
+{
+/*
+ *	ipv6
+ *  OR
+ *	[ipv6]:decimal-port
+ *
+ *	The 'ipv6' part is described by RFC 4291
+ *
+ *
+ *	It consists of a sequence of 0-8 collections of 1-4 hexadecimal digits separated by
+ *	colon characters.
+ *	If there are fewer than 8 collections of digits, then there must be exactly one :: string
+ *	in the address string.  This :: tag represents a variable-length sequence of zeros in the address.
+ *
+ *	There is also another variant on the format of the ipv6 portion:
+ *
+ *	It can be "::ffff:" followed by an ipv4 address in typical ipv4 dotted decimal notation.
+ *	@todo make _netaddr_string_ipv6_new() support the special format used for
+ *	      IPv6-encapsulated IPv4 addresses.
+ *
+ */
+	int		len = strlen(addrstr);
+	const char *	firstaddrdigit = addrstr;
+	const char *	lastaddrdigit = addrstr+len-1;
+	const char *	curaddrdigit;
+	unsigned	j;
+	long		port = 0;
+	guint16		addrchunks[8];
+	guint8		addrbytes[16];
+	guint8*		addrptr;
+	guint		chunkindex = 0;
+	int		coloncolonindex = -1;
+	guint		coloncolonlength;
+	char*		firstbadhexchar;
+	NetAddr*	retval;
+
+
+	if (*addrstr == '[') {
+		// Then we have a port number - look for ']' and ':'
+		char *	rbracketpos = strchr(addrstr+1, ']');
+		char *	firstbadchar = rbracketpos;
+
+		if (rbracketpos == NULL || rbracketpos[1] != ':') {
+			return NULL;
+		}
+		firstaddrdigit += 1;
+		lastaddrdigit = rbracketpos - 1;
+		port = strtol(rbracketpos+2, &firstbadchar, 10);
+		if (*firstbadchar != '\0' || port <= 0 || port >= 65536) {
+			DEBUGMSG2("%s: Not IPV6 format due to bad port number syntax", __FUNCTION__);
+			return NULL;
+		}
+	}
+	// Now, we know where the digit collection starts and ends
+	if (firstaddrdigit[0] == ':' && firstaddrdigit[1] == ':') {
+		coloncolonindex = 0;
+		firstaddrdigit += 2;
+	}
+	curaddrdigit = firstaddrdigit;
+	for (chunkindex=0; chunkindex < DIMOF(addrchunks) && curaddrdigit <= lastaddrdigit; ++chunkindex) {
+		addrchunks[chunkindex] = strtol(curaddrdigit, &firstbadhexchar, 16);
+		if (firstbadhexchar <= lastaddrdigit && *firstbadhexchar != ':') {
+			DEBUGMSG2("%s: Not IPV6 format due to invalid character [%c]", __FUNCTION__, *firstbadhexchar);
+			return NULL;
+		}
+		if (firstbadhexchar[1] == ':' && firstbadhexchar[1] == ':') {
+			if (coloncolonindex >= 0) {
+				DEBUGMSG2("%s: Not IPV6 format due to multiple ::'s", __FUNCTION__);
+				return NULL;
+			}
+			coloncolonindex = chunkindex + 1;
+			firstaddrdigit += 2;
+		}
+		if (firstbadhexchar == lastaddrdigit + 1) {
+			break;
+		}
+	}
+	if (firstbadhexchar != lastaddrdigit + 1) {
+		DEBUGMSG2("%s: Not IPV6 format due to excess length.", __FUNCTION__);
+		return NULL;
+	}
+	if (coloncolonindex >= 0 && chunkindex == DIMOF(addrchunks)-1) {
+		DEBUGMSG2("%s: Not IPV6 format due to full length with :: present", __FUNCTION__);
+		return NULL;
+	}
+	if (coloncolonindex < 0 && chunkindex != DIMOF(addrchunks)-1) {
+		DEBUGMSG2("%s: Not IPV6 format due to too few digits.", __FUNCTION__);
+		return NULL;
+	}
+	// OK --- now we have something that looks a lot like a legit IPv6 address.
+	// let's see if we can make a NetAddr out of it...
+	if (coloncolonindex >= 0) {
+		coloncolonlength = (DIMOF(addrchunks)-1) - chunkindex;
+		DEBUGMSG5("%s: coloncolonlength is %d, index is %d", __FUNCTION__, coloncolonlength
+		,	coloncolonindex);
+	}
+	DEBUGMSG5("%s: chunkindex is %d", __FUNCTION__, chunkindex);
+
+	addrptr = addrbytes;
+
+	memset(addrbytes, 0, DIMOF(addrbytes));
+	for (j=0; j <= chunkindex; ++j) {
+		if (((gint)j) == coloncolonindex) {
+			memset(addrptr, 0, coloncolonlength*2);
+			addrptr += 2*coloncolonlength;
+		}
+		addrptr[0] = (addrchunks[j] >> 8) & 0xff;
+		addrptr[1] = addrchunks[j] & 0xff;
+		addrptr += 2;
+	}
+	if (coloncolonindex == (gint)chunkindex + 1) {
+		DEBUGMSG5("%s: Appending %d zeros to the end of the address", __FUNCTION__
+		,	coloncolonlength*2);
+		memset(addrptr, 0, coloncolonlength*2);
+		addrptr += 2*coloncolonlength;
+	}
+	DEBUGMSG5("%s: addrptr == addrbytes+%d", __FUNCTION__, (addrptr-addrbytes));
+	g_return_val_if_fail(addrptr == addrbytes+DIMOF(addrbytes), NULL);
+
+	retval = netaddr_ipv6_new(addrbytes, port);
+	DUMP2(addrstr, &retval->baseclass, " Converted the former into the latter...");
+	return retval;
+}
+
 NetAddr*
 netaddr_string_new(const char* addrstr)
 {
+	NetAddr*	retval;
 	/// FIXME: Need to write _netaddr_string_ipv6_new (with provisions for port numbers!)
-	return _netaddr_string_ipv4_new(addrstr);
+	if (addrstr[0] == '[' || addrstr[0] == ':') {
+		retval = _netaddr_string_ipv6_new(addrstr);
+	}else{
+		retval = _netaddr_string_ipv4_new(addrstr);
+		if (!retval) {
+			retval = _netaddr_string_ipv6_new(addrstr);
+		}
+	}
+	return retval;
 }
 
 

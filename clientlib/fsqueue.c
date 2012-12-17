@@ -60,6 +60,8 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
 	g_return_val_if_fail(seqno != NULL, FALSE);
+	++self->_nextseqno;
+	DEBUGMSG2("%s: next sequence number for %p is "FMT_64BIT"d", __FUNCTION__, self, self->_nextseqno);
 
 	// Of course, the session id on outbound packets should _never_ change
 	// But an uninitialized FsQueue session id is zero
@@ -74,10 +76,9 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	frameset_prepend_frame(fs, &seqno->baseclass);
 	// And put this FrameSet at the end of the queue
 	g_queue_push_tail(self->_q, fs);
+	++self->_curqlen;
 
 	// Now do all the paperwork :-D
-	++self->_nextseqno;
-	++self->_curqlen;
 	// We need for the FrameSet to be kept around for potentially a long time...
 	fs->baseclass.ref(&fs->baseclass);
 	// But we're done with the seqno frame (prepending it to the frameset bumped the ref count)
@@ -125,6 +126,9 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 		// We've already delivered this packet to our customers...
 		// We need to see if we've already sent the ACK for this packet.
 		// If so, we need to ACK it again...
+		DUMP2(__FUNCTION__, &fs->baseclass, " Previously delivered to client");
+		DEBUGMSG2("%s: reason: sequence number is "FMT_64BIT"d but next is "FMT_64BIT"d"
+		,	__FUNCTION__, seqno->_reqid, self->_nextseqno);
 		return FALSE;
 	}
 

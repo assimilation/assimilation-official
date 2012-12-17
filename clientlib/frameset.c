@@ -351,7 +351,7 @@ _frameset_getseqno(FrameSet* self)
 	}
 	for (curframe=self->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
 		Frame* frame = CASTTOCLASS(Frame, curframe->data);
-		DEBUGMSG1("%s: LOOKING AT FRAME TYPE %d (but want sequence number)", __FUNCTION__, frame->type);
+		DEBUGMSG4("%s: LOOKING AT FRAME TYPE %d (but want sequence number)", __FUNCTION__, frame->type);
 		if (frame->type == FRAMETYPE_REQID || frame->type == FRAMETYPE_REPLYID) {
 			self->_seqframe = CASTTOCLASS(SeqnoFrame, frame);
 			return self->_seqframe;
