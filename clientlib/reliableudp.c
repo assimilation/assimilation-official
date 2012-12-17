@@ -193,6 +193,7 @@ FSTATIC gboolean
 _reliableudp_sendreliableM(ReliableUDP*self, NetAddr* dest, guint16 qid, GSList* fslist)
 {
 	// See if we've been requested to drop a packet for testing
+	/// @todo THIS IS NOT THE PLACE TO LOSE PACKETS - it should be at a lower level...
 	if (self->_shouldlosepkts && g_random_double() < self->_xmitloss) {
 		// It's easier to drop all or none - that's probably good enough for testing...
 		return TRUE;

@@ -76,14 +76,14 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	,	addrstr);
 	
 	
-	fprintf(stderr, "Sending an ACK packet to %s\n", addrstr);
+	// Acknowledge that we acted on this message...
 	transport->ackmessage(transport, fromaddr, fs);
 	if (fs->fstype == FRAMESETTYPE_PING) {
 		FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
 		GSList*		flist;
-		flist = g_slist_prepend(NULL, pong);
-		flist = g_slist_prepend(flist, ping);
+		flist = g_slist_prepend(NULL, ping);
+		flist = g_slist_prepend(flist, pong);
 		
 		fprintf(stderr, "Sending a PONG/PING pair to %s\n"
 		,	addrstr);
