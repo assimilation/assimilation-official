@@ -53,7 +53,7 @@ struct _FsProtoElem {
 	guint16		_qid;		///< Queue id of far endpoint
 	FsQueue*	outq;		///< Queue of outbound messages
 	FsQueue*	inq;		///< Queue of incoming messages - perhaps missing packets...
-	SeqnoFrame*	lastacksent;	///< What is the highest sequence number we've sent an ACK for?
+	SeqnoFrame*	lastacksent;	///< The highest sequence number we've sent an ACK for.
 	SeqnoFrame*	lastseqsent;	///< Last sequence number which has been sent at least once
 	guint		outstanding_acks;///<How many ACKs are pending?
 	gint64		nextrexmit;	///< When to retransmit next...

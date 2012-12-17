@@ -385,15 +385,19 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 	ret =  fspe->outq->hasqspace(fspe->outq, g_slist_length(framesets));
 	if (ret) {
 		GSList*	this;
+		int	count = 0;
+		// Loop over our framesets and send them ouit...
 		for (this=framesets; this; this=this->next) {
 			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
 			gboolean is_acknack;
 			g_return_val_if_fail(fs != NULL, FALSE);
 			is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
+			DEBUGMSG1("%s: queueing up frameset %d of type %d", __FUNCTION__, count, fs->fstype);
 			fspe->outq->enq(fspe->outq, fs);
 			if (is_acknack) {
 				_fsprotocol_updateack(fspe, fs);
 			}
+			++count;
 		}
 		// Add this fspe to the list of fspes with un-ACKed FrameSets - if not already on it
 		if (!g_list_find(fspe->parent->unacked, fspe)) {
@@ -463,7 +467,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 	if (fspe->nextrexmit == 0 && fspe->outstanding_acks > 0) {
 		// Next retransmission time not yet set...
 		fspe->nextrexmit = now + parent->rexmit_interval;
-	} else if (now > fspe->nextrexmit) {
+	} else if (fspe->nextrexmit != 0 && now > fspe->nextrexmit) {
 		FrameSet*	fs = outq->qhead(outq);
 		// It's time to retransmit something.  Hurray!
 		/// @todo: SHOULD THIS BE IN ITS OWN FUNCTION?
