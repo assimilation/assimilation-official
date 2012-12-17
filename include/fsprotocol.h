@@ -53,7 +53,7 @@ struct _FsProtoElem {
 	guint16		_qid;		///< Queue id of far endpoint
 	FsQueue*	outq;		///< Queue of outbound messages
 	FsQueue*	inq;		///< Queue of incoming messages - perhaps missing packets...
-	SeqnoFrame*	lastacksent;	///< What is the highest sequence number we've ACKed?
+	SeqnoFrame*	lastacksent;	///< What is the highest sequence number we've sent an ACK for?
 	SeqnoFrame*	lastseqsent;	///< Last sequence number which has been sent at least once
 	guint		outstanding_acks;///<How many ACKs are pending?
 	gint64		nextrexmit;	///< When to retransmit next...
@@ -73,7 +73,7 @@ enum ioflush {
 	FsProtoFLUSHBOTH,	///< flush both input and output queues
 };
 
-/// This is an @ref FsProtocol object - designed for managing our reliable user-level @ref FrameSet delivery system
+/// This is an @ref FsProtocol object - implementing a reliable user-level @ref FrameSet delivery system
 /// It is a subclass of the @ref AssimObj and is managed by our @ref ProjectClass system.
 struct _FsProtocol {
 	AssimObj	baseclass;					///< base @ref AssimObj object
@@ -94,7 +94,9 @@ struct _FsProtocol {
 	void		(*flushall)(FsProtocol*,const NetAddr*,enum ioflush);///< Flush packets to given address
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj);
-#define	DEFAULT_FSP_QID	0 ///< What is the Queue ID of a packet w/o a sequence number?
+#define	DEFAULT_FSP_QID		0		///< Queue ID of a packet w/o a sequence number?
+#define FSPROTO_WINDOWSIZE	7		///< FsProtocol window size
+#define FSPROTO_REXMITINTERVAL	(2000000)	///< FsProtocol retransmit interval in microseconds
 
 ///@}
 

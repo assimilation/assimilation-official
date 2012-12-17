@@ -163,6 +163,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 /// Acknowledge and flush all framesets up through and including the given sequence number
 /// This is used exclusively for output queues - and is the result of the application on
 /// the other end sending us an ACK packet.
+/// @return number of packets ACKed by this incoming ACK packet.
 FSTATIC guint
 _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're operating on
 ,		    SeqnoFrame*seq)		///< The sequence number to ACK through
@@ -175,18 +176,21 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	DEBUGMSG1("%s: ACKing through (%d:%d:"FMT_64BIT"d)", __FUNCTION__
 	,	seq->getsessionid(seq), seq->getqid(seq), seq->getreqid(seq));
 	if (seq->getsessionid(seq) != self->_sessionid) {
-		g_warning("Incoming ACK packet has invalid session id [%d instead of %d]"
-		,	seq->getsessionid(seq), self->_sessionid);
+		g_warning("%s: Incoming ACK packet has invalid session id [%d instead of %d]"
+		" (ACK ignored)."
+		,	__FUNCTION__, seq->getsessionid(seq), self->_sessionid);
 		return 0;
 	}
 		
 	if (seq->getreqid(seq) >= self->_nextseqno) {
-		g_warning("Incoming ACK packet sequence number "FMT_64BIT"d is >= "FMT_64BIT"d"
-		,	seq->getreqid(seq), self->_nextseqno);
+		g_warning("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
+		FMT_64BIT"d (ACK Ignored)."
+		,	__FUNCTION__, seq->getreqid(seq), self->_nextseqno);
 		return 0;
 	}
 	reqid = seq->getreqid(seq);
 	
+	// The packets are in the queue in order of ascending sequence number
 	while((fs = self->qhead(self)) != NULL) {
 		SeqnoFrame*	fseq = fs->getseqno(fs);
 		if (fseq != NULL && fseq->getreqid(fseq) > reqid) {
@@ -195,10 +199,8 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 		self->flush1(self);
 		count += 1;
 	}
-	if (DEBUG > 0) {
-		DEBUGMSG1("%s: returning %d - remaining (output) queue length is %d"
-		,	__FUNCTION__, count,	g_queue_get_length(self->_q));
-	}
+	DEBUGMSG1("%s: returning %d - remaining (output) queue length is %d"
+	,	__FUNCTION__, count,	g_queue_get_length(self->_q));
 	return count;
 }
 

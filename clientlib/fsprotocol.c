@@ -75,16 +75,18 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 	return self->addconn(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
 }
 
-/// (possibly) Update the last ACKed sequence number in our FsProtoElem
+/// (possibly) Update the last-ACK-sent sequence number in our FsProtoElem
 FSTATIC void
 _fsprotocol_updateack(FsProtoElem* fspe, FrameSet* fs)
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
-	if (seq && fspe->lastacksent->compare(fspe->lastacksent, seq) < 0) {
-		fspe->lastacksent->baseclass.baseclass.unref(&fspe->lastacksent->baseclass.baseclass);
+	if (seq
+	&&	(fspe->lastacksent == NULL || fspe->lastacksent->compare(fspe->lastacksent, seq) < 0)) {
+		if (fspe->lastacksent) {
+			fspe->lastacksent->baseclass.baseclass.unref(&fspe->lastacksent->baseclass.baseclass);
+		}
 		fspe->lastacksent = seq;
-		seq->baseclass.baseclass.unref(&seq->baseclass.baseclass);
-		
+		seq->baseclass.baseclass.ref(&seq->baseclass.baseclass);
 	}
 }
 
@@ -102,12 +104,17 @@ _fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	}
 	ret = MALLOCTYPE(FsProtoElem);
 	if (ret) {
-		destaddr->baseclass.ref(&destaddr->baseclass);
+		///@todo: Need to make a way to delete FsProtoElem connections...
 		ret->endpoint = destaddr;
-		ret->inq  = fsqueue_new(0, destaddr, qid);
-		ret->outq = fsqueue_new(0, destaddr, qid);
-		ret->parent = self;
+		destaddr->baseclass.ref(&destaddr->baseclass);
 		ret->_qid = qid;
+		ret->outq = fsqueue_new(0, destaddr, qid);
+		ret->inq  = fsqueue_new(0, destaddr, qid);
+		ret->lastacksent  = NULL;
+		ret->lastseqsent  = NULL;
+		ret->outstanding_acks  = 0;
+		ret->nextrexmit  = 0;
+		ret->parent = self;
 		g_hash_table_insert(self->endpoints, ret, ret);
 	}
 	return ret;
@@ -147,6 +154,8 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
         ,		_fsprotocol_protoelem_destroy, NULL);
 	self->unacked = NULL;
 	self->ipend = NULL;
+	self->window_size = FSPROTO_WINDOWSIZE;
+	self->rexmit_interval = FSPROTO_REXMITINTERVAL;
 	return self;
 }
 
@@ -288,26 +297,32 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	g_return_if_fail(fspe != NULL);
 	
 	if (is_acknack) {
+		int ackcount;
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
 		char *	fsout = fs->baseclass.toString(&fs->baseclass);
 		DEBUGMSG1("%s: Received this FrameSet: [%s]", __FUNCTION__, fsout);
 		g_free(fsout); fsout = NULL;
 		g_return_if_fail(seq != NULL);
-		fspe->outq->ackthrough(fspe->outq, seq);
+		ackcount = fspe->outq->ackthrough(fspe->outq, seq);
+		// Update outstanding ack count by the number of packets ACKed
+		fspe->outstanding_acks -= ackcount;
 		if (fs->fstype == FRAMESETTYPE_ACK) {
 			TRYXMIT(fspe);
 			return;
 		}
-		// NACKs get treated like ACKs, except they're also passed along to the application
-		// like a regular FrameSet
+		// NACKs get treated like ACKs, except they're also
+		// passed along to the application like a regular FrameSet
+		/// @todo: NAKs ARE EVIL AND NEED TO BE REMOVED
 	}
 	// Queue up the received frameset
 	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
-		// One reason for not queueing it is that we've already sent it to our client
-		// If they have already ACKed it, then we will ACK it again automatically -
-		// because our application won't be shown this packet again - so they can't ACK it
-		// and our ACK might have gotten lost, so we need to send it again...
+		// One reason for not queueing it is that we've already sent it
+		// to our client If they have already ACKed it, then we will ACK
+		// it again automatically - because our application won't be shown
+		// this packet again - so they can't ACK it and our ACK might have
+		// gotten lost, so we need to send it again...
+		// 
 		if (seq && fspe->lastacksent && seq->_sessionid == fspe->lastacksent->_sessionid
 		&&	seq->compare(seq, fspe->lastacksent) < 0) {
 			// We've already sent an ACK for this packet, send it again...
