@@ -30,6 +30,7 @@
 FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
 FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rhs);
+FSTATIC gboolean	_fsprotocol_timeoutfun(gpointer userdata);
 
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
@@ -122,8 +123,9 @@ _fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
 
 /// Construct an FsQueue object
 WINEXPORT FsProtocol*
-fsprotocol_new(guint objsize	///< Size of object to be constructed
-,	      NetIO* io)	///< Pointer to NetIO for us to reference
+fsprotocol_new(guint objsize		///< Size of object to be constructed
+,	      NetIO* io			///< Pointer to NetIO for us to reference
+,	      guint rexmit_timer_uS)	///< Retransmit timer in microseconds
 {
 	FsProtocol*		self;
 	BINDDEBUG(FsProtocol);
@@ -156,6 +158,17 @@ fsprotocol_new(guint objsize	///< Size of object to be constructed
 	self->ipend = NULL;
 	self->window_size = FSPROTO_WINDOWSIZE;
 	self->rexmit_interval = FSPROTO_REXMITINTERVAL;
+
+	if (rexmit_timer_uS == 0) {
+		rexmit_timer_uS = self->rexmit_interval/2;
+	}
+
+
+	if ((rexmit_timer_uS % 1000000) == 0) {
+		self->_timersrc = g_timeout_add_seconds(rexmit_timer_uS/1000000, _fsprotocol_timeoutfun, self);
+	}else{
+		self->_timersrc = g_timeout_add(rexmit_timer_uS/1000, _fsprotocol_timeoutfun, self);
+	}
 	return self;
 }
 
@@ -518,5 +531,23 @@ _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating
 			fspe->outq->flush(fspe->outq);
 		}
 	}
+}
+/// Retransmit timer function...
+FSTATIC gboolean
+_fsprotocol_timeoutfun(gpointer userdata)
+{
+	FsProtocol*	self = CASTTOCLASS(FsProtocol, userdata);
+	GList*		pending;
+	GList*		next;
+
+	g_return_val_if_fail(self != NULL, FALSE);
+
+	DEBUGMSG2("%s: checking for timeouts: ipend = %p", __FUNCTION__, self->ipend);
+	for (pending = self->ipend; NULL != pending; pending=next) {
+		FsProtoElem*	fspe = (FsProtoElem*)pending->data;
+		next = pending->next;
+		_fsprotocol_xmitifwecan(fspe);
+	}
+	return TRUE;
 }
 ///@}

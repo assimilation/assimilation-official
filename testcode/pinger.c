@@ -116,11 +116,13 @@ main(int argc, char **argv)
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
-	transport = reliableudp_new(0, config, decoder);
+	transport = reliableudp_new(0, config, decoder, 0);
+	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, .1, .1);
+	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
 	g_return_val_if_fail(transport->baseclass.baseclass.bindaddr(&transport->baseclass.baseclass, anyaddr, FALSE),16);
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
-	netpkt = netgsource_new(CASTTOCLASS(NetIO, transport), NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
+	netpkt = netgsource_new(&transport->baseclass.baseclass, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 	act_on_packets = authlistener_new(doit, config, 0);
 	act_on_packets->baseclass.associate(&act_on_packets->baseclass, netpkt);
 	g_source_ref(CASTTOCLASS(GSource, netpkt));

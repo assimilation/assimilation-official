@@ -43,9 +43,6 @@ typedef struct _ReliableUDP ReliableUDP;
 struct _ReliableUDP {
 	NetIOudp	baseclass;	///< Base class (NetIO) object.
 	FsProtocol*	_protocol;	///< Queuing, ordering, retransmission and ACKing discipline
-	double		_rcvloss;	///< Fraction of input packets to lose
-	double		_xmitloss;	///< Fraction of output packets to lose
-	gboolean	_shouldlosepkts;///< TRUE if we should force packet loss - FALSE is default :-D
 	gboolean	(*sendreliable)		///< Send a single FrameSet via @ref ReliableUDP
 							///< @pre must have non-NULL _signframe
 			    (ReliableUDP*self,		///<[in/out] 'this' object pointer
@@ -84,7 +81,8 @@ struct _ReliableUDP {
 			       enum ioflush flushtype)  ///< Flush input, output or both
 						   ;	// ";" is here to work around a doxygen bug
 };
-WINEXPORT ReliableUDP* reliableudp_new(gsize objsize, ConfigContext* config, PacketDecoder* decoder);
+WINEXPORT ReliableUDP* reliableudp_new(gsize objsize, ConfigContext* config, PacketDecoder* decoder,
+	guint rexmit_timer_uS);
 ///@}
 
 #endif /* _RELIABLE_UDP_H */

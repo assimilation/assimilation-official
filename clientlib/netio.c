@@ -59,6 +59,8 @@ FSTATIC Frame* _netio_cryptframe (NetIO *self);
 FSTATIC Frame* _netio_compressframe (NetIO *self);
 FSTATIC gboolean _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr);
 FSTATIC gboolean _netio_setmcast_ttl(NetIO* self, guint8 ttl);
+FSTATIC void _netio_enablepktloss (NetIO* self, gboolean enable);
+FSTATIC void _netio_setpktloss (NetIO* self, double rcvloss, double xmitloss);
 
 DEBUGDECLARATIONS
 
@@ -369,6 +371,8 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->signframe = _netio_signframe;
 	ret->cryptframe = _netio_cryptframe;
 	ret->compressframe = _netio_compressframe;
+	ret->setpktloss = _netio_setpktloss;
+	ret->enablepktloss = _netio_enablepktloss;
 	ret->_maxpktsize = 65300;
 	ret->_configinfo = config;
 	ret->_decoder = decoder;
@@ -400,6 +404,14 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	gssize rc;
 	guint flags = 0x00;
 	g_return_if_fail(length > 0);
+
+	if (self->_shouldlosepkts) {
+		if (g_random_double() < self->_xmitloss) {
+			DEBUGMSG2("%s: Threw away %"G_GSSIZE_FORMAT" byte output packet"
+			,	__FUNCTION__, length);
+			return;
+		}
+	}
 
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
         if (rc != length) {
@@ -536,6 +548,14 @@ memset(srcaddr, 0, sizeof(*srcaddr));
 	// Hah! Looks good!
 	*pktend = (void*) (msgbuf + msglen);
 	//g_debug("netio: Received %zd byte message", msglen);
+	if (self->_shouldlosepkts) {
+		if (g_random_double() < self->_rcvloss) {
+			DEBUGMSG2("%s: Threw away %"G_GSSIZE_FORMAT" byte input packet"
+			,	__FUNCTION__, msglen);
+			FREE(msgbuf);
+			msgbuf = NULL;
+		}
+	}
 	return msgbuf;
 }
 /// Member function to receive a collection of FrameSets (GSList*) out of our NetIO object
@@ -564,6 +584,22 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	}
 	return ret;
 }
+/// Set the desired level of packet loss - doesn't take effect from this call alone
+FSTATIC void
+_netio_setpktloss (NetIO* self, double rcvloss, double xmitloss)
+{
+	self->_rcvloss = rcvloss;
+	self->_xmitloss = xmitloss;
+}
+
+/// Enable (or disable) packet loss as requested
+FSTATIC void
+_netio_enablepktloss (NetIO* self, gboolean enable)
+{
+	self->_shouldlosepkts = enable;
+}
+
+
 
 #ifdef IPV6_V6ONLY
 #	include <netdb.h>
@@ -625,5 +661,4 @@ netio_is_dual_ipv4v6_stack(void)
 	return FALSE;
 }
 #endif
-
 ///@}
