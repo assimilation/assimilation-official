@@ -316,7 +316,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		/// @todo: NAKs ARE EVIL AND NEED TO BE REMOVED
 	}
 	// Queue up the received frameset
+	DUMP2(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
+		DUMP2(__FUNCTION__, &fs->baseclass, "Failed to go into queue");
 		// One reason for not queueing it is that we've already sent it
 		// to our client If they have already ACKed it, then we will ACK
 		// it again automatically - because our application won't be shown
@@ -339,6 +341,8 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		}
 	}
 
+	DEBUGMSG2("%s: isready: %d seq->_reqid:%d , fspe->inq->_nextseqno: "FMT_64BIT"d"
+	,	__FUNCTION__, fspe->inq->isready, (seq ? (gint)seq->_reqid : -1), fspe->inq->_nextseqno);
 	// If this queue wasn't shown as ready before - see if it is ready for reading now...
 	if (!fspe->inq->isready) {
 		if (seq == NULL || seq->_reqid == fspe->inq->_nextseqno) {

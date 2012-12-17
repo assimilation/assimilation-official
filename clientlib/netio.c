@@ -44,6 +44,7 @@
 FSTATIC gint _netio_getfd(const NetIO* self);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src, gboolean silent);
+FSTATIC gboolean _netio_input_queued(const NetIO* self);
 FSTATIC NetAddr* _netio_boundaddr(const NetIO* self);
 FSTATIC void _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets);
 FSTATIC void _netio_sendaframeset(NetIO* self, const NetAddr* destaddr, FrameSet* frameset);
@@ -218,6 +219,14 @@ _netio_setmcast_ttl(NetIO*	self,		///<[in/out] netIO object to set the TTL of
         return setsockopt(self->getfd(self), IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl) == 0);
 }
 
+/// Member function that returns TRUE if input is ready to be read
+FSTATIC gboolean
+_netio_input_queued(const NetIO* self)		///<[in] The NetIO object being queried
+{
+	(void)self;
+	return FALSE;	// By default we don't have any input queues
+}
+
 /// Member function to bind this NewIO object to a NetAddr address
 FSTATIC gboolean
 _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
@@ -347,6 +356,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->baseclass._finalize = _netio_finalize;
 	ret->getfd = _netio_getfd;
 	ret->setblockio = _netio_setblockio;
+	ret->input_queued = _netio_input_queued;
 	ret->bindaddr = _netio_bindaddr;
 	ret->sendframesets = _netio_sendframesets;
 	ret->sendaframeset = _netio_sendaframeset;
