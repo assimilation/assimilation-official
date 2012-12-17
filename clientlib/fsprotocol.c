@@ -542,8 +542,8 @@ _fsprotocol_timeoutfun(gpointer userdata)
 
 	g_return_val_if_fail(self != NULL, FALSE);
 
-	DEBUGMSG2("%s: checking for timeouts: ipend = %p", __FUNCTION__, self->ipend);
-	for (pending = self->ipend; NULL != pending; pending=next) {
+	DEBUGMSG2("%s: checking for timeouts: unacked = %p", __FUNCTION__, self->unacked);
+	for (pending = self->unacked; NULL != pending; pending=next) {
 		FsProtoElem*	fspe = (FsProtoElem*)pending->data;
 		next = pending->next;
 		_fsprotocol_xmitifwecan(fspe);
