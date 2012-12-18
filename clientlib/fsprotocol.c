@@ -365,15 +365,15 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		&&	seq->compare(seq, fspe->lastacksent) < 0) {
 			// We've already sent an ACK for this packet, send it again...
 			FrameSet*	fs;
-			SeqnoFrame*	ackseq;
 
 			fs = frameset_new(FRAMESETTYPE_ACK);
-			ackseq = seqnoframe_new_init(FRAMETYPE_REPLYID, seq->getreqid(seq), seq->getqid(seq));
-			frameset_append_frame(fs, &ackseq->baseclass);
-			ackseq->baseclass.baseclass.unref(&ackseq->baseclass.baseclass); ackseq = NULL;
+			frameset_append_frame(fs, &seq->baseclass);
+			// Appending the seq frame will increment its reference count
 
+			DUMP2(__FUNCTION__, &seq->baseclass.baseclass, " Resending this ACK");
 			self->io->sendaframeset(self->io, fspe->endpoint, fs);
-			fs->baseclass.unref(&fs->baseclass); ackseq = NULL;
+			fs->baseclass.unref(&fs->baseclass); fs = NULL;
+			// sendaframeset will hang onto 'fs' and 'seq' as long as it needs them
 		}
 	}
 	AUDITFSPE(fspe);
