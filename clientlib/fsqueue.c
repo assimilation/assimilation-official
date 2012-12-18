@@ -120,7 +120,9 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	seqno = fs->_seqframe ? fs->_seqframe : fs->getseqno(fs);
 
 	if (seqno) {
-		if(seqno->_sessionid < self->_sessionid) {
+		if (self->_sessionid == 0) {
+			self->_sessionid = seqno->sessionid;
+		}else if (seqno->_sessionid < self->_sessionid) {
 			// Replay attack?
 			g_warning("%s: Possible replay attack? Current session id: %d, incoming session id: %d"
 			,	__FUNCTION__, self->_sessionid, seqno->_sessionid);
