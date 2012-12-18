@@ -26,6 +26,7 @@
 #include <fsprotocol.h>
 #include <frametypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
@@ -73,6 +74,11 @@ _fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
 	if (outqlen == 0 && in_unackedlist) {
 		g_warning("%s:%d: outqlen is zero but it IS in the unacked list"
 		,	function, lineno);
+	}
+	if (self->inq->_nextseqno > 0 && !self->lastacksent) {
+		g_warning("%s:%d: inq->_nextseqno is non-zero but lastacksent is NULL"
+		,	function, lineno);
+		abort();
 	}
 }
 
