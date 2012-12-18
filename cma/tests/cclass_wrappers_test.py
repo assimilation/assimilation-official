@@ -610,7 +610,7 @@ class pyNetIOudpTest(TestCase):
         flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.HBWARNTIME,42), pyCstringFrame(FrameTypes.HOSTNAME, "HhGttG"),
                  pyIntFrame(FrameTypes.PORTNUM,3000000, intbytes=4),
                  pyIntFrame(FrameTypes.HBINTERVAL,3000000000000, intbytes=8),
-                 pySeqnoFrame(FrameTypes.REPLYID, (42, 424242424242)),
+                 pySeqnoFrame(FrameTypes.REQID, (42, 424242424242)),
                  pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
         for frame in flist:
             fs.append(frame)
@@ -628,7 +628,7 @@ class pyNetIOudpTest(TestCase):
                  pyAddrFrame(FrameTypes.IPADDR,(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16)),
                  pyIntFrame(FrameTypes.HBINTERVAL,3000000, intbytes=4),
                  pyIntFrame(FrameTypes.HBDEADTIME,3000000000000, intbytes=8),
-                 pySeqnoFrame(FrameTypes.REPLYID, (42, 424242424242)),
+                 pySeqnoFrame(FrameTypes.REQID, (42, 424242424242)),
                  pyIntFrame(FrameTypes.PORTNUM,4242, intbytes=3))
         for frame in flist:
             fs.append(frame)
