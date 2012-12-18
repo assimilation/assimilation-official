@@ -374,9 +374,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 
 				DUMP2(__FUNCTION__, &seq->baseclass.baseclass, " Resending this ACK");
 				self->io->sendaframeset(self->io, fspe->endpoint, fs);
-				fs->baseclass.unref(&fs->baseclass); fs = NULL;
 				// sendaframeset will hang onto 'fs' and 'seq' as long as it needs them
 				_fsprotocol_updateack(fspe, fs);
+				fs->baseclass.unref(&fs->baseclass); fs = NULL;
 			}
 		}
 	}
