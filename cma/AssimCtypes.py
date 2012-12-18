@@ -2036,13 +2036,13 @@ struct__NetIO._fields_ = [
     ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
 ]
 
-# ../include/netio.h: 112
+# ../include/netio.h: 114
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 114
+# ../include/netio.h: 116
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2515,6 +2515,7 @@ struct__FsProtocol.__slots__ = [
     'receive',
     'send1',
     'send',
+    'ackmessage',
     'flushall',
 ]
 struct__FsProtocol._fields_ = [
@@ -2534,10 +2535,11 @@ struct__FsProtocol._fields_ = [
     ('receive', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('send1', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(FrameSet), guint16, POINTER(NetAddr))),
     ('send', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(GSList), guint16, POINTER(NetAddr))),
+    ('ackmessage', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), enum_ioflush)),
 ]
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 96
+# /home/alanr/monitor/src/include/fsprotocol.h: 97
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
     fsprotocol_new.argtypes = [guint, POINTER(NetIO), guint]
@@ -3690,125 +3692,119 @@ except:
 
 # ../include/framesettypes.h: 36
 try:
-    FRAMESETTYPE_NACK = 17
+    FRAMESETTYPE_STARTUP = 18
 except:
     pass
 
 # ../include/framesettypes.h: 37
 try:
-    FRAMESETTYPE_STARTUP = 18
+    FRAMESETTYPE_HBDEAD = 19
 except:
     pass
 
 # ../include/framesettypes.h: 38
 try:
-    FRAMESETTYPE_HBDEAD = 19
+    FRAMESETTYPE_HBSHUTDOWN = 20
 except:
     pass
 
 # ../include/framesettypes.h: 39
 try:
-    FRAMESETTYPE_HBSHUTDOWN = 20
+    FRAMESETTYPE_HBLATE = 21
 except:
     pass
 
 # ../include/framesettypes.h: 40
 try:
-    FRAMESETTYPE_HBLATE = 21
+    FRAMESETTYPE_HBBACKALIVE = 22
 except:
     pass
 
 # ../include/framesettypes.h: 41
 try:
-    FRAMESETTYPE_HBBACKALIVE = 22
+    FRAMESETTYPE_HBMARTIAN = 23
 except:
     pass
 
 # ../include/framesettypes.h: 42
 try:
-    FRAMESETTYPE_HBMARTIAN = 23
+    FRAMESETTYPE_PROBEALIVE = 24
 except:
     pass
 
 # ../include/framesettypes.h: 43
 try:
-    FRAMESETTYPE_PROBEALIVE = 24
+    FRAMESETTYPE_SWDISCOVER = 25
 except:
     pass
 
 # ../include/framesettypes.h: 44
 try:
-    FRAMESETTYPE_SWDISCOVER = 25
+    FRAMESETTYPE_JSDISCOVERY = 26
 except:
     pass
 
 # ../include/framesettypes.h: 45
 try:
-    FRAMESETTYPE_JSDISCOVERY = 26
+    FRAMESETTYPE_SENDHB = 64
 except:
     pass
 
 # ../include/framesettypes.h: 46
 try:
-    FRAMESETTYPE_SENDHB = 64
+    FRAMESETTYPE_EXPECTHB = 65
 except:
     pass
 
 # ../include/framesettypes.h: 47
 try:
-    FRAMESETTYPE_EXPECTHB = 65
+    FRAMESETTYPE_SENDEXPECTHB = 66
 except:
     pass
 
 # ../include/framesettypes.h: 48
 try:
-    FRAMESETTYPE_SENDEXPECTHB = 66
+    FRAMESETTYPE_STOPSENDHB = 67
 except:
     pass
 
 # ../include/framesettypes.h: 49
 try:
-    FRAMESETTYPE_STOPSENDHB = 67
+    FRAMESETTYPE_STOPEXPECTHB = 68
 except:
     pass
 
 # ../include/framesettypes.h: 50
 try:
-    FRAMESETTYPE_STOPEXPECTHB = 68
+    FRAMESETTYPE_STOPSENDEXPECTHB = 69
 except:
     pass
 
 # ../include/framesettypes.h: 51
 try:
-    FRAMESETTYPE_STOPSENDEXPECTHB = 69
+    FRAMESETTYPE_SETCONFIG = 70
 except:
     pass
 
 # ../include/framesettypes.h: 52
 try:
-    FRAMESETTYPE_SETCONFIG = 70
+    FRAMESETTYPE_INCRDEBUG = 71
 except:
     pass
 
 # ../include/framesettypes.h: 53
 try:
-    FRAMESETTYPE_INCRDEBUG = 71
+    FRAMESETTYPE_DECRDEBUG = 72
 except:
     pass
 
 # ../include/framesettypes.h: 54
 try:
-    FRAMESETTYPE_DECRDEBUG = 72
-except:
-    pass
-
-# ../include/framesettypes.h: 55
-try:
     FRAMESETTYPE_DODISCOVER = 73
 except:
     pass
 
-# ../include/framesettypes.h: 56
+# ../include/framesettypes.h: 55
 try:
     FRAMESETTYPE_STOPDISCOVER = 74
 except:
@@ -4084,133 +4080,127 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 143
-try:
-    FRAMETYPE_REPLYID = 5
-except:
-    pass
-
-# /home/alanr/monitor/src/include/frametypes.h: 157
+# /home/alanr/monitor/src/include/frametypes.h: 144
 try:
     FRAMETYPE_PKTDATA = 6
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 172
+# /home/alanr/monitor/src/include/frametypes.h: 159
 try:
     FRAMETYPE_WALLCLOCK = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 185
+# /home/alanr/monitor/src/include/frametypes.h: 172
 try:
     FRAMETYPE_INTERFACE = 8
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 197
+# /home/alanr/monitor/src/include/frametypes.h: 184
 try:
     FRAMETYPE_HOSTNAME = 9
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 210
+# /home/alanr/monitor/src/include/frametypes.h: 197
 try:
     FRAMETYPE_IPADDR = 10
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 223
+# /home/alanr/monitor/src/include/frametypes.h: 210
 try:
     FRAMETYPE_MACADDR = 11
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 236
+# /home/alanr/monitor/src/include/frametypes.h: 223
 try:
     FRAMETYPE_PORTNUM = 12
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 248
+# /home/alanr/monitor/src/include/frametypes.h: 235
 try:
     FRAMETYPE_IPPORT = 13
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 261
+# /home/alanr/monitor/src/include/frametypes.h: 248
 try:
     FRAMETYPE_HBINTERVAL = 14
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 274
+# /home/alanr/monitor/src/include/frametypes.h: 261
 try:
     FRAMETYPE_HBDEADTIME = 15
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 287
+# /home/alanr/monitor/src/include/frametypes.h: 274
 try:
     FRAMETYPE_HBWARNTIME = 16
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 299
+# /home/alanr/monitor/src/include/frametypes.h: 286
 try:
     FRAMETYPE_PATHNAME = 17
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 312
+# /home/alanr/monitor/src/include/frametypes.h: 299
 try:
     FRAMETYPE_NVPAIR = 18
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 324
+# /home/alanr/monitor/src/include/frametypes.h: 311
 try:
     FRAMETYPE_JSDISCOVER = 19
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 335
+# /home/alanr/monitor/src/include/frametypes.h: 322
 try:
     FRAMETYPE_PARAMNAME = 20
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 346
+# /home/alanr/monitor/src/include/frametypes.h: 333
 try:
     FRAMETYPE_CSTRINGVAL = 21
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 358
+# /home/alanr/monitor/src/include/frametypes.h: 345
 try:
     FRAMETYPE_CINTVAL = 22
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 372
+# /home/alanr/monitor/src/include/frametypes.h: 359
 try:
     FRAMETYPE_ELAPSEDTIME = 23
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 384
+# /home/alanr/monitor/src/include/frametypes.h: 371
 try:
     FRAMETYPE_DISCNAME = 24
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 397
+# /home/alanr/monitor/src/include/frametypes.h: 384
 try:
     FRAMETYPE_DISCINTERVAL = 25
 except:
     pass
 
-# /home/alanr/monitor/src/include/frametypes.h: 410
+# /home/alanr/monitor/src/include/frametypes.h: 397
 try:
     FRAMETYPE_DISCJSON = 26
 except:
@@ -4222,19 +4212,19 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 97
+# /home/alanr/monitor/src/include/fsprotocol.h: 98
 try:
     DEFAULT_FSP_QID = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 98
+# /home/alanr/monitor/src/include/fsprotocol.h: 99
 try:
     FSPROTO_WINDOWSIZE = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 99
+# /home/alanr/monitor/src/include/fsprotocol.h: 100
 try:
     FSPROTO_REXMITINTERVAL = 2000000
 except:

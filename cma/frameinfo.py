@@ -192,10 +192,6 @@ is unique over a relatively long period of time - at least days.
 Notifications from clients are sent with queue id 0, which will never be
 used by the central authority.
 '''),
-  	5:  (pySeqnoFrame, 'REPLYID', 'Reply ID - a message sequence number.',
-'''Requests from the central authority are identified by a request id
-and a queue id.  Any reply id corresponds to an identical request ID.
-'''),
   	6:  (pyFrame, 'PKTDATA', 'Encapsulated packet data',
 '''This frame format is normally used for a CDP or LLDP packet.
 The data is kept exactly as it was received from the
@@ -358,7 +354,6 @@ class FrameSetTypes:
 	'PONG':		(3,  'I am alive (can also go to the CMA)'),
 	# nanoprobe FrameSets sent to collective management authority
 	'ACK':		(16, 'Frame referred to has been acted on. (can also come from the CMA)'),
-	'NACK':		(17, 'Frame referred to will not be acted on (has been rejected). (can also come from the CMA)'),
 	'STARTUP':	(18, 'System originating packet looking for heartbeat configuration.'),
 	'HBDEAD':	(19, 'System named in packet appears to be dead.'),
 	'HBSHUTDOWN':	(20, 'System originating packet has shut down.'),
