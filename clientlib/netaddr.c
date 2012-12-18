@@ -620,7 +620,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 		memset(addrptr, 0, coloncolonlength*2);
 		addrptr += 2*coloncolonlength;
 	}
-	DEBUGMSG5("%s: addrptr == addrbytes+%d", __FUNCTION__, (addrptr-addrbytes));
+	DEBUGMSG5("%s: addrptr == addrbytes+%ld", __FUNCTION__, (long)(addrptr-addrbytes));
 	g_return_val_if_fail(addrptr == addrbytes+DIMOF(addrbytes), NULL);
 
 	retval = netaddr_ipv6_new(addrbytes, port);
