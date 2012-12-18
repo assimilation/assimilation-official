@@ -75,11 +75,6 @@ _fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
 		g_warning("%s:%d: outqlen is zero but it IS in the unacked list"
 		,	function, lineno);
 	}
-	if (self->inq->_nextseqno > 0 && !self->lastacksent) {
-		g_warning("%s:%d: inq->_nextseqno is non-zero but lastacksent is NULL"
-		,	function, lineno);
-		abort();
-	}
 }
 
 /// Locate the FsProtoElem structure that corresponds to this (destaddr, qid) pair
@@ -360,18 +355,22 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	// Queue up the received frameset
 	DUMP2(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
-		DUMP2(__FUNCTION__, &fs->baseclass, "Failed to go into queue");
+		DUMP2(__FUNCTION__, &fs->baseclass, " Frameset failed to go into queue :-(.");
+		DEBUGMSG2("%s.%d: seq=%p lastacksent=%p", __FUNCTION__, __LINE__
+		,	seq, fspe->lastacksent);
 		// One reason for not queueing it is that we've already sent it
 		// to our client If they have already ACKed it, then we will ACK
 		// it again automatically - because our application won't be shown
 		// this packet again - so they can't ACK it and our ACK might have
 		// gotten lost, so we need to send it again...
 		// 
-		DUMP2("LASTACKSENT", &fspe->lastacksent->baseclass.baseclass, __FUNCTION__);
-		DUMP2("ARGUMENT SEQ#", &seq->baseclass.baseclass, __FUNCTION__);
+		// On the other hand, we cannot re-send an ACK that the application hasn't given us yet...
+		// We could also wind up here if the app is slow to ACK packets we gave it
 		if (seq && fspe->lastacksent) {
+			DUMP2("ARGUMENT SEQ#", &seq->baseclass.baseclass, __FUNCTION__);
+			DUMP2("LASTACKSENT", &fspe->lastacksent->baseclass.baseclass, __FUNCTION__);
 			if (seq->_sessionid == fspe->lastacksent->_sessionid
-			    &&	seq->compare(seq, fspe->lastacksent) <= 0) {
+			     &&		seq->compare(seq, fspe->lastacksent) <= 0) {
 				FrameSet*	fs;
 				// We've already ACKed this packet - send our highest seq# ACK
 
