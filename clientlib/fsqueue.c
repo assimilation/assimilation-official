@@ -121,7 +121,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	if (seqno) {
 		if (self->_sessionid == 0) {
-			self->_sessionid = seqno->sessionid;
+			self->_sessionid = seqno->_sessionid;
 		}else if (seqno->_sessionid < self->_sessionid) {
 			// Replay attack?
 			g_warning("%s: Possible replay attack? Current session id: %d, incoming session id: %d"
