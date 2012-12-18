@@ -276,7 +276,6 @@ _fsqueue_hasqspace(FsQueue* self		///< The @ref FsQueue object we're operating o
 ,		   guint desired)		///< The number of queue elements we're hoping for
 {
 	return self->_maxqlen == 0 || (self->_maxqlen + desired) >= g_queue_get_length(self->_q);
-
 }
 
 /// Construct an FsQueue object - from a (far endpoint address, Queue Id) pair
