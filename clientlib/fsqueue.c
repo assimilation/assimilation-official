@@ -119,20 +119,28 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	seqno = fs->_seqframe ? fs->_seqframe : fs->getseqno(fs);
 
-	if (seqno && seqno->_sessionid < self->_sessionid) {
-		// Replay attack?
-		g_warning("Possible replay attack? Current session id: %d, incoming session id: %d"
-		,	self->_sessionid, seqno->_sessionid);
-		return FALSE;
-	}
-	if (seqno && seqno->_reqid < self->_nextseqno) {
-		// We've already delivered this packet to our customers...
-		// We need to see if we've already sent the ACK for this packet.
-		// If so, we need to ACK it again...
-		DUMP2(__FUNCTION__, &fs->baseclass, " Previously delivered to client");
-		DEBUGMSG2("%s: reason: sequence number is "FMT_64BIT"d but next is "FMT_64BIT"d"
-		,	__FUNCTION__, seqno->_reqid, self->_nextseqno);
-		return FALSE;
+	if (seqno) {
+		if(seqno->_sessionid < self->_sessionid) {
+			// Replay attack?
+			g_warning("%s: Possible replay attack? Current session id: %d, incoming session id: %d"
+			,	__FUNCTION__, self->_sessionid, seqno->_sessionid);
+			return FALSE;
+		}else if (seqno->_sessionid > self->_sessionid) {
+			char *	clientaddr = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
+			g_warning("%s: Protocol reset when talking to client %s - session id updated to %d"
+			,	__FUNCTION__, clientaddr, seqno->_sessionid);
+			g_free(clientaddr); clientaddr = NULL;
+			g_warning("%s: CODE NOT PREPARED TO DEAL WITH PROTOCOL RESET YET. OOPS!", __FUNCTION__);
+		}
+		if (seqno->_reqid < self->_nextseqno) {
+			// We've already delivered this packet to our customers...
+			// We need to see if we've already sent the ACK for this packet.
+			// If so, we need to ACK it again...
+			DUMP2(__FUNCTION__, &fs->baseclass, " Previously delivered to client");
+			DEBUGMSG2("%s: reason: sequence number is "FMT_64BIT"d but next is "FMT_64BIT"d"
+			,	__FUNCTION__, seqno->_reqid, self->_nextseqno);
+			return FALSE;
+		}
 	}
 
 	// Probably this shouldn't really log an error - but I'd like to see it happen
