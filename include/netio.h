@@ -104,10 +104,12 @@ struct _NetIO {
 	void		(*setpktloss)			///< Set desired fraction of packet loss
 				(NetIO* self,		///<[in/out] 'this' object
 				 double rcv,		///< Packet receive loss fraction (0:1]
-				 double xmit);		///< Packet transmission loss (0:1]
+				 double xmit)		///< Packet transmission loss (0:1]
+						   ;	// ";" is here to work around a doxygen bug
 	void		(*enablepktloss)		///< enable packet loss (as set above)
 				(NetIO* self,		///<[in/out] 'this' object	
-				 gboolean enable);	///TRUE == enable, FALSE == disable
+				 gboolean enable)	///<TRUE == enable, FALSE == disable
+						   ;	// ";" is here to work around a doxygen bug
 };
 WINEXPORT NetIO*	netio_new(gsize objsize, ConfigContext*, PacketDecoder*);
 							///< Don't call this directly! - this is an abstract class...
