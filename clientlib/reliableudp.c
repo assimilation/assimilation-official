@@ -207,18 +207,15 @@ _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 {
 	SeqnoFrame*	seq = frameset->getseqno(frameset);
 	FrameSet*	fs;
-	SeqnoFrame*	ackseq;
 
 	g_return_val_if_fail(seq != NULL, TRUE);
 
 	fs = frameset_new(FRAMESETTYPE_ACK);
 
-	ackseq = seqnoframe_new_init(FRAMETYPE_REQID, seq->getreqid(seq), seq->getqid(seq));
-	frameset_append_frame(fs, &ackseq->baseclass);
-	ackseq->baseclass.baseclass.unref(&ackseq->baseclass.baseclass); ackseq = NULL;
+	frameset_append_frame(fs, &seq->baseclass);
 
 	self->baseclass.baseclass.sendaframeset(&self->baseclass.baseclass, dest, fs);
-	fs->baseclass.unref(&fs->baseclass); ackseq = NULL;
+	fs->baseclass.unref(&fs->baseclass); fs = NULL;
 
 	return TRUE;
 }
