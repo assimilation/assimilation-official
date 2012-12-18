@@ -55,7 +55,6 @@ struct _FsProtoElem {
 	FsQueue*	inq;		///< Queue of incoming messages - perhaps missing packets...
 	SeqnoFrame*	lastacksent;	///< The highest sequence number we've sent an ACK for.
 	SeqnoFrame*	lastseqsent;	///< Last sequence number which has been sent at least once
-	guint		outstanding_acks;///<How many ACKs are pending?
 	gint64		nextrexmit;	///< When to retransmit next...
 	FsProtocol*	parent;		///< Our parent FsProtocol object
 };

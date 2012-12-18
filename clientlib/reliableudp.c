@@ -188,6 +188,7 @@ FSTATIC gboolean
 _reliableudp_sendreliable(ReliableUDP*self, NetAddr* dest, guint16 qid, FrameSet* fs)
 {
 	// Send it out!
+	DUMP2("Sending packet with _protocol->send1", &fs->baseclass, NULL);
 	return self->_protocol->send1(self->_protocol, fs, qid, dest);
 }
 
@@ -195,6 +196,7 @@ _reliableudp_sendreliable(ReliableUDP*self, NetAddr* dest, guint16 qid, FrameSet
 FSTATIC gboolean
 _reliableudp_sendreliableM(ReliableUDP*self, NetAddr* dest, guint16 qid, GSList* fslist)
 {
+	DEBUGMSG2("Sending packet with _protocol->send(%d)", g_slist_length(fslist));
 	// See if we've been requested to drop a packet for testing
 	return self->_protocol->send(self->_protocol, fslist, qid, dest);
 }
