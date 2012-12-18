@@ -56,6 +56,7 @@
 
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
 ReliableUDP*	transport = NULL;
+int		pongcount = 3;
 
 ObeyFrameSetTypeMap	doit [] = {
 	{FRAMESETTYPE_PING,	obey_pingpong},
@@ -79,18 +80,26 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	// Acknowledge that we acted on this message...
 	transport->ackmessage(transport, fromaddr, fs);
 	if (fs->fstype == FRAMESETTYPE_PING) {
-		FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
 		GSList*		flist = NULL;
-		flist = g_slist_prepend(flist, ping);
-		//flist = g_slist_prepend(flist, pong);
+		GSList*		iter;
+		int		j;
 		
-		fprintf(stderr, "Sending a PONG/PING pair to %s\n"
-		,	addrstr);
+		for (j=0; j < pongcount; ++j) {
+			FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
+			flist = g_slist_append(flist, pong);
+		}
+		
+		fprintf(stderr, "Sending a PONG(%d)/PING set to %s\n"
+		,	pongcount, addrstr);
+		flist = g_slist_prepend(flist, ping);
 		transport->sendreliableM(transport, fromaddr, 0, flist);
+		for (iter=flist; iter; iter=iter->next) {
+			FrameSet*	fs = CASTTOCLASS(FrameSet, iter->data);
+			fs->baseclass.unref(&fs->baseclass);
+			fs = NULL;
+		}
 		g_slist_free(flist); flist = NULL;
-		ping->baseclass.unref(&ping->baseclass);
-		pong->baseclass.unref(&pong->baseclass);
 	}
 	if (addrstr) {
 		g_free(addrstr); addrstr = NULL;
