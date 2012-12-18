@@ -205,20 +205,7 @@ _reliableudp_sendreliableM(ReliableUDP*self, NetAddr* dest, guint16 qid, GSList*
 FSTATIC gboolean
 _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 {
-	SeqnoFrame*	seq = frameset->getseqno(frameset);
-	FrameSet*	fs;
-
-	g_return_val_if_fail(seq != NULL, TRUE);
-
-	fs = frameset_new(FRAMESETTYPE_ACK);
-
-	frameset_append_frame(fs, &seq->baseclass);
-	// Appending the seq frame will increment its reference count
-
-	self->baseclass.baseclass.sendaframeset(&self->baseclass.baseclass, dest, fs);
-	fs->baseclass.unref(&fs->baseclass); fs = NULL;
-	// sendaframeset will hang onto frameset and frames as long as it needs them
-
+	self->_protocol->ackmessage(self->_protocol, dest, frameset);
 	return TRUE;
 }
 

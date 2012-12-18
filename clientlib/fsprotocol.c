@@ -37,12 +37,13 @@ FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, NetAddr*, FrameSet*);
-FSTATIC void		_fsprotocol_updateack(FsProtoElem* fspe, FrameSet* seq);
 FSTATIC gboolean	_fsprotocol_iready(FsProtocol*);
 FSTATIC FrameSet*	_fsprotocol_read(FsProtocol*, NetAddr**);
 FSTATIC void		_fsprotocol_receive(FsProtocol*, NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_send1(FsProtocol*, FrameSet*, guint16 qid, NetAddr*);
 FSTATIC gboolean	_fsprotocol_send(FsProtocol*, GSList*, guint16 qid, NetAddr*);
+FSTATIC void		_fsprotocol_ackmessage(FsProtocol* self, NetAddr* destaddr, FrameSet* fs);
+FSTATIC void		_fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq);
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
 FSTATIC void		_fsprotocol_flushall(FsProtocol* self, const NetAddr* addr, enum ioflush op);
 FSTATIC void		_fsprotocol_flush1(FsProtocol* self, const NetAddr* addr, enum ioflush op);
@@ -100,20 +101,6 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 	return self->addconn(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
 }
 
-/// (possibly) Update the last-ACK-sent sequence number in our FsProtoElem
-FSTATIC void
-_fsprotocol_updateack(FsProtoElem* fspe, FrameSet* fs)
-{
-	SeqnoFrame*	seq = fs->getseqno(fs);
-	if (seq
-	&&	(fspe->lastacksent == NULL || fspe->lastacksent->compare(fspe->lastacksent, seq) < 0)) {
-		if (fspe->lastacksent) {
-			fspe->lastacksent->baseclass.baseclass.unref(&fspe->lastacksent->baseclass.baseclass);
-		}
-		fspe->lastacksent = seq;
-		seq->baseclass.baseclass.ref(&seq->baseclass.baseclass);
-	}
-}
 
 /// Add and return a FsProtoElem connection to our collection of connections...
 /// Note that if it's already there, the exiting connection will be returned.
@@ -169,6 +156,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->receive =		_fsprotocol_receive;
 	self->send1 =		_fsprotocol_send1;
 	self->send =		_fsprotocol_send;
+	self->ackmessage =	_fsprotocol_ackmessage;
 	self->flushall =	_fsprotocol_flushall;
 
 	// Initialize our data members
@@ -370,22 +358,10 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			DUMP2("ARGUMENT SEQ#", &seq->baseclass.baseclass, __FUNCTION__);
 			DUMP2("LASTACKSENT", &fspe->lastacksent->baseclass.baseclass, __FUNCTION__);
 			if (seq->_sessionid == fspe->lastacksent->_sessionid
-			     &&		seq->compare(seq, fspe->lastacksent) <= 0) {
-				FrameSet*	fs;
+			&&	seq->compare(seq, fspe->lastacksent) <= 0) {
 				// We've already ACKed this packet - send our highest seq# ACK
-
-				fs = frameset_new(FRAMESETTYPE_ACK);
-				frameset_append_frame(fs, &fspe->lastacksent->baseclass);
-				// Appending 'lastacksent' will increment its reference count
-
-				DUMP2(__FUNCTION__, &seq->baseclass.baseclass, " Resending this ACK");
-				self->io->sendaframeset(self->io, fspe->endpoint, fs);
-				// sendaframeset will hang onto 'fs' and 'lastacksent' as long as it needs them
-				_fsprotocol_updateack(fspe, fs);
-				fs->baseclass.unref(&fs->baseclass); fs = NULL;
+				_fsprotocol_ackseqno(self, fspe->endpoint, fspe->lastacksent);
 			}
-		}else if (NULL == fspe->lastacksent) {
-			g_warning("%s: lastacksent=%p, seq=%p", __FUNCTION__, fspe->lastacksent, seq);
 		}
 	}
 	AUDITFSPE(fspe);
@@ -421,9 +397,6 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 		fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
 	}
 	ret =  fspe->outq->enq(fspe->outq, fs);
-	if (fs->fstype == FRAMESETTYPE_ACK) {
-		_fsprotocol_updateack(fspe, fs);
-	}
 	TRYXMIT(fspe);
 	AUDITFSPE(fspe);
 	return ret;
@@ -451,17 +424,12 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 		// Loop over our framesets and send them ouit...
 		for (this=framesets; this; this=this->next) {
 			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
-			gboolean is_acknack;
 			g_return_val_if_fail(fs != NULL, FALSE);
-			is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
 			DEBUGMSG1("%s: queueing up frameset %d of type %d", __FUNCTION__, count, fs->fstype);
 			fspe->outq->enq(fspe->outq, fs);
 			if (qflag) {
 				fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
 				qflag = FALSE;
-			}
-			if (is_acknack) {
-				_fsprotocol_updateack(fspe, fs);
 			}
 			AUDITFSPE(fspe);
 			++count;
@@ -471,6 +439,42 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 	TRYXMIT(fspe);
 	AUDITFSPE(fspe);
 	return ret;
+}
+
+/// Send an ACK packet that corresponds to this FrameSet
+FSTATIC void
+_fsprotocol_ackmessage(FsProtocol* self, NetAddr* destaddr, FrameSet* fs)
+{
+	SeqnoFrame*	seq = fs->getseqno(fs);
+	_fsprotocol_ackseqno(self, destaddr, seq);
+}
+
+/// Send an ACK packet that corresponds to this sequence number frame
+FSTATIC void
+_fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
+{
+	FrameSet*	fs;
+	FsProtoElem*	fspe;
+	g_return_if_fail(seq != NULL);
+
+	DUMP2(__FUNCTION__, &seq->baseclass.baseclass, " SENDING ACK.");
+	fs = frameset_new(FRAMESETTYPE_ACK);
+
+	frameset_append_frame(fs, &seq->baseclass);
+	// Appending the seq frame will increment its reference count
+
+	self->io->sendaframeset(self->io, destaddr, fs);
+	fs->baseclass.unref(&fs->baseclass); fs = NULL;
+	// sendaframeset will hang onto frameset and frames as long as it needs them
+	fspe = self->find(self, seq->_qid, destaddr);
+	g_return_if_fail(fspe != NULL);
+	if ((fspe->lastacksent == NULL || fspe->lastacksent->compare(fspe->lastacksent, seq) < 0)) {
+		if (fspe->lastacksent) {
+			fspe->lastacksent->baseclass.baseclass.unref(&fspe->lastacksent->baseclass.baseclass);
+		}
+		fspe->lastacksent = seq;
+		seq->baseclass.baseclass.ref(&seq->baseclass.baseclass);
+	}
 }
 
 /// Our role in life is to send any packets that need sending.

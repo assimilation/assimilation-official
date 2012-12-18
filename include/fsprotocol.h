@@ -87,11 +87,12 @@ struct _FsProtocol {
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
 	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
-	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next packet
-	void		(*receive)(FsProtocol*, NetAddr*, FrameSet*);	///< Enqueue a received input packet
-	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one packet
-	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of packets
-	void		(*flushall)(FsProtocol*,const NetAddr*,enum ioflush);///< Flush packets to given address
+	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next @ref FrameSet
+	void		(*receive)(FsProtocol*, NetAddr*, FrameSet*);	///< Enqueue a received input @ref FrameSet
+	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one @ref FrameSet
+	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of FrameSets
+	void		(*ackmessage)(FsProtocol*, NetAddr*, FrameSet*);///< ACK the given @ref FrameSet
+	void		(*flushall)(FsProtocol*,const NetAddr*,enum ioflush);///< Flush FrameSets to given address
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_timer_uS);
 #define	DEFAULT_FSP_QID		0		///< Queue ID of a packet w/o a sequence number?
