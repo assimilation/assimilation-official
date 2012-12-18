@@ -1524,49 +1524,49 @@ struct__NetAddr._fields_ = [
     ('_addrport', guint16),
 ]
 
-# ../include/netaddr.h: 62
+# ../include/netaddr.h: 63
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_new'):
     netaddr_new = _libs['libassimilationclientlib.so'].netaddr_new
     netaddr_new.argtypes = [gsize, guint16, guint16, gconstpointer, guint16]
     netaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 63
+# ../include/netaddr.h: 64
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_sockaddr_new'):
     netaddr_sockaddr_new = _libs['libassimilationclientlib.so'].netaddr_sockaddr_new
     netaddr_sockaddr_new.argtypes = [POINTER(struct_sockaddr_in6), socklen_t]
     netaddr_sockaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 64
+# ../include/netaddr.h: 65
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_macaddr_new'):
     netaddr_macaddr_new = _libs['libassimilationclientlib.so'].netaddr_macaddr_new
     netaddr_macaddr_new.argtypes = [gconstpointer, guint16]
     netaddr_macaddr_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 65
+# ../include/netaddr.h: 66
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac48_new'):
     netaddr_mac48_new = _libs['libassimilationclientlib.so'].netaddr_mac48_new
     netaddr_mac48_new.argtypes = [gconstpointer]
     netaddr_mac48_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 66
+# ../include/netaddr.h: 67
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_mac64_new'):
     netaddr_mac64_new = _libs['libassimilationclientlib.so'].netaddr_mac64_new
     netaddr_mac64_new.argtypes = [gconstpointer]
     netaddr_mac64_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 67
+# ../include/netaddr.h: 68
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv4_new'):
     netaddr_ipv4_new = _libs['libassimilationclientlib.so'].netaddr_ipv4_new
     netaddr_ipv4_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv4_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 68
+# ../include/netaddr.h: 69
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_ipv6_new'):
     netaddr_ipv6_new = _libs['libassimilationclientlib.so'].netaddr_ipv6_new
     netaddr_ipv6_new.argtypes = [gconstpointer, guint16]
     netaddr_ipv6_new.restype = POINTER(NetAddr)
 
-# ../include/netaddr.h: 69
+# ../include/netaddr.h: 70
 if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_string_new'):
     netaddr_string_new = _libs['libassimilationclientlib.so'].netaddr_string_new
     netaddr_string_new.argtypes = [String]
@@ -1984,6 +1984,9 @@ struct__NetIO.__slots__ = [
     '_signframe',
     '_cryptframe',
     '_compressframe',
+    '_rcvloss',
+    '_xmitloss',
+    '_shouldlosepkts',
     'input_queued',
     'bindaddr',
     'boundaddr',
@@ -1999,6 +2002,8 @@ struct__NetIO.__slots__ = [
     'signframe',
     'cryptframe',
     'compressframe',
+    'setpktloss',
+    'enablepktloss',
 ]
 struct__NetIO._fields_ = [
     ('baseclass', AssimObj),
@@ -2009,6 +2014,9 @@ struct__NetIO._fields_ = [
     ('_signframe', POINTER(SignFrame)),
     ('_cryptframe', POINTER(Frame)),
     ('_compressframe', POINTER(Frame)),
+    ('_rcvloss', c_double),
+    ('_xmitloss', c_double),
+    ('_shouldlosepkts', gboolean),
     ('input_queued', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO))),
     ('bindaddr', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), gboolean)),
     ('boundaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(NetIO))),
@@ -2024,15 +2032,17 @@ struct__NetIO._fields_ = [
     ('signframe', CFUNCTYPE(UNCHECKED(POINTER(SignFrame)), POINTER(NetIO))),
     ('cryptframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
+    ('setpktloss', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), c_double, c_double)),
+    ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
 ]
 
-# ../include/netio.h: 115
+# ../include/netio.h: 112
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 117
+# ../include/netio.h: 114
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2432,7 +2442,7 @@ if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
     fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
     fsqueue_new.restype = POINTER(FsQueue)
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 78
+# /home/alanr/monitor/src/include/fsprotocol.h: 77
 class struct__FsProtocol(Structure):
     pass
 
@@ -2444,7 +2454,7 @@ class struct__FsProtoElem(Structure):
 
 FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 44
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 63
+# /home/alanr/monitor/src/include/fsprotocol.h: 62
 class struct__FsProtoElemSearchKey(Structure):
     pass
 
@@ -2457,7 +2467,6 @@ struct__FsProtoElem.__slots__ = [
     'inq',
     'lastacksent',
     'lastseqsent',
-    'outstanding_acks',
     'nextrexmit',
     'parent',
 ]
@@ -2468,7 +2477,6 @@ struct__FsProtoElem._fields_ = [
     ('inq', POINTER(FsQueue)),
     ('lastacksent', POINTER(SeqnoFrame)),
     ('lastseqsent', POINTER(SeqnoFrame)),
-    ('outstanding_acks', guint),
     ('nextrexmit', gint64),
     ('parent', POINTER(FsProtocol)),
 ]
@@ -2482,13 +2490,13 @@ struct__FsProtoElemSearchKey._fields_ = [
     ('_qid', guint16),
 ]
 
-enum_ioflush = c_int # /home/alanr/monitor/src/include/fsprotocol.h: 70
+enum_ioflush = c_int # /home/alanr/monitor/src/include/fsprotocol.h: 69
 
-FsProtoFLUSHIN = 0 # /home/alanr/monitor/src/include/fsprotocol.h: 70
+FsProtoFLUSHIN = 0 # /home/alanr/monitor/src/include/fsprotocol.h: 69
 
-FsProtoFLUSHOUT = (FsProtoFLUSHIN + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 70
+FsProtoFLUSHOUT = (FsProtoFLUSHIN + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 69
 
-FsProtoFLUSHBOTH = (FsProtoFLUSHOUT + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 70
+FsProtoFLUSHBOTH = (FsProtoFLUSHOUT + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 69
 
 struct__FsProtocol.__slots__ = [
     'baseclass',
@@ -2498,6 +2506,7 @@ struct__FsProtocol.__slots__ = [
     'ipend',
     'window_size',
     'rexmit_interval',
+    '_timersrc',
     'find',
     'findbypkt',
     'addconn',
@@ -2516,6 +2525,7 @@ struct__FsProtocol._fields_ = [
     ('ipend', POINTER(GList)),
     ('window_size', guint),
     ('rexmit_interval', gint64),
+    ('_timersrc', guint),
     ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('findbypkt', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
@@ -2530,7 +2540,7 @@ struct__FsProtocol._fields_ = [
 # /home/alanr/monitor/src/include/fsprotocol.h: 96
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
-    fsprotocol_new.argtypes = [guint, POINTER(NetIO)]
+    fsprotocol_new.argtypes = [guint, POINTER(NetIO), guint]
     fsprotocol_new.restype = POINTER(FsProtocol)
 
 # /home/alanr/monitor/src/include/generic_tlv_min.h: 27
@@ -3322,9 +3332,6 @@ ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.
 struct__ReliableUDP.__slots__ = [
     'baseclass',
     '_protocol',
-    '_rcvloss',
-    '_xmitloss',
-    '_shouldlosepkts',
     'sendreliable',
     'sendreliableM',
     'ackmessage',
@@ -3335,9 +3342,6 @@ struct__ReliableUDP.__slots__ = [
 struct__ReliableUDP._fields_ = [
     ('baseclass', NetIOudp),
     ('_protocol', POINTER(FsProtocol)),
-    ('_rcvloss', c_double),
-    ('_xmitloss', c_double),
-    ('_shouldlosepkts', gboolean),
     ('sendreliable', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(FrameSet))),
     ('sendreliableM', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(GSList))),
     ('ackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), POINTER(FrameSet))),
@@ -3346,10 +3350,10 @@ struct__ReliableUDP._fields_ = [
     ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), POINTER(NetAddr), enum_ioflush)),
 ]
 
-# /home/alanr/monitor/src/include/reliableudp.h: 87
+# /home/alanr/monitor/src/include/reliableudp.h: 84
 if hasattr(_libs['libassimilationclientlib.so'], 'reliableudp_new'):
     reliableudp_new = _libs['libassimilationclientlib.so'].reliableudp_new
-    reliableudp_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
+    reliableudp_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder), guint]
     reliableudp_new.restype = POINTER(ReliableUDP)
 
 # /home/alanr/monitor/src/include/server_dump.h: 22
@@ -4722,11 +4726,11 @@ _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
 _FsQueue = struct__FsQueue # ../include/fsqueue.h: 45
 
-_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 78
+_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 77
 
 _FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 51
 
-_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 63
+_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 62
 
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 44
 
