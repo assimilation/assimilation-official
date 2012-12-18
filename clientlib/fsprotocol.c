@@ -361,19 +361,23 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		// this packet again - so they can't ACK it and our ACK might have
 		// gotten lost, so we need to send it again...
 		// 
-		if (seq && fspe->lastacksent && seq->_sessionid == fspe->lastacksent->_sessionid
-		&&	seq->compare(seq, fspe->lastacksent) < 0) {
-			// We've already sent an ACK for this packet, send it again...
-			FrameSet*	fs;
+		if (seq) {
+			if (NULL == fspe->lastacksent
+			|| (fspe->lastacksent && seq->_sessionid == fspe->lastacksent->_sessionid
+			    &&	seq->compare(seq, fspe->lastacksent) <= 0)) {
+				FrameSet*	fs;
+				// We've already ACKed this packet - resend the ACK
 
-			fs = frameset_new(FRAMESETTYPE_ACK);
-			frameset_append_frame(fs, &seq->baseclass);
-			// Appending the seq frame will increment its reference count
+				fs = frameset_new(FRAMESETTYPE_ACK);
+				frameset_append_frame(fs, &seq->baseclass);
+				// Appending 'seq' will increment its reference count
 
-			DUMP2(__FUNCTION__, &seq->baseclass.baseclass, " Resending this ACK");
-			self->io->sendaframeset(self->io, fspe->endpoint, fs);
-			fs->baseclass.unref(&fs->baseclass); fs = NULL;
-			// sendaframeset will hang onto 'fs' and 'seq' as long as it needs them
+				DUMP2(__FUNCTION__, &seq->baseclass.baseclass, " Resending this ACK");
+				self->io->sendaframeset(self->io, fspe->endpoint, fs);
+				fs->baseclass.unref(&fs->baseclass); fs = NULL;
+				// sendaframeset will hang onto 'fs' and 'seq' as long as it needs them
+				_fsprotocol_updateack(fspe, fs);
+			}
 		}
 	}
 	AUDITFSPE(fspe);
