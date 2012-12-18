@@ -127,6 +127,8 @@ main(int argc, char **argv)
 	act_on_packets->baseclass.associate(&act_on_packets->baseclass, netpkt);
 	g_source_ref(CASTTOCLASS(GSource, netpkt));
 	
+	loop = g_main_loop_new(g_main_context_default(), TRUE);
+
 	// Kick everything off with a pingy-dingy
 	for (j=1; j < argc; ++j) {
 		FrameSet*	ping;
@@ -151,7 +153,6 @@ main(int argc, char **argv)
 		ping->baseclass.unref(&ping->baseclass);
 		v6addr->baseclass.unref(&v6addr->baseclass); v6addr = NULL;
 	}
-	loop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_main_loop_run(loop);
 	return 0;
 }
