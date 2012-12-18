@@ -46,12 +46,35 @@ FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
 FSTATIC void		_fsprotocol_flushall(FsProtocol* self, const NetAddr* addr, enum ioflush op);
 FSTATIC void		_fsprotocol_flush1(FsProtocol* self, const NetAddr* addr, enum ioflush op);
 
+FSTATIC void		_fsprotocol_auditfspe(FsProtoElem*, const char * function, int lineno);
+
+#define AUDITFSPE(fspe)	_fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__)
+
+
 DEBUGDECLARATIONS
 /// @defgroup FsProtocol FsProtocol class
 ///@{
 /// @ingroup C_Classes
 
-#define		TRYXMIT(fspe)	{_fsprotocol_xmitifwecan(fspe);}
+#define		TRYXMIT(fspe)	{AUDITFSPE(fspe); _fsprotocol_xmitifwecan(fspe);}
+
+
+FSTATIC void
+_fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
+{
+	guint	outqlen = self->outq->_q->length;
+	FsProtocol*	parent = self->parent;
+	gboolean	in_unackedlist = (g_list_find(parent->unacked, self) != NULL);
+
+	if (outqlen != 0 && !in_unackedlist) {
+		g_warning("%s:%d: outqlen is %d but not in unacked list"
+		,	function, lineno, outqlen);
+	}
+	if (outqlen == 0 && in_unackedlist) {
+		g_warning("%s:%d: outqlen is zero but it IS in the unacked list"
+		,	function, lineno);
+	}
+}
 
 /// Locate the FsProtoElem structure that corresponds to this (destaddr, qid) pair
 FSTATIC FsProtoElem*
@@ -113,7 +136,6 @@ _fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
 		ret->inq  = fsqueue_new(0, destaddr, qid);
 		ret->lastacksent  = NULL;
 		ret->lastseqsent  = NULL;
-		ret->outstanding_acks  = 0;
 		ret->nextrexmit  = 0;
 		ret->parent = self;
 		g_hash_table_insert(self->endpoints, ret, ret);
@@ -297,7 +319,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 	return NULL;
 }
 
-/// Enqueue a received packet - handling ACKs (and NAKs) when they show up
+/// Enqueue a received packet - handling ACKs when they show up
 FSTATIC void
 _fsprotocol_receive(FsProtocol* self			///< Self pointer
 ,				NetAddr* fromaddr	///< Address that this FrameSet comes from
@@ -305,29 +327,30 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 {
 	FsProtoElem*	fspe = self->findbypkt(self, fromaddr, fs);
 	SeqnoFrame*	seq = fs->getseqno(fs);
-	gboolean is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
 
 	g_return_if_fail(fspe != NULL);
+	AUDITFSPE(fspe);
 	
-	if (is_acknack) {
-		int ackcount;
+	if (fs->fstype == FRAMESETTYPE_ACK) {
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
 		char *	fsout = fs->baseclass.toString(&fs->baseclass);
 		DEBUGMSG1("%s: Received this FrameSet: [%s]", __FUNCTION__, fsout);
 		g_free(fsout); fsout = NULL;
 		g_return_if_fail(seq != NULL);
-		ackcount = fspe->outq->ackthrough(fspe->outq, seq);
-		// Update outstanding ack count by the number of packets ACKed
-		fspe->outstanding_acks -= ackcount;
-		if (fs->fstype == FRAMESETTYPE_ACK) {
-			TRYXMIT(fspe);
-			return;
+		fspe->outq->ackthrough(fspe->outq, seq);
+		if (fspe->outq->_q->length == 0) {
+			fspe->parent->unacked = g_list_remove(fspe->parent->unacked, fspe);
+			fspe->nextrexmit = 0;
+		}else{
+			fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
 		}
+		TRYXMIT(fspe);
+		return;
 		// NACKs get treated like ACKs, except they're also
 		// passed along to the application like a regular FrameSet
-		/// @todo: NAKs ARE EVIL AND NEED TO BE REMOVED
 	}
+	AUDITFSPE(fspe);
 	// Queue up the received frameset
 	DUMP2(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
@@ -353,6 +376,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			fs->baseclass.unref(&fs->baseclass); ackseq = NULL;
 		}
 	}
+	AUDITFSPE(fspe);
 
 	DEBUGMSG2("%s: isready: %d seq->_reqid:%d , fspe->inq->_nextseqno: "FMT_64BIT"d"
 	,	__FUNCTION__, fspe->inq->isready, (seq ? (gint)seq->_reqid : -1), fspe->inq->_nextseqno);
@@ -364,6 +388,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			fspe->inq->isready = TRUE;
 		}
 	}
+	AUDITFSPE(fspe);
 	TRYXMIT(fspe);
 }
 
@@ -376,17 +401,19 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 {
 	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret;
-	gboolean is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
-	ret =  fspe->outq->enq(fspe->outq, fs);
-	if (!g_list_find(fspe->parent->unacked, fspe)) {
+	AUDITFSPE(fspe);
+	if (fspe->outq->_q->length == 0) {
 		///@todo: This might be slow if we send a lot of packets to an endpoint
 		/// before getting a response, but that's not very likely.
 		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
+		fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
 	}
-	if (is_acknack) {
+	ret =  fspe->outq->enq(fspe->outq, fs);
+	if (fs->fstype == FRAMESETTYPE_ACK) {
 		_fsprotocol_updateack(fspe, fs);
 	}
 	TRYXMIT(fspe);
+	AUDITFSPE(fspe);
 	return ret;
 }
 /// Enqueue and send a list of reliable FrameSets (send all or none)
@@ -398,8 +425,14 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 {
 	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret = TRUE;
+	int		qflag = fspe->outq->_q->length == 0;
+	AUDITFSPE(fspe);
 	// Send them all -- or none of them...
 	ret =  fspe->outq->hasqspace(fspe->outq, g_slist_length(framesets));
+	DEBUGMSG2("%s: sending %d packets -- hasqspace() returned %d; qlen = %d", __FUNCTION__
+	,	g_slist_length(framesets), ret
+	,	fspe->outq->_q->length);
+	
 	if (ret) {
 		GSList*	this;
 		int	count = 0;
@@ -411,18 +444,20 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 			is_acknack = (fs->fstype == FRAMESETTYPE_ACK || fs->fstype == FRAMESETTYPE_NACK);
 			DEBUGMSG1("%s: queueing up frameset %d of type %d", __FUNCTION__, count, fs->fstype);
 			fspe->outq->enq(fspe->outq, fs);
+			if (qflag) {
+				fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
+				qflag = FALSE;
+			}
 			if (is_acknack) {
 				_fsprotocol_updateack(fspe, fs);
 			}
+			AUDITFSPE(fspe);
 			++count;
 		}
-		// Add this fspe to the list of fspes with un-ACKed FrameSets - if not already on it
-		if (!g_list_find(fspe->parent->unacked, fspe)) {
-			fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
-			// This might eventually need to be improved for efficiency...
-		}
 	}
+	AUDITFSPE(fspe);
 	TRYXMIT(fspe);
+	AUDITFSPE(fspe);
 	return ret;
 }
 
@@ -452,12 +487,13 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 	SeqnoFrame*	lastseq = fspe->lastseqsent;
 	GList*		qelem;
 	NetIO*		io = parent->io;
-	guint		orig_outstanding = fspe->outstanding_acks;
+	guint		orig_outstanding = fspe->outq->_q->length;
 	gint64		now;
 
+	AUDITFSPE(fspe);
 	// Look for any new packets that might have showed up to send
 	// 	Check to see if we've exceeded our window size...
-	if (fspe->outstanding_acks < parent->window_size) {
+	if (fspe->outq->_q->length < parent->window_size) {
 		// Nope.  Look for packets that we haven't yet sent.
 		// This code is sub-optimal when congestion occurs and we have a larger
 		// window size (i.e. when we have a number of un-ACKed packets)
@@ -471,17 +507,15 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			DUMP1(__FUNCTION__, &seq->baseclass.baseclass, " is frame being sent");
 			io->sendaframeset(io, fspe->endpoint, fs);
 			fspe->lastseqsent = seq;
-			// lastseq = seq; -- is not necessary
-			// This FrameSet will be removed from the queue when its ACK arrives...
-			++fspe->outstanding_acks;
-			if (fspe->outstanding_acks >= parent->window_size) {
+			if (fspe->outq->_q->length >= parent->window_size) {
 				break;
 			}
 		}
 	}
+	AUDITFSPE(fspe);
 	now = g_get_monotonic_time();
 
-	if (fspe->nextrexmit == 0 && fspe->outstanding_acks > 0) {
+	if (fspe->nextrexmit == 0 && fspe->outq->_q->length > 0) {
 		// Next retransmission time not yet set...
 		fspe->nextrexmit = now + parent->rexmit_interval;
 	} else if (fspe->nextrexmit != 0 && now > fspe->nextrexmit) {
@@ -498,14 +532,16 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			fspe->nextrexmit = 0;
 		}
 	}
+	AUDITFSPE(fspe);
 
 
 	// Make sure we remember to check this periodicially for retransmits...
-	if (orig_outstanding == 0 && fspe->outstanding_acks > 0) {
+	if (orig_outstanding == 0 && fspe->outq->_q->length > 0) {
 		// Put 'fspe' on the list of fspe's with unacked packets
 		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
 		// See comment in the _send function regarding eventual efficiency concerns
 	}
+	AUDITFSPE(fspe);
 }
 
 ///< Flush all queues that connect to the given address - happens when an endpoint dies
@@ -519,6 +555,7 @@ _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating
 	/// @todo If we actually _have_ a million servers, this will have to be looked at again -
 	/// We may eventually need to create a list of queues per server -- or this will be horribly slow
 
+	AUDITFSPE(fspe);
 	g_hash_table_iter_init(&iter, self->endpoints);
 	while (g_hash_table_iter_next(&iter, (gpointer*)&fspe, NULL)) {
 		if (!addr->equal(addr, fspe->endpoint)) {
@@ -531,6 +568,7 @@ _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating
 			fspe->outq->flush(fspe->outq);
 		}
 	}
+	AUDITFSPE(fspe);
 }
 /// Retransmit timer function...
 FSTATIC gboolean
@@ -546,7 +584,9 @@ _fsprotocol_timeoutfun(gpointer userdata)
 	for (pending = self->unacked; NULL != pending; pending=next) {
 		FsProtoElem*	fspe = (FsProtoElem*)pending->data;
 		next = pending->next;
+		AUDITFSPE(fspe);
 		_fsprotocol_xmitifwecan(fspe);
+		AUDITFSPE(fspe);
 	}
 	return TRUE;
 }

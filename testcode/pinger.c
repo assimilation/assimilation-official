@@ -81,8 +81,8 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	if (fs->fstype == FRAMESETTYPE_PING) {
 		FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
-		GSList*		flist;
-		flist = g_slist_prepend(NULL, ping);
+		GSList*		flist = NULL;
+		flist = g_slist_prepend(flist, ping);
 		//flist = g_slist_prepend(flist, pong);
 		
 		fprintf(stderr, "Sending a PONG/PING pair to %s\n"

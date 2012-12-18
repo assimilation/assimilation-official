@@ -26,6 +26,8 @@
 #include <frameset.h>
 #include <frametypes.h>
 
+#include <assert.h>
+
 
 
 DEBUGDECLARATIONS
@@ -58,6 +60,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	// This FrameSet shouldn't have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
 	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
+	assert(fs->getseqno(fs) == NULL);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
 	g_return_val_if_fail(seqno != NULL, FALSE);
 	++self->_nextseqno;
@@ -264,7 +267,7 @@ _fsqueue_getmaxqlen(FsQueue* self)		///< The @ref FsQueue object we're operating
 FSTATIC gboolean
 _fsqueue_hasqspace1(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
-	return self->_maxqlen > g_queue_get_length(self->_q);
+	return self->_maxqlen ==0 || g_queue_get_length(self->_q) < self->_maxqlen;
 }
 
 /// Does this queue have room for 'desired' more elements?
@@ -272,7 +275,7 @@ FSTATIC gboolean
 _fsqueue_hasqspace(FsQueue* self		///< The @ref FsQueue object we're operating on
 ,		   guint desired)		///< The number of queue elements we're hoping for
 {
-	return (self->_maxqlen + desired) >= g_queue_get_length(self->_q);
+	return self->_maxqlen == 0 || (self->_maxqlen + desired) >= g_queue_get_length(self->_q);
 
 }
 
