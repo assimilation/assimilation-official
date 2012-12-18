@@ -213,9 +213,11 @@ _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 	fs = frameset_new(FRAMESETTYPE_ACK);
 
 	frameset_append_frame(fs, &seq->baseclass);
+	// Appending the seq frame will increment its reference count
 
 	self->baseclass.baseclass.sendaframeset(&self->baseclass.baseclass, dest, fs);
 	fs->baseclass.unref(&fs->baseclass); fs = NULL;
+	// sendaframeset will hang onto frameset and frames as long as it needs them
 
 	return TRUE;
 }

@@ -506,7 +506,12 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			}
 			DUMP1(__FUNCTION__, &seq->baseclass.baseclass, " is frame being sent");
 			io->sendaframeset(io, fspe->endpoint, fs);
-			fspe->lastseqsent = seq;
+			if (lastseq) {
+				// lastseq is a copy of fspe->lastseqsent
+				lastseq->baseclass.baseclass.unref(&lastseq->baseclass.baseclass);
+			}
+			lastseq = fspe->lastseqsent = seq;
+			lastseq->baseclass.baseclass.ref(&lastseq->baseclass.baseclass);
 			if (fspe->outq->_q->length >= parent->window_size) {
 				break;
 			}
