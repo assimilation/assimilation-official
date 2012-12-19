@@ -70,7 +70,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	// But an uninitialized FsQueue session id is zero
 	// So, this test could be more strict
 	if (seqno->_sessionid < self->_sessionid) {
-		seqno->baseclass.baseclass.unref(&seqno->baseclass.baseclass); seqno = NULL;
+		UNREF2(seqno);
 		g_return_val_if_reached(FALSE);
 	}
 	self->_sessionid = seqno->_sessionid;
@@ -83,9 +83,9 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 
 	// Now do all the paperwork :-D
 	// We need for the FrameSet to be kept around for potentially a long time...
-	fs->baseclass.ref(&fs->baseclass);
+	REF(fs);
 	// But we're done with the seqno frame (prepending it to the frameset bumped the ref count)
-	seqno->baseclass.baseclass.unref(&seqno->baseclass.baseclass);
+	UNREF2(seqno);
 	DUMP2(__FUNCTION__, &self->baseclass, "");
 	return TRUE;
 }
@@ -104,6 +104,7 @@ _fsqueue_deq(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	gpointer	ret = g_queue_pop_head(self->_q);
 	--self->_curqlen;
+
 	return ret ? CASTTOCLASS(FrameSet, ret) : NULL;
 }
 
@@ -152,7 +153,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	// Frames without sequence numbers go to the head of the queue
 	if (seqno == NULL) {
 		g_queue_push_head(Q, fs);
-		fs->baseclass.ref(&fs->baseclass);
+		REF(fs);
 		return TRUE;
 	}
 
@@ -162,7 +163,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 		int		diff = seqno->compare(seqno, thisseq);
 		if (diff < 0) {
 			g_queue_insert_before(Q, this, fs);
-			fs->baseclass.ref(&fs->baseclass);
+			REF(fs);
 			return TRUE;
 		}else if (diff == 0) {
 			// Dup - don't keep it...
@@ -171,7 +172,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	}
 	// Either the list is empty, or this belongs after the last list element
 	// Regardless of which is true, we can call g_queue_push_tail...
-	fs->baseclass.ref(&fs->baseclass);
+	REF(fs);
 	g_queue_push_tail(Q, fs);
 	DUMP2(__FUNCTION__, &self->baseclass, "");
 	return TRUE;
@@ -244,8 +245,7 @@ _fsqueue_flush1(FsQueue* self)		///< The @ref FsQueue object we're operating on
 	gpointer	qelem = g_queue_pop_head(self->_q);
 	if (qelem) {
 		FrameSet *	fs = CASTTOCLASS(FrameSet, qelem);
-		fs->baseclass.unref(&fs->baseclass);
-		fs = NULL;
+		UNREF(fs);
 		--self->_curqlen;
 	}
 }
@@ -325,7 +325,7 @@ fsqueue_new(guint objsize		///< Size of the FsQueue object we should create
 	self->_curqlen =	0;
 	self->_nextseqno =	1;
 	self->_sessionid =	0;
-	self->_destaddr =	dest;	dest->baseclass.ref(&dest->baseclass);
+	self->_destaddr =	dest;	REF(dest);
 	return self;
 }
 /// Finalize routine for our @ref FsQueue objects
@@ -334,6 +334,7 @@ _fsqueue_finalize(AssimObj* aself)		///< The @ref FsQueue object we're operating
 {
 	FsQueue*	self = CASTTOCLASS(FsQueue, aself);
 
+	DUMP2("FsQueue finalize", &self->baseclass, __FUNCTION__);
 	// Let our 'destaddr' object go...
 	UNREF(self->_destaddr);
 

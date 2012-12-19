@@ -112,6 +112,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	if (addrstr) {
 		g_free(addrstr); addrstr = NULL;
 	}
+	UNREF(fs);
 }
 
 
@@ -152,7 +153,7 @@ main(int argc, char **argv)
 		NetAddr*	toaddr = netaddr_string_new(argv[j]);
 		NetAddr*	v6addr;
 		if (toaddr == NULL) {
-			fprintf(stderr, "WARNING: %s is not a legit ipv4/v6 address"
+			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address"
 			,	argv[j]);
 			continue;
 		}
@@ -168,17 +169,18 @@ main(int argc, char **argv)
 		UNREF(ping);
 		UNREF(v6addr);
 	}
-	g_main_loop_run(loop);
-	g_main_loop_unref(loop);
-	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly (?)
-	//g_source_unref(&netpkt->baseclass);
 	UNREF(decoder);
 	UNREF2(signature);
 	UNREF(config);
 	UNREF(anyaddr);
+	g_main_loop_run(loop);
+	//UNREF3(transport);	// 'transport' global variable is reference by code above
 	act_on_packets->baseclass.dissociate(&act_on_packets->baseclass);
 	UNREF2(act_on_packets);
+
 	UNREF3(transport);
+	g_main_loop_unref(loop);
+	g_source_unref(&netpkt->baseclass);
 	g_main_context_unref(g_main_context_default());
 	// At this point - nothing should show up - we should have freed everything
 	liveobjcount = proj_class_live_object_count();

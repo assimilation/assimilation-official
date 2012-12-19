@@ -107,6 +107,7 @@ _reliableudp_finalize(AssimObj* obj)
 {
 	ReliableUDP*	self = CASTTOCLASS(ReliableUDP, obj);
 	if (self) {
+		DUMP2("ReliableUDP finalize", &self->baseclass.baseclass.baseclass, __FUNCTION__);
 		if (self->_protocol) {
 			// Un-ref that puppy!
 			UNREF(self->_protocol);

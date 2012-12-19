@@ -118,7 +118,7 @@ _fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	if (ret) {
 		///@todo: Need to make a way to delete FsProtoElem connections...
 		ret->endpoint = destaddr;
-		destaddr->baseclass.ref(&destaddr->baseclass);
+		REF(destaddr);
 		ret->_qid = qid;
 		ret->outq = fsqueue_new(0, destaddr, qid);
 		ret->inq  = fsqueue_new(0, destaddr, qid);
@@ -160,7 +160,10 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->flushall =	_fsprotocol_flushall;
 
 	// Initialize our data members
-	self->io =		io; io->baseclass.ref(&io->baseclass);
+	self->io =		io; // REF(io);
+	// NOTE that the REF has been commented out to prevent
+	// a circular reference chain - screwing up freeing things...
+
 	/// The key and the data are in fact the same object
 	/// Don't want to free the object twice ;-) - hence the final NULL argument
 	self->endpoints = g_hash_table_new_full(_fsprotocol_protoelem_hash,_fsprotocol_protoelem_equal
@@ -189,7 +192,11 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 {
 	FsProtocol*	self = CASTTOCLASS(FsProtocol, aself);
 
-	UNREF(self->io);
+	DUMP2("Finalizing FsProtocol", aself, __FUNCTION__);
+	if (self->_timersrc) {
+		g_source_remove(self->_timersrc);
+		self->_timersrc = 0;
+	}
 
 	// Free up our hash table of endpoints
 	g_hash_table_destroy(self->endpoints);	// It will free the FsProtoElems contained therein
@@ -213,6 +220,7 @@ FSTATIC void
 _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to destroy
 {
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
+	DUMP2("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 	UNREF(self->endpoint);
 	UNREF(self->inq);
 	UNREF(self->outq);
@@ -230,7 +238,8 @@ _fsprotocol_protoelem_equal(gconstpointer lhs	///< FsProtoElem left hand side to
 	const FsProtoElem *	lhselem = (const FsProtoElem*)lhs;
 	const FsProtoElem *	rhselem = (const FsProtoElem*)rhs;
 
-	return lhselem->endpoint->equal(lhselem->endpoint, rhselem->endpoint);
+	return 	lhselem->_qid == rhselem->_qid
+	&&	lhselem->endpoint->equal(lhselem->endpoint, rhselem->endpoint);
 
 
 }
@@ -255,7 +264,7 @@ _fsprotocol_iready(FsProtocol* self)	///< Our object
 /// Read the next available packet from any of our sources
 FSTATIC FrameSet*
 _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
-,		 NetAddr** fromaddr)	///< Where return result is coming from
+,		 NetAddr** fromaddr)	///< The IP address our result came from
 {
 	GList*	list;	// List of all our FsQueues which have input
 
@@ -282,7 +291,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 			if (seq != NULL) {
 				iq->_nextseqno += 1;
 			}
-			iq->_destaddr->baseclass.ref(&iq->_destaddr->baseclass);
+			REF(iq->_destaddr);
 			*fromaddr = iq->_destaddr;
 			ret = iq->deq(iq);
 			// Now look and see if there will _still_ be something
@@ -328,9 +337,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	if (fs->fstype == FRAMESETTYPE_ACK) {
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
-		char *	fsout = fs->baseclass.toString(&fs->baseclass);
-		DEBUGMSG1("%s: Received this FrameSet: [%s]", __FUNCTION__, fsout);
-		g_free(fsout); fsout = NULL;
+		DUMP2(__FUNCTION__, &fs->baseclass, " was ACK received.");
 		g_return_if_fail(seq != NULL);
 		fspe->outq->ackthrough(fspe->outq, seq);
 		if (fspe->outq->_q->length == 0) {
@@ -340,12 +347,15 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
 		}
 		TRYXMIT(fspe);
+		UNREF(fs);
+		UNREF(fromaddr);
 		return;
 		// NACKs get treated like ACKs, except they're also
 		// passed along to the application like a regular FrameSet
 	}
 	AUDITFSPE(fspe);
 	// Queue up the received frameset
+	UNREF(fromaddr);  // Or it will hang around forever!
 	DUMP2(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
 		DUMP2(__FUNCTION__, &fs->baseclass, " Frameset failed to go into queue :-(.");
@@ -469,16 +479,18 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 	// Appending the seq frame will increment its reference count
 
 	self->io->sendaframeset(self->io, destaddr, fs);
-	fs->baseclass.unref(&fs->baseclass); fs = NULL;
+	UNREF(fs);
+
 	// sendaframeset will hang onto frameset and frames as long as it needs them
 	fspe = self->find(self, seq->_qid, destaddr);
 	g_return_if_fail(fspe != NULL);
+
 	if ((fspe->lastacksent == NULL || fspe->lastacksent->compare(fspe->lastacksent, seq) < 0)) {
 		if (fspe->lastacksent) {
-			fspe->lastacksent->baseclass.baseclass.unref(&fspe->lastacksent->baseclass.baseclass);
+			UNREF2(fspe->lastacksent);
 		}
+		REF2(seq);
 		fspe->lastacksent = seq;
-		seq->baseclass.baseclass.ref(&seq->baseclass.baseclass);
 	}
 }
 
@@ -533,10 +545,10 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			}
 			if (lastseq) {
 				// lastseq is a copy of fspe->lastseqsent
-				lastseq->baseclass.baseclass.unref(&lastseq->baseclass.baseclass);
+				UNREF2(lastseq);
 			}
 			lastseq = fspe->lastseqsent = seq;
-			lastseq->baseclass.baseclass.ref(&lastseq->baseclass.baseclass);
+			REF2(lastseq);
 			if (fspe->outq->_q->length >= parent->window_size) {
 				break;
 			}
