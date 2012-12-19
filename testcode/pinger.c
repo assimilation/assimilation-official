@@ -56,7 +56,9 @@
 
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
 ReliableUDP*	transport = NULL;
-int		pongcount = 3;
+int		pongcount = 1;
+int		maxpingcount = 3;
+GMainLoop*	loop = NULL;
 
 ObeyFrameSetTypeMap	doit [] = {
 	{FRAMESETTYPE_PING,	obey_pingpong},
@@ -69,6 +71,7 @@ void
 obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 {
 	char *	addrstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
+	static int	pingcount = 0;
 
 	(void)unused;
 	fprintf(stderr, "Received a %s [%d] packet from %s\n"
@@ -85,6 +88,11 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		GSList*		iter;
 		int		j;
 		
+		++pingcount;
+		if (maxpingcount > 0 && pingcount > maxpingcount) {
+			g_message("Quitting on ping count.");
+			g_main_loop_quit(loop);
+		}
 		for (j=0; j < pongcount; ++j) {
 			FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
 			flist = g_slist_append(flist, pong);
@@ -119,7 +127,7 @@ main(int argc, char **argv)
 	NetAddr* anyaddr = netaddr_ipv6_new(anyadstring, PORT);
 	NetGSource*	netpkt;
 	AuthListener*	act_on_packets;
-	GMainLoop*	loop;
+	int		liveobjcount;
 
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	proj_class_incr_debug(NULL);
@@ -127,14 +135,14 @@ main(int argc, char **argv)
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 	transport = reliableudp_new(0, config, decoder, 0);
 	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, .1, .1);
-	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
+	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, FALSE);
 	g_return_val_if_fail(transport->baseclass.baseclass.bindaddr(&transport->baseclass.baseclass, anyaddr, FALSE),16);
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(&transport->baseclass.baseclass, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
 	act_on_packets = authlistener_new(doit, config, 0);
 	act_on_packets->baseclass.associate(&act_on_packets->baseclass, netpkt);
-	g_source_ref(CASTTOCLASS(GSource, netpkt));
+	//g_source_ref(&netpkt->baseclass);
 	
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
@@ -148,9 +156,7 @@ main(int argc, char **argv)
 			,	argv[j]);
 			continue;
 		}
-		v6addr = toaddr->toIPv6(toaddr);
-		toaddr->baseclass.unref(&toaddr->baseclass); toaddr = NULL;
-		
+		v6addr = toaddr->toIPv6(toaddr); UNREF(toaddr);
 		v6addr->setport(v6addr, PORT);
 		{
 			char *	addrstr= v6addr->baseclass.toString(&v6addr->baseclass);
@@ -159,9 +165,31 @@ main(int argc, char **argv)
 		}
 		ping = frameset_new(FRAMESETTYPE_PING);
 		transport->sendreliable(transport, v6addr, 0, ping);
-		ping->baseclass.unref(&ping->baseclass);
-		v6addr->baseclass.unref(&v6addr->baseclass); v6addr = NULL;
+		UNREF(ping);
+		UNREF(v6addr);
 	}
 	g_main_loop_run(loop);
+	g_main_loop_unref(loop);
+	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly (?)
+	//g_source_unref(&netpkt->baseclass);
+	UNREF(decoder);
+	UNREF2(signature);
+	UNREF(config);
+	UNREF(anyaddr);
+	act_on_packets->baseclass.dissociate(&act_on_packets->baseclass);
+	UNREF2(act_on_packets);
+	UNREF3(transport);
+	g_main_context_unref(g_main_context_default());
+	// At this point - nothing should show up - we should have freed everything
+	liveobjcount = proj_class_live_object_count();
+	if (liveobjcount > 0) {
+		g_warning("============ OOPS %d objects still alive ==============================="
+		,	liveobjcount);
+		proj_class_dump_live_objects();
+		g_warning("Too many objects (%d) alive at end of test.", liveobjcount);
+	}else{
+		g_message("No objects left alive.  Awesome!");
+	}
+        proj_class_finalize_sys(); // Shut down object system to make valgrind happy :-D
 	return 0;
 }
