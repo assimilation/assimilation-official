@@ -32,6 +32,8 @@
 #include <frameset.h>
 #include <netgsource.h>
 
+DEBUGDECLARATIONS
+
 /// @defgroup NetGSource NetGSource class
 ///@{
 /// @ingroup C_Classes
@@ -63,7 +65,7 @@ _netgsource_del_listener(gpointer lptr)
 	Listener*	lobj;
 	if (lptr) {
 		lobj = CASTTOCLASS(Listener, lptr);
-		lobj->baseclass.unref(lobj);
+		UNREF(lobj);
 	}
 }
 
@@ -83,6 +85,7 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 	NetGSource*	ret;
 	GSourceFuncs*	gsf;
 
+	BINDDEBUG(NetGSource);
 	if (objsize < sizeof(NetGSource)) {
 		objsize = sizeof(NetGSource);
 	}
@@ -126,6 +129,7 @@ netgsource_new(NetIO* iosrc,			///<[in/out] Network I/O object
 		ret = NULL;
 		g_return_val_if_reached(NULL);
 	}
+	// REF(ret->_netio);
 	ret->_dispatchers = g_hash_table_new_full(NULL, NULL, NULL, _netgsource_del_listener);
 	return ret;
 }
@@ -182,7 +186,7 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 				g_warning("No dispatcher for FrameSet type %d", fs->fstype);
 			}
 		}
-		srcaddr->baseclass.unref(srcaddr); srcaddr = NULL;
+		UNREF(srcaddr);
 	}
 	return TRUE;
 }
@@ -195,7 +199,10 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 #	define __FUNCTION__ "_netgsource_finalize"
 #endif
 	NetGSource*	self = CASTTOCLASS(NetGSource, gself);
+	DEBUGMSG("%s(%p) FINALIZING!", __FUNCTION__, self);
 	if (self->_finalize) {
+		DEBUGMSG("%s: finalizing object at %p with %p", __FUNCTION__, self->_userdata
+		,	self->_finalize);
 		self->_finalize(self->_userdata);
 	}else{
 		if (self->_userdata) {
@@ -203,12 +210,14 @@ _netgsource_finalize(GSource* gself)	///<[in/out] object being finalized
 			/// finalize routine (and maybe you should anyway)
 			FREECLASSOBJ(self->_userdata);
 			self->_userdata = NULL;
+			DEBUGMSG("%s: FREECLASSOBJ(%p)", __FUNCTION__, self->_userdata);
 		}
 	}
 	if (self->_gsfuncs) {
 		FREECLASSOBJ(self->_gsfuncs);
 		self->_gsfuncs = NULL;
 	}
+	// UNREF(self->_netio);
 	g_hash_table_unref(self->_dispatchers);
 	proj_class_dissociate(gself);// Avoid dangling reference in class system
 }
@@ -236,7 +245,7 @@ _netgsource_addListener(NetGSource* self,	///<[in/out] Object being modified
 			Listener* disp)		///<[in] dispatch function
 {
 	if (disp) {
-		disp->baseclass.ref(disp);
+		REF(disp);
 	}
 	g_hash_table_replace(self->_dispatchers, GUINT_TO_POINTER((size_t)fstype), disp);
 }

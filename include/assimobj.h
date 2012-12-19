@@ -30,7 +30,11 @@
 typedef struct _AssimObj	AssimObj;
 
 struct _AssimObj {
+#ifdef DEBUGLEAKS
+	long		_bornon;			///< Sequence number - for debugging
+#endif
 	int		_refcount;			///< Reference count (private)
+	
 	void		(*_finalize)(AssimObj*);	///< Free object (private)
 	void		(*ref)(gpointer);		///< Increment reference count
 	void		(*unref)(gpointer);		///< Decrement reference count

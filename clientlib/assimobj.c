@@ -71,11 +71,18 @@ _assimobj_toString(gconstpointer vself)
 AssimObj*
 assimobj_new(guint objsize)
 {
+#ifdef DEBUGLEAKS
+	static long	sequencenumber = 0;
+#endif
 	AssimObj* self;
 	if (objsize < sizeof(AssimObj)) {
 		objsize = sizeof(AssimObj);
 	}
 	self = MALLOCCLASS(AssimObj, objsize);
+#ifdef DEBUGLEAKS
+	self->_bornon = sequencenumber;
+	sequencenumber += 1;
+#endif
 	self->_refcount = 1;
 	self->ref = _assimobj_ref;
 	self->unref = _assimobj_unref;
