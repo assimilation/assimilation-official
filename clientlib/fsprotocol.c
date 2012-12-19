@@ -189,7 +189,11 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 {
 	FsProtocol*	self = CASTTOCLASS(FsProtocol, aself);
 
-	self->io->baseclass.unref(&self->io->baseclass); self->io = NULL;
+	UNREF(self->io);
+
+	// Free up our hash table of endpoints
+	g_hash_table_destroy(self->endpoints);	// It will free the FsProtoElems contained therein
+	self->endpoints = NULL;
 
 	// Free up the unacked list
 	g_list_free(self->unacked);		// No additional 'ref's were taken for this list
@@ -199,9 +203,6 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 	g_list_free(self->ipend);		// No additional 'ref's were taken for this list either
 	self->ipend = NULL;
 
-	// Free up our hash table of endpoints
-	g_hash_table_destroy(self->endpoints);	// It will free the FsProtoElems contained therein
-	self->endpoints = NULL;
 
 	// Lastly free our base storage
 	FREECLASSOBJ(self);
@@ -212,8 +213,12 @@ FSTATIC void
 _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to destroy
 {
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
-	self->endpoint->baseclass.unref(&self->endpoint->baseclass); self->endpoint = NULL;
-	self->inq->baseclass.unref(&self->inq->baseclass); self->inq = NULL;
+	UNREF(self->endpoint);
+	UNREF(self->inq);
+	UNREF(self->outq);
+	UNREF2(self->lastacksent);
+	UNREF2(self->lastseqsent);
+	self->parent = NULL;
 	memset(self, 0, sizeof(*self));
 }
 

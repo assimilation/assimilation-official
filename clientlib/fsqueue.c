@@ -231,8 +231,7 @@ _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 	gpointer	qelem;
 	while (NULL != (qelem = g_queue_pop_head(self->_q))) {
 		FrameSet *	fs = CASTTOCLASS(FrameSet, qelem);
-		fs->baseclass.unref(&fs->baseclass);
-		fs = NULL;
+		UNREF(fs);
 	}
 	self->_curqlen = 0;
 }
@@ -336,7 +335,7 @@ _fsqueue_finalize(AssimObj* aself)		///< The @ref FsQueue object we're operating
 	FsQueue*	self = CASTTOCLASS(FsQueue, aself);
 
 	// Let our 'destaddr' object go...
-	self->_destaddr->baseclass.unref(&self->_destaddr->baseclass); self->_destaddr = NULL;
+	UNREF(self->_destaddr);
 
 	// Now flush (free up) any framesets that are still hanging around...
 	self->flush(self);

@@ -109,8 +109,7 @@ _reliableudp_finalize(AssimObj* obj)
 	if (self) {
 		if (self->_protocol) {
 			// Un-ref that puppy!
-			self->_protocol->baseclass.unref(&self->_protocol->baseclass);
-			self->_protocol = NULL;
+			UNREF(self->_protocol);
 		}
 	}
 	_baseclass_finalize(&self->baseclass.baseclass.baseclass);
