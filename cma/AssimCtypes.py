@@ -1179,19 +1179,19 @@ struct__AssimObj._fields_ = [
     ('toString', CFUNCTYPE(UNCHECKED(POINTER(gchar)), gconstpointer)),
 ]
 
-# ../include/assimobj.h: 39
+# ../include/assimobj.h: 43
 if hasattr(_libs['libassimilationclientlib.so'], 'assimobj_new'):
     assimobj_new = _libs['libassimilationclientlib.so'].assimobj_new
     assimobj_new.argtypes = [guint]
     assimobj_new.restype = POINTER(AssimObj)
 
-# ../include/assimobj.h: 40
+# ../include/assimobj.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], '_assimobj_finalize'):
     _assimobj_finalize = _libs['libassimilationclientlib.so']._assimobj_finalize
     _assimobj_finalize.argtypes = [POINTER(AssimObj)]
     _assimobj_finalize.restype = None
 
-# ../include/assimobj.h: 41
+# ../include/assimobj.h: 45
 try:
     badfree = (gboolean).in_dll(_libs['libassimilationclientlib.so'], 'badfree')
 except:
