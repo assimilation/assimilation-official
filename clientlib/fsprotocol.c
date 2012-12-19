@@ -368,7 +368,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		// gotten lost, so we need to send it again...
 		// 
 		// On the other hand, we cannot re-send an ACK that the application hasn't given us yet...
-		// We could also wind up here if the app is slow to ACK packets we gave it
+		// We could wind up here if the app is slow to ACK packets we gave it
 		if (seq && fspe->lastacksent) {
 			DUMP2("ARGUMENT SEQ#", &seq->baseclass.baseclass, __FUNCTION__);
 			DUMP2("LASTACKSENT", &fspe->lastacksent->baseclass.baseclass, __FUNCTION__);
@@ -378,6 +378,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				_fsprotocol_ackseqno(self, fspe->endpoint, fspe->lastacksent);
 			}
 		}
+		UNREF(fs);
 	}
 	AUDITFSPE(fspe);
 
