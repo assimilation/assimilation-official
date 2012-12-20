@@ -134,8 +134,8 @@ main(int argc, char **argv)
 	proj_class_incr_debug(NULL);
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 	transport = reliableudp_new(0, config, decoder, 0);
-	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, .1, .1);
-	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, FALSE);
+	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, .05, .05);
+	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
 	g_return_val_if_fail(transport->baseclass.baseclass.bindaddr(&transport->baseclass.baseclass, anyaddr, FALSE),16);
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
