@@ -123,8 +123,7 @@ _discovery_destructor(gpointer gdiscovery)
 {
 	Discovery*	discovery = CASTTOCLASS(Discovery, gdiscovery);
         g_return_if_fail(discovery != NULL);
-	discovery->baseclass.unref(&discovery->baseclass);
-	discovery = NULL;
+	UNREF(discovery);
 	gdiscovery = NULL;
 }
 
@@ -148,7 +147,7 @@ discovery_register(Discovery* self)	///<[in/out] Discovery object to register
 	if (timeout > 0) {
 		self->_timerid = g_timeout_add_seconds(timeout, _discovery_rediscover, self);
 	}
-	self->baseclass.ref(self);
+	REF(self);
 	g_hash_table_replace(_discovery_timers, self->instancename(self), self);
 }
 FSTATIC void

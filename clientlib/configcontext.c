@@ -327,7 +327,7 @@ _configcontext_setaddr(ConfigContext* self	///<[in/out] ConfigContext object
 	char *	cpname = g_strdup(name);
 	ConfigValue* val = _configcontext_value_new(CFG_NETADDR);
 
-	addr->baseclass.ref(addr);
+	REF(addr);
 	val->u.addrvalue = addr;
 	g_hash_table_replace(self->_values, cpname, val);
 }
@@ -360,7 +360,7 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 	char *	cpname = g_strdup(name);
 	ConfigValue* val = _configcontext_value_new(CFG_FRAME);
 
-	frame->baseclass.ref(frame);
+	REF(frame);
 	val->u.framevalue = frame;
 	g_hash_table_replace(self->_values, cpname, val);
 }
@@ -388,7 +388,7 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 	char *	cpname = g_strdup(name);
 	ConfigValue* val = _configcontext_value_new(CFG_CFGCTX);
 
-	value->baseclass.ref(value);
+	REF(value);
 	val->u.cfgctxvalue = value;
 	g_hash_table_replace(self->_values, cpname, val);
 }
@@ -647,7 +647,7 @@ _configcontext_JSON_parse_objandEOF(GScanner* scan)
 
 	if (ret != NULL && g_scanner_get_next_token(scan) != G_TOKEN_EOF) {
 		SYNERROR(scan, G_TOKEN_EOF, NULL, NULL);
-		ret->baseclass.unref(ret); ret = NULL;
+		UNREF(ret);
 	}
 	return ret;
 }
@@ -673,16 +673,15 @@ _configcontext_JSON_parse_object(GScanner* scan)
 	
 	membersret = _configcontext_JSON_parse_members(scan, ret);
 	if (membersret == NULL) {
-		ret->baseclass.unref(ret); ret = NULL;
-		return ret;
+		UNREF(ret);
+		return NULL;
 	}
 
 	if (g_scanner_get_next_token(scan) != G_TOKEN_RIGHT_CURLY) {
 		// Syntax error...
 		SYNERROR(scan, G_TOKEN_RIGHT_CURLY, NULL, NULL);
-		ret->baseclass.unref(ret); ret = NULL;
-		abort();
-		return ret;
+		UNREF(ret);
+		return NULL;
 	}
 	return ret;
 }

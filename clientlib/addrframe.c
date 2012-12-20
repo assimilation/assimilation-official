@@ -170,8 +170,7 @@ _addrframe_setnetaddr(AddrFrame* self,	///<[in/out] AddrFrame whose address we'r
 					///< We hold a reference to it.
 {
         if (self->_addr) {
-            self->_addr->baseclass.unref(self);
-            self->_addr = NULL;
+		UNREF(self->_addr);
 	}
 	self->setaddr(self, naddr->addrtype(naddr), naddr->_addrbody, naddr->_addrlen);
 	if (!_addrframe_default_isvalid((Frame*)self, NULL, NULL)) {
@@ -186,8 +185,7 @@ _addrframe_finalize(AssimObj*obj)
 {
 	AddrFrame*	self = CASTTOCLASS(AddrFrame, obj);
 	if (self->_addr) {
-		self->_addr->baseclass.unref(self->_addr);
-		self->_addr = NULL;
+		UNREF(self->_addr);
 	}
 	if (self->baseclass.value) {
 		FREE(self->baseclass.value);
@@ -291,7 +289,7 @@ addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of wh
 	ret->baseclass.length = framelength;
 	ret->setaddr(ret, address_family, framevalue+sizeof(guint16), framelength-sizeof(guint16));
 	if (!_addrframe_default_isvalid(&ret->baseclass, tlvstart, pktend)) {
-		ret->baseclass.baseclass.unref(ret);	ret = NULL;
+		UNREF2(ret);
 		g_return_val_if_reached(NULL);
 	}
 	return &ret->baseclass;

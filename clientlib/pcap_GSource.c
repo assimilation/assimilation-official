@@ -278,23 +278,23 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSe
 	// System name
 	fsysname->baseclass.setvalue(&fsysname->baseclass, sysname, strlen(sysname)+1, g_free);
 	frameset_append_frame(fs, &fsysname->baseclass);
-        fsysname->baseclass.baseclass.unref(fsysname);
+	UNREF2(fsysname);
 
 	// Interface name
 	intfname->baseclass.setvalue(&intfname->baseclass, g_strdup(interfacep), strlen(interfacep)+1, g_free);
 	frameset_append_frame(fs, &intfname->baseclass);
-        intfname->baseclass.baseclass.unref(intfname);
+	UNREF2(intfname);
 
 	// Local time stamp
 	timeframe->setint(timeframe, proj_timeval_to_g_real_time(&(pkthdr->ts)));
 	frameset_append_frame(fs, &timeframe->baseclass);
-        timeframe->baseclass.baseclass.unref(timeframe);
+	UNREF2(timeframe);
 
 	// Packet data
 	memcpy(cppkt, pkt, pktlen);
 	pktframe->setvalue(pktframe, cppkt, pktlen, g_free);
 	frameset_append_frame(fs, pktframe);
-        pktframe->baseclass.unref(pktframe);
+	UNREF(pktframe);
 
 	return fs;
 }

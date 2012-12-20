@@ -66,8 +66,7 @@ _jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 		self->_tmpfilename = NULL;
 	}
 	if (self->jsonparams) {
-		self->jsonparams->baseclass.unref(self->jsonparams);
-		self->jsonparams = NULL;
+		UNREF(self->jsonparams);
 	}
 	g_warn_if_fail(self->_sourceid == 0);
 	_discovery_finalize(dself);
@@ -108,7 +107,7 @@ _jsondiscovery_discover(Discovery* dself)
 		self->_sourceid = g_child_watch_add_full(G_PRIORITY_HIGH, self->_child_pid, _jsondiscovery_childwatch
 		,					 self, NULL);
 		// Don't want us going away while we have a child out there...
-		self->baseclass.baseclass.ref(self);
+		REF2(self);
 	}
 	for (j=0; j < DIMOF(argv) && argv[j]; ++j) {
 		g_free(argv[j]); argv[j] = NULL;
@@ -150,8 +149,9 @@ quitchild:
 		self->_tmpfilename = NULL;
 	}
 	// We did a 'ref' in _jsondiscovery_discover above to keep us from disappearing while child was running.
-	self->baseclass.baseclass.unref(self);
+	UNREF2(self);
 }
+
 FSTATIC void
 _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 {
@@ -192,8 +192,8 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	DEBUGMSG1("Sending a %"G_GSIZE_FORMAT" bytes JSON frameset", jsonlen);
 	io->sendaframeset(io, cma, fs);
 	++ self->baseclass.reportcount;
-	fsf->baseclass.unref(fsf); fsf = NULL; jsf = NULL;
-	fs->baseclass.unref(&fs->baseclass); fs = NULL;
+	UNREF(fsf);
+	UNREF(fs);
 }
 
 /// JsonDiscovery constructor.
@@ -223,7 +223,7 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 	ret->baseclass.baseclass._finalize	= _jsondiscovery_finalize;
 	ret->baseclass.discover			= _jsondiscovery_discover;
 	ret->jsonparams = jsonparams;
-	ret->jsonparams->baseclass.ref(ret->jsonparams);
+	REF(ret->jsonparams);
 	ret->_intervalsecs = intervalsecs;
 	basedir = context->getstring(context, "JSONAGENTROOT");
 	if (NULL == basedir) {

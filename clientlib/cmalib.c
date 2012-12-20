@@ -53,7 +53,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		IntFrame * intf = intframe_new(FRAMETYPE_PORTNUM, 2);
 		intf->setint(intf, port);
 		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
+		UNREF2(intf);
 	}
 	// Put the heartbeat interval in the message (if asked)
 	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
@@ -61,7 +61,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		IntFrame * intf = intframe_new(FRAMETYPE_HBINTERVAL, 4);
 		intf->setint(intf, hbtime);
 		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
+		UNREF2(intf);
 	}
 	// Put the heartbeat deadtime in the message (if asked)
 	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
@@ -69,7 +69,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		IntFrame * intf = intframe_new(FRAMETYPE_HBDEADTIME, 4);
 		intf->setint(intf, deadtime);
 		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
+		UNREF2(intf);
 	}
 	// Put the heartbeat warntime in the message (if asked)
 	if (config->getint(config, CONFIGNAME_WARNTIME) > 0) {
@@ -77,7 +77,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		IntFrame * intf = intframe_new(FRAMETYPE_HBWARNTIME, 4);
 		intf->setint(intf, warntime);
 		frameset_append_frame(ret, &intf->baseclass);
-		intf->baseclass.baseclass.unref(intf); intf = NULL;
+		UNREF2(intf);
 	}
 
 	// Put all the addresses we were given in the message.
@@ -85,7 +85,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		AddrFrame* hbaddr = addrframe_new(FRAMETYPE_IPADDR, 0);
 		hbaddr->setnetaddr(hbaddr, &addrs[count]);
 		frameset_append_frame(ret, &hbaddr->baseclass);
-		hbaddr->baseclass.baseclass.unref(hbaddr); hbaddr = NULL;
+		UNREF2(hbaddr);
 	}
 	return  ret;
 }
@@ -131,7 +131,7 @@ create_setconfig(ConfigContext * cfg)
 		n->baseclass.setvalue(&n->baseclass, g_strdup(name), strlen(name)+1
 		,		      frame_default_valuefinalize);
 		frameset_append_frame(fs, &n->baseclass);
-		n->baseclass.baseclass.unref(n); n = NULL;
+		UNREF2(n);
 
 		// Now put the value in...
 		switch(cfg->gettype(cfg, key)) {
@@ -149,7 +149,7 @@ create_setconfig(ConfigContext * cfg)
 				IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 8);
 				v->setint(v, value);
 				frameset_append_frame(fs, &v->baseclass);
-				v->baseclass.baseclass.unref(v);
+				UNREF2(v);
 				break;
 			}
 			case CFG_STRING: {
@@ -158,7 +158,7 @@ create_setconfig(ConfigContext * cfg)
 				v->baseclass.setvalue(&v->baseclass, g_strdup(value)
 				,		      strlen(value)+1, frame_default_valuefinalize);
 				frameset_append_frame(fs, &v->baseclass);
-				v->baseclass.baseclass.unref(v);
+				UNREF2(v);
 				break;
 			}
 			case CFG_NETADDR: {
@@ -169,11 +169,11 @@ create_setconfig(ConfigContext * cfg)
 					IntFrame*	p = intframe_new(FRAMETYPE_PORTNUM, 4);
 					p->setint(p, value->port(value));
 					frameset_append_frame(fs, &p->baseclass);
-					p->baseclass.baseclass.unref(p); p = NULL;
+					UNREF2(p);
 				}
 				v->setnetaddr(v, value);
 				frameset_append_frame(fs, &v->baseclass);
-				v->baseclass.baseclass.unref(v); v = NULL;
+				UNREF2(v);
 				break;
 			}
 		}
