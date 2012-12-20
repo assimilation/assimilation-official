@@ -22,6 +22,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
+
+#define	LOG_REFS
+
 #include <memory.h>
 #include <proj_classes.h>
 #include <reliableudp.h>

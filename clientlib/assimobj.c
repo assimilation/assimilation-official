@@ -25,6 +25,8 @@
 #include <projectcommon.h>
 #include <assimobj.h>
 
+DEBUGDECLARATIONS
+
 /// @defgroup AssimObj AssimObj class
 /// @brief Implements the base object class for our object system.
 /// @details 
@@ -75,6 +77,7 @@ assimobj_new(guint objsize)
 	static long	sequencenumber = 0;
 #endif
 	AssimObj* self;
+	BINDDEBUG(AssimObj)
 	if (objsize < sizeof(AssimObj)) {
 		objsize = sizeof(AssimObj);
 	}
@@ -88,6 +91,7 @@ assimobj_new(guint objsize)
 	self->unref = _assimobj_unref;
 	self->_finalize = _assimobj_finalize;
 	self->toString = _assimobj_toString;
+	DEBUGMSG2("%s.%d(%d) => REF(%p)", __FUNCTION__, __LINE__, objsize, self);
 	return self;
 }
 ///@}
