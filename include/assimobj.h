@@ -25,6 +25,23 @@
 #define _ASSIMOBJ_H
 #include <projectcommon.h>
 
+#ifdef LOG_REFS
+#	define	TRACEREF(obj)	g_debug("%s.%d: REF(%p)", __FUNCTION__, __LINE__, obj);
+#	define	TRACEUNREF(obj)	g_debug("%s.%d: UNREF(%p)", __FUNCTION__, __LINE__, obj);
+#else
+#	define	TRACEREF(obj)	/* nothing */;
+#	define	TRACEUNREF(obj)	/* nothing */;
+#endif
+
+#define UNREF(obj)		{TRACEUNREF(obj) (obj)->baseclass.unref(&(obj)->baseclass); (obj) = NULL;}
+#define UNREF2(obj)		{TRACEUNREF(obj) (obj)->baseclass.baseclass.unref(&(obj)->baseclass.baseclass); (obj) = NULL;}
+#define UNREF3(obj)		{TRACEUNREF(obj) (obj)->baseclass.baseclass.baseclass.unref(&(obj)->baseclass.baseclass.baseclass); (obj) = NULL;}
+#define UNREF4(obj)		{TRACEUNREF(obj) (obj)->baseclass.baseclass.baseclass.baseclass.unref(&(obj)->baseclass.baseclass.baseclass.baseclass); (obj) = NULL;}
+#define REF(obj)		{TRACEREF(obj) (obj)->baseclass.ref(&(obj)->baseclass);}
+#define REF2(obj)		{TRACEREF(obj) (obj)->baseclass.baseclass.ref(&(obj)->baseclass.baseclass);}
+#define REF3(obj)		{TRACEREF(obj) (obj)->baseclass.baseclass.baseclass.ref(&(obj)->baseclass.baseclass.baseclass);}
+#define REF4(obj)		{TRACEREF(obj) (obj)->baseclass.baseclass.baseclass.baseclass.ref(&(obj)->baseclass.baseclass.baseclass.baseclass);}
+
 ///@{
 /// @ingroup AssimObj
 typedef struct _AssimObj	AssimObj;

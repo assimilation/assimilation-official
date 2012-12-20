@@ -103,9 +103,8 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		flist = g_slist_prepend(flist, ping);
 		transport->sendreliableM(transport, fromaddr, 0, flist);
 		for (iter=flist; iter; iter=iter->next) {
-			FrameSet*	fs = CASTTOCLASS(FrameSet, iter->data);
-			fs->baseclass.unref(&fs->baseclass);
-			fs = NULL;
+ 			FrameSet*	fs = CASTTOCLASS(FrameSet, iter->data);
+			UNREF(fs);
 		}
 		g_slist_free(flist); flist = NULL;
 	}

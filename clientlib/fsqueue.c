@@ -21,6 +21,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  *
  */
+#define	LOG_REFS
 #include <projectcommon.h>
 #include <fsqueue.h>
 #include <frameset.h>
@@ -232,6 +233,9 @@ _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 	gpointer	qelem;
 	while (NULL != (qelem = g_queue_pop_head(self->_q))) {
 		FrameSet *	fs = CASTTOCLASS(FrameSet, qelem);
+		DEBUGMSG2("%s: Flushing FrameSet at %p - ref count = %d"
+		,	__FUNCTION__, fs, fs->baseclass._refcount);
+		DUMP2("Flushing", &fs->baseclass, " whoosh!");
 		UNREF(fs);
 	}
 	self->_curqlen = 0;
