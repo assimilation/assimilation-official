@@ -1158,11 +1158,11 @@ struct__GQueue._fields_ = [
     ('length', guint),
 ]
 
-# ../include/assimobj.h: 32
+# ../include/assimobj.h: 49
 class struct__AssimObj(Structure):
     pass
 
-AssimObj = struct__AssimObj # ../include/assimobj.h: 30
+AssimObj = struct__AssimObj # ../include/assimobj.h: 47
 
 struct__AssimObj.__slots__ = [
     '_refcount',
@@ -1179,19 +1179,19 @@ struct__AssimObj._fields_ = [
     ('toString', CFUNCTYPE(UNCHECKED(POINTER(gchar)), gconstpointer)),
 ]
 
-# ../include/assimobj.h: 43
+# ../include/assimobj.h: 60
 if hasattr(_libs['libassimilationclientlib.so'], 'assimobj_new'):
     assimobj_new = _libs['libassimilationclientlib.so'].assimobj_new
     assimobj_new.argtypes = [guint]
     assimobj_new.restype = POINTER(AssimObj)
 
-# ../include/assimobj.h: 44
+# ../include/assimobj.h: 61
 if hasattr(_libs['libassimilationclientlib.so'], '_assimobj_finalize'):
     _assimobj_finalize = _libs['libassimilationclientlib.so']._assimobj_finalize
     _assimobj_finalize.argtypes = [POINTER(AssimObj)]
     _assimobj_finalize.restype = None
 
-# ../include/assimobj.h: 45
+# ../include/assimobj.h: 62
 try:
     badfree = (gboolean).in_dll(_libs['libassimilationclientlib.so'], 'badfree')
 except:
@@ -4674,7 +4674,7 @@ except:
 
 _GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 40
 
-_AssimObj = struct__AssimObj # ../include/assimobj.h: 32
+_AssimObj = struct__AssimObj # ../include/assimobj.h: 49
 
 _FrameSet = struct__FrameSet # ../include/frameset.h: 43
 
