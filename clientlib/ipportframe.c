@@ -159,8 +159,7 @@ _ipportframe_finalize(AssimObj*obj)
 {
 	IpPortFrame*	self = CASTTOCLASS(IpPortFrame, obj);
 	if (self->_addr) {
-		self->_addr->baseclass.unref(self->_addr);
-		self->_addr = NULL;
+		UNREF(self->_addr);
 	}
 	if (self->baseclass.value) {
 		FREE(self->baseclass.value);
@@ -271,7 +270,7 @@ ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of 
 	_ipportframe_setaddr(ret, addr_family, port, framevalue+headerlen
 	,		     framelength-headerlen);
 	if (!_ipportframe_default_isvalid(&ret->baseclass, tlvstart, pktend)) {
-		ret->baseclass.baseclass.unref(ret);	ret = NULL;
+		UNREF2(ret);
 		g_return_val_if_reached(NULL);
 	}
 	return &ret->baseclass;

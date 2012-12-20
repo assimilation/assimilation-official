@@ -104,14 +104,14 @@ nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname
 			IntFrame*	lateframe	= intframe_new(FRAMETYPE_ELAPSEDTIME, 8);
 			lateframe->setint(lateframe, howlate);
 			frameset_append_frame(fs, &lateframe->baseclass);
-			lateframe->baseclass.baseclass.unref(lateframe);
+			UNREF2(lateframe);
 		}
 		// Add the address - if any...
 		if (who != NULL) {
 			AddrFrame*	peeraddr	= addrframe_new(FRAMETYPE_IPADDR, 0);
 			peeraddr->setnetaddr(peeraddr, who);
 			frameset_append_frame(fs, &peeraddr->baseclass);
-			peeraddr->baseclass.baseclass.unref(peeraddr);
+			UNREF2(peeraddr);
 		}
 		// Add the system name - if any...
 		if (sysname != NULL) {
@@ -119,10 +119,10 @@ nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname
 			usf->baseclass.setvalue(&usf->baseclass, strdup(sysname), strlen(sysname)+1
 			,			frame_default_valuefinalize);
 			frameset_append_frame(fs, &usf->baseclass);
-			usf->baseclass.baseclass.unref(usf);
+			UNREF2(usf);
 		}
 		nanotransport->sendaframeset(nanotransport, nanofailreportaddr, fs);
-		fs->baseclass.unref(&fs->baseclass);
+		UNREF(fs);
 		DEBUGMSG1("%s - sending frameset of type %d", __FUNCTION__, reporttype);
 }
 
@@ -377,7 +377,7 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 				transport->addListener(transport, FRAMESETTYPE_HEARTBEAT
 				,		    CASTTOCLASS(Listener, hblisten));
 				// Unref this heartbeat listener, and forget our reference.
-				hblisten->baseclass.baseclass.unref(hblisten); hblisten = NULL;
+				UNREF2(hblisten);
 				/*
 				 * That still leaves two references to 'hblisten':
 				 *   - in the transport dispatch table
@@ -566,12 +566,11 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != NULL) {
 		if (nanofailreportaddr == NULL) {
 			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
-			nanofailreportaddr->baseclass.ref(nanofailreportaddr);
 		}else if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {
-			nanofailreportaddr->baseclass.unref(nanofailreportaddr);
+			UNREF(nanofailreportaddr);
 			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
-			nanofailreportaddr->baseclass.ref(nanofailreportaddr);
 		}
+		REF(nanofailreportaddr);
 	}
 }//nanoobey_setconfig
 
@@ -763,9 +762,8 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 	g_return_if_fail(disctype != NULL);
 	discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
 	,			      transport, config, 0);
-	jsonroot->baseclass.unref(jsonroot);
-	discovery->baseclass.baseclass.unref(discovery);
-	
+	UNREF(jsonroot);
+	UNREF2(discovery);
 }
 
 /// Stuff we need only for passing parameters through our glib infrastructures - to start up nanoprobes.
@@ -801,8 +799,8 @@ nano_startupidle(gpointer gcruft)
 		,	cruft->discover_interval
 		,	jsondata
 		,	cruft->iosource, cruft->context, 0);
-		jsondata->baseclass.unref(jsondata); jsondata = NULL;
-		jd->baseclass.baseclass.unref(jd);
+		UNREF(jsondata);
+		UNREF2(jd);
 		state = WAIT;
 		return TRUE;
 	}
@@ -849,7 +847,7 @@ nano_reqconfig(gpointer gcruft)
 	usf->baseclass.setvalue(&usf->baseclass, strdup(un.nodename), strlen(un.nodename)+1
 	,			frame_default_valuefinalize);
 	frameset_append_frame(fs, &usf->baseclass);
-	usf->baseclass.baseclass.unref(usf);
+	UNREF2(usf);
 
 	// Put in the JSON discovery text
 	jsontext = context->getstring(context, cfgname);
@@ -858,11 +856,11 @@ nano_reqconfig(gpointer gcruft)
 	,			frame_default_valuefinalize);
 
 	frameset_append_frame(fs, &csf->baseclass);
-	csf->baseclass.baseclass.unref(csf);
+	UNREF2(csf);
 
 	// We've constructed the frameset - now send it.
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
-	fs->baseclass.unref(&fs->baseclass); fs = NULL;
+	UNREF(fs);
 	return TRUE;
 }
 
@@ -973,9 +971,9 @@ nano_shutdown(gboolean report)
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
 	}
 	hbsender_stopallsenders();
-	swdisc->baseclass.baseclass.unref(swdisc); swdisc = NULL;
+	UNREF2(swdisc);
 	if (nanofailreportaddr) {
-		nanofailreportaddr->baseclass.unref(nanofailreportaddr); nanofailreportaddr = NULL;
+		UNREF(nanofailreportaddr);
 	}
 	if (nanotransport) {
 		// Unlink heartbeat dispatcher - this should NOT be necessary - but it seems to be...
@@ -984,12 +982,10 @@ nano_shutdown(gboolean report)
 	}
 	// Free packet decoder
 	if (decoder) {
-		decoder->baseclass.unref(decoder);
-		decoder = NULL;
+		UNREF(decoder);
 	}
 	// Unregister all discovery modules.
 	discovery_unregister_all();
 	obeycollective->baseclass.dissociate(&obeycollective->baseclass);
-	obeycollective->baseclass.baseclass.unref(&obeycollective->baseclass.baseclass);
-	obeycollective = NULL;
+	UNREF2(obeycollective);
 }

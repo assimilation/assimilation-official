@@ -31,7 +31,9 @@
  */
 FSTATIC void _hblistener_notify_function(gpointer ignoreddata);
 FSTATIC void _hblistener_finalize(AssimObj * self);
+#if 0
 FSTATIC void _hblistener_unref(gpointer self);
+#endif
 FSTATIC void _hblistener_addlist(HbListener* self);
 FSTATIC void _hblistener_dellist(HbListener* self);
 FSTATIC void _hblistener_checktimeouts(gboolean urgent);
@@ -75,7 +77,7 @@ _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 	}
 	_hb_listeners = g_slist_prepend(_hb_listeners, self);
 	_hb_listener_count += 1;
-	self->baseclass.baseclass.ref(self);
+	REF2(self);
 }
 
 /// Remove an HbListener from our global list of HBListeners
@@ -85,7 +87,7 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 	if (g_slist_find(_hb_listeners, self) != NULL) {
 		_hb_listeners = g_slist_remove(_hb_listeners, self);
 		_hb_listener_count -= 1;
-		self->baseclass.baseclass.unref(CASTTOCLASS(Listener, self));
+		UNREF2(self);
 		return;
 	}
 #if 0
@@ -179,7 +181,7 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 		}
 		addmatch->nexttime = now + addmatch->_expected_interval;
 		addmatch->warntime = now + addmatch->_warn_interval;
-		fs->baseclass.unref(&fs->baseclass);
+		UNREF(fs);
 		return TRUE;
 	}
 	// The 'martian' callback is necessarily global to all heartbeat listeners
@@ -190,9 +192,10 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 		g_warning("Received 'martian' packet from address [%s]", saddr);
 		g_free(saddr); saddr = NULL;
 	}
-	fs->baseclass.unref(&fs->baseclass);
+	UNREF(fs);
 	return TRUE;
 }
+#if 0
 FSTATIC void
 _hblistener_unref(gpointer obj)	///<[in/out] Object to decrement reference count for
 {
@@ -204,6 +207,7 @@ _hblistener_unref(gpointer obj)	///<[in/out] Object to decrement reference count
 		self = NULL;
 	}
 }
+#endif
 
 FSTATIC void
 _hblistener_notify_function(gpointer ignored)	///<[unused] Unused
@@ -216,7 +220,7 @@ _hblistener_notify_function(gpointer ignored)	///<[unused] Unused
 	for (this = _hb_listeners; this; this=next) {
 		HbListener* listener = CASTTOCLASS(HbListener, this->data);
 		next = this->next;
-		listener->baseclass.baseclass.unref(listener);
+		UNREF2(listener);
 	}
 }
 
@@ -226,9 +230,8 @@ FSTATIC void
 _hblistener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	HbListener *hbself = CASTTOCLASS(HbListener, self);
-	hbself->listenaddr->baseclass.unref(hbself->listenaddr);
-	hbself->listenaddr = NULL;
-	hbself->baseclass.config->baseclass.unref(hbself->baseclass.config);
+	UNREF(hbself->listenaddr);
+	UNREF(hbself->baseclass.config);
 	memset(hbself, 0x00, sizeof(*hbself));
 	FREECLASSOBJ(hbself);
 	self = NULL; hbself = NULL;
@@ -253,11 +256,13 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	if (NULL == newlistener) {
 		return NULL;
 	}
+#if 0
 	base->baseclass.unref = _hblistener_unref;
+#endif
 	base->baseclass._finalize = _hblistener_finalize;
 	base->got_frameset = _hblistener_got_frameset;
 	newlistener->listenaddr = listenaddr;
-	listenaddr->baseclass.ref(listenaddr);
+	REF(listenaddr);
 	newlistener->get_deadtime = _hblistener_get_deadtime;
 	newlistener->set_deadtime = _hblistener_set_deadtime;
 	newlistener->get_warntime = _hblistener_get_warntime;

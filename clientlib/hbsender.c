@@ -110,8 +110,7 @@ FSTATIC void
 _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 {
 	if (self->_sendaddr) {
-		self->_sendaddr->baseclass.unref(self->_sendaddr);
-		self->_sendaddr = NULL;
+		UNREF(self->_sendaddr);
 	}
 	if (self->timeout_source != 0) {
 		g_source_remove(self->timeout_source);
@@ -136,7 +135,7 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 	newsender = MALLOCCLASS(HbSender, objsize);
 	if (newsender != NULL) {
 		newsender->_sendaddr = sendaddr;
-		sendaddr->baseclass.ref(sendaddr);
+		REF(sendaddr);
 		newsender->_refcount = 1;
 		newsender->ref = _hbsender_ref;
 		newsender->_outmethod = outmethod;
@@ -178,7 +177,7 @@ _hbsender_sendheartbeat(HbSender* self)
 	FrameSet*	heartbeat = frameset_new(FRAMESETTYPE_HEARTBEAT);
 	//g_debug("Sending a heartbeat...");
 	self->_outmethod->sendaframeset(self->_outmethod, self->_sendaddr, heartbeat);
-	heartbeat->baseclass.unref(&heartbeat->baseclass); heartbeat = NULL;
+	UNREF(heartbeat);
 }
 void
 hbsender_stopallsenders(void)

@@ -120,7 +120,7 @@ _netaddr_toIPv6(NetAddr* self)
 	switch (self->_addrtype) {
 		
 		case ADDR_FAMILY_IPV6:
-			self->baseclass.ref(&self->baseclass);
+			REF(self);
 			return self;
 		case ADDR_FAMILY_IPV4:
 			break;
