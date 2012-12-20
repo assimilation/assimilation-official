@@ -225,8 +225,12 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	UNREF(self->endpoint);
 	UNREF(self->inq);
 	UNREF(self->outq);
-	UNREF2(self->lastacksent);
-	UNREF2(self->lastseqsent);
+	if (self->lastacksent) {
+		UNREF2(self->lastacksent);
+	}
+	if (self->lastseqsent) {
+		UNREF2(self->lastseqsent);
+	}
 	self->parent = NULL;
 	memset(self, 0, sizeof(*self));
 }
@@ -333,9 +337,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	SeqnoFrame*	seq = fs->getseqno(fs);
 
 	g_return_if_fail(fspe != NULL);
+	UNREF(fromaddr);
 	AUDITFSPE(fspe);
 	
-	UNREF(fromaddr);
 	if (fs->fstype == FRAMESETTYPE_ACK) {
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...

@@ -74,7 +74,7 @@ FSTATIC void
 _frameset_indir_finalize(void* f)	///< Frame to finalize
 {
 	Frame*	frame = CASTTOCLASS(Frame, f);
-	frame->baseclass.unref(f);
+	UNREF(frame);
 }
 
 /// static: finalize (free) frameset and all its constituent frames...
@@ -130,7 +130,7 @@ frameset_prepend_frame(FrameSet* fs,	///< FrameSet to fetch flags for
 		       Frame* f)	///< Frame to put at the front of the frame list
 {
 	g_return_if_fail(NULL != fs && NULL != f);
-	f->baseclass.ref(f);
+	REF(f);
 	fs->framelist = g_slist_prepend(fs->framelist, f);
 }
 
@@ -140,7 +140,7 @@ frameset_append_frame(FrameSet* fs,	///< FrameSet to fetch flags for
 		      Frame* f)		///< Frame to put at the back of the frame list
 {
 	g_return_if_fail(NULL != fs && NULL != f);
-	f->baseclass.ref(f);
+	REF(f);
 	fs->framelist = g_slist_append(fs->framelist, f);
 }
 
@@ -195,7 +195,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 			case FRAMETYPE_SIG:
 			case FRAMETYPE_CRYPT:
 			case FRAMETYPE_COMPRESS:
-				item->baseclass.unref(item);
+				UNREF(item);
 				fs->framelist->data = NULL;
 				fs->framelist = g_slist_delete_link(fs->framelist, fs->framelist);
 				continue;
@@ -238,7 +238,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	if (CASTTOCLASS(Frame, fs->framelist->data)->type != FRAMETYPE_END) {
                 Frame* endframe = frame_new(FRAMETYPE_END, 0);
 		frameset_prepend_frame(fs, endframe);
-                endframe->baseclass.unref(endframe);
+		UNREF(endframe);
 	}
 
 	pktsize = fssize;

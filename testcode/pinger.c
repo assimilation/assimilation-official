@@ -57,7 +57,7 @@
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
 ReliableUDP*	transport = NULL;
 int		pongcount = 3;
-int		maxpingcount = 100;
+int		maxpingcount = 1000;
 GMainLoop*	loop = NULL;
 
 ObeyFrameSetTypeMap	doit [] = {
@@ -135,7 +135,7 @@ main(int argc, char **argv)
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 	transport = reliableudp_new(0, config, decoder, 0);
 	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, .1, .1);
-	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
+	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, FALSE);
 	g_return_val_if_fail(transport->baseclass.baseclass.bindaddr(&transport->baseclass.baseclass, anyaddr, FALSE),16);
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive

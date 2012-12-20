@@ -58,7 +58,7 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 
 
 returnout:
-	fs->baseclass.unref(&fs->baseclass);
+	UNREF(fs);
 	return TRUE;
 }
 FSTATIC void

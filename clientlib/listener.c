@@ -43,7 +43,7 @@ FSTATIC gboolean
 _listener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 {
 	(void)self;
-	fs->baseclass.unref(&fs->baseclass);
+	UNREF(fs);
 	(void)addr;
 	return TRUE;
 }
@@ -53,7 +53,7 @@ void
 _listener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	Listener* lself = CASTTOCLASS(Listener, self);
-	lself->config->baseclass.unref(lself->config);
+	UNREF(lself->config);
 	lself->dissociate(lself);
 	memset(lself, 0x00, sizeof(*lself));
 	FREECLASSOBJ(self);
@@ -93,7 +93,7 @@ listener_new(ConfigContext* config,	///<[in/out] configuration context
 		newlistener->associate = _listener_associate;
 		newlistener->dissociate = _listener_dissociate;
 		newlistener->config = config;
-		config->baseclass.ref(config);
+		REF(config);
 	}
 	return newlistener;
 }
