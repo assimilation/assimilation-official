@@ -74,14 +74,6 @@ WINEXPORT void proj_class_finalize_sys(void);
 /// Free a C-class object.
 /// @param obj the object to be freed.  Should be registered as a class object.
 #define FREECLASSOBJ(obj)		{proj_class_free(obj); obj = NULL;}
-#define UNREF(obj)		{(obj)->baseclass.unref(&(obj)->baseclass); (obj) = NULL;}
-#define UNREF2(obj)		{(obj)->baseclass.baseclass.unref(&(obj)->baseclass.baseclass); (obj) = NULL;}
-#define UNREF3(obj)		{(obj)->baseclass.baseclass.baseclass.unref(&(obj)->baseclass.baseclass.baseclass); (obj) = NULL;}
-#define UNREF4(obj)		{(obj)->baseclass.baseclass.baseclass.baseclass.unref(&(obj)->baseclass.baseclass.baseclass.baseclass); (obj) = NULL;}
-#define REF(obj)		{(obj)->baseclass.ref(&(obj)->baseclass);}
-#define REF2(obj)		{(obj)->baseclass.baseclass.ref(&(obj)->baseclass.baseclass);}
-#define REF3(obj)		{(obj)->baseclass.baseclass.baseclass.ref(&(obj)->baseclass.baseclass.baseclass);}
-#define REF4(obj)		{(obj)->baseclass.baseclass.baseclass.baseclass.ref(&(obj)->baseclass.baseclass.baseclass.baseclass);}
 
 #define DEBUGVAR		__class_debug_count
 #define DEBUGDECLARATIONS	static gboolean __class_debug_registered = FALSE;	\

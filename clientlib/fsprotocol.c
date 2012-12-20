@@ -21,6 +21,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  *
  */
+#define	LOG_REFS
 #include <string.h>
 #include <projectcommon.h>
 #include <fsprotocol.h>
@@ -334,6 +335,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	g_return_if_fail(fspe != NULL);
 	AUDITFSPE(fspe);
 	
+	UNREF(fromaddr);
 	if (fs->fstype == FRAMESETTYPE_ACK) {
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
@@ -348,14 +350,12 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		}
 		TRYXMIT(fspe);
 		UNREF(fs);
-		UNREF(fromaddr);
 		return;
 		// NACKs get treated like ACKs, except they're also
 		// passed along to the application like a regular FrameSet
 	}
 	AUDITFSPE(fspe);
 	// Queue up the received frameset
-	UNREF(fromaddr);  // Or it will hang around forever!
 	DUMP2(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
 		DUMP2(__FUNCTION__, &fs->baseclass, " Frameset failed to go into queue :-(.");
@@ -426,7 +426,7 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 {
 	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret = TRUE;
-	int		qflag = fspe->outq->_q->length == 0;
+	int		emptyq = fspe->outq->_q->length == 0;
 	AUDITFSPE(fspe);
 	// Send them all -- or none of them...
 	ret =  fspe->outq->hasqspace(fspe->outq, g_slist_length(framesets));
@@ -441,11 +441,12 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 		for (this=framesets; this; this=this->next) {
 			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
 			g_return_val_if_fail(fs != NULL, FALSE);
-			DEBUGMSG1("%s: queueing up frameset %d of type %d", __FUNCTION__, count, fs->fstype);
+			DEBUGMSG1("%s: queueing up frameset %d of type %d"
+			,	__FUNCTION__, count, fs->fstype);
 			fspe->outq->enq(fspe->outq, fs);
-			if (qflag) {
+			if (emptyq) {
 				fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
-				qflag = FALSE;
+				emptyq = FALSE;
 			}
 			AUDITFSPE(fspe);
 			++count;
