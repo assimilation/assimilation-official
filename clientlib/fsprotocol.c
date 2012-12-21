@@ -223,7 +223,9 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
 	DUMP2("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 	UNREF(self->endpoint);
+	DEBUGMSG2("UNREFing INPUT QUEUE");
 	UNREF(self->inq);
+	DEBUGMSG2("UNREFing OUTPUT QUEUE");
 	UNREF(self->outq);
 	if (self->lastacksent) {
 		UNREF2(self->lastacksent);

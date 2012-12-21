@@ -57,7 +57,7 @@
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
 ReliableUDP*	transport = NULL;
 int		pongcount = 3;
-int		maxpingcount = 1000;
+int		maxpingcount = 100;
 GMainLoop*	loop = NULL;
 
 ObeyFrameSetTypeMap	doit [] = {
