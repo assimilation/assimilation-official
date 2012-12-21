@@ -65,13 +65,6 @@ struct _FsProtoElemSearchKey {
 };
 	
 
-/// What kind of flush operation do you want?
-enum ioflush {
-	FsProtoFLUSHIN,		///< flush input queues only
-	FsProtoFLUSHOUT,	///< flush output queues only
-	FsProtoFLUSHBOTH,	///< flush both input and output queues
-};
-
 /// This is an @ref FsProtocol object - implementing a reliable user-level @ref FrameSet delivery system
 /// It is a subclass of the @ref AssimObj and is managed by our @ref ProjectClass system.
 struct _FsProtocol {
@@ -86,13 +79,13 @@ struct _FsProtocol {
 	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);	///< Find connection to given endpoint
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
 	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
+	void		(*closeconn)(FsProtocol*, guint16, const NetAddr*);///< Close this connection (reset it)
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
 	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next @ref FrameSet
 	void		(*receive)(FsProtocol*, NetAddr*, FrameSet*);	///< Enqueue a received input @ref FrameSet
 	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one @ref FrameSet
 	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of FrameSets
 	void		(*ackmessage)(FsProtocol*, NetAddr*, FrameSet*);///< ACK the given @ref FrameSet
-	void		(*flushall)(FsProtocol*,const NetAddr*,enum ioflush);///< Flush FrameSets to given address
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_timer_uS);
 #define	DEFAULT_FSP_QID		0		///< Queue ID of a packet w/o a sequence number?

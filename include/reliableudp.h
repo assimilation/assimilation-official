@@ -75,10 +75,10 @@ struct _ReliableUDP {
 			     (ReliableUDP* self,	///<[in/out] 'this' object pointer
 			      gboolean enable)		///< TRUE to enable packet loss
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*flushall)		///< Flush packets in queues to this address
+	void		(*closeconn)		///< Flush packets in queues to this address
 			      (ReliableUDP* self,	///< 'this' object pointer
-			       const NetAddr* destaddr, ///< Address we're flushing for
-			       enum ioflush flushtype)  ///< Flush input, output or both
+			       guint16 qid,		///< Queue id for this connection
+			       const NetAddr* destaddr) ///< Address we're flushing for
 						   ;	// ";" is here to work around a doxygen bug
 };
 WINEXPORT ReliableUDP* reliableudp_new(gsize objsize, ConfigContext* config, PacketDecoder* decoder,
