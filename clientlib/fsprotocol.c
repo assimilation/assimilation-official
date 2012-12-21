@@ -36,6 +36,7 @@ FSTATIC gboolean	_fsprotocol_timeoutfun(gpointer userdata);
 
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
+FSTATIC void		_fsprotocol_closeconn(FsProtocol*self, guint16 qid, const NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_iready(FsProtocol*);
@@ -46,8 +47,7 @@ FSTATIC gboolean	_fsprotocol_send(FsProtocol*, GSList*, guint16 qid, NetAddr*);
 FSTATIC void		_fsprotocol_ackmessage(FsProtocol* self, NetAddr* destaddr, FrameSet* fs);
 FSTATIC void		_fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq);
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
-FSTATIC void		_fsprotocol_flushall(FsProtocol* self, const NetAddr* addr, enum ioflush op);
-FSTATIC void		_fsprotocol_flush1(FsProtocol* self, const NetAddr* addr, enum ioflush op);
+FSTATIC void		_fsprotocol_closeconn(FsProtocol* self, guint16 qid, const NetAddr* addr);
 
 FSTATIC void		_fsprotocol_auditfspe(FsProtoElem*, const char * function, int lineno);
 
@@ -132,6 +132,24 @@ _fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	return ret;
 }
 
+/// Close a specific connection - allowing it to be reopened by more communication -- effectively a reset
+FSTATIC void
+_fsprotocol_closeconn(FsProtocol*self	///< typical FsProtocol 'self' object
+,		    guint16 qid		///< Queue id for the connection
+,		    const NetAddr* destaddr)	///< destination address
+{
+	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
+	if (fspe) {
+		_fsprotocol_protoelem_destroy(fspe);
+	}else if (DEBUG > 0) {
+		char	suffix[16];
+		snprintf(suffix, sizeof(suffix), "/%d", qid);
+		DUMP("_fsprotocol_closeconn: Could not locate connection", &destaddr->baseclass, suffix);
+	}
+}
+
+
+
 /// Construct an FsQueue object
 WINEXPORT FsProtocol*
 fsprotocol_new(guint objsize		///< Size of object to be constructed
@@ -158,7 +176,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->send1 =		_fsprotocol_send1;
 	self->send =		_fsprotocol_send;
 	self->ackmessage =	_fsprotocol_ackmessage;
-	self->flushall =	_fsprotocol_flushall;
+	self->closeconn =	_fsprotocol_closeconn;
 
 	// Initialize our data members
 	self->io =		io; // REF(io);
@@ -594,34 +612,6 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 	AUDITFSPE(fspe);
 }
 
-///< Flush all queues that connect to the given address - happens when an endpoint dies
-FSTATIC void
-_fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating on
-,		     const NetAddr* addr///< The address we should flush to/from
-,		     enum ioflush op)	///< What kind of flush to perform?
-{
-	GHashTableIter	iter;
-	FsProtoElem*	fspe;
-	/// @todo If we actually _have_ a million servers, this will have to be looked at again -
-	/// We may eventually need to create a list of queues per server -- or this will be horribly slow
-
-	g_hash_table_iter_init(&iter, self->endpoints);
-	while (g_hash_table_iter_next(&iter, (gpointer*)&fspe, NULL)) {
-		AUDITFSPE(fspe);
-		if (!addr->equal(addr, fspe->endpoint)) {
-			continue;
-		}
-		if (op == FsProtoFLUSHIN || op == FsProtoFLUSHBOTH) {
-			DEBUGMSG2("FLUSHING INPUT QUEUE");
-			fspe->inq->flush(fspe->inq);
-		}
-		if (op == FsProtoFLUSHOUT || op == FsProtoFLUSHBOTH) {
-			DEBUGMSG2("FLUSHING OUTPUT QUEUE");
-			fspe->outq->flush(fspe->outq);
-		}
-		AUDITFSPE(fspe);
-	}
-}
 /// Retransmit timer function...
 FSTATIC gboolean
 _fsprotocol_timeoutfun(gpointer userdata)

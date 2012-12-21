@@ -53,7 +53,7 @@ FSTATIC gboolean _reliableudp_sendreliable(ReliableUDP*self, NetAddr*, guint16, 
 FSTATIC gboolean _reliableudp_sendreliableM(ReliableUDP*self, NetAddr*, guint16, GSList*);
 FSTATIC gboolean _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset);
 FSTATIC gboolean _reliableudp_nackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset);
-FSTATIC void	 _reliableudp_flushall(ReliableUDP*self, const NetAddr* dest, enum ioflush);
+FSTATIC void	 _reliableudp_closeconn(ReliableUDP*self, guint16 qid, const NetAddr* dest);
 
 // Our functions that override base class functions...
 FSTATIC void _reliableudp_finalize(AssimObj*);
@@ -89,7 +89,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		self->sendreliable = _reliableudp_sendreliable;
 		self->sendreliableM = _reliableudp_sendreliableM;
 		self->ackmessage = _reliableudp_ackmessage;
-		self->flushall = _reliableudp_flushall;
+		self->closeconn = _reliableudp_closeconn;
 		// Now for the base class functions which we override
 		self->baseclass.baseclass.baseclass._finalize = _reliableudp_finalize;
 		self->baseclass.baseclass.recvframesets = _reliableudp_recvframesets;
@@ -119,6 +119,7 @@ _reliableudp_finalize(AssimObj* obj)
 	_baseclass_finalize(&self->baseclass.baseclass.baseclass);
 }
 
+/// Return TRUE if we have input to read from someone...
 FSTATIC gboolean
 _reliableudp_input_queued(const NetIO* nself)
 {
@@ -131,7 +132,6 @@ _reliableudp_input_queued(const NetIO* nself)
 }
 
 /// Reliable UDP verison of 'sendaframeset' from base class.
-/// Currently a pretty useless piece of code...
 FSTATIC void
 _reliableudp_sendaframeset(NetIO* nself, const NetAddr* dest, FrameSet* fs)
 {
@@ -139,7 +139,6 @@ _reliableudp_sendaframeset(NetIO* nself, const NetAddr* dest, FrameSet* fs)
 }
 
 /// Reliable UDP verison of 'sendframesets' from base class
-/// Currently a pretty useless piece of code...
 FSTATIC void
 _reliableudp_sendframesets(NetIO* nself, const NetAddr* dest, GSList* fslist)
 {
@@ -149,7 +148,7 @@ _reliableudp_sendframesets(NetIO* nself, const NetAddr* dest, GSList* fslist)
 /// Reliable UDP verison of 'recvframesets' from base class
 /// We get called when the user thinks he might have some packets to receive.
 /// We intervene here, and queue them up, making sure they arrive in order and so on.
-/// ACKing the packets remains the responsibility of our client code.
+/// ACKing the packets remains the responsibility of our client.
 FSTATIC GSList*
 _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 {
@@ -212,11 +211,10 @@ _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
 	return TRUE;
 }
 
-/// Flush all packets to/and/or/from the given destination
+/// Close a reliable UDP connection (reset it, really)
 FSTATIC void
-_reliableudp_flushall(ReliableUDP*self, const NetAddr* dest, enum ioflush flushtype)
+_reliableudp_closeconn(ReliableUDP*self, guint16 qid, const NetAddr* dest)
 {
-	self->_protocol->flushall(self->_protocol, dest,  flushtype);
+	self->_protocol->closeconn(self->_protocol, qid, dest);
 }
-
 ///@}
