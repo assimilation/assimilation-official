@@ -116,7 +116,7 @@ check_JSON(FrameSet* fs)
 			char *	tostr = config->baseclass.toString(config);
 			g_message("PARSED JSON: %s", tostr);
 			g_free(tostr); tostr = NULL;
-			config->baseclass.unref(config); config = NULL;
+			UNREF(config);
 		}
 	}
 	g_message("%d JSON strings parsed.  %d errors.", jsoncount, errcount);
@@ -152,7 +152,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	//g_message("DUMPING packet received over 'wire':");
 	//frameset_dump(fs);
 	//g_message("END of packet received over 'wire':");
-	fs->baseclass.unref(&fs->baseclass);
+	UNREF(fs);
 	if (wirepktcount >= maxpkts) {
 		g_message("QUITTING NOW!");
 		g_main_loop_quit(loop);
@@ -192,20 +192,20 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	// Send the configuration data to our new "client"
 	pkt = create_setconfig(nanoconfig);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
+	UNREF(pkt);
 
 	// Now tell them to send/expect heartbeats to various places
 	pkt = create_sendexpecthb(auth->baseclass.config,FRAMESETTYPE_SENDEXPECTHB, destaddr, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
+	UNREF(pkt);
 
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
+	UNREF(pkt);
 
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr2, 1);
 	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
-	pkt->baseclass.unref(&pkt->baseclass); pkt = NULL;
+	UNREF(pkt);
 }
 
 /**
@@ -289,7 +289,7 @@ main(int argc, char **argv)
 	g_message("Joining multicast address.");
 	mcastaddr =  netaddr_ipv4_new(mcastaddrstring, testport);
 	g_return_val_if_fail(nettransport->mcastjoin(nettransport, mcastaddr, NULL), 17);
-	mcastaddr->baseclass.unref(mcastaddr); mcastaddr = NULL;
+	UNREF(mcastaddr);
 	g_message("multicast join succeeded.");
 
 	// Connect up our network transport into the g_main_loop paradigm
@@ -303,7 +303,7 @@ main(int argc, char **argv)
 	otherlistener->associate(otherlistener,netpkt);
 
 	// Unref the "other" listener - we hold other references to it
-	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
+	UNREF(otherlistener);
 
 	// Pretend to be the CMA...
 	// Listen for packets from our nanoprobes - scattered throughout space...
@@ -328,7 +328,7 @@ main(int argc, char **argv)
 	nano_shutdown(TRUE);	// Tell it to shutdown and print stats
 	g_message("Count of 'other' pkts received:\t%d", wirepktcount);
 
-	nettransport->baseclass.unref(nettransport); nettransport = NULL;
+	UNREF(nettransport);
 
 	// Main loop is over - shut everything down, free everything...
 	g_main_loop_unref(loop); loop=NULL;
@@ -343,25 +343,24 @@ main(int argc, char **argv)
 	listentonanoprobes->baseclass.dissociate(&listentonanoprobes->baseclass);
 
 	// Unref the AuthListener object
-	listentonanoprobes->baseclass.baseclass.unref(listentonanoprobes);
-	listentonanoprobes = NULL;
+	UNREF2(listentonanoprobes);
 
 	g_source_unref(CASTTOCLASS(GSource, netpkt));
 	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
 	g_main_context_unref(g_main_context_default());
 
 	// Free signature frame
-	signature->baseclass.baseclass.unref(signature); signature = NULL;
+	UNREF2(signature);
 
 	// Free misc addresses
-        destaddr-> baseclass.unref(destaddr);
-        otheraddr->baseclass.unref(otheraddr);
-        otheraddr2->baseclass.unref(otheraddr2);
-        anyaddr->baseclass.unref(anyaddr); anyaddr = NULL;
+	UNREF(destaddr);
+	UNREF(otheraddr);
+	UNREF(otheraddr2);
+	UNREF(anyaddr);
 
 	// Free config object
-	config->baseclass.unref(config);
-	nanoconfig->baseclass.unref(nanoconfig);
+	UNREF(config);
+	UNREF(nanoconfig);
 
 	// At this point - nothing should show up - we should have freed everything
 	if (proj_class_live_object_count() > 0) {

@@ -31,9 +31,6 @@
  */
 FSTATIC void _hblistener_notify_function(gpointer ignoreddata);
 FSTATIC void _hblistener_finalize(AssimObj * self);
-#if 0
-FSTATIC void _hblistener_unref(gpointer self);
-#endif
 FSTATIC void _hblistener_addlist(HbListener* self);
 FSTATIC void _hblistener_dellist(HbListener* self);
 FSTATIC void _hblistener_checktimeouts(gboolean urgent);
@@ -90,13 +87,6 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 		UNREF2(self);
 		return;
 	}
-#if 0
-	{
-		char *	s = self->baseclass.baseclass.toString(self);
-		g_warning("hb_listener not in _hb_listeners list: %s", s);
-		g_free(s);
-	}
-#endif
 }
 
 /// Find the listener that's listening to a particular address
@@ -195,19 +185,6 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 	UNREF(fs);
 	return TRUE;
 }
-#if 0
-FSTATIC void
-_hblistener_unref(gpointer obj)	///<[in/out] Object to decrement reference count for
-{
-	HbListener* self = CASTTOCLASS(HbListener, obj);
-	g_return_if_fail(self->baseclass.baseclass._refcount > 0);
-	self->baseclass.baseclass._refcount -= 1;
-	if (self->baseclass.baseclass._refcount == 0) {
-		self->baseclass.baseclass._finalize((AssimObj*)self);
-		self = NULL;
-	}
-}
-#endif
 
 FSTATIC void
 _hblistener_notify_function(gpointer ignored)	///<[unused] Unused
@@ -256,9 +233,6 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	if (NULL == newlistener) {
 		return NULL;
 	}
-#if 0
-	base->baseclass.unref = _hblistener_unref;
-#endif
 	base->baseclass._finalize = _hblistener_finalize;
 	base->got_frameset = _hblistener_got_frameset;
 	newlistener->listenaddr = listenaddr;

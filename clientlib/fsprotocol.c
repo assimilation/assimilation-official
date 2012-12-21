@@ -610,9 +610,11 @@ _fsprotocol_flushall(FsProtocol* self	///< The FsProtocol object we're operating
 			continue;
 		}
 		if (op == FsProtoFLUSHIN || op == FsProtoFLUSHBOTH) {
+			DEBUGMSG2("FLUSHING INPUT QUEUE");
 			fspe->inq->flush(fspe->inq);
 		}
 		if (op == FsProtoFLUSHOUT || op == FsProtoFLUSHBOTH) {
+			DEBUGMSG2("FLUSHING OUTPUT QUEUE");
 			fspe->outq->flush(fspe->outq);
 		}
 		AUDITFSPE(fspe);
