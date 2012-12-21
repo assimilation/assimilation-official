@@ -110,7 +110,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	//g_debug("DUMPING packet received over 'wire':");
 	//frameset_dump(fs);
 	//g_debug("END of packet received over 'wire':");
-	fs->baseclass.unref(&fs->baseclass); fs = NULL;
+	UNREF(fs);
 	return TRUE;
 }
 
@@ -324,8 +324,7 @@ main(int argc, char **argv)
 
 	// Bind to the requested address (defaults to ANY as noted above)
 	bindret = nettransport->bindaddr(nettransport, localbindaddr, anyportpermitted);
-	localbindaddr->baseclass.unref(&localbindaddr->baseclass);
-	localbindaddr = NULL;
+	UNREF(localbindaddr);
 	if (!bindret) {
 		// OOPS! Address:Port already busy...
 		if (anyportpermitted) {
@@ -333,7 +332,7 @@ main(int argc, char **argv)
 			localbindaddr =  netaddr_ipv6_new(anyaddr, 0);
 			g_return_val_if_fail(NULL != localbindaddr, 5);
 			bindret = nettransport->bindaddr(nettransport, localbindaddr, FALSE);
-			localbindaddr->baseclass.unref(&localbindaddr->baseclass);
+			UNREF(localbindaddr);
 			localbindaddr = NULL;
 			g_return_val_if_fail(bindret, 6);
 		}else{
@@ -347,8 +346,7 @@ main(int argc, char **argv)
 			char *		boundstr = boundaddr->baseclass.toString(&boundaddr->baseclass);
 			g_info("Local address: %s", boundstr);
 			g_free(boundstr);
-			boundaddr->baseclass.unref(&boundaddr->baseclass);
-			boundaddr = NULL;
+			UNREF(boundaddr);
 		}else{
 			g_warning("Unable to determine local address!");
 		}
@@ -366,18 +364,18 @@ main(int argc, char **argv)
 	g_timeout_add_seconds(1, check_for_signals, NULL);
 
 	// Unref the "other" listener - netpkt et al holds references to it
-	otherlistener->baseclass.unref(otherlistener); otherlistener = NULL;
+	UNREF(otherlistener);
 
 	// Free signature frame
-	signature->baseclass.baseclass.unref(signature); signature = NULL;
+	UNREF2(signature);
 
 	// Free misc addresses
-        destaddr-> baseclass.unref(destaddr); destaddr = NULL;
+	UNREF(destaddr);
 
 	nano_start_full("netconfig", 900, netpkt, config);
 
 	// Free config object
-	config->baseclass.unref(config); config = NULL;
+	UNREF(config);
 
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
@@ -394,7 +392,7 @@ main(int argc, char **argv)
 	nano_shutdown(TRUE);	// Tell it to shutdown and print stats
 	g_info("%-35s %8d", "Count of 'other' pkts received:", wirepktcount);
 
-	nettransport->baseclass.unref(nettransport); nettransport = NULL;
+	UNREF(nettransport);
 
 	// Main loop is over - shut everything down, free everything...
 	g_main_loop_unref(loop); loop=NULL;

@@ -58,6 +58,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 ,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our queue - must NOT have sequence#
 {
 	SeqnoFrame*	seqno;
+	DEBUGMSG2("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
 	// This FrameSet shouldn't have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
 	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
@@ -120,6 +121,8 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	SeqnoFrame*	seqno;
 
 	seqno = fs->_seqframe ? fs->_seqframe : fs->getseqno(fs);
+
+	DEBUGMSG2("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
 
 	if (seqno) {
 		if (self->_sessionid == 0) {

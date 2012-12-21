@@ -98,18 +98,18 @@ cast_frameset_tests(void)
 	tlv_set_guint16(address, 1, address + DIMOF(address));
 	af->setaddr(af, ADDR_FAMILY_IPV4, address, sizeof(address));
 	frameset_append_frame(fs, CASTTOCLASS(Frame,f));
-        f->baseclass.unref(f); f = NULL;
+	UNREF(f);
 	frameset_append_frame(fs, CASTTOCLASS(Frame, csf));
-        csf->baseclass.baseclass.unref(csf); csf = NULL;
+	UNREF2(csf);
 	frameset_append_frame(fs, CASTTOCLASS(Frame, af));
-        af->baseclass.baseclass.unref(af); af = NULL;
+	UNREF2(af);
 	frameset_append_frame(fs, CASTTOCLASS(Frame, intf));
-        intf->baseclass.baseclass.unref(intf); intf = NULL;
+	UNREF2(intf);
 	frameset_construct_packet(fs, sigf, NULL, NULL);
-        sigf->baseclass.baseclass.unref(sigf); sigf = NULL;
+	UNREF2(sigf);
 	proj_class_dump_live_objects();
 	g_message("finalizing the FrameSet (and presumably frames)");
-	fs->baseclass.unref(&fs->baseclass); fs = NULL;
+	UNREF(fs);
 	proj_class_dump_live_objects();
 	g_message("C-class cast tests complete! - please check the output for errors.");
 }
@@ -156,11 +156,11 @@ address_tests(void)
 			g_critical("OOPS Good AddressFrame %d is NOT valid!", j);
 		}
 		frameset_append_frame(gfs, faf);
-                af->baseclass.baseclass.unref(faf);
+		UNREF2(af);
 	}
 	frameset_construct_packet(gfs, gsigf, NULL, NULL);
-	gsigf->baseclass.baseclass.unref(gsigf); gsigf = NULL;
-	gfs->baseclass.unref(&gfs->baseclass); gfs = NULL;
+	UNREF2(gsigf);
+	UNREF(gfs);
 
 
 	bframeipv4_1->setaddr(bframeipv4_1, ADDR_FAMILY_IPV4, addr_ipv46_localhost, 3);
@@ -177,7 +177,7 @@ address_tests(void)
 		if (af->baseclass.isvalid(CASTTOCLASS(Frame, af), NULL, NULL)) {
 			g_critical("Bad AddressFrame %d SHOULD NOT BE valid!", j);
 		}
-		af->baseclass.baseclass.unref(CASTTOCLASS(Frame, af));
+		UNREF2(af);
 		bframes[j] = NULL;
 	}
 
