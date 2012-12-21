@@ -236,9 +236,19 @@ _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 	gpointer	qelem;
 	while (NULL != (qelem = g_queue_pop_head(self->_q))) {
 		FrameSet *	fs = CASTTOCLASS(FrameSet, qelem);
+		SeqnoFrame*	seq;
 		DEBUGMSG2("%s: Flushing FrameSet at %p - ref count = %d"
 		,	__FUNCTION__, fs, fs->baseclass._refcount);
 		DUMP2("Flushing", &fs->baseclass, " whoosh!");
+		// If this packet is in the input queue and hasn't yet been ACKed by the application
+		// then there are two ref counts being held for it at the moment..
+		if (self->_nextseqno > 0 && NULL != (seq = fs->getseqno(fs)) && seq->getreqid(seq) >= self->_nextseqno
+		&&	fs->baseclass._refcount > 1) {
+			FrameSet* tmpfs = fs;
+			DEBUGMSG2("%s.%d: seqno "FMT_64BIT"d has refcount %d -> dropping by one."
+			,	__FUNCTION__, __LINE__, seq->getreqid(seq), fs->baseclass._refcount);
+			UNREF(tmpfs);	// Somewhat kludgy...
+		}
 		UNREF(fs);
 	}
 	self->_curqlen = 0;
