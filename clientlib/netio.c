@@ -59,8 +59,13 @@ FSTATIC Frame* _netio_cryptframe (NetIO *self);
 FSTATIC Frame* _netio_compressframe (NetIO *self);
 FSTATIC gboolean _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr);
 FSTATIC gboolean _netio_setmcast_ttl(NetIO* self, guint8 ttl);
-FSTATIC void _netio_enablepktloss (NetIO* self, gboolean enable);
-FSTATIC void _netio_setpktloss (NetIO* self, double rcvloss, double xmitloss);
+FSTATIC void _netio_enablepktloss(NetIO* self, gboolean enable);
+FSTATIC void _netio_setpktloss(NetIO* self, double rcvloss, double xmitloss);
+FSTATIC gboolean _netio_sendareliablefs(NetIO*self, NetAddr*dest, guint16 queueid, FrameSet* frameset);
+FSTATIC gboolean _netio_sendreliablefs(NetIO*self, NetAddr* dest, guint16 queueid, GSList* fslist);
+FSTATIC gboolean _netio_ackmessage(NetIO* self, NetAddr* dest, FrameSet* frameset);
+FSTATIC gboolean _netio_supportsreliable(NetIO* self); 
+FSTATIC void	 _netio_closeconn(NetIO* self, guint16 qid, const NetAddr* destaddr);
 
 DEBUGDECLARATIONS
 
@@ -370,6 +375,11 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->compressframe = _netio_compressframe;
 	ret->setpktloss = _netio_setpktloss;
 	ret->enablepktloss = _netio_enablepktloss;
+	ret->sendareliablefs = _netio_sendareliablefs;
+	ret->sendreliablefs = _netio_sendreliablefs;
+	ret->ackmessage = _netio_ackmessage;
+	ret->supportsreliable  = _netio_supportsreliable;
+	ret->closeconn = _netio_closeconn;
 	ret->_maxpktsize = 65300;
 	ret->_configinfo = config;
 	ret->_decoder = decoder;
@@ -658,4 +668,36 @@ netio_is_dual_ipv4v6_stack(void)
 	return FALSE;
 }
 #endif
+FSTATIC gboolean
+_netio_sendareliablefs(NetIO*self, NetAddr*dest, guint16 queueid, FrameSet* frameset)
+{
+	(void)self; (void)dest; (void)queueid; (void)frameset;
+	g_warn_if_reached();
+	return FALSE;
+}
+FSTATIC gboolean
+_netio_sendreliablefs(NetIO*self, NetAddr* dest, guint16 queueid, GSList* fslist)
+{
+	(void)self; (void)dest; (void)queueid; (void)fslist;
+	g_warn_if_reached();
+	return FALSE;
+}
+FSTATIC gboolean _netio_ackmessage(NetIO* self, NetAddr* dest, FrameSet* frameset)
+{
+	(void)self; (void)dest; (void)frameset;
+	g_warn_if_reached();
+	return FALSE;
+}
+FSTATIC gboolean
+_netio_supportsreliable(NetIO* self)
+{
+	(void)self;
+	return FALSE;
+}
+FSTATIC void
+ _netio_closeconn(NetIO* self, guint16 qid, const NetAddr* destaddr)
+{
+	(void)self; (void)destaddr; (void)qid;
+	return;
+}
 ///@}

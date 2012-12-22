@@ -43,43 +43,6 @@ typedef struct _ReliableUDP ReliableUDP;
 struct _ReliableUDP {
 	NetIOudp	baseclass;	///< Base class (NetIO) object.
 	FsProtocol*	_protocol;	///< Queuing, ordering, retransmission and ACKing discipline
-	gboolean	(*sendreliable)		///< Send a single FrameSet via @ref ReliableUDP
-							///< @pre must have non-NULL _signframe
-			    (ReliableUDP*self,		///<[in/out] 'this' object pointer
-			     NetAddr* dest,		///<[in] destination address
-			     guint16 queueid,		///<[in] The queue id to send it to
-			     FrameSet* frameset)	///<[in] The FrameSet to send
-						   ;	// ";" is here to work around a doxygen bug
-	gboolean	(*sendreliableM)	///< Send a multiple FrameSets via @ref ReliableUDP
-							///< @pre must have non-NULL _signframe
-			    (ReliableUDP*self,		///<[in/out] 'this' object pointer
-			     NetAddr* dest,		///<[in] destination address
-			     guint16 queueid,		///<[in] The queue id to send it to
-			     GSList* fslist)		///<[in] The list of FrameSets to send
-						   ;	// ";" is here to work around a doxygen bug
-	gboolean	(*ackmessage)		///< ACK a message
-				(ReliableUDP* self,	///<[in/out] 'this' object pointer
-				 NetAddr* dest,		///<[in] destination address
-				 FrameSet* frameset)	///<[in] The FrameSet to ACK - note that it must
-				 			///< have a sequence number.  Good thing to remember
-							///< that the client (that is <i>you</i> has to 
-							///< ACK or NAK packets or they won't get ACKed -
-							///< which will totally ball things up...
-						   ;	// ";" is here to work around a doxygen bug
-	void		(*setpktloss)		/// Force loss of packets FOR TESTING ONLY
-			    (ReliableUDP* self,		///<[in/out] 'this' object pointer
-			     double rcvloss,		///< Fraction of input packets to "lose" at random
-			     double xmitloss)		///< Fraction of output packets to "lose" at random
-						   ;	// ";" is here to work around a doxygen bug
-	void		(*enablepktloss)	/// Enable or disable testing packet loss
-			     (ReliableUDP* self,	///<[in/out] 'this' object pointer
-			      gboolean enable)		///< TRUE to enable packet loss
-						   ;	// ";" is here to work around a doxygen bug
-	void		(*closeconn)		///< Flush packets in queues to this address
-			      (ReliableUDP* self,	///< 'this' object pointer
-			       guint16 qid,		///< Queue id for this connection
-			       const NetAddr* destaddr) ///< Address we're flushing for
-						   ;	// ";" is here to work around a doxygen bug
 };
 WINEXPORT ReliableUDP* reliableudp_new(gsize objsize, ConfigContext* config, PacketDecoder* decoder,
 	guint rexmit_timer_uS);
