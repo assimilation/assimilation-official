@@ -81,7 +81,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	
 	
 	// Acknowledge that we acted on this message...
-	transport->ackmessage(transport, fromaddr, fs);
+	transport->baseclass.baseclass.ackmessage(&transport->baseclass.baseclass, fromaddr, fs);
 	if (fs->fstype == FRAMESETTYPE_PING) {
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
 		GSList*		flist = NULL;
@@ -101,7 +101,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		fprintf(stderr, "Sending a PONG(%d)/PING set to %s\n"
 		,	pongcount, addrstr);
 		flist = g_slist_prepend(flist, ping);
-		transport->sendreliableM(transport, fromaddr, 0, flist);
+		transport->baseclass.baseclass.sendreliablefs(&transport->baseclass.baseclass, fromaddr, 0, flist);
 		for (iter=flist; iter; iter=iter->next) {
  			FrameSet*	fs = CASTTOCLASS(FrameSet, iter->data);
 			UNREF(fs);
@@ -164,7 +164,7 @@ main(int argc, char **argv)
 			g_free(addrstr); addrstr = NULL;
 		}
 		ping = frameset_new(FRAMESETTYPE_PING);
-		transport->sendreliable(transport, v6addr, 0, ping);
+		transport->baseclass.baseclass.sendareliablefs(&transport->baseclass.baseclass, v6addr, 0, ping);
 		UNREF(ping);
 		UNREF(v6addr);
 	}
@@ -173,11 +173,10 @@ main(int argc, char **argv)
 	UNREF(config);
 	UNREF(anyaddr);
 	g_main_loop_run(loop);
-	//UNREF3(transport);	// 'transport' global variable is reference by code above
 	act_on_packets->baseclass.dissociate(&act_on_packets->baseclass);
 	UNREF2(act_on_packets);
 
-	UNREF3(transport);
+	UNREF3(transport);	// 'transport' global variable is referenced while the loop is running
 	g_main_loop_unref(loop);
 	g_source_unref(&netpkt->baseclass);
 	g_main_context_unref(g_main_context_default());

@@ -49,11 +49,10 @@ static GSList* (*_baseclass_rcvmany)(NetIO*, NetAddr**);
 static void (*_baseclass_sendone)(NetIO*, const NetAddr*, FrameSet*);
 static void (*_baseclass_sendmany)(NetIO*, const NetAddr*, GSList*);
 
-FSTATIC gboolean _reliableudp_sendreliable(ReliableUDP*self, NetAddr*, guint16, FrameSet*);
-FSTATIC gboolean _reliableudp_sendreliableM(ReliableUDP*self, NetAddr*, guint16, GSList*);
-FSTATIC gboolean _reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset);
-FSTATIC gboolean _reliableudp_nackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset);
-FSTATIC void	 _reliableudp_closeconn(ReliableUDP*self, guint16 qid, const NetAddr* dest);
+FSTATIC gboolean _reliableudp_sendareliablefs(NetIO*self, NetAddr*, guint16, FrameSet*);
+FSTATIC gboolean _reliableudp_sendreliablefs(NetIO*self, NetAddr*, guint16, GSList*);
+FSTATIC gboolean _reliableudp_ackmessage (NetIO* self, NetAddr* dest, FrameSet* frameset);
+FSTATIC void	 _reliableudp_closeconn(NetIO*self, guint16 qid, const NetAddr* dest);
 
 // Our functions that override base class functions...
 FSTATIC void _reliableudp_finalize(AssimObj*);
@@ -86,14 +85,14 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 			_baseclass_rcvmany = uret->baseclass.recvframesets;
 		}
 		self = NEWSUBCLASS(ReliableUDP, uret);
-		self->sendreliable = _reliableudp_sendreliable;
-		self->sendreliableM = _reliableudp_sendreliableM;
-		self->ackmessage = _reliableudp_ackmessage;
-		self->closeconn = _reliableudp_closeconn;
 		// Now for the base class functions which we override
 		self->baseclass.baseclass.baseclass._finalize = _reliableudp_finalize;
 		self->baseclass.baseclass.recvframesets = _reliableudp_recvframesets;
 		self->baseclass.baseclass.input_queued = _reliableudp_input_queued;
+		self->baseclass.baseclass.sendareliablefs = _reliableudp_sendareliablefs;
+		self->baseclass.baseclass.sendreliablefs = _reliableudp_sendreliablefs;
+		self->baseclass.baseclass.ackmessage = _reliableudp_ackmessage;
+		self->baseclass.baseclass.closeconn = _reliableudp_closeconn;
 		// These next two don't really do anything different - and could be eliminated
 		// as of now.
 		self->baseclass.baseclass.sendframesets = _reliableudp_sendframesets;
@@ -187,8 +186,9 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 
 /// Send a single packet reliably
 FSTATIC gboolean
-_reliableudp_sendreliable(ReliableUDP*self, NetAddr* dest, guint16 qid, FrameSet* fs)
+_reliableudp_sendareliablefs(NetIO* nself, NetAddr* dest, guint16 qid, FrameSet* fs)
 {
+	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	// Send it out!
 	DUMP2("Sending packet with _protocol->send1", &fs->baseclass, NULL);
 	return self->_protocol->send1(self->_protocol, fs, qid, dest);
@@ -196,25 +196,28 @@ _reliableudp_sendreliable(ReliableUDP*self, NetAddr* dest, guint16 qid, FrameSet
 
 /// Send several packets reliably
 FSTATIC gboolean
-_reliableudp_sendreliableM(ReliableUDP*self, NetAddr* dest, guint16 qid, GSList* fslist)
+_reliableudp_sendreliablefs(NetIO* nself, NetAddr* dest, guint16 qid, GSList* fslist)
 {
+	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	DEBUGMSG2("Sending packet with _protocol->send(%d)", g_slist_length(fslist));
-	// See if we've been requested to drop a packet for testing
 	return self->_protocol->send(self->_protocol, fslist, qid, dest);
 }
 
 /// Send an ACK (as requested) for for the packet we've been handed
 FSTATIC gboolean
-_reliableudp_ackmessage (ReliableUDP* self, NetAddr* dest, FrameSet* frameset)
+_reliableudp_ackmessage (NetIO*  nself, NetAddr* dest, FrameSet* frameset)
 {
+	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
+	DEBUGMSG2("ACKing packet with _protocol->ackmessage");
 	self->_protocol->ackmessage(self->_protocol, dest, frameset);
 	return TRUE;
 }
 
 /// Close a reliable UDP connection (reset it, really)
 FSTATIC void
-_reliableudp_closeconn(ReliableUDP*self, guint16 qid, const NetAddr* dest)
+_reliableudp_closeconn(NetIO* nself, guint16 qid, const NetAddr* dest)
 {
+	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	self->_protocol->closeconn(self->_protocol, qid, dest);
 }
 ///@}

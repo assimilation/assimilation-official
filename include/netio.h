@@ -53,66 +53,99 @@ struct _NetIO {
 	double		_rcvloss;			///< private: Receive loss fraction
 	double		_xmitloss;			///< private: Transmit loss fraction
 	gboolean	_shouldlosepkts;		///< private: TRUE to enable packet loss...
-	gboolean	(*input_queued)(const NetIO* self);///<[in] TRUE if input is queued ready to be read
-	gboolean	(*bindaddr)			///<[in] Bind this NetIO to the given address
+	gboolean	(*input_queued)		///<[in] TRUE if input is queued ready to be read
+				(const NetIO* self);	///< The Object to examine
+	gboolean	(*bindaddr)		///<[in] Bind this NetIO to the given address
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*,	///<[in] Address to bind it to
 				 gboolean silent)	///<[in] TRUE if no message on failure
 				;			// (separate line to work around doxygen bug)
 	NetAddr*	(*boundaddr)(const NetIO* self);///<[in] Object to return bound address/port of
-	gboolean	(*mcastjoin)			///<Join multicast group
+	gboolean	(*mcastjoin)		///<Join multicast group
 				(NetIO* self,		///<[in/out] Object to bind
 				 const NetAddr*,	///<[in] Mcast addr to join
 				 const NetAddr*);	///<[in] local if addr or NULL
-	gboolean	(*setmcast_ttl)
+	gboolean	(*setmcast_ttl)		///< Set ipv4 multicast TTL
 				(NetIO* self,		///<[in/out] Object to set mcast TTL for
 				 guint8 ttl);		///<[in] Multicast TTL value
-	gint		(*getfd)			///<[in] Return file/socket descriptor
+	gint		(*getfd)		///<[in] Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
-	void		(*setblockio)			///<[in] Set blocking/non-blocking mode
+	void		(*setblockio)		///<[in] Set blocking/non-blocking mode
 				(const NetIO* self,	///<[in/out] 'this' Object.
 				 gboolean blocking)	///<[in] TRUE if you want it to block
 				;
-	gsize		(*getmaxpktsize)		///< Return maximum packet size for this NetIO
+	gsize		(*getmaxpktsize)	///< Return maximum packet size for this NetIO
 				(const NetIO* self);	///< 'this' object
-	gsize		(*setmaxpktsize)		///< Set maximum packet size
+	gsize		(*setmaxpktsize)	///< Set maximum packet size
 				(NetIO*,		///< 'this' object
 				 gsize);		///< size to set max pkt size to
-	void		(*sendaframeset)		///< Send a FrameSet list to a @ref NetIO
+	void		(*sendaframeset)	///< Send a FrameSet list to a @ref NetIO
 							///< @pre must have non-NULL _signframe
 				(NetIO* self,		///<[in/out] 'this' object pointer
 				 const NetAddr* dest,	///<[in] destination address
 				 FrameSet* frameset)	///<[in] FrameSet to send
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*sendframesets)		///< Send a FrameSet list to a @ref NetIO
+	void		(*sendframesets)	///< Send a FrameSet list to a @ref NetIO
 							///< @pre must have non-NULL _signframe
 				(NetIO* self,		///<[in/out] 'this' object pointer
 				 const NetAddr* dest,	///<[in] destination address
 				 GSList* framesets)	///<[in] List of FrameSets to send
 						   ;	// ";" is here to work around a doxygen bug
-	GSList*		(*recvframesets)		///< Receive a single datagram's framesets
+	GSList*		(*recvframesets)	///< Receive a single datagram's framesets
 							///<@return GSList of FrameSets from packet
 				(NetIO*,		///<[in/out] 'this' object
 				 NetAddr** src);	///[out] source address of return result
-	SignFrame*	(*signframe)			///< return a copied SignFrame for use in sending
+	gboolean	(*sendareliablefs)	///< Reliably send a single FrameSet (if possible)
+							///< @pre must have non-NULL _signframe
+			    (NetIO*self,		///<[in/out] 'this' object pointer
+			     NetAddr* dest,		///<[in] destination address
+			     guint16 queueid,		///<[in] The queue id to send it to
+			     FrameSet* frameset)	///<[in] The FrameSet to send
+						   ;	// ";" is here to work around a doxygen bug
+	gboolean	(*sendreliablefs)	///< Reliably send multiple FrameSets (if possible)
+							///< @pre must have non-NULL _signframe
+			    (NetIO*self,		///<[in/out] 'this' object pointer
+			     NetAddr* dest,		///<[in] destination address
+			     guint16 queueid,		///<[in] The queue id to send it to
+			     GSList* fslist)		///<[in] The list of FrameSets to send
+						   ;	// ";" is here to work around a doxygen bug
+	gboolean	(*ackmessage)		///< User-level ACK of a message sent reliably
+				(NetIO* self,	///<[in/out] 'this' object pointer
+				 NetAddr* dest,		///<[in] destination address
+				 FrameSet* frameset)	///<[in] The FrameSet to ACK - note that it must
+				 			///< have a sequence number.  Good thing to remember
+							///< that the client (that is <i>you</i> has to 
+							///< ACK packets or they won't get ACKed -
+							///< which will totally ball things up...
+						   ;	// ";" is here to work around a doxygen bug
+	gboolean	(*supportsreliable)	///< return TRUE if this object supports reliable transport
+				(NetIO* self)		///<[in/out] 'this' object pointer
+						   ;	// ";" is here to work around a doxygen bug
+		
+	void		(*closeconn)		///< Flush packets in queues to this address
+			      (NetIO* self,	///< 'this' object pointer
+			       guint16 qid,		///< Queue id for this connection
+			       const NetAddr* destaddr) ///< Address we're flushing for
+						   ;	// ";" is here to work around a doxygen bug
+	SignFrame*	(*signframe)		///< return a copied SignFrame for use in sending
 				(NetIO*self);		///<[in]
-	Frame*		(*cryptframe)			///< return a copied encryption frame for sending
+	Frame*		(*cryptframe)		///< return a copied encryption frame for sending
 				(NetIO*self);		///<[in] 'this' object
-	Frame*		(*compressframe)		///< return a copied compression frame for sending
+	Frame*		(*compressframe)	///< return a copied compression frame for sending
 				(NetIO*self)		///<[in] 'this' object
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*setpktloss)			///< Set desired fraction of packet loss
+	void		(*setpktloss)		///< Set desired fraction of packet loss - TESTING ONLY!
 				(NetIO* self,		///<[in/out] 'this' object
 				 double rcv,		///< Packet receive loss fraction (0:1]
 				 double xmit)		///< Packet transmission loss (0:1]
 						   ;	// ";" is here to work around a doxygen bug
-	void		(*enablepktloss)		///< enable packet loss (as set above)
+	void		(*enablepktloss)	///< enable packet loss (as set above)
 				(NetIO* self,		///<[in/out] 'this' object	
 				 gboolean enable)	///<TRUE == enable, FALSE == disable
 						   ;	// ";" is here to work around a doxygen bug
 };
 WINEXPORT NetIO*	netio_new(gsize objsize, ConfigContext*, PacketDecoder*);
-							///< Don't call this directly! - this is an abstract class...
+							///< Don't call directly! - this is an abstract class...
 WINEXPORT gboolean	netio_is_dual_ipv4v6_stack(void);
 ///@}
 
