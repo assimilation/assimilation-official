@@ -98,7 +98,8 @@ void
 nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to create
 ,			  NetAddr* who		///< Who is being reported on
 ,			  const char * sysname	///< Name of system doing the reporting
-,			  guint64 howlate)
+,			  guint64 howlate)	///< How late was the heartbeat?
+						///< This is optional - zero means ignore this parameter.
 {
 		FrameSet*	fs		= frameset_new(reporttype);
 
