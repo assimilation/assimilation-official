@@ -128,7 +128,7 @@ if __name__ == '__main__':
     from messagedispatcher import MessageDispatcher
     from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER, DispatchHBSHUTDOWN
     from cmadb import CMAdb
-    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyNetIOudp, pyPacketDecoder
+    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG
     from frameinfo import FrameTypes, FrameSetTypes
     OurAddr = pyNetAddr(opt.bind)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
         CONFIGNAME_OUTSIG:	pySignFrame(1),
     }
     config = pyConfigContext(init=configinit)
-    io = pyNetIOudp(config, pyPacketDecoder(0))
+    io = pyReliableUDP(config, pyPacketDecoder(0))
     CMAdb.initglobal(io, True)
     CMAdb.log.info('Listening on Address: %s' % str(OurAddr))
     CMAdb.log.info('TheOneRing created - id = %d' % CMAdb.TheOneRing.node.id)
