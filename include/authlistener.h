@@ -41,6 +41,7 @@ typedef struct _ObeyFrameSetTypeMap ObeyFrameSetTypeMap;
 struct _AuthListener {
 	Listener	baseclass;
 	GHashTable*	actionmap;
+	gboolean	autoack;
 };
 
 
@@ -53,7 +54,7 @@ struct _ObeyFrameSetTypeMap {
 
 
 /// Create an AuthListener
-WINEXPORT AuthListener* authlistener_new(ObeyFrameSetTypeMap* map
-,					 ConfigContext* config, gsize listen_objsize);
+WINEXPORT AuthListener* authlistener_new(gsize listen_objsize, ObeyFrameSetTypeMap* map
+,					 ConfigContext* config, gboolean autoack);
 ///@}
 #endif /* _AUTHLISTENER_H */

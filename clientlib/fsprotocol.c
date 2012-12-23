@@ -28,6 +28,7 @@
 #include <frametypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
@@ -99,7 +100,13 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 ,		      FrameSet* fs)		///< The FrameSet whose queue id we'll use in looking for it
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
-	return self->addconn(self, (seq == NULL ? DEFAULT_FSP_QID : seq->getqid(seq)), addr);
+	guint16		qid = DEFAULT_FSP_QID;
+	FsProtoElem*	ret;
+	if (NULL != seq) {
+		qid = seq->getqid(seq);
+	}
+	ret =  self->addconn(self, qid, addr);
+	return ret;
 }
 
 
@@ -117,7 +124,6 @@ _fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	}
 	ret = MALLOCTYPE(FsProtoElem);
 	if (ret) {
-		///@todo: Need to make a way to delete FsProtoElem connections...
 		ret->endpoint = destaddr;
 		REF(destaddr);
 		ret->_qid = qid;
@@ -253,6 +259,7 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	}
 	self->parent = NULL;
 	memset(self, 0, sizeof(*self));
+	FREE(self);
 }
 
 /// Equal-compare function for FsProtoElem structures suitable for GHashTables
@@ -373,7 +380,6 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
 		}
 		TRYXMIT(fspe);
-		UNREF(fs);
 		return;
 		// NACKs get treated like ACKs, except they're also
 		// passed along to the application like a regular FrameSet
@@ -402,7 +408,6 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				_fsprotocol_ackseqno(self, fspe->endpoint, fspe->lastacksent);
 			}
 		}
-		UNREF(fs);
 	}
 	AUDITFSPE(fspe);
 
@@ -487,7 +492,9 @@ FSTATIC void
 _fsprotocol_ackmessage(FsProtocol* self, NetAddr* destaddr, FrameSet* fs)
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
-	_fsprotocol_ackseqno(self, destaddr, seq);
+	if (seq != 0) {
+		_fsprotocol_ackseqno(self, destaddr, seq);
+	}
 }
 
 /// Send an ACK packet that corresponds to this sequence number frame

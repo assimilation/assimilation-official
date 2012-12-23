@@ -95,7 +95,10 @@ _real_hblistener_new(NetAddr* addr, ConfigContext* context)
 
 /// Construct a frameset reporting something - and send it upstream
 void
-nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname, guint64 howlate)
+nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to create
+,			  NetAddr* who		///< Who is being reported on
+,			  const char * sysname	///< Name of system doing the reporting
+,			  guint64 howlate)
 {
 		FrameSet*	fs		= frameset_new(reporttype);
 
@@ -121,7 +124,6 @@ nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname
 			frameset_append_frame(fs, &usf->baseclass);
 			UNREF2(usf);
 		}
-		nanotransport->sendaframeset(nanotransport, nanofailreportaddr, fs);
 		UNREF(fs);
 		DEBUGMSG1("%s - sending frameset of type %d", __FUNCTION__, reporttype);
 }
@@ -234,6 +236,7 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 
 	g_return_if_fail(fs != NULL);
 	(void)fromaddr;
+	
 	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
 		port = config->getint(config, CONFIGNAME_HBPORT);
 	}
@@ -413,6 +416,7 @@ nanoobey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object inv
 {
 	g_return_if_fail(fs != NULL && fs->fstype == FRAMESETTYPE_SENDEXPECTHB);
 
+	// This will cause us to ACK the packet twice -- not a problem...
 	nanoobey_sendhb  (parent, fs, fromaddr);
 	nanoobey_expecthb(parent, fs, fromaddr);
 }
@@ -830,6 +834,7 @@ nano_reqconfig(gpointer gcruft)
 	struct utsname	un;	// System name, etc.
 
 	// We <i>have</i> to know our initial request address - or all is lost.
+	// NOTE THAT THIS ADDRESS MIGHT BE MULTICAST AND MIGHT BE USED ONLY ONCE
 	g_return_val_if_fail(cmainit != NULL, FALSE);
 
 	// Our initial configuration message must contain these parameters.
@@ -858,7 +863,9 @@ nano_reqconfig(gpointer gcruft)
 	frameset_append_frame(fs, &csf->baseclass);
 	UNREF2(csf);
 
-	// We've constructed the frameset - now send it.
+	// We've constructed the frameset - now send it - unreliably...
+	// That's because the reply will likely be from a different address
+	// which would confuse the blazes out of the reliable comm code.
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
 	UNREF(fs);
 	return TRUE;
@@ -952,7 +959,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	///@todo - eventually change switch discovery to be sensitive to our local network configuration
 	swdisc = switchdiscovery_new("switchdiscovery_eth0", "eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
 	,			    g_main_context_default(), io, config, 0);
-	obeycollective = authlistener_new(collective_obeylist, config, 0);
+	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
 	// Initiate the startup process
 	g_idle_add(nano_startupidle, &cruftiness);
