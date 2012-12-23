@@ -1999,6 +1999,11 @@ struct__NetIO.__slots__ = [
     'sendaframeset',
     'sendframesets',
     'recvframesets',
+    'sendareliablefs',
+    'sendreliablefs',
+    'ackmessage',
+    'supportsreliable',
+    'closeconn',
     'signframe',
     'cryptframe',
     'compressframe',
@@ -2029,6 +2034,11 @@ struct__NetIO._fields_ = [
     ('sendaframeset', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
     ('sendframesets', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(GSList))),
     ('recvframesets', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(NetIO), POINTER(POINTER(NetAddr)))),
+    ('sendareliablefs', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), guint16, POINTER(FrameSet))),
+    ('sendreliablefs', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), guint16, POINTER(GSList))),
+    ('ackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
+    ('supportsreliable', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO))),
+    ('closeconn', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), guint16, POINTER(NetAddr))),
     ('signframe', CFUNCTYPE(UNCHECKED(POINTER(SignFrame)), POINTER(NetIO))),
     ('cryptframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
     ('compressframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
@@ -2036,13 +2046,13 @@ struct__NetIO._fields_ = [
     ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
 ]
 
-# ../include/netio.h: 114
+# ../include/netio.h: 149
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 116
+# ../include/netio.h: 151
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2118,7 +2128,7 @@ class struct__AuthListener(Structure):
 
 AuthListener = struct__AuthListener # /home/alanr/monitor/src/include/authlistener.h: 31
 
-# /home/alanr/monitor/src/include/authlistener.h: 49
+# /home/alanr/monitor/src/include/authlistener.h: 50
 class struct__ObeyFrameSetTypeMap(Structure):
     pass
 
@@ -2127,13 +2137,15 @@ ObeyFrameSetTypeMap = struct__ObeyFrameSetTypeMap # /home/alanr/monitor/src/incl
 struct__AuthListener.__slots__ = [
     'baseclass',
     'actionmap',
+    'autoack',
 ]
 struct__AuthListener._fields_ = [
     ('baseclass', Listener),
     ('actionmap', POINTER(GHashTable)),
+    ('autoack', gboolean),
 ]
 
-AuthListenerAction = CFUNCTYPE(UNCHECKED(None), POINTER(AuthListener), POINTER(FrameSet), POINTER(NetAddr)) # /home/alanr/monitor/src/include/authlistener.h: 47
+AuthListenerAction = CFUNCTYPE(UNCHECKED(None), POINTER(AuthListener), POINTER(FrameSet), POINTER(NetAddr)) # /home/alanr/monitor/src/include/authlistener.h: 48
 
 struct__ObeyFrameSetTypeMap.__slots__ = [
     'framesettype',
@@ -2144,10 +2156,10 @@ struct__ObeyFrameSetTypeMap._fields_ = [
     ('action', AuthListenerAction),
 ]
 
-# /home/alanr/monitor/src/include/authlistener.h: 56
+# /home/alanr/monitor/src/include/authlistener.h: 57
 if hasattr(_libs['libassimilationclientlib.so'], 'authlistener_new'):
     authlistener_new = _libs['libassimilationclientlib.so'].authlistener_new
-    authlistener_new.argtypes = [POINTER(ObeyFrameSetTypeMap), POINTER(ConfigContext), gsize]
+    authlistener_new.argtypes = [gsize, POINTER(ObeyFrameSetTypeMap), POINTER(ConfigContext), gboolean]
     authlistener_new.restype = POINTER(AuthListener)
 
 # /home/alanr/monitor/src/include/cdp.h: 68
@@ -2442,7 +2454,7 @@ if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
     fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
     fsqueue_new.restype = POINTER(FsQueue)
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 77
+# /home/alanr/monitor/src/include/fsprotocol.h: 70
 class struct__FsProtocol(Structure):
     pass
 
@@ -2490,14 +2502,6 @@ struct__FsProtoElemSearchKey._fields_ = [
     ('_qid', guint16),
 ]
 
-enum_ioflush = c_int # /home/alanr/monitor/src/include/fsprotocol.h: 69
-
-FsProtoFLUSHIN = 0 # /home/alanr/monitor/src/include/fsprotocol.h: 69
-
-FsProtoFLUSHOUT = (FsProtoFLUSHIN + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 69
-
-FsProtoFLUSHBOTH = (FsProtoFLUSHOUT + 1) # /home/alanr/monitor/src/include/fsprotocol.h: 69
-
 struct__FsProtocol.__slots__ = [
     'baseclass',
     'io',
@@ -2510,13 +2514,13 @@ struct__FsProtocol.__slots__ = [
     'find',
     'findbypkt',
     'addconn',
+    'closeconn',
     'iready',
     'read',
     'receive',
     'send1',
     'send',
     'ackmessage',
-    'flushall',
 ]
 struct__FsProtocol._fields_ = [
     ('baseclass', AssimObj),
@@ -2530,16 +2534,16 @@ struct__FsProtocol._fields_ = [
     ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('findbypkt', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
+    ('closeconn', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('iready', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
     ('read', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsProtocol), POINTER(POINTER(NetAddr)))),
     ('receive', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('send1', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(FrameSet), guint16, POINTER(NetAddr))),
     ('send', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(GSList), guint16, POINTER(NetAddr))),
     ('ackmessage', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
-    ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), enum_ioflush)),
 ]
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 97
+# /home/alanr/monitor/src/include/fsprotocol.h: 90
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
     fsprotocol_new.argtypes = [guint, POINTER(NetIO), guint]
@@ -3334,25 +3338,13 @@ ReliableUDP = struct__ReliableUDP # /home/alanr/monitor/src/include/reliableudp.
 struct__ReliableUDP.__slots__ = [
     'baseclass',
     '_protocol',
-    'sendreliable',
-    'sendreliableM',
-    'ackmessage',
-    'setpktloss',
-    'enablepktloss',
-    'flushall',
 ]
 struct__ReliableUDP._fields_ = [
     ('baseclass', NetIOudp),
     ('_protocol', POINTER(FsProtocol)),
-    ('sendreliable', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(FrameSet))),
-    ('sendreliableM', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), guint16, POINTER(GSList))),
-    ('ackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(ReliableUDP), POINTER(NetAddr), POINTER(FrameSet))),
-    ('setpktloss', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), c_double, c_double)),
-    ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), gboolean)),
-    ('flushall', CFUNCTYPE(UNCHECKED(None), POINTER(ReliableUDP), POINTER(NetAddr), enum_ioflush)),
 ]
 
-# /home/alanr/monitor/src/include/reliableudp.h: 84
+# /home/alanr/monitor/src/include/reliableudp.h: 47
 if hasattr(_libs['libassimilationclientlib.so'], 'reliableudp_new'):
     reliableudp_new = _libs['libassimilationclientlib.so'].reliableudp_new
     reliableudp_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder), guint]
@@ -4212,19 +4204,19 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 98
+# /home/alanr/monitor/src/include/fsprotocol.h: 91
 try:
     DEFAULT_FSP_QID = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 99
+# /home/alanr/monitor/src/include/fsprotocol.h: 92
 try:
     FSPROTO_WINDOWSIZE = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 100
+# /home/alanr/monitor/src/include/fsprotocol.h: 93
 try:
     FSPROTO_REXMITINTERVAL = 2000000
 except:
@@ -4704,7 +4696,7 @@ _NetGSource = struct__NetGSource # ../include/netgsource.h: 43
 
 _AuthListener = struct__AuthListener # /home/alanr/monitor/src/include/authlistener.h: 41
 
-_ObeyFrameSetTypeMap = struct__ObeyFrameSetTypeMap # /home/alanr/monitor/src/include/authlistener.h: 49
+_ObeyFrameSetTypeMap = struct__ObeyFrameSetTypeMap # /home/alanr/monitor/src/include/authlistener.h: 50
 
 _CompressFrame = struct__CompressFrame # /home/alanr/monitor/src/include/compressframe.h: 33
 
@@ -4716,7 +4708,7 @@ _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
 _FsQueue = struct__FsQueue # ../include/fsqueue.h: 45
 
-_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 77
+_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 70
 
 _FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 51
 

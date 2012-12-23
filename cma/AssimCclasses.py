@@ -1160,9 +1160,29 @@ class pyNetIO(pyAssimObj):
             base=base.baseclass
         # We ought to eventually construct a GSList of them and then call sendframesets
         # But this is easy for now...
-        for frame in framesetlist:
-            base.sendaframeset(self._Cstruct, destaddr._Cstruct, frame._Cstruct)
+        for frameset in framesetlist:
+            base.sendaframeset(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
+
+    def sendreliablefs(self, destaddr, framesetlist, qid = DEFAULT_FSP_QID):
+        'Reliably send the (collection of) frameset(s) out on this pyNetIO (if possible)'
+        if destaddr.port() == 0:
+            raise ValueError("Zero Port in sendframesets: destaddr=%s" % str(destaddr))
+        if not isinstance(framesetlist, collections.Sequence):
+            framesetlist = (framesetlist, )
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'sendaframeset')):
+            base=base.baseclass
+        for frameset in framesetlist:
+            base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
+
+    def ackmessage(self, dest, frameset):
+        'ACK (acknowledge) this frameset - (presumably sent reliably).'
+
+        while (not hasattr(base, 'ackmessage')):
+            base=base.baseclass
+        base.ackmessage(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
         
+
     def recvframesets(self):
         '''Receive a collection of framesets read from this pyNetIO - all from the same Address.
          @return The return value is a tuple (address, framesetlist). '''
@@ -1196,6 +1216,17 @@ class pyNetIOudp(pyNetIO):
             Cstruct=netioudp_new(0, config._Cstruct, packetdecoder._Cstruct)
         if not Cstruct:
             raise ValueError, ("Invalid parameters to pyNetIOudp constructor")
+        pyNetIO.__init__(self, config, packetdecoder, Cstruct=Cstruct)
+
+class pyReliableUDP(pyNetIOudp):
+    'Reliable UDP version of the pyNetIOudp abstract base class'
+    def __init__(self, config, packetdecoder, Cstruct=None):
+        'Initializer for pyReliableUDP'
+        self._Cstruct = None # Keep error legs from complaining.
+        if Cstruct is None:
+            Cstruct=reliableudp_new(0, config._Cstruct, packetdecoder._Cstruct)
+        if not Cstruct:
+            raise ValueError, ("Invalid parameters to pyReliableUDP constructor")
         pyNetIO.__init__(self, config, packetdecoder, Cstruct=Cstruct)
 
 class CMAlib:
