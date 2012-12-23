@@ -295,7 +295,7 @@ _configcontext_setarray(ConfigContext*self, const char *name, GSList*value)
 	ConfigValue* val = _configcontext_value_new(CFG_ARRAY);
 	val->u.arrayvalue = value;
 
-	/// TODO FIXME: WHAT ABOUT OBJECT LIFE??
+	/// @todo WHAT ABOUT OBJECT LIFE??
 	g_hash_table_replace(self->_values, cpname, val);
 }
 

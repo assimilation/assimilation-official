@@ -80,7 +80,7 @@ _seqnoframe_initsessionid(void)
 #	define		FIVESECONDS	5000000
 	guint64	now	= g_get_real_time();
 	now /= FIVESECONDS;
-	/// TODO: cache this on disk and so on as described above...
+	/// @todo: cache this on disk and so on as described above...
 	_sessionId = (guint32)now;
 }
 
