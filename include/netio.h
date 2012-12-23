@@ -67,13 +67,15 @@ struct _NetIO {
 				 const NetAddr*);	///<[in] local if addr or NULL
 	gboolean	(*setmcast_ttl)		///< Set ipv4 multicast TTL
 				(NetIO* self,		///<[in/out] Object to set mcast TTL for
-				 guint8 ttl);		///<[in] Multicast TTL value
+				 guint8 ttl)		///<[in] Multicast TTL value
+						   ;	// ";" is here to work around a doxygen bug
+	
 	gint		(*getfd)		///<[in] Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
 	void		(*setblockio)		///<[in] Set blocking/non-blocking mode
 				(const NetIO* self,	///<[in/out] 'this' Object.
 				 gboolean blocking)	///<[in] TRUE if you want it to block
-				;
+						   ;	// ";" is here to work around a doxygen bug
 	gsize		(*getmaxpktsize)	///< Return maximum packet size for this NetIO
 				(const NetIO* self);	///< 'this' object
 	gsize		(*setmaxpktsize)	///< Set maximum packet size

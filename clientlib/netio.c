@@ -682,10 +682,11 @@ _netio_sendreliablefs(NetIO*self, NetAddr* dest, guint16 queueid, GSList* fslist
 	g_warn_if_reached();
 	return FALSE;
 }
-FSTATIC gboolean _netio_ackmessage(NetIO* self, NetAddr* dest, FrameSet* frameset)
+FSTATIC gboolean
+_netio_ackmessage(NetIO* self, NetAddr* dest, FrameSet* frameset)
 {
 	(void)self; (void)dest; (void)frameset;
-	g_warn_if_reached();
+	g_warning("%s.%d: Object does not support ACKing of messages", __FUNCTION__, __LINE__);
 	return FALSE;
 }
 FSTATIC gboolean

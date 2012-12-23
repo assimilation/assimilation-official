@@ -60,6 +60,7 @@ FSTATIC gboolean _reliableudp_input_queued(const NetIO*);
 FSTATIC void _reliableudp_sendaframeset(NetIO*, const NetAddr*, FrameSet*);
 FSTATIC void _reliableudp_sendframesets(NetIO*, const NetAddr*, GSList*);
 FSTATIC GSList* _reliableudp_recvframesets(NetIO*, NetAddr**);
+FSTATIC gboolean _reliableudp_supportsreliable(NetIO*);
 
 
 /// Construct new UDP NetIO object (and its socket, etc)
@@ -93,6 +94,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		self->baseclass.baseclass.sendreliablefs = _reliableudp_sendreliablefs;
 		self->baseclass.baseclass.ackmessage = _reliableudp_ackmessage;
 		self->baseclass.baseclass.closeconn = _reliableudp_closeconn;
+		self->baseclass.baseclass.supportsreliable = _reliableudp_supportsreliable;
 		// These next two don't really do anything different - and could be eliminated
 		// as of now.
 		self->baseclass.baseclass.sendframesets = _reliableudp_sendframesets;
@@ -169,6 +171,7 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 		FrameSet*	fs = CASTTOCLASS(FrameSet, lelem->data);
 		// Put that puppy in the queue...
 		proto->receive(proto, oursrcaddr, fs);
+		UNREF(fs);
 	}
 	// Do we have any packets ready to read out of the reliable protocol?
 	if (proto->iready(proto)) {
@@ -219,5 +222,11 @@ _reliableudp_closeconn(NetIO* nself, guint16 qid, const NetAddr* dest)
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	self->_protocol->closeconn(self->_protocol, qid, dest);
+}
+FSTATIC gboolean
+_reliableudp_supportsreliable(NetIO* self)
+{
+	(void) self;
+	return TRUE;
 }
 ///@}

@@ -106,7 +106,6 @@ _fsqueue_deq(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	gpointer	ret = g_queue_pop_head(self->_q);
 	--self->_curqlen;
-
 	return ret ? CASTTOCLASS(FrameSet, ret) : NULL;
 }
 

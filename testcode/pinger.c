@@ -103,15 +103,14 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		flist = g_slist_prepend(flist, ping);
 		transport->baseclass.baseclass.sendreliablefs(&transport->baseclass.baseclass, fromaddr, 0, flist);
 		for (iter=flist; iter; iter=iter->next) {
- 			FrameSet*	fs = CASTTOCLASS(FrameSet, iter->data);
-			UNREF(fs);
+ 			FrameSet*	fs2 = CASTTOCLASS(FrameSet, iter->data);
+			UNREF(fs2);
 		}
 		g_slist_free(flist); flist = NULL;
 	}
 	if (addrstr) {
 		g_free(addrstr); addrstr = NULL;
 	}
-	UNREF(fs);
 }
 
 
@@ -140,7 +139,7 @@ main(int argc, char **argv)
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(&transport->baseclass.baseclass, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
-	act_on_packets = authlistener_new(doit, config, 0);
+	act_on_packets = authlistener_new(0, doit, config, FALSE);
 	act_on_packets->baseclass.associate(&act_on_packets->baseclass, netpkt);
 	//g_source_ref(&netpkt->baseclass);
 	

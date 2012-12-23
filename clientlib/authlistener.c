@@ -55,6 +55,10 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 	}
 	/// @todo need to authorize the sender of this @ref FrameSet before acting on it...
 	action(aself, fs, addr);
+	if (aself->autoack) {
+		self->transport->_netio->ackmessage(self->transport->_netio, addr, fs);
+	}
+	
 
 
 returnout:
@@ -113,9 +117,10 @@ _authlistener_finalize(AssimObj * aself) ///<[in/out] Listener to finalize
 /// Construct a new Listener - setting up GSource and timeout data structures for it.
 /// This can be used directly or by derived classes.
 AuthListener*
-authlistener_new(ObeyFrameSetTypeMap*map,///<[in] NULL-terminated map of FrameSet types to action functions -
+authlistener_new(gsize objsize,		 ///<[in] size of Listener structure (0 for sizeof(Listener))
+		 ObeyFrameSetTypeMap*map,///<[in] NULL-terminated map of FrameSet types to action functions -
 		 ConfigContext* config,	 ///<[in/out] configuration context
-		 gsize objsize)		 ///<[in] size of Listener structure (0 for sizeof(Listener))
+		 gboolean autoack)	 ///<[in] TRUE if the authlistener should do the ACKing for us
 {
 	AuthListener * newlistener;
 	if (objsize < sizeof(AuthListener)) {
@@ -133,6 +138,7 @@ authlistener_new(ObeyFrameSetTypeMap*map,///<[in] NULL-terminated map of FrameSe
 			g_hash_table_insert(hash, GINT_TO_POINTER(map->framesettype), map->action);
 		}
 		newlistener->actionmap = hash;
+		newlistener->autoack = autoack;
 		
 		
 	}

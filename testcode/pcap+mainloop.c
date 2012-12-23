@@ -42,7 +42,7 @@
 #include <frameset.h>
 #include <ctype.h>
 #include <netgsource.h>
-#include <netioudp.h>
+#include <reliableudp.h>
 #include <netaddr.h>
 #include <authlistener.h>
 #include <signframe.h>
@@ -149,9 +149,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 		g_message("CMA Received a FrameSet of type %d over the 'wire'."
 		,	  fs->fstype);
 	}
-	//g_message("DUMPING packet received over 'wire':");
-	//frameset_dump(fs);
-	//g_message("END of packet received over 'wire':");
+	DUMP("gotnetpkt: received ---->>", &fs->baseclass, " <<---- END OF PACKET");
 	UNREF(fs);
 	if (wirepktcount >= maxpkts) {
 		g_message("QUITTING NOW!");
@@ -234,7 +232,8 @@ main(int argc, char **argv)
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
-	//proj_class_incr_debug(NULL);
+	proj_class_incr_debug(NULL);
+	proj_class_incr_debug(NULL);
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
                 g_debug("Max packet count is "FMT_64BIT"d", maxpkts);
@@ -250,7 +249,7 @@ main(int argc, char **argv)
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 
 	// Create a network transport object for normal UDP packets
-	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
+	nettransport = &(reliableudp_new(0, config, decoder, 0)->baseclass.baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
 
 	// Set up the parameters the 'CMA' is going to send to our 'nanoprobe'
@@ -307,7 +306,7 @@ main(int argc, char **argv)
 
 	// Pretend to be the CMA...
 	// Listen for packets from our nanoprobes - scattered throughout space...
-	listentonanoprobes = authlistener_new(cmalist, config, 0);
+	listentonanoprobes = authlistener_new(0, cmalist, config, TRUE);
 	listentonanoprobes->baseclass.associate(&listentonanoprobes->baseclass, netpkt);
 
 	nano_start_full("netconfig", 900, netpkt, config);
