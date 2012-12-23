@@ -1073,7 +1073,11 @@ class pyNetIO(pyAssimObj):
             Cstruct=netio_new(0, configobj._Cstruct, packetdecoder._Cstruct)
             self.config = configobj
         else:
-            self.config = pyConfigContext(Cstruct=Cstruct[0].baseclass._configinfo)
+            self._Cstruct = Cstruct
+            base=self._Cstruct[0]
+            while (not hasattr(base, '_configinfo')):
+                base=base.baseclass
+            self.config = pyConfigContext(Cstruct=base._configinfo)
         pyAssimObj.__init__(self, Cstruct=Cstruct)
 
     def setblockio(self, mode):
@@ -1220,14 +1224,14 @@ class pyNetIOudp(pyNetIO):
 
 class pyReliableUDP(pyNetIOudp):
     'Reliable UDP version of the pyNetIOudp abstract base class'
-    def __init__(self, config, packetdecoder, Cstruct=None):
+    def __init__(self, config, packetdecoder, rexmit_timer_uS=0, Cstruct=None):
         'Initializer for pyReliableUDP'
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
-            Cstruct=reliableudp_new(0, config._Cstruct, packetdecoder._Cstruct)
+            Cstruct=reliableudp_new(0, config._Cstruct, packetdecoder._Cstruct, rexmit_timer_uS)
         if not Cstruct:
             raise ValueError, ("Invalid parameters to pyReliableUDP constructor")
-        pyNetIO.__init__(self, config, packetdecoder, Cstruct=Cstruct)
+        pyNetIOudp.__init__(self, config, packetdecoder, Cstruct=Cstruct)
 
 class CMAlib:
     @staticmethod

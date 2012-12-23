@@ -34,7 +34,7 @@
 #include <frameset.h>
 #include <ctype.h>
 #include <netgsource.h>
-#include <netioudp.h>
+#include <reliableudp.h>
 #include <netaddr.h>
 #include <authlistener.h>
 #include <signframe.h>
@@ -298,7 +298,7 @@ main(int argc, char **argv)
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 
 	// Create a network transport object for normal UDP packets
-	nettransport = &(netioudp_new(0, config, decoder)->baseclass);
+	nettransport = &(reliableudp_new(0, config, decoder, 0)->baseclass.baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
 
 

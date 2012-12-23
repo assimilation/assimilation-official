@@ -418,7 +418,7 @@ class TestCMABasic(TestCase):
         except StopIteration as foo:
             pass
         #self.assertRaises(StopIteration, listener.listen)
-    # We audit after each packet is processed
+        # We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
         droneroot = CMAdb.cdb.nodetypetbl['Drone']
