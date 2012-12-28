@@ -1206,22 +1206,16 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while (not hasattr(base, 'recvframesets')):
             base=base.baseclass
-        netaddr =  cast(netaddr_ipv4_new(create_string_buffer(4), 101), cClass.NetAddr)
+        netaddrint =  netaddr_ipv4_new(create_string_buffer(4), 101)
+        netaddr =  cast(netaddrint, cClass.NetAddr)
         netaddr[0].baseclass.unref(netaddr)	# We're about to replace it...
         # Basically we needed a pointer to pass, and this seemed like a good way to do it...
         # Maybe it was -- maybe it wasn't...
         fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
         if netaddr and len(fslist) > 0:
-            CCref(netaddr)
-            print >>sys.stderr, 'NETADDR:%s, *netaddr:%s' % (netaddr, netaddr[0])
-            print >>sys.stderr, 'NETADDR3 = %s' % (string_at(netaddr[0].baseclass.toString(netaddr), 30))
-            print 'FSlist:', fslist
             address = pyNetAddr(None, Cstruct=netaddr)
-            print >>sys.stderr, 'Received packet from Address %s' % str(address)
             fs  = fslist[0]
-            print >>sys.stderr, 'FRAMESET = %s' % str(fs)
-            #print >>sys.stderr, 'FRAMESET = %s' % (string_at(fs[0].baseclass.toString(fs), 100))
         else:
             address = None
         return (address, fslist)
