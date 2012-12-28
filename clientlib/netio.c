@@ -462,6 +462,8 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 			REF(compressframe);
 		}
 		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
+		DUMP2("Sending Packet to", &destaddr->baseclass, NULL);
+		DUMP2("Packet being sent:", &curfs->baseclass, NULL);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		
 	}
@@ -486,6 +488,8 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		REF(compressframe);
 	}
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
+	DUMP2("Sending Packet to", &destaddr->baseclass, NULL);
+	DUMP2("Packet being sent:", &frameset->baseclass, NULL);
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);
 }
 
@@ -588,6 +592,10 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 			FREE(ret); ret = NULL;
 		}
 		FREE(pkt);
+	}
+	if (ret && *src) {
+		DUMP2("Received Packet from", &((*src)->baseclass), NULL);
+		DUMP2("First Packet Received:", &(CASTTOCLASS(FrameSet, ret->data)->baseclass), NULL);
 	}
 	return ret;
 }

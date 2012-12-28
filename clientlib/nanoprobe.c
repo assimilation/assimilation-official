@@ -46,6 +46,7 @@
 #include <pcap_min.h>
 #include <jsondiscovery.h>
 #include <switchdiscovery.h>
+#include <fsprotocol.h>
 #include <nanoprobe.h>
 
 
@@ -125,8 +126,9 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 			frameset_append_frame(fs, &usf->baseclass);
 			UNREF2(usf);
 		}
-		UNREF(fs);
 		DEBUGMSG1("%s - sending frameset of type %d", __FUNCTION__, reporttype);
+		nanotransport->_netio->sendareliablefs(nanotransport->_netio, nanofailreportaddr, DEFAULT_FSP_QID, fs);
+		UNREF(fs);
 }
 
 /// Standard nanoprobe 'martian heartbeat received' agent.

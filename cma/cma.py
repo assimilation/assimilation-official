@@ -103,20 +103,29 @@ if __name__ == '__main__':
     #   It is a test program intended to run with some real nanoprobes running
     #   somewhere out there...
     #
-    OurAddr = None
     DefaultPort = 1984
+    import os
+    # VERY Linux-specific - but useful and apparently correct ;-)
+    PrimaryIPcmd="ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
+    ipfd=os.popen(PrimaryIPcmd, 'r')
+    OurAddrStr=('%s:%d' % (ipfd.readline().rstrip(), DefaultPort))
+    ipfd.close()
+
     OurPort = None
 
     parser = optparse.OptionParser(prog='CMA', version='0.0.1',
         description='Collective Management Authority for the Assimilation System',
         usage='cma.py [--bind address:port]')
 
-    parser.add_option('-b', '--bind', action='store', default='0.0.0.0:1984', dest='bind'
+    parser.add_option('-b', '--bind', action='store', default=None, dest='bind'
     ,   metavar='address:port-to-bind-to'
     ,   help='Address:port to listen to - for nanoprobes to connect to')
 
     parser.add_option('-f', '--foreground', action='store_true', default=False, dest='foreground'
     ,   help='keep the CMA from going into the background')
+
+    parser.add_option('-T', '--trace', action='store_true', default=False, dest='doTrace'
+    ,   help='Trace CMA execution')
 
 
     opt, args = parser.parse_args()
@@ -127,21 +136,32 @@ if __name__ == '__main__':
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher
     from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER, DispatchHBSHUTDOWN
-    from cmadb import CMAdb
+    import cmadb
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, pyPacketDecoder
-    from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG
+    from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG, proj_class_incr_debug
     from frameinfo import FrameTypes, FrameSetTypes
-    OurAddr = pyNetAddr(opt.bind)
-    if OurAddr.port() > 0:
-        OurPort = OurAddr.port()
+    proj_class_incr_debug(None)
+    proj_class_incr_debug(None)
+    proj_class_incr_debug(None)
+
+
+    if opt.bind is None:
+        BindAddrStr = ('0.0.0.0:%d' % DefaultPort)
     else:
-        OurAddr.setport(1984)
+        BindAddrStr = opt.bind
+        OurAddrStr = opt.bind
+
+    OurAddr = pyNetAddr(OurAddrStr)
+    BindAddr = pyNetAddr(BindAddrStr)
+    if OurAddr.port() == 0:
+        OurAddr.setport(DefaultPort)
+    OurPort = OurAddr.port()
 
 
     configinit = {
-    	CONFIGNAME_CMAINIT:	OurAddr,    # Initial 'hello' address
+    	CONFIGNAME_CMAINIT:	BindAddr,   # Initial listening (bind) address
     	CONFIGNAME_CMAADDR:	OurAddr,    # not sure what this one does...
-    	CONFIGNAME_CMADISCOVER:	OurAddr,    # Discovery packets sent here
+    	CONFIGNAME_CMADISCOVER:	OurAddr,# Discovery packets sent here
     	CONFIGNAME_CMAFAIL:	OurAddr,    # Failure packets sent here
     	CONFIGNAME_CMAPORT:	OurPort,
     	CONFIGNAME_HBPORT:	OurPort,
@@ -153,9 +173,13 @@ if __name__ == '__main__':
     }
     config = pyConfigContext(init=configinit)
     io = pyReliableUDP(config, pyPacketDecoder(0))
-    CMAdb.initglobal(io, True)
-    CMAdb.log.info('Listening on Address: %s' % str(OurAddr))
-    CMAdb.log.info('TheOneRing created - id = %d' % CMAdb.TheOneRing.node.id)
+    cmadb.CMAdb.initglobal(io, True)
+    cmadb.CMAdb.debug = True
+    cmadb.CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
+    cmadb.CMAdb.log.info('Requesting returns to: %s' % str(OurAddr))
+    cmadb.CMAdb.log.info('TheOneRing created - id = %d' % cmadb.CMAdb.TheOneRing.node.id)
+    cmadb.CMAdb.log.debug("Nanoprobe ConfigInit: %s" % configinit)
+    cmadb.CMAdb.log.info("Nanoprobe Config Object: %s" % config)
 
     print FrameTypes.get(1)[2]
     disp = MessageDispatcher(
@@ -165,5 +189,12 @@ if __name__ == '__main__':
         FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER(),
         FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN()
     })
-    listener = PacketListener(config, disp)
-    listener.listen()
+    # Important to note that we don't want PacketListener to create its own 'io' object
+    # or it will screw up the ReliableUDP protocol...
+    listener = PacketListener(config, disp, io=io)
+    if opt.doTrace:
+        import trace
+        tracer = trace.Trace(count=False, trace=True)
+        tracer.run('listener.listen()')
+    else:
+        listener.listen()

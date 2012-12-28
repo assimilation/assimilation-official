@@ -51,10 +51,13 @@ class MessageDispatcher:
                 self.default.dispatch(origaddr, frameset)
         except Exception as e:
             CMAdb.log.exception('MessageDispatcher exception [%s] occurred while handling Frameset [%s]' % (e, str(frameset)))
-            # Eventually will want to abort the transaction here
+            # @todo Eventually will want to abort the transaction here
         else:
-            # Eventually will want to commit the transaction here
+            # @todo Eventually will want to commit the transaction here
             pass
+        # @todo This will eventually need to be part of the transaction
+        self.io.ackmessage(origaddr, frameset)
+
 
     def setconfig(self, io, config):
         'Save our configuration away.  We need it before we can do anything.'

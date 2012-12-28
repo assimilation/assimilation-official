@@ -20,8 +20,9 @@
 #
 #
 import sys
-import cmadb
+from cmadb import CMAdb
 from py2neo import neo4j
+from droneinfo import DroneInfo
 class HbRing:
     'Class defining the behavior of a heartbeat ring.'
     SWITCH      =  1
@@ -40,7 +41,7 @@ class HbRing:
         '''
         if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
-        self.node = cmadb.CMAdb.cdb.new_ring(name, parentring, ringtype=ringtype)
+        self.node = CMAdb.cdb.new_ring(name, parentring, ringtype=ringtype)
         self.ringtype = ringtype
         self.name = str(name)
         self.parentring = parentring
@@ -86,7 +87,7 @@ class HbRing:
         #print 'Adding Drone %s to ring %s' % (str(drone), str(self))
         # Make sure he's not already in our ring according to our 'database'
         if drone.node.has_relationship_with(self.node, neo4j.Direction.OUTGOING, self.ourreltype):
-            cmadb.CMAdb.log.info("Drone %s is already a member of this ring [%s] - removing and re-adding."
+            CMAdb.log.info("Drone %s is already a member of this ring [%s] - removing and re-adding."
             %               (drone.node['name'], self.name))
             self.leave(drone)
         
@@ -107,7 +108,7 @@ class HbRing:
         # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
             # (see comments below)
-            cmadb.CMAdb.cdb.db.relate((drone.node, self.ournexttype, self.insertpoint1.node),
+            CMAdb.cdb.db.relate((drone.node, self.ournexttype, self.insertpoint1.node),
                       (self.insertpoint1.node, self.ournexttype, drone.node))
             drone.start_heartbeat(self, self.insertpoint1)
             self.insertpoint1.start_heartbeat(self, drone)
@@ -138,7 +139,7 @@ class HbRing:
         # so that even if the systems change network configurations we can still know what IP to
         # remove.  Right now we rely on the configuration not changing "too much".
         ## FIXME: Ought to label relationships with IP addresses involved.
-        cmadb.CMAdb.cdb.db.relate((self.insertpoint1.node, self.ournexttype, drone.node),
+        CMAdb.cdb.db.relate((self.insertpoint1.node, self.ournexttype, drone.node),
                       (drone.node, self.ournexttype, self.insertpoint2.node))
         # This should ensure that we don't keep beating the same nodes over and over
         # again as new nodes join the system.  Instead the latest newbie becomes the next
