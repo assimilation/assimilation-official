@@ -21,15 +21,17 @@
 #
 import weakref
 from cmadb import CMAdb
+
 from frameinfo import *
+from AssimCtypes import DEFAULT_FSP_QID
 from AssimCclasses import *
 from py2neo import neo4j
-from hbring import HbRing
+import hbring
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
     _droneweakrefs = {}
     _JSONprocessors = {}
-    def __init__(self, designation, node=None, **kw):
+    def __init__(self, designation, node=None, port=None, **kw):
         self.io = CMAdb.io
         if isinstance(designation, neo4j.Node):
             self.node = designation
@@ -37,7 +39,10 @@ class DroneInfo:
             #print >>sys.stderr, 'New DroneInfo(designation = %s", kw=%s)' % (designation, str(**kw))
             self.node = CMAdb.cdb.new_drone(designation, **kw)
         DroneInfo._droneweakrefs[designation] = weakref.ref(self)
-        
+        if port is not None:
+            self.setport(port)
+        elif 'port' in self.node:
+            self.port = self.node['port']
 
     def __getitem__(self, key):
        return self.node[key]
@@ -239,7 +244,7 @@ class DroneInfo:
         if type(dest) is str or type(dest) is unicode:
             dest = pyNetAddr(dest)
             dest.setport(self.port)
-        self.io.sendframesets(dest, (fs,))
+        self.io.sendreliablefs(dest, (fs,))
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
@@ -255,11 +260,15 @@ class DroneInfo:
         # to distinguish death of a switch or subnet or site from death of a single drone
         rellist = self.node.get_relationships(direction=neo4j.Direction.OUTGOING)
         for rel in rellist:
-            if rel.type.startswith(HbRing.memberprefix):
+            if rel.type.startswith(hbring.HbRing.memberprefix):
                 ringname = rel.end_node['name']
                 if True or CMAdb.debug:
                     CMAdb.log.debug('Drone %s is (was) a member of ring %s' % (self, ringname))
-                HbRing.ringnames[ringname].leave(self)
+                hbring.HbRing.ringnames[ringname].leave(self)
+        deadip = pyNetAddr(self.primary_ip(), port=self.getport())
+        CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
+        self.io.closeconn(DEFAULT_FSP_QID, deadip)
+
 
 
     def start_heartbeat(self, ring, partner1, partner2=None):
@@ -353,7 +362,7 @@ class DroneInfo:
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip)
         ourip.setport(self.getport())
-        self.io.sendframesets(ourip, (fs,))
+        self.io.sendreliablefs(ourip, (fs,))
         if CMAdb.debug:
             CMAdb.log.debug('Sent Discovery request(%s,%s) to %s Framesets: %s'
             %	(instance, str(interval), str(ourip), str(fs)))
@@ -364,17 +373,21 @@ class DroneInfo:
         return 'Drone(%s)' % self.node['name']
 
     @staticmethod
-    def find(designation):
+    def find(designation, port=None):
         'Find a drone with the given designation or IP address, or Neo4J node.'
         if isinstance(designation, str):
             drone = None
             if designation in DroneInfo._droneweakrefs:
                 drone = DroneInfo._droneweakrefs[designation]()
             if drone is None:
-                drone = DroneInfo(designation)
+                drone = DroneInfo(designation, port=port)
             assert drone.node['name'] == designation
             return drone
         if isinstance(designation, pyNetAddr):
+            dport = None
+            desigport = designation.port()
+            if desigport is not None and desigport > 0:
+                dport = desigport
             #Is there a concern about non-canonical IP address formats?
             ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, repr(designation))
             for ip in ipaddrs:
@@ -382,7 +395,7 @@ class DroneInfo:
                 # FIXME: Think about how to manage duplicate IP addresses...
                 # Do we really want to be looking up just by IP addresses here?
                 node = ip.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_iphost)
-                return DroneInfo.find(node)
+                return DroneInfo.find(node, port=dport)
             if CMAdb.debug:
                 CMAdb.log.debug('COULD NOT FIND IP ADDRESS in Drone.find... %s' % repr(designation))
         elif isinstance(designation, neo4j.Node):

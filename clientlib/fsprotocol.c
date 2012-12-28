@@ -21,7 +21,6 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  *
  */
-#define	LOG_REFS
 #include <string.h>
 #include <projectcommon.h>
 #include <fsprotocol.h>
@@ -81,15 +80,31 @@ _fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
 }
 
 /// Locate the FsProtoElem structure that corresponds to this (destaddr, qid) pair
+/// Convert everything to v6 addresses before lookup.
 FSTATIC FsProtoElem*
 _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		 guint16 qid			///< Queue id of far endpoint
 ,		 const NetAddr* destaddr)	///< destination address
 {
 	FsProtoElemSearchKey	elem;
-	elem.endpoint	= destaddr;
 	elem._qid	= qid;
-	return (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+	switch(destaddr->_addrtype) {
+
+		case ADDR_FAMILY_IPV6:
+			elem.endpoint	= destaddr;
+			return (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+
+		case ADDR_FAMILY_IPV4: {
+			FsProtoElem*	ret;
+			NetAddr*	v6addr = destaddr->toIPv6(destaddr);
+
+			elem.endpoint = v6addr;
+			ret = (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+			UNREF(v6addr); elem.endpoint = NULL;
+			return ret;
+		}
+	}
+	g_return_val_if_reached(NULL);
 }
 
 /// Find the FsProtoElem that corresponds to the given @ref FrameSet.
@@ -111,29 +126,38 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 
 
 /// Add and return a FsProtoElem connection to our collection of connections...
-/// Note that if it's already there, the exiting connection will be returned.
+/// Note that if it's already there, the existing connection will be returned.
 FSTATIC FsProtoElem*
-_fsprotocol_addconn(FsProtocol*self		///< typical FsProtocol 'self' object
-,		    guint16 qid			///< Queue id for the connection
+_fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
+,		    guint16 qid		///< Queue id for the connection
 ,		    NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	ret;
+
+	if (destaddr->islocal(destaddr)) {
+		char *	deststr = destaddr->baseclass.toString(&destaddr->baseclass);
+		g_warning("%s: Creating connection to local destination %s", __FUNCTION__, deststr);
+		FREE(deststr); deststr = NULL;
+	}
 
 	if ((ret = self->find(self, qid, destaddr))) {
 		return ret;
 	}
 	ret = MALLOCTYPE(FsProtoElem);
 	if (ret) {
-		ret->endpoint = destaddr;
-		REF(destaddr);
+		ret->endpoint = destaddr->toIPv6(destaddr);	// No need to REF() again...
 		ret->_qid = qid;
-		ret->outq = fsqueue_new(0, destaddr, qid);
-		ret->inq  = fsqueue_new(0, destaddr, qid);
+		ret->outq = fsqueue_new(0, ret->endpoint, qid);
+		ret->inq  = fsqueue_new(0, ret->endpoint, qid);
 		ret->lastacksent  = NULL;
 		ret->lastseqsent  = NULL;
 		ret->nextrexmit  = 0;
 		ret->parent = self;
+		g_warn_if_fail(NULL == g_hash_table_lookup(self->endpoints, ret));
 		g_hash_table_insert(self->endpoints, ret, ret);
+		DEBUGMSG2("%s: Creating new FSPE connection (%p) for qid = %d. Dest address follows."
+		,	__FUNCTION__, ret, qid);
+		DUMP2(__FUNCTION__, &ret->endpoint->baseclass, " is dest address for new FSPE");
 	}
 	return ret;
 }
@@ -208,6 +232,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	}else{
 		self->_timersrc = g_timeout_add(rexmit_timer_uS/1000, _fsprotocol_timeoutfun, self);
 	}
+	DEBUGMSG2("%s: Constructed new FsProtocol object (%p)", __FUNCTION__, self);
 	return self;
 }
 
@@ -320,12 +345,14 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 		if (seq == NULL || seq->_reqid == iq->_nextseqno) {
 			FrameSet*	ret;
 			gboolean	del_link = FALSE;
-			if (seq != NULL) {
-				iq->_nextseqno += 1;
-			}
 			REF(iq->_destaddr);
 			*fromaddr = iq->_destaddr;
 			ret = iq->deq(iq);
+			if (seq != NULL) {
+				iq->_nextseqno += 1;
+			}else{
+				DUMP2("fsprotocol_read: returning unsequenced frame", &ret->baseclass, NULL);
+			}
 			// Now look and see if there will _still_ be something
 			// ready to be read on this input queue.  If not, then
 			// we should remove this FsProtoElem from the 'ipend' queue

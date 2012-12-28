@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
@@ -46,6 +47,8 @@
 #include <frametypes.h>
 #include <misc.h>
 #include <nanoprobe.h>
+
+DEBUGDECLARATIONS
 
 #ifdef WIN32
 #	undef HAS_FORK
@@ -94,22 +97,21 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	++wirepktcount;
 	switch(fs->fstype) {
 		case FRAMESETTYPE_HBBACKALIVE:
-			g_debug("Received back alive notification (type %d) over the 'wire'."
-			,	  fs->fstype);
+			g_debug("%s: Received back alive notification (type %d) over the 'wire'."
+			,	  __FUNCTION__, fs->fstype);
 			break;
 
 		default:
 			if (fs->fstype >= FRAMESETTYPE_STARTUP && fs->fstype < FRAMESETTYPE_SENDHB) {
-				g_debug("Received a FrameSet of type %d over the 'wire' (OOPS!)."
-				,	  fs->fstype);
+				g_debug("%s: Received a FrameSet of type %d over the 'wire' (OOPS!)."
+				,	  __FUNCTION__, fs->fstype);
 			}else{
-				g_debug("Received a FrameSet of type %d over the 'wire'."
-				,	  fs->fstype);
+				g_debug("%s: Received a FrameSet of type %d over the 'wire'."
+				,	  __FUNCTION__, fs->fstype);
 			}
 	}
-	//g_debug("DUMPING packet received over 'wire':");
-	//frameset_dump(fs);
-	//g_debug("END of packet received over 'wire':");
+	DUMP3(__FUNCTION__, &srcaddr->baseclass, " Was address received from.");
+	DUMP3(__FUNCTION__, &fs->baseclass, " Was the frameset received.");
 	UNREF(fs);
 	return TRUE;
 }
@@ -149,6 +151,8 @@ check_for_signals(gpointer ignored)
 		g_message("%s: exiting on %s.", procname, (sigterm ? "SIGTERM" : "SIGINT"));
 		uname(&un);
 		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
+		sleep(1);
+		/// @todo Need to wait for an ACK before shutting down...
 		g_main_loop_quit(loop);
 		return FALSE;
 	}
@@ -212,6 +216,7 @@ main(int argc, char **argv)
 	/// @todo initialize from a setup file - initial IP address:port, debug - anything else?
 
 
+	BINDDEBUG(NanoprobeMain);
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	syslog_id = strrchr(argv[0], '/');
 	if (syslog_id) {
@@ -394,16 +399,17 @@ main(int argc, char **argv)
 
 	UNREF(nettransport);
 
-	// Main loop is over - shut everything down, free everything...
-	g_main_loop_unref(loop); loop=NULL;
 
 	// Unlink misc dispatcher - this should NOT be necessary...
 	netpkt->addListener(netpkt, 0, NULL);
 
-	g_source_unref(&netpkt->baseclass); netpkt = NULL;
-
-	// This guy needs to be last - or nearly so...
+	// This two calls need to be last - and in this order...
+	// (I wish the documentation on this stuff was clearer... Sigh...)
 	g_main_context_unref(g_main_context_default());
+	g_main_loop_unref(loop);
+	g_source_unref(&netpkt->baseclass);
+	loop = NULL; netpkt = NULL;
+
 
 	// At this point - nothing should show up - we should have freed everything
 	if (proj_class_live_object_count() > 0) {

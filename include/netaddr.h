@@ -46,14 +46,14 @@ struct _NetAddr {
 	guint16		(*port)(const NetAddr* self);		///< Return port from this address
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
 	gboolean	(*ismcast)(const NetAddr* self);	///< Return TRUE if this address is a multicast address
+	gboolean	(*islocal)(const NetAddr* self);	///< Return TRUE if this address is a local address
 	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 sockaddr corresponding to this address
 	struct sockaddr_in(*ipv4sockaddr)(const NetAddr* self);///< Return the ipv4 sockaddr corresponding to this address
 	gboolean	(*equal)(const NetAddr*,const NetAddr*);///< Compare NetAddrs
 	guint		(*hash)(const NetAddr*);		///< Compute hash of the NetAddr
 	char *		(*canonStr)(const NetAddr*);		///< Canonical form toString
-	NetAddr*	(*toIPv6)(NetAddr*);			///< Convert this NetAddr to the IPv6 equivalent
-								///< It may just return the original address
-								///< after incremeting the reference count.
+	NetAddr*	(*toIPv6)(const NetAddr*);		///< Convert this NetAddr to the IPv6 equivalent
+								///< It always returns a new object
 	gpointer	_addrbody;		///< private: Address body
 	guint16		_addrtype;		///< private: Address type
 	guint16		_addrlen;		///< private: Length of _addrbody

@@ -40,13 +40,14 @@ FSTATIC guint16 _netaddr_port(const NetAddr* self);
 FSTATIC void _netaddr_setport(NetAddr* self, guint16);
 FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gboolean _netaddr_ismcast(const NetAddr* self);
+FSTATIC gboolean _netaddr_islocal(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC guint _netaddr_hash(const NetAddr*);
 FSTATIC gchar * _netaddr_toStringflex(const NetAddr*, gboolean canonformat);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_canonStr(const NetAddr*);
-FSTATIC NetAddr* _netaddr_toIPv6(NetAddr*);
+FSTATIC NetAddr* _netaddr_toIPv6(const NetAddr*);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format);
 FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr);
 FSTATIC NetAddr* _netaddr_string_ipv6_new(const char* addrstr);
@@ -112,24 +113,26 @@ _netaddr_canonStr(const NetAddr* self)
 
 /// Convert this IPv6-encapsulated IPv4 NetAddr to an IPv4 representation
 NetAddr*
-_netaddr_toIPv6(NetAddr* self)
+_netaddr_toIPv6(const NetAddr* self)
 {
 	const int	ipv4prefixlen = 12;
 	guchar		ipv6addr[16] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff, 0, 0, 0, 0};
 	
 	switch (self->_addrtype) {
-		
 		case ADDR_FAMILY_IPV6:
-			REF(self);
-			return self;
+			// Return a copy of this IPv6 address
+			memcpy(ipv6addr, self->_addrbody, sizeof(ipv6addr));
+			return netaddr_ipv6_new(ipv6addr, self->_addrport);
+
 		case ADDR_FAMILY_IPV4:
+			// We have an IPv4 address we want to convert to an IPv6 address
+			memcpy(ipv6addr+ipv4prefixlen, self->_addrbody, 4);
+			return netaddr_ipv6_new(ipv6addr, self->_addrport);
+
+		default:	// OOPS!
 			break;
-		default:
-			return NULL;
 	}
-	// We have an IPv4 address we want to convert to an IPv6 address
-	memcpy(ipv6addr+ipv4prefixlen, self->_addrbody, 4);
-	return netaddr_ipv6_new(ipv6addr, self->_addrport);
+	g_return_val_if_reached(NULL);
 }
 
 
@@ -334,6 +337,32 @@ _netaddr_ismcast(const NetAddr* self)
 	}
 	return	FALSE;
 }
+/// Return TRUE if this is a multicast address
+FSTATIC gboolean
+_netaddr_islocal(const NetAddr* self)
+{
+	switch (self->_addrtype) {
+		case ADDR_FAMILY_IPV4: {
+			guint8 byte0 = ((guint8*)self->_addrbody)[0];
+			return byte0 == 127;;
+		}
+		case ADDR_FAMILY_IPV6: {
+			const guint8	ipv6local[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+			const guint8	ipv4localprefix[13] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff, 127};
+			if (memcmp(self->_addrbody, ipv6local, sizeof(ipv6local)) == 0) {
+				return TRUE;
+			}
+			if (memcmp(self->_addrbody, ipv4localprefix, sizeof(ipv4localprefix)) == 0) {
+				return TRUE;
+			}
+			break;
+		}
+
+		default:
+			break;
+	}
+	return	FALSE;
+}
 
 /// Generic NetAddr constructor.
 NetAddr*
@@ -375,6 +404,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->setport = _netaddr_setport;
 	self->addrtype = _netaddr_addrtype;
 	self->ismcast = _netaddr_ismcast;
+	self->islocal = _netaddr_islocal;
 	self->equal = _netaddr_equal;
 	self->hash = _netaddr_hash;
 

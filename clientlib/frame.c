@@ -45,7 +45,7 @@ FSTATIC void
 _frame_default_finalize(AssimObj * obj) ///< Frame to finalize
 {
 	Frame*	self = CASTTOCLASS(Frame, obj);
-	DEBUGMSG3("%s: Finalizing Frame at 0x%p", __FUNCTION__, self);
+	DEBUGMSG5("%s: Finalizing Frame at 0x%p", __FUNCTION__, self);
 	if (self->value && self->valuefinalize) {
 		self->valuefinalize(self->value);
 	}
@@ -124,7 +124,7 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 	}
 	newobj   = assimobj_new(framesize);
 	if (framesize == sizeof(Frame)) {
-		DEBUGMSG3("%s: Constructing New Frame at 0x%p", __FUNCTION__, newobj);
+		DEBUGMSG5("%s: Constructing New Frame at 0x%p", __FUNCTION__, newobj);
 	}
 	if (newobj != NULL) {
 		proj_class_register_subclassed(newobj, "Frame");

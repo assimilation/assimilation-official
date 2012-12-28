@@ -23,7 +23,6 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
-#define	LOG_REFS
 
 #include <memory.h>
 #include <proj_classes.h>
@@ -128,7 +127,7 @@ _reliableudp_input_queued(const NetIO* nself)
 	gboolean		retval;
 	g_return_val_if_fail(nself != NULL, FALSE);
 	retval = self->_protocol->iready(self->_protocol);
-	DEBUGMSG2("%s: Checking input ready: returning %s", __FUNCTION__, (retval?"True":"False"));
+	DEBUGMSG5("%s: Checking input ready: returning %s", __FUNCTION__, (retval?"True":"False"));
 	return retval;
 }
 
@@ -183,6 +182,8 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 		if (fs) {
 			retval = g_slist_prepend(NULL, fs);
 		}
+	}else{
+		*srcaddr = NULL;
 	}
 	return retval;
 }

@@ -39,6 +39,7 @@ FSTATIC NetAddr* _addrframe_getnetaddr(AddrFrame* self);
 FSTATIC void _addrframe_setnetaddr(AddrFrame* self, NetAddr*netaddr);
 FSTATIC void _addrframe_setport(AddrFrame *, guint16 port);
 FSTATIC void _addrframe_finalize(AssimObj*);
+FSTATIC char* _addrframe_toString(gconstpointer);
 ///@}
 
 /**
@@ -218,6 +219,7 @@ addrframe_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame (not a
 	aframe->setport = _addrframe_setport;
 	aframe->_basefinal = baseframe->baseclass._finalize;
 	baseframe->baseclass._finalize = _addrframe_finalize;
+	baseframe->baseclass.toString = _addrframe_toString;
 	aframe->_addr = NULL;
 	return aframe;
 }
@@ -293,5 +295,19 @@ addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of wh
 		g_return_val_if_reached(NULL);
 	}
 	return &ret->baseclass;
+}
+
+
+/// Convert AddrFrame object into a printable string
+FSTATIC gchar*
+_addrframe_toString(gconstpointer aself)
+{
+	const AddrFrame*	self = CASTTOCONSTCLASS(AddrFrame, aself);
+	char *			selfstr = self->_addr->baseclass.toString(&self->_addr->baseclass);
+	char *			ret;
+
+	ret = g_strdup_printf("AddrFrame(type=%d, %s)", self->baseclass.type, selfstr);
+	g_free(selfstr);
+	return ret;
 }
 ///@}

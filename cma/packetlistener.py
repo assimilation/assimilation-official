@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
 #
 # This file is part of the Assimilation Project.
@@ -22,25 +21,26 @@
 #
 #
 
-from AssimCclasses import pyNetIOudp, pyPacketDecoder, pyNetAddr
+from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
+from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 import time
 import sys
-from cmadb import CMAdb
+import cmadb
 
 class PacketListener:
     'Listen for packets and get them dispatched as any good packet ought to be.'
     def __init__(self, config, dispatch, io=None):
         self.config = config
         if io is None:
-            self.io = pyNetIOudp(config, pyPacketDecoder())
+            self.io = pyReliableUDP(config, pyPacketDecoder())
         else:
             self.io = io
         dispatch.setconfig(self.io, config)
 
-        if not self.io.bindaddr(config['cmainit']):
-            raise NameError('Cannot bind to address %s' % (str(config['cmainit'])))
-        if not self.io.mcastjoin(pyNetAddr('224.0.2.5:1984')):
-            print >>sys.stderr, 'Failed to join multicast at 224.0.2.5'
+        if not self.io.bindaddr(config[CONFIGNAME_CMAINIT]):
+            raise NameError('Cannot bind to address %s' % (str(config[CONFIGNAME_CMAINIT])))
+        if not self.io.mcastjoin(pyNetAddr(CMAADDR)):
+            cmadb.CMAdb.log.warning('Failed to join multicast at %s' % CMAADDR)
         self.io.setblockio(True)
         #print "IO[socket=%d,maxpacket=%d] created." \
         #%  (self.io.getfd(), self.io.getmaxpktsize())
@@ -56,7 +56,7 @@ class PacketListener:
             time.sleep(0.5)
         else:
             fromstr = repr(fromaddr)
-            if CMAdb.debug: CMAdb.log.debug("Received packet from [%s]" % (fromstr))
+            if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug("Received FrameSet from [%s]" % (fromstr))
 
             for frameset in framesetlist:
                 self.dispatcher.dispatch(fromaddr, frameset)

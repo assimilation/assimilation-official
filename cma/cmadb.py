@@ -23,7 +23,6 @@
 import sys
 import logging, logging.handlers
 from py2neo import neo4j, cypher
-from hbring import HbRing
 from AssimCtypes import *
 
 class CMAdb:
@@ -67,7 +66,7 @@ class CMAdb:
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 
-    debug = False
+    debug = True
 
 
     def __init__(self, host='localhost', port=7474):
@@ -119,14 +118,15 @@ class CMAdb:
 
     @staticmethod
     def initglobal(io, cleanoutdb=False):
+        CMAdb.log = logging.getLogger('cma')
         CMAdb.io = io
         CMAdb.cdb = CMAdb()
         if cleanoutdb:
             #print >>sys.stderr, 'Re-initializing the database'
             CMAdb.cdb.delete_all()
             CMAdb.cdb = CMAdb()
-        CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
-        CMAdb.log = logging.getLogger('cma')
+        import hbring
+        CMAdb.TheOneRing =  hbring.HbRing('The_One_Ring', hbring.HbRing.THEONERING)
         syslog = logging.handlers.SysLogHandler(address='/dev/log'
         ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))

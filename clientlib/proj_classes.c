@@ -160,18 +160,20 @@ proj_class_change_debug(const char * Cclass, gint incr)
 	gpointer	gdebugptr;
 	GQuark		CclassQuark = g_quark_from_static_string(Cclass);
 
-	g_hash_table_iter_init(&iter, DebugClassAssociation);
+	if (DebugClassAssociation) {
+		g_hash_table_iter_init(&iter, DebugClassAssociation);
 
-	// Search through all our debug pointers.
-	// Modify (+/-) the debug variables for each class that 'is_a' Cclass object.
-	while (g_hash_table_iter_next(&iter, &classname, &gdebugptr)) {
-		guint*	debug = gdebugptr;
-		GQuark	classQ = g_quark_from_static_string(classname);
-		if (Cclass == NULL || proj_class_quark_is_a(classQ, CclassQuark)) {
-			if (incr < 0 && (guint)-incr >= *debug) {
-				*debug = 0;
-			}else{
-				*debug += incr;
+		// Search through all our debug pointers.
+		// Modify (+/-) the debug variables for each class that 'is_a' Cclass object.
+		while (g_hash_table_iter_next(&iter, &classname, &gdebugptr)) {
+			guint*	debug = gdebugptr;
+			GQuark	classQ = g_quark_from_static_string(classname);
+			if (Cclass == NULL || proj_class_quark_is_a(classQ, CclassQuark)) {
+				if (incr < 0 && (guint)-incr >= *debug) {
+					*debug = 0;
+				}else{
+					*debug += incr;
+				}
 			}
 		}
 	}

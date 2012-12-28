@@ -1170,21 +1170,32 @@ class pyNetIO(pyAssimObj):
     def sendreliablefs(self, destaddr, framesetlist, qid = DEFAULT_FSP_QID):
         'Reliably send the (collection of) frameset(s) out on this pyNetIO (if possible)'
         if destaddr.port() == 0:
-            raise ValueError("Zero Port in sendframesets: destaddr=%s" % str(destaddr))
+            raise ValueError("Zero Port in sendreliablefs: destaddr=%s" % str(destaddr))
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist, )
         base = self._Cstruct[0]
         while (not hasattr(base, 'sendaframeset')):
             base=base.baseclass
         for frameset in framesetlist:
+            print >>sys.stderr, ('SENDING message %s to DEST %s' % (frameset, destaddr))
+            print >>sys.stderr, ('SENDING msg to DEST %s via Cstruct %s' % (destaddr, self._Cstruct))
             base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
 
-    def ackmessage(self, dest, frameset):
+    def ackmessage(self, destaddr, frameset):
         'ACK (acknowledge) this frameset - (presumably sent reliably).'
 
+        base = self._Cstruct[0]
         while (not hasattr(base, 'ackmessage')):
             base=base.baseclass
         base.ackmessage(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
+        
+    def closeconn(self, qid, destaddr):
+        'Close (reset) our connection to this address'
+
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'closeconn')):
+            base=base.baseclass
+        base.closeconn(self._Cstruct, qid, destaddr._Cstruct)
         
 
     def recvframesets(self):
@@ -1195,14 +1206,22 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while (not hasattr(base, 'recvframesets')):
             base=base.baseclass
-        netaddr =  netaddr_ipv4_new(create_string_buffer(4), 101)
+        netaddr =  cast(netaddr_ipv4_new(create_string_buffer(4), 101), cClass.NetAddr)
         netaddr[0].baseclass.unref(netaddr)	# We're about to replace it...
+        # Basically we needed a pointer to pass, and this seemed like a good way to do it...
+        # Maybe it was -- maybe it wasn't...
         fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
-        address = pyNetAddr(None, Cstruct=netaddr)
-        if netaddr:
+        if netaddr and len(fslist) > 0:
             CCref(netaddr)
+            print >>sys.stderr, 'NETADDR:%s, *netaddr:%s' % (netaddr, netaddr[0])
+            print >>sys.stderr, 'NETADDR3 = %s' % (string_at(netaddr[0].baseclass.toString(netaddr), 30))
+            print 'FSlist:', fslist
             address = pyNetAddr(None, Cstruct=netaddr)
+            print >>sys.stderr, 'Received packet from Address %s' % str(address)
+            fs  = fslist[0]
+            print >>sys.stderr, 'FRAMESET = %s' % str(fs)
+            #print >>sys.stderr, 'FRAMESET = %s' % (string_at(fs[0].baseclass.toString(fs), 100))
         else:
             address = None
         return (address, fslist)

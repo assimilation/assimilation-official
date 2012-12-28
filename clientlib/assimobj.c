@@ -91,7 +91,7 @@ assimobj_new(guint objsize)
 	self->unref = _assimobj_unref;
 	self->_finalize = _assimobj_finalize;
 	self->toString = _assimobj_toString;
-	DEBUGMSG2("%s.%d(%d) => REF(%p)", __FUNCTION__, __LINE__, objsize, self);
+	DEBUGMSG5("%s.%d(%d) => REF(%p)", __FUNCTION__, __LINE__, objsize, self);
 	return self;
 }
 ///@}

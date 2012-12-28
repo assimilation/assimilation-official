@@ -21,7 +21,6 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  *
  */
-#define	LOG_REFS
 #include <projectcommon.h>
 #include <fsqueue.h>
 #include <frameset.h>
@@ -110,7 +109,8 @@ _fsqueue_deq(FsQueue* self)		///< The @ref FsQueue object we're operating on
 }
 
 /// Enqueue a @ref FrameSet onto an @ref FsQueue - sorted by sequence number - NO dups allowed
-/// This method is used ONLY for received packets or it could be used for <i>unsequenced</i> output packets.
+/// This function is used ONLY for received packets or it could be used for <i>unsequenced</i> output packets.
+/// The method we follow:  Validate sequence number, then insert the @ref FrameSet into the @ref FsQueue.
 FSTATIC gboolean
 _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating on
 ,		   FrameSet* fs)		///< The @ref FrameSet object to enqueue
@@ -124,6 +124,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	DEBUGMSG2("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
 
 	if (seqno) {
+		// Validate sequence number...
 		if (self->_sessionid == 0) {
 			self->_sessionid = seqno->_sessionid;
 		}else if (seqno->_sessionid < self->_sessionid) {
@@ -155,6 +156,9 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	// Frames without sequence numbers go to the head of the queue
 	if (seqno == NULL) {
+		// This is typically a heartbeat or similar
+		DEBUGMSG2("%s.%d: Pushing unsequenced frame into head of queue", __FUNCTION__, __LINE__);
+		DUMP2("UnSeqFrame", &fs->baseclass, NULL);
 		g_queue_push_head(Q, fs);
 		REF(fs);
 		return TRUE;
@@ -177,7 +181,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	// Regardless of which is true, we can call g_queue_push_tail...
 	REF(fs);
 	g_queue_push_tail(Q, fs);
-	DUMP2(__FUNCTION__, &self->baseclass, "");
+	DUMP2(__FUNCTION__, &self->baseclass, " putting at end of queue");
 	return TRUE;
 }
 
