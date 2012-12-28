@@ -526,6 +526,9 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	return ret;
 }
 
+/// Convert a string into an ipv6 address - possibly including a port as per RFC 4291.
+/// Format is either abcd:efab:cdab:cdef:abcd:efab:cdab:cdef with :: standing in for missing zeroes - 
+/// or [abcd:efab:cdab:cdef:abcd:efab:cdab:cdef]:port-in-decimal - as per standard convention and the RFC.
 FSTATIC NetAddr*
 _netaddr_string_ipv6_new(const char* addrstr)
 {
@@ -564,6 +567,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	char*		firstbadhexchar = NULL;
 	NetAddr*	retval;
 
+	DEBUGMSG3("%s.%d(\"%s\")", __FUNCTION__, __LINE__, addrstr);
 	memset(addrchunks, 0, sizeof(addrchunks));
 
 	if (*addrstr == '[') {
@@ -578,83 +582,115 @@ _netaddr_string_ipv6_new(const char* addrstr)
 		lastaddrdigit = rbracketpos - 1;
 		port = strtol(rbracketpos+2, &firstbadchar, 10);
 		if (*firstbadchar != '\0' || port <= 0 || port >= 65536) {
-			DEBUGMSG2("%s: Not IPv6 format due to bad port number syntax", __FUNCTION__);
+			DEBUGMSG3("%s.%d: Not IPv6 format due to bad port number syntax"
+			,	__FUNCTION__, __LINE__);
 			return NULL;
 		}
 	}
-	// Now, we know where the digit collection starts and ends
+	// Now, we know where the collection of address characters starts and ends
 	if (firstaddrdigit[0] == ':' && firstaddrdigit[1] == ':') {
 		coloncolonindex = 0;
 		firstaddrdigit += 2;
 	}
 	curaddrdigit = firstaddrdigit;
+	// Loop over the characters, breaking it a series of hexadecimal chunks
 	for (chunkindex=0; chunkindex < DIMOF(addrchunks) && curaddrdigit <= lastaddrdigit; ++chunkindex) {
 		long	chunk = strtol(curaddrdigit, &firstbadhexchar, 16);
+		DEBUGMSG5("%s.%d: chunk %d begins [%s] converts to 0x%lx", __FUNCTION__, __LINE__
+		,	chunkindex, curaddrdigit, (unsigned long)chunk);
 		if (chunk < 0 || chunk > 65535) {
-			DEBUGMSG2("%s: Not IPv6 format due to invalid chunk value [%ld]", __FUNCTION__, chunk);
+			DEBUGMSG3("%s.%d: Not IPv6 format due to invalid chunk value [%ld]"
+			,	__FUNCTION__, __LINE__, chunk);
 			return NULL;
 		}
+		// Remember the value of this chunk...
 		addrchunks[chunkindex] = (guint16)chunk;
+
+		// Was the ending delimiter a ':'?
 		if (firstbadhexchar <= lastaddrdigit && *firstbadhexchar != ':') {
-			DEBUGMSG2("%s: Not IPv6 format due to invalid character [%c]", __FUNCTION__, *firstbadhexchar);
+			DEBUGMSG3("%s.%d: Not IPv6 format due to invalid character [%c]"
+			,	__FUNCTION__, __LINE__, *firstbadhexchar);
 			return NULL;
 		}
-		if (firstbadhexchar[1] == ':' && firstbadhexchar[1] == ':') {
-			if (coloncolonindex >= 0) {
-				DEBUGMSG2("%s: Not IPv6 format due to multiple ::'s", __FUNCTION__);
-				return NULL;
+		curaddrdigit = firstbadhexchar;
+		// Is there a :: in this position in the address?
+		if (firstbadhexchar[0] == ':') {
+			if (firstbadhexchar[1] == ':') {
+				if (coloncolonindex >= 0) {
+					// :: can only appear once in the address
+					DEBUGMSG3("%s.%d: Not IPv6 format due to multiple ::'s"
+					,	__FUNCTION__, __LINE__);
+					return NULL;
+				}
+				coloncolonindex = chunkindex + 1;
+				curaddrdigit += 2;
+			}else{
+				curaddrdigit += 1;
 			}
-			coloncolonindex = chunkindex + 1;
-			firstaddrdigit += 2;
+		}else if (*firstbadhexchar != ']' && *firstbadhexchar != '\0') {
+			DEBUGMSG3("%s.%d: Not IPv6 format due to illegal char [%c]"
+			,	__FUNCTION__, __LINE__,	*firstbadhexchar);
+			return NULL;
 		}
-		if (firstbadhexchar == lastaddrdigit + 1) {
+			
+		if (firstbadhexchar >= lastaddrdigit + 1) {
 			break;
 		}
 	}
-	if (firstbadhexchar != lastaddrdigit + 1) {
-		DEBUGMSG2("%s: Not IPv6 format due to excess length.", __FUNCTION__);
+	if (firstbadhexchar != NULL && firstbadhexchar != lastaddrdigit + 1) {
+		DEBUGMSG3("%s.%d: Not IPv6 format due to excess length.", __FUNCTION__, __LINE__);
+		DEBUGMSG3("%s.%d: firstbadhexchar = %p, lastaddrdigit = %p, diff=%ld"
+		,	__FUNCTION__, __LINE__, firstbadhexchar, lastaddrdigit
+		,	(long)(lastaddrdigit-firstbadhexchar));
 		return NULL;
 	}
 	if (coloncolonindex >= 0 && chunkindex == DIMOF(addrchunks)-1) {
-		DEBUGMSG2("%s: Not IPv6 format due to full length with :: present", __FUNCTION__);
+		DEBUGMSG3("%s.%d: Not IPv6 format due to full length with :: present"
+		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
 	if (coloncolonindex < 0 && chunkindex != DIMOF(addrchunks)-1) {
-		DEBUGMSG2("%s: Not IPv6 format due to too few digits.", __FUNCTION__);
+		DEBUGMSG3("%s.%d: Not IPv6 format due to too few digits.", __FUNCTION__, __LINE__);
 		return NULL;
 	}
 	// OK --- now we have something that looks a lot like a legit IPv6 address.
 	// let's see if we can make a NetAddr out of it...
 	if (coloncolonindex >= 0) {
 		coloncolonlength = (DIMOF(addrchunks)-1) - chunkindex;
-		DEBUGMSG5("%s: coloncolonlength is %d, index is %d", __FUNCTION__, coloncolonlength
-		,	coloncolonindex);
+		DEBUGMSG5("%s.%d: coloncolonlength is %d, index is %d", __FUNCTION__, __LINE__
+		,	coloncolonlength, coloncolonindex);
 	}
-	DEBUGMSG5("%s: chunkindex is %d", __FUNCTION__, chunkindex);
+	DEBUGMSG5("%s.%d: chunkindex is %d", __FUNCTION__, __LINE__, chunkindex);
 
 	addrptr = addrbytes;
 
 	memset(addrbytes, 0, DIMOF(addrbytes));
+	// Make our set of chunks into an IPv6 address in binary
 	for (j=0; j <= chunkindex; ++j) {
+		// Is this where the :: goes?
 		if (((gint)j) == coloncolonindex) {
+			// Insert the right number of zeros
 			memset(addrptr, 0, coloncolonlength*2);
 			addrptr += 2*coloncolonlength;
 		}
+		// Copy the next bit of data
 		addrptr[0] = (((addrchunks[j]) >> 8) & 0xff);
 		addrptr[1] = addrchunks[j] & 0xff;
 		addrptr += 2;
 	}
+	// Did the :: appear at the end of the address - weird but legal...
 	if (coloncolonindex == (gint)chunkindex + 1) {
-		DEBUGMSG5("%s: Appending %d zeros to the end of the address", __FUNCTION__
-		,	coloncolonlength*2);
+		DEBUGMSG5("%s.%d: Appending %d zeros to the end of the address"
+		,	__FUNCTION__, __LINE__, coloncolonlength*2);
 		memset(addrptr, 0, coloncolonlength*2);
 		addrptr += 2*coloncolonlength;
 	}
-	DEBUGMSG5("%s: addrptr == addrbytes+%ld", __FUNCTION__, (long)(addrptr-addrbytes));
+	DEBUGMSG5("%s.%d: addrptr == addrbytes+%ld",	__FUNCTION__, __LINE__
+	,	(long)(addrptr-addrbytes));
 	g_return_val_if_fail(addrptr == addrbytes+DIMOF(addrbytes), NULL);
 
 	retval = netaddr_ipv6_new(addrbytes, port);
-	DUMP2(addrstr, &retval->baseclass, " Converted the former into the latter...");
+	DUMP3(addrstr, &retval->baseclass, " Converted the former into the latter...(ignore the extra ':')");
 	return retval;
 }
 

@@ -28,9 +28,10 @@ from frameinfo import *
 from AssimCclasses import *
 import gc
 import re
+from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 
-CheckForDanglingClasses = True
+CheckForDanglingClasses = False
 WorstDanglingCount = 0
 DEBUG=False
 
@@ -105,6 +106,55 @@ class pyNetAddrTest(TestCase):
         # suggested: ::ffff:192.0.2.128
         ipv6 = pyNetAddr((0,0,0,0,0,0,0,0,0,0,255,255,192,0,2,128),)
         self.assertEqual(str(ipv6),"::ffff:192.0.2.128")
+
+    def test_ipv4_strinit(self): 
+        'Test constructing ipv4 addresses from strings.'
+        if DEBUG: print >>sys.stderr, "===============test_ipv4_strinit(pyNetAddrTest)"
+        ipv4 = pyNetAddr('1.2.3.4')
+        self.assertEqual(str(ipv4),'1.2.3.4')
+        ipv4 = pyNetAddr('1.2.3.5')
+        self.assertEqual(str(ipv4),'1.2.3.5')
+        ipv4 = pyNetAddr('1.2.3.4:80')
+        self.assertEqual(str(ipv4),'1.2.3.4:80')
+        ipv4 = pyNetAddr('1.2.3.5:80')
+        self.assertEqual(str(ipv4),'1.2.3.5:80')
+        self.assertRaises(ValueError, pyNetAddr, '1.2.ff.5')
+        self.assertRaises(ValueError, pyNetAddr, '1.2.3.4:')
+        self.assertRaises(ValueError, pyNetAddr, '1.2.3.4:ff')
+
+    def test_ipv6_strinit(self): 
+        'Test constructing ipv6 addresses from strings.'
+        if DEBUG:
+            for j in range(1,5):
+                proj_class_incr_debug('NetAddr')
+        if DEBUG: print >>sys.stderr, "===============test_ipv6_strinit(pyNetAddrTest)"
+        ipv6 = pyNetAddr('::1')
+        self.assertEqual(str(ipv6),'::1')
+        ipv6 = pyNetAddr('::')
+        self.assertEqual(str(ipv6),'::')
+        ipv6 = pyNetAddr('0:1:2:3:4:5:6:7')
+        self.assertEqual(str(ipv6),'0:1:2:3:4:5:6:7')
+        ipv6 = pyNetAddr('::2:3:4:5:6:7')
+        self.assertEqual(str(ipv6),'::2:3:4:5:6:7')
+        ipv6 = pyNetAddr('[::]:1984')
+        self.assertEqual(str(ipv6),'[::]:1984')
+        ipv6 = pyNetAddr('[::1]:80')
+        self.assertEqual(str(ipv6),'[::1]:80')
+        ipv6 = pyNetAddr('[0:1:2:3:4:5:6:7]:8080')
+        self.assertEqual(str(ipv6),'[0:1:2:3:4:5:6:7]:8080')
+        ipv6 = pyNetAddr('::2:3:4:5:6:7')
+        self.assertEqual(str(ipv6),'::2:3:4:5:6:7')
+        ipv6 = pyNetAddr('::a:b:c:d:e:f')
+        self.assertEqual(str(ipv6),'::a:b:c:d:e:f')
+        self.assertRaises(ValueError, pyNetAddr, '0:1:2:3:4:5:6:7::')
+        self.assertRaises(ValueError, pyNetAddr, '[0:1:2:3:4:5:6:7]10')
+        self.assertRaises(ValueError, pyNetAddr, '[0:1:2:3:4:5:6:7]:ff')
+        self.assertRaises(ValueError, pyNetAddr, '0:1:2:3:4:5g:6:7')
+        self.assertRaises(ValueError, pyNetAddr, '[0:1:2:3:4:5g:6:7]:10')
+        # Note that this code doesn't yet support abbreviated IPv4 addresses as input...
+        if DEBUG:
+            for j in range(1,5):
+                proj_class_decr_debug('NetAddr')
 
     @class_teardown
     def tearDown(self):
