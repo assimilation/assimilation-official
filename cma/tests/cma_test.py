@@ -281,6 +281,15 @@ class TestIO:
         for fs in fslist:
             self._sendaframeset(dest, fs)
 
+    def sendreliablefs(self, dest, fslist):
+        self.sendframesets(dest, fslist)
+
+    def ackmessage(self, dest, fs):
+        pass
+
+    def closeconn(self, qid, dest):
+        pass
+
     def _sendaframeset(self, dest, fslist):
         self.writecount += 1
         if SavePackets:

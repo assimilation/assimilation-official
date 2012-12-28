@@ -518,7 +518,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 
 	// First we peek and see how long the message is...
 	*addrlen = sizeof(*srcaddr);
-memset(srcaddr, 0, sizeof(*srcaddr));
+	memset(srcaddr, 0, sizeof(*srcaddr));
 	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_DONTWAIT|MSG_PEEK|MSG_TRUNC,
 		          (struct sockaddr*)srcaddr, addrlen);
 	if (msglen < 0) {
