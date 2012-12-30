@@ -57,7 +57,7 @@ DEBUGDECLARATIONS
 #endif
 
 gint64		pktcount = 0;
-GMainLoop*	loop = NULL;
+GMainLoop*	mainloop = NULL;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
@@ -69,6 +69,9 @@ int		wirepktcount = 0;
 const char *	syslog_id;
 int		syslog_options = LOG_PID|LOG_NDELAY;
 int		syslog_facility = LOG_DAEMON;
+
+guint		idle_shutdown_event = 0;
+guint		shutdown_timer = 0;
 
 //		Signals...
 gboolean	sigint	= FALSE;
@@ -84,6 +87,8 @@ gboolean check_for_signals(gpointer ignored);
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void usage(const char * cmdname);
 void nanoprobe_logger(	const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data);
+gboolean shutdown_when_outdone(gpointer unused);
+gboolean final_shutdown(gpointer unused);
 
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
@@ -141,19 +146,51 @@ catch_a_signal(int signum)
 	}
 }
 
+// If our output is all ACKed, then go ahead ahd shutdown
+gboolean
+shutdown_when_outdone(gpointer unused)
+{
+	(void)unused;
+	// Wait for the CMA to ACK our shutdown message - if we've heard anything from them...
+	if (!nano_connected || !nettransport->outputpending(nettransport)){
+		g_source_remove(shutdown_timer);
+		g_main_quit(mainloop);
+		return FALSE;
+	}
+	return TRUE;
+}
+// Final Shutdown -- a contingency timer to make sure we eventually shut down
+gboolean
+final_shutdown(gpointer unused)
+{
+	(void)unused;
+	if (idle_shutdown_event) {
+		g_source_remove(idle_shutdown_event);
+	}
+	g_main_quit(mainloop);
+	return FALSE;
+}
+
 /// Check for signals periodically
 gboolean
 check_for_signals(gpointer ignored)
 {
 	(void)ignored;
 	if (sigterm || sigint) {
-		struct utsname	un;	// System name, etc.
 		g_message("%s: exiting on %s.", procname, (sigterm ? "SIGTERM" : "SIGINT"));
-		uname(&un);
-		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
-		sleep(1);
-		/// @todo Need to wait for an ACK before shutting down...
-		g_main_loop_quit(loop);
+		if (nano_connected) {
+			struct utsname	un;	// System name, etc.
+			uname(&un);
+			nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
+			// Wait for an ACK before shutting down...
+			idle_shutdown_event = g_idle_add(shutdown_when_outdone, NULL);
+			// But just in case... Shut down in 10 seconds anyway...
+			shutdown_timer = g_timeout_add_seconds(10, final_shutdown, NULL);
+		}else{
+			g_warning("%s: Never connected to CMA - no notification sent.", procname);
+			++errcount;  // Trigger non-zero exit code...
+			return final_shutdown(NULL);
+		}
 		return FALSE;
 	}
 	if (sigusr1) {
@@ -225,12 +262,17 @@ main(int argc, char **argv)
 		syslog_id = argv[0];
 	}
 	while (moreopts) {
-		c = getopt_long(argc, argv, "dc:l:", long_options, &option_index);
+		c = getopt_long(argc, argv, "b:c:dfl:t:", long_options, &option_index);
 		switch(c) {
 			case -1:
 				moreopts = FALSE;
 				break;
 			case  0:	// It already set a flag
+				break;
+
+			case 'b':
+				localaddr = optarg;
+				anyportpermitted = FALSE;
 				break;
 
 			case 'c':
@@ -249,11 +291,6 @@ main(int argc, char **argv)
 
 			case 't':
 				mcast_ttl = atoi(optarg);
-				break;
-
-			case 'b':
-				localaddr = optarg;
-				anyportpermitted = FALSE;
 				break;
 
 			case '?':	// Already printed an error message
@@ -382,13 +419,13 @@ main(int argc, char **argv)
 	// Free config object
 	UNREF(config);
 
-	loop = g_main_loop_new(g_main_context_default(), TRUE);
+	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 
 	/********************************************************************
 	 *	Start up the main loop - run our test program...
 	 *	(the one pretending to be both the nanoprobe and the CMA)
 	 ********************************************************************/
-	g_main_loop_run(loop);
+	g_main_loop_run(mainloop);
 
 	/********************************************************************
 	 *	We exited the main loop.  Shut things down.
@@ -399,16 +436,13 @@ main(int argc, char **argv)
 
 	UNREF(nettransport);
 
-
-	// Unlink misc dispatcher - this should NOT be necessary...
-	netpkt->addListener(netpkt, 0, NULL);
-
 	// This two calls need to be last - and in this order...
 	// (I wish the documentation on this stuff was clearer... Sigh...)
-	g_main_context_unref(g_main_context_default());
-	g_main_loop_unref(loop);
-	g_source_unref(&netpkt->baseclass);
-	loop = NULL; netpkt = NULL;
+	//g_main_context_unref(g_main_context_default());
+	g_main_loop_unref(mainloop);
+	g_source_unref(&netpkt->baseclass);	// Not sure why this is needed...
+	g_source_destroy(&netpkt->baseclass);	// Not sure why this is needed...
+	mainloop = NULL; netpkt = NULL;
 
 
 	// At this point - nothing should show up - we should have freed everything

@@ -123,7 +123,9 @@ struct _NetIO {
 	gboolean	(*supportsreliable)	///< return TRUE if this object supports reliable transport
 				(NetIO* self)		///<[in/out] 'this' object pointer
 						   ;	// ";" is here to work around a doxygen bug
-		
+	gboolean	(*outputpending)	///< return TRUE if this object has output pending
+				(NetIO* self)		///<[in/out] 'this' object pointer
+						   ;	// ";" is here to work around a doxygen bug
 	void		(*closeconn)		///< Flush packets in queues to this address
 			      (NetIO* self,	///< 'this' object pointer
 			       guint16 qid,		///< Queue id for this connection

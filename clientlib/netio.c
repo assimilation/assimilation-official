@@ -378,7 +378,8 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->sendareliablefs = _netio_sendareliablefs;
 	ret->sendreliablefs = _netio_sendreliablefs;
 	ret->ackmessage = _netio_ackmessage;
-	ret->supportsreliable  = _netio_supportsreliable;
+	ret->supportsreliable  = _netio_supportsreliable;	// It just returns FALSE
+	ret->outputpending  = _netio_supportsreliable;		// It just returns FALSE
 	ret->closeconn = _netio_closeconn;
 	ret->_maxpktsize = 65300;
 	ret->_configinfo = config;
