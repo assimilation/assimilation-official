@@ -2005,6 +2005,7 @@ struct__NetIO.__slots__ = [
     'sendreliablefs',
     'ackmessage',
     'supportsreliable',
+    'outputpending',
     'closeconn',
     'signframe',
     'cryptframe',
@@ -2040,6 +2041,7 @@ struct__NetIO._fields_ = [
     ('sendreliablefs', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), guint16, POINTER(GSList))),
     ('ackmessage', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), POINTER(FrameSet))),
     ('supportsreliable', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO))),
+    ('outputpending', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO))),
     ('closeconn', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), guint16, POINTER(NetAddr))),
     ('signframe', CFUNCTYPE(UNCHECKED(POINTER(SignFrame)), POINTER(NetIO))),
     ('cryptframe', CFUNCTYPE(UNCHECKED(POINTER(Frame)), POINTER(NetIO))),
@@ -2048,13 +2050,13 @@ struct__NetIO._fields_ = [
     ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
 ]
 
-# ../include/netio.h: 149
+# ../include/netio.h: 151
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 151
+# ../include/netio.h: 153
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2518,6 +2520,7 @@ struct__FsProtocol.__slots__ = [
     'addconn',
     'closeconn',
     'iready',
+    'outputpending',
     'read',
     'receive',
     'send1',
@@ -2538,6 +2541,7 @@ struct__FsProtocol._fields_ = [
     ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('closeconn', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('iready', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
+    ('outputpending', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
     ('read', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsProtocol), POINTER(POINTER(NetAddr)))),
     ('receive', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('send1', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol), POINTER(FrameSet), guint16, POINTER(NetAddr))),
@@ -2545,7 +2549,7 @@ struct__FsProtocol._fields_ = [
     ('ackmessage', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
 ]
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 90
+# /home/alanr/monitor/src/include/fsprotocol.h: 91
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
     fsprotocol_new.argtypes = [guint, POINTER(NetIO), guint]
@@ -2981,55 +2985,61 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 41
+# /home/alanr/monitor/src/include/nanoprobe.h: 40
+try:
+    nano_connected = (gboolean).in_dll(_libs['libassimilationclientlib.so'], 'nano_connected')
+except:
+    pass
+
+# /home/alanr/monitor/src/include/nanoprobe.h: 42
 if hasattr(_libs['libassimilationclientlib.so'], 'nano_start_full'):
     nano_start_full = _libs['libassimilationclientlib.so'].nano_start_full
     nano_start_full.argtypes = [String, guint, POINTER(NetGSource), POINTER(ConfigContext)]
     nano_start_full.restype = None
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 43
+# /home/alanr/monitor/src/include/nanoprobe.h: 44
 if hasattr(_libs['libassimilationclientlib.so'], 'nano_shutdown'):
     nano_shutdown = _libs['libassimilationclientlib.so'].nano_shutdown
     nano_shutdown.argtypes = [gboolean]
     nano_shutdown.restype = None
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 44
+# /home/alanr/monitor/src/include/nanoprobe.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'nano_packet_decoder'):
     nano_packet_decoder = _libs['libassimilationclientlib.so'].nano_packet_decoder
     nano_packet_decoder.argtypes = []
     nano_packet_decoder.restype = POINTER(PacketDecoder)
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 45
+# /home/alanr/monitor/src/include/nanoprobe.h: 46
 if hasattr(_libs['libassimilationclientlib.so'], 'nanoprobe_report_upstream'):
     nanoprobe_report_upstream = _libs['libassimilationclientlib.so'].nanoprobe_report_upstream
     nanoprobe_report_upstream.argtypes = [guint16, POINTER(NetAddr), String, guint64]
     nanoprobe_report_upstream.restype = None
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 48
+# /home/alanr/monitor/src/include/nanoprobe.h: 49
 try:
     nanoprobe_deadtime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_deadtime_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 50
+# /home/alanr/monitor/src/include/nanoprobe.h: 51
 try:
     nanoprobe_heartbeat_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_heartbeat_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 52
+# /home/alanr/monitor/src/include/nanoprobe.h: 53
 try:
     nanoprobe_warntime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_warntime_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 54
+# /home/alanr/monitor/src/include/nanoprobe.h: 55
 try:
     nanoprobe_comealive_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_comealive_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 56
+# /home/alanr/monitor/src/include/nanoprobe.h: 57
 try:
     nanoprobe_hblistener_new = (POINTER(CFUNCTYPE(UNCHECKED(POINTER(HbListener)), POINTER(NetAddr), POINTER(ConfigContext)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_hblistener_new')
 except:
@@ -4206,19 +4216,19 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 91
+# /home/alanr/monitor/src/include/fsprotocol.h: 92
 try:
     DEFAULT_FSP_QID = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 92
+# /home/alanr/monitor/src/include/fsprotocol.h: 93
 try:
     FSPROTO_WINDOWSIZE = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 93
+# /home/alanr/monitor/src/include/fsprotocol.h: 94
 try:
     FSPROTO_REXMITINTERVAL = 2000000
 except:
