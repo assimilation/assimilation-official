@@ -55,6 +55,7 @@ void (*nanoprobe_heartbeat_agent)(HbListener*)			= NULL;
 void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
 void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
 NanoHbStats		nano_hbstats = {0U, 0U, 0U, 0U, 0U};
+gboolean		nano_connected = FALSE;
 
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
@@ -579,6 +580,8 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 		}
 		REF(nanofailreportaddr);
 	}
+	g_message("Connected to CMA.  Happiness :-D");
+	nano_connected = TRUE;
 }//nanoobey_setconfig
 
 /**
@@ -989,6 +992,7 @@ nano_shutdown(gboolean report)
 		// Unlink heartbeat dispatcher - this should NOT be necessary - but it seems to be...
 		nanotransport->addListener(nanotransport, FRAMESETTYPE_HEARTBEAT, NULL);
 		g_source_unref(CASTTOCLASS(GSource, nanotransport));
+		nanotransport = NULL;
 	}
 	// Free packet decoder
 	if (decoder) {

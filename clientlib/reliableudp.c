@@ -60,6 +60,7 @@ FSTATIC void _reliableudp_sendaframeset(NetIO*, const NetAddr*, FrameSet*);
 FSTATIC void _reliableudp_sendframesets(NetIO*, const NetAddr*, GSList*);
 FSTATIC GSList* _reliableudp_recvframesets(NetIO*, NetAddr**);
 FSTATIC gboolean _reliableudp_supportsreliable(NetIO*);
+FSTATIC gboolean _reliableudp_outputpending(NetIO*);
 
 
 /// Construct new UDP NetIO object (and its socket, etc)
@@ -94,6 +95,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		self->baseclass.baseclass.ackmessage = _reliableudp_ackmessage;
 		self->baseclass.baseclass.closeconn = _reliableudp_closeconn;
 		self->baseclass.baseclass.supportsreliable = _reliableudp_supportsreliable;
+		self->baseclass.baseclass.outputpending = _reliableudp_outputpending;
 		// These next two don't really do anything different - and could be eliminated
 		// as of now.
 		self->baseclass.baseclass.sendframesets = _reliableudp_sendframesets;
@@ -222,12 +224,21 @@ FSTATIC void
 _reliableudp_closeconn(NetIO* nself, guint16 qid, const NetAddr* dest)
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
+	DUMP2("Closing connection to", &dest->baseclass, " calling protocol->closeconn()")
 	self->_protocol->closeconn(self->_protocol, qid, dest);
 }
+/// Just return TRUE - we support reliable transport
 FSTATIC gboolean
 _reliableudp_supportsreliable(NetIO* self)
 {
 	(void) self;
 	return TRUE;
+}
+/// Return TRUE if any (reliable) output is pending
+FSTATIC gboolean
+_reliableudp_outputpending(NetIO* nself)
+{
+	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
+	return self->_protocol->outputpending(self->_protocol);
 }
 ///@}

@@ -529,8 +529,8 @@ class pyFrameSetTest(TestCase):
 class pyConfigContextTest(TestCase):
 
     def test_constructor(self):
-        pyConfigContext()
         if DEBUG: print >>sys.stderr, "===============test_constructor(pyConfigContextTest)"
+        pyConfigContext()
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),) })
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),), 'csf': pyCstringFrame(42, '41+1')})
         self.assertEqual(foo.getint('int1'), 42)

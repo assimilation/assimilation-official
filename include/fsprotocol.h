@@ -81,6 +81,7 @@ struct _FsProtocol {
 	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
 	void		(*closeconn)(FsProtocol*, guint16, const NetAddr*);///< Close this connection (reset it)
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
+	gboolean	(*outputpending)(FsProtocol*);			///< Return TRUE if output is pending
 	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next @ref FrameSet
 	void		(*receive)(FsProtocol*, NetAddr*, FrameSet*);	///< Enqueue a received input @ref FrameSet
 	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one @ref FrameSet

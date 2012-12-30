@@ -40,6 +40,7 @@ FSTATIC void		_fsprotocol_closeconn(FsProtocol*self, guint16 qid, const NetAddr*
 FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_iready(FsProtocol*);
+FSTATIC gboolean	_fsprotocol_outputpending(FsProtocol*);
 FSTATIC FrameSet*	_fsprotocol_read(FsProtocol*, NetAddr**);
 FSTATIC void		_fsprotocol_receive(FsProtocol*, NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_send1(FsProtocol*, FrameSet*, guint16 qid, NetAddr*);
@@ -169,8 +170,11 @@ _fsprotocol_closeconn(FsProtocol*self	///< typical FsProtocol 'self' object
 ,		    const NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
+	DUMP2("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
-		_fsprotocol_protoelem_destroy(fspe);
+		DUMP2("_fsprotocol_closeconn: closing connection to", &destaddr->baseclass, NULL);
+		g_hash_table_remove(self->endpoints, fspe);
+		fspe = NULL;
 	}else if (DEBUG > 0) {
 		char	suffix[16];
 		snprintf(suffix, sizeof(suffix), "/%d", qid);
@@ -201,6 +205,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->findbypkt =	_fsprotocol_findbypkt;
 	self->addconn =		_fsprotocol_addconn;
 	self->iready =		_fsprotocol_iready;
+	self->outputpending =	_fsprotocol_outputpending;
 	self->read =		_fsprotocol_read;
 	self->receive =		_fsprotocol_receive;
 	self->send1 =		_fsprotocol_send1;
@@ -316,6 +321,13 @@ FSTATIC gboolean
 _fsprotocol_iready(FsProtocol* self)	///< Our object
 {
 	return NULL != self->ipend;
+}
+
+/// Return TRUE if there are any unACKed packets in any output queue
+FSTATIC gboolean	
+_fsprotocol_outputpending(FsProtocol* self)	///< Our object
+{
+	return self->unacked != NULL;
 }
 
 /// Read the next available packet from any of our sources

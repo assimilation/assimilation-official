@@ -63,7 +63,6 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 		close(j);
 	}
 	// NOTE: probably can't drop a core in '/'
-	chdir(dirtorunin ? dirtorunin : "/" );
 	umask(027);
 #ifdef HAS_FORK
 	if (!stay_in_foreground) {
@@ -80,6 +79,7 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 			exit(0);
 		}
 		// Otherwise, we're the child.
+		chdir(dirtorunin ? dirtorunin : "/" );
 	}
 #else
 	(void)stay_in_foreground;

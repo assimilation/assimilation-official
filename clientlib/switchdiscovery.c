@@ -44,6 +44,7 @@ _switchdiscovery_finalize(AssimObj* dself)
 	SwitchDiscovery * self = CASTTOCLASS(SwitchDiscovery, dself);
 	if (self->source) {
 		g_source_unref(self->source);
+		g_source_destroy(self->source);
 		self->source = NULL;
 	}
 	if (self->switchid) {

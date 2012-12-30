@@ -582,7 +582,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 		lastaddrdigit = rbracketpos - 1;
 		port = strtol(rbracketpos+2, &firstbadchar, 10);
 		if (*firstbadchar != '\0' || port <= 0 || port >= 65536) {
-			DEBUGMSG3("%s.%d: Not IPv6 format due to bad port number syntax"
+			DEBUGMSG5("%s.%d: Not IPv6 format due to bad port number syntax"
 			,	__FUNCTION__, __LINE__);
 			return NULL;
 		}
@@ -599,7 +599,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 		DEBUGMSG5("%s.%d: chunk %d begins [%s] converts to 0x%lx", __FUNCTION__, __LINE__
 		,	chunkindex, curaddrdigit, (unsigned long)chunk);
 		if (chunk < 0 || chunk > 65535) {
-			DEBUGMSG3("%s.%d: Not IPv6 format due to invalid chunk value [%ld]"
+			DEBUGMSG5("%s.%d: Not IPv6 format due to invalid chunk value [%ld]"
 			,	__FUNCTION__, __LINE__, chunk);
 			return NULL;
 		}
@@ -608,7 +608,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 
 		// Was the ending delimiter a ':'?
 		if (firstbadhexchar <= lastaddrdigit && *firstbadhexchar != ':') {
-			DEBUGMSG3("%s.%d: Not IPv6 format due to invalid character [%c]"
+			DEBUGMSG5("%s.%d: Not IPv6 format due to invalid character [%c]"
 			,	__FUNCTION__, __LINE__, *firstbadhexchar);
 			return NULL;
 		}
@@ -618,7 +618,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 			if (firstbadhexchar[1] == ':') {
 				if (coloncolonindex >= 0) {
 					// :: can only appear once in the address
-					DEBUGMSG3("%s.%d: Not IPv6 format due to multiple ::'s"
+					DEBUGMSG5("%s.%d: Not IPv6 format due to multiple ::'s"
 					,	__FUNCTION__, __LINE__);
 					return NULL;
 				}
@@ -628,7 +628,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 				curaddrdigit += 1;
 			}
 		}else if (*firstbadhexchar != ']' && *firstbadhexchar != '\0') {
-			DEBUGMSG3("%s.%d: Not IPv6 format due to illegal char [%c]"
+			DEBUGMSG5("%s.%d: Not IPv6 format due to illegal char [%c]"
 			,	__FUNCTION__, __LINE__,	*firstbadhexchar);
 			return NULL;
 		}
@@ -638,19 +638,19 @@ _netaddr_string_ipv6_new(const char* addrstr)
 		}
 	}
 	if (firstbadhexchar != NULL && firstbadhexchar != lastaddrdigit + 1) {
-		DEBUGMSG3("%s.%d: Not IPv6 format due to excess length.", __FUNCTION__, __LINE__);
-		DEBUGMSG3("%s.%d: firstbadhexchar = %p, lastaddrdigit = %p, diff=%ld"
+		DEBUGMSG5("%s.%d: Not IPv6 format due to excess length.", __FUNCTION__, __LINE__);
+		DEBUGMSG5("%s.%d: firstbadhexchar = %p, lastaddrdigit = %p, diff=%ld"
 		,	__FUNCTION__, __LINE__, firstbadhexchar, lastaddrdigit
 		,	(long)(lastaddrdigit-firstbadhexchar));
 		return NULL;
 	}
 	if (coloncolonindex >= 0 && chunkindex == DIMOF(addrchunks)-1) {
-		DEBUGMSG3("%s.%d: Not IPv6 format due to full length with :: present"
+		DEBUGMSG5("%s.%d: Not IPv6 format due to full length with :: present"
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
 	if (coloncolonindex < 0 && chunkindex != DIMOF(addrchunks)-1) {
-		DEBUGMSG3("%s.%d: Not IPv6 format due to too few digits.", __FUNCTION__, __LINE__);
+		DEBUGMSG5("%s.%d: Not IPv6 format due to too few digits.", __FUNCTION__, __LINE__);
 		return NULL;
 	}
 	// OK --- now we have something that looks a lot like a legit IPv6 address.
@@ -690,7 +690,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	g_return_val_if_fail(addrptr == addrbytes+DIMOF(addrbytes), NULL);
 
 	retval = netaddr_ipv6_new(addrbytes, port);
-	DUMP3(addrstr, &retval->baseclass, " Converted the former into the latter...(ignore the extra ':')");
+	DUMP5(addrstr, &retval->baseclass, " Converted the former into the latter...(ignore the extra ':')");
 	return retval;
 }
 

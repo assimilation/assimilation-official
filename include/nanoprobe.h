@@ -36,7 +36,8 @@ struct _NanoHbStats {
 	guint	comealive_count;
 	guint	martian_count;
 };
-extern NanoHbStats nano_hbstats;
+extern NanoHbStats	nano_hbstats;
+extern gboolean		nano_connected;
 
 void				nano_start_full(const char *initdiscoverpath, guint discover_interval
 ,						NetGSource* io, ConfigContext* config);
