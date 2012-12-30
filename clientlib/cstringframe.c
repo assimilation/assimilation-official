@@ -111,7 +111,7 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 
 	baseframe = frame_new(frame_type, framesize);
 	if (framesize == sizeof(CstringFrame)) {
-		DEBUGMSG3("%s: Constructing New CstringFrame at 0x%p", __FUNCTION__, baseframe);
+		DEBUGMSG5("%s: Constructing New CstringFrame at 0x%p", __FUNCTION__, baseframe);
 	}
 	baseframe->isvalid = _cstringframe_default_isvalid;
 	baseframe->baseclass.toString = _cstringframe_toString;
