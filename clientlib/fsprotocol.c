@@ -113,10 +113,9 @@ _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 	}
 	if (canresetport && retval && destport != 0
 	&&		retval->endpoint->port(retval->endpoint) != destport) {
-		DEBUGMSG2("%s.%d: setting FSPE port to %d (was %d)."
-		,	__FUNCTION__, __LINE__
-		,	destport, retval->endpoint->port(retval->endpoint));
-		retval->endpoint->setport(retval->endpoint, destport);
+		g_message("%s.%d: Resetting connection due to port change.", __FUNCTION__, __LINE__);
+		g_hash_table_remove(self->endpoints, retval);
+		retval = NULL;
 	}
 	return retval;
 }
@@ -141,6 +140,7 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 	// This only comes up because we have this idea that we have two protocol endpoints
 	// on the CMA - one for the CMA itself, and one for the nanoprobe which is running on it.
 	//
+	///@todo Should we <b>only</b> do this for the case where the frameset type is STARTUP?
 	ret =  self->addconn(self, qid, addr, (seq != NULL || fs->fstype == FRAMESETTYPE_STARTUP));
 	return ret;
 }
