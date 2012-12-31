@@ -50,12 +50,12 @@ _listener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 
 /// Finalize a Listener
 void
-_listener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
+_listener_finalize(AssimObj * aself) ///<[in/out] Listener to finalize
 {
-	Listener* lself = CASTTOCLASS(Listener, self);
-	UNREF(lself->config);
-	lself->dissociate(lself);
-	memset(lself, 0x00, sizeof(*lself));
+	Listener* self = CASTTOCLASS(Listener, aself);
+	UNREF(self->config);
+	self->dissociate(self);
+	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self);
 }
 

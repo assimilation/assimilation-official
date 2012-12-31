@@ -23,8 +23,12 @@
  */
 #ifndef _MISC_H
 #include <projectcommon.h>
+#include <syslog.h>
+#include <stdio.h>
+
+extern const char*	assim_syslogid;
 
 void daemonize_me(gboolean stay_in_foreground, const char * dirtorunin);
-
+void assimilation_openlog(const char* logname);
 #endif /* MISC_H */
 ///@}

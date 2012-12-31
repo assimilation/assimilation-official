@@ -32,6 +32,7 @@
 #include <framesettypes.h>
 #include <jsondiscovery.h>
 #include <assert.h>
+#include <fsprotocol.h>
 ///@defgroup JsonDiscoveryClass JSON discovery class.
 /// JSONDiscovery class - supporting the discovery of various things through scripts that
 /// produce JSON output to stdout.  Parameters are passed to these scripts through the environment.
@@ -96,7 +97,7 @@ _jsondiscovery_discover(Discovery* dself)
 	argv[1] = strdup("-c");
 	argv[2] = g_strdup_printf("%s > %s", self->_fullpath, self->_tmpfilename);
 	argv[3] = NULL;
-	assert(self->_fullpath != NULL);
+	g_return_val_if_fail(self->_fullpath != NULL, FALSE);
 
 	DEBUGMSG1("Running Discovery [%s] [%s] [%s]", argv[0], argv[1], argv[2]);
 	
@@ -190,7 +191,7 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
 	frameset_append_frame(fs, fsf);
 	DEBUGMSG1("Sending a %"G_GSIZE_FORMAT" bytes JSON frameset", jsonlen);
-	io->sendaframeset(io, cma, fs);
+	io->_netio->sendareliablefs(io->_netio, cma, DEFAULT_FSP_QID, fs);
 	++ self->baseclass.reportcount;
 	UNREF(fsf);
 	UNREF(fs);

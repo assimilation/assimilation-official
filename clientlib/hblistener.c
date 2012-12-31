@@ -21,6 +21,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
+#define IS_LISTENER_SUBCLASS	1
 #include <memory.h>
 #include <glib.h>
 #include <frame.h>
@@ -45,6 +46,7 @@ FSTATIC void _hblistener_set_heartbeat_callback(HbListener*, void (*callback)(Hb
 FSTATIC void _hblistener_set_warntime_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
 FSTATIC void _hblistener_set_comealive_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
 
+DEBUGDECLARATIONS;
 guint64 proj_get_real_time(void); 	///@todo - make this a real global function
 
 ///@defgroup HbListener HbListener class.
@@ -189,15 +191,26 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 FSTATIC void
 _hblistener_notify_function(gpointer ignored)	///<[unused] Unused
 {
+	(void)ignored;
+	hblistener_shutdown();
+}
+
+/// Shuts down all our hblisteners...
+FSTATIC void
+hblistener_shutdown(void)
+{
 	GSList* this;
 	GSList* next = NULL;
-	(void)ignored;
 		
 	// Unref all our listener objects...
 	for (this = _hb_listeners; this; this=next) {
 		HbListener* listener = CASTTOCLASS(HbListener, this->data);
 		next = this->next;
 		UNREF2(listener);
+	}
+	if (_hb_listeners) {
+		g_slist_free(_hb_listeners);
+		_hb_listeners = NULL;
 	}
 }
 
@@ -207,10 +220,9 @@ FSTATIC void
 _hblistener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	HbListener *hbself = CASTTOCLASS(HbListener, self);
+	DEBUGMSG2("%s.%d - finalizing.", __FUNCTION__, __LINE__);
 	UNREF(hbself->listenaddr);
-	UNREF(hbself->baseclass.config);
-	memset(hbself, 0x00, sizeof(*hbself));
-	FREECLASSOBJ(hbself);
+	_listener_finalize(self);
 	self = NULL; hbself = NULL;
 }
 
@@ -224,6 +236,7 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 {
 	HbListener *	newlistener;
 	Listener *	base;
+	BINDDEBUG(HbListener);
 	if (objsize < sizeof(HbListener)) {
 		objsize = sizeof(HbListener);
 	}

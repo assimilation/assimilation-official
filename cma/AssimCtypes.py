@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --no-macro-warnings --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -2654,17 +2654,16 @@ struct__HbListener.__slots__ = [
     'set_deadtime_callback',
     'set_warntime_callback',
     'set_comealive_callback',
-    '_expected_interval',
-    '_warn_interval',
-    'nexttime',
-    'warntime',
-    '_refcount',
-    'listenaddr',
-    'status',
     '_heartbeat_callback',
     '_deadtime_callback',
     '_warntime_callback',
     '_comealive_callback',
+    '_expected_interval',
+    '_warn_interval',
+    'nexttime',
+    'warntime',
+    'listenaddr',
+    'status',
 ]
 struct__HbListener._fields_ = [
     ('baseclass', Listener),
@@ -2676,42 +2675,47 @@ struct__HbListener._fields_ = [
     ('set_deadtime_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))),
     ('set_warntime_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))),
     ('set_comealive_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))),
-    ('_expected_interval', guint64),
-    ('_warn_interval', guint64),
-    ('nexttime', guint64),
-    ('warntime', guint64),
-    ('_refcount', c_int),
-    ('listenaddr', POINTER(NetAddr)),
-    ('status', HbNodeStatus),
     ('_heartbeat_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener))),
     ('_deadtime_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener))),
     ('_warntime_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64)),
     ('_comealive_callback', CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64)),
+    ('_expected_interval', guint64),
+    ('_warn_interval', guint64),
+    ('nexttime', guint64),
+    ('warntime', guint64),
+    ('listenaddr', POINTER(NetAddr)),
+    ('status', HbNodeStatus),
 ]
 
-# /home/alanr/monitor/src/include/hblistener.h: 68
+# /home/alanr/monitor/src/include/hblistener.h: 67
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_new'):
     hblistener_new = _libs['libassimilationclientlib.so'].hblistener_new
     hblistener_new.argtypes = [POINTER(NetAddr), POINTER(ConfigContext), gsize]
     hblistener_new.restype = POINTER(HbListener)
 
-# /home/alanr/monitor/src/include/hblistener.h: 69
+# /home/alanr/monitor/src/include/hblistener.h: 68
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_unlisten'):
     hblistener_unlisten = _libs['libassimilationclientlib.so'].hblistener_unlisten
     hblistener_unlisten.argtypes = [POINTER(NetAddr)]
     hblistener_unlisten.restype = None
 
-# /home/alanr/monitor/src/include/hblistener.h: 70
+# /home/alanr/monitor/src/include/hblistener.h: 69
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_set_martian_callback'):
     hblistener_set_martian_callback = _libs['libassimilationclientlib.so'].hblistener_set_martian_callback
     hblistener_set_martian_callback.argtypes = [CFUNCTYPE(UNCHECKED(None), POINTER(NetAddr))]
     hblistener_set_martian_callback.restype = None
 
-# /home/alanr/monitor/src/include/hblistener.h: 71
+# /home/alanr/monitor/src/include/hblistener.h: 70
 if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_find_by_address'):
     hblistener_find_by_address = _libs['libassimilationclientlib.so'].hblistener_find_by_address
     hblistener_find_by_address.argtypes = [POINTER(NetAddr)]
     hblistener_find_by_address.restype = POINTER(HbListener)
+
+# /home/alanr/monitor/src/include/hblistener.h: 71
+if hasattr(_libs['libassimilationclientlib.so'], 'hblistener_shutdown'):
+    hblistener_shutdown = _libs['libassimilationclientlib.so'].hblistener_shutdown
+    hblistener_shutdown.argtypes = []
+    hblistener_shutdown.restype = None
 
 # /home/alanr/monitor/src/include/hbsender.h: 39
 class struct__HbSender(Structure):
@@ -2952,11 +2956,23 @@ for _lib in _libs.itervalues():
     enable_lldp_packets.restype = gboolean
     break
 
-# /home/alanr/monitor/src/include/misc.h: 27
+# /home/alanr/monitor/src/include/misc.h: 29
+try:
+    assim_syslogid = (String).in_dll(_libs['libassimilationclientlib.so'], 'assim_syslogid')
+except:
+    pass
+
+# /home/alanr/monitor/src/include/misc.h: 31
 if hasattr(_libs['libassimilationclientlib.so'], 'daemonize_me'):
     daemonize_me = _libs['libassimilationclientlib.so'].daemonize_me
     daemonize_me.argtypes = [gboolean, String]
     daemonize_me.restype = None
+
+# /home/alanr/monitor/src/include/misc.h: 32
+if hasattr(_libs['libassimilationclientlib.so'], 'assimilation_openlog'):
+    assimilation_openlog = _libs['libassimilationclientlib.so'].assimilation_openlog
+    assimilation_openlog.argtypes = [String]
+    assimilation_openlog.restype = None
 
 # /home/alanr/monitor/src/include/nanoprobe.h: 32
 class struct__NanoHbStats(Structure):
@@ -4234,7 +4250,7 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/hblistener.h: 66
+# /home/alanr/monitor/src/include/hblistener.h: 65
 try:
     DEFAULT_DEADTIME = 60
 except:

@@ -131,8 +131,9 @@ if __name__ == '__main__':
     opt, args = parser.parse_args()
 
 
-    from AssimCtypes import daemonize_me
+    from AssimCtypes import daemonize_me, assimilation_openlog
     daemonize_me(opt.foreground, '/')
+    assimilation_openlog("cma") # Cannot appear before daemonize_me() or bind() fails -- not quite sure why...
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher
     from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER, DispatchHBSHUTDOWN

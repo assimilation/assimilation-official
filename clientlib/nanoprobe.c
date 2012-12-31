@@ -382,7 +382,7 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 				hblisten->set_comealive_callback(hblisten, _real_comealive_agent);
 				// Intercept incoming heartbeat packets
 				transport->addListener(transport, FRAMESETTYPE_HEARTBEAT
-				,		    CASTTOCLASS(Listener, hblisten));
+				,		    &hblisten->baseclass);
 				// Unref this heartbeat listener, and forget our reference.
 				UNREF2(hblisten);
 				/*
@@ -984,6 +984,7 @@ nano_shutdown(gboolean report)
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
 	}
 	hbsender_stopallsenders();
+	hblistener_shutdown();
 	UNREF2(swdisc);
 	if (nanofailreportaddr) {
 		UNREF(nanofailreportaddr);

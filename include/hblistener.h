@@ -51,17 +51,16 @@ struct _HbListener {
 	void		(*set_deadtime_callback)(HbListener*, void (*)(HbListener* who));
 	void		(*set_warntime_callback)(HbListener*, void (*)(HbListener* who,  guint64 howlate));
 	void		(*set_comealive_callback)(HbListener*, void (*)(HbListener* who, guint64 howlate));
-	guint64		_expected_interval;		///< How often to expect heartbeats
-	guint64		_warn_interval;			///< When to warn about late heartbeats
-	guint64		nexttime;			///< When next heartbeat is due
-	guint64		warntime;			///< Warn heartbeat time
-	int		_refcount;			///< Current reference count
-	NetAddr*	listenaddr;			///< What address are we listening for?
-	HbNodeStatus	status;				///< What status is this node in?
 	void		(*_heartbeat_callback)(HbListener* who);
 	void		(*_deadtime_callback)(HbListener* who);
 	void		(*_warntime_callback)(HbListener* who, guint64 howlate);
 	void		(*_comealive_callback)(HbListener* who, guint64 howlate);
+	guint64		_expected_interval;		///< How often to expect heartbeats
+	guint64		_warn_interval;			///< When to warn about late heartbeats
+	guint64		nexttime;			///< When next heartbeat is due
+	guint64		warntime;			///< Warn heartbeat time
+	NetAddr*	listenaddr;			///< What address are we listening for?
+	HbNodeStatus	status;				///< What status is this node in?
 };
 #define	DEFAULT_DEADTIME	60 // seconds
 
@@ -69,7 +68,7 @@ WINEXPORT HbListener*	hblistener_new(NetAddr*, ConfigContext* config, gsize hbli
 WINEXPORT void 		hblistener_unlisten(NetAddr* unlistenaddr);
 WINEXPORT void		hblistener_set_martian_callback(void (*)(NetAddr* who));
 WINEXPORT HbListener*	hblistener_find_by_address(const NetAddr* which);
-
+WINEXPORT void		hblistener_shutdown(void);
 ///@}
 
 #endif /* _HBLISTENER_H */

@@ -56,6 +56,7 @@ class PacketListener:
             time.sleep(0.5)
         else:
             fromstr = repr(fromaddr)
+            if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug("Received FrameSet from str([%s])" % (str(fromaddr)))
             if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug("Received FrameSet from [%s]" % (fromstr))
 
             for frameset in framesetlist:

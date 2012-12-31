@@ -21,14 +21,12 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
 #include <getopt.h>
-#include <syslog.h>
 #include <sys/utsname.h>
 #include <projectcommon.h>
 #include <framesettypes.h>
@@ -66,9 +64,6 @@ int		heartbeatcount = 0;
 int		errcount = 0;
 int		pcapcount = 0;
 int		wirepktcount = 0;
-const char *	syslog_id;
-int		syslog_options = LOG_PID|LOG_NDELAY;
-int		syslog_facility = LOG_DAEMON;
 
 guint		idle_shutdown_event = 0;
 guint		shutdown_timer = 0;
@@ -82,17 +77,16 @@ gboolean	sigusr2 = FALSE;
 
 const char *	procname = "nanoprobe";
 
-void catch_a_signal(int signum);
-gboolean check_for_signals(gpointer ignored);
-gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
-void usage(const char * cmdname);
-void nanoprobe_logger(	const gchar *log_domain, GLogLevelFlags log_level, const gchar *message, gpointer user_data);
-gboolean shutdown_when_outdone(gpointer unused);
-gboolean final_shutdown(gpointer unused);
+FSTATIC void catch_a_signal(int signum);
+FSTATIC gboolean check_for_signals(gpointer ignored);
+FSTATIC gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
+FSTATIC void usage(const char * cmdname);
+FSTATIC gboolean final_shutdown(gpointer unused);
+FSTATIC gboolean shutdown_when_outdone(gpointer unused);
 
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
-gboolean
+FSTATIC gboolean
 gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	  FrameSet* fs,		///<[in/out] @ref FrameSet "FrameSet"s received
 	  NetAddr* srcaddr	///<[in] Source address of this packet
@@ -102,17 +96,17 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	++wirepktcount;
 	switch(fs->fstype) {
 		case FRAMESETTYPE_HBBACKALIVE:
-			g_debug("%s: Received back alive notification (type %d) over the 'wire'."
-			,	  __FUNCTION__, fs->fstype);
+			g_message("%s.%d: Received back alive notification (type %d) over the 'wire'."
+			,	  __FUNCTION__, __LINE__, fs->fstype);
 			break;
 
 		default:
 			if (fs->fstype >= FRAMESETTYPE_STARTUP && fs->fstype < FRAMESETTYPE_SENDHB) {
-				g_debug("%s: Received a FrameSet of type %d over the 'wire' (OOPS!)."
-				,	  __FUNCTION__, fs->fstype);
+				g_warning("%s.%d: Received a FrameSet of type %d over the 'wire' (OOPS!)."
+				,	  __FUNCTION__, __LINE__, fs->fstype);
 			}else{
-				g_debug("%s: Received a FrameSet of type %d over the 'wire'."
-				,	  __FUNCTION__, fs->fstype);
+				DEBUGMSG("%s.%d: Received a FrameSet of type %d over the 'wire'."
+				,	  __FUNCTION__, __LINE__, fs->fstype);
 			}
 	}
 	DUMP3(__FUNCTION__, &srcaddr->baseclass, " Was address received from.");
@@ -122,7 +116,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 }
 
 /// Signal reception function - signals stop by here...
-void
+FSTATIC void
 catch_a_signal(int signum)
 {
 	switch(signum) {
@@ -146,8 +140,8 @@ catch_a_signal(int signum)
 	}
 }
 
-// If our output is all ACKed, then go ahead ahd shutdown
-gboolean
+// If our output is all ACKed, then go ahead and shutdown
+FSTATIC gboolean
 shutdown_when_outdone(gpointer unused)
 {
 	(void)unused;
@@ -160,7 +154,7 @@ shutdown_when_outdone(gpointer unused)
 	return TRUE;
 }
 // Final Shutdown -- a contingency timer to make sure we eventually shut down
-gboolean
+FSTATIC gboolean
 final_shutdown(gpointer unused)
 {
 	(void)unused;
@@ -172,7 +166,7 @@ final_shutdown(gpointer unused)
 }
 
 /// Check for signals periodically
-gboolean
+FSTATIC gboolean
 check_for_signals(gpointer ignored)
 {
 	(void)ignored;
@@ -202,7 +196,7 @@ check_for_signals(gpointer ignored)
 	return TRUE;
 }
 
-void
+FSTATIC void
 usage(const char * cmdname)
 {
 	fprintf(stderr, "usage: %s [arguments...]\n", cmdname);
@@ -254,13 +248,6 @@ main(int argc, char **argv)
 
 
 	BINDDEBUG(NanoprobeMain);
-	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
-	syslog_id = strrchr(argv[0], '/');
-	if (syslog_id) {
-		syslog_id += 1;
-	}else{
-		syslog_id = argv[0];
-	}
 	while (moreopts) {
 		c = getopt_long(argc, argv, "b:c:dfl:t:", long_options, &option_index);
 		switch(c) {
@@ -309,10 +296,9 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION
-	,	nanoprobe_logger, NULL);
 
 	daemonize_me(stay_in_foreground, "/");
+	assimilation_openlog(argv[0]);
 
 	if (!netio_is_dual_ipv4v6_stack()) {
 		g_warning("This OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
@@ -456,51 +442,4 @@ main(int argc, char **argv)
 	}
         proj_class_finalize_sys(); /// Shut down object system to make valgrind happy :-D
 	return(errcount <= 127 ? errcount : 127);
-}
-
-void
-nanoprobe_logger(	const gchar *log_domain,
-			GLogLevelFlags log_level,
-			const gchar *message,
-			gpointer user_data)
-{
-	static gboolean	syslog_opened = FALSE;
-	int		syslogprio = LOG_INFO;
-	const char *	prefix = "INFO:";
-
-	(void)user_data;
-	if (!syslog_opened) {
-		openlog(syslog_id, syslog_options, syslog_facility);
-		syslog_opened = TRUE;
-	}
-	if (log_level & G_LOG_LEVEL_DEBUG) {
-		syslogprio = LOG_DEBUG;
-		prefix = "DEBUG";
-	}
-	if (log_level & G_LOG_LEVEL_INFO) {
-		syslogprio = LOG_INFO;
-		prefix = "INFO";
-	}
-	if (log_level & G_LOG_LEVEL_MESSAGE) {
-		syslogprio = LOG_NOTICE;
-		prefix = "NOTICE";
-	}
-	if (log_level & G_LOG_LEVEL_WARNING) {
-		syslogprio = LOG_WARNING;
-		prefix = "WARN";
-	}
-	if (log_level & G_LOG_LEVEL_CRITICAL) {
-		syslogprio = LOG_ERR;
-		prefix = "ERROR";
-	}
-	if (log_level & G_LOG_LEVEL_ERROR) {
-		syslogprio = LOG_EMERG; // Or maybe LOG_CRIT ?
-		prefix = "EMERG";
-	}
-	syslog(syslogprio, "%s:%s %s", prefix
-	,	log_domain == NULL ? "" : log_domain
-	,	message);
-	fprintf(stderr, "%s: %s:%s %s\n", syslog_id, prefix
-	,	log_domain == NULL ? "" : log_domain
-	,	message);
 }
