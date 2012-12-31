@@ -88,7 +88,8 @@ FSTATIC FsProtoElem*
 _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		 guint16 qid			///< Queue id of far endpoint
 ,		 const NetAddr* destaddr	///< destination address
-,		 gboolean canresetport)
+,		 gboolean canresetport)		///< TRUE if we're allowed to reset the connection
+						///< if the current port is mismatched with new dest.
 {
 	FsProtoElem*		retval = NULL;
 	guint16			destport = destaddr->port(destaddr);
