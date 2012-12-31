@@ -196,6 +196,7 @@ if __name__ == '__main__':
     if opt.doTrace:
         import trace
         tracer = trace.Trace(count=False, trace=True)
+        print >>sys.stderr, "TRACING..."
         tracer.run('listener.listen()')
     else:
         listener.listen()

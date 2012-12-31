@@ -52,33 +52,35 @@ class DispatchHBDEAD(DispatchTarget):
         fstype = frameset.get_framesettype()
         fromdrone = self.DroneInfo.find(origaddr)
         #print>>sys.stderr, "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
-    #%      (FrameSetTypes.get(fstype)[0], str(origaddr))
+        #%      (FrameSetTypes.get(fstype)[0], str(origaddr))
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.IPADDR:
                 deaddrone = self.DroneInfo.find(frame.getnetaddr())
-                deaddrone.death_report('dead', 'HBDEAD packet', origaddr, frameset)
+                deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
 
 class DispatchHBSHUTDOWN(DispatchTarget):
-    'DispatchTarget subclass for handling incoming HBHBDEAD FrameSets.'
+    'DispatchTarget subclass for handling incoming HBSHUTDOWN FrameSets.'
     def dispatch(self, origaddr, frameset):
-        'Dispatch function for HBDEAD FrameSets'
+        'Dispatch function for HBSHUTDOWN FrameSets'
         json = None
         fstype = frameset.get_framesettype()
-        CMAdb.log.warning("DispatchHBSHUTDOWN: received [%s] FrameSet from [%s]" 
-        %      (FrameSetTypes.get(fstype)[0], str(origaddr)))
+        fsname = FrameSetTypes.get(fstype)[0]
         for frame in frameset.iter():
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
-                fromdrone = self.DroneInfo.find(frame.getstr(), port=origaddr.port())
+                hostname = frame.getstr()
+                fromdrone = self.DroneInfo.find(hostname, port=origaddr.port())
                 if fromdrone is not None:
-                    fromdrone.death_report('dead', 'HBSHUTDOWN packet', origaddr, frameset)
+                    CMAdb.log.info("System %s at %s reports it has been gracefully shut down." % (hostname, str(origaddr)))
+                    fromdrone.death_report('dead', fsname, origaddr, frameset)
                 else:
-                    CMAdb.log.error("DispatchHBSHUTDOWN: received FrameSet from unknown drone at [%s]"
-                    %   str(origaddr))
+                    CMAdb.log.error("DispatchHBSHUTDOWN: received %s FrameSet from unknown drone %s at [%s]"
+                    %   (fsname, hostname, str(origaddr)))
                 return
-        CMAdb.log.error("DispatchHBSHUTDOWN: received invalid FrameSet from drone at [%s] [%s]"
-        %   str(origaddr, str(frameset)))
+        CMAdb.log.error("DispatchHBSHUTDOWN: received invalid %s FrameSet from drone at [%s]"
+        %      (fsname, str(origaddr)))
+        CMAdb.log.error("DispatchHBSHUTDOWN: invalid FrameSet: %s", str(frameset))
 
 
 class DispatchSTARTUP(DispatchTarget):
@@ -89,8 +91,8 @@ class DispatchSTARTUP(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             CMAdb.log.debug("DispatchSTARTUP: received [%s] FrameSet from [%s]"
-        %       (FrameSetTypes.get(fstype)[0], addrstr))
-        CMAdb.log.debug('Resetting communications to %s/%d' % (origaddr, DEFAULT_FSP_QID))
+            %       (FrameSetTypes.get(fstype)[0], addrstr))
+            CMAdb.log.debug('Resetting communications to %s/%d' % (origaddr, DEFAULT_FSP_QID))
         self.io.closeconn(DEFAULT_FSP_QID, origaddr)
         for frame in frameset.iter():
             frametype=frame.frametype()
@@ -172,7 +174,7 @@ class DispatchSWDISCOVER(DispatchTarget):
                 switchjson = SwitchDiscovery.decode_discovery(designation, interface
                 ,               wallclock, pktstart, pktend)
                 if CMAdb.debug:
-                    CMAdb.log.debug('GOT Link Discovery INFO from %s: %s' % (interface, str(switchjson)))
+                    CMAdb.log.debug('Got Link discovery info from %s: %s' % (interface, str(switchjson)))
                 drone = self.DroneInfo.find(designation)
                 drone.logjson(str(switchjson))
                 break

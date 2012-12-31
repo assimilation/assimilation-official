@@ -248,8 +248,9 @@ class DroneInfo:
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
-        CMAdb.log.warning('Node %s has been reported as %s by address %s. Reason: %s'
-        %   (self.node['name'], status, str(fromaddr), reason))
+        if reason != 'HBSHUTDOWN':
+            CMAdb.log.info('Node %s has been reported as %s by address %s. Reason: %s'
+            %   (self.node['name'], status, str(fromaddr), reason))
         self.status = status
         self.reason = reason
         self.node['status'] = status
@@ -262,11 +263,10 @@ class DroneInfo:
         for rel in rellist:
             if rel.type.startswith(hbring.HbRing.memberprefix):
                 ringname = rel.end_node['name']
-                if True or CMAdb.debug:
-                    CMAdb.log.debug('Drone %s is (was) a member of ring %s' % (self, ringname))
+                if CMAdb.debug: CMAdb.log.debug('%s was a member of ring %s' % (self, ringname))
                 hbring.HbRing.ringnames[ringname].leave(self)
         deadip = pyNetAddr(self.primary_ip(), port=self.getport())
-        CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
+        if CMAdb.debug: CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self.io.closeconn(DEFAULT_FSP_QID, deadip)
 
 
@@ -285,7 +285,7 @@ class DroneInfo:
         else:
             partner2ip = None
             partner2port = None
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             CMAdb.log.debug('STARTING heartbeat(s) from %s [%s:%s] to %s [%s:%s] and %s [%s:%s]' %
                 (self, ourip, self.port, partner1, partner1ip, partner1.port, partner2, partner2ip, partner2port))
 	if partner2 is None or partner2.port == partner1.port:
@@ -306,7 +306,7 @@ class DroneInfo:
         else:
             partner2ip = None
         # Stop sending the heartbeat messages between these (former) peers
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' % 
                 (self, ourip, partner1, partner1ip, partner2, partner2ip))
         #self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, 0, (partner1ip, partner2ip))
@@ -397,7 +397,7 @@ class DroneInfo:
                 node = ip.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_iphost)
                 return DroneInfo.find(node, port=dport)
             if CMAdb.debug:
-                CMAdb.log.debug('COULD NOT FIND IP ADDRESS in Drone.find... %s' % repr(designation))
+                CMAdb.log.debug('could not find IP address in Drone.find... %s' % repr(designation))
         elif isinstance(designation, neo4j.Node):
             nodedesig = designation['name']
             if nodedesig in DroneInfo._droneweakrefs:

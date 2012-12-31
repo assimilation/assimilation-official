@@ -975,6 +975,7 @@ void
 nano_shutdown(gboolean report)
 {
 	if (report) {
+		NetIOstats*	ts = &nanotransport->_netio->stats;
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of heartbeats:", nano_hbstats.heartbeat_count);
 		g_info("%-35s %8d", "Count of deadtimes:", nano_hbstats.dead_count);
 		g_info("%-35s %8d", "Count of warntimes:", nano_hbstats.warntime_count);
@@ -982,6 +983,17 @@ nano_shutdown(gboolean report)
 		g_info("%-35s %8d", "Count of martians:", nano_hbstats.martian_count);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts sent:", swdisc->baseclass.reportcount);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of recvfrom calls:", ts->recvcalls);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of pkts read:", ts->pktsread);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of framesets read:", ts->fsreads);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of sendto calls:", ts->sendcalls);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of pkts written:", ts->pktswritten);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of framesets written:", ts->fswritten);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of reliable framesets sent:", ts->reliablesends);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of reliable framesets recvd:", ts->reliablereads);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of ACKs sent:", ts->ackssent);
+		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of ACKs recvd:", ts->acksrecvd);
 	}
 	hbsender_stopallsenders();
 	hblistener_shutdown();

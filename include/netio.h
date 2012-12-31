@@ -36,6 +36,19 @@
 
 ///@{
 /// @ingroup NetIO
+typedef struct _NetIOstats NetIOstats;
+struct _NetIOstats {
+	guint64		recvcalls;	///< How many recvfrom calls have we done?
+	guint64		pktsread;	///< How many packets have been successfully read?
+	guint64		fsreads;	///< How many @ref FrameSet  were successfully read?
+	guint64		sendcalls;	///< How many sendto calls have we done?
+	guint64		pktswritten;	///< How many packets have been successfully written?
+	guint64		fswritten;	///< How many @ref FrameSet  were successfully written?
+	guint64		reliablesends;	///< How many reliable FrameSets have we sent?
+	guint64		reliablereads;	///< How many reliable FrameSets have we read?
+	guint64		ackssent;	///< How many ACKs have we sent?
+	guint64		acksrecvd;	///< How many ACKs have we received?
+};
 typedef struct _NetIO NetIO;
 
 /// This is a basic @ref NetIO abstract class for doing network I/O.
@@ -43,6 +56,7 @@ typedef struct _NetIO NetIO;
 /// and is managed by our @ref ProjectClass system.
 struct _NetIO {
 	AssimObj	baseclass;
+	NetIOstats	stats;				///< Net I/O stats
 	GIOChannel*	giosock;			///< Glib GIOChannel for this socket
 	gint		_maxpktsize;			///< Maximum packet size for this transport
 	ConfigContext*	_configinfo;			///< I/O and other configuration information

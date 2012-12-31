@@ -76,9 +76,9 @@ struct _FsProtocol {
 	guint		window_size;					///< Window size of our connections
 	gint64		rexmit_interval;				///< How often to retransmit - in uS
 	guint		_timersrc;					///< gmainloop timer source id
-	FsProtoElem*	(*find)(FsProtocol*,guint16, const NetAddr*);	///< Find connection to given endpoint
+	FsProtoElem*	(*find)(FsProtocol*,guint16,const NetAddr*,gboolean);	///< Find connection to given endpoint
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
-	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
+	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*,gboolean);	///< Add a connection to the given endpoint
 	void		(*closeconn)(FsProtocol*, guint16, const NetAddr*);///< Close this connection (reset it)
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
 	gboolean	(*outputpending)(FsProtocol*);			///< Return TRUE if output is pending
