@@ -567,7 +567,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	char*		firstbadhexchar = NULL;
 	NetAddr*	retval;
 
-	DEBUGMSG3("%s.%d(\"%s\")", __FUNCTION__, __LINE__, addrstr);
+	DEBUGMSG5("%s.%d(\"%s\")", __FUNCTION__, __LINE__, addrstr);
 	memset(addrchunks, 0, sizeof(addrchunks));
 
 	if (*addrstr == '[') {

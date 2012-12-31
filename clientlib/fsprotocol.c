@@ -52,7 +52,7 @@ FSTATIC void		_fsprotocol_closeconn(FsProtocol* self, guint16 qid, const NetAddr
 
 FSTATIC void		_fsprotocol_auditfspe(FsProtoElem*, const char * function, int lineno);
 
-#define AUDITFSPE(fspe)	_fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__)
+#define AUDITFSPE(fspe)	{ if (fspe) _fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__); }
 
 
 DEBUGDECLARATIONS
@@ -73,10 +73,12 @@ _fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
 	if (outqlen != 0 && !in_unackedlist) {
 		g_warning("%s:%d: outqlen is %d but not in unacked list"
 		,	function, lineno, outqlen);
+		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
 	}
 	if (outqlen == 0 && in_unackedlist) {
 		g_warning("%s:%d: outqlen is zero but it IS in the unacked list"
 		,	function, lineno);
+		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
 	}
 }
 
@@ -87,25 +89,34 @@ _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		 guint16 qid			///< Queue id of far endpoint
 ,		 const NetAddr* destaddr)	///< destination address
 {
+	FsProtoElem*		retval = NULL;
+	guint16			destport = destaddr->port(destaddr);
 	FsProtoElemSearchKey	elem;
+
 	elem._qid	= qid;
 	switch(destaddr->_addrtype) {
 
 		case ADDR_FAMILY_IPV6:
 			elem.endpoint	= destaddr;
-			return (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+			retval = (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+			break;
 
 		case ADDR_FAMILY_IPV4: {
-			FsProtoElem*	ret;
 			NetAddr*	v6addr = destaddr->toIPv6(destaddr);
 
 			elem.endpoint = v6addr;
-			ret = (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+			retval = (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
 			UNREF(v6addr); elem.endpoint = NULL;
-			return ret;
+			break;
 		}
 	}
-	g_return_val_if_reached(NULL);
+	if (retval && destport != 0 && retval->endpoint->port(retval->endpoint) != destport) {
+		g_warning("%s.%d: setting FSPE port to %d (was %d)."
+		,	__FUNCTION__, __LINE__
+		,	destport, retval->endpoint->port(retval->endpoint));
+		retval->endpoint->setport(retval->endpoint, destport);
+	}
+	return retval;
 }
 
 /// Find the FsProtoElem that corresponds to the given @ref FrameSet.
@@ -276,6 +287,8 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 {
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
 	DUMP2("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
+	self->parent->unacked	= g_list_remove(self->parent->unacked, self);
+	self->parent->ipend	= g_list_remove(self->parent->ipend, self);
 	UNREF(self->endpoint);
 	DEBUGMSG2("UNREFing INPUT QUEUE");
 	UNREF(self->inq);
@@ -409,6 +422,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	if (fs->fstype == FRAMESETTYPE_ACK) {
 		// Find the packet being ACKed, remove it from the output queue, and send
 		// out the  next packet in that output queue...
+		if (seq == NULL && DEBUGVAR < 2) {
+			DEBUGVAR = 2;
+		}
 		DUMP2(__FUNCTION__, &fs->baseclass, " was ACK received.");
 		g_return_if_fail(seq != NULL);
 		fspe->outq->ackthrough(fspe->outq, seq);
@@ -473,6 +489,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 {
 	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret;
+	g_return_val_if_fail(NULL != fspe, FALSE);	// Should not be possible...
 	AUDITFSPE(fspe);
 	if (fspe->outq->_q->length == 0) {
 		///@todo: This might be slow if we send a lot of packets to an endpoint
@@ -550,14 +567,19 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 	frameset_append_frame(fs, &seq->baseclass);
 	// Appending the seq frame will increment its reference count
 
+	fspe = self->find(self, seq->_qid, destaddr);
+	// sendaframeset will hang onto frameset and frames as long as it needs them
+	AUDITFSPE(fspe);
 	self->io->sendaframeset(self->io, destaddr, fs);
+	AUDITFSPE(fspe);
 	UNREF(fs);
 
-	// sendaframeset will hang onto frameset and frames as long as it needs them
-	fspe = self->find(self, seq->_qid, destaddr);
-	g_return_if_fail(fspe != NULL);
-
-	if ((fspe->lastacksent == NULL || fspe->lastacksent->compare(fspe->lastacksent, seq) < 0)) {
+	if (NULL == fspe) {
+		// We may have closed this connection
+		g_message("Sending an ACK on a closed channel.");
+		DUMP(__FUNCTION__, &destaddr->baseclass, " IS DEST ADDR.");
+		DUMP(__FUNCTION__, &seq->baseclass.baseclass, " IS ACK SEQNO.");
+	}else if ((fspe->lastacksent == NULL || fspe->lastacksent->compare(fspe->lastacksent, seq) < 0)) {
 		if (fspe->lastacksent) {
 			UNREF2(fspe->lastacksent);
 		}
@@ -641,6 +663,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			fspe->nextrexmit = now + parent->rexmit_interval;
 			DUMP1(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
 			io->sendaframeset(io, fspe->endpoint, fs);
+			AUDITFSPE(fspe);
 		}else{
 			g_warn_if_reached();
 			fspe->nextrexmit = 0;
@@ -673,7 +696,7 @@ _fsprotocol_timeoutfun(gpointer userdata)
 		FsProtoElem*	fspe = (FsProtoElem*)pending->data;
 		next = pending->next;
 		AUDITFSPE(fspe);
-		_fsprotocol_xmitifwecan(fspe);
+		TRYXMIT(fspe);
 		AUDITFSPE(fspe);
 	}
 	return TRUE;

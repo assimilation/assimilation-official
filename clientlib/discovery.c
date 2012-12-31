@@ -34,7 +34,7 @@ FSTATIC char *		_discovery_instancename(const Discovery* self);
 FSTATIC void		_discovery_flushcache(Discovery* self);
 FSTATIC guint		_discovery_discoverintervalsecs(const Discovery* self);
 FSTATIC gboolean	_discovery_rediscover(gpointer vself);
-FSTATIC void		_discovery_destructor(gpointer gdiscovery);
+FSTATIC void		_discovery_ghash_destructor(gpointer gdiscovery);
 
 DEBUGDECLARATIONS
 
@@ -66,21 +66,39 @@ FSTATIC void
 _discovery_finalize(AssimObj* gself)	///<[in/out] Object to finalize (free)
 {
 	Discovery*	self = CASTTOCLASS(Discovery, gself);
+	char *		instancename = self->_instancename;
 	
 	if (self->_timerid > 0) {
 		g_source_remove(self->_timerid);
 		self->_timerid = 0;
 	}
-	if (_discovery_timers) {
-		g_hash_table_remove(_discovery_timers, self->_instancename);
+	if (self->_config) {
+		UNREF(self->_config);
 	}
-	if (self->_instancename) {
-		g_free(self->_instancename);
-		self->_instancename = NULL;
+	if (_discovery_timers && instancename) {
+		self->_instancename = NULL;	// Avoid infinite recursion...
+		g_hash_table_remove(_discovery_timers, instancename);
+	}
+	if (instancename) {
+		g_free(instancename);
+		self->_instancename = instancename = NULL;
 	}
 	
 	FREECLASSOBJ(self); self=NULL;
 }
+
+/// Discovery Destructor function for the GHashTable.
+/// This function gets called every time a @ref Discovery gets deleted from our _discovery_timers
+/// hash table.
+/// It has the potential for infinite mutual recursion with discovery_finalize() - which we prevent.
+FSTATIC void
+_discovery_ghash_destructor(gpointer gdiscovery)
+{
+	Discovery*	self = CASTTOCLASS(Discovery, gdiscovery);
+	// We take steps in discovery_finalize() to avoid infinite recursion...
+	UNREF(self);
+}
+
 /// GSourceFunc function to invoke discover member function at the timed interval.
 /// This function is called by the g_main_loop mechanism when the rediscover timeout elapses.
 FSTATIC gboolean
@@ -113,19 +131,10 @@ discovery_new(const char *	instname,	///<[in] instance name
 	ret->_timerid			= 0;
 	ret->_iosource			= iosource;
 	ret->_config			= context;
+	REF(ret->_config);
 	return ret;
 }
 
-
-/// Discovery Destructor function for the GHashTable
-FSTATIC void
-_discovery_destructor(gpointer gdiscovery)
-{
-	Discovery*	discovery = CASTTOCLASS(Discovery, gdiscovery);
-        g_return_if_fail(discovery != NULL);
-	UNREF(discovery);
-	gdiscovery = NULL;
-}
 
 /// Function for registering a discovery object with the discovery infrastructure.
 /// It runs the discover function, then schedules it for repeated discovery - if appropriate.
@@ -139,7 +148,7 @@ discovery_register(Discovery* self)	///<[in/out] Discovery object to register
 	gint	timeout;
 	if (NULL == _discovery_timers) {
 		_discovery_timers = g_hash_table_new_full(g_str_hash, g_str_equal
-		,	NULL, _discovery_destructor);
+		,	NULL, _discovery_ghash_destructor);
 		assert(_discovery_timers != NULL);
 	}
 	self->discover(self);

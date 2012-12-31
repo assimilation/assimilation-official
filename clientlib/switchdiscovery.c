@@ -22,10 +22,11 @@
  */
 
 #include <projectcommon.h>
+#include <memory.h>
 #include <switchdiscovery.h>
 #include <lldp.h>
 #include <cdp.h>
-#include <memory.h>
+#include <fsprotocol.h>
 FSTATIC gboolean _switchdiscovery_discover(Discovery* self);
 FSTATIC void _switchdiscovery_finalize(AssimObj* self);
 FSTATIC gboolean _switchdiscovery_cache_info(SwitchDiscovery* self, gconstpointer pkt, gconstpointer pend);
@@ -101,7 +102,7 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	++ self->baseclass.reportcount;
 	//g_debug("Sending out LLDP/CDP packet - hurray!");
 	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
-	transport->sendaframeset(transport, dest, fs);
+	transport->_netio->sendareliablefs(transport->_netio, dest, DEFAULT_FSP_QID, fs);
 	UNREF(fs);
 	return TRUE;
 }

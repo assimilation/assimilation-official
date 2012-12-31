@@ -26,12 +26,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <misc.h>
+
+void assimilation_logger(const gchar *log_domain, GLogLevelFlags log_level,
+			 const gchar *message, gpointer user_data);
+const char *	assim_syslogid = "assim"; /// Should be overridden with the name to appear in the logs
 
 
 /// Make us into a proper daemon.
@@ -84,4 +89,73 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 #else
 	(void)stay_in_foreground;
 #endif
+}
+
+static gboolean	syslog_opened = FALSE;
+void
+assimilation_openlog(const char* logname)
+{
+	const int	syslog_options = LOG_PID|LOG_NDELAY;
+	const int	syslog_facility = LOG_DAEMON;
+
+	if (!syslog_opened) {
+		g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION
+		,	assimilation_logger, NULL);
+	}
+	assim_syslogid = strrchr(logname, '/');
+	if (assim_syslogid && assim_syslogid[1] != '\0') {
+		assim_syslogid += 1;
+	}else{
+		assim_syslogid = logname;
+	}
+	if (syslog_opened) {
+		closelog();
+	}
+	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	openlog(assim_syslogid, syslog_options, syslog_facility);
+	syslog_opened = TRUE;
+}
+void
+assimilation_logger(const gchar *log_domain,	///< What domain are we logging to?
+		    GLogLevelFlags log_level,	///< What is our log level?
+		    const gchar *message,	///< What should we log
+		    gpointer ignored)		///< Ignored
+{
+	int		syslogprio = LOG_INFO;
+	const char *	prefix = "INFO:";
+
+	(void)ignored;
+	if (!syslog_opened) {
+		assimilation_openlog(assim_syslogid);
+	}
+	if (log_level & G_LOG_LEVEL_DEBUG) {
+		syslogprio = LOG_DEBUG;
+		prefix = "DEBUG";
+	}
+	if (log_level & G_LOG_LEVEL_INFO) {
+		syslogprio = LOG_INFO;
+		prefix = "INFO";
+	}
+	if (log_level & G_LOG_LEVEL_MESSAGE) {
+		syslogprio = LOG_NOTICE;
+		prefix = "NOTICE";
+	}
+	if (log_level & G_LOG_LEVEL_WARNING) {
+		syslogprio = LOG_WARNING;
+		prefix = "WARN";
+	}
+	if (log_level & G_LOG_LEVEL_CRITICAL) {
+		syslogprio = LOG_ERR;
+		prefix = "ERROR";
+	}
+	if (log_level & G_LOG_LEVEL_ERROR) {
+		syslogprio = LOG_EMERG; // Or maybe LOG_CRIT ?
+		prefix = "EMERG";
+	}
+	syslog(syslogprio, "%s:%s %s", prefix
+	,	log_domain == NULL ? "" : log_domain
+	,	message);
+	fprintf(stderr, "%s: %s:%s %s\n", assim_syslogid, prefix
+	,	log_domain == NULL ? "" : log_domain
+	,	message);
 }
