@@ -360,7 +360,6 @@ class FrameSetTypes:
 	'HBLATE':	(21, 'System named in packet sent a late heartbeat.'),
 	'HBBACKALIVE':	(22, 'System named in packet sent heartbeat after being marked dead.'),
 	'HBMARTIAN':	(23, 'System named in packet appears gave unexpected heartbeat.'),
-	'PROBEALIVE':	(24, 'Packet issued by nanoprobe on startup - asking to be configured.'),
 	'SWDISCOVER':	(25, 'Packet encapsulates switch discovery packet'),
 	'JSDISCOVERY':	(26, 'Packet contains JSON-formatted discovery data'),
 	# 'Privileged' FrameSets sent from the CMA to nanoprobes
