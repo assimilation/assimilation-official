@@ -875,8 +875,9 @@ class pyConfigContext(pyAssimObj):
     def __init__(self, init=None, Cstruct=None):
         'Initializer for pyConfigContext'
         self._Cstruct = None # Keep error legs from complaining.
-        if Cstruct is None:
-            if Cstruct is None and (isinstance(init, str) or isinstance(init, unicode)):
+        print "CSTRUCT0:", Cstruct
+        if not Cstruct:
+            if not Cstruct  and (isinstance(init, str) or isinstance(init, unicode)):
                 Cstruct = configcontext_new_JSON_string(str(init))
                 #CCref(Cstruct)
                 if not Cstruct:
@@ -884,7 +885,10 @@ class pyConfigContext(pyAssimObj):
                 init = None
             else:
                 Cstruct=configcontext_new(0)
+            print "CSTRUCT1:", Cstruct
         else:
+            print "CSTRUCT2:", Cstruct
+            print "CSTRUCT2[0]:", Cstruct[0]
             CCref(Cstruct)
         pyAssimObj.__init__(self, Cstruct=Cstruct)
         if init is not None:

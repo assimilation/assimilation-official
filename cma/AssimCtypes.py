@@ -1971,14 +1971,46 @@ if hasattr(_libs['libassimilationclientlib.so'], 'packetdecoder_new'):
     packetdecoder_new.argtypes = [guint, POINTER(FrameTypeToFrame), gint]
     packetdecoder_new.restype = POINTER(PacketDecoder)
 
-# ../include/netio.h: 44
+# ../include/netio.h: 40
+class struct__NetIOstats(Structure):
+    pass
+
+NetIOstats = struct__NetIOstats # ../include/netio.h: 39
+
+struct__NetIOstats.__slots__ = [
+    'recvcalls',
+    'pktsread',
+    'fsreads',
+    'sendcalls',
+    'pktswritten',
+    'fswritten',
+    'reliablesends',
+    'reliablereads',
+    'ackssent',
+    'acksrecvd',
+]
+struct__NetIOstats._fields_ = [
+    ('recvcalls', guint64),
+    ('pktsread', guint64),
+    ('fsreads', guint64),
+    ('sendcalls', guint64),
+    ('pktswritten', guint64),
+    ('fswritten', guint64),
+    ('reliablesends', guint64),
+    ('reliablereads', guint64),
+    ('ackssent', guint64),
+    ('acksrecvd', guint64),
+]
+
+# ../include/netio.h: 57
 class struct__NetIO(Structure):
     pass
 
-NetIO = struct__NetIO # ../include/netio.h: 39
+NetIO = struct__NetIO # ../include/netio.h: 52
 
 struct__NetIO.__slots__ = [
     'baseclass',
+    'stats',
     'giosock',
     '_maxpktsize',
     '_configinfo',
@@ -2015,6 +2047,7 @@ struct__NetIO.__slots__ = [
 ]
 struct__NetIO._fields_ = [
     ('baseclass', AssimObj),
+    ('stats', NetIOstats),
     ('giosock', POINTER(GIOChannel)),
     ('_maxpktsize', gint),
     ('_configinfo', POINTER(ConfigContext)),
@@ -2050,13 +2083,13 @@ struct__NetIO._fields_ = [
     ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
 ]
 
-# ../include/netio.h: 151
+# ../include/netio.h: 165
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 153
+# ../include/netio.h: 167
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2536,9 +2569,9 @@ struct__FsProtocol._fields_ = [
     ('window_size', guint),
     ('rexmit_interval', gint64),
     ('_timersrc', guint),
-    ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
+    ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr), gboolean)),
     ('findbypkt', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
-    ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
+    ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr), gboolean)),
     ('closeconn', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('iready', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
     ('outputpending', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
@@ -3748,83 +3781,77 @@ except:
 
 # ../include/framesettypes.h: 42
 try:
-    FRAMESETTYPE_PROBEALIVE = 24
+    FRAMESETTYPE_SWDISCOVER = 25
 except:
     pass
 
 # ../include/framesettypes.h: 43
 try:
-    FRAMESETTYPE_SWDISCOVER = 25
+    FRAMESETTYPE_JSDISCOVERY = 26
 except:
     pass
 
 # ../include/framesettypes.h: 44
 try:
-    FRAMESETTYPE_JSDISCOVERY = 26
+    FRAMESETTYPE_SENDHB = 64
 except:
     pass
 
 # ../include/framesettypes.h: 45
 try:
-    FRAMESETTYPE_SENDHB = 64
+    FRAMESETTYPE_EXPECTHB = 65
 except:
     pass
 
 # ../include/framesettypes.h: 46
 try:
-    FRAMESETTYPE_EXPECTHB = 65
+    FRAMESETTYPE_SENDEXPECTHB = 66
 except:
     pass
 
 # ../include/framesettypes.h: 47
 try:
-    FRAMESETTYPE_SENDEXPECTHB = 66
+    FRAMESETTYPE_STOPSENDHB = 67
 except:
     pass
 
 # ../include/framesettypes.h: 48
 try:
-    FRAMESETTYPE_STOPSENDHB = 67
+    FRAMESETTYPE_STOPEXPECTHB = 68
 except:
     pass
 
 # ../include/framesettypes.h: 49
 try:
-    FRAMESETTYPE_STOPEXPECTHB = 68
+    FRAMESETTYPE_STOPSENDEXPECTHB = 69
 except:
     pass
 
 # ../include/framesettypes.h: 50
 try:
-    FRAMESETTYPE_STOPSENDEXPECTHB = 69
+    FRAMESETTYPE_SETCONFIG = 70
 except:
     pass
 
 # ../include/framesettypes.h: 51
 try:
-    FRAMESETTYPE_SETCONFIG = 70
+    FRAMESETTYPE_INCRDEBUG = 71
 except:
     pass
 
 # ../include/framesettypes.h: 52
 try:
-    FRAMESETTYPE_INCRDEBUG = 71
+    FRAMESETTYPE_DECRDEBUG = 72
 except:
     pass
 
 # ../include/framesettypes.h: 53
 try:
-    FRAMESETTYPE_DECRDEBUG = 72
-except:
-    pass
-
-# ../include/framesettypes.h: 54
-try:
     FRAMESETTYPE_DODISCOVER = 73
 except:
     pass
 
-# ../include/framesettypes.h: 55
+# ../include/framesettypes.h: 54
 try:
     FRAMESETTYPE_STOPDISCOVER = 74
 except:
@@ -4718,7 +4745,9 @@ _FrameTypeToFrame = struct__FrameTypeToFrame # ../include/packetdecoder.h: 37
 
 _PacketDecoder = struct__PacketDecoder # ../include/packetdecoder.h: 44
 
-_NetIO = struct__NetIO # ../include/netio.h: 44
+_NetIOstats = struct__NetIOstats # ../include/netio.h: 40
+
+_NetIO = struct__NetIO # ../include/netio.h: 57
 
 _NetGSource = struct__NetGSource # ../include/netgsource.h: 43
 

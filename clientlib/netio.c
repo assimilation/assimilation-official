@@ -397,6 +397,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	if (ret->_compressframe) {
 		REF(ret->_compressframe);
 	}
+	memset(&ret->stats, 0, sizeof(ret->stats));
 	return ret;
 }
 
@@ -422,6 +423,8 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	}
 
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
+	self->stats.sendcalls ++;
+	self->stats.pktswritten ++;
         if (rc != length) {
 		char *	tostring = destaddr->baseclass.toString(destaddr);
 		g_warning(
@@ -466,6 +469,7 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		DUMP2("Sending Packet to", &destaddr->baseclass, NULL);
 		DUMP2("Packet being sent:", &curfs->baseclass, NULL);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
+		self->stats.fswritten++;
 		
 	}
 }
@@ -522,6 +526,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	memset(srcaddr, 0, sizeof(*srcaddr));
 	msglen = recvfrom(self->getfd(self), dummy, 1, MSG_DONTWAIT|MSG_PEEK|MSG_TRUNC,
 		          (struct sockaddr*)srcaddr, addrlen);
+	self->stats.recvcalls ++;
 	if (msglen < 0) {
 		if (errno != EAGAIN) {
 			g_warning("recvfrom(%d, ... MSG_PEEK) failed: %s (in %s:%s:%d)",
@@ -542,6 +547,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	*addrlen = sizeof(*srcaddr);
 	msglen2 = recvfrom(self->getfd(self), msgbuf, msglen, MSG_DONTWAIT|MSG_TRUNC,
 			   (struct sockaddr *)srcaddr, addrlen);
+	self->stats.recvcalls ++;
 
 	// Was there an error?
 	if (msglen2 < 0) {
@@ -568,6 +574,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 			msgbuf = NULL;
 		}
 	}
+	self->stats.pktsread ++;
 	return msgbuf;
 }
 /// Member function to receive a collection of FrameSets (GSList*) out of our NetIO object
@@ -590,6 +597,8 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 		if (NULL != ret) {
 			*src = netaddr_sockaddr_new(&srcaddr, addrlen);
 		}else{
+			DEBUGMSG("Received a %lu byte packet that didn't make any FrameSets"
+			,	(unsigned long)((guint8*)pktend-(guint8*)pkt));
 			FREE(ret); ret = NULL;
 		}
 		FREE(pkt);
@@ -597,6 +606,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	if (ret && *src) {
 		DUMP2("Received Packet from", &((*src)->baseclass), NULL);
 		DUMP2("First Packet Received:", &(CASTTOCLASS(FrameSet, ret->data)->baseclass), NULL);
+		self->stats.fsreads += g_slist_length(ret);
 	}
 	return ret;
 }
