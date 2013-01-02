@@ -139,7 +139,7 @@ _ipportframe_setaddr(IpPortFrame* f,	//<[in/out] Frame to set the address type f
 		f->baseclass.value = NULL;
 	}
 
-	tlv_set_guint16(blob, addrtype, blobend);
+	tlv_set_guint16(blob, port, blobend);
 	tlv_set_guint16(blob+sizeof(guint16), addrtype, blobend);
 	memcpy(blob+sizeof(guint16)+sizeof(guint16), addr, addrlen);
 	f->baseclass.length = blobsize;
@@ -230,7 +230,7 @@ ipportframe_ipv6_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFra
 }
 
 /// Construct and initialize an @ref IpPortFrame from a IP @ref NetAddr
-IpPortFrame*
+WINEXPORT IpPortFrame*
 ipportframe_netaddr_new(guint16 frame_type, NetAddr* addr)
 {
 	guint16		port = addr->port(addr);
@@ -267,6 +267,10 @@ ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of 
 	guint16		addr_family;
 	guint16		port;
 
+// +-------------+----------------+-------------+---------------+--------------------+
+// | frametype   |    f_length    | Port Number | Address Type  |    address-data    |
+// |  16 bits)   |    (16-bits)   |   2 bytes   |   2 bytes     | (f_length-4 bytes) |
+// +-------------+----------------+-------------+---------------+--------------------+
 	port = tlv_get_guint16(framevalue, pktend);
 	if (port == 0) {
 		return NULL;
