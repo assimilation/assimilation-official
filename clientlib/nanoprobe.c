@@ -39,7 +39,6 @@
 #include <netgsource.h>
 #include <authlistener.h>
 #include <nvpairframe.h>
-#include <ipportframe.h>
 #include <hblistener.h>
 #include <hbsender.h>
 #include <configcontext.h>
@@ -114,8 +113,7 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 		}
 		// Add the address - if any...
 		if (who != NULL) {
-			AddrFrame*	peeraddr	= addrframe_new(FRAMETYPE_IPADDR, 0);
-			peeraddr->setnetaddr(peeraddr, who);
+			IpPortFrame*	peeraddr	= ipportframe_netaddr_new(FRAMETYPE_IPPORT, who);
 			frameset_append_frame(fs, &peeraddr->baseclass);
 			UNREF2(peeraddr);
 		}
@@ -219,11 +217,11 @@ _real_comealive_agent(HbListener* who, guint64 howlate)
  * Such FrameSets are sent when the Collective Authority wants us to send
  * Heartbeats to various addresses. This might be from a FRAMESETTYPE_SENDHB
  * FrameSet or a FRAMESETTYPE_SENDEXPECTHB FrameSet.
- * The send interval, and port number can come from the FrameSet or from the
+ * The send interval can come from the FrameSet or from the
  * @ref ConfigContext parameter we're given - with the FrameSet taking priority.
  *
- * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPADDR
- * @ref AddrFrame in the FrameSet.
+ * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPPORT
+ * @ref IpPortFrame in the FrameSet.
  */
 void
 nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
@@ -234,16 +232,12 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 	GSList*		slframe;
 	guint		addrcount = 0;
 	ConfigContext*	config = parent->baseclass.config;
-	int		port = 0;
 	guint16		sendinterval = 0;
 
 
 	g_return_if_fail(fs != NULL);
 	(void)fromaddr;
 	
-	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
-		port = config->getint(config, CONFIGNAME_HBPORT);
-	}
 	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
 		sendinterval = config->getint(config, CONFIGNAME_HBTIME);
 	}
@@ -253,39 +247,23 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 		int	frametype = frame->type;
 		switch(frametype) {
 			IntFrame*	iframe;
-			AddrFrame*	aframe;
+			IpPortFrame*	aframe;
 			HbSender*	hb;
 
-			case FRAMETYPE_PORTNUM:
-				iframe = CASTTOCLASS(IntFrame, frame);
-				port = iframe->getint(iframe);
-				if (port <= 0 || port >= 65536) {
-					g_warning("invalid port (%d) in %s"
-					, port, __FUNCTION__);
-					port = 0;
-					continue;
-				}
-				break;
 			case FRAMETYPE_HBINTERVAL:
 				iframe = CASTTOCLASS(IntFrame, frame);
 				sendinterval = iframe->getint(iframe);
 				break;
-			case FRAMETYPE_IPADDR:
+			case FRAMETYPE_IPPORT:
 				if (0 == sendinterval) {
 					g_warning("Send interval is zero in %s", __FUNCTION__);
 					continue;
 				}
-				if (0 == port) {
-					g_warning("Port is zero in %s", __FUNCTION__);
-					continue;
-				}
-				aframe = CASTTOCLASS(AddrFrame, frame);
+				aframe = CASTTOCLASS(IpPortFrame, frame);
 				addrcount++;
-				aframe->setport(aframe, port);
 				hb = hbsender_new(aframe->getnetaddr(aframe), parent->baseclass.transport
 				,	sendinterval, 0);
 				(void)hb;
-				//hb->unref(hb);
 				break;
 		}
 	}
@@ -295,11 +273,11 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
  * Such framesets are sent when the Collective Authority wants us to expect
  * Heartbeats from various addresses.  This might be from a FRAMESETTYPE_EXPECTHB
  * FrameSet or a FRAMESETTYPE_SENDEXPECTHB FrameSet.
- * The deadtime, warntime, and port number can come from the FrameSet or the
+ * The deadtime, warntime can come from the FrameSet or the
  * @ref ConfigContext parameter we're given - with the FrameSet taking priority.
  *
- * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPADDR
- * @ref AddrFrame in the FrameSet.
+ * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPPORT
+ * @ref IpPortFrame in the FrameSet.
  */
 void
 nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
@@ -311,16 +289,12 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 	ConfigContext*	config = parent->baseclass.config;
 	guint		addrcount = 0;
 
-	gint		port = 0;
 	guint64		deadtime = 0;
 	guint64		warntime = 0;
 
 	(void)fromaddr;
 
 	g_return_if_fail(fs != NULL);
-	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
-		port = config->getint(config, CONFIGNAME_HBPORT);
-	}
 	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
 		deadtime = config->getint(config, CONFIGNAME_DEADTIME);
 	}
@@ -334,17 +308,6 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 		switch(frametype) {
 			IntFrame*	iframe;
 
-			case FRAMETYPE_PORTNUM:
-				iframe = CASTTOCLASS(IntFrame, frame);
-				port = iframe->getint(iframe);
-				if (port <= 0 || port > 65535) {
-					g_warning("invalid port (%d) in %s"
-					, port, __FUNCTION__);
-					port = 0;
-					continue;
-				}
-				break;
-
 			case FRAMETYPE_HBDEADTIME:
 				iframe = CASTTOCLASS(IntFrame, frame);
 				deadtime = iframe->getint(iframe);
@@ -355,17 +318,12 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 				warntime = iframe->getint(iframe);
 				break;
 
-			case FRAMETYPE_IPADDR: {
+			case FRAMETYPE_IPPORT: {
 				HbListener*	hblisten;
-				AddrFrame*	aframe;
+				IpPortFrame*	aframe;
 				NetGSource*	transport = parent->baseclass.transport;
-				if (0 == port) {
-					g_warning("Port is zero in %s", __FUNCTION__);
-					continue;
-				}
-				aframe = CASTTOCLASS(AddrFrame, frame);
+				aframe = CASTTOCLASS(IpPortFrame, frame);
 				addrcount++;
-				aframe->setport(aframe, port);
 				hblisten = hblistener_new(aframe->getnetaddr(aframe), config, 0);
 				hblisten->baseclass.associate(&hblisten->baseclass, transport);
 				if (deadtime > 0) {
@@ -410,8 +368,8 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
  * Heartbeats to an address and expect heartbeats back from them.
  * The deadtime, warntime, send interval and port number can come from the
  * FrameSet or from the @ref ConfigContext parameter we're given.
- * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPADDR
- * @ref AddrFrame in the FrameSet.
+ * If these parameters are in the FrameSet, they have to precede the FRAMETYPE_IPPORT
+ * @ref IpPortFrame in the FrameSet.
  */
 void
 nanoobey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object invoking us
@@ -443,9 +401,9 @@ nanoobey_stopsendhb(AuthListener* parent///<[in] @ref AuthListener object invoki
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
 		switch(frame->type) {
-			case FRAMETYPE_IPADDR: {
+			case FRAMETYPE_IPPORT: {
 				// This is _so_ much simpler than the code to send them ;-)
-				AddrFrame*	aframe = CASTTOCLASS(AddrFrame, frame);
+				IpPortFrame*	aframe = CASTTOCLASS(IpPortFrame, frame);
 				hbsender_stopsend(aframe->getnetaddr(aframe));
 				break;
 			}
@@ -472,9 +430,9 @@ nanoobey_stopexpecthb(AuthListener* parent///<[in] @ref AuthListener object invo
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
 		switch(frame->type) {
-			case FRAMETYPE_IPADDR: {
+			case FRAMETYPE_IPPORT: {
 				// This is _so_ much simpler than the code to listen for heartbeats...
-				AddrFrame*	aframe = CASTTOCLASS(AddrFrame, frame);
+				IpPortFrame*	aframe = CASTTOCLASS(IpPortFrame, frame);
 				hblistener_unlisten(aframe->getnetaddr(aframe));
 				break;
 			}
@@ -506,8 +464,7 @@ nanoobey_stopsendexpecthb(AuthListener* parent///<[in] @ref AuthListener object 
  * <b>FRAMETYPE_PARAMNAME</b> - parameter name to set
  * <b>FRAMETYPE_CSTRINGVAL</b> - string value to associate with name
  * <b>FRAMETYPE_CINTVAL</b> - integer value to associate with naem
- * <b>FRAMETYPE_PORTNUM</b> - port number for subsequent IP address
- * <b>FRAMETYPE_IPADDR</b> - IP address to associate with name
+ * <b>FRAMETYPE_IPPORT</b> - IP address to associate with name
  */
 void
 nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking us
@@ -517,7 +474,6 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	GSList*		slframe;
 	ConfigContext*	cfg = parent->baseclass.config;
 	char *		paramname = NULL;
-	guint16		port = 0;
 
 	(void)fromaddr;
 
@@ -547,23 +503,11 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 			}
 			break;
 
-			case FRAMETYPE_PORTNUM: { // Port number for subsequent FRAMETYPE_IPADDR
-				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
-				g_return_if_fail(paramname != NULL);
-				port = intf->getint(intf); // remember for later
-			}
-			break;
 
-			case FRAMETYPE_IPADDR: { // NetAddr value to set 'paramname' to
-				AddrFrame* af = CASTTOCLASS(AddrFrame, frame);
+			case FRAMETYPE_IPPORT: { // NetAddr value to set 'paramname' to
+				IpPortFrame* af = CASTTOCLASS(IpPortFrame, frame);
 				NetAddr*	addr = af->getnetaddr(af);
 				g_return_if_fail(paramname != NULL);
-				if (port != 0) {
-					addr->setport(addr, port);
-					port = 0;
-				}else{
-					g_warning("Setting IP address [%s] without port", paramname);
-				}
 				cfg->setaddr(cfg, paramname, addr);
 				paramname = NULL;
 			}

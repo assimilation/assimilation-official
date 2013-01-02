@@ -149,7 +149,6 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 		g_message("CMA Received a FrameSet of type %d over the 'wire'."
 		,	  fs->fstype);
 	}
-	DUMP("gotnetpkt: received ---->>", &fs->baseclass, " <<---- END OF PACKET");
 	UNREF(fs);
 	if (wirepktcount >= maxpkts) {
 		g_message("QUITTING NOW!");
@@ -232,8 +231,6 @@ main(int argc, char **argv)
 
 
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
-	proj_class_incr_debug(NULL);
-	proj_class_incr_debug(NULL);
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
                 g_debug("Max packet count is "FMT_64BIT"d", maxpkts);

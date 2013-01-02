@@ -458,6 +458,7 @@ class pyFrameSetTest(TestCase):
            # This isn't exhaustive, but it isn't bad.
            self.assertEqual(f.frametype(), y.frametype())
            self.assertEqual(type(f), type(y))
+           self.assertEqual(str(f), str(y))
         # Constructing the packet will add a signature frame at the beginning
         # and an END (type 0) frame at the end
         pyfs.construct_packet(sign)
@@ -511,6 +512,7 @@ class pyFrameSetTest(TestCase):
                  pyIntFrame(FrameTypes.CINTVAL,3000000, intbytes=4),
                  pyIntFrame(FrameTypes.CINTVAL,3000000000000, intbytes=8),
                  pySeqnoFrame(FrameTypes.REQID, (42, 424242424242)),
+                 pyIpPortFrame(FrameTypes.IPPORT, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 1984),
                  pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
         if DEBUG: print >>sys.stderr, "flist:", flist
         decoder = pyPacketDecoder(0)

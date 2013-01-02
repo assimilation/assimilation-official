@@ -157,11 +157,6 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 {
 	FsProtoElem*	ret;
 
-	if (destaddr->islocal(destaddr)) {
-		char *	deststr = destaddr->baseclass.toString(&destaddr->baseclass);
-		g_warning("%s: Creating connection to local destination %s", __FUNCTION__, deststr);
-		FREE(deststr); deststr = NULL;
-	}
 
 	if ((ret = self->find(self, qid, destaddr, resetport))) {
 		return ret;

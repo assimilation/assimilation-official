@@ -27,7 +27,7 @@
 #include <cmalib.h>
 #include <frameset.h>
 #include <intframe.h>
-#include <addrframe.h>
+#include <ipportframe.h>
 #include <cstringframe.h>
 #include <frametypes.h>
 #include <cmalib.h>
@@ -47,14 +47,6 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 	FrameSet* ret = frameset_new(msgtype);
 	int	count = 0;
 
-	// Put the port in the message (if asked)
-	if (config->getint(config, CONFIGNAME_HBPORT) > 0) {
-		gint	port = config->getint(config, CONFIGNAME_HBPORT);
-		IntFrame * intf = intframe_new(FRAMETYPE_PORTNUM, 2);
-		intf->setint(intf, port);
-		frameset_append_frame(ret, &intf->baseclass);
-		UNREF2(intf);
-	}
 	// Put the heartbeat interval in the message (if asked)
 	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
 		gint	hbtime = config->getint(config, CONFIGNAME_HBTIME);
@@ -82,8 +74,7 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 
 	// Put all the addresses we were given in the message.
 	for (count=0; count < addrcount; ++count) {
-		AddrFrame* hbaddr = addrframe_new(FRAMETYPE_IPADDR, 0);
-		hbaddr->setnetaddr(hbaddr, &addrs[count]);
+		IpPortFrame* hbaddr = ipportframe_netaddr_new(FRAMETYPE_IPPORT, &addrs[count]);
 		frameset_append_frame(ret, &hbaddr->baseclass);
 		UNREF2(hbaddr);
 	}
@@ -163,15 +154,7 @@ create_setconfig(ConfigContext * cfg)
 			}
 			case CFG_NETADDR: {
 				NetAddr *	value = cfg->getaddr(cfg, name);
-				AddrFrame*	v = addrframe_new(FRAMETYPE_IPADDR, 0);
-				// The port doesn't come through when going across the wire
-				if (value->port(value) != 0) {
-					IntFrame*	p = intframe_new(FRAMETYPE_PORTNUM, 4);
-					p->setint(p, value->port(value));
-					frameset_append_frame(fs, &p->baseclass);
-					UNREF2(p);
-				}
-				v->setnetaddr(v, value);
+				IpPortFrame*	v = ipportframe_netaddr_new(FRAMETYPE_IPPORT, value);
 				frameset_append_frame(fs, &v->baseclass);
 				UNREF2(v);
 				break;
