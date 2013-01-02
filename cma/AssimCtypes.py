@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --no-macro-warnings --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --no-macro-warnings --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipaddrportframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
 
 Do not modify this file.
 '''
@@ -2828,11 +2828,46 @@ if hasattr(_libs['libassimilationclientlib.so'], 'intframe_tlvconstructor'):
     intframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     intframe_tlvconstructor.restype = POINTER(Frame)
 
+# /home/alanr/monitor/src/include/ipaddrportframe.h: 39
+class struct__IPaddrPortFrame(Structure):
+    pass
+
+IPaddrPortFrame = struct__IPaddrPortFrame # /home/alanr/monitor/src/include/ipaddrportframe.h: 31
+
+struct__IPaddrPortFrame.__slots__ = [
+    'baseclass',
+    '_addr',
+    'getnetaddr',
+]
+struct__IPaddrPortFrame._fields_ = [
+    ('baseclass', Frame),
+    ('_addr', POINTER(NetAddr)),
+    ('getnetaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(IPaddrPortFrame))),
+]
+
+# /home/alanr/monitor/src/include/ipaddrportframe.h: 45
+for _lib in _libs.itervalues():
+    if not hasattr(_lib, 'ipaddrportframe_netaddr_new'):
+        continue
+    ipaddrportframe_netaddr_new = _lib.ipaddrportframe_netaddr_new
+    ipaddrportframe_netaddr_new.argtypes = [gsize, guint16, POINTER(NetAddr)]
+    ipaddrportframe_netaddr_new.restype = POINTER(IPaddrPortFrame)
+    break
+
+# /home/alanr/monitor/src/include/ipaddrportframe.h: 46
+for _lib in _libs.itervalues():
+    if not hasattr(_lib, 'ipaddrportframe_tlvconstructor'):
+        continue
+    ipaddrportframe_tlvconstructor = _lib.ipaddrportframe_tlvconstructor
+    ipaddrportframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
+    ipaddrportframe_tlvconstructor.restype = POINTER(Frame)
+    break
+
 # /home/alanr/monitor/src/include/ipportframe.h: 40
 class struct__IpPortFrame(Structure):
     pass
 
-IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 32
+IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 39
 
 struct__IpPortFrame.__slots__ = [
     'baseclass',
@@ -4776,6 +4811,8 @@ _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h:
 _HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 39
 
 _IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 39
+
+_IPaddrPortFrame = struct__IPaddrPortFrame # /home/alanr/monitor/src/include/ipaddrportframe.h: 39
 
 _IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 40
 

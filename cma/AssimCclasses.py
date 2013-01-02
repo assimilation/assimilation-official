@@ -580,16 +580,21 @@ class pyAddrFrame(pyFrame):
 class pyIpPortFrame(pyFrame):
     '''This class represents the Python version of our C-class IpPortFrame - represented by the struct _IpPortFrame.
     '''
-    def __init__(self, frametype, addrstring, port, Cstruct=None):
+    def __init__(self, frametype, addrstring, port=None, Cstruct=None):
         "Initializer for the pyIpPortFrame object."
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
             if isinstance(addrstring, pyNetAddr):
                 self._pyNetAddr = addrstring
+                Cstruct=ipportframe_netaddr_new(frametype, addrstring._Cstruct)
+                if not Cstruct:
+                    raise ValueError("invalid initializer");
+                self.port = addrstring.port()
             else:
                 addrlen = len(addrstring)
                 self._pyNetAddr = pyNetAddr(addrstring, port=port)
-
+                if self._pyNetAddr is None:
+                    raise ValueError("Invalid initializer.");
                 addrstr = create_string_buffer(addrlen)
                 for j in range(0, addrlen):
                     addrstr[j] = chr(addrstring[j])
@@ -600,6 +605,11 @@ class pyIpPortFrame(pyFrame):
                 else:
                     raise ValueError('Bad address length: %d' % addrlen)
                 self.port = port
+                if port == 0:
+                    raise ValueError("zero port");
+                if not Cstruct:
+                    raise ValueError("invalid initializer");
+
         else:
             assert port is None
             assert addrstring is None
@@ -619,9 +629,6 @@ class pyIpPortFrame(pyFrame):
 
     def getnetaddr(self):
         return self._pyNetAddr
-
-    def __str__(self):
-       return ("pyIpPortFrame(%s, (%s))" % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr)))
 
 
 class pyCstringFrame(pyFrame):

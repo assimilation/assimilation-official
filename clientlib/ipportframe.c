@@ -3,9 +3,9 @@
  * @brief Implements the @ref IpPortFrame class - A frame for generic network addresses
  * @details IpPortFrames consist of a 2-byte port number followed by a 2-byte IANA
  * address family number plus the address.
- * These fields are generally stored in network byte order.
- * We have explicit support for three types, and the rest hopefully can come along for the ride...
- * @see Frame, FrameSet, GenericTLV
+ * These fields are stored in network byte order.
+ * We only support IPv4 and IPv6 addresses - as the port is mandatory for this object.
+ * @see Frame, FrameSet, GenericTLV, AddrFrame
  * @see http://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
  *
  * This file is part of the Assimilation Project.
@@ -40,6 +40,7 @@ FSTATIC NetAddr* _ipportframe_getnetaddr(IpPortFrame* self);
 FSTATIC void _ipportframe_setnetaddr(IpPortFrame* self, NetAddr*netaddr);
 FSTATIC void _ipportframe_finalize(AssimObj*);
 FSTATIC IpPortFrame* ipportframe_new(guint16 frame_type, gsize framesize);
+FSTATIC gchar* _ipportframe_toString(gconstpointer aself);
 ///@}
 
 /**
@@ -48,8 +49,8 @@ FSTATIC IpPortFrame* ipportframe_new(guint16 frame_type, gsize framesize);
  * @ingroup FrameFormats
  * Here is the format we use for packaging an @ref IpPortFrame for the wire.
  * Note that different types of addresses are different lengths.
- * The address types are either 1 for IPv4 or 2 for IPv6 which is the same as for
- * a NetAddr, and the same as RFC 3232 and is defined/described here:
+ * The address types are either 1 for IPv4 or 2 for IPv6.  This is the same
+ * as a NetAddr, and the same as RFC 3232 and is defined/described here:
  * http://www.iana.org/assignments/address-family-numbers/address-family-numbers.xhtml
 <PRE>
 +-------------+----------------+-------------+---------------+--------------------+
@@ -59,6 +60,9 @@ FSTATIC IpPortFrame* ipportframe_new(guint16 frame_type, gsize framesize);
 </PRE>
 *@}
 */
+#define	TLVOVERHEAD	(sizeof(guint16)+sizeof(guint16))	///< Two bytes for port number, and two for the address type
+#define	TLVIPV4SIZE	(TLVOVERHEAD+4)				///< IPv4 addresses are 4 bytes
+#define	TLVIPV6SIZE	(TLVOVERHEAD+16)			///< IPv4 addresses are 16 bytes
 
 ///@defgroup IpPortFrame IpPortFrame class
 /// Class for holding/storing various kinds of @ref NetAddr network addresses. We're a subclass of @ref Frame.
@@ -73,47 +77,48 @@ _ipportframe_default_isvalid(const Frame * self,///<[in/out] IpPortFrame object 
 		       gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
 	guint16		address_family = 0;
-	guint16		addrlen;
 	guint16		portnumber;
-	const guint16	ipv4size = 4;
-	const guint16	ipv6size = 16;
 	const guint16*	int16ptr;
+	guint16		pktsize;
 
 	if (tlvptr == NULL) {
 		// Validate the local copy instead of the TLV version.
 		tlvptr = self->value;
 		g_return_val_if_fail(tlvptr != NULL, FALSE);
 		pktend = (const guint8*)tlvptr + self->length;
-		addrlen = self->length - (2*sizeof(guint16));
 		int16ptr = (const guint16*)self->value;
+		pktsize = self->length;
 	}else{
-		guint16		pktsize;
 		pktsize = get_generic_tlv_len(tlvptr, pktend);
-		addrlen = pktsize - (2*sizeof(guint16));
 		int16ptr = (const guint16*)get_generic_tlv_value(tlvptr, pktend);
 	}
 	
-	g_return_val_if_fail(int16ptr != NULL, FALSE);
-	// If this is true, then the packet is big enough to look at the other fields...
-	g_return_val_if_fail(addrlen == ipv4size || addrlen == ipv6size, FALSE);
+	if (pktsize < TLVIPV4SIZE || int16ptr == NULL) {
+		return FALSE;
+	}
 
 	// First field -- port number: 16-bit unsigned integer - network byte order
 	portnumber = tlv_get_guint16(int16ptr, pktend);
-	g_return_val_if_fail(portnumber != 0, FALSE);
+	if (portnumber == 0) {
+		g_warning("%s.%d: Port is zero", __FUNCTION__, __LINE__);
+		return FALSE;
+	}
 	
 	// Second field -- address family: 16-bit unsigned integer - network byte order
 	address_family = tlv_get_guint16(int16ptr+1, pktend);
-	g_return_val_if_fail(address_family == ADDR_FAMILY_IPV4 || address_family == ADDR_FAMILY_IPV6, FALSE);
 
 	switch(address_family) {
 		case ADDR_FAMILY_IPV4:		// IPv4
-			return (4 == addrlen);
+			return (TLVIPV4SIZE == pktsize);
 
 		case ADDR_FAMILY_IPV6:		// IPv6
-			return (16 == addrlen);
+			return (TLVIPV6SIZE == pktsize);
+
+		default:
+			break;
 
 	}
-	g_return_val_if_reached(FALSE);
+	return FALSE;
 }
 
 FSTATIC void
@@ -152,8 +157,7 @@ _ipportframe_getnetaddr(IpPortFrame* self)
 }
 
 
-
-
+/// Finalize an IpPortFrame
 FSTATIC void
 _ipportframe_finalize(AssimObj*obj)
 {
@@ -186,6 +190,7 @@ ipportframe_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFrame (n
 	aframe->getnetaddr = _ipportframe_getnetaddr;
 	aframe->_basefinal = aframe->baseclass.baseclass._finalize;
 	aframe->baseclass.baseclass._finalize = _ipportframe_finalize;
+	aframe->baseclass.baseclass.toString = _ipportframe_toString;
 	return aframe;
 }
 
@@ -198,6 +203,9 @@ ipportframe_ipv4_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFra
 {
 	IpPortFrame*	ret;
 	g_return_val_if_fail(addr != NULL, NULL);
+	if (port == 0) {
+		return NULL;
+	}
 	ret = ipportframe_new(frame_type, 0);
 	g_return_val_if_fail(ret != NULL, NULL);
 	_ipportframe_setaddr(ret, ADDR_FAMILY_IPV4, port, addr, 4);
@@ -208,10 +216,13 @@ ipportframe_ipv4_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFra
 WINEXPORT IpPortFrame*
 ipportframe_ipv6_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFrame (not address type) frame
 		     guint16 port,		///<[in] port number
-		   gconstpointer addr)	///<[in] pointer to the (binary) IPv6 address data
+		     gconstpointer addr)	///<[in] pointer to the (binary) IPv6 address data
 {
 	IpPortFrame*	ret;
 	g_return_val_if_fail(addr != NULL, NULL);
+	if (port == 0) {
+		return NULL;
+	}
 	ret = ipportframe_new(frame_type, 0);
 	g_return_val_if_fail(ret != NULL, NULL);
 	_ipportframe_setaddr(ret, ADDR_FAMILY_IPV6, port, addr, 16);
@@ -224,6 +235,10 @@ ipportframe_netaddr_new(guint16 frame_type, NetAddr* addr)
 {
 	guint16		port = addr->port(addr);
 	gpointer	body = addr->_addrbody;
+
+	if (port == 0) {
+		return NULL;
+	}
 
 	switch(addr->addrtype(addr)) {
 		case ADDR_FAMILY_IPV4:
@@ -242,7 +257,7 @@ ipportframe_netaddr_new(guint16 frame_type, NetAddr* addr)
 /// Note that this always returns an @ref IpPortFrame (a subclass of @ref Frame)
 WINEXPORT Frame*
 ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
-			 gconstpointer pktend)		///<[in] pointer to the first invalid address past tlvstart
+			   gconstpointer pktend)		///<[in] pointer to the first invalid address past tlvstart
 
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
@@ -251,28 +266,46 @@ ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of 
 	IpPortFrame *	ret;
 	guint16		addr_family;
 	guint16		port;
-	const guint16	headerlen = (sizeof(guint16) + sizeof(guint16));
 
 	port = tlv_get_guint16(framevalue, pktend);
-	g_return_val_if_fail(port != 0, NULL);
+	if (port == 0) {
+		return NULL;
+	}
 
 	addr_family = tlv_get_guint16(framevalue+sizeof(guint16), pktend);
-	if (addr_family == ADDR_FAMILY_IPV4) {
-		g_return_val_if_fail(framelength == 4+headerlen, NULL);
-	}else if (addr_family == ADDR_FAMILY_IPV6) {
-		g_return_val_if_fail(framelength == 16+headerlen, NULL);
-	}else{
-		g_return_val_if_reached(NULL);
+
+	switch (addr_family) {
+		case ADDR_FAMILY_IPV4:
+			g_return_val_if_fail(framelength == TLVIPV4SIZE, NULL);
+			break;
+		case ADDR_FAMILY_IPV6:
+			g_return_val_if_fail(framelength == TLVIPV6SIZE, NULL);
+			break;
+		default:
+			g_return_val_if_reached(NULL);
+			break;
 	}
 
 	ret = ipportframe_new(frametype, 0);
 	ret->baseclass.length = framelength;
-	_ipportframe_setaddr(ret, addr_family, port, framevalue+headerlen
-	,		     framelength-headerlen);
+	_ipportframe_setaddr(ret, addr_family, port, framevalue+TLVOVERHEAD
+	,		     framelength-TLVOVERHEAD);
 	if (!_ipportframe_default_isvalid(&ret->baseclass, tlvstart, pktend)) {
 		UNREF2(ret);
 		g_return_val_if_reached(NULL);
 	}
 	return &ret->baseclass;
+}
+/// Convert IPaddrPortFrame object into a printable string
+FSTATIC gchar*
+_ipportframe_toString(gconstpointer aself)
+{
+	const IpPortFrame*	self = CASTTOCONSTCLASS(IpPortFrame, aself);
+	char *			selfstr = self->_addr->baseclass.toString(&self->_addr->baseclass);
+	char *			ret;
+
+	ret = g_strdup_printf("IpPortFrame(%d, %s)", self->baseclass.type, selfstr);
+	g_free(selfstr);
+	return ret;
 }
 ///@}

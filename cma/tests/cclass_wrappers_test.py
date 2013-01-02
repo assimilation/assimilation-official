@@ -31,7 +31,7 @@ import re
 from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 
-CheckForDanglingClasses = False
+CheckForDanglingClasses = True
 WorstDanglingCount = 0
 DEBUG=False
 
@@ -200,14 +200,37 @@ class pyAddrFrameTest(TestCase):
         assert_no_dangling_Cclasses()
 
 
-class pyIpPortFrameTest(TestCase):
+class pyIpPortFrameTest1(TestCase):
+    'An IpPortFrame wraps a NetAddr (with port!) for sending on the wire'
+    def test_constructor(self): 
+        if DEBUG: print >>sys.stderr, '===============test_constructor(pyIpPortFrameTest1)'
+        addrv4=pyNetAddr('1.2.3.4:1984')
+        py4 = pyIpPortFrame(201, addrv4)
+        self.assertEqual(py4.frametype(), 201)
+        self.assertEqual(py4.framelen(), 8)
+        self.assertEqual(str(py4), '201: IpPortFrame(201, 1.2.3.4:1984)')
+        self.assertEqual(py4.addrtype(), 1)
+        self.assertTrue(py4.isvalid(), 'pyIpPortFrame(201, (1.2.3.4:1984)) failed isvalid()')
+        self.assertRaises(ValueError, pyIpPortFrame, 201, pyNetAddr((1,2,3,4,5,6),)) # MAC address
+        addrv6=pyNetAddr('[::1]:79')
+        py6 = pyIpPortFrame(302, addrv6)
+        self.assertEqual(py6.frametype(), 302)
+        self.assertEqual(py6.framelen(), 20)
+        self.assertEqual(str(py6), '302: IpPortFrame(302, [::1]:79)')
+
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
+
+
+class pyIpPortFrameTest2(TestCase):
     'An AddrFrame wraps a NetAddr *with a port* for sending on the wire'
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "===============test_constructor(pyIpAddrFrameTest)"
         pyf = pyIpPortFrame(200, (1,2,3,4), 1984)
         self.assertEqual(pyf.frametype(), 200)
         self.assertEqual(pyf.framelen(), 8)
-        self.assertEqual(str(pyf), 'pyIpPortFrame(200, (1.2.3.4:1984))')
+        self.assertEqual(str(pyf), '200: IpPortFrame(200, 1.2.3.4:1984)')
         self.assertEqual(pyf.getnetaddr(), pyNetAddr('1.2.3.4:1984'))
         self.assertEqual(pyf.addrtype(), 1)
         self.assertTrue(pyf.isvalid(), "pyIpPortFrame(200, (1,2,3,4:1984)) failed isvalid()")
@@ -217,11 +240,11 @@ class pyIpPortFrameTest(TestCase):
         self.assertEqual(pyf.framelen(), 20)
         self.assertEqual(pyf.addrtype(), 2)
         self.assertTrue(pyf.isvalid(), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
-        self.assertEqual(str(pyf), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
+        self.assertEqual(str(pyf), '202: IpPortFrame(202, [102:304:506:708:90a:b0c:d0e:f10]:1984)')
         sameaddr = pyNetAddr([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10], port=1984)
         self.assertEqual(pyf.getnetaddr(), sameaddr)
         pyf = pyIpPortFrame(202, sameaddr, None)
-        self.assertEqual(str(pyf), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
+        self.assertEqual(str(pyf), '202: IpPortFrame(202, [102:304:506:708:90a:b0c:d0e:f10]:1984)')
         self.assertEqual(pyf.getnetaddr(), sameaddr)
 
 
