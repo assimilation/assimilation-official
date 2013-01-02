@@ -35,9 +35,9 @@ FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rh
 FSTATIC gboolean	_fsprotocol_timeoutfun(gpointer userdata);
 
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
-FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr, gboolean);
+FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
 FSTATIC void		_fsprotocol_closeconn(FsProtocol*self, guint16 qid, const NetAddr* destaddr);
-FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr, gboolean);
+FSTATIC FsProtoElem*	_fsprotocol_find(FsProtocol* self, guint16 qid, const NetAddr* destaddr);
 FSTATIC FsProtoElem*	_fsprotocol_findbypkt(FsProtocol* self, NetAddr*, FrameSet*);
 FSTATIC gboolean	_fsprotocol_iready(FsProtocol*);
 FSTATIC gboolean	_fsprotocol_outputpending(FsProtocol*);
@@ -87,12 +87,9 @@ _fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
 FSTATIC FsProtoElem*
 _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		 guint16 qid			///< Queue id of far endpoint
-,		 const NetAddr* destaddr	///< destination address
-,		 gboolean canresetport)		///< TRUE if we're allowed to reset the connection
-						///< if the current port is mismatched with new dest.
+,		 const NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*		retval = NULL;
-	guint16			destport = destaddr->port(destaddr);
 	FsProtoElemSearchKey	elem;
 
 	elem._qid	= qid;
@@ -111,12 +108,6 @@ _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 			UNREF(v6addr); elem.endpoint = NULL;
 			break;
 		}
-	}
-	if (canresetport && retval && destport != 0
-	&&		retval->endpoint->port(retval->endpoint) != destport) {
-		g_message("%s.%d: Resetting connection due to port change.", __FUNCTION__, __LINE__);
-		g_hash_table_remove(self->endpoints, retval);
-		retval = NULL;
 	}
 	return retval;
 }
@@ -142,7 +133,7 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 	// on the CMA - one for the CMA itself, and one for the nanoprobe which is running on it.
 	//
 	///@todo Should we <b>only</b> do this for the case where the frameset type is STARTUP?
-	ret =  self->addconn(self, qid, addr, (seq != NULL || fs->fstype == FRAMESETTYPE_STARTUP));
+	ret =  self->addconn(self, qid, addr);
 	return ret;
 }
 
@@ -152,13 +143,12 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 FSTATIC FsProtoElem*
 _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 ,		    guint16 qid		///< Queue id for the connection
-,		    NetAddr* destaddr	///< destination address
-,		    gboolean resetport)	///< TRUE if we're allowed to reset the port if different
+,		    NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	ret;
 
 
-	if ((ret = self->find(self, qid, destaddr, resetport))) {
+	if ((ret = self->find(self, qid, destaddr))) {
 		return ret;
 	}
 	ret = MALLOCTYPE(FsProtoElem);
@@ -186,7 +176,7 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		    guint16 qid			///< Queue id for the connection
 ,		    const NetAddr* destaddr)	///< destination address
 {
-	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr, FALSE);
+	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
 	DUMP2("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
 		DUMP2("_fsprotocol_closeconn: closing connection to", &destaddr->baseclass, NULL);
@@ -493,7 +483,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 ,		  guint16   qid		///< Far endpoint queue id
 ,		  NetAddr* toaddr)	///< Where to send it
 {
-	FsProtoElem*	fspe = self->addconn(self, qid, toaddr, FALSE);
+	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret;
 	g_return_val_if_fail(NULL != fspe, FALSE);	// Should not be possible...
 	AUDITFSPE(fspe);
@@ -516,7 +506,7 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 ,		 guint16   qid		///< Far endpoint queue id
 ,		 NetAddr* toaddr)	///< Where to send them
 {
-	FsProtoElem*	fspe = self->addconn(self, qid, toaddr, FALSE);
+	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret = TRUE;
 	int		emptyq = fspe->outq->_q->length == 0;
 	AUDITFSPE(fspe);
@@ -575,7 +565,7 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 	frameset_append_frame(fs, &seq->baseclass);
 	// Appending the seq frame will increment its reference count
 
-	fspe = self->find(self, seq->_qid, destaddr, FALSE);
+	fspe = self->find(self, seq->_qid, destaddr);
 	// sendaframeset will hang onto frameset and frames as long as it needs them
 	AUDITFSPE(fspe);
 	self->io->sendaframeset(self->io, destaddr, fs);

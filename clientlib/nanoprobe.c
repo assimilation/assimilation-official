@@ -433,7 +433,10 @@ nanoobey_stopexpecthb(AuthListener* parent///<[in] @ref AuthListener object invo
 			case FRAMETYPE_IPPORT: {
 				// This is _so_ much simpler than the code to listen for heartbeats...
 				IpPortFrame*	aframe = CASTTOCLASS(IpPortFrame, frame);
-				hblistener_unlisten(aframe->getnetaddr(aframe));
+				NetAddr*	destaddr = aframe->getnetaddr(aframe);
+				NetIO*		transport = parent->baseclass.transport->_netio;
+				hblistener_unlisten(destaddr);
+				transport->closeconn(transport, DEFAULT_FSP_QID, destaddr);
 				break;
 			}
 		}//endswitch
