@@ -1,7 +1,7 @@
 
 /**
  * @file
- * @brief Describes interfaces to Address Frame (AddrFrame) C-Class.
+ * @brief Describes interfaces to Address Frame (IpPortFrame) C-Class.
  * AddrFrames are Frames that contain some type of network address.
  * The types of addresses we support are defined by the @ref AddressFamilyNumbers "IETF/IANA Address type assignments".
  * @see AddressFamilyNumbers
@@ -29,14 +29,14 @@
 #include <projectcommon.h>
 #include <frame.h>
 #include <netaddr.h>
-typedef struct _IpPortFrame IpPortFrame;
 
 /// This is our @ref IpPortFrame object - used for holding @ref NetAddr network addresses with
 /// <i>non-zero</i> port numbers
 /// It has some different member functions implementations than its base @ref Frame -
 /// mainly for validating packet contents.
 ///@{
-/// @ingroup AddrFrame
+/// @ingroup IpPortFrame
+typedef struct _IpPortFrame IpPortFrame;
 struct _IpPortFrame {
 	Frame	baseclass;
 	NetAddr*_addr;

@@ -62,10 +62,10 @@ DEBUGDECLARATIONS
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 
-///@todo Figure out the byte order issues so that we store them in a consistent
-///	 format - ipv4, ipv6 and MAC addresses...
+static const guchar ipv6loop [] = CONST_IPV6_LOOPBACK;	
+static const guchar ipv4loop [] = CONST_IPV4_LOOPBACK;
 
-/// Convert this ipv6-encapsulated ipv4 NetAddr to a string
+/// Convert this IPv6-encapsulated IPv4 NetAddr to a string
 FSTATIC gchar *
 _netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format)
 {
@@ -116,7 +116,7 @@ NetAddr*
 _netaddr_toIPv6(const NetAddr* self)
 {
 	const int	ipv4prefixlen = 12;
-	guchar		ipv6addr[16] = {0,0,0,0,0,0,0,0,0,0,0xff,0xff, 0, 0, 0, 0};
+	guchar 		ipv6addr[16] = {CONST_IPV6_IPV4SPACE, 0, 0, 0, 0};
 	
 	switch (self->_addrtype) {
 		case ADDR_FAMILY_IPV6:
@@ -126,12 +126,18 @@ _netaddr_toIPv6(const NetAddr* self)
 
 		case ADDR_FAMILY_IPV4:
 			// We have an IPv4 address we want to convert to an IPv6 address
-			memcpy(ipv6addr+ipv4prefixlen, self->_addrbody, 4);
+			if (memcmp(self->_addrbody, ipv4loop, sizeof(ipv4loop))) {
+				// Convert loopback addresses from v4 to v6
+				memcpy(ipv6addr, ipv6loop, sizeof(ipv6loop));
+			}else{
+				memcpy(ipv6addr+ipv4prefixlen, self->_addrbody, 4);
+			}
 			return netaddr_ipv6_new(ipv6addr, self->_addrport);
 
 		default:	// OOPS!
 			break;
 	}
+	/// @todo Convert MAC addresses to IPv6 addresses??
 	g_return_val_if_reached(NULL);
 }
 
@@ -220,21 +226,27 @@ _netaddr_toStringflex(const NetAddr* self, gboolean canon_format)
 FSTATIC gboolean
 _netaddr_equal(const NetAddr*self, const NetAddr*other)
 {
-	/// Perhaps we ought to eventually maybe compare for MAC addresses and ipv6 equivalents ;-)
-	const guchar ipv6v4   [] = {CONST_IPV6_IPV4SPACE};
-	const guchar ipv6loop [] = CONST_IPV6_LOOPBACK;
-	const guchar ipv4loop [] = CONST_IPV4_LOOPBACK;
+	///@todo Perhaps we ought to eventually compare for MAC addresses and IPv6 equivalents ;-)
+	const guchar ipv6v4   [] = {CONST_IPV6_IPV4SPACE};// Where IPv4 addrs are found inside IPv6 space
 
 	DEBUGMSG5("Place 1: self:%p, other:%p", self, other);
 
+	if ((self->_addrtype  == ADDR_FAMILY_IPV6  || self->_addrtype  == ADDR_FAMILY_IPV4)
+	&&  (other->_addrtype == ADDR_FAMILY_IPV6  || other->_addrtype == ADDR_FAMILY_IPV4)
+	&&	self->_addrport != other->_addrport) {
+		DEBUGMSG5("Place 1a: selfport:%d, otherport:%d", self->_addrport, other->_addrport);
+			return FALSE;
+	}
+
 	if (self->_addrtype == ADDR_FAMILY_IPV6 && other->_addrtype == ADDR_FAMILY_IPV4) {
 		const guchar *selfabody = self->_addrbody;
-		// Check for equivalent ipv4 and ipv6 addresses
+		// Check for equivalent IPv4 and IPv6 addresses
 		if (memcmp(selfabody, ipv6v4, sizeof(ipv6v4)) == 0
 	        &&  memcmp(selfabody+12, other->_addrbody, 4) == 0) {
 			return TRUE;
 		}
-		// Check for the equivalent *any* addresses between ipv4 and ipv6
+		// Check for the equivalent loopback addresses between IPv4 and IPv6
+		/// @todo Not sure if it should treat the two loopbacks as the same...
 		if (memcmp(self->_addrbody,  ipv6loop, sizeof(ipv6loop)) == 0
 		&&  memcmp(other->_addrbody, ipv4loop, sizeof(ipv4loop)) == 0) {
 			return TRUE;
@@ -260,6 +272,7 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 #endif
 /// NetAddr hash function which worries about denial of service via hash collisions.
 /// Note that this function will produce results unique to this process instance.
+/// This is to avoid denial of service through has hash collisions
 FSTATIC guint
 _netaddr_hash(const NetAddr* self)
 {
@@ -267,18 +280,36 @@ _netaddr_hash(const NetAddr* self)
 	const	guint	shift	 = 7;
 	static	guint	hashseed = 0;
 	int		j;
+	NetAddr*	v6addr = NULL;
+	const NetAddr*	addrtouse = self;
 	guint		result;
 	while (0 == hashseed) {
 		hashseed = (guint)g_random_int();
 	}
 	result = (guint)(self->_addrtype) ^ hashseed;
-	for (j=0; j < self->_addrlen; ++j) {
+
+
+	// Convert v4 addresses into v6 so that we match the compare operation's behavior
+	if (self->_addrtype == ADDR_FAMILY_IPV4) {
+		v6addr = _netaddr_toIPv6(self);
+		// This is kind of high overhead... Could be optimized if need be
+		addrtouse = v6addr;
+	}
+	if (addrtouse->_addrtype == ADDR_FAMILY_IPV6) {
+		// Can't have an IPv4 address here - we converted them above...
+		result ^= addrtouse->_addrport;
+	}
+	for (j=0; j < addrtouse->_addrlen; ++j) {
 		// Circular shift with addrbody xored in...
 		// Addresses are typically either 4 bytes or 16 bytes (6 and 8 bytes are also possible)
 		// So 4 bytes means the first byte gets shifted by 28 bits, and 16 means it 
 		// all wraps around a lot ;-)
 		result	=  ((result << shift) | (result >> (sizeof(result)*CHAR_BIT - shift)))
-			^ ((guint)((guint8*)self->_addrbody)[j]);
+			^ ((guint)((guint8*)addrtouse->_addrbody)[j]);
+	}
+	if (v6addr) {
+		UNREF(v6addr);
+		addrtouse = NULL;
 	}
 	return result;
 }
@@ -526,7 +557,7 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	return ret;
 }
 
-/// Convert a string into an ipv6 address - possibly including a port as per RFC 4291.
+/// Convert a string into an IPv6 address - possibly including a port as per RFC 4291.
 /// Format is either abcd:efab:cdab:cdef:abcd:efab:cdab:cdef with :: standing in for missing zeroes - 
 /// or [abcd:efab:cdab:cdef:abcd:efab:cdab:cdef]:port-in-decimal - as per standard convention and the RFC.
 FSTATIC NetAddr*
@@ -537,7 +568,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
  *  OR
  *	[ipv6]:decimal-port
  *
- *	The 'ipv6' part is described by RFC 4291
+ *	The 'IPv6' part is described by RFC 4291
  *
  *
  *	It consists of a sequence of 0-8 collections of 1-4 hexadecimal digits separated by
@@ -545,9 +576,9 @@ _netaddr_string_ipv6_new(const char* addrstr)
  *	If there are fewer than 8 collections of digits, then there must be exactly one :: string
  *	in the address string.  This :: tag represents a variable-length sequence of zeros in the address.
  *
- *	There is also another variant on the format of the ipv6 portion:
+ *	There is also another variant on the format of the IPv6 portion:
  *
- *	It can be "::ffff:" followed by an ipv4 address in typical ipv4 dotted decimal notation.
+ *	It can be "::ffff:" followed by an IPv4 address in typical IPv4 dotted decimal notation.
  *	@todo make _netaddr_string_ipv6_new() support the special format used for
  *	      IPv6-encapsulated IPv4 addresses.
  *
@@ -778,7 +809,7 @@ netaddr_sockaddr_new(const struct sockaddr_in6 *sa_in6,	///<[in] struct sockaddr
 }
 
 FSTATIC struct sockaddr_in6
-_netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to ipv6 sockaddr
+_netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to IPv6 sockaddr
 {
 	struct sockaddr_in6	saddr;
 
@@ -789,8 +820,8 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 			g_return_val_if_fail(4 == self->_addrlen, saddr);
 			saddr.sin6_family = AF_INET6;
 			saddr.sin6_port = htons(self->_addrport);
-			/// @todo May need to account for the "any" ipv4 address here and
-			/// translate it into the "any" ipv6 address...
+			/// @todo May need to account for the "any" IPv4 address here and
+			/// translate it into the "any" IPv6 address...
 			// (this works because saddr is initialized to zero)
 			saddr.sin6_addr.s6_addr[10] =  0xff;
 			saddr.sin6_addr.s6_addr[11] =  0xff;
@@ -825,7 +856,7 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 }
 
 FSTATIC struct sockaddr_in
-_netaddr_ipv4sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to ipv4 sockaddr
+_netaddr_ipv4sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to IPv4 sockaddr
 {
 	struct sockaddr_in	saddr;
 
