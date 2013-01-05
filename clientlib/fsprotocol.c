@@ -451,8 +451,8 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		DEBUGMSG3("%s.%d: seq=%p lastacksent=%p", __FUNCTION__, __LINE__
 		,	seq, fspe->lastacksent);
 		// One reason for not queueing it is that we've already sent it
-		// to our client If they have already ACKed it, then we will ACK
-		// it again automatically - because our application won't be shown
+		// to our client. If they have already ACKed it, then we will ACK
+		// it again automatically - because th application won't be shown
 		// this packet again - so they can't ACK it and our ACK might have
 		// gotten lost, so we need to send it again...
 		// 
@@ -462,6 +462,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			if (seq->_sessionid == fspe->lastacksent->_sessionid
 			&&	seq->compare(seq, fspe->lastacksent) <= 0) {
 				// We've already ACKed this packet - send our highest seq# ACK
+				DEBUGMSG3("%s.%d: Resending ACK", __FUNCTION__, __LINE__);
 				_fsprotocol_ackseqno(self, fspe->endpoint, fspe->lastacksent);
 			}
 		}
