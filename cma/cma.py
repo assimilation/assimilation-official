@@ -121,8 +121,8 @@ if __name__ == '__main__':
     ,   metavar='address:port-to-bind-to'
     ,   help='Address:port to listen to - for nanoprobes to connect to')
 
-    parser.add_option('-d', '--debug', action='store_true', default=False, dest='debug'
-    ,   help='enable debug for CMA')
+    parser.add_option('-d', '--debug', action='count', default=0, dest='debug'
+    ,   help='enable debug for CMA and libraries - multiple occurances increase debug value for C libraries')
 
     parser.add_option('-e', '--erasedb', action='store_true', default=False, dest='erasedb'
     ,   help='Erase Neo4J before starting')
@@ -147,10 +147,8 @@ if __name__ == '__main__':
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG, proj_class_incr_debug
     from frameinfo import FrameTypes, FrameSetTypes
-    if opt.debug:
+    for debug in range(opt.debug):
         proj_class_incr_debug(None)
-        proj_class_incr_debug(None)
-
 
     if opt.bind is None:
         BindAddrStr = ('0.0.0.0:%d' % DefaultPort)
@@ -180,12 +178,12 @@ if __name__ == '__main__':
     }
     config = pyConfigContext(init=configinit)
     io = pyReliableUDP(config, pyPacketDecoder(0))
-    cmadb.CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=opt.debug)
+    cmadb.CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
     cmadb.CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
-    cmadb.CMAdb.log.info('Requesting returns to: %s' % str(OurAddr))
-    cmadb.CMAdb.log.info('TheOneRing created - id = %d' % cmadb.CMAdb.TheOneRing.node.id)
-    cmadb.CMAdb.log.debug("Nanoprobe ConfigInit: %s" % configinit)
-    cmadb.CMAdb.log.info("Nanoprobe Config Object: %s" % config)
+    cmadb.CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
+    if cmadb.CMAdb.debug:
+        cmadb.CMAdb.log.info('TheOneRing created - id = %d' % cmadb.CMAdb.TheOneRing.node.id)
+        cmadb.CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
 
     print FrameTypes.get(1)[2]
     disp = MessageDispatcher(
@@ -201,7 +199,10 @@ if __name__ == '__main__':
     if opt.doTrace:
         import trace
         tracer = trace.Trace(count=False, trace=True)
-        print >>sys.stderr, "TRACING..."
+        if CMAdb.debug: cmadb.CMAdb.log.debug('Starting up traced listener.listen(); debug=%d' % opt.debug)
+        if opt.foreground:  print >>sys.stderr, ('cma: Starting up traced listener.listen() in foreground; debug=%d' % opt.debug)
         tracer.run('listener.listen()')
     else:
+        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug("Starting up untraced listener.listen(); debug=%d" % opt.debug)
+        if opt.foreground:  print >>sys.stderr, ('cma: Starting up untraced listener.listen() in foreground; debug=%d' % opt.debug)
         listener.listen()

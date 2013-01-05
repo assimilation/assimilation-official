@@ -22,7 +22,9 @@
 from cmadb import CMAdb
 from dispatchtarget import DispatchTarget
 from hbring import HbRing
-import sys
+from frameinfo import FrameSetTypes
+import os, sys, traceback
+
 class MessageDispatcher:
     'We dispatch incoming messages where they need to go.'
     def __init__(self, dispatchtable):
@@ -42,17 +44,33 @@ class MessageDispatcher:
         # where a single packet might trigger a transaction on several systems for a node
         # which appears on several rings.
         #
-        #try:
-        if True:
+        try:
             # May eventually begin a transaction here
             # Of course, this transaction needs to span both the database and the network
             if fstype in self.dispatchtable:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
             else:
                 self.default.dispatch(origaddr, frameset)
-        #except Exception as e:
-        elif False:
-            CMAdb.log.exception('MessageDispatcher exception [%s] occurred while handling Frameset [%s]' % (e, str(frameset)))
+        except Exception as e:
+            # Darn!  Got an exception - let's try and put everything useful into the logs in legible way
+            (etype, evalue, trace) = sys.exc_info()
+            tblist=traceback.extract_tb(trace, 20)
+            fstypename = FrameSetTypes.get(fstype)[0]
+
+            print >>sys.stderr, ('MessageDispatcher %s exception [%s] occurred while handling [%s] FrameSetFrameset from %s' 
+            %           (etype, e, fstypename, origaddr))
+            CMAdb.log.critical('MessageDispatcher exception [%s] occurred while handling [%s] FrameSet from %s'
+            %           (e, fstypename, origaddr))
+            lines=str(frameset).splitlines()
+            CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
+            for line in lines:
+                CMAdb.log.info(line.expandtabs())
+            CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========' % (fstypename, e))
+            for tb in tblist:
+                (filename, line, funcname, text) = tb
+                filename = os.path.basename(filename)
+                CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
+            CMAdb.log.info('======== End %s Message %s Exception Traceback ========' % (fstypename, e))
             # @todo Eventually will want to abort the transaction here
         else:
             # @todo Eventually will want to commit the transaction here
