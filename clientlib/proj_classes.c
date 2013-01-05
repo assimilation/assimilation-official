@@ -381,11 +381,14 @@ proj_class_dump_live_objects(void)
 void
 proj_class_debug_dump(const char * prefix, const AssimObj* obj, const char *suffix)
 {
-	char * objstr = obj->toString(obj);
+	char * objstr = NULL;
 	const char * pad = "";
 
 	if (prefix != NULL) {
 		pad = ": ";
+	}
+	if (obj) {
+		objstr = obj->toString(obj);
 	}
 	g_debug("%s%s%s%s"
 	,	(prefix == NULL ? "" : prefix)
