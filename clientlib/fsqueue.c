@@ -60,7 +60,11 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	DEBUGMSG3("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
 	// This FrameSet shouldn't have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
-	g_return_val_if_fail(self->_maxqlen == 0 || self->_q->length < self->_maxqlen, FALSE);
+	if (self->_maxqlen != 0 && self->_q->length >= self->_maxqlen) {
+		g_warning("%s.%d: Failing due to excess queue length (%d)"
+		,	__FUNCTION__, __LINE__, self->_maxqlen);
+		return FALSE;
+	}
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
 	g_return_val_if_fail(seqno != NULL, FALSE);
 	++self->_nextseqno;

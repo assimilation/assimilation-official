@@ -1196,7 +1196,9 @@ class pyNetIO(pyAssimObj):
         while (not hasattr(base, 'sendaframeset')):
             base=base.baseclass
         for frameset in framesetlist:
-            base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
+            success = base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
+            if not success:
+                raise IOError("sendareliablefs(%s, %s) failed." % (destaddr, frameset))
 
     def ackmessage(self, destaddr, frameset):
         'ACK (acknowledge) this frameset - (presumably sent reliably).'
@@ -1256,7 +1258,7 @@ class pyNetIOudp(pyNetIO):
         if Cstruct is None:
             Cstruct=netioudp_new(0, config._Cstruct, packetdecoder._Cstruct)
         if not Cstruct:
-            raise ValueError, ("Invalid parameters to pyNetIOudp constructor")
+            raise ValueError("Invalid parameters to pyNetIOudp constructor")
         pyNetIO.__init__(self, config, packetdecoder, Cstruct=Cstruct)
 
 class pyReliableUDP(pyNetIOudp):
@@ -1267,7 +1269,7 @@ class pyReliableUDP(pyNetIOudp):
         if Cstruct is None:
             Cstruct=reliableudp_new(0, config._Cstruct, packetdecoder._Cstruct, rexmit_timer_uS)
         if not Cstruct:
-            raise ValueError, ("Invalid parameters to pyReliableUDP constructor")
+            raise ValueError("Invalid parameters to pyReliableUDP constructor")
         pyNetIOudp.__init__(self, config, packetdecoder, Cstruct=Cstruct)
 
 class CMAlib:
