@@ -321,9 +321,11 @@ class pyNetAddr(pyAssimObj):
         if isinstance(addrstring, unicode):
            addrstring = str(addrstring)
         if isinstance(addrstring, str) or isinstance(addrstring, unicode):
-            cs = netaddr_string_new(addrstring, port)
+            cs = netaddr_string_new(addrstring)
             if not cs:
                 raise ValueError('Illegal NetAddr initial value: "%s"' % addrstring)
+            if port != 0:
+                cs[0].setport(cs, port)
             pyAssimObj.__init__(self, Cstruct=cs)
             return
         
@@ -353,24 +355,24 @@ class pyNetAddr(pyAssimObj):
             assert port == 0
             pyAssimObj.__init__(self, netaddr_mac64_new(addr, port))
         else:
-            raise ValueError("Invalid address length - not 4, 6, 8, or 16")
+            raise ValueError('Invalid address length - not 4, 6, 8, or 16')
 
     def port(self):
-        "Return the port (if any) for this pyNetAddr object"
+        'Return the port (if any) for this pyNetAddr object'
         base=self._Cstruct[0]
         while (type(base) is not NetAddr):
             base=base.baseclass
         return base.port(self._Cstruct)
 
     def setport(self, port):
-        "Return the port (if any) for this pyNetAddr object"
+        'Return the port (if any) for this pyNetAddr object'
         base=self._Cstruct[0]
         while (type(base) is not NetAddr):
             base=base.baseclass
         base.setport(self._Cstruct, port)
 
     def addrtype(self):
-        "Return the type of address for this pyNetAddr object"
+        'Return the type of address for this pyNetAddr object'
         base=self._Cstruct[0]
         while (type(base) is not NetAddr):
             base=base.baseclass
@@ -382,6 +384,13 @@ class pyNetAddr(pyAssimObj):
         while (type(base) is not NetAddr):
             base=base.baseclass
         return base._addrlen
+
+    def islocal(self):
+        'Return True if this address is a local address'
+        base=self._Cstruct[0]
+        while (type(base) is not NetAddr):
+            base=base.baseclass
+        return base.islocal(self._Cstruct)
 
     def __repr__(self):
         'Return a canonical representation of this NetAddr'
@@ -1164,6 +1173,9 @@ class pyNetIO(pyAssimObj):
         'Send the (collection of) frameset(s) out on this pyNetIO'
         if destaddr.port() == 0:
             raise ValueError("Zero Port in sendframesets: destaddr=%s" % str(destaddr))
+        if str(destaddr) == '[::1]:1984':
+            print >>sys.stderr, 'WARNING:  OOPS!'
+            traceback.print_stack()
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist, )
         base = self._Cstruct[0]
@@ -1185,7 +1197,7 @@ class pyNetIO(pyAssimObj):
             base=base.baseclass
         for frameset in framesetlist:
             print >>sys.stderr, ('SENDING message %s to DEST %s' % (frameset, destaddr))
-            print >>sys.stderr, ('SENDING msg to DEST %s via Cstruct %s' % (destaddr, self._Cstruct))
+            print >>sys.stderr, ('SENDING MSG to DEST %s aka Cstruct %s' % (destaddr, string_at(destaddr._Cstruct[0].baseclass.toString(destaddr._Cstruct))))
             base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
 
     def ackmessage(self, destaddr, frameset):
@@ -1203,7 +1215,14 @@ class pyNetIO(pyAssimObj):
         while (not hasattr(base, 'closeconn')):
             base=base.baseclass
         base.closeconn(self._Cstruct, qid, destaddr._Cstruct)
-        
+
+    def addalias(self, fromaddr, toaddr):
+        'Close (reset) our connection to this address'
+
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'closeconn')):
+            base=base.baseclass
+        base.addalias(self._Cstruct, fromaddr._Cstruct, toaddr._Cstruct)
 
     def recvframesets(self):
         '''Receive a collection of framesets read from this pyNetIO - all from the same Address.

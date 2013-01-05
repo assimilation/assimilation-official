@@ -104,7 +104,7 @@ if __name__ == '__main__':
     #   somewhere out there...
     #
     DefaultPort = 1984
-    import os
+    import os, sys
     # VERY Linux-specific - but useful and apparently correct ;-)
     PrimaryIPcmd="ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
     ipfd=os.popen(PrimaryIPcmd, 'r')
@@ -120,6 +120,12 @@ if __name__ == '__main__':
     parser.add_option('-b', '--bind', action='store', default=None, dest='bind'
     ,   metavar='address:port-to-bind-to'
     ,   help='Address:port to listen to - for nanoprobes to connect to')
+
+    parser.add_option('-d', '--debug', action='store_true', default=False, dest='debug'
+    ,   help='enable debug for CMA')
+
+    parser.add_option('-e', '--erasedb', action='store_true', default=False, dest='erasedb'
+    ,   help='Erase Neo4J before starting')
 
     parser.add_option('-f', '--foreground', action='store_true', default=False, dest='foreground'
     ,   help='keep the CMA from going into the background')
@@ -141,9 +147,9 @@ if __name__ == '__main__':
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG, proj_class_incr_debug
     from frameinfo import FrameTypes, FrameSetTypes
-    proj_class_incr_debug(None)
-    proj_class_incr_debug(None)
-    proj_class_incr_debug(None)
+    if opt.debug:
+        proj_class_incr_debug(None)
+        proj_class_incr_debug(None)
 
 
     if opt.bind is None:
@@ -174,8 +180,7 @@ if __name__ == '__main__':
     }
     config = pyConfigContext(init=configinit)
     io = pyReliableUDP(config, pyPacketDecoder(0))
-    cmadb.CMAdb.initglobal(io, True)
-    cmadb.CMAdb.debug = True
+    cmadb.CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=opt.debug)
     cmadb.CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     cmadb.CMAdb.log.info('Requesting returns to: %s' % str(OurAddr))
     cmadb.CMAdb.log.info('TheOneRing created - id = %d' % cmadb.CMAdb.TheOneRing.node.id)

@@ -20,7 +20,7 @@
 #
 #
 
-import sys
+import sys, os
 import logging, logging.handlers
 from py2neo import neo4j, cypher
 from AssimCtypes import *
@@ -66,7 +66,9 @@ class CMAdb:
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 
-    debug = True
+    nodename = os.uname()[1]
+    debug = False
+
 
 
     def __init__(self, host='localhost', port=7474):
@@ -88,7 +90,7 @@ class CMAdb:
         ,   CMAdb.NODE_NIC:     True    # NICs are indexed by MAC address
                                         # MAC addresses are not always unique...
         ,   CMAdb.NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
-        ,   CMAdb.NODE_tcpipport:  True    # We index IP and port - handy to have...
+        ,   CMAdb.NODE_tcpipport:True   # We index IP and port - handy to have...
         ,   CMAdb.NODE_ipproc:  False
         }
         
@@ -117,21 +119,22 @@ class CMAdb:
         self.droneindex = self.indextbl[CMAdb.NODE_drone]
 
     @staticmethod
-    def initglobal(io, cleanoutdb=False):
+    def initglobal(io, cleanoutdb=False, debug=False):
         CMAdb.log = logging.getLogger('cma')
+        CMAdb.debug = debug
         CMAdb.io = io
         CMAdb.cdb = CMAdb()
-        if cleanoutdb:
-            #print >>sys.stderr, 'Re-initializing the database'
-            CMAdb.cdb.delete_all()
-            CMAdb.cdb = CMAdb()
         import hbring
-        CMAdb.TheOneRing =  hbring.HbRing('The_One_Ring', hbring.HbRing.THEONERING)
         syslog = logging.handlers.SysLogHandler(address='/dev/log'
         ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
         CMAdb.log.addHandler(syslog)
         CMAdb.log.setLevel(logging.DEBUG)
+        if cleanoutdb:
+            CMAdb.log.info('Re-initializing the NEO4j database')
+            CMAdb.cdb.delete_all()
+            CMAdb.cdb = CMAdb()
+        CMAdb.TheOneRing =  hbring.HbRing('The_One_Ring', hbring.HbRing.THEONERING)
 
     def delete_all(self):
         query = cypher.Query(self.db

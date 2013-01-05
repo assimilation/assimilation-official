@@ -196,7 +196,8 @@ _reliableudp_sendareliablefs(NetIO* nself, NetAddr* dest, guint16 qid, FrameSet*
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	// Send it out!
-	DUMP2("Sending packet with _protocol->send1", &fs->baseclass, NULL);
+	DUMP3("Sending FrameSet with _protocol->send1", &fs->baseclass, NULL);
+	DUMP3("Sending FrameSet with _protocol->send1 TO", &dest->baseclass, NULL);
 	return self->_protocol->send1(self->_protocol, fs, qid, dest);
 }
 
@@ -205,7 +206,7 @@ FSTATIC gboolean
 _reliableudp_sendreliablefs(NetIO* nself, NetAddr* dest, guint16 qid, GSList* fslist)
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
-	DEBUGMSG2("Sending packet with _protocol->send(%d)", g_slist_length(fslist));
+	DEBUGMSG3("Sending packet with _protocol->send(%d)", g_slist_length(fslist));
 	return self->_protocol->send(self->_protocol, fslist, qid, dest);
 }
 
@@ -214,7 +215,7 @@ FSTATIC gboolean
 _reliableudp_ackmessage (NetIO*  nself, NetAddr* dest, FrameSet* frameset)
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
-	DEBUGMSG2("ACKing packet with _protocol->ackmessage");
+	DEBUGMSG3("ACKing packet with _protocol->ackmessage");
 	self->_protocol->ackmessage(self->_protocol, dest, frameset);
 	return TRUE;
 }

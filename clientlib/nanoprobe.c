@@ -55,6 +55,8 @@ void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
 void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
 NanoHbStats		nano_hbstats = {0U, 0U, 0U, 0U, 0U};
 gboolean		nano_connected = FALSE;
+int			errcount = 0;
+GMainLoop*		mainloop = NULL;
 
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
@@ -79,10 +81,18 @@ FSTATIC void		_real_warntime_agent(HbListener* who, guint64 howlate);
 FSTATIC void		_real_comealive_agent(HbListener* who, guint64 howlate);
 FSTATIC void		_real_martian_agent(NetAddr* who);
 FSTATIC HbListener*	_real_hblistener_new(NetAddr*, ConfigContext*);
+FSTATIC gboolean	_nano_final_shutdown(gpointer unused);
+FSTATIC gboolean	shutdown_when_outdone(gpointer unused);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
+
+gboolean		nano_shutting_down = FALSE;
+const char *		procname = "nanoprobe";
+
 static NetAddr*		nanofailreportaddr = NULL;
 static NetGSource*	nanotransport = NULL;
+static guint		idle_shutdown_gsource = 0;
+static guint		shutdown_timer = 0;
 
 DEBUGDECLARATIONS
 
@@ -102,8 +112,15 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 ,			  guint64 howlate)	///< How late was the heartbeat?
 						///< This is optional - zero means ignore this parameter.
 {
-		FrameSet*	fs		= frameset_new(reporttype);
+		FrameSet*	fs;
 
+		if (nano_shutting_down) {
+			DEBUGMSG("%s.%d: Ignoring request (nano_shutting_down) to send fstype=%d message upstream"
+			,	__FUNCTION__, __LINE__, reporttype);
+			return;
+		}
+
+		fs		= frameset_new(reporttype);
 		// Construct and send a frameset reporting this event...
 		if (howlate > 0) {
 			IntFrame*	lateframe	= intframe_new(FRAMETYPE_ELAPSEDTIME, 8);
@@ -126,6 +143,7 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 			UNREF2(usf);
 		}
 		DEBUGMSG1("%s - sending frameset of type %d", __FUNCTION__, reporttype);
+		DUMP1("nanoprobe_report_upstream", &nanofailreportaddr->baseclass, NULL);
 		nanotransport->_netio->sendareliablefs(nanotransport->_netio, nanofailreportaddr, DEFAULT_FSP_QID, fs);
 		UNREF(fs);
 }
@@ -234,6 +252,9 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 	ConfigContext*	config = parent->baseclass.config;
 	guint16		sendinterval = 0;
 
+	if (nano_shutting_down) {
+		return;
+	}
 
 	g_return_if_fail(fs != NULL);
 	(void)fromaddr;
@@ -293,6 +314,10 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 	guint64		warntime = 0;
 
 	(void)fromaddr;
+
+	if (nano_shutting_down) {
+		return;
+	}
 
 	g_return_if_fail(fs != NULL);
 	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
@@ -378,6 +403,9 @@ nanoobey_sendexpecthb(AuthListener* parent	///<[in] @ref AuthListener object inv
 {
 	g_return_if_fail(fs != NULL && fs->fstype == FRAMESETTYPE_SENDEXPECTHB);
 
+	if (nano_shutting_down) {
+		return;
+	}
 	// This will cause us to ACK the packet twice -- not a problem...
 	nanoobey_sendhb  (parent, fs, fromaddr);
 	nanoobey_expecthb(parent, fs, fromaddr);
@@ -518,12 +546,25 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 
 		}//endswitch
 	}//endfor
+	DUMP1("nanoobey_setconfig: cfg is", &cfg->baseclass, NULL);
 	if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != NULL) {
 		if (nanofailreportaddr == NULL) {
 			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
+			
+			
 		}else if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {
 			UNREF(nanofailreportaddr);
 			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
+		}
+		DUMP1("nanoobey_setconfig: nanofailreportaddr", &nanofailreportaddr->baseclass, NULL);
+		{
+			// Alias localhost to the CMA nanofailreportaddr (at least for now...)
+			///@todo If we split the CMA into multiple machines this will need to change.:f
+
+			NetAddr* localhost = netaddr_string_new("127.0.0.1");
+			NetIO* io = parent->baseclass.transport->_netio;
+			io->addalias(io, localhost, nanofailreportaddr);
+			UNREF(localhost);
 		}
 		REF(nanofailreportaddr);
 	}
@@ -614,6 +655,9 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 	(void)parent;
 	(void)fromaddr;
 	
+	if (nano_shutting_down) {
+		return;
+	}
 
 	DEBUGMSG2("%s - got frameset", __FUNCTION__);
 	// Loop over the frames, looking for those we know what to do with ;-)
@@ -744,7 +788,7 @@ nano_startupidle(gpointer gcruft)
 	struct startup_cruft* cruft = gcruft;
 	const char *	cfgname = cruft->initdiscover;
 
-	if (state == DONE) {
+	if (state == DONE || nano_shutting_down) {
 		return FALSE;
 	}
 	if (state == INIT) {
@@ -786,6 +830,10 @@ nano_reqconfig(gpointer gcruft)
 	const char *		jsontext;
 	struct utsname	un;	// System name, etc.
 
+	if (nano_shutting_down) {
+		return FALSE;
+	}
+
 	// We <i>have</i> to know our initial request address - or all is lost.
 	// NOTE THAT THIS ADDRESS MIGHT BE MULTICAST AND MIGHT BE USED ONLY ONCE
 	g_return_val_if_fail(cmainit != NULL, FALSE);
@@ -817,9 +865,11 @@ nano_reqconfig(gpointer gcruft)
 	UNREF2(csf);
 
 	// We've constructed the frameset - now send it - unreliably...
-	// That's because the reply will likely be from a different address
+	// That's because the reply is typically from a different address
 	// which would confuse the blazes out of the reliable comm code.
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
+	DEBUGMSG("%s.%d: Sent initial STARTUP frameset for %s."
+	,	__FUNCTION__, __LINE__, un.nodename);
 	UNREF(fs);
 	return TRUE;
 }
@@ -886,7 +936,7 @@ nano_packet_decoder(void)
  *	but we'll always go through these steps.
  */
 
-void
+WINEXPORT void
 nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial network discovery agent
 	,	guint discover_interval		///<[in] discovery interval for agent above
 	,	NetGSource* io			///<[in/out] network connectivity object
@@ -899,6 +949,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 		io,
 		config
 	};
+	nano_shutting_down = FALSE;
 	BINDDEBUG(nanoprobe_main);
 	
  	hblistener_set_martian_callback(_real_martian_agent);
@@ -918,7 +969,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	g_idle_add(nano_startupidle, &cruftiness);
 }
 /// Shut down the things started up by nano_start_full() - mainly free storage to make valgrind happy...
-void
+WINEXPORT void
 nano_shutdown(gboolean report)
 {
 	if (report) {
@@ -962,4 +1013,60 @@ nano_shutdown(gboolean report)
 	discovery_unregister_all();
 	obeycollective->baseclass.dissociate(&obeycollective->baseclass);
 	UNREF2(obeycollective);
+}
+
+/// Initiate shutdown - return TRUE if we have shut down immediately...
+WINEXPORT gboolean
+nano_initiate_shutdown(void)
+{
+	struct utsname	un;	// System name, etc.
+	uname(&un);
+
+	if (nano_connected) {
+		DEBUGMSG("Sending HBSHUTDOWN to CMA");
+		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
+		// Wait for an ACK before shutting down...
+		idle_shutdown_gsource = g_idle_add(shutdown_when_outdone, NULL);
+		// But just in case... Shut down in 10 seconds anyway...
+		shutdown_timer = g_timeout_add_seconds(10, _nano_final_shutdown, NULL);
+		nano_shutting_down = TRUE;
+	}else{
+		// Send the shutdown anyway...
+		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
+		nano_shutting_down = TRUE;
+		g_warning("%s: Never connected to CMA - not waiting for reply from CMA.", procname);
+		++errcount;  // Trigger non-zero exit code...
+		_nano_final_shutdown(NULL);
+		return TRUE;
+	}
+	return FALSE;
+}
+FSTATIC gboolean
+shutdown_when_outdone(gpointer unused)
+{
+	(void)unused;
+	// Wait for the CMA to ACK our shutdown message - if we've heard anything from them...
+	if (!nano_connected || !nanotransport->_netio->outputpending(nanotransport->_netio)){
+		DEBUGMSG("%s.%d: Shutting down - no output pending", __FUNCTION__, __LINE__);
+		if (shutdown_timer) {
+			g_source_remove(shutdown_timer);
+			shutdown_timer = 0;
+		}
+		g_main_quit(mainloop);
+		return FALSE;
+	}
+	return TRUE;
+}
+// Final Shutdown -- a contingency timer to make sure we eventually shut down
+FSTATIC gboolean
+_nano_final_shutdown(gpointer unused)
+{
+	(void)unused;
+	DEBUGMSG("Initiating final shutdown");
+	if (idle_shutdown_gsource) {
+		g_source_remove(idle_shutdown_gsource);
+		idle_shutdown_gsource = 0;
+	}
+	g_main_quit(mainloop);
+	return FALSE;
 }

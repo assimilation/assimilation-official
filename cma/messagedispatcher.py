@@ -42,14 +42,16 @@ class MessageDispatcher:
         # where a single packet might trigger a transaction on several systems for a node
         # which appears on several rings.
         #
-        try:
+        #try:
+        if True:
             # May eventually begin a transaction here
             # Of course, this transaction needs to span both the database and the network
             if fstype in self.dispatchtable:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
             else:
                 self.default.dispatch(origaddr, frameset)
-        except Exception as e:
+        #except Exception as e:
+        elif False:
             CMAdb.log.exception('MessageDispatcher exception [%s] occurred while handling Frameset [%s]' % (e, str(frameset)))
             # @todo Eventually will want to abort the transaction here
         else:

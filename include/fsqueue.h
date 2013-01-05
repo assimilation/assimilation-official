@@ -47,7 +47,6 @@ struct _FsQueue {
 	guint64		_nextseqno;				///< Next sequence number
 	guint32		_sessionid;				///< Current session id for this Queue
 	guint		_maxqlen;				///< Maximum queue length
-	guint		_curqlen;				///< Current queue length
 	GQueue*		_q;					///< @ref FrameSet queue
 	NetAddr*	_destaddr;				///< Far endpoint address
 	guint16		_qid;					///< Far endpoint queue id
@@ -75,7 +74,7 @@ struct _FsQueue {
 	gboolean	(*hasqspace)(FsQueue* self, guint);	///< TRUE if space for desired packets available
 };
 WINEXPORT FsQueue* fsqueue_new(guint objsize, NetAddr* dest, guint16 qid);
-#define	DEFAULT_FSQMAX	0	///< Default maximum length for these queues - zero means unlimited
+#define	DEFAULT_FSQMAX	32	///< Default maximum length for these queues - zero means unlimited
 
 ///@}
 

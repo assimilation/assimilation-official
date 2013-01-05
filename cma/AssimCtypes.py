@@ -2018,6 +2018,7 @@ struct__NetIO.__slots__ = [
     '_signframe',
     '_cryptframe',
     '_compressframe',
+    'aliases',
     '_rcvloss',
     '_xmitloss',
     '_shouldlosepkts',
@@ -2026,6 +2027,7 @@ struct__NetIO.__slots__ = [
     'boundaddr',
     'mcastjoin',
     'setmcast_ttl',
+    'addalias',
     'getfd',
     'setblockio',
     'getmaxpktsize',
@@ -2055,6 +2057,7 @@ struct__NetIO._fields_ = [
     ('_signframe', POINTER(SignFrame)),
     ('_cryptframe', POINTER(Frame)),
     ('_compressframe', POINTER(Frame)),
+    ('aliases', POINTER(GHashTable)),
     ('_rcvloss', c_double),
     ('_xmitloss', c_double),
     ('_shouldlosepkts', gboolean),
@@ -2063,6 +2066,7 @@ struct__NetIO._fields_ = [
     ('boundaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(NetIO))),
     ('mcastjoin', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), POINTER(NetAddr), POINTER(NetAddr))),
     ('setmcast_ttl', CFUNCTYPE(UNCHECKED(gboolean), POINTER(NetIO), guint8)),
+    ('addalias', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), POINTER(NetAddr), POINTER(NetAddr))),
     ('getfd', CFUNCTYPE(UNCHECKED(gint), POINTER(NetIO))),
     ('setblockio', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
     ('getmaxpktsize', CFUNCTYPE(UNCHECKED(gsize), POINTER(NetIO))),
@@ -2083,13 +2087,13 @@ struct__NetIO._fields_ = [
     ('enablepktloss', CFUNCTYPE(UNCHECKED(None), POINTER(NetIO), gboolean)),
 ]
 
-# ../include/netio.h: 165
+# ../include/netio.h: 167
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_new'):
     netio_new = _libs['libassimilationclientlib.so'].netio_new
     netio_new.argtypes = [gsize, POINTER(ConfigContext), POINTER(PacketDecoder)]
     netio_new.restype = POINTER(NetIO)
 
-# ../include/netio.h: 167
+# ../include/netio.h: 169
 if hasattr(_libs['libassimilationclientlib.so'], 'netio_is_dual_ipv4v6_stack'):
     netio_is_dual_ipv4v6_stack = _libs['libassimilationclientlib.so'].netio_is_dual_ipv4v6_stack
     netio_is_dual_ipv4v6_stack.argtypes = []
@@ -2443,7 +2447,6 @@ struct__FsQueue.__slots__ = [
     '_nextseqno',
     '_sessionid',
     '_maxqlen',
-    '_curqlen',
     '_q',
     '_destaddr',
     '_qid',
@@ -2466,7 +2469,6 @@ struct__FsQueue._fields_ = [
     ('_nextseqno', guint64),
     ('_sessionid', guint32),
     ('_maxqlen', guint),
-    ('_curqlen', guint),
     ('_q', POINTER(GQueue)),
     ('_destaddr', POINTER(NetAddr)),
     ('_qid', guint16),
@@ -2485,7 +2487,7 @@ struct__FsQueue._fields_ = [
     ('hasqspace', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), guint)),
 ]
 
-# ../include/fsqueue.h: 77
+# ../include/fsqueue.h: 76
 if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
     fsqueue_new = _libs['libassimilationclientlib.so'].fsqueue_new
     fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
@@ -2569,9 +2571,9 @@ struct__FsProtocol._fields_ = [
     ('window_size', guint),
     ('rexmit_interval', gint64),
     ('_timersrc', guint),
-    ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr), gboolean)),
+    ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('findbypkt', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
-    ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr), gboolean)),
+    ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('closeconn', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('iready', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
     ('outputpending', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
@@ -4288,9 +4290,9 @@ try:
 except:
     pass
 
-# ../include/fsqueue.h: 78
+# ../include/fsqueue.h: 77
 try:
-    DEFAULT_FSQMAX = 0
+    DEFAULT_FSQMAX = 32
 except:
     pass
 

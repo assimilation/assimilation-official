@@ -115,24 +115,24 @@ _netaddr_canonStr(const NetAddr* self)
 NetAddr*
 _netaddr_toIPv6(const NetAddr* self)
 {
-	const int	ipv4prefixlen = 12;
-	guchar 		ipv6addr[16] = {CONST_IPV6_IPV4SPACE, 0, 0, 0, 0};
 	
 	switch (self->_addrtype) {
 		case ADDR_FAMILY_IPV6:
 			// Return a copy of this IPv6 address
-			memcpy(ipv6addr, self->_addrbody, sizeof(ipv6addr));
-			return netaddr_ipv6_new(ipv6addr, self->_addrport);
+			return netaddr_ipv6_new(self->_addrbody, self->_addrport);
 
-		case ADDR_FAMILY_IPV4:
+		case ADDR_FAMILY_IPV4: {
+			const int	ipv4prefixlen	= 12;
+			guchar 		ipv6addr[16]	= {CONST_IPV6_IPV4SPACE, 0, 0, 0, 0};
 			// We have an IPv4 address we want to convert to an IPv6 address
-			if (memcmp(self->_addrbody, ipv4loop, sizeof(ipv4loop))) {
+			if (memcmp(self->_addrbody, ipv4loop, sizeof(ipv4loop)) == 0) {
 				// Convert loopback addresses from v4 to v6
 				memcpy(ipv6addr, ipv6loop, sizeof(ipv6loop));
 			}else{
 				memcpy(ipv6addr+ipv4prefixlen, self->_addrbody, 4);
 			}
 			return netaddr_ipv6_new(ipv6addr, self->_addrport);
+		}
 
 		default:	// OOPS!
 			break;

@@ -22,11 +22,11 @@
  *
  */
 #include <projectcommon.h>
+#include <stdlib.h>
 #include <fsqueue.h>
 #include <frameset.h>
 #include <frametypes.h>
 
-#include <assert.h>
 
 
 
@@ -60,8 +60,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	DEBUGMSG2("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
 	// This FrameSet shouldn't have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
-	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
-	assert(fs->getseqno(fs) == NULL);
+	g_return_val_if_fail(self->_maxqlen == 0 || self->_q->length < self->_maxqlen, FALSE);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
 	g_return_val_if_fail(seqno != NULL, FALSE);
 	++self->_nextseqno;
@@ -80,14 +79,13 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	frameset_prepend_frame(fs, &seqno->baseclass);
 	// And put this FrameSet at the end of the queue
 	g_queue_push_tail(self->_q, fs);
-	++self->_curqlen;
 
 	// Now do all the paperwork :-D
 	// We need for the FrameSet to be kept around for potentially a long time...
 	REF(fs);
 	// But we're done with the seqno frame (prepending it to the frameset bumped the ref count)
 	UNREF2(seqno);
-	DUMP2(__FUNCTION__, &self->baseclass, "");
+	DUMP3(__FUNCTION__, &self->baseclass, NULL);
 	return TRUE;
 }
 
@@ -104,7 +102,6 @@ FSTATIC FrameSet*
 _fsqueue_deq(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
 	gpointer	ret = g_queue_pop_head(self->_q);
-	--self->_curqlen;
 	return ret ? CASTTOCLASS(FrameSet, ret) : NULL;
 }
 
@@ -143,8 +140,8 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 			// We've already delivered this packet to our customers...
 			// We need to see if we've already sent the ACK for this packet.
 			// If so, we need to ACK it again...
-			DUMP2(__FUNCTION__, &fs->baseclass, " Previously delivered to client");
-			DEBUGMSG2("%s: reason: sequence number is "FMT_64BIT"d but next is "FMT_64BIT"d"
+			DUMP3(__FUNCTION__, &fs->baseclass, " Previously delivered to client");
+			DEBUGMSG3("%s: reason: sequence number is "FMT_64BIT"d but next is "FMT_64BIT"d"
 			,	__FUNCTION__, seqno->_reqid, self->_nextseqno);
 			return FALSE;
 		}
@@ -152,18 +149,25 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	// Probably this shouldn't really log an error - but I'd like to see it happen
 	// if it does -- unless of course, it turns out to happen a lot (unlikely...)
-	g_return_val_if_fail(self->_maxqlen == 0 || self->_curqlen < self->_maxqlen, FALSE);
+
+	if (self->_maxqlen != 0 && self->_q->length >= self->_maxqlen) {
+		g_warning("%s.%d: input queue overflow (maxlength=%d)"
+		,	__FUNCTION__, __LINE__, self->maxqlen);
+		return FALSE;
+	}
 
 	// Frames without sequence numbers go to the head of the queue
 	if (seqno == NULL) {
 		// This is typically a heartbeat or similar
-		DEBUGMSG2("%s.%d: Pushing unsequenced frame into head of queue", __FUNCTION__, __LINE__);
-		DUMP2("UnSeqFrame", &fs->baseclass, NULL);
+		DEBUGMSG3("%s.%d: Pushing unsequenced frame into head of queue", __FUNCTION__, __LINE__);
+		DUMP3("UnSeqFrame", &fs->baseclass, NULL);
 		g_queue_push_head(Q, fs);
 		REF(fs);
 		return TRUE;
 	}
 
+	// We have enough room for this FrameSet, and it's a sequenced FrameSet
+	// Insert it in its proper place
 	for (this = Q->head; this; this=this->next)  {
 		FrameSet*	tfs = CASTTOCLASS(FrameSet, this->data);
 		SeqnoFrame*	thisseq = tfs->getseqno(tfs);
@@ -181,7 +185,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	// Regardless of which is true, we can call g_queue_push_tail...
 	REF(fs);
 	g_queue_push_tail(Q, fs);
-	DUMP2(__FUNCTION__, &self->baseclass, " putting at end of queue");
+	DUMP3(__FUNCTION__, &self->baseclass, " putting at end of queue");
 	return TRUE;
 }
 
@@ -242,21 +246,20 @@ _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 	while (NULL != (qelem = g_queue_pop_head(self->_q))) {
 		FrameSet *	fs = CASTTOCLASS(FrameSet, qelem);
 		SeqnoFrame*	seq;
-		DEBUGMSG2("%s: Flushing FrameSet at %p - ref count = %d"
+		DEBUGMSG3("%s: Flushing FrameSet at %p - ref count = %d"
 		,	__FUNCTION__, fs, fs->baseclass._refcount);
-		DUMP2("Flushing", &fs->baseclass, " whoosh!");
+		DUMP4("Flushing", &fs->baseclass, " whoosh!");
 		// If this packet is in the input queue and hasn't yet been ACKed by the application
 		// then there are two ref counts being held for it at the moment..
 		if (self->_nextseqno > 0 && NULL != (seq = fs->getseqno(fs)) && seq->getreqid(seq) >= self->_nextseqno
 		&&	fs->baseclass._refcount > 1) {
 			FrameSet* tmpfs = fs;
-			DEBUGMSG2("%s.%d: seqno "FMT_64BIT"d has refcount %d -> dropping by one."
+			DEBUGMSG3("%s.%d: seqno "FMT_64BIT"d has refcount %d -> dropping by one."
 			,	__FUNCTION__, __LINE__, seq->getreqid(seq), fs->baseclass._refcount);
 			UNREF(tmpfs);	// Somewhat kludgy...
 		}
 		UNREF(fs);
 	}
-	self->_curqlen = 0;
 }
 
 /// Flush only the first frameset from the queue (if any).
@@ -268,7 +271,6 @@ _fsqueue_flush1(FsQueue* self)		///< The @ref FsQueue object we're operating on
 	if (qelem) {
 		FrameSet *	fs = CASTTOCLASS(FrameSet, qelem);
 		UNREF(fs);
-		--self->_curqlen;
 	}
 }
 
@@ -276,7 +278,7 @@ _fsqueue_flush1(FsQueue* self)		///< The @ref FsQueue object we're operating on
 FSTATIC guint
 _fsqueue_qlen(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
-	return self->_curqlen;
+	return self->_q->length;
 }
 
 /// Set the maximum number of queue elements
@@ -344,7 +346,6 @@ fsqueue_new(guint objsize		///< Size of the FsQueue object we should create
 	self->_q =		g_queue_new();
 	self->_qid =		qid;
 	self->_maxqlen =	DEFAULT_FSQMAX;
-	self->_curqlen =	0;
 	self->_nextseqno =	1;
 	self->_sessionid =	0;
 	self->_destaddr =	dest;	REF(dest);

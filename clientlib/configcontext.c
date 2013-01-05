@@ -731,7 +731,7 @@ _configcontext_JSON_parse_pair(GScanner* scan, ConfigContext* cfg)
 	}
 	GULP;	// Swallow TOKEN_COLON
 	if (g_scanner_peek_next_token(scan) == TOKEN_COLON) {
-		abort();
+		return NULL;
 	}
 	// Next is a value...
 	value = _configcontext_JSON_parse_value(scan);
@@ -834,7 +834,6 @@ _configcontext_JSON_parse_value(GScanner* scan)
 			g_warning("Got token type %u", g_scanner_get_next_token(scan));
 			//GULP;
 			SYNERROR(scan, G_TOKEN_NONE, NULL, "Unexpected symbol.");
-			abort();
 			return NULL;
 	}
 	/*NOTREACHED*/

@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
 FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rhs);
+FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC gboolean	_fsprotocol_timeoutfun(gpointer userdata);
 
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
@@ -254,15 +254,17 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 {
 	FsProtocol*	self = CASTTOCLASS(FsProtocol, aself);
 
-	DUMP2("Finalizing FsProtocol", aself, __FUNCTION__);
+	DUMP3("_fsprotocol_finalize - this object", aself, NULL);
 	if (self->_timersrc) {
 		g_source_remove(self->_timersrc);
 		self->_timersrc = 0;
 	}
 
 	// Free up our hash table of endpoints
-	g_hash_table_destroy(self->endpoints);	// It will free the FsProtoElems contained therein
-	self->endpoints = NULL;
+	if (self->endpoints) {
+		g_hash_table_destroy(self->endpoints);	// It will free the FsProtoElems contained therein
+		self->endpoints = NULL;
+	}
 
 	// Free up the unacked list
 	g_list_free(self->unacked);		// No additional 'ref's were taken for this list
@@ -282,13 +284,13 @@ FSTATIC void
 _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to destroy
 {
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
-	DUMP2("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
+	DUMP3("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 	self->parent->unacked	= g_list_remove(self->parent->unacked, self);
 	self->parent->ipend	= g_list_remove(self->parent->ipend, self);
 	UNREF(self->endpoint);
-	DEBUGMSG2("UNREFing INPUT QUEUE");
+	DEBUGMSG3("UNREFing INPUT QUEUE");
 	UNREF(self->inq);
-	DEBUGMSG2("UNREFing OUTPUT QUEUE");
+	DEBUGMSG3("UNREFing OUTPUT QUEUE");
 	UNREF(self->outq);
 	if (self->lastacksent) {
 		UNREF2(self->lastacksent);
@@ -372,7 +374,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 			if (seq != NULL) {
 				iq->_nextseqno += 1;
 			}else{
-				DUMP2("fsprotocol_read: returning unsequenced frame", &ret->baseclass, NULL);
+				DUMP4("fsprotocol_read: returning unsequenced frame", &ret->baseclass, NULL);
 			}
 			// Now look and see if there will _still_ be something
 			// ready to be read on this input queue.  If not, then
@@ -410,10 +412,11 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 ,				FrameSet* fs)		///< Frameset that was received
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
-	FsProtoElem*	fspe = self->findbypkt(self, fromaddr, fs);
+	FsProtoElem*	fspe;
 
-	g_return_if_fail(fspe != NULL);
+	fspe = self->findbypkt(self, fromaddr, fs);
 	UNREF(fromaddr);
+	g_return_if_fail(fspe != NULL);
 	AUDITFSPE(fspe);
 	
 	if (fs->fstype == FRAMESETTYPE_ACK) {
@@ -423,7 +426,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		if (seq == NULL && DEBUGVAR < 2) {
 			DEBUGVAR = 2;
 		}
-		DUMP2(__FUNCTION__, &fs->baseclass, " was ACK received.");
+		DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
 		g_return_if_fail(seq != NULL);
 		fspe->outq->ackthrough(fspe->outq, seq);
 		if (fspe->outq->_q->length == 0) {
@@ -483,8 +486,10 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 ,		  guint16   qid		///< Far endpoint queue id
 ,		  NetAddr* toaddr)	///< Where to send it
 {
-	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
+	FsProtoElem*	fspe;
 	gboolean	ret;
+
+	fspe = self->addconn(self, qid, toaddr);
 	g_return_val_if_fail(NULL != fspe, FALSE);	// Should not be possible...
 	AUDITFSPE(fspe);
 	if (fspe->outq->_q->length == 0) {
