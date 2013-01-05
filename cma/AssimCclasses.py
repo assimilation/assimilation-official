@@ -1196,8 +1196,6 @@ class pyNetIO(pyAssimObj):
         while (not hasattr(base, 'sendaframeset')):
             base=base.baseclass
         for frameset in framesetlist:
-            print >>sys.stderr, ('SENDING message %s to DEST %s' % (frameset, destaddr))
-            print >>sys.stderr, ('SENDING MSG to DEST %s aka Cstruct %s' % (destaddr, string_at(destaddr._Cstruct[0].baseclass.toString(destaddr._Cstruct))))
             base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
 
     def ackmessage(self, destaddr, frameset):

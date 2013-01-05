@@ -38,6 +38,8 @@ FSTATIC gboolean _hbsender_gsourcefunc(gpointer);
 
 guint64 proj_get_real_time(void); 	///@todo - make this a real global function
 
+DEBUGDECLARATIONS
+
 ///@defgroup HbSender HbSender class.
 /// Class for heartbeat Senders - We send heartbeats to the chosen few
 ///@{
@@ -129,6 +131,7 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 	     gsize objsize)		///<[in] size of HbSender structure (0 for sizeof(HbSender))
 {
 	HbSender * newsender;
+	BINDDEBUG(HbSender);
 	if (objsize < sizeof(HbSender)) {
 		objsize = sizeof(HbSender);
 	}
@@ -148,7 +151,7 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 		newsender->timeout_source = g_timeout_add_seconds_full
 					    (G_PRIORITY_HIGH, (interval/1000000), _hbsender_gsourcefunc
 					,    newsender, _hbsender_notify_function);
-		g_message("Sender %p timeout source is: %d, interval is %d", newsender
+		DEBUGMSG3("Sender %p timeout source is: %d, interval is %d", newsender
 		,	  newsender->timeout_source, interval);
 		_hbsender_addlist(newsender);
 		// Avoid Martian packets - don't send the first one right away...
