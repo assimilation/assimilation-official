@@ -826,10 +826,10 @@ _netaddr_ipv6sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 			saddr.sin6_addr.s6_addr[10] =  0xff;
 			saddr.sin6_addr.s6_addr[11] =  0xff;
 			memcpy(saddr.sin6_addr.s6_addr+12, self->_addrbody, self->_addrlen);
-			DEBUGMSG2("%s:%s: sin6_family 0x%x, sin6_port %d"
+			DEBUGMSG3("%s:%s: sin6_family 0x%x, sin6_port %d"
 			,	__FILE__, __FUNCTION__
 			,	saddr.sin6_family, ntohs(saddr.sin6_port));
-			DEBUGMSG2("%s:%s:s6_addr(v4): %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x"
+			DEBUGMSG3("%s:%s:s6_addr(v4): %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x"
 			,	__FILE__, __FUNCTION__
 			,	saddr.sin6_addr.s6_addr[0],saddr.sin6_addr.s6_addr[1]
 			,	saddr.sin6_addr.s6_addr[2],saddr.sin6_addr.s6_addr[3]

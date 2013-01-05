@@ -98,7 +98,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 				g_warning("%s.%d: Received a FrameSet of type %d over the 'wire' (OOPS!)."
 				,	  __FUNCTION__, __LINE__, fs->fstype);
 			}else{
-				DEBUGMSG("%s.%d: Received a FrameSet of type %d over the 'wire'."
+				DEBUGMSG3("%s.%d: Received a FrameSet of type %d over the 'wire'."
 				,	  __FUNCTION__, __LINE__, fs->fstype);
 			}
 	}

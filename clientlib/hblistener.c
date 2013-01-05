@@ -220,7 +220,7 @@ FSTATIC void
 _hblistener_finalize(AssimObj * self) ///<[in/out] Listener to finalize
 {
 	HbListener *hbself = CASTTOCLASS(HbListener, self);
-	DEBUGMSG2("%s.%d - finalizing.", __FUNCTION__, __LINE__);
+	DEBUGMSG3("%s.%d - finalizing.", __FUNCTION__, __LINE__);
 	UNREF(hbself->listenaddr);
 	_listener_finalize(self);
 	self = NULL; hbself = NULL;

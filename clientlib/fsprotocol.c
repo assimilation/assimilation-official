@@ -163,9 +163,9 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 		ret->parent = self;
 		g_warn_if_fail(NULL == g_hash_table_lookup(self->endpoints, ret));
 		g_hash_table_insert(self->endpoints, ret, ret);
-		DEBUGMSG2("%s: Creating new FSPE connection (%p) for qid = %d. Dest address follows."
+		DEBUGMSG3("%s: Creating new FSPE connection (%p) for qid = %d. Dest address follows."
 		,	__FUNCTION__, ret, qid);
-		DUMP2(__FUNCTION__, &ret->endpoint->baseclass, " is dest address for new FSPE");
+		DUMP3(__FUNCTION__, &ret->endpoint->baseclass, " is dest address for new FSPE");
 	}
 	return ret;
 }
@@ -177,9 +177,9 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		    const NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
-	DUMP2("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
+	DUMP3("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
-		DUMP2("_fsprotocol_closeconn: closing connection to", &destaddr->baseclass, NULL);
+		DUMP3("_fsprotocol_closeconn: closing connection to", &destaddr->baseclass, NULL);
 		g_hash_table_remove(self->endpoints, fspe);
 		fspe = NULL;
 	}else if (DEBUG > 0) {
@@ -244,7 +244,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	}else{
 		self->_timersrc = g_timeout_add(rexmit_timer_uS/1000, _fsprotocol_timeoutfun, self);
 	}
-	DEBUGMSG2("%s: Constructed new FsProtocol object (%p)", __FUNCTION__, self);
+	DEBUGMSG3("%s: Constructed new FsProtocol object (%p)", __FUNCTION__, self);
 	return self;
 }
 
@@ -440,10 +440,10 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	}
 	AUDITFSPE(fspe);
 	// Queue up the received frameset
-	DUMP2(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
+	DUMP3(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
-		DUMP2(__FUNCTION__, &fs->baseclass, " Frameset failed to go into queue :-(.");
-		DEBUGMSG2("%s.%d: seq=%p lastacksent=%p", __FUNCTION__, __LINE__
+		DUMP3(__FUNCTION__, &fs->baseclass, " Frameset failed to go into queue :-(.");
+		DEBUGMSG3("%s.%d: seq=%p lastacksent=%p", __FUNCTION__, __LINE__
 		,	seq, fspe->lastacksent);
 		// One reason for not queueing it is that we've already sent it
 		// to our client If they have already ACKed it, then we will ACK
@@ -454,8 +454,6 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		// On the other hand, we cannot re-send an ACK that the application hasn't given us yet...
 		// We could wind up here if the app is slow to ACK packets we gave it
 		if (seq && fspe->lastacksent) {
-			DUMP2("ARGUMENT SEQ#", &seq->baseclass.baseclass, __FUNCTION__);
-			DUMP2("LASTACKSENT", &fspe->lastacksent->baseclass.baseclass, __FUNCTION__);
 			if (seq->_sessionid == fspe->lastacksent->_sessionid
 			&&	seq->compare(seq, fspe->lastacksent) <= 0) {
 				// We've already ACKed this packet - send our highest seq# ACK
@@ -465,7 +463,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	}
 	AUDITFSPE(fspe);
 
-	DEBUGMSG2("%s: isready: %d seq->_reqid:%d , fspe->inq->_nextseqno: "FMT_64BIT"d"
+	DEBUGMSG3("%s: isready: %d seq->_reqid:%d , fspe->inq->_nextseqno: "FMT_64BIT"d"
 	,	__FUNCTION__, fspe->inq->isready, (seq ? (gint)seq->_reqid : -1), fspe->inq->_nextseqno);
 	// If this queue wasn't shown as ready before - see if it is ready for reading now...
 	if (!fspe->inq->isready) {
@@ -517,9 +515,6 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 	AUDITFSPE(fspe);
 	// Send them all -- or none of them...
 	ret =  fspe->outq->hasqspace(fspe->outq, g_slist_length(framesets));
-	DEBUGMSG2("%s: sending %d packets -- hasqspace() returned %d; qlen = %d", __FUNCTION__
-	,	g_slist_length(framesets), ret
-	,	fspe->outq->_q->length);
 	
 	if (ret) {
 		GSList*	this;
@@ -528,7 +523,7 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 		for (this=framesets; this; this=this->next) {
 			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
 			g_return_val_if_fail(fs != NULL, FALSE);
-			DEBUGMSG1("%s: queueing up frameset %d of type %d"
+			DEBUGMSG3("%s: queueing up frameset %d of type %d"
 			,	__FUNCTION__, count, fs->fstype);
 			fspe->outq->enq(fspe->outq, fs);
 			self->io->stats.reliablesends++;
@@ -564,7 +559,7 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 	FsProtoElem*	fspe;
 	g_return_if_fail(seq != NULL);
 
-	DUMP2(__FUNCTION__, &seq->baseclass.baseclass, " SENDING ACK.");
+	DUMP3(__FUNCTION__, &seq->baseclass.baseclass, " SENDING ACK.");
 	fs = frameset_new(FRAMESETTYPE_ACK);
 
 	frameset_append_frame(fs, &seq->baseclass);
@@ -580,9 +575,9 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 
 	if (NULL == fspe) {
 		// We may have closed this connection
-		g_message("Sending an ACK on a closed channel.");
-		DUMP(__FUNCTION__, &destaddr->baseclass, " IS DEST ADDR.");
-		DUMP(__FUNCTION__, &seq->baseclass.baseclass, " IS ACK SEQNO.");
+		DEBUGMSG3("Sending an ACK on a closed channel.");
+		DUMP3(__FUNCTION__, &destaddr->baseclass, " is the destination for the ACK.");
+		DUMP3(__FUNCTION__, &seq->baseclass.baseclass, " is the ACK sequence number.");
 	}else if ((fspe->lastacksent == NULL || fspe->lastacksent->compare(fspe->lastacksent, seq) < 0)) {
 		if (fspe->lastacksent) {
 			UNREF2(fspe->lastacksent);
@@ -635,7 +630,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 				// Not a new packet (we've sent it before)
 				continue;
 			}
-			DUMP1(__FUNCTION__, &seq->baseclass.baseclass, " is frame being sent");
+			DUMP3(__FUNCTION__, &seq->baseclass.baseclass, " is frame being sent");
 			io->sendaframeset(io, fspe->endpoint, fs);
 			if (NULL == seq) {
 				g_warn_if_reached();
@@ -665,7 +660,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 		if (NULL != fs) {
 			// Update next retransmission time...
 			fspe->nextrexmit = now + parent->rexmit_interval;
-			DUMP1(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
+			DUMP3(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
 			io->sendaframeset(io, fspe->endpoint, fs);
 			AUDITFSPE(fspe);
 		}else{
@@ -695,7 +690,7 @@ _fsprotocol_timeoutfun(gpointer userdata)
 
 	g_return_val_if_fail(self != NULL, FALSE);
 
-	DEBUGMSG2("%s: checking for timeouts: unacked = %p", __FUNCTION__, self->unacked);
+	DEBUGMSG4("%s: checking for timeouts: unacked = %p", __FUNCTION__, self->unacked);
 	for (pending = self->unacked; NULL != pending; pending=next) {
 		FsProtoElem*	fspe = (FsProtoElem*)pending->data;
 		next = pending->next;

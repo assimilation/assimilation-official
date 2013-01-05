@@ -584,7 +584,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 
 	// Hah! Looks good!
 	*pktend = (void*) (msgbuf + msglen);
-	DEBUGMSG2("%s.%d: Received %zd byte message", __FUNCTION__, __LINE__, msglen);
+	DEBUGMSG3("%s.%d: Received %zd byte message", __FUNCTION__, __LINE__, msglen);
 	if (self->_shouldlosepkts) {
 		if (g_random_double() < self->_rcvloss) {
 			DEBUGMSG2("%s: Threw away %"G_GSSIZE_FORMAT" byte input packet"

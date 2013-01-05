@@ -142,8 +142,8 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 			frameset_append_frame(fs, &usf->baseclass);
 			UNREF2(usf);
 		}
-		DEBUGMSG1("%s - sending frameset of type %d", __FUNCTION__, reporttype);
-		DUMP1("nanoprobe_report_upstream", &nanofailreportaddr->baseclass, NULL);
+		DEBUGMSG3("%s - sending frameset of type %d", __FUNCTION__, reporttype);
+		DUMP3("nanoprobe_report_upstream", &nanofailreportaddr->baseclass, NULL);
 		nanotransport->_netio->sendareliablefs(nanotransport->_netio, nanofailreportaddr, DEFAULT_FSP_QID, fs);
 		UNREF(fs);
 }
@@ -546,7 +546,7 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 
 		}//endswitch
 	}//endfor
-	DUMP1("nanoobey_setconfig: cfg is", &cfg->baseclass, NULL);
+	DUMP3("nanoobey_setconfig: cfg is", &cfg->baseclass, NULL);
 	if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != NULL) {
 		if (nanofailreportaddr == NULL) {
 			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
@@ -556,10 +556,11 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 			UNREF(nanofailreportaddr);
 			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
 		}
-		DUMP1("nanoobey_setconfig: nanofailreportaddr", &nanofailreportaddr->baseclass, NULL);
+		DUMP3("nanoobey_setconfig: nanofailreportaddr", &nanofailreportaddr->baseclass, NULL);
 		{
 			// Alias localhost to the CMA nanofailreportaddr (at least for now...)
 			///@todo If we split the CMA into multiple machines this will need to change.:f
+			///@todo do we even need this alias code at all?
 
 			NetAddr* localhost = netaddr_string_new("127.0.0.1");
 			NetIO* io = parent->baseclass.transport->_netio;
@@ -659,7 +660,7 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 		return;
 	}
 
-	DEBUGMSG2("%s - got frameset", __FUNCTION__);
+	DEBUGMSG3("%s - got frameset", __FUNCTION__);
 	// Loop over the frames, looking for those we know what to do with ;-)
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
@@ -671,14 +672,14 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 				g_return_if_fail(strf != NULL);
 				g_return_if_fail(discoveryname == NULL);
 				discoveryname = strf->baseclass.value;
-				DEBUGMSG2("%s - got DISCOVERYNAME %s", __FUNCTION__, discoveryname);
+				DEBUGMSG3("%s - got DISCOVERYNAME %s", __FUNCTION__, discoveryname);
 			}
 			break;
 
 			case FRAMETYPE_DISCINTERVAL: { // Discovery interval
 				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
 				interval = intf->getint(intf);
-				DEBUGMSG2("%s - got DISCOVERYINTERVAL %d", __FUNCTION__, interval);
+				DEBUGMSG3("%s - got DISCOVERYINTERVAL %d", __FUNCTION__, interval);
 			}
 			break;
 
@@ -688,7 +689,7 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 				g_return_if_fail(strf != NULL);
 				jsonstring = strf->baseclass.value;
 				g_return_if_fail(discoveryname != NULL);
-				DEBUGMSG2("Got DISCJSON frame: %s %d %s" , discoveryname, interval, jsonstring);
+				DEBUGMSG3("Got DISCJSON frame: %s %d %s" , discoveryname, interval, jsonstring);
 				nano_schedule_discovery(discoveryname, interval, jsonstring
 				,			parent->baseclass.config
 				,			parent->baseclass.transport
@@ -756,7 +757,7 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 
 	(void)fromaddr;
 
-	DEBUGMSG1("%s(%s,%d,%s)", __FUNCTION__, instance, interval, json);
+	DEBUGMSG3("%s(%s,%d,%s)", __FUNCTION__, instance, interval, json);
 	jsonroot = configcontext_new_JSON_string(json);
 	g_return_if_fail(jsonroot != NULL);
 	disctype = jsonroot->getstring(jsonroot, "type");
@@ -1031,10 +1032,8 @@ nano_initiate_shutdown(void)
 		shutdown_timer = g_timeout_add_seconds(10, _nano_final_shutdown, NULL);
 		nano_shutting_down = TRUE;
 	}else{
-		// Send the shutdown anyway...
-		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
 		nano_shutting_down = TRUE;
-		g_warning("%s: Never connected to CMA - not waiting for reply from CMA.", procname);
+		g_warning("%s: Never connected to CMA - cannot send shutdown message.", procname);
 		++errcount;  // Trigger non-zero exit code...
 		_nano_final_shutdown(NULL);
 		return TRUE;

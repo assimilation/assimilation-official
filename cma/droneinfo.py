@@ -235,10 +235,8 @@ class DroneInfo:
         pframe = None
         for addr in addrlist:
             if addr is None: continue
-            CMAdb.log.debug('Sending IPPORT message to %s (%s)' % (addr, type(addr)))
             aframe = pyIpPortFrame(FrameTypes.IPPORT, addrstring=addr)
             fs.append(aframe)
-        CMAdb.log.debug('SENDING HBMSG to %s --  MSG IS  %s' % (dest, fs))
         self.io.sendreliablefs(dest, (fs,))
 
     def death_report(self, status, reason, fromaddr, frameset):
@@ -273,7 +271,6 @@ class DroneInfo:
         So, we need to create a forward link from partner1 to us and from us to partner2 (if any)
         '''
         ouraddr = pyNetAddr(self.primary_ip(), port=self.getport())
-        CMAdb.log.warning('ouraddr: %s, self.getport(): %s', ouraddr, self.getport())
         partner1addr=pyNetAddr(partner1.select_ip(ring), port=partner1.getport())
         if partner2 is not None:
             partner2addr=pyNetAddr(partner2.select_ip(ring), port=partner2.getport())

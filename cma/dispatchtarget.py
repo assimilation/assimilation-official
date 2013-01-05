@@ -112,14 +112,10 @@ class DispatchSTARTUP(DispatchTarget):
         #fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
         #,      origaddr)
         #self.io.sendreliablefs(origaddr, (fs,fs2))
-        print >>sys.stderr, 'Sending SetConfig frameset to %s' % origaddr
-        CMAdb.log.warning('Sending SetConfig frameset to %s' % origaddr)
         self.io.sendreliablefs(origaddr, fs)
-        CMAdb.log.warning('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
-        CMAdb.log.warning('================================')
+        CMAdb.log.info('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
         self.DroneInfo.add(sysname, 'STARTUP packet', port=origaddr.port())
         drone = self.DroneInfo.find(sysname, port=origaddr.port())
-        CMAdb.log.info('DRONE PORT: %s, origaddrport: %s, origaddr: %s' % (drone.getport(), origaddr.port(), origaddr))
         #print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
         drone.startaddr=origaddr
         if json is not None:

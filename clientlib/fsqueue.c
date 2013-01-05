@@ -57,14 +57,14 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 ,	     FrameSet* fs)	///< The @ref FrameSet to enqueue into our queue - must NOT have sequence#
 {
 	SeqnoFrame*	seqno;
-	DEBUGMSG2("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
+	DEBUGMSG3("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
 	// This FrameSet shouldn't have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
 	g_return_val_if_fail(self->_maxqlen == 0 || self->_q->length < self->_maxqlen, FALSE);
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
 	g_return_val_if_fail(seqno != NULL, FALSE);
 	++self->_nextseqno;
-	DEBUGMSG2("%s: next sequence number for %p is "FMT_64BIT"d", __FUNCTION__, self, self->_nextseqno);
+	DEBUGMSG3("%s: next sequence number for %p is "FMT_64BIT"d", __FUNCTION__, self, self->_nextseqno);
 
 	// Of course, the session id on outbound packets should _never_ change
 	// But an uninitialized FsQueue session id is zero
@@ -118,7 +118,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	seqno = fs->_seqframe ? fs->_seqframe : fs->getseqno(fs);
 
-	DEBUGMSG2("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
+	DEBUGMSG3("%s.%d: inserting fs %p: ref count = %d", __FUNCTION__, __LINE__, fs, fs->baseclass._refcount);
 
 	if (seqno) {
 		// Validate sequence number...
@@ -202,7 +202,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	guint		count = 0;
 
 	g_return_val_if_fail(seq != NULL, 0);
-	DEBUGMSG1("%s: ACKing through (%d:%d:"FMT_64BIT"d)", __FUNCTION__
+	DEBUGMSG3("%s: ACKing through (%d:%d:"FMT_64BIT"d)", __FUNCTION__
 	,	seq->getsessionid(seq), seq->getqid(seq), seq->getreqid(seq));
 	if (seq->getsessionid(seq) != self->_sessionid) {
 		if (self->_sessionid != 0) {
@@ -230,7 +230,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 		self->flush1(self);
 		count += 1;
 	}
-	DEBUGMSG1("%s: returning %d - remaining (output) queue length is %d"
+	DEBUGMSG3("%s: returning %d - remaining (output) queue length is %d"
 	,	__FUNCTION__, count,	g_queue_get_length(self->_q));
 	return count;
 }
@@ -357,7 +357,7 @@ _fsqueue_finalize(AssimObj* aself)		///< The @ref FsQueue object we're operating
 {
 	FsQueue*	self = CASTTOCLASS(FsQueue, aself);
 
-	DUMP2("FsQueue finalize", &self->baseclass, __FUNCTION__);
+	DUMP3("FsQueue finalize", &self->baseclass, __FUNCTION__);
 	// Let our 'destaddr' object go...
 	UNREF(self->_destaddr);
 

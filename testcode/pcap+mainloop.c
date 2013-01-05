@@ -70,7 +70,6 @@ NetAddr*	otheraddr2;
 NetAddr*	anyaddr;
 int		wirepktcount = 0;
 int		heartbeatcount = 0;
-int		errcount = 0;
 int		pcapcount = 0;
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void got_heartbeat(HbListener* who);
