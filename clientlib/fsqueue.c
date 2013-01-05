@@ -152,7 +152,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 
 	if (self->_maxqlen != 0 && self->_q->length >= self->_maxqlen) {
 		g_warning("%s.%d: input queue overflow (maxlength=%d)"
-		,	__FUNCTION__, __LINE__, self->maxqlen);
+		,	__FUNCTION__, __LINE__, self->_maxqlen);
 		return FALSE;
 	}
 
