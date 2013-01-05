@@ -428,10 +428,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		}
 		g_return_if_fail(seq != NULL);
 		if (fspe->outq->ackthrough(fspe->outq, seq) < 0) {
-			DUMP("Received bad ACK from", &fspe->endpoint->baseclass, NULL);
-			if (DEBUGVAR < 3) {
-				DEBUGVAR = 3;
-			}
+			DUMP3("Received bad ACK from", &fspe->endpoint->baseclass, NULL);
 		}
 		DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
 		if (fspe->outq->_q->length == 0) {
