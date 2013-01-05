@@ -426,9 +426,14 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		if (seq == NULL && DEBUGVAR < 2) {
 			DEBUGVAR = 2;
 		}
-		DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
 		g_return_if_fail(seq != NULL);
-		fspe->outq->ackthrough(fspe->outq, seq);
+		if (fspe->outq->ackthrough(fspe->outq, seq) < 0) {
+			DUMP("Received bad ACK from", &fromaddr->baseclass, NULL);
+			if (DEBUGVAR < 3) {
+				DEBUGVAR = 3;
+			}
+		}
+		DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
 		if (fspe->outq->_q->length == 0) {
 			fspe->parent->unacked = g_list_remove(fspe->parent->unacked, fspe);
 			fspe->nextrexmit = 0;
