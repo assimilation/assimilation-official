@@ -228,22 +228,17 @@ class DroneInfo:
         # For TheOneRing, we want their primary IP address.
         return self.primary_ip()
     
-    def send_hbmsg(self, dest, fstype, port, addrlist):
-        '''Send a message with an attached address list and optional port.
+    def send_hbmsg(self, dest, fstype, addrlist):
+        '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
         fs = pyFrameSet(fstype)
         pframe = None
-        if port is not None and port > 0 and port < 65536:
-           pframe = pyIntFrame(FrameTypes.PORTNUM, intbytes=2, initval=int(port))
         for addr in addrlist:
             if addr is None: continue
-            if pframe is not None:
-                fs.append(pframe)
-            aframe = pyAddrFrame(FrameTypes.IPADDR, addrstring=addr)
+            CMAdb.log.debug('Sending IPPORT message to %s (%s)' % (addr, type(addr)))
+            aframe = pyIpPortFrame(FrameTypes.IPPORT, addrstring=addr)
             fs.append(aframe)
-        if type(dest) is str or type(dest) is unicode:
-            dest = pyNetAddr(dest)
-            dest.setport(self.port)
+        CMAdb.log.debug('SENDING HBMSG to %s --  MSG IS  %s' % (dest, fs))
         self.io.sendreliablefs(dest, (fs,))
 
     def death_report(self, status, reason, fromaddr, frameset):
@@ -277,40 +272,34 @@ class DroneInfo:
         We only use forward links - because we can follow them in both directions in Neo4J.
         So, we need to create a forward link from partner1 to us and from us to partner2 (if any)
         '''
-        ourip = self.select_ip(ring)
-        partner1ip = partner1.select_ip(ring)
+        ouraddr = pyNetAddr(self.primary_ip(), port=self.getport())
+        CMAdb.log.warning('ouraddr: %s, self.getport(): %s', ouraddr, self.getport())
+        partner1addr=pyNetAddr(partner1.select_ip(ring), port=partner1.getport())
         if partner2 is not None:
-            partner2ip = partner2.select_ip(ring)
-            partner2port = partner2.port
+            partner2addr=pyNetAddr(partner2.select_ip(ring), port=partner2.getport())
         else:
-            partner2ip = None
-            partner2port = None
+            partner2addr = None
         if CMAdb.debug:
-            CMAdb.log.debug('STARTING heartbeat(s) from %s [%s:%s] to %s [%s:%s] and %s [%s:%s]' %
-                (self, ourip, self.port, partner1, partner1ip, partner1.port, partner2, partner2ip, partner2port))
-	if partner2 is None or partner2.port == partner1.port:
-        	self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, partner1.port, (partner1ip, partner2ip))
-	else:
-        	self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, partner1.port, (partner1ip, None))
-        	self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, partner2port, (partner2ip, None))
+            CMAdb.log.debug('STARTING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' %
+                (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
+        self.send_hbmsg(ouraddr, FrameSetTypes.SENDEXPECTHB, (partner1addr, partner2addr))
 
     def stop_heartbeat(self, ring, partner1, partner2=None):
         '''Stop heartbeating to the given partners.'
         We don't know which node is our forward link and which our back link,
         but we need to remove them either way ;-).
         '''
-        ourip = self.select_ip(ring)
-        partner1ip = partner1.select_ip(ring)
+        ouraddr = pyNetAddr(self.primary_ip(), port=self.getport())
+        partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.getport())
         if partner2 is not None:
-            partner2ip = partner2.select_ip(ring)
+            partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.getport())
         else:
-            partner2ip = None
+            partner2addr = None
         # Stop sending the heartbeat messages between these (former) peers
         if CMAdb.debug:
             CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' % 
-                (self, ourip, partner1, partner1ip, partner2, partner2ip))
-        #self.send_hbmsg(ourip, FrameSetTypes.SENDEXPECTHB, 0, (partner1ip, partner2ip))
-        self.send_hbmsg(ourip, FrameSetTypes.STOPSENDEXPECTHB, None, (partner1ip, partner2ip))
+                (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
+        self.send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
 
     def request_discovery(self, *args): ##< A vector of arguments formed like this:
         ##< instance       Which (unique) discovery instance is this?
@@ -412,17 +401,19 @@ class DroneInfo:
         return None
 
     @staticmethod
-    def add(designation, reason, status='up'):
+    def add(designation, reason, status='up', port=None):
         'Add a drone to our set unless it is already there.'
         ret = None
         if designation in DroneInfo._droneweakrefs:
             ret = DroneInfo._droneweakrefs[designation]()
         if ret is None:
-            ret = DroneInfo.find(designation)
+            ret = DroneInfo.find(designation, port=port)
         if ret is None:
-            ret = DroneInfo(designation)
+            ret = DroneInfo(designation, port=port)
         ret.node['reason'] = reason
         ret.node['status'] = status
+        if port is not None:
+            ret.setport(port)
         return ret
 
     @staticmethod

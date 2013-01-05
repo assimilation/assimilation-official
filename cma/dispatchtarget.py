@@ -98,19 +98,28 @@ class DispatchSTARTUP(DispatchTarget):
             frametype=frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
                 sysname = frame.getstr()
+                if sysname == CMAdb.nodename:
+                    if origaddr.islocal():
+                        CMAdb.log.warning("Received STARTUP from local system (%s)" % addrstr)
+                    else:
+                        localhost = pyNetAddr('127.0.0.1')
+                        self.io.addalias(localhost, origaddr)
+                        CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
         fs = CMAlib.create_setconfig(self.config)
         #print 'Telling them to heartbeat themselves.'
         #fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
         #,      origaddr)
-        #print 'Sending SetConfig frameset to %s' % origaddr
         #self.io.sendreliablefs(origaddr, (fs,fs2))
+        print >>sys.stderr, 'Sending SetConfig frameset to %s' % origaddr
+        CMAdb.log.warning('Sending SetConfig frameset to %s' % origaddr)
         self.io.sendreliablefs(origaddr, fs)
-        CMAdb.log.info('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
-        self.DroneInfo.add(sysname, 'STARTUP packet')
-        drone = self.DroneInfo.find(sysname)
-        drone.setport(origaddr.port())
+        CMAdb.log.warning('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
+        CMAdb.log.warning('================================')
+        self.DroneInfo.add(sysname, 'STARTUP packet', port=origaddr.port())
+        drone = self.DroneInfo.find(sysname, port=origaddr.port())
+        CMAdb.log.info('DRONE PORT: %s, origaddrport: %s, origaddr: %s' % (drone.getport(), origaddr.port(), origaddr))
         #print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
         drone.startaddr=origaddr
         if json is not None:

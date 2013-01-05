@@ -73,7 +73,7 @@ WINEXPORT NetAddr*	netaddr_string_new(const char* addrstr);
 #define	CONST_IPV6_LOOPBACK		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}
 #define	CONST_IPV4_LOOPBACK		{127,0,0,1}
 #define	CONST_IPV6_IPV4SPACE		0,0,0,0,0,0,0,0,0,0,0xff,0xff
-#define	CONST_IPV6_IPV4START		{IPV4SPACE, 0, 0, 0, 0}
+#define	CONST_IPV6_IPV4START		{CONST_IPV6_IPV4SPACE, 0, 0, 0, 0}
 #define	CONST_IPV6_MACSPACE		0xFE, 0x80, 0, 0, 0, 0, 0, 0x02
 #define	CONST_IPV6_MACSTART		{CONST_IPV6_MACSPACE, 0, 0, 0, 0, 0, 0, 0, 0}
 

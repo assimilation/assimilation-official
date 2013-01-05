@@ -55,18 +55,14 @@ DEBUGDECLARATIONS
 #endif
 
 gint64		pktcount = 0;
-GMainLoop*	mainloop = NULL;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
 NetAddr*	localbindaddr;
 int		heartbeatcount = 0;
-int		errcount = 0;
 int		pcapcount = 0;
 int		wirepktcount = 0;
 
-guint		idle_shutdown_event = 0;
-guint		shutdown_timer = 0;
 
 //		Signals...
 gboolean	sigint	= FALSE;
@@ -75,14 +71,11 @@ gboolean	sighup	= FALSE;
 gboolean	sigusr1 = FALSE;
 gboolean	sigusr2 = FALSE;
 
-const char *	procname = "nanoprobe";
 
 FSTATIC void catch_a_signal(int signum);
 FSTATIC gboolean check_for_signals(gpointer ignored);
 FSTATIC gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 FSTATIC void usage(const char * cmdname);
-FSTATIC gboolean final_shutdown(gpointer unused);
-FSTATIC gboolean shutdown_when_outdone(gpointer unused);
 
 
 /// Test routine called when an otherwise-unclaimed NetIO packet is received.
@@ -141,29 +134,6 @@ catch_a_signal(int signum)
 }
 
 // If our output is all ACKed, then go ahead and shutdown
-FSTATIC gboolean
-shutdown_when_outdone(gpointer unused)
-{
-	(void)unused;
-	// Wait for the CMA to ACK our shutdown message - if we've heard anything from them...
-	if (!nano_connected || !nettransport->outputpending(nettransport)){
-		g_source_remove(shutdown_timer);
-		g_main_quit(mainloop);
-		return FALSE;
-	}
-	return TRUE;
-}
-// Final Shutdown -- a contingency timer to make sure we eventually shut down
-FSTATIC gboolean
-final_shutdown(gpointer unused)
-{
-	(void)unused;
-	if (idle_shutdown_event) {
-		g_source_remove(idle_shutdown_event);
-	}
-	g_main_quit(mainloop);
-	return FALSE;
-}
 
 /// Check for signals periodically
 FSTATIC gboolean
@@ -172,19 +142,7 @@ check_for_signals(gpointer ignored)
 	(void)ignored;
 	if (sigterm || sigint) {
 		g_message("%s: exiting on %s.", procname, (sigterm ? "SIGTERM" : "SIGINT"));
-		if (nano_connected) {
-			struct utsname	un;	// System name, etc.
-			uname(&un);
-			nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
-			// Wait for an ACK before shutting down...
-			idle_shutdown_event = g_idle_add(shutdown_when_outdone, NULL);
-			// But just in case... Shut down in 10 seconds anyway...
-			shutdown_timer = g_timeout_add_seconds(10, final_shutdown, NULL);
-		}else{
-			g_warning("%s: Never connected to CMA - no notification sent.", procname);
-			++errcount;  // Trigger non-zero exit code...
-			return final_shutdown(NULL);
-		}
+		return nano_initiate_shutdown();
 		return FALSE;
 	}
 	if (sigusr1) {

@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <memory.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #ifdef _MSC_VER
@@ -65,7 +66,11 @@ FSTATIC gboolean _netio_sendareliablefs(NetIO*self, NetAddr*dest, guint16 queuei
 FSTATIC gboolean _netio_sendreliablefs(NetIO*self, NetAddr* dest, guint16 queueid, GSList* fslist);
 FSTATIC gboolean _netio_ackmessage(NetIO* self, NetAddr* dest, FrameSet* frameset);
 FSTATIC gboolean _netio_supportsreliable(NetIO* self); 
-FSTATIC void	 _netio_closeconn(NetIO* self, guint16 qid, const NetAddr* destaddr);
+FSTATIC void  _netio_closeconn(NetIO* self, guint16 qid, const NetAddr* destaddr);
+FSTATIC void _netio_netaddr_destroy(gpointer addrptr);
+FSTATIC void _netio_addalias(NetIO* self, NetAddr * fromaddr, NetAddr* toaddr);
+FSTATIC gboolean _netio_netaddr_equal(gconstpointer lhs, gconstpointer rhs);
+FSTATIC guint _netio_netaddr_hash(gconstpointer addrptr);
 
 DEBUGDECLARATIONS
 
@@ -308,6 +313,12 @@ _netio_finalize(AssimObj* aself)	///<[in/out] The object being freed
 	if (self->_decoder) {
 		UNREF(self->_decoder);
 	}
+
+	// Free up our hash table of aliases
+	if (self->aliases) {
+		g_hash_table_destroy(self->aliases);	// It will free the NetAddrs contained therein
+		self->aliases = NULL;
+	}
 	_assimobj_finalize(aself); self = NULL; aself = NULL;
 }
 
@@ -380,6 +391,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->ackmessage = _netio_ackmessage;
 	ret->supportsreliable  = _netio_supportsreliable;	// It just returns FALSE
 	ret->outputpending  = _netio_supportsreliable;		// It just returns FALSE
+	ret->addalias = _netio_addalias;
 	ret->closeconn = _netio_closeconn;
 	ret->_maxpktsize = 65300;
 	ret->_configinfo = config;
@@ -397,6 +409,8 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	if (ret->_compressframe) {
 		REF(ret->_compressframe);
 	}
+	ret->aliases = g_hash_table_new_full(_netio_netaddr_hash,_netio_netaddr_equal
+        ,		_netio_netaddr_destroy, _netio_netaddr_destroy);  // Keys and data are same type...
 	memset(&ret->stats, 0, sizeof(ret->stats));
 	return ret;
 }
@@ -466,8 +480,6 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 			REF(compressframe);
 		}
 		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
-		DUMP2("Sending Packet to", &destaddr->baseclass, NULL);
-		DUMP2("Packet being sent:", &curfs->baseclass, NULL);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		self->stats.fswritten++;
 		
@@ -493,8 +505,6 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		REF(compressframe);
 	}
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
-	DUMP2("Sending Packet to", &destaddr->baseclass, NULL);
-	DUMP2("Packet being sent:", &frameset->baseclass, NULL);
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);
 }
 
@@ -520,6 +530,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	gssize		msglen;
 	gssize		msglen2;
 	guint8*		msgbuf;
+	const guint8 v4any[16] = CONST_IPV6_IPV4START;
 
 	// First we peek and see how long the message is...
 	*addrlen = sizeof(*srcaddr);
@@ -563,9 +574,17 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		FREE(msgbuf); msgbuf = NULL;
 		return NULL;
 	}
+		
+	if (memcmp(srcaddr->sin6_addr.__in6_u.__u6_addr8, v4any,  sizeof(v4any)) == 0) {
+		//const guint8 localhost[16] = CONST_IPV6_LOOPBACK;
+		const guint8 localhost[16] = {CONST_IPV6_IPV4SPACE, 127, 0, 0, 1};
+		// Both experience and RFC5735 say that this is basically "localhost"
+		memcpy(srcaddr->sin6_addr.__in6_u.__u6_addr8, localhost, sizeof(localhost));
+	}
+
 	// Hah! Looks good!
 	*pktend = (void*) (msgbuf + msglen);
-	//g_debug("netio: Received %zd byte message", msglen);
+	DEBUGMSG2("%s.%d: Received %zd byte message", __FUNCTION__, __LINE__, msglen);
 	if (self->_shouldlosepkts) {
 		if (g_random_double() < self->_rcvloss) {
 			DEBUGMSG2("%s: Threw away %"G_GSSIZE_FORMAT" byte input packet"
@@ -595,17 +614,25 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	if (NULL != pkt) {
 		ret = self->_decoder->pktdata_to_framesetlist(self->_decoder, pkt, pktend);
 		if (NULL != ret) {
+			NetAddr* aliasaddr;
 			*src = netaddr_sockaddr_new(&srcaddr, addrlen);
+			// Some addresses can confuse our clients -- let's check our alias table...
+			if (NULL != (aliasaddr = g_hash_table_lookup(self->aliases, *src))) {
+				// This is a good-enough way to make a copy.
+				aliasaddr->toIPv6(aliasaddr);
+				// Keep the incoming port - since that's always right...
+				aliasaddr->_addrport = (*src)->_addrport;
+				UNREF(*src);
+				*src = aliasaddr;
+			}
 		}else{
-			DEBUGMSG("Received a %lu byte packet that didn't make any FrameSets"
+			g_warning("Received a %lu byte packet that didn't make any FrameSets"
 			,	(unsigned long)((guint8*)pktend-(guint8*)pkt));
 			FREE(ret); ret = NULL;
 		}
 		FREE(pkt);
 	}
 	if (ret && *src) {
-		DUMP2("Received Packet from", &((*src)->baseclass), NULL);
-		DUMP2("First Packet Received:", &(CASTTOCLASS(FrameSet, ret->data)->baseclass), NULL);
 		self->stats.fsreads += g_slist_length(ret);
 	}
 	return ret;
@@ -720,4 +747,42 @@ FSTATIC void
 	(void)self; (void)destaddr; (void)qid;
 	return;
 }
+/// g_hash_table destructor for a NetAddr
+FSTATIC void
+_netio_netaddr_destroy(gpointer addrptr)
+{
+	NetAddr* self = CASTTOCLASS(NetAddr, addrptr);
+	UNREF(self);
+}
+
+/// g_hash_table equal comparator for a NetAddr
+FSTATIC gboolean
+_netio_netaddr_equal(gconstpointer lhs, gconstpointer rhs)
+{
+	const NetAddr* a_lhs = CASTTOCONSTCLASS(NetAddr, lhs);
+	const NetAddr* a_rhs = CASTTOCONSTCLASS(NetAddr, rhs);
+	return a_lhs->equal(a_lhs, a_rhs);
+}
+
+/// g_hash_table hash function for a NetAddr
+FSTATIC guint
+_netio_netaddr_hash(gconstpointer addrptr)
+{
+	const NetAddr* self = CASTTOCONSTCLASS(NetAddr, addrptr);
+	return self->hash(self);
+}
+
+/// Add an alias to our alias table
+FSTATIC void
+_netio_addalias(NetIO* self		///< Us
+,		     NetAddr * fromaddr		///< Address to map from
+,		     NetAddr* toaddr)		///< Address to map the from address to
+{
+	DUMP3("Aliasing from this address", &fromaddr->baseclass, " to the next address");
+	DUMP3("Aliasing to this address", &toaddr->baseclass, " from the previous address");
+	REF(fromaddr);
+	REF(toaddr);
+	g_hash_table_insert(self->aliases, fromaddr, toaddr);
+}
+
 ///@}

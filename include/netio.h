@@ -64,6 +64,7 @@ struct _NetIO {
 	SignFrame*	_signframe;			///< Signature frame to use in signing FrameSets
 	Frame*		_cryptframe;			///< Encryption frame to use in encrypting FrameSets
 	Frame*		_compressframe;			///< Compression frame to use in compressing FrameSets
+	GHashTable*	aliases;			///< IP address aliases for received packets
 	double		_rcvloss;			///< private: Receive loss fraction
 	double		_xmitloss;			///< private: Transmit loss fraction
 	gboolean	_shouldlosepkts;		///< private: TRUE to enable packet loss...
@@ -83,6 +84,7 @@ struct _NetIO {
 				(NetIO* self,		///<[in/out] Object to set mcast TTL for
 				 guint8 ttl)		///<[in] Multicast TTL value
 						   ;	// ";" is here to work around a doxygen bug
+	void		(*addalias)(NetIO*, NetAddr*, NetAddr*);///< Add an alias to our received address alias table
 	
 	gint		(*getfd)		///<[in] Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
