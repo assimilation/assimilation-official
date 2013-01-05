@@ -37,7 +37,7 @@ FSTATIC gboolean	_fsqueue_enq(FsQueue* self, FrameSet* fs);
 FSTATIC gboolean	_fsqueue_inqsorted(FsQueue* self, FrameSet* fs);
 FSTATIC FrameSet*	_fsqueue_qhead(FsQueue* self);
 FSTATIC FrameSet*	_fsqueue_deq(FsQueue* self);
-FSTATIC guint		_fsqueue_ackthrough(FsQueue* self, SeqnoFrame*);
+FSTATIC gint		_fsqueue_ackthrough(FsQueue* self, SeqnoFrame*);
 FSTATIC void		_fsqueue_flush(FsQueue* self);
 FSTATIC void		_fsqueue_flush1(FsQueue* self);
 FSTATIC guint		_fsqueue_qlen(FsQueue* self);
@@ -193,7 +193,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 /// This is used exclusively for output queues - and is the result of the application on
 /// the other end sending us an ACK packet.
 /// @return number of packets ACKed by this incoming ACK packet.
-FSTATIC guint
+FSTATIC gint
 _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're operating on
 ,		    SeqnoFrame*seq)		///< The sequence number to ACK through
 {
@@ -209,15 +209,18 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 			g_warning("%s: Incoming ACK packet has invalid session id [%d instead of %d]"
 			" (ACK ignored)."
 			,	__FUNCTION__, seq->getsessionid(seq), self->_sessionid);
+			if (DEBUGVAR < 3) {
+				DEBUGVAR = 3;
+			}
 		}
-		return 0;
+		return -1;
 	}
 		
 	if (seq->getreqid(seq) >= self->_nextseqno) {
 		g_warning("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
 		FMT_64BIT"d (ACK Ignored)."
 		,	__FUNCTION__, seq->getreqid(seq), self->_nextseqno);
-		return 0;
+		return -1;
 	}
 	reqid = seq->getreqid(seq);
 	

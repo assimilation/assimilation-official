@@ -61,10 +61,8 @@ struct _FsQueue {
 								///< frames on output queues.
 	FrameSet*	(*qhead)(FsQueue* self);		///< return packet at head of queue
 	FrameSet*	(*deq)(FsQueue* self);			///< return and remove head packet
-	guint		(*ackthrough)(FsQueue* self, SeqnoFrame*);///< ACK packets through given seqno.
-								///< Note that this is called by the end-user
-								///< code, once the packet has been processed
-								///< not automatically by the protocol code.
+	gint		(*ackthrough)(FsQueue* self, SeqnoFrame*);///< ACK packets through given seqno.
+								///< @return number of packets ACKED - or -1 for bad ACK
 	void		(*flush)(FsQueue* self);		///< flush all FrameSet in the queue
 	void		(*flush1)(FsQueue* self);		///< flush head FrameSet in the queue
 	guint		(*qlen)(FsQueue* self);			///< return current queue length
