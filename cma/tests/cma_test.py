@@ -122,7 +122,7 @@ def droneipaddress(hostnumber):
     byte2 = int(hostnumber / 65536)
     byte3 = int((hostnumber / 256) % 256)
     byte4 = hostnumber % 256
-    return pyNetAddr([byte1,byte2,byte3,byte4],)
+    return pyNetAddr([byte1,byte2,byte3,byte4],1984)
 
 def dronedesignation(hostnumber):
     return 'drone%06d' % hostnumber
@@ -409,7 +409,7 @@ class TestCMABasic(TestCase):
         if doHBDEAD:
             for droneid in range(2,maxdrones+1):
                 droneip = droneipaddress(droneid)
-                deadframe=pyAddrFrame(FrameTypes.IPADDR, addrstring=droneip)
+                deadframe=pyIpPortFrame(FrameTypes.IPPORT, addrstring=droneip)
                 fs = pyFrameSet(FrameSetTypes.HBDEAD)
                 fs.append(deadframe)
                 fsin.append((addrone, (fs,)))
