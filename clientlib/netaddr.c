@@ -62,8 +62,9 @@ DEBUGDECLARATIONS
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 
-static const guchar ipv6loop [] = CONST_IPV6_LOOPBACK;	
-static const guchar ipv4loop [] = CONST_IPV4_LOOPBACK;
+static const guchar ipv6loop [16]		= CONST_IPV6_LOOPBACK;	
+static const guchar ipv4loopversion2 [16]	= {CONST_IPV6_IPV4SPACE, 127, 0, 0, 1};
+static const guchar ipv4loop [4]		= CONST_IPV4_LOOPBACK;
 
 /// Convert this IPv6-encapsulated IPv4 NetAddr to a string
 FSTATIC gchar *
@@ -227,44 +228,81 @@ FSTATIC gboolean
 _netaddr_equal(const NetAddr*self, const NetAddr*other)
 {
 	///@todo Perhaps we ought to eventually compare for MAC addresses and IPv6 equivalents ;-)
-	const guchar ipv6v4   [] = {CONST_IPV6_IPV4SPACE};// Where IPv4 addrs are found inside IPv6 space
+	const guchar	ipv6v4   [12] = {CONST_IPV6_IPV4SPACE};// Where IPv4 addrs are found inside IPv6 space
+	gint		memcmprc;
 
-	DEBUGMSG5("Place 1: self:%p, other:%p", self, other);
 
+	DEBUGMSG5("%s.%d: Comparing (type %d, length %d) vs (type %d, length %d)"
+	,	__FUNCTION__, __LINE__, self->_addrtype, self->_addrlen, other->_addrtype, other->_addrlen)
+	DEBUGMSG5("%s.%d: checking ports for equality (if v4/v6 addresses)", __FUNCTION__, __LINE__)
 	if ((self->_addrtype  == ADDR_FAMILY_IPV6  || self->_addrtype  == ADDR_FAMILY_IPV4)
 	&&  (other->_addrtype == ADDR_FAMILY_IPV6  || other->_addrtype == ADDR_FAMILY_IPV4)
 	&&	self->_addrport != other->_addrport) {
-		DEBUGMSG5("Place 1a: selfport:%d, otherport:%d", self->_addrport, other->_addrport);
-			return FALSE;
+		DEBUGMSG5("%s.%d: selfport:%d, otherport:%d", __FUNCTION__, __LINE__, self->_addrport, other->_addrport);
+		return FALSE;
 	}
 
-	if (self->_addrtype == ADDR_FAMILY_IPV6 && other->_addrtype == ADDR_FAMILY_IPV4) {
-		const guchar *selfabody = self->_addrbody;
-		// Check for equivalent IPv4 and IPv6 addresses
-		if (memcmp(selfabody, ipv6v4, sizeof(ipv6v4)) == 0
-	        &&  memcmp(selfabody+12, other->_addrbody, 4) == 0) {
-			return TRUE;
+	if (self->_addrtype == ADDR_FAMILY_IPV6) {
+		DEBUGMSG5("%s.%d: self is IPv6", __FUNCTION__, __LINE__)
+		if (other->_addrtype == ADDR_FAMILY_IPV4) {
+			const guchar *selfabody = self->_addrbody;
+			// Check for equivalent IPv4 and IPv6 addresses
+			DEBUGMSG5("%s.%d: checking equivalent v6/v4 addresses", __FUNCTION__, __LINE__)
+			if (memcmp(selfabody, ipv6v4, sizeof(ipv6v4)) == 0
+			&&  memcmp(selfabody+12, other->_addrbody, 4) == 0) {
+				DEBUGMSG5("%s.%d: v6/v4 addresses are equivalent", __FUNCTION__, __LINE__)
+				return TRUE;
+			}
+			DEBUGMSG5("%s.%d: checking v6/v4 loopbacks", __FUNCTION__, __LINE__)
+			// Check for the equivalent loopback addresses between IPv4 and IPv6
+			/// @todo Not sure if it should treat the two loopbacks as the same...
+			if (memcmp(self->_addrbody,  ipv6loop, sizeof(ipv6loop)) == 0
+			&&  memcmp(other->_addrbody, ipv4loop, sizeof(ipv4loop)) == 0) {
+				DEBUGMSG5("%s.%d: v6/v4 addresses are both loopbacks", __FUNCTION__, __LINE__)
+				return TRUE;
+			}
+			DEBUGMSG5("%s.%d: v6/v4 addresses are not equivalent", __FUNCTION__, __LINE__)
+			return FALSE;
+		}else if (other->_addrtype == ADDR_FAMILY_IPV6) {
+			// Well... Are we cross comparing the two types of ipv6 loopback addresses?
+			// These are:   ::1 and ::ff:127.0.0.1		Kinda weird - but seems valid...
+			DEBUGMSG5("%s.%d: other is IPv6 too", __FUNCTION__, __LINE__)
+			if (memcmp(self->_addrbody, ipv6loop, sizeof(ipv6loop)) == 0) {
+				DEBUGMSG5("%s.%d: comparing loopbacks", __FUNCTION__, __LINE__);
+				if (memcmp(other->_addrbody, ipv4loopversion2, sizeof(ipv4loopversion2)) == 0) {
+					return TRUE;
+				}
+			}else if (memcmp(self->_addrbody, ipv4loopversion2, sizeof(ipv4loopversion2)) == 0) {
+				DEBUGMSG5("%s.%d: comparing loopbacks the other way", __FUNCTION__, __LINE__);
+				if (memcmp(other->_addrbody, ipv6loop, sizeof(ipv6loop)) == 0) {
+					return TRUE;
+				}
+			}
 		}
-		// Check for the equivalent loopback addresses between IPv4 and IPv6
-		/// @todo Not sure if it should treat the two loopbacks as the same...
-		if (memcmp(self->_addrbody,  ipv6loop, sizeof(ipv6loop)) == 0
-		&&  memcmp(other->_addrbody, ipv4loop, sizeof(ipv4loop)) == 0) {
-			return TRUE;
-		}
-		return FALSE;
-	}else if (self->_addrtype == ADDR_FAMILY_IPV4 && other->_addrtype == ADDR_FAMILY_IPV6) {
+	}
+	
+	DEBUGMSG5("%s.%d: checking to see if we need to reverse operands...", __FUNCTION__, __LINE__)
+	
+	if (self->_addrtype == ADDR_FAMILY_IPV4 && other->_addrtype == ADDR_FAMILY_IPV6) {
+		gboolean	retval;
 		// Switch the operands and try again...
-		return _netaddr_equal(other, self);
+		DEBUGMSG5("%s.%d: switching operands", __FUNCTION__, __LINE__)
+		retval =  _netaddr_equal(other, self);
+		DEBUGMSG5("%s.%d: returning %s after switching operands", __FUNCTION__, __LINE__
+		,	(retval ? "True" : "False"));
+		return retval;
 	}
-	DEBUGMSG5("Place 2: self:%p, other:%p", self, other);
-	DEBUGMSG5("Place 3: self->addrtype:%d, other->addrtype:%d", self->_addrtype, other->_addrtype);
-	DEBUGMSG5("Place 4: self->addrlen:%d, other->addrlen:%d", self->_addrlen, other->_addrlen);
+	DEBUGMSG5("%s.%d: checking type and length...", __FUNCTION__, __LINE__)
+	// Other than ipv4 vs ipv6 (handled above) we require addresses to be of the same type
 	if (self->_addrtype != other->_addrtype || self->_addrlen  != other->_addrlen) {
+		DEBUGMSG5("%s.%d: self->addrtype:%d, other->addrtype:%d", __FUNCTION__, __LINE__, self->_addrtype, other->_addrtype);
+		DEBUGMSG5("%s.%d: self->addrlen: %d, other->addrlen: %d", __FUNCTION__, __LINE__, self->_addrlen, other->_addrlen);
 		return FALSE;
 	}
-	DEBUGMSG5("Place 5: self:%p, other:%p", self, other);
-	DEBUGMSG5("Place 6: self->_addrbody:%p, other->_addrbody:%p", self->_addrbody, other->_addrbody);
-	return (memcmp(self->_addrbody, other->_addrbody, self->_addrlen) == 0);
+	memcmprc = memcmp(self->_addrbody, other->_addrbody, self->_addrlen);
+	DEBUGMSG5("%s.%d: memcmp(self, other, %d) returned %d", __FUNCTION__, __LINE__
+	,	self->_addrlen, memcmprc);
+	return memcmprc == 0;
 }
 
 #ifndef CHAR_BIT
@@ -283,20 +321,39 @@ _netaddr_hash(const NetAddr* self)
 	NetAddr*	v6addr = NULL;
 	const NetAddr*	addrtouse = self;
 	guint		result;
+	const guchar v6loopback[16] =  CONST_IPV6_LOOPBACK;
 	while (0 == hashseed) {
 		hashseed = (guint)g_random_int();
 	}
-	result = (guint)(self->_addrtype) ^ hashseed;
 
 
+	DEBUGVAR=20;
+	DEBUGMSG5("%s.%d: %d/%d:%d NetAddr", __FUNCTION__, __LINE__
+	,	self->_addrtype, self->_addrlen, self->_addrport);
 	// Convert v4 addresses into v6 so that we match the compare operation's behavior
 	if (self->_addrtype == ADDR_FAMILY_IPV4) {
-		v6addr = _netaddr_toIPv6(self);
+		DEBUGMSG5("%s.%d: Hashing IPv6", __FUNCTION__, __LINE__);
+
 		// This is kind of high overhead... Could be optimized if need be
+		if (memcmp(self->_addrbody, ipv4loop, sizeof(ipv4loop))== 0) {
+			DEBUGMSG5("%s.%d: Returning an IPv6 loopback value", __FUNCTION__, __LINE__);
+			v6addr = netaddr_ipv6_new(v6loopback, self->_addrport);
+		}else{
+			DEBUGMSG5("%s.%d: Returning an IPv6 replacement value", __FUNCTION__, __LINE__);
+			v6addr = _netaddr_toIPv6(self);
+		}
 		addrtouse = v6addr;
+	}else if (self->_addrtype == ADDR_FAMILY_IPV6) {
+		DEBUGMSG5("%s.%d: Hashing IPv6", __FUNCTION__, __LINE__);
+		if (memcmp(self->_addrbody, ipv4loopversion2, sizeof(ipv4loopversion2)) == 0) {
+			DEBUGMSG5("%s.%d: Returning an IPv6 loopback value", __FUNCTION__, __LINE__);
+			v6addr = netaddr_ipv6_new(v6loopback, self->_addrport);
+			addrtouse = v6addr;
+		}
 	}
-	if (addrtouse->_addrtype == ADDR_FAMILY_IPV6) {
-		// Can't have an IPv4 address here - we converted them above...
+
+	result = (guint)(addrtouse->_addrtype) ^ hashseed;
+	if (addrtouse->_addrtype == ADDR_FAMILY_IPV6 || addrtouse->_addrtype == ADDR_FAMILY_IPV4) {
 		result ^= addrtouse->_addrport;
 	}
 	for (j=0; j < addrtouse->_addrlen; ++j) {
