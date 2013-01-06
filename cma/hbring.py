@@ -84,7 +84,7 @@ class HbRing:
 
     def join(self, drone):
         'Add this drone to our ring'
-        if CMAdb.debug: print '1:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport())
+        if CMAdb.debug: CMAdb.log.debug('1:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
         # Make sure he's not already in our ring according to our 'database'
         if drone.node.has_relationship_with(self.node, neo4j.Direction.OUTGOING, self.ourreltype):
             CMAdb.log.warning("Drone %s is already a member of this ring [%s] - removing and re-adding."
@@ -104,14 +104,14 @@ class HbRing:
             #print >>sys.stderr, 'RING1 IS NOW:', str(self)
             return
 
-        if CMAdb.debug: CMAdb.log.warning('2:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
+        if CMAdb.debug: CMAdb.log.debug('2:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
         if self.insertpoint2 is None:   # One node previously
         # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
             # (see comments below)
             CMAdb.cdb.db.relate((drone.node, self.ournexttype, self.insertpoint1.node),
                       (self.insertpoint1.node, self.ournexttype, drone.node))
-            if CMAdb.debug: CMAdb.log.warning('3:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
+            if CMAdb.debug: CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
             drone.start_heartbeat(self, self.insertpoint1)
             self.insertpoint1.start_heartbeat(self, drone)
             self.insertpoint2 = self.insertpoint1
@@ -127,12 +127,12 @@ class HbRing:
         #print >>sys.stderr, 'INSERTPOINT2:', self.insertpoint2.node
         #print >>sys.stderr, 'OURNEXTTYPE:', self.ournexttype
         nextnext = self.insertpoint2.node.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
-        if CMAdb.debug: CMAdb.log.warning('4:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
+        if CMAdb.debug: CMAdb.log.debug('4:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
         if nextnext is not None and nextnext.id != self.insertpoint1.node.id:
             # At least 3 nodes before
             self.insertpoint1.stop_heartbeat(self, self.insertpoint2)
             self.insertpoint2.stop_heartbeat(self, self.insertpoint1)
-        if CMAdb.debug: CMAdb.log.warning('5:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
+        if CMAdb.debug: CMAdb.log.debug('5:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
         drone.start_heartbeat(self, self.insertpoint1, self.insertpoint2)
         self.insertpoint1.start_heartbeat(self, drone)
         self.insertpoint2.start_heartbeat(self, drone)
