@@ -88,6 +88,44 @@ class pyNetAddrTest(TestCase):
         self.assertRaises(ValueError, pyNetAddr, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15))
         self.assertRaises(ValueError, pyNetAddr, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17))
 
+    def test_ipv4_eq(self): 
+        'Test if various ipv4 addresses are equal'
+        self.assertEqual(pyNetAddr((1,2,3,4),80), pyNetAddr('1.2.3.4:80'))
+        self.assertEqual(pyNetAddr((1,2,3,4),), pyNetAddr('1.2.3.4'),)
+        self.assertEqual(pyNetAddr('1.2.3.4:80'), pyNetAddr((1,2,3,4),80))
+        self.assertNotEqual(pyNetAddr('1.2.3.4:80'), pyNetAddr((1,2,3,4),81))
+        self.assertNotEqual(pyNetAddr('1.2.3.4:80'), pyNetAddr((1,2,3,4),))
+
+    def test_ipv6_eq(self): 
+        'Test if various ipv6 addresses are equal'
+        self.assertEqual(pyNetAddr('::1'), pyNetAddr('::1'))
+        self.assertEqual(pyNetAddr('::'), pyNetAddr('::'))
+        self.assertNotEqual(pyNetAddr('::'), pyNetAddr('::1'))
+        self.assertNotEqual(pyNetAddr('::1'), pyNetAddr('[::1]:80'))
+        self.assertEqual(pyNetAddr('[::1]:1984'), pyNetAddr('[::1]:1984'))
+        self.assertNotEqual(pyNetAddr('::1:2:3:4:1'), pyNetAddr('::1'))
+
+    def test_mixed_eq(self): 
+        'Test if various ipv4/v6 addresses are equal to each other'
+        self.assertEqual(pyNetAddr('::1'), pyNetAddr('127.0.0.1'))
+        self.assertEqual(pyNetAddr('127.0.0.1'), pyNetAddr('::1'))
+        self.assertEqual(pyNetAddr('::ffff:7f00:1'), pyNetAddr('::1'))
+        self.assertEqual(pyNetAddr('::ffff:7f00:1'), pyNetAddr('127.0.0.1'))
+        self.assertEqual(pyNetAddr((0,0,0,0,0,0,0,0,0,0, 0xff, 0xff, 127, 0, 0, 1),), pyNetAddr('::1'))
+
+    def test_mixed_hash(self): 
+        'Test if various ipv4/v6 addresses hash to the same values - or not'
+        self.assertEqual(pyNetAddr('::1').__hash__(), pyNetAddr('::1').__hash__())
+        self.assertEqual(pyNetAddr('::1').__hash__(), pyNetAddr('127.0.0.1').__hash__())
+        self.assertEqual(pyNetAddr('[::1]:80').__hash__(), pyNetAddr('127.0.0.1:80').__hash__())
+        self.assertNotEqual(pyNetAddr('[::1]:80').__hash__(), pyNetAddr('127.0.0.1:1984').__hash__())
+        self.assertEqual(pyNetAddr('::ffff:7f00:1').__hash__(), pyNetAddr('::1').__hash__())
+        self.assertEqual(pyNetAddr('[::ffff:7f00:1]:25').__hash__(), pyNetAddr('[::1]:25').__hash__())
+        self.assertNotEqual(pyNetAddr('[::ffff:7f00:1]:25').__hash__(), pyNetAddr('[::1]:26').__hash__())
+        self.assertNotEqual(pyNetAddr('::').__hash__(), pyNetAddr('::1').__hash__())
+        self.assertEqual(pyNetAddr('::ffff:7f00:1').__hash__(), pyNetAddr('127.0.0.1').__hash__())
+        self.assertEqual(pyNetAddr((0,0,0,0,0,0,0,0,0,0, 0xff, 0xff, 127, 0, 0, 1),).__hash__(), pyNetAddr('::1').__hash__())
+
     def test_ipv6_str(self): 
         'Test the str() function for ipv6 - worth a separate test.'
         if DEBUG: print >>sys.stderr, "===============test_ipv6_str(pyNetAddrTest)"

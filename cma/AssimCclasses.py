@@ -403,15 +403,6 @@ class pyNetAddr(pyAssimObj):
         return ret
 
 
-    def __eq__(self, rhs):
-        'Compare this pyNetAddr to another pyNetAddr'
-        lhsbase = self._Cstruct[0]
-        while (type(lhsbase) is not NetAddr):
-            lhsbase=lhsbase.baseclass
-        return lhsbase.equal(self._Cstruct, rhs._Cstruct)
-         
-
-    # Do we need to define an addrbody() member function?
     def __eq__(self, other):
         "Return True if the two pyNetAddrs are equal"
         if not other._Cstruct or not self._Cstruct:
@@ -421,6 +412,14 @@ class pyNetAddr(pyAssimObj):
             base=base.baseclass
         return base.equal(self._Cstruct, other._Cstruct)
 
+    def __hash__(self):
+        'Return a hash value for the given pyNetAddr'
+        if not self._Cstruct:
+            return 0
+        base=self._Cstruct[0]
+        while (type(base) is not NetAddr):
+            base=base.baseclass
+        return base.hash(self._Cstruct)
 
 
 class pyFrame(pyAssimObj):
