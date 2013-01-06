@@ -327,7 +327,6 @@ _netaddr_hash(const NetAddr* self)
 	}
 
 
-	DEBUGVAR=20;
 	DEBUGMSG5("%s.%d: %d/%d:%d NetAddr", __FUNCTION__, __LINE__
 	,	self->_addrtype, self->_addrlen, self->_addrport);
 	// Convert v4 addresses into v6 so that we match the compare operation's behavior
