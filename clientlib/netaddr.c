@@ -370,6 +370,23 @@ _netaddr_hash(const NetAddr* self)
 	return result;
 }
 
+/// g_hash_table equal comparator for a NetAddr
+WINEXPORT gboolean
+netaddr_g_hash_equal(gconstpointer lhs, gconstpointer rhs)
+{
+	const NetAddr* a_lhs = CASTTOCONSTCLASS(NetAddr, lhs);
+	const NetAddr* a_rhs = CASTTOCONSTCLASS(NetAddr, rhs);
+	return a_lhs->equal(a_lhs, a_rhs);
+}
+
+/// g_hash_table hash function for a NetAddr
+WINEXPORT guint
+netaddr_g_hash_hash(gconstpointer addrptr)
+{
+	const NetAddr* self = CASTTOCONSTCLASS(NetAddr, addrptr);
+	return self->hash(self);
+}
+
 /// Finalize (free) this object
 FSTATIC void
 _netaddr_finalize(AssimObj* base)
