@@ -40,6 +40,9 @@
 
 #define	PORT	19840
 
+#define RCVLOSS		0.05
+#define XMITLOSS	0.05
+
 /*
  *	You can either give us a list of addresses, or none.
  *
@@ -49,14 +52,11 @@
  *	If you give us addresses then we ping them and hang out waiting for pongs and then
  *	we ping back - and so it goes...
  *
- *	Or at least that's what I think it's going to do...
- *
  */
-
 
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
 ReliableUDP*	transport = NULL;
-int		pongcount = 3;
+int		pongcount = 2;
 int		maxpingcount = 100;
 GMainLoop*	loop = NULL;
 
@@ -66,33 +66,88 @@ ObeyFrameSetTypeMap	doit [] = {
 	{0,			NULL}
 };
 
+GHashTable*	theircounts = NULL;
+GHashTable*	ourcounts = NULL;
 
+
+static gint	pingcount = 1;
 void
 obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 {
 	char *	addrstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
-	static int	pingcount = 0;
 
+	if (fs->fstype == FRAMESETTYPE_PONG) {
+		fprintf(stderr, "Received a PONG packet from %s\n", addrstr);
+	}
+	
+	
 	(void)unused;
-	fprintf(stderr, "Received a %s [%d] packet from %s\n"
-	,	(fs->fstype == FRAMESETTYPE_PING ? "ping" : "pong")
-	,	fs->fstype
-	,	addrstr);
-	
-	
 	// Acknowledge that we acted on this message...
 	transport->baseclass.baseclass.ackmessage(&transport->baseclass.baseclass, fromaddr, fs);
 	if (fs->fstype == FRAMESETTYPE_PING) {
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
+		IntFrame*	count = intframe_new(FRAMETYPE_CINTVAL, sizeof(pingcount));
 		GSList*		flist = NULL;
 		GSList*		iter;
 		int		j;
+		GSList*		slframe;
+		gpointer	theirlastcount_p = g_hash_table_lookup(theircounts, fromaddr);
+		gpointer	ourlastcount_p = g_hash_table_lookup(ourcounts, fromaddr);
+		gint		ournextcount;
+		gboolean	foundcount = FALSE;
 		
 		++pingcount;
+		if (ourlastcount_p == NULL) {
+			ournextcount = 1;
+			REF(fromaddr);	// For the 'ourcounts' table
+		}else{
+			ournextcount = GPOINTER_TO_INT(ourlastcount_p)+1;
+		}
+		g_hash_table_insert(ourcounts, fromaddr, GINT_TO_POINTER(ournextcount));
+
+		count->setint(count, ournextcount);
+		frameset_append_frame(ping, &count->baseclass);
+		UNREF2(count);
 		if (maxpingcount > 0 && pingcount > maxpingcount) {
 			g_message("Quitting on ping count.");
 			g_main_loop_quit(loop);
 		}
+		for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+			Frame* frame = CASTTOCLASS(Frame, slframe->data);
+			if (frame->type == FRAMETYPE_CINTVAL) {
+				IntFrame*	cntframe = CASTTOCLASS(IntFrame, frame);
+				gint		theirnextcount = cntframe->getint(cntframe);
+				foundcount = TRUE;
+				if (theirlastcount_p != NULL) {
+					gint	theirlastcount = GPOINTER_TO_INT(theirlastcount_p);
+					if (theirnextcount != theirlastcount +1) {
+						char *	fromstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
+						g_warning("%s.%d: PING received from %s was %d should have been %d"
+						,	__FUNCTION__, __LINE__, fromstr, theirnextcount, theirlastcount+1);
+						g_free(fromstr); fromstr = NULL;
+					}
+				}else if (theirnextcount != 1) {
+					char *	fromstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
+					g_warning("%s.%d: First PING received from %s was %d should have been 1"
+					,	__FUNCTION__, __LINE__, fromstr, theirnextcount);
+					g_free(fromstr); fromstr = NULL;
+				}
+				g_hash_table_insert(theircounts, fromaddr, GINT_TO_POINTER(theirnextcount));
+				if (theirlastcount_p == NULL) {
+					REF(fromaddr);
+				}
+				fprintf(stderr, "Received a PING packet (seq %d) from %s ========================\n"
+				,	theirnextcount, addrstr);
+			}
+		}
+		if (!foundcount) {
+			char *	s = fs->baseclass.toString(&fs->baseclass);
+			fprintf(stderr, "Did not find a count in this PING packet");
+			fprintf(stderr, "%s", s);
+			FREE(s);
+		}
+
+
 		for (j=0; j < pongcount; ++j) {
 			FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
 			flist = g_slist_append(flist, pong);
@@ -131,9 +186,11 @@ main(int argc, char **argv)
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
+	theircounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
+	ourcounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 	transport = reliableudp_new(0, config, decoder, 0);
-	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, .05, .05);
+	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, RCVLOSS, XMITLOSS);
 	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
 	g_return_val_if_fail(transport->baseclass.baseclass.bindaddr(&transport->baseclass.baseclass, anyaddr, FALSE),16);
 	// Connect up our network transport into the g_main_loop paradigm
@@ -142,6 +199,12 @@ main(int argc, char **argv)
 	act_on_packets = authlistener_new(0, doit, config, FALSE);
 	act_on_packets->baseclass.associate(&act_on_packets->baseclass, netpkt);
 	//g_source_ref(&netpkt->baseclass);
+
+	fprintf(stderr, "Expecting %d packets\n", maxpingcount);
+	fprintf(stderr, "Sending   %d PONG packets per PING packet\n", pongcount);
+	fprintf(stderr, "Transmit packet loss: %g\n", XMITLOSS*100);
+	fprintf(stderr, "Receive packet loss:  %g\n", RCVLOSS*100);
+	
 	
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
@@ -150,6 +213,7 @@ main(int argc, char **argv)
 		FrameSet*	ping;
 		NetAddr*	toaddr = netaddr_string_new(argv[j]);
 		NetAddr*	v6addr;
+		IntFrame*	iframe  = intframe_new(FRAMETYPE_CINTVAL, 1);
 		if (toaddr == NULL) {
 			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address"
 			,	argv[j]);
@@ -157,12 +221,17 @@ main(int argc, char **argv)
 		}
 		v6addr = toaddr->toIPv6(toaddr); UNREF(toaddr);
 		v6addr->setport(v6addr, PORT);
+		g_hash_table_insert(ourcounts, v6addr, GINT_TO_POINTER(1));
+		REF(v6addr);	// For the 'ourcounts' table
 		{
 			char *	addrstr= v6addr->baseclass.toString(&v6addr->baseclass);
 			fprintf(stderr, "Sending an initial PING to %s\n", addrstr);
 			g_free(addrstr); addrstr = NULL;
 		}
 		ping = frameset_new(FRAMESETTYPE_PING);
+		iframe->setint(iframe, 1);
+		frameset_append_frame(ping, &iframe->baseclass);
+		UNREF2(iframe);
 		transport->baseclass.baseclass.sendareliablefs(&transport->baseclass.baseclass, v6addr, 0, ping);
 		UNREF(ping);
 		UNREF(v6addr);
@@ -176,6 +245,27 @@ main(int argc, char **argv)
 	UNREF2(act_on_packets);
 
 	UNREF3(transport);	// 'transport' global variable is referenced while the loop is running
+
+	// Free up our hash tables and they NetAddrs we've held onto
+	{
+		GHashTableIter	iter;
+		gpointer	key;
+		gpointer	value;
+		g_hash_table_iter_init(&iter, theircounts);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			NetAddr*	addr = CASTTOCLASS(NetAddr, key);
+			g_hash_table_iter_remove(&iter);
+			UNREF(addr);
+		}
+		g_hash_table_destroy(theircounts); theircounts = NULL;
+		g_hash_table_iter_init(&iter, ourcounts);
+		while (g_hash_table_iter_next(&iter, &key, &value)) {
+			NetAddr*	addr = CASTTOCLASS(NetAddr, key);
+			g_hash_table_iter_remove(&iter);
+			UNREF(addr);
+		}
+		g_hash_table_destroy(ourcounts); ourcounts = NULL;
+	}
 	g_main_loop_unref(loop);
 	g_source_unref(&netpkt->baseclass);
 	g_main_context_unref(g_main_context_default());

@@ -69,8 +69,6 @@ FSTATIC gboolean _netio_supportsreliable(NetIO* self);
 FSTATIC void  _netio_closeconn(NetIO* self, guint16 qid, const NetAddr* destaddr);
 FSTATIC void _netio_netaddr_destroy(gpointer addrptr);
 FSTATIC void _netio_addalias(NetIO* self, NetAddr * fromaddr, NetAddr* toaddr);
-FSTATIC gboolean _netio_netaddr_equal(gconstpointer lhs, gconstpointer rhs);
-FSTATIC guint _netio_netaddr_hash(gconstpointer addrptr);
 
 DEBUGDECLARATIONS
 
@@ -409,7 +407,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	if (ret->_compressframe) {
 		REF(ret->_compressframe);
 	}
-	ret->aliases = g_hash_table_new_full(_netio_netaddr_hash,_netio_netaddr_equal
+	ret->aliases = g_hash_table_new_full(netaddr_g_hash_hash, netaddr_g_hash_equal
         ,		_netio_netaddr_destroy, _netio_netaddr_destroy);  // Keys and data are same type...
 	memset(&ret->stats, 0, sizeof(ret->stats));
 	return ret;
@@ -430,7 +428,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 
 	if (self->_shouldlosepkts) {
 		if (g_random_double() < self->_xmitloss) {
-			DEBUGMSG2("%s: Threw away %"G_GSSIZE_FORMAT" byte output packet"
+			g_message("%s: Threw away %"G_GSSIZE_FORMAT" byte output packet"
 			,	__FUNCTION__, length);
 			return;
 		}
@@ -587,7 +585,7 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 	DEBUGMSG3("%s.%d: Received %zd byte message", __FUNCTION__, __LINE__, msglen);
 	if (self->_shouldlosepkts) {
 		if (g_random_double() < self->_rcvloss) {
-			DEBUGMSG2("%s: Threw away %"G_GSSIZE_FORMAT" byte input packet"
+			g_message("%s: Threw away %"G_GSSIZE_FORMAT" byte input packet"
 			,	__FUNCTION__, msglen);
 			FREE(msgbuf);
 			msgbuf = NULL;
@@ -753,23 +751,6 @@ _netio_netaddr_destroy(gpointer addrptr)
 {
 	NetAddr* self = CASTTOCLASS(NetAddr, addrptr);
 	UNREF(self);
-}
-
-/// g_hash_table equal comparator for a NetAddr
-FSTATIC gboolean
-_netio_netaddr_equal(gconstpointer lhs, gconstpointer rhs)
-{
-	const NetAddr* a_lhs = CASTTOCONSTCLASS(NetAddr, lhs);
-	const NetAddr* a_rhs = CASTTOCONSTCLASS(NetAddr, rhs);
-	return a_lhs->equal(a_lhs, a_rhs);
-}
-
-/// g_hash_table hash function for a NetAddr
-FSTATIC guint
-_netio_netaddr_hash(gconstpointer addrptr)
-{
-	const NetAddr* self = CASTTOCONSTCLASS(NetAddr, addrptr);
-	return self->hash(self);
 }
 
 /// Add an alias to our alias table
