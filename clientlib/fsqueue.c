@@ -221,6 +221,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 		g_warning("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
 		FMT_64BIT"d (ACK Ignored)."
 		,	__FUNCTION__, seq->getreqid(seq), self->_nextseqno);
+		DUMP("FsQueue", &self->baseclass, " is the queue in question.");
 		return -1;
 	}
 	reqid = seq->getreqid(seq);
@@ -388,7 +389,10 @@ _fsqueue_toString(gconstpointer vself)
 	fsqret = g_string_new("");
 	
 	tmp = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
-	g_string_append_printf(fsqret, "FsQueue(dest=%s//q=%d, [", tmp, self->_qid);
+	g_string_append_printf(fsqret
+	,		"FsQueue(dest=%s//q=%d, _nextseqno="FMT_64BIT"d, _sessionid=%d, _maxqlen=%d isready=%s, ["
+	,		tmp, self->_qid
+	,		self->_nextseqno, self->_sessionid, self->_maxqlen, (self->isready? "T" : "F"));
 	g_free(tmp); tmp=NULL;
 
 	for (curfs=self->_q->head; curfs != NULL; curfs = g_list_next(curfs)) {
