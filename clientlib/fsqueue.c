@@ -63,6 +63,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	if (self->_maxqlen != 0 && self->_q->length >= self->_maxqlen) {
 		g_warning("%s.%d: Failing due to excess queue length (%d)"
 		,	__FUNCTION__, __LINE__, self->_maxqlen);
+		DUMP("Queue contents follows", &self->baseclass, NULL);
 		return FALSE;
 	}
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
