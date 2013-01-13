@@ -1062,6 +1062,10 @@ _nano_final_shutdown(gpointer unused)
 {
 	(void)unused;
 	DEBUGMSG("Initiating final shutdown");
+	if (nano_connected && nanotransport->_netio->outputpending(nanotransport->_netio)){
+		g_warning("Shutting down with unACKed output.");
+		DUMP("Transport info", &nanotransport->_netio->baseclass, NULL);
+	}
 	if (idle_shutdown_gsource) {
 		g_source_remove(idle_shutdown_gsource);
 		idle_shutdown_gsource = 0;
