@@ -40,9 +40,39 @@
 ///@{
 /// @ingroup FsProtocol
 
-typedef struct _FsProtocol FsProtocol;
-typedef struct _FsProtoElem FsProtoElem;
-typedef struct _FsProtoElemSearchKey FsProtoElemSearchKey;
+typedef struct	_FsProtocol FsProtocol;
+typedef struct	_FsProtoElem FsProtoElem;
+typedef struct	_FsProtoElemSearchKey FsProtoElemSearchKey;
+typedef enum	_FsProtoState FsProtoState;
+
+/**
+ * Part of what's implied here is that we need to invent some protocol-level packets for starting up
+ * and shutting down the connections. Note that a startup packet always has packet sequence number 1.
+ * Eventually we need to figure out what we need to do about CMA failover - where the clients might
+ * be in the middle of a connection, and still need to send the packets they have on hand.
+ * This is not likely to be an issue for the nanoprobes - since they are ephemeral by design.
+ *
+ * We also need a CONN_NAK packet where we assert that there is no connection currently active - indicating
+ * that the two sides are likely out of sync - and need to get in sync before proceeding.
+ * If this happens and we still want to talk to the other side, we need to resequence our packets, or invent
+ * some new kind of "resume connection" packet.  The CMA isn't likely to want to do this, but we will need
+ * to do something like this for the nanoprobes to be able to tolerate CMA failover without losing things
+ * they want to tell the CMA.
+ *
+ * Now all I have to do is figure out the inputs and state machine for these states...
+ */
+enum _FsProtoState {
+	FSPROTO_NONE		= 0,	///< No connection data structure (FsProtoElem) exists
+	FSPROTO_INIT		= 1,	///< Connection initiated, awaiting first ACK packet from far side.
+					///< Unsure if this means we need to send a packet and get an ACK
+					///< before we come out of this state if the other side initiated
+					///< the connection.  My inclination is to say "not".
+	FSPROTO_UP		= 2,	///< Connection fully established - have received at least one ACK packet
+	FSPROTO_INSHUT		= 3		///< Have requested that the connection shut down - awaiting an ACK.
+					///< Note that this doesn't imply that the other end is going away -- by itself.
+					///< We can shut down a connection just because it's idle.
+};
+
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.
 /// Note that the @ref FsProtocol class is a glorified hash table of these FsProtoElem structures
@@ -55,8 +85,10 @@ struct _FsProtoElem {
 	FsQueue*	inq;		///< Queue of incoming messages - perhaps missing packets...
 	SeqnoFrame*	lastacksent;	///< The highest sequence number we've sent an ACK for.
 	SeqnoFrame*	lastseqsent;	///< Last sequence number which has been sent at least once
-	gint64		nextrexmit;	///< When to retransmit next...
 	FsProtocol*	parent;		///< Our parent FsProtocol object
+	gint64		nextrexmit;	///< When to retransmit next...
+	gint64		acktimeout;	///< When to timeout waiting for an ACK
+	FsProtoState	state;		///< State of this connection
 };
 
 struct _FsProtoElemSearchKey {

@@ -49,6 +49,7 @@ FSTATIC void		_fsprotocol_ackmessage(FsProtocol* self, NetAddr* destaddr, FrameS
 FSTATIC void		_fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq);
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
 FSTATIC void		_fsprotocol_closeconn(FsProtocol* self, guint16 qid, const NetAddr* addr);
+FSTATIC void		_fsproto_sendconnak(FsProtoElem* fspe, NetAddr* dest);
 
 FSTATIC void		_fsprotocol_auditfspe(FsProtoElem*, const char * function, int lineno);
 
@@ -60,9 +61,94 @@ DEBUGDECLARATIONS
 ///@{
 /// @ingroup C_Classes
 
+typedef enum _FsProtoInput	FsProtoInput;
+/**
+ * Inputs are:
+ *
+ */
+enum _FsProtoInput {
+	FSPROTO_GOTSTART	= 0,	///< Received a packet with sequence number 1
+	FSPROTO_REQSEND		= 1,	///< Got request to send a packet
+	FSPROTO_GOTACK		= 2,	///< Received an ACK while in FSPROTO_INIT
+	FSPROTO_GOTCONN_NAK	= 3,	///< Received a CONN_NAK packet
+	FSPROTO_REQSHUTDOWN	= 4,	///< Got request to send a packet
+	FSPROTO_ACKTIMEOUT	= 5,	///< Timed out waiting for an ACK.
+	FSPROTO_OUTALLDONE	= 6,	///< Timed out waiting for an ACK.
+	FSPROTO_SHUTTIMEOUT	= 7	///< timeout occurred during shutdown
+};
+
+static const FsProtoState nextstates[FSPROTO_INSHUT+1][FSPROTO_SHUTTIMEOUT+1] = {
+//	    START	     REQSEND	     GOTACK          GOTCONN_NAK     REQSHUTDOWN     ACKTIMEOUT	     OUTALLDONE,    SHUTTIMEOUT
+/*NONE*/    {FSPROTO_UP,     FSPROTO_INIT,   FSPROTO_NONE,   FSPROTO_NONE,   FSPROTO_NONE,   FSPROTO_NONE,   FSPROTO_NONE,  FSPROTO_NONE},
+/*INIT*/    {FSPROTO_INIT,   FSPROTO_INIT,   FSPROTO_UP,     FSPROTO_INIT,   FSPROTO_INSHUT, FSPROTO_NONE,   FSPROTO_UP,    FSPROTO_INIT},
+/*UP*/	    {FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,    FSPROTO_UP},
+/*INSHUT*/  {FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT,FSPROTO_INSHUT},
+};
+#define	A_SEND			(1)
+#define	A_CLOSE			(1<<1)
+#define	A_OOPS			(1<<2)
+#define	A_SNDSHUT		(1<<3)
+#if 0
+#define	A_SENDPACK		(1<<4)
+#define	A_SENDPACK		(1<<5)
+#define	A_SENDPACK		(1<<6)
+#define	A_SENDPACK		(1<<7)
+#endif
+
+static const unsigned actions[FSPROTO_INSHUT+1][FSPROTO_SHUTTIMEOUT+1] = {
+//	  START			REQSEND	   GOTACK     GOTCONN_NAK     REQSHUTDOWN	ACKTIMEOUT	OUTALLDONE	SHUTTIMEOUT
+/*NONE*/  {0,			0,		0,		0,		0,		0,		0,	0},
+/*INIT*/  {0,			0,		0,		0,		0,		0,		0,	},
+/*UP*/    {0,			0,		0,	    	0,		0,		0,		0,	},
+/*INSHUT*/{0,			0,		0,		0,		0,		0,		0,	},
+};
+
+FSTATIC void		_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, NetAddr* dest, FrameSet* fs);
+FSTATIC void
+_fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
+	     FsProtoInput input,///< The input for the FSA
+	     NetAddr* dest,	///< The destination address we've been given (or NULL)
+	     FrameSet* fs)	///< The FrameSet we've been given (or NULL)
+{
+	FsProtocol*	parent		= fspe->parent;
+	FsProtoState	nextstate;
+	unsigned	action;
+
+	(void)parent;
+	g_return_if_fail(fspe->state <= FSPROTO_INSHUT);
+	g_return_if_fail(input <= FSPROTO_SHUTTIMEOUT);
+	nextstate = nextstates[fspe->state][input];
+	action = actions[fspe->state][input];
+
+
+
+	fspe->state = nextstate;
+
+	if (action & A_OOPS) {
+		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
+		char *	fsstr = (fs ? fs->baseclass.toString(&fs->baseclass) : NULL);
+		char *	dest2str = (deststr ? dest->baseclass.toString(&dest->baseclass) : NULL);
+		g_warning("%s.%d: Got a %d input for %s while in state %d", __FUNCTION__, __LINE__
+		,	(int)input, deststr, (int)fspe->state);
+		FREE(deststr); deststr = NULL;
+		if (fsstr) {
+			g_warning("%s.%d: Frameset given was: %s", __FUNCTION__, __LINE__, fsstr);
+			FREE(fsstr);
+			fsstr = NULL;
+		}
+		if (dest2str) {
+			g_warning("%s.%d: Destination argument given was: %s", __FUNCTION__, __LINE__, dest2str);
+			FREE(dest2str);
+			dest2str = NULL;
+		}
+	}
+}
+
+/** Try and transmit a packet after auditing the FSPE data structure */
 #define		TRYXMIT(fspe)	{AUDITFSPE(fspe); _fsprotocol_xmitifwecan(fspe);}
 
 
+/// Audit a FsProtoElem object for consistency */
 FSTATIC void
 _fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
 {
