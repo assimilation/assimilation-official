@@ -96,15 +96,17 @@ static const FsProtoState nextstates[FSPROTO_INSHUT+1][FSPROTO_SHUTTIMEOUT+1] = 
 #endif
 
 static const unsigned actions[FSPROTO_INSHUT+1][FSPROTO_SHUTTIMEOUT+1] = {
-//	  START			REQSEND	   GOTACK     GOTCONN_NAK     REQSHUTDOWN	ACKTIMEOUT	OUTALLDONE	SHUTTIMEOUT
-/*NONE*/  {0,			0,		0,		0,		0,		0,		0,	0},
-/*INIT*/  {0,			0,		0,		0,		0,		0,		0,	},
-/*UP*/    {0,			0,		0,	    	0,		0,		0,		0,	},
-/*INSHUT*/{0,			0,		0,		0,		0,		0,		0,	},
+//	  START		     REQSEND	      GOTACK         GOTCONN_NAK     REQSHUTDOWN   ACKTIMEOUT	  OUTALLDONE	SHUTTIMEOUT
+/*NONE*/  {0,			0,		0,		0,		0,		0,	    0,		0},
+/*INIT*/  {0,			0,		0,		0,		0,		0,	    0,		0},
+/*UP*/    {0,			0,		0,	    	0,		0,		0,	    0,		0},
+/*INSHUT*/{0,			0,		0,		0,		0,		0,	    0,		0},
 };
 
 FSTATIC void		_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, NetAddr* dest, FrameSet* fs);
 FSTATIC void
+
+/// FsProtocol Finite state machine modelling connection establishment and shutdown.
 _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	     FsProtoInput input,///< The input for the FSA
 	     NetAddr* dest,	///< The destination address we've been given (or NULL)
