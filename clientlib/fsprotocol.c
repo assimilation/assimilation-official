@@ -24,7 +24,9 @@
 #include <string.h>
 #include <projectcommon.h>
 #include <fsprotocol.h>
+#include <framesettypes.h>
 #include <frametypes.h>
+#include <seqnoframe.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -67,71 +69,130 @@ typedef enum _FsProtoInput	FsProtoInput;
  *
  */
 enum _FsProtoInput {
-	FSPROTO_GOTSTART	= 0,	///< Received a packet with sequence number 1
+	FSPROTO_GOTSTART	= 0,	///< Received a packet with sequence number 1 and a valid (new) session id
 	FSPROTO_REQSEND		= 1,	///< Got request to send a packet
-	FSPROTO_GOTACK		= 2,	///< Received an ACK while in FSPROTO_INIT
+	FSPROTO_GOTACK		= 2,	///< Received a legitimate ACK
 	FSPROTO_GOTCONN_NAK	= 3,	///< Received a CONN_NAK packet
-	FSPROTO_REQSHUTDOWN	= 4,	///< Got request to send a packet
-	FSPROTO_ACKTIMEOUT	= 5,	///< Timed out waiting for an ACK.
-	FSPROTO_OUTALLDONE	= 6,	///< Timed out waiting for an ACK.
-	FSPROTO_SHUTTIMEOUT	= 7	///< timeout occurred during shutdown
+	FSPROTO_REQSHUTDOWN	= 4,	///< Got request to shut down
+	FSPROTO_RCVSHUTDOWN	= 5,	///< Received a CONNSHUT packet
+	FSPROTO_ACKTIMEOUT	= 6,	///< Timed out waiting for an ACK.
+	FSPROTO_OUTALLDONE	= 7,	///< All output has been ACKed
+	FSPROTO_INVAL,			///< End marker -- invalid input
 };
 
-static const FsProtoState nextstates[FSPROTO_INSHUT+1][FSPROTO_SHUTTIMEOUT+1] = {
-//	    START	     REQSEND	     GOTACK          GOTCONN_NAK     REQSHUTDOWN     ACKTIMEOUT	     OUTALLDONE,    SHUTTIMEOUT
-/*NONE*/    {FSPROTO_UP,     FSPROTO_INIT,   FSPROTO_NONE,   FSPROTO_NONE,   FSPROTO_NONE,   FSPROTO_NONE,   FSPROTO_NONE,  FSPROTO_NONE},
-/*INIT*/    {FSPROTO_INIT,   FSPROTO_INIT,   FSPROTO_UP,     FSPROTO_INIT,   FSPROTO_INSHUT, FSPROTO_NONE,   FSPROTO_UP,    FSPROTO_INIT},
-/*UP*/	    {FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,     FSPROTO_UP,    FSPROTO_UP},
-/*INSHUT*/  {FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT, FSPROTO_INSHUT,FSPROTO_INSHUT},
+static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
+//	    START     REQSEND	  GOTACK      GOTC_NAK    REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE},
+/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT,  FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP},
+/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE,  FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP},
+// SHUT1: No ACK, no CONNSHUT
+/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3},
+// SHUT2: got CONNSHUT, Waiting for ACK
+/*SHUT2*/{FSPR_UP,    FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE},
+// SHUT3: got ACK, waiting for CONNSHUT
+/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3},
 };
 #define	A_SEND			(1)
 #define	A_CLOSE			(1<<1)
 #define	A_OOPS			(1<<2)
-#define	A_SNDSHUT		(1<<3)
-#if 0
-#define	A_SENDPACK		(1<<4)
-#define	A_SENDPACK		(1<<5)
-#define	A_SENDPACK		(1<<6)
-#define	A_SENDPACK		(1<<7)
-#endif
+#define	A_SNDNAK		(1<<3)
+#define	A_SNDSHUT		(1<<4)
+#define	A_ACKTO			(1<<5)
 
-static const unsigned actions[FSPROTO_INSHUT+1][FSPROTO_SHUTTIMEOUT+1] = {
-//	  START		     REQSEND	      GOTACK         GOTCONN_NAK     REQSHUTDOWN   ACKTIMEOUT	  OUTALLDONE	SHUTTIMEOUT
-/*NONE*/  {0,			0,		0,		0,		0,		0,	    0,		0},
-/*INIT*/  {0,			0,		0,		0,		0,		0,	    0,		0},
-/*UP*/    {0,			0,		0,	    	0,		0,		0,	    0,		0},
-/*INSHUT*/{0,			0,		0,		0,		0,		0,	    0,		0},
+#define NAKOOPS			(A_SNDNAK|A_OOPS)
+
+static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
+//	  START	    REQSEND GOTACK  GOTCONN_NAK  REQSHUTDOWN      RCVSHUTDOWN       ACKTIMEOUT OUTDONE
+/*NONE*/ {0,	    A_SEND, A_OOPS,     A_CLOSE,     A_OOPS,   A_CLOSE|A_OOPS,  A_ACKTO|A_OOPS, A_OOPS},
+/*INIT*/ {0,	    A_SEND,	 0,     A_CLOSE,  A_SNDSHUT,     A_SNDSHUT,         A_ACKTO,	     0},
+/*UP*/   {0,	    A_SEND,	 0,     A_CLOSE,  A_SNDSHUT,     A_SNDSHUT,         A_ACKTO,	     0},
+// SHUT1: no ACK, no CONNSHUT 
+/*SHUT1*/{NAKOOPS,  A_OOPS,	 0,      A_OOPS,	  0,             0, A_ACKTO|A_CLOSE,	     0},
+// SHUT2: got CONNSHUT, Waiting for ACK
+/*SHUT2*/{NAKOOPS,  A_OOPS,	 0,           0,	  0,             0, A_ACKTO|A_CLOSE,   A_CLOSE},
+// SHUT3: Got ACK, waiting for CONNSHUT
+/*SHUT3*/{NAKOOPS,  A_OOPS, A_OOPS,      A_OOPS,	  0,       A_CLOSE,  A_ACKTO|A_OOPS,    A_OOPS},
 };
 
 FSTATIC void		_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, NetAddr* dest, FrameSet* fs);
 FSTATIC void
 
-/// FsProtocol Finite state machine modelling connection establishment and shutdown.
+/// FsProtocol Finite state Automaton modelling connection establishment and shutdown.
 _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	     FsProtoInput input,///< The input for the FSA
 	     NetAddr* dest,	///< The destination address we've been given (or NULL)
 	     FrameSet* fs)	///< The FrameSet we've been given (or NULL)
 {
 	FsProtocol*	parent		= fspe->parent;
+	FsProtoState	curstate;
 	FsProtoState	nextstate;
 	unsigned	action;
 
 	(void)parent;
-	g_return_if_fail(fspe->state <= FSPROTO_INSHUT);
-	g_return_if_fail(input <= FSPROTO_SHUTTIMEOUT);
+	g_return_if_fail(fspe->state < FSPR_INVALID);
+	g_return_if_fail(input < FSPROTO_INVAL);
 	nextstate = nextstates[fspe->state][input];
 	action = actions[fspe->state][input];
 
 
 
+	curstate = fspe->state;
 	fspe->state = nextstate;
 
+	DUMP3("_fsproto_fsa: endpoint ", &fspe->endpoint->baseclass, NULL);
+	DEBUGMSG3("%s.%d: (state %d, input %d) => (state %d, actions 0x%x)", __FUNCTION__, __LINE__
+	,	curstate, input, nextstate, action);
+
+	// Complain about an ACK timeout
+	if (action & A_ACKTO) {
+		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
+		g_warning("%s.%d: Timed out waiting for an ACK while communicating with %s/%d."
+		,	__FUNCTION__, __LINE__, deststr, fspe->_qid);
+		FREE(deststr); deststr = NULL;
+	}
+
+	// Send that packet!
+	if (action & A_SEND) {
+		if (!fs) {
+			g_critical("%s.%d: A_SEND action without accompanying FrameSet"
+			" in state %d with input %d", __FUNCTION__, __LINE__, curstate, input);
+			action |= A_OOPS;
+		}else{
+			parent->send1(parent, fs, fspe->_qid, fspe->endpoint);
+		}
+	}
+
+	// Tell other endpoint we don't like their packet
+	if (action & A_SNDNAK) {
+		FrameSet*	fset = frameset_new(FRAMESETTYPE_CONNNAK);
+		SeqnoFrame*	seq;
+		if (fs && NULL != (seq = fs->getseqno(fs))) {
+			frameset_append_frame(fset, &seq->baseclass);
+		}else{
+			g_critical("%s.%d: A_SNDNAK action either without valid FrameSet or valid seqno"
+			" in state %d with input %d", __FUNCTION__, __LINE__, curstate, input);
+			action |= A_OOPS;
+		}
+		parent->send1(parent, fset, fspe->_qid, fspe->endpoint);
+		UNREF(fset);
+	}
+
+	// Notify other endpoint we're going away
+	if (action & A_SNDSHUT) {
+		FrameSet*	fset = frameset_new(FRAMESETTYPE_CONNSHUT);
+		parent->send1(parent, fset, fspe->_qid, fspe->endpoint);
+		UNREF(fset);
+	}
+
+	// Should remain the second-to-the-last action in the FSA function
+	// This is because a previous action might want to OR in an A_OOPS into action
+	// to trigger this action - if something is out of whack.
 	if (action & A_OOPS) {
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
 		char *	fsstr = (fs ? fs->baseclass.toString(&fs->baseclass) : NULL);
 		char *	dest2str = (deststr ? dest->baseclass.toString(&dest->baseclass) : NULL);
-		g_warning("%s.%d: Got a %d input for %s while in state %d", __FUNCTION__, __LINE__
-		,	(int)input, deststr, (int)fspe->state);
+		g_warning("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
+		,	(int)input, deststr, fspe->_qid, (int)fspe->state);
 		FREE(deststr); deststr = NULL;
 		if (fsstr) {
 			g_warning("%s.%d: Frameset given was: %s", __FUNCTION__, __LINE__, fsstr);
@@ -139,10 +200,22 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			fsstr = NULL;
 		}
 		if (dest2str) {
-			g_warning("%s.%d: Destination argument given was: %s", __FUNCTION__, __LINE__, dest2str);
+			g_warning("%s.%d: Destination argument given was: %s", __FUNCTION__, __LINE__
+			,	dest2str);
 			FREE(dest2str);
 			dest2str = NULL;
 		}
+	}
+
+
+	// Must remain the last action in the fsa function...
+	if (action & A_CLOSE) {
+		NetAddr*	farend = fspe->endpoint;
+		REF(farend);
+		parent->closeconn(parent, fspe->_qid, farend);
+		UNREF(farend);
+		fspe = NULL;
+		return;
 	}
 }
 
