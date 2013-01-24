@@ -4,11 +4,13 @@
  * @details @ref FsProtocol objects implement a protocol that provides reliable @ref FrameSet transmission.
  * This sits in the middle of packet transmission and reception.
  *
- *
  * Incoming packets come into FsQueues, and we make sure we process ACKs, and give them to our
  * clients in sequence number order.
  *
- * Outgoing packets go out through the FsQueue object, and we schedule retransmissions when ACKs are not forthcoming.
+ * Outgoing packets go out through the FsQueue object, and we schedule retransmissions when ACKs
+ * are not forthcoming.
+ *
+ * In addition, we manage the initiation and termination of communication to endpoints.
  *
  * This class is related to @ref FsQueue and @ref FrameSet objects.
  *
@@ -62,22 +64,24 @@ typedef enum	_FsProtoState FsProtoState;
  * Now all I have to do is figure out the inputs and state machine for these states...
  */
 enum _FsProtoState {
-	FSPROTO_NONE		= 0,	///< No connection data structure (FsProtoElem) exists
-	FSPROTO_INIT		= 1,	///< Connection initiated, awaiting first ACK packet from far side.
-					///< Unsure if this means we need to send a packet and get an ACK
-					///< before we come out of this state if the other side initiated
-					///< the connection.  My inclination is to say "not".
-	FSPROTO_UP		= 2,	///< Connection fully established - have received at least one ACK packet
-	FSPROTO_INSHUT		= 3		///< Have requested that the connection shut down - awaiting an ACK.
-					///< Note that this doesn't imply that the other end is going away -- by itself.
-					///< We can shut down a connection just because it's idle.
+	FSPR_NONE	= 0,	///< No connection in progress
+	FSPR_INIT	= 1,	///< Connection initiated, awaiting first ACK packet
+				///< from far side.  Unsure if this means we need to send
+				///< a packet and get an ACK before we come out of this
+				///< state if the other side initiated the connection.
+				///< My inclination is to say "not".
+	FSPR_UP		= 2,	///< Connection fully established - received at least one ACK
+	FSPR_SHUT1	= 3,	///< Waiting on CONNSHUT and ACK
+	FSPR_SHUT2	= 4,	///< Received a CONNSHUT packet, waiting for output to drain
+	FSPR_SHUT3	= 5,	///< Output drained, Waiting for CONNSHUT
+	FSPR_INVALID,		///< End marker - Invalid state
 };
+
+#define	 FSPR_ISSHUTDOWN(state)	(state >= FSPR_SHUT1)
 
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.
 /// Note that the @ref FsProtocol class is a glorified hash table of these FsProtoElem structures
-/// @todo: Do we need to eventually add a method for deleting an FsProtoElem endpoint from our
-/// FsProtocol hash tables?
 struct _FsProtoElem {
 	NetAddr*	endpoint;	///< Who is our partner in this?
 	guint16		_qid;		///< Queue id of far endpoint
