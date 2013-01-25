@@ -77,7 +77,7 @@ enum _FsProtoState {
 	FSPR_INVALID,		///< End marker - Invalid state
 };
 
-#define	 FSPR_ISSHUTDOWN(state)	(state >= FSPR_SHUT1)
+#define	 FSPR_INSHUTDOWN(state)	((state) >= FSPR_SHUT1)
 
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.
@@ -117,6 +117,7 @@ struct _FsProtocol {
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
 	FsProtoElem*	(*addconn)(FsProtocol*, guint16, NetAddr*);	///< Add a connection to the given endpoint
 	void		(*closeconn)(FsProtocol*, guint16, const NetAddr*);///< Close this connection (reset it)
+	FsProtoState	(*connstate)(FsProtocol*, guint16,const NetAddr*);///< Return the state of this connection
 	gboolean	(*iready)(FsProtocol*);				///< TRUE if input is ready to be read
 	gboolean	(*outputpending)(FsProtocol*);			///< Return TRUE if output is pending
 	FrameSet*	(*read)(FsProtocol*, NetAddr**);		///< Read the next @ref FrameSet
