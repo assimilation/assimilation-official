@@ -111,6 +111,7 @@ struct _FsProtocol {
 	GList*		ipend;						///< List of FsProtoElems ready to be read
 	guint		window_size;					///< Window size of our connections
 	gint64		rexmit_interval;				///< How often to retransmit - in uS
+	gint64		acktimeout;					///< ACK timeout interval
 	guint		_timersrc;					///< gmainloop timer source id
 	FsProtoElem*	(*find)(FsProtocol*,guint16,const NetAddr*);	///< Find connection to given endpoint
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
@@ -128,6 +129,7 @@ WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_t
 #define	DEFAULT_FSP_QID		0		///< Queue ID of a packet w/o a sequence number?
 #define FSPROTO_WINDOWSIZE	7		///< FsProtocol window size
 #define FSPROTO_REXMITINTERVAL	(2000000)	///< FsProtocol retransmit interval in microseconds
+#define FSPROTO_ACKTIMEOUTINT	(10*FSPROTO_REXMITINTERVAL)	///< ACK timeout interval
 
 ///@}
 

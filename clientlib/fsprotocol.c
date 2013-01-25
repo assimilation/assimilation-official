@@ -52,6 +52,7 @@ FSTATIC void		_fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFra
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
 FSTATIC void		_fsprotocol_closeconn(FsProtocol* self, guint16 qid, const NetAddr* addr);
 FSTATIC void		_fsproto_sendconnak(FsProtoElem* fspe, NetAddr* dest);
+FSTATIC void		_fsprotocol_fspe_closeconn(FsProtoElem* self);
 
 FSTATIC void		_fsprotocol_auditfspe(FsProtoElem*, const char * function, int lineno);
 
@@ -92,20 +93,19 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 // SHUT3: got ACK, waiting for CONNSHUT
 /*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3},
 };
-#define	A_SEND			(1)
-#define	A_CLOSE			(1<<1)
-#define	A_OOPS			(1<<2)
-#define	A_SNDNAK		(1<<3)
-#define	A_SNDSHUT		(1<<4)
-#define	A_ACKTO			(1<<5)
+#define	A_CLOSE			(1<<0)
+#define	A_OOPS			(1<<1)
+#define	A_SNDNAK		(1<<2)
+#define	A_SNDSHUT		(1<<3)
+#define	A_ACKTO			(1<<4)
 
 #define NAKOOPS			(A_SNDNAK|A_OOPS)
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 //	  START	    REQSEND GOTACK  GOTCONN_NAK  REQSHUTDOWN      RCVSHUTDOWN       ACKTIMEOUT OUTDONE
-/*NONE*/ {0,	    A_SEND, A_OOPS,     A_CLOSE,     A_OOPS,   A_CLOSE|A_OOPS,  A_ACKTO|A_OOPS, A_OOPS},
-/*INIT*/ {0,	    A_SEND,	 0,     A_CLOSE,  A_SNDSHUT,     A_SNDSHUT,         A_ACKTO,	     0},
-/*UP*/   {0,	    A_SEND,	 0,     A_CLOSE,  A_SNDSHUT,     A_SNDSHUT,         A_ACKTO,	     0},
+/*NONE*/ {0,	         0, A_OOPS,     A_CLOSE,     A_OOPS,   A_CLOSE|A_OOPS,  A_ACKTO|A_OOPS, A_OOPS},
+/*INIT*/ {0,	         0,	 0,     A_CLOSE,  A_SNDSHUT,     A_SNDSHUT,         A_ACKTO,	     0},
+/*UP*/   {0,	         0,	 0,     A_CLOSE,  A_SNDSHUT,     A_SNDSHUT,         A_ACKTO,	     0},
 // SHUT1: no ACK, no CONNSHUT 
 /*SHUT1*/{NAKOOPS,  A_OOPS,	 0,      A_OOPS,	  0,             0, A_ACKTO|A_CLOSE,	     0},
 // SHUT2: got CONNSHUT, Waiting for ACK
@@ -114,13 +114,12 @@ static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 /*SHUT3*/{NAKOOPS,  A_OOPS, A_OOPS,      A_OOPS,	  0,       A_CLOSE,  A_ACKTO|A_OOPS,    A_OOPS},
 };
 
-FSTATIC void		_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, NetAddr* dest, FrameSet* fs);
-FSTATIC void
+FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
 
 /// FsProtocol Finite state Automaton modelling connection establishment and shutdown.
+FSTATIC void
 _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	     FsProtoInput input,///< The input for the FSA
-	     NetAddr* dest,	///< The destination address we've been given (or NULL)
 	     FrameSet* fs)	///< The FrameSet we've been given (or NULL)
 {
 	FsProtocol*	parent		= fspe->parent;
@@ -151,17 +150,6 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		FREE(deststr); deststr = NULL;
 	}
 
-	// Send that packet!
-	if (action & A_SEND) {
-		if (!fs) {
-			g_critical("%s.%d: A_SEND action without accompanying FrameSet"
-			" in state %d with input %d", __FUNCTION__, __LINE__, curstate, input);
-			action |= A_OOPS;
-		}else{
-			parent->send1(parent, fs, fspe->_qid, fspe->endpoint);
-		}
-	}
-
 	// Tell other endpoint we don't like their packet
 	if (action & A_SNDNAK) {
 		FrameSet*	fset = frameset_new(FRAMESETTYPE_CONNNAK);
@@ -190,7 +178,6 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	if (action & A_OOPS) {
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
 		char *	fsstr = (fs ? fs->baseclass.toString(&fs->baseclass) : NULL);
-		char *	dest2str = (deststr ? dest->baseclass.toString(&dest->baseclass) : NULL);
 		g_warning("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
 		,	(int)input, deststr, fspe->_qid, (int)fspe->state);
 		FREE(deststr); deststr = NULL;
@@ -199,12 +186,6 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			FREE(fsstr);
 			fsstr = NULL;
 		}
-		if (dest2str) {
-			g_warning("%s.%d: Destination argument given was: %s", __FUNCTION__, __LINE__
-			,	dest2str);
-			FREE(dest2str);
-			dest2str = NULL;
-		}
 	}
 
 
@@ -212,7 +193,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	if (action & A_CLOSE) {
 		NetAddr*	farend = fspe->endpoint;
 		REF(farend);
-		parent->closeconn(parent, fspe->_qid, farend);
+		_fsprotocol_fspe_closeconn(fspe);
 		UNREF(farend);
 		fspe = NULL;
 		return;
@@ -340,14 +321,21 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
 	DUMP3("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
-		DUMP3("_fsprotocol_closeconn: closing connection to", &destaddr->baseclass, NULL);
-		g_hash_table_remove(self->endpoints, fspe);
-		fspe = NULL;
+		DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
+		_fsproto_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
 	}else if (DEBUG > 0) {
 		char	suffix[16];
 		snprintf(suffix, sizeof(suffix), "/%d", qid);
 		DUMP("_fsprotocol_closeconn: Could not locate connection", &destaddr->baseclass, suffix);
 	}
+}
+
+FSTATIC void
+_fsprotocol_fspe_closeconn(FsProtoElem* self)
+{
+	DUMP3("_fsprotocol_fspe_closeconn: closing connection to", &self->endpoint->baseclass, NULL);
+	g_hash_table_remove(self->parent->endpoints, self);
+	self = NULL;
 }
 
 
@@ -394,6 +382,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->ipend = NULL;
 	self->window_size = FSPROTO_WINDOWSIZE;
 	self->rexmit_interval = FSPROTO_REXMITINTERVAL;
+	self->acktimeout = FSPROTO_ACKTIMEOUTINT;
 
 	if (rexmit_timer_uS == 0) {
 		rexmit_timer_uS = self->rexmit_interval/2;
@@ -580,31 +569,51 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	g_return_if_fail(fspe != NULL);
 	AUDITFSPE(fspe);
 	
-	if (fs->fstype == FRAMESETTYPE_ACK) {
-		// Find the packet being ACKed, remove it from the output queue, and send
-		// out the  next packet in that output queue...
-		self->io->stats.acksrecvd++;
-		if (seq == NULL && DEBUGVAR < 2) {
-			DEBUGVAR = 2;
+	switch(fs->fstype) {
+		case FRAMESETTYPE_ACK: {
+			guint64 now = g_get_monotonic_time();
+			// Find the packet being ACKed, remove it from the output queue, and send
+			// out the  next packet in that output queue...
+			self->io->stats.acksrecvd++;
+			g_return_if_fail(seq != NULL);
+			if (fspe->outq->ackthrough(fspe->outq, seq) < 0) {
+				DUMP3("Received bad ACK from", &fspe->endpoint->baseclass, NULL);
+			}else{
+				_fsproto_fsa(fspe, FSPROTO_GOTACK, fs);
+			}
+			DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
+			if (fspe->outq->_q->length == 0) {
+				fspe->parent->unacked = g_list_remove(fspe->parent->unacked, fspe);
+				fspe->nextrexmit = 0;
+				_fsproto_fsa(fspe, FSPROTO_OUTALLDONE, fs);
+				fspe->acktimeout = 0;
+			}else{
+				fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
+				fspe->acktimeout = now + self->acktimeout;
+			}
+			TRYXMIT(fspe);
+			return;
 		}
-		g_return_if_fail(seq != NULL);
-		if (fspe->outq->ackthrough(fspe->outq, seq) < 0) {
-			DUMP3("Received bad ACK from", &fspe->endpoint->baseclass, NULL);
+		case FRAMESETTYPE_CONNNAK: {
+			_fsproto_fsa(fspe, FSPROTO_GOTCONN_NAK, fs);
+			return;
 		}
-		DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
-		if (fspe->outq->_q->length == 0) {
-			fspe->parent->unacked = g_list_remove(fspe->parent->unacked, fspe);
-			fspe->nextrexmit = 0;
-		}else{
-			fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
+		case FRAMESETTYPE_CONNSHUT: {
+			_fsproto_fsa(fspe, FSPROTO_RCVSHUTDOWN, fs);
+			return;
 		}
-		TRYXMIT(fspe);
-		return;
+		default:
+			/* Process below... */
+			break;
 	}
 	AUDITFSPE(fspe);
 	// Queue up the received frameset
 	DUMP3(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
-	if (!fspe->inq->inqsorted(fspe->inq, fs)) {
+	if (fspe->inq->inqsorted(fspe->inq, fs)) {
+		if (seq->_reqid == 1) {
+			_fsproto_fsa(fspe, FSPROTO_GOTSTART, fs);
+		}
+	}else{
 		DUMP3(__FUNCTION__, &fs->baseclass, " Frameset failed to go into queue :-(.");
 		DEBUGMSG3("%s.%d: seq=%p lastacksent=%p", __FUNCTION__, __LINE__
 		,	seq, fspe->lastacksent);
@@ -654,6 +663,12 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	fspe = self->addconn(self, qid, toaddr);
 	g_return_val_if_fail(NULL != fspe, FALSE);	// Should not be possible...
 	AUDITFSPE(fspe);
+
+	if (FSPR_ISSHUTDOWN(fspe->state)) {
+		return FALSE;
+	}
+	_fsproto_fsa(fspe, FSPROTO_REQSEND, NULL);
+
 	if (fspe->outq->_q->length == 0) {
 		///@todo: This might be slow if we send a lot of packets to an endpoint
 		/// before getting a response, but that's not very likely.
@@ -683,6 +698,7 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 	if (ret) {
 		GSList*	this;
 		int	count = 0;
+		_fsproto_fsa(fspe, FSPROTO_REQSEND, NULL);
 		// Loop over our framesets and send them ouit...
 		for (this=framesets; this; this=this->next) {
 			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
@@ -820,13 +836,18 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 	} else if (fspe->nextrexmit != 0 && now > fspe->nextrexmit) {
 		FrameSet*	fs = outq->qhead(outq);
 		// It's time to retransmit something.  Hurray!
-		/// @todo: SHOULD THIS BE IN ITS OWN FUNCTION?
 		if (NULL != fs) {
 			// Update next retransmission time...
 			fspe->nextrexmit = now + parent->rexmit_interval;
 			DUMP3(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
 			io->sendaframeset(io, fspe->endpoint, fs);
 			AUDITFSPE(fspe);
+
+			if (now > fspe->acktimeout) {
+				_fsproto_fsa(fspe, FSPROTO_ACKTIMEOUT, NULL);
+				// No point in whining incessantly...
+				fspe->acktimeout = now + parent->acktimeout;
+			}
 		}else{
 			g_warn_if_reached();
 			fspe->nextrexmit = 0;
