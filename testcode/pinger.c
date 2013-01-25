@@ -55,10 +55,12 @@
  */
 
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
+gboolean	shutdown_all_connections(gpointer);
 ReliableUDP*	transport = NULL;
 int		pongcount = 2;
-int		maxpingcount = 100;
+int		maxpingcount = 10;
 GMainLoop*	loop = NULL;
+guint		shutdownpoll = 0;
 
 ObeyFrameSetTypeMap	doit [] = {
 	{FRAMESETTYPE_PING,	obey_pingpong},
@@ -69,12 +71,46 @@ ObeyFrameSetTypeMap	doit [] = {
 GHashTable*	theircounts = NULL;
 GHashTable*	ourcounts = NULL;
 
+gboolean
+shutdown_all_connections(gpointer unused)
+{
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	value;
+	int		livecount = 0;
+	(void)unused;
+	if (!ourcounts) {
+		return FALSE;
+	}
+	g_hash_table_iter_init(&iter, ourcounts);
+	while (g_hash_table_iter_next(&iter, &key, &value)) {
+		NetAddr*	addr = CASTTOCLASS(NetAddr, key);
+		FsProtoState	state = transport->_protocol->connstate(transport->_protocol, 0, addr);
+		if (state != FSPR_NONE) {
+			++livecount;
+		}
+		if (state == FSPR_NONE || FSPR_INSHUTDOWN(state)) {
+			continue;
+		}
+		transport->_protocol->closeconn(transport->_protocol, 0, addr);
+	}
+	if (livecount == 0) {
+		fprintf(stderr, "ALL CONNECTIONS SHUT DOWN! calling g_main_quit()\n");
+		g_main_loop_quit(loop);
+		return FALSE;
+	}
+	if (shutdownpoll == 0) {
+		shutdownpoll = g_idle_add(shutdown_all_connections, NULL);
+	}
+	return TRUE;
+}
 
 static gint	pingcount = 1;
 void
 obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 {
 	char *	addrstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
+	FsProtoState	state = transport->_protocol->connstate(transport->_protocol, 0, fromaddr);
 
 	if (fs->fstype == FRAMESETTYPE_PONG) {
 		fprintf(stderr, "Received a PONG packet from %s\n", addrstr);
@@ -84,6 +120,11 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	(void)unused;
 	// Acknowledge that we acted on this message...
 	transport->baseclass.baseclass.ackmessage(&transport->baseclass.baseclass, fromaddr, fs);
+	if (FSPR_INSHUTDOWN(state)) {
+		// Shutting down -- ignore this message...
+		// Note that we DO have to ACK the message...
+		return;
+	}
 	if (fs->fstype == FRAMESETTYPE_PING) {
 		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
 		IntFrame*	count = intframe_new(FRAMETYPE_CINTVAL, sizeof(pingcount));
@@ -109,8 +150,8 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		frameset_append_frame(ping, &count->baseclass);
 		UNREF2(count);
 		if (maxpingcount > 0 && pingcount > maxpingcount) {
-			g_message("Quitting on ping count.");
-			g_main_loop_quit(loop);
+			g_message("Shutting down on ping count.");
+			shutdown_all_connections(NULL);
 		}
 		for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 			Frame* frame = CASTTOCLASS(Frame, slframe->data);
@@ -184,6 +225,7 @@ main(int argc, char **argv)
 	int		liveobjcount;
 
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	theircounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
