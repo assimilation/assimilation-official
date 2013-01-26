@@ -551,7 +551,7 @@ _configcontext_elem_toString(ConfigValue* val)
 			char*		tostring = obj->toString(obj);
 			gchar*		retstr = JSONquotestring(tostring);
 
-			tostring = NULL; g_free(tostring);
+			FREE(tostring); tostring=NULL;
 			return retstr;
 		}
 		case CFG_EEXIST:
