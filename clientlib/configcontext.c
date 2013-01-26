@@ -500,6 +500,7 @@ _configcontext_toString(gconstpointer aself)
 	g_string_append(gsret, "}");
 	return g_string_free(gsret, FALSE);
 }
+/// Convert a ConfigContext element (ConfigValue) to a String
 FSTATIC char *
 _configcontext_elem_toString(ConfigValue* val)
 {

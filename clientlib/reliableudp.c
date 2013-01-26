@@ -134,6 +134,7 @@ _reliableudp_input_queued(const NetIO* nself)
 }
 
 /// Reliable UDP verison of 'sendaframeset' from base class.
+/// @todo Should we prohibit sending packets during shutdown?
 FSTATIC void
 _reliableudp_sendaframeset(NetIO* nself, const NetAddr* dest, FrameSet* fs)
 {
@@ -141,6 +142,7 @@ _reliableudp_sendaframeset(NetIO* nself, const NetAddr* dest, FrameSet* fs)
 }
 
 /// Reliable UDP verison of 'sendframesets' from base class
+/// @todo Should we prohibit sending packets during shutdown?
 FSTATIC void
 _reliableudp_sendframesets(NetIO* nself, const NetAddr* dest, GSList* fslist)
 {
