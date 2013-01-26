@@ -62,8 +62,7 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 
 returnout:
 	if (aself->autoack) {
-		DEBUGMSG3("%s.%d: AutoACKing FrameSet", __FUNCTION__, __LINE__);
-		DUMP3("AutoACKing FrameSet", &fs->baseclass, NULL);
+		DUMP3("_authlistener_got_frameset: AutoACKing FrameSet", &fs->baseclass, NULL);
 		self->transport->_netio->ackmessage(self->transport->_netio, addr, fs);
 	}
 	UNREF(fs);

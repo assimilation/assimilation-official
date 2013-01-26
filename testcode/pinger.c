@@ -55,12 +55,11 @@
  */
 
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
-gboolean	shutdown_all_connections(gpointer);
+gboolean	exit_when_connsdown(gpointer);
 ReliableUDP*	transport = NULL;
 int		pongcount = 2;
 int		maxpingcount = 10;
 GMainLoop*	loop = NULL;
-guint		shutdownpoll = 0;
 
 ObeyFrameSetTypeMap	doit [] = {
 	{FRAMESETTYPE_PING,	obey_pingpong},
@@ -72,35 +71,13 @@ GHashTable*	theircounts = NULL;
 GHashTable*	ourcounts = NULL;
 
 gboolean
-shutdown_all_connections(gpointer unused)
+exit_when_connsdown(gpointer unused)
 {
-	GHashTableIter	iter;
-	gpointer	key;
-	gpointer	value;
-	int		livecount = 0;
 	(void)unused;
-	if (!ourcounts) {
-		return FALSE;
-	}
-	g_hash_table_iter_init(&iter, ourcounts);
-	while (g_hash_table_iter_next(&iter, &key, &value)) {
-		NetAddr*	addr = CASTTOCLASS(NetAddr, key);
-		FsProtoState	state = transport->_protocol->connstate(transport->_protocol, 0, addr);
-		if (state != FSPR_NONE) {
-			++livecount;
-		}
-		if (state == FSPR_NONE || FSPR_INSHUTDOWN(state)) {
-			continue;
-		}
-		transport->_protocol->closeconn(transport->_protocol, 0, addr);
-	}
-	if (livecount == 0) {
+	if (transport->_protocol->activeconncount(transport->_protocol) == 0) {
 		fprintf(stderr, "ALL CONNECTIONS SHUT DOWN! calling g_main_quit()\n");
 		g_main_loop_quit(loop);
 		return FALSE;
-	}
-	if (shutdownpoll == 0) {
-		shutdownpoll = g_idle_add(shutdown_all_connections, NULL);
 	}
 	return TRUE;
 }
@@ -151,7 +128,8 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		UNREF2(count);
 		if (maxpingcount > 0 && pingcount > maxpingcount) {
 			g_message("Shutting down on ping count.");
-			shutdown_all_connections(NULL);
+			transport->_protocol->closeall(transport->_protocol);
+			g_idle_add(exit_when_connsdown, NULL);
 		}
 		for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 			Frame* frame = CASTTOCLASS(Frame, slframe->data);
