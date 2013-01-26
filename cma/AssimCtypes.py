@@ -943,6 +943,12 @@ class struct__GMainContext(Structure):
 
 GMainContext = struct__GMainContext # /usr/include/glib-2.0/glib/gmain.h: 39
 
+# /usr/include/glib-2.0/glib/gmain.h: 47
+class struct__GMainLoop(Structure):
+    pass
+
+GMainLoop = struct__GMainLoop # /usr/include/glib-2.0/glib/gmain.h: 47
+
 # /usr/include/glib-2.0/glib/gmain.h: 150
 class struct__GSource(Structure):
     pass
@@ -1573,6 +1579,18 @@ if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_string_new'):
     netaddr_string_new = _libs['libassimilationclientlib.so'].netaddr_string_new
     netaddr_string_new.argtypes = [String]
     netaddr_string_new.restype = POINTER(NetAddr)
+
+# ../include/netaddr.h: 71
+if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_g_hash_equal'):
+    netaddr_g_hash_equal = _libs['libassimilationclientlib.so'].netaddr_g_hash_equal
+    netaddr_g_hash_equal.argtypes = [gconstpointer, gconstpointer]
+    netaddr_g_hash_equal.restype = gboolean
+
+# ../include/netaddr.h: 72
+if hasattr(_libs['libassimilationclientlib.so'], 'netaddr_g_hash_hash'):
+    netaddr_g_hash_hash = _libs['libassimilationclientlib.so'].netaddr_g_hash_hash
+    netaddr_g_hash_hash.argtypes = [gconstpointer]
+    netaddr_g_hash_hash.restype = guint
 
 # /home/alanr/monitor/src/include/addrframe.h: 38
 class struct__AddrFrame(Structure):
@@ -2477,7 +2495,7 @@ struct__FsQueue._fields_ = [
     ('inqsorted', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), POINTER(FrameSet))),
     ('qhead', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsQueue))),
     ('deq', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsQueue))),
-    ('ackthrough', CFUNCTYPE(UNCHECKED(guint), POINTER(FsQueue), POINTER(SeqnoFrame))),
+    ('ackthrough', CFUNCTYPE(UNCHECKED(gint), POINTER(FsQueue), POINTER(SeqnoFrame))),
     ('flush', CFUNCTYPE(UNCHECKED(None), POINTER(FsQueue))),
     ('flush1', CFUNCTYPE(UNCHECKED(None), POINTER(FsQueue))),
     ('qlen', CFUNCTYPE(UNCHECKED(guint), POINTER(FsQueue))),
@@ -2487,29 +2505,33 @@ struct__FsQueue._fields_ = [
     ('hasqspace', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsQueue), guint)),
 ]
 
-# ../include/fsqueue.h: 76
+# ../include/fsqueue.h: 74
 if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
     fsqueue_new = _libs['libassimilationclientlib.so'].fsqueue_new
     fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
     fsqueue_new.restype = POINTER(FsQueue)
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 70
+# /home/alanr/monitor/src/include/fsprotocol.h: 106
 class struct__FsProtocol(Structure):
     pass
 
-FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 43
+FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 45
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 51
+# /home/alanr/monitor/src/include/fsprotocol.h: 85
 class struct__FsProtoElem(Structure):
     pass
 
-FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 44
+FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 46
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 62
+# /home/alanr/monitor/src/include/fsprotocol.h: 98
 class struct__FsProtoElemSearchKey(Structure):
     pass
 
-FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 45
+FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 47
+
+enum__FsProtoState = c_int # /home/alanr/monitor/src/include/fsprotocol.h: 48
+
+FsProtoState = enum__FsProtoState # /home/alanr/monitor/src/include/fsprotocol.h: 48
 
 struct__FsProtoElem.__slots__ = [
     'endpoint',
@@ -2518,8 +2540,10 @@ struct__FsProtoElem.__slots__ = [
     'inq',
     'lastacksent',
     'lastseqsent',
-    'nextrexmit',
     'parent',
+    'nextrexmit',
+    'acktimeout',
+    'state',
 ]
 struct__FsProtoElem._fields_ = [
     ('endpoint', POINTER(NetAddr)),
@@ -2528,8 +2552,10 @@ struct__FsProtoElem._fields_ = [
     ('inq', POINTER(FsQueue)),
     ('lastacksent', POINTER(SeqnoFrame)),
     ('lastseqsent', POINTER(SeqnoFrame)),
-    ('nextrexmit', gint64),
     ('parent', POINTER(FsProtocol)),
+    ('nextrexmit', gint64),
+    ('acktimeout', gint64),
+    ('state', FsProtoState),
 ]
 
 struct__FsProtoElemSearchKey.__slots__ = [
@@ -2549,11 +2575,13 @@ struct__FsProtocol.__slots__ = [
     'ipend',
     'window_size',
     'rexmit_interval',
+    'acktimeout',
     '_timersrc',
     'find',
     'findbypkt',
     'addconn',
     'closeconn',
+    'connstate',
     'iready',
     'outputpending',
     'read',
@@ -2570,11 +2598,13 @@ struct__FsProtocol._fields_ = [
     ('ipend', POINTER(GList)),
     ('window_size', guint),
     ('rexmit_interval', gint64),
+    ('acktimeout', gint64),
     ('_timersrc', guint),
     ('find', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('findbypkt', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
     ('addconn', CFUNCTYPE(UNCHECKED(POINTER(FsProtoElem)), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('closeconn', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
+    ('connstate', CFUNCTYPE(UNCHECKED(FsProtoState), POINTER(FsProtocol), guint16, POINTER(NetAddr))),
     ('iready', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
     ('outputpending', CFUNCTYPE(UNCHECKED(gboolean), POINTER(FsProtocol))),
     ('read', CFUNCTYPE(UNCHECKED(POINTER(FrameSet)), POINTER(FsProtocol), POINTER(POINTER(NetAddr)))),
@@ -2584,7 +2614,7 @@ struct__FsProtocol._fields_ = [
     ('ackmessage', CFUNCTYPE(UNCHECKED(None), POINTER(FsProtocol), POINTER(NetAddr), POINTER(FrameSet))),
 ]
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 91
+# /home/alanr/monitor/src/include/fsprotocol.h: 129
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
     fsprotocol_new.argtypes = [guint, POINTER(NetIO), guint]
@@ -3096,36 +3126,66 @@ if hasattr(_libs['libassimilationclientlib.so'], 'nano_packet_decoder'):
     nano_packet_decoder.restype = POINTER(PacketDecoder)
 
 # /home/alanr/monitor/src/include/nanoprobe.h: 46
+if hasattr(_libs['libassimilationclientlib.so'], 'nano_initiate_shutdown'):
+    nano_initiate_shutdown = _libs['libassimilationclientlib.so'].nano_initiate_shutdown
+    nano_initiate_shutdown.argtypes = []
+    nano_initiate_shutdown.restype = gboolean
+
+# /home/alanr/monitor/src/include/nanoprobe.h: 47
 if hasattr(_libs['libassimilationclientlib.so'], 'nanoprobe_report_upstream'):
     nanoprobe_report_upstream = _libs['libassimilationclientlib.so'].nanoprobe_report_upstream
     nanoprobe_report_upstream.argtypes = [guint16, POINTER(NetAddr), String, guint64]
     nanoprobe_report_upstream.restype = None
 
+# /home/alanr/monitor/src/include/nanoprobe.h: 48
+try:
+    procname = (String).in_dll(_libs['libassimilationclientlib.so'], 'procname')
+except:
+    pass
+
 # /home/alanr/monitor/src/include/nanoprobe.h: 49
 try:
-    nanoprobe_deadtime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_deadtime_agent')
+    errcount = (c_int).in_dll(_libs['libassimilationclientlib.so'], 'errcount')
+except:
+    pass
+
+# /home/alanr/monitor/src/include/nanoprobe.h: 50
+try:
+    mainloop = (POINTER(GMainLoop)).in_dll(_libs['libassimilationclientlib.so'], 'mainloop')
 except:
     pass
 
 # /home/alanr/monitor/src/include/nanoprobe.h: 51
 try:
+    nano_shutting_down = (gboolean).in_dll(_libs['libassimilationclientlib.so'], 'nano_shutting_down')
+except:
+    pass
+
+# /home/alanr/monitor/src/include/nanoprobe.h: 54
+try:
+    nanoprobe_deadtime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_deadtime_agent')
+except:
+    pass
+
+# /home/alanr/monitor/src/include/nanoprobe.h: 56
+try:
     nanoprobe_heartbeat_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_heartbeat_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 53
+# /home/alanr/monitor/src/include/nanoprobe.h: 58
 try:
     nanoprobe_warntime_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_warntime_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 55
+# /home/alanr/monitor/src/include/nanoprobe.h: 60
 try:
     nanoprobe_comealive_agent = (POINTER(CFUNCTYPE(UNCHECKED(None), POINTER(HbListener), guint64))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_comealive_agent')
 except:
     pass
 
-# /home/alanr/monitor/src/include/nanoprobe.h: 57
+# /home/alanr/monitor/src/include/nanoprobe.h: 62
 try:
     nanoprobe_hblistener_new = (POINTER(CFUNCTYPE(UNCHECKED(POINTER(HbListener)), POINTER(NetAddr), POINTER(ConfigContext)))).in_dll(_libs['libassimilationclientlib.so'], 'nanoprobe_hblistener_new')
 except:
@@ -3782,113 +3842,125 @@ except:
 
 # ../include/framesettypes.h: 36
 try:
-    FRAMESETTYPE_STARTUP = 18
+    FRAMESETTYPE_CONNSHUT = 17
 except:
     pass
 
 # ../include/framesettypes.h: 37
 try:
-    FRAMESETTYPE_HBDEAD = 19
+    FRAMESETTYPE_CONNNAK = 18
 except:
     pass
 
 # ../include/framesettypes.h: 38
 try:
-    FRAMESETTYPE_HBSHUTDOWN = 20
+    FRAMESETTYPE_STARTUP = 25
 except:
     pass
 
 # ../include/framesettypes.h: 39
 try:
-    FRAMESETTYPE_HBLATE = 21
+    FRAMESETTYPE_HBDEAD = 26
 except:
     pass
 
 # ../include/framesettypes.h: 40
 try:
-    FRAMESETTYPE_HBBACKALIVE = 22
+    FRAMESETTYPE_HBSHUTDOWN = 27
 except:
     pass
 
 # ../include/framesettypes.h: 41
 try:
-    FRAMESETTYPE_HBMARTIAN = 23
+    FRAMESETTYPE_HBLATE = 28
 except:
     pass
 
 # ../include/framesettypes.h: 42
 try:
-    FRAMESETTYPE_SWDISCOVER = 25
+    FRAMESETTYPE_HBBACKALIVE = 29
 except:
     pass
 
 # ../include/framesettypes.h: 43
 try:
-    FRAMESETTYPE_JSDISCOVERY = 26
+    FRAMESETTYPE_HBMARTIAN = 30
 except:
     pass
 
 # ../include/framesettypes.h: 44
 try:
-    FRAMESETTYPE_SENDHB = 64
+    FRAMESETTYPE_SWDISCOVER = 31
 except:
     pass
 
 # ../include/framesettypes.h: 45
 try:
-    FRAMESETTYPE_EXPECTHB = 65
+    FRAMESETTYPE_JSDISCOVERY = 32
 except:
     pass
 
 # ../include/framesettypes.h: 46
 try:
-    FRAMESETTYPE_SENDEXPECTHB = 66
+    FRAMESETTYPE_SENDHB = 64
 except:
     pass
 
 # ../include/framesettypes.h: 47
 try:
-    FRAMESETTYPE_STOPSENDHB = 67
+    FRAMESETTYPE_EXPECTHB = 65
 except:
     pass
 
 # ../include/framesettypes.h: 48
 try:
-    FRAMESETTYPE_STOPEXPECTHB = 68
+    FRAMESETTYPE_SENDEXPECTHB = 66
 except:
     pass
 
 # ../include/framesettypes.h: 49
 try:
-    FRAMESETTYPE_STOPSENDEXPECTHB = 69
+    FRAMESETTYPE_STOPSENDHB = 67
 except:
     pass
 
 # ../include/framesettypes.h: 50
 try:
-    FRAMESETTYPE_SETCONFIG = 70
+    FRAMESETTYPE_STOPEXPECTHB = 68
 except:
     pass
 
 # ../include/framesettypes.h: 51
 try:
-    FRAMESETTYPE_INCRDEBUG = 71
+    FRAMESETTYPE_STOPSENDEXPECTHB = 69
 except:
     pass
 
 # ../include/framesettypes.h: 52
 try:
-    FRAMESETTYPE_DECRDEBUG = 72
+    FRAMESETTYPE_SETCONFIG = 70
 except:
     pass
 
 # ../include/framesettypes.h: 53
 try:
-    FRAMESETTYPE_DODISCOVER = 73
+    FRAMESETTYPE_INCRDEBUG = 71
 except:
     pass
 
 # ../include/framesettypes.h: 54
+try:
+    FRAMESETTYPE_DECRDEBUG = 72
+except:
+    pass
+
+# ../include/framesettypes.h: 55
+try:
+    FRAMESETTYPE_DODISCOVER = 73
+except:
+    pass
+
+# ../include/framesettypes.h: 56
 try:
     FRAMESETTYPE_STOPDISCOVER = 74
 except:
@@ -4290,27 +4362,33 @@ try:
 except:
     pass
 
-# ../include/fsqueue.h: 77
+# ../include/fsqueue.h: 75
 try:
     DEFAULT_FSQMAX = 32
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 92
+# /home/alanr/monitor/src/include/fsprotocol.h: 130
 try:
     DEFAULT_FSP_QID = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 93
+# /home/alanr/monitor/src/include/fsprotocol.h: 131
 try:
     FSPROTO_WINDOWSIZE = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 94
+# /home/alanr/monitor/src/include/fsprotocol.h: 132
 try:
     FSPROTO_REXMITINTERVAL = 2000000
+except:
+    pass
+
+# /home/alanr/monitor/src/include/fsprotocol.h: 133
+try:
+    FSPROTO_ACKTIMEOUTINT = (10 * FSPROTO_REXMITINTERVAL)
 except:
     pass
 
@@ -4802,11 +4880,11 @@ _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
 _FsQueue = struct__FsQueue # ../include/fsqueue.h: 45
 
-_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 70
+_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 106
 
-_FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 51
+_FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 85
 
-_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 62
+_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 98
 
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 44
 

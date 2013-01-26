@@ -48,20 +48,10 @@ typedef struct	_FsProtoElemSearchKey FsProtoElemSearchKey;
 typedef enum	_FsProtoState FsProtoState;
 
 /**
- * Part of what's implied here is that we need to invent some protocol-level packets for starting up
- * and shutting down the connections. Note that a startup packet always has packet sequence number 1.
- * Eventually we need to figure out what we need to do about CMA failover - where the clients might
- * be in the middle of a connection, and still need to send the packets they have on hand.
- * This is not likely to be an issue for the nanoprobes - since they are ephemeral by design.
- *
- * We also need a CONN_NAK packet where we assert that there is no connection currently active - indicating
- * that the two sides are likely out of sync - and need to get in sync before proceeding.
- * If this happens and we still want to talk to the other side, we need to resequence our packets, or invent
- * some new kind of "resume connection" packet.  The CMA isn't likely to want to do this, but we will need
- * to do something like this for the nanoprobes to be able to tolerate CMA failover without losing things
- * they want to tell the CMA.
- *
- * Now all I have to do is figure out the inputs and state machine for these states...
+ * Note that the startup packet always has packet sequence number 1.
+ * Eventually we need to figure out what we need to do about CMA failover - where the
+ * nanoprobes might be in the middle of a connection, and still need to send the packets they
+ * have on hand.  
  */
 enum _FsProtoState {
 	FSPR_NONE	= 0,	///< No connection in progress
@@ -125,6 +115,8 @@ struct _FsProtocol {
 	gboolean	(*send1)(FsProtocol*, FrameSet*, guint16, NetAddr*);///< Send one @ref FrameSet
 	gboolean	(*send)(FsProtocol*, GSList*, guint16, NetAddr*);///< Send a list of FrameSets
 	void		(*ackmessage)(FsProtocol*, NetAddr*, FrameSet*);///< ACK the given @ref FrameSet
+	void		(*closeall)(FsProtocol*);			///< Close all our connections
+	int		(*activeconncount)(FsProtocol*);		///< How many active connections do we have?
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_timer_uS);
 #define	DEFAULT_FSP_QID		0		///< Queue ID of a packet w/o a sequence number?

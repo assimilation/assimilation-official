@@ -34,6 +34,8 @@ FSTATIC gboolean _authlistener_got_frameset(Listener* self, FrameSet*, NetAddr*)
 FSTATIC void _authlistener_associate(Listener* self, NetGSource* transport);
 FSTATIC void _authlistener_dissociate(Listener* self);
 
+DEBUGDECLARATIONS
+
 ///@defgroup AuthListener AuthListener class.
 /// Class for listening, authenticating, and obeying packets from the Collective Authority
 ///@{
@@ -55,13 +57,15 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 	}
 	/// @todo need to authorize the sender of this @ref FrameSet before acting on it...
 	action(aself, fs, addr);
-	if (aself->autoack) {
-		self->transport->_netio->ackmessage(self->transport->_netio, addr, fs);
-	}
 	
 
 
 returnout:
+	if (aself->autoack) {
+		DEBUGMSG3("%s.%d: AutoACKing FrameSet", __FUNCTION__, __LINE__);
+		DUMP3("AutoACKing FrameSet", &fs->baseclass, NULL);
+		self->transport->_netio->ackmessage(self->transport->_netio, addr, fs);
+	}
 	UNREF(fs);
 	return TRUE;
 }
@@ -123,6 +127,7 @@ authlistener_new(gsize objsize,		 ///<[in] size of Listener structure (0 for siz
 		 gboolean autoack)	 ///<[in] TRUE if the authlistener should do the ACKing for us
 {
 	AuthListener * newlistener;
+	BINDDEBUG(AuthListener);
 	if (objsize < sizeof(AuthListener)) {
 		objsize = sizeof(AuthListener);
 	}

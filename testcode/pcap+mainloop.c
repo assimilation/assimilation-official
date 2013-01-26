@@ -61,7 +61,7 @@
 int		expected_dead_count = 1;
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
-GMainLoop*	loop = NULL;
+extern GMainLoop*	mainloop;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
@@ -71,6 +71,7 @@ NetAddr*	anyaddr;
 int		wirepktcount = 0;
 int		heartbeatcount = 0;
 int		pcapcount = 0;
+
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void got_heartbeat(HbListener* who);
 void got_heartbeat2(HbListener* who);
@@ -148,10 +149,12 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 		g_message("CMA Received a FrameSet of type %d over the 'wire'."
 		,	  fs->fstype);
 	}
+	
+	l->transport->_netio->ackmessage(l->transport->_netio, srcaddr, fs);
 	UNREF(fs);
 	if (wirepktcount >= maxpkts) {
-		g_message("QUITTING NOW!");
-		g_main_loop_quit(loop);
+		g_message("QUITTING NOW - wirepktcount!");
+		nano_initiate_shutdown();
 		return FALSE;
 	}
 	return TRUE;
@@ -161,12 +164,14 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 gboolean
 timeout_agent(gpointer ignored)
 {
+	ReliableUDP*	io = CASTTOCLASS(ReliableUDP, nettransport);
+
 	(void)ignored;
 	if (nano_hbstats.heartbeat_count > (unsigned)maxpkts) {
 		g_message("QUITTING NOW! (heartbeat count)");
-		g_main_loop_quit(loop);
+		io->_protocol->closeall(io->_protocol);
+		nano_initiate_shutdown();
 		return FALSE;
-		
 	}
 	return TRUE;
 }
@@ -187,20 +192,20 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 
 	// Send the configuration data to our new "client"
 	pkt = create_setconfig(nanoconfig);
-	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 	UNREF(pkt);
 
 	// Now tell them to send/expect heartbeats to various places
-	pkt = create_sendexpecthb(auth->baseclass.config,FRAMESETTYPE_SENDEXPECTHB, destaddr, 1);
-	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB, destaddr, 1);
+	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 	UNREF(pkt);
 
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr, 1);
-	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 	UNREF(pkt);
 
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr2, 1);
-	netpkt->sendaframeset(netpkt, nanoaddr, pkt);
+	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 	UNREF(pkt);
 }
 
@@ -218,7 +223,7 @@ main(int argc, char **argv)
 	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
 	const guint8	mcastaddrstring[] = CONST_ASSIM_DEFAULT_V4_MCAST;
 	NetAddr*	mcastaddr;
-	const guint8	otheradstring[] = {10,10,10,5};
+	const guint8	otheradstring[] = {127,0,0,1};
 	const guint8	otheradstring2[] = {10,10,10,4};
 	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	guint16		testport = TESTPORT;
@@ -229,7 +234,10 @@ main(int argc, char **argv)
 	AuthListener*	listentonanoprobes;
 
 
-	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	proj_class_incr_debug(NULL);
+	proj_class_incr_debug(NULL);
+	proj_class_incr_debug(NULL);
+	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
                 g_debug("Max packet count is "FMT_64BIT"d", maxpkts);
@@ -308,13 +316,13 @@ main(int argc, char **argv)
 	nano_start_full("netconfig", 900, netpkt, config);
 
 	g_timeout_add_seconds(1, timeout_agent, NULL);
-	loop = g_main_loop_new(g_main_context_default(), TRUE);
+	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 
 	/********************************************************************
 	 *	Start up the main loop - run our test program...
 	 *	(the one pretending to be both the nanoprobe and the CMA)
 	 ********************************************************************/
-	g_main_loop_run(loop);
+	g_main_loop_run(mainloop);
 
 	/********************************************************************
 	 *	We exited the main loop.  Shut things down.
@@ -326,7 +334,7 @@ main(int argc, char **argv)
 	UNREF(nettransport);
 
 	// Main loop is over - shut everything down, free everything...
-	g_main_loop_unref(loop); loop=NULL;
+	g_main_loop_unref(mainloop); mainloop=NULL;
 
 
 

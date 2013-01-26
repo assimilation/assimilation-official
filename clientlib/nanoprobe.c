@@ -37,6 +37,7 @@
 #include <seqnoframe.h>
 #include <packetdecoder.h>
 #include <netgsource.h>
+#include <reliableudp.h>
 #include <authlistener.h>
 #include <nvpairframe.h>
 #include <hblistener.h>
@@ -92,7 +93,6 @@ const char *		procname = "nanoprobe";
 static NetAddr*		nanofailreportaddr = NULL;
 static NetGSource*	nanotransport = NULL;
 static guint		idle_shutdown_gsource = 0;
-static guint		shutdown_timer = 0;
 
 DEBUGDECLARATIONS
 
@@ -1024,12 +1024,14 @@ nano_initiate_shutdown(void)
 	uname(&un);
 
 	if (nano_connected) {
+		FsProtocol*	proto = CASTTOCLASS(ReliableUDP, nanotransport->_netio)->_protocol;
 		DEBUGMSG("Sending HBSHUTDOWN to CMA");
 		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
-		// Wait for an ACK before shutting down...
+		// Initiate connection shutdown.
+		// This process will wait for all our output to be ACKed.
+		// It also has an ACK timer, so it won't wait forever...
+		proto->closeall(proto);
 		idle_shutdown_gsource = g_idle_add(shutdown_when_outdone, NULL);
-		// But just in case... Shut down in 10 seconds anyway...
-		shutdown_timer = g_timeout_add_seconds(10, _nano_final_shutdown, NULL);
 		nano_shutting_down = TRUE;
 	}else{
 		nano_shutting_down = TRUE;
@@ -1043,14 +1045,13 @@ nano_initiate_shutdown(void)
 FSTATIC gboolean
 shutdown_when_outdone(gpointer unused)
 {
+	ReliableUDP*	t = CASTTOCLASS(ReliableUDP, nanotransport->_netio);
+	FsProtocol*	proto = CASTTOCLASS(FsProtocol, t->_protocol);
 	(void)unused;
-	// Wait for the CMA to ACK our shutdown message - if we've heard anything from them...
-	if (!nano_connected || !nanotransport->_netio->outputpending(nanotransport->_netio)){
-		DEBUGMSG("%s.%d: Shutting down - no output pending", __FUNCTION__, __LINE__);
-		if (shutdown_timer) {
-			g_source_remove(shutdown_timer);
-			shutdown_timer = 0;
-		}
+	// Wait for all our connections to be shut down
+	if (proto->activeconncount(proto) == 0){
+		DEBUGMSG("%s.%d: Shutting down - all connections closed."
+		,	__FUNCTION__, __LINE__);
 		g_main_quit(mainloop);
 		return FALSE;
 	}
