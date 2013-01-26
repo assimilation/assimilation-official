@@ -50,6 +50,8 @@ FSTATIC gboolean	_fsprotocol_send1(FsProtocol*, FrameSet*, guint16 qid, NetAddr*
 FSTATIC gboolean	_fsprotocol_send(FsProtocol*, GSList*, guint16 qid, NetAddr*);
 FSTATIC void		_fsprotocol_ackmessage(FsProtocol* self, NetAddr* destaddr, FrameSet* fs);
 FSTATIC void		_fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq);
+FSTATIC void		_fsprotocol_closeall(FsProtocol* self);
+FSTATIC int		_fsprotocol_activeconncount(FsProtocol* self);
 FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
 FSTATIC void		_fsproto_sendconnak(FsProtoElem* fspe, NetAddr* dest);
 FSTATIC void		_fsprotocol_fspe_closeconn(FsProtoElem* self);
@@ -148,6 +150,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		g_warning("%s.%d: Timed out waiting for an ACK while communicating with %s/%d."
 		,	__FUNCTION__, __LINE__, deststr, fspe->_qid);
 		FREE(deststr); deststr = NULL;
+		DUMP3("_fsproto_fsa: Output Queue", &fspe->outq->baseclass, NULL);
 	}
 
 	// Tell other endpoint we don't like their packet
@@ -340,6 +343,41 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 		DUMP("_fsprotocol_closeconn: Could not locate connection", &destaddr->baseclass, suffix);
 	}
 }
+/// Start the process of shutting down all our connections
+FSTATIC void
+_fsprotocol_closeall(FsProtocol* self)
+{
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	value;
+
+	g_hash_table_iter_init(&iter, self->endpoints);
+
+	while(g_hash_table_iter_next(&iter, &key, &value)) {
+		FsProtoElem*	fspe = (FsProtoElem*)key;
+		_fsprotocol_closeconn(self, fspe->_qid, fspe->endpoint);
+	}
+}
+FSTATIC int
+_fsprotocol_activeconncount(FsProtocol* self)
+{
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	value;
+	int		count = 0;
+
+	g_hash_table_iter_init(&iter, self->endpoints);
+
+	while(g_hash_table_iter_next(&iter, &key, &value)) {
+		FsProtoElem*	fspe = (FsProtoElem*)key;
+		FsProtoState	state = fspe->state;
+		if (state != FSPR_NONE) {
+			++count;
+		}
+	}
+	return count;
+}
+
 FSTATIC FsProtoState
 _fsprotocol_connstate(FsProtocol*self, guint16 qid, const NetAddr* destaddr)
 {
@@ -388,6 +426,8 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->send =		_fsprotocol_send;
 	self->ackmessage =	_fsprotocol_ackmessage;
 	self->closeconn =	_fsprotocol_closeconn;
+	self->closeall =	_fsprotocol_closeall;
+	self->activeconncount =	_fsprotocol_activeconncount;
 	self->connstate =	_fsprotocol_connstate;
 
 	// Initialize our data members
@@ -635,7 +675,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	// Queue up the received frameset
 	DUMP3(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (fspe->inq->inqsorted(fspe->inq, fs)) {
-		if (seq->_reqid == 1) {
+		if (seq && seq->_reqid == 1) {
 			_fsproto_fsa(fspe, FSPROTO_GOTSTART, fs);
 		}
 	}else{
