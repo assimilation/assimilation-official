@@ -744,8 +744,13 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	// Queue up the received frameset
 	DUMP3(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (fspe->inq->inqsorted(fspe->inq, fs)) {
-		if (seq && seq->_reqid == 1) {
-			_fsproto_fsa(fspe, FSPROTO_GOTSTART, fs);
+		if (seq) {
+			if (fspe->acktimeout == 0) {
+				fspe->acktimeout = g_get_monotonic_time() + self->acktimeout;
+			}
+			if (seq->_reqid == 1) {
+				_fsproto_fsa(fspe, FSPROTO_GOTSTART, fs);
+			}
 		}
 	}else{
 		DUMP3(__FUNCTION__, &fs->baseclass, " Frameset failed to go into queue :-(.");
