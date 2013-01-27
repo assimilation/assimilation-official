@@ -1074,10 +1074,6 @@ class pyConfigValue:
                 this = g_slist_next(this)
                 ret.append(thisdata.get())
             return ret
-
-
-
-
         raise ValueError('Invalid valtype (%s)in pyConfigValue object' % self._Cstruct.valtype)
 
 class pyNetIO(pyAssimObj):

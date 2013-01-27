@@ -122,7 +122,7 @@ WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_t
 #define	DEFAULT_FSP_QID		0		///< Queue ID of a packet w/o a sequence number?
 #define FSPROTO_WINDOWSIZE	7		///< FsProtocol window size
 #define FSPROTO_REXMITINTERVAL	(2000000)	///< FsProtocol retransmit interval in microseconds
-#define FSPROTO_ACKTIMEOUTINT	(10*FSPROTO_REXMITINTERVAL)	///< ACK timeout interval
+#define FSPROTO_ACKTIMEOUTINT	(30*FSPROTO_REXMITINTERVAL)	///< ACK timeout interval
 
 ///@}
 
