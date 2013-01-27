@@ -244,7 +244,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 /// Flush <b>all</b> framesets from the queue (if any).
 /// @todo: This is basically a protocol reset - what effect should this have upon
 /// sequence numbers and generation numbers (if any)?
-/// Normally this is used if we think the machine has died...
+/// This is used as part of connection shutdown.
 FSTATIC void
 _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {
@@ -255,14 +255,20 @@ _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 		DEBUGMSG3("%s: Flushing FrameSet at %p - ref count = %d"
 		,	__FUNCTION__, fs, fs->baseclass._refcount);
 		DUMP4("Flushing", &fs->baseclass, " whoosh!");
-		// If this packet is in the input queue and hasn't yet been ACKed by the application
+		// If this packet is in the input queue and hasn't yet been ACKed by our client application
 		// then there are two ref counts being held for it at the moment..
+		// >>>>>>>>>>>>>>>>>>>>>>>>>This seems totally bogus to me... <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		// But I put it in because it fixed/kludged around some problem or another...
 		if (self->_nextseqno > 0 && NULL != (seq = fs->getseqno(fs)) && seq->getreqid(seq) >= self->_nextseqno
 		&&	fs->baseclass._refcount > 1) {
 			FrameSet* tmpfs = fs;
-			DEBUGMSG3("%s.%d: seqno "FMT_64BIT"d has refcount %d -> dropping by one."
+			g_debug("%s.%d: seqno "FMT_64BIT"d has refcount %d -> *NOT* dropping by one."
 			,	__FUNCTION__, __LINE__, seq->getreqid(seq), fs->baseclass._refcount);
+#if 0
 			UNREF(tmpfs);	// Somewhat kludgy...
+#else
+			(void)tmpfs;
+#endif
 		}
 		UNREF(fs);
 	}

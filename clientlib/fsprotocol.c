@@ -57,7 +57,7 @@ FSTATIC void		_fsproto_sendconnak(FsProtoElem* fspe, NetAddr* dest);
 FSTATIC void		_fsprotocol_fspe_closeconn(FsProtoElem* self);
 FSTATIC void		_fsprotocol_fspe_reinit(FsProtoElem* self);
 
-FSTATIC void		_fsprotocol_auditfspe(FsProtoElem*, const char * function, int lineno);
+FSTATIC void		_fsprotocol_auditfspe(const FsProtoElem*, const char * function, int lineno);
 
 #define AUDITFSPE(fspe)	{ if (fspe) _fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__); }
 
@@ -86,15 +86,15 @@ enum _FsProtoInput {
 
 static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 //	    START     REQSEND	  GOTACK      GOTC_NAK    REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE
-/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE},
-/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT,  FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP},
-/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE,  FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP},
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT,  FSPR_INIT, FSPR_SHUT2, FSPR_NONE, FSPR_UP},
+/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE,  FSPR_SHUT1,FSPR_SHUT2,   FSPR_UP,   FSPR_UP},
 // SHUT1: No ACK, no CONNSHUT
-/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3},
+/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{FSPR_UP,    FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE},
+/*SHUT2*/{FSPR_UP,    FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_NONE},
 // SHUT3: got ACK, waiting for CONNSHUT
-/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3},
+/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3},
 };
 #define	A_CLOSE			(1<<0)
 #define	A_OOPS			(1<<1)
@@ -108,14 +108,14 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 //	  START	    REQSEND GOTACK  GOTCONN_NAK  REQSHUTDOWN          RCVSHUTDOWN       ACKTIMEOUT  OUTDONE
 /*NONE*/ {0,	         0, A_OOPS,     A_CLOSE,     A_OOPS,        A_ACKME|A_OOPS,  A_ACKTO|A_OOPS,   A_OOPS},
-/*INIT*/ {0,	         0,	 0,     A_CLOSE,  A_SNDSHUT,     A_ACKME|A_SNDSHUT,         A_ACKTO,       0},
+/*INIT*/ {0,	         0,	 0,     A_CLOSE,          0,     A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE,       0},
 /*UP*/   {0,	         0,	 0,     A_CLOSE,  A_SNDSHUT,     A_ACKME|A_SNDSHUT,         A_ACKTO,       0},
 // SHUT1: no ACK, no CONNSHUT 
-/*SHUT1*/{NAKOOPS,  A_OOPS,	 0,      A_OOPS,	  0,     A_ACKME,           A_ACKTO|A_CLOSE,       0},
+/*SHUT1*/{NAKOOPS,  A_OOPS,	 0,      A_OOPS,    A_CLOSE,     A_ACKME,           A_ACKTO|A_CLOSE,       0},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{NAKOOPS,  A_OOPS,	 0,           0,	  0,     A_ACKME,           A_ACKTO|A_CLOSE, A_CLOSE},
+/*SHUT2*/{NAKOOPS,  A_OOPS,	 0,           0,    A_CLOSE,     A_ACKME,           A_ACKTO|A_CLOSE, A_CLOSE},
 // SHUT3: Got ACK, waiting for CONNSHUT
-/*SHUT3*/{NAKOOPS,  A_OOPS, A_OOPS,      A_OOPS,	  0,     A_ACKME|A_CLOSE,    A_ACKTO|A_OOPS,  A_OOPS},
+/*SHUT3*/{NAKOOPS,  A_OOPS, A_OOPS,      A_OOPS,    A_CLOSE,     A_ACKME|A_CLOSE,    A_ACKTO|A_OOPS,  A_OOPS},
 };
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
@@ -216,9 +216,9 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 
 /// Audit a FsProtoElem object for consistency */
 FSTATIC void
-_fsprotocol_auditfspe(FsProtoElem* self, const char * function, int lineno)
+_fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno)
 {
-	guint	outqlen = (self->outq ? self->outq->_q->length : 0);
+	guint		outqlen = self->outq->_q->length;
 	FsProtocol*	parent = self->parent;
 	gboolean	in_unackedlist = (g_list_find(parent->unacked, self) != NULL);
 
@@ -394,7 +394,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 		self->parent->unacked = g_list_remove(self->parent->unacked, self);
 		self->outq->isready = FALSE;
 	}
-	self->outq->_nextseqno = 0;
+	self->outq->_nextseqno = 1;
 	self->outq->_sessionid = 0;
 
 	if (!g_queue_is_empty(self->inq->_q)) {
@@ -402,7 +402,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 		self->parent->ipend = g_list_remove(self->parent->ipend, self);
 		self->outq->isready = FALSE;
 	}
-	self->inq->_nextseqno = 0;
+	self->inq->_nextseqno = 1;
 	self->inq->_sessionid = 0;
 
 	if (self->lastacksent) {

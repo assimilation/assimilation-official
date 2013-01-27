@@ -114,9 +114,10 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 {
 		FrameSet*	fs;
 
-		if (nano_shutting_down) {
-			DEBUGMSG("%s.%d: Ignoring request (nano_shutting_down) to send fstype=%d message upstream"
-			,	__FUNCTION__, __LINE__, reporttype);
+		if (nano_shutting_down || NULL == nanofailreportaddr) {
+			DEBUGMSG("%s.%d: Ignoring request to send fstype=%d message upstream [%s]."
+			,	__FUNCTION__, __LINE__, reporttype
+			,	(nano_shutting_down ? "shutting down" : "not connected to CMA"));
 			return;
 		}
 
