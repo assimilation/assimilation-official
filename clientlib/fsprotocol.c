@@ -58,8 +58,10 @@ FSTATIC void		_fsprotocol_fspe_closeconn(FsProtoElem* self);
 FSTATIC void		_fsprotocol_fspe_reinit(FsProtoElem* self);
 
 FSTATIC void		_fsprotocol_auditfspe(const FsProtoElem*, const char * function, int lineno);
+FSTATIC void		_fsprotocol_auditiready(const char * fun, unsigned lineno, const FsProtocol* self);
 
 #define AUDITFSPE(fspe)	{ if (fspe) _fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__); }
+#define AUDITIREADY(self) {_fsprotocol_auditiready(__FUNCTION__, __LINE__, self);}
 
 
 DEBUGDECLARATIONS
@@ -107,7 +109,7 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 //	  START	    REQSEND GOTACK  GOTCONN_NAK  REQSHUTDOWN          RCVSHUTDOWN       ACKTIMEOUT  OUTDONE
-/*NONE*/ {0,	         0, A_OOPS,     A_CLOSE,     A_OOPS,        A_ACKME|A_OOPS,  A_ACKTO|A_OOPS,   A_OOPS},
+/*NONE*/ {0,	         0, A_OOPS,     A_CLOSE,          0,        A_ACKME|A_OOPS,  A_ACKTO|A_OOPS,   A_OOPS},
 /*INIT*/ {0,	         0,	 0,     A_CLOSE,          0,     A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE,       0},
 /*UP*/   {0,	         0,	 0,     A_CLOSE,  A_SNDSHUT,     A_ACKME|A_SNDSHUT,         A_ACKTO,       0},
 // SHUT1: no ACK, no CONNSHUT 
@@ -134,12 +136,12 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	(void)parent;
 	g_return_if_fail(fspe->state < FSPR_INVALID);
 	g_return_if_fail(input < FSPROTO_INVAL);
+
+	curstate = fspe->state;
 	nextstate = nextstates[fspe->state][input];
 	action = actions[fspe->state][input];
 
 
-
-	curstate = fspe->state;
 
 	DUMP2("_fsproto_fsa: endpoint ", &fspe->endpoint->baseclass, NULL);
 	DEBUGMSG2("%s.%d: (state %d, input %d) => (state %d, actions 0x%x)", __FUNCTION__, __LINE__
@@ -148,8 +150,8 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	// Complain about an ACK timeout
 	if (action & A_ACKTO) {
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
-		g_warning("%s.%d: Timed out waiting for an ACK while communicating with %s/%d."
-		,	__FUNCTION__, __LINE__, deststr, fspe->_qid);
+		g_warning("%s.%d: Timed out waiting for an ACK while communicating with %s/%d in state %d."
+		,	__FUNCTION__, __LINE__, deststr, fspe->_qid, curstate);
 		FREE(deststr); deststr = NULL;
 		DUMP3("_fsproto_fsa: Output Queue", &fspe->outq->baseclass, NULL);
 	}
@@ -214,6 +216,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 #define		TRYXMIT(fspe)	{AUDITFSPE(fspe); _fsprotocol_xmitifwecan(fspe);}
 
 
+
 /// Audit a FsProtoElem object for consistency */
 FSTATIC void
 _fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno)
@@ -231,6 +234,36 @@ _fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno
 		g_warning("%s:%d: outqlen is zero but it IS in the unacked list"
 		,	function, lineno);
 		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
+	}
+}
+FSTATIC void
+_fsprotocol_auditiready(const char * fun, unsigned lineno, const FsProtocol* self)
+{
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	value;
+	unsigned	hashcount = 0;
+
+	g_hash_table_iter_init(&iter, self->endpoints);
+
+	while(g_hash_table_iter_next(&iter, &key, &value)) {
+		FsProtoElem*	fspe = (FsProtoElem*)key;
+		FsQueue*	iq = fspe->inq;
+		FrameSet*	fs = iq->qhead(iq);
+		SeqnoFrame*	seq;
+		// We can read the next packet IF:
+		// it doesn't have a sequence number, OR it is the seqno we expect
+		if (NULL == fs) {
+			continue;
+		}
+		seq = fs->getseqno(fs);
+		if (seq == NULL || seq->_reqid == iq->_nextseqno) {
+			++hashcount;
+		}
+	}
+	if (g_queue_get_length(self->ipend) != hashcount) {
+		g_warning("%s.%d: ipend queue length is %d, but should be %d"
+		,	fun, lineno, g_queue_get_length(self->ipend), hashcount);
 	}
 }
 
@@ -399,7 +432,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 
 	if (!g_queue_is_empty(self->inq->_q)) {
 		self->inq->flush(self->inq);
-		self->parent->ipend = g_list_remove(self->parent->ipend, self);
+		g_queue_remove(self->parent->ipend, self);
 		self->outq->isready = FALSE;
 	}
 	self->inq->_nextseqno = 1;
@@ -468,7 +501,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->endpoints = g_hash_table_new_full(_fsprotocol_protoelem_hash,_fsprotocol_protoelem_equal
         ,		_fsprotocol_protoelem_destroy, NULL);
 	self->unacked = NULL;
-	self->ipend = NULL;
+	self->ipend = g_queue_new();
 	self->window_size = FSPROTO_WINDOWSIZE;
 	self->rexmit_interval = FSPROTO_REXMITINTERVAL;
 	self->acktimeout = FSPROTO_ACKTIMEOUTINT;
@@ -510,7 +543,7 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 	self->unacked = NULL;
 
 	// Free up the input pending list
-	g_list_free(self->ipend);		// No additional 'ref's were taken for this list either
+	g_queue_free(self->ipend);		// No additional 'ref's were taken for this list either
 	self->ipend = NULL;
 
 
@@ -525,7 +558,7 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
 	DUMP3("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 	self->parent->unacked	= g_list_remove(self->parent->unacked, self);
-	self->parent->ipend	= g_list_remove(self->parent->ipend, self);
+	g_queue_remove(self->parent->ipend, self);
 	UNREF(self->endpoint);
 	DEBUGMSG3("UNREFing INPUT QUEUE");
 	UNREF(self->inq);
@@ -570,7 +603,8 @@ _fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing)	///< FsProtoElem to h
 FSTATIC gboolean	
 _fsprotocol_iready(FsProtocol* self)	///< Our object
 {
-	return NULL != self->ipend;
+	AUDITIREADY(self);
+	return !g_queue_is_empty(self->ipend);
 }
 
 /// Return TRUE if there are any unACKed packets in any output queue
@@ -587,8 +621,9 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 {
 	GList*	list;	// List of all our FsQueues which have input
 
+	AUDITIREADY(self);
 	// Loop over all the FSqueues which we think are ready to read...
-	for (list=self->ipend; list != NULL; list=list->next) {
+	for (list=self->ipend->head; list != NULL; list=list->next) {
 		FrameSet*	fs;
 		SeqnoFrame*	seq;
 		FsProtoElem*	fspe = (FsProtoElem*)list->data;
@@ -630,17 +665,23 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 					del_link = TRUE;
 				}
 			}
+			g_queue_remove(self->ipend, fspe);
 			if (del_link) {
-				self->ipend = g_list_delete_link(self->ipend, list);
 				fspe->inq->isready = FALSE;
+			}else{
+				// Give someone else a chance to have their packets read
+				g_queue_push_tail(self->ipend, fspe);
 			}
 			TRYXMIT(fspe);
 			self->io->stats.reliablereads++;
+			AUDITIREADY(self);
 			return ret;
 		}
+		AUDITIREADY(self);
 		g_warn_if_reached();
 		TRYXMIT(fspe);
 	}
+	AUDITIREADY(self);
 	return NULL;
 }
 
@@ -735,7 +776,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	if (!fspe->inq->isready) {
 		if (seq == NULL || seq->_reqid == fspe->inq->_nextseqno) {
 			// Now ready to read - put our fspe on the list of fspes with input pending
-			self->ipend = g_list_prepend(self->ipend, fspe);
+			g_queue_push_head(self->ipend, fspe);
 			fspe->inq->isready = TRUE;
 		}
 	}
