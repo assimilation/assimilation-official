@@ -170,7 +170,8 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 	NetAddr*	srcaddr;
 	(void)ignore_callback; (void)ignore_userdata;
 	if ((self->_gfd.revents & (G_IO_IN|G_IO_ERR|G_IO_HUP|G_IO_NVAL|G_IO_PRI)) == 0) {
-		g_debug("Dispatched due to UNKNOWN REASON: 0x%04x", self->_gfd.revents);
+		DEBUGMSG("%s.%d: Dispatched due to UNKNOWN REASON: 0x%04x"
+		,	__FUNCTION__, __LINE__, self->_gfd.revents);
 	}
 	while(NULL != (gsl = self->_netio->recvframesets(self->_netio, &srcaddr))) {
 		for (; NULL != gsl; gsl = gsl->next) {

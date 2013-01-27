@@ -98,7 +98,7 @@ struct _FsProtocol {
 	NetIO*		io;						///< Our parent NetIO object
 	GHashTable*	endpoints;					///< All our FsProtoElem endpoints
 	GList*		unacked;					///< List of FsProtoElems awaiting ACKs
-	GList*		ipend;						///< List of FsProtoElems ready to be read
+	GQueue*		ipend;						///< List of FsProtoElems ready to be read
 	guint		window_size;					///< Window size of our connections
 	gint64		rexmit_interval;				///< How often to retransmit - in uS
 	gint64		acktimeout;					///< ACK timeout interval
