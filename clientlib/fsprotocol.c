@@ -259,6 +259,15 @@ _fsprotocol_auditiready(const char * fun, unsigned lineno, const FsProtocol* sel
 		seq = fs->getseqno(fs);
 		if (seq == NULL || seq->_reqid == iq->_nextseqno) {
 			++hashcount;
+			if (!fspe->inq->isready) {
+				g_warning("%s.%d: Queue is ready but not marked 'isready'"
+				,	fun, lineno);
+				DUMP("Queue with problems", &fspe->inq->baseclass, NULL);
+			}
+		}else if (fspe->inq->isready) {
+			g_warning("%s.%d: Queue is NOT ready but IS marked 'isready'"
+			,	fun, lineno);
+			DUMP("Problematic Queue", &fspe->inq->baseclass, NULL);
 		}
 	}
 	if (g_queue_get_length(self->ipend) != hashcount) {
@@ -433,7 +442,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 	if (!g_queue_is_empty(self->inq->_q)) {
 		self->inq->flush(self->inq);
 		g_queue_remove(self->parent->ipend, self);
-		self->outq->isready = FALSE;
+		self->inq->isready = FALSE;
 	}
 	self->inq->_nextseqno = 1;
 	self->inq->_sessionid = 0;
@@ -447,6 +456,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 	self->nextrexmit = 0;
 	self->acktimeout = 0;
 	self->state = FSPR_NONE;
+	AUDITIREADY(self->parent);
 }
 
 FSTATIC void
@@ -669,7 +679,10 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 			if (del_link) {
 				fspe->inq->isready = FALSE;
 			}else{
-				// Give someone else a chance to have their packets read
+				// Give someone else a chance to get their packets read
+				// Otherwise we get stuck reading the same endpoint(s) over and over
+				// at least while reading initial discovery data.
+				fspe->inq->isready = TRUE;
 				g_queue_push_tail(self->ipend, fspe);
 			}
 			TRYXMIT(fspe);
@@ -697,6 +710,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	fspe = self->findbypkt(self, fromaddr, fs);
 	UNREF(fromaddr);
 	g_return_if_fail(fspe != NULL);
+	AUDITIREADY(self);
 	AUDITFSPE(fspe);
 	
 	DEBUGMSG3("%s.%d: Received type FrameSet fstype=%d", __FUNCTION__, __LINE__, fs->fstype);
@@ -726,14 +740,17 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				TRYXMIT(fspe);
 				_fsproto_fsa(fspe, FSPROTO_GOTACK, fs);
 			}
+			AUDITIREADY(self);
 			return;
 		}
 		case FRAMESETTYPE_CONNNAK: {
 			_fsproto_fsa(fspe, FSPROTO_GOTCONN_NAK, fs);
+			AUDITIREADY(self);
 			return;
 		}
 		case FRAMESETTYPE_CONNSHUT: {
 			_fsproto_fsa(fspe, FSPROTO_RCVSHUTDOWN, fs);
+			AUDITIREADY(self);
 			return;
 		}
 		default:
@@ -741,9 +758,11 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			break;
 	}
 	AUDITFSPE(fspe);
+	AUDITIREADY(self);
 	// Queue up the received frameset
 	DUMP3(__FUNCTION__, &fs->baseclass, "given to inq->inqsorted");
 	if (fspe->inq->inqsorted(fspe->inq, fs)) {
+		// It inserted correctly.
 		if (seq) {
 			if (fspe->acktimeout == 0) {
 				fspe->acktimeout = g_get_monotonic_time() + self->acktimeout;
@@ -758,7 +777,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		,	seq, fspe->lastacksent);
 		// One reason for not queueing it is that we've already sent it
 		// to our client. If they have already ACKed it, then we will ACK
-		// it again automatically - because th application won't be shown
+		// it again automatically - because the application won't be shown
 		// this packet again - so they can't ACK it and our ACK might have
 		// gotten lost, so we need to send it again...
 		// 
@@ -783,8 +802,10 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			// Now ready to read - put our fspe on the list of fspes with input pending
 			g_queue_push_head(self->ipend, fspe);
 			fspe->inq->isready = TRUE;
+			AUDITIREADY(self);
 		}
 	}
+	AUDITIREADY(self);
 	AUDITFSPE(fspe);
 	TRYXMIT(fspe);
 }
