@@ -428,8 +428,8 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 
 	if (self->_shouldlosepkts) {
 		if (g_random_double() < self->_xmitloss) {
-			g_message("%s: Threw away %"G_GSSIZE_FORMAT" byte output packet"
-			,	__FUNCTION__, length);
+			g_message("%s.%d: Threw away %"G_GSSIZE_FORMAT" byte output packet"
+			,	__FUNCTION__, __LINE__, length);
 			return;
 		}
 	}
@@ -503,6 +503,8 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		REF(compressframe);
 	}
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
+	DEBUGMSG3("%s.%d: sent %d byte packet", __FUNCTION__, __LINE__
+	,	((guint8*)frameset->pktend-(guint8*)frameset->packet));
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);
 }
 

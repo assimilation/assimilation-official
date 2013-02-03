@@ -235,7 +235,7 @@ class CMAdb:
     def new_IPaddr(self, nic, ipaddr, **kw):
         '''Create a new IP address (or return a pre-existing one), and point it at its parent
         NIC and its grandparent drone'''
-        #print 'Adding IP address %s' % (ipaddr)
+        if CMAdb.debug: CMAdb.log.debug('Adding IP address %s' % (ipaddr))
         ipaddrs = self.ipindex.get(CMAdb.NODE_ipaddr, ipaddr)
         if nic is not None:
             for ip in ipaddrs:

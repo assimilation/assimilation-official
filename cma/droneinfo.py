@@ -69,7 +69,15 @@ class DroneInfo:
         #print "Saved discovery type %s for endpoint %s." % \
         #   (dtype, self.designation)
         designation = self.node['name']
-        self.node['JSON_' + dtype] = jsontext
+        jsonname = 'JSON_' + dtype
+        if jsonname in self.node:
+            if self.node[jsonname] == jsontext:
+                # A really cheap optimization for reboots, etc.
+                if CMAdb.debug:
+                    CMAdb.log.debug('DroneInfo.logjson: JSON text for %s/%s already processed - ignoring.'
+                    % (designation, dtype))
+                return
+        self.node[jsonname] = jsontext
         if dtype in DroneInfo._JSONprocessors:
             if CMAdb.debug: CMAdb.log.debug('Processed %s JSON data from %s into graph.' % (dtype, designation))
             DroneInfo._JSONprocessors[dtype](self, jsonobj)
@@ -361,6 +369,7 @@ class DroneInfo:
     @staticmethod
     def find(designation, port=None):
         'Find a drone with the given designation or IP address, or Neo4J node.'
+        ret = None
         if isinstance(designation, str):
             drone = None
             if designation in DroneInfo._droneweakrefs:
@@ -383,7 +392,7 @@ class DroneInfo:
                 node = ip.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_iphost)
                 return DroneInfo.find(node, port=dport)
             if CMAdb.debug:
-                CMAdb.log.debug('could not find IP address in Drone.find... %s' % repr(designation))
+                CMAdb.log.warn('Could not find IP address in Drone.find... %s' % repr(designation))
         elif isinstance(designation, neo4j.Node):
             nodedesig = designation['name']
             if nodedesig in DroneInfo._droneweakrefs:
@@ -395,7 +404,10 @@ class DroneInfo:
             CMAdb.log.debug("DESIGNATION repr(%s) = %s" % (designation, repr(designation)))
         if repr(designation) in DroneInfo._droneweakrefs:
             ret = DroneInfo._droneweakrefs[designation]()
-        return None
+        if ret is None:
+            if CMAdb.debug:
+                CMAdb.log.warn('drone.find(%s) => returning None' % repr(designation))
+        return ret
 
     @staticmethod
     def add(designation, reason, status='up', port=None):
