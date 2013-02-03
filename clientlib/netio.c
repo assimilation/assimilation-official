@@ -503,8 +503,8 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		REF(compressframe);
 	}
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
-	DEBUGMSG3("%s.%d: sent %d byte packet", __FUNCTION__, __LINE__
-	,	((guint8*)frameset->pktend-(guint8*)frameset->packet));
+	DEBUGMSG3("%s.%d: sent %ld byte packet", __FUNCTION__, __LINE__
+	,	(long)(((guint8*)frameset->pktend-(guint8*)frameset->packet)));
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);
 }
 
