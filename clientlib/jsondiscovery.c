@@ -47,7 +47,7 @@ FSTATIC void		_jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jso
 FSTATIC void		_jsondiscovery_fullpath(JsonDiscovery* self);
 DEBUGDECLARATIONS;
 
-/// default function - return zero for discovery interval
+/// Return how often we are scheduled to perform this particular discovery action
 FSTATIC guint
 _jsondiscovery_discoverintervalsecs(const Discovery* dself)	///<[in] Object whose interval to return
 {
@@ -73,6 +73,7 @@ _jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 	_discovery_finalize(dself);
 }
 
+/// Perform the requested discovery action
 FSTATIC gboolean
 _jsondiscovery_discover(Discovery* dself)
 {
@@ -88,8 +89,8 @@ _jsondiscovery_discover(Discovery* dself)
 	}
 	++ self->baseclass.discovercount;
 	if (cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER) == NULL) {
-		DEBUGMSG3("%s: don't have [%s] address yet - continuing." 
-		,	  __FUNCTION__, CONFIGNAME_CMADISCOVER);
+		DEBUGMSG2("%s.%d: don't have [%s] address yet - continuing." 
+		,	  __FUNCTION__, __LINE__, CONFIGNAME_CMADISCOVER);
 	}
 	self->_tmpfilename = strdup("/var/tmp/discovery-XXXXXXXXXXX.json");
 	close(g_mkstemp_full(self->_tmpfilename, 0, 0644));
@@ -115,6 +116,7 @@ _jsondiscovery_discover(Discovery* dself)
 	}
 	return TRUE;
 }
+/// Watch our child - we get called when our child process exits
 FSTATIC void
 _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 {
@@ -153,6 +155,7 @@ quitchild:
 	UNREF2(self);
 }
 
+/// Send what we discovered to the CMA - with some caching going on
 FSTATIC void
 _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 {
@@ -166,20 +169,27 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 
 	g_return_if_fail(cfg != NULL && io != NULL);
 
+	DEBUGMSG2("%s.%d: discovering %s: _sentyet == %d"
+	,	__FUNCTION__, __LINE__, basename, self->baseclass._sentyet);
 	// Primitive caching - don't send what we've already sent.
 	if (self->baseclass._sentyet) {
 		const char *	oldvalue = cfg->getstring(cfg, basename);
 		if (oldvalue != NULL && strcmp(jsonout, oldvalue) == 0) {
+			DEBUGMSG2("%s.%d: %s sent this value - don't send again."
+			,	__FUNCTION__, __LINE__, basename);
 			g_free(jsonout);
 			return;
 		}
+		DEBUGMSG2("%s.%d: %s this value is different from previous value"
+		,	__FUNCTION__, __LINE__, basename);
 	}
-	DEBUGMSG3("Sending %"G_GSIZE_FORMAT" bytes of JSON text", jsonlen);
+	DEBUGMSG2("%s.%d: Sending %"G_GSIZE_FORMAT" bytes of JSON text"
+	,	__FUNCTION__, __LINE__, jsonlen);
 	cfg->setstring(cfg, basename, jsonout);
 	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
 	if (cma == NULL) {
-	        DEBUGMSG3("%s address is unknown - skipping send"
-		,	CONFIGNAME_CMADISCOVER);
+	        DEBUGMSG2("%s.%d: %s address is unknown - skipping send"
+		,	__FUNCTION__, __LINE__, CONFIGNAME_CMADISCOVER);
 		g_free(jsonout);
 		return;
 	}
@@ -190,7 +200,8 @@ _jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
 	fsf = &jsf->baseclass;	// base class object of jsf
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
 	frameset_append_frame(fs, fsf);
-	DEBUGMSG3("Sending a %"G_GSIZE_FORMAT" bytes JSON frameset", jsonlen);
+	DEBUGMSG2("%s.%d: Sending a %"G_GSIZE_FORMAT" bytes JSON frameset"
+	,	__FUNCTION__, __LINE__, jsonlen);
 	io->_netio->sendareliablefs(io->_netio, cma, DEFAULT_FSP_QID, fs);
 	++ self->baseclass.reportcount;
 	UNREF(fsf);
@@ -232,8 +243,8 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 	}
 	ret->jsonparams = jsonparams;
         ret->_fullpath = g_strdup_printf("%s%s%s", basedir, "/", discoverytype);
-	DEBUGMSG3("json_discovery_new: FULLPATH=[%s] discoverytype[%s]", ret->_fullpath
-	,	discoverytype);
+	DEBUGMSG2("%s.%d: FULLPATH=[%s] discoverytype[%s]"
+	,	__FUNCTION__, __LINE__, ret->_fullpath, discoverytype);
 	discovery_register(&ret->baseclass);
 	return ret;
 }
