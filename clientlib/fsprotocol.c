@@ -35,6 +35,7 @@ FSTATIC void		_fsprotocol_protoelem_destroy(gpointer fsprotoelemthing);
 FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rhs);
 FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC gboolean	_fsprotocol_timeoutfun(gpointer userdata);
+FSTATIC gboolean	_fsprotocol_shuttimeout(gpointer userdata);
 
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
@@ -83,20 +84,21 @@ enum _FsProtoInput {
 	FSPROTO_RCVSHUTDOWN	= 5,	///< Received a CONNSHUT packet
 	FSPROTO_ACKTIMEOUT	= 6,	///< Timed out waiting for an ACK.
 	FSPROTO_OUTALLDONE	= 7,	///< All output has been ACKed
+	FSPROTO_SHUT_TO		= 8,	///< Got a timeout waiting for a SHUTDOWN
 	FSPROTO_INVAL,			///< End marker -- invalid input
 };
 
 static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
-//	    START     REQSEND	  GOTACK      GOTC_NAK    REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE
-/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE, FSPR_NONE},
-/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_UP},
-/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE,  FSPR_SHUT1,FSPR_SHUT2,   FSPR_UP,   FSPR_UP},
+//	    START     REQSEND	  GOTACK      GOTC_NAK    REQSHUTDOWN RCVSHUT,   ACKTIMEOUT OUTALLDONE SHUT_TO
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
+/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE,  FSPR_SHUT1,FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
 // SHUT1: No ACK, no CONNSHUT
-/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3},
+/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{FSPR_UP,    FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_NONE},
+/*SHUT2*/{FSPR_UP,    FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
 // SHUT3: got ACK, waiting for CONNSHUT
-/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3},
+/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
 };
 #define	A_CLOSE			(1<<0)
 #define	A_OOPS			(1<<1)
@@ -104,20 +106,23 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 #define	A_SNDSHUT		(1<<3)
 #define	A_ACKTO			(1<<4)
 #define	A_ACKME			(1<<5)
+#define	A_TIMER			(1<<6)	///< Start the FSPROTO_SHUT_TO timer
+#define	A_NOTIME		(1<<7)	///< Cancel the FSPROTO_SHUT_TO timer
 
 #define NAKOOPS			(A_SNDNAK|A_OOPS)
+#define CLOSETIME		(A_CLOSE|A_NOTIME)
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
-//	  START	    REQSEND GOTACK  GOTCONN_NAK  REQSHUTDOWN          RCVSHUTDOWN       ACKTIMEOUT  OUTDONE
-/*NONE*/ {0,	         0, A_OOPS,     A_CLOSE,          0,        A_ACKME|A_OOPS,  A_ACKTO|A_OOPS,   A_OOPS},
-/*INIT*/ {0,	         0,	 0,     A_CLOSE,    A_CLOSE,     A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE,       0},
-/*UP*/   {0,	         0,	 0,     A_CLOSE,  A_SNDSHUT,     A_ACKME|A_SNDSHUT,         A_ACKTO,       0},
+//	  START	  REQSEND GOTACK  GOTCONN_NAK REQSHUTDOWN RCVSHUTDOWN       ACKTIMEOUT        OUTDONE  SHUT_TO
+/*NONE*/ {0,	  0,      A_OOPS, A_CLOSE,    0,          A_ACKME|A_OOPS,   A_ACKTO|A_OOPS,   A_OOPS,  A_OOPS},
+/*INIT*/ {0,	  0,	  0,      A_CLOSE,    A_CLOSE,    A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE, 0,       A_OOPS},
+/*UP*/   {0,	  0,	  0,      A_CLOSE,    A_SNDSHUT,  A_ACKME|A_SNDSHUT, A_ACKTO,         0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
-/*SHUT1*/{NAKOOPS,  A_OOPS,	 0,      A_OOPS,    A_CLOSE,     A_ACKME,           A_ACKTO|A_CLOSE,       0},
+/*SHUT1*/{NAKOOPS,A_OOPS, 0,      A_OOPS,     A_CLOSE,    A_ACKME,           A_ACKTO|A_CLOSE, A_TIMER, CLOSETIME},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{NAKOOPS,  A_OOPS,	 0,           0,    A_CLOSE,     A_ACKME,           A_ACKTO|A_CLOSE, A_CLOSE},
+/*SHUT2*/{NAKOOPS,A_OOPS, 0,      0,          A_CLOSE,    A_ACKME,           A_ACKTO|A_CLOSE, A_CLOSE, CLOSETIME},
 // SHUT3: Got ACK, waiting for CONNSHUT
-/*SHUT3*/{NAKOOPS,  A_OOPS, A_OOPS,      A_OOPS,    A_CLOSE,     A_ACKME|A_CLOSE,    A_ACKTO|A_OOPS,  A_OOPS},
+/*SHUT3*/{NAKOOPS,A_OOPS, A_OOPS, A_OOPS,     A_CLOSE,    A_ACKME|A_CLOSE,   A_ACKTO|A_OOPS,  A_OOPS,  CLOSETIME},
 };
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
@@ -187,6 +192,24 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		parent->send1(parent, fset, fspe->_qid, fspe->endpoint);
 		UNREF(fset);
 	}
+
+	if (action & A_TIMER) {		// Start the FSPROTO_SHUT_TO timer
+		if (fspe->shuttimer > 0) {
+			g_source_remove(fspe->shuttimer);
+			g_warning("%s.%d: Adding SHUTDOWN timer when one is already running."
+			,	__FUNCTION__, __LINE__);
+			action |= A_OOPS;
+		}
+		fspe->shuttimer = g_timeout_add_seconds(parent->acktimeout/1000000, _fsprotocol_shuttimeout, fspe);
+
+	}
+	if (action & A_NOTIME) {	// Cancel the FSPROTO_SHUT_TO timer
+		if (fspe->shuttimer > 0) {
+			g_source_remove(fspe->shuttimer);
+			fspe->shuttimer = 0;
+		}
+	}
+
 
 	// Should remain the second-to-the-last action in the FSA function
 	// This is because a previous action might want to OR in an A_OOPS into action
@@ -453,6 +476,10 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 	if (self->lastseqsent) {
 		UNREF2(self->lastseqsent);
 	}
+	if (self->shuttimer > 0) {
+		g_source_remove(self->shuttimer);
+		self->shuttimer = 0;
+	}
 	self->nextrexmit = 0;
 	self->acktimeout = 0;
 	self->state = FSPR_NONE;
@@ -567,19 +594,17 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 {
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
 	DUMP3("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
-	self->parent->unacked	= g_list_remove(self->parent->unacked, self);
-	g_queue_remove(self->parent->ipend, self);
+
+	// This does a lot of our cleanup - but doesn't destroy anything important...
+	_fsprotocol_fspe_reinit(self);
+
+	// So let's get on with the destruction ;-)
+	DEBUGMSG3("%s.%d: UNREFing Endpoint", __FUNCTION__, __LINE__);
 	UNREF(self->endpoint);
-	DEBUGMSG3("UNREFing INPUT QUEUE");
+	DEBUGMSG3("%s.%d: UNREFing INPUT QUEUE", __FUNCTION__, __LINE__);
 	UNREF(self->inq);
-	DEBUGMSG3("UNREFing OUTPUT QUEUE");
+	DEBUGMSG3("%s.%d: UNREFing OUTPUT QUEUE", __FUNCTION__, __LINE__);
 	UNREF(self->outq);
-	if (self->lastacksent) {
-		UNREF2(self->lastacksent);
-	}
-	if (self->lastseqsent) {
-		UNREF2(self->lastseqsent);
-	}
 	self->parent = NULL;
 	memset(self, 0, sizeof(*self));
 	FREE(self);
@@ -1047,5 +1072,14 @@ _fsprotocol_timeoutfun(gpointer userdata)
 		AUDITFSPE(fspe);
 	}
 	return TRUE;
+}
+
+/// Channel shutdown timer - invokes the FSA with FSPROTO_SHUT_TO
+FSTATIC gboolean
+_fsprotocol_shuttimeout(gpointer userdata)
+{
+	FsProtoElem* fspe = (FsProtoElem*)userdata;
+	_fsproto_fsa(fspe, FSPROTO_SHUT_TO, NULL);
+	return FALSE;
 }
 ///@}
