@@ -83,6 +83,7 @@ struct _FsProtoElem {
 	gint64		nextrexmit;	///< When to retransmit next...
 	gint64		acktimeout;	///< When to timeout waiting for an ACK
 	FsProtoState	state;		///< State of this connection
+	guint		shuttimer;	///< FSPROTO_SHUT_TO timer (see FSA for details)
 };
 
 struct _FsProtoElemSearchKey {
