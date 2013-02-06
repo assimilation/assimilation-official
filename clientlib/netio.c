@@ -444,7 +444,7 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	,	v6addr.sin6_addr.s6_addr16[4]
 	,	v6addr.sin6_addr.s6_addr16[5]
 	,	v6addr.sin6_addr.s6_addr16[6]
-	,	v6addr.sin6_addr.s6_addr16[8]
+	,	v6addr.sin6_addr.s6_addr16[7]
 	,	ntohs(v6addr.sin6_port)
 	,	(long)rc);
 	self->stats.sendcalls ++;
