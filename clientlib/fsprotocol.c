@@ -189,6 +189,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	// Notify other endpoint we're going away
 	if (action & A_SNDSHUT) {
 		FrameSet*	fset = frameset_new(FRAMESETTYPE_CONNSHUT);
+		// Note that this will generate a recursive call to the FSA...
 		parent->send1(parent, fset, fspe->_qid, fspe->endpoint);
 		UNREF(fset);
 	}
@@ -850,7 +851,9 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	AUDITFSPE(fspe);
 
 	if (FSPR_INSHUTDOWN(fspe->state)) {
-		return FALSE;
+		g_warning("%s.%d: Attempt to send FrameSet while link shutting down - FrameSet ignored."
+		,	__FUNCTION__, __LINE__);
+		return TRUE;
 	}
 	_fsproto_fsa(fspe, FSPROTO_REQSEND, NULL);
 
