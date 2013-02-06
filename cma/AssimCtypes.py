@@ -2511,7 +2511,7 @@ if hasattr(_libs['libassimilationclientlib.so'], 'fsqueue_new'):
     fsqueue_new.argtypes = [guint, POINTER(NetAddr), guint16]
     fsqueue_new.restype = POINTER(FsQueue)
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 96
+# /home/alanr/monitor/src/include/fsprotocol.h: 97
 class struct__FsProtocol(Structure):
     pass
 
@@ -2523,7 +2523,7 @@ class struct__FsProtoElem(Structure):
 
 FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 46
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 88
+# /home/alanr/monitor/src/include/fsprotocol.h: 89
 class struct__FsProtoElemSearchKey(Structure):
     pass
 
@@ -2544,6 +2544,7 @@ struct__FsProtoElem.__slots__ = [
     'nextrexmit',
     'acktimeout',
     'state',
+    'shuttimer',
 ]
 struct__FsProtoElem._fields_ = [
     ('endpoint', POINTER(NetAddr)),
@@ -2556,6 +2557,7 @@ struct__FsProtoElem._fields_ = [
     ('nextrexmit', gint64),
     ('acktimeout', gint64),
     ('state', FsProtoState),
+    ('shuttimer', guint),
 ]
 
 struct__FsProtoElemSearchKey.__slots__ = [
@@ -2597,7 +2599,7 @@ struct__FsProtocol._fields_ = [
     ('io', POINTER(NetIO)),
     ('endpoints', POINTER(GHashTable)),
     ('unacked', POINTER(GList)),
-    ('ipend', POINTER(GList)),
+    ('ipend', POINTER(GQueue)),
     ('window_size', guint),
     ('rexmit_interval', gint64),
     ('acktimeout', gint64),
@@ -2618,7 +2620,7 @@ struct__FsProtocol._fields_ = [
     ('activeconncount', CFUNCTYPE(UNCHECKED(c_int), POINTER(FsProtocol))),
 ]
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 121
+# /home/alanr/monitor/src/include/fsprotocol.h: 122
 if hasattr(_libs['libassimilationclientlib.so'], 'fsprotocol_new'):
     fsprotocol_new = _libs['libassimilationclientlib.so'].fsprotocol_new
     fsprotocol_new.argtypes = [guint, POINTER(NetIO), guint]
@@ -4372,27 +4374,27 @@ try:
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 122
+# /home/alanr/monitor/src/include/fsprotocol.h: 123
 try:
     DEFAULT_FSP_QID = 0
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 123
+# /home/alanr/monitor/src/include/fsprotocol.h: 124
 try:
     FSPROTO_WINDOWSIZE = 7
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 124
+# /home/alanr/monitor/src/include/fsprotocol.h: 125
 try:
     FSPROTO_REXMITINTERVAL = 2000000
 except:
     pass
 
-# /home/alanr/monitor/src/include/fsprotocol.h: 125
+# /home/alanr/monitor/src/include/fsprotocol.h: 126
 try:
-    FSPROTO_ACKTIMEOUTINT = (10 * FSPROTO_REXMITINTERVAL)
+    FSPROTO_ACKTIMEOUTINT = (30 * FSPROTO_REXMITINTERVAL)
 except:
     pass
 
@@ -4884,11 +4886,11 @@ _Discovery = struct__Discovery # /home/alanr/monitor/src/include/discovery.h: 47
 
 _FsQueue = struct__FsQueue # ../include/fsqueue.h: 45
 
-_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 96
+_FsProtocol = struct__FsProtocol # /home/alanr/monitor/src/include/fsprotocol.h: 97
 
 _FsProtoElem = struct__FsProtoElem # /home/alanr/monitor/src/include/fsprotocol.h: 75
 
-_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 88
+_FsProtoElemSearchKey = struct__FsProtoElemSearchKey # /home/alanr/monitor/src/include/fsprotocol.h: 89
 
 _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 44
 

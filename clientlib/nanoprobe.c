@@ -560,7 +560,7 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 		DUMP3("nanoobey_setconfig: nanofailreportaddr", &nanofailreportaddr->baseclass, NULL);
 		{
 			// Alias localhost to the CMA nanofailreportaddr (at least for now...)
-			///@todo If we split the CMA into multiple machines this will need to change.:f
+			///@todo If we split the CMA into multiple machines this will need to change.
 			///@todo do we even need this alias code at all?
 
 			NetAddr* localhost = netaddr_string_new("127.0.0.1");

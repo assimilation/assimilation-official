@@ -437,14 +437,14 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
 	DEBUGMSG3("%s.%d: sendto(%d, %ld, [%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x], port=%d) returned %ld"
 	,	__FUNCTION__, __LINE__, self->getfd(self), (long)length
-	,	v6addr.sin6_addr.s6_addr16[0]
-	,	v6addr.sin6_addr.s6_addr16[1]
-	,	v6addr.sin6_addr.s6_addr16[2]
-	,	v6addr.sin6_addr.s6_addr16[3]
-	,	v6addr.sin6_addr.s6_addr16[4]
-	,	v6addr.sin6_addr.s6_addr16[5]
-	,	v6addr.sin6_addr.s6_addr16[6]
-	,	v6addr.sin6_addr.s6_addr16[7]
+	,	ntohs(v6addr.sin6_addr.s6_addr16[0])
+	,	ntohs(v6addr.sin6_addr.s6_addr16[1])
+	,	ntohs(v6addr.sin6_addr.s6_addr16[2])
+	,	ntohs(v6addr.sin6_addr.s6_addr16[3])
+	,	ntohs(v6addr.sin6_addr.s6_addr16[4])
+	,	ntohs(v6addr.sin6_addr.s6_addr16[5])
+	,	ntohs(v6addr.sin6_addr.s6_addr16[6])
+	,	ntohs(v6addr.sin6_addr.s6_addr16[7])
 	,	ntohs(v6addr.sin6_port)
 	,	(long)rc);
 	self->stats.sendcalls ++;

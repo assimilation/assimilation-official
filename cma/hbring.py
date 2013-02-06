@@ -137,6 +137,7 @@ class HbRing:
         self.insertpoint1.start_heartbeat(self, drone)
         self.insertpoint2.start_heartbeat(self, drone)
         point1rel = self.insertpoint1.node.get_single_relationship(neo4j.Direction.OUTGOING, self.ournexttype)
+        # Somehow we sometimes get here with "point1rel is None"... Bug??
         point1rel.delete()
         point1rel = None
         # In the future we might want to mark these relationships with the IP addresses involved
@@ -176,6 +177,7 @@ class HbRing:
         # Clean out the next link relationships to our dearly departed drone
         relationships = drone.node.get_relationships('all', self.ournexttype)
         # Should have exactly two link relationships (one incoming and one outgoing)
+        # BUT SOMETIMES WE DON'T -- then this crashes
         assert len(relationships) == 2
         for rel in relationships:
             rel.delete()
