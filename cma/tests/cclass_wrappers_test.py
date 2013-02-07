@@ -168,28 +168,50 @@ class pyNetAddrTest(TestCase):
         if DEBUG: print >>sys.stderr, "===============test_ipv6_strinit(pyNetAddrTest)"
         ipv6 = pyNetAddr('::1')
         self.assertEqual(str(ipv6),'::1')
+
         ipv6 = pyNetAddr('::')
         self.assertEqual(str(ipv6),'::')
+
         ipv6 = pyNetAddr('0:1:2:3:4:5:6:7')
         self.assertEqual(str(ipv6),'0:1:2:3:4:5:6:7')
+
         ipv6 = pyNetAddr('::2:3:4:5:6:7')
         self.assertEqual(str(ipv6),'::2:3:4:5:6:7')
+
         ipv6 = pyNetAddr('[::]:1984')
         self.assertEqual(str(ipv6),'[::]:1984')
+
         ipv6 = pyNetAddr('[::1]:80')
         self.assertEqual(str(ipv6),'[::1]:80')
+
         ipv6 = pyNetAddr('[0:1:2:3:4:5:6:7]:8080')
         self.assertEqual(str(ipv6),'[0:1:2:3:4:5:6:7]:8080')
+
         ipv6 = pyNetAddr('::2:3:4:5:6:7')
         self.assertEqual(str(ipv6),'::2:3:4:5:6:7')
+
         ipv6 = pyNetAddr('::a:b:c:d:e:f')
         self.assertEqual(str(ipv6),'::a:b:c:d:e:f')
+
+        ipv6 = pyNetAddr('::ffff:1.2.3.4')
+        self.assertEqual(str(ipv6),'::ffff:1.2.3.4')
+
+        ipv6 = pyNetAddr('[::ffff:1.2.3.4]:80')
+        self.assertEqual(str(ipv6),'[::ffff:1.2.3.4]:80')
+
+        ipv6 = pyNetAddr('[::ffff:255.255.255.255]:65535')
+        self.assertEqual(str(ipv6), '[::ffff:255.255.255.255]:65535')
+
         self.assertRaises(ValueError, pyNetAddr, '0:1:2:3:4:5:6:7::')
+        self.assertRaises(ValueError, pyNetAddr, '::fffff')
         self.assertRaises(ValueError, pyNetAddr, '[0:1:2:3:4:5:6:7]10')
         self.assertRaises(ValueError, pyNetAddr, '[0:1:2:3:4:5:6:7]:ff')
         self.assertRaises(ValueError, pyNetAddr, '0:1:2:3:4:5g:6:7')
         self.assertRaises(ValueError, pyNetAddr, '[0:1:2:3:4:5g:6:7]:10')
-        # Note that this code doesn't yet support abbreviated IPv4 addresses as input...
+        self.assertRaises(ValueError, pyNetAddr, 'ffff:1.2.3.256')
+        self.assertRaises(ValueError, pyNetAddr, 'ffff:1.2.3:4')
+        self.assertRaises(ValueError, pyNetAddr, '[ffff:1.2.3:4]:99')
+        self.assertRaises(ValueError, pyNetAddr, '[ffff:1.2.3.4]:65536')
         if DEBUG:
             for j in range(1,5):
                 proj_class_decr_debug('NetAddr')
