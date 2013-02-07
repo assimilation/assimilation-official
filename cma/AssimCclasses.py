@@ -314,13 +314,15 @@ class pyNetAddr(pyAssimObj):
         if (Cstruct is not None):
             assert type(Cstruct) is not int
             pyAssimObj.__init__(self, Cstruct=Cstruct)
+            if port is not None:
+                self.setport(port)
             return
 
         if port is None: port = 0
 
-        if isinstance(addrstring, unicode):
+        if isinstance(addrstring, unicode) or isinstance(addrstring, pyNetAddr):
            addrstring = str(addrstring)
-        if isinstance(addrstring, str) or isinstance(addrstring, unicode):
+        if isinstance(addrstring, str):
             cs = netaddr_string_new(addrstring)
             if not cs:
                 raise ValueError('Illegal NetAddr initial value: "%s"' % addrstring)
@@ -391,6 +393,14 @@ class pyNetAddr(pyAssimObj):
         while (type(base) is not NetAddr):
             base=base.baseclass
         return base.islocal(self._Cstruct)
+
+    def toIPv6(self, port=None):
+        'Return an equivalent IPv6 address to the one that was given. Guaranteed to be a copy'
+        base=self._Cstruct[0]
+        while (type(base) is not NetAddr):
+            base=base.baseclass
+        newcs =  cast(base.toIPv6(self._Cstruct), cClass.NetAddr)
+        return pyNetAddr(None, Cstruct=newcs, port=port)
 
     def __repr__(self):
         'Return a canonical representation of this NetAddr'
