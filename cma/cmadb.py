@@ -24,6 +24,7 @@ import sys, os
 import logging, logging.handlers
 from py2neo import neo4j, cypher
 from AssimCtypes import *
+from AssimCclasses import pyNetAddr
 
 class CMAdb:
     '''Class defining our Neo4J database.'''
@@ -235,6 +236,7 @@ class CMAdb:
     def new_IPaddr(self, nic, ipaddr, **kw):
         '''Create a new IP address (or return a pre-existing one), and point it at its parent
         NIC and its grandparent drone'''
+        ipaddr=str(pyNetAddr(ipaddr).toIPv6())
         if CMAdb.debug: CMAdb.log.debug('Adding IP address %s' % (ipaddr))
         ipaddrs = self.ipindex.get(CMAdb.NODE_ipaddr, ipaddr)
         if nic is not None:
