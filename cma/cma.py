@@ -199,7 +199,7 @@ if __name__ == '__main__':
     if opt.doTrace:
         import trace
         tracer = trace.Trace(count=False, trace=True)
-        if CMAdb.debug: cmadb.CMAdb.log.debug('Starting up traced listener.listen(); debug=%d' % opt.debug)
+        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug('Starting up traced listener.listen(); debug=%d' % opt.debug)
         if opt.foreground:  print >>sys.stderr, ('cma: Starting up traced listener.listen() in foreground; debug=%d' % opt.debug)
         tracer.run('listener.listen()')
     else:

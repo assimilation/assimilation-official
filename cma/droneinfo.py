@@ -19,7 +19,7 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-import weakref
+import weakref, traceback
 from cmadb import CMAdb
 
 from frameinfo import *
@@ -114,6 +114,7 @@ class DroneInfo:
                 if ipinfo['scope'] != 'global':
                     continue
                 (iponly,mask) = ip.split('/')
+                iponly = str(pyNetAddr(iponly).toIPv6())
                 isprimaryip = False
                 ## FIXME: May want to consider looking at 'brd' for broadcast as well...
                 ## otherwise this can be a little fragile...
@@ -152,11 +153,11 @@ class DroneInfo:
         '''We create tcpipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
         for the ANY ipv4 and ipv6 addresses'''
-        addr = str(jsonobj['addr'])
+        addr = str(pyNetAddr(str(jsonobj['addr'])).toIPv6())
         port = jsonobj['port']
         name = addr + ':' + str(port)
         # Were we given the ANY address?
-        if isserver and (addr == '0.0.0.0' or addr == '::'):
+        if isserver and (addr == '::' or addr == '::ffff:0.0.0.0'):
             for ipaddr in allourips:
                 name = ipaddr['name'] + ':' + str(port)
                 tcpipport = CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
@@ -370,6 +371,7 @@ class DroneInfo:
     def find(designation, port=None):
         'Find a drone with the given designation or IP address, or Neo4J node.'
         ret = None
+        desigstr = str(designation)
         if isinstance(designation, str):
             drone = None
             if designation in DroneInfo._droneweakrefs:
@@ -383,8 +385,11 @@ class DroneInfo:
             desigport = designation.port()
             if desigport is not None and desigport > 0:
                 dport = desigport
-            #Is there a concern about non-canonical IP address formats?
-            ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, repr(designation))
+            desig=designation.toIPv6(port=0)
+            #desig=designation
+            desigstr=str(desig)
+            #Note that we now do everything by IPv6 addresses...
+            ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, desigstr)
             for ip in ipaddrs:
                 # Shouldn't have duplicates, but they happen...
                 # FIXME: Think about how to manage duplicate IP addresses...
@@ -392,7 +397,8 @@ class DroneInfo:
                 node = ip.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_iphost)
                 return DroneInfo.find(node, port=dport)
             if CMAdb.debug:
-                CMAdb.log.warn('Could not find IP address in Drone.find... %s' % repr(designation))
+                CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]' % (
+                    str(designation), desigstr, type(designation)))
         elif isinstance(designation, neo4j.Node):
             nodedesig = designation['name']
             if nodedesig in DroneInfo._droneweakrefs:
@@ -401,12 +407,27 @@ class DroneInfo:
             return DroneInfo(designation)
            
         if CMAdb.debug:
-            CMAdb.log.debug("DESIGNATION repr(%s) = %s" % (designation, repr(designation)))
-        if repr(designation) in DroneInfo._droneweakrefs:
+            CMAdb.log.debug("DESIGNATION (%s) = %s" % (designation, desigstr))
+        if desigstr in DroneInfo._droneweakrefs:
             ret = DroneInfo._droneweakrefs[designation]()
         if ret is None:
             if CMAdb.debug:
-                CMAdb.log.warn('drone.find(%s) => returning None' % repr(designation))
+                CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
+                    str(designation), desigstr, type(designation)))
+                if isinstance(designation, str):
+                    CMAdb.log.warn('drone.find(%s) (%s) (string) => returning None' % (
+                        str(designation), desigstr))
+                if isinstance(designation, pyNetAddr):
+                    CMAdb.log.warn('drone.find(%s) (%s) (pyNetAddr) => returning None' % (
+                        str(designation), desigstr))
+                tblist = traceback.extract_stack()
+                #tblist=traceback.extract_tb(trace, 20)
+                CMAdb.log.info('======== Begin missing IP Traceback ========')
+                for tb in tblist:
+                    (filename, line, funcname, text) = tb
+                    filename = os.path.basename(filename)
+                    CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
+                CMAdb.log.info('======== End missing IP Traceback ========')
         return ret
 
     @staticmethod
