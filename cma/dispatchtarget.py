@@ -51,12 +51,13 @@ class DispatchHBDEAD(DispatchTarget):
         json = None
         fstype = frameset.get_framesettype()
         fromdrone = self.DroneInfo.find(origaddr)
-        #print>>sys.stderr, "DispatchHBDEAD: received [%s] FrameSet from [%s]" \
-        #%      (FrameSetTypes.get(fstype)[0], str(origaddr))
+        CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s]"
+        %      (FrameSetTypes.get(fstype)[0], str(origaddr)))
         for frame in frameset.iter():
             frametype=frame.frametype()
-            if frametype == FrameTypes.IPADDR:
+            if frametype == FrameTypes.IPPORT:
                 deaddrone = self.DroneInfo.find(frame.getnetaddr())
+                CMAdb.log.warning("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
                 deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
 
 class DispatchHBSHUTDOWN(DispatchTarget):
