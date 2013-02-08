@@ -61,4 +61,6 @@ void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate);
 // Override if you need to use an HbListener subclass...
 extern HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*);
 
+#define	MARTIAN_TIMEOUT	10
+
 #endif /* _NANOPROBE_H */

@@ -149,12 +149,31 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 		UNREF(fs);
 }
 
+
 /// Standard nanoprobe 'martian heartbeat received' agent.
 FSTATIC void
 _real_martian_agent(NetAddr* who)
 {
+	static guint64		last_martian_time = 0;		// microseconds
+	static guint		recent_martian_count = 0;
+	guint64			now = g_get_monotonic_time();	// microseconds
+	const guint64		uS = 1000000;
+
 	++nano_hbstats.martian_count;
-	{
+
+	// If it's been more than MARTIAN_TIMEOUT seconds since the last
+	// martian, then reset the count of recent martians
+	if (now > (last_martian_time + (MARTIAN_TIMEOUT*uS))) {
+		recent_martian_count = 0;	
+	}
+
+	last_martian_time = now;
+	++recent_martian_count;
+
+	// This means if we only get one martian then none, we say nothing
+	// This can happen as a result of timing - and it's OK.
+	// But if we get more than one, we complain then and once every 10 afterwards
+	if ((recent_martian_count % 10) == 2) {
 		char *		addrstring;
 
 		/// @todo: need to limit the frequency of martian messages
