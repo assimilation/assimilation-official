@@ -38,7 +38,7 @@ For source and licensing information see the
 - <a href="_source_and_license.html">Source and Licensing</a> page.
 
 @section ProjectSwag Assimilation Swag
-We now have a store featuring swag for the Assimilation Project.
+We now have a store featuring swag for the Assimilation Project!
 $5 from every purchase supports the project.
 Check it out at <b>http://www.printfection.com/AssimilationProject</b>
 
