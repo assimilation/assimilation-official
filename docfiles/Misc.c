@@ -63,7 +63,7 @@ Note that this agreement does not require you to assign your copyrights (like th
 <i>You do not lose any rights to your contribution by signing this contribution agreement</i>.
 
 - http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationIndividualContributorAgreement-v1.0.pdf - md5 sum 15fff2cc37118835f98827ffd84b8288
-- http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationEntityContributorAgreement-v1.0.pdf
+- http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationEntityContributorAgreement-v1.0.pdf -     md5 sum ff3550288e16a01945c08905a40a0a41
 
 @section SigningContributorAgreement How to Provide a Signed Copy of the Contributor Agreement
 There are two ways to provide a signed copy of the agreement:
