@@ -26,7 +26,7 @@ set (BUILDTOOLS ${CMAKE_CURRENT_SOURCE_DIR}/buildtools)
 #
 set (CPACK_PACKAGE_CONTACT Assimilation Mailing List <assimilation@lists.community.tummy.com>)
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY Hyperscale Discovery-Driven Monitoring System)
-set (CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_BINARY_DIR}/doxygen/html/_r_e_a_d_m_e.html)
+set (CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/docfiles/README.c)
 set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/docfiles/README.c)
 set (CPACK_PACKAGE_VENDOR_NAME Assimilation Systems Limited - a Colorado Limited Liability Company)
 set (CPACK_RPM_PACKAGE_LICENSE "GPLv3")
