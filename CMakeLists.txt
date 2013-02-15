@@ -18,8 +18,26 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.5)
 project(assimilation C)
+set (BUILDTOOLS ${CMAKE_CURRENT_SOURCE_DIR}/buildtools)
+#
+#	Definitions that packaging systems like to see...
+#
+set (CPACK_PACKAGE_CONTACT Assimilation Mailing List <assimilation@lists.community.tummy.com>)
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY Hyperscale Discovery-Driven Monitoring System)
+set (CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_BINARY_DIR}/doxygen/html/_r_e_a_d_m_e.html)
+set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/docfiles/README.c)
+set (CPACK_PACKAGE_VENDOR_NAME Assimilation Systems Limited - a Colorado Limited Liability Company)
+set (CPACK_RPM_PACKAGE_LICENSE "GPLv3")
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_RPM_COMPONENT_INSTALL ON)
+execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/select-cpack.py)
+
+#
+#
+set (CPACK_COMPONENT_CMA-COMPONENT_GROUP "cma")
+set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "nanoprobe")
 #
 #	Important project-specific variables we set:
 #	LIB_DIRNAME		either lib or lib64 -- as appropriate
@@ -30,29 +48,39 @@ project(assimilation C)
 #	USRSHARE		Our subdirectory under /usr/share
 #	DAGENTS			the relative directory name we source discovery agents from
 #	DISCOVERYINSTALL	Where we install our discovery scripts
-#	CMAADDR			Default address and port of the CMA
-#	NANOLISTENADDR		Default address/port to listen to for nanoprobes
+#	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
+#	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	
-#
-#
 set(CMAKE_BUILD_TYPE debug)
 set(CMAKE_INSTALL_PREFIX /usr)
-#Supposedly this isn't necessary...
-#execute_process (OUTPUT_VARIABLE LIB_DIRNAME OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python buildtools/determinelibdir.py)
 set (LIB_DIRNAME lib${LIB_SUFFIX})
 set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/${LIB_DIRNAME})
 set (CLIENTLIB ${PROJECT_NAME}clientlib)
 set (SERVERLIB ${PROJECT_NAME}serverlib)
 # Figure out where to install our python code
 # This isn't perfect, but it should be good enough for us to get things going...
-execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/buildtools/install-path.py)
+execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/install-path.py)
 set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
 set (DAGENTS discovery_agents)
 set (DISCOVERYINSTALL ${USRSHARE}/${DAGENTS})
+#
+# CMAADDR is the address where the nanoprobes should go to initially find the CMA.
+# 224.0.2.5 is a multicast address which I reseved from IANA for the Assimilation project.
+# Port 1984 UDP and TCP is reserved from IANA for the Big Brother monitoring system which
+# is in turn owned by Sean MacGuire.  Big Brother reserved both TCP and UDP ports but only
+# uses the TCP port.  Sean MacGuire gave us permission to use port 1984/UDP for the
+# Assimilation Project.
+# So this is why we default to 224.0.2.5:1984 for all our UDP communication.
+# Ephemeral ports are NOT OK for the CMA.
+#
 if (NOT CMAADDR) 
   set(CMAADDR "224.0.2.5:1984")
 endif (NOT CMAADDR) 
+# Probably don't want to override NANOLISTENADDR at compile time - better to override it
+# at run time, or let it grab an ephemeral port (which it will do if the 
+# requested port is not available).  Ephemeral ports are fine for nanoprobes.
+# But if you need to change the default port to something else - feel free...
 if (NOT NANOLISTENADDR) 
   set(NANOLISTENADDR "0.0.0.0:1984")
 endif (NOT NANOLISTENADDR) 
@@ -178,5 +206,10 @@ configure_file(${PROJECT_SOURCE_DIR}/include/projectcommon.h.in ${PROJECT_BINARY
 #
 #	Install our discovery agents under /usr/share/assimilation.  Retain permissions from source control.
 #
-install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe DESTINATION ${USRSHARE} USE_SOURCE_PERMISSIONS
+install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${USRSHARE} USE_SOURCE_PERMISSIONS
 	PATTERN ".nfs*" EXCLUDE PATTERN "*.out" EXCLUDE PATTERN "*.txt" EXCLUDE)
+
+#
+#	This has to be the last command in the file
+#
+include(CPack)

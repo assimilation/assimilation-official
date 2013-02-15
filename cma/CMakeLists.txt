@@ -19,6 +19,6 @@
 #
 #
 install(PROGRAMS AssimCclasses.py AssimCtypes.py cma.py frameinfo.py __init__.py
-        COMPONENT cma DESTINATION ${PYINSTALL})
+        COMPONENT cma-component DESTINATION ${PYINSTALL})
 install(DIRECTORY tests
-        COMPONENT cma DESTINATION ${PYINSTALL} PATTERN "*.txt" EXCLUDE PATTERN "*.pyc" EXCLUDE)
+        COMPONENT cma-component DESTINATION ${PYINSTALL} PATTERN "*.txt" EXCLUDE PATTERN "*.pyc" EXCLUDE)

@@ -72,18 +72,18 @@ There are two ways to provide a signed copy of the agreement:
 - Sign it
 - Scan the entire agreement in as a single PDF with a resolution of 200 pixels/inch or more.
 - Email a copy of it to <a href="mailto:AssimilationSystems@gmail.com">&lt;AssimilationSystems@gmail.com&gt; Assimilation Systems Limited</a>.
-@subsection PrintedAgreement Emailed Agreement
+@subsection EmailedAgreement Emailed Agreement
 This method is only available if you can digitally sign emails using a well-known public key.
 - Download and read the document carefully and agree to its terms
 - Send a digitally signed email described below to <a href="mailto:AssimilationSystems@gmail.com">&lt;AssimilationSystems@gmail.com&gt; Assimilation Systems Limited</a>.
- - Attach the PDF of the agreement from the web site
+ - Attach the PDF of the unmodified agreement from the web site
  - In the body of the email put these statements
   <tt>
   I have read and agree to the terms of the attached document for contributions to the Assimilation Monitoring Project
   (represented by Assimilation Systems Limited).
   
   Submitting this digitally signed email to Assimilation Systems Limited constitutes my acceptance of the terms of the attached agreement
-  and I provide this email as a legally binding signature to this agreement.
+  and I provide this email as a legally binding signature to the unmodified agreement attached to this signed email.
 
   <i>Your Name and email address</i>
 
@@ -95,6 +95,12 @@ When you read the agreement, you'll notice that the Assimilation Project contrib
 not with an individual.
 The project founder (Alan Robertson) created Assimilation Systems Limited as a perpetual legal entity to be the
 owner of the rights vested in the project.  It is a Limited Liability Company established and registered in Colorado, USA.
+
+@page NonOwnedSoftware Contributing Software Which You Do Not Own
+
+At this time we do not have a method of contributing software you do not own the Copyright to
+the entire work of authorship.  If this is the case for a contribution you wish to provide
+to the project, please discuss this on the project mailing list.
 
 */
 /**
