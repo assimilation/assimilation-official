@@ -71,7 +71,7 @@ There are two ways to provide a signed copy of the agreement:
 - Print off a copy of the relevant agreement (individual or entity)
 - Read it carefully and agree to its terms
 - Sign it
-- Scan the entire agreement in as a single PDF with a resolution of 200 pixels/inch or more.
+- Scan the entire unmodified agreement in as a single PDF with a resolution of 200 pixels/inch or more.
 - Email a copy of it to <a href="mailto:AssimilationSystems@gmail.com">&lt;AssimilationSystems@gmail.com&gt; Assimilation Systems Limited</a>.
 @subsection EmailedAgreement Emailed Agreement
 This method is only available if you can digitally sign emails using a well-known public key.
