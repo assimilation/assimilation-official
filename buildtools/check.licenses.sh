@@ -40,9 +40,11 @@ cat <<-!EXCLUDE > $excludelist
 	cma/tests/__init__.py
 	testcode/filetest.ref.txt
 	testcode/mainloop.ref.txt
+	_CPack_Packages/
+	install_manifest
 	!EXCLUDE
 includelist=/tmp/$$.included
-find "$TOP"  \( -name '.hg' -prune \) -o \( -name '*.[ch]' -o -name '*.py' -o -name '*.txt' -o -name '*.sh' \) -a -print | grep -v -F -f $excludelist  | sort -u -o $includelist
+find "$TOP"  \( -name '.hg' -prune \) -o \( -name '*.[ch]' -o -name '*.[ch].in' -o -name '*.py' -o -name '*.txt' -o -name '*.sh' \) -a -print | grep -v -F -f $excludelist  | sort -u -o $includelist
 while
   read file
 do
