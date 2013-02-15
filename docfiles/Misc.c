@@ -79,6 +79,7 @@ This method is only available if you can digitally sign emails using a well-know
 - Send a digitally signed email described below to <a href="mailto:AssimilationSystems@gmail.com">&lt;AssimilationSystems@gmail.com&gt; Assimilation Systems Limited</a>.
  - Attach the PDF of the unmodified agreement from the web site
  - In the body of the email put these statements
+
   <tt>
   I have read and agree to the terms of the attached document for contributions to the Assimilation Monitoring Project
   (represented by Assimilation Systems Limited).
