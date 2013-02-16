@@ -22,7 +22,10 @@ cmake_minimum_required(VERSION 2.8.5)
 project(assimilation C)
 set (BUILDTOOLS ${CMAKE_CURRENT_SOURCE_DIR}/buildtools)
 #
-#	Definitions that packaging systems like to see...
+#	Definitions that Cpack likes to see...
+#
+#	For some cases, it will take *two* invocations of cpack for changes to take effect.
+#	This is *very* confusing until you come to expect it.
 #
 set (CPACK_PACKAGE_CONTACT Assimilation Mailing List <assimilation@lists.community.tummy.com>)
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY Hyperscale Discovery-Driven Monitoring System)
@@ -33,11 +36,47 @@ set (CPACK_RPM_PACKAGE_LICENSE "GPLv3")
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_RPM_COMPONENT_INSTALL ON)
 execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/select-cpack.py)
+#set (CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 0)
+#zenoss-stack_3.2.1_i386.deb
+
+set(CPACK_PACKAGE_FILE_NAME "assimilation")
+set (PROJVERS "0.1.0")
+
+# Figure out our package architecture (and system type)
+# Would this be better done by another simple python program?
+if (COMMAND uname)
+  execute_process (OUTPUT_VARIABLE SYSTYPE OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -s)
+
+  if (SYSTYPE STREQUAL "AIX")
+    set(PROJARCH aix)
+  elseif (SYSTYPE STREQUAL "Darwin" or SYSTYPE STREQUAL FreeBSD)
+    # Try uname -m ...
+    execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -m)
+  else (SYSTYPE STREQUAL "Darwin" or SYSTYPE STREQUAL FreeBSD)
+    # Now we hope uname -i gives a good answer...
+    execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -i)
+  endif (SYSTYPE STREQUAL "AIX")
+
+else (COMMAND uname)
+  set(PROJARCH i386)
+endif (COMMAND uname)
+
+# Fool Cpack into generating conventional package names
+if (${CPACK_GENERATOR} STREQUAL "DEB")
+  set(CMANAME cma_${PROJVERS}_${PROJARCH})
+  set(NANOPROBENAME nanoprobe_${PROJVERS}_${PROJARCH})
+elseif (${CPACK_GENERATOR} STREQUAL "RPM")
+  set(CMANAME cma-${PROJVERS}.${PROJARCH})
+  set(NANOPROBENAME nanoprobe-${PROJVERS}.${PROJARCH})
+else (${CPACK_GENERATOR} STREQUAL "RPM")
+  set(CMANAME cma-${PROJVERS}-${PROJARCH})
+  set(NANOPROBENAME nanoprobe-${PROJVERS}-${PROJARCH})
+endif (${CPACK_GENERATOR} STREQUAL "RPM")
 
 #
 #
-set (CPACK_COMPONENT_CMA-COMPONENT_GROUP "cma")
-set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "nanoprobe")
+set (CPACK_COMPONENT_CMA-COMPONENT_GROUP "${CMANAME}")
+set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #
 #	Important project-specific variables we set:
 #	LIB_DIRNAME		either lib or lib64 -- as appropriate
