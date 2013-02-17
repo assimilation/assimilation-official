@@ -18,7 +18,11 @@ We like to have a reasonable number of things in the build environment.
 - Testify - testing framework from Yelp - https://github.com/Yelp/Testify
 - doxygen (for documentation) - http://doxygen.org/
 - dot (for doxygen graphs) - http://www.graphviz.org/
-- Ctypesgen is good to have around http://code.google.com/p/ctypesgen/
+- Ctypesgen will become mandatory http://code.google.com/p/ctypesgen/
+
+In addition, the following systems are needed in the runtime environment for the CMA:
+- Neo4J - http://neo4j.org/
+- py2neo - http://py2neo.org/	(<tt>pip install py2neo</tt>)
 
 @section MakingIt Making The Assimilation Monitoring System from Source
 If you know how to use cmake, you probably already know what to do.
@@ -27,19 +31,32 @@ If you know how to use cmake, you probably already know what to do.
 If not, you can follow these instructions for *NIX type systems.
 - Extract the source into "path-to-source-directory"
 - mkdir "path-to-binary-directory"
-- cd "binary-directory"
+- cd "path-to-binary-directory"
 - cmake "path-to-source-directory"
 - make install
 
 You currently have to install it in order to run the tests.
 
+@subsection PackagingIt Making Packages
+The code is currently set up to be able to make RPM or DEB packages using the cpack command (related to cmake)
+- Extract the source into "path-to-source-directory"
+- mkdir "path-to-binary-directory"
+- cd "binary-directory"
+- cmake "path-to-source-directory"
+- cpack
+
+If it can't figure out which kind of package to build, it will default to building RPMs.
+Patches are being solicited to build Windows and OS X packages (read the cpack docs).
+Other package formats aren't supported by cpack, and will have to be supported by other mechanisms.
+
 @subsection MakingItForWindows Making The Assimilation Monitoring System for Windows
-- Ask Roger :-D
+- Looking for someone to take this over.  Patches are being accepted ;-)
 
 @section TestingIt Running our Tests
 There are currently two test modules that you can run after building it.  They can be run
 like this:
 - cd testcode; sh path-to-source-tree/testcode/grind.sh	# Assumes you have valgrind installed.
+- cd testcode; ./pinger ::1				# Does a ping test of reliable UDP
 - cd cma; testify tests					# Runs significant python tests
 
 For the testcode piece, you have to be in the cma directory of <i>build tree</i>.
@@ -52,15 +69,4 @@ or the installed version in the python install place
 - doc - makes the documentation If you just want to view the latest version online,
 go to http://assimmon.org/
 
-For reasons unclear to me, Cmake likes to put lots of full pathnames into its files.
-I would hope it would be sufficient to say cmake before making things and it should go from there.
-
-However, failing that, try removing files named like these:
-- CMakeCache.txt
-- cmake_install.cmake
-- Makefile
-- CMakeDirectoryInformation.cmake
-- CMakeOutput.log
-- Makefile2
-- TargetDirectories.txt
 */
