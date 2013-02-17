@@ -22,6 +22,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <netaddr.h>
 #include <frametypes.h>
 #include <reliableudp.h>
@@ -231,11 +232,18 @@ main(int argc, char **argv)
 	// Kick everything off with a pingy-dingy
 	for (j=1; j < argc; ++j) {
 		FrameSet*	ping;
-		NetAddr*	toaddr = netaddr_string_new(argv[j]);
+		NetAddr*	toaddr;
 		NetAddr*	v6addr;
 		IntFrame*	iframe  = intframe_new(FRAMETYPE_CINTVAL, 1);
+
+		if (strcmp(argv[j], "::") == 0) {
+			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address for our purposes.\n"
+			,	argv[j]);
+			continue;
+		}
+		toaddr = netaddr_string_new(argv[j]);
 		if (toaddr == NULL) {
-			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address"
+			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address.\n"
 			,	argv[j]);
 			continue;
 		}
