@@ -31,13 +31,12 @@ set (CPACK_PACKAGE_CONTACT Assimilation Mailing List <assimilation@lists.communi
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY Hyperscale Discovery-Driven Monitoring System)
 set (CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/README)
 set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README)
-set (CPACK_PACKAGE_VENDOR_NAME Assimilation Systems Limited - a Colorado Limited Liability Company)
+set (CPACK_PACKAGE_VENDOR_NAME The Assimilation Monitoring Project - assimmon.org)
 set (CPACK_RPM_PACKAGE_LICENSE "GPLv3")
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_RPM_COMPONENT_INSTALL ON)
 execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/select-cpack.py)
 #set (CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 0)
-#zenoss-stack_3.2.1_i386.deb
 
 set(CPACK_PACKAGE_FILE_NAME "assimilation")
 set (PROJVERS "0.1.0")
