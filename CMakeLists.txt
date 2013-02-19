@@ -137,10 +137,19 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_D
 
 #
 #	Get options for glib2 from pkg-config (for both Linux and Windows)
+#	Sometimes it's called glib-2.0 and sometimes libglib-2.0 - Sigh...
 #
 include(FindPkgConfig)
-pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 if (PKG_CONFIG_FOUND)
+    set(GLIB2_FOUND false)
+    pkg_check_modules(GLIB2 QUIET glib-2.0)
+    if (NOT GLIB2_FOUND)
+        pkg_check_modules(GLIB2 REQUIRED libglib-2.0)
+        if (NOT GLIB2_FOUND)
+            message(ERROR " Cannot find development package for glib2.0")
+        endif (NOT GLIB2_FOUND)
+    endif (NOT GLIB2_FOUND)
+    
     include_directories(${GLIB2_INCLUDE_DIRS})
 else (PKG_CONFIG_FOUND)
   # Hopefully this isn't needed any more...
