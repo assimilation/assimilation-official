@@ -141,7 +141,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_D
 #
 include(FindPkgConfig)
 if (PKG_CONFIG_FOUND)
-    set(GLIB2_FOUND false)
     pkg_check_modules(GLIB2 QUIET glib-2.0)
     if (NOT GLIB2_FOUND)
         pkg_check_modules(GLIB2 REQUIRED libglib-2.0)
