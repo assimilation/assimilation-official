@@ -43,32 +43,41 @@ set (PROJVERS "0.1.0")
 
 # Figure out our package architecture (and system type)
 # Would this be better done by another simple python program?
-if (COMMAND uname)
+if (EXISTS "/bin/uname")
   execute_process (OUTPUT_VARIABLE SYSTYPE OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -s)
 
   if (SYSTYPE STREQUAL "AIX")
     set(PROJARCH aix)
-  elseif (SYSTYPE STREQUAL "Darwin" or SYSTYPE STREQUAL FreeBSD)
+  elseif (SYSTYPE STREQUAL "Darwin" OR SYSTYPE STREQUAL FreeBSD)
     # Try uname -m ...
     execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -m)
-  else (SYSTYPE STREQUAL "Darwin" or SYSTYPE STREQUAL FreeBSD)
+  else (SYSTYPE STREQUAL "Darwin" OR SYSTYPE STREQUAL FreeBSD)
     # Now we hope uname -i gives a good answer...
     execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -i)
   endif (SYSTYPE STREQUAL "AIX")
-
 else (COMMAND uname)
+    message(STATUS "Package architecture _assumed_ to be i386")
   set(PROJARCH i386)
-endif (COMMAND uname)
+endif (EXISTS "/bin/uname")
+
+if (CPACK_GENERATOR STREQUAL "DEB")
+    set (NOARCH all)
+    if (PROJARCH STREQUAL "x86_64")
+        set(PROJARCH "amd64")
+    endif (PROJARCH STREQUAL "x86_64")
+else (CPACK_GENERATOR STREQUAL "DEB")
+    set (NOARCH noarch)
+endif (CPACK_GENERATOR STREQUAL "DEB")
 
 # Fool Cpack into generating conventional package names
 if (${CPACK_GENERATOR} STREQUAL "DEB")
-  set(CMANAME cma_${PROJVERS}_${PROJARCH})
+  set(CMANAME cma_${PROJVERS}_${NOARCH})
   set(NANOPROBENAME nanoprobe_${PROJVERS}_${PROJARCH})
 elseif (${CPACK_GENERATOR} STREQUAL "RPM")
-  set(CMANAME cma-${PROJVERS}.${PROJARCH})
+  set(CMANAME cma-${PROJVERS}.${NOARCH})
   set(NANOPROBENAME nanoprobe-${PROJVERS}.${PROJARCH})
 else (${CPACK_GENERATOR} STREQUAL "RPM")
-  set(CMANAME cma-${PROJVERS}-${PROJARCH})
+  set(CMANAME cma-${PROJVERS}-${NOARCH})
   set(NANOPROBENAME nanoprobe-${PROJVERS}-${PROJARCH})
 endif (${CPACK_GENERATOR} STREQUAL "DEB")
 
@@ -145,7 +154,7 @@ if (PKG_CONFIG_FOUND)
     if (NOT GLIB2_FOUND)
         pkg_check_modules(GLIB2 REQUIRED libglib-2.0)
         if (NOT GLIB2_FOUND)
-            message(ERROR " Cannot find development package for glib2.0")
+            message(SEND_ERROR "Cannot find development package for glib2.0")
         endif (NOT GLIB2_FOUND)
     endif (NOT GLIB2_FOUND)
     
