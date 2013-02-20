@@ -20,27 +20,34 @@
 #
 cmake_minimum_required(VERSION 2.8.5)
 project(assimilation C)
+set (PROJVERS "0.1.0")
+
 set (BUILDTOOLS ${CMAKE_CURRENT_SOURCE_DIR}/buildtools)
+set (DESCRIPTION_FILE ${BUILDTOOLS}/short_description.txt)
 #
 #	Definitions that Cpack likes to see...
 #
 #	For some cases, it will take *two* invocations of cpack for changes to take effect.
-#	This is *very* confusing until you come to expect it.
+#	This is *very* confusing until you come to expect it".
 #
-set (CPACK_PACKAGE_CONTACT Assimilation Mailing List <assimilation@lists.community.tummy.com>)
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY Hyperscale Discovery-Driven Monitoring System)
-set (CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/README)
+set (CPACK_PACKAGE_CONTACT "Assimilation Mailing List <assimilation@lists.community.tummy.com>")
+file (READ ${DESCRIPTION_FILE} CPACK_PACKAGE_DESCRIPTION_SUMMARY)
+set (SUMMARY ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${SUMMARY}")
+set (CPACK_PACKAGE_DESCRIPTION_FILE ${DESCRIPTION_FILE})
 set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README)
-set (CPACK_PACKAGE_VENDOR_NAME The Assimilation Monitoring Project - assimmon.org)
+set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Monitoring Project - assimmon.org")
+set (CPACK_DEBIAN_PACKAGE_SECTION "Administration Utilities")
 set (CPACK_RPM_PACKAGE_LICENSE "GPLv3")
-set(CPACK_DEB_COMPONENT_INSTALL ON)
-set(CPACK_RPM_COMPONENT_INSTALL ON)
+set (CPACK_DEB_COMPONENT_INSTALL ON)
+set (CPACK_RPM_COMPONENT_INSTALL ON)
 execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/select-cpack.py)
 #set (CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 0)
 
 set(CPACK_PACKAGE_FILE_NAME "assimilation")
-set (PROJVERS "0.1.0")
+set (CPACK_PACKAGE_VERSION "${PROJVERS}")
 
+#############################################################
 # Figure out our package architecture (and system type)
 # Would this be better done by another simple python program?
 if (EXISTS "/bin/uname")
@@ -68,6 +75,7 @@ if (CPACK_GENERATOR STREQUAL "DEB")
 else (CPACK_GENERATOR STREQUAL "DEB")
     set (NOARCH noarch)
 endif (CPACK_GENERATOR STREQUAL "DEB")
+#############################################################
 
 # Fool Cpack into generating conventional package names
 if (${CPACK_GENERATOR} STREQUAL "DEB")
