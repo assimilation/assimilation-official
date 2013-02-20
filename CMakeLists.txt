@@ -46,7 +46,7 @@ set (CPACK_RPM_COMPONENT_INSTALL ON)
 execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/select-cpack.py)
 #set (CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 0)
 
-set(CPACK_PACKAGE_FILE_NAME "assimilation")
+set (CPACK_PACKAGE_FILE_NAME "assimilation")
 set (CPACK_PACKAGE_VERSION "${PROJVERS}")
 
 #############################################################
