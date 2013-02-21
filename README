@@ -15,10 +15,10 @@ We like to have a reasonable number of things in the build environment.
 - libpcap (or winpcap) - http://www.tcpdump.org/
 - pkg-config (even for Windows) - http://www.freedesktop.org/wiki/Software/pkg-config
 - valgrind - The 'C' level tests use it - http://valgrind.org/
-- Testify - testing framework from Yelp - https://github.com/Yelp/Testify
+- Testify - testing framework from Yelp - https://github.com/Yelp/Testify (<tt>pip install testify</tt>)
 - doxygen (for documentation) - http://doxygen.org/
 - dot (for doxygen graphs) - http://www.graphviz.org/
-- Ctypesgen will become mandatory http://code.google.com/p/ctypesgen/
+- Ctypesgen will become mandatory http://code.google.com/p/ctypesgen/ (<tt>pip install ctypesgen</tt>)
 
 In addition, the following systems are needed in the runtime environment for the CMA:
 - Neo4J - http://neo4j.org/
