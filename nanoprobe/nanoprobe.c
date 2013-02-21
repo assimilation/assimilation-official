@@ -359,6 +359,7 @@ main(int argc, char **argv)
 	UNREF(destaddr);
 
 	nano_start_full("netconfig", 900, netpkt, config);
+	g_info("Starting version %s: licensed under %s", VERSION_STRING, LONG_LICENSE_STRING);
 
 	// Free config object
 	UNREF(config);

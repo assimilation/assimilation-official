@@ -193,6 +193,9 @@ if __name__ == '__main__':
         FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER(),
         FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN()
     })
+    cmadb.CMAdb.log.info('Starting CMA version %s - licensed under %s' % (VERSION_STRING, LONG_LICENSE_STRING))
+    if opt.foreground:
+        print >>sys.stderr, ('Starting CMA version %s - licensed under %s' % (VERSION_STRING, LONG_LICENSE_STRING))
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...
     listener = PacketListener(config, disp, io=io)
