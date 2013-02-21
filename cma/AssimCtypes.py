@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --no-macro-warnings --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/i386-linux-gnu/glib-2.0/include -L /usr/lib/i386-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipaddrportframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h /usr/include/glib-2.0/glib/gslist.h
+/usr/local/bin/ctypesgen.py --no-macro-warnings --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -L /usr/lib/x86_64-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h
 
 Do not modify this file.
 '''
@@ -303,7 +303,7 @@ class _variadic_function(object):
 # End preamble
 
 _libs = {}
-_libdirs = ['../../bin/clientlib', '/home/alanr/monitor/bin/clientlib', '/usr/lib/i386-linux-gnu']
+_libdirs = ['../../bin/clientlib', '/home/alanr/monitor/bin/clientlib', '/usr/lib/x86_64-linux-gnu']
 
 # Begin loader
 
@@ -383,8 +383,8 @@ class LibraryLoader(object):
         """Return a list of paths where the library might be found."""
         if os.path.isabs(libname):
             yield libname
+
         else:
-            # FIXME / TODO return '.' and os.path.dirname(__file__)
             for path in self.getplatformpaths(libname):
                 yield path
 
@@ -436,7 +436,6 @@ class DarwinLibraryLoader(LibraryLoader):
 
         dirs.extend(self.other_dirs)
         dirs.append(".")
-        dirs.append(os.path.dirname(__file__))
 
         if hasattr(sys, 'frozen') and sys.frozen == 'macosx_app':
             dirs.append(os.path.join(
@@ -471,7 +470,6 @@ class PosixLibraryLoader(LibraryLoader):
                 directories.extend(os.environ[name].split(os.pathsep))
         directories.extend(self.other_dirs)
         directories.append(".")
-        directories.append(os.path.dirname(__file__))
 
         try: directories.extend([dir.strip() for dir in open('/etc/ld.so.conf')])
         except IOError: pass
@@ -585,7 +583,7 @@ del loaderclass
 
 # End loader
 
-add_library_search_dirs(['../../bin/clientlib', '/home/alanr/monitor/bin/clientlib', '/usr/lib/i386-linux-gnu'])
+add_library_search_dirs(['../../bin/clientlib', '/home/alanr/monitor/bin/clientlib', '/usr/lib/x86_64-linux-gnu'])
 
 # Begin libraries
 
@@ -597,57 +595,49 @@ _libs["glib-2.0"] = load_library("glib-2.0")
 
 # No modules
 
-NULL = None # <built-in>
+guint8 = c_ubyte # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 39
 
-guint8 = c_ubyte # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 39
+guint16 = c_ushort # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 41
 
-guint16 = c_ushort # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 41
+guint32 = c_uint # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 46
 
-guint32 = c_uint # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 46
+gint64 = c_long # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 52
 
-gint64 = c_longlong # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 52
+guint64 = c_ulong # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 53
 
-guint64 = c_ulonglong # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 53
+gssize = c_long # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 65
 
-gssize = c_int # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 65
+gsize = c_ulong # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 66
 
-gsize = c_uint # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 66
+GPid = c_int # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 198
 
-GPid = c_int # /usr/lib/i386-linux-gnu/glib-2.0/include/glibconfig.h: 231
+__u_char = c_ubyte # /usr/include/x86_64-linux-gnu/bits/types.h: 31
 
-__u_char = c_ubyte # /usr/include/i386-linux-gnu/bits/types.h: 31
+__u_short = c_uint # /usr/include/x86_64-linux-gnu/bits/types.h: 32
 
-__u_short = c_uint # /usr/include/i386-linux-gnu/bits/types.h: 32
+__u_int = c_uint # /usr/include/x86_64-linux-gnu/bits/types.h: 33
 
-__u_int = c_uint # /usr/include/i386-linux-gnu/bits/types.h: 33
+__time_t = c_long # /usr/include/x86_64-linux-gnu/bits/types.h: 149
 
-__time_t = c_long # /usr/include/i386-linux-gnu/bits/types.h: 149
+__suseconds_t = c_long # /usr/include/x86_64-linux-gnu/bits/types.h: 151
 
-__suseconds_t = c_long # /usr/include/i386-linux-gnu/bits/types.h: 151
+__socklen_t = c_uint # /usr/include/x86_64-linux-gnu/bits/types.h: 192
 
-__socklen_t = c_uint # /usr/include/i386-linux-gnu/bits/types.h: 192
+gchar = c_char # /usr/include/glib-2.0/glib/gtypes.h: 48
 
-gchar = c_char # /usr/include/glib-2.0/glib/gtypes.h: 47
+gint = c_int # /usr/include/glib-2.0/glib/gtypes.h: 51
 
-gint = c_int # /usr/include/glib-2.0/glib/gtypes.h: 50
+gboolean = gint # /usr/include/glib-2.0/glib/gtypes.h: 52
 
-gboolean = gint # /usr/include/glib-2.0/glib/gtypes.h: 51
+gushort = c_ushort # /usr/include/glib-2.0/glib/gtypes.h: 55
 
-gushort = c_ushort # /usr/include/glib-2.0/glib/gtypes.h: 54
+guint = c_uint # /usr/include/glib-2.0/glib/gtypes.h: 57
 
-guint = c_uint # /usr/include/glib-2.0/glib/gtypes.h: 56
+gpointer = POINTER(None) # /usr/include/glib-2.0/glib/gtypes.h: 79
 
-gpointer = POINTER(None) # /usr/include/glib-2.0/glib/gtypes.h: 78
+gconstpointer = POINTER(None) # /usr/include/glib-2.0/glib/gtypes.h: 80
 
-gconstpointer = POINTER(None) # /usr/include/glib-2.0/glib/gtypes.h: 79
-
-GCompareFunc = CFUNCTYPE(UNCHECKED(gint), gconstpointer, gconstpointer) # /usr/include/glib-2.0/glib/gtypes.h: 81
-
-GCompareDataFunc = CFUNCTYPE(UNCHECKED(gint), gconstpointer, gconstpointer, gpointer) # /usr/include/glib-2.0/glib/gtypes.h: 83
-
-GDestroyNotify = CFUNCTYPE(UNCHECKED(None), gpointer) # /usr/include/glib-2.0/glib/gtypes.h: 88
-
-GFunc = CFUNCTYPE(UNCHECKED(None), gpointer, gpointer) # /usr/include/glib-2.0/glib/gtypes.h: 89
+GDestroyNotify = CFUNCTYPE(UNCHECKED(None), gpointer) # /usr/include/glib-2.0/glib/gtypes.h: 89
 
 GQuark = guint32 # /usr/include/glib-2.0/glib/gquark.h: 38
 
@@ -668,29 +658,45 @@ struct__GError._fields_ = [
     ('message', POINTER(gchar)),
 ]
 
-# /usr/include/glib-2.0/glib/gmem.h: 71
+enum_anon_40 = c_int # /usr/include/glib-2.0/glib/gchecksum.h: 51
+
+G_CHECKSUM_MD5 = 0 # /usr/include/glib-2.0/glib/gchecksum.h: 51
+
+G_CHECKSUM_SHA1 = (G_CHECKSUM_MD5 + 1) # /usr/include/glib-2.0/glib/gchecksum.h: 51
+
+G_CHECKSUM_SHA256 = (G_CHECKSUM_SHA1 + 1) # /usr/include/glib-2.0/glib/gchecksum.h: 51
+
+GChecksumType = enum_anon_40 # /usr/include/glib-2.0/glib/gchecksum.h: 51
+
+# /usr/include/glib-2.0/glib/gconvert.h: 77
+class struct__GIConv(Structure):
+    pass
+
+GIConv = POINTER(struct__GIConv) # /usr/include/glib-2.0/glib/gconvert.h: 77
+
+# /usr/include/glib-2.0/glib/gmem.h: 70
 if hasattr(_libs['libassimilationclientlib.so'], 'g_free'):
     g_free = _libs['libassimilationclientlib.so'].g_free
     g_free.argtypes = [gpointer]
     g_free.restype = None
 
-# /usr/include/glib-2.0/glib/gmem.h: 77
+# /usr/include/glib-2.0/glib/gmem.h: 80
 if hasattr(_libs['libassimilationclientlib.so'], 'g_try_malloc'):
     g_try_malloc = _libs['libassimilationclientlib.so'].g_try_malloc
     g_try_malloc.argtypes = [gsize]
     g_try_malloc.restype = gpointer
 
-# /usr/include/glib-2.0/glib/gmem.h: 78
+# /usr/include/glib-2.0/glib/gmem.h: 81
 if hasattr(_libs['libassimilationclientlib.so'], 'g_try_malloc0'):
     g_try_malloc0 = _libs['libassimilationclientlib.so'].g_try_malloc0
     g_try_malloc0.argtypes = [gsize]
     g_try_malloc0.restype = gpointer
 
-# /usr/include/glib-2.0/glib/glist.h: 40
+# /usr/include/glib-2.0/glib/glist.h: 41
 class struct__GList(Structure):
     pass
 
-GList = struct__GList # /usr/include/glib-2.0/glib/glist.h: 38
+GList = struct__GList # /usr/include/glib-2.0/glib/glist.h: 39
 
 struct__GList.__slots__ = [
     'data',
@@ -703,29 +709,13 @@ struct__GList._fields_ = [
     ('prev', POINTER(GList)),
 ]
 
-enum_anon_48 = c_int # /usr/include/glib-2.0/glib/gchecksum.h: 50
-
-G_CHECKSUM_MD5 = 0 # /usr/include/glib-2.0/glib/gchecksum.h: 50
-
-G_CHECKSUM_SHA1 = (G_CHECKSUM_MD5 + 1) # /usr/include/glib-2.0/glib/gchecksum.h: 50
-
-G_CHECKSUM_SHA256 = (G_CHECKSUM_SHA1 + 1) # /usr/include/glib-2.0/glib/gchecksum.h: 50
-
-GChecksumType = enum_anon_48 # /usr/include/glib-2.0/glib/gchecksum.h: 50
-
-# /usr/include/glib-2.0/glib/gconvert.h: 77
-class struct__GIConv(Structure):
-    pass
-
-GIConv = POINTER(struct__GIConv) # /usr/include/glib-2.0/glib/gconvert.h: 77
-
 # /usr/include/glib-2.0/glib/ghash.h: 39
 class struct__GHashTable(Structure):
     pass
 
 GHashTable = struct__GHashTable # /usr/include/glib-2.0/glib/ghash.h: 39
 
-# /usr/include/glib-2.0/glib/gpoll.h: 90
+# /usr/include/glib-2.0/glib/gpoll.h: 93
 class struct__GPollFD(Structure):
     pass
 
@@ -742,11 +732,11 @@ struct__GPollFD._fields_ = [
     ('revents', gushort),
 ]
 
-# /usr/include/glib-2.0/glib/gslist.h: 40
+# /usr/include/glib-2.0/glib/gslist.h: 41
 class struct__GSList(Structure):
     pass
 
-GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 38
+GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 39
 
 struct__GSList.__slots__ = [
     'data',
@@ -756,186 +746,6 @@ struct__GSList._fields_ = [
     ('data', gpointer),
     ('next', POINTER(GSList)),
 ]
-
-# /usr/include/glib-2.0/glib/gslist.h: 48
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_alloc'):
-    g_slist_alloc = _libs['libassimilationclientlib.so'].g_slist_alloc
-    g_slist_alloc.argtypes = []
-    g_slist_alloc.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 49
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_free'):
-    g_slist_free = _libs['libassimilationclientlib.so'].g_slist_free
-    g_slist_free.argtypes = [POINTER(GSList)]
-    g_slist_free.restype = None
-
-# /usr/include/glib-2.0/glib/gslist.h: 50
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_free_1'):
-    g_slist_free_1 = _libs['libassimilationclientlib.so'].g_slist_free_1
-    g_slist_free_1.argtypes = [POINTER(GSList)]
-    g_slist_free_1.restype = None
-
-# /usr/include/glib-2.0/glib/gslist.h: 52
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_free_full'):
-    g_slist_free_full = _libs['libassimilationclientlib.so'].g_slist_free_full
-    g_slist_free_full.argtypes = [POINTER(GSList), GDestroyNotify]
-    g_slist_free_full.restype = None
-
-# /usr/include/glib-2.0/glib/gslist.h: 54
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_append'):
-    g_slist_append = _libs['libassimilationclientlib.so'].g_slist_append
-    g_slist_append.argtypes = [POINTER(GSList), gpointer]
-    g_slist_append.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 56
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_prepend'):
-    g_slist_prepend = _libs['libassimilationclientlib.so'].g_slist_prepend
-    g_slist_prepend.argtypes = [POINTER(GSList), gpointer]
-    g_slist_prepend.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 58
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_insert'):
-    g_slist_insert = _libs['libassimilationclientlib.so'].g_slist_insert
-    g_slist_insert.argtypes = [POINTER(GSList), gpointer, gint]
-    g_slist_insert.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 61
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_insert_sorted'):
-    g_slist_insert_sorted = _libs['libassimilationclientlib.so'].g_slist_insert_sorted
-    g_slist_insert_sorted.argtypes = [POINTER(GSList), gpointer, GCompareFunc]
-    g_slist_insert_sorted.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 64
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_insert_sorted_with_data'):
-    g_slist_insert_sorted_with_data = _libs['libassimilationclientlib.so'].g_slist_insert_sorted_with_data
-    g_slist_insert_sorted_with_data.argtypes = [POINTER(GSList), gpointer, GCompareDataFunc, gpointer]
-    g_slist_insert_sorted_with_data.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 68
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_insert_before'):
-    g_slist_insert_before = _libs['libassimilationclientlib.so'].g_slist_insert_before
-    g_slist_insert_before.argtypes = [POINTER(GSList), POINTER(GSList), gpointer]
-    g_slist_insert_before.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 71
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_concat'):
-    g_slist_concat = _libs['libassimilationclientlib.so'].g_slist_concat
-    g_slist_concat.argtypes = [POINTER(GSList), POINTER(GSList)]
-    g_slist_concat.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 73
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_remove'):
-    g_slist_remove = _libs['libassimilationclientlib.so'].g_slist_remove
-    g_slist_remove.argtypes = [POINTER(GSList), gconstpointer]
-    g_slist_remove.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 75
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_remove_all'):
-    g_slist_remove_all = _libs['libassimilationclientlib.so'].g_slist_remove_all
-    g_slist_remove_all.argtypes = [POINTER(GSList), gconstpointer]
-    g_slist_remove_all.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 77
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_remove_link'):
-    g_slist_remove_link = _libs['libassimilationclientlib.so'].g_slist_remove_link
-    g_slist_remove_link.argtypes = [POINTER(GSList), POINTER(GSList)]
-    g_slist_remove_link.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 79
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_delete_link'):
-    g_slist_delete_link = _libs['libassimilationclientlib.so'].g_slist_delete_link
-    g_slist_delete_link.argtypes = [POINTER(GSList), POINTER(GSList)]
-    g_slist_delete_link.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 81
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_reverse'):
-    g_slist_reverse = _libs['libassimilationclientlib.so'].g_slist_reverse
-    g_slist_reverse.argtypes = [POINTER(GSList)]
-    g_slist_reverse.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 82
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_copy'):
-    g_slist_copy = _libs['libassimilationclientlib.so'].g_slist_copy
-    g_slist_copy.argtypes = [POINTER(GSList)]
-    g_slist_copy.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 83
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_nth'):
-    g_slist_nth = _libs['libassimilationclientlib.so'].g_slist_nth
-    g_slist_nth.argtypes = [POINTER(GSList), guint]
-    g_slist_nth.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 85
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_find'):
-    g_slist_find = _libs['libassimilationclientlib.so'].g_slist_find
-    g_slist_find.argtypes = [POINTER(GSList), gconstpointer]
-    g_slist_find.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 87
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_find_custom'):
-    g_slist_find_custom = _libs['libassimilationclientlib.so'].g_slist_find_custom
-    g_slist_find_custom.argtypes = [POINTER(GSList), gconstpointer, GCompareFunc]
-    g_slist_find_custom.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 90
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_position'):
-    g_slist_position = _libs['libassimilationclientlib.so'].g_slist_position
-    g_slist_position.argtypes = [POINTER(GSList), POINTER(GSList)]
-    g_slist_position.restype = gint
-
-# /usr/include/glib-2.0/glib/gslist.h: 92
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_index'):
-    g_slist_index = _libs['libassimilationclientlib.so'].g_slist_index
-    g_slist_index.argtypes = [POINTER(GSList), gconstpointer]
-    g_slist_index.restype = gint
-
-# /usr/include/glib-2.0/glib/gslist.h: 94
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_last'):
-    g_slist_last = _libs['libassimilationclientlib.so'].g_slist_last
-    g_slist_last.argtypes = [POINTER(GSList)]
-    g_slist_last.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 95
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_length'):
-    g_slist_length = _libs['libassimilationclientlib.so'].g_slist_length
-    g_slist_length.argtypes = [POINTER(GSList)]
-    g_slist_length.restype = guint
-
-# /usr/include/glib-2.0/glib/gslist.h: 96
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_foreach'):
-    g_slist_foreach = _libs['libassimilationclientlib.so'].g_slist_foreach
-    g_slist_foreach.argtypes = [POINTER(GSList), GFunc, gpointer]
-    g_slist_foreach.restype = None
-
-# /usr/include/glib-2.0/glib/gslist.h: 99
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_sort'):
-    g_slist_sort = _libs['libassimilationclientlib.so'].g_slist_sort
-    g_slist_sort.argtypes = [POINTER(GSList), GCompareFunc]
-    g_slist_sort.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 101
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_sort_with_data'):
-    g_slist_sort_with_data = _libs['libassimilationclientlib.so'].g_slist_sort_with_data
-    g_slist_sort_with_data.argtypes = [POINTER(GSList), GCompareDataFunc, gpointer]
-    g_slist_sort_with_data.restype = POINTER(GSList)
-
-# /usr/include/glib-2.0/glib/gslist.h: 104
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_nth_data'):
-    g_slist_nth_data = _libs['libassimilationclientlib.so'].g_slist_nth_data
-    g_slist_nth_data.argtypes = [POINTER(GSList), guint]
-    g_slist_nth_data.restype = gpointer
-
-# /usr/include/glib-2.0/glib/gslist.h: 110
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_push_allocator'):
-    g_slist_push_allocator = _libs['libassimilationclientlib.so'].g_slist_push_allocator
-    g_slist_push_allocator.argtypes = [gpointer]
-    g_slist_push_allocator.restype = None
-
-# /usr/include/glib-2.0/glib/gslist.h: 111
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_pop_allocator'):
-    g_slist_pop_allocator = _libs['libassimilationclientlib.so'].g_slist_pop_allocator
-    g_slist_pop_allocator.argtypes = []
-    g_slist_pop_allocator.restype = None
 
 # /usr/include/glib-2.0/glib/gmain.h: 39
 class struct__GMainContext(Structure):
@@ -949,7 +759,7 @@ class struct__GMainLoop(Structure):
 
 GMainLoop = struct__GMainLoop # /usr/include/glib-2.0/glib/gmain.h: 47
 
-# /usr/include/glib-2.0/glib/gmain.h: 150
+# /usr/include/glib-2.0/glib/gmain.h: 153
 class struct__GSource(Structure):
     pass
 
@@ -961,19 +771,19 @@ class struct__GSourcePrivate(Structure):
 
 GSourcePrivate = struct__GSourcePrivate # /usr/include/glib-2.0/glib/gmain.h: 56
 
-# /usr/include/glib-2.0/glib/gmain.h: 175
+# /usr/include/glib-2.0/glib/gmain.h: 178
 class struct__GSourceCallbackFuncs(Structure):
     pass
 
 GSourceCallbackFuncs = struct__GSourceCallbackFuncs # /usr/include/glib-2.0/glib/gmain.h: 68
 
-# /usr/include/glib-2.0/glib/gmain.h: 193
+# /usr/include/glib-2.0/glib/gmain.h: 196
 class struct__GSourceFuncs(Structure):
     pass
 
-GSourceFuncs = struct__GSourceFuncs # /usr/include/glib-2.0/glib/gmain.h: 115
+GSourceFuncs = struct__GSourceFuncs # /usr/include/glib-2.0/glib/gmain.h: 113
 
-GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), gpointer) # /usr/include/glib-2.0/glib/gmain.h: 136
+GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), gpointer) # /usr/include/glib-2.0/glib/gmain.h: 137
 
 struct__GSource.__slots__ = [
     'callback_data',
@@ -1017,7 +827,7 @@ struct__GSourceCallbackFuncs._fields_ = [
     ('get', CFUNCTYPE(UNCHECKED(None), gpointer, POINTER(GSource), POINTER(GSourceFunc), POINTER(gpointer))),
 ]
 
-GSourceDummyMarshal = CFUNCTYPE(UNCHECKED(None), ) # /usr/include/glib-2.0/glib/gmain.h: 191
+GSourceDummyMarshal = CFUNCTYPE(UNCHECKED(None), ) # /usr/include/glib-2.0/glib/gmain.h: 194
 
 struct__GSourceFuncs.__slots__ = [
     'prepare',
@@ -1036,11 +846,11 @@ struct__GSourceFuncs._fields_ = [
     ('closure_marshal', GSourceDummyMarshal),
 ]
 
-# /usr/include/glib-2.0/glib/gstring.h: 55
+# /usr/include/glib-2.0/glib/gstring.h: 43
 class struct__GString(Structure):
     pass
 
-GString = struct__GString # /usr/include/glib-2.0/glib/gstring.h: 40
+GString = struct__GString # /usr/include/glib-2.0/glib/gstring.h: 41
 
 struct__GString.__slots__ = [
     'str',
@@ -1053,33 +863,33 @@ struct__GString._fields_ = [
     ('allocated_len', gsize),
 ]
 
-# /usr/include/glib-2.0/glib/giochannel.h: 108
+# /usr/include/glib-2.0/glib/giochannel.h: 111
 class struct__GIOChannel(Structure):
     pass
 
 GIOChannel = struct__GIOChannel # /usr/include/glib-2.0/glib/giochannel.h: 43
 
-# /usr/include/glib-2.0/glib/giochannel.h: 142
+# /usr/include/glib-2.0/glib/giochannel.h: 145
 class struct__GIOFuncs(Structure):
     pass
 
 GIOFuncs = struct__GIOFuncs # /usr/include/glib-2.0/glib/giochannel.h: 44
 
-enum_anon_64 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 77
+enum_anon_59 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 77
 
-GIOStatus = enum_anon_64 # /usr/include/glib-2.0/glib/giochannel.h: 77
+GIOStatus = enum_anon_59 # /usr/include/glib-2.0/glib/giochannel.h: 77
 
-enum_anon_65 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 84
+enum_anon_60 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 84
 
-GSeekType = enum_anon_65 # /usr/include/glib-2.0/glib/giochannel.h: 84
+GSeekType = enum_anon_60 # /usr/include/glib-2.0/glib/giochannel.h: 84
 
-enum_anon_66 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 94
+enum_anon_61 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 94
 
-GIOCondition = enum_anon_66 # /usr/include/glib-2.0/glib/giochannel.h: 94
+GIOCondition = enum_anon_61 # /usr/include/glib-2.0/glib/giochannel.h: 94
 
-enum_anon_67 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 106
+enum_anon_62 = c_int # /usr/include/glib-2.0/glib/giochannel.h: 106
 
-GIOFlags = enum_anon_67 # /usr/include/glib-2.0/glib/giochannel.h: 106
+GIOFlags = enum_anon_62 # /usr/include/glib-2.0/glib/giochannel.h: 106
 
 struct__GIOChannel.__slots__ = [
     'ref_count',
@@ -1376,13 +1186,13 @@ if hasattr(_libs['libassimilationclientlib.so'], 'frame_default_valuefinalize'):
     frame_default_valuefinalize.argtypes = [gpointer]
     frame_default_valuefinalize.restype = None
 
-u_char = __u_char # /usr/include/i386-linux-gnu/sys/types.h: 34
+u_char = __u_char # /usr/include/x86_64-linux-gnu/sys/types.h: 34
 
-u_short = __u_short # /usr/include/i386-linux-gnu/sys/types.h: 35
+u_short = __u_short # /usr/include/x86_64-linux-gnu/sys/types.h: 35
 
-u_int = __u_int # /usr/include/i386-linux-gnu/sys/types.h: 36
+u_int = __u_int # /usr/include/x86_64-linux-gnu/sys/types.h: 36
 
-# /usr/include/i386-linux-gnu/bits/time.h: 75
+# /usr/include/x86_64-linux-gnu/bits/time.h: 31
 class struct_timeval(Structure):
     pass
 
@@ -1395,11 +1205,11 @@ struct_timeval._fields_ = [
     ('tv_usec', __suseconds_t),
 ]
 
-socklen_t = __socklen_t # /usr/include/i386-linux-gnu/bits/socket.h: 35
+socklen_t = __socklen_t # /usr/include/x86_64-linux-gnu/bits/socket.h: 35
 
-sa_family_t = c_uint # /usr/include/i386-linux-gnu/bits/sockaddr.h: 29
+sa_family_t = c_uint # /usr/include/x86_64-linux-gnu/bits/sockaddr.h: 29
 
-# /usr/include/i386-linux-gnu/bits/socket.h: 178
+# /usr/include/x86_64-linux-gnu/bits/socket.h: 180
 class struct_sockaddr(Structure):
     pass
 
@@ -1428,15 +1238,15 @@ struct_in_addr._fields_ = [
 ]
 
 # /usr/include/netinet/in.h: 200
-class union_anon_101(Union):
+class union_anon_110(Union):
     pass
 
-union_anon_101.__slots__ = [
+union_anon_110.__slots__ = [
     '__u6_addr8',
     '__u6_addr16',
     '__u6_addr32',
 ]
-union_anon_101._fields_ = [
+union_anon_110._fields_ = [
     ('__u6_addr8', c_uint8 * 16),
     ('__u6_addr16', c_uint16 * 8),
     ('__u6_addr32', c_uint32 * 4),
@@ -1450,7 +1260,7 @@ struct_in6_addr.__slots__ = [
     '__in6_u',
 ]
 struct_in6_addr._fields_ = [
-    ('__in6_u', union_anon_101),
+    ('__in6_u', union_anon_110),
 ]
 
 # /usr/include/netinet/in.h: 225
@@ -1847,10 +1657,10 @@ class struct__ConfigValue(Structure):
 ConfigValue = struct__ConfigValue # ../include/configcontext.h: 56
 
 # ../include/configcontext.h: 59
-class union_anon_102(Union):
+class union_anon_111(Union):
     pass
 
-union_anon_102.__slots__ = [
+union_anon_111.__slots__ = [
     'intvalue',
     'floatvalue',
     'arrayvalue',
@@ -1859,7 +1669,7 @@ union_anon_102.__slots__ = [
     'addrvalue',
     'framevalue',
 ]
-union_anon_102._fields_ = [
+union_anon_111._fields_ = [
     ('intvalue', gint64),
     ('floatvalue', c_double),
     ('arrayvalue', POINTER(GSList)),
@@ -1875,7 +1685,7 @@ struct__ConfigValue.__slots__ = [
 ]
 struct__ConfigValue._fields_ = [
     ('valtype', enum_ConfigValType),
-    ('u', union_anon_102),
+    ('u', union_anon_111),
 ]
 
 struct__ConfigContext.__slots__ = [
@@ -2707,13 +2517,13 @@ class struct__HbListener(Structure):
 
 HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h: 32
 
-enum_anon_103 = c_int # /home/alanr/monitor/src/include/hblistener.h: 37
+enum_anon_112 = c_int # /home/alanr/monitor/src/include/hblistener.h: 37
 
 HbPacketsBeingReceived = 1 # /home/alanr/monitor/src/include/hblistener.h: 37
 
 HbPacketsTimedOut = 2 # /home/alanr/monitor/src/include/hblistener.h: 37
 
-HbNodeStatus = enum_anon_103 # /home/alanr/monitor/src/include/hblistener.h: 37
+HbNodeStatus = enum_anon_112 # /home/alanr/monitor/src/include/hblistener.h: 37
 
 struct__HbListener.__slots__ = [
     'baseclass',
@@ -2865,41 +2675,6 @@ if hasattr(_libs['libassimilationclientlib.so'], 'intframe_tlvconstructor'):
     intframe_tlvconstructor = _libs['libassimilationclientlib.so'].intframe_tlvconstructor
     intframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     intframe_tlvconstructor.restype = POINTER(Frame)
-
-# /home/alanr/monitor/src/include/ipaddrportframe.h: 39
-class struct__IPaddrPortFrame(Structure):
-    pass
-
-IPaddrPortFrame = struct__IPaddrPortFrame # /home/alanr/monitor/src/include/ipaddrportframe.h: 31
-
-struct__IPaddrPortFrame.__slots__ = [
-    'baseclass',
-    '_addr',
-    'getnetaddr',
-]
-struct__IPaddrPortFrame._fields_ = [
-    ('baseclass', Frame),
-    ('_addr', POINTER(NetAddr)),
-    ('getnetaddr', CFUNCTYPE(UNCHECKED(POINTER(NetAddr)), POINTER(IPaddrPortFrame))),
-]
-
-# /home/alanr/monitor/src/include/ipaddrportframe.h: 45
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'ipaddrportframe_netaddr_new'):
-        continue
-    ipaddrportframe_netaddr_new = _lib.ipaddrportframe_netaddr_new
-    ipaddrportframe_netaddr_new.argtypes = [gsize, guint16, POINTER(NetAddr)]
-    ipaddrportframe_netaddr_new.restype = POINTER(IPaddrPortFrame)
-    break
-
-# /home/alanr/monitor/src/include/ipaddrportframe.h: 46
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'ipaddrportframe_tlvconstructor'):
-        continue
-    ipaddrportframe_tlvconstructor = _lib.ipaddrportframe_tlvconstructor
-    ipaddrportframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
-    ipaddrportframe_tlvconstructor.restype = POINTER(Frame)
-    break
 
 # /home/alanr/monitor/src/include/ipportframe.h: 40
 class struct__IpPortFrame(Structure):
@@ -3247,13 +3022,13 @@ if hasattr(_libs['libassimilationclientlib.so'], 'nvpairframe_tlvconstructor'):
     nvpairframe_tlvconstructor.argtypes = [gconstpointer, gconstpointer]
     nvpairframe_tlvconstructor.restype = POINTER(Frame)
 
-bpf_u_int32 = u_int # /usr/include/pcap/bpf.h: 68
+bpf_u_int32 = u_int # /usr/include/pcap/bpf.h: 88
 
-# /usr/include/pcap/bpf.h: 1042
+# /usr/include/pcap/bpf.h: 1259
 class struct_bpf_insn(Structure):
     pass
 
-# /usr/include/pcap/bpf.h: 88
+# /usr/include/pcap/bpf.h: 107
 class struct_bpf_program(Structure):
     pass
 
@@ -3762,53 +3537,61 @@ try:
 except:
     pass
 
-# ../include/projectcommon.h: 13
+# ../include/projectcommon.h: 24
 def DIMOF(a):
     return (sizeof(a) / sizeof((a [0])))
 
-# ../include/projectcommon.h: 14
+# ../include/projectcommon.h: 25
 def MALLOC0(nbytes):
     return (g_try_malloc0 (nbytes))
 
-# ../include/projectcommon.h: 15
+# ../include/projectcommon.h: 26
 def MALLOC(nbytes):
     return (g_try_malloc (nbytes))
 
-# ../include/projectcommon.h: 18
+# ../include/projectcommon.h: 29
 def FREE(m):
     return (g_free (m))
 
-# ../include/projectcommon.h: 34
+# ../include/projectcommon.h: 45
 try:
     HAVE_PCAP_SET_RFMON = 1
 except:
     pass
 
-# /usr/include/glib-2.0/glib/gslist.h: 51
-try:
-    g_slist_free1 = g_slist_free_1
-except:
-    pass
-
-# /usr/include/glib-2.0/glib/gslist.h: 107
-def g_slist_next(slist):
-    return slist and (slist.contents.next) or NULL
-
-# ../include/projectcommon.h: 59
+# ../include/projectcommon.h: 70
 try:
     DISCOVERY_DIR = '/usr/share/assimilation/discovery_agents'
 except:
     pass
 
-# ../include/projectcommon.h: 60
+# ../include/projectcommon.h: 71
 try:
     CMAADDR = '224.0.2.5:1984'
 except:
     pass
 
-# ../include/projectcommon.h: 61
+# ../include/projectcommon.h: 72
 try:
     NANOLISTENADDR = '0.0.0.0:1984'
+except:
+    pass
+
+# ../include/projectcommon.h: 73
+try:
+    VERSION_STRING = '0.1.0'
+except:
+    pass
+
+# ../include/projectcommon.h: 74
+try:
+    SHORT_LICENSE_STRING = 'GPLv3'
+except:
+    pass
+
+# ../include/projectcommon.h: 75
+try:
+    LONG_LICENSE_STRING = 'The GNU General Public License Version 3'
 except:
     pass
 
@@ -4656,6 +4439,12 @@ try:
 except:
     pass
 
+# /home/alanr/monitor/src/include/nanoprobe.h: 64
+try:
+    MARTIAN_TIMEOUT = 10
+except:
+    pass
+
 # ../include/pcap_min.h: 40
 try:
     ENABLE_LLDP = 1
@@ -4840,8 +4629,6 @@ try:
 except:
     pass
 
-_GSList = struct__GSList # /usr/include/glib-2.0/glib/gslist.h: 40
-
 _AssimObj = struct__AssimObj # ../include/assimobj.h: 49
 
 _FrameSet = struct__FrameSet # ../include/frameset.h: 43
@@ -4897,8 +4684,6 @@ _HbListener = struct__HbListener # /home/alanr/monitor/src/include/hblistener.h:
 _HbSender = struct__HbSender # /home/alanr/monitor/src/include/hbsender.h: 39
 
 _IntFrame = struct__IntFrame # /home/alanr/monitor/src/include/intframe.h: 39
-
-_IPaddrPortFrame = struct__IPaddrPortFrame # /home/alanr/monitor/src/include/ipaddrportframe.h: 39
 
 _IpPortFrame = struct__IpPortFrame # /home/alanr/monitor/src/include/ipportframe.h: 40
 
