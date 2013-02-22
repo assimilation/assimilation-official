@@ -1,7 +1,7 @@
 '''Wrapper for address_family_numbers.h
 
 Generated with:
-/usr/local/bin/ctypesgen.py --no-macro-warnings --cpp=gcc -E -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -L /usr/lib/x86_64-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h
+/usr/local/bin/ctypesgen.py --no-macro-warnings --cpp=gcc -E -DCTYPESGEN -D__signed__=signed -o AssimCtypes.py -I../include -L ../../bin/clientlib -L /home/alanr/monitor/bin/clientlib -l libassimilationclientlib.so -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -L /usr/lib/x86_64-linux-gnu -lglib-2.0 ../include/address_family_numbers.h ../include/addrframe.h ../include/assimobj.h ../include/authlistener.h ../include/cdp.h ../include/cmalib.h ../include/compressframe.h ../include/configcontext.h ../include/cryptframe.h ../include/cstringframe.h ../include/discovery.h ../include/frame.h ../include/frameset.h ../include/framesettypes.h ../include/frametypes.h ../include/fsprotocol.h ../include/fsqueue.h ../include/generic_tlv_min.h ../include/hblistener.h ../include/hbsender.h ../include/intframe.h ../include/ipportframe.h ../include/jsondiscovery.h ../include/listener.h ../include/lldp.h ../include/misc.h ../include/nanoprobe.h ../include/netaddr.h ../include/netgsource.h ../include/netio.h ../include/netioudp.h ../include/nvpairframe.h ../include/packetdecoder.h ../include/pcap_GSource.h ../include/pcap_min.h ../include/proj_classes.h ../include/projectcommon.h ../include/reliableudp.h ../include/seqnoframe.h ../include/server_dump.h ../include/signframe.h ../include/switchdiscovery.h ../include/tlvhelper.h ../include/tlv_valuetypes.h ../include/unknownframe.h
 
 Do not modify this file.
 '''
@@ -595,6 +595,8 @@ _libs["glib-2.0"] = load_library("glib-2.0")
 
 # No modules
 
+NULL = None # <built-in>
+
 guint8 = c_ubyte # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 39
 
 guint16 = c_ushort # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 41
@@ -985,6 +987,12 @@ if hasattr(_libs['libassimilationclientlib.so'], 'g_get_monotonic_time'):
     g_get_monotonic_time = _libs['libassimilationclientlib.so'].g_get_monotonic_time
     g_get_monotonic_time.argtypes = []
     g_get_monotonic_time.restype = gint64
+
+# ../include/projectcommon.h: 86
+if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_free'):
+    g_slist_free = _libs['libassimilationclientlib.so'].g_slist_free
+    g_slist_free.argtypes = [POINTER(GSList)]
+    g_slist_free.restype = None
 
 # ../include/assimobj.h: 49
 class struct__AssimObj(Structure):
@@ -3606,6 +3614,10 @@ try:
     LONG_LICENSE_STRING = 'The GNU General Public License Version 3'
 except:
     pass
+
+# ../include/projectcommon.h: 85
+def g_slist_next(slist):
+    return slist and (slist.contents.next) or NULL
 
 # ../include/proj_classes.h: 72
 def OBJ_IS_A(obj, Cclass):

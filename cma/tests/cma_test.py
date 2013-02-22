@@ -23,6 +23,7 @@ _suites = ['all', 'cma']
 import sys
 sys.path.append("../cma")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
+from py2neo import neo4j
 from testify import *
 from testify.utils import turtle
 
@@ -156,7 +157,7 @@ class AUDITS(TestCase):
         drone=DroneInfo.find(designation)
         self.assertTrue(drone is not None)
         # Did the drone's list of addresses get updated?
-        ipnodes = drone.node.get_related_nodes('incoming', 'iphost')
+        ipnodes = drone.node.get_related_nodes(neo4j.Direction.INCOMING, 'iphost')
         self.assertEqual(len(ipnodes), 1)
         ipnode = ipnodes[0]
         ipnodeaddr = ipnode['name']
@@ -236,7 +237,7 @@ class AUDITS(TestCase):
 def auditalldrones():
     audit = AUDITS()
     dronetype = CMAdb.cdb.nodetypetbl['Drone']
-    droneobjs = dronetype.get_related_nodes('incoming', 'IS_A')
+    droneobjs = dronetype.get_related_nodes(neo4j.Direction.INCOMING, 'IS_A')
     numdrones = len(droneobjs)
     for droneid in range(0,numdrones):
         audit.auditadrone(droneid+1)
@@ -431,7 +432,7 @@ class TestCMABasic(TestCase):
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
         droneroot = CMAdb.cdb.nodetypetbl['Drone']
-        Dronerels = droneroot.get_relationships('incoming', 'IS_A')
+        Dronerels = droneroot.get_relationships(neo4j.Direction.INCOMING, 'IS_A')
         self.assertEqual(len(Dronerels), maxdrones)
         if doHBDEAD:
             partnercount = 0

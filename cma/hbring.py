@@ -109,7 +109,7 @@ class HbRing:
         # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
             # (see comments below)
-            CMAdb.cdb.db.relate((drone.node, self.ournexttype, self.insertpoint1.node),
+            CMAdb.cdb.db.get_or_create_relationships((drone.node, self.ournexttype, self.insertpoint1.node),
                       (self.insertpoint1.node, self.ournexttype, drone.node))
             if CMAdb.debug: CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s' % (str(drone), str(self), drone.getport()))
             drone.start_heartbeat(self, self.insertpoint1)
@@ -144,7 +144,7 @@ class HbRing:
         # so that even if the systems change network configurations we can still know what IP to
         # remove.  Right now we rely on the configuration not changing "too much".
         ## FIXME: Ought to label relationships with IP addresses involved.
-        CMAdb.cdb.db.relate((self.insertpoint1.node, self.ournexttype, drone.node),
+        CMAdb.cdb.db.get_or_create_relationships((self.insertpoint1.node, self.ournexttype, drone.node),
                       (drone.node, self.ournexttype, self.insertpoint2.node))
         # This should ensure that we don't keep beating the same nodes over and over
         # again as new nodes join the system.  Instead the latest newbie becomes the next
