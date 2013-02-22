@@ -974,6 +974,18 @@ struct__GQueue._fields_ = [
     ('length', guint),
 ]
 
+# ../include/projectcommon.h: 78
+if hasattr(_libs['libassimilationclientlib.so'], 'g_get_real_time'):
+    g_get_real_time = _libs['libassimilationclientlib.so'].g_get_real_time
+    g_get_real_time.argtypes = []
+    g_get_real_time.restype = gint64
+
+# ../include/projectcommon.h: 81
+if hasattr(_libs['libassimilationclientlib.so'], 'g_get_monotonic_time'):
+    g_get_monotonic_time = _libs['libassimilationclientlib.so'].g_get_monotonic_time
+    g_get_monotonic_time.argtypes = []
+    g_get_monotonic_time.restype = gint64
+
 # ../include/assimobj.h: 49
 class struct__AssimObj(Structure):
     pass
