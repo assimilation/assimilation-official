@@ -148,7 +148,6 @@ if (NOT NANOLISTENADDR)
 endif (NOT NANOLISTENADDR) 
 #####################################################################################
 
-include (CheckSymbolExists)
 
 if(WIN32)
   set(CMAKE_C_COMPILER,"cl")
@@ -174,24 +173,20 @@ if (PKG_CONFIG_FOUND)
     endif (NOT GLIB2_FOUND)
     
     include_directories(${GLIB2_INCLUDE_DIRS})
+    #set(CMAKE_REQUIRED_FLAGS ${GLIB2_LDFLAGS})
+    set(CMAKE_REQUIRED_LIBRARIES c ${CMAKE_REQUIRED_LIBRARIES} ${GLIB2_LIBRARIES})
 else (PKG_CONFIG_FOUND)
-  # Hopefully this isn't needed any more...
-  if(WIN32)
-      include_directories("C:/Glib/Glib-2-28-8-1/include/glib-2.0")
-      include_directories("C:/Glib/Glib-2-28-8-1/lib/glib-2.0/include")
-  else(WIN32)
-      include_directories("/usr/lib/glib-2.0/include")
-      include_directories("/usr/include/glib-2.0")
-      include_directories("/usr/lib/i386-linux-gnu/glib-2.0/include")
-      include_directories("/usr/include/i386-linux-gnu")
-      include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
-  ENDIF(WIN32)
+    message(SEND_ERROR "Cannot find pkg-config utility")
 endif (PKG_CONFIG_FOUND)
 
 if(WIN32)
       include_directories("C:/winpcap/include")
       INCLUDE_DIRECTORIES(${CMAKE_INCLUDE_PATH})
 endif(WIN32)
+
+include(CheckFunctionExists)
+CHECK_FUNCTION_EXISTS(g_get_real_time  HAVE_G_GET_REAL_TIME)
+CHECK_FUNCTION_EXISTS(g_get_monotonic_time  HAVE_G_GET_MONOTONIC_TIME)
 
 #
 #	Compiler flags for various compilers and platforms...
