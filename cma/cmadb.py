@@ -171,15 +171,17 @@ class CMAdb:
                  #print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' % (nodetype, nodename, str(tbl))
                  obj = idx.get_or_create(nodetype, nodename, tbl)
              else:
-                 obj = self.db.create_node(tbl)
+                 obj, = self.db.create(tbl)
+                 #print >>sys.stderr, "TBL: %s" % str(tbl)
+                 #print >>sys.stderr, 'OBJ: %s' % str(obj)
                  idx.add(nodetype, nodename, obj)
         else:
             #print >>sys.stderr, 'self.db.CREATING AN UNINDEXED[%s] object named [%s] with attributes %s [%s]' % (nodetype, nodename, str(tbl.keys()), str(tbl))
             #print >>sys.stderr, 'self.db.attribute: attribute table: %s' % (str(tbl))
 
-            obj = self.db.create_node(tbl)
+            obj, = self.db.create(tbl)
         ntt = self.nodetypetbl[nodetype]
-        self.db.relate((obj, CMAdb.REL_isa, ntt),)
+        self.db.get_or_create_relationships((obj, CMAdb.REL_isa, ntt),)
         #print 'CREATED/reused %s object with id %d' % (nodetype, obj.id)
         return obj
 
@@ -188,7 +190,7 @@ class CMAdb:
         'Create a new ring (or return a pre-existing one), and put it in the ring index'
         ring = self.node_new(CMAdb.NODE_ring, name, unique=True,  **kw)
         if parentring is not None:
-            self.db.relate((ring, CMAdb.REL_parentring, parentring.node),)
+            self.db.get_or_create_relationships((ring, CMAdb.REL_parentring, parentring.node),)
         return ring
 
     def new_drone(self, designation, **kw):
@@ -271,7 +273,7 @@ class CMAdb:
             # This is a reasonable assumption for our process discovery data
             table[key] = jsonobj[key]
         ipproc = self.node_new(CMAdb.NODE_ipproc, name, unique=False, **table)
-        self.db.relate((ipproc, CMAdb.REL_runningon, drone),)
+        self.db.get_or_create_relationships((ipproc, CMAdb.REL_runningon, drone),)
 
         return ipproc
 
@@ -303,7 +305,7 @@ class CMAdb:
             args =    (
                 (tcpipport, CMAdb.REL_baseip,           ipaddrnode, {'port':port}),
                 (ipproc,    CMAdb.REL_tcpclient,        tcpipport))
-        CMAdb.cdb.db.relate(*args)
+        CMAdb.cdb.db.get_or_create_relationships(*args)
 
 
 

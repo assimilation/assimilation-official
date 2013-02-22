@@ -130,7 +130,7 @@ class DroneInfo:
                         rel.delete()
                         rel = None
                     if rel is None:
-                      CMAdb.cdb.db.relate((self.node, 'primaryip', ipnode),)
+                      CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip', ipnode),)
 
     def add_tcplisteners(self, jsonobj, **kw):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
