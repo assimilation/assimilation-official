@@ -61,7 +61,6 @@ FSTATIC gboolean g_source_pcap_prepare(GSource* source, gint* timeout);
 FSTATIC gboolean g_source_pcap_check(GSource* source);
 FSTATIC gboolean g_source_pcap_dispatch(GSource* source, GSourceFunc callback, gpointer user_data);
 FSTATIC void     g_source_pcap_finalize(GSource* source);
-FSTATIC guint64 proj_get_real_time(void);
 FSTATIC guint64 proj_timeval_to_g_real_time(const struct timeval * tv);
 
 static GSourceFuncs g_source_pcap_gsourcefuncs = {
@@ -223,20 +222,6 @@ g_source_pcap_finalize(GSource* src)
 	proj_class_dissociate(src);
 }
 
-/// Local replacement for g_get_real_time() - for old releases of glib
-FSTATIC guint64
-proj_get_real_time(void)
-{
-	GTimeVal	tv;
-	guint64		ret;
-
-	g_get_current_time(&tv);
-
-	ret = (guint64)tv.tv_sec * (guint64)1000000UL;
-	ret += (guint64)tv.tv_usec;
-	return ret;
-	
-}
 /// Convert <b>struct timeval</b> to g_get_real_time() style value
 FSTATIC guint64
 proj_timeval_to_g_real_time(const struct timeval * tv)

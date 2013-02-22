@@ -47,7 +47,6 @@ FSTATIC void _hblistener_set_warntime_callback(HbListener*, void (*callback)(HbL
 FSTATIC void _hblistener_set_comealive_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
 
 DEBUGDECLARATIONS;
-guint64 proj_get_real_time(void); 	///@todo - make this a real global function
 
 ///@defgroup HbListener HbListener class.
 /// Class for heartbeat Listeners - We listen for heartbeats and time out those which are late.
@@ -110,7 +109,7 @@ hblistener_find_by_address(const NetAddr* which)
 FSTATIC void
 _hblistener_checktimeouts(gboolean urgent)	///<[in]True if you want it checked now anyway...
 {
-	guint64		now = proj_get_real_time();
+	guint64		now = g_get_real_time();
 	GSList*		obj;
 	if (!urgent && (now - _hb_listener_lastcheck) < ONESEC) {
 		return;
@@ -143,7 +142,7 @@ _hblistener_gsourcefunc(gpointer ignored) ///<[ignored] Ignored
 FSTATIC gboolean
 _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 {
-	guint64		now = proj_get_real_time();
+	guint64		now = g_get_real_time();
 	HbListener*	addmatch;
 
 	(void)self;  // Odd, but true - because we're a proxy for all hblisteners...
@@ -271,7 +270,7 @@ FSTATIC void
 _hblistener_set_deadtime(HbListener* self,	///<[in/out] Object to set deadtime for
 			guint64 deadtime)	///<[in] deadtime to set in usec
 {
-	guint64		now = proj_get_real_time();
+	guint64		now = g_get_real_time();
 	self->_expected_interval = deadtime;
 	self->nexttime = now + self->_expected_interval;
 	//g_debug("Setting HbListener deadtime to " FMT_64BIT "d ms", deadtime/1000);
@@ -289,7 +288,7 @@ FSTATIC void
 _hblistener_set_warntime(HbListener* self,	///<[in/out] Object to set warntime for
 			guint64 warntime)	///<[in] warntime to set in usec
 {
-	guint64		now = proj_get_real_time();
+	guint64		now = g_get_real_time();
 	self->_warn_interval = warntime;
 	self->warntime = now + self->_warn_interval;
 }

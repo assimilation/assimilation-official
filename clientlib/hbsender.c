@@ -36,8 +36,6 @@ FSTATIC void _hbsender_dellist(HbSender* self);
 FSTATIC void _hbsender_sendheartbeat(HbSender* self);
 FSTATIC gboolean _hbsender_gsourcefunc(gpointer);
 
-guint64 proj_get_real_time(void); 	///@todo - make this a real global function
-
 DEBUGDECLARATIONS
 
 ///@defgroup HbSender HbSender class.
