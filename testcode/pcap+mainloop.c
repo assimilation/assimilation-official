@@ -348,9 +348,9 @@ main(int argc, char **argv)
 	// Unref the AuthListener object
 	UNREF2(listentonanoprobes);
 
-	g_source_unref(CASTTOCLASS(GSource, netpkt));
-	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly.
+	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly(?)
 	g_main_context_unref(g_main_context_default());
+	g_source_unref(&netpkt->baseclass);
 
 	// Free signature frame
 	UNREF2(signature);
@@ -370,6 +370,7 @@ main(int argc, char **argv)
 		proj_class_dump_live_objects();
 		g_warning("Too many objects (%d) alive at end of test.", 
 			proj_class_live_object_count());
+		proj_class_dump_live_objects();
 		++errcount;
 	}else{
 		g_message("No objects left alive.  Awesome!");
