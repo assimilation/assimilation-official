@@ -241,7 +241,6 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 	if (NULL == basedir) {
 		basedir = JSONAGENTROOT;
 	}
-	ret->jsonparams = jsonparams;
         ret->_fullpath = g_strdup_printf("%s%s%s", basedir, "/", discoverytype);
 	DEBUGMSG2("%s.%d: FULLPATH=[%s] discoverytype[%s]"
 	,	__FUNCTION__, __LINE__, ret->_fullpath, discoverytype);
