@@ -128,3 +128,108 @@
    ...
 }
 
+{
+   Bug in pcap_activate
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   fun:pcap_activate
+   fun:create_pcap_listener
+   fun:g_source_pcap_new
+   fun:switchdiscovery_new
+   fun:nano_start_full
+   fun:main
+}
+{
+   g_main_contet_dispatch leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_private_get
+   ...
+}
+{
+   pcap_compile memory leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   fun:pcap_compile
+   ...
+}
+{
+   g_main_context_iteration leak
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_main_context_iteration
+   ...
+}
+{
+   g_mutex_lock leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_mutex_lock
+   ...
+}
+{
+   g_mutex_init leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_mutex_init
+   ...
+}
+{
+   g_once_init_leave memory leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_cond_broadcast
+   fun:g_once_init_leave
+   ...
+}
+{
+   g_cond_init leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_cond_init
+   ...
+}
+{
+   g_child_watch_source_new
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_main_context_new
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_child_watch_source_new
+   ...
+}
+{
+   g_thread_new+dl_allocate_tls leak
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.2.5
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_thread_new
+   ...
+}
+{
+   g_rand_new leak
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_rand_new_with_seed_array
+   ...
+}
