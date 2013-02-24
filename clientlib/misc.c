@@ -159,3 +159,84 @@ assimilation_logger(const gchar *log_domain,	///< What domain are we logging to?
 	,	log_domain == NULL ? "" : log_domain
 	,	message);
 }
+
+
+#define	MAXPIDLEN	16
+#define	MAXPATH		256
+#define	PROCSELFEXE	"/proc/self/exe"
+#define	PROCOTHEREXE	"/proc/%d/exe"
+
+/// See if the pid file suggests we are already running or not
+PidRunningStat
+are_we_already_running(const char * pidfile)	///< The pathname of our expected pid file
+{
+	char *	pidcontents;				// Contents of the pid file
+	int	pid;					// Pid from the pid file
+	char	pidexename[sizeof(PROCOTHEREXE)+16];	// Name of /proc entry for 'pid'
+	char*	ourexepath;				// Pathname of our executable
+	char*	pidexepath;				// Pathname of the 'pid' executable
+
+	// Does the pid file exist?
+	if (!g_file_test(pidfile, G_FILE_TEST_IS_REGULAR)) {
+		return PID_NOTRUNNING;
+	}
+	// Can we read it?
+	if (!g_file_get_contents(pidfile, &pidcontents, NULL, NULL)) {
+		return PID_NOTRUNNING;
+	}
+	// We assume it's passably well-formed...
+	pid = atoi(pidcontents);
+	g_free(pidcontents); pidcontents = NULL;
+	// Is it a legitimate pid value?
+	if (pid < 2) {
+		return PID_NOTRUNNING;
+	}
+	// Is it still running?
+	if (kill(pid, 0) < 0 && errno != EPERM) {
+		return PID_DEAD;
+	}
+	// Now let's see if it's "us" - our process
+	// That is, is it the same executable as we are?
+
+	// So, what is the pathname of our executable?
+	ourexepath = g_file_read_link(PROCSELFEXE, NULL);
+	if (NULL == ourexepath) {
+		return PID_RUNNING;
+	}
+	snprintf(pidexename, sizeof(pidexename), PROCOTHEREXE, pid);
+
+	// What is the pathname of the executable that holds the pid lock?
+	pidexepath = g_file_read_link(pidexename, NULL);
+	if (pidexepath == NULL) {
+		g_free(ourexepath); ourexepath = NULL;
+		return PID_RUNNING;
+	}
+	// Is it the same executable as we are?
+	if (strcmp(ourexepath, pidexepath) == 0) {
+		g_free(ourexepath); ourexepath = NULL;
+		g_free(pidexepath);  pidexepath = NULL;
+		return PID_RUNNING;
+	}
+	g_free(ourexepath); ourexepath = NULL;
+	g_free(pidexepath);  pidexepath = NULL;
+	return PID_NOTUS;
+}
+
+/// Create a pid file for the current process
+gboolean
+create_pid_file(const char * pidfile)
+{
+	char		pidbuf[16];
+	GError*		errptr;
+
+	if (are_we_already_running(pidfile) == PID_RUNNING) {
+		return FALSE;
+	}
+	snprintf(pidbuf, sizeof(pidbuf), "%6d\n", getpid());
+
+	if (g_file_set_contents(pidfile, pidbuf, strlen(pidbuf), &errptr)) {
+		return TRUE;
+	}
+	g_warning("Cannot create pid file [%s]. Reason: %s", pidfile, errptr->message);
+	return FALSE;
+}
