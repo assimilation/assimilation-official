@@ -28,7 +28,18 @@
 
 extern const char*	assim_syslogid;
 
+/// Status of pid file and/or running processes referred to by it
+typedef enum {
+	PID_NOTRUNNING,	//< Nothing seems to be running for this pidfile
+	PID_DEAD,	//< The pid file exists, but its process doesn't
+	PID_NOTUS,	//< Something is running, but we don't think it's one of us
+	PID_RUNNING,	//< The pid file exists, and looks like one of us
+} PidRunningStat;
+
 void daemonize_me(gboolean stay_in_foreground, const char * dirtorunin);
 void assimilation_openlog(const char* logname);
+PidRunningStat are_we_already_running(const char * pidfile);
+gboolean	create_pid_file(const char * pidfile);
+
 #endif /* MISC_H */
 ///@}
