@@ -124,11 +124,21 @@ if __name__ == '__main__':
     parser.add_option('-d', '--debug', action='count', default=0, dest='debug'
     ,   help='enable debug for CMA and libraries - multiple occurances increase debug value for C libraries')
 
+    parser.add_option('-s', '--status', action='store_true', default=False, dest='status'
+    ,   help='Return status of running CMA')
+
+    parser.add_option('-k', '--kill', action='store_true', default=False, dest='kill'
+    ,   help='Shut down running CMA.')
+
     parser.add_option('-e', '--erasedb', action='store_true', default=False, dest='erasedb'
     ,   help='Erase Neo4J before starting')
 
     parser.add_option('-f', '--foreground', action='store_true', default=False, dest='foreground'
     ,   help='keep the CMA from going into the background')
+
+    parser.add_option('-p', '--pidfile', action='store', default='/var/run/cma', dest='pidfile'
+    ,   metavar='pidfile-pathname'
+    ,   help='full pathname of where to locate our pid file')
 
     parser.add_option('-T', '--trace', action='store_true', default=False, dest='doTrace'
     ,   help='Trace CMA execution')
@@ -137,8 +147,18 @@ if __name__ == '__main__':
     opt, args = parser.parse_args()
 
 
-    from AssimCtypes import daemonize_me, assimilation_openlog
-    daemonize_me(opt.foreground, '/')
+    from AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, kill_pid_service, pidrunningstat_to_status
+
+    if opt.status:
+        sys.exit(pidrunningstat_to_status(are_we_already_running(opt.pidfile, None)))
+
+    if opt.kill:
+        if kill_pid_service(opt.pidfile, 15) < 0:
+            print >>sys.stderr, "Unable to stop CMA."
+            sys.exit(1)
+        sys.exit(0)
+        
+    daemonize_me(opt.foreground, '/', opt.pidfile)
     assimilation_openlog("cma") # Cannot appear before daemonize_me() or bind() fails -- not quite sure why...
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher
