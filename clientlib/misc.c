@@ -42,13 +42,22 @@ const char *	assim_syslogid = "assim"; /// Should be overridden with the name to
 /// Make us into a proper daemon.
 void
 daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a background job
-		const char* dirtorunin)		///<[in] Directory to cd to or NULL for default (/)
+		const char* dirtorunin,		///<[in] Directory to cd to or NULL for default (/)
+		const char* pidfile)		///<[in] Pathname of pidfile or NULL for no pidfile
 {
 	struct rlimit		nofile_limits;
 	unsigned		j;
 	int			nullfd;
 	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
 	getrlimit(RLIMIT_NOFILE, &nofile_limits);
+
+	// g_warning("%s.%d: pid file is %s", __FUNCTION__, __LINE__, pidfile);
+	if (pidfile) {
+		if (are_we_already_running(pidfile) == PID_RUNNING) {
+			g_message("Already running.");
+			exit(0);
+		}
+	}
 
 	if (!stay_in_foreground) {
 		for (j=0; j < DIMOF(nullperms); ++j) {
@@ -89,6 +98,14 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 #else
 	(void)stay_in_foreground;
 #endif
+	if (pidfile) {
+		if (are_we_already_running(pidfile) == PID_RUNNING) {
+			g_message("%s.%d: Already running.", __FUNCTION__, __LINE__);
+			exit(0);
+		}
+		// Not sure what to do if we can't create the pid file at this point...
+		(void)create_pid_file(pidfile);
+	}
 }
 
 static gboolean	syslog_opened = FALSE;
@@ -166,6 +183,8 @@ assimilation_logger(const gchar *log_domain,	///< What domain are we logging to?
 #define	PROCSELFEXE	"/proc/self/exe"
 #define	PROCOTHEREXE	"/proc/%d/exe"
 
+static gboolean		created_pid_file = FALSE;
+
 /// See if the pid file suggests we are already running or not
 PidRunningStat
 are_we_already_running(const char * pidfile)	///< The pathname of our expected pid file
@@ -174,14 +193,20 @@ are_we_already_running(const char * pidfile)	///< The pathname of our expected p
 	int	pid;					// Pid from the pid file
 	char	pidexename[sizeof(PROCOTHEREXE)+16];	// Name of /proc entry for 'pid'
 	char*	ourexepath;				// Pathname of our executable
+	char*	ourexecmd;				// command name of our executable
 	char*	pidexepath;				// Pathname of the 'pid' executable
+	char*	pidexecmd;				// command name the 'pid' executable
+
+	//g_debug("%s.%d: PID file path [%s]", __FUNCTION__, __LINE__, pidfile);
 
 	// Does the pid file exist?
 	if (!g_file_test(pidfile, G_FILE_TEST_IS_REGULAR)) {
+		g_debug("%s.%d: PID file [%s] does not exist", __FUNCTION__, __LINE__, pidfile);
 		return PID_NOTRUNNING;
 	}
 	// Can we read it?
 	if (!g_file_get_contents(pidfile, &pidcontents, NULL, NULL)) {
+		g_debug("%s.%d: PID file [%s] cannot be read", __FUNCTION__, __LINE__, pidfile);
 		return PID_NOTRUNNING;
 	}
 	// We assume it's passably well-formed...
@@ -189,10 +214,12 @@ are_we_already_running(const char * pidfile)	///< The pathname of our expected p
 	g_free(pidcontents); pidcontents = NULL;
 	// Is it a legitimate pid value?
 	if (pid < 2) {
+		g_debug("%s.%d: PID file [%s] contains pid %d", __FUNCTION__, __LINE__, pidfile, pid);
 		return PID_NOTRUNNING;
 	}
 	// Is it still running?
 	if (kill(pid, 0) < 0 && errno != EPERM) {
+		g_debug("%s.%d: PID %d is not running", __FUNCTION__, __LINE__, pid);
 		return PID_DEAD;
 	}
 	// Now let's see if it's "us" - our process
@@ -203,6 +230,11 @@ are_we_already_running(const char * pidfile)	///< The pathname of our expected p
 	if (NULL == ourexepath) {
 		return PID_RUNNING;
 	}
+	if (strrchr(ourexepath, '/') != NULL) {
+		ourexecmd = strrchr(ourexepath, '/')+1;
+	}else{
+		ourexecmd = ourexepath;
+	}
 	snprintf(pidexename, sizeof(pidexename), PROCOTHEREXE, pid);
 
 	// What is the pathname of the executable that holds the pid lock?
@@ -211,14 +243,23 @@ are_we_already_running(const char * pidfile)	///< The pathname of our expected p
 		g_free(ourexepath); ourexepath = NULL;
 		return PID_RUNNING;
 	}
+	if (strrchr(pidexepath, '/') != NULL) {
+		pidexecmd = strrchr(pidexepath, '/')+1;
+	}else{
+		pidexecmd = pidexepath;
+	}
 	// Is it the same executable as we are?
-	if (strcmp(ourexepath, pidexepath) == 0) {
+	if (strcmp(ourexecmd, pidexecmd) == 0) {
+		g_debug("%s.%d: Link  %s is the same as %s", __FUNCTION__, __LINE__, ourexepath
+		,	pidexepath);
 		g_free(ourexepath); ourexepath = NULL;
-		g_free(pidexepath);  pidexepath = NULL;
+		g_free(pidexepath); pidexepath = NULL;
 		return PID_RUNNING;
 	}
+	g_debug("%s.%d: Link %s is NOT the same as %s", __FUNCTION__, __LINE__, ourexecmd
+	,	pidexecmd);
 	g_free(ourexepath); ourexepath = NULL;
-	g_free(pidexepath);  pidexepath = NULL;
+	g_free(pidexepath); pidexepath = NULL;
 	return PID_NOTUS;
 }
 
@@ -228,15 +269,59 @@ create_pid_file(const char * pidfile)
 {
 	char		pidbuf[16];
 	GError*		errptr;
+	PidRunningStat	pstat;
+	
 
-	if (are_we_already_running(pidfile) == PID_RUNNING) {
+	g_debug("%s.%d: Creating pid file %s for pid %d", __FUNCTION__, __LINE__, pidfile, getpid());
+	pstat = are_we_already_running(pidfile);
+	if (PID_RUNNING == pstat) {
 		return FALSE;
 	}
 	snprintf(pidbuf, sizeof(pidbuf), "%6d\n", getpid());
+	if (pstat == PID_DEAD || pstat == PID_NOTUS) {
+		g_debug("%s.%d: Unlinking dead pid file %s", __FUNCTION__, __LINE__, pidfile);
+		g_unlink(pidfile);
+	}
 
 	if (g_file_set_contents(pidfile, pidbuf, strlen(pidbuf), &errptr)) {
+		g_debug("%s.%d: Successfully set file %s to content [%s]"
+		,	__FUNCTION__, __LINE__, pidfile, pidbuf);
+		//g_chmod(pidfile, 0644);
+		created_pid_file = TRUE;
 		return TRUE;
 	}
-	g_warning("Cannot create pid file [%s]. Reason: %s", pidfile, errptr->message);
+	g_warning("%s.%d: Cannot create pid file [%s]. Reason: %s"
+	,	__FUNCTION__, __LINE__, pidfile, errptr->message);
 	return FALSE;
+}
+
+void
+remove_pid_file(const char * pidfile)
+{
+	if (created_pid_file) {
+		unlink(pidfile);
+	}
+}
+
+///< Convert PidRunningStat to an exit code for status
+guint
+pidrunningstat_to_status(PidRunningStat stat)
+{
+	// These exit codes from the Linux Standard Base
+	//	http://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/iniscrptact.html
+	switch (stat) {
+		case PID_NOTRUNNING:
+			return 3;		// LSB: program is not running`
+
+		case PID_DEAD:	/*FALLTHROUGH*/
+		case PID_NOTUS:	// This could be an excessively anal retentive check...
+			return 1;		// LSB: program is dead and /var/run/pid exists
+
+		case PID_RUNNING:
+			return 0;		// LSB: program is running
+
+		default: /*FALLTHROUGH*/
+			break;
+	}
+	return 4;				// LSB: program or service status is unknown
 }

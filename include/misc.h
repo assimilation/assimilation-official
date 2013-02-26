@@ -26,9 +26,11 @@
 #include <syslog.h>
 #include <stdio.h>
 
+#define STD_PID_DIR	"/var/run"
+
 extern const char*	assim_syslogid;
 
-/// Status of pid file and/or running processes referred to by it
+/// Status of pid file and/or running processes referred to by it - analogous to "service status"
 typedef enum {
 	PID_NOTRUNNING,	//< Nothing seems to be running for this pidfile
 	PID_DEAD,	//< The pid file exists, but its process doesn't
@@ -36,10 +38,15 @@ typedef enum {
 	PID_RUNNING,	//< The pid file exists, and looks like one of us
 } PidRunningStat;
 
-void daemonize_me(gboolean stay_in_foreground, const char * dirtorunin);
-void assimilation_openlog(const char* logname);
-PidRunningStat are_we_already_running(const char * pidfile);
-gboolean	create_pid_file(const char * pidfile);
+/** Make a daemon process out of this process*/
+void daemonize_me(gboolean stay_in_foreground	///< TRUE == don't fork
+,		  const char * dirtorunin	///< Directory to cd to before running
+,		  const char* pidfile);		///< pathname of pid file, or NULL
+void assimilation_openlog(const char* logname);			///< Open logs in our style (syslog)
+PidRunningStat are_we_already_running(const char * pidfile);	///< Determine service status
+guint		pidrunningstat_to_status(PidRunningStat);	///< Convert PidRunningStat to an exit code for status
+gboolean	create_pid_file(const char * pidfile);		///< Create pid file - return TRUE on success
+void		remove_pid_file(const char * pidfile);		///< Remove previously-created pid file
 
 #endif /* MISC_H */
 ///@}
