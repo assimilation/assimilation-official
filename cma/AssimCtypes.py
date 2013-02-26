@@ -974,19 +974,19 @@ struct__GQueue._fields_ = [
     ('length', guint),
 ]
 
-# ../include/projectcommon.h: 69
+# ../include/projectcommon.h: 71
 if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_free'):
     g_slist_free = _libs['libassimilationclientlib.so'].g_slist_free
     g_slist_free.argtypes = [POINTER(GSList)]
     g_slist_free.restype = None
 
-# ../include/projectcommon.h: 81
+# ../include/projectcommon.h: 83
 if hasattr(_libs['libassimilationclientlib.so'], 'g_get_real_time'):
     g_get_real_time = _libs['libassimilationclientlib.so'].g_get_real_time
     g_get_real_time.argtypes = []
     g_get_real_time.restype = gint64
 
-# ../include/projectcommon.h: 84
+# ../include/projectcommon.h: 86
 if hasattr(_libs['libassimilationclientlib.so'], 'g_get_monotonic_time'):
     g_get_monotonic_time = _libs['libassimilationclientlib.so'].g_get_monotonic_time
     g_get_monotonic_time.argtypes = []
@@ -3619,37 +3619,41 @@ try:
 except:
     pass
 
-# ../include/projectcommon.h: 73
+# ../include/projectcommon.h: 70
+def g_slist_next(slist):
+    return (slist.contents.next)
+
+# ../include/projectcommon.h: 75
 try:
     DISCOVERY_DIR = '/usr/share/assimilation/discovery_agents'
 except:
     pass
 
-# ../include/projectcommon.h: 74
+# ../include/projectcommon.h: 76
 try:
     CMAADDR = '224.0.2.5:1984'
 except:
     pass
 
-# ../include/projectcommon.h: 75
+# ../include/projectcommon.h: 77
 try:
     NANOLISTENADDR = '0.0.0.0:1984'
 except:
     pass
 
-# ../include/projectcommon.h: 76
+# ../include/projectcommon.h: 78
 try:
     VERSION_STRING = '0.1.0'
 except:
     pass
 
-# ../include/projectcommon.h: 77
+# ../include/projectcommon.h: 79
 try:
     SHORT_LICENSE_STRING = 'GPLv3'
 except:
     pass
 
-# ../include/projectcommon.h: 78
+# ../include/projectcommon.h: 80
 try:
     LONG_LICENSE_STRING = 'The GNU General Public License Version 3'
 except:
