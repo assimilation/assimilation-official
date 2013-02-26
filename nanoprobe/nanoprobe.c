@@ -161,11 +161,12 @@ usage(const char * cmdname)
 {
 	fprintf(stderr, "usage: %s [arguments...]\n", cmdname);
 	fprintf(stderr, "Legal arguments are:\n");
-	fprintf(stderr, "\t-c --cmaaddr address:port-of-CMA\n");
-	fprintf(stderr, "\t-b --bind address:port-to-listen-on-locally\n");
+	fprintf(stderr, "\t-c --cmaaddr <address:port-of-CMA>\n");
+	fprintf(stderr, "\t-b --bind <address:port-to-listen-on-locally>\n");
 #ifdef HAS_FORK
-	fprintf(stderr, "\t-f --foreground stay in foreground.\n");
+	fprintf(stderr, "\t-f --foreground (stay in foreground.)\n");
 #endif
+	fprintf(stderr, "\t-k --kill (send SIGTERM to the running service.)\n");
 	fprintf(stderr, "\t-p --pidfile <pid-file-pathname>.\n");
 	fprintf(stderr, "\t-s --status (report nanoprobe status)\n");
 	fprintf(stderr, "\t-d --debug (increment debug level)\n");
@@ -199,6 +200,7 @@ main(int argc, char **argv)
 #ifdef HAS_FORK
 		{"foreground",	no_argument,		0,	'f'},
 #endif
+		{"kill",	no_argument,		0,	'k'},
 		{"pidfile",	required_argument,	0,	'p'},
 		{"status",	no_argument,		0,	's'},
 		{"ttl",		required_argument,	0,	't'},
@@ -207,6 +209,7 @@ main(int argc, char **argv)
 	gboolean		moreopts = TRUE;
 	gboolean		optionerror = FALSE;
 	gboolean		dostatusonly = FALSE;
+	gboolean		dokillonly = FALSE;
 	int			option_index = 0;
 	gboolean		bindret;
 	const char*		pidfile = NULL;
@@ -215,7 +218,7 @@ main(int argc, char **argv)
 
 	BINDDEBUG(NanoprobeMain);
 	while (moreopts) {
-		c = getopt_long(argc, argv, "b:c:dfl:p:st:", long_options, &option_index);
+		c = getopt_long(argc, argv, "b:c:dfkl:p:st:", long_options, &option_index);
 		switch(c) {
 			case -1:
 				moreopts = FALSE;
@@ -241,6 +244,9 @@ main(int argc, char **argv)
 				stay_in_foreground = TRUE;
 				break;
 #endif
+			case 'k':
+				dokillonly = TRUE;
+				break;
 
 			case 'p':
 				pidfile = optarg;
@@ -273,7 +279,15 @@ main(int argc, char **argv)
 	}
 
 	if (dostatusonly) {
-		exit(pidrunningstat_to_status(are_we_already_running(pidfile)));
+		exit(pidrunningstat_to_status(are_we_already_running(pidfile, NULL)));
+	}
+	if (dokillonly) {
+		int rc = kill_pid_service(pidfile, SIGTERM);
+		if (rc != 0) {
+			fprintf(stderr, "%s: could not stop service [%s]\n", "nanoprobe", g_strerror(errno));
+			exit(1);
+		}
+		exit(0);
 	}
 
 	daemonize_me(stay_in_foreground, "/", pidfile);
