@@ -65,6 +65,9 @@
 #if GLIB_MINOR_VERSION < 25
 void g_slist_free_full(GSList *list, GDestroyNotify free_func);
 #endif
+#ifdef CTYPESGEN
+	void g_slist_free(GSList *list);
+#endif
 
 
 #define	DISCOVERY_DIR	"@DISCOVERYINSTALL@"

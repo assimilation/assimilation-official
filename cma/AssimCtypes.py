@@ -595,8 +595,6 @@ _libs["glib-2.0"] = load_library("glib-2.0")
 
 # No modules
 
-NULL = None # <built-in>
-
 guint8 = c_ubyte # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 39
 
 guint16 = c_ushort # /usr/lib/x86_64-linux-gnu/glib-2.0/include/glibconfig.h: 41
@@ -976,23 +974,23 @@ struct__GQueue._fields_ = [
     ('length', guint),
 ]
 
-# ../include/projectcommon.h: 78
+# ../include/projectcommon.h: 69
+if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_free'):
+    g_slist_free = _libs['libassimilationclientlib.so'].g_slist_free
+    g_slist_free.argtypes = [POINTER(GSList)]
+    g_slist_free.restype = None
+
+# ../include/projectcommon.h: 81
 if hasattr(_libs['libassimilationclientlib.so'], 'g_get_real_time'):
     g_get_real_time = _libs['libassimilationclientlib.so'].g_get_real_time
     g_get_real_time.argtypes = []
     g_get_real_time.restype = gint64
 
-# ../include/projectcommon.h: 81
+# ../include/projectcommon.h: 84
 if hasattr(_libs['libassimilationclientlib.so'], 'g_get_monotonic_time'):
     g_get_monotonic_time = _libs['libassimilationclientlib.so'].g_get_monotonic_time
     g_get_monotonic_time.argtypes = []
     g_get_monotonic_time.restype = gint64
-
-# ../include/projectcommon.h: 86
-if hasattr(_libs['libassimilationclientlib.so'], 'g_slist_free'):
-    g_slist_free = _libs['libassimilationclientlib.so'].g_slist_free
-    g_slist_free.argtypes = [POINTER(GSList)]
-    g_slist_free.restype = None
 
 # ../include/assimobj.h: 49
 class struct__AssimObj(Structure):
@@ -2857,23 +2855,65 @@ for _lib in _libs.itervalues():
     enable_lldp_packets.restype = gboolean
     break
 
-# /home/alanr/monitor/src/include/misc.h: 29
+# /home/alanr/monitor/src/include/misc.h: 31
 try:
     assim_syslogid = (String).in_dll(_libs['libassimilationclientlib.so'], 'assim_syslogid')
 except:
     pass
 
-# /home/alanr/monitor/src/include/misc.h: 31
+enum_anon_117 = c_int # /home/alanr/monitor/src/include/misc.h: 39
+
+PID_NOTRUNNING = 0 # /home/alanr/monitor/src/include/misc.h: 39
+
+PID_DEAD = (PID_NOTRUNNING + 1) # /home/alanr/monitor/src/include/misc.h: 39
+
+PID_NOTUS = (PID_DEAD + 1) # /home/alanr/monitor/src/include/misc.h: 39
+
+PID_RUNNING = (PID_NOTUS + 1) # /home/alanr/monitor/src/include/misc.h: 39
+
+PidRunningStat = enum_anon_117 # /home/alanr/monitor/src/include/misc.h: 39
+
+# /home/alanr/monitor/src/include/misc.h: 42
 if hasattr(_libs['libassimilationclientlib.so'], 'daemonize_me'):
     daemonize_me = _libs['libassimilationclientlib.so'].daemonize_me
-    daemonize_me.argtypes = [gboolean, String]
+    daemonize_me.argtypes = [gboolean, String, String]
     daemonize_me.restype = None
 
-# /home/alanr/monitor/src/include/misc.h: 32
+# /home/alanr/monitor/src/include/misc.h: 45
 if hasattr(_libs['libassimilationclientlib.so'], 'assimilation_openlog'):
     assimilation_openlog = _libs['libassimilationclientlib.so'].assimilation_openlog
     assimilation_openlog.argtypes = [String]
     assimilation_openlog.restype = None
+
+# /home/alanr/monitor/src/include/misc.h: 46
+if hasattr(_libs['libassimilationclientlib.so'], 'are_we_already_running'):
+    are_we_already_running = _libs['libassimilationclientlib.so'].are_we_already_running
+    are_we_already_running.argtypes = [String, POINTER(c_int)]
+    are_we_already_running.restype = PidRunningStat
+
+# /home/alanr/monitor/src/include/misc.h: 47
+if hasattr(_libs['libassimilationclientlib.so'], 'pidrunningstat_to_status'):
+    pidrunningstat_to_status = _libs['libassimilationclientlib.so'].pidrunningstat_to_status
+    pidrunningstat_to_status.argtypes = [PidRunningStat]
+    pidrunningstat_to_status.restype = guint
+
+# /home/alanr/monitor/src/include/misc.h: 48
+if hasattr(_libs['libassimilationclientlib.so'], 'create_pid_file'):
+    create_pid_file = _libs['libassimilationclientlib.so'].create_pid_file
+    create_pid_file.argtypes = [String]
+    create_pid_file.restype = gboolean
+
+# /home/alanr/monitor/src/include/misc.h: 49
+if hasattr(_libs['libassimilationclientlib.so'], 'remove_pid_file'):
+    remove_pid_file = _libs['libassimilationclientlib.so'].remove_pid_file
+    remove_pid_file.argtypes = [String]
+    remove_pid_file.restype = None
+
+# /home/alanr/monitor/src/include/misc.h: 50
+if hasattr(_libs['libassimilationclientlib.so'], 'kill_pid_service'):
+    kill_pid_service = _libs['libassimilationclientlib.so'].kill_pid_service
+    kill_pid_service.argtypes = [String, c_int]
+    kill_pid_service.restype = c_int
 
 # /home/alanr/monitor/src/include/nanoprobe.h: 32
 class struct__NanoHbStats(Structure):
@@ -3579,45 +3619,41 @@ try:
 except:
     pass
 
-# ../include/projectcommon.h: 70
+# ../include/projectcommon.h: 73
 try:
     DISCOVERY_DIR = '/usr/share/assimilation/discovery_agents'
 except:
     pass
 
-# ../include/projectcommon.h: 71
+# ../include/projectcommon.h: 74
 try:
     CMAADDR = '224.0.2.5:1984'
 except:
     pass
 
-# ../include/projectcommon.h: 72
+# ../include/projectcommon.h: 75
 try:
     NANOLISTENADDR = '0.0.0.0:1984'
 except:
     pass
 
-# ../include/projectcommon.h: 73
+# ../include/projectcommon.h: 76
 try:
     VERSION_STRING = '0.1.0'
 except:
     pass
 
-# ../include/projectcommon.h: 74
+# ../include/projectcommon.h: 77
 try:
     SHORT_LICENSE_STRING = 'GPLv3'
 except:
     pass
 
-# ../include/projectcommon.h: 75
+# ../include/projectcommon.h: 78
 try:
     LONG_LICENSE_STRING = 'The GNU General Public License Version 3'
 except:
     pass
-
-# ../include/projectcommon.h: 85
-def g_slist_next(slist):
-    return slist and (slist.contents.next) or NULL
 
 # ../include/proj_classes.h: 72
 def OBJ_IS_A(obj, Cclass):
@@ -4460,6 +4496,12 @@ except:
 # /home/alanr/monitor/src/include/lldp.h: 117
 try:
     LLDP_ORG802_3_MTU = 4
+except:
+    pass
+
+# /home/alanr/monitor/src/include/misc.h: 29
+try:
+    STD_PID_DIR = '/var/run'
 except:
     pass
 

@@ -301,7 +301,7 @@ create_pid_file(const char * pidfile)
 	}
 	g_critical("%s.%d: Cannot create pid file [%s]. Reason: %s"
 	,	__FUNCTION__, __LINE__, pidfile, errptr->message);
-	fprintf(stderr, "%s.%d: Cannot create pid file [%s]. Reason: %s"
+	fprintf(stderr, "%s.%d: Cannot create pid file [%s]. Reason: %s\n"
 	,	__FUNCTION__, __LINE__, pidfile, errptr->message);
 	return FALSE;
 }
