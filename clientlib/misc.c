@@ -53,12 +53,44 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 
 	// g_warning("%s.%d: pid file is %s", __FUNCTION__, __LINE__, pidfile);
 	if (pidfile) {
-		if (are_we_already_running(pidfile) == PID_RUNNING) {
+		if (are_we_already_running(pidfile, NULL) == PID_RUNNING) {
 			g_message("Already running.");
 			exit(0);
 		}
 	}
 
+#ifdef HAS_FORK
+	if (!stay_in_foreground) {
+		int	childpid;
+
+		(void)setsid();
+
+		childpid = fork();
+		if (childpid < 0) {
+			g_error("Cannot fork [%s %d]", g_strerror(errno), errno);
+			exit(1);
+		}
+		if (childpid > 0) {
+			exit(0);
+		}
+		// NOTE: probably can't drop a core in '/'
+		// Otherwise, we're the child.
+		chdir(dirtorunin ? dirtorunin : "/" );
+	}
+#endif
+	umask(027);
+	// Need to do this after forking and before closing our file descriptors
+	if (pidfile) {
+		if (are_we_already_running(pidfile, NULL) == PID_RUNNING) {
+			g_message("%s.%d: Already running.", __FUNCTION__, __LINE__);
+			exit(0);
+		}
+		// Exit if we can't create the requested pidfile
+		if (!create_pid_file(pidfile)) {
+			exit(1);
+		}
+	}
+	// Now make sure we don't have any funky file descriptors hanging around here...
 	if (!stay_in_foreground) {
 		for (j=0; j < DIMOF(nullperms); ++j) {
 			close(j);
@@ -75,36 +107,6 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 	// A bit paranoid - but not so much as you might think...
 	for (j=DIMOF(nullperms); j < nofile_limits.rlim_cur; ++j) {
 		close(j);
-	}
-	// NOTE: probably can't drop a core in '/'
-	umask(027);
-#ifdef HAS_FORK
-	if (!stay_in_foreground) {
-		int	childpid;
-
-		(void)setsid();
-
-		childpid = fork();
-		if (childpid < 0) {
-			g_error("Cannot fork [%s %d]", g_strerror(errno), errno);
-			exit(1);
-		}
-		if (childpid > 0) {
-			exit(0);
-		}
-		// Otherwise, we're the child.
-		chdir(dirtorunin ? dirtorunin : "/" );
-	}
-#else
-	(void)stay_in_foreground;
-#endif
-	if (pidfile) {
-		if (are_we_already_running(pidfile) == PID_RUNNING) {
-			g_message("%s.%d: Already running.", __FUNCTION__, __LINE__);
-			exit(0);
-		}
-		// Not sure what to do if we can't create the pid file at this point...
-		(void)create_pid_file(pidfile);
 	}
 }
 
@@ -187,7 +189,8 @@ static gboolean		created_pid_file = FALSE;
 
 /// See if the pid file suggests we are already running or not
 PidRunningStat
-are_we_already_running(const char * pidfile)	///< The pathname of our expected pid file
+are_we_already_running( const char * pidfile	///< The pathname of our expected pid file
+,			int* pidarg)		///< Pid of the process (if running)
 {
 	char *	pidcontents;				// Contents of the pid file
 	int	pid;					// Pid from the pid file
@@ -198,6 +201,9 @@ are_we_already_running(const char * pidfile)	///< The pathname of our expected p
 	char*	pidexecmd;				// command name the 'pid' executable
 
 	//g_debug("%s.%d: PID file path [%s]", __FUNCTION__, __LINE__, pidfile);
+	if (pidarg) {
+		*pidarg = 0;
+	}
 
 	// Does the pid file exist?
 	if (!g_file_test(pidfile, G_FILE_TEST_IS_REGULAR)) {
@@ -216,6 +222,9 @@ are_we_already_running(const char * pidfile)	///< The pathname of our expected p
 	if (pid < 2) {
 		g_debug("%s.%d: PID file [%s] contains pid %d", __FUNCTION__, __LINE__, pidfile, pid);
 		return PID_NOTRUNNING;
+	}
+	if (pidarg) {
+		*pidarg = pid;
 	}
 	// Is it still running?
 	if (kill(pid, 0) < 0 && errno != EPERM) {
@@ -268,12 +277,12 @@ gboolean
 create_pid_file(const char * pidfile)
 {
 	char		pidbuf[16];
-	GError*		errptr;
+	GError*		errptr = NULL;
 	PidRunningStat	pstat;
 	
 
 	g_debug("%s.%d: Creating pid file %s for pid %d", __FUNCTION__, __LINE__, pidfile, getpid());
-	pstat = are_we_already_running(pidfile);
+	pstat = are_we_already_running(pidfile, NULL);
 	if (PID_RUNNING == pstat) {
 		return FALSE;
 	}
@@ -286,21 +295,39 @@ create_pid_file(const char * pidfile)
 	if (g_file_set_contents(pidfile, pidbuf, strlen(pidbuf), &errptr)) {
 		g_debug("%s.%d: Successfully set file %s to content [%s]"
 		,	__FUNCTION__, __LINE__, pidfile, pidbuf);
-		//g_chmod(pidfile, 0644);
+		chmod(pidfile, 0644);
 		created_pid_file = TRUE;
 		return TRUE;
 	}
-	g_warning("%s.%d: Cannot create pid file [%s]. Reason: %s"
+	g_critical("%s.%d: Cannot create pid file [%s]. Reason: %s"
+	,	__FUNCTION__, __LINE__, pidfile, errptr->message);
+	fprintf(stderr, "%s.%d: Cannot create pid file [%s]. Reason: %s"
 	,	__FUNCTION__, __LINE__, pidfile, errptr->message);
 	return FALSE;
 }
 
+/// Remove the pid file that goes with this service iff we created one during this invocation
 void
 remove_pid_file(const char * pidfile)
 {
 	if (created_pid_file) {
 		unlink(pidfile);
 	}
+}
+
+/// kill the service that goes with our current pid file - return negative iff pidfile pid is running and kill fails
+int
+kill_pid_service(const char * pidfile, int signal)
+{
+	int	service_pid = 0;
+	PidRunningStat	pidstat;
+
+	pidstat = are_we_already_running(pidfile, &service_pid);
+	if (pidstat == PID_RUNNING) {
+		return kill((pid_t)service_pid, signal);
+	}
+	unlink(pidfile);	// No harm in removing it...
+	return 0;
 }
 
 ///< Convert PidRunningStat to an exit code for status
