@@ -54,6 +54,8 @@ DEBUGDECLARATIONS
 #	define	HAS_FORK
 #endif
 
+#define		PIDFILENAME STD_PID_DIR "/nanoprobe"
+
 gint64		pktcount = 0;
 NetIO*		nettransport;
 NetGSource*	netpkt;
@@ -164,6 +166,8 @@ usage(const char * cmdname)
 #ifdef HAS_FORK
 	fprintf(stderr, "\t-f --foreground stay in foreground.\n");
 #endif
+	fprintf(stderr, "\t-p --pidfile <pid-file-pathname>.\n");
+	fprintf(stderr, "\t-s --status (report nanoprobe status)\n");
 	fprintf(stderr, "\t-d --debug (increment debug level)\n");
 }
 
@@ -189,25 +193,29 @@ main(int argc, char **argv)
 	int			mcast_ttl = 31;
 	gboolean		stay_in_foreground = FALSE;
 	static struct option 	long_options[] = {
-		{"cmaaddr",	required_argument,	0,	'c'},
 		{"bind",	required_argument,	0,	'b'},
-		{"ttl",		required_argument,	0,	't'},
+		{"cmaaddr",	required_argument,	0,	'c'},
 		{"debug",	no_argument,		0,	'd'},
 #ifdef HAS_FORK
 		{"foreground",	no_argument,		0,	'f'},
 #endif
+		{"pidfile",	required_argument,	0,	'p'},
+		{"status",	no_argument,		0,	's'},
+		{"ttl",		required_argument,	0,	't'},
 		{NULL, 		no_argument,		0,	0}
 	};
 	gboolean		moreopts = TRUE;
 	gboolean		optionerror = FALSE;
+	gboolean		dostatusonly = FALSE;
 	int			option_index = 0;
 	gboolean		bindret;
+	const char*		pidfile = NULL;
 	/// @todo initialize from a setup file - initial IP address:port, debug - anything else?
 
 
 	BINDDEBUG(NanoprobeMain);
 	while (moreopts) {
-		c = getopt_long(argc, argv, "b:c:dfl:t:", long_options, &option_index);
+		c = getopt_long(argc, argv, "b:c:dfl:p:st:", long_options, &option_index);
 		switch(c) {
 			case -1:
 				moreopts = FALSE;
@@ -234,6 +242,13 @@ main(int argc, char **argv)
 				break;
 #endif
 
+			case 'p':
+				pidfile = optarg;
+				break;
+			case 's':
+				dostatusonly = TRUE;
+				break;
+
 			case 't':
 				mcast_ttl = atoi(optarg);
 				break;
@@ -253,9 +268,15 @@ main(int argc, char **argv)
 		usage(argv[0]);
 		exit(1);
 	}
+	if (pidfile == NULL) {
+		pidfile = PIDFILENAME;
+	}
 
+	if (dostatusonly) {
+		exit(pidrunningstat_to_status(are_we_already_running(pidfile)));
+	}
 
-	daemonize_me(stay_in_foreground, "/");
+	daemonize_me(stay_in_foreground, "/", pidfile);
 	assimilation_openlog(argv[0]);
 
 	if (!netio_is_dual_ipv4v6_stack()) {
@@ -376,6 +397,7 @@ main(int argc, char **argv)
 	 *	We exited the main loop.  Shut things down.
 	 ********************************************************************/
 
+	remove_pid_file(pidfile);
 	nano_shutdown(TRUE);	// Tell it to shutdown and print stats
 	g_info("%-35s %8d", "Count of 'other' pkts received:", wirepktcount);
 
