@@ -48,5 +48,6 @@ guint		pidrunningstat_to_status(PidRunningStat);		///< Convert PidRunningStat to
 gboolean	create_pid_file(const char * pidfile);			///< Create pid file - return TRUE on success
 void		remove_pid_file(const char * pidfile);			///< Remove pid file we created (if we created one)
 int		kill_pid_service(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
+void		rmpid_and_exit_on_signal(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
 #endif /* MISC_H */
 ///@}
