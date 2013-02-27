@@ -96,15 +96,16 @@
 #
 ################################################################################
 
+
 if __name__ == '__main__':
-    import optparse
+    import optparse, atexit
     #
     #   "Main" program starts below...
     #   It is a test program intended to run with some real nanoprobes running
     #   somewhere out there...
     #
     DefaultPort = 1984
-    import os, sys
+    import os, sys, signal
     # VERY Linux-specific - but useful and apparently correct ;-)
     PrimaryIPcmd="ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
     ipfd=os.popen(PrimaryIPcmd, 'r')
@@ -146,19 +147,33 @@ if __name__ == '__main__':
 
     opt, args = parser.parse_args()
 
-
-    from AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, kill_pid_service, pidrunningstat_to_status
+    from AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, \
+        kill_pid_service, pidrunningstat_to_status, remove_pid_file, rmpid_and_exit_on_signal
+        
 
     if opt.status:
-        sys.exit(pidrunningstat_to_status(are_we_already_running(opt.pidfile, None)))
+        rc = pidrunningstat_to_status(are_we_already_running(opt.pidfile, None))
+        os._exit(rc)
 
     if opt.kill:
         if kill_pid_service(opt.pidfile, 15) < 0:
             print >>sys.stderr, "Unable to stop CMA."
-            sys.exit(1)
-        sys.exit(0)
+            os._exit(1)
+        os._exit(0)
         
+
+    # This doesn't seem to work no matter where I invoke it...
+    # But if we don't fork in daemonize_me() ('C' code), it works great...
+#    def cleanup():
+#        remove_pid_file(opt.pidfile)
+#    atexit.register(cleanup)
+#    signal.signal(signal.SIGTERM, lambda sig, stack: sys.exit(0))
+#    signal.signal(signal.SIGINT, lambda sig, stack: sys.exit(0))
+
     daemonize_me(opt.foreground, '/', opt.pidfile)
+        
+    rmpid_and_exit_on_signal(opt.pidfile, signal.SIGTERM);
+
     assimilation_openlog("cma") # Cannot appear before daemonize_me() or bind() fails -- not quite sure why...
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher

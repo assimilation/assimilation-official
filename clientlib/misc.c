@@ -32,11 +32,14 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <signal.h>
 #include <misc.h>
 
 void assimilation_logger(const gchar *log_domain, GLogLevelFlags log_level,
 			 const gchar *message, gpointer user_data);
 const char *	assim_syslogid = "assim"; /// Should be overridden with the name to appear in the logs
+FSTATIC void catch_pid_signal(int signum);
+
 
 
 /// Make us into a proper daemon.
@@ -46,9 +49,8 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 		const char* pidfile)		///<[in] Pathname of pidfile or NULL for no pidfile
 {
 	struct rlimit		nofile_limits;
-	unsigned		j;
-	int			nullfd;
 	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
+	unsigned		j;
 	getrlimit(RLIMIT_NOFILE, &nofile_limits);
 
 	// g_warning("%s.%d: pid file is %s", __FUNCTION__, __LINE__, pidfile);
@@ -61,23 +63,27 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 
 #ifdef HAS_FORK
 	if (!stay_in_foreground) {
+		int	k;
 		int	childpid;
 
 		(void)setsid();
 
-		childpid = fork();
-		if (childpid < 0) {
-			g_error("Cannot fork [%s %d]", g_strerror(errno), errno);
-			exit(1);
+		
+		for (k=0; k < 2; ++k) {
+			childpid = fork();
+			if (childpid < 0) {
+				g_error("Cannot fork [%s %d]", g_strerror(errno), errno);
+				exit(1);
+			}
+			if (childpid > 0) {
+				exit(0);
+			}
+			// Otherwise, we're the child.
+			// NOTE: probably can't drop a core in '/'
 		}
-		if (childpid > 0) {
-			exit(0);
-		}
-		// NOTE: probably can't drop a core in '/'
-		// Otherwise, we're the child.
-		chdir(dirtorunin ? dirtorunin : "/" );
 	}
 #endif
+	chdir(dirtorunin ? dirtorunin : "/" );
 	umask(027);
 	// Need to do this after forking and before closing our file descriptors
 	if (pidfile) {
@@ -92,6 +98,7 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 	}
 	// Now make sure we don't have any funky file descriptors hanging around here...
 	if (!stay_in_foreground) {
+		int			nullfd;
 		for (j=0; j < DIMOF(nullperms); ++j) {
 			close(j);
 			nullfd = open("/dev/null", nullperms[j]);
@@ -328,6 +335,27 @@ kill_pid_service(const char * pidfile, int signal)
 	}
 	unlink(pidfile);	// No harm in removing it...
 	return 0;
+}
+
+static const char *	saved_pidfile = NULL;
+void
+rmpid_and_exit_on_signal(const char * pidfile, int signal)
+{
+	struct sigaction	sigact;
+
+	if (pidfile != NULL) {
+		saved_pidfile = pidfile;
+	}
+        memset(&sigact, 0,  sizeof(sigact));
+        sigact.sa_handler = catch_pid_signal;
+        sigaction(signal, &sigact, NULL);
+}
+FSTATIC void
+catch_pid_signal(int unused_signum)
+{
+	(void)unused_signum;
+	g_unlink(saved_pidfile);
+	exit(0);
 }
 
 ///< Convert PidRunningStat to an exit code for status
