@@ -22,6 +22,8 @@ cmake_minimum_required(VERSION 2.8.5)
 project(assimilation C)
 set (PROJVERS "0.1.0")
 
+set (INITDIR "/etc/init.d")
+
 set (BUILDTOOLS ${CMAKE_CURRENT_SOURCE_DIR}/buildtools)
 set (DESCRIPTION_FILE ${BUILDTOOLS}/short_description.txt)
 file (READ ${BUILDTOOLS}/short_license.txt LICENSE_SHORT)
@@ -271,6 +273,11 @@ configure_file(${PROJECT_SOURCE_DIR}/include/projectcommon.h.in ${PROJECT_BINARY
 #
 install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${USRSHARE} USE_SOURCE_PERMISSIONS
 	PATTERN ".nfs*" EXCLUDE PATTERN "*.out" EXCLUDE PATTERN "*.txt" EXCLUDE)
+#
+#	Install our init scripts in ${INITDIR}
+#
+install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/nanoprobe COMPONENT nanoprobe-component DESTINATION ${INITDIR})
+install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/cma COMPONENT cma-component DESTINATION ${INITDIR})
 
 #
 #	This has to be the last command in the file
