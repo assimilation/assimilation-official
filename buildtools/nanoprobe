@@ -1,19 +1,20 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides: assimilation-nanoprobe
-# Required-Start: $local_fs $network
-# Required-Stop: $local_fs $network
+# Required-Start: $local_fs $remote_fs $network
+# Required-Stop: $local_fs $remote_fs $network
 # Should-Start: assimilation-cma
 # Should-Stop: assimilation-cma
 # Default-Start:  3 4 5
 # Default-Stop: 0 1 2 6
 # Short-Description: start and stop the Assimilation Monitoring System nanoprobe (distributed agent)
 # Description: The Assimilation Monitoring System provides highly-scalable, fully-distributed,
-# discovery-driven monitoring.  Or maybe it's monitoring-driven discovery ;-)
-# http://assimmon.org/
-# If a nanoprobe is run on the same system as the CMA (a recommended practice), it must
-# start after the CMA.
+#              discovery-driven monitoring.  Or maybe it's monitoring-driven discovery ;-)
+#              http://assimmon.org/
+#              If a nanoprobe is run on the same system as the CMA (a recommended practice),
+#              it must start after the CMA.
 ### END INIT INFO
+#
 # This file is part of the Assimilation Project.
 #
 # @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
@@ -71,6 +72,10 @@ case "$command" in
 		  *)	echo "$SERVICE status unknown." >&2;;
 		esac
 		exit $rc;;
+
+  restart)	($0 stop && $0 start); exit $?;;
+
+  force-reload) exit 0;;
 
   *)		echo "$0: Action $command not supported for $SERVICE" >&2
 		exit 3;;

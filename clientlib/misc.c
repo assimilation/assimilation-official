@@ -83,7 +83,10 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 		}
 	}
 #endif
-	chdir(dirtorunin ? dirtorunin : "/" );
+	if (chdir(dirtorunin ? dirtorunin : "/" )) {
+		g_warning("%s.%d: Cannot change directory to [%s]", __FUNCTION__
+		,	__LINE__, dirtorunin);
+	}
 	umask(027);
 	// Need to do this after forking and before closing our file descriptors
 	if (pidfile) {
