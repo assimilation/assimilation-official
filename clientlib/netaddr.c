@@ -667,7 +667,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	guint8*		addrptr;
 	guint		chunkindex = 0;
 	int		coloncolonindex = -1;
-	guint		coloncolonlength;
+	guint		coloncolonlength = 0;
 	char*		firstbadhexchar = NULL;
 	NetAddr*	retval;
 	const char	v4prefix[] = "ffff:";

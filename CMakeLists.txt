@@ -25,40 +25,19 @@ set (PROJVERS "0.1.0")
 set (INITDIR "/etc/init.d")
 
 set (BUILDTOOLS ${CMAKE_CURRENT_SOURCE_DIR}/buildtools)
-set (DESCRIPTION_FILE ${BUILDTOOLS}/short_description.txt)
+set (DESCRIPTION_FILE "${BUILDTOOLS}/short_description.txt")
 file (READ ${BUILDTOOLS}/short_license.txt LICENSE_SHORT)
 file (READ ${BUILDTOOLS}/long_license.txt LICENSE_LONG)
 string(STRIP "${LICENSE_SHORT}" LICENSE_SHORT)
 string(STRIP "${LICENSE_LONG}" LICENSE_LONG)
-#
-#	Definitions that Cpack likes to see...
-#
-#	For some cases, it will take *two* invocations of cpack for changes to take effect.
-#	This is *very* confusing until you come to expect it".
-#
-set (CPACK_PACKAGE_CONTACT "Assimilation Mailing List <assimilation@lists.community.tummy.com>")
-file (READ ${DESCRIPTION_FILE} CPACK_PACKAGE_DESCRIPTION_SUMMARY)
-string(STRIP "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}" CPACK_PACKAGE_DESCRIPTION_SUMMARY)
-set (SUMMARY ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
-set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${SUMMARY}")
-set (CPACK_PACKAGE_DESCRIPTION_FILE ${DESCRIPTION_FILE})
-set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README)
-set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Monitoring Project - assimmon.org")
-set (CPACK_DEBIAN_PACKAGE_SECTION "Administration Utilities")
-set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/legal/COPYING")
-set (CPACK_COMPONENT_CMA-COMPONENT_DEPENDS NANOPROBE-COMPONENT)
-set (CPACK_RPM_PACKAGE_LICENSE "${LICENSE_SHORT}")
-set (CPACK_DEB_COMPONENT_INSTALL ON)
-set (CPACK_RPM_COMPONENT_INSTALL ON)
+
 execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/select-cpack.py)
+
 #set (CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 0)
-
-set (CPACK_PACKAGE_FILE_NAME "assimilation")
-set (CPACK_PACKAGE_VERSION "${PROJVERS}")
-
 #############################################################
 # Figure out our package architecture (and system type)
 # Would this be better done by another simple python program?
+
 if (EXISTS "/bin/uname")
   execute_process (OUTPUT_VARIABLE SYSTYPE OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -s)
 
@@ -76,20 +55,44 @@ else (COMMAND uname)
   set(PROJARCH i386)
 endif (EXISTS "/bin/uname")
 
+
 if (CPACK_GENERATOR STREQUAL "DEB")
     set (NOARCH all)
-    if (PROJARCH STREQUAL "x86_64")
-        set(PROJARCH "amd64")
-    endif (PROJARCH STREQUAL "x86_64")
+    execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND dpkg --print-architecture)
 else (CPACK_GENERATOR STREQUAL "DEB")
     set (NOARCH noarch)
 endif (CPACK_GENERATOR STREQUAL "DEB")
 #############################################################
+#
+#	Definitions that Cpack likes to see...
+#
+#	For some cases, it will take *two* invocations of cpack for changes to take effect.
+#	This is *very* confusing until you come to expect it".
+#
+set (CPACK_PACKAGE_CONTACT "Assimilation Mailing List <assimilation@lists.community.tummy.com>")
+file (READ ${DESCRIPTION_FILE} CPACK_PACKAGE_DESCRIPTION_SUMMARY)
+string(STRIP "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}" CPACK_PACKAGE_DESCRIPTION_SUMMARY)
+set (SUMMARY ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
+set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${SUMMARY}")
+set (CPACK_PACKAGE_DESCRIPTION_FILE ${DESCRIPTION_FILE})
+set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README)
+set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Monitoring Project - assimmon.org")
+set (CPACK_DEBIAN_PACKAGE_SECTION "contrib/admin")
+set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${PROJARCH})
+set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/legal/COPYING")
+set (CPACK_COMPONENT_CMA-COMPONENT_DEPENDS NANOPROBE-COMPONENT)
+set (CPACK_RPM_PACKAGE_LICENSE "${LICENSE_SHORT}")
+set (CPACK_DEB_COMPONENT_INSTALL ON)
+set (CPACK_RPM_COMPONENT_INSTALL ON)
+
+set (CPACK_PACKAGE_FILE_NAME "assimilation")
+set (CPACK_PACKAGE_VERSION "${PROJVERS}")
+
 
 # Fool Cpack into generating conventional package names
 if (${CPACK_GENERATOR} STREQUAL "DEB")
-  set(CMANAME cma_${PROJVERS}_${NOARCH})
-  set(NANOPROBENAME nanoprobe_${PROJVERS}_${PROJARCH})
+  set(CMANAME cma-${PROJVERS}-${NOARCH})
+  set(NANOPROBENAME nanoprobe-${PROJVERS}-${PROJARCH})
 elseif (${CPACK_GENERATOR} STREQUAL "RPM")
 else (${CPACK_GENERATOR} STREQUAL "RPM")
   set(CMANAME cma-${PROJVERS}-${NOARCH})
@@ -191,9 +194,10 @@ CHECK_FUNCTION_EXISTS(g_get_monotonic_time  HAVE_G_GET_MONOTONIC_TIME)
 #
 #	Compiler flags for various compilers and platforms...
 #
-set (Best_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
-set (Lesser_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast-Wcast-qual")
-set (Best_CLANG_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
+set (Best_GNUCC_FLAGS "-fPIC -pie -g -O2 -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wformat-security -D_FORTIFY_SOURCE=2")
+
+set (Lesser_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast-Wcast-qual -D_FORTIFY_SOURCE=2")
+set (Best_CLANG_FLAGS "-fPIE -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
 
 set (Active_CLANG_FLAGS ${Best_CLANG_FLAGS})
 
@@ -242,6 +246,7 @@ int main(int argc, char **argv) {
     endif (GOOD_GCC_FLAGS_WORK)
   ENDIF(CMAKE_COMPILER_IS_GNUCC)
 endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
+set (CMAKE_EXE_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
 
 #
 #	Add all our various subdirectories... Order matters...

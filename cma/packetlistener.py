@@ -1,8 +1,9 @@
+#!/usr/bin/env python
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
 #
 # This file is part of the Assimilation Project.
 #
-# Copyright (C) 2011, 2012 - Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2011, 2012, 2013 - Alan Robertson <alanr@unix.sh>
 #
 #  The Assimilation software is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -16,9 +17,6 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
-#
-#
-#
 #
 
 from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
