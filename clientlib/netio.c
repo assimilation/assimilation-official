@@ -100,7 +100,11 @@ _netio_setblockio(const NetIO* self, gboolean blocking)
 	}else{
 		fcntlflags &= ~O_NONBLOCK;
 	}
-	fcntl(self->getfd(self), F_SETFL, fcntlflags);
+	if (fcntl(self->getfd(self), F_SETFL, fcntlflags) < 0) {
+		g_critical("%s.%d: fcntl(F_SETFL, 0x%x) failed: %s", __FUNCTION__, __LINE__
+		,	fcntlflags, g_strerror(errno));
+		return;
+	}
 #endif
 	if (blocking) {
 		chanflags |= G_IO_FLAG_NONBLOCK;
@@ -696,12 +700,18 @@ netio_is_dual_ipv4v6_stack(void)
 	optlen = sizeof(retval);
 	optval = TRUE;
 	if (getsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, &optval, &optlen) < 0) {
-		g_warning("getsockopt failed: errno %d", errno);
+		g_warning("%s.%d: getsockopt failed:  %s", __FUNCTION__, __LINE__
+		,	g_strerror(errno));
 		close(sockfd);
 		return FALSE;
 	}
-	// Should never happen...
-	g_return_val_if_fail(optlen == sizeof(retval), FALSE);
+	if (optlen != sizeof(retval)) {
+		// Should never happen...
+		g_warning("%s.%d: getsockopt returned incorrect optlen: %d vs %zd"
+		,	__FUNCTION__, __LINE__, optlen, sizeof(retval));
+		close(sockfd);
+		return FALSE;
+	}
 #ifdef WIN32
 	// See http://msdn.microsoft.com/en-us/library/windows/desktop/bb513665%28v=vs.85%29.aspx
 	// This might be OK for other OSes too...

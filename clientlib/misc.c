@@ -102,6 +102,12 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 		for (j=0; j < DIMOF(nullperms); ++j) {
 			close(j);
 			nullfd = open("/dev/null", nullperms[j]);
+
+			if (nullfd < 0) {
+				g_error("%s.%d: Cannot open /dev/null(!)", __FUNCTION__, __LINE__);
+				exit(1);
+			}
+
 			// Even more paranoia
 			if (nullfd != (int)j) {
 				if (dup2(nullfd, j) != (int)j) {
@@ -302,7 +308,10 @@ create_pid_file(const char * pidfile)
 	if (g_file_set_contents(pidfile, pidbuf, strlen(pidbuf), &errptr)) {
 		g_debug("%s.%d: Successfully set file %s to content [%s]"
 		,	__FUNCTION__, __LINE__, pidfile, pidbuf);
-		chmod(pidfile, 0644);
+		if (chmod(pidfile, 0644) < 0) {
+			g_warning("%s.%d: Could not chmod pid file %s to 0644", __FUNCTION__, __LINE__
+			,	pidfile);
+		}
 		created_pid_file = TRUE;
 		return TRUE;
 	}
