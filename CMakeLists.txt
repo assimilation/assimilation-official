@@ -194,7 +194,7 @@ CHECK_FUNCTION_EXISTS(g_get_monotonic_time  HAVE_G_GET_MONOTONIC_TIME)
 #
 #	Compiler flags for various compilers and platforms...
 #
-set (Best_GNUCC_FLAGS "-fPIC -pie -g -O2 -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wformat-security -D_FORTIFY_SOURCE=2")
+set (Best_GNUCC_FLAGS "-g -O2 -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wformat-security -D_FORTIFY_SOURCE=2")
 
 set (Lesser_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast-Wcast-qual -D_FORTIFY_SOURCE=2")
 set (Best_CLANG_FLAGS "-fPIE -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
@@ -247,6 +247,8 @@ int main(int argc, char **argv) {
   ENDIF(CMAKE_COMPILER_IS_GNUCC)
 endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
 set (CMAKE_EXE_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
+set (CMAKE_SHARED_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
+set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 #
 #	Add all our various subdirectories... Order matters...
