@@ -21,12 +21,16 @@
 
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cma.in ${CMAKE_CURRENT_BINARY_DIR}/cma @ONLY)
-install(PROGRAMS AssimCclasses.py AssimCtypes.py
+install(PROGRAMS AssimCclasses.py 
 	cmadb.py cma.py dispatchtarget.py droneinfo.py frameinfo.py hbring.py
-	__init__.py messagedispatcher.py packetlistener.py
+	messagedispatcher.py packetlistener.py
         COMPONENT cma-component DESTINATION ${PYINSTALL})
+install(FILES AssimCtypes.py __init__.py 
+        COMPONENT cma-component DESTINATION ${PYINSTALL}
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+	)
 
 install (PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/cma COMPONENT cma-component DESTINATION ${CMAKE_INSTALL_PREFIX}/sbin)
 
-install(DIRECTORY tests
+install(DIRECTORY tests 
         COMPONENT cma-component DESTINATION ${PYINSTALL} FILES_MATCHING PATTERN "*.py")
