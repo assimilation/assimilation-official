@@ -121,6 +121,7 @@ set(CMAKE_BUILD_TYPE debug)
 set(CMAKE_INSTALL_PREFIX /usr)
 set (LIB_DIRNAME lib${LIB_SUFFIX})
 set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/${LIB_DIRNAME}/${PROJECT_NAME})
+set (CMAKE_EXE_LINKER_FLAGS "-L ${InstallLIBS}")
 set (CLIENTLIB ${PROJECT_NAME}clientlib)
 set (SERVERLIB ${PROJECT_NAME}serverlib)
 # Figure out where to install our python code
