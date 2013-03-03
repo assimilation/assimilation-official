@@ -127,9 +127,41 @@ There is a variety of hard-coded IP addresses used in these tests.
 This can be ignored for the time being.
 However, the test binds to port 1984, so it will fail if port 1984 is not available.
 
+To run this test:
+- cd <i>root-of-binary-tree</i>/testcode
+- <i>root-of-source-tree</i>/testcode/grind.sh
+
 Various things in the glib2 library do not free all their memory at exit, so
 it is possible (likely?) that you will see things not being freed that are harmless.
 Nevertheless, please report them to the mailing list.
+
+Normal output looks something like this:
+<pre>
+** Message: Our OS supports dual ipv4/v6 sockets. Hurray!
+** Message: Joining multicast address.
+** Message: multicast join succeeded.
+** Message: CMA received startup message from nanoprobe at address [::1]:1984/1984.
+** Message: PARSED JSON: {"source":"netconfig","discovertype":"netconfig","description":"IP Network Configuration","host":"servidor","data":{"virbr0":{"ipaddrs":{"192.168.122.1/24":{"brd":"192.168.122.255","scope":"global","name":"virbr0"}},"mtu":1500,"address":"fe:54:00:9e:57:e7","carrier":true,"operstate":"up"},"vnet0":{"ipaddrs":{"fe80::fc54:ff:fe9e:57e7/64":{"scope":"link"}},"mtu":1500,"address":"fe:54:00:9e:57:e7","carrier":true,"duplex":"full","operstate":"unknown","speed":10},"eth0":{"default_gw":true,"duplex":"full","carrier":true,"speed":1000,"address":"00:1b:fc:1b:a8:73","ipaddrs":{"10.10.10.5/24":{"brd":"10.10.10.255","scope":"global","name":"eth0"},"fe80::21b:fcff:fe1b:a873/64":{"scope":"link"}},"operstate":"up","mtu":1500},"lo":{"ipaddrs":{"127.0.0.1/8":{"scope":"host","name":"lo"},"::1/128":{"scope":"host"}},"mtu":16436,"address":"00:00:00:00:00:00","carrier":true,"operstate":"unknown"}}}
+** Message: 1 JSON strings parsed.  0 errors.
+** Message: Connected to CMA.  Happiness :-D
+** Message: CMA Received switch discovery data (type 31) over the 'wire'.
+** (process:4565): WARNING **: Peer at address 10.10.10.4:1984 is dead (has timed out).
+** Message: CMA Received dead host notification (type 26) over the 'wire'.
+** Message: QUITTING NOW! (heartbeat count)
+** (process:4565): WARNING **: _fsprotocol_send1.855: Attempt to send FrameSet while link shutting down - FrameSet ignored.
+** (process:4565): WARNING **: _fsproto_fsa.222: Got a 5 input for [::1]:1984/0 while in state 0
+** (process:4565): WARNING **: _fsproto_fsa.225: Frameset given was: FrameSet(fstype=17, [[{SignFrame object at 0x0x6121da0}], [SeqnoFrame(type=4, (272464917,0,7))], [{Frame object at 0x0x6121f40}]])
+** Message: Count of 'other' pkts received:     2
+** Message: No objects left alive.  Awesome!
+</pre>
+
+The <i>CMA Received switch discovery data</i> message will not occur unless the OS
+you're running it on has a NIC directly connected to an LLDP-equipped switch
+(CDP is not yet fully supported).
+
+You may also get a variety of debug messages, depending on the version of glib2 you have
+installed.  This code has a lot of debug enabled, but later versions of glib2 suppress
+debug messages unless the the environment variable G_MESSAGES_DEBUG is set to <b>all</b>.
 
 @subsection TestifyTests testify tests
 There are a large number of tests performed on the Python code
@@ -139,8 +171,7 @@ python code, and the interfaces between the two bodies of code.
 These tests bind to port 1984, so some of them will fail if port 1984 is not available.
 
 The final line should look something like this:
-
-PASSED.  42 tests / 15 cases: 42 passed, 0 failed.  (Total test time 16.78s)
+<pre>PASSED.  42 tests / 15 cases: 42 passed, 0 failed.  (Total test time 16.78s)</pre>
 
 
 @subsection PingerTest testcode/pinger
