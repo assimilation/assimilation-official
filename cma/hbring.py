@@ -175,7 +175,7 @@ class HbRing:
             return
 
         # Clean out the next link relationships to our dearly departed drone
-        relationships = drone.node.get_relationships('all', self.ournexttype)
+        relationships = drone.node.get_relationships(neo4j.Direction.BOTH, self.ournexttype)
         # Should have exactly two link relationships (one incoming and one outgoing)
         # BUT SOMETIMES WE DON'T -- then this crashes
         assert len(relationships) == 2
