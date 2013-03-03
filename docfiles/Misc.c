@@ -4,8 +4,7 @@
 @section LicenseTerms License Terms
 The version of the source from which these documents were created is licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
 
-It is the intent of the project to provide the same product under a commercial license through the use of a
-not-yet-created contributor agreement with a copyright-sharing (<b>not</b> assignment) arrangement.
+Additionally, all contributions to the project are covered by a contributor agreement.
 
 If there are any source files which are not marked in this fashion, it is a clerical error.
 Those files are also provided under these same terms.
