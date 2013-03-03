@@ -50,8 +50,10 @@ Contributor agreements are provided for a few reasons:
 - Create a single legal entity that could easily enforce terms of the licenses.
 - Ensure that no one is submitting code that they know to be covered by patents, and dealing with the cases where there might be such patents.
 - Provide for the ability to change licenses in the future.  Depending on the future legal landscape, it might prove desirable
-  to switch licenses at some time in the future.  In addition, it creates the possibility to offer supported commercial versions
-  of the project under a different license.
+  to switch licenses at some time in the future.
+  In addition, it creates the possibility to offer supported commercial versions
+  of the project under a different license in order to provide better support for the project
+  and its users.
 
 @section ContributorAgreement The Assimilation Contributor Agreement
 The Assimilation project's contributor agreements are borrowed from the <a href="http://harmonyagreements.org">Harmony Project</a>
