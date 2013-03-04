@@ -21,6 +21,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <netaddr.h>
@@ -57,6 +58,7 @@
 
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
 gboolean	exit_when_connsdown(gpointer);
+void		usage(const char * cmdname);
 ReliableUDP*	transport = NULL;
 int		pongcount = 2;
 int		maxpingcount = 10;
@@ -189,6 +191,19 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 }
 
 
+void
+usage(const char * cmdname)
+{
+	const char *	cmd = strrchr(cmdname, '/');
+	if (cmd != NULL) {
+		cmd++;
+	}else{
+		cmd = cmdname;
+	}
+	fprintf(stderr, "usage: %s cmd ip-address1 [ip-address ...]", cmd);
+	exit(1);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -202,6 +217,10 @@ main(int argc, char **argv)
 	NetGSource*	netpkt;
 	AuthListener*	act_on_packets;
 	int		liveobjcount;
+
+	if (argc < 2) {
+		usage(argv[0]);
+	}
 
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	proj_class_incr_debug(NULL);
