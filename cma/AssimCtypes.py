@@ -2916,13 +2916,10 @@ if hasattr(_libs['libassimilationclientlib.so'], 'kill_pid_service'):
     kill_pid_service.restype = c_int
 
 # /home/alanr/monitor/src/include/misc.h: 51
-for _lib in _libs.itervalues():
-    if not hasattr(_lib, 'rmpid_and_exit_on_signal'):
-        continue
-    rmpid_and_exit_on_signal = _lib.rmpid_and_exit_on_signal
+if hasattr(_libs['libassimilationclientlib.so'], 'rmpid_and_exit_on_signal'):
+    rmpid_and_exit_on_signal = _libs['libassimilationclientlib.so'].rmpid_and_exit_on_signal
     rmpid_and_exit_on_signal.argtypes = [String, c_int]
     rmpid_and_exit_on_signal.restype = None
-    break
 
 # /home/alanr/monitor/src/include/nanoprobe.h: 32
 class struct__NanoHbStats(Structure):
