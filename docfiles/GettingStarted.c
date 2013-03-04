@@ -1,6 +1,15 @@
 /**
 @page GettingStarted Getting Started - Installation and Configuration
 
+This is a basic guide to installing, testing, configuring and using the Assimilation Monitoring
+system.
+Please let the<a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
+know if you try this out, if you run into problems, or if it works for you.
+
+You can subscribe to the mailing list <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">here</a>
+and send emails to <a href="mailto:assimilation@lists.community.tummy.com">assimilation@lists.community.tummy.com</a>.
+Please let us know how you're doing on this!
+
 A normal installation consists of one instance of a CMA (collective management authority)
 and <i>n+1</i> nanoprobes.  Only one machine runs the CMA software, but every machine being
 monitored (including the CMA itself) runs a copy of the nanoprobe daemon.
@@ -170,15 +179,57 @@ These regression tests also significantly exercises the C code underlying the
 python code, and the interfaces between the two bodies of code.
 These tests bind to port 1984, so some of them will fail if port 1984 is not available.
 
+To run these tests, execute these steps:
+- <tt>cd <i><source-code-directory></i>/cma</tt>
+- <tt>testify tests</tt>
+
 The final line should look something like this:
 <pre>PASSED.  42 tests / 15 cases: 42 passed, 0 failed.  (Total test time 16.78s)</pre>
 
+If this code crashes (doesn't complete the tests), it is possible that the python bindings
+are out of sync with your platform.  The <i>ctypesgen</i> program
+can be run to correct this.  Send email to the mailing list for more details.
+
 
 @subsection PingerTest testcode/pinger
-The pinger program exercies the reliable UDP retransmission code in the
+The pinger program exercises the reliable UDP retransmission code in the
 project.  It is hard-wired to use port 19840.  Hope that works for you.
-It sends a number of packets with 5% simulated packet reception loss,
+It sends a number of packets with 5% simulated packet reception loss
 and 5% simulated packet transmission loss.  This is 9.75% overall packet loss rate.
+
+To run this test:
+- <tt><i>root-of-binary-tree</i>/testcode/pinger ::!</tt>
+
+Because it has a lot of debug enabled, debug might or might not come out by default
+depending on what version of glibc2 you have installed.
+Nevertheless, at the end you should be able to see these messages:
+<pre>
+Received a PING packet (seq 7) from [::1]:19840 ========================
+Sending a PONG(2)/PING set to [::1]:19840
+Received a PONG packet from [::1]:19840
+Received a PONG packet from [::1]:19840
+Received a PING packet (seq 8) from [::1]:19840 ========================
+Sending a PONG(2)/PING set to [::1]:19840
+Received a PONG packet from [::1]:19840
+** Message: _netio_recvapacket: Threw away 66 byte input packet
+** Message: _netio_recvapacket: Threw away 74 byte input packet
+Received a PONG packet from [::1]:19840
+Received a PING packet (seq 9) from [::1]:19840 ========================
+Sending a PONG(2)/PING set to [::1]:19840
+Received a PONG packet from [::1]:19840
+Received a PONG packet from [::1]:19840
+** Message: Shutting down on ping count.
+Received a PING packet (seq 10) from [::1]:19840 ========================
+Sending a PONG(2)/PING set to [::1]:19840
+Received a PONG packet from [::1]:19840
+Received a PONG packet from [::1]:19840
+ALL CONNECTIONS SHUT DOWN! calling g_main_quit()
+** Message: No objects left alive.  Awesome!
+</pre>
+
+Because the packet loss is random, the various <i>Threw away...</i> messages
+will likely be in different places.
+But it <i>should</i> stop, and it should end with the <i>Awesome!</i> message.
 
 
 @section ConfiguringTheServices Configuring the Services
@@ -187,21 +238,21 @@ under most circumstances.  If your network does not support multicast,
 then you will have to invoke the nanoprobes with an argument
 specifying the address of the CMA.
 By default communication takes place on UDP port 1984.
-If port 1984 is not available to the nanoprobes, it will bind
-to an ephemeral port.  This happens every time when
-starting a nanoprobe on the CMA - since the CMA has already bound
-to that address.
+If port 1984 is not available to the nanoprobes, it will bind to an ephemeral port.
 
+This happens every time when starting a nanoprobe on the CMA -
+since the CMA has already bound to that port.
 
 @section ActivatingTheServices Activating The Services
 As of this writing, the packages we install do not activate the services, 
 so you will need to activate them manually. Sorry :-(
 
-Keep in mind that you need to install and start all the services on the CMA,
-but you will only need to install and start the nanoprobe service on all
-other machines.
+@subsection StartingNeo4j Starting the Neo4j Database
+- <tt>service neo4j-service start</tt>
 
-- Start neo4j -- <tt>service neo4j-service start</tt>
+@subsection StartingAssimilationCode Starting the Assimilation Code
+Keep in mind that you need to install and start nanoprobes on every machine,
+but you should only to start the <i>cma</i> service on one machine.
 
 On Debian-based systems:
 - <tt>/usr/sbin/update-rc.d nanoprobe defaults</tt>
@@ -226,5 +277,122 @@ On LSB-compliant systems
 - <tt>/usr/lib/lsb/install_initd cma</tt>
 - <tt>service cma start</tt>
 - <tt>service nanoprobe start</tt>
+
+If for some reason while playing around, you need to reinitialize the database, then next time
+start the CMA with the --erasedb flag.
+
+@section ReadingTheLogs Reading System Logs
+The nanoprobe code and the CMA code operate as normal daemons.
+That is, they put themselves in the background and everything worth knowing is put into
+the system logs.
+
+Below are a few interesting messages which you can expect to see,
+along with explanations of what they mean.
+
+@subsection CMAStartUpMessages
+<pre>
+Mar  3 14:20:45 servidor cma INFO: Listening on: 0.0.0.0:1984
+Mar  3 14:20:45 servidor cma INFO: Requesting return packets sent to: 10.10.10.5:1984
+Mar  3 14:20:45 servidor cma INFO: Starting CMA version 0.1.0 - licensed under The GNU General Public License Version 3
+</pre>
+
+The CMA has started up, is listening to ANY port 1984, and is telling nanoprobes to send their
+packets to address 10.10.10.5, port 1984.  Currently messages printed from the CMA by the C code have the process id
+in them, and messages from the python code do not.
+
+@subsection NanoprobeStartUpMessages
+<pre>
+Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: CMA address: 224.0.2.5:1984
+Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: Local address: [::]:45714
+Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: Starting version 0.1.0: licensed under The GNU General Public License Version 3
+Mar  3 14:23:17 servidor cma INFO: Drone servidor registered from address [::ffff:10.10.10.5]:45714 (10.10.10.5:45714)
+Mar  3 14:23:17 servidor nanoprobe[17660]: NOTICE: Connected to CMA.  Happiness :-D
+Mar  3 14:23:19 servidor cma INFO: Stored arpcache JSON data from servidor without processing.
+Mar  3 14:23:20 servidor cma INFO: Stored cpu JSON data from servidor without processing.
+Mar  3 14:23:21 servidor cma INFO: Stored OS JSON data from servidor without processing.
+</pre>
+This means that a nanoprobe has stared up, process id 17660, and will try and locate the CMA by sending a packet
+to the (multicast) address 224.0.2.5, port 1984.
+It is listening to packets sent to ANY address, port 45714.
+The port used is 45714 instead of 1984 because this nanoprobe is on the same machine as the CMA,
+which already bound to [::]:1984.  Nanoprobes on other machines will normally show 
+<tt>Local address: [::]:1984</tt> instead.
+The "Stored ... JSON data from ... without processing" messages mean that we received new (different)
+information for this discovery module than we had in the database, and that we
+just stored it.
+These particular discovery items have no special actions taken when they arrive - they're just stored
+in the database.
+
+@subsection NanoprobeShutdownMessages
+The messages below were the result of a <tt>service nanoprobe stop</tt> command.
+<pre>
+Mar  3 14:30:55 servidor nanoprobe[18879]: NOTICE: nanoprobe: exiting on SIGTERM.
+Mar  3 14:30:55 servidor cma INFO: System servidor at [::ffff:10.10.10.5]:45714 reports it has been gracefully shut down.
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of heartbeats:                       0
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of deadtimes:                        0
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of warntimes:                        0
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of comealives:                       0
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of martians:                         0
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of LLDP/CDP pkts sent:               1
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of LLDP/CDP pkts received:          27
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of recvfrom calls:                  28
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of pkts read:                       13
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of framesets read:                  13
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of sendto calls:                    14
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of pkts written:                    14
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of framesets written:                0
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of reliable framesets sent:         10
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of reliable framesets recvd:         2
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of ACKs sent:                        3
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of ACKs recvd:                      10
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of 'other' pkts received:            0
+Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: No objects left alive.  Awesome!
+</pre>
+
+The nanoprobe announced it was exiting, the CMA acknowledged that the system was shutting down
+gracefully, the nanoprobe then printed out various statistics, and finally ended
+with the <i>Awesome!</i> message indicating no memory leaks were observed.
+
+@subsection NanoprobeCrashMessages
+The messages below occurred when the system running a nanoprobe or the nanoprobe itself crashed.
+
+@subsection CMACrashMessages
+If you should see the CMA misbehave, it will probably either disappear with a crash
+(indicating a problem in the interfaces to the C code), or it will catch an
+exception handling a message from a client.
+The messages below are typical of what you would see should this unfortunate event occur:
+<pre>
+Mar  3 14:50:08 servidor cma CRITICAL: MessageDispatcher exception [Relationship direction must be an integer value] occurred while handling [HBDEAD] FrameSet from [::ffff:10.10.10.2]:1984
+Mar  3 14:50:08 servidor cma INFO: FrameSet Contents follows (1 lines):
+Mar  3 14:50:08 servidor cma INFO: HBDEAD:{SIG: {SignFrame object at 0x0x1e56680}, pySeqNo(REQID: (0, 1)), IPPORT: IpPortFrame(13, [::ffff:10.10.10.16]:1984), END: {Frame object at 0x0x1edd890}}
+Mar  3 14:50:08 servidor cma INFO: ======== Begin HBDEAD Message Relationship direction must be an integer value Exception Traceback ========
+Mar  3 14:50:08 servidor cma INFO: messagedispatcher.py.51:dispatch: self.dispatchtable[fstype].dispatch(origaddr, frameset)
+Mar  3 14:50:08 servidor cma INFO: dispatchtarget.py.61:dispatch: deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
+Mar  3 14:50:08 servidor cma INFO: droneinfo.py.269:death_report: hbring.HbRing.ringnames[ringname].leave(self)
+Mar  3 14:50:08 servidor cma INFO: hbring.py.178:leave: relationships = drone.node.get_relationships('all', self.ournexttype)
+Mar  3 14:50:08 servidor cma INFO: neo4j.py.1190:get_relationships: uri = self._typed_relationships_uri(direction, types)
+Mar  3 14:50:08 servidor cma INFO: neo4j.py.1161:_typed_relationships_uri: raise ValueError("Relationship direction must be an integer value")
+Mar  3 14:50:08 servidor cma INFO: ======== End HBDEAD Message Relationship direction must be an integer value Exception Traceback ========
+</pre>
+
+This particular set of messages were caused by a mismatch between the CMA code and the version of the <i>py2neo</i> code.
+Note the <b>CRITICAL: MessageDispatcher exception</b> message that started it all off.
+The next line contains a dump of the message that triggered the falure, followed by 
+a stack trace formatted to be passably readable in syslog.
+
+
+@section EnablingDebugging Enabling Debugging
+Both the CMA and the nanoprobe process take a <b>-d</b> flag to increment the debug level
+by one.  Currently debug values between 1 and 5 produce increasing levels of detail.
+In addition, while the nanoprobe code is running, its debug level can be modified
+at run time by sending it signals.  If you send it a <b>SIGUSR1</b> signal
+the overall debug level will be raised by one.  If you send it a <b>SIGUSR2</b> signal,
+the overall debug level will be lowered by one - unless it is already at zero, in which
+case the <b>SIGUSR2</b> will be ignored.
+
+@section GettingStartedConclusion Conclusion
+If you have executed all these steps, and everything has worked, then congratulations, everything is working!
+Please let the<a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
+know!
 
 */
