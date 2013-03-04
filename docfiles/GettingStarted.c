@@ -102,7 +102,7 @@ To make the documentation for the project, issue this command
 This will create all the documentation on the <i>assimmon.org</i> web site.
 
 @section InstallingTheCode Installing the Code
-Every machine you wish to discover and monitor, including the CMA must have the nanoprobe
+Every machine you wish to discover and monitor, including the CMA, must have the nanoprobe
 code installed on it.  The CMA code makes extensive use of the libraries created
 for the nanoprobes.
 
@@ -394,7 +394,7 @@ case the <b>SIGUSR2</b> will be ignored.
 
 @section GettingStartedConclusion Conclusion
 If you have executed all these steps, and everything has worked, then congratulations, everything is working!
-Please let the<a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
+Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
 know!
 
 */
