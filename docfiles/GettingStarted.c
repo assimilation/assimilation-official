@@ -289,7 +289,7 @@ the system logs.
 Below are a few interesting messages which you can expect to see,
 along with explanations of what they mean.
 
-@subsection CMAStartUpMessages
+@subsection CMAStartUpMessages CMA startup messages
 <pre>
 Mar  3 14:20:45 servidor cma INFO: Listening on: 0.0.0.0:1984
 Mar  3 14:20:45 servidor cma INFO: Requesting return packets sent to: 10.10.10.5:1984
@@ -300,7 +300,7 @@ The CMA has started up, is listening to ANY port 1984, and is telling nanoprobes
 packets to address 10.10.10.5, port 1984.  Currently messages printed from the CMA by the C code have the process id
 in them, and messages from the python code do not.
 
-@subsection NanoprobeStartUpMessages
+@subsection NanoprobeStartUpMessages Nanoprobe Startup Messages
 <pre>
 Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: CMA address: 224.0.2.5:1984
 Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: Local address: [::]:45714
@@ -323,7 +323,7 @@ just stored it.
 These particular discovery items have no special actions taken when they arrive - they're just stored
 in the database.
 
-@subsection NanoprobeShutdownMessages
+@subsection NanoprobeShutdownMessages Nanoprobe Shutdown Messages
 The messages below were the result of a <tt>service nanoprobe stop</tt> command.
 <pre>
 Mar  3 14:30:55 servidor nanoprobe[18879]: NOTICE: nanoprobe: exiting on SIGTERM.
@@ -353,10 +353,10 @@ The nanoprobe announced it was exiting, the CMA acknowledged that the system was
 gracefully, the nanoprobe then printed out various statistics, and finally ended
 with the <i>Awesome!</i> message indicating no memory leaks were observed.
 
-@subsection NanoprobeCrashMessages
+@subsection NanoprobeCrashMessages Nanoprobe Crash Messages
 The messages below occurred when the system running a nanoprobe or the nanoprobe itself crashed.
 
-@subsection CMACrashMessages
+@subsection CMACrashMessages CMA Crash Messages
 If you should see the CMA misbehave, it will probably either disappear with a crash
 (indicating a problem in the interfaces to the C code), or it will catch an
 exception handling a message from a client.
