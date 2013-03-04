@@ -109,13 +109,15 @@ for the nanoprobes.
 @subsection InstallingTheNanoprobeCode Installing the Nanoprobe code
 This is how to install the nanoprobe code on Debian-based systems:
 - <tt>sudo dpkg-install assimilation-nanoprobe-<i>version-architecture</i>.deb</tt>
+
 This is how to install the nanoprobe code on RPM-based systems
 - <tt>sudo rpm --install assimilation-nanoprobe-<i>version-architecture</i>.rpm</tt>
 
 @subsection InstallingTheCMA Installing the CMA Code
-This is how to install the nanoprobe code on Debian-based systems:
+This is how to install the CMA code on Debian-based systems:
 - <tt>sudo dpkg-install assimilation-cma-<i>version-architecture</i>.deb</tt>
-This is how to install the nanoprobe code on RPM-based systems
+
+This is how to install the CMA code on RPM-based systems
 - <tt>sudo rpm --install assimilation-cma-<i>version-architecture</i>.rpm</tt>
 
 If you are unable to build an RPM or DEB package, you can use <tt>sudo make install</tt>.
@@ -198,7 +200,7 @@ It sends a number of packets with 5% simulated packet reception loss
 and 5% simulated packet transmission loss.  This is 9.75% overall packet loss rate.
 
 To run this test:
-- <tt><i>root-of-binary-tree</i>/testcode/pinger ::!</tt>
+- <tt><i>root-of-binary-tree</i>/testcode/pinger ::1</tt>
 
 Because it has a lot of debug enabled, debug might or might not come out by default
 depending on what version of glibc2 you have installed.
