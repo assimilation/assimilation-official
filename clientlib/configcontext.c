@@ -24,8 +24,10 @@
 #include <memory.h>
 #include <stdlib.h>
 
-FSTATIC void	_configcontext_ref(ConfigContext* self);
-FSTATIC void	_configcontext_unref(ConfigContext* self);
+FSTATIC void	_configcontext_ref(gpointer self);
+FSTATIC void	_configcontext_unref(gpointer self);
+FSTATIC void	_configcontext_elem_ref(ConfigValue*	elem);
+FSTATIC void	_configcontext_elem_unref(ConfigValue*	elem);
 FSTATIC void	_configcontext_finalize(AssimObj* self);
 FSTATIC enum ConfigValType	_configcontext_gettype(ConfigContext*, const char *name);
 FSTATIC GSList*	_configcontext_keys(ConfigContext*);
@@ -63,6 +65,9 @@ FSTATIC ConfigValue* _configcontext_value_new(enum ConfigValType);
 FSTATIC void _configcontext_value_finalize(gpointer vself);
 FSTATIC void _key_free(gpointer vself);
 
+static void(*assim_ref)(gpointer) = NULL;
+static void(*assim_unref)(gpointer) = NULL;
+
 /**
  * @defgroup ConfigContext ConfigContext class
  * A base class for remembering configuration values of various types in a hash table
@@ -70,6 +75,95 @@ FSTATIC void _key_free(gpointer vself);
  * @{
  * @ingroup C_Classes
  */
+
+// 'Ref' a ConfigContext object
+FSTATIC void
+_configcontext_ref(gpointer gself)
+{
+	ConfigContext*	self = CASTTOCLASS(ConfigContext, gself);
+	GHashTableIter	iter;
+	gpointer	gkey;
+	gpointer	gvalue;
+	g_hash_table_iter_init(&iter, self->_values);
+
+	while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
+		ConfigValue*	elem = CASTTOCLASS(ConfigValue, gvalue);
+		_configcontext_elem_ref(elem);
+	}
+	assim_ref(gself);
+}
+
+// 'ref' a @ref ConfigContext ConfigValue object - recursively
+FSTATIC void
+_configcontext_elem_ref(ConfigValue*	val)
+{
+	switch (val->valtype) {
+		case CFG_CFGCTX:
+			val->u.cfgctxvalue->baseclass.ref(&val->u.cfgctxvalue->baseclass);
+			break;
+		case CFG_NETADDR:
+			val->u.addrvalue->baseclass.ref(&val->u.addrvalue->baseclass);
+			break;
+		case CFG_FRAME:
+			val->u.framevalue->baseclass.ref(&val->u.framevalue->baseclass);
+			break;
+		case CFG_ARRAY: {
+				GSList*		this;
+
+				for (this = val->u.arrayvalue; this; this = this->next) {
+					ConfigValue*	val = CASTTOCLASS(ConfigValue, this->data);
+					_configcontext_elem_ref(val);
+				}
+			}
+			break;
+		default:
+			break;
+	}
+}
+
+// Unref a ConfigContext object
+FSTATIC void
+_configcontext_unref(gpointer gself)
+{
+	ConfigContext*	self = CASTTOCLASS(ConfigContext, gself);
+	GHashTableIter	iter;
+	gpointer	gkey;
+	gpointer	gvalue;
+	g_hash_table_iter_init(&iter, self->_values);
+
+	while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
+		ConfigValue*	elem = CASTTOCLASS(ConfigValue, gvalue);
+		_configcontext_elem_unref(elem);
+	}
+	assim_unref(gself);
+}
+
+// 'unref' a @ref ConfigContext ConfigValue object - potentially recursively
+FSTATIC void
+_configcontext_elem_unref(ConfigValue*	val)
+{
+	switch (val->valtype) {
+		case CFG_CFGCTX:
+			val->u.cfgctxvalue->baseclass.unref(&val->u.cfgctxvalue->baseclass);
+			break;
+		case CFG_NETADDR:
+			val->u.addrvalue->baseclass.unref(&val->u.addrvalue->baseclass);
+			break;
+		case CFG_FRAME:
+			val->u.framevalue->baseclass.unref(&val->u.framevalue->baseclass);
+			break;
+		case CFG_ARRAY: {
+				GSList*		this;
+				for (this = val->u.arrayvalue; this; this = this->next) {
+					ConfigValue*	val = CASTTOCLASS(ConfigValue, this->data);
+					_configcontext_elem_unref(val);
+				}
+			}
+			break;
+		default:
+			break;
+	}
+}
 
 FSTATIC void
 _key_free(gpointer vself)
@@ -90,6 +184,10 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 		objsize = sizeof(ConfigContext);
 	}
 	baseobj = assimobj_new(objsize);
+	if (assim_ref == NULL) {
+		assim_ref = baseobj->ref;
+		assim_unref = baseobj->unref;
+	}
 	if (NULL == baseobj) {
 		goto errout;
 	}
@@ -112,6 +210,8 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->keys	=	_configcontext_keys;
 	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, _key_free
 					,		      _configcontext_value_finalize);
+	//baseobj->ref		=	_configcontext_ref;
+	//baseobj->unref	=	_configcontext_unref;
 	baseobj->_finalize	=	_configcontext_finalize;
 	baseobj->toString	=	_configcontext_toString;
 	return newcontext;

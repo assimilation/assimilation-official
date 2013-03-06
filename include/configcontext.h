@@ -48,7 +48,7 @@ enum ConfigValType {
 	CFG_INT64,	// Signed 64-bit Integer
 	CFG_STRING,	// String
 	CFG_FLOAT,	// Floating point
-	CFG_ARRAY,	// JSON Array -- not yet implemented.
+	CFG_ARRAY,	// JSON Array
 	CFG_CFGCTX,	// ConfigContext (recursive) object
 	CFG_NETADDR,	// NetAddr object
 	CFG_FRAME,	// Frame object

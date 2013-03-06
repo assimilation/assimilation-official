@@ -263,14 +263,21 @@ class CMAdb:
                    drone):          ##< Drone we are running on
         '''Create a new ipproc object from its JSON discovery data'''
         table = {}
+        if CMAdb.debug: CMAdb.log.debug('Entering new_ipproc()');
+        if CMAdb.debug: CMAdb.log.debug('new_ipproc(): keys = %s' % jsonobj.keys())
         for key in jsonobj.keys():
+            if CMAdb.debug: CMAdb.log.debug('new_ipproc(): processing key = %s' % key)
             type = jsonobj.gettype(key)
+            if CMAdb.debug: CMAdb.log.debug('new_ipproc(): key is of type %s' % type)
+            if CMAdb.debug and type == CFG_ARRAY: CMAdb.log.debug('new_ipproc(): key %s is an array' % (key))
             if not (type == CFG_BOOL or type == CFG_INT64 or type == CFG_STRING
             or      type == CFG_FLOAT or type == CFG_ARRAY):
                 continue
             if jsonobj[key] is None: continue
+            if CMAdb.debug and type == CFG_ARRAY: CMAdb.log.debug('jsonobj[%s] is NOT None' % (key))
             # We assume any arrays are of same-typed simple objects (presumably Strings)
             # This is a reasonable assumption for our process discovery data
+            if CMAdb.debug: CMAdb.log.debug('new_ipproc(): jsonobj[%s] = %s' % (key, jsonobj[key]))
             table[key] = jsonobj[key]
         ipproc = self.node_new(CMAdb.NODE_ipproc, name, unique=False, **table)
         self.db.get_or_create_relationships((ipproc, CMAdb.REL_runningon, drone),)
