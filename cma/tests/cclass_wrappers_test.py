@@ -21,6 +21,7 @@
 #
 _suites = ['all', 'cclass']
 import sys
+import traceback
 sys.path.append("../cma")
 from testify import *
 
@@ -711,8 +712,17 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(str(foo.keys()), "['JeanLuc', 'arthur', 'important', 'integer', 'seven']")
 
     def test_ConfigContext_array(self):
+        if DEBUG: print >>sys.stderr, "===============textConfigContext_array(pyConfigContextTest)"
         array1str = '{"a":[1,2,3,4,"a",{"b":true},[5,6,7,8,3.14]]}'
         array1config = pyConfigContext(array1str)
+        self.assertEqual(array1str, str(array1config))
+
+    def test_ConfigContext_array_with_netaddr(self):
+        'This problem actually occurred - hence the test case...'
+        if DEBUG: print >>sys.stderr, "===============textConfigContext_array_with_netaddr(pyConfigContextTest)"
+        array1str = '{"a":["1.2.3.4",1,2,3,4,"a",{"b":true},[5,6,7,8,3.14,"10.10.10.1"],"::1"]}'
+        array1config = pyConfigContext(array1str)
+        foo = array1config['a']
         self.assertEqual(array1str, str(array1config))
 
 
@@ -755,7 +765,7 @@ class pyNetIOudpTest(TestCase):
 
     def test_receiveandsend(self):
         if DEBUG: print >>sys.stderr, "========================test_receiveandsend(pyNetIOudpTest)"
-        home = pyNetAddr((127,0,0,1),1984)
+        home = pyNetAddr((127,0,0,1), 1984)
         anyaddr = pyNetAddr((0,0,0,0),1984)
         fs = pyFrameSet(801)
         #flist = (pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),

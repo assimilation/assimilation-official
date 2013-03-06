@@ -79,8 +79,9 @@ class DroneInfo:
                 return
         self.node[jsonname] = jsontext
         if dtype in DroneInfo._JSONprocessors:
-            if CMAdb.debug: CMAdb.log.debug('Processed %s JSON data from %s into graph.' % (dtype, designation))
+            if CMAdb.debug: CMAdb.log.debug('Processing %s JSON data from %s into graph.' % (dtype, designation))
             DroneInfo._JSONprocessors[dtype](self, jsonobj)
+            if CMAdb.debug: CMAdb.log.debug('Processed %s JSON data from %s into graph.' % (dtype, designation))
         else:
             CMAdb.log.info('Stored %s JSON data from %s without processing.' % (dtype, designation))
 
@@ -136,17 +137,27 @@ class DroneInfo:
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
         primaryip = None
+        if CMAdb.debug: CMAdb.log.debug('add_tcplisteners(data=%s)' % data)
+        if CMAdb.debug: CMAdb.log.debug('Calling get_related_nodes(%d, %s)' %(neo4j.Direction.INCOMING, CMAdb.REL_iphost))
         allourips = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_iphost)
+        if CMAdb.debug: CMAdb.log.debug('Processing keys(%s)' % data.keys())
         for procname in data.keys(): # List of names of processes...
+            if CMAdb.debug: CMAdb.log.debug('Processing key(%s)' % procname)
             procinfo = data[procname]
+            if CMAdb.debug: CMAdb.log.debug('Processing procinfo(%s)' % procinfo)
             ipproc = CMAdb.cdb.new_ipproc(procname, procinfo, self.node)
+            if CMAdb.debug: CMAdb.log.debug('procinfo(%s) - ipproc created=> %s' % (procinfo, ipproc))
             if 'listenaddrs' in procinfo:
+                if CMAdb.debug: CMAdb.log.debug('listenaddrs is in (%s)' % procinfo)
                 tcpipportinfo = procinfo['listenaddrs']
                 for tcpipport in tcpipportinfo.keys():
+                    if CMAdb.debug: CMAdb.log.debug('Processing tcpipport(listenaddrs)(%s)' % tcpipport)
                     self.add_tcpipports(True, tcpipportinfo[tcpipport], ipproc, allourips)
             if 'clientaddrs' in procinfo:
+                if CMAdb.debug: CMAdb.log.debug('clientaddrs is in (%s)' % procinfo)
                 tcpipportinfo = procinfo['clientaddrs']
                 for tcpipport in tcpipportinfo.keys():
+                    if CMAdb.debug: CMAdb.log.debug('Processing tcpipport(clientaddrs)(%s)' % tcpipport)
                     self.add_tcpipports(False, tcpipportinfo[tcpipport], ipproc, None)
 
     def add_tcpipports(self, isserver, jsonobj, ipproc, allourips):

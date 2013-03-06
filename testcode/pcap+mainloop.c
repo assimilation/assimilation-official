@@ -61,7 +61,7 @@
 int		expected_dead_count = 1;
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
-extern GMainLoop*	mainloop;
+extern GMainLoop*mainloop;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
@@ -233,11 +233,11 @@ main(int argc, char **argv)
 	PacketDecoder*	decoder = nano_packet_decoder();
 	AuthListener*	listentonanoprobes;
 
-
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
                 g_debug("Max packet count is "FMT_64BIT"d", maxpkts);

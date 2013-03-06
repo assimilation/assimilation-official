@@ -258,7 +258,6 @@ class pyAssimObj:
         else:
             self._Cstruct = assimobj_new(0)
         #print 'ASSIMOBJ:init: %s' % (Cstruct)
-        #CCref(Cstruct)
 
     def cclassname(self):
         return proj_class_classname(self._Cstruct)
@@ -282,19 +281,20 @@ class pyAssimObj:
         base=self._Cstruct[0]
         # I have no idea why the type(base) is not Frame doesn't work here...
         # This 'hasattr' construct only works because we are a base C-class
-        while (hasattr(base, 'baseclass')):
-            base=base.baseclass
         global badfree
         badfree=0
-        base.unref(self._Cstruct)
+        CCunref(self._Cstruct)
         if badfree != 0:
             print >>sys.stderr, "Attempt to free something already freed(%s)" % str(self._Cstruct)
             traceback.print_stack()
             badfree = 0
         self._Cstruct = None
 
-    def _ref(self):
-        CCref(self)
+    def refcount(self):
+        base = self._Cstruct[0]
+        while (hasattr(base, 'baseclass')):
+            base=base.baseclass
+        return base._refcount
 
 class pyNetAddr(pyAssimObj):
     '''This class represents the Python version of our C-class @ref NetAddr - represented by the struct _NetAddr.
@@ -901,20 +901,18 @@ class pyConfigContext(pyAssimObj):
         'Initializer for pyConfigContext'
         self._Cstruct = None # Keep error legs from complaining.
         if not Cstruct:
-            if not Cstruct  and (isinstance(init, str) or isinstance(init, unicode)):
+            if (isinstance(init, str) or isinstance(init, unicode)):
                 Cstruct = configcontext_new_JSON_string(str(init))
-                #CCref(Cstruct)
                 if not Cstruct:
                     raise ValueError('Bad JSON [%s]' % str(init))
                 init = None
             else:
                 Cstruct=configcontext_new(0)
-        else:
-            CCref(Cstruct)
         pyAssimObj.__init__(self, Cstruct=Cstruct)
         if init is not None:
             for key in init.keys():
                 self[key] = init[key]
+
 
     def getint(self, name):
         'Return the integer associated with "name"'
@@ -961,6 +959,7 @@ class pyConfigContext(pyAssimObj):
         caddr = self._Cstruct[0].getconfig(self._Cstruct, name)
         if caddr:
             caddr=cast(caddr, cClass.ConfigContext)
+            CCref(caddr)
             return pyConfigContext(Cstruct=caddr)
         raise IndexError("No such ConfigContext value [%s]" % name)
 
@@ -983,13 +982,14 @@ class pyConfigContext(pyAssimObj):
         'Return the array value associated with "name"'
         l=  self._Cstruct[0].getarray(self._Cstruct, name)
         curlist = cast(self._Cstruct[0].getarray(self._Cstruct, name), cClass.GSList)
-        #curlist = cast(POINTER(GSList), self._Cstruct[0].getarray(self._Cstruct, name))
         ret = []
         while curlist:
             #cfgval = pyConfigValue(cast(cClass.ConfigValue, curlist[0].data).get())
             data = cast(curlist[0].data, cClass.ConfigValue)
             cfgval = pyConfigValue(data).get()
             ret.append(cfgval)
+            if isinstance(cfgval, pyAssimObj):
+                CCunref(cfgval._Cstruct)
             curlist=g_slist_next(curlist)
         return ret
 
@@ -1023,6 +1023,7 @@ class pyConfigContext(pyAssimObj):
         'Return a value associated with "name"'
         ktype = self.gettype(name)
         if ktype == CFG_EEXIST:
+            traceback.print_stack()
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
         if ktype == CFG_CFGCTX:
             return self.getconfig(name)
@@ -1038,7 +1039,6 @@ class pyConfigContext(pyAssimObj):
             return self.getbool(name)
         if ktype == CFG_ARRAY:
             return self.getarray(name)
-            return None
         return None
 
     def __setitem__(self, name, value):
@@ -1069,20 +1069,26 @@ class pyConfigValue:
         if vtype == CFG_FLOAT:
             return float(self._Cstruct[0].u.floatvalue)
         if vtype == CFG_CFGCTX:
+            CCref(self._Cstruct[0].u.cfgctxvalue)
             return pyConfigContext(Cstruct=self._Cstruct[0].u.cfgctxvalue)
         if vtype == CFG_NETADDR:
-            return pyNetAddr(None, Cstruct=self._Cstruct[0].u.addrvalue)
+            ret =  pyNetAddr(None, Cstruct=self._Cstruct[0].u.addrvalue)
+            CCref(ret._Cstruct)
+            return ret
         if vtype == CFG_FRAME:
             return pyFrame.Cstruct2Frame(self._Cstruct[0].u.framevalue)
         if vtype == CFG_ARRAY:
             # An Array is a linked list of ConfigValue objects...
             ret = []
-            this = self._Cstruct.arrayvalue
+            this = self._Cstruct[0].u.arrayvalue
             while this:
                 dataptr = cast(this[0].data, struct__GSList._fields_[0][1])
                 thisdata = pyConfigValue(cast(dataptr, cClass.ConfigValue))
+                thisobj = thisdata.get()
+                if isinstance(thisobj, pyAssimObj):
+                    CCunref(thisobj._Cstruct)
+                ret.append(thisobj)
                 this = g_slist_next(this)
-                ret.append(thisdata.get())
             return ret
         raise ValueError('Invalid valtype (%s)in pyConfigValue object' % self._Cstruct.valtype)
 
@@ -1099,6 +1105,7 @@ class pyNetIO(pyAssimObj):
             while (not hasattr(base, '_configinfo')):
                 base=base.baseclass
             self.config = pyConfigContext(Cstruct=base._configinfo)
+            CCref(base._configinfo)
         pyAssimObj.__init__(self, Cstruct=Cstruct)
 
     def setblockio(self, mode):
