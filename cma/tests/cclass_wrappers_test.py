@@ -34,7 +34,7 @@ from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
-DEBUG=True
+DEBUG=False
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
