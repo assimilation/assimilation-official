@@ -29,6 +29,7 @@ from frameinfo import FrameTypes, FrameSetTypes
 import collections
 import traceback
 import sys
+import gc
 
 class cClass:
     NetAddr = POINTER(NetAddr)
@@ -47,6 +48,20 @@ class cClass:
     GSList = POINTER(GSList)
 
 def CCref(obj):
+    '''
+    Increment the reference count to an AssimObj (_not_ a pyAssimObj)
+    Need to call CCref under the following circumstances:
+        When we are creating an object that points to another underlying C-class object
+        which already has a permanent reference to it somewhere else
+        For example, if we're returning a pyNetAddr object that points to a NetAddr object
+        that's in a ConfigContext object.  If we don't, then when our pyNetAddr object goes
+        out of scope, then the underlying NetAddr object will be freed, even though there's
+        a reference to it in the ConfigContext object.  Conversely, if the ConfigContext
+        object goes out of scope first, then the our pyNetAddr object could become invalid.
+
+    Do not call it when you've constructed a new object that there were no previous pointers
+        to.
+    '''
     base = obj[0]
     while (type(base) is not AssimObj):
         base=base.baseclass
@@ -106,7 +121,7 @@ class SwitchDiscovery:
     def _decode_netaddr(addrstart, addrlen):
         byte0 = SwitchDiscovery._byte0(addrstart)
         byte1addr = SwitchDiscovery._byte1addr(addrstart)
-        CnetAddr = None
+        Cnetaddr = None
         if byte0 == ADDR_FAMILY_IPV6:
             if addrlen != 17:    return None
             Cnetaddr = netaddr_ipv6_new(byte1addr, 0)
@@ -935,6 +950,7 @@ class pyConfigContext(pyAssimObj):
         naddr = self._Cstruct[0].getaddr(self._Cstruct, name)
         if naddr:
             naddr = cast(naddr, cClass.NetAddr)
+            # We're creating a new reference to the pre-existing NetAddr
             CCref(naddr)
             return pyNetAddr(None, Cstruct=naddr)
         raise IndexError("No such NetAddr value [%s]" % name)
@@ -947,6 +963,7 @@ class pyConfigContext(pyAssimObj):
         'Return the Frame associated with "name"'
         faddr = self._Cstruct[0].getframe(self._Cstruct, name)
         if faddr:
+            # Cstruct2Frame already calls CCref()
             return pyFrame.Cstruct2Frame(faddr)
         raise IndexError("No such Frame value [%s]" % name)
 
@@ -959,6 +976,7 @@ class pyConfigContext(pyAssimObj):
         caddr = self._Cstruct[0].getconfig(self._Cstruct, name)
         if caddr:
             caddr=cast(caddr, cClass.ConfigContext)
+            # We're creating a new reference to the pre-existing NetAddr
             CCref(caddr)
             return pyConfigContext(Cstruct=caddr)
         raise IndexError("No such ConfigContext value [%s]" % name)
@@ -980,16 +998,17 @@ class pyConfigContext(pyAssimObj):
 
     def getarray(self, name):
         'Return the array value associated with "name"'
-        l=  self._Cstruct[0].getarray(self._Cstruct, name)
         curlist = cast(self._Cstruct[0].getarray(self._Cstruct, name), cClass.GSList)
+        #print >>sys.stderr, "CURLIST(initial) = %s" % curlist
         ret = []
         while curlist:
+            #print >>sys.stderr, "CURLIST = %s" % curlist
             #cfgval = pyConfigValue(cast(cClass.ConfigValue, curlist[0].data).get())
             data = cast(curlist[0].data, cClass.ConfigValue)
+            #print >>sys.stderr, "CURLIST->data = %s" % data
             cfgval = pyConfigValue(data).get()
+            #print >>sys.stderr, "CURLIST->data->get() = %s" % cfgval
             ret.append(cfgval)
-            if isinstance(cfgval, pyAssimObj):
-                CCunref(cfgval._Cstruct)
             curlist=g_slist_next(curlist)
         return ret
 
@@ -1022,6 +1041,7 @@ class pyConfigContext(pyAssimObj):
     def __getitem__(self, name):
         'Return a value associated with "name"'
         ktype = self.gettype(name)
+        #print >>sys.stderr, '****************** GETITEM[%s] => %d ***************************' % (name, ktype)
         if ktype == CFG_EEXIST:
             traceback.print_stack()
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
@@ -1038,6 +1058,7 @@ class pyConfigContext(pyAssimObj):
         if ktype == CFG_BOOL:
             return self.getbool(name)
         if ktype == CFG_ARRAY:
+            #print >>sys.stderr, '****************** GETITEM[%s] => getarray(%s) ***************************' % (name, name)
             return self.getarray(name)
         return None
 
@@ -1069,24 +1090,30 @@ class pyConfigValue:
         if vtype == CFG_FLOAT:
             return float(self._Cstruct[0].u.floatvalue)
         if vtype == CFG_CFGCTX:
+            # We're creating a new reference to the pre-existing NetAddr
             CCref(self._Cstruct[0].u.cfgctxvalue)
             return pyConfigContext(Cstruct=self._Cstruct[0].u.cfgctxvalue)
         if vtype == CFG_NETADDR:
             ret =  pyNetAddr(None, Cstruct=self._Cstruct[0].u.addrvalue)
+            # We're creating a new reference to the pre-existing NetAddr
             CCref(ret._Cstruct)
             return ret
         if vtype == CFG_FRAME:
-            return pyFrame.Cstruct2Frame(self._Cstruct[0].u.framevalue)
+            #       Cstruct2Frame calls CCref() - so we don't need to
+            ret =  pyFrame.Cstruct2Frame(self._Cstruct[0].u.framevalue)
+            return ret
         if vtype == CFG_ARRAY:
-            # An Array is a linked list of ConfigValue objects...
+            # An Array is a linked list (GSList) of ConfigValue objects...
             ret = []
             this = self._Cstruct[0].u.arrayvalue
             while this:
                 dataptr = cast(this[0].data, struct__GSList._fields_[0][1])
-                thisdata = pyConfigValue(cast(dataptr, cClass.ConfigValue))
-                thisobj = thisdata.get()
-                if isinstance(thisobj, pyAssimObj):
-                    CCunref(thisobj._Cstruct)
+                thisobj = pyConfigValue(cast(dataptr, cClass.ConfigValue)).get()
+                ################################
+                # Should this be done?
+                ################################
+                #if isinstance(thisobj, pyAssimObj):
+                #    CCunref(thisobj._Cstruct)
                 ret.append(thisobj)
                 this = g_slist_next(this)
             return ret
@@ -1130,12 +1157,15 @@ class pyNetIO(pyAssimObj):
         return base.bindaddr(self._Cstruct, addr._Cstruct, silent)
 
     def boundaddr(self):
-        'Bind the socket underneath this NetIO object to the given address'
+        'Return the socket underlying this NetIO object'
         base = self._Cstruct[0]
         while (not hasattr(base, 'bindaddr')):
             base=base.baseclass
         boundaddr = base.boundaddr(self._Cstruct)
-        return pyNetAddr(None, Cstruct=boundaddr)
+        # We're creating a new reference to the pre-existing NetAddr
+        ret = pyNetAddr(None, Cstruct=boundaddr)
+        CCref(boundaddr)
+        return ret
 
     def mcastjoin(self, addr):
         'Join the underlying socket to the given multicast address'
@@ -1185,9 +1215,6 @@ class pyNetIO(pyAssimObj):
         'Send the (collection of) frameset(s) out on this pyNetIO'
         if destaddr.port() == 0:
             raise ValueError("Zero Port in sendframesets: destaddr=%s" % str(destaddr))
-        if str(destaddr) == '[::1]:1984':
-            print >>sys.stderr, 'WARNING:  OOPS!'
-            traceback.print_stack()
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist, )
         base = self._Cstruct[0]
@@ -1252,6 +1279,8 @@ class pyNetIO(pyAssimObj):
         fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
         if netaddr and len(fslist) > 0:
+            # recvframesets gave us that 'netaddr' for us to dispose of - there are no other refs to it
+            # so we should NOT 'CCref' it.  It's a new object - not a pointer to an old one.
             address = pyNetAddr(None, Cstruct=netaddr)
             fs  = fslist[0]
         else:

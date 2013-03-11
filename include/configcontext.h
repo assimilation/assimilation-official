@@ -88,6 +88,7 @@ struct _ConfigContext {
 	void		(*setconfig)(ConfigContext*,const char *,ConfigContext*);///< Set ConfigContext value
 	enum ConfigValType
 			(*gettype)(ConfigContext*, const char *);	///< Return type
+	ConfigValue*	(*getvalue)(ConfigContext*, const char *);	///< Return ConfigValue Object
 	GSList*		(*keys)(ConfigContext*);			///< Return list of keys
 };
 WINEXPORT ConfigContext*	configcontext_new(gsize objsize); // ConfigContext constructor
