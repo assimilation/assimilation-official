@@ -157,13 +157,11 @@ class CMAdb:
         The IS_A relationship may be useful -- or not.  Hard to say at this point...
         '''
         assert nodetype is not None and nodename is not None
-        properties['nodetype'] = nodetype
-        properties['name'] = nodename
         tbl = {}
         for key in properties.keys():
-            tbl[key] = properties[key]
-        tbl['nodetype'] = nodetype
-        tbl['name'] = nodename
+            tbl[key] = str(properties[key])
+        tbl['nodetype'] = str(nodetype)
+        tbl['name'] = str(nodename)
         if nodetype in self.indextbl:
              idx = self.indextbl[nodetype]
              #print 'CREATING A [%s] object named [%s] with attributes %s' % (nodetype, nodename, str(tbl.keys()))
