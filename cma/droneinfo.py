@@ -25,7 +25,7 @@ from cmadb import CMAdb
 from frameinfo import *
 from AssimCtypes import DEFAULT_FSP_QID
 from AssimCclasses import *
-from py2neo import neo4j
+from py2neo import neo4j, rest
 import hbring
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
@@ -115,7 +115,10 @@ class DroneInfo:
                 if ipinfo['scope'] != 'global':
                     continue
                 (iponly,mask) = ip.split('/')
-                iponly = str(pyNetAddr(iponly).toIPv6())
+                netaddr = pyNetAddr(iponly).toIPv6()
+                if netaddr.islocal():
+                    continue
+                iponly = str(netaddr)
                 isprimaryip = False
                 ## FIXME: May want to consider looking at 'brd' for broadcast as well...
                 ## otherwise this can be a little fragile...
@@ -164,25 +167,35 @@ class DroneInfo:
         '''We create tcpipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
         for the ANY ipv4 and ipv6 addresses'''
-        addr = str(pyNetAddr(str(jsonobj['addr'])).toIPv6())
+        netaddr = pyNetAddr(str(jsonobj['addr'])).toIPv6()
+        if netaddr.islocal():
+            CMAdb.log.warning('add_tcpipports("%s"): address is local' % netaddr)
+            return
+        addr = str(netaddr)
         port = jsonobj['port']
-        name = addr + ':' + str(port)
+        netaddrandport = pyNetAddr(str(netaddr))
+        netaddrandport.setport(port)
+        name = str(netaddrandport)
         # Were we given the ANY address?
         if isserver and (addr == '::' or addr == '::ffff:0.0.0.0'):
             for ipaddr in allourips:
-                name = ipaddr['name'] + ':' + str(port)
+                ipnetaddr = (pyNetAddr(ipaddr['name']).toIPv6())
+                ipnetaddr.setport(port)
+                name = str(ipnetaddr)
                 tcpipport = CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
         elif isserver:
             for ipaddr in allourips:
-                if ipaddr['name'] == addr:
+                ipaddrname=ipaddr['name']
+                ipnetaddr = (pyNetAddr(str(ipaddrname)).toIPv6())
+                if ipnetaddr == netaddr:
                     CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
                     return
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
                             % (self.node['name'], addr))
         else:
-            name = addr + ':' + str(port)
+            netaddr.setport(port)
             ipaddr = CMAdb.cdb.new_IPaddr(None, addr)
-            CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, None, ipproc, ipaddr)
+            CMAdb.cdb.new_tcpipport(str(netaddr), isserver, jsonobj, None, ipproc, ipaddr)
 
     def add_linkdiscovery(self, jsonobj, **kw):
         data = jsonobj['data']
@@ -274,10 +287,16 @@ class DroneInfo:
         # to distinguish death of a switch or subnet or site from death of a single drone
         rellist = self.node.get_relationships(direction=neo4j.Direction.OUTGOING)
         for rel in rellist:
-            if rel.type.startswith(hbring.HbRing.memberprefix):
-                ringname = rel.end_node['name']
-                if CMAdb.debug: CMAdb.log.debug('%s was a member of ring %s' % (self, ringname))
-                hbring.HbRing.ringnames[ringname].leave(self)
+            try:
+                if rel.type.startswith(hbring.HbRing.memberprefix):
+                    ringname = rel.end_node['name']
+                    if CMAdb.debug: CMAdb.log.debug('%s was a member of ring %s' % (self, ringname))
+                    hbring.HbRing.ringnames[ringname].leave(self)
+                    # We can't just break out - we might belong to more than one ring
+            except rest.ResourceNotFound:
+                # OOPS! The leave(self) call above must have deleted it...
+                pass
+            
         deadip = pyNetAddr(self.primary_ip(), port=self.getport())
         if CMAdb.debug: CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self.io.closeconn(DEFAULT_FSP_QID, deadip)
