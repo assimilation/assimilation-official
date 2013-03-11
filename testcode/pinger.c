@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <getopt.h>
 #include <netaddr.h>
 #include <frametypes.h>
 #include <reliableudp.h>
@@ -200,7 +201,9 @@ usage(const char * cmdname)
 	}else{
 		cmd = cmdname;
 	}
-	fprintf(stderr, "usage: %s cmd ip-address1 [ip-address ...]", cmd);
+	fprintf(stderr, "usage: %s [-d] [-c count ] ip-address1 [ip-address ...]", cmd);
+	fprintf(stderr, "  -c count-of-ping-packets");
+	fprintf(stderr, "  -d increment debug [can be repeated for more debug]");
 	exit(1);
 }
 
@@ -217,12 +220,51 @@ main(int argc, char **argv)
 	NetGSource*	netpkt;
 	AuthListener*	act_on_packets;
 	int		liveobjcount;
+	gboolean	optionerror = FALSE;
+	gboolean	moreopts = TRUE;
+	int		option_index = 0;
+	int		c;
 
-	if (argc < 2) {
-		usage(argv[0]);
-	}
+	static struct option long_options[] = {
+		{"count",	required_argument,	0,	'c'},
+		{"debug",	no_argument,		0,	'd'},
+	};
 
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	while (moreopts) {
+		c = getopt_long(argc, argv, "c:d", long_options, &option_index);
+		switch(c) {
+			case -1:
+				moreopts = FALSE;
+				break;
+
+			case 0:	// It already set a flag - wonder what this means?
+				break;
+
+			case 'c':
+				maxpingcount = atoi(optarg);
+				break;
+
+			case 'd':
+				proj_class_incr_debug(NULL);
+				break;
+
+			case '?':	// Already printed an error message
+				optionerror = TRUE;
+				break;
+
+			default:
+				g_error("OOPS! Default case in getopt_long(%c)", c);
+				optionerror = TRUE;
+				break;
+		}
+	}
+
+	if (optionerror) {
+		usage(argv[0]);
+		exit(1);
+	}
+
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
@@ -249,7 +291,7 @@ main(int argc, char **argv)
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
 	// Kick everything off with a pingy-dingy
-	for (j=1; j < argc; ++j) {
+	for (j=optind; j < argc; ++j) {
 		FrameSet*	ping;
 		NetAddr*	toaddr;
 		NetAddr*	v6addr;
