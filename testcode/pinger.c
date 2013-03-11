@@ -266,9 +266,6 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-	proj_class_incr_debug(NULL);
-	proj_class_incr_debug(NULL);
-	proj_class_incr_debug(NULL);
 	theircounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
 	ourcounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
