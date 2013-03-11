@@ -103,9 +103,11 @@ class DispatchSTARTUP(DispatchTarget):
                     if origaddr.islocal():
                         CMAdb.log.warning("Received STARTUP from local system (%s)" % addrstr)
                     else:
-                        localhost = pyNetAddr('127.0.0.1')
-                        self.io.addalias(localhost, origaddr)
-                        CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
+                        addresses = ['127.0.0.1', '::ffff:127.0.0.1', '::1' ]
+                        for address in addresses:
+                            localhost = pyNetAddr(address)
+                            self.io.addalias(localhost, origaddr)
+                            CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
         fs = CMAlib.create_setconfig(self.config)
