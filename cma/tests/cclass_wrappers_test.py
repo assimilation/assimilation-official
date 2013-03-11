@@ -34,7 +34,7 @@ from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
-DEBUG=False
+DEBUG=True
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -721,10 +721,56 @@ class pyConfigContextTest(TestCase):
         'This problem actually occurred - hence the test case...'
         if DEBUG: print >>sys.stderr, "===============textConfigContext_array_with_netaddr(pyConfigContextTest)"
         array1str = '{"a":["1.2.3.4",1,2,3,4,"a",{"b":true},[5,6,7,8,3.14,"10.10.10.1"],"::1"]}'
+        array1str = '{"a":["1.2.3.4"]}'
         array1config = pyConfigContext(array1str)
-        foo = array1config['a']
+        #foo = array1config['a']
         self.assertEqual(array1str, str(array1config))
 
+    def test_kitchen_sink(self):
+        if DEBUG:
+            for j in range(1,5):
+                proj_class_incr_debug('NetAddr')
+        strings = [
+                    # The next two originally failed intermittently
+                    '{"a":["1.2.3.4"]}',
+                    '{"cmdline":["192.168.122.1"]}',
+                    # All the remaining ones originally failed pretty reliably...
+                    '{"cmdline":["/usr/sbin/dnsmasq","-u","libvirt-dnsmasq","--strict-order","--bind-interfaces","--pid-file=/var/run/libvirt/network/default.pid","--conf-file=","--except-interface","lo","--listen-address","192.168.122.1"]}',
+                    '{"cmdline":["--listen-address","192.168.122.1"]}',
+                    '{"cmdline":["/usr/sbin/dnsmasq","-u","libvirt-dnsmasq","--strict-order","--bind-interfaces","--pid-file=/var/run/libvirt/network/default.pid","--conf-file=","--except-interface","lo","--listen-address","192.168.122.1","--dhcp-range","192.168.122.2,192.168.122.254","--dhcp-leasefile=/var/lib/libvirt/dnsmasq/default.leases","--dhcp-lease-max=253","--dhcp-no-override" ]}',
+                    '{"cmdline":["--listen-address","192.168.122.1","--dhcp-range","192.168.122.2,192.168.122.254","--dhcp-leasefile=/var/lib/libvirt/dnsmasq/default.leases","--dhcp-lease-max=253","--dhcp-no-override" ]}',
+                    '{"cmdline":["--listen-address","192.168.122.1","--dhcp-range"]}',
+                    '{"cmdline":["192.168.122.1","--dhcp-range"]}',
+                    '{"cmdline":["192.168.122.1","anything"]}',
+                    '{"cmdline":["192.168.122.1",1]}',
+                    '{"cmdline":["192.168.122.1",false]}',
+                  ]
+        for s in strings:
+            sc = pyConfigContext(s)
+            for key in sc.keys():
+                elemcount=0
+                for elem in sc[key]:
+                    self.assertNotEqual(str(elem), "")
+                    if isinstance(elem, pyAssimObj):
+                        if DEBUG: print '++++++++++++++++++ REFCOUNT(%s): %d' % (str(elem), elem.refcount())
+                        #CCref(elem._Cstruct)
+                        self.assertEqual(elem.refcount(), 2)
+                        if DEBUG:
+                            gc.collect()
+                            print >>sys.stderr, ":::::::::::::GC GARBAGE: %s" % gc.garbage
+                        foo=elem._Cstruct[0]
+                        while (hasattr(foo, 'baseclass')):
+                            foo=foo.baseclass
+                        if DEBUG:
+                            print >>sys.stderr, ":::::::::::::GC refcount %d, REFERRERS: %s" % (sys.getrefcount(elem), gc.get_referrers(elem))
+                            print >>sys.stderr, ":::::::::::::FOO: %s" % foo
+                        del elem
+                        if DEBUG: print '++++++++++++++++++ REFCOUNT SECOND VERSE: %s' % (foo._refcount)
+
+                elemcount += 1
+        if DEBUG:
+            for j in range(1,5):
+                proj_class_decr_debug('NetAddr')
 
     @class_teardown
     def tearDown(self):
@@ -765,8 +811,8 @@ class pyNetIOudpTest(TestCase):
 
     def test_receiveandsend(self):
         if DEBUG: print >>sys.stderr, "========================test_receiveandsend(pyNetIOudpTest)"
-        home = pyNetAddr((127,0,0,1), 1984)
-        anyaddr = pyNetAddr((0,0,0,0),1984)
+        home = pyNetAddr("::1", 1984)
+        anyaddr = pyNetAddr("::",1984)
         fs = pyFrameSet(801)
         #flist = (pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),
         flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(7,42), pyCstringFrame(8, "HhGttG"),

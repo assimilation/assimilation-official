@@ -1726,6 +1726,7 @@ struct__ConfigContext.__slots__ = [
     'getconfig',
     'setconfig',
     'gettype',
+    'getvalue',
     'keys',
 ]
 struct__ConfigContext._fields_ = [
@@ -1748,16 +1749,17 @@ struct__ConfigContext._fields_ = [
     ('getconfig', CFUNCTYPE(UNCHECKED(POINTER(ConfigContext)), POINTER(ConfigContext), String)),
     ('setconfig', CFUNCTYPE(UNCHECKED(None), POINTER(ConfigContext), String, POINTER(ConfigContext))),
     ('gettype', CFUNCTYPE(UNCHECKED(enum_ConfigValType), POINTER(ConfigContext), String)),
+    ('getvalue', CFUNCTYPE(UNCHECKED(POINTER(ConfigValue)), POINTER(ConfigContext), String)),
     ('keys', CFUNCTYPE(UNCHECKED(POINTER(GSList)), POINTER(ConfigContext))),
 ]
 
-# ../include/configcontext.h: 93
+# ../include/configcontext.h: 94
 if hasattr(_libs['libassimilationclientlib.so'], 'configcontext_new'):
     configcontext_new = _libs['libassimilationclientlib.so'].configcontext_new
     configcontext_new.argtypes = [gsize]
     configcontext_new.restype = POINTER(ConfigContext)
 
-# ../include/configcontext.h: 94
+# ../include/configcontext.h: 95
 if hasattr(_libs['libassimilationclientlib.so'], 'configcontext_new_JSON_string'):
     configcontext_new_JSON_string = _libs['libassimilationclientlib.so'].configcontext_new_JSON_string
     configcontext_new_JSON_string.argtypes = [String]
@@ -3831,115 +3833,115 @@ try:
 except:
     pass
 
-# ../include/configcontext.h: 96
+# ../include/configcontext.h: 97
 try:
     CONFIG_DEFAULT_DEADTIME = 30
 except:
     pass
 
-# ../include/configcontext.h: 97
+# ../include/configcontext.h: 98
 try:
     CONFIG_DEFAULT_HBTIME = 3
 except:
     pass
 
-# ../include/configcontext.h: 98
+# ../include/configcontext.h: 99
 try:
     CONFIG_DEFAULT_WARNTIME = 10
 except:
     pass
 
-# ../include/configcontext.h: 99
+# ../include/configcontext.h: 100
 try:
     CONFIG_DEFAULT_HBPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 100
+# ../include/configcontext.h: 101
 try:
     CONFIG_DEFAULT_CMAPORT = 1984
 except:
     pass
 
-# ../include/configcontext.h: 102
+# ../include/configcontext.h: 103
 try:
     CONFIG_DEFAULT_ADDRTYPE = ADDR_FAMILY_IPV4
 except:
     pass
 
-# ../include/configcontext.h: 103
+# ../include/configcontext.h: 104
 try:
     CONFIG_DEFAULT_SIGNFRAME_TYPE = G_CHECKSUM_SHA256
 except:
     pass
 
-# ../include/configcontext.h: 105
+# ../include/configcontext.h: 106
 try:
     CONFIGNAME_DEADTIME = 'deadtime'
 except:
     pass
 
-# ../include/configcontext.h: 106
+# ../include/configcontext.h: 107
 try:
     CONFIGNAME_WARNTIME = 'warntime'
 except:
     pass
 
-# ../include/configcontext.h: 107
+# ../include/configcontext.h: 108
 try:
     CONFIGNAME_HBTIME = 'hbtime'
 except:
     pass
 
-# ../include/configcontext.h: 108
+# ../include/configcontext.h: 109
 try:
     CONFIGNAME_HBPORT = 'hbport'
 except:
     pass
 
-# ../include/configcontext.h: 109
+# ../include/configcontext.h: 110
 try:
     CONFIGNAME_CMAPORT = 'cmaport'
 except:
     pass
 
-# ../include/configcontext.h: 110
+# ../include/configcontext.h: 111
 try:
     CONFIGNAME_CMAINIT = 'cmainit'
 except:
     pass
 
-# ../include/configcontext.h: 112
+# ../include/configcontext.h: 113
 try:
     CONFIGNAME_CMAADDR = 'cmaaddr'
 except:
     pass
 
-# ../include/configcontext.h: 113
+# ../include/configcontext.h: 114
 try:
     CONFIGNAME_CMADISCOVER = 'cmadisc'
 except:
     pass
 
-# ../include/configcontext.h: 114
+# ../include/configcontext.h: 115
 try:
     CONFIGNAME_CMAFAIL = 'cmafail'
 except:
     pass
 
-# ../include/configcontext.h: 115
+# ../include/configcontext.h: 116
 try:
     CONFIGNAME_OUTSIG = 'outsig'
 except:
     pass
 
-# ../include/configcontext.h: 116
+# ../include/configcontext.h: 117
 try:
     CONFIGNAME_CRYPT = 'crypt'
 except:
     pass
 
-# ../include/configcontext.h: 117
+# ../include/configcontext.h: 118
 try:
     CONFIGNAME_COMPRESS = 'compress'
 except:
