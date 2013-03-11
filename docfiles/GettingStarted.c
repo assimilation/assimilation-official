@@ -357,6 +357,19 @@ with the <i>Awesome!</i> message indicating no memory leaks were observed.
 
 @subsection NanoprobeCrashMessages Nanoprobe Crash Messages
 The messages below occurred when the system running a nanoprobe or the nanoprobe itself crashed.
+In this case, the nanoprobe process running on paul was killed with SIGKILL (kill -9) which simulates a server crash.
+<pre>
+Mar 11 12:27:27 servidor nanoprobe[6416]: WARN: Peer at address [::ffff:10.10.10.16]:1984 is dead (has timed out).
+Mar 11 12:27:27 servidor cma WARNING: DispatchHBDEAD: received [HBDEAD] FrameSet from [[::ffff:10.10.10.5]:44782]
+Mar 11 12:27:27 servidor cma INFO: Node paul has been reported as dead by address [::ffff:10.10.10.5]:44782. Reason: HBDEAD packet received
+Mar 11 12:27:28 servidor cma WARNING: DispatchHBDEAD: received [HBDEAD] FrameSet from [[::ffff:10.10.10.2]:1984]
+Mar 11 12:27:28 servidor cma INFO: Node paul has been reported as dead by address [::ffff:10.10.10.2]:1984. Reason: HBDEAD packet received
+</pre>
+
+Note that the dead node (paul) was reported as being dead from the two peers monitoring it.
+Since one of paul's peers was the node running the CMA (servidor), the first message "<tt>Peer at address...is dead</tt>"
+from the nanoprobe also appears in the logs on this machine.
+
 
 @subsection CMACrashMessages CMA Crash Messages
 If you should see the CMA misbehave, it will probably either disappear with a crash
