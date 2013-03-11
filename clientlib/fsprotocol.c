@@ -114,7 +114,7 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 //	  START	  REQSEND GOTACK  GOTCONN_NAK REQSHUTDOWN RCVSHUTDOWN       ACKTIMEOUT        OUTDONE  SHUT_TO
-/*NONE*/ {0,	  0,      A_OOPS, A_CLOSE,    0,          A_ACKME|A_OOPS,   A_ACKTO|A_OOPS,   A_OOPS,  A_OOPS},
+/*NONE*/ {0,	  0,      A_OOPS, A_CLOSE,    0,          A_ACKME|A_OOPS,    A_ACKTO|A_OOPS,  A_OOPS,  A_OOPS},
 /*INIT*/ {0,	  0,	  0,      A_CLOSE,    A_CLOSE,    A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE, 0,       A_OOPS},
 /*UP*/   {0,	  0,	  0,      A_CLOSE,    A_SNDSHUT,  A_ACKME|A_SNDSHUT, A_ACKTO,         0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
@@ -761,7 +761,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				fspe->acktimeout = 0;
 				_fsproto_fsa(fspe, FSPROTO_OUTALLDONE, fs);
 			}else{
-				fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
+				fspe->nextrexmit = now + self->rexmit_interval;
 				fspe->acktimeout = now + self->acktimeout;
 				TRYXMIT(fspe);
 				_fsproto_fsa(fspe, FSPROTO_GOTACK, fs);
@@ -858,10 +858,12 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	_fsproto_fsa(fspe, FSPROTO_REQSEND, NULL);
 
 	if (fspe->outq->_q->length == 0) {
+		guint64 now = g_get_monotonic_time();
 		///@todo: This might be slow if we send a lot of packets to an endpoint
 		/// before getting a response, but that's not very likely.
 		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
-		fspe->nextrexmit = g_get_monotonic_time() + fspe->parent->rexmit_interval;
+		fspe->nextrexmit = now + self->rexmit_interval;
+		fspe->acktimeout = now + self->acktimeout;
 	}
 	ret =  fspe->outq->enq(fspe->outq, fs);
 	self->io->stats.reliablesends++;
