@@ -230,6 +230,7 @@ main(int argc, char **argv)
 		{"debug",	no_argument,		0,	'd'},
 	};
 
+	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	while (moreopts) {
 		c = getopt_long(argc, argv, "c:d", long_options, &option_index);
