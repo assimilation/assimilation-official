@@ -1,4 +1,5 @@
-#
+#!/bin/sh -e
+set -e
 #
 # This file is part of the Assimilation Project.
 #
@@ -17,9 +18,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
-#
-add_library(${SERVERLIB} SHARED dump.c lldp.c cdp.c)
-if (WIN32)
-  target_link_libraries(${SERVERLIB} ${CLIENTLIB})
-endif (WIN32)
-install (TARGETS ${SERVERLIB} COMPONENT nanoprobe-component LIBRARY DESTINATION ${InstallLIBS})
+update-rc.d nanoprobe remove
+if
+  [ -f /etc/init.d/cma ]
+then
+  update-rc.d cma remove
+fi
+ldconfig @InstallLIBS@
