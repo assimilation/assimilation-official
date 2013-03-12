@@ -76,6 +76,7 @@ set (SUMMARY ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${SUMMARY}")
 set (CPACK_PACKAGE_DESCRIPTION_FILE ${DESCRIPTION_FILE})
 set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README)
+set (CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst)
 set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Monitoring Project - assimmon.org")
 set (CPACK_DEBIAN_PACKAGE_SECTION "contrib/admin")
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${PROJARCH})
@@ -131,6 +132,8 @@ set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
 set (DAGENTS discovery_agents)
 set (DISCOVERYINSTALL ${USRSHARE}/${DAGENTS})
+configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst @ONLY)
+configure_file(${BUILDTOOLS}/debian/postrm.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postrm @ONLY)
 #
 # CMAADDR is the address where the nanoprobes should go to initially find the CMA.
 # 224.0.2.5 is a multicast address which I reseved from IANA for the Assimilation project.
@@ -287,6 +290,13 @@ install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${USRSHA
 #
 install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/nanoprobe COMPONENT nanoprobe-component DESTINATION ${INITDIR})
 install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/cma COMPONENT cma-component DESTINATION ${INITDIR})
+#
+#	Install our copyright file
+#
+install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-component DESTINATION ${USRSHARE})
+install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${USRSHARE})
+
+
 
 #
 #	This has to be the last command in the file
