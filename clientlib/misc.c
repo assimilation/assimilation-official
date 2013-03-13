@@ -260,7 +260,7 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 	}else{
 		ourexecmd = ourexepath;
 	}
-	snprintf(pidexename, sizeof(pidexename), PROCOTHEREXE, pid);
+	g_snprintf(pidexename, sizeof(pidexename), PROCOTHEREXE, pid);
 
 	// What is the pathname of the executable that holds the pid lock?
 	pidexepath = g_file_read_link(pidexename, NULL);
@@ -302,7 +302,7 @@ create_pid_file(const char * pidfile)
 	if (PID_RUNNING == pstat) {
 		return FALSE;
 	}
-	snprintf(pidbuf, sizeof(pidbuf), "%6d\n", getpid());
+	g_snprintf(pidbuf, sizeof(pidbuf), "%6d\n", getpid());
 	if (pstat == PID_DEAD || pstat == PID_NOTUS) {
 		g_debug("%s.%d: Unlinking dead pid file %s", __FUNCTION__, __LINE__, pidfile);
 		g_unlink(pidfile);

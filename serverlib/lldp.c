@@ -95,15 +95,7 @@ get_oui_string(unsigned oui)	///<[in] A (three-byte) OUI as an unsigned
 			return ouimap[j].string;
 		}
 	}
-#ifdef _MSC_VER
-#if  _MSC_VER >= 1400
-	_snprintf_s(ret,sizeof(ret)-1,sizeof(ret)-1,"OUI 0x%06x", oui);
-#else
-	_snprintf(ret, sizeof(ret), "OUI 0x%06x", oui);
-#endif
-#else
-	snprintf(ret, sizeof(ret), "OUI 0x%06x", oui);
-#endif
+	g_snprintf(ret, sizeof(ret), "OUI 0x%06x", oui);
 	return ret;
 }
 
