@@ -41,7 +41,6 @@
  */
 
 #include <memory.h>
-#include <sys/utsname.h>
 #include <projectcommon.h>
 #include <proj_classes.h>
 #include <pcap_min.h>
@@ -50,6 +49,7 @@
 #include <addrframe.h>
 #include <cstringframe.h>
 #include <frametypes.h>
+#include <misc.h>
 
 ///@defgroup GSource_Pcap GSource_Pcap class
 /// Class representing a pcap GSource object - for capturing packets in the g_main_loop paradigm.
@@ -248,11 +248,9 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSe
 	const guint8*	bpkt = (const guint8*) pkt;
 	gsize		pktlen = ((const guint8*)pktend-bpkt);
 	guint8*		cppkt = MALLOC0(pktlen);
-	struct utsname	un;
 	gchar*		sysname;
 
-	g_return_val_if_fail(uname(&un) >= 0 , NULL);
-	sysname = g_strdup(un.nodename);
+	sysname = proj_get_sysname();
 	g_return_val_if_fail(NULL != sysname, NULL);
 	g_return_val_if_fail(fsysname != NULL, NULL);
 	g_return_val_if_fail(timeframe != NULL, NULL);
