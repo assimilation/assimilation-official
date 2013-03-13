@@ -21,14 +21,15 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
+#include <projectcommon.h>
 #include <stdlib.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#	include <unistd.h>
+#endif
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
 #include <getopt.h>
-#include <sys/utsname.h>
-#include <projectcommon.h>
 #include <framesettypes.h>
 #include <frameset.h>
 #include <ctype.h>

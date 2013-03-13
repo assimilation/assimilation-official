@@ -25,7 +25,9 @@
 #include <projectcommon.h>
 #include <errno.h>
 #include <memory.h>
-#include <unistd.h>
+#ifdef	HAVE_UNISTD_H
+#	include <unistd.h>
+#endif
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -672,7 +674,6 @@ _netio_enablepktloss (NetIO* self, gboolean enable)
 
 #ifdef IPV6_V6ONLY
 #	include <netdb.h>
-#	include <unistd.h>
 
 /// Return TRUE if our OS supports dual ipv4/ipv6 sockets.  That is,
 /// can a single socket receive and send both ipv4 and ipv6 packets?

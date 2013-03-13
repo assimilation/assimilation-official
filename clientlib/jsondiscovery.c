@@ -21,9 +21,11 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
-#include <unistd.h>
-#include <memory.h>
 #include <projectcommon.h>
+#ifdef	HAVE_UNISTD_H
+#	include <unistd.h>
+#endif
+#include <memory.h>
 #define DISCOVERY_SUBCLASS
 #include <frameset.h>
 #include <configcontext.h>
