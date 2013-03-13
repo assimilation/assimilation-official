@@ -192,11 +192,19 @@ if(WIN32)
       INCLUDE_DIRECTORIES(${CMAKE_INCLUDE_PATH})
 endif(WIN32)
 
+#
+#	Checking for various system functions and header files...
+#
 include(CheckFunctionExists)
-CHECK_FUNCTION_EXISTS(g_get_real_time  HAVE_G_GET_REAL_TIME)
-CHECK_FUNCTION_EXISTS(g_get_monotonic_time  HAVE_G_GET_MONOTONIC_TIME)
-CHECK_FUNCTION_EXISTS(uname  HAVE_UNAME)
+CHECK_FUNCTION_EXISTS(g_get_real_time HAVE_G_GET_REAL_TIME)
+CHECK_FUNCTION_EXISTS(g_get_monotonic_time HAVE_G_GET_MONOTONIC_TIME)
+CHECK_FUNCTION_EXISTS(kill HAVE_KILL)
+CHECK_FUNCTION_EXISTS(uname HAVE_UNAME)
 CHECK_FUNCTION_EXISTS(endprotoent  HAVE_ENDPROTOENT)
+CHECK_FUNCTION_EXISTS(GetComputerName  HAVE_GETCOMPUTERNAME)
+include(CheckIncludeFile)
+CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
+CHECK_INCLUDE_FILE(sys/utsname.h HAVE_SYS_UTSNAME_H)
 
 #
 #	Compiler flags for various compilers and platforms...
@@ -208,6 +216,7 @@ set (Best_CLANG_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-d
 
 set (Active_CLANG_FLAGS ${Best_CLANG_FLAGS})
 
+set (OUR_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
 
 if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
   message(STATUS "found CLANG")
@@ -219,6 +228,8 @@ if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
   if ("${GLIB2_INCLUDE_DIRS}" MATCHES ".*/x86_64-linux-gnu/.*")
     include_directories("/usr/include/x86_64-linux-gnu")
   endif()
+  set (CMAKE_EXE_LINKER_FLAGS ${OUR_LINKER_FLAGS})
+  set (CMAKE_SHARED_LINKER_FLAGS ${OUR_LINKER_FLAGS})
 elseif("${CMAKE_C_COMPILER}" MATCHES ".*/gcc")
   message(STATUS "found gnu")
   IF(CMAKE_COMPILER_IS_GNUCC)
@@ -251,10 +262,10 @@ int main(int argc, char **argv) {
           include_directories("/usr/lib/glib-2.0/include")
       endif (IS_DIRECTORY "/usr/lib/glib-2.0/include")
     endif (GOOD_GCC_FLAGS_WORK)
+  set (CMAKE_EXE_LINKER_FLAGS ${OUR_LINKER_FLAGS})
+  set (CMAKE_SHARED_LINKER_FLAGS ${OUR_LINKER_FLAGS})
   ENDIF(CMAKE_COMPILER_IS_GNUCC)
 endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
-set (CMAKE_EXE_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
-set (CMAKE_SHARED_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 #
@@ -297,7 +308,6 @@ install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/cma COMPONENT cma-component 
 #
 install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-component DESTINATION ${USRSHARE})
 install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${USRSHARE})
-
 
 
 #

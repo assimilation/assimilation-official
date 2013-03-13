@@ -24,7 +24,12 @@
 
 #include <projectcommon.h>
 #include <stdlib.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#	include <unistd.h>
+#endif
+#ifdef HAVE_SYS_UTSNAME_H
+#	include <sys/utsname.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
@@ -40,6 +45,26 @@ void assimilation_logger(const gchar *log_domain, GLogLevelFlags log_level,
 const char *	assim_syslogid = "assim"; /// Should be overridden with the name to appear in the logs
 FSTATIC void catch_pid_signal(int signum);
 
+#ifdef HAVE_UNAME
+char *
+proj_get_sysname(void)
+{
+	struct utsname	un;	// System name, etc.
+	uname(&un);
+	return g_strdup(un.nodename);
+}
+#else
+#	ifdef HAVE_GETCOMPUTERNAME
+char *
+proj_get_sysname(void)
+{
+	return g_strdup("Put Windows Code Here!");
+}
+#	error "Need to replace code above with real Windows code..."
+#	else
+#	error "Need some function to get our computer name!"
+#	endif
+#endif
 
 
 /// Make us into a proper daemon.

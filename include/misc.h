@@ -37,6 +37,7 @@ typedef enum {
 	PID_NOTUS,	//< Something is running, but we don't think it's one of us
 	PID_RUNNING,	//< The pid file exists, and looks like one of us
 } PidRunningStat;
+char *	proj_get_sysname(void);			///< Return a malloced string of the system name
 
 /** Make a daemon process out of this process*/
 void daemonize_me(gboolean stay_in_foreground	///< TRUE == don't fork

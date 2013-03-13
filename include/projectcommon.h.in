@@ -78,6 +78,12 @@ void g_slist_free_full(GSList *list, GDestroyNotify free_func);
 #define	VERSION_STRING	"@PROJVERS@"
 #define	SHORT_LICENSE_STRING	"@LICENSE_SHORT@"
 #define	LONG_LICENSE_STRING	"@LICENSE_LONG@"
+#cmakedefine	HAVE_UNISTD_H
+#cmakedefine	HAVE_SYS_UTSNAME_H
+#cmakedefine	HAVE_UNAME
+#cmakedefine	HAVE_ENDPROTOENT
+#cmakedefine	HAVE_KILL
+#cmakedefine	HAVE_GETCOMPUTERNAME
 
 #ifndef HAVE_G_GET_REAL_TIME
 WINEXPORT gint64 g_get_real_time(void);

@@ -22,7 +22,6 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  *
  */
-#include <sys/utsname.h>
 #include <projectcommon.h>
 #include <string.h>
 #include <frameset.h>
@@ -47,6 +46,7 @@
 #include <jsondiscovery.h>
 #include <switchdiscovery.h>
 #include <fsprotocol.h>
+#include <misc.h>
 #include <nanoprobe.h>
 
 
@@ -849,7 +849,7 @@ nano_reqconfig(gpointer gcruft)
 	ConfigContext*	context = cruft->context;
 	NetAddr*	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
 	const char *		jsontext;
-	struct utsname	un;	// System name, etc.
+	char *			sysname;
 
 	if (nano_shutting_down) {
 		return FALSE;
@@ -868,12 +868,11 @@ nano_reqconfig(gpointer gcruft)
 	}
 	fs = frameset_new(FRAMESETTYPE_STARTUP);
 
-	uname(&un);
 	// Put in the system name
 	usf = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
-	usf->baseclass.setvalue(&usf->baseclass, strdup(un.nodename), strlen(un.nodename)+1
+	sysname = proj_get_sysname();
+	usf->baseclass.setvalue(&usf->baseclass, sysname, strlen(sysname)+1
 	,			frame_default_valuefinalize);
-	frameset_append_frame(fs, &usf->baseclass);
 	UNREF2(usf);
 
 	// Put in the JSON discovery text
@@ -890,7 +889,9 @@ nano_reqconfig(gpointer gcruft)
 	// which would confuse the blazes out of the reliable comm code.
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
 	DEBUGMSG("%s.%d: Sent initial STARTUP frameset for %s."
-	,	__FUNCTION__, __LINE__, un.nodename);
+	,	__FUNCTION__, __LINE__, sysname);
+	g_free(sysname); sysname = NULL; 
+	frameset_append_frame(fs, &usf->baseclass);
 	UNREF(fs);
 	return TRUE;
 }
@@ -1040,13 +1041,13 @@ nano_shutdown(gboolean report)
 WINEXPORT gboolean
 nano_initiate_shutdown(void)
 {
-	struct utsname	un;	// System name, etc.
-	uname(&un);
 
 	if (nano_connected) {
 		FsProtocol*	proto = CASTTOCLASS(ReliableUDP, nanotransport->_netio)->_protocol;
+		char *	sysname = proj_get_sysname();
 		DEBUGMSG("Sending HBSHUTDOWN to CMA");
-		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, un.nodename, 0);
+		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, sysname, 0);
+		g_free(sysname); sysname = NULL;
 		// Initiate connection shutdown.
 		// This process will wait for all our output to be ACKed.
 		// It also has an ACK timer, so it won't wait forever...
