@@ -401,7 +401,7 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 		_fsproto_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
 	}else if (DEBUG > 0) {
 		char	suffix[16];
-		snprintf(suffix, sizeof(suffix), "/%d", qid);
+		g_snprintf(suffix, sizeof(suffix), "/%d", qid);
 		DUMP("_fsprotocol_closeconn: Could not locate connection", &destaddr->baseclass, suffix);
 	}
 }
