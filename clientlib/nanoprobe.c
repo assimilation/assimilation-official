@@ -108,7 +108,7 @@ _real_hblistener_new(NetAddr* addr, ConfigContext* context)
 void
 nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to create
 ,			  NetAddr* who		///< Who is being reported on
-,			  const char * sysname	///< Name of system doing the reporting
+,			  const char * systemnm	///< Name of system doing the reporting
 ,			  guint64 howlate)	///< How late was the heartbeat?
 						///< This is optional - zero means ignore this parameter.
 {
@@ -136,9 +136,9 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 			UNREF2(peeraddr);
 		}
 		// Add the system name - if any...
-		if (sysname != NULL) {
+		if (systemnm != NULL) {
 			CstringFrame* usf = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
-			usf->baseclass.setvalue(&usf->baseclass, strdup(sysname), strlen(sysname)+1
+			usf->baseclass.setvalue(&usf->baseclass, strdup(systemnm), strlen(systemnm)+1
 			,			frame_default_valuefinalize);
 			frameset_append_frame(fs, &usf->baseclass);
 			UNREF2(usf);
@@ -849,7 +849,7 @@ nano_reqconfig(gpointer gcruft)
 	ConfigContext*	context = cruft->context;
 	NetAddr*	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
 	const char *		jsontext;
-	char *			sysname;
+	char *			sysname = NULL;
 
 	if (nano_shutting_down) {
 		return FALSE;
@@ -871,8 +871,9 @@ nano_reqconfig(gpointer gcruft)
 	// Put in the system name
 	usf = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
 	sysname = proj_get_sysname();
-	usf->baseclass.setvalue(&usf->baseclass, sysname, strlen(sysname)+1
+	usf->baseclass.setvalue(&usf->baseclass, g_strdup(sysname), strlen(sysname)+1
 	,			frame_default_valuefinalize);
+	frameset_append_frame(fs, &usf->baseclass);
 	UNREF2(usf);
 
 	// Put in the JSON discovery text
@@ -891,7 +892,6 @@ nano_reqconfig(gpointer gcruft)
 	DEBUGMSG("%s.%d: Sent initial STARTUP frameset for %s."
 	,	__FUNCTION__, __LINE__, sysname);
 	g_free(sysname); sysname = NULL; 
-	frameset_append_frame(fs, &usf->baseclass);
 	UNREF(fs);
 	return TRUE;
 }
@@ -1044,8 +1044,9 @@ nano_initiate_shutdown(void)
 
 	if (nano_connected) {
 		FsProtocol*	proto = CASTTOCLASS(ReliableUDP, nanotransport->_netio)->_protocol;
-		char *	sysname = proj_get_sysname();
+		char *	sysname;
 		DEBUGMSG("Sending HBSHUTDOWN to CMA");
+		sysname = proj_get_sysname();
 		nanoprobe_report_upstream(FRAMESETTYPE_HBSHUTDOWN, NULL, sysname, 0);
 		g_free(sysname); sysname = NULL;
 		// Initiate connection shutdown.
