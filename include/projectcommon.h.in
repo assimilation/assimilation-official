@@ -68,7 +68,8 @@ void g_slist_free_full(GSList *list, GDestroyNotify free_func);
 #ifdef CTYPESGEN
 #	undef g_slist_next
 #	define g_slist_next(slist)	(slist->next)
-	void g_slist_free(GSList *list);
+	extern void g_slist_free(GSList *list);
+	extern void g_free(gpointer);
 #endif
 
 
