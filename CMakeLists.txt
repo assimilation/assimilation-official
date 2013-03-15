@@ -292,10 +292,6 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 #
-#	Create a header file with some of our project (install) directories defined
-#
-configure_file(${PROJECT_SOURCE_DIR}/include/projectcommon.h.in ${PROJECT_BINARY_DIR}/include/projectcommon.h)
-#
 #	Install our discovery agents under /usr/share/assimilation.  Retain permissions from source control.
 #
 install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${USRSHARE} USE_SOURCE_PERMISSIONS

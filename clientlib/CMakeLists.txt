@@ -22,6 +22,11 @@ SET (FST_H ${BINROOT}/include/framesettypes.h)
 SET (FT_H ${BINROOT}/include/frametypes.h)
 SET (GENCMD ${CMAKE_CURRENT_SOURCE_DIR}/../cma/frameinfo.py)
 
+#
+#	Create a header file with some of our project (install) directories defined
+#
+configure_file(${PROJECT_SOURCE_DIR}/include/projectcommon.h.in ${PROJECT_BINARY_DIR}/include/projectcommon.h)
+
 ADD_CUSTOM_COMMAND(
    OUTPUT ${FST_H}
    COMMAND python ${GENCMD} framesettypes ${FST_H}
