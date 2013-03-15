@@ -24,6 +24,7 @@
 
 #ifndef _CSTRINGFRAME_H
 #define _CSTRINGFRAME_H
+#include <frame.h>
 
 ///@{
 /// @ingroup CstringFrame
