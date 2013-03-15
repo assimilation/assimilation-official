@@ -47,13 +47,13 @@ SET (CTYPEBIN ${SRCROOT}/cma/AssimCtypes.py-install)
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CTYPESRC}
    COMMAND python ${BUILDTOOLS}/genpybindings.py ${CTYPESRC} ${SRCROOT} ${BINROOT} ${SRCROOT}/clientlib
-   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h
+   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h
    )
 
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CTYPEBIN}
    COMMAND python ${BUILDTOOLS}/genpybindings.py ${CTYPEBIN} ${SRCROOT} ${BINROOT} ${InstallLIBS} 
-   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h
+   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h
    )
 
 ADD_CUSTOM_TARGET(generate_ctypes_src DEPENDS ${CTYPESRC})

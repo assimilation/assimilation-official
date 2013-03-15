@@ -89,6 +89,9 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     includedir=os.path.join(sourceroot, 'include')
     # -I directive for our include directory
     args.append('-I' + includedir)
+    # -I directive for our build include directory
+    buildincludedir=os.path.join(buildroot, 'include')
+    args.append('-I' + buildincludedir)
 
     # All the flags are set - now list out the headers to parse
     #   Starting with the full pathname to glib.h
