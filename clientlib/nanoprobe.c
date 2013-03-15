@@ -983,7 +983,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	// To be really right, we probably ought to wait until we know our local network
 	// configuration - and start it up on all interfaces assigned addresses of global scope.
 	///@todo - eventually change switch discovery to be sensitive to our local network configuration
-	swdisc = switchdiscovery_new("switchdiscovery_any", "any", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
+	swdisc = switchdiscovery_new("switchdiscovery_eth0", "eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
 	,			    g_main_context_default(), io, config, 0);
 	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
