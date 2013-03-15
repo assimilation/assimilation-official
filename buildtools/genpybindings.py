@@ -82,7 +82,7 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     # Our local libraries
     for lib in libfiles:
         args.append('-l')
-        args.append(lib)
+        args.append(lib + '.so') # Obviously needs to change for windows - or so I think ;-)
     # -I flags for glib
     for iflag in glibincflags.split():
         args.append(iflag)
