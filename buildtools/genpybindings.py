@@ -105,7 +105,7 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     for arg in args:
         cmdline += ' "%s"' % arg
 
-    print ('Running', cmdline)
+    #print ('Running', cmdline)
     return cmdline
 
 if len(sys.argv) < 5:
