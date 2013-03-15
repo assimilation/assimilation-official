@@ -111,7 +111,7 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     #print ('Running', cmdline)
     return cmdline
 
-if len(sys.argv) < 5:
+if len(sys.argv) < 6:
     sys.stderr.write('Usage: %s outfile sourceroot buildroot libdir libfile ...\n' % sys.argv[0])
     raise SystemExit(1)
 
@@ -120,5 +120,4 @@ sourceroot=sys.argv[2]
 buildroot=sys.argv[3]
 libdir=sys.argv[4]
 libfiles = sys.argv[5:]
-os.system(build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles))
-raise SystemExit(0)
+raise SystemExit(os.system(build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles)))
