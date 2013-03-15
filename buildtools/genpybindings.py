@@ -98,10 +98,19 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     args.append(findincfile(glibincdirs, glibheaderfile))
     # Add on the pathnames of all our header files
     hdrfiles=os.listdir(includedir)
+    hfileset={}
     for hfile in hdrfiles:
         if not hfile.endswith('.h'):
             continue
+        hfileset[hfile] = True
         args.append(os.path.join(includedir, hfile))
+    # Add on the pathnames of all our generated header files
+    hdrfiles=os.listdir(buildincludedir)
+    for hfile in hdrfiles:
+        # Sometimes people do an in-place build...
+        if not hfile.endswith('.h') or hfile in hfileset:
+            continue
+        args.append(os.path.join(buildincludedir, hfile))
 
     # Now build the quoted command line from the arguments
     cmdline='ctypesgen.py'
