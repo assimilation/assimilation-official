@@ -66,10 +66,9 @@ SET (CTYPEBIN ${SRCROOT}/cma/AssimCtypes.py-install)
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CTYPESRC}
    COMMAND python ${BUILDTOOLS}/genpybindings.py ${CTYPESRC} ${SRCROOT} ${BINROOT} ${BINROOT}/clientlib lib${CLIENTLIB}
-   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h
+   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h ${CLIENTLIB}
    )
-ADD_CUSTOM_TARGET(generate_ctypes_src DEPENDS ${CTYPESRC} ${CLIENTLIB})
-ADD_DEPENDENCIES(generate_ctypes_src generate_frametypes generate_framesettypes)
+ADD_CUSTOM_TARGET(generate_ctypes_src ALL DEPENDS ${CTYPESRC} ${CLIENTLIB})
 SET_SOURCE_FILES_PROPERTIES(${CYPESRC}  PROPERTIES GENERATED 1)
 
 #
@@ -79,16 +78,17 @@ SET_SOURCE_FILES_PROPERTIES(${CYPESRC}  PROPERTIES GENERATED 1)
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CTYPEBIN}
    COMMAND python ${BUILDTOOLS}/genpybindings.py ${CTYPEBIN} ${SRCROOT} ${BINROOT} ${InstallLIBS} lib${CLIENTLIB}
-   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h
+   DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h ${CLIENTLIB}
    )
-ADD_CUSTOM_TARGET(generate_ctypes_bin DEPENDS ${CTYPEBIN})
-ADD_DEPENDENCIES(generate_ctypes_bin generate_frametypes generate_framesettypes ${CLIENTLIB})
+ADD_CUSTOM_TARGET(generate_ctypes_bin ALL DEPENDS ${CTYPEBIN})
 SET_SOURCE_FILES_PROPERTIES(${CTYPEBIN} PROPERTIES GENERATED 1)
+
+
 
 add_library (${CLIENTLIB} SHARED proj_classes.c cdp_min.c lldp_min.c pcap_min.c generic_tlv_min.c pcap_GSource.c tlvhelper.c frameset.c frame.c intframe.c addrframe.c cstringframe.c signframe.c unknownframe.c seqnoframe.c packetdecoder.c discovery.c switchdiscovery.c netio.c netioudp.c netgsource.c netaddr.c hblistener.c hbsender.c cryptframe.c compressframe.c nvpairframe.c listener.c configcontext.c assimobj.c authlistener.c jsondiscovery.c nanoprobe.c cmalib.c ipportframe.c misc.c fsqueue.c fsprotocol.c reliableudp.c replacement_funs.c)
 SET_SOURCE_FILES_PROPERTIES(${FST_H} PROPERTIES GENERATED 1)
 SET_SOURCE_FILES_PROPERTIES(${FT_H} PROPERTIES GENERATED 1)
-ADD_DEPENDENCIES(${CLIENTLIB} generate_framesettypes generate_frametypes generate_ctypes_src generate_ctypes_bin)
+ADD_DEPENDENCIES(${CLIENTLIB} generate_framesettypes generate_frametypes)
 
 IF(WIN32)
   find_library (PCAP_LIB wpcap PATHS "C:/winpcap/lib")
