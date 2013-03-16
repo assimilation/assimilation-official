@@ -424,13 +424,14 @@ The tabs you should find there include:
  - <b>Add and remove indexes</b> - you probably don't want to do this
  - <b>Server Info</b> - information about how this Neo4j server is configured
 @section CoolCypherQueries A few cool sample Cypher queries
+
 To be supplied...
 
 @section UnInstalling Un-installing
 If you wish to uninstall the software, and you installed it as packages, please use the mechanism
 that comes with the packaging for your operating system.
 
-If you installed it with <tt>sudo make install</i>, then there should be a file named
+If you installed it with <tt>sudo make install</tt>, then there should be a file named
 <tt>install_manifest.txt</tt> in the top directory of your build directory that lists all the
 files that were installed.  Removing the files listed in that file should remove all the
 installed files.
@@ -440,6 +441,6 @@ If you have executed all these steps, and everything has worked, then congratula
 Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
 know!
 
-In fact, even more important to let the mailing list know if you've had problems.
+If it didn't work for you, it's even more important to let the mailing list know.
 
 */
