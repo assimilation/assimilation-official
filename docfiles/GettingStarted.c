@@ -122,6 +122,12 @@ This is how to install the CMA code on RPM-based systems
 
 If you are unable to build an RPM or DEB package, you can use <tt>sudo make install</tt>.
 This installs both the nanoprobe and CMA code.
+However, if you do, you will need to also issue this command:
+<pre>
+	ldconfig /usr/lib/assimilation	
+</pre>
+At the present time, you may also have to do this for RPMs that come out of cpack.
+The .deb files should not have this issue.
 
 
 @section RunningBasicTests Running Basic Tests
@@ -405,9 +411,35 @@ the overall debug level will be raised by one.  If you send it a <b>SIGUSR2</b> 
 the overall debug level will be lowered by one - unless it is already at zero, in which
 case the <b>SIGUSR2</b> will be ignored.
 
+@section ExaminingNeo4j Examining the Neo4j database
+Neo4j comes with a web server for examining various aspects of the database.
+It can be reached at <a href="http://localhost:7474/webadmin/">http://localhost:7474/webadmin/</a>.
+
+The tabs you should find there include:
+
+ - <b>Overview Dashboard </b> - provides an overview of the number of nodes, relationships and properties over time
+ - <b>Explore and edit</b> - Visual Data browser - visually display the result of a <a href="http://www.neo4j.org/learn/cypher">Cypher</a> query.  It's also interactive, to allow to arrange nodes on the screen.
+ - <b>Power tool Console</b>A low-level shell-like language for exploring the database.
+   Can also be invoked as <tt>neo4j-shell</tt> from the command line.
+ - <b>Add and remove indexes</b> - you probably don't want to do this
+ - <b>Server Info</b> - information about how this Neo4j server is configured
+@section CoolCypherQueries A few cool sample Cypher queries
+To be supplied...
+
+@section UnInstalling Un-installing
+If you wish to uninstall the software, and you installed it as packages, please use the mechanism
+that comes with the packaging for your operating system.
+
+If you installed it with <tt>sudo make install</i>, then there should be a file named
+<tt>install_manifest.txt</tt> in the top directory of your build directory that lists all the
+files that were installed.  Removing the files listed in that file should remove all the
+installed files.
+
 @section GettingStartedConclusion Conclusion
 If you have executed all these steps, and everything has worked, then congratulations, everything is working!
 Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
 know!
+
+In fact, even more important to let the mailing list know if you've had problems.
 
 */
