@@ -1,5 +1,5 @@
 /**
-@mainpage The Assimilation Monitoring Project - Incredibly scalable, Incredibly easy to configure, easy on your network.
+@mainpage Incredibly scalable, Incredibly easy to configure, easy on your network.
 @section intro Introduction
 Welcome to the Assimilation monitoring project. (@ref README "README")
 

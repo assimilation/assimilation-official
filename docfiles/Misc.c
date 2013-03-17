@@ -29,7 +29,7 @@ If you do not have the <i>wget</i> command, you can save that URL using your fav
 An online version of these documents that corresponds to the latest version of the source can be found here:
 http://linux-ha.org/source-doc/assimilation/html/index.html
 
-@page Contributing Contributing to the Assimilation Monitoring Project
+@page Contributing Contributing to the Project
 Interested in contributing to the Assimilation Project?
 Then you've come to the right place!
 
@@ -99,7 +99,7 @@ not with an individual.
 The project founder (Alan Robertson) created Assimilation Systems Limited as a perpetual legal entity to be the
 owner of the rights vested in the project.  It is a Limited Liability Company established and registered in Colorado, USA.
 
-@page NonOwnedSoftware Contributing Software Which You Do Not Own
+@page NonOwnedSoftware Contributing Software You Don't Own
 
 At this time we do not have a method of contributing software you do not own the Copyright to
 the entire work of authorship.  If this is the case for a contribution you wish to provide

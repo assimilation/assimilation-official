@@ -24,6 +24,7 @@
 
 #ifndef _CRYPTFRAME_H
 #define _CRYPTFRAME_H
+#include <frame.h>
 
 ///@{
 /// @ingroup CryptFrame
