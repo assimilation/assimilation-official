@@ -24,6 +24,7 @@
 
 #ifndef _COMPRESSFRAME_H
 #define _COMPRESSFRAME_H
+#include <frame.h>
 
 ///@{
 /// @ingroup CompressFrame

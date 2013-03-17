@@ -24,6 +24,7 @@
 
 #ifndef _NVPAIRFRAME_H
 #define _NVPAIRFRAME_H
+#include <frame.h>
 
 ///@{
 /// @ingroup NVpairFrame
