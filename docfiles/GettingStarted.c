@@ -76,8 +76,15 @@ It must be started before the CMA starts.
 There are two ways you can get a copy of the Assimilation Project source - as a tar ball
 or in a <a href="http://mercurial.selenic.com/">Mercurial</a> source code repository.
 
-You can obtain a <i>tar ball</i> of the bleeding edge source from http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/tip.tar.gz
+You can obtain a <i>tar ball</i> of the bleeding edge source from
 You can download it using a web browser, or <a href="www.gnu.org/software/wget/">wget</a>.
+
+ - Bleeding edge http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/tip.tar.gz
+ - Latest release candidate - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0-RC1.tar.gz
+ - Latest stable version (none)
+
+The latest version is version 0.1.0-RC1 - and it can be found here:
+http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0-RC1.tar.gz
 
 If you'd rather have an active source code repository to use to watch the development
 or contribute to it, then follow these steps:
