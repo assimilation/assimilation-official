@@ -29,26 +29,30 @@ This document is a more detailed version of the information provided in the proj
 
 The following packages are needed for building the packages, testing them, or creating documentation.
 
-<b>Nanoprobe (and CMA library) packages</b>
+<b>Build-only packages</b>
 - <a href="cmake.org">cmake</a> and cpack
 - <a href="http://www.gnu.org/software/gcc/">gcc</a>,
   <a href="http://www.gnu.org/software/make/">make</a> and friends
+- <a href="http://www.freedesktop.org/wiki/Software/pkg-config">pkg-config</a>
+
+<b>Test-only packages</b>
+- <a href="http://valgrind.org/">valgrind</a> (for testing 'C' code)
+- <a href="https://github.com/Yelp/Testify">Testify</a> - Python testing framework (for CMA code)
+- <a href="http://code.google.com/p/ctypesgen/">ctypesgen</a> (for CMA code)
+
+<b>Nanoprobe (and CMA library) packages</b>
 - <a href="http://developer.gnome.org/glib">glib2-dev</a> (aka libglib2.0-dev)
 - <a href="http://www.tcpdump.org">libpcap-dev</a> (or winpcap for Windows)
-- <a href="http://www.freedesktop.org/wiki/Software/pkg-config">pkg-config</a>
-- <a href="http://valgrind.org/">valgrind</a> (for some of the tests)
-
-<b>Documentation packages</b>
-- <a href="http://doxygen.org">Doxygen</a> - for producing this documenation
-- dot (part of <a href="http://www.graphviz.org/">graphviz</a>) for creating graphs for the source documentation - and handy for printing graphs from Neo4j.
 
 <b>CMA-only packages</b>
 - <a href="http://www.neo4j.org/install">Neo4j</a> graph database
 - <a href="http://www.python.org/">Python 2.7</a> (approximately) interpreter for the Python language
-- <a href="https://github.com/Yelp/Testify">Testify</a> - Python testing framework
-- <a href="http://code.google.com/p/ctypesgen/">ctypesgen</a> (will become mandatory)
 - <a href="http://py2neo.org/">py2neo</a> Python bindings for Neo4j
 - <a href="www.tornadoweb.org">tornado</a> web server
+
+<b>Documentation packages</b>
+- <a href="http://doxygen.org">Doxygen</a> - for producing this documenation
+- dot (part of <a href="http://www.graphviz.org/">graphviz</a>) for creating graphs for the source documentation - and handy for printing graphs from Neo4j.
 
 All of the Nanoprobe and documentation packages are readily available on most modern operating systems.
 
