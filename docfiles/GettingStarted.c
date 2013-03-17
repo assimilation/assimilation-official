@@ -124,7 +124,7 @@ If you are unable to build an RPM or DEB package, you can use <tt>sudo make inst
 This installs both the nanoprobe and CMA code.
 However, if you do, you will need to also issue this command:
 <pre>
-	ldconfig /usr/lib/assimilation	
+    ldconfig /usr/lib/assimilation
 </pre>
 At the present time, you may also have to do this for RPMs that come out of cpack.
 The .deb files should not have this issue.
@@ -412,7 +412,7 @@ the overall debug level will be lowered by one - unless it is already at zero, i
 case the <b>SIGUSR2</b> will be ignored.
 
 @section ExaminingNeo4j Examining the Neo4j database
-Neo4j comes with a web server for examining various aspects of the database.
+Neo4j comes with an Administrative  web server for examining various aspects of the database.
 It can be reached at <a href="http://localhost:7474/webadmin/">http://localhost:7474/webadmin/</a>.
 
 The tabs you should find there include:
@@ -423,9 +423,109 @@ The tabs you should find there include:
    Can also be invoked as <tt>neo4j-shell</tt> from the command line.
  - <b>Add and remove indexes</b> - you probably don't want to do this
  - <b>Server Info</b> - information about how this Neo4j server is configured
-@section CoolCypherQueries A few cool sample Cypher queries
+@section CoolCypherQueries A few Cool Cypher queries
+Below you'll find a number of useful and interesting Cypher queries which you
+can issue from the Neo4j Administrative web server mentioned above, or you can
+embed them in your programs.
+The list below is far from exhaustive, but should be sufficient to give a few ideas
+of the types of things that can be done.
 
-To be supplied...
+In order to fully appreciate the kinds of queries that one might perform, it is
+necessary to understand Assimilation Project's Neo4j schema.
+This schema was outlined in a number of blog postings - relating to the overall
+<a href="http://techthoughts.typepad.com/managing_computers/2012/08/an-assimilation-type-schema-in-neo4j.html">nodetype schema</a>,
+<a href="http://techthoughts.typepad.com/managing_computers/2012/07/neo4j-server-schema-for-the-assimilation-project.html">Servers and IP addresses</a>,
+<a href="http://techthoughts.typepad.com/managing_computers/2012/07/assimilation-ring-neo4j-schema.html">rings</a>,
+<a href="http://techthoughts.typepad.com/managing_computers/2012/07/discovering-switches-its-amazing-what-you-can-learn-just-by-listening.html">switches and switch connections</a>,
+and lastly
+<a href="http://techthoughts.typepad.com/managing_computers/2012/07/clients-servers-and-dependencies-oh-my.html">clients, servers and dependencies"</a>.
+
+
+
+@subsection GetTheServerList Retrieve The List of Servers
+<pre>
+START root=node(0)
+MATCH drone-->type-->root
+WHERE type.name = "Drone"
+RETURN drone
+</pre>
+This will bring up a table with the nodes in the graph for servers (Drones) in the database.
+If you click on any of the items in the graph, it will show all the basic properties for a server.
+This list should include these items:
+ - <tt>port</tt>: - the port the nanoprobe is listening on
+ - <tt>nodetype</tt>: "Drone"
+ - <tt>status</tt>: - "up" or "down"
+ - <tt>reason</tt>: - the reason for the status
+ - <tt>name</tt>: hostname
+ - <tt>JSON_arpcache</tt>: JSON from ARP cache discovery
+ - <tt>JSON_cpu</tt>: JSON from cpu discovery
+ - <tt>JSON_netconfig</tt>: JSON from network configuration discovery
+ - <tt>JSON_OS</tt>: JSON from OS discovery
+ - <tt>JSON_tcpclients</tt>: JSON from the tcpclients discovery
+ - <tt>JSON_tcplisteners</tt>: JSON from the tcplisteners discovery
+ - <tt>JSON_\#LinkDiscovery</tt>: JSON from link discovery (only if you have an LLDP-equipped switch)
+
+If you just want the list of host names, you can use this very similar query:
+<pre>
+START root=node(0)
+MATCH drone-->type-->root
+WHERE type.name = "Drone"
+RETURN drone.name
+</pre>
+
+@subsection GetDownServers Retrieve The List of Down Servers
+The query below returns the set of servers which are currently marked down - whether for a crash or graceful shutdown.
+<pre>
+START root=node(0)
+MATCH drone-->type-->root
+WHERE type.name = "Drone" and drone.status = "dead"
+RETURN drone
+</pre>
+
+@subsection GetShutDownServers Retrieve The List of Gracefully Shut Down Servers
+The query below returns the set of servers which are currently down and were shut down gracefully.
+<pre>
+START root=node(0)
+MATCH drone-->type-->root
+WHERE type.name = "Drone" and drone.status = "dead" and drone.reason = "HBSHUTDOWN"
+RETURN drone
+</pre>
+
+@subsection GetCrashedServers Retrieve The List of Crashed Servers
+The query below returns the set of servers which are down but were <i>not</i> shut down gracefully
+(i.e., they crashed).
+<pre>
+START root=node(0)
+MATCH drone-->type-->root
+WHERE type.name = "Drone" and drone.status = "dead" and drone.reason <> "HBSHUTDOWN"
+RETURN drone
+</pre>
+
+@subsection GetNICConnections Return which server NICs are connected to which switch NICs
+The query below will return which switch ports are connected to which server ports, along with the
+SystemName of the switch, and the description of the switch port.
+As of the current release, this query will only produce results if you have LLDP data available to your servers.
+<pre>
+START root=node(0)
+MATCH switch<-[:nicowner]-switchnic-[:wiredto]-dronenic-[:nicowner]->drone-->type-->root
+WHERE type.name = "Drone"
+RETURN  drone.name, dronenic.nicname, switch.SystemName, switchnic.nicname, switchnic.PortDescription
+</pre>
+This should produce output which looks something like this:
+<pre>
+<b>drone.name dronenic.nicname switch.SystemName      switchnic.nicname switchnic.PortDescription</b>
+servidor   eth0             GS724T_10_10_10_250    g6                Alan's office - North wall, grey jack
+</pre>
+
+@subsection EvenMoreQueries Even More Cool Cypher Queries
+These queries don't begin to scratch the surface of what you can do with the Assimilation
+Monitoring project and Cypher.
+So, now it's up to you!
+
+Go forth, create even more Cool Cypher queries, and share them with everyone on the Assimilation
+<a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>.
+
+
 
 @section UnInstalling Un-installing
 If you wish to uninstall the software, and you installed it as packages, please use the mechanism
