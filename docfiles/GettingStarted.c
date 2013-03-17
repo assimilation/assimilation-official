@@ -3,7 +3,7 @@
 
 This is a basic guide to installing, testing, configuring and using the Assimilation Monitoring
 system.
-Please let the<a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
+Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
 know if you try this out, if you run into problems, or if it works for you.
 
 You can subscribe to the mailing list <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">here</a>
@@ -76,15 +76,11 @@ It must be started before the CMA starts.
 There are two ways you can get a copy of the Assimilation Project source - as a tar ball
 or in a <a href="http://mercurial.selenic.com/">Mercurial</a> source code repository.
 
-You can obtain a <i>tar ball</i> of the bleeding edge source from
-You can download it using a web browser, or <a href="www.gnu.org/software/wget/">wget</a>.
+You can obtain a <i>tar ball</i> of the source using a web browser, or <a href="www.gnu.org/software/wget/">wget</a>.
 
- - Bleeding edge http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/tip.tar.gz
+ - Bleeding edge - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/tip.tar.gz
  - Latest release candidate - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0-RC1.tar.gz
- - Latest stable version (none)
-
-The latest version is version 0.1.0-RC1 - and it can be found here:
-http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0-RC1.tar.gz
+ - Latest stable version - <i>none</i>
 
 If you'd rather have an active source code repository to use to watch the development
 or contribute to it, then follow these steps:
@@ -108,7 +104,7 @@ Please report any problems you encounter to the mailing list.
 
 @section MakingTheDocs Making The Documentation (this web site)
 To make the documentation for the project, issue this command
-- make doc
+- <tt>make doc</tT>
 
 This will create all the documentation on the <i>assimmon.org</i> web site.
 
@@ -549,8 +545,7 @@ installed files.
 
 @section GettingStartedConclusion Conclusion
 If you have executed all these steps, and everything has worked, then congratulations, everything is working!
-Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
-know!
+Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a> know!
 
 If it didn't work for you, it's even more important to let the mailing list know.
 
