@@ -4,6 +4,9 @@ Welcome to the Assimilation README file :-D.
 This code builds with cmake, not the autofoo tools...
 You can find a formatted version of this README online at
 http://linux-ha.org/source-doc/assimilation/html/_r_e_a_d_m_e.html
+A more detailed Getting Started guide can be found here:
+http://linux-ha.org/source-doc/assimilation/html/_getting_started.html
+Please join the project mailing list at http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
 
 
 @section Dependencies
@@ -18,7 +21,7 @@ We like to have a reasonable number of things in the build environment.
 - Testify - testing framework from Yelp - https://github.com/Yelp/Testify (<tt>pip install testify</tt>)
 - doxygen (for documentation) - http://doxygen.org/
 - dot (for doxygen graphs) - http://www.graphviz.org/
-- Ctypesgen will become mandatory http://code.google.com/p/ctypesgen/ (<tt>pip install ctypesgen</tt>)
+- Ctypesgen ( for the CMA code) http://code.google.com/p/ctypesgen/ (<tt>pip install ctypesgen</tt>)
 
 In addition, the following systems are needed in the runtime environment for the CMA:
 - Neo4J - http://neo4j.org/
@@ -35,7 +38,6 @@ If not, you can follow these instructions for *NIX type systems.
 - cmake "path-to-source-directory"
 - make install
 
-You currently have to install it in order to run the tests.
 @subsection MakingRPMandDEBPackages Making RPM or DEB packages
 The Cmake project provides cpack to make minimal RPM and DEB packages
 Cpack also makes OS X and Windows packages - but that's untested.
