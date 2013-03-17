@@ -28,6 +28,7 @@
 
 #ifndef _SEQNOFRAME_H
 #define _SEQNOFRAME_H
+#include <frame.h>
 
 ///@{
 /// @ingroup SeqnoFrame
