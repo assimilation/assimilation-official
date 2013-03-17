@@ -4,8 +4,9 @@ Welcome to the Assimilation README file :-D.
 This code builds with cmake, not the autofoo tools...
 You can find a formatted version of this README online at
 http://linux-ha.org/source-doc/assimilation/html/_r_e_a_d_m_e.html
-A more detailed Getting Started guide can be found here:
+A more detailed Getting Started guide can be found here
 http://linux-ha.org/source-doc/assimilation/html/_getting_started.html
+The project home page is at http://assimmon.org/ - check it out!
 Please join the project mailing list at http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
 
 
@@ -26,6 +27,9 @@ We like to have a reasonable number of things in the build environment.
 In addition, the following systems are needed in the runtime environment for the CMA:
 - Neo4J - http://neo4j.org/
 - py2neo - http://py2neo.org/	(<tt>pip install py2neo</tt>)
+
+@section GettingSource Getting Source for the Assimilation Monitoring Project
+The source to the Assimilation Project can be found at http://hg.linux-ha.org/
 
 @section MakingIt Making The Assimilation Monitoring System from Source
 If you know how to use cmake, you probably already know what to do.
