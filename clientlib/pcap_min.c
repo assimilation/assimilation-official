@@ -67,11 +67,11 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 						///< (see @ref pcap_protocols "list of valid bits")
 ,		     struct bpf_program*prog)	///<[out] Compiled PCAP program
 {
-	pcap_t*			pcdescr;
+	pcap_t*			pcdescr = NULL;
 	bpf_u_int32		maskp;
 	bpf_u_int32		netp;
 	char			errbuf[PCAP_ERRBUF_SIZE];
-	char *			expr;
+	char *			expr = NULL;
 	int			filterlen = 1;
 	unsigned		j;
 	int			cnt=0;
@@ -119,18 +119,18 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	}
 	if (pcap_lookupnet(dev, &netp, &maskp, errbuf) != 0) {
 		g_warning("pcap_lookupnet failed: [%s]", errbuf);
-		return NULL;
+		goto oopsie;
 	}
 	
 	if (NULL == (pcdescr = pcap_create(dev, errbuf))) {
 		g_warning("pcap_create failed: [%s]", errbuf);
-		return NULL;
+		goto oopsie;
 	}
 	//pcap_set_promisc(pcdescr, FALSE);
 	for (j = 0; j < DIMOF(filterinfo); ++j) {
 		if (listenmask & filterinfo[j].filterbit) {
 			const char * addrstring = filterinfo[j].mcastaddr;
-			if (!_enable_mcast_address(addrstring, dev, TRUE)) {
+			if (addrstring && !_enable_mcast_address(addrstring, dev, TRUE)) {
 				need_promisc = TRUE;
 			}
 		}
@@ -158,19 +158,31 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
       
 	if (pcap_activate(pcdescr) != 0) {
 		g_warning("pcap_activate failed: [%s]", pcap_geterr(pcdescr));
-		return(NULL);
+		goto oopsie;
 	}
 	if (pcap_compile(pcdescr, prog, expr, FALSE, maskp) < 0) {
 		g_warning("pcap_compile of [%s] failed: [%s]", expr, pcap_geterr(pcdescr));
-		return(NULL);
+		goto oopsie;
 	}
 	if (pcap_setfilter(pcdescr, prog) < 0) {
 		g_warning("pcap_setfilter on [%s] failed: [%s]", expr, pcap_geterr(pcdescr));
-		return(NULL);
+		goto oopsie;
 	}
 	DEBUGMSG1("Compile of [%s] worked!\n", expr);
 	free(expr); expr = NULL;
 	return(pcdescr);
+
+oopsie:	// Some kind of failure - free things up and return NULL
+
+	if (expr) {
+		free(expr);
+		expr = NULL;
+	}
+	if (pcdescr) {
+		close_pcap_listener(pcdescr, dev, listenmask);
+		pcdescr = NULL;
+	}
+	return NULL;
 }
 
 /// Close this pcap_listener, and undo listens for multicast addresses
@@ -182,7 +194,7 @@ close_pcap_listener(pcap_t*	pcapdev		///< Pcap device structure
 	unsigned j;
 	pcap_close(pcapdev);
 	for (j = 0; j < DIMOF(filterinfo); ++j) {
-		if (listenmask & filterinfo[j].filterbit) {
+		if (listenmask & filterinfo[j].filterbit && filterinfo[j].mcastaddr) {
 			_enable_mcast_address(filterinfo[j].mcastaddr, dev, FALSE);
 		}
 	}
@@ -204,6 +216,10 @@ _enable_mcast_address(const char * addrstring	///<[in] multicast MAC address str
 	gchar*		argv[DIMOF(constargv)];
 	unsigned	j;
 
+
+	if (NULL == addrstring) {
+		return FALSE;
+	}
 
 	// This is really stupid and annoying - they have the wrong function prototype for g_spawn_sync...
 	for (j=0; j < DIMOF(argv); ++j) {
