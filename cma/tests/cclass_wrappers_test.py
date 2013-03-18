@@ -22,6 +22,7 @@
 _suites = ['all', 'cclass']
 import sys
 import traceback
+#traceback.print_exc()
 sys.path.append("../cma")
 from testify import *
 
@@ -160,6 +161,38 @@ class pyNetAddrTest(TestCase):
         self.assertRaises(ValueError, pyNetAddr, '1.2.ff.5')
         self.assertRaises(ValueError, pyNetAddr, '1.2.3.4:')
         self.assertRaises(ValueError, pyNetAddr, '1.2.3.4:ff')
+
+    def test_toIPv6(self): 
+        'Test converting IPv4 addresses to IPv6'
+        ipstr= '213.138.100.204:57225'
+        ipv4 = pyNetAddr(ipstr)
+        self.assertEqual(str(ipv4),ipstr)
+        ipv6 = ipv4.toIPv6()
+        self.assertEqual(str(ipv6),'[::ffff:213.138.100.204]:57225')
+        ipv6 = ipv6.toIPv6()
+        self.assertEqual(str(ipv6),'[::ffff:213.138.100.204]:57225')
+        ipv6 = pyNetAddr(str(ipv6))
+        self.assertEqual(str(ipv6),'[::ffff:213.138.100.204]:57225')
+        #
+        ipstr= '213.138.100.255:65535'
+        ipv4 = pyNetAddr(ipstr)
+        self.assertEqual(str(ipv4),ipstr)
+        ipv6 = ipv4.toIPv6()
+        self.assertEqual(str(ipv6),'[::ffff:213.138.100.255]:65535')
+        ipv6 = ipv6.toIPv6()
+        self.assertEqual(str(ipv6),'[::ffff:213.138.100.255]:65535')
+        ipv6 = pyNetAddr(str(ipv6))
+        self.assertEqual(str(ipv6),'[::ffff:213.138.100.255]:65535')
+        #
+        ipstr= '255.255.255.255:65535'
+        ipv4 = pyNetAddr(ipstr)
+        self.assertEqual(str(ipv4),ipstr)
+        ipv6 = ipv4.toIPv6()
+        self.assertEqual(str(ipv6),'[::ffff:255.255.255.255]:65535')
+        ipv6 = ipv6.toIPv6()
+        self.assertEqual(str(ipv6),'[::ffff:255.255.255.255]:65535')
+        ipv6 = pyNetAddr(str(ipv6))
+        self.assertEqual(str(ipv6),'[::ffff:255.255.255.255]:65535')
 
     def test_ipv6_strinit(self): 
         'Test constructing ipv6 addresses from strings.'
