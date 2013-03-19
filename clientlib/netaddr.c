@@ -83,19 +83,19 @@ _netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format)
 	if (self->_addrport) {
 		return g_strdup_printf("%s%d.%d.%d.%d%s%d",
 				       prefix,
-				       ((const gchar*)self->_addrbody)[12],
-				       ((const gchar*)self->_addrbody)[13],
-				       ((const gchar*)self->_addrbody)[14],
-				       ((const gchar*)self->_addrbody)[15],
+				       ((const guchar*)self->_addrbody)[12],
+				       ((const guchar*)self->_addrbody)[13],
+				       ((const guchar*)self->_addrbody)[14],
+				       ((const guchar*)self->_addrbody)[15],
 				       suffix,
 				       self->_addrport);
 	}
 	return g_strdup_printf("%s%d.%d.%d.%d",
 			       prefix,
-			       ((const gchar*)self->_addrbody)[12],
-			       ((const gchar*)self->_addrbody)[13],
-			       ((const gchar*)self->_addrbody)[14],
-			       ((const gchar*)self->_addrbody)[15]);
+			       ((const guchar*)self->_addrbody)[12],
+			       ((const guchar*)self->_addrbody)[13],
+			       ((const guchar*)self->_addrbody)[14],
+			       ((const guchar*)self->_addrbody)[15]);
 }
 /// Convert this IPv6-encapsulated IPv4 NetAddr to an IPv4 representation
 /// Convert this NetAddr to a string
@@ -153,17 +153,17 @@ _netaddr_toStringflex(const NetAddr* self, gboolean canon_format)
 	if (self->_addrtype == ADDR_FAMILY_IPV4) {
 		if (self->_addrport) {
 			return g_strdup_printf("%d.%d.%d.%d:%d",
-					      ((const gchar*)self->_addrbody)[0],
-					      ((const gchar*)self->_addrbody)[1],
-					      ((const gchar*)self->_addrbody)[2],
-					      ((const gchar*)self->_addrbody)[3],
+					      ((const guchar*)self->_addrbody)[0],
+					      ((const guchar*)self->_addrbody)[1],
+					      ((const guchar*)self->_addrbody)[2],
+					      ((const guchar*)self->_addrbody)[3],
 					      self->_addrport);
 		}
 		return g_strdup_printf("%d.%d.%d.%d",
-				      ((const gchar*)self->_addrbody)[0],
-				      ((const gchar*)self->_addrbody)[1],
-				      ((const gchar*)self->_addrbody)[2],
-				      ((const gchar*)self->_addrbody)[3]);
+				      ((const guchar*)self->_addrbody)[0],
+				      ((const guchar*)self->_addrbody)[1],
+				      ((const guchar*)self->_addrbody)[2],
+				      ((const guchar*)self->_addrbody)[3]);
 	}
 	gsret = g_string_new("");
 	if (self->_addrtype == ADDR_FAMILY_IPV6) {
@@ -215,7 +215,7 @@ _netaddr_toStringflex(const NetAddr* self, gboolean canon_format)
 	}else{
 		for (nbyte = 0; nbyte < self->_addrlen; ++nbyte) {
 			g_string_append_printf(gsret, (nbyte == 0 ? "%02x" : ":%02x"),
-					       ((const gchar*)self->_addrbody)[nbyte]);
+					       ((const guchar*)self->_addrbody)[nbyte]);
 		}
 	}
 	ret = gsret->str;
