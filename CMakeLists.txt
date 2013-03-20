@@ -121,17 +121,26 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	
 set(CMAKE_BUILD_TYPE debug)
+
+if (WIN32)
+set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
+set (LIB_DIRNAME ${LIB_SUFFIX})
+set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/nanoprobe/${CMAKE_BUILD_TYPE})
+set (USRSHARE ${CMAKE_INSTALL_PREFIX}/nanoprobe)
+else (WIN32)
 set(CMAKE_INSTALL_PREFIX /usr)
 set (LIB_DIRNAME lib${LIB_SUFFIX})
 set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/${LIB_DIRNAME}/${PROJECT_NAME})
-set (CMAKE_EXE_LINKER_FLAGS "-L ${InstallLIBS}")
+set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
+endif (WIN32)
+
 set (CLIENTLIB ${PROJECT_NAME}clientlib)
 set (SERVERLIB ${PROJECT_NAME}serverlib)
 # Figure out where to install our python code
 # This isn't perfect, but it should be good enough for us to get things going...
 execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/install-path.py)
 set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
-set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
+
 set (DAGENTS discovery_agents)
 set (DISCOVERYINSTALL ${USRSHARE}/${DAGENTS})
 configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst @ONLY)
@@ -173,6 +182,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_D
 #	Sometimes it's called glib-2.0 and sometimes libglib-2.0 - Sigh...
 #
 include(FindPkgConfig)
+
 if (PKG_CONFIG_FOUND)
     pkg_check_modules(GLIB2 QUIET glib-2.0)
     if (NOT GLIB2_FOUND)
@@ -184,26 +194,30 @@ if (PKG_CONFIG_FOUND)
     
     include_directories(${GLIB2_INCLUDE_DIRS})
     #set(CMAKE_REQUIRED_FLAGS ${GLIB2_LDFLAGS})
-    set(CMAKE_REQUIRED_LIBRARIES c ${CMAKE_REQUIRED_LIBRARIES} ${GLIB2_LIBRARIES})
+if (WIN32)
+    set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} ${GLIB2_LIBDIR}/glib-2.0.lib)
+    include_directories("C:/winpcap/include")
+    include_directories("C:/winpcap/src/wpcap/libpcap")
+    INCLUDE_DIRECTORIES(${CMAKE_INCLUDE_PATH})
+else (WIN32)
+	set(CMAKE_REQUIRED_LIBRARIES c ${CMAKE_REQUIRED_LIBRARIES} ${GLIB2_LIBRARIES})
+endif (WIN32)
+
 else (PKG_CONFIG_FOUND)
     message(SEND_ERROR "Cannot find pkg-config utility")
 endif (PKG_CONFIG_FOUND)
-
-if(WIN32)
-      include_directories("C:/winpcap/include")
-      INCLUDE_DIRECTORIES(${CMAKE_INCLUDE_PATH})
-endif(WIN32)
 
 #
 #	Checking for various system functions and header files...
 #
 include(CheckFunctionExists)
+include(CheckSymbolExists)
 CHECK_FUNCTION_EXISTS(g_get_real_time HAVE_G_GET_REAL_TIME)
 CHECK_FUNCTION_EXISTS(g_get_monotonic_time HAVE_G_GET_MONOTONIC_TIME)
 CHECK_FUNCTION_EXISTS(kill HAVE_KILL)
 CHECK_FUNCTION_EXISTS(uname HAVE_UNAME)
 CHECK_FUNCTION_EXISTS(endprotoent  HAVE_ENDPROTOENT)
-CHECK_FUNCTION_EXISTS(GetComputerName  HAVE_GETCOMPUTERNAME)
+CHECK_SYMBOL_EXISTS(GetComputerNameA "Windows.h" HAVE_GETCOMPUTERNAME) 
 include(CheckIncludeFile)
 CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
 CHECK_INCLUDE_FILE(sys/utsname.h HAVE_SYS_UTSNAME_H)
@@ -218,7 +232,9 @@ set (Best_CLANG_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-d
 
 set (Active_CLANG_FLAGS ${Best_CLANG_FLAGS})
 
+if (NOT WIN32)
 set (OUR_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
+endif (NOT WIN32)
 
 if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
   message(STATUS "found CLANG")
