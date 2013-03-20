@@ -21,5 +21,6 @@
 add_library(${SERVERLIB} SHARED dump.c lldp.c cdp.c)
 if (WIN32)
   target_link_libraries(${SERVERLIB} ${CLIENTLIB})
-endif (WIN32)
+else (WIN32)
 install (TARGETS ${SERVERLIB} COMPONENT nanoprobe-component LIBRARY DESTINATION ${InstallLIBS})
+endif (WIN32)
