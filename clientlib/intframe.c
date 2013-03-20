@@ -212,7 +212,7 @@ intframe_tlvconstructor(gconstpointer tlvstart,	///<[in] First byte of the IntFr
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	IntFrame *	ret = intframe_new(frametype, framelength);
-	guint64		intvalue = 0xffffffffffffffffUL;
+	guint64		intvalue = G_MAXUINT64;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;
