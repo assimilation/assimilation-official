@@ -452,7 +452,7 @@ and lastly
 @subsection GetTheServerList Retrieve The List of Servers
 <pre>
 START root=node(0)
-MATCH drone-->type-->root
+MATCH drone-[:IS_A]->type-[:IS_A]->root
 WHERE type.name = "Drone"
 RETURN drone
 </pre>
@@ -474,37 +474,38 @@ This list should include these items:
 
 If you just want the list of host names, you can use this very similar query:
 <pre>
-START root=node(0)
-MATCH drone-->type-->root
-WHERE type.name = "Drone"
+START typeroot=node(0)
+MATCH drone-[:IS_A]->nodetype-[:IS_A]->typeroot
+WHERE nodetype.name = "Drone"
 RETURN drone.name
 </pre>
 
 @subsection GetDownServers Retrieve The List of Down Servers
-The query below returns the set of servers which are currently marked down - whether for a crash or graceful shutdown.
+The query below returns the set of servers which are currently marked down - regardless of the reason
+they're down.
 <pre>
-START root=node(0)
-MATCH drone-->type-->root
-WHERE type.name = "Drone" and drone.status = "dead"
+START typeroot=node(0)
+MATCH drone-[:IS_A]->nodetype-[:IS_A]->typeroot
+WHERE nodetype.name = "Drone" and drone.status = "dead"
 RETURN drone
 </pre>
 
 @subsection GetShutDownServers Retrieve The List of Gracefully Shut Down Servers
 The query below returns the set of servers which are currently down and were shut down gracefully.
 <pre>
-START root=node(0)
-MATCH drone-->type-->root
-WHERE type.name = "Drone" and drone.status = "dead" and drone.reason = "HBSHUTDOWN"
+START typeroot=node(0)
+MATCH drone-[:IS_A]->nodetype-[:IS_A]->typeroot
+WHERE nodetype.name = "Drone" and drone.status = "dead" and drone.reason = "HBSHUTDOWN"
 RETURN drone
 </pre>
 
 @subsection GetCrashedServers Retrieve The List of Crashed Servers
-The query below returns the set of servers which are down but were <i>not</i> shut down gracefully
+The query below returns the set of servers which are down but were <b>not</b> shut down gracefully
 (i.e., they crashed).
 <pre>
-START root=node(0)
-MATCH drone-->type-->root
-WHERE type.name = "Drone" and drone.status = "dead" and drone.reason <> "HBSHUTDOWN"
+START typeroot=node(0)
+MATCH drone-[:IS_A]->nodetype-[:IS_A]->typeroot
+WHERE nodetype.name = "Drone" and drone.status = "dead" and drone.reason <> "HBSHUTDOWN"
 RETURN drone
 </pre>
 
@@ -513,9 +514,9 @@ The query below will return which switch ports are connected to which server por
 SystemName of the switch, and the description of the switch port.
 As of the current release, this query will only produce results if you have LLDP data available to your servers.
 <pre>
-START root=node(0)
-MATCH switch<-[:nicowner]-switchnic-[:wiredto]-dronenic-[:nicowner]->drone-->type-->root
-WHERE type.name = "Drone"
+START typeroot=node(0)
+MATCH switch<-[:nicowner]-switchnic-[:wiredto]-dronenic-[:nicowner]->drone-[:IS_A]->nodetype-[:IS_A]->typeroot
+WHERE nodetype.name = "Drone"
 RETURN  drone.name, dronenic.nicname, switch.SystemName, switchnic.nicname, switchnic.PortDescription
 </pre>
 This should produce output which looks something like this:
@@ -526,7 +527,7 @@ servidor   eth0             GS724T_10_10_10_250    g6                Alan's offi
 
 @subsection EvenMoreQueries Even More Cool Cypher Queries
 These queries don't begin to scratch the surface of what you can do with the Assimilation
-Monitoring project and Cypher.
+Monitoring project and Cypher queries into the Neo4j database.
 So, now it's up to you!
 
 Go forth, create even more Cool Cypher queries, and share them with everyone on the Assimilation
@@ -547,6 +548,6 @@ installed files.
 If you have executed all these steps, and everything has worked, then congratulations, everything is working!
 Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a> know!
 
-If it didn't work for you, it's even more important to let the mailing list know.
+If it didn't work for you, it's <i>even more</i> important to let the mailing list know.
 
 */
