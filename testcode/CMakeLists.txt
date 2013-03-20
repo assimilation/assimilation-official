@@ -31,8 +31,8 @@ IF(WIN32)
   target_link_libraries(mainlooptest ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
 
 ELSE(WIN32)
-  target_link_libraries (filetest ${CLIENTLIB} ${SERVERLIB} -lpcap )
-  target_link_libraries (mainlooptest ${CLIENTLIB} ${SERVERLIB} -lpcap )
+  target_link_libraries (filetest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
+  target_link_libraries (mainlooptest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
   target_link_libraries (pinger ${CLIENTLIB} ${SERVERLIB})
 ENDIF(WIN32)
 
