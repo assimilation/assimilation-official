@@ -20,6 +20,9 @@
 #
 HERE=$(dirname $0)
 REPCOUNT=20
+G_MESSAGES_DEBUG=all
+G_SLICE=always-malloc
+export G_MESSAGES_DEBUG G_SLICE
 GEN=--gen-suppressions=all
 GEN="--gen-suppressions=no --num-callers=50 --read-var-info=yes"
 GEN="--gen-suppressions=all --num-callers=50"
