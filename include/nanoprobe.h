@@ -39,9 +39,9 @@ struct _NanoHbStats {
 extern NanoHbStats	nano_hbstats;
 extern gboolean		nano_connected;
 
-void				nano_start_full(const char *initdiscoverpath, guint discover_interval
+WINEXPORT void				nano_start_full(const char *initdiscoverpath, guint discover_interval
 ,						NetGSource* io, ConfigContext* config);
-void				nano_shutdown(gboolean statreport);
+WINEXPORT void				nano_shutdown(gboolean statreport);
 WINEXPORT PacketDecoder*	nano_packet_decoder(void);
 WINEXPORT gboolean		nano_initiate_shutdown(void);
 WINEXPORT void			nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname, guint64 howlate);

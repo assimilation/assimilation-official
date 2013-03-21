@@ -138,7 +138,7 @@ nanoprobe_report_upstream(guint16 reporttype	///< FrameSet Type of report to cre
 		// Add the system name - if any...
 		if (systemnm != NULL) {
 			CstringFrame* usf = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
-			usf->baseclass.setvalue(&usf->baseclass, strdup(systemnm), strlen(systemnm)+1
+			usf->baseclass.setvalue(&usf->baseclass, g_strdup(systemnm), strlen(systemnm)+1
 			,			frame_default_valuefinalize);
 			frameset_append_frame(fs, &usf->baseclass);
 			UNREF2(usf);
@@ -293,7 +293,7 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 
 			case FRAMETYPE_HBINTERVAL:
 				iframe = CASTTOCLASS(IntFrame, frame);
-				sendinterval = iframe->getint(iframe);
+				sendinterval = (guint16) iframe->getint(iframe);
 				break;
 			case FRAMETYPE_IPPORT:
 				if (0 == sendinterval) {
@@ -549,7 +549,7 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 			case FRAMETYPE_CINTVAL: { // Integer value to set 'paramname' to
 				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
 				g_return_if_fail(paramname != NULL);
-				cfg->setint(cfg, paramname, intf->getint(intf));
+				cfg->setint(cfg, paramname, (gint)intf->getint(intf));
 				paramname = NULL;
 			}
 			break;
@@ -698,7 +698,7 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 
 			case FRAMETYPE_DISCINTERVAL: { // Discovery interval
 				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
-				interval = intf->getint(intf);
+				interval = (guint)intf->getint(intf);
 				DEBUGMSG3("%s - got DISCOVERYINTERVAL %d", __FUNCTION__, interval);
 			}
 			break;
@@ -879,7 +879,7 @@ nano_reqconfig(gpointer gcruft)
 	// Put in the JSON discovery text
 	jsontext = context->getstring(context, cfgname);
 	csf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
-	csf->baseclass.setvalue(&csf->baseclass, strdup(jsontext), strlen(jsontext)+1
+	csf->baseclass.setvalue(&csf->baseclass, g_strdup(jsontext), strlen(jsontext)+1
 	,			frame_default_valuefinalize);
 
 	frameset_append_frame(fs, &csf->baseclass);

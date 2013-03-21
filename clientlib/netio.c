@@ -34,6 +34,11 @@
 #ifdef _MSC_VER
 #	include <winsock2.h>
 #	include <ws2tcpip.h>
+#include <ws2ipdef.h>
+#define ip_mreqn ip_mreq
+#define imr_address imr_multiaddr
+#define s6_addr16 u.Word
+#define close closesocket
 #else
 #	include <sys/socket.h>
 #	include <netinet/in.h>
@@ -232,7 +237,7 @@ _netio_setmcast_ttl(NetIO*	self,		///<[in/out] netIO object to set the TTL of
 ///< <255    Unrestricted in scope. Global.
 {
 	int	ttl = ttlin;
-        return setsockopt(self->getfd(self), IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl) == 0);
+        return setsockopt(self->getfd(self), IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof(ttl) == 0);
 }
 
 /// Member function that returns TRUE if input is ready to be read
@@ -592,7 +597,12 @@ _netio_recvapacket(NetIO* self,			///<[in/out] Transport to receive packet from
 		FREE(msgbuf); msgbuf = NULL;
 		return NULL;
 	}
-		
+
+#ifdef WIN32
+#define __in6_u    u
+#define __u6_addr8 Byte
+#endif
+
 	if (memcmp(srcaddr->sin6_addr.__in6_u.__u6_addr8, v4any,  sizeof(v4any)) == 0) {
 		//const guint8 localhost[16] = CONST_IPV6_LOOPBACK;
 		const guint8 localhost[16] = {CONST_IPV6_IPV4SPACE, 127, 0, 0, 1};
@@ -673,7 +683,9 @@ _netio_enablepktloss (NetIO* self, gboolean enable)
 
 
 #ifdef IPV6_V6ONLY
+#ifndef _MSC_VER
 #	include <netdb.h>
+#endif
 
 /// Return TRUE if our OS supports dual ipv4/ipv6 sockets.  That is,
 /// can a single socket receive and send both ipv4 and ipv6 packets?
@@ -692,7 +704,9 @@ netio_is_dual_ipv4v6_stack(void)
 		return retval;
 	}
 	proto = getprotobyname("ipv6");
+#ifdef HAVE_ENDPROTOENT
 	endprotoent();
+#endif
 	g_return_val_if_fail(proto != NULL, FALSE);
 	
 	sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
@@ -700,7 +714,7 @@ netio_is_dual_ipv4v6_stack(void)
 	
 	optlen = sizeof(retval);
 	optval = TRUE;
-	if (getsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, &optval, &optlen) < 0) {
+	if (getsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, (char *)&optval, &optlen) < 0) {
 		g_warning("%s.%d: getsockopt failed:  %s", __FUNCTION__, __LINE__
 		,	g_strerror(errno));
 		close(sockfd);
@@ -718,7 +732,7 @@ netio_is_dual_ipv4v6_stack(void)
 	// This might be OK for other OSes too...
 	if (optval) {
 		optval = FALSE;
-		if (setsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, &optval, &optlen) < 0) {
+		if (setsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, (char *)&optval, optlen) < 0) {
 			/// @todo this isn't perfect yet - see Microsoft note for ipv6-only stacks
 			///	(presuming someone would disable ipv4 support from their machine)
 			optval = TRUE;

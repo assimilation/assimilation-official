@@ -35,8 +35,13 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifndef WIN32
 #include <sys/time.h>
 #include <sys/resource.h>
+#else
+#include <Windows.h>
+#include <WinBase.h>
+#endif
 #include <signal.h>
 #include <misc.h>
 
@@ -58,15 +63,25 @@ proj_get_sysname(void)
 char *
 proj_get_sysname(void)
 {
-	return g_strdup("Put Windows Code Here!");
+//	BOOL WINAPI GetComputerName(_Out_ LPTSTR lpBuffer, _Inout_  LPDWORD lpnSize);
+
+	char sn[MAX_COMPUTERNAME_LENGTH + 1];
+	DWORD snsize = sizeof(sn);
+	BOOL ret;
+
+	ret = GetComputerName((LPSTR) sn, &snsize);
+	if(ret) {
+		return g_strdup(sn);
+	}
+
+	return g_strdup("GetComputerName failed");
 }
-#	error "Need to replace code above with real Windows code..."
 #	else
 #	error "Need some function to get our computer name!"
 #	endif
 #endif
 
-
+#ifndef WIN32
 /// Make us into a proper daemon.
 void
 daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a background job
@@ -150,11 +165,30 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 		close(j);
 	}
 }
+#else
+void
+daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a background job
+		const char* dirtorunin,		///<[in] Directory to cd to or NULL for default (/)
+		const char* pidfile)		///<[in] Pathname of pidfile or NULL for no pidfile
+{
+	if (pidfile) {
+		if (are_we_already_running(pidfile, NULL) == PID_RUNNING) {
+			g_message("Already running.");
+			exit(0);
+		}
+	}
+			// Exit if we can't create the requested pidfile
+	if (!create_pid_file(pidfile)) {
+		exit(1);
+	}
+}
+#endif
 
 static gboolean	syslog_opened = FALSE;
 void
 assimilation_openlog(const char* logname)
 {
+#ifndef WIN32
 	const int	syslog_options = LOG_PID|LOG_NDELAY;
 	const int	syslog_facility = LOG_DAEMON;
 
@@ -174,6 +208,7 @@ assimilation_openlog(const char* logname)
 	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 	openlog(assim_syslogid, syslog_options, syslog_facility);
 	syslog_opened = TRUE;
+#endif
 }
 void
 assimilation_logger(const gchar *log_domain,	///< What domain are we logging to?
@@ -181,6 +216,16 @@ assimilation_logger(const gchar *log_domain,	///< What domain are we logging to?
 		    const gchar *message,	///< What should we log
 		    gpointer ignored)		///< Ignored
 {
+#ifdef WIN32
+#define LOG_INFO 6
+#define LOG_DEBUG 7
+#define LOG_NOTICE 5
+#define LOG_WARNING 4
+#define LOG_ERR 3
+#define LOG_CRIT 2
+#define LOG_ALERT 1
+#define LOG_EMERG 0
+#endif
 	int		syslogprio = LOG_INFO;
 	const char *	prefix = "INFO:";
 
@@ -212,19 +257,36 @@ assimilation_logger(const gchar *log_domain,	///< What domain are we logging to?
 		syslogprio = LOG_EMERG; // Or maybe LOG_CRIT ?
 		prefix = "EMERG";
 	}
+#ifndef WIN32
 	syslog(syslogprio, "%s:%s %s", prefix
 	,	log_domain == NULL ? "" : log_domain
 	,	message);
+#else
+	{
+		char msg[256];
+		g_snprintf(msg, sizeof(msg), "%s: %s:%s %s\n",assim_syslogid, prefix
+			,	log_domain == NULL ? "" : log_domain
+			,	message);
+		OutputDebugString((LPCSTR) msg);
+	}
+#endif
 	fprintf(stderr, "%s: %s:%s %s\n", assim_syslogid, prefix
 	,	log_domain == NULL ? "" : log_domain
 	,	message);
 }
 
-
-#define	MAXPIDLEN	16
-#define	MAXPATH		256
+#ifdef WIN32
+#define SEP '\\'
+//TODO: these will be replaced when windows functionality cathes up
+#define	PROCSELFEXE	"/"
+#define	PROCOTHEREXE	"/"
+#else
+#define SEP '/'
 #define	PROCSELFEXE	"/proc/self/exe"
 #define	PROCOTHEREXE	"/proc/%d/exe"
+#endif
+#define	MAXPIDLEN	16
+#define	MAXPATH		256
 
 static gboolean		created_pid_file = FALSE;
 
@@ -235,11 +297,15 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 {
 	char *	pidcontents;				// Contents of the pid file
 	int	pid;					// Pid from the pid file
-	char	pidexename[sizeof(PROCOTHEREXE)+16];	// Name of /proc entry for 'pid'
 	char*	ourexepath;				// Pathname of our executable
 	char*	ourexecmd;				// command name of our executable
 	char*	pidexepath;				// Pathname of the 'pid' executable
 	char*	pidexecmd;				// command name the 'pid' executable
+#ifdef WIN32
+	char    w_ourexepath[MAXPATH];
+	int     nSize = MAXPATH-1, ret;
+#endif
+	char	pidexename[sizeof(PROCOTHEREXE)+16];	// Name of /proc entry for 'pid'
 
 	//g_debug("%s.%d: PID file path [%s]", __FUNCTION__, __LINE__, pidfile);
 	if (pidarg) {
@@ -268,7 +334,12 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 		*pidarg = pid;
 	}
 	// Is it still running?
-	if (kill(pid, 0) < 0 && errno != EPERM) {
+#ifdef WIN32
+	if(TerminateProcess((void *)pid, 0) == 0) 
+#else
+	if (kill(pid, 0) < 0 && errno != EPERM)
+#endif
+	{
 		g_debug("%s.%d: PID %d is not running", __FUNCTION__, __LINE__, pid);
 		return PID_DEAD;
 	}
@@ -276,12 +347,21 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 	// That is, is it the same executable as we are?
 
 	// So, what is the pathname of our executable?
+#ifndef WIN32
 	ourexepath = g_file_read_link(PROCSELFEXE, NULL);
+#else
+	ret = GetModuleFileName(NULL, w_ourexepath, nSize);
+	if(ret == 0) {
+		g_debug("%s.%d: GetModuleFileName failed %d", __FUNCTION__, __LINE__, GetLastError());
+		return(PID_DEAD);
+	}
+	ourexepath = g_strdup(w_ourexepath);
+#endif
 	if (NULL == ourexepath) {
 		return PID_RUNNING;
 	}
-	if (strrchr(ourexepath, '/') != NULL) {
-		ourexecmd = strrchr(ourexepath, '/')+1;
+	if (strrchr(ourexepath, SEP) != NULL) {
+		ourexecmd = strrchr(ourexepath, SEP)+1;
 	}else{
 		ourexecmd = ourexepath;
 	}
@@ -293,8 +373,8 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 		g_free(ourexepath); ourexepath = NULL;
 		return PID_RUNNING;
 	}
-	if (strrchr(pidexepath, '/') != NULL) {
-		pidexecmd = strrchr(pidexepath, '/')+1;
+	if (strrchr(pidexepath, SEP) != NULL) {
+		pidexecmd = strrchr(pidexepath, SEP)+1;
 	}else{
 		pidexecmd = pidexepath;
 	}
@@ -321,13 +401,22 @@ create_pid_file(const char * pidfile)
 	GError*		errptr = NULL;
 	PidRunningStat	pstat;
 	
-
-	g_debug("%s.%d: Creating pid file %s for pid %d", __FUNCTION__, __LINE__, pidfile, getpid());
+#if _MSC_VER
+__declspec(dllimport)
+__out
+void *
+__stdcall
+GetCurrentProcess();
+#define GETPID GetCurrentProcessId()
+#else
+#define GETPID getpid()
+#endif
+	g_debug("%s.%d: Creating pid file %s for pid %d", __FUNCTION__, __LINE__, pidfile, GETPID);
 	pstat = are_we_already_running(pidfile, NULL);
 	if (PID_RUNNING == pstat) {
 		return FALSE;
 	}
-	g_snprintf(pidbuf, sizeof(pidbuf), "%6d\n", getpid());
+	g_snprintf(pidbuf, sizeof(pidbuf), "%6d\n", GETPID);
 	if (pstat == PID_DEAD || pstat == PID_NOTUS) {
 		g_debug("%s.%d: Unlinking dead pid file %s", __FUNCTION__, __LINE__, pidfile);
 		g_unlink(pidfile);
@@ -336,10 +425,12 @@ create_pid_file(const char * pidfile)
 	if (g_file_set_contents(pidfile, pidbuf, strlen(pidbuf), &errptr)) {
 		g_debug("%s.%d: Successfully set file %s to content [%s]"
 		,	__FUNCTION__, __LINE__, pidfile, pidbuf);
+#ifndef WIN32
 		if (chmod(pidfile, 0644) < 0) {
 			g_warning("%s.%d: Could not chmod pid file %s to 0644", __FUNCTION__, __LINE__
 			,	pidfile);
 		}
+#endif
 		created_pid_file = TRUE;
 		return TRUE;
 	}
@@ -355,7 +446,7 @@ void
 remove_pid_file(const char * pidfile)
 {
 	if (created_pid_file) {
-		unlink(pidfile);
+		g_unlink(pidfile);
 	}
 }
 
@@ -368,24 +459,37 @@ kill_pid_service(const char * pidfile, int signal)
 
 	pidstat = are_we_already_running(pidfile, &service_pid);
 	if (pidstat == PID_RUNNING) {
+#ifndef WIN32
 		return kill((pid_t)service_pid, signal);
+#else
+		if(TerminateProcess((HANDLE) service_pid, signal) != 0) {
+			g_unlink(pidfile);
+			return(-1);
+		}
+#endif
 	}
-	unlink(pidfile);	// No harm in removing it...
+	g_unlink(pidfile);	// No harm in removing it...
 	return 0;
 }
 
 static const char *	saved_pidfile = NULL;
 void
-rmpid_and_exit_on_signal(const char * pidfile, int signal)
+rmpid_and_exit_on_signal(const char * pidfile, int signal_in)
 {
+#ifndef WIN32
 	struct sigaction	sigact;
+#endif
 
 	if (pidfile != NULL) {
 		saved_pidfile = pidfile;
 	}
+#ifndef WIN32
         memset(&sigact, 0,  sizeof(sigact));
         sigact.sa_handler = catch_pid_signal;
-        sigaction(signal, &sigact, NULL);
+        sigaction(signal_in, &sigact, NULL);
+#else
+	signal(signal_in, catch_pid_signal);
+#endif
 }
 FSTATIC void
 catch_pid_signal(int unused_signum)

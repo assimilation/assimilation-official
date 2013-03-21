@@ -23,7 +23,9 @@
  */
 #ifndef _MISC_H
 #include <projectcommon.h>
+#ifndef WIN32
 #include <syslog.h>
+#endif
 #include <stdio.h>
 
 #define STD_PID_DIR	"/var/run"
