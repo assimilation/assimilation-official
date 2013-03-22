@@ -24,7 +24,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef RHM
 #include <getopt.h>
+#endif
 #include <netaddr.h>
 #include <frametypes.h>
 #include <reliableudp.h>
@@ -139,7 +141,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 			Frame* frame = CASTTOCLASS(Frame, slframe->data);
 			if (frame->type == FRAMETYPE_CINTVAL) {
 				IntFrame*	cntframe = CASTTOCLASS(IntFrame, frame);
-				gint		theirnextcount = cntframe->getint(cntframe);
+				gint		theirnextcount = (gint)cntframe->getint(cntframe);
 				foundcount = TRUE;
 				if (theirlastcount_p != NULL) {
 					gint	theirlastcount = GPOINTER_TO_INT(theirlastcount_p);
@@ -201,16 +203,16 @@ usage(const char * cmdname)
 	}else{
 		cmd = cmdname;
 	}
-	fprintf(stderr, "usage: %s [-d] [-c count ] ip-address1 [ip-address ...]", cmd);
-	fprintf(stderr, "  -c count-of-ping-packets");
-	fprintf(stderr, "  -d increment debug [can be repeated for more debug]");
+	fprintf(stderr, "usage: %s [-d debug-level] [-c count ] ip-address1 [ip-address ...]\n", cmd);
+	fprintf(stderr, "  -c count-of-ping-packets\n");
+	fprintf(stderr, "  -d debug-level [0-5]\n");
 	exit(1);
 }
 
 int
 main(int argc, char **argv)
 {
-	int		j;
+//	int		j;
 	FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
 	SignFrame*      signature = signframe_new(G_CHECKSUM_SHA256, 0);
@@ -220,18 +222,41 @@ main(int argc, char **argv)
 	NetGSource*	netpkt;
 	AuthListener*	act_on_packets;
 	int		liveobjcount;
-	gboolean	optionerror = FALSE;
-	gboolean	moreopts = TRUE;
-	int		option_index = 0;
-	int		c;
+//	gboolean	optionerror = FALSE;
+//	gboolean	moreopts = TRUE;
+//	int		option_index = 0;
+//	int		c;
 
-	static struct option long_options[] = {
-		{"count",	required_argument,	0,	'c'},
-		{"debug",	no_argument,		0,	'd'},
+	//static struct option long_options[] = {
+	//	{"count",	required_argument,	0,	'c'},
+	//	{"debug",	no_argument,		0,	'd'},
+	//};
+	static int mycount = 0;
+	static int mydebug = 0;
+	static gchar **optremaining = NULL;
+	gchar *ipaddr = NULL;
+	static GOptionEntry long_options [] = {
+		{"count",  'c', 0, G_OPTION_ARG_INT,  &mycount, "count of ping packets", NULL},
+		{"debug",  'd', 0, G_OPTION_ARG_INT, &mydebug, "debug-level [0-5]", NULL},
+		{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &optremaining, "ip_address [ip_address ...]", NULL},
+		{NULL}
 	};
+	GError *optionerror;
+	GOptionContext *myOptionContext;
+
+	myOptionContext = g_option_context_new(" ip_address [ip_address...]");
+	g_option_context_add_main_entries(myOptionContext, long_options, NULL);
 
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
-	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	g_log_set_fatal_mask(NULL, (int) G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+
+	if(!(g_option_context_parse(myOptionContext, &argc, &argv, &optionerror))) {
+		g_print("option parsing failed %s\n", optionerror->message);
+		usage(argv[0]);
+		exit(1);
+	}
+
+#ifdef RHM
 	while (moreopts) {
 		c = getopt_long(argc, argv, "c:d", long_options, &option_index);
 		switch(c) {
@@ -265,6 +290,23 @@ main(int argc, char **argv)
 		usage(argv[0]);
 		exit(1);
 	}
+#endif
+
+	g_option_context_free(myOptionContext);
+	if((mycount != 0) && (mycount > 0)) {  // an upper limit as well ?
+		maxpingcount = mycount;
+	}
+	if(mydebug > 0) {
+		if(mydebug > 5) mydebug = 5;
+		while(mydebug--) {
+			proj_class_incr_debug(NULL);
+		}
+	}
+	if(optremaining == NULL) {
+		usage(argv[0]);
+		exit(1);
+	}
+	// use -- to end option scanning
 
 	theircounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
 	ourcounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
@@ -289,21 +331,22 @@ main(int argc, char **argv)
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
 	// Kick everything off with a pingy-dingy
-	for (j=optind; j < argc; ++j) {
+	for(ipaddr = *optremaining; ; ipaddr++) {
+//	for (j=optind; j < argc; ++j) {
 		FrameSet*	ping;
 		NetAddr*	toaddr;
 		NetAddr*	v6addr;
 		IntFrame*	iframe  = intframe_new(FRAMETYPE_CINTVAL, 1);
 
-		if (strcmp(argv[j], "::") == 0) {
+		if (strcmp(ipaddr, "::") == 0) {
 			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address for our purposes.\n"
-			,	argv[j]);
+			,	ipaddr);
 			continue;
 		}
-		toaddr = netaddr_string_new(argv[j]);
+		toaddr = netaddr_string_new(ipaddr);
 		if (toaddr == NULL) {
 			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address.\n"
-			,	argv[j]);
+			,	ipaddr);
 			continue;
 		}
 		v6addr = toaddr->toIPv6(toaddr); UNREF(toaddr);
