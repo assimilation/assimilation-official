@@ -35,7 +35,7 @@ from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
-DEBUG=False
+DEBUG=True
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -779,10 +779,14 @@ class pyConfigContextTest(TestCase):
                     '{"cmdline":["192.168.122.1",false]}',
                   ]
         for s in strings:
+            print >>sys.stderr, ('Creating pyConfigContext("%s")' % s)
             sc = pyConfigContext(s)
+            print >>sys.stderr, ('sc.keys() == %s' % sc.keys())
             for key in sc.keys():
                 elemcount=0
+                print >>sys.stderr, ('Looking at key %s: sc[key] = %s' % (key, sc[key]))
                 for elem in sc[key]:
+                    print >>sys.stderr, ('Looking at element %s' % str(elem))
                     self.assertNotEqual(str(elem), "")
                     if isinstance(elem, pyAssimObj):
                         if DEBUG: print '++++++++++++++++++ REFCOUNT(%s): %d' % (str(elem), elem.refcount())

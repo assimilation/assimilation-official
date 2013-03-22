@@ -59,7 +59,8 @@ FSTATIC ConfigContext*	_configcontext_JSON_parse_pair(GScanner* scan, ConfigCont
 FSTATIC ConfigValue*	_configcontext_JSON_parse_value(GScanner* scan);
 FSTATIC gboolean	_configcontext_JSON_parse_array(GScanner* scan, GSList** retval);
 FSTATIC ConfigValue* _configcontext_value_new(enum ConfigValType);
-FSTATIC void _configcontext_value_finalize(gpointer vself);
+FSTATIC void _configcontext_value_vfinalize(gpointer vself);
+FSTATIC void _configcontext_value_finalize(AssimObj* aself);
 FSTATIC void _key_free(gpointer vself);
 
 
@@ -112,7 +113,7 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->getvalue	=	_configcontext_getvalue;
 	newcontext->keys	=	_configcontext_keys;
 	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, _key_free
-					,		      _configcontext_value_finalize);
+					,		      _configcontext_value_vfinalize);
 	baseobj->_finalize	=	_configcontext_finalize;
 	baseobj->toString	=	_configcontext_toString;
 	return newcontext;
@@ -409,23 +410,33 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 FSTATIC ConfigValue*
 _configcontext_value_new(enum ConfigValType t)
 {
+	AssimObj*	aret;
 	ConfigValue*	ret;
 
-	ret = MALLOCBASECLASS(ConfigValue);
+	aret = assimobj_new(sizeof(ConfigValue));
+	ret = NEWSUBCLASS(ConfigValue, aret);
 	if (ret) {
 		ret->valtype = t;
 		memset(&ret->u, 0, sizeof(ret->u));
+		aret->_finalize = _configcontext_value_finalize;
 	}
 	return ret;
 }
 
 /// Finalize (free) a ConfigValue object
 FSTATIC void
-_configcontext_value_finalize(gpointer vself)
+_configcontext_value_vfinalize(void* vself)
+{
+	ConfigValue*	self = CASTTOCLASS(ConfigValue, vself);
+	UNREF(self);
+	vself = NULL;
+}
+FSTATIC void
+_configcontext_value_finalize(AssimObj* aself)
 {
 	ConfigValue*	self;
 
-	self = CASTTOCLASS(ConfigValue, vself);
+	self = CASTTOCLASS(ConfigValue, aself);
 	switch (self->valtype) {
 		case CFG_STRING:
 			g_free(self->u.strvalue); self->u.strvalue = NULL;
@@ -444,7 +455,7 @@ _configcontext_value_finalize(gpointer vself)
 		}
 		case CFG_ARRAY: {
 			GSList*	list = self->u.arrayvalue;
-			g_slist_free_full(list, _configcontext_value_finalize);
+			g_slist_free_full(list, _configcontext_value_vfinalize);
 			self->u.arrayvalue = NULL;
 			break;
 		}
@@ -456,10 +467,10 @@ _configcontext_value_finalize(gpointer vself)
 	}
 	self->valtype = CFG_EEXIST;
 	FREECLASSOBJ(self);
-	vself = NULL;
+	self = NULL;
+	aself = NULL;
 }
 
-///@}
 
 #define	JSONQUOTES	"\\\""
 /// Escape characters in a string according to JSON conventions...
@@ -871,7 +882,7 @@ _configcontext_JSON_parse_array(GScanner* scan, GSList** retval)
 		value = _configcontext_JSON_parse_value(scan);
 		if (value == NULL) {
 			if (*retval != NULL) {
-				g_slist_free_full(*retval, _configcontext_value_finalize);
+				g_slist_free_full(*retval, _configcontext_value_vfinalize);
 				*retval = NULL;
 				return FALSE;
 			}
