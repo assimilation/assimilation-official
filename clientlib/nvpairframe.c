@@ -127,7 +127,7 @@ nvpairframe_new(guint16 frame_type,	///<[in] TLV type of NVpairFrame
 /// Given marshalled packet data corresponding to an NVpairFrame (name/value pair)
 /// return the corresponding Frame
 /// In other words, un-marshall the data...
-Frame*
+WINEXPORT Frame*
 nvpairframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
 			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'
 {

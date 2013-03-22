@@ -29,10 +29,10 @@ IF(WIN32)
 
   target_link_libraries(filetest  ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
   target_link_libraries(mainlooptest ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
-
+  target_link_libraries(pinger ${GLIB_LIB} ../clientlib/${CMAKE_BUILD_TYPE}/${CLIENTLIB})
 ELSE(WIN32)
   target_link_libraries (filetest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
   target_link_libraries (mainlooptest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
-  target_link_libraries (pinger ${CLIENTLIB} ${SERVERLIB})
+  target_link_libraries (pinger ${CLIENTLIB} ${GLIB_LIB})
 ENDIF(WIN32)
 

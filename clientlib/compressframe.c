@@ -78,7 +78,7 @@ compressframe_new(guint16 frame_type,	///< TLV type of CompressFrame
 /// return the corresponding Frame
 /// In other words, un-marshall the data...
 /// @todo: Not yet implemented.
-Frame*
+WINEXPORT Frame*
 compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
 			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'
 {
