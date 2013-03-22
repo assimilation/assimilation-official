@@ -1006,6 +1006,7 @@ class pyConfigContext(pyAssimObj):
             #cfgval = pyConfigValue(cast(cClass.ConfigValue, curlist[0].data).get())
             data = cast(curlist[0].data, cClass.ConfigValue)
             #print >>sys.stderr, "CURLIST->data = %s" % data
+            CCref(data)
             cfgval = pyConfigValue(data).get()
             #print >>sys.stderr, "CURLIST->data->get() = %s" % cfgval
             ret.append(cfgval)
@@ -1041,7 +1042,7 @@ class pyConfigContext(pyAssimObj):
     def __getitem__(self, name):
         'Return a value associated with "name"'
         ktype = self.gettype(name)
-        #print >>sys.stderr, '****************** GETITEM[%s] => %d ***************************' % (name, ktype)
+        print >>sys.stderr, '****************** GETITEM[%s] => %d ***************************' % (name, ktype)
         if ktype == CFG_EEXIST:
             traceback.print_stack()
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
@@ -1058,7 +1059,7 @@ class pyConfigContext(pyAssimObj):
         if ktype == CFG_BOOL:
             return self.getbool(name)
         if ktype == CFG_ARRAY:
-            #print >>sys.stderr, '****************** GETITEM[%s] => getarray(%s) ***************************' % (name, name)
+            print >>sys.stderr, '****************** GETITEM[%s] => getarray(%s) ***************************' % (name, name)
             return self.getarray(name)
         return None
 
@@ -1074,10 +1075,13 @@ class pyConfigContext(pyAssimObj):
             return self.setconfig(name, value)
         self.setint(name, int(value))
 
-class pyConfigValue:
+class pyConfigValue(pyAssimObj):
     def __init__(self, Cstruct):
-        'Initializer for pyConfigValue. NOTE: we make no provisions for object life...'
+        'Initializer for pyConfigValue - now a subclass of pyAssimObj'
         self._Cstruct = Cstruct
+
+    def __str__(self):
+        str(self.get())
 
     def get(self):
         vtype = self._Cstruct[0].valtype
@@ -1108,12 +1112,9 @@ class pyConfigValue:
             this = self._Cstruct[0].u.arrayvalue
             while this:
                 dataptr = cast(this[0].data, struct__GSList._fields_[0][1])
+                dataptr = cast(dataptr, cClass.ConfigValue)
+                CCref(dataptr)
                 thisobj = pyConfigValue(cast(dataptr, cClass.ConfigValue)).get()
-                ################################
-                # Should this be done?
-                ################################
-                #if isinstance(thisobj, pyAssimObj):
-                #    CCunref(thisobj._Cstruct)
                 ret.append(thisobj)
                 this = g_slist_next(this)
             return ret

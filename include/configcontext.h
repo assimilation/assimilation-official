@@ -55,15 +55,16 @@ enum ConfigValType {
 };
 typedef struct _ConfigValue ConfigValue;
 struct _ConfigValue {
+	AssimObj		baseclass;
 	enum ConfigValType	valtype;
 	union {
-		gint64			intvalue;	// Or boolean
-		double			floatvalue;
-		GSList*			arrayvalue;	// Each element pointing to a ConfigValue object
-		char*			strvalue;	// A string
-		ConfigContext*		cfgctxvalue;	// Another ConfigContext object
-		NetAddr*		addrvalue;	// A NetAddr value
-		Frame*			framevalue;	// A Frame value
+		gint64		intvalue;	// Or boolean
+		double		floatvalue;
+		GSList*		arrayvalue;	// Each element pointing to a ConfigValue object
+		char*		strvalue;	// A string
+		ConfigContext*	cfgctxvalue;	// Another ConfigContext object
+		NetAddr*	addrvalue;	// A NetAddr value
+		Frame*		framevalue;	// A Frame value
 	}u;
 };
 
