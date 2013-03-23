@@ -66,9 +66,15 @@
 #endif
 
 // This is a totally broken way to do this - but it seems to work at the moment...
-#if GLIB_MINOR_VERSION < 25
-void g_slist_free_full(GSList *list, GDestroyNotify free_func);
+
+#if GLIB_MAJOR_VERSION <= 2 && GLIB_MINOR_VERSION < 28
+	void assim_slist_free_full(GSList *list, GDestroyNotify free_func);
+#	define g_slist_free_full assim_slist_free_full
+#else
+#	define HAVE_G_SLIST_FREE_FULL
 #endif
+
+
 #ifdef CTYPESGEN
 #	undef g_slist_next
 #	define g_slist_next(slist)	(slist->next)

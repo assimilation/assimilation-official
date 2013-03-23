@@ -21,6 +21,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 #include <projectcommon.h>
+#include <string.h>
 
 #ifndef HAVE_G_GET_MONOTONIC_TIME
 #	include <time.h>
@@ -64,3 +65,28 @@ g_get_monotonic_time(void)
 	return ((gint64)ts.tv_sec * million) + (((gint64)ts.tv_nsec)/thousand);
 }
 #endif/*HAVE_G_GET_MONOTONIC_TIME*/
+
+#ifndef HAVE_G_SLIST_FREE_FULL
+/// Local replacement function for g_slist_free_full()
+void
+assim_slist_free_full(GSList* list, void (*datafree)(gpointer))
+{
+	GSList*	this = NULL;
+	GSList*	next = NULL;
+	//fprintf(stderr, "Freeing GSList at %p\n", list);
+
+	for (this=list; this; this=next) {
+		next=this->next;
+		//fprintf(stderr, "........Freeing GSList data at %p\n", this->data);
+		if (this->data) {
+			datafree(this->data);
+		//}else{
+			//fprintf(stderr, "........NO GSList data (NULL) at %p\n"
+			//,	this->data);
+		}
+		//fprintf(stderr, "........Freeing GSList element at %p\n", this);
+		memset(this, 0, sizeof(*this));
+		g_slist_free_1(this);
+	}
+}
+#endif/*G_SLIST_FREE_FULL*/
