@@ -1042,7 +1042,7 @@ class pyConfigContext(pyAssimObj):
     def __getitem__(self, name):
         'Return a value associated with "name"'
         ktype = self.gettype(name)
-        print >>sys.stderr, '****************** GETITEM[%s] => %d ***************************' % (name, ktype)
+        #print >>sys.stderr, '****************** GETITEM[%s] => %d ***************************' % (name, ktype)
         if ktype == CFG_EEXIST:
             traceback.print_stack()
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
@@ -1059,7 +1059,7 @@ class pyConfigContext(pyAssimObj):
         if ktype == CFG_BOOL:
             return self.getbool(name)
         if ktype == CFG_ARRAY:
-            print >>sys.stderr, '****************** GETITEM[%s] => getarray(%s) ***************************' % (name, name)
+            #print >>sys.stderr, '****************** GETITEM[%s] => getarray(%s) ***************************' % (name, name)
             return self.getarray(name)
         return None
 
