@@ -463,7 +463,7 @@ _configcontext_value_new(enum ConfigValType t)
 FSTATIC void
 _configcontext_value_vfinalize(void* vself)
 {
-	ConfigValue*	self = CASTTOCLASS(ConfigValue, vself);
+	ConfigValue*	self;
 	//fprintf(stderr, "configcontext_value_vfinalize(%p)\n", vself);
 	self = CASTTOCLASS(ConfigValue, vself);
 	UNREF(self);
