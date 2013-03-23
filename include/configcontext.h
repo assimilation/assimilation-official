@@ -71,26 +71,26 @@ struct _ConfigValue {
 struct _ConfigContext {
 	AssimObj	baseclass;
 	GHashTable*	_values;			///< table of Values
-	gint		(*getint)(ConfigContext*, const char *name);	///< Get integer value
+	gint		(*getint)(const ConfigContext*, const char *name);	///< Get integer value
 	void		(*setint)(ConfigContext*, const char *name, gint value);	///< Set integer value
-	gboolean	(*getbool)(ConfigContext*, const char *name);	///< Get boolean value
+	gboolean	(*getbool)(const ConfigContext*, const char *name);	///< Get boolean value
 	void		(*setbool)(ConfigContext*, const char *name, gboolean);	///< Set bool value
-	double		(*getdouble)(ConfigContext*, const char *name);	///< Get double value
+	double		(*getdouble)(const ConfigContext*, const char *name);	///< Get double value
 	void		(*setdouble)(ConfigContext*, const char *name, double value);	///< Set double value
-	GSList*		(*getarray)(ConfigContext*, const char *name);	///< Get array value
+	GSList*		(*getarray)(const ConfigContext*, const char *name);	///< Get array value
 	void		(*setarray)(ConfigContext*, const char *name, GSList*);	///< Set array value
-	const char*	(*getstring)(ConfigContext*, const char *name);	///< Get String value
+	const char*	(*getstring)(const ConfigContext*, const char *name);	///< Get String value
 	void		(*setstring)(ConfigContext*, const char *name, const char *value);
-	Frame*		(*getframe)(ConfigContext*, const char*);	///< Get Frame value
+	Frame*		(*getframe)(const ConfigContext*, const char*);	///< Get Frame value
 	void		(*setframe)(ConfigContext*, const char*,Frame*);///< Set Frame value
-	NetAddr*	(*getaddr)(ConfigContext*, const char* name);	///< Get NetAddr value
+	NetAddr*	(*getaddr)(const ConfigContext*, const char* name);	///< Get NetAddr value
 	void		(*setaddr)(ConfigContext*,const char *,NetAddr*);///< Set NetAddr value
-	ConfigContext*	(*getconfig)(ConfigContext*, const char* name);	///< Get ConfigContext value
+	ConfigContext*	(*getconfig)(const ConfigContext*, const char* name);	///< Get ConfigContext value
 	void		(*setconfig)(ConfigContext*,const char *,ConfigContext*);///< Set ConfigContext value
 	enum ConfigValType
-			(*gettype)(ConfigContext*, const char *);	///< Return type
-	ConfigValue*	(*getvalue)(ConfigContext*, const char *);	///< Return ConfigValue Object
-	GSList*		(*keys)(ConfigContext*);			///< Return list of keys
+			(*gettype)(const ConfigContext*, const char *);	///< Return type
+	ConfigValue*	(*getvalue)(const ConfigContext*, const char *);///< Return ConfigValue Object
+	GSList*		(*keys)(const ConfigContext*);			///< Return list of keys
 };
 WINEXPORT ConfigContext*	configcontext_new(gsize objsize); // ConfigContext constructor
 WINEXPORT ConfigContext*	configcontext_new_JSON_string(const char * jsontext);// Constructor

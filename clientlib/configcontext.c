@@ -23,25 +23,35 @@
 #include <configcontext.h>
 #include <memory.h>
 #include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#define BROKEN_G_SLIST_FREE_FULL	1
+#undef BROKEN_G_SLIST_FREE_FULL
+
+#ifdef	BROKEN_G_SLIST_FREE_FULL
+#	undef g_slist_free_full	
+#	define g_slist_free_full	assim_slist_free_full
+#endif
 
 FSTATIC void	_configcontext_finalize(AssimObj* self);
-FSTATIC enum ConfigValType	_configcontext_gettype(ConfigContext*, const char *name);
-FSTATIC ConfigValue*	_configcontext_getvalue(ConfigContext*, const char *name);
-FSTATIC GSList*	_configcontext_keys(ConfigContext*);
-FSTATIC gint	_configcontext_getint(ConfigContext*, const char *name);
+FSTATIC enum ConfigValType	_configcontext_gettype(const ConfigContext*, const char *name);
+FSTATIC ConfigValue*	_configcontext_getvalue(const ConfigContext*, const char *name);
+FSTATIC GSList*	_configcontext_keys(const ConfigContext*);
+FSTATIC gint	_configcontext_getint(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setint(ConfigContext*, const char *name, gint value);
-FSTATIC gboolean _configcontext_getbool(ConfigContext*, const char *name);
+FSTATIC gboolean _configcontext_getbool(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setbool(ConfigContext*, const char *name, gboolean value);
-FSTATIC const char* _configcontext_getstring(ConfigContext*, const char *name);
+FSTATIC const char* _configcontext_getstring(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setstring(ConfigContext*, const char *name, const char *value);
-FSTATIC GSList*	_configcontext_getarray(ConfigContext*, const char *name);
+FSTATIC GSList*	_configcontext_getarray(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setarray(ConfigContext*, const char *name, GSList*value);
-FSTATIC NetAddr*_configcontext_getaddr(ConfigContext*, const char *);
+FSTATIC NetAddr*_configcontext_getaddr(const ConfigContext*, const char *);
 FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
-FSTATIC Frame*	_configcontext_getframe(ConfigContext*, const char *name);
+FSTATIC Frame*	_configcontext_getframe(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
 FSTATIC ConfigContext*
-		_configcontext_getconfig(ConfigContext*, const char*);
+		_configcontext_getconfig(const ConfigContext*, const char*);
 FSTATIC void	_configcontext_setconfig(ConfigContext*,const char *,ConfigContext*);
 FSTATIC gint	_configcontext_key_compare(gconstpointer a, gconstpointer b);
 
@@ -62,7 +72,9 @@ FSTATIC ConfigValue* _configcontext_value_new(enum ConfigValType);
 FSTATIC void _configcontext_value_vfinalize(gpointer vself);
 FSTATIC void _configcontext_value_finalize(AssimObj* aself);
 FSTATIC void _key_free(gpointer vself);
-
+#ifdef BROKEN_G_SLIST_FREE_FULL
+void assim_slist_free_full(GSList* list, void (*)(gpointer));
+#endif
 
 /**
  * @defgroup ConfigContext ConfigContext class
@@ -72,10 +84,34 @@ FSTATIC void _key_free(gpointer vself);
  * @ingroup C_Classes
  */
 
+#ifdef BROKEN_G_SLIST_FREE_FULL
+void
+assim_slist_free_full(GSList* list, void (*datafree)(gpointer))
+{
+	GSList*	this = NULL;
+	GSList*	next = NULL;
+	//fprintf(stderr, "Freeing GSList at %p\n", list);
+
+	for (this=list; this; this=next) {
+		next=this->next;
+		//fprintf(stderr, "........Freeing GSList data at %p\n", this->data);
+		if (this->data) {
+			datafree(this->data);
+		}else{
+			fprintf(stderr, "........NO GSList data (NULL) at %p\n"
+			,	this->data);
+		}
+		//fprintf(stderr, "........Freeing GSList element at %p\n", this);
+		memset(this, 0, sizeof(*this));
+		g_slist_free_1(this);
+	}
+}
+#endif
+
 FSTATIC void
 _key_free(gpointer vself)
 {
-	//g_message("Freeing pointer at %p", vself);
+	//g_message("Freeing key pointer at %p\n", vself);
 	g_free(vself);
 }
 
@@ -148,7 +184,7 @@ _configcontext_key_compare(gconstpointer a, gconstpointer b)
 
 /// Return a GSList of all the keys in a ConfigContext object
 FSTATIC GSList*
-_configcontext_keys(ConfigContext* cfg)
+_configcontext_keys(const ConfigContext* cfg)
 {
 	GSList*		keylist = NULL;
 	GHashTableIter	iter;
@@ -169,7 +205,7 @@ _configcontext_keys(ConfigContext* cfg)
 
 /// Return a the type of value associated with a given name
 FSTATIC enum ConfigValType
-_configcontext_gettype(ConfigContext* self, const char *name)
+_configcontext_gettype(const ConfigContext* self, const char *name)
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
 	ConfigValue*	cfg;
@@ -182,7 +218,7 @@ _configcontext_gettype(ConfigContext* self, const char *name)
 
 /// Return a the value structure associated with a given name
 FSTATIC ConfigValue*
-_configcontext_getvalue(ConfigContext* self, const char *name)
+_configcontext_getvalue(const ConfigContext* self, const char *name)
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
 	if (ret != NULL) {
@@ -193,7 +229,7 @@ _configcontext_getvalue(ConfigContext* self, const char *name)
 
 /// Get an integer value
 FSTATIC gint
-_configcontext_getint(ConfigContext* self	///<[in] ConfigContext object
+_configcontext_getint(const ConfigContext* self	///<[in] ConfigContext object
 	,	      const char *name)		///<[in] Name to get the associated int value of
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
@@ -225,7 +261,7 @@ _configcontext_setint(ConfigContext* self	///<[in/out] ConfigContext Object
 
 /// Get an boolean value
 FSTATIC gboolean
-_configcontext_getbool(ConfigContext* self	///<[in] ConfigContext object
+_configcontext_getbool(const ConfigContext* self	///<[in] ConfigContext object
 	,	      const char *name)		///<[in] Name to get the associated int value of
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
@@ -257,7 +293,7 @@ _configcontext_setbool(ConfigContext* self	///<[in/out] ConfigContext Object
 
 /// Return the value of a string name
 FSTATIC const char*
-_configcontext_getstring(ConfigContext* self	///<[in] ConfigContext object
+_configcontext_getstring(const ConfigContext* self	///<[in] ConfigContext object
 		,	 const char *name)	///<[in] Name to get the associated string value of
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
@@ -285,7 +321,7 @@ _configcontext_setstring(ConfigContext* self	///<[in/out] ConfigContext object
 	g_hash_table_replace(self->_values, g_strdup(name), val);
 }
 FSTATIC GSList*
-_configcontext_getarray(ConfigContext* self, const char *name)
+_configcontext_getarray(const ConfigContext* self, const char *name)
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
 	ConfigValue*	cfg;
@@ -315,7 +351,7 @@ _configcontext_setarray(ConfigContext*self, const char *name, GSList*value)
 
 /// Return the NetAddr value of a name
 FSTATIC  NetAddr*
-_configcontext_getaddr(ConfigContext* self	///<[in] ConfigContext object
+_configcontext_getaddr(const ConfigContext* self	///<[in] ConfigContext object
 		,      const char *name)	///<[in] Name to get the NetAddr value of
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
@@ -347,7 +383,7 @@ _configcontext_setaddr(ConfigContext* self	///<[in/out] ConfigContext object
 
 /// Return the @ref Frame value of a name
 FSTATIC Frame*
-_configcontext_getframe(ConfigContext* self	///<[in] ConfigContext object
+_configcontext_getframe(const ConfigContext* self	///<[in] ConfigContext object
 		,       const char *name)	///<[in] Name to retrieve the @ref Frame value of
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
@@ -380,7 +416,7 @@ _configcontext_setframe(ConfigContext* self	///<[in/out] ConfigContext object
 
 /// Return a the a ConfigContext value associated with a given name
 FSTATIC ConfigContext*
-_configcontext_getconfig(ConfigContext* self , const char* name)
+_configcontext_getconfig(const ConfigContext* self , const char* name)
 {
 	gpointer	ret = g_hash_table_lookup(self->_values, name);
 	ConfigValue*	cfg;
@@ -428,6 +464,8 @@ FSTATIC void
 _configcontext_value_vfinalize(void* vself)
 {
 	ConfigValue*	self = CASTTOCLASS(ConfigValue, vself);
+	//fprintf(stderr, "configcontext_value_vfinalize(%p)\n", vself);
+	self = CASTTOCLASS(ConfigValue, vself);
 	UNREF(self);
 	vself = NULL;
 }
@@ -436,7 +474,10 @@ _configcontext_value_finalize(AssimObj* aself)
 {
 	ConfigValue*	self;
 
+	//fprintf(stderr, "configcontext_value_finalize(%p)\n", aself);
 	self = CASTTOCLASS(ConfigValue, aself);
+	//fprintf(stderr, "configcontext_value_finalize(%p): %d\n"
+	//,	aself, self->valtype);
 	switch (self->valtype) {
 		case CFG_STRING:
 			g_free(self->u.strvalue); self->u.strvalue = NULL;
@@ -466,6 +507,7 @@ _configcontext_value_finalize(AssimObj* aself)
 		}
 	}
 	self->valtype = CFG_EEXIST;
+	memset(self, 0, sizeof(*self));
 	FREECLASSOBJ(self);
 	self = NULL;
 	aself = NULL;
@@ -500,23 +542,23 @@ _configcontext_toString(gconstpointer aself)
 	const ConfigContext*	self = CASTTOCONSTCLASS(ConfigContext, aself);
 
 	GString*	gsret = g_string_new("{");
-	GHashTableIter	iter;
+	GSList*		keyelem;
+	GSList*		nextkeyelem;
 	const char *	comma = "";
-	gpointer	gkey;
-	gpointer	gvalue;
 	
 	if (!self->_values) {
 		return NULL;
 	}
-	/// @todo - return this string with keys in canonical (sorted) order
-	/// - at least for tests - unsure if this will be needed.
-	g_hash_table_iter_init(&iter, self->_values);
-	while (g_hash_table_iter_next(&iter, &gkey, &gvalue)) {
-		ConfigValue*	val = CASTTOCLASS(ConfigValue, gvalue);
+	for (keyelem = self->keys(self); keyelem; keyelem = nextkeyelem) {
+		char *		thiskey = keyelem->data;
+		ConfigValue*	val = self->getvalue(self, thiskey);
 		gchar*		elem = _configcontext_elem_toString(val);
-		g_string_append_printf(gsret, "%s\"%s\":%s", comma, (const char *)gkey, elem);
+		g_string_append_printf(gsret, "%s\"%s\":%s", comma, thiskey, elem);
 		g_free(elem);
 		comma=",";
+		nextkeyelem = keyelem->next;
+		g_slist_free1(keyelem);
+		keyelem = NULL;
 	}
 	g_string_append(gsret, "}");
 	return g_string_free(gsret, FALSE);

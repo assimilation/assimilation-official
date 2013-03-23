@@ -35,7 +35,7 @@ from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
-DEBUG=True
+DEBUG=False
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -666,12 +666,12 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['bar'], pyNetAddr((1,2,3,4),))
         self.assertEqual(str(foo['bar']), '1.2.3.4')
         self.assertEqual(str(foo['csf']), '42: CstringFrame(42, "41+1")')
-        self.assertEqual(str(foo), '{"str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
+        self.assertEqual(str(foo), '{"bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"str1":"forty-two"}')
 
         foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)
         if DEBUG: print >>sys.stderr, "test_constructor.18(pyConfigContextTest)"
         self.assertEqual(str(foo),
-        	'{"isf":"IntFrame(310, 3, 42)","str1":"forty-two","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"bar":"1.2.3.4"}')
+        	'{"bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"isf":"IntFrame(310, 3, 42)","str1":"forty-two"}')
         if DEBUG: print >>sys.stderr, "test_constructor.19(pyConfigContextTest)"
 
     def test_string(self):
@@ -687,13 +687,13 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['JeanLuc'], 'Picard')
         self.assertEqual(foo['important'], 'towel')
         self.assertRaises(IndexError, foo.getstring, ('towel'))
-        self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Picard","important":"towel","integer":42,"seven":"ofnine"}')
+        self.assertEqual(str(foo), '{"JeanLuc":"Picard","arthur":"dent","important":"towel","integer":42,"seven":"ofnine"}')
         foo['seven'] = '7'
         self.assertEqual(foo['seven'], '7')
         self.assertEqual(type(foo['seven']), str)
         foo['JeanLuc'] = 'Locutus'
         self.assertEqual(foo['JeanLuc'], 'Locutus')
-        self.assertEqual(str(foo), '{"arthur":"dent","JeanLuc":"Locutus","important":"towel","integer":42,"seven":"7"}')
+        self.assertEqual(str(foo), '{"JeanLuc":"Locutus","arthur":"dent","important":"towel","integer":42,"seven":"7"}')
 
     def test_int(self):
         if DEBUG: print >>sys.stderr, "test_int(pyConfigContextTest)"
@@ -719,7 +719,7 @@ class pyConfigContextTest(TestCase):
         bar['hhgttg'] = foo
         bar['voyager'] = baz
         if DEBUG: print >>sys.stderr, "EQUAL TEST"
-        self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"there\'s no place like":"127.0.0.1","Kathryn":"Janeway"}}')
+        self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"Kathryn":"Janeway","there\'s no place like":"127.0.0.1"}}')
         # We make a new pyConfigContext object from the str() of another one.  Cool!
         if DEBUG: print >>sys.stderr, "JSON TEST"
         bar2 = pyConfigContext(str(bar))
@@ -779,14 +779,14 @@ class pyConfigContextTest(TestCase):
                     '{"cmdline":["192.168.122.1",false]}',
                   ]
         for s in strings:
-            print >>sys.stderr, ('Creating pyConfigContext("%s")' % s)
+            if DEBUG: print >>sys.stderr, ('Creating pyConfigContext("%s")' % s)
             sc = pyConfigContext(s)
-            print >>sys.stderr, ('sc.keys() == %s' % sc.keys())
+            if DEBUG: rint >>sys.stderr, ('sc.keys() == %s' % sc.keys())
             for key in sc.keys():
                 elemcount=0
-                print >>sys.stderr, ('Looking at key %s: sc[key] = %s' % (key, sc[key]))
+                if DEBUG: print >>sys.stderr, ('Looking at key %s: sc[key] = %s' % (key, sc[key]))
                 for elem in sc[key]:
-                    print >>sys.stderr, ('Looking at element %s' % str(elem))
+                    if DEBUG: print >>sys.stderr, ('Looking at element %s' % str(elem))
                     self.assertNotEqual(str(elem), "")
                     if isinstance(elem, pyAssimObj):
                         if DEBUG: print '++++++++++++++++++ REFCOUNT(%s): %d' % (str(elem), elem.refcount())
