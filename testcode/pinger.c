@@ -239,7 +239,7 @@ main(int argc, char **argv)
 		{"count",  'c', 0, G_OPTION_ARG_INT,  &mycount, "count of ping packets", NULL},
 		{"debug",  'd', 0, G_OPTION_ARG_INT, &mydebug, "debug-level [0-5]", NULL},
 		{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &optremaining, "ip_address [ip_address ...]", NULL},
-		{NULL}
+		{NULL, 0, 0, 0, NULL, NULL, NULL}
 	};
 	GError *optionerror;
 	GOptionContext *myOptionContext;
