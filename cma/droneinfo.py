@@ -19,7 +19,7 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-import weakref, traceback
+import weakref, traceback, time
 from cmadb import CMAdb
 
 from frameinfo import *
@@ -281,6 +281,8 @@ class DroneInfo:
         self.reason = reason
         self.node['status'] = status
         self.node['reason'] = reason
+        self.node['statustime'] = int(round(time.time() * 1000))
+        self.node['iso8601'] = time.strftime('%Y-%m-%d %H:%M:%S')
         # There is a need for us to be a little more sophisticated
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
@@ -472,6 +474,8 @@ class DroneInfo:
             ret = DroneInfo(designation, port=port)
         ret.node['reason'] = reason
         ret.node['status'] = status
+        ret.node['statustime'] = int(round(time.time() * 1000))
+        ret.node['iso8601'] = time.strftime('%Y-%m-%d %H:%M:%S')
         if port is not None:
             ret.setport(port)
         return ret
