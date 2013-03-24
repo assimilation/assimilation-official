@@ -60,11 +60,11 @@ The Assimilation project's contributor agreements are borrowed from the <a href=
 agreements.  They provide an excellent <a href="http://harmonyagreements.org/guide.html">guide</a> to understanding
 these contributor agreements.
 
-Note that this agreement does not require you to assign your copyrights (like the FSF for example), but only to share your copyright rights with the project.
-<i>You do not lose any rights to your contribution by signing this contribution agreement</i>.
+Note that this agreement creates a copyright sharing arrangement with the project.
+<i>You do not lose any rights to use or relicense your contribution any way you wish by signing this contribution agreement</i>.
 
 - http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationIndividualContributorAgreement-v1.0.pdf - md5 sum 15fff2cc37118835f98827ffd84b8288
-- http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationEntityContributorAgreement-v1.0.pdf -     md5 sum ff3550288e16a01945c08905a40a0a41
+- http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationEntityContributorAgreement-v1.0.pdf -     md5 sum df2793e8d13e4df7001a5b88a15fd06f
 
 @section SigningContributorAgreement How to Provide a Signed Copy of the Contributor Agreement
 There are two ways to provide a signed copy of the agreement:
