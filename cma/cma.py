@@ -98,7 +98,7 @@
 
 
 if __name__ == '__main__':
-    import optparse, atexit
+    import optparse, atexit, time
     #
     #   "Main" program starts below...
     #   It is a test program intended to run with some real nanoprobes running
@@ -182,6 +182,7 @@ if __name__ == '__main__':
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG, proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
     from frameinfo import FrameTypes, FrameSetTypes
+    import py2neo
     for debug in range(opt.debug):
         proj_class_incr_debug(None)
 
@@ -213,7 +214,26 @@ if __name__ == '__main__':
     }
     config = pyConfigContext(init=configinit)
     io = pyReliableUDP(config, pyPacketDecoder(0))
-    cmadb.CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
+    trycount=0
+    while True:
+        try:
+            cmadb.CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
+        except py2neo.rest.SocketError:
+            trycount+=1
+            if trycount > 300:
+                remove_pid_file(opt.pidfile)
+                print >>sys.stderr, ('Neo4j still not started - giving up.')
+                cmadb.CMAdb.log.critical('Neo4j still not started - giving up.')
+                raise SystemExit(1)
+            if (trycount % 60) == 1:
+                print >>sys.stderr, ('Waiting for Neo4j to start.')
+                cmadb.CMAdb.log.warning('Waiting for Neo4j to start.')
+            # Let's try again in a second...
+            time.sleep(1)
+            continue
+        # Neo4j started.  All is well with the world.
+        break
+
     cmadb.CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     cmadb.CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
     if cmadb.CMAdb.debug:
