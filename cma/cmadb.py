@@ -124,13 +124,13 @@ class CMAdb:
         CMAdb.log = logging.getLogger('cma')
         CMAdb.debug = debug
         CMAdb.io = io
-        CMAdb.cdb = CMAdb()
         import hbring
         syslog = logging.handlers.SysLogHandler(address='/dev/log'
         ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
         CMAdb.log.addHandler(syslog)
         CMAdb.log.setLevel(logging.DEBUG)
+        CMAdb.cdb = CMAdb()
         if cleanoutdb:
             CMAdb.log.info('Re-initializing the NEO4j database')
             CMAdb.cdb.delete_all()
