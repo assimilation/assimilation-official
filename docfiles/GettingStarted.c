@@ -258,6 +258,29 @@ If port 1984 is not available to the nanoprobes, it will bind to an ephemeral po
 This happens every time when starting a nanoprobe on the CMA -
 since the CMA has already bound to that port.
 
+@section DealingWithFirewalls Dealing With Firewalls
+Some systems (RHEL for example) come configured out of the box
+with a default iptables configuration which will block our communication.
+As you might guess, things don't work too well under those circumstances.
+
+To write firewall (iptables) rules to allow our communication, it is necessary to understand how
+the Assimilation code communicates.
+All our communication uses the UDP protocol.
+The CMA and all the nanoprobes <i>except the one running on the CMA machine</i> default to
+using UDP port 1984.  However, both the nanoprobe and the CMA can't use
+port 1984 at the same time, so if the nanoprobe can't use it's requested port,
+it will use an ephemeral port.
+As long as there is only one system using an ephemeral port, then all communication
+will have either a source or a destination port of 1984.
+
+For this (normal) case, the following firewall rules will allow our software to communicate.
+<pre>
+-A INPUT -m udp -p udp --dport 1984 -j ACCEPT
+-A INPUT -m udp -p udp --sport 1984 -j ACCEPT
+</pre>
+For non-CMA machines, they should only need the first rule.
+The CMA will need both rules added to its rule set if iptables would otherwise block the communication.
+
 @section ActivatingTheServices Activating The Services
 As of this writing, the packages we install do not activate the services, 
 so you will need to activate them manually. Sorry :-(
