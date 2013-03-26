@@ -532,6 +532,17 @@ WHERE nodetype.name = "Drone" and drone.status = "dead" and drone.reason <> "HBS
 RETURN drone
 </pre>
 
+@subsection GetCrashedServersWithTimes Retrieve The List of Crashed Servers and When They Crahsed
+The query below returns the set of servers which are down but were <b>not</b> shut down gracefully
+(i.e., they crashed) - with the systems that have been down the longest first.
+<pre>
+START typeroot=node(0)
+MATCH drone-[:IS_A]->nodetype-[:IS_A]->typeroot
+WHERE nodetype.name = "Drone" and drone.status = "dead" and drone.reason <> "HBSHUTDOWN"
+RETURN drone, drone.iso8601
+ORDER BY drone.iso8601
+</pre>
+
 @subsection GetNICConnections Return which server NICs are connected to which switch NICs
 The query below will return which switch ports are connected to which server ports, along with the
 SystemName of the switch, and the description of the switch port.
