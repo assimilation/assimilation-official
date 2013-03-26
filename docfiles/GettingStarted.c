@@ -485,15 +485,17 @@ This list should include these items:
  - <tt>port</tt>: - the port the nanoprobe is listening on
  - <tt>nodetype</tt>: "Drone"
  - <tt>status</tt>: - "up" or "down"
- - <tt>reason</tt>: - the reason for the status
+ - <tt>reason</tt>: - the reason for the last status update
  - <tt>name</tt>: hostname
+ - <tt>iso8601</tt>: time of last status update in ISO 8601 format - <i>will probably go away in the future</i>
+ - <tt>statustime</tt>: statustime - time of last status update - millseconds since 00:00 Jan 1, 1970 EST (the UNIX epoch)
  - <tt>JSON_arpcache</tt>: JSON from ARP cache discovery
  - <tt>JSON_cpu</tt>: JSON from cpu discovery
  - <tt>JSON_netconfig</tt>: JSON from network configuration discovery
  - <tt>JSON_OS</tt>: JSON from OS discovery
  - <tt>JSON_tcpclients</tt>: JSON from the tcpclients discovery
  - <tt>JSON_tcplisteners</tt>: JSON from the tcplisteners discovery
- - <tt>JSON_\#LinkDiscovery</tt>: JSON from link discovery (only if you have an LLDP-equipped switch)
+ - <tt>JSON_\#LinkDiscovery</tt>: JSON from link discovery (if you have an LLDP-equipped switch)
 
 If you just want the list of host names, you can use this very similar query:
 <pre>
