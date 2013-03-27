@@ -50,12 +50,23 @@
 DEBUGDECLARATIONS
 
 #ifdef WIN32
+#define SEP "\\"
 #	undef HAS_FORK
+WINEXPORT int errcount;
+WINEXPORT GMainLoop*		mainloop;
+WINEXPORT void		remove_pid_file(const char * pidfile);
+WINEXPORT void daemonize_me(gboolean stay_in_foreground, const char * dirtorunin, char* pidfile);
+WINEXPORT PidRunningStat are_we_already_running(const char * pidfile, int* pid);
+WINEXPORT int		kill_pid_service(const char * pidfile, int signal);
 #else
+#define SEP "/"
 #	define	HAS_FORK
 #endif
 
-#define		PIDFILENAME STD_PID_DIR "/nanoprobe"
+const char *		localaddr = NULL;
+const char *		cmaaddr = NULL;
+const char *		procname = "nanoprobe";
+void ignore_signal(int signum);
 
 gint64		pktcount = 0;
 NetIO*		nettransport;
@@ -110,7 +121,12 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	UNREF(fs);
 	return TRUE;
 }
-
+FSTATIC void
+ignore_signal( int signum)
+{
+	signum--; //get rid of unused warning
+	return;
+}
 /// Signal reception function - signals stop by here...
 FSTATIC void
 catch_a_signal(int signum)
@@ -122,6 +138,7 @@ catch_a_signal(int signum)
 		case SIGTERM:
 			sigterm = TRUE;
 			break;
+#ifndef WIN32
 		case SIGHUP:
 			sighup = TRUE;
 			break;
@@ -133,6 +150,7 @@ catch_a_signal(int signum)
 			proj_class_decr_debug(NULL);
 			sigusr2 = TRUE;
 			break;
+#endif
 	}
 }
 
@@ -164,13 +182,18 @@ usage(const char * cmdname)
 	fprintf(stderr, "Legal arguments are:\n");
 	fprintf(stderr, "\t-c --cmaaddr <address:port-of-CMA>\n");
 	fprintf(stderr, "\t-b --bind <address:port-to-listen-on-locally>\n");
+	fprintf(stderr, "\t-t --ttl  <multi cast ttl (default == 31)>\n");
+#ifndef WIN32
 #ifdef HAS_FORK
 	fprintf(stderr, "\t-f --foreground (stay in foreground.)\n");
 #endif
 	fprintf(stderr, "\t-k --kill (send SIGTERM to the running service.)\n");
 	fprintf(stderr, "\t-p --pidfile <pid-file-pathname>.\n");
 	fprintf(stderr, "\t-s --status (report nanoprobe status)\n");
-	fprintf(stderr, "\t-d --debug (increment debug level)\n");
+	fprintf(stderr, "\t-d --debug <debug-level (0-5)>\n");
+#else
+	fprintf(stderr, "\t-d --debug <debug-level (0-5)>\n");
+#endif
 }
 
 /**
@@ -181,122 +204,98 @@ usage(const char * cmdname)
 int
 main(int argc, char **argv)
 {
-	const char		defaultCMAaddr[] = CMAADDR;
-	const char		defaultlocaladdress [] = NANOLISTENADDR;
+	static char		defaultCMAaddr[] = CMAADDR;
+	static char		defaultlocaladdress [] = NANOLISTENADDR;
 	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);
 	PacketDecoder*		decoder = nano_packet_decoder();
+#ifndef WIN32
 	struct sigaction	sigact;
-	const char *		cmaaddr = defaultCMAaddr;
-	const char *		localaddr = defaultlocaladdress;
-	gboolean		anyportpermitted = TRUE;
-	int			c;
-	int			mcast_ttl = 31;
-	gboolean		stay_in_foreground = FALSE;
-	static struct option 	long_options[] = {
-		{"bind",	required_argument,	0,	'b'},
-		{"cmaaddr",	required_argument,	0,	'c'},
-		{"debug",	no_argument,		0,	'd'},
-#ifdef HAS_FORK
-		{"foreground",	no_argument,		0,	'f'},
 #endif
-		{"kill",	no_argument,		0,	'k'},
-		{"pidfile",	required_argument,	0,	'p'},
-		{"status",	no_argument,		0,	's'},
-		{"ttl",		required_argument,	0,	't'},
-		{NULL, 		no_argument,		0,	0}
-	};
-	gboolean		moreopts = TRUE;
-	gboolean		optionerror = FALSE;
-	gboolean		dostatusonly = FALSE;
-	gboolean		dokillonly = FALSE;
-	int			option_index = 0;
+	static char *		localaddr = defaultlocaladdress;
+	static char *		cmaaddr = defaultCMAaddr;
+	static int debug = 0;
+	gboolean		anyportpermitted = TRUE;
+	static int			mcast_ttl = 31;
+	static gboolean		stay_in_foreground = FALSE;
+	static gboolean		dostatusonly = FALSE;
+	static gboolean		dokillonly = FALSE;
+	static char*		pidfile = NULL;
 	gboolean		bindret;
-	const char*		pidfile = NULL;
+	PidRunningStat rstat;
+	int ret;
+
+	GError *error = NULL;
+	static GOptionEntry 	long_options[] = {
+		{"bind",	'b', 0,	G_OPTION_ARG_STRING, &localaddr, "<address:port-to-listen-on-locally>", NULL},
+		{"cmaaddr",	'c', 0, G_OPTION_ARG_STRING, &cmaaddr,	"<address:port-of-CMA>", NULL},
+		{"debug",	'd', 0, G_OPTION_ARG_INT,   &debug,   " set debug level", NULL},
+		{"ttl",		't', 0, G_OPTION_ARG_INT, &mcast_ttl, "<multicast-ttl> (default is 31)",	NULL},
+		{"kill",    'k', 0, G_OPTION_ARG_NONE, &dokillonly, "send SIGTERM to the running service", NULL},
+		{"pidfile", 'p', 0, G_OPTION_ARG_STRING, &pidfile, "<pid-file-pathname>", NULL},
+		{"status",  's', 0, G_OPTION_ARG_NONE, &dostatusonly, "report nanoprobe status", NULL},
+#ifdef HAS_FORK
+		{"foreground", 'f', 0, G_OPTION_ARG_NONE, &stay_in_foreground, "stay in foreground", NULL},
+#endif
+		{NULL, 0, 0, G_OPTION_ARG_NONE, NULL, NULL, NULL}
+	};
+
+	GOptionContext *context = g_option_context_new("- start nanoprobe");
+	g_option_context_add_main_entries(context, long_options, NULL);
 	/// @todo initialize from a setup file - initial IP address:port, debug - anything else?
 
 
-	BINDDEBUG(NanoprobeMain);
-	while (moreopts) {
-		c = getopt_long(argc, argv, "b:c:dfkl:p:st:", long_options, &option_index);
-		switch(c) {
-			case -1:
-				moreopts = FALSE;
-				break;
-			case  0:	// It already set a flag
-				break;
-
-			case 'b':
-				localaddr = optarg;
-				anyportpermitted = FALSE;
-				break;
-
-			case 'c':
-				cmaaddr = optarg;
-				break;
-
-			case 'd':
-				proj_class_incr_debug(NULL);
-				break;
-
-#ifdef HAS_FORK
-			case 'f':
-				stay_in_foreground = TRUE;
-				break;
-#endif
-			case 'k':
-				dokillonly = TRUE;
-				break;
-
-			case 'p':
-				pidfile = optarg;
-				break;
-			case 's':
-				dostatusonly = TRUE;
-				break;
-
-			case 't':
-				mcast_ttl = atoi(optarg);
-				break;
-
-			case '?':	// Already printed an error message
-				optionerror = TRUE;
-				break;
-
-			default:
-				g_error("OOPS! Default case in getopt_long(%c)", c);
-				optionerror = TRUE;
-				break;
-		}
-	}
-
-	if (optionerror) {
+	if(!(g_option_context_parse(context, &argc, &argv, &error)))
+	{
+		g_print("option parsing failed %s\n", error->message);
 		usage(argv[0]);
 		exit(1);
 	}
+	
+	BINDDEBUG(NanoprobeMain);
+
+	if(debug > 0 && debug <= 5) {
+		while(debug--) {
+			proj_class_incr_debug(NULL);
+		}
+	}
+
+
 	if (pidfile == NULL) {
-		pidfile = PIDFILENAME;
+		pidfile = get_default_pid_fileName((char *)procname);
 	}
 
 	if (dostatusonly) {
-		exit(pidrunningstat_to_status(are_we_already_running(pidfile, NULL)));
+		rstat = are_we_already_running(pidfile, NULL);
+		ret = pidrunningstat_to_status(rstat);
+		g_free(pidfile);
+		exit(ret);
 	}
 	if (dokillonly) {
 		int rc = kill_pid_service(pidfile, SIGTERM);
+		g_free(pidfile);
 		if (rc != 0) {
 			fprintf(stderr, "%s: could not stop service [%s]\n", "nanoprobe", g_strerror(errno));
 			exit(1);
 		}
 		exit(0);
 	}
+	daemonize_me(stay_in_foreground, SEP, pidfile);
 
-	daemonize_me(stay_in_foreground, "/", pidfile);
 	assimilation_openlog(argv[0]);
 
 	if (!netio_is_dual_ipv4v6_stack()) {
 		g_warning("This OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
 	}
+#ifdef WIN32
+	signal(SIGTERM, catch_a_signal);
+	if (stay_in_foreground) {
+		signal(SIGINT, catch_a_signal);
+	}else{
+		signal(SIGINT, ignore_signal);
+	}
+#else
 	memset(&sigact, 0,  sizeof(sigact));
 	sigact.sa_handler = catch_a_signal;
 	sigaction(SIGTERM, &sigact, NULL);
@@ -316,6 +315,7 @@ main(int argc, char **argv)
 	}
 	sigaction(SIGUSR1, &sigact, NULL);
 	sigaction(SIGUSR2, &sigact, NULL);
+#endif
 
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 
@@ -413,6 +413,8 @@ main(int argc, char **argv)
 	 ********************************************************************/
 
 	remove_pid_file(pidfile);
+	g_free(pidfile);
+
 	nano_shutdown(TRUE);	// Tell it to shutdown and print stats
 	g_info("%-35s %8d", "Count of 'other' pkts received:", wirepktcount);
 

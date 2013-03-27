@@ -46,8 +46,8 @@ WINEXPORT PacketDecoder*	nano_packet_decoder(void);
 WINEXPORT gboolean		nano_initiate_shutdown(void);
 WINEXPORT void			nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname, guint64 howlate);
 extern const char *		procname;	///< process name
-extern int			errcount;	///< error count
-extern GMainLoop*		mainloop;
+WINEXPORT extern int			errcount;	///< error count
+WINEXPORT extern GMainLoop*		mainloop;
 extern gboolean			nano_shutting_down;
 
 // Override this if you want to set up a non-standard deadtime agent. */
