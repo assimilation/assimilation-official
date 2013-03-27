@@ -1,0 +1,49 @@
+DIR=$(dirname $0)
+case $DIR in
+  /*)	;;
+  *)	DIR=$PWD/$DIR;;
+esac
+SRC=$DIR/..
+TMP=/tmp/$$.tmpdir
+mkdir $TMP
+GFLAGS=$(pkg-config --cflags-only-I glib-2.0)
+
+BADLIST=""
+HDRLIST=$(cd $SRC/include; ls *.h)
+cd $TMP
+#echo "Looking at $HDRLIST"
+for header in $HDRLIST
+do
+  cat <<-!dummyfile >dummy.c
+	#include <$header>
+	int
+	main(int argc, char **argv) 
+	{
+		return 0;
+	}
+	!dummyfile
+
+  if
+    cc $GFLAGS -I$SRC/include -c dummy.c >err.out 2>&1
+  then
+    : Awesome - $header compiled by itself
+  else
+    echo "Could not compile header $header by itself"
+    grep -i error err.out
+    echo ""
+    BADLIST="$BADLIST $header"
+    #exit 1
+  fi
+done
+cd /
+rm -fr $TMP
+if
+  [ ! -z "$BADLIST" ]
+then
+  echo "The following files could not be compiled by themselves:"
+  echo $BADLIST
+  exit 1
+fi
+WC=$(echo $(echo $HDRLIST | wc -w))
+echo "All $WC header files each compiled successfully."
+exit 0
