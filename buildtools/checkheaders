@@ -1,3 +1,8 @@
+ILIST=""
+for dir in "$@"
+do
+  ILIST="$ILIST -I$dir"
+done
 DIR=$(dirname $0)
 case $DIR in
   /*)	;;
@@ -24,7 +29,7 @@ do
 	!dummyfile
 
   if
-    cc $GFLAGS -I$SRC/include -c dummy.c >err.out 2>&1
+    cc $GFLAGS $ILIST -I$SRC/include -c dummy.c >err.out 2>&1
   then
     : Awesome - $header compiled by itself
   else
