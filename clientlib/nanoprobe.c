@@ -56,7 +56,7 @@ void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
 void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
 NanoHbStats		nano_hbstats = {0U, 0U, 0U, 0U, 0U};
 gboolean		nano_connected = FALSE;
-int			errcount = 0;
+WINEXPORT int			errcount = 0;
 GMainLoop*		mainloop = NULL;
 
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);

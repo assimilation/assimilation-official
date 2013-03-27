@@ -86,7 +86,7 @@ proj_get_sysname(void)
 void
 daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a background job
 		const char* dirtorunin,		///<[in] Directory to cd to or NULL for default (/)
-		const char* pidfile)		///<[in] Pathname of pidfile or NULL for no pidfile
+		char* pidfile)		///<[in] Pathname of pidfile or NULL for no pidfile
 {
 	struct rlimit		nofile_limits;
 	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
@@ -440,7 +440,19 @@ GetCurrentProcess();
 	,	__FUNCTION__, __LINE__, pidfile, errptr->message);
 	return FALSE;
 }
-
+/// get default pid file name
+char *
+get_default_pid_fileName(char *procname) {
+	char *p_pidfile;
+#ifndef WIN32
+	p_pidfile = g_build_filename(STD_PID_DIR, procname, NULL);
+#else
+	const char * const *dirs = g_get_system_config_dirs();
+	p_pidfile = g_build_filename(dirs[0], procname, NULL);
+#endif
+	g_debug("%s.%d: pidfile = %s", __FUNCTION__, __LINE__, p_pidfile);
+	return(p_pidfile);
+}
 /// Remove the pid file that goes with this service iff we created one during this invocation
 void
 remove_pid_file(const char * pidfile)
