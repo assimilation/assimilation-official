@@ -19,7 +19,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
+#ifndef _SERVER_DUMP_H
+#	define _SERVER_DUMP_H
+#	include <projectcommon.h>
 WINEXPORT void dump_cdp_packet(const void* packet, const void* packend);
 WINEXPORT void dump_lldp_packet(const void* packet, const void* packend);
 WINEXPORT gboolean is_all_ascii(const void* mem, const void* end);
 WINEXPORT void dump_mem(const void * start, const void * end);
+#endif/*_SERVER_DUMP_H*/
