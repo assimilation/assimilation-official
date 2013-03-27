@@ -23,7 +23,6 @@
 
 #ifndef _ASSIMOBJ_H
 #define _ASSIMOBJ_H
-#include <projectcommon.h>
 
 #ifdef LOG_REFS
 #	define	TRACEREF(obj)	g_debug("%s.%d: REF(%p)", __FUNCTION__, __LINE__, obj);
@@ -45,6 +44,7 @@
 ///@{
 /// @ingroup AssimObj
 typedef struct _AssimObj	AssimObj;
+#include <projectcommon.h>
 
 struct _AssimObj {
 #ifdef DEBUGLEAKS
