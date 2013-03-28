@@ -28,6 +28,6 @@
 #include <frameset.h>
 
 
-FrameSet* create_sendexpecthb(ConfigContext*, guint16 msgtype, NetAddr* addrs, int addrcount);
-FrameSet* create_setconfig(ConfigContext * cfg);
+WINEXPORT FrameSet* create_sendexpecthb(ConfigContext*, guint16 msgtype, NetAddr* addrs, int addrcount);
+WINEXPORT FrameSet* create_setconfig(ConfigContext * cfg);
 #endif /* _CMALIB_H */
