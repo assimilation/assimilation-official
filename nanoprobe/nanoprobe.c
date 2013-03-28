@@ -29,7 +29,6 @@
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
-#include <getopt.h>
 #include <framesettypes.h>
 #include <frameset.h>
 #include <ctype.h>
