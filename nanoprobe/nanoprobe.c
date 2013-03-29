@@ -51,8 +51,8 @@ DEBUGDECLARATIONS
 #ifdef WIN32
 #define SEP "\\"
 #	undef HAS_FORK
-WINEXPORT int errcount;
-WINEXPORT GMainLoop*		mainloop;
+__declspec(dllimport) int errcount;
+__declspec(dllimport) GMainLoop*		mainloop;
 WINEXPORT void		remove_pid_file(const char * pidfile);
 WINEXPORT void daemonize_me(gboolean stay_in_foreground, const char * dirtorunin, char* pidfile);
 WINEXPORT PidRunningStat are_we_already_running(const char * pidfile, int* pid);
