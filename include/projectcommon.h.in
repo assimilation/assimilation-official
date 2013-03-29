@@ -36,6 +36,7 @@
 #	define _W64
 #endif
 #	define	WINEXPORT __declspec( dllexport )
+#	define	WINIMPORT __declspec( dllimport )
 #	define MSG_DONTWAIT	0	// This could be trouble!!
 #if _MSC_VER < 1300
 #	define MSG_TRUNC	0

@@ -59,9 +59,9 @@
 #define		TESTPORT	1984
 
 #ifdef WIN32
-__declspec(dllimport)  int errcount;
-__declspec(dllimport)  NanoHbStats nano_hbstats;
-__declspec(dllimport) GMainLoop*		mainloop;
+WINIMPORT int errcount;
+WINIMPORT NanoHbStats nano_hbstats;
+WINIMPORT GMainLoop*		mainloop;
 #else
 extern int errcount;
 extern NanoHbStats nano_hbstats;
