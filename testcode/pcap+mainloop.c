@@ -59,17 +59,19 @@
 #define		TESTPORT	1984
 
 #ifdef WIN32
-extern WINEXPORT int errcount = 0;
-WINEXPORT extern NanoHbStats nano_hbstats = {0};
+__declspec(dllimport)  int errcount;
+__declspec(dllimport)  NanoHbStats nano_hbstats;
+__declspec(dllimport) GMainLoop*		mainloop;
 #else
 extern int errcount;
 extern NanoHbStats nano_hbstats;
+GMainLoop*		mainloop;
 #endif
 
 int		expected_dead_count = 1;
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
-WINEXPORT GMainLoop*		mainloop;
+GMainLoop*		mainloop;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;
