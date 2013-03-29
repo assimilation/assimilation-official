@@ -402,7 +402,7 @@ create_pid_file(const char * pidfile)
 	PidRunningStat	pstat;
 	
 #if _MSC_VER
-__declspec(dllimport)
+WINIMPORT
 __out
 void *
 __stdcall
