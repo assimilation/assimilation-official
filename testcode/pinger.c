@@ -24,9 +24,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef RHM
-#include <getopt.h>
-#endif
 #include <netaddr.h>
 #include <frametypes.h>
 #include <reliableudp.h>
@@ -256,42 +253,6 @@ main(int argc, char **argv)
 		exit(1);
 	}
 
-#ifdef RHM
-	while (moreopts) {
-		c = getopt_long(argc, argv, "c:d", long_options, &option_index);
-		switch(c) {
-			case -1:
-				moreopts = FALSE;
-				break;
-
-			case 0:	// It already set a flag - wonder what this means?
-				break;
-
-			case 'c':
-				maxpingcount = atoi(optarg);
-				break;
-
-			case 'd':
-				proj_class_incr_debug(NULL);
-				break;
-
-			case '?':	// Already printed an error message
-				optionerror = TRUE;
-				break;
-
-			default:
-				g_error("OOPS! Default case in getopt_long(%c)", c);
-				optionerror = TRUE;
-				break;
-		}
-	}
-
-	if (optionerror) {
-		usage(argv[0]);
-		exit(1);
-	}
-#endif
-
 	g_option_context_free(myOptionContext);
 	if((mycount != 0) && (mycount > 0)) {  // an upper limit as well ?
 		maxpingcount = mycount;
@@ -302,7 +263,7 @@ main(int argc, char **argv)
 			proj_class_incr_debug(NULL);
 		}
 	}
-	if(optremaining == NULL) {
+	if(optremaining == NULL || *optremaining == NULL) {
 		usage(argv[0]);
 		exit(1);
 	}
@@ -331,12 +292,12 @@ main(int argc, char **argv)
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
 	// Kick everything off with a pingy-dingy
-	for(ipaddr = *optremaining; ; ipaddr++) {
-//	for (j=optind; j < argc; ++j) {
+	for(ipaddr = *optremaining; *optremaining; optremaining++) {
 		FrameSet*	ping;
 		NetAddr*	toaddr;
 		NetAddr*	v6addr;
 		IntFrame*	iframe  = intframe_new(FRAMETYPE_CINTVAL, 1);
+		fprintf(stderr, "ipaddr = %s\n", ipaddr);
 
 		if (strcmp(ipaddr, "::") == 0) {
 			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address for our purposes.\n"
