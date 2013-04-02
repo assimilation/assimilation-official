@@ -228,16 +228,16 @@ main(int argc, char **argv)
 	//	{"count",	required_argument,	0,	'c'},
 	//	{"debug",	no_argument,		0,	'd'},
 	//};
-	static int mycount = 0;
-	static int mydebug = 0;
-	static gchar **optremaining = NULL;
-	gchar *ipaddr = NULL;
-	static GOptionEntry long_options [] = {
-		{"count",  'c', 0, G_OPTION_ARG_INT,  &mycount, "count of ping packets", NULL},
-		{"debug",  'd', 0, G_OPTION_ARG_INT, &mydebug, "debug-level [0-5]", NULL},
-		{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &optremaining, "ip_address [ip_address ...]", NULL},
+	static int		mycount = 0;
+	static int		mydebug = 0;
+	static gchar **		optremaining = NULL;
+	static GOptionEntry	long_options [] = {
+		{"count",  'c', 0, G_OPTION_ARG_INT,	              &mycount,		"count of ping packets", NULL},
+		{"debug",  'd', 0, G_OPTION_ARG_INT,		      &mydebug,		"debug-level [0-5]", NULL},
+		{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &optremaining,	"ip_address [ip_address ...]", NULL},
 		{NULL, 0, 0, 0, NULL, NULL, NULL}
 	};
+	int	argcount;
 	GError *optionerror;
 	GOptionContext *myOptionContext;
 
@@ -292,10 +292,11 @@ main(int argc, char **argv)
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
 
 	// Kick everything off with a pingy-dingy
-	for(ipaddr = *optremaining; *optremaining; optremaining++) {
+	for(argcount=0; optremaining[argcount]; ++argcount) {
 		FrameSet*	ping;
 		NetAddr*	toaddr;
 		NetAddr*	v6addr;
+		gchar *		ipaddr = optremaining[argcount];
 		IntFrame*	iframe  = intframe_new(FRAMETYPE_CINTVAL, 1);
 		fprintf(stderr, "ipaddr = %s\n", ipaddr);
 
@@ -327,6 +328,10 @@ main(int argc, char **argv)
 		UNREF(ping);
 		UNREF(v6addr);
 	}
+	// Free up our argument list
+	g_strfreev(optremaining);
+	optremaining = NULL;
+
 	UNREF(decoder);
 	UNREF2(signature);
 	UNREF(config);
