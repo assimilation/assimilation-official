@@ -65,7 +65,6 @@ WINEXPORT int		kill_pid_service(const char * pidfile, int signal);
 const char *		localaddr = NULL;
 const char *		cmaaddr = NULL;
 const char *		procname = "nanoprobe";
-void ignore_signal(int signum);
 
 gint64		pktcount = 0;
 NetIO*		nettransport;
@@ -120,12 +119,7 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	UNREF(fs);
 	return TRUE;
 }
-FSTATIC void
-ignore_signal( int signum)
-{
-	signum--; //get rid of unused warning
-	return;
-}
+
 /// Signal reception function - signals stop by here...
 FSTATIC void
 catch_a_signal(int signum)
@@ -209,7 +203,7 @@ main(int argc, char **argv)
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);
 	PacketDecoder*		decoder = nano_packet_decoder();
-#ifndef WIN32
+#ifndef HAVE_SIGACTION
 	struct sigaction	sigact;
 #endif
 	static char *		localaddr = defaultlocaladdress;
@@ -287,12 +281,14 @@ main(int argc, char **argv)
 	if (!netio_is_dual_ipv4v6_stack()) {
 		g_warning("This OS DOES NOT support dual ipv4/v6 sockets - this may not work!!");
 	}
-#ifdef WIN32
+#ifndef HAVE_SIGACTION
 	signal(SIGTERM, catch_a_signal);
 	if (stay_in_foreground) {
-		signal(SIGINT, catch_a_signal);
+		if (signal(SIGINT, catch_a_signal) == SIG_IGN) {
+			signal(SIGINT, SIG_IGN);
+		}
 	}else{
-		signal(SIGINT, ignore_signal);
+		signal(SIGINT, SIG_IGN);
 	}
 #else
 	memset(&sigact, 0,  sizeof(sigact));
