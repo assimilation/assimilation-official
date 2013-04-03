@@ -203,7 +203,7 @@ main(int argc, char **argv)
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);
 	PacketDecoder*		decoder = nano_packet_decoder();
-#ifndef HAVE_SIGACTION
+#ifdef HAVE_SIGACTION
 	struct sigaction	sigact;
 #endif
 	static char *		localaddr = defaultlocaladdress;
