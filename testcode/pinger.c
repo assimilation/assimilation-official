@@ -238,6 +238,7 @@ main(int argc, char **argv)
 		{NULL, 0, 0, 0, NULL, NULL, NULL}
 	};
 	int	argcount;
+	int	exitcode = 0;
 	GError *optionerror;
 	GOptionContext *myOptionContext;
 
@@ -303,16 +304,25 @@ main(int argc, char **argv)
 		if (strcmp(ipaddr, "::") == 0) {
 			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address for our purposes.\n"
 			,	ipaddr);
+			UNREF2(iframe);
 			continue;
 		}
 		toaddr = netaddr_string_new(ipaddr);
 		if (toaddr == NULL) {
 			fprintf(stderr, "WARNING: %s is not a valid ipv4/v6 address.\n"
 			,	ipaddr);
+			UNREF2(iframe);
 			continue;
 		}
 		v6addr = toaddr->toIPv6(toaddr); UNREF(toaddr);
 		v6addr->setport(v6addr, PORT);
+		if (g_hash_table_lookup(ourcounts, v6addr)) {
+			fprintf(stderr, "WARNING: %s is a duplicate ipv4/v6 address.\n"
+			,	ipaddr);
+			UNREF2(iframe);
+			UNREF(v6addr);
+			continue;
+		}
 		g_hash_table_insert(ourcounts, v6addr, GINT_TO_POINTER(1));
 		REF(v6addr);	// For the 'ourcounts' table
 		{
@@ -372,9 +382,10 @@ main(int argc, char **argv)
 		,	liveobjcount);
 		proj_class_dump_live_objects();
 		g_warning("Too many objects (%d) alive at end of test.", liveobjcount);
+		exitcode=1;
 	}else{
 		g_message("No objects left alive.  Awesome!");
 	}
         proj_class_finalize_sys(); // Shut down object system to make valgrind happy :-D
-	return 0;
+	return exitcode;
 }
