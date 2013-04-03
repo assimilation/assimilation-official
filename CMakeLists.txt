@@ -323,7 +323,7 @@ install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/cma COMPONENT cma-component 
 #	Install our copyright file
 #
 install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-component DESTINATION ${USRSHARE})
-install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${USRSHARE})
+#install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${USRSHARE})
 
 
 #
