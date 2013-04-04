@@ -138,7 +138,7 @@ The .deb files should not have this issue.
 
 
 @section RunningBasicTests Running Basic Tests
-These tests require that the CMA and nanoprobe are not stopped on the
+These tests require that the CMA and nanoprobe are not running on the
 current machine while they run.
 The project runs these tests are run before updating the master source
 control instance on <i>hg.linux-ha.org</i>.
