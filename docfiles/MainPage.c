@@ -37,9 +37,16 @@ For a human-driven overview, we recommend our
 For source and licensing information see the
 - <a href="_source_and_license.html">Source and Licensing</a> page.
 
+@section ProjectIntegrity Project Integrity
+The project software undergoes a number of rigorous static and dynamic tests to ensure its integrity.
+- Highly restrictive gcc options in all compiles
+- Static Analysis via the Clang static analyzer - before any changes are pushed upstream
+- Static Analysis by Coverity - before each release candidate
+- Three collections of regression tests - run before any changes are pushed upstream
+
 @section ProjectSwag Assimilation Swag
 We now have a store featuring swag for the Assimilation Project!
-$5 from every purchase supports the project.
+Purchases from this store help support the project.
 Check it out at <b>http://www.printfection.com/AssimilationProject</b>
 
 
@@ -54,8 +61,8 @@ The team currently posts updates in the following places:
 
 @section architecture Architecture
 This concept has two kinds of participating entities:
- - a Centralized Monitoring Authority - monitoring the collective
- - a potentially very large number of lightweight monitoring agents (aka <i>nanoprobes</i>)
+ - a Centralized Monitoring Authority - monitoring the collective, and collecting discovery information
+ - a potentially very large number of lightweight monitoring/discovery agents (aka <i>nanoprobes</i>)
 
 @section Scalability Scalable Monitoring
 The picture below shows the architecture for discovering system outages.
