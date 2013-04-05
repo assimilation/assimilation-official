@@ -442,7 +442,7 @@ GetCurrentProcess();
 }
 /// get default pid file name
 char *
-get_default_pid_fileName(char *procname) {
+get_default_pid_fileName(const char *procname) {
 	char *p_pidfile;
 #ifndef WIN32
 	p_pidfile = g_build_filename(STD_PID_DIR, procname, NULL);
