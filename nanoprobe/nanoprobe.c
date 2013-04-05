@@ -256,7 +256,7 @@ main(int argc, char **argv)
 
 
 	if (pidfile == NULL) {
-		pidfile = get_default_pid_fileName((char *)procname);
+		pidfile = get_default_pid_fileName(procname);
 	}
 
 	if (dostatusonly) {
