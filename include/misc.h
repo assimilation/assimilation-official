@@ -42,7 +42,7 @@ typedef enum {
 char *	proj_get_sysname(void);			///< Return a malloced string of the system name
 
 /** Make a daemon process out of this process*/
-WINEXPORT char *get_default_pid_fileName(char *procname);
+WINEXPORT char *get_default_pid_fileName(const char *procname);
 WINEXPORT void daemonize_me(gboolean stay_in_foreground	///< TRUE == don't fork
 ,		  const char * dirtorunin	///< Directory to cd to before running
 ,		  char* pidfile);		///< pathname of pid file, or NULL
