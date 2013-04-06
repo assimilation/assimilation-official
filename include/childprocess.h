@@ -21,15 +21,15 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
-#ifndef __CHILDPROCESS_H
+#ifndef _CHILDPROCESS_H
 #	define _CHILDPROCESS_H
 #include <projectcommon.h>
 #include <assimobj.h>
+#include <logsourcefd.h>
 
 ///@{
 /// @ingroup ChildProcess
 typedef struct _ChildProcess ChildProcess;
-typedef struct _LogSourceFd LogSourceFd;
 
 typedef enum HowDied {
 	NOT_EXITED = 0,			///< Still running
@@ -40,14 +40,6 @@ typedef enum HowDied {
 	EXITED_HUNG = 5,		///< Timed out and would not die
 };
 	
-
-struct _LogSourceFd {
-	GSource		baseclass;	///< Our base class - <i>NOT</i> an AssimObj
-	int		fd;		///< The open file descriptor we're reading and logging
-	char *		log_prefix;	///< The prefix to use in logging this output (our input)
-	int		severity;	///< Severity to use in loggin this output (our input)
-};
-
 
 struct _ChildProcess {
 	AssimObj	baseclass;	///< Our base class
@@ -68,4 +60,4 @@ WINEXPORT ChildProcess*	childprocess_new(gsize cpsize, const char*const* argv, c
 ,			gboolean	(*notify)(ChildProcess*, int rc, gboolean core_dumped));
 
 ///@}
-#endif
+#endif/*CHILDPROCESS_H*/
