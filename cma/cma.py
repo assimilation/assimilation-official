@@ -101,14 +101,15 @@ if __name__ == '__main__':
     import optparse, atexit, time
     #
     #   "Main" program starts below...
-    #   It is a test program intended to run with some real nanoprobes running
+    #   It is a the real CMA intended to run with some real nanoprobes running
     #   somewhere out there...
     #
     DefaultPort = 1984
     import os, sys, signal
     # VERY Linux-specific - but useful and apparently correct ;-)
-    PrimaryIPcmd="ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
-    ipfd=os.popen(PrimaryIPcmd, 'r')
+    PrimaryIPcmd =   \
+    "ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
+    ipfd = os.popen(PrimaryIPcmd, 'r')
     OurAddrStr=('%s:%d' % (ipfd.readline().rstrip(), DefaultPort))
     ipfd.close()
 
@@ -123,7 +124,7 @@ if __name__ == '__main__':
     ,   help='Address:port to listen to - for nanoprobes to connect to')
 
     parser.add_option('-d', '--debug', action='count', default=0, dest='debug'
-    ,   help='enable debug for CMA and libraries - multiple occurances increase debug value for C libraries')
+    ,   help='enable debug for CMA and libraries - multiple occurances increase debug value')
 
     parser.add_option('-s', '--status', action='store_true', default=False, dest='status'
     ,   help='Return status of running CMA')
@@ -157,7 +158,7 @@ if __name__ == '__main__':
 
     if opt.kill:
         if kill_pid_service(opt.pidfile, 15) < 0:
-            print >>sys.stderr, "Unable to stop CMA."
+            print >> sys.stderr, "Unable to stop CMA."
             os._exit(1)
         os._exit(0)
         
@@ -172,15 +173,21 @@ if __name__ == '__main__':
 
     daemonize_me(opt.foreground, '/', opt.pidfile)
         
-    rmpid_and_exit_on_signal(opt.pidfile, signal.SIGTERM);
+    rmpid_and_exit_on_signal(opt.pidfile, signal.SIGTERM)
 
-    assimilation_openlog("cma") # Cannot appear before daemonize_me() or bind() fails -- not quite sure why...
+    # Next statement can't appear before daemonize_me() or bind() fails -- not quite sure why...
+    assimilation_openlog("cma")
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher
-    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER, DispatchHBSHUTDOWN
+    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
+         DispatchSWDISCOVER, DispatchHBSHUTDOWN
     import cmadb
-    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, pyPacketDecoder
-    from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG, proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
+    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
+         pyPacketDecoder
+    from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
+        CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, \
+        CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
+        proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
     from frameinfo import FrameTypes, FrameSetTypes
     import py2neo
     for debug in range(opt.debug):
@@ -248,19 +255,25 @@ if __name__ == '__main__':
         FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER(),
         FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN()
     })
-    cmadb.CMAdb.log.info('Starting CMA version %s - licensed under %s' % (VERSION_STRING, LONG_LICENSE_STRING))
+    cmadb.CMAdb.log.info('Starting CMA version %s - licensed under %s'
+    %   (VERSION_STRING, LONG_LICENSE_STRING))
     if opt.foreground:
-        print >>sys.stderr, ('Starting CMA version %s - licensed under %s' % (VERSION_STRING, LONG_LICENSE_STRING))
+        print >>sys.stderr, ('Starting CMA version %s - licensed under %s'
+        %   (VERSION_STRING, LONG_LICENSE_STRING))
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...
     listener = PacketListener(config, disp, io=io)
     if opt.doTrace:
         import trace
         tracer = trace.Trace(count=False, trace=True)
-        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug('Starting up traced listener.listen(); debug=%d' % opt.debug)
-        if opt.foreground:  print >>sys.stderr, ('cma: Starting up traced listener.listen() in foreground; debug=%d' % opt.debug)
+        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug(
+            'Starting up traced listener.listen(); debug=%d' % opt.debug)
+        if opt.foreground:  print >>sys.stderr, (
+            'cma: Starting up traced listener.listen() in foreground; debug=%d' % opt.debug)
         tracer.run('listener.listen()')
     else:
-        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug("Starting up untraced listener.listen(); debug=%d" % opt.debug)
-        if opt.foreground:  print >>sys.stderr, ('cma: Starting up untraced listener.listen() in foreground; debug=%d' % opt.debug)
+        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug(
+            'Starting up untraced listener.listen(); debug=%d' % opt.debug)
+        if opt.foreground:  print >>sys.stderr, (
+            'cma: Starting up untraced listener.listen() in foreground; debug=%d' % opt.debug)
         listener.listen()

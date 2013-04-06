@@ -73,10 +73,12 @@ class DispatchHBSHUTDOWN(DispatchTarget):
                 hostname = frame.getstr()
                 fromdrone = self.DroneInfo.find(hostname, port=origaddr.port())
                 if fromdrone is not None:
-                    CMAdb.log.info("System %s at %s reports it has been gracefully shut down." % (hostname, str(origaddr)))
+                    CMAdb.log.info("System %s at %s reports it has been gracefully shut down." \
+                    %   (hostname, str(origaddr)))
                     fromdrone.death_report('dead', fsname, origaddr, frameset)
                 else:
-                    CMAdb.log.error("DispatchHBSHUTDOWN: received %s FrameSet from unknown drone %s at [%s]"
+                    CMAdb.log.error(
+                    "DispatchHBSHUTDOWN: received %s FrameSet from unknown drone %s at [%s]"
                     %   (fsname, hostname, str(origaddr)))
                 return
         CMAdb.log.error("DispatchHBSHUTDOWN: received invalid %s FrameSet from drone at [%s]"
@@ -182,7 +184,8 @@ class DispatchSWDISCOVER(DispatchTarget):
                 switchjson = SwitchDiscovery.decode_discovery(designation, interface
                 ,               wallclock, pktstart, pktend)
                 if CMAdb.debug:
-                    CMAdb.log.debug('Got Link discovery info from %s: %s' % (interface, str(switchjson)))
+                    CMAdb.log.debug('Got Link discovery info from %s: %s' \
+                    %   (interface, str(switchjson)))
                 drone = self.DroneInfo.find(designation)
                 drone.logjson(str(switchjson))
                 break
