@@ -24,6 +24,7 @@
 #include <projectcommon.h>
 #include <gmainfd.h>
 #include <logsourcefd.h>
+#include <string.h>
 
 FSTATIC void logsourcefd_newtext(GMainFd*, const char *, int len);
 FSTATIC void logsourcefd_finalize(GMainFd* fdself);
@@ -61,9 +62,34 @@ logsourcefd_new(gsize cpsize
 FSTATIC void
 logsourcefd_newtext(GMainFd* fdself, const char * string, int len)
 {
-	LogSourceFd* self = CASTTOCLASS(LogSourceFd, fdself);
-	
-	g_log(self->logdomain, self->loglevel, "%s%*s", self->prefix, len, string);
+	GString*	thisline = NULL;
+	LogSourceFd*	self = CASTTOCLASS(LogSourceFd, fdself);
+	const int	prefixlen = strlen(self->prefix);
+	int		j;
+
+	self->charcount += len;
+	for (j=0; j < len; ++j) {
+		if (string[j] == '\n') {
+			self->linecount += 1;
+			if (thisline) {
+				g_log(self->logdomain, self->loglevel, "%s%s", self->prefix, thisline->str);
+				g_string_free(thisline, TRUE);
+				thisline = NULL;
+			}
+			continue;
+		}
+		if (thisline == NULL) {
+			thisline = g_string_sized_new(prefixlen + (len-j));
+			thisline = g_string_append_c(thisline, string[j]);
+		}else{
+			thisline = g_string_append_c(thisline, string[j]);
+		}
+	}
+	if (thisline) {
+		g_log(self->logdomain, self->loglevel, "%s%s", self->prefix, thisline->str);
+		g_string_free(thisline, TRUE);
+		thisline = NULL;
+	}
 }
 
 
