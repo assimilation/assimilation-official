@@ -71,7 +71,7 @@ GMainLoop*		mainloop;
 int		expected_dead_count = 1;
 gint64		maxpkts  = G_MAXINT64;
 gint64		pktcount = 0;
-GMainLoop*		mainloop;
+GMainLoop*	mainloop;
 NetIO*		nettransport;
 NetGSource*	netpkt;
 NetAddr*	destaddr;

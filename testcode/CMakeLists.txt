@@ -21,18 +21,21 @@
 add_executable (filetest pcap_test.c)
 add_executable (mainlooptest pcap+mainloop.c)
 add_executable (pinger pinger.c)
+add_executable (gtest01 gtest01.c)
 
 IF(WIN32)
  
   find_library (PCAP_LIB wpcap PATHS "C:/winpcap/lib")
   find_library (GLIB_LIB glib-2.0 PATHS "C:/Glib/Glib-2-28-8-1/lib") 
 
-  target_link_libraries(filetest  ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
-  target_link_libraries(mainlooptest ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
-  target_link_libraries(pinger ${GLIB_LIB} ../clientlib/${CMAKE_BUILD_TYPE}/${CLIENTLIB})
 ELSE(WIN32)
-  target_link_libraries (filetest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
-  target_link_libraries (mainlooptest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
-  target_link_libraries (pinger ${CLIENTLIB} ${GLIB_LIB})
+  #target_link_libraries (filetest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
+  #target_link_libraries (mainlooptest ${CLIENTLIB} ${SERVERLIB} -lpcap -lrt)
+  #target_link_libraries (pinger ${CLIENTLIB} ${GLIB_LIB})
+  set (PCAP_LIB -lpcap)
 ENDIF(WIN32)
+  target_link_libraries(filetest     ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
+  target_link_libraries(mainlooptest ${CLIENTLIB} ${SERVERLIB} ${PCAP_LIB} ${GLIB_LIB})
+  target_link_libraries(pinger       ${CLIENTLIB} ${GLIB_LIB})
+  target_link_libraries(gtest01      ${CLIENTLIB} ${GLIB_LIB})
 
