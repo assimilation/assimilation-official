@@ -18,6 +18,7 @@ CMakeCache.txt
 ^testcode/filetest$
 ^testcode/mainlooptest$
 ^testcode/pinger$
+^testcode/gtest..$
 ^doxygen/.*
 ^cma/cma
 Doxyfile
