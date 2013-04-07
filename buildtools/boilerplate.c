@@ -1,7 +1,7 @@
- * This file is part of the Assimilation Project.
  *
- * @author Copyright &copy; 2011, 2012 - Alan Robertson <alanr@unix.sh>
+ * @author  Alan Robertson <alanr@unix.sh> - Copyright &copy; 2013 - Assimilation Systems Limited
  * @n
+ *  This file is part of the Assimilation Project.
  *  The Assimilation software is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
