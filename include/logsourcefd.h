@@ -36,6 +36,9 @@ struct _LogSourceFd {
 	char *		logdomain;		///< What log domain to log to
 	char *		prefix;			///< What prefix to print before our log entries
 	GLogLevelFlags	loglevel;		///< What level to log these outputs to
+	int		charcount;		///< How many characters have been logged (read).
+						///< (this does not count the prefix, etc.)
+	int		linecount;		///< How many lines have been logged
 };
 // We use g_source_ref() and g_source_unref() to manage reference counts
 
