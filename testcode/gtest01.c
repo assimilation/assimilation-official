@@ -29,16 +29,32 @@
 #include <logsourcefd.h>
 #include <childprocess.h>
 
-
 GMainLoop*	mainloop;
 FSTATIC void	test_read_command_output_at_EOF(void);
 FSTATIC void	test_log_command_output(void);
+FSTATIC void	test_save_command_output(void);
+FSTATIC void	test_childprocess_log_all(void);
+FSTATIC void	test_childprocess_false(void);
+FSTATIC void	test_childprocess_timeout(void);
+FSTATIC void	test_childprocess_save_command_output(void);
 FSTATIC void	quit_at_child_exit(GPid pid, gint status, gpointer gmainfd);
 FSTATIC void	check_output_at_exit(GPid pid, gint status, gpointer gmainfd);
-FSTATIC void	test_childprocess_log_all(void);
 FSTATIC void	quit_at_childprocess_exit(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
+FSTATIC void	generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int timeout);
+FSTATIC void	test_childprocess_save_command_output_timeout(void);
 
 #define	HELLOSTRING	": Hello, world."
+#define	HELLOSTRING_NL	(HELLOSTRING "\n")
+
+enum HowDied	test_expected_death = EXITED_ZERO;
+int		test_expected_exitcode = 0;
+int		test_expected_signal = 0;
+int		test_expected_linecount = 1;
+int		test_expected_charcount = 0;
+int		test_expected_stderr_linecount = 0;
+int		test_expected_stderr_charcount = 0;
+const char *	test_expected_string_return = NULL;
+gboolean	test_expected_coredump = FALSE;
 
 /// Make sure we read our HELLOSTRING when the process exits
 FSTATIC void
@@ -97,6 +113,7 @@ test_read_command_output_at_EOF(void)
 	g_assert_cmpint(proj_class_live_object_count(), ==, 0);
 }
 
+/// Quit when the child exits - look for HELLOSTRING characters being logged.
 FSTATIC void
 quit_at_child_exit(GPid pid, gint status, gpointer logsourcefd)
 {
@@ -109,22 +126,37 @@ quit_at_child_exit(GPid pid, gint status, gpointer logsourcefd)
 	g_assert_cmpint(logsrc->charcount, ==, sizeof(HELLOSTRING));
 	g_main_loop_quit(mainloop);
 }
+
 // We logged the output of echo HELLOSTRING to standard output - let's see if it worked...
 FSTATIC void
 quit_at_childprocess_exit(ChildProcess*self, enum HowDied notice, int rc, int signal, gboolean core_dumped)
 {
 	LogSourceFd*	stdoutfd;
 	(void)signal;
-	g_assert_cmpint(notice, ==, EXITED_ZERO);
-	g_assert_cmpint(rc, ==, 0);
-	g_assert_cmpint(core_dumped, ==, FALSE);
-	g_assert_cmpint(self->stderr_src->charcount, ==, 0);
-	g_assert_cmpint(self->stderr_src->linecount, ==, 0);
+	
+	g_assert_cmpint(notice, ==, test_expected_death);
+	if (notice == EXITED_ZERO || notice == EXITED_NONZERO) {
+		g_assert_cmpint(rc, ==, test_expected_exitcode);
+	}
+	if (notice == EXITED_SIGNAL) {
+		g_assert_cmpint(signal, ==, test_expected_signal);
+		g_assert_cmpint(core_dumped, ==, test_expected_coredump);
+	}
+	if (test_expected_string_return == NULL) {
+		g_assert_cmpint(OBJ_IS_A(self->stdout_src, "LogSourceFd"), ==,  TRUE);
+		stdoutfd = CASTTOCLASS(LogSourceFd, self->stdout_src);
+		g_assert_cmpint(stdoutfd->charcount, ==, test_expected_charcount);
+		g_assert_cmpint(stdoutfd->linecount, ==, test_expected_linecount);
+	}else{
+		g_assert(self->stdout_src->textread != NULL);
+		if (self->stdout_src->textread != NULL) {
+			g_assert(self->stdout_src->textread->str != NULL);
+			g_assert_cmpstr(self->stdout_src->textread->str, ==, test_expected_string_return);
+		}
+	}
+	g_assert_cmpint(self->stderr_src->charcount, ==, test_expected_stderr_charcount);
+	g_assert_cmpint(self->stderr_src->linecount, ==, test_expected_stderr_linecount);
 
-	g_assert_cmpint(OBJ_IS_A(self->stdout_src, "LogSourceFd"), ==,  TRUE);
-	stdoutfd = CASTTOCLASS(LogSourceFd, self->stdout_src);
-	g_assert_cmpint(stdoutfd->charcount, ==, sizeof(HELLOSTRING));
-	g_assert_cmpint(stdoutfd->linecount, ==, 1);
 	g_main_loop_quit(mainloop);
 }
 
@@ -171,25 +203,22 @@ test_log_command_output(void)
 }
 
 FSTATIC void
-test_childprocess_log_all(void)
+generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int timeout)
 {
-	gchar		echo[] = "/bin/echo";
-	gchar		hello[] = HELLOSTRING;
-	gchar* 	argv[] = {echo, hello, NULL};		// Broken glib API...
 	ChildProcess*	child;
 
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 	child = childprocess_new(0
 ,		argv			// char** argv
 ,		NULL			// char** envp
-,		NULL			// const char* curdir
+,		curdir			// const char* curdir
 ,		quit_at_childprocess_exit
 		//gboolean	(*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
-,		FALSE			//	gboolean save_stdout
+,		save_stdout		//	gboolean save_stdout
 ,		G_LOG_DOMAIN		// const char * logdomain
 ,		__FUNCTION__		// const char * logprefix
 ,		G_LOG_LEVEL_MESSAGE	//	GLogLevelFlags loglevel
-,		0			//guint32 timeout_seconds);
+,		timeout			//guint32 timeout_seconds);
 	);
 	g_main_loop_run(mainloop);
 	UNREF(child);
@@ -201,6 +230,94 @@ test_childprocess_log_all(void)
 	g_assert_cmpint(proj_class_live_object_count(), ==, 0);
 }
 
+FSTATIC void
+test_childprocess_log_all(void)
+{
+	gchar		echo[] = "/bin/echo";
+	gchar		hello[] = HELLOSTRING;
+	gchar* 	argv[] = {echo, hello, NULL};		// Broken glib API...
+
+	test_expected_death = EXITED_ZERO;
+	test_expected_exitcode = 0;
+	test_expected_signal = 0;
+	test_expected_linecount = 1;
+	test_expected_charcount = sizeof(hello);
+	test_expected_stderr_linecount = 0;
+	test_expected_stderr_charcount = 0;
+	test_expected_string_return = NULL;
+	generic_childprocess_test(argv, FALSE, NULL, 0);
+}
+
+FSTATIC void
+test_childprocess_false(void)
+{
+	gchar		false[] = "/bin/false";
+	gchar* 	argv[] = {false, NULL};		// Broken glib API...
+
+	test_expected_death = EXITED_NONZERO;
+	test_expected_exitcode = 1;
+	test_expected_signal = 0;
+	test_expected_linecount = 0;
+	test_expected_charcount = 0;
+	test_expected_stderr_linecount = 0;
+	test_expected_stderr_charcount = 0;
+	test_expected_string_return = NULL;
+	generic_childprocess_test(argv, FALSE, NULL, 0);
+}
+FSTATIC void
+test_childprocess_save_command_output(void)
+{
+	gchar		echo[] = "/bin/echo";
+	gchar		hello[] = HELLOSTRING;
+	gchar* 	argv[] = {echo, hello, NULL};		// Broken glib API...
+
+	test_expected_death = EXITED_ZERO;
+	test_expected_exitcode = 0;
+	test_expected_signal = 0;
+	test_expected_linecount = 0;
+	test_expected_charcount = 0;
+	test_expected_stderr_linecount = 0;
+	test_expected_stderr_charcount = 0;
+	test_expected_string_return = HELLOSTRING_NL;
+	generic_childprocess_test(argv, TRUE, NULL, 0);
+}
+FSTATIC void
+test_childprocess_save_command_output_timeout(void)
+{
+	gchar		shell[] = "/bin/sh";
+	gchar		dashc[] = "-c";
+	gchar		hello[] = "echo \""HELLOSTRING"\"; sleep 3";
+	gchar* 	argv[] = {shell, dashc, hello, NULL};		// Broken glib API...
+
+	test_expected_death = EXITED_TIMEOUT;
+	test_expected_exitcode = 0;
+	test_expected_signal = 0;
+	test_expected_linecount = 0;
+	test_expected_charcount = 0;
+	test_expected_stderr_linecount = 0;
+	test_expected_stderr_charcount = 0;
+	test_expected_string_return = HELLOSTRING_NL;
+	generic_childprocess_test(argv, TRUE, NULL, 1);
+}
+
+FSTATIC void
+test_childprocess_timeout(void)
+{
+	gchar		sleep[] = "/bin/sleep";
+	gchar		number[] = "3";
+	gchar* 	argv[] = {sleep, number, NULL};		// Broken glib API...
+
+	test_expected_death = EXITED_TIMEOUT;
+	test_expected_exitcode = 1;
+	test_expected_signal = 0;
+	test_expected_linecount = 0;
+	test_expected_charcount = 0;
+	test_expected_stderr_linecount = 0;
+	test_expected_stderr_charcount = 0;
+	test_expected_string_return = NULL;
+	generic_childprocess_test(argv, FALSE, NULL, 1);
+}
+
 /// Test main program ('/gmain') using the glib test fixtures
 int
 main(int argc, char ** argv)
@@ -210,5 +327,10 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/command-output", test_read_command_output_at_EOF);
 	g_test_add_func("/gtest01/gmain/log-command-output", test_log_command_output);
 	g_test_add_func("/gtest01/gmain/childprocess_log_all", test_childprocess_log_all);
+	g_test_add_func("/gtest01/gmain/childprocess_false", test_childprocess_false);
+	g_test_add_func("/gtest01/gmain/childprocess_timeout", test_childprocess_timeout);
+	g_test_add_func("/gtest01/gmain/childprocess_save_command_output", test_childprocess_save_command_output);
+	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_timeout"
+	,	test_childprocess_save_command_output_timeout);
 	return g_test_run();
 }
