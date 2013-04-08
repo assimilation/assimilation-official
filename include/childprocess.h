@@ -5,7 +5,7 @@
  *
  * This file is part of the Assimilation Project.
  *
- * @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
+ * @author Alan Robertson <alanr@unix.sh> - Copyright &copy; 2013 - Assimilation Systems Limited
  * @n
  *  The Assimilation software is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,10 +31,10 @@
 /// @ingroup ChildProcess
 typedef struct _ChildProcess ChildProcess;
 
-typedef enum HowDied {
-	NOT_EXITED = 0,			///< Still running
+enum HowDied {
+	NOT_EXITED = 0,			///< Still running - should never be returned...
 	EXITED_ZERO = 1,		///< Exited with zero return code
-	EXITED_NONZER0 = 2,		///< Exited with nonzero return code
+	EXITED_NONZERO = 2,		///< Exited with nonzero return code
 	EXITED_SIGNAL = 3,		///< Exited with a signal
 	EXITED_TIMEOUT = 4,		///< Timed out and was killed
 	EXITED_HUNG = 5,		///< Timed out and would not die
@@ -44,20 +44,23 @@ typedef enum HowDied {
 struct _ChildProcess {
 	AssimObj	baseclass;	///< Our base class
 	GPid		child_pid;	///< The GPid returned from spawning this object
-	LogSourceFd*	stdout_src;	///< GSource for logging the standard output of this child
+	GMainFd*	stdout_src;	///< GSource for logging or saving the standard output of this child
 	LogSourceFd*	stderr_src;	///< GSource for logging the standard error of this child
 	guint		timeoutsrc_id;	///< GSource id for the timeout for this child to complete
 	guint		childsrc_id;	///< GSource id for the child process
-	int		child_state;	///< State for the child process
+	guint		child_state;	///< State for the child process
 	char **		argv;		///< Argument list for this child (malloced)
 	char **		envp;		///< Environment list for this child (malloced)
 	char *		curdir;		///< Starting directory for this child (malloced)
-	gboolean	(*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped); ///< Called when it exits
+	void		(*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
+					///< Called when it exits
 	
 };
 
-WINEXPORT ChildProcess*	childprocess_new(gsize cpsize, const char*const* argv, const char*const* envp, const char* curdir
-,			gboolean	(*notify)(ChildProcess*, int rc, gboolean core_dumped));
+WINEXPORT ChildProcess*	childprocess_new(gsize cpsize, char** argv, char** envp, const char* curdir
+,			void (*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
+,			gboolean save_stdout, const char * logdomain, const char * logprefix
+,			GLogLevelFlags loglevel, guint32 timeout_seconds);
 
 ///@}
 #endif/*CHILDPROCESS_H*/

@@ -97,6 +97,7 @@
 #cmakedefine	HAVE_ENDPROTOENT
 #cmakedefine	HAVE_GETCOMPUTERNAME
 #cmakedefine	HAVE_KILL
+#cmakedefine	HAVE_SETPGID
 #cmakedefine	HAVE_SIGACTION
 #cmakedefine	HAVE_UNAME
 #cmakedefine	HAVE_G_GET_REAL_TIME

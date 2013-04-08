@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <gmainfd.h>
 #include <logsourcefd.h>
+#include <childprocess.h>
 
 
 GMainLoop*	mainloop;
@@ -34,8 +35,10 @@ FSTATIC void	test_read_command_output_at_EOF(void);
 FSTATIC void	test_log_command_output(void);
 FSTATIC void	quit_at_child_exit(GPid pid, gint status, gpointer gmainfd);
 FSTATIC void	check_output_at_exit(GPid pid, gint status, gpointer gmainfd);
+FSTATIC void	test_childprocess_log_all(void);
+FSTATIC void	quit_at_childprocess_exit(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
 
-#define	HELLOSTRING	"Hello, world."
+#define	HELLOSTRING	": Hello, world."
 
 /// Make sure we read our HELLOSTRING when the process exits
 FSTATIC void
@@ -85,8 +88,6 @@ test_read_command_output_at_EOF(void)
 	cmdid = g_child_watch_add(childpid, check_output_at_exit, cmdout);
 	g_assert_cmpint(cmdid, >, 0);
 	g_main_loop_run(mainloop);
-	// We may be making an unnecessary ref call in the class implementation...
-	g_source_unref(&cmdout->baseclass);
 	g_source_unref(&cmdout->baseclass);
 	g_main_loop_unref(mainloop);
 	mainloop=NULL;
@@ -108,6 +109,24 @@ quit_at_child_exit(GPid pid, gint status, gpointer logsourcefd)
 	g_assert_cmpint(logsrc->charcount, ==, sizeof(HELLOSTRING));
 	g_main_loop_quit(mainloop);
 }
+// We logged the output of echo HELLOSTRING to standard output - let's see if it worked...
+FSTATIC void
+quit_at_childprocess_exit(ChildProcess*self, enum HowDied notice, int rc, int signal, gboolean core_dumped)
+{
+	LogSourceFd*	stdoutfd;
+	(void)signal;
+	g_assert_cmpint(notice, ==, EXITED_ZERO);
+	g_assert_cmpint(rc, ==, 0);
+	g_assert_cmpint(core_dumped, ==, FALSE);
+	g_assert_cmpint(self->stderr_src->charcount, ==, 0);
+	g_assert_cmpint(self->stderr_src->linecount, ==, 0);
+
+	g_assert_cmpint(OBJ_IS_A(self->stdout_src, "LogSourceFd"), ==,  TRUE);
+	stdoutfd = CASTTOCLASS(LogSourceFd, self->stdout_src);
+	g_assert_cmpint(stdoutfd->charcount, ==, sizeof(HELLOSTRING));
+	g_assert_cmpint(stdoutfd->linecount, ==, 1);
+	g_main_loop_quit(mainloop);
+}
 
 FSTATIC void
 test_log_command_output(void)
@@ -120,7 +139,6 @@ test_log_command_output(void)
 	gchar		hello[] = HELLOSTRING;
 	gchar* 	argv[] = {echo, hello, NULL};		// Broken glib API...
 	gint	cmdid;
-	g_assert(TRUE);
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_spawn_async_with_pipes(
 		NULL,				// Current directory
@@ -136,16 +154,45 @@ test_log_command_output(void)
 		&failcode);			// GError **error
 	
 	cmdlog = logsourcefd_new(0, stdoutfd, G_PRIORITY_HIGH, g_main_context_default()
-	,			 G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, "TEST: ");
+	,			 G_LOG_DOMAIN, G_LOG_LEVEL_MESSAGE, __FUNCTION__);
 	//g_print("Spawned child %d with fd %d\n", childpid, stdoutfd);
 	g_assert_cmpint(childpid, >, 0);
 	g_assert_cmpint(stdoutfd, >, 0);
 	cmdid = g_child_watch_add(childpid, quit_at_child_exit, cmdlog);
 	g_assert_cmpint(cmdid, >, 0);
 	g_main_loop_run(mainloop);
-	// The implementation seems to have an extra ref() in it...
 	g_source_unref(&cmdlog->baseclass.baseclass);
-	g_source_unref(&cmdlog->baseclass.baseclass);
+	g_main_loop_unref(mainloop);
+	mainloop=NULL;
+	if (proj_class_live_object_count() != 0) {
+		proj_class_dump_live_objects();
+	}
+	g_assert_cmpint(proj_class_live_object_count(), ==, 0);
+}
+
+FSTATIC void
+test_childprocess_log_all(void)
+{
+	gchar		echo[] = "/bin/echo";
+	gchar		hello[] = HELLOSTRING;
+	gchar* 	argv[] = {echo, hello, NULL};		// Broken glib API...
+	ChildProcess*	child;
+
+	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
+	child = childprocess_new(0
+,		argv			// char** argv
+,		NULL			// char** envp
+,		NULL			// const char* curdir
+,		quit_at_childprocess_exit
+		//gboolean	(*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
+,		FALSE			//	gboolean save_stdout
+,		G_LOG_DOMAIN		// const char * logdomain
+,		__FUNCTION__		// const char * logprefix
+,		G_LOG_LEVEL_MESSAGE	//	GLogLevelFlags loglevel
+,		0			//guint32 timeout_seconds);
+	);
+	g_main_loop_run(mainloop);
+	UNREF(child);
 	g_main_loop_unref(mainloop);
 	mainloop=NULL;
 	if (proj_class_live_object_count() != 0) {
@@ -162,5 +209,6 @@ main(int argc, char ** argv)
 	g_test_init(&argc, &argv, NULL);
 	g_test_add_func("/gtest01/gmain/command-output", test_read_command_output_at_EOF);
 	g_test_add_func("/gtest01/gmain/log-command-output", test_log_command_output);
+	g_test_add_func("/gtest01/gmain/childprocess_log_all", test_childprocess_log_all);
 	return g_test_run();
 }

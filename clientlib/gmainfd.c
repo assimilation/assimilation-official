@@ -84,7 +84,6 @@ gmainfd_new(gsize cpsize, int fd, int priority, GMainContext* context)
 		source = NULL;
 		self = NULL;
 	}
-	g_source_ref(&self->baseclass); // a.k.a 'source'
 	return self;
 }
 

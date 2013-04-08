@@ -1,3 +1,7 @@
+/**
+ * @file
+ * @brief Implements SOMETHING OR OTHER
+ * @details Allows THE IMPLEMENTATION OF SOMETHING OR OTHER
  *
  * @author  Alan Robertson <alanr@unix.sh> - Copyright &copy; 2013 - Assimilation Systems Limited
  * @n
@@ -14,3 +18,4 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+ */
