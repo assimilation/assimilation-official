@@ -44,10 +44,16 @@ FSTATIC void	 _childprocess_finalize(AssimObj* self);
 
 #ifdef WIN32
 #ifndef WEXITSTATUS
-#	define WEXITSTATUS(w)  ((int) ((w) & 0x40000000)) 
-#	define WIFEXITED(w)    ((w) & 0x40000000) == 0) 
-#	define WIFSIGNALED(w)  ((w) & 0x40000000) != 0) 
-#	define WTERMSIG(w)     ((w) & 0x3FFFFFFF) 
+	/* The definitions below courtesy of ITAGAKI Takahiro
+	 *		itagaki(dot)takahiro(at)gmail(dot)com
+	 * From the postgresql mailing list: Dec 26, 2006 - 18:31
+	 * (FWIW: PostgreSQL is released under the PostgreSQL license
+	 *	(similar to the BSD/MIT licenses))
+	 */
+#	define WEXITSTATUS(w)	((int) ((w) & 0x40000000)) 
+#	define WIFEXITED(w)	(((w) & 0x40000000) == 0) 
+#	define WIFSIGNALED(w)	(((w) & 0x40000000) != 0) 
+#	define WTERMSIG(w)	((w) & 0x3FFFFFFF)
 #endif
 #endif
 
