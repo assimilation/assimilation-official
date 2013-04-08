@@ -27,7 +27,9 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <glib.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+#	include <unistd.h>
+#endif
 #include <gmainfd.h>
 #include <logsourcefd.h>
 #include <childprocess.h>
@@ -39,6 +41,15 @@ FSTATIC void	 _childprocess_childexit(GPid pid, gint status, gpointer childproce
 FSTATIC void	 _childprocess_finalize(AssimObj* self);
 
 #define	CHILDSTATE_RUNNING	0
+
+#ifdef WIN32
+#ifndef WEXITSTATUS
+#	define WEXITSTATUS(w)  ((int) ((w) & 0x40000000)) 
+#	define WIFEXITED(w)    ((w) & 0x40000000) == 0) 
+#	define WIFSIGNALED(w)  ((w) & 0x40000000) != 0) 
+#	define WTERMSIG(w)     ((w) & 0x3FFFFFFF) 
+#endif
+#endif
 
 /**
  * @ref ChildProcess constructor.
@@ -104,6 +115,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	self->childsrc_id = g_child_watch_add(self->child_pid, _childprocess_childexit, self);
 
 	self->notify = notify;
+
 	if (0 == timeout_seconds) {
 		self->timeoutsrc_id = 0;
 	}else{
@@ -113,6 +125,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	self->child_state = CHILDSTATE_RUNNING;
 	return self;
 }
+
 /// Routine to free/destroy/finalize our ChildProcess objects.
 FSTATIC void
 _childprocess_finalize(AssimObj* aself)
@@ -132,14 +145,17 @@ _childprocess_finalize(AssimObj* aself)
 FSTATIC void
 _childprocess_setup_child(gpointer childprocess_object)
 {
-	ChildProcess*	self = CASTTOCLASS(ChildProcess, childprocess_object);
-#ifdef HAVE_SETPGID
-	setpgid(0,0);
+#ifdef WIN32
+	(void)childprocess_object;
 #else
+	ChildProcess*	self = CASTTOCLASS(ChildProcess, childprocess_object);
+#	ifdef HAVE_SETPGID
+	setpgid(0,0);
+#	else
 	setpgrp(0, 0);
-#endif
-
+#	endif
 	(void)self;
+#endif
 }
 
 /// Map of timeout actions and intervals...
@@ -171,7 +187,7 @@ _childprocess_timeout(gpointer childprocess_object)
 	return FALSE;
 }
 
-/// Function called when the child finally exits...
+/// Function called when the child (finally) exits...
 FSTATIC void
 _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 {
