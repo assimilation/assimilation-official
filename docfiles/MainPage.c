@@ -39,10 +39,10 @@ For source and licensing information see the
 
 @section ProjectIntegrity Project Integrity
 The project software undergoes a number of rigorous static and dynamic tests to ensure its integrity.
-- Highly restrictive gcc options in all compiles
-- Static Analysis via the Clang static analyzer - before any changes are pushed upstream
+- Highly restrictive gcc options in all compiles (all warnings are errors)
+- Static Analysis via the Clang static analyzer - zero warnings required before changes are pushed upstream
+- Four collections of regression tests - successful run required before changes are pushed upstream
 - Static Analysis by Coverity - before each release candidate
-- Three collections of regression tests - run before any changes are pushed upstream
 
 @section ProjectSwag Assimilation Swag
 We now have a store featuring swag for the Assimilation Project!
