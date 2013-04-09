@@ -372,7 +372,7 @@ test_childprocess_timeout(void)
 	generic_childprocess_test(argv, FALSE, NULL, 1);
 }
 
-/// Test main program ('/gmain') using the glib test fixtures
+/// Test main program ('/gtest01') using the glib test fixtures
 int
 main(int argc, char ** argv)
 {
@@ -383,11 +383,13 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/childprocess_log_all", test_childprocess_log_all);
 	g_test_add_func("/gtest01/gmain/childprocess_false", test_childprocess_false);
 	g_test_add_func("/gtest01/gmain/childprocess_timeout", test_childprocess_timeout);
-	g_test_add_func("/gtest01/gmain/childprocess_save_command_output", test_childprocess_save_command_output);
+	g_test_add_func("/gtest01/gmain/childprocess_save_command_output"
+	,	test_childprocess_save_command_output);
 	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_timeout"
 	,	test_childprocess_save_command_output_timeout);
 	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_signal"
 	,	test_childprocess_save_command_output_signal);
-	g_test_add_func("/gtest01/gmain/childprocess_stderr_logging", test_childprocess_stderr_logging);
+	g_test_add_func("/gtest01/gmain/childprocess_stderr_logging"
+	,	test_childprocess_stderr_logging);
 	return g_test_run();
 }
