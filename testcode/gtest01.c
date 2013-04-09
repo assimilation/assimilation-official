@@ -43,6 +43,7 @@ FSTATIC void	quit_at_childprocess_exit(ChildProcess*, enum HowDied, int rc, int 
 FSTATIC void	generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int timeout);
 FSTATIC void	test_childprocess_save_command_output_timeout(void);
 FSTATIC void	test_childprocess_save_command_output_signal(void);
+FSTATIC void	test_childprocess_stderr_logging(void);
 
 #define	HELLOSTRING	": Hello, world."
 #define	HELLOSTRING_NL	(HELLOSTRING "\n")
@@ -159,6 +160,7 @@ quit_at_childprocess_exit(ChildProcess*self, enum HowDied notice, int rc, int si
 	g_main_loop_quit(mainloop);
 }
 
+/// A test for just testing our ability to log things we read from a pipe.
 FSTATIC void
 test_log_command_output(void)
 {
@@ -201,6 +203,7 @@ test_log_command_output(void)
 	g_assert_cmpint(proj_class_live_object_count(), ==, 0);
 }
 
+/// A generic helper function for testing things about childprocess_new()
 FSTATIC void
 generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int timeout)
 {
@@ -229,6 +232,7 @@ generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int
 	g_assert_cmpint(proj_class_live_object_count(), ==, 0);
 }
 
+/// This test produces output which is logged.  We verify the character and line counts.
 FSTATIC void
 test_childprocess_log_all(void)
 {
@@ -247,6 +251,7 @@ test_childprocess_log_all(void)
 	generic_childprocess_test(argv, FALSE, NULL, 0);
 }
 
+/// This test exits with return code 1 (the false command)
 FSTATIC void
 test_childprocess_false(void)
 {
@@ -263,6 +268,8 @@ test_childprocess_false(void)
 	test_expected_string_return = NULL;
 	generic_childprocess_test(argv, FALSE, NULL, 0);
 }
+
+/// This test outputs a string which is then saved.
 FSTATIC void
 test_childprocess_save_command_output(void)
 {
@@ -281,6 +288,8 @@ test_childprocess_save_command_output(void)
 	generic_childprocess_test(argv, TRUE, NULL, 0);
 }
 
+/// We produce some output, then exceed our timeout with a sleep.
+/// The output is set up to be captured.
 FSTATIC void
 test_childprocess_save_command_output_timeout(void)
 {
@@ -299,6 +308,9 @@ test_childprocess_save_command_output_timeout(void)
 	test_expected_string_return = HELLOSTRING_NL;
 	generic_childprocess_test(argv, TRUE, NULL, 1);
 }
+
+/// We produce some output, then kill ourselves with a signal.
+/// The output is set up to be captured.
 FSTATIC void
 test_childprocess_save_command_output_signal(void)
 {
@@ -318,7 +330,30 @@ test_childprocess_save_command_output_signal(void)
 	test_expected_string_return = HELLOSTRING_NL;
 	generic_childprocess_test(argv, TRUE, NULL, 1);
 }
+/// We produce some to stderr, and some to stdout
+/// Verify capturing the stdout, and the char counts of stderr.
+FSTATIC void
+test_childprocess_stderr_logging(void)
+{
+	gchar		shell[] = "/bin/sh";
+	gchar		dashc[] = "-c";
+	// Signal 9 is SIGKILL - should terminate most any process
+	gchar		hello[] = "echo \""HELLOSTRING"\"; echo \""HELLOSTRING"\" >&2";
+	gchar* 	argv[] = {shell, dashc, hello, NULL};		// Broken glib API...
 
+	test_expected_death = EXITED_ZERO;
+	test_expected_exitcode = 0;
+	test_expected_signal = 0;
+	test_expected_linecount = 0;
+	test_expected_charcount = 0;
+	test_expected_stderr_linecount = 1;
+	test_expected_stderr_charcount = sizeof(HELLOSTRING);
+	test_expected_string_return = HELLOSTRING_NL;
+	generic_childprocess_test(argv, TRUE, NULL, 1);
+}
+
+/// This process just exceeds its timeout via a sleep.
+/// No output is produced.
 FSTATIC void
 test_childprocess_timeout(void)
 {
@@ -353,5 +388,6 @@ main(int argc, char ** argv)
 	,	test_childprocess_save_command_output_timeout);
 	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_signal"
 	,	test_childprocess_save_command_output_signal);
+	g_test_add_func("/gtest01/gmain/childprocess_stderr_logging", test_childprocess_stderr_logging);
 	return g_test_run();
 }
