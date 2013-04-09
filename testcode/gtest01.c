@@ -42,6 +42,7 @@ FSTATIC void	check_output_at_exit(GPid pid, gint status, gpointer gmainfd);
 FSTATIC void	quit_at_childprocess_exit(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
 FSTATIC void	generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int timeout);
 FSTATIC void	test_childprocess_save_command_output_timeout(void);
+FSTATIC void	test_childprocess_save_command_output_signal(void);
 
 #define	HELLOSTRING	": Hello, world."
 #define	HELLOSTRING_NL	(HELLOSTRING "\n")
@@ -54,7 +55,6 @@ int		test_expected_charcount = 0;
 int		test_expected_stderr_linecount = 0;
 int		test_expected_stderr_charcount = 0;
 const char *	test_expected_string_return = NULL;
-gboolean	test_expected_coredump = FALSE;
 
 /// Make sure we read our HELLOSTRING when the process exits
 FSTATIC void
@@ -132,15 +132,14 @@ FSTATIC void
 quit_at_childprocess_exit(ChildProcess*self, enum HowDied notice, int rc, int signal, gboolean core_dumped)
 {
 	LogSourceFd*	stdoutfd;
-	(void)signal;
-	
+	(void)core_dumped;
+
 	g_assert_cmpint(notice, ==, test_expected_death);
 	if (notice == EXITED_ZERO || notice == EXITED_NONZERO) {
 		g_assert_cmpint(rc, ==, test_expected_exitcode);
 	}
 	if (notice == EXITED_SIGNAL) {
 		g_assert_cmpint(signal, ==, test_expected_signal);
-		g_assert_cmpint(core_dumped, ==, test_expected_coredump);
 	}
 	if (test_expected_string_return == NULL) {
 		g_assert_cmpint(OBJ_IS_A(self->stdout_src, "LogSourceFd"), ==,  TRUE);
@@ -281,6 +280,7 @@ test_childprocess_save_command_output(void)
 	test_expected_string_return = HELLOSTRING_NL;
 	generic_childprocess_test(argv, TRUE, NULL, 0);
 }
+
 FSTATIC void
 test_childprocess_save_command_output_timeout(void)
 {
@@ -292,6 +292,25 @@ test_childprocess_save_command_output_timeout(void)
 	test_expected_death = EXITED_TIMEOUT;
 	test_expected_exitcode = 0;
 	test_expected_signal = 0;
+	test_expected_linecount = 0;
+	test_expected_charcount = 0;
+	test_expected_stderr_linecount = 0;
+	test_expected_stderr_charcount = 0;
+	test_expected_string_return = HELLOSTRING_NL;
+	generic_childprocess_test(argv, TRUE, NULL, 1);
+}
+FSTATIC void
+test_childprocess_save_command_output_signal(void)
+{
+	gchar		shell[] = "/bin/sh";
+	gchar		dashc[] = "-c";
+	// Signal 9 is SIGKILL - should terminate most any process
+	gchar		hello[] = "echo \""HELLOSTRING"\"; kill -9 $$";
+	gchar* 	argv[] = {shell, dashc, hello, NULL};		// Broken glib API...
+
+	test_expected_death = EXITED_SIGNAL;
+	test_expected_exitcode = 0;
+	test_expected_signal = 9;
 	test_expected_linecount = 0;
 	test_expected_charcount = 0;
 	test_expected_stderr_linecount = 0;
@@ -332,5 +351,7 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/childprocess_save_command_output", test_childprocess_save_command_output);
 	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_timeout"
 	,	test_childprocess_save_command_output_timeout);
+	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_signal"
+	,	test_childprocess_save_command_output_signal);
 	return g_test_run();
 }
