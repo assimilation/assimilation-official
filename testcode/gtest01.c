@@ -210,7 +210,7 @@ generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int
 	ChildProcess*	child;
 
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
-	child = childprocess_new(0
+	child = childprocess_new(0	// object size (0 == default size)
 ,		argv			// char** argv
 ,		NULL			// char** envp
 ,		curdir			// const char* curdir
