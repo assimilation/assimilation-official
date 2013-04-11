@@ -38,7 +38,8 @@ FSTATIC void	_configcontext_finalize(AssimObj* self);
 FSTATIC enum ConfigValType	_configcontext_gettype(const ConfigContext*, const char *name);
 FSTATIC ConfigValue*	_configcontext_getvalue(const ConfigContext*, const char *name);
 FSTATIC GSList*	_configcontext_keys(const ConfigContext*);
-FSTATIC gint	_configcontext_getint(const ConfigContext*, const char *name);
+FSTATIC guint	_configcontext_keycount(const ConfigContext*);
+FSTATIC gint64	_configcontext_getint(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setint(ConfigContext*, const char *name, gint value);
 FSTATIC gboolean _configcontext_getbool(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setbool(ConfigContext*, const char *name, gboolean value);
@@ -148,6 +149,7 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->gettype	=	_configcontext_gettype;
 	newcontext->getvalue	=	_configcontext_getvalue;
 	newcontext->keys	=	_configcontext_keys;
+	newcontext->keycount	=	_configcontext_keycount;
 	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, _key_free
 					,		      _configcontext_value_vfinalize);
 	baseobj->_finalize	=	_configcontext_finalize;
@@ -180,6 +182,22 @@ FSTATIC gint
 _configcontext_key_compare(gconstpointer a, gconstpointer b)
 {
 	return strcmp((const char *)a, (const char*)b);
+}
+
+/// Return the number of keys in a ConfigContext object
+FSTATIC guint
+_configcontext_keycount(const ConfigContext* cfg)
+{
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	data;
+	guint		ret = 0;
+
+	g_hash_table_iter_init(&iter, cfg->_values);
+	while (g_hash_table_iter_next(&iter, &key, &data)) {
+		++ret;
+	}
+	return ret;
 }
 
 /// Return a GSList of all the keys in a ConfigContext object
@@ -228,7 +246,7 @@ _configcontext_getvalue(const ConfigContext* self, const char *name)
 }
 
 /// Get an integer value
-FSTATIC gint
+FSTATIC gint64
 _configcontext_getint(const ConfigContext* self	///<[in] ConfigContext object
 	,	      const char *name)		///<[in] Name to get the associated int value of
 {

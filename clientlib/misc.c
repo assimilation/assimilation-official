@@ -86,7 +86,7 @@ proj_get_sysname(void)
 void
 daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a background job
 		const char* dirtorunin,		///<[in] Directory to cd to or NULL for default (/)
-		char* pidfile)		///<[in] Pathname of pidfile or NULL for no pidfile
+		char* pidfile)			///<[in] Pathname of pidfile or NULL for no pidfile
 {
 	struct rlimit		nofile_limits;
 	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
@@ -485,6 +485,7 @@ kill_pid_service(const char * pidfile, int signal)
 }
 
 static const char *	saved_pidfile = NULL;
+/// Remove PID file and exit when a signal is received
 void
 rmpid_and_exit_on_signal(const char * pidfile, int signal_in)
 {
@@ -511,9 +512,9 @@ catch_pid_signal(int unused_signum)
 	exit(0);
 }
 
-///< Convert PidRunningStat to an exit code for status
+/// Convert PidRunningStat to an exit code for status
 guint
-pidrunningstat_to_status(PidRunningStat stat)
+pidrunningstat_to_status(PidRunningStat stat) ///< Status to convert
 {
 	// These exit codes from the Linux Standard Base
 	//	http://refspecs.linuxbase.org/LSB_3.1.1/LSB-Core-generic/LSB-Core-generic/iniscrptact.html
@@ -532,4 +533,120 @@ pidrunningstat_to_status(PidRunningStat stat)
 			break;
 	}
 	return 4;				// LSB: program or service status is unknown
+}
+
+/// Merge ConfigContext into possibly NULL current environment, returning a new environment
+WINEXPORT gchar **
+assim_merge_environ(const gchar ** env	///< Initial environment -- or NULL
+,		ConfigContext* update)	///< Updates to merge into this environment
+{
+	int		j;
+	int		initenvcount;
+	int		updatecount = 0;
+	gchar**		result;
+	int		resultelem = 0;
+	gchar**		newenv = NULL;
+
+	if (NULL == env) {
+		// The result of g_get_environ() has to be freed later...
+		// Store malloced copy in 'newenv' so that 'env' parameter can be const...
+		newenv = g_get_environ();
+		env = (const gchar**) newenv;
+	}
+	
+	for (initenvcount = 0; env[initenvcount]; ++initenvcount) {
+		; /* Nothing - just count */
+	}
+	if (update) {
+		updatecount = update->keycount(update);
+	}
+
+	// This is the worst case for the size needed...
+	result = (gchar**) g_malloc((updatecount+initenvcount+1)* sizeof(gchar*));
+
+	if (update) {
+		GSList*		updatekeys = NULL;
+		GSList*		thiskeylist;
+
+	
+		updatekeys = update->keys(update);
+
+		// Put all our update keys in first...
+		for (thiskeylist = updatekeys; thiskeylist; thiskeylist=thiskeylist->next) {
+			char *	thiskey = (char *)thiskeylist->data;
+			enum ConfigValType vtype= update->gettype(update, thiskey);
+			GString *	gsvalue = g_string_new("");
+
+			g_string_printf(gsvalue, "%s=", thiskey);
+
+			switch (vtype) {
+				case CFG_BOOL:
+					g_string_append(gsvalue, update->getbool(update, thiskey) ? "true" : "false");
+					break;
+	
+				case CFG_INT64:
+					g_string_append_printf(gsvalue, FMT_64BIT"d", update->getint(update,thiskey));
+					break;
+
+				case CFG_STRING:
+					g_string_append(gsvalue, update->getstring(update, thiskey));
+					break;
+				case CFG_NETADDR: {
+						NetAddr* addr = update->getaddr(update,thiskey);
+						char *	s = addr->baseclass.toString(&addr->baseclass);
+						g_string_append(gsvalue, s);
+						g_free(s);
+						// No need to unref 'addr' - it's not a copy
+						break;
+					}
+				default:
+					g_string_free(gsvalue, TRUE);
+					gsvalue = NULL;
+					g_free(thiskey);
+					thiskeylist->data = thiskey = NULL;
+					continue;
+			}
+			result[resultelem] = g_string_free(gsvalue, FALSE);
+			gsvalue = NULL;
+			++resultelem;
+			g_free(thiskey);
+			thiskeylist->data = thiskey = NULL;
+		}
+		// Done with 'updatekeys'
+		g_slist_free(updatekeys);
+		updatekeys = NULL;
+
+	}
+
+	// Now, add all the env vars not overridden by 'update'
+	for (j = 0; env[j]; ++j) {
+		char *	envname;
+		char *	eqpos;
+		eqpos = strchr(env[j], '=');
+		if (NULL == eqpos || eqpos == env[j]) {
+			continue;
+		}
+		envname = g_strndup(env[j], eqpos - env[j]);
+		// Make sure it isn't overridden before including it...
+		if (update && update->gettype(update, envname) == CFG_EEXIST) {
+			result[resultelem] = g_strdup(env[j]);
+			++resultelem;
+		}
+		g_free(envname);
+	}
+	result[resultelem] = NULL;
+
+	if (newenv) {
+		g_strfreev(newenv);
+	}
+	newenv = NULL;
+	env = NULL;
+	return result;
+}
+
+/// Free the result of assim_merge_env
+WINEXPORT void
+assim_free_environ(gchar ** env) ///< The result of assim_merge_environ -- to be freed
+{
+	g_strfreev(env);
 }
