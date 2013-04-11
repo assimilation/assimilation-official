@@ -71,7 +71,7 @@ struct _ConfigValue {
 struct _ConfigContext {
 	AssimObj	baseclass;
 	GHashTable*	_values;			///< table of Values
-	gint		(*getint)(const ConfigContext*, const char *name);	///< Get integer value
+	gint64		(*getint)(const ConfigContext*, const char *name);	///< Get integer value
 	void		(*setint)(ConfigContext*, const char *name, gint value);	///< Set integer value
 	gboolean	(*getbool)(const ConfigContext*, const char *name);	///< Get boolean value
 	void		(*setbool)(ConfigContext*, const char *name, gboolean);	///< Set bool value
@@ -90,6 +90,7 @@ struct _ConfigContext {
 	enum ConfigValType
 			(*gettype)(const ConfigContext*, const char *);	///< Return type
 	ConfigValue*	(*getvalue)(const ConfigContext*, const char *);///< Return ConfigValue Object
+	guint		(*keycount)(const ConfigContext*);		///< Return number of keys in object
 	GSList*		(*keys)(const ConfigContext*);			///< Return list of keys
 };
 WINEXPORT ConfigContext*	configcontext_new(gsize objsize); // ConfigContext constructor

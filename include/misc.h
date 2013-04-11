@@ -23,6 +23,7 @@
  */
 #ifndef _MISC_H
 #include <projectcommon.h>
+#include <configcontext.h>
 #ifndef WIN32
 #include <syslog.h>
 #endif
@@ -48,10 +49,12 @@ WINEXPORT void daemonize_me(gboolean stay_in_foreground	///< TRUE == don't fork
 ,		  char* pidfile);		///< pathname of pid file, or NULL
 WINEXPORT void assimilation_openlog(const char* logname);				///< Open logs in our style (syslog)
 WINEXPORT PidRunningStat are_we_already_running(const char * pidfile, int* pid);	///< Determine service status
-WINEXPORT guint		pidrunningstat_to_status(PidRunningStat);		///< Convert PidRunningStat to an exit code for status
+WINEXPORT guint	pidrunningstat_to_status(PidRunningStat);		///< Convert PidRunningStat to an exit code for status
 gboolean	create_pid_file(const char * pidfile);			///< Create pid file - return TRUE on success
-WINEXPORT void		remove_pid_file(const char * pidfile);			///< Remove pid file we created (if we created one)
-WINEXPORT int		kill_pid_service(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
+WINEXPORT void	remove_pid_file(const char * pidfile);			///< Remove pid file we created (if we created one)
+WINEXPORT int	kill_pid_service(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
 void		rmpid_and_exit_on_signal(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
+WINEXPORT	gchar ** assim_merge_environ(const gchar ** env, ConfigContext*);///< Create new env merged from ConfigContext
+WINEXPORT	void assim_free_environ(gchar ** env);			///< Free environment created by assim_merge_environ
 #endif /* MISC_H */
 ///@}
