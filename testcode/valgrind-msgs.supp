@@ -1,0 +1,235 @@
+{
+   Setsockopt bad parameter
+   Memcheck:Param
+   socketcall.setsockopt(optval)
+   fun:setsockopt
+   ...
+}
+{
+   g_source_add_poll leak
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.2800.6
+   fun:g_slice_alloc
+   fun:g_slist_prepend
+   ...
+}
+{
+   g_log leak
+   Memcheck:Leak
+   ...
+   fun:g_slice_alloc
+   ...
+   fun:g_log_default_handler
+   fun:g_logv
+   fun:g_log
+   ...
+}
+{
+   g_checksum_new (g_slice_alloc)
+   Memcheck:Leak
+   ...
+   fun:g_slice_alloc
+   ...
+}
+
+{
+   g_log_set_fatal_mask
+   Memcheck:Leak
+   ...
+   fun:g_log_set_fatal_mask
+   ...
+}
+{
+   g_get_charset
+   Memcheck:Leak
+   ...
+   fun:g_get_charset
+   ...
+}
+{
+   Quark leak
+   Memcheck:Leak
+   ...
+   fun:g
+   ...
+}
+{
+   Quark leak
+   Memcheck:Leak
+   ...
+   fun:g_quark_from_static_string
+   ...
+}
+{
+   Weird calloc leak...
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   obj:*
+}
+{
+   Second weird calloc leak...
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:calloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   Weird memdup leak...
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:g_malloc
+   fun:g_memdup
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   obj:/lib/i386-linux-gnu/libglib-2.0.so.0.3000.0
+   fun:main
+}
+{
+   g_thread_self()
+   Memcheck:Leak
+   ...
+   fun:g_thread_self
+   ...
+}
+#
+#	This is a worrisome cumulative memory leak - or so it seems
+#	May want to stop using the "read file into memory" code.
+#
+{
+   g_get_filename_charsets 
+   Memcheck:Leak
+   ...
+   fun:g_get_filename_charsets
+   fun:g_filename_display_name
+   ...
+}
+{
+   4-byte libpcap memory leak - unknown origin and cure
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   obj:/usr/lib/i386-linux-gnu/libpcap.so.1.1.1
+   fun:g_source_pcap_new
+   fun:switchdiscovery_new
+   ...
+}
+
+{
+   Bug in pcap_activate
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   fun:pcap_activate
+   fun:create_pcap_listener
+   fun:g_source_pcap_new
+   fun:switchdiscovery_new
+   fun:nano_start_full
+   fun:main
+}
+{
+   g_main_contet_dispatch leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_private_get
+   ...
+}
+{
+   pcap_compile memory leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.3.0
+   fun:pcap_compile
+   ...
+}
+{
+   g_main_context_iteration leak
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_main_context_iteration
+   ...
+}
+{
+   g_mutex_lock leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_mutex_lock
+   ...
+}
+{
+   g_mutex_init leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_mutex_init
+   ...
+}
+{
+   g_once_init_leave memory leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_cond_broadcast
+   fun:g_once_init_leave
+   ...
+}
+{
+   g_cond_init leak
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_cond_init
+   ...
+}
+{
+   g_child_watch_source_new
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_main_context_new
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_child_watch_source_new
+   ...
+}
+{
+   g_thread_new+dl_allocate_tls leak
+   Memcheck:Leak
+   fun:calloc
+   fun:_dl_allocate_tls
+   fun:pthread_create@@GLIBC_2.2.5
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   fun:g_thread_new
+   ...
+}
+{
+   g_rand_new leak
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_rand_new_with_seed_array
+   ...
+}
