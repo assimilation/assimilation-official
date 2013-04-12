@@ -27,6 +27,7 @@
 #include <glib.h>
 #include <gmainfd.h>
 #include <logsourcefd.h>
+#include <configcontext.h>
 #include <childprocess.h>
 
 GMainLoop*	mainloop;
@@ -40,10 +41,11 @@ FSTATIC void	test_childprocess_save_command_output(void);
 FSTATIC void	quit_at_child_exit(GPid pid, gint status, gpointer gmainfd);
 FSTATIC void	check_output_at_exit(GPid pid, gint status, gpointer gmainfd);
 FSTATIC void	quit_at_childprocess_exit(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
-FSTATIC void	generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int timeout);
+FSTATIC void	generic_childprocess_test(gchar** argv, ConfigContext*, gboolean save_stdout, char * curdir, int timeout);
 FSTATIC void	test_childprocess_save_command_output_timeout(void);
 FSTATIC void	test_childprocess_save_command_output_signal(void);
 FSTATIC void	test_childprocess_stderr_logging(void);
+FSTATIC void	test_childprocess_modenv(void);
 
 #define	HELLOSTRING	": Hello, world."
 #define	HELLOSTRING_NL	(HELLOSTRING "\n")
@@ -205,7 +207,7 @@ test_log_command_output(void)
 
 /// A generic helper function for testing things about childprocess_new()
 FSTATIC void
-generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int timeout)
+generic_childprocess_test(gchar** argv, ConfigContext* envmod, gboolean save_stdout, char * curdir, int timeout)
 {
 	ChildProcess*	child;
 
@@ -213,6 +215,7 @@ generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int
 	child = childprocess_new(0	// object size (0 == default size)
 ,		argv			// char** argv
 ,		NULL			// char** envp
+,		envmod			// ConfigContext*envmod
 ,		curdir			// const char* curdir
 ,		quit_at_childprocess_exit
 		//gboolean	(*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
@@ -226,6 +229,9 @@ generic_childprocess_test(gchar** argv, gboolean save_stdout, char * curdir, int
 	UNREF(child);
 	g_main_loop_unref(mainloop);
 	mainloop=NULL;
+	if (envmod) {
+		UNREF(envmod);
+	}
 	if (proj_class_live_object_count() != 0) {
 		proj_class_dump_live_objects();
 	}
@@ -248,7 +254,7 @@ test_childprocess_log_all(void)
 	test_expected_stderr_linecount = 0;
 	test_expected_stderr_charcount = 0;
 	test_expected_string_return = NULL;
-	generic_childprocess_test(argv, FALSE, NULL, 0);
+	generic_childprocess_test(argv, NULL, FALSE, NULL, 0);
 }
 
 /// This test exits with return code 1 (the false command)
@@ -266,7 +272,7 @@ test_childprocess_false(void)
 	test_expected_stderr_linecount = 0;
 	test_expected_stderr_charcount = 0;
 	test_expected_string_return = NULL;
-	generic_childprocess_test(argv, FALSE, NULL, 0);
+	generic_childprocess_test(argv, NULL, FALSE, NULL, 0);
 }
 
 /// This test outputs a string which is then saved.
@@ -285,7 +291,29 @@ test_childprocess_save_command_output(void)
 	test_expected_stderr_linecount = 0;
 	test_expected_stderr_charcount = 0;
 	test_expected_string_return = HELLOSTRING_NL;
-	generic_childprocess_test(argv, TRUE, NULL, 0);
+	generic_childprocess_test(argv, NULL, TRUE, NULL, 0);
+}
+FSTATIC void
+test_childprocess_modenv(void)
+{
+	gchar		shell[] = "/bin/sh";
+	gchar		dashc[] = "-c";
+	gchar		echocmd[] = "echo $TRITE $HOME";
+	gchar* 	argv[] = {shell, dashc, echocmd, NULL};		// Broken glib API...
+	NetAddr*	home = netaddr_string_new("127.0.0.1");
+	ConfigContext*	envmod = configcontext_new_JSON_string("{\"TRITE\":\"There's no place like\"}");
+
+	envmod->setaddr(envmod, "HOME", home);
+	UNREF(home);
+	test_expected_death = EXITED_ZERO;
+	test_expected_exitcode = 0;
+	test_expected_signal = 0;
+	test_expected_linecount = 0;
+	test_expected_charcount = 0;
+	test_expected_stderr_linecount = 0;
+	test_expected_stderr_charcount = 0;
+	test_expected_string_return = "There's no place like 127.0.0.1\n";
+	generic_childprocess_test(argv, envmod, TRUE, NULL, 0);
 }
 
 /// We produce some output, then exceed our timeout with a sleep.
@@ -306,7 +334,7 @@ test_childprocess_save_command_output_timeout(void)
 	test_expected_stderr_linecount = 0;
 	test_expected_stderr_charcount = 0;
 	test_expected_string_return = HELLOSTRING_NL;
-	generic_childprocess_test(argv, TRUE, NULL, 1);
+	generic_childprocess_test(argv, NULL, TRUE, NULL, 1);
 }
 
 /// We produce some output, then kill ourselves with a signal.
@@ -328,7 +356,7 @@ test_childprocess_save_command_output_signal(void)
 	test_expected_stderr_linecount = 0;
 	test_expected_stderr_charcount = 0;
 	test_expected_string_return = HELLOSTRING_NL;
-	generic_childprocess_test(argv, TRUE, NULL, 1);
+	generic_childprocess_test(argv, NULL, TRUE, NULL, 1);
 }
 /// We produce some to stderr, and some to stdout
 /// Verify capturing the stdout, and the char counts of stderr.
@@ -349,7 +377,7 @@ test_childprocess_stderr_logging(void)
 	test_expected_stderr_linecount = 1;
 	test_expected_stderr_charcount = sizeof(HELLOSTRING);
 	test_expected_string_return = HELLOSTRING_NL;
-	generic_childprocess_test(argv, TRUE, NULL, 1);
+	generic_childprocess_test(argv, NULL, TRUE, NULL, 1);
 }
 
 /// This process just exceeds its timeout via a sleep.
@@ -369,7 +397,7 @@ test_childprocess_timeout(void)
 	test_expected_stderr_linecount = 0;
 	test_expected_stderr_charcount = 0;
 	test_expected_string_return = NULL;
-	generic_childprocess_test(argv, FALSE, NULL, 1);
+	generic_childprocess_test(argv, NULL, FALSE, NULL, 1);
 }
 
 /// Test main program ('/gtest01') using the glib test fixtures
@@ -391,5 +419,6 @@ main(int argc, char ** argv)
 	,	test_childprocess_save_command_output_signal);
 	g_test_add_func("/gtest01/gmain/childprocess_stderr_logging"
 	,	test_childprocess_stderr_logging);
+	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
 	return g_test_run();
 }

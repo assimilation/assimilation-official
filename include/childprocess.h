@@ -24,6 +24,7 @@
 #ifndef _CHILDPROCESS_H
 #	define _CHILDPROCESS_H
 #include <projectcommon.h>
+#include <configcontext.h>
 #include <assimobj.h>
 #include <logsourcefd.h>
 
@@ -57,7 +58,8 @@ struct _ChildProcess {
 	
 };
 
-WINEXPORT ChildProcess*	childprocess_new(gsize cpsize, char** argv, char** envp, const char* curdir
+WINEXPORT ChildProcess*	childprocess_new(gsize cpsize, char** argv, const char** envp, ConfigContext* envmod
+,			const char* curdir
 ,			void (*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
 ,			gboolean save_stdout, const char * logdomain, const char * logprefix
 ,			GLogLevelFlags loglevel, guint32 timeout_seconds);
