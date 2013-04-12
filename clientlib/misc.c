@@ -538,7 +538,7 @@ pidrunningstat_to_status(PidRunningStat stat) ///< Status to convert
 
 /// Merge ConfigContext into possibly NULL current environment, returning a new environment
 WINEXPORT gchar **
-assim_merge_environ(const gchar ** env	///< Initial environment -- or NULL
+assim_merge_environ(const gchar * const* env	///< Initial environment -- or NULL
 ,		ConfigContext* update)	///< Updates to merge into this environment
 {
 	int		j;
@@ -552,7 +552,7 @@ assim_merge_environ(const gchar ** env	///< Initial environment -- or NULL
 		// The result of g_get_environ() has to be freed later...
 		// Store malloced copy in 'newenv' so that 'env' parameter can be const...
 		newenv = g_get_environ();
-		env = (const gchar**) newenv;
+		env = (const gchar* const*) newenv;
 	}
 	
 	for (initenvcount = 0; env[initenvcount]; ++initenvcount) {
