@@ -33,6 +33,7 @@
 #include <gmainfd.h>
 #include <logsourcefd.h>
 #include <childprocess.h>
+#include <misc.h>
 
 FSTATIC void	 _childprocess_setup_child(gpointer childprocess_object);
 FSTATIC gboolean _childprocess_timeout(gpointer childprocess_object);
@@ -72,7 +73,8 @@ FSTATIC void	 _childprocess_finalize(AssimObj* self);
 WINEXPORT ChildProcess*
 childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 ,		char** argv		///< NULL-terminated argv for the ChildProcess
-,		char** envp		///< Environment for the ChildProcess
+,		const char** envp	///< Environment for the ChildProcess
+,		ConfigContext* envmod	///< Modifications to the ChildProcess environment
 ,		const char* curdir	///< Current directory to start the child in
 ,		void (*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
 					///< Function to call if/when the child terminates
@@ -87,6 +89,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	gint		stdoutfd;
 	gint		stderrfd;
 	GError*		failcode = NULL;
+	gchar**		childenv = NULL;
 
 	if (cpsize < sizeof(ChildProcess)) {
 		cpsize = sizeof(ChildProcess);
@@ -95,10 +98,11 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	g_return_val_if_fail(aself != NULL, NULL);
 	self = NEWSUBCLASS(ChildProcess, aself);
 	aself->_finalize = _childprocess_finalize;
+	childenv = assim_merge_environ(envp, envmod);
 	g_spawn_async_with_pipes(
 		curdir,				// Current directory
 		argv,				// Arguments
-		envp,				// environment
+		childenv,			// environment
 		G_SPAWN_DO_NOT_REAP_CHILD,	// GSpawnFlags flags,
 		_childprocess_setup_child,	// GSpawnChildSetupFunc child_setup,
 		self,				// gpointer user_data,
@@ -110,6 +114,8 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 
 	self->stderr_src = logsourcefd_new(0, stderrfd, G_PRIORITY_HIGH, g_main_context_default()
 	,		                   logdomain, loglevel, logprefix);
+	assim_free_environ(childenv);
+	childenv = NULL;
 
 	if (!save_stdout) {
 		LogSourceFd*	logsrc;

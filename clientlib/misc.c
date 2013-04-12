@@ -50,6 +50,7 @@ void assimilation_logger(const gchar *log_domain, GLogLevelFlags log_level,
 const char *	assim_syslogid = "assim"; /// Should be overridden with the name to appear in the logs
 FSTATIC void catch_pid_signal(int signum);
 
+/// Function to get system name (uname -n in UNIX terms)
 #ifdef HAVE_UNAME
 char *
 proj_get_sysname(void)
@@ -581,6 +582,7 @@ assim_merge_environ(const gchar ** env	///< Initial environment -- or NULL
 
 			switch (vtype) {
 				case CFG_BOOL:
+					// Do we want true/false -- or 1/0 ??
 					g_string_append(gsvalue, update->getbool(update, thiskey) ? "true" : "false");
 					break;
 	
@@ -609,7 +611,8 @@ assim_merge_environ(const gchar ** env	///< Initial environment -- or NULL
 			result[resultelem] = g_string_free(gsvalue, FALSE);
 			gsvalue = NULL;
 			++resultelem;
-			g_free(thiskey);
+			// The keys in the key list are NOT copies.  Don't free them!!
+			// g_free(thiskey);
 			thiskeylist->data = thiskey = NULL;
 		}
 		// Done with 'updatekeys'
@@ -628,7 +631,7 @@ assim_merge_environ(const gchar ** env	///< Initial environment -- or NULL
 		}
 		envname = g_strndup(env[j], eqpos - env[j]);
 		// Make sure it isn't overridden before including it...
-		if (update && update->gettype(update, envname) == CFG_EEXIST) {
+		if (NULL == update || (update->gettype(update, envname) == CFG_EEXIST)) {
 			result[resultelem] = g_strdup(env[j]);
 			++resultelem;
 		}
