@@ -24,7 +24,6 @@
  */
 
 #include <projectcommon.h>
-#include <sys/wait.h>
 #include <string.h>
 #include <glib.h>
 #ifdef HAVE_UNISTD_H
@@ -56,7 +55,11 @@ FSTATIC void	 _childprocess_finalize(AssimObj* self);
 #	define WIFSIGNALED(w)	(((w) & 0x40000000) != 0) 
 #	define WTERMSIG(w)	((w) & 0x3FFFFFFF)
 #	define WCOREDUMP(w)	(FALSE)
+#include <Windows.h>
+#include <WinBase.h>
 #endif
+#else
+#include <sys/wait.h>
 #endif
 
 /**
@@ -190,7 +193,9 @@ static const struct {
 	int	next_timeout;
 }signalmap[] = {
 	{SIGTERM,	5},	// Give them a chance to clean up
+#ifndef WIN32
 	{SIGKILL,	10}	// Give them the axe
+#endif
 	// If it didn't die after this, then we give up
 	// - something is seriously hung...
 };
@@ -202,7 +207,11 @@ _childprocess_timeout(gpointer childprocess_object)
 {
 	ChildProcess*	self = CASTTOCLASS(ChildProcess, childprocess_object);
 	if (self->child_state < DIMOF(signalmap)) {
-		(void)kill(-self->child_pid, signalmap[self->child_state].signal);
+#ifdef WIN32
+		TerminateProcess(self->child_pid, -1);
+#else
+		(void)kill(self->child_pid, signalmap[self->child_state].signal);
+#endif
 		self->timeoutsrc_id = g_timeout_add_seconds
 		(	signalmap[self->child_state].next_timeout
 		,	_childprocess_timeout, self);
