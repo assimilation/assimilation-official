@@ -224,6 +224,9 @@ generic_childprocess_test(gchar** argv, ConfigContext* envmod, gboolean save_std
 ,		__FUNCTION__		// const char * logprefix
 ,		G_LOG_LEVEL_MESSAGE	//	GLogLevelFlags loglevel
 ,		timeout			//guint32 timeout_seconds);
+,		NULL			// gpointer user_data
+,		CHILD_NOLOG		// exit logging mode
+,		NULL			// logging name - defaults to argv[0]
 	);
 	g_main_loop_run(mainloop);
 	UNREF(child);

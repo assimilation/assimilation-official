@@ -40,6 +40,13 @@ enum HowDied {
 	EXITED_TIMEOUT = 4,		///< Timed out and was killed
 	EXITED_HUNG = 5,		///< Timed out and would not die
 };
+
+enum ChildErrLogMode {
+	CHILD_NOLOG = 0,		///< Don't log anything when it quits
+	CHILD_LOGSIGNAL = 1,		///< Log only death by signal or timeout
+	CHILD_LOGERRS = 2,		///< Log signal, timeouts, or non-zero exits
+	CHILD_LOGALL = 3		///< Log all exits - normal or abnormal
+};
 	
 
 struct _ChildProcess {
@@ -47,14 +54,18 @@ struct _ChildProcess {
 	GPid		child_pid;	///< The GPid returned from spawning this object
 	GMainFd*	stdout_src;	///< GSource for logging or saving the standard output of this child
 	LogSourceFd*	stderr_src;	///< GSource for logging the standard error of this child
+	guint		timeout;	///< Timeout value for this child
 	guint		timeoutsrc_id;	///< GSource id for the timeout for this child to complete
 	guint		childsrc_id;	///< GSource id for the child process
 	guint		child_state;	///< State for the child process
+	char *		loggingname;	///< Name to use when logging process exits
+	enum ChildErrLogMode logmode;	///< Which types of exits should we log
 	char **		argv;		///< Argument list for this child (malloced)
 	char **		envp;		///< Environment list for this child (malloced)
 	char *		curdir;		///< Starting directory for this child (malloced)
 	void		(*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
 					///< Called when it exits
+	gpointer	user_data;	///< User data given to us when the object was created.
 	
 };
 
@@ -62,7 +73,8 @@ WINEXPORT ChildProcess*	childprocess_new(gsize cpsize, char** argv, const char**
 ,			const char* curdir
 ,			void (*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
 ,			gboolean save_stdout, const char * logdomain, const char * logprefix
-,			GLogLevelFlags loglevel, guint32 timeout_seconds);
+,			GLogLevelFlags loglevel, guint32 timeout_seconds, gpointer user_data
+,			enum ChildErrLogMode errlogmode, const char * loggingname);
 
 ///@}
 #endif/*CHILDPROCESS_H*/

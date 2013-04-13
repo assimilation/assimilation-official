@@ -82,7 +82,10 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 ,		const char*logdomain	///< Glib log domain
 ,		const char*logprefix	///< Prefix to prepend to log entries
 ,		GLogLevelFlags loglevel	///< Glib Log level
-,		guint32 timeout_seconds)///< How long to wait before killing it - zero for no timeout
+,		guint32 timeout_seconds	///< How long to wait before killing it - zero for no timeout
+,		gpointer user_data	///< Data our user wants us to keep
+,		enum ChildErrLogMode logmode ///< How to log child exits
+,		const char* logname)	///< Name to use when logging child exits as requested
 {
 	AssimObj*	aself;
 	ChildProcess*	self;
@@ -114,6 +117,12 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 
 	self->stderr_src = logsourcefd_new(0, stderrfd, G_PRIORITY_HIGH, g_main_context_default()
 	,		                   logdomain, loglevel, logprefix);
+	self->user_data = user_data;
+	self->logmode = logmode;
+	if (NULL == logname) {
+		logname = argv[0];
+	}
+	self->loggingname = g_strdup(logname);
 	assim_free_environ(childenv);
 	childenv = NULL;
 
@@ -148,6 +157,10 @@ _childprocess_finalize(AssimObj* aself)
 	self->stdout_src = NULL;
 	g_source_unref(&self->stderr_src->baseclass.baseclass);
 	self->stderr_src = NULL;
+	if (self->loggingname) {
+		g_free(self->loggingname);
+		self->loggingname = NULL;
+	}
 	_assimobj_finalize(aself);
 	self = NULL;
 	aself = NULL;
@@ -205,9 +218,10 @@ FSTATIC void
 _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 {
 	ChildProcess*	self = CASTTOCLASS(ChildProcess, childprocess_object);
-	gboolean	signalled = FALSE;
+	gboolean	signalled = WIFSIGNALED(status);
 	int		exitrc = 0;
 	int		signal = 0;
+	gboolean	logexit = FALSE;
 	enum HowDied	howwedied = NOT_EXITED;
 	(void)pid;
 
@@ -217,8 +231,8 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 	}else if (self->child_state != CHILDSTATE_RUNNING) {
  		// Then we tried to kill it...
 		howwedied = EXITED_TIMEOUT;
+		signal = signalled ? WTERMSIG(status) : 0;
 	}else{
-		signalled = WIFSIGNALED(status);
 		if (signalled) {
 			signal = WTERMSIG(status);
 			howwedied = EXITED_SIGNAL;
@@ -227,5 +241,55 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 			howwedied = (exitrc == 0 ? EXITED_ZERO : EXITED_NONZERO);
 		}
 	}
+	switch (howwedied) {
+		case NOT_EXITED:
+			logexit = TRUE;
+			break;
+		case EXITED_SIGNAL:	/*FALLTHROUGH*/
+		case EXITED_TIMEOUT:	/*FALLTHROUGH*/
+		case EXITED_HUNG:
+			logexit = self->logmode  > CHILD_NOLOG;
+			break;
+		case EXITED_NONZERO:
+			logexit = self->logmode  >= CHILD_LOGERRS;
+			break;
+		case EXITED_ZERO:
+			logexit = self->logmode  >= CHILD_LOGALL;
+			break;
+	}
+	if (logexit) {
+		switch (howwedied) {
+		case NOT_EXITED:
+			g_critical("%s.%d: Child process [%s] is shown as not having exited.  Very strange!"
+			,	__FUNCTION__, __LINE__, self->loggingname);
+			break;
+		case EXITED_SIGNAL:
+			g_warning("Child process [%s] died from signal %d%s."
+			,	self->loggingname, signal, WCOREDUMP(status) ? " (core dumped)" : "");
+			break;
+		case EXITED_TIMEOUT:
+			if (signalled) {
+				g_warning("Child process [%s] timed out after %d seconds [signal %d%s]."
+				,	self->loggingname, self->timeout, signal
+				,	WCOREDUMP(status) ? " (core dumped)" : "");
+			}else{
+				g_warning("Child process [%s] timed out after %d seconds."
+				,	self->loggingname, self->timeout);
+			}
+			break;
+		case EXITED_HUNG:
+			g_warning("Child process [%s] timed out after %d seconds and could not be killed."
+			,	self->loggingname, self->timeout);
+			break;
+		case EXITED_NONZERO:
+			g_warning("Child process [%s] exited with return code %d."
+			,	self->loggingname, exitrc);
+			break;
+		case EXITED_ZERO:
+			g_message("Child process [%s] exited normally.", self->loggingname);
+			break;
+		}
+	}
+
 	self->notify(self, howwedied, exitrc, signal, WCOREDUMP(status));
 }

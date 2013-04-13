@@ -44,7 +44,7 @@
 FSTATIC guint		_jsondiscovery_discoverintervalsecs(const Discovery* self);
 FSTATIC void		_jsondiscovery_finalize(AssimObj* self);
 FSTATIC gboolean	_jsondiscovery_discover(Discovery* dself);
-FSTATIC void		_jsondiscovery_childwatch(GPid, gint, gpointer);
+FSTATIC void		_jsondiscovery_childwatch(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
 FSTATIC void		_jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen);
 FSTATIC void		_jsondiscovery_fullpath(JsonDiscovery* self);
 DEBUGDECLARATIONS;
@@ -62,16 +62,17 @@ FSTATIC void
 _jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 {
 	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
-	g_free(self->_fullpath);
-	self->_fullpath = NULL;
-	if (self->_tmpfilename) {
-		g_free(self->_tmpfilename);
-		self->_tmpfilename = NULL;
-	}
 	if (self->jsonparams) {
 		UNREF(self->jsonparams);
 	}
-	g_warn_if_fail(self->_sourceid == 0);
+	if (self->logprefix) {
+		g_free(self->logprefix);
+		self->logprefix = NULL;
+	}
+	if (self->_fullpath) {
+		g_free(self->_fullpath);
+		self->_fullpath = NULL;
+	}
 	_discovery_finalize(dself);
 }
 
@@ -80,13 +81,11 @@ FSTATIC gboolean
 _jsondiscovery_discover(Discovery* dself)
 {
 	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
-	GError*		errs;
-	gchar*		argv[4];
-	gsize		j;
+	gchar*		argv[2];
 	ConfigContext*	cfg = self->baseclass._config;
-	if (self->_sourceid != 0) {
-		g_warning("%s: JSON discovery process still running - skipping this iteration."
-		,	  __FUNCTION__);
+	if (NULL != self->child) {
+		g_warning("%s.%d: JSON discovery process still running - skipping this iteration."
+		,	  __FUNCTION__, __LINE__);
 		return TRUE;
 	}
 	++ self->baseclass.discovercount;
@@ -94,48 +93,53 @@ _jsondiscovery_discover(Discovery* dself)
 		DEBUGMSG2("%s.%d: don't have [%s] address yet - continuing." 
 		,	  __FUNCTION__, __LINE__, CONFIGNAME_CMADISCOVER);
 	}
-	self->_tmpfilename = strdup("/var/tmp/discovery-XXXXXXXXXXX.json");
-	close(g_mkstemp_full(self->_tmpfilename, 0, 0644));
-	argv[0] = strdup("/bin/sh");
-	argv[1] = strdup("-c");
-	argv[2] = g_strdup_printf("%s > %s", self->_fullpath, self->_tmpfilename);
-	argv[3] = NULL;
-	g_return_val_if_fail(self->_fullpath != NULL, FALSE);
+	argv[0] = self->_fullpath;
+	argv[1] = NULL;
 
-	DEBUGMSG1("Running Discovery [%s] [%s] [%s]", argv[0], argv[1], argv[2]);
+	DEBUGMSG1("Running Discovery [%s]", argv[0]);
+
+	self->child = childprocess_new(0	// object size (0 == default size)
+,		argv			// char** argv
+,		NULL			// char** envp
+,		self->jsonparams	// ConfigContext*envmod
+,		NULL			// const char* curdir
+,		_jsondiscovery_childwatch
+		//gboolean	(*notify)(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped)
+,		TRUE			//	gboolean save_stdout
+,		G_LOG_DOMAIN		// const char * logdomain
+,		self->logprefix		// const char * logprefix
+,		G_LOG_LEVEL_MESSAGE	//	GLogLevelFlags loglevel
+,		0			//guint32 timeout_seconds;
+,		self			// gpointer user_data
+,		CHILD_LOGERRS
+,		NULL
+	);
 	
-	if (!g_spawn_async(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD
-	,		   NULL, NULL, &self->_child_pid, &errs)) {
-		g_warning("JSON discovery fork error: %s", errs->message);
-	}else{
-		self->_sourceid = g_child_watch_add_full(G_PRIORITY_HIGH, self->_child_pid, _jsondiscovery_childwatch
-		,					 self, NULL);
-		// Don't want us going away while we have a child out there...
-		REF2(self);
-	}
-	for (j=0; j < DIMOF(argv) && argv[j]; ++j) {
-		g_free(argv[j]); argv[j] = NULL;
-	}
+	// Don't want us going away while we have a child out there...
+	REF2(self);
 	return TRUE;
 }
 /// Watch our child - we get called when our child process exits
 FSTATIC void
-_jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
+_jsondiscovery_childwatch(ChildProcess* child	///<
+,	enum HowDied			status			///< How did our child die?
+,	int				rc			///< exit code (for normal exit)
+,	int				signal			///< signal - if it died by a signal
+,	gboolean			core_dumped)		///< TRUE if our child dropped a core file
 {
-	JsonDiscovery*	self = CASTTOCLASS(JsonDiscovery, gself);
+	JsonDiscovery*	self = CASTTOCLASS(JsonDiscovery, child->user_data);
 	gchar*		jsonout = NULL;
 	gsize		jsonlen = 0;
-	GError*		err;
 
-
-	if (status != 0) {
-		g_warning("JSON discovery from %s failed with status 0x%x (%d)", self->_fullpath, status, status);
+	(void)core_dumped;
+	(void)rc;
+	(void)signal;
+	if (status != EXITED_ZERO) {
+		// We don't need to log anything...  It's being done for us...
 		goto quitchild;
 	}
-	if (!g_file_get_contents(self->_tmpfilename, &jsonout, &jsonlen, &err)) {
-		g_warning("Could not get JSON contents of %s [%s]", self->_fullpath, err->message);
-		goto quitchild;
-	}
+	jsonout = g_strdup(child->stdout_src->textread->str);
+	jsonlen = strlen(jsonout);
 	if (jsonlen == 0) {
 		g_warning("JSON discovery [%s] produced no output.", self->_fullpath);
 		goto quitchild;
@@ -144,15 +148,8 @@ _jsondiscovery_childwatch(GPid pid, gint status, gpointer gself)
 	_jsondiscovery_send(self, jsonout, jsonlen);
 
 quitchild:
-	g_spawn_close_pid(pid);
-	g_source_remove(self->_sourceid);
-	self->_sourceid = 0;
-	memset(&(self->_child_pid), 0, sizeof(self->_child_pid));
-	if (self->_tmpfilename) {
-		g_unlink(self->_tmpfilename);
-		g_free(self->_tmpfilename);
-		self->_tmpfilename = NULL;
-	}
+	UNREF(self->child);
+	child = NULL;
 	// We did a 'ref' in _jsondiscovery_discover above to keep us from disappearing while child was running.
 	UNREF2(self);
 }
@@ -244,6 +241,7 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 		basedir = JSONAGENTROOT;
 	}
         ret->_fullpath = g_strdup_printf("%s%s%s", basedir, "/", discoverytype);
+	ret->logprefix = g_strdup_printf("Discovery %s: ", instancename);
 	DEBUGMSG2("%s.%d: FULLPATH=[%s] discoverytype[%s]"
 	,	__FUNCTION__, __LINE__, ret->_fullpath, discoverytype);
 	discovery_register(&ret->baseclass);

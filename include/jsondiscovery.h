@@ -26,6 +26,7 @@
 #define _JSONDISCOVERY_H
 #include <projectcommon.h>
 #include <discovery.h>
+#include <childprocess.h>
 ///@{
 /// @ingroup DiscoveryClass
 
@@ -36,10 +37,9 @@ typedef struct _JsonDiscovery JsonDiscovery;
 struct _JsonDiscovery {
 	Discovery	baseclass;	///< Base discovery object
 	char *		instancename;	///< Instance name
+	char *		logprefix;	///< Prefix for logging stderr messages
 	char *		_fullpath;	///< Full pathname of the discovery agent
-	char *		_tmpfilename;	///< Pathname of a temporary file name containing JSON output
-	GPid		_child_pid;	///< Non-zero if we currently have a child active
-	guint		_sourceid;	///< Gmainloop source id of our child watch source.
+	ChildProcess*	child;		///< Our current child process...
 	guint		_intervalsecs;	///< How often to run this discovery method?
 	ConfigContext*	jsonparams;	///< Parameters to the resource agent.
 	const char *	(*fullpath)(JsonDiscovery*);///< Return full pathname of agent
