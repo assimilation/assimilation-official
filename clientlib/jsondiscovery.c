@@ -121,10 +121,10 @@ _jsondiscovery_discover(Discovery* dself)
 }
 /// Watch our child - we get called when our child process exits
 FSTATIC void
-_jsondiscovery_childwatch(ChildProcess* child	///<
-,	enum HowDied			status			///< How did our child die?
+_jsondiscovery_childwatch(ChildProcess* child			///< The @ref ChildProcess object for our process
+,	enum HowDied			status			///< How did our child exit/die?
 ,	int				rc			///< exit code (for normal exit)
-,	int				signal			///< signal - if it died by a signal
+,	int				signal			///< signal - if it was killed by a signal
 ,	gboolean			core_dumped)		///< TRUE if our child dropped a core file
 {
 	JsonDiscovery*	self = CASTTOCLASS(JsonDiscovery, child->user_data);
