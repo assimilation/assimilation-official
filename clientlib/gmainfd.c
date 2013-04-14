@@ -31,7 +31,7 @@
 
 #define READBUFSIZE	1024
 
-///@defgroup GmainFd Read-only File descriptor gmainloop class.
+///@defgroup GmainFd GmainFd class.
 /// (base) Class for reading from file descriptors (usually pipes) from gmainloop programs.
 ///@{
 ///@ingroup C_Classes
