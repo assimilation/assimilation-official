@@ -257,9 +257,6 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 		}
 	}
 	switch (howwedied) {
-		case NOT_EXITED:
-			logexit = TRUE;
-			break;
 		case EXITED_SIGNAL:	/*FALLTHROUGH*/
 		case EXITED_TIMEOUT:	/*FALLTHROUGH*/
 		case EXITED_HUNG:
@@ -271,13 +268,14 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 		case EXITED_ZERO:
 			logexit = self->logmode  >= CHILD_LOGALL;
 			break;
+		default:
+			// We'll never produce any other values above
+			/*NOTREACHED*/
+			logexit = TRUE;
+			break;
 	}
 	if (logexit) {
 		switch (howwedied) {
-		case NOT_EXITED:
-			g_critical("%s.%d: Child process [%s] is shown as not having exited.  Very strange!"
-			,	__FUNCTION__, __LINE__, self->loggingname);
-			break;
 		case EXITED_SIGNAL:
 			g_warning("Child process [%s] died from signal %d%s."
 			,	self->loggingname, signal, WCOREDUMP(status) ? " (core dumped)" : "");
@@ -302,6 +300,8 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 			break;
 		case EXITED_ZERO:
 			g_message("Child process [%s] exited normally.", self->loggingname);
+			break;
+		default:/*NOTREACHED*/
 			break;
 		}
 	}
