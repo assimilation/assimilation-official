@@ -38,9 +38,6 @@
 #ifndef WIN32
 #include <sys/time.h>
 #include <sys/resource.h>
-#else
-#include <Windows.h>
-#include <WinBase.h>
 #endif
 #include <signal.h>
 #include <misc.h>
