@@ -26,10 +26,15 @@
 #include <logsourcefd.h>
 #include <string.h>
 
+///@defgroup LogSourceFd LogSourceFd class.
+///  Class for logging the content of file descriptors in the glib gmainloop world.
+/// mainly used with pipes.
+///@{
+///@ingroup GmainFd
 FSTATIC void logsourcefd_newtext(GMainFd*, const char *, int len);
 FSTATIC void logsourcefd_finalize(GMainFd* fdself);
 
-/// Construct a new @ref GMainFd object and return it.
+/// Construct a new @ref LogSourceFd object and return it.
 LogSourceFd*
 logsourcefd_new(gsize cpsize
 ,		int	fd
@@ -108,3 +113,4 @@ logsourcefd_finalize(GMainFd* fdself)
 		self->prefix = NULL;
 	}
 }
+///@}

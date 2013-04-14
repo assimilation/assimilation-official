@@ -34,6 +34,12 @@
 #include <childprocess.h>
 #include <misc.h>
 
+///@defgroup ChildProcess ChildProcess class.
+/// Class for creating and monitoring child processes in the gmainloop environment.
+/// It logs stderr, and can either save or log stdout - creator's choice.
+///@{
+///@ingroup C-Classes
+///@ingroup AssimObj
 FSTATIC void	 _childprocess_setup_child(gpointer childprocess_object);
 FSTATIC gboolean _childprocess_timeout(gpointer childprocess_object);
 FSTATIC void	 _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object);
@@ -302,3 +308,4 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 
 	self->notify(self, howwedied, exitrc, signal, WCOREDUMP(status));
 }
+///@}

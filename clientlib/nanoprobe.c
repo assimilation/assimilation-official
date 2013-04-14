@@ -50,6 +50,9 @@
 #include <nanoprobe.h>
 
 
+///@defgroup LibNanoProbe Nanoprobe implementation functions
+///  A collection of useful functions for implementing nanoprobes - <i>sans</i> main program.
+///@{
 void (*nanoprobe_deadtime_agent)(HbListener*)			= NULL;
 void (*nanoprobe_heartbeat_agent)(HbListener*)			= NULL;
 void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
@@ -1096,3 +1099,4 @@ _nano_final_shutdown(gpointer unused)
 	g_main_quit(mainloop);
 	return FALSE;
 }
+///@}

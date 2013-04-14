@@ -175,3 +175,4 @@ gmainfd_gsource_finalize(GSource* source)
 	source = NULL;
 	self = NULL;
 }
+///@}
