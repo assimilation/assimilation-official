@@ -13,7 +13,7 @@ It is highly recommended that you read the @ref GettingStarted documentation.
 - Neo4J graph database documenting the data center configuration
 - fully distributed, extremely lightweight, reliable monitoring
 - <b>no</b> configuration needed for most environments - very simple configuration for all environments.
-- basic host monitoring
+- basic <i>host</i> monitoring
 - continuous, integrated stealth discovery of these kinds of information:
  - host network configuration - NICs, IP addresses, MAC addresses
  - host OS version information
@@ -22,6 +22,8 @@ It is highly recommended that you read the @ref GettingStarted documentation.
  - detailed information about TCP services offered (server role)
  - detailed information about TCP services consumed (client role)
  - LLDP-based server/switch topology discovery - which host NICs are connected to which switch ports
+ - Tested extensively on Linux systems.
+ - Source code known to compile on Windows systems (will eventually run there too).
 
 Features that are expected for a monitoring solution but are <b>not</b> included include these:
 - meaningful alerting
