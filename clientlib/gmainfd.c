@@ -35,8 +35,6 @@
 /// (base) Class for reading from file descriptors (usually pipes) from gmainloop programs.
 ///@{
 ///@ingroup C_Classes
-///@ingroup AssimObj
-
 
 
 FSTATIC gboolean gmainfd_gsource_prepare(GSource* source, gint* timeout);
