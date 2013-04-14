@@ -31,6 +31,13 @@
 
 #define READBUFSIZE	1024
 
+///@defgroup GmainFd Read-only File descriptor gmainloop class.
+/// (base) Class for reading from file descriptors (usually pipes) from gmainloop programs.
+///@{
+///@ingroup C_Classes
+///@ingroup AssimObj
+
+
 
 FSTATIC gboolean gmainfd_gsource_prepare(GSource* source, gint* timeout);
 FSTATIC gboolean gmainfd_gsource_check(GSource* source);
@@ -99,7 +106,7 @@ gmainfd_newtext(GMainFd* self, const char * string, int len)
 }
 
 
-/// @ref GmainFD version of a gmainloop prepare function - get ready to go into the poll function
+/// @ref GmainFd version of a gmainloop prepare function - get ready to go into the poll function
 FSTATIC gboolean
 gmainfd_gsource_prepare(GSource* dummysource, gint* dummytimeout)
 {
@@ -109,7 +116,7 @@ gmainfd_gsource_prepare(GSource* dummysource, gint* dummytimeout)
 	return FALSE;
 }
 
-/// @ref GmainFD version of a gmainloop check function - check for input after the poll function
+/// @ref GmainFd version of a gmainloop check function - check for input after the poll function
 FSTATIC gboolean
 gmainfd_gsource_check(GSource* source)
 {
@@ -128,7 +135,7 @@ gmainfd_gsource_check(GSource* source)
 	return 0 != self->gfd.revents;
 }
 
-/// @ref GmainFD version of a gmainloop dispatch function - we read the data from the file descriptor
+/// @ref GmainFd version of a gmainloop dispatch function - we read the data from the file descriptor
 FSTATIC gboolean
 gmainfd_gsource_dispatch(GSource* source, GSourceFunc unusedcallback, gpointer unused_user_data)
 {
@@ -149,7 +156,7 @@ gmainfd_gsource_dispatch(GSource* source, GSourceFunc unusedcallback, gpointer u
 	return !self->atEOF && self->gfd.events != 0;
 }
 
-/// @ref GmainFD version of a gmainloop finalize function
+/// @ref GmainFd version of a gmainloop finalize function
 FSTATIC void
 gmainfd_gsource_finalize(GSource* source)
 {
