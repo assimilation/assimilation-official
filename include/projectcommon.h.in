@@ -102,12 +102,16 @@
 #cmakedefine	HAVE_UNAME
 #cmakedefine	HAVE_G_GET_REAL_TIME
 #cmakedefine	HAVE_G_GET_MONOTONIC_TIME
+#cmakedefine	HAVE_G_GET_ENVIRON
 
 #ifndef HAVE_G_GET_REAL_TIME
 WINEXPORT gint64 g_get_real_time(void);
 #endif
 #ifndef HAVE_G_GET_MONOTONIC_TIME
 WINEXPORT gint64 g_get_monotonic_time(void);
+#endif
+#ifndef HAVE_G_GET_ENVIRON
+WINEXPORT gchar** g_get_environ(void);
 #endif
 
 
