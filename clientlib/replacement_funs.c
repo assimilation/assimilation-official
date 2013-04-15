@@ -25,7 +25,7 @@
 
 #ifndef HAVE_G_GET_MONOTONIC_TIME
 #	include <time.h>
-#endif /*HAVE_G_GET_MONOTONIC_TIME*/
+#endif/*!HAVE_G_GET_MONOTONIC_TIME*/
 
 #ifndef HAVE_G_GET_REAL_TIME
 
@@ -43,7 +43,7 @@ g_get_real_time(void)
 	return ret;
 	
 }
-#endif/*HAVE_G_GET_REAL_TIME*/
+#endif/*!HAVE_G_GET_REAL_TIME*/
 
 #ifndef HAVE_G_GET_MONOTONIC_TIME
 #ifdef CLOCK_MONOTONIC
@@ -64,7 +64,7 @@ g_get_monotonic_time(void)
 	}
 	return ((gint64)ts.tv_sec * million) + (((gint64)ts.tv_nsec)/thousand);
 }
-#endif/*HAVE_G_GET_MONOTONIC_TIME*/
+#endif/*!HAVE_G_GET_MONOTONIC_TIME*/
 
 #ifndef HAVE_G_SLIST_FREE_FULL
 /// Local replacement function for g_slist_free_full()
@@ -89,4 +89,27 @@ assim_slist_free_full(GSList* list, void (*datafree)(gpointer))
 		g_slist_free_1(this);
 	}
 }
-#endif/*G_SLIST_FREE_FULL*/
+#endif/*!G_SLIST_FREE_FULL*/
+
+#ifndef HAVE_G_GET_ENVIRON
+// Need the glib version of this if we're on windows - it does character set conversion.
+extern char **environ;
+gchar **
+g_get_environ(void)
+{
+	guint	envcount;
+	guint	j;
+	gchar**	result;
+	
+	for (envcount=0; environ[envcount]; ++envcount) {
+		/* Just count... */
+	}
+	result = (gchar **) malloc((envcount+1)*sizeof(gchar *));
+	
+	for (j=0; j < envcount; ++j) {
+		result[j] = g_strdup(environ[j]);
+	}
+	result[envcount] = NULL;
+	return result;
+}
+#endif/*!HAVE_G_GET_ENVIRON*/
