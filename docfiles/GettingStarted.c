@@ -73,20 +73,25 @@ called <i>neo4j-service</i>.
 It must be started before the CMA starts.
 
 @section GettingOurSource Getting a copy of the Assimilation source code
-There are two ways you can get a copy of the Assimilation Project source - as a tar ball
-or in a <a href="http://mercurial.selenic.com/">Mercurial</a> source code repository.
+There are three ways you can get a copy of the Assimilation Project source - as a tar ball
+or in a <a href="http://mercurial.selenic.com/">Mercurial</a> source code repository,
+or if you run a Red-Hat based release, you can get source RPMs suitable for recent red hat releases.
 
 You can obtain a <i>tar ball</i> of the source using a web browser, or <a href="www.gnu.org/software/wget/">wget</a>.
 
  - Bleeding edge - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/tip.tar.gz
- - Latest release candidate - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0-RC1.tar.gz
- - Latest stable version - <i>none</i>
+ - Latest stable version - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0.tar.gz
 
 If you'd rather have an active source code repository to use to watch the development
 or contribute to it, then follow these steps:
 - Install Mercurial
 - cd <i><some-suitable-source-directory</i>
 - <tt><b>hg clone 'http://hg.linux-ha.org/%7Cexperimental/assimilation/'</b></tt>
+
+If you are running a RedHat-based release and you are happy to deal with source RPMs, then feel
+free to use Jamie Nguyen's source RPMs or spec files which you can find here:
+- http://jamielinux.fedorapeople.org/assimilation/
+
 
 This completes all the preparation necessary to begin building the system.
 
@@ -101,10 +106,11 @@ This should produce two packages - one named <i>assimilation-nanoprobe</i> and o
 If you run into difficulties, it is likely the result of missing or incorrect dependencies.
 It is also possible that you're compiling for an older system - but this is likely solvable.
 Please report any problems you encounter to the mailing list.
+The packages seem to be usable when you make them for Ubuntu.  Other OSes may or may make good packages yet.
 
 @section MakingTheDocs Making The Documentation (this web site)
 To make the documentation for the project, issue this command
-- <tt>make doc</tT>
+- <tt>make doc</tt>
 
 This will create all the documentation on the <i>assimmon.org</i> web site.
 
