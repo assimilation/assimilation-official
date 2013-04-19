@@ -3,8 +3,8 @@
 
 <B>DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT DRAFT</B>
 
-@section Version0_1_0- version 0.1.0-RC4 - the Toy release - 17 March 2013
-The very first release candidate of the <i>Assimilation Monitoring Project</i> - here at last!
+@section Version0_1_0- version 0.1.0 - the <i>Toy</i> release - 19 March 2013
+The very first release of the <i>Assimilation Monitoring Project</i> - here at last!
 The purpose of this Linux-only release is to get the code out there and get it in people's hands so
 that they can evaluate the concepts, provide feedback, and find bugs.
 It is highly recommended that you read the @ref GettingStarted documentation.
