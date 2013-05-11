@@ -52,7 +52,7 @@ enum ChildErrLogMode {
 struct _ChildProcess {
 	AssimObj	baseclass;	///< Our base class
 	GPid		child_pid;	///< The GPid returned from spawning this object
-	GMainFd*	stdout_src;	///< GSource for logging or saving the standard output of this child
+	GMainFd*	stdout_src;	///< GSource for logging/saving the standard output of child
 	LogSourceFd*	stderr_src;	///< GSource for logging the standard error of this child
 	guint		timeout;	///< Timeout value for this child
 	guint		timeoutsrc_id;	///< GSource id for the timeout for this child to complete
