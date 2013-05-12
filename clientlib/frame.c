@@ -127,8 +127,7 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 		DEBUGMSG5("%s: Constructing New Frame at 0x%p", __FUNCTION__, newobj);
 	}
 	if (newobj != NULL) {
-		proj_class_register_subclassed(newobj, "Frame");
-		newframe = CASTTOCLASS(Frame, newobj);
+		newframe = NEWSUBCLASS(Frame, newobj);
 		newobj->_finalize	= _frame_default_finalize;
 		newframe->type		= frame_type;
 		newframe->length	= 0;
