@@ -250,6 +250,7 @@ signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 
 	/// @note we currently ignore the subtype - since we only support one...
 	ret = signframe_new(cksumtype, 0);
+	g_return_val_if_fail(NULL != ret, NULL);
 	ret->baseclass.length = framelength;
 	return CASTTOCLASS(Frame, ret);
 }

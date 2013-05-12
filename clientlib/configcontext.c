@@ -469,11 +469,9 @@ _configcontext_value_new(enum ConfigValType t)
 
 	aret = assimobj_new(sizeof(ConfigValue));
 	ret = NEWSUBCLASS(ConfigValue, aret);
-	if (ret) {
-		ret->valtype = t;
-		memset(&ret->u, 0, sizeof(ret->u));
-		aret->_finalize = _configcontext_value_finalize;
-	}
+	ret->valtype = t;
+	memset(&ret->u, 0, sizeof(ret->u));
+	aret->_finalize = _configcontext_value_finalize;
 	return ret;
 }
 
