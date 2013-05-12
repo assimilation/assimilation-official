@@ -981,13 +981,20 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 FSTATIC void
 _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to operate on
 {
-	FsQueue*	outq = fspe->outq;
-	FsProtocol*	parent = fspe->parent;
-	SeqnoFrame*	lastseq = fspe->lastseqsent;
 	GList*		qelem;
-	NetIO*		io = parent->io;
-	guint		orig_outstanding = fspe->outq->_q->length;
+	FsQueue*	outq;
+	FsProtocol*	parent;
+	SeqnoFrame*	lastseq;
+	NetIO*		io;
+	guint		orig_outstanding;
 	gint64		now;
+
+	g_return_if_fail(fspe != NULL);
+	outq = fspe->outq;
+	parent = fspe->parent;
+	lastseq = fspe->lastseqsent;
+	io = parent->io;
+	orig_outstanding = fspe->outq->_q->length;
 
 	AUDITFSPE(fspe);
 	// Look for any new packets that might have showed up to send
