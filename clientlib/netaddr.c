@@ -351,6 +351,7 @@ _netaddr_hash(const NetAddr* self)
 		}
 	}
 
+	g_return_val_if_fail(addrtouse != NULL, 0);
 	result = (guint)(addrtouse->_addrtype) ^ hashseed;
 	if (addrtouse->_addrtype == ADDR_FAMILY_IPV6 || addrtouse->_addrtype == ADDR_FAMILY_IPV4) {
 		result ^= addrtouse->_addrport;
