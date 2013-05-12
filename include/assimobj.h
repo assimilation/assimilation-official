@@ -59,6 +59,6 @@ struct _AssimObj {
 };
 WINEXPORT AssimObj*		assimobj_new(guint objsize);
 WINEXPORT void			_assimobj_finalize(AssimObj* self);
-extern	gboolean	badfree;			// for debugging
+extern	gboolean	badfree;			//< for debugging
 ///@}
 #endif /* ASSIMOBJ_H */

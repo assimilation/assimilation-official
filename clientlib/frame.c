@@ -1,7 +1,7 @@
 /**
  * @file
- * @brief Implements the @ref ConfigContext class - providing configuration values for nanoprobe runtime
- * @details Allows for the holding of configuration values of various kinds.
+ * @brief Implements the @ref Frame class - binary blobs on the wire
+ * @details  implementing the base class for marshalling and demarshalling objects on the wire
  *
  * This file is part of the Assimilation Project.
  *
@@ -23,9 +23,7 @@
 #include <frame.h>
 #include <generic_tlv_min.h>
 #include <memory.h>
-/**
- *
- */
+
 FSTATIC void _frame_default_finalize(AssimObj * self);
 FSTATIC gsize _frame_total_size(Frame* f);
 FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpointer);

@@ -52,10 +52,6 @@ class pyNetAddrTest(TestCase):
     "A pyNetAddr is a network address of some kind... - let's test it"
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
         ipv4 = pyNetAddr((1,2,3,4),)
         ipv4b = pyNetAddr((1,2,3,5),)
         mac48 = pyNetAddr((1,2,3,4,5,6),)
