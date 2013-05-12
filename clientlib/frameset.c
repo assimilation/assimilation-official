@@ -237,6 +237,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	// Add "end" frame to the "end" - if not already present...
 	if (CASTTOCLASS(Frame, fs->framelist->data)->type != FRAMETYPE_END) {
                 Frame* endframe = frame_new(FRAMETYPE_END, 0);
+		g_return_if_fail(NULL != endframe);
 		frameset_prepend_frame(fs, endframe);
 		UNREF(endframe);
 	}

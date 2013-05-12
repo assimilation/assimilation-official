@@ -188,6 +188,12 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			gconstpointer nextframe = nextframeset;
 			Frame* newframe;
 			newframe = _decode_packet_framedata_to_frameobject(self, curframe, nextframeset, &nextframe);
+			if (NULL == newframe) {
+				UNREF(fs);
+				// What should we do about 'ret'?
+				///@TODO memory leak in error condition
+				return NULL;
+			}
 			if (nextframe > nextframeset) {
 				UNREF(newframe);
 				UNREF(fs);
