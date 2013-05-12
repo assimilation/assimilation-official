@@ -24,6 +24,7 @@
  */
 
 #ifndef _RESOURCECMD_H
+#define _RESOURCECMD_H
 #include <projectcommon.h>
 #include <assimobj.h>
 #include <configcontext.h>
@@ -39,11 +40,12 @@
  * at a time for any given resource instance.
  *
  */
-typedef struct _ResourceCmd	ResourceCmd;
 
 typedef	void(*ResourceCmdCallback)(ConfigContext* request, gpointer user_data
-,			enum HowDied, int rc, int signal, gboolean core_dumped
+,			enum HowDied reason, int rc, int signal, gboolean core_dumped
 ,			const char * stringresult);
+
+typedef struct _ResourceCmd	ResourceCmd;
 
 struct _ResourceCmd{
 	AssimObj		baseclass;	///< Base object: implements ref, unref, toString
@@ -53,7 +55,13 @@ struct _ResourceCmd{
 	void (*execute)(ResourceCmd* self);	///< Execute this resource command
 };
 
-ResourceCmd* resourcecmd_new(guint structsize, ConfigContext* request, gpointer user_data
+ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
+#define	REQCLASSNAMEFIELD	"class"
+#ifdef RESOURCECMD_SUBCLASS
+WINEXPORT ResourceCmd* resourcecmd_constructor(guint structsize, ConfigContext* request, gpointer user_data
+,			 ResourceCmdCallback callback);
+WINEXPORT void _resourcecmd_finalize(AssimObj* aself);
+#endif
 ///@}
 #endif/*_RESOURCECMD_H*/

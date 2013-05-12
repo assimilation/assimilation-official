@@ -20,6 +20,7 @@
  */
 
 #ifndef _RESOURCEQUEUE_H
+#define _RESOURCEQUEUE_H
 #include <projectcommon.h>
 #include <assimobj.h>
 #include <configcontext.h>
@@ -57,7 +58,7 @@ struct _ResourceQueue {
 	gboolean (*cancel)(ResourceQueue* self			//< Our R.Q. object
 ,			ConfigContext* request);		//< Request to cancel
 };
-ResourceQueue* resourcequeue_new(guint structsize);		//< Construct new R.Q.
+WINEXPORT ResourceQueue* resourcequeue_new(guint structsize);		//< Construct new R.Q.
 
 ///@}
 #endif/*_RESOURCEQUEUE_H*/
