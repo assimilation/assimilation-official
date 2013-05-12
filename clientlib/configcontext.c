@@ -128,9 +128,6 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 		objsize = sizeof(ConfigContext);
 	}
 	baseobj = assimobj_new(objsize);
-	if (NULL == baseobj) {
-		goto errout;
-	}
 	newcontext = NEWSUBCLASS(ConfigContext, baseobj);
 	newcontext->setint	=	_configcontext_setint;
 	newcontext->getint	=	_configcontext_getint;
@@ -155,13 +152,6 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	baseobj->_finalize	=	_configcontext_finalize;
 	baseobj->toString	=	_configcontext_toString;
 	return newcontext;
-errout:
-	if (baseobj) {
-		baseobj->_finalize(CASTTOCLASS(AssimObj,newcontext));
-		newcontext = NULL;
-		baseobj = NULL;
-	}
-	g_return_val_if_reached(NULL);
 }
 
 /// Finalize (free) a ConfigContext object
