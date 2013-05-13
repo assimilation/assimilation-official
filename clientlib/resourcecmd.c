@@ -26,6 +26,18 @@
 #define	RESOURCECMD_SUBCLASS
 #include <resourcecmd.h>
 
+DEBUGDECLARATIONS
+
+///@defgroup ResourceCmd ResourceCmd class
+/// Class implementing resource commands
+///@{
+///@ingroup C_Classes
+///@ingroup AssimObj
+
+/**
+ *	List of all known ResourceCmd subclass names and their constructor functions
+ *	This is for our 'factory'-like function resourcecmd_new().
+ */
 static struct {
 	const char *		classname;
 	ResourceCmd* (*constructor) (
@@ -34,13 +46,13 @@ static struct {
 ,			gpointer user_data
 ,			ResourceCmdCallback callback);
 }subclasses[] = {
-	{NULL, NULL}
+	{NULL, NULL}	//< No such constructor...
 };
 void _resourcecmd_finalize(AssimObj*);
 
 /**
- * Our ResourceCmd Factory object - constructs the proper subtype for these instantiation
- * parameters.  We only pay attention to the REQCLASSNAMEFIELD field at the top level
+ * Our ResourceCmd Factory object - constructs an object of the proper subclass for the given
+ * instantiation parameters.  We only pay attention to the REQCLASSNAMEFIELD field at the top level
  * of the request ConfigContext object.
  */
 ResourceCmd*
@@ -101,6 +113,7 @@ resourcecmd_constructor(
 	AssimObj*	aself;
 	ResourceCmd*	self;
 
+	BINDDEBUG(ResourceCmd);
 	if (structsize < sizeof(ResourceCmd)) {
 		structsize = sizeof(ResourceCmd);
 	}
@@ -114,3 +127,4 @@ resourcecmd_constructor(
 	aself->_finalize = _resourcecmd_finalize;
 	return self;
 }
+///@}
