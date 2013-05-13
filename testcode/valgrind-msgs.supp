@@ -223,17 +223,6 @@
    ...
 }
 {
-   g_child_watch_source_new
-   Memcheck:Leak
-   fun:calloc
-   fun:g_malloc0
-   fun:g_main_context_new
-   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
-   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
-   fun:g_child_watch_source_new
-   ...
-}
-{
    g_thread_new+dl_allocate_tls leak
    Memcheck:Leak
    fun:calloc
@@ -266,7 +255,7 @@
    ...
 }
 {
-   <insert_a_suppression_name_here>
+   g_main_context_new_version_2or3
    Memcheck:Leak
    fun:malloc
    obj:*
@@ -301,20 +290,19 @@
 }
 
 {
-   g_cond_init
+   g_main_context_new_malloc
    Memcheck:Leak
    fun:malloc
    obj:*
    fun:g_cond_init
    fun:g_main_context_new
-   obj:*
-   obj:*
-   fun:g_child_watch_source_new
-   fun:g_spawn_sync
-   fun:_enable_mcast_address
-   fun:create_pcap_listener
-   fun:g_source_pcap_new
-   fun:switchdiscovery_new
-   fun:nano_start_full
-   fun:main
+   ...
+}
+{
+   g_main_context_new_calloc
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_main_context_new
+   ...
 }
