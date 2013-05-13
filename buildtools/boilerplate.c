@@ -19,3 +19,21 @@
  *  You should have received a copy of the GNU General Public License
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
+
+-------------------------- EITHER THIS -------------------------
+DEBUGDECLARATIONS
+///@defgroup SOMECLASSNAME SOMECLASSNAME class
+/// Class implementing SOMETHING OR OTHER
+///@{
+///@ingroup C_Classes
+///@ingroup AssimObj
+
+And in the "constructor"...
+
+BINDDEBUG(Frame);
+-------------------------- OR -------------------------
+///@{
+///@ingroup SOMECLASSNAME
+/// Class implementing SOMETHING OR OTHER
+-------------------------- followed by -------------------------
+///@}
