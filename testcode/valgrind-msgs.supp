@@ -27,6 +27,17 @@
    ...
 }
 {
+   glog leak - w/o slice_alloc
+   Memcheck:Leak
+   fun:malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3600.0
+   fun:g_private_get
+   fun:g_logv
+   fun:g_log
+   fun:main
+}
+
+{
    g_checksum_new (g_slice_alloc)
    Memcheck:Leak
    ...
@@ -101,6 +112,15 @@
    fun:g_thread_self
    ...
 }
+{
+   Clone leak...
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:start_thread
+   fun:clone
+}
+
 #
 #	This is a worrisome cumulative memory leak - or so it seems
 #	May want to stop using the "read file into memory" code.
@@ -172,8 +192,7 @@
    g_mutex_lock leak
    Memcheck:Leak
    fun:malloc
-   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
-   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   ...
    fun:g_mutex_lock
    ...
 }
@@ -181,7 +200,7 @@
    g_mutex_init leak
    Memcheck:Leak
    fun:malloc
-   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:*
    fun:g_mutex_init
    ...
 }
@@ -220,8 +239,8 @@
    fun:calloc
    fun:_dl_allocate_tls
    fun:pthread_create@@GLIBC_2.2.5
-   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
-   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3400.1
+   obj:*
+   obj:*
    fun:g_thread_new
    ...
 }
@@ -232,4 +251,70 @@
    fun:g_malloc0
    fun:g_rand_new_with_seed_array
    ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   obj:*
+   fun:g_private_get
+   obj:*
+   fun:g_main_context_dispatch
+   obj:*
+   fun:g_main_loop_run
+   fun:g_spawn_sync
+   ...
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   obj:*
+   fun:g_mutex_init
+   fun:g_main_context_new
+   obj:*
+   obj:*
+   fun:g_child_watch_source_new
+   fun:g_spawn_sync
+   fun:_enable_mcast_address
+   fun:create_pcap_listener
+   fun:g_source_pcap_new
+   fun:switchdiscovery_new
+   fun:nano_start_full
+   fun:main
+}
+{
+   g_main_context_new
+   Memcheck:Leak
+   fun:malloc
+   obj:*
+   obj:*
+   fun:g_cond_broadcast
+   fun:g_once_init_leave
+   fun:g_main_context_new
+   fun:g_main_context_default
+   fun:g_source_attach
+   fun:g_timeout_add_seconds_full
+   fun:fsprotocol_new
+   fun:reliableudp_new
+   fun:main
+}
+
+{
+   g_cond_init
+   Memcheck:Leak
+   fun:malloc
+   obj:*
+   fun:g_cond_init
+   fun:g_main_context_new
+   obj:*
+   obj:*
+   fun:g_child_watch_source_new
+   fun:g_spawn_sync
+   fun:_enable_mcast_address
+   fun:create_pcap_listener
+   fun:g_source_pcap_new
+   fun:switchdiscovery_new
+   fun:nano_start_full
+   fun:main
 }
