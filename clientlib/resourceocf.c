@@ -36,6 +36,7 @@ DEBUGDECLARATIONS
 FSTATIC void _resourceocf_finalize(AssimObj* aself);
 FSTATIC void _resourceocf_execute(ResourceCmd* self);
 FSTATIC void _resourceocf_child_notify(ChildProcess*, enum HowDied, int, int, gboolean);
+FSTATIC gboolean _resourceocf_outputs_string(const char * operation);
 
 static void (*_resourceocf_save_finalize)(AssimObj*) = NULL;
 
@@ -135,15 +136,34 @@ _resourceocf_finalize(AssimObj* aself)
 	}
 	_resourceocf_save_finalize(aself);
 }
+
+FSTATIC gboolean
+_resourceocf_outputs_string(const char * operation)
+{
+	guint		j;
+	const char *	oplist[] = {
+		"meta-data"
+	};
+
+	for (j=0; j < DIMOF(oplist); ++j) {
+		if (strcmp(operation, oplist[j]) == 0) {
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 /// Do the deed, dude!
 FSTATIC void
 _resourceocf_execute(ResourceCmd* cmdself)
 {
 	ResourceOCF*		self = CASTTOCLASS(ResourceOCF, cmdself);
 	enum ChildErrLogMode	logmode;
+	gboolean		saveout;
 
 	logmode = (self->baseclass.callback ? CHILD_LOGERRS : CHILD_LOGALL);
 
+	saveout = _resourceocf_outputs_string(self->operation);
 
 	self->child = childprocess_new
 (	0				///< cpsize
@@ -153,7 +173,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 ,	NULL				///< const char* curdir
 ,	_resourceocf_child_notify 
 	///< void (*notify)(ChildProcess*,enum HowDied,int rc,int signal,gboolean core_dumped)
-,	FALSE 				///< gboolean save_stdout
+,	saveout				///< gboolean save_stdout
 ,	NULL				///< const char * logdomain
 ,	NULL				///< const char * logprefix
 ,	G_LOG_LEVEL_WARNING		///< GLogLevelFlags loglevel
@@ -174,16 +194,25 @@ _resourceocf_child_notify(ChildProcess* child
 ,	gboolean	core_dumped)
 {
 	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, child->user_data);
+	char *		outread = NULL;
+
+	if (self->child->stdout_src->textread
+	&&	self->child->stdout_src->textread->str) {
+		outread = self->child->stdout_src->textread->str;
+	}else{
+		outread = NULL;
+	}
 
 	if (!self->baseclass.callback) {
 		return;
 	}
+	
 	self->baseclass.callback(self->baseclass.request
 	,	self->baseclass.user_data
 	,	exittype
 	,	rc
 	,	signal
 	,	core_dumped
-	,	NULL);
+	,	outread);
 }
 ///@}
