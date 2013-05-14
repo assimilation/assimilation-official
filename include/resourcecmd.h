@@ -61,6 +61,7 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
 #define	REQCLASSNAMEFIELD	"class"
 #define	REQTYPENAMEFIELD	"type"
+#define	REQPROVIDERNAMEFIELD	"provider"
 #define	REQOPERATIONNAMEFIELD	"operation"
 #define	REQENVIRONNAMEFIELD	"environ"
 #define	REQRSCNAMEFIELD		"resourcename"

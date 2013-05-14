@@ -29,6 +29,7 @@
 #include <logsourcefd.h>
 #include <configcontext.h>
 #include <childprocess.h>
+#include <resourcecmd.h>
 
 GMainLoop*	mainloop;
 FSTATIC void	test_read_command_output_at_EOF(void);
@@ -46,6 +47,9 @@ FSTATIC void	test_childprocess_save_command_output_timeout(void);
 FSTATIC void	test_childprocess_save_command_output_signal(void);
 FSTATIC void	test_childprocess_stderr_logging(void);
 FSTATIC void	test_childprocess_modenv(void);
+FSTATIC void	test_safe_ocfops(void);
+FSTATIC void	expect_ocf_callback(ConfigContext* request, gpointer user_data, enum HowDied reason
+,		int rc, int signal, gboolean coredump, const char * stringresult);
 
 #define	HELLOSTRING	": Hello, world."
 #define	HELLOSTRING_NL	(HELLOSTRING "\n")
@@ -85,7 +89,6 @@ test_read_command_output_at_EOF(void)
 	gchar		hello[] = HELLOSTRING;
 	gchar* 	argv[] = {echo, hello, NULL};		// Broken glib API...
 	gint	cmdid;
-	g_assert(TRUE);
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_spawn_async_with_pipes(
 		NULL,				// Current directory
@@ -403,6 +406,103 @@ test_childprocess_timeout(void)
 	generic_childprocess_test(argv, NULL, FALSE, NULL, 1);
 }
 
+#define	OCFCLASS	"\"" REQCLASSNAMEFIELD		"\": \"ocf\""
+#define	HBPROVIDER	"\"" REQPROVIDERNAMEFIELD	"\": \"heartbeat\""
+#define	DUMMYTYPE	"\"" REQTYPENAMEFIELD		"\": \"Dummy\""
+#define	STOPOP		"\"" REQOPERATIONNAMEFIELD	"\": \"stop\""
+#define	MONITOROP	"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
+#define	METADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
+#define	RESOURCENAME	"\"" REQRSCNAMEFIELD		"\": \"DummyTestGTest01\""
+#define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}"
+
+struct ocf_expect {
+	gint		minstrlen;
+	gint		maxstrlen;
+	enum HowDied	death;
+	int		rc;
+	int		signal;
+	gboolean	coredump;
+};
+
+FSTATIC void
+expect_ocf_callback(ConfigContext* request, gpointer user_data, enum HowDied reason, int rc
+,		int signal, gboolean coredump, const char * stringresult)
+{
+	struct ocf_expect *	expect = (struct ocf_expect *)user_data;
+	int			stringlen = (stringresult ? (gint)strlen(stringresult) : -1);
+
+	(void)request;
+	if (expect->maxstrlen >= 0) {
+		g_assert(stringlen <= expect->maxstrlen);
+	}
+	g_assert(stringlen >= expect->minstrlen);
+
+	g_assert(reason == expect->death);
+	g_assert(rc == expect->rc);
+	g_assert(signal == expect->signal);
+	g_assert(coredump == expect->coredump);
+	g_main_loop_quit(mainloop);
+}
+
+FSTATIC void
+test_safe_ocfops(void)
+{
+	const char *	stop =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STOPOP "," HBPROVIDER "," NULLPARAMS "}";
+	const char *	monitor =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONITOROP "," HBPROVIDER "," NULLPARAMS "}";
+	const char * metadata =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METADATAOP "," HBPROVIDER "," NULLPARAMS "}";
+	
+	struct ocf_expect plain_success = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_ZERO,	// enum HowDied	death;
+		0,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+	};
+	struct ocf_expect stopped_failure = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_NONZERO,	// enum HowDied	death;
+		3,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+	};
+
+	struct ocf_expect meta_success = {
+		200, 		// gint		minstrlen;
+		50000,		// gint		maxstrlen;
+		EXITED_ZERO,	// enum HowDied	death;
+		0,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+	};
+
+	const char *		operations[] = 
+		{metadata,	stop,		monitor};
+	struct ocf_expect*	expectations [] =
+		{&meta_success,	&plain_success,	&stopped_failure};
+	guint	j;
+
+	for (j=0; j < DIMOF(operations); ++j) {
+		ResourceCmd*	cmd;
+		ConfigContext*	op = configcontext_new_JSON_string(operations[j]);
+
+		g_assert(op != NULL);
+		mainloop = g_main_loop_new(g_main_context_default(), TRUE);
+		cmd = resourcecmd_new(op, expectations[j], expect_ocf_callback);
+		g_assert(cmd != NULL);
+
+		cmd->execute(cmd);
+		g_main_loop_run(mainloop);
+		g_main_loop_unref(mainloop);
+		UNREF(cmd);
+		UNREF(op);
+	}
+}
+
 /// Test main program ('/gtest01') using the glib test fixtures
 int
 main(int argc, char ** argv)
@@ -423,5 +523,7 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/childprocess_stderr_logging"
 	,	test_childprocess_stderr_logging);
 	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
+	// @todo BROKEN CODE - avoid it for the moment.  Definitely HAS to be fixed.
+	//g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
 	return g_test_run();
 }

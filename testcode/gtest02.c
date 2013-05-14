@@ -42,11 +42,15 @@ logfatal_function(
 	(void)log_domain;
 	(void)log_level;
 
+	if (log_level >= G_LOG_LEVEL_MESSAGE) {
+		return FALSE;
+	} 
 	for (mptr = messagelist; mptr && *mptr; ++mptr) {
 		if (strstr(message, *mptr) != NULL) {
 			return FALSE;
 		}
 	}
+	g_message("Could not find this message [%s]", message);
 	return TRUE;
 }
 
@@ -56,27 +60,28 @@ FSTATIC void
 test_invalid_resourcecmd(void)
 {
 
+#define	PROV	",\"" REQPROVIDERNAMEFIELD "\": \"heartbeat\"}"
 	const char *	json_cmds[] = {
 		"{}",
-		"{\"" REQCLASSNAMEFIELD "\": \"NOSUCHRESOURCECLASS\","DUMB"}",
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"}",
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"," DUMB "}",
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\","DUMB"}",
+		"{\"" REQCLASSNAMEFIELD "\": \"NOSUCHRESOURCECLASS\","DUMB PROV,
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"" PROV,
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"," DUMB PROV,
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\","DUMB PROV,
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
-				REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB"}",
+				REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB PROV,
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
 				REQOPERATIONNAMEFIELD"\":\"monitor\","
-				"\""REQENVIRONNAMEFIELD"\":\"notahash\","DUMB"}",
+				"\""REQENVIRONNAMEFIELD"\":\"notahash\","DUMB PROV,
 		NULL
 	};
 	const char *	expected_failures[] = {
 		": No class name in request [{}]",
-		": No resource name in request [{\"class\":\"ocf\"}]",
+		": No resource name in request [{\"class\":\"ocf\",\"provider\":\"heartbeat\"}]",
 		": Invalid resource class [NOSUCHRESOURCECLASS]",
 		": NULL resourcecmd request",
 		": No type field in OCF agent request.",
 		": No operation field in OCF agent request.",
-		": No OCF Resource agent [/usr/lib/ocf/resource.d/NOSUCHOCFRESOURCETYPE]",
+		": No OCF Resource agent [/usr/lib/ocf/resource.d/heartbeat/NOSUCHOCFRESOURCETYPE]",
 		": environ field in OCF request is invalid.",
 		NULL
 	};

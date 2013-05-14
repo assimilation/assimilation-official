@@ -56,6 +56,7 @@ resourceocf_new(
 	const char *		restype;
 	char *			ocfpath;
 	const char *		operation;
+	const char *		provider;
 	enum ConfigValType	envtype;
 
 	BINDDEBUG(ResourceCmd);
@@ -71,6 +72,12 @@ resourceocf_new(
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
+	provider = request->getstring(request, REQPROVIDERNAMEFIELD);
+	if (NULL == provider) {
+		g_warning("%s.%d: No "REQPROVIDERNAMEFIELD" field in OCF agent request."
+		,	__FUNCTION__, __LINE__);
+		return NULL;
+	}
 	
 	envtype = request->gettype(request, REQENVIRONNAMEFIELD);
 	if (envtype != CFG_EEXIST && envtype != CFG_CFGCTX) {
@@ -79,7 +86,7 @@ resourceocf_new(
 		return NULL;
 	}
 
-	ocfpath = g_build_filename(OCF_ROOT, OCF_RES_D, restype, NULL);
+	ocfpath = g_build_filename(OCF_ROOT, OCF_RES_D, provider, restype, NULL);
 	if (	!g_file_test(ocfpath, G_FILE_TEST_IS_REGULAR)
 	||	!g_file_test(ocfpath, G_FILE_TEST_IS_EXECUTABLE)) {
 		g_warning("%s.%d: No OCF Resource agent [%s]", __FUNCTION__, __LINE__
@@ -95,6 +102,7 @@ resourceocf_new(
 	if (!_resourceocf_save_finalize) {
 		_resourceocf_save_finalize = cself->baseclass._finalize;
 	}
+	cself->execute = _resourceocf_execute;
 	self = NEWSUBCLASS(ResourceOCF, cself);
 	self->ocfpath = ocfpath;
 	self->operation = operation;
