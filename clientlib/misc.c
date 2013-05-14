@@ -275,7 +275,7 @@ assimilation_logger(const gchar *log_domain,	///< What domain are we logging to?
 
 #ifdef WIN32
 #define SEP '\\'
-//TODO: these will be replaced when windows functionality cathes up
+//@todo: these will be replaced when windows functionality cathes up
 #define	PROCSELFEXE	"/"
 #define	PROCOTHEREXE	"/"
 #else

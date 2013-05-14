@@ -191,7 +191,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			if (NULL == newframe) {
 				UNREF(fs);
 				// What should we do about 'ret'?
-				///@TODO memory leak in error condition
+				///@todo memory leak in error condition
 				return NULL;
 			}
 			if (nextframe > nextframeset) {
