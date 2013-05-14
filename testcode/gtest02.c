@@ -51,25 +51,33 @@ logfatal_function(
 }
 
 ///< Try various invalid resource command initializers
+#define	DUMB	"\""REQRSCNAMEFIELD"\":\"dumb\""
 FSTATIC void
 test_invalid_resourcecmd(void)
 {
+
 	const char *	json_cmds[] = {
 		"{}",
-		"{\"" REQCLASSNAMEFIELD "\": \"NOSUCHRESOURCECLASS\"}",
+		"{\"" REQCLASSNAMEFIELD "\": \"NOSUCHRESOURCECLASS\","DUMB"}",
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"}",
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\"}",
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"," DUMB "}",
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\","DUMB"}",
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
-				REQOPERATIONNAMEFIELD"\":\"monitor\"}",
+				REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB"}",
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
+				REQOPERATIONNAMEFIELD"\":\"monitor\","
+				"\""REQENVIRONNAMEFIELD"\":\"notahash\","DUMB"}",
 		NULL
 	};
 	const char *	expected_failures[] = {
 		": No class name in request [{}]",
+		": No resource name in request [{\"class\":\"ocf\"}]",
 		": Invalid resource class [NOSUCHRESOURCECLASS]",
 		": NULL resourcecmd request",
 		": No type field in OCF agent request.",
 		": No operation field in OCF agent request.",
 		": No OCF Resource agent [/usr/lib/ocf/resource.d/NOSUCHOCFRESOURCETYPE]",
+		": environ field in OCF request is invalid.",
 		NULL
 	};
 	guint		j;

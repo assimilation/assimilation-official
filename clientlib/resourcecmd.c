@@ -65,6 +65,7 @@ resourcecmd_new(ConfigContext* request		///< Request to instantiate
 {
 	guint		j;
 	const char *	cname;
+	const char *	rscname;
 
 	if (NULL == request) {
 		g_warning("%s.%d: NULL resourcecmd request" , __FUNCTION__, __LINE__);
@@ -75,6 +76,14 @@ resourcecmd_new(ConfigContext* request		///< Request to instantiate
 	if (NULL == cname) {
 		char *	reqstr = request->baseclass.toString(&request->baseclass);
 		g_warning("%s.%d: No class name in request [%s]", __FUNCTION__, __LINE__
+		,	reqstr);
+		g_free(reqstr); reqstr = NULL;
+		return NULL;
+	}
+	rscname = request->getstring(request, REQRSCNAMEFIELD);
+	if (NULL == rscname) {
+		char *	reqstr = request->baseclass.toString(&request->baseclass);
+		g_warning("%s.%d: No resource name in request [%s]", __FUNCTION__, __LINE__
 		,	reqstr);
 		g_free(reqstr); reqstr = NULL;
 		return NULL;
@@ -123,6 +132,7 @@ resourcecmd_constructor(
 	self = NEWSUBCLASS(ResourceCmd, aself);
 
 	self->request = request;
+	REF(self->request);
 	self->user_data = user_data;
 	self->callback = callback;
 	self->execute = _resourcecmd_execute;
