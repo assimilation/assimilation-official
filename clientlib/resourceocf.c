@@ -139,7 +139,12 @@ _resourceocf_finalize(AssimObj* aself)
 FSTATIC void
 _resourceocf_execute(ResourceCmd* cmdself)
 {
-	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, cmdself);
+	ResourceOCF*		self = CASTTOCLASS(ResourceOCF, cmdself);
+	enum ChildErrLogMode	logmode;
+
+	logmode = (self->baseclass.callback ? CHILD_LOGERRS : CHILD_LOGALL);
+
+
 	self->child = childprocess_new
 (	0				///< cpsize
 ,	self->argv			///< char** argv,
@@ -154,7 +159,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 ,	G_LOG_LEVEL_WARNING		///< GLogLevelFlags loglevel
 ,	self->baseclass.timeout_secs	///< guint32 timeout_seconds,
 ,	self				///< gpointer user_data
-,	CHILD_LOGERRS			///< enum ChildErrLogMode errlogmode
+,	logmode				///< enum ChildErrLogMode errlogmode
 ,	self->loggingname		///< const char * loggingname
 	);
 }
