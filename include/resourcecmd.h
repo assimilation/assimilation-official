@@ -53,6 +53,8 @@ struct _ResourceCmd{
 	gpointer		user_data;	///< User data for the request
 	ResourceCmdCallback	callback;	///< Callback to call when request is complete
 	void (*execute)(ResourceCmd* self);	///< Execute this resource command
+	const char *		resourcename;	///< Name of this resource
+	guint32			timeout_secs;	///< Timeout for this operation (secs)
 };
 
 ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
@@ -60,6 +62,8 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 #define	REQCLASSNAMEFIELD	"class"
 #define	REQTYPENAMEFIELD	"type"
 #define	REQOPERATIONNAMEFIELD	"operation"
+#define	REQENVIRONNAMEFIELD	"environ"
+#define	REQRSCNAMEFIELD		"resourcename"
 #ifdef RESOURCECMD_SUBCLASS
 WINEXPORT ResourceCmd* resourcecmd_constructor(guint structsize, ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);

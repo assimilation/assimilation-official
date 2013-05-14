@@ -46,6 +46,11 @@ struct _ResourceOCF{
 	ResourceCmd		baseclass;	///< Base object: implements ref, unref, toString
 	char *			ocfpath;
 	const char *		operation;
+	const char *		resourcename;
+	ConfigContext*		environ;
+	ChildProcess*		child;
+	char*			argv[3];	///< malloced
+	char*			loggingname;	///< Malloced
 };
 
 #define OCF_ROOT	"/usr/lib/ocf"

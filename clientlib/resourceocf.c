@@ -35,6 +35,7 @@ DEBUGDECLARATIONS
 
 FSTATIC void _resourceocf_finalize(AssimObj* aself);
 FSTATIC void _resourceocf_execute(ResourceCmd* self);
+FSTATIC void _resourceocf_child_notify(ChildProcess*, enum HowDied, int, int, gboolean);
 
 static void (*_resourceocf_save_finalize)(AssimObj*) = NULL;
 
@@ -49,11 +50,12 @@ resourceocf_new(
 ,		gpointer user_data		///< User data for 'callback'
 ,		ResourceCmdCallback callback)	///< Callback when complete
 {
-	ResourceCmd*	cself;
-	ResourceOCF*	self;
-	const char *	restype;
-	char *		ocfpath;
-	const char *	operation;
+	ResourceCmd*		cself;
+	ResourceOCF*		self;
+	const char *		restype;
+	char *			ocfpath;
+	const char *		operation;
+	enum ConfigValType	envtype;
 
 	BINDDEBUG(ResourceCmd);
 	restype = request->getstring(request, REQTYPENAMEFIELD);
@@ -68,6 +70,14 @@ resourceocf_new(
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
+	
+	envtype = request->gettype(request, REQENVIRONNAMEFIELD);
+	if (envtype != CFG_EEXIST && envtype != CFG_CFGCTX) {
+		g_warning("%s.%d: "REQENVIRONNAMEFIELD" field in OCF request is invalid."
+		,	__FUNCTION__, __LINE__);
+		return NULL;
+	}
+
 	ocfpath = g_build_filename(OCF_ROOT, OCF_RES_D, restype, NULL);
 	if (	!g_file_test(ocfpath, G_FILE_TEST_IS_REGULAR)
 	||	!g_file_test(ocfpath, G_FILE_TEST_IS_EXECUTABLE)) {
@@ -87,6 +97,14 @@ resourceocf_new(
 	self = NEWSUBCLASS(ResourceOCF, cself);
 	self->ocfpath = ocfpath;
 	self->operation = operation;
+	self->environ = request->getconfig(request, REQENVIRONNAMEFIELD);
+	self->loggingname = g_strdup_printf("%s:%s"
+	,	self->baseclass.resourcename, self->operation);
+	self->argv[0] = g_strdup(self->ocfpath);
+	self->argv[1] = g_strdup(self->operation);
+	self->argv[2] = 0;
+	self->child = NULL;
+	
 
 	return cself;
 }
@@ -96,16 +114,71 @@ void
 _resourceocf_finalize(AssimObj* aself)
 {
 	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, aself);
+	guint		j;
+
 	if (self->ocfpath) {
 		g_free(self->ocfpath);
 		self->ocfpath = NULL;
+	}
+	for (j=0; j < DIMOF(self->argv); ++j) {
+		if (self->argv[j]) {
+			g_free(self->argv[j]);
+			self->argv[j] = NULL;
+		}
+	}
+	if (self->loggingname) {
+		g_free(self->loggingname);
+		self->loggingname = NULL;
+	}
+	if (self->child) {
+		UNREF(self->child);
 	}
 	_resourceocf_save_finalize(aself);
 }
 /// Do the deed, dude!
 FSTATIC void
-_resourceocf_execute(ResourceCmd* self)
+_resourceocf_execute(ResourceCmd* cmdself)
 {
-	(void)self;
+	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, cmdself);
+	self->child = childprocess_new
+(	0				///< cpsize
+,	self->argv			///< char** argv,
+,	NULL				///< const char** envp
+,	self->environ			///< ConfigContext* envmod
+,	NULL				///< const char* curdir
+,	_resourceocf_child_notify 
+	///< void (*notify)(ChildProcess*,enum HowDied,int rc,int signal,gboolean core_dumped)
+,	FALSE 				///< gboolean save_stdout
+,	NULL				///< const char * logdomain
+,	NULL				///< const char * logprefix
+,	G_LOG_LEVEL_WARNING		///< GLogLevelFlags loglevel
+,	self->baseclass.timeout_secs	///< guint32 timeout_seconds,
+,	self				///< gpointer user_data
+,	CHILD_LOGERRS			///< enum ChildErrLogMode errlogmode
+,	self->loggingname		///< const char * loggingname
+	);
+}
+
+/// We get called when our child exits, times out and is killed, or times out and
+/// can't be killed
+FSTATIC void
+_resourceocf_child_notify(ChildProcess* child
+,	enum HowDied	exittype
+,	int		rc
+,	int		signal
+,	gboolean	core_dumped)
+{
+	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, child->user_data);
+
+	if (!self->baseclass.callback) {
+		return;
+	}
+	self->baseclass.callback(self->baseclass.request
+	,	self->baseclass.user_data
+	,	exittype
+	,	rc
+	,	signal
+	,	core_dumped
+	,	NULL);
 }
 ///@}
