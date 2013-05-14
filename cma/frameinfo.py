@@ -157,8 +157,9 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
     _intframetypes = {
   	0:  (pyFrame, 'END', 'Final frame in a message',
 '''The last frame in a frameset is required to be an End frame.
-End frames are of type zero and ALWAYS have length zero.
-Its corresponding @ref Frame class is @ref Frame.
+End frames are of type zero and <b>always</b> have length zero.
+Its corresponding class is @ref Frame.
+This is the most basic Frame type, and is the only frame type that permits a length of zero.
 '''),
   	1:  (pySignFrame, 'SIG', 'Digital signature frame',
 '''The signature frame is mandatory and must be the first
