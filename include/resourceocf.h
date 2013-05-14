@@ -1,10 +1,7 @@
 /**
  * @file
- * @brief Implements the resource command abstract class
- * @details Defines the API for operating on resources.
- * It is a factory class which defines these APIs/interfaces, and the parent class of all
- * resource types.
- * It knows which subclass of resource object to create - and fails on invalid subclass types
+ * @brief Implements the OCF resource class
+ * @details Implements the Open Cluster Framework resource agent API
  *
  * @author  Alan Robertson <alanr@unix.sh> - Copyright &copy; 2013 - Assimilation Systems Limited
  * @n
@@ -23,14 +20,15 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
-#ifndef _RESOURCECMD_H
-#define _RESOURCECMD_H
+#ifndef _RESOURCEOCF_H
+#define _RESOURCEOCF_H
 #include <projectcommon.h>
 #include <assimobj.h>
 #include <configcontext.h>
+#include <resourcecmd.h>
 #include <childprocess.h>
 /**@{
- * @ingroup ResourceCmd
+ * @ingroup ResourceOCF
  * It does not implement any queueing, repeating events or such things.
  * It creates an object which will execute the resource action immediately when asked.
  * If this class invoked without any sort of queueing mechanism, or other safeguards
@@ -41,29 +39,20 @@
  *
  */
 
-typedef	void(*ResourceCmdCallback)(ConfigContext* request, gpointer user_data
-,			enum HowDied reason, int rc, int signal, gboolean core_dumped
-,			const char * stringresult);
 
-typedef struct _ResourceCmd	ResourceCmd;
+typedef struct _ResourceOCF	ResourceOCF;
 
-struct _ResourceCmd{
-	AssimObj		baseclass;	///< Base object: implements ref, unref, toString
-	ConfigContext*		request;	///< The request
-	gpointer		user_data;	///< User data for the request
-	ResourceCmdCallback	callback;	///< Callback to call when request is complete
-	void (*execute)(ResourceCmd* self);	///< Execute this resource command
+struct _ResourceOCF{
+	ResourceCmd		baseclass;	///< Base object: implements ref, unref, toString
+	char *			ocfpath;
+	const char *		operation;
 };
 
-ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
-,			 ResourceCmdCallback callback);
-#define	REQCLASSNAMEFIELD	"class"
-#define	REQTYPENAMEFIELD	"type"
-#define	REQOPERATIONNAMEFIELD	"operation"
-#ifdef RESOURCECMD_SUBCLASS
-WINEXPORT ResourceCmd* resourcecmd_constructor(guint structsize, ConfigContext* request, gpointer user_data
-,			 ResourceCmdCallback callback);
-WINEXPORT void _resourcecmd_finalize(AssimObj* aself);
-#endif
+#define OCF_ROOT	"/usr/lib/ocf"
+#define OCF_RES_D	"resource.d"
+
+// This 'constructor' creates a subclass object, but returns a superclass object type.
+WINEXPORT ResourceCmd* resourceocf_new(guint structsize, ConfigContext* request
+,			gpointer user_data, ResourceCmdCallback callback);
 ///@}
-#endif/*_RESOURCECMD_H*/
+#endif/*_RESOURCEOCF_H*/

@@ -58,7 +58,9 @@ test_invalid_resourcecmd(void)
 		"{}",
 		"{\"" REQCLASSNAMEFIELD "\": \"NOSUCHRESOURCECLASS\"}",
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"}",
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\", }",
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\"}",
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
+				REQOPERATIONNAMEFIELD"\":\"monitor\"}",
 		NULL
 	};
 	const char *	expected_failures[] = {
@@ -66,6 +68,7 @@ test_invalid_resourcecmd(void)
 		": Invalid resource class [NOSUCHRESOURCECLASS]",
 		": NULL resourcecmd request",
 		": No type field in OCF agent request.",
+		": No operation field in OCF agent request.",
 		": No OCF Resource agent [/usr/lib/ocf/resource.d/NOSUCHOCFRESOURCETYPE]",
 		NULL
 	};

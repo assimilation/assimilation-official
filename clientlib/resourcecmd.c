@@ -49,7 +49,8 @@ static const struct {
 }subclasses[] = {
 	{"ocf", resourceocf_new}	//< No such constructor...
 };
-void _resourcecmd_finalize(AssimObj*);
+FSTATIC void _resourcecmd_finalize(AssimObj*);
+FSTATIC void _resourcecmd_execute(ResourceCmd* self);	///< Moan and complain - abstract class
 
 /**
  * Our ResourceCmd Factory object - constructs an object of the proper subclass for the given
@@ -80,7 +81,6 @@ resourcecmd_new(ConfigContext* request		///< Request to instantiate
 	}
 
 	for (j=0; j < DIMOF(subclasses) && subclasses[j].classname; ++j) {
-g_message("LOOKING AT %s vs %s [%d]", cname, subclasses[j].classname, j);
 		if (strcmp(cname, subclasses[j].classname) == 0) {
 			return subclasses[j].constructor(0, request, user_data, callback);
 		}
@@ -125,8 +125,17 @@ resourcecmd_constructor(
 	self->request = request;
 	self->user_data = user_data;
 	self->callback = callback;
+	self->execute = _resourcecmd_execute;
 
 	aself->_finalize = _resourcecmd_finalize;
 	return self;
+}
+/// Moan and complain - we're an abstract class
+FSTATIC void
+_resourcecmd_execute(ResourceCmd* self)
+{
+	(void)self;
+	g_warning("%s.%d: Abstract class -- cannot execute."
+	,	__FUNCTION__, __LINE__);
 }
 ///@}
