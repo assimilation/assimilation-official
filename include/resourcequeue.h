@@ -27,7 +27,7 @@
 #include <resourcecmd.h>
 /**@{
  * @ingroup ResourceQueue
- * This is the Queue object for creating and managing @ref Resource objects.
+ * This is the Queue object for creating and managing @ref ResourceCmd objects.
  * It's not a pure Queue design pattern - because it doesn't yield Resource objects,
  * but creates and manages them internally.
  *
