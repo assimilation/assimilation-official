@@ -58,6 +58,7 @@ struct _ResourceCmd{
 ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
 #define	REQCLASSNAMEFIELD	"class"
+#define	REQTYPENAMEFIELD	"type"
 #ifdef RESOURCECMD_SUBCLASS
 WINEXPORT ResourceCmd* resourcecmd_constructor(guint structsize, ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
