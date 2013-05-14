@@ -25,6 +25,7 @@
 #include <string.h>
 #define	RESOURCECMD_SUBCLASS
 #include <resourcecmd.h>
+#include <resourceocf.h>
 
 DEBUGDECLARATIONS
 
@@ -38,7 +39,7 @@ DEBUGDECLARATIONS
  *	List of all known ResourceCmd subclass names and their constructor functions
  *	This is for our 'factory'-like function resourcecmd_new().
  */
-static struct {
+static const struct {
 	const char *		classname;
 	ResourceCmd* (*constructor) (
 			guint structsize
@@ -46,7 +47,7 @@ static struct {
 ,			gpointer user_data
 ,			ResourceCmdCallback callback);
 }subclasses[] = {
-	{NULL, NULL}	//< No such constructor...
+	{"ocf", resourceocf_new}	//< No such constructor...
 };
 void _resourcecmd_finalize(AssimObj*);
 
@@ -79,7 +80,8 @@ resourcecmd_new(ConfigContext* request		///< Request to instantiate
 	}
 
 	for (j=0; j < DIMOF(subclasses) && subclasses[j].classname; ++j) {
-		if (strcmp(cname, subclasses[j].classname) != 0) {
+g_message("LOOKING AT %s vs %s [%d]", cname, subclasses[j].classname, j);
+		if (strcmp(cname, subclasses[j].classname) == 0) {
 			return subclasses[j].constructor(0, request, user_data, callback);
 		}
 	}

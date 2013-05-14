@@ -57,12 +57,16 @@ test_invalid_resourcecmd(void)
 	const char *	json_cmds[] = {
 		"{}",
 		"{\"" REQCLASSNAMEFIELD "\": \"NOSUCHRESOURCECLASS\"}",
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"}",
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\", }",
 		NULL
 	};
 	const char *	expected_failures[] = {
 		": No class name in request [{}]",
 		": Invalid resource class [NOSUCHRESOURCECLASS]",
 		": NULL resourcecmd request",
+		": No type field in OCF agent request.",
+		": No OCF Resource agent [/usr/lib/ocf/resource.d/NOSUCHOCFRESOURCETYPE]",
 		NULL
 	};
 	guint		j;
