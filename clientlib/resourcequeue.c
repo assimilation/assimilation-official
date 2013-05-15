@@ -87,6 +87,9 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd)
 {
 	GQueue*	q;
 
+	/// @todo remove this once clang bug is fixed
+	g_return_if_fail(cmd->resourcename != NULL);
+
 	q = g_hash_table_lookup(self->resources, cmd->resourcename);
 	if (NULL == q) {
 		q = g_queue_new();
