@@ -103,6 +103,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	GError*		failcode = NULL;
 	gchar**		childenv = NULL;
 
+	g_return_val_if_fail(logprefix != NULL, NULL);
 	if (cpsize < sizeof(ChildProcess)) {
 		cpsize = sizeof(ChildProcess);
 	}
@@ -295,7 +296,7 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 			,	self->loggingname, self->timeout);
 			break;
 		case EXITED_NONZERO:
-			g_warning("Child process [%s] exited with return code %d."
+			g_message("Child process [%s] exited with return code %d."
 			,	self->loggingname, exitrc);
 			break;
 		case EXITED_ZERO:

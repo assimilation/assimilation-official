@@ -38,6 +38,8 @@ FSTATIC void _resourceocf_execute(ResourceCmd* self);
 FSTATIC void _resourceocf_child_notify(ChildProcess*, enum HowDied, int, int, gboolean);
 FSTATIC gboolean _resourceocf_outputs_string(const char * operation);
 
+FSTATIC void _resourceocf_init_environ(ResourceOCF* self);
+
 static void (*_resourceocf_save_finalize)(AssimObj*) = NULL;
 
 /// Constructor for ResourceOCF class.
@@ -55,7 +57,6 @@ resourceocf_new(
 	ResourceOCF*		self;
 	const char *		restype;
 	char *			ocfpath;
-	const char *		operation;
 	const char *		provider;
 	enum ConfigValType	envtype;
 
@@ -63,12 +64,6 @@ resourceocf_new(
 	restype = request->getstring(request, REQTYPENAMEFIELD);
 	if (NULL == restype) {
 		g_warning("%s.%d: No "REQTYPENAMEFIELD" field in OCF agent request."
-		,	__FUNCTION__, __LINE__);
-		return NULL;
-	}
-	operation = request->getstring(request, REQOPERATIONNAMEFIELD);
-	if (NULL == operation) {
-		g_warning("%s.%d: No "REQOPERATIONNAMEFIELD" field in OCF agent request."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
@@ -95,27 +90,58 @@ resourceocf_new(
 		return NULL;
 	}
 	
-	if (structsize < sizeof(ResourceCmd)) {
-		structsize = sizeof(ResourceCmd);
+	if (structsize < sizeof(ResourceOCF)) {
+		structsize = sizeof(ResourceOCF);
 	}
 	cself = resourcecmd_constructor(structsize, request, user_data, callback);
 	if (!_resourceocf_save_finalize) {
 		_resourceocf_save_finalize = cself->baseclass._finalize;
 	}
 	cself->execute = _resourceocf_execute;
+	(void)g_malloc(10);
 	self = NEWSUBCLASS(ResourceOCF, cself);
+	(void)g_malloc(10);
 	self->ocfpath = ocfpath;
-	self->operation = operation;
-	self->environ = request->getconfig(request, REQENVIRONNAMEFIELD);
-	self->loggingname = g_strdup_printf("%s:%s"
-	,	self->baseclass.resourcename, self->operation);
+	(void)g_malloc(10);
+	self->environ = configcontext_new(0);
+	(void)g_malloc(10);
+	self->loggingname = g_strdup_printf("%s:%s: "
+	,	self->baseclass.resourcename, self->baseclass.operation);
+	(void)g_malloc(10);
 	self->argv[0] = g_strdup(self->ocfpath);
-	self->argv[1] = g_strdup(self->operation);
+	self->argv[1] = g_strdup(self->baseclass.operation);
 	self->argv[2] = 0;
 	self->child = NULL;
-	
-
+	_resourceocf_init_environ(self);
 	return cself;
+}
+// Initialize all the OCF environment variables
+FSTATIC void
+_resourceocf_init_environ(ResourceOCF* self)
+{
+	ConfigContext*	p = self->baseclass.request->getconfig(self->baseclass.request, REQENVIRONNAMEFIELD);
+	GSList*		names = (p ? p->keys(p) : NULL);
+	GSList*		thisname;
+	
+	for(thisname = names; NULL != thisname; thisname=thisname->next) {
+		char *			mapname = g_strdup_printf("OCF_RESKEY_%s", (char*)thisname->data);
+		char *			value = p->getstr(p, (char*)thisname->data);
+
+		if (NULL == value) {
+			continue;
+		}
+		self->environ->setstring(self->environ, mapname, value);
+		g_free(mapname); mapname = NULL;
+		g_free(value); value = NULL;
+	}
+	g_slist_free(names);
+	names = NULL;
+
+	// Last but not least!
+	self->environ->setstring(self->environ, "OCF_ROOT", OCF_ROOT);
+	self->environ->setstring(self->environ, "OCF_RESOURCE_INSTANCE", self->baseclass.resourcename);
+	// Unofficial but often needed value
+	self->environ->setstring(self->environ, "HA_RSCTMP", HB_RSCTMPDIR);
 }
 
 /// Finalize function for ResourceCmd objects
@@ -169,9 +195,9 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	enum ChildErrLogMode	logmode;
 	gboolean		saveout;
 
-	logmode = (self->baseclass.callback ? CHILD_LOGERRS : CHILD_LOGALL);
+	logmode = (self->baseclass.callback ? CHILD_NOLOG : CHILD_LOGALL);
 
-	saveout = _resourceocf_outputs_string(self->operation);
+	saveout = _resourceocf_outputs_string(self->baseclass.operation);
 
 	self->child = childprocess_new
 (	0				///< cpsize
@@ -183,8 +209,8 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	///< void (*notify)(ChildProcess*,enum HowDied,int rc,int signal,gboolean core_dumped)
 ,	saveout				///< gboolean save_stdout
 ,	NULL				///< const char * logdomain
-,	NULL				///< const char * logprefix
-,	G_LOG_LEVEL_WARNING		///< GLogLevelFlags loglevel
+,	self->loggingname		///< const char * logprefix
+,	G_LOG_LEVEL_INFO		///< GLogLevelFlags loglevel
 ,	self->baseclass.timeout_secs	///< guint32 timeout_seconds,
 ,	self				///< gpointer user_data
 ,	logmode				///< enum ChildErrLogMode errlogmode

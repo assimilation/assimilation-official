@@ -54,6 +54,7 @@ struct _ResourceCmd{
 	ResourceCmdCallback	callback;	///< Callback to call when request is complete
 	void (*execute)(ResourceCmd* self);	///< Execute this resource command
 	const char *		resourcename;	///< Name of this resource
+	const char *		operation;	///< Operation being performed
 	guint32			timeout_secs;	///< Timeout for this operation (secs)
 };
 

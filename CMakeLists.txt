@@ -211,20 +211,24 @@ endif (PKG_CONFIG_FOUND)
 #
 #	Checking for various system functions and header files...
 #
+include(CheckIncludeFile)
+CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
+CHECK_INCLUDE_FILE(sys/utsname.h HAVE_SYS_UTSNAME_H)
+CHECK_INCLUDE_FILE(mcheck.h HAVE_MCHECK_H)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
 CHECK_FUNCTION_EXISTS(kill HAVE_KILL)
 CHECK_FUNCTION_EXISTS(sigaction HAVE_SIGACTION)
 CHECK_FUNCTION_EXISTS(uname HAVE_UNAME)
+CHECK_FUNCTION_EXISTS(uname HAVE_GETEUID)
 CHECK_FUNCTION_EXISTS(endprotoent  HAVE_ENDPROTOENT)
 CHECK_FUNCTION_EXISTS(setpgid  HAVE_SETPGID)
 CHECK_SYMBOL_EXISTS(GetComputerNameA "Windows.h" HAVE_GETCOMPUTERNAME) 
 CHECK_FUNCTION_EXISTS(g_get_real_time HAVE_G_GET_REAL_TIME)
 CHECK_FUNCTION_EXISTS(g_get_monotonic_time HAVE_G_GET_MONOTONIC_TIME)
 CHECK_FUNCTION_EXISTS(g_get_environ HAVE_G_GET_ENVIRON)
-include(CheckIncludeFile)
-CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
-CHECK_INCLUDE_FILE(sys/utsname.h HAVE_SYS_UTSNAME_H)
+CHECK_FUNCTION_EXISTS(mcheck HAVE_MCHECK)
+CHECK_FUNCTION_EXISTS(mcheck_pedantic HAVE_MCHECK_PEDANTIC)
 
 #
 #	Compiler flags for various compilers and platforms...

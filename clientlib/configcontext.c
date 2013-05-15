@@ -53,6 +53,7 @@ FSTATIC Frame*	_configcontext_getframe(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
 FSTATIC ConfigContext*
 		_configcontext_getconfig(const ConfigContext*, const char*);
+FSTATIC char*	_configcontext_getstr(const ConfigContext*, const char*);
 FSTATIC void	_configcontext_setconfig(ConfigContext*,const char *,ConfigContext*);
 FSTATIC gint	_configcontext_key_compare(gconstpointer a, gconstpointer b);
 
@@ -448,6 +449,17 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 	REF(value);
 	val->u.cfgctxvalue = value;
 	g_hash_table_replace(self->_values, cpname, val);
+}
+
+/// Return a string value (toString) associated with a given name
+FSTATIC char*
+_configcontext_getstr(const ConfigContext* self , const char* name)
+{
+	ConfigValue* cfval =  self->getvalue(self, name);
+	if (cfval == NULL) {
+		return NULL;
+	}
+	return _configcontext_elem_toString(cfval);
 }
 
 /// Create a ConfigValue object (containing an object and its type)
