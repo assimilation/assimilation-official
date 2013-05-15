@@ -45,8 +45,6 @@ typedef struct _ResourceOCF	ResourceOCF;
 struct _ResourceOCF{
 	ResourceCmd		baseclass;	///< Base object: implements ref, unref, toString
 	char *			ocfpath;
-	const char *		operation;
-	const char *		resourcename;
 	ConfigContext*		environ;
 	ChildProcess*		child;
 	char*			argv[3];	///< malloced
@@ -55,6 +53,7 @@ struct _ResourceOCF{
 
 #define OCF_ROOT	"/usr/lib/ocf"
 #define OCF_RES_D	"resource.d"
+#define HB_RSCTMPDIR	"/var/lib/heartbeat/lrm"
 
 // This 'constructor' creates a subclass object, but returns a superclass object type.
 WINEXPORT ResourceCmd* resourceocf_new(guint structsize, ConfigContext* request

@@ -65,7 +65,6 @@ resourcecmd_new(ConfigContext* request		///< Request to instantiate
 {
 	guint		j;
 	const char *	cname;
-	const char *	rscname;
 
 	if (NULL == request) {
 		g_warning("%s.%d: NULL resourcecmd request" , __FUNCTION__, __LINE__);
@@ -76,14 +75,6 @@ resourcecmd_new(ConfigContext* request		///< Request to instantiate
 	if (NULL == cname) {
 		char *	reqstr = request->baseclass.toString(&request->baseclass);
 		g_warning("%s.%d: No class name in request [%s]", __FUNCTION__, __LINE__
-		,	reqstr);
-		g_free(reqstr); reqstr = NULL;
-		return NULL;
-	}
-	rscname = request->getstring(request, REQRSCNAMEFIELD);
-	if (NULL == rscname) {
-		char *	reqstr = request->baseclass.toString(&request->baseclass);
-		g_warning("%s.%d: No resource name in request [%s]", __FUNCTION__, __LINE__
 		,	reqstr);
 		g_free(reqstr); reqstr = NULL;
 		return NULL;
@@ -123,10 +114,26 @@ resourcecmd_constructor(
 {
 	AssimObj*	aself;
 	ResourceCmd*	self;
+	const char*		rscname;
+	const char*		operation;
 
 	BINDDEBUG(ResourceCmd);
 	if (structsize < sizeof(ResourceCmd)) {
 		structsize = sizeof(ResourceCmd);
+	}
+	rscname = request->getstring(request, REQRSCNAMEFIELD);
+	if (NULL == rscname) {
+		char *	reqstr = request->baseclass.toString(&request->baseclass);
+		g_warning("%s.%d: No resource name in request [%s]", __FUNCTION__, __LINE__
+		,	reqstr);
+		g_free(reqstr); reqstr = NULL;
+		return NULL;
+	}
+	operation = request->getstring(request, REQOPERATIONNAMEFIELD);
+	if (NULL == operation) {
+		g_warning("%s.%d: No "REQOPERATIONNAMEFIELD" field in OCF agent request."
+		,	__FUNCTION__, __LINE__);
+		return NULL;
 	}
 	aself = assimobj_new(structsize);
 	self = NEWSUBCLASS(ResourceCmd, aself);
@@ -136,6 +143,8 @@ resourcecmd_constructor(
 	self->user_data = user_data;
 	self->callback = callback;
 	self->execute = _resourcecmd_execute;
+	self->resourcename = rscname;
+	self->operation = operation;
 
 	aself->_finalize = _resourcecmd_finalize;
 	return self;

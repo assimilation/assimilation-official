@@ -23,6 +23,12 @@
  */
 
 #include <projectcommon.h>
+#ifdef HAVE_MCHECK_H
+#	include <mcheck.h>
+#endif
+#ifdef HAVE_UNISTD_H
+#	include <unistd.h>
+#endif
 #include <string.h>
 #include <glib.h>
 #include <gmainfd.h>
@@ -409,6 +415,7 @@ test_childprocess_timeout(void)
 #define	OCFCLASS	"\"" REQCLASSNAMEFIELD		"\": \"ocf\""
 #define	HBPROVIDER	"\"" REQPROVIDERNAMEFIELD	"\": \"heartbeat\""
 #define	DUMMYTYPE	"\"" REQTYPENAMEFIELD		"\": \"Dummy\""
+#define	STARTOP		"\"" REQOPERATIONNAMEFIELD	"\": \"start\""
 #define	STOPOP		"\"" REQOPERATIONNAMEFIELD	"\": \"stop\""
 #define	MONITOROP	"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
 #define	METADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
@@ -449,12 +456,14 @@ test_safe_ocfops(void)
 {
 	const char *	stop =
 		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STOPOP "," HBPROVIDER "," NULLPARAMS "}";
+	const char *	start =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STARTOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char *	monitor =
 		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONITOROP "," HBPROVIDER "," NULLPARAMS "}";
 	const char * metadata =
 		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METADATAOP "," HBPROVIDER "," NULLPARAMS "}";
 	
-	struct ocf_expect plain_success = {
+	struct ocf_expect success = {
 		-1, 		// gint		minstrlen;
 		0,		// gint		maxstrlen;
 		EXITED_ZERO,	// enum HowDied	death;
@@ -462,11 +471,11 @@ test_safe_ocfops(void)
 		0,		// int		signal;
 		FALSE,		// gboolean	coredump;
 	};
-	struct ocf_expect stopped_failure = {
+	struct ocf_expect stop_fail = {
 		-1, 		// gint		minstrlen;
 		0,		// gint		maxstrlen;
 		EXITED_NONZERO,	// enum HowDied	death;
-		3,		// int		rc;
+		7,		// int		rc;
 		0,		// int		signal;
 		FALSE,		// gboolean	coredump;
 	};
@@ -481,10 +490,17 @@ test_safe_ocfops(void)
 	};
 
 	const char *		operations[] = 
-		{metadata,	stop,		monitor};
+	{metadata,	stop,     monitor,     start,     monitor,   stop,      monitor };
 	struct ocf_expect*	expectations [] =
-		{&meta_success,	&plain_success,	&stopped_failure};
+	{&meta_success,	&success, &stop_fail,  &success,  &success,  &success,  &stop_fail};
 	guint	j;
+
+#ifdef HAVE_GETEUID
+	if (geteuid() != 0) {
+		g_message("Test skipped - must be root.");
+		return;
+	}
+#endif
 
 	for (j=0; j < DIMOF(operations); ++j) {
 		ResourceCmd*	cmd;
@@ -493,8 +509,12 @@ test_safe_ocfops(void)
 		g_assert(op != NULL);
 		mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 		cmd = resourcecmd_new(op, expectations[j], expect_ocf_callback);
-		g_assert(cmd != NULL);
-
+		if (NULL == cmd) {
+			g_message("Cannot create Dummy OCF resource agent object -- is the Dummy RA installed? - test skipped.");
+			UNREF(op);
+			g_main_loop_unref(mainloop);
+			return;
+		}
 		cmd->execute(cmd);
 		g_main_loop_run(mainloop);
 		g_main_loop_unref(mainloop);
@@ -507,6 +527,13 @@ test_safe_ocfops(void)
 int
 main(int argc, char ** argv)
 {
+#ifdef HAVE_MCHECK_PEDANTIC
+	g_assert(mcheck_pedantic(NULL) == 0);
+#else
+#	ifdef HAVE_MCHECK
+	g_assert(mcheck(NULL) == 0);
+#	endif
+#endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	g_test_init(&argc, &argv, NULL);
 	g_test_add_func("/gtest01/gmain/command-output", test_read_command_output_at_EOF);
@@ -524,6 +551,6 @@ main(int argc, char ** argv)
 	,	test_childprocess_stderr_logging);
 	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
 	// @todo BROKEN CODE - avoid it for the moment.  Definitely HAS to be fixed.
-	//g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
+	g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
 	return g_test_run();
 }

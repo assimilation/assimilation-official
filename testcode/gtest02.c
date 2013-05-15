@@ -22,6 +22,9 @@
  */
 
 #include <projectcommon.h>
+#ifdef HAVE_MCHECK_H
+#	include <mcheck.h>
+#endif
 #include <string.h>
 #include <resourcecmd.h>
 
@@ -112,6 +115,13 @@ test_invalid_resourcecmd(void)
 int
 main(int argc, char ** argv)
 {
+#ifdef HAVE_MCHECK_PEDANTIC
+	g_assert(mcheck_pedantic(NULL) == 0);
+#else
+#	ifdef HAVE_MCHECK
+	g_assert(mcheck(NULL) == 0);
+#	endif
+#endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	g_test_init(&argc, &argv, NULL);
 	g_test_add_func("/gtest02/test_invalid_resourcecmd", test_invalid_resourcecmd);
