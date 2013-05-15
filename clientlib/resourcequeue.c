@@ -40,10 +40,13 @@ DEBUGDECLARATIONS
  *			add to the ResourceCmd structure...
  *
  */
-FSTATIC void _resource_queue_data_destructor(gpointer dataptr);
+FSTATIC void _resource_queue_hash_data_destructor(gpointer dataptr);
+FSTATIC void _resource_queue_hash_key_destructor(gpointer dataptr);
 FSTATIC void _resource_queue_cmd_remove(ResourceQueue* self, ResourceCmd* cmd);
 FSTATIC void _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd);
+FSTATIC void _resource_queue_finalize(AssimObj* aself);
 
+/// Construct a new ResourceQueue system (you probably only need one)
 ResourceQueue*
 resourcequeue_new(guint structsize)
 {
@@ -56,12 +59,29 @@ resourcequeue_new(guint structsize)
 	}
 	aself = assimobj_new(structsize);
 	self = NEWSUBCLASS(ResourceQueue, aself);
+	aself->_finalize = _resource_queue_finalize;
 
-	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, _resource_queue_data_destructor);
+	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal
+	,		_resource_queue_hash_key_destructor, _resource_queue_hash_data_destructor);
 
 	return self;
 }
 
+/// Finalize a ResourceQueue -- RIP
+FSTATIC void
+_resource_queue_finalize(AssimObj* aself)
+{
+	ResourceQueue*	self = CASTTOCLASS(ResourceQueue, aself);
+
+	if (self->resources) {
+		g_hash_table_destroy(self->resources);
+		self->resources = NULL;
+	}
+	_assimobj_finalize(&self->baseclass);
+	self = NULL;
+}
+
+/// Append a ResourceCmd to a ResourceQueue
 FSTATIC void
 _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd)
 {
@@ -70,12 +90,13 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd)
 	q = g_hash_table_lookup(self->resources, cmd->resourcename);
 	if (NULL == q) {
 		q = g_queue_new();
-		g_hash_table_insert(self->resources, (gpointer)cmd->resourcename, q);
+		g_hash_table_insert(self->resources, g_strdup(cmd->resourcename), q);
 	}
 	REF(cmd);
 	g_queue_push_tail(q, cmd);
 }
 
+/// Remove the first instance of a ResourceCmd from a ResourceQueue
 FSTATIC void
 _resource_queue_cmd_remove(ResourceQueue* self, ResourceCmd* cmd)
 {
@@ -83,15 +104,20 @@ _resource_queue_cmd_remove(ResourceQueue* self, ResourceCmd* cmd)
 
 	q = g_hash_table_lookup(self->resources, cmd->resourcename);
 	g_return_if_fail(q != NULL);
+
 	if (g_queue_remove(q, cmd)) {
 		UNREF(cmd);
 	}else{
 		g_return_if_reached();
 	}
+	if (g_queue_get_length(q) == 0) {
+		g_hash_table_remove(self->resources, cmd->resourcename);
+	}
 }
 
+/// Function for destroying data when an element is removed from self->resources hash table
 FSTATIC void
-_resource_queue_data_destructor(gpointer dataptr)
+_resource_queue_hash_data_destructor(gpointer dataptr)
 {
 	GQueue* 	q = (GQueue*) dataptr;
 	GList*		l;
@@ -105,5 +131,12 @@ _resource_queue_data_destructor(gpointer dataptr)
 	dataptr = NULL;
 }
 
+/// Function for destroying keys when an element is removed from self->resources hash table
+FSTATIC void
+_resource_queue_hash_key_destructor(gpointer keyptr)
+{
+	g_free(keyptr);
+	keyptr = NULL;
+}
 
 ///@}
