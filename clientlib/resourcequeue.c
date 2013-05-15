@@ -87,8 +87,6 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd)
 {
 	GQueue*	q;
 
-	/// @todo remove this once clang bug is fixed
-	g_return_if_fail(cmd->resourcename != NULL);
 
 	q = g_hash_table_lookup(self->resources, cmd->resourcename);
 	if (NULL == q) {
@@ -105,16 +103,17 @@ _resource_queue_cmd_remove(ResourceQueue* self, ResourceCmd* cmd)
 {
 	GQueue*	q;
 
+
 	q = g_hash_table_lookup(self->resources, cmd->resourcename);
 	g_return_if_fail(q != NULL);
 
 	if (g_queue_remove(q, cmd)) {
+		if (g_queue_get_length(q) == 0) {
+			g_hash_table_remove(self->resources, cmd->resourcename);
+		}
 		UNREF(cmd);
 	}else{
 		g_return_if_reached();
-	}
-	if (g_queue_get_length(q) == 0) {
-		g_hash_table_remove(self->resources, cmd->resourcename);
 	}
 }
 
