@@ -98,16 +98,11 @@ resourceocf_new(
 		_resourceocf_save_finalize = cself->baseclass._finalize;
 	}
 	cself->execute = _resourceocf_execute;
-	(void)g_malloc(10);
 	self = NEWSUBCLASS(ResourceOCF, cself);
-	(void)g_malloc(10);
 	self->ocfpath = ocfpath;
-	(void)g_malloc(10);
 	self->environ = configcontext_new(0);
-	(void)g_malloc(10);
 	self->loggingname = g_strdup_printf("%s:%s: "
 	,	self->baseclass.resourcename, self->baseclass.operation);
-	(void)g_malloc(10);
 	self->argv[0] = g_strdup(self->ocfpath);
 	self->argv[1] = g_strdup(self->baseclass.operation);
 	self->argv[2] = 0;
