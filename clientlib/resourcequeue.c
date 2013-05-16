@@ -41,6 +41,7 @@ struct _RscQElem {
 	ResourceCmdCallback	callback;	///< Who to call when it completes
 	gpointer		user_data;	///< user_data for callback
 	gint			repeatinterval;	///< How often to repeat?  0 == single-shot
+	gint64			requestid;	///< Request ID
 	gboolean		cancelme;	///< Cancel after current request completes
 };
 
@@ -57,13 +58,16 @@ struct _RscQElem {
 FSTATIC void _resource_queue_hash_data_destructor(gpointer dataptr);
 FSTATIC void _resource_queue_hash_key_destructor(gpointer dataptr);
 FSTATIC void _resource_queue_cmd_remove(ResourceQueue* self, RscQElem* qelem);
-FSTATIC void _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
+FSTATIC gboolean _resource_queue_Qcmd(ResourceQueue* self, ConfigContext* request
+,		ResourceCmdCallback callback, gpointer user_data);
+FSTATIC gboolean _resource_queue_cancel(ResourceQueue* self, ConfigContext* request);
+FSTATIC gboolean _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 ,		ResourceCmdCallback cb, gpointer user_data);
 FSTATIC void _resource_queue_finalize(AssimObj* aself);
 FSTATIC RscQElem* _resource_queue_qelem_new(ResourceCmd* cmd, ResourceQueue* parent
 ,		ResourceCmdCallback cb, gpointer user_data, GQueue* Q);
 FSTATIC void _resource_queue_qelem_finalize(RscQElem* self);
-FSTATIC void _resource_queue_runqueue(ResourceQueue* self);
+FSTATIC gboolean _resource_queue_runqueue(gpointer pself);
 FSTATIC void _resource_queue_endnotify(ConfigContext* request, gpointer user_data
 ,		enum HowDied exittype, int rc, int signal, gboolean core_dumped
 ,		const char* stringresult);
@@ -82,9 +86,12 @@ resourcequeue_new(guint structsize)
 	aself = assimobj_new(structsize);
 	self = NEWSUBCLASS(ResourceQueue, aself);
 	aself->_finalize = _resource_queue_finalize;
-
+	
+	self->Qcmd = _resource_queue_Qcmd;
+	self->cancel = _resource_queue_cancel;
 	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal
 	,		_resource_queue_hash_key_destructor, _resource_queue_hash_data_destructor);
+	self->timerid = g_timeout_add_seconds(1, _resource_queue_runqueue, self);
 
 	return self;
 }
@@ -102,16 +109,43 @@ _resource_queue_finalize(AssimObj* aself)
 	_assimobj_finalize(&self->baseclass);
 	self = NULL;
 }
+/// Append a ResourceQuee
+FSTATIC gboolean
+_resource_queue_Qcmd(ResourceQueue* self
+,	ConfigContext* request
+,	ResourceCmdCallback callback
+,	gpointer user_data)
+{
+	ResourceCmd*	cmd;
+	gboolean	ret;
+
+	cmd = resourcecmd_new(request, user_data, callback);
+
+	if (cmd == NULL) {
+		return FALSE;
+	}
+
+	ret = _resource_queue_cmd_append(self, cmd, callback, user_data);
+	UNREF(cmd);
+	return ret;
+}
 
 /// Append a ResourceCmd to a ResourceQueue
-FSTATIC void
+FSTATIC gboolean
 _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 ,		ResourceCmdCallback cb, gpointer user_data)
 {
 	GQueue*	q;
 	RscQElem* qelem;
 
+	guint64			requestid;
 
+	requestid = cmd->request->getint(cmd->request, REQIDENTIFIERNAMEFIELD);
+	if (requestid <= 0) {
+		g_warning("%s.%d: Request rejected - no request id"
+		,	__FUNCTION__, __LINE__);
+		return FALSE;
+	}
 	q = g_hash_table_lookup(self->resources, cmd->resourcename);
 	if (NULL == q) {
 		q = g_queue_new();
@@ -119,7 +153,64 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 	}
 	REF(cmd);
 	qelem = _resource_queue_qelem_new(cmd, self, cb, user_data, q);
+	qelem->requestid = requestid;
 	g_queue_push_tail(q, qelem);
+	if (self->timerid < 0) {
+		self->timerid = g_timeout_add_seconds(1, _resource_queue_runqueue, self);
+	}
+	return TRUE;
+}
+
+FSTATIC gboolean
+_resource_queue_cancel(ResourceQueue* self, ConfigContext* request)
+{
+	gint64		requestid;
+	const char*	resourcename;
+	GHashTableIter	iter;
+	RscQElem*	qelem = NULL;
+	gpointer	pkey;
+	gpointer	pvalue;
+	requestid = request->getint(request, REQIDENTIFIERNAMEFIELD);
+	if (requestid <= 0) {
+		return FALSE;
+	}
+
+	resourcename = request->getstring(request, REQRSCNAMEFIELD);
+
+	if (NULL == resourcename) {
+		g_hash_table_iter_init(&iter, self->resources);
+		while(g_hash_table_iter_next(&iter, &pkey, &pvalue)) {
+			GQueue*	q = (GQueue*) pvalue;
+			GList*	l;
+			for (l=q->head; NULL != l; l=l->next) {
+				RscQElem*	qe = CASTTOCLASS(RscQElem, l->data);
+				if (qe->requestid == requestid) {
+					qelem = qe;
+					goto finalize;
+				}
+			}
+		}
+	}else{
+		GQueue*	q = g_hash_table_lookup(self->resources, resourcename);
+		if (NULL != q) {
+			GList*	l;
+			for (l=q->head; NULL != l; l=l->next) {
+				RscQElem*	qe = CASTTOCLASS(RscQElem, l->data);
+				if (qe->requestid == requestid) {
+					qelem = qe;
+					break;
+				}
+			}
+		}
+	}
+
+	finalize:
+	if (qelem) {
+		_resource_queue_cmd_remove(self, qelem);
+	}
+	return NULL != qelem;
+
+
 }
 
 /// Remove the first instance of a ResourceCmd from a ResourceQueue
@@ -196,13 +287,15 @@ _resource_queue_hash_key_destructor(gpointer keyptr)
 
 /// Examine our queues and run anything that needs running.
 /// (this code is more expensive than it could be, but in practice it may not matter)
-FSTATIC void
-_resource_queue_runqueue(ResourceQueue* self)
+FSTATIC gboolean
+_resource_queue_runqueue(gpointer pself)
 {
+	ResourceQueue* self = CASTTOCLASS(ResourceQueue, pself);
 	GHashTableIter	iter;
 	gpointer	key;
 	gpointer	value;
 	gint64		now = g_get_monotonic_time();
+	gboolean	anyelems = FALSE;
 
 	g_hash_table_iter_init(&iter, self->resources);
 
@@ -212,6 +305,7 @@ _resource_queue_runqueue(ResourceQueue* self)
 		gboolean	any_running = FALSE;
 		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
 			ResourceCmd*	cmd = CASTTOCLASS(ResourceCmd, qelem->data);
+			anyelems = TRUE;
 			if (cmd->is_running) {
 				any_running = TRUE;
 				break;
@@ -228,6 +322,11 @@ _resource_queue_runqueue(ResourceQueue* self)
 			}
 		}
 	}
+	if (!anyelems) {
+		g_source_remove(self->timerid);
+		self->timerid = -1;
+	}
+	return anyelems;
 }
 
 /// Called when an operation completes - it calls requestor's callback if no repeat,
