@@ -49,7 +49,6 @@ typedef struct _ResourceCmd	ResourceCmd;
 
 struct _ResourceCmd{
 	AssimObj		baseclass;	///< Base object: implements ref, unref, toString
-	gint64			queuetime;	///< Time when it entered the queue this time
 	gint64			starttime;	///< Time to start it next
 						///< (or when it started if it's now running)
 	gint64			endtime;	///< Time when it completed
@@ -71,6 +70,8 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 #define	REQOPERATIONNAMEFIELD	"operation"
 #define	REQENVIRONNAMEFIELD	"environ"
 #define	REQRSCNAMEFIELD		"resourcename"
+#define	REQREPEATNAMEFIELD	"repeat_interval"
+#define	REQINITDELAYNAMEFIELD	"init_delay"
 #ifdef RESOURCECMD_SUBCLASS
 WINEXPORT ResourceCmd* resourcecmd_constructor(guint structsize, ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
