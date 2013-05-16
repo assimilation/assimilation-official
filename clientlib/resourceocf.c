@@ -190,9 +190,19 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	enum ChildErrLogMode	logmode;
 	gboolean		saveout;
 
+	if (self->baseclass.is_running) {
+		g_warning("%s.%d: %s:%s is currently running. New request ignored."
+		,	__FUNCTION__, __LINE__
+		,	self->baseclass.resourcename, self->baseclass.operation);
+		return;
+	}
 	logmode = (self->baseclass.callback ? CHILD_NOLOG : CHILD_LOGALL);
 
 	saveout = _resourceocf_outputs_string(self->baseclass.operation);
+	self->baseclass.starttime = g_get_monotonic_time();
+	self->baseclass.is_running = TRUE;
+	REF2(self);	// We can't go away while we're running no matter what...
+			// (this is undone after calling our callback function).
 
 	self->child = childprocess_new
 (	0				///< cpsize
@@ -225,6 +235,8 @@ _resourceocf_child_notify(ChildProcess* child
 	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, child->user_data);
 	char *		outread = NULL;
 
+	self->baseclass.is_running = FALSE;
+	self->baseclass.endtime = g_get_monotonic_time();
 	if (self->child->stdout_src->textread
 	&&	self->child->stdout_src->textread->str) {
 		outread = self->child->stdout_src->textread->str;
@@ -243,5 +255,6 @@ _resourceocf_child_notify(ChildProcess* child
 	,	signal
 	,	core_dumped
 	,	outread);
+	UNREF2(self);  // Undo the ref we did before executing
 }
 ///@}

@@ -45,6 +45,10 @@ FSTATIC void _resource_queue_hash_key_destructor(gpointer dataptr);
 FSTATIC void _resource_queue_cmd_remove(ResourceQueue* self, ResourceCmd* cmd);
 FSTATIC void _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd);
 FSTATIC void _resource_queue_finalize(AssimObj* aself);
+FSTATIC void _resource_queue_runqueue(ResourceQueue* self);
+FSTATIC void _resource_queue_endnotify(ConfigContext* request, gpointer user_data
+,		enum HowDied exittype, int rc, gboolean core_dumped
+,		const char* stringresult);
 
 /// Construct a new ResourceQueue system (you probably only need one)
 ResourceQueue*
@@ -139,6 +143,58 @@ _resource_queue_hash_key_destructor(gpointer keyptr)
 {
 	g_free(keyptr);
 	keyptr = NULL;
+}
+
+/// Examine our queues and run anything that needs running.
+/// (this code is more expensive than it ought to be, but in practice it may not matter)
+FSTATIC void
+_resource_queue_runqueue(ResourceQueue* self)
+{
+	GHashTableIter	iter;
+	gpointer	key;
+	gpointer	value;
+	gint64		now = g_get_monotonic_time();
+
+	g_hash_table_iter_init(&iter, self->resources);
+
+	while(g_hash_table_iter_next(&iter, &key, &value)) {
+		GQueue*	rsc_q = (GQueue*)value;
+		GList*	qelem = rsc_q->head;
+		gboolean	any_running = FALSE;
+		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
+			ResourceCmd*	cmd = CASTTOCLASS(ResourceCmd, qelem->data);
+			if (cmd->is_running) {
+				any_running = TRUE;
+				break;
+			}
+		}
+		if (any_running) {
+			continue;
+		}
+		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
+			ResourceCmd*	cmd = CASTTOCLASS(ResourceCmd, qelem->data);
+			if (cmd->starttime == 0 || cmd->starttime > now) {
+				cmd->execute(cmd);
+				break;
+			}
+		}
+	}
+}
+FSTATIC void
+_resource_queue_endnotify
+(	ConfigContext* request
+,	gpointer user_data
+,	enum HowDied exittype
+,	int rc
+,	gboolean core_dumped
+,	const char* stringresult)
+{
+	(void)request;
+	(void)user_data;
+	(void)exittype;
+	(void)rc;
+	(void)core_dumped;
+	(void)stringresult;
 }
 
 ///@}

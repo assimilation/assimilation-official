@@ -54,8 +54,8 @@ FSTATIC void _resourcecmd_execute(ResourceCmd* self);	///< Moan and complain - a
 
 /**
  * Our ResourceCmd Factory object - constructs an object of the proper subclass for the given
- * instantiation parameters.  We only pay attention to the REQCLASSNAMEFIELD field at the top level
- * of the request ConfigContext object.
+ * instantiation parameters.  We only pay attention to the REQCLASSNAMEFIELD field at the
+ * top level of the request ConfigContext object.
  */
 ResourceCmd*
 resourcecmd_new(ConfigContext* request		///< Request to instantiate

@@ -49,6 +49,10 @@ typedef struct _ResourceCmd	ResourceCmd;
 
 struct _ResourceCmd{
 	AssimObj		baseclass;	///< Base object: implements ref, unref, toString
+	gint64			queuetime;	///< Time when it entered the queue this time
+	gint64			starttime;	///< Time to start it next
+						///< (or when it started if it's now running)
+	gint64			endtime;	///< Time when it completed
 	ConfigContext*		request;	///< The request
 	gpointer		user_data;	///< User data for the request
 	ResourceCmdCallback	callback;	///< Callback to call when request is complete
@@ -56,6 +60,7 @@ struct _ResourceCmd{
 	const char *		resourcename;	///< Name of this resource
 	const char *		operation;	///< Operation being performed
 	guint32			timeout_secs;	///< Timeout for this operation (secs)
+	gboolean		is_running;	///< TRUE if this resource agent is running.
 };
 
 ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
