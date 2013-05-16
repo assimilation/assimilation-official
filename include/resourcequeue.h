@@ -28,8 +28,6 @@
 /**@{
  * @ingroup ResourceQueue
  * This is the Queue object for creating and managing @ref ResourceCmd objects.
- * It's not a pure Queue design pattern - because it doesn't yield Resource objects,
- * but creates and manages them internally.
  *
  * We are given constructor parameters to Resource objects, and then we create queues for managing
  * work for that particular resource name, and then we execute the requested operations on the
@@ -57,6 +55,7 @@ struct _ResourceQueue {
 ,			ResourceCmdCallback	callback);	//< Callback to call when done
 	gboolean (*cancel)(ResourceQueue* self			//< Our R.Q. object
 ,			ConfigContext* request);		//< Request to cancel
+	gboolean (*cancelall)(ResourceQueue* self);		//< Cancel all requests
 };
 WINEXPORT ResourceQueue* resourcequeue_new(guint structsize);		//< Construct new R.Q.
 
