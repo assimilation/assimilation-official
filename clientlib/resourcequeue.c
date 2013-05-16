@@ -159,7 +159,7 @@ _resource_queue_runqueue(ResourceQueue* self)
 
 	while(g_hash_table_iter_next(&iter, &key, &value)) {
 		GQueue*	rsc_q = (GQueue*)value;
-		GList*	qelem = rsc_q->head;
+		GList*	qelem;
 		gboolean	any_running = FALSE;
 		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
 			ResourceCmd*	cmd = CASTTOCLASS(ResourceCmd, qelem->data);
