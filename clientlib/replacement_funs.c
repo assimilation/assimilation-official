@@ -41,7 +41,6 @@ g_get_real_time(void)
 	ret = (gint64)tv.tv_sec * (gint64)1000000UL;
 	ret += (gint64)tv.tv_usec;
 	return ret;
-	
 }
 #endif/*!HAVE_G_GET_REAL_TIME*/
 
