@@ -47,12 +47,13 @@ typedef struct _ResourceQueue ResourceQueue;
 struct _ResourceQueue {
 	AssimObj	baseclass;	///< Base object: implements ref, unref, toString
 	GHashTable*	resources;	///< Table of resource queues
+	gint		timerid;	///< id of our run timer
 	void (*settimeout)(ResourceQueue*, guint timeout);	//< Set default timeout
 	guint (*gettimeout)(ResourceQueue*, guint timeout);	//< Return default timeout
 	gboolean (*Qcmd)(ResourceQueue* self			//< Our R.Q. object
 ,			ConfigContext* request			//< The request to perform
-,			gpointer user_data			//< User data to pass callback
-,			ResourceCmdCallback	callback);	//< Callback to call when done
+,			ResourceCmdCallback callback		//< Callback to call when done
+,			gpointer user_data);			//< User data to pass callback
 	gboolean (*cancel)(ResourceQueue* self			//< Our R.Q. object
 ,			ConfigContext* request);		//< Request to cancel
 	gboolean (*cancelall)(ResourceQueue* self);		//< Cancel all requests
