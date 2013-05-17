@@ -36,6 +36,7 @@
 #include <configcontext.h>
 #include <childprocess.h>
 #include <resourcecmd.h>
+#include <resourcequeue.h>
 
 GMainLoop*	mainloop;
 FSTATIC void	test_read_command_output_at_EOF(void);
@@ -54,8 +55,10 @@ FSTATIC void	test_childprocess_save_command_output_signal(void);
 FSTATIC void	test_childprocess_stderr_logging(void);
 FSTATIC void	test_childprocess_modenv(void);
 FSTATIC void	test_safe_ocfops(void);
+FSTATIC void	test_safe_queue_ocfops(void);
 FSTATIC void	expect_ocf_callback(ConfigContext* request, gpointer user_data, enum HowDied reason
 ,		int rc, int signal, gboolean coredump, const char * stringresult);
+FSTATIC void	test_all_freed(void);
 
 #define	HELLOSTRING	": Hello, world."
 #define	HELLOSTRING_NL	(HELLOSTRING "\n")
@@ -68,6 +71,7 @@ int		test_expected_charcount = 0;
 int		test_expected_stderr_linecount = 0;
 int		test_expected_stderr_charcount = 0;
 const char *	test_expected_string_return = NULL;
+gboolean	no_dummy_RA = FALSE;
 
 /// Make sure we read our HELLOSTRING when the process exits
 FSTATIC void
@@ -183,6 +187,9 @@ test_log_command_output(void)
 	gchar		hello[] = HELLOSTRING;
 	gchar* 	argv[] = {echo, hello, NULL};		// Broken glib API...
 	gint	cmdid;
+	//proj_class_incr_debug(NULL);
+	//proj_class_incr_debug(NULL);
+	//proj_class_incr_debug(NULL);
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 	g_spawn_async_with_pipes(
 		NULL,				// Current directory
@@ -335,7 +342,7 @@ test_childprocess_save_command_output_timeout(void)
 {
 	gchar		shell[] = "/bin/sh";
 	gchar		dashc[] = "-c";
-	gchar		hello[] = "echo \""HELLOSTRING"\"; sleep 3";
+	gchar		hello[] = "echo \""HELLOSTRING"\"; sleep 100";
 	gchar* 	argv[] = {shell, dashc, hello, NULL};		// Broken glib API...
 
 	test_expected_death = EXITED_TIMEOUT;
@@ -398,7 +405,7 @@ FSTATIC void
 test_childprocess_timeout(void)
 {
 	gchar		sleep[] = "/bin/sleep";
-	gchar		number[] = "3";
+	gchar		number[] = "100";
 	gchar* 	argv[] = {sleep, number, NULL};		// Broken glib API...
 
 	test_expected_death = EXITED_TIMEOUT;
@@ -429,6 +436,7 @@ struct ocf_expect {
 	int		rc;
 	int		signal;
 	gboolean	coredump;
+	gboolean	quit_after_done;
 };
 
 FSTATIC void
@@ -448,7 +456,9 @@ expect_ocf_callback(ConfigContext* request, gpointer user_data, enum HowDied rea
 	g_assert(rc == expect->rc);
 	g_assert(signal == expect->signal);
 	g_assert(coredump == expect->coredump);
-	g_main_loop_quit(mainloop);
+	if (expect->quit_after_done) {
+		g_main_loop_quit(mainloop);
+	}
 }
 
 FSTATIC void
@@ -470,6 +480,7 @@ test_safe_ocfops(void)
 		0,		// int		rc;
 		0,		// int		signal;
 		FALSE,		// gboolean	coredump;
+		TRUE,		// quit_after_done
 	};
 	struct ocf_expect stop_fail = {
 		-1, 		// gint		minstrlen;
@@ -478,6 +489,7 @@ test_safe_ocfops(void)
 		7,		// int		rc;
 		0,		// int		signal;
 		FALSE,		// gboolean	coredump;
+		TRUE,		// quit_after_done
 	};
 
 	struct ocf_expect meta_success = {
@@ -487,6 +499,7 @@ test_safe_ocfops(void)
 		0,		// int		rc;
 		0,		// int		signal;
 		FALSE,		// gboolean	coredump;
+		TRUE,		// quit_after_done
 	};
 
 	const char *		operations[] = 
@@ -497,7 +510,7 @@ test_safe_ocfops(void)
 
 #ifdef HAVE_GETEUID
 	if (geteuid() != 0) {
-		g_message("Test skipped - must be root.");
+		g_message("Test %s skipped - must be root.", __FUNCTION__);
 		return;
 	}
 #endif
@@ -510,7 +523,9 @@ test_safe_ocfops(void)
 		mainloop = g_main_loop_new(g_main_context_default(), TRUE);
 		cmd = resourcecmd_new(op, expectations[j], expect_ocf_callback);
 		if (NULL == cmd) {
-			g_message("Cannot create Dummy OCF resource agent object -- is the Dummy RA installed? - test skipped.");
+			g_message("Cannot create Dummy OCF resource agent object"
+			" -- is the Dummy RA installed? - test %s skipped.", __FUNCTION__);
+			no_dummy_RA = TRUE;
 			UNREF(op);
 			g_main_loop_unref(mainloop);
 			return;
@@ -520,6 +535,98 @@ test_safe_ocfops(void)
 		g_main_loop_unref(mainloop);
 		UNREF(cmd);
 		UNREF(op);
+	}
+}
+
+FSTATIC void
+test_safe_queue_ocfops(void)
+{
+	const char *	stop =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STOPOP "," HBPROVIDER "," NULLPARAMS "}";
+	const char *	start =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STARTOP "," HBPROVIDER "," NULLPARAMS "}";
+	const char *	monitor =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONITOROP "," HBPROVIDER "," NULLPARAMS "}";
+	const char * metadata =
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METADATAOP "," HBPROVIDER "," NULLPARAMS "}";
+	
+	struct ocf_expect success = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_ZERO,	// enum HowDied	death;
+		0,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		FALSE,		// quit_after_done
+	};
+	struct ocf_expect stop_fail = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_NONZERO,	// enum HowDied	death;
+		7,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		FALSE,		// quit_after_done
+	};
+	struct ocf_expect stop_fail_and_quit = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_NONZERO,	// enum HowDied	death;
+		7,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		TRUE,		// quit_after_done
+	};
+
+	struct ocf_expect meta_success = {
+		200, 		// gint		minstrlen;
+		50000,		// gint		maxstrlen;
+		EXITED_ZERO,	// enum HowDied	death;
+		0,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		FALSE,		// quit_after_done
+	};
+
+	const char *		operations[] = 
+	{metadata,	stop,     monitor,     start,     monitor,   stop,      monitor };
+	struct ocf_expect*	expectations [] =
+	{&meta_success,	&success, &stop_fail,  &success,  &success,  &success,  &stop_fail_and_quit};
+
+	guint			j;
+	ResourceQueue*		rscq;
+
+#ifdef HAVE_GETEUID
+	if (geteuid() != 0) {
+		g_message("Test %s skipped - must be root.", __FUNCTION__);
+		return;
+	}
+#endif
+	if (no_dummy_RA) {
+		g_message("Apparently No dummy RA - installed - test %s skipped.", __FUNCTION__);
+		return;
+	}
+
+	rscq = resourcequeue_new(0);
+	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
+	// Queue all the commands up at once, then run them
+	for (j=0; j < DIMOF(operations); ++j) {
+		ConfigContext*	op = configcontext_new_JSON_string(operations[j]);
+		g_assert(op != NULL);
+		g_assert(rscq->Qcmd(rscq, op, expect_ocf_callback, expectations[j]) == TRUE);
+	}
+	g_main_loop_run(mainloop);
+	g_main_loop_unref(mainloop);
+	UNREF(rscq); rscq = NULL;
+}
+void
+test_all_freed(void)
+{
+	int	live_obj_count = proj_class_live_object_count();
+
+	if (live_obj_count > 0) {
+		proj_class_dump_live_objects();
+		g_assert_cmpint(live_obj_count, ==, 0);
 	}
 }
 
@@ -552,5 +659,7 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
 	// @todo BROKEN CODE - avoid it for the moment.  Definitely HAS to be fixed.
 	g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
+	g_test_add_func("/gtest01/gmain/safe_queue_ocfops", test_safe_queue_ocfops);
+	g_test_add_func("/gtest01/test_all_freed", test_all_freed);
 	return g_test_run();
 }

@@ -92,6 +92,7 @@
 #define	LONG_LICENSE_STRING	"@LICENSE_LONG@"
 #cmakedefine	HAVE_UNISTD_H
 #cmakedefine	HAVE_SYS_UTSNAME_H
+#cmakedefine	HAVE_FCNTL_H
 #cmakedefine	HAVE_MCHECK_H
 
 #cmakedefine	HAVE_CLOCK_GETTIME
@@ -104,6 +105,7 @@
 #cmakedefine	HAVE_G_GET_REAL_TIME
 #cmakedefine	HAVE_G_GET_MONOTONIC_TIME
 #cmakedefine	HAVE_G_GET_ENVIRON
+#cmakedefine	HAVE_FCNTL
 #cmakedefine	HAVE_MCHECK
 #cmakedefine	HAVE_MCHECK_PEDANTIC
 #cmakedefine	HAVE_GETEUID

@@ -214,6 +214,7 @@ endif (PKG_CONFIG_FOUND)
 include(CheckIncludeFile)
 CHECK_INCLUDE_FILE(unistd.h HAVE_UNISTD_H)
 CHECK_INCLUDE_FILE(sys/utsname.h HAVE_SYS_UTSNAME_H)
+CHECK_INCLUDE_FILE(fcntl.h HAVE_FCNTL_H)
 CHECK_INCLUDE_FILE(mcheck.h HAVE_MCHECK_H)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
@@ -229,6 +230,7 @@ CHECK_FUNCTION_EXISTS(g_get_monotonic_time HAVE_G_GET_MONOTONIC_TIME)
 CHECK_FUNCTION_EXISTS(g_get_environ HAVE_G_GET_ENVIRON)
 CHECK_FUNCTION_EXISTS(mcheck HAVE_MCHECK)
 CHECK_FUNCTION_EXISTS(mcheck_pedantic HAVE_MCHECK_PEDANTIC)
+CHECK_FUNCTION_EXISTS(fcntl HAVE_FCNTL)
 
 #
 #	Compiler flags for various compilers and platforms...

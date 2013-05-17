@@ -146,6 +146,7 @@ _resourceocf_finalize(AssimObj* aself)
 	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, aself);
 	guint		j;
 
+	g_message("Finalizing ResourceOCF @ %p: %s", self, self->loggingname);
 	if (self->ocfpath) {
 		g_free(self->ocfpath);
 		self->ocfpath = NULL;
@@ -235,7 +236,6 @@ _resourceocf_child_notify(ChildProcess* child
 	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, child->user_data);
 	char *		outread = NULL;
 
-	self->baseclass.is_running = FALSE;
 	self->baseclass.endtime = g_get_monotonic_time();
 	if (self->child->stdout_src->textread
 	&&	self->child->stdout_src->textread->str) {
@@ -244,17 +244,19 @@ _resourceocf_child_notify(ChildProcess* child
 		outread = NULL;
 	}
 
-	if (!self->baseclass.callback) {
-		return;
+	DEBUGMSG2("%s.%d: Exit happened exittype:%d", __FUNCTION__, __LINE__, exittype);
+	if (self->baseclass.callback) {
+		DEBUGMSG2("%s.%d: Calling callback - exittype:%d", __FUNCTION__,__LINE__,exittype);
+		self->baseclass.callback(self->baseclass.request
+		,	self->baseclass.user_data
+		,	exittype
+		,	rc
+		,	signal
+		,	core_dumped
+		,	outread);
 	}
-	
-	self->baseclass.callback(self->baseclass.request
-	,	self->baseclass.user_data
-	,	exittype
-	,	rc
-	,	signal
-	,	core_dumped
-	,	outread);
+
+	self->baseclass.is_running = FALSE;
 	UNREF2(self);  // Undo the ref we did before executing
 }
 ///@}
