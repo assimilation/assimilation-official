@@ -25,8 +25,12 @@
 #include <projectcommon.h>
 #include <memory.h>
 #include <gmainfd.h>
+#include <errno.h>
 #ifdef HAVE_UNISTD_H
 #	include <unistd.h>
+#	ifdef HAVE_FCNTL_H
+#		include <fcntl.h>
+#	endif
 #endif
 
 #define READBUFSIZE	1024
@@ -79,6 +83,23 @@ gmainfd_new(gsize cpsize, int fd, int priority, GMainContext* context)
 	self->gfd.fd = fd;
 	self->gfd.events = G_IO_IN|G_IO_ERR|G_IO_HUP;
 	self->gfd.revents = 0;
+#ifdef HAVE_FCNTL
+	{
+		int	fdflags;
+		fdflags = fcntl(fd, F_GETFL);
+		if (-1 == fdflags) {
+			g_warning("%s.%d: fcntl(%d, F_GETFL) failed errno=%d [%s]"
+			,	__FUNCTION__, __LINE__, fd, errno, g_strerror(errno));
+		}else{
+			fdflags |= O_NONBLOCK;
+			if (fcntl(fd, F_SETFL, fdflags) < 0) {
+				g_warning("%s.%d: fcntl(%d, F_SETFL, 0x%x) failed) errno=%d [%s]"
+				,	__FUNCTION__, __LINE__, fd, fdflags
+				,	errno, g_strerror(errno));
+			}
+		}
+	}
+#endif
 	g_source_add_poll(source, &self->gfd);
 	g_source_set_priority(source, priority);
 	self->gsourceid = g_source_attach(source, context);

@@ -34,6 +34,8 @@
 #include <childprocess.h>
 #include <misc.h>
 
+DEBUGDECLARATIONS
+
 ///@defgroup ChildProcess ChildProcess class.
 /// Class for creating and monitoring child processes in the gmainloop environment.
 /// It logs stderr, and can either save or log stdout - creator's choice.
@@ -103,6 +105,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	GError*		failcode = NULL;
 	gchar**		childenv = NULL;
 
+	BINDDEBUG(ChildProcess);
 	g_return_val_if_fail(logprefix != NULL, NULL);
 	if (cpsize < sizeof(ChildProcess)) {
 		cpsize = sizeof(ChildProcess);
@@ -124,6 +127,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 		&stdoutfd,			// gint *standard_output,
 		&stderrfd,			// gint *standard_error,
 		&failcode);			// GError **error
+	DEBUGMSG2("%s.%d: Spawned process with user_data = %p", __FUNCTION__, __LINE__, self);
 
 	self->stderr_src = logsourcefd_new(0, stderrfd, G_PRIORITY_HIGH, g_main_context_default()
 	,		                   logdomain, loglevel, logprefix);
@@ -149,12 +153,16 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	self->notify = notify;
 
 	if (0 == timeout_seconds) {
+		DEBUGMSG2("No timeout for process with user_data = %p", self);
 		self->timeoutsrc_id = 0;
 	}else{
 		self->timeoutsrc_id = g_timeout_add_seconds(timeout_seconds
 		,			                   _childprocess_timeout, self);
+		DEBUGMSG3("%s.%d: Set %d second timeout %d for process with user_data = %p"
+		,	__FUNCTION__, __LINE__, timeout_seconds, self->timeoutsrc_id, self);
 	}
 	self->child_state = CHILDSTATE_RUNNING;
+	REF(self);	// We do this because we need to still be here when the child exits
 	return self;
 }
 
@@ -163,13 +171,27 @@ FSTATIC void
 _childprocess_finalize(AssimObj* aself)
 {
 	ChildProcess*	self = CASTTOCLASS(ChildProcess, aself);
-	g_source_unref(&self->stdout_src->baseclass);
-	self->stdout_src = NULL;
-	g_source_unref(&self->stderr_src->baseclass.baseclass);
-	self->stderr_src = NULL;
+	if (self->stdout_src) {
+		g_source_destroy(&self->stdout_src->baseclass);
+		g_source_unref(&self->stdout_src->baseclass);
+		//self->stdout_src->finalize(self->stdout_src);
+		self->stdout_src = NULL;
+	}
+	if (self->stderr_src) {
+		g_source_destroy(&self->stderr_src->baseclass.baseclass);
+		g_source_unref(&self->stderr_src->baseclass.baseclass);
+		//self->stderr_src->baseclass.finalize(&self->stderr_src->baseclass);
+		self->stderr_src = NULL;
+	}
 	if (self->loggingname) {
 		g_free(self->loggingname);
 		self->loggingname = NULL;
+	}
+	if (self->timeoutsrc_id > 0)  {
+		g_source_remove(self->timeoutsrc_id);
+		DEBUGMSG3("%s:%d: Removed timeout for process with user_data = %p"
+		,	__FUNCTION__, __LINE__, self);
+		self->timeoutsrc_id = 0;
 	}
 	_assimobj_finalize(aself);
 	self = NULL;
@@ -212,7 +234,10 @@ static const struct {
 FSTATIC gboolean
 _childprocess_timeout(gpointer childprocess_object)
 {
-	ChildProcess*	self = CASTTOCLASS(ChildProcess, childprocess_object);
+	ChildProcess*	self;
+	DEBUGMSG("%s:%d Called from timeout for process with user_data = %p"
+	,	__FUNCTION__, __LINE__, childprocess_object);
+	self = CASTTOCLASS(ChildProcess, childprocess_object);
 	if (self->child_state < DIMOF(signalmap)) {
 #ifdef WIN32
 		TerminateProcess(self->child_pid, -1);
@@ -241,6 +266,12 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 	enum HowDied	howwedied = NOT_EXITED;
 	(void)pid;
 
+	if (self->timeoutsrc_id > 0)  {
+		g_source_remove(self->timeoutsrc_id);
+		DEBUGMSG3("%s.%d: Removed timeout %d for process with user_data = %p"
+		,	__FUNCTION__, __LINE__, self->timeoutsrc_id, self);
+		self->timeoutsrc_id = 0;
+	}
 	// If it refused to die, then the status is invalid
 	if (self->child_state >= DIMOF(signalmap)) {
 		howwedied = EXITED_HUNG;
@@ -307,6 +338,9 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 		}
 	}
 
+	DEBUGMSG2("%s.%d: Exit happened howwedied:%d", __FUNCTION__, __LINE__
+	,	howwedied);
 	self->notify(self, howwedied, exitrc, signal, WCOREDUMP(status));
+	UNREF(self);	// Undo the REF(self) in our constructor
 }
 ///@}

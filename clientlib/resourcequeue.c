@@ -91,7 +91,7 @@ resourcequeue_new(guint structsize)
 	self->cancel = _resource_queue_cancel;
 	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal
 	,		_resource_queue_hash_key_destructor, _resource_queue_hash_data_destructor);
-	self->timerid = g_timeout_add_seconds(1, _resource_queue_runqueue, self);
+	self->timerid = g_timeout_add_seconds(5, _resource_queue_runqueue, self);
 
 	return self;
 }
@@ -119,7 +119,8 @@ _resource_queue_Qcmd(ResourceQueue* self
 	ResourceCmd*	cmd;
 	gboolean	ret;
 
-	cmd = resourcecmd_new(request, user_data, callback);
+	// Will replace NULL with our qelem object
+	cmd = resourcecmd_new(request, NULL, _resource_queue_endnotify);
 
 	if (cmd == NULL) {
 		return FALSE;
@@ -153,6 +154,7 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 	}
 	REF(cmd);
 	qelem = _resource_queue_qelem_new(cmd, self, cb, user_data, q);
+	cmd->user_data = qelem;
 	qelem->requestid = requestid;
 	g_queue_push_tail(q, qelem);
 	if (self->timerid < 0) {
@@ -235,8 +237,8 @@ _resource_queue_qelem_new(ResourceCmd* cmd, ResourceQueue* parent
 ,		ResourceCmdCallback callback, gpointer user_data, GQueue* Q)
 {
 	RscQElem*	self = MALLOCCLASS(RscQElem, sizeof(RscQElem));
-	guint64		repeat;
-	guint64		initdelay;
+	gint64		repeat;
+	gint64		initdelay;
 	self->queuetime = g_get_monotonic_time();
 	self->cmd = cmd;
 	REF(cmd);
@@ -304,9 +306,9 @@ _resource_queue_runqueue(gpointer pself)
 		GList*	qelem;
 		gboolean	any_running = FALSE;
 		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
-			ResourceCmd*	cmd = CASTTOCLASS(ResourceCmd, qelem->data);
+			RscQElem*	qe = CASTTOCLASS(RscQElem, qelem->data);
 			anyelems = TRUE;
-			if (cmd->is_running) {
+			if (qe->cmd->is_running) {
 				any_running = TRUE;
 				break;
 			}
@@ -314,10 +316,11 @@ _resource_queue_runqueue(gpointer pself)
 		if (any_running) {
 			continue;
 		}
+		DEBUGMSG2("%s.%d: No resource jobs are running.", __FUNCTION__, __LINE__);
 		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
-			ResourceCmd*	cmd = CASTTOCLASS(ResourceCmd, qelem->data);
-			if (cmd->starttime == 0 || cmd->starttime > now) {
-				cmd->execute(cmd);
+			RscQElem*	qe = CASTTOCLASS(RscQElem, qelem->data);
+			if (now >= qe->cmd->starttime) {
+				qe->cmd->execute(qe->cmd);
 				break;
 			}
 		}
@@ -345,18 +348,22 @@ _resource_queue_endnotify
 
 
 	g_queue_remove(self->ourQ, self);
+	DEBUGMSG1("%s.%d: EXIT happened exittype:%d repeat:%d, cancelme:%d", __FUNCTION__, __LINE__
+	,	exittype,  self->repeatinterval, self->cancelme);
 
 	// Should this request repeat?
 	if (EXITED_ZERO == exittype && self->repeatinterval > 0 && !self->cancelme) {
 		self->queuetime = g_get_monotonic_time();
 		self->cmd->starttime = self->queuetime + (self->repeatinterval*uSPERSEC);
 		g_queue_push_tail(self->ourQ, self);
+		_resource_queue_runqueue(self->parent);
 	}else{
 		self->callback(request, self->user_data, exittype, rc, signal, core_dumped
 		,		stringresult);
 		if (g_queue_get_length(self->ourQ) == 0) {
 			g_hash_table_remove(self->parent->resources, self->cmd->resourcename);
 		}
+		_resource_queue_runqueue(self->parent);
 		_resource_queue_qelem_finalize(self);
 		self = NULL;
 	}
