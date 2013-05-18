@@ -73,6 +73,17 @@ int		test_expected_stderr_charcount = 0;
 const char *	test_expected_string_return = NULL;
 gboolean	no_dummy_RA = FALSE;
 
+void
+test_all_freed(void)
+{
+	int	live_obj_count = proj_class_live_object_count();
+
+	if (live_obj_count > 0) {
+		proj_class_dump_live_objects();
+		g_assert_cmpint(live_obj_count, ==, 0);
+	}
+}
+
 /// Make sure we read our HELLOSTRING when the process exits
 FSTATIC void
 check_output_at_exit(GPid pid, gint status, gpointer gmainfd)
@@ -618,16 +629,7 @@ test_safe_queue_ocfops(void)
 	g_main_loop_run(mainloop);
 	g_main_loop_unref(mainloop);
 	UNREF(rscq); rscq = NULL;
-}
-void
-test_all_freed(void)
-{
-	int	live_obj_count = proj_class_live_object_count();
-
-	if (live_obj_count > 0) {
-		proj_class_dump_live_objects();
-		g_assert_cmpint(live_obj_count, ==, 0);
-	}
+	test_all_freed();
 }
 
 /// Test main program ('/gtest01') using the glib test fixtures
