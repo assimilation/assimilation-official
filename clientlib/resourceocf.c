@@ -97,6 +97,7 @@ resourceocf_new(
 	if (!_resourceocf_save_finalize) {
 		_resourceocf_save_finalize = cself->baseclass._finalize;
 	}
+	cself->baseclass._finalize = _resourceocf_finalize;
 	cself->execute = _resourceocf_execute;
 	self = NEWSUBCLASS(ResourceOCF, cself);
 	self->ocfpath = ocfpath;
@@ -146,16 +147,14 @@ _resourceocf_finalize(AssimObj* aself)
 	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, aself);
 	guint		j;
 
-	g_message("Finalizing ResourceOCF @ %p: %s", self, self->loggingname);
+	DEBUGMSG2("Finalizing ResourceOCF @ %p: %s", self, self->loggingname);
 	if (self->ocfpath) {
 		g_free(self->ocfpath);
 		self->ocfpath = NULL;
 	}
-	for (j=0; j < DIMOF(self->argv); ++j) {
-		if (self->argv[j]) {
-			g_free(self->argv[j]);
-			self->argv[j] = NULL;
-		}
+	for (j=0; j < 3; ++j) {
+		g_free(self->argv[j]);
+		self->argv[j] = NULL;
 	}
 	if (self->loggingname) {
 		g_free(self->loggingname);
@@ -163,6 +162,9 @@ _resourceocf_finalize(AssimObj* aself)
 	}
 	if (self->child) {
 		UNREF(self->child);
+	}
+	if (self->environ) {
+		UNREF(self->environ);
 	}
 	_resourceocf_save_finalize(aself);
 }

@@ -139,11 +139,11 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 	GQueue*	q;
 	RscQElem* qelem;
 
-	guint64			requestid;
+	gint64			requestid;
 
 	requestid = cmd->request->getint(cmd->request, REQIDENTIFIERNAMEFIELD);
 	if (requestid <= 0) {
-		g_warning("%s.%d: Request rejected - no request id"
+		g_warning("%s.%d: Request rejected - no request id."
 		,	__FUNCTION__, __LINE__);
 		return FALSE;
 	}
