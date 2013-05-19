@@ -73,6 +73,11 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 #define	REQREPEATNAMEFIELD	"repeat_interval"
 #define	REQINITDELAYNAMEFIELD	"init_delay"
 #define	REQIDENTIFIERNAMEFIELD	"reqid"
+#define	REQREASONENUMNAMEFIELD	"reason_enum"
+#define	REQRCNAMEFIELD		"rc"
+#define	REQSIGNALNAMEFIELD	"signal"
+#define	REQCOREDUMPNAMEFIELD	"coredumped"
+#define	REQSTRINGRETNAMEFIELD	"stringret"
 #ifdef RESOURCECMD_SUBCLASS
 WINEXPORT ResourceCmd* resourcecmd_constructor(guint structsize, ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
