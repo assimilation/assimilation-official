@@ -46,6 +46,8 @@
 #include <jsondiscovery.h>
 #include <switchdiscovery.h>
 #include <fsprotocol.h>
+#include <resourcecmd.h>
+#include <resourcequeue.h>
 #include <misc.h>
 #include <nanoprobe.h>
 
@@ -57,10 +59,10 @@ void (*nanoprobe_deadtime_agent)(HbListener*)			= NULL;
 void (*nanoprobe_heartbeat_agent)(HbListener*)			= NULL;
 void (*nanoprobe_warntime_agent)(HbListener*, guint64 howlate)	= NULL;
 void (*nanoprobe_comealive_agent)(HbListener*, guint64 howlate)	= NULL;
-WINEXPORT NanoHbStats		nano_hbstats = {0U, 0U, 0U, 0U, 0U};
+WINEXPORT NanoHbStats	nano_hbstats = {0U, 0U, 0U, 0U, 0U};
 gboolean		nano_connected = FALSE;
-WINEXPORT int			errcount = 0;
-WINEXPORT GMainLoop*		mainloop = NULL;
+WINEXPORT int		errcount = 0;
+WINEXPORT GMainLoop*	mainloop = NULL;
 
 FSTATIC void		nanoobey_sendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_sendhb(AuthListener*, FrameSet* fs, NetAddr*);
@@ -74,6 +76,11 @@ FSTATIC void		nanoobey_incrdebug(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_decrdebug(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_startdiscover(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_stopdiscover(AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		nanoobey_dorscoperation(AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		_nano_send_rscexitstatus(ConfigContext* request, gpointer user_data
+,				enum HowDied reason, int rc, int signal, gboolean core_dumped
+,				const char * stringresult);
+FSTATIC void		nanoobey_cancelrscoperation(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nano_schedule_discovery(const char *name, guint32 interval,const char* json
 			,	ConfigContext*, NetGSource* transport, NetAddr* fromaddr);
 FSTATIC void		nano_stop_discovery(const char * discoveryname, NetGSource*, NetAddr*);
@@ -96,6 +103,7 @@ const char *		procname = "nanoprobe";
 static NetAddr*		nanofailreportaddr = NULL;
 static NetGSource*	nanotransport = NULL;
 static guint		idle_shutdown_gsource = 0;
+static ResourceQueue*	RscQ = NULL;
 
 DEBUGDECLARATIONS
 
@@ -726,6 +734,113 @@ nanoobey_startdiscover(AuthListener* parent	///<[in] @ref AuthListener object in
 	}
 }
 
+/// Callback that gets called when a resource operation sends back status
+FSTATIC void
+_nano_send_rscexitstatus(ConfigContext* request, gpointer user_data
+,			enum HowDied reason, int rc, int signal, gboolean core_dumped
+,			const char * stringresult)
+{
+	NetGSource*	transport = CASTTOCLASS(NetGSource, user_data);
+	ConfigContext*	response = configcontext_new(0);
+	FrameSet*	fs = frameset_new(FRAMESETTYPE_RSCOPREPLY);
+	CstringFrame*	sf = cstringframe_new(FRAMETYPE_RSCJSONREPLY, 0);
+	char*		rsp_json;
+
+	struct {
+		const char*	framename;
+		int		framevalue;
+	} pktframes[] = {
+		{REQREASONENUMNAMEFIELD,	reason},
+		{REQRSCNAMEFIELD,		rc},
+		{REQSIGNALNAMEFIELD,		signal},
+	};
+	unsigned	j;
+
+	for (j=0; j < DIMOF(pktframes); ++j) {
+		response->setint(response, pktframes[j].framename, pktframes[j].framevalue);
+	}
+	response->setbool(response, REQCOREDUMPNAMEFIELD, core_dumped);
+	if (stringresult) {
+		response->setstring(response, REQSTRINGRETNAMEFIELD, stringresult);
+	}
+	// Copy the request ID over from the original request
+	response->setint(response, REQIDENTIFIERNAMEFIELD
+	,	request->getint(request, REQIDENTIFIERNAMEFIELD));
+	rsp_json = response->baseclass.toString(&response->baseclass);
+	UNREF(response);
+	sf->baseclass.setvalue(&sf->baseclass, rsp_json, strlen(rsp_json)+1, g_free);
+	frameset_append_frame(fs, &sf->baseclass);
+	UNREF2(sf);
+	transport->_netio->sendareliablefs(transport->_netio, nanofailreportaddr, DEFAULT_FSP_QID, fs);
+	UNREF(fs);
+}
+FSTATIC void
+nanoobey_dorscoperation(AuthListener* parent, FrameSet* fs, NetAddr*fromaddr)
+{
+	GSList*		slframe;
+
+	(void)parent;
+	(void)fromaddr;
+	if (nano_shutting_down) {
+		return;
+	}
+	if (NULL == RscQ) {
+		RscQ = resourcequeue_new(0);
+	}
+	// Loop over the frames, looking for those we know what to do with ;-)
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		CstringFrame* csframe;
+		ConfigContext*	cfg;
+		if (frame->type != FRAMETYPE_RSCJSON) {
+			continue;
+		}
+		csframe = CASTTOCLASS(CstringFrame, frame);
+		cfg = configcontext_new_JSON_string(csframe->baseclass.value);
+		if (NULL == cfg) {
+			g_warning("%s.%d: Received malformed JSON string [%*s]"
+			,	__FUNCTION__, __LINE__
+			,	csframe->baseclass.length-1
+			,	(char*)csframe->baseclass.value);
+			continue;
+		}
+		RscQ->Qcmd(RscQ, cfg, _nano_send_rscexitstatus, nanotransport);
+		UNREF(cfg);
+	}
+}
+
+FSTATIC void
+nanoobey_cancelrscoperation(AuthListener* parent, FrameSet* fs, NetAddr* fromaddr)
+{
+	GSList*		slframe;
+
+	(void)parent;
+	(void)fromaddr;
+	if (NULL == RscQ) {
+		RscQ = resourcequeue_new(0);
+	}
+
+	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
+		Frame* frame = CASTTOCLASS(Frame, slframe->data);
+		CstringFrame* csframe;
+		ConfigContext*	cfg;
+		if (frame->type != FRAMETYPE_RSCJSON) {
+			continue;
+		}
+		csframe = CASTTOCLASS(CstringFrame, frame);
+		cfg = configcontext_new_JSON_string(csframe->baseclass.value);
+		if (NULL == cfg) {
+			g_warning("%s.%d: Received malformed JSON string [%*s]"
+			,	__FUNCTION__, __LINE__
+			,	csframe->baseclass.length-1
+			,	(char*)csframe->baseclass.value);
+			continue;
+		}
+		RscQ->cancel(RscQ, cfg);
+		UNREF(cfg);
+	}
+}
+
 /**
  * Act on (obey) a @ref FrameSet telling us to stop a repeating discovery action.
  * <b>FRAMETYPE_DISCNAME</b> - Name of this particular discovery action
@@ -920,6 +1035,8 @@ ObeyFrameSetTypeMap collective_obeylist [] = {
 	{FRAMESETTYPE_DECRDEBUG,	nanoobey_decrdebug},
 	{FRAMESETTYPE_DODISCOVER,	nanoobey_startdiscover},
 	{FRAMESETTYPE_STOPDISCOVER,	nanoobey_stopdiscover},
+	{FRAMESETTYPE_DORSCOP,		nanoobey_dorscoperation},
+	{FRAMESETTYPE_STOPRSCOP,	nanoobey_cancelrscoperation},
 	{0,				NULL},
 };
 
@@ -1021,6 +1138,10 @@ nano_shutdown(gboolean report)
 	hbsender_stopallsenders();
 	hblistener_shutdown();
 	UNREF2(swdisc);
+	if (RscQ) {
+		RscQ->cancelall(RscQ);
+		UNREF(RscQ);
+	}
 	if (nanofailreportaddr) {
 		UNREF(nanofailreportaddr);
 	}

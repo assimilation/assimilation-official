@@ -262,6 +262,12 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
 '''This frame provides the data describing the discovery action in detail.
    It must be preceded by a FRAMETYPE_DISCNAME.
 '''),
+  	27:  (pyCstringFrame, 'RSCJSON', 'JSON resource string',
+'''This frame provides the data describing the a resource action or cancel operation in detail.
+'''),
+  	28:  (pyCstringFrame, 'RSCJSONREPLY', 'JSON operation result',
+'''This frame provides the data describing the result of a resource action in detail.
+'''),
 
     }
     _strframetypes = dict()
@@ -366,6 +372,7 @@ class FrameSetTypes:
 	'HBMARTIAN':	(30, 'System named in packet appears gave unexpected heartbeat.'),
 	'SWDISCOVER':	(31, 'Packet encapsulates switch discovery packet'),
 	'JSDISCOVERY':	(32, 'Packet contains JSON-formatted discovery data'),
+	'RSCOPREPLY':	(33, 'Packet contains return result from a resource operation'),
 	# 'Privileged' FrameSets sent from the CMA to nanoprobes
 	'SENDHB':	(64, 'Send Heartbeats to these addresses'),
 	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from these addresses'),
@@ -378,6 +385,9 @@ class FrameSetTypes:
 	'DECRDEBUG':	(72, 'Increment debug for some or all classes'),
 	'DODISCOVER':	(73, 'Perform (repeating) JSON discovery action'),
 	'STOPDISCOVER':	(74, 'Stop a repeating JSON discovery action'),
+	'DORSCOP':	(75, 'Do a (possibly-repeating) JSON resource action'),
+	'STOPRSCOP':	(76, 'Stop a (possibly-repeating) JSON resource action'),
+	'RUNSCRIPT':	(76, 'Run an arbitrary script (not yet implemented)'),
     }
     _intframetypes = dict()
     for s in _strframetypes.keys():
