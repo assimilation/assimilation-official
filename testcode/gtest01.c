@@ -666,7 +666,6 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/childprocess_stderr_logging"
 	,	test_childprocess_stderr_logging);
 	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
-	// @todo BROKEN CODE - avoid it for the moment.  Definitely HAS to be fixed.
 	g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
 	g_test_add_func("/gtest01/gmain/safe_queue_ocfops", test_safe_queue_ocfops);
 	return g_test_run();
