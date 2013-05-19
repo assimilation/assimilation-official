@@ -439,6 +439,7 @@ test_childprocess_timeout(void)
 #define	METADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
 #define	RESOURCENAME	"\"" REQRSCNAMEFIELD		"\": \"DummyTestGTest01\""
 #define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}"
+#define	REQID		"\"" REQIDENTIFIERNAMEFIELD	"\": 42"
 
 struct ocf_expect {
 	gint		minstrlen;
@@ -547,19 +548,21 @@ test_safe_ocfops(void)
 		UNREF(cmd);
 		UNREF(op);
 	}
+	test_all_freed();
 }
+#define PREFIX	REQID "," OCFCLASS "," DUMMYTYPE "," RESOURCENAME
 
 FSTATIC void
 test_safe_queue_ocfops(void)
 {
 	const char *	stop =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STOPOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" PREFIX "," STOPOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char *	start =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STARTOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" PREFIX "," STARTOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char *	monitor =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONITOROP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" PREFIX "," MONITOROP "," HBPROVIDER "," NULLPARAMS "}";
 	const char * metadata =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METADATAOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" REQID "," OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METADATAOP "," HBPROVIDER "," NULLPARAMS "}";
 	
 	struct ocf_expect success = {
 		-1, 		// gint		minstrlen;
@@ -617,6 +620,9 @@ test_safe_queue_ocfops(void)
 		g_message("Apparently No dummy RA - installed - test %s skipped.", __FUNCTION__);
 		return;
 	}
+	//proj_class_incr_debug(NULL);
+	//proj_class_incr_debug(NULL);
+	//proj_class_incr_debug(NULL);
 
 	rscq = resourcequeue_new(0);
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
@@ -625,6 +631,7 @@ test_safe_queue_ocfops(void)
 		ConfigContext*	op = configcontext_new_JSON_string(operations[j]);
 		g_assert(op != NULL);
 		g_assert(rscq->Qcmd(rscq, op, expect_ocf_callback, expectations[j]) == TRUE);
+		UNREF(op);
 	}
 	g_main_loop_run(mainloop);
 	g_main_loop_unref(mainloop);
@@ -662,6 +669,5 @@ main(int argc, char ** argv)
 	// @todo BROKEN CODE - avoid it for the moment.  Definitely HAS to be fixed.
 	g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
 	g_test_add_func("/gtest01/gmain/safe_queue_ocfops", test_safe_queue_ocfops);
-	g_test_add_func("/gtest01/test_all_freed", test_all_freed);
 	return g_test_run();
 }

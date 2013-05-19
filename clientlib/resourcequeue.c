@@ -152,7 +152,6 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 		q = g_queue_new();
 		g_hash_table_insert(self->resources, g_strdup(cmd->resourcename), q);
 	}
-	REF(cmd);
 	qelem = _resource_queue_qelem_new(cmd, self, cb, user_data, q);
 	cmd->user_data = qelem;
 	qelem->requestid = requestid;
@@ -259,6 +258,8 @@ _resource_queue_qelem_new(ResourceCmd* cmd, ResourceQueue* parent
 FSTATIC void
 _resource_queue_qelem_finalize(RscQElem* self)
 {
+	DEBUGMSG3("%s.%d: UNREF(self->cmd, refcount=%d)"
+	,	__FUNCTION__, __LINE__,	self->cmd->baseclass._refcount);
 	UNREF(self->cmd);
 	FREECLASSOBJ(self);
 }
@@ -353,11 +354,15 @@ _resource_queue_endnotify
 
 	// Should this request repeat?
 	if (EXITED_ZERO == exittype && self->repeatinterval > 0 && !self->cancelme) {
+		DEBUGMSG1("%s.%d: Repeat request id " FMT_64BIT "d.", __FUNCTION__, __LINE__
+		,	self->requestid);
 		self->queuetime = g_get_monotonic_time();
 		self->cmd->starttime = self->queuetime + (self->repeatinterval*uSPERSEC);
 		g_queue_push_tail(self->ourQ, self);
 		_resource_queue_runqueue(self->parent);
 	}else{
+		DEBUGMSG1("%s.%d: Don't repeat request id " FMT_64BIT "d.", __FUNCTION__, __LINE__
+		,	self->requestid);
 		self->callback(request, self->user_data, exittype, rc, signal, core_dumped
 		,		stringresult);
 		if (g_queue_get_length(self->ourQ) == 0) {
