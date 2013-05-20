@@ -34,10 +34,13 @@
  *
  */
 
+#include <projectcommon.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <projectcommon.h>
+#ifdef HAVE_MCHECK_H
+#	include <mcheck.h>
+#endif
 #include <framesettypes.h>
 #include <frameset.h>
 #include <ctype.h>
@@ -53,6 +56,7 @@
 #include <cstringframe.h>
 #include <frametypes.h>
 #include <nanoprobe.h>
+#include <resourcecmd.h>
 #include <cmalib.h>
 
 
@@ -186,6 +190,26 @@ timeout_agent(gpointer ignored)
 	return TRUE;
 }
 
+#define	OCFCLASS	"\"" REQCLASSNAMEFIELD		"\": \"ocf\""
+#define	HBPROVIDER	"\"" REQPROVIDERNAMEFIELD	"\": \"heartbeat\""
+#define	DUMMYTYPE	"\"" REQTYPENAMEFIELD		"\": \"Dummy\""
+#define	STARTOP		"\"" REQOPERATIONNAMEFIELD	"\": \"start\""
+#define	STOPOP		"\"" REQOPERATIONNAMEFIELD	"\": \"stop\""
+#define	MONITOROP	"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
+#define	METADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
+#define	RESOURCENAME	"\"" REQRSCNAMEFIELD		"\": \"DummyTestGTest01\""
+#define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}"
+#define	C ","
+#define REQID(id)	"\"" REQIDENTIFIERNAMEFIELD	"\": " #id
+#define REPEAT(repeat)	"\"" REQREPEATNAMEFIELD	"\": " #repeat
+#define INITDELAY(delay)	"\"" REQINITDELAYNAMEFIELD	"\": " #delay
+#define	COMMREQUEST	OCFCLASS C HBPROVIDER C DUMMYTYPE C RESOURCENAME C NULLPARAMS
+#define REQUEST(type,id, repeat,delay)	\
+	"{" COMMREQUEST C type C REQID(id) C REPEAT(repeat) C INITDELAY(delay)"}"
+#define START REQUEST(STARTOP,	1, 0, 0)	// One shot - no delay
+#define MONITOR REQUEST(STARTOP,2, 1, 0)	// Repeat every second - no delay
+#define STOP REQUEST(STOPOP,	3, 0, 5)	// No repeat - 5 second delay
+
 /// Routine to pretend to be the initial CMA
 void
 fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
@@ -217,6 +241,22 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr2, 1);
 	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 	UNREF(pkt);
+
+	{
+		const char *	json[] = { START, MONITOR, STOP};
+		unsigned	j;
+		// Create a frameset for a few resource operations
+		pkt = frameset_new(FRAMESETTYPE_DORSCOP);
+		for (j=0; j < DIMOF(json); j++) {
+			CstringFrame*	csf = cstringframe_new(FRAMETYPE_RSCJSON,0);
+			csf->baseclass.setvalue(&csf->baseclass, g_strdup(json[j])
+			,	strlen(json[j])+1, g_free);
+			frameset_append_frame(pkt, &csf->baseclass);
+			UNREF2(csf);
+		}
+		netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
+		UNREF(pkt);
+	}
 }
 
 /**
@@ -243,6 +283,16 @@ main(int argc, char **argv)
 	PacketDecoder*	decoder = nano_packet_decoder();
 	AuthListener*	listentonanoprobes;
 
+#if 0
+#	ifdef HAVE_MCHECK_PEDANTIC
+	g_assert(mcheck_pedantic(NULL) == 0);
+#	else
+#		ifdef HAVE_MCHECK
+	g_assert(mcheck(NULL) == 0);
+#		endif
+#	endif
+#endif
+	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
@@ -345,8 +395,6 @@ main(int argc, char **argv)
 
 	// Main loop is over - shut everything down, free everything...
 	g_main_loop_unref(mainloop); mainloop=NULL;
-
-
 
 
 	// Unlink misc dispatcher - this should NOT be necessary...

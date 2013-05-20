@@ -57,7 +57,7 @@ struct _ChildProcess {
 	guint		timeout;	///< Timeout value for this child
 	guint		timeoutsrc_id;	///< GSource id for the timeout for this child to complete
 	guint		childsrc_id;	///< GSource id for the child process
-	guint		child_state;	///< State for the child process
+	gint		child_state;	///< State for the child process
 	char *		loggingname;	///< Name to use when logging process exits
 	enum ChildErrLogMode logmode;	///< Which types of exits should we log
 	char **		argv;		///< Argument list for this child (malloced)

@@ -56,7 +56,7 @@ struct _ResourceQueue {
 ,			gpointer user_data);			//< User data to pass callback
 	gboolean (*cancel)(ResourceQueue* self			//< Our R.Q. object
 ,			ConfigContext* request);		//< Request to cancel
-	gboolean (*cancelall)(ResourceQueue* self);		//< Cancel all requests
+	void (*cancelall)(ResourceQueue* self);			//< Cancel all requests
 };
 WINEXPORT ResourceQueue* resourcequeue_new(guint structsize);		//< Construct new R.Q.
 

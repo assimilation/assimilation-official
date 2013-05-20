@@ -643,12 +643,14 @@ test_safe_queue_ocfops(void)
 int
 main(int argc, char ** argv)
 {
-#ifdef HAVE_MCHECK_PEDANTIC
-	g_assert(mcheck_pedantic(NULL) == 0);
-#else
-#	ifdef HAVE_MCHECK
-	g_assert(mcheck(NULL) == 0);
-#	endif
+#if 0
+	#ifdef HAVE_MCHECK_PEDANTIC
+		g_assert(mcheck_pedantic(NULL) == 0);
+	#else
+	#	ifdef HAVE_MCHECK
+		g_assert(mcheck(NULL) == 0);
+	#	endif
+	#endif
 #endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	g_test_init(&argc, &argv, NULL);

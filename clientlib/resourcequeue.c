@@ -61,6 +61,7 @@ FSTATIC void _resource_queue_cmd_remove(ResourceQueue* self, RscQElem* qelem);
 FSTATIC gboolean _resource_queue_Qcmd(ResourceQueue* self, ConfigContext* request
 ,		ResourceCmdCallback callback, gpointer user_data);
 FSTATIC gboolean _resource_queue_cancel(ResourceQueue* self, ConfigContext* request);
+FSTATIC void _resource_queue_cancelall(ResourceQueue* self);
 FSTATIC gboolean _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 ,		ResourceCmdCallback cb, gpointer user_data);
 FSTATIC void _resource_queue_finalize(AssimObj* aself);
@@ -89,6 +90,7 @@ resourcequeue_new(guint structsize)
 	
 	self->Qcmd = _resource_queue_Qcmd;
 	self->cancel = _resource_queue_cancel;
+	self->cancelall = _resource_queue_cancelall;
 	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal
 	,		_resource_queue_hash_key_destructor, _resource_queue_hash_data_destructor);
 	self->timerid = g_timeout_add_seconds(5, _resource_queue_runqueue, self);
@@ -162,6 +164,26 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 	return TRUE;
 }
 
+/// Cancel all outstanding requests
+FSTATIC void
+_resource_queue_cancelall(ResourceQueue* self)
+{
+	GHashTableIter	iter;
+	gpointer	pkey;
+	gpointer	pvalue;
+
+	g_hash_table_iter_init(&iter, self->resources);
+	while(g_hash_table_iter_next(&iter, &pkey, &pvalue)) {
+		GQueue*	q = (GQueue*) pvalue;
+		GList*	l;
+		for (l=q->head; NULL != l; l=l->next) {
+			RscQElem*	qe = CASTTOCLASS(RscQElem, l->data);
+			_resource_queue_cancel(self, qe->cmd->request);
+		}
+	}
+}
+
+/// Cancel a specific request
 FSTATIC gboolean
 _resource_queue_cancel(ResourceQueue* self, ConfigContext* request)
 {
