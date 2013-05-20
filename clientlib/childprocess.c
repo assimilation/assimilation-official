@@ -47,6 +47,7 @@ FSTATIC gboolean _childprocess_timeout(gpointer childprocess_object);
 FSTATIC void	 _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object);
 FSTATIC void	 _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object);
 FSTATIC void	 _childprocess_finalize(AssimObj* self);
+FSTATIC gchar*	 _childprocess_toString(gconstpointer);
 
 #define	CHILDSTATE_RUNNING	0
 
@@ -114,6 +115,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	g_return_val_if_fail(aself != NULL, NULL);
 	self = NEWSUBCLASS(ChildProcess, aself);
 	aself->_finalize = _childprocess_finalize;
+	aself->toString = _childprocess_toString;
 	childenv = assim_merge_environ(envp, envmod);
 	g_spawn_async_with_pipes(
 		curdir,				// Current directory
@@ -238,7 +240,7 @@ _childprocess_timeout(gpointer childprocess_object)
 	DEBUGMSG("%s:%d Called from timeout for process with user_data = %p"
 	,	__FUNCTION__, __LINE__, childprocess_object);
 	self = CASTTOCLASS(ChildProcess, childprocess_object);
-	if (self->child_state < DIMOF(signalmap)) {
+	if ((unsigned)(self->child_state) < DIMOF(signalmap)) {
 #ifdef WIN32
 		TerminateProcess(self->child_pid, -1);
 #else
@@ -273,9 +275,9 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 		self->timeoutsrc_id = 0;
 	}
 	// If it refused to die, then the status is invalid
-	if (self->child_state >= DIMOF(signalmap)) {
+	if ((guint)(self->child_state) >= DIMOF(signalmap)) {
 		howwedied = EXITED_HUNG;
-	}else if (self->child_state != CHILDSTATE_RUNNING) {
+	}else if ((guint)self->child_state != CHILDSTATE_RUNNING) {
  		// Then we tried to kill it...
 		howwedied = EXITED_TIMEOUT;
 		signal = signalled ? WTERMSIG(status) : 0;
@@ -341,6 +343,25 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 	DEBUGMSG2("%s.%d: Exit happened howwedied:%d", __FUNCTION__, __LINE__
 	,	howwedied);
 	self->notify(self, howwedied, exitrc, signal, WCOREDUMP(status));
+	self->child_state = -1;
 	UNREF(self);	// Undo the REF(self) in our constructor
+}
+
+FSTATIC char *
+_childprocess_toString(gconstpointer aself)
+{
+	const ChildProcess*	self = CASTTOCONSTCLASS(ChildProcess, aself);
+	ConfigContext*	cfg = configcontext_new(0);
+	char*		ret;
+
+	cfg->setint(cfg, "child_pid", self->child_pid);
+	cfg->setint(cfg, "timeout", self->timeout);
+	cfg->setint(cfg, "timeoutsrc_id", self->timeoutsrc_id);
+	cfg->setint(cfg, "childsrc_id", self->timeoutsrc_id);
+	cfg->setint(cfg, "child_state", self->child_state);
+	cfg->setstring(cfg, "loggingname", self->loggingname);
+	ret = cfg->baseclass.toString(&cfg->baseclass);
+	UNREF(cfg);
+	return ret;
 }
 ///@}
