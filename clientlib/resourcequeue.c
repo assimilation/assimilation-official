@@ -93,7 +93,7 @@ resourcequeue_new(guint structsize)
 	self->cancelall = _resource_queue_cancelall;
 	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal
 	,		_resource_queue_hash_key_destructor, _resource_queue_hash_data_destructor);
-	self->timerid = g_timeout_add_seconds(5, _resource_queue_runqueue, self);
+	self->timerid = g_timeout_add_seconds(1, _resource_queue_runqueue, self);
 
 	return self;
 }
@@ -273,6 +273,8 @@ _resource_queue_qelem_new(ResourceCmd* cmd, ResourceQueue* parent
 	initdelay = cmd->request->getint(cmd->request, REQINITDELAYNAMEFIELD);
 	initdelay = (initdelay > 0 ? initdelay : 0);
 	cmd->starttime = self->queuetime + (initdelay*uSPERSEC);
+	DEBUGMSG2("%s.%d: %s:%s (initdelay %ld)",	__FUNCTION__, __LINE__
+	,	self->cmd->resourcename, self->cmd->operation, (long)initdelay);
 	return self;
 }
 
@@ -344,6 +346,7 @@ _resource_queue_runqueue(gpointer pself)
 		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
 			RscQElem*	qe = CASTTOCLASS(RscQElem, qelem->data);
 			if (now >= qe->cmd->starttime) {
+				REF(self);	// We undo this when process exits
 				qe->cmd->execute(qe->cmd);
 				break;
 			}
@@ -369,6 +372,7 @@ _resource_queue_endnotify
 ,	const char*	stringresult)
 {
 	RscQElem*	self = CASTTOCLASS(RscQElem, user_data);
+	ResourceQueue*	parent = self->parent;
 
 
 	g_queue_remove(self->ourQ, self);
@@ -395,6 +399,8 @@ _resource_queue_endnotify
 		_resource_queue_qelem_finalize(self);
 		self = NULL;
 	}
+	// Undo the ref we did before starting this job
+	UNREF(parent);
 }
 
 ///@}
