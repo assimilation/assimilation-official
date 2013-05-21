@@ -751,7 +751,7 @@ _nano_send_rscexitstatus(ConfigContext* request, gpointer user_data
 		int		framevalue;
 	} pktframes[] = {
 		{REQREASONENUMNAMEFIELD,	reason},
-		{REQRSCNAMEFIELD,		rc},
+		{REQRCNAMEFIELD,		rc},
 		{REQSIGNALNAMEFIELD,		signal},
 	};
 	unsigned	j;

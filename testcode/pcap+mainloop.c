@@ -206,9 +206,9 @@ timeout_agent(gpointer ignored)
 #define	COMMREQUEST	OCFCLASS C HBPROVIDER C DUMMYTYPE C RESOURCENAME C NULLPARAMS
 #define REQUEST(type,id, repeat,delay)	\
 	"{" COMMREQUEST C type C REQID(id) C REPEAT(repeat) C INITDELAY(delay)"}"
-#define START REQUEST(STARTOP,	1, 0, 0)	// One shot - no delay
-#define MONITOR REQUEST(MONITOROP,2, 1, 0)	// Repeat every second - no delay
-#define STOP REQUEST(STOPOP,	3, 0, 5)	// No repeat - 5 second delay
+#define START REQUEST(STARTOP,		1, 0, 0)	// One shot - no delay
+#define MONITOR REQUEST(MONITOROP,	2, 1, 0)	// Repeat every second - no delay
+#define STOP REQUEST(STOPOP,		3, 0, 5)	// No repeat - 5 second delay
 
 /// Routine to pretend to be the initial CMA
 void
