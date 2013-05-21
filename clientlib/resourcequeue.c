@@ -322,6 +322,7 @@ _resource_queue_runqueue(gpointer pself)
 	gint64		now = g_get_monotonic_time();
 	gboolean	anyelems = FALSE;
 
+	DEBUGMSG3("%s.%d: Examining queues", __FUNCTION__, __LINE__);
 	g_hash_table_iter_init(&iter, self->resources);
 
 	while(g_hash_table_iter_next(&iter, &key, &value)) {

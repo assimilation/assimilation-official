@@ -156,12 +156,17 @@ _resourceocf_finalize(AssimObj* aself)
 		g_free(self->argv[j]);
 		self->argv[j] = NULL;
 	}
+	if (self->child) {
+		g_message("%s.%d: UNREF child: (self=%p %s)", __FUNCTION__,__LINE__
+		,	self->child, self->loggingname);
+		UNREF(self->child);
+	}else{
+		g_message("%s.%d: NO CHILD TO UNREF (self=%p %s)", __FUNCTION__,__LINE__,self
+		,	self->loggingname);
+	}
 	if (self->loggingname) {
 		g_free(self->loggingname);
 		self->loggingname = NULL;
-	}
-	if (self->child) {
-		UNREF(self->child);
 	}
 	if (self->environ) {
 		UNREF(self->environ);
@@ -193,11 +198,17 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	enum ChildErrLogMode	logmode;
 	gboolean		saveout;
 
+	DEBUGMSG3("%s.%d Executing(%s:%s)", __FUNCTION__, __LINE__
+	,	self->baseclass.resourcename, self->baseclass.operation);
 	if (self->baseclass.is_running) {
 		g_warning("%s.%d: %s:%s is currently running. New request ignored."
 		,	__FUNCTION__, __LINE__
 		,	self->baseclass.resourcename, self->baseclass.operation);
 		return;
+	}
+	if (self->child) {
+		// Oh... A repeating operation
+		UNREF(self->child);
 	}
 	logmode = (self->baseclass.callback ? CHILD_NOLOG : CHILD_LOGALL);
 
@@ -206,6 +217,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	self->baseclass.is_running = TRUE;
 	REF2(self);	// We can't go away while we're running no matter what...
 			// (this is undone after calling our callback function).
+	g_message("%s.%d: REF resourceocf: %p", __FUNCTION__,__LINE__,self);
 
 	self->child = childprocess_new
 (	0				///< cpsize
@@ -224,6 +236,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 ,	logmode				///< enum ChildErrLogMode errlogmode
 ,	self->loggingname		///< const char * loggingname
 	);
+	g_message("%s.%d: spawned child: %p", __FUNCTION__,__LINE__,self->child);
 }
 
 /// We get called when our child exits, times out and is killed, or times out and
@@ -259,6 +272,7 @@ _resourceocf_child_notify(ChildProcess* child
 	}
 
 	self->baseclass.is_running = FALSE;
+	g_message("%s.%d: UNREF resourceocf: %p", __FUNCTION__,__LINE__,self);
 	UNREF2(self);  // Undo the ref we did before executing
 }
 ///@}
