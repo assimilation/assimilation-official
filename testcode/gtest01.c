@@ -643,7 +643,6 @@ test_safe_queue_ocfops(void)
 int
 main(int argc, char ** argv)
 {
-#if 0
 	#ifdef HAVE_MCHECK_PEDANTIC
 		g_assert(mcheck_pedantic(NULL) == 0);
 	#else
@@ -651,7 +650,6 @@ main(int argc, char ** argv)
 		g_assert(mcheck(NULL) == 0);
 	#	endif
 	#endif
-#endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	g_test_init(&argc, &argv, NULL);
 	g_test_add_func("/gtest01/gmain/command-output", test_read_command_output_at_EOF);
