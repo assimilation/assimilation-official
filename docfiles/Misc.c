@@ -12,16 +12,15 @@ Those files are also provided under these same terms.
 @section SourceLocation Where To Find The Current Project Source
 As of this writing, the source to the latest version of this software is stored under Mercurial
 and can be found at http://hg.linux-ha.org/
-or more specifically at <a href="http://hg.linux-ha.org/|experimental/assimilation/">
-http://hg.linux-ha.org/|experimental/assimilation/</a>.
+or more specifically at <a href="http://hg.linux-ha.org/assimilation/">http://hg.linux-ha.org/assimilation/</a>.
 You can get your own copy of the Mercurial repository using this command:
 @code
-  hg clone 'http://hg.linux-ha.org/%7Cexperimental/assimilation/'
+  hg clone http://hg.linux-ha.org/assimilation/
 @endcode
 
 You can get and install the absolute latest tar ball using this command:
 @code
-   wget http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/buildtools/assimDnI
+   wget http://hg.linux-ha.org/assimilation/raw-file/tip/buildtools/assimDnI
 @endcode
 Note that this does not require that you have a copy of Mercurical.
 If you do not have the <i>wget</i> command, you can save that URL using your favorite browser instead.
@@ -36,7 +35,7 @@ Then you've come to the right place!
 Here are the steps you'll need to take to become a contributor to the Assimilation project:
 - Join the Assimilation Mailing List
 - Get a copy of Mercurial from http://mercurial.selenic.com
-- Clone the repository at http://hg.linux-ha.org/%7Cexperimental/assimilation/
+- Clone the repository at http://hg.linux-ha.org/assimilation/
 - Sign the Assimilation Contributor Agreement as described below
 - Discuss your ideas and on the mailing list
 - Create a patch implementing your ideas following project standards
@@ -60,11 +59,11 @@ The Assimilation project's contributor agreements are borrowed from the <a href=
 agreements.  They provide an excellent <a href="http://harmonyagreements.org/guide.html">guide</a> to understanding
 these contributor agreements.
 
-Note that this agreement creates a copyright sharing arrangement with the project.
+Note that this agreement creates a rights sharing arrangement with the project.
 <i>You do not lose any rights to use or relicense your contribution any way you wish by signing this contribution agreement</i>.
 
-- http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationIndividualContributorAgreement-v1.0.pdf - md5 sum 15fff2cc37118835f98827ffd84b8288
-- http://hg.linux-ha.org/%7Cexperimental/assimilation/raw-file/tip/legal/AssimilationEntityContributorAgreement-v1.0.pdf -     md5 sum df2793e8d13e4df7001a5b88a15fd06f
+- http://hg.linux-ha.org/assimilation/raw-file/tip/legal/AssimilationIndividualContributorAgreement-v1.0.pdf - md5 sum 15fff2cc37118835f98827ffd84b8288
+- http://hg.linux-ha.org/assimilation/raw-file/tip/legal/AssimilationEntityContributorAgreement-v1.0.pdf -     md5 sum df2793e8d13e4df7001a5b88a15fd06f
 
 @section SigningContributorAgreement How to Provide a Signed Copy of the Contributor Agreement
 There are two ways to provide a signed copy of the agreement:
