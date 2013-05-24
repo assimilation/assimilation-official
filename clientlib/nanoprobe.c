@@ -1146,8 +1146,7 @@ nano_shutdown(gboolean report)
 		UNREF(nanofailreportaddr);
 	}
 	if (nanotransport) {
-		// Unlink heartbeat dispatcher - this should NOT be necessary - but it seems to be...
-		nanotransport->addListener(nanotransport, FRAMESETTYPE_HEARTBEAT, NULL);
+		g_source_destroy(CASTTOCLASS(GSource, nanotransport));
 		g_source_unref(CASTTOCLASS(GSource, nanotransport));
 		nanotransport = NULL;
 	}

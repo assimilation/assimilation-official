@@ -293,9 +293,11 @@ main(int argc, char **argv)
 #	endif
 #endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
+#if 0
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
+#endif
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
 
 	if (argc > 1) {
@@ -406,9 +408,9 @@ main(int argc, char **argv)
 	// Unref the AuthListener object
 	UNREF2(listentonanoprobes);
 
-	// g_main_loop_unref() calls g_source_unref() - so we should not call it directly(?)
-	g_main_context_unref(g_main_context_default());
+	g_source_destroy(&netpkt->baseclass);
 	g_source_unref(&netpkt->baseclass);
+	g_main_context_unref(g_main_context_default());
 
 	// Free signature frame
 	UNREF2(signature);
