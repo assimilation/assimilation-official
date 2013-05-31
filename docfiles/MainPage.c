@@ -59,6 +59,18 @@ The team currently posts updates in the following places:
   This gives a very good overview of the project goals, current and future work items along with <b>open project roles</b>.  Come find your future here!
 - <a href="http://lists.linux-ha.org/mailman/listinfo/linux-ha-dev">linux-ha-dev mailing list</a> - parent project
 
+@section ExternalLinks External Links
+- <a href="https://www.ohloh.net/p/assimmon">Ohloh entry for the Assimilation Project</a>.
+- <a href="http://searchdatacenter.techtarget.com/news/2240161696/Assimilation-Monitoring-Project-hopes-to-ease-monitoring-sucks-woes">Assimilation Interview - Fall 2012</a>.
+- <a href="http://searchdatacenter.techtarget.com/news/2240182002/Open-source-monitoring-software-ready-for-final-release">Assimilation Interview - April 2013</a>.
+- LinuxCon 2012 <a href="https://speakerdeck.com/ossalanr/how-to-assimilate-a-million-servers-without-getting-indigestion-linuxcon-na-2012">slides</a>, <a href="http://bit.ly/AssimMonVid">video</a>.
+- <a href="http://techthoughts.typepad.com/managing_computers/2012/07/fullsys.png">A picture of what our graphs look like</a>.
+- Blog articles on our Neo4j schema:
+ - <a href="http://techthoughts.typepad.com/managing_computers/2012/07/assimilation-ring-neo4j-schema.html">Monitoring rings</a>
+ - <a href="http://techthoughts.typepad.com/managing_computers/2012/07/discovering-switches-its-amazing-what-you-can-learn-just-by-listening.html">Switch discovery</a>
+ - <a href="http://techthoughts.typepad.com/managing_computers/2012/07/clients-servers-and-dependencies-oh-my.html">Service Dependencies</a>
+ - <a href="http://techthoughts.typepad.com/managing_computers/2012/08/an-assimilation-type-schema-in-neo4j.html">Type schema</a>
+
 @section architecture Architecture
 This concept has two kinds of participating entities:
  - a Centralized Monitoring Authority - monitoring the collective, and collecting discovery information

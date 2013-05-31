@@ -567,6 +567,34 @@ This should produce output which looks something like this:
 servidor   eth0             GS724T_10_10_10_250    g6                Alan's office - North wall, grey jack
 </pre>
 
+@subsection GetRingMembers Return which servers are members of a given ring
+The query below will return all the systems which are in the given ring (in this case "The_One_Ring").
+For the current state of only one ring, this is another way to get the list of all up servers.
+<pre>
+START Ring=node:Ring(Ring="The_One_Ring")
+MATCH Ring<-[RingMember_The_One_Ring]-Drone
+RETURN Drone
+</pre>
+
+@subsection GetRingMembers Return servers on a ring with a node, in the order they appear on the ring
+Thie query below will follow the <i>RingNext</i> links from the given node around the ring
+until they return to the initial node.  It's kind of a funky little query...
+<pre>
+START Drone=node:Drone(Drone="drone000001")
+MATCH Drone-[:RingNext_The_One_Ring*]->NextDrone
+RETURN NextDrone.name, NextDrone
+</pre>
+The results should loke something like this:
+<pre>
+"drone000002"	[Node 31258]
+"drone000003"	[Node 31261]
+"drone000004"	[Node 31264]
+"drone000005"	[Node 31267]
+"drone000001"	[Node 31255]
+</pre>
+Note that this query returns the initial node <i>last</i>.
+
+
 @subsection EvenMoreQueries Even More Cool Cypher Queries
 These queries don't begin to scratch the surface of what you can do with the Assimilation
 Monitoring project and Cypher queries into the Neo4j database.
