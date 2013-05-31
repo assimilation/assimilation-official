@@ -70,6 +70,7 @@ The team currently posts updates in the following places:
  - <a href="http://techthoughts.typepad.com/managing_computers/2012/07/discovering-switches-its-amazing-what-you-can-learn-just-by-listening.html">Switch discovery</a>
  - <a href="http://techthoughts.typepad.com/managing_computers/2012/07/clients-servers-and-dependencies-oh-my.html">Service Dependencies</a>
  - <a href="http://techthoughts.typepad.com/managing_computers/2012/08/an-assimilation-type-schema-in-neo4j.html">Type schema</a>
+ - <a href="http://freecode.com/projects/assimilation-monitoring-project">Project page on Freecode</a>
 
 @section architecture Architecture
 This concept has two kinds of participating entities:
