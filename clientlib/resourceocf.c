@@ -30,8 +30,7 @@ DEBUGDECLARATIONS
 ///@defgroup ResourceOCF ResourceOCF class
 /// Class implementing resource commands
 ///@{
-///@ingroup C_Classes
-///@ingroup AssimObj
+///@ingroup ResourceCmd
 
 FSTATIC void _resourceocf_finalize(AssimObj* aself);
 FSTATIC void _resourceocf_execute(ResourceCmd* self);
@@ -67,9 +66,19 @@ resourceocf_new(
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
+	if (strchr(restype, '/') != NULL) {
+		g_warning("%s.%d: "REQTYPENAMEFIELD" field in LSB agent contains a slash."
+		,	__FUNCTION__, __LINE__);
+		return NULL;
+	}
 	provider = request->getstring(request, REQPROVIDERNAMEFIELD);
 	if (NULL == provider) {
 		g_warning("%s.%d: No "REQPROVIDERNAMEFIELD" field in OCF agent request."
+		,	__FUNCTION__, __LINE__);
+		return NULL;
+	}
+	if (strchr(provider, '/') != NULL) {
+		g_warning("%s.%d: "REQPROVIDERNAMEFIELD" field in LSB agent contains a slash."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
@@ -140,7 +149,7 @@ _resourceocf_init_environ(ResourceOCF* self)
 	self->environ->setstring(self->environ, "HA_RSCTMP", HB_RSCTMPDIR);
 }
 
-/// Finalize function for ResourceCmd objects
+/// Finalize function for ResourceOCF objects
 void
 _resourceocf_finalize(AssimObj* aself)
 {
