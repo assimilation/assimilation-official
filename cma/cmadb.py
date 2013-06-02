@@ -19,11 +19,15 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+'''
+This module defines our CMAdb class and so on...
+'''
 
-import sys, os
+import os
 import logging, logging.handlers
 from py2neo import neo4j, cypher
-from AssimCtypes import *
+#from AssimCtypes import *
+from AssimCtypes import CFG_ARRAY, CFG_BOOL, CFG_INT64, CFG_STRING, CFG_ARRAY, CFG_FLOAT
 from AssimCclasses import pyNetAddr
 
 class CMAdb:
@@ -111,7 +115,7 @@ class CMAdb:
             self.nodetypetbl[index] = top
             #print >>sys.stderr, 'Relating type %s to node zero' % index
             if not top.has_relationship_with(nodezero):
-               top.create_relationship_to(nodezero, CMAdb.REL_isa)
+                top.create_relationship_to(nodezero, CMAdb.REL_isa)
             
         self.ringindex = self.indextbl[CMAdb.NODE_ring]
         self.ipindex = self.indextbl[CMAdb.NODE_ipaddr]
@@ -121,10 +125,11 @@ class CMAdb:
 
     @staticmethod
     def initglobal(io, cleanoutdb=False, debug=False):
+        'Initialize and construct a global database instance'
         CMAdb.log = logging.getLogger('cma')
         CMAdb.debug = debug
         CMAdb.io = io
-        import hbring
+        from hbring import HbRing
         syslog = logging.handlers.SysLogHandler(address='/dev/log'
         ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
@@ -135,14 +140,16 @@ class CMAdb:
             CMAdb.log.info('Re-initializing the NEO4j database')
             CMAdb.cdb.delete_all()
             CMAdb.cdb = CMAdb()
-        CMAdb.TheOneRing =  hbring.HbRing('The_One_Ring', hbring.HbRing.THEONERING)
+        CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
 
     def delete_all(self):
+        'Empty everything out of our database - start over!'
         query = cypher.Query(self.db
         ,   'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
         result = query.execute()
         if CMAdb.debug:
-            CMAdb.log.debug('Cypher query to delete all relationships and nonzero nodes executing: %s' % query)
+            CMAdb.log.debug('Cypher query to delete all relationships'
+                ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
 
     def node_new(self, nodetype, nodename, unique=True, **properties):
@@ -163,18 +170,22 @@ class CMAdb:
         tbl['nodetype'] = str(nodetype)
         tbl['name'] = str(nodename)
         if nodetype in self.indextbl:
-             idx = self.indextbl[nodetype]
-             #print 'CREATING A [%s] object named [%s] with attributes %s' % (nodetype, nodename, str(tbl.keys()))
-             if unique:
-                 #print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' % (nodetype, nodename, str(tbl))
-                 obj = idx.get_or_create(nodetype, nodename, tbl)
-             else:
-                 obj, = self.db.create(tbl)
-                 #print >>sys.stderr, "TBL: %s" % str(tbl)
-                 #print >>sys.stderr, 'OBJ: %s' % str(obj)
-                 idx.add(nodetype, nodename, obj)
+            idx = self.indextbl[nodetype]
+            #print 'CREATING A [%s] object named [%s] with attributes %s' \
+            #%       (nodetype, nodename, str(tbl.keys()))
+            if unique:
+                #print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' \
+                #%   (nodetype, nodename, str(tbl))
+                obj = idx.get_or_create(nodetype, nodename, tbl)
+            else:
+                obj, = self.db.create(tbl)
+                #print >>sys.stderr, "TBL: %s" % str(tbl)
+                #print >>sys.stderr, 'OBJ: %s' % str(obj)
+                idx.add(nodetype, nodename, obj)
         else:
-            #print >>sys.stderr, 'self.db.CREATING AN UNINDEXED[%s] object named [%s] with attributes %s [%s]' % (nodetype, nodename, str(tbl.keys()), str(tbl))
+            #print >>sys.stderr
+            #,      'self.db.CREATING AN UNINDEXED[%s] object named [%s] with attributes %s [%s]' \
+            #%      (nodetype, nodename, str(tbl.keys()), str(tbl))
             #print >>sys.stderr, 'self.db.attribute: attribute table: %s' % (str(tbl))
 
             obj, = self.db.create(tbl)
@@ -221,23 +232,28 @@ class CMAdb:
             if CMAdb.debug:
                 CMAdb.log.debug('MAC IS: %s' %  mac)
                 if mac.is_related_to(owningnode, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner):
-                    CMAdb.log.debug('MAC %s is nicowner related to owner %s' % (str(mac), str(owner)))
-                    CMAdb.log.debug('MAC address = %s, NICname = %s for owner %s' % (mac['address'], mac['nicname'], owner))
+                    CMAdb.log.debug('MAC %s is nicowner related to owner %s' \
+                    %       (str(mac), str(owner)))
+                    CMAdb.log.debug('MAC address = %s, NICname = %s for owner %s' \
+                    %       (mac['address'], mac['nicname'], owner))
                 else:
-                    CMAdb.log.debug('MAC %s is NOT nicowner related to owner %s' (str(mac), str(owner)))
+                    CMAdb.log.debug('MAC %s is NOT nicowner related to owner %s' 
+                    %       (str(mac), str(owner)))
 
             if mac.is_related_to(owningnode, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner) \
             and mac['address'] == macaddr and mac['nicname'] == nicname:
                 return mac
-        mac = self.node_new(CMAdb.NODE_NIC, macaddr, address=macaddr, unique=False, nicname=nicname, **kw)
+        mac = self.node_new(CMAdb.NODE_NIC, macaddr, address=macaddr
+        ,       unique=False, nicname=nicname, **kw)
         mac.create_relationship_to(owningnode, CMAdb.REL_nicowner)
         return mac
 
-    def new_IPaddr(self, nic, ipaddr, **kw):
+    def new_ipaddr(self, nic, ipaddr, **kw):
         '''Create a new IP address (or return a pre-existing one), and point it at its parent
         NIC and its grandparent drone'''
-        ipaddr=str(pyNetAddr(ipaddr).toIPv6())
-        if CMAdb.debug: CMAdb.log.debug('Adding IP address %s' % (ipaddr))
+        ipaddr = str(pyNetAddr(ipaddr).toIPv6())
+        if CMAdb.debug:
+            CMAdb.log.debug('Adding IP address %s' % (ipaddr))
         ipaddrs = self.ipindex.get(CMAdb.NODE_ipaddr, ipaddr)
         if nic is not None:
             for ip in ipaddrs:
@@ -261,21 +277,29 @@ class CMAdb:
                    drone):          ##< Drone we are running on
         '''Create a new ipproc object from its JSON discovery data'''
         table = {}
-        if CMAdb.debug: CMAdb.log.debug('Entering new_ipproc()');
-        if CMAdb.debug: CMAdb.log.debug('new_ipproc(): keys = %s' % jsonobj.keys())
+        if CMAdb.debug:
+            CMAdb.log.debug('Entering new_ipproc()')
+        if CMAdb.debug:
+            CMAdb.log.debug('new_ipproc(): keys = %s' % jsonobj.keys())
         for key in jsonobj.keys():
-            if CMAdb.debug: CMAdb.log.debug('new_ipproc(): processing key = %s' % key)
-            type = jsonobj.gettype(key)
-            if CMAdb.debug: CMAdb.log.debug('new_ipproc(): key is of type %s' % type)
-            if CMAdb.debug and type == CFG_ARRAY: CMAdb.log.debug('new_ipproc(): key %s is an array' % (key))
-            if not (type == CFG_BOOL or type == CFG_INT64 or type == CFG_STRING
-            or      type == CFG_FLOAT or type == CFG_ARRAY):
+            if CMAdb.debug:
+                CMAdb.log.debug('new_ipproc(): processing key = %s' % key)
+            objtype = jsonobj.gettype(key)
+            if CMAdb.debug:
+                CMAdb.log.debug('new_ipproc(): key is of type %s' % type)
+            if CMAdb.debug and objtype == CFG_ARRAY:
+                CMAdb.log.debug('new_ipproc(): key %s is an array' % (key))
+            if not (objtype == CFG_BOOL or objtype == CFG_INT64 or objtype == CFG_STRING
+            or      objtype == CFG_FLOAT or objtype == CFG_ARRAY):
                 continue
-            if jsonobj[key] is None: continue
-            if CMAdb.debug and type == CFG_ARRAY: CMAdb.log.debug('jsonobj[%s] is NOT None' % (key))
+            if jsonobj[key] is None:
+                continue
+            if CMAdb.debug and objtype == CFG_ARRAY:
+                CMAdb.log.debug('jsonobj[%s] is NOT None' % (key))
             # We assume any arrays are of same-typed simple objects (presumably Strings)
             # This is a reasonable assumption for our process discovery data
-            if CMAdb.debug: CMAdb.log.debug('new_ipproc(): jsonobj[%s] = %s' % (key, jsonobj[key]))
+            if CMAdb.debug:
+                CMAdb.log.debug('new_ipproc(): jsonobj[%s] = %s' % (key, jsonobj[key]))
             table[key] = jsonobj[key]
         ipproc = self.node_new(CMAdb.NODE_ipproc, name, unique=False, **table)
         self.db.get_or_create_relationships((ipproc, CMAdb.REL_runningon, drone),)
@@ -294,9 +318,9 @@ class CMAdb:
         port = jsonobj['port']
         table = {}
         for key in jsonobj.keys():
-            type = jsonobj.gettype(key)
-            if not (type == CFG_BOOL or type == CFG_INT64 or type == CFG_STRING
-            or      type == CFG_FLOAT or type == CFG_ARRAY):
+            objtype = jsonobj.gettype(key)
+            if not (objtype == CFG_BOOL or objtype == CFG_INT64 or objtype == CFG_STRING
+            or      objtype == CFG_FLOAT or objtype == CFG_ARRAY):
                 continue
             table[key] = jsonobj[key]
         tcpipport = self.node_new(CMAdb.NODE_tcpipport, name, unique=True, **table)
@@ -313,17 +337,3 @@ class CMAdb:
         CMAdb.cdb.db.get_or_create_relationships(*args)
 
 
-
-    def empty(self):
-        indexes = self.db.get_node_indexes()
-        
-        for nodeid in range(0,self.db.get_node_count()+100):
-            node = get_node(nodeid)
-            nodetype = node['nodetype']
-            nodename = node['name']
-            l = [node,]
-            if l.nodetype in indexes:
-                indexes[nodetype].remove(nodetype, name)
-            l.append(l.get_relationships())
-            self.db.delete(*l)
-            l = None
