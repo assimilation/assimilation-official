@@ -166,7 +166,7 @@ _resourceocf_finalize(AssimObj* aself)
 		self->argv[j] = NULL;
 	}
 	if (self->child) {
-		g_message("%s.%d: UNREF child: (self=%p %s)", __FUNCTION__,__LINE__
+		DEBUGMSG5("%s.%d: UNREF child: (self=%p %s)", __FUNCTION__,__LINE__
 		,	self->child, self->loggingname);
 		UNREF(self->child);
 	}else{
@@ -226,7 +226,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	self->baseclass.is_running = TRUE;
 	REF2(self);	// We can't go away while we're running no matter what...
 			// (this is undone after calling our callback function).
-	g_message("%s.%d: REF resourceocf: %p", __FUNCTION__,__LINE__,self);
+	DEBUGMSG5("%s.%d: REF resourceocf: %p", __FUNCTION__,__LINE__,self);
 
 	self->child = childprocess_new
 (	0				///< cpsize
@@ -245,7 +245,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 ,	logmode				///< enum ChildErrLogMode errlogmode
 ,	self->loggingname		///< const char * loggingname
 	);
-	g_message("%s.%d: spawned child: %p", __FUNCTION__,__LINE__,self->child);
+	DEBUGMSG("%s.%d: spawned child: %p", __FUNCTION__,__LINE__,self->child);
 }
 
 /// We get called when our child exits, times out and is killed, or times out and
@@ -281,7 +281,7 @@ _resourceocf_child_notify(ChildProcess* child
 	}
 
 	self->baseclass.is_running = FALSE;
-	g_message("%s.%d: UNREF resourceocf: %p", __FUNCTION__,__LINE__,self);
+	DEBUGMSG5("%s.%d: UNREF resourceocf: %p", __FUNCTION__,__LINE__,self);
 	UNREF2(self);  // Undo the ref we did before executing
 }
 ///@}

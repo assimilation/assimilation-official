@@ -267,11 +267,16 @@ main(int argc, char **argv)
 	}
 	if (dokillonly) {
 		int rc = kill_pid_service(pidfile, SIGTERM);
-		g_free(pidfile);
 		if (rc != 0) {
 			fprintf(stderr, "%s: could not stop service [%s]\n", "nanoprobe", g_strerror(errno));
+			g_warning("%s: could not stop service [%s]\n", "nanoprobe", g_strerror(errno));
+			g_free(pidfile);
 			exit(1);
 		}
+		while (are_we_already_running(pidfile, NULL) == PID_RUNNING) {
+			usleep(100000);	// 1/10 second
+		}
+		g_free(pidfile);
 		exit(0);
 	}
 	daemonize_me(stay_in_foreground, SEP, pidfile);
