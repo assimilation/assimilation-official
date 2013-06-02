@@ -170,7 +170,7 @@ _resourceocf_finalize(AssimObj* aself)
 		,	self->child, self->loggingname);
 		UNREF(self->child);
 	}else{
-		g_message("%s.%d: NO CHILD TO UNREF (self=%p %s)", __FUNCTION__,__LINE__,self
+		DEBUGMSG("%s.%d: NO CHILD TO UNREF (self=%p %s)", __FUNCTION__,__LINE__,self
 		,	self->loggingname);
 	}
 	if (self->loggingname) {

@@ -74,21 +74,32 @@ logfatal_function(
 ///< Try various invalid resource command initializers
 #define	DUMB	"\""REQRSCNAMEFIELD"\":\"dumb\""
 #define	PROV	",\"" REQPROVIDERNAMEFIELD "\": \"heartbeat\"}"
+
+
 FSTATIC void
 test_invalid_resourcecmd(void)
 {
 
 	const char *	json_cmds[] = {
 		"{}",
+
 		"{\"" REQCLASSNAMEFIELD "\": \"NOSUCHRESOURCECLASS\","DUMB PROV,
+
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"" PROV,
+
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"," DUMB PROV,
+
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\","DUMB PROV,
+
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
 				REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB PROV,
+
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
 				REQOPERATIONNAMEFIELD"\":\"monitor\","
 				"\""REQENVIRONNAMEFIELD"\":\"notahash\","DUMB PROV,
+
+		"{\"" REQCLASSNAMEFIELD "\":\"lsb\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
+				REQOPERATIONNAMEFIELD"\":\"monitor\"}",
 		NULL
 	};
 	const char *	expected_failures[] = {
@@ -99,6 +110,7 @@ test_invalid_resourcecmd(void)
 		": No type field in OCF agent request.",
 		": No operation field in OCF agent request.",
 		": No OCF Resource agent [/usr/lib/ocf/resource.d/heartbeat/NOSUCHOCFRESOURCETYPE]",
+		": No LSB Resource agent [/etc/init.d/NOSUCHOCFRESOURCETYPE]",
 		": environ field in OCF request is invalid.",
 		NULL
 	};

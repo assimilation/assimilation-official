@@ -26,6 +26,7 @@
 #define	RESOURCECMD_SUBCLASS
 #include <resourcecmd.h>
 #include <resourceocf.h>
+#include <resourcelsb.h>
 
 DEBUGDECLARATIONS
 
@@ -47,7 +48,8 @@ static const struct {
 ,			gpointer user_data
 ,			ResourceCmdCallback callback);
 }subclasses[] = {
-	{"ocf", resourceocf_new}	//< No such constructor...
+	{"ocf", resourceocf_new},	//< OCF resource agents
+	{"lsb", resourcelsb_new}	//< LSB (/etc/init.d) resource agents
 };
 FSTATIC void _resourcecmd_finalize(AssimObj*);
 FSTATIC void _resourcecmd_execute(ResourceCmd* self);	///< Moan and complain - abstract class
