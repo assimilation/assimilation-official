@@ -126,7 +126,7 @@ class DroneInfo:
                     isprimaryip = True
                     primaryip = iponly
                     #print >>sys.stderr, 'PRIMARY IP is %s' % iponly
-                ipnode = CMAdb.cdb.new_IPaddr(nicnode, iponly, ifname=ifname, hostname=self.node['name'])
+                ipnode = CMAdb.cdb.new_ipaddr(nicnode, iponly, ifname=ifname, hostname=self.node['name'])
                 # Save away whichever IP address is our primary IP address...
                 if isprimaryip:
                     rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING, 'primaryip')
@@ -194,7 +194,7 @@ class DroneInfo:
                             % (self.node['name'], addr))
         else:
             netaddr.setport(port)
-            ipaddr = CMAdb.cdb.new_IPaddr(None, addr)
+            ipaddr = CMAdb.cdb.new_ipaddr(None, addr)
             CMAdb.cdb.new_tcpipport(str(netaddr), isserver, jsonobj, None, ipproc, ipaddr)
 
     def add_linkdiscovery(self, jsonobj, **kw):
@@ -214,7 +214,7 @@ class DroneInfo:
         if ('ManagementAddress' in attrs):
             mgmtaddr = attrs['ManagementAddress']
             adminnic = CMAdb.cdb.new_nic('(adminNIC)', ChassisId, switch)
-            CMAdb.cdb.new_IPaddr(adminnic, mgmtaddr)
+            CMAdb.cdb.new_ipaddr(adminnic, mgmtaddr)
         ports = data['ports']
         for portname in ports.keys():
             attrs = {}
