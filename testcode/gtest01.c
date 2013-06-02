@@ -36,6 +36,7 @@
 #include <configcontext.h>
 #include <childprocess.h>
 #include <resourcecmd.h>
+#include <resourcelsb.h>
 #include <resourcequeue.h>
 
 GMainLoop*	mainloop;
@@ -55,6 +56,7 @@ FSTATIC void	test_childprocess_save_command_output_signal(void);
 FSTATIC void	test_childprocess_stderr_logging(void);
 FSTATIC void	test_childprocess_modenv(void);
 FSTATIC void	test_safe_ocfops(void);
+FSTATIC void	test_safe_queue_lsbops(void);
 FSTATIC void	test_safe_queue_ocfops(void);
 FSTATIC void	expect_ocf_callback(ConfigContext* request, gpointer user_data, enum HowDied reason
 ,		int rc, int signal, gboolean coredump, const char * stringresult);
@@ -431,12 +433,14 @@ test_childprocess_timeout(void)
 }
 
 #define	OCFCLASS	"\"" REQCLASSNAMEFIELD		"\": \"ocf\""
+#define	LSBCLASS	"\"" REQCLASSNAMEFIELD		"\": \"lsb\""
 #define	HBPROVIDER	"\"" REQPROVIDERNAMEFIELD	"\": \"heartbeat\""
 #define	DUMMYTYPE	"\"" REQTYPENAMEFIELD		"\": \"Dummy\""
+#define	NANOTYPE	"\"" REQTYPENAMEFIELD		"\": \"nanoprobe\""
 #define	STARTOP		"\"" REQOPERATIONNAMEFIELD	"\": \"start\""
 #define	STOPOP		"\"" REQOPERATIONNAMEFIELD	"\": \"stop\""
-#define	MONITOROP	"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
-#define	METADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
+#define	MONOP		"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
+#define	METAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
 #define	RESOURCENAME	"\"" REQRSCNAMEFIELD		"\": \"DummyTestGTest01\""
 #define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}"
 #define	REQID		"\"" REQIDENTIFIERNAMEFIELD	"\": 42"
@@ -481,9 +485,9 @@ test_safe_ocfops(void)
 	const char *	start =
 		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STARTOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char *	monitor =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONITOROP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char * metadata =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METADATAOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METAOP "," HBPROVIDER "," NULLPARAMS "}";
 	
 	struct ocf_expect success = {
 		-1, 		// gint		minstrlen;
@@ -550,8 +554,8 @@ test_safe_ocfops(void)
 	}
 	test_all_freed();
 }
-#define PREFIX	REQID "," OCFCLASS "," DUMMYTYPE "," RESOURCENAME
 
+#define PREFIX	REQID "," OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," HBPROVIDER
 FSTATIC void
 test_safe_queue_ocfops(void)
 {
@@ -560,9 +564,9 @@ test_safe_queue_ocfops(void)
 	const char *	start =
 		"{" PREFIX "," STARTOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char *	monitor =
-		"{" PREFIX "," MONITOROP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" PREFIX "," MONOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char * metadata =
-		"{" REQID "," OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METADATAOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" REQID "," OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METAOP "," HBPROVIDER "," NULLPARAMS "}";
 	
 	struct ocf_expect success = {
 		-1, 		// gint		minstrlen;
@@ -639,10 +643,103 @@ test_safe_queue_ocfops(void)
 	test_all_freed();
 }
 
+#define LSBPREFIX	REQID "," LSBCLASS "," NANOTYPE "," RESOURCENAME
+
+FSTATIC void
+test_safe_queue_lsbops(void)
+{
+	const char *	stop =
+		"{" LSBPREFIX "," STOPOP "," NULLPARAMS "}";
+	const char *	start =
+		"{" LSBPREFIX "," STARTOP "," NULLPARAMS "}";
+	const char *	monitor =
+		"{" LSBPREFIX "," MONOP "," NULLPARAMS "}";
+	const char * metadata =
+		"{" LSBPREFIX "," METAOP "," NULLPARAMS "}";
+	
+	struct ocf_expect success = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_ZERO,	// enum HowDied	death;
+		0,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		FALSE,		// quit_after_done
+	};
+	struct ocf_expect stop_fail = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_NONZERO,	// enum HowDied	death;
+		7,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		FALSE,		// quit_after_done
+	};
+	struct ocf_expect stop_fail_and_quit = {
+		-1, 		// gint		minstrlen;
+		0,		// gint		maxstrlen;
+		EXITED_NONZERO,	// enum HowDied	death;
+		7,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		TRUE,		// quit_after_done
+	};
+
+	struct ocf_expect meta_success = {
+		200, 		// gint		minstrlen;
+		50000,		// gint		maxstrlen;
+		EXITED_ZERO,	// enum HowDied	death;
+		0,		// int		rc;
+		0,		// int		signal;
+		FALSE,		// gboolean	coredump;
+		FALSE,		// quit_after_done
+	};
+
+	const char *		operations[] = 
+	{metadata,	stop,     monitor,     start,     monitor,   stop,      monitor };
+	struct ocf_expect*	expectations [] =
+	{&meta_success,	&success, &stop_fail,  &success,  &success,  &success,  &stop_fail_and_quit};
+
+	guint			j;
+	ResourceQueue*		rscq;
+	const char *		initpath = LSB_ROOT "/nanoprobe";
+
+#ifdef HAVE_GETEUID
+	if (geteuid() != 0) {
+		g_message("Test %s skipped - must be root.", __FUNCTION__);
+		return;
+	}
+#endif
+	if (	!g_file_test(initpath, G_FILE_TEST_IS_REGULAR)
+	||	!g_file_test(initpath, G_FILE_TEST_IS_EXECUTABLE)) {
+		g_message("Test %s skipped No LSB Resource agent [%s]", __FUNCTION__, initpath);
+		return;
+	}
+
+	//proj_class_incr_debug(NULL);
+	//proj_class_incr_debug(NULL);
+	//proj_class_incr_debug(NULL);
+
+	rscq = resourcequeue_new(0);
+	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
+	// Queue all the commands up at once, then run them
+	for (j=0; j < DIMOF(operations); ++j) {
+		ConfigContext*	op = configcontext_new_JSON_string(operations[j]);
+		g_assert(op != NULL);
+		g_assert(rscq->Qcmd(rscq, op, expect_ocf_callback, expectations[j]) == TRUE);
+		UNREF(op);
+	}
+	g_main_loop_run(mainloop);
+	g_main_loop_unref(mainloop);
+	UNREF(rscq); rscq = NULL;
+	test_all_freed();
+}
+
 /// Test main program ('/gtest01') using the glib test fixtures
 int
 main(int argc, char ** argv)
 {
+#if 0
 	#ifdef HAVE_MCHECK_PEDANTIC
 		g_assert(mcheck_pedantic(NULL) == 0);
 	#else
@@ -650,6 +747,7 @@ main(int argc, char ** argv)
 		g_assert(mcheck(NULL) == 0);
 	#	endif
 	#endif
+#endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	g_test_init(&argc, &argv, NULL);
 	g_test_add_func("/gtest01/gmain/command-output", test_read_command_output_at_EOF);
@@ -668,5 +766,6 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
 	g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
 	g_test_add_func("/gtest01/gmain/safe_queue_ocfops", test_safe_queue_ocfops);
+	g_test_add_func("/gtest01/gmain/safe_queue_lsbops", test_safe_queue_lsbops);
 	return g_test_run();
 }

@@ -312,12 +312,12 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 
 	// Does the pid file exist?
 	if (!g_file_test(pidfile, G_FILE_TEST_IS_REGULAR)) {
-		g_debug("%s.%d: PID file [%s] does not exist", __FUNCTION__, __LINE__, pidfile);
+		//g_debug("%s.%d: PID file [%s] does not exist", __FUNCTION__, __LINE__, pidfile);
 		return PID_NOTRUNNING;
 	}
 	// Can we read it?
 	if (!g_file_get_contents(pidfile, &pidcontents, NULL, NULL)) {
-		g_debug("%s.%d: PID file [%s] cannot be read", __FUNCTION__, __LINE__, pidfile);
+		//g_debug("%s.%d: PID file [%s] cannot be read", __FUNCTION__, __LINE__, pidfile);
 		return PID_NOTRUNNING;
 	}
 	// We assume it's passably well-formed...
@@ -325,7 +325,7 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 	g_free(pidcontents); pidcontents = NULL;
 	// Is it a legitimate pid value?
 	if (pid < 2) {
-		g_debug("%s.%d: PID file [%s] contains pid %d", __FUNCTION__, __LINE__, pidfile, pid);
+		//g_debug("%s.%d: PID file [%s] contains pid %d", __FUNCTION__, __LINE__, pidfile, pid);
 		return PID_NOTRUNNING;
 	}
 	if (pidarg) {
@@ -338,7 +338,7 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 	if (kill(pid, 0) < 0 && errno != EPERM)
 #endif
 	{
-		g_debug("%s.%d: PID %d is not running", __FUNCTION__, __LINE__, pid);
+		//g_debug("%s.%d: PID %d is not running", __FUNCTION__, __LINE__, pid);
 		return PID_DEAD;
 	}
 	// Now let's see if it's "us" - our process
@@ -350,7 +350,7 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 #else
 	ret = GetModuleFileName(NULL, w_ourexepath, nSize);
 	if(ret == 0) {
-		g_debug("%s.%d: GetModuleFileName failed %d", __FUNCTION__, __LINE__, GetLastError());
+		//g_debug("%s.%d: GetModuleFileName failed %d", __FUNCTION__, __LINE__, GetLastError());
 		return(PID_DEAD);
 	}
 	ourexepath = g_strdup(w_ourexepath);
@@ -378,14 +378,14 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 	}
 	// Is it the same executable as we are?
 	if (strcmp(ourexecmd, pidexecmd) == 0) {
-		g_debug("%s.%d: Link  %s is the same as %s", __FUNCTION__, __LINE__, ourexepath
-		,	pidexepath);
+		//g_debug("%s.%d: Link  %s is the same as %s", __FUNCTION__, __LINE__, ourexepath
+		//,	pidexepath);
 		g_free(ourexepath); ourexepath = NULL;
 		g_free(pidexepath); pidexepath = NULL;
 		return PID_RUNNING;
 	}
-	g_debug("%s.%d: Link %s is NOT the same as %s", __FUNCTION__, __LINE__, ourexecmd
-	,	pidexecmd);
+	//g_debug("%s.%d: Link %s is NOT the same as %s", __FUNCTION__, __LINE__, ourexecmd
+	//,	pidexecmd);
 	g_free(ourexepath); ourexepath = NULL;
 	g_free(pidexepath); pidexepath = NULL;
 	return PID_NOTUS;
@@ -409,20 +409,20 @@ GetCurrentProcess();
 #else
 #define GETPID getpid()
 #endif
-	g_debug("%s.%d: Creating pid file %s for pid %d", __FUNCTION__, __LINE__, pidfile, GETPID);
+	//g_debug("%s.%d: Creating pid file %s for pid %d", __FUNCTION__, __LINE__, pidfile, GETPID);
 	pstat = are_we_already_running(pidfile, NULL);
 	if (PID_RUNNING == pstat) {
 		return FALSE;
 	}
 	g_snprintf(pidbuf, sizeof(pidbuf), "%6d\n", GETPID);
 	if (pstat == PID_DEAD || pstat == PID_NOTUS) {
-		g_debug("%s.%d: Unlinking dead pid file %s", __FUNCTION__, __LINE__, pidfile);
+		//g_debug("%s.%d: Unlinking dead pid file %s", __FUNCTION__, __LINE__, pidfile);
 		g_unlink(pidfile);
 	}
 
 	if (g_file_set_contents(pidfile, pidbuf, strlen(pidbuf), &errptr)) {
-		g_debug("%s.%d: Successfully set file %s to content [%s]"
-		,	__FUNCTION__, __LINE__, pidfile, pidbuf);
+		//g_debug("%s.%d: Successfully set file %s to content [%s]"
+		//,	__FUNCTION__, __LINE__, pidfile, pidbuf);
 #ifndef WIN32
 		if (chmod(pidfile, 0644) < 0) {
 			g_warning("%s.%d: Could not chmod pid file %s to 0644", __FUNCTION__, __LINE__
@@ -448,7 +448,7 @@ get_default_pid_fileName(const char *procname) {
 	const char * const *dirs = g_get_system_config_dirs();
 	p_pidfile = g_build_filename(dirs[0], procname, NULL);
 #endif
-	g_debug("%s.%d: pidfile = %s", __FUNCTION__, __LINE__, p_pidfile);
+	//g_debug("%s.%d: pidfile = %s", __FUNCTION__, __LINE__, p_pidfile);
 	return(p_pidfile);
 }
 /// Remove the pid file that goes with this service iff we created one during this invocation

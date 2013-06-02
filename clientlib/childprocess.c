@@ -164,7 +164,7 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 		,	__FUNCTION__, __LINE__, timeout_seconds, self->timeoutsrc_id, self);
 	}
 	self->child_state = CHILDSTATE_RUNNING;
-	g_message("%s.%d: REF child: %p", __FUNCTION__,__LINE__, self);
+	DEBUGMSG5("%s.%d: REF child: %p", __FUNCTION__,__LINE__, self);
 	REF(self);	// We do this because we need to still be here when the process exits
 	return self;
 }
@@ -345,7 +345,7 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 	,	howwedied);
 	self->notify(self, howwedied, exitrc, signal, WCOREDUMP(status));
 	self->child_state = -1;
-	g_message("%s.%d: UNREF child: %p", __FUNCTION__,__LINE__, self);
+	DEBUGMSG5("%s.%d: UNREF child: %p", __FUNCTION__,__LINE__, self);
 	UNREF(self);	// Undo the REF(self) in our constructor
 }
 
