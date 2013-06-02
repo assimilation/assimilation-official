@@ -97,20 +97,20 @@
 ################################################################################
 
 
-if __name__ == '__main__':
-    import optparse, atexit, time
-    #
-    #   "Main" program starts below...
-    #   It is a the real CMA intended to run with some real nanoprobes running
-    #   somewhere out there...
-    #
+import optparse, atexit, time
+import os, sys, signal
+#
+#   "Main" program starts below...
+#   It is a the real CMA intended to run with some real nanoprobes running
+#   somewhere out there...
+#
+def main():
     DefaultPort = 1984
-    import os, sys, signal
     # VERY Linux-specific - but useful and apparently correct ;-)
     PrimaryIPcmd =   \
     "ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
     ipfd = os.popen(PrimaryIPcmd, 'r')
-    OurAddrStr=('%s:%d' % (ipfd.readline().rstrip(), DefaultPort))
+    OurAddrStr = ('%s:%d' % (ipfd.readline().rstrip(), DefaultPort))
     ipfd.close()
 
     OurPort = None
@@ -154,13 +154,13 @@ if __name__ == '__main__':
 
     if opt.status:
         rc = pidrunningstat_to_status(are_we_already_running(opt.pidfile, None))
-        os._exit(rc)
+        return rc
 
     if opt.kill:
         if kill_pid_service(opt.pidfile, 15) < 0:
             print >> sys.stderr, "Unable to stop CMA."
-            os._exit(1)
-        os._exit(0)
+            return 1
+        return 0
         
 
     # This doesn't seem to work no matter where I invoke it...
@@ -221,19 +221,19 @@ if __name__ == '__main__':
     }
     config = pyConfigContext(init=configinit)
     io = pyReliableUDP(config, pyPacketDecoder(0))
-    trycount=0
+    trycount = 0
     while True:
         try:
             cmadb.CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
         except py2neo.rest.SocketError:
-            trycount+=1
+            trycount += 1
             if trycount > 300:
                 remove_pid_file(opt.pidfile)
-                print >>sys.stderr, ('Neo4j still not started - giving up.')
+                print >> sys.stderr, ('Neo4j still not started - giving up.')
                 cmadb.CMAdb.log.critical('Neo4j still not started - giving up.')
                 raise SystemExit(1)
             if (trycount % 60) == 1:
-                print >>sys.stderr, ('Waiting for Neo4j to start.')
+                print >> sys.stderr, ('Waiting for Neo4j to start.')
                 cmadb.CMAdb.log.warning('Waiting for Neo4j to start.')
             # Let's try again in a second...
             time.sleep(1)
@@ -258,7 +258,7 @@ if __name__ == '__main__':
     cmadb.CMAdb.log.info('Starting CMA version %s - licensed under %s'
     %   (VERSION_STRING, LONG_LICENSE_STRING))
     if opt.foreground:
-        print >>sys.stderr, ('Starting CMA version %s - licensed under %s'
+        print >> sys.stderr, ('Starting CMA version %s - licensed under %s'
         %   (VERSION_STRING, LONG_LICENSE_STRING))
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...
@@ -266,14 +266,22 @@ if __name__ == '__main__':
     if opt.doTrace:
         import trace
         tracer = trace.Trace(count=False, trace=True)
-        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug(
+        if cmadb.CMAdb.debug:
+            cmadb.CMAdb.log.debug(
             'Starting up traced listener.listen(); debug=%d' % opt.debug)
-        if opt.foreground:  print >>sys.stderr, (
+        if opt.foreground:
+            print >> sys.stderr, (
             'cma: Starting up traced listener.listen() in foreground; debug=%d' % opt.debug)
         tracer.run('listener.listen()')
     else:
-        if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug(
+        if cmadb.CMAdb.debug:
+            cmadb.CMAdb.log.debug(
             'Starting up untraced listener.listen(); debug=%d' % opt.debug)
-        if opt.foreground:  print >>sys.stderr, (
+        if opt.foreground:
+            print >> sys.stderr, (
             'cma: Starting up untraced listener.listen() in foreground; debug=%d' % opt.debug)
         listener.listen()
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
