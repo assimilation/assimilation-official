@@ -19,24 +19,33 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-import weakref, traceback, time
+'''
+We implement the DroneInfo class - which implements all the properties of
+drones as a Python class.
+'''
+import weakref, traceback, time, os
 from cmadb import CMAdb
 
-from frameinfo import *
+#from frameinfo import *
+from frameinfo import FrameSetTypes, FrameTypes
 from AssimCtypes import DEFAULT_FSP_QID
-from AssimCclasses import *
+#from AssimCclasses import *
+from AssimCclasses import pyNetAddr, pyFrameSet, pyCstringFrame, pyConfigContext, pyIntFrame, pyIpPortFrame
 from py2neo import neo4j, rest
 import hbring
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
     _droneweakrefs = {}
     _JSONprocessors = {}
-    def __init__(self, designation, node=None, port=None, **kw):
+    def __init__(self, designation, port=None, **kw):
         self.io = CMAdb.io
+        self.status = '(unknown)'
+        self.reason = '(initialization)'
         if isinstance(designation, neo4j.Node):
             self.node = designation
         else:
-            #print >>sys.stderr, 'New DroneInfo(designation = %s", kw=%s)' % (designation, str(**kw))
+            #print >>sys.stderr, 'New DroneInfo(designation = %s", kw=%s)' \
+            #%   (designation, str(**kw))
             self.node = CMAdb.cdb.new_drone(designation, **kw)
         DroneInfo._droneweakrefs[designation] = weakref.ref(self)
         if port is not None:
@@ -45,7 +54,17 @@ class DroneInfo:
             self.port = self.node['port']
 
     def __getitem__(self, key):
-       return self.node[key]
+        return self.node[key]
+
+    def __delitem__(self, key):
+        del self.node[key]
+
+    def __setitem__(self, key, value):
+        self.node[key] = value
+
+    def __len__(self, key, value):
+        return len(self.node)
+
 
     def getport(self):
         '''Return the port we talk to this drone on'''
@@ -74,16 +93,22 @@ class DroneInfo:
             if self.node[jsonname] == jsontext:
                 # A really cheap optimization for reboots, etc.
                 if CMAdb.debug:
-                    CMAdb.log.debug('DroneInfo.logjson: JSON text for %s/%s already processed - ignoring.'
-                    % (designation, dtype))
+                    CMAdb.log.debug(
+                    'DroneInfo.logjson: JSON text for %s/%s already processed - ignoring.'
+                    %       (designation, dtype))
                 return
         self.node[jsonname] = jsontext
         if dtype in DroneInfo._JSONprocessors:
-            if CMAdb.debug: CMAdb.log.debug('Processing %s JSON data from %s into graph.' % (dtype, designation))
+            if CMAdb.debug:
+                CMAdb.log.debug('Processing %s JSON data from %s into graph.'
+                %       (dtype, designation))
             DroneInfo._JSONprocessors[dtype](self, jsonobj)
-            if CMAdb.debug: CMAdb.log.debug('Processed %s JSON data from %s into graph.' % (dtype, designation))
+            if CMAdb.debug:
+                CMAdb.log.debug('Processed %s JSON data from %s into graph.'
+                %   (dtype, designation))
         else:
-            CMAdb.log.info('Stored %s JSON data from %s without processing.' % (dtype, designation))
+            CMAdb.log.info('Stored %s JSON data from %s without processing.'
+            %   (dtype, designation))
 
     def add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from JSON discovery.
@@ -97,7 +122,7 @@ class DroneInfo:
         primaryip = None
         for ifname in data.keys(): # List of interfaces just below the data section
             ifinfo = data[ifname]
-            isprimaryif= ifinfo.has_key('default_gw')
+            isprimaryif = ifinfo.has_key('default_gw')
             #print 'IFINFO: [%s]' % str(ifinfo)
             if not ifinfo.has_key('address'):
                 continue
@@ -114,7 +139,7 @@ class DroneInfo:
                     ipname = ipinfo['name']
                 if ipinfo['scope'] != 'global':
                     continue
-                (iponly,mask) = ip.split('/')
+                iponly = ip.split('/')[0] # other part is mask
                 netaddr = pyNetAddr(iponly).toIPv6()
                 if netaddr.islocal():
                     continue
@@ -126,41 +151,54 @@ class DroneInfo:
                     isprimaryip = True
                     primaryip = iponly
                     #print >>sys.stderr, 'PRIMARY IP is %s' % iponly
-                ipnode = CMAdb.cdb.new_ipaddr(nicnode, iponly, ifname=ifname, hostname=self.node['name'])
+                ipnode = CMAdb.cdb.new_ipaddr(nicnode, iponly, ifname=ifname
+                ,       hostname = self.node['name'])
                 # Save away whichever IP address is our primary IP address...
                 if isprimaryip:
-                    rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING, 'primaryip')
+                    rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING
+                    ,   'primaryip')
                     if rel is not None and rel.end_node.id != ipnode.id:
                         rel.delete()
                         rel = None
                     if rel is None:
-                      CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip', ipnode),)
+                        CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip', ipnode),)
 
-    def add_tcplisteners(self, jsonobj, **kw):
+    def add_tcplisteners(self, jsonobj, **keywords):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
-        primaryip = None
-        if CMAdb.debug: CMAdb.log.debug('add_tcplisteners(data=%s)' % data)
-        if CMAdb.debug: CMAdb.log.debug('Calling get_related_nodes(%d, %s)' %(neo4j.Direction.INCOMING, CMAdb.REL_iphost))
+        keywords = keywords # Don't really need this argument...
+        if CMAdb.debug:
+            CMAdb.log.debug('add_tcplisteners(data=%s)' % data)
+            CMAdb.log.debug('Calling get_related_nodes(%d, %s)'
+            %       (neo4j.Direction.INCOMING, CMAdb.REL_iphost))
         allourips = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_iphost)
-        if CMAdb.debug: CMAdb.log.debug('Processing keys(%s)' % data.keys())
+        if CMAdb.debug:
+            CMAdb.log.debug('Processing keys(%s)' % data.keys())
         for procname in data.keys(): # List of names of processes...
-            if CMAdb.debug: CMAdb.log.debug('Processing key(%s)' % procname)
+            if CMAdb.debug:
+                CMAdb.log.debug('Processing key(%s)' % procname)
             procinfo = data[procname]
-            if CMAdb.debug: CMAdb.log.debug('Processing procinfo(%s)' % procinfo)
+            if CMAdb.debug:
+                CMAdb.log.debug('Processing procinfo(%s)' % procinfo)
             ipproc = CMAdb.cdb.new_ipproc(procname, procinfo, self.node)
-            if CMAdb.debug: CMAdb.log.debug('procinfo(%s) - ipproc created=> %s' % (procinfo, ipproc))
+            if CMAdb.debug:
+                CMAdb.log.debug('procinfo(%s) - ipproc created=> %s'
+            %   (procinfo, ipproc))
             if 'listenaddrs' in procinfo:
-                if CMAdb.debug: CMAdb.log.debug('listenaddrs is in (%s)' % procinfo)
+                if CMAdb.debug:
+                    CMAdb.log.debug('listenaddrs is in (%s)' % procinfo)
                 tcpipportinfo = procinfo['listenaddrs']
                 for tcpipport in tcpipportinfo.keys():
-                    if CMAdb.debug: CMAdb.log.debug('Processing tcpipport(listenaddrs)(%s)' % tcpipport)
+                    if CMAdb.debug:
+                        CMAdb.log.debug('Processing tcpipport(listenaddrs)(%s)' % tcpipport)
                     self.add_tcpipports(True, tcpipportinfo[tcpipport], ipproc, allourips)
             if 'clientaddrs' in procinfo:
-                if CMAdb.debug: CMAdb.log.debug('clientaddrs is in (%s)' % procinfo)
+                if CMAdb.debug:
+                    CMAdb.log.debug('clientaddrs is in (%s)' % procinfo)
                 tcpipportinfo = procinfo['clientaddrs']
                 for tcpipport in tcpipportinfo.keys():
-                    if CMAdb.debug: CMAdb.log.debug('Processing tcpipport(clientaddrs)(%s)' % tcpipport)
+                    if CMAdb.debug:
+                        CMAdb.log.debug('Processing tcpipport(clientaddrs)(%s)' % tcpipport)
                     self.add_tcpipports(False, tcpipportinfo[tcpipport], ipproc, None)
 
     def add_tcpipports(self, isserver, jsonobj, ipproc, allourips):
@@ -182,10 +220,11 @@ class DroneInfo:
                 ipnetaddr = (pyNetAddr(ipaddr['name']).toIPv6())
                 ipnetaddr.setport(port)
                 name = str(ipnetaddr)
-                tcpipport = CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
+                CMAdb.cdb.new_tcpipport(name, isserver
+                ,   jsonobj, self.node, ipproc, ipaddr)
         elif isserver:
             for ipaddr in allourips:
-                ipaddrname=ipaddr['name']
+                ipaddrname = ipaddr['name']
                 ipnetaddr = (pyNetAddr(str(ipaddrname)).toIPv6())
                 if ipnetaddr == netaddr:
                     CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
@@ -197,23 +236,27 @@ class DroneInfo:
             ipaddr = CMAdb.cdb.new_ipaddr(None, addr)
             CMAdb.cdb.new_tcpipport(str(netaddr), isserver, jsonobj, None, ipproc, ipaddr)
 
-    def add_linkdiscovery(self, jsonobj, **kw):
+    def add_linkdiscovery(self, jsonobj, **keywords):
+        'Add Low Level (Link Level) discovery data to the database'
+        keywords = keywords # don't need these
         data = jsonobj['data']
         if 'ChassisId' not in data:
-            CMAdb.log.warning('Chassis ID missing from discovery data from switch [%s]' % (str(data)))
+            CMAdb.log.warning('Chassis ID missing from discovery data from switch [%s]'
+            %   (str(data)))
             return
-        ChassisId = data['ChassisId']
+        chassisid = data['ChassisId']
         attrs = {}
         for key in data.keys():
-            if key == 'ports':  continue
+            if key == 'ports':
+                continue
             value = data[key]
             if isinstance(value, pyNetAddr):
                 value = str(value)
             attrs[key] = value
-        switch = CMAdb.cdb.new_switch(ChassisId, **attrs)
+        switch = CMAdb.cdb.new_switch(chassisid, **attrs)
         if ('ManagementAddress' in attrs):
             mgmtaddr = attrs['ManagementAddress']
-            adminnic = CMAdb.cdb.new_nic('(adminNIC)', ChassisId, switch)
+            adminnic = CMAdb.cdb.new_nic('(adminNIC)', chassisid, switch)
             CMAdb.cdb.new_ipaddr(adminnic, mgmtaddr)
         ports = data['ports']
         for portname in ports.keys():
@@ -227,7 +270,7 @@ class DroneInfo:
             if 'sourceMAC' in thisport:
                 nicmac = thisport['sourceMAC']
             else:
-                nicmac = ChassisId # Hope that works ;-)
+                nicmac = chassisid # Hope that works ;-)
             nicnode = CMAdb.cdb.new_nic(portname, nicmac, switch, **attrs)
             try:
                 assert thisport['ConnectsToHost'] == self.node['name']
@@ -239,20 +282,19 @@ class DroneInfo:
                         break
             except KeyError:
                 CMAdb.log.error('OOPS! got an exception...')
-                pass
-
-
 
 
     def primary_ip(self, ring=None):
         '''Return the "primary" IP for this host'''
+        ring = ring # should eventually use the ring if it's supplied
         # Should this come from our initial contact with the node?
-        primaryIP = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
-        return str(primaryIP['name'])
+        primaryip = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
+        return str(primaryip['name'])
 
     def select_ip(self, ring=None):
         '''Select an appropriate IP address for talking to a partner on this ring
         or our primary IP if ring is None'''
+        ring = ring # should eventually use the ring if it's supplied
         # Current code is not really good enough for the long term,
         # but is good enough for now...
         # In particular, when talking on a particular switch ring, or
@@ -265,15 +307,16 @@ class DroneInfo:
         '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
         fs = pyFrameSet(fstype)
-        pframe = None
         for addr in addrlist:
-            if addr is None: continue
+            if addr is None:
+                continue
             aframe = pyIpPortFrame(FrameTypes.IPPORT, addrstring=addr)
             fs.append(aframe)
         self.io.sendreliablefs(dest, (fs,))
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
+        frameset = frameset # We don't use the frameset at this point in time
         if reason != 'HBSHUTDOWN':
             CMAdb.log.info('Node %s has been reported as %s by address %s. Reason: %s'
             %   (self.node['name'], status, str(fromaddr), reason))
@@ -292,7 +335,8 @@ class DroneInfo:
             try:
                 if rel.type.startswith(hbring.HbRing.memberprefix):
                     ringname = rel.end_node['name']
-                    if CMAdb.debug: CMAdb.log.debug('%s was a member of ring %s' % (self, ringname))
+                    if CMAdb.debug:
+                        CMAdb.log.debug('%s was a member of ring %s' % (self, ringname))
                     hbring.HbRing.ringnames[ringname].leave(self)
                     # We can't just break out - we might belong to more than one ring
             except rest.ResourceNotFound:
@@ -300,7 +344,8 @@ class DroneInfo:
                 pass
             
         deadip = pyNetAddr(self.primary_ip(), port=self.getport())
-        if CMAdb.debug: CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
+        if CMAdb.debug:
+            CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self.io.closeconn(DEFAULT_FSP_QID, deadip)
 
 
@@ -312,9 +357,9 @@ class DroneInfo:
         So, we need to create a forward link from partner1 to us and from us to partner2 (if any)
         '''
         ouraddr = pyNetAddr(self.primary_ip(), port=self.getport())
-        partner1addr=pyNetAddr(partner1.select_ip(ring), port=partner1.getport())
+        partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.getport())
         if partner2 is not None:
-            partner2addr=pyNetAddr(partner2.select_ip(ring), port=partner2.getport())
+            partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.getport())
         else:
             partner2addr = None
         if CMAdb.debug:
@@ -341,8 +386,8 @@ class DroneInfo:
 
     def request_discovery(self, *args): ##< A vector of arguments formed like this:
         ##< instance       Which (unique) discovery instance is this?
-        ##< interval=0     How often to perform it?
-        ##< json=None):    JSON string (or ConfigContext) describing discovery
+        ##< interval = 0     How often to perform it?
+        ##< json = None):    JSON string (or ConfigContext) describing discovery
         ##<                If json is None, then instance is used for JSON type
         '''Send our drone a request to perform discovery
         We send a           DISCNAME frame with the instance name
@@ -358,16 +403,17 @@ class DroneInfo:
             elif len(args) == 3:
                 args = ((args[0], args[1], args[2]),)
             else:
-               raise ValueError('Incorrect argument length: %d vs 1,2 or 3' % len(args))
+                raise ValueError('Incorrect argument length: %d vs 1, 2 or 3' % len(args))
 
-        for tuple in args:
-            if len(tuple) != 2 and len(tuple) != 3:
-               raise ValueError('Incorrect argument tuple length: %d vs 2 or 3 [%s]' % (len(tuple), args))
-            instance = tuple[0]
-            interval = tuple[1]
+        for ourtuple in args:
+            if len(ourtuple) != 2 and len(ourtuple) != 3:
+                raise ValueError('Incorrect argument tuple length: %d vs 2 or 3 [%s]'
+                %        (len(ourtuple), args))
+            instance = ourtuple[0]
+            interval = ourtuple[1]
             json = None
-            if len(tuple) == 3: json = tuple[2]
-
+            if len(ourtuple) == 3:
+                json = ourtuple[2]
             discname = pyCstringFrame(FrameTypes.DISCNAME)
             #print >>sys.stderr, 'SETTING VALUE TO: (%s)' % instance
             discname.setvalue(instance)
@@ -375,13 +421,12 @@ class DroneInfo:
             if interval is not None and interval > 0:
                 discint = pyIntFrame(FrameTypes.DISCINTERVAL, intbytes=4, initval=int(interval))
                 fs.append(discint)
-            instframe = pyCstringFrame(FrameTypes.DISCNAME)
             if isinstance(json, pyConfigContext):
                 json = str(json)
             elif json is None:
                 json = instance
             if not json.startswith('{'):
-                json = '{"type":"%s","parameters":{}}' % json
+                json = '{"type":"%s", "parameters":{}}' % json
             jsonframe = pyCstringFrame(FrameTypes.DISCJSON)
             jsonframe.setvalue(json)
             fs.append(jsonframe)
@@ -391,7 +436,7 @@ class DroneInfo:
         ourip.setport(self.getport())
         self.io.sendreliablefs(ourip, (fs,))
         if CMAdb.debug:
-            CMAdb.log.debug('Sent Discovery request(%s,%s) to %s Framesets: %s'
+            CMAdb.log.debug('Sent Discovery request(%s, %s) to %s Framesets: %s'
             %	(instance, str(interval), str(ourip), str(fs)))
 
 
@@ -417,9 +462,9 @@ class DroneInfo:
             desigport = designation.port()
             if desigport is not None and desigport > 0:
                 dport = desigport
-            desig=designation.toIPv6(port=0)
+            desig = designation.toIPv6(port=0)
             #desig=designation
-            desigstr=str(desig)
+            desigstr = str(desig)
             #Note that we now do everything by IPv6 addresses...
             ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, desigstr)
             for ip in ipaddrs:
@@ -435,7 +480,8 @@ class DroneInfo:
             nodedesig = designation['name']
             if nodedesig in DroneInfo._droneweakrefs:
                 ret = DroneInfo._droneweakrefs[nodedesig]()
-                if ret is not None:  return ret
+                if ret is not None:
+                    return ret
             return DroneInfo(designation)
            
         if CMAdb.debug:
@@ -453,10 +499,10 @@ class DroneInfo:
                     CMAdb.log.warn('drone.find(%s) (%s) (pyNetAddr) => returning None' % (
                         str(designation), desigstr))
                 tblist = traceback.extract_stack()
-                #tblist=traceback.extract_tb(trace, 20)
+                #tblist = traceback.extract_tb(trace, 20)
                 CMAdb.log.info('======== Begin missing IP Traceback ========')
-                for tb in tblist:
-                    (filename, line, funcname, text) = tb
+                for tbelem in tblist:
+                    (filename, line, funcname, text) = tbelem
                     filename = os.path.basename(filename)
                     CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
                 CMAdb.log.info('======== End missing IP Traceback ========')
@@ -482,8 +528,9 @@ class DroneInfo:
 
     @staticmethod
     def add_json_processors(*args):
-        for tuple in args:
-            DroneInfo._JSONprocessors[tuple[0]] = tuple[1]
+        "Register (add) all the json processors we've been given as arguments"
+        for ourtuple in args:
+            DroneInfo._JSONprocessors[ourtuple[0]] = ourtuple[1]
 
 DroneInfo.add_json_processors(('netconfig', DroneInfo.add_netconfig_addresses),)
 DroneInfo.add_json_processors(('tcplisteners', DroneInfo.add_tcplisteners),)
