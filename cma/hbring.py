@@ -23,9 +23,9 @@
 This file is all about the Rings - we implement rings.
 '''
 #import sys
-from cmadb import CMAdb
+from .cmadb import CMAdb
 from py2neo import neo4j
-from droneinfo import DroneInfo
+from .droneinfo import DroneInfo
 class HbRing:
     'Class defining the behavior of a heartbeat ring.'
     SWITCH      =  1
