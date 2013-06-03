@@ -18,11 +18,14 @@
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
+'''
+This is the overall message dispatcher - it receives incoming messages as they arrive
+then call dispatch it so it will get handled.
+'''
 
-from cmadb import CMAdb
-from dispatchtarget import DispatchTarget
-from hbring import HbRing
-from frameinfo import FrameSetTypes
+from .cmadb import CMAdb
+from .dispatchtarget import DispatchTarget
+from .frameinfo import FrameSetTypes
 import os, sys, traceback
 
 class MessageDispatcher:
@@ -31,6 +34,7 @@ class MessageDispatcher:
         'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()
+        self.io = None
 
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
@@ -52,25 +56,29 @@ class MessageDispatcher:
             else:
                 self.default.dispatch(origaddr, frameset)
         except Exception as e:
-            # Darn!  Got an exception - let's try and put everything useful into the logs in legible way
+            # Darn!  Got an exception - let's try and put everything useful into the
+            #   logs in legible way
             (etype, evalue, trace) = sys.exc_info()
-            tblist=traceback.extract_tb(trace, 20)
+            evalue = evalue # make pylint happy
+            tblist = traceback.extract_tb(trace, 20)
             fstypename = FrameSetTypes.get(fstype)[0]
 
-            print >>sys.stderr, ('MessageDispatcher %s exception [%s] occurred while handling [%s] FrameSetFrameset from %s' 
-            %           (etype, e, fstypename, origaddr))
-            CMAdb.log.critical('MessageDispatcher exception [%s] occurred while handling [%s] FrameSet from %s'
-            %           (e, fstypename, origaddr))
-            lines=str(frameset).splitlines()
+            print >> sys.stderr, ('MessageDispatcher %s exception [%s] occurred while' 
+            ' handling [%s] FrameSetFrameset from %s' % (etype, e, fstypename, origaddr))
+            CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
+            ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
+            lines = str(frameset).splitlines()
             CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
             for line in lines:
                 CMAdb.log.info(line.expandtabs())
-            CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========' % (fstypename, e))
+            CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========'  \
+            %   (fstypename, e))
             for tb in tblist:
                 (filename, line, funcname, text) = tb
                 filename = os.path.basename(filename)
                 CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
-            CMAdb.log.info('======== End %s Message %s Exception Traceback ========' % (fstypename, e))
+            CMAdb.log.info('======== End %s Message %s Exception Traceback ========' \
+            %   (fstypename, e))
             # @todo Eventually will want to abort the transaction here
         else:
             # @todo Eventually will want to commit the transaction here
