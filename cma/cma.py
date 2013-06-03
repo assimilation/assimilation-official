@@ -18,7 +18,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
-#
+'''
 #
 #
 #   Design outline:
@@ -95,10 +95,12 @@
 # way from that structure...
 #
 ################################################################################
+'''
 
 
-import optparse, atexit, time
+import optparse, time
 import os, sys, signal
+#import atexit
 #
 #   "Main" program starts below...
 #   It is a the real CMA intended to run with some real nanoprobes running
@@ -146,9 +148,9 @@ def main():
     ,   help='Trace CMA execution')
 
 
-    opt, args = parser.parse_args()
+    opt = parser.parse_args()[0]
 
-    from AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, \
+    from .AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, \
         kill_pid_service, pidrunningstat_to_status, remove_pid_file, rmpid_and_exit_on_signal
         
 
@@ -177,20 +179,21 @@ def main():
 
     # Next statement can't appear before daemonize_me() or bind() fails -- not quite sure why...
     assimilation_openlog("cma")
-    from packetlistener import PacketListener
-    from messagedispatcher import MessageDispatcher
-    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
+    from .packetlistener import PacketListener
+    from .messagedispatcher import MessageDispatcher
+    from .dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
          DispatchSWDISCOVER, DispatchHBSHUTDOWN
-    import cmadb
-    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
+    from .cmadb import CMAdb
+    from .AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
          pyPacketDecoder
-    from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
+    from .AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, \
         CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
-    from frameinfo import FrameTypes, FrameSetTypes
+    from .frameinfo import FrameTypes, FrameSetTypes
     import py2neo
     for debug in range(opt.debug):
+        debug = debug
         proj_class_incr_debug(None)
 
     if opt.bind is None:
@@ -224,28 +227,28 @@ def main():
     trycount = 0
     while True:
         try:
-            cmadb.CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
+            CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
         except py2neo.rest.SocketError:
             trycount += 1
             if trycount > 300:
                 remove_pid_file(opt.pidfile)
                 print >> sys.stderr, ('Neo4j still not started - giving up.')
-                cmadb.CMAdb.log.critical('Neo4j still not started - giving up.')
+                CMAdb.log.critical('Neo4j still not started - giving up.')
                 raise SystemExit(1)
             if (trycount % 60) == 1:
                 print >> sys.stderr, ('Waiting for Neo4j to start.')
-                cmadb.CMAdb.log.warning('Waiting for Neo4j to start.')
+                CMAdb.log.warning('Waiting for Neo4j to start.')
             # Let's try again in a second...
             time.sleep(1)
             continue
         # Neo4j started.  All is well with the world.
         break
 
-    cmadb.CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
-    cmadb.CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
-    if cmadb.CMAdb.debug:
-        cmadb.CMAdb.log.info('TheOneRing created - id = %d' % cmadb.CMAdb.TheOneRing.node.id)
-        cmadb.CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
+    CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
+    CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
+    if CMAdb.debug:
+        CMAdb.log.info('TheOneRing created - id = %d' % CMAdb.TheOneRing.node.id)
+        CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
 
     print FrameTypes.get(1)[2]
     disp = MessageDispatcher(
@@ -255,7 +258,7 @@ def main():
         FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER(),
         FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN()
     })
-    cmadb.CMAdb.log.info('Starting CMA version %s - licensed under %s'
+    CMAdb.log.info('Starting CMA version %s - licensed under %s'
     %   (VERSION_STRING, LONG_LICENSE_STRING))
     if opt.foreground:
         print >> sys.stderr, ('Starting CMA version %s - licensed under %s'
@@ -266,16 +269,16 @@ def main():
     if opt.doTrace:
         import trace
         tracer = trace.Trace(count=False, trace=True)
-        if cmadb.CMAdb.debug:
-            cmadb.CMAdb.log.debug(
+        if CMAdb.debug:
+            CMAdb.log.debug(
             'Starting up traced listener.listen(); debug=%d' % opt.debug)
         if opt.foreground:
             print >> sys.stderr, (
             'cma: Starting up traced listener.listen() in foreground; debug=%d' % opt.debug)
         tracer.run('listener.listen()')
     else:
-        if cmadb.CMAdb.debug:
-            cmadb.CMAdb.log.debug(
+        if CMAdb.debug:
+            CMAdb.log.debug(
             'Starting up untraced listener.listen(); debug=%d' % opt.debug)
         if opt.foreground:
             print >> sys.stderr, (
