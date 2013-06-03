@@ -4,11 +4,51 @@ A collection of classes which provide constants for FrameTypes and FrameSetTypes
 '''
 
 import re
-from .AssimCclasses import pyFrame, pyAddrFrame, pySignFrame, pySeqnoFrame, \
-	pyIntFrame, pyCstringFrame, pyNVpairFrame, pyIpPortFrame
+#from AssimCclasses import pyFrame, pyAddrFrame, pySignFrame, pySeqnoFrame, \
+#	pyIntFrame, pyCstringFrame, pyNVpairFrame, pyIpPortFrame
+
+class pyFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
+
+class pyAddrFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
+
+class pySignFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
+
+class pySeqnoFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
+
+class pyIntFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
+
+class pyCstringFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
+
+class pyNVpairFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
+
+class pyIpPortFrame:
+    'Placeholder bootstrapping class'
+    def __init__(self):
+        pass
 
 class pyCryptFrame:
-    'Placeholder class'
+    'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
