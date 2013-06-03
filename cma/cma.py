@@ -149,7 +149,7 @@ def main():
 
     opt = parser.parse_args()[0]
 
-    from .AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, \
+    from AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, \
         kill_pid_service, pidrunningstat_to_status, remove_pid_file, rmpid_and_exit_on_signal
         
 
