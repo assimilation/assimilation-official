@@ -25,9 +25,9 @@ various types of incoming packets.
 
 import sys
 sys.path.append("cma")
-from .cmadb import CMAdb
-from .frameinfo import FrameSetTypes, FrameTypes
-from .AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, CMAlib, SwitchDiscovery
+from cmadb import CMAdb
+from frameinfo import FrameSetTypes, FrameTypes
+from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, CMAlib, SwitchDiscovery
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
@@ -36,7 +36,7 @@ class DispatchTarget:
     '''
     def __init__(self):
         'Constructor for base class DispatchTarget'
-        from .droneinfo import DroneInfo
+        from droneinfo import DroneInfo
         self.droneinfo = DroneInfo  # Get around Import loops...
         self.io = None
         self.config = None

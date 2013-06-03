@@ -27,8 +27,8 @@ import os
 import logging, logging.handlers
 from py2neo import neo4j, cypher
 #from AssimCtypes import *
-from .AssimCtypes import CFG_ARRAY, CFG_BOOL, CFG_INT64, CFG_STRING, CFG_ARRAY, CFG_FLOAT
-from .AssimCclasses import pyNetAddr
+from AssimCtypes import CFG_ARRAY, CFG_BOOL, CFG_INT64, CFG_STRING, CFG_ARRAY, CFG_FLOAT
+from AssimCclasses import pyNetAddr
 
 class CMAdb:
     '''Class defining our Neo4J database.'''
@@ -129,7 +129,7 @@ class CMAdb:
         CMAdb.log = logging.getLogger('cma')
         CMAdb.debug = debug
         CMAdb.io = io
-        from .hbring import HbRing
+        from hbring import HbRing
         syslog = logging.handlers.SysLogHandler(address='/dev/log'
         ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
