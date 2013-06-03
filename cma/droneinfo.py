@@ -23,8 +23,10 @@
 We implement the DroneInfo class - which implements all the properties of
 drones as a Python class.
 '''
-import weakref, traceback, time, os
+import weakref, time
+#import os, traceback
 from .cmadb import CMAdb
+
 
 from .frameinfo import FrameSetTypes, FrameTypes
 from .AssimCclasses import pyNetAddr, pyFrameSet, pyCstringFrame, pyConfigContext, \
@@ -40,6 +42,7 @@ class DroneInfo:
         self.io = CMAdb.io
         self.status = '(unknown)'
         self.reason = '(initialization)'
+        self.startaddr = None
         if isinstance(designation, neo4j.Node):
             self.node = designation
         else:
@@ -487,24 +490,19 @@ class DroneInfo:
             CMAdb.log.debug("DESIGNATION (%s) = %s" % (designation, desigstr))
         if desigstr in DroneInfo._droneweakrefs:
             ret = DroneInfo._droneweakrefs[designation]()
-        if ret is None:
-            if CMAdb.debug:
-                CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
-                    str(designation), desigstr, type(designation)))
-                if isinstance(designation, str):
-                    CMAdb.log.warn('drone.find(%s) (%s) (string) => returning None' % (
-                        str(designation), desigstr))
-                if isinstance(designation, pyNetAddr):
-                    CMAdb.log.warn('drone.find(%s) (%s) (pyNetAddr) => returning None' % (
-                        str(designation), desigstr))
-                tblist = traceback.extract_stack()
-                #tblist = traceback.extract_tb(trace, 20)
-                CMAdb.log.info('======== Begin missing IP Traceback ========')
-                for tbelem in tblist:
-                    (filename, line, funcname, text) = tbelem
-                    filename = os.path.basename(filename)
-                    CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
-                CMAdb.log.info('======== End missing IP Traceback ========')
+        if ret is None and CMAdb.debug:
+            raise RuntimeError('drone.find(%s) (%s) (%s) => returning None' % (
+                str(designation), desigstr, type(designation)))
+            #CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
+                #str(designation), desigstr, type(designation)))
+            #tblist = traceback.extract_stack()
+            ##tblist = traceback.extract_tb(trace, 20)
+            #CMAdb.log.info('======== Begin missing IP Traceback ========')
+            #for tbelem in tblist:
+                #(filename, line, funcname, text) = tbelem
+                #filename = os.path.basename(filename)
+                #CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
+            #CMAdb.log.info('======== End missing IP Traceback ========')
         return ret
 
     @staticmethod
