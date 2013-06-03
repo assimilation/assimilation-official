@@ -23,9 +23,9 @@ This is the overall message dispatcher - it receives incoming messages as they a
 then call dispatch it so it will get handled.
 '''
 
-from .cmadb import CMAdb
-from .dispatchtarget import DispatchTarget
-from .frameinfo import FrameSetTypes
+from cmadb import CMAdb
+from dispatchtarget import DispatchTarget
+from frameinfo import FrameSetTypes
 import os, sys, traceback
 
 class MessageDispatcher:

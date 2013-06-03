@@ -25,14 +25,14 @@ drones as a Python class.
 '''
 import weakref, time
 #import os, traceback
-from .cmadb import CMAdb
+from cmadb import CMAdb
 
 
-from .frameinfo import FrameSetTypes, FrameTypes
-from .AssimCclasses import pyNetAddr, pyFrameSet, pyCstringFrame, pyConfigContext, \
+from frameinfo import FrameSetTypes, FrameTypes
+from AssimCclasses import pyNetAddr, pyFrameSet, pyCstringFrame, pyConfigContext, \
         pyIntFrame, pyIpPortFrame, DEFAULT_FSP_QID
 from py2neo import neo4j, rest
-from .hbring import HbRing
+import hbring
 
 class DroneInfo:
     'Everything about Drones - endpoints that run our nanoprobes'
@@ -335,11 +335,11 @@ class DroneInfo:
         rellist = self.node.get_relationships(direction=neo4j.Direction.OUTGOING)
         for rel in rellist:
             try:
-                if rel.type.startswith(HbRing.memberprefix):
+                if rel.type.startswith(hbring.HbRing.memberprefix):
                     ringname = rel.end_node['name']
                     if CMAdb.debug:
                         CMAdb.log.debug('%s was a member of ring %s' % (self, ringname))
-                    HbRing.ringnames[ringname].leave(self)
+                    hbring.HbRing.ringnames[ringname].leave(self)
                     # We can't just break out - we might belong to more than one ring
             except rest.ResourceNotFound:
                 # OOPS! The leave(self) call above must have deleted it...

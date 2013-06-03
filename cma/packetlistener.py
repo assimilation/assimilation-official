@@ -24,9 +24,9 @@ This implements the PacketListener class - which listens to packets then
 dispatches them.
 '''
 
-from .AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
-from .AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
-from .cmadb import CMAdb
+from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
+from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
+from cmadb import CMAdb
 import time
 
 class PacketListener:

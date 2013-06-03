@@ -178,18 +178,18 @@ def main():
 
     # Next statement can't appear before daemonize_me() or bind() fails -- not quite sure why...
     assimilation_openlog("cma")
-    from .packetlistener import PacketListener
-    from .messagedispatcher import MessageDispatcher
-    from .dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
+    from packetlistener import PacketListener
+    from messagedispatcher import MessageDispatcher
+    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
          DispatchSWDISCOVER, DispatchHBSHUTDOWN
-    from .cmadb import CMAdb
-    from .AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
+    from cmadb import CMAdb
+    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
          pyPacketDecoder
-    from .AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
+    from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, \
         CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
-    from .frameinfo import FrameTypes, FrameSetTypes
+    from frameinfo import FrameTypes, FrameSetTypes
     import py2neo
     for debug in range(opt.debug):
         debug = debug
