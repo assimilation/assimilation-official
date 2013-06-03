@@ -19,11 +19,15 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 
-from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
-from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
+'''
+This implements the PacketListener class - which listens to packets then
+dispatches them.
+'''
+
+from .AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
+from .AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
+from .cmadb import CMAdb
 import time
-import sys
-import cmadb
 
 class PacketListener:
     'Listen for packets and get them dispatched as any good packet ought to be.'
@@ -38,24 +42,24 @@ class PacketListener:
         if not self.io.bindaddr(config[CONFIGNAME_CMAINIT]):
             raise NameError('Cannot bind to address %s' % (str(config[CONFIGNAME_CMAINIT])))
         if not self.io.mcastjoin(pyNetAddr(CMAADDR)):
-            cmadb.CMAdb.log.warning('Failed to join multicast at %s' % CMAADDR)
+            CMAdb.log.warning('Failed to join multicast at %s' % CMAADDR)
         self.io.setblockio(True)
         #print "IO[socket=%d,maxpacket=%d] created." \
         #%  (self.io.getfd(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
         
     def listen(self):
-      'Listen for packets.  Get them dispatched.'
-      while True:
-        (fromaddr, framesetlist) = self.io.recvframesets()
-        if fromaddr is None:
-            # BROKEN! ought to be able to set blocking mode on the socket...
-            #print "Failed to get a packet - sleeping."
-            time.sleep(0.5)
-        else:
-            fromstr = repr(fromaddr)
-            if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug("Received FrameSet from str([%s])" % (str(fromaddr)))
-            if cmadb.CMAdb.debug: cmadb.CMAdb.log.debug("Received FrameSet from [%s]" % (fromstr))
-
+        'Listen for packets.  Get them dispatched.'
+        while True:
+            (fromaddr, framesetlist) = self.io.recvframesets()
+            if fromaddr is None:
+                # BROKEN! ought to be able to set blocking mode on the socket...
+                #print "Failed to get a packet - sleeping."
+                time.sleep(0.5)
+            else:
+                fromstr = repr(fromaddr)
+                if CMAdb.debug:
+                    CMAdb.log.debug("Received FrameSet from str([%s], [%s])" \
+                    %       (str(fromaddr), fromstr))
             for frameset in framesetlist:
                 self.dispatcher.dispatch(fromaddr, frameset)
