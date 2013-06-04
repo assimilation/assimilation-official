@@ -20,10 +20,11 @@
 #
 #
 _suites = ['all', 'cclass']
-import sys
+import sys, os
 import traceback
 #traceback.print_exc()
 sys.path.append("../cma")
+os.environ['G_MESSAGES_DEBUG'] =  'all'
 from testify import *
 
 from frameinfo import *
@@ -35,6 +36,7 @@ from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
+DEBUG=True
 DEBUG=False
 
 def assert_no_dangling_Cclasses():
@@ -605,7 +607,7 @@ class pyFrameSetTest(TestCase):
                  pyIpPortFrame(FrameTypes.IPPORT, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 1984),
                  pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
         if DEBUG: print >>sys.stderr, "flist:", flist
-        decoder = pyPacketDecoder(0)
+        decoder = pyPacketDecoder()
         for frame in flist:
             pyfs.append(frame)
         pyfs.construct_packet(sign)
@@ -757,6 +759,7 @@ class pyConfigContextTest(TestCase):
 
     def test_kitchen_sink(self):
         if DEBUG:
+            print >> sys.stderr, "===============testConfigContext_kitchen_sink(pyConfigContextTest)"
             for j in range(1,5):
                 proj_class_incr_debug('NetAddr')
         strings = [
@@ -777,7 +780,7 @@ class pyConfigContextTest(TestCase):
         for s in strings:
             if DEBUG: print >>sys.stderr, ('Creating pyConfigContext("%s")' % s)
             sc = pyConfigContext(s)
-            if DEBUG: rint >>sys.stderr, ('sc.keys() == %s' % sc.keys())
+            if DEBUG: print >>sys.stderr, ('sc.keys() == %s' % sc.keys())
             for key in sc.keys():
                 elemcount=0
                 if DEBUG: print >>sys.stderr, ('Looking at key %s: sc[key] = %s' % (key, sc[key]))
@@ -814,12 +817,12 @@ class pyNetIOudpTest(TestCase):
     def test_constructor(self):
         if DEBUG: print >>sys.stderr, "========================test_constructor(pyNetIOudpTest)"
         config = pyConfigContext(init={'outsig': pySignFrame(1)})
-        io = pyNetIOudp(config, pyPacketDecoder(0))
+        io = pyNetIOudp(config, pyPacketDecoder())
         self.assertTrue(io.getfd() >  2)
 
     def test_members(self):
         if DEBUG: print >>sys.stderr, "========================test_members(pyNetIOudpTest)"
-        io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
+        io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder())
         self.assertTrue(io.getmaxpktsize() >  65000)
         self.assertTrue(io.getmaxpktsize() <  65535)
         io.setmaxpktsize(1500)
@@ -838,7 +841,7 @@ class pyNetIOudpTest(TestCase):
                  pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
         for frame in flist:
             fs.append(frame)
-        io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
+        io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder())
         io.sendframesets(home, fs)
         io.sendframesets(home, (fs,fs,fs))
 
@@ -856,7 +859,7 @@ class pyNetIOudpTest(TestCase):
                  pyIntFrame(FrameTypes.PORTNUM,4242, intbytes=3))
         for frame in flist:
             fs.append(frame)
-        io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder(0))
+        io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder())
         io.bindaddr(anyaddr)
         io.sendframesets(home, fs)		# Send a packet with a single frameset containing a bunch of frames
         (addr, framesetlist) = io.recvframesets()	# Receive a packet - with some framesets in it

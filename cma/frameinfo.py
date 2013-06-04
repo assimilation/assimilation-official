@@ -7,6 +7,8 @@ import re
 #from AssimCclasses import pyFrame, pyAddrFrame, pySignFrame, pySeqnoFrame, \
 #	pyIntFrame, pyCstringFrame, pyNVpairFrame, pyIpPortFrame
 
+#pylint: disable=R0903
+
 class pyFrame:
     'Placeholder bootstrapping class'
     def __init__(self):
