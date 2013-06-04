@@ -104,6 +104,7 @@ import os, sys, signal
 #   It is a the real CMA intended to run with some real nanoprobes running
 #   somewhere out there...
 #
+#pylint: disable=R0914
 def main():
     'Main program for the CMA (Collective Management Authority)'
     DefaultPort = 1984

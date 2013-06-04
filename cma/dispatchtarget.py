@@ -27,7 +27,7 @@ import sys
 sys.path.append("cma")
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, CMAlib, SwitchDiscovery
+from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, CMAlib, pySwitchDiscovery
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
@@ -193,7 +193,7 @@ class DispatchSWDISCOVER(DispatchTarget):
                     raise ValueError('Incomplete Switch Discovery Packet')
                 pktstart = frame.framevalue()
                 pktend = frame.frameend()
-                switchjson = SwitchDiscovery.decode_discovery(designation, interface
+                switchjson = pySwitchDiscovery.decode_discovery(designation, interface
                 ,               wallclock, pktstart, pktend)
                 if CMAdb.debug:
                     CMAdb.log.debug('Got Link discovery info from %s: %s' \

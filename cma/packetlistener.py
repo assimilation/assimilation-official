@@ -29,6 +29,8 @@ from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from cmadb import CMAdb
 import time
 
+# R0903 is too few public methods
+#pylint: disable=R0903
 class PacketListener:
     'Listen for packets and get them dispatched as any good packet ought to be.'
     def __init__(self, config, dispatch, io=None):

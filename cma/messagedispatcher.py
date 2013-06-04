@@ -36,6 +36,7 @@ class MessageDispatcher:
         self.default = DispatchTarget()
         self.io = None
 
+    #pylint: disable=R0914
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
         fstype = frameset.get_framesettype()
@@ -47,7 +48,8 @@ class MessageDispatcher:
         # Need to think medium-hard about how to deal with doing this in a queueing system
         # where a single packet might trigger a transaction on several systems for a node
         # which appears on several rings.
-        #
+        # W0703 == Too general exception catching...
+        # pylint: disable=W0703 
         try:
             # May eventually begin a transaction here
             # Of course, this transaction needs to span both the database and the network

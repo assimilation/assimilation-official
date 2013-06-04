@@ -112,6 +112,7 @@ class DroneInfo:
             CMAdb.log.info('Stored %s JSON data from %s without processing.'
             %   (dtype, designation))
 
+    #pylint: disable=R0914
     def add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from JSON discovery.
         This includes all our NICs, their MAC addresses, all our IP addresses and so on
@@ -238,6 +239,7 @@ class DroneInfo:
             ipaddr = CMAdb.cdb.new_ipaddr(None, addr)
             CMAdb.cdb.new_tcpipport(str(netaddr), isserver, jsonobj, None, ipproc, ipaddr)
 
+    #pylint: disable=R0914
     def add_linkdiscovery(self, jsonobj, **keywords):
         'Add Low Level (Link Level) discovery data to the database'
         keywords = keywords # don't need these
