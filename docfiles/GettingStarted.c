@@ -349,7 +349,7 @@ in them, and messages from the python code do not.
 Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: CMA address: 224.0.2.5:1984
 Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: Local address: [::]:45714
 Mar  3 14:23:14 servidor nanoprobe[17660]: INFO: Starting version 0.1.0: licensed under The GNU General Public License Version 3
-Mar  3 14:23:17 servidor cma INFO: Drone servidor registered from address [::ffff:10.10.10.5]:45714 (10.10.10.5:45714)
+Mar  3 14:23:17 servidor cma INFO: Drone servidor registered from address [\::ffff:10.10.10.5]:45714 (10.10.10.5:45714)
 Mar  3 14:23:17 servidor nanoprobe[17660]: NOTICE: Connected to CMA.  Happiness :-D
 Mar  3 14:23:19 servidor cma INFO: Stored arpcache JSON data from servidor without processing.
 Mar  3 14:23:20 servidor cma INFO: Stored cpu JSON data from servidor without processing.
@@ -371,7 +371,7 @@ in the database.
 The messages below were the result of a <tt>service nanoprobe stop</tt> command.
 <pre>
 Mar  3 14:30:55 servidor nanoprobe[18879]: NOTICE: nanoprobe: exiting on SIGTERM.
-Mar  3 14:30:55 servidor cma INFO: System servidor at [::ffff:10.10.10.5]:45714 reports it has been gracefully shut down.
+Mar  3 14:30:55 servidor cma INFO: System servidor at [\::ffff:10.10.10.5]:45714 reports it has been gracefully shut down.
 Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of heartbeats:                       0
 Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of deadtimes:                        0
 Mar  3 14:30:55 servidor nanoprobe[18879]: INFO: Count of warntimes:                        0
@@ -401,11 +401,11 @@ with the <i>Awesome!</i> message indicating no memory leaks were observed.
 The messages below occurred when the system running a nanoprobe or the nanoprobe itself crashed.
 In this case, the nanoprobe process running on paul was killed with SIGKILL (kill -9) which simulates a server crash.
 <pre>
-Mar 11 12:27:27 servidor nanoprobe[6416]: WARN: Peer at address [::ffff:10.10.10.16]:1984 is dead (has timed out).
-Mar 11 12:27:27 servidor cma WARNING: DispatchHBDEAD: received [HBDEAD] FrameSet from [[::ffff:10.10.10.5]:44782]
-Mar 11 12:27:27 servidor cma INFO: Node paul has been reported as dead by address [::ffff:10.10.10.5]:44782. Reason: HBDEAD packet received
-Mar 11 12:27:28 servidor cma WARNING: DispatchHBDEAD: received [HBDEAD] FrameSet from [[::ffff:10.10.10.2]:1984]
-Mar 11 12:27:28 servidor cma INFO: Node paul has been reported as dead by address [::ffff:10.10.10.2]:1984. Reason: HBDEAD packet received
+Mar 11 12:27:27 servidor nanoprobe[6416]: WARN: Peer at address [\::ffff:10.10.10.16]:1984 is dead (has timed out).
+Mar 11 12:27:27 servidor cma WARNING: DispatchHBDEAD: received [HBDEAD] FrameSet from [[\::ffff:10.10.10.5]:44782]
+Mar 11 12:27:27 servidor cma INFO: Node paul has been reported as dead by address [\::ffff:10.10.10.5]:44782. Reason: HBDEAD packet received
+Mar 11 12:27:28 servidor cma WARNING: DispatchHBDEAD: received [HBDEAD] FrameSet from [[\::ffff:10.10.10.2]:1984]
+Mar 11 12:27:28 servidor cma INFO: Node paul has been reported as dead by address [\::ffff:10.10.10.2]:1984. Reason: HBDEAD packet received
 </pre>
 
 Note that the dead node (paul) was reported as being dead from the two peers monitoring it.
@@ -419,9 +419,9 @@ If you should see the CMA misbehave, it will probably either disappear with a cr
 exception handling a message from a client.
 The messages below are typical of what you would see should this unfortunate event occur:
 <pre>
-Mar  3 14:50:08 servidor cma CRITICAL: MessageDispatcher exception [Relationship direction must be an integer value] occurred while handling [HBDEAD] FrameSet from [::ffff:10.10.10.2]:1984
+Mar  3 14:50:08 servidor cma CRITICAL: MessageDispatcher exception [Relationship direction must be an integer value] occurred while handling [HBDEAD] FrameSet from [\::ffff:10.10.10.2]:1984
 Mar  3 14:50:08 servidor cma INFO: FrameSet Contents follows (1 lines):
-Mar  3 14:50:08 servidor cma INFO: HBDEAD:{SIG: {SignFrame object at 0x0x1e56680}, pySeqNo(REQID: (0, 1)), IPPORT: IpPortFrame(13, [::ffff:10.10.10.16]:1984), END: {Frame object at 0x0x1edd890}}
+Mar  3 14:50:08 servidor cma INFO: HBDEAD:{SIG: {SignFrame object at 0x0x1e56680}, pySeqNo(REQID: (0, 1)), IPPORT: IpPortFrame(13, [\::ffff:10.10.10.16]:1984), END: {Frame object at 0x0x1edd890}}
 Mar  3 14:50:08 servidor cma INFO: ======== Begin HBDEAD Message Relationship direction must be an integer value Exception Traceback ========
 Mar  3 14:50:08 servidor cma INFO: messagedispatcher.py.51:dispatch: self.dispatchtable[fstype].dispatch(origaddr, frameset)
 Mar  3 14:50:08 servidor cma INFO: dispatchtarget.py.61:dispatch: deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
