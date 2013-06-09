@@ -32,6 +32,9 @@
 #ifdef _MSC_VER
 #	include <ws2tcpip.h>
 #endif
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
 FSTATIC struct sockaddr_in _netaddr_ipv4sockaddr(const NetAddr* self);
@@ -844,6 +847,7 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	return retval;
 }
 
+/// Create a NetAddr from an ipv4 or ipv6 string 
 NetAddr*
 netaddr_string_new(const char* addrstr)
 {
@@ -857,6 +861,55 @@ netaddr_string_new(const char* addrstr)
 		}
 	}
 	return retval;
+}
+
+/// Create a NetAddr from a DNS name or an ipv4 or ipv6 constant string
+NetAddr*
+netaddr_dns_new(const char * sysname_or_addr)	//< System name/address
+{
+	NetAddr*	ret;
+	const char*	digits = "0123456789ABCDEFabcdef[";
+	const char *	colonpos;
+	char*		sysname;
+	int		rc;
+	const char*	service = NULL;
+	struct addrinfo	hints;
+	struct addrinfo*sysinfo;
+
+	// See if it _could_ be a numeric address...
+	if (strchr(digits, sysname_or_addr[0]) != NULL) {
+		ret = netaddr_string_new(sysname_or_addr);
+		if (NULL != ret) {
+			return ret;
+		}
+		// Who knows, maybe they gave a symbolic port and a constant IP address...
+		// In any case, give it another shot...
+	}
+
+	// See if they specified a port...
+	colonpos = strchr(sysname_or_addr, ':');
+
+	if (NULL == colonpos) {
+		service = "0";
+		sysname = g_strdup(sysname_or_addr);
+	}else{
+		service = colonpos + 1;
+		sysname = g_strndup(sysname_or_addr, colonpos-sysname_or_addr);
+	}
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+	rc =  getaddrinfo(sysname, service, &hints, &sysinfo);
+	if (0 != rc) {
+		DEBUGMSG("%s.%d: Could not resolve %s - reason: %s"
+		,	__FUNCTION__, __LINE__, sysname, gai_strerror(rc));
+	}else{
+		ret = netaddr_sockaddr_new((struct sockaddr_in6*)sysinfo[0].ai_addr
+		,	sysinfo[0].ai_addrlen);
+		freeaddrinfo(sysinfo);
+	}
+	g_free(sysname); sysname = NULL;
+	return ret;
 }
 
 

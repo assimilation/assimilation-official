@@ -68,6 +68,7 @@ WINEXPORT NetAddr*	netaddr_mac64_new(gconstpointer macbuf);
 WINEXPORT NetAddr*	netaddr_ipv4_new(gconstpointer	ipbuf, guint16	port);
 WINEXPORT NetAddr*	netaddr_ipv6_new(gconstpointer ipbuf, guint16	port);
 WINEXPORT NetAddr*	netaddr_string_new(const char* addrstr);
+WINEXPORT NetAddr*	netaddr_dns_new(const char* addrstr);
 WINEXPORT gboolean	netaddr_g_hash_equal(gconstpointer lhs, gconstpointer rhs);
 WINEXPORT guint		netaddr_g_hash_hash(gconstpointer addrptr);
 
