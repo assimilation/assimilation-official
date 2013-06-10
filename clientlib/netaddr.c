@@ -875,7 +875,7 @@ netaddr_dns_new(const char * sysname_or_addr)	//< System name/address
 {
 #ifdef HAVE_GETADDRINFO
 	NetAddr*	ret = NULL;
-	const char*	digits = "0123456789ABCDEFabcdef[";
+	const char*	digits = ":[0123456789ABCDEFabcdef";
 	const char *	colonpos;
 	char*		sysname;
 	int		rc;
@@ -901,6 +901,9 @@ netaddr_dns_new(const char * sysname_or_addr)	//< System name/address
 		sysname = g_strdup(sysname_or_addr);
 	}else{
 		service = colonpos + 1;
+		if (strlen(service) < 1 || atol(service) < 0 || atol(service) > 65535) {
+			return NULL;
+		}
 		sysname = g_strndup(sysname_or_addr, colonpos-sysname_or_addr);
 	}
 	memset(&hints, 0, sizeof(hints));
