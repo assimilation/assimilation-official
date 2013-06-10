@@ -32,9 +32,15 @@
 #ifdef _MSC_VER
 #	include <ws2tcpip.h>
 #endif
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+#ifdef HAVE_SYS_TYPES_H
+#	include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_SOCKET_H
+#	include <sys/socket.h>
+#endif
+#ifdef HAVE_NETDB_H
+#	include <netdb.h>
+#endif
 
 FSTATIC struct sockaddr_in6 _netaddr_ipv6sockaddr(const NetAddr* self);
 FSTATIC struct sockaddr_in _netaddr_ipv4sockaddr(const NetAddr* self);
@@ -867,6 +873,7 @@ netaddr_string_new(const char* addrstr)
 NetAddr*
 netaddr_dns_new(const char * sysname_or_addr)	//< System name/address
 {
+#ifdef HAVE_GETADDRINFO
 	NetAddr*	ret = NULL;
 	const char*	digits = "0123456789ABCDEFabcdef[";
 	const char *	colonpos;
@@ -909,6 +916,9 @@ netaddr_dns_new(const char * sysname_or_addr)	//< System name/address
 		freeaddrinfo(sysinfo);
 	}
 	g_free(sysname); sysname = NULL;
+#else
+#	error "Must have a replacement for getaddrinfo(3)"
+#endif
 	return ret;
 }
 
