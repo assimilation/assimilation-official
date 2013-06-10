@@ -867,7 +867,7 @@ netaddr_string_new(const char* addrstr)
 NetAddr*
 netaddr_dns_new(const char * sysname_or_addr)	//< System name/address
 {
-	NetAddr*	ret;
+	NetAddr*	ret = NULL;
 	const char*	digits = "0123456789ABCDEFabcdef[";
 	const char *	colonpos;
 	char*		sysname;
