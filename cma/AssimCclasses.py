@@ -55,7 +55,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     LLDP_CHIDTYPE_COMPONENT, LLDP_CHIDTYPE_NETADDR,  \
     ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802, \
     is_valid_lldp_packet, is_valid_cdp_packet,    \
-    netaddr_ipv4_new, netaddr_ipv6_new, netaddr_string_new, netaddr_mac48_new, netaddr_mac64_new, \
+    netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new, \
     proj_class_classname,   \
     assimobj_new, intframe_new, signframe_new, packetdecoder_new, configcontext_new, \
     configcontext_new_JSON_string, netio_new, netioudp_new, reliableudp_new,\
@@ -417,7 +417,7 @@ class pyNetAddr(pyAssimObj):
         if isinstance(addrstring, unicode) or isinstance(addrstring, pyNetAddr):
             addrstring = str(addrstring)
         if isinstance(addrstring, str):
-            cs = netaddr_string_new(addrstring)
+            cs = netaddr_dns_new(addrstring)
             if not cs:
                 raise ValueError('Illegal NetAddr initial value: "%s"' % addrstring)
             if port != 0:

@@ -248,6 +248,30 @@ class pyNetAddrTest(TestCase):
             for j in range(1,5):
                 proj_class_decr_debug('NetAddr')
 
+    def test_dns_strinit(self): 
+        'Test constructing DNS addresses from strings.'
+        if DEBUG:
+            for j in range(1,5):
+                proj_class_incr_debug('NetAddr')
+        if DEBUG: print >>sys.stderr, "===============test_DNS_strinit(pyNetAddrTest)"
+        addr1 = pyNetAddr('www.linux-ha.org:80')
+        self.assertEqual(addr1.port(), 80)
+        addr2 = pyNetAddr('www.linux-ha.org:http')
+        # Note that this next test assumes that we're not getting round robin DNS...
+        self.assertEqual(addr1, addr2)
+
+        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth')
+        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth:80')
+        self.assertRaises(ValueError, pyNetAddr, 'www.google.com:')
+        self.assertRaises(ValueError, pyNetAddr, 'www.google.com:nosuchport')
+        self.assertRaises(ValueError, pyNetAddr, 'www.google.com:65536')
+        self.assertRaises(ValueError, pyNetAddr, 'www.google.com:65537')
+        self.assertRaises(ValueError, pyNetAddr, 'www.google.com:-1')
+
+        if DEBUG:
+            for j in range(1,5):
+                proj_class_decr_debug('NetAddr')
+
     @class_teardown
     def tearDown(self):
         assert_no_dangling_Cclasses()
