@@ -95,21 +95,25 @@
 #cmakedefine	HAVE_SYS_UTSNAME_H
 #cmakedefine	HAVE_FCNTL_H
 #cmakedefine	HAVE_MCHECK_H
+#cmakedefine	HAVE_SYS_TYPES_H
+#cmakedefine	HAVE_SYS_SOCKET_H
+#cmakedefine	HAVE_NETDB_H
 
 #cmakedefine	HAVE_CLOCK_GETTIME
 #cmakedefine	HAVE_ENDPROTOENT
-#cmakedefine	HAVE_GETCOMPUTERNAME
-#cmakedefine	HAVE_KILL
-#cmakedefine	HAVE_SETPGID
-#cmakedefine	HAVE_SIGACTION
-#cmakedefine	HAVE_UNAME
+#cmakedefine	HAVE_FCNTL
 #cmakedefine	HAVE_G_GET_REAL_TIME
 #cmakedefine	HAVE_G_GET_MONOTONIC_TIME
 #cmakedefine	HAVE_G_GET_ENVIRON
-#cmakedefine	HAVE_FCNTL
+#cmakedefine	HAVE_GETADDRINFO
+#cmakedefine	HAVE_GETCOMPUTERNAME
+#cmakedefine	HAVE_GETEUID
+#cmakedefine	HAVE_KILL
 #cmakedefine	HAVE_MCHECK
 #cmakedefine	HAVE_MCHECK_PEDANTIC
-#cmakedefine	HAVE_GETEUID
+#cmakedefine	HAVE_SETPGID
+#cmakedefine	HAVE_SIGACTION
+#cmakedefine	HAVE_UNAME
 
 #ifndef HAVE_G_GET_REAL_TIME
 WINEXPORT gint64 g_get_real_time(void);
