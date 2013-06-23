@@ -242,7 +242,7 @@ _resource_queue_cmd_remove(ResourceQueue* self, RscQElem* qelem)
 {
 	GQueue*	q = qelem->ourQ;
 
-	if (g_queue_remove(q, qelem)) {
+	if (g_queue_remove_boolean(q, qelem)) {
 		if (g_queue_get_length(q) == 0) {
 			g_hash_table_remove(self->resources, qelem->cmd->resourcename);
 		}

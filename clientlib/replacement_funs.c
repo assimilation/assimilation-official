@@ -112,3 +112,18 @@ g_get_environ(void)
 	return result;
 }
 #endif/*!HAVE_G_GET_ENVIRON*/
+
+
+#ifndef g_queue_remove_boolean
+///< Older versions of glib had g_queue_remove() return void - we need the boolean version for some things
+gboolean
+g_queue_remove_boolean(GQueue* queue, gconstpointer element)
+{
+	GList*	found_thing = g_queue_find(queue, element);
+	if (!found_thing) {
+		return FALSE;
+	}
+	g_queue_remove(queue, element);
+	return TRUE;
+}
+#endif
