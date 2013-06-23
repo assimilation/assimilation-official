@@ -75,6 +75,13 @@
 #	define HAVE_G_SLIST_FREE_FULL
 #endif
 
+#if GLIB_MAJOR_VERSION <= 2 && GLIB_MINOR_VERSION < 28
+	gboolean g_queue_remove_boolean(GQueue* queue, gconstpointer element);
+#else
+#	define g_queue_remove_boolean	g_queue_remove
+#endif
+
+
 
 #ifdef CTYPESGEN
 #	undef g_slist_next
