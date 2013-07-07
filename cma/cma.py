@@ -223,7 +223,7 @@ def main():
         CONFIGNAME_OUTSIG:	pySignFrame(1),
     }
     config = pyConfigContext(init=configinit)
-    io = pyReliableUDP(config, pyPacketDecoder(0))
+    io = pyReliableUDP(config, pyPacketDecoder())
     trycount = 0
     while True:
         try:
