@@ -1,0 +1,168 @@
+# Program to test local source control in a bunch of different ways before pushing upstream
+# and updating the web site.
+#
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2013 - Assimilation Systems Limited
+#
+#  The Assimilation software is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  The Assimilation software is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+ASSIM=$HOME/assim
+WORKSPACE=$ASSIM/src
+WSIDFILE=$WORKSPACE/.wsid
+WSBIN=$ASSIM/bin
+WSCLANG=$WSBIN/analysis
+SCANBUILD="scan-build"
+URL='http://hg.linux-ha.org/|experimental/assimilation/'
+URL=$HOME/monitor/src
+LATESTID=`hg id -i -r tip "$URL"`
+GRIND=valgrind
+ERRORS=no
+
+
+case "$1" in
+  "--force")	WSID=force;;
+  *) WSID=`cat $WSIDFILE 2>/dev/null`;;
+esac
+
+if
+  [ ! -d $ASSIM ]
+then
+  mkdir $ASSIM
+fi
+
+if
+  [ "$WSID" = "$LATESTID" ]
+then
+  exit 0
+fi
+
+if
+  [ ! -d $WORKSPACE ]
+then
+  mkdir -p $WORKSPACE
+fi
+cd $WORKSPACE
+if
+  [ ! -d "$WORKSPACE/.hg" ]
+then
+  hg clone -r tip "$URL" "$WORKSPACE" 
+else
+  hg update -r tip
+fi
+echo "$LATESTID" >$WSIDFILE
+DOXYVERS=`doxygen --help | grep 'Doxygen version ' | sed 's%.* %%'`
+CLANGVERS=`clang -v 2>&1 | grep -i 'version '`
+[ -d "$WSBIN" ] || mkdir -p "$WSBIN"
+cd $WSBIN
+sudo echo "SCANBUILD is $SCANBUILD"
+#$SCANBUILD cmake $WORKSPACE
+$SCANBUILD cmake ../src
+test -d "$WSCLANG" || mkdir -p "$WSCLANG"
+test -d "$WSBIN/doxygen/html" || mkdir -p "$WSBIN/doxygen/html"
+
+echo "Performing CLANG static analysis on Assimilation version $LATESTID source with $CLANGVERS"
+$SCANBUILD -o $WSCLANG make 2>&1 | grep -v ANALYZE:
+if
+  [ !  -z "`ls $WSCLANG`" ]
+then
+  echo "ERRORS FOUND IN $WSCLANG"
+  ERRORS=yes
+fi
+
+#case $LD_LIBRARY_PATH in
+# ?*)	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/assimilation;;
+# *)	export LD_LIBRARY_PATH=/usr/lib/assimilation;;
+#esac
+
+echo "Checking that each header compiles by itself"
+if
+  $WORKSPACE/buildtools/checkheaders $WSBIN/include
+then
+  : Cool - headers all compile individually
+else
+  echo "Could not compile all headers individually :-("
+  ERRORS=yes
+  exit 1
+fi
+cd $WORKSPACE/cma
+echo "Running pylint on our python source"
+if
+  $WORKSPACE/buildtools/lintme.sh --reports=no
+then
+  : Our python code passes pylint
+else
+  echo "Pylint ERRORS found in source"
+  ERRORS=yes
+fi
+cd $WSBIN/testcode
+if
+  sh $WORKSPACE/testcode/grind.sh
+then
+  : Valgrind test worked
+else
+  echo "ERRORS found in running tests in $WSBIN/testcode"
+  ERRORS=yes
+fi
+cd $WORKSPACE
+if
+  (cd cma && testify -v tests)
+then
+  : testify $PWD/cmd/tests looks good
+else
+  echo "ERRORS found in running tests in $PWD/cma/tests"
+  ERRORS=yes
+fi
+
+for test in $(ls $WSBIN/testcode/gtest??)
+do
+  echo "Executing tests in $test"
+  case $test in
+    */gtest01)	test="sudo $test";;
+  esac
+  if
+    $test
+  then
+    : WOOT!  $test succeeded
+  else
+    echo "ERRORS found in running $test :-("
+    ERRORS=yes
+  fi
+done
+
+if
+  $WSBIN/testcode/pinger ::1 127.0.0.1
+then
+  : pinger looks good
+else
+  echo "ERRORS found in running $WSBIN/testcode/pinger"
+  ERRORS=yes
+fi
+
+case $ERRORS in
+  no)
+	cd $WSBIN
+	echo "Building version $LATESTID Assimilation documents with Doxygen version $DOXYVERS"
+	make doc
+  	echo "Syncing up documents"
+	rsync -r  $WSBIN/doxygen/html/ alanr@www.linux-ha.org:assimilation/doxygen/html/
+	cd $URL
+	hg push
+	;;
+	
+  *)	echo "NOT syncing documents / pushing changes due to errors.";;
+esac
