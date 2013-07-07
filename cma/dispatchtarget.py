@@ -161,9 +161,6 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 #print 'JSON received: ', json
                 if sysname is None:
                     jsonconfig = pyConfigContext(init=json)
-                    if not jsonconfig:
-                        CMAdb.log.warning('BAD JSON [%s]' % json)
-                        return
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
                 drone.logjson(json)
