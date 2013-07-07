@@ -1,35 +1,40 @@
 /**
 @mainpage Incredibly scalable, Incredibly easy to configure, easy on your network.
 @section intro Introduction
-Welcome to the Assimilation monitoring project. (@ref README "README")
+Welcome to the Assimilation project. (@ref README "README")
 
-We provide hyperscale monitoring driven by integrated continuous Stealth Discovery&tm; and address these system management problems:
-- System configuration information is out of date because discovery is incomplete, expensive and problematic to run - or manual
-- Monitoring is incomplete, out-of-date, easily confused, expensive to configure, complex and expensive to scale
+We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
+Here are the problems we address:
+- Organizations are vulnerable to attack through forgotten or unknown systems (30% of all intrusions)
+- Organizations have no automatic infrastructure discovery, or they run it infrequently
+ - => System configuration information is out of date, or only in people's heads
+- System discovery is not integrated with monitoring
+ - Most organizations have no way of <i>knowing</i> they're monitoring everything - and probably aren't
+ - Most monitoring is time-consuming to configure, incomplete, out-of-date, easily confused
+- Monitoring is complex and expensive to scale.
 
-What we do: monitoring systems with near-zero overhead both on the systems and their administrators.
-- Monitor systems and services with very low overhead
-- Stealth discovery&tm; (system, service, and dependencies)
-- Easy to configure and manage
+What we do: Continually discover and monitor systems, services, switches and dependencies with very low human and network overhead
+- Discover systems, services, switches and dependencies with zero network footprint
+- Monitor systems and services with very low overhead and extreme scalability
+- Make montoring easy to configure and manage
 
-This is a new project designed to to monitor systems and services on a network of
+The Assimilation Project is designed to discover and monitor infrastructure, services, and dependencies on a network of
 potentially unlimited size, without significant growth in centralized resources.
-The work of monitoring is delegated uniformly in tiny pieces to the various
-machines being monitored in a network-aware topology - minimizing network overhead
-and being naturally geographically sensitive.
+The work of discovery and monitoring is delegated uniformly in tiny pieces to the various
+machines in a network-aware topology - minimizing network overhead and being naturally geographically sensitive.
 
 The two main ideas are:
--  distribute the monitoring as broadly as possible in a network-aware fashion.
--  use autoconfiguration and stealth discovery techniques to simplify configuration
+- distribute discovery throughout the network, doing most discovery locally
+- distribute the monitoring as broadly as possible in a network-aware fashion.
+- use autoconfiguration and stealth discovery techniques to simplify monitoring configuration
 during the initial installation and during ongoing system addition and maintenance.
 
-The original scalability idea was outlined in two different articles
+The original monitoring scalability idea was outlined in two different articles
  -# http://techthoughts.typepad.com/managing_computers/2010/10/big-clusters-scalable-membership-proposal.html
  -# http://techthoughts.typepad.com/managing_computers/2010/11/a-proposed-network-discovery-design-for-scalable-membership-and-monitoring.html
 
-These two main ideas create a system which will have both a great out-of-the-box
-experience for new users and smooth accommodation of growth to virtually
-all environments.
+These two main ideas create a system which will provide significant important capabilities giving both a great out-of-the-box
+experience for new users and smooth accommodation of growth to virtually all environments.
 
 For a human-driven overview, we recommend our
 <a href="http://bit.ly/OD6bY6:">overview video</a> - from LinuxCon NA 2012 in San Diego.
@@ -74,7 +79,7 @@ The team currently posts updates in the following places:
 
 @section architecture Architecture
 This concept has two kinds of participating entities:
- - a Centralized Monitoring Authority - monitoring the collective, and collecting discovery information
+ - a Centralized Management Authority - monitoring the collective, and collecting discovery information
  - a potentially very large number of lightweight monitoring/discovery agents (aka <i>nanoprobes</i>)
 
 @section Scalability Scalable Monitoring
