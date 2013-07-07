@@ -81,7 +81,7 @@ This method is only available if you can digitally sign emails using a well-know
  - In the body of the email put these statements
 
   <tt>
-  I have read and agree to the terms of the attached document for contributions to the Assimilation Monitoring Project
+  I have read and agree to the terms of the attached document for contributions to the Assimilation Project
   (represented by Assimilation Systems Limited).
   
   Submitting this digitally signed email to Assimilation Systems Limited constitutes my acceptance of the terms of the attached agreement
