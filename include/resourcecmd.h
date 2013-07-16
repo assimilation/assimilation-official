@@ -71,6 +71,7 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 #define	REQENVIRONNAMEFIELD	"environ"
 #define	REQRSCNAMEFIELD		"resourcename"
 #define	REQREPEATNAMEFIELD	"repeat_interval"
+#define	REQTIMEOUTNAMEFIELD	"timeout"
 #define	REQINITDELAYNAMEFIELD	"init_delay"
 #define	REQIDENTIFIERNAMEFIELD	"reqid"
 #define	REQREASONENUMNAMEFIELD	"reason_enum"
