@@ -3,8 +3,14 @@
 
 @section LicenseTerms License Terms
 The version of the source from which these documents were created is licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
+Please note that any discovery or monitoring scripts that you author
+<i>are not required to be under the GPL</i> because they are invoked through fork and exec not through library linking.
+If you want the project to include them in our distributions, they will be provided to others under the GPL.
+Modifications to the core of the system are covered under the GPL.
 
-Additionally, all contributions to the project are covered by a contributor agreement.
+All contributions to the project are covered by a contributor agreement.
+The rationale for this agreement is explained on
+<a href="http://techthoughts.typepad.com/managing_computers/2013/04/does-the-gpl-really-work.html">our blog</a>.
 
 If there are any source files which are not marked in this fashion, it is a clerical error.
 Those files are also provided under these same terms.
