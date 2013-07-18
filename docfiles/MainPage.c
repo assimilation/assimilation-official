@@ -1,5 +1,5 @@
 /**
-@mainpage Incredibly scalable, Incredibly easy to configure, easy on your network.
+@mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section intro Introduction
 Welcome to the Assimilation project. (@ref README "README")
 
@@ -14,7 +14,7 @@ Here are the problems we address:
 - Monitoring is complex and expensive to scale.
 
 What we do: Continually discover and monitor systems, services, switches and dependencies with very low human and network overhead
-- Discover systems, services, switches and dependencies with zero network footprint
+- Discover systems, services, switches and dependencies using zero network footprint techniques
 - Monitor systems and services with very low overhead and extreme scalability
 - Make montoring easy to configure and manage
 
@@ -26,7 +26,7 @@ machines in a network-aware topology - minimizing network overhead and being nat
 The two main ideas are:
 - distribute discovery throughout the network, doing most discovery locally
 - distribute the monitoring as broadly as possible in a network-aware fashion.
-- use autoconfiguration and stealth discovery techniques to simplify monitoring configuration
+- use autoconfiguration and zero-network-footprint discovery techniques to simplify monitoring configuration
 during the initial installation and during ongoing system addition and maintenance.
 
 The original monitoring scalability idea was outlined in two different articles
@@ -112,17 +112,17 @@ is that this solution is much more complex, and embeds knowledge of the desired 
 as well when CDP or LLDP are not available.
 
 
-@section autoconfiguration Autoconfiguration through Stealth Discovery
+@section autoconfiguration Autoconfiguration through Discovery
 One of the key aspects of this system is it be largely auto-configuring,
 and incorporates discovery into its basic philosophy.
 It is expected that a customer will drop the various nanoprobes onto the clients being
 monitored, and once those are running, the systems register themselves
 and get automatically configured into the system once the nanoprobes are
 installed and activated.
-@subsection Stealth What is Stealth Discovery&tm;?
-Stealth discovery is a process of discovering systems and services without using
-active probes which might trigger security alarms.  Some examples of current
-and anticipated stealth discovery techniques include:
+@subsection ZeroNetworkFootprint What is Zero Network Footprint Discovery&tm;?
+Zero-network-footprint discovery is a process of discovering systems and services without sendign
+active probes across the network which might trigger security alarms.  Some examples of current
+and anticipated zero-network-footprint discovery techniques include:
  - Discovery of newly installed systems by auto-registration
  - Discovery of network topology using LLDP and CDP aggregation
  - Discovery of services using netstat -utnlp
@@ -141,16 +141,16 @@ sensitive security alarms.
 In addition, the netstat information correlated across the servers also
 provides information about dependencies and service groups.
 
-Furthermore, these nanoprobes use stealth discovery methods to discover systems
+Furthermore, these nanoprobes use zero-network-footprint discovery methods to discover systems
 not being monitored and services on the systems being monitored.
-Stealth discovery methods are methods which cannot trip even the most sensitive network
-security alarm - because no probes are sent over the network.
+Zero-network-footprint discovery methods are methods which cannot trip even the most sensitive network
+security alarm - because no probes (packets) are sent over the network to perform discovery.
 
 This discovery process is intended to achieve these goals:
 - Simplify initial installation
 - Provide a continuous audit of the monitoring configuration
 - Create a rich collection of information about the data center
-@image html DiscoveryMethods.png "Stealth Discovery Process"
+@image html DiscoveryMethods.png "Zero-Network-Footprint Discovery Process"
 
 @section lightweight Lightweight monitoring agents
 The nanoprobe code is written largely in C and minimizes use of:
@@ -159,7 +159,7 @@ The nanoprobe code is written largely in C and minimizes use of:
  - disk
  - network resources
 
-To do this, we will follow a <i>no news is good news</i> philosophy for exception monitoring -
+To do this, we will follow a <i>management by exception</i> philosophy for exception monitoring -
 when nothing is wrong, nothing will be reported.
 Although the central part of the code will likely be only available on POSIX systems, 
 the nanoprobes will also be available on various flavors of Windows as well.
@@ -167,8 +167,8 @@ the nanoprobes will also be available on various flavors of Windows as well.
 @subsection service_mon Service Monitoring
 To the degree possible, we will perform exception monitoring of services on the machine they're provided on - which 
 implies zero network overhead to monitor working services.  Stated another way, we follow a
-<i>no news is good news</i> philosophy.
-Our primary tool for monitoring services is through the use of the Local Resource Manager
+<i>management by exception</i> philosophy.
+Our primary tool for monitoring services is through the use of a re-implemented Local Resource Manager
 from the Linux-HA project.
 
 @section TestingStrategy Testing Strategy
