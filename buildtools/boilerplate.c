@@ -4,6 +4,9 @@
  * @details Allows THE IMPLEMENTATION OF SOMETHING OR OTHER
  *
  * @author  Alan Robertson <alanr@unix.sh> - Copyright &copy; 2013 - Assimilation Systems Limited
+ * Free support is available from the Assimilation Project community - http://assimproj.org
+ * Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+ *
  * @n
  *  This file is part of the Assimilation Project.
  *  The Assimilation software is free software: you can redistribute it and/or modify
