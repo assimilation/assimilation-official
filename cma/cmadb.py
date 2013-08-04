@@ -108,6 +108,7 @@ class CMAdb:
         #print >>sys.stderr, ('Ensuring index %s exists' % 'nodetype')
         self.indextbl['nodetype'] = self.db.get_or_create_index(neo4j.Node, 'nodetype')
         nodetypeindex = self.indextbl['nodetype']
+        #pylint: disable=E1101
         try:
             nodezero = self.db.get_node(0)
         except AttributeError:
