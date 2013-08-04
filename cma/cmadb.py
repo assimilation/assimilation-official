@@ -108,7 +108,11 @@ class CMAdb:
         #print >>sys.stderr, ('Ensuring index %s exists' % 'nodetype')
         self.indextbl['nodetype'] = self.db.get_or_create_index(neo4j.Node, 'nodetype')
         nodetypeindex = self.indextbl['nodetype']
-        nodezero = self.db.get_node(0)
+        try:
+            nodezero = self.db.get_node(0)
+        except AttributeError:
+            nodezero = self.db.node(0)
+            
         for index in nodetypes.keys():
             top =  nodetypeindex.get_or_create('nodetype', index
         ,                      {'name':index, 'nodetype':'nodetype'})
