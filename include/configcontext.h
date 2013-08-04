@@ -79,7 +79,6 @@ struct _ConfigContext {
 	void		(*setdouble)(ConfigContext*, const char *name, double value);	///< Set double value
 	GSList*		(*getarray)(const ConfigContext*, const char *name);	///< Get array value
 	void		(*setarray)(ConfigContext*, const char *name, GSList*);	///< Set array value
-	gboolean	(*appendarray)(ConfigContext*, const char *name, ConfigValue*);	///< Append to array value
 	const char*	(*getstring)(const ConfigContext*, const char *name);	///< Get String value
 	void		(*setstring)(ConfigContext*, const char *name, const char *value);
 	Frame*		(*getframe)(const ConfigContext*, const char*);	///< Get Frame value

@@ -47,7 +47,6 @@ FSTATIC const char* _configcontext_getstring(const ConfigContext*, const char *n
 FSTATIC void	_configcontext_setstring(ConfigContext*, const char *name, const char *value);
 FSTATIC GSList*	_configcontext_getarray(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setarray(ConfigContext*, const char *name, GSList*value);
-FSTATIC gboolean _configcontext_appendarray(ConfigContext*self, const char *name, ConfigValue*value);
 FSTATIC NetAddr*_configcontext_getaddr(const ConfigContext*, const char *);
 FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
 FSTATIC Frame*	_configcontext_getframe(const ConfigContext*, const char *name);
@@ -144,7 +143,6 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->setconfig	=	_configcontext_setconfig;
 	newcontext->getconfig	=	_configcontext_getconfig;
 	newcontext->setarray	=	_configcontext_setarray;
-	newcontext->appendarray	=	_configcontext_appendarray;
 	newcontext->getarray	=	_configcontext_getarray;
 	newcontext->gettype	=	_configcontext_gettype;
 	newcontext->getvalue	=	_configcontext_getvalue;
@@ -358,24 +356,6 @@ _configcontext_setarray(ConfigContext*self, const char *name, GSList*value)
 	/// @todo WHAT ABOUT OBJECT LIFE??
 	g_hash_table_replace(self->_values, cpname, val);
 }
-
-FSTATIC gboolean
-_configcontext_appendarray(ConfigContext*self, const char *name, ConfigValue*value)
-{
-	gpointer	ret = g_hash_table_lookup(self->_values, name);
-	ConfigValue*	cfg;
-
-	if (ret == NULL) {
-		return FALSE;
-	}
-	cfg = CASTTOCLASS(ConfigValue, ret);
-	if (cfg->valtype != CFG_ARRAY) {
-		return FALSE;
-	}
-	cfg->u.arrayvalue = g_slist_append(cfg->u.arrayvalue, value);
-	return TRUE;
-}
-
 
 /// Return the NetAddr value of a name
 FSTATIC  NetAddr*
