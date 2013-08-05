@@ -310,13 +310,14 @@ class DroneInfo:
     def send_hbmsg(self, dest, fstype, addrlist):
         '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
-        fs = pyFrameSet(fstype)
-        for addr in addrlist:
-            if addr is None:
-                continue
-            aframe = pyIpPortFrame(FrameTypes.IPPORT, addrstring=addr)
-            fs.append(aframe)
-        self.io.sendreliablefs(dest, (fs,))
+        CMAdb.transaction.add_packet(dest, fstype, addrlist, frametype=FrameTypes.IPPORT)
+#        fs = pyFrameSet(fstype)
+#        for addr in addrlist:
+#            if addr is None:
+#                continue
+#            aframe = pyIpPortFrame(FrameTypes.IPPORT, addrstring=addr)
+#            fs.append(aframe)
+#        self.io.sendreliablefs(dest, (fs,))
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
@@ -398,7 +399,7 @@ class DroneInfo:
         then an optional    DISCINTERVAL frame with the repeat interval
         then a              DISCJSON frame with the JSON data for the discovery operation.
         '''
-        fs = pyFrameSet(FrameSetTypes.DODISCOVER)
+        #fs = pyFrameSet(FrameSetTypes.DODISCOVER)
         if type(args[0]) is str:
             if len(args) == 1:
                 args = ((args[0], 0, None),)
@@ -409,6 +410,7 @@ class DroneInfo:
             else:
                 raise ValueError('Incorrect argument length: %d vs 1, 2 or 3' % len(args))
 
+        frames = []
         for ourtuple in args:
             if len(ourtuple) != 2 and len(ourtuple) != 3:
                 raise ValueError('Incorrect argument tuple length: %d vs 2 or 3 [%s]'
@@ -418,27 +420,31 @@ class DroneInfo:
             json = None
             if len(ourtuple) == 3:
                 json = ourtuple[2]
-            discname = pyCstringFrame(FrameTypes.DISCNAME)
+            frames.append({'frametype': FrameTypes.DISCNAME, 'framevalue': instance})
+            #discname = pyCstringFrame(FrameTypes.DISCNAME)
             #print >>sys.stderr, 'SETTING VALUE TO: (%s)' % instance
-            discname.setvalue(instance)
-            fs.append(discname)
+            #discname.setvalue(instance)
+            #fs.append(discname)
             if interval is not None and interval > 0:
-                discint = pyIntFrame(FrameTypes.DISCINTERVAL, intbytes=4, initval=int(interval))
-                fs.append(discint)
+                frames.append({'frametype': FrameTypes.DISCINTERVAL, 'framevalue': int(interval)})
+                #discint = pyIntFrame(FrameTypes.DISCINTERVAL, intbytes=4, initval=int(interval))
+                #fs.append(discint)
             if isinstance(json, pyConfigContext):
                 json = str(json)
             elif json is None:
                 json = instance
             if not json.startswith('{'):
                 json = '{"type":"%s", "parameters":{}}' % json
-            jsonframe = pyCstringFrame(FrameTypes.DISCJSON)
-            jsonframe.setvalue(json)
-            fs.append(jsonframe)
+            frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': json})
+            #jsonframe = pyCstringFrame(FrameTypes.DISCJSON)
+            #jsonframe.setvalue(json)
+            #fs.append(jsonframe)
         # This doesn't work if the client has bound to a VIP
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip)
         ourip.setport(self.getport())
-        self.io.sendreliablefs(ourip, (fs,))
+        #self.io.sendreliablefs(ourip, (fs,))
+        CMAdb.transaction.add_packet(ourip,  FrameSetTypes.DODISCOVER, frames)
         if CMAdb.debug:
             CMAdb.log.debug('Sent Discovery request(%s, %s) to %s Framesets: %s'
             %	(instance, str(interval), str(ourip), str(fs)))
