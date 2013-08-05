@@ -89,15 +89,16 @@ class Transaction:
     '''
     REESC=re.compile('\\\\')
     REQUOTE=re.compile('"')
+
     def __init__(self, json=None):
-        'Constructor for a transaction'
+        'Constructor for a combined database/network transaction.'
         if json is None:
             self.tree = {}
         else:
             self.tree = pyConfigContext(init=str(json))
 
     def __str__(self):
-        'Convert our internal tree to JSON'
+        'Convert our internal tree to JSON.'
         return self._jsonstr(self.tree)
 
     def _jsonesc(self, stringthing):
@@ -107,7 +108,7 @@ class Transaction:
         return stringthing
         
     def _jsonstr(self, thing):
-        'Convert ("pickle") this thing into a JSON string' 
+        'Recursively convert ("pickle") this thing to JSON' 
 
         if isinstance(thing, list) or isinstance(thing, tuple):
             ret=''
@@ -169,7 +170,7 @@ class Transaction:
         # Allow 'frames' to be a single frame
         if not isinstance(frames, list) and not isinstance(frames, tuple):
             frames = (frames,)
-        # Allow 'frames' to be a list of frame <i>values</i> - if they're all the same frametype
+        # Allow 'frames' to be a list of frame <i>values</i> - presuming they're all the same frametype
         if frametype is not None:
             newframes = []
             for thing in frames:
@@ -190,16 +191,19 @@ class Transaction:
         '''
         Commit the network portion of our transaction - that is, send the packets!
         One interesting thing - we should probably not consider this transaction fully
-        completed until we decide one of our destinations is dead, or until
-        they are all ACKed.
-        @TODO: We don't yet cover with CMA crashing before all packets are received versus sent.
-        This argues for doing the network portion of the transaction first.
+        completed until we decide each destination is dead, or until its packets are all ACKed.
+        @TODO: We don't yet cover with CMA crashing before all packets are received versus sent --
+        This argues for doing the network portion of the transaction first - presuming we do the
+        db and network portions sequentially --  Of course, no transaction can start until the previous
+        one is finished.
         '''
         for packet in self.tree['packets']:
             fs = pyFrameSet(packet['action'])
             for frame in packet['frames']:
                 ftype = frame['frametype']
                 fvalue = frame['framevalue']
+                # The number of cases below will have to grow over time.
+                # but this code is pretty simple so far...
 
                 if ftype == FrameTypes.IPPORT:
                     if isinstance(fvalue, str) or isinstance(fvalue, unicode):
