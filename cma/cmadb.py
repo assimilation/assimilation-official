@@ -73,6 +73,7 @@ class CMAdb:
 
     nodename = os.uname()[1]
     debug = False
+    transaction = None
 
 
 
@@ -134,6 +135,7 @@ class CMAdb:
         CMAdb.log = logging.getLogger('cma')
         CMAdb.debug = debug
         CMAdb.io = io
+        CMAdb.transaction = None
         from hbring import HbRing
         syslog = logging.handlers.SysLogHandler(address='/dev/log'
         ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
