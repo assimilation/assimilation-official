@@ -103,7 +103,7 @@ fi
 if
   cpack
 then
-  : Cool - cpack works - at least for us ;-)
+  : 'Cool - cpack works - at least for us ;-)'
 else
   echo "cpack failed"
   ERRORS=yes
