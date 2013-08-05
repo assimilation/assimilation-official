@@ -98,8 +98,17 @@ then
 else
   echo "Could not compile all headers individually :-("
   ERRORS=yes
-  exit 1
 fi
+
+if
+  cpack
+then
+  : Cool - cpack works - at least for us ;-)
+else
+  echo "cpack failed"
+  ERRORS=yes
+fi
+
 cd $WORKSPACE/cma
 echo "Running pylint on our python source"
 if
