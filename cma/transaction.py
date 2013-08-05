@@ -45,6 +45,7 @@ In either case, this class won't be directly affected - since it only stores and
 not worry about how they ought to be persisted.
 '''
 import re
+import sys
 from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, pyIpPortFrame
 from frameinfo import FrameSetTypes, FrameTypes
 
@@ -166,13 +167,14 @@ class Transaction:
         # Our JSON converts nicely to a ConfigContext - because it converts arrays correctly from JSON
 
         # Allow 'frames' to be a single frame
-        if not isinstance(frames, list) and not isinstance(addresses, tuple):
+        if not isinstance(frames, list) and not isinstance(frames, tuple):
             frames = (frames,)
         # Allow 'frames' to be a list of frame <i>values</i> - if they're all the same frametype
         if frametype is not None:
             newframes = []
             for thing in frames:
-                newframes.append({'frametype': frametype, 'framevalue': thing})
+                if thing is not None:
+                    newframes.append({'frametype': frametype, 'framevalue': thing})
             frames = newframes
         if not 'packets' in self.tree:
             self.tree['packets'] = []
@@ -201,11 +203,7 @@ class Transaction:
 
                 if ftype == FrameTypes.IPPORT:
                     if isinstance(fvalue, str) or isinstance(fvalue, unicode):
-                        print >> sys.stderr, "Forced to pyNetAddr"
                         fvalue = pyNetAddr(fvalue)
-                    if isinstance(fvalue, pyNetAddr):
-                        print >> sys.stderr, "Parameter is NetAddr"
-                    print fvalue, type(fvalue)
                     aframe = pyIpPortFrame(ftype, fvalue)
                     fs.append(aframe)
 
