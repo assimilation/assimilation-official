@@ -24,6 +24,7 @@ then call dispatch it so it will get handled.
 '''
 
 from cmadb import CMAdb
+from transaction import Transaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
 import os, sys, traceback
@@ -48,11 +49,10 @@ class MessageDispatcher:
         # Need to think medium-hard about how to deal with doing this in a queueing system
         # where a single packet might trigger a transaction on several systems for a node
         # which appears on several rings.
+        CMAdb.transaction = Transaction()
         # W0703 == Too general exception catching...
         # pylint: disable=W0703 
         try:
-            # May eventually begin a transaction here
-            # Of course, this transaction needs to span both the database and the network
             if fstype in self.dispatchtable:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
             else:
@@ -81,10 +81,13 @@ class MessageDispatcher:
                 CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
             CMAdb.log.info('======== End %s Message %s Exception Traceback ========' \
             %   (fstypename, e))
-            # @todo Eventually will want to abort the transaction here
+            if CMAdb.transaction is not None:
+                CMAdb.log.critical("Aborting transaction %s" % CMAdb.transaction.tree)
+                CMAdb.transaction = None
         else:
-            # @todo Eventually will want to commit the transaction here
-            pass
+            # Commit the transaction here
+            CMAdb.transaction.commit_trans(CMAdb.io)
+            
         # @todo This will eventually need to be part of the transaction
         self.io.ackmessage(origaddr, frameset)
 

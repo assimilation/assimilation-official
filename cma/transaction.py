@@ -106,7 +106,7 @@ class Transaction:
         return stringthing
         
     def _jsonstr(self, thing):
-        'Convert ("pickle") this thing into a JSON-style string' 
+        'Convert ("pickle") this thing into a JSON string' 
 
         if isinstance(thing, list) or isinstance(thing, tuple):
             ret=''
@@ -182,6 +182,7 @@ class Transaction:
         'Commit our transaction'
         if 'packets' in self.tree:
             self._commit_network_trans(io)
+        self.tree = {}
 
     def _commit_network_trans(self, io):
         '''
