@@ -306,3 +306,25 @@
    fun:g_main_context_new
    ...
 }
+{
+   Stupid g_main_loop_run g_malloc leak
+   Memcheck:Leak
+   fun:malloc
+   fun:g_malloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3600.0
+   fun:g_main_loop_run
+   fun:main
+}
+{
+   Stupid  gmain_loop g_realloc leak
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3600.0
+   fun:g_ptr_array_add
+   fun:g_main_context_check
+   obj:/lib/x86_64-linux-gnu/libglib-2.0.so.0.3600.0
+   fun:g_main_loop_run
+   fun:main
+}
