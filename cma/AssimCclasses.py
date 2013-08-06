@@ -993,8 +993,10 @@ class pyFrameSet(pyAssimObj):
         while curframe:
             cast(curframe[0].data, struct__GSList._fields_[0][1])
             yieldval =  pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
+            #print >> sys.stderr, ("Constructed frame IS [%s]" % str(yieldval))
             if not yieldval.isvalid():
-                print "OOPS!  Constructed frame from iter() is not valid"
+                print >> sys.stderr,  "OOPS! Constructed frame from iter() is not valid [%s]" % str(yieldval)
+                raise ValueError("Constructed frame from iter() is not valid [%s]" % str(yieldval))
             #print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
             yield yieldval
             curframe = g_slist_next(curframe)
