@@ -83,8 +83,6 @@ NetAddr*	otheraddr;
 NetAddr*	otheraddr2;
 NetAddr*	anyaddr;
 int		wirepktcount = 0;
-int		heartbeatcount = 0;
-int		pcapcount = 0;
 
 gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void got_heartbeat(HbListener* who);
@@ -159,9 +157,12 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 		,	  fs->fstype);
 		check_JSON(fs);
 		break;
-	default:
-		g_message("CMA Received a FrameSet of type %d over the 'wire'."
-		,	  fs->fstype);
+	default:{
+			char *	fsstr = fs->baseclass.toString(&fs->baseclass);
+			g_message("CMA Received a FrameSet of type %d [%s] over the 'wire'."
+			,	  fs->fstype, fsstr);
+			FREE(fsstr); fsstr = NULL;
+		}
 	}
 	
 	l->transport->_netio->ackmessage(l->transport->_netio, srcaddr, fs);
@@ -207,7 +208,7 @@ timeout_agent(gpointer ignored)
 #define REQUEST(type,id, repeat,delay)	\
 	"{" COMMREQUEST C type C REQID(id) C REPEAT(repeat) C INITDELAY(delay)"}"
 #define START REQUEST(STARTOP,		1, 0, 0)	// One shot - no delay
-#define MONITOR REQUEST(MONITOROP,	2, 1, 0)	// Repeat every second - no delay
+#define MONITOR REQUEST(MONITOROP,	2, 0, 0)	// Repeat every second - no delay
 #define STOP REQUEST(STOPOP,		3, 0, 5)	// No repeat - 5 second delay
 
 /// Routine to pretend to be the initial CMA
@@ -293,7 +294,7 @@ main(int argc, char **argv)
 #	endif
 #endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
-#if 0
+#if 1
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
@@ -410,7 +411,7 @@ main(int argc, char **argv)
 
 	g_source_destroy(&netpkt->baseclass);
 	g_source_unref(&netpkt->baseclass);
-	g_main_context_unref(g_main_context_default());
+	//g_main_context_unref(g_main_context_default());
 
 	// Free signature frame
 	UNREF2(signature);
@@ -427,7 +428,6 @@ main(int argc, char **argv)
 
 	// At this point - nothing should show up - we should have freed everything
 	if (proj_class_live_object_count() > 0) {
-		proj_class_dump_live_objects();
 		g_warning("Too many objects (%d) alive at end of test.", 
 			proj_class_live_object_count());
 		proj_class_dump_live_objects();

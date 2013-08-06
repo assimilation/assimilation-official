@@ -99,6 +99,7 @@ HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblist
 
 gboolean		nano_shutting_down = FALSE;
 const char *		procname = "nanoprobe";
+static AuthListener*	obeycollective = NULL;
 
 static NetAddr*		nanofailreportaddr = NULL;
 static NetGSource*	nanotransport = NULL;
@@ -534,58 +535,54 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	,      NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
 	GSList*		slframe;
-	ConfigContext*	cfg = parent->baseclass.config;
-	char *		paramname = NULL;
+	ConfigContext*	newconfig = NULL;
 
 	(void)fromaddr;
 
+
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
-		int	frametype = frame->type;
-		switch (frametype) {
-
-			case FRAMETYPE_PARAMNAME: { // Parameter name to set
-				paramname = frame->value;
-				g_return_if_fail(paramname != NULL);
+		switch (frame->type) {
+			case FRAMETYPE_CONFIGJSON: { // Configuration JSON string (parameters)
+				CstringFrame* strf = CASTTOCLASS(CstringFrame, frame);
+				const char *  jsonstring;
+				g_return_if_fail(strf != NULL);
+				jsonstring = strf->baseclass.value;
+				DEBUGMSG3("%s.%d: Got CONFIGJSON frame: %s", __FUNCTION__, __LINE__
+				,	jsonstring);
+				newconfig = configcontext_new_JSON_string(jsonstring);
+				goto endloop;
 			}
-			break;
+		}
+	}
+endloop:
+	if (NULL == newconfig) {
+		g_warning("%s.%d: SETCONFIG message without valid JSON configuration"
+		,	__FUNCTION__, __LINE__);
+		return;
+	}
 
-			case FRAMETYPE_CSTRINGVAL: { // String value to set 'paramname' to
-				g_return_if_fail(paramname != NULL);
-				cfg->setstring(cfg, paramname, frame->value);
-				paramname = NULL;
-			}
-			break;
+	// We may eventually want to a real 'merge' of the config data instead of overwriting it
+	if (parent->baseclass.config) {
+		NetAddr* cmainit = parent->baseclass.config->getaddr(parent->baseclass.config
+		,	CONFIGNAME_CMAINIT);
+		if (NULL != cmainit) {
+			REF(cmainit);
+		}
+		UNREF(parent->baseclass.config);
+		parent->baseclass.config = newconfig;
+		newconfig->setaddr(newconfig, CONFIGNAME_CMAINIT, cmainit);
+		UNREF(cmainit);
+	}
 
-			case FRAMETYPE_CINTVAL: { // Integer value to set 'paramname' to
-				IntFrame* intf = CASTTOCLASS(IntFrame, frame);
-				g_return_if_fail(paramname != NULL);
-				cfg->setint(cfg, paramname, (gint)intf->getint(intf));
-				paramname = NULL;
-			}
-			break;
+	DUMP3("nanoobey_setconfig: cfg is", &newconfig->baseclass, NULL);
 
-
-			case FRAMETYPE_IPPORT: { // NetAddr value to set 'paramname' to
-				IpPortFrame* af = CASTTOCLASS(IpPortFrame, frame);
-				NetAddr*	addr = af->getnetaddr(af);
-				g_return_if_fail(paramname != NULL);
-				cfg->setaddr(cfg, paramname, addr);
-				paramname = NULL;
-			}
-			break;
-
-		}//endswitch
-	}//endfor
-	DUMP3("nanoobey_setconfig: cfg is", &cfg->baseclass, NULL);
-	if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != NULL) {
+	if (newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL) != NULL) {
 		if (nanofailreportaddr == NULL) {
-			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
-			
-			
-		}else if (cfg->getaddr(cfg, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {
+			nanofailreportaddr = newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL);
+		}else if (newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {
 			UNREF(nanofailreportaddr);
-			nanofailreportaddr = cfg->getaddr(cfg, CONFIGNAME_CMAFAIL);
+			nanofailreportaddr = newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL);
 		}
 		DUMP3("nanoobey_setconfig: nanofailreportaddr", &nanofailreportaddr->baseclass, NULL);
 		{
@@ -911,7 +908,6 @@ struct startup_cruft {
 	const char *	initdiscover;
 	int		discover_interval;
 	NetGSource*	iosource;
-	ConfigContext*	context;
 };
 
 /// Nanoprobe bootstrap routine.
@@ -938,13 +934,13 @@ nano_startupidle(gpointer gcruft)
 		,	cruft->initdiscover
 		,	cruft->discover_interval
 		,	jsondata
-		,	cruft->iosource, cruft->context, 0);
+		,	cruft->iosource, obeycollective->baseclass.config, 0);
 		UNREF(jsondata);
 		UNREF2(jd);
 		state = WAIT;
 		return TRUE;
 	}
-	if (cruft->context->getstring(cruft->context, cfgname)) {
+	if (obeycollective->baseclass.config->getstring(obeycollective->baseclass.config, cfgname)) {
 		state = DONE;
 		// Call it once, and arrange for it to repeat until we hear back.
 		g_timeout_add_seconds(5, nano_reqconfig, gcruft);
@@ -964,7 +960,7 @@ nano_reqconfig(gpointer gcruft)
 	CstringFrame*	csf;
 	CstringFrame*	usf;
 	const char *	cfgname = cruft->initdiscover;
-	ConfigContext*	context = cruft->context;
+	ConfigContext*	context = obeycollective->baseclass.config;
 	NetAddr*	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
 	const char *		jsontext;
 	char *			sysname = NULL;
@@ -1016,7 +1012,6 @@ nano_reqconfig(gpointer gcruft)
 
 static PacketDecoder*	decoder = NULL;
 static SwitchDiscovery*	swdisc = NULL;
-static AuthListener*	obeycollective = NULL;
 
 
 /// The set of Collective Management Authority FrameTypes we know about,
@@ -1089,7 +1084,6 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 		initdiscoverpath,
 		discover_interval,
 		io,
-		config
 	};
 	nano_shutting_down = FALSE;
 	BINDDEBUG(nanoprobe_main);

@@ -91,75 +91,23 @@ FrameSet*
 create_setconfig(ConfigContext * cfg)
 {
 	FrameSet*	fs = frameset_new(FRAMESETTYPE_SETCONFIG);
-	GHashTableIter	iter;
-	gpointer	key;
-	gpointer	data;
+	char*		json;
+	CstringFrame*	jsframe;
 
-	// First we go through the integer values (if any)
-	// Next we go through the string values (if any)
-	// Lastly we go through the NetAddr values (if any)
-
-	// Integer values
-	if (!cfg->_values) {
+	if (!cfg || !cfg->_values) {
+		g_warning("%s.%d: NULL ConfigContext parameter", __FUNCTION__, __LINE__);
 		return NULL;
 	}
-	g_hash_table_iter_init(&iter, cfg->_values);
-	while (g_hash_table_iter_next(&iter, &key, &data)) {
-		char *		name = key;
-		CstringFrame*	n;
-
-		switch (cfg->gettype(cfg, key)) {
-			case CFG_INT64:
-			case CFG_STRING:
-			case CFG_NETADDR:
-					break;
-			default:	// Completely ignore everything else
-					continue;
-		}
-
-		n = cstringframe_new(FRAMETYPE_PARAMNAME, 0);
-		// Put the name into the frameset
-		n->baseclass.setvalue(&n->baseclass, g_strdup(name), strlen(name)+1
-		,		      frame_default_valuefinalize);
-		frameset_append_frame(fs, &n->baseclass);
-		UNREF2(n);
-
-		// Now put the value in...
-		switch(cfg->gettype(cfg, key)) {
-			case CFG_EEXIST:
-			case CFG_NULL:
-			case CFG_BOOL:
-			case CFG_FLOAT:
-			case CFG_ARRAY:
-			case CFG_CFGCTX:
-			case CFG_FRAME:
-				break;	// Ignore these...
-
-			case CFG_INT64: {
-				gint64		value = cfg->getint(cfg, name);
-				IntFrame*	v = intframe_new(FRAMETYPE_CINTVAL, 8);
-				v->setint(v, value);
-				frameset_append_frame(fs, &v->baseclass);
-				UNREF2(v);
-				break;
-			}
-			case CFG_STRING: {
-				const char *	value = cfg->getstring(cfg, name);
-				CstringFrame*	v = cstringframe_new(FRAMETYPE_CSTRINGVAL, 0);
-				v->baseclass.setvalue(&v->baseclass, g_strdup(value)
-				,		      strlen(value)+1, frame_default_valuefinalize);
-				frameset_append_frame(fs, &v->baseclass);
-				UNREF2(v);
-				break;
-			}
-			case CFG_NETADDR: {
-				NetAddr *	value = cfg->getaddr(cfg, name);
-				IpPortFrame*	v = ipportframe_netaddr_new(FRAMETYPE_IPPORT, value);
-				frameset_append_frame(fs, &v->baseclass);
-				UNREF2(v);
-				break;
-			}
-		}
+	json = cfg->baseclass.toString(&cfg->baseclass);
+	if (json == NULL) {
+		g_warning("%s.%d: Invalid ConfigContext parameter", __FUNCTION__, __LINE__);
+		return NULL;
 	}
+	jsframe = cstringframe_new(FRAMETYPE_CONFIGJSON, 0);
+	jsframe->baseclass.setvalue(&jsframe->baseclass, json
+	,		      strlen(json)+1, frame_default_valuefinalize);
+	frameset_append_frame(fs, &jsframe->baseclass);
+	UNREF2(jsframe);
+
 	return fs;
 }

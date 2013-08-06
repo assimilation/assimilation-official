@@ -57,6 +57,7 @@ static GSList*	_hb_listeners = NULL;
 static gint	_hb_listener_count = 0;
 static guint64	_hb_listener_lastcheck = 0;
 static void	(*_hblistener_martiancallback)(NetAddr* who) = NULL;
+static gint	hb_timeout_id = -1;
 
 #define	ONESEC	1000000
 
@@ -67,8 +68,8 @@ _hblistener_addlist(HbListener* self)	///<[in]The listener to add
 {
 	HbListener*	old;
 	if (_hb_listeners == NULL) {
-		g_timeout_add_seconds_full(G_PRIORITY_LOW, 1, _hblistener_gsourcefunc
-		,			   NULL, _hblistener_notify_function);
+		hb_timeout_id = g_timeout_add_seconds_full(G_PRIORITY_LOW, 1
+		,	_hblistener_gsourcefunc , NULL, _hblistener_notify_function);
 		///@todo start listening for packets...
 	}else if ((old=hblistener_find_by_address(self->listenaddr)) != NULL) {
 		_hblistener_dellist(old);
@@ -210,6 +211,10 @@ hblistener_shutdown(void)
 	if (_hb_listeners) {
 		g_slist_free(_hb_listeners);
 		_hb_listeners = NULL;
+	}
+	if (hb_timeout_id > 0) {
+		g_source_remove(hb_timeout_id);
+		hb_timeout_id = -1;
 	}
 }
 
