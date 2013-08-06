@@ -278,7 +278,7 @@ The type of discovery data and program collecting it are inside.
 'This frame provides the JSON for initial configuration data as a NUL-terminated C-style string.'),
   	21:  (pyCstringFrame, 'CSTRINGVAL', 'Generic string value',
 'Miscellaneous NUL-terminated C-style string.'),
-  	22:  (pyCstringFrame, 'CINTVAL', 'Generic integer value',
+  	22:  (pyIntFrame, 'CINTVAL', 'Generic integer value',
 'Miscellaneous integer value.'),
   	23:  (pyIntFrame, 'ELAPSEDTIME', '64-bit elapsed time (usec)',
 '''This frame provides elapsed time (measured locally) in microseconds.
