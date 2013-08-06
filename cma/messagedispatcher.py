@@ -59,7 +59,7 @@ class MessageDispatcher:
                 self.default.dispatch(origaddr, frameset)
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
-            #   logs in legible way
+            #   logs in a legible way
             (etype, evalue, trace) = sys.exc_info()
             evalue = evalue # make pylint happy
             tblist = traceback.extract_tb(trace, 20)

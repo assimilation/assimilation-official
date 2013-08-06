@@ -270,20 +270,16 @@ The Address Type for a MAC address is 6.
   	17:  (pyCstringFrame, 'PATHNAME', 'file name',
 '''This frame contains a pathname for a file as a C string.
 '''),
-  	18:  (pyNVpairFrame, 'NVPAIR', 'Name/value pair',
-'''This frame contains a name/value pair - each of which is a NUL-terminated C-style string.
-'''),
   	19:  (pyCstringFrame, 'JSDISCOVER', 'JSON-formatted discovery data',
 '''This frame contains JSON-formatted output from a discovery process.
 The type of discovery data and program collecting it are inside.
 '''),
-  	20:  (pyCstringFrame, 'PARAMNAME', 'Config parameter name',
-'''This frame contains the name of a parameter to set in nanoprobe configuration
-- could be followed by a CSTRINGVAL or an IPADDR'''),
-  	21:  (pyCstringFrame, 'CSTRINGVAL', 'String configuration value',
-'This frame contains a string value to set in nanoprobe configuration.'),
-  	22:  (pyIntFrame, 'CINTVAL', 'Integer configuration value',
-'This frame contains an integer value to set into nanoprobe configuration.'),
+  	20:  (pyCstringFrame, 'CONFIGJSON', 'JSON configuration data from CMA',
+'This frame provides the JSON for initial configuration data as a NUL-terminated C-style string.'),
+  	21:  (pyCstringFrame, 'CSTRINGVAL', 'Generic string value',
+'Miscellaneous NUL-terminated C-style string.'),
+  	22:  (pyCstringFrame, 'CINTVAL', 'Generic integer value',
+'Miscellaneous integer value.'),
   	23:  (pyIntFrame, 'ELAPSEDTIME', '64-bit elapsed time (usec)',
 '''This frame provides elapsed time (measured locally) in microseconds.
 In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer.

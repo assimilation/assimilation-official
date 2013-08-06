@@ -192,6 +192,7 @@ class Transaction:
         Commit the network portion of our transaction - that is, send the packets!
         One interesting thing - we should probably not consider this transaction fully
         completed until we decide each destination is dead, or until its packets are all ACKed.
+
         @TODO: We don't yet cover with CMA crashing before all packets are received versus sent --
         This argues for doing the network portion of the transaction first - presuming we do the
         db and network portions sequentially --  Of course, no transaction can start until the previous
