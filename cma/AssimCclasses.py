@@ -995,7 +995,8 @@ class pyFrameSet(pyAssimObj):
             yieldval =  pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
             #print >> sys.stderr, ("Constructed frame IS [%s]" % str(yieldval))
             if not yieldval.isvalid():
-                print >> sys.stderr,  "OOPS! Constructed frame from iter() is not valid [%s]" % str(yieldval)
+                print >> sys.stderr,  "OOPS! Constructed frame from iter() is not valid [%s]" \
+                %       str(yieldval)
                 raise ValueError("Constructed frame from iter() is not valid [%s]" % str(yieldval))
             #print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
             yield yieldval

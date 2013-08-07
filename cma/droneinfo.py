@@ -29,8 +29,7 @@ from cmadb import CMAdb
 
 
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyFrameSet, pyCstringFrame, pyConfigContext, \
-        pyIntFrame, pyIpPortFrame, DEFAULT_FSP_QID
+from AssimCclasses import pyNetAddr, pyFrameSet, pyConfigContext, DEFAULT_FSP_QID
 from py2neo import neo4j, rest
 import hbring
 
@@ -307,6 +306,8 @@ class DroneInfo:
         # For TheOneRing, we want their primary IP address.
         return self.primary_ip()
     
+    #Current implementation does not use 'self'
+    #pylint: disable=R0201
     def send_hbmsg(self, dest, fstype, addrlist):
         '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
@@ -446,8 +447,8 @@ class DroneInfo:
         #self.io.sendreliablefs(ourip, (fs,))
         CMAdb.transaction.add_packet(ourip,  FrameSetTypes.DODISCOVER, frames)
         if CMAdb.debug:
-            CMAdb.log.debug('Sent Discovery request(%s, %s) to %s Framesets: %s'
-            %	(instance, str(interval), str(ourip), str(fs)))
+            CMAdb.log.debug('Sent Discovery request(%s, %s) to %s Frames: %s'
+            %	(instance, str(interval), str(ourip), str(frames)))
 
 
     def __str__(self):
