@@ -29,7 +29,7 @@ from cmadb import CMAdb
 
 
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyFrameSet, pyConfigContext, DEFAULT_FSP_QID
+from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 from py2neo import neo4j, rest
 import hbring
 
