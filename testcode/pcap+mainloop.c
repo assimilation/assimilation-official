@@ -294,7 +294,7 @@ main(int argc, char **argv)
 #	endif
 #endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
-#if 1
+#if 0
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
