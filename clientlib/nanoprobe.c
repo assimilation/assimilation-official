@@ -571,8 +571,10 @@ endloop:
 		}
 		UNREF(parent->baseclass.config);
 		parent->baseclass.config = newconfig;
-		newconfig->setaddr(newconfig, CONFIGNAME_CMAINIT, cmainit);
-		UNREF(cmainit);
+		if (NULL != cmainit) {
+			newconfig->setaddr(newconfig, CONFIGNAME_CMAINIT, cmainit);
+			UNREF(cmainit);
+		}
 	}
 
 	DUMP3("nanoobey_setconfig: cfg is", &newconfig->baseclass, NULL);
