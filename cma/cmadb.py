@@ -110,10 +110,7 @@ class CMAdb:
         self.indextbl['nodetype'] = self.db.get_or_create_index(neo4j.Node, 'nodetype')
         nodetypeindex = self.indextbl['nodetype']
         #pylint: disable=E1101
-        try:
-            nodezero = self.db.get_node(0)
-        except AttributeError:
-            nodezero = self.db.node(0)
+        nodezero = self.nodefromid(0)
             
         for index in nodetypes.keys():
             top =  nodetypeindex.get_or_create('nodetype', index
@@ -158,6 +155,12 @@ class CMAdb:
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
+
+    def nodefromid(self, nodeid):
+        try:
+            return self.db.node(nodeid)
+        except AttributeError:
+            return self.db.get_node(nodeid)
 
     def node_new(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
