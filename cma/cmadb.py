@@ -109,7 +109,6 @@ class CMAdb:
         #print >>sys.stderr, ('Ensuring index %s exists' % 'nodetype')
         self.indextbl['nodetype'] = self.db.get_or_create_index(neo4j.Node, 'nodetype')
         nodetypeindex = self.indextbl['nodetype']
-        #pylint: disable=E1101
         nodezero = self.nodefromid(0)
             
         for index in nodetypes.keys():
@@ -156,7 +155,9 @@ class CMAdb:
                 ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
 
+    #pylint: disable=E1101
     def nodefromid(self, nodeid):
+        'Convert a node ID into a Neo4j Node object'
         try:
             return self.db.node(nodeid)
         except AttributeError:
