@@ -119,7 +119,6 @@ class DroneInfo:
         In theory we could make a giant 'create' for everything and do all the db creation
         in one swell foop - or at most two...
         '''
-        # Ought to protect this code by try blocks...
         data = jsonobj['data'] # The data portion of the JSON message
         primaryip = None
         for ifname in data.keys(): # List of interfaces just below the data section

@@ -314,7 +314,7 @@ class CMAdb:
         return ipproc
 
 
-    def new_tcpipport(self,            ##< Self... The usual self object
+    def new_tcpipport(self,         ##< Self... The usual self object
                    name,            ##< What is our name? (not indexed - yet)
                    isserver,        ##< Either CMAdb.REL_
                    jsonobj,         ##< The JSON object for this listen object
@@ -342,5 +342,3 @@ class CMAdb:
                 (tcpipport, CMAdb.REL_baseip,           ipaddrnode, {'port':port}),
                 (ipproc,    CMAdb.REL_tcpclient,        tcpipport))
         CMAdb.cdb.db.get_or_create_relationships(*args)
-
-

@@ -25,29 +25,33 @@
 #
 '''
 This file implements the transaction class - a class which encapsulates a description of a database
-transaction and a corresponding set of network operations on nanoprobes.  It is these two things which
-constitute the transaction.  These transactions are idempotent - that is, they describe enough of the
-update that they can be executed multiple times in a row without any harm to the nanoprobe configuration or the
-data in the database.
+transaction and a corresponding set of network operations on nanoprobes.  It is these two things
+which constitute the transaction.  These transactions are idempotent - that is, they describe
+enough of the update that they can be executed multiple times in a row without any harm to the
+nanoprobe configuration or the data in the database.
 
-The be-all-and-end-all of these transactions is JSON - that is, the transactions are described in terms of JSON
-and they are ultimately expressed and persisted as JSON before being committed.
+The be-all-and-end-all of these transactions is JSON - that is, the transactions are described in
+terms of JSON and they are ultimately expressed and persisted as JSON before being committed.
 
-How they are persisted is something which has generated a little controversy in the project.  Purists say
-(quite rightly) that persisting transactions is what messaging systems are designed for.  More pragmatic
-people don't want to bring in a large and complex messaging system for what is a relatively simple job.
-Personally, I agree with both of them.
+How they are persisted is something which has generated a little controversy in the project. 
+Purists say (quite rightly) that persisting transactions is what messaging systems are designed
+for.  More pragmatic people don't want to bring in a large and complex messaging system for what
+    is a relatively simple job.  Personally, I agree with both of them.
 
-So, initially, we will persist the transactions just to flat files.  If we need messaging for (horizontal) scaling,
-or other features of the messaging system, then we will switch to a messaging system.
+So, initially, we will persist the transactions just to flat files.  If we need messaging for
+(horizontal) scaling, or other features of the messaging system, then we will switch to a messaging
+system.
 
-In either case, this class won't be directly affected - since it only stores and executes transactions - it does
-not worry about how they ought to be persisted.
+In either case, this class won't be directly affected - since it only stores and executes
+transactions - it does not worry about how they ought to be persisted.
 '''
 import re
 import sys
-from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, pyIpPortFrame
+from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, \
+        pyIpPortFrame
 from frameinfo import FrameSetTypes, FrameTypes
+from cmadb import CMAdb
+from py2neo import neo4j
 
 class Transaction:
     '''This class implements database/nanoprobe transactions.
@@ -79,13 +83,32 @@ class Transaction:
             the transaction - and no other nodes related to it by these relationship
             types should exist.  If they do, they need to be deleted.
 
-    Is this too complex?  Should the originator of the request be responsible for knowing what nodes he needs to delete?
-            If this is eventually going to be executed by a plugin into the database engine, then the more work
-            you leave to the executor of the transaction, the faster this code will run.
-            On the other hand, it delays the mess until transaction execution time and makes the code
-            for creating the transaction simpler...
-            I'm gonna opt for the complexity in execution of the transaction rather than complexity in all
-            the places where people might add things to the transaction.
+    Is this too complex?  Should the originator of the request be responsible for knowing what
+            nodes he needs to delete?
+            If this is eventually going to be executed by a plugin into the database engine, then
+            the more work you leave to the executor of the transaction, the faster this code will
+            run.  On the other hand, it delays the mess until transaction execution time and makes
+            the code for creating the transaction simpler...
+            I'm gonna opt for the complexity in execution of the transaction rather than complexity
+            in all the places where people might add things to the transaction.
+
+
+    There seem to be two kinds of hierarchical ownership relationships related to deletion:
+        Strong relationships 
+        Weak relationships
+
+    If one wishes to delete a node "n", then all things related to it by strong relationships
+    <i>must</i> also be deleted.
+
+    When deleting a node "n" which has things related to it by weak relationships, then its
+    weak children can be deleted if:
+        1) It has no weak relationships
+        2) All its weak relationships are to nodes of one of the two types:
+            a) nodes which are strongly related any of the parents of "n"
+            b) nodes whose only relationships are to the subgraph of things which are
+                a) strongly related to the parent of "n" (bidirectionally)
+                b) weakly related to "n" as parent
+
     '''
     REESC=re.compile('\\\\')
     REQUOTE=re.compile('"')
@@ -96,6 +119,7 @@ class Transaction:
             self.tree = {}
         else:
             self.tree = pyConfigContext(init=str(json))
+        self.namespace = {}
 
     def __str__(self):
         'Convert our internal tree to JSON.'
@@ -131,7 +155,8 @@ class Transaction:
         if isinstance(thing, pyNetAddr):
             return '"%s"' % (str(thing))
 
-        if isinstance(thing, int) or isinstance(thing, float) or isinstance(pyConfigContext):
+        if isinstance(thing, int) or isinstance(thing, float) \
+                or isinstance(thing, pyConfigContext):
             return str(thing)
 
         if isinstance(thing, bool):
@@ -165,12 +190,13 @@ class Transaction:
         '''
 
         # Note that we don't do this as a ConfigContext - it doesn't support modifying arrays.
-        # Our JSON converts nicely to a ConfigContext - because it converts arrays correctly from JSON
+        # On the other hand, our JSON converts nicely into a ConfigContext - because it converts
+        # arrays correctly from JSON
 
         # Allow 'frames' to be a single frame
         if not isinstance(frames, list) and not isinstance(frames, tuple):
             frames = (frames,)
-        # Allow 'frames' to be a list of frame <i>values</i> - presuming they're all the same frametype
+        # Allow 'frames' to be a list of frame <i>values</i> - if they're all the same frametype
         if frametype is not None:
             newframes = []
             for thing in frames:
@@ -181,11 +207,106 @@ class Transaction:
             self.tree['packets'] = []
         self.tree['packets'].append({'action': int(action), 'destaddr': destaddr, 'frames': frames})
 
+    def check_id(self, item):
+        if isinstance(item, dict) or isinstance(item, pyConfigContext):
+            if not 'defines' in item:
+                raise ValueError('No "defines" in to_id [%s]' % item)
+            defname = item['defines']
+            self.namespace[defname] = True
+            return defname
+        elif isinstance(item, str):
+            if not item in self.namespace:
+                raise ValueError('Unknown symbolic name in item [%s]' % item)
+            return self.namespace[item]
+        elif isinstance(item, neo4j.Node):
+            return item.id
+        elif isinstance(item, int):
+            return item
+        raise ValueError('invalid value type in to_id [%s] type(%s)' % (item, type(item)))
+
+    def add_rels(self, rels):
+        '''Add a relationship to our graph transaction.
+        @todo  Note that if the given relationship type exists between the two nodes, then 
+        this code will add it - hope that's what you wanted!
+        '''
+        if not isinstance(rels, list) and not isinstance(rels, tuple):
+            rels = (rels,)
+        if not 'db' in self.tree:
+            self.tree['db'] = []
+        db = self.tree['db']
+
+        item = {'AddRel': []}
+
+        for rel in rels:
+            fromid = rel['from']
+            toid = rel['to']
+            fromid = self.check_id(fromid)
+            toid = self.check_id(toid)
+            rtype = rel['type']
+            if 'attrs' in rel:
+                item['AddRel'].append({'from':fromid, 'to':toid, 'type':rtype
+                ,   'attrs':rel['attrs']})
+            else:
+                item['AddRel'].append({'from':fromid, 'to':toid, 'type':rtype})
+        db.append(item)
+
+    def del_rels(self, rels):
+        'Delete a relationship as part of our graph transaction'
+        if not isinstance(rels, list) and not isinstance(rels, tuple):
+            rels = (rels,)
+        if not 'db' in self.tree:
+            self.tree['db'] = []
+        db = self.tree['db']
+
+        item = {'DelRel': []}
+        for rel in rels:
+            item['DelRel'].append(rel)
+        db.append(item)
+
+
     def commit_trans(self, io):
         'Commit our transaction'
         if 'packets' in self.tree:
             self._commit_network_trans(io)
+        if 'db' in self.tree:
+            self._commit_db_trans(io)
         self.tree = {}
+
+    def _commit_db_trans(self, io):
+        '''
+        Commit the database portion of our transaction - that is, actually do the work.
+        We do all this as a batch job - which makes it a single transaction, and hopefully faster.
+        '''
+        batch = neo4j.WriteBatch(CMAdb.cdb.db)
+        for item in self.tree['db']:
+            print >> sys.stderr, "=============ITEM is >>%s<<" % item
+            for key in item.keys():
+                if key == 'DelRel':
+                    for drel in item['DelRel']:
+                        #drel is a relationship id
+                        batch.delete_relationship(CMAdb.cdb.get_relationship(drel))
+                if key == 'AddRel':
+                    print >> sys.stderr, "=============ITEM[add] is NOW >>%s<<" % item['AddRel']
+                    for addrel in item['AddRel']:
+                        fromid = addrel['from']
+                        toid = addrel['to']
+                        if isinstance(fromid, str):
+                            fromnode = self.namespace[fromid]
+                        else:
+                            fromnode = fromid
+                            #fromnode = CMAdb.cdb.db.get_node(fromid)
+                            fromnode = CMAdb.cdb.db.node(fromid)
+                        if isinstance(toid, str):
+                            tonode = self.namespace[toid]
+                        else:
+                            #tonode = CMAdb.cdb.db.get_node(toid)
+                            tonode = CMAdb.cdb.db.node(toid)
+                        attrs = None
+                        if 'attrs' in addrel:
+                            attrs = addrel['attrs']
+                        print "GOING FROM [%s] to [%s]" % (type(fromnode), type(tonode))
+                        batch.create(neo4j._rel(fromnode, addrel['type'], tonode, *attrs))
+        batch.submit()
 
     def _commit_network_trans(self, io):
         '''
@@ -194,9 +315,10 @@ class Transaction:
         completed until we decide each destination is dead, or until its packets are all ACKed.
 
         @TODO: We don't yet cover with CMA crashing before all packets are received versus sent --
+        That is, if they get lost between sending by the CMA and receiving by the nanoprobes.
         This argues for doing the network portion of the transaction first - presuming we do the
-        db and network portions sequentially --  Of course, no transaction can start until the previous
-        one is finished.
+        db and network portions sequentially --  Of course, no transaction can start until
+        the previous one is finished.
         '''
         for packet in self.tree['packets']:
             fs = pyFrameSet(packet['action'])
@@ -229,15 +351,24 @@ class Transaction:
 if __name__ == '__main__':
 
     import sys
+    from AssimCtypes import CONFIGNAME_OUTSIG
+    from AssimCclasses import pyReliableUDP, pyPacketDecoder, pySignFrame
 
+    config = pyConfigContext(init={CONFIGNAME_OUTSIG: pySignFrame(1)})
+    io = pyReliableUDP(config, pyPacketDecoder())
+    CMAdb.initglobal(io, debug=True)
     trans = Transaction()
+    node0 = CMAdb.cdb.db.node(0)
     destaddr = pyNetAddr('10.10.10.1:1984')
     addresses = (pyNetAddr('10.10.10.5:1984'),pyNetAddr('10.10.10.6:1984'))
     trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB, addresses, frametype=FrameTypes.IPPORT)
     trans.add_packet(pyNetAddr('10.10.10.1:1984')
     ,   FrameSetTypes.SENDEXPECTHB, (pyNetAddr('10.10.10.5:1984'),pyNetAddr('10.10.10.6:1984'))
     ,   frametype=FrameTypes.IPPORT)
+
+    trans.add_rels({'from': node0, 'to': 0, 'type': 'Frobisher', 'attrs': {'color': 'Red'}})
+    trans.add_rels({'from': 0, 'to': node0, 'type': 'Framistat', 'attrs': {'color': 'Black'}})
     print >> sys.stderr, 'JSON: %s\n' % str(trans)
     print >> sys.stderr, 'JSON: %s\n' % str(pyConfigContext(str(trans)))
     # Of course, this next statement won't work - but it does exercise a lot of code...
-    trans.commit_trans(None)
+    trans.commit_trans(io)
