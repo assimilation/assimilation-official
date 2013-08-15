@@ -278,33 +278,28 @@ class Transaction:
         We do all this as a batch job - which makes it a single transaction, and hopefully faster.
         '''
         batch = neo4j.WriteBatch(CMAdb.cdb.db)
+        #print >> sys.stderr, "BATCH UPDATE: >>%s<<" % self.tree['db']
         for item in self.tree['db']:
-            print >> sys.stderr, "=============ITEM is >>%s<<" % item
             for key in item.keys():
                 if key == 'DelRel':
                     for drel in item['DelRel']:
                         #drel is a relationship id
                         batch.delete_relationship(CMAdb.cdb.get_relationship(drel))
                 if key == 'AddRel':
-                    print >> sys.stderr, "=============ITEM[add] is NOW >>%s<<" % item['AddRel']
                     for addrel in item['AddRel']:
                         fromid = addrel['from']
                         toid = addrel['to']
                         if isinstance(fromid, str):
                             fromnode = self.namespace[fromid]
                         else:
-                            fromnode = fromid
-                            #fromnode = CMAdb.cdb.db.get_node(fromid)
-                            fromnode = CMAdb.cdb.db.node(fromid)
+                            fromnode = CMAdb.cdb.nodefromid(fromid)
                         if isinstance(toid, str):
                             tonode = self.namespace[toid]
                         else:
-                            #tonode = CMAdb.cdb.db.get_node(toid)
-                            tonode = CMAdb.cdb.db.node(toid)
+                            tonode = CMAdb.cdb.nodefromid(toid)
                         attrs = None
                         if 'attrs' in addrel:
                             attrs = addrel['attrs']
-                        print "GOING FROM [%s] to [%s]" % (type(fromnode), type(tonode))
                         batch.create(neo4j._rel(fromnode, addrel['type'], tonode, *attrs))
         batch.submit()
 
@@ -320,6 +315,7 @@ class Transaction:
         db and network portions sequentially --  Of course, no transaction can start until
         the previous one is finished.
         '''
+        #print >> sys.stderr, "PACKET JSON IS >>>%s<<<" % self.tree['packets']
         for packet in self.tree['packets']:
             fs = pyFrameSet(packet['action'])
             for frame in packet['frames']:
@@ -334,7 +330,8 @@ class Transaction:
                     aframe = pyIpPortFrame(ftype, fvalue)
                     fs.append(aframe)
 
-                elif ftype == FrameTypes.DISCNAME or ftype == FrameTypes.DISCJSON:
+                elif ftype == FrameTypes.DISCNAME or ftype == FrameTypes.DISCJSON \
+                        or ftype == FrameTypes.CONFIGJSON:
                     sframe = pyCstringFrame(ftype)
                     sframe.setvalue(str(fvalue))
                     fs.append(sframe)
@@ -358,7 +355,7 @@ if __name__ == '__main__':
     io = pyReliableUDP(config, pyPacketDecoder())
     CMAdb.initglobal(io, debug=True)
     trans = Transaction()
-    node0 = CMAdb.cdb.db.node(0)
+    node0 = CMAdb.cdb.nodefromid(0)
     destaddr = pyNetAddr('10.10.10.1:1984')
     addresses = (pyNetAddr('10.10.10.5:1984'),pyNetAddr('10.10.10.6:1984'))
     trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB, addresses, frametype=FrameTypes.IPPORT)
@@ -366,8 +363,8 @@ if __name__ == '__main__':
     ,   FrameSetTypes.SENDEXPECTHB, (pyNetAddr('10.10.10.5:1984'),pyNetAddr('10.10.10.6:1984'))
     ,   frametype=FrameTypes.IPPORT)
 
-    trans.add_rels({'from': node0, 'to': 0, 'type': 'Frobisher', 'attrs': {'color': 'Red'}})
-    trans.add_rels({'from': 0, 'to': node0, 'type': 'Framistat', 'attrs': {'color': 'Black'}})
+    trans.add_rels([{'from': node0, 'to': 0, 'type': 'Frobisher', 'attrs': {'color': 'Red'}}
+    ,   {'from': 0, 'to': node0, 'type': 'Framistat', 'attrs': {'color': 'Black'}}])
     print >> sys.stderr, 'JSON: %s\n' % str(trans)
     print >> sys.stderr, 'JSON: %s\n' % str(pyConfigContext(str(trans)))
     # Of course, this next statement won't work - but it does exercise a lot of code...

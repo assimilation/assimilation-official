@@ -124,12 +124,9 @@ class DispatchSTARTUP(DispatchTarget):
                             CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
-        fs = CMAlib.create_setconfig(self.config)
-        #print 'Telling them to heartbeat themselves.'
-        #fs2 = CMAlib.create_sendexpecthb(self.config, FrameSetTypes.SENDEXPECTHB
-        #,      origaddr)
-        #self.io.sendreliablefs(origaddr, (fs,fs2))
-        self.io.sendreliablefs(origaddr, fs)
+        #fs = CMAlib.create_setconfig(self.config)
+        #self.io.sendreliablefs(origaddr, fs)
+        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config),),FrameTypes.CONFIGJSON)
         CMAdb.log.info('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
         self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port())
         drone = self.droneinfo.find(sysname, port=origaddr.port())
