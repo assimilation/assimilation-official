@@ -27,7 +27,7 @@ import sys
 sys.path.append("cma")
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, CMAlib, pySwitchDiscovery
+from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pySwitchDiscovery
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
@@ -126,7 +126,8 @@ class DispatchSTARTUP(DispatchTarget):
                 json = frame.getstr()
         #fs = CMAlib.create_setconfig(self.config)
         #self.io.sendreliablefs(origaddr, fs)
-        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config),),FrameTypes.CONFIGJSON)
+        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
+        ,   FrameTypes.CONFIGJSON)
         CMAdb.log.info('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
         self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port())
         drone = self.droneinfo.find(sysname, port=origaddr.port())
