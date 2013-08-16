@@ -99,7 +99,8 @@ class HbRing:
             self.leave(drone)
         
         # Create a 'ringmember' relationship to this drone
-        drone.node.create_relationship_to(self.node, self.ourreltype)
+        ###drone.node.create_relationship_to(self.node, self.ourreltype)
+        CMAdb.transaction.add_rels({'from': drone, 'to': self, 'type': self.ourreltype})
         #print 'New ring membership: %s' % (str(self))
         # Should we keep a 'ringip' relationship for this drone?
         # Probably eventually...
@@ -119,9 +120,12 @@ class HbRing:
         # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
             # (see comments below)
-            CMAdb.cdb.db.get_or_create_relationships(
-                (drone.node, self.ournexttype, self.insertpoint1.node)
-                , (self.insertpoint1.node, self.ournexttype, drone.node))
+           ### CMAdb.cdb.db.get_or_create_relationships(
+             #   (drone.node, self.ournexttype, self.insertpoint1.node)
+             #   , (self.insertpoint1.node, self.ournexttype, drone.node))
+            CMAdb.transaction.add_rels([
+                {'from': drone, 'to': self.insertpoint1, 'type': self.ournexttype},
+                {'from': self.insertpoint1, 'to': drone, 'type': self.ournexttype}])
             if CMAdb.debug:
                 CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s' 
                 %       (str(drone), str(self), drone.getport()))
@@ -157,15 +161,19 @@ class HbRing:
         point1rel = self.insertpoint1.node.get_single_relationship(neo4j.Direction.OUTGOING
         ,   self.ournexttype)
         # Somehow we sometimes get here with "point1rel is None"... Bug??
-        point1rel.delete()
+        CMAdb.transaction.del_rels(point1rel)
+        ###point1rel.delete()
         point1rel = None
         # In the future we might want to mark these relationships with the IP addresses involved
         # so that even if the systems change network configurations we can still know what IP to
         # remove.  Right now we rely on the configuration not changing "too much".
         ## FIXME: Ought to label relationships with IP addresses involved.
-        CMAdb.cdb.db.get_or_create_relationships(
-            (   self.insertpoint1.node, self.ournexttype, drone.node)
-            ,   (drone.node, self.ournexttype, self.insertpoint2.node))
+        ###CMAdb.cdb.db.get_or_create_relationships(
+            ###(   self.insertpoint1.node, self.ournexttype, drone.node)
+            ###,   (drone.node, self.ournexttype, self.insertpoint2.node))
+        CMAdb.transaction.add_rels([
+            {'from': self.insertpoint1, 'to': drone, 'type': self.ournexttype},
+            {'from': drone, 'to': self.insertpoint2, 'type': self.ournexttype}])
         # This should ensure that we don't keep beating the same nodes over and over
         # again as new nodes join the system.  Instead the latest newbie becomes the next
         # insert point in the ring - spreading the work to the new guys as they arrive.
@@ -188,7 +196,8 @@ class HbRing:
 
         # Clean out the next link relationships to our dearly departed drone
         ringrel = drone.node.get_single_relationship(neo4j.Direction.OUTGOING, self.ourreltype)
-        ringrel.delete()
+        ###ringrel.delete()
+        CMAdb.transaction.del_rels(ringrel)
         ringrel = None
         if nextnode is None and prevnode is None:   # Previous length:  1
             self.insertpoint1 = None        # result length:    0
@@ -201,9 +210,10 @@ class HbRing:
         # Should have exactly two link relationships (one incoming and one outgoing)
         # BUT SOMETIMES WE DON'T -- then this crashes
         assert len(relationships) == 2
-        for rel in relationships:
-            rel.delete()
-            rel = None
+        CMAdb.transaction.del_rels(relationships)
+###        for rel in relationships:
+###           rel.delete()
+###           rel = None
         relationships = None
         rel = None
 
@@ -233,7 +243,8 @@ class HbRing:
         drone.stop_heartbeat(self, prevdrone, nextdrone)
         self.insertpoint1 = prevdrone   # non-minimal, but correct and cheap change
         self.insertpoint2 = nextdrone
-        prevnode.create_relationship_to(nextnode, self.ournexttype)
+        ###prevnode.create_relationship_to(nextnode, self.ournexttype)
+        CMAdb.transaction.add_rels({'from': prevnode, 'to': nextnode, 'type': self.ournexttype})
 
     def members(self):
         'Return all the Drones that are members of this ring - in some random order'
