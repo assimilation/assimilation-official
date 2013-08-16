@@ -214,8 +214,8 @@ class HbRing:
 ###        for rel in relationships:
 ###           rel.delete()
 ###           rel = None
+###     rel = None
         relationships = None
-        rel = None
 
         if prevnode.id == nextnode.id:          # Previous length:  2
             node = prevnode             # Result length:    1

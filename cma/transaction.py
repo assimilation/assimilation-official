@@ -127,8 +127,8 @@ class Transaction:
 
     def _jsonesc(self, stringthing):
         'Escape this string according to JSON string escaping rules'
-        Transaction.REESC.sub('\\\\\\\\', stringthing)
-        Transaction.REQUOTE.sub('\\\\"', stringthing)
+        stringthing = Transaction.REESC.sub('\\\\\\\\', stringthing)
+        stringthing = Transaction.REQUOTE.sub('\\\\"', stringthing)
         return stringthing
         
     def _jsonstr(self, thing):
@@ -147,7 +147,8 @@ class Transaction:
             ret=''
             comma='{'
             for key in thing.keys():
-                ret+= '%s"%s":%s' % (comma, self._jsonesc(key), self._jsonstr(thing[key]))
+                value = thing[key]
+                ret+= '%s"%s":%s' % (comma, self._jsonesc(key), self._jsonstr(value))
                 comma=','
             ret += '}'
             return ret
@@ -283,6 +284,10 @@ class Transaction:
 
     def commit_trans(self, io):
         'Commit our transaction'
+        # This is just to test that our tree serializes successfully - before we
+        # persist it on disk later.  Once we're doing that, this will be
+        # unnecessary...
+        self.tree = pyConfigContext(str(self))
         if 'packets' in self.tree:
             self._commit_network_trans(io)
         if 'db' in self.tree:

@@ -42,6 +42,7 @@ class DroneInfo:
         self.status = '(unknown)'
         self.reason = '(initialization)'
         self.startaddr = None
+        self.primary_ip_addr = None
         if isinstance(designation, neo4j.Node):
             self.node = designation
         else:
@@ -161,8 +162,10 @@ class DroneInfo:
                         ###rel.delete()
                         rel = None
                     if rel is None:
-                        ###CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip', ipnode),)
-                        CMAdb.transaction.add_rels({'from': self, 'to': ipnode, 'type': 'primaryip'})
+                        ###CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip'
+                        ###, ipnode),)
+                        CMAdb.transaction.add_rels({'from': self, 'to': ipnode
+                        ,       'type': 'primaryip'})
                         self.primary_ip_addr = iponly
 
     def add_tcplisteners(self, jsonobj, **keywords):
@@ -282,7 +285,8 @@ class DroneInfo:
                 for dronenic in niclist:
                     if dronenic['nicname'] == matchnic:
                         ###nicnode.create_relationship_from(dronenic, CMAdb.REL_wiredto)
-                        CMAdb.transaction.add_rels({'from': nicnode, 'to': dronenic, 'type': CMAdb.REL_wiredto})
+                        CMAdb.transaction.add_rels({'from': nicnode, 'to': dronenic
+                        ,       'type': CMAdb.REL_wiredto})
                         break
             except KeyError:
                 CMAdb.log.error('OOPS! got an exception...')
@@ -296,11 +300,10 @@ class DroneInfo:
 #               NOTE THAT WE MAY NOT HAVE WRITTEN THE PRIMARY IP OUT TO DISK YET...
 #               This occurs because we delay writes until the transaction...
 #######################################################################################
-        if not hasattr(self, 'primary_ip_addr'):
+        if self.primary_ip_addr is None:
             primaryip = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
-            return str(primaryip['name'])
-        else:
-            return self.primary_ip_addr
+            self.primary_ip_addr = str (primaryip['name'])
+        return self.primary_ip_addr
 
     def select_ip(self, ring=None):
         '''Select an appropriate IP address for talking to a partner on this ring
