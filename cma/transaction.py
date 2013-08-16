@@ -116,9 +116,11 @@ class Transaction:
     def __init__(self, json=None):
         'Constructor for a combined database/network transaction.'
         if json is None:
-            self.tree = {}
+            self.tree = {'db': [], 'packets': []}
         else:
             self.tree = pyConfigContext(init=str(json))
+            if not 'db' in self.tree or not 'packets' in self.tree:
+                raise ValueError('Incoming JSON is malformed: >>%s<<' % json)
         self.namespace = {}
 
     def __str__(self):
@@ -204,8 +206,6 @@ class Transaction:
                 if thing is not None:
                     newframes.append({'frametype': frametype, 'framevalue': thing})
             frames = newframes
-        if not 'packets' in self.tree:
-            self.tree['packets'] = []
         self.tree['packets'].append({'action': int(action), 'destaddr': destaddr, 'frames': frames})
 
     def check_id(self, item):
@@ -243,8 +243,6 @@ class Transaction:
         '''
         if not isinstance(rels, list) and not isinstance(rels, tuple):
             rels = (rels,)
-        if not 'db' in self.tree:
-            self.tree['db'] = []
         db = self.tree['db']
 
         item = {'AddRel': []}
@@ -266,8 +264,6 @@ class Transaction:
         'Delete a relationship as part of our graph transaction'
         if not isinstance(rels, list) and not isinstance(rels, tuple):
             rels = (rels,)
-        if not 'db' in self.tree:
-            self.tree['db'] = []
         db = self.tree['db']
 
         item = {'DelRel': []}
@@ -279,8 +275,10 @@ class Transaction:
         db.append(item)
 
     def add_nodes(self, nodes):
-        pass
-
+        db = self.tree['db']
+        if not isinstance(nodes, list) and not isinstance(nodes, tuple):
+            nodes = (nodes,)
+        db.append({'AddNode': nodes})
 
     def commit_trans(self, io):
         'Commit our transaction'
@@ -288,18 +286,21 @@ class Transaction:
         # persist it on disk later.  Once we're doing that, this will be
         # unnecessary...
         self.tree = pyConfigContext(str(self))
-        if 'packets' in self.tree:
+        if len(self.tree['packets']) > 0:
             self._commit_network_trans(io)
-        if 'db' in self.tree:
+        if len(self.tree['db']) > 0:
             self._commit_db_trans(io)
         self.tree = {}
 
-    def _commit_node_add(self, io):
-        '''We commit a node addition to the database - this may be recursive'''
+    def _commit_node_add(self, batch, nodes):
+        '''We commit a node addition to the database - this eventually may be recursive'''
+        for node in nodes:
+            nodetype = node['type']
+            batch.create(neo4j._rel(fromnode, addrel['type'], tonode))
 
-        pass
 
-    def _commit_node_del(self, io):
+
+    def _commit_node_del(self, batch, nodes):
         '''We commit a node deletion to the database - this may be recursive'''
         pass
 
@@ -334,6 +335,8 @@ class Transaction:
                             batch.create(neo4j._rel(fromnode, addrel['type'], tonode, *attrs))
                         else:
                             batch.create(neo4j._rel(fromnode, addrel['type'], tonode))
+                if key == 'AddNode':
+                    _commit_node_add(batch, item['AddNode'])
         batch.submit()
 
     def _commit_network_trans(self, io):
