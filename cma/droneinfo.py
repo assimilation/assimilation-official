@@ -113,11 +113,9 @@ class DroneInfo:
 
     #pylint: disable=R0914
     def add_netconfig_addresses(self, jsonobj, **kw):
-        '''Save away the network configuration data we got from JSON discovery.
+        '''Save away the network configuration data we got from netconfig JSON discovery.
         This includes all our NICs, their MAC addresses, all our IP addresses and so on
         for any non-loopback interface.  Whee!
-        In theory we could make a giant 'create' for everything and do all the db creation
-        in one swell foop - or at most two...
         '''
         data = jsonobj['data'] # The data portion of the JSON message
         primaryip = None
@@ -159,10 +157,13 @@ class DroneInfo:
                     rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING
                     ,   'primaryip')
                     if rel is not None and rel.end_node.id != ipnode.id:
-                        rel.delete()
+                        CMAdb.transaction.del_rels(rel)
+                        ###rel.delete()
                         rel = None
                     if rel is None:
-                        CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip', ipnode),)
+                        ###CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip', ipnode),)
+                        CMAdb.transaction.add_rels({'from': self, 'to': ipnode, 'type': 'primaryip'})
+                        self.primary_ip_addr = iponly
 
     def add_tcplisteners(self, jsonobj, **keywords):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
@@ -280,7 +281,8 @@ class DroneInfo:
                 niclist = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_nicowner)
                 for dronenic in niclist:
                     if dronenic['nicname'] == matchnic:
-                        nicnode.create_relationship_from(dronenic, CMAdb.REL_wiredto)
+                        ###nicnode.create_relationship_from(dronenic, CMAdb.REL_wiredto)
+                        CMAdb.transaction.add_rels({'from': nicnode, 'to': dronenic, 'type': CMAdb.REL_wiredto})
                         break
             except KeyError:
                 CMAdb.log.error('OOPS! got an exception...')
@@ -290,8 +292,15 @@ class DroneInfo:
         '''Return the "primary" IP for this host'''
         ring = ring # should eventually use the ring if it's supplied
         # Should this come from our initial contact with the node?
-        primaryip = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
-        return str(primaryip['name'])
+#######################################################################################
+#               NOTE THAT WE MAY NOT HAVE WRITTEN THE PRIMARY IP OUT TO DISK YET...
+#               This occurs because we delay writes until the transaction...
+#######################################################################################
+        if not hasattr(self, 'primary_ip_addr'):
+            primaryip = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
+            return str(primaryip['name'])
+        else:
+            return self.primary_ip_addr
 
     def select_ip(self, ring=None):
         '''Select an appropriate IP address for talking to a partner on this ring

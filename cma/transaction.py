@@ -208,6 +208,15 @@ class Transaction:
         self.tree['packets'].append({'action': int(action), 'destaddr': destaddr, 'frames': frames})
 
     def check_id(self, item):
+        '''Return the Node ID associated with the given item.
+        The items must be one of the following types:
+            - An integer (meaning a node id) - just return it
+            - A string - meaning a symbolic node id - we return it from our 'symbol table'
+            - A neo4j.node - meaning a database node object - we return the 'id' of the node
+            - One of our Node-derived classes (Drone, etc) - we return the node id of its node
+        If it's not one of these types, then we raise a ValueError.
+        If it has a 'node' field, but not a 'node.id' field, then we raise an AttributeError.
+        '''
         if isinstance(item, dict) or isinstance(item, pyConfigContext):
             if not 'defines' in item:
                 raise ValueError('No "defines" in to_id [%s]' % item)
@@ -222,12 +231,14 @@ class Transaction:
             return item.id
         elif isinstance(item, int):
             return item
+        elif hasattr(item, 'node'):
+            return item.node.id
         raise ValueError('invalid value type in to_id [%s] type(%s)' % (item, type(item)))
 
     def add_rels(self, rels):
         '''Add a relationship to our graph transaction.
-        @todo  Note that if the given relationship type exists between the two nodes, then 
-        this code will add it - hope that's what you wanted!
+        @todo  Note that if the given relationship type already exists between the two nodes,
+        then this code will add it <i>again</i> - hope that's what you wanted!
         '''
         if not isinstance(rels, list) and not isinstance(rels, tuple):
             rels = (rels,)
@@ -260,8 +271,14 @@ class Transaction:
 
         item = {'DelRel': []}
         for rel in rels:
-            item['DelRel'].append(rel)
+            if isinstance(rel, neo4j.Relationship):
+                item['DelRel'].append(rel.id)
+            else:
+                item['DelRel'].append(int(drel))
         db.append(item)
+
+    def add_nodes(self, nodes):
+        pass
 
 
     def commit_trans(self, io):
@@ -271,6 +288,15 @@ class Transaction:
         if 'db' in self.tree:
             self._commit_db_trans(io)
         self.tree = {}
+
+    def _commit_node_add(self, io):
+        '''We commit a node addition to the database - this may be recursive'''
+
+        pass
+
+    def _commit_node_del(self, io):
+        '''We commit a node deletion to the database - this may be recursive'''
+        pass
 
     def _commit_db_trans(self, io):
         '''
@@ -283,8 +309,8 @@ class Transaction:
             for key in item.keys():
                 if key == 'DelRel':
                     for drel in item['DelRel']:
-                        #drel is a relationship id
-                        batch.delete_relationship(CMAdb.cdb.get_relationship(drel))
+                        #drel is a relationship id (i.e, an 'int')
+                        batch.delete_relationship(CMAdb.cdb.db.relationship(drel))
                 if key == 'AddRel':
                     for addrel in item['AddRel']:
                         fromid = addrel['from']
@@ -300,7 +326,9 @@ class Transaction:
                         attrs = None
                         if 'attrs' in addrel:
                             attrs = addrel['attrs']
-                        batch.create(neo4j._rel(fromnode, addrel['type'], tonode, *attrs))
+                            batch.create(neo4j._rel(fromnode, addrel['type'], tonode, *attrs))
+                        else:
+                            batch.create(neo4j._rel(fromnode, addrel['type'], tonode))
         batch.submit()
 
     def _commit_network_trans(self, io):
