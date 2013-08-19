@@ -24,6 +24,7 @@ This module defines our CMAdb class and so on...
 '''
 
 import os
+import sys
 import logging, logging.handlers
 from py2neo import neo4j, cypher
 #from AssimCtypes import *
@@ -70,17 +71,41 @@ class CMAdb:
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
+    is_indexed = {
+        NODE_ring:    True
+    ,   NODE_drone:   True
+    ,   NODE_switch:  True
+    ,   NODE_NIC:     True    # NICs are indexed by MAC address
+                                    # MAC addresses are not always unique...
+    ,   NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
+    ,   NODE_tcpipport:True   # We index IP and port - handy to have...
+    ,   NODE_ipproc:  False
+    }
+
+    uniqueindexes = {
+        NODE_ring:    True
+    ,   NODE_drone:   True
+    ,   NODE_switch:  True
+    ,   NODE_NIC:     True    # NICs are indexed by MAC address
+                                    # MAC addresses are not always unique...
+    ,   NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
+    ,   NODE_tcpipport:True
+    ,   NODE_ipproc:  False
+    }
 
     nodename = os.uname()[1]
-    debug = False
+    debug = True
     transaction = None
 
 
 
     def __init__(self, host='localhost', port=7474):
         url = ('http://%s:%d/db/data/' % (host, port))
+        print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
         self.db = neo4j.GraphDatabaseService(url)
+        print >> sys.stderr, 'CREATED %s' % url
         self.dbversion = self.db.neo4j_version
+        self.nextlabelid = 0
         if CMAdb.debug:
             CMAdb.log.debug('Neo4j version: %s' % str(self.dbversion))
     #
@@ -89,18 +114,8 @@ class CMAdb:
     #   IS_A relationships to.  Not sure if the IS_A relationships
     #   are really needed, but they're kinda cool...
     #
-        nodetypes = {
-            CMAdb.NODE_ring:    True
-        ,   CMAdb.NODE_drone:   True
-        ,   CMAdb.NODE_switch:  True
-        ,   CMAdb.NODE_NIC:     True    # NICs are indexed by MAC address
-                                        # MAC addresses are not always unique...
-        ,   CMAdb.NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
-        ,   CMAdb.NODE_tcpipport:True   # We index IP and port - handy to have...
-        ,   CMAdb.NODE_ipproc:  False
-        }
         
-        indices = [key for key in nodetypes.keys() if nodetypes[key]]
+        indices = [key for key in CMAdb.is_indexed.keys() if CMAdb.is_indexed[key]]
         self.indextbl = {}
         self.nodetypetbl = {}
         for index in indices:
@@ -111,7 +126,7 @@ class CMAdb:
         nodetypeindex = self.indextbl['nodetype']
         nodezero = self.nodefromid(0)
             
-        for index in nodetypes.keys():
+        for index in CMAdb.is_indexed.keys():
             top =  nodetypeindex.get_or_create('nodetype', index
         ,                      {'name':index, 'nodetype':'nodetype'})
             self.nodetypetbl[index] = top
@@ -128,10 +143,10 @@ class CMAdb:
     @staticmethod
     def initglobal(io, cleanoutdb=False, debug=False):
         'Initialize and construct a global database instance'
+        print >> sys.stderr, 'CALLING initglobal'
         CMAdb.log = logging.getLogger('cma')
         CMAdb.debug = debug
         CMAdb.io = io
-        CMAdb.transaction = None
         from hbring import HbRing
         syslog = logging.handlers.SysLogHandler(address='/dev/log'
         ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
@@ -140,10 +155,20 @@ class CMAdb:
         CMAdb.log.setLevel(logging.DEBUG)
         CMAdb.cdb = CMAdb()
         if cleanoutdb:
+            print >> sys.stderr, 'CLEANINGOUT DB'
             CMAdb.log.info('Re-initializing the NEO4j database')
             CMAdb.cdb.delete_all()
             CMAdb.cdb = CMAdb()
+            print >> sys.stderr, 'DB CLEANED'
+        from transaction import Transaction
+        CMAdb.transaction = Transaction()
         CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
+        CMAdb.transaction.commit_trans(io)
+        CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
+
+    def next_label(self):
+        self.nextlabelid += 1
+        return 'NODE_%d' % self.nextlabelid
 
     def delete_all(self):
         'Empty everything out of our database - start over!'
@@ -205,6 +230,48 @@ class CMAdb:
         #print 'CREATED/reused %s object with id %d' % (nodetype, obj.id)
         return obj
 
+    def node_new(self, nodetype, nodename, unique=True, **properties):
+        '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
+        relationship with the nodetype object corresponding its nodetype.
+        It is created and added to indexes if it doesn't already exist in its corresponding index
+        - if there is one.
+        If it already exists, the pre-existing node is returned.
+        If this object type doesn't have an index, it will always be created.
+        Note that the nodetype has to be in the nodetypetable - even if it's NULL
+            (for error detection).
+        The IS_A relationship may be useful -- or not.  Hard to say at this point...
+        '''
+        assert nodetype is not None and nodename is not None
+        unique = False
+        if nodetype in CMAdb.uniqueindexes and CMAdb.uniqueindexes[nodetype]:
+            unique = True
+        tbl = {}
+        obj = None
+        for key in properties.keys():
+            tbl[key] = str(properties[key])
+        tbl['name'] = nodename
+        tbl['type'] = nodetype
+        print >> sys.stderr, 'CREATING %s object with name %s' % (nodetype, nodename)
+        if unique:
+            idx = self.indextbl[nodetype]
+            obj = idx.get(nodetype, nodename)
+            if len(obj) > 0:
+                obj = obj[0]
+                for key in tbl.keys():
+                    obj[key] = tbl[key]
+            else:
+                obj = None
+        if obj is None:
+            obj = neo4j.Node.abstract(**tbl)
+            trans  = CMAdb.transaction
+            obj.LABELID = self.next_label()
+            trans.namespace[obj.LABELID] = True
+            trans.add_nodes({'type':nodetype, 'name': nodename, 'attributes': tbl
+            ,       'defines': obj.LABELID})
+        for key in tbl.keys():
+            obj[key] = tbl[key]
+        print >> sys.stderr, 'CREATED %s object with id %s' % (nodetype, obj.id)
+        return obj
 
     def new_ring(self, name, parentring=None, **kw):
         'Create a new ring (or return a pre-existing one), and put it in the ring index'
@@ -256,7 +323,8 @@ class CMAdb:
                 return mac
         mac = self.node_new(CMAdb.NODE_NIC, macaddr, address=macaddr
         ,       unique=False, nicname=nicname, **kw)
-        mac.create_relationship_to(owningnode, CMAdb.REL_nicowner)
+        ###mac.create_relationship_to(owningnode, CMAdb.REL_nicowner)
+        CMAdb.transaction.add_rels({'from': mac, 'to': owningnode, 'type': CMAdb.REL_nicowner})
         return mac
 
     def new_ipaddr(self, nic, ipaddr, **kw):
@@ -276,9 +344,11 @@ class CMAdb:
         else:
             ip = ipaddrs[0] # May have been created by a client - pick the first one...
         if nic is not None:
-            ip.create_relationship_to(nic, CMAdb.REL_ipowner)
-            drone = nic.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_nicowner)
-            ip.create_relationship_to(drone, CMAdb.REL_iphost)
+            CMAdb.transaction.add_rels({'from': ip, 'to': nic, 'type': CMAdb.REL_nicowner})
+            ###ip.create_relationship_to(nic, CMAdb.REL_ipowner)
+            ###>drone = nic.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_nicowner)
+            ###ip.create_relationship_to(drone, CMAdb.REL_iphost)
+            ###>CMAdb.transaction.add_rels({'from': ip, 'to': drone, 'type': CMAdb.REL_iphost})
         return ip
 
     #NODE_ipproc     = 'ipproc'     # A client and/or server process

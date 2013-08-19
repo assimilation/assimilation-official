@@ -24,6 +24,7 @@ We implement the DroneInfo class - which implements all the properties of
 drones as a Python class.
 '''
 import weakref, time
+import sys
 #import os, traceback
 from cmadb import CMAdb
 
@@ -49,11 +50,14 @@ class DroneInfo:
             #print >>sys.stderr, 'New DroneInfo(designation = %s", kw=%s)' \
             #%   (designation, str(**kw))
             self.node = CMAdb.cdb.new_drone(designation, **kw)
+        print >> sys.stderr, ('ADDING DRONE [%s] to _droneweakrefs.' % designation)
         DroneInfo._droneweakrefs[designation] = weakref.ref(self)
+        print >> sys.stderr, ('WEAKREFS: %s' % DroneInfo._droneweakrefs)
         if port is not None:
             self.setport(port)
         elif 'port' in self.node:
             self.port = self.node['port']
+        CMAdb.transaction.created.append(self)
 
     def __getitem__(self, key):
         return self.node[key]
@@ -122,7 +126,10 @@ class DroneInfo:
         primaryip = None
         for ifname in data.keys(): # List of interfaces just below the data section
             ifinfo = data[ifname]
-            isprimaryif = ifinfo.has_key('default_gw')
+            if 'default_gw' in ifinfo:
+                isprimaryif = True
+            else:
+                isprimaryif = False
             #print 'IFINFO: [%s]' % str(ifinfo)
             if not ifinfo.has_key('address'):
                 continue
@@ -155,8 +162,10 @@ class DroneInfo:
                 ,       hostname = self.node['name'])
                 # Save away whichever IP address is our primary IP address...
                 if isprimaryip:
-                    rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING
-                    ,   'primaryip')
+                    rel = None
+                    if self.node.id is not None:
+                        rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING
+                        ,   'primaryip')
                     if rel is not None and rel.end_node.id != ipnode.id:
                         CMAdb.transaction.del_rels(rel)
                         ###rel.delete()
@@ -302,7 +311,10 @@ class DroneInfo:
 #######################################################################################
         if self.primary_ip_addr is None:
             primaryip = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
-            self.primary_ip_addr = str (primaryip['name'])
+            if primaryip is not None:
+                self.primary_ip_addr = str (primaryip['name'])
+            else:
+                primaryip = None
         return self.primary_ip_addr
 
     def select_ip(self, ring=None):
@@ -467,16 +479,28 @@ class DroneInfo:
         return 'Drone(%s)' % self.node['name']
 
     @staticmethod
+    def cleanrefs():
+        for designation in DroneInfo._droneweakrefs.keys():
+            drone = DroneInfo._droneweakrefs[designation]()
+            if drone is None or drone.node.id is None:
+                print >> sys.stderr, ('DELETING DRONE %s' % designation)
+                del(DroneInfo._droneweakrefs[designation])
+
+    @staticmethod
     def find(designation, port=None):
         'Find a drone with the given designation or IP address, or Neo4J node.'
         ret = None
         desigstr = str(designation)
         if isinstance(designation, str):
             drone = None
+            print >> sys.stderr, ('CHECKING WEAKREFS: %s' % DroneInfo._droneweakrefs)
             if designation in DroneInfo._droneweakrefs:
                 drone = DroneInfo._droneweakrefs[designation]()
             if drone is None:
                 drone = DroneInfo(designation, port=port)
+            print >> sys.stderr, 'DESIGNATION: %s' % designation
+            print >> sys.stderr, '==== drone.node[name] : %s' % drone.node['name']
+            print >> sys.stderr, '==== PROPERTIES: %s' % drone.node.get_properties()
             assert drone.node['name'] == designation
             return drone
         if isinstance(designation, pyNetAddr):
@@ -500,6 +524,7 @@ class DroneInfo:
                     str(designation), desigstr, type(designation)))
         elif isinstance(designation, neo4j.Node):
             nodedesig = designation['name']
+            print >> sys.stderr, ('CHECKING WEAKREFS: %s' % DroneInfo._droneweakrefs)
             if nodedesig in DroneInfo._droneweakrefs:
                 ret = DroneInfo._droneweakrefs[nodedesig]()
                 if ret is not None:

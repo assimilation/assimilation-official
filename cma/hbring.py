@@ -73,11 +73,21 @@ class HbRing:
         ## FIXME - assumption about database being correct
         HbRing.ringnames[self.name] = self
 
+    def _fixinsertpoints(self):
+        if self.insertpoint1 is not None and self.insertpoint1.node.id is None:
+                self.insertpoint1 = DroneInfo.find(self.insertpoint1['name'])
+                assert self.insertpoint1 is not None
+        if self.insertpoint2 is not None and self.insertpoint2.node.id is None:
+                self.insertpoint2 = DroneInfo.find(self.insertpoint2['name'])
+                assert self.insertpoint2 is not None
+
+
         
     def _findringpartners(self, drone):
         '''Find (one or) two partners for this drone to heartbeat with.
         We _should_ do this in such a way that we don't continually beat on the
         same nodes in the ring as we insert new nodes into the ring.'''
+        self._fixinsertpoints()
         drone = drone # Eventually we'll use this argument...
         partners = None
         if self.insertpoint1 is not None:
@@ -89,11 +99,13 @@ class HbRing:
 
     def join(self, drone):
         'Add this drone to our ring'
+        self._fixinsertpoints()
         if CMAdb.debug:
             CMAdb.log.debug('1:Adding Drone %s to ring %s w/port %s' \
             %   (str(drone), str(self), drone.getport()))
         # Make sure he's not already in our ring according to our 'database'
-        if drone.node.has_relationship_with(self.node, neo4j.Direction.OUTGOING, self.ourreltype):
+        if drone.node.id is not None and drone.node.has_relationship_with(self.node
+        ,           neo4j.Direction.OUTGOING, self.ourreltype):
             CMAdb.log.warning("Drone %s is already a member of this ring [%s]"
             " - removing and re-adding." % (drone.node['name'], self.name))
             self.leave(drone)
@@ -183,6 +195,7 @@ class HbRing:
 
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
+        self._fixinsertpoints()
         try: 
             prevnode = drone.node.get_single_related_node(neo4j.Direction.INCOMING
             ,       self.ournexttype)
@@ -214,7 +227,7 @@ class HbRing:
 ###        for rel in relationships:
 ###           rel.delete()
 ###           rel = None
-###     rel = None
+###        rel = None
         relationships = None
 
         if prevnode.id == nextnode.id:          # Previous length:  2
