@@ -22,11 +22,13 @@
 '''
 This file is all about the Rings - we implement rings.
 '''
-#import sys
+import sys
 from cmadb import CMAdb
 from py2neo import neo4j
-from droneinfo import DroneInfo
-class HbRing:
+from droneinfo import Drone
+from graphnodes import GraphNode
+from store import Store
+class HbRing(GraphNode):
     'Class defining the behavior of a heartbeat ring.'
     SWITCH      =  1
     SUBNET      =  2
@@ -34,260 +36,230 @@ class HbRing:
     memberprefix = 'RingMember_'
     nextprefix = 'RingNext_'
 
-    ringnames = {}
-
     def __init__(self, name, ringtype, parentring=None):
         '''Constructor for a heartbeat ring.
-        Although we generally avoid keeping hash tables of nodes in the
-        database, I'm currently making an exception for rings.  There are
-        many fewer of those than any other kind of node.
         '''
         if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
-        self.node = CMAdb.cdb.new_ring(name, parentring, ringtype=ringtype)
         self.ringtype = ringtype
+        self.domain = CMAdb.globaldomain
         self.name = str(name)
         self.parentring = parentring
-        self.ourreltype = HbRing.memberprefix + self.name # Our relationship type
+        self.ourreltype = HbRing.memberprefix + self.name # Our membership relationship type
         self.ournexttype = HbRing.nextprefix + self.name # Our 'next' relationship type
-        self.insertpoint1 = None
-        self.insertpoint2 = None
+        self._ringinitfinished = False
+        self._insertpoint1 = None
+        self._insertpoint2 = None
+        super(HbRing,self).__init__(name)
+        
 
-        try:
-            ip1node = self.node.get_single_related_node(neo4j.Direction.OUTGOING, self.ourreltype)
-            if ip1node is not None:
-                self.insertpoint1 = DroneInfo(ip1node)
-                if self.insertpoint1 is not None:
-                    try:
-                        #print 'INSERTPOINT1: ', self.insertpoint1
-                        ip2 = self.insertpoint1.node.get_single_related_node(
-                              neo4j.Direction.OUTGOING, self.ournexttype)
-                        self.insertpoint2 = DroneInfo(ip2)
-                    except ValueError:
-                        pass
-        except ValueError:
-            pass
+    def post_db_init(self):
+        if self._ringinitfinished:
+            return
+        self._ringinitfinished = True
+        self._insertpoint1 = None
+        self._insertpoint2 = None
+        print >> sys.stderr, 'CMAdb(hbring.py):', CMAdb
+        print >> sys.stderr, 'CMAdb.store(hbring.py):', CMAdb.store
+        print >> sys.stderr, 'Our relation type: %s' % self.ourreltype
+        rellist = CMAdb.store.load_related(self, self.ourreltype, Drone)
+        if len(rellist) > 0:
+            self._insertpoint1 =  rellist[0]
+            print >> sys.stderr, 'INSERTPOINT1: ', self._insertpoint1
+            print >> sys.stderr, 'Our relation type: %s' % self.ournexttype
+            ip2rellist = CMAdb.store.load_related(self._insertpoint1, self.ournexttype, Drone)
+            if len(ip2rellist) > 0:
+                self._insertpoint2 = ip2rellist[0]
         # Need to figure out what to do about pre-existing members of this ring...
         # For the moment, let's make the entirely inadequate assumption that
         # the data in the database is correct.
-        ## FIXME - assumption about database being correct
-        HbRing.ringnames[self.name] = self
-
-    def _fixinsertpoints(self):
-        if self.insertpoint1 is not None and self.insertpoint1.node.id is None:
-                self.insertpoint1 = DroneInfo.find(self.insertpoint1['name'])
-                assert self.insertpoint1 is not None
-        if self.insertpoint2 is not None and self.insertpoint2.node.id is None:
-                self.insertpoint2 = DroneInfo.find(self.insertpoint2['name'])
-                assert self.insertpoint2 is not None
+        ## FIXME - assumption about database being correct :-D
+        super(HbRing, self).post_db_init()
 
 
-        
     def _findringpartners(self, drone):
         '''Find (one or) two partners for this drone to heartbeat with.
         We _should_ do this in such a way that we don't continually beat on the
         same nodes in the ring as we insert new nodes into the ring.'''
-        self._fixinsertpoints()
         drone = drone # Eventually we'll use this argument...
         partners = None
-        if self.insertpoint1 is not None:
+        if self._insertpoint1 is not None:
             partners = []
-            partners.append(self.insertpoint1)
-            if self.insertpoint2 is not None:
-                partners.append(self.insertpoint2)
+            partners.append(self._insertpoint1)
+            if self._insertpoint2 is not None:
+                partners.append(self._insertpoint2)
         return partners
 
     def join(self, drone):
         'Add this drone to our ring'
-        self._fixinsertpoints()
         if CMAdb.debug:
             CMAdb.log.debug('1:Adding Drone %s to ring %s w/port %s' \
             %   (str(drone), str(self), drone.getport()))
         # Make sure he's not already in our ring according to our 'database'
-        if drone.node.id is not None and drone.node.has_relationship_with(self.node
-        ,           neo4j.Direction.OUTGOING, self.ourreltype):
-            CMAdb.log.warning("Drone %s is already a member of this ring [%s]"
-            " - removing and re-adding." % (drone.node['name'], self.name))
-            self.leave(drone)
+        if not Store.is_abstract(drone):
+            rels = CMAdb.store.load_related(self, self.ourreltype, drone)
+            if len(rels) > 0:
+                CMAdb.log.warning("Drone %s is already a member of this ring [%s]"
+                " - removing and re-adding." % (drone, self))
+                self.leave(drone)
         
         # Create a 'ringmember' relationship to this drone
-        ###drone.node.create_relationship_to(self.node, self.ourreltype)
-        CMAdb.transaction.add_rels({'from': drone, 'to': self, 'type': self.ourreltype})
-        #print 'New ring membership: %s' % (str(self))
+        CMAdb.store.relate(self, self.ourreltype, drone)
+        print 'New ring membership: %s' % (str(self))
         # Should we keep a 'ringip' relationship for this drone?
         # Probably eventually...
 
-        #print >>sys.stderr,'Adding drone %s to talk to partners'%drone.node['name']
-        #, self.insertpoint1, self.insertpoint2
+        print >>sys.stderr,'Adding drone %s to talk to partners' % drone
 
-        if self.insertpoint1 is None:   # Zero nodes previously
-            self.insertpoint1 = drone
-            #print >>sys.stderr, 'RING1 IS NOW:', str(self)
+        if self._insertpoint1 is None:   # Zero nodes previously
+            self._insertpoint1 = drone
+            print >>sys.stderr, 'RING1 IS NOW:', str(self)
             return
 
         if CMAdb.debug:
             CMAdb.log.debug('2:Adding Drone %s to ring %s w/port %s' \
             %   (str(drone), str(self), drone.getport()))
-        if self.insertpoint2 is None:   # One node previously
-        # Create the initial circular list.
+        if self._insertpoint2 is None:   # One node previously
+            # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
             # (see comments below)
-           ### CMAdb.cdb.db.get_or_create_relationships(
-             #   (drone.node, self.ournexttype, self.insertpoint1.node)
-             #   , (self.insertpoint1.node, self.ournexttype, drone.node))
-            CMAdb.transaction.add_rels([
-                {'from': drone, 'to': self.insertpoint1, 'type': self.ournexttype},
-                {'from': self.insertpoint1, 'to': drone, 'type': self.ournexttype}])
+            ### CMAdb.cdb.db.get_or_create_relationships(
+            #   (drone, self.ournexttype, self._insertpoint1)
+            #   , (self._insertpoint1, self.ournexttype, drone))
+            CMAdb.store.relate(drone, self.ournexttype, self._insertpoint1)
+            CMAdb.store.relate(self._insertpoint1, self.ournexttype, drone)
             if CMAdb.debug:
                 CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s' 
                 %       (str(drone), str(self), drone.getport()))
-            drone.start_heartbeat(self, self.insertpoint1)
-            self.insertpoint1.start_heartbeat(self, drone)
-            self.insertpoint2 = self.insertpoint1
-            self.insertpoint1 = drone
+            drone.start_heartbeat(self, self._insertpoint1)
+            self._insertpoint1.start_heartbeat(self, drone)
+            self._insertpoint2 = self._insertpoint1
+            self._insertpoint1 = drone
             #print >>sys.stderr, 'RING2 IS NOW:', str(self)
             return
         
-        #print >>sys.stderr, 'Finding insert point [%s: %s]' % \
-    #   (self.insertpoint2.node['name'], self.ournexttype)
+        print >>sys.stderr, 'Finding insert point [%s: %s]' % \
+           (self._insertpoint2['name'], self.ournexttype)
         # Two or more nodes previously
-        #print >>sys.stderr, 'DRONE:', drone.node
-        #print >>sys.stderr, 'INSERTPOINT1:', self.insertpoint1.node
-        #print >>sys.stderr, 'INSERTPOINT2:', self.insertpoint2.node
-        #print >>sys.stderr, 'OURNEXTTYPE:', self.ournexttype
-        nextnext = self.insertpoint2.node.get_single_related_node(neo4j.Direction.OUTGOING
-        ,   self.ournexttype)
+        print >>sys.stderr, 'DRONE:', drone
+        print >>sys.stderr, 'INSERTPOINT1:', self._insertpoint1
+        print >>sys.stderr, 'INSERTPOINT2:', self._insertpoint2
+        print >>sys.stderr, 'OURNEXTTYPE:', self.ournexttype
+        nextnext = None
+        for nextnext in CMAdb.store.load_related(self._insertpoint2, self.outnexttype):
+            break
         if CMAdb.debug:
             CMAdb.log.debug('4:Adding Drone %s to ring %s w/port %s' \
             %   (str(drone), str(self), drone.getport()))
-        if nextnext is not None and nextnext.id != self.insertpoint1.node.id:
+        if nextnext is not None and nextnext is not self._insertpoint1:
+            print >> sys.stderr, 'HAD AT LEAST 3 NODES BEFORE'
             # At least 3 nodes before
-            self.insertpoint1.stop_heartbeat(self, self.insertpoint2)
-            self.insertpoint2.stop_heartbeat(self, self.insertpoint1)
+            # We had X->point1->point2->Y (where x and y might be the same)
+            self._insertpoint1.stop_heartbeat(self, self._insertpoint2)
+            self._insertpoint2.stop_heartbeat(self, self._insertpoint1)
+            CMAdb.store.separate(self._insertpoint1, self.ournexttype, self._insertpoint2)
+            # Now we just have had X->point1 and point2->Y
         if CMAdb.debug:
             CMAdb.log.debug('5:Adding Drone %s to ring %s w/port %s' \
             %       (str(drone), str(self), drone.getport()))
-        drone.start_heartbeat(self, self.insertpoint1, self.insertpoint2)
-        self.insertpoint1.start_heartbeat(self, drone)
-        self.insertpoint2.start_heartbeat(self, drone)
-        point1rel = self.insertpoint1.node.get_single_relationship(neo4j.Direction.OUTGOING
-        ,   self.ournexttype)
-        # Somehow we sometimes get here with "point1rel is None"... Bug??
-        CMAdb.transaction.del_rels(point1rel)
-        ###point1rel.delete()
-        point1rel = None
+        drone.start_heartbeat(self, self._insertpoint1, self._insertpoint2)
+        self._insertpoint1.start_heartbeat(self, drone)
+        self._insertpoint2.start_heartbeat(self, drone)
+        CMAdb.store.relate(self._insertpoint1, self.ournexttype, drone)
+        # after above statement: we have x->insertpoint1-> drone and insertpoint2->y
+        CMAdb.store.relate(drone, self.ournexttype, self._insertpoint2)
+        # after above statement: we have insertpoint1-> drone->insertpoint2
+        #
         # In the future we might want to mark these relationships with the IP addresses involved
         # so that even if the systems change network configurations we can still know what IP to
         # remove.  Right now we rely on the configuration not changing "too much".
         ## FIXME: Ought to label relationships with IP addresses involved.
-        ###CMAdb.cdb.db.get_or_create_relationships(
-            ###(   self.insertpoint1.node, self.ournexttype, drone.node)
-            ###,   (drone.node, self.ournexttype, self.insertpoint2.node))
-        CMAdb.transaction.add_rels([
-            {'from': self.insertpoint1, 'to': drone, 'type': self.ournexttype},
-            {'from': drone, 'to': self.insertpoint2, 'type': self.ournexttype}])
-        # This should ensure that we don't keep beating the same nodes over and over
+        #
+        # We should ensure that we don't keep beating the same nodes over and over
         # again as new nodes join the system.  Instead the latest newbie becomes the next
         # insert point in the ring - spreading the work to the new guys as they arrive.
-        #self.insertpoint2 = self.insertpoint1
-        self.insertpoint1 = drone
-        #print >>sys.stderr, 'RING3 IS NOW:', str(self), 'DRONE ADDED:', drone
+        # Probably should use nextnext from above...
+        self._insertpoint1 = drone
+        print >>sys.stderr, 'RING3 IS NOW:', str(self), 'DRONE ADDED:', drone
 
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
-        self._fixinsertpoints()
-        try: 
-            prevnode = drone.node.get_single_related_node(neo4j.Direction.INCOMING
-            ,       self.ournexttype)
-        except ValueError:
-            prevnode = None
-        try: 
-            nextnode = drone.node.get_single_related_node(neo4j.Direction.OUTGOING
-            ,       self.ournexttype)
-        except ValueError:
-            nextnode = None
+        print >> sys.stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
+        prevnode = None
+        for prevnode in CMAdb.store.load_related_in(drone, self.ournexttype, Drone):
+            break
+        nextnode = None
+        for nextnode in CMAdb.store.load_related(drone, self.ournexttype, Drone):
+            break
 
+        # Clean out the parent (ring) relationship to our dearly departed drone
+        CMAdb.store.separate(self, self.ourreltype, drone)
+        print >> sys.stderr, 'DELETING PARENT RELATIONSHIP for [%s]' % drone
         # Clean out the next link relationships to our dearly departed drone
-        ringrel = drone.node.get_single_relationship(neo4j.Direction.OUTGOING, self.ourreltype)
-        ###ringrel.delete()
-        CMAdb.transaction.del_rels(ringrel)
-        ringrel = None
         if nextnode is None and prevnode is None:   # Previous length:  1
-            self.insertpoint1 = None        # result length:    0
-            self.insertpoint2 = None
+            self._insertpoint1 = None               # result length:    0
+            self._insertpoint2 = None
             # No other database links to remove
             return
 
         # Clean out the next link relationships to our dearly departed drone
-        relationships = drone.node.get_relationships(neo4j.Direction.BOTH, self.ournexttype)
-        # Should have exactly two link relationships (one incoming and one outgoing)
-        # BUT SOMETIMES WE DON'T -- then this crashes
-        assert len(relationships) == 2
-        CMAdb.transaction.del_rels(relationships)
-###        for rel in relationships:
-###           rel.delete()
-###           rel = None
-###        rel = None
-        relationships = None
+        CMAdb.store.separate(prevnode, self.ournexttype, drone)
+        CMAdb.store.separate(drone, self.ournexttype, nextnode)
 
-        if prevnode.id == nextnode.id:          # Previous length:  2
-            node = prevnode             # Result length:    1
-            if node is None:
-                node = nextnode
-            partner = DroneInfo(node)
-            drone.stop_heartbeat(self, partner)
-            partner.stop_heartbeat(self, drone)
-            #prevnode.create_relationship_to(nextnode, self.ournexttype)
-            self.insertpoint2 = None
-            self.insertpoint1 = partner
+        if prevnode is nextnode:                 # Previous length:  2
+            drone.stop_heartbeat(self, prevnode)  # Result length:    1
+            prevnode.stop_heartbeat(self, drone)
+            self._insertpoint2 = None
+            self._insertpoint1 = prevnode
             return
 
         # Previous length had to be >= 3        # Previous length:  >=3
-                            # Result length:    >=2
-        prevdrone = DroneInfo(prevnode['name'])
-        nextdrone = DroneInfo(nextnode['name'])
+                                                # Result length:    >=2
         nextnext = nextnode.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
-        prevdrone.stop_heartbeat(self, drone)
-        nextdrone.stop_heartbeat(self, drone)
-        if nextnext.id != prevnode.id:          # Previous length:  >= 4
-            nextdrone.start_heartbeat(self, prevdrone)  # Result length:    >= 3
-            prevdrone.start_heartbeat(self, nextdrone)
+        prevnode.stop_heartbeat(self, drone)
+        nextnode.stop_heartbeat(self, drone)
+        if nextnext is not prevnode:                  # Previous length:  >= 4
+            nextnode.start_heartbeat(self, prevnode)  # Result length:    >= 3
+            prevnode.start_heartbeat(self, nextnode)
+            # (in the nextnext is prevnode case, they're already heartbeating)
         # Poor drone -- all alone in the universe... (maybe even dead...)
-        drone.stop_heartbeat(self, prevdrone, nextdrone)
-        self.insertpoint1 = prevdrone   # non-minimal, but correct and cheap change
-        self.insertpoint2 = nextdrone
-        ###prevnode.create_relationship_to(nextnode, self.ournexttype)
-        CMAdb.transaction.add_rels({'from': prevnode, 'to': nextnode, 'type': self.ournexttype})
+        drone.stop_heartbeat(self, prevnode, nextnode)
+        self._insertpoint1 = prevnode
+        self._insertpoint2 = nextnode
+        CMAdb.store.relate(prevnode, self.ournexttype, nextnode)
 
     def members(self):
         'Return all the Drones that are members of this ring - in some random order'
-        ret = []
-        for node in self.node.get_related_nodes(neo4j.Direction.INCOMING, self.ourreltype):
-            ret.append(DroneInfo.find(node))
-        return ret
+        return self.membersfromlist()
 
     def membersfromlist(self):
         'Return all the Drones that are members of this ring - in ring order'
         ## FIXME - There's a cypher query that will return these all in one go
-        firstdrone = self.insertpoint1
-        if firstdrone is None:
+        # START Drone=node:Drone(Drone="drone000001")
+        # MATCH Drone-[:RingNext_The_One_Ring*]->NextDrone
+        # RETURN NextDrone.name, NextDrone 
+
+
+        if self._insertpoint1 is None:
             return []
-        ret = [firstdrone]
-        firstdrone = firstdrone.node
-        nextdrone = firstdrone
-        while True:
-            nextdrone = nextdrone.get_single_related_node(neo4j.Direction.OUTGOING
-            ,       self.ournexttype)
-            if nextdrone is None or nextdrone.id == firstdrone.id:
-                break
-            ret.append(DroneInfo.find(nextdrone))
-        return ret
+        if Store.is_abstract(self._insertpoint1):
+            return [self._insertpoint1]
+        startid = Store.id(self._insertpoint1)
+        # We can't pre-compile this, but we hopefully we won't use it much...
+        Q='''START Drone=node(%s)
+             MATCH Drone-[:%s*]->NextDrone
+             RETURN NextDrone'''
+        query = neo4j.CypherQuery(CMAdb.cdb.db, Q % (startid, self.ourreltype))
+        return CMAdb.store.load_cypher_nodes(query, Drone)
 
     def __str__(self):
-        ret = 'Ring("%s", [' % self.node['name']
+        ret = 'Ring("%s", [' % self.name
         comma = ''
         for drone in self.membersfromlist():
-            ret += '%s%s' % (comma, drone.node['name'])
+            ret += '%s%s' % (comma, drone)
             comma = ', '
         ret += '])'
         return ret
+
+if __name__ == '__main__':
+    db = CMAdb()

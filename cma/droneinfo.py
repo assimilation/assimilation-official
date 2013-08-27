@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
 #
@@ -20,95 +20,83 @@
 #
 #
 '''
-We implement the DroneInfo class - which implements all the properties of
+We implement the Drone class - which implements all the properties of
 drones as a Python class.
 '''
 import weakref, time
 import sys
 #import os, traceback
 from cmadb import CMAdb
+from store import Store
+from graphnodes import NICNode, IPaddrNode, SystemNode, nodeconstructor
+from py2neo import neo4j
 
 
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
-from py2neo import neo4j, rest
+from py2neo import neo4j
 import hbring
+from graphnodes import GraphNode, nodeconstructor
 
-class DroneInfo:
+class Drone(SystemNode):
     'Everything about Drones - endpoints that run our nanoprobes'
     _droneweakrefs = {}
     _JSONprocessors = {}
-    def __init__(self, designation, port=None, **kw):
-        self.io = CMAdb.io
+    IPownerquery_1 = None
+    OwnedIPsQuery = None
+
+
+    def __init__(self, designation, port=None, startaddr=None
+    ,       primary_ip_addr=None, domain=CMAdb.globaldomain):
+        super(Drone, self).__init__(domain=domain, systemtype='drone')
+        self._io = CMAdb.io
         self.status = '(unknown)'
         self.reason = '(initialization)'
-        self.startaddr = None
-        self.primary_ip_addr = None
-        if isinstance(designation, neo4j.Node):
-            self.node = designation
-        else:
-            #print >>sys.stderr, 'New DroneInfo(designation = %s", kw=%s)' \
-            #%   (designation, str(**kw))
-            self.node = CMAdb.cdb.new_drone(designation, **kw)
-        print >> sys.stderr, ('ADDING DRONE [%s] to _droneweakrefs.' % designation)
-        DroneInfo._droneweakrefs[designation] = weakref.ref(self)
-        print >> sys.stderr, ('WEAKREFS: %s' % DroneInfo._droneweakrefs)
-        if port is not None:
-            self.setport(port)
-        elif 'port' in self.node:
-            self.port = self.node['port']
-        CMAdb.transaction.created.append(self)
-
-    def __getitem__(self, key):
-        return self.node[key]
-
-    def __delitem__(self, key):
-        del self.node[key]
-
-    def __setitem__(self, key, value):
-        self.node[key] = value
-
-    def __len__(self, key, value):
-        return len(self.node)
+        self.startaddr = str(startaddr)
+        self.primary_ip_addr = str(primary_ip_addr)
+        self.port = port
+        self.designation = designation
+        if Drone.IPownerquery_1 is None:
+            Drone.IPownerquery_1 =  neo4j.CypherQuery(CMAdb.cdb.db,
+            '''START n=node:IPaddrNode({ipquery})\
+               MATCH n<-[:%s]-()<-[:%s]-drone
+               return drone LIMIT 1
+            ''' % (CMAdb.REL_ipowner, CMAdb.REL_nicowner))
+            Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db,
+            '''START d=node:Drone({droneid})\
+               MATCH drone-[:%s]->()-[:%s]->ip
+               return ip
+            ''' % (CMAdb.REL_nicowner, CMAdb.REL_ipowner))
 
 
     def getport(self):
         '''Return the port we talk to this drone on'''
-        if not hasattr(self, 'port'):
-            self.port = self.node['port']
         return self.port
 
     def setport(self, port):
         '''Set the port we talk to this drone on'''
         self.port = port
-        self.node['port'] = port
         
    
     def logjson(self, jsontext):
         'Process and save away JSON discovery data'
+        assert CMAdb.store.has_node(self)
         jsonobj = pyConfigContext(jsontext)
         if not jsonobj.has_key('discovertype') or not jsonobj.has_key('data'):
             CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
             return
         dtype = jsonobj['discovertype']
-        #print "Saved discovery type %s for endpoint %s." % \
-        #   (dtype, self.designation)
-        designation = self.node['name']
+        print "Saved discovery type %s for endpoint %s." % \
+           (dtype, self.designation)
+        designation = self.designation
         jsonname = 'JSON_' + dtype
-        if jsonname in self.node:
-            if self.node[jsonname] == jsontext:
-                # A really cheap optimization for reboots, etc.
-                if CMAdb.debug:
-                    CMAdb.log.debug(
-                    'DroneInfo.logjson: JSON text for %s/%s already processed - ignoring.'
-                    %       (designation, dtype))
-                return
-        self.node[jsonname] = jsontext
-        if dtype in DroneInfo._JSONprocessors:
+        setattr(self, jsonname, jsontext)
+        if dtype in Drone._JSONprocessors:
             if CMAdb.debug:
                 CMAdb.log.debug('Processing %s JSON data from %s into graph.'
                 %       (dtype, designation))
-            DroneInfo._JSONprocessors[dtype](self, jsonobj)
+            assert CMAdb.store.has_node(self)
+            Drone._JSONprocessors[dtype](self, jsonobj)
             if CMAdb.debug:
                 CMAdb.log.debug('Processed %s JSON data from %s into graph.'
                 %   (dtype, designation))
@@ -120,62 +108,109 @@ class DroneInfo:
     def add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from netconfig JSON discovery.
         This includes all our NICs, their MAC addresses, all our IP addresses and so on
-        for any non-loopback interface.  Whee!
+        for any (non-loopback) interface.  Whee!
         '''
+
+        assert CMAdb.store.has_node(self)
         data = jsonobj['data'] # The data portion of the JSON message
-        primaryip = None
+
+        currmacs = {}
+        # Get our current list of NICs 
+        iflist = CMAdb.store.load_related(self, CMAdb.REL_nicowner, NICNode)
+        for nic in iflist:
+            currmacs[nic.macaddr] = nic
+
+        primaryifname=None
+        newmacs = {}
         for ifname in data.keys(): # List of interfaces just below the data section
             ifinfo = data[ifname]
-            if 'default_gw' in ifinfo:
-                isprimaryif = True
+            #if not ifinfo.has_key('address'):
+            if not 'address' in ifinfo:
+                continue
+            macaddr = ifinfo['address']
+            #print 'ADDRESS: [%s]' % str(macaddr)
+            if macaddr.startswith('00:00:00:'):
+                continue
+            newnic = CMAdb.store.load_or_create(NICNode, domain=self.domain
+            ,       macaddr=macaddr, ifname=ifname)
+            newmacs[macaddr] = newnic
+            if 'default_gw' in ifinfo and primaryifname == None:
+                primaryifname = ifname
+
+        # Now compare the two sets of MAC addresses (old and new)
+        for macaddr in currmacs.keys():
+            currmac = currmacs[macaddr]
+            if macaddr in newmacs:
+                newmacs[macaddr] = currmac.update_attributes(newmacs[macaddr])
             else:
-                isprimaryif = False
-            #print 'IFINFO: [%s]' % str(ifinfo)
-            if not ifinfo.has_key('address'):
-                continue
-            ifaddr = ifinfo['address']
-            #print 'ADDRESS: [%s]' % str(ifaddr)
-            if ifaddr.startswith('00:00:00:'):
-                continue
-            nicnode = CMAdb.cdb.new_nic(ifname, ifaddr, self, isprimaryif=isprimaryif, **kw)
-            iptable = ifinfo['ipaddrs'] # look in the 'ipaddrs' section
+                CMAdb.store.separate(self, CMAdb.REL_ipowner, currmac)
+                CMAdb.store.separate(self, CMAdb.REL_causes,  currmac)
+                # This needs to be a "reference count" deletion...
+                CMAdb.store.delete(currmac)
+                del currmacs[macaddr]
+        currmacs = None
+
+        # Create REL_nicowner relationships for the newly created NIC nodes
+        for macaddr in newmacs.keys():
+            nic = newmacs[macaddr]
+            if Store.is_abstract(nic):
+                CMAdb.store.relate(self, CMAdb.REL_nicowner, nic, {'causes': True})
+                CMAdb.store.relate(self, CMAdb.REL_causes,   nic)
+
+        # Now newmacs contains all the current info about our NICs - old and new...
+        # Let's figure out what's happening with our IP addresses...
+
+        primaryip = None
+
+        for macaddr in newmacs.keys():
+            mac = newmacs[macaddr]
+            ifname = mac.ifname
+            iptable = data[str(ifname)]['ipaddrs']
+            currips = {}
+            iplist = CMAdb.store.load_related(mac, CMAdb.REL_ipowner, IPaddrNode)
+            for ip in iplist:
+                currips[ip.ipaddr] = ip
+
+            newips = {}
             for ip in iptable.keys():   # keys are 'ip/mask' in CIDR format
-                ipinfo = iptable[ip]
                 ipname = ':::INVALID:::'
-                if ipinfo.has_key('name'):
+                ipinfo = iptable[ip]
+                if 'name' in ipinfo:
                     ipname = ipinfo['name']
                 if ipinfo['scope'] != 'global':
                     continue
-                iponly = ip.split('/')[0] # other part is mask
+                iponly,cidrmask = ip.split('/')
                 netaddr = pyNetAddr(iponly).toIPv6()
                 if netaddr.islocal():
                     continue
-                iponly = str(netaddr)
-                isprimaryip = False
-                ## FIXME: May want to consider looking at 'brd' for broadcast as well...
-                ## otherwise this can be a little fragile...
-                if isprimaryif and primaryip == None and ipname == ifname:
-                    isprimaryip = True
-                    primaryip = iponly
-                    #print >>sys.stderr, 'PRIMARY IP is %s' % iponly
-                ipnode = CMAdb.cdb.new_ipaddr(nicnode, iponly, ifname=ifname
-                ,       hostname = self.node['name'])
-                # Save away whichever IP address is our primary IP address...
-                if isprimaryip:
-                    rel = None
-                    if self.node.id is not None:
-                        rel = self.node.get_single_relationship(neo4j.Direction.OUTGOING
-                        ,   'primaryip')
-                    if rel is not None and rel.end_node.id != ipnode.id:
-                        CMAdb.transaction.del_rels(rel)
-                        ###rel.delete()
-                        rel = None
-                    if rel is None:
-                        ###CMAdb.cdb.db.get_or_create_relationships((self.node, 'primaryip'
-                        ###, ipnode),)
-                        CMAdb.transaction.add_rels({'from': self, 'to': ipnode
-                        ,       'type': 'primaryip'})
-                        self.primary_ip_addr = iponly
+                ipnode = CMAdb.store.load_or_create(IPaddrNode, domain=self.domain, ipaddr=str(netaddr)
+                ,   cidrmask=cidrmask)
+                ## FIXME: Not an ideal way to determine primary (preferred) IP address...
+                ## it's a bit idiosyncratic to Linux...
+                if ifname == primaryifname  and primaryip is None and ipname == ifname:
+                    primaryip = ipnode
+                    self.primary_ip_addr = str(primaryip.ipaddr)
+                    print >>sys.stderr, 'PRIMARY IP is %s' % iponly
+                newips[str(netaddr)] = ipnode
+            # compare the two sets of IP addresses (old and new)
+            for ipaddr in currips.keys():
+                currip = currips[ipaddr]
+                if ipaddr in newips:
+                    newips[ipaddr] = currip.update_attributes(newips[ipaddr])
+                else:
+                    del currips[ipaddr]
+                    # This needs to be a "reference count" deletion...
+                    CMAdb.store.separate(mac, currip, CMAdb.REL_ipowner)
+                    CMAdb.store.delete(currip)
+
+            # Create REL_ipowner relationships for all the newly created IP nodes
+            for ipaddr in newips.keys():
+                ip = newips[ipaddr]
+                if Store.is_abstract(ip):
+                    CMAdb.store.relate(mac, CMAdb.REL_ipowner, ip, {'causes': True})
+                    CMAdb.store.relate(mac, CMAdb.REL_causes,  ip)
+
+
 
     def add_tcplisteners(self, jsonobj, **keywords):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
@@ -183,9 +218,10 @@ class DroneInfo:
         keywords = keywords # Don't really need this argument...
         if CMAdb.debug:
             CMAdb.log.debug('add_tcplisteners(data=%s)' % data)
-            CMAdb.log.debug('Calling get_related_nodes(%d, %s)'
-            %       (neo4j.Direction.INCOMING, CMAdb.REL_iphost))
-        allourips = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_iphost)
+        print 'STORE contains:', CMAdb.store
+        allourips = CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, Drone
+        ,       {'droneid':Store.id(self)})
+        print 'ALL OUR IPs:', allourips
         if CMAdb.debug:
             CMAdb.log.debug('Processing keys(%s)' % data.keys())
         for procname in data.keys(): # List of names of processes...
@@ -194,7 +230,7 @@ class DroneInfo:
             procinfo = data[procname]
             if CMAdb.debug:
                 CMAdb.log.debug('Processing procinfo(%s)' % procinfo)
-            ipproc = CMAdb.cdb.new_ipproc(procname, procinfo, self.node)
+            ipproc = CMAdb.cdb.new_ipproc(procname, procinfo, self)
             if CMAdb.debug:
                 CMAdb.log.debug('procinfo(%s) - ipproc created=> %s'
             %   (procinfo, ipproc))
@@ -231,20 +267,20 @@ class DroneInfo:
         # Were we given the ANY address?
         if isserver and (addr == '::' or addr == '::ffff:0.0.0.0'):
             for ipaddr in allourips:
-                ipnetaddr = (pyNetAddr(ipaddr['name']).toIPv6())
+                ipnetaddr = (pyNetAddr(ipaddr.ipaddr).toIPv6())
                 ipnetaddr.setport(port)
                 name = str(ipnetaddr)
                 CMAdb.cdb.new_tcpipport(name, isserver
-                ,   jsonobj, self.node, ipproc, ipaddr)
+                ,   jsonobj, self, ipproc, ipaddr)
         elif isserver:
             for ipaddr in allourips:
                 ipaddrname = ipaddr['name']
                 ipnetaddr = (pyNetAddr(str(ipaddrname)).toIPv6())
                 if ipnetaddr == netaddr:
-                    CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self.node, ipproc, ipaddr)
+                    CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self, ipproc, ipaddr)
                     return
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
-                            % (self.node['name'], addr))
+                            % (self.designation, addr))
         else:
             netaddr.setport(port)
             ipaddr = CMAdb.cdb.new_ipaddr(None, addr)
@@ -268,11 +304,19 @@ class DroneInfo:
             if isinstance(value, pyNetAddr):
                 value = str(value)
             attrs[key] = value
-        switch = CMAdb.cdb.new_switch(chassisid, **attrs)
-        if ('ManagementAddress' in attrs):
+        #### FIXME What should the domain of a switch default to?
+        switch = CMAdb.store.load_or_create(SystemNode, domain=self.domain
+        ,       systemtype='switch', **attrs)
+        if 'ManagementAddress' in attrs:
+            # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
             mgmtaddr = attrs['ManagementAddress']
-            adminnic = CMAdb.cdb.new_nic('(adminNIC)', chassisid, switch)
-            CMAdb.cdb.new_ipaddr(adminnic, mgmtaddr)
+            adminnic = CMAdb.store.load_or_create(NICnode, domain=switch.domain, macaddr=chassisid
+            ,           ifname='(adminNIC)')
+            mgmtip = CMAdb.store.load_or_create(IPaddrNode, domain=switch.domain, cidrmask='unknown')
+            if Store.is_abstract(adminnic) or Store.is_abstract(switch):
+                CMAdb.store.relate(switch, REL_nicowner, adminnic, {'causes': True})
+            if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
+                CMAdb.store.relate(adminnic, REL_ipowner, mgmtip, {'causes': True})
         ports = data['ports']
         for portname in ports.keys():
             attrs = {}
@@ -286,16 +330,14 @@ class DroneInfo:
                 nicmac = thisport['sourceMAC']
             else:
                 nicmac = chassisid # Hope that works ;-)
-            nicnode = CMAdb.cdb.new_nic(portname, nicmac, switch, **attrs)
+            nicnode = CMAdb.store.load_or_create(NICnode, domain=self.domain, macaddr=nicmac, **attrs)
             try:
-                assert thisport['ConnectsToHost'] == self.node['name']
+                assert thisport['ConnectsToHost'] == self.designation
                 matchnic = thisport['ConnectsToInterface']
                 niclist = self.node.get_related_nodes(neo4j.Direction.INCOMING, CMAdb.REL_nicowner)
                 for dronenic in niclist:
                     if dronenic['nicname'] == matchnic:
-                        ###nicnode.create_relationship_from(dronenic, CMAdb.REL_wiredto)
-                        CMAdb.transaction.add_rels({'from': nicnode, 'to': dronenic
-                        ,       'type': CMAdb.REL_wiredto})
+                        CMAdb.store.relate(nicnode, CMAdb._REL_wiredto, dronenic)
                         break
             except KeyError:
                 CMAdb.log.error('OOPS! got an exception...')
@@ -304,17 +346,6 @@ class DroneInfo:
     def primary_ip(self, ring=None):
         '''Return the "primary" IP for this host'''
         ring = ring # should eventually use the ring if it's supplied
-        # Should this come from our initial contact with the node?
-#######################################################################################
-#               NOTE THAT WE MAY NOT HAVE WRITTEN THE PRIMARY IP OUT TO DISK YET...
-#               This occurs because we delay writes until the transaction...
-#######################################################################################
-        if self.primary_ip_addr is None:
-            primaryip = self.node.get_single_related_node(neo4j.Direction.OUTGOING, 'primaryip')
-            if primaryip is not None:
-                self.primary_ip_addr = str (primaryip['name'])
-            else:
-                primaryip = None
         return self.primary_ip_addr
 
     def select_ip(self, ring=None):
@@ -329,53 +360,39 @@ class DroneInfo:
         # For TheOneRing, we want their primary IP address.
         return self.primary_ip()
     
+
     #Current implementation does not use 'self'
     #pylint: disable=R0201
     def send_hbmsg(self, dest, fstype, addrlist):
         '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
         CMAdb.transaction.add_packet(dest, fstype, addrlist, frametype=FrameTypes.IPPORT)
-#        fs = pyFrameSet(fstype)
-#        for addr in addrlist:
-#            if addr is None:
-#                continue
-#            aframe = pyIpPortFrame(FrameTypes.IPPORT, addrstring=addr)
-#            fs.append(aframe)
-#        self.io.sendreliablefs(dest, (fs,))
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
+        from hbring import HbRing
         frameset = frameset # We don't use the frameset at this point in time
+        print >> sys.stderr, 'DRONE %s died!' % self
         if reason != 'HBSHUTDOWN':
             CMAdb.log.info('Node %s has been reported as %s by address %s. Reason: %s'
-            %   (self.node['name'], status, str(fromaddr), reason))
+            %   (self.designation, status, str(fromaddr), reason))
         self.status = status
         self.reason = reason
-        self.node['status'] = status
-        self.node['reason'] = reason
-        self.node['statustime'] = int(round(time.time() * 1000))
-        self.node['iso8601'] = time.strftime('%Y-%m-%d %H:%M:%S')
+        self.status = status
+        self.reason = reason
+        self.statustime = int(round(time.time() * 1000))
+        self.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         # There is a need for us to be a little more sophisticated
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        rellist = self.node.get_relationships(direction=neo4j.Direction.OUTGOING)
-        for rel in rellist:
-            try:
-                if rel.type.startswith(hbring.HbRing.memberprefix):
-                    ringname = rel.end_node['name']
-                    if CMAdb.debug:
-                        CMAdb.log.debug('%s was a member of ring %s' % (self, ringname))
-                    hbring.HbRing.ringnames[ringname].leave(self)
-                    # We can't just break out - we might belong to more than one ring
-            except rest.ResourceNotFound:
-                # OOPS! The leave(self) call above must have deleted it...
-                pass
-            
+        for mightbering in CMAdb.store.load_related(self, None, nodeconstructor):
+            if isinstance(mightbering, HbRing):
+                mightbering.leave(self)
         deadip = pyNetAddr(self.primary_ip(), port=self.getport())
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
-        self.io.closeconn(DEFAULT_FSP_QID, deadip)
+        self._io.closeconn(DEFAULT_FSP_QID, deadip)
 
 
 
@@ -476,34 +493,22 @@ class DroneInfo:
 
     def __str__(self):
         'Give out our designation'
-        return 'Drone(%s)' % self.node['name']
+        return 'Drone(%s)' % self.designation
 
     @staticmethod
-    def cleanrefs():
-        for designation in DroneInfo._droneweakrefs.keys():
-            drone = DroneInfo._droneweakrefs[designation]()
-            if drone is None or drone.node.id is None:
-                print >> sys.stderr, ('DELETING DRONE %s' % designation)
-                del(DroneInfo._droneweakrefs[designation])
-
-    @staticmethod
-    def find(designation, port=None):
+    def find(designation, port=None, domain=CMAdb.globaldomain):
         'Find a drone with the given designation or IP address, or Neo4J node.'
-        ret = None
         desigstr = str(designation)
-        if isinstance(designation, str):
-            drone = None
-            print >> sys.stderr, ('CHECKING WEAKREFS: %s' % DroneInfo._droneweakrefs)
-            if designation in DroneInfo._droneweakrefs:
-                drone = DroneInfo._droneweakrefs[designation]()
-            if drone is None:
-                drone = DroneInfo(designation, port=port)
-            print >> sys.stderr, 'DESIGNATION: %s' % designation
-            print >> sys.stderr, '==== drone.node[name] : %s' % drone.node['name']
-            print >> sys.stderr, '==== PROPERTIES: %s' % drone.node.get_properties()
-            assert drone.node['name'] == designation
+        if isinstance(designation, Drone):
+            return designation
+        elif isinstance(designation, str):
+            drone = CMAdb.store.load_or_create(Drone, port=port, domain=domain
+            ,       designation=designation)
+            print >> sys.stderr, 'DESIGNATION1: %s' % designation
+            assert drone.designation == designation
+            assert CMAdb.store.has_node(drone)
             return drone
-        if isinstance(designation, pyNetAddr):
+        elif isinstance(designation, pyNetAddr):
             dport = None
             desigport = designation.port()
             if desigport is not None and desigport > 0:
@@ -511,31 +516,19 @@ class DroneInfo:
             desig = designation.toIPv6(port=0)
             #desig=designation
             desigstr = str(desig)
+            query = '%s:%s' % (self.domain, desigstr)
             #Note that we now do everything by IPv6 addresses...
-            ipaddrs = CMAdb.cdb.ipindex.get(CMAdb.NODE_ipaddr, desigstr)
-            for ip in ipaddrs:
-                # Shouldn't have duplicates, but they happen...
-                # FIXME: Think about how to manage duplicate IP addresses...
-                # Do we really want to be looking up just by IP addresses here?
-                node = ip.get_single_related_node(neo4j.Direction.OUTGOING, CMAdb.REL_iphost)
-                return DroneInfo.find(node, port=dport)
+            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipquery':query})
+            if drone is not None:
+                assert CMAdb.store.has_node(drone)
+                return drone
             if CMAdb.debug:
-                CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]' % (
-                    str(designation), desigstr, type(designation)))
-        elif isinstance(designation, neo4j.Node):
-            nodedesig = designation['name']
-            print >> sys.stderr, ('CHECKING WEAKREFS: %s' % DroneInfo._droneweakrefs)
-            if nodedesig in DroneInfo._droneweakrefs:
-                ret = DroneInfo._droneweakrefs[nodedesig]()
-                if ret is not None:
-                    return ret
-            return DroneInfo(designation)
+                CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]'
+                %   (designation, desigstr, type(designation)))
            
         if CMAdb.debug:
-            CMAdb.log.debug("DESIGNATION (%s) = %s" % (designation, desigstr))
-        if desigstr in DroneInfo._droneweakrefs:
-            ret = DroneInfo._droneweakrefs[designation]()
-        if ret is None and CMAdb.debug:
+            CMAdb.log.debug("DESIGNATION2 (%s) = %s" % (designation, desigstr))
+        if CMAdb.debug:
             raise RuntimeError('drone.find(%s) (%s) (%s) => returning None' % (
                 str(designation), desigstr, type(designation)))
             #CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
@@ -551,30 +544,28 @@ class DroneInfo:
         return ret
 
     @staticmethod
-    def add(designation, reason, status='up', port=None):
+    def add(designation, reason, status='up', port=None, domain=CMAdb.globaldomain
+    ,       primary_ip_addr=None):
         'Add a drone to our set unless it is already there.'
-        ret = None
-        if designation in DroneInfo._droneweakrefs:
-            ret = DroneInfo._droneweakrefs[designation]()
-        if ret is None:
-            ret = DroneInfo.find(designation, port=port)
-        if ret is None:
-            ret = DroneInfo(designation, port=port)
-        ret.node['reason'] = reason
-        ret.node['status'] = status
-        ret.node['statustime'] = int(round(time.time() * 1000))
-        ret.node['iso8601'] = time.strftime('%Y-%m-%d %H:%M:%S')
+        drone = CMAdb.store.load_or_create(Drone, domain=domain, designation=designation
+        ,   primary_ip_addr=primary_ip_addr)
+        assert CMAdb.store.has_node(drone)
+        drone.reason=reason
+        drone.status=status
+        drone.statustime=int(round(time.time() * 1000))
+        drone.iso8601=time.strftime('%Y-%m-%d %H:%M:%S')
         if port is not None:
-            ret.setport(port)
-        return ret
+            drone.setport(port)
+        print >> sys.stderr, 'ADD returning %s' % drone
+        return drone
 
     @staticmethod
     def add_json_processors(*args):
         "Register (add) all the json processors we've been given as arguments"
         for ourtuple in args:
-            DroneInfo._JSONprocessors[ourtuple[0]] = ourtuple[1]
+            Drone._JSONprocessors[ourtuple[0]] = ourtuple[1]
 
-DroneInfo.add_json_processors(('netconfig', DroneInfo.add_netconfig_addresses),)
-DroneInfo.add_json_processors(('tcplisteners', DroneInfo.add_tcplisteners),)
-DroneInfo.add_json_processors(('tcpclients', DroneInfo.add_tcplisteners),)
-DroneInfo.add_json_processors(('#LinkDiscovery', DroneInfo.add_linkdiscovery),)
+Drone.add_json_processors(('netconfig', Drone.add_netconfig_addresses),)
+Drone.add_json_processors(('tcplisteners', Drone.add_tcplisteners),)
+Drone.add_json_processors(('tcpclients', Drone.add_tcplisteners),)
+Drone.add_json_processors(('#LinkDiscovery', Drone.add_linkdiscovery),)

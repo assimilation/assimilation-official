@@ -54,6 +54,8 @@ class PacketListener:
         'Listen for packets.  Get them dispatched.'
         while True:
             (fromaddr, framesetlist) = self.io.recvframesets()
+            CMAdb.log.debug("FrameSet LIST is([%s], [%s])" \
+            %       (str(fromaddr), framesetlist))
             if fromaddr is None:
                 # BROKEN! ought to be able to set blocking mode on the socket...
                 #print "Failed to get a packet - sleeping."
@@ -63,5 +65,8 @@ class PacketListener:
                 if CMAdb.debug:
                     CMAdb.log.debug("Received FrameSet from str([%s], [%s])" \
                     %       (str(fromaddr), fromstr))
+
             for frameset in framesetlist:
+                CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" \
+                %       (str(fromaddr), frameset))
                 self.dispatcher.dispatch(fromaddr, frameset)

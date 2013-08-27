@@ -98,20 +98,20 @@ class Store:
     object constructors which would be a bad thing worth recognizing -- but I don't
     do anything special for this case at the moment.
     '''
-    def __init__(self, db, uniqueindexmap=None, classkeymap=None):
+    def __init__(self, db, uniqueindexmap={}, classkeymap={}):
         '''
         Constructor for Transactional Write (Batch) Store objects
         ---------
         Parameters:
         db             - Database to associate with this object
         uniqueindexmap - Dict of indexes, True means its a unique index, False == nonunique
-        classkeymap    - Map of classes to index attributes - indexed by Class
+        classkeymap    - Map of classes to index attributes - indexed by Class or Class name
                          Values are another Dict with these values:
                          'index':   name of index
                          'key':     constant key value
                          'kattr':   object attribute for key
                          'value':   constant key 'value'
-                         'kattr':   object attribute for key 'value'
+                         'vattr':   object attribute for key 'value'
         '''
         self.db = db
         self.clients = []
@@ -120,12 +120,19 @@ class Store:
         self.classes = {}
         self.weaknoderefs = {}
         self.uniqueindexmap = uniqueindexmap
-        self.classkeymap = classkeymap
         self.batch = None
         self.batchindex = None
+        if len(classkeymap) > 0 and not isinstance(classkeymap.keys()[0], str):
+            # Then the map should be indexed by the classes themselves
+            newmap = {}
+            for cls in classkeymap.keys():
+                newmap[cls.__name__] = classkeymap[cls]
+            classkeymap = newmap
+        self.classkeymap = classkeymap
 
     def __str__(self):
-        ret = '{\n\tdb: %s'                         %       self.db
+        'Render our Store object as a string for debugging'
+        ret = '{\n\tdb: %s'                     %       self.db
         ret += ',\n\tclasses: %s'               %       self.classes
         if self.uniqueindexmap:
             ret += ',\n\tuniqueindexmap: %s'    %       self.uniqueindexmap
@@ -144,6 +151,17 @@ class Store:
     def id(subj):
         'Returns the id of the neo4j.Node associated with the given object'
         return subj.__store_node._id
+
+    @staticmethod
+    def has_node(subj):
+        return hasattr(subj, '_Store__store_node')
+
+    @staticmethod
+    def is_abstract(subj):
+        'Returns True if the underlying database node is Abstract'
+        if not hasattr(subj, '_Store__store_node'):
+            return True
+        return subj.__store_node.is_abstract
 
     def is_uniqueindex(self, index_name):
         'Return True if this index is known to be a unique index'
@@ -180,6 +198,20 @@ class Store:
         # Override save_indexed's judgment that it's not unique...
         subj.__store_index_unique = True
 
+    def _get_idx_key_value(self, cls, attrdict):
+        'Return the appropriate key/value pair for an object of a particular class'
+        kmap = self.classkeymap[cls.__name__]
+        index=kmap['index']
+        if 'kattr' in kmap:
+            key = attrdict[kmap['kattr']]
+        else:
+            key=kmap['key']
+        if 'vattr' in kmap:
+            value = attrdict[kmap['vattr']]
+        else:
+            value=kmap['value']
+        return (self.classkeymap[cls.__name__]['index'], key, value)
+
     def save(self, subj, node=None):
         '''Save an object:
             - into a new node
@@ -198,22 +230,13 @@ class Store:
             return
 
         # Figure out all the indexed stuff...
-        c = subj.__class__
-        if not c in self.classkeymap:
+        cls = subj.__class__
+        if not cls.__name__ in self.classkeymap:
             # Not an indexed object...
             if subj not in self.clients:
                 self._register(subj, neo4j.Node.abstract(**Store._safe_attrs(subj)))
             return
-        kmap = self.classkeymap[c]
-        index=kmap['index']
-        if 'kattr' in kmap:
-            key = getattr(subj, kmap['kattr'])
-        else:
-            key=kmap['key']
-        if 'vattr' in kmap:
-            value = getattr(subj, kmap['vattr'])
-        else:
-            value=kmap['value']
+        (index, key, value) = self._get_idx_key_value(cls, subj.__dict__)
 
         # Now save it...
         if self.is_uniqueindex(index):
@@ -237,7 +260,7 @@ class Store:
         node = self.db.node(subj.__store_node._id)
         return self._construct_obj_from_node(node, subj.__class__)
 
-            
+
     def load_indexed(self, index_name, key, value, cls):
         '''
         Return the specified set of 'cls' objects from the given index
@@ -259,10 +282,43 @@ class Store:
         #print 'load_indexed: returning %s' % ret[0].__dict__
         return ret
 
+    def load_or_create(self, cls, **clsargs):
+        '''Analogous to 'save' - for loading an object or creating it if it
+        doesn't exist
+        Note that the class arguments ('clsargs') MUST include key and value
+        arguments if they (key or value) are not constants.
+        '''
+        if not cls.__name__ in self.classkeymap:
+            print self.classkeymap
+            raise ValueError("Class 'cls'[%s] must be a class with a known index", cls.__name__)
+        (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs)
+        if not self.is_uniqueindex(index_name):
+            raise ValueError("Class 'cls' must be a unique indexed class [%s]", cls)
+        subjlist = self.load_indexed(index_name, idxkey, idxvalue, cls)
+        if len(subjlist) == 1:
+            return subjlist[0]
+        if len(subjlist) > 1:
+            raise ValueError("Index '%s (%s, %s)' not actually unique."
+            %       (index_name, idxkey, idxvalue))
+        subj = self._callconstructor(cls, clsargs)
+        self.save(subj)
+        return subj
+
 
     def relate(self, subj, rel_type, obj, properties=None):
         '''Define a 'rel_type' relationship subj-[:rel_type]->obj'''
         self.newrels.append({'from':subj, 'to':obj, 'type':rel_type, 'props':properties})
+
+    def relate_new(self, subj, rel_type, obj, properties=None):
+        '''Define a 'rel_type' relationship subj-[:rel_type]->obj'''
+        subjnode = subj.__store_node
+        objnode  = obj.__store_node
+
+        if not objnode.is_abstract and not subjnode.is_abstract:
+            rels = [rel for rel in subjnode.match_outgoing(rel_type, objnode)]
+            if len(rels) > 0:
+                return
+        self.relate(subj, rel_type, obj, properties)
 
     def separate(self, subj, rel_type=None, obj=None):
         'Separate nodes related by the specified relationship type'
@@ -295,16 +351,58 @@ class Store:
         for rel in rels:
             self.deletions.append(rel)
 
-    def load_related(self, subj, rel_type, cls):
+    def load_related(self, subj, rel_type, cls, obj=None):
         'Load all outgoing-related nodes with the specified relationship type'
-        rels = subj.__store_node.match_outgoing(rel_type)
+
+        if Store.is_abstract(subj):
+            return []
+            raise ValueError('Node to load related from cannot be abstract')
+        print 'LOAD RELATED Node(%s).match_outgoing("%s")' % (subj.__store_node, rel_type)
+        rels = subj.__store_node.match_outgoing(rel_type, obj)
         ret = []
         for rel in rels:
             ret.append(self._construct_obj_from_node(rel.end_node, cls))
         return ret
 
+    def load_related_in(self, subj, rel_type, cls, obj=None):
+        'Load all incoming-related nodes with the specified relationship type'
+
+        if Store.is_abstract(subj):
+            return []
+            raise ValueError('Node to load related from cannot be abstract')
+        print 'LOAD RELATED Node(%s).match_incoming("%s")' % (subj.__store_node, rel_type)
+        rels = subj.__store_node.match_incoming(rel_type, obj)
+        ret = []
+        for rel in rels:
+            ret.append(self._construct_obj_from_node(rel.end_node, cls))
+        return ret
+
+    def load_cypher_nodes(self, query, cls, params={}, max=None):
+        '''Execute the given query that returns a single column of nodes
+        and return those nodes'''
+        result = []
+        count = 0
+        for row in query.stream(**params):
+            for key in row.keys():
+                node = row[key]
+                subj = Store._callconstructor(cls, node.get_properties())
+                result.append(subj)
+                break
+            count += 1
+            if count >= max:
+                break
+        return result
+
+    def load_cypher_node(self, query, cls, params={}):
+        nodes = self.load_cypher_nodes(query, cls, params, max=1)
+        for node in nodes:
+            return node
+        return None
+
     def load_in_related(self, subj, rel_type, cls):
         'Load all incoming-related nodes with the specified relationship type'
+        if subj.__store_node.is_abstract:
+            raise ValueError('Node to load related from cannot be abstract')
         rels = subj.__store_node.match_incoming(rel_type)
         ret = []
         for rel in rels:
@@ -354,7 +452,7 @@ class Store:
 
         # Make sure the attributes match the desired values
         for attr in kwargs.keys():
-            if not hasattr(ret, attr) or getattr(ret, attr) != kwargs[attr]:
+            if not hasattr(ret, attr) or Store._proper_attr_value(ret, attr) != kwargs[attr]:
                 setattr(ret, attr, kwargs[attr])
         return ret
 
@@ -381,12 +479,21 @@ class Store:
         return ret
 
     @staticmethod
+    def _proper_attr_value(obj, attr):
+        value = getattr(obj, attr)
+        if isinstance(value, str) or isinstance(value, int) or isinstance(value, float ) \
+        or      isinstance(value, unicode) or isinstance(value, list) or isinstance(value, tuple):
+            return value
+        else:
+            raise ValueError("Attr %s of object %s of type %s isn't really acceptable" % (attr, obj, type(value)))
+
+    @staticmethod
     def _update_node_from_obj(subj):
         'Update the node from its paired object'
         node = subj.__store_node
         for attr in subj.__store_dirty_attrs.keys():
             #print >> sys.stderr, 'Setting node["%s"] to %s' % (attr, getattr(subj, attr))
-            node[attr] = getattr(subj, attr)
+            node[attr] = Store._proper_attr_value(subj, attr)
         subj.__store_dirty_attrs = {}
 
     def _update_obj_from_node(self, subj):
@@ -398,10 +505,6 @@ class Store:
             setattr(subj, attr, pattr)
             # Avoid unnecessary update transaction
             del subj.__store_dirty_attrs[attr]
-
-        assert len(self.clients) > 0 and self.clients[len(self.clients)-1] is subj
-        self.clients.pop()
-        subj.__store_is_intransaction = False
 
         # Make sure everything in the object is in the Node...
         for attr in subj.__dict__.keys():
@@ -432,13 +535,14 @@ class Store:
                 return subj
         #print 'RETRIEVED NODE PROPERTIES:', node.get_properties()
         retobj = Store._callconstructor(cls, node.get_properties())
-        return self.__register(retobj, node=node)
+        return self._register(retobj, node=node)
 
     def _register(self, subj, node=None, index=None, unique=None, key=None, value=None):
         'Register this object with a Node, so we can track it for updates, etc.'
 
         if not isinstance(subj, object):
             raise(ValueError('Instances registered with Store class must be subclasses of object'))
+        assert not hasattr(subj, '_Store__store')
         self.clients.append(subj)
         subj.__store = self
         subj.__store_node = node
@@ -454,7 +558,11 @@ class Store:
             self.classes[subj.__class__] = True
         if node is not None and not node.is_abstract:
             assert not node._id in self.weaknoderefs
-            subj = self.weaknoderefs[node._id] = subj
+            self.weaknoderefs[node._id] = weakref.ref(subj)
+        if node is not None:
+            if 'post_db_init' in dir(subj):
+                subj.post_db_init()
+
         return subj
 
     def _new_nodes(self):
@@ -563,10 +671,11 @@ class Store:
                 #print >> sys.stderr, 'Setting node[%s] = %s' % (attr, getattr(subj, attr))
                 # Each of these items will return None in the HTTP stream...
                 #print 'Setting property %s to %s' % (attr, getattr(subj, attr))
-                self.batch.set_property(node, attr, getattr(subj, attr))
+                self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
 
     def commit(self):
         '''Commit all the changes we've created since our last transaction'''
+        print >> sys.stderr, 'COMMITTING THIS THING:', self
         if self.batch is None:
             self.batch = neo4j.WriteBatch(self.db)
         self.batchindex = 0
@@ -576,13 +685,13 @@ class Store:
         self._batch_construct_node_updates()        # These return None
         self._batch_construct_deletions()           # These return None
         submit_results = self.batch.submit()
-        print 'SUBMIT RESULTS:', submit_results
 
         # Save away (update) any newly created nodes...
         for pair in self._new_nodes():
             (subj, node) = pair
             index = subj.__store_batchindex
             newnode = submit_results[index]
+            # This 'subj' used to have an abstract node, now it's concrete
             subj.__store_node = newnode
             self.weaknoderefs[newnode._id] = weakref.ref(subj)
             for attr in newnode.get_properties():
@@ -602,6 +711,7 @@ class Store:
         for nodeid in self.weaknoderefs.keys():
             if self.weaknoderefs[nodeid]() is None:
                 del self.weaknoderefs[nodeid]
+        return submit_results
 
 if __name__ == "__main__":
 

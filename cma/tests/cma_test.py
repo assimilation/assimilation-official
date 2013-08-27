@@ -41,7 +41,7 @@ from cmadb import CMAdb
 
 
 WorstDanglingCount = 0
-CheckForDanglingClasses = True
+CheckForDanglingClasses = False
 DEBUG=True
 DoAudit=True
 SavePackets=True
@@ -50,7 +50,7 @@ MaxDrone=4
 MaxDrone=3
 MaxDrone=10000
 MaxDrone=5
-BuildListOnly = True
+BuildListOnly = False
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
@@ -408,11 +408,15 @@ class TestCMABasic(TestCase):
         addrone = droneipaddress(1)
         maxdrones = droneid
         if doHBDEAD:
+            print >> sys.stderr, 'KILLING THEM ALL!!!'
             for droneid in range(2,maxdrones+1):
                 droneip = droneipaddress(droneid)
+                print >> sys.stderr, 'queueing dead packet for %s' % droneip
                 deadframe=pyIpPortFrame(FrameTypes.IPPORT, addrstring=droneip)
+                print >> sys.stderr, 'queueing death frame: %s' % deadframe
                 fs = pyFrameSet(FrameSetTypes.HBDEAD)
                 fs.append(deadframe)
+                print >> sys.stderr, 'FS PACKET: %s' % fs
                 fsin.append((addrone, (fs,)))
         io = TestIO(fsin)
         CMAdb.initglobal(io, True)
@@ -432,22 +436,33 @@ class TestCMABasic(TestCase):
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
         droneroot = CMAdb.cdb.nodetypetbl['Drone']
-        Dronerels = droneroot.get_relationships(neo4j.Direction.INCOMING, 'IS_A')
-        self.assertEqual(len(Dronerels), maxdrones)
+        idx = CMAdb.cdb.indextbl['Drone']
+        print >> sys.stderr, 'INDEX for Drones is: %s' % idx
+        Drones = idx.query('Drone:*')
+        print 'DRONE LIST:', Drones
+        #Dronerels = droneroot.get_relationships(neo4j.Direction.INCOMING, 'IS_A')
+        #self.assertEqual(len(Dronerels), maxdrones)
+        print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
+        CMAdb.dump_nodes()
+        print >> sys.stderr, 'END OF DUMP:', Drones
+        self.assertEqual(len(Drones), maxdrones)
         if doHBDEAD:
             partnercount = 0
             livecount = 0
             ringcount = 0
-            for dronerel in Dronerels:
-                drone1 = DroneInfo(dronerel.start_node)
+            for drone in Drones:
+                drone1 = DroneInfo(drone)
                 if drone1.node['status'] != 'dead': livecount += 1
                 drone1rels = drone1.node.get_relationships()
+                print >> sys.stderr, 'Drone1 [%s] RELATIONSHIPS: %s' % (drone1.node, drone1rels)
                 for rel in drone1rels:
                     reltype = rel.type
                     if reltype.startswith(HbRing.memberprefix):
                          ringcount += 1
                     if reltype.startswith(HbRing.nextprefix):
                          partnercount += 1
+            print >> sys.stderr, 'DUMPING DRONES'
+            CMAdb.dump_nodes()
             self.assertEqual(partnercount, 0)
             self.assertEqual(livecount, 1)
             self.assertEqual(ringcount, 1)
