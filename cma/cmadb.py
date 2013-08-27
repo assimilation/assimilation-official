@@ -30,6 +30,17 @@ from py2neo import neo4j, cypher
 #from AssimCtypes import *
 from AssimCtypes import CFG_ARRAY, CFG_BOOL, CFG_INT64, CFG_STRING, CFG_ARRAY, CFG_FLOAT
 from AssimCclasses import pyNetAddr
+from store import Store
+
+class CMAclass(object):
+    '''Class defining the relationships of our CMA classes to each other'''
+    RELTYPE = "IS_A"
+
+    def __init__(self, name):
+        self.name = name
+        self.domain = CMAdb.globaldomain
+        self.nodetype = CMAdb.NODE_nodetype
+
 
 class CMAdb:
     '''Class defining our Neo4J database.'''
@@ -44,27 +55,26 @@ class CMAdb:
 #
 #       Node types [nodetype enumeration values]:
 #
-    NODE_nodetype   = 'nodetype'    # A type node - for all nodes of that type
-    NODE_ring       = 'Ring'        # A ring of Drones
-    NODE_drone      = 'Drone'       # A server running our nanoprobes
-    NODE_switch     = 'Switch'      # An IP communications device
-    NODE_NIC        = 'NIC'         # A network interface card (connection)
-    NODE_ipaddr     = 'IPaddr'      # IP address
-    NODE_ipproc     = 'tcp-process' # A TCP client and/or server process
-    NODE_tcpipport  = 'IP:tcpport'  # (ip, port) tuple for a TCP service
+    NODE_nodetype   = 'CMAclass'      # A type node - for all nodes of that type
+    NODE_ring       = 'HbRing'        # A ring of Drones
+    NODE_drone      = 'Drone'         # A server running our nanoprobes
+    NODE_switch     = 'Switch'        # An IP communications device
+    NODE_NIC        = 'NICNode'       # A network interface card (connection)
+    NODE_ipaddr     = 'IPaddrNode'    # IP address
+    NODE_ipproc     = 'ProcessNode'   # A client and/or server process
+    NODE_tcpipport  = 'IPtcpportNode' # (ip, port) tuple for a TCP service
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
 #   Constant name    reltype        fromnodetype       tonodetype
 # ---------------    --------       ------------       ----------
-    REL_isa         = 'IS_A'        # Any node          ->  NODE_nodetype
+    REL_isa         = CMAclass.RELTYPE# Any node        ->  Any node
+    REL_causes      = 'causes'      # Any node          ->  Any node
     REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_drone (or NODE_switch)
     REL_wiredto     = 'wiredto'     # NODE_NIC          ->  NODE_drone (or NODE_switch)
-    REL_iphost      = 'iphost'      # NODE_ipaddr       ->  NODE_drone (or NODE_switch)
     REL_ipowner     = 'ipowner'     # NODE_ipaddr       ->  NODE_NIC
     REL_parentring  = 'parentring'  # NODE_ring         ->  NODE_ring
     REL_baseip      = 'baseip'      # NODE_tcpipport    ->  NODE_ipaddr
-    REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_drone
     REL_tcpservice  = 'tcpservice'  # NODE_tcpipport    ->  NODE_ipproc
     REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_drone
     REL_runningon   = 'runningon'   # NODE_ipproc       ->  NODE_drone
@@ -72,42 +82,60 @@ class CMAdb:
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
     is_indexed = {
-        NODE_ring:    True
+        NODE_nodetype:True
+    ,   NODE_ring:    True
     ,   NODE_drone:   True
     ,   NODE_switch:  True
     ,   NODE_NIC:     True    # NICs are indexed by MAC address
-                                    # MAC addresses are not always unique...
+                              # MAC addresses are not always unique...
     ,   NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
     ,   NODE_tcpipport:True   # We index IP and port - handy to have...
     ,   NODE_ipproc:  False
     }
 
     uniqueindexes = {
-        NODE_ring:    True
+        NODE_nodetype:True
+    ,   NODE_ring:    True
     ,   NODE_drone:   True
     ,   NODE_switch:  True
     ,   NODE_NIC:     True    # NICs are indexed by MAC address
-                                    # MAC addresses are not always unique...
+                              # MAC addresses are not always unique...
     ,   NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
     ,   NODE_tcpipport:True
     ,   NODE_ipproc:  False
+    }
+    classkeymap = {
+        NODE_nodetype:  {'index':NODE_nodetype,  'key': 'global',   'vattr': 'name'}
+    ,   NODE_ring:      {'index':NODE_ring,      'key': 'global',   'vattr': 'name'}
+    ,   NODE_drone:     {'index':NODE_drone,     'kattr':'domain',  'vattr': 'designation'}
+    ,   NODE_switch:    {'index':NODE_switch,    'kattr':'domain',  'vattr': 'name'}
+    ,   NODE_NIC:       {'index':NODE_NIC,       'kattr':'domain',  'vattr': 'macaddr'}
+    ,   NODE_ipaddr:    {'index':NODE_ipaddr,    'kattr':'domain',  'vattr': 'ipaddr'}
+    ,   NODE_tcpipport: {'index':NODE_tcpipport, 'kattr':'domain',  'vattr': 'name'}
+    ,   NODE_ipproc:    {'index':NODE_ipproc,    'kattr':'domain',  'vattr': 'name'}
     }
 
     nodename = os.uname()[1]
     debug = True
     transaction = None
+    log = None
+    store = None
+    globaldomain = 'global'
 
 
-
-    def __init__(self, host='localhost', port=7474):
-        url = ('http://%s:%d/db/data/' % (host, port))
-        print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
-        self.db = neo4j.GraphDatabaseService(url)
-        print >> sys.stderr, 'CREATED %s' % url
+    def __init__(self, db=None):
+        if db is None:
+            url = ('http://%s:%d/db/data/' % (host, port))
+            print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
+            db = neo4j.GraphDatabaseService(url)
+            print >> sys.stderr, 'CREATED %s' % url
+        self.db = db
+        CMAdb.store = Store(self.db, CMAdb.uniqueindexes,CMAdb.classkeymap)
         self.dbversion = self.db.neo4j_version
         self.nextlabelid = 0
         if CMAdb.debug:
             CMAdb.log.debug('Neo4j version: %s' % str(self.dbversion))
+            print >> sys.stderr, ('HELP Neo4j version: %s' % str(self.dbversion))
     #
     #   Make sure all our indexes are present and that we
     #   have a top level node for each node type for creating
@@ -119,52 +147,34 @@ class CMAdb:
         self.indextbl = {}
         self.nodetypetbl = {}
         for index in indices:
-            #print >>sys.stderr, ('Ensuring index %s exists' % index)
+            print >>sys.stderr, ('Ensuring index %s exists' % index)
+            self.indextbl[index] = self.db.get_index(neo4j.Node, index)
             self.indextbl[index] = self.db.get_or_create_index(neo4j.Node, index)
         #print >>sys.stderr, ('Ensuring index %s exists' % 'nodetype')
         self.indextbl['nodetype'] = self.db.get_or_create_index(neo4j.Node, 'nodetype')
         nodetypeindex = self.indextbl['nodetype']
-        nodezero = self.nodefromid(0)
-            
+        
+        nodezero = CMAdb.store.load_or_create(CMAclass, name='object')
+        print >> sys.stderr, 'nodezero', nodezero
+
         for index in CMAdb.is_indexed.keys():
-            top =  nodetypeindex.get_or_create('nodetype', index
-        ,                      {'name':index, 'nodetype':'nodetype'})
+            print >>sys.stderr, 'Creating CMAclass object/node for Class %s' % index
+            top = CMAdb.store.load_or_create(CMAclass, name=index)
+            print >>sys.stderr, 'Relating type %s to node zero (object)' % index
+            CMAdb.store.relate_new(top, CMAclass.RELTYPE, nodezero)
             self.nodetypetbl[index] = top
-            #print >>sys.stderr, 'Relating type %s to node zero' % index
-            if not top.has_relationship_with(nodezero):
-                top.create_relationship_to(nodezero, CMAdb.REL_isa)
             
         self.ringindex = self.indextbl[CMAdb.NODE_ring]
         self.ipindex = self.indextbl[CMAdb.NODE_ipaddr]
         self.macindex = self.indextbl[CMAdb.NODE_NIC]
         self.switchindex = self.indextbl[CMAdb.NODE_switch]
         self.droneindex = self.indextbl[CMAdb.NODE_drone]
-
-    @staticmethod
-    def initglobal(io, cleanoutdb=False, debug=False):
-        'Initialize and construct a global database instance'
-        print >> sys.stderr, 'CALLING initglobal'
-        CMAdb.log = logging.getLogger('cma')
-        CMAdb.debug = debug
-        CMAdb.io = io
-        from hbring import HbRing
-        syslog = logging.handlers.SysLogHandler(address='/dev/log'
-        ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
-        syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
-        CMAdb.log.addHandler(syslog)
-        CMAdb.log.setLevel(logging.DEBUG)
-        CMAdb.cdb = CMAdb()
-        if cleanoutdb:
-            print >> sys.stderr, 'CLEANINGOUT DB'
-            CMAdb.log.info('Re-initializing the NEO4j database')
-            CMAdb.cdb.delete_all()
-            CMAdb.cdb = CMAdb()
-            print >> sys.stderr, 'DB CLEANED'
-        from transaction import Transaction
-        CMAdb.transaction = Transaction()
-        CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
-        CMAdb.transaction.commit_trans(io)
-        CMAdb.TheOneRing =  HbRing('The_One_Ring', HbRing.THEONERING)
+        if self.store.transaction_pending:
+            print >> sys.stderr,  'self.store:', self.store
+            result = self.store.commit()
+            print >> sys.stderr, 'COMMIT results:', result
+        else:
+            print >> sys.stderr, 'Cool! Everything already created!'
 
     def next_label(self):
         self.nextlabelid += 1
@@ -172,13 +182,38 @@ class CMAdb:
 
     def delete_all(self):
         'Empty everything out of our database - start over!'
-        query = cypher.Query(self.db
+        query = neo4j.CypherQuery(self.db
         ,   'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
         result = query.execute()
         if CMAdb.debug:
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
+
+    @staticmethod
+    def dump_nodes(nodetype='Drone', stream=sys.stderr):
+        'Dump all our drones out to the given stream (defaults to sys.stderr)'
+        idx = CMAdb.cdb.indextbl[nodetype]
+        query= '%s:*' % nodetype
+        #print >> stream, 'QUERY against %s IS: "%s"' % (idx, query)
+        dronelist = idx.query(query)
+        print >> stream, 'List of %ss: %s' % (nodetype, dronelist)
+        for drone in dronelist:
+            print >> stream, ('%s %s (%s,%s)' % (nodetype, drone['name']
+            ,   drone.id, drone.get_properties()))
+            for rel in drone.match(bidirectional=True):
+                start=rel.start_node
+                end=rel.end_node
+                if start.id == drone.id:
+                    print >> stream, '    (%s)-[%s]->(%s:%s,%s)' \
+                    %       (drone['name'], rel.type, end['nodetype'], end['name'], end.id)
+                else:
+                    print >> stream, '    (%s:%s,%s)-[%s]->(%s)' \
+                    %       (start['name'], start['nodetype'], start.id, rel.type, drone['name'])
+                if start.id == end.id:
+                    print >> stream, 'SELF-REFERENCE to %s' % start.id
+        
+
 
     #pylint: disable=E1101
     def nodefromid(self, nodeid):
@@ -187,48 +222,6 @@ class CMAdb:
             return self.db.node(nodeid)
         except AttributeError:
             return self.db.get_node(nodeid)
-
-    def node_new(self, nodetype, nodename, unique=True, **properties):
-        '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
-        relationship with the nodetype object corresponding its nodetype.
-        It is created and added to indexes if it doesn't already exist in its corresponding index
-        - if there is one.
-        If it already exists, the pre-existing node is returned.
-        If this object type doesn't have an index, it will always be created.
-        Note that the nodetype has to be in the nodetypetable - even if it's NULL
-            (for error detection).
-        The IS_A relationship may be useful -- or not.  Hard to say at this point...
-        '''
-        assert nodetype is not None and nodename is not None
-        tbl = {}
-        for key in properties.keys():
-            tbl[key] = str(properties[key])
-        tbl['nodetype'] = str(nodetype)
-        tbl['name'] = str(nodename)
-        if nodetype in self.indextbl:
-            idx = self.indextbl[nodetype]
-            #print 'CREATING A [%s] object named [%s] with attributes %s' \
-            #%       (nodetype, nodename, str(tbl.keys()))
-            if unique:
-                #print >>sys.stderr, 'NODETYPE: %s; NODENAME:%s tbl:%s' \
-                #%   (nodetype, nodename, str(tbl))
-                obj = idx.get_or_create(nodetype, nodename, tbl)
-            else:
-                obj, = self.db.create(tbl)
-                #print >>sys.stderr, "TBL: %s" % str(tbl)
-                #print >>sys.stderr, 'OBJ: %s' % str(obj)
-                idx.add(nodetype, nodename, obj)
-        else:
-            #print >>sys.stderr
-            #,      'self.db.CREATING AN UNINDEXED[%s] object named [%s] with attributes %s [%s]' \
-            #%      (nodetype, nodename, str(tbl.keys()), str(tbl))
-            #print >>sys.stderr, 'self.db.attribute: attribute table: %s' % (str(tbl))
-
-            obj, = self.db.create(tbl)
-        ntt = self.nodetypetbl[nodetype]
-        self.db.get_or_create_relationships((obj, CMAdb.REL_isa, ntt),)
-        #print 'CREATED/reused %s object with id %d' % (nodetype, obj.id)
-        return obj
 
     def node_new(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
@@ -251,15 +244,18 @@ class CMAdb:
             tbl[key] = str(properties[key])
         tbl['name'] = nodename
         tbl['type'] = nodetype
-        print >> sys.stderr, 'CREATING %s object with name %s' % (nodetype, nodename)
+        print >> sys.stderr, 'CREATING %s object with name %s [u=%s]' % (nodetype, nodename, unique)
         if unique:
             idx = self.indextbl[nodetype]
             obj = idx.get(nodetype, nodename)
+            print >> sys.stderr, 'idx.get(%s,%s) returned %s' % (nodetype, nodename, obj)
             if len(obj) > 0:
                 obj = obj[0]
                 for key in tbl.keys():
                     obj[key] = tbl[key]
+                print >> sys.stderr, 'Retrieved %s object named %s [%s]' % (nodetype, nodename, obj)
             else:
+                print >> sys.stderr, 'did NOT Retrieve %s object named %s' % (nodetype, nodename)
                 obj = None
         if obj is None:
             obj = neo4j.Node.abstract(**tbl)
@@ -276,13 +272,14 @@ class CMAdb:
     def new_ring(self, name, parentring=None, **kw):
         'Create a new ring (or return a pre-existing one), and put it in the ring index'
         ring = self.node_new(CMAdb.NODE_ring, name, unique=True,  **kw)
+
         if parentring is not None:
             self.db.get_or_create_relationships((ring, CMAdb.REL_parentring, parentring.node),)
         return ring
 
     def new_drone(self, designation, **kw):
         'Create a new drone (or return a pre-existing one), and put it in the drone index'
-        #print 'Adding drone', designation
+        #print >> sys.stderr,  'Adding drone', designation
         drone = self.node_new(CMAdb.NODE_drone, designation, unique=True, **kw)
         if not 'status' in drone:
             drone['status'] = 'created'
@@ -290,7 +287,7 @@ class CMAdb:
 
     def new_switch(self, designation, **kw):
         'Create a new switch (or return a pre-existing one), and put it in the switch index'
-        #print 'Adding switch', designation
+        #print >> sys.stderr,  'Adding switch', designation
         switch = self.node_new(CMAdb.NODE_switch, designation, unique=True, **kw)
         if not 'status' in switch:
             switch['status'] = 'created'
@@ -337,7 +334,8 @@ class CMAdb:
         if nic is not None:
             for ip in ipaddrs:
                 if ip.is_related_to(nic, neo4j.Direction.OUTGOING, CMAdb.REL_ipowner):
-                    #print 'Found this IP address (%s) ipowner-related to NIC %s' % (ipaddr, nic)
+                    #print >> sys.stderr \
+                    #,  'Found this IP address (%s) ipowner-related to NIC %s' % (ipaddr, nic)
                     return ip
         if len(ipaddrs) == 0:
             ip = self.node_new(CMAdb.NODE_ipaddr, ipaddr, unique=False, **kw)
@@ -416,3 +414,8 @@ class CMAdb:
                 (tcpipport, CMAdb.REL_baseip,           ipaddrnode, {'port':port}),
                 (ipproc,    CMAdb.REL_tcpclient,        tcpipport))
         CMAdb.cdb.db.get_or_create_relationships(*args)
+
+if __name__ == '__main__':
+    print >> sys.stderr, 'Starting'
+    CMAdb.initglobal(None, cleanoutdb=True)
+    print >> sys.stderr, 'Init done'

@@ -1007,7 +1007,7 @@ class pyFrameSet(pyAssimObj):
         result = '%s:{' % FrameSetTypes.get(self.get_framesettype())[0]
         comma = ''
         for frame in self.iter():
-            result += '%s%s' % (comma, str(frame))
+            result += '%s[%d]%s' % (comma, frame.framelen(), str(frame))
             comma = ', '
         result += "}"
         return result

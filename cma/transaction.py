@@ -52,6 +52,7 @@ from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, py
         pyIpPortFrame
 from frameinfo import FrameSetTypes, FrameTypes
 from cmadb import CMAdb
+import py2neo
 from py2neo import neo4j
 
 def dumpargs(*args, **kwargs):
@@ -118,7 +119,6 @@ class Transaction:
 
     def __init__(self, json=None):
         'Constructor for a combined database/network transaction.'
-        from droneinfo import DroneInfo
         if json is None:
             self.tree = {'db': [], 'packets': []}
         else:
@@ -129,7 +129,6 @@ class Transaction:
         self.namespace = {}
         self.created = []
         self.sequence=None
-        DroneInfo.cleanrefs()
 
     def __str__(self):
         'Convert our internal tree to JSON.'
@@ -187,6 +186,11 @@ class Transaction:
 
         raise ValueError("Object [%s] [type %s]isn't a type we handle" % (thing, type(thing)))
         return 'null'
+###################################################################################################
+#
+#   This collection of member functions accumulate work to be done for our Transaction
+#
+###################################################################################################
 
     def add_packet(self, destaddr, action, frames, frametype=None):
         '''Append a packet to the ConfigContext object for this transaction.
@@ -220,7 +224,7 @@ class Transaction:
             frames = newframes
         self.tree['packets'].append({'action': int(action), 'destaddr': destaddr, 'frames': frames})
 
-    def check_id(self, item, notbool=False):
+    def _check_id(self, item, notbool=False):
         '''Return the Node ID associated with the given item.
         The items must be one of the following types:
             - An integer (meaning a node id) - just return it
@@ -256,7 +260,7 @@ class Transaction:
             if hasattr(item, 'LABELID'):
                 print >> sys.stderr, 'FOUND LABELID [%s]' % (item.LABELID)
                 print >> sys.stderr, 'Checking %s recursively' % (item.LABELID)
-                return self.check_id(item.LABELID, notbool)
+                return self._check_id(item.LABELID, notbool)
             print >> sys.stderr, 'NODE HAS NO LABELID [%s, %s]' % (item, item.id)
             print >> sys.stderr, 'RETURNING %s' % item.id
             return item.id
@@ -264,7 +268,7 @@ class Transaction:
             return item
         elif hasattr(item, 'node'):
             print >> sys.stderr, 'FOUND ITEM WITH NODE ATTR [%s] => %s' % (item, item.node)
-            return self.check_id(item.node, notbool)
+            return self._check_id(item.node, notbool)
         raise ValueError('invalid value type in to_id [%s] type(%s)' % (item, type(item)))
 
     def add_rels(self, rels):
@@ -283,8 +287,8 @@ class Transaction:
         for rel in rels:
             fromid = rel['from']
             toid = rel['to']
-            fromid = self.check_id(fromid)
-            toid = self.check_id(toid)
+            fromid = self._check_id(fromid)
+            toid = self._check_id(toid)
             rtype = rel['type']
             if 'attrs' in rel:
                 item['AddRel'].append({'from':fromid, 'to':toid, 'type':rtype
@@ -301,12 +305,13 @@ class Transaction:
 
         stack = traceback.extract_stack(inspect.currentframe(), 8)
         item = {'DelRel': [], 'caller': stack}
-        db.append({'AddNode': nodes, 'caller': stack})
         for rel in rels:
             if isinstance(rel, neo4j.Relationship):
-                item['DelRel'].append(rel.id)
+                print 'DELETING RELATIONSHIP [%s] [%d]' % (rel, rel.id)
+                item['DelRel'].append(int(rel.id))
             else:
-                item['DelRel'].append(int(drel))
+                print 'DELETING RELATIONSHIP [%d]' % ( rel)
+                item['DelRel'].append(int(rel))
         db.append(item)
 
     def add_nodes(self, nodes):
@@ -322,34 +327,28 @@ class Transaction:
                 self.namespace[node['defines']] = True
                 print >> sys.stderr, 'UPDATED NAMESPACE: ', self.namespace
 
-    def commit_trans(self, io):
-        'Commit our transaction'
-        # This is just to test that our tree serializes successfully - before we
-        # persist it on disk later.  Once we're doing that, this will be
-        # unnecessary...
-        print >> sys.stderr, "HERE IS OUR TREE:"
-        print >> sys.stderr, str(self)
-        print >> sys.stderr, "CONVERTING BACK TO TREE"
-        self.tree = pyConfigContext(str(self))
-        if len(self.tree['packets']) > 0:
-            self._commit_network_trans(io)
-        if len(self.tree['db']) > 0:
-            self._commit_db_trans()
-        self.tree = {'db': [], 'packets': []}
-        print >> sys.stderr, 'RESETTING NAMESPACE'
-        self.namespace = {}
-        CMAdb.Transaction = Transaction()
+    def update_node_attrs(self, nodes):
+        db = self.tree['db']
+        if not isinstance(nodes, list) and not isinstance(nodes, tuple):
+            nodes = (nodes,)
+        stack = traceback.extract_stack(inspect.currentframe(), 8)
+        db.append({'UpdateAttrs': nodes, 'caller': stack})
+        print >> sys.stderr, ('ADDING ATTRS FROM: %s' % traceback.format_list(stack))
+
+
+###################################################################################################
+#
+#   Code from here to the end has to do with committing our transactions...
+#
+###################################################################################################
 
     def _commit_node_add(self, batch, nodes):
-        '''We commit a node addition to the database - this eventually may be recursive.
+        '''We commit a node addition to the database.
         '''
+        print >> sys.stderr, 'COMMIT_NODE_ADD'
         for node in nodes:
             nodetype = node['type']
             name = str(node['name'])
-            if 'defines' in node:
-                print >> sys.stderr, 'DEFINING %s as %d' % (node['defines'], self.sequence)
-                self.namespace[node['defines']] = self.sequence
-                self.sequence += 1
             props = node['attributes']
             newprops = {}
             for key in props.keys():
@@ -376,44 +375,29 @@ class Transaction:
                     print >> sys.stderr, "INDEX TYPE:", type(idx)
                     dumpargs('batch.create_indexed_node_or_fail',idx, nodetype, name
                     ,   properties=props)
-                    batch.create_indexed_node_or_fail(idx, nodetype, name, properties=props)
+                    #batch.create_indexed_node_or_fail(idx, nodetype, name, properties=props)
+                    dnode = CMAdb.cdb.db.get_or_create_indexed_node(nodetype, nodetype, name, properties=props)
                 else:
                     dumpargs('batch.add_indexed_node', idx, nodetype, name, properties=props)
-                    batch.add_indexed_node(idx, nodetype, name, properties=props)
+                    #batch.add_indexed_node(idx, nodetype, name, properties=props)
+                    dnode = CMAdb.cdb.db.create_indexed_node(nodetype, nodetype, name, properties=props)
+                print >> sys.stderr, 'CREATE RETURNED %s' % dnode
             else:
                 # No index
-                dumpargs('batch.create', (neo4j._node(*props)))
-                batch.create(neo4j._node(*props))
+                print >>sys.stderr, 'CREATING: %s(%s)'% ('batch.create', py2neo.node(*props))
+                dumpargs('batch.create', py2neo.node(*props))
+                #batch.create(py2neo.node(*props))
+                dnode = CMAdb.cdb.db.create(py2neo.node(*props))
+            if 'defines' in node:
+                print >> sys.stderr, 'DEFINING %s as %s' % (node['defines'], dnode)
+                self.namespace[node['defines']] = dnode
+                #self.namespace[node['defines']] = self.sequence
+                #self.sequence += 1
+            print >> sys.stderr, 'CREATE RETURNING %s' % dnode
+            return dnode
 
-
-    def _commit_node_del(self, batch, nodes):
-        '''We commit a node deletion to the database - this may be recursive'''
-        pass
-
-
-    def _commit_db_deletions(self, batch):
-        '''We commit a node deletion to the database - this may be recursive'''
-        for item in self.tree['db']:
-            for key in item.keys():
-                if key == 'DelRel':
-                    for drel in item['DelRel']:
-                        #drel is a relationship id (i.e, an 'int')
-                        dumpargs('batch.delete_relationship',CMAdb.cdb.db.relationship(drel))
-                        batch.delete_relationship(CMAdb.cdb.db.relationship(drel))
-
-    def _commit_db_changes(self, batch):
-        pass
-
-    def _commit_db_additions(self, batch):
-        '''We commit all our database additions to the database'''
-        self.sequence=0
-        self.namespace = {}
-
-        for item in self.tree['db']:
-            for key in item.keys():
-                if key == 'AddNode':
-                    self._commit_node_add(batch, item['AddNode'])
-
+    def _commit_rel_additions(self, batch):
+        '''Commit our relationship additions'''
         for item in self.tree['db']:
             for key in item.keys():
                 if key == 'AddRel':
@@ -422,12 +406,12 @@ class Transaction:
                         toid = addrel['to']
                         print >> sys.stderr, ('ORIGINAL FROMID %s TOID %s' % (fromid, toid))
                         if (isinstance(fromid, str)):
-                            fromnode = self.check_id(fromid, notbool=True)
+                            fromnode = self._check_id(fromid, notbool=True)
                         else:
                             fromnode = CMAdb.cdb.nodefromid(fromid)
                             print >> sys.stderr, ('FROMNODE %s' % (fromnode))
                         if (isinstance(toid, str)):
-                            tonode = self.check_id(toid, notbool=True)
+                            tonode = self._check_id(toid, notbool=True)
                         else:
                             tonode = CMAdb.cdb.nodefromid(toid)
                             print >> sys.stderr, ('TONODE %s' % (tonode))
@@ -438,33 +422,72 @@ class Transaction:
                             attrs = addrel['attrs']
                             print >> sys.stderr, ('RELATIONSHIP(%s, %s, %s, attrs=%s)' 
                             %       (fromnode, addrel['type'], tonode, attrs))
-                            print >>sys.stderr, 'CALLING batch.create(%s)' % (neo4j._rel(fromnode, addrel['type'], tonode, *attrs))
-                            batch.create(neo4j._rel(fromnode, addrel['type'], tonode, *attrs))
+                            print >>sys.stderr, 'CALLING batch.create(%s)' % (py2neo.rel(fromnode, addrel['type'], tonode, *attrs))
+                            batch.create(py2neo.rel(fromnode, addrel['type'], tonode, *attrs))
                         else:
                             print >> sys.stderr, ('RELATIONSHIP FROM %s' % fromnode)
                             print >> sys.stderr, ('RELATIONSHIP TO %s' % tonode)
                             print >> sys.stderr, ('RELATIONSHIP(%s, %s, %s)' 
                             %       (fromnode, addrel['type'], tonode))
-                            print >>sys.stderr, 'CALLING batch.create(%s)' % (neo4j._rel(fromnode, addrel['type'], tonode ))
-                            batch.create(neo4j._rel(fromnode, addrel['type'], tonode))
+                            print >>sys.stderr, 'CALLING batch.create(%s)' % (py2neo.rel(fromnode, addrel['type'], tonode ))
+                            batch.create(py2neo.rel(fromnode, addrel['type'], tonode))
+
+    def _commit_node_del(self, batch, nodes):
+        '''We commit a node deletion to the database'''
         pass
+
+
+    def _commit_db_deletions(self, batch):
+        '''We commit a node deletion to the database - this may be recursive'''
+        for item in self.tree['db']:
+            for key in item.keys():
+                if key == 'DelRel':
+                    for drel in item['DelRel']:
+                        #drel is a relationship id (i.e, an 'int')
+                        print >> sys.stderr, 'batch.delete_relationship(type) %s' % type(drel)
+                        dumpargs('batch.delete_relationship(int)', drel)
+                        dumpargs('batch.delete_relationship',CMAdb.cdb.db.relationship(drel))
+                        batch.delete_relationship(CMAdb.cdb.db.relationship(drel))
+
+    def _commit_db_changes(self, batch):
+        pass
+
+    def _commit_node_additions(self, batch):
+        '''We commit all our database additions to the database'''
+        self.sequence=0
+        self.namespace = {}
+        for item in self.tree['db']:
+            for key in item.keys():
+                if key == 'AddNode':
+                    self._commit_node_add(batch, item['AddNode'])
+
+
 
     def _commit_db_trans(self):
         '''
         Commit the database portion of our transaction - that is, actually do the work.
         We do all this as a batch job - which makes it a single transaction, and hopefully faster.
         '''
+        print >> sys.stderr, 'BEFORE UPDATE:'
+        CMAdb.dump_nodes()
+        CMAdb.dump_nodes(nodetype=CMAdb.NODE_NIC)
+        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ipaddr)
+        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ring)
         batch = neo4j.WriteBatch(CMAdb.cdb.db)
         #print >> sys.stderr, "BATCH UPDATE: >>%s<<" % self.tree['db']
-        self._commit_db_deletions(batch)
         self._commit_db_changes(batch)
-        self._commit_db_additions(batch)
+        self._commit_db_deletions(batch)
+        self._commit_node_additions(batch)
+        self._commit_rel_additions(batch)
         dumpargs('batch.submit')
         batch.submit()
+        print >> sys.stderr, 'AFTER UPDATE:'
+        CMAdb.dump_nodes()
+        CMAdb.dump_nodes(nodetype=CMAdb.NODE_NIC)
+        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ipaddr)
+        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ring)
+        batch = neo4j.WriteBatch(CMAdb.cdb.db)
         self.created = []
-        from droneinfo import DroneInfo
-        #@TODO Need to register end-transaction cleanups instead...
-        DroneInfo.cleanrefs()
 
     def _commit_network_trans(self, io):
         '''
@@ -507,6 +530,24 @@ class Transaction:
             # In theory we could optimize multiple FrameSets in a row being sent to the
             # same address, but we can always do that later...
             io.sendreliablefs(packet['destaddr'], (fs,))
+
+    def commit_trans(self, io):
+        'Commit our transaction'
+        # This is just to test that our tree serializes successfully - before we
+        # persist it on disk later.  Once we're doing that, this will be
+        # unnecessary...
+        print >> sys.stderr, "HERE IS OUR TREE:"
+        print >> sys.stderr, str(self)
+        print >> sys.stderr, "CONVERTING BACK TO TREE"
+        self.tree = pyConfigContext(str(self))
+        if len(self.tree['packets']) > 0:
+            self._commit_network_trans(io)
+        if len(self.tree['db']) > 0:
+            self._commit_db_trans()
+        self.tree = {'db': [], 'packets': []}
+        print >> sys.stderr, 'RESETTING NAMESPACE'
+        self.namespace = {}
+        CMAdb.Transaction = Transaction()
 
 if __name__ == '__main__':
 

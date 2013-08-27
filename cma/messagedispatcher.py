@@ -87,6 +87,7 @@ class MessageDispatcher:
         else:
             # Commit the transaction here
             CMAdb.transaction.commit_trans(CMAdb.io)
+            CMAdb.store.commit()
             
         # @todo This will eventually need to be part of the transaction
         self.io.ackmessage(origaddr, frameset)

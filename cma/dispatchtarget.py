@@ -36,8 +36,8 @@ class DispatchTarget:
     '''
     def __init__(self):
         'Constructor for base class DispatchTarget'
-        from droneinfo import DroneInfo
-        self.droneinfo = DroneInfo  # Get around Import loops...
+        from droneinfo import Drone
+        self.droneinfo = Drone  # Get around Import loops...
         self.io = None
         self.config = None
 
@@ -64,6 +64,7 @@ class DispatchHBDEAD(DispatchTarget):
         'Dispatch function for HBDEAD FrameSets'
         fstype = frameset.get_framesettype()
         fromdrone = self.droneinfo.find(origaddr)
+        print >> sys.stderr, 'FROMDRONE, ORIGADDR in dispatch:', fromdrone, origaddr, fstype, frameset
         CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s] [%s]"
         %      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone['name']))
         for frame in frameset.iter():
@@ -124,15 +125,18 @@ class DispatchSTARTUP(DispatchTarget):
                             CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
+                print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s]' % json
         #fs = CMAlib.create_setconfig(self.config)
         #self.io.sendreliablefs(origaddr, fs)
         CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
         ,   FrameTypes.CONFIGJSON)
         CMAdb.log.info('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
-        self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port())
-        drone = self.droneinfo.find(sysname, port=origaddr.port())
-        #print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
-        drone.startaddr = origaddr
+        drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
+        ,   primary_ip_addr=str(origaddr))
+        #drone = self.droneinfo.find(sysname, port=origaddr.port())
+        print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
+
+        drone.startaddr = str(origaddr)
         if json is not None:
             drone.logjson(json)
         CMAdb.cdb.TheOneRing.join(drone)
@@ -161,6 +165,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
                     jsonconfig = pyConfigContext(init=json)
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
+                print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
                 drone.logjson(json)
                 sysname = None
 

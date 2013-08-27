@@ -98,6 +98,7 @@
 
 import optparse, time
 import os, sys, signal
+import cmainit
 #import atexit
 #
 #   "Main" program starts below...
@@ -227,8 +228,9 @@ def main():
     trycount = 0
     while True:
         try:
-            CMAdb.initglobal(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
-        except py2neo.rest.SocketError:
+            cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
+        except RuntimeError:
+            print >> sys.stderr, 'TRYING AGAIN...'
             trycount += 1
             if trycount > 300:
                 remove_pid_file(opt.pidfile)
@@ -247,7 +249,7 @@ def main():
     CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
     if CMAdb.debug:
-        CMAdb.log.info('TheOneRing created - id = %d' % CMAdb.TheOneRing.node.id)
+        CMAdb.log.info('TheOneRing created - id = %s' % CMAdb.TheOneRing)
         CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
 
     print FrameTypes.get(1)[2]
