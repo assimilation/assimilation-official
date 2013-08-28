@@ -144,7 +144,19 @@ _jsondiscovery_childwatch(ChildProcess* child			///< The @ref ChildProcess objec
 		g_warning("JSON discovery [%s] produced no output.", self->_fullpath);
 		goto quitchild;
 	}
-	//g_debug("Got %d bytes of JSON TEXT: [%s]", jsonlen, jsonout);
+	DEBUGMSG3("Got %zd bytes of JSON TEXT: [%s]", jsonlen, jsonout);
+	if (DEBUG) {
+		ConfigContext* jsobj = configcontext_new_JSON_string(jsonout);
+		if (jsobj == NULL) {
+			g_warning("JSON discovery [%s - %zd bytes] produced bad JSON."
+			,	self->_fullpath, jsonlen);
+			FREE(jsonout); jsonout = NULL;
+			goto quitchild;
+		}else{
+			// Good output!
+			UNREF(jsobj);
+		}
+	}
 	_jsondiscovery_send(self, jsonout, jsonlen);
 
 quitchild:
