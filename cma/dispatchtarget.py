@@ -125,7 +125,8 @@ class DispatchSTARTUP(DispatchTarget):
                             CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
-                print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s]' % json
+                print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
+                % (json, len(json), frame.framelen())
         #fs = CMAlib.create_setconfig(self.config)
         #self.io.sendreliablefs(origaddr, fs)
         CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
