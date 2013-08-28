@@ -45,7 +45,6 @@ DEBUGDECLARATIONS
 FSTATIC void	 _childprocess_setup_child(gpointer childprocess_object);
 FSTATIC gboolean _childprocess_timeout(gpointer childprocess_object);
 FSTATIC void	 _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object);
-FSTATIC void	 _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object);
 FSTATIC void	 _childprocess_finalize(AssimObj* self);
 FSTATIC gchar*	 _childprocess_toString(gconstpointer);
 
@@ -343,6 +342,14 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 
 	DEBUGMSG2("%s.%d: Exit happened howwedied:%d", __FUNCTION__, __LINE__
 	,	howwedied);
+	if (!self->stdout_src->atEOF) {
+		//DEBUGMSG3("Child %d [%s] EXITED but output is not at EOF", pid
+		,	self->loggingname);
+		self->stdout_src->readmore(self->stdout_src);
+	}
+	if (!self->stderr_src->baseclass.atEOF) {
+		self->stderr_src->baseclass.readmore(&self->stderr_src->baseclass);
+	}
 	self->notify(self, howwedied, exitrc, signal, WCOREDUMP(status));
 	self->child_state = -1;
 	DEBUGMSG5("%s.%d: UNREF child: %p", __FUNCTION__,__LINE__, self);

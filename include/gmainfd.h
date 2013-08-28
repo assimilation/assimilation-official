@@ -38,6 +38,7 @@ struct _GMainFd {
 	gboolean	atEOF;					///< TRUE if the file descriptor is at EOF
 	int		gsourceid;
 	void 		(*newtext)(GMainFd*, const char*, int);	///< Deal with newly read text
+	gboolean	(*readmore)(GMainFd* self);		///< Read another chunk
 	void 		(*finalize)(GMainFd*);			///< finalize function
 };
 // We use g_source_ref() and g_source_unref() to manage reference counts

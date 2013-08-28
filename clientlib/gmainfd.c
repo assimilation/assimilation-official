@@ -44,6 +44,7 @@
 FSTATIC gboolean gmainfd_gsource_prepare(GSource* source, gint* timeout);
 FSTATIC gboolean gmainfd_gsource_check(GSource* source);
 FSTATIC gboolean gmainfd_gsource_dispatch(GSource* source, GSourceFunc callback, gpointer user_data);
+FSTATIC gboolean gmainfd_gsource_readmore(GMainFd* self);
 FSTATIC void     gmainfd_gsource_finalize(GSource* source);
 
 static GSourceFuncs gmainfd_source_funcs = {
@@ -76,6 +77,7 @@ gmainfd_new(gsize cpsize, int fd, int priority, GMainContext* context)
 	self->textread = NULL;
 	self->finalize = NULL;
 	self->newtext = gmainfd_newtext;
+	self->readmore = gmainfd_gsource_readmore;
 	memset(&self->gfd, 0, sizeof(self->gfd));
 
 
@@ -159,11 +161,18 @@ FSTATIC gboolean
 gmainfd_gsource_dispatch(GSource* source, GSourceFunc unusedcallback, gpointer unused_user_data)
 {
 	GMainFd*	self = CASTTOCLASS(GMainFd, source);
-	char		readbuf[READBUFSIZE];
-	int		readrc;
 
 	(void)unusedcallback;
 	(void)unused_user_data;
+	return gmainfd_gsource_readmore(self);
+}
+
+FSTATIC gboolean
+gmainfd_gsource_readmore(GMainFd* self)
+{
+	char		readbuf[READBUFSIZE];
+	int		readrc;
+
 	while ((readrc = read(self->gfd.fd, &readbuf, sizeof(readbuf))) > 0) {
 		self->newtext(self, readbuf, readrc);
 	}
