@@ -57,6 +57,9 @@ class MessageDispatcher:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
             else:
                 self.default.dispatch(origaddr, frameset)
+            # Commit the transaction here
+            CMAdb.transaction.commit_trans(CMAdb.io)
+            CMAdb.store.commit()
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
             #   logs in a legible way
@@ -81,15 +84,15 @@ class MessageDispatcher:
                 CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
             CMAdb.log.info('======== End %s Message %s Exception Traceback ========' \
             %   (fstypename, e))
+            if CMAdb.store is not None:
+                CMAdb.log.critical("Aborting Neo4j transaction %s" % CMAdb.store)
+                CMAdb.store.abort()
             if CMAdb.transaction is not None:
-                CMAdb.log.critical("Aborting transaction %s" % CMAdb.transaction.tree)
+                CMAdb.log.critical("Aborting network transaction %s" % CMAdb.transaction.tree)
                 CMAdb.transaction = None
-        else:
-            # Commit the transaction here
-            CMAdb.transaction.commit_trans(CMAdb.io)
-            CMAdb.store.commit()
             
-        # @todo This will eventually need to be part of the transaction
+        # We want to do this even in the failed case - retries are unlikely to help
+        # and we're far more likely to get stuck in a loop retrying it forever...
         self.io.ackmessage(origaddr, frameset)
 
 

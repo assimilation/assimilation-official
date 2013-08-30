@@ -78,31 +78,50 @@ class CMAdb:
     REL_tcpservice  = 'tcpservice'  # NODE_tcpipport    ->  NODE_ipproc
     REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_drone
     REL_runningon   = 'runningon'   # NODE_ipproc       ->  NODE_drone
+    REL_monitoringon= 'monitoringon'# NODE_ipproc       ->  NODE_drone
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
+#
+#   Roles that we know about... Other roles are possible...
+#
+    ROLE_switch         = 'switch'
+    ROLE_l2router       = 'l2router'
+    ROLE_l3router       = 'l3router'
+    ROLE_netfirewall    = 'netfirewall'
+    ROLE_netbalancer    = 'loadbalancer'
+    ROLE_drone          = 'drone'
+    ROLE_client         = 'client'
+    ROLE_server         = 'server'
+
+#
+#   Which object types are indexed
+#
     is_indexed = {
-        NODE_nodetype:True
-    ,   NODE_ring:    True
-    ,   NODE_drone:   True
-    ,   NODE_switch:  True
-    ,   NODE_NIC:     True    # NICs are indexed by MAC address
-                              # MAC addresses are not always unique...
-    ,   NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
-    ,   NODE_tcpipport:True   # We index IP and port - handy to have...
-    ,   NODE_ipproc:  False
+        NODE_nodetype: True
+    ,   NODE_ring:     True
+    ,   NODE_drone:    True
+    ,   NODE_switch:   True
+    ,   NODE_NIC:      True    # NICs are indexed by MAC address
+                               # MAC addresses are not always unique...
+    ,   NODE_ipaddr:   True    # Note that IPaddrs also might not be unique
+    ,   NODE_tcpipport:True    # We index IP and port - handy to have...
+    ,   NODE_ipproc:   True
     }
 
+#
+#   Which object types have unique indexes
+#
     uniqueindexes = {
-        NODE_nodetype:True
-    ,   NODE_ring:    True
-    ,   NODE_drone:   True
-    ,   NODE_switch:  True
-    ,   NODE_NIC:     True    # NICs are indexed by MAC address
-                              # MAC addresses are not always unique...
-    ,   NODE_ipaddr:  True    # Note that IPaddrs also might not be unique
+        NODE_nodetype: True
+    ,   NODE_ring:     True
+    ,   NODE_drone:    True
+    ,   NODE_switch:   True
+    ,   NODE_NIC:      True    # NICs are indexed by MAC address
+                               # MAC addresses are not always unique...
+    ,   NODE_ipaddr:   True    # Note that IPaddrs also might not be unique
     ,   NODE_tcpipport:True
-    ,   NODE_ipproc:  False
+    ,   NODE_ipproc:   True
     }
     classkeymap = {
         NODE_nodetype:  {'index':NODE_nodetype,  'key': 'global',   'vattr': 'name'}
@@ -111,9 +130,10 @@ class CMAdb:
     ,   NODE_switch:    {'index':NODE_switch,    'kattr':'domain',  'vattr': 'name'}
     ,   NODE_NIC:       {'index':NODE_NIC,       'kattr':'domain',  'vattr': 'macaddr'}
     ,   NODE_ipaddr:    {'index':NODE_ipaddr,    'kattr':'domain',  'vattr': 'ipaddr'}
-    ,   NODE_tcpipport: {'index':NODE_tcpipport, 'kattr':'domain',  'vattr': 'name'}
-    ,   NODE_ipproc:    {'index':NODE_ipproc,    'kattr':'domain',  'vattr': 'name'}
+    ,   NODE_tcpipport: {'index':NODE_tcpipport, 'kattr':'domain',  'vattr': 'ipport'}
+    ,   NODE_ipproc:    {'index':NODE_ipproc,    'kattr':'domain',  'vattr': 'processname'}
     }
+
 
     nodename = os.uname()[1]
     debug = True
@@ -176,9 +196,6 @@ class CMAdb:
         else:
             print >> sys.stderr, 'Cool! Everything already created!'
 
-    def next_label(self):
-        self.nextlabelid += 1
-        return 'NODE_%d' % self.nextlabelid
 
     def delete_all(self):
         'Empty everything out of our database - start over!'
@@ -215,15 +232,8 @@ class CMAdb:
         
 
 
-    #pylint: disable=E1101
-    def nodefromid(self, nodeid):
-        'Convert a node ID into a Neo4j Node object'
-        try:
-            return self.db.node(nodeid)
-        except AttributeError:
-            return self.db.get_node(nodeid)
 
-    def node_new(self, nodetype, nodename, unique=True, **properties):
+    def node_OLDnew(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
         relationship with the nodetype object corresponding its nodetype.
         It is created and added to indexes if it doesn't already exist in its corresponding index
@@ -269,31 +279,31 @@ class CMAdb:
         print >> sys.stderr, 'CREATED %s object with id %s' % (nodetype, obj.id)
         return obj
 
-    def new_ring(self, name, parentring=None, **kw):
+    def OLDnew_ring(self, name, parentring=None, **kw):
         'Create a new ring (or return a pre-existing one), and put it in the ring index'
-        ring = self.node_new(CMAdb.NODE_ring, name, unique=True,  **kw)
+        ring = self.node_OLDnew(CMAdb.NODE_ring, name, unique=True,  **kw)
 
         if parentring is not None:
             self.db.get_or_create_relationships((ring, CMAdb.REL_parentring, parentring.node),)
         return ring
 
-    def new_drone(self, designation, **kw):
+    def OLDnew_drone(self, designation, **kw):
         'Create a new drone (or return a pre-existing one), and put it in the drone index'
         #print >> sys.stderr,  'Adding drone', designation
-        drone = self.node_new(CMAdb.NODE_drone, designation, unique=True, **kw)
+        drone = self.node_OLDnew(CMAdb.NODE_drone, designation, unique=True, **kw)
         if not 'status' in drone:
             drone['status'] = 'created'
         return drone
 
-    def new_switch(self, designation, **kw):
+    def OLDnew_switch(self, designation, **kw):
         'Create a new switch (or return a pre-existing one), and put it in the switch index'
         #print >> sys.stderr,  'Adding switch', designation
-        switch = self.node_new(CMAdb.NODE_switch, designation, unique=True, **kw)
+        switch = self.node_OLDnew(CMAdb.NODE_switch, designation, unique=True, **kw)
         if not 'status' in switch:
             switch['status'] = 'created'
         return switch
 
-    def new_nic(self, nicname, macaddr, owner, **kw):
+    def OLDnew_nic(self, nicname, macaddr, owner, **kw):
         '''Create a new NIC (or return a pre-existing one), and put it in the mac address index,
         and point it at its parent owner.'''
 
@@ -318,13 +328,13 @@ class CMAdb:
             if mac.is_related_to(owningnode, neo4j.Direction.OUTGOING, CMAdb.REL_nicowner) \
             and mac['address'] == macaddr and mac['nicname'] == nicname:
                 return mac
-        mac = self.node_new(CMAdb.NODE_NIC, macaddr, address=macaddr
+        mac = self.node_OLDnew(CMAdb.NODE_NIC, macaddr, address=macaddr
         ,       unique=False, nicname=nicname, **kw)
         ###mac.create_relationship_to(owningnode, CMAdb.REL_nicowner)
         CMAdb.transaction.add_rels({'from': mac, 'to': owningnode, 'type': CMAdb.REL_nicowner})
         return mac
 
-    def new_ipaddr(self, nic, ipaddr, **kw):
+    def OLDnew_ipaddr(self, nic, ipaddr, **kw):
         '''Create a new IP address (or return a pre-existing one), and point it at its parent
         NIC and its grandparent drone'''
         ipaddr = str(pyNetAddr(ipaddr).toIPv6())
@@ -338,7 +348,7 @@ class CMAdb:
                     #,  'Found this IP address (%s) ipowner-related to NIC %s' % (ipaddr, nic)
                     return ip
         if len(ipaddrs) == 0:
-            ip = self.node_new(CMAdb.NODE_ipaddr, ipaddr, unique=False, **kw)
+            ip = self.node_OLDnew(CMAdb.NODE_ipaddr, ipaddr, unique=False, **kw)
         else:
             ip = ipaddrs[0] # May have been created by a client - pick the first one...
         if nic is not None:
@@ -350,7 +360,7 @@ class CMAdb:
         return ip
 
     #NODE_ipproc     = 'ipproc'     # A client and/or server process
-    def new_ipproc(self,            ##< Self... The usual self object
+    def OLDnew_ipproc(self,            ##< Self... The usual self object
                    name,            ##< What should we be called? (no index)
                    jsonobj,         ##< The JSON ConfigContext object for us alone...
                    drone):          ##< Drone we are running on
@@ -380,13 +390,13 @@ class CMAdb:
             if CMAdb.debug:
                 CMAdb.log.debug('new_ipproc(): jsonobj[%s] = %s' % (key, jsonobj[key]))
             table[key] = jsonobj[key]
-        ipproc = self.node_new(CMAdb.NODE_ipproc, name, unique=False, **table)
+        ipproc = self.node_OLDnew(CMAdb.NODE_ipproc, name, unique=False, **table)
         self.db.get_or_create_relationships((ipproc, CMAdb.REL_runningon, drone),)
 
         return ipproc
 
 
-    def new_tcpipport(self,         ##< Self... The usual self object
+    def OLDnew_tcpipport(self,         ##< Self... The usual self object
                    name,            ##< What is our name? (not indexed - yet)
                    isserver,        ##< Either CMAdb.REL_
                    jsonobj,         ##< The JSON object for this listen object
@@ -402,7 +412,7 @@ class CMAdb:
             or      objtype == CFG_FLOAT or objtype == CFG_ARRAY):
                 continue
             table[key] = jsonobj[key]
-        tcpipport = self.node_new(CMAdb.NODE_tcpipport, name, unique=True, **table)
+        tcpipport = self.node_OLDnew(CMAdb.NODE_tcpipport, name, unique=True, **table)
         ## FIXME? Should I make this relationship a REL_baseip + ':' + port type?
         if isserver:
             args =    (

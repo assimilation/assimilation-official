@@ -1165,6 +1165,12 @@ class pyConfigContext(pyAssimObj):
         @todo Convert these enums to python types'''
         #print >> sys.stderr, 'gettype(%s)' % str(name)
         return self._Cstruct[0].gettype(self._Cstruct, str(name))
+
+    def get(self, key, alternative):
+        'return True if our object contains the given key'
+        if self._Cstruct[0].gettype(self._Cstruct, str(key)) == CFG_EEXIST:
+            return alternative
+        return self[key]
     
     def has_key(self, key):
         'return True if it has the given key'
