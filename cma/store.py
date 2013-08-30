@@ -26,7 +26,7 @@
 import sys  # Only needed for stderr for printing...
 import inspect, weakref
 #import traceback
-from py2neo import neo4j
+from py2neo import neo4j, exceptions
 '''
 Store module - contains a transactional batch implementation of Nigel Small's
 Object-Graph-Mapping API (or something a lot like it)
@@ -139,10 +139,16 @@ class Store:
         if self.uniqueindexmap:
             ret += ',\n\tclasskeymap: %s'       %       self.classkeymap
         ret += '\n\tbatchindex: %s'             %       self.batchindex
-        ret += '\n\tclients: %s'                %       self.clients
-        ret += '\n\tnewrels: %s'                %       self.newrels
-        ret += '\n\tdeletions: %s'              %       self.deletions
+        for attr in ('clients', 'newrels', 'deletions'):
+            avalue = getattr(self, attr)
+            acomma='['
+            s="\n"
+            for each in avalue:
+                s += ('%s%s' % (acomma, each))
+                acomma=', '
+            ret += ",\n\t%10s: %s"  % (attr, s)
         ret += '\n\tweaknoderefs: %s'           %       self.weaknoderefs
+
         ret += '\n\tbatch: %s'                  %       self.batch
         ret += '\n}'
         return ret
@@ -198,20 +204,6 @@ class Store:
         # Override save_indexed's judgment that it's not unique...
         subj.__store_index_unique = True
 
-    def _get_idx_key_value(self, cls, attrdict):
-        'Return the appropriate key/value pair for an object of a particular class'
-        kmap = self.classkeymap[cls.__name__]
-        index=kmap['index']
-        if 'kattr' in kmap:
-            key = attrdict[kmap['kattr']]
-        else:
-            key=kmap['key']
-        if 'vattr' in kmap:
-            value = attrdict[kmap['vattr']]
-        else:
-            value=kmap['value']
-        return (self.classkeymap[cls.__name__]['index'], key, value)
-
     def save(self, subj, node=None):
         '''Save an object:
             - into a new node
@@ -235,7 +227,7 @@ class Store:
             # Not an indexed object...
             if subj not in self.clients:
                 self._register(subj, neo4j.Node.abstract(**Store._safe_attrs(subj)))
-            return
+            return subj
         (index, key, value) = self._get_idx_key_value(cls, subj.__dict__)
 
         # Now save it...
@@ -243,6 +235,7 @@ class Store:
             self.save_unique(index, key, value, subj)
         else:
             self.save_indexed(index, key, value, subj)
+        return subj
 
     def delete(self, subj):
         'Delete the saved object and all its relationships from the database'
@@ -275,7 +268,7 @@ class Store:
 
         idx = self.db.get_index(neo4j.Node, index_name)
         nodes = idx.get(key, value)
-        #print 'idx["%s",%s].get("%s", "%s") => %s' % (index_name, idx, key, value, nodes)
+        print 'idx["%s",%s].get("%s", "%s") => %s' % (index_name, idx, key, value, nodes)
         ret = []
         for node in nodes:
             ret.append(self._construct_obj_from_node(node, cls))
@@ -291,22 +284,25 @@ class Store:
         if not cls.__name__ in self.classkeymap:
             print self.classkeymap
             raise ValueError("Class 'cls'[%s] must be a class with a known index", cls.__name__)
-        (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs)
+        subj = self._callconstructor(cls, clsargs)
+        (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=subj)
         if not self.is_uniqueindex(index_name):
             raise ValueError("Class 'cls' must be a unique indexed class [%s]", cls)
-        subjlist = self.load_indexed(index_name, idxkey, idxvalue, cls)
-        if len(subjlist) == 1:
-            return subjlist[0]
-        if len(subjlist) > 1:
-            raise ValueError("Index '%s (%s, %s)' not actually unique."
-            %       (index_name, idxkey, idxvalue))
-        subj = self._callconstructor(cls, clsargs)
-        self.save(subj)
-        return subj
+
+        # See if we can find this node in memory somewhere...
+        ret = self._localsearch(cls, idxkey, idxvalue)
+        if ret is not None:
+            return ret
+
+        node = self.db.get_indexed_node(index_name, idxkey, idxvalue)
+        if node is not None:
+            return self._construct_obj_from_node(node, cls)
+        return self.save(subj)
 
 
     def relate(self, subj, rel_type, obj, properties=None):
         '''Define a 'rel_type' relationship subj-[:rel_type]->obj'''
+        assert not isinstance(obj, str)
         self.newrels.append({'from':subj, 'to':obj, 'type':rel_type, 'props':properties})
 
     def relate_new(self, subj, rel_type, obj, properties=None):
@@ -374,7 +370,7 @@ class Store:
         rels = subj.__store_node.match_incoming(rel_type, obj)
         ret = []
         for rel in rels:
-            ret.append(self._construct_obj_from_node(rel.end_node, cls))
+            ret.append(self._construct_obj_from_node(rel.start_node, cls))
         return ret
 
     def load_cypher_nodes(self, query, cls, params={}, max=None):
@@ -383,11 +379,10 @@ class Store:
         result = []
         count = 0
         for row in query.stream(**params):
-            for key in row.keys():
-                node = row[key]
+            for key in row.__dict__.keys():
+                node = getattr(row, key)
                 subj = Store._callconstructor(cls, node.get_properties())
                 result.append(subj)
-                break
             count += 1
             if count >= max:
                 break
@@ -452,7 +447,7 @@ class Store:
 
         # Make sure the attributes match the desired values
         for attr in kwargs.keys():
-            if not hasattr(ret, attr) or Store._proper_attr_value(ret, attr) != kwargs[attr]:
+            if not hasattr(ret, attr) or getattr(ret, attr) is None:
                 setattr(ret, attr, kwargs[attr])
         return ret
 
@@ -465,8 +460,6 @@ class Store:
             if attr[0] == '_':
                 continue
             value = subj.__dict__[attr]
-            if isinstance(value, dict):
-                continue
             ret.append(attr)
         return ret
 
@@ -495,6 +488,72 @@ class Store:
             #print >> sys.stderr, 'Setting node["%s"] to %s' % (attr, getattr(subj, attr))
             node[attr] = Store._proper_attr_value(subj, attr)
         subj.__store_dirty_attrs = {}
+ 
+
+    def _get_idx_key_value(self, cls, attrdict, subj=None):
+        'Return the appropriate key/value pair for an object of a particular class'
+        kmap = self.classkeymap[cls.__name__]
+        index=kmap['index']
+        print >> sys.stderr, 'GET_IDX_KEY_VALUE: attrdict', attrdict
+        if subj is not None:
+            print >> sys.stderr, 'GET_IDX_KEY_VALUE: subj.__dict___', subj.__dict__
+        if 'kattr' in kmap:
+            kk = kmap['kattr']
+            if kk in attrdict:
+                print >> sys.stderr, 'ATTRDICT:%s, kk=%s' % (attrdict, kk)
+                key = attrdict[kk]
+            else:
+                print >> sys.stderr, 'SUBJ.__dict__:%s, kk=%s' % (subj.__dict__, kk)
+                key = getattr(subj, kk)
+        else:
+            key=kmap['key']
+        if 'vattr' in kmap:
+            kv = kmap['vattr']
+            if kv in attrdict:
+                print >> sys.stderr, 'KV ATTRDICT:%s, kv=%s' % (attrdict, kv)
+                value = attrdict[kv]
+            else:
+                print >> sys.stderr, 'KV SUBJ.__dict__:%s, kv=%s' % (subj.__dict__, kv)
+                value = getattr(subj, kv)
+        else:
+            value=kmap['value']
+        return (self.classkeymap[cls.__name__]['index'], key, value)
+
+
+    def _localsearch(self, cls, idxkey, idxvalue):
+        '''Search the 'client' array and the weaknoderefs to see if we can find
+        the requested object before going to the database'''
+
+        classname = cls.__name__
+        kmap = self.classkeymap[classname]
+        kattr = None
+        searchlist = {}
+        if 'kattr' in kmap:
+            searchlist[kmap['kattr']] = idxkey
+        if 'vattr' in kmap:
+            searchlist[kmap['vattr']] = idxvalue
+
+        clients = self.clients
+        # Not 100% sure we searching weaknoderefs helps anything - but it won't hurt much ;-)
+        for weakclient in self.weaknoderefs.values():
+            client = weakclient()
+            if client is not None:
+                clients.append(client)
+
+        for client in clients:
+            if client.__class__ != cls:
+                continue
+            found = True
+            for attr in searchlist.keys():
+                if not hasattr(client, attr) or getattr(client, attr) != searchlist[attr]:
+                    found = False
+                    break
+            if found:
+                return client
+        return None
+
+
+
 
     def _update_obj_from_node(self, subj):
         'Update the object from its paired node'
@@ -502,9 +561,12 @@ class Store:
         props = node.get_properties()
         for attr in props.keys():
             pattr = props[attr]
-            setattr(subj, attr, pattr)
-            # Avoid unnecessary update transaction
-            del subj.__store_dirty_attrs[attr]
+            if hasattr(subj, attr) and getattr(subj, attr) != pattr:
+                subj.__store_dirty_attrs[attr] = True
+            else:
+                setattr(subj, attr, pattr)
+                # Avoid unnecessary update transaction
+                del subj.__store_dirty_attrs[attr]
 
         # Make sure everything in the object is in the Node...
         for attr in subj.__dict__.keys():
@@ -592,6 +654,7 @@ class Store:
             Store._update_node_from_obj(subj)
             subj.__store_batchindex = self.batchindex
             self.batchindex += 1
+            print >> sys.stderr, 'Performing batch.create(%s) - for a new node' % node
             self.batch.create(node)
 
     def _batch_construct_relate_nodes(self):
@@ -616,6 +679,7 @@ class Store:
             rel['seqno'] = self.batchindex
             rel['abstract'] = absrel
             self.batchindex += 1
+            print >> sys.stderr, 'Performing batch.create(%s) - for node relationships' % absrel
             self.batch.create(absrel)
 
     def _batch_construct_deletions(self):
@@ -626,7 +690,7 @@ class Store:
             if isinstance(relorobj, neo4j.Relationship):
                 relid = relorobj._id
                 if relid not in delrels:
-                    #print >> sys.stderr, 'DELETING rel %s' % relorobj
+                    print >> sys.stderr, 'DELETING rel %s' % relorobj
                     self.batch.delete(relorobj)
                     delrels[relid] = True
             else:
@@ -641,7 +705,7 @@ class Store:
                 for attr in relorobj.__dict__.keys():
                     if attr.startswith('_Store__store'):
                         delattr(relorobj, attr)
-                # print >> sys.stderr, 'DELETING node %s' % node
+                print >> sys.stderr, 'DELETING node %s' % node
                 self.batch.delete(node)
                 delnodes[relid] = True
 
@@ -655,9 +719,13 @@ class Store:
                 key = subj.__store_index_key
                 value = subj.__store_index_value
                 if subj.__store_index_unique:
+                    print >> sys.stderr, ('Adding node or fail: node %s to index %s("%s","%s")' %\
+                        (subj.__store_batchindex, idx, key, value))
                     self.batch.add_to_index_or_fail(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
                 else:
+                    print >> sys.stderr, ('add_to_index: node %s added to index %s(%s,%s)' %
+                        (subj.__store_batchindex, idx, key, value))
                     self.batch.add_to_index(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
 
@@ -668,11 +736,21 @@ class Store:
             if node.is_abstract:
                 continue
             for attr in subj.__store_dirty_attrs.keys():
-                #print >> sys.stderr, 'Setting node[%s] = %s' % (attr, getattr(subj, attr))
+                print >> sys.stderr, 'Setting node[%s] = %s' % (attr, getattr(subj, attr))
                 # Each of these items will return None in the HTTP stream...
-                #print 'Setting property %s to %s' % (attr, getattr(subj, attr))
+                print >> sys.stderr, 'Setting property %s to %s' % (attr, getattr(subj, attr))
                 self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
 
+    def abort(self):
+        self.batch.clear()
+        self.clients = []
+        self.newrels = []
+        self.deletions = []
+        # Clean out dead node references
+        for nodeid in self.weaknoderefs.keys():
+            subj = self.weaknoderefs[nodeid]()
+            if subj is None or not hasattr(subj, '_Store__store_node'):
+                del self.weaknoderefs[nodeid]
     def commit(self):
         '''Commit all the changes we've created since our last transaction'''
         print >> sys.stderr, 'COMMITTING THIS THING:', self
@@ -684,6 +762,7 @@ class Store:
         self._batch_construct_new_index_entries()   # These return the objects indexed
         self._batch_construct_node_updates()        # These return None
         self._batch_construct_deletions()           # These return None
+        print >> sys.stderr, 'Committed THIS THING:', self
         submit_results = self.batch.submit()
 
         # Save away (update) any newly created nodes...
@@ -703,14 +782,7 @@ class Store:
         for subj in self.clients:
             subj.__store_dirty_attrs = {}
             subj.__store_is_intransaction = False
-        self.batch.clear()
-        self.clients = []
-        self.newrels = []
-        self.deletions = []
-        # Clean out dead node references
-        for nodeid in self.weaknoderefs.keys():
-            if self.weaknoderefs[nodeid]() is None:
-                del self.weaknoderefs[nodeid]
+        self.abort()
         return submit_results
 
 if __name__ == "__main__":

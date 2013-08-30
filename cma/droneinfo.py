@@ -28,7 +28,7 @@ import sys
 #import os, traceback
 from cmadb import CMAdb
 from store import Store
-from graphnodes import NICNode, IPaddrNode, SystemNode, nodeconstructor
+from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, nodeconstructor
 from py2neo import neo4j
 
 
@@ -39,34 +39,52 @@ import hbring
 from graphnodes import GraphNode, nodeconstructor
 
 class Drone(SystemNode):
-    'Everything about Drones - endpoints that run our nanoprobes'
+    '''Everything about Drones - endpoints that run our nanoprobes.
+
+    There are two Cypher queries that get initialized later:
+    Drone.IPownerquery_1: Given an IP address, return what SystemNode (probably Drone) that 'owns' it.
+    Drone.OwnedIPsQuery:  Given a Drone object, return all the IPaddrNodes that it 'owns'
+    '''
     _droneweakrefs = {}
     _JSONprocessors = {}
     IPownerquery_1 = None
     OwnedIPsQuery = None
+    IPownerquery_1_txt = '''START n=node:IPaddrNode({ipquery})
+                            MATCH n<-[:%s]-()<-[:%s]-drone
+                            return drone LIMIT 1'''
+    OwnedIPsQuery_txt = '''START d=node({droneid}) 
+                           MATCH d-[:%s]->()-[:%s]->ip
+                           return ip'''
 
 
-    def __init__(self, designation, port=None, startaddr=None
-    ,       primary_ip_addr=None, domain=CMAdb.globaldomain):
-        super(Drone, self).__init__(domain=domain, systemtype='drone')
+    def __init__(self, designation, port=None, startaddr=None, roles=['host', 'drone']
+    ,       primary_ip_addr=None, domain=CMAdb.globaldomain
+    ,       status = '(unknown)', reason = '(initialization)'):
+        '''Initialization function for the Drone class.
+        We mainly initialize a few attributes from parameters as noted above...
+
+        The first time around we also initialize a couple of class-wide CypherQuery
+        objects for a couple of queries we know we'll need later.
+        '''
+        SystemNode.__init__(self, domain=domain)
+        self.addrole('drone')
         self._io = CMAdb.io
-        self.status = '(unknown)'
-        self.reason = '(initialization)'
+        self.status = status
+        self.reason = reason
         self.startaddr = str(startaddr)
-        self.primary_ip_addr = str(primary_ip_addr)
-        self.port = port
+        if primary_ip_addr is not None:
+            self.primary_ip_addr = str(primary_ip_addr)
+        if port is not None:
+            self.port = int(port)
+        else:
+            self.port = None
         self.designation = designation
+
         if Drone.IPownerquery_1 is None:
-            Drone.IPownerquery_1 =  neo4j.CypherQuery(CMAdb.cdb.db,
-            '''START n=node:IPaddrNode({ipquery})\
-               MATCH n<-[:%s]-()<-[:%s]-drone
-               return drone LIMIT 1
-            ''' % (CMAdb.REL_ipowner, CMAdb.REL_nicowner))
-            Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db,
-            '''START d=node:Drone({droneid})\
-               MATCH drone-[:%s]->()-[:%s]->ip
-               return ip
-            ''' % (CMAdb.REL_nicowner, CMAdb.REL_ipowner))
+            Drone.IPownerquery_1 =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.IPownerquery_1_txt
+            % (CMAdb.REL_ipowner, CMAdb.REL_nicowner))
+            Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db
+            ,                   Drone.OwnedIPsQuery_txt % (CMAdb.REL_ipowner, CMAdb.REL_nicowner))
 
 
     def getport(self):
@@ -145,7 +163,7 @@ class Drone(SystemNode):
             else:
                 CMAdb.store.separate(self, CMAdb.REL_ipowner, currmac)
                 CMAdb.store.separate(self, CMAdb.REL_causes,  currmac)
-                # This needs to be a "reference count" deletion...
+                # @TODO Needs to be a 'careful, complete' reference count deletion...
                 CMAdb.store.delete(currmac)
                 del currmacs[macaddr]
         currmacs = None
@@ -192,6 +210,7 @@ class Drone(SystemNode):
                     self.primary_ip_addr = str(primaryip.ipaddr)
                     print >>sys.stderr, 'PRIMARY IP is %s' % iponly
                 newips[str(netaddr)] = ipnode
+
             # compare the two sets of IP addresses (old and new)
             for ipaddr in currips.keys():
                 currip = currips[ipaddr]
@@ -199,8 +218,8 @@ class Drone(SystemNode):
                     newips[ipaddr] = currip.update_attributes(newips[ipaddr])
                 else:
                     del currips[ipaddr]
-                    # This needs to be a "reference count" deletion...
                     CMAdb.store.separate(mac, currip, CMAdb.REL_ipowner)
+                    # @TODO Needs to be a 'careful, complete' reference count deletion...
                     CMAdb.store.delete(currip)
 
             # Create REL_ipowner relationships for all the newly created IP nodes
@@ -219,39 +238,83 @@ class Drone(SystemNode):
         if CMAdb.debug:
             CMAdb.log.debug('add_tcplisteners(data=%s)' % data)
         print 'STORE contains:', CMAdb.store
-        allourips = CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, Drone
-        ,       {'droneid':Store.id(self)})
+        print 'WE ARE :', self
+
+        assert(not Store.is_abstract(self))
+        allourips = CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
+        ,       params={'droneid':Store.id(self)})
         print 'ALL OUR IPs:', allourips
         if CMAdb.debug:
             CMAdb.log.debug('Processing keys(%s)' % data.keys())
+        newprocs = {}
+        newprocmap = {}
+        discoveryroles={}
         for procname in data.keys(): # List of names of processes...
+            procinfo = data[procname]
+            if 'listenaddrs' in procinfo:
+                if not CMAdb.ROLE_server in discoveryroles:
+                    discoveryroles[CMAdb.ROLE_server] = True
+                    self.addrole(CMAdb.ROLE_server)
+            if 'clientaddrs' in procinfo:
+                if not CMAdb.ROLE_client in discoveryroles:
+                    discoveryroles[CMAdb.ROLE_client] = True
+                    self.addrole(CMAdb.ROLE_client)
+            ipproc = CMAdb.store.load_or_create(ProcessNode, domain=self.domain, host=self.designation
+            ,   pathname=procinfo.get('exe', 'unknown'), arglist=procinfo.get('cmdline', 'unknown')
+            ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
+            ,   cwd=procinfo.get('cwd', '/'))
+            assert hasattr(ipproc, '_Store__store_node')
+
+            newprocs[ipproc.processname] = ipproc
+            newprocmap[procname] = ipproc
+            self.lastobservedtime = int(round(time.time() * 1000))
+            if CMAdb.store.is_abstract(ipproc):
+                CMAdb.store.relate(ipproc, CMAdb.REL_runningon, self)
             if CMAdb.debug:
-                CMAdb.log.debug('Processing key(%s)' % procname)
+                CMAdb.log.debug('procinfo(%s) - ipproc created=> %s' % (procinfo, ipproc))
+
+        oldprocs = {}
+        for proc in CMAdb.store.load_related_in(self, CMAdb.REL_runningon, ProcessNode):
+            assert hasattr(proc, '_Store__store_node')
+            procname = proc.processname
+            oldprocs[procname] = proc
+            if not procname in newprocs:
+                if len(proc.delrole(discoveryroles.keys())) == 0:
+                    assert not Store.is_abstract(proc)
+                    CMAdb.store.separate(proc, CMAdb.REL_runningon, self)
+                    # @TODO Needs to be a 'careful, complete' reference count deletion...
+                    CMAdb.store.delete(proc)
+
+        print >> sys.stderr, ('NEWPROCS = %s' % newprocs)
+        for procname in data.keys(): # List of names of processes...
+            proc = newprocmap[procname]
             procinfo = data[procname]
             if CMAdb.debug:
-                CMAdb.log.debug('Processing procinfo(%s)' % procinfo)
-            ipproc = CMAdb.cdb.new_ipproc(procname, procinfo, self)
-            if CMAdb.debug:
-                CMAdb.log.debug('procinfo(%s) - ipproc created=> %s'
-            %   (procinfo, ipproc))
+                CMAdb.log.debug('Processing key(%s): proc: %s' % (procname, proc))
+            if not CMAdb.store.is_abstract(proc):
+                if CMAdb.debug:
+                    CMAdb.log.debug('Process key(%s) already in database')
+                continue
             if 'listenaddrs' in procinfo:
+                proc.addrole(CMAdb.ROLE_server)
                 if CMAdb.debug:
                     CMAdb.log.debug('listenaddrs is in (%s)' % procinfo)
                 tcpipportinfo = procinfo['listenaddrs']
                 for tcpipport in tcpipportinfo.keys():
                     if CMAdb.debug:
                         CMAdb.log.debug('Processing tcpipport(listenaddrs)(%s)' % tcpipport)
-                    self.add_tcpipports(True, tcpipportinfo[tcpipport], ipproc, allourips)
+                    self.add_tcpipports(True, tcpipportinfo[tcpipport], proc, procinfo, ipproc, allourips)
             if 'clientaddrs' in procinfo:
+                proc.addrole(CMAdb.ROLE_client)
                 if CMAdb.debug:
                     CMAdb.log.debug('clientaddrs is in (%s)' % procinfo)
                 tcpipportinfo = procinfo['clientaddrs']
                 for tcpipport in tcpipportinfo.keys():
                     if CMAdb.debug:
                         CMAdb.log.debug('Processing tcpipport(clientaddrs)(%s)' % tcpipport)
-                    self.add_tcpipports(False, tcpipportinfo[tcpipport], ipproc, None)
+                    self.add_tcpipports(False, tcpipportinfo[tcpipport], proc, procinfo, ipproc, None)
 
-    def add_tcpipports(self, isserver, jsonobj, ipproc, allourips):
+    def add_tcpipports(self, isserver, jsonobj, processproc, procinfo, ipproc, allourips):
         '''We create tcpipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
         for the ANY ipv4 and ipv6 addresses'''
@@ -261,30 +324,35 @@ class Drone(SystemNode):
             return
         addr = str(netaddr)
         port = jsonobj['port']
-        netaddrandport = pyNetAddr(str(netaddr))
-        netaddrandport.setport(port)
-        name = str(netaddrandport)
+        ipproc = CMAdb.store.load_or_create(ProcessNode, domain=self.domain, host=self.designation
+        ,   pathname=procinfo.get('exe', 'unknown'), arglist=procinfo.get('cmdline', 'unknown')
+        ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
+        ,   cwd=procinfo.get('cwd', '/'))
         # Were we given the ANY address?
         if isserver and (addr == '::' or addr == '::ffff:0.0.0.0'):
             for ipaddr in allourips:
-                ipnetaddr = (pyNetAddr(ipaddr.ipaddr).toIPv6())
-                ipnetaddr.setport(port)
-                name = str(ipnetaddr)
-                CMAdb.cdb.new_tcpipport(name, isserver
-                ,   jsonobj, self, ipproc, ipaddr)
+                ip_port = CMAdb.store.load_or_create(IPtcpportNode, domain=self.domain
+                ,   ipaddr=ipproc.ipaddr, port=port)
+                CMAdb.store.relate_new(processproc, CMAdb.REL_tcpservice, ip_port)
+                CMAdb.store.relate_new(ip_port, CMAdb.REL_baseip, ipproc)
         elif isserver:
             for ipaddr in allourips:
-                ipaddrname = ipaddr['name']
+                ipaddrname = ipaddr.ipaddr
                 ipnetaddr = (pyNetAddr(str(ipaddrname)).toIPv6())
                 if ipnetaddr == netaddr:
                     CMAdb.cdb.new_tcpipport(name, isserver, jsonobj, self, ipproc, ipaddr)
                     return
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
-                            % (self.designation, addr))
+                            % (self, addr))
         else:
-            netaddr.setport(port)
-            ipaddr = CMAdb.cdb.new_ipaddr(None, addr)
-            CMAdb.cdb.new_tcpipport(str(netaddr), isserver, jsonobj, None, ipproc, ipaddr)
+            ip_port = CMAdb.store.load_or_create(IPtcpportNode, domain=self.domain
+            ,   ipaddr=addr, port=port)
+            CMAdb.store.relate_new(ip_port, CMAdb.REL_baseip, ipproc, {'causes': True})
+            if isserver:
+                CMAdb.store.relate_new(processproc, CMAdb.REL_tcpservice, ip_port)
+            else:
+                CMAdb.store.relate_new(ip_port, CMAdb.REL_tcpclient, processproc)
+
 
     #pylint: disable=R0914
     def add_linkdiscovery(self, jsonobj, **keywords):
@@ -305,8 +373,9 @@ class Drone(SystemNode):
                 value = str(value)
             attrs[key] = value
         #### FIXME What should the domain of a switch default to?
-        switch = CMAdb.store.load_or_create(SystemNode, domain=self.domain
-        ,       systemtype='switch', **attrs)
+        switch = CMAdb.store.load_or_create(SystemNode, domain=self.domain, **attrs)
+        switch.addrole(CMAdb.ROLE_switch)
+
         if 'ManagementAddress' in attrs:
             # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
             mgmtaddr = attrs['ManagementAddress']
@@ -314,9 +383,9 @@ class Drone(SystemNode):
             ,           ifname='(adminNIC)')
             mgmtip = CMAdb.store.load_or_create(IPaddrNode, domain=switch.domain, cidrmask='unknown')
             if Store.is_abstract(adminnic) or Store.is_abstract(switch):
-                CMAdb.store.relate(switch, REL_nicowner, adminnic, {'causes': True})
+                CMAdb.store.relate(switch, CMAdb.REL_nicowner, adminnic, {'causes': True})
             if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
-                CMAdb.store.relate(adminnic, REL_ipowner, mgmtip, {'causes': True})
+                CMAdb.store.relate(adminnic, CMAdb.REL_ipowner, mgmtip, {'causes': True})
         ports = data['ports']
         for portname in ports.keys():
             attrs = {}
@@ -502,9 +571,9 @@ class Drone(SystemNode):
         if isinstance(designation, Drone):
             return designation
         elif isinstance(designation, str):
+            print >> sys.stderr, 'DESIGNATION1: %s' % designation
             drone = CMAdb.store.load_or_create(Drone, port=port, domain=domain
             ,       designation=designation)
-            print >> sys.stderr, 'DESIGNATION1: %s' % designation
             assert drone.designation == designation
             assert CMAdb.store.has_node(drone)
             return drone
@@ -548,7 +617,7 @@ class Drone(SystemNode):
     ,       primary_ip_addr=None):
         'Add a drone to our set unless it is already there.'
         drone = CMAdb.store.load_or_create(Drone, domain=domain, designation=designation
-        ,   primary_ip_addr=primary_ip_addr)
+        ,   primary_ip_addr=primary_ip_addr, port=port, status=status, reason=reason)
         assert CMAdb.store.has_node(drone)
         drone.reason=reason
         drone.status=status
