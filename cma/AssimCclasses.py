@@ -488,6 +488,13 @@ class pyNetAddr(pyAssimObj):
             base = base.baseclass
         return base.islocal(self._Cstruct)
 
+    def isanyaddr(self):
+        'Return True if this address is a local address'
+        base = self._Cstruct[0]
+        while (type(base) is not NetAddr):
+            base = base.baseclass
+        return base.isanyaddr(self._Cstruct)
+
     def toIPv6(self, port=None):
         'Return an equivalent IPv6 address to the one that was given. Guaranteed to be a copy'
         base = self._Cstruct[0]
@@ -1167,15 +1174,14 @@ class pyConfigContext(pyAssimObj):
         return self._Cstruct[0].gettype(self._Cstruct, str(name))
 
     def get(self, key, alternative):
-        'return True if our object contains the given key'
+        '''return value if object contains the given key - 'alternative' if not'''
         if self._Cstruct[0].gettype(self._Cstruct, str(key)) == CFG_EEXIST:
             return alternative
         return self[key]
     
     def has_key(self, key):
         'return True if it has the given key'
-        ktype = self._Cstruct[0].gettype(self._Cstruct, str(key))
-        return ktype != CFG_EEXIST
+        return self.__contains__(key)
 
     def __contains__(self, key):
         'return True if our object contains the given key'
