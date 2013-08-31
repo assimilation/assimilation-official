@@ -59,7 +59,12 @@ class MessageDispatcher:
                 self.default.dispatch(origaddr, frameset)
             # Commit the transaction here
             CMAdb.transaction.commit_trans(CMAdb.io)
-            CMAdb.store.commit()
+            if CMAdb.store.transaction_pending:
+                CMAdb.store.commit()
+            else:
+                print >> sys.stderr, 'No data base changes this time'
+                CMAdb.store.abort()
+            print >> sys.stderr, ''
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
             #   logs in a legible way
