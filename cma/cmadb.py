@@ -58,7 +58,7 @@ class CMAdb:
     NODE_nodetype   = 'CMAclass'      # A type node - for all nodes of that type
     NODE_ring       = 'HbRing'        # A ring of Drones
     NODE_drone      = 'Drone'         # A server running our nanoprobes
-    NODE_switch     = 'Switch'        # An IP communications device
+    NODE_system     = 'SystemNode'    # A system without a nanoprobe - switches so far...
     NODE_NIC        = 'NICNode'       # A network interface card (connection)
     NODE_ipaddr     = 'IPaddrNode'    # IP address
     NODE_ipproc     = 'ProcessNode'   # A client and/or server process
@@ -70,8 +70,8 @@ class CMAdb:
 # ---------------    --------       ------------       ----------
     REL_isa         = CMAclass.RELTYPE# Any node        ->  Any node
     REL_causes      = 'causes'      # Any node          ->  Any node
-    REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_drone (or NODE_switch)
-    REL_wiredto     = 'wiredto'     # NODE_NIC          ->  NODE_drone (or NODE_switch)
+    REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_system - or subclass
+    REL_wiredto     = 'wiredto'     # NODE_NIC          ->  NODE_system - or subclass
     REL_ipowner     = 'ipowner'     # NODE_ipaddr       ->  NODE_NIC
     REL_parentring  = 'parentring'  # NODE_ring         ->  NODE_ring
     REL_baseip      = 'baseip'      # NODE_tcpipport    ->  NODE_ipaddr
@@ -83,14 +83,23 @@ class CMAdb:
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 #
-#   Roles that we know about... Other roles are possible...
+#   Node_System (or Node_Drone) Roles that we've heard of... Other roles are possible...
 #
     ROLE_switch         = 'switch'
-    ROLE_l2router       = 'l2router'
-    ROLE_l3router       = 'l3router'
     ROLE_netfirewall    = 'netfirewall'
     ROLE_netbalancer    = 'loadbalancer'
-    ROLE_drone          = 'drone'
+    ROLE_repeater       = 'repeater'        # 802.11AB - Section 9.5.8.1
+    ROLE_bridge         = 'bridge'          # 802.11AB - Section 9.5.8.1
+    ROLE_router         = 'router'          # 802.11AB - Section 9.5.8.1
+    ROLE_telephone      = 'phone'           # 802.11AB - Section 9.5.8.1
+    ROLE_AccessPoint    = 'WLANAP'          # 802.11AB - Section 9.5.8.1
+    ROLE_DOCSIS         = 'DOCSIS'          # 802.11AB - Section 9.5.8.1
+    ROLE_Station        = 'station'         # 802.11AB - Section 9.5.8.1
+    ROLE_UPS            = 'UPS'
+    ROLE_CRAC           = 'crac'
+    ROLE_sensor         = 'sensor'
+    ROLE_drone          = 'drone'           # http://bit.ly/197K7e9
+    ROLE_host           = 'host'
     ROLE_client         = 'client'
     ROLE_server         = 'server'
 
@@ -101,7 +110,7 @@ class CMAdb:
         NODE_nodetype: True
     ,   NODE_ring:     True
     ,   NODE_drone:    True
-    ,   NODE_switch:   True
+    ,   NODE_system:   True
     ,   NODE_NIC:      True    # NICs are indexed by MAC address
                                # MAC addresses are not always unique...
     ,   NODE_ipaddr:   True    # Note that IPaddrs also might not be unique
@@ -116,7 +125,7 @@ class CMAdb:
         NODE_nodetype: True
     ,   NODE_ring:     True
     ,   NODE_drone:    True
-    ,   NODE_switch:   True
+    ,   NODE_system:   True
     ,   NODE_NIC:      True    # NICs are indexed by MAC address
                                # MAC addresses are not always unique...
     ,   NODE_ipaddr:   True    # Note that IPaddrs also might not be unique
@@ -127,7 +136,7 @@ class CMAdb:
         NODE_nodetype:  {'index':NODE_nodetype,  'key': 'global',   'vattr': 'name'}
     ,   NODE_ring:      {'index':NODE_ring,      'key': 'global',   'vattr': 'name'}
     ,   NODE_drone:     {'index':NODE_drone,     'kattr':'domain',  'vattr': 'designation'}
-    ,   NODE_switch:    {'index':NODE_switch,    'kattr':'domain',  'vattr': 'name'}
+    ,   NODE_system:    {'index':NODE_system,    'kattr':'domain',  'vattr': 'name'}
     ,   NODE_NIC:       {'index':NODE_NIC,       'kattr':'domain',  'vattr': 'macaddr'}
     ,   NODE_ipaddr:    {'index':NODE_ipaddr,    'kattr':'domain',  'vattr': 'ipaddr'}
     ,   NODE_tcpipport: {'index':NODE_tcpipport, 'kattr':'domain',  'vattr': 'ipport'}
@@ -187,7 +196,7 @@ class CMAdb:
         self.ringindex = self.indextbl[CMAdb.NODE_ring]
         self.ipindex = self.indextbl[CMAdb.NODE_ipaddr]
         self.macindex = self.indextbl[CMAdb.NODE_NIC]
-        self.switchindex = self.indextbl[CMAdb.NODE_switch]
+        self.switchindex = self.indextbl[CMAdb.NODE_system]
         self.droneindex = self.indextbl[CMAdb.NODE_drone]
         if self.store.transaction_pending:
             print >> sys.stderr,  'self.store:', self.store
@@ -298,7 +307,7 @@ class CMAdb:
     def OLDnew_switch(self, designation, **kw):
         'Create a new switch (or return a pre-existing one), and put it in the switch index'
         #print >> sys.stderr,  'Adding switch', designation
-        switch = self.node_OLDnew(CMAdb.NODE_switch, designation, unique=True, **kw)
+        switch = self.node_OLDnew(CMAdb.NODE_system, designation, unique=True, **kw)
         if not 'status' in switch:
             switch['status'] = 'created'
         return switch

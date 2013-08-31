@@ -622,7 +622,7 @@ class Store:
             self.classes[subj.__class__] = True
         if node is not None and not node.is_abstract:
             if node._id in self.weaknoderefs:
-                weakling = self.weaknoderefs[node._id]
+                weakling = self.weaknoderefs[node._id]()
                 print 'OOPS! - already here... self.weaknoderefs', weakling, weakling.__dict__()
             assert not node._id in self.weaknoderefs or self.weaknoderefs[node._id] is None
             self.weaknoderefs[node._id] = weakref.ref(subj)
@@ -687,7 +687,7 @@ class Store:
             self.batchindex += 1
             #print >> sys.stderr, 'Performing batch.create(%s) - for node relationships' % absrel
             self.relate_node_count += 1
-            print >> sys.stderr, 'ADDING rel %s' % absrel
+            #print >> sys.stderr, 'ADDING rel %s' % absrel
             self.batch.create(absrel)
 
     def _batch_construct_deletions(self):
@@ -698,7 +698,7 @@ class Store:
             if isinstance(relorobj, neo4j.Relationship):
                 relid = relorobj._id
                 if relid not in delrels:
-                    print >> sys.stderr, 'DELETING rel %s' % relorobj
+                    #print >> sys.stderr, 'DELETING rel %s' % relorobj
                     self.batch.delete(relorobj)
                     delrels[relid] = True
                     self.node_separate_count += 1
@@ -714,7 +714,7 @@ class Store:
                 for attr in relorobj.__dict__.keys():
                     if attr.startswith('_Store__store'):
                         delattr(relorobj, attr)
-                print >> sys.stderr, 'DELETING node %s' % node
+                #print >> sys.stderr, 'DELETING node %s' % node
                 self.node_deletion_count += 1
                 self.batch.delete(node)
                 delnodes[relid] = True
@@ -758,7 +758,6 @@ class Store:
                 #print >> sys.stderr, 'Setting property %s to %s' % (attr, getattr(subj, attr))
                 self.node_update_count += 1
                 self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
-                print >> sys.stderr, 'Setting property %s in %s' % (attr, subj.__class__.__name__)
 
     def abort(self):
         self.batch.clear()

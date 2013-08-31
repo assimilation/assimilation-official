@@ -133,8 +133,7 @@ class DispatchSTARTUP(DispatchTarget):
         CMAdb.log.info('Drone %s registered from address %s (%s) port %s' % (sysname, origaddr, addrstr, origaddr.port()))
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
-        #drone = self.droneinfo.find(sysname, port=origaddr.port())
-        print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
+        #print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
 
         drone.startaddr = str(origaddr)
         if json is not None:
@@ -165,7 +164,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
                     jsonconfig = pyConfigContext(init=json)
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
-                print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
+                #print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
                 drone.logjson(json)
                 sysname = None
 

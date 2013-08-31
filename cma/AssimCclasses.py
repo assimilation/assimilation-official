@@ -69,6 +69,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID
 
+from consts import CMAconsts
 
 from frameinfo import FrameTypes, FrameSetTypes
 import collections
@@ -243,7 +244,7 @@ class pySwitchDiscovery:
         )
         switchinfo = pyConfigContext(init = {'ports': pyConfigContext()})
         metadata = pyConfigContext(init={
-                'discovertype':         '#LinkDiscovery',
+                'discovertype':         '__LinkDiscovery',
                 'description':          'Link Level Switch Discovery (lldp)',
                 'source':               '_decode_lldp()',
                 'host':                 host,
@@ -251,6 +252,11 @@ class pySwitchDiscovery:
                 'data':                 switchinfo,
             }
         )
+        capnames =  [   None,                   CMAconsts.ROLE_repeater
+        ,               CMAconsts.ROLE_bridge,  CMAconsts.ROLE_AccessPoint
+        ,               CMAconsts.ROLE_router,  CMAconsts.ROLE_phone
+        ,               CMAconsts.ROLE_DOCSIS,  CMAconsts.ROLE_Station
+        ]
 
         sourcemacptr = pySwitchDiscovery._byteNaddr(cast(pktstart, cClass.guint8), 6)
         if not sourcemacptr:
@@ -290,6 +296,21 @@ class pySwitchDiscovery:
                 byte1addr = pySwitchDiscovery._byte1addr(tlvptr)
                 value = pySwitchDiscovery._decode_netaddr(byte1addr, addrlen)
 
+            elif tlvtype == LLDP_TLV_SYS_CAPS: #########################################
+                byte0 = pySwitchDiscovery._byte0(tlvptr)
+                byte1 = pySwitchDiscovery._byteN(tlvptr, 1)
+                byte2 = pySwitchDiscovery._byteN(tlvptr, 2)
+                byte3 = pySwitchDiscovery._byteN(tlvptr, 3)
+                caps0 = (byte0 << 8 | byte1)
+                caps1 = (byte2 << 8 | byte3)
+                value = pyConfigContext()
+                mask=2
+                for j in range(1,7):
+                    if (caps0 & mask):
+                        value[capnames[j]] = ((caps1 & mask) != 0)
+                    mask <<= 1
+
+
             elif tlvtype == LLDP_TLV_ORG_SPECIFIC: ######################################
                 print >> sys.stderr, 'Found LLDP org-specific extensions (not processed)'
 
@@ -300,7 +321,7 @@ class pySwitchDiscovery:
                     while len(numericpart) > 0 and not numericpart.isdigit():
                         numericpart = numericpart[1:]
                     if len > 0 and numericpart.isdigit():
-                        thisportinfo['_PORTNO'] = int(numericpart)
+                        thisportinfo['PORTNUM'] = int(numericpart)
                 else:
                     if isswitchinfo:
                         switchinfo[tlvname] = value
@@ -321,7 +342,7 @@ class pySwitchDiscovery:
         )
         switchinfo = pyConfigContext(init = {'ports': pyConfigContext()})
         metadata = pyConfigContext(init={
-                'discovertype':         '#LinkDiscovery',
+                'discovertype':         '__LinkDiscovery',
                 'description':          'Link Level Switch Discovery (cdp)',
                 'source':               '_decode_cdp()',
                 'host':                 host,
@@ -980,7 +1001,7 @@ class pyFrameSet(pyAssimObj):
         while curframe:
             count += 1
             curframe = g_slist_next(curframe)
-        return count
+        return int(count)
 
     def __delitem__(self, key):
         "Fail - we don't implement this"
@@ -1235,6 +1256,8 @@ class pyConfigContext(pyAssimObj):
             return self.setframe(name, value)
         if isinstance(value, pyConfigContext):
             return self.setconfig(name, value)
+        if isinstance(value, dict):
+            return self.setconfig(name, pyConfigContext(value))
         self.setint(name, int(value))
 
 class pyConfigValue(pyAssimObj):
