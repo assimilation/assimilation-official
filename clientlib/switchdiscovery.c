@@ -93,7 +93,7 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	FrameSet*		fs;
 	
 	(void)gsource; (void)capstruct;
-	//g_debug("Got an incoming LLDP/CDP packet");
+	//g_debug("Got an incoming LLDP/CDP packet - dest is %p", dest);
 	/// Don't cache if we can't send - and don't send if we have sent this info previously.
 	++ self->baseclass.discovercount;
 	if (!dest || !_switchdiscovery_cache_info(self, pkt, pend)) {
@@ -172,7 +172,6 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 		if (!discovery_types[j].isthistype(pkt, pktend)) {
 			continue;
 		}
-		//g_debug("Got packet of type %s", discovery_types[j].discoverytype);
 		curswitchid = discovery_types[j].get_switch_id(pkt, &curswitchidlen, pktend);
 		curportid = discovery_types[j].get_port_id(pkt, &curportidlen, pktend);
 		g_return_val_if_fail(curswitchid != NULL, FALSE);
