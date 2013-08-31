@@ -50,6 +50,7 @@ FSTATIC void _netaddr_setport(NetAddr* self, guint16);
 FSTATIC guint16 _netaddr_addrtype(const NetAddr* self);
 FSTATIC gboolean _netaddr_ismcast(const NetAddr* self);
 FSTATIC gboolean _netaddr_islocal(const NetAddr* self);
+FSTATIC gboolean _netaddr_isanyaddr(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC guint _netaddr_hash(const NetAddr*);
@@ -478,6 +479,21 @@ _netaddr_islocal(const NetAddr* self)
 	return	FALSE;
 }
 
+FSTATIC gboolean
+_netaddr_isanyaddr(const NetAddr* self)
+{
+	const guint8	anyaddr[16] =		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	const guint8    v6v4anyaddr[16] =	{CONST_IPV6_IPV4SPACE, 0, 0, 0, 0};
+	if (self->_addrtype != ADDR_FAMILY_IPV4 && self->_addrtype != ADDR_FAMILY_IPV6) {
+		return FALSE;
+	}
+	if (memcmp(self->_addrbody, anyaddr, self->_addrlen) == 0) {
+		return TRUE;
+	}
+	return memcmp(self->_addrbody, v6v4anyaddr, self->_addrlen) == 0;
+}
+	
+
 /// Generic NetAddr constructor.
 NetAddr*
 netaddr_new(gsize objsize,				///<[in] Size of object to construct
@@ -519,6 +535,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->addrtype = _netaddr_addrtype;
 	self->ismcast = _netaddr_ismcast;
 	self->islocal = _netaddr_islocal;
+	self->isanyaddr = _netaddr_isanyaddr;
 	self->equal = _netaddr_equal;
 	self->hash = _netaddr_hash;
 

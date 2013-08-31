@@ -344,7 +344,7 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 	,	howwedied);
 	if (!self->stdout_src->atEOF) {
 		//DEBUGMSG3("Child %d [%s] EXITED but output is not at EOF", pid
-		,	self->loggingname);
+		//,	self->loggingname);
 		self->stdout_src->readmore(self->stdout_src);
 	}
 	if (!self->stderr_src->baseclass.atEOF) {
