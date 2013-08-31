@@ -536,6 +536,7 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 {
 	GSList*		slframe;
 	ConfigContext*	newconfig = NULL;
+	ConfigContext*	config = parent->baseclass.config;
 
 	(void)fromaddr;
 
@@ -562,29 +563,58 @@ endloop:
 		return;
 	}
 
-	// We may eventually want to a real 'merge' of the config data instead of overwriting it
-	if (parent->baseclass.config) {
-		NetAddr* cmainit = parent->baseclass.config->getaddr(parent->baseclass.config
-		,	CONFIGNAME_CMAINIT);
-		if (NULL != cmainit) {
-			REF(cmainit);
-		}
-		UNREF(parent->baseclass.config);
-		parent->baseclass.config = newconfig;
-		if (NULL != cmainit) {
-			newconfig->setaddr(newconfig, CONFIGNAME_CMAINIT, cmainit);
-			UNREF(cmainit);
+	if (config) {
+		GSList*	keylist = newconfig->keys(newconfig);
+		GSList* thiskey;
+		GSList*	nextkey;
+
+		// Merge the new configuration into the old configuration data...
+		for (thiskey = keylist; thiskey; thiskey=nextkey) {
+			const char *		key = thiskey->data;
+			enum ConfigValType	valtype = newconfig->gettype(newconfig, key);
+
+			nextkey=thiskey->next;
+
+			switch(valtype) {
+				case CFG_NETADDR:
+					config->setaddr(config, key, newconfig->getaddr(newconfig, key));
+					break;
+
+				case CFG_CFGCTX: 
+					config->setconfig(config, key, newconfig->getconfig(newconfig, key));
+					break;
+
+				case CFG_STRING:
+					config->setstring(config, key, newconfig->getstring(newconfig, key));
+					break;
+
+				case CFG_BOOL:
+					config->setbool(config, key, newconfig->getbool(newconfig, key));
+					break;
+
+				case CFG_INT64:
+					config->setint(config, key, newconfig->getint(newconfig, key));
+					break;
+
+				case CFG_FLOAT:
+					config->setdouble(config, key, newconfig->getdouble(newconfig, key));
+					break;
+				default:
+					break;
+			}
+			g_slist_free1(thiskey);
 		}
 	}
+	UNREF(newconfig);
 
-	DUMP3("nanoobey_setconfig: cfg is", &newconfig->baseclass, NULL);
+	DUMP3("nanoobey_setconfig: cfg is", &config->baseclass, NULL);
 
-	if (newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL) != NULL) {
+	if (config->getaddr(config, CONFIGNAME_CMAFAIL) != NULL) {
 		if (nanofailreportaddr == NULL) {
-			nanofailreportaddr = newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL);
-		}else if (newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {
+			nanofailreportaddr = config->getaddr(config, CONFIGNAME_CMAFAIL);
+		}else if (config->getaddr(config, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {
 			UNREF(nanofailreportaddr);
-			nanofailreportaddr = newconfig->getaddr(newconfig, CONFIGNAME_CMAFAIL);
+			nanofailreportaddr = config->getaddr(config, CONFIGNAME_CMAFAIL);
 		}
 		DUMP3("nanoobey_setconfig: nanofailreportaddr", &nanofailreportaddr->baseclass, NULL);
 		{
@@ -1118,7 +1148,6 @@ nano_shutdown(gboolean report)
 		g_info("%-35s %8d", "Count of comealives:", nano_hbstats.comealive_count);
 		g_info("%-35s %8d", "Count of martians:", nano_hbstats.martian_count);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts sent:", swdisc->baseclass.reportcount);
-		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of recvfrom calls:", ts->recvcalls);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of pkts read:", ts->pktsread);
