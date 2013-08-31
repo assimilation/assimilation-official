@@ -47,6 +47,7 @@ struct _NetAddr {
 	guint16		(*addrtype)(const NetAddr* self);	///< Return @ref AddressFamilyNumbers address type
 	gboolean	(*ismcast)(const NetAddr* self);	///< Return TRUE if this address is a multicast address
 	gboolean	(*islocal)(const NetAddr* self);	///< Return TRUE if this address is a local address
+	gboolean	(*isanyaddr)(const NetAddr* self);	///< Return TRUE if this address is an 'ANY' address
 	struct sockaddr_in6(*ipv6sockaddr)(const NetAddr* self);///< Return the ipv6 sockaddr corresponding to this address
 	struct sockaddr_in(*ipv4sockaddr)(const NetAddr* self);///< Return the ipv4 sockaddr corresponding to this address
 	gboolean	(*equal)(const NetAddr*,const NetAddr*);///< Compare NetAddrs

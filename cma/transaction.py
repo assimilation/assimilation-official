@@ -125,7 +125,6 @@ class Transaction:
             self.tree = pyConfigContext(init=str(json))
             if not 'db' in self.tree or not 'packets' in self.tree:
                 raise ValueError('Incoming JSON is malformed: >>%s<<' % json)
-        print >> sys.stderr, 'RESETTING NAMESPACE (1)'
         self.namespace = {}
         self.created = []
         self.sequence=None
@@ -536,16 +535,15 @@ class Transaction:
         # This is just to test that our tree serializes successfully - before we
         # persist it on disk later.  Once we're doing that, this will be
         # unnecessary...
-        print >> sys.stderr, "HERE IS OUR TREE:"
-        print >> sys.stderr, str(self)
-        print >> sys.stderr, "CONVERTING BACK TO TREE"
-        self.tree = pyConfigContext(str(self))
+        #print >> sys.stderr, "HERE IS OUR TREE:"
+        #print >> sys.stderr, str(self)
+        #print >> sys.stderr, "CONVERTING BACK TO TREE"
+        #self.tree = pyConfigContext(str(self))
         if len(self.tree['packets']) > 0:
             self._commit_network_trans(io)
         if len(self.tree['db']) > 0:
             self._commit_db_trans()
         self.tree = {'db': [], 'packets': []}
-        print >> sys.stderr, 'RESETTING NAMESPACE'
         self.namespace = {}
         CMAdb.Transaction = Transaction()
 

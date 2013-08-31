@@ -39,10 +39,10 @@ class HbRing(GraphNode):
     def __init__(self, name, ringtype, parentring=None):
         '''Constructor for a heartbeat ring.
         '''
+        GraphNode.__init__(self, domain=CMAdb.globaldomain)
         if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
         self.ringtype = ringtype
-        self.domain = CMAdb.globaldomain
         self.name = str(name)
         self.parentring = parentring
         self.ourreltype = HbRing.memberprefix + self.name # Our membership relationship type
@@ -50,7 +50,6 @@ class HbRing(GraphNode):
         self._ringinitfinished = False
         self._insertpoint1 = None
         self._insertpoint2 = None
-        super(HbRing,self).__init__(name)
         
 
     def post_db_init(self):
@@ -113,7 +112,6 @@ class HbRing(GraphNode):
 
         if self._insertpoint1 is None:   # Zero nodes previously
             self._insertpoint1 = drone
-            print >>sys.stderr, 'RING1 IS NOW:', str(self)
             return
 
         if CMAdb.debug:
@@ -194,7 +192,6 @@ class HbRing(GraphNode):
 
         # Clean out the parent (ring) relationship to our dearly departed drone
         CMAdb.store.separate(self, self.ourreltype, drone)
-        print >> sys.stderr, 'DELETING PARENT RELATIONSHIP for [%s]' % drone
         # Clean out the next link relationships to our dearly departed drone
         if nextnode is None and prevnode is None:   # Previous length:  1
             self._insertpoint1 = None               # result length:    0
@@ -253,12 +250,13 @@ class HbRing(GraphNode):
         return CMAdb.store.load_cypher_nodes(query, Drone)
 
     def __str__(self):
-        ret = 'Ring("%s", [' % self.name
-        comma = ''
-        for drone in self.membersfromlist():
-            ret += '%s%s' % (comma, drone)
-            comma = ', '
-        ret += '])'
+        ret = 'Ring("%s"' % self.name
+        comma = ', ['
+        #for drone in self.membersfromlist():
+        #    ret += '%s%s' % (comma, drone)
+        #    comma = ', '
+        #ret += ']'
+        ret += ')'
         return ret
 
 if __name__ == '__main__':
