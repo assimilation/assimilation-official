@@ -35,7 +35,7 @@ from packetlistener import PacketListener
 from messagedispatcher import MessageDispatcher
 from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
 from hbring import HbRing
-from droneinfo import DroneInfo
+from droneinfo import Drone
 import optparse
 from cmadb import CMAdb
 
@@ -153,8 +153,8 @@ class AUDITS(TestCase):
         designation = dronedesignation(droneid)
         droneip = droneipaddress(droneid)
         droneipstr = str(droneip)
-        # Did the drone get put in the DroneInfo table?
-        drone=DroneInfo.find(designation)
+        # Did the drone get put in the Drone table?
+        drone=Drone.find(designation)
         self.assertTrue(drone is not None)
         # Did the drone's list of addresses get updated?
         ipnodes = drone.node.get_related_nodes(neo4j.Direction.INCOMING, 'iphost')
@@ -451,7 +451,7 @@ class TestCMABasic(TestCase):
             livecount = 0
             ringcount = 0
             for drone in Drones:
-                drone1 = DroneInfo(drone)
+                drone1 = Drone(drone)
                 if drone1.node['status'] != 'dead': livecount += 1
                 drone1rels = drone1.node.get_relationships()
                 print >> sys.stderr, 'Drone1 [%s] RELATIONSHIPS: %s' % (drone1.node, drone1rels)
