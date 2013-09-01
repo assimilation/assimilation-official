@@ -435,6 +435,7 @@ class CMAdb:
         CMAdb.cdb.db.get_or_create_relationships(*args)
 
 if __name__ == '__main__':
+    from cmainit import CMAinit
     print >> sys.stderr, 'Starting'
-    CMAdb.initglobal(None, cleanoutdb=True)
+    CMAinit(None, cleanoutdb=True, debug=True)
     print >> sys.stderr, 'Init done'

@@ -51,6 +51,7 @@ class CMAconsts(object):
 # ---------------    --------       ------------       ----------
     REL_isa         = 'IS_A'        # Any node          ->  NODE_nodetype
     REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_system - or subclass
+    REL_wiredto     = 'wiredto'     # NODE_NIC          ->  NODE_system - or subclass
     REL_ipowner     = 'ipowner'     # NODE_ipaddr       ->  NODE_NIC
     REL_parentring  = 'parentring'  # NODE_ring         ->  NODE_ring
     REL_baseip      = 'baseip'      # NODE_tcpipport    ->  NODE_ipaddr
