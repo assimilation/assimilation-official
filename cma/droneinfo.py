@@ -91,6 +91,10 @@ class Drone(GraphNode):
     def setport(self, port):
         '''Set the port we talk to this drone on'''
         self.port = port
+
+    def get_owned_ips(self):
+        return CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
+        ,       params={'droneid':Store.id(self)})
         
    
     def logjson(self, jsontext):
@@ -237,8 +241,7 @@ class Drone(GraphNode):
             CMAdb.log.debug('add_tcplisteners(data=%s)' % data)
 
         assert(not Store.is_abstract(self))
-        allourips = CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
-        ,       params={'droneid':Store.id(self)})
+        allourips = self.get_owned_ips()
         if CMAdb.debug:
             CMAdb.log.debug('Processing keys(%s)' % data.keys())
         newprocs = {}

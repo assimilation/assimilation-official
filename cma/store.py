@@ -365,7 +365,7 @@ class Store:
             ret.append(self._construct_obj_from_node(rel.end_node, cls))
         return ret
 
-    def load_related_in(self, subj, rel_type, cls, obj=None):
+    def load_related_inOOPS(self, subj, rel_type, cls, obj=None):
         'Load all incoming-related nodes with the specified relationship type'
 
         if Store.is_abstract(subj):
@@ -373,6 +373,16 @@ class Store:
             raise ValueError('Node to load related from cannot be abstract')
         #print 'LOAD RELATED Node(%s).match_incoming("%s")' % (subj.__store_node, rel_type)
         rels = subj.__store_node.match_incoming(rel_type, obj)
+        ret = []
+        for rel in rels:
+            ret.append(self._construct_obj_from_node(rel.start_node, cls))
+        return ret
+
+    def load_in_related(self, subj, rel_type, cls):
+        'Load all incoming-related nodes with the specified relationship type'
+        if subj.__store_node.is_abstract:
+            raise ValueError('Node to load related from cannot be abstract')
+        rels = subj.__store_node.match_incoming(rel_type)
         ret = []
         for rel in rels:
             ret.append(self._construct_obj_from_node(rel.start_node, cls))
@@ -406,16 +416,6 @@ class Store:
         for node in nodes:
             return node
         return None
-
-    def load_in_related(self, subj, rel_type, cls):
-        'Load all incoming-related nodes with the specified relationship type'
-        if subj.__store_node.is_abstract:
-            raise ValueError('Node to load related from cannot be abstract')
-        rels = subj.__store_node.match_incoming(rel_type)
-        ret = []
-        for rel in rels:
-            ret.append(self._construct_obj_from_node(rel.start_node, cls))
-        return ret
 
     @property
     def transaction_pending(self):
@@ -623,7 +623,10 @@ class Store:
         if node is not None and not node.is_abstract:
             if node._id in self.weaknoderefs:
                 weakling = self.weaknoderefs[node._id]()
-                print 'OOPS! - already here... self.weaknoderefs', weakling, weakling.__dict__()
+                if weakling is None:
+                    del self.weaknoderefs[node._id]
+                else:
+                    print 'OOPS! - already here... self.weaknoderefs', weakling, weakling.__dict__()
             assert not node._id in self.weaknoderefs or self.weaknoderefs[node._id] is None
             self.weaknoderefs[node._id] = weakref.ref(subj)
         if node is not None:

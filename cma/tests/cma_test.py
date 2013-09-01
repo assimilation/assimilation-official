@@ -30,14 +30,15 @@ from testify.utils import turtle
 from frameinfo import *
 from AssimCclasses import *
 import gc, sys, time, collections, os
-from cmadb import CMAdb
+from graphnodes import nodeconstructor
+from cmainit import CMAinit
+from cmadb import CMAdb, CMAclass
 from packetlistener import PacketListener
 from messagedispatcher import MessageDispatcher
 from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
 from hbring import HbRing
 from droneinfo import Drone
 import optparse
-from cmadb import CMAdb
 
 
 WorstDanglingCount = 0
@@ -75,7 +76,7 @@ def assert_no_dangling_Cclasses():
     CMAdb.cdb = None
     CMAdb.io = None
     CMAdb.TheOneRing = None
-    HbRing.ringnames = {}
+    CMAdb.store = None
     gc.collect()    # For good measure...
     count =  proj_class_live_object_count()
     #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
@@ -157,20 +158,23 @@ class AUDITS(TestCase):
         drone=Drone.find(designation)
         self.assertTrue(drone is not None)
         # Did the drone's list of addresses get updated?
-        ipnodes = drone.node.get_related_nodes(neo4j.Direction.INCOMING, 'iphost')
+        ipnodes = drone.get_owned_ips()
         self.assertEqual(len(ipnodes), 1)
         ipnode = ipnodes[0]
-        ipnodeaddr = ipnode['name']
-        ipnodeaddrfoo = ipnodeaddr + '/16'
-        json = drone['JSON_netconfig']
+        ipnodeaddr = pyNetAddr(ipnode.ipaddr)
+        json = drone.JSON_netconfig
         jsobj = pyConfigContext(init=json)
         jsdata = jsobj['data']
         eth0obj = jsdata['eth0']
-        # Does the drone address table match the info from JSON?
-        eth0addrs = eth0obj['ipaddrs']
-        self.assertTrue(eth0addrs.has_key(ipnodeaddrfoo))
+        print >> sys.stderr, 'ETH0OBJ = ', eth0obj
+        eth0addrcidr = eth0obj['ipaddrs'].keys()[0]
+        print 'ETH0 ADDRCIDR:', eth0addrcidr
+        eth0addrstr, cidrmask = eth0addrcidr.split('/')
+        eth0addr = pyNetAddr(eth0addrstr)
+        self.assertTrue(eth0addr == ipnodeaddr)
+
         # Do we know that eth0 is the default gateway?
-        self.assertEqual(eth0obj['default_gw'], 1)
+        self.assertEqual(eth0obj['default_gw'], True)
         
         # the JSON should have exactly 5 top-level keys
         self.assertEqual(len(jsobj.keys()), 5)
@@ -213,21 +217,18 @@ class AUDITS(TestCase):
         # Was the SETCONFIG sent back to the drone?
         self.assertEqual(toaddr,droneip)
         # Lets check the number of Frames in the SETCONFIG Frameset
-        configlen =  len(configinit)-1  # We do not send Frames in configinfo
-        expectedlen = 2 * configlen + 4 # each address has a port that goes with it
-        self.assertEqual(expectedlen, len(sentfs))  # Was it the right size?
+        self.assertEqual(1, len(sentfs))  # Was it the right size?
 
-    def auditaRing(self, ringname):
+    def auditaRing(self, ring):
         'Verify that each ring has its neighbor pairs set up properly'
         # Check that each element of the ring is connected to its neighbors...
-        ring = HbRing.ringnames[ringname]
-        #print "Ring %s: %s" % (ringname, str(ring))
+        print "Ring %s" % (str(ring))
         listmembers = {}
         ringmembers = {}
         for drone in ring.members():
-            ringmembers[drone.node['name']] = None
+            ringmembers[drone.designation] = None
         for drone in ring.membersfromlist():
-            listmembers[drone.node['name']] = None
+            listmembers[drone.designation] = None
         for drone in listmembers.keys():
             self.assertTrue(drone in ringmembers)
         for drone in ringmembers.keys():
@@ -237,14 +238,15 @@ class AUDITS(TestCase):
 def auditalldrones():
     audit = AUDITS()
     dronetype = CMAdb.cdb.nodetypetbl['Drone']
-    droneobjs = dronetype.get_related_nodes(neo4j.Direction.INCOMING, 'IS_A')
+    droneobjs = CMAdb.store.load_in_related(dronetype, 'IS_A', Drone)
     numdrones = len(droneobjs)
     for droneid in range(0,numdrones):
         audit.auditadrone(droneid+1)
 
 def auditallrings():
     audit = AUDITS()
-    for ring in HbRing.ringnames:
+    query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:HbRing('*:*') RETURN n''')
+    for ring in CMAdb.store.load_cypher_nodes(query, HbRing):
         audit.auditaRing(ring)
 
 class TestIO:
@@ -314,7 +316,7 @@ class TestTestInfrastructure(TestCase):
         if BuildListOnly: return
         framesets=[]
         io = TestIO(framesets, 0)
-        CMAdb.initglobal(io, True)
+        CMAinit(io, cleanoutdb=True, debug=DEBUG)
         # just make sure it seems to do the right thing
         self.assertRaises(StopIteration, io.recvframesets)
         assert_no_dangling_Cclasses()
@@ -328,7 +330,7 @@ class TestTestInfrastructure(TestCase):
         fs.append(strframe1)
         framesets=((otherguy, (strframe1,)),)
         io = TestIO(framesets, 0)
-        CMAdb.initglobal(io, True)
+        CMAinit(io, cleanoutdb=True, debug=DEBUG)
         gottenfs = io.recvframesets()
         self.assertEqual(len(gottenfs), 2)
         self.assertEqual(gottenfs, framesets[0])
@@ -343,7 +345,7 @@ class TestTestInfrastructure(TestCase):
         otherguy = pyNetAddr([1,2,3,4],)
         framesets=((otherguy, (strframe1,)),)
         io = TestIO(framesets, 0)
-        CMAdb.initglobal(io, True)
+        CMAinit(io, cleanoutdb=True, debug=DEBUG)
         fslist = io.recvframesets()     # read in a packet
         self.assertEqual(len(fslist), 2)
         self.assertEqual(fslist, framesets[0])
@@ -372,7 +374,7 @@ class TestCMABasic(TestCase):
         fs.append(discoveryframe)
         fsin = ((droneip, (fs,)),)
         io = TestIO(fsin,0)
-        CMAdb.initglobal(io, True)
+        CMAinit(io, cleanoutdb=True, debug=DEBUG)
         OurAddr = pyNetAddr((127,0,0,1),1984)
         disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()})
         configinit = geninitconfig(OurAddr)
@@ -419,10 +421,10 @@ class TestCMABasic(TestCase):
                 print >> sys.stderr, 'FS PACKET: %s' % fs
                 fsin.append((addrone, (fs,)))
         io = TestIO(fsin)
-        CMAdb.initglobal(io, True)
+        CMAinit(io, cleanoutdb=True, debug=DEBUG)
         disp = MessageDispatcher( {
-        FrameSetTypes.STARTUP: DispatchSTARTUP(),
-        FrameSetTypes.HBDEAD: DispatchHBDEAD(),
+            FrameSetTypes.STARTUP: DispatchSTARTUP(),
+            FrameSetTypes.HBDEAD: DispatchHBDEAD(),
         })
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io)
@@ -452,9 +454,10 @@ class TestCMABasic(TestCase):
             ringcount = 0
             for drone in Drones:
                 drone1 = Drone(drone)
-                if drone1.node['status'] != 'dead': livecount += 1
-                drone1rels = drone1.node.get_relationships()
-                print >> sys.stderr, 'Drone1 [%s] RELATIONSHIPS: %s' % (drone1.node, drone1rels)
+                if drone1.status != 'dead': livecount += 1
+                drone1rels = CMAdb.store.load_related(drone1, None, nodeconstructor)
+                drone1rels.extend(CMAdb.store.load_in_related(drone1, None, nodeconstructor))
+                print >> sys.stderr, 'Drone1 [%s] RELATIONSHIPS: %s' % (drone1, drone1rels)
                 for rel in drone1rels:
                     reltype = rel.type
                     if reltype.startswith(HbRing.memberprefix):
