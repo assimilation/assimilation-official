@@ -343,6 +343,15 @@ class Drone(GraphNode):
     #pylint: disable=R0914
     def add_linkdiscovery(self, jsonobj, **keywords):
         'Add Low Level (Link Level) discovery data to the database'
+        #
+        #   This code doesn't yet deal with moving network connections around
+        #   it is certain that it won't delete the old information and replace it
+        #   There are two possibilities:
+        #       We are connecting to a switch port which is previously connected:
+        #           Drop any wiredto connection that already exists to that port
+        #       We are connecting to somewhere different
+        #           Drop any wiredto relationship between the switch port and us
+        #
         keywords = keywords # don't need these
         data = jsonobj['data']
         #print >> sys.stderr, 'SWITCH JSON:', str(data)
@@ -407,7 +416,7 @@ class Drone(GraphNode):
                 niclist = CMAdb.store.load_related(self, CMAconsts.REL_nicowner, NICNode)
                 for dronenic in niclist:
                     if dronenic.ifname == matchif:
-                        CMAdb.store.relate(nicnode, CMAconsts.REL_wiredto, dronenic)
+                        CMAdb.store.relate_new(nicnode, CMAconsts.REL_wiredto, dronenic)
                         break
             except KeyError:
                 CMAdb.log.error('OOPS! got an exception...')
