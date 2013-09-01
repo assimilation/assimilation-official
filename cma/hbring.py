@@ -36,7 +36,7 @@ class HbRing(GraphNode):
     memberprefix = 'RingMember_'
     nextprefix = 'RingNext_'
 
-    def __init__(self, name, ringtype, parentring=None):
+    def __init__(self, name, ringtype):
         '''Constructor for a heartbeat ring.
         '''
         GraphNode.__init__(self, domain=CMAdb.globaldomain)
@@ -44,7 +44,6 @@ class HbRing(GraphNode):
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
         self.ringtype = ringtype
         self.name = str(name)
-        self.parentring = parentring
         self.ourreltype = HbRing.memberprefix + self.name # Our membership relationship type
         self.ournexttype = HbRing.nextprefix + self.name # Our 'next' relationship type
         self._ringinitfinished = False
@@ -53,6 +52,7 @@ class HbRing(GraphNode):
         
 
     def post_db_init(self):
+        GraphNode.post_db_init(self)
         if self._ringinitfinished:
             return
         self._ringinitfinished = True
@@ -73,7 +73,6 @@ class HbRing(GraphNode):
         # For the moment, let's make the entirely inadequate assumption that
         # the data in the database is correct.
         ## FIXME - assumption about database being correct :-D
-        super(HbRing, self).post_db_init()
 
 
     def _findringpartners(self, drone):
@@ -191,12 +190,14 @@ class HbRing(GraphNode):
             break
 
         # Clean out the parent (ring) relationship to our dearly departed drone
+        print >> sys.stderr, 'Separating ourselves (%s) from drone %s' % (self, drone)
         CMAdb.store.separate(self, self.ourreltype, drone)
         # Clean out the next link relationships to our dearly departed drone
         if nextnode is None and prevnode is None:   # Previous length:  1
             self._insertpoint1 = None               # result length:    0
             self._insertpoint2 = None
             # No other database links to remove
+            print >> sys.stderr, 'Drone %s has now left the building...' % (drone)
             return
 
         # Clean out the next link relationships to our dearly departed drone

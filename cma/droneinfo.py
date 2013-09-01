@@ -265,19 +265,19 @@ class Drone(GraphNode):
             newprocmap[procname] = processproc
             self.lastobservedtime = int(round(time.time() * 1000))
             if CMAdb.store.is_abstract(processproc):
-                CMAdb.store.relate(processproc, CMAconsts.REL_runningon, self)
+                CMAdb.store.relate(self, CMAconsts.REL_hosting, processproc, {'causes':True})
             if CMAdb.debug:
                 CMAdb.log.debug('procinfo(%s) - processproc created=> %s' % (procinfo, processproc))
 
         oldprocs = {}
-        for proc in CMAdb.store.load_related_in(self, CMAconsts.REL_runningon, ProcessNode):
+        for proc in CMAdb.store.load_related(self, CMAconsts.REL_hosting, ProcessNode):
             assert hasattr(proc, '_Store__store_node')
             procname = proc.processname
             oldprocs[procname] = proc
             if not procname in newprocs:
                 if len(proc.delrole(discoveryroles.keys())) == 0:
                     assert not Store.is_abstract(proc)
-                    CMAdb.store.separate(proc, CMAconsts.REL_runningon, self)
+                    CMAdb.store.separate(self, CMAconsts.REL_hosting, proc)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     CMAdb.store.delete(proc)
 
@@ -456,7 +456,7 @@ class Drone(GraphNode):
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        for mightbering in CMAdb.store.load_related(self, None, nodeconstructor):
+        for mightbering in CMAdb.store.load_related_in(self, None, nodeconstructor):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
         deadip = pyNetAddr(self.primary_ip(), port=self.getport())
