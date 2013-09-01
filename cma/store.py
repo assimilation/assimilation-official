@@ -699,9 +699,9 @@ class Store:
                 relid = relorobj._id
                 if relid not in delrels:
                     #print >> sys.stderr, 'DELETING rel %s' % relorobj
+                    self.node_separate_count += 1
                     self.batch.delete(relorobj)
                     delrels[relid] = True
-                    self.node_separate_count += 1
             else:
                 # Then it must be a node-related object...
                 node = relorobj.__store_node
@@ -786,17 +786,17 @@ class Store:
         end=datetime.now()
         print >> sys.stderr, ('DATABASE UPDATE COMPLETED IN %s seconds' % (end-start))
         if self.create_node_count > 0:
-            print >> sys.stderr, 'Nodes Created:   %d' % self.create_node_count
+            print >> sys.stderr, 'Nodes Created:      %d' % self.create_node_count
         if self.relate_node_count > 0:
-            print >> sys.stderr, 'Nodes Related:   %d' % self.relate_node_count
+            print >> sys.stderr, 'Nodes Related:      %d' % self.relate_node_count
         if self.index_entry_count > 0:
-            print >> sys.stderr, 'Nodes Indexed:   %d' % self.index_entry_count
+            print >> sys.stderr, 'Nodes Indexed:      %d' % self.index_entry_count
         if self.node_update_count > 0:
-            print >> sys.stderr, 'Nodes Updated:   %d' % self.node_update_count
+            print >> sys.stderr, 'Attributes Updated: %d' % self.node_update_count
         if self.node_deletion_count > 0:
-            print >> sys.stderr, 'Nodes Deleted:   %d' % self.node_deletion_count
+            print >> sys.stderr, 'Nodes Deleted:      %d' % self.node_deletion_count
         if self.node_separate_count > 0:
-            print >> sys.stderr, 'Nodes Separated: %d' % self.node_separate_count
+            print >> sys.stderr, 'Nodes Separated:    %d' % self.node_separate_count
         self.create_node_count = 0
         self.relate_node_count = 0
         self.index_entry_count = 0
