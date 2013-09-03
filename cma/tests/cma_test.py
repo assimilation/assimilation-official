@@ -237,6 +237,7 @@ class AUDITS(TestCase):
         for drone in listmembers.keys():
             self.assertTrue(drone in ringmembers)
         for drone in ringmembers.keys():
+            print >> sys.stderr, 'RINGMEMBERS: %s: members:%s' % (str(drone), listmembers)
             self.assertTrue(drone in listmembers)
         
 
