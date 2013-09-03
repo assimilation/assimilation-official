@@ -79,6 +79,13 @@ class CMAinit(object):
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
+        indexes = db.get_indexes(neo4j.Node)
+        for index in indexes.keys():
+            if CMAdb.debug:
+                CMAdb.log.debug('Deleting index %s' % str(index))
+            db.delete_index(neo4j.Node, index)
+
+        
 
 
 if __name__ == '__main__':

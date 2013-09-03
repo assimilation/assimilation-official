@@ -468,7 +468,7 @@ class Drone(GraphNode):
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        for mightbering in CMAdb.store.load_related_in(self, None, nodeconstructor):
+        for mightbering in CMAdb.store.load_in_related(self, None, nodeconstructor):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
         deadip = pyNetAddr(self.primary_ip(), port=self.getport())
@@ -581,13 +581,10 @@ class Drone(GraphNode):
             assert CMAdb.store.has_node(drone)
             return drone
         elif isinstance(designation, pyNetAddr):
-            dport = None
-            desigport = designation.port()
-            if desigport is not None and desigport > 0:
-                dport = desigport
-            desig = designation.toIPv6(port=0)
+            desig = designation.toIPv6()
             desigstr = str(desig)
-            query = '%s:%s' % (self.domain, desigstr)
+            query = 'global:%s' % str(Store.lucene_escape(desigstr))
+            print >> sys.stderr, ('++++++++++++++++++++++++++++++++++ESCAPED query:"%s"' % str(query))
             #We now do everything by IPv6 addresses...
             drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipquery':query})
             if drone is not None:
@@ -599,8 +596,10 @@ class Drone(GraphNode):
            
         if CMAdb.debug:
             CMAdb.log.debug("DESIGNATION2 (%s) = %s" % (designation, desigstr))
+            CMAdb.log.debug("QUERY (%s) = %s" % (designation, query))
         if CMAdb.debug:
             raise RuntimeError('drone.find(%s) (%s) (%s) => returning None' % (
+                str(designation), desigstr, type(designation)))
                 #str(designation), desigstr, type(designation)))
             #tblist = traceback.extract_stack()
             ##tblist = traceback.extract_tb(trace, 20)
@@ -610,7 +609,6 @@ class Drone(GraphNode):
                 #filename = os.path.basename(filename)
                 #CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
             #CMAdb.log.info('======== End missing IP Traceback ========')
-                str(designation), desigstr, type(designation)))
             #CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
         return ret
 
