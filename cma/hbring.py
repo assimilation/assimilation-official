@@ -231,7 +231,7 @@ class HbRing(GraphNode):
 
     def members(self):
         'Return all the Drones that are members of this ring - in some random order'
-        return self.membersfromlist()
+        return CMAdb.store.load_in_related(self, self.ourreltype, Drone)
 
     def membersfromlist(self):
         'Return all the Drones that are members of this ring - in ring order'
