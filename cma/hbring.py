@@ -136,14 +136,14 @@ class HbRing(GraphNode):
             return
         
         print >>sys.stderr, 'Finding insert point [%s: %s]' % \
-           (self._insertpoint2['name'], self.ournexttype)
+           (self._insertpoint2.designation, self.ournexttype)
         # Two or more nodes previously
         print >>sys.stderr, 'DRONE:', drone
         print >>sys.stderr, 'INSERTPOINT1:', self._insertpoint1
         print >>sys.stderr, 'INSERTPOINT2:', self._insertpoint2
         print >>sys.stderr, 'OURNEXTTYPE:', self.ournexttype
         nextnext = None
-        for nextnext in CMAdb.store.load_related(self._insertpoint2, self.outnexttype):
+        for nextnext in CMAdb.store.load_related(self._insertpoint2, self.ournexttype, Drone):
             break
         if CMAdb.debug:
             CMAdb.log.debug('4:Adding Drone %s to ring %s w/port %s' \
@@ -183,7 +183,7 @@ class HbRing(GraphNode):
         'Remove a drone from this heartbeat Ring.'
         print >> sys.stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
         prevnode = None
-        for prevnode in CMAdb.store.load_related_in(drone, self.ournexttype, Drone):
+        for prevnode in CMAdb.store.load_in_related(drone, self.ournexttype, Drone):
             break
         nextnode = None
         for nextnode in CMAdb.store.load_related(drone, self.ournexttype, Drone):
@@ -201,10 +201,13 @@ class HbRing(GraphNode):
             return
 
         # Clean out the next link relationships to our dearly departed drone
-        CMAdb.store.separate(prevnode, self.ournexttype, drone)
-        CMAdb.store.separate(drone, self.ournexttype, nextnode)
+        CMAdb.store.separate(prevnode, self.ournexttype, obj=drone)
+        CMAdb.store.separate(drone,    self.ournexttype, obj=nextnode)
 
-        if prevnode is nextnode:                 # Previous length:  2
+        print >> sys.stderr, ('PREVNODE: %s NEXTNODE: %s prev is next? %s'
+        %           (str(prevnode), str(nextnode), prevnode is nextnode))
+
+        if prevnode is nextnode:                  # Previous length:  2
             drone.stop_heartbeat(self, prevnode)  # Result length:    1
             prevnode.stop_heartbeat(self, drone)
             self._insertpoint2 = None
@@ -235,7 +238,7 @@ class HbRing(GraphNode):
         ## FIXME - There's a cypher query that will return these all in one go
         # START Drone=node:Drone(Drone="drone000001")
         # MATCH Drone-[:RingNext_The_One_Ring*]->NextDrone
-        # RETURN NextDrone.name, NextDrone 
+        # RETURN NextDrone.designation, NextDrone 
 
 
         if self._insertpoint1 is None:

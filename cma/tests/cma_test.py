@@ -39,6 +39,7 @@ from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY,
 from hbring import HbRing
 from droneinfo import Drone
 import optparse
+from graphnodes import GraphNode
 
 
 WorstDanglingCount = 0
@@ -51,21 +52,24 @@ MaxDrone=4
 MaxDrone=3
 MaxDrone=10000
 MaxDrone=5
+
+MaxDrone=2
+doHBDEAD=True
+
 BuildListOnly = False
-
-t1 = MaxDrone
-if t1 < 1000: t1 = 1000
-t2 = MaxDrone/100
-if t2 < 10: t2 = 10
-t3 = t2
-
 if BuildListOnly:
     doHBDEAD=False
     SavePackets=False
     DoAudit=False
     CheckForDanglingClasses=False
     DEBUG=False
+BuildListOnly = True
 
+t1 = MaxDrone
+if t1 < 1000: t1 = 1000
+t2 = MaxDrone/100
+if t2 < 10: t2 = 10
+t3 = t2
 
 
 #gc.set_threshold(t1, t2, t3)
@@ -159,6 +163,7 @@ class AUDITS(TestCase):
         self.assertTrue(drone is not None)
         # Did the drone's list of addresses get updated?
         ipnodes = drone.get_owned_ips()
+        ipnodes = [ip for ip in ipnodes]
         self.assertEqual(len(ipnodes), 1)
         ipnode = ipnodes[0]
         ipnodeaddr = pyNetAddr(ipnode.ipaddr)
@@ -239,6 +244,7 @@ def auditalldrones():
     audit = AUDITS()
     dronetype = CMAdb.cdb.nodetypetbl['Drone']
     droneobjs = CMAdb.store.load_in_related(dronetype, 'IS_A', Drone)
+    droneobjs = [drone for drone in droneobjs]
     numdrones = len(droneobjs)
     for droneid in range(0,numdrones):
         audit.auditadrone(droneid+1)
@@ -314,6 +320,8 @@ class TestTestInfrastructure(TestCase):
     def test_eof(self):
         'Get EOF with empty input'
         if BuildListOnly: return
+        if DEBUG:
+            print >> sys.stderr, 'Running test_test_eof()'
         framesets=[]
         io = TestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
@@ -324,6 +332,8 @@ class TestTestInfrastructure(TestCase):
     def test_get1pkt(self):
         'Read a single packet'
         if BuildListOnly: return
+        if DEBUG:
+            print >> sys.stderr, 'Running test_test_eof()'
         otherguy = pyNetAddr([1,2,3,4],)
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
@@ -339,6 +349,8 @@ class TestTestInfrastructure(TestCase):
     def test_echo1pkt(self):
         'Read a packet and write it back out'
         if BuildListOnly: return
+        if DEBUG:
+            print >> sys.stderr, 'Running test_echo1pkt()'
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
         fs.append(strframe1)
@@ -363,6 +375,8 @@ class TestCMABasic(TestCase):
         '''A semi-interesting test: We send a STARTUP message and get back a
         SETCONFIG message with lots of good stuff in it.'''
         if BuildListOnly: return
+        if DEBUG:
+            print >> sys.stderr, 'Running test_startup()'
         droneid = 1
         droneip = droneipaddress(droneid)
         designation = dronedesignation(droneid)
@@ -393,6 +407,8 @@ class TestCMABasic(TestCase):
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
         SETCONFIG message and then send back a bunch of discovery requests.'''
+        if DEBUG:
+            print >> sys.stderr, 'Running test_several_startups()'
         OurAddr = pyNetAddr((10,10,10,5), 1984)
         configinit = geninitconfig(OurAddr)
         fsin = []
@@ -439,33 +455,29 @@ class TestCMABasic(TestCase):
         # But it doesn't know how many drones we just registered
         droneroot = CMAdb.cdb.nodetypetbl['Drone']
         idx = CMAdb.cdb.indextbl['Drone']
-        print >> sys.stderr, 'INDEX for Drones is: %s' % idx
-        Drones = idx.query('Drone:*')
+        query = neo4j.CypherQuery(CMAdb.cdb.db, "START n=node:Drone('*:*') RETURN n")
+        Drones = CMAdb.store.load_cypher_nodes(query, Drone)
+        Drones = [drone for drone in Drones]
         print 'DRONE LIST:', Drones
         #Dronerels = droneroot.get_relationships(neo4j.Direction.INCOMING, 'IS_A')
         #self.assertEqual(len(Dronerels), maxdrones)
         print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
-        CMAdb.dump_nodes()
-        print >> sys.stderr, 'END OF DUMP:', Drones
         self.assertEqual(len(Drones), maxdrones)
         if doHBDEAD:
             partnercount = 0
             livecount = 0
             ringcount = 0
-            for drone in Drones:
-                drone1 = Drone(drone)
+            for drone1 in Drones:
+                print 'DRONE1:', drone1, drone1.status
                 if drone1.status != 'dead': livecount += 1
-                drone1rels = CMAdb.store.load_related(drone1, None, nodeconstructor)
-                drone1rels.extend(CMAdb.store.load_in_related(drone1, None, nodeconstructor))
-                print >> sys.stderr, 'Drone1 [%s] RELATIONSHIPS: %s' % (drone1, drone1rels)
-                for rel in drone1rels:
-                    reltype = rel.type
-                    if reltype.startswith(HbRing.memberprefix):
-                         ringcount += 1
-                    if reltype.startswith(HbRing.nextprefix):
-                         partnercount += 1
+                for partner in CMAdb.store.load_related(drone1, CMAdb.TheOneRing.ournexttype, Drone):
+                    partnercount += 1
+                for partner in CMAdb.store.load_in_related(drone1, CMAdb.TheOneRing.ournexttype, Drone):
+                    partnercount += 1
+                for ring in CMAdb.store.load_in_related(drone1, CMAdb.TheOneRing.ourreltype, HbRing):
+                    ringcount += 1
             print >> sys.stderr, 'DUMPING DRONES'
-            CMAdb.dump_nodes()
+            GraphNode.dump_nodes()
             self.assertEqual(partnercount, 0)
             self.assertEqual(livecount, 1)
             self.assertEqual(ringcount, 1)

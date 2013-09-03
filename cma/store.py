@@ -24,6 +24,7 @@
 #
 #
 import sys  # Only needed for stderr for printing...
+import re
 import inspect, weakref
 #import traceback
 from py2neo import neo4j, exceptions
@@ -99,6 +100,8 @@ class Store:
     object constructors which would be a bad thing worth recognizing -- but I don't
     do anything special for this case at the moment.
     '''
+    LUCENE_RE =  re.compile(r'([\-+&\|!\(\)\{\}[\]^"~\*?:\\])')
+    LUCENE_RE =  re.compile(r'([:[\]])')
     def __init__(self, db, uniqueindexmap={}, classkeymap={}):
         '''
         Constructor for Transactional Write (Batch) Store objects
@@ -159,6 +162,11 @@ class Store:
         ret += '\n\tbatch: %s'                  %       self.batch
         ret += '\n}'
         return ret
+
+    @staticmethod
+    def lucene_escape(query):
+        'Returns a string with the lucene special characters escaped'
+        return Store.LUCENE_RE.sub(r'\\\1', query)
 
     @staticmethod
     def id(subj):
@@ -325,16 +333,18 @@ class Store:
         'Separate nodes related by the specified relationship type'
         fromnode = subj.__store_node
         if fromnode.is_abstract:
-            raise ValueError('Node cannot be abstract')
+            raise ValueError('Subj Node cannot be abstract')
         if obj is not None:
             obj = obj.__store_node
             if obj.is_abstract:
-                raise ValueError('Node cannot be abstract')
+                raise ValueError('Obj Node cannot be abstract')
 
         # No errors - give it a shot!
-        rels = subj.__store_node.match_outgoing(rel_type)
+        rels = subj.__store_node.match_outgoing(rel_type, obj)
         for rel in rels:
-            relid = rel._id
+            print >> sys.stderr, 'DELETING RELATIONSHIP %s of type %s' % (rel._id, rel_type)
+            if obj is not None:
+                assert rel.end_node._id == obj._id
             self.deletions.append(rel)
 
     def separate_in(self, subj, rel_type=None, obj=None):
@@ -352,30 +362,17 @@ class Store:
         for rel in rels:
             self.deletions.append(rel)
 
-    def load_related(self, subj, rel_type, cls, obj=None):
+    def load_related(self, subj, rel_type, cls):
         'Load all outgoing-related nodes with the specified relationship type'
 
         if Store.is_abstract(subj):
             return []
             raise ValueError('Node to load related from cannot be abstract')
         #print 'LOAD RELATED Node(%s).match_outgoing("%s")' % (subj.__store_node, rel_type)
-        rels = subj.__store_node.match_outgoing(rel_type, obj)
+        rels = subj.__store_node.match_outgoing(rel_type)
         ret = []
         for rel in rels:
             ret.append(self._construct_obj_from_node(rel.end_node, cls))
-        return ret
-
-    def load_related_inOOPS(self, subj, rel_type, cls, obj=None):
-        'Load all incoming-related nodes with the specified relationship type'
-
-        if Store.is_abstract(subj):
-            return []
-            raise ValueError('Node to load related from cannot be abstract')
-        #print 'LOAD RELATED Node(%s).match_incoming("%s")' % (subj.__store_node, rel_type)
-        rels = subj.__store_node.match_incoming(rel_type, obj)
-        ret = []
-        for rel in rels:
-            ret.append(self._construct_obj_from_node(rel.start_node, cls))
         return ret
 
     def load_in_related(self, subj, rel_type, cls):
@@ -385,13 +382,11 @@ class Store:
         rels = subj.__store_node.match_incoming(rel_type)
         ret = []
         for rel in rels:
-            ret.append(self._construct_obj_from_node(rel.start_node, cls))
-        return ret
+            yield (self._construct_obj_from_node(rel.start_node, cls))
 
     def load_cypher_nodes(self, query, cls, params={}, max=None):
         '''Execute the given query that returns a single column of nodes
         and return those nodes'''
-        result = []
         count = 0
         for row in query.stream(**params):
             for key in row.__dict__.keys():
@@ -402,14 +397,14 @@ class Store:
                     raise ValueError("Class 'cls' must be a unique indexed class [%s]", cls)
                 local = self._localsearch(cls, idxkey, idxvalue)
                 if local is not None:
-                    result.append(local)
+                    yield local
                 else:
                     self._register(subj, node=node)
-                    result.append(subj)
+                    yield subj
             count += 1
             if max is not None and count >= max:
                 break
-        return result
+        return
 
     def load_cypher_node(self, query, cls, params={}):
         nodes = self.load_cypher_nodes(query, cls, params, max=1)
@@ -774,7 +769,7 @@ class Store:
                 del self.weaknoderefs[nodeid]
     def commit(self):
         '''Commit all the changes we've created since our last transaction'''
-        #print >> sys.stderr, 'COMMITTING THIS THING:', self
+        print >> sys.stderr, 'COMMITTING THIS THING:', self
         if self.batch is None:
             self.batch = neo4j.WriteBatch(self.db)
         self.batchindex = 0

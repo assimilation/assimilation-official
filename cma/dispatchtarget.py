@@ -66,7 +66,7 @@ class DispatchHBDEAD(DispatchTarget):
         fromdrone = self.droneinfo.find(origaddr)
         print >> sys.stderr, 'FROMDRONE, ORIGADDR in dispatch:', fromdrone, origaddr, fstype, frameset
         CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s] [%s]"
-        %      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone['name']))
+        %      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:

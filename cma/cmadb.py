@@ -216,31 +216,6 @@ class CMAdb:
                 ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
 
-    @staticmethod
-    def dump_nodes(nodetype='Drone', stream=sys.stderr):
-        'Dump all our drones out to the given stream (defaults to sys.stderr)'
-        idx = CMAdb.cdb.indextbl[nodetype]
-        query= '%s:*' % nodetype
-        #print >> stream, 'QUERY against %s IS: "%s"' % (idx, query)
-        dronelist = idx.query(query)
-        print >> stream, 'List of %ss: %s' % (nodetype, dronelist)
-        for drone in dronelist:
-            print >> stream, ('%s %s (%s,%s)' % (nodetype, drone['name']
-            ,   drone.id, drone.get_properties()))
-            for rel in drone.match(bidirectional=True):
-                start=rel.start_node
-                end=rel.end_node
-                if start.id == drone.id:
-                    print >> stream, '    (%s)-[%s]->(%s:%s,%s)' \
-                    %       (drone['name'], rel.type, end['nodetype'], end['name'], end.id)
-                else:
-                    print >> stream, '    (%s:%s,%s)-[%s]->(%s)' \
-                    %       (start['name'], start['nodetype'], start.id, rel.type, drone['name'])
-                if start.id == end.id:
-                    print >> stream, 'SELF-REFERENCE to %s' % start.id
-        
-
-
 
     def node_OLDnew(self, nodetype, nodename, unique=True, **properties):
         '''Possibly creates a new node, puts it in its appropriate index and creates an IS_A
