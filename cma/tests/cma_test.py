@@ -61,7 +61,6 @@ if BuildListOnly:
     DoAudit=False
     CheckForDanglingClasses=False
     DEBUG=False
-BuildListOnly = True
 
 t1 = MaxDrone
 if t1 < 1000: t1 = 1000
