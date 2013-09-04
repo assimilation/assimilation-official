@@ -199,9 +199,9 @@ class CMAdb:
         self.switchindex = self.indextbl[CMAdb.NODE_system]
         self.droneindex = self.indextbl[CMAdb.NODE_drone]
         if self.store.transaction_pending:
-            print >> sys.stderr,  'self.store:', self.store
+            #print >> sys.stderr,  'self.store:', self.store
             result = self.store.commit()
-            print >> sys.stderr, 'COMMIT results:', result
+            #print >> sys.stderr, 'COMMIT results:', result
         else:
             print >> sys.stderr, 'Cool! Everything already created!'
 

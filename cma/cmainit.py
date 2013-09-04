@@ -65,9 +65,10 @@ class CMAinit(object):
         CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
         ,           ringtype= HbRing.THEONERING)
         CMAdb.transaction.commit_trans(io)
-        print >> sys.stderr, 'COMMITTING Store'
-        print >> sys.stderr, 'Transaction Commit results:', CMAdb.store.commit()
-        print >> sys.stderr, 'Store COMMITTED'
+        #print >> sys.stderr, 'COMMITTING Store'
+        #print >> sys.stderr, 'Transaction Commit results:', CMAdb.store.commit()
+        CMAdb.store.commit()
+        #print >> sys.stderr, 'Store COMMITTED'
 
 
     def delete_all(self, db):

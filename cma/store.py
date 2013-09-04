@@ -342,7 +342,7 @@ class Store:
         # No errors - give it a shot!
         rels = subj.__store_node.match_outgoing(rel_type, obj)
         for rel in rels:
-            print >> sys.stderr, 'DELETING RELATIONSHIP %s of type %s: %s' % (rel._id, rel_type, rel)
+            #print >> sys.stderr, 'DELETING RELATIONSHIP %s of type %s: %s' % (rel._id, rel_type, rel)
             if obj is not None:
                 assert rel.end_node._id == obj._id
             self.deletions.append(rel)
@@ -419,23 +419,6 @@ class Store:
         return (len(self.clients) + len(self.newrels) + len(self.deletions)) > 0
 
     @staticmethod
-    def _storesetattr(self, name, value):
-        '''
-        Does a setattr() - and marks changed attributes "dirty".  This
-        permits us to know when attributes change, and automatically
-        include them in the next transaction.
-        This is a GoodThing.
-        '''
-
-        if name[0] != '_':
-            if hasattr(self, '_Store__store_dirty_attrs'):
-                #print 'Caught %s being set to %s!' % (name, value)
-                #traceback.print_stack()
-                self.__store_dirty_attrs[name] = True
-                self.__store.clients[self] = True
-        object.__setattr__(self, name, value)
-
-    @staticmethod
     def _callconstructor(constructor, kwargs):
         'Call a constructor (or function) in a (hopefully) correct way'
 
@@ -487,6 +470,24 @@ class Store:
         else:
             raise ValueError("Attr %s of object %s of type %s isn't really acceptable" % (attr, obj, type(value)))
 
+
+    @staticmethod
+    def _storesetattr(self, name, value):
+        '''
+        Does a setattr() - and marks changed attributes "dirty".  This
+        permits us to know when attributes change, and automatically
+        include them in the next transaction.
+        This is a GoodThing.
+        '''
+
+        if name[0] != '_':
+            if hasattr(self, '_Store__store_dirty_attrs'):
+                #print 'Caught %s being set to %s!' % (name, value)
+                #traceback.print_stack()
+                self.__store_dirty_attrs[name] = True
+                self.__store.clients[self] = True
+        object.__setattr__(self, name, value)
+
     @staticmethod
     def _update_node_from_obj(subj):
         'Update the node from its paired object'
@@ -495,6 +496,30 @@ class Store:
             #print >> sys.stderr, 'Setting node["%s"] to %s' % (attr, getattr(subj, attr))
             node[attr] = Store._proper_attr_value(subj, attr)
         subj.__store_dirty_attrs = {}
+
+    def _update_obj_from_node(self, subj):
+        'Update an object from its paired node - preserving "dirty" attributes'
+        node = subj.__store_node
+        nodeprops = node.get_properties()
+        remove_subj = subj not in self.clients
+        for attr in nodeprops.keys():
+            pattr = nodeprops[attr]
+            if attr in subj.__store_dirty_attrs:
+                remove_subj = False
+                continue
+            #print >> sys.stderr, 'Setting obj["%s"] to %s' % (attr, pattr)
+            setattr(subj, attr, pattr)
+            # Avoid unnecessary update transaction
+            del subj.__store_dirty_attrs[attr]
+        if remove_subj and subj in self.clients:
+            del self.clients[subj]
+
+        # Make sure everything in the object is in the Node...
+        for attr in Store._safe_attr_names(subj):
+            if attr not in nodeprops:
+                subj.__store_dirty_attrs[attr] = True
+                self.clients[subj] = True
+
  
 
     def _get_idx_key_value(self, cls, attrdict, subj=None):
@@ -560,28 +585,6 @@ class Store:
                 return client
         return None
 
-
-
-
-    def _update_obj_from_node(self, subj):
-        'Update the object from its paired node'
-        node = subj.__store_node
-        nodeprops = node.get_properties()
-        remove_subj = subj not in self.clients
-        for attr in nodeprops.keys():
-            pattr = nodeprops[attr]
-            setattr(subj, attr, pattr)
-            # Avoid unnecessary update transaction
-            del subj.__store_dirty_attrs[attr]
-        if remove_subj and subj in self.clients:
-            del self.clients[subj]
-
-        # Make sure everything in the object is in the Node...
-        for attr in Store._safe_attr_names(subj):
-            if attr not in nodeprops:
-                subj.__store_dirty_attrs[attr] = True
-                self.clients[subj] = True
-
     def _construct_obj_from_node(self, node, cls):
         'Construct an object associated with the given node'
         # Do we already have a copy of an object that goes with this node somewhere?
@@ -593,7 +596,7 @@ class Store:
                 del self.weaknoderefs[nodeid]
             else:
                 # Yes, we have a copy laying around somewhere - update it...
-                subj.__store_node = node
+                #print >> sys.stderr, 'WE HAVE NODE LAYING AROUND...', node.get_properties()
                 self._update_obj_from_node(subj)
                 return subj
         #print 'RETRIEVED NODE PROPERTIES:', node.get_properties()
@@ -700,7 +703,7 @@ class Store:
             if isinstance(relorobj, neo4j.Relationship):
                 relid = relorobj._id
                 if relid not in delrels:
-                    print >> sys.stderr, 'DELETING rel %d: %s' % (relorobj._id, relorobj)
+                    #print >> sys.stderr, 'DELETING rel %d: %s' % (relorobj._id, relorobj)
                     self.node_separate_count += 1
                     self.batch.delete(relorobj)
                     delrels[relid] = True
@@ -773,7 +776,7 @@ class Store:
                 del self.weaknoderefs[nodeid]
     def commit(self):
         '''Commit all the changes we've created since our last transaction'''
-        print >> sys.stderr, 'COMMITTING THIS THING:', self
+        #print >> sys.stderr, 'COMMITTING THIS THING:', self
         if self.batch is None:
             self.batch = neo4j.WriteBatch(self.db)
         self.batchindex = 0

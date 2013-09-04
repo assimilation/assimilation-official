@@ -44,14 +44,14 @@ from graphnodes import GraphNode
 
 WorstDanglingCount = 0
 CheckForDanglingClasses = False
-DEBUG=True
+DEBUG=False
 DoAudit=True
 SavePackets=True
 doHBDEAD=True
 MaxDrone=5
 MaxDrone=10000
 
-MaxDrone=3
+MaxDrone=5
 doHBDEAD=True
 
 BuildListOnly = False
@@ -169,9 +169,7 @@ class AUDITS(TestCase):
         jsobj = pyConfigContext(init=json)
         jsdata = jsobj['data']
         eth0obj = jsdata['eth0']
-        print >> sys.stderr, 'ETH0OBJ = ', eth0obj
         eth0addrcidr = eth0obj['ipaddrs'].keys()[0]
-        print 'ETH0 ADDRCIDR:', eth0addrcidr
         eth0addrstr, cidrmask = eth0addrcidr.split('/')
         eth0addr = pyNetAddr(eth0addrstr)
         self.assertTrue(eth0addr == ipnodeaddr)
@@ -233,8 +231,6 @@ class AUDITS(TestCase):
             ringmembers[drone.designation] = None
         for drone in ring.membersfromlist():
             listmembers[drone.designation] = None
-        print >>sys.stderr, 'LISTMEMBERS:', listmembers
-        print >>sys.stderr, 'RINGMEMBERS:', ringmembers
         for drone in listmembers.keys():
             self.assertTrue(drone in ringmembers)
         for drone in ringmembers.keys():
@@ -428,15 +424,12 @@ class TestCMABasic(TestCase):
         addrone = droneipaddress(1)
         maxdrones = droneid
         if doHBDEAD:
-            print >> sys.stderr, 'KILLING THEM ALL!!!'
+            #print >> sys.stderr, 'KILLING THEM ALL!!!'
             for droneid in range(2,maxdrones+1):
                 droneip = droneipaddress(droneid)
-                print >> sys.stderr, 'queueing dead packet for %s' % droneip
                 deadframe=pyIpPortFrame(FrameTypes.IPPORT, addrstring=droneip)
-                print >> sys.stderr, 'queueing death frame: %s' % deadframe
                 fs = pyFrameSet(FrameSetTypes.HBDEAD)
                 fs.append(deadframe)
-                print >> sys.stderr, 'FS PACKET: %s' % fs
                 fsin.append((addrone, (fs,)))
         io = TestIO(fsin)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
@@ -460,17 +453,15 @@ class TestCMABasic(TestCase):
         query = neo4j.CypherQuery(CMAdb.cdb.db, "START n=node:Drone('*:*') RETURN n")
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
         Drones = [drone for drone in Drones]
-        print 'DRONE LIST:', Drones
         #Dronerels = droneroot.get_relationships(neo4j.Direction.INCOMING, 'IS_A')
         #self.assertEqual(len(Dronerels), maxdrones)
-        print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
+        #print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
         self.assertEqual(len(Drones), maxdrones)
         if doHBDEAD:
             partnercount = 0
             livecount = 0
             ringcount = 0
             for drone1 in Drones:
-                print 'DRONE1:', drone1, drone1.status
                 if drone1.status != 'dead': livecount += 1
                 for partner in CMAdb.store.load_related(drone1, CMAdb.TheOneRing.ournexttype, Drone):
                     partnercount += 1
@@ -478,8 +469,6 @@ class TestCMABasic(TestCase):
                     partnercount += 1
                 for ring in CMAdb.store.load_in_related(drone1, CMAdb.TheOneRing.ourreltype, HbRing):
                     ringcount += 1
-            print >> sys.stderr, 'DUMPING DRONES'
-            GraphNode.dump_nodes()
             self.assertEqual(partnercount, 0)
             self.assertEqual(livecount, 1)
             self.assertEqual(ringcount, 1)
