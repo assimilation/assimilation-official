@@ -37,7 +37,7 @@ class CMAinit(object):
 
     def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False):
         'Initialize and construct a global database instance'
-        print >> sys.stderr, 'CALLING NEW initglobal'
+        #print >> sys.stderr, 'CALLING NEW initglobal'
         CMAdb.log = logging.getLogger('cma')
         CMAdb.debug = debug
         CMAdb.io = io
@@ -48,20 +48,17 @@ class CMAinit(object):
         CMAdb.log.addHandler(syslog)
         CMAdb.log.setLevel(logging.DEBUG)
         url = ('http://%s:%d/db/data/' % (host, port))
-        print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
+        #print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
         neodb = neo4j.GraphDatabaseService(url)
         if cleanoutdb:
-            print >> sys.stderr, 'CLEANINGOUT DB (new)'
             CMAdb.log.info('Re-initializing the NEO4j database')
             self.delete_all(neodb)
-            print >> sys.stderr, 'DB CLEANED (new)'
-            print >> sys.stderr, 'Reiniting database'
         CMAdb.cdb = CMAdb(db=neodb)
         CMAdb.store = Store(neodb, CMAdb.uniqueindexes,CMAdb.classkeymap)
         from transaction import Transaction
         CMAdb.transaction = Transaction()
-        print >> sys.stderr,  'CMAdb:', CMAdb
-        print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
+        #print >> sys.stderr,  'CMAdb:', CMAdb
+        #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
         CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
         ,           ringtype= HbRing.THEONERING)
         CMAdb.transaction.commit_trans(io)

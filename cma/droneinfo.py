@@ -587,7 +587,6 @@ class Drone(GraphNode):
             desig = designation.toIPv6()
             desigstr = str(desig)
             query = 'global:%s' % str(Store.lucene_escape(desigstr))
-            print >> sys.stderr, ('++++++++++++++++++++++++++++++++++ESCAPED query:"%s"' % str(query))
             #We now do everything by IPv6 addresses...
             drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipaddr':query})
             if drone is not None:

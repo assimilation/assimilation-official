@@ -176,21 +176,21 @@ class CMAdb:
         self.indextbl = {}
         self.nodetypetbl = {}
         for index in indices:
-            print >>sys.stderr, ('Ensuring index %s exists' % index)
+            #print >>sys.stderr, ('Ensuring index %s exists' % index)
             self.indextbl[index] = self.db.get_index(neo4j.Node, index)
             self.indextbl[index] = self.db.get_or_create_index(neo4j.Node, index)
         #print >>sys.stderr, ('Ensuring index %s exists' % 'nodetype')
         self.indextbl['nodetype'] = self.db.get_or_create_index(neo4j.Node, 'nodetype')
         nodetypeindex = self.indextbl['nodetype']
         
-        nodezero = CMAdb.store.load_or_create(CMAclass, name='object')
-        print >> sys.stderr, 'nodezero', nodezero
+        classroot = CMAdb.store.load_or_create(CMAclass, name='object')
+        #print >> sys.stderr, 'classroot', classroot
 
         for index in CMAdb.is_indexed.keys():
-            print >>sys.stderr, 'Creating CMAclass object/node for Class %s' % index
+            #print >>sys.stderr, 'Creating CMAclass object/node for Class %s' % index
             top = CMAdb.store.load_or_create(CMAclass, name=index)
-            print >>sys.stderr, 'Relating type %s to node zero (object)' % index
-            CMAdb.store.relate_new(top, CMAclass.RELTYPE, nodezero)
+            #print >>sys.stderr, 'Relating type %s to node zero (object)' % index
+            CMAdb.store.relate_new(top, CMAclass.RELTYPE, classroot)
             self.nodetypetbl[index] = top
             
         self.ringindex = self.indextbl[CMAdb.NODE_ring]
