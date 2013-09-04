@@ -64,9 +64,11 @@ class MessageDispatcher:
                 CMAdb.store.commit()
                 CMAdb.TheOneRing.AUDIT()
             else:
-                print >> sys.stderr, 'No data base changes this time'
+                if CMAdb.debug;
+                    print >> sys.stderr, 'No database changes this time'
                 CMAdb.store.abort()
-            print >> sys.stderr, ''
+            if CMAdb.debug;
+                print >> sys.stderr, ''
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
             #   logs in a legible way
