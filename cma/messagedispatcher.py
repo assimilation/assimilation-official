@@ -64,7 +64,7 @@ class MessageDispatcher:
                 CMAdb.store.commit()
                 CMAdb.TheOneRing.AUDIT()
             else:
-                if CMAdb.debug;
+                if CMAdb.debug:
                     print >> sys.stderr, 'No database changes this time'
                 CMAdb.store.abort()
             if CMAdb.debug;
