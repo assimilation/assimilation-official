@@ -35,6 +35,15 @@ def nodeconstructor(**properties):
     realcls = eval(properties['nodetype'])
     return Store._callconstructor(realcls, properties)
 
+class CMAclass(object):
+    '''Class defining the relationships of our CMA classes to each other'''
+
+    def __init__(self, name):
+        self.name = name
+        self.domain = CMAconsts.globaldomain
+        self.nodetype = CMAconsts.NODE_nodetype
+
+
 class GraphNode(object):
     def __init__(self, domain, roles=[]):
         'Abstract Graph node base class'

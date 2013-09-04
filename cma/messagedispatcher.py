@@ -28,7 +28,6 @@ from transaction import Transaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
 import os, sys, traceback
-from hbring import HbRing
 
 class MessageDispatcher:
     'We dispatch incoming messages where they need to go.'
@@ -102,8 +101,6 @@ class MessageDispatcher:
             if CMAdb.transaction is not None:
                 CMAdb.log.critical("Aborting network transaction %s" % CMAdb.transaction.tree)
                 CMAdb.transaction = None
-            print >> sys.stderr, 'EXITING!!'
-            os._exit(1)
             
         # We want to do this even in the failed case - retries are unlikely to help
         # and we're far more likely to get stuck in a loop retrying it forever...

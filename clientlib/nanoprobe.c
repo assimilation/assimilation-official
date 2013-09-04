@@ -609,7 +609,7 @@ endloop:
 
 	DUMP3("nanoobey_setconfig: cfg is", &config->baseclass, NULL);
 
-	if (config->getaddr(config, CONFIGNAME_CMAFAIL) != NULL) {
+	if (config && config->getaddr(config, CONFIGNAME_CMAFAIL) != NULL) {
 		if (nanofailreportaddr == NULL) {
 			nanofailreportaddr = config->getaddr(config, CONFIGNAME_CMAFAIL);
 		}else if (config->getaddr(config, CONFIGNAME_CMAFAIL) != nanofailreportaddr) {

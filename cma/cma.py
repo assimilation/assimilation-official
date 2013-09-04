@@ -192,7 +192,6 @@ def main():
         CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
     from frameinfo import FrameTypes, FrameSetTypes
-    import py2neo
     for debug in range(opt.debug):
         debug = debug
         proj_class_incr_debug(None)

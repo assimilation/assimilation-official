@@ -178,9 +178,9 @@ class HbRing(GraphNode):
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
         #print >> sys.stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
-        list = self.membersfromlist()
+        #ringlist = self.membersfromlist()
         #print >>sys.stderr, 'RING IN ORDER:' 
-        #for elem in list:
+        #for elem in ringlist:
             #print >>sys.stderr, 'RING NODE: %s' % elem
 
         prevnode = None
@@ -247,42 +247,44 @@ class HbRing(GraphNode):
             #print >> sys.stderr, 'NO INSERTPOINT1'
             return
         if Store.is_abstract(self._insertpoint1):
-            #print >> sys.stderr, 'YIELDING INSERTPOINT1:', self._insertpoint1, type(self._insertpoint1)
+            #print >> sys.stderr, ('YIELDING INSERTPOINT1:', self._insertpoint1
+            #,       type(self._insertpoint1))
             yield self._insertpoint1
             return
         startid = Store.id(self._insertpoint1)
         # We can't pre-compile this, but we hopefully we won't use it much...
-        Q='''START Drone=node(%s)
+        q = '''START Drone=node(%s)
              MATCH p=Drone-[:%s*0..]->NextDrone
              WHERE length(p) = 0 or Drone <> NextDrone
-             RETURN NextDrone'''
-        q = Q % (startid, self.ournexttype)
+             RETURN NextDrone''' % (startid, self.ournexttype)
         query = neo4j.CypherQuery(CMAdb.cdb.db, q)
         for elem in CMAdb.store.load_cypher_nodes(query, Drone):
             yield elem
         return
 
     def AUDIT(self):
+        '''Audit our ring to see if it's well-formed'''
         listmembers = {}
         ringmembers = {}
-        mbrcount=0
+        mbrcount = 0
         for drone in self.members():
             ringmembers[drone.designation] = None
             mbrcount += 1
 
         for drone in self.membersfromlist():
             listmembers[drone.designation] = None
-            nextcount=0
-            list=CMAdb.store.load_related(drone, self.ournexttype, Drone)
-            for elem in list:
+            nextcount = 0
+            nextlist = CMAdb.store.load_related(drone, self.ournexttype, Drone)
+            # pylint: disable=W0612
+            for elem in nextlist:
                 nextcount += 1
-            incount=0
-            list=CMAdb.store.load_in_related(drone, self.ournexttype, Drone)
-            for elem in list:
+            incount = 0
+            inlist = CMAdb.store.load_in_related(drone, self.ournexttype, Drone)
+            for elem in inlist:
                 incount += 1
             ringcount = 0
-            list=CMAdb.store.load_in_related(drone, self.ourreltype, Drone)
-            for elem in list:
+            dronelist = CMAdb.store.load_in_related(drone, self.ourreltype, Drone)
+            for elem in dronelist:
                 ringcount += 1
             #print >> sys.stderr    \
             #,   ('%s status: %s mbrcount: %d, nextcount:%d, incount:%d, ringcount:%d'
@@ -301,7 +303,7 @@ class HbRing(GraphNode):
 
     def __str__(self):
         ret = 'Ring("%s"' % self.name
-        comma = ', ['
+        #comma = ', ['
         #for drone in self.membersfromlist():
         #    ret += '%s%s' % (comma, drone)
         #    comma = ', '
