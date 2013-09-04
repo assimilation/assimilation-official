@@ -67,7 +67,7 @@ class MessageDispatcher:
                 if CMAdb.debug:
                     print >> sys.stderr, 'No database changes this time'
                 CMAdb.store.abort()
-            if CMAdb.debug;
+            if CMAdb.debug:
                 print >> sys.stderr, ''
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
