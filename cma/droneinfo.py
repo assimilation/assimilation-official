@@ -47,7 +47,7 @@ class Drone(GraphNode):
     _JSONprocessors = {}
     IPownerquery_1 = None
     OwnedIPsQuery = None
-    IPownerquery_1_txt = '''START n=node:IPaddrNode({ipquery})
+    IPownerquery_1_txt = '''START n=node:IPaddrNode({ipaddr})
                             MATCH n<-[:%s]-()<-[:%s]-drone
                             return drone LIMIT 1'''
     OwnedIPsQuery_txt = '''START d=node({droneid}) 
@@ -80,8 +80,9 @@ class Drone(GraphNode):
         if Drone.IPownerquery_1 is None:
             Drone.IPownerquery_1 =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.IPownerquery_1_txt
             % (CMAconsts.REL_ipowner, CMAconsts.REL_nicowner))
-            Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db
-            ,       Drone.OwnedIPsQuery_txt % (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner))
+            Drone.OwnedIPsQuery_subtxt = Drone.OwnedIPsQuery_txt    \
+            %       (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner)
+            Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.OwnedIPsQuery_subtxt)
 
 
     def getport(self):
@@ -93,8 +94,14 @@ class Drone(GraphNode):
         self.port = port
 
     def get_owned_ips(self):
-        return CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
-        ,       params={'droneid':Store.id(self)})
+        params = {'droneid':Store.id(self)}
+        if CMAdb.debug:
+            print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
+            %   (Drone.OwnedIPsQuery_subtxt, params))
+
+        return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
+        ,       params=params)]
+
         
    
     def logjson(self, jsontext):
@@ -580,8 +587,9 @@ class Drone(GraphNode):
             desig = designation.toIPv6()
             desigstr = str(desig)
             query = 'global:%s' % str(Store.lucene_escape(desigstr))
+            print >> sys.stderr, ('++++++++++++++++++++++++++++++++++ESCAPED query:"%s"' % str(query))
             #We now do everything by IPv6 addresses...
-            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipquery':query})
+            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipowner':query})
             if drone is not None:
                 assert CMAdb.store.has_node(drone)
                 return drone
