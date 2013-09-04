@@ -28,6 +28,7 @@ from transaction import Transaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
 import os, sys, traceback
+from hbring import HbRing
 
 class MessageDispatcher:
     'We dispatch incoming messages where they need to go.'
@@ -61,6 +62,7 @@ class MessageDispatcher:
             CMAdb.transaction.commit_trans(CMAdb.io)
             if CMAdb.store.transaction_pending:
                 CMAdb.store.commit()
+                CMAdb.TheOneRing.AUDIT()
             else:
                 print >> sys.stderr, 'No data base changes this time'
                 CMAdb.store.abort()
@@ -81,13 +83,16 @@ class MessageDispatcher:
             CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
             for line in lines:
                 CMAdb.log.info(line.expandtabs())
-            CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========'  \
+            CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========'
+            %   (fstypename, e))
+            print >> sys.stderr, ('======== Begin %s Message %s Exception Traceback ========'
             %   (fstypename, e))
             for tb in tblist:
                 (filename, line, funcname, text) = tb
                 filename = os.path.basename(filename)
                 CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
-            CMAdb.log.info('======== End %s Message %s Exception Traceback ========' \
+                print >> sys.stderr, ('%s.%s:%s: %s'% (filename, line, funcname, text))
+            CMAdb.log.info('======== End %s Message %s Exception Traceback ========'
             %   (fstypename, e))
             if CMAdb.store is not None:
                 CMAdb.log.critical("Aborting Neo4j transaction %s" % CMAdb.store)
@@ -95,6 +100,8 @@ class MessageDispatcher:
             if CMAdb.transaction is not None:
                 CMAdb.log.critical("Aborting network transaction %s" % CMAdb.transaction.tree)
                 CMAdb.transaction = None
+            print >> sys.stderr, 'EXITING!!'
+            os._exit(1)
             
         # We want to do this even in the failed case - retries are unlikely to help
         # and we're far more likely to get stuck in a loop retrying it forever...

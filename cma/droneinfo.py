@@ -460,8 +460,6 @@ class Drone(GraphNode):
             %   (self.designation, status, str(fromaddr), reason))
         self.status = status
         self.reason = reason
-        self.status = status
-        self.reason = reason
         self.statustime = int(round(time.time() * 1000))
         self.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         # There is a need for us to be a little more sophisticated
@@ -475,8 +473,6 @@ class Drone(GraphNode):
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self._io.closeconn(DEFAULT_FSP_QID, deadip)
-
-
 
     def start_heartbeat(self, ring, partner1, partner2=None):
         '''Start heartbeating to the given partners.

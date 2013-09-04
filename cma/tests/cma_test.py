@@ -48,12 +48,10 @@ DEBUG=True
 DoAudit=True
 SavePackets=True
 doHBDEAD=True
-MaxDrone=4
-MaxDrone=3
-MaxDrone=10000
 MaxDrone=5
+MaxDrone=10000
 
-MaxDrone=2
+MaxDrone=3
 doHBDEAD=True
 
 BuildListOnly = False
@@ -229,11 +227,14 @@ class AUDITS(TestCase):
         # Check that each element of the ring is connected to its neighbors...
         print "Ring %s" % (str(ring))
         listmembers = {}
+        
         ringmembers = {}
         for drone in ring.members():
             ringmembers[drone.designation] = None
         for drone in ring.membersfromlist():
             listmembers[drone.designation] = None
+        print >>sys.stderr, 'LISTMEMBERS:', listmembers
+        print >>sys.stderr, 'RINGMEMBERS:', ringmembers
         for drone in listmembers.keys():
             self.assertTrue(drone in ringmembers)
         for drone in ringmembers.keys():
@@ -254,7 +255,7 @@ def auditallrings():
     audit = AUDITS()
     query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:HbRing('*:*') RETURN n''')
     for ring in CMAdb.store.load_cypher_nodes(query, HbRing):
-        audit.auditaRing(ring)
+        ring.AUDIT()
 
 class TestIO:
     '''A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read' and in turn

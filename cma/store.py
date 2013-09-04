@@ -342,7 +342,7 @@ class Store:
         # No errors - give it a shot!
         rels = subj.__store_node.match_outgoing(rel_type, obj)
         for rel in rels:
-            print >> sys.stderr, 'DELETING RELATIONSHIP %s of type %s' % (rel._id, rel_type)
+            print >> sys.stderr, 'DELETING RELATIONSHIP %s of type %s: %s' % (rel._id, rel_type, rel)
             if obj is not None:
                 assert rel.end_node._id == obj._id
             self.deletions.append(rel)
@@ -366,14 +366,13 @@ class Store:
         'Load all outgoing-related nodes with the specified relationship type'
 
         if Store.is_abstract(subj):
-            return []
+            return
             raise ValueError('Node to load related from cannot be abstract')
         #print 'LOAD RELATED Node(%s).match_outgoing("%s")' % (subj.__store_node, rel_type)
         rels = subj.__store_node.match_outgoing(rel_type)
         ret = []
         for rel in rels:
-            ret.append(self._construct_obj_from_node(rel.end_node, cls))
-        return ret
+            yield self._construct_obj_from_node(rel.end_node, cls)
 
     def load_in_related(self, subj, rel_type, cls):
         'Load all incoming-related nodes with the specified relationship type'
@@ -391,6 +390,8 @@ class Store:
         for row in query.stream(**params):
             for key in row.__dict__.keys():
                 node = getattr(row, key)
+                if node is None:
+                    continue
                 subj = Store._callconstructor(cls, node.get_properties())
                 (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, {}, subj=subj)
                 if not self.is_uniqueindex(index_name):
@@ -566,11 +567,14 @@ class Store:
         'Update the object from its paired node'
         node = subj.__store_node
         nodeprops = node.get_properties()
+        remove_subj = subj not in self.clients
         for attr in nodeprops.keys():
             pattr = nodeprops[attr]
             setattr(subj, attr, pattr)
             # Avoid unnecessary update transaction
             del subj.__store_dirty_attrs[attr]
+        if remove_subj and subj in self.clients:
+            del self.clients[subj]
 
         # Make sure everything in the object is in the Node...
         for attr in Store._safe_attr_names(subj):
@@ -696,7 +700,7 @@ class Store:
             if isinstance(relorobj, neo4j.Relationship):
                 relid = relorobj._id
                 if relid not in delrels:
-                    #print >> sys.stderr, 'DELETING rel %s' % relorobj
+                    print >> sys.stderr, 'DELETING rel %d: %s' % (relorobj._id, relorobj)
                     self.node_separate_count += 1
                     self.batch.delete(relorobj)
                     delrels[relid] = True
@@ -866,7 +870,6 @@ if __name__ == "__main__":
     for rel in rellist:
         store.relate(fred, rel, fred)
     store.commit()  # The updates have been captured...
-    assert not store.transaction_pending
     assert fred.a == 52
     assert fred.b == 2
     assert fred.name == DRONE
@@ -874,15 +877,18 @@ if __name__ == "__main__":
 
     for rel in rellist:
         ret = store.load_related(fred, rel, Drone)
+        ret = [elem for elem in ret]
         assert len(ret) == 1 and ret[0] is fred
     for rel in rellist:
         ret = store.load_in_related(fred, rel, Drone)
+        ret = [elem for elem in ret]
         assert len(ret) == 1 and ret[0] is fred
-    assert not store.transaction_pending
     assert fred.a == 52
     assert fred.b == 2
     assert fred.name == DRONE
     assert fred.c > 3.14158 and fred.c < 3.146
+    print store
+    assert not store.transaction_pending
 
     fred.x='malcolm'
     store.dump_clients()
@@ -911,6 +917,7 @@ if __name__ == "__main__":
     assert store.transaction_pending
     store.commit() 
     rels = store.load_related(fred, 'WILLBEA', Drone)
+    rels = [rel for rel in rels]
     assert len(rels) == 0
     store.refresh(fred)
     store.delete(fred)
