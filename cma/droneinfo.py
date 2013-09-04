@@ -23,7 +23,7 @@
 We implement the Drone class - which implements all the properties of
 drones as a Python class.
 '''
-import weakref, time
+import time
 import sys
 #import os, traceback
 from py2neo import neo4j
@@ -31,10 +31,9 @@ from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
 from graphnodes import GraphNode, nodeconstructor
-from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, nodeconstructor
+from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
-import hbring
 
 class Drone(GraphNode):
     '''Everything about Drones - endpoints that run our nanoprobes.
@@ -43,7 +42,6 @@ class Drone(GraphNode):
     Drone.IPownerquery_1: Given an IP address, return what SystemNode (probably Drone) that 'owns' it.
     Drone.OwnedIPsQuery:  Given a Drone object, return all the IPaddrNodes that it 'owns'
     '''
-    _droneweakrefs = {}
     _JSONprocessors = {}
     IPownerquery_1 = None
     OwnedIPsQuery = None
@@ -55,9 +53,11 @@ class Drone(GraphNode):
                            return ip'''
 
 
-    def __init__(self, designation, port=None, startaddr=None, roles=['host', 'drone']
+    # R0913: Too many arguments to __init__()
+    # pylint: disable=R0913
+    def __init__(self, designation, port=None, startaddr=None
     ,       primary_ip_addr=None, domain=CMAconsts.globaldomain
-    ,       status = '(unknown)', reason = '(initialization)'):
+    ,       status= '(unknown)', reason='(initialization)', roles=None):
         '''Initialization function for the Drone class.
         We mainly initialize a few attributes from parameters as noted above...
 
@@ -65,12 +65,16 @@ class Drone(GraphNode):
         objects for a couple of queries we know we'll need later.
         '''
         GraphNode.__init__(self, domain=domain)
-        self.addrole('drone', 'host')
+        if roles is None:
+            roles = ['host', 'drone']
+        self.addrole(*roles)
         self._io = CMAdb.io
         self.status = status
         self.reason = reason
         self.startaddr = str(startaddr)
         self.primary_ip_addr = str(primary_ip_addr)
+        self.statustime = int(round(time.time() * 1000))
+        self.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         if port is not None:
             self.port = int(port)
         else:
@@ -85,15 +89,8 @@ class Drone(GraphNode):
             Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.OwnedIPsQuery_subtxt)
 
 
-    def getport(self):
-        '''Return the port we talk to this drone on'''
-        return self.port
-
-    def setport(self, port):
-        '''Set the port we talk to this drone on'''
-        self.port = port
-
     def get_owned_ips(self):
+        '''Return a list of all the IP addresses that this Drone owns'''
         params = {'droneid':Store.id(self)}
         if CMAdb.debug:
             print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
@@ -134,15 +131,20 @@ class Drone(GraphNode):
             CMAdb.log.info('Stored %s JSON data from %s without processing.'
             %   (dtype, designation))
 
-    #pylint: disable=R0914
+    # R0912 -- too many branches
+    # R0914 -- too many local variables
+    #pylint: disable=R0914,R0912
     def add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from netconfig JSON discovery.
         This includes all our NICs, their MAC addresses, all our IP addresses and so on
         for any (non-loopback) interface.  Whee!
+
+        This code is more complicated than I'd like but it's not obvious how to simplify it...
         '''
 
         assert CMAdb.store.has_node(self)
         data = jsonobj['data'] # The data portion of the JSON message
+        kw = kw # Don't currently need this argument...
 
         currmacs = {}
         # Get our current list of NICs 
@@ -150,7 +152,7 @@ class Drone(GraphNode):
         for nic in iflist:
             currmacs[nic.macaddr] = nic
 
-        primaryifname=None
+        primaryifname = None
         newmacs = {}
         for ifname in data.keys(): # List of interfaces just below the data section
             ifinfo = data[ifname]
@@ -207,12 +209,12 @@ class Drone(GraphNode):
                     ipname = ipinfo['name']
                 if ipinfo['scope'] != 'global':
                     continue
-                iponly,cidrmask = ip.split('/')
+                iponly, cidrmask = ip.split('/')
                 netaddr = pyNetAddr(iponly).toIPv6()
                 if netaddr.islocal():
                     continue
-                ipnode = CMAdb.store.load_or_create(IPaddrNode, domain=self.domain, ipaddr=str(netaddr)
-                ,   cidrmask=cidrmask)
+                ipnode = CMAdb.store.load_or_create(IPaddrNode
+                ,   domain=self.domain, ipaddr=str(netaddr), cidrmask=cidrmask)
                 ## FIXME: Not an ideal way to determine primary (preferred) IP address...
                 ## it's a bit idiosyncratic to Linux...
                 if ifname == primaryifname  and primaryip is None and ipname == ifname:
@@ -238,8 +240,6 @@ class Drone(GraphNode):
                     CMAdb.store.relate(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
                     #CMAdb.store.relate(mac, CMAconsts.REL_causes,  ip)
 
-
-
     def add_tcplisteners(self, jsonobj, **keywords):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
@@ -253,7 +253,7 @@ class Drone(GraphNode):
             CMAdb.log.debug('Processing keys(%s)' % data.keys())
         newprocs = {}
         newprocmap = {}
-        discoveryroles={}
+        discoveryroles = {}
         for procname in data.keys(): # List of names of processes...
             procinfo = data[procname]
             if 'listenaddrs' in procinfo:
@@ -261,7 +261,7 @@ class Drone(GraphNode):
                     discoveryroles[CMAconsts.ROLE_server] = True
                     self.addrole(CMAconsts.ROLE_server)
             if 'clientaddrs' in procinfo:
-                if not CMAdb.ROLE_client in discoveryroles:
+                if not CMAconsts.ROLE_client in discoveryroles:
                     discoveryroles[CMAconsts.ROLE_client] = True
                     self.addrole(CMAconsts.ROLE_client)
             processproc = CMAdb.store.load_or_create(ProcessNode, domain=self.domain
@@ -273,7 +273,6 @@ class Drone(GraphNode):
 
             newprocs[processproc.processname] = processproc
             newprocmap[procname] = processproc
-            self.lastobservedtime = int(round(time.time() * 1000))
             if CMAdb.store.is_abstract(processproc):
                 CMAdb.store.relate(self, CMAconsts.REL_hosting, processproc, {'causes':True})
             if CMAdb.debug:
@@ -302,26 +301,26 @@ class Drone(GraphNode):
                 continue
             if 'listenaddrs' in procinfo:
                 srvportinfo = procinfo['listenaddrs']
-                processnode.addrole(CMAdb.ROLE_server)
+                processnode.addrole(CMAconsts.ROLE_server)
                 for srvkey in srvportinfo.keys():
-                    self.add_serveripportnodes(srvportinfo[srvkey], processnode, allourips)
+                    self._add_serveripportnodes(srvportinfo[srvkey], processnode, allourips)
             if 'clientaddrs' in procinfo:
                 clientinfo = procinfo['clientaddrs']
-                processnode.addrole(CMAdb.ROLE_client)
+                processnode.addrole(CMAconsts.ROLE_client)
                 for clientkey in clientinfo.keys():
-                    self.add_clientipportnode(clientinfo[clientkey], processnode)
+                    self._add_clientipportnode(clientinfo[clientkey], processnode)
 
-    def add_clientipportnode(self, ipportinfo, processnode):
+    def _add_clientipportnode(self, ipportinfo, processnode):
         '''Add the information for a single client IPtcpportNode to the database.'''
         servip_name = str(pyNetAddr(ipportinfo['addr']).toIPv6())
         servip = CMAdb.store.load_or_create(IPaddrNode, domain=self.domain, ipaddr=servip_name)
-        servport=int(ipportinfo['port'])
+        servport = int(ipportinfo['port'])
         ip_port = CMAdb.store.load_or_create(IPtcpportNode, domain=self.domain
         ,       ipaddr=servip_name, port=servport)
         CMAdb.store.relate_new(ip_port, CMAconsts.REL_baseip, servip, {'causes': True})
         CMAdb.store.relate_new(processnode, CMAconsts.REL_tcpclient, ip_port, {'causes': True})
 
-    def add_serveripportnodes(self, jsonobj, processnode, allourips):
+    def _add_serveripportnodes(self, jsonobj, processnode, allourips):
         '''We create tcpipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
         for the ANY ipv4 and ipv6 addresses'''
@@ -350,7 +349,6 @@ class Drone(GraphNode):
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
             %       (self, addr))
 
-    #pylint: disable=R0914
     def add_linkdiscovery(self, jsonobj, **keywords):
         'Add Low Level (Link Level) discovery data to the database'
         #
@@ -365,7 +363,6 @@ class Drone(GraphNode):
         keywords = keywords # don't need these
         data = jsonobj['data']
         #print >> sys.stderr, 'SWITCH JSON:', str(data)
-        val=data['SystemCapabilities']
         if 'ChassisId' not in data:
             CMAdb.log.warning('Chassis ID missing from discovery data from switch [%s]'
             %   (str(data)))
@@ -418,7 +415,8 @@ class Drone(GraphNode):
                 nicmac = thisport['sourceMAC']
             else:
                 nicmac = chassisid # Hope that works ;-)
-            nicnode = CMAdb.store.load_or_create(NICNode, domain=self.domain, macaddr=nicmac, **attrs)
+            nicnode = CMAdb.store.load_or_create(NICNode, domain=self.domain
+            ,   macaddr=nicmac, **attrs)
             CMAdb.store.relate(switch, CMAconsts.REL_nicowner, nicnode, {'causes': True})
             try:
                 assert thisport['ConnectsToHost'] == self.designation
@@ -476,7 +474,7 @@ class Drone(GraphNode):
         for mightbering in CMAdb.store.load_in_related(self, None, nodeconstructor):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
-        deadip = pyNetAddr(self.primary_ip(), port=self.getport())
+        deadip = pyNetAddr(self.primary_ip(), port=self.port)
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self._io.closeconn(DEFAULT_FSP_QID, deadip)
@@ -487,10 +485,10 @@ class Drone(GraphNode):
         We only use forward links - because we can follow them in both directions in Neo4J.
         So, we need to create a forward link from partner1 to us and from us to partner2 (if any)
         '''
-        ouraddr = pyNetAddr(self.primary_ip(), port=self.getport())
-        partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.getport())
+        ouraddr = pyNetAddr(self.primary_ip(), port=self.port)
+        partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.port)
         if partner2 is not None:
-            partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.getport())
+            partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.port)
         else:
             partner2addr = None
         if CMAdb.debug:
@@ -503,10 +501,10 @@ class Drone(GraphNode):
         We don't know which node is our forward link and which our back link,
         but we need to remove them either way ;-).
         '''
-        ouraddr = pyNetAddr(self.primary_ip(), port=self.getport())
-        partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.getport())
+        ouraddr = pyNetAddr(self.primary_ip(), port=self.port)
+        partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.port)
         if partner2 is not None:
-            partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.getport())
+            partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.port)
         else:
             partner2addr = None
         # Stop sending the heartbeat messages between these (former) peers
@@ -559,7 +557,7 @@ class Drone(GraphNode):
         # This doesn't work if the client has bound to a VIP
         ourip = self.primary_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip)
-        ourip.setport(self.getport())
+        ourip.setport(self.port)
         #self.io.sendreliablefs(ourip, (fs,))
         CMAdb.transaction.add_packet(ourip,  FrameSetTypes.DODISCOVER, frames)
         if CMAdb.debug:
@@ -612,7 +610,7 @@ class Drone(GraphNode):
                 #CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
             #CMAdb.log.info('======== End missing IP Traceback ========')
             #CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
-        return ret
+        return None
 
     @staticmethod
     def add(designation, reason, status='up', port=None, domain=CMAconsts.globaldomain
@@ -621,10 +619,10 @@ class Drone(GraphNode):
         drone = CMAdb.store.load_or_create(Drone, domain=domain, designation=designation
         ,   primary_ip_addr=primary_ip_addr, port=port, status=status, reason=reason)
         assert CMAdb.store.has_node(drone)
-        drone.reason=reason
-        drone.status=status
-        drone.statustime=int(round(time.time() * 1000))
-        drone.iso8601=time.strftime('%Y-%m-%d %H:%M:%S')
+        drone.reason = reason
+        drone.status = status
+        drone.statustime = int(round(time.time() * 1000))
+        drone.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         if port is not None:
             drone.setport(port)
         return drone

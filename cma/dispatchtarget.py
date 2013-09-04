@@ -129,8 +129,8 @@ class DispatchSTARTUP(DispatchTarget):
                 #% (json, len(json), frame.framelen())
         CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
         ,   FrameTypes.CONFIGJSON)
-        CMAdb.log.info('Drone %s registered from address %s (%s)' % (sysname, origaddr, addrstr))
-        CMAdb.log.info('Drone %s registered from address %s (%s) port %s' % (sysname, origaddr, addrstr, origaddr.port()))
+        CMAdb.log.info('Drone %s registered from address %s (%s) port %s' 
+        %       (sysname, origaddr, addrstr, origaddr.port()))
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
         #print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port

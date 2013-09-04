@@ -304,8 +304,8 @@ class pySwitchDiscovery:
                 caps0 = (byte0 << 8 | byte1)
                 caps1 = (byte2 << 8 | byte3)
                 value = pyConfigContext()
-                mask=2
-                for j in range(1,7):
+                mask = 2
+                for j in range(1, 7):
                     if (caps0 & mask):
                         value[capnames[j]] = ((caps1 & mask) != 0)
                     mask <<= 1
