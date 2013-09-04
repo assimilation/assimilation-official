@@ -64,14 +64,14 @@ class DispatchHBDEAD(DispatchTarget):
         'Dispatch function for HBDEAD FrameSets'
         fstype = frameset.get_framesettype()
         fromdrone = self.droneinfo.find(origaddr)
-        print >> sys.stderr, 'FROMDRONE, ORIGADDR in dispatch:', fromdrone, origaddr, fstype, frameset
         CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s] [%s]"
         %      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 deaddrone = self.droneinfo.find(frame.getnetaddr())
-                CMAdb.log.warning("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
+                if CMAdb.debug:
+                    CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
                 deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
 
 class DispatchHBSHUTDOWN(DispatchTarget):
