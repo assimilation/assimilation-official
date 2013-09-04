@@ -62,13 +62,15 @@ class HbRing(GraphNode):
         print >> sys.stderr, 'CMAdb.store(hbring.py):', CMAdb.store
         print >> sys.stderr, 'Our relation type: %s' % self.ourreltype
         rellist = CMAdb.store.load_related(self, self.ourreltype, Drone)
-        if len(rellist) > 0:
-            self._insertpoint1 =  rellist[0]
+        for rel in rellist:
+            self._insertpoint1 = rel
             print >> sys.stderr, 'INSERTPOINT1: ', self._insertpoint1
             print >> sys.stderr, 'Our relation type: %s' % self.ournexttype
             ip2rellist = CMAdb.store.load_related(self._insertpoint1, self.ournexttype, Drone)
-            if len(ip2rellist) > 0:
-                self._insertpoint2 = ip2rellist[0]
+            for rel2 in ip2rellist:
+                self._insertpoint2 = rel2
+                break
+            break
         # Need to figure out what to do about pre-existing members of this ring...
         # For the moment, let's make the entirely inadequate assumption that
         # the data in the database is correct.
@@ -154,7 +156,7 @@ class HbRing(GraphNode):
             # We had X->point1->point2->Y (where x and y might be the same)
             self._insertpoint1.stop_heartbeat(self, self._insertpoint2)
             self._insertpoint2.stop_heartbeat(self, self._insertpoint1)
-            CMAdb.store.separate(self._insertpoint1, self.ournexttype, self._insertpoint2)
+        CMAdb.store.separate(self._insertpoint1, self.ournexttype, self._insertpoint2)
             # Now we just have had X->point1 and point2->Y
         if CMAdb.debug:
             CMAdb.log.debug('5:Adding Drone %s to ring %s w/port %s' \
@@ -181,7 +183,13 @@ class HbRing(GraphNode):
 
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
+        self.AUDIT()
         print >> sys.stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
+        list = self.membersfromlist()
+        print >>sys.stderr, 'RING IN ORDER:' 
+        for elem in list:
+            print >>sys.stderr, 'RING NODE: %s' % elem
+
         prevnode = None
         for prevnode in CMAdb.store.load_in_related(drone, self.ournexttype, Drone):
             break
@@ -216,7 +224,9 @@ class HbRing(GraphNode):
 
         # Previous length had to be >= 3        # Previous length:  >=3
                                                 # Result length:    >=2
-        nextnext = nextnode.get_single_related_node(neo4j.Direction.OUTGOING, self.ournexttype)
+        nextnext = None
+        for nextnext in CMAdb.store.load_related(nextnode, self.ournexttype, Drone):
+            break
         prevnode.stop_heartbeat(self, drone)
         nextnode.stop_heartbeat(self, drone)
         if nextnext is not prevnode:                  # Previous length:  >= 4
@@ -231,7 +241,7 @@ class HbRing(GraphNode):
 
     def members(self):
         'Return all the Drones that are members of this ring - in some random order'
-        return CMAdb.store.load_in_related(self, self.ourreltype, Drone)
+        return CMAdb.store.load_related(self, self.ourreltype, Drone)
 
     def membersfromlist(self):
         'Return all the Drones that are members of this ring - in ring order'
@@ -240,18 +250,65 @@ class HbRing(GraphNode):
         # MATCH Drone-[:RingNext_The_One_Ring*]->NextDrone
         # RETURN NextDrone.designation, NextDrone 
 
-
         if self._insertpoint1 is None:
-            return []
+            print >> sys.stderr, 'NO INSERTPOINT1'
+            return
         if Store.is_abstract(self._insertpoint1):
-            return [self._insertpoint1]
+            print >> sys.stderr, 'YIELDING INSERTPOINT1:', self._insertpoint1, type(self._insertpoint1)
+            yield self._insertpoint1
+            return
         startid = Store.id(self._insertpoint1)
         # We can't pre-compile this, but we hopefully we won't use it much...
         Q='''START Drone=node(%s)
-             MATCH Drone-[:%s*]->NextDrone
+             MATCH p=Drone-[:%s*0..]->NextDrone
+             WHERE length(p) = 0 or Drone <> NextDrone
              RETURN NextDrone'''
-        query = neo4j.CypherQuery(CMAdb.cdb.db, Q % (startid, self.ourreltype))
-        return CMAdb.store.load_cypher_nodes(query, Drone)
+        q = Q % (startid, self.ournexttype)
+        query = neo4j.CypherQuery(CMAdb.cdb.db, q)
+        print >> sys.stderr, 'QUERY IS: %s' % q
+        for elem in CMAdb.store.load_cypher_nodes(query, Drone):
+            yield elem
+        return
+
+    def AUDIT(self):
+        listmembers = {}
+        ringmembers = {}
+        mbrcount=0
+        for drone in self.members():
+            ringmembers[drone.designation] = None
+            mbrcount += 1
+
+        for drone in self.membersfromlist():
+            print "DRONE!!", drone
+            listmembers[drone.designation] = None
+            nextcount=0
+            list=CMAdb.store.load_related(drone, self.ournexttype, Drone)
+            for elem in list:
+                nextcount += 1
+            incount=0
+            list=CMAdb.store.load_in_related(drone, self.ournexttype, Drone)
+            for elem in list:
+                incount += 1
+            ringcount = 0
+            list=CMAdb.store.load_in_related(drone, self.ourreltype, Drone)
+            for elem in list:
+                ringcount += 1
+            print >> sys.stderr, ('%s status: %s mbrcount: %d, nextcount:%d, incount:%d, ringcount:%d'
+            %   (drone, drone.status, mbrcount, nextcount, incount, ringcount))
+            assert drone.status == 'up'
+            assert mbrcount < 2 or 1 == nextcount
+            assert mbrcount < 2 or 1 == incount
+            assert 1 == ringcount
+
+        print >> sys.stderr, ('LISTMEMBERS STARTED FROM %s' % str(self._insertpoint1))
+        print >> sys.stderr, ('RINGMEMBERS === %s' % ringmembers)
+        print >> sys.stderr, ('LISTMEMBERS === %s' % listmembers)
+        for drone in listmembers.keys():
+            assert(drone in ringmembers)
+        for drone in ringmembers.keys():
+            assert(drone in listmembers)
+
+
 
     def __str__(self):
         ret = 'Ring("%s"' % self.name
