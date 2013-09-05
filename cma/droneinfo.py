@@ -92,7 +92,7 @@ class Drone(GraphNode):
     def get_owned_ips(self):
         '''Return a list of all the IP addresses that this Drone owns'''
         params = {'droneid':Store.id(self)}
-        if CMAdb.debug:
+        if False and CMAdb.debug:
             print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
             %   (Drone.OwnedIPsQuery_subtxt, params))
 
@@ -297,7 +297,7 @@ class Drone(GraphNode):
                 CMAdb.log.debug('Processing key(%s): proc: %s' % (procname, processnode))
             if not CMAdb.store.is_abstract(processnode):
                 if CMAdb.debug:
-                    CMAdb.log.debug('Process key(%s) already in database')
+                    CMAdb.log.debug('Process key(%s) already in database' % procname)
                 continue
             if 'listenaddrs' in procinfo:
                 srvportinfo = procinfo['listenaddrs']

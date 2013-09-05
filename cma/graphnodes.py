@@ -92,7 +92,8 @@ class GraphNode(object):
                 self.delrole(role)
             return self.roles
         assert isinstance(roles, str) or isinstance(roles, unicode)
-        self.roles.remove(roles)
+        if roles in self.roles:
+            self.roles.remove(roles)
         return self.roles
 
 
