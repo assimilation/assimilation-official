@@ -112,12 +112,15 @@ class CMAconsts(object):
     ,   NODE_ipproc:   True
     }
     classkeymap = {
-        NODE_nodetype:  {'index':NODE_nodetype,  'key':  globaldomain,   'vattr': 'name'}
-    ,   NODE_ring:      {'index':NODE_ring,      'key':  globaldomain,   'vattr': 'name'}
-    ,   NODE_drone:     {'index':NODE_drone,     'kattr':globaldomain,  'vattr': 'designation'}
-    ,   NODE_system:    {'index':NODE_system,    'kattr':globaldomain,  'vattr': 'name'}
-    ,   NODE_NIC:       {'index':NODE_NIC,       'kattr':globaldomain,  'vattr': 'macaddr'}
-    ,   NODE_ipaddr:    {'index':NODE_ipaddr,    'kattr':globaldomain,  'vattr': 'ipaddr'}
-    ,   NODE_tcpipport: {'index':NODE_tcpipport, 'kattr':globaldomain,  'vattr': 'ipport'}
-    ,   NODE_ipproc:    {'index':NODE_ipproc,    'kattr':globaldomain,  'vattr': 'processname'}
+        NODE_nodetype:  {'index':NODE_nodetype,  'value': globaldomain, 'kattr': 'name'}
+    ,   NODE_ring:      {'index':NODE_ring,      'value': globaldomain, 'kattr': 'name'}
+    ,   NODE_drone:     {'index':NODE_drone,     'vattr':'domain',      'kattr': 'designation'}
+    ,   NODE_system:    {'index':NODE_system,    'vattr':'domain',      'kattr': 'name'}
+    ,   NODE_NIC:       {'index':NODE_NIC,       'vattr':'domain',      'kattr': 'macaddr'}
+    ,   NODE_ipaddr:    {'index':NODE_ipaddr,    'vattr':'domain',      'kattr': 'ipaddr'}
+    ,   NODE_tcpipport: {'index':NODE_tcpipport, 'vattr':'domain',      'kattr': 'ipport'}
+    ,   NODE_ipproc:    {'index':NODE_ipproc,    'vattr':'domain',      'kattr': 'processname'}
     }
+    classindextable = None # Filled in by CMAdb initializer...
+    classtypeobjs = None
+    

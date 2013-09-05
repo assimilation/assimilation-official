@@ -25,6 +25,7 @@ drones as a Python class.
 '''
 import time
 import sys
+import os
 #import os, traceback
 from py2neo import neo4j
 from cmadb import CMAdb
@@ -67,7 +68,7 @@ class Drone(GraphNode):
         GraphNode.__init__(self, domain=domain)
         if roles is None:
             roles = ['host', 'drone']
-        self.addrole(*roles)
+        self.addrole(roles)
         self._io = CMAdb.io
         self.status = status
         self.reason = reason
@@ -570,12 +571,14 @@ class Drone(GraphNode):
         return 'Drone(%s)' % self.designation
 
     @staticmethod
-    def find(designation, port=None, domain=CMAdb.globaldomain):
+    def find(designation, port=None, domain=None):
         'Find a drone with the given designation or IP address, or Neo4J node.'
         desigstr = str(designation)
         if isinstance(designation, Drone):
             return designation
         elif isinstance(designation, str):
+            if domain is None:
+                domain = CMAconsts.globaldomain
             drone = CMAdb.store.load_or_create(Drone, port=port, domain=domain
             ,       designation=designation)
             assert drone.designation == designation
@@ -584,7 +587,11 @@ class Drone(GraphNode):
         elif isinstance(designation, pyNetAddr):
             desig = designation.toIPv6()
             desigstr = str(desig)
-            query = 'global:%s' % str(Store.lucene_escape(desigstr))
+            if domain is None:
+                dstr='*'
+            else:
+                dstr=domain
+            query = '%s:%s' % (str(Store.lucene_escape(desigstr)), dstr)
             #We now do everything by IPv6 addresses...
             drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipaddr':query})
             if drone is not None:
@@ -594,9 +601,11 @@ class Drone(GraphNode):
                 CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]'
                 %   (designation, desigstr, type(designation)))
            
-        if CMAdb.debug:
+        if True or CMAdb.debug:
             CMAdb.log.debug("DESIGNATION2 (%s) = %s" % (designation, desigstr))
             CMAdb.log.debug("QUERY (%s) = %s" % (designation, query))
+            print >> sys.stderr, ("DESIGNATION2 (%s) = %s" % (designation, desigstr))
+            print >> sys.stderr, ("QUERY (%s) = %s" % (designation, query))
         if CMAdb.debug:
             raise RuntimeError('drone.find(%s) (%s) (%s) => returning None' % (
                 str(designation), desigstr, type(designation)))
@@ -610,6 +619,7 @@ class Drone(GraphNode):
                 #CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
             #CMAdb.log.info('======== End missing IP Traceback ========')
             #CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
+        os._exit(1)
         return None
 
     @staticmethod
@@ -624,7 +634,7 @@ class Drone(GraphNode):
         drone.statustime = int(round(time.time() * 1000))
         drone.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         if port is not None:
-            drone.setport(port)
+            drone.port = port
         return drone
 
     @staticmethod

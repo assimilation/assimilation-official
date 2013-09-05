@@ -178,6 +178,11 @@ class Store:
         return hasattr(subj, '_Store__store_node')
 
     @staticmethod
+    def getstore(subj):
+        'Returns the Store associated with this object'
+        return subj.__store
+
+    @staticmethod
     def is_abstract(subj):
         'Returns True if the underlying database node is Abstract'
         if not hasattr(subj, '_Store__store_node'):
@@ -565,6 +570,7 @@ class Store:
         if 'vattr' in kmap:
             searchlist[kmap['vattr']] = idxvalue
 
+
         searchset = self.clients.keys()
         # Not 100% sure we searching weaknoderefs helps anything - but it won't hurt much ;-)
         for weakclient in self.weaknoderefs.values():
@@ -599,7 +605,6 @@ class Store:
                 #print >> sys.stderr, 'WE HAVE NODE LAYING AROUND...', node.get_properties()
                 self._update_obj_from_node(subj)
                 return subj
-        #print 'RETRIEVED NODE PROPERTIES:', node.get_properties()
         retobj = Store._callconstructor(cls, node.get_properties())
         return self._register(retobj, node=node)
 
