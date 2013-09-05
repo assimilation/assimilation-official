@@ -646,8 +646,8 @@ class Store:
         'Return the set of newly created nodes for this transaction'
         ret = []
         for client in self.clients:
-            node = client.__store_node
-            if node.is_abstract:
+            if Store.is_abstract(client) and hasattr(client, '_Store__store_node'):
+                node = client.__store_node
                 ret.append((client, node))
         return ret
 

@@ -94,7 +94,7 @@ class HbRing(GraphNode):
         'Add this drone to our ring'
         if CMAdb.debug:
             CMAdb.log.debug('1:Adding Drone %s to ring %s w/port %s' \
-            %   (str(drone), str(self), drone.getport()))
+            %   (str(drone), str(self), drone.port))
         # Make sure he's not already in our ring according to our 'database'
         if not Store.is_abstract(drone):
             rels = CMAdb.store.load_related(self, self.ourreltype, drone)
@@ -117,7 +117,7 @@ class HbRing(GraphNode):
 
         if CMAdb.debug:
             CMAdb.log.debug('2:Adding Drone %s to ring %s w/port %s' \
-            %   (str(drone), str(self), drone.getport()))
+            %   (str(drone), str(self), drone.port))
         if self._insertpoint2 is None:   # One node previously
             # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
@@ -129,7 +129,7 @@ class HbRing(GraphNode):
             CMAdb.store.relate(self._insertpoint1, self.ournexttype, drone)
             if CMAdb.debug:
                 CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s' 
-                %       (str(drone), str(self), drone.getport()))
+                %       (str(drone), str(self), drone.port))
             drone.start_heartbeat(self, self._insertpoint1)
             self._insertpoint1.start_heartbeat(self, drone)
             self._insertpoint2 = self._insertpoint1
@@ -143,7 +143,7 @@ class HbRing(GraphNode):
             break
         if CMAdb.debug:
             CMAdb.log.debug('4:Adding Drone %s to ring %s w/port %s' \
-            %   (str(drone), str(self), drone.getport()))
+            %   (str(drone), str(self), drone.port))
         if nextnext is not None and nextnext is not self._insertpoint1:
             #print >> sys.stderr, 'HAD AT LEAST 3 NODES BEFORE'
             # At least 3 nodes before
@@ -154,7 +154,7 @@ class HbRing(GraphNode):
         # Now we just have had X->point1 and point2->Y
         if CMAdb.debug:
             CMAdb.log.debug('5:Adding Drone %s to ring %s w/port %s' \
-            %       (str(drone), str(self), drone.getport()))
+            %       (str(drone), str(self), drone.port))
         drone.start_heartbeat(self, self._insertpoint1, self._insertpoint2)
         self._insertpoint1.start_heartbeat(self, drone)
         self._insertpoint2.start_heartbeat(self, drone)
