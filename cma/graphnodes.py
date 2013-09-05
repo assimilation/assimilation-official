@@ -25,6 +25,8 @@ from store import Store
 from os import path
 from hashlib import md5
 import sys
+from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
+from AssimCclasses import pyNetAddr
 '''
 This module defines the classes for all our CMA nodes ...
 '''
@@ -141,7 +143,7 @@ class GraphNode(object):
         dronelist = [drone for drone in dronelist]
         print >> stream, 'List of %ss: %s' % (nodetype, dronelist)
         for drone in dronelist:
-            print >> stream, ('DRONE %s (%s id=%s)' % (nodetype
+            print >> stream, ('NODE %s (%s id=%s)' % (nodetype
             ,   str(drone.get_properties()), drone._id))
             for rel in drone.match():
                 start=rel.start_node
@@ -155,35 +157,78 @@ class GraphNode(object):
                 if start._id == end._id:
                     print >> stream, 'SELF-REFERENCE to %s' % start._id
 
-
 class SystemNode(GraphNode):
-    'A node that represents a physical or virtual system (server, switch, etc)'
+    'An object that represents a physical or virtual system (server, switch, etc)'
+    # We really ought to figure out how to make Drone a subclass of SystemNode
     def __init__(self, domain, name, roles=[]):
         GraphNode.__init__(self, domain=domain, roles=roles)
         self.name=name
 
 class NICNode(GraphNode):
+    'An object that represents a NIC - characterized by its MAC address'
     def __init__(self, domain, macaddr, ifname='unknown'):
         GraphNode.__init__(self, domain=domain)
         self.macaddr=macaddr
         self.ifname=ifname
 
 class IPaddrNode(GraphNode):
+    '''An object that represents a v4 or v6 IP address without a port - characterized by its IP address
+    They are always represented in the database in ipv6 format without a port
+    '''
     def __init__(self, domain, ipaddr, cidrmask='unknown'):
+        'Construct an IPaddrNode - validating our parameters'
         GraphNode.__init__(self, domain=domain)
+        if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
+            ipaddr = pyNetAddr(str(ipaddr))
+        if isinstance(ipaddr, pyNetAddr):
+            addrtype = ipaddr.addrtype()
+            if addrtype == ADDR_FAMILY_IPV4:
+                ipaddr = ipaddr.toIPv6()
+            elif addrtype != ADDR_FAMILY_IPV6:
+                raise ValueError('Invalid network address type for IPaddrNode constructor: %s'
+                %   str(ipaddr))
+            ipaddr.setport(0)
+            ipaddr = unicode(str(ipaddr))
+        else:
+            raise ValueError('Invalid address type for IPaddrNode constructor: %s type(%s)'
+            %   (str(ipaddr), type(ipaddr)))
         self.ipaddr=ipaddr
         self.cidrmask=cidrmask
         
-
 class IPtcpportNode(GraphNode):
-    def __init__(self, domain, ipaddr, port):
+    'An object that represents an IP:port combination characterized by the pair'
+    def __init__(self, domain, ipaddr, port=None, protocol='tcp'):
+        'Construct an IPtcpportNode - validating our parameters'
         GraphNode.__init__(self, domain=domain)
+        if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
+            ipaddr = pyNetAddr(str(ipaddr))
+        if isinstance(ipaddr, pyNetAddr):
+            if port is None:
+                port = ipaddr.port()
+            if port <= 0 or port >= 65536:
+                raise ValueError('Invalid port for constructor: %s' % str(port))
+            addrtype = ipaddr.addrtype()
+            if addrtype == ADDR_FAMILY_IPV4:
+                ipaddr = ipaddr.toIPv6()
+            elif addrtype != ADDR_FAMILY_IPV6:
+                raise ValueError('Invalid network address type [%s] for constructor: %s'
+                %  (addrtype, str(ipaddr)))
+            ipaddr.setport(0)
+            ipaddr = unicode(str(ipaddr))
+        else:
+            raise ValueError('Invalid address type for constructor: %s type(%s)'
+            %   (str(ipaddr), type(ipaddr)))
         self.ipaddr=ipaddr
         self.port=port
-        self.ipport = self.make_ipport(ipaddr, port)
+        self.protocol='tcp'
+        self.ipport = self.format_ipport()
 
-    def make_ipport(self, ipaddr, port):
-        return '%s_%s' % (port, ipaddr)
+    def format_ipport(self, ipaddr, port):
+        '''Format the ip and port into our key field
+        Note that we make the port the most significant part of the key - which
+        should allow some more interesting queries.
+        '''
+        return '%s_%s_%s' % (self.port, self.protocol, self.ipaddr)
         
 
 class ProcessNode(GraphNode):

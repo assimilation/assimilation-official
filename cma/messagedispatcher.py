@@ -60,14 +60,19 @@ class MessageDispatcher:
             # Commit the transaction here
             CMAdb.transaction.commit_trans(CMAdb.io)
             if CMAdb.store.transaction_pending:
-                CMAdb.store.commit()
-                CMAdb.TheOneRing.AUDIT()
+                result = CMAdb.store.commit()
+                if CMAdb.debug:
+                    resultlines = str(result).splitlines()
+                    CMAdb.log.debug('Commit results follow')
+                    for line in resultlines:
+                        CMAdb.log.debug(line.expandtabs())
+                    CMAdb.log.debug('end of commit results')
+                    # This is a VERY expensive call...
+                    CMAdb.TheOneRing.AUDIT()
             else:
                 if CMAdb.debug:
-                    print >> sys.stderr, 'No database changes this time'
+                    CMAdb.log.debug('No database changes this time')
                 CMAdb.store.abort()
-            if CMAdb.debug:
-                print >> sys.stderr, ''
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
             #   logs in a legible way
@@ -76,10 +81,10 @@ class MessageDispatcher:
             tblist = traceback.extract_tb(trace, 20)
             fstypename = FrameSetTypes.get(fstype)[0]
 
-            print >> sys.stderr, ('MessageDispatcher %s exception [%s] occurred while' 
-            ' handling [%s] FrameSetFrameset from %s' % (etype, e, fstypename, origaddr))
             CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
             ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
+            print >> sys.stderr, ('CRITICAL: MessageDispatcher %s exception [%s] occurred while' 
+            ' handling [%s] FrameSetFrameset from %s' % (etype, e, fstypename, origaddr))
             lines = str(frameset).splitlines()
             CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
             for line in lines:
@@ -102,8 +107,8 @@ class MessageDispatcher:
                 CMAdb.log.critical("Aborting network transaction %s" % CMAdb.transaction.tree)
                 CMAdb.transaction = None
             
-        # We want to do this even in the failed case - retries are unlikely to help
-        # and we're far more likely to get stuck in a loop retrying it forever...
+        # We want to ack the packet even in the failed case - retries are unlikely to help
+        # and we need to avoid getting stuck in a loop retrying it forever...
         self.io.ackmessage(origaddr, frameset)
 
 
