@@ -133,7 +133,9 @@ def dronedesignation(hostnumber):
 def hostdiscoveryinfo(hostnumber):
     byte3 = int(hostnumber / 256)
     byte4 = hostnumber % 256
-    s = str(droneipaddress(hostnumber))
+    ip =droneipaddress(hostnumber)
+    ip.setport(0)
+    s = str(ip)
     return netdiscoveryformat % (dronedesignation(hostnumber), byte3, byte4, s)
     
 def geninitconfig(ouraddr):

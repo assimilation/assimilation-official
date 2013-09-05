@@ -21,7 +21,7 @@
 #
 #
 '''
-This module defines our CMAdb class and so on...
+This module provides a class which initializes the CMA.
 '''
 
 import os
@@ -35,6 +35,9 @@ from cmadb import CMAdb
 from consts import CMAconsts
 
 class CMAinit(object):
+    '''
+    The CMAinit clas
+    '''
 
     def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False):
         'Initialize and construct a global database instance'

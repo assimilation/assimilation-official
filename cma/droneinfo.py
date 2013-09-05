@@ -585,6 +585,7 @@ class Drone(GraphNode):
             return drone
         elif isinstance(designation, pyNetAddr):
             desig = designation.toIPv6()
+            desig.setport(0)
             desigstr = str(desig)
             if domain is None:
                 dstr = '*'

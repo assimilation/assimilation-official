@@ -24,6 +24,10 @@ This module defines various constants used by the Assimilation CMA
 '''
 
 class CMAconsts(object):
+    '''
+    This class holds the constants we use for the CMA.
+    We make it a class to minimize namespace pollution.
+    '''
     globaldomain = 'global'
 
 #########################################################################

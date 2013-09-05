@@ -121,10 +121,8 @@ class HbRing(GraphNode):
         if self._insertpoint2 is None:   # One node previously
             # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
-            # (see comments below)
-            ### CMAdb.cdb.db.get_or_create_relationships(
-            #   (drone, self.ournexttype, self._insertpoint1)
-            #   , (self._insertpoint1, self.ournexttype, drone))
+            # This is because we might change configurations and we need to know
+            # what IP we're actually using for this connection...
             CMAdb.store.relate(drone, self.ournexttype, self._insertpoint1)
             CMAdb.store.relate(self._insertpoint1, self.ournexttype, drone)
             if CMAdb.debug:
@@ -178,7 +176,7 @@ class HbRing(GraphNode):
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
         #print >> sys.stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
-        #ringlist = self.membersfromlist()
+        #ringlist = self.members_ring_order()
         #print >>sys.stderr, 'RING IN ORDER:' 
         #for elem in ringlist:
             #print >>sys.stderr, 'RING NODE: %s' % elem
@@ -198,7 +196,8 @@ class HbRing(GraphNode):
             self._insertpoint1 = None               # result length:    0
             self._insertpoint2 = None
             # No other database links to remove
-            print >> sys.stderr, 'Drone %s has now left the building...' % (drone)
+            if CMAdb.debug:
+                CMAdb.log.debug('Last Drone %s has now left the building...' % (drone))
             return
 
         # Clean out the next link relationships to our dearly departed drone
@@ -236,7 +235,7 @@ class HbRing(GraphNode):
         'Return all the Drones that are members of this ring - in some random order'
         return CMAdb.store.load_related(self, self.ourreltype, Drone)
 
-    def membersfromlist(self):
+    def members_ring_order(self):
         'Return all the Drones that are members of this ring - in ring order'
         ## FIXME - There's a cypher query that will return these all in one go
         # START Drone=node:Drone(Drone="drone000001")
@@ -271,7 +270,7 @@ class HbRing(GraphNode):
             ringmembers[drone.designation] = None
             mbrcount += 1
 
-        for drone in self.membersfromlist():
+        for drone in self.members_ring_order():
             listmembers[drone.designation] = None
             nextcount = 0
             nextlist = CMAdb.store.load_related(drone, self.ournexttype, Drone)
@@ -304,7 +303,7 @@ class HbRing(GraphNode):
     def __str__(self):
         ret = 'Ring("%s"' % self.name
         #comma = ', ['
-        #for drone in self.membersfromlist():
+        #for drone in self.members_ring_order():
         #    ret += '%s%s' % (comma, drone)
         #    comma = ', '
         #ret += ']'
