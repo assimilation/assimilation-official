@@ -25,7 +25,6 @@ drones as a Python class.
 '''
 import time
 import sys
-import os
 #import os, traceback
 from py2neo import neo4j
 from cmadb import CMAdb
