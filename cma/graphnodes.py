@@ -24,7 +24,7 @@ from consts import CMAconsts
 from store import Store
 from os import path
 from hashlib import md5
-import sys
+import sys, re
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyNetAddr
 '''
@@ -63,6 +63,9 @@ class CMAclass(object):
 
 
 class GraphNode(object):
+    REESC=re.compile(r'\\')
+    REQUOTE=re.compile(r'"')
+
     def __init__(self, domain, roles=[]):
         'Abstract Graph node base class'
         self.domain = domain
@@ -132,6 +135,53 @@ class GraphNode(object):
 
         result += "\n})"
         return result
+
+    def JSON(self, includemap=None, excludemap=None):
+        '''Output this object according to JSON rules. We take advantage
+        of the fact that Neo4j restricts what kind of objects we can
+        have as Node properties.
+        '''
+
+        attrstodump = []
+        for attr in Store._safe_attrs(self):
+            if includemap is not None and attr not in includemap:
+                continue
+            if excludemap is not None and attr in excludemap:
+                continue
+            attrstodump.append(attr)
+        ret = '{'
+        comma=''
+        for attr in attrstodump.sort():
+            ret += '%s"%s": %s' % (comma, attr, GraphNode._JSONelem(getattr(self, attr)))
+            comma = ','
+        ret += '}'
+        return ret
+
+    @staticmethod
+    def _JSONelem(value):
+        'Return the value of an element suitable for JSON output'
+        if isinstance(value, str) or isinstance(value, unicode):
+            return '"%s"' % GraphNode._JSONesc(value)
+        if isinstance(value, bool):
+            if value:
+                return 'true'
+            return 'false'
+        if isinstance(value, list) or isinstance(value, tuple):
+            ret = '['
+            comma = ''
+            for elem in value:
+                ret += '%s%s' % (comma, GraphNode._JSONelem(elem))
+                comma=','
+            ret += ']'
+            return ret
+        return str(value)
+
+    @staticmethod
+    def _JSONesc(stringthing):
+        'Escape this string according to JSON string escaping rules'
+        stringthing = GraphNode.REESC.sub(r'\\\\', stringthing)
+        stringthing = GraphNode.REQUOTE.sub(r'\"', stringthing)
+        return stringthing
 
     @staticmethod
     def dump_nodes(nodetype='Drone', stream=sys.stderr):
