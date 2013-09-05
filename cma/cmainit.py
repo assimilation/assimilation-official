@@ -32,6 +32,7 @@ from AssimCtypes import CFG_ARRAY, CFG_BOOL, CFG_INT64, CFG_STRING, CFG_ARRAY, C
 from AssimCclasses import pyNetAddr
 from store import Store
 from cmadb import CMAdb
+from consts import CMAconsts
 
 class CMAinit(object):
 
@@ -54,7 +55,7 @@ class CMAinit(object):
             CMAdb.log.info('Re-initializing the NEO4j database')
             self.delete_all(neodb)
         CMAdb.cdb = CMAdb(db=neodb)
-        CMAdb.store = Store(neodb, CMAdb.uniqueindexes,CMAdb.classkeymap)
+        CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap)
         from transaction import Transaction
         CMAdb.transaction = Transaction()
         #print >> sys.stderr,  'CMAdb:', CMAdb

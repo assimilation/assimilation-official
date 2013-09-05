@@ -21,7 +21,6 @@
 #
 #
 from consts import CMAconsts
-from cmadb import CMAdb, CMAclass
 from store import Store
 from os import path
 from hashlib import md5
@@ -42,6 +41,23 @@ class CMAclass(object):
         self.name = name
         self.domain = CMAconsts.globaldomain
         self.nodetype = CMAconsts.NODE_nodetype
+        assert str(self.name) == str(name)
+
+    def __str__(self):
+        'Default routine for printing CMAclass objects'
+        result = '%s({' % self.__class__.__name__
+        comma  = ''
+        for attr in Store._safe_attrs(self):
+            result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
+            comma = ",\n    "
+        if Store.has_node(self):
+            if Store.is_abstract(self):
+                result += comma + 'HasNode = "abstract"'
+            else:
+                result += (comma + 'HasNode = %d' %Store.id(self))
+
+        result += "\n})"
+        return result
 
 
 class GraphNode(object):
@@ -56,25 +72,27 @@ class GraphNode(object):
             roles = ['']
         self.roles = roles
 
-    def addrole(self, *roles):
+    def addrole(self, roles):
         if len(self.roles) > 0 and self.roles[0] == '':
             self.delrole('')
-        for role in roles:
-            assert isinstance(role, str)
-            if self.roles is None:
-                self.roles=[role]
-            elif not role in self.roles:
-                self.roles.append(role)
+        if isinstance(roles, tuple) or isinstance(roles, list):
+            for role in roles:
+                self.addrole(role)
+            return self.roles
+        assert isinstance(roles, str) or isinstance(roles, unicode)
+        if self.roles is None:
+            self.roles=[roles]
+        elif not roles in self.roles:
+            self.roles.append(roles)
         return self.roles
 
     def delrole(self, roles):
-        if not isinstance(self, tuple) and not isinstance(self, list):
-            roles=(roles,)
-        for role in roles:
-            for j in range(0,len(self.roles)):
-                if self.roles[j] == role:
-                    del self.roles[j]
-                    break
+        if isinstance(roles, tuple) or isinstance(roles, list):
+            for role in roles:
+                self.delrole(role)
+            return self.roles
+        assert isinstance(roles, str) or isinstance(roles, unicode)
+        self.roles.remove(roles)
         return self.roles
 
 
@@ -83,7 +101,8 @@ class GraphNode(object):
         if not self._baseinitfinished:
             self._baseinitfinished = True
             if Store.is_abstract(self):
-                CMAdb.store.relate(self, CMAconsts.REL_isa, CMAdb.cdb.nodetypetbl[self.nodetype])
+                Store.getstore(self).relate(self, CMAconsts.REL_isa
+                ,   CMAconsts.classtypeobjs[self.nodetype])
 
     def update_attributes(self, other):
         'Update our attributes from another node of the same type'
@@ -114,7 +133,7 @@ class GraphNode(object):
     @staticmethod
     def dump_nodes(nodetype='Drone', stream=sys.stderr):
         'Dump all our drones out to the given stream (defaults to sys.stderr)'
-        idx = CMAdb.cdb.indextbl[nodetype]
+        idx = CMAconsts.classindextable[nodetype]
         query= '*:*'
         #print >> stream, 'QUERY against %s IS: "%s"' % (idx, query)
         dronelist = idx.query(query)
@@ -186,7 +205,7 @@ class ProcessNode(GraphNode):
 if __name__ == '__main__':
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)
-    if CMAdb.store.transaction_pending:
-        print 'Transaction pending in:', CMAdb.store
-        print 'Results:', CMAdb.store.commit()
+    if Store.getstore(self).transaction_pending:
+        print 'Transaction pending in:', Store.getstore(self)
+        print 'Results:', Store.getstore(self).commit()
     print >> sys.stderr, 'Init done'

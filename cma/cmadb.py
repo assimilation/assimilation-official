@@ -73,17 +73,18 @@ class CMAdb:
         #print >> sys.stderr, 'classroot', classroot
 
         for index in CMAconsts.is_indexed.keys():
-            #print >>sys.stderr, 'Creating CMAclass object/node for Class %s' % index
             top = CMAdb.store.load_or_create(CMAclass, name=index)
-            #print >>sys.stderr, 'Relating type %s to node zero (object)' % index
+            assert str(top.name) == str(index)
             CMAdb.store.relate_new(top, CMAconsts.REL_isa, classroot)
             self.nodetypetbl[index] = top
+        CMAconsts.classtypeobjs = self.nodetypetbl
             
         self.ringindex = self.indextbl[CMAconsts.NODE_ring]
         self.ipindex = self.indextbl[CMAconsts.NODE_ipaddr]
         self.macindex = self.indextbl[CMAconsts.NODE_NIC]
         self.switchindex = self.indextbl[CMAconsts.NODE_system]
         self.droneindex = self.indextbl[CMAconsts.NODE_drone]
+        CMAconsts.classindextable = self.indextbl
         if self.store.transaction_pending:
             #print >> sys.stderr,  'self.store:', self.store
             result = self.store.commit()
