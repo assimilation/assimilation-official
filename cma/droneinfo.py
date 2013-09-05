@@ -588,9 +588,9 @@ class Drone(GraphNode):
             desig = designation.toIPv6()
             desigstr = str(desig)
             if domain is None:
-                dstr='*'
+                dstr = '*'
             else:
-                dstr=domain
+                dstr = domain
             query = '%s:%s' % (str(Store.lucene_escape(desigstr)), dstr)
             #We now do everything by IPv6 addresses...
             drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipaddr':query})
@@ -619,7 +619,6 @@ class Drone(GraphNode):
                 #CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
             #CMAdb.log.info('======== End missing IP Traceback ========')
             #CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
-        os._exit(1)
         return None
 
     @staticmethod
