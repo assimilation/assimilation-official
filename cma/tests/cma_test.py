@@ -477,8 +477,9 @@ class TestCMABasic(TestCase):
             auditalldrones()
             auditallrings()
 
-        print "The CMA read %d packets."  % io.packetsread
-        print "The CMA wrote %d packets." % io.writecount
+        if DEBUG:
+            print "The CMA read %d packets."  % io.packetsread
+            print "The CMA wrote %d packets." % io.writecount
         #io.dumppackets()
 
 

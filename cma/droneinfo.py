@@ -459,7 +459,8 @@ class Drone(GraphNode):
         'Process a death/shutdown report for us.  RIP us.'
         from hbring import HbRing
         frameset = frameset # We don't use the frameset at this point in time
-        print >> sys.stderr, 'DRONE %s died! (reason=%s)' % (self, reason)
+        if CMAdb.debug:
+            print >> sys.stderr, 'DRONE %s died! (reason=%s)' % (self, reason)
         if reason != 'HBSHUTDOWN':
             CMAdb.log.info('Node %s has been reported as %s by address %s. Reason: %s'
             %   (self.designation, status, str(fromaddr), reason))
