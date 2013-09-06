@@ -33,6 +33,7 @@ import re, inspect, weakref
 #import traceback
 from py2neo import neo4j
 from datetime import datetime, timedelta
+#import sys # only for stderr
 
 # R0902: Too many instance attributes (17/10)
 # R0904: Too many public methods (27/20)
@@ -567,22 +568,23 @@ class Store:
             #print ('GET_IDX_KEY_VALUE: subj.__dict___', subj.__dict__)
         if 'kattr' in kmap:
             kk = kmap['kattr']
-            if kk in attrdict:
-                #print ('ATTRDICT:%s, kk=%s' % (attrdict, kk))
-                key = attrdict[kk]
-            else:
+            if hasattr(subj, kk):
                 #print ('SUBJ.__dict__:%s, kk=%s' % (subj.__dict__, kk))
                 key = getattr(subj, kk)
+            else:
+                #print ('ATTRDICT:%s, kk=%s' % (attrdict, kk))
+                key = attrdict[kk]
         else:
             key = kmap['key']
+
         if 'vattr' in kmap:
             kv = kmap['vattr']
-            if kv in attrdict:
+            if hasattr(subj, kv):
+                value = getattr(subj, kv)
+                #print ('KV SUBJ.__dict__:%s, kv=%s' % (subj.__dict__, kv))
+            else:
                 #print ('KV ATTRDICT:%s, kv=%s' % (attrdict, kv))
                 value = attrdict[kv]
-            else:
-                #print ('KV SUBJ.__dict__:%s, kv=%s' % (subj.__dict__, kv))
-                value = getattr(subj, kv)
         else:
             value = kmap['value']
         return (self.classkeymap[cls.__name__]['index'], key, value)
