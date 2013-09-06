@@ -24,19 +24,18 @@
 This module provides a class which initializes the CMA.
 '''
 
-import os
 import sys
 import logging, logging.handlers
 from py2neo import neo4j
-from AssimCtypes import CFG_ARRAY, CFG_BOOL, CFG_INT64, CFG_STRING, CFG_ARRAY, CFG_FLOAT
-from AssimCclasses import pyNetAddr
 from store import Store
 from cmadb import CMAdb
 from consts import CMAconsts
 
+# R0903: too few public methods
+# pylint: disable=R0903
 class CMAinit(object):
     '''
-    The CMAinit clas
+    The CMAinit class
     '''
 
     def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False):
@@ -54,9 +53,11 @@ class CMAinit(object):
         url = ('http://%s:%d/db/data/' % (host, port))
         #print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
         neodb = neo4j.GraphDatabaseService(url)
+        self.db = neodb
         if cleanoutdb:
             CMAdb.log.info('Re-initializing the NEO4j database')
-            self.delete_all(neodb)
+            self.delete_all()
+        self.db = neodb
         CMAdb.cdb = CMAdb(db=neodb)
         CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap)
         from transaction import Transaction
@@ -72,20 +73,20 @@ class CMAinit(object):
         #print >> sys.stderr, 'Store COMMITTED'
 
 
-    def delete_all(self, db):
+    def delete_all(self):
         'Empty everything out of our database - start over!'
-        query = neo4j.CypherQuery(db
+        query = neo4j.CypherQuery(self.db
         ,   'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
         result = query.execute()
         if CMAdb.debug:
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
-        indexes = db.get_indexes(neo4j.Node)
+        indexes = self.db.get_indexes(neo4j.Node)
         for index in indexes.keys():
             if CMAdb.debug:
                 CMAdb.log.debug('Deleting index %s' % str(index))
-            db.delete_index(neo4j.Node, index)
+            self.db.delete_index(neo4j.Node, index)
 
         
 

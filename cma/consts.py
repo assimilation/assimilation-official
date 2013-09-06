@@ -23,6 +23,9 @@
 This module defines various constants used by the Assimilation CMA
 '''
 
+
+# R0903: too few public methods
+# pylint: disable=R0903
 class CMAconsts(object):
     '''
     This class holds the constants we use for the CMA.
@@ -62,7 +65,7 @@ class CMAconsts(object):
     REL_tcpservice  = 'tcpservice'  # NODE_tcpipport    ->  NODE_ipproc
     REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_drone
     REL_hosting     = 'hosting'     # NODE_drone        ->  NODE_ipproc
-    REL_monitoringon= 'monitoringon'# NODE_ipproc       ->  NODE_drone
+    REL_monitoringon = 'monitoringon'# NODE_ipproc      ->  NODE_drone
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone

@@ -134,7 +134,7 @@ class Drone(GraphNode):
     # R0912 -- too many branches
     # R0914 -- too many local variables
     #pylint: disable=R0914,R0912
-    def add_netconfig_addresses(self, jsonobj, **kw):
+    def _add_netconfig_addresses(self, jsonobj, **kw):
         '''Save away the network configuration data we got from netconfig JSON discovery.
         This includes all our NICs, their MAC addresses, all our IP addresses and so on
         for any (non-loopback) interface.  Whee!
@@ -240,12 +240,12 @@ class Drone(GraphNode):
                     CMAdb.store.relate(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
                     #CMAdb.store.relate(mac, CMAconsts.REL_causes,  ip)
 
-    def add_tcplisteners(self, jsonobj, **keywords):
+    def _add_tcplisteners(self, jsonobj, **keywords):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
         keywords = keywords # Don't really need this argument...
         if CMAdb.debug:
-            CMAdb.log.debug('add_tcplisteners(data=%s)' % data)
+            CMAdb.log.debug('_add_tcplisteners(data=%s)' % data)
 
         assert(not Store.is_abstract(self))
         allourips = self.get_owned_ips()
@@ -349,7 +349,7 @@ class Drone(GraphNode):
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
             %       (self, addr))
 
-    def add_linkdiscovery(self, jsonobj, **keywords):
+    def _add_linkdiscovery(self, jsonobj, **keywords):
         'Add Low Level (Link Level) discovery data to the database'
         #
         #   This code doesn't yet deal with moving network connections around
@@ -450,7 +450,7 @@ class Drone(GraphNode):
 
     #Current implementation does not use 'self'
     #pylint: disable=R0201
-    def send_hbmsg(self, dest, fstype, addrlist):
+    def _send_hbmsg(self, dest, fstype, addrlist):
         '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
         CMAdb.transaction.add_packet(dest, fstype, addrlist, frametype=FrameTypes.IPPORT)
@@ -495,7 +495,7 @@ class Drone(GraphNode):
         if CMAdb.debug:
             CMAdb.log.debug('STARTING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' %
                 (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
-        self.send_hbmsg(ouraddr, FrameSetTypes.SENDEXPECTHB, (partner1addr, partner2addr))
+        self._send_hbmsg(ouraddr, FrameSetTypes.SENDEXPECTHB, (partner1addr, partner2addr))
 
     def stop_heartbeat(self, ring, partner1, partner2=None):
         '''Stop heartbeating to the given partners.'
@@ -512,7 +512,7 @@ class Drone(GraphNode):
         if CMAdb.debug:
             CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' % 
                 (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
-        self.send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
+        self._send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
 
     def request_discovery(self, *args): ##< A vector of arguments formed like this:
         ##< instance       Which (unique) discovery instance is this?
@@ -643,7 +643,13 @@ class Drone(GraphNode):
         for ourtuple in args:
             Drone._JSONprocessors[ourtuple[0]] = ourtuple[1]
 
-Drone.add_json_processors(('netconfig', Drone.add_netconfig_addresses),)
-Drone.add_json_processors(('tcplisteners', Drone.add_tcplisteners),)
-Drone.add_json_processors(('tcpclients', Drone.add_tcplisteners),)
-Drone.add_json_processors(('__LinkDiscovery', Drone.add_linkdiscovery),)
+# W0202 Access to a protected member _add_netconfig_addresses of a client class
+# W0212 Access to a protected member _add_tcplisteners of a client class
+# W0212 Access to a protected member _add_tcplisteners of a client class
+# W0212 Access to a protected member _add_linkdiscovery of a client class
+
+# pylint: disable=W0212
+Drone.add_json_processors(('netconfig', Drone._add_netconfig_addresses),)
+Drone.add_json_processors(('tcplisteners', Drone._add_tcplisteners),)
+Drone.add_json_processors(('tcpclients', Drone._add_tcplisteners),)
+Drone.add_json_processors(('__LinkDiscovery', Drone._add_linkdiscovery),)

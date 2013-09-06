@@ -20,22 +20,25 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+''' This module defines the classes for most of our CMA nodes ...  '''
 from consts import CMAconsts
 from store import Store
 from os import path
-from hashlib import md5
+import hashlib
 import sys, re
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyNetAddr
-'''
-This module defines the classes for all our CMA nodes ...
-'''
 
+
+# W0212: Access to a protected member _callconstructor of a client class
+# pylint: disable=W0212
 def nodeconstructor(**properties):
-    'A class-like constructor that knows our class name is stored as nodetype'
+    'A generic class-like constructor that knows our class name is stored as nodetype'
     realcls = eval(properties['nodetype'])
     return Store._callconstructor(realcls, properties)
 
+# R0903: Too few public methods (0/2)
+# pylint: disable=R0903
 class CMAclass(object):
     '''Class defining the relationships of our CMA classes to each other'''
 
@@ -45,6 +48,8 @@ class CMAclass(object):
         self.nodetype = CMAconsts.NODE_nodetype
         assert str(self.name) == str(name)
 
+    # W0212: Access to a protected member _safe_attrs of a client class
+    # pylint: disable=W0212
     def __str__(self):
         'Default routine for printing CMAclass objects'
         result = '%s({' % self.__class__.__name__
@@ -63,21 +68,25 @@ class CMAclass(object):
 
 
 class GraphNode(object):
-    REESC=re.compile(r'\\')
-    REQUOTE=re.compile(r'"')
+    '''
+    GraphNode is the base class for all our 'normal' graph nodes.
+    '''
+    REESC = re.compile(r'\\')
+    REQUOTE = re.compile(r'"')
 
-    def __init__(self, domain, roles=[]):
+    def __init__(self, domain, roles=None):
         'Abstract Graph node base class'
         self.domain = domain
         self.nodetype = self.__class__.__name__
-        self._baseinitfinished=False
-        if roles == []:
+        self._baseinitfinished = False
+        if roles == None or roles == []:
             # Neo4j can't initialize node properties to empty arrays because
             # it wants to know what kind of array it is...
             roles = ['']
         self.roles = roles
 
     def addrole(self, roles):
+        'Add a role to our GraphNode'
         if len(self.roles) > 0 and self.roles[0] == '':
             self.delrole('')
         if isinstance(roles, tuple) or isinstance(roles, list):
@@ -86,12 +95,13 @@ class GraphNode(object):
             return self.roles
         assert isinstance(roles, str) or isinstance(roles, unicode)
         if self.roles is None:
-            self.roles=[roles]
+            self.roles = [roles]
         elif not roles in self.roles:
             self.roles.append(roles)
         return self.roles
 
     def delrole(self, roles):
+        'Delete a role from our GraphNode'
         if isinstance(roles, tuple) or isinstance(roles, list):
             for role in roles:
                 self.delrole(role)
@@ -117,7 +127,7 @@ class GraphNode(object):
             %   (self.nodetype, other.nodetype))
         for attr in other.__dict__.keys():
             if not hasattr(self, attr) or getattr(self, attr) != getattr(other, attr):
-                self.attr = other.attr
+                setattr(self, attr, getattr(other, attr))
         return self
 
     def __str__(self):
@@ -150,7 +160,7 @@ class GraphNode(object):
                 continue
             attrstodump.append(attr)
         ret = '{'
-        comma=''
+        comma = ''
         for attr in attrstodump.sort():
             ret += '%s"%s": %s' % (comma, attr, GraphNode._JSONelem(getattr(self, attr)))
             comma = ','
@@ -171,7 +181,7 @@ class GraphNode(object):
             comma = ''
             for elem in value:
                 ret += '%s%s' % (comma, GraphNode._JSONelem(elem))
-                comma=','
+                comma = ','
             ret += ']'
             return ret
         return str(value)
@@ -187,7 +197,7 @@ class GraphNode(object):
     def dump_nodes(nodetype='Drone', stream=sys.stderr):
         'Dump all our drones out to the given stream (defaults to sys.stderr)'
         idx = CMAconsts.classindextable[nodetype]
-        query= '*:*'
+        query = '*:*'
         #print >> stream, 'QUERY against %s IS: "%s"' % (idx, query)
         dronelist = idx.query(query)
         dronelist = [drone for drone in dronelist]
@@ -196,34 +206,36 @@ class GraphNode(object):
             print >> stream, ('NODE %s (%s id=%s)' % (nodetype
             ,   str(drone.get_properties()), drone._id))
             for rel in drone.match():
-                start=rel.start_node
-                end=rel.end_node
+                start = rel.start_node
+                end = rel.end_node
                 if start._id == drone._id:
                     print >> stream, '    (%s)-[%s]->(%s:%s,%s)' \
-                    %       (drone['designation'], rel.type, end['nodetype'], end['designation'], end._id)
+                    %       (drone['designation'], rel.type, end['nodetype']
+                    ,       end['designation'], end._id)
                 else:
                     print >> stream, '    (%s:%s,%s)-[%s]->(%s)' \
-                    %       (start['designation'], start['nodetype'], start._id, rel.type, drone['designation'])
+                    %       (start['designation'], start['nodetype'], start._id, rel.type
+                    ,       drone['designation'])
                 if start._id == end._id:
                     print >> stream, 'SELF-REFERENCE to %s' % start._id
 
 class SystemNode(GraphNode):
     'An object that represents a physical or virtual system (server, switch, etc)'
     # We really ought to figure out how to make Drone a subclass of SystemNode
-    def __init__(self, domain, name, roles=[]):
+    def __init__(self, domain, name, roles=None):
         GraphNode.__init__(self, domain=domain, roles=roles)
-        self.name=name
+        self.name = name
 
 class NICNode(GraphNode):
     'An object that represents a NIC - characterized by its MAC address'
     def __init__(self, domain, macaddr, ifname='unknown'):
         GraphNode.__init__(self, domain=domain)
-        self.macaddr=macaddr
-        self.ifname=ifname
+        self.macaddr = macaddr
+        self.ifname = ifname
 
 class IPaddrNode(GraphNode):
-    '''An object that represents a v4 or v6 IP address without a port - characterized by its IP address
-    They are always represented in the database in ipv6 format without a port
+    '''An object that represents a v4 or v6 IP address without a port - characterized by its
+    IP address. They are always represented in the database in ipv6 format without a port.
     '''
     def __init__(self, domain, ipaddr, cidrmask='unknown'):
         'Construct an IPaddrNode - validating our parameters'
@@ -242,8 +254,8 @@ class IPaddrNode(GraphNode):
         else:
             raise ValueError('Invalid address type for IPaddrNode constructor: %s type(%s)'
             %   (str(ipaddr), type(ipaddr)))
-        self.ipaddr=ipaddr
-        self.cidrmask=cidrmask
+        self.ipaddr = ipaddr
+        self.cidrmask = cidrmask
         
 class IPtcpportNode(GraphNode):
     'An object that represents an IP:port combination characterized by the pair'
@@ -268,12 +280,12 @@ class IPtcpportNode(GraphNode):
         else:
             raise ValueError('Invalid address type for constructor: %s type(%s)'
             %   (str(ipaddr), type(ipaddr)))
-        self.ipaddr=ipaddr
-        self.port=port
-        self.protocol='tcp'
+        self.ipaddr = ipaddr
+        self.port = port
+        self.protocol = protocol
         self.ipport = self.format_ipport()
 
-    def format_ipport(self, ipaddr, port):
+    def format_ipport(self):
         '''Format the ip and port into our key field
         Note that we make the port the most significant part of the key - which
         should allow some more interesting queries.
@@ -282,26 +294,33 @@ class IPtcpportNode(GraphNode):
         
 
 class ProcessNode(GraphNode):
-    def __init__(self, domain, host, pathname, arglist, uid, gid, cwd, roles=[]):
+    'A node representing a running process in a host'
+    # R0913: Too many arguments (9/7)
+    # pylint: disable=R0913
+    def __init__(self, domain, host, pathname, arglist, uid, gid, cwd, roles=None):
         GraphNode.__init__(self, domain=domain, roles=roles)
-        self.host=host
-        self.pathname=pathname
-        self.arglist=arglist
-        self.uid=uid
-        self.gid=gid
-        self.cwd=cwd
+        self.host = host
+        self.pathname   = pathname
+        self.arglist    = arglist
+        self.uid        = uid
+        self.gid        = gid
+        self.cwd        = cwd
         #self.processname='%s|%s|%s|%s:%s|%s' \
         #%       (path.basename(pathname), path.dirname(pathname), host, uid, gid, str(arglist))
-        sum=md5()
-        procstring='%s|%s|%s:%s|%s' \
+        procstring = '%s|%s|%s:%s|%s' \
         %       (path.dirname(pathname), host, uid, gid, str(arglist))
-        sum.update(procstring)
-        self.processname='%s_%s' % (path.basename(pathname), sum.hexdigest())
+        hashsum = hashlib.sha1()
+        # E1101: Instance of 'sha1' has no 'update' member (but it does!)
+        # pylint: disable=E1101
+        hashsum.update(procstring)
+        self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
 
 if __name__ == '__main__':
+    from cmainit import CMAinit
+    from cmadb import CMAdb
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)
-    if Store.getstore(self).transaction_pending:
-        print 'Transaction pending in:', Store.getstore(self)
-        print 'Results:', Store.getstore(self).commit()
+    if CMAdb.store.transaction_pending:
+        print 'Transaction pending in:', CMAdb.store
+        print 'Results:', CMAdb.store.commit()
     print >> sys.stderr, 'Init done'
