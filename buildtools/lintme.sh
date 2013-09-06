@@ -24,6 +24,18 @@
 #	AssimCtypes.py is generated
 #	__init__.py is empty
 #	obsolete_cma.py is obsolete
+FLAGS=""
+while
+  [ $# -gt 0 ]
+do
+  case $1 in
+    -*)	FLAGS="$FLAGS $1"
+	shift
+	;;
+    *)	break;
+  esac
+done
+  
 if
   [ $# = 0 ]
 then
@@ -31,4 +43,4 @@ then
 else
   LIST="$@"
 fi
-pylint --rcfile pylint.cfg $LIST
+pylint $FLAGS --rcfile pylint.cfg $LIST
