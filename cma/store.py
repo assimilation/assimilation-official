@@ -23,15 +23,20 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-import re, inspect, weakref
-#import traceback
-from py2neo import neo4j, exceptions
-from datetime import datetime, timedelta
+# W0212 -- access to a protected member of a client class (we do this a lot)
+# pylint: disable=W0212
 '''
 Store module - contains a transactional batch implementation of Nigel Small's
 Object-Graph-Mapping API (or something a lot like it)
 '''
+import re, inspect, weakref
+#import traceback
+from py2neo import neo4j
+from datetime import datetime, timedelta
 
+# R0902: Too many instance attributes (17/10)
+# R0904: Too many public methods (27/20)
+# pylint: disable=R0902,R0904
 class Store:
     '''This 'Store' class is a transaction-oriented implementation of Nigel Small's
     OGM (Object-Graph-Mapping) API - with a few extensions and a few things not implemented.
@@ -104,7 +109,8 @@ class Store:
     '''
     LUCENE_RE =  re.compile(r'([\-+&\|!\(\)\{\}[\]^"~\*?:\\])')
     LUCENE_RE =  re.compile(r'([:[\]])')
-    def __init__(self, db, uniqueindexmap={}, classkeymap={}):
+
+    def __init__(self, db, uniqueindexmap=None, classkeymap=None):
         '''
         Constructor for Transactional Write (Batch) Store objects
         ---------
@@ -127,6 +133,10 @@ class Store:
         self.deletions = []
         self.classes = {}
         self.weaknoderefs = {}
+        if uniqueindexmap is None:
+            uniqueindexmap = {}
+        if classkeymap is None:
+            classkeymap = {}
         self.uniqueindexmap = uniqueindexmap
         self.batch = None
         self.batchindex = None
@@ -156,11 +166,11 @@ class Store:
         ret += '\n\tbatchindex: %s'             %       self.batchindex
         for attr in ('clients', 'newrels', 'deletions'):
             avalue = getattr(self, attr)
-            acomma='['
-            s="\n"
+            acomma = '['
+            s = "\n"
             for each in avalue:
                 s += ('%s%s' % (acomma, each))
-                acomma=', '
+                acomma = ', '
             ret += ",\n\t%10s: %s"  % (attr, s)
         ret += '\n\tweaknoderefs: %s'           %       self.weaknoderefs
 
@@ -181,6 +191,7 @@ class Store:
 
     @staticmethod
     def has_node(subj):
+        'Returns True if this object has an associated Neo4j Node object'
         return hasattr(subj, '_Store__store_node')
 
     @staticmethod
@@ -216,8 +227,6 @@ class Store:
         'Save the given (new) object as an indexed node'
         if not isinstance(subj, tuple) and not isinstance(subj, list):
             subj = (subj,)
-        if len(subj) > 1 and unique:
-            raise ValueError('Cannot make multiple items unique')
         for obj in subj:
             self._register(obj, neo4j.Node.abstract(**Store._safe_attrs(obj))
             ,   index=index_name, key=key, value=value, unique=False)
@@ -377,11 +386,10 @@ class Store:
         'Load all outgoing-related nodes with the specified relationship type'
 
         if Store.is_abstract(subj):
+            # @TODO Should search recently created relationships...
             return
-            raise ValueError('Node to load related from cannot be abstract')
         #print ('LOAD RELATED Node(%s).match_outgoing("%s")' % (subj.__store_node, rel_type))
         rels = subj.__store_node.match_outgoing(rel_type)
-        ret = []
         for rel in rels:
             yield self._construct_obj_from_node(rel.end_node, cls)
 
@@ -390,14 +398,15 @@ class Store:
         if subj.__store_node.is_abstract:
             raise ValueError('Node to load related from cannot be abstract')
         rels = subj.__store_node.match_incoming(rel_type)
-        ret = []
         for rel in rels:
             yield (self._construct_obj_from_node(rel.start_node, cls))
 
-    def load_cypher_nodes(self, query, cls, params={}, max=None):
+    def load_cypher_nodes(self, query, cls, params=None, maxcount=None):
         '''Execute the given query that yields a single column of nodes
         all of the same Class (cls) and yield each of those Objects in turn'''
         count = 0
+        if params is None:
+            params = {}
         for row in query.stream(**params):
             for key in row.__dict__.keys():
                 node = getattr(row, key)
@@ -414,12 +423,15 @@ class Store:
                     self._register(subj, node=node)
                     yield subj
             count += 1
-            if max is not None and count >= max:
+            if maxcount is not None and count >= maxcount:
                 break
         return
 
-    def load_cypher_node(self, query, cls, params={}):
-        nodes = self.load_cypher_nodes(query, cls, params, max=1)
+    def load_cypher_node(self, query, cls, params=None):
+        'Load a single node as a result of a Cypher query'
+        if params is None:
+            params = {}
+        nodes = self.load_cypher_nodes(query, cls, params, maxcount=1)
         for node in nodes:
             return node
         return None
@@ -434,9 +446,11 @@ class Store:
         'Call a constructor (or function) in a (hopefully) correct way'
 
         try:
-            args, varargs, varkw, defaults = inspect.getargspec(constructor)
+            # unused variable
+            # pylint: disable=W0612
+            args, unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor)
         except TypeError:
-            args, varargs, varkw, defaults = inspect.getargspec(constructor.__init__)
+            args, unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor.__init__)
         newkwargs = {}
         if varkw:
             newkwargs = kwargs
@@ -460,7 +474,6 @@ class Store:
         for attr in subj.__dict__.keys():
             if attr[0] == '_':
                 continue
-            value = subj.__dict__[attr]
             ret.append(attr)
         return ret
 
@@ -474,16 +487,18 @@ class Store:
 
     @staticmethod
     def _proper_attr_value(obj, attr):
+        'Ensure that the value being set is acceptable to neo4j.Node objects'
         value = getattr(obj, attr)
         if isinstance(value, str) or isinstance(value, int) or isinstance(value, float ) \
         or      isinstance(value, unicode) or isinstance(value, list) or isinstance(value, tuple):
             return value
         else:
-            raise ValueError("Attr %s of object %s of type %s isn't really acceptable" % (attr, obj, type(value)))
+            raise ValueError("Attr %s of object %s of type %s isn't really acceptable"
+            %   (attr, obj, type(value)))
 
 
     @staticmethod
-    def _storesetattr(self, name, value):
+    def _storesetattr(objself, name, value):
         '''
         Does a setattr() - and marks changed attributes "dirty".  This
         permits us to know when attributes change, and automatically
@@ -492,12 +507,12 @@ class Store:
         '''
 
         if name[0] != '_':
-            if hasattr(self, '_Store__store_dirty_attrs'):
+            if hasattr(objself, '_Store__store_dirty_attrs'):
                 #print ('Caught %s being set to %s!' % (name, value))
                 #traceback.print_stack()
-                self.__store_dirty_attrs[name] = True
-                self.__store.clients[self] = True
-        object.__setattr__(self, name, value)
+                objself.__store_dirty_attrs[name] = True
+                objself.__store.clients[objself] = True
+        object.__setattr__(objself, name, value)
 
     @staticmethod
     def _update_node_from_obj(subj):
@@ -547,7 +562,6 @@ class Store:
     def _get_idx_key_value(self, cls, attrdict, subj=None):
         'Return the appropriate key/value pair for an object of a particular class'
         kmap = self.classkeymap[cls.__name__]
-        index=kmap['index']
         #print ('GET_IDX_KEY_VALUE: attrdict', attrdict)
         #if subj is not None:
             #print ('GET_IDX_KEY_VALUE: subj.__dict___', subj.__dict__)
@@ -560,7 +574,7 @@ class Store:
                 #print ('SUBJ.__dict__:%s, kk=%s' % (subj.__dict__, kk))
                 key = getattr(subj, kk)
         else:
-            key=kmap['key']
+            key = kmap['key']
         if 'vattr' in kmap:
             kv = kmap['vattr']
             if kv in attrdict:
@@ -570,7 +584,7 @@ class Store:
                 #print ('KV SUBJ.__dict__:%s, kv=%s' % (subj.__dict__, kv))
                 value = getattr(subj, kv)
         else:
-            value=kmap['value']
+            value = kmap['value']
         return (self.classkeymap[cls.__name__]['index'], key, value)
 
 
@@ -580,7 +594,6 @@ class Store:
 
         classname = cls.__name__
         kmap = self.classkeymap[classname]
-        kattr = None
         searchlist = {}
         if 'kattr' in kmap:
             searchlist[kmap['kattr']] = idxkey
@@ -650,7 +663,8 @@ class Store:
                 if weakling is None:
                     del self.weaknoderefs[node._id]
                 else:
-                    print ('OOPS! - already here... self.weaknoderefs', weakling, weakling.__dict__())
+                    print ('OOPS! - already here... self.weaknoderefs'
+                    ,   weakling, weakling.__dict__())
             assert not node._id in self.weaknoderefs or self.weaknoderefs[node._id] is None
             self.weaknoderefs[node._id] = weakref.ref(subj)
         if node is not None:
@@ -693,16 +707,16 @@ class Store:
     def _batch_construct_relate_nodes(self):
         'Construct the batch commands to create the requested relationships'
         for rel in self.newrels:
-            fromobj=rel['from']
-            toobj=rel['to']
-            fromnode=fromobj.__store_node
-            tonode=toobj.__store_node
-            reltype=rel['type']
-            props=rel['props']
+            fromobj = rel['from']
+            toobj = rel['to']
+            fromnode = fromobj.__store_node
+            tonode = toobj.__store_node
+            reltype = rel['type']
+            props = rel['props']
             if fromnode.is_abstract:
-                fromnode=fromobj.__store_batchindex
+                fromnode = fromobj.__store_batchindex
             if tonode.is_abstract:
-                tonode=toobj.__store_batchindex
+                tonode = toobj.__store_batchindex
             if props is None:
                 absrel = neo4j.Relationship.abstract(fromnode, reltype, tonode)
             else:
@@ -750,7 +764,9 @@ class Store:
     def _batch_construct_new_index_entries(self):
         'Construct batch commands for adding newly created nodes to the indexes'
         for pair in self._new_nodes():
-            (subj, node) = pair
+            # unused variable
+            # pylint: disable=W0612
+            (subj, unused) = pair
             if subj.__store_index is not None:
                 idx = self.db.get_index(neo4j.Node, subj.__store_index)
                 key = subj.__store_index_key
@@ -785,6 +801,7 @@ class Store:
                 self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
 
     def abort(self):
+        'Clear out any currently pending transaction work - start fresh'
         self.batch.clear()
         self.clients = {}
         self.newrels = []
@@ -807,16 +824,18 @@ class Store:
         self._batch_construct_node_updates()        # These return None
         self._batch_construct_deletions()           # These return None
         #print ('Committed THIS THING:', self)
-        start=datetime.now()
+        start = datetime.now()
         submit_results = self.batch.submit()
-        end=datetime.now()
+        end = datetime.now()
         diff = end - start
         self.stats['lastcommit'] = diff
         self.stats['totaltime'] = self.stats['totaltime'] + diff
 
         # Save away (update) any newly created nodes...
         for pair in self._new_nodes():
-            (subj, node) = pair
+            # unused variable
+            # pylint: disable=W0612
+            (subj, unused) = pair
             index = subj.__store_batchindex
             newnode = submit_results[index]
             # This 'subj' used to have an abstract node, now it's concrete
@@ -834,136 +853,142 @@ class Store:
         return submit_results
 
 if __name__ == "__main__":
-    # A little test code...
+    def testme():
+        'A little test code...'
 
-    # Must be a subclass of 'object'...
-    class Drone(object):
-        def __init__(self, a=None, b=None, name=None):
-            self.a = a
-            self.b = b
-            self.name = name
-        def foo(self):
-            return 'a=%s b=%s name=%s' % (a, b, name)
+        # Must be a subclass of 'object'...
+        # pylint: disable=R0903
+        class Drone(object):
+            'This is a Class docstring'
+            def __init__(self, a=None, b=None, name=None):
+                'This is a doc string'
+                self.a = a
+                self.b = b
+                self.name = name
+            def foo_is_blacklisted(self):
+                'This is a doc string too'
+                return 'a=%s b=%s name=%s' % (self.a, self.b, self.name)
 
-    db = neo4j.GraphDatabaseService()
-    db.get_or_create_index(neo4j.Node, 'Drone')
-    # Clean out the database
-    query = neo4j.CypherQuery(db, 'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
-    query.run()
-    # Which indexes are unique?
-    uniqueindexmap={'Drone': True}
-    # Which fields of which types are used for indexing
-    classkeymap = {
-        Drone:   # this is for the Drone class
-            {'index':   'Drone',    # The index name for this class is 'Drone'
-            'key':      'Drone',    # The key field is a constant - 'Drone'
-            'vattr':    'name'      # The value field is an attribute - 'name'
-            }
-    }
-    # uniqueindexmap and classkeymap are optional, but make save() much more convenient
+        ourdb = neo4j.GraphDatabaseService()
+        ourdb.get_or_create_index(neo4j.Node, 'Drone')
+        # Clean out the database
+        query = neo4j.CypherQuery(ourdb
+        ,   'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
+        query.run()
+        # Which fields of which types are used for indexing
+        classkeymap = {
+            Drone:   # this is for the Drone class
+                {'index':   'Drone',    # The index name for this class is 'Drone'
+                'key':      'Drone',    # The key field is a constant - 'Drone'
+                'vattr':    'name'      # The value field is an attribute - 'name'
+                }
+        }
+        # uniqueindexmap and classkeymap are optional, but make save() much more convenient
 
-    store = Store(db, uniqueindexmap={'Drone': True}, classkeymap=classkeymap)
-    DRONE='Drone121'
+        store = Store(ourdb, uniqueindexmap={'Drone': True}, classkeymap=classkeymap)
+        DRONE = 'Drone121'
 
-    # Construct an initial Drone
-    #   fred = Drone(a=1,b=2,name=DRONE)
-    #   store.save(fred)    # Drone is a 'known' type, so we know which fields are index key(s)
-    #
-    #   load_or_create() is the preferred way to create an object...
-    #
-    fred = store.load_or_create(Drone, a=1, b=2, name=DRONE)
+        # Construct an initial Drone
+        #   fred = Drone(a=1,b=2,name=DRONE)
+        #   store.save(fred)    # Drone is a 'known' type, so we know which fields are index key(s)
+        #
+        #   load_or_create() is the preferred way to create an object...
+        #
+        fred = store.load_or_create(Drone, a=1, b=2, name=DRONE)
 
-    assert fred.a == 1
-    assert fred.b == 2
-    assert fred.name == DRONE
-    assert not hasattr(fred, 'c')
-    # Modify some fields -- add some...
-    fred.a = 52
-    fred.c = 3.14159
-    assert fred.a == 52
-    assert fred.b == 2
-    assert fred.name == DRONE
-    assert fred.c > 3.14158 and fred.c < 3.146
-    # Create some relationships...
-    rellist = ['ISA', 'WASA', 'WILLBEA']
-    for rel in rellist:
-        store.relate(fred, rel, fred)
-    store.commit()  # The updates have been captured...
+        assert fred.a == 1
+        assert fred.b == 2
+        assert fred.name == DRONE
+        assert not hasattr(fred, 'c')
+        # Modify some fields -- add some...
+        fred.a = 52
+        fred.c = 3.14159
+        assert fred.a == 52
+        assert fred.b == 2
+        assert fred.name == DRONE
+        assert fred.c > 3.14158 and fred.c < 3.146
+        # Create some relationships...
+        rellist = ['ISA', 'WASA', 'WILLBEA']
+        for rel in rellist:
+            store.relate(fred, rel, fred)
+        store.commit()  # The updates have been captured...
 
-    assert fred.a == 52
-    assert fred.b == 2
-    assert fred.name == DRONE
-    assert fred.c > 3.14158 and fred.c < 3.146
+        assert fred.a == 52
+        assert fred.b == 2
+        assert fred.name == DRONE
+        assert fred.c > 3.14158 and fred.c < 3.146
 
-    #See if the relationships 'stuck'...
-    for rel in rellist:
-        ret = store.load_related(fred, rel, Drone)
-        ret = [elem for elem in ret]
-        assert len(ret) == 1 and ret[0] is fred
-    for rel in rellist:
-        ret = store.load_in_related(fred, rel, Drone)
-        ret = [elem for elem in ret]
-        assert len(ret) == 1 and ret[0] is fred
-    assert fred.a == 52
-    assert fred.b == 2
-    assert fred.name == DRONE
-    assert fred.c > 3.14158 and fred.c < 3.146
-    print (store)
-    assert not store.transaction_pending
-
-    #Add another new field
-    fred.x='malcolm'
-    store.dump_clients()
-    print ('store:', store)
-    assert store.transaction_pending
-    store.commit() 
-    assert not store.transaction_pending
-    assert fred.a == 52
-    assert fred.b == 2
-    assert fred.name == DRONE
-    assert fred.c > 3.14158 and fred.c < 3.146
-    assert fred.x == 'malcolm'
-
-    # Check out load_indexed...
-    newnode = store.load_indexed('Drone', 'Drone', fred.name, Drone)[0]
-    print ('LoadIndexed NewNode: %s %s' % (newnode, store._safe_attrs(newnode)))
-    # It's dangerous to have two separate objects which are the same thing be distinct
-    # so we if we fetch a node, and one we already have, we get the original one...
-    assert fred is newnode
-    if store.transaction_pending:
-        print ('UhOh, we have a transaction pending.')
-        store.dump_clients()
+        #See if the relationships 'stuck'...
+        for rel in rellist:
+            ret = store.load_related(fred, rel, Drone)
+            ret = [elem for elem in ret]
+            assert len(ret) == 1 and ret[0] is fred
+        for rel in rellist:
+            ret = store.load_in_related(fred, rel, Drone)
+            ret = [elem for elem in ret]
+            assert len(ret) == 1 and ret[0] is fred
+        assert fred.a == 52
+        assert fred.b == 2
+        assert fred.name == DRONE
+        assert fred.c > 3.14158 and fred.c < 3.146
+        print (store)
         assert not store.transaction_pending
-    assert newnode.a == 52
-    assert newnode.b == 2
-    assert newnode.x == 'malcolm'
-    store.separate(fred, 'WILLBEA')
-    assert store.transaction_pending
-    store.commit() 
 
-    # Test a simple cypher query...
-    query = neo4j.CypherQuery(db, "START d=node:Drone('*:*') RETURN d")
-    qnode = store.load_cypher_node(query, Drone) # Returns a single node
-    print ('qnode=%s' % qnode)
-    assert qnode is fred
-    qnodes = store.load_cypher_nodes(query, Drone) # Returns iterable
-    qnodes = [qnode for qnode in qnodes]
-    assert len(qnodes) == 1
-    assert qnode is fred
+        #Add another new field
+        fred.x = 'malcolm'
+        store.dump_clients()
+        print ('store:', store)
+        assert store.transaction_pending
+        store.commit() 
+        assert not store.transaction_pending
+        assert fred.a == 52
+        assert fred.b == 2
+        assert fred.name == DRONE
+        assert fred.c > 3.14158 and fred.c < 3.146
+        assert fred.x == 'malcolm'
 
-    # See if the now-separated relationship went away...
-    rels = store.load_related(fred, 'WILLBEA', Drone)
-    rels = [rel for rel in rels]
-    assert len(rels) == 0
-    store.refresh(fred)
-    store.delete(fred)
-    assert store.transaction_pending
-    store.commit() 
+        # Check out load_indexed...
+        newnode = store.load_indexed('Drone', 'Drone', fred.name, Drone)[0]
+        print ('LoadIndexed NewNode: %s %s' % (newnode, store._safe_attrs(newnode)))
+        # It's dangerous to have two separate objects which are the same thing be distinct
+        # so we if we fetch a node, and one we already have, we get the original one...
+        assert fred is newnode
+        if store.transaction_pending:
+            print ('UhOh, we have a transaction pending.')
+            store.dump_clients()
+            assert not store.transaction_pending
+        assert newnode.a == 52
+        assert newnode.b == 2
+        assert newnode.x == 'malcolm'
+        store.separate(fred, 'WILLBEA')
+        assert store.transaction_pending
+        store.commit() 
 
-    # When we delete an object from the database, the  python object
-    # is disconnected from the database...
-    assert not hasattr(fred, '_Store__store_node')
-    assert not store.transaction_pending
+        # Test a simple cypher query...
+        query = neo4j.CypherQuery(ourdb, "START d=node:Drone('*:*') RETURN d")
+        qnode = store.load_cypher_node(query, Drone) # Returns a single node
+        print ('qnode=%s' % qnode)
+        assert qnode is fred
+        qnodes = store.load_cypher_nodes(query, Drone) # Returns iterable
+        qnodes = [qnode for qnode in qnodes]
+        assert len(qnodes) == 1
+        assert qnode is fred
 
-    print ('Statistics:', store.stats)
-    print ('Final returned values look good!')
+        # See if the now-separated relationship went away...
+        rels = store.load_related(fred, 'WILLBEA', Drone)
+        rels = [rel for rel in rels]
+        assert len(rels) == 0
+        store.refresh(fred)
+        store.delete(fred)
+        assert store.transaction_pending
+        store.commit() 
+
+        # When we delete an object from the database, the  python object
+        # is disconnected from the database...
+        assert not hasattr(fred, '_Store__store_node')
+        assert not store.transaction_pending
+
+        print ('Statistics:', store.stats)
+        print ('Final returned values look good!')
+
+    testme()
