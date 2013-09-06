@@ -24,5 +24,11 @@
 #	AssimCtypes.py is generated
 #	__init__.py is empty
 #	obsolete_cma.py is obsolete
-LIST='AssimCclasses.py cmadb.py cma.py dispatchtarget.py droneinfo.py frameinfo.py hbring.py messagedispatcher.py packetlistener.py'
-pylint "$@" --rcfile pylint.cfg $LIST
+if
+  [ $# = 0 ]
+then
+  LIST='AssimCclasses.py cmadb.py cma.py cmainit.py consts.py dispatchtarget.py droneinfo.py graphnodes frameinfo.py hbring.py messagedispatcher.py packetlistener.py store.py transaction.py'
+else
+  LIST="$@"
+fi
+pylint --rcfile pylint.cfg $LIST

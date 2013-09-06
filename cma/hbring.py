@@ -22,7 +22,7 @@
 '''
 This file is all about the Rings - we implement rings.
 '''
-import sys
+#import sys
 from cmadb import CMAdb
 from py2neo import neo4j
 from droneinfo import Drone

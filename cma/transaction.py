@@ -47,27 +47,9 @@ transactions - it does not worry about how they ought to be persisted.
 '''
 import re
 import sys
-import inspect, traceback
 from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, \
         pyIpPortFrame
 from frameinfo import FrameSetTypes, FrameTypes
-from cmadb import CMAdb
-import py2neo
-from py2neo import neo4j
-
-def dumpargs(*args, **kwargs):
-    result="CALLING %s(" % args[0]
-    comma=''
-    for j in range(1,len(args)-1):
-        result += ("%s%s" % (comma, str(args[j])))
-        comma=', '
-    for key in kwargs.keys():
-        result += ', %s=%s' % (key, kwargs[key])
-    result += ')'
-    print >> sys.stderr, result
-    for j in range(1,len(args)-1):
-        print >> sys.stderr, ("ARG%d type : %s" % (j-1, type(args[j])))
-        print >> sys.stderr, ("ARG%d value: %s" % (j-1, str(args[j])))
 
 class Transaction:
     '''This class implements database/nanoprobe transactions.
@@ -114,55 +96,58 @@ class Transaction:
     was committed, we need to <i>not</i> repeat it - or make sure it's idempotent.
     Neither of those is true at the moment.
     '''
-    REESC=re.compile('\\\\')
-    REQUOTE=re.compile('"')
+    REESC = re.compile('\\\\')
+    REQUOTE = re.compile('"')
 
     def __init__(self, json=None):
         'Constructor for a combined database/network transaction.'
         if json is None:
-            self.tree = {'db': [], 'packets': []}
+            self.tree = {'packets': []}
         else:
             self.tree = pyConfigContext(init=str(json))
-            if not 'db' in self.tree or not 'packets' in self.tree:
+            if not 'packets' in self.tree:
                 raise ValueError('Incoming JSON is malformed: >>%s<<' % json)
         self.namespace = {}
         self.created = []
-        self.sequence=None
+        self.sequence = None
 
     def __str__(self):
         'Convert our internal tree to JSON.'
         return self._jsonstr(self.tree)
 
-    def _jsonesc(self, stringthing):
+    @staticmethod
+    def _jsonesc(stringthing):
         'Escape this string according to JSON string escaping rules'
         stringthing = Transaction.REESC.sub('\\\\\\\\', stringthing)
         stringthing = Transaction.REQUOTE.sub('\\\\"', stringthing)
         return stringthing
         
+    # R0911 is too many return statements
+    # pylint: disable=R0911
     def _jsonstr(self, thing):
         'Recursively convert ("pickle") this thing to JSON' 
 
         #print >> sys.stderr, "CONVERTING", thing
         if isinstance(thing, list) or isinstance(thing, tuple):
-            ret=''
-            comma='['
+            ret = ''
+            comma = '['
             if len(thing) == 0:
-                ret+= '['
+                ret += '['
             for item in thing:
-                ret += '%s%s' % (comma,self._jsonstr(item))
-                comma=','
+                ret += '%s%s' % (comma, self._jsonstr(item))
+                comma = ','
             ret += ']'
             return ret
 
         if isinstance(thing, dict):
-            ret=''
-            comma='{'
+            ret = ''
+            comma = '{'
             if len(thing) == 0:
-                ret+= '{'
+                ret += '{'
             for key in thing.keys():
                 value = thing[key]
-                ret+= '%s"%s":%s' % (comma, self._jsonesc(key), self._jsonstr(value))
-                comma=','
+                ret += '%s"%s":%s' % (comma, Transaction._jsonesc(key), self._jsonstr(value))
+                comma = ','
             ret += '}'
             return ret
 
@@ -178,13 +163,12 @@ class Transaction:
             return str(thing)
 
         if isinstance(thing, unicode):
-            return '"%s"' % (self._jsonesc(str(thing)))
+            return '"%s"' % (Transaction._jsonesc(str(thing)))
 
         if isinstance(thing, str):
-            return '"%s"' % (self._jsonesc(thing))
+            return '"%s"' % (Transaction._jsonesc(thing))
 
         raise ValueError("Object [%s] [type %s]isn't a type we handle" % (thing, type(thing)))
-        return 'null'
 ###################################################################################################
 #
 #   This collection of member functions accumulate work to be done for our Transaction
@@ -213,7 +197,7 @@ class Transaction:
 
         # Allow 'frames' to be a single frame
         if not isinstance(frames, list) and not isinstance(frames, tuple):
-            frames = (frames,)
+            frames = (frames, )
         # Allow 'frames' to be a list of frame <i>values</i> - if they're all the same frametype
         if frametype is not None:
             newframes = []
@@ -223,270 +207,12 @@ class Transaction:
             frames = newframes
         self.tree['packets'].append({'action': int(action), 'destaddr': destaddr, 'frames': frames})
 
-    def _check_id(self, item, notbool=False):
-        '''Return the Node ID associated with the given item.
-        The items must be one of the following types:
-            - An integer (meaning a node id) - just return it
-            - A string - meaning a symbolic node id - we return it from our 'symbol table'
-            - A neo4j.node - meaning a database node object - we return the 'id' of the node
-            - One of our Node-derived classes (Drone, etc) - we return the node id of its node
-        If it's not one of these types, then we raise a ValueError.
-        If it has a 'node' field, but not a 'node.id' field, then we raise an AttributeError.
-        '''
-        print >> sys.stderr, 'CHECKING ID ON %s' % item
-        if isinstance(item, dict) or isinstance(item, pyConfigContext):
-            if not 'defines' in item:
-                raise ValueError('No "defines" in to_id [%s]' % item)
-            defname = item['defines']
-            print >> sys.stderr, 'DEFINING %s' % defname
-            self.namespace[defname] = True
-            return defname
-        elif isinstance(item, str):
-            if not item in self.namespace:
-                print >> sys.stderr, 'NAMESPACE:', self.namespace
-                raise ValueError('Unknown symbolic name in item [%s]' % item)
-            ret = self.namespace[item]
-            if notbool:
-                assert not isinstance(ret, bool)
-            if not isinstance(ret, bool):
-                print >> sys.stderr, 'RETURNING %s' % ret
-                return ret
-            else:
-                print >> sys.stderr, 'RETURNING %s' % item
-                return item
-        elif isinstance(item, neo4j.Node):
-            print >> sys.stderr, 'FOUND NODE [%s]' % (item)
-            if hasattr(item, 'LABELID'):
-                print >> sys.stderr, 'FOUND LABELID [%s]' % (item.LABELID)
-                print >> sys.stderr, 'Checking %s recursively' % (item.LABELID)
-                return self._check_id(item.LABELID, notbool)
-            print >> sys.stderr, 'NODE HAS NO LABELID [%s, %s]' % (item, item.id)
-            print >> sys.stderr, 'RETURNING %s' % item.id
-            return item.id
-        elif isinstance(item, int):
-            return item
-        elif hasattr(item, 'node'):
-            print >> sys.stderr, 'FOUND ITEM WITH NODE ATTR [%s] => %s' % (item, item.node)
-            return self._check_id(item.node, notbool)
-        raise ValueError('invalid value type in to_id [%s] type(%s)' % (item, type(item)))
-
-    def add_rels(self, rels):
-        '''Add a relationship to our graph transaction.
-        @todo  Note that if the given relationship type already exists between the two nodes,
-        then this code will add it <i>again</i> - hope that's what you wanted!
-        '''
-        print >> sys.stderr, 'ADDREL(%s)' % rels
-        if not isinstance(rels, list) and not isinstance(rels, tuple):
-            rels = (rels,)
-        db = self.tree['db']
-
-        stack = traceback.extract_stack(inspect.currentframe(), 8)
-        item = {'AddRel': [], 'caller': stack}
-
-        for rel in rels:
-            fromid = rel['from']
-            toid = rel['to']
-            fromid = self._check_id(fromid)
-            toid = self._check_id(toid)
-            rtype = rel['type']
-            if 'attrs' in rel:
-                item['AddRel'].append({'from':fromid, 'to':toid, 'type':rtype
-                ,   'attrs':rel['attrs']})
-            else:
-                item['AddRel'].append({'from':fromid, 'to':toid, 'type':rtype})
-        db.append(item)
-
-    def del_rels(self, rels):
-        'Delete a relationship as part of our graph transaction'
-        if not isinstance(rels, list) and not isinstance(rels, tuple):
-            rels = (rels,)
-        db = self.tree['db']
-
-        stack = traceback.extract_stack(inspect.currentframe(), 8)
-        item = {'DelRel': [], 'caller': stack}
-        for rel in rels:
-            if isinstance(rel, neo4j.Relationship):
-                print 'DELETING RELATIONSHIP [%s] [%d]' % (rel, rel.id)
-                item['DelRel'].append(int(rel.id))
-            else:
-                print 'DELETING RELATIONSHIP [%d]' % ( rel)
-                item['DelRel'].append(int(rel))
-        db.append(item)
-
-    def add_nodes(self, nodes):
-        db = self.tree['db']
-        if not isinstance(nodes, list) and not isinstance(nodes, tuple):
-            nodes = (nodes,)
-        stack = traceback.extract_stack(inspect.currentframe(), 8)
-        db.append({'AddNode': nodes, 'caller': stack})
-        print >> sys.stderr, ('ADDING NODE FROM: %s' % traceback.format_list(stack))
-        for node in nodes:
-            if 'defines' in node:
-                print >> sys.stderr, 'DEFINING %s as True' % node['defines']
-                self.namespace[node['defines']] = True
-                print >> sys.stderr, 'UPDATED NAMESPACE: ', self.namespace
-
-    def update_node_attrs(self, nodes):
-        db = self.tree['db']
-        if not isinstance(nodes, list) and not isinstance(nodes, tuple):
-            nodes = (nodes,)
-        stack = traceback.extract_stack(inspect.currentframe(), 8)
-        db.append({'UpdateAttrs': nodes, 'caller': stack})
-        print >> sys.stderr, ('ADDING ATTRS FROM: %s' % traceback.format_list(stack))
-
 
 ###################################################################################################
 #
 #   Code from here to the end has to do with committing our transactions...
 #
 ###################################################################################################
-
-    def _commit_node_add(self, batch, nodes):
-        '''We commit a node addition to the database.
-        '''
-        print >> sys.stderr, 'COMMIT_NODE_ADD'
-        for node in nodes:
-            nodetype = node['type']
-            name = str(node['name'])
-            props = node['attributes']
-            newprops = {}
-            for key in props.keys():
-                pkey = props[key]
-                if isinstance(pkey, pyNetAddr):
-                    pkey = str(pkey)
-                newprops[key] = pkey
-            props = newprops
-            props['nodetype'] = nodetype
-            props['name'] = name
-            unique = False
-            if nodetype in CMAdb.uniqueindexes and CMAdb.uniqueindexes[nodetype]:
-                unique = True
-            indexed = False
-            if nodetype in CMAdb.is_indexed and CMAdb.is_indexed[nodetype]:
-                indexed = True
-
-            print >> sys.stderr, ('ADDING %s (%s) with unique=%s and index=%s' 
-            %           (name, nodetype, unique, indexed))
-            if indexed:
-                # We default to unique indexes
-                if unique:
-                    idx = CMAdb.cdb.indextbl[nodetype]
-                    print >> sys.stderr, "INDEX TYPE:", type(idx)
-                    dumpargs('batch.create_indexed_node_or_fail',idx, nodetype, name
-                    ,   properties=props)
-                    #batch.create_indexed_node_or_fail(idx, nodetype, name, properties=props)
-                    dnode = CMAdb.cdb.db.get_or_create_indexed_node(nodetype, nodetype, name, properties=props)
-                else:
-                    dumpargs('batch.add_indexed_node', idx, nodetype, name, properties=props)
-                    #batch.add_indexed_node(idx, nodetype, name, properties=props)
-                    dnode = CMAdb.cdb.db.create_indexed_node(nodetype, nodetype, name, properties=props)
-                print >> sys.stderr, 'CREATE RETURNED %s' % dnode
-            else:
-                # No index
-                print >>sys.stderr, 'CREATING: %s(%s)'% ('batch.create', py2neo.node(*props))
-                dumpargs('batch.create', py2neo.node(*props))
-                #batch.create(py2neo.node(*props))
-                dnode = CMAdb.cdb.db.create(py2neo.node(*props))
-            if 'defines' in node:
-                print >> sys.stderr, 'DEFINING %s as %s' % (node['defines'], dnode)
-                self.namespace[node['defines']] = dnode
-                #self.namespace[node['defines']] = self.sequence
-                #self.sequence += 1
-            print >> sys.stderr, 'CREATE RETURNING %s' % dnode
-            return dnode
-
-    def _commit_rel_additions(self, batch):
-        '''Commit our relationship additions'''
-        for item in self.tree['db']:
-            for key in item.keys():
-                if key == 'AddRel':
-                    for addrel in item['AddRel']:
-                        fromid = addrel['from']
-                        toid = addrel['to']
-                        print >> sys.stderr, ('ORIGINAL FROMID %s TOID %s' % (fromid, toid))
-                        if (isinstance(fromid, str)):
-                            fromnode = self._check_id(fromid, notbool=True)
-                        else:
-                            fromnode = CMAdb.cdb.nodefromid(fromid)
-                            print >> sys.stderr, ('FROMNODE %s' % (fromnode))
-                        if (isinstance(toid, str)):
-                            tonode = self._check_id(toid, notbool=True)
-                        else:
-                            tonode = CMAdb.cdb.nodefromid(toid)
-                            print >> sys.stderr, ('TONODE %s' % (tonode))
-                        print >> sys.stderr, ('FROMID %s TOID %s' % (fromid, toid))
-                        print >> sys.stderr, ('FROMNODE %s TONODE %s' % (fromnode, tonode))
-                        attrs = None
-                        if 'attrs' in addrel:
-                            attrs = addrel['attrs']
-                            print >> sys.stderr, ('RELATIONSHIP(%s, %s, %s, attrs=%s)' 
-                            %       (fromnode, addrel['type'], tonode, attrs))
-                            print >>sys.stderr, 'CALLING batch.create(%s)' % (py2neo.rel(fromnode, addrel['type'], tonode, *attrs))
-                            batch.create(py2neo.rel(fromnode, addrel['type'], tonode, *attrs))
-                        else:
-                            print >> sys.stderr, ('RELATIONSHIP FROM %s' % fromnode)
-                            print >> sys.stderr, ('RELATIONSHIP TO %s' % tonode)
-                            print >> sys.stderr, ('RELATIONSHIP(%s, %s, %s)' 
-                            %       (fromnode, addrel['type'], tonode))
-                            print >>sys.stderr, 'CALLING batch.create(%s)' % (py2neo.rel(fromnode, addrel['type'], tonode ))
-                            batch.create(py2neo.rel(fromnode, addrel['type'], tonode))
-
-    def _commit_node_del(self, batch, nodes):
-        '''We commit a node deletion to the database'''
-        pass
-
-
-    def _commit_db_deletions(self, batch):
-        '''We commit a node deletion to the database - this may be recursive'''
-        for item in self.tree['db']:
-            for key in item.keys():
-                if key == 'DelRel':
-                    for drel in item['DelRel']:
-                        #drel is a relationship id (i.e, an 'int')
-                        print >> sys.stderr, 'batch.delete_relationship(type) %s' % type(drel)
-                        dumpargs('batch.delete_relationship(int)', drel)
-                        dumpargs('batch.delete_relationship',CMAdb.cdb.db.relationship(drel))
-                        batch.delete_relationship(CMAdb.cdb.db.relationship(drel))
-
-    def _commit_db_changes(self, batch):
-        pass
-
-    def _commit_node_additions(self, batch):
-        '''We commit all our database additions to the database'''
-        self.sequence=0
-        self.namespace = {}
-        for item in self.tree['db']:
-            for key in item.keys():
-                if key == 'AddNode':
-                    self._commit_node_add(batch, item['AddNode'])
-
-
-
-    def _commit_db_trans(self):
-        '''
-        Commit the database portion of our transaction - that is, actually do the work.
-        We do all this as a batch job - which makes it a single transaction, and hopefully faster.
-        '''
-        print >> sys.stderr, 'BEFORE UPDATE:'
-        CMAdb.dump_nodes()
-        CMAdb.dump_nodes(nodetype=CMAdb.NODE_NIC)
-        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ipaddr)
-        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ring)
-        batch = neo4j.WriteBatch(CMAdb.cdb.db)
-        #print >> sys.stderr, "BATCH UPDATE: >>%s<<" % self.tree['db']
-        self._commit_db_changes(batch)
-        self._commit_db_deletions(batch)
-        self._commit_node_additions(batch)
-        self._commit_rel_additions(batch)
-        dumpargs('batch.submit')
-        batch.submit()
-        print >> sys.stderr, 'AFTER UPDATE:'
-        CMAdb.dump_nodes()
-        CMAdb.dump_nodes(nodetype=CMAdb.NODE_NIC)
-        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ipaddr)
-        CMAdb.dump_nodes(nodetype=CMAdb.NODE_ring)
-        batch = neo4j.WriteBatch(CMAdb.cdb.db)
-        self.created = []
 
     def _commit_network_trans(self, io):
         '''
@@ -528,7 +254,7 @@ class Transaction:
                     raise ValueError('Unrecognized frame type [%s]: %s' % (ftype, frame))
             # In theory we could optimize multiple FrameSets in a row being sent to the
             # same address, but we can always do that later...
-            io.sendreliablefs(packet['destaddr'], (fs,))
+            io.sendreliablefs(packet['destaddr'], (fs, ))
 
     def commit_trans(self, io):
         'Commit our transaction'
@@ -541,32 +267,36 @@ class Transaction:
         #self.tree = pyConfigContext(str(self))
         if len(self.tree['packets']) > 0:
             self._commit_network_trans(io)
-        if len(self.tree['db']) > 0:
-            self._commit_db_trans()
-        self.tree = {'db': [], 'packets': []}
+        self.abort_trans()
+
+    def abort_trans(self):
+        'Forget everything about this transaction.'
+        self.tree = {'packets': []}
         self.namespace = {}
-        CMAdb.Transaction = Transaction()
 
 if __name__ == '__main__':
 
-    import sys
-    from AssimCtypes import CONFIGNAME_OUTSIG
-    from AssimCclasses import pyReliableUDP, pyPacketDecoder, pySignFrame
+    def testme():
+        'This is a string'
+        from AssimCtypes import CONFIGNAME_OUTSIG
+        from AssimCclasses import pyReliableUDP, pyPacketDecoder, pySignFrame
 
-    config = pyConfigContext(init={CONFIGNAME_OUTSIG: pySignFrame(1)})
-    io = pyReliableUDP(config, pyPacketDecoder())
-    CMAdb.initglobal(io, debug=True)
-    trans = Transaction()
-    node0 = CMAdb.cdb.nodefromid(0)
-    destaddr = pyNetAddr('10.10.10.1:1984')
-    addresses = (pyNetAddr('10.10.10.5:1984'),pyNetAddr('10.10.10.6:1984'))
-    trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB, addresses, frametype=FrameTypes.IPPORT)
-    trans.add_packet(pyNetAddr('10.10.10.1:1984')
-    ,   FrameSetTypes.SENDEXPECTHB, (pyNetAddr('10.10.10.5:1984'),pyNetAddr('10.10.10.6:1984'))
-    ,   frametype=FrameTypes.IPPORT)
+        config = pyConfigContext(init={CONFIGNAME_OUTSIG: pySignFrame(1)})
+        io = pyReliableUDP(config, pyPacketDecoder())
+        trans = Transaction()
+        destaddr = pyNetAddr('10.10.10.1:1984')
+        addresses = (pyNetAddr('10.10.10.5:1984'), pyNetAddr('10.10.10.6:1984'))
 
-    trans.add_rels([{'from': node0, 'to': 0, 'type': 'Frobisher', 'attrs': {'color': 'Red'}}
-    ,   {'from': 0, 'to': node0, 'type': 'Framistat', 'attrs': {'color': 'Black'}}])
-    print >> sys.stderr, 'JSON: %s\n' % str(trans)
-    print >> sys.stderr, 'JSON: %s\n' % str(pyConfigContext(str(trans)))
-    trans.commit_trans(io)
+        trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB
+        ,       addresses, frametype=FrameTypes.IPPORT)
+
+        trans.add_packet(pyNetAddr('10.10.10.1:1984')
+        ,   FrameSetTypes.SENDEXPECTHB
+        ,   (pyNetAddr('10.10.10.5:1984')
+        ,   pyNetAddr('10.10.10.6:1984'))
+        ,   frametype=FrameTypes.IPPORT)
+
+        print >> sys.stderr, 'JSON: %s\n' % str(trans)
+        print >> sys.stderr, 'JSON: %s\n' % str(pyConfigContext(str(trans)))
+        trans.commit_trans(io)
+    testme()
