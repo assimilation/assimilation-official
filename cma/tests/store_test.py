@@ -283,6 +283,12 @@ class TestRelateOps(TestCase):
                 ipcount += 1
             self.assertTrue(ipcount == 1)
         self.assertEqual(count, 1)
+
+# Other things that ought to have tests:
+#   Cypher queries
+#   node deletion
+#   Searching for nodes we just added (I forgot which ones work that way)
+#   other things?
     
 if __name__ == "__main__":
     run()
