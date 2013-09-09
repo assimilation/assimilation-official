@@ -158,7 +158,7 @@ class Drone(GraphNode):
             ifinfo = data[ifname]
             if not 'address' in ifinfo:
                 continue
-            macaddr = ifinfo['address']
+            macaddr = str(ifinfo['address'])
             if macaddr.startswith('00:00:00:'):
                 continue
             newnic = CMAdb.store.load_or_create(NICNode, domain=self.domain
