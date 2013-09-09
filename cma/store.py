@@ -459,6 +459,8 @@ class Store:
             for arg in kwargs.keys():
                 if arg in args:
                     newkwargs[arg] = kwargs[arg]
+        #import sys
+        #print >> sys.stderr, ('Calling %s with args: %s' % (constructor, str(newkwargs)))
         ret = constructor(**newkwargs)
 
         # Make sure the attributes match the desired values

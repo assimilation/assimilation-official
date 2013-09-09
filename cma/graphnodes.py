@@ -235,7 +235,7 @@ class NICNode(GraphNode):
 
 class IPaddrNode(GraphNode):
     '''An object that represents a v4 or v6 IP address without a port - characterized by its
-    IP address. They are always represented in the database in ipv6 format without a port.
+    IP address. They are always represented in the database in ipv6 format.
     '''
     def __init__(self, domain, ipaddr, cidrmask='unknown'):
         'Construct an IPaddrNode - validating our parameters'
