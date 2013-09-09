@@ -26,6 +26,7 @@
 
 #include <stdlib.h>
 #include <memory.h>
+#include <ctype.h>
 #include <projectcommon.h>
 #include <netaddr.h>
 #include <address_family_numbers.h>
@@ -61,6 +62,7 @@ FSTATIC NetAddr* _netaddr_toIPv6(const NetAddr*);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format);
 FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr);
 FSTATIC NetAddr* _netaddr_string_ipv6_new(const char* addrstr);
+FSTATIC NetAddr* _netaddr_string_macaddr_new(const char* addrstr);
 
 DEBUGDECLARATIONS
 
@@ -870,17 +872,67 @@ _netaddr_string_ipv6_new(const char* addrstr)
 	return retval;
 }
 
-/// Create a NetAddr from an ipv4 or ipv6 string 
+/// Create a NetAddr from a 48-bit or 64-bit-format MAC address string
+/// - either : or - are permitted as the delimter between bytes (octets)
+NetAddr*
+_netaddr_string_macaddr_new(const char *addrstr)
+{
+	guint8		hexvals[8];
+	unsigned	hexindex = 0;
+
+	const char *	cp;
+	char *		nextcp;
+
+	for (cp = addrstr; *cp; hexindex++, cp=nextcp) {
+		long	hexvalue;
+		if (hexindex >= DIMOF(hexvals)) {
+			return NULL;
+		}
+		hexvalue = strtol(cp, &nextcp, 16);
+		if (hexvalue < 0 || hexvalue > 255 || nextcp == cp) {
+			return NULL;
+		}
+		hexvals[hexindex] = hexvalue;
+		if (*nextcp == '-' || *nextcp == ':') {
+			nextcp++;
+			// Disallow a final : or -
+			if (*nextcp == '\0') {
+				return NULL;
+			}
+		}
+	}
+	if (hexindex == 6) {
+		return netaddr_mac48_new(hexvals);
+	}
+	if (hexindex == 8) {
+		return netaddr_mac64_new(hexvals);
+	}
+	return NULL;
+}
+
+/// Create a NetAddr from an ipv4, ipv6 or MAC address string 
 NetAddr*
 netaddr_string_new(const char* addrstr)
 {
-	NetAddr*	retval;
-	if (addrstr[0] == '[' || addrstr[0] == ':') {
-		retval = _netaddr_string_ipv6_new(addrstr);
-	}else{
+	NetAddr*	retval = NULL;
+	char		addr0 = addrstr[0];
+
+	if (addr0 == '[' || addr0 == ':') {
+		return _netaddr_string_ipv6_new(addrstr);
+	}
+
+	if (isdigit(addr0)) {
 		retval = _netaddr_string_ipv4_new(addrstr);
 		if (!retval) {
 			retval = _netaddr_string_ipv6_new(addrstr);
+			if (!retval) {
+				retval = _netaddr_string_macaddr_new(addrstr);
+			}
+		}
+	}else if (isxdigit(addr0)) {
+		retval = _netaddr_string_ipv6_new(addrstr);
+		if (!retval) {
+			retval = _netaddr_string_macaddr_new(addrstr);
 		}
 	}
 	return retval;
