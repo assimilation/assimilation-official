@@ -24,8 +24,7 @@
 from consts import CMAconsts
 from store import Store
 from os import path
-import hashlib
-import sys, re
+import sys, re, time, hashlib
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyNetAddr
 
@@ -44,7 +43,7 @@ class CMAclass(object):
 
     def __init__(self, name):
         self.name = name
-        self.domain = CMAconsts.globaldomain
+        self.domain = CMAconsts.metadomain
         self.nodetype = CMAconsts.NODE_nodetype
         assert str(self.name) == str(name)
 
@@ -66,6 +65,14 @@ class CMAclass(object):
         result += "\n})"
         return result
 
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+
+    @classmethod
+    def __meta_tags__(cls):
+        return ['Class_CMAclass']
+
 
 class GraphNode(object):
     '''
@@ -74,7 +81,7 @@ class GraphNode(object):
     REESC = re.compile(r'\\')
     REQUOTE = re.compile(r'"')
 
-    def __init__(self, domain, roles=None):
+    def __init__(self, domain, roles=None, time_create=None):
         'Abstract Graph node base class'
         self.domain = domain
         self.nodetype = self.__class__.__name__
@@ -84,6 +91,26 @@ class GraphNode(object):
             # it wants to know what kind of array it is...
             roles = ['']
         self.roles = roles
+        self.time_create = time_create
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        raise NotImplemented('Abstract base class function __meta_keyattrs__')
+
+    @classmethod
+    def __meta_tags__(cls):
+        'Return the default set of tags which should be put on our objects when created'
+        tags = []
+        classes = [cls]
+        classes.extend(cls.__bases__)
+        tags = []
+        for c in classes:
+            name = c.__name__
+            if name == 'GraphNode':
+                break
+            tags.append('Class_' + name)
+        return tags
 
     def addrole(self, roles):
         'Add a role to our GraphNode'
@@ -113,12 +140,15 @@ class GraphNode(object):
 
 
     def post_db_init(self):
-        '''Create IS_A relationship to our 'class' node in the database'''
+        '''Create IS_A relationship to our 'class' node in the database, and set creation time'''
         if not self._baseinitfinished:
             self._baseinitfinished = True
             if Store.is_abstract(self):
                 Store.getstore(self).relate(self, CMAconsts.REL_isa
                 ,   CMAconsts.classtypeobjs[self.nodetype])
+                self.time_create_ms = int(round(time.time()*1000))
+                self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+
 
     def update_attributes(self, other):
         'Update our attributes from another node of the same type'
@@ -222,16 +252,30 @@ class GraphNode(object):
 class SystemNode(GraphNode):
     'An object that represents a physical or virtual system (server, switch, etc)'
     # We really ought to figure out how to make Drone a subclass of SystemNode
-    def __init__(self, domain, name, roles=None):
+    def __init__(self, domain, designation, roles=None):
         GraphNode.__init__(self, domain=domain, roles=roles)
-        self.name = name
+        self.designation = designation.lower()
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['designation', 'domain']
+
 
 class NICNode(GraphNode):
     'An object that represents a NIC - characterized by its MAC address'
     def __init__(self, domain, macaddr, ifname='unknown'):
         GraphNode.__init__(self, domain=domain)
-        self.macaddr = macaddr
+        mac = pyNetAddr(macaddr)
+        if mac is None or mac.addrtype() != ADDR_FAMILY_802:
+            raise ValueError('Not a legal MAC address')
+        self.macaddr = str(mac)
         self.ifname = ifname
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in decreasing order of significance'
+        return ['macaddr', 'domain']
 
 class IPaddrNode(GraphNode):
     '''An object that represents a v4 or v6 IP address without a port - characterized by its
@@ -256,6 +300,11 @@ class IPaddrNode(GraphNode):
             %   (str(ipaddr), type(ipaddr)))
         self.ipaddr = ipaddr
         self.cidrmask = cidrmask
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['ipaddr', 'domain']
         
 class IPtcpportNode(GraphNode):
     'An object that represents an IP:port combination characterized by the pair'
@@ -284,6 +333,11 @@ class IPtcpportNode(GraphNode):
         self.port = port
         self.protocol = protocol
         self.ipport = self.format_ipport()
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['ipport', 'domain']
 
     def format_ipport(self):
         '''Format the ip and port into our key field
@@ -315,6 +369,11 @@ class ProcessNode(GraphNode):
         hashsum.update(procstring)
         self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
 
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['processname', 'domain']
+
 if __name__ == '__main__':
     from cmainit import CMAinit
     from cmadb import CMAdb
@@ -323,4 +382,10 @@ if __name__ == '__main__':
     if CMAdb.store.transaction_pending:
         print 'Transaction pending in:', CMAdb.store
         print 'Results:', CMAdb.store.commit()
+    print CMAclass.__meta_tags__()
+    print ProcessNode.__meta_tags__()
+    print SystemNode.__meta_tags__()
+    from droneinfo import Drone
+    print Drone.__meta_tags__()
+    print 'keys:', Drone.__meta_keyattrs__()
     print >> sys.stderr, 'Init done'

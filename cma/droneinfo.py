@@ -35,7 +35,7 @@ from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNo
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 
-class Drone(GraphNode):
+class Drone(SystemNode):
     '''Everything about Drones - endpoints that run our nanoprobes.
 
     There are two Cypher queries that get initialized later:
@@ -64,7 +64,7 @@ class Drone(GraphNode):
         The first time around we also initialize a couple of class-wide CypherQuery
         objects for a couple of queries we know we'll need later.
         '''
-        GraphNode.__init__(self, domain=domain)
+        SystemNode.__init__(self, domain=domain, designation=designation)
         if roles is None:
             roles = ['host', 'drone']
         self.addrole(roles)
@@ -73,13 +73,12 @@ class Drone(GraphNode):
         self.reason = reason
         self.startaddr = str(startaddr)
         self.primary_ip_addr = str(primary_ip_addr)
-        self.statustime = int(round(time.time() * 1000))
-        self.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
+        self.time_status_ms = int(round(time.time() * 1000))
+        self.time_status_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         if port is not None:
             self.port = int(port)
         else:
             self.port = None
-        self.designation = designation
 
         if Drone.IPownerquery_1 is None:
             Drone.IPownerquery_1 =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.IPownerquery_1_txt
