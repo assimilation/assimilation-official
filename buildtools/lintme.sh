@@ -39,7 +39,7 @@ done
 if
   [ $# = 0 ]
 then
-  LIST='AssimCclasses.py cmadb.py cma.py cmainit.py consts.py dispatchtarget.py droneinfo.py graphnodes frameinfo.py hbring.py messagedispatcher.py packetlistener.py store.py transaction.py'
+  LIST='AssimCclasses.py cmadb.py cma.py cmainit.py consts.py dispatchtarget.py droneinfo.py graphnodes frameinfo.py hbring.py messagedispatcher.py packetlistener.py query.py store.py transaction.py'
 else
   LIST="$@"
 fi
