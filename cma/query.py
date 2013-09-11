@@ -29,7 +29,8 @@ about these queries for the client code.
 '''
 from py2neo import neo4j
 from graphnodes import GraphNode
-from AssimCclasses import pyConfigContext
+from AssimCclasses import pyConfigContext, pyNetAddr
+from AssimCtypes import ADDR_FAMILY_IPV6, ADDR_FAMILY_IPV4, ADDR_FAMILY_802
 
 class ClientQuery(GraphNode):
     '''This class defines queries which can be requested from clients (typically JavaScript)
@@ -68,6 +69,7 @@ class ClientQuery(GraphNode):
             enum    - an finite enumeration of permissible values (case-insensitive)
         '''
 
+        GraphNode.__init__()
         self.queryname = queryname
         self.database = None
         self.JSON_metadata = JSON_metadata
@@ -78,9 +80,16 @@ class ClientQuery(GraphNode):
         self._query = None
         self.validate_json()
 
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of decreasing significance'
+        return ['queryname']
+
     def bind_database(self, db):
-        self._db = db
-        self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
+        'Connect our query to a database'
+        if self._db is not db:
+            self._db = db
+            self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
 
 
 
@@ -90,31 +99,34 @@ class ClientQuery(GraphNode):
         return self._JSON_metadata['parameters'].keys()
 
     def cypher_parameter_names(self):
-        START = 1
-        BACKSLASH=2
-        GOTLCURLY=3
-        results=[]
-        pname = ''
+        'Return the parameter names our cypher query uses'
+        START       = 1
+        BACKSLASH   = 2
+        GOTLCURLY   = 3
+        results     = []
+        paramname   = ''
         state = START
 
         for c in self._JSON_metadata['cypher']:
             if state == START:
                 if c == '\\':
-                    state=BACKSLASH
+                    state = BACKSLASH
                 if c == '{':
                     state = GOTLCURLY
             elif state == BACKSLASH:
-                state=START
+                state = START
             else: # GOTLCURLY
                 if c == '}':
-                    if pname != '':
-                        results.append(pname)
-                        pname=''
+                    if paramname != '':
+                        results.append(paramname)
+                        paramname = ''
                     state = START
                 else:
-                    pname += c
+                    paramname += c
         return results
 
+    # R0912: Too many branches; R0914: too many local variables
+    # pylint: disable=R0914,R0912
     def validate_json(self):
         '''Validate the JSON for this query - it's complicated!'''
         if 'cypher' not in self._JSON_metadata:
@@ -192,7 +204,7 @@ class ClientQuery(GraphNode):
 
 
 
-    def validate_parameters(parameters):
+    def validate_parameters(self, parameters):
         '''
         parameters is a Dict-like object containing parameter names and values
         '''
@@ -208,90 +220,95 @@ class ClientQuery(GraphNode):
         result = {}
         for param in parameters.keys():
             value = parameters[param]
-            canonvalue = self._validate_value(param, paramdict[param], value)
+            canonvalue = ClientQuery._validate_value(param, paramdict[param], value)
             result[param] = canonvalue
 
-    def _validate_value(self, paraminfo, value):
-        valtype = paraminfo['type']
+    
 
-        if valtype == 'int':
-            return self._validate_int(name, paraminfo, value)
-        if valtype == 'float':
-            return self._validate_float(name, paraminfo, value)
-        if valtype == 'string':
-            return self._validate_string(name, paraminfo, value)
-        if valtype == 'ipaddr':
-            return self._validate_ipaddr(name, paraminfo, value)
-        if valtype == 'macaddr':
-            return self._validate_macaddr(name, paraminfo, value)
-        if valtype == 'bool':
-            return self._validate_bool(name, paraminfo, value)
-        if valtype == 'hostname':
-            return self._validate_hostname(name, paraminfo, value)
-        if valtype == 'dnsname':
-            return self._validate_dnsname(name, paraminfo, value)
-        if valtype == 'enum':
-            return self._validate_enum(name, paraminfo, value)
-        raise TypeError('Metadata indicates invalid parameter type [%s]' % valtype)
-
-    def _validate_int(self, name, paraminfo, value):
+    @staticmethod
+    def _validate_int(name, paraminfo, value):
+        'Validate an int value'
         val = int(value)
         if 'min' in paraminfo:
             minval = paraminfo['min']
             if val < minval:
-                raise ValueError('Value %s smaller than mininum [%s]' %(val, minval))
+                raise ValueError('Value of %s [%s] smaller than mininum [%s]' 
+                %   (name, val, minval))
         if 'max' in paraminfo:
             maxval = paraminfo['max']
             if val > maxval:
-                raise ValueError('Value %s larger than maximum [%s]' %(val, maxval))
+                raise ValueError('Value of %s [%s] larger than maximum [%s]'
+                %   (name, val, maxval))
         return val
 
-    def _validate_float(self, name, paraminfo, value):
+    @staticmethod
+    def _validate_float(name, paraminfo, value):
+        'Validate an floating point value'
         val = float(value)
         if 'min' in paraminfo:
             minval = paraminfo['min']
             if val < minval:
-                raise ValueError('Value %s smaller than mininum [%s]' %(val, minval))
+                raise ValueError('Value of %s[%s] smaller than mininum [%s]'
+                %   (name, val, minval))
         if 'max' in paraminfo:
             maxval = paraminfo['max']
             if val > maxval:
-                raise ValueError('Value %s larger than maximum [%s]' %(val, maxval))
+                raise ValueError('Value of %s [%s] larger than maximum [%s]'
+                %   (name, val, maxval))
         return val
 
-    def _validate_string(self, paraminfo, value):
+    # W0613: unused argument
+    # pylint: disable=W0613
+    @staticmethod
+    def _validate_string(name, paraminfo, value):
+        'Validate an string value (always valid)'
         return value
 
-    def _validate_macaddr(self, name, paraminfo, value):
+    @staticmethod
+    def _validate_macaddr(name, paraminfo, value):
+        'Validate an MAC address value'
         mac = pyNetAddr(value)
         if mac is None:
-            raise ValueError('%s not a valid MAC address' % value)
+            raise ValueError('value of %s [%s] not a valid MAC address' % (name, value))
         if mac.addrtype() != ADDR_FAMILY_802:
-            raise ValueError('Value of %s [%s] not a MAC address' % value)
+            raise ValueError('Value of %s [%s] not a MAC address' % (name, value))
         return str(mac)
 
-    def _validate_ipaddr(self, name, paraminfo, value):
+    @staticmethod
+    def _validate_ipaddr(name, paraminfo, value):
+        'Validate an IP address value'
         ip = pyNetAddr(value)
         if ip is None:
-            raise ValueError('Value of %s [%s] not a valid IP address' % value)
+            raise ValueError('Value of %s [%s] not a valid IP address' % (name, value))
         if ip.addrtype() == ADDR_FAMILY_IPV6:
             return str(ip)
         if ip.addrtype() == ADDR_FAMILY_IPV4:
             return str(ip.toIPv6())
-        raise ValueError('Value of %s [%s] not an IP address' % value)
+        raise ValueError('Value of %s [%s] not an IP address' % (name, value))
         
-    def _validate_bool(self, name, paraminfo, value):
+    @staticmethod
+    def _validate_bool(name, paraminfo, value):
+        'Validate an Boolean value'
         if not isinstance(value, bool):
-            raise ValueError('Value of %s [%s] not a boolean' % value)
+            raise ValueError('Value of %s [%s] not a boolean' % (name, value))
         return value
 
-    def _validate_hostname(self, name, paraminfo, value):
-        return self._validate_dnsname(paraminfo, value)
+    @staticmethod
+    def _validate_hostname(name, paraminfo, value):
+        'Validate a hostname value'
+        return ClientQuery._validate_dnsname(name, paraminfo, value)
 
-    def _validate_dnsname(self, name, paraminfo, value):
+    # W0613: unused argument
+    # pylint: disable=W0613
+    @staticmethod
+    def _validate_dnsname(name, paraminfo, value):
+        'Validate an DNS name value'
         value = str(value)
         return value.lower()
 
-    def _validate_enum(self, name, paraminfo, value):
+    @staticmethod
+    def _validate_enum(name, paraminfo, value):
+        'Validate an enumeration value'
         if 'enumlist' not in paraminfo:
             raise TypeError("No 'enumlist' for parameter" % name)
         value = value.tolower()
@@ -300,6 +317,25 @@ class ClientQuery(GraphNode):
             if cmpval == value:
                 return cmpval
         raise ValueError('Value of %s [%s] not in enumlist' % (paraminfo['name'], value))
+
+    _validationmethods = {
+        'int':      ClientQuery._validate_int,
+        'float':    ClientQuery._validate_float,
+        'bool':     ClientQuery._validate_bool,
+        'string':   ClientQuery._validate_string,
+        'enum':     ClientQuery._validate_enum,
+        'ipaddr':   ClientQuery._validate_ipaddr,
+        'macaddr':  ClientQuery._validate_macaddr,
+        'hostname': ClientQuery._validate_hostname,
+        'dnsname':  ClientQuery._validate_dnsname,
+    }
+
+    @staticmethod
+    def _validate_value(name, paraminfo, value):
+        '''Validate the value given our metadata'''
+        valtype = paraminfo['type']
+        return ClientQuery._validationmethods[valtype](name, paraminfo, value)
+
 
 if __name__ == '__main__':
     metadata1 = \

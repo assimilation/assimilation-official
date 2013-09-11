@@ -25,7 +25,7 @@ from consts import CMAconsts
 from store import Store
 from os import path
 import sys, re, time, hashlib
-from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
+from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr
 
 
@@ -81,7 +81,7 @@ class GraphNode(object):
     REESC = re.compile(r'\\')
     REQUOTE = re.compile(r'"')
 
-    def __init__(self, domain, roles=None, time_create=None):
+    def __init__(self, domain, roles=None, time_create_ms=None, time_create_iso8601=None):
         'Abstract Graph node base class'
         self.domain = domain
         self.nodetype = self.__class__.__name__
@@ -91,12 +91,13 @@ class GraphNode(object):
             # it wants to know what kind of array it is...
             roles = ['']
         self.roles = roles
-        self.time_create = time_create
+        self.time_create_iso8601 = time_create_iso8601
+        self.time_create_ms = time_create_ms
 
     @staticmethod
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
-        raise NotImplemented('Abstract base class function __meta_keyattrs__')
+        raise NotImplementedError('Abstract base class function __meta_keyattrs__')
 
     @classmethod
     def __meta_tags__(cls):
