@@ -28,6 +28,7 @@ from py2neo import neo4j
 from droneinfo import Drone
 from graphnodes import GraphNode
 from store import Store
+
 class HbRing(GraphNode):
     'Class defining the behavior of a heartbeat ring.'
     SWITCH      =  1
@@ -49,6 +50,11 @@ class HbRing(GraphNode):
         self._ringinitfinished = False
         self._insertpoint1 = None
         self._insertpoint2 = None
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of decreasing significance'
+        return ['name']
         
 
     def post_db_init(self):

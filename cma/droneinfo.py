@@ -30,7 +30,7 @@ from py2neo import neo4j
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
-from graphnodes import GraphNode, nodeconstructor
+from graphnodes import nodeconstructor
 from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
@@ -465,8 +465,8 @@ class Drone(SystemNode):
             %   (self.designation, status, str(fromaddr), reason))
         self.status = status
         self.reason = reason
-        self.statustime = int(round(time.time() * 1000))
-        self.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
+        self.time_status_ms = int(round(time.time() * 1000))
+        self.time_status_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         # There is a need for us to be a little more sophisticated
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
