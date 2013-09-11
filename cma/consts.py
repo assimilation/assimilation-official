@@ -31,7 +31,8 @@ class CMAconsts(object):
     This class holds the constants we use for the CMA.
     We make it a class to minimize namespace pollution.
     '''
-    globaldomain = 'global'
+    globaldomain    = 'global'
+    metadomain      = 'metadata'
 
 #########################################################################
 #       Indexes:
