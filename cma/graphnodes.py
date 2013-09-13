@@ -27,52 +27,19 @@ from os import path
 import sys, re, time, hashlib
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr
+from py2neo import neo4j
 
 
 # W0212: Access to a protected member _callconstructor of a client class
 # pylint: disable=W0212
 def nodeconstructor(**properties):
-    'A generic class-like constructor that knows our class name is stored as nodetype'
-    realcls = eval(properties['nodetype'])
+    '''A generic class-like constructor that knows our class name is stored as nodetype
+    It's a form of "factory" for our database classes
+    '''
+    realcls = GraphNode.classmap[properties['nodetype']]
+    # _callconstructor is kind of cool - it figures out how to correctly call the constructor
+    # with the values in 'properties' as arguments
     return Store._callconstructor(realcls, properties)
-
-# R0903: Too few public methods (0/2)
-# pylint: disable=R0903
-class CMAclass(object):
-    '''Class defining the relationships of our CMA classes to each other'''
-
-    def __init__(self, name):
-        self.name = name
-        self.domain = CMAconsts.metadomain
-        self.nodetype = CMAconsts.NODE_nodetype
-        assert str(self.name) == str(name)
-
-    # W0212: Access to a protected member _safe_attrs of a client class
-    # pylint: disable=W0212
-    def __str__(self):
-        'Default routine for printing CMAclass objects'
-        result = '%s({' % self.__class__.__name__
-        comma  = ''
-        for attr in Store._safe_attrs(self):
-            result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
-            comma = ",\n    "
-        if Store.has_node(self):
-            if Store.is_abstract(self):
-                result += comma + 'HasNode = "abstract"'
-            else:
-                result += (comma + 'HasNode = %d' %Store.id(self))
-
-        result += "\n})"
-        return result
-
-    @staticmethod
-    def __meta_keyattrs__():
-        'Return our key attributes in order of significance'
-
-    @classmethod
-    def __meta_tags__(cls):
-        return ['Class_CMAclass']
-
 
 class GraphNode(object):
     '''
@@ -80,17 +47,13 @@ class GraphNode(object):
     '''
     REESC = re.compile(r'\\')
     REQUOTE = re.compile(r'"')
+    classmap = {}
 
-    def __init__(self, domain, roles=None, time_create_ms=None, time_create_iso8601=None):
+    def __init__(self, domain, time_create_ms=None, time_create_iso8601=None):
         'Abstract Graph node base class'
         self.domain = domain
         self.nodetype = self.__class__.__name__
         self._baseinitfinished = False
-        if roles == None or roles == []:
-            # Neo4j can't initialize node properties to empty arrays because
-            # it wants to know what kind of array it is...
-            roles = ['']
-        self.roles = roles
         self.time_create_iso8601 = time_create_iso8601
         self.time_create_ms = time_create_ms
 
@@ -113,40 +76,19 @@ class GraphNode(object):
             tags.append('Class_' + name)
         return tags
 
-    def addrole(self, roles):
-        'Add a role to our GraphNode'
-        if len(self.roles) > 0 and self.roles[0] == '':
-            self.delrole('')
-        if isinstance(roles, tuple) or isinstance(roles, list):
-            for role in roles:
-                self.addrole(role)
-            return self.roles
-        assert isinstance(roles, str) or isinstance(roles, unicode)
-        if self.roles is None:
-            self.roles = [roles]
-        elif not roles in self.roles:
-            self.roles.append(roles)
-        return self.roles
-
-    def delrole(self, roles):
-        'Delete a role from our GraphNode'
-        if isinstance(roles, tuple) or isinstance(roles, list):
-            for role in roles:
-                self.delrole(role)
-            return self.roles
-        assert isinstance(roles, str) or isinstance(roles, unicode)
-        if roles in self.roles:
-            self.roles.remove(roles)
-        return self.roles
-
-
     def post_db_init(self):
         '''Create IS_A relationship to our 'class' node in the database, and set creation time'''
         if not self._baseinitfinished:
             self._baseinitfinished = True
-            if Store.is_abstract(self):
-                Store.getstore(self).relate(self, CMAconsts.REL_isa
-                ,   CMAconsts.classtypeobjs[self.nodetype])
+            if Store.is_abstract(self) and self.nodetype != CMAconsts.NODE_nodetype:
+                store = Store.getstore(self)
+                print CMAconsts.REL_isa
+                print self.nodetype
+                print CMAconsts.classtypeobjs
+                if self.nodetype not in CMAconsts.classtypeobjs:
+                    GraphNode.initclasstypeobj(store, self.nodetype)
+                print 'Relating %s to %s' % (self, CMAconsts.classtypeobjs[self.nodetype])
+                store.relate(self, CMAconsts.REL_isa, CMAconsts.classtypeobjs[self.nodetype])
                 self.time_create_ms = int(round(time.time()*1000))
                 self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 
@@ -225,6 +167,43 @@ class GraphNode(object):
         return stringthing
 
     @staticmethod
+    def registerclass(cls):
+        GraphNode.classmap[cls.__name__] = cls
+        
+    @staticmethod
+    def initclasstypeobj(store, nodetype):
+        '''Initialize CMAconsts.classtypeobjs for our "nodetype"
+        This involves
+         - Ensuring that there's an index for this class, and the NODE_nodetype class
+         - Caching the class that goes with this nodetype
+         - setting up all of our IS_A objects, including the root object if necessary,
+         - updating the store's uniqueindexmap[nodetype]
+         - updating the store's classkeymap[nodetype]
+         - updating CMAconsts.classtypeobjs[nodetype]
+         This should eliminate the need to do any of these things for any class.
+        '''
+        if nodetype != CMAconsts.NODE_nodetype and CMAconsts.NODE_nodetype not in store.classkeymap:
+            # Have to make sure our root type node exists and is set up properly
+            GraphNode.initclasstypeobj(store, CMAconsts.NODE_nodetype)
+        ourclass = GraphNode.classmap[nodetype]
+        rootclass = GraphNode.classmap[CMAconsts.NODE_nodetype]
+        if nodetype not in store.classkeymap:
+            store.uniqueindexmap[nodetype] = True
+            keys = ourclass.__meta_keyattrs__()
+            ckm_entry = {'kattr': keys[0], 'index': nodetype}
+            if len(keys) > 1:
+                ckm_entry['vattr'] = keys[1]
+            else:
+                ckm_entry['value'] = 'None'
+            store.classkeymap[nodetype] = ckm_entry
+        store.db.get_or_create_index(neo4j.Node, nodetype)
+        ourtypeobj = store.load_or_create(rootclass, name=nodetype)
+        if Store.is_abstract(ourtypeobj) and nodetype != CMAconsts.NODE_nodetype:
+            roottype = store.load_or_create(rootclass, name=CMAconsts.NODE_nodetype)
+            store.relate(ourtypeobj, CMAconsts.REL_isa, roottype)
+        CMAconsts.classtypeobjs[nodetype] = ourtypeobj
+
+    @staticmethod
     def dump_nodes(nodetype='Drone', stream=sys.stderr):
         'Dump all our drones out to the given stream (defaults to sys.stderr)'
         idx = CMAconsts.classindextable[nodetype]
@@ -250,17 +229,88 @@ class GraphNode(object):
                 if start._id == end._id:
                     print >> stream, 'SELF-REFERENCE to %s' % start._id
 
+# R0903: Too few public methods (0/2)
+# pylint: disable=R0903
+class CMAclass(GraphNode):
+    '''Class defining the relationships of our CMA classes to each other'''
+
+    def __init__(self, name):
+        GraphNode.__init__(self, domain='metadata')
+        self.name = name
+        self.domain = CMAconsts.metadomain
+        self.nodetype = CMAconsts.NODE_nodetype
+        assert str(self.name) == str(name)
+
+    # W0212: Access to a protected member _safe_attrs of a client class
+    # pylint: disable=W0212
+    def __str__(self):
+        'Default routine for printing CMAclass objects'
+        result = '%s({' % self.__class__.__name__
+        comma  = ''
+        for attr in Store._safe_attrs(self):
+            result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
+            comma = ",\n    "
+        if Store.has_node(self):
+            if Store.is_abstract(self):
+                result += comma + 'HasNode = "abstract"'
+            else:
+                result += (comma + 'HasNode = %d' %Store.id(self))
+
+        result += "\n})"
+        return result
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['name']
+
+GraphNode.registerclass(CMAclass)
+
 class SystemNode(GraphNode):
     'An object that represents a physical or virtual system (server, switch, etc)'
     # We really ought to figure out how to make Drone a subclass of SystemNode
     def __init__(self, domain, designation, roles=None):
-        GraphNode.__init__(self, domain=domain, roles=roles)
+        GraphNode.__init__(self, domain=domain)
         self.designation = designation.lower()
+        if roles == None or roles == []:
+            # Neo4j can't initialize node properties to empty arrays because
+            # it wants to know what kind of array it is...
+            roles = ['']
+        self.roles = roles
 
     @staticmethod
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['designation', 'domain']
+
+    def addrole(self, roles):
+        'Add a role to our GraphNode'
+        if len(self.roles) > 0 and self.roles[0] == '':
+            self.delrole('')
+        if isinstance(roles, tuple) or isinstance(roles, list):
+            for role in roles:
+                self.addrole(role)
+            return self.roles
+        assert isinstance(roles, str) or isinstance(roles, unicode)
+        if self.roles is None:
+            self.roles = [roles]
+        elif not roles in self.roles:
+            self.roles.append(roles)
+        return self.roles
+
+    def delrole(self, roles):
+        'Delete a role from our GraphNode'
+        if isinstance(roles, tuple) or isinstance(roles, list):
+            for role in roles:
+                self.delrole(role)
+            return self.roles
+        assert isinstance(roles, str) or isinstance(roles, unicode)
+        if roles in self.roles:
+            self.roles.remove(roles)
+        return self.roles
+
+
+GraphNode.registerclass(SystemNode)
 
 
 class NICNode(GraphNode):
@@ -277,6 +327,8 @@ class NICNode(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in decreasing order of significance'
         return ['macaddr', 'domain']
+
+GraphNode.registerclass(NICNode)
 
 class IPaddrNode(GraphNode):
     '''An object that represents a v4 or v6 IP address without a port - characterized by its
@@ -306,6 +358,8 @@ class IPaddrNode(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['ipaddr', 'domain']
+
+GraphNode.registerclass(IPaddrNode)
         
 class IPtcpportNode(GraphNode):
     'An object that represents an IP:port combination characterized by the pair'
@@ -347,6 +401,7 @@ class IPtcpportNode(GraphNode):
         '''
         return '%s_%s_%s' % (self.port, self.protocol, self.ipaddr)
         
+GraphNode.registerclass(IPtcpportNode)
 
 class ProcessNode(GraphNode):
     'A node representing a running process in a host'
@@ -374,6 +429,8 @@ class ProcessNode(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['processname', 'domain']
+
+GraphNode.registerclass(IPtcpportNode)
 
 if __name__ == '__main__':
     from cmainit import CMAinit
