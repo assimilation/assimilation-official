@@ -27,6 +27,7 @@
 This module provides classes associated with querying - including providing metadata
 about these queries for the client code.
 '''
+import os
 from py2neo import neo4j
 from graphnodes import GraphNode
 from AssimCclasses import pyConfigContext, pyNetAddr
@@ -69,7 +70,7 @@ class ClientQuery(GraphNode):
             enum    - an finite enumeration of permissible values (case-insensitive)
         '''
 
-        GraphNode.__init__()
+        GraphNode.__init__(self, domain='metadata')
         self.queryname = queryname
         self.database = None
         self.JSON_metadata = JSON_metadata
@@ -319,15 +320,15 @@ class ClientQuery(GraphNode):
         raise ValueError('Value of %s [%s] not in enumlist' % (paraminfo['name'], value))
 
     _validationmethods = {
-        'int':      ClientQuery._validate_int,
-        'float':    ClientQuery._validate_float,
-        'bool':     ClientQuery._validate_bool,
-        'string':   ClientQuery._validate_string,
-        'enum':     ClientQuery._validate_enum,
-        'ipaddr':   ClientQuery._validate_ipaddr,
-        'macaddr':  ClientQuery._validate_macaddr,
-        'hostname': ClientQuery._validate_hostname,
-        'dnsname':  ClientQuery._validate_dnsname,
+        'int':      _validate_int,
+        'float':    _validate_float,
+        'bool':     _validate_bool,
+        'string':   _validate_string,
+        'enum':     _validate_enum,
+        'ipaddr':   _validate_ipaddr,
+        'macaddr':  _validate_macaddr,
+        'hostname': _validate_hostname,
+        'dnsname':  _validate_dnsname,
     }
 
     @staticmethod
@@ -336,8 +337,52 @@ class ClientQuery(GraphNode):
         valtype = paraminfo['type']
         return ClientQuery._validationmethods[valtype](name, paraminfo, value)
 
+    @staticmethod
+    def load_from_file(store, pathname, queryname=None):
+        fd = open(pathname, 'r')
+        json = fd.read()
+        fd.close()
+        if queryname is None:
+            queryname = os.path.basename(pathname)
+        print 'LOADING %s as %s' % (pathname, queryname)
+        ret = store.load_or_create(ClientQuery, queryname=queryname, JSON_metadata=json)
+        ret.bind_database(store.db)
+        return ret
+
+    @staticmethod
+    def load_directory(store, directoryname):
+        files = os.listdir(directoryname)
+        'Returns a generator that returns all the Queries in that directory'
+        files.sort()
+        for filename in files:
+            path = os.path.join(directoryname, filename)
+            yield ClientQuery.load_from_file(store, path)
+
+    @staticmethod
+    def load_tree(store, rootdirname, followlinks=False):
+        'Returns a generator that will returns all the Queries in that directory structure'
+        print >> sys.stderr, 'WALKING %s' % (rootdirname)
+        tree = os.walk(rootdirname, topdown=True, onerror=None, followlinks=followlinks)
+        rootprefixlen = len(rootdirname)+1
+        for walktuple in tree:
+            (dirpath, dirnames, filenames) = walktuple
+            dirnames.sort()
+            prefix = dirpath[rootprefixlen:]
+            print >> sys.stderr, 'IN DIRECTORY %s' % (dirpath)
+            filenames.sort()
+            for filename in filenames:
+                queryname = prefix + filename
+                path = os.path.join(dirpath, filename)
+                yield ClientQuery.load_from_file(store, path, queryname=queryname)
+
+GraphNode.registerclass(ClientQuery)
+
 
 if __name__ == '__main__':
+    import sys
+    from store import Store
+    from py2neo import neo4j
+    from consts import CMAconsts
     metadata1 = \
     '''
     {   "cypher": "BEGIN n=node:ClientQuery('*:*') RETURN n",
@@ -403,5 +448,20 @@ if __name__ == '__main__':
     }
     '''
     q3 = ClientQuery('ipowners', metadata3)
+
+    db = neo4j.GraphDatabaseService()
+    print >> sys.stderr, '========>classmap: %s' % (GraphNode.classmap)
+
+    umap = {'ClientQuery': True}
+    ckmap = {'ClientQuery': {'index': 'ClientQuery', 'kattr':'queryname', 'value':'None'}}
+
+    store = Store(db, uniqueindexmap=umap, classkeymap=ckmap)
+    GraphNode.initclasstypeobj(store, 'ClientQuery')
+
+    print "LOADING TREE!"
+    queries = ClientQuery.load_tree(store, "/home/alanr/monitor/src/queries")
+    qlist = [q for q in queries]
+    store.commit()
+    print "%d node TREE LOADED!" % len(qlist)
 
     print "All done!"
