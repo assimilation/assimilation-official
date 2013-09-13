@@ -642,6 +642,9 @@ class Drone(SystemNode):
         for ourtuple in args:
             Drone._JSONprocessors[ourtuple[0]] = ourtuple[1]
 
+
+GraphNode.registerclass(Drone)
+
 # W0202 Access to a protected member _add_netconfig_addresses of a client class
 # W0212 Access to a protected member _add_tcplisteners of a client class
 # W0212 Access to a protected member _add_tcplisteners of a client class
