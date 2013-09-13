@@ -129,6 +129,6 @@ class CMAconsts(object):
     ,   NODE_tcpipport: {'index':NODE_tcpipport, 'vattr':'domain',      'kattr': 'ipport'}
     ,   NODE_ipproc:    {'index':NODE_ipproc,    'vattr':'domain',      'kattr': 'processname'}
     }
-    classindextable = None # Filled in by CMAdb initializer...
-    classtypeobjs = None
+    classindextable = {}
+    classtypeobjs = {}
     
