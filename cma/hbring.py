@@ -316,5 +316,7 @@ class HbRing(GraphNode):
         ret += ')'
         return ret
 
+GraphNode.registerclass(HbRing)
+
 if __name__ == '__main__':
     db = CMAdb()
