@@ -339,6 +339,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def load_from_file(store, pathname, queryname=None):
+        'Load a query with metadata from a file'
         fd = open(pathname, 'r')
         json = fd.read()
         fd.close()
@@ -351,8 +352,8 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def load_directory(store, directoryname):
-        files = os.listdir(directoryname)
         'Returns a generator that returns all the Queries in that directory'
+        files = os.listdir(directoryname)
         files.sort()
         for filename in files:
             path = os.path.join(directoryname, filename)
@@ -381,8 +382,6 @@ GraphNode.registerclass(ClientQuery)
 if __name__ == '__main__':
     import sys
     from store import Store
-    from py2neo import neo4j
-    from consts import CMAconsts
     metadata1 = \
     '''
     {   "cypher": "BEGIN n=node:ClientQuery('*:*') RETURN n",
@@ -449,19 +448,19 @@ if __name__ == '__main__':
     '''
     q3 = ClientQuery('ipowners', metadata3)
 
-    db = neo4j.GraphDatabaseService()
+    ourdb = neo4j.GraphDatabaseService()
     print >> sys.stderr, '========>classmap: %s' % (GraphNode.classmap)
 
     umap = {'ClientQuery': True}
     ckmap = {'ClientQuery': {'index': 'ClientQuery', 'kattr':'queryname', 'value':'None'}}
 
-    store = Store(db, uniqueindexmap=umap, classkeymap=ckmap)
-    GraphNode.initclasstypeobj(store, 'ClientQuery')
+    ourstore = Store(ourdb, uniqueindexmap=umap, classkeymap=ckmap)
+    GraphNode.initclasstypeobj(ourstore, 'ClientQuery')
 
     print "LOADING TREE!"
-    queries = ClientQuery.load_tree(store, "/home/alanr/monitor/src/queries")
+    queries = ClientQuery.load_tree(ourstore, "/home/alanr/monitor/src/queries")
     qlist = [q for q in queries]
-    store.commit()
+    ourstore.commit()
     print "%d node TREE LOADED!" % len(qlist)
 
     print "All done!"

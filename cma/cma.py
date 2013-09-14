@@ -99,6 +99,7 @@
 import optparse, time
 import os, sys, signal
 import cmainit
+from frameinfo import FrameSetTypes
 #import atexit
 #
 #   "Main" program starts below...
@@ -191,7 +192,6 @@ def main():
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, \
         CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
-    from frameinfo import FrameTypes, FrameSetTypes
     for debug in range(opt.debug):
         debug = debug
         proj_class_incr_debug(None)
