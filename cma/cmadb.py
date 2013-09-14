@@ -46,53 +46,12 @@ class CMAdb:
 
     def __init__(self, db=None):
         self.db = db
-        CMAdb.store = Store(self.db, CMAconsts.uniqueindexes, CMAconsts.classkeymap)
+        CMAdb.store = Store(self.db, {}, {})
         self.dbversion = self.db.neo4j_version
         self.nextlabelid = 0
         if CMAdb.debug:
             CMAdb.log.debug('Neo4j version: %s' % str(self.dbversion))
             print >> sys.stderr, ('HELP Neo4j version: %s' % str(self.dbversion))
-    #
-    #   Make sure all our indexes are present and that we
-    #   have a top level node for each node type for creating
-    #   IS_A relationships to.  Not sure if the IS_A relationships
-    #   are really needed, but they're kinda cool...
-    #
-        
-        indices = [key for key in CMAconsts.is_indexed.keys() if CMAconsts.is_indexed[key]]
-        self.indextbl = {}
-        self.nodetypetbl = {}
-        for index in indices:
-            #print >>sys.stderr, ('Ensuring index %s exists' % index)
-            self.indextbl[index] = self.db.get_index(neo4j.Node, index)
-            self.indextbl[index] = self.db.get_or_create_index(neo4j.Node, index)
-        #print >>sys.stderr, ('Ensuring index %s exists' % 'nodetype')
-        self.indextbl['nodetype'] = self.db.get_or_create_index(neo4j.Node, 'nodetype')
-        
-        classroot = CMAdb.store.load_or_create(CMAclass, name='object')
-        #print >> sys.stderr, 'classroot', classroot
-
-        for index in CMAconsts.is_indexed.keys():
-            top = CMAdb.store.load_or_create(CMAclass, name=index)
-            assert str(top.name) == str(index)
-            CMAdb.store.relate_new(top, CMAconsts.REL_isa, classroot)
-            self.nodetypetbl[index] = top
-        CMAconsts.classtypeobjs = self.nodetypetbl
-            
-        self.ringindex = self.indextbl[CMAconsts.NODE_ring]
-        self.ipindex = self.indextbl[CMAconsts.NODE_ipaddr]
-        self.macindex = self.indextbl[CMAconsts.NODE_NIC]
-        self.switchindex = self.indextbl[CMAconsts.NODE_system]
-        self.droneindex = self.indextbl[CMAconsts.NODE_drone]
-        CMAconsts.classindextable = self.indextbl
-        if self.store.transaction_pending:
-            #print >> sys.stderr,  'self.store:', self.store
-            result = self.store.commit()
-            if CMAdb.debug:
-                print >> sys.stderr, 'COMMIT results:', result
-        else:
-            print >> sys.stderr, 'Cool! Everything already created!'
-
 
 if __name__ == '__main__':
     from cmainit import CMAinit

@@ -241,12 +241,28 @@ class AUDITS(TestCase):
 
 def auditalldrones():
     audit = AUDITS()
-    dronetype = CMAdb.cdb.nodetypetbl['Drone']
-    droneobjs = CMAdb.store.load_in_related(dronetype, 'IS_A', Drone)
+    qtext = "START droneroot=node:CMAclass('Drone:*') MATCH drone-[:IS_A]->droneroot RETURN drone"
+    query = neo4j.CypherQuery(CMAdb.cdb.db, qtext)
+    droneobjs = CMAdb.store.load_cypher_nodes(query, Drone)
     droneobjs = [drone for drone in droneobjs]
     numdrones = len(droneobjs)
-    for droneid in range(0,numdrones):
+    for droneid in range(0, numdrones):
         audit.auditadrone(droneid+1)
+    query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:Drone('*:*') RETURN n''')
+    queryobjs = CMAdb.store.load_cypher_nodes(query, Drone)
+    queryobjs = [drone for drone in queryobjs]
+    dronetbl = {}
+    for drone in droneobjs:
+        dronetbl[drone.designation] = drone
+    querytbl = {}
+    for drone in queryobjs:
+        querytbl[drone.designation] = drone
+    # Now compare them
+    for drone in dronetbl:
+        assert(querytbl[drone] is dronetbl[drone])
+    for drone in querytbl:
+        assert(querytbl[drone] is dronetbl[drone])
+
 
 def auditallrings():
     audit = AUDITS()
@@ -449,13 +465,9 @@ class TestCMABasic(TestCase):
         # We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
-        droneroot = CMAdb.cdb.nodetypetbl['Drone']
-        idx = CMAdb.cdb.indextbl['Drone']
         query = neo4j.CypherQuery(CMAdb.cdb.db, "START n=node:Drone('*:*') RETURN n")
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
         Drones = [drone for drone in Drones]
-        #Dronerels = droneroot.get_relationships(neo4j.Direction.INCOMING, 'IS_A')
-        #self.assertEqual(len(Dronerels), maxdrones)
         #print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
         self.assertEqual(len(Drones), maxdrones)
         if doHBDEAD:

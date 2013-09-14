@@ -82,13 +82,10 @@ class GraphNode(object):
             self._baseinitfinished = True
             if Store.is_abstract(self) and self.nodetype != CMAconsts.NODE_nodetype:
                 store = Store.getstore(self)
-                print CMAconsts.REL_isa
-                print self.nodetype
-                print CMAconsts.classtypeobjs
                 if self.nodetype not in CMAconsts.classtypeobjs:
                     GraphNode.initclasstypeobj(store, self.nodetype)
-                print 'Relating %s to %s' % (self, CMAconsts.classtypeobjs[self.nodetype])
                 store.relate(self, CMAconsts.REL_isa, CMAconsts.classtypeobjs[self.nodetype])
+                assert CMAconsts.classtypeobjs[self.nodetype].name == self.nodetype
                 self.time_create_ms = int(round(time.time()*1000))
                 self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 
@@ -198,36 +195,12 @@ class GraphNode(object):
             store.classkeymap[nodetype] = ckm_entry
         store.db.get_or_create_index(neo4j.Node, nodetype)
         ourtypeobj = store.load_or_create(rootclass, name=nodetype)
+        assert ourtypeobj.name == nodetype
         if Store.is_abstract(ourtypeobj) and nodetype != CMAconsts.NODE_nodetype:
             roottype = store.load_or_create(rootclass, name=CMAconsts.NODE_nodetype)
             store.relate(ourtypeobj, CMAconsts.REL_isa, roottype)
         CMAconsts.classtypeobjs[nodetype] = ourtypeobj
 
-    @staticmethod
-    def dump_nodes(nodetype='Drone', stream=sys.stderr):
-        'Dump all our drones out to the given stream (defaults to sys.stderr)'
-        idx = CMAconsts.classindextable[nodetype]
-        query = '*:*'
-        #print >> stream, 'QUERY against %s IS: "%s"' % (idx, query)
-        dronelist = idx.query(query)
-        dronelist = [drone for drone in dronelist]
-        print >> stream, 'List of %ss: %s' % (nodetype, dronelist)
-        for drone in dronelist:
-            print >> stream, ('NODE %s (%s id=%s)' % (nodetype
-            ,   str(drone.get_properties()), drone._id))
-            for rel in drone.match():
-                start = rel.start_node
-                end = rel.end_node
-                if start._id == drone._id:
-                    print >> stream, '    (%s)-[%s]->(%s:%s,%s)' \
-                    %       (drone['designation'], rel.type, end['nodetype']
-                    ,       end['designation'], end._id)
-                else:
-                    print >> stream, '    (%s:%s,%s)-[%s]->(%s)' \
-                    %       (start['designation'], start['nodetype'], start._id, rel.type
-                    ,       drone['designation'])
-                if start._id == end._id:
-                    print >> stream, 'SELF-REFERENCE to %s' % start._id
 
 # R0903: Too few public methods (0/2)
 # pylint: disable=R0903

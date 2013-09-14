@@ -251,7 +251,6 @@ def main():
         CMAdb.log.info('TheOneRing created - id = %s' % CMAdb.TheOneRing)
         CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
 
-    print FrameTypes.get(1)[2]
     disp = MessageDispatcher(
     {   FrameSetTypes.STARTUP: DispatchSTARTUP(),
         FrameSetTypes.HBDEAD: DispatchHBDEAD(),

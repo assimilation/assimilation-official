@@ -30,6 +30,7 @@ from py2neo import neo4j
 from store import Store
 from cmadb import CMAdb
 from consts import CMAconsts
+from graphnodes import GraphNode
 
 # R0903: too few public methods
 # pylint: disable=R0903
@@ -60,6 +61,8 @@ class CMAinit(object):
         self.db = neodb
         CMAdb.cdb = CMAdb(db=neodb)
         CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap)
+        for classname in GraphNode.classmap:
+            GraphNode.initclasstypeobj(CMAdb.store, classname)
         from transaction import Transaction
         CMAdb.transaction = Transaction()
         #print >> sys.stderr,  'CMAdb:', CMAdb

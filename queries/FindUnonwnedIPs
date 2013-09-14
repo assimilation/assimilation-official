@@ -1,0 +1,14 @@
+{
+    "cypher": "BEGIN iproot=node:CMAclass('IPaddr:*')
+               MATCH iproot<-[:IS_A]-ip<-[:ipowner]-()<-[r?:nicowner]-system
+               WHERE r is null
+               RETURN ip",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get unknown IPs",
+            "long":     "retrieve all IPs not associated with any known system"
+        }
+    },
+    "parameters": {}
+}

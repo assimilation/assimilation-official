@@ -31,7 +31,7 @@ from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
 from graphnodes import nodeconstructor
-from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode
+from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, GraphNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 
