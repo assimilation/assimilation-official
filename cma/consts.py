@@ -90,45 +90,8 @@ class CMAconsts(object):
     ROLE_client         = 'client'
     ROLE_server         = 'server'
 
-#
-#   Which object types are indexed
-#
-    is_indexed = {
-        NODE_nodetype: True
-    ,   NODE_ring:     True
-    ,   NODE_drone:    True
-    ,   NODE_system:   True
-    ,   NODE_NIC:      True    # NICs are indexed by MAC address
-                               # MAC addresses are not always unique...
-    ,   NODE_ipaddr:   True    # Note that IPaddrs also might not be unique
-    ,   NODE_tcpipport:True    # We index IP and port - handy to have...
-    ,   NODE_ipproc:   True
-    }
 
-#
-#   Which object types have unique indexes
-#
-    uniqueindexes = {
-        NODE_nodetype: True
-    ,   NODE_ring:     True
-    ,   NODE_drone:    True
-    ,   NODE_system:   True
-    ,   NODE_NIC:      True    # NICs are indexed by MAC address
-                               # MAC addresses are not always unique...
-    ,   NODE_ipaddr:   True    # Note that IPaddrs also might not be unique
-    ,   NODE_tcpipport:True
-    ,   NODE_ipproc:   True
-    }
-    classkeymap = {
-        NODE_nodetype:  {'index':NODE_nodetype,  'value': globaldomain, 'kattr': 'name'}
-    ,   NODE_ring:      {'index':NODE_ring,      'value': globaldomain, 'kattr': 'name'}
-    ,   NODE_drone:     {'index':NODE_drone,     'vattr':'domain',      'kattr': 'designation'}
-    ,   NODE_system:    {'index':NODE_system,    'vattr':'domain',      'kattr': 'name'}
-    ,   NODE_NIC:       {'index':NODE_NIC,       'vattr':'domain',      'kattr': 'macaddr'}
-    ,   NODE_ipaddr:    {'index':NODE_ipaddr,    'vattr':'domain',      'kattr': 'ipaddr'}
-    ,   NODE_tcpipport: {'index':NODE_tcpipport, 'vattr':'domain',      'kattr': 'ipport'}
-    ,   NODE_ipproc:    {'index':NODE_ipproc,    'vattr':'domain',      'kattr': 'processname'}
-    }
-    classindextable = {}
+    classkeymap = {}
     classtypeobjs = {}
+    uniqueindexes = {}
     
