@@ -30,9 +30,9 @@ from testify.utils import turtle
 from frameinfo import *
 from AssimCclasses import *
 import gc, sys, time, collections, os
-from graphnodes import nodeconstructor
+from graphnodes import nodeconstructor, CMAclass
 from cmainit import CMAinit
-from cmadb import CMAdb, CMAclass
+from cmadb import CMAdb
 from packetlistener import PacketListener
 from messagedispatcher import MessageDispatcher
 from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
