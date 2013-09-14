@@ -25,11 +25,7 @@ This module defines our CMAdb class and so on...
 
 import os
 import sys
-from py2neo import neo4j
-#from AssimCtypes import *
 from store import Store
-from consts import CMAconsts
-from graphnodes import CMAclass
 
 
 # R0903: Too few public methods

@@ -164,8 +164,9 @@ class GraphNode(object):
         return stringthing
 
     @staticmethod
-    def registerclass(cls):
-        GraphNode.classmap[cls.__name__] = cls
+    def registerclass(classtoregister):
+        'Register this class as a database class'
+        GraphNode.classmap[classtoregister.__name__] = classtoregister
         
     @staticmethod
     def initclasstypeobj(store, nodetype):
