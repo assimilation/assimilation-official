@@ -603,7 +603,10 @@ So, now it's up to you!
 Go forth, create even more Cool Cypher queries, and share them with everyone on the Assimilation
 <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>.
 
-
+The CMA code has a collection of canned queries.  You can read
+these queries along with some metadata about them by looking at
+the source files you find 
+<a href="http://hg.linux-ha.org/assimilation/file/tip/queries">here</a>.
 
 @section UnInstalling Un-installing
 If you wish to uninstall the software, and you installed it as packages, please use the mechanism
