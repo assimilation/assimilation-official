@@ -1,0 +1,13 @@
+{
+    "cypher": "START drone=node:CMAclass('Drone:*')
+               MATCH switch-[:nicowner]->switchnic-[:wiredto]-dronenic<-[:nicowner]-drone
+               RETURN  drone, dronenic.nicname, switch, switchnic.nicname, switchnic.PortDescription",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get switch connections",
+            "long":     "retrieve all host to switch connection information"
+        }
+    },
+    "parameters": {}
+}
