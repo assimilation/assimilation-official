@@ -42,6 +42,10 @@ def nodeconstructor(**properties):
     return Store._callconstructor(realcls, properties)
 
 def RegisterGraphClass(classtoregister):
+    '''Register the given class as being a Graph class so we can
+    map the class name to the class object.
+    This is intended to be used as a decorator.
+    '''
     GraphNode.classmap[classtoregister.__name__] = classtoregister
     return classtoregister
     

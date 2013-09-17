@@ -30,8 +30,8 @@ from py2neo import neo4j
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
-from graphnodes import nodeconstructor, RegisterGraphClass
-from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, GraphNode
+from graphnodes import nodeconstructor, RegisterGraphClass \
+    NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 
