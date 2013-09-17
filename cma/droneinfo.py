@@ -30,11 +30,12 @@ from py2neo import neo4j
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
-from graphnodes import nodeconstructor
+from graphnodes import nodeconstructor, RegisterGraphClass
 from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, GraphNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 
+@RegisterGraphClass
 class Drone(SystemNode):
     '''Everything about Drones - endpoints that run our nanoprobes.
 
@@ -642,8 +643,6 @@ class Drone(SystemNode):
         for ourtuple in args:
             Drone._JSONprocessors[ourtuple[0]] = ourtuple[1]
 
-
-GraphNode.registerclass(Drone)
 
 # W0202 Access to a protected member _add_netconfig_addresses of a client class
 # W0212 Access to a protected member _add_tcplisteners of a client class

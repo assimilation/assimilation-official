@@ -29,10 +29,11 @@ about these queries for the client code.
 '''
 import os
 from py2neo import neo4j
-from graphnodes import GraphNode
+from graphnodes import GraphNode, RegisterGraphClass
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import ADDR_FAMILY_IPV6, ADDR_FAMILY_IPV4, ADDR_FAMILY_802
 
+@RegisterGraphClass
 class ClientQuery(GraphNode):
     '''This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism
@@ -375,8 +376,6 @@ class ClientQuery(GraphNode):
                 queryname = prefix + filename
                 path = os.path.join(dirpath, filename)
                 yield ClientQuery.load_from_file(store, path, queryname=queryname)
-
-GraphNode.registerclass(ClientQuery)
 
 
 if __name__ == '__main__':
