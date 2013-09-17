@@ -41,6 +41,10 @@ def nodeconstructor(**properties):
     # with the values in 'properties' as arguments
     return Store._callconstructor(realcls, properties)
 
+def RegisterGraphClass(classtoregister):
+    GraphNode.classmap[classtoregister.__name__] = classtoregister
+    return classtoregister
+    
 class GraphNode(object):
     '''
     GraphNode is the base class for all our 'normal' graph nodes.
@@ -164,11 +168,6 @@ class GraphNode(object):
         return stringthing
 
     @staticmethod
-    def registerclass(classtoregister):
-        'Register this class as a database class'
-        GraphNode.classmap[classtoregister.__name__] = classtoregister
-        
-    @staticmethod
     def initclasstypeobj(store, nodetype):
         '''Initialize CMAconsts.classtypeobjs for our "nodetype"
         This involves
@@ -205,6 +204,7 @@ class GraphNode(object):
 
 # R0903: Too few public methods (0/2)
 # pylint: disable=R0903
+@RegisterGraphClass
 class CMAclass(GraphNode):
     '''Class defining the relationships of our CMA classes to each other'''
 
@@ -238,8 +238,7 @@ class CMAclass(GraphNode):
         'Return our key attributes in order of significance'
         return ['name']
 
-GraphNode.registerclass(CMAclass)
-
+@RegisterGraphClass
 class SystemNode(GraphNode):
     'An object that represents a physical or virtual system (server, switch, etc)'
     # We really ought to figure out how to make Drone a subclass of SystemNode
@@ -284,9 +283,8 @@ class SystemNode(GraphNode):
         return self.roles
 
 
-GraphNode.registerclass(SystemNode)
 
-
+@RegisterGraphClass
 class NICNode(GraphNode):
     'An object that represents a NIC - characterized by its MAC address'
     def __init__(self, domain, macaddr, ifname='unknown'):
@@ -302,8 +300,8 @@ class NICNode(GraphNode):
         'Return our key attributes in decreasing order of significance'
         return ['macaddr', 'domain']
 
-GraphNode.registerclass(NICNode)
 
+@RegisterGraphClass
 class IPaddrNode(GraphNode):
     '''An object that represents a v4 or v6 IP address without a port - characterized by its
     IP address. They are always represented in the database in ipv6 format.
@@ -333,8 +331,7 @@ class IPaddrNode(GraphNode):
         'Return our key attributes in order of significance'
         return ['ipaddr', 'domain']
 
-GraphNode.registerclass(IPaddrNode)
-        
+@RegisterGraphClass
 class IPtcpportNode(GraphNode):
     'An object that represents an IP:port combination characterized by the pair'
     def __init__(self, domain, ipaddr, port=None, protocol='tcp'):
@@ -375,8 +372,8 @@ class IPtcpportNode(GraphNode):
         '''
         return '%s_%s_%s' % (self.port, self.protocol, self.ipaddr)
         
-GraphNode.registerclass(IPtcpportNode)
 
+@RegisterGraphClass
 class ProcessNode(GraphNode):
     'A node representing a running process in a host'
     # R0913: Too many arguments (9/7)
@@ -403,8 +400,6 @@ class ProcessNode(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['processname', 'domain']
-
-GraphNode.registerclass(IPtcpportNode)
 
 if __name__ == '__main__':
     from cmainit import CMAinit

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
 #
@@ -26,9 +26,10 @@ This file is all about the Rings - we implement rings.
 from cmadb import CMAdb
 from py2neo import neo4j
 from droneinfo import Drone
-from graphnodes import GraphNode
+from graphnodes import GraphNode, RegisterGraphClass
 from store import Store
 
+@RegisterGraphClass
 class HbRing(GraphNode):
     'Class defining the behavior of a heartbeat ring.'
     SWITCH      =  1
@@ -315,8 +316,6 @@ class HbRing(GraphNode):
         #ret += ']'
         ret += ')'
         return ret
-
-GraphNode.registerclass(HbRing)
 
 if __name__ == '__main__':
     db = CMAdb()
