@@ -1,0 +1,20 @@
+{   "cypher": "BEGIN root=node:CMAclass('${classname}:*') RETURN root",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short": "return class root",
+            "long":  "return the root node for the given class"
+        }
+    },
+    "parameters": {
+        "classname": {
+            "type": "string",
+            "lang": {
+                "en": {
+                    "short": "class name",
+                    "long":  "The name of the class you want the root for"
+                }
+             }
+         }
+    }
+}
