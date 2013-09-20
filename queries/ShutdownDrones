@@ -1,0 +1,14 @@
+{
+    "cypher": "START drone=node:CMAclass('Drone:*')
+               MATCH drone-[:IS_A]->nodetype-[:IS_A]->typeroot
+               WHERE drone.status = \"dead\" and drone.reason = \"HBSHUTDOWN\"
+               RETURN drone",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get 'down' servers",
+            "long":     "retrieve all gracefully shutdown servers (with nanoprobes)"
+        }
+    },
+    "parameters": {}
+}
