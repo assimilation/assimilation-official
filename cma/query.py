@@ -94,6 +94,31 @@ class ClientQuery(GraphNode):
             self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
 
 
+    def execute(self, executor_context, idonly=False, **params)
+        'Execute the query and return sanitized (filtered) results'
+        if self._query is None:
+            raise ValueError('query must be bound to a database')
+       qparams = self.json_parameter_names()
+       for pname in qparams:
+           if pname not in params:
+               raise ValueError('Required parameter %s for query %s is missing' 
+               %    (pname, self.queryname))
+        for pname in params.keys();
+           if pname not in qparams:
+               raise ValueError('Excess parameter %s supplied for query %s'
+               %    (pname, self.queryname))
+        resultiter = self.store.load_cypher_query(self.query, GraphNode.factory, params=params)
+        return self.filter_json(executor_context, idsonly, resultiter)
+
+    def filter_json(executor_context, idsonly, resultiter):
+        '''Return a sanitized (filtered) JSON stream from the input iterator
+        The idea of the filtering is to enforce security restrictions on which
+        things can be returned and which fields the executor is allowed to view.
+        This is currently completely ignored, and everthing is returned - as is.
+        This function returns a generator.
+        '''
+        # Apparently, in Python 3 this would be: yield resultiter.__next__()
+        yield resultiter.next()
 
 
     def json_parameter_names(self):
