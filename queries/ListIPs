@@ -1,9 +1,9 @@
 {
-    "cypher": "START drone=node:Drone('*:*') RETURN drone",
+    "cypher": "START ip=node:IPaddrNode('Drone:*') RETURN ip",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
         "en": {
-            "short":    "get known servers",
+            "short":    "get all known servers",
             "long":     "retrieve the full information about all the servers with nanoprobes installed"
         }
     },

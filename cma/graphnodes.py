@@ -30,16 +30,14 @@ from AssimCclasses import pyNetAddr
 from py2neo import neo4j
 
 
-# W0212: Access to a protected member _callconstructor of a client class
-# pylint: disable=W0212
 def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
     It's a form of "factory" for our database classes
     '''
     realcls = GraphNode.classmap[properties['nodetype']]
-    # _callconstructor is kind of cool - it figures out how to correctly call the constructor
+    # callconstructor is kinda cool - it figures out how to correctly call the constructor
     # with the values in 'properties' as arguments
-    return Store._callconstructor(realcls, properties)
+    return Store.callconstructor(realcls, properties)
 
 def RegisterGraphClass(classtoregister):
     '''Register the given class as being a Graph class so we can
@@ -56,6 +54,18 @@ class GraphNode(object):
     REESC = re.compile(r'\\')
     REQUOTE = re.compile(r'"')
     classmap = {}
+    classtypeobjs = {}
+
+    @staticmethod
+    def factory(**kwargs):
+        'A factory "constructor" function - acts like a universal constructor for GraphNode types'
+        cls = GraphNode.classmap[kwargs['nodetype']]
+        return cls
+
+    @staticmethod
+    def clean_graphnodes():
+        'Invalidate any persistent objects that might become invalid when resetting the database'
+        GraphNode.classtypeobjs = {}
 
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None):
         'Abstract Graph node base class'
@@ -90,10 +100,10 @@ class GraphNode(object):
             self._baseinitfinished = True
             if Store.is_abstract(self) and self.nodetype != CMAconsts.NODE_nodetype:
                 store = Store.getstore(self)
-                if self.nodetype not in CMAconsts.classtypeobjs:
+                if self.nodetype not in GraphNode.classtypeobjs:
                     GraphNode.initclasstypeobj(store, self.nodetype)
-                store.relate(self, CMAconsts.REL_isa, CMAconsts.classtypeobjs[self.nodetype])
-                assert CMAconsts.classtypeobjs[self.nodetype].name == self.nodetype
+                store.relate(self, CMAconsts.REL_isa, GraphNode.classtypeobjs[self.nodetype])
+                assert GraphNode.classtypeobjs[self.nodetype].name == self.nodetype
                 self.time_create_ms = int(round(time.time()*1000))
                 self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 
@@ -112,7 +122,7 @@ class GraphNode(object):
         'Default routine for printing GraphNodes'
         result = '%s({' % self.__class__.__name__
         comma  = ''
-        for attr in Store._safe_attrs(self):
+        for attr in Store.safe_attrs(self):
             result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
         if Store.has_node(self):
@@ -131,7 +141,7 @@ class GraphNode(object):
         '''
 
         attrstodump = []
-        for attr in Store._safe_attrs(self):
+        for attr in Store.safe_attrs(self):
             if includemap is not None and attr not in includemap:
                 continue
             if excludemap is not None and attr in excludemap:
@@ -173,14 +183,14 @@ class GraphNode(object):
 
     @staticmethod
     def initclasstypeobj(store, nodetype):
-        '''Initialize CMAconsts.classtypeobjs for our "nodetype"
+        '''Initialize GraphNode.classtypeobjs for our "nodetype"
         This involves
          - Ensuring that there's an index for this class, and the NODE_nodetype class
          - Caching the class that goes with this nodetype
          - setting up all of our IS_A objects, including the root object if necessary,
          - updating the store's uniqueindexmap[nodetype]
          - updating the store's classkeymap[nodetype]
-         - updating CMAconsts.classtypeobjs[nodetype]
+         - updating GraphNode.classtypeobjs[nodetype]
          This should eliminate the need to do any of these things for any class.
         '''
         if nodetype != CMAconsts.NODE_nodetype and CMAconsts.NODE_nodetype not in store.classkeymap:
@@ -203,7 +213,8 @@ class GraphNode(object):
         if Store.is_abstract(ourtypeobj) and nodetype != CMAconsts.NODE_nodetype:
             roottype = store.load_or_create(rootclass, name=CMAconsts.NODE_nodetype)
             store.relate(ourtypeobj, CMAconsts.REL_isa, roottype)
-        CMAconsts.classtypeobjs[nodetype] = ourtypeobj
+        GraphNode.classtypeobjs[nodetype] = ourtypeobj
+
 
 
 # R0903: Too few public methods (0/2)
@@ -219,13 +230,13 @@ class CMAclass(GraphNode):
         self.nodetype = CMAconsts.NODE_nodetype
         assert str(self.name) == str(name)
 
-    # W0212: Access to a protected member _safe_attrs of a client class
+    # W0212: Access to a protected member safe_attrs of a client class
     # pylint: disable=W0212
     def __str__(self):
         'Default routine for printing CMAclass objects'
         result = '%s({' % self.__class__.__name__
         comma  = ''
-        for attr in Store._safe_attrs(self):
+        for attr in Store.safe_attrs(self):
             result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
         if Store.has_node(self):
