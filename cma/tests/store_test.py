@@ -21,12 +21,14 @@
 #
 _suites = ['all', 'cma']
 import sys
+import os
 sys.path.extend(['..', '../cma', "/usr/local/lib/python2.7/dist-packages"])
 from py2neo import neo4j
 from testify import *
 from store import Store
 from AssimCclasses import pyNetAddr
 from AssimCtypes import ADDR_FAMILY_802
+from graphnodes import GraphNode, RegisterGraphClass
 
 DEBUG=False
 
@@ -36,27 +38,29 @@ def CreateIndexes(indexlist):
         db.get_or_create_index(neo4j.Node, index, None)
      
 
-
-class GraphNode(object):
-    def __init__(self):
-        self.nodetype=self.__class__.__name__
-    
-
+@RegisterGraphClass
 class Person(GraphNode):
     'A Person - or at least an electronic representation of one'
     def __init__(self, firstname, lastname, dateofbirth=None):
-        object.__init__(self)
+        GraphNode.__init__(self, domain='global')
         self.firstname = firstname
         self.lastname = lastname
         if dateofbirth is not None:
             self.dateofbirth = dateofbirth
         else:
             self.dateofbirth='unknown'
+            
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['lastname', 'firstname']
 
 
+@RegisterGraphClass
 class System(GraphNode):
     'Some kind of semi-intelligent system'
-    def __init__(self, designation, domain=None, roles=None):
+    def __init__(self, designation, domain='global', roles=None):
+        GraphNode.__init__(self, domain)
         self.designation = designation.lower()
         if roles == None:
             roles = ['']
@@ -74,9 +78,16 @@ class System(GraphNode):
         elif role not in self.roles:
                 self.roles.append(role)
         return self.roles
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['designation', 'domain']
     
+@RegisterGraphClass
 class Drone(System):
-    def __init__(self, designation, domain=None, roles=None):
+    def __init__(self, designation, domain='global', roles=None):
+        System.__init__(self, designation=designation)
         if roles is None:
             roles = []
         elif isinstance(roles, str):
@@ -85,21 +96,34 @@ class Drone(System):
         System.__init__(self, designation, domain=domain, roles=roles)
 
         
+@RegisterGraphClass
 class IPaddr(GraphNode):
     def __init__(self, ipaddr):
-        GraphNode.__init__(self)
+        GraphNode.__init__(self, domain='global')
         if isinstance(ipaddr, str):
             ipaddr = pyNetAddr(ipaddr)
         if isinstance(ipaddr, pyNetAddr):
             ipaddr = ipaddr.toIPv6()
         self.ipaddr = str(ipaddr)
 
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['ipaddr']
+
+@RegisterGraphClass
 class NIC(GraphNode):
     def __init__(self, MACaddr):
+        GraphNode.__init__(self, domain='global')
         mac = pyNetAddr(MACaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
             raise ValueError('Not a legal MAC address')
         self.MACaddr = str(mac)
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['MACaddr']
 
      
 Classes = [Person, System, Drone, IPaddr, NIC]
@@ -129,11 +153,17 @@ for key in keymap:
 ##print Annika.firstname, Annika.lastname
 db = neo4j.GraphDatabaseService(None)
 db.clear()
+OurStore = None
 CreateIndexes([cls.__name__ for cls in Classes])
 
 def initstore():
+    global OurStore
+    GraphNode.clean_graphnodes()
+    if OurStore is not None:
+        OurStore.clean_store()
     db.clear()
-    return Store(db, uniqueindexmap=uniqueindexes, classkeymap=keymap)
+    OurStore = Store(db, uniqueindexmap=uniqueindexes, classkeymap=keymap)
+    return OurStore
 
 
 class TestCreateOps(TestCase):
@@ -283,6 +313,38 @@ class TestRelateOps(TestCase):
                 ipcount += 1
             self.assertTrue(ipcount == 1)
         self.assertEqual(count, 1)
+
+class TestGeneralQuery(TestCase):
+
+    def test_multicolumn_query(self):
+        store = initstore()
+        Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
+        seven = store.load_or_create(Drone, designation='SevenOfNine', roles='Borg')
+        store.relate(seven, 'formerly', Annika)
+        sevennic1 = store.load_or_create(NIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
+        sevennic2 = store.load_or_create(NIC, MACaddr='00-00:7-0f-9:7-0f-9')
+        ipaddr1=store.load_or_create(IPaddr, ipaddr='10.10.10.1')
+        ipaddr2=store.load_or_create(IPaddr, ipaddr='10.10.10.2')
+        store.relate(seven, 'nicowner', sevennic1)
+        store.relate(seven, 'nicowner', sevennic2)
+        store.relate(sevennic1, 'ipowner', ipaddr1)
+        store.relate(sevennic2, 'ipowner', ipaddr2)
+        store.commit()
+        # Now we have something to test queries against...
+        # seven-[:formerly]->Annika
+        # seven-[:nicowner]-> sevennic1-[:ipowner]->10.10.10.1
+        # seven-[:nicowner]-> sevennic2-[:ipowner]->10.10.10.2
+
+        Qstr='''START node=node:Drone('SevenOfNine:*')
+        MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
+        RETURN person, drone, nic, ipaddr'''
+        Query = neo4j.CypherQuery(store.db, Qstr)
+        iter = store.load_cypher_query(Query, GraphNode.factory)
+        for row in iter:
+            print row
+
+
+        store = initstore()
 
 # Other things that ought to have tests:
 #   Cypher queries

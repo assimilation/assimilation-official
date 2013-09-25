@@ -62,6 +62,7 @@ class Store:
         load_in_related load objects we're related to by incoming relationships
         load_cypher_nodes generator which yields a vector of sametype nodes from a cypher query
         load_cypher_node return a single object from a cypher query
+        load_cypher_query return iterator with objects for fields
         separate_in     separate objects we're related to by incoming relationships
         node            returns the neo4j.Node object associated with an object
         id              returns the id of the neo4j.Node associated with an object
@@ -229,7 +230,7 @@ class Store:
         if not isinstance(subj, tuple) and not isinstance(subj, list):
             subj = (subj,)
         for obj in subj:
-            self._register(obj, neo4j.Node.abstract(**Store._safe_attrs(obj))
+            self._register(obj, neo4j.Node.abstract(**Store.safe_attrs(obj))
             ,   index=index_name, key=key, value=value, unique=False)
 
     def save_unique(self, index_name, key, value, subj):
@@ -260,7 +261,7 @@ class Store:
         if not cls.__name__ in self.classkeymap:
             # Not an indexed object...
             if subj not in self.clients:
-                self._register(subj, neo4j.Node.abstract(**Store._safe_attrs(subj)))
+                self._register(subj, neo4j.Node.abstract(**Store.safe_attrs(subj)))
             return subj
         (index, key, value) = self._get_idx_key_value(cls, subj.__dict__)
 
@@ -312,13 +313,11 @@ class Store:
     def load_or_create(self, cls, **clsargs):
         '''Analogous to 'save' - for loading an object or creating it if it
         doesn't exist
-        Note that the class arguments ('clsargs') MUST include key and value
-        arguments if they (key or value) are not constants.
         '''
         if not cls.__name__ in self.classkeymap:
             #print (self.classkeymap)
             raise ValueError("Class 'cls'[%s] must be a class with a known index", cls.__name__)
-        subj = self._callconstructor(cls, clsargs)
+        subj = self.callconstructor(cls, clsargs)
         (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=subj)
         if not self.is_uniqueindex(index_name):
             raise ValueError("Class 'cls' must be a unique indexed class [%s]", cls)
@@ -413,16 +412,7 @@ class Store:
                 node = getattr(row, key)
                 if node is None:
                     continue
-                subj = Store._callconstructor(cls, node.get_properties())
-                (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, {}, subj=subj)
-                if not self.is_uniqueindex(index_name):
-                    raise ValueError("Class 'cls' must be a unique indexed class [%s]", cls)
-                local = self._localsearch(cls, idxkey, idxvalue)
-                if local is not None:
-                    yield local
-                else:
-                    self._register(subj, node=node)
-                    yield subj
+                yield self.constructobj(cls, node)
             count += 1
             if maxcount is not None and count >= maxcount:
                 break
@@ -437,15 +427,38 @@ class Store:
             return node
         return None
 
+    def load_cypher_query(self, query, clsfact, params=None, maxcount=None):
+        '''Iterator returning results from a query translated into classes, and so on
+        Each iteration returns a namedtuple with node fields as classes, etc.
+        Note that 'clsfact' must be a class "factory" capable of translating any
+        type of node encountered into the corresponding objects.
+        Return result is a generator.
+        '''
+        count = 0
+        if params is None:
+            params = {}
+        for row in query.stream(**params):
+            for attr in row.__dict__.keys():
+                value = getattr(row, attr)
+                if isinstance(value, neo4j.Node):
+                    setattr(row, attr, self.constructobj(clsfact, value))
+                if isinstance(value, neo4j.Relationship):
+                    setattr(row, attr, 'RelationshipsNotYetSupported - Sorry :-(')
+                if isinstance(value, neo4j.Path):
+                    setattr(row, attr, 'PathsNotYetSupported - Sorry :-(')
+            count += 1
+            if count > maxcount:
+                return
+            yield row
+
     @property
     def transaction_pending(self):
         'Return True if we have pending transaction work that needs flushing out'
         return (len(self.clients) + len(self.newrels) + len(self.deletions)) > 0
 
     @staticmethod
-    def _callconstructor(constructor, kwargs):
+    def callconstructor(constructor, kwargs):
         'Call a constructor (or function) in a (hopefully) correct way'
-
         try:
             # unused variable
             # pylint: disable=W0612
@@ -469,6 +482,20 @@ class Store:
                 setattr(ret, attr, kwargs[attr])
         return ret
 
+    def constructobj(self, constructor, node):
+        'Create/construct an object from a Graph node'
+        kwargs = node.get_properties()
+        subj = Store.callconstructor(constructor, kwargs)
+        cls = subj.__class__
+        (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls,  {}, subj=subj)
+        if not self.is_uniqueindex(index_name):
+            raise ValueError("Class 'cls' must be a unique indexed class [%s]", cls)
+        local = self._localsearch(cls, idxkey, idxvalue)
+        if local is not None:
+            return local
+        else:
+            self._register(subj, node=node)
+            return subj
 
     @staticmethod
     def _safe_attr_names(subj):
@@ -481,7 +508,7 @@ class Store:
         return ret
 
     @staticmethod
-    def _safe_attrs(subj):
+    def safe_attrs(subj):
         'Return a dictionary of supported attributes from the given object'
         ret = {}
         for attr in Store._safe_attr_names(subj):
@@ -639,7 +666,7 @@ class Store:
                 #print ('WE HAVE NODE LAYING AROUND...', node.get_properties())
                 self._update_obj_from_node(subj)
                 return subj
-        retobj = Store._callconstructor(cls, node.get_properties())
+        retobj = Store.callconstructor(cls, node.get_properties())
         return self._register(retobj, node=node)
 
     def _register(self, subj, node=None, index=None, unique=None, key=None, value=None):
@@ -703,8 +730,8 @@ class Store:
             (subj, node) = pair
             Store._update_node_from_obj(subj)
             subj.__store_batchindex = self.batchindex
+            #print ('Performing batch.create(%d: %s) - for new node' % (self.batchindex, node))
             self.batchindex += 1
-            #print ('Performing batch.create(%s) - for a new node' % node)
             self._bump_stat('nodecreate')
             self.batch.create(node)
 
@@ -806,7 +833,11 @@ class Store:
 
     def abort(self):
         'Clear out any currently pending transaction work - start fresh'
-        self.batch.clear()
+        if self.batch is not None:
+            self.batch.clear()
+        self.batchindex = 0
+        for subj in self.clients:
+            subj.__store_dirty_attrs = {}
         self.clients = {}
         self.newrels = []
         self.deletions = []
@@ -827,7 +858,7 @@ class Store:
         self._batch_construct_new_index_entries()   # These return the objects indexed
         self._batch_construct_node_updates()        # These return None
         self._batch_construct_deletions()           # These return None
-        #print ('Committed THIS THING:', self)
+        #print ('Committing THIS THING:', str(self))
         start = datetime.now()
         submit_results = self.batch.submit()
         end = datetime.now()
@@ -851,10 +882,20 @@ class Store:
                 elif getattr(subj, attr) != newnode[attr]:
                     print ("OOPS - attribute %s is %s and should be %s" \
                     %   (attr, getattr(subj, attr), newnode[attr]))
-        for subj in self.clients:
-            subj.__store_dirty_attrs = {}
         self.abort()
         return submit_results
+
+    def clean_store(self):
+        '''Clean out all the objects we used to have in our store - afterwards we
+        have none associated with this Store'''
+        for nodeid in self.weaknoderefs:
+            obj = self.weaknoderefs[nodeid]()
+            if obj is not None:
+                for attr in obj.__dict__.keys():
+                    if attr.startswith('_Store__store'):
+                        delattr(obj, attr)
+        self.weaknoderefs = {}
+        self.abort()
 
 if __name__ == "__main__":
     def testme():
@@ -953,7 +994,7 @@ if __name__ == "__main__":
 
         # Check out load_indexed...
         newnode = store.load_indexed('Drone', 'Drone', fred.name, Drone)[0]
-        print ('LoadIndexed NewNode: %s %s' % (newnode, store._safe_attrs(newnode)))
+        print ('LoadIndexed NewNode: %s %s' % (newnode, store.safe_attrs(newnode)))
         # It's dangerous to have two separate objects which are the same thing be distinct
         # so we if we fetch a node, and one we already have, we get the original one...
         assert fred is newnode
