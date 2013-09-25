@@ -49,6 +49,11 @@ class Person(GraphNode):
             self.dateofbirth = dateofbirth
         else:
             self.dateofbirth='unknown'
+            
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['lastname', 'firstname']
 
 
 @RegisterGraphClass
@@ -73,6 +78,11 @@ class System(GraphNode):
         elif role not in self.roles:
                 self.roles.append(role)
         return self.roles
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['designation', 'domain']
     
 @RegisterGraphClass
 class Drone(System):
@@ -96,6 +106,11 @@ class IPaddr(GraphNode):
             ipaddr = ipaddr.toIPv6()
         self.ipaddr = str(ipaddr)
 
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['ipaddr']
+
 @RegisterGraphClass
 class NIC(GraphNode):
     def __init__(self, MACaddr):
@@ -104,6 +119,11 @@ class NIC(GraphNode):
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
             raise ValueError('Not a legal MAC address')
         self.MACaddr = str(mac)
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['MACaddr']
 
      
 Classes = [Person, System, Drone, IPaddr, NIC]
