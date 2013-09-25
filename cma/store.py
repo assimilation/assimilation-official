@@ -412,7 +412,7 @@ class Store:
                 node = getattr(row, key)
                 if node is None:
                     continue
-                yield self.constructobj(self, cls, node.get_properties())
+                yield self.constructobj(cls, node)
             count += 1
             if maxcount is not None and count >= maxcount:
                 break
@@ -440,7 +440,7 @@ class Store:
             for attr in row.__dict__.keys():
                 value = getattr(row, attr)
                 if isinstance(value, neo4j.Node):
-                    setattr(row, attr, self.constructobj(self, cls, value.get_properties()))
+                    setattr(row, attr, self.constructobj(self, cls, value))
                 if isinstance(value, neo4j.Relationship):
                     setattr(row, attr, 'RelationshipsNotYetSupported - Sorry :-(')
                 if isinstance(value, neo4j.Path):
@@ -478,7 +478,8 @@ class Store:
                 setattr(ret, attr, kwargs[attr])
         return ret
 
-    def constructobj(self, constructor, kwargs):
+    def constructobj(self, constructor, node):
+        kwargs = node.get_properties()
         subj = Store.callconstructor(constructor, kwargs)
         cls = subj.__class__
         (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls,  {}, subj=subj)
