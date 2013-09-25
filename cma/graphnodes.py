@@ -230,8 +230,6 @@ class CMAclass(GraphNode):
         self.nodetype = CMAconsts.NODE_nodetype
         assert str(self.name) == str(name)
 
-    # W0212: Access to a protected member safe_attrs of a client class
-    # pylint: disable=W0212
     def __str__(self):
         'Default routine for printing CMAclass objects'
         result = '%s({' % self.__class__.__name__
