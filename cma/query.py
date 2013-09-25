@@ -78,6 +78,7 @@ class ClientQuery(GraphNode):
         self._JSON_metadata = pyConfigContext(JSON_metadata)
         if self._JSON_metadata is None:
             raise ValueError('Parameter JSON_metadata is invalid [%s]' % JSON_metadata)
+        self._store = None
         self._db = None
         self._query = None
         self.validate_json()
@@ -87,30 +88,33 @@ class ClientQuery(GraphNode):
         'Return our key attributes in order of decreasing significance'
         return ['queryname']
 
-    def bind_database(self, db):
+    def bind_store(self, store):
         'Connect our query to a database'
+        db = store.db
+        if self._store is not store:
+            self._store = store
         if self._db is not db:
             self._db = db
             self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
 
-
-    def execute(self, executor_context, idonly=False, **params)
+    def execute(self, executor_context, idsonly=False, **params):
         'Execute the query and return sanitized (filtered) results'
         if self._query is None:
             raise ValueError('query must be bound to a database')
-       qparams = self.json_parameter_names()
-       for pname in qparams:
-           if pname not in params:
-               raise ValueError('Required parameter %s for query %s is missing' 
-               %    (pname, self.queryname))
-        for pname in params.keys();
-           if pname not in qparams:
-               raise ValueError('Excess parameter %s supplied for query %s'
-               %    (pname, self.queryname))
-        resultiter = self.store.load_cypher_query(self.query, GraphNode.factory, params=params)
+        
+        qparams = self.json_parameter_names()
+        for pname in qparams:
+            if pname not in params:
+                raise ValueError('Required parameter %s for query %s is missing' 
+                %    (pname, self.queryname))
+        for pname in params.keys():
+            if pname not in qparams:
+                raise ValueError('Excess parameter %s supplied for query %s'
+                %    (pname, self.queryname))
+        resultiter = self._store.load_cypher_query(self._query, GraphNode.factory, params=params)
         return self.filter_json(executor_context, idsonly, resultiter)
 
-    def filter_json(executor_context, idsonly, resultiter):
+    def filter_json(self, executor_context, idsonly, resultiter):
         '''Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
@@ -118,6 +122,9 @@ class ClientQuery(GraphNode):
         This function returns a generator.
         '''
         # Apparently, in Python 3 this would be: yield resultiter.__next__()
+        self = self
+        idsonly = idsonly
+        executor_context = executor_context
         yield resultiter.next()
 
 
@@ -373,7 +380,7 @@ class ClientQuery(GraphNode):
             queryname = os.path.basename(pathname)
         print 'LOADING %s as %s' % (pathname, queryname)
         ret = store.load_or_create(ClientQuery, queryname=queryname, JSON_metadata=json)
-        ret.bind_database(store.db)
+        ret.bind_store(store)
         return ret
 
     @staticmethod

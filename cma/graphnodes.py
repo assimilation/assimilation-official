@@ -58,10 +58,13 @@ class GraphNode(object):
 
     @staticmethod
     def factory(**kwargs):
+        'A factory "constructor" function - acts like a universal constructor for GraphNode types'
         cls = GraphNode.classmap[kwargs['nodetype']]
+        return cls
 
     @staticmethod
     def clean_graphnodes():
+        'Invalidate any persistent objects that might become invalid when resetting the database'
         GraphNode.classtypeobjs = {}
 
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None):
@@ -114,13 +117,12 @@ class GraphNode(object):
             if not hasattr(self, attr) or getattr(self, attr) != getattr(other, attr):
                 setattr(self, attr, getattr(other, attr))
         return self
-        return Store.callconstructor(cls, kwargs)
 
     def __str__(self):
         'Default routine for printing GraphNodes'
         result = '%s({' % self.__class__.__name__
         comma  = ''
-        for attr in Store._safe_attrs(self):
+        for attr in Store.safe_attrs(self):
             result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
         if Store.has_node(self):
@@ -139,7 +141,7 @@ class GraphNode(object):
         '''
 
         attrstodump = []
-        for attr in Store._safe_attrs(self):
+        for attr in Store.safe_attrs(self):
             if includemap is not None and attr not in includemap:
                 continue
             if excludemap is not None and attr in excludemap:
@@ -228,13 +230,13 @@ class CMAclass(GraphNode):
         self.nodetype = CMAconsts.NODE_nodetype
         assert str(self.name) == str(name)
 
-    # W0212: Access to a protected member _safe_attrs of a client class
+    # W0212: Access to a protected member safe_attrs of a client class
     # pylint: disable=W0212
     def __str__(self):
         'Default routine for printing CMAclass objects'
         result = '%s({' % self.__class__.__name__
         comma  = ''
-        for attr in Store._safe_attrs(self):
+        for attr in Store.safe_attrs(self):
             result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
         if Store.has_node(self):
