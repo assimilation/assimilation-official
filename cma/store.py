@@ -230,7 +230,7 @@ class Store:
         if not isinstance(subj, tuple) and not isinstance(subj, list):
             subj = (subj,)
         for obj in subj:
-            self._register(obj, neo4j.Node.abstract(**Store._safe_attrs(obj))
+            self._register(obj, neo4j.Node.abstract(**Store.safe_attrs(obj))
             ,   index=index_name, key=key, value=value, unique=False)
 
     def save_unique(self, index_name, key, value, subj):
@@ -261,7 +261,7 @@ class Store:
         if not cls.__name__ in self.classkeymap:
             # Not an indexed object...
             if subj not in self.clients:
-                self._register(subj, neo4j.Node.abstract(**Store._safe_attrs(subj)))
+                self._register(subj, neo4j.Node.abstract(**Store.safe_attrs(subj)))
             return subj
         (index, key, value) = self._get_idx_key_value(cls, subj.__dict__)
 
@@ -434,17 +434,21 @@ class Store:
         type of node encountered into the corresponding objects.
         Return result is a generator.
         '''
+        count = 0
         if params is None:
             params = {}
         for row in query.stream(**params):
             for attr in row.__dict__.keys():
                 value = getattr(row, attr)
                 if isinstance(value, neo4j.Node):
-                    setattr(row, attr, self.constructobj(self, cls, value))
+                    setattr(row, attr, self.constructobj(clsfact, value))
                 if isinstance(value, neo4j.Relationship):
                     setattr(row, attr, 'RelationshipsNotYetSupported - Sorry :-(')
                 if isinstance(value, neo4j.Path):
                     setattr(row, attr, 'PathsNotYetSupported - Sorry :-(')
+            count += 1
+            if count > maxcount:
+                return
             yield row
 
     @property
@@ -479,6 +483,7 @@ class Store:
         return ret
 
     def constructobj(self, constructor, node):
+        'Create/construct an object from a Graph node'
         kwargs = node.get_properties()
         subj = Store.callconstructor(constructor, kwargs)
         cls = subj.__class__
@@ -492,11 +497,6 @@ class Store:
             self._register(subj, node=node)
             return subj
 
-    @property
-    def transaction_pending(self):
-        'Return True if we have pending transaction work that needs flushing out'
-        return (len(self.clients) + len(self.newrels) + len(self.deletions)) > 0
-
     @staticmethod
     def _safe_attr_names(subj):
         'Return the list of supported attribute names from the given object'
@@ -508,7 +508,7 @@ class Store:
         return ret
 
     @staticmethod
-    def _safe_attrs(subj):
+    def safe_attrs(subj):
         'Return a dictionary of supported attributes from the given object'
         ret = {}
         for attr in Store._safe_attr_names(subj):
@@ -994,7 +994,7 @@ if __name__ == "__main__":
 
         # Check out load_indexed...
         newnode = store.load_indexed('Drone', 'Drone', fred.name, Drone)[0]
-        print ('LoadIndexed NewNode: %s %s' % (newnode, store._safe_attrs(newnode)))
+        print ('LoadIndexed NewNode: %s %s' % (newnode, store.safe_attrs(newnode)))
         # It's dangerous to have two separate objects which are the same thing be distinct
         # so we if we fetch a node, and one we already have, we get the original one...
         assert fred is newnode
