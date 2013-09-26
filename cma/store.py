@@ -641,7 +641,6 @@ class Store:
 
 
         searchset = self.clients.keys()
-        # Not 100% sure we searching weaknoderefs helps anything - but it won't hurt much ;-)
         for weakclient in self.weaknoderefs.values():
             client = weakclient()
             if client is not None and client not in self.clients:
@@ -703,7 +702,7 @@ class Store:
                     del self.weaknoderefs[node._id]
                 else:
                     print ('OOPS! - already here... self.weaknoderefs'
-                    ,   weakling, weakling.__dict__())
+                    ,   weakling, weakling.__dict__)
             assert not node._id in self.weaknoderefs or self.weaknoderefs[node._id] is None
             self.weaknoderefs[node._id] = weakref.ref(subj)
         if node is not None:
