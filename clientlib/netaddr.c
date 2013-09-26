@@ -226,7 +226,7 @@ _netaddr_toStringflex(const NetAddr* self, gboolean canon_format)
 		
 	}else{
 		for (nbyte = 0; nbyte < self->_addrlen; ++nbyte) {
-			g_string_append_printf(gsret, (nbyte == 0 ? "%02x" : ":%02x"),
+			g_string_append_printf(gsret, (nbyte == 0 ? "%02x" : "-%02x"),
 					       ((const guchar*)self->_addrbody)[nbyte]);
 		}
 	}

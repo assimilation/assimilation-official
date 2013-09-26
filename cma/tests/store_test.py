@@ -117,7 +117,8 @@ class NIC(GraphNode):
         GraphNode.__init__(self, domain='global')
         mac = pyNetAddr(MACaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
-            raise ValueError('Not a legal MAC address')
+            raise ValueError('Not a legal MAC address [%s // %s]: %s (%s)' 
+            %       (MACaddr, str(mac), str(mac.addrtype()), mac.addrlen()))
         self.MACaddr = str(mac)
 
     @staticmethod
@@ -208,17 +209,17 @@ class TestCreateOps(TestCase):
     def test_nic(self):
         store = initstore()
         freddiemac = store.load_or_create(NIC, MACaddr='AA-BB-CC-DD-EE-FF')
-        self.assertEqual(freddiemac.MACaddr, 'aa:bb:cc:dd:ee:ff')
+        self.assertEqual(freddiemac.MACaddr, 'aa-bb-cc-dd-ee-ff')
         sys64 = store.load_or_create(NIC, MACaddr='00-11-CC-DD-EE-FF:AA:BB')
-        self.assertEqual(sys64.MACaddr, '00:11:cc:dd:ee:ff:aa:bb')
+        self.assertEqual(sys64.MACaddr, '00-11-cc-dd-ee-ff-aa-bb')
         self.assertRaises(ValueError, store.load_or_create, NIC, MACaddr='AA-BB-CC-DD-EE-FF:')
         self.assertRaises(ValueError, store.load_or_create, NIC, MACaddr='AA-BB-CC-DD-EE-FF:00')
         self.assertRaises(ValueError, store.load_or_create, NIC, MACaddr='AA-BB-CC-DD-EE-FF-')
         self.assertRaises(ValueError, store.load_or_create, NIC, MACaddr='10.10.10.5')
         self.assertTrue(store.is_abstract(freddiemac))
         store.commit()
-        self.assertEqual(freddiemac.MACaddr, 'aa:bb:cc:dd:ee:ff')
-        self.assertEqual(sys64.MACaddr, '00:11:cc:dd:ee:ff:aa:bb')
+        self.assertEqual(freddiemac.MACaddr, 'aa-bb-cc-dd-ee-ff')
+        self.assertEqual(sys64.MACaddr, '00-11-cc-dd-ee-ff-aa-bb')
         self.assertTrue(not store.is_abstract(freddiemac))
 
 
@@ -335,21 +336,35 @@ class TestGeneralQuery(TestCase):
         # seven-[:nicowner]-> sevennic1-[:ipowner]->10.10.10.1
         # seven-[:nicowner]-> sevennic2-[:ipowner]->10.10.10.2
 
-        Qstr='''START node=node:Drone('SevenOfNine:*')
+        Qstr='''START drone=node:Drone('sevenofnine:*')
         MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
         RETURN person, drone, nic, ipaddr'''
         Query = neo4j.CypherQuery(store.db, Qstr)
         iter = store.load_cypher_query(Query, GraphNode.factory)
+        rowcount = 0
+        foundaddr1=False
+        foundaddr2=False
         for row in iter:
-            print row
-
-
-        store = initstore()
+            rowcount += 1
+            # fields are person, drone, nic and ipaddr
+            self.assertTrue(row.person is Annika)
+            self.assertTrue(row.drone is seven)
+            if row.nic is sevennic1:
+                self.assertTrue(row.ipaddr is ipaddr1)
+                foundaddr1 = True
+            else:
+                self.assertTrue(row.nic is sevennic2)
+                self.assertTrue(row.ipaddr is ipaddr2)
+                foundaddr2 = True
+        self.assertTrue(foundaddr1)
+        self.assertTrue(foundaddr2)
+        print >> sys.stderr, 'It all looks great!'
 
 # Other things that ought to have tests:
-#   Cypher queries
 #   node deletion
 #   Searching for nodes we just added (I forgot which ones work that way)
+#   Filtered queries - note that fields have to be filtered out in the JSON
+#   they can't be reliably filtered out of the nodes
 #   other things?
     
 if __name__ == "__main__":
