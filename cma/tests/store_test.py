@@ -358,7 +358,6 @@ class TestGeneralQuery(TestCase):
                 foundaddr2 = True
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
-        print >> sys.stderr, 'It all looks great!'
 
 # Other things that ought to have tests:
 #   node deletion
