@@ -33,6 +33,7 @@ import re, inspect, weakref
 #import traceback
 from py2neo import neo4j
 from datetime import datetime, timedelta
+from collections import namedtuple
 #import sys # only for stderr
 
 # R0902: Too many instance attributes (17/10)
@@ -437,19 +438,26 @@ class Store:
         count = 0
         if params is None:
             params = {}
+        rowfields = None
+        rowclass = None
         for row in query.stream(**params):
+            if rowfields is None:
+                rowfields = row._fields
+                rowclass = namedtuple('FilteredRecord', rowfields)
+            yieldval = []
             for attr in row.__dict__.keys():
                 value = getattr(row, attr)
                 if isinstance(value, neo4j.Node):
-                    setattr(row, attr, self.constructobj(clsfact, value))
+                    obj = self.constructobj(clsfact, value)
+                    yieldval.append(obj)
                 if isinstance(value, neo4j.Relationship):
-                    setattr(row, attr, 'RelationshipsNotYetSupported - Sorry :-(')
+                    yieldval.append('RelationshipsNotYetSupported - Sorry :-(')
                 if isinstance(value, neo4j.Path):
-                    setattr(row, attr, 'PathsNotYetSupported - Sorry :-(')
+                    yieldval.append('PathsNotYetSupported - Sorry :-(')
             count += 1
-            if count > maxcount:
+            if maxcount is not None and count > maxcount:
                 return
-            yield row
+            yield rowclass._make(yieldval)
 
     @property
     def transaction_pending(self):

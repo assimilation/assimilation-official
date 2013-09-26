@@ -59,8 +59,7 @@ class GraphNode(object):
     @staticmethod
     def factory(**kwargs):
         'A factory "constructor" function - acts like a universal constructor for GraphNode types'
-        cls = GraphNode.classmap[kwargs['nodetype']]
-        return cls
+        return nodeconstructor(**kwargs)
 
     @staticmethod
     def clean_graphnodes():
