@@ -1,5 +1,5 @@
 {
-    "cypher": "BEGIN iproot=node:CMAclass('IPaddr:*')
+    "cypher": "START iproot=node:CMAclass('IPaddr:*')
                MATCH iproot<-[:IS_A]-ip<-[:ipowner]-()<-[r?:nicowner]-system
                WHERE r is null
                RETURN ip",

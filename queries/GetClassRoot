@@ -1,4 +1,4 @@
-{   "cypher": "BEGIN root=node:CMAclass('${classname}:*') RETURN root",
+{   "cypher": "START root=node:CMAclass('${classname}:*') RETURN root",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
         "en": {
