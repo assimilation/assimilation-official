@@ -1,4 +1,4 @@
-{   "cypher": "BEGIN Q=node:ClientQuery('*:*') RETURN Q",
+{   "cypher": "START Q=node:ClientQuery('*:*') RETURN Q",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "parameters": {},
     "descriptions": {

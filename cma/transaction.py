@@ -45,11 +45,11 @@ system.
 In either case, this class won't be directly affected - since it only stores and executes
 transactions - it does not worry about how they ought to be persisted.
 '''
-import re
 import sys
 from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, \
         pyIpPortFrame
 from frameinfo import FrameSetTypes, FrameTypes
+from assimjson import JSONtree
 
 class Transaction:
     '''This class implements database/nanoprobe transactions.
@@ -96,8 +96,6 @@ class Transaction:
     was committed, we need to <i>not</i> repeat it - or make sure it's idempotent.
     Neither of those is true at the moment.
     '''
-    REESC = re.compile('\\\\')
-    REQUOTE = re.compile('"')
 
     def __init__(self, json=None):
         'Constructor for a combined database/network transaction.'
@@ -113,62 +111,8 @@ class Transaction:
 
     def __str__(self):
         'Convert our internal tree to JSON.'
-        return self._jsonstr(self.tree)
+        return str(JSONtree(self.tree))
 
-    @staticmethod
-    def _jsonesc(stringthing):
-        'Escape this string according to JSON string escaping rules'
-        stringthing = Transaction.REESC.sub('\\\\\\\\', stringthing)
-        stringthing = Transaction.REQUOTE.sub('\\\\"', stringthing)
-        return stringthing
-        
-    # R0911 is too many return statements
-    # pylint: disable=R0911
-    def _jsonstr(self, thing):
-        'Recursively convert ("pickle") this thing to JSON' 
-
-        #print >> sys.stderr, "CONVERTING", thing
-        if isinstance(thing, list) or isinstance(thing, tuple):
-            ret = ''
-            comma = '['
-            if len(thing) == 0:
-                ret += '['
-            for item in thing:
-                ret += '%s%s' % (comma, self._jsonstr(item))
-                comma = ','
-            ret += ']'
-            return ret
-
-        if isinstance(thing, dict):
-            ret = ''
-            comma = '{'
-            if len(thing) == 0:
-                ret += '{'
-            for key in thing.keys():
-                value = thing[key]
-                ret += '%s"%s":%s' % (comma, Transaction._jsonesc(key), self._jsonstr(value))
-                comma = ','
-            ret += '}'
-            return ret
-
-        if isinstance(thing, pyNetAddr):
-            return '"%s"' % (str(thing))
-
-        if isinstance(thing, bool):
-            if thing:
-                return 'true'
-            return 'false'
-        if isinstance(thing, int) or isinstance(thing, float) \
-                or isinstance(thing, pyConfigContext):
-            return str(thing)
-
-        if isinstance(thing, unicode):
-            return '"%s"' % (Transaction._jsonesc(str(thing)))
-
-        if isinstance(thing, str):
-            return '"%s"' % (Transaction._jsonesc(thing))
-
-        raise ValueError("Object [%s] [type %s]isn't a type we handle" % (thing, type(thing)))
 ###################################################################################################
 #
 #   This collection of member functions accumulate work to be done for our Transaction

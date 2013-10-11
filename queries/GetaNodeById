@@ -1,4 +1,4 @@
-{   "cypher": "BEGIN classroot=node(${nodeid})
+{   "cypher": "START classroot=node(${nodeid})
                MATCH object-[:IS_A]->classroot
                RETURN object",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",

@@ -32,13 +32,15 @@ from py2neo import neo4j
 from graphnodes import GraphNode, RegisterGraphClass
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import ADDR_FAMILY_IPV6, ADDR_FAMILY_IPV4, ADDR_FAMILY_802
+from assimjson import JSONtree
 
 @RegisterGraphClass
 class ClientQuery(GraphNode):
     '''This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism
     '''
-    def __init__(self, queryname, JSON_metadata):
+    BASEURL = "/query/"
+    def __init__(self, queryname, JSON_metadata=None):
         '''Parameters
         ----------
         JSON_metadata  - a JSON string containing
@@ -73,20 +75,29 @@ class ClientQuery(GraphNode):
 
         GraphNode.__init__(self, domain='metadata')
         self.queryname = queryname
-        self.database = None
         self.JSON_metadata = JSON_metadata
-        self._JSON_metadata = pyConfigContext(JSON_metadata)
-        if self._JSON_metadata is None:
-            raise ValueError('Parameter JSON_metadata is invalid [%s]' % JSON_metadata)
+        if JSON_metadata is None:
+            self._JSON_metadata = None
+        else:
+            self._JSON_metadata = pyConfigContext(JSON_metadata)
+            if self._JSON_metadata is None:
+                raise ValueError('Parameter JSON_metadata is invalid [%s]' % JSON_metadata)
+            self.validate_json()
         self._store = None
         self._db = None
         self._query = None
-        self.validate_json()
 
     @staticmethod
     def __meta_keyattrs__():
         'Return our key attributes in order of decreasing significance'
         return ['queryname']
+
+    def post_db_init(self):
+        GraphNode.post_db_init(self)
+        if self._JSON_metadata is None:
+            self._JSON_metadata = pyConfigContext(self.JSON_metadata)
+            self.validate_json()
+            
 
     def bind_store(self, store):
         'Connect our query to a database'
@@ -98,9 +109,9 @@ class ClientQuery(GraphNode):
             self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
 
     def execute(self, executor_context, idsonly=False, **params):
-        'Execute the query and return sanitized (filtered) results'
+        'Execute the query and return an iterator that produces sanitized (filtered) results'
         if self._query is None:
-            raise ValueError('query must be bound to a database')
+            raise ValueError('query must be bound to a Store')
         
         qparams = self.json_parameter_names()
         for pname in qparams:
@@ -119,13 +130,23 @@ class ClientQuery(GraphNode):
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
         This is currently completely ignored, and everthing is returned - as is.
-        This function returns a generator.
+        This function is a generator.
         '''
-        # Apparently, in Python 3 this would be: yield resultiter.__next__()
         self = self
         idsonly = idsonly
+        expand = False
         executor_context = executor_context
-        yield resultiter.next()
+        delim = '['
+        for result in resultiter:
+            # result is a namedtuple
+            if len(result) == 1:
+                yield delim + str(JSONtree(result[0], expand_JSON=expand))
+            else:
+                for attr in result.__dict__.keys():
+                    value = getattr(result, attr)
+                    yield '%s"%s":%s' % (delim, attr, str(JSONtree(value, expand_JSON=expand)))
+            delim = ','
+        yield ']'
 
 
     def json_parameter_names(self):
@@ -415,7 +436,7 @@ if __name__ == '__main__':
     from store import Store
     metadata1 = \
     '''
-    {   "cypher": "BEGIN n=node:ClientQuery('*:*') RETURN n",
+    {   "cypher": "START n=node:ClientQuery('*:*') RETURN n",
         "parameters": {},
         "descriptions": {
             "en": {
@@ -429,7 +450,7 @@ if __name__ == '__main__':
 
     metadata2 = \
     '''
-    {   "cypher":   "BEGIN n=node:ClientQuery('{queryname}:metadata') RETURN n",
+    {   "cypher":   "START n=node:ClientQuery('{queryname}:metadata') RETURN n",
         "parameters": {
             "queryname": {
                 "type": "string",
@@ -454,7 +475,7 @@ if __name__ == '__main__':
     metadata3 = \
     '''
     {   
-        "cypher": "BEGIN ip=node:IPaddr('{ipaddr}:*')
+        "cypher": "START ip=node:IPaddr('{ipaddr}:*')
                    MATCH ip<-[:ipowner]-()<-[:nicowner]-system
                    RETURN system",
 
@@ -480,9 +501,10 @@ if __name__ == '__main__':
     q3 = ClientQuery('ipowners', metadata3)
 
     ourdb = neo4j.GraphDatabaseService()
+    ourdb.clear()
     print >> sys.stderr, '========>classmap: %s' % (GraphNode.classmap)
 
-    umap = {'ClientQuery': True}
+    umap  = {'ClientQuery': True}
     ckmap = {'ClientQuery': {'index': 'ClientQuery', 'kattr':'queryname', 'value':'None'}}
 
     ourstore = Store(ourdb, uniqueindexmap=umap, classkeymap=ckmap)
@@ -490,8 +512,17 @@ if __name__ == '__main__':
 
     print "LOADING TREE!"
     queries = ClientQuery.load_tree(ourstore, "/home/alanr/monitor/src/queries")
+    for q in queries:
+        pass
     qlist = [q for q in queries]
     ourstore.commit()
     print "%d node TREE LOADED!" % len(qlist)
+    qe2 = ourstore.load_or_create(ClientQuery, queryname='GetAllQueries')
+    qe2.bind_store(ourstore)
+    testresult = '{"data":'
+    for s in qe2.execute(None, idsonly=False):
+        testresult += s
+    testresult += '}'
+    print testresult
 
     print "All done!"

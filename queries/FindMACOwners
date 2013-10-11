@@ -1,5 +1,5 @@
 {
-    "cypher": "BEGIN nic=node:NIC('{macaddr}:*')
+    "cypher": "START nic=node:NIC('{macaddr}:*')
                MATCH nic<-[:nicowner]-system
                RETURN system",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",

@@ -1,4 +1,4 @@
-{   "cypher": "BEGIN classroot=node:CMAclass('${classname}:*')
+{   "cypher": "START classroot=node:CMAclass('${classname}:*')
                MATCH object-[:IS_A]->classroot
                RETURN object",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
