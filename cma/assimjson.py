@@ -28,7 +28,6 @@ File containing the JSONtree class
 '''
 
 import re
-from collections import namedtuple
 from AssimCclasses import pyConfigContext, pyNetAddr
 
 # R0903: Too few public methods
