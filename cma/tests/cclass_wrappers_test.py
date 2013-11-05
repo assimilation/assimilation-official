@@ -260,13 +260,14 @@ class pyNetAddrTest(TestCase):
         # Note that this next test assumes that we're not getting round robin DNS...
         self.assertEqual(addr1, addr2)
 
-        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth')
-        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth:80')
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:')
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:nosuchport')
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:65536')
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:65537')
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:-1')
+	# These next two may fail to raise ValueError - if your DNS is broken...
+        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth')
+        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth:80')
 
         if DEBUG:
             for j in range(1,5):
