@@ -270,7 +270,7 @@ class SystemNode(GraphNode):
 
     def addrole(self, roles):
         'Add a role to our GraphNode'
-        if len(self.roles) > 0 and self.roles[0] == '':
+        if self.roles is not None and len(self.roles) > 0 and self.roles[0] == '':
             self.delrole('')
         if isinstance(roles, tuple) or isinstance(roles, list):
             for role in roles:
@@ -391,13 +391,18 @@ class ProcessNode(GraphNode):
     # R0913: Too many arguments (9/7)
     # pylint: disable=R0913
     def __init__(self, domain, host, pathname, arglist, uid, gid, cwd, roles=None):
-        GraphNode.__init__(self, domain=domain, roles=roles)
+        GraphNode.__init__(self, domain=domain)
         self.host = host
         self.pathname   = pathname
         self.arglist    = arglist
         self.uid        = uid
         self.gid        = gid
         self.cwd        = cwd
+        if roles is None:
+            self.roles = ['']
+        else:
+            self.roles = None
+            self.addrole(roles)
         #self.processname='%s|%s|%s|%s:%s|%s' \
         #%       (path.basename(pathname), path.dirname(pathname), host, uid, gid, str(arglist))
         procstring = '%s|%s|%s:%s|%s' \
@@ -407,6 +412,32 @@ class ProcessNode(GraphNode):
         # pylint: disable=E1101
         hashsum.update(procstring)
         self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
+
+    def addrole(self, roles):
+        'Add a role to our GraphNode'
+        if self.roles is not None and len(self.roles) > 0 and self.roles[0] == '':
+            self.delrole('')
+        if isinstance(roles, tuple) or isinstance(roles, list):
+            for role in roles:
+                self.addrole(role)
+            return self.roles
+        assert isinstance(roles, str) or isinstance(roles, unicode)
+        if self.roles is None:
+            self.roles = [roles]
+        elif not roles in self.roles:
+            self.roles.append(roles)
+        return self.roles
+
+    def delrole(self, roles):
+        'Delete a role from our GraphNode'
+        if isinstance(roles, tuple) or isinstance(roles, list):
+            for role in roles:
+                self.delrole(role)
+            return self.roles
+        assert isinstance(roles, str) or isinstance(roles, unicode)
+        if roles in self.roles:
+            self.roles.remove(roles)
+        return self.roles
 
     @staticmethod
     def __meta_keyattrs__():
