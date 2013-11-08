@@ -579,6 +579,7 @@ class Drone(SystemNode):
         elif isinstance(designation, str):
             if domain is None:
                 domain = CMAconsts.globaldomain
+            designation = designation.lower()
             drone = CMAdb.store.load_or_create(Drone, port=port, domain=domain
             ,       designation=designation)
             assert drone.designation == designation
