@@ -328,3 +328,14 @@
    fun:g_main_loop_run
    fun:main
 }
+{
+   rt_sigaction unset memory error
+   Memcheck:Param
+   rt_sigaction(act->sa_flags)
+   fun:__libc_sigaction
+   ...
+   fun:g_main_context_dispatch
+   ...
+   fun:g_main_loop_run
+   fun:main
+}
