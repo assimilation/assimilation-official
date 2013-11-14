@@ -38,6 +38,10 @@ CheckForDanglingClasses = True
 WorstDanglingCount = 0
 DEBUG=True
 DEBUG=False
+BROKENDNS=False
+if 'BROKENDNS' in os.environ:
+    BROKENDNS=True
+
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -265,9 +269,23 @@ class pyNetAddrTest(TestCase):
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:65536')
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:65537')
         self.assertRaises(ValueError, pyNetAddr, 'www.google.com:-1')
-	# These next two may fail to raise ValueError - if your DNS is broken...
-        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth')
-        self.assertRaises(ValueError, pyNetAddr, 'www.frodo.middleearth:80')
+        # These next two may fail to raise ValueError - if your DNS is broken...
+        try:
+            pyNetAddr('www.frodo.middleearth')
+        except ValueError:
+            # This is correct behavior
+            pass
+        else:
+            if not BROKENDNS:
+                raise ValueError('Your DNS seems to be broken. Set environment variable BROKENDNS')
+        try:
+            pyNetAddr('www.frodo.middleearth:80')
+        except ValueError:
+            # This is correct behavior
+            pass
+        else:
+            if not BROKENDNS:
+                raise ValueError('Your DNS is broken - in kind of a weird way')
 
         if DEBUG:
             for j in range(1,5):
