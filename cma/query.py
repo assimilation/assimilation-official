@@ -94,6 +94,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def set_node_query_url(node_query_url):
+        'Set the base URL for the query operation that returns a node by node id'
         ClientQuery.node_query_url = node_query_url
 
     def post_db_init(self):
@@ -154,10 +155,10 @@ class ClientQuery(GraphNode):
             # result is a namedtuple
             if len(result) == 1:
                 if idsonly:
-                        yield '%s%s/%d' % (
-                            delim
-                        ,   ClientQuery.node_query_url
-                        ,   result[0].__store_node._id)
+                    yield '%s"%s/%d"' % (
+                        delim
+                    ,   ClientQuery.node_query_url
+                    ,   Store.id(result[0]))
                 else:
                     yield delim + str(JSONtree(result[0], expand_JSON=expand))
             else:
@@ -167,7 +168,7 @@ class ClientQuery(GraphNode):
                         yield '%s"%s":"%s"' % (
                                 delim
                             ,   attr
-                            ,   value.__store_node._id)
+                            ,   Store.id(value))
 
                     else:
                         yield '%s"%s":%s' % (
