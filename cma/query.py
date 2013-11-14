@@ -39,7 +39,7 @@ class ClientQuery(GraphNode):
     '''This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism
     '''
-    BASEURL = "/query/"
+    node_query_url = "/query/GetaNodeById"
     def __init__(self, queryname, JSON_metadata=None):
         '''Parameters
         ----------
@@ -92,6 +92,10 @@ class ClientQuery(GraphNode):
         'Return our key attributes in order of decreasing significance'
         return ['queryname']
 
+    @staticmethod
+    def set_node_query_url(node_query_url):
+        ClientQuery.node_query_url = node_query_url
+
     def post_db_init(self):
         GraphNode.post_db_init(self)
         if self._JSON_metadata is None:
@@ -131,8 +135,17 @@ class ClientQuery(GraphNode):
         things can be returned and which fields the executor is allowed to view.
         This is currently completely ignored, and everthing is returned - as is.
         This function is a generator.
+
+        parameters
+        ----------
+        executor_context - security context to execute this in
+        ids_only - if True, return only the URL of the objects (via object id)
+                        otherwise return the objects themselves
+        resultiter - iterator giving return results for us to filter
+                        (not yet used)
         '''
         self = self
+
         idsonly = idsonly
         expand = False
         executor_context = executor_context
@@ -140,11 +153,27 @@ class ClientQuery(GraphNode):
         for result in resultiter:
             # result is a namedtuple
             if len(result) == 1:
-                yield delim + str(JSONtree(result[0], expand_JSON=expand))
+                if idsonly:
+                        yield '%s%s/%d' % (
+                            delim
+                        ,   ClientQuery.node_query_url
+                        ,   result[0].__store_node._id)
+                else:
+                    yield delim + str(JSONtree(result[0], expand_JSON=expand))
             else:
                 for attr in result.__dict__.keys():
                     value = getattr(result, attr)
-                    yield '%s"%s":%s' % (delim, attr, str(JSONtree(value, expand_JSON=expand)))
+                    if idsonly:
+                        yield '%s"%s":"%s"' % (
+                                delim
+                            ,   attr
+                            ,   value.__store_node._id)
+
+                    else:
+                        yield '%s"%s":%s' % (
+                                delim
+                            ,   attr
+                            ,   str(JSONtree(value, expand_JSON=expand)))
             delim = ','
         yield ']'
 
