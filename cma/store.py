@@ -527,8 +527,7 @@ class Store:
     def _proper_attr_value(obj, attr):
         'Ensure that the value being set is acceptable to neo4j.Node objects'
         value = getattr(obj, attr)
-        if isinstance(value, str) or isinstance(value, int) or isinstance(value, float ) \
-        or      isinstance(value, unicode) or isinstance(value, list) or isinstance(value, tuple):
+        if isinstance(value, (str, unicode, float, int, long, list, tuple)):
             return value
         else:
             raise ValueError("Attr %s of object %s of type %s isn't really acceptable"
