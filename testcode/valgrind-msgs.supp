@@ -339,3 +339,16 @@
    fun:g_main_loop_run
    fun:main
 }
+{
+   Yet another glib memory leak.  Sigh...
+   Memcheck:Leak
+   fun:malloc
+   fun:realloc
+   fun:g_realloc
+   obj:*
+   fun:g_ptr_array_add
+   fun:g_main_context_check
+   obj:*
+   fun:g_main_loop_run
+   fun:main
+}
