@@ -337,7 +337,7 @@
    fun:g_main_context_dispatch
    ...
    fun:g_main_loop_run
-   fun:main
+   ...
 }
 {
    Yet another glib memory leak.  Sigh...
@@ -350,7 +350,7 @@
    fun:g_main_context_check
    obj:*
    fun:g_main_loop_run
-   fun:main
+   ...
 }
 {
    Yet another lovely glib/mainloop memory leak.  More sighing is heard...
