@@ -375,3 +375,15 @@
    obj:*
    ...
 }
+{
+   Glib thread memory leak. Sigh...
+   Memcheck:Leak
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:pthread_create*
+   obj:*
+   obj:*
+   fun:g_thread_new
+   obj:*
+}
