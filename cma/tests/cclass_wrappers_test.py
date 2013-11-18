@@ -749,7 +749,7 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo['seven'], 9)
         self.assertEqual(str(foo), '{"arthur":42,"seven":9}')
         foo['seven'] = 7
-        self.assertTrue(isinstance(foo['seven'], (int,long)))
+        self.assertTrue(isinstance(foo['seven'], (int, long)))
         self.assertEqual(foo["seven"], 7)
         self.assertEqual(str(foo), '{"arthur":42,"seven":7}')
 
