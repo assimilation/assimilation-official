@@ -68,8 +68,8 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 ,		     struct bpf_program*prog)	///<[out] Compiled PCAP program
 {
 	pcap_t*			pcdescr = NULL;
-	bpf_u_int32		maskp;
-	bpf_u_int32		netp;
+	bpf_u_int32		maskp = 0;
+	bpf_u_int32		netp = 0;
 	char			errbuf[PCAP_ERRBUF_SIZE];
 	char *			expr = NULL;
 	int			filterlen = 1;
