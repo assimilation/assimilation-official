@@ -352,3 +352,26 @@
    fun:g_main_loop_run
    fun:main
 }
+{
+   Yet another lovely glib/mainloop memory leak.  More sighing is heard...
+   Memcheck:Leak
+   fun:realloc
+   fun:g_realloc
+   obj:*
+   fun:g_array_set_size
+   fun:g_static_private_set
+   obj:*
+   fun:g_main_context_dispatch
+   obj:*
+   fun:g_main_loop_run
+   fun:main
+}
+
+{
+   Libpcap reference of undefined value
+   Memcheck:Cond
+   obj:*
+   fun:pcap_activate
+   obj:*
+   ...
+}
