@@ -260,7 +260,11 @@ class pyNetAddrTest(TestCase):
         if DEBUG: print >>sys.stderr, "===============test_DNS_strinit(pyNetAddrTest)"
         addr1 = pyNetAddr('www.linux-ha.org:80')
         self.assertEqual(addr1.port(), 80)
-        addr2 = pyNetAddr('www.linux-ha.org:http')
+        try:
+            addr2 = pyNetAddr('www.linux-ha.org:http')
+        except ValueError:
+            # Some systems use www instead of http...
+            addr2 = pyNetAddr('www.linux-ha.org:www')
         # Note that this next test assumes that we're not getting round robin DNS...
         self.assertEqual(addr1, addr2)
 
