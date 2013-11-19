@@ -115,7 +115,7 @@ to the project, please discuss this on the project mailing list.
 @page ContactInfo Contact Information 
 @section ContactInfoSection Contact Information
 - Development mailing list http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assim-devel
-   list archives <a href="http://lists.community.tummy.com/pipermail/assim-devel/">pipermail</a>.
+ -  list archives <a href="http://lists.community.tummy.com/pipermail/assim-devel/">pipermail</a>.
 - General project mailing list http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
  - list archives <a href="http://dir.gmane.org/gmane.comp.monitoring.assimilation">Gmane</a> or
    <a href="http://lists.community.tummy.com/pipermail/assimilation/">pipermail</a>.
