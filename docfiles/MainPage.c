@@ -37,7 +37,8 @@ These two main ideas create a system which will provide significant important ca
 experience for new users and smooth accommodation of growth to virtually all environments.
 
 For a human-driven overview, we recommend our
-<a href="http://bit.ly/OD6bY6:">overview video</a> - from LinuxCon NA 2012 in San Diego.
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=qbk2-f31q-E">overview video</a> - from the Open Source Monitoring Conference 2013 in Nuremberg.
+There is also an older <a href="http://bit.ly/OD6bY6:">video</a> - from LinuxCon NA 2012 in San Diego.
 
 For source and licensing information see the
 - <a href="_source_and_license.html">Source and Licensing</a> page.
