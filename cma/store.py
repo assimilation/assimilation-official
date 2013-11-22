@@ -409,7 +409,7 @@ class Store:
         if params is None:
             params = {}
         for row in query.stream(**params):
-            for key in row.__dict__.keys():
+            for key in row._columns:
                 node = getattr(row, key)
                 if node is None:
                     continue
@@ -442,10 +442,10 @@ class Store:
         rowclass = None
         for row in query.stream(**params):
             if rowfields is None:
-                rowfields = row._fields
+                rowfields = row._columns
                 rowclass = namedtuple('FilteredRecord', rowfields)
             yieldval = []
-            for attr in row.__dict__.keys():
+            for attr in row._columns:
                 value = getattr(row, attr)
                 if isinstance(value, neo4j.Node):
                     obj = self.constructobj(clsfact, value)
