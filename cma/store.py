@@ -136,10 +136,12 @@ class Store:
         self.deletions = []
         self.classes = {}
         self.weaknoderefs = {}
-        if uniqueindexmap is None:
-            uniqueindexmap = {}
         if classkeymap is None:
             classkeymap = {}
+        if uniqueindexmap is None:
+            uniqueindexmap = {}
+            for classkey in classkeymap.keys():
+                uniqueindexmap[classkey] = True
         self.uniqueindexmap = uniqueindexmap
         self.batch = None
         self.batchindex = None
@@ -316,12 +318,13 @@ class Store:
         doesn't exist
         '''
         if not cls.__name__ in self.classkeymap:
-            #print (self.classkeymap)
-            raise ValueError("Class 'cls'[%s] must be a class with a known index", cls.__name__)
+            print (self.classkeymap)
+            raise ValueError("Class [%s] does not have a known index [%s]" 
+            %   (cls.__name__, self.classkeymap))
         subj = self.callconstructor(cls, clsargs)
         (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=subj)
         if not self.is_uniqueindex(index_name):
-            raise ValueError("Class 'cls' must be a unique indexed class [%s]", cls)
+            raise ValueError("Class [%s] is not a unique indexed class" % cls)
 
         # See if we can find this node in memory somewhere...
         ret = self._localsearch(cls, idxkey, idxvalue)
@@ -404,7 +407,8 @@ class Store:
 
     def load_cypher_nodes(self, query, cls, params=None, maxcount=None):
         '''Execute the given query that yields a single column of nodes
-        all of the same Class (cls) and yield each of those Objects in turn'''
+        all of the same Class (cls) and yield each of those Objects in turn
+        through and interator (generator)'''
         count = 0
         if params is None:
             params = {}

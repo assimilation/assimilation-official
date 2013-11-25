@@ -37,9 +37,9 @@ class JSONtree:
     REESC = re.compile('\\\\')
     REQUOTE = re.compile('"')
 
-    def __init__(self, tree, expand_JSON=False):
+    def __init__(self, tree, expandJSON=False):
         self.tree = tree
-        self.expand_JSON = expand_JSON
+        self.expandJSON = expandJSON
 
     def __str__(self):
         'Convert our internal tree to JSON.'
@@ -57,7 +57,6 @@ class JSONtree:
     def _jsonstr(self, thing):
         'Recursively convert ("pickle") this thing to JSON' 
 
-        #print >> sys.stderr, "CONVERTING", thing
         if isinstance(thing, list) or isinstance(thing, tuple):
             ret = ''
             comma = '['
@@ -104,7 +103,7 @@ class JSONtree:
             if attr.startswith('_'):
                 continue
             value = getattr(thing, attr)
-            if self.expand_JSON and attr.startswith('JSON_'):
+            if self.expandJSON and attr.startswith('JSON_'):
                 js = pyConfigContext(value)
                 if js is not None:
                     value = js

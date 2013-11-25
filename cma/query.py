@@ -39,7 +39,7 @@ class ClientQuery(GraphNode):
     '''This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism
     '''
-    node_query_url = "/query/GetaNodeById"
+    node_query_url = "/doquery/GetaNodeById"
     def __init__(self, queryname, JSON_metadata=None):
         '''Parameters
         ----------
@@ -113,7 +113,7 @@ class ClientQuery(GraphNode):
             self._db = db
             self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
 
-    def execute(self, executor_context, idsonly=False, **params):
+    def execute(self, executor_context, idsonly=False, expandJSON=False, **params):
         'Execute the query and return an iterator that produces sanitized (filtered) results'
         if self._query is None:
             raise ValueError('query must be bound to a Store')
@@ -128,9 +128,9 @@ class ClientQuery(GraphNode):
                 raise ValueError('Excess parameter %s supplied for query %s'
                 %    (pname, self.queryname))
         resultiter = self._store.load_cypher_query(self._query, GraphNode.factory, params=params)
-        return self.filter_json(executor_context, idsonly, resultiter)
+        return self.filter_json(executor_context, idsonly, expandJSON, resultiter)
 
-    def filter_json(self, executor_context, idsonly, resultiter):
+    def filter_json(self, executor_context, idsonly, expandJSON, resultiter):
         '''Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
@@ -143,16 +143,16 @@ class ClientQuery(GraphNode):
         ids_only - if True, return only the URL of the objects (via object id)
                         otherwise return the objects themselves
         resultiter - iterator giving return results for us to filter
-                        (not yet used)
         '''
         self = self
 
         idsonly = idsonly
-        expand = False
         executor_context = executor_context
-        delim = '['
+        delim = '"data":['
+        rowcount = 0
         for result in resultiter:
             # result is a namedtuple
+            rowcount += 1
             if len(result) == 1:
                 if idsonly:
                     yield '%s"%s/%d"' % (
@@ -160,7 +160,7 @@ class ClientQuery(GraphNode):
                     ,   ClientQuery.node_query_url
                     ,   Store.id(result[0]))
                 else:
-                    yield delim + str(JSONtree(result[0], expand_JSON=expand))
+                    yield delim + str(JSONtree(result[0], expandJSON=expandJSON))
             else:
                 for attr in result.__dict__.keys():
                     value = getattr(result, attr)
@@ -174,9 +174,12 @@ class ClientQuery(GraphNode):
                         yield '%s"%s":%s' % (
                                 delim
                             ,   attr
-                            ,   str(JSONtree(value, expand_JSON=expand)))
+                            ,   str(JSONtree(value, expandJSON=expandJSON)))
             delim = ','
-        yield ']'
+        if rowcount == 0:
+            yield '"data":{[]}'
+        else:
+            yield ']}'
 
 
     def json_parameter_names(self):
@@ -307,6 +310,7 @@ class ClientQuery(GraphNode):
             value = parameters[param]
             canonvalue = ClientQuery._validate_value(param, paramdict[param], value)
             result[param] = canonvalue
+        return True
 
     
 
@@ -403,17 +407,7 @@ class ClientQuery(GraphNode):
                 return cmpval
         raise ValueError('Value of %s [%s] not in enumlist' % (paraminfo['name'], value))
 
-    _validationmethods = {
-        'int':      _validate_int,
-        'float':    _validate_float,
-        'bool':     _validate_bool,
-        'string':   _validate_string,
-        'enum':     _validate_enum,
-        'ipaddr':   _validate_ipaddr,
-        'macaddr':  _validate_macaddr,
-        'hostname': _validate_hostname,
-        'dnsname':  _validate_dnsname,
-    }
+    _validationmethods = {}
 
     @staticmethod
     def _validate_value(name, paraminfo, value):
@@ -446,20 +440,31 @@ class ClientQuery(GraphNode):
     @staticmethod
     def load_tree(store, rootdirname, followlinks=False):
         'Returns a generator that will returns all the Queries in that directory structure'
-        print >> sys.stderr, 'WALKING %s' % (rootdirname)
         tree = os.walk(rootdirname, topdown=True, onerror=None, followlinks=followlinks)
         rootprefixlen = len(rootdirname)+1
         for walktuple in tree:
             (dirpath, dirnames, filenames) = walktuple
             dirnames.sort()
             prefix = dirpath[rootprefixlen:]
-            print >> sys.stderr, 'IN DIRECTORY %s' % (dirpath)
             filenames.sort()
             for filename in filenames:
                 queryname = prefix + filename
                 path = os.path.join(dirpath, filename)
                 yield ClientQuery.load_from_file(store, path, queryname=queryname)
 
+# message 0212: access to protected member of client class
+# pylint: disable=W0212
+ClientQuery._validationmethods = {
+    'int':      ClientQuery._validate_int,
+    'float':    ClientQuery._validate_float,
+    'bool':     ClientQuery._validate_bool,
+    'string':   ClientQuery._validate_string,
+    'enum':     ClientQuery._validate_enum,
+    'ipaddr':   ClientQuery._validate_ipaddr,
+    'macaddr':  ClientQuery._validate_macaddr,
+    'hostname': ClientQuery._validate_hostname,
+    'dnsname':  ClientQuery._validate_dnsname,
+}
 
 if __name__ == '__main__':
     import sys
@@ -530,27 +535,28 @@ if __name__ == '__main__':
     '''
     q3 = ClientQuery('ipowners', metadata3)
 
-    ourdb = neo4j.GraphDatabaseService()
-    ourdb.clear()
+    neodb = neo4j.GraphDatabaseService()
+    neodb.clear()
     print >> sys.stderr, '========>classmap: %s' % (GraphNode.classmap)
 
     umap  = {'ClientQuery': True}
     ckmap = {'ClientQuery': {'index': 'ClientQuery', 'kattr':'queryname', 'value':'None'}}
 
-    ourstore = Store(ourdb, uniqueindexmap=umap, classkeymap=ckmap)
-    GraphNode.initclasstypeobj(ourstore, 'ClientQuery')
+    qstore = Store(neodb, uniqueindexmap=umap, classkeymap=ckmap)
+    for classname in GraphNode.classmap:
+        GraphNode.initclasstypeobj(qstore, classname)
 
     print "LOADING TREE!"
-    queries = ClientQuery.load_tree(ourstore, "/home/alanr/monitor/src/queries")
+    queries = ClientQuery.load_tree(qstore, "/home/alanr/monitor/src/queries")
     for q in queries:
         pass
     qlist = [q for q in queries]
-    ourstore.commit()
+    qstore.commit()
     print "%d node TREE LOADED!" % len(qlist)
-    qe2 = ourstore.load_or_create(ClientQuery, queryname='GetAllQueries')
-    qe2.bind_store(ourstore)
+    qe2 = qstore.load_or_create(ClientQuery, queryname='GetAllQueries')
+    qe2.bind_store(qstore)
     testresult = '{"data":'
-    for s in qe2.execute(None, idsonly=False):
+    for s in qe2.execute(None, idsonly=False, expandJSON=True):
         testresult += s
     testresult += '}'
     print testresult
