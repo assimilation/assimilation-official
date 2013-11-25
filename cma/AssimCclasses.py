@@ -381,7 +381,7 @@ class pyAssimObj:
         base = self._Cstruct[0]
         while (type(base) is not AssimObj):
             base = base.baseclass
-        cstringret = base.toString(self._Cstruct)
+        cstringret = cast(base.toString(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
         g_free(cstringret)
         return ret
@@ -664,7 +664,7 @@ class pyFrame(pyAssimObj):
         base = self._Cstruct[0]
         while (type(base) is not AssimObj):
             base = base.baseclass
-        cstringret = base.toString(self._Cstruct)
+        cstringret = cast(base.toString(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
         g_free(cstringret)
         return '%s: %s' % (FrameTypes.get(self.frametype())[1] , ret)
