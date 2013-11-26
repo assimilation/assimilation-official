@@ -531,26 +531,32 @@ _configcontext_value_finalize(AssimObj* aself)
 }
 
 
-#define	JSONQUOTES	"\\\""
+#define	JSONREPLACES		"\\\"\b\f\n\r\t"
+#define	JSONREPLACEMENTS	"\\\"bfnrt"
 /// Escape characters in a string according to JSON conventions...
 FSTATIC char *
 JSONquotestring(char * s)
 {
 	GString*	ret;
 	char *		str;
+	const char *	replacechars = JSONREPLACES;
 	ret = g_string_sized_new(strlen(s)+5);
 	g_string_append_c(ret, '"');
 	
+	
 	for (str=s; *str; ++str ) {
-		if (strchr(JSONQUOTES, *str )) {
+		const char *	found;
+		if (NULL != (found=strchr(replacechars, *str ))) {
+			size_t offset = found-replacechars;
 			g_string_append_c(ret, '\\');
+			g_string_append_c(ret, JSONREPLACEMENTS[offset]);
+		}else{
+			g_string_append_c(ret, *str);
 		}
-		g_string_append_c(ret, *str);
 	}
 	g_string_append_c(ret, '"');
 	return g_string_free(ret, FALSE);
 }
-
 
 /// Convert a ConfigContext to a printable string (in JSON notation)
 FSTATIC char *
