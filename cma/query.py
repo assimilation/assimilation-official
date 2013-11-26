@@ -148,7 +148,7 @@ class ClientQuery(GraphNode):
 
         idsonly = idsonly
         executor_context = executor_context
-        delim = '"data":['
+        delim = '{"data":['
         rowcount = 0
         for result in resultiter:
             # result is a namedtuple
@@ -177,7 +177,7 @@ class ClientQuery(GraphNode):
                             ,   str(JSONtree(value, expandJSON=expandJSON)))
             delim = ','
         if rowcount == 0:
-            yield '"data":{[]}'
+            yield '{"data":[]}'
         else:
             yield ']}'
 
