@@ -47,8 +47,8 @@ The following packages are needed for building the packages, testing them, or cr
 <b>CMA-only packages</b>
 - <a href="http://www.neo4j.org/install">Neo4j</a> graph database
 - <a href="http://www.python.org/">Python 2.7</a> (approximately) interpreter for the Python language
-- <a href="http://py2neo.org/">py2neo</a> Python bindings for Neo4j
-- <a href="www.tornadoweb.org">tornado</a> web server
+- <a href="http://py2neo.org/">py2neo</a> Python bindings for Neo4j - version <b>1.6.1</b> or later
+- <a href="http://flask.pocoo.org/">flask</a> Python web microframework
 
 <b>Documentation packages</b>
 - <a href="http://doxygen.org">Doxygen</a> - for producing this documenation
@@ -57,7 +57,7 @@ The following packages are needed for building the packages, testing them, or cr
 All of the Nanoprobe and documentation packages are readily available on most modern operating systems.
 
 Depending on your environment, you may not have OS-level packages for all of the python
-pieces (testify, ctypesgen, py2neo, tornado).
+pieces (testify, ctypesgen, py2neo, flask).
 If you don't have OS packages for those pieces, then you can use
 <a href="https://pypi.python.org/pypi/pip">pip</a> to easily install them.
 
