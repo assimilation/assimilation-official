@@ -1,5 +1,28 @@
 #!/usr/bin/python
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2013 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
 '''
 Prototype code for providing a REST interface for the Assimilation project.
 '''
@@ -10,6 +33,7 @@ from py2neo import neo4j
 from store import Store
 from graphnodes import GraphNode
 from query import ClientQuery
+from AssimCtypes import QUERYINSTALL_DIR
 allqueries = {}
 
 app = Flask(__name__)
@@ -42,7 +66,7 @@ def doquery(queryname):
     ,               mimetype='application/javascript')
 
 if __name__ == '__main__':
-    def setup(host='localhost', port=7474, url=None, querypath=None):
+    def setup(dbhost='localhost', dbport=7474, dburl=None, querypath=None):
         '''
         Program to set up for running our REST server.
         We do these things:
@@ -57,10 +81,10 @@ if __name__ == '__main__':
                 to make a lot of sense (at the moment)
             - Remember the set of queries in the 'allqueries' hash table
         '''
-        if url is None:
-            url = ('http://%s:%d/db/data/' % (host, port))
-        print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
-        neodb = neo4j.GraphDatabaseService(url)
+        if dburl is None:
+            dburl = ('http://%s:%d/db/data/' % (dbhost, dbport))
+        print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % dburl
+        neodb = neo4j.GraphDatabaseService(dburl)
         qstore = Store(neodb, None, None)
         print GraphNode.classmap
         for classname in GraphNode.classmap:
@@ -78,6 +102,6 @@ if __name__ == '__main__':
         #queryquery = neo4j.CypherQuery(neodb, Q)
         #print 'Neodb =', neodb
         #print 'qstore =', qstore
-    setup()
+    setup(querypath=QUERYINSTALL_DIR)
     app.debug = True
     app.run()
