@@ -117,6 +117,8 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	USRSHARE		Our subdirectory under /usr/share
 #	DAGENTS			the relative directory name we source discovery agents from
 #	DISCOVERYINSTALL	Where we install our discovery scripts
+#	QUERYSUBDIR		the relative directory where we store the flat files we make query nodes from
+#	QUERYINSTALL		Where we install our query flat files
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	
@@ -143,6 +145,8 @@ set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 
 set (DAGENTS discovery_agents)
 set (DISCOVERYINSTALL ${USRSHARE}/${DAGENTS})
+set (QUERYSUBDIR queries)
+set (QUERYINSTALL ${USRSHARE}/${QUERYSUBDIR})
 configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst @ONLY)
 configure_file(${BUILDTOOLS}/debian/postrm.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postrm @ONLY)
 #
@@ -328,6 +332,11 @@ endif(DOXYGEN_FOUND)
 #
 install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${USRSHARE} USE_SOURCE_PERMISSIONS
 	PATTERN ".nfs*" EXCLUDE PATTERN "*.out" EXCLUDE PATTERN "*.txt" EXCLUDE)
+#
+#
+#	Install our query flat files under /usr/share/assimilation/${QUERYSUBDIR}
+#
+install (DIRECTORY ${QUERYSUBDIR} COMPONENT cma-component DESTINATION ${USRSHARE})
 #
 #	Install our init scripts in ${INITDIR}
 #
