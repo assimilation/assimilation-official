@@ -187,7 +187,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_BINARY_D
 #
 include(FindPkgConfig)
 
-if (PKG_CONFIG_FOUND)
+if (PKG_CONFIG_FOUND OR PKGCONFIG_FOUND)
     #pkg_check_modules(GLIB2 QUIET glib-2.0)
     pkg_check_modules(GLIB2 glib-2.0)
     if (NOT GLIB2_FOUND)
@@ -208,9 +208,9 @@ else (WIN32)
 	set(CMAKE_REQUIRED_LIBRARIES c ${CMAKE_REQUIRED_LIBRARIES} ${GLIB2_LIBRARIES})
 endif (WIN32)
 
-else (PKG_CONFIG_FOUND)
+else (PKG_CONFIG_FOUND OR PKGCONFIG_FOUND)
     message(SEND_ERROR "Cannot find pkg-config utility")
-endif (PKG_CONFIG_FOUND)
+endif (PKG_CONFIG_FOUND OR PKGCONFIG_FOUND)
 
 #
 #	Checking for various system functions and header files...
@@ -247,7 +247,7 @@ CHECK_SYMBOL_EXISTS(GetComputerNameA "Windows.h" HAVE_GETCOMPUTERNAME)
 #
 set (Best_GNUCC_FLAGS "-g -O2 -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wformat-security -D_FORTIFY_SOURCE=2")
 
-set (Lesser_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast-Wcast-qual -D_FORTIFY_SOURCE=2")
+set (Lesser_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -Wcast-qual -D_FORTIFY_SOURCE=2")
 set (Best_CLANG_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
 
 set (Active_CLANG_FLAGS ${Best_CLANG_FLAGS})
