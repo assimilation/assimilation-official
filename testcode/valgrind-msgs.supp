@@ -388,3 +388,14 @@
    fun:g_thread_new
    obj:*
 }
+{
+   RHEL5/CENTOS5 odd glib memory leak
+   Memcheck:Leak
+   fun:calloc
+   fun:g_malloc0
+   fun:g_hash_table_new_full
+   obj:*
+   fun:g_datalist_clear
+   fun:g_scanner_destroy
+   ...
+}
