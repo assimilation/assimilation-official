@@ -24,12 +24,9 @@ MonitorAction is a class that represents currently active monitoring actions.
 '''
 
 
-import optparse, time
-import os, sys, signal
 from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIELD        \
 ,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREPEATNAMEFIELD, REQTIMEOUTNAMEFIELD
 from AssimCclasses import pyConfigContext
-from store import Store
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
 from droneinfo import Drone
@@ -46,7 +43,11 @@ class MonitorAction(GraphNode):
         'Return our key attributes in order of significance (sort order)'
         return ['monitorname', 'domain']
 
-    def __init__(self, domain, monitorname, monitorclass, monitortype, interval, timeout, provider=None, arglist=None):
+
+    # R0913: too many arguments
+    # pylint: disable=R0913
+    def __init__(self, domain, monitorname, monitorclass, monitortype, interval
+    ,   timeout, provider=None, arglist=None):
         'Create the requested monitoring rule object.'
         GraphNode.__init__(self, domain)
         self.monitorname = monitorname
@@ -82,8 +83,8 @@ class MonitorAction(GraphNode):
     def deactivate(self):
         '''Deactivate this monitoring action. Does not remove relationships from the graph'''
         reqjson = self.construct_mon_json()
-        for drone in CMADB.store.load_related(self, CMAconsts.REL_hosting):
-            CMAdb.transaction.add_packet(runon.primary_ip(), FrameSetTypes.STOPRSCOP
+        for drone in CMAdb.store.load_related(self, CMAconsts.REL_hosting, Drone):
+            CMAdb.transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP
             ,   reqjson, frametype=FrameTypes.RSCJSON)
         self.isactive = False
 
@@ -100,7 +101,7 @@ class MonitorAction(GraphNode):
         else:
             arglist_str = ', "%s": [' % (REQENVIRONNAMEFIELD)
             comma = ''
-            for arg in arglist:
+            for arg in self.arglist:
                 arglist_str += '%s"%s"' % (comma, str(arg))
                 comma = ','
             arglist_str += ']'

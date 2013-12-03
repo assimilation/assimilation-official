@@ -40,7 +40,7 @@ if
   [ $# = 0 ]
 then
   LIST='AssimCclasses.py assimjson.py cmadb.py cma.py cmainit.py consts.py dispatchtarget.py droneinfo.py frameinfo.py hbring.py messagedispatcher.py packetlistener.py query.py store.py transaction.py'
-  LIST='AssimCclasses.py assimjson.py cmadb.py cmainit.py cma.py consts.py dispatchtarget.py droneinfo.py frameinfo.py graphnodes.py hbring.py messagedispatcher.py packetlistener.py query.py store.py transaction.py flask/hello.py'
+  LIST='AssimCclasses.py assimjson.py cmadb.py cmainit.py cma.py consts.py dispatchtarget.py droneinfo.py frameinfo.py graphnodes.py hbring.py messagedispatcher.py packetlistener.py query.py store.py transaction.py monitoring.py flask/hello.py'
 else
   LIST="$@"
 fi
