@@ -40,6 +40,8 @@ from hbring import HbRing
 from droneinfo import Drone
 import optparse
 from graphnodes import GraphNode
+from monitoring import MonitorAction
+from transaction import Transaction
 
 
 WorstDanglingCount = 0
@@ -494,6 +496,67 @@ class TestCMABasic(TestCase):
             print "The CMA wrote %d packets." % io.writecount
         #io.dumppackets()
 
+
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
+
+class TestMonitorBasic(TestCase):
+    def test_activate(self):
+        io = TestIO([],0)
+        CMAinit(io, cleanoutdb=True, debug=DEBUG)
+
+        dummy = CMAdb.store.load_or_create(MonitorAction, domain='global', monitorname='DummyName'
+        ,       monitorclass='OCF', monitortype='Dummy', interval=1, timeout=120, provider='heartbeat')
+
+        self.assertEqual(len(CMAdb.transaction.tree['packets']), 0)
+        CMAdb.store.commit()
+        CMAdb.transaction.commit_trans(io)
+        self.assertEqual(len(io.packetswritten), 0) # Shouldn't have sent out any pkts yet...
+        CMAdb.transaction = Transaction()
+
+        droneid = 1
+        droneip = droneipaddress(droneid)
+        designation = dronedesignation(droneid)
+        droneAddr = pyNetAddr((127,0,0,1),1984)
+        droneone = CMAdb.store.load_or_create(Drone, designation=designation, port=1984
+        ,       startaddr=droneip, primary_ip_addr=droneip)
+        self.assertTrue(not dummy.isactive)
+        dummy.activate(droneone)
+        CMAdb.store.commit()
+        count=0
+        for obj in CMAdb.store.load_related(droneone, CMAconsts.REL_hosting, MonitorAction):
+            self.assertTrue(obj is dummy)
+            count += 1
+        self.assertEqual(count, 1)
+        self.assertTrue(dummy.isactive)
+        count=0
+        for obj in CMAdb.store.load_related(dummy, CMAconsts.REL_monitoring, Drone):
+            self.assertTrue(obj is droneone)
+            count += 1
+        self.assertEqual(count, 1)
+
+        CMAdb.transaction.commit_trans(io)
+        self.assertEqual(len(io.packetswritten), 1) # Did we send out exactly one packet?
+        if SavePackets:
+            #io.dumppackets()
+            for fstuple in io.packetswritten:
+                (dest, frameset) = fstuple
+                self.assertEqual(frameset.get_framesettype(), FrameSetTypes.DORSCOP)
+                for frame in frameset.iter():
+                    self.assertEqual(frame.frametype(), FrameTypes.RSCJSON)
+                    table = pyConfigContext(init=frame.getstr())
+                    for field in ('class', 'type', 'resourcename', 'repeat_interval'):
+                        self.assertTrue(field in table)
+                        if field == 'monitorclass' and table['monitorclass'] == 'OCF':
+                            self.assertTrue('provider' in table)
+                    for tup in (('class', str), ('type', str), ('resourcename', str)
+                    ,           ('monitorclass', str), ('provider', str)
+                    ,           ('repeat_interval', int)
+                    ,           ('timeout', int)):
+                        (n, t) = tup
+                        if n in table:
+                            self.assertTrue(type(table[n]) is t)
 
     @class_teardown
     def tearDown(self):

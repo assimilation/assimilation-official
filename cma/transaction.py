@@ -186,7 +186,7 @@ class Transaction:
                     fs.append(aframe)
 
                 elif ftype == FrameTypes.DISCNAME or ftype == FrameTypes.DISCJSON \
-                        or ftype == FrameTypes.CONFIGJSON:
+                        or ftype == FrameTypes.CONFIGJSON or ftype == FrameTypes.RSCJSON:
                     sframe = pyCstringFrame(ftype)
                     sframe.setvalue(str(fvalue))
                     fs.append(sframe)
