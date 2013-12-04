@@ -1200,6 +1200,8 @@ class pyConfigContext(pyAssimObj):
             return alternative
         return self[key]
 
+    # pylint R0911: too many returns (9)
+    # pylint: disable=R0911
     def deepget(self, key, alternative=None):
         '''return value if object contains the given *structured* key - 'alternative' if not'''
         try:
@@ -1208,12 +1210,11 @@ class pyConfigContext(pyAssimObj):
             suffix = None
             prefix = key
         if prefix not in self:
-            import sys
             if not prefix.endswith(']'):
                 return alternative
             else:
                 # Looks like we have an array index
-                proper=prefix[0:len(prefix)-1]
+                proper = prefix[0:len(prefix)-1]
                 try:
                     (preprefix, idx) = proper.split('[', 1)
                 except ValueError:
