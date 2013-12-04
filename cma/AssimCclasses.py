@@ -1194,12 +1194,29 @@ class pyConfigContext(pyAssimObj):
         #print >> sys.stderr, 'gettype(%s)' % str(name)
         return self._Cstruct[0].gettype(self._Cstruct, str(name))
 
-    def get(self, key, alternative):
+    def get(self, key, alternative=None):
         '''return value if object contains the given key - 'alternative' if not'''
         if self._Cstruct[0].gettype(self._Cstruct, str(key)) == CFG_EEXIST:
             return alternative
         return self[key]
-    
+
+    def deepget(self, key, alternative=None):
+        '''return value if object contains the given *structured* key - 'alternative' if not'''
+        try:
+            (prefix, suffix) = key.split('.', 1)
+        except ValueError:
+            suffix = None
+            prefix = key
+        if prefix not in self:
+            return alternative
+        prefixvalue = self[prefix]
+        if suffix is None:
+            return prefixvalue
+        if not isinstance(prefixvalue, pyConfigContext):
+            return alternative
+        gotten = prefixvalue.deepget(suffix, alternative)
+        return gotten
+        
     def has_key(self, key):
         'return True if it has the given key'
         return self.__contains__(key)

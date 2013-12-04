@@ -558,6 +558,8 @@ class TestMonitorBasic(TestCase):
                         if n in table:
                             self.assertTrue(type(table[n]) is t)
 
+        # TODO: Add test for deactivating the resource(s)
+
     @class_teardown
     def tearDown(self):
         assert_no_dangling_Cclasses()

@@ -270,6 +270,7 @@ class Drone(SystemNode):
             ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
             ,   cwd=procinfo.get('cwd', '/'))
             assert hasattr(processproc, '_Store__store_node')
+            processproc.JSON_procinfo = str(procinfo)
 
             newprocs[processproc.processname] = processproc
             newprocmap[procname] = processproc

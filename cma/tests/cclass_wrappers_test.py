@@ -855,6 +855,18 @@ class pyConfigContextTest(TestCase):
             for j in range(1,5):
                 proj_class_decr_debug('NetAddr')
 
+    def test_deepget(self):
+        getstr = '{"a": {"b":"a.b", "c": "a.c"}, "d":{"e":{"f": "d.e.f"}}, "e":1}'
+        cc = pyConfigContext(init=getstr)
+        self.assertTrue(cc is not None)
+        self.assertEqual(cc.deepget('e'), 1)
+        self.assertEqual(cc.deepget('a.b'), 'a.b')
+        self.assertEqual(cc.deepget('a.c'), 'a.c')
+        self.assertEqual(cc.deepget('d.e.f'), 'd.e.f')
+        self.assertTrue(cc.deepget('a.d', None) is None)
+        self.assertTrue(cc.deepget('d.e.g', None) is None)
+
+
     @class_teardown
     def tearDown(self):
         assert_no_dangling_Cclasses()

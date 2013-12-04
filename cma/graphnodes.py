@@ -133,6 +133,26 @@ class GraphNode(object):
         result += "\n})"
         return result
 
+    def get(self, attrstring, valueifnotfound=None):
+        'Implement potentially deep attribute value lookups through JSON strings'
+        try:
+            (prefix, suffix) = attrstring.split('.', 1)
+        except ValueError:
+            suffix = None
+            prefix = attrstring
+        if not hasattr(self, prefix):
+            return valueifnotfound
+        prefixvalue = getattr(self, prefix)
+        if suffix is None:
+            return prefixvalue
+        # OK.  We're in the more complicated case...
+        # Our expectation is that the prefixvalue is JSON...
+        jsonstruct = pyConfigContext(init=prefixvalue)
+        if jsonstruct is None:
+            # Should we throw an exception instead?
+            return valueifnotfound
+        return jsonstruct.deepget(suffix, valueifnotfound)
+
     def JSON(self, includemap=None, excludemap=None):
         '''Output this object according to JSON rules. We take advantage
         of the fact that Neo4j restricts what kind of objects we can
