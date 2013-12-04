@@ -866,6 +866,29 @@ class pyConfigContextTest(TestCase):
         self.assertTrue(cc.deepget('a.d', None) is None)
         self.assertTrue(cc.deepget('d.e.g', None) is None)
 
+    def test_deepget_array(self):
+        getstr = '{"a": ["b", "c", "d"]}'
+        cc = pyConfigContext(init=getstr)
+        self.assertTrue(cc is not None)
+        self.assertEqual(cc.deepget('a[0]'), 'b')
+        self.assertEqual(cc.deepget('a[-1]'), 'd')
+        self.assertEqual(cc.deepget('a[-2]'), 'c')
+        self.assertEqual(cc.deepget('a[-3]'), 'b')
+        self.assertTrue(cc.deepget('a[-4]') is None)
+
+        # Slightly more complicated things...
+        getstr = '{"a": ["b", {"c": {"d":0, "e":1}}, "f"]}'
+        cc = pyConfigContext(init=getstr)
+        self.assertTrue(cc is not None)
+        self.assertEqual(cc.deepget('a[1].c.d'), 0)
+        self.assertTrue(type(cc.deepget('a[1].c.d')) is int)
+        self.assertEqual(cc.deepget('a[1].c.e'), 1)
+        self.assertTrue(type(cc.deepget('a[1].c.e')) is int)
+        self.assertEqual(cc.deepget('a[-1]'), "f")
+        self.assertEqual(cc.deepget('a[-3]'), "b")
+
+
+
 
     @class_teardown
     def tearDown(self):
