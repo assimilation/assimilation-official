@@ -1073,7 +1073,7 @@ class pyPacketDecoder(pyAssimObj):
 
 #pylint: disable=R0921
 class pyConfigContext(pyAssimObj):
-    'Class for Holding configuration information.'
+    'Class for Holding configuration information - now a general JSON-compatible data bag'
     #pylint: disable=R0921
 
     def __init__(self, init=None, Cstruct=None):
@@ -1208,7 +1208,28 @@ class pyConfigContext(pyAssimObj):
             suffix = None
             prefix = key
         if prefix not in self:
-            return alternative
+            import sys
+            if not prefix.endswith(']'):
+                return alternative
+            else:
+                # Looks like we have an array index
+                proper=prefix[0:len(prefix)-1]
+                try:
+                    (preprefix, idx) = proper.split('[', 1)
+                except ValueError:
+                    return alternative
+                if preprefix not in self:
+                    return alternative
+                try:
+                    array = self[preprefix]
+                    idx = int(idx) # Possible ValueError
+                    value = array[idx] # possible IndexError or TypeError
+                    if suffix is None:
+                        return value
+                except (TypeError, IndexError, ValueError):
+                    return alternative
+                return value.deepget(suffix, alternative)
+
         prefixvalue = self[prefix]
         if suffix is None:
             return prefixvalue
