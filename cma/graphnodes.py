@@ -141,8 +141,28 @@ class GraphNode(object):
             suffix = None
             prefix = attrstring
         if not hasattr(self, prefix):
-            return valueifnotfound
-        prefixvalue = getattr(self, prefix)
+            if not prefix.endswith(']'):
+                return valueifnotfound
+            else:
+                # Looks like an array index
+                proper = prefix[0:len(prefix)-1]
+                try:
+                    (preprefix, idx) = proper.split('[', 1)
+                except ValueError:
+                    return valueifnotfound
+                if not hasattr(self, preprefix):
+                    return valueifnotfound
+                try:
+                    array = getattr(self, preprefix)
+                    idx = int(idx) # Possible ValueError
+                    value = array[idx] # possible IndexError or TypeError
+                    if suffix is None:
+                        return value
+                except (TypeError, IndexError, ValueError):
+                    return valueifnotfound
+                prefixvalue = value
+        else:
+            prefixvalue = getattr(self, prefix)
         if suffix is None:
             return prefixvalue
         # OK.  We're in the more complicated case...
