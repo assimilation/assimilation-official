@@ -36,6 +36,7 @@ from graphnodes import GraphNode, RegisterGraphClass
 from droneinfo import Drone
 from cmadb import CMAdb
 from consts import CMAconsts
+import re
 #
 #
 @RegisterGraphClass
@@ -124,11 +125,7 @@ class MonitorAction(GraphNode):
         ,   provider_str, arglist_str)
         return str(pyConfigContext(init=json))
 
-#
-#
-# W0232: class w/o __init__ method
-# R0903: too few public methods
-# pylint: disable=R0903,W0232
+
 class MonitoringRule:
     '''Abstract base class for implementing monitoring rules
 
@@ -161,4 +158,114 @@ class MonitoringRule:
     If it matches python, then match it against the second argument (arg[1])
 
     '''
-    pass
+    NOMATCH = 0
+    PARTMATCH = 2
+    LOWPRIOMATCH = 2
+    HIGHPRIOMATCH = 3
+    def __init__(self, tuplespec):
+        '''It is constructed from an list of tuples, each one of which represents
+        a field specification and a regular expression.  Each field expression
+        is a specification to a GraphNode 'get' operation.  Each regular expression
+        is a specification of a regex to match against the corresponding field
+        expression (GraphNode.get()) operation.
+        This rule can only apply if all the RegExes match.
+        NOTE: It can still fail to apply even if the RegExes all match.
+        '''
+        self.tuplespec = []
+        for tup in tuplespec:
+            if len(tup) < 2 or len(tup) > 3:
+                raise ValueError('Improperly formed constructor argument')
+            if len(tup) == 3:
+                regex = re.compile(tup[1], tup[2])
+            else:
+                regex = re.compile(tup[1])
+            if regex is None:
+                raise ValueError('Improperly formed regular expression')
+
+
+    def specmatch(self, graphnodes):
+        '''Return a MonitorAction if this rule can be applies to this particular set of GraphNodes
+        Note that the GraphNodes that we're given at the present time are typically expected to be
+        the Drone node for the node it's running on and the Process node for the process
+        to be monitored.
+        We return None on no match
+        '''
+        values = {}
+        for tup in self.tuplespec:
+            match = False
+            for node in graphnodes:
+                value = node.get(tup[0])
+                if value is not None:
+                    values[tup[0]] = value
+                    match = True
+                    continue
+            if not match:
+                return (MonitoringRule.NOMATCH, None)
+        # We now have a complete set of values to match against our regexes...
+        for tup in self.tuplespec:
+            name = tup[0]
+            regex = tup[1]
+            if not regex.match(values[name]):
+                return (MonitoringRule.NOMATCH, None)
+        # We now have a matching set of values to give our monitoring constructor
+        return self.constructaction(values)
+
+    def constructaction(self, values):
+        '''Return a tuple consisting of a tuple as noted:
+            (MonitoringRule.PRIORITYVALUE, MonitorActionArgs, optional-information)
+        If PRIORITYVALUE is NOMATCH, the MonitorAction will be None -- and vice versa
+
+        If PRIORITYVALUE IS PARTMATCH, then more information is needed to determine
+        exactly how to monitor it.  In this case, the optional-information element
+        will be present and is a list the names of the fields whose values have to
+        be supplied in order to monitor this service/host/resource.
+
+        If PRIORITYVALUE is LOWPRIOMATCH or HIGHPRIOMATCH, then there is no optional-information
+        element in the tuple.
+
+        A LOWPRIOMATCH method of monitoring is presumed to do a minimal form of monitoring.
+        A HIGHPRIOMATCH method of monitoring is presumed to do a more complete job of
+        monitoring - presumably acceptable, and preferred over a LOWPRIOMATCH.
+
+        The caller still needs to come up with these arguments for the MonitorAction constructor
+            monitorname - a unique name for this monitoring action
+            interval - how often to run this monitoring action
+            timeout - what timeout to use before declaring monitoring failure
+
+        Not that the implementation in the base class does nothing, and will result in
+        raising a NotImplementedError exception.
+        '''
+        raise NotImplementedError('Abstract class')
+
+class LSBMonitoringRule(MonitoringRule):
+
+    '''Class for implementing monitoring rules for sucky LSB style init script monitoring
+    '''
+    def __init__(self, servicename, tuplespec):
+        self.servicename = servicename
+        MonitoringRule.__init__(self, tuplespec)
+
+    def constructaction(self, values):
+        '''Construct arguments
+        '''
+        return (MonitoringRule.LOWPRIOMATCH
+        ,       {   'monitorclass': 'lsb'
+                ,   'monitortype':  self.servicename
+                ,   'provider':     None
+                ,   'arglist':      None}
+        )
+
+#
+# abstract class only referenced once
+# pylint: disable=R0922,R0922
+class OCFMonitoringRule(MonitoringRule):
+    '''Class for implementing monitoring rules for OCF style init script monitoring
+    OCF ==  Open Cluster Framework
+
+    Not really implemented yet ;-)
+    '''
+
+    def constructaction(self, values):
+        '''Construct arguments
+        '''
+        return (MonitoringRule.NOMATCH, None)
