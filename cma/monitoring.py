@@ -289,9 +289,9 @@ if __name__ == '__main__':
         )
     sshrule = LSBMonitoringRule('ssh', sshargs)
     neoargs = (
-                ('arglist[0]', '.*/[^/]*java[^/]*$'),   # Might be overkill
-                ('arglist[3]', '-server$'),             # Probably overkill
-                ('arglist[-1]', 'org\.neo4j\.server\.Bootstrapper$'),
+                ('arglist[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                ('arglist[3]', r'-server$'),             # Probably overkill
+                ('arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
         )
     neorule = LSBMonitoringRule('neo4j-service', neoargs)
     #ProcessNode:
@@ -303,7 +303,64 @@ if __name__ == '__main__':
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
 
-    neoargs = ("/usr/bin/java", "-cp", "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:/var/lib/neo4j/lib/geronimo-jta_1.1_spec-1.1.1.jar:/var/lib/neo4j/lib/lucene-core-3.6.2.jar:/var/lib/neo4j/lib/neo4j-cypher-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-graph-algo-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-graph-matching-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-jmx-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-kernel-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-lucene-index-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-shell-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-udc-2.0.0-M04.jar:/var/lib/neo4j/lib/org.apache.servicemix.bundles.jline-0.9.94_1.jar:/var/lib/neo4j/lib/scala-library-2.10.1.jar:/var/lib/neo4j/lib/server-api-2.0.0-M04.jar:/var/lib/neo4j/system/lib/asm-3.1.jar:/var/lib/neo4j/system/lib/bcprov-jdk16-140.jar:/var/lib/neo4j/system/lib/commons-beanutils-1.8.0.jar:/var/lib/neo4j/system/lib/commons-beanutils-core-1.8.0.jar:/var/lib/neo4j/system/lib/commons-collections-3.2.1.jar:/var/lib/neo4j/system/lib/commons-configuration-1.6.jar:/var/lib/neo4j/system/lib/commons-digester-1.8.1.jar:/var/lib/neo4j/system/lib/commons-io-1.4.jar:/var/lib/neo4j/system/lib/commons-lang-2.4.jar:/var/lib/neo4j/system/lib/commons-logging-1.1.1.jar:/var/lib/neo4j/system/lib/jackson-core-asl-1.9.7.jar:/var/lib/neo4j/system/lib/jackson-jaxrs-1.9.7.jar:/var/lib/neo4j/system/lib/jackson-mapper-asl-1.9.7.jar:/var/lib/neo4j/system/lib/janino-2.5.10.jar:/var/lib/neo4j/system/lib/jcl-over-slf4j-1.6.1.jar:/var/lib/neo4j/system/lib/jersey-core-1.9.jar:/var/lib/neo4j/system/lib/jersey-multipart-1.9.jar:/var/lib/neo4j/system/lib/jersey-server-1.9.jar:/var/lib/neo4j/system/lib/jetty-6.1.25.jar:/var/lib/neo4j/system/lib/jetty-util-6.1.25.jar:/var/lib/neo4j/system/lib/jsr311-api-1.1.2.r612.jar:/var/lib/neo4j/system/lib/logback-access-0.9.30.jar:/var/lib/neo4j/system/lib/logback-classic-0.9.30.jar:/var/lib/neo4j/system/lib/logback-core-0.9.30.jar:/var/lib/neo4j/system/lib/mimepull-1.6.jar:/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04.jar:/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04-static-web.jar:/var/lib/neo4j/system/lib/parboiled-core-1.1.5.jar:/var/lib/neo4j/system/lib/parboiled-scala_2.10-1.1.5.jar:/var/lib/neo4j/system/lib/rhino-1.7R3.jar:/var/lib/neo4j/system/lib/rrd4j-2.0.7.jar:/var/lib/neo4j/system/lib/servlet-api-2.5-20081211.jar:/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:/var/lib/neo4j/conf/", "-server", "-XX:+DisableExplicitGC", "-Dorg.neo4j.server.properties=conf/neo4j-server.properties", "-Djava.util.logging.config.file=conf/logging.properties", "-Dlog4j.configuration=file:conf/log4j.properties", "-XX:+UseConcMarkSweepGC", "-XX:+CMSClassUnloadingEnabled", "-Dneo4j.home=/var/lib/neo4j", "-Dneo4j.instance=/var/lib/neo4j", "-Dfile.encoding=UTF-8", "org.neo4j.server.Bootstrapper")
+    neoargs = ("/usr/bin/java", "-cp"
+    , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+    "/var/lib/neo4j/lib/geronimo-jta_1.1_spec-1.1.1.jar:/var/lib/neo4j/lib/lucene-core-3.6.2.jar"
+    ":/var/lib/neo4j/lib/neo4j-cypher-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/neo4j-graph-algo-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/neo4j-graph-matching-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/neo4j-jmx-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/neo4j-kernel-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/neo4j-lucene-index-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/neo4j-shell-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/neo4j-udc-2.0.0-M04.jar"
+    ":/var/lib/neo4j/lib/org.apache.servicemix.bundles.jline-0.9.94_1.jar"
+    ":/var/lib/neo4j/lib/scala-library-2.10.1.jar"
+    ":/var/lib/neo4j/lib/server-api-2.0.0-M04.jar"
+    ":/var/lib/neo4j/system/lib/asm-3.1.jar"
+    ":/var/lib/neo4j/system/lib/bcprov-jdk16-140.jar"
+    ":/var/lib/neo4j/system/lib/commons-beanutils-1.8.0.jar"
+    ":-/var/lib/neo4j/system/lib/commons-beanutils-core-1.8.0.jar:"
+    "/var/lib/neo4j/system/lib/commons-collections-3.2.1.jar:"
+    "/var/lib/neo4j/system/lib/commons-configuration-1.6.jar:"
+    "/var/lib/neo4j/system/lib/commons-digester-1.8.1.jar:"
+    "/var/lib/neo4j/system/lib/commons-io-1.4.jar:"
+    "/var/lib/neo4j/system/lib/commons-lang-2.4.jar:"
+    "/var/lib/neo4j/system/lib/commons-logging-1.1.1.jar:"
+    "/var/lib/neo4j/system/lib/jackson-core-asl-1.9.7.jar:"
+    "/var/lib/neo4j/system/lib/jackson-jaxrs-1.9.7.jar:"
+    "/var/lib/neo4j/system/lib/jackson-mapper-asl-1.9.7.jar:"
+    "/var/lib/neo4j/system/lib/janino-2.5.10.jar:"
+    "/var/lib/neo4j/system/lib/jcl-over-slf4j-1.6.1.jar:"
+    "/var/lib/neo4j/system/lib/jersey-core-1.9.jar:"
+    "/var/lib/neo4j/system/lib/jersey-multipart-1.9.jar:"
+    "/var/lib/neo4j/system/lib/jersey-server-1.9.jar:"
+    "/var/lib/neo4j/system/lib/jetty-6.1.25.jar:"
+    "/var/lib/neo4j/system/lib/jetty-util-6.1.25.jar:"
+    "/var/lib/neo4j/system/lib/jsr311-api-1.1.2.r612.jar:"
+    "/var/lib/neo4j/system/lib/logback-access-0.9.30.jar:"
+    "/var/lib/neo4j/system/lib/logback-classic-0.9.30.jar:"
+    "/var/lib/neo4j/system/lib/logback-core-0.9.30.jar:"
+    "/var/lib/neo4j/system/lib/mimepull-1.6.jar:"
+    "/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04.jar:"
+    "/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04-static-web.jar:"
+    "/var/lib/neo4j/system/lib/parboiled-core-1.1.5.jar:"
+    "/var/lib/neo4j/system/lib/parboiled-scala_2.10-1.1.5.jar:"
+    "/var/lib/neo4j/system/lib/rhino-1.7R3.jar:"
+    "/var/lib/neo4j/system/lib/rrd4j-2.0.7.jar:"
+    "/var/lib/neo4j/system/lib/servlet-api-2.5-20081211.jar:"
+    "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+    "/var/lib/neo4j/conf/", "-server", "-XX:"
+    "+DisableExplicitGC"
+    ,   "-Dorg.neo4j.server.properties=conf/neo4j-server.properties"
+    ,   "-Djava.util.logging.config.file=conf/logging.properties"
+    ,   "-Dlog4j.configuration=file:conf/log4j.properties"
+    ,   "-XX:+UseConcMarkSweepGC"
+    ,   "-XX:+CMSClassUnloadingEnabled"
+    ,   "-Dneo4j.home=/var/lib/neo4j"
+    ,   "-Dneo4j.instance=/var/lib/neo4j"
+    ,   "-Dfile.encoding=UTF-8"
+    ,   "org.neo4j.server.Bootstrapper")
 
     neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))

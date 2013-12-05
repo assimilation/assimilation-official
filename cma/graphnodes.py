@@ -133,6 +133,8 @@ class GraphNode(object):
         result += "\n})"
         return result
 
+    # pylint R0911: Too many return statements
+    # pylint: disable=R0911
     def get(self, attrstring, valueifnotfound=None):
         'Implement potentially deep attribute value lookups through JSON strings'
         try:
@@ -144,23 +146,24 @@ class GraphNode(object):
             if not prefix.endswith(']'):
                 return valueifnotfound
             else:
-                # Looks like an array index
-                proper = prefix[0:len(prefix)-1]
+                # Probably an array index
+                # Note that very similar code exists in AssimCclasses for pyConfigContext objects
+                allbutrbracket = prefix[0:len(prefix)-1]
                 try:
-                    (preprefix, idx) = proper.split('[', 1)
+                    (preprefix, idx) = allbutrbracket.split('[', 1)
                 except ValueError:
                     return valueifnotfound
                 if not hasattr(self, preprefix):
                     return valueifnotfound
                 try:
-                    array = getattr(self, preprefix)
+                    arraypart = getattr(self, preprefix)
                     idx = int(idx) # Possible ValueError
-                    value = array[idx] # possible IndexError or TypeError
+                    arrayvalue = arraypart[idx] # possible IndexError or TypeError
                     if suffix is None:
-                        return value
+                        return arrayvalue
                 except (TypeError, IndexError, ValueError):
                     return valueifnotfound
-                prefixvalue = value
+                prefixvalue = arrayvalue
         else:
             prefixvalue = getattr(self, prefix)
         if suffix is None:
