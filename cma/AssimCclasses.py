@@ -1210,6 +1210,7 @@ class pyConfigContext(pyAssimObj):
             suffix = None
             prefix = key
         if prefix not in self:
+            # Note that very similar code exists in GraphNodes get member function
             if not prefix.endswith(']'):
                 return alternative
             else:
