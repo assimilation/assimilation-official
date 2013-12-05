@@ -208,9 +208,9 @@ class MonitoringRule:
             if not regex.match(values[name]):
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
-        return self.constructaction(values)
+        return self.constructaction(values, graphnodes)
 
-    def constructaction(self, values):
+    def constructaction(self, values, graphnodes):
         '''Return a tuple consisting of a tuple as noted:
             (MonitoringRule.PRIORITYVALUE, MonitorActionArgs, optional-information)
         If PRIORITYVALUE is NOMATCH, the MonitorAction will be None -- and vice versa
@@ -226,6 +226,15 @@ class MonitoringRule:
         A LOWPRIOMATCH method of monitoring is presumed to do a minimal form of monitoring.
         A HIGHPRIOMATCH method of monitoring is presumed to do a more complete job of
         monitoring - presumably acceptable, and preferred over a LOWPRIOMATCH.
+
+        MonitorActionArgs is a hash table giving the values of the various arguments
+        that you need to give to the MonitorAction constuctor.  It will always supply
+        the values of the monitorclass and monitortype argument.  If needed, it will
+        also supply the values of the provider and arglist arguments.
+
+        If PRIORITYVALUE is PARTMATCH, then it will supply an incomplete 'arglist' value.
+        and optional-information list consists of a list of those arguments whose values
+        cannot be determined automatically from the given value set.
 
         The caller still needs to come up with these arguments for the MonitorAction constructor
             monitorname - a unique name for this monitoring action
@@ -245,7 +254,7 @@ class LSBMonitoringRule(MonitoringRule):
         self.servicename = servicename
         MonitoringRule.__init__(self, tuplespec)
 
-    def constructaction(self, values):
+    def constructaction(self, values, graphnodes):
         '''Construct arguments
         '''
         return (MonitoringRule.LOWPRIOMATCH
@@ -265,7 +274,7 @@ class OCFMonitoringRule(MonitoringRule):
     Not really implemented yet ;-)
     '''
 
-    def constructaction(self, values):
+    def constructaction(self, values, graphnodes):
         '''Construct arguments
         '''
         return (MonitoringRule.NOMATCH, None)
