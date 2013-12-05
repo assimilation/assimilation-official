@@ -171,7 +171,7 @@ class MonitoringRule:
         This rule can only apply if all the RegExes match.
         NOTE: It can still fail to apply even if the RegExes all match.
         '''
-        self.tuplespec = []
+        self._tuplespec = []
         for tup in tuplespec:
             if len(tup) < 2 or len(tup) > 3:
                 raise ValueError('Improperly formed constructor argument')
@@ -181,6 +181,7 @@ class MonitoringRule:
                 regex = re.compile(tup[1])
             if regex is None:
                 raise ValueError('Improperly formed regular expression')
+            self._tuplespec.append((tup[0], regex))
 
 
     def specmatch(self, graphnodes):
@@ -188,10 +189,10 @@ class MonitoringRule:
         Note that the GraphNodes that we're given at the present time are typically expected to be
         the Drone node for the node it's running on and the Process node for the process
         to be monitored.
-        We return None on no match
+        We return (MonitoringRule.NOMATCH, None) on no match
         '''
         values = {}
-        for tup in self.tuplespec:
+        for tup in self._tuplespec:
             match = False
             for node in graphnodes:
                 value = node.get(tup[0])
@@ -202,7 +203,7 @@ class MonitoringRule:
             if not match:
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
-        for tup in self.tuplespec:
+        for tup in self._tuplespec:
             name = tup[0]
             regex = tup[1]
             if not regex.match(values[name]):
@@ -275,6 +276,40 @@ class OCFMonitoringRule(MonitoringRule):
     '''
 
     def constructaction(self, values, graphnodes):
-        '''Construct arguments
+        '''Construct arguments to give constructor
         '''
         return (MonitoringRule.NOMATCH, None)
+
+if __name__ == '__main__':
+    from graphnodes import ProcessNode
+    sshargs = (
+                # This means one of our nodes should have a value called
+                # pathname, and it should end in '/sshd'
+                ('pathname', '.*/sshd$'),
+        )
+    sshrule = LSBMonitoringRule('ssh', sshargs)
+    neoargs = (
+                ('arglist[0]', '.*/[^/]*java[^/]*$'),   # Might be overkill
+                ('arglist[3]', '-server$'),             # Probably overkill
+                ('arglist[-1]', 'org\.neo4j\.server\.Bootstrapper$'),
+        )
+    neorule = LSBMonitoringRule('neo4j-service', neoargs)
+    #ProcessNode:
+    #   (domain, host, pathname, arglist, uid, gid, cwd, roles=None):
+
+    sshnode = ProcessNode('global', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
+    ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+    udevnode = ProcessNode('global', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
+    ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+
+
+    neoargs = ("/usr/bin/java", "-cp", "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:/var/lib/neo4j/lib/geronimo-jta_1.1_spec-1.1.1.jar:/var/lib/neo4j/lib/lucene-core-3.6.2.jar:/var/lib/neo4j/lib/neo4j-cypher-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-graph-algo-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-graph-matching-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-jmx-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-kernel-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-lucene-index-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-shell-2.0.0-M04.jar:/var/lib/neo4j/lib/neo4j-udc-2.0.0-M04.jar:/var/lib/neo4j/lib/org.apache.servicemix.bundles.jline-0.9.94_1.jar:/var/lib/neo4j/lib/scala-library-2.10.1.jar:/var/lib/neo4j/lib/server-api-2.0.0-M04.jar:/var/lib/neo4j/system/lib/asm-3.1.jar:/var/lib/neo4j/system/lib/bcprov-jdk16-140.jar:/var/lib/neo4j/system/lib/commons-beanutils-1.8.0.jar:/var/lib/neo4j/system/lib/commons-beanutils-core-1.8.0.jar:/var/lib/neo4j/system/lib/commons-collections-3.2.1.jar:/var/lib/neo4j/system/lib/commons-configuration-1.6.jar:/var/lib/neo4j/system/lib/commons-digester-1.8.1.jar:/var/lib/neo4j/system/lib/commons-io-1.4.jar:/var/lib/neo4j/system/lib/commons-lang-2.4.jar:/var/lib/neo4j/system/lib/commons-logging-1.1.1.jar:/var/lib/neo4j/system/lib/jackson-core-asl-1.9.7.jar:/var/lib/neo4j/system/lib/jackson-jaxrs-1.9.7.jar:/var/lib/neo4j/system/lib/jackson-mapper-asl-1.9.7.jar:/var/lib/neo4j/system/lib/janino-2.5.10.jar:/var/lib/neo4j/system/lib/jcl-over-slf4j-1.6.1.jar:/var/lib/neo4j/system/lib/jersey-core-1.9.jar:/var/lib/neo4j/system/lib/jersey-multipart-1.9.jar:/var/lib/neo4j/system/lib/jersey-server-1.9.jar:/var/lib/neo4j/system/lib/jetty-6.1.25.jar:/var/lib/neo4j/system/lib/jetty-util-6.1.25.jar:/var/lib/neo4j/system/lib/jsr311-api-1.1.2.r612.jar:/var/lib/neo4j/system/lib/logback-access-0.9.30.jar:/var/lib/neo4j/system/lib/logback-classic-0.9.30.jar:/var/lib/neo4j/system/lib/logback-core-0.9.30.jar:/var/lib/neo4j/system/lib/mimepull-1.6.jar:/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04.jar:/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04-static-web.jar:/var/lib/neo4j/system/lib/parboiled-core-1.1.5.jar:/var/lib/neo4j/system/lib/parboiled-scala_2.10-1.1.5.jar:/var/lib/neo4j/system/lib/rhino-1.7R3.jar:/var/lib/neo4j/system/lib/rrd4j-2.0.7.jar:/var/lib/neo4j/system/lib/servlet-api-2.5-20081211.jar:/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:/var/lib/neo4j/conf/", "-server", "-XX:+DisableExplicitGC", "-Dorg.neo4j.server.properties=conf/neo4j-server.properties", "-Djava.util.logging.config.file=conf/logging.properties", "-Dlog4j.configuration=file:conf/log4j.properties", "-XX:+UseConcMarkSweepGC", "-XX:+CMSClassUnloadingEnabled", "-Dneo4j.home=/var/lib/neo4j", "-Dneo4j.instance=/var/lib/neo4j", "-Dfile.encoding=UTF-8", "org.neo4j.server.Bootstrapper")
+
+    neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoargs
+    ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+
+    print 'Should be (2, {something}):	', sshrule.specmatch((sshnode,))
+    print 'This should be (0, None):	', sshrule.specmatch((udevnode,))
+    print 'This should be (0, None):	', sshrule.specmatch((neonode,))
+    print 'This should be (0, None):	', neorule.specmatch((sshnode,))
+    print 'Should be (2, {something}):	', neorule.specmatch((neonode,))
