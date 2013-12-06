@@ -248,6 +248,15 @@ class MonitoringRule:
 
     @staticmethod
     def functioncall(expression, values, graphnodes):
+        '''Performs a function call for our expression language
+
+        Figures out the function name, and the arguments and then
+        calls that function with those arguments.
+
+        All our defined functions take an argv argument string first, then the values
+        and graphnodes arguments.
+
+        '''
         expression = expression.strip()
         if expression[-1] != ')':
             return None
@@ -265,6 +274,7 @@ class MonitoringRule:
 
     @staticmethod
     def RegisterFun(function):
+        'Function to register other functions as built-in MonitoringRule functions'
         MonitoringRule.functions[function.__name__] = function
 
     def constructaction(self, values, graphnodes):
@@ -449,11 +459,13 @@ def argvalue(args, values, graphnodes):
     if listtosearch is None:
         return None
     prefix = '%s=' % definename
+    # W0702: No exception type specified for except statement
+    # pylint: disable=W0702
     try:
         for elem in listtosearch:
             if elem.startswith(prefix):
                 return elem[len(prefix):]
-    except:
+    except: # No matter the cause of failure, return None...
         pass
     return None
 
