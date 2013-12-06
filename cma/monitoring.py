@@ -301,14 +301,23 @@ class OCFMonitoringRule(MonitoringRule):
         MonitoringRule.__init__(self, tuplespec)
 
     @staticmethod
-    def getval(name, values, graphnodes):
-        "Return a value from 'values' or 'graphnodes'"
-        if name is None:
+    def evaluate(expression, values, graphnodes):
+        '''
+        Evaluate an expression.
+        It can be:
+            None - return None
+            'some-value -- return some-vaue
+            or a variable to find in values or graphnodes
+        '''
+        if expression is None:
             return None
-        if name in values:
-            return values[name]
+        if expression.startswith("'"):
+            # The value of this parameter is constant...
+            return expression[1:]
+        if expression in values:
+            return values[expression]
         for node in graphnodes:
-            value = node.get(name)
+            value = node.get(expression)
             if value is not None:
                 return value
         return None
@@ -326,12 +335,8 @@ class OCFMonitoringRule(MonitoringRule):
         # Figure out what we know how to supply and what we need to ask
         # a human for -- in order to properly monitor this resource
         for nvpair in self.nvpairs:
-            (name, value) = nvpair
-            if value.startswith("'"):
-                # The value of this parameter is constant...
-                arglist[name] = value[1:]
-                continue
-            val = OCFMonitoringRule.getval(value, values, graphnodes)
+            (name, expression) = nvpair
+            val = OCFMonitoringRule.evaluate(expression, values, graphnodes)
             if val is None:
                 missinglist.append(name)
             else:
