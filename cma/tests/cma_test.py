@@ -37,10 +37,10 @@ from packetlistener import PacketListener
 from messagedispatcher import MessageDispatcher
 from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
 from hbring import HbRing
-from droneinfo import Drone
+from droneinfo import Drone, ProcessNode
 import optparse
 from graphnodes import GraphNode
-from monitoring import MonitorAction
+from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule
 from transaction import Transaction
 
 
@@ -560,9 +560,77 @@ class TestMonitorBasic(TestCase):
 
         # TODO: Add test for deactivating the resource(s)
 
+    def test_automonitor_LSB_basic(self):
+        neoargs = (
+                    ('arglist[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                    ('arglist[3]', r'-server$'),             # Probably overkill
+                    ('arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+            )
+        neorule = LSBMonitoringRule('neo4j-service', neoargs)
+
+        sshnode = ProcessNode('global', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
+        #ProcessNode:
+        #   (domain, host, pathname, arglist, uid, gid, cwd, roles=None):
+        ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+
+        sshargs = (
+                    # This means one of our nodes should have a value called
+                    # pathname, and it should end in '/sshd'
+                    ('pathname', '.*/sshd$'),
+            )
+        sshrule = LSBMonitoringRule('ssh', sshargs)
+
+        udevnode = ProcessNode('global', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
+        ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+
+
+        neoprocargs = ("/usr/bin/java", "-cp"
+        , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+        "/var/lib/neo4j/lib/geronimo-jta_1.1_spec-1.1.1.jar:/var/lib/neo4j/lib/lucene-core-3.6.2.jar"
+        ":/var/lib/neo4j/lib/neo4j-cypher-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-udc-2.0.0-M04.jar"
+        ":/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04-static-web.jar:"
+        "AND SO ON:"
+        "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+        "/var/lib/neo4j/conf/", "-server", "-XX:"
+        "+DisableExplicitGC"
+        ,   "-Dorg.neo4j.server.properties=conf/neo4j-server.properties"
+        ,   "-Djava.util.logging.config.file=conf/logging.properties"
+        ,   "-Dlog4j.configuration=file:conf/log4j.properties"
+        ,   "-XX:+UseConcMarkSweepGC"
+        ,   "-XX:+CMSClassUnloadingEnabled"
+        ,   "-Dneo4j.home=/var/lib/neo4j"
+        ,   "-Dneo4j.instance=/var/lib/neo4j"
+        ,   "-Dfile.encoding=UTF-8"
+        ,   "org.neo4j.server.Bootstrapper")
+
+        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+
+        for tup in (sshrule.specmatch((udevnode,))
+        ,   sshrule.specmatch((neonode,))
+        ,   neorule.specmatch((sshnode,))):
+            (prio, table) = tup
+            self.assertEqual(prio, MonitoringRule.NOMATCH)
+            self.assertTrue(table is None)
+
+        (prio, table) = sshrule.specmatch((sshnode,))
+        self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
+        self.assertEqual(table['monitorclass'], 'lsb')
+        self.assertEqual(table['monitortype'], 'ssh')
+
+        (prio, table) = neorule.specmatch((neonode,))
+        self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
+        self.assertEqual(table['monitorclass'], 'lsb')
+        self.assertEqual(table['monitortype'], 'neo4j-service')
+
+    def test_automonitor_LSB_complete(self):
+        pass
+
     @class_teardown
     def tearDown(self):
         assert_no_dangling_Cclasses()
+
 
 if __name__ == "__main__":
     run()
