@@ -681,6 +681,7 @@ class TestMonitorBasic(TestCase):
             (   ('port', 'port')
             ,   (None, 'pathname', '.*/java$')
             ,   ('-', 'arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$')
+            ,   ('home', '@argvalue(-Dneo4j.home)', '/.*')
             )
         )
         neoprocargs = ("/usr/bin/java", "-cp"
@@ -701,9 +702,11 @@ class TestMonitorBasic(TestCase):
 
         neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        # We'll be missing the value of 'port'
         (prio, table, missing) = neo4j.specmatch((neonode,))
         self.assertEqual(prio, MonitoringRule.PARTMATCH)
         self.assertEqual(missing, ['port'])
+        # Now fill in the port value
         neonode.port=7474
         (prio, table) = neo4j.specmatch((neonode,))
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
@@ -715,8 +718,10 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(str(keys), "['arglist', 'monitorclass', 'monitortype', 'provider']")
         arglist = table['arglist']
         keys = arglist.keys()
-        self.assertEqual(keys, ['port',])
+        keys.sort()
+        self.assertEqual(keys, ['home', 'port'])
         self.assertEqual(arglist['port'], '7474')
+        self.assertEqual(arglist['home'], '/var/lib/neo4j')
 
     def test_automonitor_OCF_complete(self):
         # @TODO What I have in mind for this test is that it

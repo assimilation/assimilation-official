@@ -162,6 +162,9 @@ class MonitoringRule:
     PARTMATCH = 2
     LOWPRIOMATCH = 2
     HIGHPRIOMATCH = 3
+
+    functions = {}
+
     def __init__(self, tuplespec):
         '''It is constructed from an list of tuples, each one of which represents
         a value expression and a regular expression.  Each value expression
@@ -222,14 +225,18 @@ class MonitoringRule:
             None - return None
             'some-value -- return some-value (it's a constant)
             or an expression to find in values or graphnodes
+            or @functionname(args) - for defined functions...
 
             We may add other kinds of expressions in the future...
         '''
         if expression is None:
             return None
         if expression.startswith("'"):
-            # The value of this parameter is constant...
+            # The value of this parameter is a constant...
             return expression[1:]
+        if expression.startswith('@'):
+            value = MonitoringRule.functioncall(expression[1:], values, graphnodes)
+            values[expression] = value
         if expression in values:
             return values[expression]
         for node in graphnodes:
@@ -239,6 +246,26 @@ class MonitoringRule:
                 return value
         return None
 
+    @staticmethod
+    def functioncall(expression, values, graphnodes):
+        expression = expression.strip()
+        if expression[-1] != ')':
+            return None
+        expression = expression[:len(expression)-1]
+        (funname, arglist) = expression.split('(', 1)
+        funname = funname.strip()
+        arglist = arglist.strip()
+        argsin = arglist.split(',')
+        args = []
+        for arg in argsin:
+            args.append(arg.strip())
+        if funname not in MonitoringRule.functions:
+            return None
+        return MonitoringRule.functions[funname](args, values, graphnodes)
+
+    @staticmethod
+    def RegisterFun(function):
+        MonitoringRule.functions[function.__name__] = function
 
     def constructaction(self, values, graphnodes):
         '''Return a tuple consisting of a tuple as noted:
@@ -390,6 +417,47 @@ class OCFMonitoringRule(MonitoringRule):
                         }
                     ,   missinglist
                     )
+
+@MonitoringRule.RegisterFun
+def argvalue(args, values, graphnodes):
+    '''
+    A function which searches a list for an argument of the form
+    name=value.
+    The name is given by the argument in args, and the list 'arglist'
+    is assumed to be the list of arguments.
+
+    If there are two arguments in args, then the first argument is the
+    array value to search in for the name=value string instead of 'arglist'
+    '''
+    if len(args) > 2 or len(args) < 1:
+        return None
+    if len(args) == 2:
+        argname = args[0]
+        definename = args[1]
+    else:
+        argname = 'arglist'
+        definename = args[0]
+    if argname in values:
+        listtosearch = values[argname]
+    else:
+        listtosearch = None
+        for node in graphnodes:
+            value = node.get(argname)
+            if value is not None:
+                listtosearch = value
+                break
+    if listtosearch is None:
+        return None
+    prefix = '%s=' % definename
+    try:
+        for elem in listtosearch:
+            if elem.startswith(prefix):
+                return elem[len(prefix):]
+    except:
+        pass
+    return None
+
+    
 
 if __name__ == '__main__':
     from graphnodes import ProcessNode
