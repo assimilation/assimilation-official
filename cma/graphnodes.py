@@ -147,7 +147,8 @@ class GraphNode(object):
                 return valueifnotfound
             else:
                 # Probably an array index
-                # Note that very similar code exists in AssimCclasses for pyConfigContext objects
+                # Note that very similar code exists in AssimCclasses for pyConfigContext
+                #   deepget member function
                 allbutrbracket = prefix[0:len(prefix)-1]
                 try:
                     (preprefix, idx) = allbutrbracket.split('[', 1)
