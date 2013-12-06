@@ -274,11 +274,84 @@ class OCFMonitoringRule(MonitoringRule):
 
     Not really implemented yet ;-)
     '''
+    def __init__(self, provider, rsctype, tuplespec, nvpairs):
+        '''
+        Parameters
+        ----------
+        provider: str
+            The OCF provider name for this resource
+            This is the directory name this resource is found in
+        rsctype: str
+            The OCF resource type for this resource (service)
+            This is the same as the script name for the resource
+        rsctype: list
+            This is the same as MonitoringRule tuplespec
+        nvpairs: list
+            This is a list of lists.
+            Each list is a tuple consisting of (parametername, value-expression)
+            Where parametername is the name of a parameter to this OCF resource
+            agent, and value-expression is an expression to be found in the graphnodes
+            that we're given in constructaction -- or a constant string or None
+            None means that you always have to ask a human for this info
+            A constant string is a value-expression which starts with a "'" character.
+        '''
+        self.provider = provider
+        self.rsctype = rsctype
+        self.nvpairs = nvpairs
+        MonitoringRule.__init__(self, tuplespec)
+
+    @staticmethod
+    def getval(name, values, graphnodes):
+        "Return a value from 'values' or 'graphnodes'"
+        if name is None:
+            return None
+        if name in values:
+            return values[name]
+        for node in graphnodes:
+            value = node.get(name)
+            if value is not None:
+                return value
+        return None
+
 
     def constructaction(self, values, graphnodes):
         '''Construct arguments to give constructor
+            We can either return a complete match (HIGHPRIOMATCH)
+            or an incomplete match (PARTMATCH) if we can't find
+            all the parameter values in the nodes we're given to look in
         '''
-        return (MonitoringRule.NOMATCH, None)
+        #
+        missinglist = []
+        arglist = {}
+        # Figure out what we know how to supply and what we need to ask
+        # a human for -- in order to properly monitor this resource
+        for nvpair in self.nvpairs:
+            (name, value) = nvpair
+            if value.startswith("'"):
+                # The value of this parameter is constant...
+                arglist[name] = value[1:]
+                continue
+            val = OCFMonitoringRule.getval(value, values, graphnodes)
+            if val is None:
+                missinglist.append(name)
+            else:
+                arglist[name] = val
+        if len(missinglist) == 0:
+            # Hah!  We can automatically monitor it!
+            return (MonitoringRule.HIGHPRIOMATCH,
+                    {   'monitorclass': 'ocf'
+                        ,   'monitortype':  self.rsctype
+                        ,   'provider':     self.provider
+                        ,   'arglist':      arglist}
+                    )
+        else:
+            # We can monitor it with some more help from a human
+            return (MonitoringRule.PARTMATCH,
+                    {   'monitorclass': 'ocf'
+                        ,   'monitortype':  self.rsctype
+                        ,   'provider':     self.provider
+                        ,   'arglist':      arglist}
+                    ,   missinglist)
 
 if __name__ == '__main__':
     from graphnodes import ProcessNode
