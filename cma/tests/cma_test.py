@@ -625,6 +625,9 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(table['monitortype'], 'neo4j-service')
 
     def test_automonitor_LSB_complete(self):
+        # @TODO What I have in mind for this test is that it
+        # actually construct an auto-generated LSB monitoring node and activate it
+        # It will have to add timeout and repeat intervals before activating it.
         pass
 
     @class_teardown
