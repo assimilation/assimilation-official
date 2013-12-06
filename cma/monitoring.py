@@ -346,6 +346,7 @@ class OCFMonitoringRule(MonitoringRule):
                     )
         else:
             # We can monitor it with some more help from a human
+            # At least it's better than a sharp stick in your eye ;-)
             return (MonitoringRule.PARTMATCH,
                     {   'monitorclass': 'ocf'
                         ,   'monitortype':  self.rsctype
