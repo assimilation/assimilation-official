@@ -164,22 +164,27 @@ class MonitoringRule:
     HIGHPRIOMATCH = 3
     def __init__(self, tuplespec):
         '''It is constructed from an list of tuples, each one of which represents
-        a field specification and a regular expression.  Each field expression
+        a value expression and a regular expression.  Each value expression
         is a specification to a GraphNode 'get' operation.  Each regular expression
         is a specification of a regex to match against the corresponding field
-        expression (GraphNode.get()) operation.
+        expression.  By default, all regexes are anchored (implicitly start with ^)
         This rule can only apply if all the RegExes match.
         NOTE: It can still fail to apply even if the RegExes all match.
         '''
+        if tuplespec is None or len(tuplespec) == 0:
+            raise ValueError('Improper tuplespec')
+
         self._tuplespec = []
         for tup in tuplespec:
             if len(tup) < 2 or len(tup) > 3:
                 raise ValueError('Improperly formed constructor argument')
-            if len(tup) == 3:
-                regex = re.compile(tup[1], tup[2])
-            else:
-                regex = re.compile(tup[1])
-            if regex is None:
+            try:
+                if len(tup) == 3:
+                    flags = tup[2]
+                    regex = re.compile(tup[1], flags)
+                else:
+                    regex = re.compile(tup[1])
+            except:
                 raise ValueError('Improperly formed regular expression')
             self._tuplespec.append((tup[0], regex))
 
@@ -193,23 +198,47 @@ class MonitoringRule:
         '''
         values = {}
         for tup in self._tuplespec:
-            match = False
-            for node in graphnodes:
-                value = node.get(tup[0])
-                if value is not None:
-                    values[tup[0]] = value
-                    match = True
-                    continue
-            if not match:
+            expression = tup[0]
+            value = MonitoringRule.evaluate(expression, values, graphnodes)
+            if value is None:
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
         for tup in self._tuplespec:
             name = tup[0]
             regex = tup[1]
-            if not regex.match(values[name]):
+            val = values[name]
+            if not isinstance(val, (str, unicode)):
+                val = str(val)
+            if not regex.match(val):
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
         return self.constructaction(values, graphnodes)
+
+    @staticmethod
+    def evaluate(expression, values, graphnodes):
+        '''
+        Evaluate an expression.
+        It can be:
+            None - return None
+            'some-value -- return some-value (it's a constant)
+            or an expression to find in values or graphnodes
+
+            We may add other kinds of expressions in the future...
+        '''
+        if expression is None:
+            return None
+        if expression.startswith("'"):
+            # The value of this parameter is constant...
+            return expression[1:]
+        if expression in values:
+            return values[expression]
+        for node in graphnodes:
+            value = node.get(expression)
+            if value is not None:
+                values[expression] = value
+                return value
+        return None
+
 
     def constructaction(self, values, graphnodes):
         '''Return a tuple consisting of a tuple as noted:
@@ -271,10 +300,8 @@ class LSBMonitoringRule(MonitoringRule):
 class OCFMonitoringRule(MonitoringRule):
     '''Class for implementing monitoring rules for OCF style init script monitoring
     OCF ==  Open Cluster Framework
-
-    Not really implemented yet ;-)
     '''
-    def __init__(self, provider, rsctype, tuplespec, nvpairs):
+    def __init__(self, provider, rsctype, triplespec):
         '''
         Parameters
         ----------
@@ -284,80 +311,85 @@ class OCFMonitoringRule(MonitoringRule):
         rsctype: str
             The OCF resource type for this resource (service)
             This is the same as the script name for the resource
-        rsctype: list
-            This is the same as MonitoringRule tuplespec
-        nvpairs: list
-            This is a list of lists.
-            Each list is a tuple consisting of (parametername, value-expression)
-            Where parametername is the name of a parameter to this OCF resource
-            agent, and value-expression is an expression to be found in the graphnodes
-            that we're given in constructaction -- or a constant string or None
-            None means that you always have to ask a human for this info
-            A constant string is a value-expression which starts with a "'" character.
+
+        triplespec: list
+            Similar to but wider than the MonitoringRule tuplespec
+            (name,  expression, regex,  regexflags(optional))
+
+            'name' is the name of an OCF RA parameter or None or '-'
+            'expression' is an expression for computing the value for that name
+            'regex' is a regular expression that the value of 'expression' has to match
+            'regexflags' is the optional re flages for 'regex'
+
+            If there is no name to go with the tuple, then the name is given as None or '-'
+            If there is no regular expression to go with the name, then the expression
+                and remaining tuple elements are missing.  This can happen if there
+                is no mechanical way to determine this value from discovery information.
+            If there is a name and expression but no regex, the regex is assumed to be '.'
         '''
         self.provider = provider
         self.rsctype = rsctype
-        self.nvpairs = nvpairs
-        MonitoringRule.__init__(self, tuplespec)
+        self.nvpairs = {}
+        tuplespec = []
 
-    @staticmethod
-    def evaluate(expression, values, graphnodes):
-        '''
-        Evaluate an expression.
-        It can be:
-            None - return None
-            'some-value -- return some-vaue
-            or a variable to find in values or graphnodes
-        '''
-        if expression is None:
-            return None
-        if expression.startswith("'"):
-            # The value of this parameter is constant...
-            return expression[1:]
-        if expression in values:
-            return values[expression]
-        for node in graphnodes:
-            value = node.get(expression)
-            if value is not None:
-                return value
-        return None
+        for tup in triplespec:
+            tuplen = len(tup)
+            if tuplen == 4:
+                (name, expression, regex, flags) = tup
+                tuplespec.append((expression, regex, flags))
+            elif tuplen == 3:
+                (name, expression, regex) = tup
+                tuplespec.append((expression, regex))
+            elif tuplen == 2:
+                (name, expression) = tup
+            elif tuplen == 1:
+                name = tup[0]
+                expression = None
+            else:
+                raise ValueError('Invalid tuple length (%d)' % tuplen)
+            if name is not None and name != '-':
+                self.nvpairs[name] = expression
+        MonitoringRule.__init__(self, tuplespec)
 
 
     def constructaction(self, values, graphnodes):
-        '''Construct arguments to give constructor
+        '''Construct arguments to give MonitorAction constructor
             We can either return a complete match (HIGHPRIOMATCH)
             or an incomplete match (PARTMATCH) if we can't find
-            all the parameter values in the nodes we're given to look in
+            all the parameter values in the nodes we're given
         '''
         #
         missinglist = []
         arglist = {}
         # Figure out what we know how to supply and what we need to ask
         # a human for -- in order to properly monitor this resource
-        for nvpair in self.nvpairs:
-            (name, expression) = nvpair
-            val = OCFMonitoringRule.evaluate(expression, values, graphnodes)
+        for name in self.nvpairs:
+            expression = self.nvpairs[name]
+            val = MonitoringRule.evaluate(expression, values, graphnodes)
             if val is None:
                 missinglist.append(name)
             else:
-                arglist[name] = val
+                arglist[name] = str(val)
         if len(missinglist) == 0:
             # Hah!  We can automatically monitor it!
-            return (MonitoringRule.HIGHPRIOMATCH,
-                    {   'monitorclass': 'ocf'
-                        ,   'monitortype':  self.rsctype
-                        ,   'provider':     self.provider
-                        ,   'arglist':      arglist}
+            return  (MonitoringRule.HIGHPRIOMATCH
+                    ,    {   'monitorclass': 'ocf'
+                            ,   'monitortype':  self.rsctype
+                            ,   'provider':     self.provider
+                            ,   'arglist':      arglist
+                        }
                     )
         else:
             # We can monitor it with some more help from a human
-            # At least it's better than a sharp stick in your eye ;-)
-            return (MonitoringRule.PARTMATCH,
-                    {   'monitorclass': 'ocf'
-                        ,   'monitortype':  self.rsctype
-                        ,   'provider':     self.provider
-                        ,   'arglist':      arglist}
-                    ,   missinglist)
+            # Better incomplete than a sharp stick in the eye ;-)
+            return (MonitoringRule.PARTMATCH
+                    ,   {   'monitorclass': 'ocf'
+                            ,   'monitortype':  self.rsctype
+                            ,   'provider':     self.provider
+                            ,   'arglist':      arglist
+                        }
+                    ,   missinglist
+                    )
 
 if __name__ == '__main__':
     from graphnodes import ProcessNode

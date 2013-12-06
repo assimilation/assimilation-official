@@ -40,7 +40,7 @@ from hbring import HbRing
 from droneinfo import Drone, ProcessNode
 import optparse
 from graphnodes import GraphNode
-from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule
+from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
 
 
@@ -586,10 +586,6 @@ class TestMonitorBasic(TestCase):
 
         neoprocargs = ("/usr/bin/java", "-cp"
         , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
-        "/var/lib/neo4j/lib/geronimo-jta_1.1_spec-1.1.1.jar:/var/lib/neo4j/lib/lucene-core-3.6.2.jar"
-        ":/var/lib/neo4j/lib/neo4j-cypher-2.0.0-M04.jar"
-        ":/var/lib/neo4j/lib/neo4j-udc-2.0.0-M04.jar"
-        ":/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04-static-web.jar:"
         "AND SO ON:"
         "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
         "/var/lib/neo4j/conf/", "-server", "-XX:"
@@ -624,11 +620,110 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'neo4j-service')
 
+    def test_automonitor_LSB_failures(self):
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', [])
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+            (('a.b.c', ')'),))
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+            ((1,2,3,4,5),))
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+            ((1,),))
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+            ((),))
+
+
     def test_automonitor_LSB_complete(self):
         # @TODO What I have in mind for this test is that it
         # actually construct an auto-generated LSB monitoring node and activate it
-        # It will have to add timeout and repeat intervals before activating it.
+        # It will have to add name, timeout and repeat intervals before activating it.
         pass
+
+    def test_automonitor_OCF_failures(self):
+        self.assertRaises(ValueError, OCFMonitoringRule, 'assimilation', 'neo4j',
+            ((1,2,3,4,5),))
+        self.assertRaises(ValueError, OCFMonitoringRule, 'assimilation', 'neo4j',
+            ((),))
+
+    def test_automonitor_OCF_basic(self):
+        kitchensink = OCFMonitoringRule('assimilation', 'neo4j',
+        (   ('cantguess',)                  #   length 1 - name
+        ,   ('port', 'port')                #   length 2 - name, expression
+        ,   (None, 'port')                  #   length 2 - name, expression
+        ,   ('-', 'pathname')               #   length 2 - name, expression
+        ,   ('port', 'port', '[0-9]+$')     #   length 3 - name, expression, regex
+        ,   (None, 'pathname', '.*/java$')  #   length 3 - name, expression, regex
+        ,   ('-', 'arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$')
+                                            #   length 3 - name, expression, regex
+        ,   ('port', 'port', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
+        ))
+        keys = kitchensink.nvpairs.keys()
+        keys.sort()
+        self.assertEqual(str(keys), "['cantguess', 'port']")
+        values = []
+        for key in keys:
+            values.append(kitchensink.nvpairs[key])
+        self.assertEqual(str(values), "[None, 'port']")
+        regex = re.compile('xxx')
+        regextype = type(regex)
+        exprlist = []
+        for tup in kitchensink._tuplespec:
+            self.assertEqual(type(tup[1]), regextype)
+            exprlist.append(tup[0])
+        self.assertEqual(str(exprlist)
+        ,   "['port', 'pathname', 'arglist[-1]', 'port']")
+        #
+        # That was a pain...
+        #
+        # Now, let's test the basics in a little more depth by creating what should be a working
+        # set of arguments to a (hypothetical) OCF resource agent
+        #
+        neo4j = OCFMonitoringRule('assimilation', 'neo4j',
+            (   ('port', 'port')
+            ,   (None, 'pathname', '.*/java$')
+            ,   ('-', 'arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$')
+            )
+        )
+        neoprocargs = ("/usr/bin/java", "-cp"
+        , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+        "AND SO ON:"
+        "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+        "/var/lib/neo4j/conf/", "-server", "-XX:"
+        "+DisableExplicitGC"
+        ,   "-Dorg.neo4j.server.properties=conf/neo4j-server.properties"
+        ,   "-Djava.util.logging.config.file=conf/logging.properties"
+        ,   "-Dlog4j.configuration=file:conf/log4j.properties"
+        ,   "-XX:+UseConcMarkSweepGC"
+        ,   "-XX:+CMSClassUnloadingEnabled"
+        ,   "-Dneo4j.home=/var/lib/neo4j"
+        ,   "-Dneo4j.instance=/var/lib/neo4j"
+        ,   "-Dfile.encoding=UTF-8"
+        ,   "org.neo4j.server.Bootstrapper")
+
+        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        (prio, table, missing) = neo4j.specmatch((neonode,))
+        self.assertEqual(prio, MonitoringRule.PARTMATCH)
+        self.assertEqual(missing, ['port'])
+        neonode.port=7474
+        (prio, table) = neo4j.specmatch((neonode,))
+        self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
+        self.assertEqual(table['monitortype'], 'neo4j')
+        self.assertEqual(table['monitorclass'], 'ocf')
+        self.assertEqual(table['provider'], 'assimilation')
+        keys = table.keys()
+        keys.sort()
+        self.assertEqual(str(keys), "['arglist', 'monitorclass', 'monitortype', 'provider']")
+        arglist = table['arglist']
+        keys = arglist.keys()
+        self.assertEqual(keys, ['port',])
+        self.assertEqual(arglist['port'], '7474')
+
+    def test_automonitor_OCF_complete(self):
+        # @TODO What I have in mind for this test is that it
+        # actually construct an auto-generated OCF monitoring node and activate it
+        # It will have to add name, timeout and repeat intervals before activating it.
+        pass
+
 
     @class_teardown
     def tearDown(self):
