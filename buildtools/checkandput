@@ -172,6 +172,7 @@ case $ERRORS in
 	rsync -r  $WSBIN/doxygen/html/ alanr@www.linux-ha.org:assimilation/doxygen/html/
 	cd $URL
 	hg push
+	echo "Completed at $(date)"
 	;;
 	
   *)	echo "NOT syncing documents / pushing changes due to errors.";;
