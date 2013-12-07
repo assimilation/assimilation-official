@@ -738,6 +738,17 @@ class TestMonitorBasic(TestCase):
 }'''
         ocf = MonitoringRule.ConstructFromString(ocf_string)
         self.assertTrue(isinstance(ocf, OCFMonitoringRule))
+        lsb_string = '''{
+#       comment
+        "class":        "lsb",
+        "type":         "neo4j",
+        "classconfig": [
+            ["pathname",    ".*/java"],
+            ["arglist[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
+        ]
+}'''
+        lsb = MonitoringRule.ConstructFromString(lsb_string)
+        self.assertTrue(isinstance(lsb, LSBMonitoringRule))
         
 
     def test_automonitor_OCF_complete(self):
