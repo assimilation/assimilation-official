@@ -313,6 +313,55 @@ class MonitoringRule:
         '''
         raise NotImplementedError('Abstract class')
 
+    @staticmethod
+    def ConstructFromString(s):
+        '''
+        Construct a MonitoringRule from a string parameter.
+        It will construct the appropriate subclass depending on its input
+        string.  Note that the input is JSON -- with whole-line comments.
+        A whole line comment has to _begin_ with a #.
+        '''
+        result = ''
+        for line in s.split('\n'):
+            if line.startswith('#'):
+                continue
+            result += (line + '\n')
+
+        obj = pyConfigContext(result)
+        if 'class' not in obj or 'type' not in obj or 'classconfig' not in obj:
+            raise ValueError('Must have class, type and classconfig values')
+
+        if obj['class'] == 'ocf' and 'provider' not in obj:
+            raise ValueError('OCF rules must specify provider')
+
+        rscclass = obj['class']
+
+        if rscclass == 'ocf' and 'provider' not in obj:
+            raise ValueError('OCF rules must specify provider')
+        if rscclass == 'ocf':
+            return LSBMonitoringRule(obj['type'], obj['classconfig'])
+        if rscclass == 'ocf':
+            return OCFMonitoringRule(obj['provider'], obj['type'], obj['classconfig'])
+
+        raise ValueError('Invalid resource class ("class" = "%s")' % rscclass)
+
+
+
+
+
+    @staticmethod
+    def ConstructFromFileName(filename):
+        '''
+        Construct a MonitoringRule from a filename parameter.
+        It will construct the appropriate subclass depending on its input
+        string.  Note that the input is JSON -- with whole-line comments.
+        A whole line comment has to _begin_ with a #.
+        '''
+        f = open(filename, 'r')
+        s = f.read()
+        f.close()
+        return MonitoringRule.ConstructFromString(s)
+
 class LSBMonitoringRule(MonitoringRule):
 
     '''Class for implementing monitoring rules for sucky LSB style init script monitoring
@@ -429,7 +478,7 @@ class OCFMonitoringRule(MonitoringRule):
                     )
 
 @MonitoringRule.RegisterFun
-def argvalue(args, values, graphnodes):
+def argequals(args, values, graphnodes):
     '''
     A function which searches a list for an argument of the form
     name=value.
