@@ -67,7 +67,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     get_lldptlv_body, \
     get_lldptlv_next, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
-    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID
+    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL
 
 from consts import CMAconsts
 
@@ -1344,6 +1344,8 @@ class pyConfigValue(pyAssimObj):
                 thisobj = pyConfigValue(cast(dataptr, cClass.ConfigValue)).get()
                 ret.append(thisobj)
                 this = g_slist_next(this)
+        elif vtype == CFG_NULL:
+            return None
         if ret is None:
             raise ValueError('Invalid valtype (%s)in pyConfigValue object' % self._Cstruct.valtype)
         return ret
