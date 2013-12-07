@@ -160,8 +160,8 @@ class MonitoringRule:
     '''
     NOMATCH = 0
     PARTMATCH = 2
-    LOWPRIOMATCH = 2
-    HIGHPRIOMATCH = 3
+    LOWPRIOMATCH = 3
+    HIGHPRIOMATCH = 4
 
     functions = {}
     monitorobjects = {}
@@ -389,7 +389,7 @@ class MonitoringRule:
         '''
         rsctypes = ['ocf', 'lsb'] # Priority ordering...
         # This will make sure the priority list above is maintained :-D
-        if len(rsctypes) != len(MonitoringRule.monitorobjects.keys()):
+        if len(rsctypes) < len(MonitoringRule.monitorobjects.keys()):
             raise RuntimeError('Update rsctypes list in findbestmatch()!')
 
         rvalues = {}    # Most rules will examine common expressions
@@ -398,14 +398,16 @@ class MonitoringRule:
 
         # Search the rule types in priority order
         for rtype in rsctypes:
+            if rtype not in MonitoringRule.monitorobjects:
+                continue  # Unlikely but possible...
             # Search every rule of class 'rtype'
             for rule in MonitoringRule.monitorobjects[rtype]:
                 match = rule.constructaction(rvalues, graphnodes)
                 prio = match[0]
-                if prio == MonitoringRule.HIGHPRIOMATCH:
-                    return match
                 if prio == MonitoringRule.NOMATCH:
                     continue
+                if prio == MonitoringRule.HIGHPRIOMATCH:
+                    return match
                 bestprio = bestmatch[0]
                 if bestprio == MonitoringRule.NOMATCH:
                     bestmatch = match
@@ -419,6 +421,24 @@ class MonitoringRule:
                 elif prio == MonitoringRule.PARTMATCH:
                     bestmatch = match
         return bestmatch
+
+    @staticmethod
+    def findallmatches(graphnodes):
+        '''
+        We return all possible matches as seen by our complete and wonderful set of
+        MonitoringRules.
+        '''
+        result = []
+        rvalues = {}
+        keys = MonitoringRule.monitorobjects.keys()
+        keys.sort()
+        for rtype in keys:
+            for rule in MonitoringRule.monitorobjects[rtype]:
+                match = rule.constructaction(rvalues, graphnodes)
+                if match[0] != MonitoringRule.NOMATCH:
+                    result.append(match)
+        return result
+
 
     @staticmethod
     def ConstructFromFileName(filename):

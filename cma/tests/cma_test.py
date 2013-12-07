@@ -724,6 +724,7 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(arglist['home'], '/var/lib/neo4j')
 
     def test_automonitor_strings_basic(self):
+        # Clean things out so we only see what we want to see...
         ocf_string = '''{
 #       comment
         "class":        "ocf",
@@ -749,7 +750,71 @@ class TestMonitorBasic(TestCase):
 }'''
         lsb = MonitoringRule.ConstructFromString(lsb_string)
         self.assertTrue(isinstance(lsb, LSBMonitoringRule))
-        
+
+    def test_automonitor_search_basic(self):
+        MonitoringRule.monitorobjects = {}
+        ocf_string = '''{
+        "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
+        "classconfig": [
+            [null,      "pathname",                ".*/java"],
+            [null,      "arglist[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["PORT",    "serviceport",             "[0-9]+$"],
+            ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
+        ]
+        }'''
+        MonitoringRule.ConstructFromString(ocf_string)
+        lsb_string = '''{
+        "class":        "lsb", "type":         "neo4j",
+        "classconfig": [
+            ["pathname",    ".*/java"],
+            ["arglist[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
+        ]
+        }'''
+        MonitoringRule.ConstructFromString(lsb_string)
+        neoprocargs = ("/usr/bin/java", "-cp"
+        , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+        "AND SO ON:"
+        "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+        "/var/lib/neo4j/conf/", "-server", "-XX:"
+        "+DisableExplicitGC"
+        ,   "-Dneo4j.home=/var/lib/neo4j"
+        ,   "-Dneo4j.instance=/var/lib/neo4j"
+        ,   "-Dfile.encoding=UTF-8"
+        ,   "org.neo4j.server.Bootstrapper")
+
+        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        #neonode.serviceport=7474
+        first = MonitoringRule.findbestmatch((neonode,))
+        second = MonitoringRule.findbestmatch((neonode,), False)
+        list1 = MonitoringRule.findallmatches((neonode,))
+        neonode.serviceport=7474
+        third = MonitoringRule.findbestmatch((neonode,))
+        list2 = MonitoringRule.findallmatches((neonode,))
+
+        # first should be the LSB instance
+        self.assertEqual(first[1]['monitorclass'], 'lsb')
+        self.assertEqual(first[0], MonitoringRule.LOWPRIOMATCH)
+        # second should be the incomplete OCF instance
+        self.assertEqual(second[1]['monitorclass'], 'ocf')
+        self.assertEqual(second[0], MonitoringRule.PARTMATCH)
+        # third should be the high priority OCF instance
+        self.assertEqual(third[1]['monitorclass'], 'ocf')
+        self.assertEqual(third[0], MonitoringRule.HIGHPRIOMATCH)
+        # list1 should be the incomplete OCF and the complete LSB - in that order
+        self.assertEqual(len(list1), 2)
+        # They should come out sorted by monitorclass
+        self.assertEqual(list1[0][0], MonitoringRule.LOWPRIOMATCH)
+        self.assertEqual(list1[0][1]['monitorclass'], 'lsb')
+        self.assertEqual(list1[1][0], MonitoringRule.PARTMATCH)
+        self.assertEqual(list1[1][1]['monitorclass'], 'ocf')
+        # third should be a complete OCF match
+        # list2 should be the complete OCF and the complete OCF - in that order
+        self.assertEqual(len(list2), 2)
+        self.assertEqual(list2[0][0], MonitoringRule.LOWPRIOMATCH)
+        self.assertEqual(list2[0][1]['monitorclass'], 'lsb')
+        self.assertEqual(list2[1][0], MonitoringRule.HIGHPRIOMATCH)
+        self.assertEqual(list2[1][1]['monitorclass'], 'ocf')
 
     def test_automonitor_OCF_complete(self):
         # @TODO What I have in mind for this test is that it
