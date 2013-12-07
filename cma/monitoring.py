@@ -327,19 +327,26 @@ class MonitoringRule:
                 continue
             result += (line + '\n')
 
+        legit = {'ocf':
+                    {'class': True, 'type': True, 'classconfig': True, 'provider': False},
+                 'lsb':
+                    {'class': True, 'type': True, 'classconfig': True},
+                }
         obj = pyConfigContext(result)
-        if 'class' not in obj or 'type' not in obj or 'classconfig' not in obj:
-            raise ValueError('Must have class, type and classconfig values')
-
-        if obj['class'] == 'ocf' and 'provider' not in obj:
-            raise ValueError('OCF rules must specify provider')
-        if obj['class'] == 'lsb' and 'provider' in obj:
-            raise ValueError('LSB rules must NOT specify provider')
-
+        if 'class' not in obj:
+            raise ValueError('Must have class value')
         rscclass = obj['class']
+        if rscclass not in legit:
+            raise ValueError('Illegal class value: %s' % rscclass)
 
-        if rscclass == 'ocf' and 'provider' not in obj:
-            raise ValueError('OCF rules must specify provider')
+        l = legit[obj['class']]
+        for key in l.keys():
+            if l[key] and key not in obj:
+                raise ValueError('%s object must have %s field' % (rscclass, key))
+        for key in obj.keys():
+            if key not in l:
+                raise ValueError('%s object cannot have a %s field' % (rscclass, key))
+
         if rscclass == 'lsb':
             return LSBMonitoringRule(obj['type'], obj['classconfig'])
         if rscclass == 'ocf':
