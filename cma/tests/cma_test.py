@@ -723,6 +723,23 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(arglist['port'], '7474')
         self.assertEqual(arglist['home'], '/var/lib/neo4j')
 
+    def test_automonitor_strings_basic(self):
+        ocf_string = '''{
+#       comment
+        "class":        "ocf",
+        "type":         "neo4j",
+        "provider":     "assimilation",
+        "classconfig": [
+            [null,      "pathname",                ".*/java"],
+            [null,      "arglist[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["PORT",    "serviceport",             "[0-9]+$"],
+            ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
+        ]
+}'''
+        ocf = MonitoringRule.ConstructFromString(ocf_string)
+        self.assertTrue(isinstance(ocf, OCFMonitoringRule))
+        
+
     def test_automonitor_OCF_complete(self):
         # @TODO What I have in mind for this test is that it
         # actually construct an auto-generated OCF monitoring node and activate it

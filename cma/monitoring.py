@@ -338,7 +338,7 @@ class MonitoringRule:
 
         if rscclass == 'ocf' and 'provider' not in obj:
             raise ValueError('OCF rules must specify provider')
-        if rscclass == 'ocf':
+        if rscclass == 'lsb':
             return LSBMonitoringRule(obj['type'], obj['classconfig'])
         if rscclass == 'ocf':
             return OCFMonitoringRule(obj['provider'], obj['type'], obj['classconfig'])
