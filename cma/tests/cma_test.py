@@ -681,7 +681,7 @@ class TestMonitorBasic(TestCase):
             (   ('port', 'port')
             ,   (None, 'pathname', '.*/java$')
             ,   ('-', 'arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$')
-            ,   ('home', '@argvalue(-Dneo4j.home)', '/.*')
+            ,   ('home', '@argequals(-Dneo4j.home)', '/.*')
             )
         )
         neoprocargs = ("/usr/bin/java", "-cp"
