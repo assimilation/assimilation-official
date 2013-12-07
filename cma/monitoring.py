@@ -164,8 +164,9 @@ class MonitoringRule:
     HIGHPRIOMATCH = 3
 
     functions = {}
+    monitorobjects = {}
 
-    def __init__(self, tuplespec):
+    def __init__(self, monitorclass, tuplespec):
         '''It is constructed from an list of tuples, each one of which represents
         a value expression and a regular expression.  Each value expression
         is a specification to a GraphNode 'get' operation.  Each regular expression
@@ -177,6 +178,7 @@ class MonitoringRule:
         if tuplespec is None or len(tuplespec) == 0:
             raise ValueError('Improper tuplespec')
 
+        self.monitorclass = monitorclass
         self._tuplespec = []
         for tup in tuplespec:
             if len(tup) < 2 or len(tup) > 3:
@@ -190,6 +192,11 @@ class MonitoringRule:
             except:
                 raise ValueError('Improperly formed regular expression')
             self._tuplespec.append((tup[0], regex))
+
+        # Register us in the grand and glorious set of all monitoring rules
+        if monitorclass not in MonitoringRule.monitorobjects:
+            MonitoringRule.monitorobjects[monitorclass] = []
+        MonitoringRule.monitorobjects[monitorclass].append(self)
 
 
     def specmatch(self, graphnodes):
@@ -355,8 +362,63 @@ class MonitoringRule:
         raise ValueError('Invalid resource class ("class" = "%s")' % rscclass)
 
 
+    @staticmethod
+    def findbestmatch(graphnodes, preferlowoverpart=True):
+        '''
+        Find the best match among the complete collection of MonitoringRules
+        against this particular set of graph nodes.
 
+        Return value
+        -------------
+        A tuple of (priority, config-info).  When we can't find anything useful
+        in the complete set of rules, we return (MonitoringRule.NOMATCH, None)
 
+        Parameters
+        ----------
+        graphnodes: GraphNode
+            The set of graph nodes with relevant attributes.  This is normally the
+                     ProcessNode being monitored and the Drone the services runs on
+        preferlowoverpath: Bool
+            True if you the caller prefers a LOWPRIOMATCH result over a PARTMATCH result.
+            This should be True for automated monitoring and False for possibly manually
+            configured monitoring.  The default is to assume that we'd rather
+            automated monitoring running now over finding a human to fill in the
+            other parameters.
+
+            Of course, we always prefer a HIGHPRIOMATCH monitoring method.
+        '''
+        rsctypes = ['ocf', 'lsb'] # Priority ordering...
+        # This will make sure the priority list above is maintained :-D
+        if len(rsctypes) != len(MonitoringRule.monitorobjects.keys()):
+            raise RuntimeError('Update rsctypes list in findbestmatch()!')
+
+        rvalues = {}    # Most rules will examine common expressions
+                        # This handy map caches expression values.
+        bestmatch = (MonitoringRule.NOMATCH, None)
+
+        # Search the rule types in priority order
+        for rtype in rsctypes:
+            # Search every rule of class 'rtype'
+            for rule in MonitoringRule.monitorobjects[rtype]:
+                match = rule.constructaction(rvalues, graphnodes)
+                prio = match[0]
+                if prio == MonitoringRule.HIGHPRIOMATCH:
+                    return match
+                if prio == MonitoringRule.NOMATCH:
+                    continue
+                bestprio = bestmatch[0]
+                if bestprio == MonitoringRule.NOMATCH:
+                    bestmatch = match
+                    continue
+                if prio == bestprio:
+                    continue
+                # We have different priorities - which do we prefer?
+                if preferlowoverpart:
+                    if prio == MonitoringRule.LOWPRIOMATCH:
+                        bestmatch = match
+                elif prio == MonitoringRule.PARTMATCH:
+                    bestmatch = match
+        return bestmatch
 
     @staticmethod
     def ConstructFromFileName(filename):
@@ -377,7 +439,7 @@ class LSBMonitoringRule(MonitoringRule):
     '''
     def __init__(self, servicename, tuplespec):
         self.servicename = servicename
-        MonitoringRule.__init__(self, tuplespec)
+        MonitoringRule.__init__(self, 'lsb', tuplespec)
 
     def constructaction(self, values, graphnodes):
         '''Construct arguments
@@ -444,7 +506,7 @@ class OCFMonitoringRule(MonitoringRule):
                 raise ValueError('Invalid tuple length (%d)' % tuplen)
             if name is not None and name != '-':
                 self.nvpairs[name] = expression
-        MonitoringRule.__init__(self, tuplespec)
+        MonitoringRule.__init__(self, 'ocf', tuplespec)
 
 
     def constructaction(self, values, graphnodes):
