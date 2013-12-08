@@ -609,7 +609,56 @@ def argequals(args, values, graphnodes):
         pass
     return None
 
-    
+@MonitoringRule.RegisterFun
+def selectip(args, values, graphnodes):
+    '''
+    This function searches discovery information for a suitable IP
+    address for a particular service.
+    The argument to this function tells it an expression that will give
+    it the hash table (map) of IP/port combinations for this service.
+    '''
+    for argname in args:
+        for node in graphnodes:
+            map = node.get(argname)
+            if map is None:
+                continue
+            try:
+                if map['proto'] != 'tcp':
+                    continue
+                addr = map['addr']
+                aobj = pyNetAddr(addr)
+                if aobj.isanyaddr():
+                    return '127.0.0.1'
+                return addr
+            except (KeyError, ValueError):
+                # Something is hinky with this data
+                print 'OOPS! something wrong with IP addr extraction'
+                return None
+
+
+@MonitoringRule.RegisterFun
+def selectport(args, values, graphnodes):
+    '''
+    This function searches discovery information for a suitable port
+    for a particular service.
+    The argument to this function tells it an expression that will give
+    it the hash table (map) of IP/port combinations for this service.
+    '''
+    for argname in args:
+        for node in graphnodes:
+            map = node.get(argname)
+            if map is None:
+                continue
+            try:
+                if map['proto'] != 'tcp':
+                    continue
+                return str(int(map['port']))
+            except (KeyError, ValueError, TypeError):
+                # Something is hinky with this data
+                print 'OOPS! something wrong with port extraction'
+                return None
+
+
 
 if __name__ == '__main__':
     from graphnodes import ProcessNode
