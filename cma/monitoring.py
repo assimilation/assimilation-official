@@ -30,7 +30,7 @@ rules for certain kinds of services automatically.
 
 from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIELD        \
 ,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREPEATNAMEFIELD, REQTIMEOUTNAMEFIELD
-from AssimCclasses import pyConfigContext
+from AssimCclasses import pyConfigContext, pyNetAddr
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
 from droneinfo import Drone
@@ -617,15 +617,16 @@ def selectip(args, values, graphnodes):
     The argument to this function tells it an expression that will give
     it the hash table (map) of IP/port combinations for this service.
     '''
+    values = values
     for argname in args:
         for node in graphnodes:
-            map = node.get(argname)
-            if map is None:
+            nmap = node.get(argname)
+            if nmap is None:
                 continue
             try:
-                if map['proto'] != 'tcp':
+                if nmap['proto'] != 'tcp':
                     continue
-                addr = map['addr']
+                addr = nmap['addr']
                 aobj = pyNetAddr(addr)
                 if aobj.isanyaddr():
                     return '127.0.0.1'
@@ -644,15 +645,16 @@ def selectport(args, values, graphnodes):
     The argument to this function tells it an expression that will give
     it the hash table (map) of IP/port combinations for this service.
     '''
+    values = values
     for argname in args:
         for node in graphnodes:
-            map = node.get(argname)
-            if map is None:
+            nmap = node.get(argname)
+            if nmap is None:
                 continue
             try:
-                if map['proto'] != 'tcp':
+                if nmap['proto'] != 'tcp':
                     continue
-                return str(int(map['port']))
+                return str(int(nmap['port']))
             except (KeyError, ValueError, TypeError):
                 # Something is hinky with this data
                 print 'OOPS! something wrong with port extraction'
