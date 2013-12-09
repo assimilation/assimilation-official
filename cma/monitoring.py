@@ -274,7 +274,9 @@ class MonitoringRule:
         argsin = arglist.split(',')
         args = []
         for arg in argsin:
-            args.append(arg.strip())
+            arg = arg.strip()
+            if arg != '':
+                args.append(arg.strip())
         if funname not in MonitoringRule.functions:
             return None
         return MonitoringRule.functions[funname](args, values, graphnodes)
@@ -618,6 +620,8 @@ def selectip(args, values, graphnodes):
     it the hash table (map) of IP/port combinations for this service.
     '''
     values = values
+    if len(args) == 0:
+        args = ('JSON_procinfo.listenaddrs',)
     for argname in args:
         for node in graphnodes:
             nmap = node.get(argname)
@@ -648,6 +652,8 @@ def selectport(args, values, graphnodes):
     The argument to this function tells it an expression that will give
     it the hash table (map) of IP/port combinations for this service.
     '''
+    if len(args) == 0:
+        args = ('JSON_procinfo.listenaddrs',)
     values = values
     for argname in args:
         for node in graphnodes:
