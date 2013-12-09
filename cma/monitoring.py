@@ -29,7 +29,8 @@ rules for certain kinds of services automatically.
 
 
 from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIELD        \
-,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREPEATNAMEFIELD, REQTIMEOUTNAMEFIELD
+,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREPEATNAMEFIELD, REQTIMEOUTNAMEFIELD \
+,   ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyConfigContext, pyNetAddr
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
@@ -611,6 +612,54 @@ def argequals(args, values, graphnodes):
         pass
     return None
 
+ipportregex = re.compile('(.*):([^:]*)$')
+def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
+    '''This function searches discovery information for a suitable IP
+    address/port combination
+    '''
+    def regexmatch(key):
+        'Handy internal function to pull out the IP and port into a pyNetAddr'
+        mobj = ipportregex.match(key)
+        if mobj is None:
+            return None
+        (ip, port) = mobj.groups()
+        ipport = pyNetAddr(ip, port=int(port))
+        if ipport.isanyaddr():
+            if ipport.addrtype() == ADDR_FAMILY_IPV4:
+                ipport = pyNetAddr('127.0.0.1', port=ipport.port())
+            else:
+                ipport = pyNetAddr('::1', port=ipport.port())
+        return ipport
+
+    graphnodes = graphnodes
+        
+    try:
+        portlist = {}
+        for key in arg.keys():
+            ipport = regexmatch(key)
+            if ipport.port() == 0:
+                continue
+            port = ipport.port()
+            if port in portlist:
+                portlist[port].append(ipport)
+            else:
+                portlist[port] = [ipport,]
+
+        portkeys = portlist.keys()
+        if preferlowestport:
+            portkeys.sort()
+        for p in portlist[portkeys[0]]:
+            if preferv4:
+                if p.addrtype() == ADDR_FAMILY_IPV4:
+                    return p
+            else:
+                if p.addrtype() == ADDR_FAMILY_IPV6:
+                    return p
+        return portlist[portkeys[0]][0]
+    except (KeyError, ValueError, TypeError, IndexError):
+        # Something is hinky with this data
+        return None
+
 @MonitoringRule.RegisterFun
 def selectip(args, values, graphnodes):
     '''
@@ -625,24 +674,11 @@ def selectip(args, values, graphnodes):
     for argname in args:
         for node in graphnodes:
             nmap = node.get(argname)
-            for ipport in nmap.keys():
-                ipportinfo = nmap[ipport]
-                try:
-                    proto = ipportinfo['proto']
-                    if proto != 'tcp' and proto != 'tcp6':
-                        continue
-                    addr = ipportinfo['addr']
-                    aobj = pyNetAddr(addr)
-                    if aobj.isanyaddr():
-                        if proto == 'tcp':
-                            return '127.0.0.1'
-                        return '::1'
-
-                    return addr
-                except (KeyError, ValueError, TypeError, IndexError):
-                    # Something is hinky with this data
-                    return None
-
+            ipport = selectanipport(nmap, graphnodes)
+            if ipport is None:
+                return None
+            ipport.setport(0)
+            return str(ipport)
 
 @MonitoringRule.RegisterFun
 def selectport(args, values, graphnodes):
@@ -658,18 +694,9 @@ def selectport(args, values, graphnodes):
     for argname in args:
         for node in graphnodes:
             nmap = node.get(argname)
-            for ipport in nmap.keys():
-                ipportinfo = nmap[ipport]
-                try:
-                    proto = ipportinfo['proto']
-                    if proto != 'tcp' and proto != 'tcp6':
-                        continue
-                    return str(int(ipportinfo['port']))
-                except (KeyError, ValueError, TypeError, IndexError):
-                    # Something is hinky with this data
-                    print 'OOPS! something wrong with port extraction'
-                    return None
-
+            port = selectanipport(nmap, graphnodes).port()
+            values[argname] = str(port)
+            return port
 
 
 if __name__ == '__main__':
