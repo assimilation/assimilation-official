@@ -1188,6 +1188,9 @@ class pyConfigContext(pyAssimObj):
         g_slist_free(keylist)
         return l
 
+    #@TODO - implement __iter__
+
+
     def gettype(self, name):
         '''Return the enumeration type of this particular key
         @todo Convert these enums to python types'''
