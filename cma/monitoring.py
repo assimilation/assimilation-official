@@ -621,20 +621,23 @@ def selectip(args, values, graphnodes):
     for argname in args:
         for node in graphnodes:
             nmap = node.get(argname)
-            if nmap is None:
-                continue
-            try:
-                if nmap['proto'] != 'tcp':
-                    continue
-                addr = nmap['addr']
-                aobj = pyNetAddr(addr)
-                if aobj.isanyaddr():
-                    return '127.0.0.1'
-                return addr
-            except (KeyError, ValueError):
-                # Something is hinky with this data
-                print 'OOPS! something wrong with IP addr extraction'
-                return None
+            for ipport in nmap.keys():
+                ipportinfo = nmap[ipport]
+                try:
+                    proto = ipportinfo['proto']
+                    if proto != 'tcp' and proto != 'tcp6':
+                        continue
+                    addr = ipportinfo['addr']
+                    aobj = pyNetAddr(addr)
+                    if aobj.isanyaddr():
+                        if proto == 'tcp':
+                            return '127.0.0.1'
+                        return '::1'
+
+                    return addr
+                except (KeyError, ValueError, TypeError, IndexError):
+                    # Something is hinky with this data
+                    return None
 
 
 @MonitoringRule.RegisterFun
@@ -649,16 +652,17 @@ def selectport(args, values, graphnodes):
     for argname in args:
         for node in graphnodes:
             nmap = node.get(argname)
-            if nmap is None:
-                continue
-            try:
-                if nmap['proto'] != 'tcp':
-                    continue
-                return str(int(nmap['port']))
-            except (KeyError, ValueError, TypeError):
-                # Something is hinky with this data
-                print 'OOPS! something wrong with port extraction'
-                return None
+            for ipport in nmap.keys():
+                ipportinfo = nmap[ipport]
+                try:
+                    proto = ipportinfo['proto']
+                    if proto != 'tcp' and proto != 'tcp6':
+                        continue
+                    return str(int(ipportinfo['port']))
+                except (KeyError, ValueError, TypeError, IndexError):
+                    # Something is hinky with this data
+                    print 'OOPS! something wrong with port extraction'
+                    return None
 
 
 

@@ -816,6 +816,94 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(list2[1][0], MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(list2[1][1]['monitorclass'], 'ocf')
 
+    def test_automonitor_functions(self):
+        MonitoringRule.monitorobjects = {}
+        ocf_string = '''{
+        "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
+        "classconfig": [
+            ["ipaddr",      "@selectip(JSON_procinfo.listenaddrs)"],
+            ["port",        "@selectport(JSON_procinfo.listenaddrs)",   "[0-9]+$"]
+        ]
+        }'''
+        ssh_json = '''{
+          "exe": "/usr/sbin/sshd",
+          "cmdline": [ "/usr/sbin/sshd", "-D" ],
+          "uid": "root",
+          "gid": "root",
+          "cwd": "/",
+          "listenaddrs": {
+            "0.0.0.0:22": {
+              "proto": "tcp",
+              "addr": "0.0.0.0",
+              "port": 22
+            },
+            ":::22": {
+              "proto": "tcp6",
+              "addr": "::",
+              "port": 22
+            }
+          }
+        }'''
+        neo4j_json = '''{
+          "exe": "/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java",
+          "cmdline": [ "/usr/bin/java", "-cp", "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar: ...", "-server", "-XX:+DisableExplicitGC", "-Dorg.neo4j.server.properties=conf/neo4
+    j-server.properties", "-Djava.util.logging.config.file=conf/logging.properties", "-Dlog4j.configuration=file:conf/log4j.properties", "-XX:
+    +UseConcMarkSweepGC", "-XX:+CMSClassUnloadingEnabled", "-Dneo4j.home=/var/lib/neo4j", "-Dneo4j.instance=/var/lib/neo4j", "-Dfile.encoding=
+    UTF-8", "org.neo4j.server.Bootstrapper" ],
+          "uid": "neo4j",
+          "gid": "neo4j",
+          "cwd": "/var/lib/neo4j",
+          "listenaddrs": {
+            ":::1337": {
+              "proto": "tcp6",
+              "addr": "::",
+              "port": 1337
+            },
+            ":::39185": {
+              "proto": "tcp6",
+              "addr": "::",
+              "port": 39185
+            }
+          }
+        }'''
+        bacula_json = '''{
+      "exe": "/usr/sbin/bacula-dir",
+      "cmdline": [ "/usr/sbin/bacula-dir", "-c", "/etc/bacula/bacula-dir.conf", "-u", "bacula", "-g", "bacula" ],
+      "uid": "bacula",
+      "gid": "bacula",
+      "cwd": "/",
+      "listenaddrs": {
+        "10.10.10.5:9101": {
+          "proto": "tcp",
+          "addr": "10.10.10.5",
+          "port": 9101
+        }
+      }
+    }'''
+        MonitoringRule.ConstructFromString(ocf_string)
+        testnode = ProcessNode('global', 'fred', '/usr/bin/java', []
+        ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+
+        testnode.JSON_procinfo = neo4j_json
+        (prio, match) = MonitoringRule.findbestmatch((testnode,))
+        self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
+        self.assertEqual(match['arglist']['ipaddr'], '::1')
+        self.assertEqual(match['arglist']['port'], '1337')
+
+        testnode.JSON_procinfo = ssh_json
+        (prio, match) = MonitoringRule.findbestmatch((testnode,))
+        self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
+        self.assertEqual(match['arglist']['port'], '22')
+        self.assertEqual(match['arglist']['ipaddr'], '127.0.0.1')
+
+        testnode.JSON_procinfo = bacula_json
+        (prio, match) = MonitoringRule.findbestmatch((testnode,))
+        self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
+        self.assertEqual(match['arglist']['port'], '9101')
+        self.assertEqual(match['arglist']['ipaddr'], '10.10.10.5')
+
+
+
     def test_automonitor_OCF_complete(self):
         # @TODO What I have in mind for this test is that it
         # actually construct an auto-generated OCF monitoring node and activate it
