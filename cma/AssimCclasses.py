@@ -1188,7 +1188,7 @@ class pyConfigContext(pyAssimObj):
         g_slist_free(keylist)
         return l
 
-    #@TODO - implement __iter__
+    #@TODO - implement __iter__() method
 
 
     def gettype(self, name):
