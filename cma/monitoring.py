@@ -674,11 +674,16 @@ def selectip(args, values, graphnodes):
     for argname in args:
         for node in graphnodes:
             nmap = node.get(argname)
+            if nmap is None:
+                continue
             ipport = selectanipport(nmap, graphnodes)
             if ipport is None:
-                return None
+                continue
             ipport.setport(0)
-            return str(ipport)
+            ip = str(ipport)
+            values[argname] = ip
+            return ip
+    return None
 
 @MonitoringRule.RegisterFun
 def selectport(args, values, graphnodes):
@@ -694,9 +699,15 @@ def selectport(args, values, graphnodes):
     for argname in args:
         for node in graphnodes:
             nmap = node.get(argname)
+            if nmap is None:
+                continue
             port = selectanipport(nmap, graphnodes).port()
-            values[argname] = str(port)
+            if port is None:
+                continue
+            port = str(port)
+            values[argname] = port
             return port
+    return None
 
 
 if __name__ == '__main__':
