@@ -79,7 +79,8 @@ class CMAinit(object):
     def delete_all(self):
         'Empty everything out of our database - start over!'
         query = neo4j.CypherQuery(self.db
-        ,   'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r')
+        #,   'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r')
+        ,   'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
         result = query.execute()
         if CMAdb.debug:
             CMAdb.log.debug('Cypher query to delete all relationships'
