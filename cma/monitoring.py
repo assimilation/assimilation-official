@@ -66,11 +66,13 @@ class MonitorAction(GraphNode):
         self.isactive = False
 
     def longname(self):
+        'Return a long name for the type of monitoring this rule provides'
         if self.provider is not None:
             return '%s::%s:%s' % (self.monitorclass, self.provider, self.monitortype)
         return '%s:%s' % (self.monitorclass, self.monitortype)
 
     def shortname(self):
+        'Return a short name for the type of monitoring this rule provides'
         return self.monitortype
 
     def activate(self, monitoredentity, runon=None):
@@ -297,6 +299,9 @@ class MonitoringRule:
 
     @staticmethod
     def FunctionDescriptions():
+        '''Return a list of tuples of (funcname, docstring) for all our MonitoringRule
+        defined functions.  The list is sorted by function name.
+        '''
         names = MonitoringRule.functions.keys()
         names.sort()
         ret = []
@@ -840,16 +845,16 @@ if __name__ == '__main__':
     print 'This should be (0, None):	', neorule.specmatch((sshnode,))
     print 'Should be (2, {something}):	', neorule.specmatch((neonode,))
     print 'Documentation of functions available for use in match expressions:'
-    longest=0
-    for (name, value) in MonitoringRule.FunctionDescriptions():
-        if len(name) > longest:
-            longest = len(name)
-    fmt='%%%ds: %%s' % longest
+    longest = 0
+    for (funcname, description) in MonitoringRule.FunctionDescriptions():
+        if len(funcname) > longest:
+            longest = len(funcname)
+    fmt = '%%%ds: %%s' % longest
     pad = (longest +2) * ' '
     fmt2 = pad + '%s'
 
-    for (name, value) in MonitoringRule.FunctionDescriptions():
-        values = value.split('\n')
-        print fmt % (name, values[0])
-        for value in values[1:]:
-            print fmt2 % value
+    for (funcname, description) in MonitoringRule.FunctionDescriptions():
+        descriptions = description.split('\n')
+        print fmt % (funcname, descriptions[0])
+        for descr in descriptions[1:]:
+            print fmt2 % descr
