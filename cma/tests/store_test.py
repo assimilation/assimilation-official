@@ -399,7 +399,6 @@ class TestDatabaseWrites(TestCase):
         #print >> sys.stderr, 'RUNNING create_stuff' 
         self.create_stuff(store)    # Everything has gone out of scope
                                     # so nothing is cached any more
-        print ''
         #print >> sys.stderr, 'RUNNING test_create_and_query' 
         # Verify nothing is cached any more
         self.assertEqual(store.batchindex, 0)

@@ -939,7 +939,8 @@ if __name__ == "__main__":
         ourdb.get_or_create_index(neo4j.Node, 'Drone')
         # Clean out the database
         query = neo4j.CypherQuery(ourdb
-        ,   'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r')
+        #,   'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r')
+        ,   'start n=node(*) match n-[?r]-() where id(n) <> 0 delete n,r')
         query.run()
         # Which fields of which types are used for indexing
         classkeymap = {
