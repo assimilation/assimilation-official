@@ -37,7 +37,7 @@ from graphnodes import GraphNode, RegisterGraphClass
 from droneinfo import Drone
 from cmadb import CMAdb
 from consts import CMAconsts
-import re
+import os, re, inspect
 #
 #
 @RegisterGraphClass
@@ -64,6 +64,14 @@ class MonitorAction(GraphNode):
         self.provider = provider
         self.arglist = arglist
         self.isactive = False
+
+    def longname(self):
+        if self.provider is not None:
+            return '%s::%s:%s' % (self.monitorclass, self.provider, self.monitortype)
+        return '%s:%s' % (self.monitorclass, self.monitortype)
+
+    def shortname(self):
+        return self.monitortype
 
     def activate(self, monitoredentity, runon=None):
         '''Relate this monitoring action to the given entity, and start it on the 'runon' system
@@ -287,6 +295,17 @@ class MonitoringRule:
         'Function to register other functions as built-in MonitoringRule functions'
         MonitoringRule.functions[function.__name__] = function
 
+    @staticmethod
+    def FunctionDescriptions():
+        names = MonitoringRule.functions.keys()
+        names.sort()
+        ret = []
+        for name in names:
+            ret.append((name, inspect.getdoc(MonitoringRule.functions[name])))
+        return ret
+
+
+
     def constructaction(self, values, graphnodes):
         '''Return a tuple consisting of a tuple as noted:
             (MonitoringRule.PRIORITYVALUE, MonitorActionArgs, optional-information)
@@ -470,6 +489,7 @@ class LSBMonitoringRule(MonitoringRule):
         return (MonitoringRule.LOWPRIOMATCH
         ,       {   'monitorclass': 'lsb'
                 ,   'monitortype':  self.servicename
+                ,   'rscname':      'lsb_' + self.servicename # There can only be one
                 ,   'provider':     None
                 ,   'arglist':      None}
         )
@@ -574,11 +594,9 @@ class OCFMonitoringRule(MonitoringRule):
 @MonitoringRule.RegisterFun
 def argequals(args, values, graphnodes):
     '''
-    A function which searches a list for an argument of the form
-    name=value.
+    A function which searches a list for an argument of the form name=value.
     The name is given by the argument in args, and the list 'arglist'
     is assumed to be the list of arguments.
-
     If there are two arguments in args, then the first argument is the
     array value to search in for the name=value string instead of 'arglist'
     '''
@@ -615,7 +633,7 @@ def argequals(args, values, graphnodes):
 ipportregex = re.compile('(.*):([^:]*)$')
 def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
     '''This function searches discovery information for a suitable IP
-    address/port combination
+    address/port combination to go with the service.
     '''
     def regexmatch(key):
         'Handy internal function to pull out the IP and port into a pyNetAddr'
@@ -661,10 +679,10 @@ def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
         return None
 
 @MonitoringRule.RegisterFun
-def selectip(args, values, graphnodes):
+def serviceip(args, values, graphnodes):
     '''
-    This function searches discovery information for a suitable IP
-    address for a particular service.
+    This function searches discovery information for a suitable concrete IP
+    address for a service.
     The argument to this function tells it an expression that will give
     it the hash table (map) of IP/port combinations for this service.
     '''
@@ -679,17 +697,14 @@ def selectip(args, values, graphnodes):
             ipport = selectanipport(nmap, graphnodes)
             if ipport is None:
                 continue
-            ipport.setport(0)
-            ip = str(ipport)
-            values[argname] = ip
-            return ip
+            ipport.setport(0) # Make sure return value doesn't include the port
+            return str(ipport)
     return None
 
 @MonitoringRule.RegisterFun
-def selectport(args, values, graphnodes):
+def serviceport(args, values, graphnodes):
     '''
-    This function searches discovery information for a suitable port
-    for a particular service.
+    This function searches discovery information for a suitable port for a service.
     The argument to this function tells it an expression that will give
     it the hash table (map) of IP/port combinations for this service.
     '''
@@ -704,11 +719,66 @@ def selectport(args, values, graphnodes):
             port = selectanipport(nmap, graphnodes).port()
             if port is None:
                 continue
-            port = str(port)
-            values[argname] = port
-            return port
+            return str(port)
     return None
 
+@MonitoringRule.RegisterFun
+def serviceipport(args, values, graphnodes):
+    '''
+    This function searches discovery information for a suitable ip:port combination.
+    The argument to this function tells it an expression that will give
+    it the hash table (map) of IP/port combinations for this service.
+    The return value is a legal ip:port combination for the given
+    address type (ipv4 or ipv6)
+    '''
+    if len(args) == 0:
+        args = ('JSON_procinfo.listenaddrs',)
+    values = values
+    for argname in args:
+        for node in graphnodes:
+            nmap = node.get(argname)
+            if nmap is None:
+                continue
+            ipport = selectanipport(nmap, graphnodes)
+            if ipport is None:
+                continue
+            return str(ipport)
+    return None
+
+@MonitoringRule.RegisterFun
+def basename(args, values, graphnodes):
+    '''
+    This function returns the basename from a pathname.
+    If no pathname is supplied, then the executable name is assumed.
+    '''
+    if len(args) == 0:
+        args = ('pathname',)    # Default to the name of the executable
+    values = values
+    for argname in args:
+        for node in graphnodes:
+            pathname = node.get(argname)
+            if pathname is None:
+                continue
+            return os.path.basename(pathname)
+    return None
+
+
+@MonitoringRule.RegisterFun
+def dirname(args, values, graphnodes):
+    '''
+    This function returns the directory name from a pathname.
+    If no pathname is supplied, then the executable name is assumed.
+    '''
+    if len(args) == 0:
+        args = ('pathname',)    # Default to the name of the executable
+    values = values
+    for argname in args:
+        for node in graphnodes:
+            pathname = node.get(argname)
+            if pathname is None:
+                continue
+            return os.path.dirname(pathname)
+    return None
 
 if __name__ == '__main__':
     from graphnodes import ProcessNode
@@ -769,3 +839,17 @@ if __name__ == '__main__':
     print 'This should be (0, None):	', sshrule.specmatch((neonode,))
     print 'This should be (0, None):	', neorule.specmatch((sshnode,))
     print 'Should be (2, {something}):	', neorule.specmatch((neonode,))
+    print 'Documentation of functions available for use in match expressions:'
+    longest=0
+    for (name, value) in MonitoringRule.FunctionDescriptions():
+        if len(name) > longest:
+            longest = len(name)
+    fmt='%%%ds: %%s' % longest
+    pad = (longest +2) * ' '
+    fmt2 = pad + '%s'
+
+    for (name, value) in MonitoringRule.FunctionDescriptions():
+        values = value.split('\n')
+        print fmt % (name, values[0])
+        for value in values[1:]:
+            print fmt2 % value
