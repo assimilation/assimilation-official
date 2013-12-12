@@ -34,6 +34,8 @@ def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
     It's a form of "factory" for our database classes
     '''
+    import sys
+    #print >> sys.stderr, 'Calling nodeconstructor with properties: %s' % (str(properties))
     realcls = GraphNode.classmap[properties['nodetype']]
     # callconstructor is kinda cool - it figures out how to correctly call the constructor
     # with the values in 'properties' as arguments
@@ -300,7 +302,7 @@ class SystemNode(GraphNode):
     # We really ought to figure out how to make Drone a subclass of SystemNode
     def __init__(self, domain, designation, roles=None):
         GraphNode.__init__(self, domain=domain)
-        self.designation = designation.lower()
+        self.designation = str(designation).lower()
         if roles == None or roles == []:
             # Neo4j can't initialize node properties to empty arrays because
             # it wants to know what kind of array it is...
