@@ -741,7 +741,8 @@ class Store:
             (subj, node) = pair
             Store._update_node_from_obj(subj)
             subj.__store_batchindex = self.batchindex
-            #print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node' % (self.batchindex, str(node)))
+            #print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node' 
+            #%   (self.batchindex, str(node)))
             self.batchindex += 1
             self._bump_stat('nodecreate')
             self.batch.create(node)
@@ -891,7 +892,8 @@ class Store:
             newnode = submit_results[index]
             #print >> sys.stderr, 'NEW NODE looks like %s' % str(newnode)
             #print >> sys.stderr, 'SUBJ (our copy) looks like %s' % str(subj)
-            #print >> sys.stderr, 'NEONODE (their copy) looks like %d, %s' % (newnode._id, str(newnode.get_properties()))
+            #print >> sys.stderr, ('NEONODE (their copy) looks like %d, %s'
+            #%       (newnode._id, str(newnode.get_properties())))
             # This 'subj' used to have an abstract node, now it's concrete
             subj.__store_node = newnode
             self.weaknoderefs[newnode._id] = weakref.ref(subj)
