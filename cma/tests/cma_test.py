@@ -821,8 +821,8 @@ class TestMonitorBasic(TestCase):
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
-            ["ipaddr",      "@selectip(JSON_procinfo.listenaddrs)"],
-            ["port",        "@selectport()",   "[0-9]+$"]
+            ["ipaddr",      "@serviceip(JSON_procinfo.listenaddrs)"],
+            ["port",        "@serviceport()",   "[0-9]+$"]
         ]
         }'''
         ssh_json = '''{
