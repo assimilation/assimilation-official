@@ -34,7 +34,6 @@ def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
     It's a form of "factory" for our database classes
     '''
-    import sys
     #print >> sys.stderr, 'Calling nodeconstructor with properties: %s' % (str(properties))
     realcls = GraphNode.classmap[properties['nodetype']]
     # callconstructor is kinda cool - it figures out how to correctly call the constructor
