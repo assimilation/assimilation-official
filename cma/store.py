@@ -34,7 +34,7 @@ import re, inspect, weakref
 from py2neo import neo4j
 from datetime import datetime, timedelta
 from collections import namedtuple
-#import sys # only for stderr
+import sys # only for stderr
 
 # R0902: Too many instance attributes (17/10)
 # R0904: Too many public methods (27/20)
@@ -221,12 +221,12 @@ class Store:
     def dump_clients(self):
         'Dump out all our client objects and their supported attribute values and states'
         for client in self.clients:
-            print ('Client %s:' % client)
+            print >> sys.stderr, ('Client %s:' % client)
             for attr in Store._safe_attr_names(client):
                 if attr in client.__store_dirty_attrs.keys():
-                    print ('%10s: Dirty - %s' % (attr, client.__dict__[attr]))
+                    print >> sys.stderr, ('%10s: Dirty - %s' % (attr, client.__dict__[attr]))
                 else:
-                    print ('%10s: Clean - %s' % (attr, client.__dict__[attr]))
+                    print >> sys.stderr, ('%10s: Clean - %s' % (attr, client.__dict__[attr]))
 
     def save_indexed(self, index_name, key, value, *subj):
         'Save the given (new) object as an indexed node'
@@ -318,7 +318,7 @@ class Store:
         doesn't exist
         '''
         if not cls.__name__ in self.classkeymap:
-            print (self.classkeymap)
+            print >> sys.stderr, (self.classkeymap)
             raise ValueError("Class [%s] does not have a known index [%s]" 
             %   (cls.__name__, self.classkeymap))
         subj = self.callconstructor(cls, clsargs)
@@ -484,8 +484,8 @@ class Store:
             for arg in kwargs.keys():
                 if arg in args:
                     newkwargs[arg] = kwargs[arg]
-        #import sys
         #print >> sys.stderr, ('Calling %s with args: %s' % (constructor, str(newkwargs)))
+        #print >> sys.stderr, 'CONSTRUCTOR(%s)' % (str(newkwargs))
         ret = constructor(**newkwargs)
 
         # Make sure the attributes match the desired values
@@ -549,7 +549,7 @@ class Store:
 
         if name[0] != '_':
             if hasattr(objself, '_Store__store_dirty_attrs'):
-                #print ('Caught %s being set to %s!' % (name, value))
+                #print >> sys.stderr, ('Caught %s being set to %s!' % (name, value))
                 #traceback.print_stack()
                 objself.__store_dirty_attrs[name] = True
                 objself.__store.clients[objself] = True
@@ -560,7 +560,7 @@ class Store:
         'Update the node from its paired object'
         node = subj.__store_node
         for attr in subj.__store_dirty_attrs.keys():
-            #print ('Setting node["%s"] to %s' % (attr, getattr(subj, attr)))
+            #print >> sys.stderr, ('Setting node["%s"] to %s' % (attr, getattr(subj, attr)))
             node[attr] = Store._proper_attr_value(subj, attr)
         subj.__store_dirty_attrs = {}
 
@@ -574,7 +574,7 @@ class Store:
             if attr in subj.__store_dirty_attrs:
                 remove_subj = False
                 continue
-            #print ('Setting obj["%s"] to %s' % (attr, pattr))
+            #print >> sys.stderr, ('Setting obj["%s"] to %s' % (attr, pattr))
             setattr(subj, attr, pattr)
             # Avoid unnecessary update transaction
             del subj.__store_dirty_attrs[attr]
@@ -673,9 +673,10 @@ class Store:
                 del self.weaknoderefs[nodeid]
             else:
                 # Yes, we have a copy laying around somewhere - update it...
-                #print ('WE HAVE NODE LAYING AROUND...', node.get_properties())
+                #print >> sys.stderr, ('WE HAVE NODE LAYING AROUND...', node.get_properties())
                 self._update_obj_from_node(subj)
                 return subj
+        #print >> sys.stderr, 'NODE ID: %d, node = %s' % (node._id, str(node))
         retobj = Store.callconstructor(cls, node.get_properties())
         return self._register(retobj, node=node)
 
@@ -704,7 +705,7 @@ class Store:
                 if weakling is None:
                     del self.weaknoderefs[node._id]
                 else:
-                    print ('OOPS! - already here... self.weaknoderefs'
+                    print >> sys.stderr, ('OOPS! - already here... self.weaknoderefs'
                     ,   weakling, weakling.__dict__)
             assert not node._id in self.weaknoderefs or self.weaknoderefs[node._id] is None
             self.weaknoderefs[node._id] = weakref.ref(subj)
@@ -740,7 +741,7 @@ class Store:
             (subj, node) = pair
             Store._update_node_from_obj(subj)
             subj.__store_batchindex = self.batchindex
-            #print ('Performing batch.create(%d: %s) - for new node' % (self.batchindex, node))
+            #print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node' % (self.batchindex, str(node)))
             self.batchindex += 1
             self._bump_stat('nodecreate')
             self.batch.create(node)
@@ -767,9 +768,9 @@ class Store:
             rel['seqno'] = self.batchindex
             rel['abstract'] = absrel
             self.batchindex += 1
-            #print ('Performing batch.create(%s) - for node relationships' % absrel)
+            #print >> sys.stderr, ('Performing batch.create(%s) - for node relationships' % absrel)
             self._bump_stat('relate')
-            #print ('ADDING rel %s' % absrel)
+            #print >> sys.stderr, ('ADDING rel %s' % absrel)
             self.batch.create(absrel)
 
     def _batch_construct_deletions(self):
@@ -780,7 +781,7 @@ class Store:
             if isinstance(relorobj, neo4j.Relationship):
                 relid = relorobj._id
                 if relid not in delrels:
-                    #print ('DELETING rel %d: %s' % (relorobj._id, relorobj))
+                    #print >> sys.stderr, ('DELETING rel %d: %s' % (relorobj._id, relorobj))
                     self._bump_stat('separate')
                     self.batch.delete(relorobj)
                     delrels[relid] = True
@@ -796,7 +797,7 @@ class Store:
                 for attr in relorobj.__dict__.keys():
                     if attr.startswith('_Store__store'):
                         delattr(relorobj, attr)
-                #print ('DELETING node %s' % node)
+                #print >> sys.stderr, ('DELETING node %s' % node)
                 self._bump_stat('nodedelete')
                 self.batch.delete(node)
                 delnodes[relid] = True
@@ -815,12 +816,12 @@ class Store:
                 self.index_entry_count += 1
                 self._bump_stat('index')
                 if subj.__store_index_unique:
-                    #print ('Adding node or fail: node %s to index %s("%s","%s")' %\
+                    #print >> sys.stderr, ('Adding node or fail: node %s to index %s("%s","%s")' %\
                         #(subj.__store_batchindex, idx, key, value))
                     self.batch.add_to_index_or_fail(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
                 else:
-                    #print ('add_to_index: node %s added to index %s(%s,%s)' %
+                    #print >> sys.stderr, ('add_to_index: node %s added to index %s(%s,%s)' %
                         #(subj.__store_batchindex, idx, key, value))
                     self.batch.add_to_index(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
@@ -836,9 +837,10 @@ class Store:
                 continue
             for attr in subj.__store_dirty_attrs.keys():
                 # Each of these items will return None in the HTTP stream...
-                #print ('Setting property %s to %s' % (attr, getattr(subj, attr)))
                 self.node_update_count += 1
                 self._bump_stat('attrupdate')
+                #print >> sys.stderr, ('Setting property %s of %d to %s' % (attr
+                #,       node._id, Store._proper_attr_value(subj, attr)))
                 self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
 
     def abort(self):
@@ -859,7 +861,7 @@ class Store:
 
     def commit(self):
         '''Commit all the changes we've created since our last transaction'''
-        #print ('COMMITTING THIS THING:', self)
+        #print >> sys.stderr, ('COMMITTING THIS THING:', self)
         if self.batch is None:
             self.batch = neo4j.WriteBatch(self.db)
         self.batchindex = 0
@@ -868,9 +870,12 @@ class Store:
         self._batch_construct_new_index_entries()   # These return the objects indexed
         self._batch_construct_node_updates()        # These return None
         self._batch_construct_deletions()           # These return None
-        #print ('Committing THIS THING:', str(self))
+        #print >> sys.stderr, ('Committing THIS THING:', str(self))
         start = datetime.now()
         submit_results = self.batch.submit()
+        #for result in submit_results:
+            #print >> sys.stderr, 'SUBMITRESULT:', result
+
         end = datetime.now()
         diff = end - start
         self.stats['lastcommit'] = diff
@@ -882,15 +887,19 @@ class Store:
             # pylint: disable=W0612
             (subj, unused) = pair
             index = subj.__store_batchindex
+            #print >> sys.stderr, 'LOOKING at new node with batch index %d' % index
             newnode = submit_results[index]
+            #print >> sys.stderr, 'NEW NODE looks like %s' % str(newnode)
+            #print >> sys.stderr, 'SUBJ (our copy) looks like %s' % str(subj)
+            #print >> sys.stderr, 'NEONODE (their copy) looks like %d, %s' % (newnode._id, str(newnode.get_properties()))
             # This 'subj' used to have an abstract node, now it's concrete
             subj.__store_node = newnode
             self.weaknoderefs[newnode._id] = weakref.ref(subj)
             for attr in newnode.get_properties():
                 if not hasattr(subj, attr):
-                    print ("OOPS - we're missing attribute %s" % attr)
+                    print >> sys.stderr, ("OOPS - we're missing attribute %s" % attr)
                 elif getattr(subj, attr) != newnode[attr]:
-                    print ("OOPS - attribute %s is %s and should be %s" \
+                    print >> sys.stderr, ("OOPS - attribute %s is %s and should be %s" \
                     %   (attr, getattr(subj, attr), newnode[attr]))
         self.abort()
         return submit_results
@@ -928,7 +937,7 @@ if __name__ == "__main__":
         ourdb.get_or_create_index(neo4j.Node, 'Drone')
         # Clean out the database
         query = neo4j.CypherQuery(ourdb
-        ,   'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r')
+        ,   'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r')
         query.run()
         # Which fields of which types are used for indexing
         classkeymap = {
@@ -986,13 +995,13 @@ if __name__ == "__main__":
         assert fred.b == 2
         assert fred.name == DRONE
         assert fred.c > 3.14158 and fred.c < 3.146
-        print (store)
+        print >> sys.stderr, (store)
         assert not store.transaction_pending
 
         #Add another new field
         fred.x = 'malcolm'
         store.dump_clients()
-        print ('store:', store)
+        print >> sys.stderr, ('store:', store)
         assert store.transaction_pending
         store.commit() 
         assert not store.transaction_pending
@@ -1004,12 +1013,12 @@ if __name__ == "__main__":
 
         # Check out load_indexed...
         newnode = store.load_indexed('Drone', 'Drone', fred.name, Drone)[0]
-        print ('LoadIndexed NewNode: %s %s' % (newnode, store.safe_attrs(newnode)))
+        print >> sys.stderr, ('LoadIndexed NewNode: %s %s' % (newnode, store.safe_attrs(newnode)))
         # It's dangerous to have two separate objects which are the same thing be distinct
         # so we if we fetch a node, and one we already have, we get the original one...
         assert fred is newnode
         if store.transaction_pending:
-            print ('UhOh, we have a transaction pending.')
+            print >> sys.stderr, ('UhOh, we have a transaction pending.')
             store.dump_clients()
             assert not store.transaction_pending
         assert newnode.a == 52
@@ -1022,7 +1031,7 @@ if __name__ == "__main__":
         # Test a simple cypher query...
         query = neo4j.CypherQuery(ourdb, "START d=node:Drone('*:*') RETURN d")
         qnode = store.load_cypher_node(query, Drone) # Returns a single node
-        print ('qnode=%s' % qnode)
+        print >> sys.stderr, ('qnode=%s' % qnode)
         assert qnode is fred
         qnodes = store.load_cypher_nodes(query, Drone) # Returns iterable
         qnodes = [qnode for qnode in qnodes]
@@ -1043,7 +1052,7 @@ if __name__ == "__main__":
         assert not hasattr(fred, '_Store__store_node')
         assert not store.transaction_pending
 
-        print ('Statistics:', store.stats)
-        print ('Final returned values look good!')
+        print >> sys.stderr, ('Statistics:', store.stats)
+        print >> sys.stderr, ('Final returned values look good!')
 
     testme()

@@ -273,8 +273,8 @@ def auditallrings():
         ring.AUDIT()
 
 class TestIO:
-    '''A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read' and in turn
-    saves all the packets it 'writes' for us to inspect.
+    '''A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read'
+    and in turn saves all the packets it 'writes' for us to inspect.
     '''
     def __init__(self, addrframesetpairs, sleepatend=0):
         if isinstance(addrframesetpairs, tuple):
@@ -552,11 +552,11 @@ class TestMonitorBasic(TestCase):
                             self.assertTrue('provider' in table)
                     for tup in (('class', str), ('type', str), ('resourcename', str)
                     ,           ('monitorclass', str), ('provider', str)
-                    ,           ('repeat_interval', int)
-                    ,           ('timeout', int)):
+                    ,           ('repeat_interval', (int, long))
+                    ,           ('timeout', (int,long))):
                         (n, t) = tup
                         if n in table:
-                            self.assertTrue(type(table[n]) is t)
+                            self.assertTrue(isinstance(table[n], t))
 
         # TODO: Add test for deactivating the resource(s)
 

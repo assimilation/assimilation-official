@@ -73,7 +73,7 @@ class TestSystem(GraphNode):
     def addroles(self, role):
         if self.roles[0] == '':
             del self.roles[0]
-        if isinstance(role, list):
+        if isinstance(role, (list, tuple)):
             for arole in role:
                 self.addroles(arole)
         elif role not in self.roles:
@@ -358,8 +358,81 @@ class TestGeneralQuery(TestCase):
                 self.assertTrue(row.nic is sevennic2)
                 self.assertTrue(row.ipaddr is ipaddr2)
                 foundaddr2 = True
+        self.assertEqual(rowcount, 2)
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
+
+class TestDatabaseWrites(TestCase):
+    mac1= 'ff-ff:7-0f-9:7-0f-9'
+    mac2= '00-00:7-0f-9:7-0f-9'
+    ip1= '10.10.10.1'
+    ip2= '10.10.10.2'
+
+    def create_stuff(self, store):
+        seven = store.load_or_create(TestDrone, designation='SevenOfNine', roles='Borg')
+        #Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
+        #store.relate(seven, 'formerly', Annika)
+        #sevennic1 = store.load_or_create(TestNIC, MACaddr=TestDatabaseWrites.mac1)
+        #sevennic2 = store.load_or_create(TestNIC, MACaddr=TestDatabaseWrites.mac2)
+        #ipaddr1=store.load_or_create(TestIPaddr,   ipaddr=TestDatabaseWrites.ip1)
+        #ipaddr2=store.load_or_create(TestIPaddr,   ipaddr=TestDatabaseWrites.ip2)
+        #store.relate(seven, 'nicowner', sevennic1)
+        #store.relate(seven, 'nicowner', sevennic2)
+        #store.relate(sevennic1, 'ipowner', ipaddr1)
+        #store.relate(sevennic2, 'ipowner', ipaddr2)
+        store.commit()
+        # Now we have something to test queries against...
+        # seven-[:formerly]->Annika
+        # seven-[:nicowner]-> sevennic1-[:ipowner]->10.10.10.1
+        # seven-[:nicowner]-> sevennic2-[:ipowner]->10.10.10.2
+        # When we return, we should not have anything in our cache
+
+    def test_create_and_query(self):
+        '''The main point of this test is to verify that things actually go into the
+        database correctly.'''
+        Qstr='''START drone=node:TestDrone('sevenofnine:*')
+        MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
+        RETURN person, drone, nic, ipaddr'''
+        Qstr='''START drone=node:TestDrone('sevenofnine:*')
+        RETURN drone'''
+        store = initstore()
+        #print >> sys.stderr, 'RUNNING create_stuff' 
+        self.create_stuff(store)    # Everything has gone out of scope
+                                    # so nothing is cached any more
+        print ''
+        #print >> sys.stderr, 'RUNNING test_create_and_query' 
+        # Verify nothing is cached any more
+        self.assertEqual(store.batchindex, 0)
+        self.assertEqual(len(store.clients), 0)
+        self.assertEqual(len(store.newrels), 0)
+        self.assertEqual(len(store.deletions), 0)
+        self.assertEqual(len(store.deletions), 0)
+        for ref in store.weaknoderefs:
+            self.assertTrue(store.weaknoderefs[ref]() is None)
+        store.weaknoderefs = {}
+        Query = neo4j.CypherQuery(store.db, Qstr)
+        iter = store.load_cypher_query(Query, GraphNode.factory)
+        rowcount = 0
+        foundaddr1=False
+        foundaddr2=False
+        for row in iter:
+            rowcount += 1
+            # fields are person, drone, nic and ipaddr
+            #self.assertEqual(row.person.firstname, 'Annika')
+            #self.assertEqual(row.person.lastname, 'Hansen')
+            self.assertEqual(row.drone.designation, 'SevenOfNine'.lower())
+            for role in ('host', 'Drone', 'Borg'):
+                self.assertTrue(role in row.drone.roles)
+            if False and row.nic.MACaddr == TestDatabaseWrites.mac1:
+                self.assertEqual(row.ipaddr.ipaddr, TestDatabaseWrites.ip1)
+                foundaddr1 = True
+            elif False:
+                self.assertEqual(row.nic.MACaddr, TestDatabaseWrites.mac2)
+                self.assertEqual(row.ipaddr.ipaddr, TestDatabaseWrites.ip2)
+                foundaddr2 = True
+        self.assertEqual(rowcount, 1)
+        #self.assertTrue(foundaddr1)
+        #self.assertTrue(foundaddr2)
 
 # Other things that ought to have tests:
 #   node deletion

@@ -377,7 +377,7 @@ class Drone(SystemNode):
             if not isinstance(value, int) and not isinstance(value, float):
                 value = str(value)
             attrs[key] = value
-        attrs['name'] =  chassisid
+        attrs['designation'] =  chassisid
         #### FIXME What should the domain of a switch default to?
         attrs['domain'] =  self.domain
         switch = CMAdb.store.load_or_create(SystemNode, **attrs)
