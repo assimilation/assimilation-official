@@ -569,9 +569,14 @@ class OCFMonitoringRule(MonitoringRule):
         # Figure out what we know how to supply and what we need to ask
         # a human for -- in order to properly monitor this resource
         for name in self.nvpairs:
+            if name.startswith('?'):
+                optional=True
+                name = name[1:]
+            else:
+                optional=False
             expression = self.nvpairs[name]
             val = MonitoringRule.evaluate(expression, values, graphnodes)
-            if val is None:
+            if val is None and not optional:
                 missinglist.append(name)
             else:
                 arglist[name] = str(val)
@@ -600,10 +605,10 @@ class OCFMonitoringRule(MonitoringRule):
 def argequals(args, values, graphnodes):
     '''
     A function which searches a list for an argument of the form name=value.
-    The name is given by the argument in args, and the list 'arglist'
+    The name is given by the argument in args, and the list 'argv'
     is assumed to be the list of arguments.
     If there are two arguments in args, then the first argument is the
-    array value to search in for the name=value string instead of 'arglist'
+    array value to search in for the name=value string instead of 'argv'
     '''
     if len(args) > 2 or len(args) < 1:
         return None
@@ -611,7 +616,7 @@ def argequals(args, values, graphnodes):
         argname = args[0]
         definename = args[1]
     else:
-        argname = 'arglist'
+        argname = 'argv'
         definename = args[0]
     if argname in values:
         listtosearch = values[argname]
@@ -788,15 +793,15 @@ def dirname(args, values, graphnodes):
 if __name__ == '__main__':
     from graphnodes import ProcessNode
     neoargs = (
-                ('arglist[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
-                ('arglist[3]', r'-server$'),             # Probably overkill
-                ('arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+                ('argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                ('argv[3]', r'-server$'),             # Probably overkill
+                ('argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
         )
     neorule = LSBMonitoringRule('neo4j-service', neoargs)
 
     sshnode = ProcessNode('global', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
     #ProcessNode:
-    #   (domain, host, pathname, arglist, uid, gid, cwd, roles=None):
+    #   (domain, host, pathname, argv, uid, gid, cwd, roles=None):
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
     sshargs = (

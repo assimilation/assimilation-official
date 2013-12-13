@@ -266,7 +266,7 @@ class Drone(SystemNode):
                     self.addrole(CMAconsts.ROLE_client)
             processproc = CMAdb.store.load_or_create(ProcessNode, domain=self.domain
             ,   host=self.designation
-            ,   pathname=procinfo.get('exe', 'unknown'), arglist=procinfo.get('cmdline', 'unknown')
+            ,   pathname=procinfo.get('exe', 'unknown'), argv=procinfo.get('cmdline', 'unknown')
             ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
             ,   cwd=procinfo.get('cwd', '/'))
             assert hasattr(processproc, '_Store__store_node')
