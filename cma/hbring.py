@@ -104,7 +104,7 @@ class HbRing(GraphNode):
             %   (str(drone), str(self), drone.port))
         # Make sure he's not already in our ring according to our 'database'
         if not Store.is_abstract(drone):
-            rels = CMAdb.store.load_related(self, self.ourreltype, drone)
+            rels = CMAdb.store.load_in_related(drone, self.ourreltype, HbRing)
             rels = [rel for rel in rels]
             if len(rels) > 0:
                 CMAdb.log.warning("Drone %s is already a member of this ring [%s]"
