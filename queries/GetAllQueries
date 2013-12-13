@@ -1,0 +1,10 @@
+{   "cypher": "START Q=node:ClientQuery('*:*') RETURN Q",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "parameters": {},
+    "descriptions": {
+        "en": {
+            "short": "list all queries",
+            "long":  "return a list of all available queries and their metadata"
+        }
+    }
+}
