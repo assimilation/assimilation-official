@@ -570,10 +570,10 @@ class OCFMonitoringRule(MonitoringRule):
         # a human for -- in order to properly monitor this resource
         for name in self.nvpairs:
             if name.startswith('?'):
-                optional=True
+                optional = True
                 name = name[1:]
             else:
-                optional=False
+                optional = False
             expression = self.nvpairs[name]
             val = MonitoringRule.evaluate(expression, values, graphnodes)
             if val is None and not optional:
