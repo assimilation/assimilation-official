@@ -562,15 +562,15 @@ class TestMonitorBasic(TestCase):
 
     def test_automonitor_LSB_basic(self):
         neoargs = (
-                    ('arglist[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
-                    ('arglist[3]', r'-server$'),             # Probably overkill
-                    ('arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+                    ('argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                    ('argv[3]', r'-server$'),             # Probably overkill
+                    ('argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
             )
         neorule = LSBMonitoringRule('neo4j-service', neoargs)
 
         sshnode = ProcessNode('global', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
         #ProcessNode:
-        #   (domain, host, pathname, arglist, uid, gid, cwd, roles=None):
+        #   (domain, host, pathname, argv, uid, gid, cwd, roles=None):
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         sshargs = (
@@ -652,7 +652,7 @@ class TestMonitorBasic(TestCase):
         ,   ('-', 'pathname')               #   length 2 - name, expression
         ,   ('port', 'port', '[0-9]+$')     #   length 3 - name, expression, regex
         ,   (None, 'pathname', '.*/java$')  #   length 3 - name, expression, regex
-        ,   ('-', 'arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$')
+        ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
                                             #   length 3 - name, expression, regex
         ,   ('port', 'port', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
         ))
@@ -670,7 +670,7 @@ class TestMonitorBasic(TestCase):
             self.assertEqual(type(tup[1]), regextype)
             exprlist.append(tup[0])
         self.assertEqual(str(exprlist)
-        ,   "['port', 'pathname', 'arglist[-1]', 'port']")
+        ,   "['port', 'pathname', 'argv[-1]', 'port']")
         #
         # That was a pain...
         #
@@ -680,7 +680,7 @@ class TestMonitorBasic(TestCase):
         neo4j = OCFMonitoringRule('assimilation', 'neo4j',
             (   ('port', 'port')
             ,   (None, 'pathname', '.*/java$')
-            ,   ('-', 'arglist[-1]', r'org\.neo4j\.server\.Bootstrapper$')
+            ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
             ,   ('home', '@argequals(-Dneo4j.home)', '/.*')
             )
         )
@@ -732,7 +732,7 @@ class TestMonitorBasic(TestCase):
         "provider":     "assimilation",
         "classconfig": [
             [null,      "pathname",                ".*/java"],
-            [null,      "arglist[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
+            [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
             ["PORT",    "serviceport",             "[0-9]+$"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
@@ -745,7 +745,7 @@ class TestMonitorBasic(TestCase):
         "type":         "neo4j",
         "classconfig": [
             ["pathname",    ".*/java"],
-            ["arglist[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
 }'''
         lsb = MonitoringRule.ConstructFromString(lsb_string)
@@ -757,7 +757,7 @@ class TestMonitorBasic(TestCase):
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
             [null,      "pathname",                ".*/java"],
-            [null,      "arglist[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
+            [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
             ["PORT",    "serviceport",             "[0-9]+$"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
@@ -767,7 +767,7 @@ class TestMonitorBasic(TestCase):
         "class":        "lsb", "type":         "neo4j",
         "classconfig": [
             ["pathname",    ".*/java"],
-            ["arglist[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
         }'''
         MonitoringRule.ConstructFromString(lsb_string)
