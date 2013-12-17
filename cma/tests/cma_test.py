@@ -576,7 +576,7 @@ class TestMonitorBasic(TestCase):
         sshargs = (
                     # This means one of our nodes should have a value called
                     # pathname, and it should end in '/sshd'
-                    ('pathname', '.*/sshd$'),
+                    ('@basename()', 'sshd$'),
             )
         sshrule = LSBMonitoringRule('ssh', sshargs)
 
@@ -652,6 +652,7 @@ class TestMonitorBasic(TestCase):
         ,   ('-', 'pathname')               #   length 2 - name, expression
         ,   ('port', 'port', '[0-9]+$')     #   length 3 - name, expression, regex
         ,   (None, 'pathname', '.*/java$')  #   length 3 - name, expression, regex
+        ,   (None, '@basename()', 'java$')  #   length 3 - name, expression, regex
         ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
                                             #   length 3 - name, expression, regex
         ,   ('port', 'port', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
@@ -670,7 +671,7 @@ class TestMonitorBasic(TestCase):
             self.assertEqual(type(tup[1]), regextype)
             exprlist.append(tup[0])
         self.assertEqual(str(exprlist)
-        ,   "['port', 'pathname', 'argv[-1]', 'port']")
+        ,   "['port', 'pathname', '@basename()', 'argv[-1]', 'port']")
         #
         # That was a pain...
         #
@@ -731,9 +732,9 @@ class TestMonitorBasic(TestCase):
         "type":         "neo4j",
         "provider":     "assimilation",
         "classconfig": [
-            [null,      "pathname",                ".*/java"],
-            [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
-            ["PORT",    "serviceport",             "[0-9]+$"],
+            [null,      "@basename()",              "java$"],
+            [null,      "argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["PORT",    "serviceport",              "[0-9]+$"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
 }'''
@@ -744,8 +745,8 @@ class TestMonitorBasic(TestCase):
         "class":        "lsb",
         "type":         "neo4j",
         "classconfig": [
-            ["pathname",    ".*/java"],
-            ["argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["@basename()",    "java$"],
+            ["argv[-1]",       "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
 }'''
         lsb = MonitoringRule.ConstructFromString(lsb_string)
@@ -756,7 +757,7 @@ class TestMonitorBasic(TestCase):
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
-            [null,      "pathname",                ".*/java"],
+            [null,      "@basename()",          "java$"],
             [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
             ["PORT",    "serviceport",             "[0-9]+$"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
@@ -766,7 +767,7 @@ class TestMonitorBasic(TestCase):
         lsb_string = '''{
         "class":        "lsb", "type":         "neo4j",
         "classconfig": [
-            ["pathname",    ".*/java"],
+            ["@basename()",    "java$"],
             ["argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
         }'''
