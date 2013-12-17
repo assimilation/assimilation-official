@@ -408,7 +408,7 @@ class Store:
     def load_cypher_nodes(self, query, cls, params=None, maxcount=None):
         '''Execute the given query that yields a single column of nodes
         all of the same Class (cls) and yield each of those Objects in turn
-        through and interator (generator)'''
+        through an iterator (generator)'''
         count = 0
         if params is None:
             params = {}
