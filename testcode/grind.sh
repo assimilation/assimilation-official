@@ -35,5 +35,17 @@ case $dir in
   *)		cmd="$dir/mainlooptest";;
 esac
 
+placestolook=". bin .. ../bin"
+env
+for place in $placestolook
+do
+  if
+    [ -x "$place/$cmd" ]
+  then
+    cmd="$place/$cmd"
+    break
+  fi
+done
+
 
 sudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=$HERE/valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes $cmd $REPCOUNT
