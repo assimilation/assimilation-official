@@ -477,12 +477,6 @@ MAX_INITIALIZER_LINES  = 30
 
 SHOW_USED_FILES        = YES
 
-# If the sources in your project are distributed over multiple directories 
-# then setting the SHOW_DIRECTORIES tag to YES will show the directory hierarchy 
-# in the documentation. The default is NO.
-
-SHOW_DIRECTORIES       = NO
-
 # Set the SHOW_FILES tag to NO to disable the generation of the Files page. 
 # This will remove the Files entry from the Quick Index and from the 
 # Folder Tree View (if specified). The default is YES.
@@ -866,12 +860,6 @@ HTML_COLORSTYLE_GAMMA  = 80
 
 HTML_TIMESTAMP         = YES
 
-# If the HTML_ALIGN_MEMBERS tag is set to YES, the members of classes, 
-# files or namespaces will be aligned in HTML using tables. If set to 
-# NO a bullet list will be used.
-
-HTML_ALIGN_MEMBERS     = YES
-
 # If the HTML_DYNAMIC_SECTIONS tag is set to YES then the generated HTML 
 # documentation will contain sections that can be hidden and shown after the 
 # page has loaded. For this to work a browser that supports 
@@ -1051,11 +1039,6 @@ ENUM_VALUES_PER_LINE   = 4
 # Windows users are probably better off using the HTML help feature.
 
 GENERATE_TREEVIEW      = YES
-
-# By enabling USE_INLINE_TREES, doxygen will generate the Groups, Directories, 
-# and Class Hierarchy pages using a tree view instead of an ordered list.
-
-USE_INLINE_TREES       = NO
 
 # If the treeview is enabled (see GENERATE_TREEVIEW) then this tag can be 
 # used to set the initial width (in pixels) of the frame in which the tree 
@@ -1491,17 +1474,6 @@ HAVE_DOT               = YES
 # between CPU load and processing speed.
 
 DOT_NUM_THREADS        = 0
-
-# By default doxygen will write a font called FreeSans.ttf to the output 
-# directory and reference it in all dot files that doxygen generates. This 
-# font does not include all possible unicode characters however, so when you need 
-# these (or just want a differently looking font) you can specify the font name 
-# using DOT_FONTNAME. You need need to make sure dot is able to find the font, 
-# which can be done by putting it in a standard location or by setting the 
-# DOTFONTPATH environment variable or by setting DOT_FONTPATH to the directory 
-# containing the font.
-
-DOT_FONTNAME           = FreeSans.ttf
 
 # The DOT_FONTSIZE tag can be used to set the size of the font of dot graphs. 
 # The default size is 10pt.
