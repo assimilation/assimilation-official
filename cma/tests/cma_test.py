@@ -655,7 +655,7 @@ class TestMonitorBasic(TestCase):
         ,   (None, '@basename()', 'java$')  #   length 3 - name, expression, regex
         ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
                                             #   length 3 - name, expression, regex
-        ,   ('port', 'port', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
+        ,   ('port', '@serviceport()', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
         ))
         keys = kitchensink.nvpairs.keys()
         keys.sort()
@@ -663,7 +663,7 @@ class TestMonitorBasic(TestCase):
         values = []
         for key in keys:
             values.append(kitchensink.nvpairs[key])
-        self.assertEqual(str(values), "[None, 'port']")
+        self.assertEqual(str(values), "[None, '@serviceport()']")
         regex = re.compile('xxx')
         regextype = type(regex)
         exprlist = []
@@ -671,7 +671,7 @@ class TestMonitorBasic(TestCase):
             self.assertEqual(type(tup[1]), regextype)
             exprlist.append(tup[0])
         self.assertEqual(str(exprlist)
-        ,   "['port', 'pathname', '@basename()', 'argv[-1]', 'port']")
+        ,   "['port', 'pathname', '@basename()', 'argv[-1]', '@serviceport()']")
         #
         # That was a pain...
         #
@@ -683,6 +683,7 @@ class TestMonitorBasic(TestCase):
             ,   (None, 'pathname', '.*/java$')
             ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
             ,   ('home', '@argequals(-Dneo4j.home)', '/.*')
+            ,   ('neo4j', '@basename(@argequals(-Dneo4j.home))', '.')
             )
         )
         neoprocargs = ("/usr/bin/java", "-cp"
@@ -720,9 +721,10 @@ class TestMonitorBasic(TestCase):
         arglist = table['arglist']
         keys = arglist.keys()
         keys.sort()
-        self.assertEqual(keys, ['home', 'port'])
+        self.assertEqual(keys, ['home', 'neo4j', 'port'])
         self.assertEqual(arglist['port'], '7474')
         self.assertEqual(arglist['home'], '/var/lib/neo4j')
+        self.assertEqual(arglist['neo4j'], 'neo4j')
 
     def test_automonitor_strings_basic(self):
         # Clean things out so we only see what we want to see...
