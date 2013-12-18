@@ -26,7 +26,9 @@ from testify import *
 pingcount=30
 
 placestolook = ('.', '..', 'testcode', '../testcode', '../../testcode'
-,   '../bin/testcode', '../../bin/testcode', 'src/testcode', '../src/testcode')
+,   '../bin/testcode', '../../bin/testcode', 'src/testcode', '../src/testcode'
+,   'root_of_binary_tree/testcode', '../root_of_binary_tree/testcode'
+,   '../../root_of_binary_tree/testcode')
 
 def findcmd(argv):
     arg0 = argv[0]
