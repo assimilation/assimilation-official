@@ -35,8 +35,7 @@ case $dir in
   *)		cmd="$dir/mainlooptest";;
 esac
 
-placestolook=". bin .. ../bin"
-env
+placestolook=". bin .. ../bin root_of_binary_tree ../root_of_binary_tree ../../root_of_binary_tree"
 for place in $placestolook
 do
   if
@@ -46,6 +45,5 @@ do
     break
   fi
 done
-
 
 sudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=$HERE/valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes $cmd $REPCOUNT
