@@ -699,16 +699,15 @@ def serviceip(args, values, graphnodes):
     values = values
     if len(args) == 0:
         args = ('JSON_procinfo.listenaddrs',)
-    for argname in args:
-        for node in graphnodes:
-            nmap = node.get(argname)
-            if nmap is None:
-                continue
-            ipport = selectanipport(nmap, graphnodes)
-            if ipport is None:
-                continue
-            ipport.setport(0) # Make sure return value doesn't include the port
-            return str(ipport)
+    for arg in args:
+        nmap = MonitoringRule.evaluate(arg, values, graphnodes)
+        if nmap is None:
+            continue
+        ipport = selectanipport(nmap, graphnodes)
+        if ipport is None:
+            continue
+        ipport.setport(0) # Make sure return value doesn't include the port
+        return str(ipport)
     return None
 
 @MonitoringRule.RegisterFun
@@ -721,15 +720,14 @@ def serviceport(args, values, graphnodes):
     if len(args) == 0:
         args = ('JSON_procinfo.listenaddrs',)
     values = values
-    for argname in args:
-        for node in graphnodes:
-            nmap = node.get(argname)
-            if nmap is None:
-                continue
-            port = selectanipport(nmap, graphnodes).port()
-            if port is None:
-                continue
-            return str(port)
+    for arg in args:
+        nmap = MonitoringRule.evaluate(arg, values, graphnodes)
+        if nmap is None:
+            continue
+        port = selectanipport(nmap, graphnodes).port()
+        if port is None:
+            continue
+        return str(port)
     return None
 
 @MonitoringRule.RegisterFun
@@ -744,15 +742,14 @@ def serviceipport(args, values, graphnodes):
     if len(args) == 0:
         args = ('JSON_procinfo.listenaddrs',)
     values = values
-    for argname in args:
-        for node in graphnodes:
-            nmap = node.get(argname)
-            if nmap is None:
-                continue
-            ipport = selectanipport(nmap, graphnodes)
-            if ipport is None:
-                continue
-            return str(ipport)
+    for arg in args:
+        nmap = MonitoringRule.evaluate(arg, values, graphnodes)
+        if nmap is None:
+            continue
+        ipport = selectanipport(nmap, graphnodes)
+        if ipport is None:
+            continue
+        return str(ipport)
     return None
 
 @MonitoringRule.RegisterFun
@@ -764,12 +761,11 @@ def basename(args, values, graphnodes):
     if len(args) == 0:
         args = ('pathname',)    # Default to the name of the executable
     values = values
-    for argname in args:
-        for node in graphnodes:
-            pathname = node.get(argname)
-            if pathname is None:
-                continue
-            return os.path.basename(pathname)
+    for arg in args:
+        pathname = MonitoringRule.evaluate(arg, values, graphnodes)
+        if pathname is None:
+            continue
+        return os.path.basename(pathname)
     return None
 
 
@@ -782,12 +778,11 @@ def dirname(args, values, graphnodes):
     if len(args) == 0:
         args = ('pathname',)    # Default to the name of the executable
     values = values
-    for argname in args:
-        for node in graphnodes:
-            pathname = node.get(argname)
-            if pathname is None:
-                continue
-            return os.path.dirname(pathname)
+    for arg in args:
+        pathname = MonitoringRule.evaluate(arg, values, graphnodes)
+        if pathname is None:
+            continue
+        return os.path.dirname(pathname)
     return None
 
 if __name__ == '__main__':
