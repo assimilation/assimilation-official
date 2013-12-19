@@ -361,14 +361,16 @@ class MonitoringRule:
                 continue
             result += (line + '\n')
 
+        obj = pyConfigContext(result)
+        if obj is None:
+            raise ValueError('Invalid JSON: %s' % result)
+        if 'class' not in obj:
+            raise ValueError('Must have class value')
         legit = {'ocf':
                     {'class': True, 'type': True, 'classconfig': True, 'provider': False},
                  'lsb':
                     {'class': True, 'type': True, 'classconfig': True},
                 }
-        obj = pyConfigContext(result)
-        if 'class' not in obj:
-            raise ValueError('Must have class value')
         rscclass = obj['class']
         if rscclass not in legit:
             raise ValueError('Illegal class value: %s' % rscclass)
@@ -479,6 +481,35 @@ class MonitoringRule:
         s = f.read()
         f.close()
         return MonitoringRule.ConstructFromString(s)
+
+    @staticmethod
+    def load_tree(rootdirname, pattern=".*\.mrule$", followlinks=False):
+        '''
+        Add a set of MonitoringRules to our universe from a directory tree
+        using the ConstructFromFileName function.
+        Return: None
+        '''
+        import sys
+        tree = os.walk(rootdirname, topdown=True, onerror=None, followlinks=followlinks)
+        rootprefixlen = len(rootdirname)+1
+        pat = re.compile(pattern)
+        for walktuple in tree:
+            (dirpath, dirnames, filenames) = walktuple
+            dirnames.sort()
+            prefix = dirpath[rootprefixlen:]
+            filenames.sort()
+            for filename in filenames:
+                if not pat.match(filename):
+                    continue
+                path = os.path.join(dirpath, filename)
+                MonitoringRule.ConstructFromFileName(path)
+
+class LSBMonitoringRule(MonitoringRule):
+
+    '''Class for implementing monitoring rules for sucky LSB style init script monitoring
+    '''
+    def __init__(self, servicename, tuplespec):
+        self.servicename = servicename
 
 class LSBMonitoringRule(MonitoringRule):
 
@@ -640,13 +671,19 @@ def argequals(args, values, graphnodes):
         pass
     return None
 
+# Netstat format IP:port pattern
 ipportregex = re.compile('(.*):([^:]*)$')
 def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
     '''This function searches discovery information for a suitable IP
     address/port combination to go with the service.
     '''
     def regexmatch(key):
-        'Handy internal function to pull out the IP and port into a pyNetAddr'
+        '''Handy internal function to pull out the IP and port into a pyNetAddr
+        Note that the format is the format used in the discovery information
+        which in turn is the format used by netstat.
+        This is not a "standard" format, but it's what netstat uses - so it's
+        what we use.
+        '''
         mobj = ipportregex.match(key)
         if mobj is None:
             return None
@@ -773,7 +810,7 @@ def basename(args, values, graphnodes):
 def dirname(args, values, graphnodes):
     '''
     This function returns the directory name from a pathname.
-    If no pathname is supplied, then the executable name is assumed.
+    If no pathname is supplied, then the discovered service executable name is assumed.
     '''
     if len(args) == 0:
         args = ('pathname',)    # Default to the name of the executable
@@ -858,3 +895,6 @@ if __name__ == '__main__':
         print fmt % (funcname, descriptions[0])
         for descr in descriptions[1:]:
             print fmt2 % descr
+
+    MonitoringRule.load_tree("monrules")
+    print MonitoringRule.monitorobjects

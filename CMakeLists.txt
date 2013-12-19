@@ -119,6 +119,8 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	DISCOVERYINSTALL	Where we install our discovery scripts
 #	QUERYSUBDIR		the relative directory where we store the flat files we make query nodes from
 #	QUERYINSTALL		Where we install our query flat files
+#	MONRULESUBDIR		the relative directory where we store the flat files containing our monitoring rules
+#	MONRULEINSTALL		Where we install our monitoring rule flat files
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	
@@ -147,6 +149,8 @@ set (DAGENTS discovery_agents)
 set (DISCOVERYINSTALL ${USRSHARE}/${DAGENTS})
 set (QUERYSUBDIR queries)
 set (QUERYINSTALL ${USRSHARE}/${QUERYSUBDIR})
+set (MONRULESUBDIR monrules)
+set (MONRULEINSTALL ${USRSHARE}/${MONRULESUBDIR})
 configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst @ONLY)
 configure_file(${BUILDTOOLS}/debian/postrm.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postrm @ONLY)
 #
@@ -337,6 +341,11 @@ install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${USRSHA
 #	Install our query flat files under /usr/share/assimilation/${QUERYSUBDIR}
 #
 install (DIRECTORY ${QUERYSUBDIR} COMPONENT cma-component DESTINATION ${USRSHARE})
+#
+#
+#	Install our monitoring rule flat files under /usr/share/assimilation/${MONRULESUBDIR}
+#
+install (DIRECTORY ${MONRULESUBDIR} COMPONENT cma-component DESTINATION ${USRSHARE})
 #
 #	Install our init scripts in ${INITDIR}
 #
