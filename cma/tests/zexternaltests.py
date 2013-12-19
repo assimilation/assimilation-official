@@ -42,6 +42,7 @@ def findcmd(argv):
     raise IOError('Cannot locate file %s' % arg0)
     
 
+sudocmd = '/usr/bin/sudo'
 gtestdir = None
 class TestExternal(TestCase):
     '''
@@ -62,25 +63,28 @@ class TestExternal(TestCase):
 
 
 
-    def runacommand(self, *argv):
+    def runacommand(self, argv, sudo=False):
         print '\n******RUNNING TEST COMMAND %s' % str(argv)
-        findcmd(*argv)
+        findcmd(argv)
+        if sudo:
+            argv.insert(0, sudocmd)
+            print 'ARGV: %s' %  str(argv)
         start = datetime.datetime.now()
-        subprocess.check_call(*argv)    # Will raise an exception if it exits non-zero
+        subprocess.check_call(argv)    # Will raise an exception if it exits non-zero
         end = datetime.datetime.now()
         diff = end - start
         print '\nSUCCESS: %s exited with return code 0 in %s' % (str(argv), diff)
         pass
 
     def  test_valgrind(self):
-        self.runacommand(['grind.sh'])
+        self.runacommand(['grind.sh',], sudo=True)
 
     def  test_gtest_cases(self):
         files = os.listdir(TestExternal.gtestdir)
         files.sort()
         for f in files:
             if TestExternal.gtestpattern.match(f):
-                self.runacommand([f,])
+                self.runacommand([f,], sudo=True)
 
     def  test_pinger(self):
         self.runacommand(['pinger', '-c', str(pingcount), '127.0.0.1'])
