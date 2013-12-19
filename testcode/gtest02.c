@@ -182,7 +182,9 @@ main(int argc, char ** argv)
 #	endif
 #endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
+	g_log_set_fatal_mask(NULL, 0);	// I know G_LOG_LEVEL_ERROR is fatal anyway...
 	g_test_init(&argc, &argv, NULL);
+	g_log_set_fatal_mask(NULL, 0);
 	g_test_add_func("/gtest02/test_invalid_resourcecmd", test_invalid_resourcecmd);
 	g_test_add_func("/gtest02/test_invalid_queuecmd", test_invalid_queuecmd);
 	return g_test_run();
