@@ -603,19 +603,19 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-        for tup in (sshrule.specmatch((udevnode,))
-        ,   sshrule.specmatch((neonode,))
-        ,   neorule.specmatch((sshnode,))):
+        for tup in (sshrule.specmatch(None, (udevnode,))
+        ,   sshrule.specmatch(None, (neonode,))
+        ,   neorule.specmatch(None, (sshnode,))):
             (prio, table) = tup
             self.assertEqual(prio, MonitoringRule.NOMATCH)
             self.assertTrue(table is None)
 
-        (prio, table) = sshrule.specmatch((sshnode,))
+        (prio, table) = sshrule.specmatch(None, (sshnode,))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'ssh')
 
-        (prio, table) = neorule.specmatch((neonode,))
+        (prio, table) = neorule.specmatch(None, (neonode,))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'neo4j-service')
@@ -705,12 +705,12 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         # We'll be missing the value of 'port'
-        (prio, table, missing) = neo4j.specmatch((neonode,))
+        (prio, table, missing) = neo4j.specmatch(None, (neonode,))
         self.assertEqual(prio, MonitoringRule.PARTMATCH)
         self.assertEqual(missing, ['port'])
         # Now fill in the port value
         neonode.port=7474
-        (prio, table) = neo4j.specmatch((neonode,))
+        (prio, table) = neo4j.specmatch(None, (neonode,))
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(table['monitortype'], 'neo4j')
         self.assertEqual(table['monitorclass'], 'ocf')
@@ -761,7 +761,7 @@ class TestMonitorBasic(TestCase):
         "classconfig": [
             [null,      "@basename()",          "java$"],
             [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
-            ["PORT",    "serviceport",             "[0-9]+$"],
+            ["PORT",    "serviceport"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
         }'''
@@ -824,13 +824,14 @@ class TestMonitorBasic(TestCase):
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
+            ["classpath",   "@flagvalue(-cp)"],
             ["ipaddr",      "@serviceip(JSON_procinfo.listenaddrs)"],
             ["port",        "@serviceport()",   "[0-9]+$"]
         ]
         }'''
         ssh_json = '''{
           "exe": "/usr/sbin/sshd",
-          "cmdline": [ "/usr/sbin/sshd", "-D" ],
+          "argv": [ "/usr/sbin/sshd", "-D" ],
           "uid": "root",
           "gid": "root",
           "cwd": "/",
@@ -849,7 +850,7 @@ class TestMonitorBasic(TestCase):
         }'''
         neo4j_json = '''{
           "exe": "/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java",
-          "cmdline": [ "/usr/bin/java", "-cp", "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar: ...", "-server", "-XX:+DisableExplicitGC", "-Dorg.neo4j.server.properties=conf/neo4
+          "argv": [ "/usr/bin/java", "-cp", "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar: ...", "-server", "-XX:+DisableExplicitGC", "-Dorg.neo4j.server.properties=conf/neo4
     j-server.properties", "-Djava.util.logging.config.file=conf/logging.properties", "-Dlog4j.configuration=file:conf/log4j.properties", "-XX:
     +UseConcMarkSweepGC", "-XX:+CMSClassUnloadingEnabled", "-Dneo4j.home=/var/lib/neo4j", "-Dneo4j.instance=/var/lib/neo4j", "-Dfile.encoding=
     UTF-8", "org.neo4j.server.Bootstrapper" ],
@@ -871,7 +872,7 @@ class TestMonitorBasic(TestCase):
         }'''
         bacula_json = '''{
       "exe": "/usr/sbin/bacula-dir",
-      "cmdline": [ "/usr/sbin/bacula-dir", "-c", "/etc/bacula/bacula-dir.conf", "-u", "bacula", "-g", "bacula" ],
+      "argv": [ "/usr/sbin/bacula-dir", "-c", "/etc/bacula/bacula-dir.conf", "-u", "bacula", "-g", "bacula" ],
       "uid": "bacula",
       "gid": "bacula",
       "cwd": "/",
@@ -884,7 +885,8 @@ class TestMonitorBasic(TestCase):
       }
     }'''
         MonitoringRule.ConstructFromString(ocf_string)
-        testnode = ProcessNode('global', 'fred', '/usr/bin/java', []
+        neoargs = pyConfigContext(neo4j_json)['argv']
+        testnode = ProcessNode('global', 'fred', '/usr/bin/java', neoargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         testnode.JSON_procinfo = neo4j_json

@@ -202,7 +202,8 @@ class MonitoringRule:
                 else:
                     regex = re.compile(tup[1])
             except:
-                raise ValueError('Improperly formed regular expression')
+                raise ValueError('Improperly formed regular expression: %s'
+                %   tup[1])
             self._tuplespec.append((tup[0], regex))
 
         # Register us in the grand and glorious set of all monitoring rules
@@ -565,10 +566,12 @@ class OCFMonitoringRule(MonitoringRule):
             tuplen = len(tup)
             if tuplen == 4:
                 (name, expression, regex, flags) = tup
-                tuplespec.append((expression, regex, flags))
+                if regex is not None:
+                    tuplespec.append((expression, regex, flags))
             elif tuplen == 3:
                 (name, expression, regex) = tup
-                tuplespec.append((expression, regex))
+                if regex is not None:
+                    tuplespec.append((expression, regex))
             elif tuplen == 2:
                 (name, expression) = tup
             elif tuplen == 1:
@@ -665,6 +668,44 @@ def argequals(args, values, graphnodes):
     except: # No matter the cause of failure, return None...
         pass
     return None
+
+@MonitoringRule.RegisterFun
+def flagvalue(args, values, graphnodes):
+    '''
+    A function which searches a list for a -flag and returns
+    the value of the option which is the next argument.
+    The -flag is given by the argument in args, and the list 'argv'
+    is assumed to be the list of arguments.
+    If there are two arguments in args, then the first argument is the
+    array value to search in for the -flag string instead of 'argv'
+    The flag given must be the entire flag complete with - character.
+    For example -X or --someflag.
+    '''
+    if len(args) > 2 or len(args) < 1:
+        return None
+    if len(args) == 2:
+        argname = args[0]
+        flagname = args[1]
+    else:
+        argname = 'argv'
+        flagname = args[0]
+
+    progargs = MonitoringRule.evaluate(argname, values, graphnodes)
+    argslen = len(progargs)
+    flaglen = len(flagname)
+    for pos in range(0, argslen):
+        progarg = progargs[pos]
+        progarglen = len(progarg)
+        if progarg.startswith(flagname):
+            if progarg == flagname:
+                # -X foobar
+                if (pos+1) < argslen:
+                    return progargs[pos+1]
+            elif flaglen == 2 and progarglen > flaglen:
+                # -Xfoobar -- single character flags only
+                return progarg[2:]
+    return None
+
 
 # Netstat format IP:port pattern
 ipportregex = re.compile('(.*):([^:]*)$')
