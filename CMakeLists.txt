@@ -20,7 +20,7 @@
 #
 cmake_minimum_required(VERSION 2.8.5)
 project(assimilation C)
-set (PROJVERS "0.1.0")
+set (PROJVERS "0.1.1")
 set (SRCROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set (BINROOT ${CMAKE_CURRENT_BINARY_DIR})
 
