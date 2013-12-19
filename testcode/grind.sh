@@ -30,18 +30,16 @@ GEN="--gen-suppressions=all --num-callers=50"
 OPTS="--show-reachable=yes"
 
 dir=$(dirname $0)
-case $dir in
-  "."|"")	cmd=mainlooptest;;
-  *)		cmd="$dir/mainlooptest";;
-esac
+cmd=mainlooptest
 
-placestolook=". bin .. ../bin root_of_binary_tree ../root_of_binary_tree ../../root_of_binary_tree"
+placestolook=". testcode bin bin/testcode.. ../bin ../bin/testcode root_of_binary_tree/testcode ../root_of_binary_tree/testcode ../../root_of_binary_tree/testcode"
 for place in $placestolook
 do
+  filename="$place/$cmd"
   if
-    [ -x "$place/$cmd" ]
+    [ -f "$filename" -a -x "$filename" ]
   then
-    cmd="$place/$cmd"
+    cmd="$filename"
     break
   fi
 done
