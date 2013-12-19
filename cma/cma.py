@@ -186,15 +186,21 @@ def main():
     from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
          DispatchSWDISCOVER, DispatchHBSHUTDOWN
     from cmadb import CMAdb
+    from monitoring import MonitoringRule
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
          pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, \
         CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
-        proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING
+        proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
     for debug in range(opt.debug):
         debug = debug
         proj_class_incr_debug(None)
+
+    #   Input our monitoring rule templates
+    #   They only exist in flat files and in memory - they aren't in the database
+    MonitoringRule.load_tree(MONRULEINSTALL_DIR)
+    print >> sys.stderr, ('Monitoring rules loaded from %s' % MONRULEINSTALL_DIR)
 
     if opt.bind is None:
         BindAddrStr = ('0.0.0.0:%d' % DefaultPort)
