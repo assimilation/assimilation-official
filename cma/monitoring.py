@@ -170,10 +170,11 @@ class MonitoringRule:
     If it matches python, then match it against the second argument (arg[1])
 
     '''
-    NOMATCH = 0
-    PARTMATCH = 2
-    LOWPRIOMATCH = 3
-    HIGHPRIOMATCH = 4
+    NOMATCH = 0         # Did not match this rule
+    NEVERMATCH = 1      # Matched this 'un-rule' - OK not to monitor this resource
+    PARTMATCH = 2       # Partial match - we match this rule, but need more config info
+    LOWPRIOMATCH = 3    # We match - but we aren't a very good monitoring method
+    HIGHPRIOMATCH = 4   # We match and we are a good monitoring method
 
     functions = {}
     monitorobjects = {}
