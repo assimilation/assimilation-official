@@ -34,7 +34,6 @@ from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIEL
 from AssimCclasses import pyConfigContext, pyNetAddr
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
-from droneinfo import Drone
 from cmadb import CMAdb
 from consts import CMAconsts
 import os, re, inspect
@@ -85,6 +84,7 @@ class MonitorAction(GraphNode):
                 The particular Drone which is running this monitoring action.
                 Defaults to 'monitoredentity'
         '''
+        from droneinfo import Drone
         if runon is None:
             runon = monitoredentity
         assert isinstance(monitoredentity, GraphNode)
@@ -210,17 +210,20 @@ class MonitoringRule:
         MonitoringRule.monitorobjects[monitorclass].append(self)
 
 
-    def specmatch(self, graphnodes):
+    def specmatch(self, values, graphnodes):
         '''Return a MonitorAction if this rule can be applies to this particular set of GraphNodes
         Note that the GraphNodes that we're given at the present time are typically expected to be
         the Drone node for the node it's running on and the Process node for the process
         to be monitored.
         We return (MonitoringRule.NOMATCH, None) on no match
         '''
-        values = {}
+        import sys
+        if values is None:
+            values = {}
         for tup in self._tuplespec:
             expression = tup[0]
             value = MonitoringRule.evaluate(expression, values, graphnodes)
+            print >> sys.stderr, 'EVALUATING %s => %s' % (expression, value)
             if value is None:
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
@@ -231,6 +234,7 @@ class MonitoringRule:
             if not isinstance(val, (str, unicode)):
                 val = str(val)
             if not regex.match(val):
+                print >> sys.stderr, 'NOMATCH %s' % (val)
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
         return self.constructaction(values, graphnodes)
@@ -431,7 +435,7 @@ class MonitoringRule:
                 continue  # Unlikely but possible...
             # Search every rule of class 'rtype'
             for rule in MonitoringRule.monitorobjects[rtype]:
-                match = rule.constructaction(rvalues, graphnodes)
+                match = rule.specmatch(rvalues, graphnodes)
                 prio = match[0]
                 if prio == MonitoringRule.NOMATCH:
                     continue
@@ -463,7 +467,7 @@ class MonitoringRule:
         keys.sort()
         for rtype in keys:
             for rule in MonitoringRule.monitorobjects[rtype]:
-                match = rule.constructaction(rvalues, graphnodes)
+                match = rule.specmatch(rvalues, graphnodes)
                 if match[0] != MonitoringRule.NOMATCH:
                     result.append(match)
         return result
@@ -583,6 +587,8 @@ class OCFMonitoringRule(MonitoringRule):
             We can either return a complete match (HIGHPRIOMATCH)
             or an incomplete match (PARTMATCH) if we can't find
             all the parameter values in the nodes we're given
+            We can also return NOMATCH if some things don't match
+            at all.
         '''
         #
         missinglist = []
@@ -771,8 +777,11 @@ def serviceipport(args, values, graphnodes):
     values = values
     for arg in args:
         nmap = MonitoringRule.evaluate(arg, values, graphnodes)
+        print 'SERVICEIPPORT: EVALUATING %s' % arg
         if nmap is None:
+            print 'SERVICEIPPORT: GOT NOTHING!!'
             continue
+        print 'SERVICEIPPORT: CALLING seleactanipport on %s' % str(nmap)
         ipport = selectanipport(nmap, graphnodes)
         if ipport is None:
             continue
@@ -866,11 +875,11 @@ if __name__ == '__main__':
     neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-    print 'Should be (2, {something}):	', sshrule.specmatch((sshnode,))
-    print 'This should be (0, None):	', sshrule.specmatch((udevnode,))
-    print 'This should be (0, None):	', sshrule.specmatch((neonode,))
-    print 'This should be (0, None):	', neorule.specmatch((sshnode,))
-    print 'Should be (2, {something}):	', neorule.specmatch((neonode,))
+    print 'Should be (2, {something}):	', sshrule.specmatch(None, (sshnode,))
+    print 'This should be (0, None):	', sshrule.specmatch(None, (udevnode,))
+    print 'This should be (0, None):	', sshrule.specmatch(None, (neonode,))
+    print 'This should be (0, None):	', neorule.specmatch(None, (sshnode,))
+    print 'Should be (2, {something}):	', neorule.specmatch(None, (neonode,))
     print 'Documentation of functions available for use in match expressions:'
     longest = 0
     for (funcname, description) in MonitoringRule.FunctionDescriptions():
