@@ -219,7 +219,6 @@ class MonitoringRule:
         to be monitored.
         We return (MonitoringRule.NOMATCH, None) on no match
         '''
-        import sys
         if values is None:
             values = {}
         for tup in self._tuplespec:
