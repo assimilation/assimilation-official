@@ -98,6 +98,7 @@ class MonitorAction(GraphNode):
         
     def deactivate(self):
         '''Deactivate this monitoring action. Does not remove relationships from the graph'''
+        from droneinfo import Drone
         reqjson = self.construct_mon_json()
         for drone in CMAdb.store.load_related(self, CMAconsts.REL_hosting, Drone):
             CMAdb.transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP
