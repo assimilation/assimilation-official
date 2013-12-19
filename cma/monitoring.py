@@ -224,7 +224,6 @@ class MonitoringRule:
         for tup in self._tuplespec:
             expression = tup[0]
             value = MonitoringRule.evaluate(expression, values, graphnodes)
-            print >> sys.stderr, 'EVALUATING %s => %s' % (expression, value)
             if value is None:
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
@@ -235,7 +234,6 @@ class MonitoringRule:
             if not isinstance(val, (str, unicode)):
                 val = str(val)
             if not regex.match(val):
-                print >> sys.stderr, 'NOMATCH %s' % (val)
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
         return self.constructaction(values, graphnodes)
@@ -778,11 +776,8 @@ def serviceipport(args, values, graphnodes):
     values = values
     for arg in args:
         nmap = MonitoringRule.evaluate(arg, values, graphnodes)
-        print 'SERVICEIPPORT: EVALUATING %s' % arg
         if nmap is None:
-            print 'SERVICEIPPORT: GOT NOTHING!!'
             continue
-        print 'SERVICEIPPORT: CALLING seleactanipport on %s' % str(nmap)
         ipport = selectanipport(nmap, graphnodes)
         if ipport is None:
             continue
