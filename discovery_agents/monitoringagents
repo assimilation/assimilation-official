@@ -67,7 +67,8 @@ discover() {
 	  "data": {
 	!
 	comma='    '
-	for method in discover_ocf discover_lsb
+	# Keep these alphabetical by resource class.
+	for method in discover_lsb discover_ocf
         do
 	  printf "%s" "${comma}$($method)"
           comma=",
