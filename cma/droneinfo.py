@@ -308,14 +308,14 @@ class Drone(SystemNode):
                     self._add_serveripportnodes(srvportinfo[srvkey], processnode, allourips)
                 montuple = MonitoringRule.findbestmatch((processnode, self))
                 if montuple[0] == MonitoringRule.NOMATCH:
-                    print >> sys.stderr, 'No monitoring match for %s' % str(processnode.pathname)
+                    print >> sys.stderr, 'No monitoring match for %s' % str(processnode.argv)
                 elif (montuple[0] == MonitoringRule.LOWPRIOMATCH 
                         or montuple[0] == MonitoringRule.HIGHPRIOMATCH):
                     print >> sys.stderr, ('MONITOR MATCH for %s: %s'
                     %   (str(processnode.pathname), str(montuple[1])))
                 else:
                     print >> sys.stderr, ('PARTIAL MATCH for %s: %s - missing %s fields' 
-                    %       (str(processnode.pathname), str(montuple[1]), str(montuple[2])))
+                    %       (str(processnode.argv), str(montuple[1]), str(montuple[2])))
             if 'clientaddrs' in procinfo:
                 clientinfo = procinfo['clientaddrs']
                 processnode.addrole(CMAconsts.ROLE_client)
