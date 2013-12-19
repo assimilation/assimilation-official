@@ -483,33 +483,23 @@ class MonitoringRule:
         return MonitoringRule.ConstructFromString(s)
 
     @staticmethod
-    def load_tree(rootdirname, pattern=".*\.mrule$", followlinks=False):
+    def load_tree(rootdirname, pattern=r".*\.mrule$", followlinks=False):
         '''
         Add a set of MonitoringRules to our universe from a directory tree
         using the ConstructFromFileName function.
         Return: None
         '''
-        import sys
         tree = os.walk(rootdirname, topdown=True, onerror=None, followlinks=followlinks)
-        rootprefixlen = len(rootdirname)+1
         pat = re.compile(pattern)
         for walktuple in tree:
             (dirpath, dirnames, filenames) = walktuple
             dirnames.sort()
-            prefix = dirpath[rootprefixlen:]
             filenames.sort()
             for filename in filenames:
                 if not pat.match(filename):
                     continue
                 path = os.path.join(dirpath, filename)
                 MonitoringRule.ConstructFromFileName(path)
-
-class LSBMonitoringRule(MonitoringRule):
-
-    '''Class for implementing monitoring rules for sucky LSB style init script monitoring
-    '''
-    def __init__(self, servicename, tuplespec):
-        self.servicename = servicename
 
 class LSBMonitoringRule(MonitoringRule):
 
