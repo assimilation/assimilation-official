@@ -121,6 +121,7 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	QUERYINSTALL		Where we install our query flat files
 #	MONRULESUBDIR		the relative directory where we store the flat files containing our monitoring rules
 #	MONRULEINSTALL		Where we install our monitoring rule flat files
+#	OCFINSTALL		Where we install our OCF resource agents
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	
@@ -151,6 +152,8 @@ set (QUERYSUBDIR queries)
 set (QUERYINSTALL ${USRSHARE}/${QUERYSUBDIR})
 set (MONRULESUBDIR monrules)
 set (MONRULEINSTALL ${USRSHARE}/${MONRULESUBDIR})
+set (OCFINSTALL /usr/lib/ocf/resource.d/assimilation)
+#	OCFINSTALL		Where we install our OCF resource agents
 configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst @ONLY)
 configure_file(${BUILDTOOLS}/debian/postrm.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postrm @ONLY)
 #
@@ -346,6 +349,10 @@ install (DIRECTORY ${QUERYSUBDIR} COMPONENT cma-component DESTINATION ${USRSHARE
 #	Install our monitoring rule flat files under /usr/share/assimilation/${MONRULESUBDIR}
 #
 install (DIRECTORY ${MONRULESUBDIR} COMPONENT cma-component DESTINATION ${USRSHARE})
+#
+#	Install our OCF scripts under /usr/lib/ocf/resource.d/assimilation
+#
+install (PROGRAMS ocf/neo4j COMPONENT cma-component DESTINATION ${OCFINSTALL})
 #
 #	Install our init scripts in ${INITDIR}
 #
