@@ -103,6 +103,9 @@ resourceocf_new(
 		structsize = sizeof(ResourceOCF);
 	}
 	cself = resourcecmd_constructor(structsize, request, user_data, callback);
+	if (NULL == cself) {
+		return NULL;
+	}
 	if (!_resourceocf_save_finalize) {
 		_resourceocf_save_finalize = cself->baseclass._finalize;
 	}
