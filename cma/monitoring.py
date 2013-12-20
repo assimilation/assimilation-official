@@ -171,7 +171,7 @@ class MonitoringRule:
 
     '''
     NOMATCH = 0         # Did not match this rule
-    NEVERMATCH = 1      # Matched this 'un-rule' - OK not to monitor this resource
+    NEVERMATCH = 1      # Matched this 'un-rule' - OK not to monitor this service
     PARTMATCH = 2       # Partial match - we match this rule, but need more config info
     LOWPRIOMATCH = 3    # We match - but we aren't a very good monitoring method
     HIGHPRIOMATCH = 4   # We match and we are a good monitoring method
@@ -394,6 +394,27 @@ class MonitoringRule:
 
         raise ValueError('Invalid resource class ("class" = "%s")' % rscclass)
 
+    @staticmethod
+    def _compute_available_agents(graphnodes):
+        import sys
+        for node in graphnodes:
+            if not hasattr(node, 'JSON_monitoringagents'):
+                continue
+            if hasattr(node, '_agentcache'):
+                return node._agentcache
+            agentobj = pyConfigContext(node.JSON_monitoringagents)
+            agentobj = agentobj['data']
+            ret = {}
+            for cls in agentobj.keys():
+                agents = agentobj[cls]
+                for agent in agents:
+                    if cls not in ret:
+                        ret[cls] = {}
+                    ret[cls][agent] = True
+            setattr(node, '_agentcache', ret)
+            return ret
+        return {}
+
 
     @staticmethod
     def findbestmatch(graphnodes, preferlowoverpart=True):
@@ -516,6 +537,10 @@ class LSBMonitoringRule(MonitoringRule):
     def constructaction(self, values, graphnodes):
         '''Construct arguments
         '''
+        MonitoringRule._compute_available_agents(graphnodes)
+        agentcache = MonitoringRule.evaluate('_agentcache', values, graphnodes)
+        if agentcache and 'lsb' in agentcache and self.servicename not in agentcache['lsb']:
+            return (MonitoringRule.NOMATCH, None)
         return (MonitoringRule.LOWPRIOMATCH
         ,       {   'monitorclass': 'lsb'
                 ,   'monitortype':  self.servicename
@@ -592,6 +617,11 @@ class OCFMonitoringRule(MonitoringRule):
             We can also return NOMATCH if some things don't match
             at all.
         '''
+        MonitoringRule._compute_available_agents(graphnodes)
+        agentcache = MonitoringRule.evaluate('_agentcache', values, graphnodes)
+        agentpath = '%s/%s' % (self.provider, self.rsctype)
+        if agentcache and 'ocf' in agentcache and agentpath not in agentcache['ocf']:
+            return (MonitoringRule.NOMATCH, None)
         #
         missinglist = []
         arglist = {}
