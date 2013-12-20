@@ -91,10 +91,20 @@ class MonitorAction(GraphNode):
         assert isinstance(runon, Drone)
         CMAdb.store.relate_new(self, CMAconsts.REL_monitoring, monitoredentity)
         CMAdb.store.relate_new(runon, CMAconsts.REL_hosting, self)
-        reqjson = self.construct_mon_json()
-        CMAdb.transaction.add_packet(runon.primary_ip(), FrameSetTypes.DORSCOP, reqjson
-        ,   frametype=FrameTypes.RSCJSON)
-        self.isactive = True
+        if self.monitorclass == 'NEVERMON':
+            # NEVERMON is a class that doesn't monitor anything
+            # A bit like the The Pirates Who Don't Do Anything
+            # So, we create the node in the graph, but don't activate it, don't
+            # send a message to the server to try and monitor it...
+            #       And we never go to Boston in the fall...
+            CMAdb.log.info("Avast! Those Scurvy 'Pirates That Don't Do Anything'"
+            " spyed lounging on %s"
+            %   (str(runon)))
+        else:
+            reqjson = self.construct_mon_json()
+            CMAdb.transaction.add_packet(runon.primary_ip(), FrameSetTypes.DORSCOP, reqjson
+            ,   frametype=FrameTypes.RSCJSON)
+            self.isactive = True
         
     def deactivate(self):
         '''Deactivate this monitoring action. Does not remove relationships from the graph'''
