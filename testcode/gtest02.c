@@ -55,6 +55,7 @@ logfatal_function(
 	const char **	messagelist = (const char **)user_data;
 
 	const char **	mptr;
+	int		msgcount = 0;
 
 	(void)log_domain;
 	(void)log_level;
@@ -63,11 +64,19 @@ logfatal_function(
 		return FALSE;
 	} 
 	for (mptr = messagelist; mptr && *mptr; ++mptr) {
+		++ msgcount;
 		if (strstr(message, *mptr) != NULL) {
 			return FALSE;
 		}
 	}
-	g_message("Could not find this message [%s]", message);
+	g_message("Message [\"%s\"] not found in %d expected messages."
+	,	message, msgcount);
+	for (mptr = messagelist; mptr && *mptr; ++mptr) {
+		g_message("Expected message: \"%s\"", *mptr);
+	}
+	g_message("ABORTING: message was not an expected failure.");
+	g_message("No further gtest02 tests will be run.  Bye bye!");
+	
 	return TRUE;
 }
 
