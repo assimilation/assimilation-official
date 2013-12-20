@@ -331,6 +331,8 @@ class MonitoringRule:
         A LOWPRIOMATCH method of monitoring is presumed to do a minimal form of monitoring.
         A HIGHPRIOMATCH method of monitoring is presumed to do a more complete job of
         monitoring - presumably acceptable, and preferred over a LOWPRIOMATCH.
+        a NEVERMATCH match means that we know about this type of service, and
+        that it's OK for it to not be monitored.
 
         MonitorActionArgs is a hash table giving the values of the various arguments
         that you need to give to the MonitorAction constuctor.  It will always supply
@@ -371,9 +373,11 @@ class MonitoringRule:
         if 'class' not in obj:
             raise ValueError('Must have class value')
         legit = {'ocf':
-                    {'class': True, 'type': True, 'classconfig': True, 'provider': False},
+                    {'class': True, 'type': True, 'classconfig': True, 'provider': True},
                  'lsb':
                     {'class': True, 'type': True, 'classconfig': True},
+                 'NEVERMON':
+                    {'class': True, 'type': True, 'classconfig': True}
                 }
         rscclass = obj['class']
         if rscclass not in legit:
@@ -391,6 +395,8 @@ class MonitoringRule:
             return LSBMonitoringRule(obj['type'], obj['classconfig'])
         if rscclass == 'ocf':
             return OCFMonitoringRule(obj['provider'], obj['type'], obj['classconfig'])
+        if rscclass == 'NEVERMON':
+            return NEVERMonitoringRule(obj['type'], obj['classconfig'])
 
         raise ValueError('Invalid resource class ("class" = "%s")' % rscclass)
 
@@ -442,7 +448,7 @@ class MonitoringRule:
 
             Of course, we always prefer a HIGHPRIOMATCH monitoring method.
         '''
-        rsctypes = ['ocf', 'lsb'] # Priority ordering...
+        rsctypes = ['ocf', 'lsb', 'NEVERMON'] # Priority ordering...
         # This will make sure the priority list above is maintained :-D
         if len(rsctypes) < len(MonitoringRule.monitorobjects.keys()):
             raise RuntimeError('Update rsctypes list in findbestmatch()!')
@@ -454,7 +460,7 @@ class MonitoringRule:
         # Search the rule types in priority order
         for rtype in rsctypes:
             if rtype not in MonitoringRule.monitorobjects:
-                continue  # Unlikely but possible...
+                continue
             # Search every rule of class 'rtype'
             for rule in MonitoringRule.monitorobjects[rtype]:
                 match = rule.specmatch(rvalues, graphnodes)
@@ -550,9 +556,26 @@ class LSBMonitoringRule(MonitoringRule):
                 ,   'arglist':      None}
         )
 
-#
-# abstract class only referenced once
-# pylint: disable=R0922,R0922
+class NEVERMonitoringRule(MonitoringRule):
+
+    '''Class for implementing monitoring rules for things that should never be monitored
+    This is mostly things like Skype and friends which are started by users not
+    by the system.
+    '''
+    def __init__(self, servicename, tuplespec):
+        self.servicename = servicename
+        MonitoringRule.__init__(self, 'NEVERMON', tuplespec)
+
+    def constructaction(self, values, graphnodes):
+        '''Construct arguments
+        '''
+        return (MonitoringRule.NEVERMATCH
+        ,       {   'monitorclass': 'NEVERMON'
+                ,   'monitortype':  self.servicename
+                ,   'provider':     None
+                ,   'arglist':      None}
+        )
+
 class OCFMonitoringRule(MonitoringRule):
     '''Class for implementing monitoring rules for OCF style init script monitoring
     OCF ==  Open Cluster Framework
