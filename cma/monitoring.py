@@ -98,7 +98,7 @@ class MonitorAction(GraphNode):
             # send a message to the server to try and monitor it...
             #       And we never go to Boston in the fall...
             CMAdb.log.info("Avast! Those Scurvy 'Pirates That Don't Do Anything'"
-            " spyed lounging on %s"
+            " spyed lounging around on %s"
             %   (str(runon)))
         else:
             reqjson = self.construct_mon_json()
