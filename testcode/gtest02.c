@@ -28,20 +28,39 @@
 #include <string.h>
 #include <resourcecmd.h>
 #include <resourcequeue.h>
+#include <stdio.h>
+#include <string.h>
+#include <malloc.h>
 
 FSTATIC void	test_all_freed(void);
 FSTATIC gboolean logfatal_function(const gchar*, GLogLevelFlags, const gchar*,gpointer);
 FSTATIC void	test_invalid_resourcecmd(void);
 FSTATIC void	test_invalid_queuecmd(void);
 
+char *		bad_msg = NULL;
+const char **	expected_msgs = NULL;
+
 FSTATIC void
 test_all_freed(void)
 {
 	int	live_obj_count = proj_class_live_object_count();
+	const char **	mptr;
 
 	if (live_obj_count > 0) {
 		proj_class_dump_live_objects();
 		g_assert_cmpint(live_obj_count, ==, 0);
+	}
+	if (bad_msg) {
+		g_message("Message [\"%s\"] not found in expected messages for this test."
+		,	bad_msg);
+		fflush(stdout);
+		for (mptr = expected_msgs; mptr && *mptr; ++mptr) {
+			g_message("Expected message: \"%s\"", *mptr);
+			fflush(stdout);
+		}
+		g_assert(bad_msg == NULL);
+		free(bad_msg);
+		bad_msg = NULL;
 	}
 }
 
@@ -71,13 +90,20 @@ logfatal_function(
 	}
 	g_message("Message [\"%s\"] not found in %d expected messages."
 	,	message, msgcount);
+	fflush(stdout);
 	for (mptr = messagelist; mptr && *mptr; ++mptr) {
 		g_message("Expected message: \"%s\"", *mptr);
+		fflush(stdout);
 	}
 	g_message("ABORTING: message was not an expected failure.");
+	fflush(stdout);
 	g_message("No further gtest02 tests will be run.  Bye bye!");
-	
-	return TRUE;
+	fflush(stdout);
+	if (!bad_msg) {
+		bad_msg = strdup(message);
+		expected_msgs = messagelist;
+	}
+	return FALSE;
 }
 
 ///< Try various invalid resource command initializers
