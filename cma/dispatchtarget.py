@@ -139,11 +139,14 @@ class DispatchSTARTUP(DispatchTarget):
         if json is not None:
             drone.logjson(json)
         CMAdb.cdb.TheOneRing.join(drone)
-        drone.request_discovery(('tcplisteners',    3555),
-                                ('tcpclients',      3333),
-                                ('cpu',             36000),
-                                ('os',              0),
-                                ('arpcache',        45))
+        drone.request_discovery(
+                                ('monitoringagents',    3600),
+                                ('os',                  0),
+                                ('cpu',                 36000),
+                                ('arpcache',            45),
+                                ('tcpclients',          3333),
+                                ('tcplisteners',        3555)
+                                )
 
 class DispatchJSDISCOVERY(DispatchTarget):
     'DispatchTarget subclass for handling incoming JSDISCOVERY FrameSets.'
