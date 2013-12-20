@@ -396,12 +396,13 @@ class MonitoringRule:
 
     @staticmethod
     def _compute_available_agents(graphnodes):
-        import sys
+        '''Create a cache of all our available monitoring agents'''
         for node in graphnodes:
             if not hasattr(node, 'JSON_monitoringagents'):
                 continue
             if hasattr(node, '_agentcache'):
-                return node._agentcache
+                # Keep pylint from getting irritated...
+                return getattr(node, '_agentcache')
             agentobj = pyConfigContext(node.JSON_monitoringagents)
             agentobj = agentobj['data']
             ret = {}
