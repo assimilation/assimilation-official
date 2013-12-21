@@ -168,6 +168,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
                 #print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
+                #print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
                 drone.logjson(json)
                 sysname = None
 
