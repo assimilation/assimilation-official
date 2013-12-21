@@ -25,16 +25,17 @@ drones as a Python class.
 '''
 import time
 import sys
+import hashlib
 #import os, traceback
 from py2neo import neo4j
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
 from graphnodes import nodeconstructor, RegisterGraphClass, \
-    NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode
+    NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, GraphNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
-from monitoring import MonitoringRule
+from monitoring import MonitoringRule, MonitorAction
 
 @RegisterGraphClass
 class Drone(SystemNode):
@@ -281,7 +282,10 @@ class Drone(SystemNode):
                 CMAdb.log.debug('procinfo(%s) - processproc created=> %s' % (procinfo, processproc))
 
         oldprocs = {}
-        for proc in CMAdb.store.load_related(self, CMAconsts.REL_hosting, ProcessNode):
+        # Several kinds of nodes have the same relationship to the host...
+        for proc in CMAdb.store.load_related(self, CMAconsts.REL_hosting, GraphNode.factory):
+            if not isinstance(proc, ProcessNode):
+                continue
             assert hasattr(proc, '_Store__store_node')
             procname = proc.processname
             oldprocs[procname] = proc
@@ -309,21 +313,64 @@ class Drone(SystemNode):
                 montuple = MonitoringRule.findbestmatch((processnode, self))
                 if montuple[0] == MonitoringRule.NOMATCH:
                     print >> sys.stderr, 'No monitoring match for %s' % str(processnode.argv)
-                elif (montuple[0] == MonitoringRule.LOWPRIOMATCH 
-                        or montuple[0] == MonitoringRule.HIGHPRIOMATCH):
-                    print >> sys.stderr, ('MONITOR MATCH for %s: %s'
-                    %   (str(processnode.pathname), str(montuple[1])))
-                elif (montuple[0] == MonitoringRule.NEVERMATCH):
-                    print >> sys.stderr, ('NEVER MONITOR for %s'
-                    %   (str(processnode.pathname)))
+                elif montuple[0] == MonitoringRule.PARTMATCH:
+                    print >> sys.stderr, (
+                    'Automatic monitoring not possible for %s -- %s is missing %s' 
+                    % (str(processnode.argv), str(montuple[1]), str(montuple[2])))
                 else:
-                    print >> sys.stderr, ('PARTIAL MATCH for %s: %s - missing %s fields' 
-                    %       (str(processnode.argv), str(montuple[1]), str(montuple[2])))
+                    print >> sys.stderr, 'MONTUPLE:' , str(montuple)
+                    self._add_service_monitoring(processnode, montuple[1])
             if 'clientaddrs' in procinfo:
                 clientinfo = procinfo['clientaddrs']
                 processnode.addrole(CMAconsts.ROLE_client)
                 for clientkey in clientinfo.keys():
                     self._add_clientipportnode(clientinfo[clientkey], processnode)
+
+    def _add_service_monitoring(self, monitoredservice, moninfo):
+        '''
+        We start the monitoring of 'monitoredservice' using the information
+        in 'moninfo' - which came from MonitoringRule.constructaction()
+        '''
+        monitorclass    = moninfo['monitorclass']
+        monitortype     = moninfo['monitortype']
+        monitorinterval = 30
+        monitortimeout  = 120
+        if 'provider' in moninfo:
+            monitorprovider = moninfo['provider']
+        else:
+            monitorprovider = None
+        if 'arglist' in moninfo:
+            monitorarglist = moninfo['arglist']
+        else:
+            monitorarglist = None
+
+        # Make up a monitor name that should be unique to us -- but reproducible
+        # We create the monitor name from the host name, the monitor class,
+        # monitoring type and a hash of the arguments to the monitoring agent
+        d = hashlib.md5()
+        # pylint thinks md5 objects don't have update member
+        # pylint: disable=E1101
+        d.update('%s:%s:%s:%s' 
+        %   (self.designation, monitorclass, monitortype, monitorprovider))
+        if monitorarglist is not None:
+            names = monitorarglist.keys()
+            names.sort()
+            for name in names:
+                # pylint thinks md5 objects don't have update member
+                # pylint: disable=E1101
+                d.update('"%s": "%s"' % (name, monitorarglist[name]))
+
+        monitorname = ('%s:%s:%s::%s'
+        %   (self.designation, monitorclass, monitortype, d.hexdigest()))
+        monnode = CMAdb.store.load_or_create(MonitorAction, domain=self.domain
+        ,   monitorname=monitorname, monitorclass=monitorclass
+        ,   monitortype=monitortype, interval=monitorinterval, timeout=monitortimeout
+        ,   provider=monitorprovider, arglist=monitorarglist)
+        if not Store.is_abstract(monnode):
+            print >> sys.stderr, ('Already monitoring %s on %s' % (monitortype, self.designation))
+            CMAdb.log.info('Already monitoring %s on %s' % (monitortype, self.designation))
+            return
+        monnode.activate(monitoredservice, self)
 
     def _add_clientipportnode(self, ipportinfo, processnode):
         '''Add the information for a single client IPtcpportNode to the database.'''
@@ -445,22 +492,21 @@ class Drone(SystemNode):
                 CMAdb.log.error('OOPS! got an exception...')
 
 
-    def primary_ip(self, ring=None):
-        '''Return the "primary" IP for this host'''
-        ring = ring # should eventually use the ring if it's supplied
-        return self.primary_ip_addr
+    def destaddr(self, ring=None):
+        '''Return the "primary" IP for this host as a pyNetAddr with port'''
+        return pyNetAddr(self.select_ip(ring=ring), port=self.port)
 
     def select_ip(self, ring=None):
         '''Select an appropriate IP address for talking to a partner on this ring
         or our primary IP if ring is None'''
-        ring = ring # should eventually use the ring if it's supplied
         # Current code is not really good enough for the long term,
         # but is good enough for now...
         # In particular, when talking on a particular switch ring, or
         # subnet ring, we want to choose an IP that's on that subnet,
         # and preferably on that particular switch for a switch-level ring.
         # For TheOneRing, we want their primary IP address.
-        return self.primary_ip()
+        ring = ring
+        return self.primary_ip_addr
     
 
     #Current implementation does not use 'self'
@@ -490,7 +536,7 @@ class Drone(SystemNode):
         for mightbering in CMAdb.store.load_in_related(self, None, nodeconstructor):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
-        deadip = pyNetAddr(self.primary_ip(), port=self.port)
+        deadip = pyNetAddr(self.select_ip(), port=self.port)
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self._io.closeconn(DEFAULT_FSP_QID, deadip)
@@ -501,7 +547,7 @@ class Drone(SystemNode):
         We only use forward links - because we can follow them in both directions in Neo4J.
         So, we need to create a forward link from partner1 to us and from us to partner2 (if any)
         '''
-        ouraddr = pyNetAddr(self.primary_ip(), port=self.port)
+        ouraddr = pyNetAddr(self.select_ip(), port=self.port)
         partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.port)
         if partner2 is not None:
             partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.port)
@@ -517,7 +563,7 @@ class Drone(SystemNode):
         We don't know which node is our forward link and which our back link,
         but we need to remove them either way ;-).
         '''
-        ouraddr = pyNetAddr(self.primary_ip(), port=self.port)
+        ouraddr = pyNetAddr(self.select_ip(), port=self.port)
         partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.port)
         if partner2 is not None:
             partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.port)
@@ -571,7 +617,7 @@ class Drone(SystemNode):
                 json = '{"type":"%s", "parameters":{}}' % json
             frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': json})
         # This doesn't work if the client has bound to a VIP
-        ourip = self.primary_ip()    # meaning select our primary IP
+        ourip = self.select_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip)
         ourip.setport(self.port)
         #self.io.sendreliablefs(ourip, (fs,))

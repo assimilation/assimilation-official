@@ -30,19 +30,20 @@ rules for certain kinds of services automatically.
 
 from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIELD        \
 ,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREPEATNAMEFIELD, REQTIMEOUTNAMEFIELD \
-,   ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
+,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyConfigContext, pyNetAddr
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
 from cmadb import CMAdb
 from consts import CMAconsts
-import os, re, inspect
+import os, re, inspect, time
 #
 #
 @RegisterGraphClass
 class MonitorAction(GraphNode):
     '''Class representing monitoring actions
     '''
+    request_id = time.time()
     @staticmethod
     def __meta_keyattrs__():
         'Return our key attributes in order of significance (sort order)'
@@ -58,11 +59,29 @@ class MonitorAction(GraphNode):
         self.monitorname = monitorname
         self.monitorclass = monitorclass
         self.monitortype = monitortype
-        self.interval = interval
-        self.timeout = timeout
+        self.interval = int(interval)
+        self.timeout = int(timeout)
         self.provider = provider
-        self.arglist = arglist
         self.isactive = False
+        self.request_id = MonitorAction.request_id
+        MonitorAction.request_id += 1
+        if arglist is None:
+            self.arglist = None
+            self._arglist = {}
+        elif isinstance(arglist, list):
+            listlen = len(arglist)
+            if (listlen % 2) != 0:
+                raise(ValueError('arglist list must have an even number of elements'))
+            self._arglist = {}
+            for j in range(0, listlen, 2):
+                self._arglist[arglist[j]] = arglist[j+1]
+            self.arglist = arglist
+        else:
+            self._arglist = arglist
+            self.arglist = []
+            for name in self._arglist:
+                self.arglist.append(name)
+                self.arglist.append(str(self._arglist[name]))
 
     def longname(self):
         'Return a long name for the type of monitoring this rule provides'
@@ -102,9 +121,10 @@ class MonitorAction(GraphNode):
             %   (str(runon)))
         else:
             reqjson = self.construct_mon_json()
-            CMAdb.transaction.add_packet(runon.primary_ip(), FrameSetTypes.DORSCOP, reqjson
+            CMAdb.transaction.add_packet(runon.destaddr(), FrameSetTypes.DORSCOP, reqjson
             ,   frametype=FrameTypes.RSCJSON)
             self.isactive = True
+        CMAdb.log.info('Monitoring of %s activated' % self.monitorname)
         
     def deactivate(self):
         '''Deactivate this monitoring action. Does not remove relationships from the graph'''
@@ -115,7 +135,7 @@ class MonitorAction(GraphNode):
             ,   reqjson, frametype=FrameTypes.RSCJSON)
         self.isactive = False
 
-    def construct_mon_json(self):
+    def construct_mon_json(self, operation='monitor'):
         '''
           Parameters
           ----------
@@ -126,20 +146,23 @@ class MonitorAction(GraphNode):
         if self.arglist is None:
             arglist_str = ''
         else:
-            arglist_str = ', "%s": [' % (REQENVIRONNAMEFIELD)
+            arglist_str = ', "%s": {' % (REQENVIRONNAMEFIELD)
             comma = ''
-            for arg in self.arglist:
-                arglist_str += '%s"%s"' % (comma, str(arg))
-                comma = ','
-            arglist_str += ']'
+            for arg in self._arglist:
+                arglist_str += '%s"%s":"%s"' % (comma, str(arg)
+                ,   str(self._arglist[arg]))
+                comma = ', '
+            arglist_str += '}'
 
         if self.provider is None:
             provider_str = ''
         else:
             provider_str = ', "%s":"%s"' % (REQPROVIDERNAMEFIELD, self.provider)
 
-        json = '{"%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s":%d%s%s}' % \
-        (   REQCLASSNAMEFIELD, self.monitorclass
+        json = '{"%s": %d, "%s":"%s", "%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s":%d%s%s}' % \
+        (   REQIDENTIFIERNAMEFIELD, self.request_id
+        ,   REQOPERATIONNAMEFIELD, operation
+        ,   REQCLASSNAMEFIELD, self.monitorclass
         ,   REQTYPENAMEFIELD, self.monitortype
         ,   REQRSCNAMEFIELD, self.monitorname
         ,   REQREPEATNAMEFIELD, self.interval
