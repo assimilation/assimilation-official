@@ -178,8 +178,9 @@ test_invalid_queuecmd(void)
 {
 	ResourceQueue*	rq = resourcequeue_new(0);
 	const char *	json_cmds[] = {
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"Dummy\",\""
-				REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB PROV,
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"Dummy\","
+				"\""REQENVIRONNAMEFIELD"\":{},"
+				"\""REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB PROV,
 	};
 	unsigned	j;
 	const char *	expected_failures[] = {
