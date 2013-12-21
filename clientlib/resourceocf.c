@@ -127,21 +127,19 @@ resourceocf_new(
 FSTATIC void
 _resourceocf_init_environ(ResourceOCF* self)
 {
-	ConfigContext*	p = self->baseclass.request->getconfig(self->baseclass.request, REQENVIRONNAMEFIELD);
-	GSList*		names = (p ? p->keys(p) : NULL);
+	ConfigContext*	p = self->baseclass.request->getconfig(self->baseclass.request
+	,				REQENVIRONNAMEFIELD);
+	GSList*		names;
 	GSList*		thisname;
 	
 	if (NULL == p) {
-		g_warning("%s.%d: No "REQENVIRONNAMEFIELD" field in request"
+		g_warning("%s.%d: No proper "REQENVIRONNAMEFIELD" field in request"
 		,	__FUNCTION__, __LINE__);
 		return;
 	}
+	// If there are no parameters given, that 'names' *will* be NULL!
+	// That's how an empty list comes out in a GSList...
 	names = p->keys(p);
-	if (NULL == names) {
-		g_warning("%s.%d: "REQENVIRONNAMEFIELD" field is not a 'dict'"
-		,	__FUNCTION__, __LINE__);
-		return;
-	}
 
 
 	for(thisname = names; NULL != thisname; thisname=thisname->next) {
@@ -161,8 +159,10 @@ _resourceocf_init_environ(ResourceOCF* self)
 		self->environ->setstring(self->environ, mapname, value);
 		g_free(mapname); mapname = NULL;
 	}
-	g_slist_free(names);
-	names = NULL;
+	if (NULL != names) {
+		g_slist_free(names);
+		names = NULL;
+	}
 
 	// Last but not least!
 	self->environ->setstring(self->environ, "OCF_ROOT", OCF_ROOT);
