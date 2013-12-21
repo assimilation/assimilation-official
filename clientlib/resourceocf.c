@@ -131,16 +131,35 @@ _resourceocf_init_environ(ResourceOCF* self)
 	GSList*		names = (p ? p->keys(p) : NULL);
 	GSList*		thisname;
 	
+	if (NULL == p) {
+		g_warning("%s.%d: No "REQENVIRONNAMEFIELD" field in request"
+		,	__FUNCTION__, __LINE__);
+		return;
+	}
+	names = p->keys(p);
+	if (NULL == names) {
+		g_warning("%s.%d: "REQENVIRONNAMEFIELD" field is not a 'dict'"
+		,	__FUNCTION__, __LINE__);
+		return;
+	}
+
+
 	for(thisname = names; NULL != thisname; thisname=thisname->next) {
-		char *			mapname = g_strdup_printf("OCF_RESKEY_%s", (char*)thisname->data);
-		char *			value = p->getstr(p, (char*)thisname->data);
+		char *			mapname;
+		const char *		value;
+		if (NULL == thisname->data) {
+			continue;
+		}
+		mapname = g_strdup_printf("OCF_RESKEY_%s", (char*)thisname->data);
+		value = p->getstring(p, (char*)thisname->data);
 
 		if (NULL == value) {
+			// Ignore non-string values
+			g_free(mapname); mapname = NULL;
 			continue;
 		}
 		self->environ->setstring(self->environ, mapname, value);
 		g_free(mapname); mapname = NULL;
-		g_free(value); value = NULL;
 	}
 	g_slist_free(names);
 	names = NULL;
