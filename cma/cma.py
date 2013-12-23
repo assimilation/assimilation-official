@@ -99,7 +99,6 @@
 import optparse, time
 import os, sys, signal
 import cmainit
-from frameinfo import FrameSetTypes
 #import atexit
 #
 #   "Main" program starts below...

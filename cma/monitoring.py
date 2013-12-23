@@ -793,6 +793,38 @@ def flagvalue(args, values, graphnodes):
                 return progarg[2:]
     return None
 
+@MonitoringRule.RegisterFun
+def OR(args, values, graphnodes):
+    '''
+    A function which evaluates the each expression in turn, and returns the value
+    of the first expression which is not None.
+    '''
+    if len(args) < 2:
+        return None
+    for arg in args:
+        value = MonitoringRule.evaluate(arg, values, graphnodes)
+        if value is not None:
+            return value
+    return None
+
+@MonitoringRule.RegisterFun
+def is_upstartjob(args, values, graphnodes):
+    '''
+    Returns "true" if any of its arguments names an upstart job, "false" otherwise
+    If no arguments are given, it returns whether this system has upstart enabled.
+    '''
+    upstart = MonitoringRule.evaluate('JSON_upstart.data.#upstart', values, graphnodes)
+    if upstart is None:
+        return 'false'
+
+    for arg in args:
+        valexpr = 'JSON_upstart.data.%s' % arg
+        value = MonitoringRule.evaluate(valexpr, values, graphnodes)
+        if value is not None:
+            return 'true'
+
+    return 'false' if len(args) > 0 else 'true'
+    
 
 # Netstat format IP:port pattern
 ipportregex = re.compile('(.*):([^:]*)$')
