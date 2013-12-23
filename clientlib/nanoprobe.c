@@ -795,8 +795,13 @@ _nano_send_rscexitstatus(ConfigContext* request, gpointer user_data
 	// Copy the request ID over from the original request
 	response->setint(response, REQIDENTIFIERNAMEFIELD
 	,	request->getint(request, REQIDENTIFIERNAMEFIELD));
+	// Copy the resource name over from the original request
+	response->setstring(response, REQRSCNAMEFIELD
+	,	request->getstring(request, REQRSCNAMEFIELD));
+	// Package it up as a JSON string to send to the CMA
 	rsp_json = response->baseclass.toString(&response->baseclass);
 	UNREF(response);
+	DEBUGMSG1("Reporting resource failure: %s", rsp_json);
 	sf->baseclass.setvalue(&sf->baseclass, rsp_json, strlen(rsp_json)+1, g_free);
 	frameset_append_frame(fs, &sf->baseclass);
 	UNREF2(sf);
