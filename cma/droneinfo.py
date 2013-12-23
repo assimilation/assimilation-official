@@ -318,8 +318,12 @@ class Drone(SystemNode):
                     'Automatic monitoring not possible for %s -- %s is missing %s' 
                     % (str(processnode.argv), str(montuple[1]), str(montuple[2])))
                 else:
-                    print >> sys.stderr, 'MONTUPLE:' , str(montuple)
-                    self._add_service_monitoring(processnode, montuple[1])
+                    agent = montuple[1]
+                    self._add_service_monitoring(processnode, agent)
+                    print >> sys.stderr, ('Now monitoring %s using %s agent'
+                    %   (agent['monitortype'], agent['monitorclass']))
+                    CMAdb.log.info('Now monitoring %s using %s agent'
+                    %   (agent['monitortype'], agent['monitorclass']))
             if 'clientaddrs' in procinfo:
                 clientinfo = procinfo['clientaddrs']
                 processnode.addrole(CMAconsts.ROLE_client)
