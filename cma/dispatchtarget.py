@@ -34,6 +34,7 @@ class DispatchTarget:
     This base class is designated to handle unhandled FrameSets.
     All it does is print that we received them.
     '''
+    dispatchtable = {}
     def __init__(self):
         'Constructor for base class DispatchTarget'
         from droneinfo import Drone
@@ -58,7 +59,20 @@ class DispatchTarget:
         'Save away our IO object and our configuration'
         self.io = io
         self.config = config
+
+    @staticmethod
+    def register(cls):
+        cname = cls.__name__
+        if not cname.startswith('Dispatch'):
+            raise(ValueError('Dispatch class names must start with "Dispatch"'))
+        msgname = cname[8:]
+        # This is kinda cool!
+        DispatchTarget.dispatchtable[FrameSetTypes.get(msgname)[0]] = cls()
+        return cls
+
+
         
+@DispatchTarget.register
 class DispatchHBDEAD(DispatchTarget):
     'DispatchTarget subclass for handling incoming HBDEAD FrameSets.'
 
@@ -76,6 +90,7 @@ class DispatchHBDEAD(DispatchTarget):
                     CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
                 deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
 
+@DispatchTarget.register
 class DispatchHBSHUTDOWN(DispatchTarget):
     'DispatchTarget subclass for handling incoming HBSHUTDOWN FrameSets.'
     def dispatch(self, origaddr, frameset):
@@ -101,6 +116,7 @@ class DispatchHBSHUTDOWN(DispatchTarget):
         CMAdb.log.error("DispatchHBSHUTDOWN: invalid FrameSet: %s", str(frameset))
 
 
+@DispatchTarget.register
 class DispatchSTARTUP(DispatchTarget):
     'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
     def dispatch(self, origaddr, frameset):
@@ -142,14 +158,16 @@ class DispatchSTARTUP(DispatchTarget):
             drone.logjson(json)
         CMAdb.cdb.TheOneRing.join(drone)
         drone.request_discovery(
-                                ('monitoringagents',    3600),
+                                ('monitoringagents',    3300),
+                                ('upstart',             3400),
                                 ('os',                  0),
                                 ('cpu',                 36000),
                                 ('arpcache',            45),
                                 ('tcpclients',          3333),
-                                ('tcplisteners',        3555)
+                                ('tcplisteners',        3700)
                                 )
 
+@DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
     'DispatchTarget subclass for handling incoming JSDISCOVERY FrameSets.'
     def dispatch(self, origaddr, frameset):
@@ -174,6 +192,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 drone.logjson(json)
                 sysname = None
 
+@DispatchTarget.register
 class DispatchSWDISCOVER(DispatchTarget):
     'DispatchTarget subclass for handling incoming SWDISCOVER FrameSets.'
 

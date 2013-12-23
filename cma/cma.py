@@ -183,8 +183,7 @@ def main():
     assimilation_openlog("cma")
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher
-    from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
-         DispatchSWDISCOVER, DispatchHBSHUTDOWN
+    from dispatchtarget import DispatchTarget
     from cmadb import CMAdb
     from monitoring import MonitoringRule
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
@@ -257,13 +256,7 @@ def main():
         CMAdb.log.info('TheOneRing created - id = %s' % CMAdb.TheOneRing)
         CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
 
-    disp = MessageDispatcher(
-    {   FrameSetTypes.STARTUP: DispatchSTARTUP(),
-        FrameSetTypes.HBDEAD: DispatchHBDEAD(),
-        FrameSetTypes.JSDISCOVERY: DispatchJSDISCOVERY(),
-        FrameSetTypes.SWDISCOVER: DispatchSWDISCOVER(),
-        FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN()
-    })
+    disp = MessageDispatcher(DispatchTarget.dispatchtable)
     CMAdb.log.info('Starting CMA version %s - licensed under %s'
     %   (VERSION_STRING, LONG_LICENSE_STRING))
     if opt.foreground:
