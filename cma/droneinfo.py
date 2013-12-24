@@ -301,10 +301,6 @@ class Drone(SystemNode):
             procinfo = data[procname]
             if CMAdb.debug:
                 CMAdb.log.debug('Processing key(%s): proc: %s' % (procname, processnode))
-            if not CMAdb.store.is_abstract(processnode):
-                if CMAdb.debug:
-                    CMAdb.log.debug('Process key(%s) already in database' % procname)
-                continue
             if 'listenaddrs' in procinfo:
                 srvportinfo = procinfo['listenaddrs']
                 processnode.addrole(CMAconsts.ROLE_server)
@@ -312,7 +308,7 @@ class Drone(SystemNode):
                     self._add_serveripportnodes(srvportinfo[srvkey], processnode, allourips)
                 montuple = MonitoringRule.findbestmatch((processnode, self))
                 if montuple[0] == MonitoringRule.NOMATCH:
-                    print >> sys.stderr, 'No monitoring match for %s' % str(processnode.argv)
+                    print >> sys.stderr, "**don't know how to monitor %s" % str(processnode.argv)
                 elif montuple[0] == MonitoringRule.PARTMATCH:
                     print >> sys.stderr, (
                     'Automatic monitoring not possible for %s -- %s is missing %s' 
@@ -320,10 +316,13 @@ class Drone(SystemNode):
                 else:
                     agent = montuple[1]
                     self._add_service_monitoring(processnode, agent)
-                    print >> sys.stderr, ('Now monitoring %s using %s agent'
-                    %   (agent['monitortype'], agent['monitorclass']))
-                    CMAdb.log.info('Now monitoring %s using %s agent'
-                    %   (agent['monitortype'], agent['monitorclass']))
+                    if agent['monitorclass'] == 'NEVERMON':
+                        print >> sys.stderr, ('NEVER monitor %s' %  (str(agent['monitortype'])))
+                    else:
+                        print >> sys.stderr, ('START monitoring %s using %s agent'
+                        %   (agent['monitortype'], agent['monitorclass']))
+                        CMAdb.log.info('START monitoring %s using %s agent'
+                        %   (agent['monitortype'], agent['monitorclass']))
             if 'clientaddrs' in procinfo:
                 clientinfo = procinfo['clientaddrs']
                 processnode.addrole(CMAconsts.ROLE_client)

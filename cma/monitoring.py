@@ -28,17 +28,24 @@ rules for certain kinds of services automatically.
 '''
 
 
-from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIELD        \
-,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREPEATNAMEFIELD, REQTIMEOUTNAMEFIELD \
-,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
+from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIELD       \
+,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREASONENUMNAMEFIELD, REQREPEATNAMEFIELD    \
+,   REQTIMEOUTNAMEFIELD ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD               \
+,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD                                                  \
+,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO             \
+,   ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyConfigContext, pyNetAddr
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
 from cmadb import CMAdb
 from consts import CMAconsts
 import os, re, inspect, time
+from py2neo import neo4j
+from store import Store
 #
 #
+# too many instance attributes
+# pylint: disable=R0902
 @RegisterGraphClass
 class MonitorAction(GraphNode):
     '''Class representing monitoring actions
@@ -63,6 +70,7 @@ class MonitorAction(GraphNode):
         self.timeout = int(timeout)
         self.provider = provider
         self.isactive = False
+        self.isworking = True
         self.request_id = MonitorAction.request_id
         MonitorAction.request_id += 1
         if arglist is None:
@@ -134,6 +142,94 @@ class MonitorAction(GraphNode):
             CMAdb.transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP
             ,   reqjson, frametype=FrameTypes.RSCJSON)
         self.isactive = False
+
+
+    findquery = None
+    @staticmethod
+    def find(name, domain=None):
+        'Iterate through a series of MonitorAction nodes matching the criteria'
+        if MonitorAction.findquery is None:
+            cypher = 'START m=node:MonitorAction({q}) RETURN m'
+            MonitorAction.findquery = neo4j.CypherQuery(CMAdb.store.db, cypher)
+        name = Store.lucene_escape(name)
+        qvalue = '%s:%s' % (name, '*' if domain is None else domain)
+        import sys
+        print >> sys.stderr, 'QUERY IS: %s' % qvalue
+        return CMAdb.store.load_cypher_nodes(MonitorAction.findquery, MonitorAction
+        ,   params={'q': qvalue})
+
+    @staticmethod
+    def find1(name, domain=None):
+        'Return the MonitorAction node matching the criteria'
+        for ret in MonitorAction.find(name, domain):
+            return ret
+        return None
+
+    @staticmethod
+    def logchange(origaddr, monmsgobj):
+        '''
+        Make the necessary changes to the monitoring data when a particular
+        monitoring action changes status (to success or to failure)
+        This includes locating the MonitorAction object in the database.
+
+        Parameters
+        ----------
+        origaddr: pyNetAddr 
+            address where monitoring action originated
+        monmsgobj: pyConfigContext
+            object containing the monitoring message
+        '''
+
+        rscname = monmsgobj[REQRSCNAMEFIELD]
+        monnode = MonitorAction.find1(rscname)
+        if monnode is None:
+            CMAdb.log.critical('Could not locate monitor node for %s from %s'
+            %   (str(monmsgobj), str(origaddr)))
+        else:
+            monnode.monitorchange(origaddr, monmsgobj)
+
+    def monitorchange(self, origaddr, monmsgobj):
+        '''
+        Make the necessary changes to the monitoring data when a particular
+        monitoring action changes status (to success or to failure)
+
+        Parameters
+        ----------
+        origaddr: pyNetAddr 
+            address where monitoring action originated
+        monmsgobj: pyConfigContext
+            object containing the monitoring message
+        '''
+        origaddr = origaddr # unused
+        success = False
+        fubar = False
+        reason_enum = monmsgobj[REQREASONENUMNAMEFIELD]
+        if reason_enum == EXITED_ZERO:
+            success = True
+            explanation = 'is now operational'
+        elif reason_enum == EXITED_NONZERO:
+            explanation = 'failed with return code %s' % monmsgobj[REQRCNAMEFIELD]
+        elif reason_enum == EXITED_SIGNAL:
+            explanation = 'was killed by signal %s' % monmsgobj[REQSIGNALNAMEFIELD]
+        elif reason_enum == EXITED_HUNG:
+            explanation = 'could not be killed'
+        elif reason_enum == EXITED_TIMEOUT:
+            explanation = 'timed out'
+        else:
+            explanation = 'GOT REAL WEIRD'
+            fubar = True
+        rscname = monmsgobj[REQRSCNAMEFIELD]
+        msg = 'Monitor operation for service %s %s' % (rscname, explanation)
+        print  'MESSAGE:', msg
+        if fubar:
+            CMAdb.log.critical(msg)
+        else:
+            if success:
+                CMAdb.log.info(msg)
+            else:
+                CMAdb.log.warning(msg)
+            self.isworking = success
+
 
     def construct_mon_json(self, operation='monitor'):
         '''
