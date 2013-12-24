@@ -28,8 +28,7 @@ sys.path.append("cma")
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pySwitchDiscovery
-from AssimCtypes import EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO\
-    ,   REQRSCNAMEFIELD, REQREASONENUMNAMEFIELD, REQSIGNALNAMEFIELD, REQRCNAMEFIELD
+from monitoring import MonitorAction
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
@@ -236,6 +235,8 @@ class DispatchSWDISCOVER(DispatchTarget):
 @DispatchTarget.register
 class DispatchRSCOPREPLY(DispatchTarget):
     'DispatchTarget subclass for handling incoming RSCOPREPLY FrameSets.'
+    GOODTOBAD = 1
+    BADTOGOOD = 2
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
@@ -246,25 +247,7 @@ class DispatchRSCOPREPLY(DispatchTarget):
             frametype = frame.frametype()
             if frametype == FrameTypes.RSCJSONREPLY:
                 obj = pyConfigContext(frame.getstr())
-                reason_enum = obj[REQREASONENUMNAMEFIELD]
-                success = False
-                if reason_enum == EXITED_ZERO:
-                    success = True
-                    explanation = 'is now operational'
-                elif reason_enum == EXITED_NONZERO:
-                    explanation = 'failed with return code %s' % obj[REQRCNAMEFIELD]
-                elif reason_enum == EXITED_SIGNAL:
-                    explanation = 'was killed by signal %s' % obj[REQSIGNALNAMEFIELD]
-                elif reason_enum == EXITED_HUNG:
-                    explanation = 'could not be killed'
-                elif reason_enum == EXITED_TIMEOUT:
-                    explanation = 'timed out'
-                else:
-                    explanation = 'got real weird'
-                rscname = obj[REQRSCNAMEFIELD]
-                msg = 'Monitor operation for service %s %s' % (rscname, explanation)
-                print >> sys.stderr, msg
-                if success:
-                    CMAdb.log.info(msg)
-                else:
-                    CMAdb.log.warning(msg)
+                MonitorAction.logchange(origaddr, obj)
+                return
+        CMAdb.log.critical('RSCOPREPLY message from %s did not have a RSCJSONREPLY field'
+        %   (str(origaddr)))
