@@ -60,6 +60,7 @@ struct _ResourceCmd{
 	const char *		operation;	///< Operation being performed
 	guint32			timeout_secs;	///< Timeout for this operation (secs)
 	gboolean		is_running;	///< TRUE if this resource agent is running.
+	gboolean		last_success;	///< TRUE if previous operation was successful
 };
 
 ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
@@ -71,6 +72,7 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 #define	REQENVIRONNAMEFIELD	"environ"
 #define	REQRSCNAMEFIELD		"resourcename"
 #define	REQREPEATNAMEFIELD	"repeat_interval"
+#define	REQCANCELONFAILFIELD	"cancel_on_fail"
 #define	REQTIMEOUTNAMEFIELD	"timeout"
 #define	REQINITDELAYNAMEFIELD	"init_delay"
 #define	REQIDENTIFIERNAMEFIELD	"reqid"
