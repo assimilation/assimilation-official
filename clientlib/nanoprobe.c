@@ -1106,8 +1106,8 @@ nano_packet_decoder(void)
  *					nanoobey_sendhb(), nanoobey_expecthb(), and/or nanoobey_sendexpecthb()
  *
  * 6.	Now everything is running in "normal" mode.  Happy days!
- *	Eventually we may be told to do other things (monitor services, set up discovery, other queries)
- *	but we'll always go through these steps.
+ *	Eventually we are likely to be told to do other things (monitor services, set up discovery,
+ *	respond to other queries) but we'll always go through these steps.
  */
 
 WINEXPORT void
@@ -1141,6 +1141,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	// Initiate the startup process
 	g_idle_add(nano_startupidle, &cruftiness);
 }
+
 /// Shut down the things started up by nano_start_full() - mainly free storage to make valgrind happy...
 WINEXPORT void
 nano_shutdown(gboolean report)
@@ -1168,10 +1169,6 @@ nano_shutdown(gboolean report)
 	hbsender_stopallsenders();
 	hblistener_shutdown();
 	UNREF2(swdisc);
-	if (RscQ) {
-		RscQ->cancelall(RscQ);
-		UNREF(RscQ);
-	}
 	if (nanofailreportaddr) {
 		UNREF(nanofailreportaddr);
 	}
@@ -1184,8 +1181,6 @@ nano_shutdown(gboolean report)
 	if (decoder) {
 		UNREF(decoder);
 	}
-	// Unregister all discovery modules.
-	discovery_unregister_all();
 	obeycollective->baseclass.dissociate(&obeycollective->baseclass);
 	UNREF2(obeycollective);
 }
@@ -1208,6 +1203,14 @@ nano_initiate_shutdown(void)
 		proto->closeall(proto);
 		idle_shutdown_gsource = g_idle_add(shutdown_when_outdone, NULL);
 		nano_shutting_down = TRUE;
+		// Unregister all discovery modules.  Keep us from starting any new ones...
+		discovery_unregister_all();
+		// Let's not start any more resource operations either...
+		if (RscQ) {
+			RscQ->cancelall(RscQ);
+			UNREF(RscQ);
+		}
+		// @TODO We need to ignore additional requests during shutdown as well...
 	}else{
 		nano_shutting_down = TRUE;
 		g_warning("%s: Never connected to CMA - cannot send shutdown message.", procname);
@@ -1217,6 +1220,8 @@ nano_initiate_shutdown(void)
 	}
 	return FALSE;
 }
+
+/// Shut down everything when output is all ACKed - this is idle loop code
 FSTATIC gboolean
 shutdown_when_outdone(gpointer unused)
 {
