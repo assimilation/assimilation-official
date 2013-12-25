@@ -442,7 +442,7 @@ test_childprocess_timeout(void)
 #define	MONOP		"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
 #define	METAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
 #define	RESOURCENAME	"\"" REQRSCNAMEFIELD		"\": \"DummyTestGTest01\""
-#define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}"
+#define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}," "\"" REQCANCELONFAILFIELD	"\": true"
 #define	REQID		"\"" REQIDENTIFIERNAMEFIELD	"\": 42"
 
 struct ocf_expect {
@@ -481,13 +481,13 @@ FSTATIC void
 test_safe_ocfops(void)
 {
 	const char *	stop =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STOPOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STOPOP "," HBPROVIDER "," NULLPARAMS  "}";
 	const char *	start =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STARTOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," STARTOP "," HBPROVIDER "," NULLPARAMS  "}";
 	const char *	monitor =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONOP "," HBPROVIDER "," NULLPARAMS  "}";
 	const char * metadata =
-		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METAOP "," HBPROVIDER "," NULLPARAMS "}";
+		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METAOP "," HBPROVIDER "," NULLPARAMS  "}";
 	
 	struct ocf_expect success = {
 		-1, 		// gint		minstrlen;
