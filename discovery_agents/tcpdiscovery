@@ -129,8 +129,19 @@ procsuminfo() {
 #	return True (exit code zero) if we should skip this IP address
 #
 shouldskipaddr() {
-  case "$1/$skiplocal" in
-    "127.0.0.1:*/yes"|"::1:*/yes")	return 0;; # true
+  case "$1" in
+    127.0.0.1:*)
+        case $skiplocal in
+            yes)  return 0;;
+        esac;;
+    *::1:*)
+        if
+            echo "$1" | grep '^::1:[0-9][0-9]*$' >/dev/null
+        then
+            case $skiplocal in
+                yes)  return 0;;
+            esac
+        fi;;
   esac
   return 1 # false
 }
