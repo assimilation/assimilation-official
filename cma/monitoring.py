@@ -206,18 +206,18 @@ class MonitorAction(GraphNode):
             success = True
             explanation = 'is now operational'
         elif reason_enum == EXITED_NONZERO:
-            explanation = 'failed with return code %s' % monmsgobj[REQRCNAMEFIELD]
+            explanation = 'monitoring failed with return code %s' % monmsgobj[REQRCNAMEFIELD]
         elif reason_enum == EXITED_SIGNAL:
-            explanation = 'was killed by signal %s' % monmsgobj[REQSIGNALNAMEFIELD]
+            explanation = 'monitoring was killed by signal %s' % monmsgobj[REQSIGNALNAMEFIELD]
         elif reason_enum == EXITED_HUNG:
-            explanation = 'could not be killed'
+            explanation = 'monitoring could not be killed'
         elif reason_enum == EXITED_TIMEOUT:
-            explanation = 'timed out'
+            explanation = 'monitoring timed out'
         else:
             explanation = 'GOT REAL WEIRD'
             fubar = True
         rscname = monmsgobj[REQRSCNAMEFIELD]
-        msg = 'Monitor operation for service %s %s' % (rscname, explanation)
+        msg = 'Service %s %s' % (rscname, explanation)
         print  'MESSAGE:', msg
         if fubar:
             CMAdb.log.critical(msg)
@@ -528,8 +528,8 @@ class MonitoringRule:
         raise ValueError('Invalid resource class ("class" = "%s")' % rscclass)
 
     @staticmethod
-    def _compute_available_agents(graphnodes):
-        '''Create a cache of all our available monitoring agents'''
+    def compute_available_agents(graphnodes):
+        '''Create a cache of all our available monitoring agents - and return it'''
         for node in graphnodes:
             if not hasattr(node, 'JSON_monitoringagents'):
                 continue
@@ -671,9 +671,8 @@ class LSBMonitoringRule(MonitoringRule):
     def constructaction(self, values, graphnodes):
         '''Construct arguments
         '''
-        MonitoringRule._compute_available_agents(graphnodes)
-        agentcache = MonitoringRule.evaluate('_agentcache', values, graphnodes)
-        if agentcache and 'lsb' in agentcache and self.servicename not in agentcache['lsb']:
+        agentcache = MonitoringRule.compute_available_agents(graphnodes)
+        if 'lsb' in agentcache and self.servicename not in agentcache['lsb']:
             return (MonitoringRule.NOMATCH, None)
         return (MonitoringRule.LOWPRIOMATCH
         ,       {   'monitorclass': 'lsb'
@@ -768,10 +767,9 @@ class OCFMonitoringRule(MonitoringRule):
             We can also return NOMATCH if some things don't match
             at all.
         '''
-        MonitoringRule._compute_available_agents(graphnodes)
-        agentcache = MonitoringRule.evaluate('_agentcache', values, graphnodes)
+        agentcache = MonitoringRule.compute_available_agents(graphnodes)
         agentpath = '%s/%s' % (self.provider, self.rsctype)
-        if agentcache and 'ocf' in agentcache and agentpath not in agentcache['ocf']:
+        if 'ocf' in agentcache and agentpath not in agentcache['ocf']:
             return (MonitoringRule.NOMATCH, None)
         #
         missinglist = []
@@ -907,18 +905,19 @@ def is_upstartjob(args, values, graphnodes):
     Returns "true" if any of its arguments names an upstart job, "false" otherwise
     If no arguments are given, it returns whether this system has upstart enabled.
     '''
-    upstart = MonitoringRule.evaluate('JSON_upstart.data.#upstart', values, graphnodes)
-    if upstart is None:
+
+
+    agentcache = MonitoringRule.compute_available_agents(graphnodes)
+
+    if 'upstart' not in agentcache:
         return 'false'
 
     for arg in args:
-        valexpr = 'JSON_upstart.data.%s' % arg
-        value = MonitoringRule.evaluate(valexpr, values, graphnodes)
-        if value is not None:
+        value = MonitoringRule.evaluate(arg, values, graphnodes)
+        if value in agentcache['upstart']:
             return 'true'
+    return len(values) == 0
 
-    return 'false' if len(args) > 0 else 'true'
-    
 
 # Netstat format IP:port pattern
 ipportregex = re.compile('(.*):([^:]*)$')
