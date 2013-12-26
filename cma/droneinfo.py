@@ -336,7 +336,7 @@ class Drone(SystemNode):
         '''
         monitorclass    = moninfo['monitorclass']
         monitortype     = moninfo['monitortype']
-        monitorinterval = 30
+        monitorinterval = 10
         monitortimeout  = 120
         if 'provider' in moninfo:
             monitorprovider = moninfo['provider']

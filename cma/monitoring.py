@@ -154,7 +154,6 @@ class MonitorAction(GraphNode):
         name = Store.lucene_escape(name)
         qvalue = '%s:%s' % (name, '*' if domain is None else domain)
         import sys
-        print >> sys.stderr, 'QUERY IS: %s' % qvalue
         return CMAdb.store.load_cypher_nodes(MonitorAction.findquery, MonitorAction
         ,   params={'q': qvalue})
 
