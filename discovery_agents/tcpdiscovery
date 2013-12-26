@@ -1,19 +1,17 @@
 #!/bin/sh
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
-#	@brief Command to discover processes listening for connections (tcp)
+#	@brief Command to discover processes listening for connections or connecting over tcp
 #	and output the results in JSON format.
 #	@details Output validated at jsonlint.com (good to validate future versions there too!)
 #
-#	It makes use of netstat -[tu]lnp to get the active listening connections, and /proc to
+#	It makes use of netstat -atnp to get the active listening connections, and /proc to
 #	get more detailed information about the processes we discovered with netstat.
 #
 #	We get the listening protocol, port, protocol, address and process listening that address.
 #	We get the binary full pathname, its arguments (if not modified by the application),
 #	uid and gid, current directory and so on of the process communicating.
 #
-#	For TCP programs we only output listening processes.  For UDP, there is no such thing
-#	as listening processes, so you get the whole set of processes prepared to receive
-#	(or send) UDP packets.
+#	We get the same thing for outbound TCP connections as well.
 #
 #	This isn't exactly rocket science, but integrating the /proc info with the netstat
 #	info works out nicely, and the JSON output is nicely readable to humans and nicely
@@ -23,20 +21,28 @@
 #	Sorry :-( Although we can get the listening ports without root, we cannot get detailed
 #	information about the processes that are communicating - which is definitely worth having.
 #
-# @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
+# @author &copy; 2013 - Alan Robertson <alanr@unix.sh>
 # @n
 # Licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
 #!/usr/bin/python
 
 skiplocal=yes
 exestoskip='.*/(firefox|thunderbird|chromium-browser|konquerer|rekonq)$'
+sumstotry="md5sum sha1sum sha256sum crc32 sum"
 
 mktmpdir() {
-    mktemp --directory --tmpdir=/var/tmp
+    # Not every system has mktemp
+    if
+        mktemp --directory --tmpdir=/var/tmp 2>/dev/null
+    then
+      : mktemp worked
+    else
+        dir="/var/tmp/$$-${RANDOM-random}.tcpdiscovery"
+        mkdir "${dir}" && echo "${dir}"
+    fi
 }
 
 choose_sum_command() {
-    sumstotry="md5sum sha1sum sha256sum crc32 sum"
     SUMCMD=''
     for sum in ${sumstotry}
     do
@@ -44,9 +50,9 @@ choose_sum_command() {
             "${sum}" /dev/null >/dev/null 2>&1
         then
             case "${sum}" in
-               crc32)   sum=crc32sum;;
+               crc32)   SUMCMD=crc32sum;;
+               *)       SUMCMD="${sum}";;
             esac
-            SUMCMD="${sum}"
             break
         fi
     done
@@ -103,20 +109,21 @@ slashproc_gid() {
 
 
 procsuminfo() {
-    (
-        slashproc_cmdline "$1"
-        slashproc_exe "$1"
-        slashproc_uid "$1"
-        slashproc_gid "$1"
-    )  | sumstdin
     # Create a unique sum for this command line, executable, user id and group id
     # Could take the cwd into account, but that might change.
     # The rest is unlikely to change for daemon-like processes
     # Deliberately avoiding taking the pid into account.
     # If we have 10K processes all the same, we really don't want 10K nodes in the graph
+    exe="$(slashproc_exe "$1")"
+    # Prepending the the basename of the binary makes our id more human-intelligible
+    printf '%s:' "$(basename $exe)"
+    (
+        slashproc_cmdline "$1"
+        echo "${exe}"
+        slashproc_uid "$1"
+        slashproc_gid "$1"
+    )  | sumstdin
 }
-
-
 
 #
 #	return True (exit code zero) if we should skip this IP address
@@ -176,7 +183,10 @@ gather_tcp_netstatinfo() {
             */*)	pid_prog="$state";;
             *)	: state is ["$state"] ; continue;;
         esac
-        pid=$(echo "$pid_prog" | sed s'%/.*%%')
+        case "${pid_prog}" in
+            */*)  pid=$(dirname "$pid_prog");;
+            *)    pid=${pid_prog};;
+        esac
         case $state in
             LISTEN)         logserver "${pid}" "${localaddr}" "${proto}";;
             ESTABLISHED)    logclient "${pid}" "${foreignaddr}" "${proto}";;
@@ -187,11 +197,11 @@ gather_tcp_netstatinfo() {
 format_addrs() {
     printf "$1"'"%s":{' "$2"
     faddrfmt='"%s":"%s"'
-    while read fmtaddr proto
+    sort -u "$3" | while read fmtaddr proto
     do
         printf "$faddrfmt" "$fmtaddr" "$proto"
         faddrfmt=',"%s":"%s"'
-    done < "$3"
+    done
     printf '}'
 }
 
