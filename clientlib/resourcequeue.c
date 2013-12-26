@@ -95,6 +95,8 @@ resourcequeue_new(guint structsize)
 	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal
 	,		_resource_queue_hash_key_destructor, _resource_queue_hash_data_destructor);
 	self->timerid = g_timeout_add_seconds(1, _resource_queue_runqueue, self);
+	self->activechildcnt = 0;
+	self->shuttingdown = FALSE;
 
 	return self;
 }
@@ -105,6 +107,10 @@ _resource_queue_finalize(AssimObj* aself)
 {
 	ResourceQueue*	self = CASTTOCLASS(ResourceQueue, aself);
 
+	self->shuttingdown = TRUE;
+	if (self->activechildcnt > 0) {
+		return;
+	}
 	if (self->resources) {
 		g_hash_table_destroy(self->resources);
 		self->resources = NULL;
@@ -357,6 +363,7 @@ _resource_queue_runqueue(gpointer pself)
 			RscQElem*	qe = CASTTOCLASS(RscQElem, qelem->data);
 			if (now >= qe->cmd->starttime) {
 				REF(self);	// We undo this when process exits
+				self->activechildcnt += 1;
 				qe->cmd->execute(qe->cmd);
 				break;
 			}
@@ -388,6 +395,11 @@ _resource_queue_endnotify
 
 
 	g_queue_remove(self->ourQ, self);
+	parent->activechildcnt -= 1;
+	if (parent->shuttingdown && parent->activechildcnt <= 0) {
+		_resource_queue_finalize(&parent->baseclass);
+		return;
+	}
 	DEBUGMSG1("%s.%d: EXIT happened exittype:%d repeat:%d, cancelme:%d", __FUNCTION__, __LINE__
 	,	exittype,  self->repeatinterval, self->cancelme);
 
