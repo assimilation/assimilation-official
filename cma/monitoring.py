@@ -153,7 +153,6 @@ class MonitorAction(GraphNode):
             MonitorAction.findquery = neo4j.CypherQuery(CMAdb.store.db, cypher)
         name = Store.lucene_escape(name)
         qvalue = '%s:%s' % (name, '*' if domain is None else domain)
-        import sys
         return CMAdb.store.load_cypher_nodes(MonitorAction.findquery, MonitorAction
         ,   params={'q': qvalue})
 
