@@ -48,6 +48,8 @@ struct _ResourceQueue {
 	AssimObj	baseclass;	///< Base object: implements ref, unref, toString
 	GHashTable*	resources;	///< Table of resource queues
 	gint		timerid;	///< id of our run timer
+	gint		activechildcnt;	///< Count of active child processes
+	gboolean	shuttingdown;	///< TRUE means we'll shut down when last job finishes
 	void (*settimeout)(ResourceQueue*, guint timeout);	//< Set default timeout
 	guint (*gettimeout)(ResourceQueue*, guint timeout);	//< Return default timeout
 	gboolean (*Qcmd)(ResourceQueue* self			//< Our R.Q. object
