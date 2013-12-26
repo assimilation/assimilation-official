@@ -23,9 +23,7 @@
 We implement the Drone class - which implements all the properties of
 drones as a Python class.
 '''
-import time
-import sys
-import hashlib
+import time, sys, hashlib, re
 #import os, traceback
 from py2neo import neo4j
 from cmadb import CMAdb
@@ -242,6 +240,7 @@ class Drone(SystemNode):
                     CMAdb.store.relate(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
                     #CMAdb.store.relate(mac, CMAconsts.REL_causes,  ip)
 
+    netstatipportpat = None
     def _add_tcplisteners(self, jsonobj, **keywords):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
@@ -256,7 +255,9 @@ class Drone(SystemNode):
         newprocs = {}
         newprocmap = {}
         discoveryroles = {}
-        for procname in data.keys(): # List of names of processes...
+        for procname in data.keys():    # List of nanoprobe-assigned names of processes...
+                                        # This is currently different from drone-assigned names -
+                                        # and it causes problems that they're different...
             procinfo = data[procname]
             if 'listenaddrs' in procinfo:
                 if not CMAconsts.ROLE_server in discoveryroles:
@@ -266,7 +267,9 @@ class Drone(SystemNode):
                 if not CMAconsts.ROLE_client in discoveryroles:
                     discoveryroles[CMAconsts.ROLE_client] = True
                     self.addrole(CMAconsts.ROLE_client)
+            #print >> sys.stderr, 'CREATING PROCESS %s!!' % procname
             processproc = CMAdb.store.load_or_create(ProcessNode, domain=self.domain
+            ,   processname=procname
             ,   host=self.designation
             ,   pathname=procinfo.get('exe', 'unknown'), argv=procinfo.get('cmdline', 'unknown')
             ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
@@ -294,8 +297,14 @@ class Drone(SystemNode):
                     assert not Store.is_abstract(proc)
                     CMAdb.store.separate(self, CMAconsts.REL_hosting, proc)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
+                    print >> sys.stderr, ('TRYING TO DELETE node %s'
+                    %   (procname))
+                    for proc in newprocs:
+                        print >> sys.stderr, ('*** new proc: proc.procname' % (proc))
                     CMAdb.store.delete(proc)
 
+        if Drone.netstatipportpat is None:
+            Drone.netstatipportpat = re.compile('(.*):([^:]*)$')
         for procname in data.keys(): # List of names of processes...
             processnode = newprocmap[procname]
             procinfo = data[procname]
@@ -305,7 +314,9 @@ class Drone(SystemNode):
                 srvportinfo = procinfo['listenaddrs']
                 processnode.addrole(CMAconsts.ROLE_server)
                 for srvkey in srvportinfo.keys():
-                    self._add_serveripportnodes(srvportinfo[srvkey], processnode, allourips)
+                    match = Drone.netstatipportpat.match(srvkey)
+                    (ip, port) = match.groups()
+                    self._add_serveripportnodes(ip, int(port), processnode, allourips)
                 montuple = MonitoringRule.findbestmatch((processnode, self))
                 if montuple[0] == MonitoringRule.NOMATCH:
                     print >> sys.stderr, "**don't know how to monitor %s" % str(processnode.argv)
@@ -327,7 +338,9 @@ class Drone(SystemNode):
                 clientinfo = procinfo['clientaddrs']
                 processnode.addrole(CMAconsts.ROLE_client)
                 for clientkey in clientinfo.keys():
-                    self._add_clientipportnode(clientinfo[clientkey], processnode)
+                    match = Drone.netstatipportpat.match(clientkey)
+                    (ip, port) = match.groups()
+                    self._add_clientipportnode(ip, int(port), processnode)
 
     def _add_service_monitoring(self, monitoredservice, moninfo):
         '''
@@ -370,31 +383,29 @@ class Drone(SystemNode):
         ,   monitortype=monitortype, interval=monitorinterval, timeout=monitortimeout
         ,   provider=monitorprovider, arglist=monitorarglist)
         if not Store.is_abstract(monnode):
-            print >> sys.stderr, ('Already monitoring %s on %s' % (monitortype, self.designation))
-            CMAdb.log.info('Already monitoring %s on %s' % (monitortype, self.designation))
-            return
+            print >> sys.stderr, ('Previously monitored %s on %s' 
+            %       (monitortype, self.designation))
+            CMAdb.log.info('Previously monitored %s on %s' % (monitortype, self.designation))
         monnode.activate(monitoredservice, self)
 
-    def _add_clientipportnode(self, ipportinfo, processnode):
+    def _add_clientipportnode(self, ipaddr, servport, processnode):
         '''Add the information for a single client IPtcpportNode to the database.'''
-        servip_name = str(pyNetAddr(ipportinfo['addr']).toIPv6())
+        servip_name = str(pyNetAddr(ipaddr).toIPv6())
         servip = CMAdb.store.load_or_create(IPaddrNode, domain=self.domain, ipaddr=servip_name)
-        servport = int(ipportinfo['port'])
         ip_port = CMAdb.store.load_or_create(IPtcpportNode, domain=self.domain
         ,       ipaddr=servip_name, port=servport)
         CMAdb.store.relate_new(ip_port, CMAconsts.REL_baseip, servip, {'causes': True})
         CMAdb.store.relate_new(processnode, CMAconsts.REL_tcpclient, ip_port, {'causes': True})
 
-    def _add_serveripportnodes(self, jsonobj, processnode, allourips):
+    def _add_serveripportnodes(self, ip, port, processnode, allourips):
         '''We create tcpipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
         for the ANY ipv4 and ipv6 addresses'''
-        netaddr = pyNetAddr(str(jsonobj['addr'])).toIPv6()
+        netaddr = pyNetAddr(str(ip)).toIPv6()
         if netaddr.islocal():
             CMAdb.log.warning('add_serveripportnodes("%s"): address is local' % netaddr)
             return
         addr = str(netaddr)
-        port = jsonobj['port']
         # Were we given the ANY address?
         anyaddr = netaddr.isanyaddr()
         for ipaddr in allourips:
@@ -493,6 +504,12 @@ class Drone(SystemNode):
                         break
             except KeyError:
                 CMAdb.log.error('OOPS! got an exception...')
+
+    def _update_agentcache(self, unused_jsonobj, **unused_keywords):
+        '''Update the _agentcache'''
+        unused_jsonobj = unused_jsonobj
+        unused_keywords = unused_keywords
+        MonitoringRule.compute_available_agents((self,))
 
 
     def destaddr(self, ring=None):
@@ -716,6 +733,6 @@ class Drone(SystemNode):
 
 # pylint: disable=W0212
 Drone.add_json_processors(('netconfig', Drone._add_netconfig_addresses),)
-Drone.add_json_processors(('tcplisteners', Drone._add_tcplisteners),)
-Drone.add_json_processors(('tcpclients', Drone._add_tcplisteners),)
+Drone.add_json_processors(('tcpdiscovery', Drone._add_tcplisteners),)
 Drone.add_json_processors(('__LinkDiscovery', Drone._add_linkdiscovery),)
+Drone.add_json_processors(('monitoringagents', Drone._update_agentcache),)

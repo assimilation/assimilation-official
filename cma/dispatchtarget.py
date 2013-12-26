@@ -169,9 +169,8 @@ class DispatchSTARTUP(DispatchTarget):
                                 ('os',                  0),
                                 ('cpu',                 36000),
                                 ('arpcache',            45),
-                                ('tcpclients',          3333),
-                                ('tcplisteners',        3700)
-                                )
+                                ('tcpdiscovery',        3700)
+                               )
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
