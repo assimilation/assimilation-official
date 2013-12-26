@@ -109,6 +109,10 @@ _resource_queue_finalize(AssimObj* aself)
 		g_hash_table_destroy(self->resources);
 		self->resources = NULL;
 	}
+	if (self->timerid >= 0) {
+		g_source_remove(self->timerid);
+		self->timerid = -1;
+	}
 	_assimobj_finalize(&self->baseclass);
 	self = NULL;
 }
@@ -358,7 +362,7 @@ _resource_queue_runqueue(gpointer pself)
 			}
 		}
 	}
-	if (!anyelems) {
+	if (!anyelems && self->timerid >= 0) {
 		g_source_remove(self->timerid);
 		self->timerid = -1;
 	}
