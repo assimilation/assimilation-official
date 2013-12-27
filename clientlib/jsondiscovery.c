@@ -236,27 +236,36 @@ jsondiscovery_new(const char *  discoverytype,	///<[in] type of this JSON discov
 	const char *	basedir = NULL;
 	ConfigContext*	jsonparams;
 	JsonDiscovery*	ret;
+	char *		fullpath;
 
 	BINDDEBUG(JsonDiscovery);
 	g_return_val_if_fail(jsoninst != NULL, NULL);
 	g_return_val_if_fail(*discoverytype != '/', NULL);
 	jsonparams = jsoninst->getconfig(jsoninst, "parameters");
 	g_return_val_if_fail(jsonparams != NULL, NULL);
+	basedir = context->getstring(context, "JSONAGENTROOT");
+	if (NULL == basedir) {
+		basedir = JSONAGENTROOT;
+	}
+	fullpath = g_build_filename(basedir, discoverytype, NULL);
+	if (	!g_file_test(fullpath, G_FILE_TEST_IS_REGULAR)
+	||	!g_file_test(fullpath, G_FILE_TEST_IS_EXECUTABLE)) {
+		g_warning("%s.%d: No such JSON discovery agent [%s]", __FUNCTION__, __LINE__
+		,	fullpath);
+		g_free(fullpath); fullpath = NULL;
+		return NULL;
+	}
 	ret=NEWSUBCLASS(JsonDiscovery
 	,		discovery_new(instancename, iosource, context
 			,	      objsize < sizeof(JsonDiscovery) ? sizeof(JsonDiscovery) : objsize));
 	g_return_val_if_fail(ret != NULL, NULL);
+	ret->_fullpath = fullpath;
 	ret->baseclass.discoverintervalsecs	= _jsondiscovery_discoverintervalsecs;
 	ret->baseclass.baseclass._finalize	= _jsondiscovery_finalize;
 	ret->baseclass.discover			= _jsondiscovery_discover;
 	ret->jsonparams = jsonparams;
 	REF(ret->jsonparams);
 	ret->_intervalsecs = intervalsecs;
-	basedir = context->getstring(context, "JSONAGENTROOT");
-	if (NULL == basedir) {
-		basedir = JSONAGENTROOT;
-	}
-        ret->_fullpath = g_strdup_printf("%s%s%s", basedir, "/", discoverytype);
 	ret->logprefix = g_strdup_printf("Discovery %s: ", instancename);
 	DEBUGMSG2("%s.%d: FULLPATH=[%s] discoverytype[%s]"
 	,	__FUNCTION__, __LINE__, ret->_fullpath, discoverytype);
