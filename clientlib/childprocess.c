@@ -113,10 +113,8 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 	aself = assimobj_new(cpsize);
 	g_return_val_if_fail(aself != NULL, NULL);
 	self = NEWSUBCLASS(ChildProcess, aself);
-	aself->_finalize = _childprocess_finalize;
-	aself->toString = _childprocess_toString;
 	childenv = assim_merge_environ(envp, envmod);
-	g_spawn_async_with_pipes(
+	if (!g_spawn_async_with_pipes(
 		curdir,				// Current directory
 		argv,				// Arguments
 		childenv,			// environment
@@ -127,9 +125,26 @@ childprocess_new(gsize cpsize		///< Size of created ChildProcess object
 		NULL,				// gint *standard_input,
 		&stdoutfd,			// gint *standard_output,
 		&stderrfd,			// gint *standard_error,
-		&failcode);			// GError **error
+		&failcode)) {			// GError **error
+
+		// OOPS!  Failed!
+		const char *	msg = "unknown exec error";
+		if (failcode && failcode->message) {
+			msg = failcode->message;
+		}
+		g_critical("%s.%d: %s", __FUNCTION__, __LINE__, msg);
+		if (failcode) {
+			g_clear_error(&failcode);	// sets failcode back to NULL
+		}
+		assim_free_environ(childenv); childenv = NULL;
+		UNREF(self);
+		aself = NULL;
+		return NULL;
+	}
 	DEBUGMSG2("%s.%d: Spawned process with user_data = %p", __FUNCTION__, __LINE__, self);
 
+	aself->_finalize = _childprocess_finalize;
+	aself->toString = _childprocess_toString;
 	self->stderr_src = logsourcefd_new(0, stderrfd, G_PRIORITY_HIGH, g_main_context_default()
 	,		                   logdomain, loglevel, logprefix);
 	self->user_data = user_data;

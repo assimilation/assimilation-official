@@ -114,6 +114,10 @@ _jsondiscovery_discover(Discovery* dself)
 ,		CHILD_LOGERRS
 ,		NULL
 	);
+	if (NULL == self->child) {
+		// Can't call childwatch w/o valid child...
+		return FALSE;
+	}
 	
 	// Don't want us going away while we have a child out there...
 	REF2(self);

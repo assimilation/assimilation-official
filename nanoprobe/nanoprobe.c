@@ -186,6 +186,7 @@ usage(const char * cmdname)
 	fprintf(stderr, "\t-d --debug <debug-level (0-5)>\n");
 #else
 	fprintf(stderr, "\t-d --debug <debug-level (0-5)>\n");
+	fprintf(stderr, "\t-D --dynamic\n");
 #endif
 }
 
@@ -214,17 +215,19 @@ main(int argc, char **argv)
 	static gboolean		stay_in_foreground = FALSE;
 	static gboolean		dostatusonly = FALSE;
 	static gboolean		dokillonly = FALSE;
+	static gboolean		dynamicport = FALSE;
 	static char*		pidfile = NULL;
-	gboolean		bindret;
+	gboolean		bindret = FALSE;
 	PidRunningStat rstat;
 	int ret;
 
 	GError *error = NULL;
 	static GOptionEntry 	long_options[] = {
 		{"bind",	'b', 0,	G_OPTION_ARG_STRING, &localaddr, "<address:port-to-listen-on-locally>", NULL},
-		{"cmaaddr",	'c', 0, G_OPTION_ARG_STRING, &cmaaddr,	"<address:port-of-CMA>", NULL},
-		{"debug",	'd', 0, G_OPTION_ARG_INT,   &debug,   " set debug level", NULL},
-		{"ttl",		't', 0, G_OPTION_ARG_INT, &mcast_ttl, "<multicast-ttl> (default is 31)",	NULL},
+		{"cmaaddr",	'c', 0, G_OPTION_ARG_STRING, &cmaaddr,	 "<address:port-of-CMA>", NULL},
+		{"debug",	'd', 0, G_OPTION_ARG_INT,   &debug,      "set debug level", NULL},
+		{"dynamic",	'D', 0, G_OPTION_ARG_NONE,  &dynamicport," force dynamic port", NULL},
+		{"ttl",		't', 0, G_OPTION_ARG_INT, &mcast_ttl,    "<multicast-ttl> (default is 31)",	NULL},
 		{"kill",    'k', 0, G_OPTION_ARG_NONE, &dokillonly, "send SIGTERM to the running service", NULL},
 		{"pidfile", 'p', 0, G_OPTION_ARG_STRING, &pidfile, "<pid-file-pathname>", NULL},
 		{"status",  's', 0, G_OPTION_ARG_NONE, &dostatusonly, "report nanoprobe status", NULL},
@@ -239,8 +242,7 @@ main(int argc, char **argv)
 	/// @todo initialize from a setup file - initial IP address:port, debug - anything else?
 
 
-	if(!(g_option_context_parse(context, &argc, &argv, &error)))
-	{
+	if(!(g_option_context_parse(context, &argc, &argv, &error))) {
 		g_print("option parsing failed %s\n", error->message);
 		usage(argv[0]);
 		exit(1);
@@ -339,14 +341,17 @@ main(int argc, char **argv)
 	config->setaddr(config, CONFIGNAME_CMAINIT, destaddr);
 
 
-	// Construct a NetAddr to bind to (listen from) (normally ANY address)
-	localbindaddr =  netaddr_string_new(localaddr);
-	g_return_val_if_fail(NULL != localbindaddr, 5);
+	if (dynamicport) {
+		anyportpermitted = TRUE;
+	}else{
+		// Construct a NetAddr to bind to (listen from) (normally ANY address)
+		localbindaddr =  netaddr_string_new(localaddr);
+		g_return_val_if_fail(NULL != localbindaddr, 5);
 
-
-	// Bind to the requested address (defaults to ANY as noted above)
-	bindret = nettransport->bindaddr(nettransport, localbindaddr, anyportpermitted);
-	UNREF(localbindaddr);
+		// Bind to the requested address (defaults to ANY as noted above)
+		bindret = nettransport->bindaddr(nettransport, localbindaddr, anyportpermitted);
+		UNREF(localbindaddr);
+	}
 	if (!bindret) {
 		// OOPS! Address:Port already busy...
 		if (anyportpermitted) {
@@ -358,7 +363,8 @@ main(int argc, char **argv)
 			localbindaddr = NULL;
 			g_return_val_if_fail(bindret, 6);
 		}else{
-			g_warning("Cannot bind to local address [%s] and cannot use any free port.", localaddr);
+			g_warning("Cannot bind to local address [%s] and cannot use any free port."
+			,	localaddr);
 			return(5);
 		}
 	}
