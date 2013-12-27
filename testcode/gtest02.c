@@ -28,17 +28,28 @@
 #include <string.h>
 #include <resourcecmd.h>
 #include <resourcequeue.h>
+#include <childprocess.h>
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
 
 FSTATIC void	test_all_freed(void);
 FSTATIC gboolean logfatal_function(const gchar*, GLogLevelFlags, const gchar*,gpointer);
+FSTATIC void	set_expected_failures(const char** the_usual_suspects);
 FSTATIC void	test_invalid_resourcecmd(void);
 FSTATIC void	test_invalid_queuecmd(void);
+FSTATIC void	test_childprocess_failure(void);
 
 char *		bad_msg = NULL;
 const char **	expected_msgs = NULL;
+
+FSTATIC void
+set_expected_failures(const char** the_usual_suspects)
+{
+	g_log_set_fatal_mask(G_LOG_DOMAIN, 0);
+	g_test_log_set_fatal_handler (logfatal_function, the_usual_suspects);
+	expected_msgs = the_usual_suspects;
+}
 
 FSTATIC void
 test_all_freed(void)
@@ -82,6 +93,10 @@ logfatal_function(
 	if (log_level >= G_LOG_LEVEL_MESSAGE) {
 		return FALSE;
 	} 
+	// Old versions of glib don't seem to handle user_data...
+	if (messagelist == NULL) {
+		messagelist = expected_msgs;
+	}
 	for (mptr = messagelist; mptr && *mptr; ++mptr) {
 		++ msgcount;
 		if (strstr(message, *mptr) != NULL) {
@@ -110,6 +125,36 @@ logfatal_function(
 #define	DUMB	"\""REQRSCNAMEFIELD"\":\"dumb\""
 #define	PROV	",\"" REQPROVIDERNAMEFIELD "\": \"heartbeat\"}"
 
+
+
+FSTATIC void
+test_childprocess_failure(void)
+{
+	ChildProcess*	my_child_is_a_failure;
+	char 	devnull [] = "/dev/null";
+	char* 	argv[] = {devnull, NULL};
+	const char *	expected_failures[] = {"Failed to execute child process \"/dev/null\"", NULL};
+
+	set_expected_failures(expected_failures);
+
+	my_child_is_a_failure = childprocess_new(0
+	,	argv		// command and arguments
+	,	NULL		// envp
+	,	NULL		// envmod
+	,	"/"		// curdir
+	,	NULL		// notify process
+	,	FALSE		// save_stdout
+	,	"foo"		// logdomain
+	,	"bar"		// logprefix
+	,	0		// GLogLevelFlags loglevel
+	,	0		// timeout seconds
+	,	NULL		// user_data
+	,	CHILD_LOGALL	// ChildErrLogMode logmode
+	,	"failurechild"	// logname
+	);
+	g_assert(my_child_is_a_failure == NULL);
+	test_all_freed();
+}
 
 FSTATIC void
 test_invalid_resourcecmd(void)
@@ -151,8 +196,7 @@ test_invalid_resourcecmd(void)
 	};
 	guint		j;
 
-	g_log_set_fatal_mask(G_LOG_DOMAIN, 0);
-	g_test_log_set_fatal_handler (logfatal_function, expected_failures);
+	set_expected_failures(expected_failures);
 
 	for (j=0; j < DIMOF(json_cmds); ++j) {
 		ConfigContext*	request = NULL;
@@ -189,8 +233,7 @@ test_invalid_queuecmd(void)
 		NULL,
 	};
 
-	g_log_set_fatal_mask(G_LOG_DOMAIN, 0);
-	g_test_log_set_fatal_handler (logfatal_function, expected_failures);
+	set_expected_failures(expected_failures);
 	
 	
 	g_assert_cmpint(rq->Qcmd(rq, NULL, NULL, NULL), ==, 0);
@@ -221,6 +264,7 @@ main(int argc, char ** argv)
 	g_log_set_fatal_mask(NULL, 0);	// I know G_LOG_LEVEL_ERROR is fatal anyway...
 	g_test_init(&argc, &argv, NULL);
 	g_log_set_fatal_mask(NULL, 0);
+	g_test_add_func("/gtest02/test_childprocess_failure", test_childprocess_failure);
 	g_test_add_func("/gtest02/test_invalid_resourcecmd", test_invalid_resourcecmd);
 	g_test_add_func("/gtest02/test_invalid_queuecmd", test_invalid_queuecmd);
 	return g_test_run();
