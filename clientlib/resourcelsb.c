@@ -168,10 +168,6 @@ _resourcelsb_execute(ResourceCmd* cmdself)
 	logmode = (self->baseclass.callback ? CHILD_NOLOG : CHILD_LOGALL);
 
 	self->baseclass.starttime = g_get_monotonic_time();
-	self->baseclass.is_running = TRUE;
-	REF2(self);	// We can't go away while we're running no matter what...
-			// (this is undone after calling our callback function).
-	DEBUGMSG5("%s.%d: REF resourcelsb: %p", __FUNCTION__,__LINE__,self);
 
 	self->child = childprocess_new
 	(	0				///< cpsize
@@ -190,7 +186,16 @@ _resourcelsb_execute(ResourceCmd* cmdself)
 	,	logmode				///< enum ChildErrLogMode errlogmode
 	,	self->loggingname		///< const char * loggingname
 	);
-	DEBUGMSG("%s.%d: spawned child: %p", __FUNCTION__,__LINE__,self->child);
+	if (self->child) {
+		self->baseclass.is_running = TRUE;
+		REF2(self);	// We can't go away while we're running no matter what...
+				// (this is undone after calling our callback function).
+		DEBUGMSG5("%s.%d: REF resourcelsb: %p", __FUNCTION__,__LINE__,self);
+		DEBUGMSG("%s.%d: spawned child: %p", __FUNCTION__,__LINE__,self->child);
+	}else{
+		DEBUGMSG("%s.%d: child spawning FAILED: %s:%s", __FUNCTION__,__LINE__
+		,	self->baseclass.resourcename, self->baseclass.operation);
+	}
 }
 
 /// Return overly-simplified faked-up metadata for an LSB resource
