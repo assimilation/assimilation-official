@@ -937,7 +937,9 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 	discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
 	,			      transport, config, 0);
 	UNREF(jsonroot);
-	UNREF2(discovery);
+	if (discovery) {
+		UNREF2(discovery);
+	}
 }
 
 /// Stuff we need only for passing parameters through our glib infrastructures - to start up nanoprobes.
