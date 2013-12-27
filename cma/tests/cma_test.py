@@ -568,9 +568,9 @@ class TestMonitorBasic(TestCase):
             )
         neorule = LSBMonitoringRule('neo4j-service', neoargs)
 
-        sshnode = ProcessNode('global', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
+        sshnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
         #ProcessNode:
-        #   (domain, host, pathname, argv, uid, gid, cwd, roles=None):
+        #   (domain, host, nodename, pathname, argv, uid, gid, cwd, roles=None):
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         sshargs = (
@@ -580,7 +580,7 @@ class TestMonitorBasic(TestCase):
             )
         sshrule = LSBMonitoringRule('ssh', sshargs)
 
-        udevnode = ProcessNode('global', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
+        udevnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
 
@@ -600,7 +600,7 @@ class TestMonitorBasic(TestCase):
         ,   "-Dfile.encoding=UTF-8"
         ,   "org.neo4j.server.Bootstrapper")
 
-        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         for tup in (sshrule.specmatch(None, (udevnode,))
@@ -702,7 +702,7 @@ class TestMonitorBasic(TestCase):
         ,   "-Dfile.encoding=UTF-8"
         ,   "org.neo4j.server.Bootstrapper")
 
-        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         # We'll be missing the value of 'port'
         (prio, table, missing) = neo4j.specmatch(None, (neonode,))
@@ -785,7 +785,7 @@ class TestMonitorBasic(TestCase):
         ,   "-Dfile.encoding=UTF-8"
         ,   "org.neo4j.server.Bootstrapper")
 
-        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         #neonode.serviceport=7474
         first = MonitoringRule.findbestmatch((neonode,))
@@ -886,7 +886,7 @@ class TestMonitorBasic(TestCase):
     }'''
         MonitoringRule.ConstructFromString(ocf_string)
         neoargs = pyConfigContext(neo4j_json)['argv']
-        testnode = ProcessNode('global', 'fred', '/usr/bin/java', neoargs
+        testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         testnode.JSON_procinfo = neo4j_json
