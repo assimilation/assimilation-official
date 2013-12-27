@@ -909,7 +909,7 @@ def is_upstartjob(args, values, graphnodes):
 
     agentcache = MonitoringRule.compute_available_agents(graphnodes)
 
-    if 'upstart' not in agentcache:
+    if 'upstart' not in agentcache or len(agentcache['upstart']) == 0:
         return 'false'
 
     for arg in args:
