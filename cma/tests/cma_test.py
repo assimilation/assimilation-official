@@ -568,19 +568,19 @@ class TestMonitorBasic(TestCase):
             )
         neorule = LSBMonitoringRule('neo4j-service', neoargs)
 
-        sshnode = ProcessNode('global', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
+        sshnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
         #ProcessNode:
-        #   (domain, host, pathname, argv, uid, gid, cwd, roles=None):
+        #   (domain, host, nodename, pathname, argv, uid, gid, cwd, roles=None):
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         sshargs = (
                     # This means one of our nodes should have a value called
                     # pathname, and it should end in '/sshd'
-                    ('pathname', '.*/sshd$'),
+                    ('@basename()', 'sshd$'),
             )
         sshrule = LSBMonitoringRule('ssh', sshargs)
 
-        udevnode = ProcessNode('global', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
+        udevnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
 
@@ -600,22 +600,22 @@ class TestMonitorBasic(TestCase):
         ,   "-Dfile.encoding=UTF-8"
         ,   "org.neo4j.server.Bootstrapper")
 
-        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-        for tup in (sshrule.specmatch((udevnode,))
-        ,   sshrule.specmatch((neonode,))
-        ,   neorule.specmatch((sshnode,))):
+        for tup in (sshrule.specmatch(None, (udevnode,))
+        ,   sshrule.specmatch(None, (neonode,))
+        ,   neorule.specmatch(None, (sshnode,))):
             (prio, table) = tup
             self.assertEqual(prio, MonitoringRule.NOMATCH)
             self.assertTrue(table is None)
 
-        (prio, table) = sshrule.specmatch((sshnode,))
+        (prio, table) = sshrule.specmatch(None, (sshnode,))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'ssh')
 
-        (prio, table) = neorule.specmatch((neonode,))
+        (prio, table) = neorule.specmatch(None, (neonode,))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'neo4j-service')
@@ -652,9 +652,10 @@ class TestMonitorBasic(TestCase):
         ,   ('-', 'pathname')               #   length 2 - name, expression
         ,   ('port', 'port', '[0-9]+$')     #   length 3 - name, expression, regex
         ,   (None, 'pathname', '.*/java$')  #   length 3 - name, expression, regex
+        ,   (None, '@basename()', 'java$')  #   length 3 - name, expression, regex
         ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
                                             #   length 3 - name, expression, regex
-        ,   ('port', 'port', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
+        ,   ('port', '@serviceport()', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
         ))
         keys = kitchensink.nvpairs.keys()
         keys.sort()
@@ -662,7 +663,7 @@ class TestMonitorBasic(TestCase):
         values = []
         for key in keys:
             values.append(kitchensink.nvpairs[key])
-        self.assertEqual(str(values), "[None, 'port']")
+        self.assertEqual(str(values), "[None, '@serviceport()']")
         regex = re.compile('xxx')
         regextype = type(regex)
         exprlist = []
@@ -670,7 +671,7 @@ class TestMonitorBasic(TestCase):
             self.assertEqual(type(tup[1]), regextype)
             exprlist.append(tup[0])
         self.assertEqual(str(exprlist)
-        ,   "['port', 'pathname', 'argv[-1]', 'port']")
+        ,   "['port', 'pathname', '@basename()', 'argv[-1]', '@serviceport()']")
         #
         # That was a pain...
         #
@@ -682,6 +683,7 @@ class TestMonitorBasic(TestCase):
             ,   (None, 'pathname', '.*/java$')
             ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
             ,   ('home', '@argequals(-Dneo4j.home)', '/.*')
+            ,   ('neo4j', '@basename(@argequals(-Dneo4j.home))', '.')
             )
         )
         neoprocargs = ("/usr/bin/java", "-cp"
@@ -700,15 +702,15 @@ class TestMonitorBasic(TestCase):
         ,   "-Dfile.encoding=UTF-8"
         ,   "org.neo4j.server.Bootstrapper")
 
-        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         # We'll be missing the value of 'port'
-        (prio, table, missing) = neo4j.specmatch((neonode,))
+        (prio, table, missing) = neo4j.specmatch(None, (neonode,))
         self.assertEqual(prio, MonitoringRule.PARTMATCH)
         self.assertEqual(missing, ['port'])
         # Now fill in the port value
         neonode.port=7474
-        (prio, table) = neo4j.specmatch((neonode,))
+        (prio, table) = neo4j.specmatch(None, (neonode,))
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(table['monitortype'], 'neo4j')
         self.assertEqual(table['monitorclass'], 'ocf')
@@ -719,9 +721,10 @@ class TestMonitorBasic(TestCase):
         arglist = table['arglist']
         keys = arglist.keys()
         keys.sort()
-        self.assertEqual(keys, ['home', 'port'])
+        self.assertEqual(keys, ['home', 'neo4j', 'port'])
         self.assertEqual(arglist['port'], '7474')
         self.assertEqual(arglist['home'], '/var/lib/neo4j')
+        self.assertEqual(arglist['neo4j'], 'neo4j')
 
     def test_automonitor_strings_basic(self):
         # Clean things out so we only see what we want to see...
@@ -731,9 +734,9 @@ class TestMonitorBasic(TestCase):
         "type":         "neo4j",
         "provider":     "assimilation",
         "classconfig": [
-            [null,      "pathname",                ".*/java"],
-            [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
-            ["PORT",    "serviceport",             "[0-9]+$"],
+            [null,      "@basename()",              "java$"],
+            [null,      "argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["PORT",    "serviceport",              "[0-9]+$"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
 }'''
@@ -744,8 +747,8 @@ class TestMonitorBasic(TestCase):
         "class":        "lsb",
         "type":         "neo4j",
         "classconfig": [
-            ["pathname",    ".*/java"],
-            ["argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["@basename()",    "java$"],
+            ["argv[-1]",       "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
 }'''
         lsb = MonitoringRule.ConstructFromString(lsb_string)
@@ -756,9 +759,9 @@ class TestMonitorBasic(TestCase):
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
-            [null,      "pathname",                ".*/java"],
+            [null,      "@basename()",          "java$"],
             [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
-            ["PORT",    "serviceport",             "[0-9]+$"],
+            ["PORT",    "serviceport"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
         }'''
@@ -766,7 +769,7 @@ class TestMonitorBasic(TestCase):
         lsb_string = '''{
         "class":        "lsb", "type":         "neo4j",
         "classconfig": [
-            ["pathname",    ".*/java"],
+            ["@basename()",    "java$"],
             ["argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
         }'''
@@ -782,7 +785,7 @@ class TestMonitorBasic(TestCase):
         ,   "-Dfile.encoding=UTF-8"
         ,   "org.neo4j.server.Bootstrapper")
 
-        neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         #neonode.serviceport=7474
         first = MonitoringRule.findbestmatch((neonode,))
@@ -821,13 +824,14 @@ class TestMonitorBasic(TestCase):
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
+            ["classpath",   "@flagvalue(-cp)"],
             ["ipaddr",      "@serviceip(JSON_procinfo.listenaddrs)"],
             ["port",        "@serviceport()",   "[0-9]+$"]
         ]
         }'''
         ssh_json = '''{
           "exe": "/usr/sbin/sshd",
-          "cmdline": [ "/usr/sbin/sshd", "-D" ],
+          "argv": [ "/usr/sbin/sshd", "-D" ],
           "uid": "root",
           "gid": "root",
           "cwd": "/",
@@ -846,7 +850,7 @@ class TestMonitorBasic(TestCase):
         }'''
         neo4j_json = '''{
           "exe": "/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java",
-          "cmdline": [ "/usr/bin/java", "-cp", "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar: ...", "-server", "-XX:+DisableExplicitGC", "-Dorg.neo4j.server.properties=conf/neo4
+          "argv": [ "/usr/bin/java", "-cp", "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar: ...", "-server", "-XX:+DisableExplicitGC", "-Dorg.neo4j.server.properties=conf/neo4
     j-server.properties", "-Djava.util.logging.config.file=conf/logging.properties", "-Dlog4j.configuration=file:conf/log4j.properties", "-XX:
     +UseConcMarkSweepGC", "-XX:+CMSClassUnloadingEnabled", "-Dneo4j.home=/var/lib/neo4j", "-Dneo4j.instance=/var/lib/neo4j", "-Dfile.encoding=
     UTF-8", "org.neo4j.server.Bootstrapper" ],
@@ -868,7 +872,7 @@ class TestMonitorBasic(TestCase):
         }'''
         bacula_json = '''{
       "exe": "/usr/sbin/bacula-dir",
-      "cmdline": [ "/usr/sbin/bacula-dir", "-c", "/etc/bacula/bacula-dir.conf", "-u", "bacula", "-g", "bacula" ],
+      "argv": [ "/usr/sbin/bacula-dir", "-c", "/etc/bacula/bacula-dir.conf", "-u", "bacula", "-g", "bacula" ],
       "uid": "bacula",
       "gid": "bacula",
       "cwd": "/",
@@ -881,7 +885,8 @@ class TestMonitorBasic(TestCase):
       }
     }'''
         MonitoringRule.ConstructFromString(ocf_string)
-        testnode = ProcessNode('global', 'fred', '/usr/bin/java', []
+        neoargs = pyConfigContext(neo4j_json)['argv']
+        testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         testnode.JSON_procinfo = neo4j_json

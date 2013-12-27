@@ -28,12 +28,14 @@ sys.path.append("cma")
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pySwitchDiscovery
+from monitoring import MonitorAction
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
     This base class is designated to handle unhandled FrameSets.
     All it does is print that we received them.
     '''
+    dispatchtable = {}
     def __init__(self):
         'Constructor for base class DispatchTarget'
         from droneinfo import Drone
@@ -47,6 +49,8 @@ class DispatchTarget:
         fstype = frameset.get_framesettype()
         CMAdb.log.info("Received unhandled FrameSet of type [%s] from [%s]" 
         %     (FrameSetTypes.get(fstype)[0], str(origaddr)))
+        print ("Received unhandled FrameSet of type [%s] from [%s]" 
+        %     (FrameSetTypes.get(fstype)[0], str(origaddr)))
         for frame in frameset.iter():
             frametype = frame.frametype()
             print "\tframe type [%s]: [%s]" \
@@ -56,7 +60,25 @@ class DispatchTarget:
         'Save away our IO object and our configuration'
         self.io = io
         self.config = config
+
+    @staticmethod
+    def register(classtoregister):
+        '''Register the given class in DispatchTarget.dispatchtable
+        This function is intended to be used as a decorator.
+        This is requires that the class being registered be named
+        Dispatch{name-of-message-being-dispatched}
+        '''
+        cname = classtoregister.__name__
+        if not cname.startswith('Dispatch'):
+            raise(ValueError('Dispatch class names must start with "Dispatch"'))
+        msgname = cname[8:]
+        # This is kinda cool!
+        DispatchTarget.dispatchtable[FrameSetTypes.get(msgname)[0]] = classtoregister()
+        return classtoregister
+
+
         
+@DispatchTarget.register
 class DispatchHBDEAD(DispatchTarget):
     'DispatchTarget subclass for handling incoming HBDEAD FrameSets.'
 
@@ -74,6 +96,7 @@ class DispatchHBDEAD(DispatchTarget):
                     CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
                 deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
 
+@DispatchTarget.register
 class DispatchHBSHUTDOWN(DispatchTarget):
     'DispatchTarget subclass for handling incoming HBSHUTDOWN FrameSets.'
     def dispatch(self, origaddr, frameset):
@@ -99,6 +122,7 @@ class DispatchHBSHUTDOWN(DispatchTarget):
         CMAdb.log.error("DispatchHBSHUTDOWN: invalid FrameSet: %s", str(frameset))
 
 
+@DispatchTarget.register
 class DispatchSTARTUP(DispatchTarget):
     'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
     def dispatch(self, origaddr, frameset):
@@ -139,12 +163,16 @@ class DispatchSTARTUP(DispatchTarget):
         if json is not None:
             drone.logjson(json)
         CMAdb.cdb.TheOneRing.join(drone)
-        drone.request_discovery(('tcplisteners',    3555),
-                                ('tcpclients',      3333),
-                                ('cpu',             36000),
-                                ('os',              0),
-                                ('arpcache',        45))
+        drone.request_discovery(
+                                ('monitoringagents',    3300),
+                                ('upstart',             3400),
+                                ('os',                  0),
+                                ('cpu',                 36000),
+                                ('arpcache',            45),
+                                ('tcpdiscovery',        3700)
+                               )
 
+@DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
     'DispatchTarget subclass for handling incoming JSDISCOVERY FrameSets.'
     def dispatch(self, origaddr, frameset):
@@ -165,9 +193,11 @@ class DispatchJSDISCOVERY(DispatchTarget):
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
                 #print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
+                #print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
                 drone.logjson(json)
                 sysname = None
 
+@DispatchTarget.register
 class DispatchSWDISCOVER(DispatchTarget):
     'DispatchTarget subclass for handling incoming SWDISCOVER FrameSets.'
 
@@ -201,3 +231,22 @@ class DispatchSWDISCOVER(DispatchTarget):
                 drone.logjson(str(switchjson))
                 break
 
+@DispatchTarget.register
+class DispatchRSCOPREPLY(DispatchTarget):
+    'DispatchTarget subclass for handling incoming RSCOPREPLY FrameSets.'
+    GOODTOBAD = 1
+    BADTOGOOD = 2
+    def dispatch(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        if CMAdb.debug:
+            CMAdb.log.debug("DispatchRSCOPREPLY: received [%s] FrameSet from [%s]"
+            %       (FrameSetTypes.get(fstype)[0], str(origaddr)))
+
+        for frame in frameset.iter():
+            frametype = frame.frametype()
+            if frametype == FrameTypes.RSCJSONREPLY:
+                obj = pyConfigContext(frame.getstr())
+                MonitorAction.logchange(origaddr, obj)
+                return
+        CMAdb.log.critical('RSCOPREPLY message from %s did not have a RSCJSONREPLY field'
+        %   (str(origaddr)))

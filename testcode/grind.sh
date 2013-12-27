@@ -1,3 +1,4 @@
+#!/bin/sh
 #
 #
 # This file is part of the Assimilation Project.
@@ -28,4 +29,19 @@ GEN="--gen-suppressions=no --num-callers=50 --read-var-info=yes"
 GEN="--gen-suppressions=all --num-callers=50"
 OPTS="--show-reachable=yes"
 
-sudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=$HERE/valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes ./mainlooptest $REPCOUNT
+dir=$(dirname $0)
+cmd=mainlooptest
+
+placestolook=". testcode .. ../testcode bin bin/testcode ../bin ../bin/testcode root_of_binary_tree/testcode ../root_of_binary_tree/testcode ../../root_of_binary_tree/testcode"
+for place in $placestolook
+do
+  filename="$place/$cmd"
+  if
+    [ -f "$filename" -a -x "$filename" ]
+  then
+    cmd="$filename"
+    break
+  fi
+done
+
+sudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=$HERE/valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes $cmd $REPCOUNT

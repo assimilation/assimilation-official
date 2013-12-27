@@ -119,18 +119,9 @@ else
   echo "Pylint ERRORS found in source"
   ERRORS=yes
 fi
-cd $WSBIN/testcode
-if
-  sh $WORKSPACE/testcode/grind.sh
-then
-  : Valgrind test worked
-else
-  echo "ERRORS found in running tests in $WSBIN/testcode"
-  ERRORS=yes
-fi
 cd $WORKSPACE
 if
-  (cd cma && testify -v tests)
+  (testify -v cma.tests)
 then
   : testify $PWD/cmd/tests looks good
 else
@@ -138,30 +129,7 @@ else
   ERRORS=yes
 fi
 
-for test in $(ls $WSBIN/testcode/gtest??)
-do
-  echo "Executing tests in $test"
-  case $test in
-    */gtest01)	test="sudo $test";;
-  esac
-  if
-    $test
-  then
-    : WOOT!  $test succeeded
-  else
-    echo "ERRORS found in running $test :-("
-    ERRORS=yes
-  fi
-done
 
-if
-  $WSBIN/testcode/pinger ::1 127.0.0.1
-then
-  : pinger looks good
-else
-  echo "ERRORS found in running $WSBIN/testcode/pinger"
-  ERRORS=yes
-fi
 
 case $ERRORS in
   no)

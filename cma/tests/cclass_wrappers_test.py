@@ -881,9 +881,9 @@ class pyConfigContextTest(TestCase):
         cc = pyConfigContext(init=getstr)
         self.assertTrue(cc is not None)
         self.assertEqual(cc.deepget('a[1].c.d'), 0)
-        self.assertTrue(type(cc.deepget('a[1].c.d')) is int)
+        self.assertTrue(isinstance(cc.deepget('a[1].c.d'), (int, long)))
         self.assertEqual(cc.deepget('a[1].c.e'), 1)
-        self.assertTrue(type(cc.deepget('a[1].c.e')) is int)
+        self.assertTrue(isinstance(cc.deepget('a[1].c.e'), (int, long)))
         self.assertEqual(cc.deepget('a[-1]'), "f")
         self.assertEqual(cc.deepget('a[-3]'), "b")
 

@@ -41,6 +41,7 @@ struct _RscQElem {
 	ResourceCmdCallback	callback;	///< Who to call when it completes
 	gpointer		user_data;	///< user_data for callback
 	gint			repeatinterval;	///< How often to repeat?  0 == single-shot
+	gboolean		cancelonfail;	///< TRUE if we should cancel the repeat on failure
 	gint64			requestid;	///< Request ID
 	gboolean		cancelme;	///< Cancel after current request completes
 };
@@ -94,6 +95,8 @@ resourcequeue_new(guint structsize)
 	self->resources = g_hash_table_new_full(g_str_hash, g_str_equal
 	,		_resource_queue_hash_key_destructor, _resource_queue_hash_data_destructor);
 	self->timerid = g_timeout_add_seconds(1, _resource_queue_runqueue, self);
+	self->activechildcnt = 0;
+	self->shuttingdown = FALSE;
 
 	return self;
 }
@@ -104,9 +107,17 @@ _resource_queue_finalize(AssimObj* aself)
 {
 	ResourceQueue*	self = CASTTOCLASS(ResourceQueue, aself);
 
+	self->shuttingdown = TRUE;
+	if (self->activechildcnt > 0) {
+		return;
+	}
 	if (self->resources) {
 		g_hash_table_destroy(self->resources);
 		self->resources = NULL;
+	}
+	if (self->timerid >= 0) {
+		g_source_remove(self->timerid);
+		self->timerid = -1;
 	}
 	_assimobj_finalize(&self->baseclass);
 	self = NULL;
@@ -270,6 +281,11 @@ _resource_queue_qelem_new(ResourceCmd* cmd, ResourceQueue* parent
 	self->cancelme = FALSE;
 	repeat = cmd->request->getint(cmd->request, REQREPEATNAMEFIELD);
 	self->repeatinterval = (repeat > 0 ? repeat : 0);
+	if (cmd->request->gettype(cmd->request, REQCANCELONFAILFIELD) != CFG_BOOL) {
+		self->cancelonfail = FALSE;
+	}else{
+		self->cancelonfail = cmd->request->getbool(cmd->request, REQCANCELONFAILFIELD);
+	}
 	initdelay = cmd->request->getint(cmd->request, REQINITDELAYNAMEFIELD);
 	initdelay = (initdelay > 0 ? initdelay : 0);
 	cmd->starttime = self->queuetime + (initdelay*uSPERSEC);
@@ -347,12 +363,13 @@ _resource_queue_runqueue(gpointer pself)
 			RscQElem*	qe = CASTTOCLASS(RscQElem, qelem->data);
 			if (now >= qe->cmd->starttime) {
 				REF(self);	// We undo this when process exits
+				self->activechildcnt += 1;
 				qe->cmd->execute(qe->cmd);
 				break;
 			}
 		}
 	}
-	if (!anyelems) {
+	if (!anyelems && self->timerid >= 0) {
 		g_source_remove(self->timerid);
 		self->timerid = -1;
 	}
@@ -373,27 +390,50 @@ _resource_queue_endnotify
 {
 	RscQElem*	self = CASTTOCLASS(RscQElem, user_data);
 	ResourceQueue*	parent = self->parent;
+	ResourceCmd*	cmd = self->cmd;
+	gboolean	shouldrepeat = TRUE;
 
 
 	g_queue_remove(self->ourQ, self);
+	parent->activechildcnt -= 1;
+	if (parent->shuttingdown && parent->activechildcnt <= 0) {
+		_resource_queue_finalize(&parent->baseclass);
+		return;
+	}
 	DEBUGMSG1("%s.%d: EXIT happened exittype:%d repeat:%d, cancelme:%d", __FUNCTION__, __LINE__
 	,	exittype,  self->repeatinterval, self->cancelme);
 
 	// Should this request repeat?
-	if (EXITED_ZERO == exittype && self->repeatinterval > 0 && !self->cancelme) {
+	if (self->cancelme || (self->cancelonfail && exittype != EXITED_ZERO)
+	||	(0 == self->repeatinterval)) {
+		shouldrepeat = FALSE;
+	}else{
+		shouldrepeat = TRUE;
+	}
+	// Notify the user that their repeating command flipped status, or has stopped running
+	// (i.e., if it was failing but now works, or was working, but now fails)
+	if (FALSE == shouldrepeat
+	||	(exittype == EXITED_ZERO && !cmd->last_success)
+	||	(exittype != EXITED_ZERO && cmd->last_success)) {
+		DEBUGMSG1("%s.%d: Calling callback for request id " FMT_64BIT "d."
+		,	__FUNCTION__, __LINE__, self->requestid);
+		self->callback(request, self->user_data, exittype, rc, signal, core_dumped
+		,		stringresult);
+	}
+	cmd->last_success = (exittype == EXITED_ZERO);
+
+	if (shouldrepeat) {
 		DEBUGMSG1("%s.%d: Repeat request id " FMT_64BIT "d.", __FUNCTION__, __LINE__
 		,	self->requestid);
 		self->queuetime = g_get_monotonic_time();
-		self->cmd->starttime = self->queuetime + (self->repeatinterval*uSPERSEC);
+		cmd->starttime = self->queuetime + (self->repeatinterval*uSPERSEC);
 		g_queue_push_tail(self->ourQ, self);
 		_resource_queue_runqueue(self->parent);
 	}else{
 		DEBUGMSG1("%s.%d: Don't repeat request id " FMT_64BIT "d.", __FUNCTION__, __LINE__
 		,	self->requestid);
-		self->callback(request, self->user_data, exittype, rc, signal, core_dumped
-		,		stringresult);
 		if (g_queue_get_length(self->ourQ) == 0) {
-			g_hash_table_remove(self->parent->resources, self->cmd->resourcename);
+			g_hash_table_remove(self->parent->resources, cmd->resourcename);
 		}
 		_resource_queue_runqueue(self->parent);
 		_resource_queue_qelem_finalize(self);

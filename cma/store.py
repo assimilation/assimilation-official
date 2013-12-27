@@ -392,7 +392,6 @@ class Store:
         if Store.is_abstract(subj):
             # @TODO Should search recently created relationships...
             return
-        #print ('LOAD RELATED Node(%s).match_outgoing("%s")' % (subj.__store_node, rel_type))
         rels = subj.__store_node.match_outgoing(rel_type)
         for rel in rels:
             yield self._construct_obj_from_node(rel.end_node, cls)
@@ -408,7 +407,7 @@ class Store:
     def load_cypher_nodes(self, query, cls, params=None, maxcount=None):
         '''Execute the given query that yields a single column of nodes
         all of the same Class (cls) and yield each of those Objects in turn
-        through and interator (generator)'''
+        through an iterator (generator)'''
         count = 0
         if params is None:
             params = {}
@@ -484,8 +483,6 @@ class Store:
             for arg in kwargs.keys():
                 if arg in args:
                     newkwargs[arg] = kwargs[arg]
-        #print >> sys.stderr, ('Calling %s with args: %s' % (constructor, str(newkwargs)))
-        #print >> sys.stderr, 'CONSTRUCTOR(%s)' % (str(newkwargs))
         ret = constructor(**newkwargs)
 
         # Make sure the attributes match the desired values

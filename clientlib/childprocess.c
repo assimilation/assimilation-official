@@ -343,8 +343,8 @@ _childprocess_childexit(GPid pid, gint status, gpointer childprocess_object)
 	DEBUGMSG2("%s.%d: Exit happened howwedied:%d", __FUNCTION__, __LINE__
 	,	howwedied);
 	if (!self->stdout_src->atEOF) {
-		//DEBUGMSG3("Child %d [%s] EXITED but output is not at EOF", pid
-		//,	self->loggingname);
+		//DEBUGMSG3("Child %d [%s] EXITED but output is not at EOF [fd%d]", pid
+		//,	self->loggingname, self->stdout_src->gfd.fd);
 		self->stdout_src->readmore(self->stdout_src);
 	}
 	if (!self->stderr_src->baseclass.atEOF) {

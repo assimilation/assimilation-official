@@ -103,6 +103,9 @@ resourceocf_new(
 		structsize = sizeof(ResourceOCF);
 	}
 	cself = resourcecmd_constructor(structsize, request, user_data, callback);
+	if (NULL == cself) {
+		return NULL;
+	}
 	if (!_resourceocf_save_finalize) {
 		_resourceocf_save_finalize = cself->baseclass._finalize;
 	}
@@ -124,23 +127,42 @@ resourceocf_new(
 FSTATIC void
 _resourceocf_init_environ(ResourceOCF* self)
 {
-	ConfigContext*	p = self->baseclass.request->getconfig(self->baseclass.request, REQENVIRONNAMEFIELD);
-	GSList*		names = (p ? p->keys(p) : NULL);
+	ConfigContext*	p = self->baseclass.request->getconfig(self->baseclass.request
+	,				REQENVIRONNAMEFIELD);
+	GSList*		names;
 	GSList*		thisname;
 	
+	if (NULL == p) {
+		g_warning("%s.%d: No proper "REQENVIRONNAMEFIELD" field in request"
+		,	__FUNCTION__, __LINE__);
+		return;
+	}
+	// If there are no parameters given, that 'names' *will* be NULL!
+	// That's how an empty list comes out in a GSList...
+	names = p->keys(p);
+
+
 	for(thisname = names; NULL != thisname; thisname=thisname->next) {
-		char *			mapname = g_strdup_printf("OCF_RESKEY_%s", (char*)thisname->data);
-		char *			value = p->getstr(p, (char*)thisname->data);
+		char *			mapname;
+		const char *		value;
+		if (NULL == thisname->data) {
+			continue;
+		}
+		mapname = g_strdup_printf("OCF_RESKEY_%s", (char*)thisname->data);
+		value = p->getstring(p, (char*)thisname->data);
 
 		if (NULL == value) {
+			// Ignore non-string values
+			g_free(mapname); mapname = NULL;
 			continue;
 		}
 		self->environ->setstring(self->environ, mapname, value);
 		g_free(mapname); mapname = NULL;
-		g_free(value); value = NULL;
 	}
-	g_slist_free(names);
-	names = NULL;
+	if (NULL != names) {
+		g_slist_free(names);
+		names = NULL;
+	}
 
 	// Last but not least!
 	self->environ->setstring(self->environ, "OCF_ROOT", OCF_ROOT);

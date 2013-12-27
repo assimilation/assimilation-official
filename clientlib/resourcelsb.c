@@ -83,6 +83,9 @@ resourcelsb_new(
 		structsize = sizeof(ResourceLSB);
 	}
 	cself = resourcecmd_constructor(structsize, request, user_data, callback);
+	if (NULL == cself) {
+		return NULL;
+	}
 	if (!_resourcelsb_save_finalize) {
 		_resourcelsb_save_finalize = cself->baseclass._finalize;
 	}

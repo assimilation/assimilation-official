@@ -133,8 +133,10 @@ resourcecmd_constructor(
 	}
 	operation = request->getstring(request, REQOPERATIONNAMEFIELD);
 	if (NULL == operation) {
-		g_warning("%s.%d: No "REQOPERATIONNAMEFIELD" field in OCF agent request."
-		,	__FUNCTION__, __LINE__);
+		char *	reqstr = request->baseclass.toString(&request->baseclass);
+		g_warning("%s.%d: No "REQOPERATIONNAMEFIELD" name in request [%s]"
+		,	__FUNCTION__, __LINE__ , reqstr);
+		g_free(reqstr); reqstr = NULL;
 		return NULL;
 	}
 	aself = assimobj_new(structsize);

@@ -23,8 +23,7 @@
 ''' This module defines the classes for most of our CMA nodes ...  '''
 from consts import CMAconsts
 from store import Store
-from os import path
-import sys, re, time, hashlib
+import sys, re, time
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
 from py2neo import neo4j
@@ -435,7 +434,7 @@ class ProcessNode(GraphNode):
     'A node representing a running process in a host'
     # R0913: Too many arguments (9/7)
     # pylint: disable=R0913
-    def __init__(self, domain, host, pathname, argv, uid, gid, cwd, roles=None):
+    def __init__(self, domain, processname, host, pathname, argv, uid, gid, cwd, roles=None):
         GraphNode.__init__(self, domain=domain)
         self.host = host
         self.pathname   = pathname
@@ -450,13 +449,14 @@ class ProcessNode(GraphNode):
             self.addrole(roles)
         #self.processname='%s|%s|%s|%s:%s|%s' \
         #%       (path.basename(pathname), path.dirname(pathname), host, uid, gid, str(argv))
-        procstring = '%s|%s|%s:%s|%s' \
-        %       (path.dirname(pathname), host, uid, gid, str(argv))
-        hashsum = hashlib.sha1()
+        #procstring = '%s|%s|%s:%s|%s' \
+        #%       (str(path.dirname(pathname)), str(host), str(uid), str(gid), str(argv))
+        #hashsum = hashlib.sha1()
         # E1101: Instance of 'sha1' has no 'update' member (but it does!)
         # pylint: disable=E1101
-        hashsum.update(procstring)
-        self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
+        #hashsum.update(procstring)
+        #self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
+        self.processname = processname
 
     def addrole(self, roles):
         'Add a role to our GraphNode'
