@@ -245,29 +245,34 @@ _resourceocf_execute(ResourceCmd* cmdself)
 
 	saveout = _resourceocf_outputs_string(self->baseclass.operation);
 	self->baseclass.starttime = g_get_monotonic_time();
-	self->baseclass.is_running = TRUE;
-	REF2(self);	// We can't go away while we're running no matter what...
-			// (this is undone after calling our callback function).
-	DEBUGMSG5("%s.%d: REF resourceocf: %p", __FUNCTION__,__LINE__,self);
 
 	self->child = childprocess_new
-(	0				///< cpsize
-,	self->argv			///< char** argv,
-,	NULL				///< const char** envp
-,	self->environ			///< ConfigContext* envmod
-,	NULL				///< const char* curdir
-,	_resourceocf_child_notify 
+	(	0				///< cpsize
+	,	self->argv			///< char** argv,
+	,	NULL				///< const char** envp
+	,	self->environ			///< ConfigContext* envmod
+	,	NULL				///< const char* curdir
+	,	_resourceocf_child_notify 
 	///< void (*notify)(ChildProcess*,enum HowDied,int rc,int signal,gboolean core_dumped)
-,	saveout				///< gboolean save_stdout
-,	NULL				///< const char * logdomain
-,	self->loggingname		///< const char * logprefix
-,	G_LOG_LEVEL_INFO		///< GLogLevelFlags loglevel
-,	self->baseclass.timeout_secs	///< guint32 timeout_seconds,
-,	self				///< gpointer user_data
-,	logmode				///< enum ChildErrLogMode errlogmode
-,	self->loggingname		///< const char * loggingname
+	,	saveout				///< gboolean save_stdout
+	,	NULL				///< const char * logdomain
+	,	self->loggingname		///< const char * logprefix
+	,	G_LOG_LEVEL_INFO		///< GLogLevelFlags loglevel
+	,	self->baseclass.timeout_secs	///< guint32 timeout_seconds,
+	,	self				///< gpointer user_data
+	,	logmode				///< enum ChildErrLogMode errlogmode
+	,	self->loggingname		///< const char * loggingname
 	);
-	DEBUGMSG("%s.%d: spawned child: %p", __FUNCTION__,__LINE__,self->child);
+	if (self->child) {
+		self->baseclass.is_running = TRUE;
+		REF2(self);	// We can't go away while we're running no matter what...
+				// (this is undone after calling our callback function).
+		DEBUGMSG5("%s.%d: REF resourceocf: %p", __FUNCTION__,__LINE__,self);
+		DEBUGMSG("%s.%d: spawned child: %p", __FUNCTION__,__LINE__,self->child);
+	}else{
+		DEBUGMSG("%s.%d FAILED execution(%s:%s)", __FUNCTION__, __LINE__
+		,	self->baseclass.resourcename, self->baseclass.operation);
+	}
 }
 
 /// We get called when our child exits, times out and is killed, or times out and
