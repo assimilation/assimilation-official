@@ -23,8 +23,7 @@
 ''' This module defines the classes for most of our CMA nodes ...  '''
 from consts import CMAconsts
 from store import Store
-from os import path
-import sys, re, time # , hashlib
+import sys, re, time
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
 from py2neo import neo4j
