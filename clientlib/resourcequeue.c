@@ -358,7 +358,7 @@ _resource_queue_runqueue(gpointer pself)
 		if (any_running) {
 			continue;
 		}
-		DEBUGMSG2("%s.%d: No resource jobs are running.", __FUNCTION__, __LINE__);
+		DEBUGMSG4("%s.%d: No resource jobs are running.", __FUNCTION__, __LINE__);
 		for (qelem=rsc_q->head; NULL != qelem; qelem=qelem->next) {
 			RscQElem*	qe = CASTTOCLASS(RscQElem, qelem->data);
 			if (now >= qe->cmd->starttime) {
