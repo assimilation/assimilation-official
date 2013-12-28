@@ -300,7 +300,7 @@ class Drone(SystemNode):
                     print >> sys.stderr, ('TRYING TO DELETE node %s'
                     %   (procname))
                     for proc in newprocs:
-                        print >> sys.stderr, ('*** new proc: proc.procname' % (str(proc)))
+                        print >> sys.stderr, ('*** new proc: proc.procname %s' % (str(proc)))
                     CMAdb.store.delete(proc)
 
         if Drone.netstatipportpat is None:
