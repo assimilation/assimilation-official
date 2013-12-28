@@ -165,8 +165,8 @@ class DispatchSTARTUP(DispatchTarget):
         CMAdb.cdb.TheOneRing.join(drone)
         drone.request_discovery(
                                 ('monitoringagents',    3300),
-                                ('upstart',             3400),
                                 ('os',                  0),
+                                ('ulimit',              0),
                                 ('cpu',                 36000),
                                 ('arpcache',            45),
                                 ('tcpdiscovery',        3700)
