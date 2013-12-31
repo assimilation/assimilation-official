@@ -211,12 +211,14 @@ class Drone(SystemNode):
                     continue
                 iponly, cidrmask = ip.split('/')
                 netaddr = pyNetAddr(iponly).toIPv6()
-                if netaddr.islocal():
+                if netaddr.islocal():       # We ignore loopback addresses - might be wrong...
                     continue
                 ipnode = CMAdb.store.load_or_create(IPaddrNode
                 ,   domain=self.domain, ipaddr=str(netaddr), cidrmask=cidrmask)
                 ## FIXME: Not an ideal way to determine primary (preferred) IP address...
                 ## it's a bit idiosyncratic to Linux...
+                ## A better way would be to use their 'startaddr' (w/o the port)
+                ## This uses the IP address they used to talk to us.
                 if ifname == primaryifname  and primaryip is None and ipname == ifname:
                     primaryip = ipnode
                     self.primary_ip_addr = str(primaryip.ipaddr)
@@ -236,9 +238,8 @@ class Drone(SystemNode):
             # Create REL_ipowner relationships for all the newly created IP nodes
             for ipaddr in newips.keys():
                 ip = newips[ipaddr]
-                if Store.is_abstract(ip):
-                    CMAdb.store.relate(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
-                    #CMAdb.store.relate(mac, CMAconsts.REL_causes,  ip)
+                CMAdb.store.relate_new(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
+                #CMAdb.store.relate(mac, CMAconsts.REL_causes,  ip)
 
     netstatipportpat = None
     def _add_tcplisteners(self, jsonobj, **keywords):
