@@ -27,7 +27,7 @@
 #!/usr/bin/python
 
 skiplocal=yes
-exestoskip='.*/(firefox|thunderbird|chromium-browser|konquerer|rekonq)$'
+exestoskip='.*/(firefox|thunderbird|chromium-browser|konquerer|rekonq)( *\(deleted\) *)?$'
 sumstotry="md5sum sha1sum sha256sum crc32 sum"
 
 mktmpdir() {
