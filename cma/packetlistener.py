@@ -65,6 +65,7 @@ class PacketListener:
                     %       (str(fromaddr), fromstr))
 
             for frameset in framesetlist:
-                CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" \
-                %       (str(fromaddr), frameset))
+                if CMAdb.debug:
+                    CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" \
+                    %       (str(fromaddr), frameset))
                 self.dispatcher.dispatch(fromaddr, frameset)
