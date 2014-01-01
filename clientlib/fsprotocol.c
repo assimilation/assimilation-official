@@ -102,19 +102,20 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 };
 #define	A_CLOSE			(1<<0)
 #define	A_OOPS			(1<<1)
-#define	A_SNDNAK		(1<<2)
-#define	A_SNDSHUT		(1<<3)
-#define	A_ACKTO			(1<<4)
-#define	A_ACKME			(1<<5)
-#define	A_TIMER			(1<<6)	///< Start the FSPROTO_SHUT_TO timer
-#define	A_NOTIME		(1<<7)	///< Cancel the FSPROTO_SHUT_TO timer
+#define	A_DEBUG			(1<<2)
+#define	A_SNDNAK		(1<<3)
+#define	A_SNDSHUT		(1<<4)
+#define	A_ACKTO			(1<<5)
+#define	A_ACKME			(1<<6)
+#define	A_TIMER			(1<<7)	///< Start the FSPROTO_SHUT_TO timer
+#define	A_NOTIME		(1<<8)	///< Cancel the FSPROTO_SHUT_TO timer
 
 #define NAKOOPS			(A_SNDNAK|A_OOPS)
 #define CLOSETIME		(A_CLOSE|A_NOTIME)
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 //	  START	  REQSEND GOTACK  GOTCONN_NAK REQSHUTDOWN RCVSHUTDOWN       ACKTIMEOUT        OUTDONE  SHUT_TO
-/*NONE*/ {0,	  0,      A_OOPS, A_CLOSE,    0,          A_ACKME|A_OOPS,    A_ACKTO|A_OOPS,  A_OOPS,  A_OOPS},
+/*NONE*/ {0,	  0,      A_OOPS, A_CLOSE,    0,          A_ACKME|A_DEBUG,   A_ACKTO|A_OOPS,  A_OOPS,  A_OOPS},
 /*INIT*/ {0,	  0,	  0,      A_CLOSE,    A_CLOSE,    A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE, 0,       A_OOPS},
 /*UP*/   {0,	  0,	  0,      A_CLOSE,    A_SNDSHUT,  A_ACKME|A_SNDSHUT, A_ACKTO,         0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
@@ -210,6 +211,12 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			fspe->shuttimer = 0;
 		}
 	}
+	if (action & A_DEBUG) {
+		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
+		DEBUGMSG("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
+		,	(int)input, deststr, fspe->_qid, (int)nextstate);
+		FREE(deststr); deststr = NULL;
+	}
 
 
 	// Should remain the second-to-the-last action in the FSA function
@@ -218,6 +225,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	if (action & A_OOPS) {
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
 		char *	fsstr = (fs ? fs->baseclass.toString(&fs->baseclass) : NULL);
+			
 		g_warning("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
 		,	(int)input, deststr, fspe->_qid, (int)nextstate);
 		FREE(deststr); deststr = NULL;
@@ -851,7 +859,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	AUDITFSPE(fspe);
 
 	if (FSPR_INSHUTDOWN(fspe->state)) {
-		g_warning("%s.%d: Attempt to send FrameSet while link shutting down - FrameSet ignored."
+		DEBUGMSG2("%s.%d: Attempt to send FrameSet while link shutting down - FrameSet ignored."
 		,	__FUNCTION__, __LINE__);
 		return TRUE;
 	}
