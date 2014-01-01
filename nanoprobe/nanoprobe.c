@@ -183,11 +183,9 @@ usage(const char * cmdname)
 	fprintf(stderr, "\t-k --kill (send SIGTERM to the running service.)\n");
 	fprintf(stderr, "\t-p --pidfile <pid-file-pathname>.\n");
 	fprintf(stderr, "\t-s --status (report nanoprobe status)\n");
-	fprintf(stderr, "\t-d --debug <debug-level (0-5)>\n");
-#else
+#endif
 	fprintf(stderr, "\t-d --debug <debug-level (0-5)>\n");
 	fprintf(stderr, "\t-D --dynamic\n");
-#endif
 }
 
 /**
