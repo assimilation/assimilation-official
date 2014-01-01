@@ -300,8 +300,10 @@ class Drone(SystemNode):
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     print >> sys.stderr, ('TRYING TO DELETE node %s'
                     %   (procname))
-                    for proc in newprocs:
-                        print >> sys.stderr, ('*** new proc: proc.procname %s' % (str(proc)))
+                    for newprocname in newprocs:
+                        print >> sys.stderr, ('*** new procs: proc.procname %s' % (str(newprocname)))
+                    print >> sys.stderr, ('*** DELETING proc: proc.procname %s: proc=%s' 
+                    %   (str(procname), str(proc)))
                     CMAdb.store.delete(proc)
 
         if Drone.netstatipportpat is None:
