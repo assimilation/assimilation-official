@@ -1,0 +1,20 @@
+{   "cypher":   "START q1=node:ClientQuery({queryname}) RETURN q1 LIMIT 1",
+    "copyright": "Copyright (C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short": "Retrieve query metadata",
+            "long":  "Retrieve all the metadata associated with a single named query"
+        }
+    },
+    "parameters": {
+        "queryname": {
+            "type": "string",
+            "lang": {
+                "en": {
+                    "short": "query name:*",
+                    "long":  "Name of the query for which we are to retrieve the associated metadata - followed by ':*'"
+                }
+            }
+        }
+    }
+}

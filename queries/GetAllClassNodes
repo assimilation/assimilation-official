@@ -1,0 +1,22 @@
+{   "cypher": "START classroot=node:CMAclass('${classname}:*')
+               MATCH object-[:IS_A]->classroot
+               RETURN object",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short": "Return 'classname' nodes",
+            "long":  "Return all objects of class 'classname'"
+        }
+    },
+    "parameters": {
+        "classname": {
+            "type": "string",
+            "lang": {
+                "en": {
+                    "short": "class name",
+                    "long":  "The name of the class for which you want all objects.  This is often a _lot_ of objects."
+                 }
+             }
+         }
+    }
+}

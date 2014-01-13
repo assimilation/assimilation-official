@@ -1,0 +1,82 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: assimilation-cma
+# Required-Start: $local_fs $remote_fs $network neo4j-service
+# Required-Stop: $local_fs $remote_fs $network neo4j-service
+# Default-Start: 2 3 4 5
+# Default-Stop:  0 1 6
+# Short-Description: start and stop the Assimilation Monitoring System Collective Management Authority (CMA)
+# Description: The Assimilation Monitoring System provides fully-distributed, highly-scalable
+#              discovery-driven monitoring.  You can also think of it as monitoring-driven discovery
+#              if you'd rather. http://assimmon.org/
+#              If the CMA is run on the same system as a nanoprobe (a recommended practice),
+#              the CMA must start BEFORE the nanoprobe or the poor CMA won't be able to start.
+#              It also must start after neo4j has been started.
+### END INIT INFO
+#
+# This file is part of the Assimilation Project.
+#
+# @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
+# @n
+#  The Assimilation software is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  The Assimilation software is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+
+BINARY=/usr/sbin/cma
+ARGS=""
+
+SERVICE=$(basename $BINARY)
+
+command=$1
+case "$command" in
+  start)	$BINARY $ARGS
+		rc=$?
+		if
+		  [ $rc -eq 0 ]
+		then
+		  echo "$SERVICE started." >&2
+		else
+		  echo "$SERVICE NOT started!" >&2
+		fi
+		exit $?;;
+
+  stop)		$BINARY -k $ARGS
+		rc=$?
+		if
+		  [ $rc -eq 0 ]
+		then
+		  echo "$SERVICE stopped." >&2
+		else
+		  echo "$SERVICE NOT stopped!" >&2
+		fi
+		exit $rc;;
+
+  status)	$BINARY -s $ARGS
+		rc=$?
+		case $rc in
+		  0)	echo "$SERVICE is running." >&2;;
+		  1)	echo "$SERVICE stopped, but /var/run pid file exists." >&2;;
+		  2)	echo "$SERVICE stopped, but /var/lock lock file exists." >&2;;
+		  3)	echo "$SERVICE not running." >&2;;
+		  *)	echo "$SERVICE status unknown." >&2;;
+		esac
+		exit $rc;;
+
+  restart)	($0 stop && $0 start); exit $?;;
+
+  force-reload) exit 0;;
+
+
+  *)		echo "$0: Action $command not supported for $SERVICE" >&2
+		exit 3;;
+esac
