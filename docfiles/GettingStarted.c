@@ -34,11 +34,11 @@ The following packages are needed for building the packages, testing them, or cr
 - <a href="http://www.gnu.org/software/gcc/">gcc</a>,
   <a href="http://www.gnu.org/software/make/">make</a> and friends
 - <a href="http://www.freedesktop.org/wiki/Software/pkg-config">pkg-config</a>
+- <a href="http://code.google.com/p/ctypesgen/">ctypesgen</a> (for CMA code)
 
 <b>Test-only packages</b>
 - <a href="http://valgrind.org/">valgrind</a> (for testing 'C' code)
 - <a href="https://github.com/Yelp/Testify">Testify</a> - Python testing framework (for CMA code)
-- <a href="http://code.google.com/p/ctypesgen/">ctypesgen</a> (for CMA code)
 
 <b>Nanoprobe (and CMA library) packages</b>
 - <a href="http://developer.gnome.org/glib">glib2-dev</a> (aka libglib2.0-dev)
@@ -149,6 +149,21 @@ current machine while they run.
 The project runs these tests are run before updating the master source
 control instance on <i>hg.linux-ha.org</i>.
 
+@subsection TestifyTests testify tests
+There are a large number of tests performed on the Python code
+including the CMA code with database.
+These regression tests also significantly exercises the C code underlying the
+python code, and the interfaces between the two bodies of code.
+These tests bind to port 1984, so some of them will fail if port 1984 is not available.
+
+To run these tests, execute these steps:
+- <tt>cd <i><source-code-directory></i>/cma</tt>
+- <tt>testify tests</tt>
+
+The final line should look something like this:
+<pre>PASSED.  42 tests / 15 cases: 42 passed, 0 failed.  (Total test time 16.78s)</pre>
+
+
 @subsection ValgrindTest testcode/grind.sh test
 This code is a pure-C test which exercises the nanoprobe code with
 a simulated CMA.  It is run under valgrind to look for memory leaks
@@ -157,9 +172,7 @@ There is a variety of hard-coded IP addresses used in these tests.
 This can be ignored for the time being.
 However, the test binds to port 1984, so it will fail if port 1984 is not available.
 
-To run this test:
-- cd <i>root-of-binary-tree</i>/testcode
-- <i>root-of-source-tree</i>/testcode/grind.sh
+This test is now run automatically by Testify - so see the section above for how to run it.
 
 Various things in the glib2 library do not free all their memory at exit, so
 it is possible (likely?) that you will see things not being freed that are harmless.
@@ -193,33 +206,13 @@ You may also get a variety of debug messages, depending on the version of glib2 
 installed.  This code has a lot of debug enabled, but later versions of glib2 suppress
 debug messages unless the the environment variable G_MESSAGES_DEBUG is set to <b>all</b>.
 
-@subsection TestifyTests testify tests
-There are a large number of tests performed on the Python code
-including the CMA code with database.
-These regression tests also significantly exercises the C code underlying the
-python code, and the interfaces between the two bodies of code.
-These tests bind to port 1984, so some of them will fail if port 1984 is not available.
-
-To run these tests, execute these steps:
-- <tt>cd <i><source-code-directory></i>/cma</tt>
-- <tt>testify tests</tt>
-
-The final line should look something like this:
-<pre>PASSED.  42 tests / 15 cases: 42 passed, 0 failed.  (Total test time 16.78s)</pre>
-
-If this code crashes (doesn't complete the tests), it is possible that the python bindings
-are out of sync with your platform.  The <i>ctypesgen</i> program
-can be run to correct this.  Send email to the mailing list for more details.
-
-
 @subsection PingerTest testcode/pinger
 The pinger program exercises the reliable UDP retransmission code in the
 project.  It is hard-wired to use port 19840.  Hope that works for you.
 It sends a number of packets with 5% simulated packet reception loss
 and 5% simulated packet transmission loss.  This is 9.75% overall packet loss rate.
 
-To run this test:
-- <tt><i>root-of-binary-tree</i>/testcode/pinger ::1</tt>
+This test is now automatically run as part of the testify tests, so see the testify section above.
 
 Because it has a lot of debug enabled, debug might or might not come out by default
 depending on what version of glibc2 you have installed.
