@@ -33,6 +33,7 @@ from graphnodes import nodeconstructor, RegisterGraphClass, \
     NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, GraphNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
+from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from monitoring import MonitoringRule, MonitorAction
 
 @RegisterGraphClass
@@ -474,14 +475,18 @@ class Drone(SystemNode):
         if 'ManagementAddress' in attrs:
             # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
             mgmtaddr = attrs['ManagementAddress']
-            adminnic = CMAdb.store.load_or_create(NICNode, domain=switch.domain, macaddr=chassisid
-            ,           ifname='(adminNIC)')
-            mgmtip = CMAdb.store.load_or_create(IPaddrNode, domain=switch.domain
-            ,           cidrmask='unknown', ipaddr=mgmtaddr)
-            if Store.is_abstract(adminnic) or Store.is_abstract(switch):
-                CMAdb.store.relate(switch, CMAconsts.REL_nicowner, adminnic, {'causes': True})
-            if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
-                CMAdb.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip, {'causes': True})
+            mgmtnetaddr = pyNetAddr(mgmtaddr)
+            atype = mgmtnetaddr.addrtype()
+            if atype == ADDR_FAMILY_IPV4 or atype == ADDR_FAMILY_IPV6:
+                # MAC addresses are permitted, but IP addresses are preferred
+                adminnic = CMAdb.store.load_or_create(NICNode, domain=switch.domain
+                ,       macaddr=chassisid, ifname='(adminNIC)')
+                mgmtip = CMAdb.store.load_or_create(IPaddrNode, domain=switch.domain
+                ,           cidrmask='unknown', ipaddr=mgmtaddr)
+                if Store.is_abstract(adminnic) or Store.is_abstract(switch):
+                    CMAdb.store.relate(switch, CMAconsts.REL_nicowner, adminnic)
+                if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
+                    CMAdb.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip)
         ports = data['ports']
         for portname in ports.keys():
             attrs = {}
