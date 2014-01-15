@@ -144,6 +144,7 @@ gmainfd_gsource_check(GSource* source)
 	GMainFd*	self = CASTTOCLASS(GMainFd, source);
 	// revents: received events...
 	if (self->gfd.revents & G_IO_HUP) {
+		g_source_remove_poll(source, &self->gfd);
 		// The other end of the pipe was closed
 		self->gfd.events = 0;
 		self->atEOF = TRUE; // is this right?
@@ -151,7 +152,9 @@ gmainfd_gsource_check(GSource* source)
 	if (self->gfd.revents & G_IO_ERR) {
 		g_warning("%s.%d: received I/O error on file descriptor %d"
 		,	__FUNCTION__, __LINE__, self->gfd.fd);
+		g_source_remove_poll(source, &self->gfd);
 		self->gfd.events = 0;
+		self->atEOF = TRUE; // is this right?
 	}
 	return 0 != self->gfd.revents;
 }
