@@ -1,7 +1,7 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section intro Introduction
-Welcome to the Assimilation project. (@ref README "README")
+Welcome to the Assimilation project. (@ref README "README") [<a href="https://plus.google.com/108883358679380721407" rel="publisher">Google+</a>]
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
 Here are the problems we address:
