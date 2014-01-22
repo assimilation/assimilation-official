@@ -1,7 +1,7 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section intro Introduction
-Welcome to the Assimilation project. (@ref README "README") [<a href="https://plus.google.com/108883358679380721407" rel="publisher">Google+</a>]
+Welcome to the Assimilation project. (@ref README "README")
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
 Here are the problems we address:
@@ -58,6 +58,7 @@ Check it out at <b>http://www.printfection.com/AssimilationProject</b>
 
 @section ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
+- [<a href="https://plus.google.com/108883358679380721407" rel="publisher">Google+</a>] page for the Assimilation Project.
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
 - <a href="http://techthoughts.typepad.com/managing_computers/">Managing Computers with Automation Blog</a> - about weekly
 - <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">Assimilation Mailing List</a> - not quite as often - shooting for weekly.
