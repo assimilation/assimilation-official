@@ -38,13 +38,11 @@
 ///Everything we send is wrapped in a @ref Frame, or a @ref FrameSet, and those both make extensive
 ///use of the capabilties defined here.
 
-/// Size of Generic TLV header -  ((type + length) == 4)
-#define	GENERICTLV_HDRSZ	(sizeof(guint16)+sizeof(guint16))
 
 /// Return the 'Type' of the given TLV <b>T</b>LV entry (first two bytes)
 guint16
-get_generic_tlv_type(gconstpointer tlv_vp,  ///<[in] Pointer to beginning of TLV entry
-		 gconstpointer pktend)  ///<[in] Pointer to one byte past end of packet
+get_generic_tlv_type(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV entry
+		 gconstpointer pktend)  	///<[in] Pointer to one byte past end of packet
 {
 	return tlv_get_guint16(tlv_vp, pktend);
 }
@@ -52,29 +50,29 @@ get_generic_tlv_type(gconstpointer tlv_vp,  ///<[in] Pointer to beginning of TLV
 /// Set the 'Type' of the given TLV <b>T</b>LV entry (first two bytes)
 void
 set_generic_tlv_type(gpointer tlv_vp,	///<[in] Pointer to beginning of TLV entry
-		 guint16 newtype,		///<[in] Type to stuff into TLV entry
-		 gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
+		 guint16 newtype,	///<[in] Type to stuff into TLV entry
+		 gconstpointer pktend)	///<[in] Pointer to one byte past end of packet
 {
 	tlv_set_guint16(tlv_vp, newtype, pktend);
 }
 
-/// Return the 'Length' of the given generic T<b>L</b>V entry (second short in packet)
-guint16
+/// Return the 'Length' of the given generic T<b>L</b>V entry (first 3 bytes after type)
+guint32
 get_generic_tlv_len(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV entry
-		gconstpointer pktend)	///<[in] Pointer to one byte past end of packet
+		gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
 {
 	const guint8 * tlvp = tlv_vp;
-	return tlv_get_guint16(tlvp+sizeof(guint16), pktend);
+	return tlv_get_guint24(tlvp+sizeof(guint16), pktend);
 }
 
-/// Set the 'Length' of the given generic T<b>L</b>V entry (second short in packet)
+/// Set the 'Length' of the given generic T<b>L</b>V entry (first 3 bytes after type)
 void
 set_generic_tlv_len(gpointer tlv_vp,	///<[in] Pointer to beginning of TLV entry
-		 guint16 newsize,		///<[in] Type to stuff into TLV entry
-		 gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
+		 guint32 newsize,	///<[in] Length to stuff into TLV entry
+		 gconstpointer pktend)	///<[in] Pointer to one byte past end of packet
 {
 	guint8 * tlvp = tlv_vp;
-	tlv_set_guint16(tlvp+sizeof(guint16), newsize, pktend);
+	tlv_set_guint24(tlvp+sizeof(guint16), newsize, pktend);
 }
 
 /// Return a const pointer to the 'Value' of the given generic TL<b>V</b> entry
@@ -102,7 +100,7 @@ get_generic_tlv_nonconst_value(gpointer tlv_vp,	///<[in] Pointer to beginning of
 void
 set_generic_tlv_value(gpointer tlv_vp,		///< pointer to TLV entry
 		      void* srcdata,		///< pointer to source data
-		      guint16 srcsize,		///< size of source object
+		      guint32 srcsize,		///< size of source object
 		      gconstpointer pktend)	///<[in] Pointer to one byte past end of packet
 {
 	guint8*		tlvbytes = tlv_vp;
@@ -113,8 +111,8 @@ set_generic_tlv_value(gpointer tlv_vp,		///< pointer to TLV entry
 
 /// Return TRUE if this is a valid generic TLV packet.
 gboolean
-is_valid_generic_tlv_packet(gconstpointer tlv_vp,	//<[in] pointer to beginning of generic TLV packet
-                     gconstpointer pktend)	//<[in] pointer to first byte past the end of the packet
+is_valid_generic_tlv_packet(gconstpointer tlv_vp,//<[in] pointer to beginning of TLV packet
+                     gconstpointer pktend)	//<[in] pointer to first byte past the end of packet
 {
 	const guint16	reqtypes [] = {FRAMETYPE_SIG};
 	unsigned	j = 0;
@@ -128,7 +126,7 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,	//<[in] pointer to beginning o
 	;	tlv_vp = get_generic_tlv_next(tlv_vp, pktend)) {
 
 		guint16		ttype;
-		guint16		length;
+		guint32		length;
 		const guint8*	next;
 
 		if (tlv_vp >= pktend) {

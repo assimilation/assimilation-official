@@ -49,7 +49,6 @@
 ///@{
 ///@ingroup C_Classes
 
-#define	FRAMESET_HDR_SIZE	(3*sizeof(guint16))
 
 
 FSTATIC Frame*	_framedata_to_frameobject(PacketDecoder*, gconstpointer, gconstpointer gconstpointer);
@@ -152,16 +151,16 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this 
 	FrameSet*	ret;
 
 	*fsnext = vpktend;
-	if  (bytesleft < (gssize)FRAMESET_HDR_SIZE) {
+	if  (bytesleft < (gssize)FRAMESET_INITSIZE) {
 		return NULL;
 	}
-	fstype = tlv_get_guint16(fsstart, pktend);
-	fslen = tlv_get_guint16(fsstart + sizeof(guint16), pktend);
-	fsflags = tlv_get_guint16(fsstart + 2*sizeof(guint16), pktend);
+	fstype = get_generic_tlv_type(fsstart, pktend);
+	fslen = get_generic_tlv_len(fsstart, pktend);
+	fsflags = tlv_get_guint16(fsstart + GENERICTLV_HDRSZ, pktend);
 	ret = frameset_new(fstype);
 	g_return_val_if_fail(ret != NULL, NULL);
 	frameset_set_flags(ret, fsflags);
-	*fsnext = (gconstpointer) (fsstart + (3*sizeof(guint16)) + fslen);
+	*fsnext = (gconstpointer) (fsstart + FRAMESET_INITSIZE + fslen);
 	return ret;
 }
 
@@ -179,7 +178,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 
 	while (curframeset < pktend) {
 		gconstpointer nextframeset = pktend;
-		gconstpointer curframe = (gconstpointer)((const guint8*)curframeset + FRAMESET_HDR_SIZE);
+		gconstpointer curframe = (gconstpointer)((const guint8*)curframeset + FRAMESET_INITSIZE);
 		FrameSet* fs = _decode_packet_get_frameset_data(curframeset, pktend, &nextframeset);
 
 		g_return_val_if_fail(fs != NULL && nextframeset <= pktend, ret);

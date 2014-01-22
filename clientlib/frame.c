@@ -25,7 +25,7 @@
 #include <memory.h>
 
 FSTATIC void _frame_default_finalize(AssimObj * self);
-FSTATIC gsize _frame_total_size(Frame* f);
+FSTATIC gsize _frame_dataspace(const Frame* f);
 FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpointer);
 FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
@@ -62,7 +62,7 @@ frame_default_valuefinalize(gpointer value) ///< Value to finalize
 
 /// Return total space required to put this frame in a packet (marshalled size)
 FSTATIC gsize
-_frame_total_size(Frame* f)	///< Frame to return the marshalled size of
+_frame_dataspace(const Frame* f)	///< Frame to return the marshalled size of
 {
 	g_return_val_if_fail(f != NULL, 0);
 	return (gsize)(FRAME_INITSIZE + f->length);
@@ -130,7 +130,7 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 		newframe->type		= frame_type;
 		newframe->length	= 0;
 		newframe->value		= NULL;
-		newframe->dataspace	= _frame_total_size;
+		newframe->dataspace	= _frame_dataspace;
 		newframe->isvalid	= _frame_default_isvalid;
 		newframe->setvalue	= _frame_setvalue;
 		newframe->updatedata	= _frame_updatedata;
@@ -161,10 +161,11 @@ void
 _frame_dump(const Frame * f,			///<[in] Frame being dumped
 	    const char * prefix)		///<[in] Prefix to put out before each line when dumping it
 {
-	g_debug("%s%s: type = %d, length = %d", 
+	g_debug("%s%s: type = %d, length = %d dataspace=%zd", 
 		prefix,
 	        proj_class_classname(f),
 		f->type,
-		f->length);
+		f->length,
+		f->dataspace(f));
 }
 ///@}

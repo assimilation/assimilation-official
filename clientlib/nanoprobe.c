@@ -1029,7 +1029,7 @@ nano_reqconfig(gpointer gcruft)
 	frameset_append_frame(fs, &usf->baseclass);
 	UNREF2(usf);
 
-	// Put in the JSON discovery text
+	// Put in the JSON configuration text
 	jsontext = context->getstring(context, cfgname);
 	csf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
 	csf->baseclass.setvalue(&csf->baseclass, g_strdup(jsontext), strlen(jsontext)+1

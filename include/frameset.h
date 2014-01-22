@@ -51,7 +51,7 @@ struct _FrameSet {
 	SeqnoFrame*	_seqframe;	///< sequence number for this frameset
 	SeqnoFrame*	(*getseqno)(FrameSet*);	///< Return the sequence number for this frameset (if any)
 };
-#define	FRAMESET_INITSIZE	6	///< type+length+flags - each 2 bytes
+#define	FRAMESET_INITSIZE	7	///< type+length+flags - 2+3+2
 
 WINEXPORT FrameSet*	frameset_new(guint16 frameset_type);
 WINEXPORT void		frameset_prepend_frame(FrameSet* fs, Frame* f);
