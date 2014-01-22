@@ -31,6 +31,7 @@
 #include <frame.h>
 #include <signframe.h>
 #include <framesettypes.h>
+#include <generic_tlv_min.h>
 #include <seqnoframe.h>
 
 /// @ref FrameSet - used for collecting @ref Frame "Frame"s when not on the wire,
@@ -51,7 +52,7 @@ struct _FrameSet {
 	SeqnoFrame*	_seqframe;	///< sequence number for this frameset
 	SeqnoFrame*	(*getseqno)(FrameSet*);	///< Return the sequence number for this frameset (if any)
 };
-#define	FRAMESET_INITSIZE	7	///< type+length+flags - 2+3+2
+#define	FRAMESET_INITSIZE	(GENERICTLV_HDRSZ+sizeof(guint16))
 
 WINEXPORT FrameSet*	frameset_new(guint16 frameset_type);
 WINEXPORT void		frameset_prepend_frame(FrameSet* fs, Frame* f);
