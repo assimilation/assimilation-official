@@ -315,7 +315,7 @@ class pyFrameTest(TestCase):
         pyf.setvalue('fred')
         self.assertTrue(pyf.isvalid(), "PyFrame('fred') failed isvalid())")
         self.assertEqual(pyf.framelen(), 5)
-        self.assertEqual(pyf.dataspace(), 9) # Total space for this Frame on the wire
+        self.assertEqual(pyf.dataspace(), 10) # Total space for this Frame on the wire
         self.assertEqual(string_at(pyf.framevalue()), 'fred') # Raw from 'C'
 
     @class_teardown

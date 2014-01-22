@@ -28,6 +28,7 @@
 #define _FRAME_H
 #include <projectcommon.h>
 #include <assimobj.h>
+#include <generic_tlv_min.h>
 typedef struct _FrameSet FrameSet;
 typedef struct _Frame Frame;
 
@@ -44,7 +45,7 @@ struct _Frame {
 	guint16		type;				///< Frame <b>T</b>ype (see @ref IndividualFrameFormats - frameformats.h )
 	guint16		length;				///< Frame <b>L</b>ength
 	gpointer	value;				///< Frame <b>V</b>alue (pointer)
-	gsize		(*dataspace)(Frame* self);	///< How much space is needed to marshall this Frame?
+	gsize		(*dataspace)(const Frame* self);///< How much space is needed to marshall this Frame?
 	void		(*updatedata)(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs); ///< Update packet data
 	gboolean	(*isvalid)(const Frame* self, gconstpointer tlvptr, gconstpointer pktend); ///< TRUE if TLV data looks valid...
 	
@@ -55,7 +56,7 @@ struct _Frame {
 	void		(*dump)(const Frame* self, const char * prefix);///< member function for dumping Frame
 	GDestroyNotify	valuefinalize;					///< method for finalizing value
 };
-#define	FRAME_INITSIZE	4	///< (sizeof(Frame.type) + sizeof(Frame.length)) - each 2 bytes
+#define	FRAME_INITSIZE	GENERICTLV_HDRSZ 
 WINEXPORT Frame*	frame_new(guint16 frame_type, gsize framesize);
 WINEXPORT Frame*	frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 WINEXPORT void frame_default_valuefinalize(gpointer value);

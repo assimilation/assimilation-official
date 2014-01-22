@@ -29,12 +29,12 @@
  * As noted earlier, FrameSets are logical packets.
  * Here is my current thinking about the layout of frameset data - which is a variant
  * of Type, Length, Value (TLV) entries like those used by LLDP and CDP.
- * Below you will see a number of 2-byte integers, which are all in network-byte order.
+ * Below you will see a number of 2 or 3-byte integers, which are all in network-byte order.
  * <PRE>
  * +--------------+
  * | framesettype | 16 bits
  * +--------------+
- * |  fs_length   | 16 bits
+ * |  fs_length   | 24 bits
  * +--------------+
  * |   fsflags    | 16 bits
  * +--------------+
@@ -163,7 +163,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	GSList*		curframe;		// Current frame as we marshall packet...
 	gpointer	curpktpos;		// Current position as we marshall packet...
 	gsize		pktsize;
-	gsize		fssize = 6;		// "frameset" overhead size
+	gsize		fssize = FRAMESET_INITSIZE;	// "frameset" overhead size
 	g_return_if_fail(NULL != fs);
 	g_return_if_fail(NULL != sigframe);
 	// g_return_if_fail(NULL != fs->framelist); // Is an empty frame list OK?
@@ -273,7 +273,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	// Write out the initial FrameSet header.
 	set_generic_tlv_type(fs->packet, fs->fstype, ((guint8*)fs->packet)+fssize);
 	set_generic_tlv_len(fs->packet, pktsize-fssize, ((guint8*)fs->packet)+fssize);
-	tlv_set_guint16(((guint8*)fs->packet)+4, fs->fsflags, ((guint8*)fs->packet)+fssize);
+	tlv_set_guint16(((guint8*)fs->packet)+GENERICTLV_HDRSZ, fs->fsflags, ((guint8*)fs->packet)+fssize);
 }
 
 /// Return the flags currently set on this FrameSet.
