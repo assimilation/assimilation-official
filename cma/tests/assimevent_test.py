@@ -43,10 +43,16 @@ class Observer:
         self.events.append(event)
         
 
+class BadObserver:
+    "An un-observer class for testing AssimEvent failures - doesn't do anything"
+    def __init__(self):
+        pass
+
 class TestAssimEvent(TestCase):
     'Class for basic AssimEvent testing'
     def test_simple_init_good(self):
         'Perform a few simple AssimEvent good initializations'
+        AssimEvent.observers = []
         observer=Observer()
         AssimEvent.registerobserver(observer)
         event1 = AssimEvent('first', AssimEvent.CREATEOBJ)
@@ -60,3 +66,13 @@ class TestAssimEvent(TestCase):
         event3 = AssimEvent('third', AssimEvent.CREATEOBJ)
         self.assertEqual(len(observer.events), 2)
         self.assertTrue(observer.events[0], event3)
+
+    def test_simple_init_bad(self):
+        'Perform a few simple AssimEvent bad initializations'
+        AssimEvent.observers = []
+        observer=Observer()
+        badobserver=BadObserver()
+        AssimEvent.registerobserver(observer)
+        self.assertRaises(ValueError, AssimEvent,'first', 999)
+        AssimEvent.registerobserver(badobserver)
+        self.assertRaises(AttributeError, AssimEvent, 'first', AssimEvent.CREATEOBJ)
