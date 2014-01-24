@@ -152,6 +152,8 @@ set (QUERYSUBDIR queries)
 set (QUERYINSTALL ${USRSHARE}/${QUERYSUBDIR})
 set (MONRULESUBDIR monrules)
 set (MONRULEINSTALL ${USRSHARE}/${MONRULESUBDIR})
+set (NOTIFICATONDIR notification.d)
+set (NOTIFICATION_SCRIPT_DIR ${USRSHARE}/${NOTIFICATIONDIR})
 set (OCFINSTALL /usr/lib/ocf/resource.d/assimilation)
 #	OCFINSTALL		Where we install our OCF resource agents
 configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst @ONLY)

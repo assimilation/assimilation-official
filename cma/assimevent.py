@@ -53,7 +53,7 @@ class AssimEvent(object):
 
     observers = []
 
-    def __init__(self, associatedobject, eventtype):
+    def __init__(self, associatedobject, eventtype, extrainfo=None):
         '''Initializer for AssimEvent class.
         We save our parameters then notify our registered observers.
 
@@ -70,6 +70,7 @@ class AssimEvent(object):
 
         self.associatedobject = associatedobject
         self.eventtype = eventtype
+        self.extrainfo = extrainfo
         self.notifynewevent()
 
     @staticmethod
