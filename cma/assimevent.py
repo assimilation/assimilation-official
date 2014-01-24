@@ -78,6 +78,8 @@ class AssimEvent(object):
         The given observer object must implement a 'notifynewevent' method
         -- because we will surely call it :-D.
         '''
+        if not hasattr(observer, 'notifynewevent'):
+            raise(AttributeError('observer must have a notifynewevent method'))
         if observer not in AssimEvent.observers:
             AssimEvent.observers.append(observer)
 

@@ -74,5 +74,4 @@ class TestAssimEvent(TestCase):
         badobserver=BadObserver()
         AssimEvent.registerobserver(observer)
         self.assertRaises(ValueError, AssimEvent,'first', 999)
-        AssimEvent.registerobserver(badobserver)
-        self.assertRaises(AttributeError, AssimEvent, 'first', AssimEvent.CREATEOBJ)
+        self.assertRaises(AttributeError, AssimEvent.registerobserver, badobserver)
