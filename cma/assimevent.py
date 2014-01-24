@@ -75,7 +75,7 @@ class AssimEvent(object):
     @staticmethod
     def registerobserver(observer):
         '''Static method for registering an observer with the AssimEvent class.
-        The given observer object must implement a 'notifynewinterface' method
+        The given observer object must implement a 'notifynewevent' method
         -- because we will surely call it :-D.
         '''
         if observer not in AssimEvent.observers:
