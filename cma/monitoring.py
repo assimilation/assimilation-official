@@ -37,6 +37,7 @@ from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIEL
 from AssimCclasses import pyConfigContext, pyNetAddr
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
+from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
 import os, re, inspect, time
@@ -198,7 +199,6 @@ class MonitorAction(GraphNode):
         monmsgobj: pyConfigContext
             object containing the monitoring message
         '''
-        origaddr = origaddr # unused
         success = False
         fubar = False
         reason_enum = monmsgobj[REQREASONENUMNAMEFIELD]
@@ -222,10 +222,13 @@ class MonitorAction(GraphNode):
         if fubar:
             CMAdb.log.critical(msg)
         else:
+            extrainfo = {'comment': explanation, 'origaddr': str(origaddr)}
             if success:
                 CMAdb.log.info(msg)
+                AssimEvent(AssimEvent.OBJUP, self, extrainfo=extrainfo)
             else:
                 CMAdb.log.warning(msg)
+                AssimEvent(AssimEvent.OBJDOWN, self, extrainfo=extrainfo)
             self.isworking = success
 
 
