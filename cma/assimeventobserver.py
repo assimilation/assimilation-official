@@ -95,6 +95,15 @@ class ForkExecObserver(AssimEventObserver):
         '''Execute a script with all the right parameters for this event
         We do not wait for it to complete, or check its return code.
         '''
+        # FIXME: This needs to be improved.  We want two things, which will
+        # require a little more code
+        # (1) guarantee sequential execution - need for first notification to finish before
+        #       starting a second one
+        #       non-blocking execution -- don't wait around for them to complete...
+        # 
+        #   At the present time, we have medium-crappy non-blocking execution, and that's all.
+        #
+        
         obj = event.associatedobject
         objclass = obj.__class__.__name__
         eventtype = AssimEvent.eventtypenames[event.eventtype]
