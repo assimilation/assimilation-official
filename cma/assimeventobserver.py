@@ -30,6 +30,7 @@ The base class of these various classes is the abstract class AssimEventObserver
 
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR
 from assimevent import AssimEvent
+from assimjson import JSONtree
 import os
 
 #R0903: 35,0:AssimEventObserver: Too few public methods (1/2)
@@ -100,9 +101,18 @@ class ForkExecObserver(AssimEventObserver):
         
         args = [script, eventtype, objclass]
         env = {}
+        # TODO add the host name that's reporting the problem if it's a monitor action
+        # We have the address the report came from, but it's an IP address, not a host name
         for item in os.environ:
             env[item] = os.environ[item]
-        # FIXME: Need to set up the environment to give scripts maximum information
+        if event.extrainfo is not None:
+            for extra in event.extrainfo:
+                env['ASSIM_%s' % extra] = str(event.extrainfo[extra])
+        for attr in obj.__dict__.keys():
+            avalue = getattr(obj, attr)
+            if isinstance(avalue, (str, unicode, int, float, long, bool)):
+                env['ASSIM_%s' % attr] = str(avalue)
+        env['ASSIM_JSONobj'] = str(JSONtree(obj))
         os.spawnve(os.P_NOWAITO, script, args, env)
         
     def notifynewevent(self, event):
