@@ -99,7 +99,7 @@ class ForkExecObserver(AssimEventObserver):
         # require a little more code
         # (1) guarantee sequential execution - need for first notification to finish before
         #       starting a second one
-        #       non-blocking execution -- don't wait around for them to complete...
+        # (2)   non-blocking execution -- don't wait around for them to complete...
         # 
         #   At the present time, we have medium-crappy non-blocking execution, and that's all.
         #
