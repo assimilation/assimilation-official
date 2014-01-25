@@ -99,7 +99,9 @@ class JSONtree:
         
         ret = '{'
         comma = ''
-        for attr in thing.__dict__.keys():
+        attrs = thing.__dict__.keys()
+        attrs.sort()
+        for attr in attrs:
             if attr.startswith('_'):
                 continue
             value = getattr(thing, attr)
