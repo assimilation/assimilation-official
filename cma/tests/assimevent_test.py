@@ -33,6 +33,15 @@ from assimevent import AssimEvent
 
 DEBUG=False
 
+def makescript(scriptname, outfile):
+    script=\
+    '''#!/bin/sh
+    (echo "ARG1=$1"
+    echo "ARG2=$2"
+    env | grep '^ASSIM_'
+    ) > %s 2>&1
+'''
+
 class Observer:
     'An observer class for testing AssimEvents - we just keep a list of notifications'
     def __init__(self):
@@ -47,6 +56,7 @@ class BadObserver:
     "An un-observer class for testing AssimEvent failures - doesn't do anything"
     def __init__(self):
         pass
+
 
 class TestAssimEvent(TestCase):
     'Class for basic AssimEvent testing'
