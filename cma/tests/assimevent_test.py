@@ -28,21 +28,36 @@ import sys
 sys.path.append("../cma")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from testify import *
-import sys
+import os, sys, tempfile, time
 from assimevent import AssimEvent
+from assimeventobserver import ForkExecObserver
 
 DEBUG=False
 
-def makescript(scriptname, outfile):
-    script=\
-    '''#!/bin/sh
-    (echo "ARG1=$1"
-    echo "ARG2=$2"
-    env | grep '^ASSIM_'
-    ) > %s 2>&1
+def makescript(createdscriptname, outfile):
+    'Create the requested script - outputting to requested file'
+    script='''#!/bin/sh
+    # Simple script to test external event interfaces
+    (   echo "====START===="
+        j=1
+        for arg
+        do
+            echo "ARG${j}=$arg"
+            j=$(expr $j + 1)
+        done
+        env | grep '^ASSIM_' | sort
+        echo "====END===="
+    ) >> %s 2>&1
 '''
+    f = open(createdscriptname, 'w')
+    f.write(script % outfile)
+    f.close()
+    os.chmod(createdscriptname, 0755)
 
-class Observer:
+class ClientClass:
+    pass
+
+class DummyObserver:
     'An observer class for testing AssimEvents - we just keep a list of notifications'
     def __init__(self):
         self.events = []
@@ -63,7 +78,7 @@ class TestAssimEvent(TestCase):
     def test_simple_init_good(self):
         'Perform a few simple AssimEvent good initializations'
         AssimEvent.observers = []
-        observer=Observer()
+        observer=DummyObserver()
         AssimEvent.registerobserver(observer)
         event1 = AssimEvent('first', AssimEvent.CREATEOBJ)
         self.assertEqual(len(observer.events), 1)
@@ -80,8 +95,56 @@ class TestAssimEvent(TestCase):
     def test_simple_init_bad(self):
         'Perform a few simple AssimEvent bad initializations'
         AssimEvent.observers = []
-        observer=Observer()
+        observer=DummyObserver()
         badobserver=BadObserver()
         AssimEvent.registerobserver(observer)
         self.assertRaises(ValueError, AssimEvent,'first', 999)
         self.assertRaises(AttributeError, AssimEvent.registerobserver, badobserver)
+
+    def test_fork_exec_event(self):
+        '''This test will create a fork/exec event observer script
+        and then test to see if its getting invoked properly...
+        '''
+    
+        tmpdir = tempfile.mkdtemp('.d', 'testexec_')
+        (fd, pathname) = tempfile.mkstemp('.out.txt')
+        execscript = os.path.join(tmpdir, 'observer.sh')
+        makescript(execscript, pathname)
+        AssimEvent.observers = []
+        observer=ForkExecObserver(scriptdir=tmpdir)
+        dummyclient = ClientClass()
+        dummyclient.fred='fred'
+        dummyclient.sevenofnine='Annika'
+        dummyclient.foo = {'foo': 'bar'}
+
+        self.assertEqual(observer.listscripts(), [execscript,])
+        AssimEvent.registerobserver(observer)
+        AssimEvent(dummyclient, AssimEvent.CREATEOBJ)
+        time.sleep(.5)
+        AssimEvent(dummyclient, AssimEvent.OBJUP, extrainfo={'origaddr': '10.10.10.254'})
+        time.sleep(.5)
+        os.close(fd)
+        expectedcontent=\
+'''====START====
+ARG1=create
+ARG2=ClientClass
+ASSIM_fred=fred
+ASSIM_JSONobj={"foo":{"foo":"bar"},"fred":"fred","sevenofnine":"Annika"}
+ASSIM_sevenofnine=Annika
+====END====
+====START====
+ARG1=up
+ARG2=ClientClass
+ASSIM_fred=fred
+ASSIM_JSONobj={"foo":{"foo":"bar"},"fred":"fred","sevenofnine":"Annika"}
+ASSIM_origaddr=10.10.10.254
+ASSIM_sevenofnine=Annika
+====END====
+'''
+        f=open(pathname, 'r')
+        content=f.read()
+        f.close()
+        self.assertEqual(content, expectedcontent)
+        os.unlink(execscript)
+        os.unlink(pathname)
+        os.rmdir(tmpdir)
