@@ -1,7 +1,8 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section intro Introduction
-Welcome to the Assimilation project. (@ref README "README")
+Welcome to the Assimilation project. (@ref README "README") <a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"/>
+</a>
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
 Here are the problems we address:
@@ -48,7 +49,7 @@ The project software undergoes a number of rigorous static and dynamic tests to 
 - Highly restrictive gcc options in all compiles (all warnings are errors)
 - Static Analysis via the Clang static analyzer - zero warnings required before changes are pushed upstream
 - Four collections of regression tests - successful run required before changes are pushed upstream
-- Static Analysis by Coverity - before each release candidate
+- Static Analysis by Coverity <a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"/></a> - before each release candidate (and other times)
 
 @section ProjectSwag Assimilation Swag
 We now have a store featuring swag for the Assimilation Project!
