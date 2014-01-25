@@ -1,8 +1,7 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section intro Introduction
-Welcome to the Assimilation project. (@ref README "README") <a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"/>
-</a>
+Welcome to the Assimilation project. (@ref README "README") @htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
 Here are the problems we address:
@@ -27,7 +26,7 @@ machines in a network-aware topology - minimizing network overhead and being nat
 The two main ideas are:
 - distribute discovery throughout the network, doing most discovery locally
 - distribute the monitoring as broadly as possible in a network-aware fashion.
-- use autoconfiguration and zero-network-footprint discovery techniques to simplify monitoring configuration
+- use autoconfiguration and zero-network-footprint discovery techniques to monitor most resources automatically.
 during the initial installation and during ongoing system addition and maintenance.
 
 The original monitoring scalability idea was outlined in two different articles
@@ -45,17 +44,12 @@ For source and licensing information see the
 - <a href="_source_and_license.html">Source and Licensing</a> page.
 
 @section ProjectIntegrity Project Integrity
-The project software undergoes a number of rigorous static and dynamic tests to ensure its integrity.
-- Highly restrictive gcc options in all compiles (all warnings are errors)
-- Static Analysis via the Clang static analyzer - zero warnings required before changes are pushed upstream
-- Four collections of regression tests - successful run required before changes are pushed upstream
-- Static Analysis by Coverity <a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"/></a> - before each release candidate (and other times)
-
-@section ProjectSwag Assimilation Swag
-We now have a store featuring swag for the Assimilation Project!
-Purchases from this store help support the project.
-Check it out at <b>http://www.printfection.com/AssimilationProject</b>
-
+The project software undergoes a number of rigorous static and dynamic tests to ensure its continued integrity.
+- Highly restrictive gcc options in all compiles - no warnings allowed (<b>-Werror</b>)
+- Static Analysis via the <a href="http://clang-analyzer.llvm.org/">Clang</a> static analyzer - zero warnings allowed before changes are pushed to public repository
+- Static Analysis by Coverity before each release candidate (and other times)@htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly
+- Four collections of regression tests - successful run required before any changes are pushed to public repository
+- <a href="http://www.pylint.org/">pylint</a> Python code checker - enforces Python coding standards and performs static error checks
 
 @section ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
@@ -106,13 +100,14 @@ Very little traffic goes between sites to monitor multiple sites from a central 
 This is all controlled and directed by the collective monitoring authority (CMA) -
 which is designed to be configured to run in an HA cluster using a product like Pacemaker.
 The disadvantage of this approach is the getting started after a complete data center outage/shutdown
-can take a while - this part is <i>not</i> <i>O</i>(1).
+can take a while - this part is <i>not</i> <i><b>O</b></i>(1).
 
 An alternative approach would be to make the rings self-organizing.  The advantage of this is
 that startup after an full datacenter outage would happen much more quickly.  The disadvantage
 is that this solution is much more complex, and embeds knowledge of the desired topology
 (which is to some degree a policy issue) into the nanoprobes.  It also is not likely to work
-as well when CDP or LLDP are not available.
+as well when CDP or LLDP are not available, and to properly diagnose complex faults, it is necessary
+to know the order nodes are placed on rings.
 
 
 @section autoconfiguration Autoconfiguration through Discovery
