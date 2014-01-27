@@ -56,5 +56,7 @@ WINEXPORT int	kill_pid_service(const char * pidfile, int signal);	///< Issue giv
 void		rmpid_and_exit_on_signal(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
 WINEXPORT	gchar ** assim_merge_environ(const gchar *const* env, ConfigContext*);///< Create new env merged from ConfigContext
 WINEXPORT	void assim_free_environ(gchar ** env);			///< Free environment created by assim_merge_environ
+WINEXPORT	gsize setpipebuf(int fd, gsize bufsize);		///< Set pipe buffer size (if possible)
+WINEXPORT	gsize getpipebuf(int fd);				///< Return pipe buffer size
 #endif /* MISC_H */
 ///@}
