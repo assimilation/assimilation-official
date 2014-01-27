@@ -672,7 +672,6 @@ setpipebuf(int fd, gsize bufsize)
 			rc = write(sysfsfd, sizestr, sizeof(sizestr)-1);
 			(void)rc;
 			(void)close(sysfsfd);
-			sysfsfd = -1;
 			(void)fcntl(fd, F_SETPIPE_SZ, (int)bufsize);
 		}
 	}
