@@ -3,6 +3,7 @@
  * @brief Miscellaneous library functions - doing varied interesting things.
  * These include:
  * - daemonize_me - do the things to make this process into a daemon
+ * - setpipebuf - set the buffer size of a pipe
  *
  * This file is part of the Assimilation Project.
  *
@@ -22,6 +23,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
+#define _GNU_SOURCE /* Needed for the F_[SG]ETPIPE_SZ definitions */
 #include <projectcommon.h>
 #include <stdlib.h>
 #ifdef HAVE_UNISTD_H
@@ -32,9 +34,11 @@
 #endif
 #include <errno.h>
 #include <string.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_FCNTL_H
+#	include <fcntl.h>
+#endif
 #ifndef WIN32
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -649,4 +653,44 @@ WINEXPORT void
 assim_free_environ(gchar ** env) ///< The result of assim_merge_environ -- to be freed
 {
 	g_strfreev(env);
+}
+
+
+/// Set the buffer size of a pipe (if possible)
+WINEXPORT gsize
+setpipebuf(int fd, gsize bufsize)
+{
+#ifdef F_SETPIPE_SZ
+#	define	SYS_MAX_PIPE_SIZE	"/proc/sys/fs/pipe-max-size"
+	if (fcntl(fd, F_SETPIPE_SZ, (int)bufsize) < 0) {
+		int	sysfsfd = open(SYS_MAX_PIPE_SIZE, O_WRONLY);
+		if (sysfsfd >= 0) {
+			char	sizestr[32];
+			int	rc;
+			snprintf(sizestr, sizeof(sizestr), "%zd\n", (size_t)bufsize);
+			// Try our best, and do the best we can...
+			rc = write(sysfsfd, sizestr, sizeof(sizestr)-1);
+			(void)rc;
+			(void)close(sysfsfd);
+			sysfsfd = -1;
+			(void)fcntl(fd, F_SETPIPE_SZ, (int)bufsize);
+		}
+	}
+#else
+	(void)bufsize;
+#endif
+	// We've done the best we know how above, now check to see how it worked..
+	return getpipebuf(fd);
+}
+
+/// Return the buffer size of a pipe - if not possible return 4096 (a good guess)
+WINEXPORT gsize
+getpipebuf(int fd)
+{
+#ifdef F_GETPIPE_SZ
+	return (gsize)fcntl(fd, F_GETPIPE_SZ);
+#else
+	(void)fd;
+	return 4096;
+#endif
 }
