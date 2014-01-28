@@ -29,10 +29,15 @@ The base class of these various classes is the abstract class AssimEventObserver
 '''
 
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, setpipebuf
+from AssimCclasses import pyConfigContext
 from assimevent import AssimEvent
 from assimjson import JSONtree
 import fcntl
-import os
+import os, signal
+import sys
+
+DEBUG = True
+DEBUG = False
 
 #R0903: 35,0:AssimEventObserver: Too few public methods (1/2)
 # pylint: disable=R0903
@@ -41,9 +46,26 @@ class AssimEventObserver(object):
     Our subclasses presumably know what to do with these events.
     '''
 
-    def __init__(self):
+    def __init__(self, constraints):
         '''Initializer for AssimEventObserver class.
+
+        Parameters:
+        -----------
+        constraints: dict
+            A dict describing our desired events. The constraints in the dict are
+            effectively ANDed together.  Each key is an attribute name in either
+            the event itself or its associated object.  The value associated with
+            each attribute is either a list or a scalar value.  A list implies that
+            any one of those values is acceptable.  A scalar value implies that it
+            *must* have that value.
+
+            This should be able to constrain the type of event we're looking at, the
+            type of event-object we're looking at, and the domain of the event-object -
+            and lots of other potentially useful things.
+
+            See the "is_interesting" method below for implementation details...
         '''
+        self.constraints = constraints
         AssimEvent.registerobserver(self)
         
     def notifynewevent(self, event):
@@ -52,16 +74,31 @@ class AssimEventObserver(object):
         '''
         raise NotImplementedError('AssimEventObserver is an abstract base class')
 
-    def passes_constraints(self, event):
-        '''Return True if the given event conforms to our constraints
+    def is_interesting(self, event):
+        '''Return True if the given event conforms to our constraints.  That is, would it
+        be interesting to our observers.
 
         Parameters:
         -----------
-        event: dict
-            A dictionary describing our desired events
+        event: AssimEvent
+            The event we're evaluating to see if our listeners want to hear about it.
         '''
-        # need to provide a real implementation of this ;-)
-        return event is event and self is self
+        if self.constraints is None:
+            return True
+        for attr in self.constraints:
+            if event.hasattr(attr):
+                value = getattr(event, attr)
+            elif event.associatedobject.hasattr(attr):
+                value = getattr(event.associatedobject, attr)
+            else:
+                continue
+            constraint = self.constraints[attr]
+            if isinstance(constraint, (list, dict)):
+                if value not in constraint:
+                    return False
+            if value != constraint:
+                return False
+        return True
 
 class FIFOEventObserver(AssimEventObserver):
     '''Objects in this class send JSON messages to a FIFO when events they are interested in
@@ -69,6 +106,7 @@ class FIFOEventObserver(AssimEventObserver):
     NUL (zero) byte.  If the len(JSON) then 101 bytes are written to the
     FIFO, with the last being a single NUL byte (as noted in the previous sentence).
     '''
+    NULstr = chr(0) # Will this work in python 3?
     def __init__(self, FIFOwritefd, constraints=None):
         '''Initializer for FIFO EventObserver class.
 
@@ -90,42 +128,41 @@ class FIFOEventObserver(AssimEventObserver):
         self.pipebufsize = pipebufsize
         # We don't want to hang around if we can't send out an event
         if hasattr(os, 'O_NDELAY'):
-            fcntl.fcntl(fcntl.F_SETFL, os.O_NDELAY)
+            fcntl.fcntl(FIFOwritefd, fcntl.F_SETFL, os.O_NDELAY)
         elif hasattr(os, 'FNDELAY'):
-            # we're avoiding a pylint complaint...
-            fcntl.fcntl(fcntl.F_SETFL, getattr(os, 'FNDELAY'))
-        AssimEventObserver.__init__(self)
+            # Using getattr avoids a pylint complaint...
+            fcntl.fcntl(FIFOwritefd, fcntl.F_SETFL, getattr(os, 'FNDELAY'))
+        AssimEventObserver.__init__(self, constraints)
 
     def notifynewevent(self, event):
         '''We get called when a new AssimEvent has occured that we might want to observe.
         When we get the call, we write a NUL-terminated JSON blob to our FIFO file descriptor
         '''
-        if not self.passes_constraints(event):
+        # @TODO add the host name that's reporting the problem if it's a monitor action
+        # We have the address the report came from, but it's an IP address, not a host name
+        if not self.is_interesting(event):
             return
 
         json = str(JSONtree(event))
         jsonlen = len(json)
-        json += chr(0)  # Will this work in python 3?
-        rc = os.write(self.FIFOwritefd, json)
-        assert(rc == (jsonlen + 1))
+        json += FIFOEventObserver.NULstr
+        if DEBUG:
+            print >> sys.stderr, '*************SENDING EVENT (%d bytes)' % (jsonlen+1)
+        os.write(self.FIFOwritefd, json)
 
 
-class ForkExecObserver(AssimEventObserver):
+class ForkExecObserver(FIFOEventObserver):
     '''Objects in this class execute scripts when events they are interested in
-    are observed.
+    are observed.  Note that these events come to us through a pipe
+    that we create, but is written to by our base class FIFOEventObserver...
     '''
-    def __init__(self, eventtypelist=None, objectclasslist=None, scriptdir=None):
+    def __init__(self, constraints=None, scriptdir=None):
         '''Initializer for ForkExecObserver class.
 
         Parameters:
         -----------
-        eventtypelist: list
-            A list of integer event types which we are interested in - or None
-            for every event type
-        objectclasslist: list
-            A list of names of classes (all subclasses of GraphNode) representing the classes
-            of objects we are interested in observing.  We require exact class matches
-            not 'isinstance' type matches.  None means ever object type is acceptable.
+        constraints: dict
+            Same as AssimEventObserver's constraints parameter.
         scriptdir: str
             The directory where our scripts are found.  We execute them all whenever an
             event of the selected type occurs.
@@ -134,10 +171,87 @@ class ForkExecObserver(AssimEventObserver):
             scriptdir = NOTIFICATION_SCRIPT_DIR
         if not os.path.isdir(scriptdir):
             raise ValueError('Script directory [%s] is not a directory' % scriptdir)
-        self.eventtypelist = eventtypelist
-        self.objectclasslist = objectclasslist
         self.scriptdir = scriptdir
-        AssimEventObserver.__init__(self)
+        pipefds = os.pipe()
+        self.FIFOreadfd = pipefds[0]
+        FIFOEventObserver.__init__(self, pipefds[1], constraints)
+        self.childpid = os.fork()
+        if self.childpid == 0:
+            self.listenforevents()
+        else:
+            os.close(self.FIFOreadfd)
+
+    def __del__(self):
+        if self.childpid > 0:
+            os.kill(self.childpid, signal.SIGTERM)
+            self.childpid = 0
+
+
+    def listenforevents(self):
+        'Listen for JSON events terminated by a FIFOEventObserver.NULstr'
+        os.close(self.FIFOwritefd)
+        fcntl.fcntl(self.FIFOreadfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+        for fd in range(3, 1024):
+            try:
+                fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
+            except IOError:
+                pass
+        currentbuf = ''
+        while True:
+            if DEBUG:
+                print >> sys.stderr, 'ISSUING READ...'
+            currentbuf += os.read(self.FIFOreadfd, 4096)
+            if DEBUG:
+                print >> sys.stderr, 'READ returned %d bytes' % (len(currentbuf))
+            if len(currentbuf) == 0:
+                # We don't want any kind of python cleanup going on here...
+                # so we access the 'protected' member _exit of os, and irritate pylint
+                # pylint: disable=W0212
+                os._exit(0)
+            while True:
+                if FIFOEventObserver.NULstr in currentbuf:
+                    (currentbuf, additional) = currentbuf.split(FIFOEventObserver.NULstr, 1)
+                    # @TODO: Put try/catch around processing a JSON event
+                    self.processJSONevent(currentbuf)
+                    currentbuf = additional
+                else:
+                    break
+
+    def processJSONevent(self, jsonstr):
+        'Process a single JSON event from out input stream'
+        eventobj = pyConfigContext(jsonstr)
+        aobj = eventobj['associatedobject']
+        aobjclass = aobj['nodetype']
+        eventtype = AssimEvent.eventtypenames[eventobj['eventtype']]
+        env = {}
+
+        # Initialize the child environment with our current environment
+        for item in os.environ:
+            env[item] = os.environ[item]
+        # Add in things in 'extrainfo' (if any)
+        if 'extrainfo' in eventobj and eventobj['extrainfo'] is not None:
+            extrastuff = eventobj['extrainfo']
+            for extra in extrastuff.keys():
+                evextra = extrastuff[extra]
+                env['ASSIM_%s' % extra] = str(evextra)
+        # Add all the scalars in the associated object
+        for attr in aobj.keys():
+            avalue = aobj[attr]
+            if isinstance(avalue, (str, unicode, int, float, long, bool)):
+                env['ASSIM_%s' % attr] = str(avalue)
+        env['ASSIM_JSONobj'] = str(jsonstr)
+
+        # It's an event we want our scripts to know about...
+        # So, let them know!
+        if DEBUG:
+            print >> sys.stderr, 'TO RUN: %s' % (str(self.listscripts()))
+        for script in self.listscripts():
+            args = [script, eventtype, aobjclass]
+            if DEBUG:
+                print >> sys.stderr, 'STARTING SCRIPT: %s' % (str(args))
+            os.spawnve(os.P_WAIT, script, args, env)
+            if DEBUG:
+                print >> sys.stderr, 'SCRIPT %s IS NOW DONE' % (str(args))
 
     def listscripts(self):
         'Return the list of pathnames which we will execute when we get notified of an event'
@@ -148,55 +262,3 @@ class ForkExecObserver(AssimEventObserver):
                 retval.append(path)
         retval.sort()
         return retval
-
-    @staticmethod
-    def execscript(event, script):
-        '''Execute a script with all the right parameters for this event
-        We do not wait for it to complete, or check its return code.
-        '''
-        # FIXME: This needs to be improved.  We want two things, which will
-        # require a little more code
-        # (1) guarantee sequential execution - need for first notification to finish before
-        #       starting a second one
-        # (2)   non-blocking execution -- don't wait around for them to complete...
-        # 
-        #   At the present time, we have medium-crappy non-blocking execution, and that's all.
-        #
-        
-        obj = event.associatedobject
-        objclass = obj.__class__.__name__
-        eventtype = AssimEvent.eventtypenames[event.eventtype]
-        
-        args = [script, eventtype, objclass]
-        env = {}
-        # TODO add the host name that's reporting the problem if it's a monitor action
-        # We have the address the report came from, but it's an IP address, not a host name
-        for item in os.environ:
-            env[item] = os.environ[item]
-        if event.extrainfo is not None:
-            for extra in event.extrainfo:
-                env['ASSIM_%s' % extra] = str(event.extrainfo[extra])
-        for attr in obj.__dict__.keys():
-            avalue = getattr(obj, attr)
-            if isinstance(avalue, (str, unicode, int, float, long, bool)):
-                env['ASSIM_%s' % attr] = str(avalue)
-        env['ASSIM_JSONobj'] = str(JSONtree(obj))
-        os.spawnve(os.P_NOWAITO, script, args, env)
-        
-    def notifynewevent(self, event):
-        '''We get called when a new AssimEvent has occured that we might want to observe.
-        We filter which scripts are executed according to our initial parameters.
-        '''
-        if self.eventtypelist is not None:
-            if event.eventtype not in self.eventtypelist:
-                return
-        if self.eventtypelist is not None:
-            clsname = event.associatedobject.__class__.__name__
-            # I suppose we could use the nodetype instead...
-            # this is slightly more general - but it probably doesn't matter...
-            if clsname not in self.objectclasslist:
-                return
-        # It's an event we want our scripts to know about...
-        # So, let's let them know!
-        for script in self.listscripts():
-            self.execscript(event, script)

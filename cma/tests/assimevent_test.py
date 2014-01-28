@@ -55,7 +55,10 @@ def makescript(createdscriptname, outfile):
     os.chmod(createdscriptname, 0755)
 
 class ClientClass:
-    pass
+    def __init__(self):
+        self.nodetype = 'ClientClass'
+        pass
+
 
 class DummyObserver:
     'An observer class for testing AssimEvents - we just keep a list of notifications'
@@ -98,7 +101,7 @@ class TestAssimEvent(TestCase):
         observer=DummyObserver()
         badobserver=BadObserver()
         AssimEvent.registerobserver(observer)
-        self.assertRaises(ValueError, AssimEvent,'first', 999)
+        self.assertRaises(ValueError, AssimEvent, 'first', 999)
         self.assertRaises(AttributeError, AssimEvent.registerobserver, badobserver)
 
     def test_fork_exec_event(self):
@@ -120,23 +123,24 @@ class TestAssimEvent(TestCase):
         self.assertEqual(observer.listscripts(), [execscript,])
         AssimEvent.registerobserver(observer)
         AssimEvent(dummyclient, AssimEvent.CREATEOBJ)
-        time.sleep(.5)
         AssimEvent(dummyclient, AssimEvent.OBJUP, extrainfo={'origaddr': '10.10.10.254'})
-        time.sleep(.5)
+        time.sleep(.25)
         os.close(fd)
         expectedcontent=\
 '''====START====
 ARG1=create
 ARG2=ClientClass
 ASSIM_fred=fred
-ASSIM_JSONobj={"foo":{"foo":"bar"},"fred":"fred","sevenofnine":"Annika"}
+ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
+ASSIM_nodetype=ClientClass
 ASSIM_sevenofnine=Annika
 ====END====
 ====START====
 ARG1=up
 ARG2=ClientClass
 ASSIM_fred=fred
-ASSIM_JSONobj={"foo":{"foo":"bar"},"fred":"fred","sevenofnine":"Annika"}
+ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":1,"extrainfo":{"origaddr":"10.10.10.254"}}
+ASSIM_nodetype=ClientClass
 ASSIM_origaddr=10.10.10.254
 ASSIM_sevenofnine=Annika
 ====END====
