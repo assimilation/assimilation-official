@@ -28,9 +28,10 @@ This module implements observer classes associated with Events in the Assimilati
 The base class of these various classes is the abstract class AssimEventObserver.
 '''
 
-from AssimCtypes import NOTIFICATION_SCRIPT_DIR
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR, setpipebuf
 from assimevent import AssimEvent
 from assimjson import JSONtree
+import fcntl
 import os
 
 #R0903: 35,0:AssimEventObserver: Too few public methods (1/2)
@@ -50,6 +51,64 @@ class AssimEventObserver(object):
         But we are an abstract base class so we error out with NotImplementedError every time!
         '''
         raise NotImplementedError('AssimEventObserver is an abstract base class')
+
+    def passes_constraints(self, event):
+        '''Return True if the given event conforms to our constraints
+
+        Parameters:
+        -----------
+        event: dict
+            A dictionary describing our desired events
+        '''
+        # need to provide a real implementation of this ;-)
+        return event is event and self is self
+
+class FIFOEventObserver(AssimEventObserver):
+    '''Objects in this class send JSON messages to a FIFO when events they are interested in
+    are observed.  Each message encapsulates a single event, and is followed by a single
+    NUL (zero) byte.  If the len(JSON) then 101 bytes are written to the
+    FIFO, with the last being a single NUL byte (as noted in the previous sentence).
+    '''
+    def __init__(self, FIFOwritefd, constraints=None):
+        '''Initializer for FIFO EventObserver class.
+
+        Parameters:
+        -----------
+        FIFOwritefd: int
+            a UNIX file descriptor pointing to the FIFO where event observers are listening...
+        '''
+        self.FIFOwritefd = FIFOwritefd
+        self.constraints = constraints
+        # We want a big buffer in the FIFO between us and our clients - they might be slow
+        # 4 MB ought to be enough.  Most events should be smallish...
+        pipebufsize = setpipebuf(FIFOwritefd, 4096*1024)
+        if pipebufsize < (1024*1024):
+            pipebufsize = setpipebuf(FIFOwritefd, 1024*1024)
+            # Complain if we don't have at least 1 MB
+            if pipebufsize < 1024*1024:
+                print ('WARNING: pipe buffer size is only %s bytes' % pipebufsize)
+        self.pipebufsize = pipebufsize
+        # We don't want to hang around if we can't send out an event
+        if hasattr(os, 'O_NDELAY'):
+            fcntl.fcntl(fcntl.F_SETFL, os.O_NDELAY)
+        elif hasattr(os, 'FNDELAY'):
+            # we're avoiding a pylint complaint...
+            fcntl.fcntl(fcntl.F_SETFL, getattr(os, 'FNDELAY'))
+        AssimEventObserver.__init__(self)
+
+    def notifynewevent(self, event):
+        '''We get called when a new AssimEvent has occured that we might want to observe.
+        When we get the call, we write a NUL-terminated JSON blob to our FIFO file descriptor
+        '''
+        if not self.passes_constraints(event):
+            return
+
+        json = str(JSONtree(event))
+        jsonlen = len(json)
+        json += chr(0)  # Will this work in python 3?
+        rc = os.write(self.FIFOwritefd, json)
+        assert(rc == (jsonlen + 1))
+
 
 class ForkExecObserver(AssimEventObserver):
     '''Objects in this class execute scripts when events they are interested in
