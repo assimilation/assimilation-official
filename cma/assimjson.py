@@ -96,6 +96,9 @@ class JSONtree:
         if isinstance(thing, str):
             return '"%s"' % (JSONtree._jsonesc(thing))
 
+        if thing is None:
+            return 'null'
+
         
         ret = '{'
         comma = ''
