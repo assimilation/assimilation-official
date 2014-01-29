@@ -171,5 +171,7 @@ ASSIM_sevenofnine=Annika
         os.kill(observer.childpid, signal.SIGKILL)
         time.sleep(.5)
         AssimEvent(dummyclient, AssimEvent.CREATEOBJ)
+        # The failed FIFO write should cause us to become unregistered
+        # This is the current behavior.  Is it the correct behavior?
         self.assertTrue(not AssimEvent.is_registered(observer))
         os.close(fd)

@@ -155,8 +155,11 @@ class FIFOEventObserver(AssimEventObserver):
         except OSError, e:
             if DEBUG:
                 print >> sys.stderr, 'FIFO write error %s: unregistering observer' % str(e)
+            # @FIXME Is unregistering our observer the correct behavior?
+            # for internal listeners, we could take a recovery action (restart the child)
+            # for external listeners we can wait until it gets restarted, and just keep getting
+            # the broken pipe errors.
             AssimEvent.unregisterobserver(self)
-
 
 class ForkExecObserver(FIFOEventObserver):
     '''Objects in this class execute scripts when events they are interested in
