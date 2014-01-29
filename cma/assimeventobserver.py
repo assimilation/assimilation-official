@@ -106,7 +106,9 @@ class FIFOEventObserver(AssimEventObserver):
     NUL (zero) byte.  If the len(JSON) then 101 bytes are written to the
     FIFO, with the last being a single NUL byte (as noted in the previous sentence).
     '''
+
     NULstr = chr(0) # Will this work in python 3?
+
     def __init__(self, FIFOwritefd, constraints=None):
         '''Initializer for FIFO EventObserver class.
 
@@ -118,7 +120,7 @@ class FIFOEventObserver(AssimEventObserver):
         self.FIFOwritefd = FIFOwritefd
         self.constraints = constraints
         # We want a big buffer in the FIFO between us and our clients - they might be slow
-        # 4 MB ought to be enough.  Most events should be smallish...
+        # 4 MB ought to be plenty.  Most events are only a few hundred bytes...
         pipebufsize = setpipebuf(FIFOwritefd, 4096*1024)
         if pipebufsize < (1024*1024):
             pipebufsize = setpipebuf(FIFOwritefd, 1024*1024)
@@ -148,7 +150,12 @@ class FIFOEventObserver(AssimEventObserver):
         json += FIFOEventObserver.NULstr
         if DEBUG:
             print >> sys.stderr, '*************SENDING EVENT (%d bytes)' % (jsonlen+1)
-        os.write(self.FIFOwritefd, json)
+        try:
+            os.write(self.FIFOwritefd, json)
+        except OSError, e:
+            if DEBUG:
+                print >> sys.stderr, 'FIFO write error %s: unregistering observer' % str(e)
+            AssimEvent.unregisterobserver(self)
 
 
 class ForkExecObserver(FIFOEventObserver):

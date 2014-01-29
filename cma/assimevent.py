@@ -74,6 +74,12 @@ class AssimEvent(object):
         self.notifynewevent()
 
     @staticmethod
+    def is_registered(observer):
+        '''Return True if the given observer is registered with us.
+        '''
+        return observer in AssimEvent.observers
+
+    @staticmethod
     def registerobserver(observer):
         '''Static method for registering an observer with the AssimEvent class.
         The given observer object must implement a 'notifynewevent' method
