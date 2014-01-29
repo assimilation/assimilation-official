@@ -28,7 +28,7 @@ import sys
 sys.path.append("../cma")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from testify import *
-import os, sys, tempfile, time
+import os, sys, tempfile, time, signal
 from assimevent import AssimEvent
 from assimeventobserver import ForkExecObserver
 
@@ -108,7 +108,6 @@ class TestAssimEvent(TestCase):
         '''This test will create a fork/exec event observer script
         and then test to see if its getting invoked properly...
         '''
-    
         tmpdir = tempfile.mkdtemp('.d', 'testexec_')
         (fd, pathname) = tempfile.mkstemp('.out.txt')
         execscript = os.path.join(tmpdir, 'observer.sh')
@@ -152,3 +151,25 @@ ASSIM_sevenofnine=Annika
         os.unlink(execscript)
         os.unlink(pathname)
         os.rmdir(tmpdir)
+
+    def test_fork_exec_killchild(self):
+        '''This test will create a fork/exec event observer script
+        and then kill the child listener and verify that it is handled
+        correctly.
+        '''
+        tmpdir = tempfile.mkdtemp('.d', 'testexec_')
+        (fd, pathname) = tempfile.mkstemp('.out.txt')
+        execscript = os.path.join(tmpdir, 'observer.sh')
+        makescript(execscript, pathname)
+        AssimEvent.observers = []
+        observer=ForkExecObserver(scriptdir=tmpdir)
+        dummyclient = ClientClass()
+        dummyclient.fred='fred'
+        dummyclient.sevenofnine='Annika'
+        dummyclient.foo = {'foo': 'bar'}
+        AssimEvent.registerobserver(observer)
+        os.kill(observer.childpid, signal.SIGKILL)
+        time.sleep(.5)
+        AssimEvent(dummyclient, AssimEvent.CREATEOBJ)
+        self.assertTrue(not AssimEvent.is_registered(observer))
+        os.close(fd)
