@@ -109,7 +109,7 @@ class FIFOEventObserver(AssimEventObserver):
 
     NULstr = chr(0) # Will this work in python 3?
 
-    def __init__(self, FIFOwritefd, constraints=None):
+    def __init__(self, FIFOwritefd, constraints=None, maxerrcount=None):
         '''Initializer for FIFO EventObserver class.
 
         Parameters:
@@ -119,6 +119,8 @@ class FIFOEventObserver(AssimEventObserver):
         '''
         self.FIFOwritefd = FIFOwritefd
         self.constraints = constraints
+        self.errcount = 0
+        self.maxerrcount = maxerrcount
         # We want a big buffer in the FIFO between us and our clients - they might be slow
         # 4 MB ought to be plenty.  Most events are only a few hundred bytes...
         pipebufsize = setpipebuf(FIFOwritefd, 4096*1024)
@@ -148,17 +150,25 @@ class FIFOEventObserver(AssimEventObserver):
         json = str(JSONtree(event))
         jsonlen = len(json)
         json += FIFOEventObserver.NULstr
-        if DEBUG:
-            print >> sys.stderr, '*************SENDING EVENT (%d bytes)' % (jsonlen+1)
         try:
+            if DEBUG:
+                print >> sys.stderr, '*************SENDING EVENT (%d bytes)' % (jsonlen+1)
             os.write(self.FIFOwritefd, json)
+            self.errcount = 0
+            if DEBUG:
+                print >> sys.stderr, '*************EVENT SENT (%d bytes)' % (jsonlen+1)
         except OSError, e:
             if DEBUG:
-                print >> sys.stderr, 'FIFO write error %s: unregistering observer' % str(e)
-            # @FIXME Is unregistering our observer the correct behavior?
-            # for internal listeners, we could take a recovery action (restart the child)
-            # for external listeners we can wait until it gets restarted, and just keep getting
-            # the broken pipe errors.
+                print >> sys.stderr, '+++++++++++++++++FIFO write error: %s' % str(e)
+            self.errcount += 1
+            self.ioerror(event)
+
+    def ioerror(self, unusedevent):
+        '''This function gets called when we get an I/O error writing to the FIFO.
+        This is likely an EPIPE (broken pipe) error.
+        '''
+        unusedevent = unusedevent # Make pylint happy...
+        if self.maxerrcount is not None and self.errcount > self.maxerrcount:
             AssimEvent.unregisterobserver(self)
 
 class ForkExecObserver(FIFOEventObserver):
@@ -190,9 +200,30 @@ class ForkExecObserver(FIFOEventObserver):
             self.listenforevents()
         else:
             os.close(self.FIFOreadfd)
+            self.FIFOreadfd = -1
+
+    def ioerror(self, event):
+        '''Re-initialize (respawn) our child in response to an I/O error'''
+
+        if DEBUG:
+            print >> sys.stderr, '**********Reinitializing child process'
+        if self.childpid > 0:
+            os.kill(self.childpid, signal.SIGKILL)
+            self.childpid = 0
+        if self.FIFOwritefd >= 0:
+            os.close(self.FIFOwritefd)
+            self.FIFOwritefd = -1
+        self.__init__(self.constraints, self.scriptdir)
+
+        if self.errcount < 2:
+            # Try to keep from losing this event
+            self.notifynewevent(event)
+        else:
+            print >> sys.stderr, 'Reinitialization of ForkExecObserver may have failed.'
 
     def __del__(self):
         if self.childpid > 0:
+            os.close(self.FIFOwritefd)
             os.kill(self.childpid, signal.SIGTERM)
             self.childpid = 0
 
@@ -208,24 +239,31 @@ class ForkExecObserver(FIFOEventObserver):
                 pass
         currentbuf = ''
         while True:
-            if DEBUG:
-                print >> sys.stderr, 'ISSUING READ...'
-            currentbuf += os.read(self.FIFOreadfd, 4096)
-            if DEBUG:
-                print >> sys.stderr, 'READ returned %d bytes' % (len(currentbuf))
-            if len(currentbuf) == 0:
-                # We don't want any kind of python cleanup going on here...
-                # so we access the 'protected' member _exit of os, and irritate pylint
-                # pylint: disable=W0212
-                os._exit(0)
-            while True:
-                if FIFOEventObserver.NULstr in currentbuf:
-                    (currentbuf, additional) = currentbuf.split(FIFOEventObserver.NULstr, 1)
-                    # @TODO: Put try/catch around processing a JSON event
-                    self.processJSONevent(currentbuf)
-                    currentbuf = additional
-                else:
-                    break
+            try:
+                if DEBUG:
+                    print >> sys.stderr, 'ISSUING READ...'
+                currentbuf += os.read(self.FIFOreadfd, 4096)
+                if DEBUG:
+                    print >> sys.stderr, 'READ returned %d bytes' % (len(currentbuf))
+                if len(currentbuf) == 0:
+                    # We don't want any kind of python cleanup going on here...
+                    # so we access the 'protected' member _exit of os, and irritate pylint
+                    # pylint: disable=W0212
+                    os._exit(0)
+                while True:
+                    if FIFOEventObserver.NULstr in currentbuf:
+                        (currentbuf, additional) = currentbuf.split(FIFOEventObserver.NULstr, 1)
+                        self.processJSONevent(currentbuf)
+                        currentbuf = additional
+                    else:
+                        break
+            # W0703: catching too general exception Exception
+            # pylint: disable=W0703
+            except Exception as e:
+                print >> sys.stderr, ('ForkExecObserver Got exception in child process: %s'
+                %   str(e))
+                currentbuf = ''
+
 
     def processJSONevent(self, jsonstr):
         'Process a single JSON event from out input stream'

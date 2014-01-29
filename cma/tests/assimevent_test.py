@@ -169,9 +169,26 @@ ASSIM_sevenofnine=Annika
         dummyclient.foo = {'foo': 'bar'}
         AssimEvent.registerobserver(observer)
         os.kill(observer.childpid, signal.SIGKILL)
-        time.sleep(.5)
+        time.sleep(.1)
         AssimEvent(dummyclient, AssimEvent.CREATEOBJ)
-        # The failed FIFO write should cause us to become unregistered
-        # This is the current behavior.  Is it the correct behavior?
-        self.assertTrue(not AssimEvent.is_registered(observer))
+        # Death of our FIFO child will cause it to get respawned, and
+        # message sent to new child.  No messages should be lost.
+        expectedcontent=\
+'''====START====
+ARG1=create
+ARG2=ClientClass
+ASSIM_fred=fred
+ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
+ASSIM_nodetype=ClientClass
+ASSIM_sevenofnine=Annika
+====END====
+'''
+        time.sleep(.15)
+        f=open(pathname, 'r')
+        content=f.read()
+        f.close()
+        self.assertEqual(content, expectedcontent)
         os.close(fd)
+        os.unlink(execscript)
+        os.unlink(pathname)
+        os.rmdir(tmpdir)
