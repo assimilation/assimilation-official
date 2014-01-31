@@ -86,11 +86,9 @@ class AssimEventObserver(object):
         if self.constraints is None:
             return True
         for attr in self.constraints:
-            if event.hasattr(attr):
-                value = getattr(event, attr)
-            elif event.associatedobject.hasattr(attr):
-                value = getattr(event.associatedobject, attr)
-            else:
+            value = AssimEventObserver.getvalue(event, attr)
+            if value is None:
+                # @FIXME: Is this the right treatment of no-such-value (None)?
                 continue
             constraint = self.constraints[attr]
             if isinstance(constraint, (list, dict)):
@@ -99,6 +97,21 @@ class AssimEventObserver(object):
             if value != constraint:
                 return False
         return True
+
+    @staticmethod
+    def getvalue(event, attr):
+        'Helper function to return a the value of a constraint expression'
+        value = None
+        if event.hasattr(attr):
+            value = getattr(event, attr)
+        else:
+            try:
+                value = event.associatedobject.get(attr)
+            except AttributeError:
+                if hasattr(event.associatedobject, attr):
+                    value = getattr(event.associatedobject, attr)
+        return value
+        
 
 class FIFOEventObserver(AssimEventObserver):
     '''Objects in this class send JSON messages to a FIFO when events they are interested in
