@@ -712,7 +712,7 @@ class Store:
                 subj.post_db_init()
             if node.is_abstract:
                 # Create an event to commemorate the creation of the new database object
-                AssimEvent(AssimEvent.CREATEOBJ, subj)
+                AssimEvent(subj, AssimEvent.CREATEOBJ)
 
         return subj
 
