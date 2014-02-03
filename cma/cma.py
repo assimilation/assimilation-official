@@ -99,6 +99,8 @@
 import optparse, time
 import os, sys, signal
 import cmainit
+from assimeventobserver import ForkExecObserver
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR
 #import atexit
 #
 #   "Main" program starts below...
@@ -199,6 +201,13 @@ def main():
     #   They only exist in flat files and in memory - they aren't in the database
     MonitoringRule.load_tree(MONRULEINSTALL_DIR)
     print >> sys.stderr, ('Monitoring rules loaded from %s' % MONRULEINSTALL_DIR)
+
+    execobserver_constraints = {
+        'nodetype': ['Drone', 'SystemNode', 'IPaddrNode', 'ProcessNode', 'MonitorAction']
+    }
+    ForkExecObserver(constraints=execobserver_constraints, scriptdir=NOTIFICATION_SCRIPT_DIR)
+    print >> sys.stderr, ('Fork/Event observer dispatching from %s' % NOTIFICATION_SCRIPT_DIR)
+    
 
     if opt.bind is None:
         BindAddrStr = ('0.0.0.0:%d' % DefaultPort)
