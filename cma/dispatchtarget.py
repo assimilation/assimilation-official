@@ -29,6 +29,7 @@ from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pySwitchDiscovery
 from monitoring import MonitorAction
+from assimevent import AssimEvent
 
 class DispatchTarget:
     '''Base class for handling incoming FrameSets.
