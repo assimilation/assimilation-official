@@ -223,7 +223,7 @@ class MonitorAction(GraphNode):
             CMAdb.log.critical(msg)
         else:
             extrainfo = {'comment': explanation, 'origaddr': origaddr
-            ,   'resourcename': rscname}
+            ,   'resourcename': rscname, 'monmsg': monmsgobj}
             if success:
                 CMAdb.log.info(msg)
                 AssimEvent(AssimEvent.OBJUP, self, extrainfo=extrainfo)
