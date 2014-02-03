@@ -66,7 +66,7 @@ class AssimEvent(object):
             AssimEvent.OBJWARN, AssimEvent.OBJUPDATE or AssimEvent.OBJDELETE
         '''
         if eventtype not in AssimEvent.eventtypenames:
-            raise ValueError('Event type [%s] is not a legal event type')
+            raise ValueError('Event type [%s] is not a legal event type' % eventtype)
 
         self.associatedobject = associatedobject
         self.eventtype = eventtype

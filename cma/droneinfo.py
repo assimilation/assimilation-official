@@ -570,7 +570,7 @@ class Drone(SystemNode):
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self._io.closeconn(DEFAULT_FSP_QID, deadip)
-        AssimEvent(AssimEvent.OBJDOWN, self)
+        AssimEvent(self, AssimEvent.OBJDOWN)
 
     def start_heartbeat(self, ring, partner1, partner2=None):
         '''Start heartbeating to the given partners.
