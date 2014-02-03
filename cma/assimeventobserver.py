@@ -102,7 +102,7 @@ class AssimEventObserver(object):
     def getvalue(event, attr):
         'Helper function to return a the value of a constraint expression'
         value = None
-        if event.hasattr(attr):
+        if hasattr(event, attr):
             value = getattr(event, attr)
         else:
             try:
