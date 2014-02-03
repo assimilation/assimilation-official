@@ -35,6 +35,7 @@ from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from monitoring import MonitoringRule, MonitorAction
+from assimevent import AssimEvent
 
 @RegisterGraphClass
 class Drone(SystemNode):
@@ -569,6 +570,7 @@ class Drone(SystemNode):
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         self._io.closeconn(DEFAULT_FSP_QID, deadip)
+        AssimEvent(AssimEvent.OBJDOWN, self)
 
     def start_heartbeat(self, ring, partner1, partner2=None):
         '''Start heartbeating to the given partners.

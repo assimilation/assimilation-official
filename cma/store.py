@@ -35,6 +35,7 @@ from py2neo import neo4j
 from datetime import datetime, timedelta
 from collections import namedtuple
 import sys # only for stderr
+from assimevent import AssimEvent
 
 # R0902: Too many instance attributes (17/10)
 # R0904: Too many public methods (27/20)
@@ -709,6 +710,9 @@ class Store:
         if node is not None:
             if 'post_db_init' in dir(subj):
                 subj.post_db_init()
+            if node.is_abstract:
+                # Create an event to commemorate the creation of the new database object
+                AssimEvent(AssimEvent.CREATEOBJ, subj)
 
         return subj
 
