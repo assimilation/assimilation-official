@@ -226,10 +226,10 @@ class MonitorAction(GraphNode):
             ,   'resourcename': rscname, 'monmsg': monmsgobj}
             if success:
                 CMAdb.log.info(msg)
-                AssimEvent(AssimEvent.OBJUP, self, extrainfo=extrainfo)
+                AssimEvent(self, AssimEvent.OBJUP, extrainfo=extrainfo)
             else:
                 CMAdb.log.warning(msg)
-                AssimEvent(AssimEvent.OBJDOWN, self, extrainfo=extrainfo)
+                AssimEvent(self, AssimEvent.OBJDOWN, extrainfo=extrainfo)
             self.isworking = success
 
 

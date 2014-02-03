@@ -114,7 +114,8 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	CLIENTLIB		the name of our client-side (nanoprobe) library - also used by the CMA
 #	SERVERLIB		the name of our server-side library
 #	PYINSTALL		Where we install our python files
-#	USRSHARE		Our subdirectory under /usr/share
+#	USRSHARE		Our nanoprobe subdirectory under /usr/share
+#	USRSHARECMA		Our CMA subdirectory under /usr/share
 #	DAGENTS			the relative directory name we source discovery agents from
 #	DISCOVERYINSTALL	Where we install our discovery scripts
 #	QUERYSUBDIR		the relative directory where we store the flat files we make query nodes from
@@ -152,7 +153,7 @@ set (QUERYSUBDIR queries)
 set (QUERYINSTALL ${USRSHARE}/${QUERYSUBDIR})
 set (MONRULESUBDIR monrules)
 set (MONRULEINSTALL ${USRSHARE}/${MONRULESUBDIR})
-set (NOTIFICATONDIR notification.d)
+set (NOTIFICATIONDIR notification.d)
 set (NOTIFICATION_SCRIPT_DIR ${USRSHARE}/${NOTIFICATIONDIR})
 set (OCFINSTALL /usr/lib/ocf/resource.d/assimilation)
 #	OCFINSTALL		Where we install our OCF resource agents
@@ -355,6 +356,10 @@ install (DIRECTORY ${MONRULESUBDIR} COMPONENT cma-component DESTINATION ${USRSHA
 #	Install our OCF scripts under /usr/lib/ocf/resource.d/assimilation
 #
 install (PROGRAMS ocf/neo4j COMPONENT cma-component DESTINATION ${OCFINSTALL})
+#
+#	Create an empty notification script directory under /usr/share/assimilation/notification.d
+#
+install (DIRECTORY COMPONENT cma-component DESTINATION ${NOTIFICATION_SCRIPT_DIR})
 #
 #	Install our init scripts in ${INITDIR}
 #

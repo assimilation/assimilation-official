@@ -171,7 +171,7 @@ class DispatchSTARTUP(DispatchTarget):
                                 ('arpcache',            45),
                                 ('tcpdiscovery',        3700)
                                )
-        AssimEvent(AssimEvent.OBJUP, drone)
+        AssimEvent(drone, AssimEvent.OBJUP)
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
