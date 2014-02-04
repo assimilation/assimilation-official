@@ -1,13 +1,63 @@
 /**
 @page ReleaseDescriptions Release Descriptions
 
+@section Version0_1_1- version 0.1.1 - the 'possibly trial-worthy' release - 11 Feb 2013
+This is the first in a series of releases intended to culminate in a truly useful release.
+This release is suitable for limited trials in an environment where the caveats are acceptable.
+
+@subsection Features_0_1_1 Features
+These features are new with release 0.1.1.
+- new Neo4j schema
+- service monitoring
+- automatic (zero-config) service monitoring through templates
+- basic fork/exec event notification feature - /usr/share/assimilation/notification.d
+- hooks for more sophisticated event notification
+- added Pylint analysis and verification
+- added Coverity static analysis
+- added root ulimit discovery
+- added discovery of locally installed monitoring agents
+- integration of all tests under testify
+- added a Neo4j OCF resource agent
+- added Flask code to support the creation of a JavaScript User Interface
+- Added Query objects in support of the Flask code.
+- Added the ability for for the Flask code to invoke Query objects and get results
+- significant internal improvements in Neo4j access
+- allow parsing of MAC addresses - they're now all in XX-YY-ZZ (etc) format.
+- Added transactions for the database and the network
+- removed "Monitoring" from the project name (but not from its capabilities)
+
+@subsection BugFixes_0_1_1 Bug Fixes
+- check to make sure requested discovery scripts are present before executing them
+- much improved tcp service discovery
+- fixed a number of 64-bit-only assumptions in the code and tests
+- improved compatibility with old versions of Ubuntu
+- All graph node creation now checks to see if it already exists - avoiding accumulating superfluous objects
+- lots of other bugs associated with new features ;-)
+
+@subsection Caveats_0_1_1 Caveats
+- You will have to recreate your Neo4j database from scratch to convert to this release.
+- Object deletion not yet reliable or complete
+- No alerting, or interface to alerting (hooks to build your own interface are included)
+- communication is neither authenticated nor private
+- heterogeneous system support (POSIX and Windows)
+- statistical data collection
+- CDP support for switch discovery
+- high availability option for the CMA
+
+Features that are expected for a monitoring solution but are <b>not</b> included include these:
+- useful alerting (but you can probably integrate your own)
+- heterogeneous system support (POSIX and Windows)
+- statistical data collection
+Note that these features are understood to be important and are planned - but this first release
+does not include them.
+
 @section Version0_1_0- version 0.1.0 - the 'toy' release - 19 March 2013
 The very first release of the <i>Assimilation Monitoring Project</i> - here at last!
 The purpose of this Linux-only release is to get the code from this
 revolutionary new architecture out there and get it in people's hands so
 that they can evaluate the concepts, provide feedback, and find bugs.
 It is highly recommended that you read the @ref GettingStarted documentation.
-@subsection Features_0_1 Features
+@subsection Features_0_1_0 Features
 - easily extensible discovery mechanism
 - Neo4J graph database documenting the data center configuration
 - fully distributed, extremely lightweight, reliable monitoring
