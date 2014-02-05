@@ -406,8 +406,14 @@ class TestDatabaseWrites(TestCase):
         self.assertEqual(len(store.newrels), 0)
         self.assertEqual(len(store.deletions), 0)
         self.assertEqual(len(store.deletions), 0)
+        danglingweakref=False
         for ref in store.weaknoderefs:
-            self.assertTrue(store.weaknoderefs[ref]() is None)
+            wref = store.weaknoderefs[ref]()
+            if wref is not None:
+                print >> sys.stderr, ('OOPS: weakref %s still alive' % str(wref))
+                print >> sys.stderr, ('PYTHON VERSION: %s' % str(sys.version))
+                danglingweakref = True
+        self.assertTrue(not danglingweakref)
         store.weaknoderefs = {}
         Query = neo4j.CypherQuery(store.db, Qstr)
         iter = store.load_cypher_query(Query, GraphNode.factory)
