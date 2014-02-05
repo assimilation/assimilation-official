@@ -20,8 +20,8 @@
 #
 #
 _suites = ['all', 'cma']
-import sys
-import os
+import sys, os
+import gc
 sys.path.extend(['..', '../cma', "/usr/local/lib/python2.7/dist-packages"])
 from py2neo import neo4j
 from testify import *
@@ -406,6 +406,7 @@ class TestDatabaseWrites(TestCase):
         self.assertEqual(len(store.newrels), 0)
         self.assertEqual(len(store.deletions), 0)
         self.assertEqual(len(store.deletions), 0)
+        gc.collect()
         danglingweakref=False
         for ref in store.weaknoderefs:
             wref = store.weaknoderefs[ref]()
@@ -413,6 +414,8 @@ class TestDatabaseWrites(TestCase):
                 print >> sys.stderr, ('OOPS: weakref %s still alive' % str(wref))
                 print >> sys.stderr, ('PYTHON VERSION: %s' % str(sys.version))
                 danglingweakref = True
+                print >> sys.stderr, ('gc.referrers: %s' % str(gc.get_referrers(wref)))
+                print >> sys.stderr, ('gc.garbage: %s' % str(gc.garbage))
         self.assertTrue(not danglingweakref)
         store.weaknoderefs = {}
         Query = neo4j.CypherQuery(store.db, Qstr)
