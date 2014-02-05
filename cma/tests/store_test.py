@@ -416,8 +416,8 @@ class TestDatabaseWrites(TestCase):
                 danglingweakref = True
                 print >> sys.stderr, ('gc.garbage: %s' % str(gc.garbage))
                 print >> sys.stderr, ('gc.referrers: %s' % str(gc.get_referrers(wref)))
-                for ref in gc.get_referrers(wref):
-                    print >> sys.stderr, ('2nd level referrers: %s' % str(gc.get_referrers(ref)))
+                for ref2 in gc.get_referrers(wref):
+                    print >> sys.stderr, ('2nd level referrers: %s' % str(gc.get_referrers(ref2)))
         self.assertTrue(not danglingweakref)
         store.weaknoderefs = {}
         Query = neo4j.CypherQuery(store.db, Qstr)
