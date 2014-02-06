@@ -114,7 +114,7 @@ resourceocf_new(
 	self = NEWSUBCLASS(ResourceOCF, cself);
 	self->ocfpath = ocfpath;
 	self->environ = configcontext_new(0);
-	self->loggingname = g_strdup_printf("%s:%s: "
+	self->baseclass.loggingname = g_strdup_printf("%s:%s: "
 	,	self->baseclass.resourcename, self->baseclass.operation);
 	self->argv[0] = g_strdup(self->ocfpath);
 	self->argv[1] = g_strdup(self->baseclass.operation);
@@ -178,7 +178,7 @@ _resourceocf_finalize(AssimObj* aself)
 	ResourceOCF*	self = CASTTOCLASS(ResourceOCF, aself);
 	guint		j;
 
-	DEBUGMSG2("Finalizing ResourceOCF @ %p: %s", self, self->loggingname);
+	DEBUGMSG2("Finalizing ResourceOCF @ %p: %s", self, self->baseclass.loggingname);
 	if (self->ocfpath) {
 		g_free(self->ocfpath);
 		self->ocfpath = NULL;
@@ -189,15 +189,15 @@ _resourceocf_finalize(AssimObj* aself)
 	}
 	if (self->child) {
 		DEBUGMSG5("%s.%d: UNREF child: (self=%p %s)", __FUNCTION__,__LINE__
-		,	self->child, self->loggingname);
+		,	self->child, self->baseclass.loggingname);
 		UNREF(self->child);
 	}else{
 		DEBUGMSG("%s.%d: NO CHILD TO UNREF (self=%p %s)", __FUNCTION__,__LINE__,self
-		,	self->loggingname);
+		,	self->baseclass.loggingname);
 	}
-	if (self->loggingname) {
-		g_free(self->loggingname);
-		self->loggingname = NULL;
+	if (self->baseclass.loggingname) {
+		g_free(self->baseclass.loggingname);
+		self->baseclass.loggingname = NULL;
 	}
 	if (self->environ) {
 		UNREF(self->environ);
@@ -210,7 +210,8 @@ _resourceocf_outputs_string(const char * operation)
 {
 	guint		j;
 	const char *	oplist[] = {
-		"meta-data"
+		MONITOROP,
+		METADATAOP
 	};
 
 	for (j=0; j < DIMOF(oplist); ++j) {
@@ -227,7 +228,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 {
 	ResourceOCF*		self = CASTTOCLASS(ResourceOCF, cmdself);
 	enum ChildErrLogMode	logmode;
-	gboolean		saveout;
+	gboolean		save_stdout;
 
 	DEBUGMSG3("%s.%d Executing(%s:%s)", __FUNCTION__, __LINE__
 	,	self->baseclass.resourcename, self->baseclass.operation);
@@ -243,7 +244,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	}
 	logmode = (self->baseclass.callback ? CHILD_NOLOG : CHILD_LOGALL);
 
-	saveout = _resourceocf_outputs_string(self->baseclass.operation);
+	save_stdout = _resourceocf_outputs_string(self->baseclass.operation);
 	self->baseclass.starttime = g_get_monotonic_time();
 
 	self->child = childprocess_new
@@ -254,14 +255,14 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	,	NULL				///< const char* curdir
 	,	_resourceocf_child_notify 
 	///< void (*notify)(ChildProcess*,enum HowDied,int rc,int signal,gboolean core_dumped)
-	,	saveout				///< gboolean save_stdout
+	,	save_stdout			///< gboolean save_stdout
 	,	NULL				///< const char * logdomain
-	,	self->loggingname		///< const char * logprefix
+	,	self->baseclass.loggingname	///< const char * logprefix
 	,	G_LOG_LEVEL_INFO		///< GLogLevelFlags loglevel
 	,	self->baseclass.timeout_secs	///< guint32 timeout_seconds,
 	,	self				///< gpointer user_data
 	,	logmode				///< enum ChildErrLogMode errlogmode
-	,	self->loggingname		///< const char * loggingname
+	,	self->baseclass.loggingname	///< const char * loggingname
 	);
 	if (self->child) {
 		self->baseclass.is_running = TRUE;
@@ -293,6 +294,11 @@ _resourceocf_child_notify(ChildProcess* child
 		outread = self->child->stdout_src->textread->str;
 	}else{
 		outread = NULL;
+	}
+
+	if (outread && exittype != EXITED_ZERO
+	&&	strcmp(self->baseclass.operation, MONITOROP) == 0) {
+		g_warning("%s: %s", self->baseclass.loggingname, outread);
 	}
 
 	DEBUGMSG2("%s.%d: Exit happened exittype:%d", __FUNCTION__, __LINE__, exittype);

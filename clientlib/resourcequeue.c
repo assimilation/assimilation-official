@@ -419,6 +419,9 @@ _resource_queue_endnotify
 		,	__FUNCTION__, __LINE__, self->requestid);
 		self->callback(request, self->user_data, exittype, rc, signal, core_dumped
 		,		stringresult);
+		if (shouldrepeat && exittype == EXITED_ZERO && stringresult) {
+			g_message("%s: %s", cmd->loggingname, stringresult);
+		}
 	}
 	cmd->last_success = (exittype == EXITED_ZERO);
 
