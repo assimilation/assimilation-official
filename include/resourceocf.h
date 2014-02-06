@@ -39,6 +39,8 @@
  *
  */
 
+#define	MONITOROP	"monitor"
+#define	METADATAOP	"meta-data"
 
 typedef struct _ResourceOCF	ResourceOCF;
 
@@ -48,7 +50,6 @@ struct _ResourceOCF{
 	ConfigContext*		environ;
 	ChildProcess*		child;
 	char*			argv[3];	///< malloced
-	char*			loggingname;	///< Malloced
 };
 
 #define OCF_ROOT	"/usr/lib/ocf"

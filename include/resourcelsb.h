@@ -47,7 +47,6 @@ struct _ResourceLSB{
 	char *			lsbpath;
 	ChildProcess*		child;
 	char*			argv[3];	///< malloced
-	char*			loggingname;	///< Malloced
 };
 
 #define LSB_ROOT	"/etc/init.d"

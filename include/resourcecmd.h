@@ -58,6 +58,7 @@ struct _ResourceCmd{
 	void (*execute)(ResourceCmd* self);	///< Execute this resource command
 	const char *		resourcename;	///< Name of this resource
 	const char *		operation;	///< Operation being performed
+	char*			loggingname;	///< Malloced
 	guint32			timeout_secs;	///< Timeout for this operation (secs)
 	gboolean		is_running;	///< TRUE if this resource agent is running.
 	gboolean		last_success;	///< TRUE if previous operation was successful
