@@ -109,7 +109,6 @@ set (CPACK_COMPONENT_CMA-COMPONENT_GROUP "${CMANAME}")
 set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #
 #	Important project-specific variables we set:
-#	LIB_DIRNAME		either lib or lib64 -- as appropriate
 #	InstallLIBS		where we install our libraries
 #	CLIENTLIB		the name of our client-side (nanoprobe) library - also used by the CMA
 #	SERVERLIB		the name of our server-side library
@@ -135,10 +134,16 @@ set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/nanoprobe/${CMAKE_BUILD_TYPE})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/nanoprobe)
 else (WIN32)
 set(CMAKE_INSTALL_PREFIX /usr)
-set (LIB_DIRNAME lib${LIB_SUFFIX})
-set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/${LIB_DIRNAME}/${PROJECT_NAME})
+if (NOT LIBDIR)
+  # This next command depends on the assumption that libc is in /something and that
+  # we want to put our library in ${CMAKE_INSTALL_PREFIX}/something
+  execute_process (OUTPUT_VARIABLE LIBSUFFIX OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND sh -c "dirname \$(ldd /bin/sh | grep libc | sed -e 's%.*=> *%%' -e 's% .*%%')")
+  set (LIBDIR ${CMAKE_INSTALL_PREFIX}${LIBSUFFIX})
+endif (NOT LIBDIR)
+set (InstallLIBS ${LIBDIR}/${PROJECT_NAME})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME})
 endif (WIN32)
+MESSAGE ("Project LIBDIR IS ${InstallLIBS}")
 
 set (CLIENTLIB ${PROJECT_NAME}clientlib)
 set (SERVERLIB ${PROJECT_NAME}serverlib)
