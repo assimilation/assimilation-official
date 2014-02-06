@@ -70,7 +70,7 @@ CLANGVERS=`clang -v 2>&1 | grep -i 'version '`
 [ -d "$WSBIN" ] || mkdir -p "$WSBIN"
 cd $WSBIN
 sudo echo "SCANBUILD is $SCANBUILD"
-ourlib="/usr$(dirname $(ldd /bin/sh | grep libc | sed -e 's%.*=> *%%' -e 's% .*%%'))"
+ourlib="/usr$(dirname $(ldd /bin/sh | grep libc | sed -e 's%.*=> *%%' -e 's% .*%%'))/assimilation"
 echo "OURLIBDIR=${ourlib}"
 sudo ldconfig "$ourlib"
 #$SCANBUILD cmake $WORKSPACE
