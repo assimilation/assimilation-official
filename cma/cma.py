@@ -294,4 +294,5 @@ def main():
     return 0
 
 if __name__ == '__main__':
-    sys.exit(main())
+    exitrc = main()
+    sys.exit(int(exitrc))
