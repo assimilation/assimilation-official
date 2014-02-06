@@ -122,7 +122,7 @@ procsuminfo() {
         echo "${exe}"
         slashproc_uid "$1"
         slashproc_gid "$1"
-    )  | sumstdin
+    )  2>/dev/null | sumstdin
 }
 
 #
@@ -155,7 +155,7 @@ logclient() {
     foreignaddr=$2
     protocol=$3
     if
-        shouldskipaddr "$foreignaddr" || shouldskipclient $pid
+        shouldskipaddr "$foreignaddr" || shouldskipclient $pid || [ ! -d /proc/$pid ]
     then
         return
     fi
@@ -173,13 +173,23 @@ logserver() {
     listenaddr=$2
     protocol=$3
     if
-        shouldskipaddr "$listenaddr"
+        shouldskipaddr "$listenaddr" || [ ! -d /proc/$pid ]
     then
         return
     fi
     sum=$(procsuminfo $pid)
+    if
+        [ ! -d /proc/$pid ]
+    then
+        return
+    fi
     echo "${listenaddr}	${protocol}" >> ${TMPDIR}/${sum}.tcplisten
     echo "$pid" > ${TMPDIR}/${sum}.pid
+    if
+        [ ! -d /proc/$pid ]
+    then
+        rm -f ${TMPDIR}/${sum}.tcplisten ${TMPDIR}/${sum}.pid
+    fi
 }
 
 gather_tcp_netstatinfo() {
@@ -231,11 +241,17 @@ format_netstatinfo() {
     fmt='\n  "%s": {\n'
     for pidfile in *.pid
     do
+        pid=$(cat $pidfile)
+        formatted_procinfo=$(format_procinfo "$pid" "    " 2>/dev/null)
+        if
+            [ ! -d /proc/$pid ]
+        then
+            continue
+        fi
         name=$(echo "${pidfile}" | sed 's%\.pid$%%')
         printf "${fmt}"  "${name}" 
         fmt=',\n  "%s": {\n'
-        pid=$(cat $pidfile)
-        format_procinfo "$pid" "    "
+        echo "$formatted_procinfo"
         prefix=''
         if
             [ -f "${name}.tcplisten" ]
