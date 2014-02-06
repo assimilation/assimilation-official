@@ -78,6 +78,18 @@ class BadObserver:
 
 class TestAssimEvent(TestCase):
     'Class for basic AssimEvent testing'
+
+    @staticmethod
+    def waitfor(pathname, expectedcontent, timeout=20):
+        for j in range(0, timeout):
+            f=open(pathname, 'r')
+            content=f.read()
+            f.close()
+            if content == expectedcontent:
+                return
+            time.sleep(0.1)
+        return
+
     def test_simple_init_good(self):
         'Perform a few simple AssimEvent good initializations'
         AssimEvent.observers = []
@@ -123,7 +135,6 @@ class TestAssimEvent(TestCase):
         AssimEvent.registerobserver(observer)
         AssimEvent(dummyclient, AssimEvent.CREATEOBJ)
         AssimEvent(dummyclient, AssimEvent.OBJUP, extrainfo={'origaddr': '10.10.10.254'})
-        time.sleep(.25)
         os.close(fd)
         expectedcontent=\
 '''====START====
@@ -144,6 +155,7 @@ ASSIM_origaddr=10.10.10.254
 ASSIM_sevenofnine=Annika
 ====END====
 '''
+        TestAssimEvent.waitfor(pathname, expectedcontent)
         f=open(pathname, 'r')
         content=f.read()
         f.close()
@@ -169,7 +181,7 @@ ASSIM_sevenofnine=Annika
         dummyclient.foo = {'foo': 'bar'}
         AssimEvent.registerobserver(observer)
         os.kill(observer.childpid, signal.SIGKILL)
-        time.sleep(.1)
+        time.sleep(0.1)
         AssimEvent(dummyclient, AssimEvent.CREATEOBJ)
         # Death of our FIFO child will cause it to get respawned, and
         # message sent to new child.  No messages should be lost.
@@ -183,7 +195,7 @@ ASSIM_nodetype=ClientClass
 ASSIM_sevenofnine=Annika
 ====END====
 '''
-        time.sleep(.15)
+        TestAssimEvent.waitfor(pathname, expectedcontent)
         f=open(pathname, 'r')
         content=f.read()
         f.close()
