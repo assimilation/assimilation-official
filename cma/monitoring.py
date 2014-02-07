@@ -133,7 +133,7 @@ class MonitorAction(GraphNode):
             CMAdb.transaction.add_packet(runon.destaddr(), FrameSetTypes.DORSCOP, reqjson
             ,   frametype=FrameTypes.RSCJSON)
             self.isactive = True
-        CMAdb.log.info('Monitoring of %s activated' % self.monitorname)
+        CMAdb.log.info('Monitoring of service %s activated' % (self.monitorname))
         
     def deactivate(self):
         '''Deactivate this monitoring action. Does not remove relationships from the graph'''
