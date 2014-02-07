@@ -83,6 +83,8 @@ class Drone(SystemNode):
         else:
             self.port = None
 
+        self.monitors_activated = False
+
         if Drone.IPownerquery_1 is None:
             Drone.IPownerquery_1 =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.IPownerquery_1_txt
             % (CMAconsts.REL_ipowner, CMAconsts.REL_nicowner))
@@ -119,10 +121,17 @@ class Drone(SystemNode):
                 %       (dtype, self.designation))
             setattr(self, jsonname, jsontext)
         else:
-            if CMAdb.debug:
-                CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring' 
-                %       (dtype, self.designation))
-            return
+            if not self.monitors_activated and dtype == 'tcpdiscovery':
+                # This is because we need to start the monitors anyway...
+                if CMAdb.debug:
+                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged'
+                    '. PROCESSING ANYWAY.'
+                    %       (dtype, self.designation))
+            else:
+                if CMAdb.debug:
+                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring' 
+                    %       (dtype, self.designation))
+                return
 
         if dtype in Drone._JSONprocessors:
             Drone._JSONprocessors[dtype](self, jsonobj)
@@ -248,6 +257,7 @@ class Drone(SystemNode):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
         keywords = keywords # Don't really need this argument...
+        self.monitors_activated = True
         if CMAdb.debug:
             CMAdb.log.debug('_add_tcplisteners(data=%s)' % data)
 
@@ -326,10 +336,16 @@ class Drone(SystemNode):
                 montuple = MonitoringRule.findbestmatch((processnode, self))
                 if montuple[0] == MonitoringRule.NOMATCH:
                     print >> sys.stderr, "**don't know how to monitor %s" % str(processnode.argv)
+                    CMAdb.log.warning('No rules to monitor %s service %s'
+                    %   (self.designation, str(processnode.argv)))
                 elif montuple[0] == MonitoringRule.PARTMATCH:
                     print >> sys.stderr, (
                     'Automatic monitoring not possible for %s -- %s is missing %s' 
-                    % (str(processnode.argv), str(montuple[1]), str(montuple[2])))
+                    %   (str(processnode.argv), str(montuple[1]), str(montuple[2])))
+                    CMAdb.log.warning('Insufficient information to monitor %s service %s'
+                    '. %s is missing %s'
+                    %   (self.designation, str(processnode.argv)
+                    ,    str(montuple[1]), str(montuple[2])))
                 else:
                     agent = montuple[1]
                     self._add_service_monitoring(processnode, agent)
@@ -337,8 +353,6 @@ class Drone(SystemNode):
                         print >> sys.stderr, ('NEVER monitor %s' %  (str(agent['monitortype'])))
                     else:
                         print >> sys.stderr, ('START monitoring %s using %s agent'
-                        %   (agent['monitortype'], agent['monitorclass']))
-                        CMAdb.log.info('START monitoring %s using %s agent'
                         %   (agent['monitortype'], agent['monitorclass']))
             if 'clientaddrs' in procinfo:
                 clientinfo = procinfo['clientaddrs']
@@ -391,7 +405,6 @@ class Drone(SystemNode):
         if not Store.is_abstract(monnode):
             print >> sys.stderr, ('Previously monitored %s on %s' 
             %       (monitortype, self.designation))
-            CMAdb.log.info('Previously monitored %s on %s' % (monitortype, self.designation))
         monnode.activate(monitoredservice, self)
 
     def _add_clientipportnode(self, ipaddr, servport, processnode):
@@ -557,6 +570,7 @@ class Drone(SystemNode):
             %   (self.designation, status, str(fromaddr), reason))
         self.status = status
         self.reason = reason
+        self.monitors_activated = False
         self.time_status_ms = int(round(time.time() * 1000))
         self.time_status_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         # There is a need for us to be a little more sophisticated
