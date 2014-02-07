@@ -73,6 +73,7 @@ FSTATIC gboolean _resource_queue_runqueue(gpointer pself);
 FSTATIC void _resource_queue_endnotify(ConfigContext* request, gpointer user_data
 ,		enum HowDied exittype, int rc, int signal, gboolean core_dumped
 ,		const char* stringresult);
+FSTATIC gint _queue_compare_requestid (gconstpointer a, gconstpointer b);
 
 /// Construct a new ResourceQueue system (you probably only need one)
 ResourceQueue*
@@ -144,6 +145,17 @@ _resource_queue_Qcmd(ResourceQueue* self
 	return ret;
 }
 
+/// Compare the request ids of two different ResourceCmds using
+/// GCompareFunc style arguments for use with g_queue_find_custom()
+FSTATIC gint
+_queue_compare_requestid (gconstpointer a, gconstpointer b)
+{
+	const RscQElem*	acmd = CASTTOCONSTCLASS(RscQElem, a);
+	const RscQElem*	bcmd = CASTTOCONSTCLASS(RscQElem, b);
+
+	return acmd->requestid == bcmd->requestid;
+}
+
 /// Append a ResourceCmd to a ResourceQueue
 FSTATIC gboolean
 _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
@@ -156,8 +168,8 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 
 	requestid = cmd->request->getint(cmd->request, REQIDENTIFIERNAMEFIELD);
 	if (requestid <= 0) {
-		g_warning("%s.%d: Request rejected - no request id."
-		,	__FUNCTION__, __LINE__);
+		g_warning("%s.%d: Request rejected - no request id for resource %s."
+		,	__FUNCTION__, __LINE__, cmd->resourcename);
 		return FALSE;
 	}
 	q = g_hash_table_lookup(self->resources, cmd->resourcename);
@@ -168,6 +180,14 @@ _resource_queue_cmd_append(ResourceQueue* self, ResourceCmd* cmd
 	qelem = _resource_queue_qelem_new(cmd, self, cb, user_data, q);
 	cmd->user_data = qelem;
 	qelem->requestid = requestid;
+	if (g_queue_find_custom(q, qelem, _queue_compare_requestid)) {
+		// This can happen if the CMA crashes and restarts and for other reasons.
+		// But we shouldn't obey it in any case...
+		g_info("%s:%d: Duplicate request id ["FMT_64BIT"d] for resource %s - ignored."
+		,	__FUNCTION__, __LINE__, requestid, cmd->resourcename);
+		_resource_queue_qelem_finalize(qelem); qelem = NULL;
+		return FALSE;
+	}
 	g_queue_push_tail(q, qelem);
 	if (self->timerid < 0) {
 		self->timerid = g_timeout_add_seconds(1, _resource_queue_runqueue, self);

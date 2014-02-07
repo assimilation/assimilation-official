@@ -228,7 +228,7 @@ test_invalid_queuecmd(void)
 	};
 	unsigned	j;
 	const char *	expected_failures[] = {
-		": Request rejected - no request id.",
+		": Request rejected - no request id",
 		": NULL resourcecmd request",
 		NULL,
 	};
