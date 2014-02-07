@@ -38,12 +38,25 @@ class CMAdb:
     log = None
     store = None
     globaldomain = 'global'
-
+    # versions we know we can't work with...
+    neo4jblacklist = ['2.0.0']
 
     def __init__(self, db=None):
         self.db = db
         CMAdb.store = Store(self.db, {}, {})
         self.dbversion = self.db.neo4j_version
+        vers = ""
+        dot = ""
+        for elem in self.dbversion:
+            if str(elem) == '':
+                continue
+            vers += '%s%s' % (dot, str(elem))
+            dot = '.'
+        self.dbversstring = vers
+        if self.dbversstring in CMAdb.neo4jblacklist:
+            print >> sys.stderr, ("The Assimilation CMA isn't compatible with Neo4j version %s"
+            %   self.dbversstring)
+            sys.exit(1)
         self.nextlabelid = 0
         if CMAdb.debug:
             CMAdb.log.debug('Neo4j version: %s' % str(self.dbversion))

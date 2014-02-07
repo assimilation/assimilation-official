@@ -920,6 +920,9 @@ class Store:
         self.abort()
 
 if __name__ == "__main__":
+    # I'm not too concerned about this test code...
+    # R0914:923,4:testme: Too many local variables (17/15)
+    # pylint: disable=R0914
     def testme():
         'A little test code...'
 
@@ -938,10 +941,13 @@ if __name__ == "__main__":
 
         ourdb = neo4j.GraphDatabaseService()
         ourdb.get_or_create_index(neo4j.Node, 'Drone')
+        dbvers = ourdb.neo4j_version
         # Clean out the database
-        query = neo4j.CypherQuery(ourdb
-        #,   'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r')
-        ,   'start n=node(*) match n-[?r]-() where id(n) <> 0 delete n,r')
+        if dbvers[0] >= 2:
+            qstring = 'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r'
+        else:
+            qstring = 'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r'
+        query = neo4j.CypherQuery(ourdb, qstring)
         query.run()
         # Which fields of which types are used for indexing
         classkeymap = {
