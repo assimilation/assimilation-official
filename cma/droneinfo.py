@@ -242,6 +242,7 @@ class Drone(SystemNode):
                     newips[ipaddr] = currip.update_attributes(newips[ipaddr])
                 else:
                     del currips[ipaddr]
+                    # @FIXME - this is a bug -- 'currip' is a string... - or _something_ is...
                     CMAdb.store.separate(mac, currip, CMAconsts.REL_ipowner)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     CMAdb.store.delete(currip)
