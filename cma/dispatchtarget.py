@@ -130,6 +130,8 @@ class DispatchSTARTUP(DispatchTarget):
         json = None
         addrstr = repr(origaddr)
         fstype = frameset.get_framesettype()
+        #print >> sys.stderr, ("DispatchSTARTUP: received [%s] FrameSet from [%s]"
+        #%       (FrameSetTypes.get(fstype)[0], addrstr))
         if CMAdb.debug:
             CMAdb.log.debug("DispatchSTARTUP: received [%s] FrameSet from [%s]"
             %       (FrameSetTypes.get(fstype)[0], addrstr))
@@ -158,12 +160,14 @@ class DispatchSTARTUP(DispatchTarget):
         %       (sysname, origaddr, addrstr, origaddr.port()))
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
-        #print >>sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
+        #print >> sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
 
         drone.startaddr = str(origaddr)
         if json is not None:
             drone.logjson(json)
+        #print >> sys.stderr, 'Joining TheOneRing: ', drone, type(drone), drone.port
         CMAdb.cdb.TheOneRing.join(drone)
+        #print >> sys.stderr, 'Requesting Discovery from ', drone
         drone.request_discovery(
                                 ('monitoringagents',    3300),
                                 ('os',                  0),
@@ -172,6 +176,7 @@ class DispatchSTARTUP(DispatchTarget):
                                 ('arpcache',            45),
                                 ('tcpdiscovery',        3700)
                                )
+        #print >> sys.stderr, 'Creating OBJUP event for ', drone
         AssimEvent(drone, AssimEvent.OBJUP)
 
 @DispatchTarget.register
