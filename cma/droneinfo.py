@@ -666,10 +666,13 @@ class Drone(SystemNode):
         ourip = pyNetAddr(ourip)
         ourip.setport(self.port)
         #self.io.sendreliablefs(ourip, (fs,))
+        #print >> sys.stderr, ('ADDING PACKET TO TRANSACTION: %s', str(frames))
         CMAdb.transaction.add_packet(ourip,  FrameSetTypes.DODISCOVER, frames)
         if CMAdb.debug:
             CMAdb.log.debug('Sent Discovery request(%s, %s) to %s Frames: %s'
             %	(instance, str(interval), str(ourip), str(frames)))
+        #print >> sys.stderr, ('Sent Discovery request(%s, %s) to %s Frames: %s'
+        #%	(instance, str(interval), str(ourip), str(frames)))
 
 
     def __str__(self):
