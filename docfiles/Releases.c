@@ -4,6 +4,8 @@
 @section Version0_1_1- version 0.1.1 - the 'possibly trial-worthy' release - 11 Feb 2013
 This is the first in a series of releases intended to culminate in a truly useful release.
 This release is suitable for limited trials in an environment where the caveats are acceptable.
+You can find a few pre-built Ubuntu packages for this version here: https://www.dropbox.com/sh/h32lz3mtb8wwgmp/WZKH4OWw1h/Releases/0.1.1
+A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.1.tar.gz
 
 @subsection Features_0_1_1 Features
 These features are new with release 0.1.1.

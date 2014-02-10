@@ -77,10 +77,16 @@ There are three ways you can get a copy of the Assimilation Project source - as 
 or in a <a href="http://mercurial.selenic.com/">Mercurial</a> source code repository,
 or if you run a Red-Hat based release, you can get source RPMs suitable for recent red hat releases.
 
+You can obtain prebuilt packages of the project (currently only for Ubuntu),  using a web browser <a href="www.gnu.org/software/wget/">wget</a>.
+
+ - Bleeding edge builds - https://www.dropbox.com/sh/h32lz3mtb8wwgmp/XM-oTLWWdm
+ - Officially released versions - https://www.dropbox.com/sh/pd9i31q1hj39l3i/9znelMfmtT
+
 You can obtain a <i>tar ball</i> of the source using a web browser, or <a href="www.gnu.org/software/wget/">wget</a>.
 
  - Bleeding edge - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/tip.tar.gz
  - Latest stable version - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0.tar.gz
+
 
 If you'd rather have an active source code repository to use to watch the development
 or contribute to it, then follow these steps:
