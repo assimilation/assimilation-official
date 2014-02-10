@@ -1,0 +1,22 @@
+{   "cypher": "START classroot=node(${nodeid})
+               MATCH object-[:IS_A]->classroot
+               RETURN object",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short": "Get node by id",
+            "long":  "Return the node with the given 'nodeid'"
+        }
+    },
+    "parameters": {
+        "nodeid": {
+            "type": "int",
+            "lang": {
+                "en": {
+                    "short": "node id",
+                    "long":  "The node id of the node you want retrieved"
+                 }
+             }
+         }
+    }
+}

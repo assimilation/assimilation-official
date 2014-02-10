@@ -1,0 +1,294 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#	@brief Command to discover processes listening for connections or connecting over tcp
+#	and output the results in JSON format.
+#	@details Output validated at jsonlint.com (good to validate future versions there too!)
+#
+#	It makes use of netstat -atnp to get the active listening connections, and /proc to
+#	get more detailed information about the processes we discovered with netstat.
+#
+#	We get the listening protocol, port, protocol, address and process listening that address.
+#	We get the binary full pathname, its arguments (if not modified by the application),
+#	uid and gid, current directory and so on of the process communicating.
+#
+#	We get the same thing for outbound TCP connections as well.
+#
+#	This isn't exactly rocket science, but integrating the /proc info with the netstat
+#	info works out nicely, and the JSON output is nicely readable to humans and nicely
+#	structured for machines - which is a plus.
+#
+#	You must be root to get full value out of this program (and avoid some warnings).
+#	Sorry :-( Although we can get the listening ports without root, we cannot get detailed
+#	information about the processes that are communicating - which is definitely worth having.
+#
+# @author &copy; 2013 - Alan Robertson <alanr@unix.sh>
+# @n
+# Licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
+#!/usr/bin/python
+
+skiplocal=yes
+exestoskip='.*/(firefox|thunderbird|chromium-browser|konquerer|rekonq)( *\(deleted\) *)?$'
+sumstotry="md5sum sha1sum sha256sum crc32 sum"
+
+mktmpdir() {
+    # Not every system has mktemp
+    if
+        mktemp --directory --tmpdir=/var/tmp 2>/dev/null
+    then
+      : mktemp worked
+    else
+        dir="/var/tmp/$$-${RANDOM-random}.tcpdiscovery"
+        mkdir "${dir}" && echo "${dir}"
+    fi
+}
+
+choose_sum_command() {
+    SUMCMD=''
+    for sum in ${sumstotry}
+    do
+        if
+            "${sum}" /dev/null >/dev/null 2>&1
+        then
+            case "${sum}" in
+               crc32)   SUMCMD=crc32sum;;
+               *)       SUMCMD="${sum}";;
+            esac
+            break
+        fi
+    done
+}
+
+crc32sum() {
+    # crc32 doesn't like stdin as input...
+    tmpfile=/${TMPDIR}/${$}.tcpdiscovery.
+    cat ${1} > "${tmpfile}"
+    crc32 ${tmpfile}
+    rm -f "${tmpfile}"
+}
+
+sumstdin() {
+    # Most of them have the sum followed by a blank then the filename
+    ${SUMCMD}  | sed 's% .*%%'
+}
+
+
+slashproc_cmdline() {
+    case $1 in
+        -)  echo '["kernel"]';;
+        *)  tr '\0' '' < /proc/${1}/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%["&"]\n%';;
+    esac
+}
+
+slashproc_exe() {
+    case $1 in
+        -)  echo '/boot/kernel';;
+        *)  readlink /proc/$1/exe;;
+    esac
+}
+
+slashproc_curdir() {
+    case $1 in
+        -)  echo '/';;
+        *)  readlink /proc/$1/cwd;;
+    esac
+}
+
+slashproc_uid() {
+    case $1 in
+        -)  echo 'root';;
+        *)  ls -ld /proc/$1 | cut -d' ' -f3;;
+    esac
+}
+slashproc_gid() {
+    case $1 in
+        -)  echo 'root';;
+        *)  ls -ld /proc/$1 | cut -d' ' -f4;;
+    esac
+}
+
+
+
+procsuminfo() {
+    # Create a unique sum for this command line, executable, user id and group id
+    # Could take the cwd into account, but that might change.
+    # The rest is unlikely to change for daemon-like processes
+    # Deliberately avoiding taking the pid into account.
+    # If we have 10K processes all the same, we really don't want 10K nodes in the graph
+    exe="$(slashproc_exe "$1")"
+    # Prepending the the basename of the binary makes our id more human-intelligible
+    printf '%s:' "$(basename $exe)"
+    (
+        slashproc_cmdline "$1"
+        echo "${exe}"
+        slashproc_uid "$1"
+        slashproc_gid "$1"
+    )  2>/dev/null | sumstdin
+}
+
+#
+#	return True (exit code zero) if we should skip this IP address
+#
+shouldskipaddr() {
+  case "$1" in
+    127.0.0.1:*)
+        case $skiplocal in
+            yes)  return 0;;
+        esac;;
+    *::1:*)
+        if
+            echo "$1" | grep '^::1:[0-9][0-9]*$' >/dev/null
+        then
+            case $skiplocal in
+                yes)  return 0;;
+            esac
+        fi;;
+  esac
+  return 1 # false
+}
+
+shouldskipclient() {
+    test ! -z "$exestoskip"  && slashproc_exe "$1" | egrep "$exestoskip" >/dev/null
+}
+
+logclient() {
+    pid=$1
+    foreignaddr=$2
+    protocol=$3
+    if
+        shouldskipaddr "$foreignaddr" || shouldskipclient $pid || [ ! -d /proc/$pid ]
+    then
+        return
+    fi
+    sum=$(procsuminfo $pid)
+    echo "$foreignaddr	${protocol}" >> ${TMPDIR}/${sum}.tcpconnect
+    if
+        [ ! -f ${TMPDIR}/${sum}.pid ]
+    then
+        echo "$pid" > ${TMPDIR}/${sum}.pid
+    fi
+}
+
+logserver() {
+    pid=$1
+    listenaddr=$2
+    protocol=$3
+    if
+        shouldskipaddr "$listenaddr" || [ ! -d /proc/$pid ]
+    then
+        return
+    fi
+    sum=$(procsuminfo $pid)
+    if
+        [ ! -d /proc/$pid ]
+    then
+        return
+    fi
+    echo "${listenaddr}	${protocol}" >> ${TMPDIR}/${sum}.tcplisten
+    echo "$pid" > ${TMPDIR}/${sum}.pid
+    if
+        [ ! -d /proc/$pid ]
+    then
+        rm -f ${TMPDIR}/${sum}.tcplisten ${TMPDIR}/${sum}.pid
+    fi
+}
+
+gather_tcp_netstatinfo() {
+    flags=-atnp
+    netstat $flags |
+    while
+        read proto rcvq sendq localaddr foreignaddr state pid_prog
+    do
+        : proto $proto rcvq $rcvq sendq $sendq localaddr $localaddr foreignaddr $foreignaddr state $state pid_prog $pid_prog
+        case $state in
+            LISTEN|ESTABLISHED)	: OK;;
+            */*)	pid_prog="$state";;
+            *)	: state is ["$state"] ; continue;;
+        esac
+        case "${pid_prog}" in
+            */*)  pid=$(dirname "$pid_prog");;
+            *)    pid=${pid_prog};;
+        esac
+        case $state in
+            LISTEN)         logserver "${pid}" "${localaddr}" "${proto}";;
+            ESTABLISHED)    logclient "${pid}" "${foreignaddr}" "${proto}";;
+        esac
+    done
+}
+
+format_addrs() {
+    printf "$1"'"%s":{' "$2"
+    faddrfmt='"%s":"%s"'
+    sort -u "$3" | while read fmtaddr proto
+    do
+        printf "$faddrfmt" "$fmtaddr" "$proto"
+        faddrfmt=',"%s":"%s"'
+    done
+    printf '}'
+}
+
+format_procinfo() {
+    printf "${2}"'"exe": "%s",\n'     "$(slashproc_exe "$1")"
+    printf "${2}"'"cmdline": %s,\n'   "$(slashproc_cmdline "$1")"
+    printf "${2}"'"uid": "%s",\n'     "$(slashproc_uid "$1")"
+    printf "${2}"'"gid": "%s",\n'     "$(slashproc_gid "$1")"
+    printf "${2}"'"cwd": "%s",\n'     "$(slashproc_curdir "$1")"
+}
+
+
+format_netstatinfo() {
+    cd "${TMPDIR}"
+    printf '{'
+    fmt='\n  "%s": {\n'
+    for pidfile in *.pid
+    do
+        pid=$(cat $pidfile)
+        formatted_procinfo=$(format_procinfo "$pid" "    " 2>/dev/null)
+        if
+            [ ! -d /proc/$pid ]
+        then
+            continue
+        fi
+        name=$(echo "${pidfile}" | sed 's%\.pid$%%')
+        printf "${fmt}"  "${name}" 
+        fmt=',\n  "%s": {\n'
+        echo "$formatted_procinfo"
+        prefix=''
+        if
+            [ -f "${name}.tcplisten" ]
+        then
+            format_addrs '    ' "listenaddrs" "${name}.tcplisten"
+            prefix=',\n'
+        fi
+        if
+            [ -f "${name}.tcpconnect" ]
+        then
+            printf "$prefix"
+            format_addrs '    ' "clientaddrs" "${name}.tcpconnect"
+        fi
+        printf '\n  }'
+    done
+    printf '\n}\n'
+}
+
+
+discover()
+{
+    US=$(basename $0)
+    TMPDIR=$(mktmpdir)
+    trap 'rm -fr ${TMPDIR}' 0
+    choose_sum_command
+    gather_tcp_netstatinfo
+    cat <<-!HEADER
+	{
+	  "discovertype": "tcpdiscovery",
+	  "description": "TCP client and server processes",
+	  "source": "$US",
+	  "host": "$(uname -n)",
+	  "data":
+	!HEADER
+    format_netstatinfo | sed 's%^%    %'
+    printf '}\n'
+
+}
+
+discover

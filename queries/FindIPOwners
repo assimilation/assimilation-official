@@ -1,0 +1,23 @@
+{
+    "cypher": "START ip=node:IPaddr('{ipaddr}:*')
+               MATCH ip<-[:ipowner]-()<-[:nicowner]-system
+               RETURN system",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get system owning IP",
+            "long":     "retrieve the full information about the system owning the requested IP address"
+        }
+    },
+    "parameters": {
+        "ipaddr": {
+            "type": "ipaddr",
+            "lang": {
+                "en": {
+                    "short":    "IP address",
+                    "long":     "IP address (IPv4 or IPv6) of the system of interest"
+                }
+            }
+        }
+    }
+}

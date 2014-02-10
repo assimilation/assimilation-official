@@ -1,0 +1,197 @@
+#!/bin/sh
+#	@brief Command to discover processes listening for connections (tcp)
+#	and output the results in JSON format.
+#	@details Output validated at jsonlint.com (good to validate future versions there too!)
+#
+#	It makes use of netstat -[tu]lnp to get the active listening connections, and /proc to
+#	get more detailed information about the processes we discovered with netstat.
+#
+#	We get the listening protocol, port, protocol, address and process listening that address.
+#	We get the binary full pathname, its arguments (if not modified by the application),
+#	uid and gid, current directory and so on of the process communicating.
+#
+#	For TCP programs we only output listening processes.  For UDP, there is no such thing
+#	as listening processes, so you get the whole set of processes prepared to receive
+#	(or send) UDP packets.
+#
+#	This isn't exactly rocket science, but integrating the /proc info with the netstat
+#	info works out nicely, and the JSON output is nicely readable to humans and nicely
+#	structured for machines - which is a plus.
+#
+#	You must be root to get full value out of this program (and avoid some warnings).
+#	Sorry :-( Although we can get the listening ports without root, we cannot get detailed
+#	information about the processes that are communicating - which is definitely worth having.
+#
+# @author &copy; 2012 - Alan Robertson <alanr@unix.sh>
+# @n
+# Licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
+#
+
+skiplocal=yes
+
+US=$(basename $0)
+#
+#	Grab interesting information from /proc for our processes
+#
+procinfo() {
+  procpid="$1"
+  if
+    [ -z "$procpid" -o "x$procpid" = "x-" -o ! -f /proc/$procpid/cmdline -o ! -r /proc/$procpid/cmdline ]
+  then
+    printf '"exe": "unknown"\n'
+    return
+  fi
+  EXE=$(readlink /proc/$procpid/exe)
+  CMD=$(tr '\0' '' < /proc/$procpid/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%"cmdline": [ "&" ],\n%')
+  USERID=$(ls -ld /proc/$procpid | cut -d' ' -f3)
+  GROUPID=$(ls -ld /proc/$procpid | cut -d' ' -f4)
+  cat <<-!FOO
+	"exe": "$EXE",
+	$CMD
+	"uid": "$USERID",
+	"gid": "$GROUPID",
+	"cwd": "$(readlink /proc/$procpid/cwd)",
+	!FOO
+}
+
+#
+#	return True (exit code zero) if we should skip this IP address
+#
+shouldskip() {
+  case "$1/$skiplocal" in
+    "127.0.0.1/yes"|"::1/yes")	return 0;; # true
+  esac
+  return 1 # false
+}
+
+#
+#	Output info on the set of listening processes, ports, ip addresses and so on...
+#
+#Output something good to sort this pid on...
+# In the best case it will be the basename of the executable and the pid
+# In the worst case it will be the port twice...
+procsortinfo() {
+  procpid="$1"
+  procport="$2"
+  if
+    [ -z "$procpid" -o "X$procpid" = 'X-' -o ! -f /proc/$procpid/cmdline -o ! -r /proc/$procpid/cmdline ]
+  then
+    printf '%s\t%s\n' "${procport}" "${procport}"
+    return 0
+  fi
+  EXE=$(basename $(readlink /proc/$procpid/exe))
+  ARGS=$(tr -d '\0' < /proc/$procpid/cmdline)
+  printf '%s\t%s\n' "${EXE}" "${pid}"
+}
+
+
+netstatinfo()
+{
+  flags=-tnlp
+    netstat $flags |
+    while
+       read proto rcvq sendq localaddr foreignaddr state pid_prog
+    do
+      : proto $proto rcvq $rcvq sendq $sendq localaddr $localaddr foreignaddr $foreignaddr state $state pid_prog $pid_prog
+      case $state in
+        LISTEN)	: OK;;
+        */*)	pid_prog="$state";;
+        *)	: state is ["$state"] ; continue;;
+      esac
+
+      pid=$(dirname "$pid_prog")		# Strip all after & including /
+      addr=$(echo "$localaddr" | sed 's%:[^:]*$%%')	# Strip all starting from last ':'
+      port=$(echo "$localaddr" | sed 's%.*:%%')		# Strip all before & including last ':'
+      pid=$(echo "$pid_prog"| sed 's%/.*%%')		# Strip all after & including /
+      shouldskip "$addr" && continue
+      printf "$(procsortinfo "$pid" "$port")\t${proto}\t${addr}\t${port}\n"
+    done | sort
+}
+
+discover()
+{
+  lastpid=None
+  lastname=None
+  outercomma=''
+  innercomma=''
+  cat <<-!EOF
+	{
+	  "discovertype": "tcplisteners",
+	  "description": "TCP Listening Processes",
+	  "source": "$US",
+	  "host": "$(uname -n)",
+	  "data": {
+	!EOF
+  seq=1
+  netstatinfo |
+  while
+    if
+      read name pid proto addr port
+    then
+       true
+    else
+      if
+         [ "x$outercomma"  != 'x' ]
+      then
+	printf '\n        }\n'
+	printf '      }\n'
+	printf '    }'
+      fi
+      false
+    fi
+  do
+      if
+        [ "X$pid" != "X$lastpid" -o "X$name" != "X$lastname" ]
+      then
+        if 
+          [ "X$name" = "X$lastname" ]
+        then
+          pname="${name}-${seq}"
+          seq=$(expr $seq + 1)
+        else
+          seq=1
+          pname="${name}"
+        fi
+        if
+          [ "$innercomma" != '' ]
+        then
+	  printf '\n        }\n      }\n'
+        fi
+        
+	printf '%s    "%s": {\n' "$outercomma" "$pname"
+        lastpid="$pid"
+        lastname="$name"
+        outercomma='    },
+'
+        innercomma=''
+        if
+          [ "$name" != "$pid" ]
+	then
+          procinfo "$pid" | sed 's%^%      %'
+        fi
+        printf '      "listenaddrs": {\n'
+      fi
+      cat <<-!FOO
+	${innercomma}        "${addr}:${port}": {
+	          "proto": "$proto",
+	          "addr": "$addr",
+	!FOO
+	printf '          "port": %s' "$port"
+	innercomma='
+        },
+'
+  done
+  cat <<-!STAT
+
+	  }
+	}
+	!STAT
+}
+
+#
+#	Need to think about standardizing arguments and commands given to discovery
+#	modules and standardize them.  That means some things will likely change as
+#	I get smart enough to see what I should have done in the first place.
+#
+#netstatinfo
+discover
