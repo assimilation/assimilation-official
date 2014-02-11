@@ -28,6 +28,7 @@ from transaction import Transaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
 from AssimCtypes import proj_class_live_object_count, proj_class_max_object_count
+from AssimCclasses import pyAssimObj
 import os, sys, traceback
 import gc
 
@@ -45,13 +46,6 @@ class MessageDispatcher:
         'Dispatch a Frameset where it will get handled.'
         fstype = frameset.get_framesettype()
         #print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
-        #
-        # Eventually handling incoming packets needs to be transactional in nature.
-        #
-        # Once that happens, this is a reasonable place to implement transactions.
-        # Need to think medium-hard about how to deal with doing this in a queueing system
-        # where a single packet might trigger a transaction on several systems for a node
-        # which appears on several rings.
         self.dispatchcount += 1
         CMAdb.transaction = Transaction()
         # W0703 == Too general exception catching...
