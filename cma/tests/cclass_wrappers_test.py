@@ -42,6 +42,13 @@ BROKENDNS=False
 if 'BROKENDNS' in os.environ:
     BROKENDNS=True
 
+CheckForDanglingClasses = True
+AssertOnDanglingClasses = False
+
+if not CheckForDanglingClasses:
+    print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
+elif not AssertOnDanglingClasses:
+    print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -51,8 +58,11 @@ def assert_no_dangling_Cclasses():
     # Avoid cluttering the output up with redundant messages...
     if count > WorstDanglingCount and CheckForDanglingClasses:
         WorstDanglingCount = count
-        proj_class_dump_live_objects()
-        raise AssertionError, "Dangling C-class objects - %d still around" % count
+        if AssertOnDanglingClasses:
+            proj_class_dump_live_objects()
+            raise AssertionError, "Dangling C-class objects - %d still around" % count
+        else:
+            print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
 
 class pyNetAddrTest(TestCase):
     "A pyNetAddr is a network address of some kind... - let's test it"
