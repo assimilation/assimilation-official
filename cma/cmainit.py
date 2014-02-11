@@ -75,6 +75,16 @@ class CMAinit(object):
         CMAdb.store.commit()
         #print >> sys.stderr, 'Store COMMITTED'
 
+    @staticmethod
+    def uninit():
+        CMAdb.cdb = None
+        CMAdb.stor = None
+        CMAdb.transaction = None
+        CMAdb.TheOneRing = None
+        CMAdb.store = None
+        CMAdb.io = None
+        
+
 
     def delete_all(self):
         'Empty everything out of our database - start over!'
