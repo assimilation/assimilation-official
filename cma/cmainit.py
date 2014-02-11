@@ -77,6 +77,7 @@ class CMAinit(object):
 
     @staticmethod
     def uninit():
+        "Undo initialization to make sure we aren't hanging onto any objects"
         CMAdb.cdb = None
         CMAdb.stor = None
         CMAdb.transaction = None

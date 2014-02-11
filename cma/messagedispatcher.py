@@ -84,7 +84,7 @@ class MessageDispatcher:
                 
                 if CMAdb.debug:
                     # Another very expensive set of debug-only calls
-                    assimcount=0
+                    assimcount = 0
                     for obj in gc.get_objects():
                         if isinstance(obj, (pyAssimObj)):
                             assimcount += 1
