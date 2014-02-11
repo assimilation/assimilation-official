@@ -79,7 +79,6 @@ class CMAinit(object):
     def uninit():
         "Undo initialization to make sure we aren't hanging onto any objects"
         CMAdb.cdb = None
-        CMAdb.stor = None
         CMAdb.transaction = None
         CMAdb.TheOneRing = None
         CMAdb.store = None
