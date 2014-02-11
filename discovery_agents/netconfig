@@ -176,7 +176,7 @@ discover() {
         #          Rx invalid nwid:0  Rx invalid crypt:0  Rx invalid frag:0
         #          Tx excessive retries:0  Invalid misc:0   Missed beacon:0
       IWCFG="`iwconfig "$device"`"
-      printf "$IWCFG" | grep 'ESSID:'        | sed -e 's%^.*ESSID:%	"ESSID": %' -e 's%" *$%",%' -e 's%off/any%"NONE",%'
+      printf "$IWCFG" | grep 'ESSID:'        | sed -e 's%^.*ESSID:%	"ESSID": %' -e 's%Nickname%,"&"%' -e 's%" *$%",%' -e 's%off/any%"NONE",%'
       printf "$IWCFG" | grep 'Access Point:' | sed -e 's%^.*Access Point: *%	"AccessPoint": "%' -e 's% *$%",%'
       printf "$IWCFG" | grep 'IEEE 802.11'   | sed -e 's%^.*IEEE %%' -e 's% .*$%%' -e 's%.*%	"WirelessModes": "&",%'
     fi
