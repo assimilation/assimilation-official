@@ -27,11 +27,43 @@ from py2neo import neo4j
 from testify import *
 from store import Store
 from AssimCclasses import pyNetAddr
-from AssimCtypes import ADDR_FAMILY_802
+from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count
 from graphnodes import GraphNode, RegisterGraphClass
 from cmainit import CMAinit
 
 DEBUG=False
+CheckForDanglingClasses = True
+AssertOnDanglingClasses = True
+
+WorstDanglingCount = 0
+
+if not CheckForDanglingClasses:
+    print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
+elif not AssertOnDanglingClasses:
+    print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
+
+
+def assert_no_dangling_Cclasses(doassert=None):
+    global CheckForDanglingClasses
+    global WorstDanglingCount
+    if doassert is None:
+        doassert = AssertOnDanglingClasses
+    CMAinit.uninit()
+    gc.collect()    # For good measure...
+    count =  proj_class_live_object_count()
+    #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
+    # Avoid cluttering the output up with redundant messages...
+    if count > WorstDanglingCount and CheckForDanglingClasses:
+        WorstDanglingCount = count
+        if doassert:
+            print >> sys.stderr, 'STARTING OBJECT DUMP'
+            print 'stdout STARTING OBJECT DUMP'
+            proj_class_dump_live_objects()
+            print >> sys.stderr, 'OBJECT DUMP COMPLETE'
+            print 'stdout OBJECT DUMP COMPLETE'
+            raise AssertionError("Dangling C-class objects - %d still around" % count)
+        else:
+            print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
 
 def CreateIndexes(indexlist):
     'Create Indexes(indexlist) - a list of strings for Node indexes to create'
@@ -224,6 +256,10 @@ class TestCreateOps(TestCase):
         self.assertEqual(sys64.MACaddr, '00-11-cc-dd-ee-ff-aa-bb')
         self.assertTrue(not store.is_abstract(freddiemac))
 
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
+
 
 class TestRelateOps(TestCase):
 
@@ -317,6 +353,10 @@ class TestRelateOps(TestCase):
             self.assertTrue(ipcount == 1)
         self.assertEqual(count, 1)
 
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
+
 class TestGeneralQuery(TestCase):
 
     def test_multicolumn_query(self):
@@ -361,6 +401,10 @@ class TestGeneralQuery(TestCase):
         self.assertEqual(rowcount, 2)
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
+
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
 
 class TestDatabaseWrites(TestCase):
     mac1= 'ff-ff:7-0f-9:7-0f-9'
@@ -443,6 +487,10 @@ class TestDatabaseWrites(TestCase):
         self.assertEqual(rowcount, 1)
         #self.assertTrue(foundaddr1)
         #self.assertTrue(foundaddr2)
+
+    @class_teardown
+    def tearDown(self):
+        assert_no_dangling_Cclasses()
 
 # Other things that ought to have tests:
 #   node deletion
