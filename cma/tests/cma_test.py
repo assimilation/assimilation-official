@@ -47,11 +47,10 @@ from transaction import Transaction
 WorstDanglingCount = 0
 
 CheckForDanglingClasses = True
-AssertOnDanglingClasses = False
+AssertOnDanglingClasses = True
 DEBUG=False
 DoAudit=True
 doHBDEAD=True
-doHBDEAD=False
 BuildListOnly = False
 SavePackets=True
 MaxDrone=5
@@ -92,7 +91,8 @@ def find_c_objects():
             cobjcount += 1
             cobj = None
             if hasattr(obj, '_Cstruct'):
-                cobj = ('0x%x' % addressof(getattr(obj, '_Cstruct')))
+                cobj = ('0x%x' % addressof(getattr(obj, '_Cstruct')[0]))
+
             print >> sys.stderr, ('FOUND C object class(%s): %s -> %s'
             %   (obj.__class__.__name__, str(obj)[:120], str(cobj)))
 
@@ -347,6 +347,11 @@ class TestIO:
             self.packetswritten.append((dest,fs))
 
     def cleanio(self):
+        # Note that this having to do this implies that our I/O object persists
+        # longer than I would have expected...
+        # Is this because uninit needs to be done as part of the test instead of
+        # as part of the cleanup action?
+        del self.inframes
         del self.packetswritten
 
     def getmaxpktsize(self):    return 60000
@@ -449,6 +454,7 @@ class TestCMABasic(TestCase):
                             # Note that this change over time
                             # As we change discovery...
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
+        io.cleanio()
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
@@ -550,6 +556,7 @@ class TestCMABasic(TestCase):
             print "The CMA read %d packets."  % io.packetsread
             print "The CMA wrote %d packets." % io.writecount
         #io.dumppackets()
+        io.cleanio()
 
 
     @class_teardown

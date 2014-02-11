@@ -43,7 +43,7 @@ if 'BROKENDNS' in os.environ:
     BROKENDNS=True
 
 CheckForDanglingClasses = True
-AssertOnDanglingClasses = False
+AssertOnDanglingClasses = True
 
 if not CheckForDanglingClasses:
     print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
