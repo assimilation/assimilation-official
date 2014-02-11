@@ -63,6 +63,9 @@ class PacketListener:
                 if CMAdb.debug:
                     CMAdb.log.debug("Received FrameSet from str([%s], [%s])" \
                     %       (str(fromaddr), fromstr))
+                #import sys
+                #print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
+                #%       (str(fromaddr), fromstr))
 
             for frameset in framesetlist:
                 if CMAdb.debug:
