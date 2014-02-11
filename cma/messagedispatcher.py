@@ -27,7 +27,9 @@ from cmadb import CMAdb
 from transaction import Transaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
+from AssimCtypes import proj_class_live_object_count, proj_class_max_object_count
 import os, sys, traceback
+import gc
 
 class MessageDispatcher:
     'We dispatch incoming messages where they need to go.'
@@ -36,6 +38,7 @@ class MessageDispatcher:
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()
         self.io = None
+        self.dispatchcount = 0
 
     #pylint: disable=R0914
     def dispatch(self, origaddr, frameset):
@@ -49,6 +52,7 @@ class MessageDispatcher:
         # Need to think medium-hard about how to deal with doing this in a queueing system
         # where a single packet might trigger a transaction on several systems for a node
         # which appears on several rings.
+        self.dispatchcount += 1
         CMAdb.transaction = Transaction()
         # W0703 == Too general exception catching...
         # pylint: disable=W0703 
@@ -57,22 +61,40 @@ class MessageDispatcher:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
             else:
                 self.default.dispatch(origaddr, frameset)
-            # Commit the transaction here
+            # Commit the network transaction here
             CMAdb.transaction.commit_trans(CMAdb.io)
             if CMAdb.store.transaction_pending:
                 result = CMAdb.store.commit()
                 if CMAdb.debug:
                     resultlines = str(result).splitlines()
-                    CMAdb.log.debug('Commit results follow')
+                    CMAdb.log.debug('Commit results follow:')
                     for line in resultlines:
                         CMAdb.log.debug(line.expandtabs())
-                    CMAdb.log.debug('end of commit results')
+                    CMAdb.log.debug('end of commit results.')
                     # This is a VERY expensive call...
+                    # Good thing we only do it when debug is enabled...
                     CMAdb.TheOneRing.AUDIT()
             else:
                 if CMAdb.debug:
                     CMAdb.log.debug('No database changes this time')
                 CMAdb.store.abort()
+            if (self.dispatchcount % 100) == 1:
+                gccount = gc.get_count()
+                gctotal = 0
+                for elem in gccount:
+                    gctotal += elem
+                CMAdb.log.info('Total allocated Objects: %s. gc levels: %s'
+                %   (gctotal, str(gccount)))
+                CMAdb.log.info('Total/max allocated C-Objects: %s/%s'
+                %   (proj_class_live_object_count(), proj_class_max_object_count()))
+                
+                if CMAdb.debug:
+                    # Another very expensive set of debug-only calls
+                    assimcount=0
+                    for obj in gc.get_objects():
+                        if isinstance(obj, (pyAssimObj)):
+                            assimcount += 1
+                        CMAdb.log.info('Total allocated C-Objects: %s' % assimcount)
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
             #   logs in a legible way
