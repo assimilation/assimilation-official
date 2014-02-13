@@ -381,7 +381,7 @@ _childprocess_toString(gconstpointer aself)
 	cfg->setint(cfg, "child_pid", self->child_pid);
 	cfg->setint(cfg, "timeout", self->timeout);
 	cfg->setint(cfg, "timeoutsrc_id", self->timeoutsrc_id);
-	cfg->setint(cfg, "childsrc_id", self->timeoutsrc_id);
+	cfg->setint(cfg, "childsrc_id", self->childsrc_id);
 	cfg->setint(cfg, "child_state", self->child_state);
 	cfg->setstring(cfg, "loggingname", self->loggingname);
 	ret = cfg->baseclass.toString(&cfg->baseclass);
