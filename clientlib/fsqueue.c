@@ -164,7 +164,8 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	// Frames without sequence numbers go to the head of the queue
 	if (seqno == NULL) {
 		// This is typically a heartbeat or similar
-		DEBUGMSG3("%s.%d: Pushing unsequenced frame into head of queue", __FUNCTION__, __LINE__);
+		DEBUGMSG3("%s.%d: Pushing unsequenced frame into head of queue"
+		,	__FUNCTION__, __LINE__);
 		DUMP3("UnSeqFrame", &fs->baseclass, NULL);
 		g_queue_push_head(Q, fs);
 		REF(fs);
