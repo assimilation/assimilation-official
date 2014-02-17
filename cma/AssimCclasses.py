@@ -74,7 +74,7 @@ from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
 import collections
 import traceback
-import sys
+import sys, gc
 
 #pylint: disable=R0903
 class cClass:
@@ -1377,7 +1377,7 @@ class pyNetIO(pyAssimObj):
             base = base.baseclass
         return base.setblockio(self._Cstruct, int(mode))
 
-    def getfd(self):
+    def fileno(self):
         'Return the file descriptor for this pyNetIO object'
         base = self._Cstruct[0]
         while (not hasattr(base, 'getfd')):
@@ -1568,3 +1568,21 @@ class CMAlib:
         ,	address._Cstruct, 1)
         fs = cast(ucfs, cClass.FrameSet)
         return pyFrameSet(None, Cstruct=fs)
+
+def dump_c_objects():
+    'Dump out live objects to help locate memory leaks'
+    print >> sys.stderr, 'GC Garbage: [%s]' % str(gc.garbage)
+    print >> sys.stderr, '***************LOOKING FOR pyAssimObjs***********'
+    cobjcount = 0
+    for obj in gc.get_objects():
+        if isinstance(obj, (pyAssimObj, pyCstringFrame)):
+            cobjcount += 1
+            cobj = 'None'
+            if hasattr(obj, '_Cstruct'):
+                cobj = ('0x%x' % addressof(getattr(obj, '_Cstruct')[0]))
+            print >> sys.stderr, ('FOUND C object class(%s): %s -> %s'
+            %   (obj.__class__.__name__, str(obj)[:120], cobj))
+
+    print >> sys.stderr, ('%d python wrappers referring to %d C-objects'
+    %   (cobjcount, proj_class_live_object_count()))
+    proj_class_dump_live_objects()
