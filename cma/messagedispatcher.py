@@ -28,7 +28,7 @@ from transaction import Transaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
 from AssimCtypes import proj_class_live_object_count, proj_class_max_object_count
-from AssimCclasses import pyAssimObj
+from AssimCclasses import pyAssimObj, dump_c_objects
 import os, sys, traceback
 import gc
 
@@ -79,8 +79,11 @@ class MessageDispatcher:
                     gctotal += elem
                 CMAdb.log.info('Total allocated Objects: %s. gc levels: %s'
                 %   (gctotal, str(gccount)))
+                cobjcount = proj_class_live_object_count()
                 CMAdb.log.info('Total/max allocated C-Objects: %s/%s'
-                %   (proj_class_live_object_count(), proj_class_max_object_count()))
+                %   (cobjcount, proj_class_max_object_count()))
+                if gctotal < 20 and cobjcount > 100:
+                        dump_c_objects()
                 
                 if CMAdb.debug:
                     # Another very expensive set of debug-only calls
