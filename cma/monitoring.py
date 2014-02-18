@@ -41,6 +41,7 @@ from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
 import os, re, inspect, time
+import sys
 from py2neo import neo4j
 from store import Store
 #
@@ -218,7 +219,7 @@ class MonitorAction(GraphNode):
             fubar = True
         rscname = monmsgobj[REQRSCNAMEFIELD]
         msg = 'Service %s %s' % (rscname, explanation)
-        print  'MESSAGE:', msg
+        print >> sys.stderr, 'MESSAGE:', msg
         if fubar:
             CMAdb.log.critical(msg)
         else:

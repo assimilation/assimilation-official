@@ -84,8 +84,10 @@ struct _FsProtoElem {
 	gint64		acktimeout;	///< When to timeout waiting for an ACK
 	FsProtoState	state;		///< State of this connection
 	guint		shuttimer;	///< FSPROTO_SHUT_TO timer (see FSA for details)
+	guint		finalizetimer;	///< Timer for removing these objects (if not reopened)
 };
 
+/// It is REQUIRED that these fields are the same as the first two in the FsProtoElem structure
 struct _FsProtoElemSearchKey {
 	const NetAddr*	endpoint;	///< Who is our partner in this?
 	guint16		_qid;		///< Queue id of far endpoint
