@@ -910,7 +910,7 @@ class pyNetIOudpTest(TestCase):
         if DEBUG: print >>sys.stderr, "========================test_constructor(pyNetIOudpTest)"
         config = pyConfigContext(init={'outsig': pySignFrame(1)})
         io = pyNetIOudp(config, pyPacketDecoder())
-        self.assertTrue(io.getfd() >  2)
+        self.assertTrue(io.fileno() >  2)
 
     def test_members(self):
         if DEBUG: print >>sys.stderr, "========================test_members(pyNetIOudpTest)"
