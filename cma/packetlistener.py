@@ -27,9 +27,11 @@ dispatches them.
 from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from cmadb import CMAdb
+#gi.repository confuses pylint...
+#pylint: disable=E0611
 from gi.repository import GLib as glib
 import time
-import sys
+#import sys
 
 # R0903 is too few public methods
 #pylint: disable=R0903
@@ -55,8 +57,10 @@ class PacketListener:
         self.mainloop = None
         
     @staticmethod
-    def mainloop_callback(source, cb_condition, listener):
+    def mainloop_callback(unusedsource, cb_condition, listener):
         'Function to be called back by the Python Glib mainloop hooks'
+        #make pylint happy
+        unusedsource = unusedsource
         if cb_condition == glib.IO_IN or cb_condition == glib.IO_PRI:
             listener.listenonce()
         else:
@@ -69,7 +73,7 @@ class PacketListener:
             else:
                 cond = '(%s?)' % (str(cb_condition))
             CMAdb.log.warning('PacketListener::mainloop_callback(cb_condition=%s)' % (cond))
-            self.mainloop.quit()
+            listener.mainloop.quit()
         return True
 
     def listen(self):
