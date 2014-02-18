@@ -318,7 +318,8 @@ class TestIO:
 
     @staticmethod
     def shutdown_on_timeout(io):
-        os.close(io.pipe_read)
+        if io.pipe_read >= 0:
+            os.close(io.pipe_read)
         io.mainloop.quit()
         return False
 
@@ -334,9 +335,9 @@ class TestIO:
                 glib.timeout_add(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
                 self.atend = True
             else:
-                print >> sys.stderr, 'QUITTING!'
                 self.mainloop.quit()
-                os.close(io.pipe_read)
+                os.close(self.pipe_read)
+                self.pipe_read = -1
             return (None, None)
         ret = self.inframes[self.index]
         self.index += 1
@@ -372,7 +373,7 @@ class TestIO:
         del self.packetswritten
 
     def getmaxpktsize(self):    return 60000
-    def fileno(self):        	return 4
+    def fileno(self):        	return self.pipe_read
     def bindaddr(self, addr):   return True
     def mcastjoin(self, addr):  return True
     def setblockio(self, tf):   return
