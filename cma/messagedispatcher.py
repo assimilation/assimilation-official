@@ -91,7 +91,7 @@ class MessageDispatcher:
                     for obj in gc.get_objects():
                         if isinstance(obj, (pyAssimObj)):
                             assimcount += 1
-                        CMAdb.log.info('Total allocated C-Objects: %s' % assimcount)
+                    CMAdb.log.info('Total allocated C-Objects: %s' % assimcount)
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
             #   logs in a legible way
@@ -102,21 +102,16 @@ class MessageDispatcher:
 
             CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
             ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
-            print >> sys.stderr, ('CRITICAL: MessageDispatcher %s exception [%s] occurred while' 
-            ' handling [%s] FrameSetFrameset from %s' % (etype, e, fstypename, origaddr))
             lines = str(frameset).splitlines()
             CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
             for line in lines:
                 CMAdb.log.info(line.expandtabs())
             CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========'
             %   (fstypename, e))
-            print >> sys.stderr, ('======== Begin %s Message %s Exception Traceback ========'
-            %   (fstypename, e))
             for tb in tblist:
                 (filename, line, funcname, text) = tb
                 filename = os.path.basename(filename)
                 CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
-                print >> sys.stderr, ('%s.%s:%s: %s'% (filename, line, funcname, text))
             CMAdb.log.info('======== End %s Message %s Exception Traceback ========'
             %   (fstypename, e))
             if CMAdb.store is not None:

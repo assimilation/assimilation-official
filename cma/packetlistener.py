@@ -27,7 +27,9 @@ dispatches them.
 from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from cmadb import CMAdb
+from gi.repository import GLib as glib
 import time
+import sys
 
 # R0903 is too few public methods
 #pylint: disable=R0903
@@ -45,25 +47,61 @@ class PacketListener:
             raise NameError('Cannot bind to address %s' % (str(config[CONFIGNAME_CMAINIT])))
         if not self.io.mcastjoin(pyNetAddr(CMAADDR)):
             CMAdb.log.warning('Failed to join multicast at %s' % CMAADDR)
-        self.io.setblockio(True)
+        self.io.setblockio(False)
         #print "IO[socket=%d,maxpacket=%d] created." \
-        #%  (self.io.getfd(), self.io.getmaxpktsize())
+        #%  (self.io.fileno(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
+        self.source = None
+        self.mainloop = None
         
+    @staticmethod
+    def mainloop_callback(source, cb_condition, listener):
+        'Function to be called back by the Python Glib mainloop hooks'
+        if cb_condition == glib.IO_IN or cb_condition == glib.IO_PRI:
+            listener.listenonce()
+        else:
+            if cb_condition == glib.IO_ERR:
+                cond = 'IO_ERR'
+            elif cb_condition == glib.IO_OUT:
+                cond = 'IO_OUT'
+            elif cb_condition == glib.IO_HUP:
+                cond = 'IO_HUP'
+            else:
+                cond = '(%s?)' % (str(cb_condition))
+            CMAdb.log.warning('PacketListener::mainloop_callback(cb_condition=%s)' % (cond))
+            self.mainloop.quit()
+        return True
+
     def listen(self):
         'Listen for packets.  Get them dispatched.'
+        self.source = glib.io_add_watch(self.io.fileno(), glib.IO_IN | glib.IO_PRI
+        ,   PacketListener.mainloop_callback, self)
+        self.mainloop = glib.MainLoop()
+        self.mainloop.run()
+
+        # Clean up before returning [if we ever do ;-)]
+        glib.source_remove(self.source)
+        self.source = None
+        self.mainloop = None
+
+    def OLDlisten(self):
+        'Listen for packets.  Get them dispatched.'
+        while True:
+            self.listenonce()
+            time.sleep(0.5)
+
+    def listenonce(self):
+        'Process framesets received as a single packet'
         while True:
             (fromaddr, framesetlist) = self.io.recvframesets()
             if fromaddr is None:
-                # BROKEN! ought to be able to set blocking mode on the socket...
-                #print "Failed to get a packet - sleeping."
-                time.sleep(0.5)
+                # Must have read an ACK or something...
+                return
             else:
                 fromstr = repr(fromaddr)
                 if CMAdb.debug:
                     CMAdb.log.debug("Received FrameSet from str([%s], [%s])" \
                     %       (str(fromaddr), fromstr))
-                #import sys
                 #print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
                 #%       (str(fromaddr), fromstr))
 

@@ -36,6 +36,7 @@ FSTATIC gboolean	_fsprotocol_protoelem_equal(gconstpointer lhs, gconstpointer rh
 FSTATIC guint		_fsprotocol_protoelem_hash(gconstpointer fsprotoelemthing);
 FSTATIC gboolean	_fsprotocol_timeoutfun(gpointer userdata);
 FSTATIC gboolean	_fsprotocol_shuttimeout(gpointer userdata);
+FSTATIC gboolean	_fsprotocol_finalizetimer(gpointer userdata);
 
 FSTATIC void		_fsprotocol_finalize(AssimObj* aself);
 FSTATIC FsProtoElem*	_fsprotocol_addconn(FsProtocol*self, guint16 qid, NetAddr* destaddr);
@@ -76,7 +77,8 @@ typedef enum _FsProtoInput	FsProtoInput;
  *
  */
 enum _FsProtoInput {
-	FSPROTO_GOTSTART	= 0,	///< Received a packet with sequence number 1 and a valid (new) session id
+	FSPROTO_GOTSTART	= 0,	///< Received a packet with sequence number 1
+					///< and a valid (new) session id
 	FSPROTO_REQSEND		= 1,	///< Got request to send a packet
 	FSPROTO_GOTACK		= 2,	///< Received a legitimate ACK
 	FSPROTO_GOTCONN_NAK	= 3,	///< Received a CONN_NAK packet
@@ -90,7 +92,7 @@ enum _FsProtoInput {
 
 static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 //	    START     REQSEND	  GOTACK      GOTC_NAK    REQSHUTDOWN RCVSHUT,   ACKTIMEOUT OUTALLDONE SHUT_TO
-/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE,  FSPR_NONE, FSPR_NONE, FSPR_NONE},
 /*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
 /*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE,  FSPR_SHUT1,FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
 // SHUT1: No ACK, no CONNSHUT
@@ -238,8 +240,10 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 
 
 	if (action & A_CLOSE) {
-		/// @todo Want to eventually clean these out, but can't do that right now
 		_fsprotocol_fspe_reinit(fspe);
+		// Clean this up after a while
+		// The time was chosen to occur after the other end will have given up on us and shut down anyway...
+		fspe->finalizetimer = g_timeout_add_seconds(1+parent->acktimeout/1000000, _fsprotocol_finalizetimer, fspe);
 	}
 	fspe->state = nextstate;
 }
@@ -385,8 +389,13 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 		ret->inq  = fsqueue_new(0, ret->endpoint, qid);
 		ret->lastacksent  = NULL;
 		ret->lastseqsent  = NULL;
-		ret->nextrexmit  = 0;
 		ret->parent = self;
+		ret->nextrexmit  = 0;
+		ret->acktimeout = 0;
+		ret->state = FSPR_NONE;
+		ret->shuttimer = 0;
+		ret->finalizetimer = 0;
+		// This lookup assumes FsProtoElemSearchKey looks like the start of FsProtoElem
 		g_warn_if_fail(NULL == g_hash_table_lookup(self->endpoints, ret));
 		g_hash_table_insert(self->endpoints, ret, ret);
 		DEBUGMSG3("%s: Creating new FSPE connection (%p) for qid = %d. Dest address follows."
@@ -489,16 +498,21 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 		g_source_remove(self->shuttimer);
 		self->shuttimer = 0;
 	}
+	if (self->finalizetimer > 0) {
+		g_source_remove(self->finalizetimer);
+	}
 	self->nextrexmit = 0;
 	self->acktimeout = 0;
 	self->state = FSPR_NONE;
 	AUDITIREADY(self->parent);
 }
 
+/// Close down (destroy) an FSPE-level connection
+/// Note that this depends on FsProtoElemSearchKey being the same as start of FsProtoElem
 FSTATIC void
 _fsprotocol_fspe_closeconn(FsProtoElem* self)
 {
-	DUMP3("_fsprotocol_fspe_closeconn: closing connection to", &self->endpoint->baseclass, NULL);
+	DUMP5("_fsprotocol_fspe_closeconn: closing connection to", &self->endpoint->baseclass, NULL);
 	g_hash_table_remove(self->parent->endpoints, self);
 	self = NULL;
 }
@@ -602,17 +616,17 @@ FSTATIC void
 _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to destroy
 {
 	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
-	DUMP3("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
+	DUMP5("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 
 	// This does a lot of our cleanup - but doesn't destroy anything important...
 	_fsprotocol_fspe_reinit(self);
 
 	// So let's get on with the destruction ;-)
-	DEBUGMSG3("%s.%d: UNREFing Endpoint", __FUNCTION__, __LINE__);
+	DUMP3("UNREFING FSPE: endpoint", &self->endpoint->baseclass, __FUNCTION__);
 	UNREF(self->endpoint);
-	DEBUGMSG3("%s.%d: UNREFing INPUT QUEUE", __FUNCTION__, __LINE__);
+	DUMP3("UNREFING FSPE: INQ", &self->inq->baseclass, __FUNCTION__);
 	UNREF(self->inq);
-	DEBUGMSG3("%s.%d: UNREFing OUTPUT QUEUE", __FUNCTION__, __LINE__);
+	DUMP3("UNREFING FSPE: OUTQ", &self->outq->baseclass, __FUNCTION__);
 	UNREF(self->outq);
 	self->parent = NULL;
 	memset(self, 0, sizeof(*self));
@@ -1063,7 +1077,6 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 		}
 	}
 
-
 	// Make sure we remember to check this periodicially for retransmits...
 	if (orig_outstanding == 0 && fspe->outq->_q->length > 0) {
 		// Put 'fspe' on the list of fspe's with unacked packets
@@ -1100,6 +1113,20 @@ _fsprotocol_shuttimeout(gpointer userdata)
 {
 	FsProtoElem* fspe = (FsProtoElem*)userdata;
 	_fsproto_fsa(fspe, FSPROTO_SHUT_TO, NULL);
+	return FALSE;
+}
+
+/// Close down (free up) an FSPE object when the timer pops - provided its still closed...
+FSTATIC gboolean
+_fsprotocol_finalizetimer(gpointer userdata)
+{
+	FsProtoElem* fspe = (FsProtoElem*)userdata;
+
+	if (fspe->state != FSPR_NONE) {
+		g_warning("===============CANNOT REMOVE FSPE @ 0x%p!!", fspe);
+		return FALSE;
+	}
+	_fsprotocol_fspe_closeconn(fspe);
 	return FALSE;
 }
 ///@}
