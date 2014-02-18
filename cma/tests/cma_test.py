@@ -314,6 +314,7 @@ class TestIO:
         (self.pipe_read, self.pipe_write) = os.pipe()
         os.write(self.pipe_write, ' ')
         os.close(self.pipe_write)
+        self.pipe_write = -1
         self.atend = False
 
     @staticmethod
