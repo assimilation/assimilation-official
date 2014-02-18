@@ -54,7 +54,7 @@ class PacketListener:
         #%  (self.io.fileno(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
         self.source = None
-        self.mainloop = None
+        self.mainloop = glib.MainLoop()
         
     @staticmethod
     def mainloop_callback(unusedsource, cb_condition, listener):
@@ -80,7 +80,6 @@ class PacketListener:
         'Listen for packets.  Get them dispatched.'
         self.source = glib.io_add_watch(self.io.fileno(), glib.IO_IN | glib.IO_PRI
         ,   PacketListener.mainloop_callback, self)
-        self.mainloop = glib.MainLoop()
         self.mainloop.run()
 
         # Clean up before returning [if we ever do ;-)]

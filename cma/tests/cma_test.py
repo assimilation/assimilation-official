@@ -42,6 +42,7 @@ import optparse
 from graphnodes import GraphNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
+from gi.repository import GLib as glib
 
 
 WorstDanglingCount = 0
@@ -310,6 +311,16 @@ class TestIO:
         self.index=0
         self.writecount=0
         self.config = {CONFIGNAME_CMAPORT: 1984}
+        (self.pipe_read, self.pipe_write) = os.pipe()
+        os.write(self.pipe_write, ' ')
+        os.close(self.pipe_write)
+        self.atend = False
+
+    @staticmethod
+    def shutdown_on_timeout(io):
+        os.close(io.pipe_read)
+        io.mainloop.quit()
+        return False
 
     def recvframesets(self):
         # Audit after each packet is processed - and once before the first packet.
@@ -319,8 +330,14 @@ class TestIO:
                 auditalldrones()
                 auditallrings()
         if self.index >= len(self.inframes):
-            time.sleep(self.sleepatend)
-            raise StopIteration('End of Packets')
+            if not self.atend:
+                glib.timeout_add(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
+                self.atend = True
+            else:
+                print >> sys.stderr, 'QUITTING!'
+                self.mainloop.quit()
+                os.close(io.pipe_read)
+            return (None, None)
         ret = self.inframes[self.index]
         self.index += 1
         self.packetsread += len(ret[1])
@@ -355,7 +372,7 @@ class TestIO:
         del self.packetswritten
 
     def getmaxpktsize(self):    return 60000
-    def getfd(self):        	return 4
+    def fileno(self):        	return 4
     def bindaddr(self, addr):   return True
     def mcastjoin(self, addr):  return True
     def setblockio(self, tf):   return
@@ -445,8 +462,9 @@ class TestCMABasic(TestCase):
         configinit = geninitconfig(OurAddr)
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io)
+        io.mainloop = listener.mainloop
         # We send the CMA an intial STARTUP packet
-        self.assertRaises(StopIteration, listener.listen) # We audit after each packet is processed
+        listener.listen()
         # Let's see what happened...
         #print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
 
@@ -481,6 +499,7 @@ class TestCMABasic(TestCase):
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
         SETCONFIG message and then send back a bunch of discovery requests.'''
+        DEBUG=True
         if DEBUG:
             print >> sys.stderr, 'Running test_several_startups()'
         OurAddr = pyNetAddr((10,10,10,5), 1984)
@@ -518,12 +537,10 @@ class TestCMABasic(TestCase):
         })
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io)
+        io.mainloop = listener.mainloop
         # We send the CMA a BUNCH of intial STARTUP packets
         # and (optionally) a bunch of HBDEAD packets
-        try:
-          listener.listen()
-        except StopIteration as foo:
-            pass
+        listener.listen()
         #self.assertRaises(StopIteration, listener.listen)
         # We audit after each packet is processed
         # The auditing code will make sure all is well...
