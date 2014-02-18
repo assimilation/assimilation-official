@@ -83,7 +83,7 @@ class MessageDispatcher:
                 CMAdb.log.info('Total/max allocated C-Objects: %s/%s'
                 %   (cobjcount, proj_class_max_object_count()))
                 if gctotal < 20 and cobjcount > 100:
-                        dump_c_objects()
+                    dump_c_objects()
                 
                 if CMAdb.debug:
                     # Another very expensive set of debug-only calls
@@ -95,8 +95,9 @@ class MessageDispatcher:
         except Exception as e:
             # Darn!  Got an exception - let's try and put everything useful into the
             #   logs in a legible way
-            (etype, evalue, trace) = sys.exc_info()
-            evalue = evalue # make pylint happy
+            (unused_etype, unused_evalue, trace) = sys.exc_info()
+            unused_etype = unused_etype # make pylint happy
+            unused_evalue = unused_evalue # make pylint happy
             tblist = traceback.extract_tb(trace, 20)
             fstypename = FrameSetTypes.get(fstype)[0]
 
