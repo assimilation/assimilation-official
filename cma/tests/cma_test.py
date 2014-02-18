@@ -45,6 +45,7 @@ from transaction import Transaction
 from gi.repository import GLib as glib
 
 
+os.environ['G_MESSAGES_DEBUG'] =  'all'
 WorstDanglingCount = 0
 
 CheckForDanglingClasses = True
@@ -395,7 +396,8 @@ class TestTestInfrastructure(TestCase):
         io = TestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         # just make sure it seems to do the right thing
-        self.assertRaises(StopIteration, io.recvframesets)
+        (foo, bar) = io.recvframesets()
+        assert foo is None
         assert_no_dangling_Cclasses()
 
     def test_get1pkt(self):
@@ -413,7 +415,10 @@ class TestTestInfrastructure(TestCase):
         gottenfs = io.recvframesets()
         self.assertEqual(len(gottenfs), 2)
         self.assertEqual(gottenfs, framesets[0])
-        self.assertRaises(StopIteration, io.recvframesets)
+        gottenfs = io.recvframesets()
+        self.assertEqual(len(gottenfs), 2)
+        assert gottenfs[0] is None
+        io.cleanio()
 
     def test_echo1pkt(self):
         'Read a packet and write it back out'
@@ -432,7 +437,10 @@ class TestTestInfrastructure(TestCase):
         self.assertEqual(fslist, framesets[0])
         io.sendframesets(fslist[0], fslist[1])  # echo it back out
         self.assertEqual(len(io.packetswritten), len(framesets))
-        self.assertRaises(StopIteration, io.recvframesets)
+        gottenfs = io.recvframesets()
+        self.assertEqual(len(gottenfs), 2)
+        assert gottenfs[0] is None
+        io.cleanio()
 
     @class_teardown
     def tearDown(self):
@@ -543,7 +551,6 @@ class TestCMABasic(TestCase):
         # We send the CMA a BUNCH of intial STARTUP packets
         # and (optionally) a bunch of HBDEAD packets
         listener.listen()
-        #self.assertRaises(StopIteration, listener.listen)
         # We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
