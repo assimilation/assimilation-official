@@ -399,3 +399,16 @@
    fun:g_scanner_destroy
    ...
 }
+{
+   Weird Glib uninitialized bytes.  Sigh...
+   Memcheck:Param
+   rt_sigaction(act->sa_restorer)
+   fun:__libc_sigaction
+   obj:*/libglib-2.0.so.*
+   obj:*/libglib-2.0.so.*
+   obj:*/libglib-2.0.so.*
+   fun:g_main_context_dispatch
+   obj:*/libglib-2.0.so.*
+   fun:g_main_loop_run
+   ...
+}

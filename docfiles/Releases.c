@@ -38,14 +38,14 @@ These features are new with release 0.1.1.
 
 @subsection Caveats_0_1_1 Caveats
 - The CMA has a known slowish memory leak.  It'll still take it a long time to grow larger than a small Java program ;-)
-  More importantly, it is very unlikely to happen at all in a production system.
+  More importantly, it is very unlikely to happen <i>at all</i> in a production system.
 - You will have to recreate your Neo4j database from scratch to convert to this release.
 - Object deletion not yet reliable or complete
 - No alerting, or interface to alerting (hooks to build your own interface are included)
 - communication is neither authenticated nor private
 - heterogeneous system support (POSIX and Windows)
 - statistical data collection
-- CDP support for switch discovery
+- CDP support for Cisco switch discovery
 - high availability option for the CMA
 
 Features that are expected for a monitoring solution but are <b>not</b> included include these:
