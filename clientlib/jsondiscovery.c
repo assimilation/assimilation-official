@@ -80,8 +80,9 @@ _jsondiscovery_finalize(AssimObj* dself)	///<[in/out] Object to finalize (free)
 FSTATIC gboolean
 _jsondiscovery_discover(Discovery* dself)
 {
-	JsonDiscovery* self = CASTTOCLASS(JsonDiscovery, dself);
-	gchar*		argv[2];
+	JsonDiscovery*	self = CASTTOCLASS(JsonDiscovery, dself);
+	gchar*		argv[3];
+	static char	discoverword [] =  "discover";
 	ConfigContext*	cfg = self->baseclass._config;
 	if (NULL != self->child) {
 		g_warning("%s.%d: JSON discovery process still running - skipping this iteration."
@@ -94,7 +95,8 @@ _jsondiscovery_discover(Discovery* dself)
 		,	  __FUNCTION__, __LINE__, CONFIGNAME_CMADISCOVER);
 	}
 	argv[0] = self->_fullpath;
-	argv[1] = NULL;
+	argv[1] = discoverword;
+	argv[2] = NULL;
 
 	DEBUGMSG1("Running Discovery [%s]", argv[0]);
 
