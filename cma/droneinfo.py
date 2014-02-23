@@ -36,6 +36,7 @@ from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from monitoring import MonitoringRule, MonitorAction
 from assimevent import AssimEvent
+from assimjson import JSONtree
 
 @RegisterGraphClass
 class Drone(SystemNode):
@@ -269,9 +270,25 @@ class Drone(SystemNode):
         newprocs = {}
         newprocmap = {}
         discoveryroles = {}
+        checksumparameters = {
+            'type': 'checksums',
+            'parameters': {
+                'ASSIM_sumcmds': [
+                        '/usr/bin/sha256sum'
+                    ,   '/usr/bin/sha224sum'
+                    ,   '/usr/bin/sha384sum'
+                    ,   '/usr/bin/sha512sum'
+                    ,   '/usr/bin/sha1sum'
+                    ,   '/usr/bin/md5sum'
+                    ,   '/usr/bin/cksum'
+                ,   '/usr/bin/crc32' ],
+                'ASSIM_filelist': ['/bin/sh'
+                    ,   '/bin/bash'
+                    ,   '/bin/login'
+                    ,   '/usr/bin/passwd' ]
+            }
+        }
         for procname in data.keys():    # List of nanoprobe-assigned names of processes...
-                                        # This is currently different from drone-assigned names -
-                                        # and it causes problems that they're different...
             procinfo = data[procname]
             if 'listenaddrs' in procinfo:
                 if not CMAconsts.ROLE_server in discoveryroles:
@@ -282,6 +299,20 @@ class Drone(SystemNode):
                     discoveryroles[CMAconsts.ROLE_client] = True
                     self.addrole(CMAconsts.ROLE_client)
             #print >> sys.stderr, 'CREATING PROCESS %s!!' % procname
+            if 'exe' in procinfo:
+                exename = procinfo.get('exe')
+                # dups (if any) are removed by the agent
+                checksumparameters['parameters']['ASSIM_filelist'].append(exename)
+                # Special case for some/many JAVA programs - find the jars...
+                if exename.endswith('/java'):
+                    cmdline = procinfo.get('cmdline')
+                    for j in range(0, len(cmdline)):
+                        if cmdline[j] == '-cp' and j < len(cmdline)-1:
+                            jars = cmdline[j+1].split(':')
+                            for jar in jars:
+                                checksumparameters['parameters']['ASSIM_filelist'].append(jar)
+                            break
+
             processproc = CMAdb.store.load_or_create(ProcessNode, domain=self.domain
             ,   processname=procname
             ,   host=self.designation
@@ -297,6 +328,12 @@ class Drone(SystemNode):
                 CMAdb.store.relate(self, CMAconsts.REL_hosting, processproc, {'causes':True})
             if CMAdb.debug:
                 CMAdb.log.debug('procinfo(%s) - processproc created=> %s' % (procinfo, processproc))
+
+        # Request discovery of checksums of all the binaries talking (tcp) over the network
+        self.request_discovery('_auto-checksums', 3600, str(JSONtree(checksumparameters)))
+        print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF: %s'
+        %   (str(checksumparameters['parameters']['ASSIM_filelist'])))
+
 
         oldprocs = {}
         # Several kinds of nodes have the same relationship to the host...
@@ -623,7 +660,7 @@ class Drone(SystemNode):
 
     def request_discovery(self, *args): ##< A vector of arguments formed like this:
         ##< instance       Which (unique) discovery instance is this?
-        ##< interval = 0     How often to perform it?
+        ##< interval = 0     How often to perform it (in seconds)?
         ##< json = None):    JSON string (or ConfigContext) describing discovery
         ##<                If json is None, then instance is used for JSON type
         '''Send our drone a request to perform discovery
