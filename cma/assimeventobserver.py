@@ -116,7 +116,7 @@ class AssimEventObserver(object):
 class FIFOEventObserver(AssimEventObserver):
     '''Objects in this class send JSON messages to a FIFO when events they are interested in
     are observed.  Each message encapsulates a single event, and is followed by a single
-    NUL (zero) byte.  If the len(JSON) then 101 bytes are written to the
+    NUL (zero) byte.  If the len(JSON) is 100, then 101 bytes are written to the
     FIFO, with the last being a single NUL byte (as noted in the previous sentence).
     '''
 
