@@ -50,6 +50,7 @@ void assimilation_logger(const gchar *log_domain, GLogLevelFlags log_level,
 			 const gchar *message, gpointer user_data);
 const char *	assim_syslogid = "assim"; /// Should be overridden with the name to appear in the logs
 FSTATIC void catch_pid_signal(int signum);
+FSTATIC char *	_shell_array_value(GSList* arrayvalue);
 
 /// Function to get system name (uname -n in UNIX terms)
 #ifdef HAVE_UNAME
@@ -602,10 +603,13 @@ assim_merge_environ(const gchar * const* env	///< Initial environment -- or NULL
 						// No need to unref 'addr' - it's not a copy
 						break;
 					}
+				case CFG_ARRAY: 
+					g_string_append(gsvalue, _shell_array_value(
+					(	update->getarray(update,thiskey))));
+					break;
 				default:
 					g_string_free(gsvalue, TRUE);
 					gsvalue = NULL;
-					g_free(thiskey);
 					thiskeylist->data = thiskey = NULL;
 					continue;
 			}
@@ -646,6 +650,25 @@ assim_merge_environ(const gchar * const* env	///< Initial environment -- or NULL
 	newenv = NULL;
 	env = NULL;
 	return result;
+}
+
+/// Return the value of an array in a shell-compatible way - to put in an environment variable
+FSTATIC char *
+_shell_array_value(GSList*	arrayvalue)
+{
+	GString*	gsvalue = g_string_new("");
+	const char *	space	= "";
+	GSList*		thiselem;
+
+	for (thiselem = arrayvalue; thiselem; thiselem=thiselem->next) {
+		ConfigValue*	elem = CASTTOCLASS(ConfigValue, thiselem->data);
+		if (elem->valtype != CFG_STRING) {
+			continue;
+		}
+		g_string_append_printf(gsvalue, "%s%s", space, elem->u.strvalue);
+		space = " ";
+	}
+	return g_string_free(gsvalue, FALSE);
 }
 
 /// Free the result of assim_merge_env
