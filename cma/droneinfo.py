@@ -159,6 +159,9 @@ class Drone(SystemNode):
 
 
     netstatipportpat = None
+    # disable=R0914 means too many local variables...
+    # disable=R0912 means too many branches
+    # pylint: disable=R0914,R0912
     def _add_tcplisteners(self, jsonobj, **keywords):
         '''Add TCP listeners and/or clients.  Same or separate messages - we don't care.'''
         data = jsonobj['data'] # The data portion of the JSON message
@@ -680,6 +683,9 @@ class LinkDiscoveryListener(DiscoveryListener):
         self.prio = DiscoveryListener.PRI_CORE
         self.wantedpackets = ('__LinkDiscovery',)
 
+
+    #R0914:684,4:LinkDiscoveryListener.processpkt: Too many local variables (25/15)
+    # pylint: disable=R0914
 
     def processpkt(self, drone, unused_srcaddr, jsonobj):
         'Add Low Level (Link Level) discovery data to the database'
