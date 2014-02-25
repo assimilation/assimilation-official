@@ -164,7 +164,7 @@ class DispatchSTARTUP(DispatchTarget):
 
         drone.startaddr = str(origaddr)
         if json is not None:
-            drone.logjson(json)
+            drone.logjson(origaddr, json)
         #print >> sys.stderr, 'Joining TheOneRing: ', drone, type(drone), drone.port
         CMAdb.cdb.TheOneRing.join(drone)
         #print >> sys.stderr, 'Requesting Discovery from ', drone
@@ -201,7 +201,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 drone = self.droneinfo.find(sysname)
                 #print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
                 #print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
-                drone.logjson(json)
+                drone.logjson(origaddr, json)
                 sysname = None
 
 @DispatchTarget.register
@@ -235,7 +235,7 @@ class DispatchSWDISCOVER(DispatchTarget):
                     CMAdb.log.debug('Got Link discovery info from %s: %s' \
                     %   (interface, str(switchjson)))
                 drone = self.droneinfo.find(designation)
-                drone.logjson(str(switchjson))
+                drone.logjson(origaddr, str(switchjson))
                 break
 
 @DispatchTarget.register

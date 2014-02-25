@@ -23,7 +23,7 @@
 We implement the Drone class - which implements all the properties of
 drones as a Python class.
 '''
-import time, sys, hashlib, re
+import time, sys, hashlib, re, types
 #import os, traceback
 from py2neo import neo4j
 from cmadb import CMAdb
@@ -46,7 +46,7 @@ class Drone(SystemNode):
     Drone.IPownerquery_1: Given an IP address, return what SystemNode (probably Drone) that 'owns' it.
     Drone.OwnedIPsQuery:  Given a Drone object, return all the IPaddrNodes that it 'owns'
     '''
-    _JSONprocessors = {}
+    _JSONprocessors = None
     IPownerquery_1 = None
     OwnedIPsQuery = None
     IPownerquery_1_txt = '''START n=node:IPaddrNode({ipaddr})
@@ -106,7 +106,7 @@ class Drone(SystemNode):
 
         
    
-    def logjson(self, jsontext):
+    def logjson(self, origaddr, jsontext):
         'Process and save away JSON discovery data'
         assert CMAdb.store.has_node(self)
         jsonobj = pyConfigContext(jsontext)
@@ -134,8 +134,22 @@ class Drone(SystemNode):
                     %       (dtype, self.designation))
                 return
 
-        if dtype in Drone._JSONprocessors:
-            Drone._JSONprocessors[dtype](self, jsonobj)
+        foundone = False
+        for prio in range(0, DiscoveryListener.PRI_LIMIT):
+            if dtype in Drone._JSONprocessors[prio]:
+                foundone = True
+                procs = Drone._JSONprocessors[prio][dtype]
+                #print >> sys.stderr, 'PROC[%s][%s] = %s' % (prio, dtype, str(procs))
+                for proc in procs:
+                    # @TODO Is this right?  Or should I create one from the class object?
+                    if isinstance(proc, DiscoveryListener):
+                        proc.store = CMAdb.store
+                        proc.transaction = CMAdb.transaction
+                        proc.processpkt(self, origaddr, jsonobj)
+                    else:
+                        # this is for backwards-compatibility
+                        proc(self, jsonobj)
+        if foundone:
             if CMAdb.debug:
                 CMAdb.log.debug('Processed %s JSON data from %s into graph.'
                 %   (dtype, designation))
@@ -143,116 +157,6 @@ class Drone(SystemNode):
             CMAdb.log.info('Stored %s JSON data from %s without processing.'
             %   (dtype, designation))
 
-    # R0912 -- too many branches
-    # R0914 -- too many local variables
-    #pylint: disable=R0914,R0912
-    def _add_netconfig_addresses(self, jsonobj, **kw):
-        '''Save away the network configuration data we got from netconfig JSON discovery.
-        This includes all our NICs, their MAC addresses, all our IP addresses and so on
-        for any (non-loopback) interface.  Whee!
-
-        This code is more complicated than I'd like but it's not obvious how to simplify it...
-        '''
-
-        assert CMAdb.store.has_node(self)
-        data = jsonobj['data'] # The data portion of the JSON message
-        kw = kw # Don't currently need this argument...
-
-        currmacs = {}
-        # Get our current list of NICs 
-        iflist = CMAdb.store.load_related(self, CMAconsts.REL_nicowner, NICNode)
-        for nic in iflist:
-            currmacs[nic.macaddr] = nic
-
-        primaryifname = None
-        newmacs = {}
-        for ifname in data.keys(): # List of interfaces just below the data section
-            ifinfo = data[ifname]
-            if not 'address' in ifinfo:
-                continue
-            macaddr = str(ifinfo['address'])
-            if macaddr.startswith('00:00:00:'):
-                continue
-            newnic = CMAdb.store.load_or_create(NICNode, domain=self.domain
-            ,       macaddr=macaddr, ifname=ifname)
-            newmacs[macaddr] = newnic
-            if 'default_gw' in ifinfo and primaryifname == None:
-                primaryifname = ifname
-
-        # Now compare the two sets of MAC addresses (old and new)
-        for macaddr in currmacs.keys():
-            currmac = currmacs[macaddr]
-            if macaddr in newmacs:
-                newmacs[macaddr] = currmac.update_attributes(newmacs[macaddr])
-            else:
-                CMAdb.store.separate(self, CMAconsts.REL_ipowner, currmac)
-                #CMAdb.store.separate(self, CMAconsts.REL_causes,  currmac)
-                # @TODO Needs to be a 'careful, complete' reference count deletion...
-                CMAdb.store.delete(currmac)
-                del currmacs[macaddr]
-        currmacs = None
-
-        # Create REL_nicowner relationships for the newly created NIC nodes
-        for macaddr in newmacs.keys():
-            nic = newmacs[macaddr]
-            if Store.is_abstract(nic):
-                CMAdb.store.relate(self, CMAconsts.REL_nicowner, nic, {'causes': True})
-                #CMAdb.store.relate(self, CMAconsts.REL_causes,   nic)
-
-        # Now newmacs contains all the current info about our NICs - old and new...
-        # Let's figure out what's happening with our IP addresses...
-
-        primaryip = None
-
-        for macaddr in newmacs.keys():
-            mac = newmacs[macaddr]
-            ifname = mac.ifname
-            iptable = data[str(ifname)]['ipaddrs']
-            currips = {}
-            iplist = CMAdb.store.load_related(mac, CMAconsts.REL_ipowner, IPaddrNode)
-            for ip in iplist:
-                currips[ip.ipaddr] = ip
-
-            newips = {}
-            for ip in iptable.keys():   # keys are 'ip/mask' in CIDR format
-                ipname = ':::INVALID:::'
-                ipinfo = iptable[ip]
-                if 'name' in ipinfo:
-                    ipname = ipinfo['name']
-                if ipinfo['scope'] != 'global':
-                    continue
-                iponly, cidrmask = ip.split('/')
-                netaddr = pyNetAddr(iponly).toIPv6()
-                if netaddr.islocal():       # We ignore loopback addresses - might be wrong...
-                    continue
-                ipnode = CMAdb.store.load_or_create(IPaddrNode
-                ,   domain=self.domain, ipaddr=str(netaddr), cidrmask=cidrmask)
-                ## FIXME: Not an ideal way to determine primary (preferred) IP address...
-                ## it's a bit idiosyncratic to Linux...
-                ## A better way would be to use their 'startaddr' (w/o the port)
-                ## This uses the IP address they used to talk to us.
-                if ifname == primaryifname  and primaryip is None and ipname == ifname:
-                    primaryip = ipnode
-                    self.primary_ip_addr = str(primaryip.ipaddr)
-                newips[str(netaddr)] = ipnode
-
-            # compare the two sets of IP addresses (old and new)
-            for ipaddr in currips.keys():
-                currip = currips[ipaddr]
-                if ipaddr in newips:
-                    newips[ipaddr] = currip.update_attributes(newips[ipaddr])
-                else:
-                    del currips[ipaddr]
-                    # @FIXME - this is a bug -- 'currip' is a string... - or _something_ is...
-                    CMAdb.store.separate(mac, currip, CMAconsts.REL_ipowner)
-                    # @TODO Needs to be a 'careful, complete' reference count deletion...
-                    CMAdb.store.delete(currip)
-
-            # Create REL_ipowner relationships for all the newly created IP nodes
-            for ipaddr in newips.keys():
-                ip = newips[ipaddr]
-                CMAdb.store.relate_new(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
-                #CMAdb.store.relate(mac, CMAconsts.REL_causes,  ip)
 
     netstatipportpat = None
     def _add_tcplisteners(self, jsonobj, **keywords):
@@ -482,97 +386,6 @@ class Drone(SystemNode):
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
             %       (self, addr))
 
-    def _add_linkdiscovery(self, jsonobj, **keywords):
-        'Add Low Level (Link Level) discovery data to the database'
-        #
-        #   This code doesn't yet deal with moving network connections around
-        #   it is certain that it won't delete the old information and replace it
-        #   There are two possibilities:
-        #       We are connecting to a switch port which is previously connected:
-        #           Drop any wiredto connection that already exists to that port
-        #       We are connecting to somewhere different
-        #           Drop any wiredto relationship between the switch port and us
-        #
-        keywords = keywords # don't need these
-        data = jsonobj['data']
-        #print >> sys.stderr, 'SWITCH JSON:', str(data)
-        if 'ChassisId' not in data:
-            CMAdb.log.warning('Chassis ID missing from discovery data from switch [%s]'
-            %   (str(data)))
-            return
-        chassisid = data['ChassisId']
-        attrs = {}
-        for key in data.keys():
-            if key == 'ports' or key == 'SystemCapabilities':
-                continue
-            value = data[key]
-            if not isinstance(value, int) and not isinstance(value, float):
-                value = str(value)
-            attrs[key] = value
-        attrs['designation'] =  chassisid
-        #### FIXME What should the domain of a switch default to?
-        attrs['domain'] =  self.domain
-        switch = CMAdb.store.load_or_create(SystemNode, **attrs)
-
-        if not 'SystemCapabilities' in data:
-            switch.addrole(CMAconsts.ROLE_bridge)
-        else:
-            caps = data['SystemCapabilities']
-            for role in caps.keys():
-                if caps[role]:
-                    switch.addrole(role)
-            #switch.addrole([role for role in caps.keys() if caps[role]])
-            
-
-        if 'ManagementAddress' in attrs:
-            # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
-            mgmtaddr = attrs['ManagementAddress']
-            mgmtnetaddr = pyNetAddr(mgmtaddr)
-            atype = mgmtnetaddr.addrtype()
-            if atype == ADDR_FAMILY_IPV4 or atype == ADDR_FAMILY_IPV6:
-                # MAC addresses are permitted, but IP addresses are preferred
-                adminnic = CMAdb.store.load_or_create(NICNode, domain=switch.domain
-                ,       macaddr=chassisid, ifname='(adminNIC)')
-                mgmtip = CMAdb.store.load_or_create(IPaddrNode, domain=switch.domain
-                ,           cidrmask='unknown', ipaddr=mgmtaddr)
-                if Store.is_abstract(adminnic) or Store.is_abstract(switch):
-                    CMAdb.store.relate(switch, CMAconsts.REL_nicowner, adminnic)
-                if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
-                    CMAdb.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip)
-        ports = data['ports']
-        for portname in ports.keys():
-            attrs = {}
-            thisport = ports[portname]
-            for key in thisport.keys():
-                value = thisport[key]
-                if isinstance(value, pyNetAddr):
-                    value = str(value)
-                attrs[key] = value
-            if 'sourceMAC' in thisport:
-                nicmac = thisport['sourceMAC']
-            else:
-                nicmac = chassisid # Hope that works ;-)
-            nicnode = CMAdb.store.load_or_create(NICNode, domain=self.domain
-            ,   macaddr=nicmac, **attrs)
-            CMAdb.store.relate(switch, CMAconsts.REL_nicowner, nicnode, {'causes': True})
-            try:
-                assert thisport['ConnectsToHost'] == self.designation
-                matchif = thisport['ConnectsToInterface']
-                niclist = CMAdb.store.load_related(self, CMAconsts.REL_nicowner, NICNode)
-                for dronenic in niclist:
-                    if dronenic.ifname == matchif:
-                        CMAdb.store.relate_new(nicnode, CMAconsts.REL_wiredto, dronenic)
-                        break
-            except KeyError:
-                CMAdb.log.error('OOPS! got an exception...')
-
-    def _update_agentcache(self, unused_jsonobj, **unused_keywords):
-        '''Update the _agentcache'''
-        unused_jsonobj = unused_jsonobj
-        unused_keywords = unused_keywords
-        MonitoringRule.compute_available_agents((self,))
-
-
     def destaddr(self, ring=None):
         '''Return the "primary" IP for this host as a pyNetAddr with port'''
         return pyNetAddr(self.select_ip(ring=ring), port=self.port)
@@ -788,17 +601,294 @@ class Drone(SystemNode):
     @staticmethod
     def add_json_processors(*args):
         "Register (add) all the json processors we've been given as arguments"
-        for ourtuple in args:
-            Drone._JSONprocessors[ourtuple[0]] = ourtuple[1]
+        for elem in args:
+            if isinstance(elem, types.ClassType):
+                elem = elem(CMAdb.transaction, CMAdb.store, CMAdb.log, CMAdb.debug)
+            if isinstance(elem, DiscoveryListener):
+                priority = elem.priority()
+                msgtypes = elem.desiredpackets()
+                listener = elem
+            else:
+                priority = DiscoveryListener.PRI_CORE
+                msgtypes = (elem[0],)
+                listener = elem[1]
+            if Drone._JSONprocessors is None:
+                Drone._JSONprocessors = []
+                for prio in range(0, DiscoveryListener.PRI_LIMIT):
+                    prio = prio # Make pylint happy
+                    Drone._JSONprocessors.append({})
+
+            for msgtype in msgtypes:
+                if msgtype not in Drone._JSONprocessors[priority]:
+                    Drone._JSONprocessors[priority][msgtype] = []
+                Drone._JSONprocessors[priority][msgtype].append(listener)
+
+class DiscoveryListener:
+    'Class for listening to discovery packets'
+
+    PRI_CORE   = 0
+    PRI_OPTION  = 1
+    PRI_CONTRIB = 2
+    PRI_LIMIT = PRI_CONTRIB+1
+
+    def __init__(self, packetio, store, log, debug):
+        'Init function for DiscoveryListener'
+        self.packetio = packetio
+        self.store = store
+        self.prio = DiscoveryListener.PRI_OPTION
+        self.log = log
+        self.debug = debug
+        self.wantedpackets = None
+
+    def priority(self):
+        'Return the priority (ordering) that this should be invoked at'
+        return self.prio
+
+    def desiredpackets(self):
+        'Return the set of packets we want be called for'
+        return self.wantedpackets
+
+    def processpkt(self, drone, srcaddr, json):
+        'A desired packet has been received - process it'
+        raise NotImplementedError('Abstract class - processpkt()')
+    
+
+@Drone.add_json_processors
+class MonitoringAgentDiscoveryListener(DiscoveryListener):
+    'Class for updating our agent cache when we get new monitoringagents information'
+
+    def __init__(self, packetio, store, log, debug):
+        'Init function for MonitoringAgentDiscoveryListener'
+        DiscoveryListener.__init__(self, packetio, store, log, debug)
+        self.prio = DiscoveryListener.PRI_CORE
+        self.wantedpackets = ('monitoringagents',)
+
+    def processpkt(self, drone, unused_srcaddr, unused_jsonobj):
+        '''Update the _agentcache when we get a new set of available agents'''
+        unused_jsonobj = unused_jsonobj
+        unused_srcaddr = unused_srcaddr
+        MonitoringRule.compute_available_agents((self,))
 
 
-# W0202 Access to a protected member _add_netconfig_addresses of a client class
+@Drone.add_json_processors
+class LinkDiscoveryListener(DiscoveryListener):
+    'Class for processing Link Discovery JSON messages'
+
+    def __init__(self, packetio, store, log, debug):
+        'Init function for LinkDiscoveryListener'
+        DiscoveryListener.__init__(self, packetio, store, log, debug)
+        self.prio = DiscoveryListener.PRI_CORE
+        self.wantedpackets = ('__LinkDiscovery',)
+
+
+    def processpkt(self, drone, unused_srcaddr, jsonobj):
+        'Add Low Level (Link Level) discovery data to the database'
+        #
+        #   This code doesn't yet deal with moving network connections around
+        #   it is certain that it won't delete the old information and replace it
+        #   There are two possibilities:
+        #       We are connecting to a switch port which is previously connected:
+        #           Drop any wiredto connection that already exists to that port
+        #       We are connecting to somewhere different
+        #           Drop any wiredto relationship between the switch port and us
+        #
+        unused_srcaddr = unused_srcaddr
+        data = jsonobj['data']
+        #print >> sys.stderr, 'SWITCH JSON:', str(data)
+        if 'ChassisId' not in data:
+            self.log.warning('Chassis ID missing from discovery data from switch [%s]'
+            %   (str(data)))
+            return
+        chassisid = data['ChassisId']
+        attrs = {}
+        for key in data.keys():
+            if key == 'ports' or key == 'SystemCapabilities':
+                continue
+            value = data[key]
+            if not isinstance(value, int) and not isinstance(value, float):
+                value = str(value)
+            attrs[key] = value
+        attrs['designation'] =  chassisid
+        #### FIXME What should the domain of a switch default to?
+        attrs['domain'] =  drone.domain
+        switch = self.store.load_or_create(SystemNode, **attrs)
+
+        if not 'SystemCapabilities' in data:
+            switch.addrole(CMAconsts.ROLE_bridge)
+        else:
+            caps = data['SystemCapabilities']
+            for role in caps.keys():
+                if caps[role]:
+                    switch.addrole(role)
+            #switch.addrole([role for role in caps.keys() if caps[role]])
+            
+
+        if 'ManagementAddress' in attrs:
+            # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
+            mgmtaddr = attrs['ManagementAddress']
+            mgmtnetaddr = pyNetAddr(mgmtaddr)
+            atype = mgmtnetaddr.addrtype()
+            if atype == ADDR_FAMILY_IPV4 or atype == ADDR_FAMILY_IPV6:
+                # MAC addresses are permitted, but IP addresses are preferred
+                adminnic = self.store.load_or_create(NICNode, domain=switch.domain
+                ,       macaddr=chassisid, ifname='(adminNIC)')
+                mgmtip = self.store.load_or_create(IPaddrNode, domain=switch.domain
+                ,           cidrmask='unknown', ipaddr=mgmtaddr)
+                if Store.is_abstract(adminnic) or Store.is_abstract(switch):
+                    self.store.relate(switch, CMAconsts.REL_nicowner, adminnic)
+                if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
+                    self.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip)
+        ports = data['ports']
+        for portname in ports.keys():
+            attrs = {}
+            thisport = ports[portname]
+            for key in thisport.keys():
+                value = thisport[key]
+                if isinstance(value, pyNetAddr):
+                    value = str(value)
+                attrs[key] = value
+            if 'sourceMAC' in thisport:
+                nicmac = thisport['sourceMAC']
+            else:
+                nicmac = chassisid # Hope that works ;-)
+            nicnode = self.store.load_or_create(NICNode, domain=drone.domain
+            ,   macaddr=nicmac, **attrs)
+            self.store.relate(switch, CMAconsts.REL_nicowner, nicnode, {'causes': True})
+            try:
+                assert thisport['ConnectsToHost'] == drone.designation
+                matchif = thisport['ConnectsToInterface']
+                niclist = self.store.load_related(drone, CMAconsts.REL_nicowner, NICNode)
+                for dronenic in niclist:
+                    if dronenic.ifname == matchif:
+                        self.store.relate_new(nicnode, CMAconsts.REL_wiredto, dronenic)
+                        break
+            except KeyError:
+                self.log.error('OOPS! got an exception...')
+
+    # R0912 -- too many branches
+    # R0914 -- too many local variables
+    #pylint: disable=R0914,R0912
+
+@Drone.add_json_processors
+class NetconfigDiscoveryListener(DiscoveryListener):
+    'Class for the (initial) netconfig discovery packet'
+
+    def __init__(self, packetio, store, log, debug):
+        'Init function for NetconfigDiscoveryListener'
+        DiscoveryListener.__init__(self, packetio, store, log, debug)
+        self.prio = DiscoveryListener.PRI_CORE
+        self.wantedpackets = ('netconfig',)
+
+    def processpkt(self, drone, unused_srcaddr, jsonobj):
+        '''Save away the network configuration data we got from netconfig JSON discovery.
+        This includes all our NICs, their MAC addresses, all our IP addresses and so on
+        for any (non-loopback) interface.  Whee!
+
+        This code is more complicated than I'd like but it's not obvious how to simplify it...
+        '''
+
+        unused_srcaddr = unused_srcaddr
+        assert self.store.has_node(drone)
+        data = jsonobj['data'] # The data portion of the JSON message
+
+        currmacs = {}
+        # Get our current list of NICs 
+        iflist = self.store.load_related(drone, CMAconsts.REL_nicowner, NICNode)
+        for nic in iflist:
+            currmacs[nic.macaddr] = nic
+
+        primaryifname = None
+        newmacs = {}
+        for ifname in data.keys(): # List of interfaces just below the data section
+            ifinfo = data[ifname]
+            if not 'address' in ifinfo:
+                continue
+            macaddr = str(ifinfo['address'])
+            if macaddr.startswith('00:00:00:'):
+                continue
+            newnic = self.store.load_or_create(NICNode, domain=drone.domain
+            ,       macaddr=macaddr, ifname=ifname)
+            newmacs[macaddr] = newnic
+            if 'default_gw' in ifinfo and primaryifname == None:
+                primaryifname = ifname
+
+        # Now compare the two sets of MAC addresses (old and new)
+        for macaddr in currmacs.keys():
+            currmac = currmacs[macaddr]
+            if macaddr in newmacs:
+                newmacs[macaddr] = currmac.update_attributes(newmacs[macaddr])
+            else:
+                self.store.separate(drone, CMAconsts.REL_ipowner, currmac)
+                #self.store.separate(drone, CMAconsts.REL_causes,  currmac)
+                # @TODO Needs to be a 'careful, complete' reference count deletion...
+                self.store.delete(currmac)
+                del currmacs[macaddr]
+        currmacs = None
+
+        # Create REL_nicowner relationships for the newly created NIC nodes
+        for macaddr in newmacs.keys():
+            nic = newmacs[macaddr]
+            if Store.is_abstract(nic):
+                self.store.relate(drone, CMAconsts.REL_nicowner, nic, {'causes': True})
+                #self.store.relate(drone, CMAconsts.REL_causes,   nic)
+
+        # Now newmacs contains all the current info about our NICs - old and new...
+        # Let's figure out what's happening with our IP addresses...
+
+        primaryip = None
+
+        for macaddr in newmacs.keys():
+            mac = newmacs[macaddr]
+            ifname = mac.ifname
+            iptable = data[str(ifname)]['ipaddrs']
+            currips = {}
+            iplist = self.store.load_related(mac, CMAconsts.REL_ipowner, IPaddrNode)
+            for ip in iplist:
+                currips[ip.ipaddr] = ip
+
+            newips = {}
+            for ip in iptable.keys():   # keys are 'ip/mask' in CIDR format
+                ipname = ':::INVALID:::'
+                ipinfo = iptable[ip]
+                if 'name' in ipinfo:
+                    ipname = ipinfo['name']
+                if ipinfo['scope'] != 'global':
+                    continue
+                iponly, cidrmask = ip.split('/')
+                netaddr = pyNetAddr(iponly).toIPv6()
+                if netaddr.islocal():       # We ignore loopback addresses - might be wrong...
+                    continue
+                ipnode = self.store.load_or_create(IPaddrNode
+                ,   domain=drone.domain, ipaddr=str(netaddr), cidrmask=cidrmask)
+                ## FIXME: Not an ideal way to determine primary (preferred) IP address...
+                ## it's a bit idiosyncratic to Linux...
+                ## A better way would be to use their 'startaddr' (w/o the port)
+                ## This uses the IP address they used to talk to us.
+                if ifname == primaryifname  and primaryip is None and ipname == ifname:
+                    primaryip = ipnode
+                    drone.primary_ip_addr = str(primaryip.ipaddr)
+                newips[str(netaddr)] = ipnode
+
+            # compare the two sets of IP addresses (old and new)
+            for ipaddr in currips.keys():
+                currip = currips[ipaddr]
+                if ipaddr in newips:
+                    newips[ipaddr] = currip.update_attributes(newips[ipaddr])
+                else:
+                    del currips[ipaddr]
+                    # @FIXME - this is a bug -- 'currip' is a string... - or _something_ is...
+                    self.store.separate(mac, currip, CMAconsts.REL_ipowner)
+                    # @TODO Needs to be a 'careful, complete' reference count deletion...
+                    self.store.delete(currip)
+
+            # Create REL_ipowner relationships for all the newly created IP nodes
+            for ipaddr in newips.keys():
+                ip = newips[ipaddr]
+                self.store.relate_new(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
+                #self.store.relate(mac, CMAconsts.REL_causes,  ip)
+
 # W0212 Access to a protected member _add_tcplisteners of a client class
-# W0212 Access to a protected member _add_tcplisteners of a client class
-# W0212 Access to a protected member _add_linkdiscovery of a client class
-
 # pylint: disable=W0212
-Drone.add_json_processors(('netconfig', Drone._add_netconfig_addresses),)
+#Drone.add_json_processors(('netconfig', Drone._add_netconfig_addresses),)
 Drone.add_json_processors(('tcpdiscovery', Drone._add_tcplisteners),)
-Drone.add_json_processors(('__LinkDiscovery', Drone._add_linkdiscovery),)
-Drone.add_json_processors(('monitoringagents', Drone._update_agentcache),)
+#Drone.add_json_processors(('__LinkDiscovery', Drone._add_linkdiscovery),)
