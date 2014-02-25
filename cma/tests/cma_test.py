@@ -509,7 +509,6 @@ class TestCMABasic(TestCase):
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
         SETCONFIG message and then send back a bunch of discovery requests.'''
-        DEBUG=True
         if DEBUG:
             print >> sys.stderr, 'Running test_several_startups()'
         OurAddr = pyNetAddr((10,10,10,5), 1984)
