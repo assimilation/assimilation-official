@@ -102,7 +102,7 @@ then
 fi
 
 binary_in_path() {
-    loc=$(whereis -b curl | sed -e 's%[^:]*:%%' -e s'%^ *%%' -e 's% .*%%')
+    loc=$(whereis -b "$1" | sed -e 's%[^:]*:%%' -e s'%^ *%%' -e 's% .*%%')
     test -f "$loc" -a -x "$loc"
 }
 
