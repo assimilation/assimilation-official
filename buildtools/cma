@@ -7,16 +7,18 @@
 # Default-Stop:  0 1 6
 # Short-Description: start and stop the Assimilation Monitoring System Collective Management Authority (CMA)
 # Description: The Assimilation Monitoring System provides fully-distributed, highly-scalable
-#              discovery-driven monitoring.  You can also think of it as monitoring-driven discovery
-#              if you'd rather. http://assimmon.org/
-#              If the CMA is run on the same system as a nanoprobe (a recommended practice),
-#              the CMA must start BEFORE the nanoprobe or the poor CMA won't be able to start.
+#              discovery-driven monitoring.  You can also think of it as monitoring-driven
+#              discovery if you'd rather. http://assimproj.org/
+#              If the CMA is run on the same system as a nanoprobe (a normal practice),
+#              on that machine, the CMA must start BEFORE the nanoprobe or the poor CMA
+#              won't be able to start ( and it will be very sad :-() or you have to specify
+#              the NANOPROBE_DYNAMIC=yes for the nanoprobe init.
 #              It also must start after neo4j has been started.
 ### END INIT INFO
 #
 # This file is part of the Assimilation Project.
 #
-# @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
+# @author Copyright &copy; 2013, 2012 - Alan Robertson <alanr@unix.sh>
 # @n
 #  The Assimilation software is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -36,6 +38,29 @@ BINARY=/usr/sbin/cma
 ARGS=""
 
 SERVICE=$(basename $BINARY)
+
+#           Ubuntu        Red Hat/SuSE
+for dir in /etc/default  /etc/sysconfig
+do
+    file="$dir/$SERVICE"
+    if
+        [ -f "$file" -a -r "$file" ]
+    then
+        . "$file"
+        break
+    fi
+done
+FLAGS=""
+
+#   What address should we bind to locally?
+#   format is an IP:port combination - ipv4 or ipv6 format
+case "${CMA_BIND}" in
+    ?*) FLAGS="$FLAGS --bind $CMA_BIND";;
+esac
+#   Where to put our pid file?
+case "${CMA_PIDFILE}" in
+    ?*) FLAGS="$FLAGS --pidfile $CMA_PIDFILE";;
+esac
 
 command=$1
 case "$command" in
