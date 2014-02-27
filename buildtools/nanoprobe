@@ -34,9 +34,55 @@
 #
 
 NANOPROBE=/usr/sbin/nanoprobe
-NANOARGS=""
-
 SERVICE=$(basename $NANOPROBE)
+NANOARGS=""
+#           Ubuntu        Red Hat/SuSE
+for dir in /etc/default  /etc/sysconfig
+do
+    file="$dir/$SERVICE"
+    if
+        [ -f "$file" -a -r "$file" ]
+    then
+        . "$file"
+        break
+    fi
+done
+
+#   Where to find the CMA?  It defaults to our reserved multicast address
+#   format is an IP:port combination - ipv4 or ipv6 format
+case "${NANOPROBE_CMAADDR}" in
+    ?*) NANOARGS="$NANOARGS --cmaaddr $NANOPROBE_CMAADDR";;
+esac
+#   Multicast TTL if we're using our reserved multicast address...
+#   TTL must be between 1 and 31 inclusive.
+case "${NANOPROBE_TTL}" in
+    ?*) NANOARGS="$NANOARGS --ttl ${NANOPROBE_TTL}";;
+esac
+#   What address should we bind to locally?
+#   format is an IP:port combination - IPv4 or IPv6 format
+#   IPv6 format looks like "[v6address]:portnumber" (as it should)
+case "${NANOPROBE_BIND}" in
+    ?*) NANOARGS="$NANOARGS --bind $NANOPROBE_BIND";;
+esac
+#   If NANOPROBE_DYNAMIC is set to yes or similar then bind to an ephemeral port.
+#   This must typically be done for the machine the CMA is running on.
+#   The alternative is to specify a specific non-conflicting BIND address,
+#   or to ensure the nanoprobe starts after the CMA - in which case this
+#   happens automagically...
+case "${NANOPROBE_DYNAMIC}" in
+    y*|Y*|t*|T*|1) NANOARGS="$NANOARGS --dynamic";;
+esac
+#   Debug level?  (integer from 0 to 5)
+#   Note that sending SIGUSR1 dynamically raises the debug level
+#   of a running nanoprobe, and SIGUSR2 lowers it.
+case "${NANOPROBE_DEBUG}" in
+    ?*) NANOARGS="$NANOARGS --debug $NANOPROBE_DEBUG";;
+esac
+#   Where to put our pid file?
+case "${NANOPROBE_PIDFILE}" in
+    ?*) NANOARGS="$NANOARGS --pidfile $NANOPROBE_PIDFILE";;
+esac
+
 
 command=$1
 case "$command" in
