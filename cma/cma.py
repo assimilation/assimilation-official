@@ -101,6 +101,9 @@ import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR
+import importlib
+for optional in (("discoverylistener",)):
+    importlib.import_module(optional)
 #import atexit
 #
 #   "Main" program starts below...
