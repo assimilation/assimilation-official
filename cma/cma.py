@@ -102,9 +102,9 @@ import cmainit
 from assimeventobserver import ForkExecObserver
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR
 import importlib
-for optional in (("discoverylistener",)):
-    importlib.import_module(optional)
 #import atexit
+
+optional_modules = [ "discoverylistener",]
 #
 #   "Main" program starts below...
 #   It is a the real CMA intended to run with some real nanoprobes running
@@ -276,6 +276,8 @@ def main():
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...
     listener = PacketListener(config, disp, io=io)
+    for optional in optional_modules:
+        importlib.import_module(optional)
     if opt.doTrace:
         import trace
         tracer = trace.Trace(count=False, trace=True)
