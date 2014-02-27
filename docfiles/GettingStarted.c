@@ -39,13 +39,15 @@ The following packages are needed for building the packages, testing them, or cr
 <b>Test-only packages</b>
 - <a href="http://valgrind.org/">valgrind</a> (for testing 'C' code)
 - <a href="https://github.com/Yelp/Testify">Testify</a> - Python testing framework (for CMA code)
+- <a href="http://pylint.org/">Pylint</a> - Python code analysis (for CMA code)
 
 <b>Nanoprobe (and CMA library) packages</b>
 - <a href="http://developer.gnome.org/glib">glib2-dev</a> (aka libglib2.0-dev)
 - <a href="http://www.tcpdump.org">libpcap-dev</a> (or winpcap for Windows)
+- <a href="https://github.com/ClusterLabs/resource-agents">OCF resource agents</a> (available as 'resource-agents' package on Ubuntu)
 
 <b>CMA-only packages</b>
-- <a href="http://www.neo4j.org/install">Neo4j</a> graph database
+- <a href="http://www.neo4j.org/install">Neo4j</a> graph database.  Note that Neo4j needs Java.  They prefer Oracle's Java.
 - <a href="http://www.python.org/">Python 2.7</a> (approximately) interpreter for the Python language
 - <a href="http://py2neo.org/">py2neo</a> Python bindings for Neo4j - version <b>1.6.1</b> or later
 - <a href="http://flask.pocoo.org/">flask</a> Python web microframework
