@@ -30,19 +30,21 @@ from testify.utils import turtle
 from frameinfo import *
 from AssimCclasses import *
 import gc, sys, time, collections, os
-from graphnodes import nodeconstructor, CMAclass
+from graphnodes import nodeconstructor, CMAclass, ProcessNode
 from cmainit import CMAinit
 from cmadb import CMAdb
 from packetlistener import PacketListener
 from messagedispatcher import MessageDispatcher
 from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
 from hbring import HbRing
-from droneinfo import Drone, ProcessNode
+from droneinfo import Drone
 import optparse
 from graphnodes import GraphNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
 from gi.repository import GLib as glib
+
+import discoverylistener
 
 
 os.environ['G_MESSAGES_DEBUG'] =  'all'
@@ -50,6 +52,7 @@ WorstDanglingCount = 0
 
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
+AssertOnDanglingClasses = False
 DEBUG=False
 DoAudit=True
 doHBDEAD=True
