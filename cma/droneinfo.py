@@ -660,7 +660,6 @@ class TCPDiscoveryListener(DiscoveryListener):
         '''Add TCP listeners and clients.'''
         unused_srcaddr = unused_srcaddr # Make pylint happy
         data = jsonobj['data'] # The data portion of the JSON message
-        drone.monitors_activated = True
         if CMAdb.debug:
             CMAdb.log.debug('_add_tcplisteners(data=%s)' % data)
 
@@ -671,24 +670,6 @@ class TCPDiscoveryListener(DiscoveryListener):
         newprocs = {}
         newprocmap = {}
         discoveryroles = {}
-        checksumparameters = {
-            'type': 'checksums',
-            'parameters': {
-                'ASSIM_sumcmds': [
-                        '/usr/bin/sha256sum'
-                    ,   '/usr/bin/sha224sum'
-                    ,   '/usr/bin/sha384sum'
-                    ,   '/usr/bin/sha512sum'
-                    ,   '/usr/bin/sha1sum'
-                    ,   '/usr/bin/md5sum'
-                    ,   '/usr/bin/cksum'
-                ,   '/usr/bin/crc32' ],
-                'ASSIM_filelist': ['/bin/sh'
-                    ,   '/bin/bash'
-                    ,   '/bin/login'
-                    ,   '/usr/bin/passwd' ]
-            }
-        }
         for procname in data.keys():    # List of nanoprobe-assigned names of processes...
             procinfo = data[procname]
             if 'listenaddrs' in procinfo:
@@ -700,20 +681,6 @@ class TCPDiscoveryListener(DiscoveryListener):
                     discoveryroles[CMAconsts.ROLE_client] = True
                     drone.addrole(CMAconsts.ROLE_client)
             #print >> sys.stderr, 'CREATING PROCESS %s!!' % procname
-            if 'exe' in procinfo:
-                exename = procinfo.get('exe')
-                # dups (if any) are removed by the agent
-                checksumparameters['parameters']['ASSIM_filelist'].append(exename)
-                # Special case for some/many JAVA programs - find the jars...
-                if exename.endswith('/java'):
-                    cmdline = procinfo.get('cmdline')
-                    for j in range(0, len(cmdline)):
-                        if cmdline[j] == '-cp' and j < len(cmdline)-1:
-                            jars = cmdline[j+1].split(':')
-                            for jar in jars:
-                                checksumparameters['parameters']['ASSIM_filelist'].append(jar)
-                            break
-
             processproc = self.store.load_or_create(ProcessNode, domain=drone.domain
             ,   processname=procname
             ,   host=drone.designation
@@ -729,12 +696,6 @@ class TCPDiscoveryListener(DiscoveryListener):
                 self.store.relate(drone, CMAconsts.REL_hosting, processproc, {'causes':True})
             if self.debug:
                 self.log.debug('procinfo(%s) - processproc created=> %s' % (procinfo, processproc))
-
-        # Request discovery of checksums of all the binaries talking (tcp) over the network
-        drone.request_discovery('_auto-checksums', 3600, str(JSONtree(checksumparameters)))
-        print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF: %s'
-        %   (str(checksumparameters['parameters']['ASSIM_filelist'])))
-
 
         oldprocs = {}
         # Several kinds of nodes have the same relationship to the host...
@@ -770,27 +731,6 @@ class TCPDiscoveryListener(DiscoveryListener):
                     match = TCPDiscoveryListener.netstatipportpat.match(srvkey)
                     (ip, port) = match.groups()
                     self._add_serveripportnodes(drone, ip, int(port), processnode, allourips)
-                montuple = MonitoringRule.findbestmatch((processnode, drone))
-                if montuple[0] == MonitoringRule.NOMATCH:
-                    print >> sys.stderr, "**don't know how to monitor %s" % str(processnode.argv)
-                    self.log.warning('No rules to monitor %s service %s'
-                    %   (drone.designation, str(processnode.argv)))
-                elif montuple[0] == MonitoringRule.PARTMATCH:
-                    print >> sys.stderr, (
-                    'Automatic monitoring not possible for %s -- %s is missing %s' 
-                    %   (str(processnode.argv), str(montuple[1]), str(montuple[2])))
-                    self.log.warning('Insufficient information to monitor %s service %s'
-                    '. %s is missing %s'
-                    %   (drone.designation, str(processnode.argv)
-                    ,    str(montuple[1]), str(montuple[2])))
-                else:
-                    agent = montuple[1]
-                    self._add_service_monitoring(drone, processnode, agent)
-                    if agent['monitorclass'] == 'NEVERMON':
-                        print >> sys.stderr, ('NEVER monitor %s' %  (str(agent['monitortype'])))
-                    else:
-                        print >> sys.stderr, ('START monitoring %s using %s agent'
-                        %   (agent['monitortype'], agent['monitorclass']))
             if 'clientaddrs' in procinfo:
                 clientinfo = procinfo['clientaddrs']
                 processnode.addrole(CMAconsts.ROLE_client)
@@ -798,6 +738,138 @@ class TCPDiscoveryListener(DiscoveryListener):
                     match = TCPDiscoveryListener.netstatipportpat.match(clientkey)
                     (ip, port) = match.groups()
                     self._add_clientipportnode(drone, ip, int(port), processnode)
+
+    def _add_clientipportnode(self, drone, ipaddr, servport, processnode):
+        '''Add the information for a single client IPtcpportNode to the database.'''
+        servip_name = str(pyNetAddr(ipaddr).toIPv6())
+        servip = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=servip_name)
+        ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
+        ,       ipaddr=servip_name, port=servport)
+        self.store.relate_new(ip_port, CMAconsts.REL_baseip, servip, {'causes': True})
+        self.store.relate_new(processnode, CMAconsts.REL_tcpclient, ip_port, {'causes': True})
+
+    def _add_serveripportnodes(self, drone, ip, port, processnode, allourips):
+        '''We create tcpipports objects that correspond to the given json object in
+        the context of the set of IP addresses that we support - including support
+        for the ANY ipv4 and ipv6 addresses'''
+        netaddr = pyNetAddr(str(ip)).toIPv6()
+        if netaddr.islocal():
+            self.log.warning('add_serveripportnodes("%s"): address is local' % netaddr)
+            return
+        addr = str(netaddr)
+        # Were we given the ANY address?
+        anyaddr = netaddr.isanyaddr()
+        for ipaddr in allourips:
+            if not anyaddr and str(ipaddr.ipaddr) != addr:
+                continue
+            ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
+            ,   ipaddr=ipaddr.ipaddr, port=port)
+            assert hasattr(ip_port, '_Store__store_node')
+            self.store.relate_new(processnode, CMAconsts.REL_tcpservice, ip_port)
+            assert hasattr(ipaddr, '_Store__store_node')
+            self.store.relate_new(ip_port, CMAconsts.REL_baseip, ipaddr)
+            if not anyaddr:
+                return
+        if not anyaddr:
+            print >> sys.stderr, ('LOOKING FOR %s in: %s'
+            %       (netaddr, [str(ip.ipaddr) for ip in allourips]))
+            raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
+            %       (drone, addr))
+
+@Drone.add_json_processor
+class TCPDiscoveryChecksumGenerator(DiscoveryListener):
+    'Class for generating checksums based on the content of tcpdiscovery packets'
+    prio = DiscoveryListener.PRI_OPTION
+    wantedpackets = ('tcpdiscovery',)
+
+    def processpkt(self, drone, unused_srcaddr, jsonobj):
+        "Send commands to generate checksums in for this Drone's net-facing things"
+        unused_srcaddr = unused_srcaddr
+        checksumparameters = {
+            'type': 'checksums',
+            'parameters': {
+                'ASSIM_sumcmds': [
+                        '/usr/bin/sha256sum'
+                    ,   '/usr/bin/sha224sum'
+                    ,   '/usr/bin/sha384sum'
+                    ,   '/usr/bin/sha512sum'
+                    ,   '/usr/bin/sha1sum'
+                    ,   '/usr/bin/md5sum'
+                    ,   '/usr/bin/cksum'
+                ,   '/usr/bin/crc32' ],
+                'ASSIM_filelist': ['/bin/sh'
+                    ,   '/bin/bash'
+                    ,   '/bin/login'
+                    ,   '/usr/bin/passwd' ]
+            }
+        }
+        data = jsonobj['data'] # The data portion of the JSON message
+        for procname in data.keys():    # List of nanoprobe-assigned names of processes...
+            procinfo = data[procname]
+            if 'exe' not in procinfo:
+                continue
+            exename = procinfo.get('exe')
+            # dups (if any) are removed by the agent
+            checksumparameters['parameters']['ASSIM_filelist'].append(exename)
+            if exename.endswith('/java'):
+                # Special case for some/many JAVA programs - find the jars...
+                if 'cmdline' not in procinfo:
+                    continue
+                cmdline = procinfo.get('cmdline')
+                for j in range(0, len(cmdline)):
+                    # The argument following -cp is the ':'-separated CLASSPATH
+                    if cmdline[j] == '-cp' and j < len(cmdline)-1:
+                        jars = cmdline[j+1].split(':')
+                        for jar in jars:
+                            checksumparameters['parameters']['ASSIM_filelist'].append(jar)
+                        break
+
+        # Request discovery of checksums of all the binaries talking (tcp) over the network
+        drone.request_discovery('_auto-checksums', 3600, str(JSONtree(checksumparameters)))
+        print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF: %s'
+        %   (str(checksumparameters['parameters']['ASSIM_filelist'])))
+
+@Drone.add_json_processor
+class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
+    'Class for generating and activating monitoring from the TCP discovery data'
+    prio = DiscoveryListener.PRI_OPTION
+    wantedpackets = ('tcpdiscovery',)
+
+    def processpkt(self, drone, unused_srcaddr, jsonobj):
+        "Send commands to generate checksums in for this Drone's net-facing things"
+        unused_srcaddr = unused_srcaddr
+
+        drone.monitors_activated = True
+        data = jsonobj['data'] # The data portion of the JSON message
+        for procname in data.keys():    # List of nanoprobe-assigned names of processes...
+            procinfo = data[procname]
+            processproc = self.store.load_or_create(ProcessNode, domain=drone.domain
+            ,   processname=procname
+            ,   host=drone.designation
+            ,   pathname=procinfo.get('exe', 'unknown'), argv=procinfo.get('cmdline', 'unknown')
+            ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
+            ,   cwd=procinfo.get('cwd', '/'))
+            montuple = MonitoringRule.findbestmatch((processproc, drone))
+            if montuple[0] == MonitoringRule.NOMATCH:
+                print >> sys.stderr, "**don't know how to monitor %s" % str(processproc.argv)
+                self.log.warning('No rules to monitor %s service %s'
+                %   (drone.designation, str(processproc.argv)))
+            elif montuple[0] == MonitoringRule.PARTMATCH:
+                print >> sys.stderr, (
+                'Automatic monitoring not possible for %s -- %s is missing %s' 
+                %   (str(processproc.argv), str(montuple[1]), str(montuple[2])))
+                self.log.warning('Insufficient information to monitor %s service %s'
+                '. %s is missing %s'
+                %   (drone.designation, str(processproc.argv)
+                ,    str(montuple[1]), str(montuple[2])))
+            else:
+                agent = montuple[1]
+                self._add_service_monitoring(drone, processproc, agent)
+                if agent['monitorclass'] == 'NEVERMON':
+                    print >> sys.stderr, ('NEVER monitor %s' %  (str(agent['monitortype'])))
+                else:
+                    print >> sys.stderr, ('START monitoring %s using %s agent'
+                    %   (agent['monitortype'], agent['monitorclass']))
 
     def _add_service_monitoring(self, drone, monitoredservice, moninfo):
         '''
@@ -843,41 +915,3 @@ class TCPDiscoveryListener(DiscoveryListener):
             print >> sys.stderr, ('Previously monitored %s on %s' 
             %       (monitortype, drone.designation))
         monnode.activate(monitoredservice, drone)
-
-    def _add_clientipportnode(self, drone, ipaddr, servport, processnode):
-        '''Add the information for a single client IPtcpportNode to the database.'''
-        servip_name = str(pyNetAddr(ipaddr).toIPv6())
-        servip = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=servip_name)
-        ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
-        ,       ipaddr=servip_name, port=servport)
-        self.store.relate_new(ip_port, CMAconsts.REL_baseip, servip, {'causes': True})
-        self.store.relate_new(processnode, CMAconsts.REL_tcpclient, ip_port, {'causes': True})
-
-    def _add_serveripportnodes(self, drone, ip, port, processnode, allourips):
-        '''We create tcpipports objects that correspond to the given json object in
-        the context of the set of IP addresses that we support - including support
-        for the ANY ipv4 and ipv6 addresses'''
-        netaddr = pyNetAddr(str(ip)).toIPv6()
-        if netaddr.islocal():
-            self.log.warning('add_serveripportnodes("%s"): address is local' % netaddr)
-            return
-        addr = str(netaddr)
-        # Were we given the ANY address?
-        anyaddr = netaddr.isanyaddr()
-        for ipaddr in allourips:
-            if not anyaddr and str(ipaddr.ipaddr) != addr:
-                continue
-            ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
-            ,   ipaddr=ipaddr.ipaddr, port=port)
-            assert hasattr(ip_port, '_Store__store_node')
-            self.store.relate_new(processnode, CMAconsts.REL_tcpservice, ip_port)
-            assert hasattr(ipaddr, '_Store__store_node')
-            self.store.relate_new(ip_port, CMAconsts.REL_baseip, ipaddr)
-            if not anyaddr:
-                return
-        if not anyaddr:
-            print >> sys.stderr, ('LOOKING FOR %s in: %s'
-            %       (netaddr, [str(ip.ipaddr) for ip in allourips]))
-            raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
-            %       (drone, addr))
-
