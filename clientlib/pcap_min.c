@@ -49,6 +49,7 @@ static struct pcap_filter_info {
 }filterinfo[] = {
 	{ENABLE_LLDP,	"(ether proto 0x88cc and ether dst 01:80:c2:00:00:0e)", "01:80:c2:00:00:0e"},
 	{ENABLE_CDP,	"(ether proto 0x2000 and ether dst 01:00:0c:cc:cc:cc)",	"01:00:0c:cc:cc:cc"},
+	{ENABLE_ARP,	"(arp)", NULL},
 
 };
 

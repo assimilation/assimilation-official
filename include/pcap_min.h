@@ -40,6 +40,8 @@
 #	define	ENABLE_LLDP	0x1
 ///	Enable CDP protocol
 #	define	ENABLE_CDP	0x2 
+///	Enable ARP protocol
+#	define	ENABLE_ARP	0x4 
 /// @}
 WINEXPORT pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask, struct bpf_program*);
 WINEXPORT void	  close_pcap_listener(pcap_t*, const char* dev, unsigned listenmask);
