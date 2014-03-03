@@ -104,7 +104,12 @@ from AssimCtypes import NOTIFICATION_SCRIPT_DIR
 import importlib
 #import atexit
 
-optional_modules = [ "discoverylistener",]
+
+optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
+    ,                   'linkdiscovery'
+    ,                   'checksumdiscovery'
+    ,                   'monitoringdiscovery'
+    ]
 #
 #   "Main" program starts below...
 #   It is a the real CMA intended to run with some real nanoprobes running
