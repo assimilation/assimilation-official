@@ -52,7 +52,6 @@ WorstDanglingCount = 0
 
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
-AssertOnDanglingClasses = False
 DEBUG=False
 DoAudit=True
 doHBDEAD=True
