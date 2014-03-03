@@ -31,16 +31,14 @@ discovery packets as they arrive.
 
 More details are documented in the DiscoveryListener class
 '''
-import re, sys, hashlib
-from monitoring import MonitoringRule, MonitorAction
+import re, sys
+from monitoring import MonitoringRule
 from droneinfo import Drone
 from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyNetAddr
-from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
-from assimjson import JSONtree
 
-from graphnodes import NICNode, IPaddrNode, SystemNode, ProcessNode, IPtcpportNode, GraphNode
+from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, GraphNode
 
 class DiscoveryListener:
     '''Class for listening to discovery packets
@@ -91,104 +89,9 @@ class MonitoringAgentDiscoveryListener(DiscoveryListener):
         unused_srcaddr = unused_srcaddr
         MonitoringRule.compute_available_agents((self,))
 
-
-@Drone.add_json_processor
-class LinkDiscoveryListener(DiscoveryListener):
-    'Class for processing Link Discovery JSON messages'
-
-    prio = DiscoveryListener.PRI_CORE
-    wantedpackets = ('__LinkDiscovery',)
-
-    #R0914:684,4:LinkDiscoveryListener.processpkt: Too many local variables (25/15)
-    # pylint: disable=R0914
-
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
-        'Add Low Level (Link Level) discovery data to the database'
-        #
-        #   This code doesn't yet deal with moving network connections around
-        #   it is certain that it won't delete the old information and replace it
-        #   There are two possibilities:
-        #       We are connecting to a switch port which is previously connected:
-        #           Drop any wiredto connection that already exists to that port
-        #       We are connecting to somewhere different
-        #           Drop any wiredto relationship between the switch port and us
-        #
-        unused_srcaddr = unused_srcaddr
-        data = jsonobj['data']
-        #print >> sys.stderr, 'SWITCH JSON:', str(data)
-        if 'ChassisId' not in data:
-            self.log.warning('Chassis ID missing from discovery data from switch [%s]'
-            %   (str(data)))
-            return
-        chassisid = data['ChassisId']
-        attrs = {}
-        for key in data.keys():
-            if key == 'ports' or key == 'SystemCapabilities':
-                continue
-            value = data[key]
-            if not isinstance(value, int) and not isinstance(value, float):
-                value = str(value)
-            attrs[key] = value
-        attrs['designation'] =  chassisid
-        #### FIXME What should the domain of a switch default to?
-        attrs['domain'] =  drone.domain
-        switch = self.store.load_or_create(SystemNode, **attrs)
-
-        if not 'SystemCapabilities' in data:
-            switch.addrole(CMAconsts.ROLE_bridge)
-        else:
-            caps = data['SystemCapabilities']
-            for role in caps.keys():
-                if caps[role]:
-                    switch.addrole(role)
-            #switch.addrole([role for role in caps.keys() if caps[role]])
-            
-
-        if 'ManagementAddress' in attrs:
-            # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
-            mgmtaddr = attrs['ManagementAddress']
-            mgmtnetaddr = pyNetAddr(mgmtaddr)
-            atype = mgmtnetaddr.addrtype()
-            if atype == ADDR_FAMILY_IPV4 or atype == ADDR_FAMILY_IPV6:
-                # MAC addresses are permitted, but IP addresses are preferred
-                adminnic = self.store.load_or_create(NICNode, domain=switch.domain
-                ,       macaddr=chassisid, ifname='(adminNIC)')
-                mgmtip = self.store.load_or_create(IPaddrNode, domain=switch.domain
-                ,           cidrmask='unknown', ipaddr=mgmtaddr)
-                if Store.is_abstract(adminnic) or Store.is_abstract(switch):
-                    self.store.relate(switch, CMAconsts.REL_nicowner, adminnic)
-                if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
-                    self.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip)
-        ports = data['ports']
-        for portname in ports.keys():
-            attrs = {}
-            thisport = ports[portname]
-            for key in thisport.keys():
-                value = thisport[key]
-                if isinstance(value, pyNetAddr):
-                    value = str(value)
-                attrs[key] = value
-            if 'sourceMAC' in thisport:
-                nicmac = thisport['sourceMAC']
-            else:
-                nicmac = chassisid # Hope that works ;-)
-            nicnode = self.store.load_or_create(NICNode, domain=drone.domain
-            ,   macaddr=nicmac, **attrs)
-            self.store.relate(switch, CMAconsts.REL_nicowner, nicnode, {'causes': True})
-            try:
-                assert thisport['ConnectsToHost'] == drone.designation
-                matchif = thisport['ConnectsToInterface']
-                niclist = self.store.load_related(drone, CMAconsts.REL_nicowner, NICNode)
-                for dronenic in niclist:
-                    if dronenic.ifname == matchif:
-                        self.store.relate_new(nicnode, CMAconsts.REL_wiredto, dronenic)
-                        break
-            except KeyError:
-                self.log.error('OOPS! got an exception...')
-
-    # R0912 -- too many branches
-    # R0914 -- too many local variables
-    #pylint: disable=R0914,R0912
+# R0912 -- too many branches
+# R0914 -- too many local variables
+#pylint: disable=R0914,R0912
 
 @Drone.add_json_processor
 class NetconfigDiscoveryListener(DiscoveryListener):
@@ -436,142 +339,3 @@ class TCPDiscoveryListener(DiscoveryListener):
             raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
             %       (drone, addr))
 
-@Drone.add_json_processor
-class TCPDiscoveryChecksumGenerator(DiscoveryListener):
-    'Class for generating checksums based on the content of tcpdiscovery packets'
-    prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('tcpdiscovery',)
-
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
-        "Send commands to generate checksums in for this Drone's net-facing things"
-        unused_srcaddr = unused_srcaddr
-        checksumparameters = {
-            'type': 'checksums',
-            'parameters': {
-                'ASSIM_sumcmds': [
-                        '/usr/bin/sha256sum'
-                    ,   '/usr/bin/sha224sum'
-                    ,   '/usr/bin/sha384sum'
-                    ,   '/usr/bin/sha512sum'
-                    ,   '/usr/bin/sha1sum'
-                    ,   '/usr/bin/md5sum'
-                    ,   '/usr/bin/cksum'
-                ,   '/usr/bin/crc32' ],
-                'ASSIM_filelist': ['/bin/sh'
-                    ,   '/bin/bash'
-                    ,   '/bin/login'
-                    ,   '/usr/bin/passwd' ]
-            }
-        }
-        data = jsonobj['data'] # The data portion of the JSON message
-        for procname in data.keys():    # List of nanoprobe-assigned names of processes...
-            procinfo = data[procname]
-            if 'exe' not in procinfo:
-                continue
-            exename = procinfo.get('exe')
-            # dups (if any) are removed by the agent
-            checksumparameters['parameters']['ASSIM_filelist'].append(exename)
-            if exename.endswith('/java'):
-                # Special case for some/many JAVA programs - find the jars...
-                if 'cmdline' not in procinfo:
-                    continue
-                cmdline = procinfo.get('cmdline')
-                for j in range(0, len(cmdline)):
-                    # The argument following -cp is the ':'-separated CLASSPATH
-                    if cmdline[j] == '-cp' and j < len(cmdline)-1:
-                        jars = cmdline[j+1].split(':')
-                        for jar in jars:
-                            checksumparameters['parameters']['ASSIM_filelist'].append(jar)
-                        break
-
-        # Request discovery of checksums of all the binaries talking (tcp) over the network
-        drone.request_discovery('_auto-checksums', 3600, str(JSONtree(checksumparameters)))
-        print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF: %s'
-        %   (str(checksumparameters['parameters']['ASSIM_filelist'])))
-
-@Drone.add_json_processor
-class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
-    'Class for generating and activating monitoring from the TCP discovery data'
-    prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('tcpdiscovery',)
-
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
-        "Send commands to generate checksums in for this Drone's net-facing things"
-        unused_srcaddr = unused_srcaddr
-
-        drone.monitors_activated = True
-        data = jsonobj['data'] # The data portion of the JSON message
-        for procname in data.keys():    # List of nanoprobe-assigned names of processes...
-            procinfo = data[procname]
-            processproc = self.store.load_or_create(ProcessNode, domain=drone.domain
-            ,   processname=procname
-            ,   host=drone.designation
-            ,   pathname=procinfo.get('exe', 'unknown'), argv=procinfo.get('cmdline', 'unknown')
-            ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
-            ,   cwd=procinfo.get('cwd', '/'))
-            montuple = MonitoringRule.findbestmatch((processproc, drone))
-            if montuple[0] == MonitoringRule.NOMATCH:
-                print >> sys.stderr, "**don't know how to monitor %s" % str(processproc.argv)
-                self.log.warning('No rules to monitor %s service %s'
-                %   (drone.designation, str(processproc.argv)))
-            elif montuple[0] == MonitoringRule.PARTMATCH:
-                print >> sys.stderr, (
-                'Automatic monitoring not possible for %s -- %s is missing %s' 
-                %   (str(processproc.argv), str(montuple[1]), str(montuple[2])))
-                self.log.warning('Insufficient information to monitor %s service %s'
-                '. %s is missing %s'
-                %   (drone.designation, str(processproc.argv)
-                ,    str(montuple[1]), str(montuple[2])))
-            else:
-                agent = montuple[1]
-                self._add_service_monitoring(drone, processproc, agent)
-                if agent['monitorclass'] == 'NEVERMON':
-                    print >> sys.stderr, ('NEVER monitor %s' %  (str(agent['monitortype'])))
-                else:
-                    print >> sys.stderr, ('START monitoring %s using %s agent'
-                    %   (agent['monitortype'], agent['monitorclass']))
-
-    def _add_service_monitoring(self, drone, monitoredservice, moninfo):
-        '''
-        We start the monitoring of 'monitoredservice' using the information
-        in 'moninfo' - which came from MonitoringRule.constructaction()
-        '''
-        monitorclass    = moninfo['monitorclass']
-        monitortype     = moninfo['monitortype']
-        monitorinterval = 10
-        monitortimeout  = 120
-        if 'provider' in moninfo:
-            monitorprovider = moninfo['provider']
-        else:
-            monitorprovider = None
-        if 'arglist' in moninfo:
-            monitorarglist = moninfo['arglist']
-        else:
-            monitorarglist = None
-
-        # Make up a monitor name that should be unique to us -- but reproducible
-        # We create the monitor name from the host name, the monitor class,
-        # monitoring type and a hash of the arguments to the monitoring agent
-        d = hashlib.md5()
-        # pylint thinks md5 objects don't have update member
-        # pylint: disable=E1101
-        d.update('%s:%s:%s:%s' 
-        %   (drone.designation, monitorclass, monitortype, monitorprovider))
-        if monitorarglist is not None:
-            names = monitorarglist.keys()
-            names.sort()
-            for name in names:
-                # pylint thinks md5 objects don't have update member
-                # pylint: disable=E1101
-                d.update('"%s": "%s"' % (name, monitorarglist[name]))
-
-        monitorname = ('%s:%s:%s::%s'
-        %   (drone.designation, monitorclass, monitortype, d.hexdigest()))
-        monnode = self.store.load_or_create(MonitorAction, domain=drone.domain
-        ,   monitorname=monitorname, monitorclass=monitorclass
-        ,   monitortype=monitortype, interval=monitorinterval, timeout=monitortimeout
-        ,   provider=monitorprovider, arglist=monitorarglist)
-        if not Store.is_abstract(monnode):
-            print >> sys.stderr, ('Previously monitored %s on %s' 
-            %       (monitortype, drone.designation))
-        monnode.activate(monitoredservice, drone)

@@ -237,6 +237,7 @@ class pySwitchDiscovery:
     @staticmethod
     def _decode_lldp(host, interface, wallclock, pktstart, pktend):
         'Decode LLDP packet into a JSON discovery packet'
+        #print >> sys.stderr, 'DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
         thisportinfo = pyConfigContext(init={
                 'ConnectsToHost':       host,
                 'ConnectsToInterface':  interface,

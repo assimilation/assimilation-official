@@ -22,8 +22,10 @@
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cma.in ${CMAKE_CURRENT_BINARY_DIR}/cma @ONLY)
 install(PROGRAMS AssimCclasses.py assimjson.py assimevent.py assimeventobserver.py
+	checsumdiscovery.py
 	cmadb.py cma.py cmainit.py consts.py dispatchtarget.py discoverylistener.py droneinfo.py
-	frameinfo.py graphnodes.py hbring.py messagedispatcher.py monitoring.py
+	frameinfo.py graphnodes.py hbring.py linkdiscovery.py messagedispatcher.py monitoring.py
+	monitoringdiscovery.py
 	packetlistener.py query.py store.py transaction.py
         COMPONENT cma-component DESTINATION ${PYINSTALL})
 
