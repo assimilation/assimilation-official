@@ -113,7 +113,7 @@ resourceocf_new(
 	cself->execute = _resourceocf_execute;
 	self = NEWSUBCLASS(ResourceOCF, cself);
 	self->ocfpath = ocfpath;
-	self->environ = configcontext_new(0);
+	self->environment = configcontext_new(0);
 	self->baseclass.loggingname = g_strdup_printf("%s:%s: "
 	,	self->baseclass.resourcename, self->baseclass.operation);
 	self->argv[0] = g_strdup(self->ocfpath);
@@ -156,7 +156,7 @@ _resourceocf_init_environ(ResourceOCF* self)
 			g_free(mapname); mapname = NULL;
 			continue;
 		}
-		self->environ->setstring(self->environ, mapname, value);
+		self->environment->setstring(self->environment, mapname, value);
 		g_free(mapname); mapname = NULL;
 	}
 	if (NULL != names) {
@@ -165,10 +165,11 @@ _resourceocf_init_environ(ResourceOCF* self)
 	}
 
 	// Last but not least!
-	self->environ->setstring(self->environ, "OCF_ROOT", OCF_ROOT);
-	self->environ->setstring(self->environ, "OCF_RESOURCE_INSTANCE", self->baseclass.resourcename);
+	self->environment->setstring(self->environment, "OCF_ROOT", OCF_ROOT);
+	self->environment->setstring(self->environment, "OCF_RESOURCE_INSTANCE"
+	,	self->baseclass.resourcename);
 	// Unofficial but often needed value
-	self->environ->setstring(self->environ, "HA_RSCTMP", HB_RSCTMPDIR);
+	self->environment->setstring(self->environment, "HA_RSCTMP", HB_RSCTMPDIR);
 }
 
 /// Finalize function for ResourceOCF objects
@@ -199,8 +200,8 @@ _resourceocf_finalize(AssimObj* aself)
 		g_free(self->baseclass.loggingname);
 		self->baseclass.loggingname = NULL;
 	}
-	if (self->environ) {
-		UNREF(self->environ);
+	if (self->environment) {
+		UNREF(self->environment);
 	}
 	_resourceocf_save_finalize(aself);
 }
@@ -251,7 +252,7 @@ _resourceocf_execute(ResourceCmd* cmdself)
 	(	0				///< cpsize
 	,	self->argv			///< char** argv,
 	,	NULL				///< const char** envp
-	,	self->environ			///< ConfigContext* envmod
+	,	self->environment			///< ConfigContext* envmod
 	,	NULL				///< const char* curdir
 	,	_resourceocf_child_notify 
 	///< void (*notify)(ChildProcess*,enum HowDied,int rc,int signal,gboolean core_dumped)

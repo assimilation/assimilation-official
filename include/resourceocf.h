@@ -47,7 +47,7 @@ typedef struct _ResourceOCF	ResourceOCF;
 struct _ResourceOCF{
 	ResourceCmd		baseclass;	///< Base object: implements ref, unref, toString
 	char *			ocfpath;
-	ConfigContext*		environ;
+	ConfigContext*		environment;	///< Environment for child process
 	ChildProcess*		child;
 	char*			argv[3];	///< malloced
 };
