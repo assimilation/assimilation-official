@@ -10,5 +10,9 @@
             "long":     "retrieve all IPs not associated with any known system"
         }
     },
-    "parameters": {}
+    "parameters": {},
+    "cmdline": {
+        "en": "Unknown IPs: ${designation}",
+        "script": "${designation}"
+    },
 }

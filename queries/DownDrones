@@ -10,5 +10,9 @@
             "long":     "retrieve the full information about all servers we know are down"
         }
     },
-    "parameters": {}
+    "parameters": {},
+    "cmdline": {
+        "en": "Down: ${designation}",
+        "script": "${designation}"
+    },
 }

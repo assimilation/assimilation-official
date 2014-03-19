@@ -113,7 +113,8 @@ class ClientQuery(GraphNode):
             self._db = db
             self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
 
-    def execute(self, executor_context, idsonly=False, expandJSON=False, **params):
+    def execute(self, executor_context, idsonly=False, expandJSON=False, elemsonly=False
+    ,       **params):
         'Execute the query and return an iterator that produces sanitized (filtered) results'
         if self._query is None:
             raise ValueError('query must be bound to a Store')
@@ -128,9 +129,36 @@ class ClientQuery(GraphNode):
                 raise ValueError('Excess parameter %s supplied for query %s'
                 %    (pname, self.queryname))
         resultiter = self._store.load_cypher_query(self._query, GraphNode.factory, params=params)
-        return self.filter_json(executor_context, idsonly, expandJSON, resultiter)
+        return self.filter_json(executor_context, idsonly, expandJSON, resultiter, elemsonly)
 
-    def filter_json(self, executor_context, idsonly, expandJSON, resultiter):
+
+    def supports_cmdline(self, language='en'):
+        'Return True if this query supports command line formatting'
+        try:
+            return self._JSON_metadata['cmdline'][language] is not None
+        except KeyError:
+            return False
+
+    def cmdline_exec(self, executor_context, language='en', fmtstring=None, **params):
+        'Execute the command line version of the query for the specified language'
+        if fmtstring is None:
+            fmtstring = self._JSON_metadata['cmdline'][language]
+        for json in self.execute(executor_context, expandJSON=True, elemsonly=True, **params):
+            obj = pyConfigContext(json)
+            yield self.cmdline_substitute(fmtstring, obj)
+
+    def cmdline_substitute(self, fmtstring, queryresult):
+        'Substitute fields into the command line output'
+        chunks = fmtstring.split('${')
+        result = chunks[0]
+        for j in range(1, len(chunks)):
+            # Now we split it up into variable-expression, '}' and extrastuff...
+            (variable, extra) = chunks[j].split('}')
+            result += str(queryresult.deepget(variable, 'undefined'))
+            result += extra
+        return result
+
+    def filter_json(self, executor_context, idsonly, expandJSON, resultiter, elemsonly=False):
         '''Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
@@ -148,7 +176,7 @@ class ClientQuery(GraphNode):
 
         idsonly = idsonly
         executor_context = executor_context
-        delim = '{"data":['
+        delim = '{"data":[' if not elemsonly else ''
         rowcount = 0
         for result in resultiter:
             # result is a namedtuple
@@ -175,11 +203,14 @@ class ClientQuery(GraphNode):
                                 delim
                             ,   attr
                             ,   str(JSONtree(value, expandJSON=expandJSON)))
-            delim = ','
-        if rowcount == 0:
-            yield '{"data":[]}'
-        else:
-            yield ']}'
+            if not elemsonly:
+                delim = ','
+        if not elemsonly:
+            if rowcount == 0:
+                yield '{"data":[]}'
+            else:
+                yield ']}'
+        
 
 
     def json_parameter_names(self):
@@ -548,17 +579,17 @@ if __name__ == '__main__':
 
     print "LOADING TREE!"
     queries = ClientQuery.load_tree(qstore, "/home/alanr/monitor/src/queries")
-    for q in queries:
-        pass
     qlist = [q for q in queries]
     qstore.commit()
     print "%d node TREE LOADED!" % len(qlist)
     qe2 = qstore.load_or_create(ClientQuery, queryname='GetAllQueries')
     qe2.bind_store(qstore)
-    testresult = '{"data":'
+    testresult = ''
     for s in qe2.execute(None, idsonly=False, expandJSON=True):
         testresult += s
-    testresult += '}'
     print testresult
+    for s in qe2.cmdline_exec(None):
+        print s
+   
 
     print "All done!"

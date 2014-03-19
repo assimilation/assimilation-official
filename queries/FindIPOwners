@@ -19,5 +19,9 @@
                 }
             }
         }
-    }
+    },
+    "cmdline": {
+        "en": "Owning System: ${designation}",
+        "script": "${designation}"
+    },
 }

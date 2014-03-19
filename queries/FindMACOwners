@@ -19,5 +19,9 @@
                 }
             }
         }
-    }
+    },
+    "cmdline": {
+        "en": "System: ${designation}",
+        "script": "${designation}"
+    },
 }
