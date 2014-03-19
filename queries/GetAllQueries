@@ -6,5 +6,9 @@
             "short": "list all queries",
             "long":  "return a list of all available queries and their metadata"
         }
+    },
+    "cmdline": {
+        "en": "${queryname}: ${JSON_metadata.descriptions.en.short}",
+        "script": "${queryname}"
     }
 }
