@@ -145,9 +145,10 @@ class ClientQuery(GraphNode):
             fmtstring = self._JSON_metadata['cmdline'][language]
         for json in self.execute(executor_context, expandJSON=True, elemsonly=True, **params):
             obj = pyConfigContext(json)
-            yield self.cmdline_substitute(fmtstring, obj)
+            yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
-    def cmdline_substitute(self, fmtstring, queryresult):
+    @staticmethod
+    def _cmdline_substitute(fmtstring, queryresult):
         'Substitute fields into the command line output'
         chunks = fmtstring.split('${')
         result = chunks[0]
@@ -588,8 +589,8 @@ if __name__ == '__main__':
     for s in qe2.execute(None, idsonly=False, expandJSON=True):
         testresult += s
     print testresult
+    # Test out a command line query
     for s in qe2.cmdline_exec(None):
         print s
    
-
     print "All done!"
