@@ -70,7 +70,7 @@ class ClientQuery(GraphNode):
             bool    - a boolean value
             hostname- a host name (as string - always converted to lower case)
             dnsname - a DNS name (as a string - always converted to lower case)
-            enum    - an finite enumeration of permissible values (case-insensitive)
+            enum    - a finite enumeration of permissible values (case-insensitive)
         '''
 
         GraphNode.__init__(self, domain='metadata')
