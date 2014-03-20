@@ -68,7 +68,7 @@ class DiscoveryListener:
 
     @classmethod
     def desiredpackets(cls):
-        'Return the set of packets we want be called for'
+        'Return the set of packets we want to be called for'
         return cls.wantedpackets
 
     def processpkt(self, drone, srcaddr, json):

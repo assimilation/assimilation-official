@@ -34,6 +34,8 @@ More details are documented in the DiscoveryListener class
 import sys
 from droneinfo import Drone
 from assimjson import JSONtree
+from AssimCclasses import pyConfigContext
+from assimevent import AssimEvent
 
 from discoverylistener import DiscoveryListener
 
@@ -41,10 +43,18 @@ from discoverylistener import DiscoveryListener
 class TCPDiscoveryChecksumGenerator(DiscoveryListener):
     'Class for generating checksums based on the content of tcpdiscovery packets'
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('tcpdiscovery',)
+    wantedpackets = ('tcpdiscovery','checksum')
 
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
-        "Send commands to generate checksums in for this Drone's net-facing things"
+    def processpkt(self, drone, srcaddr, jsonobj):
+        if jsonobj['discovertype'] == 'tcpdiscovery':
+            self.processtcpdiscoverypkt(drone, srcaddr, jsonobj)
+        elif jsonobj['discovertype'] == 'checksum':
+            self.processchecksumpkt(drone, srcaddr, jsonobj)
+        else:
+            print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
+
+    def processtcpdiscoverypkt(self, drone, unused_srcaddr, jsonobj):
+        "Send commands to generate checksums for this Drone's net-facing things"
         unused_srcaddr = unused_srcaddr
         checksumparameters = {
             'type': 'checksums',
@@ -61,7 +71,8 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                 'ASSIM_filelist': ['/bin/sh'
                     ,   '/bin/bash'
                     ,   '/bin/login'
-                    ,   '/usr/bin/passwd' ]
+                    ,   '/usr/bin/passwd' 
+                    ,   '/tmp/foobar']
             }
         }
         data = jsonobj['data'] # The data portion of the JSON message
@@ -86,6 +97,34 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                         break
 
         # Request discovery of checksums of all the binaries talking (tcp) over the network
-        drone.request_discovery('_auto-checksums', 3600, str(JSONtree(checksumparameters)))
+        drone.request_discovery('_auto-checksums', 30, str(JSONtree(checksumparameters)))
         print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF: %s'
         %   (str(checksumparameters['parameters']['ASSIM_filelist'])))
+
+    def processchecksumpkt(self, drone, unused_srcaddr, jsonobj):
+        'Process updated checksums. Note that our drone-owned-JSON is already updated'
+        data = jsonobj['data'] # The data portion of the JSON message
+        print >> sys.stderr, 'PROCESSING CHECKSUM DATA'
+        if hasattr(drone, 'JSON_OLD_checksums'):
+            print >> sys.stderr, 'COMPARING CHECKSUM DATA'
+            olddata = pyConfigContext(drone.JSON_OLD_checksums)['data']
+            self.compare_checksums(drone, olddata, data)
+        print >> sys.stderr, 'UPDATING CHECKSUM DATA'
+        drone.JSON_OLD_checksums = str(jsonobj)
+
+    def compare_checksums(self, drone, oldobj, newobj):
+        'Compare checksums and complain about those that change'
+        designation = drone.designation
+        changes = {}
+        for oldfile in oldobj.keys():
+            if oldfile not in newobj:
+                continue
+            oldchecksum = oldobj[oldfile]
+            newchecksum = newobj[oldfile]
+            if oldchecksum == newchecksum:
+                continue
+            self.log.warning('On system %s: %s had checksum %s which is now %s'
+            %   (designation, oldfile, oldchecksum, newchecksum))
+            changes[oldfile] = (oldchecksum, newchecksum)
+        extrainfo = {'CHANGETYPE': 'checksums', 'changes': changes}
+        AssimEvent(drone, AssimEvent.OBJUPDATE, extrainfo=extrainfo)
