@@ -56,6 +56,8 @@ class query:
         "reports usage for this sub-command"
         return 'query queryname [query-parameter=value ...]'
 
+    # pylint R0911 -- too many return statements
+    # pylint: disable=R0911
     @staticmethod
     def execute(store, executor_context, otherargs, flagoptions):
         'Perform command line query and format output as requested.'
