@@ -37,82 +37,112 @@ from py2neo import neo4j
 
 commands = {}
 
-def RegisterCommand(funtoregister):
+def RegisterCommand(classtoregister):
     'Register the given function as being a main command'
-    commands[funtoregister.__name__] = funtoregister
-    return funtoregister
+    commands[classtoregister.__name__] = classtoregister()
+    return classtoregister
 
 #too many local variables
 #pylint: disable=R0914 
 @RegisterCommand
-def query(store, executor_context, otherargs, language='en', fmtstring=None):
-    'Perform given command line query and format output as requested.'
+class query:
+    @staticmethod
+    def usage():
+        return 'query queryname [query-parameter=value ...]'
 
-    if len(otherargs) < 1:
-        usage()
-        print >> sys.stderr, 'Need to supply a query name.'
-        return 1
-    queryname = otherargs[0]
-    nvpairs = otherargs[1:]
+    @staticmethod
+    def execute(store, executor_context, otherargs, flagoptions):
+        'Perform command line query and format output as requested.'
+        language = flagoptions.get('language', 'en')
+        fmtstring = flagoptions.get('format', None)
 
-    cypher = 'START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
-    
-    metaquery = neo4j.CypherQuery(store.db, cypher % (queryname, queryname))
-    
-    request = store.load_cypher_node(metaquery, ClientQuery)
+        if len(otherargs) < 1:
+            usage()
+            print >> sys.stderr, 'Need to supply a query name.'
+            return 1
+        queryname = otherargs[0]
+        nvpairs = otherargs[1:]
 
-    param_names = request.cypher_parameter_names()
+        cypher = 'START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
+        
+        metaquery = neo4j.CypherQuery(store.db, cypher % (queryname, queryname))
+        
+        request = store.load_cypher_node(metaquery, ClientQuery)
 
-    params = {}
-    # Convert name=value strings into a Dict
-    for elem in nvpairs:
+        if request is None:
+            print >> sys.stderr, ("No query named '%s'." % queryname)
+            return 1
+
+        param_names = request.cypher_parameter_names()
+
+        params = {}
+        # Convert name=value strings into a Dict
+        for elem in nvpairs:
+            try:
+                (name, value) = nvpairs.split('=')
+                params[name] = value
+            except ValueError as err:
+                if len(param_names) == 0:
+                    print >> sys.stderr, ('%s query does not take any parameters' % queryname)
+                    return 1
+                elif len(param_names) == 1:
+                    # It's reasonable to not require the name if there's only one possibility
+                    params[param_names[0]] = elem
+                else:
+                    print >> sys.stderr, ('[%s] is not a name=value pair' % nvpairs)
+                    return 1
+        request.bind_store(store)
         try:
-            (name, value) = nvpairs.split('=')
-            params[name] = value
+            iterator = request.cmdline_exec(executor_context, language, fmtstring, **params)
         except ValueError as err:
-            if len(param_names) == 0:
-                print >> sys.stderr, ('%s query does not take any parameters' % queryname)
-                return 1
-            elif len(param_names) == 1:
-                # It's reasonable to not require the name if there's only one possibility
-                params[param_names[0]] = elem
-            else:
-                print >> sys.stderr, ('[%s] is not a name=value pair' % nvpairs)
-                return 1
+            print >> sys.stderr, ('Invalid %s query. Reason: %s' % (queryname, err))
+            return 1
+        for line in iterator:
+            print line
+        return 0
 
-    if request is None:
-        print >> sys.stderr, ('Query %s is unknown' % queryname)
-    request.bind_store(store)
-    try:
-        iterator = request.cmdline_exec(executor_context, language, fmtstring, **params)
-    except ValueError as err:
-        print >> sys.stderr, ('Invalid %s query. Reason: %s' % (queryname, err))
-        return 1
-    for line in iterator:
-        print line
-    return 0
-
+options = {'language', 'format'}
 def usage():
-    'print usage message'
+    'Construct and print usage message'
     argv = sys.argv
+
+    optlist=''
+    for opt in options:
+        optlist += "[--%s <%s>] " % (opt, opt)
+
     cmds = []
     for cmd in commands.keys():
         cmds.append(cmd)
     cmds.sort()
-    cmdlist = ''
-    delim = ''
 
-    for cmd in commands.keys():
-        cmdlist += (delim + cmd)
-        delim = '|'
-
-    print >> sys.stderr, 'Usage: %s %s' % (argv[0], cmdlist)
+    print >> sys.stderr, 'Usage: %s %ssub-command [sub-command-args]' % (argv[0], optlist)
+    print >> sys.stderr, '    Legal sub-command usages are:'
+    for cmd in cmds:
+        print >> sys.stderr, '    %s' % commands[cmd].usage()
     return 1
     
 
 def main(argv):
     'Main program for command line tool'
     executor_context = None
+
+    selected_options = {}
+    narg = 0
+    skipnext = False
+    for narg in range(1, len(argv)):
+        arg = argv[narg]
+        if skipnext:
+            skipnext = False
+            continue
+        if arg.startswith('--'):
+            option = arg[2:]
+            if option not in options:
+                usage()
+                return 1
+            selected_options[option] = argv[arg+1]
+        else:
+            break
+
     ourstore = Store(neo4j.GraphDatabaseService(), uniqueindexmap={}, classkeymap={})
     for classname in GraphNode.classmap:
         GraphNode.initclasstypeobj(ourstore, classname)
@@ -120,9 +150,8 @@ def main(argv):
     if len(argv) < 2 or argv[1] not in commands:
         usage()
         return 1
-    return commands[argv[1]](ourstore, executor_context, sys.argv[2:])
+    return commands[argv[1]].execute(ourstore, executor_context, sys.argv[2:], selected_options)
 
 
 if __name__ ==  '__main__':
-
     sys.exit(main(sys.argv))
