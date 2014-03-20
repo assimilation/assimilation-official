@@ -134,10 +134,8 @@ class ClientQuery(GraphNode):
 
     def supports_cmdline(self, language='en'):
         'Return True if this query supports command line formatting'
-        try:
-            return self._JSON_metadata['cmdline'][language] is not None
-        except KeyError:
-            return False
+        meta = self._JSON_metadata
+        return 'cmdline' in meta and language in meta[language]
 
     def cmdline_exec(self, executor_context, language='en', fmtstring=None, **params):
         'Execute the command line version of the query for the specified language'
