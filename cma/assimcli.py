@@ -98,6 +98,10 @@ class query:
                     print >> sys.stderr, ('[%s] is not a name=value pair' % nvpairs)
                     return 1
         request.bind_store(store)
+        if not request.supports_cmdline():
+            print >> sys.stderr, (
+                "Query '%s' does not support command line queries" % queryname)
+            return 1
         try:
             iterator = request.cmdline_exec(executor_context, language, fmtstring, **params)
         except ValueError as err:
