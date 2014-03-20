@@ -583,7 +583,7 @@ if __name__ == '__main__':
     qlist = [q for q in queries]
     qstore.commit()
     print "%d node TREE LOADED!" % len(qlist)
-    qe2 = qstore.load_or_create(ClientQuery, queryname='GetAllQueries')
+    qe2 = qstore.load_or_create(ClientQuery, queryname='list')
     qe2.bind_store(qstore)
     testresult = ''
     for s in qe2.execute(None, idsonly=False, expandJSON=True):
