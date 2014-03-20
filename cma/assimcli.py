@@ -46,8 +46,14 @@ def RegisterCommand(classtoregister):
 #pylint: disable=R0914 
 @RegisterCommand
 class query:
+    "Class for the 'query' action (sub-command)"
+
+    def __init__(self):
+        pass
+
     @staticmethod
     def usage():
+        "reports usage for this sub-command"
         return 'query queryname [query-parameter=value ...]'
 
     @staticmethod
@@ -106,7 +112,7 @@ def usage():
     'Construct and print usage message'
     argv = sys.argv
 
-    optlist=''
+    optlist = ''
     for opt in options:
         optlist += "[--%s <%s>] " % (opt, opt)
 
