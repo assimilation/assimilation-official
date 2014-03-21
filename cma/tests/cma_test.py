@@ -42,7 +42,13 @@ import optparse
 from graphnodes import GraphNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
-from gi.repository import GLib as glib
+try:
+    #gi.repository confuses pylint...
+    #pylint: disable=E0611
+    from gi.repository import GLib as glib
+except ImportError:
+    import gobject as glib
+
 
 import discoverylistener
 

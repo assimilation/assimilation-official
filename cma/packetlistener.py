@@ -27,9 +27,13 @@ dispatches them.
 from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from cmadb import CMAdb
-#gi.repository confuses pylint...
-#pylint: disable=E0611
-from gi.repository import GLib as glib
+try:
+    #gi.repository confuses pylint...
+    #pylint: disable=E0611
+    from gi.repository import GLib as glib
+except ImportError:
+    import gobject as glib
+
 import time
 #import sys
 
