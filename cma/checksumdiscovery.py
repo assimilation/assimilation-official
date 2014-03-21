@@ -53,7 +53,8 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         else:
             print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
 
-    def processtcpdiscoverypkt(self, drone, unused_srcaddr, jsonobj):
+    @staticmethod
+    def processtcpdiscoverypkt(drone, unused_srcaddr, jsonobj):
         "Send commands to generate checksums for this Drone's net-facing things"
         unused_srcaddr = unused_srcaddr
         checksumparameters = {
@@ -103,6 +104,7 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
 
     def processchecksumpkt(self, drone, unused_srcaddr, jsonobj):
         'Process updated checksums. Note that our drone-owned-JSON is already updated'
+        unused_srcaddr = unused_srcaddr # make pylint happy...
         data = jsonobj['data'] # The data portion of the JSON message
         print >> sys.stderr, 'PROCESSING CHECKSUM DATA'
         if hasattr(drone, 'JSON_OLD_checksums'):
