@@ -45,7 +45,7 @@ def makescript(createdscriptname, outfile):
             echo "ARG${j}=$arg"
             j=$(expr $j + 1)
         done
-        env | grep '^ASSIM_' | sort
+        env | sort -u | grep '^ASSIM_' | sort
         echo "====END===="
     ) >> %s 2>&1
 '''
