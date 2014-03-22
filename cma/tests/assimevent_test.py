@@ -45,7 +45,7 @@ def makescript(createdscriptname, outfile):
             echo "ARG${j}=$arg"
             j=$(expr $j + 1)
         done
-        env | sort -u | grep '^ASSIM_' | sort
+        env |  grep '^ASSIM_' | LC_ALL=C sort
         echo "====END===="
     ) >> %s 2>&1
 '''
@@ -140,16 +140,16 @@ class TestAssimEvent(TestCase):
 '''====START====
 ARG1=create
 ARG2=ClientClass
-ASSIM_fred=fred
 ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
+ASSIM_fred=fred
 ASSIM_nodetype=ClientClass
 ASSIM_sevenofnine=Annika
 ====END====
 ====START====
 ARG1=up
 ARG2=ClientClass
-ASSIM_fred=fred
 ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":1,"extrainfo":{"origaddr":"10.10.10.254"}}
+ASSIM_fred=fred
 ASSIM_nodetype=ClientClass
 ASSIM_origaddr=10.10.10.254
 ASSIM_sevenofnine=Annika
@@ -189,8 +189,8 @@ ASSIM_sevenofnine=Annika
 '''====START====
 ARG1=create
 ARG2=ClientClass
-ASSIM_fred=fred
 ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
+ASSIM_fred=fred
 ASSIM_nodetype=ClientClass
 ASSIM_sevenofnine=Annika
 ====END====
