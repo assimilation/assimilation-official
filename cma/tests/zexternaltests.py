@@ -38,6 +38,7 @@ def findcmd(argv):
         fullpath = os.path.join(prefix, arg0)
         if os.access(fullpath, os.X_OK):
             argv[0] = fullpath
+            print >> sys.stderr, ('Found %s at: %s' % (arg0, fullpath))
             return argv
     raise IOError('Cannot locate file %s' % arg0)
     
