@@ -29,6 +29,13 @@ GEN="--gen-suppressions=no --num-callers=50 --read-var-info=yes"
 GEN="--gen-suppressions=all --num-callers=50"
 OPTS="--show-reachable=yes"
 
+dosudo() {
+  case $(id -u) in
+    0)	"$@";;
+    *)	sudo "$@";;
+  esac
+}
+
 dir=$(dirname $0)
 cmd=mainlooptest
 
@@ -44,4 +51,5 @@ do
   fi
 done
 
-sudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=$HERE/valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes $cmd $REPCOUNT
+
+dosudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=$HERE/valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes $cmd $REPCOUNT
