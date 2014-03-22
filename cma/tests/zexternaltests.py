@@ -67,7 +67,7 @@ class TestExternal(TestCase):
     def runacommand(self, argv, sudo=False):
         print '\n******RUNNING TEST COMMAND %s' % str(argv)
         findcmd(argv)
-        if sudo:
+        if sudo and os.geteuid() != 0:
             argv.insert(0, sudocmd)
             print 'ARGV: %s' %  str(argv)
         start = datetime.datetime.now()

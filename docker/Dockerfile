@@ -1,7 +1,7 @@
 FROM centos:latest
 RUN yum -y install glib2 libpcap
 RUN yum -y install python python-flask which java-1.7.0-openjdk lsof pygobject2
-RUN yum -y install gcc cmake cpack make pkg-config glib2-devel valgrind resource-agents mercurial wget libpcap-devel pylint rsyslog
+RUN yum -y install gcc cmake cpack make pkg-config glib2-devel valgrind resource-agents mercurial wget libpcap-devel pylint rsyslog sudo
 RUN yum -y install doxygen graphviz
 RUN wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
 RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
