@@ -1,5 +1,5 @@
 {
-    "cypher": "START ip=node:IPaddr('{ipaddr}:*')
+    "cypher": "START ip=node:IPaddr('{ipaddr}')
                MATCH ip<-[:ipowner]-()<-[:nicowner]-system
                RETURN system",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
