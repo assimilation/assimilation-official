@@ -21,6 +21,7 @@ CMakeCache.txt
 ^testcode/gtest..$
 ^doxygen/.*
 ^cma/cma
+^cma/assimcli
 Doxyfile
 /.*\.pyc$
 /\..*\.swp$

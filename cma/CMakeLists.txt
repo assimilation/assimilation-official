@@ -21,6 +21,7 @@
 
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cma.in ${CMAKE_CURRENT_BINARY_DIR}/cma @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assimcli.in ${CMAKE_CURRENT_BINARY_DIR}/assimcli @ONLY)
 install(PROGRAMS AssimCclasses.py assimjson.py assimevent.py assimeventobserver.py
 	checksumdiscovery.py
 	cmadb.py cma.py cmainit.py consts.py dispatchtarget.py discoverylistener.py droneinfo.py
@@ -38,9 +39,7 @@ install(FILES AssimCtypes.py-install
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 	RENAME AssimCtypes.py
 	)
-
-install (PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/cma COMPONENT cma-component DESTINATION ${CMAKE_INSTALL_PREFIX}/sbin)
-
+install (PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/cma ${CMAKE_CURRENT_BINARY_DIR}/assimcli  COMPONENT cma-component DESTINATION ${CMAKE_INSTALL_PREFIX}/sbin)
 install(DIRECTORY tests 
         COMPONENT cma-component DESTINATION ${PYINSTALL} FILES_MATCHING PATTERN "*.py")
 install(DIRECTORY flask 
