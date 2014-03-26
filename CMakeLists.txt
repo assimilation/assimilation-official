@@ -166,7 +166,7 @@ configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buil
 configure_file(${BUILDTOOLS}/debian/postrm.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postrm @ONLY)
 #
 # CMAADDR is the address where the nanoprobes should go to initially find the CMA.
-# 224.0.2.5 is a multicast address which I reseved from IANA for the Assimilation project.
+# 224.0.2.5 is a multicast address which we reseved from IANA for the Assimilation project.
 # Port 1984 UDP and TCP is reserved from IANA for the Big Brother monitoring system which
 # is in turn owned by Sean MacGuire.  Big Brother reserved both TCP and UDP ports but only
 # uses the TCP port.  Sean MacGuire gave us permission to use port 1984/UDP for the
