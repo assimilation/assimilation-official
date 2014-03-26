@@ -34,6 +34,10 @@ from query import ClientQuery
 from graphnodes import GraphNode
 from store import Store
 from py2neo import neo4j
+from AssimCtypes import QUERYINSTALL_DIR
+#
+import droneinfo, hbring, monitoring
+from cmainit import CMAinit
 
 commands = {}
 
@@ -113,6 +117,38 @@ class query:
             print line
         return 0
 
+@RegisterCommand
+class loadqueries:
+    "Class for the 'loadquery' action (sub-command). We reload the query table"
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def usage():
+        "reports usage for this sub-command"
+        return 'loadqueries [optional-querydirectory]'
+
+    # pylint R0911 -- too many return statements
+    # pylint: disable=R0911
+    @staticmethod
+    def execute(store, executor_context, otherargs, flagoptions):
+        'Load queries from the specified directory.'
+
+        if len(otherargs) > 1:
+            return usage()
+        elif len(otherargs) == 1:
+            querydir = otherargs[0]
+        else:
+            querydir = QUERYINSTALL_DIR
+
+        qcount = 0
+        for q in ClientQuery.load_tree(store, querydir):
+            qcount += 1
+            pass
+        store.commit()
+        return 0 if qcount > 0 else 1
+
 options = {'language', 'format'}
 def usage():
     'Construct and print usage message'
@@ -156,6 +192,7 @@ def main(argv):
             break
 
     ourstore = Store(neo4j.GraphDatabaseService(), uniqueindexmap={}, classkeymap={})
+    CMAinit(None)
     for classname in GraphNode.classmap:
         GraphNode.initclasstypeobj(ourstore, classname)
 

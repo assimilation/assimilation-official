@@ -135,7 +135,7 @@ class ClientQuery(GraphNode):
     def supports_cmdline(self, language='en'):
         'Return True if this query supports command line formatting'
         meta = self._JSON_metadata
-        return 'cmdline' in meta and language in meta[language]
+        return 'cmdline' in meta and language in meta['cmdline']
 
     def cmdline_exec(self, executor_context, language='en', fmtstring=None, **params):
         'Execute the command line version of the query for the specified language'
@@ -453,8 +453,9 @@ class ClientQuery(GraphNode):
         fd.close()
         if queryname is None:
             queryname = os.path.basename(pathname)
-        print 'LOADING %s as %s' % (pathname, queryname)
+        #print 'LOADING %s as %s' % (pathname, queryname)
         ret = store.load_or_create(ClientQuery, queryname=queryname, JSON_metadata=json)
+        ret.JSON_metadata=json
         ret.bind_store(store)
         return ret
 
@@ -480,6 +481,8 @@ class ClientQuery(GraphNode):
             for filename in filenames:
                 queryname = prefix + filename
                 path = os.path.join(dirpath, filename)
+                if filename.startswith('.'):
+                    continue
                 yield ClientQuery.load_from_file(store, path, queryname=queryname)
 
 # message 0212: access to protected member of client class

@@ -1,17 +1,16 @@
 {
-    "cypher": "START drone=node:CMAclass('Drone:*')
-               WHERE drone.status = \"dead\" and drone.reason <> \"HBSHUTDOWN\"
+    "cypher": "START drone=node:Drone('*:*')
                RETURN drone",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
         "en": {
             "short":    "get 'down' servers",
-            "long":     "retrieve the full information about all crashed servers (with nanoprobes)"
+            "long":     "retrieve the full information about all servers we know are down"
         }
     },
     "parameters": {},
     "cmdline": {
-        "en": "Crashed: ${designation}",
+        "en": "${designation}[${reason}]",
         "script": "${designation}"
     },
 }

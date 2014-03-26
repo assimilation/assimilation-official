@@ -99,8 +99,8 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
 
         # Request discovery of checksums of all the binaries talking (tcp) over the network
         drone.request_discovery('_auto-checksums', 30, str(JSONtree(checksumparameters)))
-        print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF: %s'
-        %   (str(checksumparameters['parameters']['ASSIM_filelist'])))
+        print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF %d files'
+        %   (len(checksumparameters['parameters']['ASSIM_filelist'])))
 
     def processchecksumpkt(self, drone, unused_srcaddr, jsonobj):
         'Process updated checksums. Note that our drone-owned-JSON is already updated'
