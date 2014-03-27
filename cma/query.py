@@ -122,11 +122,11 @@ class ClientQuery(GraphNode):
         qparams = self.json_parameter_names()
         for pname in qparams:
             if pname not in params:
-                raise ValueError('Required parameter %s for query %s is missing' 
+                raise ValueError('Required parameter "%s" for %s query is missing'
                 %    (pname, self.queryname))
         for pname in params.keys():
             if pname not in qparams:
-                raise ValueError('Excess parameter %s supplied for query %s'
+                raise ValueError('Excess parameter "%s" supplied for %s query'
                 %    (pname, self.queryname))
         resultiter = self._store.load_cypher_query(self._query, GraphNode.factory, params=params)
         return self.filter_json(executor_context, idsonly, expandJSON, resultiter, elemsonly)
@@ -141,7 +141,8 @@ class ClientQuery(GraphNode):
         'Execute the command line version of the query for the specified language'
         if fmtstring is None:
             fmtstring = self._JSON_metadata['cmdline'][language]
-        for json in self.execute(executor_context, expandJSON=True, elemsonly=True, **params):
+        fixedparams = self.validate_parameters(params)
+        for json in self.execute(executor_context, expandJSON=True, elemsonly=True, **fixedparams):
             obj = pyConfigContext(json)
             yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
@@ -175,7 +176,7 @@ class ClientQuery(GraphNode):
 
         idsonly = idsonly
         executor_context = executor_context
-        delim = '{"data":[' if not elemsonly else ''
+        rowdelim = '{"data":[' if not elemsonly else ''
         rowcount = 0
         for result in resultiter:
             # result is a namedtuple
@@ -183,27 +184,31 @@ class ClientQuery(GraphNode):
             if len(result) == 1:
                 if idsonly:
                     yield '%s"%s/%d"' % (
-                        delim
+                        rowdelim
                     ,   ClientQuery.node_query_url
                     ,   Store.id(result[0]))
                 else:
                     yield delim + str(JSONtree(result[0], expandJSON=expandJSON))
             else:
+                delim = rowdelim + '{'
+                row = ''
                 for attr in result.__dict__.keys():
                     value = getattr(result, attr)
                     if idsonly:
-                        yield '%s"%s":"%s"' % (
+                        row +=  '%s"%s":"%s"' % (
                                 delim
                             ,   attr
                             ,   Store.id(value))
 
                     else:
-                        yield '%s"%s":%s' % (
+                        row += '%s"%s":%s' % (
                                 delim
                             ,   attr
                             ,   str(JSONtree(value, expandJSON=expandJSON)))
+                    delim = ','
+                yield row + '}'
             if not elemsonly:
-                delim = ','
+                rowdelim = ','
         if not elemsonly:
             if rowcount == 0:
                 yield '{"data":[]}'
@@ -340,7 +345,7 @@ class ClientQuery(GraphNode):
             value = parameters[param]
             canonvalue = ClientQuery._validate_value(param, paramdict[param], value)
             result[param] = canonvalue
-        return True
+        return result
 
     
 
