@@ -318,6 +318,7 @@ class pySwitchDiscovery:
             if value is not None:
                 if tlvtype == LLDP_TLV_PID:
                     switchinfo['ports'][value] = thisportinfo
+                    thisportinfo['PortId'] = value
                     numericpart = value
                     while len(numericpart) > 0 and not numericpart.isdigit():
                         numericpart = numericpart[1:]
