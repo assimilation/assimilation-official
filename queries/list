@@ -8,7 +8,7 @@
         }
     },
     "cmdline": {
-        "en": "${queryname}: ${JSON_metadata.descriptions.en.short}",
+        "en": "${queryname}:	${JSON_metadata.descriptions.en.short}",
         "script": "${queryname}"
     }
 }
