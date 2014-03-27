@@ -5,7 +5,7 @@
                MATCH host-[:hosting]->service
                WHERE monitor IS NULL AND \"server\" in service.roles
                RETURN DISTINCT host, service
-               ORDER BY service.roles[0], host.designation",
+               ORDER BY service.pathname, host.designation",
     "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
     "descriptions": {
         "en": {
