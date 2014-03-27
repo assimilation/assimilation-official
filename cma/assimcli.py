@@ -93,7 +93,7 @@ class query:
             try:
                 (name, value) = nvpairs.split('=')
                 params[name] = value
-            except ValueError as err:
+            except AttributeError as err:
                 if len(param_names) == 0:
                     print >> sys.stderr, ('%s query does not take any parameters' % queryname)
                     return 1
@@ -110,11 +110,11 @@ class query:
             return 1
         try:
             iterator = request.cmdline_exec(executor_context, language, fmtstring, **params)
+            for line in iterator:
+                print line
         except ValueError as err:
-            print >> sys.stderr, ('Invalid %s query. Reason: %s' % (queryname, err))
+            print >> sys.stderr, ('Invalid query: %s' % (str(err)))
             return 1
-        for line in iterator:
-            print line
         return 0
 
 @RegisterCommand
