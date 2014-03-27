@@ -454,10 +454,14 @@ class Store:
                 if isinstance(value, neo4j.Node):
                     obj = self.constructobj(clsfact, value)
                     yieldval.append(obj)
-                if isinstance(value, neo4j.Relationship):
+                elif isinstance(value, neo4j.Relationship):
                     yieldval.append('RelationshipsNotYetSupported - Sorry :-(')
-                if isinstance(value, neo4j.Path):
+                elif isinstance(value, neo4j.Path):
                     yieldval.append('PathsNotYetSupported - Sorry :-(')
+                elif value is None:
+                    yieldval.append(value)
+                else:
+                    yieldval.append('Type %s not yet supported. Sorry :-(' % type(value))
             count += 1
             if maxcount is not None and count > maxcount:
                 return
