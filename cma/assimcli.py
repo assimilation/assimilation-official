@@ -36,6 +36,8 @@ from store import Store
 from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR
 #
+# These imports really are necessary - in spite of what pylint thinks...
+# pylint: disable=W0611
 import droneinfo, hbring, monitoring
 from cmainit import CMAinit
 
@@ -135,6 +137,9 @@ class loadqueries:
     def execute(store, executor_context, otherargs, flagoptions):
         'Load queries from the specified directory.'
 
+        executor_context = executor_context
+        flagoptions = flagoptions
+
         if len(otherargs) > 1:
             return usage()
         elif len(otherargs) == 1:
@@ -145,7 +150,7 @@ class loadqueries:
         qcount = 0
         for q in ClientQuery.load_tree(store, querydir):
             qcount += 1
-            pass
+            q = q
         store.commit()
         return 0 if qcount > 0 else 1
 
