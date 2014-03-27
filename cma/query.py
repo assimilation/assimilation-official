@@ -188,7 +188,7 @@ class ClientQuery(GraphNode):
                     ,   ClientQuery.node_query_url
                     ,   Store.id(result[0]))
                 else:
-                    yield delim + str(JSONtree(result[0], expandJSON=expandJSON))
+                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandJSON))
             else:
                 delim = rowdelim + '{'
                 row = ''
@@ -460,7 +460,7 @@ class ClientQuery(GraphNode):
             queryname = os.path.basename(pathname)
         #print 'LOADING %s as %s' % (pathname, queryname)
         ret = store.load_or_create(ClientQuery, queryname=queryname, JSON_metadata=json)
-        ret.JSON_metadata=json
+        ret.JSON_metadata = json
         ret.bind_store(store)
         return ret
 
