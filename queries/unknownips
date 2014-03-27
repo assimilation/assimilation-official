@@ -1,0 +1,18 @@
+{
+    "cypher": "START ip=node:IPaddrNode('*:*')
+               MATCH switch->[:nicowner]-[:wiredto]-(nic)<-[:nicowner]-system
+               WHERE r is null OR nic is null
+               RETURN ip",
+    "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get switch port connections",
+            "long":     "retrieve all switch ports associated with the given system"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "Unknown IPs: ${}",
+        "script": "${ipaddr}"
+    },
+}
