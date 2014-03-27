@@ -1,8 +1,8 @@
 {
     "cypher": "START ip=node:IPaddrNode('*:*')
-               OPTIONAL MATCH host-[:nicowner]->(nic)-[:ipowner]->ip
-               WITH ip, nic, count(host) as count
-               WHERE count = 0
+               OPTIONAL MATCH host-[:nicowner]->nic-[:ipowner]->ip
+               WITH ip, nic, host
+               WHERE host IS NULL
                RETURN ip, nic
                ORDER BY ip.ipaddr",
     "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
