@@ -52,6 +52,7 @@ class CMAconsts(object):
     NODE_ipaddr     = 'IPaddrNode'    # IP address
     NODE_ipproc     = 'ProcessNode'   # A client and/or server process
     NODE_tcpipport  = 'IPtcpportNode' # (ip, port) tuple for a TCP service
+    NODE_monitoraction  = 'MonitorAction' # A (hopefully active) monitoring action
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
