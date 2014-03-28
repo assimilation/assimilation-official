@@ -1,0 +1,18 @@
+{
+    "cypher": "START servicehost=node:Drone('*:*')
+               MATCH monitor-[:monitoring]->service<-[:hosting]-servicehost
+               RETURN monitor, service, servicehost
+               ORDER BY servicehost.designation, service.pathname",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "status of all monitored services",
+            "long":     "retrieve information about all monitored services "
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${servicehost.designation}(${servicehost.status}) ${service.pathname} Working:${monitor.isworking} [${monitor.reason}]",
+        "script": "${servicehost.designation}	${servicehost.status}	${service.pathname}	${monitor.isworking}	${monitor.reason}"
+    }
+}
