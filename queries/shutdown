@@ -5,8 +5,8 @@
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
         "en": {
-            "short":    "get shut down servers",
-            "long":     "retrieve the full information about all crashed servers (with nanoprobes)"
+            "short":    "get gracefully shutdown servers",
+            "long":     "retrieve all gracefully shut down servers (those with nanoprobes)"
         }
     },
     "parameters": {},
