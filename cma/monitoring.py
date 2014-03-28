@@ -73,6 +73,7 @@ class MonitorAction(GraphNode):
         self.provider = provider
         self.isactive = False
         self.isworking = True
+        self.reason = 'initial monitor creation'
         self.request_id = MonitorAction.request_id
         MonitorAction.request_id += 1
         if arglist is None:
@@ -135,7 +136,7 @@ class MonitorAction(GraphNode):
             ,   frametype=FrameTypes.RSCJSON)
             self.isactive = True
         CMAdb.log.info('Monitoring of service %s activated' % (self.monitorname))
-        
+
     def deactivate(self):
         '''Deactivate this monitoring action. Does not remove relationships from the graph'''
         from droneinfo import Drone
@@ -219,6 +220,8 @@ class MonitorAction(GraphNode):
             fubar = True
         rscname = monmsgobj[REQRSCNAMEFIELD]
         msg = 'Service %s %s' % (rscname, explanation)
+        self.isworking = success and not fubar
+        self.reason = explanation
         print >> sys.stderr, 'MESSAGE:', msg
         if fubar:
             CMAdb.log.critical(msg)
@@ -231,7 +234,6 @@ class MonitorAction(GraphNode):
             else:
                 CMAdb.log.warning(msg)
                 AssimEvent(self, AssimEvent.OBJDOWN, extrainfo=extrainfo)
-            self.isworking = success
 
 
     def construct_mon_json(self, operation='monitor'):
