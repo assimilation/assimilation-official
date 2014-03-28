@@ -482,18 +482,25 @@ class Store:
         except TypeError:
             args, unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor.__init__)
         newkwargs = {}
+        extraattrs = {}
         if varkw:
             newkwargs = kwargs
         else:
             for arg in kwargs.keys():
                 if arg in args:
                     newkwargs[arg] = kwargs[arg]
+                else:
+                    extraattrs[arg] = kwargs[arg]
         ret = constructor(**newkwargs)
+
 
         # Make sure the attributes match the desired values
         for attr in kwargs.keys():
             if not hasattr(ret, attr) or getattr(ret, attr) is None:
                 setattr(ret, attr, kwargs[attr])
+            elif attr in extraattrs:
+                if getattr(ret, attr) != extraattrs[attr]:
+                    setattr(ret, attr, extraattrs[attr])
         return ret
 
     def constructobj(self, constructor, node):
