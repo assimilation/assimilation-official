@@ -11,7 +11,7 @@
     },
     "parameters": {},
     "cmdline": {
-        "en": "${designation}[${reason}]",
+        "en": "${designation}[${status}:${reason}]",
         "script": "${designation}"
     },
 }
