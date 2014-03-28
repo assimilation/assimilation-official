@@ -1,12 +1,13 @@
 {
-    "cypher": "START nic=node:NIC('{macaddr}:*')
+    "cypher": "START nic=node:NICNode('*:*')
                MATCH nic<-[:nicowner]-system
-               RETURN system",
+               WHERE nic.macaddr = {macaddr}
+               RETURN nic, system",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
         "en": {
-            "short":    "return system owning MAC addr",
-            "long":     "retrieve the full information about the system owning the requested MAC address"
+            "short":    "get system owning MAC addr",
+            "long":     "retrieve information about the system owning the requested MAC address"
         }
     },
     "parameters": {
@@ -21,7 +22,7 @@
         }
     },
     "cmdline": {
-        "en": "System: ${designation}",
-        "script": "${designation}"
+        "en": "${system.designation}:${nic.ifname}",
+        "script": "${system.designation}	${nic.ifname}"
     },
 }
