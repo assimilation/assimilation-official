@@ -1,5 +1,56 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_0_1_2- version 0.1.2 - the 'very interesting' release - 20 March 2014
+This is the second in a series of releases intended to culminate in a truly useful release.
+This release is suitable for limited trials in an environment where the caveats are acceptable.
+You can find a few pre-built Ubuntu packages for this version here: https://www.dropbox.com/sh/h32lz3mtb8wwgmp/WZKH4OWw1h/Releases/0.1.2
+A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.2.tar.gz
+@subsection Features_0_1_2 Features
+These features are new with release 0.1.2.
+- added <i>assimcli</i> - a command line query tool with more than 15 cool canned queries.  These queries are also available through the REST interface.
+ - allipports:     get all port/ip/service/hosts
+ - allips: get all known IP addresses
+ - allservers:     get known servers
+ - allservicestatus:       status of all monitored services
+ - allswitchports: get all switch port connections
+ - crashed:        get 'crashed' servers
+ - down:   get 'down' servers
+ - downservices:   get 'down' services
+ - findip: get system owning IP
+ - findmac:        get system owning MAC addr
+ - hostdependencies:       host's service dependencies
+ - hostipports:    get all port/ip/service/hosts
+ - hostservicestatus:      monitored service status on host
+ - hostswitchports:        get switch port connections
+ - list:   list all queries
+ - shutdown:       get gracefully shutdown servers
+ - unknownips:     find unknown IPs
+ - unmonitored:    find unmonitored services
+- added a checksum monitoring capability - for network-facing binaries, libraries and JARs.
+- updated to a newer and faster version of the py2neo library
+- updated the CMA to use the Glib mainloop event scheduler
+- added a certain amount of Docker compatibility.  Assimilation now builds and installs correctly for CentOS 6 (but some tests seem to fail).
+
+@subsection BugFixes_0_1_2 Bug Fixes
+- Fixed the memory leak from 0.1.1 - which turned out to be minor.
+- Fixed a subtle bug in the Store class where it would appear to lose values put into node attributes
+- Fixed lots of bugs in the REST queries - and renamed them to be more command line friendly
+@subsection Caveats_0_1_2 Caveats
+- Object deletion not yet reliable or complete
+- No alerting, or interface to alerting (hooks to build your own interface are included)
+- communication is neither authenticated nor confidential
+- heterogeneous system support (POSIX and Windows - but now someone is working on Windows!)
+- statistical data collection
+- CDP support for Cisco switch discovery
+- high availability option for the CMA
+- the queries need to have more indexes for larger installations.
+
+Features that are expected for a monitoring solution but are <b>not</b> included include these:
+- useful alerting (but you can probably integrate your own)
+- heterogeneous system support (POSIX and Windows - but someone is now looking at Windows - yay!)
+- statistical data collection
+Note that these features are understood to be important and are planned - but this first release
+does not include them.
 
 @section Version0_1_1- version 0.1.1 - the 'possibly trial-worthy' release - 11 Feb 2013
 This is the first in a series of releases intended to culminate in a truly useful release.
