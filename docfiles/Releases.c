@@ -3,7 +3,7 @@
 @section Version_0_1_2- version 0.1.2 - the 'very interesting' release - 20 March 2014
 This is the second in a series of releases intended to culminate in a truly useful release.
 This release is suitable for limited trials in an environment where the caveats are acceptable.
-You can find a few pre-built Ubuntu packages for this version here: https://www.dropbox.com/sh/h32lz3mtb8wwgmp/WZKH4OWw1h/Releases/0.1.2
+you can find quite a few pre-built Ubuntu packages for this version here: https://www.dropbox.com/sh/h32lz3mtb8wwgmp/26AyspFaxL/Releases/0.1.2
 A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.2.tar.gz
 @subsection Features_0_1_2 Features
 These features are new with release 0.1.2.
