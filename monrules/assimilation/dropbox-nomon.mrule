@@ -14,12 +14,12 @@
 # (at your option) any later version.
 #
 #
-#   Configuration for automatically ignoring user-initiated skype sessions
+#   Configuration for automatically ignoring the dropbox daemon
 #
 {
     "class":    "NEVERMON",
-    "type":     "skype",
+    "type":     "dropbox",
     "classconfig": [
-        ["@basename()",             "skype$"]
+        ["pathname", "/home/[^/]*/\\.dropbox-dist/dropbox$"]
 	]
 }
