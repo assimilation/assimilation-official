@@ -14,12 +14,12 @@
 # (at your option) any later version.
 #
 #
-#   Configuration for automatically ignoring user-initiated skype sessions
+#   Configuration for automatically ignoring pidgin
 #
 {
     "class":    "NEVERMON",
-    "type":     "skype",
+    "type":     "pidgin",
     "classconfig": [
-        ["@basename()",             "skype$"]
+        ["pathname", "/usr/bin/pidgin$"]
 	]
 }
