@@ -110,7 +110,9 @@ class DispatchHBSHUTDOWN(DispatchTarget):
                 hostname = frame.getstr()
                 fromdrone = self.droneinfo.find(hostname, port=origaddr.port())
                 if fromdrone is not None:
-                    CMAdb.log.info("System %s at %s reports it has been gracefully shut down." \
+                    CMAdb.log.info("System %s at %s reports graceful shutdown."
+                    %   (hostname, str(origaddr)))
+                    print >> sys.stderr, ("System %s at %s reports graceful shutdown."
                     %   (hostname, str(origaddr)))
                     fromdrone.death_report('dead', fsname, origaddr, frameset)
                 else:
