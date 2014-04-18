@@ -308,8 +308,8 @@ class TCPDiscoveryListener(DiscoveryListener):
         servip = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=servip_name)
         ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
         ,       ipaddr=servip_name, port=servport)
-        self.store.relate_new(ip_port, CMAconsts.REL_baseip, servip, {'causes': True})
-        self.store.relate_new(processnode, CMAconsts.REL_tcpclient, ip_port, {'causes': True})
+        self.store.relate_new(ip_port, CMAconsts.REL_baseip, servip)
+        self.store.relate_new(ip_port, CMAconsts.REL_tcpclient, processnode)
 
     def _add_serveripportnodes(self, drone, ip, port, processnode, allourips):
         '''We create tcpipports objects that correspond to the given json object in
