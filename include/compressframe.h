@@ -1,4 +1,3 @@
-
 /**
  * @file
  * @brief Describes interfaces to C-String Frame (Compressframe) C-Class 
@@ -24,19 +23,30 @@
 
 #ifndef _COMPRESSFRAME_H
 #define _COMPRESSFRAME_H
+#include <projectcommon.h>
 #include <frame.h>
 
 ///@{
 /// @ingroup CompressFrame
 typedef struct _CompressFrame CompressFrame;
 
+#define	MAXUDPSIZE	65507	///< Maximum UDP packet size	
+
+/// Compression methods
+#define	COMPRESS_NONE	0	///< No compression
+#define	COMPRESS_ZLIB	1	///< Compression using 'zlib'
+
 /// This is our @ref CompressFrame object - used for representing a compression method.
 struct _CompressFrame {
 	Frame		baseclass;
-	guint16		compression_method;
+	guint8		compression_method;
+	guint8		compression_index;
+	guint32		uncompressed_size;
 };
 
-CompressFrame* compressframe_new(guint16 frame_type, guint16 compression_method);
+typedef struct _CompressFrame	CompressFrame;
+
+WINEXPORT CompressFrame* compressframe_new(guint16 frame_type, guint16 compression_method);
 WINEXPORT Frame* compressframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
 
 ///@}
