@@ -224,11 +224,13 @@ z_compressbuf(gpointer inbuf	///<[in] Input buffer
 ,	int *actualsize		///<[out] Actual size of compressed output
 ,	int level) {		///<[in] Compression level: (normally zero)
 
-	gpointer	outbuf;
+	guint8*		outbuf;
 	z_stream	stream;
 	int		ret;
+#if 0
 	int		space;
 	double		ratio;
+#endif
 
 	// Compute compression level
 	// If our guess doesn't work, we'll escalate to max compression
@@ -273,14 +275,14 @@ z_compressbuf(gpointer inbuf	///<[in] Input buffer
 		,	__FUNCTION__, __LINE__, ret);
 		return NULL;
 	}
-	space = insize - stream.avail_out;
-	(void)deflateEnd(&stream);
 #if 0
+	space = insize - stream.avail_out;
 	ratio = ((double)stream.total_in/((double)stream.total_out));
 	//return 0;
 	fprintf(stderr, "Compressing %ld bytes into %ld bytes with level %d ratio %.2f:1\n", stream.total_in
 	, stream.total_out, level, ratio);
 #endif
+	(void)deflateEnd(&stream);
 	outbuf = g_realloc(outbuf, stream.total_out);
 	*actualsize = stream.total_out;
 	return outbuf;
