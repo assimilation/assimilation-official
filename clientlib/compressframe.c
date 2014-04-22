@@ -121,7 +121,6 @@ FSTATIC gboolean
 _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer pktend)
 {
 	const CompressFrame*	self = CASTTOCONSTCLASS(CompressFrame, fself);
-	gconstpointer		origlen_p;
 	guint8			compresstype;
 	guint32			origlen;
 	const guint8*		valptr;
@@ -153,6 +152,10 @@ _compressframe_dataspace(const Frame* f)
 FSTATIC void
 _compressframe_setvalue(Frame *f, gpointer value, guint16 len, GDestroyNotify valnotify)
 {
+	(void)f;
+	(void)value;
+	(void)len;
+	(void)valnotify;
 	g_warning("%s:%d: Not possible to set the value of a CompressFrame", __FUNCTION__, __LINE__);
 }
 
@@ -173,7 +176,7 @@ _compressframe_updatedata(Frame *f, gpointer tlvstart, gconstpointer pktend, Fra
 	guint8*		valptr;
 	guint32		offset;
 	gpointer	newpacket;
-	guint32		compressedsize;
+	int		compressedsize;
 	
 	// Write our type and length into the packet
 	set_generic_tlv_type(tlvstart, f->type, pktend);
@@ -203,6 +206,9 @@ _compressframe_updatedata(Frame *f, gpointer tlvstart, gconstpointer pktend, Fra
 FSTATIC Frame*
 compressframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 {
+	(void)tlvstart;
+	(void)pktend;
+	return NULL;
 }
 
 #ifdef HAVE_ZLIB_H
@@ -253,7 +259,7 @@ z_compressbuf(gpointer inbuf	///<[in] Input buffer
 		g_warning("%s.%d: OOPS out of space.",	__FUNCTION__, __LINE__);
 		return NULL;
 	}
-	stream.avail_in = insize-offset;	stream.next_in = inbuf+offset;
+	stream.avail_in = insize-offset;	stream.next_in = (guint8*)inbuf+offset;
 	stream.avail_out = maxout;		stream.next_out = outbuf+offset;
 
 	/* Compress it */
