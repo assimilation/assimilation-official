@@ -39,6 +39,8 @@
 #include  <memory.h>
 #include  <compressframe.h>
 #include  <frameset.h>
+#include  <generic_tlv_min.h>
+#include  <tlvhelper.h>
 
 #if HAVE_ZLIB_H
 #	include  <zlib.h>
@@ -51,6 +53,7 @@ FSTATIC gsize _compressframe_dataspace(const Frame* f);
 FSTATIC void _compressframe_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _compressframe_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _compressframe_isvalid(const Frame *, gconstpointer,	gconstpointer);
+FSTATIC int	_compressframe_findmethod(int method);
 
 #if HAVE_ZLIB_H
 FSTATIC gpointer z_compressbuf(gpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
@@ -73,7 +76,7 @@ static struct compression_types {
 FSTATIC int
 _compressframe_findmethod(int method)
 {
-	int		j;
+	unsigned	j;
 	for (j=0; j < DIMOF(allcompressions); ++j) {
 		if (method == allcompressions[j].compression_type) {
 			return j;
@@ -88,8 +91,9 @@ compressframe_new(guint16 frame_type, guint16 compression_method)
 {
 	Frame*		fself;
 	CompressFrame*	self;
-	BINDDEBUG(CompressFrame);
 	int		cmpindex;
+
+	BINDDEBUG(CompressFrame);
 
 	if ((cmpindex = _compressframe_findmethod(compression_method)) >= 0) {
 		g_warning("%s.%d: Unknown compression type: %d"
@@ -110,6 +114,7 @@ compressframe_new(guint16 frame_type, guint16 compression_method)
 	}
 	fself->baseclass->_finalize = _compressframe_finalize;
 #endif
+	return self;
 }
 /// Return TRUE if this is a valid CompressFrame - either an object or on-the-wire version
 FSTATIC gboolean
@@ -121,20 +126,19 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 	guint32			origlen;
 	const guint8*		valptr;
 	if (tlvstart == NULL) {
-		return self->compression_index >= 0
-	&&	self->compression_index < DIMOF(allcompressions)
+		return self->compression_index < DIMOF(allcompressions)
 	&&	allcompressions[self->compression_index].compression_type == self->compression_method;
 	}
-	if (	((guint8*)pktend-(guint8*)tlvstart) < 12
+	if (	((const guint8*)pktend-(const guint8*)tlvstart) < 12
 	|| 	get_generic_tlv_len(tlvstart, pktend) <= 8) {
 		return FALSE;
 	}
 	valptr = get_generic_tlv_value(tlvstart, pktend);
-	compresstype = tlv_get_guint8(valptr);
+	compresstype = tlv_get_guint8(valptr, pktend);
 	if (_compressframe_findmethod(compresstype) < 0) {
 		return FALSE;
 	}
-	origlen = tlv_get_guint24(valptr+1);
+	origlen = tlv_get_guint24(valptr+1, pktend);
 	if (origlen > 1024*1024 || origlen < 32) { // 32 is a guess at min len
 		return FALSE;
 	}
@@ -182,7 +186,7 @@ _compressframe_updatedata(Frame *f, gpointer tlvstart, gconstpointer pktend, Fra
 	// In practice, our JSON seems to be limited to about 300K uncompressed.
 	tlv_set_guint8(valptr, self->compression_method, pktend);
 	self->uncompressed_size = pktend8 - pktstart;
-	tlv_set_guint24(valptr+1, self->uncompressed_size);
+	tlv_set_guint24(valptr+1, self->uncompressed_size, pktend);
 
 	// Now on to our side effect - compressing the frames that follow us...
 	offset = (tlvstart8+COMPFRAMESIZE)-pktstart;
