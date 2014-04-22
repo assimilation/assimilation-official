@@ -108,6 +108,7 @@
 #cmakedefine	HAVE_SYS_TYPES_H
 #cmakedefine	HAVE_SYS_SOCKET_H
 #cmakedefine	HAVE_NETDB_H
+#cmakedefine	HAVE_ZLIB_H
 
 #cmakedefine	HAVE_CLOCK_GETTIME
 #cmakedefine	HAVE_ENDPROTOENT

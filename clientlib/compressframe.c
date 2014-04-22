@@ -42,7 +42,7 @@
 #include  <generic_tlv_min.h>
 #include  <tlvhelper.h>
 
-#if HAVE_ZLIB_H
+#ifdef HAVE_ZLIB_H
 #	include  <zlib.h>
 #endif /* HAVE_ZLIB_H */
 
@@ -55,7 +55,7 @@ FSTATIC void _compressframe_updatedata(Frame *, gpointer, gconstpointer, FrameSe
 FSTATIC gboolean _compressframe_isvalid(const Frame *, gconstpointer,	gconstpointer);
 FSTATIC int	_compressframe_findmethod(int method);
 
-#if HAVE_ZLIB_H
+#ifdef HAVE_ZLIB_H
 FSTATIC gpointer z_compressbuf(gpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
 FSTATIC gpointer z_decompressbuf(gpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
 #endif /* HAVE_ZLIB_H */
@@ -68,7 +68,7 @@ static struct compression_types {
 	gpointer (*decompress)(gpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
 						///< Decompression function for this compression type
 }allcompressions [] = {
-#if HAVE_ZLIB_H
+#ifdef HAVE_ZLIB_H
 	{COMPRESS_ZLIB,	z_compressbuf,		z_decompressbuf},
 #endif
 };
@@ -205,7 +205,7 @@ compressframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 {
 }
 
-#if HAVE_ZLIB_H
+#ifdef HAVE_ZLIB_H
 /// Single-packet compression using zlib (-lz).
 /// Our goal here is to compress the data as cheaply as possible so that the <i>total</i> output size
 /// is less than or equal to 'maxout' bytes.  Maxout is normally the maximum size of a UDP packet.
@@ -244,12 +244,13 @@ z_compressbuf(gpointer inbuf	///<[in] Input buffer
 	ret = deflateInit(&stream, level);
 
 	if (ret != Z_OK) {
-		fprintf(stderr, "OOPS, got a deflateInit return of %d", ret);
+		g_warning("%s.%d: OOPS, got a deflateInit return of %d"
+		,	__FUNCTION__, __LINE__, ret);
 		return NULL;
 	}
-	outbuf = malloc(maxout);
+	outbuf = g_malloc(maxout);
 	if (NULL == outbuf) {
-		fprintf(stderr, "OOPS, out of space.");
+		g_warning("%s.%d: OOPS out of space.",	__FUNCTION__, __LINE__);
 		return NULL;
 	}
 	stream.avail_in = insize-offset;	stream.next_in = inbuf+offset;
@@ -258,11 +259,12 @@ z_compressbuf(gpointer inbuf	///<[in] Input buffer
 	/* Compress it */
 	ret = deflate(&stream, Z_FINISH);
 	if (ret != Z_STREAM_END) {
-		free(outbuf);
+		g_free(outbuf);
 		if (level < 9) {
 			return z_compressbuf(inbuf, insize, offset, maxout, actualsize, 9);
 		}
-		fprintf(stderr, "Got return code of %d from deflate (!= Z_STREAM_END)", ret);
+		g_warning("%s.%d: Got return code %d from deflate."
+		,	__FUNCTION__, __LINE__, ret);
 		return NULL;
 	}
 	space = insize - stream.avail_out;
@@ -273,7 +275,7 @@ z_compressbuf(gpointer inbuf	///<[in] Input buffer
 	fprintf(stderr, "Compressing %ld bytes into %ld bytes with level %d ratio %.2f:1\n", stream.total_in
 	, stream.total_out, level, ratio);
 #endif
-	outbuf = realloc(outbuf, stream.total_out);
+	outbuf = g_realloc(outbuf, stream.total_out);
 	*actualsize = stream.total_out;
 	return outbuf;
 }
@@ -301,24 +303,26 @@ z_decompressbuf(gpointer inbuf	///<[in] compressed input buffer
 	if (Z_OK != inflateInit(&stream)) {
 		return NULL;
 	}
-	outbuf = malloc(maxout);
+	outbuf = g_malloc(maxout);
 	stream.avail_out = maxout;
 	stream.next_out = ((unsigned char *)outbuf) + offset;
 	// Decompress our input buffer.
 	ret = inflate(&stream, Z_FINISH);
+	(void)inflateEnd(&stream);
 	if (ret != Z_STREAM_END) {
-		fprintf(stderr, "GOT RETURN OF %d, size=%d totalsize=%ld: (Z_OK == %d, Z_STREAM_END=%d)\n", ret, outsize
-		,	stream.total_out, Z_OK, Z_STREAM_END);
-		free(outbuf);
+		g_warning( "%s.%d: GOT inflate RETURN OF %d"
+		,	__FUNCTION__, __LINE__, ret);
+		g_free(outbuf);
 		return NULL;
 	}
 	outsize = maxout - stream.avail_out;
 	if (outsize > maxout) {
-		outbuf = realloc(outbuf, outsize);
+		outbuf = g_realloc(outbuf, outsize);
 	}
 	if (offset > 0) {
 		memcpy(outbuf, inbuf, offset);
 	}
+	(void)inflateEnd(&stream);
 	*uncompsize = outsize;
 	return outbuf;
 }
