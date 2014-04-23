@@ -221,7 +221,7 @@ compressframe_tlvconstructor(gconstpointer tlvstart,	///[in] Start of the compre
 	guint8		compression_type;
 	const guint8*	valueptr;
 	guint32		decompressed_size;
-	guint32		actual_size;
+	int		actual_size;
 	int		compression_index;
 	guint16		frametype;
 	CompressFrame*	ret;
@@ -303,7 +303,7 @@ z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
 		g_warning("%s.%d: OOPS out of space.",	__FUNCTION__, __LINE__);
 		return NULL;
 	}
-	stream.avail_in = insize-offset;	stream.next_in = (guint8*)inbuf+offset;
+	stream.avail_in = insize-offset;	stream.next_in = (const guint8*)inbuf+offset;
 	stream.avail_out = maxout;		stream.next_out = outbuf+offset;
 
 	/* Compress it */
@@ -349,13 +349,13 @@ z_decompressbuf(gconstpointer inbuf	///<[in] compressed input buffer
 	stream.zfree = Z_NULL;
 	stream.opaque = Z_NULL;
 	stream.avail_in = insize-offset;
-	stream.next_in = ((unsigned char *)inbuf) + offset;
+	stream.next_in = ((const guint8*)inbuf) + offset;
 	if (Z_OK != inflateInit(&stream)) {
 		return NULL;
 	}
 	outbuf = g_malloc(maxout);
 	stream.avail_out = maxout;
-	stream.next_out = ((unsigned char *)outbuf) + offset;
+	stream.next_out = ((guint8 *)outbuf) + offset;
 	// Decompress our input buffer.
 	ret = inflate(&stream, Z_FINISH);
 	(void)inflateEnd(&stream);
