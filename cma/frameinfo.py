@@ -116,35 +116,35 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 '''
 +----------------+-----------+------------------+
 | frametype = %2d | f_length  |    frame data    |
-|   (16 bits)    | (16-bits) | (f_length bytes) |
+|   (16 bits)    | (24-bits) | (f_length bytes) |
 +----------------+-----------+------------------+
 ''',
 	'pySignFrame':
 '''
 +----------------+-----------+-----------------+--------------------+
 | frametype = %2d | f_length  | signature-type  | digital signature  |
-|   (16 bits)    | (16-bits) | (16 bits)       | (f_length-2 bytes) |
+|   (16 bits)    | (24-bits) | (16 bits)       | (f_length-2 bytes) |
 +----------------+-----------+-----------------+--------------------+
 ''',
 	'pyCryptFrame':
 '''
 +----------------+-----------+-------------------------+
 | frametype = %2d | f_length  | encryption information  |
-|   (16 bits)    | (16-bits) |     (f_length bytes)    |
+|   (16 bits)    | (24-bits) |     (f_length bytes)    |
 +----------------+-----------+-------------------------+
 ''',
 	'pyCompressFrame':
 '''
 +----------------+-----------+------------------------+
-| frametype = %2d | f_length  | compression information|
-|   (16 bits)    | (16-bits) |    (f_length bytes)    |
+| frametype = %2d | f_length  | compressed frames      |
+|   (16 bits)    | (24-bits) |    (f_length bytes)    |
 +----------------+-----------+------------------------+
 ''',
 	'pySeqnoFrame':
 '''
 +----------------+---------------+-------------+-----------+
 | frametype = %2d | f_length = 8  |  reply id   | queue id  |
-|   (16 bits)    |   (16-bits)   |  (8 bytes)  | (2 bytes) |
+|   (16 bits)    |   (24-bits)   |  (8 bytes)  | (2 bytes) |
 +----------------+---------------+-------------+-----------+
 ''',
 
@@ -153,35 +153,35 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 +----------------+--------------+-------------------------+
 | frametype = %2d | f_length =   |     integer  value      |
 |                | 1,2,3,4 or 8 |           value         |
-|   (16 bits)    |   (16-bits)  |   (1,2,3,4,or 8 bytes)  |
+|   (16 bits)    |   (24-bits)  |   (1,2,3,4,or 8 bytes)  |
 +----------------+--------------+-------------------------+
 ''',
 	'pyCstringFrame':
 '''
 +----------------+----------------+----------------+--------+
 | frametype = %2d | f_length = 'n' | interface name |  0x00  |
-|   (16 bits)    |    (16-bits)   |   (n-1 bytes)  | 1 byte |
+|   (16 bits)    |    (24-bits)   |   (n-1 bytes)  | 1 byte |
 +----------------+----------------+----------------+--------+
 ''',
 	'pyAddrFrame':
 '''
 +----------------+----------------+---------------+--------------+
 | frametype = %2d | f_length = n   | Address Type  |  address     |
-|   (16 bits)    |    (16-bits)   |    2 bytes    | (n-2 bytes)  |
+|   (16 bits)    |    (24-bits)   |    2 bytes    | (n-2 bytes)  |
 +----------------+----------------+---------------+--------------+
 ''',
 	'pyIpPortFrame':
 '''
 +----------------+----------------+-------------+--------------+---------------+
 | frametype = %2d | f_length = n   | Port Number | Address Type  |  address     |
-|   (16 bits)    |    (16-bits)   |   2 bytes   |    2 bytes    | (n-4 bytes)  |
+|   (16 bits)    |    (24-bits)   |   2 bytes   |    2 bytes    | (n-4 bytes)  |
 +----------------+----------------+-------------+--------------+---------------+
 ''',
 	'pyNVpairFrame':
 '''
 +----------------+---------------+--------+-----------------+-------+------+
 | frametype = %2d | f_length = n  | nm_len |  name    | NUL  |       | NUL  |
-|   (16 bits)    |    (16-bits)  | 1 byte | nm_len-1 | byte | value | byte |
+|   (16 bits)    |    (24-bits)  | 1 byte | nm_len-1 | byte | value | byte |
 |                |               |(8 bits)|  bytes   |      |       |      |
 +----------------+---------------+--------+-----------------+-------+------+
 ''',
