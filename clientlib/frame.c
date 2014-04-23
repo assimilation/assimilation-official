@@ -144,8 +144,8 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 Frame*
 frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Frame
 		     gconstpointer pktend,	///<[in] first invalid byte past 'tlvstart'
-		     gpointer* ignorednewpkt,	///[ignored] replacement packet
-		     gpointer* ignoredpktend)	///[ignored] end of replacement packet
+		     gpointer* ignorednewpkt,	///<[ignored] replacement packet
+		     gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

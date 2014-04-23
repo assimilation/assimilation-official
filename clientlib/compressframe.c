@@ -210,8 +210,8 @@ _compressframe_updatedata(Frame *f, gpointer tlvstart, gconstpointer pktend, Fra
 
 #define	COMPRESSFRAMEMIN	4
 FSTATIC Frame*
-compressframe_tlvconstructor(gconstpointer tlvstart,	///[in] Start of the compression frame
-			     gconstpointer pktend,	///[in] First byte past the end of the packet
+compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of the compression frame
+			     gconstpointer pktend,	///<[in] First byte past the end of the packet
 		             gpointer* newpacket,	///<[out] replacement packet
 		             gpointer* newpacketend)	///<[out] end of replacement packet
 {
