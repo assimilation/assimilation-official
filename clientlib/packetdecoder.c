@@ -185,7 +185,6 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 {
 	gconstpointer	curframeset = pktstart;
 	GSList*		ret = NULL;
-	gpointer	newfsstart = NULL;
 
 	// Loop over all the FrameSets in the packet we were given.
 	while (curframeset < pktend) {
