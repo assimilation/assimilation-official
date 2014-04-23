@@ -218,7 +218,7 @@ compressframe_tlvconstructor(gconstpointer tlvstart,	///[in] Start of the compre
 	const guint8*	pktend8			= pktend;
 	const guint8*	tlvstart8		= tlvstart;
 	const guint8*	packet			= tlvstart8 + COMPRESSFRAMEMIN;
-	guint32		pktsize			= pktend8 - packet;
+	guint32		pktsize;
 	guint8		compression_type;
 	const guint8*	valueptr;
 	guint32		decompressed_size;
