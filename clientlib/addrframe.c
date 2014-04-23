@@ -276,7 +276,9 @@ addrframe_mac64_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame 
 /// Note that this always returns an @ref AddrFrame (a subclass of @ref Frame)
 WINEXPORT Frame*
 addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
-			 gconstpointer pktend)		///<[in] pointer to the first invalid address past tlvstart
+			 gconstpointer pktend,		///<[in] pointer to the first invalid address past tlvstart
+		         gpointer* ignorednewpkt,	///<[ignored] replacement packet
+		         gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
@@ -284,6 +286,8 @@ addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of wh
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	AddrFrame *	ret = addrframe_new(frametype, 0);
 	guint16		address_family;
+
+	(void)ignorednewpkt;	(void)ignoredpktend;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	address_family = tlv_get_guint16(framevalue, pktend);

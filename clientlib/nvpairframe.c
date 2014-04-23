@@ -129,13 +129,17 @@ nvpairframe_new(guint16 frame_type,	///<[in] TLV type of NVpairFrame
 /// In other words, un-marshall the data...
 WINEXPORT Frame*
 nvpairframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
-			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'
+			   gconstpointer pktend,	///<[in] Pointer to first invalid byte past 'tlvstart'
+			   gpointer* ignorednewpkt,	///<[ignored] replacement packet if any
+			   gpointer* ignoredpktend)	///<[ignored] end of replaement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	NVpairFrame *	ret = nvpairframe_new(frametype, NULL, NULL, 0);
 	Frame *		fret = CASTTOCLASS(Frame, ret);
+
+	(void)ignorednewpkt;	(void)ignoredpktend;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;

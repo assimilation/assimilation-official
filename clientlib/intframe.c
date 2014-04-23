@@ -206,13 +206,17 @@ intframe_new(guint16 frametype,	///< Type of frame to create with this value
 /// In other words, un-marshall the data...
 Frame*
 intframe_tlvconstructor(gconstpointer tlvstart,	///<[in] First byte of the IntFrame TLV
-			gconstpointer pktend)	///<[in] First invalid byte past pktend
+			gconstpointer pktend,	///<[in] First invalid byte past pktend
+		        gpointer* ignorednewpkt,///<[ignored] replacement packet
+		        gpointer* ignoredpktend)///<[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	IntFrame *	ret = intframe_new(frametype, framelength);
 	guint64		intvalue = G_MAXUINT64;
+
+	(void)ignorednewpkt;	(void)ignoredpktend;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;

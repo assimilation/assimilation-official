@@ -169,13 +169,16 @@ _seqnoframe_updatedata(Frame* fself,		///< object whose data will be put into Fr
 /// Construct Frame (SeqnoFrame) object from marshalled packet data
 Frame*
 seqnoframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of SeqnoFrame TLV area
-			  gconstpointer pktend)		///<[in] first byte past end of packet
+			  gconstpointer pktend,		///<[in] first byte past end of packet
+		          gpointer* ignorednewpkt,	///<[ignored] replacement packet
+		          gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	SeqnoFrame*	ret;
 	guint16		length  = get_generic_tlv_len(tlvstart, pktend);
 	guint16		tlvtype = get_generic_tlv_type(tlvstart, pktend);
 	const guint8* valpos = get_generic_tlv_value(tlvstart, pktend);
 
+	(void)ignorednewpkt;	(void)ignoredpktend;
 	g_return_val_if_fail(length == (sizeof(guint64)+sizeof(guint16)+sizeof(guint32)), NULL);
 
 	ret = seqnoframe_new(tlvtype, 0);

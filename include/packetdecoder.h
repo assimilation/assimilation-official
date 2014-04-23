@@ -31,7 +31,7 @@
 
 typedef struct _FrameTypeToFrame FrameTypeToFrame;
 
-typedef Frame*            (*FramePktConstructor)       (gconstpointer tlvstart, gconstpointer pktend);
+typedef Frame*            (*FramePktConstructor)       (gconstpointer tlvstart, gconstpointer pktend, gpointer*, gpointer*);
 /// Data structure defining the mapping between frametype integers and corresponding demarshalling
 /// modules.
 struct _FrameTypeToFrame {

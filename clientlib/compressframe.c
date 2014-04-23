@@ -33,6 +33,9 @@
 
 ///@}
 #define KBYTES(n)	((n)*1024)
+/// In practice, our max JSON decompressed size is under 325K, so 1M seems safe
+/// more or less not matter what compression method one uses -- on JSON...
+#define	MAXUNCOMPRESSEDSIZE	KBYTES(1024)
 
 #include  <glib.h>
 #include  <fcntl.h>
@@ -56,16 +59,16 @@ FSTATIC gboolean _compressframe_isvalid(const Frame *, gconstpointer,	gconstpoin
 FSTATIC int	_compressframe_findmethod(int method);
 
 #ifdef HAVE_ZLIB_H
-FSTATIC gpointer z_compressbuf(gpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
-FSTATIC gpointer z_decompressbuf(gpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
+FSTATIC gpointer z_compressbuf(gconstpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
+FSTATIC gpointer z_decompressbuf(gconstpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
 #endif /* HAVE_ZLIB_H */
 
 /// Set of all know compression methods
 static struct compression_types {
 	guint8	   compression_type;		///< Type of compression
-	gpointer (*compress)(gpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
+	gpointer (*compress)(gconstpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
 						///< Compression function for this compression type
-	gpointer (*decompress)(gpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
+	gpointer (*decompress)(gconstpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
 						///< Decompression function for this compression type
 }allcompressions [] = {
 #ifdef HAVE_ZLIB_H
@@ -138,7 +141,8 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 		return FALSE;
 	}
 	origlen = tlv_get_guint24(valptr+1, pktend);
-	if (origlen > 1024*1024 || origlen < 32) { // 32 is a guess at min len
+	// Trying to avoid a DOS attack using huge packets
+	if (origlen > MAXUNCOMPRESSEDSIZE || origlen < 32) { // 32 is a guess at min len
 		return FALSE;
 	}
 	return TRUE;
@@ -182,32 +186,70 @@ _compressframe_updatedata(Frame *f, gpointer tlvstart, gconstpointer pktend, Fra
 	set_generic_tlv_type(tlvstart, f->type, pktend);
 	valptr = get_generic_tlv_nonconst_value(tlvstart, pktend);
 	// Our value consists of the compression method followed by a 3 byte
-	// packet length.  This restricts us to a 16M uncompressed original
+	// packet length.  This restricts us to a 16M decompressed original
 	// packet.  That should be big enough for a while...
 	// Of course, the fact that this has to compress down to a single UDP
 	// packet makes this a very reasonable assumption...
-	// In practice, our JSON seems to be limited to about 300K uncompressed.
+	// In practice, our JSON seems to be limited to about 300K decompressed.
 	tlv_set_guint8(valptr, self->compression_method, pktend);
-	self->uncompressed_size = pktend8 - pktstart;
-	tlv_set_guint24(valptr+1, self->uncompressed_size, pktend);
+	self->decompressed_size = pktend8 - pktstart;
+	tlv_set_guint24(valptr+1, self->decompressed_size, pktend);
 
 	// Now on to our side effect - compressing the frames that follow us...
 	offset = (tlvstart8+COMPFRAMESIZE)-pktstart;
 	newpacket = allcompressions[self->compression_index].compress
-		(pktstart, self->uncompressed_size, offset, MAXUDPSIZE, &compressedsize, 0);
+		(pktstart, self->decompressed_size, offset, MAXUDPSIZE, &compressedsize, 0);
 	if (NULL == newpacket) {
 		g_warning("%s:%d: Unable to compress %d byte packet to %d byte UDP packet"
-		,	__FUNCTION__, __LINE__, self->uncompressed_size, MAXUDPSIZE);
+		,	__FUNCTION__, __LINE__, self->decompressed_size, MAXUDPSIZE);
 	}
 	set_generic_tlv_len(tlvstart, COMPFRAMESIZE+compressedsize, pktend);
 	fs->packet = newpacket;
 }
 
+#define	COMPRESSFRAMEMIN	4
 FSTATIC Frame*
-compressframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+compressframe_tlvconstructor(gconstpointer tlvstart,	///[in] Start of the compression frame
+			     gconstpointer pktend,	///[in] First byte past the end of the packet
+		             gpointer* newpacket,	///<[out] replacement packet
+		             gpointer* newpacketend)	///<[out] end of replacement packet
 {
-	(void)tlvstart;
-	(void)pktend;
+	const guint8*	pktend8			= pktend;
+	const guint8*	tlvstart8		= tlvstart;
+	const guint8*	packet			= tlvstart8 + COMPRESSFRAMEMIN;
+	guint32		pktsize			= pktend8 - packet;
+	guint8		compression_type;
+	const guint8*	valueptr;
+	guint32		decompressed_size;
+	guint32		actual_size;
+	int		compression_index;
+	guint16		frametype;
+	CompressFrame*	ret;
+	/* Our four bytes of real data are:
+	 * 	compression type
+	 * 	3-byte decompressed size
+	 */
+	frametype = get_generic_tlv_type(tlvstart, pktend);
+	valueptr = get_generic_tlv_value(tlvstart, pktend);
+	compression_type = tlv_get_guint8(valueptr, pktend);
+	decompressed_size = tlv_get_guint24(valueptr+1, pktend);
+	compression_index = _compressframe_findmethod(compression_type);
+	// Trying to mitigage possible DOS attack using huge packets
+	// In practice, our max JSON decompressed size is under 325K
+	g_return_val_if_fail(decompressed_size <= MAXUNCOMPRESSEDSIZE, NULL);
+	g_return_val_if_fail(decompressed_size > 32, NULL);
+	g_return_val_if_fail(compression_index >= 0, NULL);
+
+	pktsize = pktend8 - tlvstart8;	// Compressed packet size
+	
+	*newpacket = allcompressions[compression_index].decompress
+		(packet, pktsize, 0, decompressed_size, &actual_size);
+	g_return_val_if_fail(newpacket != NULL, NULL);
+	*newpacketend = (guint8*)newpacket + actual_size;
+
+	ret = compressframe_new(frametype, compression_type);
+	g_return_val_if_fail(ret != NULL, NULL);
+	ret->decompressed_size = decompressed_size;
 	return NULL;
 }
 
@@ -217,12 +259,12 @@ compressframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
 /// is less than or equal to 'maxout' bytes.  Maxout is normally the maximum size of a UDP packet.
 /// This is our definition of optimal compression - the cheapest that fits.
 gpointer
-z_compressbuf(gpointer inbuf	///<[in] Input buffer
-,	int insize		///<[in] size of 'inbuf'
-,	int offset		///<[in] Offset to beginning of data to be compressed
-,	int maxout		///<[in] Maximum size of compressed output [UDP packet size]
-,	int *actualsize		///<[out] Actual size of compressed output
-,	int level) {		///<[in] Compression level: (normally zero)
+z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
+,	int insize			///<[in] size of 'inbuf'
+,	int offset			///<[in] Offset to beginning of data to be compressed
+,	int maxout			///<[in] Maximum size of compressed output [UDP packet size]
+,	int *actualsize			///<[out] Actual size of compressed output
+,	int level) {			///<[in] Compression level: (normally zero)
 
 	guint8*		outbuf;
 	z_stream	stream;
@@ -291,13 +333,13 @@ z_compressbuf(gpointer inbuf	///<[in] Input buffer
 /// Single-packet decompression using zlib (-lz).
 /// Return NULL on failure.
 gpointer
-z_decompressbuf(gpointer inbuf	///<[in] compressed input buffer
-,	int insize		///<[in] size of compressed input buffer
-,	int offset		///<[in] start of compressed data - the first "offset" bytes
-				///< from inbuf are copied into output w/o uncompression
-,	int maxout		///<[in] maximum size of uncompressed output.
-				///< nice if it's uncompressed size if you know it.
-,	int *uncompsize) {	///<[out] actual uncompressed size
+z_decompressbuf(gconstpointer inbuf	///<[in] compressed input buffer
+,	int insize			///<[in] size of compressed input buffer
+,	int offset			///<[in] start of compressed data - the first "offset" bytes
+					///< from inbuf are copied into output w/o decompression
+,	int maxout			///<[in] maximum size of decompressed output.
+					///< nice if it's decompressed size if you know it.
+,	int *uncompsize) {		///<[out] actual decompressed size
 	gpointer	outbuf;
 	int		outsize;
 	int		ret;
