@@ -271,7 +271,7 @@ ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of 
 
 // +-------------+----------------+-------------+---------------+--------------------+
 // | frametype   |    f_length    | Port Number | Address Type  |    address-data    |
-// |  16 bits)   |    (16-bits)   |   2 bytes   |   2 bytes     | (f_length-4 bytes) |
+// |  16 bits)   |    (24-bits)   |   2 bytes   |   2 bytes     | (f_length-4 bytes) |
 // +-------------+----------------+-------------+---------------+--------------------+
 	(void)ignorednewpkt;	(void)ignoredpktend;
 	port = tlv_get_guint16(framevalue, pktend);

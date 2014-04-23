@@ -96,6 +96,9 @@ cryptframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled C
 	/// @todo: Not yet implemented
 	CryptFrame *	cret = cryptframe_new(frametype, 0, NULL);
 	Frame *		ret = CASTTOCLASS(Frame, cret);
+
+	(void)ignorednewpkt;
+	(void)ignoredpktend;
 	g_return_val_if_fail(cret != NULL, NULL);
 
 	cret->baseclass.length = framelength;
