@@ -238,18 +238,22 @@ signframe_new(GChecksumType sigtype,	///< signature type
 /// @note when we add more subtypes to signatures (which will surely happen), then
 /// this code will have to be updated to deal with that...
 Frame*
-signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+signframe_tlvconstructor(gconstpointer tlvstart,	///<[in] beginning of the SignFrame in packet
+			 gconstpointer pktend,		///<[in] end of packet
+		         gpointer* ignorednewpkt,	///<[ignored] replacement packet
+		         gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
-	//guint8		subtype = tlv_get_guint8(framevalue, pktend);
-	GChecksumType	cksumtype = tlv_get_guint8(framevalue+1, pktend);
-	SignFrame *		ret;
+	//guint8	majortype = tlv_get_guint8(framevalue, pktend);
+	GChecksumType	minortype = tlv_get_guint8(framevalue+1, pktend);
+	SignFrame *	ret;
 
+	(void)ignorednewpkt;	(void)ignoredpktend;
 	g_return_val_if_fail(framelength > 2, NULL);
 
 	/// @note we currently ignore the subtype - since we only support one...
-	ret = signframe_new(cksumtype, 0);
+	ret = signframe_new(minortype, 0);
 	g_return_val_if_fail(NULL != ret, NULL);
 	ret->baseclass.length = framelength;
 	return CASTTOCLASS(Frame, ret);

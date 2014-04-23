@@ -123,13 +123,17 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 /// In other words, un-marshall the data...
 WINEXPORT Frame*
 cstringframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
-			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'
+			    gconstpointer pktend,	///<[in] Pointer to first invalid byte past 'tlvstart'
+		            gpointer* ignorednewpkt,	///<[ignored] replacement packet
+		            gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	CstringFrame *	ret = cstringframe_new(frametype, 0);
 	Frame *		fret = CASTTOCLASS(Frame, ret);
+
+	(void)ignorednewpkt;	(void)ignoredpktend;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;

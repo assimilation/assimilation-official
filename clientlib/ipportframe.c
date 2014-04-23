@@ -257,7 +257,9 @@ ipportframe_netaddr_new(guint16 frame_type, NetAddr* addr)
 /// Note that this always returns an @ref IpPortFrame (a subclass of @ref Frame)
 WINEXPORT Frame*
 ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
-			   gconstpointer pktend)		///<[in] pointer to the first invalid address past tlvstart
+			   gconstpointer pktend,	///<[in] pointer to the first invalid address past tlvstart
+			   gpointer* ignorednewpkt,	///<[ignored] replacement packet if any
+			   gpointer* ignoredpktend)	///<[ignored] end of replaement packet
 
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
@@ -271,6 +273,7 @@ ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of 
 // | frametype   |    f_length    | Port Number | Address Type  |    address-data    |
 // |  16 bits)   |    (16-bits)   |   2 bytes   |   2 bytes     | (f_length-4 bytes) |
 // +-------------+----------------+-------------+---------------+--------------------+
+	(void)ignorednewpkt;	(void)ignoredpktend;
 	port = tlv_get_guint16(framevalue, pktend);
 	if (port == 0) {
 		return NULL;

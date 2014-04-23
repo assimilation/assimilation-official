@@ -51,9 +51,9 @@
 
 
 
-FSTATIC Frame*	_framedata_to_frameobject(PacketDecoder*, gconstpointer, gconstpointer gconstpointer);
+FSTATIC Frame*	_framedata_to_frameobject(PacketDecoder*, gconstpointer, gconstpointer, gconstpointer);
 FSTATIC FrameSet* _decode_packet_get_frameset_data(gconstpointer, gconstpointer, void const **);
-FSTATIC Frame* _decode_packet_framedata_to_frameobject(PacketDecoder*, gconstpointer, gconstpointer, void const **);
+FSTATIC Frame* _decode_packet_framedata_to_frameobject(PacketDecoder*, gconstpointer*, gconstpointer*, gpointer*);
 FSTATIC GSList* _pktdata_to_framesetlist(PacketDecoder*, gconstpointer, gconstpointer);
 
 FSTATIC void _packetdecoder_finalize(AssimObj*);
@@ -117,21 +117,31 @@ packetdecoder_new(guint objsize, const FrameTypeToFrame* framemap, gint mapsize)
 /// Given a pointer to a TLV entry for the data corresponding to a Frame, construct a corresponding Frame
 /// @return a decoded frame <i>plus</i> pointer to the first byte past this Frame (in 'nextframe')
 FSTATIC Frame*
-_decode_packet_framedata_to_frameobject(PacketDecoder*self,	///<[in/out] PacketDecoder object
-					gconstpointer pktstart,	///<[in] Pointer to marshalled Frame data
-					gconstpointer pktend,	///<[in] Pointer to first byte past end of pkt
-					void const ** nextframe)///<[out] Start of next frame (if any)
+_decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] PacketDecoder object
+					gconstpointer* pktstart,///<[in/out] Marshalled Frame data
+					gconstpointer* pktend,	///<[in/out] 1st byte past pkt end
+					gpointer* newpacket)	///<[out] Replacement packet from
+								///<frame decoding (if any)
 {
-	guint16		frametype = get_generic_tlv_type(pktstart, pktend);
-	Frame*	ret;
+	guint16		frametype = get_generic_tlv_type(*pktstart, *pktend);
+	gpointer	newpacketend = NULL;
+	Frame*		ret;
 
+	*newpacket = NULL;
+	// A note: It's easy to get these gpointer* objects confused.
+	// Because they're void**, they can be a bit too flexible ;-)
 	if (frametype <= self->_maxframetype) {
-		ret = self->_frametypemap[frametype](pktstart, pktend);
+		ret = self->_frametypemap[frametype](*pktstart, *pktend, newpacket, &newpacketend);
 	}else{ 
-		ret =  unknownframe_tlvconstructor(pktstart, pktend);
+		ret =  unknownframe_tlvconstructor(*pktstart, *pktend, newpacket, &newpacketend);
 	}
 	g_return_val_if_fail(ret != NULL, NULL);
-	*nextframe = (gconstpointer) ((const guint8*)pktstart + ret->dataspace(ret));
+	if (NULL == *newpacket) {
+		*pktstart = (gconstpointer) ((const guint8*)*pktstart + ret->dataspace(ret));
+	}else{
+		*pktstart = newpacket;
+		*pktend = newpacketend;
+	}
 	return ret;
 }
 
@@ -175,32 +185,55 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 {
 	gconstpointer	curframeset = pktstart;
 	GSList*		ret = NULL;
+	gpointer	newfsstart = NULL;
 
+	// Loop over all the FrameSets in the packet we were given.
 	while (curframeset < pktend) {
-		gconstpointer nextframeset = pktend;
-		gconstpointer curframe = (gconstpointer)((const guint8*)curframeset + FRAMESET_INITSIZE);
-		FrameSet* fs = _decode_packet_get_frameset_data(curframeset, pktend, &nextframeset);
+		gconstpointer	nextframeset = pktend;
+		gconstpointer	framestart = ((const guint8*)curframeset + FRAMESET_INITSIZE);
+		gconstpointer	curframe;
+		FrameSet*	fs = _decode_packet_get_frameset_data(curframeset, pktend, &nextframeset);
+		gconstpointer	fsend = nextframeset;
+		gpointer	newframestart = NULL;
 
 		g_return_val_if_fail(fs != NULL && nextframeset <= pktend, ret);
 
-		while (curframe < nextframeset) {
-			gconstpointer nextframe = nextframeset;
-			Frame* newframe;
-			newframe = _decode_packet_framedata_to_frameobject(self, curframe, nextframeset, &nextframe);
+		// Construct this FrameSet from the series of frames encoded in the packet.
+		// Note that two special kinds of frames can alter the packet we're examining.
+		// This is explained in more detail inside the loop.
+		curframe = framestart;
+		while (curframe != NULL && curframe < fsend) {
+			Frame*		newframe;
+			gpointer	newpacket = NULL;
+			// The first special case frame is the compression frame, in which case the
+			// remaining packet is replaced by a new, larger chunk of data.
+			//
+			// The second type is the encryption packet, in which case the remaining
+			// packet is replaced by a new chunk of data which will have different
+			// (decrypted) content, and would normally be expected to be the same size
+			// as the original.
+			//
+			// This means that "decode_packet_framedata_to_frameobject" might replace the
+			// packet data we've been looking at.
+			// (FWIW: It's perfectly OK to have an encryption frame followed by a
+			// compression frame -- both kinds can occur in the same FrameSet).
+			newframe = _decode_packet_framedata_to_frameobject(self, &curframe, &fsend, &newpacket);
+			if (newpacket) {
+				if (newframestart != NULL) {
+					// We did packet replacement more than once...
+					g_free(newframestart);
+				}
+				newframestart = newpacket;
+			}
 			if (NULL == newframe) {
 				UNREF(fs);
-				// What should we do about 'ret'?
-				///@todo memory leak in error condition
-				return NULL;
-			}
-			if (nextframe > nextframeset) {
-				UNREF(newframe);
-				UNREF(fs);
-				return ret;
+				continue;
 			}
 			frameset_append_frame(fs, newframe);
 			UNREF(newframe);
-			curframe = nextframe;
+		}
+		if (newframestart) {
+			g_free(newframestart); newframestart = NULL;
 		}
 		ret = g_slist_append(ret, fs); fs = NULL;
 		curframeset = nextframeset;

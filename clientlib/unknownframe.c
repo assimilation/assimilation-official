@@ -67,13 +67,18 @@ unknownframe_new(guint16 frame_type)	///<[in] TLV type associated with this unkn
 /// Given marshalled data corresponding to an unknown Frame (basic binary frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-unknownframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend)
+unknownframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of our Frame in the packet
+			    gconstpointer pktend,	///<[in] One byte past end of packet
+			    gpointer* ignorednewpkt,	///<[ignored]
+			    gpointer* ignorednewpktend)	///<[ignored]
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	UnknownFrame *	ret = unknownframe_new(frametype);
 	Frame *		fret = CASTTOCLASS(Frame, ret);
+	(void)ignorednewpkt;
+	(void)ignorednewpktend;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->baseclass.length = framelength;

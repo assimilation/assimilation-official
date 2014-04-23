@@ -43,7 +43,7 @@ struct _SignFrame {
 };
 
 WINEXPORT SignFrame* signframe_new(GChecksumType sigtype, gsize framesize);
-WINEXPORT Frame* signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+WINEXPORT Frame* signframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 

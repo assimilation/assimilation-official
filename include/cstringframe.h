@@ -38,7 +38,7 @@ struct _CstringFrame {
 };
 
 WINEXPORT CstringFrame* cstringframe_new(guint16 frame_type, gsize framesize);
-WINEXPORT Frame* cstringframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+WINEXPORT Frame* cstringframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 

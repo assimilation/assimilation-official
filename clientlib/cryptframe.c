@@ -86,7 +86,9 @@ cryptframe_new(guint16 frame_type,	///<[in] TLV type of CryptFrame
 /// In other words, un-marshall the data...
 WINEXPORT Frame*
 cryptframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
-			    gconstpointer pktend)	///<[in] Pointer to first invalid byte past 'tlvstart'
+			  gconstpointer pktend,		///<[in] Pointer to first invalid byte past 'tlvstart'
+		          gpointer* ignorednewpkt,	///<[ignored] replacement packet
+		          gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);

@@ -38,7 +38,7 @@ struct _CryptFrame {
 };
 
 CryptFrame* cryptframe_new(guint16 frame_type, guint16 encryption_method, void* encryption_info);
-WINEXPORT Frame* cryptframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend);
+WINEXPORT Frame* cryptframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 

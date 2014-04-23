@@ -143,11 +143,14 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 /// In other words, un-marshall the data...
 Frame*
 frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Frame
-		     gconstpointer pktend)	///<[in] first invalid byte past 'tlvstart'
+		     gconstpointer pktend,	///<[in] first invalid byte past 'tlvstart'
+		     gpointer* ignorednewpkt,	///[ignored] replacement packet
+		     gpointer* ignoredpktend)	///[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
+	(void)ignorednewpkt; (void)ignoredpktend;
 	Frame *		ret = frame_new(frametype, 0);
 	g_return_val_if_fail(ret != NULL, NULL);
 
