@@ -121,10 +121,11 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 ''',
 	'pySignFrame':
 '''
-+----------------+-----------+-----------------+--------------------+
-| frametype = %2d | f_length  | signature-type  | digital signature  |
-|   (16 bits)    | (24-bits) | (16 bits)       | (f_length-2 bytes) |
-+----------------+-----------+-----------------+--------------------+
++----------------+-----------+-----------------+------------+-------------------+
+|                |           |      major      |            |                   |
+| frametype = %2d | f_length  | signature-type  | minor type | digital signature |
+|   (16 bits)    | (24-bits) |      (8 bits)   |  (8 bits)  |(f_length-2 bytes) |
++----------------+-----------+-----------------+------------+-------------------+
 ''',
 	'pyCryptFrame':
 '''
