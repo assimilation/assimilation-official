@@ -46,6 +46,7 @@
 #include  <tlvhelper.h>
 
 #ifdef HAVE_ZLIB_H
+#	define ZLIB_CONST 1 /* Enable const definitions where appropriate */
 #	include  <zlib.h>
 #endif /* HAVE_ZLIB_H */
 
