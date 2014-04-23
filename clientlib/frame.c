@@ -150,8 +150,8 @@ frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Fram
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
 	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
-	(void)ignorednewpkt; (void)ignoredpktend;
 	Frame *		ret = frame_new(frametype, 0);
+	(void)ignorednewpkt; (void)ignoredpktend;
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->length = framelength;
