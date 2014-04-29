@@ -545,13 +545,29 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
 		switch (frame->type) {
 			case FRAMETYPE_CONFIGJSON: { // Configuration JSON string (parameters)
-				CstringFrame* strf = CASTTOCLASS(CstringFrame, frame);
-				const char *  jsonstring;
+				CstringFrame*	strf = CASTTOCLASS(CstringFrame, frame);
+				const char *	jsonstring;
+				int		cprs_thresh;
 				g_return_if_fail(strf != NULL);
 				jsonstring = strf->baseclass.value;
 				DEBUGMSG3("%s.%d: Got CONFIGJSON frame: %s", __FUNCTION__, __LINE__
 				,	jsonstring);
 				newconfig = configcontext_new_JSON_string(jsonstring);
+				// This is a good place to check for a compression threshold
+				// And possibly other parameters
+				if (newconfig) {
+					cprs_thresh = 
+					newconfig->getint(newconfig, CONFIGNAME_CPRS_THRESH);
+					if (cprs_thresh > 0) {
+						Frame*	f;
+						f = config->getframe(config, CONFIGNAME_COMPRESS);
+						if (f) {
+							CompressFrame*	cf 
+							=	CASTTOCLASS(CompressFrame, f);
+							cf->compression_threshold = cprs_thresh;
+						}
+					}
+				}
 				goto endloop;
 			}
 		}

@@ -199,6 +199,7 @@ main(int argc, char **argv)
 	static char		defaultCMAaddr[] = CMAADDR;
 	static char		defaultlocaladdress [] = NANOLISTENADDR;
 	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	CompressFrame*		compression = compressframe_new(FRAMETYPE_COMPRESS, COMPRESS_ZLIB);
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);
 	PacketDecoder*		decoder = nano_packet_decoder();
@@ -318,6 +319,7 @@ main(int argc, char **argv)
 #endif
 
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
+	config->setframe(config, CONFIGNAME_COMPRESS, &compression->baseclass);
 
 	// Create a network transport object for normal UDP packets
 	nettransport = &(reliableudp_new(0, config, decoder, 0)->baseclass.baseclass);
