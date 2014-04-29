@@ -147,19 +147,12 @@ However, if you do, you will need to also issue this command:
 <pre>
     ldconfig /usr/lib/assimilation
 </pre>
-At the present time, you may also have to do this for RPMs that come out of cpack.
-The .deb files should not have this issue.
-
-
-@section RunningBasicTests Running Basic Tests
-These tests require that the CMA and nanoprobe are not running on the
-current machine while they run.
-The project runs these tests are run before updating the master source
-control instance on <i>hg.linux-ha.org</i>.
 
 @subsection TestifyTests testify tests
 There are a large number of tests performed on the Python code
 including the CMA code with database.
+The project runs these tests before updating the master source
+control instance on <i>hg.linux-ha.org</i>.
 These regression tests also significantly exercises the C code underlying the
 python code, and the interfaces between the two bodies of code.
 These tests bind to port 1984, so some of them will fail if port 1984 is not available.
@@ -169,7 +162,7 @@ To run these tests, execute these steps:
 - <tt>testify tests</tt>
 
 The final line should look something like this:
-<pre>PASSED.  42 tests / 15 cases: 42 passed, 0 failed.  (Total test time 16.78s)</pre>
+<pre>PASSED.  74 tests / 22 cases: 74 passed, 0 failed.  (Total test time 172.75s)</pre>
 
 
 @subsection ValgrindTest testcode/grind.sh test
