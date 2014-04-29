@@ -170,7 +170,15 @@ class pyNetAddrTest(TestCase):
         self.assertEqual(str(ipv4),'1.2.3.4:80')
         ipv4 = pyNetAddr('1.2.3.5:80')
         self.assertEqual(str(ipv4),'1.2.3.5:80')
-        self.assertRaises(ValueError, pyNetAddr, '1.2.ff.5')
+        print pyNetAddr('1.2.ff.5')
+        try:
+            pyNetAddr('1.2.ff.5')
+        except ValueError:
+            # This is correct behavior
+            pass
+        else:
+            if not BROKENDNS:
+                raise ValueError('Your DNS seems to be broken. Set environment variable BROKENDNS')
         self.assertRaises(ValueError, pyNetAddr, '1.2.3.4:')
         self.assertRaises(ValueError, pyNetAddr, '1.2.3.4:ff')
 
@@ -556,6 +564,7 @@ class pyFrameSetTest(TestCase):
     def cmpstring(frame):
         s=str(frame)
         s = re.sub(' at 0x[^{}]*', ' at 0xsomewhere', s)
+        s = re.sub(' address=0x[^{}]*', ' address=0xsomewhere', s)
         return s
 
     def test_constructor(self): 

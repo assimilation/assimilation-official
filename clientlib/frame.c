@@ -166,7 +166,6 @@ frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Fram
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->length = framelength;
-g_message("Frame constructor: frametype %d, framelength: %d", frametype, framelength);
 	if (framelength > 0) {
 		ret->setvalue(ret, g_memdup(framevalue, framelength), framelength
 		,	frame_default_valuefinalize);

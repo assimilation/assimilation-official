@@ -56,7 +56,6 @@ and be the first frame in the frameset.
 /// @{
 /// @ingroup Frame
 
-extern void	_dump_bytes(char * prefix, gconstpointer p, int len);
 /// Internal helper routine for computing checksum on data in a frame.
 /// It is used both for computing checksums on "new" data and verifying checksums on received packets.
 FSTATIC gpointer
@@ -72,14 +71,11 @@ _signframe_compute_cksum(GChecksumType cksumtype,	///<[in] checksum type
 	GChecksum*	cksumobj;
 	guint8*		cksumbuf = NULL;
 
-_dump_bytes("Packet for checksum", tlvptr, ((guint8*)pktend-(guint8*)tlvptr));
 	// Get the size of this type checksum
 	cksumsize = g_checksum_type_get_length(cksumtype);
 	g_return_val_if_fail(cksumsize > 1, NULL);
 	g_return_val_if_fail(framelen == (cksumsize + 2), NULL);
 
-g_message("framelen: %d, pktlen: %ld", framelen, ((guint8*)pktend-(guint8*)tlvptr));
-_dump_bytes("Next packet: checksum", tlvptr+framelen+FRAME_INITSIZE, ((guint8*)pktend-(guint8*)tlvptr)-(FRAME_INITSIZE+framelen));
 	// Find out what data is left after our frame - the data we operate on...
 	nextframe = get_generic_tlv_next(tlvptr, pktend);
 	g_return_val_if_fail(nextframe != NULL, NULL);

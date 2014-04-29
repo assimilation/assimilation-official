@@ -59,7 +59,7 @@ FSTATIC void _compressframe_updatedata(Frame *, gpointer, gconstpointer, FrameSe
 FSTATIC gboolean _compressframe_isvalid(const Frame *, gconstpointer,	gconstpointer);
 FSTATIC int	_compressframe_findmethod(int method);
 FSTATIC gchar * _compressframe_toString(gconstpointer);
-FSTATIC	void	_dump_bytes(char * prefix, gconstpointer p, int len);
+FSTATIC	void	assim_dump_bytes(char * prefix, gconstpointer p, int len);
 
 #ifdef HAVE_ZLIB_H
 FSTATIC gpointer z_compressbuf(gconstpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
@@ -82,7 +82,7 @@ static struct compression_types {
 
 #include <stdio.h>
 FSTATIC	void
-_dump_bytes(char * prefix, gconstpointer p, int len)
+assim_dump_bytes(char * prefix, gconstpointer p, int len)
 {
 	int j;
 	const char * space = "";
@@ -146,36 +146,19 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 	guint8			compresstype;
 	guint32			origlen;
 	const guint8*		valptr;
-	g_message("IN compressframe_isvalid: tlvstart=%p", tlvstart);
 	if (tlvstart == NULL) {
-		g_message("Compresstype: %d", self->compression_method);
-		g_message("Compressindex: %d", self->compression_index);
 		return self->compression_index < DIMOF(allcompressions)
 	&&	allcompressions[self->compression_index].compression_type == self->compression_method;
 	}
-{
-	int j;
-	const char * space = "";
-	fprintf(stderr, "VALID? COMPRESSION FRAME:");
 	
-	for (j=0; j < 9; ++j) {
-		fprintf(stderr, "%s%02x", space, *(((const guint8*)tlvstart)+j));
-		space=" ";
-	}
-	fprintf(stderr, "\n");
-}
-	g_message("pkt length: %ld", (const guint8*)pktend-(const guint8*)tlvstart);
-	g_message("tlv length: %d", get_generic_tlv_len(tlvstart, pktend));
 	if (	((const guint8*)pktend-(const guint8*)tlvstart) < 12
 	|| 	get_generic_tlv_len(tlvstart, pktend) <= 8) {
 		return FALSE;
 	}
 	valptr = get_generic_tlv_value(tlvstart, pktend);
 	compresstype = tlv_get_guint8(valptr, pktend);
-	g_message("Compresstype: %d", compresstype);
 	g_return_val_if_fail(_compressframe_findmethod(compresstype) >= 0, FALSE);
 	origlen = tlv_get_guint24(valptr+1, pktend);
-	g_message("ORIGLEN: %d", origlen);
 	// Trying to avoid a DOS attack using huge packets
 	g_return_val_if_fail(origlen <= MAXUNCOMPRESSEDSIZE || origlen >= 16, FALSE);
 	return TRUE;
@@ -238,28 +221,19 @@ _compressframe_updatedata(Frame *f,		//<[in] Our frame ("self")
 	newpacket = allcompressions[self->compression_index].compress
 		(pktstart, pktend8-pktstart, cmpoffset, MAXUDPSIZE, &compressedsize, 0);
 	self->decompressed_size = (pktend8 - pktstart) - cmpoffset;
-g_message("GOT COMPRESSED SIZE AS %d", compressedsize);
 {
 	char *	frameset = fs->baseclass.toString(fs);
-	g_message("Uncompressed frameset: %s", frameset);
 	g_free(frameset); frameset = NULL;
 }
-g_message("GOT COMPRESSED SIZE AS %d", compressedsize);
-_dump_bytes("newpacket1:", newpacket + ouroffset, compressedsize-ouroffset);
 	if (NULL == newpacket) {
 		g_warning("%s:%d: Unable to compress %d byte packet to %d byte UDP packet"
 		,	__FUNCTION__, __LINE__, self->decompressed_size, MAXUDPSIZE);
 	}
 	newpktend = newpacket + compressedsize;
-_dump_bytes("newpacketA:", newpacket + ouroffset, compressedsize-ouroffset);
 	// Write our type and length into the (new) packet
 	set_generic_tlv_type(newpacket+ouroffset, f->type, newpktend);
-_dump_bytes("newpacketB:", newpacket + ouroffset, compressedsize-ouroffset);
 	self->baseclass.length = (compressedsize-cmpoffset) + COMPFRAMESIZE;
-g_message("SETTING COMPRESSED LENGTH TO %d (ouroffset=%d)", self->baseclass.length, ouroffset);
 	set_generic_tlv_len(newpacket+ouroffset, self->baseclass.length, newpktend);
-_dump_bytes("newpacket2:", newpacket + ouroffset, compressedsize-cmpoffset);
-g_message("GETTING COMPRESSED LENGTH: %d", get_generic_tlv_len(newpacket+ouroffset, newpktend));
 	valptr = get_generic_tlv_nonconst_value(newpacket+ouroffset, newpktend);
 	// Our TLV value consists of the compression method followed by a 3 byte
 	// packet length, followed by the compressed data (already in "newpacket").
@@ -268,16 +242,9 @@ g_message("GETTING COMPRESSED LENGTH: %d", get_generic_tlv_len(newpacket+ouroffs
 	// this a very reasonable assumption...
 	// In practice, our JSON seems to be limited to about 300K decompressed.
 	tlv_set_guint8(valptr, self->compression_method, newpktend);
-_dump_bytes("newpacket3:", newpacket + ouroffset, compressedsize-ouroffset);
-g_message("SETTING COMPRESSION METHOD TO %d", self->compression_method);
-g_message("SETTING DECOMPRESSED SIZE TO %d (ouroffset=%d)", self->decompressed_size, ouroffset);
 	tlv_set_guint24(valptr+1, self->decompressed_size, newpktend);
-_dump_bytes("newpacket4:", newpacket + ouroffset, compressedsize-ouroffset);
-g_message("GETTING DECOMPRESSED SIZE: %d", tlv_get_guint24(valptr+1, newpktend));
-_dump_bytes("COMPRESSION FRAME:", newpacket + ouroffset, compressedsize-ouroffset);
 	fs->packet = newpacket;
 	fs->pktend = newpktend;
-	_dump_bytes("Compression total:", newpacket+ouroffset, compressedsize-ouroffset);
 }
 
 #define	COMPRESSFRAMEMIN	4
@@ -314,20 +281,15 @@ compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of the compr
 	g_return_val_if_fail(decompressed_size > 16, NULL);
 	g_return_val_if_fail(compression_index >= 0, NULL);
 	packet = valueptr + COMPRESSFRAMEMIN;
-g_message("total size:%d, decompressed size:%d", pktsize, decompressed_size);
 
 	pktsize = pktend8 - tlvstart8;	// Compressed packet size
-g_message("size:%d, decompressed size:%d", pktsize, decompressed_size);
 	
 	*newpacket = allcompressions[compression_index].decompress
 		(packet, pktsize, 0, decompressed_size, &actual_size);
-g_message("*newpacket: %p", *newpacket);
 	g_return_val_if_fail(*newpacket != NULL, NULL);
 	*newpacketend = (guint8*)*newpacket + actual_size;
-g_message("*newpacketend: %p", *newpacketend);
 
 	ret = compressframe_new(frametype, compression_type);
-g_message("ret: %p", ret);
 	g_return_val_if_fail(ret != NULL, NULL);
 	ret->decompressed_size = decompressed_size;
 	return &ret->baseclass;
@@ -344,7 +306,8 @@ z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
 ,	int offset			///<[in] Offset to beginning of data to be compressed
 ,	int maxout			///<[in] Maximum size of compressed output [UDP packet size]
 ,	int *actualsize			///<[out] Actual size of compressed output
-,	int level) {			///<[in] Compression level: (normally zero)
+,	int level)			///<[in] Compression level: (normally zero)
+{
 
 	guint8*		outbuf;
 	z_stream	stream;
@@ -389,7 +352,6 @@ z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
 	}
 	stream.avail_in = insize-offset;	stream.next_in = (const guint8*)inbuf+offset;
 	stream.avail_out = maxout-offset;	stream.next_out = outbuf+offset;
-	_dump_bytes("Compression INPUT: ", stream.next_in, stream.avail_in);
 
 	/* Compress it */
 	ret = deflate(&stream, Z_FINISH);
@@ -410,11 +372,8 @@ z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
 	, stream.total_out, level, ratio);
 #endif
 	(void)deflateEnd(&stream);
-	g_message("STREAM TOTAL OUTPUT SIZE: %ld", stream.total_out);
 	*actualsize = stream.total_out + offset;
 	outbuf = g_realloc(outbuf, *actualsize);
-fprintf(stderr, "insize:%d, offset:%d, maxout:%d, *actualsize:%d, stream.total_in:%ld, stream.total_out:%ld\n", insize, offset, maxout, *actualsize, stream.total_in, stream.total_out);
-	_dump_bytes("Compression output: ", outbuf, stream.total_out);
 	return outbuf;
 }
 
@@ -427,7 +386,8 @@ z_decompressbuf(gconstpointer inbuf	///<[in] compressed input buffer
 					///< from inbuf are copied into output w/o decompression
 ,	int maxout			///<[in] maximum size of decompressed output.
 					///< nice if it's decompressed size if you know it.
-,	int *uncompsize) {		///<[out] actual decompressed size
+,	int *uncompsize)		///<[out] actual decompressed size
+{
 	gpointer	outbuf;
 	int		outsize;
 	int		ret;
@@ -438,7 +398,6 @@ z_decompressbuf(gconstpointer inbuf	///<[in] compressed input buffer
 	stream.opaque = Z_NULL;
 	stream.avail_in = insize-offset;
 	stream.next_in = ((const guint8*)inbuf) + offset;
-	_dump_bytes("Decompressing: ", stream.next_in, insize-(offset+1));
 	g_return_val_if_fail (Z_OK == inflateInit(&stream), NULL);
 	outbuf = g_malloc(maxout);
 	if (offset > 0) {
@@ -461,7 +420,6 @@ z_decompressbuf(gconstpointer inbuf	///<[in] compressed input buffer
 	}
 	(void)inflateEnd(&stream);
 	*uncompsize = outsize;
-	_dump_bytes("Decompression OUTPUT: ", outbuf, outsize);
 	return outbuf;
 }
 #endif /* HAVE_ZLIB_H */

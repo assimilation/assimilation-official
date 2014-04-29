@@ -25,7 +25,6 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
-#include <stdio.h>
 #include <string.h>
 #include <tlvhelper.h>
 #include <frametypes.h>
@@ -118,7 +117,7 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,//<[in] pointer to beginning of
 	unsigned	j = 0;
 	int		lasttype = -1;
 	if (NULL == tlv_vp || ((const guint8*)tlv_vp+GENERICTLV_HDRSZ)  > (const guint8*)pktend) {
-		fprintf(stderr, "TLV Invalid because packet is too short\n");
+		g_warning("TLV Invalid because packet is too short");
 		return FALSE;
 	}
 	for (tlv_vp = get_generic_tlv_first(tlv_vp, pktend)
@@ -137,25 +136,25 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,//<[in] pointer to beginning of
 		length = get_generic_tlv_len(tlv_vp, pktend);
 		next = (const guint8*)tlv_vp + (length+GENERICTLV_HDRSZ);
 		if (next > (const guint8*) pktend) {
-			fprintf(stderr, "TLV Invalid because TLV entry extends past end\n");
+			g_warning("TLV Invalid because TLV entry extends past end");
 			return FALSE;
 		}
 		if (ttype == FRAMETYPE_END) {
 			if (get_generic_tlv_value(tlv_vp, pktend) == pktend) {
 				return length == 0;
 			}else{
-				fprintf(stderr, "TLV Invalid because END item isn't at end of packet\n");
+				g_warning("TLV Invalid because END item isn't at end of packet");
 				return FALSE;
 			}
 		}
 		if (j < DIMOF(reqtypes) && ttype != reqtypes[j]) {
-			fprintf(stderr, "TLV Invalid because required TLV types aren't present in right order\n");
+			g_warning("TLV Invalid because required TLV types aren't present in right order");
 			return FALSE;
 		}
 		j += 1;
 	}
 	if (lasttype != FRAMETYPE_END) {
-		fprintf(stderr, "TLV Invalid because final type wasn't FRAMETYPE_END (it was %d)\n"
+		g_warning("TLV Invalid because final type wasn't FRAMETYPE_END (it was %d)"
 		,	lasttype);
 		return FALSE;
 	}
@@ -188,11 +187,8 @@ get_generic_tlv_next(gconstpointer tlv_vp,		///<[in] Pointer to  current TLV ent
 		return NULL;
 	}
 	nexttlv = (const guint8*)tlv_vp  + GENERICTLV_HDRSZ + get_generic_tlv_len(tlv_vp, pktend);
-	g_message("next: nexttlv=%p, pktend=%p, len=%d", nexttlv, pktend, ((const guint8*)pktend-nexttlv));
 	/* Watch out for malformed packets! (BLACKHAT, PARANOIA) */
 	nextend = nexttlv + GENERICTLV_HDRSZ + get_generic_tlv_len(nexttlv, pktend);
-	g_message("next: nextlen= %d", get_generic_tlv_len(nexttlv, pktend));
-	g_message("next: nextend= %p", nextend);
 	/* fprintf(stderr, "LOOK: cur:%p, next: %p, nextend: %p, vpend: %p\n"
 	,	tlv_vp, nexttlv, nextend, pktend); */
 	return nextend > (const guint8*)pktend ? NULL : nexttlv;

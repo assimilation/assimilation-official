@@ -42,12 +42,13 @@
 
 #define	PORT	19840
 
-#if 0
+#if 1
 #define RCVLOSS		0.05
 #define XMITLOSS	0.05
-#endif
+#else
 #define RCVLOSS		0.00
 #define XMITLOSS	0.00
+#endif
 
 /*
  *	You can either give us a list of addresses, or none.
@@ -162,8 +163,6 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 				if (theirlastcount_p == NULL) {
 					REF(fromaddr);
 				}
-				fprintf(stderr, "Received a PING packet (seq %d) from %s ========================\n"
-				,	theirnextcount, addrstr);
 			}
 		}
 		if (!foundcount) {
@@ -340,7 +339,6 @@ main(int argc, char **argv)
 		ping = frameset_new(FRAMESETTYPE_PING);
 		iframe->setint(iframe, 1);
 		frameset_append_frame(ping, &iframe->baseclass);
-g_message("SENT OUT %d byte PING with value 1", iframe->baseclass.length);
 		UNREF2(iframe);
 		transport->baseclass.baseclass.sendareliablefs(&transport->baseclass.baseclass, v6addr, 0, ping);
 		UNREF(ping);
