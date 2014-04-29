@@ -171,6 +171,7 @@ class DispatchSTARTUP(DispatchTarget):
         CMAdb.cdb.TheOneRing.join(drone)
         #print >> sys.stderr, 'Requesting Discovery from ', drone
         drone.request_discovery(
+                                ('packages',            1603),
                                 ('monitoringagents',    3300),
                                 ('os',                  0),
                                 ('ulimit',              0),

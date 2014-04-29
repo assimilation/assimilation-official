@@ -120,6 +120,7 @@ WINEXPORT ConfigContext*	configcontext_new_JSON_string(const char * jsontext);//
 #define CONFIGNAME_OUTSIG	"outsig"	///< SignFrame to use to sign/verify packets
 #define CONFIGNAME_CRYPT	"crypt"		///< Frame to use for encrypting/decrypting packets
 #define CONFIGNAME_COMPRESS	"compress"	///< Frame to use for compressing/decompressing
+#define CONFIGNAME_CPRS_THRESH	"cprs_thresh"	///< Threshold for compressing (integer)
 
 /// Default values for some (integer) configuration values
 #define	CONFIGINTDEFAULTS {					\
