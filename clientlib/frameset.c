@@ -166,7 +166,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 {
 	GSList*		curframe;		// Current frame as we marshall packet...
 	int		curpktoffset;		// Current offset as we marshall packet...
-	guint8*		curpktpos;		// Current position within packet..
+	guint8*		curpktpos=NULL;		// Current position within packet..
 	gsize		pktsize;
 	gsize		fssize = FRAMESET_INITSIZE;	// "frameset" overhead size
 	g_return_if_fail(NULL != fs);
@@ -281,7 +281,6 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		set_generic_tlv_len(curpktpos, frame->length, fs->pktend);
 		frame->updatedata(frame, curpktpos, fs->pktend, fs);
 		// updatedata() can change fs->packet and fs->pktend
-		curpktpos = (guint8*)fs->packet + curpktoffset;
 		curpktpos = (guint8*)fs->packet + curpktoffset;
 		if (!frame->isvalid(frame, curpktpos, fs->pktend)) {
 			g_error("Generated %s frame is not valid(!)"

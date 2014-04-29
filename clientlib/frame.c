@@ -30,6 +30,7 @@ FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpoin
 FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC void _frame_dump(const Frame *, const char * prefix);
+FSTATIC gchar* _frame_toString(gconstpointer aself);
 
 DEBUGDECLARATIONS
 
