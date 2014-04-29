@@ -125,6 +125,7 @@ compressframe_new(guint16 frame_type, guint16 compression_method)
 	self = NEWSUBCLASS(CompressFrame, fself);
 	self->compression_method = compression_method;
 	self->compression_index = cmpindex;
+	self->compression_threshold = DEFAULT_COMPRESSION_THRESHOLD;
 	fself->length = 4;
 	fself->setvalue = _compressframe_setvalue;
 	fself->updatedata = _compressframe_updatedata;

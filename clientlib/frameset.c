@@ -161,8 +161,8 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 			  Frame* cryptframe,	///< Optional Encryption method.
 						///< This method might change the packet size.
 		  CompressFrame* compressframe)	///< Optional Compression method.
-						///< It is expected that this method should modify the packet
-						///< "in place", and adjust things accordingly.
+						///< This object modifies the packet "in place",
+						///< and adjusts things accordingly.
 {
 	GSList*		curframe;		// Current frame as we marshall packet...
 	int		curpktoffset;		// Current offset as we marshall packet...
@@ -228,10 +228,17 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	///@}
 	/// 
 	if (NULL != compressframe) {
-		CompressFrame*	newframe
-		=	compressframe_new(compressframe->baseclass.type, compressframe->compression_method);
-		frameset_prepend_frame(fs, &newframe->baseclass);
-		UNREF2(newframe);
+		gsize		estsize = FRAMESET_INITSIZE;
+		for (curframe=fs->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
+			Frame* frame = CASTTOCLASS(Frame, curframe->data);
+			estsize += frame->dataspace(frame);
+		}
+		if (estsize > compressframe->compression_threshold) {
+			CompressFrame*	newframe
+			= compressframe_new(compressframe->baseclass.type, compressframe->compression_method);
+			frameset_prepend_frame(fs, &newframe->baseclass);
+			UNREF2(newframe);
+		}
 	}
 	if (NULL != cryptframe) {
 		frameset_prepend_frame(fs, cryptframe);
@@ -269,13 +276,13 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		// frame->dataspace() may change after calling updatedata()
 		curpktoffset = curpktoffset - frame->dataspace(frame);
 		g_return_if_fail(curpktoffset >= 0);
-		curpktpos = fs->packet + curpktoffset;
+		curpktpos = (guint8*)fs->packet + curpktoffset;
 		set_generic_tlv_type(curpktpos, frame->type, fs->pktend);
 		set_generic_tlv_len(curpktpos, frame->length, fs->pktend);
 		frame->updatedata(frame, curpktpos, fs->pktend, fs);
 		// updatedata() can change fs->packet and fs->pktend
-		curpktpos = fs->packet + curpktoffset;
-		curpktpos = fs->packet + curpktoffset;
+		curpktpos = (guint8*)fs->packet + curpktoffset;
+		curpktpos = (guint8*)fs->packet + curpktoffset;
 		if (!frame->isvalid(frame, curpktpos, fs->pktend)) {
 			g_error("Generated %s frame is not valid(!)"
 			, proj_class_classname(frame));

@@ -30,7 +30,8 @@
 /// @ingroup CompressFrame
 typedef struct _CompressFrame CompressFrame;
 
-#define	MAXUDPSIZE	65507	///< Maximum UDP packet size	
+#define	MAXUDPSIZE			65507		///< Maximum UDP packet size	
+#define DEFAULT_COMPRESSION_THRESHOLD	(MAXUDPSIZE/3)	///< Default value of when to start compressing
 
 /// Compression methods
 #define	COMPRESS_NONE	0	///< No compression
@@ -39,9 +40,10 @@ typedef struct _CompressFrame CompressFrame;
 /// This is our @ref CompressFrame object - used for representing a compression method.
 struct _CompressFrame {
 	Frame		baseclass;
+	guint32		compression_threshold;
+	guint32		decompressed_size;
 	guint8		compression_method;
 	guint8		compression_index;
-	guint32		decompressed_size;
 };
 
 typedef struct _CompressFrame	CompressFrame;
