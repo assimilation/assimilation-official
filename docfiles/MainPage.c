@@ -37,11 +37,9 @@ These two main ideas create a system which will provide significant important ca
 experience for new users and smooth accommodation of growth to virtually all environments.
 
 For a human-driven overview, we recommend our
-<a href="http://www.youtube.com/watch?feature=player_embedded&v=qbk2-f31q-E">overview video</a> - from the Open Source Monitoring Conference 2013 in Nuremberg.
-There is also an older <a href="http://bit.ly/OD6bY6:">video</a> - from LinuxCon NA 2012 in San Diego.
+<a href="http://assimilationsystems.com/category/videos/">videos</a> from interviews and conference presentations.
 
-For source and licensing information see the
-- <a href="_source_and_license.html">Source and Licensing</a> page.
+We also have a few <a href="http://assimilationsystems.com/category/demos/">demos</a>, which demonstrate the ease of use and power of the Assimilation software.
 
 @section ProjectIntegrity Project Integrity
 The project software undergoes a number of rigorous static and dynamic tests to ensure its continued integrity.
@@ -57,7 +55,8 @@ The team currently posts updates in the following places:
 - #assimilation channel on freenode IRC
 - [<a href="https://plus.google.com/+AssimprojOrg/posts" rel="publisher">Google+</a>] page for the Assimilation Project.
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
-- <a href="http://techthoughts.typepad.com/managing_computers/">Managing Computers with Automation Blog</a> - about weekly
+- <a href="http://assimilationsystems.com/category/blog/">Assimilation Systems Blog</a> - about weekly
+- Older <a href="http://techthoughts.typepad.com/managing_computers/">Managing Computers with Automation Blog</a>
 - <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">Assimilation Mailing List</a> - not quite as often - shooting for weekly.
 - <a href="https://trello.com/b/OpaED3AT">Assimilation work in progress list on Trello</a>.
   This gives a very good overview of the project goals, current and future work items along with <b>open project roles</b>.  Come find your future here!

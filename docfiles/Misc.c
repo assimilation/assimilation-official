@@ -125,4 +125,7 @@ http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assim-devel
 - Project Web Site	http://assimmon.org/
 - Alan Robertson - email: alanr@@unix.sh - Twitter: @@OSSAlanR
 - Roger Massey - email: sadsaddle (a) gmail (and-the-usual-ending) - Twitter @@rhm84119
+@section ProjectSponsorContact Project Sponsor
+This Assimilation Project is sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Lmited</a>.
+
 */
