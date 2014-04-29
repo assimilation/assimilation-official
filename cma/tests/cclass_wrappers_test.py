@@ -170,7 +170,6 @@ class pyNetAddrTest(TestCase):
         self.assertEqual(str(ipv4),'1.2.3.4:80')
         ipv4 = pyNetAddr('1.2.3.5:80')
         self.assertEqual(str(ipv4),'1.2.3.5:80')
-        print pyNetAddr('1.2.ff.5')
         try:
             pyNetAddr('1.2.ff.5')
         except ValueError:
