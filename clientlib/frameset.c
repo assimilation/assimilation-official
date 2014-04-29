@@ -52,6 +52,7 @@
 #include <projectcommon.h>
 #include <frameset.h>
 #include <frametypes.h>
+#include <compressframe.h>
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 FSTATIC void _frameset_indir_finalize(void* f);
@@ -124,6 +125,8 @@ frameset_new(guint16 frameset_type) ///< Type of frameset to create
 	return s;
 }
 
+#define	SPECIALFRAME(ftype)	((FRAMETYPE_COMPRESS == (ftype)) || (FRAMETYPE_CRYPT  == (ftype)) || (FRAMETYPE_SIG  == (ftype)))
+
 /// Prepend frame to the front of the frame list
 void
 frameset_prepend_frame(FrameSet* fs,	///< FrameSet to fetch flags for
@@ -131,6 +134,7 @@ frameset_prepend_frame(FrameSet* fs,	///< FrameSet to fetch flags for
 {
 	g_return_if_fail(NULL != fs && NULL != f);
 	REF(f);
+	
 	fs->framelist = g_slist_prepend(fs->framelist, f);
 }
 
@@ -156,16 +160,18 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 			  SignFrame* sigframe,	///< digital Signature method (cannot be NULL)
 			  Frame* cryptframe,	///< Optional Encryption method.
 						///< This method might change the packet size.
-			  Frame* compressframe)	///< Optional Compression method.
+		  CompressFrame* compressframe)	///< Optional Compression method.
 						///< It is expected that this method should modify the packet
 						///< "in place", and adjust things accordingly.
 {
 	GSList*		curframe;		// Current frame as we marshall packet...
-	gpointer	curpktpos;		// Current position as we marshall packet...
+	int		curpktoffset;		// Current offset as we marshall packet...
+	guint8*		curpktpos;		// Current position within packet..
 	gsize		pktsize;
 	gsize		fssize = FRAMESET_INITSIZE;	// "frameset" overhead size
 	g_return_if_fail(NULL != fs);
 	g_return_if_fail(NULL != sigframe);
+DUMP("In frameset_construct_packet", &fs->baseclass, " WITHOUT COMPRESSION FRAME?");
 	// g_return_if_fail(NULL != fs->framelist); // Is an empty frame list OK?
 
 	/*
@@ -223,11 +229,15 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	///@}
 	/// 
 	if (NULL != compressframe) {
-		frameset_prepend_frame(fs, compressframe);
+		CompressFrame*	newframe
+		=	compressframe_new(compressframe->baseclass.type, compressframe->compression_method);
+		frameset_prepend_frame(fs, &newframe->baseclass);
+		UNREF2(newframe);
 	}
 	if (NULL != cryptframe) {
 		frameset_prepend_frame(fs, cryptframe);
 	}
+DUMP("FULL FrameSet with signature, etc", &fs->baseclass, NULL);
 	// "sigframe" cannot be NULL (see check above)
 	frameset_prepend_frame(fs, CASTTOCLASS(Frame, sigframe));
 
@@ -251,17 +261,23 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	fs->pktend = ((guint8*)fs->packet + pktsize);
 	g_return_if_fail(fs->packet != NULL);
 
-	curpktpos = fs->pktend;
+	curpktoffset = pktsize;
 
 	// Marshall out all our data - in reverse order...
+	// WATCH OUT: compression and encryption can replace our packet(!)
 	for (curframe=fs->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
 		Frame* frame = CASTTOCLASS(Frame, curframe->data);
 	
-		curpktpos = ((guint8*)curpktpos) - frame->dataspace(frame);
-		g_return_if_fail(curpktpos >= fs->packet);
+		// frame->dataspace() may change after calling updatedata()
+		curpktoffset = curpktoffset - frame->dataspace(frame);
+		g_return_if_fail(curpktoffset >= 0);
+		curpktpos = fs->packet + curpktoffset;
 		set_generic_tlv_type(curpktpos, frame->type, fs->pktend);
 		set_generic_tlv_len(curpktpos, frame->length, fs->pktend);
 		frame->updatedata(frame, curpktpos, fs->pktend, fs);
+		// updatedata() can change fs->packet and fs->pktend
+		curpktpos = fs->packet + curpktoffset;
+		curpktpos = fs->packet + curpktoffset;
 		if (!frame->isvalid(frame, curpktpos, fs->pktend)) {
 			g_error("Generated %s frame is not valid(!)"
 			, proj_class_classname(frame));

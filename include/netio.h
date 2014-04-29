@@ -31,6 +31,7 @@
 #include <netaddr.h>
 #include <frame.h>
 #include <signframe.h>
+#include <compressframe.h>
 #include <configcontext.h>
 #include <packetdecoder.h>
 
@@ -63,7 +64,7 @@ struct _NetIO {
 	PacketDecoder*	_decoder;			///< Decodes packets into FrameSets
 	SignFrame*	_signframe;			///< Signature frame to use in signing FrameSets
 	Frame*		_cryptframe;			///< Encryption frame to use in encrypting FrameSets
-	Frame*		_compressframe;			///< Compression frame to use in compressing FrameSets
+	CompressFrame*	_compressframe;			///< Compression frame to use in compressing FrameSets
 	GHashTable*	aliases;			///< IP address aliases for received packets
 	double		_rcvloss;			///< private: Receive loss fraction
 	double		_xmitloss;			///< private: Transmit loss fraction
@@ -151,7 +152,7 @@ struct _NetIO {
 				(NetIO*self);		///<[in]
 	Frame*		(*cryptframe)		///< return a copied encryption frame for sending
 				(NetIO*self);		///<[in] 'this' object
-	Frame*		(*compressframe)	///< return a copied compression frame for sending
+	CompressFrame*	(*compressframe)	///< return a copied compression frame for sending
 				(NetIO*self)		///<[in] 'this' object
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*setpktloss)		///< Set desired fraction of packet loss - TESTING ONLY!

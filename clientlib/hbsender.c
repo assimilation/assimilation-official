@@ -114,6 +114,7 @@ _hbsender_finalize(HbSender * self) ///<[in/out] Sender to finalize
 	}
 	if (self->timeout_source != 0) {
 		g_source_remove(self->timeout_source);
+		self->timeout_source = 0;
 	}
 	memset(self, 0x00, sizeof(*self));
 	FREECLASSOBJ(self);

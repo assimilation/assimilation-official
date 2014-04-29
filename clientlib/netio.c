@@ -64,7 +64,7 @@ FSTATIC gsize _netio_setmaxpktsize(NetIO* self, gsize maxpktsize);
 FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
 FSTATIC SignFrame* _netio_signframe (NetIO *self);
 FSTATIC Frame* _netio_cryptframe (NetIO *self);
-FSTATIC Frame* _netio_compressframe (NetIO *self);
+FSTATIC CompressFrame* _netio_compressframe (NetIO *self);
 FSTATIC gboolean _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr);
 FSTATIC gboolean _netio_setmcast_ttl(NetIO* self, guint8 ttl);
 FSTATIC void _netio_enablepktloss(NetIO* self, gboolean enable);
@@ -317,7 +317,7 @@ _netio_finalize(AssimObj* aself)	///<[in/out] The object being freed
 		UNREF(self->_cryptframe);
 	}
 	if (self->_compressframe) {
-		UNREF(self->_compressframe);
+		UNREF2(self->_compressframe);
 	}
 	if (self->_decoder) {
 		UNREF(self->_decoder);
@@ -346,7 +346,7 @@ _netio_setmaxpktsize(NetIO* self,	///<[in/out] The object whose max packet size 
 	self->_maxpktsize = maxpktsize;
 	return self->getmaxpktsize(self);
 }
-FSTATIC Frame*
+FSTATIC CompressFrame*
 _netio_compressframe (NetIO *self)
 {
 	return self->_compressframe;
@@ -414,9 +414,9 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	if (ret->_cryptframe) {
 		REF(ret->_cryptframe);
 	}
-	ret->_compressframe = config->getframe(config, CONFIGNAME_COMPRESS);
+	ret->_compressframe = CASTTOCLASS(CompressFrame,config->getframe(config, CONFIGNAME_COMPRESS));
 	if (ret->_compressframe) {
-		REF(ret->_compressframe);
+		REF2(ret->_compressframe);
 	}
 	ret->aliases = g_hash_table_new_full(netaddr_g_hash_hash, netaddr_g_hash_equal
         ,		_netio_netaddr_destroy, _netio_netaddr_destroy);  // Keys and data are same type...
@@ -493,12 +493,12 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		FrameSet* curfs		= CASTTOCLASS(FrameSet, curfsl->data);
 		SignFrame* signframe	= self->signframe(self);
 		Frame*	cryptframe	= self->cryptframe(self);
-		Frame*	compressframe	= self->compressframe(self);
+		CompressFrame*	compressframe	= self->compressframe(self);
 		if (cryptframe) {
 			REF(cryptframe);
 		}
 		if (compressframe) {
-			REF(compressframe);
+			REF2(compressframe);
 		}
 		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
@@ -511,20 +511,14 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		     const NetAddr* destaddr,	///< [in] Where to send the FrameSets
 		     FrameSet* frameset)	///< [in] The framesets being sent
 {
-	SignFrame* signframe	= self->signframe(self);
-	Frame*	cryptframe	= self->cryptframe(self);
-	Frame*	compressframe	= self->compressframe(self);
+	SignFrame* signframe		= self->signframe(self);
+	Frame*	cryptframe		= self->cryptframe(self);
+	CompressFrame*	compressframe	= self->compressframe(self);
 	g_return_if_fail(self != NULL);
 	g_return_if_fail(self->_signframe != NULL);
 	g_return_if_fail(frameset != NULL);
 	g_return_if_fail(destaddr != NULL);
 
-	if (cryptframe) {
-		REF(cryptframe);
-	}
-	if (compressframe) {
-		REF(compressframe);
-	}
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
 	DEBUGMSG3("%s.%d: sent %ld byte packet", __FUNCTION__, __LINE__
 	,	(long)(((guint8*)frameset->pktend-(guint8*)frameset->packet)));

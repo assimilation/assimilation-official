@@ -80,6 +80,16 @@ _frame_default_isvalid(const Frame * self,		///< Frame object ('this')
 	return TRUE;
 }
 
+/// @ref Frame 'toString' operation - convert a basic Frame into a string
+FSTATIC gchar*
+_frame_toString(gconstpointer	aself)
+{
+	const Frame*	self = CASTTOCONSTCLASS(Frame, aself);
+	return g_strdup_printf("Frame(frametype=%d, length=%d, address=%p)"
+	,	self->type, self->length, self);
+}
+
+
 /// 'setvalue' @ref Frame member function.
 FSTATIC void
 _frame_setvalue(Frame * self,			///< Frame object ('this')
@@ -127,6 +137,7 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 	if (newobj != NULL) {
 		newframe = NEWSUBCLASS(Frame, newobj);
 		newobj->_finalize	= _frame_default_finalize;
+		newobj->toString	= _frame_toString;
 		newframe->type		= frame_type;
 		newframe->length	= 0;
 		newframe->value		= NULL;
@@ -155,7 +166,13 @@ frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Fram
 	g_return_val_if_fail(ret != NULL, NULL);
 
 	ret->length = framelength;
-	ret->setvalue(ret, g_memdup(framevalue, framelength), framelength, frame_default_valuefinalize);
+g_message("Frame constructor: frametype %d, framelength: %d", frametype, framelength);
+	if (framelength > 0) {
+		ret->setvalue(ret, g_memdup(framevalue, framelength), framelength
+		,	frame_default_valuefinalize);
+	}else{
+		ret->value = 0;
+	}
 	return ret;
 }
 /// Basic "dump a frame" member function - we use g_debug() for output.

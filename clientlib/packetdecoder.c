@@ -139,8 +139,10 @@ _decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] Packet
 	if (NULL == *newpacket) {
 		*pktstart = (gconstpointer) ((const guint8*)*pktstart + ret->dataspace(ret));
 	}else{
-		*pktstart = newpacket;
+g_message("GOT PROBABLE (decompressed) COMPRESSION packet: start:%p end:%p", *newpacket, newpacketend);
+		*pktstart = *newpacket;
 		*pktend = newpacketend;
+		_dump_bytes("DECOMPRESSED PACKET: ", *pktstart,  ((guint8*)*pktend)-((guint8*)*pktstart));
 	}
 	return ret;
 }
@@ -195,7 +197,8 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 		gconstpointer	fsend = nextframeset;
 		gpointer	newframestart = NULL;
 
-		g_return_val_if_fail(fs != NULL && nextframeset <= pktend, ret);
+		g_return_val_if_fail(fs != NULL,  ret);
+g_message("Looking at Frameset of type %d", fs->fstype);
 
 		// Construct this FrameSet from the series of frames encoded in the packet.
 		// Note that two special kinds of frames can alter the packet we're examining.
@@ -205,7 +208,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			Frame*		newframe;
 			gpointer	newpacket = NULL;
 			// The first special case frame is the compression frame, in which case the
-			// remaining packet is replaced by a new, larger chunk of data.
+			// remaining packet is replaced by a new, larger (decompressed) packet.
 			//
 			// The second type is the encryption packet, in which case the remaining
 			// packet is replaced by a new chunk of data which will have different
@@ -216,7 +219,10 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			// packet data we've been looking at.
 			// (FWIW: It's perfectly OK to have an encryption frame followed by a
 			// compression frame -- both kinds can occur in the same FrameSet).
+g_message("Before decode_packet_framedata_to_frameobject(): curframe=%p fsend=%p", curframe, fsend);
 			newframe = _decode_packet_framedata_to_frameobject(self, &curframe, &fsend, &newpacket);
+g_message("After decode_packet_framedata_to_frameobject(): curframe=%p fsend=%p", curframe, fsend);
+g_message("Got frame of type %d", newframe->type);
 			if (newpacket) {
 				if (newframestart != NULL) {
 					// We did packet replacement more than once...
@@ -234,6 +240,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 		if (newframestart) {
 			g_free(newframestart); newframestart = NULL;
 		}
+		DUMP("READ FrameSet from wire", &fs->baseclass, NULL);
 		ret = g_slist_append(ret, fs); fs = NULL;
 		curframeset = nextframeset;
 	}
