@@ -37,25 +37,26 @@ cmdexists() {
 }
 
 
-dpkg_pkgs() { if
-      cmdexists dpkg-query >/dev/null 2>&1
-    then
-      : OK
-    else
-      return
-    fi
-    printf '"deb":'
-    comma='{
+dpkg_pkgs() {
+  if
+    cmdexists dpkg-query >/dev/null 2>&1
+  then
+    : OK
+  else
+    return
+  fi
+  printf '"deb":'
+  comma='{
 '
-    dpkg-query --show --showformat='"${package;0}::${architecture;0}":"${version;0}"\n' 2>/dev/null |
-    while
-      read line
-    do
-        printf '%s' "${comma}${line}"
-        comma=',
+  dpkg-query --show --showformat='"${package;0}::${architecture;0}":"${version;0}"\n' 2>/dev/null |
+  while
+    read line
+  do
+    printf '%s' "${comma}${line}"
+    comma=',
 '
-    done
-    printf '}'
+  done
+  printf '}'
 }
 
 discover() {
@@ -67,10 +68,10 @@ discover() {
 	  "source": "$0",
 	  "data": {
 	!
-    for pkgtype in dpkg_pkgs
-    do
-        $pkgtype
-    done
-    echo "}}"
+  for pkgtype in dpkg_pkgs
+  do
+      $pkgtype
+  done
+  echo "}}"
 }
 discover
