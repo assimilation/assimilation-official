@@ -53,7 +53,9 @@ The project software undergoes a number of rigorous static and dynamic tests to 
 
 @section ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
-- [<a href="https://plus.google.com/108883358679380721407" rel="publisher">Google+</a>] page for the Assimilation Project.
+
+- #assimilation channel on freenode IRC
+- [<a href="https://plus.google.com/+AssimprojOrg/posts" rel="publisher">Google+</a>] page for the Assimilation Project.
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
 - <a href="http://techthoughts.typepad.com/managing_computers/">Managing Computers with Automation Blog</a> - about weekly
 - <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">Assimilation Mailing List</a> - not quite as often - shooting for weekly.

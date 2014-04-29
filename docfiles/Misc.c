@@ -120,7 +120,8 @@ to the project, please discuss this on the project mailing list.
  - list archives <a href="http://dir.gmane.org/gmane.comp.monitoring.assimilation">Gmane</a> or
    <a href="http://lists.community.tummy.com/pipermail/assimilation/">pipermail</a>.
 http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assim-devel
-- Project Twitter Hash Tag  \#AssimMon
+- Project Twitter Hash Tag  \#AssimProj
+- Project IRC Channel \#assimilation on freenode IRC server network
 - Project Web Site	http://assimmon.org/
 - Alan Robertson - email: alanr@@unix.sh - Twitter: @@OSSAlanR
 - Roger Massey - email: sadsaddle (a) gmail (and-the-usual-ending) - Twitter @@rhm84119
