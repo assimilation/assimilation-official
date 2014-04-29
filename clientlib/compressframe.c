@@ -257,21 +257,21 @@ compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of the compr
 {
 	const guint8*	pktend8			= pktend;
 	const guint8*	tlvstart8		= tlvstart;
-	const guint8*	packet;
-	guint32		pktsize;
-	guint8		compression_type;
-	const guint8*	valueptr;
-	guint32		decompressed_size;
-	int		actual_size;
-	int		compression_index;
-	guint16		frametype;
-	CompressFrame*	ret;
+	const guint8*	packet;			///< Start of compessed data
+	const guint8*	valueptr;		///< Pointer to TLV Value
+	guint32		cmppktsize;		///< Compressed packet size
+	guint8		compression_type;	///< Type of compression from Value
+	guint32		decompressed_size;	///< Size after decompression (from Value)
+	int		actual_size;		///< Size after decompression (from decompression)
+	int		compression_index;	///< Which compression method are we using?
+						///< This is an index into allcompressions
+	guint16		frametype;		///< Frametype of this frame - TLV Type
+	CompressFrame*	ret;			///< Return value
 	/* Our four bytes of real data are:
 	 * 	1-byte compression type
 	 * 	3-byte decompressed size
 	 */
 	frametype = get_generic_tlv_type(tlvstart, pktend);
-	pktsize = get_generic_tlv_len(tlvstart, pktend);
 	valueptr = get_generic_tlv_value(tlvstart, pktend);
 	compression_type = tlv_get_guint8(valueptr, pktend);
 	decompressed_size = tlv_get_guint24(valueptr+1, pktend);
@@ -283,10 +283,10 @@ compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of the compr
 	g_return_val_if_fail(compression_index >= 0, NULL);
 	packet = valueptr + COMPRESSFRAMEMIN;
 
-	pktsize = pktend8 - tlvstart8;	// Compressed packet size
+	cmppktsize = pktend8 - tlvstart8;	// Compressed packet size
 	
 	*newpacket = allcompressions[compression_index].decompress
-		(packet, pktsize, 0, decompressed_size, &actual_size);
+		(packet, cmppktsize, 0, decompressed_size, &actual_size);
 	g_return_val_if_fail(*newpacket != NULL, NULL);
 	*newpacketend = (guint8*)*newpacket + actual_size;
 
@@ -298,8 +298,9 @@ compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of the compr
 
 #ifdef HAVE_ZLIB_H
 /// Single-packet compression using zlib (-lz).
-/// Our goal here is to compress the data as cheaply as possible so that the <i>total</i> output size
-/// is less than or equal to 'maxout' bytes.  Maxout is normally the maximum size of a UDP packet.
+/// Our goal here is to compress the data as cheaply as possible so that the <i>total</i>
+/// output size is less than or equal to 'maxout' bytes.
+/// Maxout is normally the maximum size of a UDP packet.
 /// This is our definition of optimal compression - the cheapest that fits.
 gpointer
 z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
