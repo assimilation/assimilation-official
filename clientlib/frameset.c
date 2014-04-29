@@ -171,7 +171,6 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	gsize		fssize = FRAMESET_INITSIZE;	// "frameset" overhead size
 	g_return_if_fail(NULL != fs);
 	g_return_if_fail(NULL != sigframe);
-DUMP("In frameset_construct_packet", &fs->baseclass, " WITHOUT COMPRESSION FRAME?");
 	// g_return_if_fail(NULL != fs->framelist); // Is an empty frame list OK?
 
 	/*
@@ -237,7 +236,6 @@ DUMP("In frameset_construct_packet", &fs->baseclass, " WITHOUT COMPRESSION FRAME
 	if (NULL != cryptframe) {
 		frameset_prepend_frame(fs, cryptframe);
 	}
-DUMP("FULL FrameSet with signature, etc", &fs->baseclass, NULL);
 	// "sigframe" cannot be NULL (see check above)
 	frameset_prepend_frame(fs, CASTTOCLASS(Frame, sigframe));
 
