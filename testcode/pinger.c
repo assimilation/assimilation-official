@@ -42,8 +42,12 @@
 
 #define	PORT	19840
 
+#if 0
 #define RCVLOSS		0.05
 #define XMITLOSS	0.05
+#endif
+#define RCVLOSS		0.00
+#define XMITLOSS	0.00
 
 /*
  *	You can either give us a list of addresses, or none.
@@ -164,7 +168,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		}
 		if (!foundcount) {
 			char *	s = fs->baseclass.toString(&fs->baseclass);
-			fprintf(stderr, "Did not find a count in this PING packet");
+			fprintf(stderr, "Did not find a count in this PING packet=n");
 			fprintf(stderr, "%s", s);
 			FREE(s);
 		}
@@ -213,6 +217,7 @@ main(int argc, char **argv)
 	FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
 	SignFrame*      signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	CompressFrame*	compressionframe = compressframe_new(FRAMETYPE_COMPRESS, COMPRESS_ZLIB);
 	ConfigContext*	config = configcontext_new(0);
 	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	NetAddr* anyaddr = netaddr_ipv6_new(anyadstring, PORT);
@@ -273,6 +278,8 @@ main(int argc, char **argv)
 	theircounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
 	ourcounts = g_hash_table_new(netaddr_g_hash_hash, netaddr_g_hash_equal);
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
+	config->setframe(config, CONFIGNAME_COMPRESS, &compressionframe->baseclass);
+	UNREF2(compressionframe);
 	transport = reliableudp_new(0, config, decoder, 0);
 	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, RCVLOSS, XMITLOSS);
 	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
@@ -298,7 +305,7 @@ main(int argc, char **argv)
 		NetAddr*	toaddr;
 		NetAddr*	v6addr;
 		gchar *		ipaddr = optremaining[argcount];
-		IntFrame*	iframe  = intframe_new(FRAMETYPE_CINTVAL, 1);
+		IntFrame*	iframe  = intframe_new(FRAMETYPE_CINTVAL, sizeof(pingcount));
 		fprintf(stderr, "ipaddr = %s\n", ipaddr);
 
 		if (strcmp(ipaddr, "::") == 0) {
@@ -333,6 +340,7 @@ main(int argc, char **argv)
 		ping = frameset_new(FRAMESETTYPE_PING);
 		iframe->setint(iframe, 1);
 		frameset_append_frame(ping, &iframe->baseclass);
+g_message("SENT OUT %d byte PING with value 1", iframe->baseclass.length);
 		UNREF2(iframe);
 		transport->baseclass.baseclass.sendareliablefs(&transport->baseclass.baseclass, v6addr, 0, ping);
 		UNREF(ping);

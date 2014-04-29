@@ -198,8 +198,8 @@ _reliableudp_sendareliablefs(NetIO* nself, NetAddr* dest, guint16 qid, FrameSet*
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	// Send it out!
-	DUMP3("Sending FrameSet with _protocol->send1", &fs->baseclass, NULL);
-	DUMP3("Sending FrameSet with _protocol->send1 TO", &dest->baseclass, NULL);
+	DUMP("Sending FrameSet with _protocol->send1", &fs->baseclass, NULL);
+	DUMP("Sending FrameSet with _protocol->send1 TO", &dest->baseclass, NULL);
 	return self->_protocol->send1(self->_protocol, fs, qid, dest);
 }
 

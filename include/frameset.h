@@ -33,6 +33,7 @@
 #include <framesettypes.h>
 #include <generic_tlv_min.h>
 #include <seqnoframe.h>
+#include <compressframe.h>
 
 /// @ref FrameSet - used for collecting @ref Frame "Frame"s when not on the wire,
 /// and for marshalling/demarshalling them for/from the wire.
@@ -57,7 +58,7 @@ struct _FrameSet {
 WINEXPORT FrameSet*	frameset_new(guint16 frameset_type);
 WINEXPORT void		frameset_prepend_frame(FrameSet* fs, Frame* f);
 WINEXPORT void		frameset_append_frame(FrameSet* fs, Frame* f);
-WINEXPORT void		frameset_construct_packet(FrameSet* fs, SignFrame* sign, Frame* crypt, Frame* compress);
+WINEXPORT void		frameset_construct_packet(FrameSet* fs, SignFrame* sign, Frame* crypt, CompressFrame* compress);
 WINEXPORT Frame*	frame_new(guint16 frame_type, gsize framesize);
 WINEXPORT guint16	frameset_get_flags(FrameSet* fs);
 WINEXPORT guint16	frameset_set_flags(FrameSet* f, guint16 flagbits);

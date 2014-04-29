@@ -82,6 +82,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 
 	// Put the frame at the beginning of the frameset
 	frameset_prepend_frame(fs, &seqno->baseclass);
+DUMP("FRAMESET INCLUDING SEQUENCE NUMBER:", &fs->baseclass, " in _fsqueue_enq");
 	// And put this FrameSet at the end of the queue
 	g_queue_push_tail(self->_q, fs);
 

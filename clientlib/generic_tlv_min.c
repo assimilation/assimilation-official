@@ -188,8 +188,11 @@ get_generic_tlv_next(gconstpointer tlv_vp,		///<[in] Pointer to  current TLV ent
 		return NULL;
 	}
 	nexttlv = (const guint8*)tlv_vp  + GENERICTLV_HDRSZ + get_generic_tlv_len(tlv_vp, pktend);
+	g_message("next: nexttlv=%p, pktend=%p, len=%d", nexttlv, pktend, ((const guint8*)pktend-nexttlv));
 	/* Watch out for malformed packets! (BLACKHAT, PARANOIA) */
 	nextend = nexttlv + GENERICTLV_HDRSZ + get_generic_tlv_len(nexttlv, pktend);
+	g_message("next: nextlen= %d", get_generic_tlv_len(nexttlv, pktend));
+	g_message("next: nextend= %p", nextend);
 	/* fprintf(stderr, "LOOK: cur:%p, next: %p, nextend: %p, vpend: %p\n"
 	,	tlv_vp, nexttlv, nextend, pktend); */
 	return nextend > (const guint8*)pktend ? NULL : nexttlv;
