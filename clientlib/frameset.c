@@ -284,7 +284,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		curpktpos = (guint8*)fs->packet + curpktoffset;
 		if (!frame->isvalid(frame, curpktpos, fs->pktend)) {
 			g_error("Generated %s frame is not valid(!) (length=%"G_GSIZE_FORMAT")"
-			,	proj_class_classname(frame), frame->length);
+			,	proj_class_classname(frame), (gsize)frame->length);
 		}
 	}
 	g_return_if_fail(curpktpos == (((guint8*)fs->packet)+fssize));

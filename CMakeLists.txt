@@ -25,6 +25,7 @@ set (SRCROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set (BINROOT ${CMAKE_CURRENT_BINARY_DIR})
 
 set (INITDIR "/etc/init.d")
+set (CMAKE_BUILD_TYPE debug)
 
 set (BUILDTOOLS ${CMAKE_CURRENT_SOURCE_DIR}/buildtools)
 set (DESCRIPTION_FILE "${BUILDTOOLS}/short_description.txt")
@@ -39,6 +40,7 @@ execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPAC
 #############################################################
 # Figure out our package architecture (and system type)
 # Would this be better done by another simple python program?
+#############################################################
 
 if (EXISTS "/bin/uname")
   execute_process (OUTPUT_VARIABLE SYSTYPE OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -s)
@@ -48,7 +50,7 @@ if (EXISTS "/bin/uname")
   elseif (SYSTYPE STREQUAL "Darwin" OR SYSTYPE STREQUAL FreeBSD)
     # Try uname -m ...
     execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -m)
-  else (SYSTYPE STREQUAL "Darwin" OR SYSTYPE STREQUAL FreeBSD)
+  else (SYSTYPE STREQUAL "Darwin" OR SYSTYPE STREQUAL "FreeBSD")
     # Now we hope uname -i gives a good answer...
     execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND uname -i)
   endif (SYSTYPE STREQUAL "AIX")
@@ -56,6 +58,13 @@ else (COMMAND uname)
     message(STATUS "Package architecture _assumed_ to be i386")
   set(PROJARCH i386)
 endif (EXISTS "/bin/uname")
+
+if (SYSTYPE STREQUAL "Linux" OR SYSTYPE STREQUAL "linux")
+  if("${CMAKE_C_COMPILER}" MATCHES ".*/cc")
+    set (CMAKE_C_COMPILER "/usr/bin/gcc")
+  endif("${CMAKE_C_COMPILER}" MATCHES ".*/cc")
+endif (SYSTYPE STREQUAL "Linux" OR SYSTYPE STREQUAL "linux")
+
 
 
 if (CPACK_GENERATOR STREQUAL "DEB")
@@ -125,7 +134,6 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	
-set(CMAKE_BUILD_TYPE debug)
 
 if (WIN32)
 set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
@@ -285,7 +293,7 @@ if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
   set (CMAKE_EXE_LINKER_FLAGS ${OUR_LINKER_FLAGS})
   set (CMAKE_SHARED_LINKER_FLAGS ${OUR_LINKER_FLAGS})
 elseif("${CMAKE_C_COMPILER}" MATCHES ".*/gcc")
-  message(STATUS "found gnu")
+  message(STATUS "Found GNU gcc")
   IF(CMAKE_COMPILER_IS_GNUCC)
   #
   # Some versions of GCC combined with versions of glib don't like our most strict flags.
@@ -319,6 +327,8 @@ int main(int argc, char **argv) {
   set (CMAKE_EXE_LINKER_FLAGS ${OUR_LINKER_FLAGS})
   set (CMAKE_SHARED_LINKER_FLAGS ${OUR_LINKER_FLAGS})
   ENDIF(CMAKE_COMPILER_IS_GNUCC)
+else("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
+  message(STATUS "Unknown compiler ${CMAKE_C_COMPILER}")
 endif("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
 set (CMAKE_POSITION_INDEPENDENT_CODE ON)
 
