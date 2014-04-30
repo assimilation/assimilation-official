@@ -698,7 +698,8 @@ class pyCompressFrame(pyFrame):
     - represented by the struct _CompressFrame.  It is used to tell us that
     what kind of compression we want in our communication stream.
     '''
-    def __init__(self, frametype=FRAMETYPE_COMPRESS, compression_method=COMPRESS_ZLIB, Cstruct=None):
+    def __init__(self, frametype=FRAMETYPE_COMPRESS, compression_method=COMPRESS_ZLIB
+    ,       Cstruct=None):
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
             self._Cstruct = compressframe_new(frame_type, compression_method)
