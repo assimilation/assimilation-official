@@ -59,6 +59,9 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
             ,   pathname=procinfo.get('exe', 'unknown'), argv=procinfo.get('cmdline', 'unknown')
             ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
             ,   cwd=procinfo.get('cwd', '/'))
+            if 'listenaddrs' not in procinfo:
+                # We only monitor services, not clients...
+                continue
             montuple = MonitoringRule.findbestmatch((processproc, drone))
             if montuple[0] == MonitoringRule.NOMATCH:
                 print >> sys.stderr, "**don't know how to monitor %s" % str(processproc.argv)
