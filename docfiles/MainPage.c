@@ -52,7 +52,7 @@ The project software undergoes a number of rigorous static and dynamic tests to 
 @section ProgressReports Progress Reports on the project
 The team currently posts updates in the following places:
 
-- ##assimilation channel on freenode IRC
+- \#assimilation channel on freenode IRC
 - [<a href="https://plus.google.com/+AssimprojOrg/posts" rel="publisher">Google+</a>] page for the Assimilation Project.
 - Twitter - fairly frequent from <a href="https://twitter.com/#!/@OSSAlanR">@@OSSAlanR</a> - using hash tag <A HREF="https://twitter.com/#!/search/realtime/%23AssimMon">\#AssimMon</A>
 - <a href="http://assimilationsystems.com/category/blog/">Assimilation Systems Blog</a> - about weekly
