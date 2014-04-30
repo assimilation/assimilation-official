@@ -134,7 +134,7 @@ nvpairframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled 
 			   gpointer* ignoredpktend)	///<[ignored] end of replaement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
-	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	NVpairFrame *	ret = nvpairframe_new(frametype, NULL, NULL, 0);
 	Frame *		fret = CASTTOCLASS(Frame, ret);

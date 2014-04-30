@@ -54,7 +54,7 @@
 DEBUGDECLARATIONS;
 
 FSTATIC void _compressframe_finalize(AssimObj * self);
-FSTATIC void _compressframe_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
+FSTATIC void _compressframe_setvalue(Frame *, gpointer, guint32, GDestroyNotify valnotify);
 FSTATIC void _compressframe_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC gboolean _compressframe_isvalid(const Frame *, gconstpointer,	gconstpointer);
 FSTATIC int	_compressframe_findmethod(int method);
@@ -166,7 +166,7 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 }
 
 FSTATIC void
-_compressframe_setvalue(Frame *f, gpointer value, guint16 len, GDestroyNotify valnotify)
+_compressframe_setvalue(Frame *f, gpointer value, guint32 len, GDestroyNotify valnotify)
 {
 	(void)f;
 	(void)value;

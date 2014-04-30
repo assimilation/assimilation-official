@@ -176,7 +176,7 @@ _ipportframe_finalize(AssimObj*obj)
 /// This can be used directly for creating @ref IpPortFrame frames, or by derived classes.
 FSTATIC IpPortFrame*
 ipportframe_new(guint16 frame_type,	///<[in] TLV type of the @ref IpPortFrame (not address type) frame
-	      gsize framesize)		///<[in] size of frame structure (or zero for sizeof(IpPortFrame))
+	        gsize framesize)	///<[in] size of frame structure (or zero for sizeof(IpPortFrame))
 {
 	IpPortFrame*	aframe;
 
@@ -263,7 +263,7 @@ ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of 
 
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
-	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	IpPortFrame *	ret;
 	guint16		addr_family;

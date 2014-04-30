@@ -91,7 +91,7 @@ cryptframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled C
 		          gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
-	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	/// @todo: Not yet implemented
 	CryptFrame *	cret = cryptframe_new(frametype, 0, NULL);

@@ -73,7 +73,7 @@ unknownframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of our Frame 
 			    gpointer* ignorednewpktend)	///<[ignored]
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
-	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	UnknownFrame *	ret = unknownframe_new(frametype);
 	Frame *		fret = CASTTOCLASS(Frame, ret);

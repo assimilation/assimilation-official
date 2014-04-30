@@ -43,7 +43,7 @@ typedef struct _Frame Frame;
 struct _Frame {
 	AssimObj	baseclass;			///< Base object class for our Class system
 	guint16		type;				///< Frame <b>T</b>ype (see @ref IndividualFrameFormats - frameformats.h )
-	guint16		length;				///< Frame <b>L</b>ength
+	guint32		length;				///< Frame <b>L</b>ength
 	gpointer	value;				///< Frame <b>V</b>alue (pointer)
 	gsize		(*dataspace)(const Frame* self);///< How much space is needed to marshall this Frame?
 	void		(*updatedata)(Frame* self, gpointer tlvptr, gconstpointer pktend, FrameSet* fs); ///< Update packet data
@@ -51,7 +51,7 @@ struct _Frame {
 	
 	void		(*setvalue)(Frame* self,
 				    gpointer value,
-				    guint16 length,
+				    guint32 length,
 				    GDestroyNotify valfinal);		///< member function for setting value
 	void		(*dump)(const Frame* self, const char * prefix);///< member function for dumping Frame
 	GDestroyNotify	valuefinalize;					///< method for finalizing value
