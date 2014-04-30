@@ -68,7 +68,9 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 
 	(void)self;
 	if (tlvptr == NULL) {
-		g_return_val_if_fail(self->value != NULL, FALSE);
+		if (NULL == self->value) {
+			return FALSE;
+		}
 		length = self->length;
 		stringstart = self->value;
 	}else{
