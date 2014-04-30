@@ -702,7 +702,7 @@ class pyCompressFrame(pyFrame):
     ,       Cstruct=None):
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
-            self._Cstruct = compressframe_new(frame_type, compression_method)
+            self._Cstruct = compressframe_new(frametype, compression_method)
         else:
             self._Cstruct = Cstruct
         pyFrame.__init__(self, frametype, Cstruct=Cstruct)
