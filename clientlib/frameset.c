@@ -283,8 +283,8 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		// updatedata() can change fs->packet and fs->pktend
 		curpktpos = (guint8*)fs->packet + curpktoffset;
 		if (!frame->isvalid(frame, curpktpos, fs->pktend)) {
-			g_error("Generated %s frame is not valid(!)"
-			, proj_class_classname(frame));
+			g_error("Generated %s frame is not valid(!) (length=%"G_GSIZE_FORMAT")"
+			,	proj_class_classname(frame), frame->length);
 		}
 	}
 	g_return_if_fail(curpktpos == (((guint8*)fs->packet)+fssize));
@@ -340,8 +340,8 @@ frame_append_to_frameset_packet(FrameSet* fs,		///< FrameSet to append frame to
 
 	tlv_set_guint16(curpos, f->type, fs->pktend);
 	curpos += 2; // sizeof(guint16)
-	tlv_set_guint16(curpos, f->length, fs->pktend);
-	curpos += 2; // sizeof(guint16)
+	tlv_set_guint24(curpos, f->length, fs->pktend);
+	curpos += 3; // 3 byte integer for length
 	if (f->length > 0) {
 		// Zero-length frames are just fine.
 		memcpy(curpos, f->value, f->length);

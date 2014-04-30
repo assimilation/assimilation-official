@@ -27,7 +27,7 @@
 FSTATIC void _frame_default_finalize(AssimObj * self);
 FSTATIC gsize _frame_dataspace(const Frame* f);
 FSTATIC gboolean _frame_default_isvalid(const Frame *, gconstpointer,	gconstpointer);
-FSTATIC void _frame_setvalue(Frame *, gpointer, guint16, GDestroyNotify valnotify);
+FSTATIC void _frame_setvalue(Frame *, gpointer, guint32, GDestroyNotify valnotify);
 FSTATIC void _frame_updatedata(Frame *, gpointer, gconstpointer, FrameSet*);
 FSTATIC void _frame_dump(const Frame *, const char * prefix);
 FSTATIC gchar* _frame_toString(gconstpointer aself);
@@ -95,7 +95,7 @@ _frame_toString(gconstpointer	aself)
 FSTATIC void
 _frame_setvalue(Frame * self,			///< Frame object ('this')
 		gpointer value,			///< Value to save away
-		guint16	length,			///< Length of value
+		guint32	length,			///< Length of value
 		GDestroyNotify valnotify)	///< Value destructor.
 {
 	if (self->value && self->valuefinalize) {
@@ -160,7 +160,7 @@ frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Fram
 		     gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
-	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	Frame *		ret = frame_new(frametype, 0);
 	(void)ignorednewpkt; (void)ignoredpktend;

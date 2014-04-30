@@ -68,9 +68,7 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 
 	(void)self;
 	if (tlvptr == NULL) {
-		if (self->value == NULL) {
-			return FALSE;
-		}
+		g_return_val_if_fail(self->value != NULL, FALSE);
 		length = self->length;
 		stringstart = self->value;
 	}else{
@@ -80,7 +78,6 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 		g_return_val_if_fail(NULL != pktend, FALSE);
 		g_return_val_if_fail(length > 0,  FALSE);
 	}
-
 	endplace = stringstart + length;
 	expectedplace = endplace-1;
 	return expectedplace == memchr(stringstart, 0x00, length);
@@ -128,7 +125,7 @@ cstringframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled
 		            gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
 	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
-	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	CstringFrame *	ret = cstringframe_new(frametype, 0);
 	Frame *		fret = CASTTOCLASS(Frame, ret);

@@ -76,10 +76,10 @@ _addrframe_default_isvalid(const Frame * self,	///<[in/out] AddrFrame object ('t
 		       gconstpointer tlvptr,	///<[in] Pointer to the TLV for this AddrFrame
 		       gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
-	guint16		tlvlen = 0;
+	guint32		tlvlen = 0;
 	guint16		address_family = 0;
 	gconstpointer	valueptr = NULL;
-	guint16		addrlen;
+	guint32		addrlen;
 
 	if (tlvptr == NULL) {
 		// Validate the local copy instead of the TLV version.

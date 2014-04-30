@@ -28,7 +28,7 @@ to these C-classes.
 
 #pylint: disable=W0611
 from AssimCtypes import AddrFrame, CstringFrame, UnknownFrame, ConfigValue, IpPortFrame, \
-    FrameSet, PacketDecoder, guint8, IntFrame, ConfigContext, SignFrame, \
+    FrameSet, PacketDecoder, guint8, IntFrame, ConfigContext, SignFrame, CompressFrame, \
     proj_class_live_object_count, proj_class_dump_live_objects, CONFIGNAME_CMAPORT
 #pylint: enable=W0611
 from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_string_buffer, \
@@ -67,7 +67,8 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     get_lldptlv_body, \
     get_lldptlv_next, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
-    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL
+    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, \
+    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new
 
 from consts import CMAconsts
 
@@ -93,6 +94,7 @@ class cClass:
     ConfigContext = POINTER(ConfigContext)
     ConfigValue = POINTER(ConfigValue)
     IpPortFrame = POINTER(IpPortFrame)
+    CompressFrame = POINTER(CompressFrame)
     guint8 = POINTER(guint8)
     GSList = POINTER(GSList)
 
@@ -691,6 +693,20 @@ class pyFrame(pyAssimObj):
         #print >> sys.stderr, "EVAL:", statement
         return eval(statement)
 
+class pyCompressFrame(pyFrame):
+    '''This class represents the Python version of our C-class CompressFrame
+    - represented by the struct _CompressFrame.  It is used to tell us that
+    what kind of compression we want in our communication stream.
+    '''
+    def __init__(self, frametype=FRAMETYPE_COMPRESS, compression_method=COMPRESS_ZLIB, Cstruct=None):
+        self._Cstruct = None # Keep error legs from complaining.
+        if Cstruct is None:
+            self._Cstruct = compressframe_new(frame_type, compression_method)
+        else:
+            self._Cstruct = Cstruct
+        pyFrame.__init__(self, frametype, Cstruct=Cstruct)
+
+
 class pyAddrFrame(pyFrame):
     '''This class represents the Python version of our C-class AddrFrame
     - represented by the struct _AddrFrame.
@@ -1025,9 +1041,11 @@ class pyFrameSet(pyAssimObj):
             yieldval =  pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
             #print >> sys.stderr, ("Constructed frame IS [%s]" % str(yieldval))
             if not yieldval.isvalid():
-                print >> sys.stderr,  "OOPS! Constructed frame from iter() is not valid [%s]" \
-                %       str(yieldval)
-                raise ValueError("Constructed frame from iter() is not valid [%s]" % str(yieldval))
+                print >> sys.stderr                                                 \
+                ,  "OOPS! Constructed %d byte frame from iter() is not valid [%s]" \
+                %       (yieldval.framelen(), str(yieldval))
+                raise ValueError("Constructed %d byte frame from iter() is not valid [%s]" 
+                %   (yieldval.framelen(), str(yieldval)))
             #print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
             yield yieldval
             curframe = g_slist_next(curframe)

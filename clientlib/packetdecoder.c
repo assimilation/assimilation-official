@@ -156,7 +156,7 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this 
 	const guint8*	pktend = vpktend;
 	gssize		bytesleft = pktend - fsstart;
 	guint16		fstype;
-	guint16		fslen;
+	guint32		fslen;
 	guint16		fsflags;
 	FrameSet*	ret;
 

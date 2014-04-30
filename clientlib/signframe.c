@@ -63,7 +63,7 @@ _signframe_compute_cksum(GChecksumType cksumtype,	///<[in] checksum type
 			 gconstpointer tlvptr,		///<[in] pointer to TLV for checksum
 			 gconstpointer pktend)		///<[in] one byte past end of packet
 {
-	guint16		framelen  = get_generic_tlv_len(tlvptr, pktend);
+	guint32		framelen  = get_generic_tlv_len(tlvptr, pktend);
 	const guint8*	nextframe;
 	gssize		cksumsize;
 	gssize		remainsize;
@@ -113,7 +113,7 @@ _signframe_isvalid(const Frame * self,		///< SignFrame object ('this')
 		   gconstpointer pktend)	///< Pointer to one byte past the end of the packet
 {
 	const guint8*	framedata;
-	guint16		framelen;
+	guint32		framelen;
 	guint8		subtype;
 	GChecksumType	cksumtype;
 	gssize		cksumsize;
@@ -243,7 +243,7 @@ signframe_tlvconstructor(gconstpointer tlvstart,	///<[in] beginning of the SignF
 		         gpointer* ignorednewpkt,	///<[ignored] replacement packet
 		         gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
-	guint16		framelength = get_generic_tlv_len(tlvstart, pktend);
+	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	//guint8	majortype = tlv_get_guint8(framevalue, pktend);
 	GChecksumType	minortype = tlv_get_guint8(framevalue+1, pktend);
