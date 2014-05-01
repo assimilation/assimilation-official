@@ -24,6 +24,10 @@
 #include <projectcommon.h>
 #define	DISCOVERY_SUBCLASS
 #include <discovery.h>
+#include <cstringframe.h>
+#include <frametypes.h>
+#include <fsprotocol.h>
+#include <string.h>
 #include <assert.h>
 ///@defgroup DiscoveryClass Discovery class
 /// Discovery abstract base class - supporting the discovery of various local things by our subclasses.
@@ -35,6 +39,7 @@ FSTATIC void		_discovery_flushcache(Discovery* self);
 FSTATIC guint		_discovery_discoverintervalsecs(const Discovery* self);
 FSTATIC gboolean	_discovery_rediscover(gpointer vself);
 FSTATIC void		_discovery_ghash_destructor(gpointer gdiscovery);
+FSTATIC void		_discovery_sendjson(Discovery* self, char * jsonout, gsize jsonlen);
 
 DEBUGDECLARATIONS
 
@@ -127,6 +132,7 @@ discovery_new(const char *	instname,	///<[in] instance name
 	ret->instancename		= _discovery_instancename;
 	ret->discoverintervalsecs	= _discovery_discoverintervalsecs;
 	ret->baseclass._finalize	= _discovery_finalize;
+	ret->sendjson			= _discovery_sendjson;
 	ret->discover			= NULL;
 	ret->_timerid			= 0;
 	ret->_iosource			= iosource;
@@ -179,6 +185,58 @@ discovery_unregister_all(void)
 	}else{
 		DEBUGMSG1("Discovery timers were NULL");
 	}
+}
+/// Send JSON that we discovered to the CMA - with some caching going on
+FSTATIC void
+_discovery_sendjson(Discovery* self, char * jsonout, gsize jsonlen)
+{
+	FrameSet*	fs;
+	CstringFrame*	jsf;
+	Frame*		fsf;
+	ConfigContext*	cfg = self->_config;
+	NetGSource*	io = self->_iosource;
+	NetAddr*	cma;
+	const char *	basename = self->instancename(self);
+
+	g_return_if_fail(cfg != NULL && io != NULL);
+
+	DEBUGMSG2("%s.%d: discovering %s: _sentyet == %d"
+	,	__FUNCTION__, __LINE__, basename, self->_sentyet);
+	// Primitive caching - don't send what we've already sent.
+	if (self->_sentyet) {
+		const char *	oldvalue = cfg->getstring(cfg, basename);
+		if (oldvalue != NULL && strcmp(jsonout, oldvalue) == 0) {
+			DEBUGMSG2("%s.%d: %s sent this value - don't send again."
+			,	__FUNCTION__, __LINE__, basename);
+			g_free(jsonout);
+			return;
+		}
+		DEBUGMSG2("%s.%d: %s this value is different from previous value"
+		,	__FUNCTION__, __LINE__, basename);
+	}
+	DEBUGMSG2("%s.%d: Sending %"G_GSIZE_FORMAT" bytes of JSON text"
+	,	__FUNCTION__, __LINE__, jsonlen);
+	cfg->setstring(cfg, basename, jsonout);
+	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
+	if (cma == NULL) {
+	        DEBUGMSG2("%s.%d: %s address is unknown - skipping send"
+		,	__FUNCTION__, __LINE__, CONFIGNAME_CMADISCOVER);
+		g_free(jsonout);
+		return;
+	}
+	self->_sentyet = TRUE;
+
+	fs = frameset_new(FRAMESETTYPE_JSDISCOVERY);
+	jsf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
+	fsf = &jsf->baseclass;	// base class object of jsf
+	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
+	frameset_append_frame(fs, fsf);
+	DEBUGMSG2("%s.%d: Sending a %"G_GSIZE_FORMAT" bytes JSON frameset"
+	,	__FUNCTION__, __LINE__, jsonlen);
+	io->_netio->sendareliablefs(io->_netio, cma, DEFAULT_FSP_QID, fs);
+	++ self->reportcount;
+	UNREF(fsf);
+	UNREF(fs);
 }
 
 ///@}

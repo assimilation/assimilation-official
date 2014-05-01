@@ -45,7 +45,6 @@ FSTATIC guint		_jsondiscovery_discoverintervalsecs(const Discovery* self);
 FSTATIC void		_jsondiscovery_finalize(AssimObj* self);
 FSTATIC gboolean	_jsondiscovery_discover(Discovery* dself);
 FSTATIC void		_jsondiscovery_childwatch(ChildProcess*, enum HowDied, int rc, int signal, gboolean core_dumped);
-FSTATIC void		_jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen);
 FSTATIC void		_jsondiscovery_fullpath(JsonDiscovery* self);
 DEBUGDECLARATIONS;
 
@@ -163,7 +162,7 @@ _jsondiscovery_childwatch(ChildProcess* child			///< The @ref ChildProcess objec
 			UNREF(jsobj);
 		}
 	}
-	_jsondiscovery_send(self, jsonout, jsonlen);
+	self->baseclass.sendjson(&self->baseclass, jsonout, jsonlen);
 
 quitchild:
 	UNREF(self->child);
@@ -172,58 +171,6 @@ quitchild:
 	UNREF2(self);
 }
 
-/// Send what we discovered to the CMA - with some caching going on
-FSTATIC void
-_jsondiscovery_send(JsonDiscovery* self, char * jsonout, gsize jsonlen)
-{
-	FrameSet*	fs;
-	CstringFrame*	jsf;
-	Frame*		fsf;
-	ConfigContext*	cfg = self->baseclass._config;
-	NetGSource*	io = self->baseclass._iosource;
-	NetAddr*	cma;
-	const char *	basename = self->baseclass.instancename(&self->baseclass);
-
-	g_return_if_fail(cfg != NULL && io != NULL);
-
-	DEBUGMSG2("%s.%d: discovering %s: _sentyet == %d"
-	,	__FUNCTION__, __LINE__, basename, self->baseclass._sentyet);
-	// Primitive caching - don't send what we've already sent.
-	if (self->baseclass._sentyet) {
-		const char *	oldvalue = cfg->getstring(cfg, basename);
-		if (oldvalue != NULL && strcmp(jsonout, oldvalue) == 0) {
-			DEBUGMSG2("%s.%d: %s sent this value - don't send again."
-			,	__FUNCTION__, __LINE__, basename);
-			g_free(jsonout);
-			return;
-		}
-		DEBUGMSG2("%s.%d: %s this value is different from previous value"
-		,	__FUNCTION__, __LINE__, basename);
-	}
-	DEBUGMSG2("%s.%d: Sending %"G_GSIZE_FORMAT" bytes of JSON text"
-	,	__FUNCTION__, __LINE__, jsonlen);
-	cfg->setstring(cfg, basename, jsonout);
-	cma = cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER);
-	if (cma == NULL) {
-	        DEBUGMSG2("%s.%d: %s address is unknown - skipping send"
-		,	__FUNCTION__, __LINE__, CONFIGNAME_CMADISCOVER);
-		g_free(jsonout);
-		return;
-	}
-	self->baseclass._sentyet = TRUE;
-
-	fs = frameset_new(FRAMESETTYPE_JSDISCOVERY);
-	jsf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
-	fsf = &jsf->baseclass;	// base class object of jsf
-	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
-	frameset_append_frame(fs, fsf);
-	DEBUGMSG2("%s.%d: Sending a %"G_GSIZE_FORMAT" bytes JSON frameset"
-	,	__FUNCTION__, __LINE__, jsonlen);
-	io->_netio->sendareliablefs(io->_netio, cma, DEFAULT_FSP_QID, fs);
-	++ self->baseclass.reportcount;
-	UNREF(fsf);
-	UNREF(fs);
-}
 
 /// JsonDiscovery constructor.
 JsonDiscovery*
