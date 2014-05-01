@@ -50,6 +50,11 @@
 #	define ZLIB_CONST 1 /* Enable const definitions where appropriate */
 #	include  <zlib.h>
 #endif /* HAVE_ZLIB_H */
+#if ZLIB_VER_MAJOR > 1 || ZLIB_VER_MINOR > 2 || ZLIB_VER_REVISION > 7
+#	define ZLIB_CONSTANT	const
+#else
+#	define ZLIB_CONSTANT	// Old zlib headers didn't declare things const like they should
+#endif
 
 DEBUGDECLARATIONS;
 
@@ -352,8 +357,10 @@ z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
 		g_warning("%s.%d: OOPS out of space.",	__FUNCTION__, __LINE__);
 		return NULL;
 	}
-	stream.avail_in = insize-offset;	stream.next_in = (const guint8*)inbuf+offset;
-	stream.avail_out = maxout-offset;	stream.next_out = outbuf+offset;
+	stream.avail_in = insize-offset;
+	stream.next_in = (ZLIB_CONSTANT guint8*)inbuf+offset;
+	stream.avail_out = maxout-offset;
+	stream.next_out = outbuf+offset;
 
 	/* Compress it */
 	ret = deflate(&stream, Z_FINISH);
@@ -399,7 +406,7 @@ z_decompressbuf(gconstpointer inbuf	///<[in] compressed input buffer
 	stream.zfree = Z_NULL;
 	stream.opaque = Z_NULL;
 	stream.avail_in = insize-offset;
-	stream.next_in = ((const guint8*)inbuf) + offset;
+	stream.next_in = ((ZLIB_CONSTANT guint8*)inbuf) + offset;
 	g_return_val_if_fail (Z_OK == inflateInit(&stream), NULL);
 	outbuf = g_malloc(maxout);
 	if (offset > 0) {

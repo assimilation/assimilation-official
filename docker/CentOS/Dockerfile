@@ -1,5 +1,5 @@
 FROM centos:latest
-RUN yum -y install glib2 libpcap
+RUN yum -y install glib2 libpcap zlib-devel
 RUN yum -y install python python-flask which java-1.7.0-openjdk lsof pygobject2
 # Can't use sudo from within a docker build - it needs a tty.  Some tests need to run as root. Good thing we run as root here...
 RUN yum -y install gcc cmake cpack make pkg-config glib2-devel valgrind resource-agents mercurial wget libpcap-devel pylint rsyslog
