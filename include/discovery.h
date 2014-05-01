@@ -51,8 +51,9 @@ struct _Discovery {
 	gboolean	(*discover)(Discovery* self);		///< Perform the discovery
 	guint		(*discoverintervalsecs)	(const Discovery* self);	///< How often to re-discover?
 										///< (in seconds)
+	void		(*sendjson)(Discovery*, char*, gsize);	///< Send JSON string
 	guint64		reportcount;	///< How many times have we reported
-										///< anything new upstream.
+					///< anything new upstream.
 	guint64		discovercount;	///< How many times have we discovered
 					///< something.
 	char*		_instancename;	///< Timer id for repeating discovery
