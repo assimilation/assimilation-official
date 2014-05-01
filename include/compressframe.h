@@ -46,7 +46,6 @@ struct _CompressFrame {
 	guint8		compression_index;
 };
 
-typedef struct _CompressFrame	CompressFrame;
 
 WINEXPORT CompressFrame* compressframe_new(guint16 frame_type, guint16 compression_method);
 WINEXPORT Frame* compressframe_tlvconstructor(gconstpointer, gconstpointer, gpointer*,gpointer*);
