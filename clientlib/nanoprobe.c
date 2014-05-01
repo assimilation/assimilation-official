@@ -45,6 +45,7 @@
 #include <pcap_min.h>
 #include <jsondiscovery.h>
 #include <switchdiscovery.h>
+#include <arpdiscovery.h>
 #include <fsprotocol.h>
 #include <resourcecmd.h>
 #include <resourcequeue.h>
@@ -1067,6 +1068,7 @@ nano_reqconfig(gpointer gcruft)
 
 static PacketDecoder*	decoder = NULL;
 static SwitchDiscovery*	swdisc = NULL;
+static ArpDiscovery*	arpdisc = NULL;
 
 
 /// The set of Collective Management Authority FrameTypes we know about,
@@ -1154,6 +1156,8 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	///@todo - eventually change switch discovery to be sensitive to our local network configuration
 	swdisc = switchdiscovery_new("switchdiscovery_eth0", "eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
 	,			    g_main_context_default(), io, config, 0);
+	arpdisc = arpdiscovery_new("arpdiscovery_eth0", "eth0", ENABLE_ARP, G_PRIORITY_LOW
+	,			  g_main_context_default(), io, config, DEFAULT_ARP_SENDINTERVAL, 0);
 	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
 	// Initiate the startup process
@@ -1187,6 +1191,7 @@ nano_shutdown(gboolean report)
 	hbsender_stopallsenders();
 	hblistener_shutdown();
 	UNREF2(swdisc);
+	UNREF2(arpdisc);
 	if (nanofailreportaddr) {
 		UNREF(nanofailreportaddr);
 	}
