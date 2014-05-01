@@ -188,7 +188,9 @@ discovery_unregister_all(void)
 }
 /// Send JSON that we discovered to the CMA - with some caching going on
 FSTATIC void
-_discovery_sendjson(Discovery* self, char * jsonout, gsize jsonlen)
+_discovery_sendjson(Discovery* self,	///< Our discovery object
+		    char * jsonout,	///< malloced JSON output - which we free (!)
+		    gsize jsonlen)	///< length of jsonout
 {
 	FrameSet*	fs;
 	CstringFrame*	jsf;
