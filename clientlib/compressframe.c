@@ -97,7 +97,7 @@ assim_dump_bytes(char * prefix, gconstpointer p, int len)
 FSTATIC int
 _compressframe_findmethod(int method)
 {
-	unsigned	j;
+	gsize	j;
 	for (j=0; j < DIMOF(allcompressions); ++j) {
 		if (method == allcompressions[j].compression_type) {
 			return j;
@@ -148,7 +148,7 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 	guint32			origlen;
 	const guint8*		valptr;
 	if (tlvstart == NULL) {
-		return self->compression_index < DIMOF(allcompressions)
+		return ((gsize)self->compression_index) < DIMOF(allcompressions)
 	&&	allcompressions[self->compression_index].compression_type == self->compression_method;
 	}
 	
