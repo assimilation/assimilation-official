@@ -51,9 +51,12 @@
 #	include  <zlib.h>
 #endif /* HAVE_ZLIB_H */
 #if ZLIB_VER_MAJOR > 1 || ZLIB_VER_MINOR > 2 || ZLIB_VER_REVISION > 7
-#	define ZLIB_CONSTANT	const
+	// At least version 1.2.8 has the ZLIB_CONST #define to fix this
+#	define ZLIB_CONSTANT(e)	((const guint8*)(e))
 #else
-#	define ZLIB_CONSTANT	// Old zlib headers didn't declare things const like they should
+	// Older zlib header files didn't declare things const like they should
+	// So we use a sleazy trick to deal with the broken header file :-(
+#	define ZLIB_CONSTANT(e)	((guint8*)(GSIZE_TO_POINTER(GPOINTER_TO_SIZE(e))))
 #endif
 
 DEBUGDECLARATIONS;
@@ -358,7 +361,7 @@ z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
 		return NULL;
 	}
 	stream.avail_in = insize-offset;
-	stream.next_in = (ZLIB_CONSTANT guint8*)inbuf+offset;
+	stream.next_in = ZLIB_CONSTANT(inbuf)+offset;
 	stream.avail_out = maxout-offset;
 	stream.next_out = outbuf+offset;
 
@@ -406,7 +409,7 @@ z_decompressbuf(gconstpointer inbuf	///<[in] compressed input buffer
 	stream.zfree = Z_NULL;
 	stream.opaque = Z_NULL;
 	stream.avail_in = insize-offset;
-	stream.next_in = ((ZLIB_CONSTANT guint8*)inbuf) + offset;
+	stream.next_in = ZLIB_CONSTANT(inbuf) + offset;
 	g_return_val_if_fail (Z_OK == inflateInit(&stream), NULL);
 	outbuf = g_malloc(maxout);
 	if (offset > 0) {
