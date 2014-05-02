@@ -43,7 +43,7 @@ struct _ArpDiscovery {
 
 };
 
-#define DEFAULT_ARP_SENDINTERVAL 300
+#define DEFAULT_ARP_SENDINTERVAL 120	// 2 minutes
 
 WINEXPORT ArpDiscovery* arpdiscovery_new(ConfigContext*, gint, GMainContext*,
 					       NetGSource*, ConfigContext*, gsize);
