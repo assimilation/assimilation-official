@@ -281,7 +281,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	dret = discovery_new(instance, iosrc, config
 	,	objsize < sizeof(ArpDiscovery) ? sizeof(ArpDiscovery) : objsize);
 	g_return_val_if_fail(dret != NULL, NULL);
-	interval = arpconfig->getint(arpconfig, CONFIGNAME_ARP_INTERVAL);
+	interval = arpconfig->getint(arpconfig, CONFIGNAME_INTERVAL);
 	if (interval <= 0) {
 		interval = DEFAULT_ARP_SENDINTERVAL;
 	}
