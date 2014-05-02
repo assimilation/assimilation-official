@@ -109,6 +109,7 @@ optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
     ,                   'linkdiscovery'
     ,                   'checksumdiscovery'
     ,                   'monitoringdiscovery'
+    ,                   'arpdiscovery'
     ]
 #
 #   "Main" program starts below...
