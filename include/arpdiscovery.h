@@ -43,10 +43,10 @@ struct _ArpDiscovery {
 
 };
 
-#define DEFAULT_ARP_SENDINTERVAL 60
+#define DEFAULT_ARP_SENDINTERVAL 300
 
-WINEXPORT ArpDiscovery* arpdiscovery_new(const char *, const char *, guint, gint, GMainContext*,
-					       NetGSource*, ConfigContext*, guint, gsize);
+WINEXPORT ArpDiscovery* arpdiscovery_new(ConfigContext*, gint, GMainContext*,
+					       NetGSource*, ConfigContext*, gsize);
 
 
 ///@}
