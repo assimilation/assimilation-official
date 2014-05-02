@@ -1132,8 +1132,8 @@ nano_packet_decoder(void)
 
 WINEXPORT void
 nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial network discovery agent
-	,	guint discover_interval		///<[in] discovery interval for agent above
-	,	NetGSource* io			///<[in/out] network connectivity object
+	,	guint		discover_interval///<[in] discovery interval for agent above
+	,	NetGSource*	io		///<[in/out] network connectivity object
 	,	ConfigContext* config)		///<[in/out] configuration object
 {
 	static struct startup_cruft cruftiness;
@@ -1142,6 +1142,9 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 		discover_interval,
 		io,
 	};
+	ConfigContext*	arpconfig
+	=	configcontext_new_JSON_string(
+		"{\""CONFIGNAME_INSTANCE"\":\"ARP_eth0\",\""CONFIGNAME_NICNAME"\":\"eth0\"}");
 	nano_shutting_down = FALSE;
 	BINDDEBUG(nanoprobe_main);
 	
@@ -1156,8 +1159,9 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	///@todo - eventually change switch discovery to be sensitive to our local network configuration
 	swdisc = switchdiscovery_new("switchdiscovery_eth0", "eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
 	,			    g_main_context_default(), io, config, 0);
-	arpdisc = arpdiscovery_new("arpdiscovery_eth0", "eth0", ENABLE_ARP, G_PRIORITY_LOW
-	,			  g_main_context_default(), io, config, DEFAULT_ARP_SENDINTERVAL, 0);
+	arpdisc = arpdiscovery_new(arpconfig, G_PRIORITY_LOW, g_main_context_default()
+	,	io, config, 0);
+	UNREF(arpconfig);
 	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
 	// Initiate the startup process

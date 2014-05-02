@@ -259,36 +259,44 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
 
 /// ArpDiscovery constructor - good for listening to ARP packets via pcap
 ArpDiscovery*
-arpdiscovery_new(const char *	instance	///<[in] instance name
-,		 const char *	dev		///<[in] device to listen on
-,		 guint		listenmask	///<[in] what protocols to listen to
+arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 ,		 gint		priority	///<[in] source priority
 ,		 GMainContext* 	mcontext	///<[in/out] mainloop context
 ,	         NetGSource*	iosrc		///<[in/out] I/O object
-,	         ConfigContext*	config		///<[in/out] configuration context
-,		 guint  	interval	///<[in] How often to send, in seconds
+,	         ConfigContext*	config		///<[in/out] Global configuration
 ,	         gsize		objsize)	///<[in] object size
 {
-	Discovery *	dret = discovery_new(instance, iosrc, config
-	,		objsize < sizeof(ArpDiscovery) ? sizeof(ArpDiscovery) : objsize);
+	Discovery *	dret;
 	ArpDiscovery*	ret;
+	const char*	dev;
+	const char*	instance;
+	int		interval;
 	char*		sysname;
 
+	g_return_val_if_fail(arpconfig != NULL, NULL);
+	dev = arpconfig->getstring(arpconfig, CONFIGNAME_NICNAME);
+	g_return_val_if_fail(dev != NULL, NULL);
+	instance = arpconfig->getstring(arpconfig, CONFIGNAME_INSTANCE);
+	g_return_val_if_fail(instance != NULL, NULL);
+	dret = discovery_new(instance, iosrc, config
+	,	objsize < sizeof(ArpDiscovery) ? sizeof(ArpDiscovery) : objsize);
 	g_return_val_if_fail(dret != NULL, NULL);
+	interval = arpconfig->getint(arpconfig, CONFIGNAME_ARP_INTERVAL);
+	if (interval <= 0) {
+		interval = DEFAULT_ARP_SENDINTERVAL;
+	}
 	ret = NEWSUBCLASS(ArpDiscovery, dret);
 
 	ret->finalize = dret->baseclass._finalize;
 	dret->baseclass._finalize = _arpdiscovery_finalize;
 	dret->discover = _arpdiscovery_discover;
-	ret->source = g_source_pcap_new(dev, listenmask, _arpdiscovery_dispatch, NULL, priority, FALSE, mcontext, 0, ret);
+	ret->source = g_source_pcap_new(dev, ENABLE_ARP, _arpdiscovery_dispatch, NULL, priority, FALSE, mcontext, 0, ret);
 
 	if (objsize == sizeof(ArpDiscovery)) {
 		// Subclass constructors need to register themselves, but we'll register ourselves.
 		discovery_register(dret);
 	}
 
-	// Some things hard-coded for now.  To-do: take in parameters ...
-	// In particular, we need to put the 'dev' into the string.
 	ret->ArpMap = configcontext_new_JSON_string("{\"discovertype\": \"arpcache\", \"description\": \"ARP map\", \"source\": \"arpcache\", \"discoveryname\": \"ARP_eth0\", \"data\":{}}");
 	// Need to set host, and discoveryname
 	sysname = proj_get_sysname();
@@ -300,9 +308,10 @@ arpdiscovery_new(const char *	instance	///<[in] instance name
 	ret->ArpMapData = ret->ArpMap->getconfig(ret->ArpMap, "data");
 
 	// Set the timer for how often to send to CMA.
-	ret->timeout_source = g_timeout_add_seconds_full
-        				(G_PRIORITY_HIGH, interval, _arpdiscovery_gsourcefunc
-        				,    ret, _arpdiscovery_notify_function);
+	ret->timeout_source
+	=	g_timeout_add_seconds_full
+        	(G_PRIORITY_HIGH, interval, _arpdiscovery_gsourcefunc
+        	,	ret, _arpdiscovery_notify_function);
 	DEBUGMSG3("Sender %p timeout source is: %d, interval is %d", ret
    	,         ret->timeout_source, interval);
 
