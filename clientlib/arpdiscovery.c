@@ -5,7 +5,8 @@
  *
  * This file is part of the Assimilation Project.
  *
- * @author Carrie Oswald (carrie_oswald@yahoo.com) - Copyright &copy; 2014 - Assimilation Systems Limited
+ * @author Carrie Oswald (carrie_oswald@yahoo.com)
+ * Copyright (c) 2014 - Assimilation Systems Limited
  * @n
  *  The Assimilation software is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -190,7 +191,6 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
 	char *	v6string;
 
 	(void)gsource; (void)capstruct; (void)pkthdr; (void)capturedev;
-	BINDDEBUG(ArpDiscovery);
 	DEBUGMSG3("** Got an incoming ARP packet! - dest is %p", dest);
 
 	arppkt.arp_hrd_type =	tlv_get_guint16(pktstart, pend);
@@ -215,12 +215,12 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
 	g_return_val_if_fail(arppkt.arp_hln == 6 || arppkt.arp_hln == 8, TRUE);
 	g_return_val_if_fail(arppkt.arp_pln == 4, TRUE);
 	sha_netaddr = netaddr_macaddr_new(arp_sha, arppkt.arp_hln);
-	spa_netaddr = netaddr_ipv4_new(arp_spa, arppkt.arp_pln);
+	spa_netaddr = netaddr_ipv4_new(arp_spa, 0);
 	arp_spaIPv6 = spa_netaddr->toIPv6(spa_netaddr);		// convert sender protocol address to IPv6 format
 	arp_tha = arp_spa + arppkt.arp_pln;
 	arp_tpa = arp_tha + arppkt.arp_hln;
 	tha_netaddr = netaddr_macaddr_new(arp_tha, arppkt.arp_hln);
-	tpa_netaddr = netaddr_ipv4_new(arp_tpa, arppkt.arp_pln);
+	tpa_netaddr = netaddr_ipv4_new(arp_tpa, 0);
 
 	/*
 	fprintf(stderr, "ARP Sender Hardware Address: %s  %p\n", arp_sha->baseclass.toString(&arp_sha->baseclass), arp_sha);
@@ -273,6 +273,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	int		interval;
 	char*		sysname;
 
+	BINDDEBUG(ArpDiscovery);
 	g_return_val_if_fail(arpconfig != NULL, NULL);
 	dev = arpconfig->getstring(arpconfig, CONFIGNAME_NICNAME);
 	g_return_val_if_fail(dev != NULL, NULL);
@@ -297,7 +298,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 		discovery_register(dret);
 	}
 
-	ret->ArpMap = configcontext_new_JSON_string("{\"discovertype\": \"arpcache\", \"description\": \"ARP map\", \"source\": \"arpcache\", \"discoveryname\": \"ARP_eth0\", \"data\":{}}");
+	ret->ArpMap = configcontext_new_JSON_string("{\"discovertype\": \"ARP\", \"description\": \"ARP map\", \"source\": \"arpcache\", \"discoveryname\": \"ARP_eth0\", \"data\":{}}");
 	// Need to set host, and discoveryname
 	sysname = proj_get_sysname();
 	ret->ArpMap->setstring(ret->ArpMap, "host", sysname);
