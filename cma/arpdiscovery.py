@@ -85,7 +85,6 @@ class ArpDiscoveryListener(DiscoveryListener):
         can move around, we potentially need to clean up relationships to 
         NICNodes - so that any given IP address is only associated with a single
         MAC address.
-        It's clear that we don't prevent that here...
 
         As noted in the class docs, the data we get is organized by IP address.
         This means that a single MAC address (NIC) may appear multiple times in the
