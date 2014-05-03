@@ -20,7 +20,7 @@
 #
 cmake_minimum_required(VERSION 2.6.4)
 project(assimilation C)
-set (PROJVERS "0.1.1")
+set (PROJVERS "0.1.3")
 set (SRCROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set (BINROOT ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -80,6 +80,7 @@ endif (CPACK_GENERATOR STREQUAL "DEB")
 #	For some cases, it will take *two* invocations of cpack for changes to take effect.
 #	This is *very* confusing until you come to expect it".
 #
+#############################################################
 set (CPACK_PACKAGE_CONTACT "Assimilation Mailing List <assimilation@lists.community.tummy.com>")
 file (READ ${DESCRIPTION_FILE} CPACK_PACKAGE_DESCRIPTION_SUMMARY)
 string(STRIP "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}" CPACK_PACKAGE_DESCRIPTION_SUMMARY)

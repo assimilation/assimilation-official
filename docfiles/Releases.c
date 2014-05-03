@@ -1,6 +1,40 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_0_1_3- version 0.1.3 - the 'even more interesting' release - 02 May 2014 [32 April 2014;-)]
+This is the third in a series of releases intended to culminate in a truly useful release.
+This release is suitable for trials in an environment where the caveats are acceptable.
+you can find quite a few pre-built Ubuntu packages for this version here: https://www.dropbox.com/sh/h32lz3mtb8wwgmp/26AyspFaxL/Releases/0.1.3
+A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.3.tar.gz
+@subsection Features_0_1_3 Features
+These features are new with release 0.1.3.
+- ARP discovery - we listen to ARP packets (including broadcasts) and add the IP addresses we find to the CMDB
+- Package discovery - we discover what packages you have installed and add the results to the database
+- Packet compression - we now allow discovery packets of JSON up to about 300K through compression.
+- Works on CentOS 6.5 and related RedHat-derived systems
+- Works on Fedora 20 (and probably other Fedora releases as well)
+- Updated documentation - GettingStarted (thanks Ken Schumacher) and other places
+- Dockerfiles for Fedora and CentOS
+@subsection BugFixes_0_1_3 Bug Fixes
+- Fixed problems which kept strict compilation flags from being used
+@subsection Caveats_0_1_3 Caveats
+- Object deletion not yet reliable or complete
+- No alerting, or interface to alerting (hooks to build your own interface are included)
+- communication is neither authenticated nor confidential
+- heterogeneous system support (POSIX and Windows - but now someone is working on Windows!)
+- statistical data collection
+- CDP support for Cisco switch discovery
+- high availability option for the CMA
+- the queries need to have more indexes for larger installations.
+
+Features that are expected for a monitoring solution but are <b>not</b> included include these:
+- useful alerting (but you can probably integrate your own)
+- heterogeneous system support (POSIX and Windows - but someone is now looking at Windows - yay!)
+- statistical data collection
+Note that these features are understood to be important and are planned - but this first release
+does not include them.
+
 @section Version_0_1_2- version 0.1.2 - the 'very interesting' release - 20 March 2014
+These features are new with release 0.1.3.
 This is the second in a series of releases intended to culminate in a truly useful release.
 This release is suitable for limited trials in an environment where the caveats are acceptable.
 you can find quite a few pre-built Ubuntu packages for this version here: https://www.dropbox.com/sh/h32lz3mtb8wwgmp/26AyspFaxL/Releases/0.1.2

@@ -74,7 +74,7 @@ _signframe_compute_cksum(GChecksumType cksumtype,	///<[in] checksum type
 	// Get the size of this type checksum
 	cksumsize = g_checksum_type_get_length(cksumtype);
 	g_return_val_if_fail(cksumsize > 1, NULL);
-	g_return_val_if_fail(framelen == (cksumsize + 2), NULL);
+	g_return_val_if_fail((gssize)framelen == (cksumsize + 2), NULL);
 
 	// Find out what data is left after our frame - the data we operate on...
 	nextframe = get_generic_tlv_next(tlvptr, pktend);
@@ -185,7 +185,7 @@ _signframe_updatedata(Frame* fself,		///<[in] SignFrame signature Frame
 
 	// Make sure our frame is sized exactly right
 	cksumsize = g_checksum_type_get_length(cksumtype);
-	g_return_if_fail(self->baseclass.length == (2 + cksumsize));
+	g_return_if_fail((gssize)(self->baseclass.length) == (2 + cksumsize));
 
 	// Put in the frame subtype (byte 0) - (0x01)
 	tlv_set_guint8(framedata,   (guint8)1, pktend);
