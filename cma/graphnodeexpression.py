@@ -23,6 +23,7 @@
 ''' This module defines Functions to evaluate GraphNode expressions...  '''
 
 import re, os, inspect
+from AssimCclasses import pyNetAddr
 #
 #
 class GraphNodeExpression:
