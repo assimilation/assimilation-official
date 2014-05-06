@@ -3,7 +3,7 @@
 #
 # This file is part of the Assimilation Project.
 #
-# Copyright (C) 2013 Assimilation Systems Limited - author Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2013,2014 Assimilation Systems Limited - author Alan Robertson <alanr@unix.sh>
 #
 #  The Assimilation software is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIEL
 from AssimCclasses import pyConfigContext, pyNetAddr
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
+from graphnodeexpression import GraphNodeExpression
 from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
@@ -310,7 +311,6 @@ class MonitoringRule:
     LOWPRIOMATCH = 3    # We match - but we aren't a very good monitoring method
     HIGHPRIOMATCH = 4   # We match and we are a good monitoring method
 
-    functions = {}
     monitorobjects = {}
 
     def __init__(self, monitorclass, tuplespec):
@@ -358,7 +358,7 @@ class MonitoringRule:
             values = {}
         for tup in self._tuplespec:
             expression = tup[0]
-            value = MonitoringRule.evaluate(expression, values, graphnodes)
+            value = GraphNodeExpression.evaluate(expression, values, graphnodes)
             if value is None:
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
@@ -373,81 +373,7 @@ class MonitoringRule:
         # We now have a matching set of values to give our monitoring constructor
         return self.constructaction(values, graphnodes)
 
-    @staticmethod
-    def evaluate(expression, values, graphnodes):
-        '''
-        Evaluate an expression.
-        It can be:
-            None - return None
-            'some-value -- return some-value (it's a constant)
-            or an expression to find in values or graphnodes
-            or @functionname(args) - for defined functions...
-
-            We may add other kinds of expressions in the future...
-        '''
-        if expression is None:
-            return None
-        if expression.startswith("'"):
-            # The value of this parameter is a constant...
-            return expression[1:]
-        if expression.startswith('@'):
-            value = MonitoringRule.functioncall(expression[1:], values, graphnodes)
-            values[expression] = value
-        if expression in values:
-            return values[expression]
-        for node in graphnodes:
-            value = node.get(expression)
-            if value is not None:
-                values[expression] = value
-                return value
-        return None
-
-    @staticmethod
-    def functioncall(expression, values, graphnodes):
-        '''Performs a function call for our expression language
-
-        Figures out the function name, and the arguments and then
-        calls that function with those arguments.
-
-        All our defined functions take an argv argument string first, then the values
-        and graphnodes arguments.
-
-        '''
-        expression = expression.strip()
-        if expression[-1] != ')':
-            return None
-        expression = expression[:len(expression)-1]
-        (funname, arglist) = expression.split('(', 1)
-        funname = funname.strip()
-        arglist = arglist.strip()
-        argsin = arglist.split(',')
-        args = []
-        for arg in argsin:
-            arg = arg.strip()
-            if arg != '':
-                args.append(arg.strip())
-        if funname not in MonitoringRule.functions:
-            return None
-        return MonitoringRule.functions[funname](args, values, graphnodes)
-
-    @staticmethod
-    def RegisterFun(function):
-        'Function to register other functions as built-in MonitoringRule functions'
-        MonitoringRule.functions[function.__name__] = function
-
-    @staticmethod
-    def FunctionDescriptions():
-        '''Return a list of tuples of (funcname, docstring) for all our MonitoringRule
-        defined functions.  The list is sorted by function name.
-        '''
-        names = MonitoringRule.functions.keys()
-        names.sort()
-        ret = []
-        for name in names:
-            ret.append((name, inspect.getdoc(MonitoringRule.functions[name])))
-        return ret
-
-
+  
 
     def constructaction(self, values, graphnodes):
         '''Return a tuple consisting of a tuple as noted:
@@ -790,7 +716,7 @@ class OCFMonitoringRule(MonitoringRule):
             else:
                 optional = False
             expression = self.nvpairs[name]
-            val = MonitoringRule.evaluate(expression, values, graphnodes)
+            val = GraphNodeExpression.evaluate(expression, values, graphnodes)
             if val is None and not optional:
                 missinglist.append(name)
             else:
@@ -816,279 +742,31 @@ class OCFMonitoringRule(MonitoringRule):
                     ,   missinglist
                     )
 
-@MonitoringRule.RegisterFun
-def argequals(args, values, graphnodes):
-    '''
-    A function which searches a list for an argument of the form name=value.
-    The name is given by the argument in args, and the list 'argv'
-    is assumed to be the list of arguments.
-    If there are two arguments in args, then the first argument is the
-    array value to search in for the name=value string instead of 'argv'
-    '''
-    if len(args) > 2 or len(args) < 1:
-        return None
-    if len(args) == 2:
-        argname = args[0]
-        definename = args[1]
-    else:
-        argname = 'argv'
-        definename = args[0]
-    if argname in values:
-        listtosearch = values[argname]
-    else:
-        listtosearch = None
-        for node in graphnodes:
-            value = node.get(argname)
-            if value is not None:
-                listtosearch = value
-                break
-    if listtosearch is None:
-        return None
-    prefix = '%s=' % definename
-    # W0702: No exception type specified for except statement
-    # pylint: disable=W0702
-    try:
-        for elem in listtosearch:
-            if elem.startswith(prefix):
-                return elem[len(prefix):]
-    except: # No matter the cause of failure, return None...
-        pass
-    return None
-
-@MonitoringRule.RegisterFun
-def flagvalue(args, values, graphnodes):
-    '''
-    A function which searches a list for a -flag and returns
-    the value of the option which is the next argument.
-    The -flag is given by the argument in args, and the list 'argv'
-    is assumed to be the list of arguments.
-    If there are two arguments in args, then the first argument is the
-    array value to search in for the -flag string instead of 'argv'
-    The flag given must be the entire flag complete with - character.
-    For example -X or --someflag.
-    '''
-    if len(args) > 2 or len(args) < 1:
-        return None
-    if len(args) == 2:
-        argname = args[0]
-        flagname = args[1]
-    else:
-        argname = 'argv'
-        flagname = args[0]
-
-    progargs = MonitoringRule.evaluate(argname, values, graphnodes)
-    argslen = len(progargs)
-    flaglen = len(flagname)
-    for pos in range(0, argslen):
-        progarg = progargs[pos]
-        progarglen = len(progarg)
-        if progarg.startswith(flagname):
-            if progarg == flagname:
-                # -X foobar
-                if (pos+1) < argslen:
-                    return progargs[pos+1]
-            elif flaglen == 2 and progarglen > flaglen:
-                # -Xfoobar -- single character flags only
-                return progarg[2:]
-    return None
-
-@MonitoringRule.RegisterFun
-def OR(args, values, graphnodes):
-    '''
-    A function which evaluates the each expression in turn, and returns the value
-    of the first expression which is not None.
-    '''
-    if len(args) < 2:
-        return None
-    for arg in args:
-        value = MonitoringRule.evaluate(arg, values, graphnodes)
-        if value is not None:
-            return value
-    return None
-
-@MonitoringRule.RegisterFun
-def is_upstartjob(args, values, graphnodes):
-    '''
-    Returns "true" if any of its arguments names an upstart job, "false" otherwise
-    If no arguments are given, it returns whether this system has upstart enabled.
-    '''
-
-
-    agentcache = MonitoringRule.compute_available_agents(graphnodes)
-
-    if 'upstart' not in agentcache or len(agentcache['upstart']) == 0:
-        return 'false'
-
-    for arg in args:
-        value = MonitoringRule.evaluate(arg, values, graphnodes)
-        if value in agentcache['upstart']:
-            return 'true'
-    return len(values) == 0
-
-
-# Netstat format IP:port pattern
-ipportregex = re.compile('(.*):([^:]*)$')
-def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
-    '''This function searches discovery information for a suitable IP
-    address/port combination to go with the service.
-    '''
-    def regexmatch(key):
-        '''Handy internal function to pull out the IP and port into a pyNetAddr
-        Note that the format is the format used in the discovery information
-        which in turn is the format used by netstat.
-        This is not a "standard" format, but it's what netstat uses - so it's
-        what we use.
-        '''
-        mobj = ipportregex.match(key)
-        if mobj is None:
-            return None
-        (ip, port) = mobj.groups()
-        ipport = pyNetAddr(ip, port=int(port))
-        if ipport.isanyaddr():
-            if ipport.addrtype() == ADDR_FAMILY_IPV4:
-                ipport = pyNetAddr('127.0.0.1', port=ipport.port())
-            else:
-                ipport = pyNetAddr('::1', port=ipport.port())
-        return ipport
-
-    graphnodes = graphnodes
-        
-    try:
-        portlist = {}
-        for key in arg.keys():
-            ipport = regexmatch(key)
-            if ipport.port() == 0:
-                continue
-            port = ipport.port()
-            if port in portlist:
-                portlist[port].append(ipport)
-            else:
-                portlist[port] = [ipport,]
-
-        portkeys = portlist.keys()
-        if preferlowestport:
-            portkeys.sort()
-        for p in portlist[portkeys[0]]:
-            if preferv4:
-                if p.addrtype() == ADDR_FAMILY_IPV4:
-                    return p
-            else:
-                if p.addrtype() == ADDR_FAMILY_IPV6:
-                    return p
-        return portlist[portkeys[0]][0]
-    except (KeyError, ValueError, TypeError, IndexError):
-        # Something is hinky with this data
-        return None
-
-@MonitoringRule.RegisterFun
-def serviceip(args, values, graphnodes):
-    '''
-    This function searches discovery information for a suitable concrete IP
-    address for a service.
-    The argument to this function tells it an expression that will give
-    it the hash table (map) of IP/port combinations for this service.
-    '''
-    values = values
-    if len(args) == 0:
-        args = ('JSON_procinfo.listenaddrs',)
-    for arg in args:
-        nmap = MonitoringRule.evaluate(arg, values, graphnodes)
-        if nmap is None:
-            continue
-        ipport = selectanipport(nmap, graphnodes)
-        if ipport is None:
-            continue
-        ipport.setport(0) # Make sure return value doesn't include the port
-        return str(ipport)
-    return None
-
-@MonitoringRule.RegisterFun
-def serviceport(args, values, graphnodes):
-    '''
-    This function searches discovery information for a suitable port for a service.
-    The argument to this function tells it an expression that will give
-    it the hash table (map) of IP/port combinations for this service.
-    '''
-    if len(args) == 0:
-        args = ('JSON_procinfo.listenaddrs',)
-    values = values
-    for arg in args:
-        nmap = MonitoringRule.evaluate(arg, values, graphnodes)
-        if nmap is None:
-            continue
-        port = selectanipport(nmap, graphnodes).port()
-        if port is None:
-            continue
-        return str(port)
-    return None
-
-@MonitoringRule.RegisterFun
-def serviceipport(args, values, graphnodes):
-    '''
-    This function searches discovery information for a suitable ip:port combination.
-    The argument to this function tells it an expression that will give
-    it the hash table (map) of IP/port combinations for this service.
-    The return value is a legal ip:port combination for the given
-    address type (ipv4 or ipv6)
-    '''
-    if len(args) == 0:
-        args = ('JSON_procinfo.listenaddrs',)
-    values = values
-    for arg in args:
-        nmap = MonitoringRule.evaluate(arg, values, graphnodes)
-        if nmap is None:
-            continue
-        ipport = selectanipport(nmap, graphnodes)
-        if ipport is None:
-            continue
-        return str(ipport)
-    return None
-
-@MonitoringRule.RegisterFun
-def basename(args, values, graphnodes):
-    '''
-    This function returns the basename from a pathname.
-    If no pathname is supplied, then the executable name is assumed.
-    '''
-    if len(args) == 0:
-        args = ('pathname',)    # Default to the name of the executable
-    values = values
-    for arg in args:
-        pathname = MonitoringRule.evaluate(arg, values, graphnodes)
-        if pathname is None:
-            continue
-        return os.path.basename(pathname)
-    return None
-
-
-@MonitoringRule.RegisterFun
-def dirname(args, values, graphnodes):
-    '''
-    This function returns the directory name from a pathname.
-    If no pathname is supplied, then the discovered service executable name is assumed.
-    '''
-    if len(args) == 0:
-        args = ('pathname',)    # Default to the name of the executable
-    values = values
-    for arg in args:
-        pathname = MonitoringRule.evaluate(arg, values, graphnodes)
-        if pathname is None:
-            continue
-        return os.path.dirname(pathname)
-    return None
-
 if __name__ == '__main__':
     from graphnodes import ProcessNode
-    neoargs = (
+    neolsbargs = (
                 ('argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
                 ('argv[3]', r'-server$'),             # Probably overkill
                 ('argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
         )
-    neorule = LSBMonitoringRule('neo4j-service', neoargs)
+    neorule = LSBMonitoringRule('neo4j-service', neolsbargs)
+    neolsbargs = (
+                ('argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                ('argv[3]', r'-server$'),             # Probably overkill
+                ('argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+        )
+    neoocfargs = (
+        (None,          "@basename()",               "java$"),
+        (None,          "argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"),
+        #("ipport",      "@serviceipport()",          "..."),
+        ("neo4j_home",  "@argequals(-Dneo4j.home)", "/"),
+        ("neo4j",       "@basename(@argequals(-Dneo4j.home))",".")
+    )
+    neoocfrule = OCFMonitoringRule('assimilation', 'neo4j', neoocfargs)
 
-    sshnode = ProcessNode('global', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
     #ProcessNode:
-    #   (domain, host, pathname, argv, uid, gid, cwd, roles=None):
+    #   (domain, processname, host, pathname, argv, uid, gid, cwd, roles=None):
+    sshnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
     sshargs = (
@@ -1098,7 +776,7 @@ if __name__ == '__main__':
         )
     sshrule = LSBMonitoringRule('ssh', sshargs)
 
-    udevnode = ProcessNode('global', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
+    udevnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/udevd', ['/usr/bin/udevd']
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
 
@@ -1128,24 +806,25 @@ if __name__ == '__main__':
     ,   "-Dfile.encoding=UTF-8"
     ,   "org.neo4j.server.Bootstrapper")
 
-    neonode = ProcessNode('global', 'fred', '/usr/bin/java', neoprocargs
+    neonode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/java', neoprocargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-    print 'Should be (2, {something}):	', sshrule.specmatch(None, (sshnode,))
+    print 'Should be (3, {something}):	', sshrule.specmatch(None, (sshnode,))
     print 'This should be (0, None):	', sshrule.specmatch(None, (udevnode,))
     print 'This should be (0, None):	', sshrule.specmatch(None, (neonode,))
     print 'This should be (0, None):	', neorule.specmatch(None, (sshnode,))
-    print 'Should be (2, {something}):	', neorule.specmatch(None, (neonode,))
+    print 'Should be (3, {something}):	', neorule.specmatch(None, (neonode,))
+    print 'Should be (4, {something}):	', neoocfrule.specmatch(None, (neonode,))
     print 'Documentation of functions available for use in match expressions:'
     longest = 0
-    for (funcname, description) in MonitoringRule.FunctionDescriptions():
+    for (funcname, description) in GraphNodeExpression.FunctionDescriptions():
         if len(funcname) > longest:
             longest = len(funcname)
     fmt = '%%%ds: %%s' % longest
     pad = (longest +2) * ' '
     fmt2 = pad + '%s'
 
-    for (funcname, description) in MonitoringRule.FunctionDescriptions():
+    for (funcname, description) in GraphNodeExpression.FunctionDescriptions():
         descriptions = description.split('\n')
         print fmt % (funcname, descriptions[0])
         for descr in descriptions[1:]:
