@@ -23,6 +23,7 @@
 ''' This module defines Functions to evaluate GraphNode expressions...  '''
 
 import re, os, inspect
+from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyNetAddr
 #
 #
