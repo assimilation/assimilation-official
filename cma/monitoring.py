@@ -32,16 +32,15 @@ from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIEL
 ,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREASONENUMNAMEFIELD, REQREPEATNAMEFIELD    \
 ,   REQTIMEOUTNAMEFIELD ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD               \
 ,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD                                                  \
-,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO             \
-,   ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
-from AssimCclasses import pyConfigContext, pyNetAddr
+,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO 
+from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
 from graphnodeexpression import GraphNodeExpression
 from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
-import os, re, inspect, time
+import os, re, time
 import sys
 from py2neo import neo4j
 from store import Store
