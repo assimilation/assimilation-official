@@ -420,15 +420,9 @@ class MonitoringRule:
         string.  Note that the input is JSON -- with whole-line comments.
         A whole line comment has to _begin_ with a #.
         '''
-        result = ''
-        for line in s.split('\n'):
-            if line.startswith('#'):
-                continue
-            result += (line + '\n')
-
-        obj = pyConfigContext(result)
+        obj = pyConfigContext(s)
         if obj is None:
-            raise ValueError('Invalid JSON: %s' % result)
+            raise ValueError('Invalid JSON: %s' % s)
         if 'class' not in obj:
             raise ValueError('Must have class value')
         legit = {'ocf':
