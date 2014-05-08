@@ -664,6 +664,7 @@ _configcontext_JSON_GScanner_new(void)
 	static char		firstchars[] = "tfn";
 	static char		subsequentchars[] = "aelrsu";
 	static char		whitespace[] = " \t\n\r\f";
+	static char		hash_comment[] = "#\n";
 	static char		True[] = "true";
 	static char		False[] = "false";
 	static char		Null[] = "null";
@@ -677,8 +678,9 @@ _configcontext_JSON_GScanner_new(void)
 	config.cset_identifier_nth = subsequentchars;
 	config.case_sensitive = TRUE;
 	config.skip_comment_multi = FALSE;
-	config.skip_comment_single = FALSE;
 	config.scan_comment_multi = FALSE;
+	config.cpair_comment_single = hash_comment;	// NOTE: JSON extension: Allow # comments 
+	config.skip_comment_single = TRUE;		// Ignore # comments
 	config.scan_identifier = TRUE;
 	config.scan_identifier_1char = FALSE;
 	config.scan_identifier_NULL = FALSE;
