@@ -177,18 +177,19 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
         };
 	struct arppacket	arppkt;
 	const guint8*		pktstart = ((const guint8*)pkt) + ARP_PKT_OFFSET;
-	const guint8* arp_sha;	// sender hardware address
-	const guint8* arp_spa;	// sender protocol address
-	NetAddr* sha_netaddr;	// sender hardware address
-	NetAddr* spa_netaddr;	// sender protocol address
-	NetAddr* arp_spaIPv6;	// sender protocol address in IPv6 format
-	const guint8* arp_tha;	// target hardware address
-	const guint8* arp_tpa;	// target protocol address
-	const guint8* lastbyte;	// last byte of packet according to ARP
-	NetAddr* tha_netaddr;	// target hardware address
-	NetAddr* tpa_netaddr;	// target protocol address
-	NetAddr* theMAC;
-	char *	v6string;
+	const guint8*		arp_sha;	// sender hardware address
+	const guint8*		arp_spa;	// sender protocol address
+	NetAddr*		sha_netaddr;	// sender hardware address
+	NetAddr*		spa_netaddr;	// sender protocol address
+	NetAddr*		arp_spaIPv6;	// sender protocol address in IPv6 format
+	const guint8*		arp_tha;	// target hardware address
+	const guint8*		arp_tpa;	// target protocol address
+	const guint8*		lastbyte;	// last byte of packet according to ARP
+	NetAddr*		tha_netaddr;	// target hardware address
+	NetAddr*		tpa_netaddr;	// target protocol address
+	NetAddr*		theMAC;
+	char *			v6string;
+	static const guint8	zeroes[4] = {0, 0, 0, 0};
 
 	(void)gsource; (void)capstruct; (void)pkthdr; (void)capturedev;
 	DEBUGMSG3("** Got an incoming ARP packet! - dest is %p", dest);
@@ -214,6 +215,10 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
 	g_return_val_if_fail(lastbyte <= (guint8*)pend, TRUE);
 	g_return_val_if_fail(arppkt.arp_hln == 6 || arppkt.arp_hln == 8, TRUE);
 	g_return_val_if_fail(arppkt.arp_pln == 4, TRUE);
+	if (memcmp(arp_spa, zeroes, arppkt.arp_pln) == 0) {
+		// Some glitchy device gave us a funky IP address...
+		return TRUE;
+	}
 	sha_netaddr = netaddr_macaddr_new(arp_sha, arppkt.arp_hln);
 	spa_netaddr = netaddr_ipv4_new(arp_spa, 0);
 	arp_spaIPv6 = spa_netaddr->toIPv6(spa_netaddr);		// convert sender protocol address to IPv6 format
