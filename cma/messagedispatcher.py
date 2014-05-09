@@ -101,6 +101,7 @@ class MessageDispatcher:
             tblist = traceback.extract_tb(trace, 20)
             fstypename = FrameSetTypes.get(fstype)[0]
 
+            print >> sys.stderr, ('MessageDispatcher exception [%s] occurred' % (e))
             CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
             ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
             lines = str(frameset).splitlines()
