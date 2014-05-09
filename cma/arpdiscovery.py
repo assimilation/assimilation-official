@@ -40,6 +40,7 @@ from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, GraphNode
+import netaddr
 import sys
 
 @Drone.add_json_processor   # Register ourselves to process discovery packets
@@ -106,12 +107,27 @@ class ArpDiscoveryListener(DiscoveryListener):
         for mac in maciptable:
             self.add_mac_ip(drone, mac, maciptable[mac])
 
+    local_OUI_map = {
+                'b0-79-3c': 'Revolv, Inc.',
+                '18-0c-ac': 'Canon, Inc.',
+                'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
+                'd8-50-e6': 'ASUSTek COMPUTER INC.',
+    }
+
 
     def add_mac_ip(self, drone, macaddr, IPlist):
         '''We process all the IP addresses that go with a given MAC address (NICNode)
         The parameters are expected to be canonical address strings like str(pyNetAddr(...)).
         '''
         nicnode = self.store.load_or_create(NICNode, domain=drone.domain, macaddr=macaddr)
+        macprefix = str(nicnode.macaddr)[0:8]
+        try:
+            org = str(netaddr.EUI(nicnode.macaddr).oui.registration().org)
+        except netaddr.NotRegisteredError:
+            if macprefix in ArpDiscoveryListener.local_OUI_map:
+                org = ArpDiscoveryListener.local_OUI_map[macprefix]
+            else:
+                org = macprefix
         if not Store.is_abstract(nicnode):
             # This NIC already existed - let's see what IPs it already owned
             currips = {}
@@ -141,7 +157,9 @@ class ArpDiscoveryListener(DiscoveryListener):
                 for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner
                     , GraphNode.factory):
                     self.store.separate(oldnicnode, CMAconsts.REL_ipowner, oldnicnode)
-            print >> sys.stderr, ('RELATING %s-[:ipowner]->%s' 
-            %       (str(nicnode.macaddr), str(ipnode.ipaddr)))
+            print >> sys.stderr, ('RELATING (%s)-[:ipowner]->(%s)	[%s]' 
+            %       (str(nicnode.macaddr), str(ipnode.ipaddr), org))
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)
+            if org != macprefix and not hasattr(nicnode, 'OUI'):
+                nicnode.OUI = org
 
