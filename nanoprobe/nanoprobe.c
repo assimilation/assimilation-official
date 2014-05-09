@@ -396,6 +396,8 @@ main(int argc, char **argv)
 
 	// Free signature frame
 	UNREF2(signature);
+	// Free compression frame
+	UNREF2(compression);
 
 	// Free misc addresses
 	UNREF(destaddr);
