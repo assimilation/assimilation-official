@@ -118,8 +118,8 @@ class ArpDiscoveryListener(DiscoveryListener):
             oldiplist = self.store.load_related(nicnode, CMAconsts.REL_ipowner, IPaddrNode)
             for ipnode in oldiplist:
                 currips[ipnode.ipaddr] = ipnode
-                print >> sys.stderr, ('IP %s already related to NIC %s' 
-                %       (str(ipnode.ipaddr), str(nicnode.macaddr)))
+                #print >> sys.stderr, ('IP %s already related to NIC %s' 
+                #%       (str(ipnode.ipaddr), str(nicnode.macaddr)))
             # See what IPs still need to be added
             ips_to_add = []
             for ip in IPlist:
@@ -132,8 +132,8 @@ class ArpDiscoveryListener(DiscoveryListener):
         for ip in IPlist:
             ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain
             ,       ipaddr=ip)
-            print >> sys.stderr, ('CREATING IP %s for NIC %s' 
-            %       (str(ipnode.ipaddr), str(nicnode.macaddr)))
+            #print >> sys.stderr, ('CREATING IP %s for NIC %s' 
+            #%       (str(ipnode.ipaddr), str(nicnode.macaddr)))
             if not Store.is_abstract(ipnode):
                 # Then this IP address already existed,
                 # but it wasn't related to our NIC...
@@ -141,7 +141,7 @@ class ArpDiscoveryListener(DiscoveryListener):
                 for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner
                     , GraphNode.factory):
                     self.store.separate(oldnicnode, CMAconsts.REL_ipowner, oldnicnode)
-            print >> sys.stderr, ('RELATING NIC %s-[:ipowner]->IP %s' 
+            print >> sys.stderr, ('RELATING %s-[:ipowner]->%s' 
             %       (str(nicnode.macaddr), str(ipnode.ipaddr)))
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)
 
