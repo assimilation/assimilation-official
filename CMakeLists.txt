@@ -133,6 +133,7 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	MONRULEINSTALL		Where we install our monitoring rule flat files
 #	OCFINSTALL		Where we install our OCF resource agents
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
+#	CMAINITFILE		Name of initialization file for the CMA - defaults to /etc/cma.conf
 #	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	
 
@@ -193,6 +194,9 @@ endif (NOT CMAADDR)
 if (NOT NANOLISTENADDR) 
   set(NANOLISTENADDR "0.0.0.0:1984")
 endif (NOT NANOLISTENADDR) 
+if (NOT CMAINITFILE) 
+  set (CMAINITFILE "/etc/cma.conf")
+endif (NOT CMAINITFILE) 
 #####################################################################################
 
 

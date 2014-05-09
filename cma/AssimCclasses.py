@@ -1097,10 +1097,16 @@ class pyConfigContext(pyAssimObj):
     'Class for Holding configuration information - now a general JSON-compatible data bag'
     #pylint: disable=R0921
 
-    def __init__(self, init=None, Cstruct=None):
+    def __init__(self, init=None, filename=None, Cstruct=None):
         'Initializer for pyConfigContext'
         self._Cstruct = None # Keep error legs from complaining.
         if not Cstruct:
+            # Cstruct overrides init and filename
+            if filename is not None:
+                f = open(filename, 'r')
+                # filename overrides init
+                init = f.read()
+                f.close()
             if (isinstance(init, str) or isinstance(init, unicode)):
                 Cstruct = configcontext_new_JSON_string(str(init))
                 if not Cstruct:

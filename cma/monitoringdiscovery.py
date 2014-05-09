@@ -39,7 +39,6 @@ from store import Store
 from graphnodes import ProcessNode
 from discoverylistener import DiscoveryListener
 
-
 @Drone.add_json_processor
 class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
     'Class for generating and activating monitoring from the TCP discovery data'
