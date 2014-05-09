@@ -561,8 +561,7 @@ class MonitoringRule:
         '''
         Construct a MonitoringRule from a filename parameter.
         It will construct the appropriate subclass depending on its input
-        string.  Note that the input is JSON -- with whole-line comments.
-        A whole line comment has to _begin_ with a #.
+        string.  Note that the input is JSON -- with # comments.
         '''
         f = open(filename, 'r')
         s = f.read()
