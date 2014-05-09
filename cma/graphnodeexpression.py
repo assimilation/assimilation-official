@@ -25,6 +25,7 @@
 import re, os, inspect
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyNetAddr
+import sys
 #
 #
 class GraphNodeExpression:
@@ -206,7 +207,8 @@ def is_upstartjob(args, values, graphnodes):
     '''
 
 
-    agentcache = GraphNodeExpression.compute_available_agents(graphnodes)
+    from monitoring import MonitoringRule
+    agentcache = MonitoringRule.compute_available_agents(graphnodes)
 
     if 'upstart' not in agentcache or len(agentcache['upstart']) == 0:
         return 'false'

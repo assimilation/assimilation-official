@@ -176,10 +176,9 @@ class DispatchSTARTUP(DispatchTarget):
                                 ('os',                  0),
                                 ('ulimit',              0),
                                 ('cpu',                 36000),
-                                ('arpcache',            45),
                                 ('tcpdiscovery',        3700)
                                )
-        #print >> sys.stderr, 'Creating OBJUP event for ', drone
+        print >> sys.stderr, 'Creating OBJUP event for ', drone
         AssimEvent(drone, AssimEvent.OBJUP)
 
 @DispatchTarget.register

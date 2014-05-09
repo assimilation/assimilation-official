@@ -100,7 +100,7 @@ import optparse, time
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
-from AssimCtypes import NOTIFICATION_SCRIPT_DIR
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE
 import importlib
 #import atexit
 
@@ -116,7 +116,8 @@ optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
 #   It is a the real CMA intended to run with some real nanoprobes running
 #   somewhere out there...
 #
-#pylint: disable=R0914
+# 912: Too many branches, 914: too many local variables, 915: too many statements
+#pylint: disable=R0912,R0914,R0915
 def main():
     'Main program for the CMA (Collective Management Authority)'
     DefaultPort = 1984
@@ -230,21 +231,41 @@ def main():
         OurAddr.setport(DefaultPort)
     OurPort = OurAddr.port()
 
-
-    configinit = {
-    	CONFIGNAME_CMAINIT:	BindAddr,   # Initial listening (bind) address
-    	CONFIGNAME_CMAADDR:	OurAddr,    # not sure what this one does...
-    	CONFIGNAME_CMADISCOVER:	OurAddr,# Discovery packets sent here
-    	CONFIGNAME_CMAFAIL:	OurAddr,    # Failure packets sent here
-    	CONFIGNAME_CMAPORT:	OurPort,
-    	CONFIGNAME_HBPORT:	OurPort,
-    	CONFIGNAME_OUTSIG:	pySignFrame(1),
-    	CONFIGNAME_DEADTIME:	10*1000000,
-    	CONFIGNAME_WARNTIME:	3*1000000,
-    	CONFIGNAME_HBTIME:	1*1000000,
+    configdefaults = {
+    	CONFIGNAME_CMAINIT:	    BindAddr,   # Initial listening (bind) address
+    	CONFIGNAME_CMAADDR:	    OurAddr,    # not sure what this one does...
+    	CONFIGNAME_CMADISCOVER:	OurAddr,    # Discovery packets sent here
+    	CONFIGNAME_CMAFAIL:	    OurAddr,    # Failure packets sent here
+    	CONFIGNAME_CMAPORT:	    OurPort,
+    	CONFIGNAME_HBPORT:	    OurPort,
+    	CONFIGNAME_OUTSIG:	    pySignFrame(1),
+    	CONFIGNAME_HBTIME:	    1*1000000,
+    	CONFIGNAME_WARNTIME:    3*1000000,
+    	CONFIGNAME_DEADTIME:    10*1000000,
         CONFIGNAME_OUTSIG:	pySignFrame(1),
     }
-    config = pyConfigContext(init=configinit)
+    
+    try:
+        config = pyConfigContext(filename=CMAINITFILE)
+    except IOError:
+        config = pyConfigContext()
+    except ValueError:
+        print >> sys.stderr, ('ERROR: CMA options in "%s" are not valid JSON-with-comments'
+        %       CMAINITFILE)
+        return 1
+
+    for elem in configdefaults:
+        # Config file overrides built-in defaults
+        if elem not in config:
+            config[elem] = configdefaults[elem]
+    addr = config[CONFIGNAME_CMAINIT]
+    if addr.port() == 0:
+        addr.setport(DefaultPort)
+    ourport = addr.port()
+    for elem in (CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR
+    ,           CONFIGNAME_CMADISCOVER, CONFIGNAME_CMAFAIL):
+        if elem in config:
+            config[elem] = pyNetAddr(str(config[elem]), port=ourport)
     io = pyReliableUDP(config, pyPacketDecoder())
     trycount = 0
     while True:

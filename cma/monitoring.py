@@ -421,6 +421,7 @@ class MonitoringRule:
         A whole line comment has to _begin_ with a #.
         '''
         obj = pyConfigContext(s)
+        #print >> sys.stderr, 'CONSTRUCTING MONITORING RULE FROM', obj
         if obj is None:
             raise ValueError('Invalid JSON: %s' % s)
         if 'class' not in obj:
@@ -472,6 +473,7 @@ class MonitoringRule:
                         ret[cls] = {}
                     ret[cls][agent] = True
             setattr(node, '_agentcache', ret)
+            #print >> sys.stderr, 'AGENT CACHE IS ', ret
             return ret
         return {}
 
