@@ -280,7 +280,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 
 	BINDDEBUG(ArpDiscovery);
 	g_return_val_if_fail(arpconfig != NULL, NULL);
-	dev = arpconfig->getstring(arpconfig, CONFIGNAME_NICNAME);
+	dev = arpconfig->getstring(arpconfig, CONFIGNAME_DEVNAME);
 	g_return_val_if_fail(dev != NULL, NULL);
 	instance = arpconfig->getstring(arpconfig, CONFIGNAME_INSTANCE);
 	g_return_val_if_fail(instance != NULL, NULL);
@@ -298,18 +298,13 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	dret->discover = _arpdiscovery_discover;
 	ret->source = g_source_pcap_new(dev, ENABLE_ARP, _arpdiscovery_dispatch, NULL, priority, FALSE, mcontext, 0, ret);
 
-	if (objsize == sizeof(ArpDiscovery)) {
-		// Subclass constructors need to register themselves, but we'll register ourselves.
-		discovery_register(dret);
-	}
-
-	ret->ArpMap = configcontext_new_JSON_string("{\"discovertype\": \"ARP\", \"description\": \"ARP map\", \"source\": \"arpcache\", \"discoveryname\": \"ARP_eth0\", \"data\":{}}");
+	ret->ArpMap = configcontext_new_JSON_string("{\"discovertype\": \"ARP\", \"description\": \"ARP map\", \"source\": \"arpcache\", \"data\":{}}");
 	// Need to set host, and discoveryname
 	sysname = proj_get_sysname();
 	ret->ArpMap->setstring(ret->ArpMap, "host", sysname);
 	g_free(sysname); sysname = NULL;
-	ret->ArpMap->setstring(ret->ArpMap, "discoveryname", instance);
-	ret->ArpMap->setstring(ret->ArpMap, "device", dev);
+	ret->ArpMap->setstring(ret->ArpMap, CONFIGNAME_INSTANCE, instance);
+	ret->ArpMap->setstring(ret->ArpMap, CONFIGNAME_DEVNAME, dev);
 
 	ret->ArpMapData = ret->ArpMap->getconfig(ret->ArpMap, "data");
 
@@ -321,6 +316,10 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	DEBUGMSG3("Sender %p timeout source is: %d, interval is %d", ret
    	,         ret->timeout_source, interval);
 
+	if (objsize == sizeof(ArpDiscovery)) {
+		// Subclass constructors need to register themselves, but we'll register ourselves.
+		discovery_register(dret);
+	}
 	return ret;
 }
 

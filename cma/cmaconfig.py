@@ -26,10 +26,12 @@
 This file implements things related to Configuration files for the CMA.
 Not quite sure what all it will do, but hey, this comment is slightly better than nothing.
 '''
-from AssimCclasses import pyConfigContext
+from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
+from types import ClassType
 class ConfigFile:
     '''
-    This class implements stuff around configuration files, validation and things like that...
+    This class implements configuration file management, including validation
+    and default values for parameters.
     '''
     # A template is a pattern for how to validate a dict-like object
     # like those that come from pyConfigContexts -- which in turn model JSON
@@ -37,13 +39,24 @@ class ConfigFile:
         'OUI':                  {str: str}, # Addendum for locally-known OUI mappings
         'optional_modules':     [str],      # List of optional modules to be included
         'contrib_modules':      [str],      # List of contrib modules to be included
-        'port':                 int,        # Our listening port
-        'compression_threshold':int,
+        'cmaport':              int,        # CMA listening port
+        'cmainit':              pyNetAddr,  # Initial contact address for the CMA
+        'cmaaddr':              pyNetAddr,  # CMA's base address...
+        'cmadisc':              pyNetAddr,  # Address to send discovery information
+        'cmafail':              pyNetAddr,  # Address to send failure reports
+        'outsig':               pySignFrame,# Packet signature frame
+        'compress':             pyCompressFrame,# Packet compression frame
+        'compression_method':   {"zlib"},   # Packet compression method
+        'compression_threshold':int,        # Threshold for when to start compressing
         'discovery': {
-                'repeat':   int,
-                'timeout':  int,
-                'agents': {
-                    str:    str
+                'repeat':   int,            # how often to repeat a discovery action
+                'timeout':  int,            # how long wait between
+                'agents': {     # Configuration information for individual agent types,
+                                # optionally including machine
+                                str:{
+                                    'repeat':   int, # repeat for this particular agent
+                                    'timeout':  int  # timeout for this particular agent
+                                },
                 },
         },
         'monitoring': { 
@@ -51,9 +64,10 @@ class ConfigFile:
                 'timeout':  int,
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
-                            str:    {'repeat': int,
-                                     'timeout': int
-                        },
+                                str:{
+                                    'repeat':   int, # repeat for this particular agent
+                                    'timeout':  int  # timeout for this particular agent
+                                },
                 },
         },
         'heartbeats':   {
@@ -78,13 +92,18 @@ class ConfigFile:
                                     'monitoringdiscovery',
                                     'arpdiscovery',
                                 ],
-        'contrib_modules':      [],  # List of contrib modules to be included
-        'port':                     1984,    # Our listening port
+        'contrib_modules':          [],  # List of contrib modules to be included
+        'cmaport':                  1984,                       # Our listening port
+        'cmainit':                  pyNetAddr("0.0.0.0:1984"),  # Our listening address
         'compression_threshold':    20000,
+        'compression_method':       "zlib",
         'discovery': {
-                'repeat':           3600,   # Default repeat interval in seconds
+                'repeat':           15*60,  # Default repeat interval in seconds
                 'timeout':          300,    # Default timeout interval in seconds
-                'agents': {
+                'agents': {         # Configuration information for individual agent types,
+                                    # optionally including machine
+                                    "checksumdiscovery": {'repeat':3600*8, 'timeout': 10*60},
+                                    # "arpdiscovery/servidor":               {'repeat': 60},
                 },
         },
         'monitoring': { 
@@ -111,6 +130,21 @@ class ConfigFile:
             defaults = ConfigFile.default_config
         self.defaults = defaults
         self.config = pyConfigContext(filename=filename)
+
+    def __contains__(self, name):
+        "We're basically a dict lookalike - implement __contains__"
+        return name in self.config
+
+    def __getitem__(self, name):
+        "We're basically a dict lookalike - implement __getitem__"
+        return self.config[name]
+
+    def __setitem__(self, name, value):
+        "We're basically a dict lookalike - implement __setitem__"
+        self.config[name] = value
+        valid = self.isvalid()
+        if not valid[0]:
+            raise ValueError(valid[1])
 
 
     @staticmethod
@@ -160,12 +194,14 @@ class ConfigFile:
         Return value is a Tuple (True/False, 'explanation of errors')
         '''
 
-        if isinstance(template, type):
+        if isinstance(template, (type, ClassType)):
             return ConfigFile._check_validity_type(template, configobj)
         if isinstance(template, dict):
             return ConfigFile._check_validity_dict(template, configobj)
         if isinstance(template, (list, tuple)):
             return ConfigFile._check_validity_list(template, configobj)
+        if isinstance(template, set):
+            return ConfigFile._check_validity_set(template, configobj)
 
         return (False, "Case we didn't allow for: %s vs %s" % (str(template), str(configobj)))
 
@@ -177,12 +213,19 @@ class ConfigFile:
         return (True, '')
 
     @staticmethod
+    def _check_validity_set(template, configobj):
+        'Make sure the configobj is of a string matching something in the set'
+        if configobj not in template:
+            return (False, '%s is not in %s' % (configobj, template))
+        return (True, '')
+
+    @staticmethod
     def _check_validity_dict(template, configobj):
         'Check a configobj for validity against a "dict" template'
         try:
             keys = configobj.keys()
         except AttributeError:
-            return (False, '%s is not sufficiently dict-like' % (configobj))
+            return (False, '%s is not a dict' % (configobj))
         #   Were we just given "str" as a key value?
         #   If so, then any names are legal, but the values all have to be the "correct" type
         if str in template:
@@ -222,4 +265,4 @@ if __name__ == '__main__':
     cf = ConfigFile()
     isvalid = cf.isvalid(ConfigFile.default_config)
     print 'DEFAULT CONFIG valid?:', isvalid
-    print cf.complete_config()  # checks for validity
+    print 'Complete config:', cf.complete_config()  # checks for validity

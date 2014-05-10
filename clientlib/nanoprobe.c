@@ -1144,7 +1144,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	};
 	ConfigContext*	arpconfig
 	=	configcontext_new_JSON_string(
-		"{\""CONFIGNAME_INSTANCE"\":\"ARP_eth0\",\""CONFIGNAME_NICNAME"\":\"eth0\"}");
+		"{\""CONFIGNAME_INSTANCE"\":\"ARP_eth0\",\""CONFIGNAME_DEVNAME"\":\"eth0\"}");
 	nano_shutting_down = FALSE;
 	BINDDEBUG(nanoprobe_main);
 	
