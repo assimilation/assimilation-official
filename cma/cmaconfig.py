@@ -37,7 +37,13 @@ class ConfigFile:
     # like those that come from pyConfigContexts -- which in turn model JSON
     default_template = {
         'OUI':                  {str: str}, # Addendum for locally-known OUI mappings
-        'optional_modules':     [str],      # List of optional modules to be included
+        'optional_modules':     [   # List of optional modules to be included
+                                    {'linkdiscovery',
+                                     'checksumdiscovery',
+                                     'monitoringdiscovery',
+                                     'arpdiscovery',
+                                    }
+                                ],
         'contrib_modules':      [str],      # List of contrib modules to be included
         'cmaport':              int,        # CMA listening port
         'cmainit':              pyNetAddr,  # Initial contact address for the CMA
@@ -46,7 +52,7 @@ class ConfigFile:
         'cmafail':              pyNetAddr,  # Address to send failure reports
         'outsig':               pySignFrame,# Packet signature frame
         'compress':             pyCompressFrame,# Packet compression frame
-        'compression_method':   {"zlib"},   # Packet compression method
+        'compression_method':   {'zlib'},   # Packet compression method
         'compression_threshold':int,        # Threshold for when to start compressing
         'discovery': {
                 'repeat':   int,            # how often to repeat a discovery action
@@ -86,7 +92,6 @@ class ConfigFile:
                 'd8-50-e6': 'ASUSTek COMPUTER INC.',
         },
         'optional_modules':     [  # List of optional modules to be included
-                                    'discoverylistener',
                                     'linkdiscovery',
                                     'checksumdiscovery',
                                     'monitoringdiscovery',
@@ -138,6 +143,14 @@ class ConfigFile:
     def __getitem__(self, name):
         "We're basically a dict lookalike - implement __getitem__"
         return self.config[name]
+
+    def __delitem__(self, name):
+        "We're basically a dict lookalike - implement __delitem__"
+        del self.config[name]
+
+    def __len__(self, name):
+        "We're basically a dict lookalike - implement __len__"
+        return len(self.config)
 
     def __setitem__(self, name, value):
         "We're basically a dict lookalike - implement __setitem__"
@@ -239,7 +252,7 @@ class ConfigFile:
             # Every key in the configobj must also be in the template
             for elemname in keys:
                 if elemname not in template:
-                    return (False, ('%s is not a legal element' % (elemname)))
+                    return (False, ('%s is not one of %s' % (elemname, str(keys))))
                 ret = ConfigFile._check_validity(template[elemname], configobj[elemname])
                 if not ret[0]:
                     return (False, 'Element %s: %s' % (elemname, ret[1]))
@@ -252,13 +265,18 @@ class ConfigFile:
         # When the template element is a list or tuple, then the item has to be a
         # list or tuple and every element of the item has to match the given template
         # Note that all lists (currently) have to be of the same type...
-        checktype = template[0]
         if not isinstance(configobj, (list, tuple)):
             return (False, ('%s is not a list or tuple' % (configobj)))
-        for elem in configobj:
-            ret = ConfigFile._check_validity(checktype, elem)
-            if not ret[0]:
-                return (False, ('Array element: %s' % ret[1]))
+        checktype = template[0]
+        if isinstance(checktype, set):
+            for elem in configobj:
+                if elem not in checktype:
+                    return (False, ('%s is not in %s' % (elem, checktype)))
+        else:
+            for elem in configobj:
+                ret = ConfigFile._check_validity(checktype, elem)
+                if not ret[0]:
+                    return (False, ('Array element: %s' % ret[1]))
         return (True, '')
 
 if __name__ == '__main__':
