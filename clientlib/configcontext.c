@@ -41,19 +41,27 @@ FSTATIC GSList*	_configcontext_keys(const ConfigContext*);
 FSTATIC guint	_configcontext_keycount(const ConfigContext*);
 FSTATIC gint64	_configcontext_getint(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setint(ConfigContext*, const char *name, gint value);
+FSTATIC gboolean _configcontext_appendint(ConfigContext*, const char *name, gint value);
+FSTATIC double	_configcontext_getdouble(const ConfigContext*, const char *name);
+FSTATIC void	_configcontext_setdouble(ConfigContext*, const char *name, double value);
+FSTATIC gboolean _configcontext_appenddouble(ConfigContext*, const char *name, double value);
 FSTATIC gboolean _configcontext_getbool(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setbool(ConfigContext*, const char *name, gboolean value);
+FSTATIC gboolean _configcontext_appendbool(ConfigContext*, const char *name, gboolean value);
 FSTATIC const char* _configcontext_getstring(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setstring(ConfigContext*, const char *name, const char *value);
+FSTATIC gboolean _configcontext_appendstring(ConfigContext*, const char *name, const char *value);
 FSTATIC GSList*	_configcontext_getarray(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setarray(ConfigContext*, const char *name, GSList*value);
 FSTATIC NetAddr*_configcontext_getaddr(const ConfigContext*, const char *);
 FSTATIC void	_configcontext_setaddr(ConfigContext*, const char *name, NetAddr*);
+FSTATIC gboolean _configcontext_appendaddr(ConfigContext* self, const char * name, NetAddr* value);
 FSTATIC Frame*	_configcontext_getframe(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setframe(ConfigContext*, const char *name, Frame*);
 FSTATIC ConfigContext*
 		_configcontext_getconfig(const ConfigContext*, const char*);
 FSTATIC char*	_configcontext_getstr(const ConfigContext*, const char*);
+FSTATIC gboolean _configcontext_appendconfig(ConfigContext*,const char *,ConfigContext*);
 FSTATIC void	_configcontext_setconfig(ConfigContext*,const char *,ConfigContext*);
 FSTATIC gint	_configcontext_key_compare(gconstpointer a, gconstpointer b);
 
@@ -84,6 +92,7 @@ void assim_slist_free_full(GSList* list, void (*)(gpointer));
  * with capabilities to go to and from JSON.
  * @{
  * @ingroup C_Classes
+ * @ingroup AssimObj
  */
 
 #ifdef BROKEN_G_SLIST_FREE_FULL
@@ -130,20 +139,25 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	}
 	baseobj = assimobj_new(objsize);
 	newcontext = NEWSUBCLASS(ConfigContext, baseobj);
-	newcontext->setint	=	_configcontext_setint;
 	newcontext->getint	=	_configcontext_getint;
+	newcontext->setint	=	_configcontext_setint;
+	newcontext->appendint	=	_configcontext_appendint;
 	newcontext->getbool	=	_configcontext_getbool;
 	newcontext->setbool	=	_configcontext_setbool;
-	newcontext->setstring	=	_configcontext_setstring;
+	newcontext->appendbool	=	_configcontext_appendbool;
 	newcontext->getstring	=	_configcontext_getstring;
+	newcontext->setstring	=	_configcontext_setstring;
+	newcontext->appendstring =	_configcontext_appendstring;
 	newcontext->getframe	=	_configcontext_getframe;
 	newcontext->setframe	=	_configcontext_setframe;
 	newcontext->getaddr	=	_configcontext_getaddr;
 	newcontext->setaddr	=	_configcontext_setaddr;
-	newcontext->setconfig	=	_configcontext_setconfig;
+	newcontext->appendaddr	=	_configcontext_appendaddr;
 	newcontext->getconfig	=	_configcontext_getconfig;
-	newcontext->setarray	=	_configcontext_setarray;
+	newcontext->setconfig	=	_configcontext_setconfig;
+	newcontext->appendconfig =	_configcontext_appendconfig;
 	newcontext->getarray	=	_configcontext_getarray;
+	newcontext->setarray	=	_configcontext_setarray;
 	newcontext->gettype	=	_configcontext_gettype;
 	newcontext->getvalue	=	_configcontext_getvalue;
 	newcontext->keys	=	_configcontext_keys;
@@ -212,16 +226,15 @@ _configcontext_keys(const ConfigContext* cfg)
 	return keylist;
 }
 
+
 /// Return a the type of value associated with a given name
 FSTATIC enum ConfigValType
 _configcontext_gettype(const ConfigContext* self, const char *name)
 {
-	gpointer	ret = g_hash_table_lookup(self->_values, name);
-	ConfigValue*	cfg;
-	if (ret == NULL) {
+	ConfigValue*	cfg = self->getvalue(self, name);
+	if (cfg == NULL) {
 		return CFG_EEXIST;
 	}
-	cfg = CASTTOCLASS(ConfigValue, ret);
 	return cfg->valtype;
 }
 
@@ -267,6 +280,43 @@ _configcontext_setint(ConfigContext* self	///<[in/out] ConfigContext Object
 	val->u.intvalue = value;
 	g_hash_table_replace(self->_values, cpname, val);
 }
+FSTATIC gboolean
+_configcontext_appendint(ConfigContext*self, const char *name, gint value)
+{
+	ConfigValue* array = self->getvalue(self, name);
+	ConfigValue* appendvalue;
+	g_return_val_if_fail(array != NULL && array->valtype == CFG_ARRAY, FALSE);
+	appendvalue = _configcontext_value_new(CFG_INT64);
+	appendvalue->u.intvalue = value;
+	array->u.arrayvalue = g_slist_append(array->u.arrayvalue, appendvalue);
+	return TRUE;
+}
+FSTATIC double
+_configcontext_getdouble(const ConfigContext*self, const char *name)
+{
+	ConfigValue* doubleval = self->getvalue(self, name);
+	// @TODO: Ought to return NaN (Not a Number) instead of -G_MAXDOUBLE on failure...
+	g_return_val_if_fail(doubleval != NULL && doubleval->valtype == CFG_FLOAT, -G_MAXDOUBLE);
+	return doubleval->u.floatvalue;
+}
+FSTATIC void
+_configcontext_setdouble(ConfigContext*self, const char *name, double value)
+{
+	ConfigValue* doubleval = _configcontext_value_new(CFG_FLOAT);
+	doubleval->u.floatvalue = value;
+	g_hash_table_replace(self->_values, g_strdup(name), doubleval);
+}
+FSTATIC gboolean
+_configcontext_appenddouble(ConfigContext*self, const char *name, double value)
+{
+	ConfigValue* array = self->getvalue(self, name);
+	ConfigValue* appendvalue;
+	g_return_val_if_fail(array != NULL && array->valtype == CFG_ARRAY, FALSE);
+	appendvalue = _configcontext_value_new(CFG_FLOAT);
+	appendvalue->u.floatvalue = value;
+	array->u.arrayvalue = g_slist_append(array->u.arrayvalue, appendvalue);
+	return TRUE;
+}
 
 /// Get an boolean value
 FSTATIC gboolean
@@ -300,6 +350,18 @@ _configcontext_setbool(ConfigContext* self	///<[in/out] ConfigContext Object
 	g_hash_table_replace(self->_values, cpname, val);
 }
 
+FSTATIC gboolean
+_configcontext_appendbool(ConfigContext* self, const char *name, gboolean value)
+{
+	ConfigValue* array = self->getvalue(self, name);
+	ConfigValue* appendvalue;
+	g_return_val_if_fail(array != NULL && array->valtype == CFG_ARRAY, FALSE);
+	appendvalue = _configcontext_value_new(CFG_BOOL);
+	appendvalue->u.intvalue = value;
+	array->u.arrayvalue = g_slist_append(array->u.arrayvalue, appendvalue);
+	return TRUE;
+}
+
 /// Return the value of a string name
 FSTATIC const char*
 _configcontext_getstring(const ConfigContext* self	///<[in] ConfigContext object
@@ -329,6 +391,19 @@ _configcontext_setstring(ConfigContext* self	///<[in/out] ConfigContext object
 	val->u.strvalue = g_strdup(value);
 	g_hash_table_replace(self->_values, g_strdup(name), val);
 }
+
+FSTATIC gboolean
+_configcontext_appendstring(ConfigContext* self, const char *name, const char *value)
+{
+	ConfigValue* array = self->getvalue(self, name);
+	ConfigValue* appendvalue;
+	g_return_val_if_fail(array != NULL && array->valtype == CFG_ARRAY, FALSE);
+	appendvalue = _configcontext_value_new(CFG_STRING);
+	appendvalue->u.strvalue = g_strdup(value);
+	array->u.arrayvalue = g_slist_append(array->u.arrayvalue, appendvalue);
+	return TRUE;
+}
+
 FSTATIC GSList*
 _configcontext_getarray(const ConfigContext* self, const char *name)
 {
@@ -387,6 +462,19 @@ _configcontext_setaddr(ConfigContext* self	///<[in/out] ConfigContext object
 	REF(addr);
 	val->u.addrvalue = addr;
 	g_hash_table_replace(self->_values, cpname, val);
+}
+
+FSTATIC gboolean
+_configcontext_appendaddr(ConfigContext* self, const char * name, NetAddr* value)
+{
+	ConfigValue* array = self->getvalue(self, name);
+	ConfigValue* appendvalue;
+	g_return_val_if_fail(array != NULL && array->valtype == CFG_ARRAY, FALSE);
+	appendvalue = _configcontext_value_new(CFG_NETADDR);
+	REF(value);
+	appendvalue->u.addrvalue = value;
+	array->u.arrayvalue = g_slist_append(array->u.arrayvalue, appendvalue);
+	return TRUE;
 }
 
 /// Return the @ref Frame value of a name
@@ -448,6 +536,18 @@ _configcontext_setconfig(ConfigContext* self,const char *name, ConfigContext* va
 	REF(value);
 	val->u.cfgctxvalue = value;
 	g_hash_table_replace(self->_values, cpname, val);
+}
+FSTATIC gboolean
+_configcontext_appendconfig(ConfigContext* self, const char * name,ConfigContext* value)
+{
+	ConfigValue* array = self->getvalue(self, name);
+	ConfigValue* appendvalue;
+	g_return_val_if_fail(array != NULL && array->valtype == CFG_ARRAY, FALSE);
+	appendvalue = _configcontext_value_new(CFG_CFGCTX);
+	REF(value);
+	appendvalue->u.cfgctxvalue = value;
+	array->u.arrayvalue = g_slist_append(array->u.arrayvalue, appendvalue);
+	return TRUE;
 }
 
 /// Return a string value (toString) associated with a given name
@@ -973,4 +1073,3 @@ _configcontext_JSON_parse_array(GScanner* scan, GSList** retval)
 	return FALSE;
 }
 /// @}
-/// @ingroup AssimObj
