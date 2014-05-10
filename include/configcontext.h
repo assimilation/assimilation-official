@@ -98,6 +98,7 @@ struct _ConfigContext {
 	enum ConfigValType
 			(*gettype)(const ConfigContext*, const char *);	///< Return type
 	ConfigValue*	(*getvalue)(const ConfigContext*, const char *);///< Return ConfigValue Object
+	void		(*delkey)(const ConfigContext*, const char *);	///< Delete the object with the given key
 	guint		(*keycount)(const ConfigContext*);		///< Return number of keys in object
 	GSList*		(*keys)(const ConfigContext*);			///< Return list of keys
 };

@@ -39,6 +39,7 @@ FSTATIC enum ConfigValType	_configcontext_gettype(const ConfigContext*, const ch
 FSTATIC ConfigValue*	_configcontext_getvalue(const ConfigContext*, const char *name);
 FSTATIC GSList*	_configcontext_keys(const ConfigContext*);
 FSTATIC guint	_configcontext_keycount(const ConfigContext*);
+FSTATIC void	_configcontext_delkey(const ConfigContext*, const char *);
 FSTATIC gint64	_configcontext_getint(const ConfigContext*, const char *name);
 FSTATIC void	_configcontext_setint(ConfigContext*, const char *name, gint value);
 FSTATIC gboolean _configcontext_appendint(ConfigContext*, const char *name, gint value);
@@ -162,6 +163,7 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	newcontext->getvalue	=	_configcontext_getvalue;
 	newcontext->keys	=	_configcontext_keys;
 	newcontext->keycount	=	_configcontext_keycount;
+	newcontext->delkey	=	_configcontext_delkey;
 	newcontext->_values	=	g_hash_table_new_full(g_str_hash, g_str_equal, _key_free
 					,		      _configcontext_value_vfinalize);
 	baseobj->_finalize	=	_configcontext_finalize;
@@ -189,6 +191,12 @@ _configcontext_key_compare(gconstpointer a, gconstpointer b)
 	return strcmp((const char *)a, (const char*)b);
 }
 
+/// Delete the key with the given value
+FSTATIC void
+_configcontext_delkey(const ConfigContext* cfg, const char * key)
+{
+	g_hash_table_remove(cfg->_values, key);
+}
 /// Return the number of keys in a ConfigContext object
 FSTATIC guint
 _configcontext_keycount(const ConfigContext* cfg)
