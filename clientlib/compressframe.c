@@ -147,6 +147,18 @@ compressframe_new(guint16 frame_type, guint16 compression_method)
 #endif
 	return self;
 }
+
+CompressFrame*
+compressframe_new_string(guint16 frame_type, const char* compression_name)
+{
+	gsize	j;
+	for (j=0; j < DIMOF(allcompressions); ++j) {
+		if (strcmp(compression_name, allcompressions[j].name) == 0) {
+			return compressframe_new(frame_type, allcompressions[j].compression_type);
+		}
+	}
+	g_return_val_if_reached(NULL);
+}
 /// Return TRUE if this is a valid CompressFrame - either an object or on-the-wire version
 FSTATIC gboolean
 _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer pktend)

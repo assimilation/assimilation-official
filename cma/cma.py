@@ -101,6 +101,8 @@ import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE
+from AssimCclasses import pyCompressFrame
+from cmaconfig import ConfigFile
 import importlib
 #import atexit
 
@@ -200,7 +202,7 @@ def main():
     from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
          pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
-        CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_HBPORT, CONFIGNAME_OUTSIG, \
+        CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_OUTSIG, CONFIGNAME_COMPRESSTYPE, \
         CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
     for debug in range(opt.debug):
@@ -237,27 +239,31 @@ def main():
     	CONFIGNAME_CMADISCOVER:	OurAddr,    # Discovery packets sent here
     	CONFIGNAME_CMAFAIL:	    OurAddr,    # Failure packets sent here
     	CONFIGNAME_CMAPORT:	    OurPort,
-    	CONFIGNAME_HBPORT:	    OurPort,
-    	CONFIGNAME_OUTSIG:	    pySignFrame(1),
     	CONFIGNAME_HBTIME:	    1*1000000,
     	CONFIGNAME_WARNTIME:    3*1000000,
     	CONFIGNAME_DEADTIME:    10*1000000,
-        CONFIGNAME_OUTSIG:	pySignFrame(1),
+    	CONFIGNAME_OUTSIG:	    pySignFrame(1),
+    	# CONFIGNAME_COMPRESS:	pySignFrame(1),
     }
     
     try:
-        config = pyConfigContext(filename=CMAINITFILE)
+        configinfo = ConfigFile(filename=CMAINITFILE)
     except IOError:
-        config = pyConfigContext()
-    except ValueError:
-        print >> sys.stderr, ('ERROR: CMA options in "%s" are not valid JSON-with-comments'
-        %       CMAINITFILE)
-        return 1
+        configinfo = ConfigFile()
+    if opt.bind is not None:
+        bindaddr = pyNetAddr(opt.bind)
+        if bindaddr.port() == 0:
+            bindaddr.setport(ConfigFile[CONFIGNAME_CMAPORT])
+        configinfo[CONFIGNAME_CMAINIT] = bindaddr
+    configinfo[CONFIGNAME_CMADISCOVER] = OurAddr
+    configinfo[CONFIGNAME_CMAFAIL] = OurAddr
+    configinfo[CONFIGNAME_CMAADDR] = OurAddr
+    if (CONFIGNAME_COMPRESSTYPE in configinfo):
+        configinfo[CONFIGNAME_COMPRESS]     \
+        =   pyCompressFrame(compression_method=configinfo[CONFIGNAME_COMPRESSTYPE])
+    config = configinfo.complete_config()
+    config[CONFIGNAME_OUTSIG] = pySignFrame(1)
 
-    for elem in configdefaults:
-        # Config file overrides built-in defaults
-        if elem not in config:
-            config[elem] = configdefaults[elem]
     addr = config[CONFIGNAME_CMAINIT]
     if addr.port() == 0:
         addr.setport(DefaultPort)
@@ -303,6 +309,9 @@ def main():
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...
     listener = PacketListener(config, disp, io=io)
+    mandatory_modules = [ 'discoverylistener' ]
+    for mandatory in mandatory_modules:
+        importlib.import_module(mandatory)
     for optional in optional_modules:
         importlib.import_module(optional)
     if opt.doTrace:

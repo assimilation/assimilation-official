@@ -322,7 +322,6 @@ main(int argc, char **argv)
 	// Set up the parameters the 'CMA' is going to send to our 'nanoprobe'
 	// in response to their request for configuration data.
 	nanoconfig = configcontext_new(0);
-	nanoconfig->setint(nanoconfig, CONFIGNAME_HBPORT, testport);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_HBTIME, 1000000);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_DEADTIME, 3*1000000);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_CMAPORT, testport);
