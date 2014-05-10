@@ -71,7 +71,13 @@ class ConfigFile:
                 'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
                 'd8-50-e6': 'ASUSTek COMPUTER INC.',
         },
-        'optional_modules':     [],  # List of optional modules to be included
+        'optional_modules':     [  # List of optional modules to be included
+                                    'discoverylistener',
+                                    'linkdiscovery',
+                                    'checksumdiscovery',
+                                    'monitoringdiscovery',
+                                    'arpdiscovery'
+                                ],
         'contrib_modules':      [],  # List of contrib modules to be included
         'port':                     1984,    # Our listening port
         'compression_threshold':    20000,

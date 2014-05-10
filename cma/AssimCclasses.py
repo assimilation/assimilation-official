@@ -1134,7 +1134,15 @@ class pyConfigContext(pyAssimObj):
 
     def setbool(self, name, value):
         'Set the boolean associated with "name"'
-        self._Cstruct[0].setbool(self._Cstruct, name, int(value))
+        self._Cstruct[0].setbool(self._Cstruct, name, bool(value))
+
+    def getfloat(self, name):
+        'Return the floating point value associated with "name"'
+        return self._Cstruct[0].getfloat(self._Cstruct, name)
+
+    def setfloat(self, name, value):
+        'Set the floating point value associated with "name"'
+        self._Cstruct[0].setfloat(self._Cstruct, name, float(value))
 
     def getaddr(self, name):
         'Return the NetAddr associated with "name"'
@@ -1184,7 +1192,7 @@ class pyConfigContext(pyAssimObj):
         raise IndexError("No such String value [%s]" % name)
 
     def setstring(self, name, value):
-        'Return the string associated with "name"'
+        'Set the string associated with "name"'
         self._Cstruct[0].setstring(self._Cstruct, name, value)
 
     def getarray(self, name):
@@ -1204,6 +1212,42 @@ class pyConfigContext(pyAssimObj):
             curlist = g_slist_next(curlist)
         return ret
 
+    def setarray(self, name, value):
+        'Set a ConfigContext key value to be a sequence of values from an iterable'
+        self._Cstruct[0].setarray(self._Cstruct, name, None)
+        for elem in value:
+            if isinstance(elem, (int, long)):
+                self._Cstruct[0].appendint(self._Cstruct, name, elem)
+                continue
+            if isinstance(elem, bool):
+                self._Cstruct[0].appendbool(self._Cstruct, name, elem)
+                continue
+            if isinstance(elem, float):
+                self._Cstruct[0].appendfloat(self._Cstruct, name, elem)
+                continue
+            if isinstance(elem, str):
+                self._Cstruct[0].appendstring(self._Cstruct, name, elem)
+                continue
+            if isinstance(elem, pyNetAddr):
+                self._Cstruct[0].appendaddr(self._Cstruct, name, elem)
+                continue
+            if isinstance(elem, pyConfigContext):
+                self._Cstruct[0].appendconfig(self._Cstruct, name, elem._Cstruct)
+                continue
+            if isinstance(elem, dict):
+                cfgctx = ConfigContext.from_dict(elem)
+                self._Cstruct[0].appendconfig(self._Cstruct, name, cfgctx._Cstruct)
+                continue
+            raise ValueError("Cannot append/include array elements of type %s" % type(elem))
+
+    @staticmethod
+    def from_dict(dictval):
+        'Construct a pyConfigContext from a dict-like object'
+        newobj = pyConfigContext()
+        for key in dictval.keys():
+            newobj[key] = dictval[key]
+        return newobj
+
     def keys(self):
         'Return the set of keys for this object'
         l = []
@@ -1215,8 +1259,10 @@ class pyConfigContext(pyAssimObj):
         g_slist_free(keylist)
         return l
 
-    #@TODO - implement __iter__() method
-
+    def __iter__(self):
+        'Iterate over self.keys()'
+        for key in self.keys():
+            yield key
 
     def gettype(self, name):
         '''Return the enumeration type of this particular key
@@ -1287,8 +1333,8 @@ class pyConfigContext(pyAssimObj):
         return llen
 
     def __delitem__(self, key):
-        "Fail - we don't implement this"
-        raise NotImplementedError("pyConfigContext does not implement __delitem__()")
+        "Delete the given item"
+        self._Cstruct[0].delkey(self._Cstruct, str(key))
 
     def __getitem__(self, name):
         'Return a value associated with "name"'
@@ -1328,6 +1374,12 @@ class pyConfigContext(pyAssimObj):
             return self.setconfig(name, value)
         if isinstance(value, dict):
             return self.setconfig(name, pyConfigContext(value))
+        if isinstance(value, (list, tuple)) or hasattr(value, '__iter__'):
+            return self.setarray(name, value)
+        if isinstance(value, float):
+            return self.setfloat(name, value)
+        if isinstance(value, dict):
+            return self.setconfig(name, ConfigContext.from_dict(value))
         self.setint(name, int(value))
 
 class pyConfigValue(pyAssimObj):
