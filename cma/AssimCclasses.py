@@ -1092,7 +1092,8 @@ class pyPacketDecoder(pyAssimObj):
         g_slist_free(fs_gslist)
         return frameset_list
 
-#pylint: disable=R0921
+# R0904: Too many public methods
+#pylint: disable=R0904
 class pyConfigContext(pyAssimObj):
     'Class for Holding configuration information - now a general JSON-compatible data bag'
     #pylint: disable=R0921
@@ -1235,7 +1236,7 @@ class pyConfigContext(pyAssimObj):
                 self._Cstruct[0].appendconfig(self._Cstruct, name, elem._Cstruct)
                 continue
             if isinstance(elem, dict):
-                cfgctx = ConfigContext.from_dict(elem)
+                cfgctx = pyConfigContext.from_dict(elem)
                 self._Cstruct[0].appendconfig(self._Cstruct, name, cfgctx._Cstruct)
                 continue
             raise ValueError("Cannot append/include array elements of type %s" % type(elem))
@@ -1379,7 +1380,7 @@ class pyConfigContext(pyAssimObj):
         if isinstance(value, float):
             return self.setfloat(name, value)
         if isinstance(value, dict):
-            return self.setconfig(name, ConfigContext.from_dict(value))
+            return self.setconfig(name, pyConfigContext.from_dict(value))
         self.setint(name, int(value))
 
 class pyConfigValue(pyAssimObj):
