@@ -76,7 +76,7 @@ class ConfigFile:
                                     'linkdiscovery',
                                     'checksumdiscovery',
                                     'monitoringdiscovery',
-                                    'arpdiscovery'
+                                    'arpdiscovery',
                                 ],
         'contrib_modules':      [],  # List of contrib modules to be included
         'port':                     1984,    # Our listening port
@@ -110,13 +110,17 @@ class ConfigFile:
         if defaults is None:
             defaults = ConfigFile.default_config
         self.defaults = defaults
-        if filename is None:
-            self.config = pyConfigContext()
+        self.config = pyConfigContext(filename=filename)
 
 
     @staticmethod
     def _merge_config_elems(defaults, config):
-        'Merge data from our defaults into the configuration.'
+        '''Merge data from our defaults into the configuration.
+        Any element which is not included in the specified configuration is pulled
+        from the default value for that element.
+        NOTE that if you override a name which has an array for a value, you are
+        eliminating all the array values.  The arrays are NOT somehow merged.
+        '''
         for elem in defaults:
             delem = defaults[elem]
             if isinstance(delem, dict):
@@ -124,9 +128,7 @@ class ConfigFile:
                     config[elem] = pyConfigContext()
                 ConfigFile._merge_config_elems(delem, config[elem])
             elif elem not in config:
-                if delem == []:
-                    print 'CONFIG:', config
-                print 'SETTING elem %s to delem %s' % (elem, delem)
+                #print 'SETTING elem %s to delem %s' % (elem, delem)
                 config[elem] = delem
     
     def complete_config(self):
@@ -148,64 +150,76 @@ class ConfigFile:
         return ConfigFile._check_validity(self.template, config)
 
     @staticmethod
-    # Too many return statements
-    # pylint: disable=R0911
     def _check_validity(template, configobj):
-        'Recursively validate a complex dict-like object against a complex template object'
+        '''Recursively validate a complex dict-like object against a complex template object
+        This is an interesting, but somewhat complex operation.
+        There are many ways to fail, hence many failure-case return statements, and
+        even 4 success-case returns...
+        This _could_ be split up.  Not obvious it's a win to do so...
 
-        # If we were given a type as template, then it has to be an instance of that type
+        Return value is a Tuple (True/False, 'explanation of errors')
+        '''
+
         if isinstance(template, type):
-            if (not isinstance(configobj, template)):
-                return (False, '%s is not a %s' % (configobj, template))
-            return (True, '')
-
-        # Were we given a dict as the template?
+            return ConfigFile._check_validity_type(template, configobj)
         if isinstance(template, dict):
-            #   Were we just given a "type" template?
-            #   If so, then any names are legal, but the values all have to be the "correct" type
-            if str in template:
-                validatetype = template[str]
-                # Any key is fine, but elements have to match the given type
-                for configkey in configobj.keys():
-                    data = configobj[configkey]
-                    if isinstance(validatetype, type):
-                        if not isinstance(data, validatetype):
-                            return (False, ('%s element is not a %s' % (configkey, validatetype)))
-                    else:
-                        ret = ConfigFile._check_validity(validatetype, configobj[configkey])
-                        if not ret[0]:
-                            return (False, 'Element %s: %s' % (configkey, ret[1]))
-                return (True, '')
-            else:
-                # We are validating a dict - make sure all keys are permitted
-                try:
-                    keys = configobj.keys()
-                except AttributeError:
-                    return (False, '%s is not dict-like' % (configobj))
-
-                # Otherwise only the template strings are legal keys
-                for elemname in keys:
-                    if elemname not in template:
-                        return (False, ('%s is not a legal element' % (elemname)))
-                    ret = ConfigFile._check_validity(template[elemname], configobj[elemname])
-                    if not ret[0]:
-                        return (False, 'Element %s: %s' % (elemname, ret[1]))
-                return (True, '')
-        # If the template element is a list or tuple, then the item has to be a
-        # list or tuple and every element of the item has to match the given template
+            return ConfigFile._check_validity_dict(template, configobj)
         if isinstance(template, (list, tuple)):
-            checktype = template[0]
-            if not isinstance(configobj, (list, tuple)):
-                return (False, ('%s is not a list or tuple' % (configobj)))
-            for elem in configobj:
-                ret = ConfigFile._check_validity(checktype, elem)
+            return ConfigFile._check_validity_list(template, configobj)
+
+        return (False, "Case we didn't allow for: %s vs %s" % (str(template), str(configobj)))
+
+    @staticmethod
+    def _check_validity_type(template, configobj):
+        'Make sure the configobj is of the given type'
+        if (not isinstance(configobj, template)):
+            return (False, '%s is not of %s' % (configobj, template))
+        return (True, '')
+
+    @staticmethod
+    def _check_validity_dict(template, configobj):
+        'Check a configobj for validity against a "dict" template'
+        try:
+            keys = configobj.keys()
+        except AttributeError:
+            return (False, '%s is not sufficiently dict-like' % (configobj))
+        #   Were we just given "str" as a key value?
+        #   If so, then any names are legal, but the values all have to be the "correct" type
+        if str in template:
+            validatetype = template[str]
+            # Any key is fine, but elements have to match the given type
+            for configkey in keys:
+                ret = ConfigFile._check_validity(validatetype, configobj[configkey])
                 if not ret[0]:
-                    return (False, ('Array element: %s' % ret))
-            return (True, '')
-        return (False, "Case we didn't allow for: %s vs %s" % (str(configobj), str(template)))
+                    return (False, 'Element %s: %s' % (configkey, ret[1]))
+        else:
+            # Every key in the configobj must also be in the template
+            for elemname in keys:
+                if elemname not in template:
+                    return (False, ('%s is not a legal element' % (elemname)))
+                ret = ConfigFile._check_validity(template[elemname], configobj[elemname])
+                if not ret[0]:
+                    return (False, 'Element %s: %s' % (elemname, ret[1]))
+        return (True, '')
+
+
+    @staticmethod
+    def _check_validity_list(template, configobj):
+        'Check a configobj for validity against a list/tuple template'
+        # When the template element is a list or tuple, then the item has to be a
+        # list or tuple and every element of the item has to match the given template
+        # Note that all lists (currently) have to be of the same type...
+        checktype = template[0]
+        if not isinstance(configobj, (list, tuple)):
+            return (False, ('%s is not a list or tuple' % (configobj)))
+        for elem in configobj:
+            ret = ConfigFile._check_validity(checktype, elem)
+            if not ret[0]:
+                return (False, ('Array element: %s' % ret[1]))
+        return (True, '')
 
 if __name__ == '__main__':
     cf = ConfigFile()
     isvalid = cf.isvalid(ConfigFile.default_config)
     print 'DEFAULT CONFIG valid?:', isvalid
-    print cf.complete_config()
+    print cf.complete_config()  # checks for validity
