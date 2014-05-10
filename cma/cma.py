@@ -130,8 +130,6 @@ def main():
     OurAddrStr = ('%s:%d' % (ipfd.readline().rstrip(), DefaultPort))
     ipfd.close()
 
-    OurPort = None
-
     parser = optparse.OptionParser(prog='CMA', version='0.0.1',
         description='Collective Management Authority for the Assimilation System',
         usage='cma.py [--bind address:port]')
@@ -199,11 +197,11 @@ def main():
     from dispatchtarget import DispatchTarget
     from cmadb import CMAdb
     from monitoring import MonitoringRule
-    from AssimCclasses import pyNetAddr, pySignFrame, pyConfigContext, pyReliableUDP, \
+    from AssimCclasses import pyNetAddr, pySignFrame, pyReliableUDP, \
          pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_OUTSIG, CONFIGNAME_COMPRESSTYPE, \
-        CONFIGNAME_DEADTIME, CONFIGNAME_WARNTIME, CONFIGNAME_HBTIME, CONFIGNAME_OUTSIG,\
+        CONFIGNAME_COMPRESS, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
     for debug in range(opt.debug):
         debug = debug
@@ -221,31 +219,13 @@ def main():
     print >> sys.stderr, ('Fork/Event observer dispatching from %s' % NOTIFICATION_SCRIPT_DIR)
     
 
-    if opt.bind is None:
-        BindAddrStr = ('0.0.0.0:%d' % DefaultPort)
-    else:
-        BindAddrStr = opt.bind
+    if opt.bind is not None:
         OurAddrStr = opt.bind
 
     OurAddr = pyNetAddr(OurAddrStr)
-    BindAddr = pyNetAddr(BindAddrStr)
     if OurAddr.port() == 0:
         OurAddr.setport(DefaultPort)
-    OurPort = OurAddr.port()
 
-    configdefaults = {
-    	CONFIGNAME_CMAINIT:	    BindAddr,   # Initial listening (bind) address
-    	CONFIGNAME_CMAADDR:	    OurAddr,    # not sure what this one does...
-    	CONFIGNAME_CMADISCOVER:	OurAddr,    # Discovery packets sent here
-    	CONFIGNAME_CMAFAIL:	    OurAddr,    # Failure packets sent here
-    	CONFIGNAME_CMAPORT:	    OurPort,
-    	CONFIGNAME_HBTIME:	    1*1000000,
-    	CONFIGNAME_WARNTIME:    3*1000000,
-    	CONFIGNAME_DEADTIME:    10*1000000,
-    	CONFIGNAME_OUTSIG:	    pySignFrame(1),
-    	# CONFIGNAME_COMPRESS:	pySignFrame(1),
-    }
-    
     try:
         configinfo = ConfigFile(filename=CMAINITFILE)
     except IOError:
@@ -312,7 +292,7 @@ def main():
     mandatory_modules = [ 'discoverylistener' ]
     for mandatory in mandatory_modules:
         importlib.import_module(mandatory)
-    for optional in optional_modules:
+    for optional in config['optional_modules']:
         importlib.import_module(optional)
     if opt.doTrace:
         import trace
