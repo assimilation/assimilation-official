@@ -39,10 +39,11 @@ class ConfigFile:
         'OUI':                  {str: str}, # Addendum for locally-known OUI mappings
         'optional_modules':     [   # List of optional modules to be included
                                     # Below is the list of all known optional modules
-                                    {'linkdiscovery',
-                                     'checksumdiscovery',
-                                     'monitoringdiscovery',
-                                     'arpdiscovery',
+                                    {'linkdiscovery',       # listens for CMA/LLDP packets
+                                     'checksumdiscovery',   # Checksums network-facing files
+                                     'monitoringdiscovery', # Automatically monitors services
+                                     'arpdiscovery',        # Listens for ARP packets for
+                                                            # network mapping...
                                     }
                                 ],
         'contrib_modules':      [str],      # List of contrib modules to be included
@@ -346,5 +347,5 @@ class ConfigFile:
 if __name__ == '__main__':
     cf = ConfigFile()
     isvalid = cf.isvalid()
-    print 'Is default_defaul() CONFIG valid?:', isvalid
+    print 'Is ConfigFile.default_default() CONFIG valid?:', isvalid
     print 'Complete config:', cf.complete_config()  # checks for validity
