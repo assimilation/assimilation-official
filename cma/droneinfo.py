@@ -234,57 +234,39 @@ class Drone(SystemNode):
                 (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
         self._send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
 
-    def request_discovery(self, *args): ##< A vector of arguments formed like this:
-        ##< instance       Which (unique) discovery instance is this?
-        ##< interval = 0     How often to perform it (in seconds)?
-        ##< json = None):    JSON string (or ConfigContext) describing discovery
-        ##<                If json is None, then instance is used for JSON type
+    def request_discovery(self, args): ##< A vector of arguments containing
         '''Send our drone a request to perform discovery
         We send a           DISCNAME frame with the instance name
         then an optional    DISCINTERVAL frame with the repeat interval
         then a              DISCJSON frame with the JSON data for the discovery operation.
+
+        Our argument is a vector of pyConfigContext objects with values for
+            'instance'  Name of this discovery instance
+            'interval'  How often to repeat this discovery action
+            'timeout'   How long to wait before considering this discovery failed...
         '''
         #fs = pyFrameSet(FrameSetTypes.DODISCOVER)
-        if type(args[0]) is str:
-            if len(args) == 1:
-                args = ((args[0], 0, None),)
-            elif len(args) == 2:
-                args = ((args[0], args[1], None),)
-            elif len(args) == 3:
-                args = ((args[0], args[1], args[2]),)
-            else:
-                raise ValueError('Incorrect argument length: %d vs 1, 2 or 3' % len(args))
-
         frames = []
-        for ourtuple in args:
-            if len(ourtuple) != 2 and len(ourtuple) != 3:
-                raise ValueError('Incorrect argument tuple length: %d vs 2 or 3 [%s]'
-                %        (len(ourtuple), args))
-            instance = ourtuple[0]
-            interval = ourtuple[1]
-            json = None
-            if len(ourtuple) == 3:
-                json = ourtuple[2]
+        for arg in args:
+            instance = arg['instance']
             frames.append({'frametype': FrameTypes.DISCNAME, 'framevalue': instance})
-            if interval is not None and interval > 0:
+            if 'repeat' in arg:
+                interval = int(arg['repeat'])
+            else:
+                interval = None
+            if interval is not None:
                 frames.append({'frametype': FrameTypes.DISCINTERVAL, 'framevalue': int(interval)})
-            if isinstance(json, pyConfigContext):
-                json = str(json)
-            elif json is None:
-                json = instance
-            if not json.startswith('{'):
-                json = '{"type":"%s", "parameters":{}}' % json
-            frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': json})
+            frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': str(arg)})
         # This doesn't work if the client has bound to a VIP
         ourip = self.select_ip()    # meaning select our primary IP
         ourip = pyNetAddr(ourip)
-        ourip.setport(self.port)
-        #self.io.sendreliablefs(ourip, (fs,))
+        if ourip.port() == 0:
+            ourip.setport(self.port)
         #print >> sys.stderr, ('ADDING PACKET TO TRANSACTION: %s', str(frames))
-        CMAdb.transaction.add_packet(ourip,  FrameSetTypes.DODISCOVER, frames)
         if CMAdb.debug:
-            CMAdb.log.debug('Sent Discovery request(%s, %s) to %s Frames: %s'
+            CMAdb.log.debug('Sending Discovery request(%s, %s) to %s Frames: %s'
             %	(instance, str(interval), str(ourip), str(frames)))
+        CMAdb.transaction.add_packet(ourip,  FrameSetTypes.DODISCOVER, frames)
         #print >> sys.stderr, ('Sent Discovery request(%s, %s) to %s Frames: %s'
         #%	(instance, str(interval), str(ourip), str(frames)))
 

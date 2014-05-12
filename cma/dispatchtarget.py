@@ -25,6 +25,7 @@ various types of incoming packets.
 
 import sys
 sys.path.append("cma")
+from cmaconfig import ConfigFile
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pySwitchDiscovery
@@ -125,6 +126,7 @@ class DispatchHBSHUTDOWN(DispatchTarget):
         CMAdb.log.error("DispatchHBSHUTDOWN: invalid FrameSet: %s", str(frameset))
 
 
+# pylint: disable=R0914
 @DispatchTarget.register
 class DispatchSTARTUP(DispatchTarget):
     'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
@@ -170,15 +172,13 @@ class DispatchSTARTUP(DispatchTarget):
         #print >> sys.stderr, 'Joining TheOneRing: ', drone, type(drone), drone.port
         CMAdb.cdb.TheOneRing.join(drone)
         #print >> sys.stderr, 'Requesting Discovery from ', drone
-        drone.request_discovery(
-                                ('packages',            1603),
-                                ('monitoringagents',    3300),
-                                ('os',                  0),
-                                ('ulimit',              0),
-                                ('cpu',                 36000),
-                                ('tcpdiscovery',        3700)
-                               )
-        print >> sys.stderr, 'Creating OBJUP event for ', drone
+        discovery_params = []
+        for agent in self.config['initial_discovery']:
+            params = ConfigFile.agent_params(self.config, 'discovery', agent, sysname)
+            params['agent'] = agent
+            params['instance'] = '_init_%s' % agent
+            discovery_params.append(params)
+        drone.request_discovery(discovery_params)
         AssimEvent(drone, AssimEvent.OBJUP)
 
 @DispatchTarget.register

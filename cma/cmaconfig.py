@@ -38,6 +38,7 @@ class ConfigFile:
     default_template = {
         'OUI':                  {str: str}, # Addendum for locally-known OUI mappings
         'optional_modules':     [   # List of optional modules to be included
+                                    # Below is the list of all known optional modules
                                     {'linkdiscovery',
                                      'checksumdiscovery',
                                      'monitoringdiscovery',
@@ -45,6 +46,16 @@ class ConfigFile:
                                     }
                                 ],
         'contrib_modules':      [str],      # List of contrib modules to be included
+                                            # We have no idea what contrib modules there might be
+        'initial_discovery':    [           # Below is the list of known discovery agents...
+                                    {'packages',
+                                     'monitoringagents',
+                                     'os',
+                                     'ulimit',
+                                     'cpu',
+                                     'tcpdiscovery',
+                                    },
+                               ],
         'cmaport':              int,        # CMA listening port
         'cmainit':              pyNetAddr,  # Initial contact address for the CMA
         'cmaaddr':              pyNetAddr,  # CMA's base address...
@@ -83,35 +94,59 @@ class ConfigFile:
         },
     }
     # This is the default configuration for the Assimilation project CMA
-    # It should conform to the default_template above
-    default_config = {
-        'OUI': {            # Addendum of locally-known OUIs
+    # It should/must conform to the default_template above
+    @staticmethod
+    def default_defaults():
+        '''This is our default - for defaults
+        Sounds kinda weird, but it makes sense - and is handy for our tests to not have to
+        have the current defaults updated all the time...
+        '''
+        return {
+            'OUI': { # Addendum of locally-known OUIs - feel free to contribute ones you find...
+                 # Python includes lots of them, but not some newer ones.
                 'b0-79-3c': 'Revolv, Inc.',
                 '18-0c-ac': 'Canon, Inc.',
                 'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
                 'd8-50-e6': 'ASUSTek COMPUTER INC.',
         },
-        'optional_modules':     [  # List of optional modules to be included
-                                    'linkdiscovery',
-                                    'checksumdiscovery',
-                                    'monitoringdiscovery',
-                                    'arpdiscovery',
-                                ],
-        'contrib_modules':          [],  # List of contrib modules to be included
-        'cmaport':                  1984,                       # Our listening port
-        'cmainit':                  pyNetAddr("0.0.0.0:1984"),  # Our listening address
-        'compression_threshold':    20000,
-        'compression_method':       "zlib",
-        'discovery': {
+        #
+        #   Below is the set of modules that we import before starting up
+        #   Each of them triggers different kinds of conditional discovery
+        #   as per its design...
+            'optional_modules': [  # List of optional modules to be included
+                                'linkdiscovery',        # Perform CDP/LLDP monitoring
+                                'checksumdiscovery',    # Perform tripwire-like checksum monitoring
+                                'monitoringdiscovery',  # Initiates monitoring based on service
+                                                        # discovery
+                                'arpdiscovery'          # Listen for ARP packets: IPs and MACs
+                            ],
+            'contrib_modules':          [],  # List of contrib modules to be imported
+        #
+        #   Always start the discovery plugins below when a Drone comes online
+        #
+            'initial_discovery':[   'os',              # OS properties
+                                'cpu',             # CPU properties
+                                'packages',        # What packages are installed?
+                                'monitoringagents',# What monitoring agents are installed?
+                                'ulimit',          # What are current ulimit values?
+                                'tcpdiscovery'     # Discover services
+                            ],
+            'cmaport':                  1984,                       # Our listening port
+            'cmainit':                  pyNetAddr("0.0.0.0:1984"),  # Our listening address
+            'compression_threshold':    20000,                      # Compress packets >= 20 kbytes
+            'compression_method':       "zlib",                     # Compression method
+            'discovery': {
                 'repeat':           15*60,  # Default repeat interval in seconds
                 'timeout':          300,    # Default timeout interval in seconds
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
                                     "checksumdiscovery": {'repeat':3600*8, 'timeout': 10*60},
+                                    "os":  {'repeat': 0,    'timeout': 60},
+                                    "cpu": {'repeat': 0,    'timeout': 60}
                                     # "arpdiscovery/servidor":               {'repeat': 60},
                 },
-        },
-        'monitoring': { 
+            },
+            'monitoring': { 
                 'repeat':           120,    # Default repeat interval in seconds
                 'timeout':          180,    # Default repeat interval in seconds
                 'agents': {         # Configuration information for individual agent types,
@@ -119,20 +154,20 @@ class ConfigFile:
                                     # "lsb::ssh":               {'repeat': int, 'timeout': int},
                                     # "ocf::Neo4j/servidor":    {'repeat': int, 'timeout': int},
                 },
-        },
-        'heartbeats':   {
+            },
+            'heartbeats':   {
             'repeat':   1,    # how frequently to heartbeat - in seconds
             'warn':     5,    # How long to wait when issuing a late heartbeat warning
             'dead':     30,   # How long to wait before declaring a system dead
-        },
-    }
+            },
+        }
     def __init__(self, filename=None, template=None, defaults=None):
         'Init function for ConfigFile class, give us a filename!'
         if template is None:
             template = ConfigFile.default_template
         self.template = template
         if defaults is None:
-            defaults = ConfigFile.default_config
+            defaults = ConfigFile.default_defaults()
         self.defaults = defaults
         self.config = pyConfigContext(filename=filename)
 
@@ -170,7 +205,7 @@ class ConfigFile:
         '''
         for elem in defaults:
             delem = defaults[elem]
-            if isinstance(delem, dict):
+            if isinstance(delem, (dict, pyConfigContext)):
                 if elem not in config:
                     config[elem] = pyConfigContext()
                 ConfigFile._merge_config_elems(delem, config[elem])
@@ -193,7 +228,7 @@ class ConfigFile:
         '''Validate the given configuration against our template.
         Return is a Tuple (True/False, 'explanation of errors')'''
         if config is None:
-            config = self.default_config
+            config = self.default_defaults()
         return ConfigFile._check_validity(self.template, config)
 
     @staticmethod
@@ -279,8 +314,37 @@ class ConfigFile:
                     return (False, ('Array element: %s' % ret[1]))
         return (True, '')
 
+    @staticmethod
+    def agent_params(config, agenttype, agentname, dronedesignation):
+        '''We return the agent parameters for the given type, agent name and drone
+        The most specific values take priority over the less specific values
+        creating a 3-level value inheritance scheme.
+        - Top level is for all agents.
+        - Second level is for specific agents.
+        - Third level is for specific agents on specific machines.
+        We implement this.
+        '''
+        compoundname = '%s/%s' % (agentname, dronedesignation)
+        subconfig = config[agenttype]
+        result = {}
+        if compoundname in subconfig:
+            result = subconfig[compoundname]
+        if agentname in subconfig:
+            for tag in subconfig[agentname]:
+                if tag not in result:
+                    subval = subconfig[agentname][tag]
+                    if not hasattr(subval, 'keys'):
+                        result[tag] = subconfig[agentname][tag]
+        for tag in subconfig:
+            if tag not in result:
+                subval = subconfig[tag]
+                if not hasattr(subval, 'keys'):
+                    result[tag] = subconfig[tag]
+        return result
+
+
 if __name__ == '__main__':
     cf = ConfigFile()
-    isvalid = cf.isvalid(ConfigFile.default_config)
-    print 'DEFAULT CONFIG valid?:', isvalid
+    isvalid = cf.isvalid()
+    print 'Is default_defaul() CONFIG valid?:', isvalid
     print 'Complete config:', cf.complete_config()  # checks for validity

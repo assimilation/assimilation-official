@@ -26,8 +26,8 @@ sys.path.extend(['..', '../cma', "/usr/local/lib/python2.7/dist-packages"])
 from py2neo import neo4j
 from testify import *
 from store import Store
-from AssimCclasses import pyNetAddr
-from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count
+from AssimCclasses import pyNetAddr, dump_c_objects
+from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count, proj_class_dump_live_objects
 from graphnodes import GraphNode, RegisterGraphClass
 from cmainit import CMAinit
 
@@ -58,7 +58,7 @@ def assert_no_dangling_Cclasses(doassert=None):
         if doassert:
             print >> sys.stderr, 'STARTING OBJECT DUMP'
             print 'stdout STARTING OBJECT DUMP'
-            proj_class_dump_live_objects()
+            dump_c_objects()
             print >> sys.stderr, 'OBJECT DUMP COMPLETE'
             print 'stdout OBJECT DUMP COMPLETE'
             raise AssertionError("Dangling C-class objects - %d still around" % count)
