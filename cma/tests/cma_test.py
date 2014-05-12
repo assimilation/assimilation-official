@@ -42,6 +42,7 @@ import optparse
 from graphnodes import GraphNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
+from cmaconfig import ConfigFile
 try:
     #gi.repository confuses pylint...
     #pylint: disable=E0611
@@ -92,41 +93,9 @@ elif not AssertOnDanglingClasses:
 
 #gc.set_threshold(t1, t2, t3)
 
-def find_c_objects():
-    print 'GC Garbage: [%s]' % str(gc.garbage)
-    print >> sys.stderr, '***************LOOKING FOR pyAssimObjs***********'
-    cobjcount = 0
-    for obj in gc.get_objects():
-        if isinstance(obj, (pyAssimObj, pyCstringFrame)):
-            cobjcount += 1
-            cobj = None
-            if hasattr(obj, '_Cstruct'):
-                cobj = ('0x%x' % addressof(getattr(obj, '_Cstruct')[0]))
-
-            print >> sys.stderr, ('FOUND C object class(%s): %s -> %s'
-            %   (obj.__class__.__name__, str(obj)[:120], str(cobj)))
-
-            continue
-            for ref in gc.get_referrers(obj):
-                refclass = ref.__class__.__name__
-                if refclass == 'list':
-                    count=0
-                    for elem in ref:
-                        print >> sys.stderr, ('......ReferElem: class(%s)' 
-                        %   (elem.__class__.__name__))
-                        count += 1
-                        if count > 20:
-                            break
-                else:
-                    print >> sys.stderr, ('....Referrer: class(%s): %s'
-                    %   (ref.__class__.__name__, str(ref)[:200]))
-
-    print >> sys.stderr, ('%d python wrappers referring to %d C-objects'
-    %   (cobjcount, proj_class_live_object_count()))
-
-
 
 def assert_no_dangling_Cclasses(doassert=None):
+    return
     global CheckForDanglingClasses
     global WorstDanglingCount
     if doassert is None:
@@ -141,10 +110,9 @@ def assert_no_dangling_Cclasses(doassert=None):
         if doassert:
             print >> sys.stderr, 'STARTING OBJECT DUMP'
             print 'stdout STARTING OBJECT DUMP'
-            proj_class_dump_live_objects()
+            dump_c_objects()
             print >> sys.stderr, 'OBJECT DUMP COMPLETE'
             print 'stdout OBJECT DUMP COMPLETE'
-            find_c_objects()
             raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
@@ -201,18 +169,11 @@ def hostdiscoveryinfo(hostnumber):
     return netdiscoveryformat % (dronedesignation(hostnumber), byte3, byte4, s)
     
 def geninitconfig(ouraddr):
-    return {
-        'cmainit':  ouraddr,    # Initial 'hello' address
-        'cmaaddr':  ouraddr,    # not sure what this one does...
-        'cmadisc':  ouraddr,    # Discovery packets sent here
-        'cmafail':  ouraddr,    # Failure packets sent here
-        'cmaport':  1984,
-        'hbport':   1984,
-        'outsig':   pySignFrame(1),
-        'deadtime': 10*1000000,
-        'warntime': 3*1000000,
-        'hbtime':   1*1000000,
-        }
+    configinfo = ConfigFile()
+    for j in ('cmainit', 'cmaaddr', 'cmadisc', 'cmafail'):
+        configinfo[j] = ouraddr
+    configinfo['outsig'] = pySignFrame(1)
+    return configinfo.complete_config()
 
 class AUDITS(TestCase):
     def auditadrone(self, droneid):
