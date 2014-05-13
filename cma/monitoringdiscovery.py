@@ -38,6 +38,7 @@ from store import Store
 
 from graphnodes import ProcessNode
 from discoverylistener import DiscoveryListener
+from cmaconfig import ConfigFile
 
 @Drone.add_json_processor
 class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
@@ -68,7 +69,7 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
                 %   (drone.designation, str(processproc.argv)))
             elif montuple[0] == MonitoringRule.PARTMATCH:
                 print >> sys.stderr, (
-                'Automatic monitoring not possible for %s -- %s is missing %s' 
+                'Automatic monitoring not possible for %s -- %s is missing %s'
                 %   (str(processproc.argv), str(montuple[1]), str(montuple[2])))
                 self.log.warning('Insufficient information to monitor %s service %s'
                 '. %s is missing %s'
@@ -83,6 +84,8 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
                     print >> sys.stderr, ('START monitoring %s using %s agent'
                     %   (agent['monitortype'], agent['monitorclass']))
 
+    # pylint - too many local variables
+    # pylint: disable=R0914
     def _add_service_monitoring(self, drone, monitoredservice, moninfo):
         '''
         We start the monitoring of 'monitoredservice' using the information
@@ -90,24 +93,27 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         '''
         monitorclass    = moninfo['monitorclass']
         monitortype     = moninfo['monitortype']
-        monitorinterval = 10
-        monitortimeout  = 120
         if 'provider' in moninfo:
             monitorprovider = moninfo['provider']
+            classtype = "%s::%s:%s" % (monitorclass, monitorprovider, monitortype)
         else:
             monitorprovider = None
-        if 'arglist' in moninfo:
-            monitorarglist = moninfo['arglist']
-        else:
-            monitorarglist = None
+            classtype = "%s::%s" % (monitorclass, monitortype)
+        # Compute interval and timeout - based on global 'config'
+        params = ConfigFile.agent_params(self.config, 'monitoring', classtype, drone.designation)
+        monitorinterval = params['parameters']['repeat']
+        monitortimeout  = params['parameters']['timeout']
+        monitorarglist = moninfo.get('arglist', {})
 
         # Make up a monitor name that should be unique to us -- but reproducible
         # We create the monitor name from the host name, the monitor class,
         # monitoring type and a hash of the arguments to the monitoring agent
+        # Note that this is different from the hashed service/entity name, since we could
+        # have multiple ways of monitoring the same entity
         d = hashlib.md5()
-        # pylint thinks md5 objects don't have update member
+        # pylint mistakenly thinks md5 objects don't have update member
         # pylint: disable=E1101
-        d.update('%s:%s:%s:%s' 
+        d.update('%s:%s:%s:%s'
         %   (drone.designation, monitorclass, monitortype, monitorprovider))
         if monitorarglist is not None:
             names = monitorarglist.keys()
@@ -124,6 +130,6 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         ,   monitortype=monitortype, interval=monitorinterval, timeout=monitortimeout
         ,   provider=monitorprovider, arglist=monitorarglist)
         if not Store.is_abstract(monnode):
-            print >> sys.stderr, ('Previously monitored %s on %s' 
+            print >> sys.stderr, ('Previously monitored %s on %s'
             %       (monitortype, drone.designation))
         monnode.activate(monitoredservice, drone)
