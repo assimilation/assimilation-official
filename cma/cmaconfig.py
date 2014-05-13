@@ -91,7 +91,7 @@ class ConfigFile:
         'heartbeats':   {
             'repeat':   int,    # how frequently to heartbeat - in seconds
             'warn':     int,    # How long to wait when issuing a late heartbeat warning
-            'dead':     int,    # How long to wait before declaring a system dead
+            'timeout':  int,    # How long to wait before declaring a system dead
         },
     }
     # This is the default configuration for the Assimilation project CMA
@@ -157,9 +157,9 @@ class ConfigFile:
                 },
             },
             'heartbeats':   {
-            'repeat':   1,    # how frequently to heartbeat - in seconds
-            'warn':     5,    # How long to wait when issuing a late heartbeat warning
-            'dead':     30,   # How long to wait before declaring a system dead
+            'repeat':    1,     # how frequently to heartbeat - in seconds
+            'warn':      5,     # How long to wait when issuing a late heartbeat warning
+            'timeout':  30,     # How long to wait before declaring a system dead
             },
         }
     def __init__(self, filename=None, template=None, defaults=None):
