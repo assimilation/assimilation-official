@@ -49,12 +49,12 @@ class ConfigFile:
         'contrib_modules':      [str],      # List of contrib modules to be included
                                             # We have no idea what contrib modules there might be
         'initial_discovery':    [           # Below is the list of known discovery agents...
-                                    {'packages',
-                                     'monitoringagents',
-                                     'os',
-                                     'ulimit',
-                                     'cpu',
-                                     'tcpdiscovery',
+                                    {'packages',            # Discovers installed packages
+                                     'monitoringagents',    # Discovers installed monitoring agents
+                                     'os',                  # Discovers OS configuration
+                                     'ulimit',              # Discovers ulimit settings
+                                     'cpu',                 # Discovers CPU details
+                                     'tcpdiscovery',        # Discovers network-facing processes
                                     },
                                ],
         'cmaport':              int,        # CMA listening port
@@ -327,7 +327,7 @@ class ConfigFile:
         '''
         compoundname = '%s/%s' % (agentname, dronedesignation)
         subconfig = config[agenttype]
-        result = {}
+        result = pyConfigContext('{"type": "%s", "parameters":{}}' % agentname)
         if compoundname in subconfig:
             result = subconfig[compoundname]
         if agentname in subconfig:
@@ -335,12 +335,12 @@ class ConfigFile:
                 if tag not in result:
                     subval = subconfig[agentname][tag]
                     if not hasattr(subval, 'keys'):
-                        result[tag] = subconfig[agentname][tag]
+                        result['parameters'][tag] = subconfig[agentname][tag]
         for tag in subconfig:
             if tag not in result:
                 subval = subconfig[tag]
                 if not hasattr(subval, 'keys'):
-                    result[tag] = subconfig[tag]
+                    result['parameters'][tag] = subconfig[tag]
         return result
 
 
@@ -349,3 +349,4 @@ if __name__ == '__main__':
     isvalid = cf.isvalid()
     print 'Is ConfigFile.default_default() CONFIG valid?:', isvalid
     print 'Complete config:', cf.complete_config()  # checks for validity
+    ourgoodfoo_bar = pyConfigContext(str(cf.complete_config()))

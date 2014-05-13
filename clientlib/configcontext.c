@@ -1,3 +1,4 @@
+// vim: smartindent number
 /**
  * @file
  * @brief Implements the @ref ConfigContext class.

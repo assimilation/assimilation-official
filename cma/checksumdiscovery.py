@@ -33,9 +33,9 @@ More details are documented in the DiscoveryListener class
 '''
 import sys
 from droneinfo import Drone
-from assimjson import JSONtree
 from AssimCclasses import pyConfigContext
 from assimevent import AssimEvent
+from cmaconfig import ConfigFile
 
 from discoverylistener import DiscoveryListener
 
@@ -53,13 +53,12 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         else:
             print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
 
-    @staticmethod
-    def processtcpdiscoverypkt(drone, unused_srcaddr, jsonobj):
+    def processtcpdiscoverypkt(self, drone, unused_srcaddr, jsonobj):
         "Send commands to generate checksums for this Drone's net-facing things"
         unused_srcaddr = unused_srcaddr
-        checksumparameters = {
-            'type': 'checksums',
-            'parameters': {
+        params = ConfigFile.agent_params(self.config, 'discovery', 'checksums', drone.designation)
+        params['parameters'] = pyConfigContext(
+            {
                 'ASSIM_sumcmds': [
                         '/usr/bin/sha256sum'
                     ,   '/usr/bin/sha224sum'
@@ -74,8 +73,10 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                     ,   '/bin/login'
                     ,   '/usr/bin/passwd' 
                     ,   '/tmp/foobar']
-            }
-        }
+            })
+        params['type'] = 'checksums'
+        params['instance'] = '_auto_checksumdiscovery'
+
         data = jsonobj['data'] # The data portion of the JSON message
         for procname in data.keys():    # List of nanoprobe-assigned names of processes...
             procinfo = data[procname]
@@ -83,7 +84,7 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                 continue
             exename = procinfo.get('exe')
             # dups (if any) are removed by the agent
-            checksumparameters['parameters']['ASSIM_filelist'].append(exename)
+            params['parameters']['ASSIM_filelist'].append(exename)
             if exename.endswith('/java'):
                 # Special case for some/many JAVA programs - find the jars...
                 if 'cmdline' not in procinfo:
@@ -94,13 +95,13 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                     if cmdline[j] == '-cp' and j < len(cmdline)-1:
                         jars = cmdline[j+1].split(':')
                         for jar in jars:
-                            checksumparameters['parameters']['ASSIM_filelist'].append(jar)
+                            params['parameters']['ASSIM_filelist'].append(jar)
                         break
 
         # Request discovery of checksums of all the binaries talking (tcp) over the network
-        drone.request_discovery('_auto-checksums', 30, str(JSONtree(checksumparameters)))
         print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF %d files'
-        %   (len(checksumparameters['parameters']['ASSIM_filelist'])))
+        %   (len(params['parameters']['ASSIM_filelist'])))
+        drone.request_discovery((params,))
 
     def processchecksumpkt(self, drone, unused_srcaddr, jsonobj):
         'Process updated checksums. Note that our drone-owned-JSON is already updated'
