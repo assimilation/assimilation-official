@@ -349,4 +349,5 @@ if __name__ == '__main__':
     isvalid = cf.isvalid()
     print 'Is ConfigFile.default_default() CONFIG valid?:', isvalid
     print 'Complete config:', cf.complete_config()  # checks for validity
-    ourgoodfoo_bar = pyConfigContext(str(cf.complete_config()))
+    # Make sure it's making correct JSON...
+    pyConfigContext(str(cf.complete_config()))
