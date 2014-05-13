@@ -54,12 +54,13 @@ class DiscoveryListener:
     prio = PRI_CONTRIB
     wantedpackets = None
 
-    def __init__(self, packetio, store, log, debug):
+    def __init__(self, config, packetio, store, log, debug):
         'Init function for DiscoveryListener'
         self.packetio = packetio
         self.store = store
         self.log = log
         self.debug = debug
+        self.config = config
 
     @classmethod
     def priority(cls):

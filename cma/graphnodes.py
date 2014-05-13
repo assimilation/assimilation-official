@@ -34,7 +34,7 @@ def nodeconstructor(**properties):
     It's a form of "factory" for our database classes
     '''
     #print >> sys.stderr, 'Calling nodeconstructor with properties: %s' % (str(properties))
-    realcls = GraphNode.classmap[properties['nodetype']]
+    realcls = GraphNode.classmap[str(properties['nodetype'])]
     # callconstructor is kinda cool - it figures out how to correctly call the constructor
     # with the values in 'properties' as arguments
     return Store.callconstructor(realcls, properties)

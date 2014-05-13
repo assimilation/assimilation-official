@@ -138,7 +138,8 @@ class Drone(SystemNode):
                 classes = Drone._JSONprocessors[prio][dtype]
                 #print >> sys.stderr, 'PROC[%s][%s] = %s' % (prio, dtype, str(procs))
                 for cls in classes:
-                    proc = cls(CMAdb.transaction, CMAdb.store, CMAdb.log, CMAdb.debug)
+                    proc = cls(CMAdb.io.config, CMAdb.transaction, CMAdb.store
+                    ,   CMAdb.log, CMAdb.debug)
                     proc.processpkt(self, origaddr, jsonobj)
         if foundone:
             if CMAdb.debug:

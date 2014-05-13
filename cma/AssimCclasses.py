@@ -1246,6 +1246,9 @@ class pyConfigContext(pyAssimObj):
         'Construct a pyConfigContext from a dict-like object'
         newobj = pyConfigContext()
         for key in dictval.keys():
+            keyval = dictval[key]
+            if hasattr(keyval, 'keys'):
+                keyval = pyConfigContext.from_dict(dictval[key])
             newobj[key] = dictval[key]
         return newobj
 
