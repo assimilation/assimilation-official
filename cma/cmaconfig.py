@@ -49,12 +49,12 @@ class ConfigFile:
         'contrib_modules':      [str],      # List of contrib modules to be included
                                             # We have no idea what contrib modules there might be
         'initial_discovery':    [           # Below is the list of known discovery agents...
-                                    set(('packages',            # Discovers installed packages
-                                         'monitoringagents',    # Discovers installed monitoring agents
+                                    set(('cpu',                 # Discovers CPU details
+                                         'packages',            # Discovers installed packages
+                                         'monitoringagents',    # Discovers monitoring agents
                                          'os',                  # Discovers OS configuration
-                                         'ulimit',              # Discovers ulimit settings
-                                         'cpu',                 # Discovers CPU details
                                          'tcpdiscovery',        # Discovers network-facing processes
+                                         'ulimit',              # Discovers ulimit settings
                                     )),
                                ],
         'cmaport':              int,        # CMA listening port
