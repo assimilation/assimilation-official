@@ -39,23 +39,23 @@ class ConfigFile:
         'OUI':                  {str: str}, # Addendum for locally-known OUI mappings
         'optional_modules':     [   # List of optional modules to be included
                                     # Below is the list of all known optional modules
-                                    {'linkdiscovery',       # listens for CMA/LLDP packets
-                                     'checksumdiscovery',   # Checksums network-facing files
-                                     'monitoringdiscovery', # Automatically monitors services
-                                     'arpdiscovery',        # Listens for ARP packets for
+                                    set(('linkdiscovery',       # listens for CMA/LLDP packets
+                                         'checksumdiscovery',   # Checksums network-facing files
+                                         'monitoringdiscovery', # Automatically monitors services
+                                         'arpdiscovery',        # Listens for ARP packets for
                                                             # network mapping...
-                                    }
+                                    ))
                                 ],
         'contrib_modules':      [str],      # List of contrib modules to be included
                                             # We have no idea what contrib modules there might be
         'initial_discovery':    [           # Below is the list of known discovery agents...
-                                    {'packages',            # Discovers installed packages
-                                     'monitoringagents',    # Discovers installed monitoring agents
-                                     'os',                  # Discovers OS configuration
-                                     'ulimit',              # Discovers ulimit settings
-                                     'cpu',                 # Discovers CPU details
-                                     'tcpdiscovery',        # Discovers network-facing processes
-                                    },
+                                    set(('packages',            # Discovers installed packages
+                                         'monitoringagents',    # Discovers installed monitoring agents
+                                         'os',                  # Discovers OS configuration
+                                         'ulimit',              # Discovers ulimit settings
+                                         'cpu',                 # Discovers CPU details
+                                         'tcpdiscovery',        # Discovers network-facing processes
+                                    )),
                                ],
         'cmaport':              int,        # CMA listening port
         'cmainit':              pyNetAddr,  # Initial contact address for the CMA
@@ -64,7 +64,7 @@ class ConfigFile:
         'cmafail':              pyNetAddr,  # Address to send failure reports
         'outsig':               pySignFrame,# Packet signature frame
         'compress':             pyCompressFrame,# Packet compression frame
-        'compression_method':   {'zlib'},   # Packet compression method
+        'compression_method':   set(('zlib',)),   # Packet compression method
         'compression_threshold':int,        # Threshold for when to start compressing
         'discovery': {
                 'repeat':   int,            # how often to repeat a discovery action
