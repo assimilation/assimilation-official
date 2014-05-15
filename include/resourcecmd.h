@@ -67,15 +67,11 @@ struct _ResourceCmd{
 ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
 #define	REQCLASSNAMEFIELD	"class"
-#define	REQTYPENAMEFIELD	"type"
 #define	REQPROVIDERNAMEFIELD	"provider"
 #define	REQOPERATIONNAMEFIELD	"operation"
 #define	REQENVIRONNAMEFIELD	"environ"
-#define	REQRSCNAMEFIELD		"resourcename"
 #define	REQREPEATNAMEFIELD	"repeat_interval"
 #define	REQCANCELONFAILFIELD	"cancel_on_fail"
-#define	REQTIMEOUTNAMEFIELD	"timeout"
-#define	REQINITDELAYNAMEFIELD	"init_delay"
 #define	REQIDENTIFIERNAMEFIELD	"reqid"
 #define	REQREASONENUMNAMEFIELD	"reason_enum"
 #define	REQRCNAMEFIELD		"rc"

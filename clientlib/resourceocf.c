@@ -60,14 +60,14 @@ resourceocf_new(
 	enum ConfigValType	envtype;
 
 	BINDDEBUG(ResourceCmd);
-	restype = request->getstring(request, REQTYPENAMEFIELD);
+	restype = request->getstring(request, CONFIGNAME_TYPE);
 	if (NULL == restype) {
-		g_warning("%s.%d: No "REQTYPENAMEFIELD" field in OCF agent request."
+		g_warning("%s.%d: No "CONFIGNAME_TYPE" field in OCF agent request."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
 	if (strchr(restype, '/') != NULL) {
-		g_warning("%s.%d: "REQTYPENAMEFIELD" field in LSB agent contains a slash."
+		g_warning("%s.%d: "CONFIGNAME_TYPE" field in LSB agent contains a slash."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}

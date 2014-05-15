@@ -144,11 +144,8 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 		newsender->unref = _hbsender_unref;
 		newsender->_finalize = _hbsender_finalize;
 		newsender->_expected_interval = interval;
-		if (interval < 500000) {
-			interval = 1000000;
-		}
 		newsender->timeout_source = g_timeout_add_seconds_full
-					    (G_PRIORITY_HIGH, (interval/1000000), _hbsender_gsourcefunc
+					    (G_PRIORITY_HIGH, interval, _hbsender_gsourcefunc
 					,    newsender, _hbsender_notify_function);
 		DEBUGMSG3("Sender %p timeout source is: %d, interval is %d", newsender
 		,	  newsender->timeout_source, interval);

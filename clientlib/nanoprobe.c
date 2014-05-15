@@ -292,8 +292,8 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 	g_return_if_fail(fs != NULL);
 	(void)fromaddr;
 	
-	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
-		sendinterval = config->getint(config, CONFIGNAME_HBTIME);
+	if (config->getint(config, CONFIGNAME_INTERVAL) > 0) {
+		sendinterval = config->getint(config, CONFIGNAME_INTERVAL);
 	}
 
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
@@ -353,8 +353,8 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 	}
 
 	g_return_if_fail(fs != NULL);
-	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
-		deadtime = config->getint(config, CONFIGNAME_DEADTIME);
+	if (config->getint(config, CONFIGNAME_TIMEOUT) > 0) {
+		deadtime = config->getint(config, CONFIGNAME_TIMEOUT);
 	}
 	if (config->getint(config, CONFIGNAME_WARNTIME) > 0) {
 		warntime = config->getint(config, CONFIGNAME_WARNTIME);
@@ -812,9 +812,9 @@ _nano_send_rscexitstatus(ConfigContext* request, gpointer user_data
 	// Copy the request ID over from the original request
 	response->setint(response, REQIDENTIFIERNAMEFIELD
 	,	request->getint(request, REQIDENTIFIERNAMEFIELD));
-	// Copy the resource name over from the original request
-	response->setstring(response, REQRSCNAMEFIELD
-	,	request->getstring(request, REQRSCNAMEFIELD));
+	// Copy the resource name (instance) over from the original request
+	response->setstring(response, CONFIGNAME_INSTANCE
+	,	request->getstring(request, CONFIGNAME_INSTANCE));
 	// Package it up as a JSON string to send to the CMA
 	rsp_json = response->baseclass.toString(&response->baseclass);
 	UNREF(response);

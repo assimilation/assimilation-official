@@ -58,14 +58,14 @@ resourcelsb_new(
 	char *			lsbpath;
 
 	BINDDEBUG(ResourceCmd);
-	restype = request->getstring(request, REQTYPENAMEFIELD);
+	restype = request->getstring(request, CONFIGNAME_TYPE);
 	if (NULL == restype) {
-		g_warning("%s.%d: No "REQTYPENAMEFIELD" field in LSB agent request."
+		g_warning("%s.%d: No "CONFIGNAME_TYPE" field in LSB agent request."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
 	if (strchr(restype, '/') != NULL) {
-		g_warning("%s.%d: "REQTYPENAMEFIELD" field in LSB agent contains a slash."
+		g_warning("%s.%d: "CONFIGNAME_TYPE" field in LSB agent contains a slash."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
@@ -208,7 +208,7 @@ _resourcelsb_metadata(ResourceLSB* self)
 {
 	char *	metadata;
 	const char * restype = self->baseclass.request->getstring(self->baseclass.request
-	,			REQTYPENAMEFIELD);
+	,			CONFIGNAME_TYPE);
 
 	metadata = g_strdup_printf(
 	"<?xml version=\"1.0\"?>\n"
