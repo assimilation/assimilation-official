@@ -123,7 +123,7 @@ resourcecmd_constructor(
 	if (structsize < sizeof(ResourceCmd)) {
 		structsize = sizeof(ResourceCmd);
 	}
-	rscname = request->getstring(request, REQRSCNAMEFIELD);
+	rscname = request->getstring(request, CONFIGNAME_INSTANCE);
 	if (NULL == rscname) {
 		char *	reqstr = request->baseclass.toString(&request->baseclass);
 		g_warning("%s.%d: No resource name in request [%s]", __FUNCTION__, __LINE__

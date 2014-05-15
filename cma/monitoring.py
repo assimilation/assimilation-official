@@ -28,9 +28,9 @@ rules for certain kinds of services automatically.
 '''
 
 
-from AssimCtypes import REQCLASSNAMEFIELD, REQTYPENAMEFIELD, REQPROVIDERNAMEFIELD       \
-,   REQENVIRONNAMEFIELD, REQRSCNAMEFIELD, REQREASONENUMNAMEFIELD, REQREPEATNAMEFIELD    \
-,   REQTIMEOUTNAMEFIELD ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD               \
+from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD       \
+,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL    \
+,   CONFIGNAME_TIMEOUT ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD               \
 ,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD                                                  \
 ,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO 
 from AssimCclasses import pyConfigContext
@@ -181,7 +181,7 @@ class MonitorAction(GraphNode):
             object containing the monitoring message
         '''
 
-        rscname = monmsgobj[REQRSCNAMEFIELD]
+        rscname = monmsgobj[CONFIGNAME_INSTANCE]
         monnode = MonitorAction.find1(rscname)
         if monnode is None:
             CMAdb.log.critical('Could not locate monitor node for %s from %s'
@@ -218,7 +218,7 @@ class MonitorAction(GraphNode):
         else:
             explanation = 'GOT REAL WEIRD'
             fubar = True
-        rscname = monmsgobj[REQRSCNAMEFIELD]
+        rscname = monmsgobj[CONFIGNAME_INSTANCE]
         msg = 'Service %s %s' % (rscname, explanation)
         self.isworking = success and not fubar
         self.reason = explanation
@@ -264,10 +264,10 @@ class MonitorAction(GraphNode):
         (   REQIDENTIFIERNAMEFIELD, self.request_id
         ,   REQOPERATIONNAMEFIELD, operation
         ,   REQCLASSNAMEFIELD, self.monitorclass
-        ,   REQTYPENAMEFIELD, self.monitortype
-        ,   REQRSCNAMEFIELD, self.monitorname
-        ,   REQREPEATNAMEFIELD, self.interval
-        ,   REQTIMEOUTNAMEFIELD, self.timeout
+        ,   CONFIGNAME_TYPE, self.monitortype
+        ,   CONFIGNAME_INSTANCE, self.monitorname
+        ,   CONFIGNAME_INTERVAL, self.interval
+        ,   CONFIGNAME_TIMEOUT, self.timeout
         ,   provider_str, arglist_str)
         return str(pyConfigContext(init=json))
 

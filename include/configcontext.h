@@ -113,16 +113,17 @@ WINEXPORT ConfigContext*	configcontext_new_JSON_string(const char * jsontext);//
 #define	CONFIG_DEFAULT_ADDRTYPE	ADDR_FAMILY_IPV4
 #define	CONFIG_DEFAULT_SIGNFRAME_TYPE	G_CHECKSUM_SHA256
 
-#define CONFIGNAME_HBTIME	"repeat"	///< How long to wait between heartbeats?
-#define CONFIGNAME_WARNTIME	"warn"		///< How long w/o heartbeats before whining?
-#define CONFIGNAME_DEADTIME	"dead"		///< How long w/o heartbeats before declaring a system dead?
 #define CONFIGNAME_INTERVAL	"repeat"	///< How long to wait between events
+#define CONFIGNAME_WARNTIME	"warn"		///< How long w/o heartbeats before whining?
+#define CONFIGNAME_TIMEOUT	"timeout"	///< How before declaring a serious problem...
+#define CONFIGNAME_INITDELAY	"init_delay"	///< How long to wait before starting
 #define CONFIGNAME_CMAPORT	"cmaport"	///< Default Port for contacting the CMA
 #define CONFIGNAME_CMAINIT	"cmainit"	///< Initial startup contact address for the CMA
 						///< (could be a multicast address)
 #define CONFIGNAME_CMAADDR	"cmaaddr"	///< Address of the Collective Management authority
 #define CONFIGNAME_CMADISCOVER	"cmadisc"	///< Address of where to send discovery reports
 #define CONFIGNAME_CMAFAIL	"cmafail"	///< Address of where to send failure reports
+#define	CONFIGNAME_TYPE		"type"		///< Type of resource or discovery
 #define CONFIGNAME_INSTANCE	"instance"	///< Instance name for discovery
 #define CONFIGNAME_DEVNAME	"device"	///< Name of NIC for discovery
 #define CONFIGNAME_OUTSIG	"outsig"	///< SignFrame to use to sign/verify packets

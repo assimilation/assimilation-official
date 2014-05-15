@@ -263,8 +263,16 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	newlistener->set_comealive_callback = _hblistener_set_comealive_callback;
 	newlistener->set_heartbeat_callback = _hblistener_set_heartbeat_callback;
 
-	newlistener->set_deadtime(newlistener, DEFAULT_DEADTIME*1000000);
-	newlistener->set_warntime(newlistener, DEFAULT_DEADTIME*1000000/4);
+	if (cfg->getint(cfg, CONFIGNAME_TIMEOUT) > 0) {
+		newlistener->set_deadtime(newlistener, cfg->getint(cfg, CONFIGNAME_TIMEOUT));
+	}else{
+		newlistener->set_deadtime(newlistener, DEFAULT_DEADTIME);
+	}
+	if (cfg->getint(cfg, CONFIGNAME_WARNTIME) > 0) {
+		newlistener->set_warntime(newlistener, cfg->getint(cfg, CONFIGNAME_WARNTIME));
+	}else{
+		newlistener->set_warntime(newlistener, (DEFAULT_DEADTIME*2)/3);
+	}
 	newlistener->status = HbPacketsBeingReceived;
 	_hblistener_addlist(newlistener);
         return newlistener;
@@ -273,12 +281,12 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 /// Set deadtime
 FSTATIC void
 _hblistener_set_deadtime(HbListener* self,	///<[in/out] Object to set deadtime for
-			guint64 deadtime)	///<[in] deadtime to set in usec
+			guint64 deadtime)	///<[in] deadtime to set in seconds
 {
 	guint64		now = g_get_real_time();
-	self->_expected_interval = deadtime;
+	self->_expected_interval = deadtime*1000000L;
 	self->nexttime = now + self->_expected_interval;
-	//g_debug("Setting HbListener deadtime to " FMT_64BIT "d ms", deadtime/1000);
+	//g_debug("Setting HbListener deadtime to " FMT_64BIT "d secs", deadtime);
 }
 
 /// Return deadtime
@@ -291,10 +299,10 @@ _hblistener_get_deadtime(HbListener* self)
 /// Set warntime
 FSTATIC void
 _hblistener_set_warntime(HbListener* self,	///<[in/out] Object to set warntime for
-			guint64 warntime)	///<[in] warntime to set in usec
+			guint64 warntime)	///<[in] warntime to set in seconds
 {
 	guint64		now = g_get_real_time();
-	self->_warn_interval = warntime;
+	self->_warn_interval = warntime*1000000;
 	self->warntime = now + self->_warn_interval;
 }
 /// Return warntime

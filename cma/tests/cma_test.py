@@ -604,7 +604,7 @@ class TestMonitorBasic(TestCase):
                 for frame in frameset.iter():
                     self.assertEqual(frame.frametype(), FrameTypes.RSCJSON)
                     table = pyConfigContext(init=frame.getstr())
-                    for field in ('class', 'type', 'resourcename', 'repeat_interval'):
+                    for field in ('class', 'type', 'instance', 'repeat'):
                         self.assertTrue(field in table)
                         if field == 'monitorclass' and table['monitorclass'] == 'OCF':
                             self.assertTrue('provider' in table)

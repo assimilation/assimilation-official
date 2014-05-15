@@ -193,17 +193,17 @@ timeout_agent(gpointer ignored)
 
 #define	OCFCLASS	"\"" REQCLASSNAMEFIELD		"\": \"ocf\""
 #define	HBPROVIDER	"\"" REQPROVIDERNAMEFIELD	"\": \"heartbeat\""
-#define	DUMMYTYPE	"\"" REQTYPENAMEFIELD		"\": \"Dummy\""
+#define	DUMMYTYPE	"\"" CONFIGNAME_TYPE		"\": \"Dummy\""
 #define	STARTOP		"\"" REQOPERATIONNAMEFIELD	"\": \"start\""
 #define	STOPOP		"\"" REQOPERATIONNAMEFIELD	"\": \"stop\""
 #define	MONITOROP	"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
 #define	METADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
-#define	RESOURCENAME	"\"" REQRSCNAMEFIELD		"\": \"DummyTestGTest01\""
+#define	RESOURCENAME	"\"" CONFIGNAME_INSTANCE	"\": \"DummyTestGTest01\""
 #define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}"
 #define	C ","
 #define REQID(id)	"\"" REQIDENTIFIERNAMEFIELD	"\": " #id
 #define REPEAT(repeat)	"\"" REQREPEATNAMEFIELD	"\": " #repeat
-#define INITDELAY(delay)	"\"" REQINITDELAYNAMEFIELD	"\": " #delay
+#define INITDELAY(delay)	"\"" CONFIGNAME_INITDELAY	"\": " #delay
 #define	COMMREQUEST	OCFCLASS C HBPROVIDER C DUMMYTYPE C RESOURCENAME C NULLPARAMS
 #define REQUEST(type,id, repeat,delay)	\
 	"{" COMMREQUEST C type C REQID(id) C REPEAT(repeat) C INITDELAY(delay)"}"
@@ -322,8 +322,8 @@ main(int argc, char **argv)
 	// Set up the parameters the 'CMA' is going to send to our 'nanoprobe'
 	// in response to their request for configuration data.
 	nanoconfig = configcontext_new(0);
-	nanoconfig->setint(nanoconfig, CONFIGNAME_HBTIME, 1000000);
-	nanoconfig->setint(nanoconfig, CONFIGNAME_DEADTIME, 3*1000000);
+	nanoconfig->setint(nanoconfig, CONFIGNAME_INTERVAL, 1);
+	nanoconfig->setint(nanoconfig, CONFIGNAME_TIMEOUT, 3);
 	nanoconfig->setint(nanoconfig, CONFIGNAME_CMAPORT, testport);
 
 

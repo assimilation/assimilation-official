@@ -122,7 +122,7 @@ logfatal_function(
 }
 
 ///< Try various invalid resource command initializers
-#define	DUMB	"\""REQRSCNAMEFIELD"\":\"dumb\""
+#define	DUMB	"\""CONFIGNAME_INSTANCE"\":\"dumb\""
 #define	PROV	",\"" REQPROVIDERNAMEFIELD "\": \"heartbeat\"}"
 
 
@@ -169,16 +169,16 @@ test_invalid_resourcecmd(void)
 
 		"{\"" REQCLASSNAMEFIELD "\":\"ocf\"," DUMB PROV,
 
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\","DUMB PROV,
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" CONFIGNAME_TYPE "\":\"NOSUCHOCFRESOURCETYPE\","DUMB PROV,
 
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" CONFIGNAME_TYPE "\":\"NOSUCHOCFRESOURCETYPE\",\""
 				REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB PROV,
 
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" CONFIGNAME_TYPE "\":\"NOSUCHOCFRESOURCETYPE\",\""
 				REQOPERATIONNAMEFIELD"\":\"monitor\","
 				"\""REQENVIRONNAMEFIELD"\":\"notahash\","DUMB PROV,
 
-		"{\"" REQCLASSNAMEFIELD "\":\"lsb\", \"" REQTYPENAMEFIELD "\":\"NOSUCHOCFRESOURCETYPE\",\""
+		"{\"" REQCLASSNAMEFIELD "\":\"lsb\", \"" CONFIGNAME_TYPE "\":\"NOSUCHOCFRESOURCETYPE\",\""
 				REQOPERATIONNAMEFIELD"\":\"monitor\"}",
 		NULL
 	};
@@ -222,7 +222,7 @@ test_invalid_queuecmd(void)
 {
 	ResourceQueue*	rq = resourcequeue_new(0);
 	const char *	json_cmds[] = {
-		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" REQTYPENAMEFIELD "\":\"Dummy\","
+		"{\"" REQCLASSNAMEFIELD "\":\"ocf\", \"" CONFIGNAME_TYPE "\":\"Dummy\","
 				"\""REQENVIRONNAMEFIELD"\":{},"
 				"\""REQOPERATIONNAMEFIELD"\":\"monitor\","DUMB PROV,
 	};

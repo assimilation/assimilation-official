@@ -229,7 +229,7 @@ _resource_queue_cancel(ResourceQueue* self, ConfigContext* request)
 		return FALSE;
 	}
 
-	resourcename = request->getstring(request, REQRSCNAMEFIELD);
+	resourcename = request->getstring(request, CONFIGNAME_INSTANCE);
 
 	if (NULL == resourcename) {
 		g_hash_table_iter_init(&iter, self->resources);
@@ -306,7 +306,7 @@ _resource_queue_qelem_new(ResourceCmd* cmd, ResourceQueue* parent
 	}else{
 		self->cancelonfail = cmd->request->getbool(cmd->request, REQCANCELONFAILFIELD);
 	}
-	initdelay = cmd->request->getint(cmd->request, REQINITDELAYNAMEFIELD);
+	initdelay = cmd->request->getint(cmd->request, CONFIGNAME_INITDELAY);
 	initdelay = (initdelay > 0 ? initdelay : 0);
 	cmd->starttime = self->queuetime + (initdelay*uSPERSEC);
 	DEBUGMSG2("%s.%d: %s:%s (initdelay %ld)",	__FUNCTION__, __LINE__

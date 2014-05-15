@@ -48,16 +48,16 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 	int	count = 0;
 
 	// Put the heartbeat interval in the message (if asked)
-	if (config->getint(config, CONFIGNAME_HBTIME) > 0) {
-		gint	hbtime = config->getint(config, CONFIGNAME_HBTIME);
+	if (config->getint(config, CONFIGNAME_INTERVAL) > 0) {
+		gint	hbtime = config->getint(config, CONFIGNAME_INTERVAL);
 		IntFrame * intf = intframe_new(FRAMETYPE_HBINTERVAL, 4);
 		intf->setint(intf, hbtime);
 		frameset_append_frame(ret, &intf->baseclass);
 		UNREF2(intf);
 	}
 	// Put the heartbeat deadtime in the message (if asked)
-	if (config->getint(config, CONFIGNAME_DEADTIME) > 0) {
-		gint deadtime = config->getint(config, CONFIGNAME_DEADTIME);
+	if (config->getint(config, CONFIGNAME_TIMEOUT) > 0) {
+		gint deadtime = config->getint(config, CONFIGNAME_TIMEOUT);
 		IntFrame * intf = intframe_new(FRAMETYPE_HBDEADTIME, 4);
 		intf->setint(intf, deadtime);
 		frameset_append_frame(ret, &intf->baseclass);
