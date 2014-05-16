@@ -40,6 +40,7 @@ from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, GraphNode
+from cmaconfig import ConfigFile
 import netaddr
 import sys
 
@@ -73,11 +74,46 @@ class ArpDiscoveryListener(DiscoveryListener):
     one came online...
     '''
 
+    local_OUI_map = {
+                'b0-79-3c': 'Revolv, Inc.',
+                '18-0c-ac': 'Canon, Inc.',
+                'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
+                'd8-50-e6': 'ASUSTek COMPUTER INC.',
+    }
     prio = DiscoveryListener.PRI_OPTION     # This is an optional feature
-    wantedpackets = ('ARP',)                # We are only interested in hearing 'ARP' packets
+    # We are interested in two kinds of packets:
+    # netconfig:    Packets from network configuration discovery
+    #               When we hear these we send requests to listen to ARPs
+    #               This is what eventually causes ARP discovery packets to be sent
+    # ARP:          Packets resulting from ARP discovery - triggered by
+    #               the requests we send above...
+    wantedpackets = ('ARP','netconfig')
 
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
-        '''Add ARP discovery data to the database.
+    def processpkt(self, drone, srcaddr, jsonobj):
+        '''Trigger ARP discovery or add ARP data to the database.
+        '''
+        if jsonobj['discovertype'] == 'ARP':
+            self.processpkt_arp(drone, srcaddr, jsonobj)
+        elif jsonobj['discovertype'] == 'netconfig':
+            self.processpkt_netconfig(drone, srcaddr, jsonobj)
+        else:
+            print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
+
+    def processpkt_netconfig(self, drone, unused_srcaddr, jsonobj):
+        '''We want to trigger ARP discovery when we hear a 'netconfig' packet
+        I'm leaving the implementation of this to Carrie ;-)
+        Carrie: you can see how this is done by looking at checksumdiscovery.py
+
+        The basic idea is that you build up the parameters for the discovery
+        action, then send it to drone.request_discovery(...)
+        To build up the parameters, you use ConfigFile.agent_params()
+        which will pull values from the system configuration.
+        '''
+        p = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
+        print >> sys.stderr, '#ARP parameters:', p
+
+    def processpkt_arp(self, drone, unused_srcaddr, jsonobj):
+        '''We want to update the database when we hear a 'ARP' discovery packet
         These discovery entries are the result of listening to ARP packets
         in the nanoprobes.  Some may already be in our database, and some may not be.
 
@@ -95,6 +131,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         that we create.  My thinking is that defaulting them to the domain of the Drone
         that did the discovery is a reasonable choice.
         '''
+
         data = jsonobj['data']
         maciptable = {}
         # Group the IP addresses by MAC address - reversing the map
@@ -106,14 +143,6 @@ class ArpDiscoveryListener(DiscoveryListener):
 
         for mac in maciptable:
             self.add_mac_ip(drone, mac, maciptable[mac])
-
-    local_OUI_map = {
-                'b0-79-3c': 'Revolv, Inc.',
-                '18-0c-ac': 'Canon, Inc.',
-                'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
-                'd8-50-e6': 'ASUSTek COMPUTER INC.',
-    }
-
 
     def add_mac_ip(self, drone, macaddr, IPlist):
         '''We process all the IP addresses that go with a given MAC address (NICNode)

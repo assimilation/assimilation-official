@@ -75,7 +75,8 @@ class ConfigFile:
                                 str:{
                                     'repeat':   int, # repeat for this particular agent
                                     'warn':     int, # How long before slow discovery warning
-                                    'timeout':  int  # timeout for this particular agent
+                                    'timeout':  int, # timeout for this particular agent
+                                    'args':     {str, object},
                                 },
                 },
         },
@@ -88,7 +89,8 @@ class ConfigFile:
                                 str:{
                                     'repeat':   int, # repeat for this particular agent
                                     'warn':     int, # How long before slow monitoring warning
-                                    'timeout':  int  # timeout for this particular agent
+                                    'timeout':  int, # timeout for this particular agent
+                                    'args':     {str: object},
                                 },
                 },
         },
@@ -129,12 +131,12 @@ class ConfigFile:
         #
         #   Always start the discovery plugins below when a Drone comes online
         #
-            'initial_discovery':[   'os',              # OS properties
-                                'cpu',             # CPU properties
-                                'packages',        # What packages are installed?
-                                'monitoringagents',# What monitoring agents are installed?
-                                'ulimit',          # What are current ulimit values?
-                                'tcpdiscovery'     # Discover services
+            'initial_discovery':['os',              # OS properties
+                                 'cpu',             # CPU properties
+                                 'packages',        # What packages are installed?
+                                 'monitoringagents',# What monitoring agents are installed?
+                                 'ulimit',          # What are current ulimit values?
+                                 'tcpdiscovery'     # Discover services
                             ],
             'cmaport':                  1984,                       # Our listening port
             'cmainit':                  pyNetAddr("0.0.0.0:1984"),  # Our listening address
