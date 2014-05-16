@@ -726,6 +726,7 @@ test_safe_queue_lsbops(void)
 	for (j=0; j < DIMOF(operations); ++j) {
 		ConfigContext*	op = configcontext_new_JSON_string(operations[j]);
 		g_assert(op != NULL);
+		//g_message("Running operation %d: %s", j, operations[j]);
 		g_assert(rscq->Qcmd(rscq, op, expect_ocf_callback, expectations[j]) == TRUE);
 		UNREF(op);
 	}
