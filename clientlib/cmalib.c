@@ -45,6 +45,9 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		,   int addrcount)		///<[in] Count of 'addrs' provided
 {
 	FrameSet* ret = frameset_new(msgtype);
+	ConfigContext*	msgcfg = configcontext_new(0);
+	char*		json;
+	CstringFrame*	jsframe;
 	int	count = 0;
 
 	// Put the heartbeat interval in the message (if asked)
@@ -54,6 +57,9 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		intf->setint(intf, hbtime);
 		frameset_append_frame(ret, &intf->baseclass);
 		UNREF2(intf);
+		msgcfg->setint(msgcfg, CONFIGNAME_INTERVAL, hbtime);
+	}else{
+		msgcfg->setint(msgcfg, CONFIGNAME_INTERVAL, CONFIG_DEFAULT_HBTIME);
 	}
 	// Put the heartbeat deadtime in the message (if asked)
 	if (config->getint(config, CONFIGNAME_TIMEOUT) > 0) {
@@ -62,6 +68,9 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		intf->setint(intf, deadtime);
 		frameset_append_frame(ret, &intf->baseclass);
 		UNREF2(intf);
+		msgcfg->setint(msgcfg, CONFIGNAME_TIMEOUT, deadtime);
+	}else{
+		msgcfg->setint(msgcfg, CONFIGNAME_TIMEOUT, CONFIG_DEFAULT_DEADTIME);
 	}
 	// Put the heartbeat warntime in the message (if asked)
 	if (config->getint(config, CONFIGNAME_WARNTIME) > 0) {
@@ -70,7 +79,18 @@ create_sendexpecthb(ConfigContext* config	///<[in] Provides deadtime, port, etc.
 		intf->setint(intf, warntime);
 		frameset_append_frame(ret, &intf->baseclass);
 		UNREF2(intf);
+		msgcfg->setint(msgcfg, CONFIGNAME_WARNTIME, warntime);
+	}else{
+		msgcfg->setint(msgcfg, CONFIGNAME_WARNTIME, CONFIG_DEFAULT_WARNTIME);
 	}
+	json = msgcfg->baseclass.toString(&msgcfg->baseclass);
+	UNREF(msgcfg);
+	jsframe = cstringframe_new(FRAMETYPE_RSCJSON, 0);
+	jsframe->baseclass.setvalue(&jsframe->baseclass, json
+	,		      strlen(json)+1, frame_default_valuefinalize);
+	frameset_append_frame(ret, &jsframe->baseclass);
+	UNREF2(jsframe);
+	
 
 	// Put all the addresses we were given in the message.
 	for (count=0; count < addrcount; ++count) {
