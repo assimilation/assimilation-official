@@ -94,6 +94,8 @@ class DispatchHBDEAD(DispatchTarget):
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 deaddrone = self.droneinfo.find(frame.getnetaddr())
+                CMAdb.log.warning("DispatchHBDEAD: Drone@%s is dead(%s)"
+                %   (frame.getnetaddr(), deaddrone))
                 if CMAdb.debug:
                     CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
                 deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)

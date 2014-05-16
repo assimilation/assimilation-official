@@ -33,6 +33,7 @@ from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNo
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 from assimevent import AssimEvent
+from cmaconfig import ConfigFile
 
 
 @RegisterGraphClass
@@ -172,7 +173,21 @@ class Drone(SystemNode):
     def _send_hbmsg(self, dest, fstype, addrlist):
         '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
-        CMAdb.transaction.add_packet(dest, fstype, addrlist, frametype=FrameTypes.IPPORT)
+
+        # Now we create a collection of frames that looks like this:
+        #
+        #   One FrameTypes.RSCJSON frame containing JSON Heartbeat parameters
+        #   one frame per dest, type FrameTypes.IPPORT
+        #
+        params = ConfigFile.agent_params(CMAdb.io.config
+        ,       'heartbeats', None, self.designation)
+        framelist = [{'frametype': FrameTypes.RSCJSON, 'framevalue': str(params)},]
+        for addr in addrlist:
+            if addr is None:
+                continue
+            framelist.append({'frametype': FrameTypes.IPPORT, 'framevalue': addr})
+
+        CMAdb.transaction.add_packet(dest, fstype, framelist)
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
@@ -309,7 +324,7 @@ class Drone(SystemNode):
                 CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]'
                 %   (designation, desigstr, type(designation)))
            
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             CMAdb.log.debug("DESIGNATION2 (%s) = %s" % (designation, desigstr))
             CMAdb.log.debug("QUERY (%s) = %s" % (designation, query))
             print >> sys.stderr, ("DESIGNATION2 (%s) = %s" % (designation, desigstr))

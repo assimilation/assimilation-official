@@ -67,23 +67,27 @@ class ConfigFile:
         'compression_method':   set(('zlib',)),   # Packet compression method
         'compression_threshold':int,        # Threshold for when to start compressing
         'discovery': {
-                'repeat':   int,            # how often to repeat a discovery action
-                'timeout':  int,            # how long wait between
+                'repeat':   int,        # how often to repeat a discovery action
+                'warn':     int,        # How long to wait when issuing a slow discovery warning
+                'timeout':  int,        # how long wait before declaring failure
                 'agents': {     # Configuration information for individual agent types,
                                 # optionally including machine
                                 str:{
                                     'repeat':   int, # repeat for this particular agent
+                                    'warn':     int, # How long before slow discovery warning
                                     'timeout':  int  # timeout for this particular agent
                                 },
                 },
         },
         'monitoring': { 
                 'repeat':   int,    # Default repeat interval in seconds
-                'timeout':  int,
+                'warn':     int,    # How long to wait when issuing a slow monitoring warning
+                'timeout':  int,    # How long to wait before declaring failure
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
                                 str:{
                                     'repeat':   int, # repeat for this particular agent
+                                    'warn':     int, # How long before slow monitoring warning
                                     'timeout':  int  # timeout for this particular agent
                                 },
                 },
@@ -138,17 +142,20 @@ class ConfigFile:
             'compression_method':       "zlib",                     # Compression method
             'discovery': {
                 'repeat':           15*60,  # Default repeat interval in seconds
+                'warn':             120,    # Default slow discovery warning time
                 'timeout':          300,    # Default timeout interval in seconds
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
-                                    "checksumdiscovery": {'repeat':3600*8, 'timeout': 10*60},
-                                    "os":  {'repeat': 0,    'timeout': 60},
-                                    "cpu": {'repeat': 0,    'timeout': 60}
+                                    "checksumdiscovery": {'repeat':3600*8, 'timeout': 10*60
+                                    ,           'warn':300},
+                                    "os":  {'repeat': 0,    'timeout': 60, 'warn': 5},
+                                    "cpu": {'repeat': 0,    'timeout': 60, 'warn': 5}
                                     # "arpdiscovery/servidor":               {'repeat': 60},
                 },
             },
             'monitoring': { 
                 'repeat':           120,    # Default repeat interval in seconds
+                'warn':             60,     # Default slow monitoring warning time
                 'timeout':          180,    # Default repeat interval in seconds
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
@@ -347,7 +354,7 @@ class ConfigFile:
 if __name__ == '__main__':
     cf = ConfigFile()
     isvalid = cf.isvalid()
-    print 'Is ConfigFile.default_default() CONFIG valid?:', isvalid
+    print 'Is ConfigFile.default_default() valid?:', isvalid
     print 'Complete config:', cf.complete_config()  # checks for validity
     # Make sure it's making correct JSON...
     pyConfigContext(str(cf.complete_config()))
