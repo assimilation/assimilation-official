@@ -280,7 +280,7 @@ class TestIO:
         self.sleepatend=sleepatend
         self.index=0
         self.writecount=0
-        self.config = {CONFIGNAME_CMAPORT: 1984}
+        self.config = ConfigFile().complete_config()
         (self.pipe_read, self.pipe_write) = os.pipe()
         os.write(self.pipe_write, ' ')
         os.close(self.pipe_write)
