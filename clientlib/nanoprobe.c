@@ -283,7 +283,8 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 	GSList*		slframe;
 	guint		addrcount = 0;
 	ConfigContext*	config = parent->baseclass.config;
-	guint16		sendinterval = 0;
+	guint16		sendinterval;
+	gint64		intvalue;
 
 	if (nano_shutting_down) {
 		return;
@@ -292,9 +293,8 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 	g_return_if_fail(fs != NULL);
 	(void)fromaddr;
 	
-	if (config->getint(config, CONFIGNAME_INTERVAL) > 0) {
-		sendinterval = config->getint(config, CONFIGNAME_INTERVAL);
-	}
+	intvalue = config->getint(config, CONFIGNAME_INTERVAL);
+	sendinterval = (intvalue > 0 ? intvalue : CONFIG_DEFAULT_HBTIME);
 
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
@@ -308,6 +308,20 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 				iframe = CASTTOCLASS(IntFrame, frame);
 				sendinterval = (guint16) iframe->getint(iframe);
 				break;
+			case FRAMETYPE_RSCJSON:{
+				CstringFrame*	csf = CASTTOCLASS(CstringFrame, frame);
+				ConfigContext*	cfg;
+				const char *	json;
+				json = csf->baseclass.value;
+				DEBUGMSG3("%s.%d: Got RSCJSON frame: %s", __FUNCTION__
+				,	__LINE__, json);
+				cfg = configcontext_new_JSON_string(json);
+				g_return_if_fail(cfg != NULL);
+				intvalue = cfg->getint(cfg, CONFIGNAME_INTERVAL);
+				sendinterval = (intvalue > 0 ? intvalue : sendinterval);
+				UNREF(cfg);
+				break;
+			}
 			case FRAMETYPE_IPPORT:
 				if (0 == sendinterval) {
 					g_warning("Send interval is zero in %s", __FUNCTION__);
@@ -315,8 +329,8 @@ nanoobey_sendhb(AuthListener* parent	///<[in] @ref AuthListener object invoking 
 				}
 				aframe = CASTTOCLASS(IpPortFrame, frame);
 				addrcount++;
-				hb = hbsender_new(aframe->getnetaddr(aframe), parent->baseclass.transport
-				,	sendinterval, 0);
+				hb = hbsender_new(aframe->getnetaddr(aframe)
+				,	parent->baseclass.transport, sendinterval, 0);
 				(void)hb;
 				break;
 		}
@@ -343,8 +357,9 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 	ConfigContext*	config = parent->baseclass.config;
 	guint		addrcount = 0;
 
-	guint64		deadtime = 0;
-	guint64		warntime = 0;
+	guint64		deadtime;
+	guint64		warntime;
+	gint64		intvalue;
 
 	(void)fromaddr;
 
@@ -353,12 +368,10 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 	}
 
 	g_return_if_fail(fs != NULL);
-	if (config->getint(config, CONFIGNAME_TIMEOUT) > 0) {
-		deadtime = config->getint(config, CONFIGNAME_TIMEOUT);
-	}
-	if (config->getint(config, CONFIGNAME_WARNTIME) > 0) {
-		warntime = config->getint(config, CONFIGNAME_WARNTIME);
-	}
+	intvalue = config->getint(config, CONFIGNAME_TIMEOUT);
+	deadtime = (intvalue > 0 ? intvalue : CONFIG_DEFAULT_DEADTIME);
+	intvalue = config->getint(config, CONFIGNAME_WARNTIME);
+	warntime = (intvalue > 0 ? intvalue : CONFIG_DEFAULT_WARNTIME);
 
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
 		Frame* frame = CASTTOCLASS(Frame, slframe->data);
@@ -373,8 +386,26 @@ nanoobey_expecthb(AuthListener* parent	///<[in] @ref AuthListener object invokin
 
 			case FRAMETYPE_HBWARNTIME:
 				iframe = CASTTOCLASS(IntFrame, frame);
-				warntime = iframe->getint(iframe);
+				intvalue = iframe->getint(iframe);
+				warntime = (intvalue > 0 ? (guint64)intvalue : warntime);
 				break;
+
+			case FRAMETYPE_RSCJSON: {
+				CstringFrame*	csf = CASTTOCLASS(CstringFrame, frame);
+				ConfigContext*	cfg;
+				const char *	json;
+				json = csf->baseclass.value;
+				DEBUGMSG3("%s.%d: Got RSCJSON frame: %s", __FUNCTION__
+				,	__LINE__, json);
+				cfg = configcontext_new_JSON_string(json);
+				g_return_if_fail(cfg != NULL);
+				intvalue = cfg->getint(cfg, CONFIGNAME_TIMEOUT);
+				deadtime = (intvalue > 0 ? (guint64)intvalue : deadtime);
+				intvalue = cfg->getint(cfg, CONFIGNAME_WARNTIME);
+				warntime = (intvalue > 0 ? (guint64)intvalue : warntime);
+				UNREF(cfg);
+			}
+			break;
 
 			case FRAMETYPE_IPPORT: {
 				HbListener*	hblisten;
