@@ -1176,6 +1176,10 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	ConfigContext*	arpconfig
 	=	configcontext_new_JSON_string(
 		"{\""CONFIGNAME_INSTANCE"\":\"ARP_eth0\",\""CONFIGNAME_DEVNAME"\":\"eth0\"}");
+	ConfigContext* swconfig
+	=	configcontext_new_JSON_string(
+		"{\""CONFIGNAME_INSTANCE"\":\"SWITCH_eth0\",\""CONFIGNAME_DEVNAME"\":\"eth0\",\""CONFIGNAME_SWPROTOS"\":[\"lldp\", \"cdp\"]}");
+	
 	nano_shutting_down = FALSE;
 	BINDDEBUG(nanoprobe_main);
 	
@@ -1188,8 +1192,9 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	// To be really right, we probably ought to wait until we know our local network
 	// configuration - and start it up on all interfaces assigned addresses of global scope.
 	///@todo - eventually change switch discovery to be sensitive to our local network configuration
-	swdisc = switchdiscovery_new("switchdiscovery_eth0", "eth0", ENABLE_LLDP|ENABLE_CDP, G_PRIORITY_LOW
-	,			    g_main_context_default(), io, config, 0);
+	swdisc = switchdiscovery_new(swconfig, G_PRIORITY_LOW, g_main_context_default()
+	,	io, config, 0);
+	UNREF(swconfig);
 	arpdisc = arpdiscovery_new(arpconfig, G_PRIORITY_LOW, g_main_context_default()
 	,	io, config, 0);
 	UNREF(arpconfig);
