@@ -126,6 +126,7 @@ WINEXPORT ConfigContext*	configcontext_new_JSON_string(const char * jsontext);//
 #define	CONFIGNAME_TYPE		"type"		///< Type of resource or discovery
 #define CONFIGNAME_INSTANCE	"instance"	///< Instance name for discovery
 #define CONFIGNAME_DEVNAME	"device"	///< Name of NIC for discovery
+#define CONFIGNAME_SWPROTOS	"swprotocols"	///< List of switch protocols as an array of strings
 #define CONFIGNAME_OUTSIG	"outsig"	///< SignFrame to use to sign/verify packets
 #define CONFIGNAME_CRYPT	"crypt"		///< Frame to use for encrypting/decrypting packets
 #define CONFIGNAME_COMPRESS	"compress"	///< Frame to use for compressing/decompressing

@@ -41,8 +41,8 @@ struct _SwitchDiscovery {
 	gssize		portidlen;			/// Length of 'portid'
 };
 
-WINEXPORT SwitchDiscovery* switchdiscovery_new(const char *, const char *, guint, gint, GMainContext*,
-					       NetGSource*, ConfigContext*, gsize);
+WINEXPORT SwitchDiscovery* switchdiscovery_new(ConfigContext*swconfig, gint priority
+,	GMainContext* mcontext, NetGSource*iosrc, ConfigContext* config, gsize objsize);
 
 ///@}
 

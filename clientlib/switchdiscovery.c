@@ -30,8 +30,8 @@
 FSTATIC gboolean _switchdiscovery_discover(Discovery* self);
 FSTATIC void _switchdiscovery_finalize(AssimObj* self);
 FSTATIC gboolean _switchdiscovery_cache_info(SwitchDiscovery* self, gconstpointer pkt, gconstpointer pend);
-FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconstpointer, gconstpointer,
-                          const struct pcap_pkthdr*, const char *, gpointer selfptr);
+FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconstpointer, gconstpointer, const struct pcap_pkthdr* pkthdr, const char * capturedev, gpointer selfptr);
+FSTATIC guint _switchdiscovery_setprotocols(ConfigContext* cfg);
 ///@defgroup SwitchDiscoveryClass SwitchDiscovery class
 /// Class providing a switch discovery class for discovering network switch properties - subclass of @ref DiscoveryClass.
 /// We deal with things like CDP, LDP and so on in order to "hear" our switch/port configuration.
@@ -107,23 +107,70 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	return TRUE;
 }
 
+#define	DEFAULT_PROTOS	(ENABLE_LLDP|ENABLE_CDP)
+
+FSTATIC guint
+_switchdiscovery_setprotocols(ConfigContext* cfg)
+{
+	guint		protoval = 0;
+	GSList* 	protoarray;
+	static struct protomap {
+		const char *	protoname;
+		guint		protobit;
+	}map[] = {
+		{"lldp",	ENABLE_LLDP},
+		{"cdp",		ENABLE_CDP},
+	};
+	for (protoarray = cfg->getarray(cfg, CONFIGNAME_SWPROTOS); protoarray
+	;		protoarray=protoarray->next) {
+		ConfigValue*	elem;
+		gsize		j;
+
+		elem = CASTTOCLASS(ConfigValue, protoarray->data);
+		if (elem->valtype != CFG_STRING) {
+			continue;
+		}
+		for (j=0; j < DIMOF(map); ++j) {
+			if (strcmp(map[j].protoname, elem->u.strvalue) == 0) {
+				protoval |= map[j].protobit;
+				continue;
+			}
+		}
+
+	}
+	if (0 == protoval) {
+		return DEFAULT_PROTOS;
+	}
+	return protoval;
+
+}
+
 /// SwitchDiscovery constructor.
 /// Good for discovering switch information via pcap-enabled discovery protocols (like LLDP and CDP)
 SwitchDiscovery*
-switchdiscovery_new(const char *	instance///<[in] instance name
-,		    const char *	dev	///<[in] device to listen on
-,		    guint listenmask		///<[in] what protocols to listen to
-,		    gint priority		///<[in] source priority
-,		    GMainContext* 	mcontext///<[in/out] mainloop context
-,	            NetGSource*		iosrc	///<[in/out] I/O object
-,	            ConfigContext*	config	///<[in/out] configuration context
-,	            gsize objsize)		///<[in] object size
+switchdiscovery_new(ConfigContext*swconfig	///<[in] Switch discoveryconfiguration info
+,		 gint		priority	///<[in] source priority
+,		 GMainContext* 	mcontext	///<[in/out] mainloop context
+,	         NetGSource*	iosrc		///<[in/out] I/O object
+,	         ConfigContext*	config		///<[in/out] Global configuration
+,	         gsize		objsize)	///<[in] object size
 {
-	Discovery * dret = discovery_new(instance, iosrc, config
-	,		                 objsize < sizeof(SwitchDiscovery) ? sizeof(SwitchDiscovery) : objsize);
+	const char *	instance;	///<[in] instance name
+	const char *	dev;		///<[in] device to listen on
+	guint listenmask;		///<[in] what protocols to listen to
+	Discovery * dret;
 	SwitchDiscovery* ret;
+	g_return_val_if_fail(swconfig != NULL, NULL);
+	dev = swconfig->getstring(swconfig, CONFIGNAME_DEVNAME);
+	g_return_val_if_fail(dev != NULL, NULL);
+	instance = swconfig->getstring(swconfig, CONFIGNAME_INSTANCE);
+	g_return_val_if_fail(instance != NULL, NULL);
+	listenmask = _switchdiscovery_setprotocols(swconfig);
+	dret = discovery_new(instance, iosrc, config
+	,		objsize < sizeof(SwitchDiscovery) ? sizeof(SwitchDiscovery) : objsize);
 	g_return_val_if_fail(dret != NULL, NULL);
 	proj_class_register_subclassed(dret, "SwitchDiscovery");
+	
 
 	ret = CASTTOCLASS(SwitchDiscovery, dret);
 
