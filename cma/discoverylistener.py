@@ -128,8 +128,12 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             macaddr = str(ifinfo['address'])
             if macaddr.startswith('00:00:00:'):
                 continue
+            #print >> sys.stderr, 'CREATING NIC: MAC(%s) IF(%s)' %  (str(macaddr), str(ifname))
             newnic = self.store.load_or_create(NICNode, domain=drone.domain
             ,       macaddr=macaddr, ifname=ifname)
+            newnic.ifname = ifname # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION?? 
+            newnic.domain = drone.domain # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION?? 
+            #print >> sys.stderr, 'NIC CREATED: %s' %  (str(newnic))
             newmacs[macaddr] = newnic
             if 'default_gw' in ifinfo and primaryifname == None:
                 primaryifname = ifname
@@ -150,9 +154,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         # Create REL_nicowner relationships for the newly created NIC nodes
         for macaddr in newmacs.keys():
             nic = newmacs[macaddr]
-            if Store.is_abstract(nic):
-                self.store.relate(drone, CMAconsts.REL_nicowner, nic, {'causes': True})
-                #self.store.relate(drone, CMAconsts.REL_causes,   nic)
+            self.store.relate_new(drone, CMAconsts.REL_nicowner, nic, {'causes': True})
+            #self.store.relate(drone, CMAconsts.REL_causes,   nic)
 
         # Now newmacs contains all the current info about our NICs - old and new...
         # Let's figure out what's happening with our IP addresses...
@@ -162,6 +165,9 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         for macaddr in newmacs.keys():
             mac = newmacs[macaddr]
             ifname = mac.ifname
+            #print >> sys.stderr, 'MAC IS', str(mac)
+            #print >> sys.stderr, 'DATA IS:', str(data)
+            #print >> sys.stderr, 'IFNAME IS', str(ifname)
             iptable = data[str(ifname)]['ipaddrs']
             currips = {}
             iplist = self.store.load_related(mac, CMAconsts.REL_ipowner, IPaddrNode)

@@ -76,7 +76,7 @@ class ConfigFile:
                                     'repeat':   int, # repeat for this particular agent
                                     'warn':     int, # How long before slow discovery warning
                                     'timeout':  int, # timeout for this particular agent
-                                    'args':     {str: object},
+                                    'args':     {str, object},
                                 },
                 },
         },
@@ -111,8 +111,13 @@ class ConfigFile:
         return {
             'OUI': { # Addendum of locally-known OUIs - feel free to contribute ones you find...
                  # Python includes lots of them, but not some newer ones.
-                'b0-79-3c': 'Revolv, Inc.',
+                 # You can find the latest data here:
+                 #      http://standards.ieee.org/cgi-bin/ouisearch
                 '18-0c-ac': 'Canon, Inc.',
+                '28-d2-44': 'LCFC(HeFei) Electronics Technology Co., Ltd.',
+                'b0-79-3c': 'Revolv, Inc.',
+                'b8-ee-65': 'Liteon Technology Corporation',
+                'c8-b5-b7': 'Apple.',
                 'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
                 'd8-50-e6': 'ASUSTek COMPUTER INC.',
         },
