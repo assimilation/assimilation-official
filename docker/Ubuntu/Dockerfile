@@ -5,5 +5,5 @@ RUN apt-get -y install python python-flask debianutils lsof python-gi python-net
 RUN echo "about to build another new version (v6)"
 RUN pip install testify py2neo ctypesgen
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin /root/assimilation/src && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src
-RUN cd /root/assimilation/bin; cmake ../src && make install && ldconfig /usr/lib/x86_60-linux-gnu/assimilation
+RUN cd /root/assimilation/bin; cmake ../src && make install && ldconfig /usr/lib/x86_64-linux-gnu/assimilation
 #ENV BROKENDNS true
