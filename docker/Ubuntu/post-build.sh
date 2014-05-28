@@ -6,4 +6,4 @@ sleep 30
 kill $!
 /etc/init.d/neo4j-service status
 cd /root/assimilation/src
-testify cma.tests
+testify -v cma.tests
