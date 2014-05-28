@@ -5,5 +5,6 @@ wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-co
 sleep 30
 kill $!
 /etc/init.d/neo4j-service status
+ldconfig /usr/lib/x86_60-linux-gnu/assimilation
 cd /root/assimilation/src
 testify -v cma.tests
