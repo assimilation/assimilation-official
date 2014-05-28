@@ -1656,7 +1656,9 @@ def dump_c_objects():
     'Dump out live objects to help locate memory leaks'
     print >> sys.stderr, 'GC Garbage: [%s]' % str(gc.garbage)
     print >> sys.stderr, '***************LOOKING FOR pyAssimObjs***********'
+    get_referrers = True
     cobjcount = 0
+    gc.collect()
     for obj in gc.get_objects():
         if isinstance(obj, (pyAssimObj, pyCstringFrame)):
             cobjcount += 1
@@ -1664,7 +1666,10 @@ def dump_c_objects():
             if hasattr(obj, '_Cstruct'):
                 cobj = ('0x%x' % addressof(getattr(obj, '_Cstruct')[0]))
             print >> sys.stderr, ('FOUND C object class(%s): %s -> %s'
-            %   (obj.__class__.__name__, str(obj)[:120], cobj))
+            %   (obj.__class__.__name__, str(obj)[:512], cobj))
+            if get_referrers:
+                for referrer in gc.get_referrers(obj):
+                    print >> sys.stderr, '++++Referred to by(%s): %s' % (type(referrer), str(referrer)[:512])
 
     print >> sys.stderr, ('%d python wrappers referring to %d C-objects'
     %   (cobjcount, proj_class_live_object_count()))

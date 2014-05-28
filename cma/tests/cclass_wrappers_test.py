@@ -59,7 +59,7 @@ def assert_no_dangling_Cclasses():
     if count > WorstDanglingCount and CheckForDanglingClasses:
         WorstDanglingCount = count
         if AssertOnDanglingClasses:
-            proj_class_dump_live_objects()
+            dump_c_objects()
             raise AssertionError, "Dangling C-class objects - %d still around" % count
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
