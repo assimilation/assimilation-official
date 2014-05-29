@@ -22,12 +22,11 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+FROM ubuntu:latest
 RUN apt-get -y install gcc cmake make pkg-config libglib2.0-dev resource-agents mercurial wget libpcap0.8-dev
 RUN apt-get -y install libglib2.0 libpcap0.8 python-pip
 RUN pip install ctypesgen
-RUN echo "about to build another new version (v7)"
-RUN echo $(pwd)
-RUN cd /root && mkdir -p assimilation/src assimilation/bin assimilation/src && hg clone http://hg.linux-ha.org/assimilation assimilation/src
+RUN cd /root && mkdir -p assimilation/src assimilation/bin assimilation/src && hg clone -r @VERSION@ http://hg.linux-ha.org/assimilation assimilation/src
 RUN cd /root/assimilation/bin; cmake ../src && make install
 RUN cd /root/assimilation/bin; cpack
 RUN ldconfig /usr/lib/x86_64-linux-gnu/assimilation
