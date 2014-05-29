@@ -27,13 +27,6 @@
 #
 TMP=$(mktemp)
 trap 'rm -fr ${TMP}' 0
-sudo docker.io build . | tee $TMP
-lastline=$(tail -1 $TMP)
-set - ${lastline}
-case $1 in
-    [Ss]uccessfully);;
-    *)     echo 'Docker build failed.'; exit 1;;
-esac
-lastdock=$3
-docker.io run -i -t -v /dev/fuse:/dev/fuse -v /dev/log:/dev/log "$3" /bin/bash /root/assimilation/src/docker/Ubuntu/post-build.sh
-
+set -e 
+sudo docker.io build -t nanoprobe - < Dockerfile.nanoprobe-only | tee $TMP
+sudo docker.io run -i -t -v /dev/fuse:/dev/fuse -v /dev/log:/dev/log nanoprobe /bin/bash /root/assimilation/src/docker/Ubuntu/post-build.sh
