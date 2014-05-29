@@ -25,7 +25,7 @@
 #
 apt-get -y install python-flask debianutils lsof python-gi python-netaddr python-pip valgrind
 apt-get -y install openjdk-7-jre
-pip install testify
+pip install py2neo testify
 wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j
 (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
 # The next command hangs - have no idea why...
