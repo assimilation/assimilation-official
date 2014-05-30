@@ -43,12 +43,12 @@ echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d
 apt-get -y update
 apt-get -y install neo4j
 ldconfig /usr/lib/*/assimilation
-neo4j start
+service neo4j start
 cd /root/assimilation/src
 testify -v cma.tests
 cleanneo
 cd /root/assimilation/bin
 dpkg --install assimilation-cma-*-all.deb
-neo4j start
+service neo4j start
 #/usr/sbin/nanoprobe --dynamic # Don't really want this - it will clutter the database...
 /usr/sbin/cma --foreground
