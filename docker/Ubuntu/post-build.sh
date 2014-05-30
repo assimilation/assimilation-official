@@ -40,8 +40,8 @@ pip install py2neo testify
 wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 # Create an Apt sources.list file
 echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
-apt-get update
-apt-get install neo4j
+apt-get -y update
+apt-get -y install neo4j
 ldconfig /usr/lib/*/assimilation
 neo4j start
 cd /root/assimilation/src
