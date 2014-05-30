@@ -49,7 +49,7 @@ cd /root/assimilation/src
 testify -v cma.tests
 cleanneo
 cd /root/assimilation/bin
-dpkg install assimilation-cma-*-all.deb
+dpkg --install assimilation-cma-*-all.deb
 startneo
 #/usr/sbin/nanoprobe --dynamic # Don't really want this - it will clutter the database...
 /usr/sbin/cma --foreground

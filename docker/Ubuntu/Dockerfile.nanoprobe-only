@@ -29,5 +29,5 @@ RUN pip install ctypesgen
 RUN cd /root && mkdir -p assimilation/src assimilation/bin assimilation/src && hg clone -r @VERSION@ http://hg.linux-ha.org/assimilation assimilation/src
 RUN cd /root/assimilation/bin; cmake ../src && make install
 RUN cd /root/assimilation/bin; cpack
-RUN cd /root/assimilation/bin; dpkg install assimilation-nanoprobe-*-*.deb
+RUN cd /root/assimilation/bin; dpkg --install assimilation-nanoprobe-*-*.deb
 RUN ldconfig /usr/lib/x86_64-linux-gnu/assimilation
