@@ -25,31 +25,30 @@
 #
 NEO=/opt/neo4j
 NEODATA=$NEO/data
-startneo() {
-    # The next command hangs - have no idea why...
-    /etc/init.d/neo4j-service start &
-    sleep 10
-    kill $!
-    /etc/init.d/neo4j-service status
-}
 cleanneo() {
     /etc/init.d/neo4j-service stop
     rm -fr $NEODATA/graph.db/* $NEODATA/graph.db/keystore $NEODATA/log/* $NEODATA/rrd $NEODATA/neo4j-service.pid
 }
 
 set -e
+neoversion=stable
+neoversion=testing
 apt-get -y install python-flask debianutils lsof python-gi python-netaddr python-pip valgrind
 apt-get -y install openjdk-7-jre
 pip install py2neo testify
-wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j
-(echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
+# Import the Neo4j signing key
+wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
+# Create an Apt sources.list file
+echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
+apt-get update
+apt-get install neo4j
 ldconfig /usr/lib/*/assimilation
-startneo
+neo4j start
 cd /root/assimilation/src
 testify -v cma.tests
 cleanneo
 cd /root/assimilation/bin
 dpkg --install assimilation-cma-*-all.deb
-startneo
+neo4j start
 #/usr/sbin/nanoprobe --dynamic # Don't really want this - it will clutter the database...
 /usr/sbin/cma --foreground
