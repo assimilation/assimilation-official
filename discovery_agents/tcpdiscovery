@@ -193,7 +193,7 @@ logserver() {
 }
 
 gather_tcp_netstatinfo() {
-    flags=-atnp
+    flags=-atnpW
     netstat $flags |
     while
         read proto rcvq sendq localaddr foreignaddr state pid_prog
