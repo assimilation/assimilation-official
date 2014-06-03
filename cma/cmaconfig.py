@@ -76,7 +76,7 @@ class ConfigFile(object):
                                     'repeat':   int, # repeat for this particular agent
                                     'warn':     int, # How long before slow discovery warning
                                     'timeout':  int, # timeout for this particular agent
-                                    'args':     {str, object},
+                                    'args':     {str: object},
                                 },
                 },
         },
