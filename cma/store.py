@@ -40,7 +40,7 @@ from assimevent import AssimEvent
 # R0902: Too many instance attributes (17/10)
 # R0904: Too many public methods (27/20)
 # pylint: disable=R0902,R0904
-class Store:
+class Store(object):
     '''This 'Store' class is a transaction-oriented implementation of Nigel Small's
     OGM (Object-Graph-Mapping) API - with a few extensions and a few things not implemented.
 
@@ -95,7 +95,7 @@ class Store:
     node.  Those 'constructors' can be factory functions that construct the right kind
     of object for the type of node involved.
 
-    Such constructors are called with the arguments which correspond to the Node 
+    Such constructors are called with the arguments which correspond to the Node
     properties - but only those which they will legally take (according to python
     introspection).  It is assumed that argument names correspond to attribute
     (Node property) names.
@@ -159,7 +159,7 @@ class Store:
         self.node_update_count = 0
         self.node_deletion_count = 0
         self.node_separate_count = 0
-        
+
 
     def __str__(self):
         'Render our Store object as a string for debugging'
@@ -320,7 +320,7 @@ class Store:
         '''
         if not cls.__name__ in self.classkeymap:
             print >> sys.stderr, (self.classkeymap)
-            raise ValueError("Class [%s] does not have a known index [%s]" 
+            raise ValueError("Class [%s] does not have a known index [%s]"
             %   (cls.__name__, self.classkeymap))
         subj = self.callconstructor(cls, clsargs)
         (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=subj)
@@ -753,7 +753,7 @@ class Store:
             (subj, node) = pair
             Store._update_node_from_obj(subj)
             subj.__store_batchindex = self.batchindex
-            #print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node' 
+            #print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node'
             #%   (self.batchindex, str(node)))
             self.batchindex += 1
             self._bump_stat('nodecreate')
@@ -1024,7 +1024,7 @@ if __name__ == "__main__":
         store.dump_clients()
         print >> sys.stderr, ('store:', store)
         assert store.transaction_pending
-        store.commit() 
+        store.commit()
         assert not store.transaction_pending
         assert fred.a == 52
         assert fred.b == 2
@@ -1047,7 +1047,7 @@ if __name__ == "__main__":
         assert newnode.x == 'malcolm'
         store.separate(fred, 'WILLBEA')
         assert store.transaction_pending
-        store.commit() 
+        store.commit()
 
         # Test a simple cypher query...
         query = neo4j.CypherQuery(ourdb, "START d=node:Drone('*:*') RETURN d")
@@ -1066,7 +1066,7 @@ if __name__ == "__main__":
         store.refresh(fred)
         store.delete(fred)
         assert store.transaction_pending
-        store.commit() 
+        store.commit()
 
         # When we delete an object from the database, the  python object
         # is disconnected from the database...

@@ -99,7 +99,10 @@ class JSONtree(object):
         if thing is None:
             return 'null'
 
+        return self._jsonstr_other(thing)
 
+    def _jsonstr_other(self, thing):
+        'Do our best to make JSON out of a "normal" python object - the final "other" case'
         ret = '{'
         comma = ''
         attrs = thing.__dict__.keys()

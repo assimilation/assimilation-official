@@ -32,7 +32,7 @@ from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD
 ,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL    \
 ,   CONFIGNAME_TIMEOUT ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD               \
 ,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD                                                  \
-,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO 
+,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
@@ -175,7 +175,7 @@ class MonitorAction(GraphNode):
 
         Parameters
         ----------
-        origaddr: pyNetAddr 
+        origaddr: pyNetAddr
             address where monitoring action originated
         monmsgobj: pyConfigContext
             object containing the monitoring message
@@ -196,7 +196,7 @@ class MonitorAction(GraphNode):
 
         Parameters
         ----------
-        origaddr: pyNetAddr 
+        origaddr: pyNetAddr
             address where monitoring action originated
         monmsgobj: pyConfigContext
             object containing the monitoring message
@@ -272,7 +272,7 @@ class MonitorAction(GraphNode):
         return str(pyConfigContext(init=json))
 
 
-class MonitoringRule:
+class MonitoringRule(object):
     '''Abstract base class for implementing monitoring rules
 
     This particular class implements it for simple regex matching on arbitrary regexes
@@ -372,7 +372,7 @@ class MonitoringRule:
         # We now have a matching set of values to give our monitoring constructor
         return self.constructaction(values, graphnodes)
 
-  
+
 
     def constructaction(self, values, graphnodes):
         '''Return a tuple consisting of a tuple as noted:

@@ -32,7 +32,7 @@ from AssimCclasses import pyAssimObj, dump_c_objects
 import os, sys, traceback
 import gc
 
-class MessageDispatcher:
+class MessageDispatcher(object):
     'We dispatch incoming messages where they need to go.'
     def __init__(self, dispatchtable):
         'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
@@ -49,7 +49,7 @@ class MessageDispatcher:
         self.dispatchcount += 1
         CMAdb.transaction = Transaction()
         # W0703 == Too general exception catching...
-        # pylint: disable=W0703 
+        # pylint: disable=W0703
         try:
             if fstype in self.dispatchtable:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
@@ -73,60 +73,70 @@ class MessageDispatcher:
                     CMAdb.log.debug('No database changes this time')
                 CMAdb.store.abort()
             if (self.dispatchcount % 100) == 1:
-                gccount = gc.get_count()
-                gctotal = 0
-                for elem in gccount:
-                    gctotal += elem
-                CMAdb.log.info('Total allocated Objects: %s. gc levels: %s'
-                %   (gctotal, str(gccount)))
-                cobjcount = proj_class_live_object_count()
-                CMAdb.log.info('Total/max allocated C-Objects: %s/%s'
-                %   (cobjcount, proj_class_max_object_count()))
-                if gctotal < 20 and cobjcount > 500:
-                    dump_c_objects()
-                
-                if CMAdb.debug:
-                    # Another very expensive set of debug-only calls
-                    assimcount = 0
-                    for obj in gc.get_objects():
-                        if isinstance(obj, (pyAssimObj)):
-                            assimcount += 1
-                    CMAdb.log.info('Total allocated C-Objects: %s' % assimcount)
-        except Exception as e:
-            # Darn!  Got an exception - let's try and put everything useful into the
-            #   logs in a legible way
-            (unused_etype, unused_evalue, trace) = sys.exc_info()
-            unused_etype = unused_etype # make pylint happy
-            unused_evalue = unused_evalue # make pylint happy
-            tblist = traceback.extract_tb(trace, 20)
-            fstypename = FrameSetTypes.get(fstype)[0]
+                self._check_memory_usage()
 
-            print >> sys.stderr, ('MessageDispatcher exception [%s] occurred' % (e))
-            CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
-            ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
-            lines = str(frameset).splitlines()
-            CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
-            for line in lines:
-                CMAdb.log.info(line.expandtabs())
-            CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========'
-            %   (fstypename, e))
-            for tb in tblist:
-                (filename, line, funcname, text) = tb
-                filename = os.path.basename(filename)
-                CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
-            CMAdb.log.info('======== End %s Message %s Exception Traceback ========'
-            %   (fstypename, e))
-            if CMAdb.store is not None:
-                CMAdb.log.critical("Aborting Neo4j transaction %s" % CMAdb.store)
-                CMAdb.store.abort()
-            if CMAdb.transaction is not None:
-                CMAdb.log.critical("Aborting network transaction %s" % CMAdb.transaction.tree)
-                CMAdb.transaction = None
-            
+        except Exception as e:
+            self._process_exception(e, origaddr, frameset)
         # We want to ack the packet even in the failed case - retries are unlikely to help
         # and we need to avoid getting stuck in a loop retrying it forever...
         self.io.ackmessage(origaddr, frameset)
 
+    @staticmethod
+    def _process_exception(e, origaddr, frameset):
+        'Handle an exception from our message dispatcher'
+        # Darn!  Got an exception - let's try and put everything useful into the
+        #   logs in a legible way
+        trace = sys.exc_info()[2]
+        # we ignore the etype and evalue returns from sys.exc_info
+        tblist = traceback.extract_tb(trace, 20)
+        fstype = frameset.get_framesettype()
+        fstypename = FrameSetTypes.get(fstype)[0]
+
+        print >> sys.stderr, ('MessageDispatcher exception [%s] occurred' % (e))
+        CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
+        ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
+        lines = str(frameset).splitlines()
+        CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
+        for line in lines:
+            CMAdb.log.info(line.expandtabs())
+        CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========'
+        %   (fstypename, e))
+        for tb in tblist:
+            (filename, line, funcname, text) = tb
+            filename = os.path.basename(filename)
+            CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
+        CMAdb.log.info('======== End %s Message %s Exception Traceback ========'
+        %   (fstypename, e))
+        if CMAdb.store is not None:
+            CMAdb.log.critical("Aborting Neo4j transaction %s" % CMAdb.store)
+            CMAdb.store.abort()
+        if CMAdb.transaction is not None:
+            CMAdb.log.critical("Aborting network transaction %s" % CMAdb.transaction.tree)
+            CMAdb.transaction = None
+
+
+    @staticmethod
+    def _check_memory_usage():
+        'Check to see if we have too many objects outstanding right now'
+        gccount = gc.get_count()
+        gctotal = 0
+        for elem in gccount:
+            gctotal += elem
+        CMAdb.log.info('Total allocated Objects: %s. gc levels: %s'
+        %   (gctotal, str(gccount)))
+        cobjcount = proj_class_live_object_count()
+        CMAdb.log.info('Total/max allocated C-Objects: %s/%s'
+        %   (cobjcount, proj_class_max_object_count()))
+        if gctotal < 20 and cobjcount > 500:
+            dump_c_objects()
+
+        if CMAdb.debug:
+            # Another very expensive set of debug-only calls
+            assimcount = 0
+            for obj in gc.get_objects():
+                if isinstance(obj, (pyAssimObj)):
+                    assimcount += 1
+            CMAdb.log.info('Total allocated C-Objects: %s' % assimcount)
 
     def setconfig(self, io, config):
         'Save our configuration away.  We need it before we can do anything.'

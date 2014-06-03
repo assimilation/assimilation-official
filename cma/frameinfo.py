@@ -9,57 +9,57 @@ import re
 
 #pylint: disable=R0903
 
-class pyFrame:
+class pyFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pyAddrFrame:
+class pyAddrFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pySignFrame:
+class pySignFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pySeqnoFrame:
+class pySeqnoFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pyIntFrame:
+class pyIntFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pyCstringFrame:
+class pyCstringFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pyNVpairFrame:
+class pyNVpairFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pyIpPortFrame:
+class pyIpPortFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pyCryptFrame:
+class pyCryptFrame(object):
     'Placeholder bootstrapping class'
     def __init__(self):
         pass
 
-class pyCompressFrame:
+class pyCompressFrame(object):
     'Placeholder class'
     def __init__(self):
         pass
 
-class FrameTypes:
+class FrameTypes(object):
     'Class defining the universe of FrameSets - including code to generate a C header file'
     fileheader = \
 '''
@@ -95,7 +95,7 @@ class FrameTypes:
   If an encryption frame is present, it must be the  frame in the frameset.
   If a compression frame is present, it must occur after the encryption frame
   if present, or after the signature frame, if there is no encryption frame.
- 
+
   The final frame in a frameset must be an End frame (which will be
   added automatically by the @ref FrameSet marshalling classes).
 @}
@@ -308,7 +308,7 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
         data = intframetypes[i]
         key = data[1]
         strframetypes[key] = (i, data[0], key, data[1], data[2])
-    
+
     def __init__(self):
         pass
     @staticmethod
@@ -343,7 +343,7 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
             %	(ourtuple[1], i, ourtuple[2], Cclassname))
         f.write('///@}\n')
         f.write('///@}\n')
-            
+
         # Create the frame type map - mapping frame types to function names in the 'C' code.
         f.write('#define	FRAMETYPEMAP	{\t\t\t\t\t\\\n')
         for i in l:
@@ -357,7 +357,7 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
 for s in FrameTypes.strframetypes.keys():
     setattr(FrameTypes, s, FrameTypes.strframetypes[s][0])
 
-class FrameSetTypes:
+class FrameSetTypes(object):
     'Class defining the universe of FrameSets - including code to generate a C header file'
     _fileheader = \
 '''#ifndef _FRAMESETTYPES_H
@@ -463,13 +463,13 @@ class FrameSetTypes:
             #Cobjname = "frameset_listener_" + tup[0].lower()
             #f.write('        {FRAMESETTYPE_%s,\t/*%d*/ %s},	\\\n' % (tup[0], i, Cobjname))
         #f.write('}\n')
-            
+
         f.write('#endif /* _FRAMESETTYPES_H */\n')
 
 # Create conventional class.DEFINENAME attributes
 for s in FrameSetTypes.strframetypes.keys():
     setattr(FrameSetTypes, s, FrameSetTypes.strframetypes[s][0])
-     
+
 
 if __name__ == "__main__":
     import sys

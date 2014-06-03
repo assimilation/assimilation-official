@@ -42,7 +42,7 @@ class HbRing(GraphNode):
         '''Constructor for a heartbeat ring.
         '''
         GraphNode.__init__(self, domain=CMAdb.globaldomain)
-        if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING: 
+        if ringtype < HbRing.SWITCH or ringtype > HbRing.THEONERING:
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
         self.ringtype = ringtype
         self.name = str(name)
@@ -56,7 +56,7 @@ class HbRing(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of decreasing significance'
         return ['name']
-        
+
 
     def post_db_init(self):
         GraphNode.post_db_init(self)
@@ -110,7 +110,7 @@ class HbRing(GraphNode):
                 CMAdb.log.warning("Drone %s is already a member of this ring [%s]"
                 " - removing and re-adding." % (drone, self))
                 self.leave(drone)
-        
+
         # Create a 'ringmember' relationship to this drone
         CMAdb.store.relate(self, self.ourreltype, drone)
         # Should we keep a 'ringip' relationship for this drone?
@@ -133,7 +133,7 @@ class HbRing(GraphNode):
             CMAdb.store.relate(drone, self.ournexttype, self._insertpoint1)
             CMAdb.store.relate(self._insertpoint1, self.ournexttype, drone)
             if CMAdb.debug:
-                CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s' 
+                CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s'
                 %       (str(drone), str(self), drone.port))
             drone.start_heartbeat(self, self._insertpoint1)
             self._insertpoint1.start_heartbeat(self, drone)
@@ -141,7 +141,7 @@ class HbRing(GraphNode):
             self._insertpoint1 = drone
             #print >>sys.stderr, 'RING2 IS NOW:', str(self)
             return
-        
+
         # Two or more nodes previously
         nextnext = None
         for nextnext in CMAdb.store.load_related(self._insertpoint2, self.ournexttype, Drone):
@@ -184,7 +184,7 @@ class HbRing(GraphNode):
         'Remove a drone from this heartbeat Ring.'
         #print >> sys.stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
         #ringlist = self.members_ring_order()
-        #print >>sys.stderr, 'RING IN ORDER:' 
+        #print >>sys.stderr, 'RING IN ORDER:'
         #for elem in ringlist:
             #print >>sys.stderr, 'RING NODE: %s' % elem
 
@@ -247,7 +247,7 @@ class HbRing(GraphNode):
         ## FIXME - There's a cypher query that will return these all in one go
         # START Drone=node:Drone(Drone="drone000001")
         # MATCH Drone-[:RingNext_The_One_Ring*]->NextDrone
-        # RETURN NextDrone.designation, NextDrone 
+        # RETURN NextDrone.designation, NextDrone
 
         if self._insertpoint1 is None:
             #print >> sys.stderr, 'NO INSERTPOINT1'
