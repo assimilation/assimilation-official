@@ -67,7 +67,7 @@ class AssimEventObserver(object):
         '''
         self.constraints = constraints
         AssimEvent.registerobserver(self)
-        
+
     def notifynewevent(self, event):
         '''We get called when a new AssimEvent has occured that we might want to observe.
         But we are an abstract base class so we error out with NotImplementedError every time!
@@ -111,7 +111,7 @@ class AssimEventObserver(object):
                 if hasattr(event.associatedobject, attr):
                     value = getattr(event.associatedobject, attr)
         return value
-        
+
 
 class FIFOEventObserver(AssimEventObserver):
     '''Objects in this class send JSON messages to a FIFO when events they are interested in

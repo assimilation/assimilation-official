@@ -78,7 +78,7 @@ import traceback
 import sys, gc
 
 #pylint: disable=R0903
-class cClass:
+class cClass (object):
     'Just a handy collection of POINTER() objects'
     def __init__(self):
         pass
@@ -125,7 +125,7 @@ def CCunref(obj):
         base = base.baseclass
     base.unref(obj)
 
-class pySwitchDiscovery:
+class pySwitchDiscovery(object):
     '''
     Class for interpreting switch discovery data via LLDP or CDP
     Currently only LLDP is fully implemented.
@@ -280,7 +280,7 @@ class pySwitchDiscovery:
             else:
                 (tlvname, isswitchinfo)  = pySwitchDiscovery.lldpnames[tlvtype]
 
-            if (tlvtype == LLDP_TLV_PORT_DESCR or tlvtype == LLDP_TLV_SYS_NAME or 
+            if (tlvtype == LLDP_TLV_PORT_DESCR or tlvtype == LLDP_TLV_SYS_NAME or
                 tlvtype == LLDP_TLV_SYS_DESCR): #########################################
                 value = string_at(tlvptr, tlvlen)
 
@@ -334,8 +334,8 @@ class pySwitchDiscovery:
             this = get_lldptlv_next(this, pktend)
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
-        
-        
+
+
     @staticmethod
     def _decode_cdp(host, interface, wallclock, pktstart, pktend):
         'Decode CDP packet into a JSON discovery packet'
@@ -359,10 +359,10 @@ class pySwitchDiscovery:
         pktend = pktend
         return metadata
 
-    
 
 
-class pyAssimObj:
+
+class pyAssimObj(object):
     'The base object for all the C-class objects'
     def __init__(self, Cstruct=None):
         'Create a base pyAssimObj object'
@@ -449,7 +449,7 @@ class pyNetAddr(pyAssimObj):
                 cs[0].setport(cs, port)
             pyAssimObj.__init__(self, Cstruct=cs)
             return
-        
+
         alen = len(addrstring)
         addr = create_string_buffer(alen)
         #print >> sys.stderr, "ADDRTYPE:", type(addr)
@@ -602,7 +602,7 @@ class pyFrame(pyAssimObj):
         while (type(base)is not Frame):
             base = base.baseclass
         return base.length
-   
+
     def framevalue(self):
         'Return a C-style pointer to the underlying raw TLV data (if any)'
         base = self._Cstruct[0]
@@ -842,7 +842,7 @@ class pyIntFrame(pyFrame):
         if Cstruct is None:
             Cstruct = intframe_new(frametype, intbytes)
         if not Cstruct:
-            raise ValueError, ("Invalid integer size (%d) in pyIntFrame constructor" % intbytes)
+            raise ValueError("Invalid integer size (%d) in pyIntFrame constructor" % intbytes)
         pyFrame.__init__(self, frametype, Cstruct=Cstruct)
         if initval is not None:
             self.setint(initval)
@@ -888,7 +888,7 @@ class pySeqnoFrame(pyFrame):
         if Cstruct is None:
             Cstruct = seqnoframe_new(frametype, 0)
         if not Cstruct:
-            raise ValueError, "Constructor error for PySeqnoFrame()"
+            raise ValueError("Constructor error for PySeqnoFrame()")
         pyFrame.__init__(self, frametype, Cstruct=Cstruct)
         if initval is not None:
             self.setqid(initval[0])
@@ -931,7 +931,7 @@ class pySignFrame(pyFrame):
         if Cstruct is None:
             Cstruct = signframe_new(gchecksumtype, 0)
         if not Cstruct:
-            raise ValueError, ("Invalid checksum type (%s) for PySignFrame()" % gchecksumtype)
+            raise ValueError("Invalid checksum type (%s) for PySignFrame()" % gchecksumtype)
         pyFrame.__init__(self, initval=FRAMETYPE_SIG, Cstruct=Cstruct)
 
 class pyNVpairFrame(pyFrame):
@@ -942,7 +942,7 @@ class pyNVpairFrame(pyFrame):
         if Cstruct is None:
             Cstruct = nvpairframe_new(frametype, name, value, 0)
         if not Cstruct:
-            raise ValueError, ("Invalid NVpair initializer for pyNVPairFrame()")
+            raise ValueError("Invalid NVpair initializer for pyNVPairFrame()")
         pyFrame.__init__(self, initval=frametype, Cstruct=Cstruct)
 
     def name(self):
@@ -952,7 +952,7 @@ class pyNVpairFrame(pyFrame):
     def value(self):
         'Return the name portion of a pyNVpairFrame'
         return string_at(self._Cstruct[0].value)
-        
+
 
 
 #pylint: disable=R0921
@@ -1005,7 +1005,7 @@ class pyFrameSet(pyAssimObj):
     def getpacket(self):
         'Return the constructed packet for this pyFrameSet'
         if not self._Cstruct[0].packet:
-            raise ValueError, "No packet constructed for frameset"
+            raise ValueError("No packet constructed for frameset")
         return (self._Cstruct[0].packet, self._Cstruct[0].pktend)
 
     def __len__(self):
@@ -1045,7 +1045,7 @@ class pyFrameSet(pyAssimObj):
                 print >> sys.stderr                                                 \
                 ,  "OOPS! Constructed %d byte frame from iter() is not valid [%s]" \
                 %       (yieldval.framelen(), str(yieldval))
-                raise ValueError("Constructed %d byte frame from iter() is not valid [%s]" 
+                raise ValueError("Constructed %d byte frame from iter() is not valid [%s]"
                 %   (yieldval.framelen(), str(yieldval)))
             #print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
             yield yieldval
@@ -1319,7 +1319,7 @@ class pyConfigContext(pyAssimObj):
             return alternative
         gotten = prefixvalue.deepget(suffix, alternative)
         return gotten
-        
+
     def has_key(self, key):
         'return True if it has the given key'
         return self.__contains__(key)
@@ -1564,7 +1564,7 @@ class pyNetIO(pyAssimObj):
         while (not hasattr(base, 'ackmessage')):
             base = base.baseclass
         base.ackmessage(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
-        
+
     def closeconn(self, qid, destaddr):
         'Close (reset) our connection to this address'
 
@@ -1631,7 +1631,7 @@ class pyReliableUDP(pyNetIOudp):
             raise ValueError("Invalid parameters to pyReliableUDP constructor")
         pyNetIOudp.__init__(self, config, packetdecoder, Cstruct=Cstruct)
 
-class CMAlib:
+class CMAlib(object):
     'Miscellaneous functions to create certain useful pyFrameSets'
 
     def __init__(self):

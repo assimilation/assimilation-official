@@ -41,7 +41,7 @@ class Drone(SystemNode):
     '''Everything about Drones - endpoints that run our nanoprobes.
 
     There are two Cypher queries that get initialized later:
-    Drone.IPownerquery_1: Given an IP address, return what SystemNode (probably Drone) that 'owns' it.
+    Drone.IPownerquery_1: Given an IP address, return th SystemNode (probably Drone) 'owning' it.
     Drone.OwnedIPsQuery:  Given a Drone object, return all the IPaddrNodes that it 'owns'
     '''
     _JSONprocessors = None
@@ -50,7 +50,7 @@ class Drone(SystemNode):
     IPownerquery_1_txt = '''START n=node:IPaddrNode({ipaddr})
                             MATCH n<-[:%s]-()<-[:%s]-drone
                             return drone LIMIT 1'''
-    OwnedIPsQuery_txt = '''START d=node({droneid}) 
+    OwnedIPsQuery_txt = '''START d=node({droneid})
                            MATCH d-[:%s]->()-[:%s]->ip
                            return ip'''
 
@@ -102,8 +102,8 @@ class Drone(SystemNode):
         return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
         ,       params=params)]
 
-        
-   
+
+
     def logjson(self, origaddr, jsontext):
         'Process and save away JSON discovery data'
         assert CMAdb.store.has_node(self)
@@ -128,7 +128,7 @@ class Drone(SystemNode):
                     %       (dtype, self.designation))
             else:
                 if CMAdb.debug:
-                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring' 
+                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring'
                     %       (dtype, self.designation))
                 return
 
@@ -166,7 +166,7 @@ class Drone(SystemNode):
         # For TheOneRing, we want their primary IP address.
         ring = ring
         return self.primary_ip_addr
-    
+
 
     #Current implementation does not use 'self'
     #pylint: disable=R0201
@@ -246,7 +246,7 @@ class Drone(SystemNode):
             partner2addr = None
         # Stop sending the heartbeat messages between these (former) peers
         if CMAdb.debug:
-            CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' % 
+            CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' %
                 (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
         self._send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
 
@@ -323,7 +323,7 @@ class Drone(SystemNode):
             if CMAdb.debug:
                 CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]'
                 %   (designation, desigstr, type(designation)))
-           
+
         if CMAdb.debug:
             CMAdb.log.debug("DESIGNATION2 (%s) = %s" % (designation, desigstr))
             CMAdb.log.debug("QUERY (%s) = %s" % (designation, query))

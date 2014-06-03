@@ -40,7 +40,7 @@ from AssimCclasses import pyNetAddr
 
 from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, GraphNode
 
-class DiscoveryListener:
+class DiscoveryListener(object):
     '''Class for listening to discovery packets
     We support three different categories/priorities of discovery actions
     as documented below:
@@ -75,7 +75,7 @@ class DiscoveryListener:
     def processpkt(self, drone, srcaddr, json):
         'A desired packet has been received - process it'
         raise NotImplementedError('Abstract class - processpkt()')
-    
+
 
 @Drone.add_json_processor
 class MonitoringAgentDiscoveryListener(DiscoveryListener):
@@ -114,7 +114,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         data = jsonobj['data'] # The data portion of the JSON message
 
         currmacs = {}
-        # Get our current list of NICs 
+        # Get our current list of NICs
         iflist = self.store.load_related(drone, CMAconsts.REL_nicowner, NICNode)
         for nic in iflist:
             currmacs[nic.macaddr] = nic
@@ -131,8 +131,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             #print >> sys.stderr, 'CREATING NIC: MAC(%s) IF(%s)' %  (str(macaddr), str(ifname))
             newnic = self.store.load_or_create(NICNode, domain=drone.domain
             ,       macaddr=macaddr, ifname=ifname)
-            newnic.ifname = ifname # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION?? 
-            newnic.domain = drone.domain # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION?? 
+            newnic.ifname = ifname # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION??
+            newnic.domain = drone.domain # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION??
             #print >> sys.stderr, 'NIC CREATED: %s' %  (str(newnic))
             newmacs[macaddr] = newnic
             if 'default_gw' in ifinfo and primaryifname == None:
@@ -283,9 +283,9 @@ class TCPDiscoveryListener(DiscoveryListener):
                     print >> sys.stderr, ('TRYING TO DELETE node %s'
                     %   (procname))
                     for newprocname in newprocs:
-                        print >> sys.stderr, ('*** new procs: proc.procname %s' 
+                        print >> sys.stderr, ('*** new procs: proc.procname %s'
                         %   (str(newprocname)))
-                    print >> sys.stderr, ('*** DELETING proc: proc.procname %s: proc=%s' 
+                    print >> sys.stderr, ('*** DELETING proc: proc.procname %s: proc=%s'
                     %   (str(procname), str(proc)))
                     self.store.delete(proc)
 

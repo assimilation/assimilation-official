@@ -32,7 +32,7 @@ from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pySwitchD
 from monitoring import MonitorAction
 from assimevent import AssimEvent
 
-class DispatchTarget:
+class DispatchTarget(object):
     '''Base class for handling incoming FrameSets.
     This base class is designated to handle unhandled FrameSets.
     All it does is print that we received them.
@@ -49,9 +49,9 @@ class DispatchTarget:
         'Dummy dispatcher for base class DispatchTarget - for unhandled pyFrameSets'
         self = self # Make pylint happy...
         fstype = frameset.get_framesettype()
-        CMAdb.log.info("Received unhandled FrameSet of type [%s] from [%s]" 
+        CMAdb.log.info("Received unhandled FrameSet of type [%s] from [%s]"
         %     (FrameSetTypes.get(fstype)[0], str(origaddr)))
-        print ("Received unhandled FrameSet of type [%s] from [%s]" 
+        print ("Received unhandled FrameSet of type [%s] from [%s]"
         %     (FrameSetTypes.get(fstype)[0], str(origaddr)))
         for frame in frameset.iter():
             frametype = frame.frametype()
@@ -79,7 +79,7 @@ class DispatchTarget:
         return classtoregister
 
 
-        
+
 @DispatchTarget.register
 class DispatchHBDEAD(DispatchTarget):
     'DispatchTarget subclass for handling incoming HBDEAD FrameSets.'
@@ -162,7 +162,7 @@ class DispatchSTARTUP(DispatchTarget):
                 #% (json, len(json), frame.framelen())
         CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
         ,   FrameTypes.CONFIGJSON)
-        CMAdb.log.info('Drone %s registered from address %s (%s) port %s' 
+        CMAdb.log.info('Drone %s registered from address %s (%s) port %s'
         %       (sysname, origaddr, addrstr, origaddr.port()))
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
@@ -189,7 +189,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
-            CMAdb.log.debug("DispatchJSDISCOVERY: received [%s] FrameSet from [%s]" 
+            CMAdb.log.debug("DispatchJSDISCOVERY: received [%s] FrameSet from [%s]"
             %       (FrameSetTypes.get(fstype)[0], repr(origaddr)))
         sysname = None
         for frame in frameset.iter():

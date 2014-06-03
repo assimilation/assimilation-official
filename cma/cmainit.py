@@ -83,7 +83,6 @@ class CMAinit(object):
         CMAdb.TheOneRing = None
         CMAdb.store = None
         CMAdb.io = None
-        
 
 
     def delete_all(self):
@@ -106,7 +105,6 @@ class CMAinit(object):
                 CMAdb.log.debug('Deleting index %s' % str(index))
             self.db.delete_index(neo4j.Node, index)
 
-        
 
 
 if __name__ == '__main__':

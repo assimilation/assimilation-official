@@ -100,7 +100,7 @@ class AssimEvent(object):
                 del AssimEvent.observers[j]
                 return True
         return False
-        
+
     def notifynewevent(self):
         '''method for notifying all our observers that a new event
         has been created.

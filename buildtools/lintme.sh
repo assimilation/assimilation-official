@@ -35,6 +35,12 @@ do
     *)	break;
   esac
 done
+version=$(pylint --version 2>/dev/null | grep pylint | (read foo version; echo $version))
+case $version in
+ 0.*|1.0)	vers="";;
+ *)		vers=1.1;;
+esac
+ 
   
 if
   [ $# = 0 ]
@@ -44,4 +50,7 @@ then
 else
   LIST="$@"
 fi
-pylint $FLAGS --rcfile pylint.cfg $LIST
+case $vers in
+ 1.1)	pylint --msg-template='{path}:{line}: [{msg_id}:{obj}] {msg}' $FLAGS --rcfile pylint${vers}.cfg $LIST;;
+ *)	pylint $FLAGS --rcfile pylint${vers}.cfg $LIST;;
+esac

@@ -32,7 +32,7 @@ from AssimCclasses import pyConfigContext, pyNetAddr
 
 # R0903: Too few public methods
 # pylint: disable=R0903
-class JSONtree:
+class JSONtree(object):
     "Class to convert things to JSON strings - that's about all"
     REESC = re.compile('\\\\')
     REQUOTE = re.compile('"')
@@ -51,11 +51,11 @@ class JSONtree:
         stringthing = JSONtree.REESC.sub('\\\\\\\\', stringthing)
         stringthing = JSONtree.REQUOTE.sub('\\\\"', stringthing)
         return stringthing
-        
+
     # R0911 is too many return statements
     # pylint: disable=R0911
     def _jsonstr(self, thing):
-        'Recursively convert ("pickle") this thing to JSON' 
+        'Recursively convert ("pickle") this thing to JSON'
 
         if isinstance(thing, list) or isinstance(thing, tuple):
             ret = ''
@@ -99,7 +99,7 @@ class JSONtree:
         if thing is None:
             return 'null'
 
-        
+
         ret = '{'
         comma = ''
         attrs = thing.__dict__.keys()
