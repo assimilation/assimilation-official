@@ -33,7 +33,7 @@ nanoprobe configuration or the data in the database.
 The be-all-and-end-all of these transactions is JSON - that is, the transactions are described in
 terms of JSON and they are ultimately expressed and persisted as JSON before being committed.
 
-How they are persisted is something which has generated a little controversy in the project. 
+How they are persisted is something which has generated a little controversy in the project.
 Purists say (quite rightly) that persisting transactions is what messaging systems are designed
 for.  More pragmatic people don't want to bring in a large and complex messaging system for what
     is a relatively simple job.  Personally, I agree with both of them.
@@ -51,7 +51,7 @@ from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, py
 from frameinfo import FrameSetTypes, FrameTypes
 from assimjson import JSONtree
 
-class Transaction:
+class Transaction(object):
     '''This class implements database/nanoprobe transactions.
 
     The nanoprobe portions of the transaction support the following operations:
@@ -91,7 +91,7 @@ class Transaction:
             complexity in all the places where people might add things to the transaction.
 
 
-    @NOTE AND WARNING: 
+    @NOTE AND WARNING:
     Transactions need to be somehow repeatable...  This means if this transaction
     was committed, we need to <i>not</i> repeat it - or make sure it's idempotent.
     Neither of those is true at the moment.
@@ -122,7 +122,7 @@ class Transaction:
     def add_packet(self, destaddr, action, frames, frametype=None):
         '''Append a packet to the ConfigContext object for this transaction.
         In effect, this queues the packet for sending when this transaction is committed.
-        
+
         Parameters
         ----------
         destaddr : pyNetAddr

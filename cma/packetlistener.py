@@ -32,6 +32,7 @@ try:
     #pylint: disable=E0611
     from gi.repository import GLib as glib
 except ImportError:
+    #pylint: disable=F0401
     import gobject as glib
 
 import time
@@ -39,7 +40,7 @@ import time
 
 # R0903 is too few public methods
 #pylint: disable=R0903
-class PacketListener:
+class PacketListener(object):
     'Listen for packets and get them dispatched as any good packet ought to be.'
     def __init__(self, config, dispatch, io=None):
         self.config = config
@@ -59,7 +60,7 @@ class PacketListener:
         self.dispatcher = dispatch
         self.source = None
         self.mainloop = glib.MainLoop()
-        
+
     @staticmethod
     def mainloop_callback(unusedsource, cb_condition, listener):
         'Function to be called back by the Python Glib mainloop hooks'

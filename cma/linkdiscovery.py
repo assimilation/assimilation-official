@@ -99,7 +99,7 @@ class LinkDiscoveryListener(DiscoveryListener):
                 if caps[role]:
                     switch.addrole(role)
             #switch.addrole([role for role in caps.keys() if caps[role]])
-            
+
 
         if 'ManagementAddress' in attrs:
             # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
@@ -116,7 +116,11 @@ class LinkDiscoveryListener(DiscoveryListener):
                     self.store.relate(switch, CMAconsts.REL_nicowner, adminnic)
                 if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
                     self.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip)
-        ports = data['ports']
+        self._process_ports(drone, switch, chassisid, data['ports'])
+
+    def _process_ports(self, drone, switch, chassisid, ports):
+        'Process the ports listed in JSON data from switch discovery'
+
         for portname in ports.keys():
             attrs = {}
             thisport = ports[portname]

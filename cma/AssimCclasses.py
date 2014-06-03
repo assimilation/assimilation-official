@@ -1,5 +1,6 @@
-#!/usr/bin/python
+#pylint: disable=C0302
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
+#C0302: too many lines in module
 #
 #
 # This file is part of the Assimilation Project.
@@ -235,7 +236,7 @@ class pySwitchDiscovery(object):
             value = pySwitchDiscovery._decode_netaddr(byte1addr, tlvlen-1)
         return value
 
-    #pylint: disable=R0914
+    #pylint: disable=R0914,R0912
     @staticmethod
     def _decode_lldp(host, interface, wallclock, pktstart, pktend):
         'Decode LLDP packet into a JSON discovery packet'
@@ -450,6 +451,10 @@ class pyNetAddr(pyAssimObj):
             pyAssimObj.__init__(self, Cstruct=cs)
             return
 
+        self._init_from_binary(addrstring, port)
+
+    def _init_from_binary(self, addrstring, port):
+        'Initialize an addrstring from a binary argument'
         alen = len(addrstring)
         addr = create_string_buffer(alen)
         #print >> sys.stderr, "ADDRTYPE:", type(addr)
@@ -763,25 +768,7 @@ class pyIpPortFrame(pyFrame):
                     raise ValueError("invalid initializer")
                 self.port = addrstring.port()
             else:
-                addrlen = len(addrstring)
-                self._pyNetAddr = pyNetAddr(addrstring, port=port)
-                if self._pyNetAddr is None:
-                    raise ValueError("Invalid initializer.")
-                addrstr = create_string_buffer(addrlen)
-                for j in range(0, addrlen):
-                    addrstr[j] = chr(addrstring[j])
-                if addrlen == 4:
-                    Cstruct = ipportframe_ipv4_new(frametype, port, addrstr)
-                elif addrlen == 16:
-                    Cstruct = ipportframe_ipv6_new(frametype, port, addrstr)
-                else:
-                    raise ValueError('Bad address length: %d' % addrlen)
-                self.port = port
-                if port == 0:
-                    raise ValueError("zero port")
-                if not Cstruct:
-                    raise ValueError("invalid initializer")
-
+                self._init_from_binary(frametype, addrstring, port)
         else:
             assert port is None
             assert addrstring is None
@@ -795,6 +782,27 @@ class pyIpPortFrame(pyFrame):
             memmove(addrstring, addrstr, addrlen)
             self._pyNetAddr = pyNetAddr(addrstring, port=port)
         pyFrame.__init__(self, frametype, Cstruct=Cstruct)
+
+    def _init_from_binary(self, frametype, addrstring, port):
+        'Initialize a pyIpAddrFrame from a binary argument'
+        addrlen = len(addrstring)
+        self._pyNetAddr = pyNetAddr(addrstring, port=port)
+        if self._pyNetAddr is None:
+            raise ValueError("Invalid initializer.")
+        addrstr = create_string_buffer(addrlen)
+        for j in range(0, addrlen):
+            addrstr[j] = chr(addrstring[j])
+        if addrlen == 4:
+            Cstruct = ipportframe_ipv4_new(frametype, port, addrstr)
+        elif addrlen == 16:
+            Cstruct = ipportframe_ipv6_new(frametype, port, addrstr)
+        else:
+            raise ValueError('Bad address length: %d' % addrlen)
+        self.port = port
+        if port == 0:
+            raise ValueError("zero port")
+        if not Cstruct:
+            raise ValueError("invalid initializer")
 
     def addrtype(self):
         'Return the Address type of this pyIpPortFrame'

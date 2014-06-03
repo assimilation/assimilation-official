@@ -102,7 +102,7 @@ class ClientQuery(GraphNode):
         if self._JSON_metadata is None:
             self._JSON_metadata = pyConfigContext(self.JSON_metadata)
             self.validate_json()
-            
+
 
     def bind_store(self, store):
         'Connect our query to a database'
@@ -118,7 +118,7 @@ class ClientQuery(GraphNode):
         'Execute the query and return an iterator that produces sanitized (filtered) results'
         if self._query is None:
             raise ValueError('query must be bound to a Store')
-        
+
         qparams = self.json_parameter_names()
         for pname in qparams:
             if pname not in params:
@@ -214,7 +214,7 @@ class ClientQuery(GraphNode):
                 yield '{"data":[]}'
             else:
                 yield ']}'
-        
+
 
 
     def json_parameter_names(self):
@@ -347,7 +347,7 @@ class ClientQuery(GraphNode):
             result[param] = canonvalue
         return result
 
-    
+
 
     @staticmethod
     def _validate_int(name, paraminfo, value):
@@ -356,7 +356,7 @@ class ClientQuery(GraphNode):
         if 'min' in paraminfo:
             minval = paraminfo['min']
             if val < minval:
-                raise ValueError('Value of %s [%s] smaller than mininum [%s]' 
+                raise ValueError('Value of %s [%s] smaller than mininum [%s]'
                 %   (name, val, minval))
         if 'max' in paraminfo:
             maxval = paraminfo['max']
@@ -409,7 +409,7 @@ class ClientQuery(GraphNode):
         if ip.addrtype() == ADDR_FAMILY_IPV4:
             return str(ip.toIPv6())
         raise ValueError('Value of %s [%s] not an IP address' % (name, value))
-        
+
     @staticmethod
     def _validate_bool(name, paraminfo, value):
         'Validate an Boolean value'
@@ -547,7 +547,7 @@ if __name__ == '__main__':
 
     metadata3 = \
     '''
-    {   
+    {
         "cypher": "START ip=node:IPaddr('{ipaddr}:*')
                    MATCH ip<-[:ipowner]-()<-[:nicowner]-system
                    RETURN system",
@@ -598,5 +598,5 @@ if __name__ == '__main__':
     # Test out a command line query
     for s in qe2.cmdline_exec(None):
         print s
-   
+
     print "All done!"

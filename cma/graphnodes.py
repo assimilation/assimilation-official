@@ -46,7 +46,7 @@ def RegisterGraphClass(classtoregister):
     '''
     GraphNode.classmap[classtoregister.__name__] = classtoregister
     return classtoregister
-    
+
 class GraphNode(object):
     '''
     GraphNode is the base class for all our 'normal' graph nodes.
@@ -427,7 +427,7 @@ class IPtcpportNode(GraphNode):
         should allow some more interesting queries.
         '''
         return '%s_%s_%s' % (self.port, self.protocol, self.ipaddr)
-        
+
 
 @RegisterGraphClass
 class ProcessNode(GraphNode):

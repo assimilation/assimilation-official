@@ -112,7 +112,6 @@ class Drone(SystemNode):
             CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
             return
         dtype = jsonobj['discovertype']
-        designation = self.designation
         jsonname = 'JSON_' + dtype
         if not hasattr(self, jsonname) or str(getattr(self, jsonname)) != jsontext:
             if CMAdb.debug:
@@ -131,7 +130,11 @@ class Drone(SystemNode):
                     CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring'
                     %       (dtype, self.designation))
                 return
+        self._process_json(origaddr, jsonobj)
 
+    def _process_json(self, origaddr, jsonobj):
+        'Pass the JSON data along to interested discovery plugins (if any)'
+        dtype = jsonobj['discovertype']
         foundone = False
         for prio in range(0, len(Drone._JSONprocessors)):
             if dtype in Drone._JSONprocessors[prio]:
@@ -145,10 +148,10 @@ class Drone(SystemNode):
         if foundone:
             if CMAdb.debug:
                 CMAdb.log.debug('Processed %s JSON data from %s into graph.'
-                %   (dtype, designation))
+                %   (dtype, self.designation))
         else:
             CMAdb.log.info('Stored %s JSON data from %s without processing.'
-            %   (dtype, designation))
+            %   (dtype, self.designation))
 
 
     def destaddr(self, ring=None):
