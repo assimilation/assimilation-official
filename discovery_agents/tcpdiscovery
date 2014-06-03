@@ -241,6 +241,11 @@ format_netstatinfo() {
     fmt='\n  "%s": {\n'
     for pidfile in *.pid
     do
+        if
+            [ ! -f ${pidfile} ]
+        then
+            continue
+        fi
         pid=$(cat $pidfile)
         formatted_procinfo=$(format_procinfo "$pid" "    " 2>/dev/null)
         if
