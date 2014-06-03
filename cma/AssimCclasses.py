@@ -768,7 +768,7 @@ class pyIpPortFrame(pyFrame):
                     raise ValueError("invalid initializer")
                 self.port = addrstring.port()
             else:
-                self._init_from_binary(frametype, addrstring, port)
+                Cstruct = self._init_from_binary(frametype, addrstring, port)
         else:
             assert port is None
             assert addrstring is None
@@ -803,6 +803,7 @@ class pyIpPortFrame(pyFrame):
             raise ValueError("zero port")
         if not Cstruct:
             raise ValueError("invalid initializer")
+        return Cstruct
 
     def addrtype(self):
         'Return the Address type of this pyIpPortFrame'
