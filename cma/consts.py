@@ -94,4 +94,4 @@ class CMAconsts(object):
 
     classkeymap = {}
     uniqueindexes = {}
-    
+

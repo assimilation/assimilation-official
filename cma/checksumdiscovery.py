@@ -71,7 +71,7 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                 'ASSIM_filelist': ['/bin/sh'
                     ,   '/bin/bash'
                     ,   '/bin/login'
-                    ,   '/usr/bin/passwd' 
+                    ,   '/usr/bin/passwd'
                     ,   '/tmp/foobar']
             })
         params['type'] = 'checksums'

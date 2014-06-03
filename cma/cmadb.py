@@ -30,7 +30,7 @@ from store import Store
 
 # R0903: Too few public methods
 # pylint: disable=R0903
-class CMAdb:
+class CMAdb(object):
     '''Class defining our Neo4J database.'''
     nodename = os.uname()[1]
     debug = True

@@ -28,7 +28,7 @@ Not quite sure what all it will do, but hey, this comment is slightly better tha
 '''
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
 from types import ClassType
-class ConfigFile:
+class ConfigFile(object):
     '''
     This class implements configuration file management, including validation
     and default values for parameters.
@@ -80,7 +80,7 @@ class ConfigFile:
                                 },
                 },
         },
-        'monitoring': { 
+        'monitoring': {
                 'repeat':   int,    # Default repeat interval in seconds
                 'warn':     int,    # How long to wait when issuing a slow monitoring warning
                 'timeout':  int,    # How long to wait before declaring failure
@@ -160,7 +160,7 @@ class ConfigFile:
                                     # "arpdiscovery/servidor":               {'repeat': 60},
                 },
             },
-            'monitoring': { 
+            'monitoring': {
                 'repeat':           120,    # Default repeat interval in seconds
                 'warn':             60,     # Default slow monitoring warning time
                 'timeout':          180,    # Default repeat interval in seconds
@@ -227,7 +227,7 @@ class ConfigFile:
             elif elem not in config:
                 #print 'SETTING elem %s to delem %s' % (elem, delem)
                 config[elem] = delem
-    
+
     def complete_config(self):
         '''Create a complete configuration by merging with defaults
         and validating the merged config against our template.'''

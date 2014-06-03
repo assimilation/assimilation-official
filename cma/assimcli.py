@@ -49,9 +49,9 @@ def RegisterCommand(classtoregister):
     return classtoregister
 
 #too many local variables
-#pylint: disable=R0914 
+#pylint: disable=R0914
 @RegisterCommand
-class query:
+class query(object):
     "Class for the 'query' action (sub-command)"
 
     def __init__(self):
@@ -78,9 +78,9 @@ class query:
         nvpairs = otherargs[1:]
 
         cypher = 'START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
-        
+
         metaquery = neo4j.CypherQuery(store.db, cypher % (queryname, queryname))
-        
+
         request = store.load_cypher_node(metaquery, ClientQuery)
 
         if request is None:
@@ -120,7 +120,7 @@ class query:
         return 0
 
 @RegisterCommand
-class loadqueries:
+class loadqueries(object):
     "Class for the 'loadquery' action (sub-command). We reload the query table"
 
     def __init__(self):
@@ -173,7 +173,7 @@ def usage():
     for cmd in cmds:
         print >> sys.stderr, '    %s' % commands[cmd].usage()
     return 1
-    
+
 
 def main(argv):
     'Main program for command line tool'

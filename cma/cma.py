@@ -165,7 +165,7 @@ def main():
 
     from AssimCtypes import daemonize_me, assimilation_openlog, are_we_already_running, \
         kill_pid_service, pidrunningstat_to_status, remove_pid_file, rmpid_and_exit_on_signal
-        
+
 
     if opt.status:
         rc = pidrunningstat_to_status(are_we_already_running(opt.pidfile, None))
@@ -176,7 +176,7 @@ def main():
             print >> sys.stderr, "Unable to stop CMA."
             return 1
         return 0
-        
+
 
     # This doesn't seem to work no matter where I invoke it...
     # But if we don't fork in daemonize_me() ('C' code), it works great...
@@ -187,7 +187,7 @@ def main():
 #    signal.signal(signal.SIGINT, lambda sig, stack: sys.exit(0))
 
     daemonize_me(opt.foreground, '/', opt.pidfile)
-        
+
     rmpid_and_exit_on_signal(opt.pidfile, signal.SIGTERM)
 
     # Next statement can't appear before daemonize_me() or bind() fails -- not quite sure why...
@@ -217,7 +217,7 @@ def main():
     }
     ForkExecObserver(constraints=execobserver_constraints, scriptdir=NOTIFICATION_SCRIPT_DIR)
     print >> sys.stderr, ('Fork/Event observer dispatching from %s' % NOTIFICATION_SCRIPT_DIR)
-    
+
 
     if opt.bind is not None:
         OurAddrStr = opt.bind
