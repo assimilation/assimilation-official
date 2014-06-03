@@ -1669,7 +1669,8 @@ def dump_c_objects():
             %   (obj.__class__.__name__, str(obj)[:512], cobj))
             if get_referrers:
                 for referrer in gc.get_referrers(obj):
-                    print >> sys.stderr, '++++Referred to by(%s): %s' % (type(referrer), str(referrer)[:512])
+                    print >> sys.stderr, ('++++Referred to by(%s): %s'
+                    %   (type(referrer), str(referrer)[:512]))
 
     print >> sys.stderr, ('%d python wrappers referring to %d C-objects'
     %   (cobjcount, proj_class_live_object_count()))
