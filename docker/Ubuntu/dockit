@@ -26,10 +26,13 @@
 #
 #
 TMP=$(mktemp)
-trap 'rm -fr ${TMP}' 0
+TMP2=$(mktemp)
+trap 'rm -fr ${TMP} ${TMP2}' 0
 set -e 
 NANO="nanoprobe.ubuntu"
 currvers=$(hg identify http://hg.linux-ha.org/assimilation)
-sed "s%@VERSION@%${currvers}%" < Dockerfile.nanoprobe-only | docker.io build -t $NANO - | tee $TMP
+sed "s%@VERSION@%${currvers}%" < Dockerfile.nanoprobe-only > $TMP
 cat $TMP
-docker.io run -i -t -v /dev/fuse:/dev/fuse -v /dev/log:/dev/log $NANO /bin/bash /root/assimilation/src/docker/Ubuntu/post-build.sh
+docker.io -D build -t $NANO - <$TMP > $TMP2
+cat $TMP2
+docker.io -D run -i -t -v /dev/fuse:/dev/fuse -v /dev/log:/dev/log $NANO /bin/bash /root/assimilation/src/docker/Ubuntu/post-build.sh

@@ -23,10 +23,11 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+NEOSERVICE="neo4j-service"
 NEO=/opt/neo4j
 NEODATA=$NEO/data
 cleanneo() {
-    /etc/init.d/neo4j-service stop
+    service $NEOSERVICE stop
     rm -fr $NEODATA/graph.db/* $NEODATA/graph.db/keystore $NEODATA/log/* $NEODATA/rrd $NEODATA/neo4j-service.pid
 }
 
@@ -43,12 +44,12 @@ echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d
 apt-get -y update
 apt-get -y install neo4j
 ldconfig /usr/lib/*/assimilation
-service neo4j start
+service $NEOSERVICE start
 cd /root/assimilation/src
 testify -v cma.tests
 cleanneo
 cd /root/assimilation/bin
 dpkg --install assimilation-cma-*-all.deb
-service neo4j start
+service $NEOSERVICE start
 #/usr/sbin/nanoprobe --dynamic # Don't really want this - it will clutter the database...
 /usr/sbin/cma --foreground
