@@ -42,6 +42,7 @@ if not CheckForDanglingClasses:
 elif not AssertOnDanglingClasses:
     print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
 
+print >> sys.stderr, 'USING PYTHON VERSION %s' % str(sys.version)
 
 def assert_no_dangling_Cclasses(doassert=None):
     global CheckForDanglingClasses
