@@ -10,13 +10,14 @@ RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
 RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
 RUN yum -y install python-pip
 RUN pip install ctypesgen
-RUN echo "about to build another new version (v6)"
+RUN echo "about to build another new version (v7)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src && cd /root/assimilation/bin; cmake ../src && make install
 #EXPOSE 55604 7473 7474 1984 1337
 ENV BROKENDNS true
 RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
 RUN yum -y install python27 python27-python-devel
-RUN scl enable python27 'yum -y install python-pip pygobject2' # libyaml-devel
+RUN scl enable python27 'yum -y install pygobject2'
+RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install testify py2neo netaddr flask pylint'
 RUN echo '/usr/lib64/assimilation' > /etc/ld.so.conf.d/assimilation
 RUN ldconfig /usr/lib64/assimilation

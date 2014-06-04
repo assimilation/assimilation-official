@@ -43,14 +43,7 @@ from graphnodes import GraphNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
 from cmaconfig import ConfigFile
-try:
-    #gi.repository confuses pylint...
-    #pylint: disable=E0611
-    from gi.repository import GLib as glib
-except ImportError:
-    import gobject as glib
-
-
+import glib # This is now our glib bindings...
 import discoverylistener
 
 

@@ -102,6 +102,21 @@
 #define	SHORT_LICENSE_STRING	"@LICENSE_SHORT@"
 #define	LONG_LICENSE_STRING	"@LICENSE_LONG@"
 #define	CMAINITFILE		"@CMAINITFILE@"
+
+/* These #defines are here to make ctypesgen define them for python */
+#define GLIB_IO_IN			G_IO_IN
+#define GLIB_IO_PRI			G_IO_PRI
+#define GLIB_IO_OUT			G_IO_OUT
+#define GLIB_IO_HUP			G_IO_HUP
+#define GLIB_IO_ERR			G_IO_ERR
+#define	GLIB_io_channel_unix_new	g_io_channel_unix_new
+#define	GLIB_io_add_watch		g_io_add_watch
+#define	GLIB_g_main_loop_new		g_main_loop_new
+#define	GLIB_g_main_run			g_main_run
+#define	GLIB_g_main_quit		g_main_quit
+#define	GLIB_source_remove		g_source_remove
+#define	GLIB_main_context_default	g_main_context_default
+
 #cmakedefine	HAVE_UNISTD_H
 #cmakedefine	HAVE_SYS_UTSNAME_H
 #cmakedefine	HAVE_FCNTL_H
