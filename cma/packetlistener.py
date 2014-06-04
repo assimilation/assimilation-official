@@ -27,13 +27,14 @@ dispatches them.
 from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from cmadb import CMAdb
-try:
+#try:
     #gi.repository confuses pylint...
     #pylint: disable=E0611
-    from gi.repository import GLib as glib
-except ImportError:
+    #from gi.repository import GLib as glib
+#except ImportError:
     #pylint: disable=F0401
-    import gobject as glib
+    #import gobject as glib
+import glib # We've replaced gi.repository and gobject with our own 'glib' module
 
 import time
 #import sys
@@ -67,6 +68,7 @@ class PacketListener(object):
         #make pylint happy
         unusedsource = unusedsource
         if cb_condition == glib.IO_IN or cb_condition == glib.IO_PRI:
+            #print >> sys.stderr, ('Calling %s.listenonce' %  listener), type(listener)
             listener.listenonce()
         else:
             if cb_condition == glib.IO_ERR:
@@ -79,6 +81,7 @@ class PacketListener(object):
                 cond = '(%s?)' % (str(cb_condition))
             CMAdb.log.warning('PacketListener::mainloop_callback(cb_condition=%s)' % (cond))
             listener.mainloop.quit()
+        #print >> sys.stderr, 'RETURNING True'
         return True
 
     def listen(self):
