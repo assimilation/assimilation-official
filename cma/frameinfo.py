@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 '''
 A collection of classes which provide constants for FrameTypes and FrameSetTypes
 '''
