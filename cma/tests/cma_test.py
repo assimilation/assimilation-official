@@ -296,7 +296,7 @@ class TestIO:
                 auditallrings()
         if self.index >= len(self.inframes):
             if not self.atend:
-                glib.timeout_add(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
+                self.timeout = glib.timeout_add(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
                 self.atend = True
                 self.config = None
             else:

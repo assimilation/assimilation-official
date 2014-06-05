@@ -10,7 +10,7 @@ RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
 RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
 RUN yum -y install python-pip
 RUN pip install ctypesgen
-RUN echo "about to build another new version (v7)"
+RUN echo "about to build another new version (v8)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src && cd /root/assimilation/bin; cmake ../src && make install
 #EXPOSE 55604 7473 7474 1984 1337
 ENV BROKENDNS true
