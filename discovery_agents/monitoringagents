@@ -66,7 +66,7 @@ have_upstart() {
   then
     return 1
   else
-      case "$("${INITCTL}" version)" in
+      case "$("${INITCTL}" version 2>/dev/null)" in
         *'(upstart '*')')   return 0;;
       esac
   fi
