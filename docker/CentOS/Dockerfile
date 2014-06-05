@@ -13,7 +13,7 @@ RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/ce
 RUN yum -y install python27 python27-python-devel
 RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install ctypesgen'
-RUN echo "about to build another new version (v9)"
+RUN echo "about to build another new version (v10)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src && cd /root/assimilation/bin; cmake ../src && scl enable python27 "make install"
 #EXPOSE 55604 7473 7474 1984 1337
 ENV BROKENDNS true

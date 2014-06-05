@@ -22,5 +22,5 @@ PYVERSION=$(env python -c 'import sys; print "%s.%s" % (sys.version_info[0], sys
 case $PYVERSION in
   2.[789]|2.1[0-9])	exec ${CMA} "$@";;
   2.[23456]|3.*)	echo "Executing with Software Collection python27"
-			exec scl python27 "${CMA} $@";;
+			exec scl enable python27 "${CMA} $@";;
 esac
