@@ -315,5 +315,8 @@ def main():
     return 0
 
 if __name__ == '__main__':
+    pyversion = sys.version_info
+    if pyversion[0] != 2 or pyversion[1] < 7:
+        raise RuntimeError('Must run using python 2.x where x >= 7')
     exitrc = main()
     sys.exit(int(exitrc))
