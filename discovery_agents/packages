@@ -45,8 +45,8 @@ dpkg_pkgs() {
   else
     return
   fi
-  printf '"deb":'
-  comma='{
+  printf '%s"deb":{' "$ourcomma"
+  comma='
 '
   dpkg-query --show --showformat='"${package;0}::${architecture;0}":"${version;0}"\n' 2>/dev/null |
   while
@@ -59,6 +59,29 @@ dpkg_pkgs() {
   printf '}'
 }
 
+rpm_pkgs() {
+  if
+    cmdexists rpm >/dev/null 2>&1
+  then
+    : OK
+  else
+    return
+  fi
+  printf '%s"rpm":{' "$ourcomma"
+  comma='
+'
+  rpm -qa --queryformat='"%{NAME}::%{ARCH}":"%{VERSION}-%{RELEASE}"\n' 2>/dev/null |
+  while
+    read line
+  do
+    printf '%s' "${comma}${line}"
+    comma=',
+'
+  done
+  printf '}'
+}
+
+
 discover() {
     cat <<-!
 	{
@@ -68,9 +91,12 @@ discover() {
 	  "source": "$0",
 	  "data": {
 	!
-  for pkgtype in dpkg_pkgs
+  ourcomma=""
+  for pkgtype in dpkg_pkgs rpm_pkgs
   do
-      $pkgtype
+      $pkgtype "$ourcomma"
+      ourcomma=",
+"
   done
   echo "}}"
 }
