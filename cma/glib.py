@@ -34,8 +34,8 @@ This is easy for us to do since we are using ctypes and ctypesgen anyway.
 from AssimCtypes import \
     G_IO_IN, G_IO_PRI, G_IO_ERR, G_IO_OUT, G_IO_HUP,    \
     g_main_loop_new, g_main_loop_run, g_main_loop_quit, g_main_context_default, \
-    g_io_channel_unix_new, g_io_add_watch, g_source_remove, \
-    gboolean, GIOChannel, GIOCondition, UNCHECKED
+    g_io_channel_unix_new, g_io_add_watch, g_source_remove, g_timeout_add,  \
+    guint, gboolean, GIOChannel, GIOCondition, UNCHECKED
 from ctypes import py_object, POINTER, CFUNCTYPE
 
 IO_IN   =   G_IO_IN
@@ -60,11 +60,13 @@ class MainLoop(object):
 
     def quit(self):
         'Stop this mainloop - causing run() call to return'
-        g_main_quit(self.mainloop)
+        g_main_loop_quit(self.mainloop)
         pass
 
 GIOFunc = CFUNCTYPE(UNCHECKED(gboolean), POINTER(GIOChannel), GIOCondition, py_object)
 g_io_add_watch.argtypes = [POINTER(GIOChannel), GIOCondition, GIOFunc, py_object]
+GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), py_object)
+g_timeout_add.argtypes = [guint, GSourceFunc, py_object]
 
 def io_add_watch(fileno, conditions, callback, otherobj=None):
     '''
@@ -85,6 +87,14 @@ def io_add_watch(fileno, conditions, callback, otherobj=None):
 
 def source_remove(sourceid):
     '''
-    We remove a source - mainly from io_add_watch() above
+    We remove a source - from io_add_watch() above
     '''
     g_source_remove(sourceid[0])
+
+def timeout_add(interval, callback, otherobj):
+    '''
+    Call a callback function at the (repeating) interval given
+    '''
+    cb = GSourceFunc(callback)
+    obj = py_object(otherobj)
+    return (g_timeout_add(interval, cb, obj), cb, obj)

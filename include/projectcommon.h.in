@@ -111,6 +111,8 @@
 #define GLIB_IO_ERR			G_IO_ERR
 #define	GLIB_io_channel_unix_new	g_io_channel_unix_new
 #define	GLIB_io_add_watch		g_io_add_watch
+#define	GLIB_timeout_add		g_timeout_add
+#define	GLIB_timeout_add_seconds	g_timeout_add_seconds
 #define	GLIB_g_main_loop_new		g_main_loop_new
 #define	GLIB_g_main_run			g_main_run
 #define	GLIB_g_main_quit		g_main_quit
