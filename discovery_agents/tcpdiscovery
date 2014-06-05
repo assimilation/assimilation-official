@@ -26,6 +26,7 @@
 # Licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
 #!/usr/bin/python
 
+NETSTAT=netstat
 skiplocal=yes
 exestoskip='.*/(firefox|thunderbird|chromium-browser|konquerer|rekonq)( *\(deleted\) *)?$'
 sumstotry="md5sum sha1sum sha256sum crc32 sum"
@@ -193,8 +194,15 @@ logserver() {
 }
 
 gather_tcp_netstatinfo() {
-    flags=-atnpW
-    netstat $flags |
+    if
+        netstat_supports_W_flag
+    then
+        WFLAGS='W'
+    else
+        WFLAG=''
+    fi
+    flags=-atnp${WFLAG}
+    $NETSTAT $flags |
     while
         read proto rcvq sendq localaddr foreignaddr state pid_prog
     do
@@ -294,6 +302,21 @@ discover()
     format_netstatinfo | sed 's%^%    %'
     printf '}\n'
 
+}
+
+#
+#   If you have an antiquated netstat (no W flag) then ipv6 addresses will all be mangled...
+#   This happens if, for example, you are running RHEL6 or its friends...
+#
+netstat_supports_W_flag()
+{
+    if
+      $NETSTAT --help 2>&1 | grep -q ' --wide '
+    then
+      true
+    else
+      false
+    fi
 }
 
 discover
