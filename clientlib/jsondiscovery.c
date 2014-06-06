@@ -166,8 +166,9 @@ _jsondiscovery_childwatch(ChildProcess* child			///< The @ref ChildProcess objec
 
 quitchild:
 	UNREF(self->child);
-	child = NULL;
-	// We did a 'ref' in _jsondiscovery_discover above to keep us from disappearing while child was running.
+	self->child = child = NULL;
+	// We did a 'ref' in _jsondiscovery_discover above to keep us from disappearing while
+	// our child process was running.
 	UNREF2(self);
 }
 
