@@ -276,6 +276,8 @@ class ForkExecObserver(FIFOEventObserver):
                 print >> sys.stderr, ('ForkExecObserver Got exception in child process: %s'
                 %   str(e))
                 currentbuf = ''
+            except KeyboardInterrupt as e:
+                sys.exit(0)
 
 
     def processJSONevent(self, jsonstr):
