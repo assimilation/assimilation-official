@@ -107,9 +107,19 @@ _discovery_ghash_destructor(gpointer gdiscovery)
 		// Only during destruction is it legal for self->instancename to be NULL
 		// So, if it's NULL, we're in the process of destroying it...
 		/**/
-		// Not sure what we're doing is 100% sufficient
+		// Not completely certain what we're doing is sufficient...
 		// In particular, what happens if we try and remove an element which
 		// is trying to be removed?  Does the glib code tolerate that?
+		// My strong suspicion is that it does tolerate this because we
+		// free the instancename (key) last.
+		// Either glib removed the item before freeing the object, or vice versa
+		// If the first case, then the second pass through it simply won't be
+		// in the table the second time around.
+		//
+		// The same condition holds if they do them in the opposite order.
+		// But if they tried to free the key before removing it that would
+		// not likely work for many cases, so it's unlikely that they do it
+		// in that order.
 		UNREF(self);
 	}
 }
