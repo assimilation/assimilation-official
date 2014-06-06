@@ -101,7 +101,17 @@ _discovery_ghash_destructor(gpointer gdiscovery)
 {
 	Discovery*	self = CASTTOCLASS(Discovery, gdiscovery);
 	// We take steps in discovery_finalize() to avoid infinite recursion...
-	UNREF(self);
+	if (self->_instancename) {
+		// In particular it sets instancename to NULL before removing
+		// it from the table.
+		// Only during destruction is it legal for self->instancename to be NULL
+		// So, if it's NULL, we're in the process of destroying it...
+		/**/
+		// Not sure what we're doing is 100% sufficient
+		// In particular, what happens if we try and remove an element which
+		// is trying to be removed?  Does the glib code tolerate that?
+		UNREF(self);
+	}
 }
 
 /// GSourceFunc function to invoke discover member function at the timed interval.
@@ -163,12 +173,14 @@ discovery_register(Discovery* self)	///<[in/out] Discovery object to register
 		self->_timerid = g_timeout_add_seconds(timeout, _discovery_rediscover, self);
 	}
 	REF(self);
+	// _discovery_ghash_destructor will unref it if there's one already there...
 	g_hash_table_replace(_discovery_timers, self->instancename(self), self);
 }
 FSTATIC void
 discovery_unregister(const char* instance)
 {
 	if (_discovery_timers) {
+		// _discovery_ghash_destructor will unref it if there's one already there...
 		g_hash_table_remove(_discovery_timers, instance);
 	}
 }
