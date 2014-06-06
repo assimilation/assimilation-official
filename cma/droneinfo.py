@@ -140,7 +140,7 @@ class Drone(SystemNode):
             if dtype in Drone._JSONprocessors[prio]:
                 foundone = True
                 classes = Drone._JSONprocessors[prio][dtype]
-                #print >> sys.stderr, 'PROC[%s][%s] = %s' % (prio, dtype, str(procs))
+-               #print >> sys.stderr, 'PROC[%s][%s] = %s' % (prio, dtype, str(classes))
                 for cls in classes:
                     proc = cls(CMAdb.io.config, CMAdb.transaction, CMAdb.store
                     ,   CMAdb.log, CMAdb.debug)
