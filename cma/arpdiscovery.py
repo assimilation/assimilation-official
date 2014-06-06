@@ -74,12 +74,6 @@ class ArpDiscoveryListener(DiscoveryListener):
     one came online...
     '''
 
-    local_OUI_map = {
-                'b0-79-3c': 'Revolv, Inc.',
-                '18-0c-ac': 'Canon, Inc.',
-                'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
-                'd8-50-e6': 'ASUSTek COMPUTER INC.',
-    }
     prio = DiscoveryListener.PRI_OPTION     # This is an optional feature
     # We are interested in two kinds of packets:
     # netconfig:    Packets from network configuration discovery
@@ -153,8 +147,9 @@ class ArpDiscoveryListener(DiscoveryListener):
         try:
             org = str(netaddr.EUI(nicnode.macaddr).oui.registration().org)
         except netaddr.NotRegisteredError:
-            if macprefix in ArpDiscoveryListener.local_OUI_map:
-                org = ArpDiscoveryListener.local_OUI_map[macprefix]
+            local_OUI_map = self.config['OUI']
+            if macprefix in local_OUI_map:
+                org = local_OUI_map[macprefix]
             else:
                 org = macprefix
         if not Store.is_abstract(nicnode):
