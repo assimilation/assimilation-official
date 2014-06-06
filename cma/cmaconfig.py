@@ -109,10 +109,12 @@ class ConfigFile(object):
         have the current defaults updated all the time...
         '''
         return {
-            'OUI': { # Addendum of locally-known OUIs - feel free to contribute ones you find...
-                 # Python includes lots of them, but not some newer ones.
-                 # You can find the latest data here:
-                 #      http://standards.ieee.org/cgi-bin/ouisearch
+            'OUI': {
+                # Addendum of locally-known OUIs - feel free to contribute ones you find...
+                # Python includes lots of them, but not some newer ones.
+                # Note that they have to be in lower case with '-' separators.
+                # You can find the latest data here:
+                #      http://standards.ieee.org/cgi-bin/ouisearch
                 '18-0c-ac': 'Canon, Inc.',
                 '28-d2-44': 'LCFC(HeFei) Electronics Technology Co., Ltd.',
                 'b0-79-3c': 'Revolv, Inc.',
@@ -120,11 +122,12 @@ class ConfigFile(object):
                 'c8-b5-b7': 'Apple.',
                 'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
                 'd8-50-e6': 'ASUSTek COMPUTER INC.',
-        },
-        #
-        #   Below is the set of modules that we import before starting up
-        #   Each of them triggers different kinds of conditional discovery
-        #   as per its design...
+                'e8-ab-fa': 'Shenzhen Reecam Tech.Ltd.',
+            },
+            #
+            #   Below is the set of modules that we import before starting up
+            #   Each of them triggers different kinds of conditional discovery
+            #   as per its design...
             'optional_modules': [  # List of optional modules to be included
                                 'linkdiscovery',        # Perform CDP/LLDP monitoring
                                 'checksumdiscovery',    # Perform tripwire-like checksum monitoring
@@ -133,9 +136,9 @@ class ConfigFile(object):
                                 'arpdiscovery'          # Listen for ARP packets: IPs and MACs
                             ],
             'contrib_modules':          [],  # List of contrib modules to be imported
-        #
-        #   Always start the discovery plugins below when a Drone comes online
-        #
+            #
+            #   Always start these discovery plugins below when a Drone comes online
+            #
             'initial_discovery':['os',              # OS properties
                                  'cpu',             # CPU properties
                                  'packages',        # What packages are installed?
@@ -175,7 +178,8 @@ class ConfigFile(object):
             'warn':      5,     # How long to wait when issuing a late heartbeat warning
             'timeout':  30,     # How long to wait before declaring a system dead
             },
-        }
+        } # End of return value
+
     def __init__(self, filename=None, template=None, defaults=None):
         'Init function for ConfigFile class, give us a filename!'
         if template is None:
@@ -250,9 +254,6 @@ class ConfigFile(object):
     def _check_validity(template, configobj):
         '''Recursively validate a complex dict-like object against a complex template object
         This is an interesting, but somewhat complex operation.
-        There are many ways to fail, hence many failure-case return statements, and
-        even 4 success-case returns...
-        This _could_ be split up.  Not obvious it's a win to do so...
 
         Return value is a Tuple (True/False, 'explanation of errors')
         '''
