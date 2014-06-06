@@ -160,32 +160,8 @@ class DispatchSTARTUP(DispatchTarget):
                 json = frame.getstr()
                 #print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
                 #% (json, len(json), frame.framelen())
-        #
-        # This next chunk of code is kinda stupid...
-        # There is a docker/bridge bug where it screws up the source address of multicast packets
-        # This code detects that that has happened and works around it...
-        #
-        jsobj = pyConfigContext(json)
-        match = False
-        jsdata = jsobj['data']
-        canonorig = str(pyNetAddr(origaddr))
-        primaryip = None
-        for ifname in jsdata:
-            for ip_netmask in jsdata[ifname]['ipaddrs']:
-                (ip, netmask) = ip_netmask.split('/')
-                canonip = str(pyNetAddr(ip, origaddr.port()).toIPv6())
-                if canonip == canonorig:
-                    match = True
-                    break
-                ipinfo = jsdata[ifname]['ipaddrs'][ip_netmask]
-                if 'default_gw' in jsdata[ifname] and ipinfo.get('name') == ifname:
-                    primaryip = canonip
-        if not match:
-            CMAdb.log.warning('Drone %s sent STARTUP packet with incorrect source address (%s)'
-            %       (sysname, origaddr))
-            if primaryip is not None:
-                CMAdb.log.warning('Drone %s STARTUP orig address assumed to be (%s)'
-                %       (sysname, primaryip))
+
+        origaddr = self.validate_source_ip(sysname, origaddr, json)
 
         CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
         ,   FrameTypes.CONFIGJSON)
@@ -209,6 +185,37 @@ class DispatchSTARTUP(DispatchTarget):
             discovery_params.append(params)
         drone.request_discovery(discovery_params)
         AssimEvent(drone, AssimEvent.OBJUP)
+
+    @staticmethod
+    def validate_source_ip(sysname, origaddr, json):
+        '''
+        This chunk of code is kinda stupid...
+        There is a docker/bridge bug where it screws up the source address of multicast packets
+        This code detects that that has happened and works around it...
+        '''
+        jsobj = pyConfigContext(json)
+        match = False
+        jsdata = jsobj['data']
+        canonorig = str(pyNetAddr(origaddr))
+        primaryip = None
+        for ifname in jsdata:
+            for ip_netmask in jsdata[ifname]['ipaddrs']:
+                ip = ip_netmask.split('/')[0]
+                canonip = pyNetAddr(ip, origaddr.port()).toIPv6()
+                if str(canonip) == canonorig:
+                    match = True
+                    break
+                ipinfo = jsdata[ifname]['ipaddrs'][ip_netmask]
+                if 'default_gw' in jsdata[ifname] and ipinfo.get('name') == ifname:
+                    primaryip = canonip
+        if not match:
+            CMAdb.log.warning('Drone %s sent STARTUP packet with incorrect source address (%s)'
+            %       (sysname, origaddr))
+            if primaryip is not None:
+                CMAdb.log.warning('Drone %s STARTUP orig address assumed to be (%s)'
+                %       (sysname, primaryip))
+            origaddr = primaryip
+        return origaddr
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
