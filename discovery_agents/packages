@@ -43,7 +43,7 @@ dpkg_pkgs() {
   then
     : OK
   else
-    return
+    return 1
   fi
   printf '%s"deb":{' "$ourcomma"
   comma='
@@ -57,6 +57,7 @@ dpkg_pkgs() {
 '
   done
   printf '}'
+  return 0
 }
 
 rpm_pkgs() {
@@ -65,7 +66,7 @@ rpm_pkgs() {
   then
     : OK
   else
-    return
+    return 1
   fi
   printf '%s"rpm":{' "$ourcomma"
   comma='
@@ -79,6 +80,7 @@ rpm_pkgs() {
 '
   done
   printf '}'
+  return 0
 }
 
 
@@ -94,9 +96,14 @@ discover() {
   ourcomma=""
   for pkgtype in dpkg_pkgs rpm_pkgs
   do
+    if 
       $pkgtype "$ourcomma"
+    then
       ourcomma=",
 "
+    else
+      ourcomma=""
+    fi
   done
   echo "}}"
 }
