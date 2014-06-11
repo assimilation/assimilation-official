@@ -69,7 +69,7 @@ ADD_CUSTOM_COMMAND(
    DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h ${CLIENTLIB}
    )
 ADD_CUSTOM_TARGET(generate_ctypes_src ALL DEPENDS ${CTYPESRC} ${CLIENTLIB})
-SET_SOURCE_FILES_PROPERTIES(${CYPESRC}  PROPERTIES GENERATED 1)
+SET_SOURCE_FILES_PROPERTIES(${CTYPESRC}  PROPERTIES GENERATED 1)
 
 #
 #	Generate a version of AssimCtypes.py for production
