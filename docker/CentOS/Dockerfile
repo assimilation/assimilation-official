@@ -17,7 +17,7 @@ RUN echo "about to build another new version (v16)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src && cd /root/assimilation/bin; cmake ../src && scl enable python27 "make install"
 #EXPOSE 55604 7473 7474 1984 1337
 ENV BROKENDNS true
-RUN scl enable python27 'pip install testify py2neo netaddr flask pylint'
+RUN scl enable python27 'pip install py2neo netaddr flask getent testify pylint'
 RUN echo '/usr/lib64/assimilation' > /etc/ld.so.conf.d/assimilation && ldconfig /usr/lib64/assimilation
 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
