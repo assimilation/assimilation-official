@@ -100,11 +100,12 @@ import optparse, time
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
-from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID
 from AssimCclasses import pyCompressFrame
 from cmaconfig import ConfigFile
 import importlib
 #import atexit
+import getent
 
 
 optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
@@ -160,6 +161,10 @@ def main():
     parser.add_option('-T', '--trace', action='store_true', default=False, dest='doTrace'
     ,   help='Trace CMA execution')
 
+    parser.add_option('-u', '--user', action='store', default=CMAUSERID, dest='userid'
+    ,   metavar='userid'
+    ,   help='userid to run the CMA as')
+
 
     opt = parser.parse_args()[0]
 
@@ -186,9 +191,11 @@ def main():
 #    signal.signal(signal.SIGTERM, lambda sig, stack: sys.exit(0))
 #    signal.signal(signal.SIGINT, lambda sig, stack: sys.exit(0))
 
+    drop_privileges_permanently(opt.userid)
     daemonize_me(opt.foreground, '/', opt.pidfile)
 
     rmpid_and_exit_on_signal(opt.pidfile, signal.SIGTERM)
+
 
     # Next statement can't appear before daemonize_me() or bind() fails -- not quite sure why...
     assimilation_openlog("cma")
@@ -314,9 +321,65 @@ def main():
         listener.listen()
     return 0
 
+def supplementary_groups_for_user(userid):
+    '''Return the list of supplementary groups to which this member
+    would belong if they logged in as a tuple of (groupnamelist, gidlist)
+    '''
+    namelist=[]
+    gidlist=[]
+    for entry in getent.group():
+        if userid in entry.members:
+            namelist.append(entry.name)
+            gidlist.append(entry.gid)
+    return (namelist, gidlist)
+
+
+def drop_privileges_permanently(userid):
+    '''
+    Drop our privileges permanently and run as the given user with
+    the privileges to which they would be entitled if they logged in.
+    That is, the uid, gid, and supplementary group list are all set correctly.
+    We are careful to make sure we have exactly the permissions we need
+    as 'userid'.
+    Either we need to be started as root or as 'userid' or this function
+    will fail and exit the program.
+    '''
+    userinfo = getent.passwd(userid)
+    if userinfo is None:
+        raise(OSError('Userid "%s" is unknown.' % userid))
+    newuid = userinfo.uid
+    newgid = userinfo.gid
+    auxgroups = supplementary_groups_for_user(userid)[1]
+    # Need to set supplementary groups, then group id then user id in that order.
+    try:
+        os.setgroups(auxgroups)
+        os.setgid(newuid)
+        os.setuid(newgid)
+    except OSError:
+        # We let this fail if it wants to and catch it below.
+        # This allows this to work if we're already running as that user id...
+        pass
+    # Let's see if everything wound up as it should...
+    if (os.getuid() != newuid or os.geteuid() != newuid
+       or os.getgid() != newgid or os.getegid() != newgid):
+       raise OSError('Could not set user/group ids to user "%s".' % userid)
+    # Checking groups is a little more complicated - order is potentially not preserved...
+    # This also allows for the case where there might be dups (which shouldn't happen?)
+    curgroups = os.getgroups()
+    for elem in auxgroups:
+        if elem not in curgroups:
+            raise OSError('Could not set auxiliary groups for user "%s"' % userid)
+    for elem in curgroups:
+        # I don't think the default gid is supposed to be in the current group list...
+        # but it is in my tests...  It should be harmless...
+        if elem not in auxgroups and elem != newgid:
+            raise OSError('Could not set auxiliary groups for user "%s"' % userid)
+    # Hurray!  Everything worked!
+
+
 if __name__ == '__main__':
     pyversion = sys.version_info
     if pyversion[0] != 2 or pyversion[1] < 7:
-        raise RuntimeError('Must run using python 2.x where x >= 7')
+        raise RuntimeError('Must be run using python 2.x where x >= 7')
     exitrc = main()
     sys.exit(int(exitrc))

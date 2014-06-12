@@ -24,4 +24,6 @@ if
 then
   update-rc.d cma defaults
 fi
+getent passwd assimilation >/dev/null || adduser --disabled-login --disabled-password --no-create-home --gecos "Assimilation software CMA" --shell /bin/false @CMAUSERID@
+echo "@InstallLIBS@" > /etc/ld.so.conf.d/assimilation
 ldconfig @InstallLIBS@

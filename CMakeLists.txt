@@ -135,6 +135,7 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	CMAINITFILE		Name of initialization file for the CMA - defaults to /etc/cma.conf
 #	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
+#	CMAUSERID		The user id to run the CMA as - defaults to 'assimilation'
 #	
 
 if (WIN32)
@@ -197,6 +198,11 @@ endif (NOT NANOLISTENADDR)
 if (NOT CMAINITFILE) 
   set (CMAINITFILE "/etc/cma.conf")
 endif (NOT CMAINITFILE) 
+
+if (NOT CMAUSERID)
+  set(CMAUSERID "assimilation")
+endif (NOT CMAUSERID)
+  
 #####################################################################################
 
 
@@ -391,6 +397,9 @@ install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/cma COMPONENT cma-component 
 #
 install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-component DESTINATION ${USRSHARE})
 #install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${USRSHARE})
+
+# Create the CMA user id at install time as part of the CMA component
+install (CODE "execute_process ( COMMAND /bin/sh -c \"getent passwd assimilation >/dev/null || adduser --disabled-login --disabled-password --no-create-home --gecos 'Assimilation software CMA' --shell /bin/false ${CMAUSERID}\" )" COMPONENT cma-component ) 
 
 
 #

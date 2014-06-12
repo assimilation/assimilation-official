@@ -102,6 +102,7 @@
 #define	SHORT_LICENSE_STRING	"@LICENSE_SHORT@"
 #define	LONG_LICENSE_STRING	"@LICENSE_LONG@"
 #define	CMAINITFILE		"@CMAINITFILE@"
+#define	CMAUSERID		"@CMAUSERID@"
 
 /* These #defines are here to make ctypesgen define them for python */
 #define GLIB_IO_IN			G_IO_IN
