@@ -347,7 +347,10 @@ def drop_privileges_permanently(userid):
     userinfo = getent.passwd(userid)
     if userinfo is None:
         raise(OSError('Userid "%s" is unknown.' % userid))
+    #pylint is confused about the getent.passwd object
+    #pylint: disable=E1101
     newuid = userinfo.uid
+    #pylint: disable=E1101
     newgid = userinfo.gid
     auxgroups = supplementary_groups_for_user(userid)[1]
     # Need to set supplementary groups, then group id then user id in that order.
@@ -362,7 +365,7 @@ def drop_privileges_permanently(userid):
     # Let's see if everything wound up as it should...
     if (os.getuid() != newuid or os.geteuid() != newuid
        or os.getgid() != newgid or os.getegid() != newgid):
-       raise OSError('Could not set user/group ids to user "%s".' % userid)
+        raise OSError('Could not set user/group ids to user "%s".' % userid)
     # Checking groups is a little more complicated - order is potentially not preserved...
     # This also allows for the case where there might be dups (which shouldn't happen?)
     curgroups = os.getgroups()
