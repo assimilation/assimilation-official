@@ -283,7 +283,7 @@ _fsprotocol_auditiready(const char * fun, unsigned lineno, const FsProtocol* sel
 	g_hash_table_iter_init(&iter, self->endpoints);
 
 	while(g_hash_table_iter_next(&iter, &key, &value)) {
-		FsProtoElem*	fspe = (FsProtoElem*)key;
+		FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, key);
 		FsQueue*	iq = fspe->inq;
 		FrameSet*	fs = iq->qhead(iq);
 		SeqnoFrame*	seq;
@@ -327,14 +327,14 @@ _fsprotocol_find(FsProtocol*self		///< typical FsProtocol 'self' object
 
 		case ADDR_FAMILY_IPV6:
 			elem.endpoint	= destaddr;
-			retval = (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+			retval = CASTTOCLASS(FsProtoElem, g_hash_table_lookup(self->endpoints, &elem));
 			break;
 
 		case ADDR_FAMILY_IPV4: {
 			NetAddr*	v6addr = destaddr->toIPv6(destaddr);
 
 			elem.endpoint = v6addr;
-			retval = (FsProtoElem*)g_hash_table_lookup(self->endpoints, &elem);
+			retval = CASTTOCLASS(FsProtoElem, g_hash_table_lookup(self->endpoints, &elem));
 			UNREF(v6addr); elem.endpoint = NULL;
 			break;
 		}
@@ -381,7 +381,7 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 	if ((ret = self->find(self, qid, destaddr))) {
 		return ret;
 	}
-	ret = MALLOCTYPE(FsProtoElem);
+	ret = MALLOCCLASS(FsProtoElem, sizeof(FsProtoElem));
 	if (ret) {
 		ret->endpoint = destaddr->toIPv6(destaddr);	// No need to REF() again...
 		ret->_qid = qid;
@@ -433,7 +433,7 @@ _fsprotocol_closeall(FsProtocol* self)
 	g_hash_table_iter_init(&iter, self->endpoints);
 
 	while(g_hash_table_iter_next(&iter, &key, &value)) {
-		FsProtoElem*	fspe = (FsProtoElem*)key;
+		FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, key);
 		_fsprotocol_closeconn(self, fspe->_qid, fspe->endpoint);
 	}
 }
@@ -448,7 +448,7 @@ _fsprotocol_activeconncount(FsProtocol* self)
 	g_hash_table_iter_init(&iter, self->endpoints);
 
 	while(g_hash_table_iter_next(&iter, &key, &value)) {
-		FsProtoElem*	fspe = (FsProtoElem*)key;
+		FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, key);
 		FsProtoState	state = fspe->state;
 		if (state != FSPR_NONE) {
 			++count;
@@ -615,7 +615,7 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 FSTATIC void
 _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to destroy
 {
-	FsProtoElem *	self = (FsProtoElem*)fsprotoelemthing;
+	FsProtoElem *	self = CASTTOCLASS(FsProtoElem, fsprotoelemthing);
 	DUMP5("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 
 	// This does a lot of our cleanup - but doesn't destroy anything important...
@@ -630,7 +630,7 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	UNREF(self->outq);
 	self->parent = NULL;
 	memset(self, 0, sizeof(*self));
-	FREE(self);
+	FREECLASSOBJ(self);
 }
 
 /// Equal-compare function for FsProtoElem structures suitable for GHashTables
@@ -684,7 +684,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 	for (list=self->ipend->head; list != NULL; list=list->next) {
 		FrameSet*	fs;
 		SeqnoFrame*	seq;
-		FsProtoElem*	fspe = (FsProtoElem*)list->data;
+		FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, list->data);
 		FsQueue*	iq;
 		if (NULL == fspe || (NULL == (iq = fspe->inq)) || (NULL == (fs = iq->qhead(iq)))) {
 			g_warn_if_reached();
@@ -1098,7 +1098,7 @@ _fsprotocol_timeoutfun(gpointer userdata)
 
 	DEBUGMSG4("%s: checking for timeouts: unacked = %p", __FUNCTION__, self->unacked);
 	for (pending = self->unacked; NULL != pending; pending=next) {
-		FsProtoElem*	fspe = (FsProtoElem*)pending->data;
+		FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, pending->data);
 		next = pending->next;
 		AUDITFSPE(fspe);
 		TRYXMIT(fspe);
@@ -1111,7 +1111,7 @@ _fsprotocol_timeoutfun(gpointer userdata)
 FSTATIC gboolean
 _fsprotocol_shuttimeout(gpointer userdata)
 {
-	FsProtoElem* fspe = (FsProtoElem*)userdata;
+	FsProtoElem* fspe = CASTTOCLASS(FsProtoElem, userdata);
 	_fsproto_fsa(fspe, FSPROTO_SHUT_TO, NULL);
 	return FALSE;
 }
@@ -1120,7 +1120,7 @@ _fsprotocol_shuttimeout(gpointer userdata)
 FSTATIC gboolean
 _fsprotocol_finalizetimer(gpointer userdata)
 {
-	FsProtoElem* fspe = (FsProtoElem*)userdata;
+	FsProtoElem* fspe = CASTTOCLASS(FsProtoElem, userdata);
 
 	if (fspe->state != FSPR_NONE) {
 		g_warning("===============CANNOT REMOVE FSPE @ 0x%p!!", fspe);
