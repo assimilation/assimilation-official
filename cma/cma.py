@@ -154,7 +154,7 @@ def main():
     parser.add_option('-f', '--foreground', action='store_true', default=False, dest='foreground'
     ,   help='keep the CMA from going into the background')
 
-    parser.add_option('-p', '--pidfile', action='store', default='/var/run/cma', dest='pidfile'
+    parser.add_option('-p', '--pidfile', action='store', default='/var/run/assimilation/cma', dest='pidfile'
     ,   metavar='pidfile-pathname'
     ,   help='full pathname of where to locate our pid file')
 
