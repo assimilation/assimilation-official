@@ -1,4 +1,5 @@
 FROM ubuntu:latest
+RUN apt-get -y update
 RUN apt-get -y install libglib2.0 libpcap0.8 wget resource-agents
 RUN apt-get -y install mercurial cmake gcc libpcap0.8-dev libglib2.0-dev
 #RUN apt-get -y install python python-flask debianutils lsof python-gi python-netaddr python-pip valgrind
