@@ -191,6 +191,7 @@ def main():
 #    signal.signal(signal.SIGTERM, lambda sig, stack: sys.exit(0))
 #    signal.signal(signal.SIGINT, lambda sig, stack: sys.exit(0))
 
+    make_pid_dir(opt.pidfile, opt.userid)
     drop_privileges_permanently(opt.userid)
     daemonize_me(opt.foreground, '/', opt.pidfile)
 
@@ -356,8 +357,8 @@ def drop_privileges_permanently(userid):
     # Need to set supplementary groups, then group id then user id in that order.
     try:
         os.setgroups(auxgroups)
-        os.setgid(newuid)
-        os.setuid(newgid)
+        os.setgid(newgid)
+        os.setuid(newuid)
     except OSError:
         # We let this fail if it wants to and catch it below.
         # This allows this to work if we're already running as that user id...
@@ -365,7 +366,7 @@ def drop_privileges_permanently(userid):
     # Let's see if everything wound up as it should...
     if (os.getuid() != newuid or os.geteuid() != newuid
        or os.getgid() != newgid or os.getegid() != newgid):
-        raise OSError('Could not set user/group ids to user "%s".' % userid)
+        raise OSError('Could not set user/group ids to user "%s" [uid:%s, gid:%s].' % (userid, os.getuid(), os.getgid()))
     # Checking groups is a little more complicated - order is potentially not preserved...
     # This also allows for the case where there might be dups (which shouldn't happen?)
     curgroups = os.getgroups()
@@ -379,6 +380,18 @@ def drop_privileges_permanently(userid):
             raise OSError('Could not set auxiliary groups for user "%s"' % userid)
     # Hurray!  Everything worked!
 
+def make_pid_dir(pidfile, userid):
+    'Make a suitable directory for the pidfile'
+    piddir = os.path.dirname(pidfile)
+    print >> sys.stderr, 'PIDFILE = %s, piddir = %s' % (pidfile, piddir)
+    if os.path.isdir(piddir):
+        # Assume it's been set up suitably
+        return
+    os.mkdir(piddir, 0755)
+    userinfo = getent.passwd(userid)
+    if userinfo is None:
+        raise(OSError('Userid "%s" is unknown [uid:%s, gid:%s, groups:%s.' % userid))
+    os.chown(piddir, userinfo.uid, userinfo.gid)
 
 if __name__ == '__main__':
     pyversion = sys.version_info
