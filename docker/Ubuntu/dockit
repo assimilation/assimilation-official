@@ -35,4 +35,4 @@ sed "s%@VERSION@%${currvers}%" < Dockerfile.nanoprobe-only > $TMP
 cat $TMP
 docker.io -D build -t $NANO - <$TMP > $TMP2
 cat $TMP2
-docker.io -D run -i -t -v /dev/fuse:/dev/fuse -v /dev/log:/dev/log $NANO /bin/bash /root/assimilation/src/docker/Ubuntu/post-build.sh
+docker.io run -i -t -v /dev/fuse:/dev/fuse -v /dev/log:/dev/log $NANO /bin/bash /root/assimilation/src/docker/Ubuntu/post-build.sh

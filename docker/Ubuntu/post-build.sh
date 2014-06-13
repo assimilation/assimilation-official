@@ -51,4 +51,4 @@ cleanneo
 cd /root/assimilation/bin
 dpkg --install assimilation-cma-*-all.deb
 service $NEOSERVICE start
-sleep 10000
+cma --foreground # don't need to erase the database...
