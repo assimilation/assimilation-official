@@ -24,4 +24,4 @@ if
 then
   update-rc.d cma remove
 fi
-ldconfig @InstallLIBS@
+ldconfig 
