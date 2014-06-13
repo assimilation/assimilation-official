@@ -51,5 +51,3 @@ cleanneo
 cd /root/assimilation/bin
 dpkg --install assimilation-cma-*-all.deb
 service $NEOSERVICE start
-#/usr/sbin/nanoprobe --dynamic # Don't really want this - it will clutter the database...
-/usr/sbin/cma --foreground
