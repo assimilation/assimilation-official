@@ -76,6 +76,8 @@ case "${CMA_USER}" in
     ?*) FLAGS="$FLAGS --user $CMA_USER";;
 esac
 
+lockfile=/var/lock/subsys/$SERVICE
+
 start() {
     $BINARY $ARGS
     rc=$?
@@ -83,6 +85,7 @@ start() {
       [ $rc -eq 0 ]
     then
       echo "$SERVICE started." >&2
+      touch "$lockfile"
     else
       echo "$SERVICE NOT started!" >&2
     fi
@@ -96,6 +99,7 @@ stop() {
       [ $rc -eq 0 ]
     then
       echo "$SERVICE stopped." >&2
+      rm -f "$lockfile"
     else
       echo "$SERVICE NOT stopped!" >&2
     fi
