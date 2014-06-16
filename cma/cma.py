@@ -383,7 +383,6 @@ def drop_privileges_permanently(userid):
 def make_pid_dir(pidfile, userid):
     'Make a suitable directory for the pidfile'
     piddir = os.path.dirname(pidfile)
-    print >> sys.stderr, 'PIDFILE = %s, piddir = %s' % (pidfile, piddir)
     if os.path.isdir(piddir):
         # Assume it's been set up suitably
         return
