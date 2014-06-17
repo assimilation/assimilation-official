@@ -41,9 +41,19 @@
 
 %global _hardened_build 1
 
+%if %(test -z  "%{?version}" && echo 1 || echo 0)
+%global version must-define-version-to-rpmbuild-using--define=version_version-hash
+%endif
+
+%global pymajor %(python -c 'import sys; print "%s" % sys.version_info[0]')
+%global pyminor %(python -c 'import sys; print "%s" % sys.version_info[1]')
+
 %if 0%{?rhel}
 %global cma_rundir  %{_localstatedir}/run/assimilation
 %global nano_rundir %{_localstatedir}/run/nanoprobe
+%if %(test %{pyminor} -ge 7 && echo 1 || echo 0)
+%global python_sitearch /opt/rh/python27/root/%{_libdir}/python2.7/site-packages
+%endif
 %else
 %global cma_rundir  /run/assimilation
 %global nano_rundir /run/nanoprobe
@@ -58,7 +68,7 @@ Group:      Applications/System
 License:    GPLv3+
 URL:        http://linux-ha.org/source-doc/assimilation/html/index.html
 Source0:    assimilation.tip.tar.gz
-Source20:   assimilation-cma.service
+#Source20:   assimilation-cma.service
 # A copy of the CC0 legal code taken from:
 # https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt
 # This waives all copyright for the following files:
@@ -78,12 +88,12 @@ BuildRequires: glib2-devel
 BuildRequires: libpcap-devel
 BuildRequires: pkgconfig
 BuildRequires: scl-utils
-BuildRequires: python27-devel
+BuildRequires: python27
 #BuildRequires: python27-ctypesgen
 #BuildRequires: python27-py2neo
 
 Requires:         neo4j
-Requires:         assimilation-nanoprobe = 0:%{version}-%{release}
+Requires:         assimilation-nanoprobe = 0:%{release}
 #
 #   The next couple things are different if we have python >= 2.7 available...
 #
@@ -103,7 +113,7 @@ Requires(preun):  systemd
 Requires(postun): systemd
 %endif
 
-Provides:  assimilation = 0:%{version}-%{release}
+Provides:  assimilation = 0:%{release}
 
 %description
 This package contains the Collective Management Authority (CMA) for
@@ -136,8 +146,8 @@ the assimilation-nanoprobe daemon.
 %package -n assimilation-nanoprobe
 Group:         Applications/System
 Summary:       Nanoprobe distributed monitoring agent for Assimilation
-Source21:      assimilation-nanoprobe.service
-Source31:      assimilation-nanoprobe.init
+#Source21:      assimilation-nanoprobe.service
+#Source31:      assimilation-nanoprobe.init
 %if 0%{?rhel}
 Requires(post):   chkconfig
 Requires(preun):  chkconfig
@@ -183,14 +193,16 @@ but every machine being monitored (including the CMA itself) runs a copy of
 the assimilation-nanoprobe daemon.
 
 %prep
-%setup -q -n assimilation-%{snapshot}
+/bin/pwd
+ls -l
+%setup -q -n Assimilation-%{version}
 
 
 %build
 mkdir -p build
 pushd build
 %if 0%{?rhel}
-%cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1
+scl enable python27 'cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1'
 %else
 %cmake .. -DCMAKE_SKIP_BUILD_RPATH=1
 %endif
@@ -205,7 +217,7 @@ popd
 
 %install
 pushd build
-make install DESTDIR=%{buildroot}
+scl enable python27 'make install DESTDIR=%{buildroot}'
 popd
 
 
@@ -215,11 +227,12 @@ cp -a build/doxygen/html %{buildroot}%{_docdir}/assimilation
 %endif
 
 %if 0%{?rhel}
-install -p -D -m0755 %{SOURCE30} %{buildroot}%{_initddir}/assimilation-cma
-install -p -D -m0755 %{SOURCE31} %{buildroot}%{_initddir}/assimilation-nanoprobe
+install -p -D -m0755 %{buildroot}/etc/init.d/cma       %{buildroot}%{_initddir}/assimilation-cma
+install -p -D -m0755 %{buildroot}/etc/init.d/nanoprobe %{buildroot}%{_initddir}/assimilation-nanoprobe
+rm -f %{buildroot}/etc/init.d/cma %{buildroot}/etc/init.d/nanoprobe
 %else
-install -p -D -m0644 %{SOURCE20} %{buildroot}%{_unitdir}/assimilation-cma.service
-install -p -D -m0644 %{SOURCE21} %{buildroot}%{_unitdir}/assimilation-nanoprobe.service
+install -p -D -m0644 %{buildroot}/docker/CentOS/assimilation-cma.service %{buildroot}%{_unitdir}/assimilation-cma.service
+install -p -D -m0644 %{buildroot}/docker/CentOS/assimilation-nanoprobe.service %{buildroot}%{_unitdir}/assimilation-nanoprobe.service
 %endif
 
 mkdir -p %{buildroot}%{cma_rundir}
@@ -263,7 +276,7 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %post -n assimilation-nanoprobe
-echo ${_libdir}/assimilation > /etc/ld.so.conf/assimilation
+echo %{_libdir}/assimilation > /etc/ld.so.conf/assimilation
 /sbin/ldconfig %{_libdir}/assimilation
 /sbin/chkconfig --add assimilation-nanoprobe
 
@@ -305,85 +318,17 @@ fi
 
 %files
 %doc legal/COPYING README
-%{python_sitearch}/assimilation
 %{_sbindir}/cma
+%{_sbindir}/assimcli
 %attr(0755,%{cma_user},%{cma_group}) %dir %{cma_rundir}
 
 %if 0%{?rhel}
-%{_initddir}/cma
+#%{_initddir}assimilation-cma
 %else
 %{_unitdir}/assimilation-cma.service
 %endif
-%{_sbindir}/cma
-%{_sbindir}/assimcli
-%{_datadir}/assimilation/queries/hostswitchports
-%{_datadir}/assimilation/queries/allipports
-%{_datadir}/assimilation/queries/shutdown
-%{_datadir}/assimilation/queries/hostservicestatus
-%{_datadir}/assimilation/queries/downservices
-%{_datadir}/assimilation/queries/crashed
-%{_datadir}/assimilation/queries/list
-%{_datadir}/assimilation/queries/allips
-%{_datadir}/assimilation/queries/down
-%{_datadir}/assimilation/queries/findip
-%{_datadir}/assimilation/queries/allswitchports
-%{_datadir}/assimilation/queries/unknownips
-%{_datadir}/assimilation/queries/allservicestatus
-%{_datadir}/assimilation/queries/hostdependencies
-%{_datadir}/assimilation/queries/findmac
-%{_datadir}/assimilation/queries/allservers
-%{_datadir}/assimilation/queries/hostipports
-%{_datadir}/assimilation/queries/unmonitored
-%{_datadir}/assimilation/monrules/assimilation/bacula-director-lsb.mrule
-%{_datadir}/assimilation/monrules/assimilation/munin-node-lsb.mrule
-%{_datadir}/assimilation/monrules/assimilation/tprintdaemon-nomon.mrule
-%{_datadir}/assimilation/monrules/assimilation/ssh-lsb.mrule
-%{_datadir}/assimilation/monrules/assimilation/bacula-sd-lsb.mrule
-%{_datadir}/assimilation/monrules/assimilation/dropbox-nomon.mrule
-%{_datadir}/assimilation/monrules/assimilation/rpcbind-lsb.mrule
-%{_datadir}/assimilation/monrules/assimilation/named.mrule
-%{_datadir}/assimilation/monrules/assimilation/pidgin-nomon.mrule
-%{_datadir}/assimilation/monrules/assimilation/skype-nomon.mrule
-%{_datadir}/assimilation/monrules/assimilation/neo4j.mrule
-%attr(0755,root,root) %dir %{python_sitearch/assimilation}
-%{_python_sitearch}/assimilation/arpdiscovery.py
-%{_python_sitearch}/assimilation/AssimCclasses.py
-%{_python_sitearch}/assimilation/assimcli.py
-%{_python_sitearch}/assimilation/assimeventobserver.py
-%{_python_sitearch}/assimilation/assimevent.py
-%{_python_sitearch}/assimilation/assimjson.py
-%{_python_sitearch}/assimilation/checksumdiscovery.py
-%{_python_sitearch}/assimilation/cmaconfig.py
-%{_python_sitearch}/assimilation/cmadb.py
-%{_python_sitearch}/assimilation/cmainit.py
-%{_python_sitearch}/assimilation/cma.py
-%{_python_sitearch}/assimilation/consts.py
-%{_python_sitearch}/assimilation/discoverylistener.py
-%{_python_sitearch}/assimilation/dispatchtarget.py
-%{_python_sitearch}/assimilation/droneinfo.py
-%{_python_sitearch}/assimilation/frameinfo.py
-%{_python_sitearch}/assimilation/glib.py
-%{_python_sitearch}/assimilation/graphnodeexpression.py
-%{_python_sitearch}/assimilation/graphnodes.py
-%{_python_sitearch}/assimilation/hbring.py
-%{_python_sitearch}/assimilation/linkdiscovery.py
-%{_python_sitearch}/assimilation/messagedispatcher.py
-%{_python_sitearch}/assimilation/monitoringdiscovery.py
-%{_python_sitearch}/assimilation/monitoring.py
-%{_python_sitearch}/assimilation/packetlistener.py
-%{_python_sitearch}/assimilation/query.py
-%{_python_sitearch}/assimilation/store.py
-%{_python_sitearch}/assimilation/transaction.py
-%{_python_sitearch}/assimilation/__init__.py
-%{_python_sitearch}/assimilation/AssimCtypes.py
-%{_python_sitearch}/assimilation/tests/__init__.py
-%{_python_sitearch}/assimilation/tests/store_test.py
-%{_python_sitearch}/assimilation/tests/assimevent_test.py
-%{_python_sitearch}/assimilation/tests/cclass_wrappers_test.py
-%{_python_sitearch}/assimilation/tests/cma_test.py
-%{_python_sitearch}/assimilation/tests/zexternaltests.py
-%{_python_sitearch}/assimilation/flask/hello.py
-
+%attr(0755,root,root) %dir %{_datadir}/assimilation
+%attr(0755,root,root) %dir %{python_sitearch}/assimilation
 %files -n assimilation-nanoprobe
 %doc legal/COPYING
 /usr/lib/ocf/resource.d/assimilation/neo4j
@@ -403,11 +348,9 @@ fi
 %{_datadir}/assimilation/discovery_agents/ulimit
 %{_datadir}/assimilation/copyright
 %attr(0755,root,root) %dir %{nano_rundir}
-%{_libdir}/libassimilationclientlib.so
-%{_libdir}/libassimilationserverlib.so
 
 %if 0%{?rhel}
-${_initddir}/nanoprobe
+%{_initddir}/assimilation-nanoprobe
 %else
 %{_unitdir}/assimilation-nanoprobe.service
 %endif
