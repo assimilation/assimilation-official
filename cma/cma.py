@@ -154,8 +154,8 @@ def main():
     parser.add_option('-f', '--foreground', action='store_true', default=False, dest='foreground'
     ,   help='keep the CMA from going into the background')
 
-    parser.add_option('-p', '--pidfile', action='store', default='/var/run/assimilation/cma', dest='pidfile'
-    ,   metavar='pidfile-pathname'
+    parser.add_option('-p', '--pidfile', action='store', default='/var/run/assimilation/cma'
+    ,   dest='pidfile',   metavar='pidfile-pathname'
     ,   help='full pathname of where to locate our pid file')
 
     parser.add_option('-T', '--trace', action='store_true', default=False, dest='doTrace'
@@ -366,7 +366,8 @@ def drop_privileges_permanently(userid):
     # Let's see if everything wound up as it should...
     if (os.getuid() != newuid or os.geteuid() != newuid
        or os.getgid() != newgid or os.getegid() != newgid):
-        raise OSError('Could not set user/group ids to user "%s" [uid:%s, gid:%s].' % (userid, os.getuid(), os.getgid()))
+        raise OSError('Could not set user/group ids to user "%s" [uid:%s, gid:%s].'
+        %   (userid, os.getuid(), os.getgid()))
     # Checking groups is a little more complicated - order is potentially not preserved...
     # This also allows for the case where there might be dups (which shouldn't happen?)
     curgroups = os.getgroups()
@@ -389,7 +390,9 @@ def make_pid_dir(pidfile, userid):
     os.mkdir(piddir, 0755)
     userinfo = getent.passwd(userid)
     if userinfo is None:
-        raise(OSError('Userid "%s" is unknown [uid:%s, gid:%s, groups:%s.' % userid))
+        raise(OSError('Userid "%s" is unknown.' % userid))
+    # pylint doesn't understand about getent...
+    # pylint: disable=E1101
     os.chown(piddir, userinfo.uid, userinfo.gid)
 
 if __name__ == '__main__':
