@@ -34,6 +34,7 @@ cleanneo() {
 set -e
 neoversion=stable
 neoversion=testing
+apt-get update
 apt-get -y install python-flask debianutils lsof python-gi python-netaddr python-pip valgrind
 apt-get -y install openjdk-7-jre
 pip install py2neo testify getent
