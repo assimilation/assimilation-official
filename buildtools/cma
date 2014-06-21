@@ -85,7 +85,11 @@ start() {
       [ $rc -eq 0 ]
     then
       echo "$SERVICE started." >&2
-      touch "$lockfile"
+      if
+        test -d $(dirname "$lockfile")
+      then
+        touch "$lockfile"
+      fi
     else
       echo "$SERVICE NOT started!" >&2
     fi
@@ -114,7 +118,7 @@ restart() {
 command=$1
 case "$command" in
   start|stop|restart)
-        $0
+        $command
 		exit $?;;
 
   status)
