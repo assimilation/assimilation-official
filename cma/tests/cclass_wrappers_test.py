@@ -53,6 +53,7 @@ elif not AssertOnDanglingClasses:
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
     global WorstDanglingCount
+    CMAinit.uninit()
     gc.collect()
     count =  proj_class_live_object_count()
     # Avoid cluttering the output up with redundant messages...
@@ -919,6 +920,7 @@ class pyNetIOudpTest(TestCase):
         config = pyConfigContext(init={'outsig': pySignFrame(1)})
         io = pyNetIOudp(config, pyPacketDecoder())
         self.assertTrue(io.fileno() >  2)
+        io.config = None
 
     def test_members(self):
         if DEBUG: print >>sys.stderr, "========================test_members(pyNetIOudpTest)"
@@ -929,6 +931,7 @@ class pyNetIOudpTest(TestCase):
         self.assertEqual(io.getmaxpktsize(), 1500)
         # Does signframe really work?  Next statement seems to crash things
         #self.assertEqual(type(io.signframe()), type(pySignFrame(1)))
+        io.config = None
 
     def test_send(self):
         if DEBUG: print >>sys.stderr, "========================test_send(pyNetIOudpTest)"
@@ -944,6 +947,7 @@ class pyNetIOudpTest(TestCase):
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder())
         io.sendframesets(home, fs)
         io.sendframesets(home, (fs,fs,fs))
+        io.config = None
 
     def test_receiveandsend(self):
         if DEBUG: print >>sys.stderr, "========================test_receiveandsend(pyNetIOudpTest)"
@@ -979,6 +983,7 @@ class pyNetIOudpTest(TestCase):
            self.assertEqual(type(x), type(y))
            self.assertEqual(x.__class__, y.__class__)
            self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
+        io.config = None
 
     @class_teardown
     def tearDown(self):
