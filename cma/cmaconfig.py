@@ -40,9 +40,9 @@ class ConfigFile(object):
         'optional_modules':     [   # List of optional modules to be included
                                     # Below is the list of all known optional modules
                                     {'linkdiscovery',       # listens for CMA/LLDP packets
-                                         'checksumdiscovery',   # Checksums network-facing files
-                                         'monitoringdiscovery', # Automatically monitors services
-                                         'arpdiscovery',        # Listens for ARP packets for
+                                     'checksumdiscovery',   # Checksums network-facing files
+                                     'monitoringdiscovery', # Automatically monitors services
+                                     'arpdiscovery',        # Listens for ARP packets for
                                                             # network mapping...
                                     }
                                 ],
@@ -50,11 +50,11 @@ class ConfigFile(object):
                                             # We have no idea what contrib modules there might be
         'initial_discovery':    [           # Below is the list of known discovery agents...
                                     {'cpu',                 # Discovers CPU details
-                                         'packages',            # Discovers installed packages
-                                         'monitoringagents',    # Discovers monitoring agents
-                                         'os',                  # Discovers OS configuration
-                                         'tcpdiscovery',        # Discovers network-facing processes
-                                         'ulimit',              # Discovers ulimit settings
+                                     'packages',            # Discovers installed packages
+                                     'monitoringagents',    # Discovers monitoring agents
+                                     'os',                  # Discovers OS configuration
+                                     'tcpdiscovery',        # Discovers network-facing processes
+                                     'ulimit',              # Discovers ulimit settings
                                     },
                                ],
         'cmaport':              {int, long}, # CMA listening port
