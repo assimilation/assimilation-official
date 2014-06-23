@@ -336,6 +336,7 @@ class TestIO:
         # as part of the cleanup action?
         del self.inframes
         del self.packetswritten
+        del self.config
 
     def getmaxpktsize(self):    return 60000
     def fileno(self):        	return self.pipe_read
