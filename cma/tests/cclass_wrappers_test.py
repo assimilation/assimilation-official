@@ -53,7 +53,6 @@ elif not AssertOnDanglingClasses:
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
     global WorstDanglingCount
-    CMAinit.uninit()
     gc.collect()
     count =  proj_class_live_object_count()
     # Avoid cluttering the output up with redundant messages...
