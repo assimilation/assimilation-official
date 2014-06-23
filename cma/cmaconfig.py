@@ -39,32 +39,32 @@ class ConfigFile(object):
         'OUI':                  {str: str}, # Addendum for locally-known OUI mappings
         'optional_modules':     [   # List of optional modules to be included
                                     # Below is the list of all known optional modules
-                                    set(('linkdiscovery',       # listens for CMA/LLDP packets
+                                    {'linkdiscovery',       # listens for CMA/LLDP packets
                                          'checksumdiscovery',   # Checksums network-facing files
                                          'monitoringdiscovery', # Automatically monitors services
                                          'arpdiscovery',        # Listens for ARP packets for
                                                             # network mapping...
-                                    ))
+                                    }
                                 ],
         'contrib_modules':      [str],      # List of contrib modules to be included
                                             # We have no idea what contrib modules there might be
         'initial_discovery':    [           # Below is the list of known discovery agents...
-                                    set(('cpu',                 # Discovers CPU details
+                                    {'cpu',                 # Discovers CPU details
                                          'packages',            # Discovers installed packages
                                          'monitoringagents',    # Discovers monitoring agents
                                          'os',                  # Discovers OS configuration
                                          'tcpdiscovery',        # Discovers network-facing processes
                                          'ulimit',              # Discovers ulimit settings
-                                    )),
+                                    },
                                ],
-        'cmaport':              int,        # CMA listening port
+        'cmaport':              {int, long}, # CMA listening port
         'cmainit':              pyNetAddr,  # Initial contact address for the CMA
         'cmaaddr':              pyNetAddr,  # CMA's base address...
         'cmadisc':              pyNetAddr,  # Address to send discovery information
         'cmafail':              pyNetAddr,  # Address to send failure reports
         'outsig':               pySignFrame,# Packet signature frame
         'compress':             pyCompressFrame,# Packet compression frame
-        'compression_method':   set(('zlib',)),   # Packet compression method
+        'compression_method':   {'zlib'},   # Packet compression method
         'compression_threshold':int,        # Threshold for when to start compressing
         'discovery': {
                 'repeat':   int,        # how often to repeat a discovery action
@@ -279,7 +279,7 @@ class ConfigFile(object):
     @staticmethod
     def _check_validity_set(template, configobj):
         'Make sure the configobj is of a string matching something in the set'
-        if configobj not in template:
+        if configobj not in template and type(configobj) not in template:
             return (False, '%s is not in %s' % (configobj, template))
         return (True, '')
 
