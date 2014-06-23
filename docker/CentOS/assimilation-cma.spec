@@ -42,21 +42,26 @@
 %global _hardened_build 1
 
 %if %(test -z  "%{?version}" && echo 1 || echo 0)
-%global version must-define-version-to-rpmbuild-using--define=version_version-hash
+%global version must-define-assimilation-version-to-rpmbuild-using--define=version_version-hash
 %endif
 
 %global pymajor %(python -c 'import sys; print "%s" % sys.version_info[0]')
 %global pyminor %(python -c 'import sys; print "%s" % sys.version_info[1]')
 
-%if 0%{?rhel}
-%global cma_rundir  %{_localstatedir}/run/assimilation
-%global nano_rundir %{_localstatedir}/run/nanoprobe
-%if %(test %{pyminor} -ge 7 && echo 1 || echo 0)
+%global uses_systemd  %(test -f /usr/lib/systemd/systemd && echo 1 || echo 0)
+%global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
+%if %{python27_native}
+%else
 %global python_sitearch /opt/rh/python27/root/%{_libdir}/python2.7/site-packages
 %endif
-%else
+
+
+%if %{uses_systemd}
 %global cma_rundir  /run/assimilation
 %global nano_rundir /run/nanoprobe
+%else
+%global cma_rundir  %{_localstatedir}/run/assimilation
+%global nano_rundir %{_localstatedir}/run/nanoprobe
 %endif
 
 Name:       assimilation-cma
@@ -73,44 +78,46 @@ Source0:    assimilation.tip.tar.gz
 # https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt
 # This waives all copyright for the following files:
 # assimilation-nanoprobe.service
-# assimilation-cma.spec
+# assimilation-cma.spec (this specfile)
 # ------------------------------
-# Note that these files have been relicensed as noted at the top of the file
+# These files have been relicensed as noted at the top of this file
 # ------------------------------
 
-%if 0%{?rhel}
-BuildRequires: cmake28
-%else
+%if %{python27_native}
 BuildRequires: cmake
+BuildRequires: python
+#BuildRequires: python-ctypesgen
+#Requires:        python-py2neo
+%else
+BuildRequires: cmake28
+BuildRequires: scl-utils
+BuildRequires: python27
+#BuildRequires: python27-ctypesgen
+#Requires:      python27-py2neo
+Requires:         scl-utils
 %endif
 
 BuildRequires: glib2-devel
 BuildRequires: libpcap-devel
 BuildRequires: pkgconfig
-BuildRequires: scl-utils
-BuildRequires: python27
-#BuildRequires: python27-ctypesgen
-#BuildRequires: python27-py2neo
 
 Requires:         neo4j
 Requires:         assimilation-nanoprobe = 0:%{release}
 #
 #   The next couple things are different if we have python >= 2.7 available...
 #
-Requires:         scl-utils
-#Requires:        python27-py2neo
 Requires(pre):    shadow-utils
 
-%if 0%{?rhel}
-Requires(post):   chkconfig
-Requires(preun):  chkconfig
-Requires(preun):  initscripts
-Requires(postun): initscripts
-%else
+%if %{uses_systemd}
 BuildRequires:    systemd
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
+%else
+Requires(post):   chkconfig
+Requires(preun):  chkconfig
+Requires(preun):  initscripts
+Requires(postun): initscripts
 %endif
 
 Provides:  assimilation = 0:%{release}
@@ -146,17 +153,15 @@ the assimilation-nanoprobe daemon.
 %package -n assimilation-nanoprobe
 Group:         Applications/System
 Summary:       Nanoprobe distributed monitoring agent for Assimilation
-#Source21:      assimilation-nanoprobe.service
-#Source31:      assimilation-nanoprobe.init
-%if 0%{?rhel}
+%if %{uses_systemd}
+Requires(post):   systemd
+Requires(preun):  systemd
+Requires(postun): systemd
+%else
 Requires(post):   chkconfig
 Requires(preun):  chkconfig
 Requires(preun):  initscripts
 Requires(postun): initscripts
-%else
-Requires(post):   systemd
-Requires(preun):  systemd
-Requires(postun): systemd
 %endif
 Requires:         redhat-lsb-core
 Requires:         wireless-tools
@@ -201,10 +206,10 @@ ls -l
 %build
 mkdir -p build
 pushd build
-%if 0%{?rhel}
-scl enable python27 'cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1'
-%else
+%if %{python27_native}
 %cmake .. -DCMAKE_SKIP_BUILD_RPATH=1
+%else
+scl enable python27 'cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1'
 %endif
 popd
 
@@ -226,13 +231,13 @@ mkdir -p %{buildroot}%{_docdir}/assimilation
 cp -a build/doxygen/html %{buildroot}%{_docdir}/assimilation
 %endif
 
-%if 0%{?rhel}
+%if %{uses_systemd}
+install -p -D -m0644 %{buildroot}/docker/CentOS/assimilation-cma.service %{buildroot}%{_unitdir}/assimilation-cma.service
+install -p -D -m0644 %{buildroot}/docker/CentOS/assimilation-nanoprobe.service %{buildroot}%{_unitdir}/assimilation-nanoprobe.service
+%else
 install -p -D -m0755 %{buildroot}/etc/init.d/cma       %{buildroot}%{_initddir}/assimilation-cma
 install -p -D -m0755 %{buildroot}/etc/init.d/nanoprobe %{buildroot}%{_initddir}/assimilation-nanoprobe
 rm -f %{buildroot}/etc/init.d/cma %{buildroot}/etc/init.d/nanoprobe
-%else
-install -p -D -m0644 %{buildroot}/docker/CentOS/assimilation-cma.service %{buildroot}%{_unitdir}/assimilation-cma.service
-install -p -D -m0644 %{buildroot}/docker/CentOS/assimilation-nanoprobe.service %{buildroot}%{_unitdir}/assimilation-nanoprobe.service
 %endif
 
 mkdir -p %{buildroot}%{cma_rundir}
@@ -260,7 +265,29 @@ getent passwd %{cma_user} > /dev/null || \
 exit 0
 
 
-%if 0%{?rhel}
+%if %{uses_systemd}
+%post
+%systemd_post assimilation-cma.service
+
+%preun
+%systemd_preun assimilation-cma.service
+
+%postun
+%systemd_postun_with_restart assimilation-cma.service
+
+%post -n assimilation-nanoprobe
+/sbin/ldconfig
+%systemd_post assimilation-nanoprobe.service
+
+%preun -n assimilation-nanoprobe
+%systemd_preun assimilation-nanoprobe.service
+
+%postun -n assimilation-nanoprobe
+/sbin/ldconfig
+%systemd_postun_with_restart assimilation-nanoprobe.service
+
+%else
+
 %post
 /sbin/chkconfig --add assimilation-cma
 
@@ -291,28 +318,6 @@ fi
 if [ $1 -ge 1 ] ; then
     /sbin/service assimilation-nanoprobe condrestart >/dev/null 2>&1 || :
 fi
-
-%else
-
-%post
-%systemd_post assimilation-cma.service
-
-%preun
-%systemd_preun assimilation-cma.service
-
-%postun
-%systemd_postun_with_restart assimilation-cma.service
-
-%post -n assimilation-nanoprobe
-/sbin/ldconfig
-%systemd_post assimilation-nanoprobe.service
-
-%preun -n assimilation-nanoprobe
-%systemd_preun assimilation-nanoprobe.service
-
-%postun -n assimilation-nanoprobe
-/sbin/ldconfig
-%systemd_postun_with_restart assimilation-nanoprobe.service
 %endif
 
 
@@ -322,11 +327,12 @@ fi
 %{_sbindir}/assimcli
 %attr(0755,%{cma_user},%{cma_group}) %dir %{cma_rundir}
 
-%if 0%{?rhel}
-#%{_initddir}assimilation-cma
-%else
+%if %{uses_systemd}
 %{_unitdir}/assimilation-cma.service
+%else
+#%{_initddir}assimilation-cma
 %endif
+
 %attr(0755,root,root) %dir %{_datadir}/assimilation
 %attr(0755,root,root) %dir %{python_sitearch}/assimilation
 %files -n assimilation-nanoprobe
@@ -349,10 +355,10 @@ fi
 %{_datadir}/assimilation/copyright
 %attr(0755,root,root) %dir %{nano_rundir}
 
-%if 0%{?rhel}
-%{_initddir}/assimilation-nanoprobe
-%else
+%if %{uses_systemd}
 %{_unitdir}/assimilation-nanoprobe.service
+%else
+%{_initddir}/assimilation-nanoprobe
 %endif
 
 %if 0%{?enable_docs}
@@ -363,6 +369,8 @@ fi
 
 
 %changelog
+* Mon Jun 23 2014 Alan Robertson <alanr@unix.sh>
+- Making progress in RPM building.  Hopefully made it a little more robust w.r.t. version changes...
 * Mon Jun 16 2014 Alan Robertson <alanr@unix.sh>
 - First attempt at having it build for RHEL6 with python27 and new dependencies...
 * Tue Jul 16 2013 Jamie Nguyen <jamielinux@fedoraproject.org> - 0.1.0-0.25.20130707hgae4553edf8c9
