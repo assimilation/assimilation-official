@@ -65,39 +65,39 @@ class ConfigFile(object):
         'outsig':               pySignFrame,# Packet signature frame
         'compress':             pyCompressFrame,# Packet compression frame
         'compression_method':   {'zlib'},   # Packet compression method
-        'compression_threshold':int,        # Threshold for when to start compressing
+        'compression_threshold':{int,long}, # Threshold for when to start compressing
         'discovery': {
-                'repeat':   int,        # how often to repeat a discovery action
-                'warn':     int,        # How long to wait when issuing a slow discovery warning
-                'timeout':  int,        # how long wait before declaring failure
+                'repeat':   {int,long},     # how often to repeat a discovery action
+                'warn':     {int,long},     # How long to wait when issuing a slow discovery warning
+                'timeout':  {int,long},     # how long wait before declaring failure
                 'agents': {     # Configuration information for individual agent types,
                                 # optionally including machine
                                 str:{
-                                    'repeat':   int, # repeat for this particular agent
-                                    'warn':     int, # How long before slow discovery warning
-                                    'timeout':  int, # timeout for this particular agent
+                                    'repeat':   {int,long}, # repeat for this particular agent
+                                    'warn':     {int,long}, # How long before slow discovery warning
+                                    'timeout':  {int,long}, # timeout for this particular agent
                                     'args':     {str: object},
                                 },
                 },
         },
         'monitoring': {
-                'repeat':   int,    # Default repeat interval in seconds
-                'warn':     int,    # How long to wait when issuing a slow monitoring warning
-                'timeout':  int,    # How long to wait before declaring failure
+                'repeat':   {int,long},    # Default repeat interval in seconds
+                'warn':     {int,long},    # How long to wait when issuing a slow monitoring warning
+                'timeout':  {int,long},    # How long to wait before declaring failure
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
                                 str:{
-                                    'repeat':   int, # repeat for this particular agent
-                                    'warn':     int, # How long before slow monitoring warning
-                                    'timeout':  int, # timeout for this particular agent
+                                    'repeat':   {int,long}, # repeat for this particular agent
+                                    'warn':     {int,long}, # How long before slow warning
+                                    'timeout':  {int,long}, # timeout for this particular agent
                                     'args':     {str: object},
                                 },
                 },
         },
         'heartbeats':   {
-            'repeat':   int,    # how frequently to heartbeat - in seconds
-            'warn':     int,    # How long to wait when issuing a late heartbeat warning
-            'timeout':  int,    # How long to wait before declaring a system dead
+            'repeat':   {int,long},    # how frequently to heartbeat - in seconds
+            'warn':     {int,long},    # How long to wait when issuing a late heartbeat warning
+            'timeout':  {int,long},    # How long to wait before declaring a system dead
         },
     }
     # This is the default configuration for the Assimilation project CMA
