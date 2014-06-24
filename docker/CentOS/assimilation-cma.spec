@@ -83,13 +83,12 @@ Source0:    %{assimversion}.tgz
 # These files have been relicensed as noted at the top of this file
 # ------------------------------
 
-%if %{python27_native}
 BuildRequires: cmake
+%if %{python27_native}
 BuildRequires: python
 #BuildRequires: python-ctypesgen
 #Requires:        python-py2neo
 %else
-BuildRequires: cmake28
 BuildRequires: scl-utils
 BuildRequires: python27
 #BuildRequires: python27-ctypesgen
@@ -209,7 +208,7 @@ pushd build
 %if %{python27_native}
 %cmake .. -DCMAKE_SKIP_BUILD_RPATH=1
 %else
-scl enable python27 'cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1'
+scl enable python27 'cmake .. -DCMAKE_SKIP_BUILD_RPATH=1'
 %endif
 popd
 
