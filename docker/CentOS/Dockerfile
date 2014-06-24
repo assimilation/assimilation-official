@@ -13,7 +13,7 @@ RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/ce
 RUN yum -y install python27 # python27-python-devel
 RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install ctypesgen'
-RUN echo "about to build another new version (v21)"
+RUN echo "about to build another new version (v23)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src && cd /root/assimilation/bin; cmake ../src && scl enable python27 "make install"
 #EXPOSE 55604 7473 7474 1984 1337
 ENV BROKENDNS true
@@ -24,4 +24,4 @@ RUN echo '/usr/lib64/assimilation' > /etc/ld.so.conf.d/assimilation && ldconfig 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
 RUN cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/neo4j-service start) && scl enable python27 'python --version; /usr/bin/env python --version; testify -v tests'
 
-RUN cd /root/assimilation/src && id=$(hg id --id .) && hg archive /rpmbuild/SOURCES/${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"
+RUN cd /root/assimilation/src && id=$(hg id --id .) && mkdir -p /rpmbuild/SOURCES && hg archive --type tgz /rpmbuild/SOURCES/${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"
