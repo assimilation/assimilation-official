@@ -199,7 +199,7 @@ the assimilation-nanoprobe daemon.
 %prep
 /bin/pwd
 ls -l
-%setup -q -n src-%{assimversion}
+%setup -q -n %{assimversion}
 
 
 %build
