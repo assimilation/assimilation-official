@@ -1,6 +1,6 @@
 FROM centos:latest
 #FROM xdrum/centos64-base
-RUN yum -y install glib2 libpcap zlib-devel
+RUN yum -y install glib2 libpcap zlib-devel rpm-build
 # Can't use sudo from within a docker build - it needs a tty.  Some tests need to run as root. Good thing we run as root here...
 # An alternative to providing syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
 RUN yum -y install gcc cmake cpack make pkg-config glib2-devel valgrind resource-agents mercurial wget libpcap-devel rsyslog which tar redhat-lsb-core
@@ -23,3 +23,5 @@ RUN echo '/usr/lib64/assimilation' > /etc/ld.so.conf.d/assimilation && ldconfig 
 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
 RUN cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/neo4j-service start) && scl enable python27 'python --version; /usr/bin/env python --version; testify -v tests'
+
+RUN cd /root/assimilation/src && id=$(hg id --id .) && hg archive /rpmbuild/SOURCES/src-${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"

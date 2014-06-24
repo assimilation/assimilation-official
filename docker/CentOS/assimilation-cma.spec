@@ -29,7 +29,7 @@
 # To the extent possible under law, Jamie Nguyen waived all copyright
 # and related or neighboring rights to his original work.
 #
-# This work is published from: United Kingdom.
+# This work was originally published from: United Kingdom.
 #
 # See https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt
 #--------------------------------------------------------------------
@@ -41,8 +41,8 @@
 
 %global _hardened_build 1
 
-%if %(test -z  "%{?version}" && echo 1 || echo 0)
-%global version must-define-assimilation-version-to-rpmbuild-using--define=version_version-hash
+%if %(test -z  "%{?assimversion}" && echo 1 || echo 0)
+%global assimversion must-define-assimilation-version-to-rpmbuild-using--define=version_version-hash
 %endif
 
 %global pymajor %(python -c 'import sys; print "%s" % sys.version_info[0]')
@@ -72,7 +72,7 @@ Summary:    Collective Management Authority (CMA) for Assimilation
 Group:      Applications/System
 License:    GPLv3+
 URL:        http://linux-ha.org/source-doc/assimilation/html/index.html
-Source0:    assimilation.tip.tar.gz
+Source0:    %{assimversion}.tgz
 #Source20:   assimilation-cma.service
 # A copy of the CC0 legal code taken from:
 # https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt
@@ -200,7 +200,7 @@ the assimilation-nanoprobe daemon.
 %prep
 /bin/pwd
 ls -l
-%setup -q -n Assimilation-%{version}
+%setup -q -n Assimilation-%{assimversion}
 
 
 %build
