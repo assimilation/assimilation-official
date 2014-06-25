@@ -367,36 +367,36 @@ endif(DOXYGEN_FOUND)
 #
 #	Install our discovery agents under /usr/share/assimilation.  Retain permissions from source control.
 #
-install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${USRSHARE} USE_SOURCE_PERMISSIONS
+install (DIRECTORY ${DAGENTS} COMPONENT nanoprobe-component DESTINATION ${DESTDIR}${USRSHARE} USE_SOURCE_PERMISSIONS
 	PATTERN ".nfs*" EXCLUDE PATTERN "*.out" EXCLUDE PATTERN "*.txt" EXCLUDE)
 #
 #
 #	Install our query flat files under /usr/share/assimilation/${QUERYSUBDIR}
 #
-install (DIRECTORY ${QUERYSUBDIR} COMPONENT cma-component DESTINATION ${USRSHARE})
+install (DIRECTORY ${QUERYSUBDIR} COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 #
 #
 #	Install our monitoring rule flat files under /usr/share/assimilation/${MONRULESUBDIR}
 #
-install (DIRECTORY ${MONRULESUBDIR} COMPONENT cma-component DESTINATION ${USRSHARE})
+install (DIRECTORY ${MONRULESUBDIR} COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 #
 #	Install our OCF scripts under /usr/lib/ocf/resource.d/assimilation
 #
-install (PROGRAMS ocf/neo4j COMPONENT cma-component DESTINATION ${OCFINSTALL})
+install (PROGRAMS ocf/neo4j COMPONENT cma-component DESTINATION ${DESTDIR}${OCFINSTALL})
 #
 #	Create an empty notification script directory under /usr/share/assimilation/notification.d
 #
-install (DIRECTORY COMPONENT cma-component DESTINATION ${NOTIFICATION_SCRIPT_DIR})
+install (DIRECTORY COMPONENT cma-component DESTINATION ${DESTDIR}${NOTIFICATION_SCRIPT_DIR})
 #
 #	Install our init scripts in ${INITDIR}
 #
-install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/nanoprobe COMPONENT nanoprobe-component DESTINATION ${INITDIR})
-install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/cma COMPONENT cma-component DESTINATION ${INITDIR})
+install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/nanoprobe COMPONENT nanoprobe-component DESTINATION ${DESTDIR}${INITDIR})
+install (PROGRAMS  ${PROJECT_SOURCE_DIR}/buildtools/cma COMPONENT cma-component DESTINATION ${DESTDIR}${INITDIR})
 #
 #	Install our copyright file
 #
-install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-component DESTINATION ${USRSHARE})
-#install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${USRSHARE})
+install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-component DESTINATION ${DESTDIR}${USRSHARE})
+#install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 
 # Create the CMA user id at install time as part of the CMA component
 install (CODE "execute_process ( COMMAND /bin/sh -c \"getent passwd assimilation >/dev/null || adduser --disabled-login --disabled-password --no-create-home --gecos 'Assimilation software CMA' --shell /bin/false ${CMAUSERID}\" )" COMPONENT cma-component ) 
