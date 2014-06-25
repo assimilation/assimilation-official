@@ -29,19 +29,19 @@ install(PROGRAMS
 	frameinfo.py glib.py graphnodeexpression.py graphnodes.py hbring.py linkdiscovery.py
 	messagedispatcher.py monitoringdiscovery.py monitoring.py packetlistener.py query.py
 	store.py transaction.py
-        COMPONENT cma-component DESTINATION ${PYINSTALL})
+        COMPONENT cma-component DESTINATION ${DESTDIR}${PYINSTALL})
 
 install(FILES __init__.py 
-        COMPONENT cma-component DESTINATION ${PYINSTALL}
+        COMPONENT cma-component DESTINATION ${DESTDIR}${PYINSTALL}
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 	)
 install(FILES AssimCtypes.py-install
-        COMPONENT cma-component DESTINATION ${PYINSTALL}
+        COMPONENT cma-component DESTINATION ${DESTDIR}${PYINSTALL}
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 	RENAME AssimCtypes.py
 	)
-install (PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/cma ${CMAKE_CURRENT_BINARY_DIR}/assimcli  COMPONENT cma-component DESTINATION ${CMAKE_INSTALL_PREFIX}/sbin)
+install (PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/cma ${CMAKE_CURRENT_BINARY_DIR}/assimcli  COMPONENT cma-component DESTINATION ${DESTDIR}${CMAKE_INSTALL_PREFIX}/sbin)
 install(DIRECTORY tests 
-        COMPONENT cma-component DESTINATION ${PYINSTALL} FILES_MATCHING PATTERN "*.py")
+        COMPONENT cma-component DESTINATION ${DESTDIR}${PYINSTALL} FILES_MATCHING PATTERN "*.py")
 install(DIRECTORY flask 
-        COMPONENT cma-component DESTINATION ${PYINSTALL} FILES_MATCHING PATTERN "*.py")
+        COMPONENT cma-component DESTINATION ${DESTDIR}${PYINSTALL} FILES_MATCHING PATTERN "*.py")
