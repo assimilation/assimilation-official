@@ -222,7 +222,11 @@ popd
 
 %install
 pushd build
-scl enable python27 'make install DESTDIR=%{buildroot}'
+%if %{python27_native}
+  make install DESTDIR=%{buildroot}
+%else
+  scl enable python27 'make install DESTDIR=%{buildroot}'
+%endif
 popd
 
 
