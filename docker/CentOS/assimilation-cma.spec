@@ -227,10 +227,6 @@ pushd build
 %else
   scl enable python27 'make install DESTDIR=%{buildroot}'
 %endif
-%if %{uses_systemd}
-  rm -f %{buildroot}%{_initddir}/assimilation-nanoprobe
-  rm -f %{buildroot}%{_initddir}/assimilation-cma
-%endif
 popd
 
 
@@ -243,10 +239,10 @@ cp -a build/doxygen/html %{buildroot}%{_docdir}/assimilation
 install -p -D -m0644 %{_builddir}/%{assimversion}/docker/CentOS/assimilation-cma.service %{buildroot}%{_unitdir}/assimilation-cma.service
 install -p -D -m0644 %{_builddir}/%{assimversion}/docker/CentOS/assimilation-nanoprobe.service %{buildroot}%{_unitdir}/assimilation-nanoprobe.service
 %else
-install -p -D -m0755 %{buildroot}/etc/init.d/cma       %{buildroot}%{_initddir}/assimilation-cma
-install -p -D -m0755 %{buildroot}/etc/init.d/nanoprobe %{buildroot}%{_initddir}/assimilation-nanoprobe
-rm -f %{buildroot}/etc/init.d/cma %{buildroot}/etc/init.d/nanoprobe
+install -p -D -m0755 %{buildroot}%{_initddir}/cma       %{buildroot}%{_initddir}/assimilation-cma
+install -p -D -m0755 %{buildroot}%{_initddir}/nanoprobe %{buildroot}%{_initddir}/assimilation-nanoprobe
 %endif
+rm -f %{buildroot}%{_initddir}/cma %{buildroot}%{_initddir}/nanoprobe
 
 mkdir -p %{buildroot}%{cma_rundir}
 mkdir -p %{buildroot}%{nano_rundir}
