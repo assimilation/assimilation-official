@@ -2,7 +2,7 @@ FROM fedora:latest
 RUN yum -y install deltarpm glib2 libpcap zlib-devel
 RUN yum -y install python python-flask which java-1.7.0-openjdk lsof
 # Can't use sudo from within a docker build - it needs a tty.  Some tests need to run as root. Good thing we run as root here...
-RUN yum -y install gcc cmake cpack make pkg-config glib2-devel valgrind resource-agents mercurial wget libpcap-devel pylint
+RUN yum -y install gcc cmake cpack make pkg-config glib2-devel valgrind resource-agents mercurial wget libpcap-devel pylint rpm-build
 RUN yum -y remove vim-minimal && yum -y install doxygen graphviz
 #RUN wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
 #RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
