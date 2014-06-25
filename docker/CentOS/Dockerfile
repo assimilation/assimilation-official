@@ -13,7 +13,7 @@ RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/ce
 RUN yum -y install python27 # python27-python-devel
 RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install ctypesgen'
-RUN echo "about to build another new version (v29)"
+RUN echo "about to build another new version (v31)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src
 RUN cd /root/assimilation/src && id=$(hg id --id .) && mkdir -p /rpmbuild/SOURCES && hg archive --type tgz /rpmbuild/SOURCES/${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"
 RUN cd /root/assimilation/bin; /usr/bin/cmake28 ../src && scl enable python27 "make install"
