@@ -330,29 +330,18 @@ fi
 %if %{uses_systemd}
 %{_unitdir}/assimilation-cma.service
 %else
-#%{_initddir}assimilation-cma
+%{_initddir}/assimilation-cma
 %endif
 
-%attr(0755,root,root) %dir %{_datadir}/assimilation
-%attr(0755,root,root) %dir %{python_sitearch}/assimilation
+%attr(0755,root,root) %{_datadir}/assimilation
+%attr(0755,root,root) %{python_sitearch}/assimilation
 %files -n assimilation-nanoprobe
 %doc legal/COPYING
 /usr/lib/ocf/resource.d/assimilation/neo4j
-%attr(0755,root,root) %dir %{_libdir}/assimilation
-%{_libdir}/assimilation/libassimilationclientlib.so
-%{_libdir}/assimilation/libassimilationserverlib.so
+%attr(0755,root,root) %{_libdir}/assimilation
+%{_libdir}/assimilation
 %{_sbindir}/nanoprobe
-%attr(0755,root,root) %dir %{_datadir}/assimilation
-%attr(0755,root,root) %dir %{_datadir}/assimilation/discovery_agents
-%{_datadir}/assimilation/discovery_agents/checksums
-%{_datadir}/assimilation/discovery_agents/cpu
-%{_datadir}/assimilation/discovery_agents/monitoringagents
-%{_datadir}/assimilation/discovery_agents/netconfig
-%{_datadir}/assimilation/discovery_agents/os
-%{_datadir}/assimilation/discovery_agents/packages
-%{_datadir}/assimilation/discovery_agents/tcpdiscovery
-%{_datadir}/assimilation/discovery_agents/ulimit
-%{_datadir}/assimilation/copyright
+%attr(0755,root,root) %{_datadir}/assimilation
 %attr(0755,root,root) %dir %{nano_rundir}
 
 %if %{uses_systemd}
