@@ -227,6 +227,10 @@ pushd build
 %else
   scl enable python27 'make install DESTDIR=%{buildroot}'
 %endif
+%if %{uses_systemd}
+  rm -f %{buildroot}%{_initddir}/assimilation-nanoprobe
+  rm -f %{buildroot}%{_initddir}/assimilation-cma
+%endif
 popd
 
 
@@ -343,7 +347,6 @@ fi
 %doc legal/COPYING
 /usr/lib/ocf/resource.d/assimilation/neo4j
 %attr(0755,root,root) %{_libdir}/assimilation
-%{_libdir}/assimilation
 %{_sbindir}/nanoprobe
 %attr(0755,root,root) %{_datadir}/assimilation
 %attr(0755,root,root) %dir %{nano_rundir}
