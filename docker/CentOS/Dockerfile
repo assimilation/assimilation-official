@@ -8,8 +8,7 @@ RUN yum -y install java-1.7.0-openjdk lsof
 RUN wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
 RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
 RUN wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key  && rpm --import /tmp/neo4j.key && rm -f /tmp/neo4j.key
-echo '[neo4j]' > /etc/yum.repos.d/neo4j.repo && echo 'name=Neo4j Yum Repo' >> /etc/yum.repos.d/neo4j.repo &&
-echo 'baseurl=http://yum.neo4j.org' >> /etc/yum.repos.d/neo4j.repo && echo 'enabled=1' >> /etc/yum.repos.d/neo4j.repo && echo 'gpgcheck=1' >> /etc/yum.repos.d/neo4j.repo && yum -y install neo4j
+RUN echo '[neo4j]' > /etc/yum.repos.d/neo4j.repo && echo 'name=Neo4j Yum Repo' >> /etc/yum.repos.d/neo4j.repo && echo 'baseurl=http://yum.neo4j.org' >> /etc/yum.repos.d/neo4j.repo && echo 'enabled=1' >> /etc/yum.repos.d/neo4j.repo && echo 'gpgcheck=1' >> /etc/yum.repos.d/neo4j.repo && yum -y install neo4j
 
 RUN yum -y install scl-utils cmake28
 RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
