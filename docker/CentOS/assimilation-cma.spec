@@ -89,12 +89,13 @@ BuildRequires: cmake
 #BuildRequires: python-ctypesgen
 #Requires:        python-py2neo
 %else
-BuildRequires: scl-utils
-BuildRequires: python27
-BuildRequires: cmake28
+BuildRequires:  scl-utils
+BuildRequires:  python27
+BuildRequires:  cmake28
 #BuildRequires: python27-ctypesgen
 #Requires:      python27-py2neo
-Requires:         scl-utils
+Requires:       scl-utils
+Requires:       python27
 %endif
 
 BuildRequires: glib2-devel
