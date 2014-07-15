@@ -27,4 +27,4 @@ RUN adduser --shell /bin/false assimilation
 RUN echo '/usr/lib64/assimilation' > /etc/ld.so.conf.d/assimilation && ldconfig /usr/lib64/assimilation
 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
-RUN cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/neo4j start) && scl enable python27 'python --version; /usr/bin/env python --version; testify -v tests'
+RUN cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/neo4j start) && sleep 15 && scl enable python27 'python --version; /usr/bin/env python --version; testify -v tests'
