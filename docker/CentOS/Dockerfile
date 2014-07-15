@@ -7,14 +7,17 @@ RUN yum -y install gcc cpack make pkg-config glib2-devel valgrind resource-agent
 RUN yum -y install java-1.7.0-openjdk lsof
 RUN wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
 RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
-RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
+RUN wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key  && rpm --import /tmp/neo4j.key && rm -f /tmp/neo4j.key
+echo '[neo4j]' > /etc/yum.repos.d/neo4j.repo && echo 'name=Neo4j Yum Repo' >> /etc/yum.repos.d/neo4j.repo &&
+echo 'baseurl=http://yum.neo4j.org' >> /etc/yum.repos.d/neo4j.repo && echo 'enabled=1' >> /etc/yum.repos.d/neo4j.repo && echo 'gpgcheck=1' >> /etc/yum.repos.d/neo4j.repo && yum -y install neo4j
+
 RUN yum -y install scl-utils cmake28
 RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
 RUN yum -y install libffi.x86_64 gdbm 
 RUN yum -y install python27 # python27-python-devel
 RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install ctypesgen'
-RUN echo "about to build another new version (v31)"
+RUN echo "about to build another new version (v34)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src
 RUN cd /root/assimilation/src && id=$(hg id --id .) && mkdir -p /rpmbuild/SOURCES && hg archive --type tgz /rpmbuild/SOURCES/${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"
 RUN cd /root/assimilation/bin; /usr/bin/cmake28 ../src && scl enable python27 "make install"
