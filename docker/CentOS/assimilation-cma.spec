@@ -92,7 +92,8 @@ BuildRequires: cmake
 #BuildRequires: python-ctypesgen
 #Requires:        python-py2neo
 %else
-BuildRequires:  scl-utils-build
+#BuildRequires:  scl-utils-build
+BuildRequires:  scl-utils
 BuildRequires:  %{scl_prefix_python}python
 BuildRequires:  cmake28
 #BuildRequires: %{scl_prefix_python}ctypesgen
