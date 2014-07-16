@@ -86,29 +86,30 @@ Source0:    %{assimversion}.tgz
 # These files have been relicensed as noted at the top of this file
 # ------------------------------
 
-%if %{python27_native}
-BuildRequires: python
-BuildRequires: cmake
-#BuildRequires: python-ctypesgen
-#Requires:        python-py2neo
-%else
-#BuildRequires:  scl-utils-build
-BuildRequires:  scl-utils
-BuildRequires:  %{scl_prefix_python}python
-BuildRequires:  cmake28
-#BuildRequires: %{scl_prefix_python}ctypesgen
-#Requires:      %{scl_prefix_python}py2neo
-Requires:       scl-utils
-#Requires:       %{scl_prefix_python}scldevel
-Requires:       %{scl_python}
-%endif
-
 BuildRequires: glib2-devel
 BuildRequires: libpcap-devel
 BuildRequires: pkgconfig
 
+%if %{python27_native}
+BuildRequires: python
+BuildRequires: cmake
+#BuildRequires: python-ctypesgen
+#Requires:      python-py2neo
+%else
+#BuildRequires: scl-utils-build
+BuildRequires:  scl-utils
+BuildRequires:  %{scl_prefix_python}python
+BuildRequires:  %{scl_prefix_python}python-devel
+BuildRequires:  cmake28
+#BuildRequires: %{scl_prefix_python}ctypesgen
+Requires:       %{scl_prefix_python}python
+Requires:       scl-utils
+#Requires:      %{scl_prefix_python}py2neo
+#Requires:      %{scl_prefix_python}scldevel
+%endif
+
 Requires:         neo4j
-Requires:         assimilation-nanoprobe = 0:%{release}
+Requires:         assimilation-nanoprobe = %{version}-%{release}
 #
 #   The next couple things are different if we have python >= 2.7 available...
 #
