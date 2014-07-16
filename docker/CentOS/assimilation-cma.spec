@@ -99,7 +99,7 @@ BuildRequires:  cmake28
 #BuildRequires: %{scl_prefix_python}ctypesgen
 #Requires:      %{scl_prefix_python}py2neo
 Requires:       scl-utils
-Requires:       %{scl_prefix_python}scldevel
+#Requires:       %{scl_prefix_python}scldevel
 Requires:       %{scl_python}
 %endif
 
