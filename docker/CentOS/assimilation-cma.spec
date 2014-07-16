@@ -52,7 +52,10 @@
 %global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
 %if %{python27_native}
 %else
-%global python_sitearch /opt/rh/python27/root/%{_libdir}/python2.7/site-packages
+%global scl_python python27
+%global scl_prefix_python %{scl_python}-
+%global python_sitearch /opt/rh/%{scl_python}/root/%{_libdir}/python2.7/site-packages
+%global __python_requires %{%{scl_python}_python_requires} 
 %endif
 
 
@@ -89,13 +92,14 @@ BuildRequires: cmake
 #BuildRequires: python-ctypesgen
 #Requires:        python-py2neo
 %else
-BuildRequires:  scl-utils
-BuildRequires:  python27
+BuildRequires:  scl-utils-build
+BuildRequires:  %{scl_prefix_python}python
 BuildRequires:  cmake28
-#BuildRequires: python27-ctypesgen
-#Requires:      python27-py2neo
+#BuildRequires: %{scl_prefix_python}ctypesgen
+#Requires:      %{scl_prefix_python}py2neo
 Requires:       scl-utils
-Requires:       python27
+Requires:       %{scl_prefix_python}scldevel
+Requires:       %{scl_python}
 %endif
 
 BuildRequires: glib2-devel
@@ -210,7 +214,7 @@ pushd build
 %if %{python27_native}
 %cmake .. -DCMAKE_SKIP_BUILD_RPATH=1
 %else
-scl enable python27 'cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1'
+scl enable %{scl_python} 'cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1'
 %endif
 popd
 
@@ -226,7 +230,7 @@ pushd build
 %if %{python27_native}
   make install DESTDIR=%{buildroot}
 %else
-  scl enable python27 'make install DESTDIR=%{buildroot}'
+  scl enable %{scl_python} 'make install DESTDIR=%{buildroot}'
 %endif
 popd
 
