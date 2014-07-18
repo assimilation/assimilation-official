@@ -61,7 +61,7 @@
 %global __python_requires %{python27_python_requires}
 %global __python_provides %{python27_python_provides}
 %global __os_install_post %{python27_os_install_post}
-%global python_sitearch %{scl_root}/%{_libdir}/python2.7/site-packages
+%global python_sitearch %{_scl_root}/%{_libdir}/python2.7/site-packages
 %global __python_requires %{%{scl_python}_python_requires} 
 %endif
 
