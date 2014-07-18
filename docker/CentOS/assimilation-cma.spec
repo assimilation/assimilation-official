@@ -54,6 +54,7 @@
 %if %{python27_native}
 %else
 %global scl_python python27
+%global scl %{scl_python}
 %global scl_prefix %{scl_python}-
 %global __python_requires %{python27_python_requires}
 %global __python_provides %{python27_python_provides}
