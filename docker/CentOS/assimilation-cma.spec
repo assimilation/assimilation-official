@@ -54,7 +54,8 @@
 %if %{python27_native}
 %else
 %global scl_python python27
-%global __python_requires %{__python27_python_requires}
+%global __python_requires %{python27_python_requires}
+%global __python_provides %{python27_python_provides}
 %global scl_prefix_python %{scl_python}-
 %global python_sitearch /opt/rh/%{scl_python}/root/%{_libdir}/python2.7/site-packages
 %global __python_requires %{%{scl_python}_python_requires} 
