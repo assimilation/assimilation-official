@@ -54,9 +54,9 @@
 %if %{python27_native}
 %else
 %global scl_python python27
+%global scl_prefix %{scl_python}-
 %global __python_requires %{python27_python_requires}
 %global __python_provides %{python27_python_provides}
-%global scl_prefix_python %{scl_python}-
 %global python_sitearch /opt/rh/%{scl_python}/root/%{_libdir}/python2.7/site-packages
 %global __python_requires %{%{scl_python}_python_requires} 
 %endif
@@ -101,14 +101,14 @@ BuildRequires: cmake
 %else
 #BuildRequires: scl-utils-build
 BuildRequires:  scl-utils
-BuildRequires:  %{scl_prefix_python}python
-BuildRequires:  %{scl_prefix_python}python-devel
+BuildRequires:  %{scl_prefix}python
+BuildRequires:  %{scl_prefix}python-devel
 BuildRequires:  cmake28
-#BuildRequires: %{scl_prefix_python}ctypesgen
-Requires:       %{scl_prefix_python}python
+#BuildRequires: %{scl_prefix}ctypesgen
+Requires:       %{scl_prefix}python
 Requires:       scl-utils
-#Requires:      %{scl_prefix_python}py2neo
-#Requires:      %{scl_prefix_python}scldevel
+#Requires:      %{scl_prefix}py2neo
+#Requires:      %{scl_prefix}scldevel
 %endif
 
 Requires:         neo4j
