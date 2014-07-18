@@ -41,6 +41,7 @@
 
 %global _hardened_build 1
 
+
 %if %(test -z  "%{?assimversion}" && echo 1 || echo 0)
 %global assimversion must-define-assimilation-version-to-rpmbuild-using--define=version_version-hash
 %endif
@@ -53,6 +54,7 @@
 %if %{python27_native}
 %else
 %global scl_python python27
+%global __python_requires %{__python27_python_requires}
 %global scl_prefix_python %{scl_python}-
 %global python_sitearch /opt/rh/%{scl_python}/root/%{_libdir}/python2.7/site-packages
 %global __python_requires %{%{scl_python}_python_requires} 
