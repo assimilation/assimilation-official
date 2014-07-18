@@ -56,7 +56,7 @@
 %global scl_python python27
 %global scl %{scl_python}
 %global _scl_root /opt/rh/%{scl_python}/root
-%global __python %{scl_root}%{__python}
+%global __python %{scl_root}/usr/bin/python
 %global scl_prefix %{scl_python}-
 %global __python_requires %{python27_python_requires}
 %global __python_provides %{python27_python_provides}

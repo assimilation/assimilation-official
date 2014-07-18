@@ -7,24 +7,29 @@ RUN yum -y install gcc cpack make pkg-config glib2-devel valgrind resource-agent
 RUN yum -y install java-1.7.0-openjdk lsof
 RUN wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
 RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
-RUN wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key  && rpm --import /tmp/neo4j.key && rm -f /tmp/neo4j.key
-#RUN echo '[neo4j]' > /etc/yum.repos.d/neo4j.repo && echo 'name=Neo4j Yum Repo' >> /etc/yum.repos.d/neo4j.repo && echo 'baseurl=http://yum.neo4j.org' >> /etc/yum.repos.d/neo4j.repo && echo 'enabled=1' >> /etc/yum.repos.d/neo4j.repo && echo 'gpgcheck=1' >> /etc/yum.repos.d/neo4j.repo && yum -y install neo4j && mkdir -p /var/lib/heartbeat/lrm
-RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
-RUN yum -y install scl-utils cmake28
+RUN yum -y install scl-utils scl-utils-build cmake28
 RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
 RUN yum -y install libffi.x86_64 gdbm 
 RUN yum -y install python27 # python27-python-devel
 RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install ctypesgen'
-RUN echo "about to build another new version (v37)"
+RUN echo "about to build another new version (v43)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src
 RUN cd /root/assimilation/src && id=$(hg id --id .) && mkdir -p /rpmbuild/SOURCES && hg archive --type tgz /rpmbuild/SOURCES/${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"
 RUN cd /root/assimilation/bin; /usr/bin/cmake28 ../src && scl enable python27 "make install"
 #EXPOSE 55604 7473 7474 1984 1337
+###  Neo4j RPM
+RUN wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key  && rpm --import /tmp/neo4j.key && rm -f /tmp/neo4j.key
+#RUN echo '[neo4j]' > /etc/yum.repos.d/neo4j.repo && echo 'name=Neo4j Yum Repo' >> /etc/yum.repos.d/neo4j.repo && echo 'baseurl=http://yum.neo4j.org' >> /etc/yum.repos.d/neo4j.repo && echo 'enabled=1' >> /etc/yum.repos.d/neo4j.repo && echo 'gpgcheck=1' >> /etc/yum.repos.d/neo4j.repo && yum -y install neo4j && mkdir -p /var/lib/heartbeat/lrm
+RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
+
 ENV BROKENDNS true
 RUN scl enable python27 'pip install py2neo netaddr flask getent testify pylint'
 RUN adduser --shell /bin/false assimilation
 RUN echo '/usr/lib64/assimilation' > /etc/ld.so.conf.d/assimilation && ldconfig /usr/lib64/assimilation
 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
-RUN cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/neo4j-service start) && sleep 15 && scl enable python27 'python --version; /usr/bin/env python --version; testify -v tests'
+#RUN NEO=neo4j-service; cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/${NEO} start) && sleep 15 && scl enable python27 '/usr/bin/env python --version; testify -v tests'
+###  Our RPMs
+RUN cd /rpmbuild/RPMS/x86_64/ && yum -y install assimilation-nanoprobe*.rpm
+RUN cd /rpmbuild/RPMS/x86_64/ && yum -y install assimilation-cma*.rpm
