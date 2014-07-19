@@ -114,7 +114,8 @@ Requires:       scl-utils
 #Requires:      %{scl_prefix}scldevel
 %endif
 
-Requires:         neo4j
+#   The current version of the Neo4j package looks to be broken.
+#Requires:         neo4j
 Requires:         assimilation-nanoprobe = %{version}-%{release}
 #
 #   The next couple things are different if we have python >= 2.7 available...
