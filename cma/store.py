@@ -114,6 +114,8 @@ class Store(object):
     LUCENE_RE =  re.compile(r'([\-+&\|!\(\)\{\}[\]^"~\*?:\\])')
     LUCENE_RE =  re.compile(r'([:[\]])')
 
+    debug = False
+
     def __init__(self, db, uniqueindexmap=None, classkeymap=None):
         '''
         Constructor for Transactional Write (Batch) Store objects
@@ -753,8 +755,9 @@ class Store(object):
             (subj, node) = pair
             Store._update_node_from_obj(subj)
             subj.__store_batchindex = self.batchindex
-            #print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node'
-            #%   (self.batchindex, str(node)))
+            if Store.debug:
+                print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node'
+                %   (self.batchindex, str(node)))
             self.batchindex += 1
             self._bump_stat('nodecreate')
             self.batch.create(node)
@@ -781,9 +784,11 @@ class Store(object):
             rel['seqno'] = self.batchindex
             rel['abstract'] = absrel
             self.batchindex += 1
-            #print >> sys.stderr, ('Performing batch.create(%s) - for node relationships' % absrel)
+            if Store.debug:
+                print >> sys.stderr, ('Performing batch.create(%s) - for node relationships' % absrel)
             self._bump_stat('relate')
-            #print >> sys.stderr, ('ADDING rel %s' % absrel)
+            if Store.debug:
+                print >> sys.stderr, ('ADDING rel %s' % absrel)
             self.batch.create(absrel)
 
     def _batch_construct_deletions(self):
@@ -794,7 +799,8 @@ class Store(object):
             if isinstance(relorobj, neo4j.Relationship):
                 relid = relorobj._id
                 if relid not in delrels:
-                    #print >> sys.stderr, ('DELETING rel %d: %s' % (relorobj._id, relorobj))
+                    if Store.debug:
+                        print >> sys.stderr, ('DELETING rel %d: %s' % (relorobj._id, relorobj))
                     self._bump_stat('separate')
                     self.batch.delete(relorobj)
                     delrels[relid] = True
@@ -810,7 +816,8 @@ class Store(object):
                 for attr in relorobj.__dict__.keys():
                     if attr.startswith('_Store__store'):
                         delattr(relorobj, attr)
-                #print >> sys.stderr, ('DELETING node %s' % node)
+                if Store.debug:
+                    print >> sys.stderr, ('DELETING node %s' % node)
                 self._bump_stat('nodedelete')
                 self.batch.delete(node)
                 delnodes[relid] = True
@@ -829,13 +836,15 @@ class Store(object):
                 self.index_entry_count += 1
                 self._bump_stat('index')
                 if subj.__store_index_unique:
-                    #print >> sys.stderr, ('Adding node or fail: node %s to index %s("%s","%s")' %\
-                        #(subj.__store_batchindex, idx, key, value))
+                    if Store.debug:
+                        print >> sys.stderr, ('add_to_index_or_fail: node %s to index %s("%s","%s")' %\
+                            (subj.__store_batchindex, idx, key, value))
                     self.batch.add_to_index_or_fail(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
                 else:
-                    #print >> sys.stderr, ('add_to_index: node %s added to index %s(%s,%s)' %
-                        #(subj.__store_batchindex, idx, key, value))
+                    if Store.debug:
+                        print >> sys.stderr, ('add_to_index: node %s added to index %s(%s,%s)' %
+                            (subj.__store_batchindex, idx, key, value))
                     self.batch.add_to_index(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
 
@@ -852,8 +861,9 @@ class Store(object):
                 # Each of these items will return None in the HTTP stream...
                 self.node_update_count += 1
                 self._bump_stat('attrupdate')
-                #print >> sys.stderr, ('Setting property %s of %d to %s' % (attr
-                #,       node._id, Store._proper_attr_value(subj, attr)))
+                if Store.debug:
+                    print >> sys.stderr, ('Setting property %s of %d to %s' % (attr
+                    ,       node._id, Store._proper_attr_value(subj, attr)))
                 self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
 
     def abort(self):
@@ -874,7 +884,8 @@ class Store(object):
 
     def commit(self):
         '''Commit all the changes we've created since our last transaction'''
-        #print >> sys.stderr, ('COMMITTING THIS THING:', self)
+        if Store.debug:
+            print >> sys.stderr, ('COMMITTING THIS THING:', str(self))
         if self.batch is None:
             self.batch = neo4j.WriteBatch(self.db)
         self.batchindex = 0
@@ -883,11 +894,13 @@ class Store(object):
         self._batch_construct_new_index_entries()   # These return the objects indexed
         self._batch_construct_node_updates()        # These return None
         self._batch_construct_deletions()           # These return None
-        #print >> sys.stderr, ('Committing THIS THING:', str(self))
+        if Store.debug:
+            print >> sys.stderr, ('Batch Updates constructed: Committing THIS THING:', str(self))
         start = datetime.now()
         submit_results = self.batch.submit()
-        #for result in submit_results:
-            #print >> sys.stderr, 'SUBMITRESULT:', result
+        if Store.debug:
+            for result in submit_results:
+                print >> sys.stderr, 'SUBMITRESULT:', result
 
         end = datetime.now()
         diff = end - start
@@ -900,12 +913,14 @@ class Store(object):
             # pylint: disable=W0612
             (subj, unused) = pair
             index = subj.__store_batchindex
-            #print >> sys.stderr, 'LOOKING at new node with batch index %d' % index
+            if Store.debug:
+                print >> sys.stderr, 'LOOKING at new node with batch index %d' % index
             newnode = submit_results[index]
-            #print >> sys.stderr, 'NEW NODE looks like %s' % str(newnode)
-            #print >> sys.stderr, 'SUBJ (our copy) looks like %s' % str(subj)
-            #print >> sys.stderr, ('NEONODE (their copy) looks like %d, %s'
-            #%       (newnode._id, str(newnode.get_properties())))
+            if Store.debug:
+                print >> sys.stderr, 'NEW NODE looks like %s' % str(newnode)
+                print >> sys.stderr, 'SUBJ (our copy) looks like %s' % str(subj)
+                print >> sys.stderr, ('NEONODE (their copy) looks like %d, %s'
+                %       (newnode._id, str(newnode.get_properties())))
             # This 'subj' used to have an abstract node, now it's concrete
             subj.__store_node = newnode
             self.weaknoderefs[newnode._id] = weakref.ref(subj)
@@ -997,6 +1012,7 @@ if __name__ == "__main__":
         for rel in rellist:
             store.relate(fred, rel, fred)
         store.commit()  # The updates have been captured...
+        print >> sys.stderr, ('Statistics:', store.stats)
 
         assert fred.a == 52
         assert fred.b == 2
@@ -1025,6 +1041,7 @@ if __name__ == "__main__":
         print >> sys.stderr, ('store:', store)
         assert store.transaction_pending
         store.commit()
+        print >> sys.stderr, ('Statistics:', store.stats)
         assert not store.transaction_pending
         assert fred.a == 52
         assert fred.b == 2
@@ -1048,6 +1065,7 @@ if __name__ == "__main__":
         store.separate(fred, 'WILLBEA')
         assert store.transaction_pending
         store.commit()
+        print >> sys.stderr, ('Statistics:', store.stats)
 
         # Test a simple cypher query...
         query = neo4j.CypherQuery(ourdb, "START d=node:Drone('*:*') RETURN d")
@@ -1076,4 +1094,6 @@ if __name__ == "__main__":
         print >> sys.stderr, ('Statistics:', store.stats)
         print >> sys.stderr, ('Final returned values look good!')
 
+
+    Store.debug = True
     testme()
