@@ -785,7 +785,7 @@ class Store(object):
             rel['abstract'] = absrel
             self.batchindex += 1
             if Store.debug:
-                print >> sys.stderr, ('Performing batch.create(%s) - for node relationships' % absrel)
+                print >> sys.stderr, ('Performing batch.create(%s): node relationships' % absrel)
             self._bump_stat('relate')
             if Store.debug:
                 print >> sys.stderr, ('ADDING rel %s' % absrel)
@@ -837,8 +837,8 @@ class Store(object):
                 self._bump_stat('index')
                 if subj.__store_index_unique:
                     if Store.debug:
-                        print >> sys.stderr, ('add_to_index_or_fail: node %s to index %s("%s","%s")' %\
-                            (subj.__store_batchindex, idx, key, value))
+                        print >> sys.stderr,('add_to_index_or_fail: node %s; index %s("%s","%s")'
+                            % (subj.__store_batchindex, idx, key, value))
                     self.batch.add_to_index_or_fail(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
                 else:
