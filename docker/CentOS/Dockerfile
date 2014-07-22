@@ -9,8 +9,8 @@ RUN wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-
 RUN yum -y install /tmp/epel-release-6-8.noarch.rpm
 RUN yum -y install scl-utils scl-utils-build cmake28
 RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
-RUN yum -y install libffi.x86_64 gdbm 
-RUN yum -y install python27 # python27-python-devel
+#RUN yum -y install libffi.x86_64 gdbm 
+RUN yum -y install python27-python python27-python-setuptools python27-python-devel
 RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install ctypesgen'
 RUN echo "about to build another new version (v50)"
