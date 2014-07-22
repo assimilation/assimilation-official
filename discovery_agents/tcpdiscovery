@@ -197,7 +197,7 @@ gather_tcp_netstatinfo() {
     if
         netstat_supports_W_flag
     then
-        WFLAGS='W'
+        WFLAG='W'
     else
         WFLAG=''
     fi
