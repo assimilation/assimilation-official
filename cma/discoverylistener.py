@@ -203,11 +203,15 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 if ipaddr in newips:
                     newips[ipaddr] = currip.update_attributes(newips[ipaddr])
                 else:
-                    del currips[ipaddr]
+                    print >> sys.stderr, 'Deleting address %s from MAC %s' %  (currip, macaddr)
+                    print >> sys.stderr, 'currip:%s, currips:%s' %  (str(currip), str(currips))
+                    self.log.debug('Deleting address %s from MAC %s' %  (currip, macaddr))
+                    self.log.debug('currip:%s, currips:%s' %  (str(currip), str(currips)))
                     # @FIXME - this is a bug -- 'currip' is a string... - or _something_ is...
                     self.store.separate(mac, currip, CMAconsts.REL_ipowner)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     self.store.delete(currip)
+                    del currips[ipaddr]
 
             # Create REL_ipowner relationships for all the newly created IP nodes
             for ipaddr in newips.keys():
