@@ -24,6 +24,8 @@ if
 then
   update-rc.d cma defaults
 fi
-getent passwd assimilation >/dev/null || adduser --disabled-login --disabled-password --no-create-home --gecos "Assimilation software CMA" --shell /bin/false @CMAUSERID@
+#BROKENNESS!! @FIXME - I think this is a cpack bug
+#	getent passwd assimilation >/dev/null || adduser --disabled-login --disabled-password --no-create-home --gecos "Assimilation software CMA" --shell /bin/false @CMAUSERID@
+getent passwd assimilation >/dev/null || adduser --disabled-login --disabled-password --no-create-home --gecos "Assimilation software CMA" --shell /bin/false assimilation
 echo "@InstallLIBS@" > /etc/ld.so.conf.d/assimilation
 ldconfig @InstallLIBS@
