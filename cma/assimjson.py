@@ -86,8 +86,7 @@ class JSONtree(object):
                 return 'true'
             return 'false'
 
-        if isinstance(thing, int) or isinstance(thing, float) \
-                or isinstance(thing, pyConfigContext):
+        if isinstance(thing, (int, long, float, pyConfigContext)):
             return str(thing)
 
         if isinstance(thing, unicode) or isinstance(thing, pyNetAddr):
