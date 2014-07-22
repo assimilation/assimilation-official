@@ -50,6 +50,8 @@ The following packages are needed for building the packages, testing them, or cr
 - <a href="http://www.neo4j.org/install">Neo4j</a> graph database.  Note that Neo4j needs Java.  They prefer Oracle's Java.
 - <a href="http://www.python.org/">Python 2.7</a> (approximately) interpreter for the Python language
 - <a href="http://py2neo.org/">py2neo</a> Python bindings for Neo4j - version <b>1.6.1</b> or later
+- <a href="https://pypi.python.org/pypi/netaddr">python-netaddr</a> Python network address package
+- <a href="https://pypi.python.org/pypi/getent">getent</a> Python library for reading UNIX password and group files
 - <a href="http://flask.pocoo.org/">flask</a> Python web microframework
 
 <b>Documentation packages</b>
