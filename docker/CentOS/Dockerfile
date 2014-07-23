@@ -13,7 +13,7 @@ RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/ce
 RUN yum -y install python27-python python27-python-setuptools python27-python-devel
 RUN scl enable python27 'easy_install pip'
 RUN scl enable python27 'pip install ctypesgen'
-RUN echo "about to build another new version (v50)"
+RUN echo "about to build another new version (v51)"
 RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src
 RUN cd /root/assimilation/src && id=$(hg id --id .) && mkdir -p /rpmbuild/SOURCES && hg archive --type tgz /rpmbuild/SOURCES/${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"
 RUN cd /root/assimilation/bin; /usr/bin/cmake28 ../src && scl enable python27 "make install"
@@ -26,7 +26,7 @@ RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4
 ENV BROKENDNS true
 RUN scl enable python27 'pip install py2neo netaddr flask getent testify pylint'
 RUN adduser --shell /bin/false assimilation
-RUN echo '/usr/lib64/assimilation' > /etc/ld.so.conf.d/assimilation && ldconfig /usr/lib64/assimilation
+RUN echo "/usr/lib*/assimilation" > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib*/assimilation
 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
 #RUN NEO=neo4j-service; cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/${NEO} start) && sleep 15 && scl enable python27 '/usr/bin/env python --version; testify -v tests'
