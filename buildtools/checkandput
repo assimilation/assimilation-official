@@ -72,7 +72,7 @@ cd $WSBIN
 sudo echo "SCANBUILD is $SCANBUILD"
 ourlib="/usr$(dirname $(ldd /bin/sh | grep libc | sed -e 's%.*=> *%%' -e 's% .*%%'))/assimilation"
 echo "OURLIBDIR=${ourlib}"
-sudo ldconfig "$ourlib"
+sudo bash -c "echo $ourlib > /etc/ld.so.conf.d/assimilation.conf; ldconfig $ourlib"
 #$SCANBUILD cmake $WORKSPACE
 $SCANBUILD cmake ../src
 test -d "$WSCLANG" || mkdir -p "$WSCLANG"
