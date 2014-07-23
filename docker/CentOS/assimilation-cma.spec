@@ -294,6 +294,7 @@ exit 0
 %systemd_postun_with_restart assimilation-cma.service
 
 %post -n assimilation-nanoprobe
+echo %{_libdir}/assimilation > /etc/ld.so.conf/assimilation.conf
 /sbin/ldconfig
 %systemd_post assimilation-nanoprobe.service
 
@@ -301,6 +302,7 @@ exit 0
 %systemd_preun assimilation-nanoprobe.service
 
 %postun -n assimilation-nanoprobe
+rm /etc/ld.so.conf.d/assimilation.conf
 /sbin/ldconfig
 %systemd_postun_with_restart assimilation-nanoprobe.service
 
@@ -321,7 +323,7 @@ if [ $1 -ge 1 ] ; then
 fi
 
 %post -n assimilation-nanoprobe
-echo %{_libdir}/assimilation > /etc/ld.so.conf/assimilation
+echo %{_libdir}/assimilation > /etc/ld.so.conf/assimilation.conf
 /sbin/ldconfig %{_libdir}/assimilation
 /sbin/chkconfig --add assimilation-nanoprobe
 
@@ -332,6 +334,7 @@ if [ $1 -eq 0 ] ; then
 fi
 
 %postun -n assimilation-nanoprobe
+rm -fr /etc/ld.so.conf.d/assimilation
 /sbin/ldconfig %{_libdir}/assimilation
 if [ $1 -ge 1 ] ; then
     /sbin/service assimilation-nanoprobe condrestart >/dev/null 2>&1 || :
