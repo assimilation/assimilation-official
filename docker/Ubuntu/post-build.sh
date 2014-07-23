@@ -44,7 +44,8 @@ wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add -
 echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 apt-get -y update
 apt-get -y install neo4j
-ldconfig /usr/lib/*/assimilation
+echo /usr/lib/*gnu-linux/assimilation > /etc/ld.so.conf.d/assimilation.conf
+ldconfig /usr/lib/*linux-gnu/assimilation
 service $NEOSERVICE start
 cd /root/assimilation/src
 testify -v cma.tests

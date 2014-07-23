@@ -24,4 +24,5 @@ if
 then
   update-rc.d cma remove
 fi
+rm /etc/ld.so.conf.d/assimilation.conf
 ldconfig 
