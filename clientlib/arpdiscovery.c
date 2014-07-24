@@ -212,7 +212,7 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
 	arp_sha = pktstart + ARP_HDR_LEN;
 	arp_spa = arp_sha + arppkt.arp_hln;
 	lastbyte = arp_sha + (2*arppkt.arp_pln) + (2*arppkt.arp_hln);
-	g_return_val_if_fail(lastbyte <= (guint8*)pend, TRUE);
+	g_return_val_if_fail(lastbyte <= (const guint8*)pend, TRUE);
 	g_return_val_if_fail(arppkt.arp_hln == 6 || arppkt.arp_hln == 8, TRUE);
 	g_return_val_if_fail(arppkt.arp_pln == 4, TRUE);
 	if (memcmp(arp_spa, zeroes, arppkt.arp_pln) == 0) {
