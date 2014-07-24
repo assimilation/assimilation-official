@@ -39,7 +39,7 @@ discover_lsb() {
 discover_ocf() {
 	printf "%s" '"ocf": ['
 	comma=''
-	(cd /usr/lib/ocf/resource.d; find -L * -print | sort) | \
+	(cd /usr/lib/ocf/resource.d && find -L * -print | sort) | \
 	while
 	  read agent
 	do
