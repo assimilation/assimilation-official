@@ -93,6 +93,9 @@ set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Project - assimmon.org")
 set (CPACK_DEBIAN_PACKAGE_SECTION "contrib/admin")
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${PROJARCH})
 set (CPACK_DEBIAN_PACKAGE_DEPENDS "python, libc6, resource-agents")
+#When I turn on SHLIBDEPS, I get this error...
+#CPackDeb: dpkg-shlibdeps: dpkg-shlibdeps: need at least one executable
+#set (CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)	# autogenerate dependency information
 set (CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/legal/COPYING")
 set (CPACK_COMPONENT_CMA-COMPONENT_DEPENDS NANOPROBE-COMPONENT)
 set (CPACK_RPM_PACKAGE_LICENSE "${LICENSE_SHORT}")
