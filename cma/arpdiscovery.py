@@ -180,7 +180,7 @@ class ArpDiscoveryListener(DiscoveryListener):
                 ## @TODO We should make sure it isn't related to a different NIC
                 for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner
                     , GraphNode.factory):
-                    self.store.separate(oldnicnode, CMAconsts.REL_ipowner, oldnicnode)
+                    self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
             print >> sys.stderr, ('RELATING (%s)-[:ipowner]->(%s)	[%s]' 
             %       (str(nicnode.macaddr), str(ipnode.ipaddr), org))
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)
