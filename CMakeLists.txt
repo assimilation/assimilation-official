@@ -383,9 +383,9 @@ install (DIRECTORY ${QUERYSUBDIR} COMPONENT cma-component DESTINATION ${DESTDIR}
 #
 install (DIRECTORY ${MONRULESUBDIR} COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 #
-#	Install our OCF scripts under /usr/lib/ocf/resource.d/assimilation
+#	Install our OCF scripts under /usr/lib/ocf/resource.d/assimilation - as part of the nanoprobe package
 #
-install (PROGRAMS ocf/neo4j COMPONENT cma-component DESTINATION ${DESTDIR}${OCFINSTALL})
+install (PROGRAMS ocf/neo4j COMPONENT nanoprobe-component DESTINATION ${DESTDIR}${OCFINSTALL})
 #
 #	Create an empty notification script directory under /usr/share/assimilation/notification.d
 #
