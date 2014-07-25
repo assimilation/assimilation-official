@@ -24,12 +24,14 @@ RUN wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key  && rpm
 RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
 
 ENV BROKENDNS true
-RUN scl enable python27 'pip install py2neo netaddr flask getent testify pylint'
+RUN scl enable python27 'pip install py2neo netaddr getent'
 RUN adduser --shell /bin/false assimilation
 RUN echo "/usr/lib*/assimilation" > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib*/assimilation
 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
-#RUN NEO=neo4j-service; cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/${NEO} start) && sleep 15 && scl enable python27 '/usr/bin/env python --version; testify -v tests'
+RUN NEO=neo4j-service; cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/${NEO} start) && sleep 15 && scl enable python27 '/usr/bin/env python --version; testify -v tests'
 ###  Our RPMs
 RUN cd /rpmbuild/RPMS/x86_64/ && yum -y install assimilation-nanoprobe*.rpm
 RUN cd /rpmbuild/RPMS/x86_64/ && yum -y install assimilation-cma*.rpm
+# These are only here to make Alan happy
+RUN scl enable python27 'pip flask testify pylint'
