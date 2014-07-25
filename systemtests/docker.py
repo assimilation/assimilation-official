@@ -23,7 +23,12 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-import tempfile, subprocess, sys
+'''
+This file provides a basic set of classes to allow us to create a semi-realistic test environment
+for testing the Assimilation project software.  We use containers (or potentially virtual machines) to
+run a CMA and a bunch of nanoprobes on a system.
+'''
+import tempfile, subprocess, sys, itertools, random
 class TestSystem(object):
     'This is the base class for managing test systems for testing the Assimilation code'
     nameindex = 0
@@ -48,6 +53,7 @@ class TestSystem(object):
         self.cmdargs = cmdargs
         self.imagename = imagename
         self.status = TestSystem.NOTINIT
+        self.pid = None
         TestSystem.ManagedSystems[self.name] = self
 
     @staticmethod
@@ -89,9 +95,20 @@ class TestSystem(object):
         "Invoke our destroy operation when we're deleted"
         self.destroy()
 
+    def startservice(self):
+        'Unimplemented start service action'
+        raise NotImplementedError("Abstract class - doesn't implement startservice")
+
+    def stopservice(self):
+        'Unimplemented stop service action'
+        raise NotImplementedError("Abstract class - doesn't implement stopservice")
+
+
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
     dockercmd = '/usr/bin/docker.io'
+    nsentercmd = '/usr/local/bin/nsenter'
+    servicecmd = '/usr/bin/service'
 
     @staticmethod
     def run(*dockerargs):
@@ -114,6 +131,12 @@ class DockerSystem(TestSystem):
                 runargs.extend(self.cmdargs)
             DockerSystem.run(*runargs)
             self.status = TestSystem.RUNNING
+            #FIXME: Need to do this!
+            #PID=$(docker inspect --format {{.State.Pid}} <container_name_or_ID>)
+            fd = os.popen('%s %s %s %s %s'
+            %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.State.Pid}}', self.name))
+            self.pid = int(fd.readline())
+            fd.close()
         elif self.status == TestSystem.STOPPED:
             DockerSystem.run('restart', self.name)
             self.status = TestSystem.RUNNING
@@ -125,6 +148,7 @@ class DockerSystem(TestSystem):
         'Stop a docker instance'
         DockerSystem.run('stop', self.name)
         self.status = TestSystem.STOPPED
+        self.pid = None
 
     def destroy(self):
         'Destroy a docker instance (after stopping it if necessary)'
@@ -133,9 +157,87 @@ class DockerSystem(TestSystem):
         DockerSystem.run('rm', self.name)
         self.status = TestSystem.NOTINIT
 
+
+    def _nsenter(self, nsenterargs):
+        'Runs the given command on our running docker image'
+        if self.status != TestSystem.RUNNING:
+            raise RuntimeError('Docker Container %s is not running - nsenter not possible' % self.name)
+        args = [DockerSystem.nsentercmd, '--target', str(self.pid)
+        , '--mount', '--uts',  '--ipc', '--net', '--pid', '--']
+        args.extend(nsenterargs)
+        print >> sys.stderr, 'RUNNING nsenter cmd:', cmd
+        rc = subprocess.check_call(args)
+
+
+    def start(self):
+        'Start a docker instance'
+        if self.status == TestSystem.NOTINIT:
+            runargs = ['run', '--detach=true', '--name=%s' % self.name, self.imagename]
+            if self.cmdargs != None:
+                runargs.extend(self.cmdargs)
+            DockerSystem.run(*runargs)
+            self.status = TestSystem.RUNNING
+
+    def startservice(self, servicename):
+        'nsenter-based start service action for docker'
+        self._nsenter((DockerSystem.servicecmd, servicename, 'start'))
+
+    def stopservice(self):
+        'nsenter-based stop service action for docker'
+        self._nsenter((DockerSystem.servicecmd, servicename, 'stop'))
+
+
+class SystemTestEnvironment(object):
+    'A basic system test environment'
+    CMASERVICE = 'cma'
+    NANOSERVICE = 'nanoprobe'
+    def __init__(self, nanocount=10
+    ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
+    ,       sysclass=DockerSystem):
+        'Init/constructor for our SystemTestEnvironment'
+        self.sysclass = sysclass
+        self.cmaimage = cmaimage
+        self.nanoimages = nanoimages
+        self.nanoprobes = []
+        self.cma = None
+
+        cma = self._spawncma()
+        for child in itertools.repeat(lambda: self._spawnnanoprobe(), nanocount):
+            self.nanoprobes.append(child)
+
+    def _spawnsystem(self, imagename):
+        system = self.sysclass(imagename, ('/bin/sleep', '1000000000'))
+        system.start()
+        return system
+
+    def _spawncma(self):
+        'Spawn a CMA instance'
+        os = self._spawnsystem(self.cmaimage)
+        os.startservice(SystemTestEnvironment.CMASERVICE)
+        time.sleep(5)
+        os.startservice(SystemTestEnvironment.NANOSERVICE)
+        self.cma = os
+
+    def _spawnnanoprobe(self):
+        'Spawn a nanoprobe instance randomly chosen from our set of possible nanoprobes'
+        image = random.choice(self.nanoprobes)
+        os = self._spawnsystem(image)
+        os.startservice(SystemTestEnvironment.NANOSERVICE)
+
+    def stop(self):
+        for nano in self.nanoprobes():
+            nano.stop()
+        self.cma.stop()
+
+
 # A little test code...
 if __name__ == '__main__':
     print >> sys.stderr, 'Initializing:'
+    env = SystemTestEnvironment(5)
+    os.sleep(10)
+    env.stop()
+    env = None
+    TestSystem.cleanupall()
     for count in range(0, 5):
         onesys = DockerSystem('nanoprobe.ubuntu', ('/usr/bin/nanoprobe', '--foreground'))
         print >> sys.stderr, 'Started:'
@@ -146,5 +248,11 @@ if __name__ == '__main__':
         onesys.start()
         print >> sys.stderr, 'FIND result:', TestSystem.find(onesys.name)
     print >> sys.stderr, 'All systems:', TestSystem.ManagedSystems
+    TestSystem.cleanupall()
+    print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
+    env = SystemTestEnvironment(5)
+    os.sleep(10)
+    env.stop()
+    env = None
     TestSystem.cleanupall()
     print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
