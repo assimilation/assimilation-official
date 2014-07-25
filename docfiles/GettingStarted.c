@@ -147,7 +147,7 @@ If you are unable to build an RPM or DEB package, you can use <tt>sudo make inst
 This installs both the nanoprobe and CMA code.
 However, if you do, you will need to also issue this command:
 <pre>
-    echo /usr/lib/*/assimilation > /etc/ld.so.conf.d/assimilation.conf
+    echo /usr/lib/\*/assimilation > /etc/ld.so.conf.d/assimilation.conf
     ldconfig /usr/lib/*/assimilation
 </pre>
 or a slightly different set of commands depending on where we install our libraries.
