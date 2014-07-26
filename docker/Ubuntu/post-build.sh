@@ -35,8 +35,8 @@ set -e
 neoversion=stable
 neoversion=testing
 apt-get update
-apt-get -y install python-flask debianutils lsof python-gi python-netaddr python-pip valgrind
-apt-get -y install openjdk-7-jre
+apt-get -y install python-pip python-flask debianutils lsof python-netaddr valgrind
+apt-get -y install openjdk-7-jre-headless
 pip install py2neo testify getent
 # Import the Neo4j signing key
 wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
