@@ -28,11 +28,11 @@ This file provides a basic set of classes to allow us to create a semi-realistic
 for testing the Assimilation project software.  We use containers (or potentially virtual machines) to
 run a CMA and a bunch of nanoprobes on a system.
 '''
-import tempfile, subprocess, sys, itertools, random
+import tempfile, subprocess, sys, itertools, random, os, time
 class TestSystem(object):
     'This is the base class for managing test systems for testing the Assimilation code'
     nameindex = 0
-    nameformat = '%s.%05d'
+    nameformat = '%s.%05d-%05d'
     tmpprefix = ''
     tmpbasedir = '/var/tmp/'
     tmpsuffix = '.AssimTest'
@@ -44,7 +44,7 @@ class TestSystem(object):
 
     def __init__(self, imagename, cmdargs=None):
         'Constructor for Abstract class TestSystem'
-        self.name = TestSystem.nameformat % (self.__class__.__name__, TestSystem.nameindex)
+        self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid(), TestSystem.nameindex)
         TestSystem.nameindex += 1
         if TestSystem.tmpdir is None:
             TestSystem.tmpdir = tempfile.mkdtemp(TestSystem.tmpsuffix
@@ -77,7 +77,7 @@ class TestSystem(object):
         TestSystem.ManagedSystems = {}
         subprocess.call(('rm', '-fr', TestSystem.tmpdir))
         TestSystem.tmpdir = None
-        TestSystem.nameindex = 0
+        #TestSystem.nameindex = 0
 
     def start(self):
         'Unimplemented start action'
@@ -110,6 +110,14 @@ class DockerSystem(TestSystem):
     nsentercmd = '/usr/local/bin/nsenter'
     servicecmd = '/usr/bin/service'
 
+    def __init__(self, imagename, cmdargs=None, dockerargs=None):
+        'Constructor for Abstract class TestSystem'
+        if dockerargs is None:
+            dockerargs = ('-v', '/dev/log:/dev/log')
+        self.dockerargs = dockerargs
+        print 'SELF.DOCKERARGS = ', self.dockerargs
+        TestSystem.__init__(self, imagename, cmdargs=cmdargs)
+
     @staticmethod
     def run(*dockerargs):
         'Runs the docker command given by dockerargs'
@@ -125,9 +133,14 @@ class DockerSystem(TestSystem):
 
     def start(self):
         'Start a docker instance'
+        print 'Looking in Start: SELF.DOCKERARGS = ', self.dockerargs
         if self.status == TestSystem.NOTINIT:
-            runargs = ['run', '--detach=true', '--name=%s' % self.name, self.imagename]
-            if self.cmdargs != None:
+            runargs = ['run', '--detach=true', '--name=%s' % self.name]
+            print 'Looking: SELF.DOCKERARGS = ', self.dockerargs
+            if self.dockerargs is not None:
+                runargs.extend(self.dockerargs)
+            runargs.append(self.imagename)
+            if self.cmdargs is not None:
                 runargs.extend(self.cmdargs)
             DockerSystem.run(*runargs)
             self.status = TestSystem.RUNNING
@@ -165,18 +178,8 @@ class DockerSystem(TestSystem):
         args = [DockerSystem.nsentercmd, '--target', str(self.pid)
         , '--mount', '--uts',  '--ipc', '--net', '--pid', '--']
         args.extend(nsenterargs)
-        print >> sys.stderr, 'RUNNING nsenter cmd:', cmd
+        print >> sys.stderr, 'RUNNING nsenter cmd:', args
         rc = subprocess.check_call(args)
-
-
-    def start(self):
-        'Start a docker instance'
-        if self.status == TestSystem.NOTINIT:
-            runargs = ['run', '--detach=true', '--name=%s' % self.name, self.imagename]
-            if self.cmdargs != None:
-                runargs.extend(self.cmdargs)
-            DockerSystem.run(*runargs)
-            self.status = TestSystem.RUNNING
 
     def startservice(self, servicename):
         'nsenter-based start service action for docker'
@@ -202,8 +205,10 @@ class SystemTestEnvironment(object):
         self.cma = None
 
         cma = self._spawncma()
+        print >> sys.stderr, 'nanocount is', nanocount
+        print >> sys.stderr, 'self.nanoimages is', self.nanoprobes
         for child in itertools.repeat(lambda: self._spawnnanoprobe(), nanocount):
-            self.nanoprobes.append(child)
+            self.nanoprobes.append(child())
 
     def _spawnsystem(self, imagename):
         system = self.sysclass(imagename, ('/bin/sleep', '1000000000'))
@@ -217,15 +222,17 @@ class SystemTestEnvironment(object):
         time.sleep(5)
         os.startservice(SystemTestEnvironment.NANOSERVICE)
         self.cma = os
+        return os
 
     def _spawnnanoprobe(self):
         'Spawn a nanoprobe instance randomly chosen from our set of possible nanoprobes'
-        image = random.choice(self.nanoprobes)
+        image = random.choice(self.nanoimages)
         os = self._spawnsystem(image)
         os.startservice(SystemTestEnvironment.NANOSERVICE)
+        return os
 
     def stop(self):
-        for nano in self.nanoprobes():
+        for nano in self.nanoprobes:
             nano.stop()
         self.cma.stop()
 
@@ -233,11 +240,11 @@ class SystemTestEnvironment(object):
 # A little test code...
 if __name__ == '__main__':
     print >> sys.stderr, 'Initializing:'
-    env = SystemTestEnvironment(5)
-    os.sleep(10)
-    env.stop()
-    env = None
-    TestSystem.cleanupall()
+    #env = SystemTestEnvironment(5)
+    #s.sleep(10)
+    #nv.stop()
+    #nv = None
+    #TestSystem.cleanupall()
     for count in range(0, 5):
         onesys = DockerSystem('nanoprobe.ubuntu', ('/usr/bin/nanoprobe', '--foreground'))
         print >> sys.stderr, 'Started:'
@@ -251,7 +258,7 @@ if __name__ == '__main__':
     TestSystem.cleanupall()
     print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
     env = SystemTestEnvironment(5)
-    os.sleep(10)
+    time.sleep(5)
     env.stop()
     env = None
     TestSystem.cleanupall()
