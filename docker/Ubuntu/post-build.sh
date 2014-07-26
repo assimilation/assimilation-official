@@ -60,6 +60,7 @@ apt-get -y install neo4j
 echo /usr/lib/*gnu-linux/assimilation > /etc/ld.so.conf.d/assimilation.conf
 ldconfig /usr/lib/*linux-gnu/assimilation
 service $NEOSERVICE start
+sleep 10
 cd /root/assimilation/src
 testify -v cma.tests
 cleanneo
