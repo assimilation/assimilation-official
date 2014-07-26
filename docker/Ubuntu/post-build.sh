@@ -37,7 +37,19 @@ neoversion=testing
 apt-get update
 apt-get -y install python-pip python-flask debianutils lsof python-netaddr valgrind
 #apt-get -y install openjdk-7-jre-headless
-apt-get install -y --no-install-recommends openjdk-7-jre-headless
+ 
+# Fake fuse from:  henrik-muehe / Dockerfile on GitHub
+# Fake a fuse install
+apt-get install -yy libfuse2
+cd /tmp ; apt-get -yy download fuse
+cd /tmp ; dpkg-deb -x fuse_* .
+cd /tmp ; dpkg-deb -e fuse_*
+cd /tmp ; rm fuse_*.deb
+cd /tmp ; echo -en '#!/bin/bash\nexit 0\n' > DEBIAN/postinst
+cd /tmp ; dpkg-deb -b . /fuse.deb
+cd /tmp ; dpkg -i /fuse.deb
+
+apt-get install -y --no-install-recommends openjdk-7-jre
 pip install py2neo testify getent
 # Import the Neo4j signing key
 wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
