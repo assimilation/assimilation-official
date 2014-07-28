@@ -136,6 +136,8 @@ class DispatchSTARTUP(DispatchTarget):
         json = None
         addrstr = repr(origaddr)
         fstype = frameset.get_framesettype()
+        localtime = None
+
         #print >> sys.stderr, ("DispatchSTARTUP: received [%s] FrameSet from [%s]"
         #%       (FrameSetTypes.get(fstype)[0], addrstr))
         if CMAdb.debug:
@@ -145,6 +147,8 @@ class DispatchSTARTUP(DispatchTarget):
         self.io.closeconn(DEFAULT_FSP_QID, origaddr)
         for frame in frameset.iter():
             frametype = frame.frametype()
+            if frametype == FrameTypes.WALLCLOCK:
+                localtime = str(frame.getint())
             if frametype == FrameTypes.HOSTNAME:
                 sysname = frame.getstr()
                 if sysname == CMAdb.nodename:
@@ -161,14 +165,21 @@ class DispatchSTARTUP(DispatchTarget):
                 #print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
                 #% (json, len(json), frame.framelen())
 
-        origaddr = self.validate_source_ip(sysname, origaddr, json)
+        joininfo = pyConfContext(json)
+        origaddr = self.validate_source_ip(sysname, origaddr, joininfo)
 
-        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
-        ,   FrameTypes.CONFIGJSON)
         CMAdb.log.info('Drone %s registered from address %s (%s) port %s'
         %       (sysname, origaddr, addrstr, origaddr.port()))
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
+        if (localtime is not None):
+            if (drone->lastjoin == localtime):
+                CMAdb.log.warning('Drone %s [%s] sent duplicate STARTUP' % (sysname, origaddr))
+                return
+            drone->_lastjoin = localtime
+
+        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
+        ,   FrameTypes.CONFIGJSON)
         #print >> sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
 
         drone.startaddr = str(origaddr)
@@ -187,13 +198,12 @@ class DispatchSTARTUP(DispatchTarget):
         AssimEvent(drone, AssimEvent.OBJUP)
 
     @staticmethod
-    def validate_source_ip(sysname, origaddr, json):
+    def validate_source_ip(sysname, origaddr, jsobj):
         '''
         This chunk of code is kinda stupid...
         There is a docker/bridge bug where it screws up the source address of multicast packets
         This code detects that that has happened and works around it...
         '''
-        jsobj = pyConfigContext(json)
         match = False
         jsdata = jsobj['data']
         canonorig = str(pyNetAddr(origaddr))

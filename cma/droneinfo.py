@@ -71,6 +71,7 @@ class Drone(SystemNode):
             roles = ['host', 'drone']
         self.addrole(roles)
         self._io = CMAdb.io
+        self.lastjoin = 'None'
         self.status = status
         self.reason = reason
         self.startaddr = str(startaddr)

@@ -62,6 +62,7 @@ struct _Discovery {
 	ConfigContext*	_config;	///< Configuration Parameters -
 					///< has address of CMA.
 	gboolean	_sentyet;	///< TRUE if we've sent this yet.
+	guint64		starttime;	///< When this operation was started
 };
 
 WINEXPORT Discovery* discovery_new(const char *,NetGSource*, ConfigContext*, gsize objsize);
