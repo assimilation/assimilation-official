@@ -128,7 +128,7 @@ class DispatchHBSHUTDOWN(DispatchTarget):
         CMAdb.log.error("DispatchHBSHUTDOWN: invalid FrameSet: %s", str(frameset))
 
 
-# pylint: disable=R0914
+# pylint: disable=R0914,R0912
 @DispatchTarget.register
 class DispatchSTARTUP(DispatchTarget):
     'DispatchTarget subclass for handling incoming STARTUP FrameSets.'
@@ -165,7 +165,7 @@ class DispatchSTARTUP(DispatchTarget):
                 #print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
                 #% (json, len(json), frame.framelen())
 
-        joininfo = pyConfContext(json)
+        joininfo = pyConfigContext(init=json)
         origaddr = self.validate_source_ip(sysname, origaddr, joininfo)
 
         CMAdb.log.info('Drone %s registered from address %s (%s) port %s'
