@@ -173,10 +173,10 @@ class DispatchSTARTUP(DispatchTarget):
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
         if (localtime is not None):
-            if (drone->lastjoin == localtime):
+            if (drone.lastjoin == localtime):
                 CMAdb.log.warning('Drone %s [%s] sent duplicate STARTUP' % (sysname, origaddr))
                 return
-            drone->_lastjoin = localtime
+            drone.lastjoin = localtime
 
         CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
         ,   FrameTypes.CONFIGJSON)
