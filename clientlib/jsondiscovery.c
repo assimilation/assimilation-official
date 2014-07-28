@@ -82,7 +82,10 @@ _jsondiscovery_discover(Discovery* dself)
 	JsonDiscovery*	self = CASTTOCLASS(JsonDiscovery, dself);
 	gchar*		argv[3];
 	static char	discoverword [] =  "discover";
-	ConfigContext*	cfg = self->baseclass._config;
+	ConfigContext*	cfg = dself->_config;
+
+	dself->starttime = g_get_real_time();
+	
 	if (NULL != self->child) {
 		g_warning("%s.%d: JSON discovery process still running - skipping this iteration."
 		,	  __FUNCTION__, __LINE__);

@@ -24,6 +24,7 @@
 #include <projectcommon.h>
 #define	DISCOVERY_SUBCLASS
 #include <discovery.h>
+#include <intframe.h>
 #include <cstringframe.h>
 #include <frametypes.h>
 #include <fsprotocol.h>
@@ -157,6 +158,7 @@ discovery_new(const char *	instname,	///<[in] instance name
 	ret->_timerid			= 0;
 	ret->_iosource			= iosource;
 	ret->_config			= context;
+	ret->starttime			= g_get_real_time();
 	REF(ret->_config);
 	return ret;
 }
@@ -216,6 +218,7 @@ _discovery_sendjson(Discovery* self,	///< Our discovery object
 {
 	FrameSet*	fs;
 	CstringFrame*	jsf;
+	IntFrame*	intf;
 	Frame*		fsf;
 	ConfigContext*	cfg = self->_config;
 	NetGSource*	io = self->_iosource;
@@ -251,6 +254,9 @@ _discovery_sendjson(Discovery* self,	///< Our discovery object
 	self->_sentyet = TRUE;
 
 	fs = frameset_new(FRAMESETTYPE_JSDISCOVERY);
+	intf = intframe_new(FRAMETYPE_WALLCLOCK, 8);
+	intf->setint(intf, self->starttime);
+	frameset_append_frame(fs, &intf->baseclass);
 	jsf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
 	fsf = &jsf->baseclass;	// base class object of jsf
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
