@@ -115,6 +115,7 @@ class DockerSystem(TestSystem):
         if dockerargs is None:
             dockerargs = ('-v', '/dev/log:/dev/log')
         self.dockerargs = dockerargs
+        self.runningservices = []
         print 'SELF.DOCKERARGS = ', self.dockerargs
         TestSystem.__init__(self, imagename, cmdargs=cmdargs)
 
@@ -159,6 +160,9 @@ class DockerSystem(TestSystem):
 
     def stop(self):
         'Stop a docker instance'
+        time.sleep(5)
+        subprocess.call((DockerSystem.dockercmd, 'top', self.name, '-ef'))
+        time.sleep(5)
         DockerSystem.run('stop', self.name)
         self.status = TestSystem.STOPPED
         self.pid = None
@@ -183,17 +187,28 @@ class DockerSystem(TestSystem):
 
     def startservice(self, servicename):
         'nsenter-based start service action for docker'
-        self._nsenter((DockerSystem.servicecmd, servicename, 'start'))
+        if servicename in self.runningservices:
+            print >> sys.stderr, ('WARNING: Service %s already running in docker system %s'
+            %       (servicename, self.name))
+        else:
+            self.runningservices.append(servicename)
+        self._nsenter(('/etc/init.d/'+servicename, 'start'))
 
-    def stopservice(self):
+    def stopservice(self, servicename):
         'nsenter-based stop service action for docker'
-        self._nsenter((DockerSystem.servicecmd, servicename, 'stop'))
+        if servicename in self.runningservices:
+            self.runningservices.remove(servicename)
+        else:
+            print >> sys.stderr, ('WARNING: Service %s not running in docker system %s'
+            %       (servicename, self.name))
+        self._nsenter(('/etc/init.d/'+servicename, 'stop'))
 
 
 class SystemTestEnvironment(object):
     'A basic system test environment'
-    CMASERVICE = 'cma'
-    NANOSERVICE = 'nanoprobe'
+    CMASERVICE      = 'cma'
+    NANOSERVICE     = 'nanoprobe'
+    NEO4JSERVICE    = 'neo4j-service'
     def __init__(self, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
     ,       sysclass=DockerSystem):
@@ -218,10 +233,12 @@ class SystemTestEnvironment(object):
     def _spawncma(self):
         'Spawn a CMA instance'
         os = self._spawnsystem(self.cmaimage)
+        os.startservice(SystemTestEnvironment.NEO4JSERVICE)
         os.startservice(SystemTestEnvironment.CMASERVICE)
         time.sleep(5)
         os.startservice(SystemTestEnvironment.NANOSERVICE)
         self.cma = os
+        os._nsenter(('ps', '-efl'))
         return os
 
     def _spawnnanoprobe(self):
@@ -246,6 +263,7 @@ if __name__ == '__main__':
     #nv = None
     #TestSystem.cleanupall()
     for count in range(0, 5):
+        continue
         onesys = DockerSystem('nanoprobe.ubuntu', ('/usr/bin/nanoprobe', '--foreground'))
         print >> sys.stderr, 'Started:'
         onesys.start()
@@ -257,7 +275,7 @@ if __name__ == '__main__':
     print >> sys.stderr, 'All systems:', TestSystem.ManagedSystems
     TestSystem.cleanupall()
     print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
-    env = SystemTestEnvironment(5)
+    env = SystemTestEnvironment(2)
     time.sleep(5)
     env.stop()
     env = None

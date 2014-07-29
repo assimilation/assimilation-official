@@ -374,7 +374,7 @@ are_we_already_running( const char * pidfile	///< The pathname of our expected p
 	pidexepath = g_file_read_link(pidexename, NULL);
 	if (pidexepath == NULL) {
 		g_free(ourexepath); ourexepath = NULL;
-		return (errno == EEXIST ? PID_NOTUS : PID_RUNNING);
+		return (errno != EPERM ? PID_NOTUS : PID_RUNNING);
 	}
 	if (strrchr(pidexepath, SEP) != NULL) {
 		pidexecmd = strrchr(pidexepath, SEP)+1;
