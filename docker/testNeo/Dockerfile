@@ -1,4 +1,4 @@
-FROM centos:latest
+FROM centos:centos6
 # Would prefer headless, but not available in CentOS6
 RUN yum -y install wget java-1.7.0-openjdk scl-utils redhat-lsb-core
 RUN wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
