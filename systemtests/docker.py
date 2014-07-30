@@ -216,17 +216,21 @@ class SystemTestEnvironment(object):
     LOGGINGSERVICE  = 'rsyslogd'
     def __init__(self, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
-    ,       sysclass=DockerSystem):
+    ,       sysclass=DockerSystem, cleanupwhendone=True):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = sysclass
         self.cmaimage = cmaimage
         self.nanoimages = nanoimages
         self.nanoprobes = []
         self.cma = None
+        self.cleanupwhendone = cleanupwhendone
 
         self.cma = self.spawncma()
         print >> sys.stderr, 'nanocount is', nanocount
         print >> sys.stderr, 'self.nanoimages is', self.nanoprobes
+        # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
+        # this is because we return a different nanoprobe each time we call spawnnanoprobe()
+        # pylint: disable=W0108
         for child in itertools.repeat(lambda: self.spawnnanoprobe(), nanocount):
             self.nanoprobes.append(child())
 
@@ -266,31 +270,23 @@ class SystemTestEnvironment(object):
             nano.stop()
         self.cma.stop()
 
+    def __del__(self):
+        'Clean up any images we created'
+        if self.cleanupwhendone:
+            for nano in self.nanoprobes:
+                nano.destroy()
+            self.nanoprobes = []
+            if self.cma is not None:
+                self.cma.destroy()
+                self.cma = None
+
 
 # A little test code...
 if __name__ == '__main__':
     print >> sys.stderr, 'Initializing:'
-    #env = SystemTestEnvironment(5)
-    #s.sleep(10)
-    #nv.stop()
-    #nv = None
-    #TestSystem.cleanupall()
-    for count in range(0, 5):
-        continue
-        onesys = DockerSystem('nanoprobe.ubuntu', ('/usr/bin/nanoprobe', '--foreground'))
-        print >> sys.stderr, 'Started:'
-        onesys.start()
-        print >> sys.stderr, 'Stopped:'
-        onesys.stop()
-        print >> sys.stderr, '(re)-started:'
-        onesys.start()
-        print >> sys.stderr, 'FIND result:', TestSystem.find(onesys.name)
-    print >> sys.stderr, 'All systems:', TestSystem.ManagedSystems
-    TestSystem.cleanupall()
-    print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
     env = SystemTestEnvironment(3)
+    print >> sys.stderr, 'Systems all up and running:'
     time.sleep(90)
     env.stop()
     env = None
-    TestSystem.cleanupall()
     print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
