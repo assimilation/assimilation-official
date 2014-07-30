@@ -25,8 +25,8 @@
 FROM ubuntu:latest
 RUN echo "need to make sure stuff is up to date (2)"
 RUN apt-get -y update
-RUN apt-get -y install gcc cmake make pkg-config libglib2.0-dev resource-agents mercurial wget libpcap0.8-dev rsyslog
-RUN apt-get -y install libglib2.0 libpcap0.8 python-pip
+RUN apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents mercurial wget libpcap0.8-dev rsyslog
+RUN apt-get -y install --no-install-recommends libglib2.0 libpcap0.8 python-pip
 RUN pip install ctypesgen
 RUN cd /root && mkdir -p assimilation/src assimilation/bin assimilation/src && hg clone -r @VERSION@ http://hg.linux-ha.org/assimilation assimilation/src
 RUN cd /root/assimilation/bin; cmake ../src && make install
