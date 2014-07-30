@@ -12,7 +12,7 @@ RUN apt-get -y install neo4j
 RUN echo /usr/lib/*linux-gnu/assimilation > /etc/ld.so.conf.d/assimilation.conf
 RUN ldconfig /usr/lib/*linux-gnu/assimilation
 RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
-RUN service neo5j-service stop
+RUN service neo4j-service stop
 RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
 RUN cd /root/assimilation/bin && dpkg --install assimilation-cma-*-all.deb
 RUN service neo4j-service start
