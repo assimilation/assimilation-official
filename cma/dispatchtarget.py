@@ -137,6 +137,7 @@ class DispatchSTARTUP(DispatchTarget):
         addrstr = repr(origaddr)
         fstype = frameset.get_framesettype()
         localtime = None
+        listenaddr = None
 
         #print >> sys.stderr, ("DispatchSTARTUP: received [%s] FrameSet from [%s]"
         #%       (FrameSetTypes.get(fstype)[0], addrstr))
@@ -149,7 +150,9 @@ class DispatchSTARTUP(DispatchTarget):
             frametype = frame.frametype()
             if frametype == FrameTypes.WALLCLOCK:
                 localtime = str(frame.getint())
-            if frametype == FrameTypes.HOSTNAME:
+            elif frametype == FrameTypes.IPPORT:
+                listenaddr = frame.getnetaddr()
+            elif frametype == FrameTypes.HOSTNAME:
                 sysname = frame.getstr()
                 if sysname == CMAdb.nodename:
                     if origaddr.islocal():
@@ -160,13 +163,13 @@ class DispatchSTARTUP(DispatchTarget):
                             localhost = pyNetAddr(address)
                             self.io.addalias(localhost, origaddr)
                             CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
-            if frametype == FrameTypes.JSDISCOVER:
+            elif frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
                 #print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
                 #% (json, len(json), frame.framelen())
 
         joininfo = pyConfigContext(init=json)
-        origaddr = self.validate_source_ip(sysname, origaddr, joininfo)
+        origaddr = self.validate_source_ip(sysname, origaddr, joininfo, listenaddr)
 
         CMAdb.log.info('Drone %s registered from address %s (%s) port %s'
         %       (sysname, origaddr, addrstr, origaddr.port()))
@@ -198,7 +201,7 @@ class DispatchSTARTUP(DispatchTarget):
         AssimEvent(drone, AssimEvent.OBJUP)
 
     @staticmethod
-    def validate_source_ip(sysname, origaddr, jsobj):
+    def validate_source_ip(sysname, origaddr, jsobj, listenaddr):
         '''
         This chunk of code is kinda stupid...
         There is a docker/bridge bug where it screws up the source address of multicast packets
@@ -206,7 +209,7 @@ class DispatchSTARTUP(DispatchTarget):
         '''
         match = False
         jsdata = jsobj['data']
-        canonorig = str(pyNetAddr(origaddr))
+        canonorig = str(pyNetAddr(origaddr).toIPv6())
         primaryip = None
         for ifname in jsdata:
             for ip_netmask in jsdata[ifname]['ipaddrs']:
@@ -218,13 +221,21 @@ class DispatchSTARTUP(DispatchTarget):
                 ipinfo = jsdata[ifname]['ipaddrs'][ip_netmask]
                 if 'default_gw' in jsdata[ifname] and ipinfo.get('name') == ifname:
                     primaryip = canonip
+        # FIXME: This currently is set up to work around gratuitous NATting in Docker (bug!)
+        # It should evolve to do the right things for real NAT configurations...
         if not match:
-            CMAdb.log.warning('Drone %s sent STARTUP packet with incorrect source address (%s)'
+            CMAdb.log.warning('Drone %s sent STARTUP packet with NATted source address (%s)'
             %       (sysname, origaddr))
             if primaryip is not None:
-                CMAdb.log.warning('Drone %s STARTUP orig address assumed to be (%s)'
-                %       (sysname, primaryip))
-            origaddr = primaryip
+                if CMAdb.running_under_docker():
+                    CMAdb.log.warning('Drone %s STARTUP orig address assumed to be (%s)'
+                    %       (sysname, primaryip))
+                    CMAdb.log.warning('Presumed to be due to a known Docker bug.')
+                    origaddr = primaryip
+                    if listenaddr is not None and primaryip.port() != listenaddr.port():
+                        CMAdb.log.warning('Drone %s STARTUP port is NATted: Assumed to be (%s)'
+                        %       (sysname, listenaddr.port()))
+                        origaddr = pyNetAddr(origaddr, port=listenaddr.port())
         return origaddr
 
 @DispatchTarget.register

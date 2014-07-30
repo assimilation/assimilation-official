@@ -191,6 +191,8 @@ def main():
 #    signal.signal(signal.SIGTERM, lambda sig, stack: sys.exit(0))
 #    signal.signal(signal.SIGINT, lambda sig, stack: sys.exit(0))
 
+    from cmadb import CMAdb
+    CMAdb.running_under_docker()
     make_pid_dir(opt.pidfile, opt.userid)
     drop_privileges_permanently(opt.userid)
     daemonize_me(opt.foreground, '/', opt.pidfile)
@@ -203,7 +205,6 @@ def main():
     from packetlistener import PacketListener
     from messagedispatcher import MessageDispatcher
     from dispatchtarget import DispatchTarget
-    from cmadb import CMAdb
     from monitoring import MonitoringRule
     from AssimCclasses import pyNetAddr, pySignFrame, pyReliableUDP, \
          pyPacketDecoder
