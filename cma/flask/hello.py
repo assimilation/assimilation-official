@@ -41,7 +41,7 @@ app = Flask(__name__)
 @app.route('/')
 def hello_world():
     'Dummy code for printing hello world on the root (/) page'
-    return 'Hello World! %s' % str(request.args.keys())
+    return 'Hello World! %s' % str(request.args)
 
 @app.route('/querymeta/<queryname>')
 def query_meta(queryname):
