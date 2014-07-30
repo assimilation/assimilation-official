@@ -350,6 +350,11 @@ class Store(object):
         subjnode = subj.__store_node
         objnode  = obj.__store_node
 
+        # Check for relationships created in this transaction...
+        for rel in self.newrels:
+            if rel['from'] is subj and rel['to'] is obj and rel['type'] is rel_type:
+                return
+        # Check for pre-existing relationships
         if not objnode.is_abstract and not subjnode.is_abstract:
             rels = [rel for rel in subjnode.match_outgoing(rel_type, objnode)]
             if len(rels) > 0:
@@ -1011,6 +1016,9 @@ if __name__ == "__main__":
         rellist = ['ISA', 'WASA', 'WILLBEA']
         for rel in rellist:
             store.relate(fred, rel, fred)
+        # These should have no effect - but let's make sure...
+        for rel in rellist:
+            store.relate_new(fred, rel, fred)
         store.commit()  # The updates have been captured...
         print >> sys.stderr, ('Statistics:', store.stats)
 
