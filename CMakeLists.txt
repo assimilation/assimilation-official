@@ -2,7 +2,7 @@
 #
 # This file is part of the Assimilation Project.
 #
-# Copyright (C) 2011, 2012, 2013 - Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2011, 2012, 2013, 2014 - Alan Robertson <alanr@unix.sh>
 #
 #  The Assimilation software is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 #
 cmake_minimum_required(VERSION 2.6.4)
 project(assimilation C)
-set (PROJVERS "0.1.3")
+set (PROJVERS "0.1.3-postrelease")
 set (SRCROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set (BINROOT ${CMAKE_CURRENT_BINARY_DIR})
 
