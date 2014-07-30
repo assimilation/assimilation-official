@@ -54,6 +54,7 @@ class TestSystem(object):
         self.imagename = imagename
         self.status = TestSystem.NOTINIT
         self.pid = None
+        self.hostname = None
         TestSystem.ManagedSystems[self.name] = self
 
     @staticmethod
@@ -145,11 +146,13 @@ class DockerSystem(TestSystem):
                 runargs.extend(self.cmdargs)
             DockerSystem.run(*runargs)
             self.status = TestSystem.RUNNING
-            #FIXME: Need to do this!
-            #PID=$(docker inspect --format {{.State.Pid}} <container_name_or_ID>)
             fd = os.popen('%s %s %s %s %s'
             %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.State.Pid}}', self.name))
             self.pid = int(fd.readline())
+            fd.close()
+            fd = os.popen('%s %s %s %s %s'
+            %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.Config.Hostname}}', self.name))
+            self.hostname = fd.readline()
             fd.close()
         elif self.status == TestSystem.STOPPED:
             DockerSystem.run('restart', self.name)
@@ -208,6 +211,7 @@ class SystemTestEnvironment(object):
     CMASERVICE      = 'cma'
     NANOSERVICE     = 'nanoprobe'
     NEO4JSERVICE    = 'neo4j-service'
+    LOGGINGSERVICE  = 'rsyslogd'
     def __init__(self, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
     ,       sysclass=DockerSystem):
@@ -227,23 +231,31 @@ class SystemTestEnvironment(object):
     def _spawnsystem(self, imagename):
         system = self.sysclass(imagename, ('/bin/sleep', '1000000000'))
         system.start()
+        # Set up logging to be forwarded to our parent logger
+        os._nsenter(self, '/bin/bash', '-c'
+        ,   '''PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT);'''
+        +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf''')
+        # And of course, start logging...
+        system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
 
     def _spawncma(self):
         'Spawn a CMA instance'
         os = self._spawnsystem(self.cmaimage)
+        os._nsenter(self, '/bin/bash', '-c'
+        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/assimilation'):
         os.startservice(SystemTestEnvironment.NEO4JSERVICE)
         os.startservice(SystemTestEnvironment.CMASERVICE)
-        time.sleep(15)
         os.startservice(SystemTestEnvironment.NANOSERVICE)
         self.cma = os
-        os._nsenter(('ps', '-efl'))
+        #os._nsenter(('ps', '-efl'))
         return os
 
     def _spawnnanoprobe(self):
         'Spawn a nanoprobe instance randomly chosen from our set of possible nanoprobes'
         image = random.choice(self.nanoimages)
         os = self._spawnsystem(image)
+        os.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         os.startservice(SystemTestEnvironment.NANOSERVICE)
         return os
 
@@ -275,7 +287,7 @@ if __name__ == '__main__':
     TestSystem.cleanupall()
     print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
     env = SystemTestEnvironment(3)
-    time.sleep(30)
+    time.sleep(90)
     env.stop()
     env = None
     TestSystem.cleanupall()
