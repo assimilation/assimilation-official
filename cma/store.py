@@ -352,7 +352,7 @@ class Store(object):
 
         # Check for relationships created in this transaction...
         for rel in self.newrels:
-            if rel['from'] is subj and rel['to'] is obj and rel['type'] is rel_type:
+            if rel['from'] is subj and rel['to'] is obj and rel['type'] == rel_type:
                 return
         # Check for pre-existing relationships
         if not objnode.is_abstract and not subjnode.is_abstract:
