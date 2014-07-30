@@ -46,6 +46,7 @@ apt-get -y update
 apt-get -y install neo4j
 echo /usr/lib/*gnu-linux/assimilation > /etc/ld.so.conf.d/assimilation.conf
 ldconfig /usr/lib/*linux-gnu/assimilation
+service rsyslog start
 service $NEOSERVICE start
 cd /root/assimilation/src
 testify -v cma.tests

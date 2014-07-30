@@ -115,7 +115,7 @@ class DockerSystem(TestSystem):
     def __init__(self, imagename, cmdargs=None, dockerargs=None):
         'Constructor for Abstract class TestSystem'
         if dockerargs is None:
-            dockerargs = ('-v', '/dev/log:/dev/log')
+            dockerargs = []
         self.dockerargs = dockerargs
         self.runningservices = []
         print 'SELF.DOCKERARGS = ', self.dockerargs
