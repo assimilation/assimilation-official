@@ -815,7 +815,7 @@ class pyIpPortFrame(pyFrame):
 
     def getport(self):
         'Return the port of this pyIpPortFrame'
-        return self._pyNetAddr
+        return self._pyNetAddr.port()
 
 
 class pyCstringFrame(pyFrame):
