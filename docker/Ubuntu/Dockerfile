@@ -1,10 +1,19 @@
-FROM ubuntu:latest
+FROM nanoprobe.ubuntu:latest
+RUN apt-get update
+RUN apt-get -y install python-pip python-flask debianutils lsof python-netaddr valgrind
+RUN apt-get install -y --no-install-recommends openjdk-7-jre
+RUN pip install py2neo testify getent
+# Import the Neo4j signing key
+RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
+# Create an Apt sources.list file
+RUN neoversion=testing; echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 RUN apt-get -y update
-RUN apt-get -y install libglib2.0 libpcap0.8 wget resource-agents
-RUN apt-get -y install mercurial cmake gcc libpcap0.8-dev libglib2.0-dev
-#RUN apt-get -y install python python-flask debianutils lsof python-gi python-netaddr python-pip valgrind
-RUN echo "about to build another new version (v6)"
-RUN pip install python ctypesgen
-RUN mkdir -p /root/assimilation/src /root/assimilation/bin /root/assimilation/src && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src
-RUN cd /root/assimilation/bin; cmake ../src && make install && echo /usr/lib/*linux-gnu/assimilation > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib/*linux-gnu/assimilation
-#ENV BROKENDNS true
+RUN apt-get -y install neo4j
+RUN echo /usr/lib/*linux-gnu/assimilation > /etc/ld.so.conf.d/assimilation.conf
+RUN ldconfig /usr/lib/*linux-gnu/assimilation
+RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
+RUN service neo5j-service stop
+RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
+RUN cd /root/assimilation/bin && dpkg --install assimilation-cma-*-all.deb
+RUN service neo4j-service start
+RUN service neo4j-service stop
