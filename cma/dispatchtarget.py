@@ -169,12 +169,14 @@ class DispatchSTARTUP(DispatchTarget):
                 #% (json, len(json), frame.framelen())
 
         joininfo = pyConfigContext(init=json)
-        origaddr = self.validate_source_ip(sysname, origaddr, joininfo, listenaddr)
+        origaddr, isNAT = self.validate_source_ip(sysname, origaddr, joininfo, listenaddr)
 
         CMAdb.log.info('Drone %s registered from address %s (%s) port %s'
         %       (sysname, origaddr, addrstr, origaddr.port()))
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
+        drone.listenaddr = listenaddr   # Seems good to hang onto this...
+        drone.isNAT = isNAT             # ditto...
         if (localtime is not None):
             if (drone.lastjoin == localtime):
                 CMAdb.log.warning('Drone %s [%s] sent duplicate STARTUP' % (sysname, origaddr))
@@ -208,6 +210,7 @@ class DispatchSTARTUP(DispatchTarget):
         This code detects that that has happened and works around it...
         '''
         match = False
+        isNAT = False
         jsdata = jsobj['data']
         canonorig = str(pyNetAddr(origaddr).toIPv6())
         primaryip = None
@@ -226,6 +229,7 @@ class DispatchSTARTUP(DispatchTarget):
         if not match:
             CMAdb.log.warning('Drone %s sent STARTUP packet with NATted source address (%s)'
             %       (sysname, origaddr))
+            isNAT = True
             if primaryip is not None:
                 if CMAdb.running_under_docker():
                     CMAdb.log.warning('Drone %s STARTUP orig address assumed to be (%s)'
@@ -236,7 +240,7 @@ class DispatchSTARTUP(DispatchTarget):
                         CMAdb.log.warning('Drone %s STARTUP port is NATted: Assumed to be (%s)'
                         %       (sysname, listenaddr.port()))
                         origaddr = pyNetAddr(origaddr, port=listenaddr.port())
-        return origaddr
+        return origaddr, isNAT
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
