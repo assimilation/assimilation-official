@@ -25,8 +25,8 @@
 #
 '''
 This file provides a basic set of classes to allow us to create a semi-realistic test environment
-for testing the Assimilation project software.  We use containers (or potentially virtual machines) to
-run a CMA and a bunch of nanoprobes on a system.
+for testing the Assimilation project software.  We use containers (or potentially virtual machines)
+to run a CMA and a bunch of nanoprobes on a system.
 '''
 import tempfile, subprocess, sys, itertools, random, os, time
 class TestSystem(object):
@@ -44,7 +44,8 @@ class TestSystem(object):
 
     def __init__(self, imagename, cmdargs=None):
         'Constructor for Abstract class TestSystem'
-        self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid(), TestSystem.nameindex)
+        self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
+        ,   TestSystem.nameindex)
         TestSystem.nameindex += 1
         if TestSystem.tmpdir is None:
             TestSystem.tmpdir = tempfile.mkdtemp(TestSystem.tmpsuffix
@@ -96,11 +97,11 @@ class TestSystem(object):
         "Invoke our destroy operation when we're deleted"
         self.destroy()
 
-    def startservice(self):
+    def startservice(self, servicename):
         'Unimplemented start service action'
         raise NotImplementedError("Abstract class - doesn't implement startservice")
 
-    def stopservice(self):
+    def stopservice(self, servicename):
         'Unimplemented stop service action'
         raise NotImplementedError("Abstract class - doesn't implement stopservice")
 
@@ -177,15 +178,16 @@ class DockerSystem(TestSystem):
         self.status = TestSystem.NOTINIT
 
 
-    def _nsenter(self, nsenterargs):
+    def runinimage(self, nsenterargs):
         'Runs the given command on our running docker image'
         if self.status != TestSystem.RUNNING:
-            raise RuntimeError('Docker Container %s is not running - nsenter not possible' % self.name)
+            raise RuntimeError('Docker Container %s is not running - nsenter not possible'
+            %   self.name)
         args = [DockerSystem.nsentercmd, '--target', str(self.pid)
         , '--mount', '--uts',  '--ipc', '--net', '--pid', '--']
         args.extend(nsenterargs)
         print >> sys.stderr, 'RUNNING nsenter cmd:', args
-        rc = subprocess.check_call(args)
+        subprocess.check_call(args)
 
     def startservice(self, servicename):
         'nsenter-based start service action for docker'
@@ -194,7 +196,7 @@ class DockerSystem(TestSystem):
             %       (servicename, self.name))
         else:
             self.runningservices.append(servicename)
-        self._nsenter(('/etc/init.d/'+servicename, 'start'))
+        self.runinimage(('/etc/init.d/'+servicename, 'start'))
 
     def stopservice(self, servicename):
         'nsenter-based stop service action for docker'
@@ -203,7 +205,7 @@ class DockerSystem(TestSystem):
         else:
             print >> sys.stderr, ('WARNING: Service %s not running in docker system %s'
             %       (servicename, self.name))
-        self._nsenter(('/etc/init.d/'+servicename, 'stop'))
+        self.runinimage(('/etc/init.d/'+servicename, 'stop'))
 
 
 class SystemTestEnvironment(object):
@@ -222,44 +224,44 @@ class SystemTestEnvironment(object):
         self.nanoprobes = []
         self.cma = None
 
-        cma = self._spawncma()
+        self.cma = self.spawncma()
         print >> sys.stderr, 'nanocount is', nanocount
         print >> sys.stderr, 'self.nanoimages is', self.nanoprobes
-        for child in itertools.repeat(lambda: self._spawnnanoprobe(), nanocount):
+        for child in itertools.repeat(lambda: self.spawnnanoprobe(), nanocount):
             self.nanoprobes.append(child())
 
     def _spawnsystem(self, imagename):
+        'Spawn a system image'
         system = self.sysclass(imagename, ('/bin/sleep', '1000000000'))
         system.start()
         # Set up logging to be forwarded to our parent logger
-        os._nsenter(self, '/bin/bash', '-c'
+        system.runinimage(self, '/bin/bash', '-c'
         ,   '''PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT);'''
         +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf''')
         # And of course, start logging...
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
 
-    def _spawncma(self):
+    def spawncma(self):
         'Spawn a CMA instance'
-        os = self._spawnsystem(self.cmaimage)
-        os._nsenter(self, '/bin/bash', '-c'
-        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/assimilation'):
-        os.startservice(SystemTestEnvironment.NEO4JSERVICE)
-        os.startservice(SystemTestEnvironment.CMASERVICE)
-        os.startservice(SystemTestEnvironment.NANOSERVICE)
-        self.cma = os
-        #os._nsenter(('ps', '-efl'))
-        return os
+        system = self._spawnsystem(self.cmaimage)
+        system.runinimage(('/bin/bash', '-c'
+        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/assimilation'))
+        system.startservice(SystemTestEnvironment.NEO4JSERVICE)
+        system.startservice(SystemTestEnvironment.CMASERVICE)
+        system.startservice(SystemTestEnvironment.NANOSERVICE)
+        #system.runinimage(('ps', '-efl'))
+        return system
 
-    def _spawnnanoprobe(self):
+    def spawnnanoprobe(self):
         'Spawn a nanoprobe instance randomly chosen from our set of possible nanoprobes'
         image = random.choice(self.nanoimages)
-        os = self._spawnsystem(image)
-        os.startservice(SystemTestEnvironment.LOGGINGSERVICE)
-        os.startservice(SystemTestEnvironment.NANOSERVICE)
-        return os
+        system = self._spawnsystem(image)
+        system.startservice(SystemTestEnvironment.NANOSERVICE)
+        return system
 
     def stop(self):
+        'Stop our entire SystemTestEnvironment'
         for nano in self.nanoprobes:
             nano.stop()
         self.cma.stop()
