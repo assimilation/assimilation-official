@@ -38,6 +38,7 @@ class CMAdb(object):
     log = None
     store = None
     globaldomain = 'global'
+    underdocker = None
     # versions we know we can't work with...
     neo4jblacklist = ['2.0.0']
 
@@ -61,6 +62,15 @@ class CMAdb(object):
         if CMAdb.debug:
             CMAdb.log.debug('Neo4j version: %s' % str(self.dbversion))
             print >> sys.stderr, ('HELP Neo4j version: %s' % str(self.dbversion))
+
+    @staticmethod
+    def running_under_docker():
+        "Return True if we're running under docker - must be root the first time we're called"
+        if CMAdb.underdocker is None:
+            initcmd = os.readlink("/proc/1/exe")
+            CMAdb.underdocker =  (os.path.basename(initcmd) != 'init')
+        return CMAdb.underdocker
+
 
 if __name__ == '__main__':
     from cmainit import CMAinit

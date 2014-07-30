@@ -1046,11 +1046,13 @@ nano_reqconfig(gpointer gcruft)
 	FrameSet*	fs;
 	CstringFrame*	csf;
 	CstringFrame*	usf;
+	IpPortFrame*	ippf;
 	const char *	cfgname = cruft->initdiscover;
 	ConfigContext*	context = obeycollective->baseclass.config;
 	NetAddr*	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
 	const char *		jsontext;
 	char *			sysname = NULL;
+	NetAddr*		boundaddr;
 
 	if (nano_shutting_down) {
 		return FALSE;
@@ -1076,6 +1078,12 @@ nano_reqconfig(gpointer gcruft)
 	,			frame_default_valuefinalize);
 	frameset_append_frame(fs, &usf->baseclass);
 	UNREF2(usf);
+	// Put in our listening address - useful if we're NATted
+	boundaddr = cruft->iosource->_netio->boundaddr(cruft->iosource->_netio);
+	ippf = ipportframe_netaddr_new(FRAMETYPE_IPPORT, boundaddr);
+	UNREF(boundaddr);
+	frameset_append_frame(fs, &ippf->baseclass);
+	UNREF2(ippf);
 
 	// Put in the JSON configuration text
 	jsontext = context->getstring(context, cfgname);
