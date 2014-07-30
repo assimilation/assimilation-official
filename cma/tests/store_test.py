@@ -23,6 +23,7 @@ _suites = ['all', 'cma']
 import sys, os
 import gc
 sys.path.extend(['..', '../cma', "/usr/local/lib/python2.7/dist-packages"])
+import py2neo
 from py2neo import neo4j
 from testify import *
 from store import Store
@@ -187,6 +188,8 @@ for key in keymap:
 ##print seven.roles
 ##print Annika.firstname, Annika.lastname
 db = neo4j.GraphDatabaseService(None)
+print >> sys.stderr, 'USING NEO4J VERSION %s' % str(db.neo4j_version)
+print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
 db.clear()
 OurStore = None
 
