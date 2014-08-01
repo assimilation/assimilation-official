@@ -18,4 +18,8 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 ASSIMCLI=@PYINSTALL@/assimcli.py
-exec ${ASSIMCLI} "$@"
+PYVERSION=$(env python -c 'import sys; print "%s.%s" % (sys.version_info[0], sys.version_info[1])')
+case $PYVERSION in
+  2.[789]|2.1[0-9])	exec ${ASSIMCLI} "$@";;
+  2.[23456]|3.*)	exec scl enable python27 "${ASSIMCLI} $@";;
+esac
