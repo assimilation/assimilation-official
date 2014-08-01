@@ -67,10 +67,10 @@
 
 %if %{uses_systemd}
 %global cma_rundir  /run/assimilation
-%global nano_rundir /run/nanoprobe
+#%global nano_rundir /run/nanoprobe
 %else
 %global cma_rundir  %{_localstatedir}/run/assimilation
-%global nano_rundir %{_localstatedir}/run/nanoprobe
+#%global nano_rundir %{_localstatedir}/run/nanoprobe
 %endif
 
 Name:       assimilation-cma
@@ -259,7 +259,7 @@ install -p -D -m0755 %{buildroot}/etc/init.d/nanoprobe %{buildroot}%{_initddir}/
 rm -f %{buildroot}/etc/init.d/cma %{buildroot}/etc/init.d/nanoprobe
 
 mkdir -p %{buildroot}%{cma_rundir}
-mkdir -p %{buildroot}%{nano_rundir}
+#mkdir -p %{buildroot}%{nano_rundir}
 
 mkdir -p %{buildroot}%{_libdir}
 
@@ -362,7 +362,7 @@ fi
 %attr(0755,root,root) %{_libdir}/assimilation
 %{_sbindir}/nanoprobe
 %attr(0755,root,root) %{_datadir}/assimilation
-%attr(0755,root,root) %dir %{nano_rundir}
+#%attr(0755,root,root) %dir %{nano_rundir}
 
 %if %{uses_systemd}
 %{_unitdir}/assimilation-nanoprobe.service
