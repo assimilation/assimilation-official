@@ -192,6 +192,9 @@ class ClientQuery(GraphNode):
             else:
                 delim = rowdelim + '{'
                 row = ''
+                # W0212: Access to a protected member _fields of a client class
+                # No other way to get the list of colums/fields...
+                # pylint: disable=W0212
                 columns = result._fields
                 for attr in columns:
                     value = getattr(result, attr)
