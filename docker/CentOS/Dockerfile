@@ -1,4 +1,4 @@
-FROM centos:latest
+FROM centos:centos6
 #FROM xdrum/centos64-base
 RUN yum -y install glib2 libpcap zlib-devel rpm-build
 # Can't use sudo from within a docker build - it needs a tty.  Some tests need to run as root. Good thing we run as root here...
@@ -21,7 +21,7 @@ RUN cd /root/assimilation/bin; /usr/bin/cmake28 ../src && scl enable python27 "m
 ###  Neo4j RPM
 RUN wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key  && rpm --import /tmp/neo4j.key && rm -f /tmp/neo4j.key
 #RUN echo '[neo4j]' > /etc/yum.repos.d/neo4j.repo && echo 'name=Neo4j Yum Repo' >> /etc/yum.repos.d/neo4j.repo && echo 'baseurl=http://yum.neo4j.org' >> /etc/yum.repos.d/neo4j.repo && echo 'enabled=1' >> /etc/yum.repos.d/neo4j.repo && echo 'gpgcheck=1' >> /etc/yum.repos.d/neo4j.repo && yum -y install neo4j && mkdir -p /var/lib/heartbeat/lrm
-RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
+RUN export VERS=2.1.3; wget -q -O /tmp/neo4j-community-${VERS}-unix.tar.gz "http://download.neo4j.org/artifact?edition=community&version=${VERS}&distribution=tarball" && tar -C /opt -xzf /tmp/neo4j-community-${VERS}-unix.tar.gz && ln -s /opt/neo4j-community-${VERS}/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && mkdir -p /var/lib/heartbeat/lrm
 
 ENV BROKENDNS true
 RUN scl enable python27 'pip install py2neo netaddr getent'
@@ -29,9 +29,10 @@ RUN adduser --shell /bin/false assimilation
 RUN echo "/usr/lib*/assimilation" > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib*/assimilation
 
 # An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
+RUN scl enable python27 'pip install testify'
 RUN NEO=neo4j-service; cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/${NEO} start) && sleep 15 && scl enable python27 '/usr/bin/env python --version; testify -v tests'
 ###  Our RPMs
 RUN cd /rpmbuild/RPMS/x86_64/ && yum -y install assimilation-nanoprobe*.rpm
 RUN cd /rpmbuild/RPMS/x86_64/ && yum -y install assimilation-cma*.rpm
 # These are only here to make Alan happy
-RUN scl enable python27 'pip flask testify pylint'
+RUN scl enable python27 'pip install flask pylint'
