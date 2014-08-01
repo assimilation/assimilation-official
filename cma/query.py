@@ -192,7 +192,8 @@ class ClientQuery(GraphNode):
             else:
                 delim = rowdelim + '{'
                 row = ''
-                for attr in result.__dict__.keys():
+                columns = result._fields
+                for attr in columns:
                     value = getattr(result, attr)
                     if idsonly:
                         row +=  '%s"%s":"%s"' % (
