@@ -153,12 +153,9 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,//<[in] pointer to beginning of
 		}
 		j += 1;
 	}
-	if (lasttype != FRAMETYPE_END) {
-		g_warning("TLV Invalid because final type wasn't FRAMETYPE_END (it was %d)"
-		,	lasttype);
-		return FALSE;
-	}
-	return TRUE;
+	g_warning("TLV Invalid because final type wasn't FRAMETYPE_END (it was %d)"
+	,	lasttype);
+	return FALSE;
 }
 
 gconstpointer
