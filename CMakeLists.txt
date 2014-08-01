@@ -20,7 +20,9 @@
 #
 cmake_minimum_required(VERSION 2.6.4)
 project(assimilation C)
-set (PROJVERS "0.1.3-postrelease")
+execute_process (OUTPUT_VARIABLE BUILDTIME OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND date +%s)
+set (BASEVERSION "0.1.3")
+set (PROJVERS "${BASEVERSION}.${BUILDTIME}")
 set (SRCROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set (BINROOT ${CMAKE_CURRENT_BINARY_DIR})
 
