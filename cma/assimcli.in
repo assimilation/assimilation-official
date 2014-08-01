@@ -19,7 +19,21 @@
 #
 ASSIMCLI=@PYINSTALL@/assimcli.py
 PYVERSION=$(env python -c 'import sys; print "%s.%s" % (sys.version_info[0], sys.version_info[1])')
+#
+#       What an utter pain this is...
+#
+quotearg() {
+        printf "\'%s\' " "$(echo "$1" | sed "s%'%'\\\\\''%g")"
+}
+quotecmd() {
+  for arg in "$@"
+  do
+    quotearg "$arg"
+  done
+  printf '\n'
+}
+#quotecmd exec python $ASSIMCLI "$@"
 case $PYVERSION in
-  2.[789]|2.1[0-9])	exec ${ASSIMCLI} "$@";;
-  2.[23456]|3.*)	exec scl enable python27 "${ASSIMCLI} $@";;
+  2.[789]|2.1[0-9])	exec python ${ASSIMCLI} "$@";;
+  2.[23456]|3.*)	quotecmd exec python "${ASSIMCLI}" "$@" | scl enable python27 -
 esac
