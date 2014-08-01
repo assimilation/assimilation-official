@@ -19,8 +19,21 @@
 #
 CMA=@PYINSTALL@/cma.py
 PYVERSION=$(env python -c 'import sys; print "%s.%s" % (sys.version_info[0], sys.version_info[1])')
+#
+#       What an utter pain this is...
+#
+quotearg() {
+        printf "\'%s\' " "$(echo "$1" | sed "s%'%'\\\\\''%g")"
+}
+quotecmd() {
+  for arg in "$@"
+  do
+    quotearg "$arg"
+  done
+  printf '\n'
+}
+#quotecmd exec python $CMA "$@"
 case $PYVERSION in
-  2.[789]|2.1[0-9])	exec ${CMA} "$@";;
-  2.[23456]|3.*)	echo "Executing with Software Collection python27"
-			exec scl enable python27 "${CMA} $@";;
+  2.[789]|2.1[0-9])	exec python ${CMA} "$@";;
+  2.[23456]|3.*)        quotecmd exec python "${CMA}" "$@" | scl enable python27 -
 esac
