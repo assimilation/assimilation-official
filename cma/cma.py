@@ -106,6 +106,7 @@ from cmaconfig import ConfigFile
 import importlib
 #import atexit
 import getent
+import py2neo
 
 
 optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
@@ -289,12 +290,25 @@ def main():
         CMAdb.log.info('TheOneRing created - id = %s' % CMAdb.TheOneRing)
         CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
 
+    jvmfd = os.popen('java -version 2>&1')
+    jvers = jvmfd.readline()
+    jvmfd.close()
     disp = MessageDispatcher(DispatchTarget.dispatchtable)
     CMAdb.log.info('Starting CMA version %s - licensed under %s'
     %   (VERSION_STRING, LONG_LICENSE_STRING))
+    CMAdb.log.info('Neo4j version %s // py2neo version %s // Python version %s // %s'
+        % (('%s.%s.%s%s' % CMAdb.cdb.db.neo4j_version)
+        ,   str(py2neo.__version__)
+        ,   ('%s.%s.%s' % sys.version_info[0:3])
+        ,   jvers))
     if opt.foreground:
         print >> sys.stderr, ('Starting CMA version %s - licensed under %s'
         %   (VERSION_STRING, LONG_LICENSE_STRING))
+        print >> sys.stderr, ('Neo4j version %s // py2neo version %s // Python version %s // %s'
+            % (('%s.%s.%s%s' % CMAdb.cdb.db.neo4j_version)
+            ,   str(py2neo.__version__)
+            ,   ('%s.%s.%s' % sys.version_info[0:3])
+            ,   jvers))
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...
     listener = PacketListener(config, disp, io=io)
