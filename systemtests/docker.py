@@ -213,7 +213,7 @@ class SystemTestEnvironment(object):
     CMASERVICE      = 'cma'
     NANOSERVICE     = 'nanoprobe'
     NEO4JSERVICE    = 'neo4j-service'
-    LOGGINGSERVICE  = 'rsyslogd'
+    LOGGINGSERVICE  = 'rsyslog'
     def __init__(self, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
     ,       sysclass=DockerSystem, cleanupwhendone=True):
@@ -239,9 +239,9 @@ class SystemTestEnvironment(object):
         system = self.sysclass(imagename, ('/bin/sleep', '1000000000'))
         system.start()
         # Set up logging to be forwarded to our parent logger
-        system.runinimage(self, '/bin/bash', '-c'
+        system.runinimage(('/bin/bash', '-c'
         ,   '''PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT);'''
-        +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf''')
+        +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf'''))
         # And of course, start logging...
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
@@ -250,7 +250,7 @@ class SystemTestEnvironment(object):
         'Spawn a CMA instance'
         system = self._spawnsystem(self.cmaimage)
         system.runinimage(('/bin/bash', '-c'
-        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/assimilation'))
+        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/nanoprobe; cat /etc/default/nanoprobe'))
         system.startservice(SystemTestEnvironment.NEO4JSERVICE)
         system.startservice(SystemTestEnvironment.CMASERVICE)
         system.startservice(SystemTestEnvironment.NANOSERVICE)
@@ -285,8 +285,13 @@ class SystemTestEnvironment(object):
 if __name__ == '__main__':
     print >> sys.stderr, 'Initializing:'
     env = SystemTestEnvironment(3)
-    print >> sys.stderr, 'Systems all up and running:'
-    time.sleep(90)
+    print >> sys.stderr, 'Systems all up and running!'
+    time.sleep(30)
+    for j in range(0,len(env.nanoprobes)):
+        print >> sys.stderr, 'Stopping nanoprobe on the %d one!' % j
+        nano = env.nanoprobes[j]
+        nano.stopservice(SystemTestEnvironment.NANOSERVICE)
+        time.sleep(20)
     env.stop()
     env = None
     print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
