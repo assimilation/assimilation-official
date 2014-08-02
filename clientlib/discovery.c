@@ -257,6 +257,7 @@ _discovery_sendjson(Discovery* self,	///< Our discovery object
 	intf = intframe_new(FRAMETYPE_WALLCLOCK, 8);
 	intf->setint(intf, self->starttime);
 	frameset_append_frame(fs, &intf->baseclass);
+	UNREF2(intf);
 	jsf = cstringframe_new(FRAMETYPE_JSDISCOVER, 0);
 	fsf = &jsf->baseclass;	// base class object of jsf
 	fsf->setvalue(fsf, jsonout, jsonlen+1, frame_default_valuefinalize); // jsonlen is strlen(jsonout)
