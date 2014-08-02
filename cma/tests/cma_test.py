@@ -472,6 +472,10 @@ class TestCMABasic(TestCase):
         io.cleanio()
         assimcli_check("query allips", 1)
         assimcli_check("query allservers", 1)
+        assimcli_check("query findip %s" % str(droneip), 1)
+        assimcli_check("query shutdown", 0)
+        assimcli_check("query crashed", 0)
+        assimcli_check("query unknownips", 0)
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
@@ -569,6 +573,9 @@ class TestCMABasic(TestCase):
             assimcli_check("query down", 0)
             assimcli_check("query shutdown", 0)
         assimcli_check("query unknownips", 0)
+        for droneid in range(1,MaxDrone+1):
+            droneip = droneipaddress(droneid)
+            assimcli_check("query findip %s" % str(droneip), 1)
         if DoAudit:
             auditalldrones()
             auditallrings()
