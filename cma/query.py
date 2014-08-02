@@ -408,6 +408,7 @@ class ClientQuery(GraphNode):
         ip = pyNetAddr(value)
         if ip is None:
             raise ValueError('Value of %s [%s] not a valid IP address' % (name, value))
+        ip.setport(0)
         if ip.addrtype() == ADDR_FAMILY_IPV6:
             return str(ip)
         if ip.addrtype() == ADDR_FAMILY_IPV4:
