@@ -29,7 +29,7 @@ from testify.utils import turtle
 
 from frameinfo import *
 from AssimCclasses import *
-import gc, sys, time, collections, os
+import gc, sys, time, collections, os, subprocess
 from graphnodes import nodeconstructor, CMAclass, ProcessNode
 from cmainit import CMAinit
 from cmadb import CMAdb
@@ -260,6 +260,28 @@ def auditallrings():
     for ring in CMAdb.store.load_cypher_nodes(query, HbRing):
         ring.AUDIT()
 
+ASSIMCLI='assimcli'
+inityet = False
+def assimcli_check(command, expectedcount=None):
+    'This code only works if you have assimcli installed'
+    cmd='%s %s' % (ASSIMCLI, command)
+    if expectedcount is None:
+        subprocess.check_call(('sh', '-c', cmd))
+    else:
+        linecount = 0
+        fd = os.popen(cmd)
+        while True:
+            if not fd.readline():
+                break
+            linecount += 1
+        rc = fd.close()
+        if expectedcount != linecount:
+            print >> sys.stderr, 'Rerunning query:'
+            subprocess.check_call(('sh', '-c', cmd))
+            raise RuntimeError('%s command produced %s lines instead of %s'
+            %   (cmd, linecount, expectedcount))
+        assert rc is None or rc == 0
+
 class TestIO:
     '''A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read'
     and in turn saves all the packets it 'writes' for us to inspect.
@@ -431,6 +453,7 @@ class TestCMABasic(TestCase):
         #print >> sys.stderr, 'CMAinit: %s' % str(CMAinit)
         #print >> sys.stderr, 'CMAinit.__init__: %s' % str(CMAinit.__init__)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
+        assimcli_check('loadqueries')
         OurAddr = pyNetAddr((127,0,0,1),1984)
         disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()})
         configinit = geninitconfig(OurAddr)
@@ -447,6 +470,8 @@ class TestCMABasic(TestCase):
                             # As we change discovery...
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
         io.cleanio()
+        assimcli_check("query allips", 1)
+        assimcli_check("query allservers", 1)
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
@@ -504,6 +529,7 @@ class TestCMABasic(TestCase):
                 fsin.append((addrone, (fs,)))
         io = TestIO(fsin)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
+        assimcli_check('loadqueries')
         disp = MessageDispatcher( {
             FrameSetTypes.STARTUP: DispatchSTARTUP(),
             FrameSetTypes.HBDEAD: DispatchHBDEAD(),
@@ -526,7 +552,10 @@ class TestCMABasic(TestCase):
             # Verify that all drones except one are dead
             #livecount, partnercount, ringmemberships
             #self.check_live_counts(1, 0, 1)
-            pass
+            assimcli_check("query allservers", maxdrones)
+            assimcli_check("query down", maxdrones-1)
+            assimcli_check("query crashed", maxdrones-1)
+            assimcli_check("query shutdown", 0)
         else:
             if maxdrones == 1:
                 partnercount=0
@@ -536,7 +565,10 @@ class TestCMABasic(TestCase):
                 partnercount=2*maxdrones
             #                      livecount  partnercount  ringmemberships
             #self.check_live_counts(maxdrones, partnercount, maxdrones)
-            pass
+            assimcli_check("query allservers", maxdrones)
+            assimcli_check("query down", 0)
+            assimcli_check("query shutdown", 0)
+        assimcli_check("query unknownips", 0)
         if DoAudit:
             auditalldrones()
             auditallrings()
@@ -556,7 +588,6 @@ class TestMonitorBasic(TestCase):
     def test_activate(self):
         io = TestIO([],0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-
         dummy = CMAdb.store.load_or_create(MonitorAction, domain='global', monitorname='DummyName'
         ,       monitorclass='OCF', monitortype='Dummy', interval=1, timeout=120, provider='heartbeat')
 
