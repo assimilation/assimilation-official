@@ -58,8 +58,10 @@ The team currently posts updates in the following places:
 - <a href="http://assimilationsystems.com/category/blog/">Assimilation Systems Blog</a> - about weekly
 - Older <a href="http://techthoughts.typepad.com/managing_computers/">Managing Computers with Automation Blog</a>
 - <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">Assimilation Mailing List</a> - not quite as often - shooting for weekly.
-- <a href="https://trello.com/b/OpaED3AT">Assimilation work in progress list on Trello</a>.
-  This gives a very good overview of the project goals, current and future work items along with <b>open project roles</b>.  Come find your future here!
+- Assimilation <a href="http://trello.com">Trello</a> project management boards.  These give a very good overview of the project goals, current and future work items along with <b>open project roles</b>.  Come find your future here!
+ - <a href="https://trello.com/b/KKs4rI8g/assimilation-user-stories">Assimilation user stories</a>.
+ - <a href="https://trello.com/b/98QrdEK1/issues-bugs">Assimilation bugs / issues / proposed features</a>.
+ - <a href="https://trello.com/b/OpaED3AT">Assimilation brain dump</a>.
 - <a href="http://lists.linux-ha.org/mailman/listinfo/linux-ha-dev">linux-ha-dev mailing list</a> - parent project
 
 @section ExternalLinks External Links
