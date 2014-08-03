@@ -266,8 +266,8 @@ class SystemTestEnvironment(object):
 
     def stop(self):
         'Stop our entire SystemTestEnvironment'
-        for nano in self.nanoprobes:
-            nano.stop()
+        for onenano in self.nanoprobes:
+            onenano.stop()
         self.cma.stop()
 
     def __del__(self):
@@ -283,15 +283,18 @@ class SystemTestEnvironment(object):
 
 # A little test code...
 if __name__ == '__main__':
-    print >> sys.stderr, 'Initializing:'
-    env = SystemTestEnvironment(3)
-    print >> sys.stderr, 'Systems all up and running!'
-    time.sleep(30)
-    for j in range(0,len(env.nanoprobes)):
-        print >> sys.stderr, 'Stopping nanoprobe on the %d one!' % j
-        nano = env.nanoprobes[j]
-        nano.stopservice(SystemTestEnvironment.NANOSERVICE)
-        time.sleep(20)
-    env.stop()
-    env = None
-    print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
+    def testmain():
+        'A simple test main program'
+        print >> sys.stderr, 'Initializing:'
+        env = SystemTestEnvironment(3)
+        print >> sys.stderr, 'Systems all up and running!'
+        time.sleep(30)
+        for j in range(0,len(env.nanoprobes)):
+            print >> sys.stderr, 'Stopping nanoprobe on the %d one!' % j
+            nano = env.nanoprobes[j]
+            nano.stopservice(SystemTestEnvironment.NANOSERVICE)
+            time.sleep(20)
+        env.stop()
+        env = None
+        print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
+    testmain()
