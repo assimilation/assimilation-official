@@ -75,8 +75,7 @@ class LogWatcher(object):
         self.st_dev = None
         self.logfile = None
         self.size = None
-        if self.debug:
-            print "Debug now on for for log", log
+        self.debugmsg("Debug now on for for log: %s" % log)
         self.Timeout = int(timeout)
         if not os.access(log, os.R_OK):
             raise ValueError("File [" + log + "] not accessible (r)")
@@ -84,6 +83,9 @@ class LogWatcher(object):
     def setwatch(self, frombeginning=False):
         '''Mark the place to start watching the log from.
         '''
+        if self.logfile is not None:
+            self.logfile.close()
+            self.logfile = None
         self.logfile = open(self.filename, "r")
         self.size = os.path.getsize(self.filename)
         fsinfo = os.stat(self.filename)
@@ -97,7 +99,12 @@ class LogWatcher(object):
         '''
         self.returnonlymatch = onlymatch
 
-    # FIXME: many branches (R0912)?
+    def debugmsg(self, msg, level=1):
+        'Print out a debug message if requested debugging level is activated'
+        if self.debug >= level:
+            print 'DEBUG: %s' % msg
+
+    # FIXME: many branches (R0912)? -- got it down to 15.  Could do better...
     # pylint: disable=R0912
     def look(self, timeout=None):
         '''Examine the log looking for the given patterns.
@@ -110,40 +117,33 @@ class LogWatcher(object):
         '''
         last_line=None
         first_line=None
-        if timeout == None:
+        if timeout is None:
             timeout = self.Timeout
 
         done=time.time()+timeout+1
-        if self.debug:
-            print "starting search: timeout=%d" % timeout
-            for regex in self.regexes:
-                print "Looking for regex: ", regex
+        self.debugmsg("starting search: timeout=%d" % timeout)
+        self.debugmsg("Looking for regex: %s" % str(self.regexes))
 
         while (timeout <= 0 or time.time() <= done):
             newsize=os.path.getsize(self.filename)
-            if self.debug > 4:
-                print "newsize = %d" % newsize
+            self.debugmsg("newsize = %d" % newsize, 5)
             if newsize < self.size:
                 # Somebody truncated the log!
-                if self.debug:
-                    print "Log truncated!"
+                self.debugmsg("Log truncated!")
                 self.setwatch(frombeginning=True)
                 continue
             if newsize > self.logfile.tell():
                 line=self.logfile.readline()
-                if self.debug > 2:
-                    print "Looking at line:", line
+                self.debugmsg("Looking at line: %s" % line, 2)
                 if line:
                     last_line=line
                     if not first_line:
                         first_line=line
-                        if self.debug:
-                            print "First line: "+ line
+                        self.debugmsg("First line: "+ line)
                     which=-1
                     for regex in self.regexes:
                         which=which+1
-                        if self.debug > 3:
-                            print "Comparing line to ", regex
+                        self.debugmsg("Comparing line to " + regex, 4)
                         #matchobj = re.search(string.lower(regex), string.lower(line))
                         matchobj = re.search(regex, line)
                         if matchobj:
@@ -151,14 +151,12 @@ class LogWatcher(object):
                             if self.returnonlymatch:
                                 return matchobj.group(self.returnonlymatch)
                             else:
-                                if self.debug:
-                                    print "Returning line"
+                                self.debugmsg("Returning line: " + line)
                                 return line
             else: # make sure the file hasn't been recreated...
                 fsinfo = os.stat(self.filename)
                 if fsinfo.st_dev != self.st_dev or fsinfo.st_ino != self.st_ino:
-                    if self.debug:
-                        print "Log file %s recreated!" % self.filename
+                    self.debugmsg("Log file %s recreated!" % self.filename)
                     self.setwatch(frombeginning=True)
 
             newsize=os.path.getsize(self.filename)
@@ -166,13 +164,11 @@ class LogWatcher(object):
                 if timeout > 0:
                     time.sleep(0.025)
                 else:
-                    if self.debug:
-                        print "End of file"
-                        print "Last line: "+last_line
+                    self.debugmsg("End of file")
+                    self.debugmsg("Last line: %s " %  str(last_line))
                     return None
-        if self.debug:
-            print "Timeout"
-            print "Last line: "+last_line
+        self.debugmsg("Timeout")
+        self.debugmsg("Last line: %s " %  str(last_line))
         return None
 
     def lookforall(self, timeout=None):
@@ -185,7 +181,7 @@ class LogWatcher(object):
         be occur in the logs in any order.  Hope that's what you wanted ;-)
         '''
 
-        if timeout == None:
+        if timeout is None:
             timeout = self.Timeout
         save_regexes = self.regexes
         returnresult = []
@@ -218,7 +214,8 @@ if __name__ == "__main__":
 
     def testlog(logfilename):
         'Function for doing basic testing of LogWatcher module'
-        watcher = LogWatcher(logfilename, ['(Test message 1)', '(Test message 2)']
+        watcher = LogWatcher(logfilename
+        ,   ['LOGWATCHER.*(Test message 1)', 'LOGWATCHER.*(Test message 2)']
         ,   debug=0, returnonlymatch=True, timeout=2)
         watcher.setwatch()
         logmessage('Test message 2')
