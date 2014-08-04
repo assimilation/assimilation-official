@@ -31,7 +31,14 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+'''
+This module defines the most excellent LogWatcher class - useful for watching logs
+and curing what ails you ;-)
+'''
+import os, re, time
 
+# R0902: too many instance attributes
+# pylint: disable=R0902
 class LogWatcher(object):
 
     '''This class watches logs for messages that fit certain regular
@@ -47,7 +54,7 @@ class LogWatcher(object):
             or call lookforall() to locate them all
     '''
 
-    def __init__(self, log, regexes, timeout=10, debug=None):
+    def __init__(self, log, regexes, timeout=10, debug=None, returnonlymatch=False):
         '''This is the constructor for the LogWatcher class.  It takes a
         log name to watch, and a list of regular expressions to watch for."
 
@@ -61,41 +68,50 @@ class LogWatcher(object):
         self.regexes = regexes
         self.filename = log
         self.debug=debug
-        self.whichmatch = -1
+        self.returnonlymatch = returnonlymatch
+        self.whichmatched = -1
         self.unmatched = None
+        self.st_ino = None
+        self.st_dev = None
+        self.logfile = None
+        self.size = None
         if self.debug:
             print "Debug now on for for log", log
         self.Timeout = int(timeout)
-        self.returnonlymatch = None
         if not os.access(log, os.R_OK):
             raise ValueError("File [" + log + "] not accessible (r)")
 
-    def setwatch(self, frombeginning=None):
+    def setwatch(self, frombeginning=False):
         '''Mark the place to start watching the log from.
         '''
-        self.file = open(self.filename, "r")
+        self.logfile = open(self.filename, "r")
         self.size = os.path.getsize(self.filename)
+        fsinfo = os.stat(self.filename)
+        self.st_dev = fsinfo.st_dev
+        self.st_ino = fsinfo.st_ino
         if not frombeginning:
-            self.file.seek(0,2)
+            self.logfile.seek(0,2)
 
-    def ReturnOnlyMatch(self, onlymatch=1):
-        '''Mark the place to start watching the log from.
+    def ReturnOnlyMatch(self, onlymatch=True):
+        '''Set the ReturnOnlyMatch flag
         '''
         self.returnonlymatch = onlymatch
 
+    # FIXME: many branches (R0912)?
+    # pylint: disable=R0912
     def look(self, timeout=None):
         '''Examine the log looking for the given patterns.
         It starts looking from the place marked by setwatch().
         This function looks in the file in the fashion of tail -f.
-        It properly recovers from log file truncation, but not from
-        removing and recreating the log.  It would be nice if it
-        recovered from this as well :-)
+        It properly recovers from log file truncation, and it should
+        recover from removing and recreating the log as well.
 
         We return the first line which matches any of our patterns.
         '''
         last_line=None
         first_line=None
-        if timeout == None: timeout = self.Timeout
+        if timeout == None:
+            timeout = self.Timeout
 
         done=time.time()+timeout+1
         if self.debug:
@@ -105,43 +121,58 @@ class LogWatcher(object):
 
         while (timeout <= 0 or time.time() <= done):
             newsize=os.path.getsize(self.filename)
-            if self.debug > 4: print "newsize = %d" % newsize
+            if self.debug > 4:
+                print "newsize = %d" % newsize
             if newsize < self.size:
                 # Somebody truncated the log!
-                if self.debug: print "Log truncated!"
-                self.setwatch(frombeginning=1)
+                if self.debug:
+                    print "Log truncated!"
+                self.setwatch(frombeginning=True)
                 continue
-            if newsize > self.file.tell():
-                line=self.file.readline()
-                if self.debug > 2: print "Looking at line:", line
+            if newsize > self.logfile.tell():
+                line=self.logfile.readline()
+                if self.debug > 2:
+                    print "Looking at line:", line
                 if line:
                     last_line=line
                     if not first_line:
                         first_line=line
-                        if self.debug: print "First line: "+ line
+                        if self.debug:
+                            print "First line: "+ line
                     which=-1
                     for regex in self.regexes:
                         which=which+1
-                        if self.debug > 3: print "Comparing line to ", regex
+                        if self.debug > 3:
+                            print "Comparing line to ", regex
                         #matchobj = re.search(string.lower(regex), string.lower(line))
                         matchobj = re.search(regex, line)
                         if matchobj:
-                            self.whichmatch=which
+                            self.whichmatched=which
                             if self.returnonlymatch:
-                              return matchobj.group(self.returnonlymatch)
+                                return matchobj.group(self.returnonlymatch)
                             else:
-                              if self.debug: print "Returning line"
-                              return line
+                                if self.debug:
+                                    print "Returning line"
+                                return line
+            else: # make sure the file hasn't been recreated...
+                fsinfo = os.stat(self.filename)
+                if fsinfo.st_dev != self.st_dev or fsinfo.st_ino != self.st_ino:
+                    if self.debug:
+                        print "Log file %s recreated!" % self.filename
+                    self.setwatch(frombeginning=True)
+
             newsize=os.path.getsize(self.filename)
-            if self.file.tell() == newsize:
+            if self.logfile.tell() == newsize:
                 if timeout > 0:
                     time.sleep(0.025)
                 else:
-                    if self.debug: print "End of file"
-                    if self.debug: print "Last line: "+last_line
+                    if self.debug:
+                        print "End of file"
+                        print "Last line: "+last_line
                     return None
-        if self.debug: print "Timeout"
-        if self.debug: print "Last line: "+last_line
+        if self.debug:
+            print "Timeout"
+            print "Last line: "+last_line
         return None
 
     def lookforall(self, timeout=None):
@@ -154,7 +185,8 @@ class LogWatcher(object):
         be occur in the logs in any order.  Hope that's what you wanted ;-)
         '''
 
-        if timeout == None: timeout = self.Timeout
+        if timeout == None:
+            timeout = self.Timeout
         save_regexes = self.regexes
         returnresult = []
         while (len(self.regexes) > 0):
@@ -164,13 +196,13 @@ class LogWatcher(object):
                 self.regexes = save_regexes
                 return None
             returnresult.append(oneresult)
-            del self.regexes[self.whichmatch]
+            del self.regexes[self.whichmatched]
         self.unmatched = None
         self.regexes = save_regexes
         return returnresult
 
 # In case we ever want multiple regexes to match a single line...
-#-            del self.regexes[self.whichmatch]
+#-            del self.regexes[self.whichmatched]
 #+            tmp_regexes = self.regexes
 #+            self.regexes = []
 #+            which = 0
@@ -178,3 +210,40 @@ class LogWatcher(object):
 #+                matchobj = re.search(regex, oneresult)
 #+                if not matchobj:
 #+                    self.regexes.append(regex)
+if __name__ == "__main__":
+
+    def logmessage(msg):
+        'Log a message to our system log'
+        os.system('logger "LOGWATCHER TEST: %s"' % msg)
+
+    def testlog(logfilename):
+        'Function for doing basic testing of LogWatcher module'
+        watcher = LogWatcher(logfilename, ['(Test message 1)', '(Test message 2)']
+        ,   debug=0, returnonlymatch=True, timeout=2)
+        watcher.setwatch()
+        logmessage('Test message 2')
+        result = watcher.look()
+        assert(result == 'Test message 2')
+
+        watcher.setwatch()
+        logmessage('Test message 1')
+        result = watcher.look()
+        assert(result == 'Test message 1')
+
+        watcher.setwatch()
+        logmessage('Test message 2')
+        logmessage('Test message 1')
+        results = watcher.lookforall()
+        assert results == ['Test message 2', 'Test message 1']
+
+        # Test the no-match case
+        watcher.setwatch()
+        result = watcher.look()
+        assert result is None
+
+        print 'No asserts: Test succeded! WOOT!!'
+
+    if os.access('/var/log/syslog', os.R_OK):
+        testlog('/var/log/syslog')
+    elif os.access('/var/log/messages', os.R_OK):
+        testlog('/var/log/messages')
