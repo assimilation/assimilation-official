@@ -37,7 +37,7 @@
 #
 
 BINARY=/usr/sbin/cma
-ARGS=""
+FLAGS=""
 
 SERVICE=$(basename $BINARY)
 
@@ -86,7 +86,7 @@ esac
 lockfile=/var/lock/subsys/$SERVICE
 
 start() {
-    $BINARY $ARGS
+    $BINARY $FLAGS
     rc=$?
     if
       [ $rc -eq 0 ]
@@ -104,7 +104,7 @@ start() {
 }
 
 stop() {
-    $BINARY $ARGS --kill
+    $BINARY $FLAGS --kill
     rc=$?
     if
       [ $rc -eq 0 ]
@@ -129,7 +129,7 @@ case "$command" in
 		exit $?;;
 
   status)
-        $BINARY $ARGS --status
+        $BINARY $FLAGS --status
 		rc=$?
 		case $rc in
 		  0)	echo "$SERVICE is running." >&2;;
@@ -144,7 +144,7 @@ case "$command" in
 
   try-restart|condrestart)
         if
-            $BINARY $ARGS --status 
+            $BINARY $FLAGS --status 
         then
             restart
         fi
