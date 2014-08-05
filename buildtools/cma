@@ -59,6 +59,7 @@ FLAGS=""
 #   CMA_BIND        What IP:port for the CMA to bind to - defaults to ANY:1984
 #   CMA_PIDFILE     Where to store our PID file
 #   CMA_USER        What user to run as
+#   CMA_DEBUG       What debug level to choose
 #
 
 #   CMA_BIND: What address should we bind to locally?
@@ -66,9 +67,15 @@ FLAGS=""
 case "${CMA_BIND}" in
     ?*) FLAGS="$FLAGS --bind $CMA_BIND";;
 esac
+
 #   CMA_PIDFILE: Where to put our pid file?
 case "${CMA_PIDFILE}" in
     ?*) FLAGS="$FLAGS --pidfile $CMA_PIDFILE";;
+esac
+
+#   CMA_DEBUG: debug level
+case "${CMA_DEBUG}" in
+    [1-9]) FLAGS="$FLAGS --debug $CMA_DEBUG";;
 esac
 
 #   CMA_USER: What user to run as?
