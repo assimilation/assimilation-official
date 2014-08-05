@@ -412,22 +412,37 @@ class Store(object):
         for rel in rels:
             yield (self._construct_obj_from_node(rel.start_node, cls))
 
-    def load_cypher_nodes(self, query, cls, params=None, maxcount=None):
+    def load_cypher_nodes(self, query, cls, params=None, maxcount=None, debug=False):
         '''Execute the given query that yields a single column of nodes
         all of the same Class (cls) and yield each of those Objects in turn
         through an iterator (generator)'''
         count = 0
         if params is None:
             params = {}
+        if debug:
+            print >> sys.stderr, 'Starting query %s(%s)' % (query, params)
         for row in query.stream(**params):
+            if debug:
+                print >> sys.stderr, 'Received Row from stream: %s' % (row)
             for key in row.columns:
+                if debug:
+                    print >> sys.stderr, 'looking for column %s' % (key)
                 node = getattr(row, key)
                 if node is None:
+                    if debug:
+                        print >> sys.stderr, 'getattr(%s) failed' % key
                     continue
-                yield self.constructobj(cls, node)
+                yval = self.constructobj(cls, node)
+                if debug:
+                    print >> sys.stderr, 'yielding row %d (%s)' % (count, yval)
+                yield yval
             count += 1
             if maxcount is not None and count >= maxcount:
+                if debug:
+                    print >> sys.stderr, 'quitting on maxcount (%d)' % count
                 break
+        if debug:
+            print >> sys.stderr, 'quitting on end of query output (%d)' % count
         return
 
     def load_cypher_node(self, query, cls, params=None):
