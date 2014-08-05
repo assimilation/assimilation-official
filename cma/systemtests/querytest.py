@@ -109,7 +109,7 @@ class QueryTest(object):
 
 # A little test code...
 if __name__ == "__main__":
-    import sys, time, os
+    import os
     from docker import SystemTestEnvironment
     sys.path.append('..')
     import graphnodes as GN
@@ -119,6 +119,9 @@ if __name__ == "__main__":
     def testmain(logname, maxdrones=2, debug=False):
         'A simple test main program'
         regexes = []
+
+        #pylint says: [W0612:testmain] Unused variable 'j'
+        #pylint: disable=W0612
         for j in range(0,maxdrones+1):
             regexes.append('(Stored packages JSON.*processing)')
         logwatch = LogWatcher(logname, regexes, timeout=30, returnonlymatch=True)
