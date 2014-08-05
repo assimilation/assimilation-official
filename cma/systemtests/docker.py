@@ -56,6 +56,7 @@ class TestSystem(object):
         self.status = TestSystem.NOTINIT
         self.pid = None
         self.hostname = None
+        self.ipaddr = None
         TestSystem.ManagedSystems[self.name] = self
 
     @staticmethod
@@ -118,7 +119,6 @@ class DockerSystem(TestSystem):
             dockerargs = []
         self.dockerargs = dockerargs
         self.runningservices = []
-        print 'SELF.DOCKERARGS = ', self.dockerargs
         TestSystem.__init__(self, imagename, cmdargs=cmdargs)
 
     @staticmethod
@@ -126,9 +126,6 @@ class DockerSystem(TestSystem):
         'Runs the docker command given by dockerargs'
         cmd = [DockerSystem.dockercmd,]
         cmd.extend(dockerargs)
-        # @FIXME: Or should this be subprocess.check_call()?
-        # @FIXME: Or even subprocess.popen?
-        #rc = subprocess.call(cmd)
         print >> sys.stderr, 'RUNNING cmd:', cmd
         rc = subprocess.check_call(cmd)
         return rc == 0
@@ -136,10 +133,8 @@ class DockerSystem(TestSystem):
 
     def start(self):
         'Start a docker instance'
-        print 'Looking in Start: SELF.DOCKERARGS = ', self.dockerargs
         if self.status == TestSystem.NOTINIT:
             runargs = ['run', '--detach=true', '--name=%s' % self.name]
-            print 'Looking: SELF.DOCKERARGS = ', self.dockerargs
             if self.dockerargs is not None:
                 runargs.extend(self.dockerargs)
             runargs.append(self.imagename)
@@ -153,7 +148,12 @@ class DockerSystem(TestSystem):
             fd.close()
             fd = os.popen('%s %s %s %s %s'
             %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.Config.Hostname}}', self.name))
-            self.hostname = fd.readline()
+            self.hostname = fd.readline().rstrip()
+            fd.close()
+            fd = os.popen('%s %s %s %s %s'
+            %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.NetworkSettings.IPAddress}}'
+            ,       self.name))
+            self.ipaddr = fd.readline().rstrip()
             fd.close()
         elif self.status == TestSystem.STOPPED:
             DockerSystem.run('restart', self.name)
@@ -186,7 +186,7 @@ class DockerSystem(TestSystem):
         args = [DockerSystem.nsentercmd, '--target', str(self.pid)
         , '--mount', '--uts',  '--ipc', '--net', '--pid', '--']
         args.extend(nsenterargs)
-        print >> sys.stderr, 'RUNNING nsenter cmd:', args
+        #print >> sys.stderr, 'RUNNING nsenter cmd:', args
         subprocess.check_call(args)
 
     def startservice(self, servicename):
@@ -250,7 +250,11 @@ class SystemTestEnvironment(object):
         'Spawn a CMA instance'
         system = self._spawnsystem(self.cmaimage)
         system.runinimage(('/bin/bash', '-c'
-        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/nanoprobe; cat /etc/default/nanoprobe'))
+        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/nanoprobe'))
+        system.runinimage(('/bin/bash', '-c'
+        ,   'echo "org.neo4j.server.webserver.address=0.0.0.0" '
+            '>> /var/lib/neo4j/conf/neo4j-server.properties'))
+        
         system.startservice(SystemTestEnvironment.NEO4JSERVICE)
         system.startservice(SystemTestEnvironment.CMASERVICE)
         system.startservice(SystemTestEnvironment.NANOSERVICE)
@@ -294,6 +298,7 @@ if __name__ == '__main__':
             nano = env.nanoprobes[j]
             nano.stopservice(SystemTestEnvironment.NANOSERVICE)
             time.sleep(20)
+        time.sleep(120)
         env.stop()
         env = None
         print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems

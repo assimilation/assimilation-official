@@ -89,9 +89,11 @@ class QueryTest(object):
         rows was returned, and True if everything looks good.
         '''
         finalquerystring = self.querystring.format(*objectlist)
+        if self.debug:
+            print >> sys.stderr, 'Final query string [%s]' % finalquerystring
         query = neo4j.CypherQuery(self.db, finalquerystring)
         rowcount = 0
-        for row in self.store.load_cypher_query(query, self.classfactory):
+        for row in self.store.load_cypher_nodes(query, self.classfactory):
             rowcount += 1
             if validator is not None and not validator(row):
                 print >> sys.stderr, ("VALIDATOR [%s] doesn't like row [%d] %s"
@@ -105,3 +107,41 @@ class QueryTest(object):
             return False
         return True
 
+# A little test code...
+if __name__ == "__main__":
+    import sys, time, os
+    from docker import SystemTestEnvironment
+    sys.path.append('..')
+    import graphnodes as GN
+    from store import Store
+    from cmainit import CMAinit
+    from logwatcher import LogWatcher
+    def testmain(logname, maxdrones=2, debug=False):
+        'A simple test main program'
+        regexes = []
+        for j in range(0,maxdrones+1):
+            regexes.append('(Stored packages JSON.*processing)')
+        logwatch = LogWatcher(logname, regexes, timeout=30, returnonlymatch=True)
+        logwatch.setwatch()
+        sysenv = SystemTestEnvironment(maxdrones)
+        print >> sys.stderr, 'Systems all up and running.'
+        url = ('http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
+        db = neo4j.GraphDatabaseService(url)
+        CMAinit(None)
+        store = Store(db)
+        for classname in GN.GraphNode.classmap:
+            GN.GraphNode.initclasstypeobj(store, classname)
+        logwatch.lookforall()
+        qstr = "START drone=node:Drone('*:*') RETURN drone"
+        tq = QueryTest(store, qstr, GN.nodeconstructor, debug=debug)
+        print >> sys.stderr, 'Running Query'
+        if tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1):
+            print 'WOOT! Systems passed query check!'
+            return 0
+        else:
+            print 'Systems FAILED query check'
+            return 1
+    if os.access('/var/log/syslog', os.R_OK):
+        sys.exit(testmain('/var/log/syslog'))
+    elif os.access('/var/log/messages', os.R_OK):
+        sys.exit(testmain('/var/log/messages'))
