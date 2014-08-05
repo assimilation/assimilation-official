@@ -254,7 +254,7 @@ class SystemTestEnvironment(object):
         system.runinimage(('/bin/bash', '-c'
         ,   'echo "org.neo4j.server.webserver.address=0.0.0.0" '
             '>> /var/lib/neo4j/conf/neo4j-server.properties'))
-        
+
         system.startservice(SystemTestEnvironment.NEO4JSERVICE)
         system.startservice(SystemTestEnvironment.CMASERVICE)
         system.startservice(SystemTestEnvironment.NANOSERVICE)
