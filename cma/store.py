@@ -917,7 +917,8 @@ class Store(object):
         self._batch_construct_deletions()           # These return None
         if Store.debug:
             print >> sys.stderr, ('Batch Updates constructed: Committing THIS THING:', str(self))
-            Store.log.debug('Batch Updates constructed: Committing THIS THING:', str(self))
+            if Store.log:
+                Store.log.debug('Batch Updates constructed: Committing THIS THING:', str(self))
         start = datetime.now()
         submit_results = self.batch.submit()
         if Store.debug:
