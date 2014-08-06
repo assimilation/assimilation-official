@@ -91,6 +91,7 @@ class QueryTest(object):
         finalquerystring = self.querystring.format(*objectlist)
         if self.debug:
             print >> sys.stderr, 'Final query string [%s]' % finalquerystring
+        self.store.clean_store()
         query = neo4j.CypherQuery(self.db, finalquerystring)
         rowcount = 0
         for row in self.store.load_cypher_nodes(query, self.classfactory, debug=self.debug):
@@ -119,16 +120,16 @@ if __name__ == "__main__":
     from cmainit import CMAinit
     from logwatcher import LogWatcher
     import time
+
+
     def downbyshutdown(drone):
-        out= ('Designation: "%s", Status: "%s", reason: "%s", id: %s' 
-        %   (drone.designation, drone.status, drone.reason, Store.id(drone)))
-        print >> sys.stderr, out
-        os.system("logger 'Query result %s'" % out)
-        return True
+        'Return TRUE if this node is down by reason of HBSHUTDOWN'
+        #print >> sys.stderr, 'VALIDATOR: status [%s] reason [%s]' % (drone.status, drone.reason)
+        return drone.status == 'dead' and drone.reason == 'HBSHUTDOWN'
+
     def testmain(logname, maxdrones=2, debug=False):
         'A simple test main program'
         regexes = []
-
         #pylint says: [W0612:testmain] Unused variable 'j'
         #pylint: disable=W0612
         for j in range(0,maxdrones+1):
@@ -138,14 +139,14 @@ if __name__ == "__main__":
         sysenv = SystemTestEnvironment(maxdrones)
         print >> sys.stderr, 'Systems all up and running.'
         url = ('http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
-        db = neo4j.GraphDatabaseService(url)
         CMAinit(None)
-        store = Store(db)
+        store = Store(neo4j.GraphDatabaseService(url), readonly=True)
         for classname in GN.GraphNode.classmap:
             GN.GraphNode.initclasstypeobj(store, classname)
         print >> sys.stderr, 'WATCH RESULTS:', logwatch.lookforall()
-        qstr = "START drone=node:Drone('*:*') RETURN drone"
-        tq = QueryTest(store, qstr, GN.nodeconstructor, debug=debug)
+        tq = QueryTest(store
+        ,   "START drone=node:Drone('*:*') RETURN drone"
+        ,   GN.nodeconstructor, debug=debug)
         print >> sys.stderr, 'Running Query'
         if tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1):
             print 'WOOT! Systems passed query check after initial startup!'
@@ -158,22 +159,23 @@ if __name__ == "__main__":
             return 1
         cma = sysenv.cma
         nano = sysenv.nanoprobes[0]
-        regex = ('%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown' 
+        regex = (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
         %   (cma.hostname, nano.hostname, nano.ipaddr))
-        print >> sys.stderr, 'REGEX IS: [%s]' % regex
+        #print >> sys.stderr, 'REGEX IS: [%s]' % regex
         logwatch = LogWatcher(logname, [regex,], timeout=30, returnonlymatch=False)
         logwatch.setwatch()
         nano.stopservice(SystemTestEnvironment.NANOSERVICE)
         logwatch.look()
         time.sleep(30)
-        qstr = ('''START drone=node:Drone('*:*') '''
+        tq = QueryTest(store
+        ,   ('''START drone=node:Drone('*:*') '''
                 '''WHERE drone.designation = "{0.hostname}" RETURN drone''')
-        tq = QueryTest(store, qstr, GN.nodeconstructor, debug=debug)
+        ,   GN.nodeconstructor, debug=debug)
         if tq.check([nano,], downbyshutdown, maxrows=1):
             print 'WOOT! Systems passed query check after nano shutdown!'
         else:
             print 'Systems FAILED query check after nano shutdown'
-    
+
     if os.access('/var/log/syslog', os.R_OK):
         sys.exit(testmain('/var/log/syslog'))
     elif os.access('/var/log/messages', os.R_OK):

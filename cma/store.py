@@ -117,7 +117,7 @@ class Store(object):
     debug = False
     log = None
 
-    def __init__(self, db, uniqueindexmap=None, classkeymap=None):
+    def __init__(self, db, uniqueindexmap=None, classkeymap=None, readonly=False):
         '''
         Constructor for Transactional Write (Batch) Store objects
         ---------
@@ -133,6 +133,7 @@ class Store(object):
                          'vattr':   object attribute for key 'value'
         '''
         self.db = db
+        self.readonly = readonly
         self.stats = {}
         self.reset_stats()
         self.clients = {}
@@ -251,6 +252,8 @@ class Store(object):
 
     def save_indexed(self, index_name, key, value, *subj):
         'Save the given (new) object as an indexed node'
+        if self.readonly:
+            raise RuntimeError('Attempt to save an object to a read-only store')
         if not isinstance(subj, tuple) and not isinstance(subj, list):
             subj = (subj,)
         for obj in subj:
@@ -274,6 +277,8 @@ class Store(object):
             If the index is known to be a unique index, then it will
             be saved unique - otherwise it won't be unique
         '''
+        if self.readonly:
+            raise RuntimeError('Attempt to save an object to a read-only store')
         if node is not None:
             if subj in self.clients:
                 raise ValueError('Cannot save existing node into a new node')
@@ -300,6 +305,8 @@ class Store(object):
         'Delete the saved object and all its relationships from the database'
         if not hasattr(subj, '_Store__store_node'):
             raise ValueError('Object not associated with the Store system')
+        if self.readonly:
+            raise RuntimeError('Attempt to delete an object from a read-only store')
         node = subj.__store_node
         if node.is_abstract:
             raise ValueError('Node cannot be abstract')
@@ -361,6 +368,8 @@ class Store(object):
     def relate(self, subj, rel_type, obj, properties=None):
         '''Define a 'rel_type' relationship subj-[:rel_type]->obj'''
         assert not isinstance(obj, str)
+        if self.readonly:
+            raise RuntimeError('Attempt to relate objects in a read-only store')
         self.newrels.append({'from':subj, 'to':obj, 'type':rel_type, 'props':properties})
 
     def relate_new(self, subj, rel_type, obj, properties=None):
@@ -536,17 +545,26 @@ class Store(object):
 
         # Make sure the attributes match the desired values
         for attr in kwargs.keys():
-            if not hasattr(ret, attr) or getattr(ret, attr) is None:
-                setattr(ret, attr, kwargs[attr])
-            elif attr in extraattrs:
-                if getattr(ret, attr) != extraattrs[attr]:
-                    setattr(ret, attr, extraattrs[attr])
+            kwa = kwargs[attr]
+            if attr in extraattrs:
+                if not hasattr(ret, attr) or getattr(ret, attr) != kwa:
+                    #print >> sys.stderr, 'SETTING EXTRA ATTR %s to %s' % (attr, kwa)
+                    object.__setattr__(ret, attr, kwa)
+            elif not hasattr(ret, attr) or getattr(ret, attr) is None:
+                # If the constructor set this attribute to a value, but it doesn't match the db
+                # then we let it stay as the constructor set it
+                # We gave this value to the constructor as a keyword argument.
+                # Sometimes constructors need to do that...
+                #print >> sys.stderr, 'SETTING ATTR %s to %s' % (attr, kwa)
+                object.__setattr__(ret, attr, kwa)
         return ret
 
     def constructobj(self, constructor, node):
         'Create/construct an object from a Graph node'
         kwargs = node.get_properties()
+        #print >> sys.stderr, 'constructobj NODE PROPERTIES', kwargs
         subj = Store.callconstructor(constructor, kwargs)
+        #print >> sys.stderr, 'constructobj CONSTRUCTED NODE ', subj
         cls = subj.__class__
         (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls,  {}, subj=subj)
         if not self.is_uniqueindex(index_name):
@@ -598,8 +616,9 @@ class Store(object):
 
         if name[0] != '_':
             if hasattr(objself, '_Store__store_dirty_attrs'):
-                #print >> sys.stderr, ('Caught %s being set to %s!' % (name, value))
-                #traceback.print_stack()
+                if objself.__store.readonly:
+                    print >> sys.stderr, ('Caught %s being set to %s!' % (name, value))
+                    raise RuntimeError('Attempt to set attribute %s using a read-only store' % name)
                 objself.__store_dirty_attrs[name] = True
                 objself.__store.clients[objself] = True
         object.__setattr__(objself, name, value)
