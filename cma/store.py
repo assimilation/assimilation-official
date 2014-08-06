@@ -899,9 +899,13 @@ class Store(object):
                 # Each of these items will return None in the HTTP stream...
                 self.node_update_count += 1
                 self._bump_stat('attrupdate')
+                setattr(node, Store._proper_attr_value(subj, attr)))
                 if Store.debug:
-                    print >> sys.stderr, ('Setting property %s of %d to %s' % (attr
+                    print >> sys.stderr, ('Setting property %s of node %d to %s' % (attr
                     ,       node._id, Store._proper_attr_value(subj, attr)))
+                    if Store.log:
+                        Store.log.debug('Setting property %s of %d to %s' % (attr
+                        ,       node._id, Store._proper_attr_value(subj, attr)))
                 self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
 
     def abort(self):
