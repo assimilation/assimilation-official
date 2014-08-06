@@ -94,7 +94,11 @@ Source0:    %{assimversion}.tgz
 
 BuildRequires: glib2-devel
 BuildRequires: libpcap-devel
+BuildRequires: zlib-devel
 BuildRequires: pkgconfig
+BuildRequires: pkg-config
+BuildRequires: make
+BuildRequires: gcc
 
 %if %{python27_native}
 BuildRequires: python
@@ -182,6 +186,7 @@ Requires:         wireless-tools
 Requires:         resource-agents
 Requires:         libpcap
 Requires:         glib2
+Requires:         zlib
 
 %description -n assimilation-nanoprobe
 This package contains the nanoprobe distributed monitoring agent for
