@@ -241,7 +241,7 @@ class Store(object):
             for attr in Store._safe_attr_names(client):
                 if attr in client.__store_dirty_attrs.keys():
                     if not namedyet:
-                        result += ('Client %s.%d: {' % (client, Store.id(client)))
+                        result += ('Client %s:%s: {' % (client, Store.id(client)))
                         namedyet = True
                     result += ('%10s: %s,' % (attr, client.__dict__[attr]))
             if namedyet:
