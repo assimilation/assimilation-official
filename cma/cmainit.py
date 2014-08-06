@@ -61,6 +61,7 @@ class CMAinit(object):
         self.db = neodb
         CMAdb.cdb = CMAdb(db=neodb)
         Store.debug = debug
+        Store.log = CMAdb.log
         CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap)
         for classname in GraphNode.classmap:
             GraphNode.initclasstypeobj(CMAdb.store, classname)
