@@ -120,7 +120,10 @@ if __name__ == "__main__":
     from logwatcher import LogWatcher
     import time
     def downbyshutdown(drone):
-        print 'Designation:', drone.designation, 'Status:', drone.status, 'reason:', drone.reason
+        out= ('Designation: "%s", Status: "%s", reason: "%s", id: %s' 
+        %   (drone.designation, drone.status, drone.reason, Store.id(drone)))
+        print >> sys.stderr, out
+        os.system("logger 'Query result %s'" % out)
         return True
     def testmain(logname, maxdrones=2, debug=False):
         'A simple test main program'

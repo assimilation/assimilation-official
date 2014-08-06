@@ -899,7 +899,7 @@ class Store(object):
                 # Each of these items will return None in the HTTP stream...
                 self.node_update_count += 1
                 self._bump_stat('attrupdate')
-                setattr(node, Store._proper_attr_value(subj, attr)))
+                setattr(node, Store._proper_attr_value(subj, attr))
                 if Store.debug:
                     print >> sys.stderr, ('Setting property %s of node %d to %s' % (attr
                     ,       node._id, Store._proper_attr_value(subj, attr)))
