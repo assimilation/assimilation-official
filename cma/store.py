@@ -115,6 +115,7 @@ class Store(object):
     LUCENE_RE =  re.compile(r'([:[\]])')
 
     debug = False
+    log = None
 
     def __init__(self, db, uniqueindexmap=None, classkeymap=None):
         '''
@@ -916,6 +917,7 @@ class Store(object):
         self._batch_construct_deletions()           # These return None
         if Store.debug:
             print >> sys.stderr, ('Batch Updates constructed: Committing THIS THING:', str(self))
+            Store.log.debug('Batch Updates constructed: Committing THIS THING:', str(self))
         start = datetime.now()
         submit_results = self.batch.submit()
         if Store.debug:
