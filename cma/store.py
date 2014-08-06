@@ -168,9 +168,9 @@ class Store(object):
         'Render our Store object as a string for debugging'
         ret = '{\n\tdb: %s'                     %       self.db
         ret += ',\n\tclasses: %s'               %       self.classes
-        if self.uniqueindexmap:
+        if False and self.uniqueindexmap:
             ret += ',\n\tuniqueindexmap: %s'    %       self.uniqueindexmap
-        if self.uniqueindexmap:
+        if False and self.uniqueindexmap:
             ret += ',\n\tclasskeymap: %s'       %       self.classkeymap
         ret += '\n\tbatchindex: %s'             %       self.batchindex
         for attr in ('clients', 'newrels', 'deletions'):
@@ -181,10 +181,11 @@ class Store(object):
                 s += ('%s%s' % (acomma, each))
                 acomma = ', '
             ret += ",\n\t%10s: %s"  % (attr, s)
-        ret += '\n\tweaknoderefs: %s'           %       self.weaknoderefs
+        ret += '\n%s\n'                         %   self.fmt_dirty_attrs()
+        ret += '\n\tweaknoderefs: %s'           %   self.weaknoderefs
 
-        ret += '\n\tstats: %s'                  %       self.stats
-        ret += '\n\tbatch: %s'                  %       self.batch
+        ret += '\n\tstats: %s'                  %   self.stats
+        ret += '\n\tbatch: %s'                  %   self.batch
         ret += '\n}'
         return ret
 
@@ -231,6 +232,22 @@ class Store(object):
                     print >> sys.stderr, ('%10s: Dirty - %s' % (attr, client.__dict__[attr]))
                 else:
                     print >> sys.stderr, ('%10s: Clean - %s' % (attr, client.__dict__[attr]))
+
+    def fmt_dirty_attrs(self):
+        'Format dirty our client objects and their modified attribute values and states'
+        result='"Dirty Attrs": {'
+        for client in self.clients:
+            namedyet = False
+            for attr in Store._safe_attr_names(client):
+                if attr in client.__store_dirty_attrs.keys():
+                    if not namedyet:
+                        result += ('Client %s.%d: {' % (client, Store.id(client)))
+                        namedyet = True
+                    result += ('%10s: %s,' % (attr, client.__dict__[attr]))
+            if namedyet:
+                result += '}\n'
+        result += '}'
+        return result
 
     def save_indexed(self, index_name, key, value, *subj):
         'Save the given (new) object as an indexed node'
@@ -918,7 +935,8 @@ class Store(object):
         if Store.debug:
             print >> sys.stderr, ('Batch Updates constructed: Committing THIS THING:', str(self))
             if Store.log:
-                Store.log.debug('Batch Updates constructed: Committing THIS THING:', str(self))
+                Store.log.debug('Batch Updates constructed: Committing THIS THING: %s'
+                %   str(self))
         start = datetime.now()
         submit_results = self.batch.submit()
         if Store.debug:
