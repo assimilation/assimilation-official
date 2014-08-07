@@ -250,7 +250,7 @@ class SystemTestEnvironment(object):
         'Spawn a CMA instance'
         system = self._spawnsystem(self.cmaimage)
         system.runinimage(('/bin/bash', '-c'
-        ,           'echo CMA_DEBUG=3 >/etc/default/cma; cat /etc/default/cma'))
+        ,           'echo CMA_DEBUG=0 >/etc/default/cma; cat /etc/default/cma'))
         system.runinimage(('/bin/bash', '-c'
         ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/nanoprobe'))
         system.runinimage(('/bin/bash', '-c'

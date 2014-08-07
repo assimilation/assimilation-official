@@ -127,14 +127,14 @@ if __name__ == "__main__":
         #print >> sys.stderr, 'VALIDATOR: status [%s] reason [%s]' % (drone.status, drone.reason)
         return drone.status == 'dead' and drone.reason == 'HBSHUTDOWN'
 
-    def testmain(logname, maxdrones=2, debug=False):
+    def testmain(logname, maxdrones=25, debug=False):
         'A simple test main program'
         regexes = []
         #pylint says: [W0612:testmain] Unused variable 'j'
         #pylint: disable=W0612
         for j in range(0,maxdrones+1):
             regexes.append('Stored packages JSON data from *([^ ]*) ')
-        logwatch = LogWatcher(logname, regexes, timeout=30, returnonlymatch=True)
+        logwatch = LogWatcher(logname, regexes, timeout=90, returnonlymatch=True)
         logwatch.setwatch()
         sysenv = SystemTestEnvironment(maxdrones)
         print >> sys.stderr, 'Systems all up and running.'

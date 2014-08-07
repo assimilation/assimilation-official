@@ -1,0 +1,143 @@
+BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gcc scl-utils python27-python python27-python-devel cmake28 python27-python-setuptools"
+BUILDREQS_2="python27-python-setuptools"
+LOGGER=rsyslog
+EZINST="pip"
+PIPBUILD="ctypesgen"
+PIPRUN="py2neo netaddr getent flask"
+PIPTEST="testify pylint"
+TESTREQS="mercurial valgrind"
+JAVA="java-1.7.0-openjdk"
+NEO4J_DEPS="which lsof"
+NEOVERSION=2.1.3
+NEOPARENT=/var/lib
+NEODIR=$NEOPARENT/neo4j
+NEOEDITION=community
+ASSIMVERS=tip
+ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
+EPELURL=http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm
+SCLREPO=http://dev.centos.org/centos/6/SCL/scl.repo
+ARCH=x86_64
+#NEO4JYUM=http://yum.neo4j.org
+RPMSRCDIR=/rpmbuild/SOURCES
+TARBALL=$RPMSRCDIR/assim.${ASSIMVERS}.tgz
+
+enable_repos() {
+  cat <<-!
+	echo "Enabling CentOS 6 EPEL repo"
+	yum -y install wget
+	wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
+	yum -y install /tmp/epel-release-6-8.noarch.rpm
+	rm -f /tmp/epel-release-6.8.noarch.rpm
+	echo "Enabling CentOS 6 SCL repo"
+	wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
+	yum -y update
+
+	!
+}
+
+download_tarball_steps() {
+  cat <<-!
+	echo "Downloading tarball \"${ASSIMVERS}\" from Assimilation source control"
+	mkdir -p $RPMSRCDIR
+	wget -q -O ${TARBALL} ${ASSIMURL}
+
+	!
+}
+
+rpm_build_steps() {
+  cat <<-!
+	echo "Building the Assimilation RPMs for ${ARCH} from project tarball"
+	yum -y install $BUILDREQS
+	cd $RPMSRCDIR
+	toptardir=\$(tar tzf ${TARBALL} | head -1 | sed 's%/.*%%')
+	version=\$(echo \$toptardir)
+	echo "Downloaded Assimilation version \$version"
+	mkdir /tmp/assim-rpm
+	cd /tmp/assim-rpm
+	tar xvf ${TARBALL} \${toptardir}/docker/CentOS/assimilation-cma.spec
+	rm -f /rpmbuild/RPMS/${ARCH}/assimilation-*.rpm
+	mv $TARBALL $RPMSRCDIR/\${toptardir}.tgz
+	scl enable python27 'easy_install pip'
+	scl enable python27 'pip install ${PIPBUILD}'
+	rpmbuild -ba /tmp/assim-rpm/\${toptardir}/docker/CentOS/assimilation-cma.spec --define="assimversion \${version}"
+	#cd /
+	#rm -fr /tmp/assim-rpm
+	# RPM build complete
+
+	!
+}
+
+java_install_steps() {
+  cat <<-!
+	echo "Installing JAVA ${JAVA}"
+	yum -y install ${JAVA}
+	# JAVA install complete
+
+	!
+}
+neo4j_install_steps() {
+  cat <<-!
+	echo "Installing Neo4j ${NEOEDITION} edition version ${NEOVERSION}"
+	yum -y install ${NEO4J_DEPS}
+	wget -q -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz "http://download.neo4j.org/artifact?edition=${NEOEDITION}&version=${NEOVERSION}&distribution=tarball"
+	tar -C $NEOPARENT -xzf /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
+	ln -s $NEOPARENT/neo4j-${NEOEDITION}-${NEOVERSION}/ $NEODIR
+	(echo ''; echo '') | ${NEODIR}/bin/neo4j-installer install
+	# Neo4j install complete
+
+	!
+}
+rpm_install_steps() {
+  cat <<-!
+	echo "Installing the Assimilation RPMs for CentOS6"
+	yum -y install python27-python-setuptools
+	scl enable python27 'easy_install pip'
+	scl enable python27 'pip install ${PIPRUN}'
+	cd /rpmbuild/RPMS/${ARCH}/ # Or whereever you have the RPMs
+	ls assimilation-*.rpm
+	yum -y install assimilation-nanoprobe*.${ARCH}*.rpm install assimilation-cma*.${ARCH}*.rpm
+	# RPM install complete!
+
+	!
+}
+logger_install_steps() {
+  cat <<-!
+	echo "Installing and starting logger ${LOGGER}"
+	yum -y install ${LOGGER}
+	# ${LOGGER} install complete!
+
+	!
+}
+	
+
+echo "set -e"
+enable_repos
+download_tarball_steps
+rpm_build_steps
+java_install_steps
+neo4j_install_steps
+rpm_install_steps
+logger_install_steps
+exit 0
+
+############### Get rid of cruft starting from here...
+
+RUN yum -y install python27-python python27-python-setuptools python27-python-devel
+RUN echo "about to build another new version (v53)"
+RUN mkdir -p /root/assimilation/src /root/assimilation/bin && hg clone http://hg.linux-ha.org/assimilation /root/assimilation/src
+RUN cd /root/assimilation/src && id=$(hg id --id .) && mkdir -p /rpmbuild/SOURCES && hg archive --type tgz /rpmbuild/SOURCES/${id}.tgz && rpmbuild -ba /root/assimilation/src/docker/CentOS/assimilation-cma.spec --define="assimversion ${id}"
+RUN cd /root/assimilation/bin; /usr/bin/cmake28 ../src && scl enable python27 "make install"
+#EXPOSE 55604 7473 7474 1984 1337
+###  Neo4j RPM
+RUN wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key  && rpm --import /tmp/neo4j.key && rm -f /tmp/neo4j.key
+#RUN echo '[neo4j]' > /etc/yum.repos.d/neo4j.repo && echo 'name=Neo4j Yum Repo' >> /etc/yum.repos.d/neo4j.repo && echo 'baseurl=http://yum.neo4j.org' >> /etc/yum.repos.d/neo4j.repo && echo 'enabled=1' >> /etc/yum.repos.d/neo4j.repo && echo 'gpgcheck=1' >> /etc/yum.repos.d/neo4j.repo && yum -y install neo4j && mkdir -p /var/lib/heartbeat/lrm
+
+ENV BROKENDNS true
+RUN echo "/usr/lib*/assimilation" > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib*/assimilation
+
+# An alternative to starting syslog would be to mount /dev/log from the host - but you can't do that in a Dockerfile :-(
+RUN scl enable python27 'pip install testify'
+RUN NEO=neo4j-service; cd /root/assimilation/src/cma && (rsyslogd&  /etc/init.d/${NEO} start) && sleep 15 && scl enable python27 '/usr/bin/env python --version; testify -v tests'
+###  Our RPMs
+# These are only here to make Alan happy
+RUN scl enable python27 'pip install flask pylint'
