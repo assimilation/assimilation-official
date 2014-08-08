@@ -33,6 +33,7 @@ NEOVERSION=2.1.3
 JAVA="java-1.7.0-openjdk"
 LOGGER=rsyslog
 CENTOSVERS="centos:centos6"
+DROPBOX=https://www.dropbox.com/sh/h32lz3mtb8wwgmp/XM-oTLWWdm
 #
 # The rest is less malleable - but also could change as the project matures
 #
@@ -103,9 +104,10 @@ rpm_build() {
 manual_package_download() {
   cat <<-!
 	# Manual steps to download packages from the Assimilation Dropbox site
-	Select the version you want to install (later is typically better), and click on that version
+	Open up a browser window at ${DROPBOX}
+	Scroll down and select the version you want to install (later is typically better), and click on that version
 	Click on the directory that corresponds to your OS
-	Save the packages that you want to install - may need to right-click and [Save As]. Only one system needs the CMA package -
+	Save the packages that you want to install - you may need to right-click and [Save As]. You should only install the CMA package on one system
 	!
 }
 
