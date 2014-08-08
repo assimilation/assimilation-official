@@ -64,7 +64,7 @@ TARBALL=$RPMSRCDIR/assim.${ASSIMVERS}.tgz
 
 enable_repos() {
   cat <<-!
-	# Enable the CentOS 6 EPEL and SCL repos"
+	# Enable the CentOS 6 EPEL and SCL repos
 	yum -y install wget
 	wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
 	yum -y install /tmp/epel-release-6-8.noarch.rpm
@@ -104,10 +104,12 @@ rpm_build() {
 manual_package_download() {
   cat <<-!
 	# *Manual* steps to download packages from the Assimilation Dropbox site
-	#Open up a browser window at ${DROPBOX}
-	#Scroll down and select the version you want to install (later is typically better), and click on that version
-	#Click on the directory that corresponds to your OS
-	#Save the packages that you want to install - you may need to right-click and [Save As]. You should only install the CMA package on one system
+	# Open up a browser window at ${DROPBOX}
+	# Scroll down and select the version you want to install (later is typically better), and click on that version
+	# Click on the directory that corresponds to your OS
+	# Save the packages that you want to install - you may need to right-click and [Save As].
+	# If you can, save them in /rpmbuild/RPMS/${ARCH} - the remaining steps assume that directory
+	# You should only run the CMA package on one system
 	!
 }
 
