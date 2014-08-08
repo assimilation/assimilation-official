@@ -4,7 +4,7 @@
 This is the third in a series of releases intended to culminate in a truly useful release.
 This release is suitable for trials in an environment where the caveats are acceptable.
 We have  quite a few pre-built Ubuntu packages for this version here:
-https://www.dropbox.com/sh/7dk588n0oxmjh27/8zI6QKN5qO/Releases/0.1.3
+https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADYcxtYYwlFZxV-P0LpRA4ra/builds/Releases/0.1.3
 A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.3.tar.gz
 @subsection Features_0_1_3 Features
 These features are new with release 0.1.3.

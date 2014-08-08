@@ -83,8 +83,8 @@ or if you run a Red-Hat based release, you can get source RPMs suitable for rece
 
 You can obtain prebuilt packages of the project (for Ubuntu and RHEL/CentOS),  using a web browser <a href="www.gnu.org/software/wget/">wget</a>.
 
- - Bleeding edge builds - https://www.dropbox.com/sh/h32lz3mtb8wwgmp/XM-oTLWWdm
- - Officially released versions - https://www.dropbox.com/sh/pd9i31q1hj39l3i/9znelMfmtT
+ - Bleeding edge builds - https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADkfkqzXOLfA-cwHIdlcdGTa/builds
+ - Officially released versions -  https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADYcxtYYwlFZxV-P0LpRA4ra/builds/Releases
 
 You can obtain a <i>tar ball</i> of the source using a web browser, or <a href="www.gnu.org/software/wget/">wget</a>.
 
