@@ -157,7 +157,7 @@ cma_rpm_install() {
 nanoprobe_rpm_install() {
   cat <<-!
 	# Install the CentOS 6 Assimilation RPMs for the nanoprobe
-	cd /rpmbuild/RPMS/${ARCH}/ # Or whereever you have the RPMs
+	cd /rpmbuild/RPMS/${ARCH}/ # Or whereever you saved the RPMs
 	yum -y install assimilation-nanoprobe*.${ARCH}.rpm
 	!
 }
@@ -202,7 +202,7 @@ run_assimilation_tests() {
 step_map() {
    cat <<-!STEPMAP
 docker enable_repos download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests
-install_prebuilt_cma java_install neo4j_install manual_package_download cma_rpm_install nanoprobe_rpm_install
+install_prebuilt_cma java_install neo4j_install manual_package_download nanoprobe_rpm_install cma_rpm_install
 install_prebuilt_nanoprobe manual_package_download nanoprobe_rpm_install
 create_docker_cma java_install neo4j_install cma_rpm_install
 create_docker_nanoprobe nanoprobe_rpm_install
@@ -328,7 +328,7 @@ cat <<-!USAGE >&2
 	!USAGE
     exit 1
 }
-format=script
+cmd=create_task_script
 case $1 in
  --format=dockerfile)	cmd=create_dockerfile;		shift;;
  --format=script)		cmd=create_task_script; 	shift;;
