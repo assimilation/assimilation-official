@@ -33,7 +33,7 @@ NEOVERSION=2.1.3
 JAVA="java-1.7.0-openjdk"
 LOGGER=rsyslog
 CENTOSVERS="centos:centos6"
-DROPBOX=https://www.dropbox.com/sh/h32lz3mtb8wwgmp/XM-oTLWWdm
+DROPBOX=https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADkfkqzXOLfA-cwHIdlcdGTa/builds
 #
 # The rest is less malleable - but also could change as the project matures
 #
