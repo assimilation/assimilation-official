@@ -103,11 +103,11 @@ rpm_build() {
 }
 manual_package_download() {
   cat <<-!
-	# Manual steps to download packages from the Assimilation Dropbox site
-	Open up a browser window at ${DROPBOX}
-	Scroll down and select the version you want to install (later is typically better), and click on that version
-	Click on the directory that corresponds to your OS
-	Save the packages that you want to install - you may need to right-click and [Save As]. You should only install the CMA package on one system
+	# *Manual* steps to download packages from the Assimilation Dropbox site
+	#Open up a browser window at ${DROPBOX}
+	#Scroll down and select the version you want to install (later is typically better), and click on that version
+	#Click on the directory that corresponds to your OS
+	#Save the packages that you want to install - you may need to right-click and [Save As]. You should only install the CMA package on one system
 	!
 }
 
@@ -202,7 +202,7 @@ run_assimilation_tests() {
 step_map() {
    cat <<-!STEPMAP
 docker enable_repos download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests
-install_prebuilt_cma enable_repos java_install neo4j_install manual_package_download nanoprobe_rpm_install cma_rpm_install
+install_prebuilt_cma manual_package_download enable_repos java_install neo4j_install nanoprobe_rpm_install cma_rpm_install
 install_prebuilt_nanoprobe manual_package_download nanoprobe_rpm_install
 create_docker_cma java_install neo4j_install cma_rpm_install
 create_docker_nanoprobe nanoprobe_rpm_install
