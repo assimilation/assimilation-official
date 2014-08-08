@@ -147,7 +147,7 @@ neo4j_rpm_install() { # This RPM is currently broken!
 
 cma_rpm_install() {
   cat <<-!
-	# Install the CentOS 6 Assimilation RPMs for the CMA
+	# Install the CentOS 6 Assimilation CMA RPM
 	yum -y install $PYSCL-python-setuptools
 	scl enable $PYSCL 'easy_install pip'
 	scl enable $PYSCL 'pip install ${PIPRUN}'
@@ -156,7 +156,7 @@ cma_rpm_install() {
 }
 nanoprobe_rpm_install() {
   cat <<-!
-	# Install the CentOS 6 Assimilation RPMs for the nanoprobe
+	# Install the CentOS 6 Assimilation nanoprobe RPM
 	cd /rpmbuild/RPMS/${ARCH}/ # Or whereever you saved the RPMs
 	yum -y install assimilation-nanoprobe*.${ARCH}.rpm
 	!
