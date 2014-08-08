@@ -28,4 +28,4 @@
 DOCKER=docker.io
 export ASSIMVERSION="Assimilation-$(hg identify http://hg.linux-ha.org/assimilation | cut -d' ' -f1)"
 ./CentOS6-directions --format=dockerfile docker > Dockerfile
-$DOCKER build -t assim.centos .
+$DOCKER build -t assim.centos6 .
