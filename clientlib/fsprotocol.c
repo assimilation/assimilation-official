@@ -200,7 +200,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	if (action & A_TIMER) {		// Start the FSPROTO_SHUT_TO timer
 		if (fspe->shuttimer > 0) {
 			g_source_remove(fspe->shuttimer);
-			g_warning("%s.%d: Adding SHUTDOWN timer when one is already running."
+			g_critical("%s.%d: Adding SHUTDOWN timer when one is already running."
 			,	__FUNCTION__, __LINE__);
 			action |= A_OOPS;
 		}
@@ -228,7 +228,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
 		char *	fsstr = (fs ? fs->baseclass.toString(&fs->baseclass) : NULL);
 			
-		g_warning("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
+		g_critical("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
 		,	(int)input, deststr, fspe->_qid, (int)nextstate);
 		FREE(deststr); deststr = NULL;
 		if (fsstr) {
@@ -262,12 +262,12 @@ _fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno
 	gboolean	in_unackedlist = (g_list_find(parent->unacked, self) != NULL);
 
 	if (outqlen != 0 && !in_unackedlist) {
-		g_warning("%s:%d: outqlen is %d but not in unacked list"
+		g_critical("%s:%d: outqlen is %d but not in unacked list"
 		,	function, lineno, outqlen);
 		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
 	}
 	if (outqlen == 0 && in_unackedlist) {
-		g_warning("%s:%d: outqlen is zero but it IS in the unacked list"
+		g_critical("%s:%d: outqlen is zero but it IS in the unacked list"
 		,	function, lineno);
 		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
 	}
@@ -296,18 +296,18 @@ _fsprotocol_auditiready(const char * fun, unsigned lineno, const FsProtocol* sel
 		if (seq == NULL || seq->_reqid == iq->_nextseqno) {
 			++hashcount;
 			if (!fspe->inq->isready) {
-				g_warning("%s.%d: Queue is ready but not marked 'isready'"
+				g_critical("%s.%d: Queue is ready but not marked 'isready'"
 				,	fun, lineno);
 				DUMP("Queue with problems", &fspe->inq->baseclass, NULL);
 			}
 		}else if (fspe->inq->isready) {
-			g_warning("%s.%d: Queue is NOT ready but IS marked 'isready'"
+			g_critical("%s.%d: Queue is NOT ready but IS marked 'isready'"
 			,	fun, lineno);
 			DUMP("Problematic Queue", &fspe->inq->baseclass, NULL);
 		}
 	}
 	if (g_queue_get_length(self->ipend) != hashcount) {
-		g_warning("%s.%d: ipend queue length is %d, but should be %d"
+		g_critical("%s.%d: ipend queue length is %d, but should be %d"
 		,	fun, lineno, g_queue_get_length(self->ipend), hashcount);
 	}
 }
@@ -1123,7 +1123,10 @@ _fsprotocol_finalizetimer(gpointer userdata)
 	FsProtoElem* fspe = CASTTOCLASS(FsProtoElem, userdata);
 
 	if (fspe->state != FSPR_NONE) {
-		g_warning("===============CANNOT REMOVE FSPE @ 0x%p!!", fspe);
+		g_critical("%s.%d: ===============CANNOT REMOVE FSPE @ 0x%p!! state = %d"
+		,	__FUNCTION__, __LINE__, fspe, fspe->state);
+		DUMP("_fsprotocol_finalizetimer: endpoint ", &fspe->endpoint->baseclass, NULL);
+		AUDITFSPE(fspe);
 		return FALSE;
 	}
 	_fsprotocol_fspe_closeconn(fspe);
