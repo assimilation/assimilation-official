@@ -37,7 +37,7 @@ it might make sense to just compile them from text each time and not fool with p
 
 So that's what I'm going to do.
 '''
-import sys
+import sys, time
 from py2neo import neo4j
 
 # pylint -- too few public methods
@@ -52,19 +52,6 @@ class QueryTest(object):
     The general idea is that after a test completes, we can see if it updated
     the database correctly by running some particular query whose results
     can be evaluated for correctness.
-
-    As it is currently written, this code might not work.
-    It is written to run on the database, but it's on a different machine.
-    That can work if we set up the permissions on the database correctly.
-    Let it allow inbound connections on 0.0.0.0 -- not just 127.0.0.1.
-
-    Kinda weird.  Maybe not as broken as I first thought.
-    Just need to allow for queries from the test-control machine in the db config
-    and make sure the Docker networking does what it should...
-
-    The good news is, we should be passed a working database connection in the constructor
-    so this is definitely SomebodyElse'sProblem :-D
-
     '''
     def __init__(self, store, querystring, classfactory, debug=False):
         '''Init function for the QueryTest class
@@ -78,7 +65,25 @@ class QueryTest(object):
         self.classfactory = classfactory
 
 
-    def check(self, objectlist, validator=None, minrows=None, maxrows=None):
+    def check(self, objectlist, validator=None, minrows=None, maxrows=None, maxtries=40, delay=0.25):
+        '''
+        We run a query using _checkone_ repeatedly until we like the results or give up...
+        It's hard to know when everything is done like it ought to be...
+        Maxtries is the maximum of attempts to make for getting good query results
+        Delay is the how long to wait between query calls
+        '''
+        j=0
+        while j < maxtries:
+            if self.checkone(objectlist, validator, minrows, maxrows):
+                return True
+            time.sleep(delay)
+            j += 1
+
+        print ('Rerunning failed query with debug=True')
+        self.checkone(objectlist, validator, minrows, maxrows, debug=True)
+        return False
+
+    def checkone(self, objectlist, validator=None, minrows=None, maxrows=None, debug=None):
         '''
         We run a query and see if we like the results:
         - use the format() method to format the query using the objects in <i>objectlist</i>
@@ -88,25 +93,30 @@ class QueryTest(object):
         We return False if the validator dislikes any query row, or if the wrong number of
         rows was returned, and True if everything looks good.
         '''
+        if debug == None:
+            debug = self.debug
         finalquerystring = self.querystring.format(*objectlist)
-        if self.debug:
+        if debug:
             print >> sys.stderr, 'Final query string [%s]' % finalquerystring
         self.store.clean_store()
         query = neo4j.CypherQuery(self.db, finalquerystring)
         rowcount = 0
-        for row in self.store.load_cypher_nodes(query, self.classfactory, debug=self.debug):
+        for row in self.store.load_cypher_nodes(query, self.classfactory, debug=debug):
             rowcount += 1
-            if self.debug:
+            if debug:
                 print >> sys.stderr, ("DEBUG: row [%d] is %s" % (rowcount, str(row)))
             if validator is not None and not validator(row):
-                print >> sys.stderr, ("VALIDATOR [%s] doesn't like row [%d] %s"
-                %       (validator, rowcount, str(row)))
+                if debug:
+                    print >> sys.stderr, ("VALIDATOR [%s] doesn't like row [%d] %s"
+                    %       (validator, rowcount, str(row)))
                 return False
         if minrows is not None and rowcount < minrows:
-            print >> sys.stderr, "Too few rows in result [%d]" % rowcount
+            if debug:
+                print >> sys.stderr, "Too few rows in result [%d]" % rowcount
             return False
         if maxrows is not None and rowcount > maxrows:
-            print >> sys.stderr, "Too many rows in result [%d]" % rowcount
+            if debug:
+                print >> sys.stderr, "Too many rows in result [%d]" % rowcount
             return False
         return True
 
@@ -119,7 +129,6 @@ if __name__ == "__main__":
     from store import Store
     from cmainit import CMAinit
     from logwatcher import LogWatcher
-    import time
 
 
     def downbyshutdown(drone):
@@ -143,7 +152,9 @@ if __name__ == "__main__":
         store = Store(neo4j.GraphDatabaseService(url), readonly=True)
         for classname in GN.GraphNode.classmap:
             GN.GraphNode.initclasstypeobj(store, classname)
-        print >> sys.stderr, 'WATCH RESULTS:', logwatch.lookforall()
+        results = logwatch.lookforall()
+        if debug:
+            print >> sys.stderr, 'WATCH RESULTS:', results
         tq = QueryTest(store
         ,   "START drone=node:Drone('*:*') RETURN drone"
         ,   GN.nodeconstructor, debug=debug)

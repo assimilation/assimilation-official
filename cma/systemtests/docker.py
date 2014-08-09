@@ -227,7 +227,7 @@ class SystemTestEnvironment(object):
 
         self.cma = self.spawncma()
         print >> sys.stderr, 'nanocount is', nanocount
-        print >> sys.stderr, 'self.nanoimages is', self.nanoprobes
+        print >> sys.stderr, 'self.nanoimages is', self.nanoimages
         # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
         # this is because we return a different nanoprobe each time we call spawnnanoprobe()
         # pylint: disable=W0108
@@ -250,7 +250,7 @@ class SystemTestEnvironment(object):
         'Spawn a CMA instance'
         system = self._spawnsystem(self.cmaimage)
         system.runinimage(('/bin/bash', '-c'
-        ,           'echo CMA_DEBUG=0 >/etc/default/cma; cat /etc/default/cma'))
+        ,           'echo CMA_DEBUG=0 >/etc/default/cma'))
         system.runinimage(('/bin/bash', '-c'
         ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/nanoprobe'))
         system.runinimage(('/bin/bash', '-c'
@@ -269,6 +269,81 @@ class SystemTestEnvironment(object):
         system = self._spawnsystem(image)
         system.startservice(SystemTestEnvironment.NANOSERVICE)
         return system
+
+    def up_nanoprobes(self):
+        return [nano for nano in self.nanoprobes if nano.status == TestSystem.RUNNING]
+
+    def down_nanoprobes(self):
+        return [nano for nano in self.nanoprobes if nano.status != TestSystem.RUNNING]
+
+    def select_nanoprobe(self, count=1):
+        result = []
+        while True:
+            nano = random.choice(self.nanoprobes)
+            if nano not in result:
+                result.append(nano)
+                if len(result) == count:
+                    break
+        return result
+
+    def select_up_nanoprobe(self, count=1):
+        result = []
+        uplist = self.up_nanoprobes()
+        while True:
+            nano = random.choice(uplist)
+            if nano not in result:
+                result.append(nano)
+                uplist.remove(nano)
+            if len(result) == count or len(uplist) == 0:
+                break
+        return result
+
+    def select_down_nanoprobe(self, count=1):
+        result = []
+        downlist = self.down_nanoprobes()
+        while True:
+            nano = random.choice(downlist)
+            if nano not in result:
+                result.append(nano)
+                downlist.remove(nano)
+            if len(result) == count or len(downlist) == 0:
+                break
+        return result
+
+    def select_nano_service(self, service=NANOSERVICE, count=1):
+        result = []
+        servlist = [nano for nano in self.nanoprobes
+            if nano.status == TestSystem.RUNNING and service in nano.runningservices]
+        while True:
+            nano = random.choice(servlist)
+            if nano not in result:
+                result.append(nano)
+                servlist.remove(nano)
+            if len(result) == count or len(servlist) == 0:
+                break
+        return result
+
+    def select_nano_noservice(self, service=NANOSERVICE, count=1):
+        result = []
+        servlist = [nano for nano in self.nanoprobes
+            if nano.status == TestSystem.RUNNING and service not in nano.runningservices]
+        while True:
+            nano = random.choice(servlist)
+            if nano not in result:
+                result.append(nano)
+                servlist.remove(nano)
+            if len(result) == count or len(servlist) == 0:
+                break
+        return result
+
+
+    def stop(self):
+        'Stop our entire SystemTestEnvironment'
+        for onenano in self.nanoprobes:
+            onenano.stop()
+        self.cma.stop()
+
+
 
     def stop(self):
         'Stop our entire SystemTestEnvironment'
