@@ -43,26 +43,37 @@ class AssimSysTest(object):
     stats = {}
 
     @staticmethod
-    def register(cls):
-        AssimSysTest.testset.append(cls)
-        AssimSysTest.stats[cls.__name__] = {
+    def register(ourclass):
+        'Decorator for registering a TestCase'
+        AssimSysTest.testset.append(ourclass)
+        AssimSysTest.stats[ourclass.__name__] = {
             AssimSysTest.SUCCESS:0, AssimSysTest.FAIL: 0, AssimSysTest.SKIPPED:0
         }
-        return cls
+        return ourclass
 
     def __init__(self, store, logfilename, testenviron, debug=False):
+        'Initializer for the AssimSysTest class'
         self.store = store
         self.logfilename = logfilename
         self.testenviron = testenviron
         self.debug = debug
 
     def _record(self, result):
+        'Record results from a test -- success or failure'
         AssimSysTest.stats[self.__class__.__name__][result] += 1
         #print >> sys.stderr, '_RECORD RETURNING', result
         return result
 
+    # pylint - R0913: too mary arguments
+    # pylint: disable=R0913
     def checkresults(self, watcher, timeout, querystring, validator
         ,   nano, service=None, allregexes=False, debug=False, minrows=1, maxrows=1):
+        '''
+        A utility function for checking the results of a test.  It assumes
+        that you have already done a watcher.startwatch and initiated the
+        test.  We then wait for the test results in the logs and
+        perform the query to validate the results.
+        '''
 
         query = QueryTest(self.store, querystring, GN.nodeconstructor, debug=debug)
         if allregexes:
@@ -76,7 +87,7 @@ class AssimSysTest(object):
             %   (self.__class__.__name__, str(watcher.regexes), timeout))
             return self._record(AssimSysTest.FAIL)
         if debug:
-            print('DEBUG: Test %s found regex %s [timeout:%s]'
+            print('DEBUG: Test %s found regex %s'
             %   (self.__class__.__name__, str(watcher.regexes)))
         if query.check((nano, self.testenviron.cma, service), validator
             ,       minrows=minrows, maxrows=maxrows):
@@ -88,18 +99,21 @@ class AssimSysTest(object):
         print >> sys.stderr, ('DEBUG: query.check() FAILED')
         print('ERROR: Test %s failed query %s' %  (self.__class__.__name__, querystring))
         return self._record(AssimSysTest.FAIL)
-        
-    def run(self):
+
+    def run(self, nano=None, debug=None, timeout=30):
+        'Abstract run method'
         raise NotImplementedError('AssimSysTest.run is an abstract method')
 
 @AssimSysTest.register
 class StopNanoprobe(AssimSysTest):
+    'A stop nanoprobe test'
     def run(self, nano=None, debug=None, timeout=30):
+        'Actually stop the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
         if nano is None:
             nano = self.testenviron.select_nano_service()[0]
-        if (nano is None or nano.status != TestSystem.RUNNING or 
+        if (nano is None or nano.status != TestSystem.RUNNING or
             SystemTestEnvironment.NANOSERVICE not in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
         regex = (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
@@ -116,7 +130,9 @@ class StopNanoprobe(AssimSysTest):
 
 @AssimSysTest.register
 class StartNanoprobe(AssimSysTest):
+    'A start nanoprobe test'
     def run(self, nano=None, debug=None, timeout=30):
+        'Actually start the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
         if nano is None:
@@ -141,7 +157,9 @@ class StartNanoprobe(AssimSysTest):
 
 @AssimSysTest.register
 class FlipNanoprobe(AssimSysTest):
+    '''A flip nanoprobe test - if it's up, bring it down -- and vice versa'''
     def run(self, nano=None, debug=None, timeout=30):
+        'Actually flip the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
         if nano is None:
@@ -151,18 +169,21 @@ class FlipNanoprobe(AssimSysTest):
         if SystemTestEnvironment.NANOSERVICE in nano.runningservices:
             return self._record(
                 StopNanoprobe(self.store
-                ,   self.logfilename, self.testenviron).run(nano, debug=self.debug))
+                ,   self.logfilename, self.testenviron).run
+                (nano, debug=self.debug, timeout=timeout))
         return self._record(
             StartNanoprobe(self.store, self.logfilename
-            ,   self.testenviron).run(nano, debug=self.debug))
+            ,   self.testenviron).run(nano, debug=self.debug, timeout=timeout))
 
 @AssimSysTest.register
 class RestartNanoprobe(AssimSysTest):
+    'A restart nanoprobe test, stop then restart a nanoprobe'
     def __init__(self, store, logfilename, testenviron, debug=False, delay=0):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
     def run(self, nano=None, debug=None, timeout=30):
+        'Actually stop and start (restart) the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
         if nano is None:
@@ -170,13 +191,13 @@ class RestartNanoprobe(AssimSysTest):
         if nano is None:
             return self._record(AssimSysTest.SKIPPED)
         rc = StopNanoprobe(self.store
-            ,   self.logfilename, self.testenviron).run(nano, debug=self.debug)
+            ,   self.logfilename, self.testenviron).run(nano, debug=self.debug, timeout=timeout)
         if rc != AssimSysTest.SUCCESS:
             return self._record(rc)
         if self.delay > 0:
             time.sleep(self.delay)
         return self._record(StartNanoprobe(self.store
-        ,   self.logfilename, self.testenviron).run(nano, debug=self.debug))
+        ,   self.logfilename, self.testenviron).run(nano, debug=self.debug, timeout=timeout))
 
 # A little test code...
 if __name__ == "__main__":
@@ -186,36 +207,35 @@ if __name__ == "__main__":
     from cmainit import CMAinit
     from py2neo import neo4j
     def testmain(logname, maxdrones=3, debug=False):
-        'A simple test main program'
+        'Test our test cases'
         regexes = []
-        #pylint says: [W0612:testmain] Unused variable 'j'
+        #[W0612:testmain] Of course we don't use "j" ;-)
         #pylint: disable=W0612
         for j in range(0,maxdrones+1):
-            regexes.append('Stored packages JSON data from *([^ ]*) ')
+            regexes.append(' Stored packages JSON data from *[^ ]* ')
         logwatch = LogWatcher(logname, regexes, timeout=90, returnonlymatch=True)
         logwatch.setwatch()
         sysenv = SystemTestEnvironment(maxdrones)
         url = ('http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
         CMAinit(None)
-        store = Store(neo4j.GraphDatabaseService(url), readonly=True)
+        ourstore = Store(neo4j.GraphDatabaseService(url), readonly=True)
         for classname in GN.GraphNode.classmap:
-            GN.GraphNode.initclasstypeobj(store, classname)
+            GN.GraphNode.initclasstypeobj(ourstore, classname)
         if debug:
             print >> sys.stderr, 'WATCH RESULTS:', logwatch.lookforall()
-        tq = QueryTest(store
+        tq = QueryTest(ourstore
         ,   "START drone=node:Drone('*:*') RETURN drone"
         ,   GN.nodeconstructor, debug=debug)
-        if tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1):
-            print 'WOOT! Systems passed query check after initial startup!'
-        else:
-            print 'Systems FAILED initial startup query check'
-            print 'Do you have a second CMA running??'
+        if not tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1):
+            print 'FAILED initial startup query check - which is pretty basic'
+            print 'Any chance you have another CMA running??'
 
-        assert FlipNanoprobe(store, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert StopNanoprobe(store, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert StartNanoprobe(store, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert FlipNanoprobe(store, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert RestartNanoprobe(store, logname, sysenv, debug=debug, delay=30).run() == AssimSysTest.SUCCESS
+        assert FlipNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
+        assert StopNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
+        assert StartNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
+        assert FlipNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
+        assert (RestartNanoprobe(ourstore, logname, sysenv, debug=debug, delay=30).run()
+        ==          AssimSysTest.SUCCESS)
         print >> sys.stderr, 'All tests were successful!'
 
     if os.access('/var/log/syslog', os.R_OK):

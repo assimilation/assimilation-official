@@ -271,12 +271,15 @@ class SystemTestEnvironment(object):
         return system
 
     def up_nanoprobes(self):
+        'Return the set of nanoprobe systems which are currently running'
         return [nano for nano in self.nanoprobes if nano.status == TestSystem.RUNNING]
 
     def down_nanoprobes(self):
+        'Return the set of nanoprobe systems which are currently down'
         return [nano for nano in self.nanoprobes if nano.status != TestSystem.RUNNING]
 
     def select_nanoprobe(self, count=1):
+        'Select a system at random'
         result = []
         while True:
             nano = random.choice(self.nanoprobes)
@@ -287,6 +290,7 @@ class SystemTestEnvironment(object):
         return result
 
     def select_up_nanoprobe(self, count=1):
+        'Select a nanoprobe system at random which is currently up'
         result = []
         uplist = self.up_nanoprobes()
         while True:
@@ -299,6 +303,7 @@ class SystemTestEnvironment(object):
         return result
 
     def select_down_nanoprobe(self, count=1):
+        'Select a nanoprobe system at random which is currently down'
         result = []
         downlist = self.down_nanoprobes()
         while True:
@@ -311,6 +316,7 @@ class SystemTestEnvironment(object):
         return result
 
     def select_nano_service(self, service=NANOSERVICE, count=1):
+        'Select a system currently running the given service'
         result = []
         servlist = [nano for nano in self.nanoprobes
             if nano.status == TestSystem.RUNNING and service in nano.runningservices]
@@ -324,6 +330,7 @@ class SystemTestEnvironment(object):
         return result
 
     def select_nano_noservice(self, service=NANOSERVICE, count=1):
+        'Select a system NOT currently running the given service'
         result = []
         servlist = [nano for nano in self.nanoprobes
             if nano.status == TestSystem.RUNNING and service not in nano.runningservices]
@@ -335,14 +342,6 @@ class SystemTestEnvironment(object):
             if len(result) == count or len(servlist) == 0:
                 break
         return result
-
-
-    def stop(self):
-        'Stop our entire SystemTestEnvironment'
-        for onenano in self.nanoprobes:
-            onenano.stop()
-        self.cma.stop()
-
 
 
     def stop(self):
