@@ -208,7 +208,7 @@ assimilation_openlog(const char* logname)
 	if (syslog_opened) {
 		closelog();
 	}
-	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	g_log_set_fatal_mask (NULL, G_LOG_LEVEL_ERROR);
 	openlog(assim_syslogid, syslog_options, syslog_facility);
 	syslog_opened = TRUE;
 #endif
