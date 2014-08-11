@@ -196,13 +196,13 @@ class RestartNanoprobe(AssimSysTest):
 
 @AssimSysTest.register
 class RestartCMA(AssimSysTest):
-    'A restart CMA test, stop then restart the CMA.  Scary stuff!'
+    'A restart CMA test: stop then restart the CMA.  Scary stuff!'
     def __init__(self, store, logfilename, testenviron, debug=False, delay=0):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
     def run(self, nano=None, debug=None, timeout=30):
-        'Actually stop and start (restart) the nanoprobe and see if it worked'
+        'Actually stop and start (restart) the CMA and see if it worked'
         if debug is None:
             debug = self.debug
         assert nano is None
@@ -219,6 +219,59 @@ class RestartCMA(AssimSysTest):
         # Once we receive the CMA update message, we really should already be good to go
         qstr =  '''START one=node(*) RETURN one LIMIT 1'''
         return self.checkresults(watch, timeout, qstr, None, nano)
+
+@AssimSysTest.register
+class RestartCMAandNanoprobe(AssimSysTest):
+    'A restart CMA+nanoprobe test: stop then restart the CMA followed by a nanoprobe reset'
+    def __init__(self, store, logfilename, testenviron, debug=False, delay=0):
+        AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
+        self.delay = delay
+
+    def run(self, nano=None, debug=None, timeout=30):
+        'Actually stop and start (restart) the CMA and see if it worked'
+        if debug is None:
+            debug = self.debug
+        rc = RestartCMA(self.store, self.logfilename, self.testenviron, debug=debug
+        ,       delay=self.delay).run(timeout=timeout)
+        if rc != AssimSysTest.SUCCESS:
+            return rc
+        return RestartNanoprobe(self.store, self.logfilename, self.testenviron
+        ,   debug=debug, delay=self.delay).run(timeout=timeout)
+
+@AssimSysTest.register
+class SimulCMANanoprobeRestart(AssimSysTest):
+    'Simultaneously restart the CMA and a nanoprobe'
+    def __init__(self, store, logfilename, testenviron, debug=False, delay=0):
+        AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
+        self.delay = delay
+
+    def run(self, nano=None, debug=None, timeout=30):
+        if debug is None:
+            debug = self.debug
+        if nano is None:
+            nano = self.testenviron.select_nano_service()[0]
+        if nano is None:
+            return self._record(AssimSysTest.SKIPPED)
+        cma = self.testenviron.cma
+        regexes = ((r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
+        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+        (           r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+        (           ' %s .* INFO: Neo4j version .* // py2neo version .*'
+                    ' // Python version .* // java version.*' % cma.hostname))
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
+        watch.setwatch()
+        cma.stopservice(SystemTestEnvironment.CMASERVICE)
+        nano.stopservice(SystemTestEnvironment.NANOSERVICE)
+        cma.startservice(SystemTestEnvironment.CMASERVICE)
+        if self.delay > 0:
+            time.sleep(self.delay)
+        nano.startservice(SystemTestEnvironment.NANOSERVICE)
+        qstr = (    '''START drone=node:Drone('*:*') '''
+                     '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
+                     '''RETURN drone''')
+        return self.checkresults(watch, timeout, qstr, None, nano)
+
 
 # A little test code...
 if __name__ == "__main__":
