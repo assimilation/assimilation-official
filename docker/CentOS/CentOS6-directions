@@ -78,7 +78,7 @@ download_tarball() {
   cat <<-!
 	# Download the Assimilation tarball "${ASSIMVERS}" from project source control
 	mkdir -p $RPMSRCDIR
-	wget -q -O ${TARBALL} ${ASSIMURL}
+	wget -q -O ${TARBALL} ${ASSIMURL} # ${ASSIMVERSION-${ASSIMVERS}}
 	!
 }
 
