@@ -61,7 +61,7 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	// This FrameSet shouldn't have a sequence number frame yet...
 	g_return_val_if_fail(fs->_seqframe == NULL, FALSE);
 	if (self->_maxqlen != 0 && self->_q->length >= self->_maxqlen) {
-		g_warning("%s.%d: Failing due to excess queue length (%d)"
+		g_critical("%s.%d: Failing due to excess queue length (%d)"
 		,	__FUNCTION__, __LINE__, self->_maxqlen);
 		DUMP("Queue contents follows", &self->baseclass, NULL);
 		return FALSE;
@@ -139,7 +139,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 			g_warning("%s: Protocol reset when talking to client %s - session id updated to %d from %d"
 			,	__FUNCTION__, clientaddr, seqno->_sessionid, self->_sessionid);
 			g_free(clientaddr); clientaddr = NULL;
-			g_warning("%s: CODE NOT PREPARED TO DEAL WITH UNEXPECTED PROTOCOL RESET YET. OOPS!", __FUNCTION__);
+			g_critical("%s: CODE NOT PREPARED TO DEAL WITH UNEXPECTED PROTOCOL RESET YET. OOPS!", __FUNCTION__);
 		}
 		if (seqno->_reqid < self->_nextseqno) {
 			// We've already delivered this packet to our customers...
@@ -156,7 +156,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	// if it does -- unless of course, it turns out to happen a lot (unlikely...)
 
 	if (self->_maxqlen != 0 && self->_q->length >= self->_maxqlen) {
-		g_warning("%s.%d: input queue overflow (maxlength=%d)"
+		g_critical("%s.%d: input queue overflow (maxlength=%d)"
 		,	__FUNCTION__, __LINE__, self->_maxqlen);
 		return FALSE;
 	}
@@ -212,7 +212,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	,	seq->getsessionid(seq), seq->getqid(seq), seq->getreqid(seq));
 	if (seq->getsessionid(seq) != self->_sessionid) {
 		if (self->_sessionid != 0) {
-			g_warning("%s: Incoming ACK packet has invalid session id [%d instead of %d]"
+			g_critical("%s: Incoming ACK packet has invalid session id [%d instead of %d]"
 			" (ACK ignored)."
 			,	__FUNCTION__, seq->getsessionid(seq), self->_sessionid);
 		}
@@ -220,7 +220,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	}
 		
 	if (seq->getreqid(seq) >= self->_nextseqno) {
-		g_warning("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
+		g_critical("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
 		FMT_64BIT"d (ACK Ignored)."
 		,	__FUNCTION__, seq->getreqid(seq), self->_nextseqno);
 		DUMP("FsQueue", &self->baseclass, " is the queue in question.");
