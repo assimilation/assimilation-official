@@ -124,9 +124,7 @@ class StopNanoprobe(AssimSysTest):
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "dead" '''
                      '''and drone.reason = "HBSHUTDOWN"       RETURN drone''')
         nano.stopservice(SystemTestEnvironment.NANOSERVICE)
-        return self._record(AssimSysTest.SUCCESS
-                if self.checkresults(watch, timeout, qstr, None, nano) == AssimSysTest.SUCCESS
-                else AssimSysTest.FAIL)
+        return self.checkresults(watch, timeout, qstr, None, nano)
 
 @AssimSysTest.register
 class StartNanoprobe(AssimSysTest):
@@ -141,8 +139,6 @@ class StartNanoprobe(AssimSysTest):
             or  SystemTestEnvironment.NANOSERVICE in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
 
-        regex = (' %s cma INFO: Stored packages JSON data from %s '
-        %           (self.testenviron.cma.hostname, nano.hostname))
         regex = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
         %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))
         watch = LogWatcher(self.logfilename, (regex,), timeout=timeout, debug=debug)
@@ -151,9 +147,7 @@ class StartNanoprobe(AssimSysTest):
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
                      '''RETURN drone''')
         nano.startservice(SystemTestEnvironment.NANOSERVICE)
-        return self._record(AssimSysTest.SUCCESS
-                if self.checkresults(watch, timeout, qstr, None, nano) == AssimSysTest.SUCCESS
-                else AssimSysTest.FAIL)
+        return self.checkresults(watch, timeout, qstr, None, nano)
 
 @AssimSysTest.register
 class FlipNanoprobe(AssimSysTest):
@@ -199,6 +193,33 @@ class RestartNanoprobe(AssimSysTest):
         return self._record(StartNanoprobe(self.store
         ,   self.logfilename, self.testenviron).run(nano, debug=self.debug, timeout=timeout))
 
+
+@AssimSysTest.register
+class RestartCMA(AssimSysTest):
+    'A restart CMA test, stop then restart the CMA.  Scary stuff!'
+    def __init__(self, store, logfilename, testenviron, debug=False, delay=0):
+        AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
+        self.delay = delay
+
+    def run(self, nano=None, debug=None, timeout=30):
+        'Actually stop and start (restart) the nanoprobe and see if it worked'
+        if debug is None:
+            debug = self.debug
+        assert nano is None
+        cma = self.testenviron.cma
+        cma.stopservice(SystemTestEnvironment.CMASERVICE)
+        regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
+                ' // Python version .* // java version.*') % cma.hostname
+        watch = LogWatcher(self.logfilename, (regex,), timeout=timeout, debug=debug)
+        watch.setwatch()
+        if self.delay > 0:
+            time.sleep(self.delay)
+        cma.startservice(SystemTestEnvironment.CMASERVICE)
+        # This just makes sure the database is still up - which it should be...
+        # Once we receive the CMA update message, we really should already be good to go
+        qstr =  '''START one=node(*) RETURN one LIMIT 1'''
+        return self.checkresults(watch, timeout, qstr, None, nano)
+
 # A little test code...
 if __name__ == "__main__":
     import os
@@ -230,13 +251,10 @@ if __name__ == "__main__":
             print 'FAILED initial startup query check - which is pretty basic'
             print 'Any chance you have another CMA running??'
 
-        assert FlipNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert StopNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert StartNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert FlipNanoprobe(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
-        assert (RestartNanoprobe(ourstore, logname, sysenv, debug=debug, delay=30).run()
-        ==          AssimSysTest.SUCCESS)
-        print >> sys.stderr, 'All tests were successful!'
+        for cls in AssimSysTest.testset:
+            print 'Exercising %s test...' % cls.__name__
+            assert cls(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
+        print >> sys.stderr, 'WOOT! All tests were successful!'
 
     if os.access('/var/log/syslog', os.R_OK):
         sys.exit(testmain('/var/log/syslog', debug=False))

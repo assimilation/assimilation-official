@@ -119,6 +119,9 @@ class DockerSystem(TestSystem):
             dockerargs = []
         self.dockerargs = dockerargs
         self.runningservices = []
+        self.hostname = 'unknown'
+        self.ipaddr = 'unknown'
+        self.pid = 'unknown'
         TestSystem.__init__(self, imagename, cmdargs=cmdargs)
 
     @staticmethod
