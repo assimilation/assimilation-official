@@ -91,9 +91,9 @@ case "$command" in
 		if
 		  [ $rc -eq 0 ]
 		then
-		  echo "$SERVICE started." >&2
+		  echo "$SERVICE started on $(uname -n)." >&2
 		else
-		  echo "$SERVICE NOT started!" >&2
+		  echo "$SERVICE NOT started on $(uname -n)!" >&2
 		fi
 		exit $?;;
 
@@ -102,9 +102,9 @@ case "$command" in
 		if
 		  [ $rc -eq 0 ]
 		then
-		  echo "$SERVICE stopped." >&2
+		  echo "$SERVICE stopped on $(uname -n)." >&2
 		else
-		  echo "$SERVICE NOT stopped!" >&2
+		  echo "$SERVICE NOT stopped on $(uname -n)!" >&2
 		fi
 		exit $rc;;
 

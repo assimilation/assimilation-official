@@ -91,14 +91,14 @@ start() {
     if
       [ $rc -eq 0 ]
     then
-      echo "$SERVICE started." >&2
+      echo "$SERVICE started on $(uname -n)." >&2
       if
         test -d $(dirname "$lockfile")
       then
         touch "$lockfile"
       fi
     else
-      echo "$SERVICE NOT started!" >&2
+      echo "$SERVICE NOT started on $(uname -n)!" >&2
     fi
     return $rc
 }
@@ -109,10 +109,10 @@ stop() {
     if
       [ $rc -eq 0 ]
     then
-      echo "$SERVICE stopped." >&2
+      echo "$SERVICE stopped on $(uname -n)." >&2
       rm -f "$lockfile"
     else
-      echo "$SERVICE NOT stopped!" >&2
+      echo "$SERVICE NOT stopped on $(uname -n)!" >&2
     fi
     return $rc
 }
