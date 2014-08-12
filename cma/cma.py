@@ -213,8 +213,13 @@ def main():
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_OUTSIG, CONFIGNAME_COMPRESSTYPE, \
         CONFIGNAME_COMPRESS, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
+
+    if opt.debug:
+        print >> sys.stderr, ('Setting debug to %s' % opt.debug)
+
     for debug in range(opt.debug):
         debug = debug
+        print >> sys.stderr, ('Incrementing C-level debug by one.')
         proj_class_incr_debug(None)
 
     #   Input our monitoring rule templates
