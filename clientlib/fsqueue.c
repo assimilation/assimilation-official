@@ -128,7 +128,18 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 	if (seqno) {
 		// Validate sequence number...
 		if (self->_sessionid == 0) {
+			// This indicates the start of a session
 			self->_sessionid = seqno->_sessionid;
+			// If we've restarted since the far end did, they might have sent us
+			// a sequence number greater than 1
+			if (seqno->_reqid > 2) {
+				// The possibility exists that this isn't the perfect action.
+				// We could lose a packet from the far endpoint if they have
+				// queued/sent several since the last ACK.
+				g_info("Resuming previous session at sequence number "FMT_64BIT"d"
+				,	seqno->_reqid);
+				self->_nextseqno = seqno->_reqid;
+			}
 		}else if (seqno->_sessionid < self->_sessionid) {
 			// Replay attack?
 			g_warning("%s: Possible replay attack? Current session id: %d, incoming session id: %d"
