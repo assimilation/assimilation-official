@@ -310,11 +310,18 @@ if __name__ == "__main__":
             raise RuntimeError('Clueless stupid error')
 
         time.sleep(10)
+        badregex=' (ERROR|CRIT|CRITICAL): '
+        badwatch = LogWatcher(logname, (badregex,), timeout=0, returnonlymatch=False)
         for cls in AssimSysTest.testset:
             print ('Starting %s test at %s...' % (cls.__name__, str(datetime.datetime.now())))
+            badwatch.setwatch()
             ret = cls(ourstore, logname, sysenv, debug=debug).run()
             #print >> sys.stderr, 'Got return of %s from test %s' % (ret, cls.__name__)
             assert ret == AssimSysTest.SUCCESS
+            badmatch = badwatch.look(timeout=0)
+            if badmatch is not None:
+                print 'OOPS! Got bad results!', badmatch
+                raise RuntimeError('Test %s said bad words! [%s]' % (cls.__name__, badmatch))
         print >> sys.stderr, 'WOOT! All tests were successful!'
 
     if os.access('/var/log/syslog', os.R_OK):
