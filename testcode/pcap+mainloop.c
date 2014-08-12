@@ -299,7 +299,7 @@ main(int argc, char **argv)
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 #endif
-	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR|G_LOG_LEVEL_CRITICAL);
+	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR);
 
 	if (argc > 1) {
 		maxpkts = atol(argv[1]);
