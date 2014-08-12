@@ -189,6 +189,11 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			_fsprotocol_ackseqno(parent, fspe->endpoint, seq);
 		}
 	}
+	if (action & A_FIX) {
+		// We heard a packet that indicates our far endpoint has existing connection to us
+ 		// @FIXME should do something for packet sequence fixup
+		DEBUGMSG("@FIXME DID NOT DO: Packet sequence fixup requested");
+	}
 
 	// Notify other endpoint we're going away
 	if (action & A_SNDSHUT) {
