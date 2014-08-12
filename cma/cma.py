@@ -292,8 +292,9 @@ def main():
     CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
     if CMAdb.debug:
-        CMAdb.log.info('TheOneRing created - id = %s' % CMAdb.TheOneRing)
-        CMAdb.log.info('Config Object sent to nanoprobes: %s' % config)
+        CMAdb.log.debug('C-library Debug was set to %s' % opt.debug)
+        CMAdb.log.debug('TheOneRing created - id = %s' % CMAdb.TheOneRing)
+        CMAdb.log.debug('Config Object sent to nanoprobes: %s' % config)
 
     jvmfd = os.popen('java -version 2>&1')
     jvers = jvmfd.readline()

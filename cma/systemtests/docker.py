@@ -219,7 +219,7 @@ class SystemTestEnvironment(object):
     LOGGINGSERVICE  = 'rsyslog'
     def __init__(self, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
-    ,       sysclass=DockerSystem, cleanupwhendone=True):
+    ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = sysclass
         self.cmaimage = cmaimage
@@ -228,13 +228,13 @@ class SystemTestEnvironment(object):
         self.cma = None
         self.cleanupwhendone = cleanupwhendone
 
-        self.cma = self.spawncma()
+        self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         print >> sys.stderr, 'nanocount is', nanocount
         print >> sys.stderr, 'self.nanoimages is', self.nanoimages
         # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
         # this is because we return a different nanoprobe each time we call spawnnanoprobe()
         # pylint: disable=W0108
-        for child in itertools.repeat(lambda: self.spawnnanoprobe(), nanocount):
+        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=nanodebug), nanocount):
             self.nanoprobes.append(child())
 
     def _spawnsystem(self, imagename):
@@ -249,27 +249,59 @@ class SystemTestEnvironment(object):
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
 
-    def spawncma(self):
+    def set_nanoconfig(self, nano, debug=0):
+        'Set up our nanoprobe configuration file'
+        lines = (
+            ('NANOPROBE_DYNAMIC=%d' % (1 if nano is self.cma else 0)),
+            ('NANOPROBE_DEBUG=%d' % (debug)),
+            ('NANOPROBE_CMAADDR=%s:1984' % self.cma.ipaddr)
+        )
+        nano.runinimage(('/bin/bash', '-c'
+        ,           "echo '%s' >/etc/default/nanoprobe" % lines[0]))
+        print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
+        print >> sys.stderr, ('NANOPROBE [%s]' % lines[0])
+        for j in range(1, len(lines)):
+            nano.runinimage(('/bin/bash', '-c'
+            ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
+            print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
+
+    def set_cmaconfig(self, debug=0):
+        'Set up our CMA configuration file'
+        lines = ( ('CMA_DEBUG=%d' % (debug)),)
+        self.cma.runinimage(('/bin/bash', '-c'
+        ,           "echo '%s' >/etc/default/cma" % lines[0]))
+        print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
+        print >> sys.stderr, ('CMA [%s]' % lines[0])
+        for j in range(1, len(lines)):
+            self.cma.runinimage(('/bin/bash', '-c'
+            ,           "echo '%s' >>/etc/default/cma" % lines[j]))
+            print >> sys.stderr, ('CMA [%s]' % lines[j])
+
+
+
+    def spawncma(self, nanodebug=0, cmadebug=0):
         'Spawn a CMA instance'
-        system = self._spawnsystem(self.cmaimage)
-        system.runinimage(('/bin/bash', '-c'
+        self.cma = self._spawnsystem(self.cmaimage)
+        self.cma.runinimage(('/bin/bash', '-c'
         ,           'echo CMA_DEBUG=0 >/etc/default/cma'))
-        system.runinimage(('/bin/bash', '-c'
-        ,           'echo NANOPROBE_DYNAMIC=1 >/etc/default/nanoprobe'))
-        system.runinimage(('/bin/bash', '-c'
+        self.cma.runinimage(('/bin/bash', '-c'
         ,   'echo "org.neo4j.server.webserver.address=0.0.0.0" '
             '>> /var/lib/neo4j/conf/neo4j-server.properties'))
+        self.cma.startservice(SystemTestEnvironment.NEO4JSERVICE)
+        self.set_cmaconfig(debug=cmadebug)
+        self.cma.startservice(SystemTestEnvironment.CMASERVICE)
+        self.set_nanoconfig(self.cma, debug=nanodebug)
+        self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
+        #self.cma.runinimage(('ps', '-efl'))
+        return self.cma
 
-        system.startservice(SystemTestEnvironment.NEO4JSERVICE)
-        system.startservice(SystemTestEnvironment.CMASERVICE)
-        system.startservice(SystemTestEnvironment.NANOSERVICE)
-        #system.runinimage(('ps', '-efl'))
-        return system
-
-    def spawnnanoprobe(self):
+    def spawnnanoprobe(self, debug=0):
         'Spawn a nanoprobe instance randomly chosen from our set of possible nanoprobes'
         image = random.choice(self.nanoimages)
         system = self._spawnsystem(image)
+        system.debug = debug
+        print >> sys.stderr, 'NANO debug = %s' % debug
+        self.set_nanoconfig(system, debug=debug)
         system.startservice(SystemTestEnvironment.NANOSERVICE)
         return system
 
