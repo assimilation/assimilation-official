@@ -146,11 +146,13 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 			,	__FUNCTION__, self->_sessionid, seqno->_sessionid);
 			return FALSE;
 		}else if (seqno->_sessionid > self->_sessionid) {
-			char *	clientaddr = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
-			g_warning("%s: Protocol reset when talking to client %s - session id updated to %d from %d"
-			,	__FUNCTION__, clientaddr, seqno->_sessionid, self->_sessionid);
+			char *	clientaddr = self->_destaddr->baseclass.toString
+							(&self->_destaddr->baseclass);
+			g_info("%s.%d: Protocol reset from client %s - session id updated to %d from %d"
+			,	__FUNCTION__, __LINE__, clientaddr, seqno->_sessionid, self->_sessionid);
 			g_free(clientaddr); clientaddr = NULL;
-			g_critical("%s: CODE NOT PREPARED TO DEAL WITH UNEXPECTED PROTOCOL RESET YET. OOPS!", __FUNCTION__);
+			self->_sessionid = seqno->_sessionid;
+			self->_nextseqno = 1;
 		}
 		if (seqno->_reqid < self->_nextseqno) {
 			// We've already delivered this packet to our customers...
