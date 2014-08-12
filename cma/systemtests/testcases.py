@@ -280,7 +280,7 @@ if __name__ == "__main__":
     from store import Store
     from cmainit import CMAinit
     from py2neo import neo4j
-    def testmain(logname, maxdrones=3, debug=False):
+    def testmain(logname, maxdrones=1, debug=False):
         'Test our test cases'
         regexes = []
         #[W0612:testmain] Of course we don't use "j" ;-)
@@ -289,7 +289,7 @@ if __name__ == "__main__":
             regexes.append(' Stored packages JSON data from *[^ ]* ')
         logwatch = LogWatcher(logname, regexes, timeout=90, returnonlymatch=True)
         logwatch.setwatch()
-        sysenv = SystemTestEnvironment(maxdrones)
+        sysenv = SystemTestEnvironment(maxdrones, nanodebug=5, cmadebug=5)
         url = ('http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
         CMAinit(None)
         ourstore = Store(neo4j.GraphDatabaseService(url), readonly=True)
@@ -303,7 +303,10 @@ if __name__ == "__main__":
         if not tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1):
             print 'FAILED initial startup query check - which is pretty basic'
             print 'Any chance you have another CMA running??'
+            raise RuntimeError('Clueless stupid error')
 
+        time.sleep(10)
+        AssimSysTest.testset = (RestartCMAandNanoprobe,)
         for cls in AssimSysTest.testset:
             print 'Exercising %s test...' % cls.__name__
             assert cls(ourstore, logname, sysenv, debug=debug).run() == AssimSysTest.SUCCESS
