@@ -262,24 +262,24 @@ class SystemTestEnvironment(object):
         )
         nano.runinimage(('/bin/bash', '-c'
         ,           "echo '%s' >/etc/default/nanoprobe" % lines[0]))
-        print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
-        print >> sys.stderr, ('NANOPROBE [%s]' % lines[0])
+        #print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
+        #print >> sys.stderr, ('NANOPROBE [%s]' % lines[0])
         for j in range(1, len(lines)):
             nano.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
-            print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
+            #print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
 
     def set_cmaconfig(self, debug=0):
         'Set up our CMA configuration file'
         lines = ( ('CMA_DEBUG=%d' % (debug)),)
         self.cma.runinimage(('/bin/bash', '-c'
         ,           "echo '%s' >/etc/default/cma" % lines[0]))
-        print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
-        print >> sys.stderr, ('CMA [%s]' % lines[0])
+        #print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
+        #print >> sys.stderr, ('CMA [%s]' % lines[0])
         for j in range(1, len(lines)):
             self.cma.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/cma" % lines[j]))
-            print >> sys.stderr, ('CMA [%s]' % lines[j])
+            #print >> sys.stderr, ('CMA [%s]' % lines[j])
 
 
 
@@ -304,7 +304,6 @@ class SystemTestEnvironment(object):
         image = random.choice(self.nanoimages)
         system = self._spawnsystem(image)
         system.debug = debug
-        print >> sys.stderr, 'NANO debug = %s' % debug
         self.set_nanoconfig(system, debug=debug)
         system.startservice(SystemTestEnvironment.NANOSERVICE)
         return system
@@ -320,7 +319,7 @@ class SystemTestEnvironment(object):
     def select_nanoprobe(self, count=1):
         'Select a system at random'
         result = []
-        while True:
+        while len(self.nanoprobes) > 0:
             nano = random.choice(self.nanoprobes)
             if nano not in result:
                 result.append(nano)
@@ -332,7 +331,7 @@ class SystemTestEnvironment(object):
         'Select a nanoprobe system at random which is currently up'
         result = []
         uplist = self.up_nanoprobes()
-        while True:
+        while len(uplist) > 0:
             nano = random.choice(uplist)
             if nano not in result:
                 result.append(nano)
@@ -359,7 +358,7 @@ class SystemTestEnvironment(object):
         result = []
         servlist = [nano for nano in self.nanoprobes
             if nano.status == TestSystem.RUNNING and service in nano.runningservices]
-        while True:
+        while len(servlist) > 0:
             nano = random.choice(servlist)
             if nano not in result:
                 result.append(nano)
@@ -373,7 +372,7 @@ class SystemTestEnvironment(object):
         result = []
         servlist = [nano for nano in self.nanoprobes
             if nano.status == TestSystem.RUNNING and service not in nano.runningservices]
-        while True:
+        while len(servlist) > 0:
             nano = random.choice(servlist)
             if nano not in result:
                 result.append(nano)
@@ -405,9 +404,9 @@ if __name__ == '__main__':
     def testmain():
         'A simple test main program'
         print >> sys.stderr, 'Initializing:'
-        env = SystemTestEnvironment(3)
+        env = SystemTestEnvironment(5)
         print >> sys.stderr, 'Systems all up and running!'
-        time.sleep(30)
+        time.sleep(5)
         for j in range(0,len(env.nanoprobes)):
             print >> sys.stderr, 'Stopping nanoprobe on the %d one!' % j
             nano = env.nanoprobes[j]

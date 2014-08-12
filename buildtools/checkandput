@@ -51,6 +51,7 @@ then
   exit 0
 fi
 
+service cma stop
 if
   [ ! -d $WORKSPACE ]
 then
