@@ -117,16 +117,16 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 #define CLOSETIME		(A_CLOSE|A_NOTIME)
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
-//	  START	  REQSEND GOTACK  GOTCONN_NAK REQSHUTDOWN RCVSHUTDOWN              ACKTIMEOUT       OUTDONE  SHUT_TO
-/*NONE*/ {0,	  0,      A_OOPS, A_CLOSE,    0,          A_ACKME|A_SNDSHUT|A_FIX, A_ACKTO|A_OOPS,  A_OOPS,  A_OOPS},
-/*INIT*/ {0,	  0,	  0,      A_CLOSE,    A_CLOSE,    A_ACKME|A_SNDSHUT,       A_ACKTO|A_CLOSE, 0,       A_OOPS},
-/*UP*/   {0,	  0,	  0,      A_CLOSE,    A_SNDSHUT,  A_ACKME|A_SNDSHUT,       A_ACKTO,         0,       A_OOPS},
+//	  START	  REQSEND GOTACK  GOTCONN_NAK REQSHUTDOWN RCVSHUTDOWN         ACKTIMEOUT       OUTDONE  SHUT_TO
+/*NONE*/ {0,	  0,      A_OOPS, A_CLOSE,    0,          A_ACKME|A_SNDSHUT|, A_ACKTO|A_OOPS,  A_OOPS,  A_OOPS},
+/*INIT*/ {0,	  0,	  0,      A_CLOSE,    A_CLOSE,    A_ACKME|A_SNDSHUT,  A_ACKTO|A_CLOSE, 0,       A_OOPS},
+/*UP*/   {0,	  0,	  0,      A_CLOSE,    A_SNDSHUT,  A_ACKME|A_SNDSHUT,  A_ACKTO,         0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
-/*SHUT1*/{NAKOOPS,A_OOPS, 0,      A_OOPS,     A_CLOSE,    A_ACKME,                 A_ACKTO|A_CLOSE, A_TIMER, CLOSETIME},
+/*SHUT1*/{NAKOOPS,A_OOPS, 0,      A_OOPS,     A_CLOSE,    A_ACKME,            A_ACKTO|A_CLOSE, A_TIMER, CLOSETIME},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{NAKOOPS,A_OOPS, 0,      0,          A_CLOSE,    A_ACKME,                 A_ACKTO|A_CLOSE, A_CLOSE, CLOSETIME},
+/*SHUT2*/{NAKOOPS,A_OOPS, 0,      0,          A_CLOSE,    A_ACKME,            A_ACKTO|A_CLOSE, A_CLOSE, CLOSETIME},
 // SHUT3: Got ACK, waiting for CONNSHUT
-/*SHUT3*/{NAKOOPS,A_OOPS, A_OOPS, A_OOPS,     A_CLOSE,    A_ACKME|A_CLOSE,         A_ACKTO|A_OOPS,  A_OOPS,  CLOSETIME},
+/*SHUT3*/{NAKOOPS,A_OOPS, A_OOPS, A_OOPS,     A_CLOSE,    A_ACKME|A_CLOSE,    A_ACKTO|A_OOPS,  A_OOPS,  CLOSETIME},
 };
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
@@ -191,7 +191,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	}
 	if (action & A_FIX) {
 		// We heard a packet that indicates our far endpoint has existing connection to us
- 		// @FIXME should do something for packet sequence fixup
+ 		// @FIXME should do something for packet sequence fixup [action not currently used]
 		DEBUGMSG("@FIXME DID NOT DO: Packet sequence fixup requested");
 	}
 

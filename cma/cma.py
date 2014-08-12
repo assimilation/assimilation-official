@@ -140,8 +140,8 @@ def main():
     ,   metavar='address:port-to-bind-to'
     ,   help='Address:port to listen to - for nanoprobes to connect to')
 
-    parser.add_option('-d', '--debug', action='count', default=0, dest='debug'
-    ,   help='enable debug for CMA and libraries - multiple occurances increase debug value')
+    parser.add_option('-d', '--debug', action='store', default=0, dest='debug'
+    ,   help='enable debug for CMA and libraries - value is debug level for C libraries.')
 
     parser.add_option('-s', '--status', action='store_true', default=False, dest='status'
     ,   help='Return status of running CMA')
@@ -183,6 +183,7 @@ def main():
             return 1
         return 0
 
+    opt.debug = int(opt.debug)
 
     # This doesn't seem to work no matter where I invoke it...
     # But if we don't fork in daemonize_me() ('C' code), it works great...
