@@ -283,6 +283,8 @@ if __name__ == "__main__":
     from store import Store
     from cmainit import CMAinit
     from py2neo import neo4j
+    # R0914:testmain - too many local variables - don't much care...
+    # pylint: disable=R0914
     def testmain(logname, maxdrones=3, debug=False):
         'Test our test cases'
         import datetime
