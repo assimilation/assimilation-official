@@ -33,5 +33,7 @@ RUN cd /root/assimilation/bin; cmake ../src && make install
 RUN cd /root/assimilation/bin; cpack
 RUN cd /root/assimilation/bin; dpkg --install assimilation-nanoprobe-*-*.deb
 RUN PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT); echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf
+RUN echo '@TIMEZONE@' | tee /etc/timezone; dpkg-reconfigure --frontend noninteractive tzdata
+
 # Just so we have some services to monitor...
 RUN apt-get -y install bind9
