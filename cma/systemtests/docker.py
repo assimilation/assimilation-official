@@ -122,6 +122,7 @@ class DockerSystem(TestSystem):
         self.hostname = 'unknown'
         self.ipaddr = 'unknown'
         self.pid = 'unknown'
+        self.debug = 0
         TestSystem.__init__(self, imagename, cmdargs=cmdargs)
 
     @staticmethod
@@ -217,6 +218,8 @@ class SystemTestEnvironment(object):
     NANOSERVICE     = 'nanoprobe'
     NEO4JSERVICE    = 'neo4j-service'
     LOGGINGSERVICE  = 'rsyslog'
+    # pylint - too many arguments
+    # pylint: disable=R0913
     def __init__(self, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
     ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0):
@@ -226,6 +229,7 @@ class SystemTestEnvironment(object):
         self.nanoimages = nanoimages
         self.nanoprobes = []
         self.cma = None
+        self.debug = 0
         self.cleanupwhendone = cleanupwhendone
 
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
