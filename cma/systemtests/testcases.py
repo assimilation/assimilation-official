@@ -303,6 +303,15 @@ class DiscoverService(AssimSysTest):
             service = self.service
         if monitorname is None:
             monitorname = self.monitorname
+        if SystemTestEnvironment.NANOSERVICE not in nano.runningservices:
+            startregex = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+            %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))
+            watch = LogWatcher(self.logfilename, startregex, timeout=timeout, debug=debug)
+            watch.setwatch()
+            nano.startservice(SystemTestEnvironment.NANOSERVICE)
+            match = watcher.look(timeout=timeout)
+            if match is None:
+                return self._record(AssimSysTest.FAIL)
         regexes = ((r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
         %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
                     (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
