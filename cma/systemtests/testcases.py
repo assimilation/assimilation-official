@@ -309,7 +309,7 @@ class DiscoverService(AssimSysTest):
             watch = LogWatcher(self.logfilename, startregex, timeout=timeout, debug=debug)
             watch.setwatch()
             nano.startservice(SystemTestEnvironment.NANOSERVICE)
-            match = watcher.look(timeout=timeout)
+            match = watch.look(timeout=timeout)
             if match is None:
                 return self._record(AssimSysTest.FAIL)
         regexes = ((r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
