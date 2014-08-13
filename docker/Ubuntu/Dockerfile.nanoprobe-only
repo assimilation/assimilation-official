@@ -36,4 +36,4 @@ RUN PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT
 RUN echo '@TIMEZONE@' | tee /etc/timezone; dpkg-reconfigure --frontend noninteractive tzdata
 
 # Just so we have some services to monitor...
-RUN apt-get -y install bind9
+RUN apt-get -y install bind9 host
