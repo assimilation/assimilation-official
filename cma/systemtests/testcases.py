@@ -256,8 +256,9 @@ class SimulCMANanoprobeRestart(AssimSysTest):
         if nano is None:
             return self._record(AssimSysTest.SKIPPED)
         cma = self.testenviron.cma
-        regexes = ((r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
-        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+        regexes = (
+        #(r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
+        #%               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
         (           r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
         %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
         (           ' %s .* INFO: Neo4j version .* // py2neo version .*'
@@ -273,7 +274,53 @@ class SimulCMANanoprobeRestart(AssimSysTest):
         qstr = (    '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
                      '''RETURN drone''')
-        return self.checkresults(watch, timeout, qstr, None, nano)
+        return self.checkresults(watch, timeout, qstr, None, nano, allregexes=True)
+
+@AssimSysTest.register
+class DiscoverService(AssimSysTest):
+    '''We find a system not running some particular service, then we
+    start the service and restart the nanoprobe - forcing it to
+    discover the service pretty quickly.
+    '''
+    def __init__(self, store, logfilename, testenviron, debug=False, service='bind9', monitorname=None):
+        'Initializer for the DiscoverService class'
+        AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
+        self.service=service
+        if monitorname is None:
+            monitorname = service
+        self.monitorname = monitorname
+
+    # W0221:Arguments number differs from overridden method
+    # pylint: disable=W0221
+    def run(self, nano=None, debug=None, timeout=60, service=None, monitorname=None):
+        if nano is None:
+            nano1 = self.testenviron.select_nano_noservice(service=service)
+            if nano1 is None or len(nano1) < 1:
+                return self._record(AssimSysTest.SKIPPED)
+            nano = nano1[0]
+        if service is None:
+            service = self.service
+        if monitorname is None:
+            monitorname = self.monitorname
+        regexes = ((r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
+        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+                    (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+                    (r'%s cma INFO: Monitoring of service %s:.*:%s::.* activated'
+        %               (self.testenviron.cma.hostname, nano.hostname, monitorname)),
+                    (r'%s cma INFO: Service %s:.*:%s::.* is now operational'
+        %               (self.testenviron.cma.hostname, nano.hostname, monitorname)))
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
+        watch.setwatch()
+        nano.stopservice(SystemTestEnvironment.NANOSERVICE)
+        nano.startservice(service)
+        nano.startservice(SystemTestEnvironment.NANOSERVICE)
+        # @TODO make a better query
+        # but it should be enough to let us validate the rest
+        qstr = (    '''START drone=node:Drone('*:*') '''
+                     '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
+                     '''RETURN drone''')
+        return self.checkresults(watch, timeout, qstr, None, nano, allregexes=True)
 
 
 # A little test code...
@@ -316,8 +363,13 @@ if __name__ == "__main__":
         badwatch = LogWatcher(logname, (badregex,), timeout=0, returnonlymatch=False)
         for cls in AssimSysTest.testset:
             print ('Starting %s test at %s...' % (cls.__name__, str(datetime.datetime.now())))
+            os.system("logger 'Starting test %s'" %   (cls.__name__))
             badwatch.setwatch()
-            ret = cls(ourstore, logname, sysenv, debug=debug).run()
+            if cls is DiscoverService:
+                ret = cls(ourstore, logname, sysenv, debug=debug
+                ,       service='bind9', monitorname='named').run()
+            else:
+                ret = cls(ourstore, logname, sysenv, debug=debug).run()
             #print >> sys.stderr, 'Got return of %s from test %s' % (ret, cls.__name__)
             assert ret == AssimSysTest.SUCCESS
             badmatch = badwatch.look(timeout=0)
