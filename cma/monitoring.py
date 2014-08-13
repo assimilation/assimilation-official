@@ -706,15 +706,16 @@ class OCFMonitoringRule(MonitoringRule):
         for name in self.nvpairs:
             if name.startswith('?'):
                 optional = True
-                name = name[1:]
+                exprname = name[1:]
             else:
                 optional = False
+                exprname=name
             expression = self.nvpairs[name]
             val = GraphNodeExpression.evaluate(expression, values, graphnodes)
             if val is None and not optional:
-                missinglist.append(name)
+                missinglist.append(exprname)
             else:
-                arglist[name] = str(val)
+                arglist[exprname] = str(val)
         if len(missinglist) == 0:
             # Hah!  We can automatically monitor it!
             return  (MonitoringRule.HIGHPRIOMATCH
