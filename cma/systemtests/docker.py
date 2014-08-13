@@ -176,9 +176,7 @@ class DockerSystem(TestSystem):
 
     def destroy(self):
         'Destroy a docker instance (after stopping it if necessary)'
-        if self.status == TestSystem.RUNNING:
-            self.stop()
-        DockerSystem.run('rm', self.name)
+        DockerSystem.run('rm', '-f', self.name)
         self.status = TestSystem.NOTINIT
 
 

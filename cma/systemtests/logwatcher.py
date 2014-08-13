@@ -62,10 +62,13 @@ class LogWatcher(object):
         until later.
         '''
 
+        self.patterns=[]
+        self.regexes=[]
+
         #  Validate our arguments.  Better sooner than later ;-)
         for regex in regexes:
-            assert re.compile(regex)
-        self.regexes = regexes
+            self.patterns.append(re.compile(regex))
+            self.regexes.append(regex)
         self.filename = log
         self.debug=debug
         self.returnonlymatch = returnonlymatch
