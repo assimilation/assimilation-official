@@ -100,7 +100,8 @@ import optparse, time
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
-from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, VERSION_STRING
+import AssimCtypes
 from AssimCclasses import pyCompressFrame
 from cmaconfig import ConfigFile
 import importlib
@@ -132,7 +133,7 @@ def main():
     OurAddrStr = ('%s:%d' % (ipfd.readline().rstrip(), DefaultPort))
     ipfd.close()
 
-    parser = optparse.OptionParser(prog='CMA', version='0.0.1',
+    parser = optparse.OptionParser(prog='CMA', version=AssimCtypes.VERSION_STRING,
         description='Collective Management Authority for the Assimilation System',
         usage='cma.py [--bind address:port]')
 
