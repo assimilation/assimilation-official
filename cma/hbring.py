@@ -107,7 +107,7 @@ class HbRing(GraphNode):
             rels = CMAdb.store.load_in_related(drone, self.ourreltype, HbRing)
             rels = [rel for rel in rels]
             if len(rels) > 0:
-                CMAdb.log.warning("Drone %s is already a member of this ring [%s]"
+                CMAdb.log.critical("%s is already a member of this ring [%s]"
                 " - removing and re-adding." % (drone, self))
                 self.leave(drone)
 
