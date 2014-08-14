@@ -62,13 +62,9 @@ class LogWatcher(object):
         until later.
         '''
 
-        self.patterns=[]
-        self.regexes=[]
-
-        #  Validate our arguments.  Better sooner than later ;-)
-        for regex in regexes:
-            self.patterns.append(re.compile(regex))
-            self.regexes.append(regex)
+        self.patterns=None
+        self.regexes=None
+        self.setregexes(regexes)
         self.filename = log
         self.debug=debug
         self.returnonlymatch = returnonlymatch
@@ -82,6 +78,14 @@ class LogWatcher(object):
         self.Timeout = int(timeout)
         if not os.access(log, os.R_OK):
             raise ValueError("File [" + log + "] not accessible (r)")
+
+    def setregexes(self, regexes):
+        self.patterns = []
+        self.regexes = []
+        #  Validate our arguments.  Better sooner than later ;-)
+        for regex in regexes:
+            self.patterns.append(re.compile(regex))
+            self.regexes.append(regex)
 
     def setwatch(self, frombeginning=False):
         '''Mark the place to start watching the log from.
