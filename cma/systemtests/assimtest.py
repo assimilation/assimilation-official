@@ -66,21 +66,19 @@ def perform_tests(testset, sysenv, store, itercount, logname, debug=False):
         logit("%d tests failed :-(" % badcount)
     return badcount
 
-
 def testmain(logname):
     'This is the actual main program for the assimilation tests'
     maxdrones=10
     itercount=30
     testset = []
-    usagestring = (
+
+    parser = optparse.OptionParser(prog='assimtest'
+            ,   description='System Test utility for the Assimilation software.'
+            ,   usage=
     '''assimtest.py [options] iteration-count [number-of-systems-in-test-environment]
     The number of systems defaults to iteration-count/4.
     The minimum number of nanoprobe-only systems will always be >= 2.
     You must run this as root and have to have docker.io installed.''')
-
-    parser = optparse.OptionParser(prog='assimtest'
-            ,   description='System Test utility for the Assimilation software.'
-            ,   usage=usagestring)
     parser.add_option('-t', '--testcases'
     ,   action='append'
     ,   default=[]
@@ -102,6 +100,13 @@ def testmain(logname):
     ,   choices=('0', '1', '2', '3', '4', '5')
     ,   help='Nanoprobe debug level [0-5]')
 
+    parser.add_option('-s', '--seed'
+    ,   action='store'
+    ,   default=None
+    ,   dest='seed'
+    ,   help
+    =   'Random seed - a comma-separated list of 8 integers between 0 and 255 - from previous run')
+
     (opts, args) = parser.parse_args()
     opts.cmadebug = int(opts.cmadebug)
     opts.nanodebug = int(opts.nanodebug)
@@ -116,10 +121,14 @@ def testmain(logname):
         parser.parse_args(['--help'])
         return 1
 
-    # Prepare Random number generator
-    f = open("/dev/urandom", "r")
-    seed=struct.unpack("BBBBBBBB", f.read(8))
-    f.close()
+    if opts.seed is None:
+        # Prepare Random number generator
+        f = open("/dev/urandom", "r")
+        seed=struct.unpack("BBBBBBBB", f.read(8))
+        f.close()
+    else:
+        seed = tuple([int(elem) for elem in opts.seed.split(',')])
+        assert len(seed) == 8
     random.Random().seed(seed) # The hash of those 8 bytes is used as the seed
 
     print '\n'
