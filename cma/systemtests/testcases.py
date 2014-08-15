@@ -27,11 +27,15 @@
 This file defines classes which perform individual system tests.
 '''
 import sys, time
+from py2neo import neo4j
+sys.path.append('..')
+sys.path.append('.')
 from logwatcher import LogWatcher
 from querytest import QueryTest
-from docker import TestSystem
-sys.path.append('..')
+from docker import SystemTestEnvironment, TestSystem
 import graphnodes as GN
+from cmainit import CMAinit
+from store import Store
 class AssimSysTest(object):
     '''AssimSysTest is an abstract base class for all our system-level tests.
     '''
@@ -39,6 +43,7 @@ class AssimSysTest(object):
     FAIL    = 2
     SKIPPED = 3
 
+    testnames = {}
     testset = []
     stats = {}
 
@@ -46,6 +51,7 @@ class AssimSysTest(object):
     def register(ourclass):
         'Decorator for registering a TestCase'
         AssimSysTest.testset.append(ourclass)
+        AssimSysTest.testnames[ourclass.__name__] = ourclass
         AssimSysTest.stats[ourclass.__name__] = {
             AssimSysTest.SUCCESS:0, AssimSysTest.FAIL: 0, AssimSysTest.SKIPPED:0
         }
@@ -104,6 +110,38 @@ class AssimSysTest(object):
         'Abstract run method'
         raise NotImplementedError('AssimSysTest.run is an abstract method')
 
+    @staticmethod
+    def initenviron(logname, maxdrones, debug=False, timeout=90, nanodebug=0, cmadebug=0):
+        'Initialize the test environment.'
+        logwatch = LogWatcher(logname, [], timeout, returnonlymatch=True, debug=debug)
+        logwatch.setwatch()
+        sysenv = SystemTestEnvironment(maxdrones, nanodebug=nanodebug, cmadebug=cmadebug)
+        CMAinit(None)
+        store = Store(neo4j.GraphDatabaseService
+        (   'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
+        ,   readonly=True)
+        for classname in GN.GraphNode.classmap:
+            GN.GraphNode.initclasstypeobj(store, classname)
+
+        regexes = []
+        for nano in sysenv.nanoprobes:
+            regexes.append(r' %s cma INFO: Stored OS JSON data from (%s) '
+            %       (sysenv.cma.hostname, nano.hostname))
+        logwatch.setregexes(regexes)
+
+        match = logwatch.lookforall(timeout=int(30+maxdrones/10))
+        if match is None:
+            raise RuntimeError('Not all nanoprobes started.  Do you have another CMA running?')
+        tq = QueryTest(store
+        ,   '''START drone=node:Drone('*:*') WHERE drone.status = "up" RETURN drone'''
+        ,   GN.nodeconstructor, debug=debug)
+
+        if not tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1
+            ,   delay=0.5, maxtries=100):
+            raise RuntimeError('Query failed. Weirdness')
+        return sysenv, store
+
+
 @AssimSysTest.register
 class StopNanoprobe(AssimSysTest):
     'A stop nanoprobe test'
@@ -134,7 +172,10 @@ class StartNanoprobe(AssimSysTest):
         if debug is None:
             debug = self.debug
         if nano is None:
-            nano = self.testenviron.select_nano_noservice()[0]
+            onenano = self.testenviron.select_nano_noservice()
+            if len(onenano) < 1:
+                return self._record(AssimSysTest.SKIPPED)
+            nano = onenano[0]
         if (nano is None or nano.status != TestSystem.RUNNING
             or  SystemTestEnvironment.NANOSERVICE in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
@@ -306,7 +347,7 @@ class DiscoverService(AssimSysTest):
         if SystemTestEnvironment.NANOSERVICE not in nano.runningservices:
             startregex = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
             %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))
-            watch = LogWatcher(self.logfilename, startregex, timeout=timeout, debug=debug)
+            watch = LogWatcher(self.logfilename, (startregex,), timeout=timeout, debug=debug)
             watch.setwatch()
             nano.startservice(SystemTestEnvironment.NANOSERVICE)
             match = watch.look(timeout=timeout)
@@ -336,39 +377,19 @@ class DiscoverService(AssimSysTest):
 # A little test code...
 if __name__ == "__main__":
     import os
-    from docker import SystemTestEnvironment
-    from store import Store
-    from cmainit import CMAinit
-    from py2neo import neo4j
-    # R0914:testmain - too many local variables - don't much care...
     # pylint: disable=R0914
     def testmain(logname, maxdrones=3, debug=False):
         'Test our test cases'
         import datetime
-        regexes = []
         #[W0612:testmain] Of course we don't use "j" ;-)
         #pylint: disable=W0612
-        for j in range(0,maxdrones+1):
-            regexes.append(' Stored packages JSON data from *[^ ]* ')
-        logwatch = LogWatcher(logname, regexes, timeout=90, returnonlymatch=True)
-        logwatch.setwatch()
-        sysenv = SystemTestEnvironment(maxdrones, nanodebug=0, cmadebug=0)
-        url = ('http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
-        CMAinit(None)
-        ourstore = Store(neo4j.GraphDatabaseService(url), readonly=True)
-        for classname in GN.GraphNode.classmap:
-            GN.GraphNode.initclasstypeobj(ourstore, classname)
-        if debug:
-            print >> sys.stderr, 'WATCH RESULTS:', logwatch.lookforall()
-        tq = QueryTest(ourstore
-        ,   "START drone=node:Drone('*:*') RETURN drone"
-        ,   GN.nodeconstructor, debug=debug)
-        if not tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1):
-            print 'FAILED initial startup query check - which is pretty basic'
+        try:
+            sysenv, ourstore = AssimSysTest.initenviron(logname, maxdrones, debug
+            ,       cmadebug=0, nanodebug=0)
+        except AssertionError:
+            print 'FAILED initial startup - which is pretty basic'
             print 'Any chance you have another CMA running??'
-            raise RuntimeError('Clueless stupid error')
-
-        time.sleep(10)
+            raise RuntimeError('Another CMA is running(?)')
         badregex=' (ERROR|CRIT|CRITICAL): '
         badwatch = LogWatcher(logname, (badregex,), timeout=0, returnonlymatch=False)
         for cls in AssimSysTest.testset:

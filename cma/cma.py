@@ -100,7 +100,7 @@ import optparse, time
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
-from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, VERSION_STRING
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID
 import AssimCtypes
 from AssimCclasses import pyCompressFrame
 from cmaconfig import ConfigFile
@@ -214,7 +214,7 @@ def main():
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_OUTSIG, CONFIGNAME_COMPRESSTYPE, \
         CONFIGNAME_COMPRESS, CONFIGNAME_OUTSIG,\
-        proj_class_incr_debug, VERSION_STRING, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
+        proj_class_incr_debug, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
 
     if opt.debug:
         print >> sys.stderr, ('Setting debug to %s' % opt.debug)
@@ -303,7 +303,7 @@ def main():
     jvmfd.close()
     disp = MessageDispatcher(DispatchTarget.dispatchtable)
     CMAdb.log.info('Starting CMA version %s - licensed under %s'
-    %   (VERSION_STRING, LONG_LICENSE_STRING))
+    %   (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING))
     CMAdb.log.info('Neo4j version %s // py2neo version %s // Python version %s // %s'
         % (('%s.%s.%s%s' % CMAdb.cdb.db.neo4j_version)
         ,   str(py2neo.__version__)
@@ -311,7 +311,7 @@ def main():
         ,   jvers))
     if opt.foreground:
         print >> sys.stderr, ('Starting CMA version %s - licensed under %s'
-        %   (VERSION_STRING, LONG_LICENSE_STRING))
+        %   (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING))
         print >> sys.stderr, ('Neo4j version %s // py2neo version %s // Python version %s // %s'
             % (('%s.%s.%s%s' % CMAdb.cdb.db.neo4j_version)
             ,   str(py2neo.__version__)

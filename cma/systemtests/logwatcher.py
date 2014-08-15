@@ -80,6 +80,7 @@ class LogWatcher(object):
             raise ValueError("File [" + log + "] not accessible (r)")
 
     def setregexes(self, regexes):
+        '''Set or modify the collection of regular expressions that we're looking for'''
         self.patterns = []
         self.regexes = []
         #  Validate our arguments.  Better sooner than later ;-)
