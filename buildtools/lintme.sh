@@ -52,6 +52,6 @@ else
   LIST="$@"
 fi
 case $vers in
- 1.1)	pylint --msg-template='{path}:{line}: [{msg_id}:{obj}] {msg}' $FLAGS --rcfile pylint${vers}.cfg $LIST;;
- *)	pylint $FLAGS --rcfile pylint${vers}.cfg $LIST;;
+ 1.1)	pylint --init-hook="sys.path.append('systemtests')" --msg-template='{path}:{line}: [{msg_id}:{obj}] {msg}' $FLAGS --rcfile pylint${vers}.cfg $LIST;;
+ *)	pylint --init-hook="sys.path.append('systemtests')" $FLAGS --rcfile pylint${vers}.cfg $LIST;;
 esac
