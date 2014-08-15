@@ -27,6 +27,9 @@
 This file provides a basic set of classes to allow us to create a semi-realistic test environment
 for testing the Assimilation project software.  We use containers (or potentially virtual machines)
 to run a CMA and a bunch of nanoprobes on a system.
+
+This file does everything to help us be able to manage these systems and the services
+running on them - for the purpose of testing the Assimilation project.
 '''
 import tempfile, subprocess, sys, itertools, random, os, time
 class TestSystem(object):
