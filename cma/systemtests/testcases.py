@@ -73,7 +73,7 @@ class AssimSysTest(object):
     # pylint - R0913: too mary arguments
     # pylint: disable=R0913
     def checkresults(self, watcher, timeout, querystring, validator
-        ,   nano, service=None, allregexes=False, debug=False, minrows=1, maxrows=1):
+        ,   nano, service=None, allregexes=True, debug=False, minrows=1, maxrows=1):
         '''
         A utility function for checking the results of a test.  It assumes
         that you have already done a watcher.startwatch and initiated the
@@ -180,9 +180,13 @@ class StartNanoprobe(AssimSysTest):
             or  SystemTestEnvironment.NANOSERVICE in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
 
-        regex = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+        regexes = ( (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
         %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))
-        watch = LogWatcher(self.logfilename, (regex,), timeout=timeout, debug=debug)
+        ,           (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
+        %           (nano.hostname))
+        )
+
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         qstr = (    '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
@@ -315,7 +319,7 @@ class SimulCMANanoprobeRestart(AssimSysTest):
         qstr = (    '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
                      '''RETURN drone''')
-        return self.checkresults(watch, timeout, qstr, None, nano, allregexes=True)
+        return self.checkresults(watch, timeout, qstr, None, nano)
 
 @AssimSysTest.register
 class DiscoverService(AssimSysTest):
@@ -371,7 +375,7 @@ class DiscoverService(AssimSysTest):
         qstr = (    '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
                      '''RETURN drone''')
-        return self.checkresults(watch, timeout, qstr, None, nano, allregexes=True)
+        return self.checkresults(watch, timeout, qstr, None, nano)
 
 
 # A little test code...
