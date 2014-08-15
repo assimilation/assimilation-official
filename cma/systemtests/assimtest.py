@@ -148,9 +148,9 @@ def testmain(logname):
     ,   (opts.cmadebug > 0 or opts.nanodebug > 0)
     ,   cmadebug=0, nanodebug=0)
 
-    logit('CMA:  %s %15s %6d' % (env.cma.hostname, env.cma.ipaddr, env.cma.pid))
+    logit('CMA:  %s %15s %6d %s' % (env.cma.hostname, env.cma.ipaddr, env.cma.pid, env.cma.name))
     for nano in env.nanoprobes:
-        logit('nano: %s %15s %6d' % (nano.hostname, nano.ipaddr, nano.pid))
+        logit('nano: %s %15s %6d %s' % (nano.hostname, nano.ipaddr, nano.pid, nano.name))
 
     print '\n'
     logit('STARTING %d tests on %d nanoprobes + CMA' % (itercount, maxdrones))
