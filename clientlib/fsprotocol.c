@@ -96,7 +96,7 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 /*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT,  FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
 /*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE,  FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
 // SHUT1: No ACK, no CONNSHUT
-/*SHUT1*/{FSPR_UP,    FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE,  FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
+/*SHUT1*/{FSPR_UP,    FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE,  FSPR_SHUT2, FSPR_SHUT1, FSPR_SHUT3,FSPR_NONE},
 // SHUT2: got CONNSHUT, Waiting for ACK
 /*SHUT2*/{FSPR_UP,    FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_NONE,  FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
 // SHUT3: got ACK, waiting for CONNSHUT
@@ -107,9 +107,10 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 #define	A_DEBUG			(1<<2)
 #define	A_SNDNAK		(1<<3)
 #define	A_SNDSHUT		(1<<4)
-#define	A_ACKTO			(1<<5)
+#define	A_ACKTO			(1<<5)	///< Announce an ACK timeout
 #define	A_ACKME			(1<<6)
-#define	A_TIMER			(1<<7)	///< Start the FSPROTO_SHUT_TO timer
+#define	A_TIMER			(1<<7)	///< Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
+					///< which in turn calls the FSA with FSPROTO_SHUT_TO
 #define	A_NOTIME		(1<<8)	///< Cancel the FSPROTO_SHUT_TO timer
 #define	A_FIX			(1<<9)	///< Fix up the sequence numbers
 
@@ -122,7 +123,7 @@ static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 /*INIT*/ {0,	0,	0,      A_CLOSE,    A_CLOSE,    A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE, 0,       A_OOPS},
 /*UP*/   {0,	0,	0,      A_CLOSE,    A_SNDSHUT,  A_ACKME|A_SNDSHUT, A_ACKTO,         0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
-/*SHUT1*/{0,	A_OOPS, 0,      A_OOPS,     A_CLOSE,    A_ACKME,           A_ACKTO|A_CLOSE, A_TIMER, CLOSETIME},
+/*SHUT1*/{0,	A_OOPS, 0,      A_OOPS,     A_CLOSE,    A_ACKME,           A_ACKTO,         A_TIMER, CLOSETIME},
 // SHUT2: got CONNSHUT, Waiting for ACK
 /*SHUT2*/{0,	A_OOPS, 0,      0,          A_CLOSE,    A_ACKME,           A_ACKTO|A_CLOSE, A_CLOSE, CLOSETIME},
 // SHUT3: Got ACK, waiting for CONNSHUT
