@@ -59,6 +59,7 @@ def perform_tests(testset, sysenv, store, itercount, logname, debug=False):
             logit('Test %s skipped' % test.__name__)
         else:
             logit('Test %s RETURNED SOMETHING REALLY WEIRD [%s]' % (test.__name__, str(ret)))
+        print ''
     if badcount == 0:
         logit('ALL TESTS SUCCEEDED!')
     else:
@@ -73,10 +74,12 @@ def testmain(logname):
     testset = []
     usagestring = (
     '''assimtest.py [options] iteration-count [number-of-systems-in-test-environment]
-    The number of systems defaults to be iteration-count/4.''')
+    The number of systems defaults to iteration-count/4.
+    The minimum number of nanoprobe-only systems will always be >= 2.
+    You must run this as root and have to have docker.io installed.''')
 
     parser = optparse.OptionParser(prog='assimtest'
-            ,   description='System Test utility for the Assimilation software'
+            ,   description='System Test utility for the Assimilation software.'
             ,   usage=usagestring)
     parser.add_option('-t', '--testcases'
     ,   action='append'
@@ -110,14 +113,14 @@ def testmain(logname):
         itercount = int(args[0])
         maxdrones = int(args[1])
     else:
-        print >> sys.stderr, ('Usage: %s' % (usagestring))
+        parser.parse_args(['--help'])
         return 1
-    # Prepare Random
+
+    # Prepare Random number generator
     f = open("/dev/urandom", "r")
     seed=struct.unpack("BBBBBBBB", f.read(8))
     f.close()
-    #seed=(123,321,231)
-    random.Random().seed(seed)
+    random.Random().seed(seed) # The hash of those 8 bytes is used as the seed
 
     print '\n'
     logit('Iteration count: %d / Number of client systems: %d' % (itercount, maxdrones))
@@ -125,11 +128,13 @@ def testmain(logname):
 
     print '\n'
 
-    if len(opts.testcases) == 0:
-        testset = [test for test in AssimSysTest.testset]
-    else:
+    # Set up specific test cases -- if requested
+    if len(opts.testcases) > 0:
         testset = [AssimSysTest.testnames[name] for name in opts.testcases]
+    else:
+        testset = [test for test in AssimSysTest.testset]
 
+    # Set up the test environment as requested
     env, store = AssimSysTest.initenviron(logname, maxdrones
     ,   (opts.cmadebug > 0 or opts.nanodebug > 0)
     ,   cmadebug=0, nanodebug=0)
