@@ -78,7 +78,7 @@ def testmain(logname):
     '''assimtest.py [options] iteration-count [number-of-systems-in-test-environment]
     The number of systems defaults to iteration-count/4.
     The minimum number of nanoprobe-only systems will always be >= 2.
-    You must run this as root and have to have docker.io installed.''')
+    You must run this as root and have docker.io installed.''')
     parser.add_option('-t', '--testcases'
     ,   action='append'
     ,   default=[]
@@ -157,5 +157,6 @@ def testmain(logname):
     return perform_tests(testset, env, store, itercount, logname)
 
 
+sys.stdout = sys.stderr # Get rid of that nasty buffering...
 sys.exit(testmain('/var/log/syslog'))
 
