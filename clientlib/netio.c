@@ -460,6 +460,13 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	,	(long)rc);
 	self->stats.sendcalls ++;
 	self->stats.pktswritten ++;
+	if (rc == -1 && errno == EPERM) {
+		g_info("%s.%d: Got a weird sendto EPERM error for %"G_GSSIZE_FORMAT" byte packet."
+		,	__FUNCTION__, __LINE__, (gssize)length);
+		g_info("%s.%d: This only seems to happen under Docker..."
+		,	__FUNCTION__, __LINE__);
+		return;
+	}
         if (rc != length) {
 		char *	tostring = destaddr->baseclass.toString(destaddr);
 		g_warning(
