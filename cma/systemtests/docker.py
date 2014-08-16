@@ -101,11 +101,11 @@ class TestSystem(object):
         "Invoke our destroy operation when we're deleted"
         self.destroy()
 
-    def startservice(self, servicename):
+    def startservice(self, servicename, async=False):
         'Unimplemented start service action'
         raise NotImplementedError("Abstract class - doesn't implement startservice")
 
-    def stopservice(self, servicename):
+    def stopservice(self, servicename, async=False):
         'Unimplemented stop service action'
         raise NotImplementedError("Abstract class - doesn't implement stopservice")
 
@@ -194,23 +194,29 @@ class DockerSystem(TestSystem):
         #print >> sys.stderr, 'RUNNING nsenter cmd:', args
         subprocess.check_call(args)
 
-    def startservice(self, servicename):
+    def startservice(self, servicename, async=False):
         'nsenter-based start service action for docker'
         if servicename in self.runningservices:
             print >> sys.stderr, ('WARNING: Service %s already running in docker system %s'
             %       (servicename, self.name))
         else:
             self.runningservices.append(servicename)
-        self.runinimage(('/etc/init.d/'+servicename, 'start'))
+        if async:
+            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s start &' % servicename,))
+        else:
+            self.runinimage(('/etc/init.d/'+servicename, 'start'))
 
-    def stopservice(self, servicename):
+    def stopservice(self, servicename, async=False):
         'nsenter-based stop service action for docker'
         if servicename in self.runningservices:
             self.runningservices.remove(servicename)
         else:
             print >> sys.stderr, ('WARNING: Service %s not running in docker system %s'
             %       (servicename, self.name))
-        self.runinimage(('/etc/init.d/'+servicename, 'stop'))
+        if async:
+            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
+        else:
+            self.runinimage(('/etc/init.d/'+servicename, 'stop'))
 
 
 class SystemTestEnvironment(object):
@@ -244,7 +250,7 @@ class SystemTestEnvironment(object):
 
     def _spawnsystem(self, imagename):
         'Spawn a system image'
-        system = self.sysclass(imagename, ('/bin/sleep', '1000000000'))
+        system = self.sysclass(imagename, ('/bin/bash', '-c', 'while sleep 10; do wait -n; done'))
         system.start()
         # Set up logging to be forwarded to our parent logger
         system.runinimage(('/bin/bash', '-c'
