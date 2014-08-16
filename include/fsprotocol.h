@@ -122,10 +122,10 @@ struct _FsProtocol {
 	int		(*activeconncount)(FsProtocol*);		///< How many active connections do we have?
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_timer_uS);
-#define	DEFAULT_FSP_QID		0		///< Default Queue ID
-#define FSPROTO_WINDOWSIZE	7		///< FsProtocol window size
-#define FSPROTO_REXMITINTERVAL	(2000000)	///< FsProtocol retransmit interval in microseconds
-#define FSPROTO_ACKTIMEOUTINT	(30*FSPROTO_REXMITINTERVAL)	///< ACK timeout interval
+#define	DEFAULT_FSP_QID		0				///< Default Queue ID
+#define FSPROTO_WINDOWSIZE	7				///< FsProtocol window size
+#define FSPROTO_REXMITINTERVAL	(2000000)			///< FsProtocol rexmit interval in uS = 2 secs
+#define FSPROTO_ACKTIMEOUTINT	(60*FSPROTO_REXMITINTERVAL)	///< ACK timeout interval (2 minutes)
 
 ///@}
 
