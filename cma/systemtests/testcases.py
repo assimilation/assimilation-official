@@ -150,7 +150,9 @@ class StopNanoprobe(AssimSysTest):
         if debug is None:
             debug = self.debug
         if nano is None:
-            nano = self.testenviron.select_nano_service()[0]
+            nanozero = self.testenviron.select_nano_service()
+            if len(nanozero) > 0:
+                nano = nanozero[0]
         if (nano is None or nano.status != TestSystem.RUNNING or
             SystemTestEnvironment.NANOSERVICE not in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
@@ -172,10 +174,9 @@ class StartNanoprobe(AssimSysTest):
         if debug is None:
             debug = self.debug
         if nano is None:
-            onenano = self.testenviron.select_nano_noservice()
-            if len(onenano) < 1:
-                return self._record(AssimSysTest.SKIPPED)
-            nano = onenano[0]
+            nanozero = self.testenviron.select_nano_noservice()
+            if len(nanozero) > 0:
+                nano = nanozero[0]
         if (nano is None or nano.status != TestSystem.RUNNING
             or  SystemTestEnvironment.NANOSERVICE in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
@@ -202,7 +203,9 @@ class FlipNanoprobe(AssimSysTest):
         if debug is None:
             debug = self.debug
         if nano is None:
-            nano = self.testenviron.select_nanoprobe()[0]
+            nanozero = self.testenviron.select_nanoprobe()
+            if len(nanozero) > 0:
+                nano = nanozero[0]
         if nano is None:
             return self._record(AssimSysTest.SKIPPED)
         if SystemTestEnvironment.NANOSERVICE in nano.runningservices:
@@ -253,7 +256,6 @@ class RestartCMA(AssimSysTest):
         'Actually stop and start (restart) the CMA and see if it worked'
         if debug is None:
             debug = self.debug
-        assert nano is None
         cma = self.testenviron.cma
         cma.stopservice(SystemTestEnvironment.CMASERVICE)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
@@ -297,9 +299,10 @@ class SimulCMAandNanoprobeRestart(AssimSysTest):
         if debug is None:
             debug = self.debug
         if nano is None:
-            nano = self.testenviron.select_nano_service()[0]
-        if nano is None:
-            return self._record(AssimSysTest.SKIPPED)
+            nanozero = self.testenviron.select_nano_service()
+            if len(nanozero) < 1:
+                return self._record(AssimSysTest.SKIPPED)
+        nano = nanozero[0]
         cma = self.testenviron.cma
         regexes = (
         (           ' %s .* INFO: Neo4j version .* // py2neo version .*'
@@ -353,15 +356,16 @@ class DiscoverService(AssimSysTest):
     # W0221:Arguments number differs from overridden method
     # pylint: disable=W0221
     def run(self, nano=None, debug=None, timeout=60, service=None, monitorname=None):
-        if nano is None:
-            nano1 = self.testenviron.select_nano_noservice(service=service)
-            if nano1 is None or len(nano1) < 1:
-                return self._record(AssimSysTest.SKIPPED)
-            nano = nano1[0]
         if service is None:
             service = self.service
         if monitorname is None:
             monitorname = self.monitorname
+        if nano is None:
+            nanozero = self.testenviron.select_nano_noservice(service=service)
+            if nanozero is None or len(nanozero) < 1:
+                return self._record(AssimSysTest.SKIPPED)
+            nano = nanozero[0]
+        assert service not in nano.runningservices
         if SystemTestEnvironment.NANOSERVICE not in nano.runningservices:
             startregex = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
             %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))

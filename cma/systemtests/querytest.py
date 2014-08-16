@@ -66,7 +66,7 @@ class QueryTest(object):
 
 
     def check(self, objectlist, validator=None, minrows=None, maxrows=None
-    ,           maxtries=40, delay=0.25):
+    ,           maxtries=300, delay=1):
         '''
         We run a query using _checkone_ repeatedly until we like the results or give up...
         It's hard to know when everything is done like it ought to be...
