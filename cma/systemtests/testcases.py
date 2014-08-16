@@ -287,7 +287,7 @@ class RestartCMAandNanoprobe(AssimSysTest):
         ,   debug=debug, delay=self.delay).run(timeout=timeout)
 
 @AssimSysTest.register
-class SimulCMANanoprobeRestart(AssimSysTest):
+class SimulCMAandNanoprobeRestart(AssimSysTest):
     'Simultaneously restart the CMA and a nanoprobe'
     def __init__(self, store, logfilename, testenviron, debug=False, delay=0):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
@@ -302,19 +302,33 @@ class SimulCMANanoprobeRestart(AssimSysTest):
             return self._record(AssimSysTest.SKIPPED)
         cma = self.testenviron.cma
         regexes = (
-        #(r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
-        #%               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
-        (           r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
-        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
         (           ' %s .* INFO: Neo4j version .* // py2neo version .*'
-                    ' // Python version .* // java version.*' % cma.hostname))
+                    ' // Python version .* // java version.*' % (cma.hostname)),
+        (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
+        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+        (r" %s nanoprobe.*: INFO: Count of 'other' pkts received: "
+        %           (nano.hostname)))
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         cma.stopservice(SystemTestEnvironment.CMASERVICE)
-        nano.stopservice(SystemTestEnvironment.NANOSERVICE)
+        nano.stopservice(SystemTestEnvironment.NANOSERVICE, async=True)
         cma.startservice(SystemTestEnvironment.CMASERVICE)
         if self.delay > 0:
             time.sleep(self.delay)
+        qstr =  (   '''START drone=node:Drone('*:*') '''
+                     '''WHERE drone.designation = "{0.hostname}" and drone.status = "dead" '''
+                     '''and drone.reason = "HBSHUTDOWN"       RETURN drone''')
+        rc = self.checkresults(watch, timeout, qstr, None, nano)
+        if rc != AssimSysTest.SUCCESS:
+            return rc
+        # We have to do this in two parts because of the asynchronous shutdown above
+        regexes = (
+        (           r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+        (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
+        %           (nano.hostname)))
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
+        watch.setwatch()
         nano.startservice(SystemTestEnvironment.NANOSERVICE)
         qstr = (    '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
