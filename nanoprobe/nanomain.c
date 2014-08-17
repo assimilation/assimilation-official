@@ -46,6 +46,8 @@
 #include <misc.h>
 #include <nanoprobe.h>
 
+#define	DEBUGSHUTDOWN	1
+
 DEBUGDECLARATIONS
 
 #ifdef WIN32
@@ -156,6 +158,14 @@ check_for_signals(gpointer ignored)
 	(void)ignored;
 	if (sigterm || sigint) {
 		g_message("%s: exiting on %s.", procname, (sigterm ? "SIGTERM" : "SIGINT"));
+#ifdef DEBUGSHUTDOWN
+		// Crank up protocol debugging
+		proj_class_incr_debug("FsProtocol");
+		proj_class_incr_debug("FsProtocol");
+		proj_class_incr_debug("FsProtocol");
+		proj_class_incr_debug("FsProtocol");
+		proj_class_incr_debug("FsProtocol");
+#endif
 		return nano_initiate_shutdown();
 		return FALSE;
 	}
