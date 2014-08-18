@@ -11,7 +11,7 @@ RUN apt-get -y update
 RUN apt-get -y install --no-install-recommends neo4j
 RUN echo /usr/lib/*linux-gnu/assimilation > /etc/ld.so.conf.d/assimilation.conf
 RUN ldconfig /usr/lib/*linux-gnu/assimilation
-RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
-RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
+RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests && service rsyslog stop
 RUN cd /root/assimilation/bin && dpkg --install assimilation-cma-*-all.deb
-RUN service neo4j-service start # To make a lovely empty database...
+RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
+RUN service neo4j-service start && service neo4j-service stop # To make a lovely empty database...
