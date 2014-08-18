@@ -171,6 +171,11 @@ check_for_signals(gpointer ignored)
 		proj_class_incr_debug("NetIO");
 		proj_class_incr_debug("NetIO");
 		proj_class_incr_debug("NetIO");
+		proj_class_incr_debug("FsQueue");
+		proj_class_incr_debug("FsQueue");
+		proj_class_incr_debug("FsQueue");
+		proj_class_incr_debug("FsQueue");
+		proj_class_incr_debug("FsQueue");
 #endif
 		return nano_initiate_shutdown();
 		return FALSE;
