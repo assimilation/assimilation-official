@@ -140,7 +140,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 				// queued/sent several since the last ACK.
 				g_info("Resuming previous session for %s at sequence number "FMT_64BIT"d"
 				,	destaddr, seqno->_reqid);
-				g_free(clientaddr); clientaddr = NULL;
+				g_free(destaddr); destaddr = NULL;
 				self->_nextseqno = seqno->_reqid;
 			}
 		}else if (seqno->_sessionid < self->_sessionid) {
