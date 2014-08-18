@@ -102,17 +102,17 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 // SHUT3: got ACK, waiting for CONNSHUT
 /*SHUT3*/{FSPR_UP,    FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
 };
-#define	A_CLOSE			(1<<0)
-#define	A_OOPS			(1<<1)
-#define	A_DEBUG			(1<<2)
-#define	A_SNDNAK		(1<<3)	///< Don't appear to be using this action...
-#define	A_SNDSHUT		(1<<4)
-#define	A_ACKTO			(1<<5)	///< Announce an ACK timeout
-#define	A_ACKME			(1<<6)
-#define	A_TIMER			(1<<7)	///< Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
-					///< which in turn calls the FSA with FSPROTO_SHUT_TO
-#define	A_NOTIME		(1<<8)	///< Cancel the FSPROTO_SHUT_TO timer
-#define	A_FIX			(1<<9)	///< Fix up the sequence numbers
+#define	A_CLOSE			(1<<0)	///< 0x01 - set cleanup timer
+#define	A_OOPS			(1<<1)	///< 0x02 - this should not happen - complain about it
+#define	A_DEBUG			(1<<2)	///< 0x04 - print state info, etc
+#define	A_SNDNAK		(1<<3)	///< 0x08 Don't appear to be using this action...
+#define	A_SNDSHUT		(1<<4)	///< 0x10 Send CONNSHUT packet
+#define	A_ACKTO			(1<<5)	///< 0x20 - Announce an ACK timeout	- 0x20
+#define	A_ACKME			(1<<6)	///< 0x40 - Ack this packet
+#define	A_TIMER			(1<<7)	///< 0x80 Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
+					///< which will eventually call the FSA with FSPROTO_SHUT_TO
+#define	A_NOTIME		(1<<8)	///< 0x100 Cancel the FSPROTO_SHUT_TO timer
+#define	A_FIX			(1<<9)	///< 0x200 Fix up the sequence numbers
 
 #define NAKOOPS			(A_SNDNAK|A_OOPS)
 #define CLOSETIME		(A_CLOSE|A_NOTIME)
@@ -153,7 +153,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 
 
 
-	DUMP2("_fsproto_fsa: endpoint ", &fspe->endpoint->baseclass, NULL);
+	DUMP2("_fsproto_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
 	DEBUGMSG2("%s.%d: (state %d, input %d) => (state %d, actions 0x%x)", __FUNCTION__, __LINE__
 	,	curstate, input, nextstate, action);
 
@@ -244,7 +244,6 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		}
 	}
 
-
 	if (action & A_CLOSE) {
 		_fsprotocol_fspe_reinit(fspe);
 		// Clean this up after a while
@@ -252,6 +251,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		fspe->finalizetimer = g_timeout_add_seconds(1+parent->acktimeout/1000000, _fsprotocol_finalizetimer, fspe);
 	}
 	fspe->state = nextstate;
+	DEBUGMSG2("} /* %s:%d */", __FUNCTION__, __LINE__);
 }
 
 /** Try and transmit a packet after auditing the FSPE data structure */

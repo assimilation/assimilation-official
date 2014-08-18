@@ -165,6 +165,12 @@ check_for_signals(gpointer ignored)
 		proj_class_incr_debug("FsProtocol");
 		proj_class_incr_debug("FsProtocol");
 		proj_class_incr_debug("FsProtocol");
+		// And reliable UDP, etc. debugging too.
+		proj_class_incr_debug("NetIO");
+		proj_class_incr_debug("NetIO");
+		proj_class_incr_debug("NetIO");
+		proj_class_incr_debug("NetIO");
+		proj_class_incr_debug("NetIO");
 #endif
 		return nano_initiate_shutdown();
 		return FALSE;
