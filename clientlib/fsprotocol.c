@@ -132,6 +132,8 @@ static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
 
+static gboolean	shutting_all_down = FALSE;
+
 /// FsProtocol Finite state Automaton modelling connection establishment and shutdown.
 FSTATIC void
 _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
@@ -388,6 +390,15 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 	if ((ret = self->find(self, qid, destaddr))) {
 		return ret;
 	}
+	if (shutting_all_down) {
+		if (DEBUG >= 1) {
+			char *	deststr = destaddr->baseclass.toString(&destaddr->baseclass);
+			DEBUGMSG("%s.%d: not adding connection for %s.%d during shutdown."
+			,	__FUNCTION__, __LINE__, deststr, qid);
+			g_free(deststr); deststr = NULL;
+		}
+		return NULL;
+	}
 	ret = MALLOCCLASS(FsProtoElem, sizeof(FsProtoElem));
 	if (ret) {
 		ret->endpoint = destaddr->toIPv6(destaddr);	// No need to REF() again...
@@ -445,6 +456,7 @@ _fsprotocol_closeall(FsProtocol* self)
 	gpointer	key;
 	gpointer	value;
 
+	shutting_all_down = TRUE;
 	g_hash_table_iter_init(&iter, self->endpoints);
 
 	while(g_hash_table_iter_next(&iter, &key, &value)) {
@@ -465,7 +477,8 @@ _fsprotocol_activeconncount(FsProtocol* self)
 	while(g_hash_table_iter_next(&iter, &key, &value)) {
 		FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, key);
 		FsProtoState	state = fspe->state;
-		if (state != FSPR_NONE) {
+		if (state != FSPR_NONE
+		&&	(fspe->inq->_nextseqno > 1 || fspe->outq->_nextseqno > 1)) {
 			++count;
 		}
 	}
@@ -772,7 +785,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 
 	fspe = self->findbypkt(self, fromaddr, fs);
 	UNREF(fromaddr);
-	g_return_if_fail(fspe != NULL);
+	if (fspe == NULL) {
+		return;
+	}
 	AUDITIREADY(self);
 	AUDITFSPE(fspe);
 	
@@ -884,6 +899,10 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	gboolean	ret;
 
 	fspe = self->addconn(self, qid, toaddr);
+	if (NULL == fspe) {
+		// This can happen if we're shutting down...
+		return FALSE;
+	}
 	g_return_val_if_fail(NULL != fspe, FALSE);	// Should not be possible...
 	AUDITFSPE(fspe);
 
