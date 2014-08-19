@@ -130,7 +130,7 @@ static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 // SHUT2: got CONNSHUT, Waiting for ACK
 /*SHUT2*/{0,   A_DEBUG, CLOSEnNOTIME, 0,         0,                 A_ACKME,  ACKnCLOSE|A_NOTIME,CLOSEnNOTIME,A_CLOSE},
 // SHUT3: Got ACK, waiting for CONNSHUT
-/*SHUT3*/{0,   A_DEBUG, A_OOPS,       A_OOPS,    0,        ACKnCLOSE|A_NOTIME,ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
+/*SHUT3*/{0,   A_DEBUG, 0,            A_OOPS,    0,        ACKnCLOSE|A_NOTIME,ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
 };
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
