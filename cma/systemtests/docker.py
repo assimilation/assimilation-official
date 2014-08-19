@@ -202,9 +202,9 @@ class DockerSystem(TestSystem):
         else:
             self.runningservices.append(servicename)
         if async:
-            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s start &' % servicename,))
+            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s restart &' % servicename,))
         else:
-            self.runinimage(('/etc/init.d/'+servicename, 'start'))
+            self.runinimage(('/etc/init.d/'+servicename, 'restart'))
 
     def stopservice(self, servicename, async=False):
         'nsenter-based stop service action for docker'

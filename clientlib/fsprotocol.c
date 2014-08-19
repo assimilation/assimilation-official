@@ -177,6 +177,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			" in state %d with input %d", __FUNCTION__, __LINE__, curstate, input);
 			action |= A_OOPS;
 		}
+		// Should this be being sent reliably?  Or w/o protocol?
 		parent->send1(parent, fset, fspe->_qid, fspe->endpoint);
 		UNREF(fset);
 	}
@@ -420,8 +421,16 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
 	DUMP3("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
-		DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
-		_fsproto_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
+		if (fspe->outq->_nextseqno > 1 || fspe->inq->_nextseqno > 1) {
+			DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
+			_fsproto_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
+		}else{
+			// Haven't sent or received any packets with our protocol (probably just heartbeats)
+			DUMP3("_fsprotocol_closeconn() - calling fspe_closeconn directly", &destaddr->baseclass, NULL);
+			_fsprotocol_fspe_closeconn(fspe);
+			fspe = NULL;
+		}
+
 	}else if (DEBUG > 0) {
 		char	suffix[16];
 		g_snprintf(suffix, sizeof(suffix), "/%d", qid);
