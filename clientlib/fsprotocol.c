@@ -58,6 +58,7 @@ FSTATIC void		_fsprotocol_xmitifwecan(FsProtoElem*);
 FSTATIC void		_fsproto_sendconnak(FsProtoElem* fspe, NetAddr* dest);
 FSTATIC void		_fsprotocol_fspe_closeconn(FsProtoElem* self);
 FSTATIC void		_fsprotocol_fspe_reinit(FsProtoElem* self);
+FSTATIC gboolean	_fsprotocol_canclose_immediately(gpointer unused_key, gpointer v_fspe, gpointer unused_user);
 
 FSTATIC void		_fsprotocol_auditfspe(const FsProtoElem*, const char * function, int lineno);
 FSTATIC void		_fsprotocol_auditiready(const char * fun, unsigned lineno, const FsProtocol* self);
@@ -432,15 +433,8 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
 	DUMP3("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
-		if (fspe->outq->_nextseqno > 1 || fspe->inq->_nextseqno > 1) {
-			DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
-			_fsproto_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
-		}else{
-			// Haven't sent or received any packets with our protocol (probably just heartbeats)
-			DUMP3("_fsprotocol_closeconn() - calling fspe_closeconn directly", &destaddr->baseclass, NULL);
-			_fsprotocol_fspe_closeconn(fspe);
-			fspe = NULL;
-		}
+		DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
+		_fsproto_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
 
 	}else if (DEBUG > 0) {
 		char	suffix[16];
@@ -457,6 +451,10 @@ _fsprotocol_closeall(FsProtocol* self)
 	gpointer	value;
 
 	shutting_all_down = TRUE;
+
+
+	// Can't modify the table during an iteration...
+	g_hash_table_foreach_remove(self->endpoints, _fsprotocol_canclose_immediately, NULL);
 	g_hash_table_iter_init(&iter, self->endpoints);
 
 	while(g_hash_table_iter_next(&iter, &key, &value)) {
@@ -464,6 +462,23 @@ _fsprotocol_closeall(FsProtocol* self)
 		_fsprotocol_closeconn(self, fspe->_qid, fspe->endpoint);
 	}
 }
+
+/// Returns TRUE if the given FSPE can be closed immediately
+FSTATIC gboolean
+_fsprotocol_canclose_immediately(gpointer v_fspe, gpointer unused, gpointer unused_user)
+{
+	FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, v_fspe);
+	gboolean		ret;
+	(void)unused;
+	(void)unused_user;
+	ret =  (fspe->outq->_nextseqno <= 1 && fspe->inq->_nextseqno <= 1);
+	if (ret) {
+		DUMP3("IMMEDIATE REMOVE OF", CASTTOCLASS(AssimObj, &fspe->endpoint->baseclass), "");
+	}
+	return ret;
+}
+
+
 FSTATIC int
 _fsprotocol_activeconncount(FsProtocol* self)
 {
@@ -479,6 +494,7 @@ _fsprotocol_activeconncount(FsProtocol* self)
 		FsProtoState	state = fspe->state;
 		if (state != FSPR_NONE
 		&&	(fspe->inq->_nextseqno > 1 || fspe->outq->_nextseqno > 1)) {
+			DUMP5("THIS CONNECTION IS ACTIVE", CASTTOCLASS(AssimObj,&fspe->endpoint->baseclass), "");
 			++count;
 		}
 	}
