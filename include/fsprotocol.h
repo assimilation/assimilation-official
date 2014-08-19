@@ -85,6 +85,7 @@ struct _FsProtoElem {
 	FsProtoState	state;		///< State of this connection
 	guint		shuttimer;	///< FSPROTO_SHUT_TO timer (see FSA for details)
 	guint		finalizetimer;	///< Timer for removing these objects (if not reopened)
+	gboolean	shutdown_complete;//< TRUE if the shutdown we asked for completed
 };
 
 /// It is REQUIRED that these fields are the same as the first two in the FsProtoElem structure
