@@ -1272,7 +1272,8 @@ nano_initiate_shutdown(void)
 		// This process will wait for all our output to be ACKed.
 		// It also has an ACK timer, so it won't wait forever...
 		proto->closeall(proto);
-		idle_shutdown_gsource = g_idle_add(shutdown_when_outdone, NULL);
+		idle_shutdown_gsource = g_timeout_add_full(G_PRIORITY_LOW, 100 // .1 Secs
+		,		shutdown_when_outdone, NULL, NULL);
 		nano_shutting_down = TRUE;
 		// Unregister all discovery modules.  Keep us from starting any new ones...
 		discovery_unregister_all();
@@ -1298,7 +1299,17 @@ shutdown_when_outdone(gpointer unused)
 {
 	ReliableUDP*	t = CASTTOCLASS(ReliableUDP, nanotransport->_netio);
 	FsProtocol*	proto = CASTTOCLASS(FsProtocol, t->_protocol);
+	static		gint64		giveuptime = 0;
 	(void)unused;
+	if (giveuptime == 0) {
+		giveuptime = g_get_monotonic_time() + ((FSPROTO_ACKTIMEOUTINT+1)*1000000L);
+	}
+	if (g_get_monotonic_time() > giveuptime) {
+		g_critical("Immediate shutdown. Connections still active after %d seconds."
+		,	(int)FSPROTO_ACKTIMEOUTINT);
+		g_main_quit(mainloop);
+		return FALSE;
+	}
 	// Wait for all our connections to be shut down
 	if (proto->activeconncount(proto) == 0){
 		DEBUGMSG("%s.%d: Shutting down - all connections closed."
