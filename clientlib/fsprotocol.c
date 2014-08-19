@@ -97,8 +97,8 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 /*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
 /*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
 // SHUT1: No ACK, no CONNSHUT
-/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
-// SHUT2: got CONNSHUT, Waiting for ACK
+/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
+// SHUT2: got CONNSHUT, Waiting for AC2
 /*SHUT2*/{FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_NONE, FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
 // SHUT3: got ACK, waiting for CONNSHUT
 /*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
@@ -121,16 +121,16 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 #define	CLOSEnNOTIME		(A_CLOSE|A_NOTIME)
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
-//	 START REQSEND GOTACK       GOTCONN_NAK REQSHUTDOWN      RCVSHUTDOWN   ACKTIMEOUT         OUTDONE  SHUT_TO
-/*NONE*/ {0,    0,      A_OOPS,       A_CLOSE,  A_CLOSE,            ACKnSHUT,  A_ACKTO|A_OOPS,     A_OOPS,  A_OOPS},
-/*INIT*/ {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT,  ACKnCLOSE,          0,       A_OOPS},
-/*UP*/   {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT,  A_ACKTO,            0,       A_OOPS},
+//	 START REQSEND GOTACK       GOTCONN_NAK REQSHUTDOWN      RCVSHUTDOWN  ACKTIMEOUT         OUTDONE  SHUT_TO
+/*NONE*/ {0,    0,      A_OOPS,       A_CLOSE,  A_CLOSE,            ACKnSHUT, A_ACKTO|A_OOPS,     A_OOPS,  A_OOPS},
+/*INIT*/ {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT, ACKnCLOSE,          0,       A_OOPS},
+/*UP*/   {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT, A_ACKTO,            0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
-/*SHUT1*/{0,   A_DEBUG, 0,            A_OOPS,    0,                  A_ACKME,  ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
+/*SHUT1*/{0,   A_DEBUG, 0,            A_OOPS,    0,                 A_ACKME,  ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{0,   A_DEBUG, CLOSEnNOTIME, 0,         0,                  A_ACKME,  ACKnCLOSE|A_NOTIME,CLOSEnNOTIME,A_CLOSE},
+/*SHUT2*/{0,   A_DEBUG, CLOSEnNOTIME, 0,         0,                 A_ACKME,  ACKnCLOSE|A_NOTIME,CLOSEnNOTIME,A_CLOSE},
 // SHUT3: Got ACK, waiting for CONNSHUT
-/*SHUT3*/{0,   A_DEBUG, A_OOPS,       A_OOPS,    0,        ACKnCLOSE|A_NOTIME, ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
+/*SHUT3*/{0,   A_DEBUG, A_OOPS,       A_OOPS,    0,        ACKnCLOSE|A_NOTIME,ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
 };
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
@@ -155,6 +155,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	curstate = fspe->state;
 	nextstate = nextstates[fspe->state][input];
 	action = actions[fspe->state][input];
+	//DEBUG = 5;
 
 
 	DUMP2("_fsproto_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
