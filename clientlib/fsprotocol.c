@@ -92,16 +92,16 @@ enum _FsProtoInput {
 };
 
 static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
-//	    START     REQSEND	  GOTACK         GOTC_NAK    REQSHUTDOWN RCVSHUT,   ACKTIMEOUT OUTALLDONE SHUT_TO
-/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,     FSPR_NONE,  FSPR_NONE,  FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
-/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,       FSPR_INIT,  FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
-/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,       FSPR_NONE,  FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
+//	    START     REQSEND	  GOTACK      GOTC_NAK   REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE SHUT_TO
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE,  FSPR_NONE, FSPR_NONE,  FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_UP,    FSPR_INIT, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
+/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_UP,    FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
 // SHUT1: No ACK, no CONNSHUT
-/*SHUT1*/{FSPR_UP,    FSPR_SHUT1, FSPR_SHUT1,    FSPR_SHUT1, FSPR_SHUT2, FSPR_SHUT2, FSPR_SHUT1, FSPR_SHUT3,FSPR_NONE},
+/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{FSPR_SHUT2,    FSPR_SHUT2, FSPR_SHUT2, FSPR_SHUT2, FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*SHUT2*/{FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE,  FSPR_NONE, FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
 // SHUT3: got ACK, waiting for CONNSHUT
-/*SHUT3*/{FSPR_SHUT3,    FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
+/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
 };
 #define	A_CLOSE			(1<<0)	///< 0x01 - set cleanup timer
 #define	A_OOPS			(1<<1)	///< 0x02 - this should not happen - complain about it
@@ -115,19 +115,22 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 #define	A_NOTIME		(1<<8)	///< 0x100 Cancel the FSPROTO_SHUT_TO timer
 #define	A_FIX			(1<<9)	///< 0x200 Fix up the sequence numbers
 
-#define NAKOOPS			(A_SNDNAK|A_OOPS)
+#define SHUTnTIMER		(A_SNDSHUT|A_TIMER)
+#define	ACKnSHUT		(A_ACKME|SHUTnTIMER)
+#define	ACKnCLOSE		(A_ACKME|A_CLOSE)
+#define	CLOSEnNOTIME		(A_CLOSE|A_NOTIME)
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
-//	 START REQSEND GOTACK GOTCONN_NAK REQSHUTDOWN RCVSHUTDOWN       ACKTIMEOUT             OUTDONE  SHUT_TO
-/*NONE*/ {0,	0,      A_OOPS, A_CLOSE,  0,         A_ACKME|A_CLOSE,   A_ACKTO|A_OOPS,        A_OOPS,  A_OOPS},
-/*INIT*/ {0,	0,	0,      A_CLOSE,  A_CLOSE,   A_ACKME|A_SNDSHUT, A_ACKTO|A_CLOSE,       0,       A_OOPS},
-/*UP*/   {0,	0,	0,      A_CLOSE,  A_SNDSHUT, A_ACKME|A_SNDSHUT, A_ACKTO,               0,       A_OOPS},
+//	 START REQSEND GOTACK       GOTCONN_NAK REQSHUTDOWN      RCVSHUTDOWN   ACKTIMEOUT         OUTDONE  SHUT_TO
+/*NONE*/ {0,    0,      A_OOPS,       A_CLOSE,  A_CLOSE,            ACKnSHUT,  A_ACKTO|A_OOPS,     A_OOPS,  A_OOPS},
+/*INIT*/ {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT,  ACKnCLOSE,          0,       A_OOPS},
+/*UP*/   {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT,  A_ACKTO,            0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
-/*SHUT1*/{0,	A_OOPS, 0,      A_OOPS,   A_CLOSE,   A_ACKME,           A_ACKTO|A_CLOSE,       A_TIMER, A_CLOSE},
+/*SHUT1*/{0,   A_DEBUG, 0,            A_OOPS,    0,                  A_ACKME,  ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
 // SHUT2: got CONNSHUT, Waiting for ACK
-/*SHUT2*/{0,	A_OOPS, 0,      0,        A_CLOSE,   A_ACKME,           A_ACKTO|A_CLOSE,       A_CLOSE, A_CLOSE},
+/*SHUT2*/{0,   A_DEBUG, CLOSEnNOTIME, 0,         0,                  A_ACKME,  ACKnCLOSE|A_NOTIME,CLOSEnNOTIME,A_CLOSE},
 // SHUT3: Got ACK, waiting for CONNSHUT
-/*SHUT3*/{0,	A_OOPS, A_OOPS, A_OOPS,   A_CLOSE,   A_ACKME|A_CLOSE,   A_ACKTO|A_CLOSE|A_OOPS,0,  A_CLOSE},
+/*SHUT3*/{0,   A_DEBUG, A_OOPS,       A_OOPS,    0,        ACKnCLOSE|A_NOTIME, ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
 };
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
@@ -152,7 +155,6 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	curstate = fspe->state;
 	nextstate = nextstates[fspe->state][input];
 	action = actions[fspe->state][input];
-
 
 
 	DUMP2("_fsproto_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
@@ -209,12 +211,12 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 
 	if (action & A_TIMER) {		// Start the FSPROTO_SHUT_TO timer
 		if (fspe->shuttimer > 0) {
-			g_source_remove(fspe->shuttimer);
-			g_critical("%s.%d: Adding SHUTDOWN timer when one is already running."
+			g_warning("%s.%d: Adding SHUTDOWN timer when one is already running."
 			,	__FUNCTION__, __LINE__);
-			action |= A_OOPS;
+			action |= A_DEBUG;
+		}else{
+			fspe->shuttimer = g_timeout_add_seconds(parent->acktimeout/1000000, _fsprotocol_shuttimeout, fspe);
 		}
-		fspe->shuttimer = g_timeout_add_seconds(parent->acktimeout/1000000, _fsprotocol_shuttimeout, fspe);
 	}
 	if (action & A_NOTIME) {	// Cancel the FSPROTO_SHUT_TO timer
 		if (fspe->shuttimer > 0) {
@@ -248,6 +250,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	}
 
 	if (action & A_CLOSE) {
+		DUMP3("CLOSING CONNECTION (A_CLOSE)", &fspe->endpoint->baseclass, "");
 		_fsprotocol_fspe_reinit(fspe);
 		// Clean this up after a while
 		// The time was chosen to occur after the other end will have given up on us and shut down anyway...
