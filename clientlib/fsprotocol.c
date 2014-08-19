@@ -253,6 +253,7 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	if (action & A_CLOSE) {
 		DUMP3("CLOSING CONNECTION (A_CLOSE)", &fspe->endpoint->baseclass, "");
 		_fsprotocol_fspe_reinit(fspe);
+		fspe->shutdown_complete = TRUE;
 		// Clean this up after a while
 		// The time was chosen to occur after the other end will have given up on us and shut down anyway...
 		fspe->finalizetimer = g_timeout_add_seconds(1+parent->acktimeout/1000000, _fsprotocol_finalizetimer, fspe);
@@ -417,6 +418,7 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 		ret->state = FSPR_NONE;
 		ret->shuttimer = 0;
 		ret->finalizetimer = 0;
+		ret->shutdown_complete = FALSE;
 		// This lookup assumes FsProtoElemSearchKey looks like the start of FsProtoElem
 		g_warn_if_fail(NULL == g_hash_table_lookup(self->endpoints, ret));
 		g_hash_table_insert(self->endpoints, ret, ret);
@@ -496,9 +498,16 @@ _fsprotocol_activeconncount(FsProtocol* self)
 		FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, key);
 		FsProtoState	state = fspe->state;
 		if (state != FSPR_NONE
-		&&	(fspe->inq->_nextseqno > 1 || fspe->outq->_nextseqno > 1)) {
+		&&	(fspe->inq->_nextseqno > 1 || fspe->outq->_nextseqno > 1)
+		&&	!fspe->shutdown_complete) {
 			DUMP5("THIS CONNECTION IS ACTIVE", CASTTOCLASS(AssimObj,&fspe->endpoint->baseclass), "");
 			++count;
+		}
+	}
+	if (count == 0) {
+		while(g_hash_table_iter_next(&iter, &key, &value)) {
+			FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, key);
+			fspe->shutdown_complete = FALSE;
 		}
 	}
 	return count;
@@ -551,6 +560,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 	self->nextrexmit = 0;
 	self->acktimeout = 0;
 	self->state = FSPR_NONE;
+	self->shutdown_complete = FALSE;
 	AUDITIREADY(self->parent);
 }
 
