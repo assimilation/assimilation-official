@@ -76,7 +76,7 @@ class AssimSysTest(object):
         ,   nano, service=None, allregexes=True, debug=False, minrows=1, maxrows=1):
         '''
         A utility function for checking the results of a test.  It assumes
-        that you have already done a watcher.startwatch and initiated the
+        that you have already done a watcher.setwatch and initiated the
         test.  We then wait for the test results in the logs and
         perform the query to validate the results.
         '''
@@ -415,12 +415,12 @@ if __name__ == "__main__":
             print 'FAILED initial startup - which is pretty basic'
             print 'Any chance you have another CMA running??'
             raise RuntimeError('Another CMA is running(?)')
-        badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: ')
-        badwatch = LogWatcher(logname, badregexes, timeout=0, returnonlymatch=False)
         for cls in AssimSysTest.testset:
+            badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: ')
+            badwatch = LogWatcher(logname, badregexes, timeout=1, debug=True):
+            badwatch.setwatch()
             print ('Starting %s test at %s...' % (cls.__name__, str(datetime.datetime.now())))
             os.system("logger 'Starting test %s'" %   (cls.__name__))
-            badwatch.setwatch()
             if cls is DiscoverService:
                 ret = cls(ourstore, logname, sysenv, debug=debug
                 ,       service='bind9', monitorname='named').run()
@@ -428,7 +428,7 @@ if __name__ == "__main__":
                 ret = cls(ourstore, logname, sysenv, debug=debug).run()
             #print >> sys.stderr, 'Got return of %s from test %s' % (ret, cls.__name__)
             assert ret == AssimSysTest.SUCCESS
-            badmatch = badwatch.look(timeout=0)
+            badmatch = badwatch.look(timeout=1)
             if badmatch is not None:
                 print 'OOPS! Got bad results!', badmatch
                 raise RuntimeError('Test %s said bad words! [%s]' % (cls.__name__, badmatch))
