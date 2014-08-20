@@ -26,7 +26,7 @@
 '''
 This file defines classes which perform individual system tests.
 '''
-import sys, time
+import sys, time, os
 from py2neo import neo4j
 sys.path.append('..')
 sys.path.append('.')
@@ -415,8 +415,8 @@ if __name__ == "__main__":
             print 'FAILED initial startup - which is pretty basic'
             print 'Any chance you have another CMA running??'
             raise RuntimeError('Another CMA is running(?)')
-        badregex=' (ERROR|CRIT|CRITICAL): '
-        badwatch = LogWatcher(logname, (badregex,), timeout=0, returnonlymatch=False)
+        badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: ')
+        badwatch = LogWatcher(logname, badregexes, timeout=0, returnonlymatch=False)
         for cls in AssimSysTest.testset:
             print ('Starting %s test at %s...' % (cls.__name__, str(datetime.datetime.now())))
             os.system("logger 'Starting test %s'" %   (cls.__name__))
