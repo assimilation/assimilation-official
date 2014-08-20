@@ -38,11 +38,11 @@ def logit(msg):
 
 def perform_tests(testset, sysenv, store, itercount, logname, debug=False):
     'Actually perform the given set of tests the given number of times, etc'
-    badregex=' (ERROR|CRIT|CRITICAL): '
+    badregexes=(' (ERROR|CRIT|CRITICAL): ',)
     badcount = 0
     for j in range(1, itercount+1):
         test = random.choice(testset)
-        badwatch = LogWatcher(logname, (badregex,), timeout=0, returnonlymatch=False)
+        badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
         logit("STARTING test %d - %s" %   (j, test.__name__))
         badwatch.setwatch()
         if test.__name__ == 'DiscoverService':
@@ -50,6 +50,11 @@ def perform_tests(testset, sysenv, store, itercount, logname, debug=False):
             ,       service='bind9', monitorname='named').run()
         else:
             ret = test(store, logname, sysenv, debug=debug).run()
+        matches = badwatch.look()
+        if matches is not None:
+            for match in matches:
+                logit('BAD MESSAGE from Test %d %s: %s' % (j, test.__name__, match))
+            ret = AssimSysTest.FAIL
         if ret == AssimSysTest.SUCCESS:
             logit('Test %d %s succeeded!' % (j, test.__name__))
         elif ret == AssimSysTest.FAIL:

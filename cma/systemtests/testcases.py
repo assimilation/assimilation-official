@@ -417,7 +417,8 @@ if __name__ == "__main__":
             raise RuntimeError('Another CMA is running(?)')
         for cls in AssimSysTest.testset:
             badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: ')
-            badwatch = LogWatcher(logname, badregexes, timeout=1, debug=True):
+            os.system("logger -s 'CREATED LOG WATCH with %s'" % str(badregexes))
+            badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
             badwatch.setwatch()
             print ('Starting %s test at %s...' % (cls.__name__, str(datetime.datetime.now())))
             os.system("logger 'Starting test %s'" %   (cls.__name__))
@@ -432,6 +433,7 @@ if __name__ == "__main__":
             if badmatch is not None:
                 print 'OOPS! Got bad results!', badmatch
                 raise RuntimeError('Test %s said bad words! [%s]' % (cls.__name__, badmatch))
+            os.system("logger -s 'BAD MATCH IS %s'" % str(badmatch))
         print >> sys.stderr, 'WOOT! All tests were successful!'
 
     if os.access('/var/log/syslog', os.R_OK):
