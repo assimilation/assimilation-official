@@ -51,14 +51,14 @@ def perform_tests(testset, sysenv, store, itercount, logname, debug=False):
         else:
             ret = test(store, logname, sysenv, debug=debug).run()
         if ret == AssimSysTest.SUCCESS:
-            logit('Test %s succeeded!' % test.__name__)
+            logit('Test %d %s succeeded!' % (j, test.__name__))
         elif ret == AssimSysTest.FAIL:
-            logit('Test %s FAILED :-(' % test.__name__)
+            logit('Test %d %s FAILED :-(' % (j, test.__name__))
             badcount += 1
         elif ret == AssimSysTest.SKIPPED:
-            logit('Test %s skipped' % test.__name__)
+            logit('Test %d %s skipped' % (j, test.__name__))
         else:
-            logit('Test %s RETURNED SOMETHING REALLY WEIRD [%s]' % (test.__name__, str(ret)))
+            logit('Test %d %s RETURNED SOMETHING REALLY WEIRD [%s]' % (j, test.__name__, str(ret)))
         print ''
     if badcount == 0:
         logit('ALL TESTS SUCCEEDED!')
