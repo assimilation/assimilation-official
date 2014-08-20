@@ -168,6 +168,11 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		,	__FUNCTION__, __LINE__, deststr, fspe->_qid, curstate);
 		FREE(deststr); deststr = NULL;
 		DUMP3("_fsproto_fsa: Output Queue", &fspe->outq->baseclass, NULL);
+		if (DEBUG < 3) {
+			DEBUG = 3
+			//@FIXME: need to remove this when the protocol gets better...
+			g_warning("%s.%d: RAISING DEBUG LEVEL TO 3", __FUNCTION__, __LINE__);
+		}
 	}
 
 	// Tell other endpoint we don't like their packet (not currently used?)
