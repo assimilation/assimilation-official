@@ -1173,9 +1173,6 @@ _fsprotocol_finalizetimer(gpointer userdata)
 	FsProtoElem* fspe = CASTTOCLASS(FsProtoElem, userdata);
 
 	if (fspe->state != FSPR_NONE) {
-		g_critical("%s.%d: ===============CANNOT REMOVE FSPE @ 0x%p!! state = %d"
-		,	__FUNCTION__, __LINE__, fspe, fspe->state);
-		DUMP("_fsprotocol_finalizetimer: endpoint ", &fspe->endpoint->baseclass, NULL);
 		AUDITFSPE(fspe);
 		return FALSE;
 	}
