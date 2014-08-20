@@ -110,6 +110,7 @@ class LogWatcher(object):
     def debugmsg(self, msg, level=1):
         'Print out a debug message if requested debugging level is activated'
         if self.debug >= level:
+            #os.system("logger -s '%s'" % msg)
             print 'DEBUG: %s' % msg
 
     # FIXME: many branches (R0912)? -- got it down to 15.  Could do better...
