@@ -89,7 +89,7 @@ class AssimSysTest(object):
         if debug:
             print >> sys.stderr, ('DEBUG: Match returned %s' % match)
         if match is None:
-            print ('ERROR: Test %s timed out waiting for %s [timeout:%s]'
+            os.system("logger 'ERROR: Test %s timed out waiting for %s [timeout:%s]'"
             %   (self.__class__.__name__, str(watcher.regexes), timeout))
             return self._record(AssimSysTest.FAIL)
         if debug:
@@ -103,7 +103,7 @@ class AssimSysTest(object):
             return self._record(AssimSysTest.SUCCESS)
 
         print >> sys.stderr, ('DEBUG: query.check() FAILED')
-        print('ERROR: Test %s failed query %s' %  (self.__class__.__name__, querystring))
+        os.system("logger -s 'ERROR: Test %s failed query %s'" %  (self.__class__.__name__, querystring))
         return self._record(AssimSysTest.FAIL)
 
     def run(self, nano=None, debug=None, timeout=30):

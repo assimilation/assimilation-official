@@ -135,7 +135,6 @@ static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 
 FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
 
-static gboolean	shutting_all_down = FALSE;
 
 /// FsProtocol Finite state Automaton modelling connection establishment and shutdown.
 FSTATIC void
@@ -395,15 +394,6 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 	if ((ret = self->find(self, qid, destaddr))) {
 		return ret;
 	}
-	if (shutting_all_down) {
-		if (DEBUG >= 1) {
-			char *	deststr = destaddr->baseclass.toString(&destaddr->baseclass);
-			DEBUGMSG("%s.%d: not adding connection for %s.%d during shutdown."
-			,	__FUNCTION__, __LINE__, deststr, qid);
-			g_free(deststr); deststr = NULL;
-		}
-		return NULL;
-	}
 	ret = MALLOCCLASS(FsProtoElem, sizeof(FsProtoElem));
 	if (ret) {
 		ret->endpoint = destaddr->toIPv6(destaddr);	// No need to REF() again...
@@ -454,9 +444,6 @@ _fsprotocol_closeall(FsProtocol* self)
 	GHashTableIter	iter;
 	gpointer	key;
 	gpointer	value;
-
-	shutting_all_down = TRUE;
-
 
 	// Can't modify the table during an iteration...
 	g_hash_table_foreach_remove(self->endpoints, _fsprotocol_canclose_immediately, NULL);
