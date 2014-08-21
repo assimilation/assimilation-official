@@ -150,10 +150,6 @@ class DockerSystem(TestSystem):
             DockerSystem.run(*runargs)
             self.status = TestSystem.RUNNING
             fd = os.popen('%s %s %s %s %s'
-            %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.State.Pid}}', self.name))
-            self.pid = int(fd.readline())
-            fd.close()
-            fd = os.popen('%s %s %s %s %s'
             %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.Config.Hostname}}', self.name))
             self.hostname = fd.readline().rstrip()
             fd.close()
@@ -162,6 +158,14 @@ class DockerSystem(TestSystem):
             ,       self.name))
             self.ipaddr = fd.readline().rstrip()
             fd.close()
+            fd = os.popen('%s %s %s %s %s'
+            %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.State.Pid}}', self.name))
+            line = fd.readline()
+            self.pid = int(line)
+            fd.close()
+            if self.pid <= 0:
+                raise RuntimeError('.State.Pid is zero for instance %s/%s [%s]'
+                %   (self.name, self.hostname, line))
         elif self.status == TestSystem.STOPPED:
             DockerSystem.run('restart', self.name)
             self.status = TestSystem.RUNNING
