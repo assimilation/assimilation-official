@@ -1312,7 +1312,7 @@ shutdown_when_outdone(gpointer unused)
 	}
 	// Wait for all our connections to be shut down
 	if (proto->activeconncount(proto) == 0){
-		DEBUGMSG("%s.%d: Shutting down - all connections closed."
+		g_info("%s.%d: Shutting down - all connections closed."
 		,	__FUNCTION__, __LINE__);
 		g_main_quit(mainloop);
 		return FALSE;
@@ -1324,7 +1324,7 @@ FSTATIC gboolean
 _nano_final_shutdown(gpointer unused)
 {
 	(void)unused;
-	DEBUGMSG("Initiating final shutdown");
+	g_info("%s.%d: Initiating final shutdown", __FUNCTION__, __LINE__);
 	if (nano_connected && nanotransport->_netio->outputpending(nanotransport->_netio)){
 		g_warning("Shutting down with unACKed output.");
 		DUMP("Transport info", &nanotransport->_netio->baseclass, NULL);
