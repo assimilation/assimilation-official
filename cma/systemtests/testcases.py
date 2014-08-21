@@ -285,9 +285,9 @@ class RestartCMAandNanoprobe(AssimSysTest):
         rc = RestartCMA(self.store, self.logfilename, self.testenviron, debug=debug
         ,       delay=self.delay).run(timeout=timeout)
         if rc != AssimSysTest.SUCCESS:
-            return rc
-        return RestartNanoprobe(self.store, self.logfilename, self.testenviron
-        ,   debug=debug, delay=self.delay).run(timeout=timeout)
+            return self._record(rc)
+        return self._record(RestartNanoprobe(self.store, self.logfilename, self.testenviron
+        ,   debug=debug, delay=self.delay).run(timeout=timeout))
 
 @AssimSysTest.register
 class SimulCMAandNanoprobeRestart(AssimSysTest):
