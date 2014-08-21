@@ -103,7 +103,8 @@ class AssimSysTest(object):
             return self._record(AssimSysTest.SUCCESS)
 
         print >> sys.stderr, ('DEBUG: query.check() FAILED')
-        os.system("logger -s 'ERROR: Test %s failed query %s'" %  (self.__class__.__name__, querystring))
+        os.system("logger -s 'ERROR: Test %s failed query %s'"
+        %       (self.__class__.__name__, querystring))
         return self._record(AssimSysTest.FAIL)
 
     def run(self, nano=None, debug=None, timeout=30):
@@ -401,7 +402,6 @@ class DiscoverService(AssimSysTest):
 
 # A little test code...
 if __name__ == "__main__":
-    import os
     # pylint: disable=R0914
     def testmain(logname, maxdrones=3, debug=False):
         'Test our test cases'

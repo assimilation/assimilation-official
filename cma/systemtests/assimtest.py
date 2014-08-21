@@ -36,40 +36,67 @@ def logit(msg):
     os.system("logger '%s'" %   (msg))
     print ("%s: %s" % (datetime.datetime.now(), msg))
 
-def perform_tests(testset, sysenv, store, itercount, logname, debug=False):
+def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
     'Actually perform the given set of tests the given number of times, etc'
     badregexes=(' (ERROR|CRIT|CRITICAL): ',)
-    badcount = 0
-    for j in range(1, itercount+1):
+    itercount=1
+    while True:
         test = random.choice(testset)
         badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
-        logit("STARTING test %d - %s" %   (j, test.__name__))
+        logit("STARTING test %d - %s" %   (itercount, test.__name__))
         badwatch.setwatch()
         if test.__name__ == 'DiscoverService':
             ret = test(store, logname, sysenv, debug=debug
             ,       service='bind9', monitorname='named').run()
         else:
             ret = test(store, logname, sysenv, debug=debug).run()
-        matches = badwatch.look()
-        if matches is not None:
-            for match in matches:
-                logit('BAD MESSAGE from Test %d %s: %s' % (j, test.__name__, match))
+        match = badwatch.look()
+        if match is not None:
+            logit('BAD MESSAGE from Test %d %s: %s' % (itercount, test.__name__, match))
             ret = AssimSysTest.FAIL
         if ret == AssimSysTest.SUCCESS:
-            logit('Test %d %s succeeded!' % (j, test.__name__))
+            logit('Test %d %s succeeded!' % (itercount, test.__name__))
+            itercount += 1
         elif ret == AssimSysTest.FAIL:
-            logit('Test %d %s FAILED :-(' % (j, test.__name__))
-            badcount += 1
+            logit('Test %d %s FAILED :-(' % (itercount, test.__name__))
+            itercount += 1
         elif ret == AssimSysTest.SKIPPED:
-            logit('Test %d %s skipped' % (j, test.__name__))
+            logit('Test %d %s skipped' % (itercount, test.__name__))
         else:
-            logit('Test %d %s RETURNED SOMETHING REALLY WEIRD [%s]' % (j, test.__name__, str(ret)))
+            logit('Test %d %s RETURNED SOMETHING REALLY WEIRD [%s]'
+            %   (itercount, test.__name__, str(ret)))
         print ''
-    if badcount == 0:
-        logit('ALL TESTS SUCCEEDED!')
+        if itercount > itermax:
+            break
+    return summarize_tests()
+
+def summarize_tests():
+    '''Summarize the results of the tests - to syslog and stderr
+    We return the number of failures.
+    '''
+    testnames = AssimSysTest.testnames.keys()
+    testnames.sort()
+    maxlen = max([len(name) for name in testnames])
+    totals = {AssimSysTest.SUCCESS:0, AssimSysTest.FAIL:0, AssimSysTest.SKIPPED:0}
+    logit('%*s %7s %7s %7s' % (maxlen, 'TEST NAME', 'SUCCESS', 'FAIL', 'SKIPPED'))
+    for name in testnames:
+        logit('%*s %7d %7d %7d' % (maxlen, name
+        ,   AssimSysTest.stats[name][AssimSysTest.SUCCESS]
+        ,   AssimSysTest.stats[name][AssimSysTest.FAIL]
+        ,   AssimSysTest.stats[name][AssimSysTest.SKIPPED]))
+        totals[AssimSysTest.SUCCESS]    += AssimSysTest.stats[name][AssimSysTest.SUCCESS]
+        totals[AssimSysTest.FAIL]       += AssimSysTest.stats[name][AssimSysTest.FAIL]
+        totals[AssimSysTest.SKIPPED]    += AssimSysTest.stats[name][AssimSysTest.SKIPPED]
+    logit('%*s %7s %7s %7s' % (maxlen, '_' * maxlen, '_____', '_____', '_____'))
+    logit('%*s %7d %7d %7d' % (maxlen, 'TOTALS'
+    ,   totals[AssimSysTest.SUCCESS]
+    ,   totals[AssimSysTest.FAIL]
+    ,   totals[AssimSysTest.SKIPPED]))
+    if totals[AssimSysTest.FAIL] == 0:
+        logit('%*s' % (maxlen, 'ALL TESTS SUCCEEDED!'))
     else:
-        logit("%d tests failed :-(" % badcount)
-    return badcount
+        logit('%*s' % (maxlen, ('%d TESTS FAILED :-(' % totals[AssimSysTest.FAIL])))
+    return totals[AssimSysTest.FAIL]
 
 def testmain(logname):
     'This is the actual main program for the assimilation tests'
