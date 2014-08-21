@@ -22,6 +22,7 @@
 # You should have received a copy of the GNU General Public License
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
+#   Script to run system tests and save results and syslog into a unique directory.
 #
 dirname=$(date --iso-8601=seconds)
 echo $name

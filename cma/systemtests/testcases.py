@@ -406,8 +406,6 @@ if __name__ == "__main__":
     def testmain(logname, maxdrones=3, debug=False):
         'Test our test cases'
         import datetime
-        #[W0612:testmain] Of course we don't use "j" ;-)
-        #pylint: disable=W0612
         try:
             sysenv, ourstore = AssimSysTest.initenviron(logname, maxdrones, debug
             ,       cmadebug=0, nanodebug=0)
