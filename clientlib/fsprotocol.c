@@ -60,8 +60,14 @@ FSTATIC void		_fsprotocol_fspe_closeconn(FsProtoElem* self);
 FSTATIC void		_fsprotocol_fspe_reinit(FsProtoElem* self);
 FSTATIC gboolean	_fsprotocol_canclose_immediately(gpointer unused_key, gpointer v_fspe, gpointer unused_user);
 
+typedef enum _FsProtoInput	FsProtoInput;
+
 FSTATIC void		_fsprotocol_auditfspe(const FsProtoElem*, const char * function, int lineno);
 FSTATIC void		_fsprotocol_auditiready(const char * fun, unsigned lineno, const FsProtocol* self);
+FSTATIC void		_fsprotocol_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
+FSTATIC const char*	_fsprotocol_fsa_states(FsProtoState state);
+FSTATIC const char*	_fsprotocol_fsa_inputs(FsProtoInput input);
+FSTATIC const char*	_fsprotocol_fsa_actions(unsigned int actionbits);
 
 #define AUDITFSPE(fspe)	{ if (fspe) _fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__); }
 #define AUDITIREADY(self) {_fsprotocol_auditiready(__FUNCTION__, __LINE__, self);}
@@ -72,7 +78,6 @@ DEBUGDECLARATIONS
 ///@{
 /// @ingroup C_Classes
 
-typedef enum _FsProtoInput	FsProtoInput;
 /**
  * Inputs are:
  *
@@ -133,12 +138,91 @@ static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 /*SHUT3*/{0,   A_DEBUG, 0,            A_OOPS,    0,        ACKnCLOSE|A_NOTIME,ACKnCLOSE|A_NOTIME, 0,       A_CLOSE},
 };
 
-FSTATIC void	_fsproto_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* fs);
+/// Returns the state name (string) for state - returns static data
+FSTATIC const char*
+_fsprotocol_fsa_states(FsProtoState state)
+{
+	static char	unknown[32];
+	switch (state) {
+		case	FSPR_NONE:	return "NONE";
+		case	FSPR_INIT:	return "INIT";
+		case	FSPR_UP:	return "UP";
+		case	FSPR_SHUT1:	return "SHUT1";
+		case	FSPR_SHUT2:	return "SHUT2";
+		case	FSPR_SHUT3:	return "SHUT2";
+		case	FSPR_INVALID:	return "INVALID";
+	}
+	g_snprintf(unknown, sizeof(unknown), "UNKNOWN%d", (int)state);
+	return unknown;
+}
+
+/// Returns the input name (string) for an input - returns static array
+FSTATIC const char*
+_fsprotocol_fsa_inputs(FsProtoInput input)
+{
+	static char	unknown[32];
+	switch (input) {
+		case FSPROTO_GOTSTART:		return "GOTSTART";
+		case FSPROTO_REQSEND:		return "REQSEND";
+		case FSPROTO_GOTACK:		return "GOTACK";
+		case FSPROTO_GOTCONN_NAK:	return "GOTCONN_NAK";
+		case FSPROTO_REQSHUTDOWN:	return "GOTREQSHUTDOWN";
+		case FSPROTO_RCVSHUTDOWN:	return "RCVSHUTDOWN";
+		case FSPROTO_ACKTIMEOUT:	return "ACKTIMEOUT";
+		case FSPROTO_OUTALLDONE:	return "OUTALLDONE";
+		case FSPROTO_SHUT_TO:		return "SHUT_TO";
+		case FSPROTO_INVAL:		return "INVAL";
+	}
+	g_snprintf(unknown, sizeof(unknown), "UNKNOWN%d", (int)input);
+	return unknown;
+}
+
+/// Returns a string representing a set of actions - static array returned
+FSTATIC const char*
+_fsprotocol_fsa_actions(unsigned actionmask)
+{
+	static char	result[512];
+	char		leftovers[32];
+	unsigned	actidx;
+	struct {
+		unsigned	bit;
+		const char *	bitname;
+	}map[] = {
+		{A_CLOSE,	"CLOSE"},
+		{A_OOPS,	"OOPS"},
+		{A_DEBUG,	"DEBUG"},
+		{A_SNDNAK,	"SNDNAK"},
+		{A_SNDSHUT,	"SNDSHUT"},
+		{A_ACKTO,	"ACKTO"},
+		{A_ACKME,	"ACKME"},
+		{A_TIMER,	"TIMER"},
+		{A_NOTIME,	"NOTIME"},
+	};
+	if (actionmask == 0) {
+		return "None";
+	}
+	result[0] = '\0';
+	for (actidx=0; actidx < DIMOF(map); ++actidx) {
+		if (actionmask & (map[actidx].bit)) {
+			if (result[0] != '\0') {
+				g_strlcat(result, "+", sizeof(result));
+			}
+			g_strlcat(result, map[actidx].bitname, sizeof(result));
+			actionmask &= ~(map[actidx].bit);
+		}
+	}
+	if (actionmask != 0) {
+		g_snprintf(leftovers, sizeof(leftovers), "+0x%x", actionmask);
+		g_strlcat(result, leftovers, sizeof(result));
+	}
+	return result;
+}
+
 
 
 /// FsProtocol Finite state Automaton modelling connection establishment and shutdown.
 FSTATIC void
-_fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
+_fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	     FsProtoInput input,///< The input for the FSA
 	     FrameSet* fs)	///< The FrameSet we've been given (or NULL)
 {
@@ -154,20 +238,22 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	curstate = fspe->state;
 	nextstate = nextstates[fspe->state][input];
 	action = actions[fspe->state][input];
-	//DEBUG = 5;
+	// DEBUG = 3;
 
 
-	DUMP2("_fsproto_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
-	DEBUGMSG2("%s.%d: (state %d, input %d) => (state %d, actions 0x%x)", __FUNCTION__, __LINE__
-	,	curstate, input, nextstate, action);
+	DUMP2("_fsprotocol_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
+	DEBUGMSG2("%s.%d: (state %s, input %s) => (state %s, actions %s)"
+	,	__FUNCTION__, __LINE__
+	,	_fsprotocol_fsa_states(curstate), _fsprotocol_fsa_inputs(input)
+	,	_fsprotocol_fsa_states(nextstate), _fsprotocol_fsa_actions(action));
 
 	// Complain about an ACK timeout
 	if (action & A_ACKTO) {
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
-		g_warning("%s.%d: Timed out waiting for an ACK while communicating with %s/%d in state %d."
-		,	__FUNCTION__, __LINE__, deststr, fspe->_qid, curstate);
+		g_warning("%s.%d: Timed out waiting for an ACK while communicating with %s/%d in state %s."
+		,	__FUNCTION__, __LINE__, deststr, fspe->_qid, _fsprotocol_fsa_states(curstate));
 		FREE(deststr); deststr = NULL;
-		DUMP3("_fsproto_fsa: Output Queue", &fspe->outq->baseclass, NULL);
+		DUMP3("_fsprotocol_fsa: Output Queue", &fspe->outq->baseclass, NULL);
 		if (DEBUG < 3) {
 			DEBUG = 3;
 			//@FIXME: need to remove this when the protocol gets better...
@@ -183,7 +269,9 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			frameset_append_frame(fset, &seq->baseclass);
 		}else{
 			g_critical("%s.%d: A_SNDNAK action either without valid FrameSet or valid seqno"
-			" in state %d with input %d", __FUNCTION__, __LINE__, curstate, input);
+			" in state %s with input %s", __FUNCTION__, __LINE__
+			,	_fsprotocol_fsa_states(curstate)
+			,	_fsprotocol_fsa_inputs(input));
 			action |= A_OOPS;
 		}
 		// Should this be being sent reliably?  Or w/o protocol?
@@ -194,7 +282,9 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		SeqnoFrame*	seq;
 		if (fs == NULL || NULL == (seq = fs->getseqno(fs))) {
 			g_critical("%s.%d: A_ACKME action either without valid FrameSet or valid seqno"
-			" in state %d with input %d", __FUNCTION__, __LINE__, curstate, input);
+			" in state %s with input %s", __FUNCTION__, __LINE__
+			,	_fsprotocol_fsa_states(curstate)
+			,	_fsprotocol_fsa_inputs(input));
 			action |= A_OOPS;
 		}else{
 			_fsprotocol_ackseqno(parent, fspe->endpoint, seq);
@@ -231,8 +321,9 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	}
 	if (action & A_DEBUG) {
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
-		DEBUGMSG("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
-		,	(int)input, deststr, fspe->_qid, (int)nextstate);
+		DEBUGMSG("%s.%d: Got a %s input for %s/%d while in state %s", __FUNCTION__, __LINE__
+		,	_fsprotocol_fsa_inputs(input), deststr, fspe->_qid
+		,	_fsprotocol_fsa_states(curstate));
 		FREE(deststr); deststr = NULL;
 	}
 
@@ -244,8 +335,9 @@ _fsproto_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
 		char *	fsstr = (fs ? fs->baseclass.toString(&fs->baseclass) : NULL);
 			
-		g_critical("%s.%d: Got a %d input for %s/%d while in state %d", __FUNCTION__, __LINE__
-		,	(int)input, deststr, fspe->_qid, (int)nextstate);
+		g_critical("%s.%d: Got a %s input for %s/%d while in state %s", __FUNCTION__, __LINE__
+		,	_fsprotocol_fsa_inputs(input), deststr, fspe->_qid
+		,	_fsprotocol_fsa_states(curstate));
 		FREE(deststr); deststr = NULL;
 		if (fsstr) {
 			g_warning("%s.%d: Frameset given was: %s", __FUNCTION__, __LINE__, fsstr);
@@ -434,7 +526,7 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 	DUMP3("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
 		DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
-		_fsproto_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
+		_fsprotocol_fsa(fspe, FSPROTO_REQSHUTDOWN, NULL);
 
 	}else if (DEBUG > 0) {
 		char	suffix[16];
@@ -832,23 +924,23 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				fspe->nextrexmit = 0;
 				TRYXMIT(fspe);
 				fspe->acktimeout = 0;
-				_fsproto_fsa(fspe, FSPROTO_OUTALLDONE, fs);
+				_fsprotocol_fsa(fspe, FSPROTO_OUTALLDONE, fs);
 			}else{
 				fspe->nextrexmit = now + self->rexmit_interval;
 				fspe->acktimeout = now + self->acktimeout;
 				TRYXMIT(fspe);
-				_fsproto_fsa(fspe, FSPROTO_GOTACK, fs);
+				_fsprotocol_fsa(fspe, FSPROTO_GOTACK, fs);
 			}
 			AUDITIREADY(self);
 			return;
 		}
 		case FRAMESETTYPE_CONNNAK: {
-			_fsproto_fsa(fspe, FSPROTO_GOTCONN_NAK, fs);
+			_fsprotocol_fsa(fspe, FSPROTO_GOTCONN_NAK, fs);
 			AUDITIREADY(self);
 			return;
 		}
 		case FRAMESETTYPE_CONNSHUT: {
-			_fsproto_fsa(fspe, FSPROTO_RCVSHUTDOWN, fs);
+			_fsprotocol_fsa(fspe, FSPROTO_RCVSHUTDOWN, fs);
 			AUDITIREADY(self);
 			return;
 		}
@@ -867,7 +959,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				fspe->acktimeout = g_get_monotonic_time() + self->acktimeout;
 			}
 			if (seq->_reqid == 1) {
-				_fsproto_fsa(fspe, FSPROTO_GOTSTART, fs);
+				_fsprotocol_fsa(fspe, FSPROTO_GOTSTART, fs);
 			}
 		}
 	}else{
@@ -932,7 +1024,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 		,	__FUNCTION__, __LINE__);
 		return TRUE;
 	}
-	_fsproto_fsa(fspe, FSPROTO_REQSEND, NULL);
+	_fsprotocol_fsa(fspe, FSPROTO_REQSEND, NULL);
 
 	if (fspe->outq->_q->length == 0) {
 		guint64 now = g_get_monotonic_time();
@@ -968,7 +1060,7 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 	if (ret) {
 		GSList*	this;
 		int	count = 0;
-		_fsproto_fsa(fspe, FSPROTO_REQSEND, NULL);
+		_fsprotocol_fsa(fspe, FSPROTO_REQSEND, NULL);
 		// Loop over our framesets and send them ouit...
 		for (this=framesets; this; this=this->next) {
 			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
@@ -1122,7 +1214,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			AUDITFSPE(fspe);
 
 			if (now > fspe->acktimeout) {
-				_fsproto_fsa(fspe, FSPROTO_ACKTIMEOUT, NULL);
+				_fsprotocol_fsa(fspe, FSPROTO_ACKTIMEOUT, NULL);
 				// No point in whining incessantly...
 				fspe->acktimeout = now + parent->acktimeout;
 			}
@@ -1167,7 +1259,7 @@ FSTATIC gboolean
 _fsprotocol_shuttimeout(gpointer userdata)
 {
 	FsProtoElem* fspe = CASTTOCLASS(FsProtoElem, userdata);
-	_fsproto_fsa(fspe, FSPROTO_SHUT_TO, NULL);
+	_fsprotocol_fsa(fspe, FSPROTO_SHUT_TO, NULL);
 	return FALSE;
 }
 
