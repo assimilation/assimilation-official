@@ -1050,9 +1050,11 @@ nano_reqconfig(gpointer gcruft)
 	const char *	cfgname = cruft->initdiscover;
 	ConfigContext*	context = obeycollective->baseclass.config;
 	NetAddr*	cmainit = context->getaddr(context, CONFIGNAME_CMAINIT);
-	const char *		jsontext;
-	char *			sysname = NULL;
-	NetAddr*		boundaddr;
+	const char *	jsontext;
+	char *		sysname = NULL;
+	NetAddr*	boundaddr;
+ 	IntFrame*       timeframe;
+	static guint64	starttime = 0L;
 
 	if (nano_shutting_down) {
 		return FALSE;
@@ -1078,12 +1080,24 @@ nano_reqconfig(gpointer gcruft)
 	,			frame_default_valuefinalize);
 	frameset_append_frame(fs, &usf->baseclass);
 	UNREF2(usf);
+
 	// Put in our listening address - useful if we're NATted
 	boundaddr = cruft->iosource->_netio->boundaddr(cruft->iosource->_netio);
 	ippf = ipportframe_netaddr_new(FRAMETYPE_IPPORT, boundaddr);
 	UNREF(boundaddr);
 	frameset_append_frame(fs, &ippf->baseclass);
 	UNREF2(ippf);
+
+	// Put in our startup time - helps the CMA eliminate dups (w/o protocol)
+	// If it gets busy, we might send it another request before it finishes the first
+	// one. If it's busy that's the worst time to give it unnecessary work.
+	if (starttime == 0) {
+		starttime = g_get_real_time();
+	}
+	timeframe = intframe_new(FRAMETYPE_WALLCLOCK, sizeof(starttime));
+	timeframe->setint(timeframe, starttime);
+	frameset_append_frame(fs, &timeframe->baseclass);
+	UNREF2(timeframe);
 
 	// Put in the JSON configuration text
 	jsontext = context->getstring(context, cfgname);
