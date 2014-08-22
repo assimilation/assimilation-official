@@ -254,10 +254,11 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		,	__FUNCTION__, __LINE__, deststr, fspe->_qid, _fsprotocol_fsa_states(curstate));
 		FREE(deststr); deststr = NULL;
 		DUMP3("_fsprotocol_fsa: Output Queue", &fspe->outq->baseclass, NULL);
-		if (DEBUG < 3) {
-			DEBUG = 3;
+		if (DEBUG < 2) {
+			DEBUG = 2;
 			//@FIXME: need to remove this when the protocol gets better...
-			g_warning("%s.%d: RAISING DEBUG LEVEL TO 3", __FUNCTION__, __LINE__);
+			//EXCESSIVE DEBUGGING
+			g_warning("%s.%d: RAISING DEBUG LEVEL TO 2", __FUNCTION__, __LINE__);
 		}
 	}
 
