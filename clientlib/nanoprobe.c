@@ -688,7 +688,7 @@ endloop:
 FSTATIC void
 nanoobey_change_debug(gint plusminus		///<[in] +1 or -1 - for incrementing/decrementing
 	,	      AuthListener* parent	///<[in] @ref AuthListener object invoking us
-	,	      FrameSet*	fs		///<[in] @ref FrameSet indicating who to send HBs to
+	,	      FrameSet*	fs		///<[in] @ref FrameSet giving the details
 	,	      NetAddr*	fromaddr)	///<[in/out] Address this message came from
 {
 
