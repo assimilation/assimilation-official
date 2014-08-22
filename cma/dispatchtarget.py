@@ -145,7 +145,7 @@ class DispatchSTARTUP(DispatchTarget):
             CMAdb.log.debug("DispatchSTARTUP: received [%s] FrameSet from [%s]"
             %       (FrameSetTypes.get(fstype)[0], addrstr))
             #CMAdb.log.debug('Resetting communications to %s/%d' % (origaddr, DEFAULT_FSP_QID))
-        self.io.closeconn(DEFAULT_FSP_QID, origaddr)
+        #self.io.closeconn(DEFAULT_FSP_QID, origaddr)
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.WALLCLOCK:
