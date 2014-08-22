@@ -31,7 +31,7 @@ from consts import CMAconsts
 from store import Store
 from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
+from AssimCclasses import pyNetAddr, pyConfigContext #, DEFAULT_FSP_QID
 from assimevent import AssimEvent
 from cmaconfig import ConfigFile
 
@@ -214,7 +214,7 @@ class Drone(SystemNode):
         for mightbering in CMAdb.store.load_in_related(self, None, nodeconstructor):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
-        deadip = pyNetAddr(self.select_ip(), port=self.port)
+        #deadip = pyNetAddr(self.select_ip(), port=self.port)
         #if CMAdb.debug:
         #    CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
         #self._io.closeconn(DEFAULT_FSP_QID, deadip)
