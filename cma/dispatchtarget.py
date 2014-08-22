@@ -28,7 +28,8 @@ sys.path.append("cma")
 from cmaconfig import ConfigFile
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pySwitchDiscovery
+from AssimCclasses import pyNetAddr, pyConfigContext, pySwitchDiscovery
+from AssimCtypes import proj_class_incr_debug
 from monitoring import MonitorAction
 from assimevent import AssimEvent
 
