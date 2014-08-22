@@ -190,15 +190,19 @@ class DispatchSTARTUP(DispatchTarget):
         drone.startaddr = str(origaddr)
         if json is not None:
             drone.logjson(origaddr, json)
-        #print >> sys.stderr, 'Joining TheOneRing: ', drone, type(drone), drone.port
+        if CMAdb.debug:
+            CMAdb.log.debug('Joining TheOneRing: %s / %s / %s' % (drone, type(drone), drone.port))
         CMAdb.cdb.TheOneRing.join(drone)
-        #print >> sys.stderr, 'Requesting Discovery from ', drone
+        if CMAdb.debug:
+            CMAdb.log.debug('Requesting Discovery from  %s' % str(drone))
         discovery_params = []
         for agent in self.config['initial_discovery']:
             params = ConfigFile.agent_params(self.config, 'discovery', agent, sysname)
             params['agent'] = agent
             params['instance'] = '_init_%s' % agent
             discovery_params.append(params)
+        if CMAdb.debug:
+            CMAdb.log.debug('Discovery details:  %s' % str(discovery_params))
         drone.request_discovery(discovery_params)
         AssimEvent(drone, AssimEvent.OBJUP)
 
@@ -206,7 +210,7 @@ class DispatchSTARTUP(DispatchTarget):
     def validate_source_ip(sysname, origaddr, jsobj, listenaddr):
         '''
         This chunk of code is kinda stupid...
-        There is a docker/bridge bug where it screws up the source address of multicast packets
+        There is a docker/NAT bug where it screws up the source address of multicast packets
         This code detects that that has happened and works around it...
         '''
         match = False
