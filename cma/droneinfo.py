@@ -215,9 +215,9 @@ class Drone(SystemNode):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
         deadip = pyNetAddr(self.select_ip(), port=self.port)
-        if CMAdb.debug:
-            CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
-        self._io.closeconn(DEFAULT_FSP_QID, deadip)
+        #if CMAdb.debug:
+        #    CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
+        #self._io.closeconn(DEFAULT_FSP_QID, deadip)
         AssimEvent(self, AssimEvent.OBJDOWN)
 
     def start_heartbeat(self, ring, partner1, partner2=None):
