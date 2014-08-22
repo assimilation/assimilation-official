@@ -47,6 +47,7 @@
 #include <nanoprobe.h>
 
 #define	DEBUGSHUTDOWN	1
+#undef	DEBUGSHUTDOWN
 
 DEBUGDECLARATIONS
 
@@ -206,7 +207,7 @@ usage(const char * cmdname)
 	fprintf(stderr, "\t-s --status (report nanoprobe status)\n");
 #endif
 	fprintf(stderr, "\t-d --debug <debug-level (0-5)>\n");
-	fprintf(stderr, "\t-D --dynamic\n");
+	fprintf(stderr, "\t-D --dynamic (use ephemeral/dynamic port number)\n");
 }
 
 /**
@@ -270,9 +271,11 @@ main(int argc, char **argv)
 	
 	BINDDEBUG(NanoprobeMain);
 
-	if(debug > 0 && debug <= 5) {
-		while(debug--) {
+	if (debug > 0 && debug <= 5) {
+		DEBUGMSG("DEBUG IS SET TO %d", debug);
+		while(debug > 0) {
 			proj_class_incr_debug(NULL);
+			debug -= 1;
 		}
 	}
 
