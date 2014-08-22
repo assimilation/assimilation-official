@@ -178,7 +178,7 @@ def testmain(logname):
     # Set up the test environment as requested
     env, store = AssimSysTest.initenviron(logname, maxdrones
     ,   (opts.cmadebug > 0 or opts.nanodebug > 0)
-    ,   cmadebug=0, nanodebug=0)
+    ,   cmadebug=opts.cmadebug, nanodebug=opts.nanodebug)
 
     logit('CMA:  %s %15s %6d %s' % (env.cma.hostname, env.cma.ipaddr, env.cma.pid, env.cma.name))
     for nano in env.nanoprobes:
