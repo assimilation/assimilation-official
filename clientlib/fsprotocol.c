@@ -1209,7 +1209,9 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 		if (NULL != fs) {
 			// Update next retransmission time...
 			fspe->nextrexmit = now + parent->rexmit_interval;
-			DUMP3(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
+			// EXCESSIVE DUMPING!!  But we're losing some CMA packets...
+			DUMP(__FUNCTION__, &fspe->endpoint->baseclass, " Retransmission target");
+			DUMP(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
 			io->sendaframeset(io, fspe->endpoint, fs);
 			AUDITFSPE(fspe);
 
