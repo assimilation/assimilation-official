@@ -156,7 +156,7 @@ class DispatchSTARTUP(DispatchTarget):
                 sysname = frame.getstr()
                 if sysname == CMAdb.nodename:
                     if origaddr.islocal():
-                        CMAdb.log.warning("Received STARTUP from local system (%s)" % addrstr)
+                        CMAdb.log.info("Received STARTUP from local system (%s)" % addrstr)
                     else:
                         addresses = ['127.0.0.1', '::ffff:127.0.0.1', '::1' ]
                         for address in addresses:
@@ -180,6 +180,10 @@ class DispatchSTARTUP(DispatchTarget):
         if (localtime is not None):
             if (drone.lastjoin == localtime):
                 CMAdb.log.warning('Drone %s [%s] sent duplicate STARTUP' % (sysname, origaddr))
+                ## EXCESS DEBUG!!
+                proj_class_incr_debug(None)
+                proj_class_incr_debug(None)
+                proj_class_incr_debug(None)
                 return
             drone.lastjoin = localtime
 
