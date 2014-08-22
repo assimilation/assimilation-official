@@ -130,7 +130,7 @@ class AssimSysTest(object):
             %       (sysenv.cma.hostname, nano.hostname))
         logwatch.setregexes(regexes)
 
-        match = logwatch.lookforall(timeout=int(30+maxdrones/10))
+        match = logwatch.lookforall(timeout=int(timeout+maxdrones/10))
         if match is None:
             raise RuntimeError('Not all nanoprobes started.  Do you have another CMA running?')
         tq = QueryTest(store

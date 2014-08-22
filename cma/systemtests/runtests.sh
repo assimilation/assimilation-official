@@ -42,6 +42,7 @@ cp /var/log/syslog $dirname/syslog
 echo "Syslog copied"
 ed - $dirname/syslog <<!ED
 1,/$LOGMSG/-1d
+H
 \$
 ?    TOTALS ?+2,\$d
 w
