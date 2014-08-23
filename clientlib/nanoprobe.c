@@ -1039,7 +1039,7 @@ FSTATIC gboolean
 _nano_initconfig_OK(ConfigContext* config)
 {
 	// EXCESSIVE DUMPING!
-	DUMP3(__FUNCTION__, &config->baseclass, " is the config we're checking");
+	DUMP(__FUNCTION__, &config->baseclass, " is the config we're checking");
 	if (config->getaddr(config, CONFIGNAME_CMAFAIL)		!= NULL
 	&&  config->getaddr(config, CONFIGNAME_CMADISCOVER)	!= NULL) {
 		return TRUE;
