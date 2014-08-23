@@ -52,6 +52,7 @@ FSTATIC gboolean _reliableudp_sendareliablefs(NetIO*self, NetAddr*, guint16, Fra
 FSTATIC gboolean _reliableudp_sendreliablefs(NetIO*self, NetAddr*, guint16, GSList*);
 FSTATIC gboolean _reliableudp_ackmessage (NetIO* self, NetAddr* dest, FrameSet* frameset);
 FSTATIC void	 _reliableudp_closeconn(NetIO*self, guint16 qid, const NetAddr* dest);
+FSTATIC void	 _reliableudp_log_conn(ReliableUDP* self, guint16 qid, NetAddr* destaddr);
 
 // Our functions that override base class functions...
 FSTATIC void _reliableudp_finalize(AssimObj*);
@@ -102,6 +103,7 @@ reliableudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 		self->baseclass.baseclass.sendaframeset = _reliableudp_sendaframeset;
 
 		self->_protocol = fsprotocol_new(0, &uret->baseclass, rexmit_timer_uS);
+		self->log_conn = _reliableudp_log_conn;
 	}
 	return self;
 }
@@ -173,6 +175,7 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 	for (lelem=fsread; lelem; lelem=lelem->next) {
 		FrameSet*	fs = CASTTOCLASS(FrameSet, lelem->data);
 		// Put that puppy in the queue...
+		//proto->log_conn(proto, DEFAULT_FSP_QID, oursrcaddr);
 		proto->receive(proto, oursrcaddr, fs);
 		UNREF(fs);
 	}
@@ -243,4 +246,13 @@ _reliableudp_outputpending(NetIO* nself)
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	return self->_protocol->outputpending(self->_protocol);
 }
+
+/// Dump connection information
+FSTATIC void
+_reliableudp_log_conn(ReliableUDP* self, guint16 qid, NetAddr* destaddr)
+{
+	self->_protocol->log_conn(self->_protocol, qid, destaddr);
+}
+
+
 ///@}
