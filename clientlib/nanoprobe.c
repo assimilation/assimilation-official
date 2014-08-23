@@ -566,6 +566,8 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 	ConfigContext*	config = parent->baseclass.config;
 
 	(void)fromaddr;
+	// EXCESSIVE DUMPING!
+	DUMP("nanoobey_setconfig config is from: ", &fromaddr->baseclass, NULL);
 
 
 	for (slframe = fs->framelist; slframe != NULL; slframe = g_slist_next(slframe)) {
