@@ -121,6 +121,7 @@ struct _FsProtocol {
 	void		(*ackmessage)(FsProtocol*, NetAddr*, FrameSet*);///< ACK the given @ref FrameSet
 	void		(*closeall)(FsProtocol*);			///< Close all our connections
 	int		(*activeconncount)(FsProtocol*);		///< How many active connections do we have?
+	void		(*log_conn)(FsProtocol*, guint16, NetAddr*);	///< Log connection information
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_timer_uS);
 #define	DEFAULT_FSP_QID		0				///< Default Queue ID
