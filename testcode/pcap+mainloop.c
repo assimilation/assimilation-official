@@ -298,6 +298,8 @@ main(int argc, char **argv)
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
+	proj_class_incr_debug(NULL);
+	proj_class_incr_debug(NULL);
 #endif
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR);
 

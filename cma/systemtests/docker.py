@@ -158,20 +158,31 @@ class DockerSystem(TestSystem):
             ,       self.name))
             self.ipaddr = fd.readline().rstrip()
             fd.close()
-            fd = os.popen('%s %s %s %s %s'
-            %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.State.Pid}}', self.name))
-            line = fd.readline()
-            self.pid = int(line)
-            fd.close()
-            if self.pid <= 0:
-                raise RuntimeError('.State.Pid is zero for instance %s/%s [%s]'
-                %   (self.name, self.hostname, line))
+            self.pid = self._get_docker_pid()
         elif self.status == TestSystem.STOPPED:
-            DockerSystem.run('restart', self.name)
+            DockerSystem.run('start', self.name)
             self.status = TestSystem.RUNNING
         elif self.status == TestSystem.RUNNING:
             self.stop()
             self.start()
+
+    def _get_docker_pid(self):
+        'Return the PID of a docker instance - retrying in case of error'
+        j=0
+        while j < 100:
+            fd = os.popen('%s %s %s %s %s'
+            %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.State.Pid}}', self.name))
+            line = fd.readline().rstrip()
+            pid = int(line)
+            fd.close()
+            if pid > 0:
+                return pid
+            print >> sys.stderr, ('.State.Pid is currently zero for instance %s/%s [%s]'
+            %   (self.name, self.hostname, line))
+            time.sleep(.1)
+            j += 1
+        raise RuntimeError('.State.Pid is zero for instance %s/%s [%s]'
+        %   (self.name, self.hostname, line))
 
     def stop(self):
         'Stop a docker instance'

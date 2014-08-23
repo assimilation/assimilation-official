@@ -650,6 +650,8 @@ endloop:
 	}
 	UNREF(newconfig);
 
+	// EXCESSIVE DUMPING!
+	DUMP("nanoobey_setconfig: cfg is", &config->baseclass, NULL);
 	DUMP3("nanoobey_setconfig: cfg is", &config->baseclass, NULL);
 
 	if (config && config->getaddr(config, CONFIGNAME_CMAFAIL) != NULL) {
@@ -1032,9 +1034,12 @@ nano_startupidle(gpointer gcruft)
 	return TRUE;
 }
 
+// Check to see if the parameters we really need are present in our config
 FSTATIC gboolean
 _nano_initconfig_OK(ConfigContext* config)
 {
+	// EXCESSIVE DUMPING!
+	DUMP3(__FUNCTION__, &config->baseclass, " is the config we're checking");
 	if (config->getaddr(config, CONFIGNAME_CMAFAIL)		!= NULL
 	&&  config->getaddr(config, CONFIGNAME_CMADISCOVER)	!= NULL) {
 		return TRUE;
@@ -1070,7 +1075,8 @@ nano_reqconfig(gpointer gcruft)
 	g_return_val_if_fail(cmainit != NULL, FALSE);
 
 	// Our initial configuration message must contain these parameters.
-	if (!_nano_initconfig_OK(context)) {
+	if (_nano_initconfig_OK(context)) {
+		// We're good
 		return FALSE;
 	}
 	fs = frameset_new(FRAMESETTYPE_STARTUP);
