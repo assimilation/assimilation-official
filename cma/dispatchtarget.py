@@ -185,6 +185,8 @@ class DispatchSTARTUP(DispatchTarget):
                 proj_class_incr_debug(None)
                 proj_class_incr_debug(None)
                 proj_class_incr_debug(None)
+                self.io.log_conn(origaddr)
+
                 return
             drone.lastjoin = localtime
 

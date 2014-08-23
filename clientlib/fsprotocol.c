@@ -59,6 +59,7 @@ FSTATIC void		_fsproto_sendconnak(FsProtoElem* fspe, NetAddr* dest);
 FSTATIC void		_fsprotocol_fspe_closeconn(FsProtoElem* self);
 FSTATIC void		_fsprotocol_fspe_reinit(FsProtoElem* self);
 FSTATIC gboolean	_fsprotocol_canclose_immediately(gpointer unused_key, gpointer v_fspe, gpointer unused_user);
+FSTATIC void		_fsprotocol_log_conn(FsProtocol* self, guint16 qid, NetAddr* destaddr);
 
 typedef enum _FsProtoInput	FsProtoInput;
 
@@ -257,7 +258,6 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		if (DEBUG < 2) {
 			DEBUG = 2;
 			//@FIXME: need to remove this when the protocol gets better...
-			//EXCESSIVE DEBUGGING
 			g_warning("%s.%d: RAISING DEBUG LEVEL TO 2", __FUNCTION__, __LINE__);
 		}
 	}
@@ -692,6 +692,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->closeall =	_fsprotocol_closeall;
 	self->activeconncount =	_fsprotocol_activeconncount;
 	self->connstate =	_fsprotocol_connstate;
+	self->log_conn	=	_fsprotocol_log_conn;
 
 	// Initialize our data members
 	self->io =		io; // REF(io);
@@ -1278,5 +1279,25 @@ _fsprotocol_finalizetimer(gpointer userdata)
 	}
 	_fsprotocol_fspe_closeconn(fspe);
 	return FALSE;
+}
+/// Dump information about this connection to our logs
+FSTATIC void
+_fsprotocol_log_conn(FsProtocol* self, guint16 qid, NetAddr* destaddr)
+{
+	char *	deststr = destaddr->baseclass.toString(&destaddr->baseclass);
+	char *	qstr;
+	FsProtoElem*	fspe = self->find(self, qid, destaddr);
+	if (fspe == NULL) {
+		g_info("Cannot dump connection %s - not found.", deststr);
+		g_free(deststr); deststr = NULL;
+		return;
+	}
+	qstr = fspe->inq->baseclass.toString(&fspe->inq->baseclass);
+	g_info("INPUT queue [%s] = %s", deststr, qstr);
+	g_free(qstr);
+	qstr = fspe->outq->baseclass.toString(&fspe->outq->baseclass);
+	g_info("OUTPUT queue [%s] = %s", deststr, qstr);
+	g_free(qstr); qstr = NULL;
+	g_free(deststr); deststr = NULL;
 }
 ///@}
