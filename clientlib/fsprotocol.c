@@ -248,7 +248,7 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 
 
 	DUMP2("_fsprotocol_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
-	if (DEBUG >= 2 || action & A_DEBUG) {
+	if (DEBUG >= 2 || (action & A_DEBUG)) {
 		DEBUGMSG("%s.%d: (state %s, input %s) => (state %s, actions %s)"
 		,	__FUNCTION__, __LINE__
 		,	_fsprotocol_fsa_states(curstate), _fsprotocol_fsa_inputs(input)
