@@ -199,6 +199,11 @@ class Transaction(object):
             # In theory we could optimize multiple FrameSets in a row being sent to the
             # same address, but we can always do that later...
             io.sendreliablefs(packet['destaddr'], (fs, ))
+            # EXCESSIVE DEBUG!!
+            if packet['action'] == FrameSetTypes.SETCONFIG:
+                print >> sys.stderr, ("LOGGING SETCONFIG CONNECTION TO %s"
+                %   str(packet['destaddr']))
+                io.log_conn(packet['destaddr'])
 
     def commit_trans(self, io):
         'Commit our transaction'
