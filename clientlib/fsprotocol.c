@@ -242,7 +242,8 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	// DEBUG = 3;
 
 	// EXCESSIVE DUMPING!!
-	if (action & A_CLOSE) {
+	if ((action & A_CLOSE)  || curstate >= FSPR_SHUT1 || nextstate >= FSPR_SHUT1
+	||	input == FSPROTO_RCVSHUTDOWN) {
 		action |= A_DEBUG;
 	}
 
