@@ -95,6 +95,7 @@ FSTATIC void		_real_martian_agent(NetAddr* who);
 FSTATIC HbListener*	_real_hblistener_new(NetAddr*, ConfigContext*);
 FSTATIC gboolean	_nano_final_shutdown(gpointer unused);
 FSTATIC gboolean	shutdown_when_outdone(gpointer unused);
+FSTATIC gboolean	_nano_initconfig_OK(ConfigContext* config);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 
@@ -552,14 +553,8 @@ nanoobey_stopsendexpecthb(AuthListener* parent///<[in] @ref AuthListener object 
 /*
  * Act on (obey) a <b>FRAMESETTYPE_SETCONFIG</b> @ref FrameSet.
  * This frameset is sent during the initial configuration phase.
- * It contains name value pairs to save into our configuration (ConfigContext).
- * These might be {string,string} pairs or {string,ipaddr} pairs, or
- * {string, integer} pairs.  We process them all.
- * The frame types that we receive for these are:
- * <b>FRAMETYPE_PARAMNAME</b> - parameter name to set
- * <b>FRAMETYPE_CSTRINGVAL</b> - string value to associate with name
- * <b>FRAMETYPE_CINTVAL</b> - integer value to associate with naem
- * <b>FRAMETYPE_IPPORT</b> - IP address to associate with name
+ * Nowadays we only want one frame type:
+ * <b>FRAMETYPE_CONFIGJSON</b> - A JSON ConfigContext with everything in it.
  */
 void
 nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoking us
@@ -1037,6 +1032,16 @@ nano_startupidle(gpointer gcruft)
 	return TRUE;
 }
 
+FSTATIC gboolean
+_nano_initconfig_OK(ConfigContext* config)
+{
+	if (config->getaddr(config, CONFIGNAME_CMAFAIL)		!= NULL
+	&&  config->getaddr(config, CONFIGNAME_CMADISCOVER)	!= NULL) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
 /// Function to request our initial configuration data
 /// This is typically called from a g_main_loop timeout, and is also called directly - at startup.
 gboolean
@@ -1065,10 +1070,7 @@ nano_reqconfig(gpointer gcruft)
 	g_return_val_if_fail(cmainit != NULL, FALSE);
 
 	// Our initial configuration message must contain these parameters.
-	if (context->getaddr(context, CONFIGNAME_CMAADDR) != NULL
-	&&  context->getaddr(context, CONFIGNAME_CMAFAIL) != NULL
-	&&  context->getaddr(context, CONFIGNAME_CMADISCOVER) != NULL
-	&&  context->getint(context, CONFIGNAME_CMAPORT) > 0) {
+	if (!_nano_initconfig_OK(context)) {
 		return FALSE;
 	}
 	fs = frameset_new(FRAMESETTYPE_STARTUP);

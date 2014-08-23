@@ -241,12 +241,19 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	action = actions[fspe->state][input];
 	// DEBUG = 3;
 
+	// EXCESSIVE DUMPING!!
+	if (action & A_CLOSE) {
+		action |= A_DEBUG;
+	}
+
 
 	DUMP2("_fsprotocol_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
-	DEBUGMSG2("%s.%d: (state %s, input %s) => (state %s, actions %s)"
-	,	__FUNCTION__, __LINE__
-	,	_fsprotocol_fsa_states(curstate), _fsprotocol_fsa_inputs(input)
-	,	_fsprotocol_fsa_states(nextstate), _fsprotocol_fsa_actions(action));
+	if (DEBUG >= 2 || action & A_DEBUG) {
+		DEBUGMSG("%s.%d: (state %s, input %s) => (state %s, actions %s)"
+		,	__FUNCTION__, __LINE__
+		,	_fsprotocol_fsa_states(curstate), _fsprotocol_fsa_inputs(input)
+		,	_fsprotocol_fsa_states(nextstate), _fsprotocol_fsa_actions(action));
+	}
 
 	// Complain about an ACK timeout
 	if (action & A_ACKTO) {
@@ -349,6 +356,8 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 
 	if (action & A_CLOSE) {
 		DUMP3("CLOSING CONNECTION (A_CLOSE)", &fspe->endpoint->baseclass, "");
+		//EXCESSIVE DUMPING!
+		DUMP("CLOSING CONNECTION (A_CLOSE)", &fspe->endpoint->baseclass, "");
 		_fsprotocol_fspe_reinit(fspe);
 		fspe->shutdown_complete = TRUE;
 		// Clean this up after a while
@@ -614,6 +623,8 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 {
 
 	if (!g_queue_is_empty(self->outq->_q)) {
+		// EXCESSIVE DUMPING!
+		DUMP("REINIT OF OUTQ", &self->outq->baseclass, __FUNCTION__);
 		self->outq->flush(self->outq);
 		self->parent->unacked = g_list_remove(self->parent->unacked, self);
 		self->outq->isready = FALSE;
@@ -761,6 +772,8 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	FsProtoElem *	self = CASTTOCLASS(FsProtoElem, fsprotoelemthing);
 	DUMP5("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 
+	// EXCESSIVE DUMPING!!
+	DUMP("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 	// This does a lot of our cleanup - but doesn't destroy anything important...
 	_fsprotocol_fspe_reinit(self);
 
