@@ -38,7 +38,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     g_slist_free,   \
     MALLOC, memmove, \
     FRAMETYPE_SIG,      \
-    Frame, AssimObj, NetAddr, SeqnoFrame, \
+    Frame, AssimObj, NetAddr, SeqnoFrame, ReliableUDP, \
     frame_new, addrframe_new, \
     nvpairframe_new, frameset_new, frameset_append_frame, frameset_prepend_frame,   \
     seqnoframe_new, cstringframe_new, unknownframe_new, \
@@ -1639,6 +1639,13 @@ class pyReliableUDP(pyNetIOudp):
         if not Cstruct:
             raise ValueError("Invalid parameters to pyReliableUDP constructor")
         pyNetIOudp.__init__(self, config, packetdecoder, Cstruct=Cstruct)
+
+    def log_conn(self, destaddr, qid=DEFAULT_FSP_QID):
+        'Log connection status/info to system logs'
+        base = self._Cstruct[0]
+        while (type(base) is not ReliableUDP):
+            base = base.baseclass
+        base.log_conn(self._Cstruct, qid, destaddr._Cstruct)
 
 class CMAlib(object):
     'Miscellaneous functions to create certain useful pyFrameSets'
