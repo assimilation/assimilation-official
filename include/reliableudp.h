@@ -43,6 +43,7 @@ typedef struct _ReliableUDP ReliableUDP;
 struct _ReliableUDP {
 	NetIOudp	baseclass;	///< Base class (NetIO) object.
 	FsProtocol*	_protocol;	///< Queuing, ordering, retransmission and ACKing discipline
+	void (*log_conn)(ReliableUDP*, guint16 qid, NetAddr*);	//< Log connection information
 };
 WINEXPORT ReliableUDP* reliableudp_new(gsize objsize, ConfigContext* config, PacketDecoder* decoder,
 	guint rexmit_timer_uS);
