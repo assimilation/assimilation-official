@@ -178,6 +178,9 @@ class DispatchSTARTUP(DispatchTarget):
         ,   primary_ip_addr=str(origaddr))
         drone.listenaddr = str(listenaddr)  # Seems good to hang onto this...
         drone.isNAT = isNAT                 # ditto...
+        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
+        ,   FrameTypes.CONFIGJSON)
+
         if (localtime is not None):
             if (drone.lastjoin == localtime):
                 CMAdb.log.warning('Drone %s [%s] sent duplicate STARTUP' % (sysname, origaddr))
@@ -189,9 +192,6 @@ class DispatchSTARTUP(DispatchTarget):
 
                 return
             drone.lastjoin = localtime
-
-        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
-        ,   FrameTypes.CONFIGJSON)
         #print >> sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
 
         drone.startaddr = str(origaddr)

@@ -215,7 +215,8 @@ class HbRing(GraphNode):
         #%           (str(prevnode), str(nextnode), prevnode is nextnode))
 
         if prevnode is nextnode:                  # Previous length:  2
-            drone.stop_heartbeat(self, prevnode)  # Result length:    1
+            #drone.stop_heartbeat(self, prevnode)  # Result length:    1
+            # but drone is dead - don't talk to it.
             prevnode.stop_heartbeat(self, drone)
             self._insertpoint2 = None
             self._insertpoint1 = prevnode
@@ -233,7 +234,7 @@ class HbRing(GraphNode):
             prevnode.start_heartbeat(self, nextnode)
             # (in the nextnext is prevnode case, they're already heartbeating)
         # Poor drone -- all alone in the universe... (maybe even dead...)
-        drone.stop_heartbeat(self, prevnode, nextnode)
+        #drone.stop_heartbeat(self, prevnode, nextnode) # don't send packets to dead machines
         self._insertpoint1 = prevnode
         self._insertpoint2 = nextnode
         CMAdb.store.relate(prevnode, self.ournexttype, nextnode)
