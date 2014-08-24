@@ -157,9 +157,12 @@ class StopNanoprobe(AssimSysTest):
         if (nano is None or nano.status != TestSystem.RUNNING or
             SystemTestEnvironment.NANOSERVICE not in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
-        regex = (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
-        %   (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))
-        watch = LogWatcher(self.logfilename, (regex,), timeout=timeout, debug=debug)
+        regexes = (
+        (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
+        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+        (r" %s nanoprobe.*: INFO: Count of 'other' pkts received: "
+        %           (nano.hostname)))
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         qstr =  (   '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "dead" '''
@@ -371,25 +374,37 @@ class DiscoverService(AssimSysTest):
             nano = nanozero[0]
         assert service not in nano.runningservices
         if SystemTestEnvironment.NANOSERVICE not in nano.runningservices:
-            startregex = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
-            %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))
-            watch = LogWatcher(self.logfilename, (startregex,), timeout=timeout, debug=debug)
+            startregexes = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+            %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)
+            ,           (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
+            %           (nano.hostname)))
+            watch = LogWatcher(self.logfilename, startregexes, timeout=timeout, debug=debug)
             watch.setwatch()
             nano.startservice(SystemTestEnvironment.NANOSERVICE)
             match = watch.look(timeout=timeout)
             if match is None:
                 return self._record(AssimSysTest.FAIL)
-        regexes = ((r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
+        regexes = (
+        (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
         %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+        (r" %s nanoprobe.*: INFO: Count of 'other' pkts received: "
+        %           (nano.hostname)))
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
+        watch.setwatch()
+        nano.stopservice(SystemTestEnvironment.NANOSERVICE)
+        if watch.lookforall(timeout=timeout) is None:
+            return self._record(AssimSysTest.FAIL)
+        regexes = (
                     (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
         %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
+                    (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
+        %           (nano.hostname)),
                     (r'%s cma INFO: Monitoring of service %s:.*:%s::.* activated'
         %               (self.testenviron.cma.hostname, nano.hostname, monitorname)),
                     (r'%s cma INFO: Service %s:.*:%s::.* is now operational'
         %               (self.testenviron.cma.hostname, nano.hostname, monitorname)))
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
-        nano.stopservice(SystemTestEnvironment.NANOSERVICE)
         nano.startservice(service)
         nano.startservice(SystemTestEnvironment.NANOSERVICE)
         # @TODO make a better query
