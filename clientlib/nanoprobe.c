@@ -649,6 +649,13 @@ endloop:
 			}
 			g_slist_free1(thiskey);
 		}
+		// EXCESSIVE DUMPING
+		DEBUGMSG("%s.%d: Validating the config we processed...", __FUNCTION__, __LINE__);
+		if (!_nano_initconfig_OK(config)) {
+			DEBUGMSG("%s.%d: config we read is good", __FUNCTION__, __LINE__);
+		}else{
+			DEBUGMSG("%s.%d: config we read is BAD", __FUNCTION__, __LINE__);
+		}
 	}
 	UNREF(newconfig);
 
@@ -1040,12 +1047,16 @@ nano_startupidle(gpointer gcruft)
 FSTATIC gboolean
 _nano_initconfig_OK(ConfigContext* config)
 {
-	// EXCESSIVE DUMPING!
-	DUMP(__FUNCTION__, &config->baseclass, " is the config we're checking");
 	if (config->getaddr(config, CONFIGNAME_CMAFAIL)		!= NULL
 	&&  config->getaddr(config, CONFIGNAME_CMADISCOVER)	!= NULL) {
+		// EXCESSIVE DUMPING!
+		DEBUGMSG("%s.%d: FOUND '%s and '%s' in config.", __FUNCTION__, __LINE__
+		,	CONFIGNAME_CMAFAIL, CONFIGNAME_CMADISCOVER)
 		return TRUE;
 	}
+	// EXCESSIVE DUMPING!
+	DUMP("_nano_initconfig_OK: Could not find both of " CONFIGNAME_CMAFAIL
+	" and " CONFIGNAME_CMADISCOVER "  in " , &config->baseclass, "");
 	return FALSE;
 }
 
