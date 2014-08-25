@@ -310,6 +310,8 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		FrameSet*	fset = frameset_new(FRAMESETTYPE_CONNSHUT);
 		// Note that this will generate a recursive call to the FSA...
 		parent->send1(parent, fset, fspe->_qid, fspe->endpoint);
+		// EXCESSIVE DUMPING
+		DUMP("HERE IS THE CONNSHUT packet ", &fset->baseclass, "");
 		UNREF(fset);
 	}
 
