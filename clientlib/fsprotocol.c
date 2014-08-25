@@ -555,6 +555,8 @@ _fsprotocol_closeall(FsProtocol* self)
 	gpointer	key;
 	gpointer	value;
 
+	// EXCESSIVE DUMPING
+	DEBUGMSG("In %s.%d", __FUNCTION__, __LINE__);
 	// Can't modify the table during an iteration...
 	g_hash_table_foreach_remove(self->endpoints, _fsprotocol_canclose_immediately, NULL);
 	g_hash_table_iter_init(&iter, self->endpoints);
