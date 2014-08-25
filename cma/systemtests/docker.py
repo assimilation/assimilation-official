@@ -32,6 +32,7 @@ This file does everything to help us be able to manage these systems and the ser
 running on them - for the purpose of testing the Assimilation project.
 '''
 import tempfile, subprocess, sys, itertools, random, os, time
+from logwatcher import LogWatcher
 class TestSystem(object):
     'This is the base class for managing test systems for testing the Assimilation code'
     nameindex = 0
@@ -242,7 +243,7 @@ class SystemTestEnvironment(object):
     LOGGINGSERVICE  = 'rsyslog'
     # pylint - too many arguments
     # pylint: disable=R0913
-    def __init__(self, nanocount=10
+    def __init__(self, logname, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
     ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0):
         'Init/constructor for our SystemTestEnvironment'
@@ -254,7 +255,18 @@ class SystemTestEnvironment(object):
         self.debug = 0
         self.cleanupwhendone = cleanupwhendone
 
+        
+        watch = LogWatcher(logname, [])
+        watch.setwatch()
+        # This just makes sure the database is still up - which it should be...
+        # Once we receive the CMA update message, we really should already be good to go
+        qstr =  '''START one=node(*) RETURN one LIMIT 1'''
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
+        regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
+                ' // Python version .* // java version.*') % self.cma.hostname
+        watch.setregexes((regex,))
+        if watch.lookforall(timeout=60) is None:
+            raise RuntimeError('CMA did not start')
         print >> sys.stderr, 'nanocount is', nanocount
         print >> sys.stderr, 'self.nanoimages is', self.nanoimages
         # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
@@ -423,10 +435,10 @@ class SystemTestEnvironment(object):
 
 # A little test code...
 if __name__ == '__main__':
-    def testmain():
+    def testmain(logname):
         'A simple test main program'
         print >> sys.stderr, 'Initializing:'
-        env = SystemTestEnvironment(5)
+        env = SystemTestEnvironment(logname, 5)
         print >> sys.stderr, 'Systems all up and running!'
         time.sleep(5)
         for j in range(0,len(env.nanoprobes)):
@@ -438,4 +450,4 @@ if __name__ == '__main__':
         env.stop()
         env = None
         print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
-    testmain()
+    testmain('/var/log/syslog')

@@ -116,7 +116,7 @@ class AssimSysTest(object):
         'Initialize the test environment.'
         logwatch = LogWatcher(logname, [], timeout, returnonlymatch=True, debug=debug)
         logwatch.setwatch()
-        sysenv = SystemTestEnvironment(maxdrones, nanodebug=nanodebug, cmadebug=cmadebug)
+        sysenv = SystemTestEnvironment(logname, maxdrones, nanodebug=nanodebug, cmadebug=cmadebug)
         CMAinit(None)
         store = Store(neo4j.GraphDatabaseService
         (   'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
