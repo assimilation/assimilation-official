@@ -178,6 +178,17 @@ class DispatchSTARTUP(DispatchTarget):
         ,   primary_ip_addr=str(origaddr))
         drone.listenaddr = str(listenaddr)  # Seems good to hang onto this...
         drone.isNAT = isNAT                 # ditto...
+        #
+        # THIS IS HERE BECAUSE OF A PROTOCOL BUG...
+        # @FIXME Protocol bug when starting up a connection if our first (this) packet gets lost,
+        # then the protocol doesn't retransmit it.
+        # More specifically, it seems to clear it out of the queue.
+        # This might be CMA bug or a protocol bug.  It's not clear...
+        # The packet goes into the queue, but if that packet is lost in transmission, then when
+        # we come back around here, it's not in the queue any more, even though it
+        # definitely wasn't ACKed.
+        # Once this is fixed, this "add_packet" call needs to go *after* the 'if' statement below.
+        #
         CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
         ,   FrameTypes.CONFIGJSON)
 
@@ -189,7 +200,6 @@ class DispatchSTARTUP(DispatchTarget):
                 proj_class_incr_debug(None)
                 proj_class_incr_debug(None)
                 self.io.log_conn(origaddr)
-
                 return
             drone.lastjoin = localtime
         #print >> sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
