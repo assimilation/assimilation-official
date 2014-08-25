@@ -242,8 +242,8 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	// DEBUG = 3;
 
 	// EXCESSIVE DUMPING!!
-	if ((action & A_CLOSE)  || curstate >= FSPR_SHUT1 || nextstate >= FSPR_SHUT1
-	||	input == FSPROTO_RCVSHUTDOWN) {
+	if ((action & (A_CLOSE|A_SNDSHUT)) || curstate >= FSPR_SHUT1 || nextstate >= FSPR_SHUT1
+	||	input == FSPROTO_RCVSHUTDOWN || input == FSPROTO_REQSHUTDOWN) {
 		action |= A_DEBUG;
 	}
 
@@ -534,6 +534,8 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		    const NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
+	// EXCESSIVE DUMPING
+	DUMP("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	DUMP3("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
 		DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
