@@ -352,7 +352,7 @@ class DiscoverService(AssimSysTest):
     discover the service pretty quickly.
     '''
     def __init__(self, store, logfilename, testenviron, debug=False
-    ,   service='bind9', monitorname=None, timeout=None):
+    ,   service='bind9', monitorname=None):
         'Initializer for the DiscoverService class'
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.service=service
