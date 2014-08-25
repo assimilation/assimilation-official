@@ -173,7 +173,7 @@ class StopNanoprobe(AssimSysTest):
 @AssimSysTest.register
 class StartNanoprobe(AssimSysTest):
     'A start nanoprobe test'
-    def run(self, nano=None, debug=None, timeout=30):
+    def run(self, nano=None, debug=None, timeout=120):
         'Actually start the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
@@ -202,7 +202,7 @@ class StartNanoprobe(AssimSysTest):
 @AssimSysTest.register
 class FlipNanoprobe(AssimSysTest):
     '''A flip nanoprobe test - if it's up, bring it down -- and vice versa'''
-    def run(self, nano=None, debug=None, timeout=30):
+    def run(self, nano=None, debug=None, timeout=120):
         'Actually flip the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
@@ -228,7 +228,7 @@ class RestartNanoprobe(AssimSysTest):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
-    def run(self, nano=None, debug=None, timeout=30):
+    def run(self, nano=None, debug=None, timeout=240):
         'Actually stop and start (restart) the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
@@ -256,7 +256,7 @@ class RestartCMA(AssimSysTest):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
-    def run(self, nano=None, debug=None, timeout=30):
+    def run(self, nano=None, debug=None, timeout=60):
         'Actually stop and start (restart) the CMA and see if it worked'
         if debug is None:
             debug = self.debug
@@ -281,7 +281,7 @@ class RestartCMAandNanoprobe(AssimSysTest):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
-    def run(self, nano=None, debug=None, timeout=30):
+    def run(self, nano=None, debug=None, timeout=120):
         'Actually stop and start (restart) the CMA and see if it worked'
         if debug is None:
             debug = self.debug
@@ -299,7 +299,7 @@ class SimulCMAandNanoprobeRestart(AssimSysTest):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
-    def run(self, nano=None, debug=None, timeout=150):
+    def run(self, nano=None, debug=None, timeout=180):
         '''Our default timeout is so long because we can take a while to give up shutting down
         the nanoprobe - an ACK timeout might have to occur before it can shut down.
         '''
@@ -352,7 +352,7 @@ class DiscoverService(AssimSysTest):
     discover the service pretty quickly.
     '''
     def __init__(self, store, logfilename, testenviron, debug=False
-    ,   service='bind9', monitorname=None):
+    ,   service='bind9', monitorname=None, timeout=None):
         'Initializer for the DiscoverService class'
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.service=service
@@ -362,7 +362,7 @@ class DiscoverService(AssimSysTest):
 
     # W0221:Arguments number differs from overridden method
     # pylint: disable=W0221
-    def run(self, nano=None, debug=None, timeout=60, service=None, monitorname=None):
+    def run(self, nano=None, debug=None, timeout=120, service=None, monitorname=None):
         if service is None:
             service = self.service
         if monitorname is None:

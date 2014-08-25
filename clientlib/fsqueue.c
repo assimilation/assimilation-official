@@ -236,7 +236,9 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	}
 		
 	if (seq->getreqid(seq) >= self->_nextseqno) {
-		g_critical("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
+		// This is probably the result of a very fast restart - and is harmless
+		// Unless, of course, it happens a lot ;-)
+		g_warning("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
 		FMT_64BIT"d (ACK Ignored)."
 		,	__FUNCTION__, seq->getreqid(seq), self->_nextseqno);
 		DUMP("FsQueue", &self->baseclass, " is the queue in question.");
