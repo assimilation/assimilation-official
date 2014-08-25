@@ -80,8 +80,9 @@ class MessageDispatcher(object):
         # We want to ack the packet even in the failed case - retries are unlikely to help
         # and we need to avoid getting stuck in a loop retrying it forever...
         # EXCESSIVE DUMPING
-        CMAdb.log.debug('MessageDispatcher - ACKing message from %s: %s'
-        %   (origaddr, str(frameset)))
+        fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
+        CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
+        %   (fstypename, origaddr))
 
     @staticmethod
     def _process_exception(e, origaddr, frameset):
