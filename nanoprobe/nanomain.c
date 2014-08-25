@@ -46,8 +46,8 @@
 #include <misc.h>
 #include <nanoprobe.h>
 
-#define	DEBUGSHUTDOWN	1
 #undef	DEBUGSHUTDOWN
+#define	DEBUGSHUTDOWN	1
 
 DEBUGDECLARATIONS
 
