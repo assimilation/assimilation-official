@@ -69,7 +69,8 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	seqno = seqnoframe_new_init(FRAMETYPE_REQID, self->_nextseqno, self->_qid);
 	g_return_val_if_fail(seqno != NULL, FALSE);
 	++self->_nextseqno;
-	DEBUGMSG3("%s: next sequence number for %p is "FMT_64BIT"d", __FUNCTION__, self, self->_nextseqno);
+	DEBUGMSG3("%s.%d: next sequence number for %p is "FMT_64BIT"d", __FUNCTION__, __LINE__
+	,	self, self->_nextseqno);
 
 	// Of course, the session id on outbound packets should _never_ change
 	// But an uninitialized FsQueue session id is zero
