@@ -244,11 +244,11 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	// DEBUG = 3;
 
 	// EXCESSIVE DUMPING!!
-	if ((action & (A_CLOSE|A_SNDSHUT)) || curstate >= FSPR_SHUT1 || nextstate >= FSPR_SHUT1
-	||	input == FSPROTO_RCVSHUTDOWN || input == FSPROTO_REQSHUTDOWN) {
+	if ((action & (A_CLOSE|A_SNDSHUT|A_NOSHUT))
+	||	curstate >= FSPR_SHUT1		|| nextstate >= FSPR_SHUT1
+	||	FSPROTO_RCVSHUTDOWN == input	|| FSPROTO_REQSHUTDOWN == input) {
 		action |= A_DEBUG;
 	}
-
 
 	DUMP2("_fsprotocol_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
 	if (DEBUG >= 2 || (action & A_DEBUG)) {
@@ -387,7 +387,14 @@ _fsprotocol_flush_pending_connshut(FsProtoElem* fspe)
 		return;
 	}
 	if (FRAMESETTYPE_CONNSHUT == fs->fstype) {
+		// EXCESSIVE DUMPING
+		DUMP("_fsprotocol_flush_pending_connshut: FLUSHing this CONNSHUT packet: "
+		,	&fs->baseclass, "");
 		fspe->outq->flush1(fspe->outq);
+	}else{
+		// EXCESSIVE DUMPING
+		DUMP("_fsprotocol_flush_pending_connshut: NOT FLUSHing this packet: "
+		,	&fs->baseclass, "");
 	}
 }
 
