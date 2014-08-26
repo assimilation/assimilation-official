@@ -69,6 +69,7 @@ FSTATIC void		_fsprotocol_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* f
 FSTATIC const char*	_fsprotocol_fsa_states(FsProtoState state);
 FSTATIC const char*	_fsprotocol_fsa_inputs(FsProtoInput input);
 FSTATIC const char*	_fsprotocol_fsa_actions(unsigned int actionbits);
+FSTATIC void		_fsprotocol_flush_pending_connshut(FsProtoElem* fspe);
 
 #define AUDITFSPE(fspe)	{ if (fspe) _fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__); }
 #define AUDITIREADY(self) {_fsprotocol_auditiready(__FUNCTION__, __LINE__, self);}
@@ -119,7 +120,7 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 #define	A_TIMER			(1<<7)	///< 0x80 Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
 					///< which will eventually call the FSA with FSPROTO_SHUT_TO
 #define	A_NOTIME		(1<<8)	///< 0x100 Cancel the FSPROTO_SHUT_TO timer
-#define	A_FIX			(1<<9)	///< 0x200 Fix up the sequence numbers
+#define	A_NOSHUT		(1<<9)	///< 0x200 Flush out any pending CONNSHUT packets
 
 #define SHUTnTIMER		(A_SNDSHUT|A_TIMER)
 #define	ACKnSHUT		(A_ACKME|SHUTnTIMER)
@@ -198,6 +199,7 @@ _fsprotocol_fsa_actions(unsigned actionmask)
 		{A_ACKME,	"ACKME"},
 		{A_TIMER,	"TIMER"},
 		{A_NOTIME,	"NOTIME"},
+		{A_NOSHUT,	"NOSHUT"},
 	};
 	if (actionmask == 0) {
 		return "None";
@@ -299,11 +301,6 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			_fsprotocol_ackseqno(parent, fspe->endpoint, seq);
 		}
 	}
-	if (action & A_FIX) {
-		// We heard a packet that indicates our far endpoint has existing connection to us
- 		// @FIXME should do something for packet sequence fixup [action not currently used]
-		DEBUGMSG("@FIXME DID NOT DO: Packet sequence fixup requested");
-	}
 
 	// Notify other endpoint we're going away
 	if (action & A_SNDSHUT) {
@@ -313,6 +310,14 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		// EXCESSIVE DUMPING
 		DUMP("HERE IS THE CONNSHUT packet ", &fset->baseclass, "");
 		UNREF(fset);
+	}
+
+	// Flush any pending CONNSHUT packets 
+	if (action & A_NOSHUT) {
+		// This comes about if an ACK to our CONNSHUT gets lost, then the
+		// CONNSHUT hangs around and causes us heartburn when the far end restarts
+		// and we resend it.  Bad idea... https://trello.com/c/mLIA2fXJ
+		_fsprotocol_flush_pending_connshut(fspe);
 	}
 
 	if (action & A_TIMER) {		// Start the FSPROTO_SHUT_TO timer
@@ -369,6 +374,21 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	}
 	fspe->state = nextstate;
 	DEBUGMSG2("} /* %s:%d */", __FUNCTION__, __LINE__);
+}
+
+/// Flush the leading CONNSHUT packet in the queue -- if any
+FSTATIC void
+_fsprotocol_flush_pending_connshut(FsProtoElem* fspe)
+{
+	FrameSet*	fs;
+	g_return_if_fail(fspe != NULL);
+	fs = fspe->outq->qhead(fspe->outq);
+	if (NULL == fs) {
+		return;
+	}
+	if (FRAMESETTYPE_CONNSHUT == fs->fstype) {
+		fspe->outq->flush1(fspe->outq);
+	}
 }
 
 /** Try and transmit a packet after auditing the FSPE data structure */

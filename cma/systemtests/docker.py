@@ -254,13 +254,8 @@ class SystemTestEnvironment(object):
         self.cma = None
         self.debug = 0
         self.cleanupwhendone = cleanupwhendone
-
-        
         watch = LogWatcher(logname, [])
         watch.setwatch()
-        # This just makes sure the database is still up - which it should be...
-        # Once we receive the CMA update message, we really should already be good to go
-        qstr =  '''START one=node(*) RETURN one LIMIT 1'''
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // java version.*') % self.cma.hostname
