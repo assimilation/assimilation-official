@@ -1576,9 +1576,6 @@ class pyNetIO(pyAssimObj):
 
     def closeconn(self, qid, destaddr):
         'Close (reset) our connection to this address'
-
-        # I put this exception in here to help track down a bug @FIXME remove next statement
-        raise NotImplementedError("Is this the bug you're looking for?")
         base = self._Cstruct[0]
         while (not hasattr(base, 'closeconn')):
             base = base.baseclass

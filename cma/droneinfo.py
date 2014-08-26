@@ -31,7 +31,7 @@ from consts import CMAconsts
 from store import Store
 from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext #, DEFAULT_FSP_QID
+from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
 from assimevent import AssimEvent
 from cmaconfig import ConfigFile
 
@@ -202,11 +202,15 @@ class Drone(SystemNode):
         if reason != 'HBSHUTDOWN':
             CMAdb.log.info('Node %s has been reported as %s by address %s. Reason: %s'
             %   (self.designation, status, str(fromaddr), reason))
+        oldstatus = self.status
         self.status = status
         self.reason = reason
         self.monitors_activated = False
         self.time_status_ms = int(round(time.time() * 1000))
         self.time_status_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
+        if status == oldstatus:
+            # He was already dead, Jim.
+            return
         # There is a need for us to be a little more sophisticated
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
@@ -214,10 +218,19 @@ class Drone(SystemNode):
         for mightbering in CMAdb.store.load_in_related(self, None, nodeconstructor):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
-        #deadip = pyNetAddr(self.select_ip(), port=self.port)
-        #if CMAdb.debug:
-        #    CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
-        #self._io.closeconn(DEFAULT_FSP_QID, deadip)
+        deadip = pyNetAddr(self.select_ip(), port=self.port)
+        if CMAdb.debug:
+            CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
+        #
+        # So, if this is a death report from another system we could shut down ungracefully
+        # and it would be OK.
+        #
+        # But if it's a graceful shutdown, we need to not screw up the comm shutdown in progress
+        # It's the comm protocol's FSA's job to ensure that this doesn't happen.
+        # Looking at the FSA right now, it looks like it does that right...
+        # If it's broken, our tests and the real world will eventually show that up :-D.
+        #
+        self._io.closeconn(DEFAULT_FSP_QID, deadip)
         AssimEvent(self, AssimEvent.OBJDOWN)
 
     def start_heartbeat(self, ring, partner1, partner2=None):
