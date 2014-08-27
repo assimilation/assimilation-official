@@ -229,9 +229,10 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	,	seq->getsessionid(seq), seq->getqid(seq), seq->getreqid(seq));
 	if (seq->getsessionid(seq) != self->_sessionid) {
 		if (self->_sessionid != 0) {
-			g_critical("%s: Incoming ACK packet has invalid session id [%d instead of %d]"
-			" (ACK ignored)."
-			,	__FUNCTION__, seq->getsessionid(seq), self->_sessionid);
+			g_warning("%s.%d: Incoming ACK packet has invalid session id "
+			"[%d instead of %d] (ACK ignored)."
+			,	__FUNCTION__, __LINE__, seq->getsessionid(seq)
+			,	self->_sessionid);
 		}
 		return -1;
 	}
