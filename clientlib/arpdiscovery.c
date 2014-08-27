@@ -114,6 +114,9 @@ _arpdiscovery_finalize(AssimObj* dself)
                 g_source_remove(self->timeout_source);
 		self->timeout_source = 0;
         }
+	if (self->arpconfig) {
+		UNREF(self->arpconfig);
+	}
 
 	UNREF(self->ArpMap);
 	self->ArpMapData = NULL;	// Child object of ArpMap
@@ -137,6 +140,9 @@ _arpdiscovery_first_discovery(gpointer gself) ///<[in/out] Pointer to 'self'
 {
         ArpDiscovery*	self = CASTTOCLASS(ArpDiscovery, gself);
 	int		interval = self->arpconfig->getint(self->arpconfig, CONFIGNAME_INTERVAL);
+	if (self->timeout_source > 0) {
+		g_source_remove(self->timeout_source);
+	}
 	self->timeout_source
 	=	g_timeout_add_seconds_full
         	(G_PRIORITY_HIGH, interval, _arpdiscovery_gsourcefunc
@@ -315,6 +321,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	ret = NEWSUBCLASS(ArpDiscovery, dret);
 
 	ret->arpconfig = arpconfig;
+	REF(arpconfig);
 	ret->finalize = dret->baseclass._finalize;
 	dret->baseclass._finalize = _arpdiscovery_finalize;
 	dret->discover = _arpdiscovery_discover;
