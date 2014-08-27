@@ -334,7 +334,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	// We do start this randomly to keep multiple reporters from flooding the CMA
 	// It's not a bad idea in general, but until we select who is reporting ARPs
 	// it's a really wonderful idea.
-	firstinterval = g_rand_int_range(nano_random, (interval/2), interval+1+(interval/2));
+	firstinterval = g_rand_int_range(nano_random, interval, 2*interval);
 	ret->timeout_source
 	=	g_timeout_add_seconds_full
         	(G_PRIORITY_HIGH, firstinterval, _arpdiscovery_first_discovery
