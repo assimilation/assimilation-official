@@ -38,7 +38,7 @@ def logit(msg):
 
 def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
     'Actually perform the given set of tests the given number of times, etc'
-    badregexes=(' (ERROR|CRIT|CRITICAL): ',)
+    badregexes=(' (ERROR:|CRIT:|CRITICAL:|nanoprobe\[[0-9]*]: segfault at) ',)
     itercount=1
     while True:
         test = random.choice(testset)
