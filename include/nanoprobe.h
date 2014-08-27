@@ -49,6 +49,7 @@ extern const char *		procname;	///< process name
 WINEXPORT extern int			errcount;	///< error count
 WINEXPORT extern GMainLoop*		mainloop;
 extern gboolean			nano_shutting_down;
+extern GRand*			nano_random;
 
 // Override this if you want to set up a non-standard deadtime agent. */
 void (*nanoprobe_deadtime_agent)(HbListener*);

@@ -100,6 +100,7 @@ FSTATIC gboolean	_nano_initconfig_OK(ConfigContext* config);
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 
 gboolean		nano_shutting_down = FALSE;
+GRand*			nano_random = NULL;
 const char *		procname = "nanoprobe";
 static AuthListener*	obeycollective = NULL;
 
@@ -1223,9 +1224,11 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	=	configcontext_new_JSON_string(
 		"{\""CONFIGNAME_INSTANCE"\":\"SWITCH_eth0\",\""CONFIGNAME_DEVNAME"\":\"eth0\",\""CONFIGNAME_SWPROTOS"\":[\"lldp\", \"cdp\"]}");
 	
-	nano_shutting_down = FALSE;
 	BINDDEBUG(nanoprobe_main);
-	
+	nano_shutting_down = FALSE;
+	if (NULL == nano_random) {
+		nano_random = g_rand_new();
+	}
  	hblistener_set_martian_callback(_real_martian_agent);
 	cruftiness = initcrufty;
 	g_source_ref(CASTTOCLASS(GSource, io));
@@ -1367,6 +1370,10 @@ _nano_final_shutdown(gpointer unused)
 	if (idle_shutdown_gsource) {
 		g_source_remove(idle_shutdown_gsource);
 		idle_shutdown_gsource = 0;
+	}
+	if (nano_random) {
+		g_rand_free(nano_random);
+		nano_random = NULL;
 	}
 	g_main_quit(mainloop);
 	return FALSE;

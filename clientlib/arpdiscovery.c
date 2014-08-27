@@ -30,6 +30,7 @@
 #include <netaddr.h>
 #include <misc.h>
 #include <tlvhelper.h>
+#include <nanoprobe.h>
 /**
  * @defgroup arp_format Layout of ARP Packets
  * @ingroup WireDataFormats
@@ -89,6 +90,7 @@ FSTATIC gboolean _arpdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconst
 FSTATIC void _arpdiscovery_notify_function(gpointer data);
 FSTATIC void _arpdiscovery_sendarpcache(ArpDiscovery* self);
 FSTATIC gboolean _arpdiscovery_gsourcefunc(gpointer);
+FSTATIC gboolean _arpdiscovery_first_discovery(gpointer);
 
 DEBUGDECLARATIONS
 
@@ -129,7 +131,24 @@ _arpdiscovery_discover(Discovery* self)  ///<[in/out]
 }
 
 
-/// A GSourceFunc to be used with g_timeout_add_seconds()
+/// A GSourceFunc to be called for the first (random) discovery *only*
+FSTATIC gboolean
+_arpdiscovery_first_discovery(gpointer gself) ///<[in/out] Pointer to 'self'
+{
+        ArpDiscovery*	self = CASTTOCLASS(ArpDiscovery, gself);
+	int		interval = self->arpconfig->getint(self->arpconfig, CONFIGNAME_INTERVAL);
+	self->timeout_source
+	=	g_timeout_add_seconds_full
+        	(G_PRIORITY_HIGH, interval, _arpdiscovery_gsourcefunc
+        	,	self, _arpdiscovery_notify_function);
+	DEBUGMSG3("Sender %p subsequent timeout source is: %d, interval is %d", self
+   	,         self->timeout_source, interval);
+        _arpdiscovery_sendarpcache(self);
+        return FALSE;
+}
+
+
+/// Function which periodically sends our ARP cache upstream
 FSTATIC gboolean
 _arpdiscovery_gsourcefunc(gpointer gself) ///<[in/out] Pointer to 'self'
 {
@@ -275,6 +294,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	ArpDiscovery*	ret;
 	const char*	dev;
 	const char*	instance;
+	int		firstinterval;
 	int		interval;
 	char*		sysname;
 
@@ -290,9 +310,11 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	interval = arpconfig->getint(arpconfig, CONFIGNAME_INTERVAL);
 	if (interval <= 0) {
 		interval = DEFAULT_ARP_SENDINTERVAL;
+		arpconfig->setint(arpconfig, CONFIGNAME_INTERVAL, interval);
 	}
 	ret = NEWSUBCLASS(ArpDiscovery, dret);
 
+	ret->arpconfig = arpconfig;
 	ret->finalize = dret->baseclass._finalize;
 	dret->baseclass._finalize = _arpdiscovery_finalize;
 	dret->discover = _arpdiscovery_discover;
@@ -308,12 +330,16 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 
 	ret->ArpMapData = ret->ArpMap->getconfig(ret->ArpMap, "data");
 
-	// Set the timer for how often to send to CMA.
+	// Set the timer for initially when to send to the CMA
+	// We do start this randomly to keep multiple reporters from flooding the CMA
+	// It's not a bad idea in general, but until we select who is reporting ARPs
+	// it's a really wonderful idea.
+	firstinterval = g_rand_int_range(nano_random, (interval/2), interval+1+(interval/2));
 	ret->timeout_source
 	=	g_timeout_add_seconds_full
-        	(G_PRIORITY_HIGH, interval, _arpdiscovery_gsourcefunc
+        	(G_PRIORITY_HIGH, firstinterval, _arpdiscovery_first_discovery
         	,	ret, _arpdiscovery_notify_function);
-	DEBUGMSG3("Sender %p timeout source is: %d, interval is %d", ret
+	DEBUGMSG3("Sender %p initial timeout source is: %d, interval is %d", ret
    	,         ret->timeout_source, interval);
 
 	if (objsize == sizeof(ArpDiscovery)) {

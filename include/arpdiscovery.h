@@ -34,11 +34,12 @@
 typedef struct _ArpDiscovery ArpDiscovery;
 /// @ref ArpDiscovery C-class - for discovering IP/MAC address resolution via the ARP protocol captured using <i>libpcap</i>.
 struct _ArpDiscovery {
-	Discovery	baseclass;			/// Base class object
-	GSource*	source;				/// GSource for the pcap data
-	void		(*finalize)(AssimObj* self);	/// Saved parent class destructor
-	ConfigContext*	ArpMap;				/// Arp IP/MAC addresses hash table
-	ConfigContext*	ArpMapData;			/// The actual address portion
+	Discovery	baseclass;			///< Base class object
+	GSource*	source;				///< GSource for the pcap data
+	void		(*finalize)(AssimObj* self);	///< Saved parent class destructor
+	ConfigContext*	ArpMap;				///< Arp IP/MAC addresses hash table
+	ConfigContext*	ArpMapData;			///< The actual address portion
+	ConfigContext*	arpconfig;			///< Our configuration data
         guint           timeout_source;                 ///< timeout source id
 
 };
