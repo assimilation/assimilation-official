@@ -96,9 +96,9 @@ class Drone(SystemNode):
     def get_owned_ips(self):
         '''Return a list of all the IP addresses that this Drone owns'''
         params = {'droneid':Store.id(self)}
-        if False and CMAdb.debug:
+        if CMAdb.debug:
             print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
-            %   (Drone.OwnedIPsQuery_subtxt, params))
+            %   (Drone.OwnedIPsQuery_subtxt, str(params)))
 
         return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
         ,       params=params)]
