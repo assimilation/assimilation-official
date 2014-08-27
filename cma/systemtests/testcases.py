@@ -128,6 +128,9 @@ class AssimSysTest(object):
         for nano in sysenv.nanoprobes:
             regexes.append(r' %s cma INFO: Stored OS JSON data from (%s) '
             %       (sysenv.cma.hostname, nano.hostname))
+            regexes.append(r' (%s) rsyslogd: \[.*] start' % (nano.hostname))
+            regexes.append(r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
+            %   (nano.hostname))
         logwatch.setregexes(regexes)
 
         match = logwatch.lookforall(timeout=int(timeout+maxdrones/10))
@@ -421,6 +424,7 @@ if __name__ == "__main__":
     def testmain(logname, maxdrones=3, debug=False):
         'Test our test cases'
         import datetime
+        os.system("logger 'Starting test of our test cases'")
         try:
             sysenv, ourstore = AssimSysTest.initenviron(logname, maxdrones, debug
             ,       cmadebug=0, nanodebug=0)
@@ -428,9 +432,11 @@ if __name__ == "__main__":
             print 'FAILED initial startup - which is pretty basic'
             print 'Any chance you have another CMA running??'
             raise RuntimeError('Another CMA is running(?)')
+
+        #for cls in [DiscoverService for j in range(0,20)]:
         for cls in AssimSysTest.testset:
             badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: ')
-            os.system("logger -s 'CREATED LOG WATCH with %s'" % str(badregexes))
+            #os.system("logger -s 'CREATED LOG WATCH with %s'" % str(badregexes))
             badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
             badwatch.setwatch()
             print ('Starting %s test at %s...' % (cls.__name__, str(datetime.datetime.now())))
