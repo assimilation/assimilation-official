@@ -35,7 +35,7 @@ from cmainit import CMAinit
 from cmadb import CMAdb
 from packetlistener import PacketListener
 from messagedispatcher import MessageDispatcher
-from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER
+from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER, DispatchHBSHUTDOWN
 from hbring import HbRing
 from droneinfo import Drone
 import optparse
@@ -237,7 +237,8 @@ def auditalldrones():
     droneobjs = [drone for drone in droneobjs]
     numdrones = len(droneobjs)
     for droneid in range(0, numdrones):
-        audit.auditadrone(droneid+1)
+        droneid = int(droneobjs[droneid].designation[6:])
+        audit.auditadrone(droneid)
     query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:Drone('*:*') RETURN n''')
     queryobjs = CMAdb.store.load_cypher_nodes(query, Drone)
     queryobjs = [drone for drone in queryobjs]
@@ -301,16 +302,20 @@ class TestIO:
         os.close(self.pipe_write)
         self.pipe_write = -1
         self.atend = False
+        self.readfails = 0
+        self.initpackets = len(self.inframes)
 
     @staticmethod
     def shutdown_on_timeout(io):
         if io.pipe_read >= 0:
             os.close(io.pipe_read)
+            io.pipe_read = -1
         io.mainloop.quit()
         return False
 
     def recvframesets(self):
         # Audit after each packet is processed - and once before the first packet.
+        assert CMAdb.io.config is not None
         if DoAudit:
             if self.packetsread < 200 or (self.packetsread % 500) == 0:
                 CMAdb.store.commit()
@@ -320,11 +325,16 @@ class TestIO:
             if not self.atend:
                 self.timeout = glib.timeout_add(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
                 self.atend = True
-                self.config = None
+                #self.config = None
             else:
+                #self.mainloop.quit()
+                if self.pipe_read >= 0:
+                    os.close(self.pipe_read)
+                    self.pipe_read = -1
+            self.readfails += 1
+            if self.readfails > self.initpackets+4:
                 self.mainloop.quit()
-                os.close(self.pipe_read)
-                self.pipe_read = -1
+                
             return (None, None)
         ret = self.inframes[self.index]
         self.index += 1
@@ -527,22 +537,28 @@ class TestCMABasic(TestCase):
             #print >> sys.stderr, 'KILLING THEM ALL!!!'
             for droneid in range(2,maxdrones+1):
                 droneip = droneipaddress(droneid)
-                deadframe=pyIpPortFrame(FrameTypes.IPPORT, addrstring=droneip)
-                fs = pyFrameSet(FrameSetTypes.HBDEAD)
-                fs.append(deadframe)
-                fsin.append((addrone, (fs,)))
+                designation = dronedesignation(droneid)
+                #deadframe=pyIpPortFrame(FrameTypes.IPPORT, addrstring=droneip)
+                fs = pyFrameSet(FrameSetTypes.HBSHUTDOWN)
+                #fs.append(deadframe)
+                hostframe=pyCstringFrame(FrameTypes.HOSTNAME, designation)
+                fs.append(hostframe)
+                fsin.append((droneip, (fs,)))
         io = TestIO(fsin)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
+        assert CMAdb.io.config is not None
         assimcli_check('loadqueries')
         disp = MessageDispatcher( {
             FrameSetTypes.STARTUP: DispatchSTARTUP(),
             FrameSetTypes.HBDEAD: DispatchHBDEAD(),
+            FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN(),
         })
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io)
         io.mainloop = listener.mainloop
         # We send the CMA a BUNCH of intial STARTUP packets
         # and (optionally) a bunch of HBDEAD packets
+        assert CMAdb.io.config is not None
         listener.listen()
         # We audit after each packet is processed
         # The auditing code will make sure all is well...
@@ -558,8 +574,8 @@ class TestCMABasic(TestCase):
             #self.check_live_counts(1, 0, 1)
             assimcli_check("query allservers", maxdrones)
             assimcli_check("query down", maxdrones-1)
-            assimcli_check("query crashed", maxdrones-1)
-            assimcli_check("query shutdown", 0)
+            assimcli_check("query crashed", 0)
+            assimcli_check("query shutdown", maxdrones-1)
         else:
             if maxdrones == 1:
                 partnercount=0
@@ -584,6 +600,7 @@ class TestCMABasic(TestCase):
             print "The CMA read %d packets."  % io.packetsread
             print "The CMA wrote %d packets." % io.writecount
         #io.dumppackets()
+        io.config = None
         io.cleanio()
 
 

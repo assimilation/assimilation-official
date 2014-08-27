@@ -95,13 +95,14 @@ class PacketListener(object):
         self.queue_addrs = {} # Indexed by IP addresses - which queue is this IP in?
 
     @staticmethod
-    def frameset_prio(fstype):
+    def frameset_prio(frameset):
         'Return the priority of a frameset'
+        fstype = frameset.get_framesettype()
         return PacketListener.prio_map.get(fstype, PacketListener.DEFAULT_PRIO)
 
-    def add_frameset(self, frameset, fromaddr):
-        '''Add (read in) a frameset to our frameset queue system
-        Our queue system has a queue of frameset queues - one per priority level
+    def enqueue_frameset(self, frameset, fromaddr):
+        '''Enqueue (read in) a frameset to our frameset queue system
+        This queue system has a queue of frameset queues - one per priority level
         Each frameset queue consists of three elements:
             'addr'  the IP address of the far-end
             'Q'     a queue of framesets from address 'addr'
@@ -115,15 +116,16 @@ class PacketListener(object):
         We keep a separate hash table (queue_addrs) which associates frameset queues with
         the corresponding IP addresses.
         '''
-        fstype = frameset.fstype
-        prio = self.frameset_prio(fstype)
+        prio = self.frameset_prio(frameset)
         if fromaddr not in self.queue_addrs:
             # Then we need to create a new frameset queue for it
             queue = {'addr': fromaddr, 'Q': [frameset,], 'prio': prio}
             self.queue_addrs[fromaddr] = queue
+            self.prio_queues[prio].append(queue)
         else:
             # The frameset queue exists.  Append our frameset to the queue
             queue = self.queue_addrs[fromaddr]
+            queue['Q'].append(frameset)
             oldprio = queue['prio']
             # Do we need to move the frameset queue to a different priority queue?
             if prio < oldprio:
@@ -131,7 +133,7 @@ class PacketListener(object):
                 self.prio_queues[oldprio].remove(queue)
                 self.prio_queues[prio].append(queue)
 
-    def read_a_frameset(self):
+    def dequeue_a_frameset(self):
         '''Read a frameset from our frameset queue system in priority order
         We read from the highest priority queues first, moving down the
         priority scheme if there are no higher priority queues with packets to read.
@@ -141,21 +143,19 @@ class PacketListener(object):
                 continue
             frameset_queue = prio_queue.pop(0)
             frameset = frameset_queue['Q'].pop(0)
-            addr = frameset_queue['addr']
-            oldprio = frameset_queue['prio']
+            fromaddr = frameset_queue['addr']
             # Was that the last packet from this address?
-            if len(frameset_queue['Q'] > 0):
+            if len(frameset_queue['Q']) > 0:
                 # Nope.  We still have more to read.
-                newprio = min([self.frameset_prio(fs.fstype) for fs in frameset_queue['Q']])
+                newprio = min([self.frameset_prio(fs) for fs in frameset_queue['Q']])
                 # Appending the frameset queue to the end => fairness under load
-                self.prio_queues[oldprio].remove(frameset_queue)
                 self.prio_queues[newprio].append(frameset_queue)
                 frameset_queue['prio'] = newprio
             else:
                 # Frameset queue is now empty
-                self.prio_queues[oldprio].remove(frameset_queue)
-                del self.queue_addrs[addr]
-            return addr, frameset
+                del self.queue_addrs[fromaddr]
+            #print >> sys.stderr, ('RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
+            return fromaddr, frameset
         return None, None
 
 
@@ -167,7 +167,8 @@ class PacketListener(object):
         unusedsource = unusedsource
         if cb_condition == glib.IO_IN or cb_condition == glib.IO_PRI:
             #print >> sys.stderr, ('Calling %s.listenonce' %  listener), type(listener)
-            listener.listenonce()
+            #listener.listenonce() ##OLD CODE
+            listener.queueanddispatch()
         else:
             if cb_condition == glib.IO_ERR:
                 cond = 'IO_ERR'
@@ -218,4 +219,33 @@ class PacketListener(object):
                 if CMAdb.debug:
                     CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" \
                     %       (str(fromaddr), frameset))
+                self.dispatcher.dispatch(fromaddr, frameset)
+    def _read_all_available(self):
+        'Read All available framesets into our queue system'
+        while True:
+            (fromaddr, framesetlist) = self.io.recvframesets()
+            if fromaddr is None:
+                break
+            else:
+                fromstr = repr(fromaddr)
+                if CMAdb.debug:
+                    CMAdb.log.debug("Received FrameSet from str([%s], [%s])" \
+                    %       (str(fromaddr), fromstr))
+                #print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
+                #%       (str(fromaddr), fromstr))
+
+            for frameset in framesetlist:
+                if CMAdb.debug:
+                    CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" \
+                    %       (str(fromaddr), frameset))
+                self.enqueue_frameset(frameset, fromaddr)
+
+    def queueanddispatch(self):
+        'Queue and dispatch all available framesets in priority order'
+        while True:
+            self._read_all_available()
+            fromaddr, frameset = self.dequeue_a_frameset()
+            if fromaddr is None:
+                return
+            else:
                 self.dispatcher.dispatch(fromaddr, frameset)
