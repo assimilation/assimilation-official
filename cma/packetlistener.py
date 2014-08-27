@@ -63,7 +63,7 @@ class PacketListener(object):
         FrameSetTypes.STARTUP:      PRIO_ONE,   # High priority but sometimes expensive
 
         FrameSetTypes.SWDISCOVER:   PRIO_TWO,   # Not priority, often expensive
-        FrameSetTypes.JSDISCOVER:   PRIO_TWO,
+        FrameSetTypes.JSDISCOVERY:   PRIO_TWO,
 
         FrameSetTypes.HBLATE:       PRIO_THREE, # Not terribly important
         FrameSetTypes.HBBACKALIVE:  PRIO_THREE,
