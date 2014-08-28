@@ -131,7 +131,7 @@ class MessageDispatcher(object):
         cobjcount = proj_class_live_object_count()
         CMAdb.log.info('Total/max allocated C-Objects: %s/%s'
         %   (cobjcount, proj_class_max_object_count()))
-        if gctotal < 20 and cobjcount > 500:
+        if gctotal < 20 and cobjcount > 5000:
             dump_c_objects()
 
         if CMAdb.debug:
