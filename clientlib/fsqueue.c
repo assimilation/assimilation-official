@@ -273,9 +273,6 @@ _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 	while (NULL != (qelem = g_queue_pop_head(self->_q))) {
 		FrameSet *	fs = CASTTOCLASS(FrameSet, qelem);
 		SeqnoFrame*	seq;
-		// EXCESSIVE DUMPING!
-		DEBUGMSG("%s: Flushing FrameSet at %p - ref count = %d"
-		,	__FUNCTION__, fs, fs->baseclass._refcount);
 		DEBUGMSG3("%s: Flushing FrameSet at %p - ref count = %d"
 		,	__FUNCTION__, fs, fs->baseclass._refcount);
 		DUMP4("Flushing", &fs->baseclass, " whoosh!");
@@ -393,8 +390,6 @@ _fsqueue_finalize(AssimObj* aself)		///< The @ref FsQueue object we're operating
 {
 	FsQueue*	self = CASTTOCLASS(FsQueue, aself);
 
-	// EXCESSIVE DUMPING!!
-	DUMP("FsQueue finalize", &self->baseclass, __FUNCTION__);
 	DUMP3("FsQueue finalize", &self->baseclass, __FUNCTION__);
 	// Let our 'destaddr' object go...
 	UNREF(self->_destaddr);
