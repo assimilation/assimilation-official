@@ -180,7 +180,7 @@ class LogWatcher(object):
         self.debugmsg("Last line: %s " %  str(last_line))
         return None
 
-    def lookforall(self, timeout=None):
+    def lookforall(self, timeout=None, logloadavg=True):
         '''Examine the log looking for ALL of the given patterns.
         It starts looking from the place marked by setwatch().
 
@@ -202,6 +202,8 @@ class LogWatcher(object):
                 return None
             returnresult.append(oneresult)
             del self.regexes[self.whichmatched]
+            if logloadavg:
+                os.system('logger "Load Avg: $(cat /proc/loadavg)"')
         self.unmatched = None
         self.regexes = save_regexes
         return returnresult

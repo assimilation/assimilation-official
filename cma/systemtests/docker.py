@@ -269,6 +269,7 @@ class SystemTestEnvironment(object):
         # pylint: disable=W0108
         for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=nanodebug), nanocount):
             self.nanoprobes.append(child())
+            os.system('logger "Load Avg: $(cat /proc/loadavg)"')
 
     def _spawnsystem(self, imagename):
         'Spawn a system image'

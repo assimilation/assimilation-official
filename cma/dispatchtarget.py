@@ -29,7 +29,7 @@ from cmaconfig import ConfigFile
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, pySwitchDiscovery
-from AssimCtypes import proj_class_incr_debug
+#from AssimCtypes import proj_class_incr_debug
 from monitoring import MonitorAction
 from assimevent import AssimEvent
 
@@ -195,11 +195,8 @@ class DispatchSTARTUP(DispatchTarget):
         if (localtime is not None):
             if (drone.lastjoin == localtime):
                 CMAdb.log.warning('Drone %s [%s] sent duplicate STARTUP' % (sysname, origaddr))
-                ## EXCESS DEBUG!!
-                proj_class_incr_debug(None)
-                proj_class_incr_debug(None)
-                proj_class_incr_debug(None)
-                self.io.log_conn(origaddr)
+                if CMAdb.debug:
+                    self.io.log_conn(origaddr)
                 return
             drone.lastjoin = localtime
         #print >> sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port

@@ -80,10 +80,10 @@ class MessageDispatcher(object):
         # We want to ack the packet even in the failed case - retries are unlikely to help
         # and we need to avoid getting stuck in a loop retrying it forever...
         self.io.ackmessage(origaddr, frameset)
-        # EXCESSIVE DUMPING
-        fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
-        CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
-        %   (fstypename, origaddr))
+        if CMAdb.debug:
+            fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
+            CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
+            %   (fstypename, origaddr))
 
     @staticmethod
     def _process_exception(e, origaddr, frameset):

@@ -177,7 +177,7 @@ class ArpDiscoveryListener(DiscoveryListener):
             if not Store.is_abstract(ipnode):
                 # Then this IP address already existed,
                 # but it wasn't related to our NIC...
-                ## @TODO We should make sure it isn't related to a different NIC
+                # Make sure it isn't related to a different NIC
                 for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner
                     , GraphNode.factory):
                     self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
