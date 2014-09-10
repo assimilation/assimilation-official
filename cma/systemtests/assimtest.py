@@ -33,17 +33,18 @@ from testcases import AssimSysTest
 
 def logit(msg):
     'log things to the system log and to stdout'
-    os.system("logger '%s'" %   (msg))
+    os.system('logger "%s"' %   (msg))
     print ("%s: %s" % (datetime.datetime.now(), msg))
 
 def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
     'Actually perform the given set of tests the given number of times, etc'
-    badregexes=(' (ERROR:|CRIT:|CRITICAL:|nanoprobe\[[0-9]*]: segfault at) ',)
+    badregexes=(r' (ERROR:|CRIT:|CRITICAL:|nanoprobe\[[0-9]*]: segfault at) ',)
     itercount=1
     while True:
         test = random.choice(testset)
         badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
         logit("STARTING test %d - %s" %   (itercount, test.__name__))
+        logit('Load Avg: $(cat /proc/loadavg)')
         badwatch.setwatch()
         if test.__name__ == 'DiscoverService':
             ret = test(store, logname, sysenv, debug=debug

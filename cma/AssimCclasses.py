@@ -1680,7 +1680,6 @@ def dump_c_objects():
             cobjcount += 1
             cobj = 'None'
             if hasattr(obj, '_Cstruct') and obj._Cstruct is not None:
-
                 cobj = ('0x%x' % addressof(getattr(obj, '_Cstruct')[0]))
             print >> sys.stderr, ('FOUND C object class(%s): %s -> %s'
             %   (obj.__class__.__name__, str(obj)[:512], cobj))
