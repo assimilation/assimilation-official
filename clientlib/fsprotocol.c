@@ -243,12 +243,13 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	action = actions[fspe->state][input];
 	// DEBUG = 3;
 
-	// EXCESSIVE DUMPING!!
+#if 0
 	if ((action & (A_CLOSE|A_SNDSHUT|A_NOSHUT))
 	||	curstate >= FSPR_SHUT1		|| nextstate >= FSPR_SHUT1
 	||	FSPROTO_RCVSHUTDOWN == input	|| FSPROTO_REQSHUTDOWN == input) {
 		action |= A_DEBUG;
 	}
+#endif
 
 	DUMP2("_fsprotocol_fsa() {: endpoint ", &fspe->endpoint->baseclass, NULL);
 	if (DEBUG >= 2 || (action & A_DEBUG)) {
@@ -307,8 +308,9 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		FrameSet*	fset = frameset_new(FRAMESETTYPE_CONNSHUT);
 		// Note that this will generate a recursive call to the FSA...
 		parent->send1(parent, fset, fspe->_qid, fspe->endpoint);
-		// EXCESSIVE DUMPING
-		DUMP("HERE IS THE CONNSHUT packet ", &fset->baseclass, "");
+		if (action & A_DEBUG) {
+			DUMP("HERE IS THE CONNSHUT packet ", &fset->baseclass, "");
+		}
 		UNREF(fset);
 	}
 
@@ -364,8 +366,6 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 
 	if (action & A_CLOSE) {
 		DUMP3("CLOSING CONNECTION (A_CLOSE)", &fspe->endpoint->baseclass, "");
-		//EXCESSIVE DUMPING!
-		DUMP("CLOSING CONNECTION (A_CLOSE)", &fspe->endpoint->baseclass, "");
 		_fsprotocol_fspe_reinit(fspe);
 		fspe->shutdown_complete = TRUE;
 		// Clean this up after a while
@@ -387,13 +387,11 @@ _fsprotocol_flush_pending_connshut(FsProtoElem* fspe)
 		return;
 	}
 	if (FRAMESETTYPE_CONNSHUT == fs->fstype) {
-		// EXCESSIVE DUMPING
-		DUMP("_fsprotocol_flush_pending_connshut: FLUSHing this CONNSHUT packet: "
+		DUMP3("_fsprotocol_flush_pending_connshut: FLUSHing this CONNSHUT packet: "
 		,	&fs->baseclass, "");
 		fspe->outq->flush1(fspe->outq);
 	}else{
-		// EXCESSIVE DUMPING
-		DUMP("_fsprotocol_flush_pending_connshut: NOT FLUSHing this packet: "
+		DUMP3("_fsprotocol_flush_pending_connshut: NOT FLUSHing this packet: "
 		,	&fs->baseclass, "");
 	}
 }
@@ -563,8 +561,6 @@ _fsprotocol_closeconn(FsProtocol*self		///< typical FsProtocol 'self' object
 ,		    const NetAddr* destaddr)	///< destination address
 {
 	FsProtoElem*	fspe = _fsprotocol_find(self, qid, destaddr);
-	// EXCESSIVE DUMPING
-	DUMP("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	DUMP3("_fsprotocol_closeconn() - closing connection to", &destaddr->baseclass, NULL);
 	if (fspe) {
 		DUMP3("_fsprotocol_closeconn: shutting down connection to", &destaddr->baseclass, NULL);
@@ -584,7 +580,6 @@ _fsprotocol_closeall(FsProtocol* self)
 	gpointer	key;
 	gpointer	value;
 
-	// EXCESSIVE DUMPING
 	DEBUGMSG("In %s.%d", __FUNCTION__, __LINE__);
 	// Can't modify the table during an iteration...
 	g_hash_table_foreach_remove(self->endpoints, _fsprotocol_canclose_immediately, NULL);
@@ -657,8 +652,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 {
 
 	if (!g_queue_is_empty(self->outq->_q)) {
-		// EXCESSIVE DUMPING!
-		DUMP("REINIT OF OUTQ", &self->outq->baseclass, __FUNCTION__);
+		DUMP3("REINIT OF OUTQ", &self->outq->baseclass, __FUNCTION__);
 		self->outq->flush(self->outq);
 		self->parent->unacked = g_list_remove(self->parent->unacked, self);
 		self->outq->isready = FALSE;
@@ -806,8 +800,7 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	FsProtoElem *	self = CASTTOCLASS(FsProtoElem, fsprotoelemthing);
 	DUMP5("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 
-	// EXCESSIVE DUMPING!!
-	DUMP("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
+	DUMP3("Destroying FsProtoElem", &self->endpoint->baseclass, __FUNCTION__);
 	// This does a lot of our cleanup - but doesn't destroy anything important...
 	_fsprotocol_fspe_reinit(self);
 
@@ -1258,9 +1251,8 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 		if (NULL != fs) {
 			// Update next retransmission time...
 			fspe->nextrexmit = now + parent->rexmit_interval;
-			// EXCESSIVE DUMPING!!  But we're losing some CMA packets...
-			DUMP(__FUNCTION__, &fspe->endpoint->baseclass, " Retransmission target");
-			DUMP(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
+			DUMP3(__FUNCTION__, &fspe->endpoint->baseclass, " Retransmission target");
+			DUMP3(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
 			io->sendaframeset(io, fspe->endpoint, fs);
 			AUDITFSPE(fspe);
 
