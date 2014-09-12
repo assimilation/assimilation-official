@@ -969,7 +969,7 @@ class Store(object):
         end = datetime.now()
         diff = end - start
         self.stats['lastcommit'] = diff
-        self.stats['totaltime'] = self.stats['totaltime'] + diff
+        self.stats['totaltime'] += diff
 
         # Save away (update) any newly created nodes...
         for pair in self._new_nodes():
