@@ -50,7 +50,7 @@ from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, py
         pyIpPortFrame
 from frameinfo import FrameSetTypes, FrameTypes
 from assimjson import JSONtree
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class Transaction(object):
     '''This class implements database/nanoprobe transactions.
@@ -109,7 +109,7 @@ class Transaction(object):
         self.namespace = {}
         self.created = []
         self.sequence = None
-        self.stats = {'lastcommit': 0.0, 'totaltime': 0.0}
+        self.stats = {'lastcommit': timedelta(0), 'totaltime': timedelta(0)}
 
     def __str__(self):
         'Convert our internal tree to JSON.'
@@ -225,7 +225,7 @@ class Transaction(object):
             self.stats['lastcommit'] = diff
             self.stats['totaltime'] += diff
         else:
-            self.stats['lastcommit'] = 0.0
+            self.stats['lastcommit'] = timedelta(0)
         self.abort_trans()
 
     def abort_trans(self):
