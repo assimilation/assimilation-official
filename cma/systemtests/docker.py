@@ -170,7 +170,7 @@ class DockerSystem(TestSystem):
     def _get_docker_pid(self):
         'Return the PID of a docker instance - retrying in case of error'
         j=0
-        while j < 100:
+        while j < 10:
             fd = os.popen('%s %s %s %s %s'
             %   (DockerSystem.dockercmd , 'inspect', '--format', '{{.State.Pid}}', self.name))
             line = fd.readline().rstrip()
@@ -218,9 +218,9 @@ class DockerSystem(TestSystem):
         else:
             self.runningservices.append(servicename)
         if async:
-            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s restart &' % servicename,))
+            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s start &' % servicename,))
         else:
-            self.runinimage(('/etc/init.d/'+servicename, 'restart'))
+            self.runinimage(('/etc/init.d/'+servicename, 'start'))
 
     def stopservice(self, servicename, async=False):
         'nsenter-based stop service action for docker'
@@ -270,11 +270,39 @@ class SystemTestEnvironment(object):
         for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=nanodebug), nanocount):
             self.nanoprobes.append(child())
             os.system('logger "Load Avg: $(cat /proc/loadavg)"')
+            self._waitforloadavg(2.75, 60)
+
+    @staticmethod
+    def _waitforloadavg(maxloadavg, maxwait=30):
+        'Wait for the load average to drop below our maximum'
+        fd = open('/proc/loadavg', 'r')
+        for waittry in range(0, maxwait):
+            waittry = waittry # Make pylint happy
+            fd.seek(0)
+            loadavg = float(fd.readline().split(' ')[0])
+            if loadavg < maxloadavg:
+                break
+            time.sleep(1)
+        fd.close()
+
+
 
     def _spawnsystem(self, imagename):
         'Spawn a system image'
-        system = self.sysclass(imagename, ('/bin/bash', '-c', 'while sleep 10; do wait -n; done'))
-        system.start()
+        while True:
+            try:
+                # Docker has a bug where it will screw up and give us
+                system = self.sysclass(imagename
+                ,   ('/bin/bash', '-c', 'while sleep 10; do wait -n; done'))
+                system.start()
+                break
+            except RuntimeError:
+                # So, let's try that again...
+                # This will leave some gaps in the system names, but we don't use them for anything.
+                print  >> sys.stderr, ('Destroying system %s and trying again...' % (system.name))
+                system.destroy()
+                system = None
+
         # Set up logging to be forwarded to our parent logger
         system.runinimage(('/bin/bash', '-c'
         ,   '''PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT);'''

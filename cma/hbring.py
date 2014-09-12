@@ -152,10 +152,10 @@ class HbRing(GraphNode):
         if nextnext is not None and nextnext is not self._insertpoint1:
             #print >> sys.stderr, 'HAD AT LEAST 3 NODES BEFORE'
             # At least 3 nodes before
-            # We had X->point1->point2->Y (where X and Y might have been the same)
+            # We had X->point1->point2->nextnext (where X and nextnext might be the same)
             # We just verified that point1 and Y are different
             #
-            # What we have right now is point1->point2->nextnext
+            # What we have right now is insertpoint1->insertpoint2->nextnext
             # Let's move the insert point down the ring so that the same node doesn't get hit
             # over and over with stop/start requests
             #

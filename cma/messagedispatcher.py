@@ -31,6 +31,7 @@ from AssimCtypes import proj_class_live_object_count, proj_class_max_object_coun
 from AssimCclasses import pyAssimObj, dump_c_objects
 import os, sys, traceback
 import gc
+from datetime import datetime
 
 class MessageDispatcher(object):
     'We dispatch incoming messages where they need to go.'
@@ -51,14 +52,23 @@ class MessageDispatcher(object):
         # W0703 == Too general exception catching...
         # pylint: disable=W0703
         try:
+            dispatchstart = datetime.now()
             if fstype in self.dispatchtable:
                 self.dispatchtable[fstype].dispatch(origaddr, frameset)
             else:
                 self.default.dispatch(origaddr, frameset)
+            dispatchend = datetime.now()
+            CMAdb.log.info('Initial dispatch time for %s frameset: %s'
+            %   (fstype, dispatchend-dispatchstart))
             # Commit the network transaction here
             CMAdb.transaction.commit_trans(CMAdb.io)
+            CMAdb.log.info('Network transaction time: %s'
+            %   (str(CMAdb.transaction.stats['lastcommit'])))
+
             if CMAdb.store.transaction_pending:
                 result = CMAdb.store.commit()
+                CMAdb.log.info('Neo4j transaction time: %s'
+                %   (str(CMAdb.store.stats['lastcommit'])))
                 if CMAdb.debug:
                     resultlines = str(result).splitlines()
                     CMAdb.log.debug('Commit results follow:')
@@ -72,6 +82,9 @@ class MessageDispatcher(object):
                 if CMAdb.debug:
                     CMAdb.log.debug('No database changes this time')
                 CMAdb.store.abort()
+            dispatchend = datetime.now()
+            CMAdb.log.info('Total dispatch time for %s frameset: %s'
+            %   (fstype, dispatchend-dispatchstart))
             if (self.dispatchcount % 100) == 1:
                 self._check_memory_usage()
 
