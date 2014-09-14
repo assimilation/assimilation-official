@@ -964,6 +964,8 @@ nanoobey_stopdiscover(AuthListener* parent	///<[in] @ref AuthListener object inv
 	}
 }
 
+static SwitchDiscovery*	swdisc = NULL;
+static ArpDiscovery*	arpdisc = NULL;
 
 /**
  * Schedule a discovery instance, potentially repetitively.
@@ -977,8 +979,12 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 			NetAddr* fromaddr)	///<[in/out] Requestor's address
 {
 	ConfigContext*	jsonroot;
+	ConfigContext*	swconfig;
+	ConfigContext*	arpconfig;
 	JsonDiscovery*	discovery;
 	const char*	disctype;
+        const char*	instancename;
+        const char*	devname;
 
 	(void)fromaddr;
 
@@ -987,12 +993,41 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 	g_return_if_fail(jsonroot != NULL);
 	disctype = jsonroot->getstring(jsonroot, "type");
 	g_return_if_fail(disctype != NULL);
-	discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
-	,			      transport, config, 0);
-	UNREF(jsonroot);
-	if (discovery) {
+
+        if (strcmp(disctype, "#SWITCH") == 0) {
+            instancename = jsonroot->getstring(jsonroot, "instancename");
+            devname = jsonroot->getstring(jsonroot, "devname");
+	    swconfig =	configcontext_new_JSON_string(
+	        "{\""CONFIGNAME_INSTANCE"\":\"\",\""CONFIGNAME_DEVNAME"\":\"\",\""CONFIGNAME_SWPROTOS"\":[\"lldp\", \"cdp\"]}");
+            swconfig->setstring(swconfig, "instance", instancename);
+            swconfig->setstring(swconfig, "device", devname);
+            // printf("*** swconfig = %s: \n", swconfig->baseclass.toString(&swconfig->baseclass));
+	    DEBUGMSG3("%s.%d: swconfig = %s", __FUNCTION__, __LINE__, swconfig->baseclass.toString(&swconfig->baseclass));
+	    swdisc = switchdiscovery_new(swconfig, G_PRIORITY_LOW, g_main_context_default()
+	    ,	transport, config, 0);
+	    UNREF(swconfig);
+        } else if (strcmp(disctype, "#ARP") == 0) {
+            instancename = jsonroot->getstring(jsonroot, "instancename");
+            devname = jsonroot->getstring(jsonroot, "devname");
+
+	    arpconfig =	configcontext_new_JSON_string(
+		"{\""CONFIGNAME_INSTANCE"\":\"\",\""CONFIGNAME_DEVNAME"\":\"\"}");
+            arpconfig->setstring(arpconfig, "instance", instancename);
+            arpconfig->setstring(arpconfig, "device", devname);
+            // printf("*** arpconfig = %s: \n", arpconfig->baseclass.toString(&arpconfig->baseclass));
+	    DEBUGMSG3("%s.%d: arpconfig = %s", __FUNCTION__, __LINE__, arpconfig->baseclass.toString(&arpconfig->baseclass));
+	    arpdisc = arpdiscovery_new(arpconfig, G_PRIORITY_LOW, g_main_context_default()
+	    ,	transport, config, 0);
+	    UNREF(arpconfig);
+        } else {
+	    discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
+	    ,			      transport, config, 0);
+	    if (discovery) {
 		UNREF2(discovery);
-	}
+	    }
+        }
+
+	UNREF(jsonroot);
 }
 
 /// Stuff we need only for passing parameters through our glib infrastructures - to start up nanoprobes.
@@ -1138,8 +1173,6 @@ nano_reqconfig(gpointer gcruft)
 }
 
 static PacketDecoder*	decoder = NULL;
-static SwitchDiscovery*	swdisc = NULL;
-static ArpDiscovery*	arpdisc = NULL;
 
 
 /// The set of Collective Management Authority FrameTypes we know about,
@@ -1213,12 +1246,6 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 		discover_interval,
 		io,
 	};
-	ConfigContext*	arpconfig
-	=	configcontext_new_JSON_string(
-		"{\""CONFIGNAME_INSTANCE"\":\"ARP_eth0\",\""CONFIGNAME_DEVNAME"\":\"eth0\"}");
-	ConfigContext* swconfig
-	=	configcontext_new_JSON_string(
-		"{\""CONFIGNAME_INSTANCE"\":\"SWITCH_eth0\",\""CONFIGNAME_DEVNAME"\":\"eth0\",\""CONFIGNAME_SWPROTOS"\":[\"lldp\", \"cdp\"]}");
 	
 	BINDDEBUG(nanoprobe_main);
 	nano_shutting_down = FALSE;
@@ -1230,16 +1257,6 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	g_source_ref(CASTTOCLASS(GSource, io));
 	nanotransport = io;
 
-	// Get our local switch discovery information.
-	// To be really right, we probably ought to wait until we know our local network
-	// configuration - and start it up on all interfaces assigned addresses of global scope.
-	///@todo - eventually change switch discovery to be sensitive to our local network configuration
-	swdisc = switchdiscovery_new(swconfig, G_PRIORITY_LOW, g_main_context_default()
-	,	io, config, 0);
-	UNREF(swconfig);
-	arpdisc = arpdiscovery_new(arpconfig, G_PRIORITY_LOW, g_main_context_default()
-	,	io, config, 0);
-	UNREF(arpconfig);
 	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
 	// Initiate the startup process
@@ -1272,8 +1289,12 @@ nano_shutdown(gboolean report)
 	}
 	hbsender_stopallsenders();
 	hblistener_shutdown();
-	UNREF2(swdisc);
-	UNREF2(arpdisc);
+        if (swdisc) {
+	    UNREF2(swdisc);
+        }
+	if (arpdisc) {
+	    UNREF2(arpdisc);
+        }
 	if (nanofailreportaddr) {
 		UNREF(nanofailreportaddr);
 	}

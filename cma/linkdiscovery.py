@@ -35,10 +35,13 @@ More details are documented in the LinkDiscoveryListener class
 from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyNetAddr
+from AssimCclasses import pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, SystemNode
+from cmaconfig import ConfigFile
+import sys
 
 @Drone.add_json_processor
 class LinkDiscoveryListener(DiscoveryListener):
@@ -54,12 +57,51 @@ class LinkDiscoveryListener(DiscoveryListener):
     '''
 
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('__LinkDiscovery',)
+    wantedpackets = ('__LinkDiscovery','netconfig')
 
     #R0914:684,4:LinkDiscoveryListener.processpkt: Too many local variables (25/15)
     # pylint: disable=R0914
 
     def processpkt(self, drone, unused_srcaddr, jsonobj):
+        '''Trigger Switch discovery or add Low Level (Link Level) discovery data to the database.
+        '''
+        if jsonobj['discovertype'] == '__LinkDiscovery':
+            self.processpkt_linkdiscovery(drone, unused_srcaddr, jsonobj)
+        elif jsonobj['discovertype'] == 'netconfig':
+            self.processpkt_netconfig(drone, unused_srcaddr, jsonobj)
+        else:
+            print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
+ 
+    def processpkt_netconfig(self, drone, unused_srcaddr, jsonobj):
+        '''We want to trigger Switch discovery when we hear a 'netconfig' packet
+
+        Build up the parameters for the discovery
+        action, then send it to drone.request_discovery(...)
+        To build up the parameters, you use ConfigFile.agent_params()
+        which will pull values from the system configuration.
+        '''
+
+        unused_srcaddr = unused_srcaddr # make pylint happy
+        params = ConfigFile.agent_params(self.config, 'discovery', '#SWITCH', drone.designation)
+        netconfiginfo = pyConfigContext(jsonobj)
+
+        params['type'] = '#SWITCH'
+        params['instance'] = '_switch'
+
+        data = jsonobj['data'] # the data portion of the JSON message
+        for devname in data.keys():
+            #print >> sys.stderr, "*** devname:", devname
+            devinfo = data[devname]
+            if str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True' \
+                                          and str(devinfo['address']) != '00-00-00-00-00-00' \
+                                          and str(devinfo['address']) != '':
+                instancename = '#SWITCH_' + devname 
+                params['instancename'] = instancename
+                params['devname'] = devname
+                #print >> sys.stderr, '#SWITCH parameters:', params
+                drone.request_discovery((params,))
+
+    def processpkt_linkdiscovery(self, drone, unused_srcaddr, jsonobj):
         'Add Low Level (Link Level) discovery data to the database'
         #
         #   This code doesn't yet deal with moving network connections around
