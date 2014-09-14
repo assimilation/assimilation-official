@@ -36,6 +36,7 @@ More details are documented in the ArpDiscoveryListener class
 from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyNetAddr
+from AssimCclasses import pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
@@ -95,16 +96,32 @@ class ArpDiscoveryListener(DiscoveryListener):
 
     def processpkt_netconfig(self, drone, unused_srcaddr, jsonobj):
         '''We want to trigger ARP discovery when we hear a 'netconfig' packet
-        I'm leaving the implementation of this to Carrie ;-)
-        Carrie: you can see how this is done by looking at checksumdiscovery.py
 
-        The basic idea is that you build up the parameters for the discovery
+        Build up the parameters for the discovery
         action, then send it to drone.request_discovery(...)
         To build up the parameters, you use ConfigFile.agent_params()
         which will pull values from the system configuration.
         '''
-        p = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
-        print >> sys.stderr, '#ARP parameters:', p
+
+        unused_srcaddr = unused_srcaddr # make pylint happy
+        params = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
+        netconfiginfo = pyConfigContext(jsonobj)
+        
+        params['type'] = '#ARP'
+        params['instance'] = '_arp'
+
+        data = jsonobj['data'] # the data portion of the JSON message
+        for devname in data.keys():
+            #print >> sys.stderr, "*** devname:", devname
+            devinfo = data[devname]
+            if str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True' \
+                                          and str(devinfo['address']) != '00-00-00-00-00-00' \
+                                          and str(devinfo['address']) != '':
+                instancename = '#ARP_' + devname
+                params['instancename'] = instancename
+                params['devname'] = devname
+                #print >> sys.stderr, '#ARP parameters:', params
+                drone.request_discovery((params,))
 
     def processpkt_arp(self, drone, unused_srcaddr, jsonobj):
         '''We want to update the database when we hear a 'ARP' discovery packet

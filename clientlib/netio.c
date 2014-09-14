@@ -475,7 +475,8 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 		g_warning("%s: destaddr:[%s] ", __FUNCTION__, tostring);
 		g_free(tostring); tostring = NULL;
 	}
-	g_return_if_fail(rc == length);
+	//g_return_if_fail(rc == length);
+	g_warn_if_fail(rc == length);
 }
 
 /// NetIO member function to send a GSList of FrameSets.
