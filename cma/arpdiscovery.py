@@ -38,6 +38,7 @@ from store import Store
 from AssimCclasses import pyNetAddr
 from AssimCclasses import pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
+from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE, CONFIGNAME_DEVNAME
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, GraphNode
@@ -82,7 +83,7 @@ class ArpDiscoveryListener(DiscoveryListener):
     #               This is what eventually causes ARP discovery packets to be sent
     # ARP:          Packets resulting from ARP discovery - triggered by
     #               the requests we send above...
-    wantedpackets = ('ARP','netconfig')
+    wantedpackets = ('ARP', 'netconfig')
 
     def processpkt(self, drone, srcaddr, jsonobj):
         '''Trigger ARP discovery or add ARP data to the database.
@@ -107,19 +108,18 @@ class ArpDiscoveryListener(DiscoveryListener):
         params = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
         netconfiginfo = pyConfigContext(jsonobj)
         
-        params['type'] = '#ARP'
-        params['instance'] = '_arp'
+        params[CONFIGNAME_TYPE] = '#ARP'
 
         data = jsonobj['data'] # the data portion of the JSON message
         for devname in data.keys():
             #print >> sys.stderr, "*** devname:", devname
             devinfo = data[devname]
-            if str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True' \
-                                          and str(devinfo['address']) != '00-00-00-00-00-00' \
-                                          and str(devinfo['address']) != '':
-                instancename = '#ARP_' + devname
-                params['instancename'] = instancename
-                params['devname'] = devname
+            if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
+                                          and str(devinfo['address']) != '00-00-00-00-00-00'
+                                          and str(devinfo['address']) != ''):
+                instance = '#ARP_' + devname
+                params[CONFIGNAME_INSTANCE] = instance
+                params[CONFIGNAME_DEVNAME] = devname
                 #print >> sys.stderr, '#ARP parameters:', params
                 drone.request_discovery((params,))
 
