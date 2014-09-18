@@ -37,6 +37,8 @@ from store import Store
 from AssimCclasses import pyNetAddr
 from AssimCclasses import pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
+from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
+from AssimCtypes import CONFIGNAME_DEVNAME, CONFIGNAME_SWPROTOS
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, SystemNode
@@ -57,7 +59,7 @@ class LinkDiscoveryListener(DiscoveryListener):
     '''
 
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('__LinkDiscovery','netconfig')
+    wantedpackets = ('__LinkDiscovery', 'netconfig')
 
     #R0914:684,4:LinkDiscoveryListener.processpkt: Too many local variables (25/15)
     # pylint: disable=R0914
@@ -85,19 +87,19 @@ class LinkDiscoveryListener(DiscoveryListener):
         params = ConfigFile.agent_params(self.config, 'discovery', '#SWITCH', drone.designation)
         netconfiginfo = pyConfigContext(jsonobj)
 
-        params['type'] = '#SWITCH'
-        params['instance'] = '_switch'
+        params[CONFIGNAME_TYPE] = '#SWITCH'
 
         data = jsonobj['data'] # the data portion of the JSON message
         for devname in data.keys():
             #print >> sys.stderr, "*** devname:", devname
             devinfo = data[devname]
-            if str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True' \
-                                          and str(devinfo['address']) != '00-00-00-00-00-00' \
-                                          and str(devinfo['address']) != '':
-                instancename = '#SWITCH_' + devname 
-                params['instancename'] = instancename
-                params['devname'] = devname
+            if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
+                                          and str(devinfo['address']) != '00-00-00-00-00-00'
+                                          and str(devinfo['address']) != ''):
+                instance = '#SWITCH_' + devname 
+                params[CONFIGNAME_INSTANCE] = instance
+                params[CONFIGNAME_DEVNAME] = devname
+                params[CONFIGNAME_SWPROTOS] = ["lldp", "cdp"]
                 #print >> sys.stderr, '#SWITCH parameters:', params
                 drone.request_discovery((params,))
 

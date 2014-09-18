@@ -34,6 +34,7 @@ More details are documented in the DiscoveryListener class
 import sys
 from droneinfo import Drone
 from AssimCclasses import pyConfigContext
+from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
 from assimevent import AssimEvent
 from cmaconfig import ConfigFile
 
@@ -43,7 +44,7 @@ from discoverylistener import DiscoveryListener
 class TCPDiscoveryChecksumGenerator(DiscoveryListener):
     'Class for generating checksums based on the content of tcpdiscovery packets'
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('tcpdiscovery','checksum')
+    wantedpackets = ('tcpdiscovery', 'checksum')
 
     def processpkt(self, drone, srcaddr, jsonobj):
         if jsonobj['discovertype'] == 'tcpdiscovery':
@@ -74,8 +75,8 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                     ,   '/usr/bin/passwd'
                     ,   '/tmp/foobar']
             })
-        params['type'] = 'checksums'
-        params['instance'] = '_auto_checksumdiscovery'
+        params[CONFIGNAME_TYPE] = 'checksums'
+        params[CONFIGNAME_INSTANCE] = '_auto_checksumdiscovery'
 
         data = jsonobj['data'] # The data portion of the JSON message
         for procname in data.keys():    # List of nanoprobe-assigned names of processes...
