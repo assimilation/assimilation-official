@@ -35,7 +35,6 @@ More details are documented in the LinkDiscoveryListener class
 from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyNetAddr
-from AssimCclasses import pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
 from AssimCtypes import CONFIGNAME_DEVNAME, CONFIGNAME_SWPROTOS
