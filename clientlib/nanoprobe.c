@@ -964,9 +964,6 @@ nanoobey_stopdiscover(AuthListener* parent	///<[in] @ref AuthListener object inv
 	}
 }
 
-SwitchDiscovery*	swdisc;
-ArpDiscovery*	arpdisc;
-
 /**
  * Schedule a discovery instance, potentially repetitively.
  */
@@ -993,12 +990,12 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
         if (strcmp(disctype, "#SWITCH") == 0) {
             //printf("*** jsonroot = %s: \n", jsonroot->baseclass.toString(&jsonroot->baseclass));
 	    DEBUGMSG3("%s.%d: jsonroot = %s", __FUNCTION__, __LINE__, jsonroot->baseclass.toString(&jsonroot->baseclass));
-	    swdisc = switchdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
+	    switchdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
 	    ,	transport, config, 0);
         } else if (strcmp(disctype, "#ARP") == 0) {
             //printf("*** jsonroot = %s: \n", jsonroot->baseclass.toString(&jsonroot->baseclass));
 	    DEBUGMSG3("%s.%d: jsonroot = %s", __FUNCTION__, __LINE__, jsonroot->baseclass.toString(&jsonroot->baseclass));
-	    arpdisc = arpdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
+	    arpdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
 	    ,	transport, config, 0);
         } else {
 	    discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
@@ -1255,10 +1252,6 @@ nano_shutdown(gboolean report)
 		g_info("%-35s %8d", "Count of warntimes:", nano_hbstats.warntime_count);
 		g_info("%-35s %8d", "Count of comealives:", nano_hbstats.comealive_count);
 		g_info("%-35s %8d", "Count of martians:", nano_hbstats.martian_count);
-		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts sent:", swdisc->baseclass.reportcount);
-		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:", swdisc->baseclass.discovercount);
-		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of ARP pkts sent:", arpdisc->baseclass.reportcount);
-		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of ARP pkts received:", arpdisc->baseclass.discovercount);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of recvfrom calls:", ts->recvcalls);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of pkts read:", ts->pktsread);
 		g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of framesets read:", ts->fsreads);
@@ -1273,12 +1266,6 @@ nano_shutdown(gboolean report)
 	hbsender_stopallsenders();
 	hblistener_shutdown();
 
-        if (swdisc) {
-	    UNREF2(swdisc);
-        }
-	if (arpdisc) {
-	    UNREF2(arpdisc);
-        }
 
 	if (nanofailreportaddr) {
 		UNREF(nanofailreportaddr);

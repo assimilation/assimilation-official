@@ -105,6 +105,8 @@ FSTATIC void
 _arpdiscovery_finalize(AssimObj* dself)
 {
 	ArpDiscovery * self = CASTTOCLASS(ArpDiscovery, dself);
+	g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of ARP pkts received:"
+	,	self->baseclass.discovercount);
 	if (self->source) {
 		g_source_unref(self->source);
 		g_source_destroy(self->source);
