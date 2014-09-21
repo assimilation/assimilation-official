@@ -43,6 +43,10 @@ FSTATIC void
 _switchdiscovery_finalize(AssimObj* dself)
 {
 	SwitchDiscovery * self = CASTTOCLASS(SwitchDiscovery, dself);
+	g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts sent:"
+	,	self->baseclass.reportcount);
+	g_info("%-35s %8"G_GINT64_MODIFIER"d", "Count of LLDP/CDP pkts received:"
+	,	self->baseclass.discovercount);
 	if (self->source) {
 		g_source_unref(self->source);
 		g_source_destroy(self->source);
