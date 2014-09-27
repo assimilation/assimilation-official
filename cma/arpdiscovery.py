@@ -74,6 +74,10 @@ class ArpDiscoveryListener(DiscoveryListener):
     being bottlenecked by massive updates if you have a subnet with a lot of IP
     addresses on it.  It also means that we would not get 1024 entries just because
     one came online...
+
+    Of course, a lot of what causes this code to be really slow is the fact that we
+    hit the database with a transaction for each IP and each MAC that we find in the
+    message.
     '''
 
     prio = DiscoveryListener.PRI_OPTION     # This is an optional feature
@@ -84,6 +88,9 @@ class ArpDiscoveryListener(DiscoveryListener):
     # ARP:          Packets resulting from ARP discovery - triggered by
     #               the requests we send above...
     wantedpackets = ('ARP', 'netconfig')
+
+    ip_map = {}
+    mac_map = {}
 
     def processpkt(self, drone, srcaddr, jsonobj):
         '''Trigger ARP discovery or add ARP data to the database.
@@ -153,7 +160,26 @@ class ArpDiscoveryListener(DiscoveryListener):
             maciptable[mac].append(ip)
 
         for mac in maciptable:
-            self.add_mac_ip(drone, mac, maciptable[mac])
+            self.filtered_add_mac_ip(drone, mac, maciptable[mac])
+
+    def filtered_add_mac_ip(self, drone, macaddr, IPlist):
+        '''We process all the IP addresses that go with a given MAC address (NICNode)
+        The parameters are expected to be canonical address strings like str(pyNetAddr(...)).
+
+        Lots of the information we're given is typically repeats of information we
+        were given before.  This is why we keep these two in-memory maps
+        - to help speed that up by a huge factor.
+        '''
+        for ip in IPlist:
+            if ArpDiscoveryListener.ip_map.get(ip) != macaddr:
+                self.add_mac_ip(drone, macaddr, IPlist)
+                for ip in IPlist:
+                    ArpDiscoveryListener.ip_map[ip] = macaddr
+                    if macaddr not in ArpDiscoveryListener.mac_map:
+                        ArpDiscoveryListener.mac_map[macaddr] = []
+                    if ip not in ArpDiscoveryListener.mac_map[macaddr]:
+                        ArpDiscoveryListener.mac_map[macaddr].append(ip)
+                return
 
     def add_mac_ip(self, drone, macaddr, IPlist):
         '''We process all the IP addresses that go with a given MAC address (NICNode)
@@ -175,7 +201,7 @@ class ArpDiscoveryListener(DiscoveryListener):
             oldiplist = self.store.load_related(nicnode, CMAconsts.REL_ipowner, IPaddrNode)
             for ipnode in oldiplist:
                 currips[ipnode.ipaddr] = ipnode
-                #print >> sys.stderr, ('IP %s already related to NIC %s' 
+                #print >> sys.stderr, ('IP %s already related to NIC %s'
                 #%       (str(ipnode.ipaddr), str(nicnode.macaddr)))
             # See what IPs still need to be added
             ips_to_add = []
@@ -189,7 +215,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         for ip in IPlist:
             ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain
             ,       ipaddr=ip)
-            #print >> sys.stderr, ('CREATING IP %s for NIC %s' 
+            #print >> sys.stderr, ('CREATING IP %s for NIC %s'
             #%       (str(ipnode.ipaddr), str(nicnode.macaddr)))
             if not Store.is_abstract(ipnode):
                 # Then this IP address already existed,
@@ -198,7 +224,7 @@ class ArpDiscoveryListener(DiscoveryListener):
                 for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner
                     , GraphNode.factory):
                     self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
-            print >> sys.stderr, ('RELATING (%s)-[:ipowner]->(%s)	[%s]' 
+            print >> sys.stderr, ('RELATING (%s)-[:ipowner]->(%s)	[%s]'
             %       (str(nicnode.macaddr), str(ipnode.ipaddr), org))
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)
             if org != macprefix and not hasattr(nicnode, 'OUI'):

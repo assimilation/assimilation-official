@@ -316,7 +316,9 @@ class pySwitchDiscovery(object):
 
 
             elif tlvtype == LLDP_TLV_ORG_SPECIFIC: ######################################
-                print >> sys.stderr, 'Found LLDP org-specific extensions (not processed)'
+                print >> sys.stderr, (
+                'Found %d bytes of LLDP org-specific extensions (not processed)'
+                %       tlvlen)
 
             if value is not None:
                 if tlvtype == LLDP_TLV_PID:

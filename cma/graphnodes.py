@@ -347,7 +347,7 @@ class NICNode(GraphNode):
         GraphNode.__init__(self, domain=domain)
         mac = pyNetAddr(macaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
-            raise ValueError('Not a legal MAC address')
+            raise ValueError('Not a legal MAC address [%s]' % macaddr)
         self.macaddr = str(mac)
         self.ifname = ifname
 

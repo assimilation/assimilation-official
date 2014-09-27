@@ -35,7 +35,7 @@ More details are documented in the LinkDiscoveryListener class
 from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyNetAddr
-from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
+from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
 from AssimCtypes import CONFIGNAME_DEVNAME, CONFIGNAME_SWPROTOS
 from discoverylistener import DiscoveryListener
@@ -143,12 +143,20 @@ class LinkDiscoveryListener(DiscoveryListener):
 
 
         if 'ManagementAddress' in attrs:
-            # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
-            mgmtaddr = attrs['ManagementAddress']
-            mgmtnetaddr = pyNetAddr(mgmtaddr)
-            atype = mgmtnetaddr.addrtype()
-            if atype == ADDR_FAMILY_IPV4 or atype == ADDR_FAMILY_IPV6:
-                # MAC addresses are permitted, but IP addresses are preferred
+            self._process_mgmt_addr(switch, chassisid, attrs)
+        self._process_ports(drone, switch, chassisid, data['ports'])
+
+    def _process_mgmt_addr(self, switch, chassisid, attrs):
+        'Process the ManagementAddress field in the LLDP packet'
+        # FIXME - not sure if I know how I should do this now - no MAC address for mgmtaddr?
+        mgmtaddr = attrs['ManagementAddress']
+        mgmtnetaddr = pyNetAddr(mgmtaddr)
+        atype = mgmtnetaddr.addrtype()
+        if atype == ADDR_FAMILY_IPV4 or atype == ADDR_FAMILY_IPV6:
+            # MAC addresses are permitted, but IP addresses are preferred
+            chassisaddr = pyNetAddr(chassisid)
+            chassistype = chassisaddr.addrtype()
+            if chassistype == ADDR_FAMILY_802: # It might be an IP address instead
                 adminnic = self.store.load_or_create(NICNode, domain=switch.domain
                 ,       macaddr=chassisid, ifname='(adminNIC)')
                 mgmtip = self.store.load_or_create(IPaddrNode, domain=switch.domain
@@ -157,8 +165,20 @@ class LinkDiscoveryListener(DiscoveryListener):
                     self.store.relate(switch, CMAconsts.REL_nicowner, adminnic)
                 if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
                     self.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip)
-        self._process_ports(drone, switch, chassisid, data['ports'])
-
+            else:
+                self.log.info('LLDP ATTRS: %s' % str(attrs))
+                if mgmtnetaddr != chassisaddr:
+                    # Not really sure what I should be doing in this case...
+                    self.log.warning(
+                    'Chassis ID [%s] not a MAC addr and not the same as mgmt addr [%s]'
+                    %   (chassisid, mgmtaddr))
+                    self.log.warning('Chassis ID [%s] != mgmt addr [%s]'
+                    %   (str(mgmtnetaddr), str(chassisaddr)))
+        elif atype == ADDR_FAMILY_802:
+            mgmtnic = self.store.load_or_create(NICNode, domain=switch.domain
+            ,       macaddr=mgmtaddr, ifname='(ManagementAddress)')
+            if Store.is_abstract(mgmtnic) or Store.is_abstract(switch):
+                self.store.relate(switch, CMAconsts.REL_nicowner, mgmtnic)
     def _process_ports(self, drone, switch, chassisid, ports):
         'Process the ports listed in JSON data from switch discovery'
 
