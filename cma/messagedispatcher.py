@@ -46,50 +46,12 @@ class MessageDispatcher(object):
     # pylint: disable=R0914,R0912
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
-        fstype = frameset.get_framesettype()
-        #print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
         self.dispatchcount += 1
         CMAdb.transaction = Transaction()
         # W0703 == Too general exception catching...
         # pylint: disable=W0703
         try:
-            dispatchstart = datetime.now()
-            if fstype in self.dispatchtable:
-                self.dispatchtable[fstype].dispatch(origaddr, frameset)
-            else:
-                self.default.dispatch(origaddr, frameset)
-            dispatchend = datetime.now()
-            if self.logtimes:
-                CMAdb.log.info('Initial dispatch time for %s frameset: %s'
-                %   (fstype, dispatchend-dispatchstart))
-            # Commit the network transaction here
-            CMAdb.transaction.commit_trans(CMAdb.io)
-            if self.logtimes:
-                CMAdb.log.info('Network transaction time: %s'
-                %   (str(CMAdb.transaction.stats['lastcommit'])))
-
-            if CMAdb.store.transaction_pending:
-                result = CMAdb.store.commit()
-                if self.logtimes:
-                    CMAdb.log.info('Neo4j transaction time: %s'
-                    %   (str(CMAdb.store.stats['lastcommit'])))
-                if CMAdb.debug:
-                    resultlines = str(result).splitlines()
-                    CMAdb.log.debug('Commit results follow:')
-                    for line in resultlines:
-                        CMAdb.log.debug(line.expandtabs())
-                    CMAdb.log.debug('end of commit results.')
-                    # This is a VERY expensive call...
-                    # Good thing we only do it when debug is enabled...
-                    CMAdb.TheOneRing.AUDIT()
-            else:
-                if CMAdb.debug:
-                    CMAdb.log.debug('No database changes this time')
-                CMAdb.store.abort()
-            dispatchend = datetime.now()
-            if self.logtimes:
-                CMAdb.log.info('Total dispatch time for %s frameset: %s'
-                %   (fstype, dispatchend-dispatchstart))
+            self._try_dispatch_action(origaddr, frameset)
             if (self.dispatchcount % 100) == 1:
                 self._check_memory_usage()
 
@@ -97,11 +59,52 @@ class MessageDispatcher(object):
             self._process_exception(e, origaddr, frameset)
         # We want to ack the packet even in the failed case - retries are unlikely to help
         # and we need to avoid getting stuck in a loop retrying it forever...
-        self.io.ackmessage(origaddr, frameset)
         if CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
             CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
             %   (fstypename, origaddr))
+        self.io.ackmessage(origaddr, frameset)
+
+    def _try_dispatch_action(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        #print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
+        dispatchstart = datetime.now()
+        if fstype in self.dispatchtable:
+            self.dispatchtable[fstype].dispatch(origaddr, frameset)
+        else:
+            self.default.dispatch(origaddr, frameset)
+        dispatchend = datetime.now()
+        if self.logtimes:
+            CMAdb.log.info('Initial dispatch time for %s frameset: %s'
+            %   (fstype, dispatchend-dispatchstart))
+        # Commit the network transaction here
+        CMAdb.transaction.commit_trans(CMAdb.io)
+        if self.logtimes:
+            CMAdb.log.info('Network transaction time: %s'
+            %   (str(CMAdb.transaction.stats['lastcommit'])))
+
+        if CMAdb.store.transaction_pending:
+            result = CMAdb.store.commit()
+            if self.logtimes:
+                CMAdb.log.info('Neo4j transaction time: %s'
+                %   (str(CMAdb.store.stats['lastcommit'])))
+            if CMAdb.debug:
+                resultlines = str(result).splitlines()
+                CMAdb.log.debug('Commit results follow:')
+                for line in resultlines:
+                    CMAdb.log.debug(line.expandtabs())
+                CMAdb.log.debug('end of commit results.')
+                # This is a VERY expensive call...
+                # Good thing we only do it when debug is enabled...
+                CMAdb.TheOneRing.AUDIT()
+        else:
+            if CMAdb.debug:
+                CMAdb.log.debug('No database changes this time')
+            CMAdb.store.abort()
+        dispatchend = datetime.now()
+        if self.logtimes:
+            CMAdb.log.info('Total dispatch time for %s frameset: %s'
+            %   (fstype, dispatchend-dispatchstart))
 
     @staticmethod
     def _process_exception(e, origaddr, frameset):
