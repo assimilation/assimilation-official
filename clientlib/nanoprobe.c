@@ -1329,7 +1329,7 @@ shutdown_when_outdone(gpointer unused)
 	static		gint64		giveuptime = 0;
 	(void)unused;
 	if (giveuptime == 0) {
-		giveuptime = g_get_monotonic_time() + ((FSPROTO_ACKTIMEOUTINT+1)*1000000L);
+		giveuptime = g_get_monotonic_time() + ((gint64)(FSPROTO_ACKTIMEOUTINT+1)*(gint64)1000000L);
 	}
 	if (g_get_monotonic_time() > giveuptime) {
 		g_critical("Immediate shutdown. Connections still active after %d seconds."
