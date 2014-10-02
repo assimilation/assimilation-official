@@ -42,8 +42,7 @@ class MessageDispatcher(object):
         self.io = None
         self.dispatchcount = 0
         self.logtimes = logtimes or CMAdb.debug
-    # R0912:MessageDispatcher.dispatch: Too many branches (14/12)
-    # pylint: disable=R0914,R0912
+
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
         self.dispatchcount += 1
@@ -54,7 +53,6 @@ class MessageDispatcher(object):
             self._try_dispatch_action(origaddr, frameset)
             if (self.dispatchcount % 100) == 1:
                 self._check_memory_usage()
-
         except Exception as e:
             self._process_exception(e, origaddr, frameset)
         # We want to ack the packet even in the failed case - retries are unlikely to help
@@ -66,6 +64,10 @@ class MessageDispatcher(object):
         self.io.ackmessage(origaddr, frameset)
 
     def _try_dispatch_action(self, origaddr, frameset):
+        '''Core code to actually dispatch the Frameset.
+        It should be run inside a try/except construct so that anything
+        we barf up won't cause the CMA to die.
+        '''
         fstype = frameset.get_framesettype()
         #print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
         dispatchstart = datetime.now()
