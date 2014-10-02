@@ -35,12 +35,13 @@ from datetime import datetime
 
 class MessageDispatcher(object):
     'We dispatch incoming messages where they need to go.'
-    def __init__(self, dispatchtable):
+    def __init__(self, dispatchtable, logtimes=False):
         'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()
         self.io = None
         self.dispatchcount = 0
+        self.logtimes = logtimes or CMAdb.debug
 
     #pylint: disable=R0914
     def dispatch(self, origaddr, frameset):
@@ -58,17 +59,20 @@ class MessageDispatcher(object):
             else:
                 self.default.dispatch(origaddr, frameset)
             dispatchend = datetime.now()
-            CMAdb.log.info('Initial dispatch time for %s frameset: %s'
-            %   (fstype, dispatchend-dispatchstart))
+            if self.logtimes:
+                CMAdb.log.info('Initial dispatch time for %s frameset: %s'
+                %   (fstype, dispatchend-dispatchstart))
             # Commit the network transaction here
             CMAdb.transaction.commit_trans(CMAdb.io)
-            CMAdb.log.info('Network transaction time: %s'
-            %   (str(CMAdb.transaction.stats['lastcommit'])))
+            if self.logtimes:
+                CMAdb.log.info('Network transaction time: %s'
+                %   (str(CMAdb.transaction.stats['lastcommit'])))
 
             if CMAdb.store.transaction_pending:
                 result = CMAdb.store.commit()
-                CMAdb.log.info('Neo4j transaction time: %s'
-                %   (str(CMAdb.store.stats['lastcommit'])))
+                if self.logtimes:
+                    CMAdb.log.info('Neo4j transaction time: %s'
+                    %   (str(CMAdb.store.stats['lastcommit'])))
                 if CMAdb.debug:
                     resultlines = str(result).splitlines()
                     CMAdb.log.debug('Commit results follow:')
@@ -83,8 +87,9 @@ class MessageDispatcher(object):
                     CMAdb.log.debug('No database changes this time')
                 CMAdb.store.abort()
             dispatchend = datetime.now()
-            CMAdb.log.info('Total dispatch time for %s frameset: %s'
-            %   (fstype, dispatchend-dispatchstart))
+            if CMAdb.logtimes:
+                CMAdb.log.info('Total dispatch time for %s frameset: %s'
+                %   (fstype, dispatchend-dispatchstart))
             if (self.dispatchcount % 100) == 1:
                 self._check_memory_usage()
 

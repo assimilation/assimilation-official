@@ -133,7 +133,8 @@ class AssimSysTest(object):
             %   (nano.hostname))
         logwatch.setregexes(regexes)
 
-        match = logwatch.lookforall(timeout=int(timeout+maxdrones/10))
+        match = logwatch.lookforall(timeout=int(timeout+maxdrones*3))
+        os.system('logger "$(grep MemFree: /proc/meminfo)"')
         if match is None:
             raise RuntimeError('Not all nanoprobes started.  Do you have another CMA running?')
         tq = QueryTest(store
@@ -142,7 +143,7 @@ class AssimSysTest(object):
 
         if not tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1
             ,   delay=0.5, maxtries=100):
-            raise RuntimeError('Query failed. Weirdness')
+            raise RuntimeError('Query of "up" status failed. Weirdness')
         return sysenv, store
 
 

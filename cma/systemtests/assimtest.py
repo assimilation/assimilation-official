@@ -44,7 +44,8 @@ def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
         test = random.choice(testset)
         badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
         logit("STARTING test %d - %s" %   (itercount, test.__name__))
-        logit('Load Avg: $(cat /proc/loadavg)')
+        os.system('logger -s "Load Avg: $(cat /proc/loadavg)"')
+        os.system('logger -s "$(grep MemFree: /proc/meminfo)"')
         badwatch.setwatch()
         if test.__name__ == 'DiscoverService':
             ret = test(store, logname, sysenv, debug=debug

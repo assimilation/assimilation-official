@@ -270,7 +270,8 @@ class SystemTestEnvironment(object):
         for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=nanodebug), nanocount):
             self.nanoprobes.append(child())
             os.system('logger "Load Avg: $(cat /proc/loadavg)"')
-            self._waitforloadavg(2.75, 60)
+            os.system('logger "$(grep MemFree: /proc/meminfo)"')
+            self._waitforloadavg(8, 120)
 
     @staticmethod
     def _waitforloadavg(maxloadavg, maxwait=30):
