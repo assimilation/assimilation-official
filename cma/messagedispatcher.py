@@ -42,8 +42,8 @@ class MessageDispatcher(object):
         self.io = None
         self.dispatchcount = 0
         self.logtimes = logtimes or CMAdb.debug
-
-    #pylint: disable=R0914
+    # R0912:MessageDispatcher.dispatch: Too many branches (14/12)
+    # pylint: disable=R0914,R0912
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
         fstype = frameset.get_framesettype()
@@ -87,7 +87,7 @@ class MessageDispatcher(object):
                     CMAdb.log.debug('No database changes this time')
                 CMAdb.store.abort()
             dispatchend = datetime.now()
-            if CMAdb.logtimes:
+            if self.logtimes:
                 CMAdb.log.info('Total dispatch time for %s frameset: %s'
                 %   (fstype, dispatchend-dispatchstart))
             if (self.dispatchcount % 100) == 1:
