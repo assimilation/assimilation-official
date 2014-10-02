@@ -111,14 +111,16 @@ class ConfigFile(object):
         return {
             'OUI': {
                 # Addendum of locally-known OUIs - feel free to contribute ones you find...
-                # Python includes lots of them, but not some newer ones.
+                # Python includes lots of them, but is missing newer ones.
                 # Note that they have to be in lower case with '-' separators.
                 # You can find the latest data here:
                 #      http://standards.ieee.org/cgi-bin/ouisearch
                 '18-0c-ac': 'Canon, Inc.',
                 '28-d2-44': 'LCFC(HeFei) Electronics Technology Co., Ltd.',
+                '84-7a-88': 'HTC Corporation',
                 'b0-79-3c': 'Revolv, Inc.',
                 'b8-ee-65': 'Liteon Technology Corporation',
+                'bc-ee-7b': 'ASUSTek Computer, Inc.',
                 'c8-b5-b7': 'Apple.',
                 'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
                 'd8-50-e6': 'ASUSTek COMPUTER INC.',
