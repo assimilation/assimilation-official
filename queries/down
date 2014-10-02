@@ -1,0 +1,17 @@
+{
+    "cypher": "START drone=node:Drone('*:*')
+               WHERE drone.status <> \"up\"
+               RETURN drone",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get 'down' servers",
+            "long":     "retrieve the full information about all servers we know are down"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${designation}[${status}:${reason}]",
+        "script": "${designation}"
+    },
+}

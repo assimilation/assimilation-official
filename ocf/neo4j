@@ -1,0 +1,237 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2013 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+#   Supported OCF parameters
+#		neo4j       which neo4j instance is this?
+#		ipport		What IP:port should we query for monitor actions
+#                       In theory we could parse the config file to get this ;-)
+#       query       What query to run for $OCF_CHECK_LEVEL < 20
+#       query20     What query to run for $OCF_CHECK_LEVEL >= 20
+#       regex       What regex to use to examine query output for $OCF_CHECK_LEVEL < 20
+#       regex20     What regex to use to examine query output for $OCF_CHECK_LEVEL >= 20
+#       grepflags   What flags to give to grep with the regex
+#
+#   We also support two levels of monitoring: $OCF_CHECK_LEVEL < 20 and >= 20
+#
+
+. /lib/lsb/init-functions
+
+# OCF exit codes are compatible with all non-status LSB exit codes
+OCF_SUCCESS=0
+OCF_ERR_GENERIC=1
+OCF_ERR_UNIMPLEMENTED=3
+OCF_ERR_INSTALLED=5
+
+:	${neo4j:=${OCF_RESKEY_neo4j-'neo4j'}}
+
+:   ${neo4j_java:=${OCF_RESKEY_neo4j_java-'java'}}
+:   ${query:=${OCF_RESKEY_query-'START one=node(*) RETURN one LIMIT 1'}}
+:   ${query20:=${OCF_RESKEY_query20-'START one=node(*) MATCH one-[rel]-two RETURN one, type(rel), two LIMIT 1'}}
+:   ${regex:=${OCF_RESKEY_regex-'^{ *"results" *: *\[.*\] *, *"errors" *: *\[ *\] *}$'}}
+:   ${regex20:=${OCF_RESKEY_regex-'^{ *"results" *: *\[.*\] *, *"errors" *: *\[ *\] *}$'}}
+:   ${grepflags:=${OCF_RESKEY_grepflags-''}}
+:   ${OCF_CHECK_LEVEL:=10}
+
+# Things we can't mess with...
+neo4j_home="/var/lib/${neo4j}"
+pidfile=${neo4j_home}/data/neo4j-service.pid
+startscript=${neo4j_home}/bin/neo4j
+
+config_param() {
+    config=${neo4j_home}/conf/neo4j-server.properties
+    grep "^ *${1} *= *" 2>/dev/null < "$config" | cut -d= -f2-
+}
+config_ipport() {
+    # See what IP and port are in the config file...
+    ip=$(config_param org.neo4j.server.webserver.address)
+    port=$(config_param org.neo4j.server.webserver.port)
+    if
+        [ -z "$ip" ]
+    then
+        ip=127.0.0.1
+    fi
+    if
+        [ -z "$port" ]
+    then
+        port=7474
+    fi
+    case $ip in
+        0.0.0.0)    ip="127.0.0.1";;
+        ::)         ip="::1";;
+    esac
+    case $ip in
+      *::*)     echo "[${ip}]:${port}";;
+      *)        echo "${ip}:${port}";;
+    esac
+}
+if
+    [ -z "${OCF_RESKEY_ipport}" ]
+then
+    ipport=$(config_ipport)
+else
+    ipport=${OCF_RESKEY_ipport}
+fi
+
+
+if
+    [ ${OCF_CHECK_LEVEL} -ge 20 ]
+then
+    query=${query20}
+    regex=${regex20}
+fi
+
+binary_in_path() {
+    loc=$(whereis -b "$1" | sed -e 's%[^:]*:%%' -e s'%^ *%%' -e 's% .*%%')
+    test -f "$loc" -a -x "$loc"
+}
+
+no_wget_or_curl=0
+if
+    binary_in_path wget
+then
+    use_wget=1
+elif
+    binary_in_path curl
+then
+    : OK - we have curl
+    use_wget=0
+else
+    no_wget_or_curl=1
+fi
+
+neo4j_silent_status() {
+    pidofproc -p "${pidfile}" "${neo4j_java}" >/dev/null
+}
+
+neo4j_start() {
+    if
+       neo4j_silent_status
+    then
+        log_success_msg "${neo4j} is started."
+        return ${OCF_SUCCESS}
+    elif
+        [ ! -d "${neo4j_home}" ]
+    then
+        return ${OCF_ERR_INSTALLED}
+    fi
+    start_daemon -p ${pidfile} ${startscript} start
+}
+
+neo4j_stop() {
+    if
+       neo4j_silent_status
+    then
+        if
+            ${startscript} stop
+        then
+           : stop action worked - proceed!
+        else
+            log_failure_msg "${neo4j} stop action failed."
+            return ${OCF_ERR_GENERIC}
+        fi
+        if
+            neo4j_silent_status
+        then
+            log_failure_msg "${neo4j} did not stop."
+            return ${OCF_ERR_GENERIC}
+        else
+            log_success_msg "${neo4j} is stopped."
+            return ${OCF_SUCCESS}
+        fi
+    else
+        return ${OCF_SUCCESS}
+    fi
+}
+
+
+runquery() {
+    queryjson="{\"statements\" : [ { \"statement\" : \"$query\" } ] }"
+    committrans='db/data/transaction/commit'
+    URL=http://${ipport}/${committrans}
+    header='Content-type: application/json'
+    if
+      [ "$use_wget" -eq 1 ]
+    then
+      wget -q    --header="${header}" --post-data="$queryjson"  --output-document=- $URL
+    else
+      curl -s -g --header "${header}" --data "$queryjson"       --output -          $URL
+    fi
+}
+
+neo4j_monitor() {
+    if
+        [ ${no_wget_or_curl} -ne 0 ]
+    then
+        log_failure_msg 'Must have either curl or wget installed for monitor.'
+        return ${OCF_ERR_INSTALLED}
+    fi
+    if
+        neo4j_silent_status
+    then
+        if
+            runquery | grep ${grepflags} "${regex}" >/dev/null
+        then
+            log_success_msg "${neo4j} is operational."
+            return ${OCF_SUCCESS}
+        else
+            log_failure_msg "${neo4j} not operational (query failed)."
+            return ${OCF_ERR_GENERIC}
+        fi
+    else
+        log_failure_msg "${neo4j} is stopped."
+        return ${OCF_NOT_RUNNING}
+    fi
+}
+
+neo4j_status() {
+    if
+        neo4j_silent_status
+    then
+        log_success_msg "${neo4j} is running."
+        return 0
+    fi
+    if
+        [ -f "$pidfile" ]
+    then
+        log_failure_msg "${neo4j} is not running but $pidfile exists."
+        return 1
+    else
+        log_failure_msg "${neo4j} is stopped."
+        return 3
+    fi
+}
+
+#
+#   @TODO - add meta-data and validate operations
+#
+
+case $1 in
+    status)     neo4j_status;;
+    monitor)    neo4j_monitor;;
+    start)      neo4j_start;;
+    stop)       neo4j_stop;;
+    *)          log_failure_msg "Action [$1] is unimplemented."
+                exit ${OCF_ERR_UNIMPLEMENTED};;
+esac
+exit $?

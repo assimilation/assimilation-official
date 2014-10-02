@@ -1,0 +1,154 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2013 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+DEFAULTSUMLIST="/usr/bin/sha384sum /usr/bin/sha512sum /usr/bin/sha256sum /usr/bin/sha224sum /usr/bin/sha1sum /usr/bin/shasum /usr/bin/md5sum /usr/bin/cksum /usr/bin/crc32"
+
+: ${ASSIM_sumcmds:=${DEFAULTSUMLIST}}
+
+## mktmpdir makes a temporary directory
+mktmpdir() {
+    # Not every system has mktemp
+    if
+        TMPDIR=$(mktemp --directory --tmpdir=/var/tmp 2>/dev/null)
+        echo $TMPDIR
+    then
+      : mktemp worked
+    else
+        TMPDIR="/var/tmp/$$-${RANDOM-random}.tcpdiscovery"
+        mkdir "${TMPDIR}" && echo "${TMPDIR}"
+    fi
+    chmod 700 ${TMPDIR}
+}
+
+TMPDIR=$(mktmpdir)
+trap 'rm -fr "$TMPDIR"' 0
+
+# Produces the list of libraries that this binary depends on
+lddependencies() {
+  ldd $1 2>/dev/null |
+  while
+    read line
+  do
+    case $line in
+      #	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f8615253000)
+      *'=>'*/*' ('*)        #echo "case 1 $line" >&2
+                            echo "$line" | sed -e 's%^.*=> *%%' -e 's% *(.*%%'
+                            ;;
+      #	linux-vdso.so.1 =>  (0x00007fff7e1fe000)
+      *'=>'*[^\(]*'('*)     #echo "case 2 $line" >&2
+                            ;;
+      #	/lib64/ld-linux-x86-64.so.2 (0x00007f8615640000)
+      */*' '*'('*)          #echo "case 3 $line" >&2
+                            echo "$line" | sed -e 's% *(.*%%'
+                            ;;
+      *)		            #echo "case 4 $line"
+                            ;;
+    esac
+  done
+}
+
+SUMCMD=/usr/bin/sha512sum
+
+# Select the first executable sum command in our list of possible commands
+find_sumcmd() {
+    for cmd in ${ASSIM_sumcmds}
+    do
+        if
+            [ -f "$cmd" -a -x "$cmd" ]
+        then
+            SUMCMD="${cmd}"
+            return
+        fi
+    done
+    echo "Cannot locate an executable sum command in [$ASSIM_sumcmds]" >&2
+    exit 1
+}
+
+
+sumcmd() {
+    ${SUMCMD} "$1" | cut -f1 -d' '
+}
+
+#   Expand the list of requested filenames to include things which this file depends on
+
+expandlist() {
+    for arg in "$@"
+    do
+        if [ ! -f "$arg" ]; then continue; fi
+        echo "$arg"
+        lddependencies "$arg"
+    done >> ${TMPDIR}/filelist
+}
+
+sumfiles() {
+    cat <<!EOF1
+{
+ "discovertype": "checksum",
+ "description": "Checksum information for files and dependent libraries",
+ "host": "$(uname -n)",
+ "source": "$0",
+ "sumcmd": "${SUMCMD}",
+ "data": {
+!EOF1
+    comma='  '
+    sort -u ${TMPDIR}/filelist |
+    while
+        read line
+    do
+        checksum=$(sumcmd "$line")
+        printf "${comma}"'"%s": "%s"' "$line" "$checksum"
+        comma=',
+  '
+    done
+    cat <<!EOF2
+
+ }
+}
+!EOF2
+}
+
+#MINLIST="/bin/bash /bin/sh /bin/login /usr/bin/passwd ${SUMCMD} /usr/sbin/nanoprobe"
+MINLIST="${SUMCMD} /usr/sbin/nanoprobe"
+
+discover() {
+    find_sumcmd
+    expandlist ${MINLIST} ${ASSIM_filelist}
+    sumfiles
+    return 0
+}
+
+usage() {
+    cat <<-!
+	usage: $0 (discover|meta-data)
+	!
+    exit 1
+}
+
+case $1 in
+  discover) discover
+            ;;
+  *)        usage
+            ;;
+esac
