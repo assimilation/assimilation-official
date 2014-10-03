@@ -85,6 +85,7 @@ class MessageDispatcher(object):
             CMAdb.log.info('Network transaction time: %s'
             %   (str(CMAdb.transaction.stats['lastcommit'])))
 
+        # Commit the database transaction here
         if CMAdb.store.transaction_pending:
             result = CMAdb.store.commit()
             if self.logtimes:
