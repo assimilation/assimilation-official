@@ -171,7 +171,7 @@ _real_martian_agent(NetAddr* who)
 {
 	static guint64		last_martian_time = 0;		// microseconds
 	static guint		recent_martian_count = 0;
-	guint64			now = g_get_monotonic_time();	// microseconds
+	gint64			now = g_get_monotonic_time();	// microseconds
 	const guint64		uS = 1000000;
 
 	++nano_hbstats.martian_count;
