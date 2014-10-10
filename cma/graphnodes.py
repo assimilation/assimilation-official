@@ -349,7 +349,8 @@ class NICNode(GraphNode):
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
             raise ValueError('Not a legal MAC address [%s]' % macaddr)
         self.macaddr = str(mac)
-        self.ifname = ifname
+        if ifname != 'unknown':
+            self.ifname = ifname
 
     @staticmethod
     def __meta_keyattrs__():
