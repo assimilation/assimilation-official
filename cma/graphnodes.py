@@ -343,13 +343,13 @@ class SystemNode(GraphNode):
 @RegisterGraphClass
 class NICNode(GraphNode):
     'An object that represents a NIC - characterized by its MAC address'
-    def __init__(self, domain, macaddr, ifname='unknown'):
+    def __init__(self, domain, macaddr, ifname=None):
         GraphNode.__init__(self, domain=domain)
         mac = pyNetAddr(macaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
             raise ValueError('Not a legal MAC address [%s]' % macaddr)
         self.macaddr = str(mac)
-        if ifname != 'unknown':
+        if ifname is not None:
             self.ifname = ifname
 
     @staticmethod
