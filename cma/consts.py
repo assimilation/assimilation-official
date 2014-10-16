@@ -78,10 +78,13 @@ class CMAconsts(object):
     ROLE_netbalancer    = 'loadbalancer'
     ROLE_repeater       = 'repeater'        # 802.11AB - Section 9.5.8.1
     ROLE_bridge         = 'bridge'          # 802.11AB - Section 9.5.8.1 (AKA a "switch")
+    ROLE_tb_bridge      = 'tb_bridge'       # Cisco CDP_CAPMASK_TBBRIDGE - TB (transparent) bridge
+    ROLE_srcbridge      = 'srcbridge'       # Cisco SP (source route) Bridge CDP_CAPMASK_SPBRIDGE
     ROLE_router         = 'router'          # 802.11AB - Section 9.5.8.1
     ROLE_phone          = 'phone'           # 802.11AB - Section 9.5.8.1
     ROLE_AccessPoint    = 'WLANAP'          # 802.11AB - Section 9.5.8.1
     ROLE_DOCSIS         = 'DOCSIS'          # 802.11AB - Section 9.5.8.1
+    ROLE_igmp           = 'igmp-filter'     # Cisco IGMP_FILTER CDP_CAPMASK_IGMPFILTER
     ROLE_Station        = 'station'         # 802.11AB - Section 9.5.8.1
     ROLE_UPS            = 'UPS'
     ROLE_CRAC           = 'crac'

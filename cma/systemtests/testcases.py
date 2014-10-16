@@ -177,7 +177,7 @@ class StopNanoprobe(AssimSysTest):
 @AssimSysTest.register
 class StartNanoprobe(AssimSysTest):
     'A start nanoprobe test'
-    def run(self, nano=None, debug=None, timeout=120):
+    def run(self, nano=None, debug=None, timeout=240):
         'Actually start the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
@@ -206,7 +206,7 @@ class StartNanoprobe(AssimSysTest):
 @AssimSysTest.register
 class FlipNanoprobe(AssimSysTest):
     '''A flip nanoprobe test - if it's up, bring it down -- and vice versa'''
-    def run(self, nano=None, debug=None, timeout=120):
+    def run(self, nano=None, debug=None, timeout=240):
         'Actually flip the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
@@ -285,7 +285,7 @@ class RestartCMAandNanoprobe(AssimSysTest):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
-    def run(self, nano=None, debug=None, timeout=120):
+    def run(self, nano=None, debug=None, timeout=240):
         'Actually stop and start (restart) the CMA and see if it worked'
         if debug is None:
             debug = self.debug
@@ -366,7 +366,7 @@ class DiscoverService(AssimSysTest):
 
     # W0221:Arguments number differs from overridden method
     # pylint: disable=W0221
-    def run(self, nano=None, debug=None, timeout=120, service=None, monitorname=None):
+    def run(self, nano=None, debug=None, timeout=240, service=None, monitorname=None):
         if service is None:
             service = self.service
         if monitorname is None:
