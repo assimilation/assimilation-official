@@ -101,6 +101,7 @@ is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
 	unsigned	vers;
 
 
+	fprintf(stderr, "Validating CDP packet: %p,  pktend: %p\n", packet, pktend);
 	if ((const void *)((const unsigned char *)packet+CDPTLV_TYPELENSZ)  > pktend || packet == NULL) {
                 fprintf(stderr, "BAD1 packet: %p,  pktend: %p\n", packet, pktend);
 		return FALSE;
@@ -108,7 +109,8 @@ is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
 	/* Heuristic - at this writing, version could be 1 or 2 - Cisco currently defaults to 2 ... */
 	if ((vers=get_cdp_vers(packet, pktend)) < 1 || vers > 4
 	||  get_cdp_ttl(packet, pktend) < 3) {
-                /*fprintf(stderr, "BAD2 packet: %p,  pktend: %p\n", packet, pktend);*/
+                fprintf(stderr, "BAD2 packet: %p,  pktend: %p [vers=%d, ttl=%d]\n", packet, pktend
+		,	get_cdp_vers(packet, pktend), get_cdp_ttl(packet, pktend));
 		return FALSE;
 	}
 
@@ -118,16 +120,20 @@ is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
 		unsigned	ttype;
 		unsigned	length;
 
-		if ((const void *)((const unsigned char *)tlv_vp+CDPTLV_TYPELENSZ) > pktend) {
-			return FALSE;
-		}
 		ttype  = get_cdptlv_type(tlv_vp, pktend);
 		length = get_cdptlv_len (tlv_vp, pktend);
 		next = (const void *)((const unsigned char *)tlv_vp + length);
+		if ((const void *)((const unsigned char *)tlv_vp+CDPTLV_TYPELENSZ) > pktend) {
+			fprintf(stderr, "BAD3 tlv_vp: %p,  pktend: %p j=%d [vers=%d, ttl=%d]\n"
+			,	tlv_vp, pktend, j
+			,	get_cdp_vers(packet, pktend), get_cdp_ttl(packet, pktend));
+			return FALSE;
+		}
 		if (next > pktend
 		||	length < CDPTLV_TYPELENSZ
 		||	(j < DIMOF(reqtypes) && ttype != reqtypes[j])) {
-                	/*fprintf(stderr, "BAD3 packet: %p,  pktend: %p\n", packet, pktend);*/
+                	fprintf(stderr, "BAD4 packet: %p,  pktend: %p, next %p, frame %d, type %d\n"
+			,	packet, pktend, next, j, ttype);
 			return FALSE;
 		}
 		j += 1;
@@ -220,16 +226,25 @@ get_cdptlv_first(const void* pkt,	///< [in]Pointer to start of CDP packet
 	gsize			len = (const char *)pktend - (const char *)pkt;
 	const unsigned char*	ret = (const unsigned char*)pkt;
 	unsigned		vers;
+	/*fprintf(stderr, "%s.%d: pkt %p, pktend %p, len %d\n", __FUNCTION__, __LINE__
+	,	pkt, pktend, (int)len);*/
 	if (ret == NULL || len < (CDPINITHDRSZ + CDPTLV_TYPELENSZ)
 	/* Note that these version and ttl constraints are heuristics, not absolutes */
 	||  (vers=get_cdp_vers(ret, pktend)) < 1 || vers > 5
 	||  get_cdp_ttl(ret, pktend) < 2) {
+		/*fprintf(stderr, "%s.%d: pkt %p, pktend %p, len %d vers %d ttl %d\n"
+		,	__FUNCTION__, __LINE__
+		,	pkt, pktend, (int)len, vers, get_cdp_ttl(ret, pktend));*/
 		return NULL;
 	}
 	ret += CDPINITHDRSZ;
 	if ((ret + get_cdptlv_len(ret, pktend)) > (const unsigned char *)pktend) {
+		/*fprintf(stderr, "%s.%d: pkt %p, pktend %p, tlvlen %d\n"
+		,	__FUNCTION__, __LINE__,	pkt, pktend, (int)get_cdptlv_len(ret, pktend));*/
 		return NULL;
 	}
+	/*fprintf(stderr, "%s.%d: pkt %p, pktend %p, returning %p\n"
+	,	__FUNCTION__, __LINE__,	pkt, pktend, ret);*/
 	return (const void *)ret;
 }
 /// Locate the next CDP TLV triple (iterator).

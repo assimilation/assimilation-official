@@ -54,6 +54,9 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     LLDP_PIDTYPE_ALIAS,  LLDP_PIDTYPE_IFNAME,  LLDP_PIDTYPE_LOCAL,  LLDP_CHIDTYPE_ALIAS, \
     LLDP_CHIDTYPE_IFNAME,  LLDP_CHIDTYPE_LOCAL,  LLDP_CHIDTYPE_MACADDR, \
     LLDP_CHIDTYPE_COMPONENT, LLDP_CHIDTYPE_NETADDR,  \
+    CDP_TLV_DEVID, CDP_TLV_ADDRESS, CDP_TLV_PORTID, CDP_TLV_CAPS, CDP_TLV_VERS, CDP_TLV_POWER, \
+    CDP_TLV_PLATFORM, CDP_TLV_MTU, CDP_TLV_SYSTEM_NAME, CDP_TLV_MANAGEMENT_ADDR, CDP_TLV_DUPLEX, \
+    CDP_TLV_LOCATION, CDP_TLV_EXT_PORTID, CDP_TLV_NATIVEVLAN, CDP_TLV_VLREPLY, CDP_TLV_VLQUERY, \
     ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802, \
     is_valid_lldp_packet, is_valid_cdp_packet,    \
     netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new, \
@@ -67,6 +70,12 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     get_lldptlv_len, \
     get_lldptlv_body, \
     get_lldptlv_next, \
+    get_cdptlv_first, \
+    get_cdptlv_next, \
+    get_cdptlv_type, \
+    get_cdptlv_len, \
+    get_cdptlv_body, \
+    tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, \
     COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new
@@ -122,7 +131,7 @@ def CCref(obj):
 def CCunref(obj):
     'Unref an AssimObj object (or subclass)'
     base = obj[0]
-    while (type(base) is not AssimObj):
+    while (hasattr(base, 'baseclass')):
         base = base.baseclass
     base.unref(obj)
 
@@ -154,6 +163,27 @@ class pySwitchDiscovery(object):
             LLDP_ORG802_3_POWERVIAMDI:  ('PowerViaMDI', False),
             LLDP_ORG802_3_LINKAGG:      ('LinkAggregation', False),
             LLDP_ORG802_3_MTU:          ('MTU', False),
+    }
+
+    cdpnames = {
+        # System-wide capabilities
+        CDP_TLV_DEVID:              ('ChassisId', True),
+        CDP_TLV_CAPS:               ('SystemCapabilities', True),
+        CDP_TLV_VERS:               ('SystemVersion', True),
+        CDP_TLV_PLATFORM:           ('SystemPlatform', True),
+        CDP_TLV_ADDRESS:            ('SystemAddress', True),
+        CDP_TLV_MANAGEMENT_ADDR:    ('ManagementAddress', True),
+        CDP_TLV_SYSTEM_NAME:        ('SystemName', True),
+        CDP_TLV_LOCATION:           ('SystemDescription', True),
+        # Per-port capabilities follow
+        CDP_TLV_NATIVEVLAN:         ('VlanName', False),
+        CDP_TLV_VLQUERY:            ('VlanQuery', False),
+        CDP_TLV_VLREPLY:            ('VlanReply', False),
+        CDP_TLV_PORTID:             ('PortId', False),
+        CDP_TLV_EXT_PORTID:         ('PortDescription', False),
+        CDP_TLV_DUPLEX:             ('Duplex', False),
+        CDP_TLV_MTU:                ('MTU', False),
+        CDP_TLV_POWER:              ('PortPower', False),
     }
 
     def __init__(self):
@@ -357,10 +387,189 @@ class pySwitchDiscovery(object):
                 'data':                 switchinfo,
             }
         )
-        thisportinfo = thisportinfo
-        pktstart = pktstart
-        pktend = pktend
+        sourcemacptr = pySwitchDiscovery._byteNaddr(cast(pktstart, cClass.guint8), 6)
+        if not sourcemacptr:
+            return metadata
+        Cmacaddr = netaddr_mac48_new(sourcemacptr)
+        sourcemac = pyNetAddr(None, Cstruct=Cmacaddr)
+        this = get_cdptlv_first(pktstart, pktend)
+        while this and this < pktend:
+            tlvtype = get_cdptlv_type(this, pktend)
+            tlvlen = get_cdptlv_len(this, pktend)
+            tlvptr = cast(get_cdptlv_body(this, pktend), cClass.guint8)
+            this = get_cdptlv_next(this, pktend)
+            value = None
+            if tlvtype not in pySwitchDiscovery.cdpnames:
+                tlvtype = ('TLV_0x%02x' % tlvtype)
+                isswitchinfo = True # Gotta do _something_...
+            else:
+                (tlvname, isswitchinfo)  = pySwitchDiscovery.cdpnames[tlvtype]
+            if tlvtype == CDP_TLV_DEVID:
+                value = string_at(tlvptr, tlvlen)
+            elif tlvtype == CDP_TLV_ADDRESS:
+                # 4 byte count + 'count' addresses
+                value = pySwitchDiscovery.getcdpaddresses(tlvlen, tlvptr, pktend)
+            elif tlvtype == CDP_TLV_PORTID:
+                value = string_at(tlvptr, tlvlen)
+            elif tlvtype == CDP_TLV_CAPS:
+                #bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
+                #print 'CAPBYTES = ', bytez
+                caps = pySwitchDiscovery.getNint(tlvptr, 4, pktend)
+                #print >> sys.stderr, ('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen))
+                value = pySwitchDiscovery.construct_cdp_caps(caps)
+            elif tlvtype == CDP_TLV_VERS:
+                value = string_at(tlvptr, tlvlen)
+            elif tlvtype == CDP_TLV_PLATFORM:
+                value = string_at(tlvptr, tlvlen)
+            elif tlvtype == CDP_TLV_POWER:
+                tlen = tlvlen if tlvlen <= 2 else 2
+                value = pySwitchDiscovery.getNint(tlvptr, tlen, pktend)
+            elif tlvtype == CDP_TLV_MTU:
+                value = pySwitchDiscovery.getNint(tlvptr, tlvlen, pktend)
+            elif tlvtype == CDP_TLV_SYSTEM_NAME:
+                value = string_at(tlvptr, tlvlen)
+            elif tlvtype == CDP_TLV_MANAGEMENT_ADDR:
+                    # 4 byte count + 'count' addresses
+                value = pySwitchDiscovery.getcdpaddresses(tlvlen, tlvptr, pktend)
+            elif tlvtype == CDP_TLV_DUPLEX:
+                value = 'half' if pySwitchDiscovery._byte0(tlvptr) == 0 else 'full'
+            elif tlvtype == CDP_TLV_LOCATION:
+                value = string_at(tlvptr, tlvlen)
+            elif tlvtype == CDP_TLV_EXT_PORTID:
+                value = string_at(tlvptr, tlvlen)
+            else:
+                value='0x'
+                for offset in range(0,tlvlen):
+                    value += ('%02x' % pySwitchDiscovery._byteN(tlvptr, offset))
+
+            if value is None:
+                print >> sys.stderr, ('Could not process value for %s field [0x%02x]'
+                %   (tlvname, tlvtype))
+            else:
+                if tlvtype == CDP_TLV_PORTID:
+                    switchinfo['ports'][value] = thisportinfo
+                    thisportinfo['PortId'] = value
+                    numericpart = value
+                    while len(numericpart) > 0 and not numericpart.isdigit():
+                        numericpart = numericpart[1:]
+                    if len > 0 and numericpart.isdigit():
+                        thisportinfo['PORTNUM'] = int(numericpart)
+                else:
+                    if isswitchinfo:
+                        switchinfo[tlvname] = value
+                    else:
+                        thisportinfo[tlvname] = value
+                #print >> sys.stderr, ('TLVNAME %s has value "%s" -- len: %d'
+                #%   (tlvname, value, len(str(value))))
+        thisportinfo['sourceMAC'] = sourcemac
         return metadata
+
+
+    @staticmethod
+    def getNint(tlvptr, tlvlen, pktend):
+        'Return an integer of any size that we support...'
+        intptr =  tlvptr
+        if tlvlen == 1:
+            return tlv_get_guint8(intptr, pktend)
+        if tlvlen == 2:
+            return tlv_get_guint16(intptr, pktend)
+        if tlvlen == 3:
+            return tlv_get_guint24(intptr, pktend)
+        if tlvlen == 4:
+            return tlv_get_guint32(intptr, pktend)
+        if tlvlen == 8:
+            return tlv_get_guint64(intptr, pktend)
+        return None
+
+    @staticmethod
+    def construct_cdp_caps(capval):
+        'Construct Capability value from the CDP capability integer'
+        capnames =  [   CMAconsts.ROLE_router
+        ,               CMAconsts.ROLE_tb_bridge,   CMAconsts.ROLE_srcbridge
+        ,               CMAconsts.ROLE_bridge,      CMAconsts.ROLE_host
+        ,               CMAconsts.ROLE_igmp,        CMAconsts.ROLE_repeater
+        ]
+        mask = 1
+        value = pyConfigContext()
+        for j in range(0, len(capnames)):
+            if (capval & mask):
+                #value[capnames[j]] = ((capval & mask) != 0)
+                value[capnames[j]] = True
+            mask <<= 1
+        return value
+
+
+    @staticmethod
+    def getcdpaddresses(tlvlen, tlvstart, pktend):
+        '''
+        Decode utterly bizarre CDP-specific address list format
+        4 bytes address count
+        'count' addresses in this form:
+            one bytes protocol length
+            'protocol length' bytes of protocol type
+            two bytes address length
+            'address length' bytes of address
+            IPv4:
+                protocol length = 1, protocol type = 0xCC
+            IPv6:
+                protocol length = 8 and address length = 16
+                protocol type == 0xAAAA0300000086DD ??
+            +-------+--------------------+----------+-----------------+
+            |Proto  |Protocol Type       | address  | Actual address  |
+            |Length |(protolength bytes) | length   | (addresslength  |
+            |1 byte |(1-255 bytes)       | (2 bytes)|  bytes)         |
+            +-------+--------------------+----------+-----------------+
+
+            Min length for an IPV4 address is 8 bytes
+        '''
+        minlength=8
+        retlist = []
+        offset = 0
+        count = pySwitchDiscovery.getNint(tlvstart, 4, pktend)
+        offset += 4
+        for j in range(0, count):
+            addr = None
+            if (offset+minlength) > tlvlen:
+                break
+            protolen = pySwitchDiscovery.getNint(pySwitchDiscovery._byteNaddr
+            (       cast(tlvstart, cClass.guint8), offset), 1, pktend)
+            offset += 2
+            if protolen < 1:
+                break
+            if offset >= tlvlen:
+                break
+            if protolen == 1:
+                prototype = pySwitchDiscovery._byteN(tlvstart, offset+protolen-1)
+            elif protolen == 16:
+                prototype = pySwitchDiscovery.getNint(
+                pySwitchDiscovery._byteNaddr(cast(tlvstart, cClass.guint8), offset+protolen-2)
+                ,   2, pktend)
+            else:
+                prototype = 0xdeadbeef
+            offset += protolen
+            if offset > tlvlen:
+                break
+            addrlen = pySwitchDiscovery.getNint(pySwitchDiscovery._byteNaddr
+            (           cast(tlvstart, cClass.guint8), offset), 2, pktend)
+            if protolen == 1 and addrlen == 4 and prototype == 0xCC:
+                addrstr=''
+                for j in (offset+2, offset+3, offset, offset+1):
+                    addrstr += chr(pySwitchDiscovery._byteN(tlvstart, j))
+                addr = netaddr_ipv4_new(c_char_p(addrstr), 0)
+            elif protolen == 8 and addrlen == 16 and prototype == 0x86DD:
+                # protocol type == 0xAAAA0300000086DD
+                addr = netaddr_ipv6_new(pySwitchDiscovery._byteNaddr(cast(tlvstart, cClass.guint8)
+                ,   offset), 0)
+            if addr is not None:
+                pyaddr = pyNetAddr(Cstruct=addr, addrstring=None)
+                retlist.append(pyaddr)
+            offset += addrlen
+
+        if len(retlist) == 0:
+            return None
+        if len(retlist) == 1:
+            return retlist[0]
+        return retlist
 
 
 
@@ -1228,11 +1437,11 @@ class pyConfigContext(pyAssimObj):
         'Set a ConfigContext key value to be a sequence of values from an iterable'
         self._Cstruct[0].setarray(self._Cstruct, name, None)
         for elem in value:
-            if isinstance(elem, (int, long)):
-                self._Cstruct[0].appendint(self._Cstruct, name, elem)
-                continue
             if isinstance(elem, bool):
                 self._Cstruct[0].appendbool(self._Cstruct, name, elem)
+                continue
+            if isinstance(elem, (int, long)):
+                self._Cstruct[0].appendint(self._Cstruct, name, elem)
                 continue
             if isinstance(elem, float):
                 self._Cstruct[0].appendfloat(self._Cstruct, name, elem)
@@ -1395,6 +1604,8 @@ class pyConfigContext(pyAssimObj):
             return self.setfloat(name, value)
         if isinstance(value, dict):
             return self.setconfig(name, pyConfigContext.from_dict(value))
+        if isinstance(value, bool):
+            return self.setbool(name, value)
         self.setint(name, int(value))
 
 class pyConfigValue(pyAssimObj):
@@ -1693,3 +1904,18 @@ def dump_c_objects():
     print >> sys.stderr, ('%d python wrappers referring to %d C-objects'
     %   (cobjcount, proj_class_live_object_count()))
     proj_class_dump_live_objects()
+
+if __name__ == '__main__':
+    import pcapy
+    names= ('../pcap/cdp.pcap', '../pcap/cdp-BCM1100.pcap','../pcap/n0.eth2.cdp.pcap')
+    for pcapname in names:
+        print >> sys.stderr, 'PARSING', pcapname
+        reader = pcapy.open_offline(pcapname)
+        pcap = reader.next()
+        pcapdata = pcap[1]
+        testpktstart = create_string_buffer(pcapdata)
+        endaddr = addressof(testpktstart) + len(pcapdata)
+        cdp = pySwitchDiscovery._decode_cdp('host', pcapname, 0, testpktstart, endaddr)
+        print >> sys.stderr, 'GOTTEN CDP:', str(cdp)
+        print >> sys.stderr, '\n'
+
