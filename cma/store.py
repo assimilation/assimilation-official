@@ -510,7 +510,7 @@ class Store(object):
                 elif value is None:
                     yieldval.append(value)
                 else:
-                    yieldval.append('Type %s not yet supported. Sorry :-(' % type(value))
+                    yieldval.append(value)
             count += 1
             if maxcount is not None and count > maxcount:
                 return
