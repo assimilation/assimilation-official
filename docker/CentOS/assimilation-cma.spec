@@ -174,14 +174,15 @@ Summary:       Nanoprobe distributed monitoring agent for Assimilation
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
+Requires:         iw
 %else
 Requires(post):   chkconfig
 Requires(preun):  chkconfig
 Requires(preun):  initscripts
 Requires(postun): initscripts
+Requires:         wireless-tools
 %endif
 Requires:         redhat-lsb-core
-Requires:         wireless-tools
 Requires:         resource-agents
 Requires:         libpcap
 Requires:         glib2
