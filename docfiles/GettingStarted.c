@@ -71,25 +71,28 @@ following their
 <a href="http://docs.neo4j.org/chunked/stable/server-installation.html">directions</a>.
 There is also a short
 <a href="http://www.neo4j.org/install#installvideo">video installation guide</a> as well.
-The Assimilation code has been tested most recently with the <i>Community 1.9M04</i> version.
+The Assimilation code has been tested most recently with the <i>Community 2.1</i> version.
 Fortunately, they do provide an init script for it, so it can easily be started as a service,
 called <i>neo4j-service</i>.
 It must be started before the CMA starts.
 
 @section GettingOurSource Getting a copy of the Assimilation source code
-There are three ways you can get a copy of the Assimilation Project source - as a tar ball
-or in a <a href="http://mercurial.selenic.com/">Mercurial</a> source code repository,
-or if you run a Red-Hat based release, you can get source RPMs suitable for recent red hat releases.
+There are two ways you can get a copy of the Assimilation Project source - as a tar ball
+or in a <a href="http://mercurial.selenic.com/">Mercurial</a> source code repository.
 
-You can obtain prebuilt packages of the project (for Ubuntu and RHEL/CentOS),  using a web browser <a href="www.gnu.org/software/wget/">wget</a>.
+You can obtain prebuilt packages of the project (for Ubuntu and RHEL/CentOS), using a web browser or <a href="www.gnu.org/software/wget/">wget</a>.
 
- - Bleeding edge builds - https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADkfkqzXOLfA-cwHIdlcdGTa/builds
- - Officially released versions -  https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADYcxtYYwlFZxV-P0LpRA4ra/builds/Releases
+ - Bleeding edge builds - http://bit.ly/assimbuilds
+ - Officially released versions - http://bit.ly/assimreleases
+
+We also test the bleeding edge builds quite well.
+At this point in time, they are typically as good as the official releases - and have more fixes and features.
+We recommend that most trial usages start with the latest bleeding edge build.
 
 You can obtain a <i>tar ball</i> of the source using a web browser, or <a href="www.gnu.org/software/wget/">wget</a>.
 
- - Bleeding edge - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/tip.tar.gz
- - Latest stable version - http://hg.linux-ha.org/%7Cexperimental/assimilation/archive/v0.1.0.tar.gz
+ - Bleeding edge - http://hg.linux-ha.org/assimilation/archive/tip.tar.gz
+ - Latest stable version - http://hg.linux-ha.org/assimilation/archive/v0.1.4.tar.gz
 
 
 If you'd rather have an active source code repository to use to watch the development
@@ -98,14 +101,11 @@ or contribute to it, then follow these steps:
 - cd <i><some-suitable-source-directory</i>
 - <tt><b>hg clone 'http://hg.linux-ha.org/%7Cexperimental/assimilation/'</b></tt>
 
-If you are running a RedHat-based release and you are happy to deal with source RPMs, then feel
-free to use Jamie Nguyen's source RPMs or spec files which you can find here:
-- http://jamielinux.fedorapeople.org/assimilation/
-
 
 This completes all the preparation necessary to begin building the system.
 
 @section BuildingTheCode Building The Code
+If you installed prebuilt-packages (and hurray for you), you can skip these steps.
 - create a <i>new-binary-directory</i> to hold the completed binaries - separate from the source tree above
 - cd <i>new-binary-directory</i>
 - cmake <i>pathname-of-source-directory</i>
