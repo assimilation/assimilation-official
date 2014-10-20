@@ -1,9 +1,60 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+
+@section Version_0_1_4- version 0.1.4 - the 'much better tested' release - 20 October 2014
+This is the fourth in a series of releases intended to culminate in a truly useful release.
+This release is eminently suitable for trials in an environment where the caveats are acceptable.
+We have quite a few pre-built Ubuntu packages, and a few CentOS/RHEL packages for this version in the 0.1.4 subdirectory of 
+http://bit.ly/assimreleases .
+A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.4.tar.gz
+
+A complete and detailed view of the features, bugs, caveats and so on for the Assimilation
+Project is currently held on on <a href="https://trello.com/b/98QrdEK1/issues-bugs">Trello</a>.
+The lists of special interest are the <b>In release 0.4</b> list and the various other bug and caveat lists in
+<a href="https://trello.com/b/98QrdEK1/issues-bugs">this board</a>.
+
+@subsection Features_0_1_4 Features
+- 100+ system System-level testing environment now part of development process
+- We now create several CentOS packages in our official build environment
+- Added support for Cisco's CDP (Cisco Discovery Protocol) for discovering switch connections in Cisco environments
+- Builds now support RHEL6/7 environments
+- Detailed documentation on building and installing for RHEL6.
+- ARP IP/MAC discovery on multiple interfaces (previously hard-wired to eth0)
+- LLDP/CDP discovery on multiple interfaces (previously hard-wired to eth0)
+- Added timeouts to discovery processes
+- Canned queries can now return simple (non-node) values.
+- Bugs and features in this release now logged in <a href="https://trello.com/b/98QrdEK1/issues-bugs">Trello</a>.
+- Documentation updates.
+
+@subsection BugFixes_0_1_4 Bug Fixes
+- Several canned queries now fixed
+- Removed duplicate ipport entries in database
+- Nanoprobes now stop reliably
+- ARP discovery flooding now mitigated
+- Numerous fixes related to the reliable communications protocol
+- Numerous other small fixes.
+
+@subsection Caveats_0_1_4 Caveats
+- communication is neither authenticated nor confidential
+- No alerting, or interface to alerting (hooks to build your own interface are included)
+- high availability option for the CMA
+- the queries need to have more indexes for larger installations.
+- statistical data collection
+- The CMA may suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- Object deletion not yet reliable or complete
+
+Features that are expected for a monitoring solution but are <b>not</b> included include these:
+- useful alerting (but you can probably integrate your own)
+- Alerting history.
+- non-Linux system support (POSIX and Windows - but now someone is working on Windows!)
+- statistical data collection
+Note that these features are understood to be important and are planned - but this release
+does not include them.
+
 @section Version_0_1_3- version 0.1.3 - the 'even more interesting' release - 02 May 2014 [32 April 2014;-)]
 This is the third in a series of releases intended to culminate in a truly useful release.
 This release is suitable for trials in an environment where the caveats are acceptable.
-We have  quite a few pre-built Ubuntu packages for this version here:
+We have quite a few pre-built Ubuntu packages for this version here:
 https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADYcxtYYwlFZxV-P0LpRA4ra/builds/Releases/0.1.3
 A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.3.tar.gz
 @subsection Features_0_1_3 Features

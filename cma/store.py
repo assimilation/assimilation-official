@@ -507,9 +507,8 @@ class Store(object):
                     yieldval.append('RelationshipsNotYetSupported - Sorry :-(')
                 elif isinstance(value, neo4j.Path):
                     yieldval.append('PathsNotYetSupported - Sorry :-(')
-                elif value is None:
-                    yieldval.append(value)
                 else:
+                    # Integers, strings, None, etc.
                     yieldval.append(value)
             count += 1
             if maxcount is not None and count > maxcount:
