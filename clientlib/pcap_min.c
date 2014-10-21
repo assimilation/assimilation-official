@@ -47,8 +47,8 @@ static struct pcap_filter_info {
 	const char *	filter;
 	const char *	mcastaddr;
 }filterinfo[] = {
-	{ENABLE_LLDP,	"(ether proto 0x88cc and ether dst 01:80:c2:00:00:0e)", "01:80:c2:00:00:0e"},
-	{ENABLE_CDP,	"(ether proto 0x2000 and ether dst 01:00:0c:cc:cc:cc)",	"01:00:0c:cc:cc:cc"},
+	{ENABLE_LLDP,	"(ether proto 0x88cc and ether dst 01:80:c2:00:00:0e)",   "01:80:c2:00:00:0e"},
+	{ENABLE_CDP,	"(ether dst 01:00:0c:cc:cc:cc and ether[20:2] == 0x2000)", "01:00:0c:cc:cc:cc"},
 	{ENABLE_ARP,	"(arp)", NULL},
 
 };
