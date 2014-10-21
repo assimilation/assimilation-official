@@ -38,6 +38,8 @@ FSTATIC guint _switchdiscovery_setprotocols(ConfigContext* cfg);
 /// @{
 /// @ingroup DiscoveryClass
 
+DEBUGDECLARATIONS
+
 /// finalize a SwitchDiscovery object
 FSTATIC void
 _switchdiscovery_finalize(AssimObj* dself)
@@ -97,14 +99,14 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	FrameSet*		fs;
 	
 	(void)gsource; (void)capstruct;
-	//g_debug("Got an incoming LLDP/CDP packet - dest is %p", dest);
+	DEBUGMSG2("Got an incoming LLDP/CDP packet - dest is %p", dest);
 	/// Don't cache if we can't send - and don't send if we have sent this info previously.
 	++ self->baseclass.discovercount;
 	if (!dest || !_switchdiscovery_cache_info(self, pkt, pend)) {
 		return TRUE;
 	}
 	++ self->baseclass.reportcount;
-	//g_debug("Sending out LLDP/CDP packet - hurray!");
+	DEBUGMSG2("Sending out LLDP/CDP packet - hurray!");
 	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
 	transport->_netio->sendareliablefs(transport->_netio, dest, DEFAULT_FSP_QID, fs);
 	UNREF(fs);
@@ -125,6 +127,7 @@ _switchdiscovery_setprotocols(ConfigContext* cfg)
 		{"lldp",	ENABLE_LLDP},
 		{"cdp",		ENABLE_CDP},
 	};
+	DUMP2("_switchdiscovery_setprotocols: ", &cfg->baseclass, "");
 	for (protoarray = cfg->getarray(cfg, CONFIGNAME_SWPROTOS); protoarray
 	;		protoarray=protoarray->next) {
 		ConfigValue*	elem;
@@ -136,6 +139,8 @@ _switchdiscovery_setprotocols(ConfigContext* cfg)
 		}
 		for (j=0; j < DIMOF(map); ++j) {
 			if (strcmp(map[j].protoname, elem->u.strvalue) == 0) {
+				DEBUGMSG("%s.%d: protoname = %s", __FUNCTION__, __LINE__
+				,	elem->u.strvalue);
 				protoval |= map[j].protobit;
 				continue;
 			}
@@ -143,8 +148,11 @@ _switchdiscovery_setprotocols(ConfigContext* cfg)
 
 	}
 	if (0 == protoval) {
+		DEBUGMSG("%s.%d: returning DEFAULT_PROTOS (0x%04x)", __FUNCTION__, __LINE__
+		,	DEFAULT_PROTOS);
 		return DEFAULT_PROTOS;
 	}
+	DEBUGMSG("%s.%d: returning 0x%04x", __FUNCTION__, __LINE__, protoval);
 	return protoval;
 
 }
@@ -164,23 +172,24 @@ switchdiscovery_new(ConfigContext*swconfig	///<[in] Switch discoveryconfiguratio
 	guint listenmask;		///<[in] what protocols to listen to
 	Discovery * dret;
 	SwitchDiscovery* ret;
+	BINDDEBUG(SwitchDiscovery);
+	DEBUG = (DEBUG < 2 ? 2 : DEBUG); // DEFAULT DEBUG ON FOR A WHILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 	g_return_val_if_fail(swconfig != NULL, NULL);
 	dev = swconfig->getstring(swconfig, CONFIGNAME_DEVNAME);
 	g_return_val_if_fail(dev != NULL, NULL);
 	instance = swconfig->getstring(swconfig, CONFIGNAME_INSTANCE);
 	g_return_val_if_fail(instance != NULL, NULL);
-	listenmask = _switchdiscovery_setprotocols(swconfig);
 	dret = discovery_new(instance, iosrc, config
 	,		objsize < sizeof(SwitchDiscovery) ? sizeof(SwitchDiscovery) : objsize);
 	g_return_val_if_fail(dret != NULL, NULL);
 	proj_class_register_subclassed(dret, "SwitchDiscovery");
-	
-
 	ret = CASTTOCLASS(SwitchDiscovery, dret);
-
 	ret->finalize = dret->baseclass._finalize;
 	dret->baseclass._finalize = _switchdiscovery_finalize;
 	dret->discover = _switchdiscovery_discover;
+
+	listenmask = _switchdiscovery_setprotocols(swconfig);
+	DEBUGMSG("%s.%d: dev=%s, listenmask = 0x%04x", __FUNCTION__, __LINE__, dev, listenmask);
 	ret->source = g_source_pcap_new(dev, listenmask, _switchdiscovery_dispatch, NULL, priority, FALSE, mcontext, 0, ret);
 
 	if (objsize == sizeof(SwitchDiscovery)) {
