@@ -75,34 +75,34 @@ sumstdin() {
 
 slashproc_cmdline() {
     case $1 in
-        -)  echo '["kernel"]';;
+        -|.)  echo '["kernel"]';;
         *)  tr '\0' '' < /proc/${1}/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%["&"]\n%';;
     esac
 }
 
 slashproc_exe() {
     case $1 in
-        -)  echo '/boot/kernel';;
+        -|.)  echo '/boot/kernel';;
         *)  readlink /proc/$1/exe;;
     esac
 }
 
 slashproc_curdir() {
     case $1 in
-        -)  echo '/';;
+        -|.)  echo '/';;
         *)  readlink /proc/$1/cwd;;
     esac
 }
 
 slashproc_uid() {
     case $1 in
-        -)  echo 'root';;
+        -|.)  echo 'root';;
         *)  ls -ld /proc/$1 | cut -d' ' -f3;;
     esac
 }
 slashproc_gid() {
     case $1 in
-        -)  echo 'root';;
+        -|.)  echo 'root';;
         *)  ls -ld /proc/$1 | cut -d' ' -f4;;
     esac
 }
