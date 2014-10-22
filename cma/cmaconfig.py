@@ -44,6 +44,7 @@ class ConfigFile(object):
                                      'monitoringdiscovery', # Automatically monitors services
                                      'arpdiscovery',        # Listens for ARP packets for
                                                             # network mapping...
+                                     'procsysdiscovery',    # Discovers content of /proc/sys
                                     }
                                 ],
         'contrib_modules':      [str],      # List of contrib modules to be included
@@ -135,7 +136,8 @@ class ConfigFile(object):
                                 'checksumdiscovery',    # Perform tripwire-like checksum monitoring
                                 'monitoringdiscovery',  # Initiates monitoring based on service
                                                         # discovery
-                                'arpdiscovery'          # Listen for ARP packets: IPs and MACs
+                                'arpdiscovery',         # Listen for ARP packets: IPs and MACs
+                                'procsysdiscovery',     # Discovers content of /proc/sys
                             ],
             'contrib_modules':          [],  # List of contrib modules to be imported
             #
