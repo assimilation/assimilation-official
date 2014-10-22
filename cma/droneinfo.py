@@ -137,6 +137,8 @@ class Drone(SystemNode):
         'Pass the JSON data along to interested discovery plugins (if any)'
         dtype = jsonobj['discovertype']
         foundone = False
+        if CMAdb.debug:
+            CMAdb.log.debug('Processing JSON for discovery type [%s]' % dtype)
         for prio in range(0, len(Drone._JSONprocessors)):
             if dtype in Drone._JSONprocessors[prio]:
                 foundone = True
