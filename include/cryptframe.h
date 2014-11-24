@@ -1,8 +1,8 @@
 
 /**
  * @file
- * @brief Describes interfaces to C-String Frame (Cstringframe) C-Class 
- * It holds conventional zero-terminated byte strings.
+ * @brief Describes interfaces to CryptFrame (encryption) C-Class 
+ * It represents FrameSet encryption
  *
  * This file is part of the Assimilation Project.
  *
