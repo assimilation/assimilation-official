@@ -680,6 +680,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 	}
 	if (self->finalizetimer > 0) {
 		g_source_remove(self->finalizetimer);
+		self->finalizetimer = 0;
 	}
 	self->nextrexmit = 0;
 	self->acktimeout = 0;

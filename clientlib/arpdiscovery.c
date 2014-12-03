@@ -144,6 +144,7 @@ _arpdiscovery_first_discovery(gpointer gself) ///<[in/out] Pointer to 'self'
 	int		interval = self->arpconfig->getint(self->arpconfig, CONFIGNAME_INTERVAL);
 	if (self->timeout_source > 0) {
 		g_source_remove(self->timeout_source);
+		self->timeout_source = 0;
 	}
 	self->timeout_source
 	=	g_timeout_add_seconds_full
