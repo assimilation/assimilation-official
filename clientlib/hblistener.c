@@ -134,9 +134,14 @@ _hblistener_checktimeouts(gboolean urgent)	///<[in]True if you want it checked n
 FSTATIC gboolean
 _hblistener_gsourcefunc(gpointer ignored) ///<[ignored] Ignored
 {
+	gboolean	ret;
 	(void)ignored;
 	_hblistener_checktimeouts(TRUE);
-	return _hb_listeners != NULL;
+	ret = (_hb_listeners != NULL);
+	if (!ret) {
+		hb_timeout_id = -1;
+	}
+	return ret;
 }
 
 /// Function called when a heartbeat @ref FrameSet (fs) arrived from the given @ref NetAddr (srcaddr)
@@ -188,6 +193,7 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 	return TRUE;
 }
 
+/// We get called when our gSource gets removed.  This function is probably unnecessary...
 FSTATIC void
 _hblistener_notify_function(gpointer ignored)	///<[unused] Unused
 {
@@ -201,7 +207,12 @@ hblistener_shutdown(void)
 {
 	GSList* this;
 	GSList* next = NULL;
-		
+	static gboolean shuttingdown = FALSE;
+
+	if (shuttingdown) {
+		return;
+	}
+	shuttingdown = TRUE;
 	// Unref all our listener objects...
 	for (this = _hb_listeners; this; this=next) {
 		HbListener* listener = CASTTOCLASS(HbListener, this->data);
@@ -214,8 +225,8 @@ hblistener_shutdown(void)
 	}
 	if (hb_timeout_id > 0) {
 		g_source_remove(hb_timeout_id);
-		hb_timeout_id = -1;
 	}
+	shuttingdown = FALSE;
 }
 
 
