@@ -628,6 +628,7 @@ _fsprotocol_activeconncount(FsProtocol* self)
 		}
 	}
 	if (count == 0) {
+		g_hash_table_iter_init(&iter, self->endpoints);
 		while(g_hash_table_iter_next(&iter, &key, &value)) {
 			FsProtoElem*	fspe = CASTTOCLASS(FsProtoElem, key);
 			fspe->shutdown_complete = FALSE;
