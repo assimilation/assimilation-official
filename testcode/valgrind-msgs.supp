@@ -412,3 +412,22 @@
    fun:g_main_loop_run
    ...
 }
+{
+   g_thread_new/pthread_create leak
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create*
+   obj:*
+   obj:*
+   fun:g_thread_new
+   obj:*
+   obj:*
+   fun:g_child_watch_source_new
+   fun:g_child_watch_add_full
+   fun:childprocess_new
+   ...
+}
