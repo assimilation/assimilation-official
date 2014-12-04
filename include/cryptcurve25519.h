@@ -1,0 +1,58 @@
+/**
+ * @file
+ * @brief Describes interfaces to CryptFrame (encryption) C-Class 
+ * It represents a FrameSet using libsodium (curve25519) for public key encryption.
+ * In particular, we use the libsodium simple_box*() interfaces which use the following algorithms:
+ *	Key exchange: Curve25519
+ *	Encryption: XSalsa20 stream cipher
+ *	Authentication: Poly1305 MAC
+ *
+ * Note that these interfaces integrate message validation with encryption/decryption
+ * so we don't need a separate cryptographic validation of the sender.
+ *
+ *
+ * This file is part of the Assimilation Project.
+ *
+ * @author Copyright &copy; 2011, 2012 - Alan Robertson <alanr@unix.sh>
+ * @n
+ *  The Assimilation software is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  The Assimilation software is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+ */
+
+#ifndef _CRYPTCURVE25519_H
+#define _CRYPTCURVE25519_H
+#include <cryptframe.h>
+
+///@{
+/// @ingroup CryptCurve25519
+typedef struct _CryptCurve25519 CryptCurve25519;
+
+/// This is our @ref CryptCurve25519 object - representing a Curve25519 encryption @ref Frame
+struct _CryptCurve25519 {
+	CryptFrame	baseclass;
+	char *		privkeyname;	///< Name of private key
+	char *		pubkeyname;	///< Name of public key
+	gpointer	publickey;	///< Pointer to public key
+	gpointer	privatekey;	///< Pointer to private key
+};
+
+#define	MAXCRYPTNAMELENGTH	64
+
+WINEXPORT CryptCurve25519* cryptcurve25519_new(guint16 frame_type, const char * pubkeyname, const char *privkeyname, gsize objsize);
+WINEXPORT Frame* cryptcurve25519_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT void cryptcurve25519_gen_temp_keypair(const char* keyname);
+WINEXPORT char* cryptcurve25519_gen_persistent_keypair(const char * keyname);
+
+///@}
+
+#endif /* _CRYPTCURVE25519_H */
