@@ -278,7 +278,7 @@ main(int argc, char **argv)
 	const guint8	otheradstring2[] = {10,10,10,4};
 	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	guint16		testport = TESTPORT;
-	SignFrame*	signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	SignFrame*	signature = signframe_glib_new(G_CHECKSUM_SHA256, 0);
 	Listener*	otherlistener;
 	ConfigContext*	config = configcontext_new(0);
 	PacketDecoder*	decoder = nano_packet_decoder();
