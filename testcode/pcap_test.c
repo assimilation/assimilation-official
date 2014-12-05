@@ -56,7 +56,7 @@ cast_frameset_tests(void)
 	CstringFrame*	csf	= cstringframe_new(11,0);
 	AddrFrame*	af = addrframe_new(12,0);
 	IntFrame*	intf = intframe_new(13,sizeof(long));
-	SignFrame*	sigf = signframe_new(G_CHECKSUM_SHA256, 0);
+	SignFrame*	sigf = signframe_glib_new(G_CHECKSUM_SHA256, 0);
 	guint8		address[] = {127, 0, 0, 1};
 	gchar		fred[]  = "fred";
 	gchar		george[]  = "george";
@@ -142,7 +142,7 @@ address_tests(void)
 	AddrFrame*	gframes[] = {ipv4_localhost, ipv6_localhost, ipv46_localhost, macaddr48, macaddr64, ipv6_other, ipv4_other};
 	AddrFrame*	bframes[] = {bframeipv4_1, bframeipv4_2, bframeipv6_1, bframeipv6_2, bframemac_1, bframemac_2, bframemac_3};
 	AddrFrame*	af;
-	SignFrame*	gsigf = signframe_new(G_CHECKSUM_SHA256, 0);
+	SignFrame*	gsigf = signframe_glib_new(G_CHECKSUM_SHA256, 0);
 	unsigned	j;
 	FrameSet*	gfs = frameset_new(42);
 

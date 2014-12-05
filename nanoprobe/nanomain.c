@@ -220,7 +220,7 @@ main(int argc, char **argv)
 {
 	static char		defaultCMAaddr[] = CMAADDR;
 	static char		defaultlocaladdress [] = NANOLISTENADDR;
-	SignFrame*		signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	SignFrame*		signature = signframe_glib_new(G_CHECKSUM_SHA256, 0);
 	CompressFrame*		compression = compressframe_new(FRAMETYPE_COMPRESS, COMPRESS_ZLIB);
 	Listener*		otherlistener;
 	ConfigContext*		config = configcontext_new(0);

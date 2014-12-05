@@ -37,7 +37,7 @@
 #include <ipportframe.h>
 #include <seqnoframe.h>
 #include <nvpairframe.h>
-
+#include <cryptcurve25519.h>
 #include <packetdecoder.h>
 
 #define	PORT	19840
@@ -215,7 +215,7 @@ main(int argc, char **argv)
 //	int		j;
 	FrameTypeToFrame	decodeframes[] = FRAMETYPEMAP;
 	PacketDecoder*	decoder = packetdecoder_new(0, decodeframes, DIMOF(decodeframes));
-	SignFrame*      signature = signframe_new(G_CHECKSUM_SHA256, 0);
+	SignFrame*      signature = signframe_glib_new(G_CHECKSUM_SHA256, 0);
 	CompressFrame*	compressionframe = compressframe_new(FRAMETYPE_COMPRESS, COMPRESS_ZLIB);
 	ConfigContext*	config = configcontext_new(0);
 	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -280,6 +280,7 @@ main(int argc, char **argv)
 	compressionframe->compression_threshold = 1; // Make sure it gets exercised
 	config->setframe(config, CONFIGNAME_COMPRESS, &compressionframe->baseclass);
 	UNREF2(compressionframe);
+	cryptcurve25519_gen_temp_keypair("pinger");
 	transport = reliableudp_new(0, config, decoder, 0);
 	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, RCVLOSS, XMITLOSS);
 	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
