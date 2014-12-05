@@ -250,7 +250,7 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 {
 	const CryptCurve25519*	self = CASTTOCONSTCLASS(CryptCurve25519, fself);
 	const guint8*	valptr;
-	char*		keyname;
+	const char*	keyname;
 	guint		namelen;
 	gsize		pktlen;
 	int		j;
@@ -287,7 +287,7 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 	valptr = get_generic_tlv_value(tlvstart, pktend);
 	// Validate both key names in the packet...
 	for (j=0; j < 2; ++ j) {
-		if ((gpointer)(valptr+3) >= pktend) {
+		if ((gconstpointer)(valptr+3) >= pktend) {
 			return FALSE;
 		}
 		namelen = tlv_get_guint8(valptr, pktend);
@@ -295,10 +295,10 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 			return FALSE;
 		}
 		valptr += 1;
-		if ((gpointer)(valptr+namelen) > pktend) {
+		if ((gconstpointer)(valptr+namelen) > pktend) {
 			return FALSE;
 		}
-		keyname = (char *)(valptr);
+		keyname = (const char *)(valptr);
 		if (strnlen(keyname, namelen) != (namelen-1)) {
 			return FALSE;
 		}

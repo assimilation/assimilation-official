@@ -137,7 +137,7 @@ _decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] Packet
 	}
 	g_return_val_if_fail(ret != NULL, NULL);
 	if (NULL == *newpacket) {
-		*pktstart = (gpointer) ((const guint8*)*pktstart + ret->dataspace(ret));
+		*pktstart = (gpointer) ((guint8*)*pktstart + ret->dataspace(ret));
 	}else{
 		*pktstart = *newpacket;
 		*pktend = newpacketend;
@@ -152,7 +152,7 @@ _decode_packet_get_frameset_data(gpointer vfsstart,		///<[in] Start of this Fram
 				 gpointer* fsnext)		///<[out] Pointer to first byte after this FrameSet
 								///<(that is, the first byte of contained frames)
 {
-	const guint8*	fsstart = vfsstart;
+	guint8*		fsstart = vfsstart;
 	const guint8*	pktend = vpktend;
 	gssize		bytesleft = pktend - fsstart;
 	guint16		fstype;
