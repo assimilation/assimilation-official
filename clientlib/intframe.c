@@ -205,7 +205,7 @@ intframe_new(guint16 frametype,	///< Type of frame to create with this value
 /// Given marshalled data corresponding to an IntFrame (integer frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-intframe_tlvconstructor(gconstpointer tlvstart,	///<[in] First byte of the IntFrame TLV
+intframe_tlvconstructor(gpointer tlvstart,	///<[in] First byte of the IntFrame TLV
 			gconstpointer pktend,	///<[in] First invalid byte past pktend
 		        gpointer* ignorednewpkt,///<[ignored] replacement packet
 		        gpointer* ignoredpktend)///<[ignored] end of replacement packet

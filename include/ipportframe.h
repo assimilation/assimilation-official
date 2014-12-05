@@ -48,7 +48,7 @@ struct _IpPortFrame {
 WINEXPORT IpPortFrame* ipportframe_netaddr_new(guint16 frame_type, NetAddr*);
 WINEXPORT IpPortFrame* ipportframe_ipv4_new(guint16 frame_type, guint16 port, gconstpointer addrbuf);
 WINEXPORT IpPortFrame* ipportframe_ipv6_new(guint16 frame_type, guint16 port, gconstpointer addrbuf);
-WINEXPORT Frame* ipportframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT Frame* ipportframe_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 #endif /* _IPPORTFRAME_H */

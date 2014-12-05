@@ -38,7 +38,7 @@ struct _NVpairFrame {
 };
 
 NVpairFrame* nvpairframe_new(guint16 frame_type, gchar* name, gchar* value, gsize framesize);
-WINEXPORT Frame* nvpairframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT Frame* nvpairframe_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 

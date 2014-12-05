@@ -275,7 +275,7 @@ addrframe_mac64_new(guint16 frame_type,	///<[in] TLV type of the @ref AddrFrame 
 /// In other words, un-marshall the data...
 /// Note that this always returns an @ref AddrFrame (a subclass of @ref Frame)
 WINEXPORT Frame*
-addrframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
+addrframe_tlvconstructor(gpointer tlvstart,		///<[in] pointer to start of where to find our TLV
 			 gconstpointer pktend,		///<[in] pointer to the first invalid address past tlvstart
 		         gpointer* ignorednewpkt,	///<[ignored] replacement packet
 		         gpointer* ignoredpktend)	///<[ignored] end of replacement packet

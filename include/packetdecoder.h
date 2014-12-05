@@ -31,7 +31,7 @@
 
 typedef struct _FrameTypeToFrame FrameTypeToFrame;
 
-typedef Frame*            (*FramePktConstructor)       (gconstpointer tlvstart, gconstpointer pktend, gpointer*, gpointer*);
+typedef Frame*            (*FramePktConstructor)       (gpointer tlvstart, gconstpointer pktend, gpointer*, gpointer*);
 /// Data structure defining the mapping between frametype integers and corresponding demarshalling
 /// modules.
 struct _FrameTypeToFrame {
@@ -48,7 +48,7 @@ struct _PacketDecoder {
 	const FrameTypeToFrame*	_framemap;
 	int			_maxframetype;
 	FramePktConstructor*	_frametypemap;
-	GSList*			(*pktdata_to_framesetlist)(PacketDecoder*, gconstpointer pktstart, gconstpointer pktend);
+	GSList*			(*pktdata_to_framesetlist)(PacketDecoder*, gpointer pktstart, gconstpointer pktend);
 };
 
 WINEXPORT PacketDecoder*	packetdecoder_new(guint objsize, const FrameTypeToFrame* framemap, gint mapsize);

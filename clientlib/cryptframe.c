@@ -29,8 +29,11 @@
 #include <frametypes.h>
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
+#include <misc.h>
 
 FSTATIC gboolean _cryptframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
+FSTATIC void _cryptframe_finalize(AssimObj* aself);
+static void (*_parentclass_finalize)(AssimObj*) = NULL;
 
 ///@defgroup CryptFrame CryptFrame class
 /// Class for encrypting FrameSets.
@@ -43,70 +46,309 @@ _cryptframe_default_isvalid(const Frame * self,	///<[in] CryptFrame object ('thi
 			      gconstpointer tlvptr,	///<[in] Pointer to the TLV for this CryptFrame
 			      gconstpointer pktend)	///<[in] Pointer to one byte past the end of the packet
 {
-	gsize		length;
-	const CryptFrame*	cself = CASTTOCONSTCLASS(CryptFrame, self);
+	(void)self;
+	(void)tlvptr;
+	(void)pktend;
 
-	if (tlvptr == NULL) {
-		if (cself->encryption_method <= 0 ) {
-			return FALSE;
-		}
-		length = self->length;
-	}else{
-		length = get_generic_tlv_len(tlvptr, pktend);
-	}
-	(void)length;
-
-	/// @todo: Not yet implemented
-	return FALSE;
+	/// Abstract base class - always FALSE
+	g_return_val_if_reached(FALSE);
 }
 
+/// Finalize (destructor) function for our CryptFramePublicKey objects
+FSTATIC void
+_cryptframe_finalize(AssimObj* aself) ///< object to finalize/destroy
+{
+	CryptFrame*	self = CASTTOCLASS(CryptFrame, aself);
+	if (self->sender_key_id) {
+		g_free(self->sender_key_id);
+		self->sender_key_id = NULL;
+	}
+	if (self->receiver_key_id) {
+		g_free(self->receiver_key_id);
+		self->receiver_key_id = NULL;
+	}
+	_parentclass_finalize(aself);
+}
 
 /// Construct a new CryptFrame
-/// This can only be used directly for creating CryptFrame frames.
+/// This can only be used directly for creating subclassed CryptFrame frames because
+/// CryptFrame is an abstract class...
 CryptFrame*
-cryptframe_new(guint16 frame_type,	///<[in] TLV type of CryptFrame
-	  guint16 encryption_method,	///<[in] Encryption method
-	  void * keyinfo)		///<[in] size of frame structure (or zero for sizeof(CryptFrame))
+cryptframe_new( guint16 frame_type,		///<[in] TLV type of CryptFrame
+		const char * sender_key_id,	///<[in] Sender key id
+		const char * receiver_key_id,	///<[in] Receiver key id
+		gsize objsize)			///<[in] size of object
 {
 	Frame*		baseframe;
-	CryptFrame*	ret;
+	CryptFrame*	self;
 
-	baseframe = frame_new(frame_type, sizeof(CryptFrame));
+	if (objsize < sizeof(CryptFrame)) {
+		objsize = sizeof(CryptFrame);
+	}
+	baseframe = frame_new(frame_type, objsize);
+	if (!_parentclass_finalize) {
+		_parentclass_finalize = baseframe->baseclass._finalize;
+	}
 	baseframe->isvalid = _cryptframe_default_isvalid;
-	proj_class_register_subclassed (baseframe, "CryptFrame");
-	
-
-	ret = CASTTOCLASS(CryptFrame, baseframe);
-	ret->encryption_method = encryption_method;
-	ret->encryption_key_info = keyinfo;
-	return ret;
+	self = NEWSUBCLASS(CryptFrame, baseframe);
+	self->sender_key_id = g_strdup(sender_key_id);
+	self->receiver_key_id = g_strdup(receiver_key_id);
+	return self;
 }
-/// Given marshalled packet data corresponding to an CryptFrame (C-style string),
-/// return the corresponding Frame
-/// In other words, un-marshall the data...
+/// Given marshalled packet data corresponding to an CryptFrame - which we can't do
+/// because we're an abstract class...
 WINEXPORT Frame*
-cryptframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
+cryptframe_tlvconstructor(gpointer tlvstart,		///<[in] Start of marshalled CStringFrame data
 			  gconstpointer pktend,		///<[in] Pointer to first invalid byte past 'tlvstart'
 		          gpointer* ignorednewpkt,	///<[ignored] replacement packet
 		          gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
-	guint16		frametype = get_generic_tlv_type(tlvstart, pktend);
-	guint32		framelength = get_generic_tlv_len(tlvstart, pktend);
-	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
-	/// @todo: Not yet implemented
-	CryptFrame *	cret = cryptframe_new(frametype, 0, NULL);
-	Frame *		ret = CASTTOCLASS(Frame, cret);
-
+	(void)tlvstart;
+	(void)pktend;
 	(void)ignorednewpkt;
 	(void)ignoredpktend;
-	g_return_val_if_fail(cret != NULL, NULL);
+	// Abstract base class - can't do this...
+	g_return_val_if_reached(NULL);
+}
+FSTATIC void _cryptframe_publickey_finalize(AssimObj* key);
+FSTATIC void _cryptframe_privatekey_finalize(AssimObj* key);
+FSTATIC void _cryptframe_initialize_maps(void);
+// All our hash tables have strings for keys
+static GHashTable*	public_key_map = NULL;		//< map of all public keys by key id
+static GHashTable*	private_key_map = NULL;		//< map of all private keys by key id
+static GHashTable*	identity_map_by_key_id = NULL;	//< map of identies by key id
+static GHashTable*	key_id_map_by_identity = NULL;	//< A hash table of hash tables
+							//< keyed by identity
+							//< with strings for keys and values
+							//< It tells you all the key ids
+							//< associated with a given identity
 
-	cret->baseclass.length = framelength;
-	(void)frametype;
-	(void)framelength;
-	(void)framevalue;
-	(void)ret;
-	/// @todo: Not yet implemented
-	return NULL;
+/// Finalize (destructor) function for our CryptFramePublicKey objects
+FSTATIC void
+_cryptframe_publickey_finalize(AssimObj* pubkey) ///< object to finalize/destroy
+{
+	CryptFramePublicKey*	self = CASTTOCLASS(CryptFramePublicKey, pubkey);
+	if (self->key_id) {
+		g_free(self->key_id);
+		self->key_id = NULL;
+	}
+	if (self->public_key) {
+		g_free(self->public_key);
+		self->public_key = NULL;
+	}
+	_assimobj_finalize(pubkey);
+}
+
+/// Finalize (destructor) function for our CryptFramePrivateKey objects
+FSTATIC void
+_cryptframe_privatekey_finalize(AssimObj* privkey) ///< object to finalize/destroy
+{
+	CryptFramePrivateKey*	self = CASTTOCLASS(CryptFramePrivateKey, privkey);
+	if (self->key_id) {
+		g_free(self->key_id);
+		self->key_id = NULL;
+	}
+	if (self->private_key) {
+		g_free(self->private_key);
+		self->private_key = NULL;
+	}
+	_assimobj_finalize(privkey);
+}
+
+#define	INITMAPS	{if (!maps_inityet) {_cryptframe_initialize_maps();}}
+static gboolean		maps_inityet = FALSE;
+/// Initialize all our maps
+FSTATIC void
+_cryptframe_initialize_maps(void)
+{
+	if (maps_inityet) {
+		return;
+	}
+	public_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
+	private_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
+	identity_map_by_key_id = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	key_id_map_by_identity = g_hash_table_new_full(g_str_hash, g_str_equal
+	,	NULL, (GDestroyNotify)g_hash_table_destroy);
+	maps_inityet = TRUE;
+}
+
+/// Create a new public key - or return the existing public key with this id
+WINEXPORT CryptFramePublicKey*
+cryptframe_publickey_new (const char *key_id,	///< Key id of the given public key
+			  gpointer public_key)	///< MALLOCed public key
+{
+	AssimObj*		aself;
+	CryptFramePublicKey*	self;
+	INITMAPS;
+	self = cryptframe_public_key_by_id(key_id);
+	if (self) {
+		return self;
+	}
+	aself = assimobj_new(sizeof(CryptFramePublicKey));
+	aself->_finalize = _cryptframe_publickey_finalize;
+	self = NEWSUBCLASS(CryptFramePublicKey, aself);
+	self->key_id = g_strdup(key_id);
+	self->public_key = public_key;
+	g_hash_table_insert(public_key_map, self->key_id, self);
+	return self;
+}
+
+/// Create a new private key - or return the existing private key with this id
+WINEXPORT CryptFramePrivateKey*
+cryptframe_privatekey_new(const char *key_id,	///<[in] Key id of given private key
+			  gpointer private_key)	///<[in] MALLOCed private key
+{
+	AssimObj*		aself;
+	CryptFramePrivateKey*	self;
+	INITMAPS;
+	self = cryptframe_private_key_by_id(key_id);
+	if (self) {
+		return self;
+	}
+	aself = assimobj_new(sizeof(CryptFramePrivateKey));
+	aself->_finalize = _cryptframe_privatekey_finalize;
+	self = NEWSUBCLASS(CryptFramePrivateKey, aself);
+	self->key_id = g_strdup(key_id);
+	self->private_key = private_key;
+	g_hash_table_insert(private_key_map, self->key_id, self);
+	return self;
+}
+
+/// Return the public key with the given id
+WINEXPORT CryptFramePublicKey*
+cryptframe_public_key_by_id(const char* key_id)	///[in] Key id of public key being sought
+{
+	gpointer	ret;
+	INITMAPS;
+	ret = g_hash_table_lookup(public_key_map, key_id);
+	return (ret ? CASTTOCLASS(CryptFramePublicKey, ret): NULL);
+}
+
+/// Return the private key with the given id
+WINEXPORT CryptFramePrivateKey*
+cryptframe_private_key_by_id(const char* key_id) ///<[in] Key id of the given private key being sought
+{
+	gpointer	ret;
+	INITMAPS;
+	ret = g_hash_table_lookup(private_key_map, key_id);
+	return (ret ? CASTTOCLASS(CryptFramePrivateKey, ret): NULL);
+}
+
+/// Associate the given key id with the given identity
+/// Note that it is OK to associate multiple key ids with a given identity
+/// but it is NOT OK to associate multiple identities with a given key id
+/// Return TRUE if we could make the association (it's OK to make
+/// the same valid association multiple times)
+WINEXPORT gboolean
+cryptframe_associate_identity(const char * identity,	///[in] identity to associate key with
+			      const char * key_id)	///[in] key to associate with identity
+{
+	GHashTable*	key_id_map;
+	const char*	found_identity;
+	char*		key_id_duplicate;
+	char*		identity_duplicate;
+	INITMAPS;
+	g_return_val_if_fail(cryptframe_public_key_by_id(key_id)!= NULL, FALSE);
+	found_identity = cryptframe_whois_key_id(key_id);
+	if (found_identity) {
+		if (strcmp(found_identity, key_id) != 0) {
+			g_critical("%s.%d: Key id %s cannot be associated with identity %s."
+			" Already associated with identity %s", __FUNCTION__, __LINE__
+			,	key_id, identity, found_identity);
+			return FALSE;
+		}
+		return TRUE;
+	}
+	key_id_duplicate = g_strdup(key_id);
+	identity_duplicate = g_strdup(identity);
+	g_hash_table_insert(identity_map_by_key_id, key_id_duplicate, identity_duplicate);
+
+	key_id_map = cryptframe_key_ids_for(identity);
+	if (NULL == key_id_map) {
+		key_id_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, NULL);
+		g_hash_table_insert(key_id_map_by_identity, identity_duplicate, key_id_map);
+	}
+	if (!g_hash_table_lookup((GHashTable*)key_id_map, key_id)) {
+		g_hash_table_insert(key_id_map, key_id_duplicate, key_id_duplicate);
+	}
+	return TRUE;
+}
+
+/// Dissociate the given key from the given identity (analogous to revoking the key)
+WINEXPORT gboolean
+cryptframe_dissociate_identity(const char * identity,	///<[in] identity to dissociate key from
+			       const char * key_id)	///<[in] key id to "revoke"
+{
+	char*		found_identity;
+	GHashTable*	key_id_map;
+	INITMAPS;
+
+	found_identity = g_hash_table_lookup(identity_map_by_key_id, key_id);
+	if (NULL == found_identity) {
+		return FALSE;
+	}
+	// The order of these deletions matters - because of shared data between tables.
+	key_id_map = cryptframe_key_ids_for(identity);
+	if (key_id_map) {
+		g_hash_table_remove(key_id_map, key_id);
+		if (g_hash_table_size(key_id_map) == 0) {
+			// This identity doesn't meaningfully exist any more...
+			g_hash_table_remove(key_id_map_by_identity, identity);
+		}
+	}
+	g_hash_table_remove(identity_map_by_key_id, key_id);
+	return TRUE;
+}
+
+/// Return the identity associated with the given public key object
+WINEXPORT const char*
+cryptframe_whois_public_key(const CryptFramePublicKey* public_key) ///<[in] public key whose identity
+								   ///< is sought
+{
+	INITMAPS;
+	return cryptframe_whois_key_id(public_key->key_id);
+}
+
+/// Return the identity associated with the given key id
+WINEXPORT const char*
+cryptframe_whois_key_id(const char * key_id)	///<[in] key id whose identity is sought
+{
+	INITMAPS;
+	return (const char *)g_hash_table_lookup(identity_map_by_key_id, key_id);
+}
+
+/// Return a GHashTable of strings of all the key ids associated with the given identity
+WINEXPORT GHashTable*
+cryptframe_key_ids_for(const char* identity) 
+{
+	INITMAPS;
+	return (GHashTable *)g_hash_table_lookup(key_id_map_by_identity, identity);
+}
+
+/// Return a GList of strings of all known identities
+WINEXPORT GList*
+cryptframe_get_identities(void)
+{
+	INITMAPS;
+	return g_hash_table_get_keys(key_id_map_by_identity);
+}
+
+/// Return a GList of strings of all known key ids
+WINEXPORT GList*
+cryptframe_get_key_ids(void)
+{
+	INITMAPS;
+	return g_hash_table_get_keys(identity_map_by_key_id);
+}
+
+WINEXPORT void
+cryptframe_purge_key_id(const char * key_id)
+{
+	const char* whoarewe = cryptframe_whois_key_id(key_id);
+	if (NULL != whoarewe) {
+		cryptframe_dissociate_identity(whoarewe, key_id);
+	}
+	g_hash_table_remove(public_key_map, key_id);
+	g_hash_table_remove(private_key_map, key_id);
 }
 ///@}

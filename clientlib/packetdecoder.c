@@ -51,10 +51,10 @@
 
 
 
-FSTATIC Frame*	_framedata_to_frameobject(PacketDecoder*, gconstpointer, gconstpointer, gconstpointer);
-FSTATIC FrameSet* _decode_packet_get_frameset_data(gconstpointer, gconstpointer, void const **);
-FSTATIC Frame* _decode_packet_framedata_to_frameobject(PacketDecoder*, gconstpointer*, gconstpointer*, gpointer*);
-FSTATIC GSList* _pktdata_to_framesetlist(PacketDecoder*, gconstpointer, gconstpointer);
+FSTATIC Frame*	_framedata_to_frameobject(PacketDecoder*, gpointer, gconstpointer, gconstpointer);
+FSTATIC FrameSet* _decode_packet_get_frameset_data(gpointer, gconstpointer, gpointer *);
+FSTATIC Frame* _decode_packet_framedata_to_frameobject(PacketDecoder*, gpointer*, gconstpointer*, gpointer*);
+FSTATIC GSList* _pktdata_to_framesetlist(PacketDecoder*, gpointer, gconstpointer);
 
 FSTATIC void _packetdecoder_finalize(AssimObj*);
 
@@ -118,7 +118,7 @@ packetdecoder_new(guint objsize, const FrameTypeToFrame* framemap, gint mapsize)
 /// @return a decoded frame <i>plus</i> pointer to the first byte past this Frame (in 'nextframe')
 FSTATIC Frame*
 _decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] PacketDecoder object
-					gconstpointer* pktstart,///<[in/out] Marshalled Frame data
+					gpointer* pktstart,///<[in/out] Marshalled Frame data
 					gconstpointer* pktend,	///<[in/out] 1st byte past pkt end
 					gpointer* newpacket)	///<[out] Replacement packet from
 								///<frame decoding (if any)
@@ -137,7 +137,7 @@ _decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] Packet
 	}
 	g_return_val_if_fail(ret != NULL, NULL);
 	if (NULL == *newpacket) {
-		*pktstart = (gconstpointer) ((const guint8*)*pktstart + ret->dataspace(ret));
+		*pktstart = (gpointer) ((const guint8*)*pktstart + ret->dataspace(ret));
 	}else{
 		*pktstart = *newpacket;
 		*pktend = newpacketend;
@@ -147,9 +147,9 @@ _decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] Packet
 
 /// Construct a basic FrameSet object from the initial marshalled FrameSet data in a packet
 FSTATIC FrameSet*
-_decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this FrameSet
+_decode_packet_get_frameset_data(gpointer vfsstart,		///<[in] Start of this FrameSet
 				 gconstpointer vpktend,		///<[in] First byte past end of packet
-				 const void ** fsnext)		///<[out] Pointer to first byte after this FrameSet
+				 gpointer* fsnext)		///<[out] Pointer to first byte after this FrameSet
 								///<(that is, the first byte of contained frames)
 {
 	const guint8*	fsstart = vfsstart;
@@ -160,7 +160,7 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this 
 	guint16		fsflags;
 	FrameSet*	ret;
 
-	*fsnext = vpktend;
+	*fsnext = NULL;
 	if  (bytesleft < (gssize)FRAMESET_INITSIZE) {
 		return NULL;
 	}
@@ -170,7 +170,7 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this 
 	ret = frameset_new(fstype);
 	g_return_val_if_fail(ret != NULL, NULL);
 	frameset_set_flags(ret, fsflags);
-	*fsnext = (gconstpointer) (fsstart + FRAMESET_INITSIZE + fslen);
+	*fsnext = (gpointer) (fsstart + FRAMESET_INITSIZE + fslen);
 	return ret;
 }
 
@@ -180,22 +180,30 @@ _decode_packet_get_frameset_data(gconstpointer vfsstart,	///<[in] Start of this 
 /// @return GSList of @ref FrameSet object pointers.
 GSList*
 _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
-			 gconstpointer pktstart,	///<[in] start of packet
+			 gpointer pktstart,		///<[in] start of packet
 			 gconstpointer pktend)		///<[in] first byte past end of packet
 {
-	gconstpointer	curframeset = pktstart;
+	gpointer	curframeset = pktstart;
 	GSList*		ret = NULL;
 
 	// Loop over all the FrameSets in the packet we were given.
 	while (curframeset < pktend) {
-		gconstpointer	nextframeset = pktend;
-		gconstpointer	framestart = ((const guint8*)curframeset + FRAMESET_INITSIZE);
-		gconstpointer	curframe;
+		gpointer	nextframeset = NULL;
+		gpointer	framestart = ((guint8*)curframeset + FRAMESET_INITSIZE);
+		gpointer	curframe;
 		FrameSet*	fs = _decode_packet_get_frameset_data(curframeset, pktend, &nextframeset);
-		gconstpointer	fsend = nextframeset;
+		gconstpointer	fsend = pktend;
 		gpointer	newframestart = NULL;
+		gboolean	firstframe = TRUE;
 
 		g_return_val_if_fail(fs != NULL,  ret);
+
+		if (!is_valid_generic_tlv_packet(framestart, pktend)) {
+			g_warning("%s.%d:  Frameset type %d not a valid TLV frameset"
+			,	__FUNCTION__, __LINE__, fs->fstype);
+			UNREF(fs);
+			goto getnextframeset;
+		}
 
 		// Construct this FrameSet from the series of frames encoded in the packet.
 		// Note that two special kinds of frames can alter the packet we're examining.
@@ -215,7 +223,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			// This means that "decode_packet_framedata_to_frameobject" might replace the
 			// packet data we've been looking at.
 			// (FWIW: It's perfectly OK to have an encryption frame followed by a
-			// compression frame -- both kinds can occur in the same FrameSet).
+			// (embedded) compression frame -- both kinds can occur in the same FrameSet).
 			newframe = _decode_packet_framedata_to_frameobject(self, &curframe, &fsend, &newpacket);
 			if (newpacket) {
 				if (newframestart != NULL) {
@@ -226,15 +234,29 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			}
 			if (NULL == newframe) {
 				UNREF(fs);
-				continue;
+				g_warn_if_reached();
+				goto getnextframeset;
+			}
+			if (TRUE == firstframe) {
+				if (!OBJ_IS_A(newframe, "SignFrame")) {
+					UNREF(newframe);
+					UNREF(fs);
+					g_warning("%s.%d: First frame NOT a signature frame - [%d] instead"
+					,	__FUNCTION__, __LINE__, newframe->type);
+					goto getnextframeset;
+				}
+				firstframe = FALSE;
 			}
 			frameset_append_frame(fs, newframe);
 			UNREF(newframe);
 		}
+	getnextframeset:
 		if (newframestart) {
 			g_free(newframestart); newframestart = NULL;
 		}
-		ret = g_slist_append(ret, fs); fs = NULL;
+		if (fs) {
+			ret = g_slist_append(ret, fs); fs = NULL;
+		}
 		curframeset = nextframeset;
 	}
 	return ret;

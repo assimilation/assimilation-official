@@ -121,7 +121,7 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,//<[in] pointer to beginning of
 		return FALSE;
 	}
 	for (tlv_vp = get_generic_tlv_first(tlv_vp, pktend)
-	;	NULL != tlv_vp
+	;	NULL != tlv_vp && tlv_vp < pktend
 	;	tlv_vp = get_generic_tlv_next(tlv_vp, pktend)) {
 
 		guint16		ttype;

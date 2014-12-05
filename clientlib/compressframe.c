@@ -69,6 +69,8 @@ FSTATIC int	_compressframe_findmethod(int method);
 FSTATIC gchar * _compressframe_toString(gconstpointer);
 FSTATIC	void	assim_dump_bytes(char * prefix, gconstpointer p, int len);
 
+#define COMPFRAMESIZE	4	// one-byte compression type + 3 byte uncompressed length
+
 #ifdef HAVE_ZLIB_H
 FSTATIC gpointer z_compressbuf(gconstpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
 FSTATIC gpointer z_decompressbuf(gconstpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
@@ -134,7 +136,7 @@ compressframe_new(guint16 frame_type, guint16 compression_method)
 	self->compression_method = compression_method;
 	self->compression_index = cmpindex;
 	self->compression_threshold = DEFAULT_COMPRESSION_THRESHOLD;
-	fself->length = 4;
+	fself->length = COMPFRAMESIZE;
 	fself->setvalue = _compressframe_setvalue;
 	fself->updatedata = _compressframe_updatedata;
 	fself->isvalid = _compressframe_isvalid;
@@ -167,7 +169,7 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 	guint8			compresstype;
 	guint32			origlen;
 	const guint8*		valptr;
-	if (tlvstart == NULL) {
+	if (NULL == tlvstart) {
 		return ((gsize)self->compression_index) < DIMOF(allcompressions)
 	&&	allcompressions[self->compression_index].compression_type == self->compression_method;
 	}
@@ -210,7 +212,6 @@ _compressframe_toString(gconstpointer aself)
 	,	self->baseclass.length, self->decompressed_size, ratio);
 }
 
-#define COMPFRAMESIZE	4	// one-byte compression type + 3 byte uncompressed length
 
 ///
 /// We update the data in the packet from our CompressFrame object AND ALSO have the
@@ -229,8 +230,8 @@ _compressframe_updatedata(Frame *f,		//<[in] Our frame ("self")
 	guint8*		tlvstart8	= tlvstart;
 	const guint8*	pktend8		= pktend;
 	guint8*		valptr;
-	guint32		ouroffset;	///< Offset to beginning of our packet
-	guint32		cmpoffset;	///< Offset to beginning of compressed data
+	guint32		ouroffset;	// Offset to beginning of our packet
+	guint32		cmpoffset;	// Offset to beginning of compressed data
 	guint8*		newpacket;
 	guint8*		newpktend;
 	int		compressedsize;
@@ -242,10 +243,7 @@ _compressframe_updatedata(Frame *f,		//<[in] Our frame ("self")
 	newpacket = allcompressions[self->compression_index].compress
 		(pktstart, pktend8-pktstart, cmpoffset, MAXUDPSIZE, &compressedsize, 0);
 	self->decompressed_size = (pktend8 - pktstart) - cmpoffset;
-{
-	char *	frameset = fs->baseclass.toString(fs);
-	g_free(frameset); frameset = NULL;
-}
+
 	if (NULL == newpacket) {
 		g_warning("%s:%d: Unable to compress %d byte packet to %d byte UDP packet"
 		,	__FUNCTION__, __LINE__, self->decompressed_size, MAXUDPSIZE);
@@ -270,7 +268,7 @@ _compressframe_updatedata(Frame *f,		//<[in] Our frame ("self")
 
 #define	COMPRESSFRAMEMIN	4
 FSTATIC Frame*
-compressframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of the compression frame
+compressframe_tlvconstructor(gpointer tlvstart,		///<[in] Start of the compression frame
 			     gconstpointer pktend,	///<[in] First byte past the end of the packet
 		             gpointer* newpacket,	///<[out] replacement packet
 		             gpointer* newpacketend)	///<[out] end of replacement packet

@@ -36,7 +36,7 @@ struct _UnknownFrame {
 };
 
 WINEXPORT UnknownFrame* unknownframe_new(guint16 frame_type); // Derived classes not possible.
-WINEXPORT Frame* unknownframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT Frame* unknownframe_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 #endif /* _UNKNOWNFRAME_H */

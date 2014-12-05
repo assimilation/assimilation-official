@@ -39,11 +39,9 @@ typedef struct _CryptCurve25519 CryptCurve25519;
 
 /// This is our @ref CryptCurve25519 object - representing a Curve25519 encryption @ref Frame
 struct _CryptCurve25519 {
-	CryptFrame	baseclass;
-	char *		privkeyname;	///< Name of private key
-	char *		pubkeyname;	///< Name of public key
-	gpointer	publickey;	///< Pointer to public key
-	gpointer	privatekey;	///< Pointer to private key
+	CryptFrame		baseclass;
+	CryptFramePublicKey*	public_key;	///< Pointer to associated public key
+	CryptFramePrivateKey*	private_key;	///< Pointer to private key
 };
 
 #define	MAXCRYPTNAMELENGTH	64
@@ -52,6 +50,8 @@ WINEXPORT CryptCurve25519* cryptcurve25519_new(guint16 frame_type, const char * 
 WINEXPORT Frame* cryptcurve25519_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 WINEXPORT void cryptcurve25519_gen_temp_keypair(const char* keyname);
 WINEXPORT char* cryptcurve25519_gen_persistent_keypair(const char * keyname);
+WINEXPORT void cryptcurve25519_purge_key_id(const char * key_id);
+WINEXPORT gboolean cryptcurve25519_save_public_key(const char * key_id, gpointer public_key, int keysize);
 
 ///@}
 
