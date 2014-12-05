@@ -517,7 +517,9 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 	unsigned	j, k;
 	char*		key_id;
 	char*		sysname;
+	char		_dummy_for_stack_protector[4] = {0,1,2,3};
 	
+	(void)_dummy_for_stack_protector;
 	crypto_box_keypair(public_key, secret_key);
 	if (NULL == giveitaname) {
 		// Then we'll generate one based on host name and key's checksum
