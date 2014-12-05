@@ -514,14 +514,13 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 	char*		checksum_string;
 	guint8*		checksum;
 	gsize		computed_size;
-	unsigned	j, k;
+	unsigned	j;
+	unsigned	k;
 	char*		key_id;
 	char*		sysname;
-	char		_dummy_for_stack_protector[8] = {0,1,2,3, 4, 5, 6, 7};
 	
 	// This is to try and keep our dummy array from being optimized out
 	// so that we get stack protection, and clang doesn't complain...
-	_dummy_for_stack_protector[7] = _dummy_for_stack_protector[2];
 	crypto_box_keypair(public_key, secret_key);
 	if (NULL == giveitaname) {
 		// Then we'll generate one based on host name and key's checksum
@@ -535,7 +534,7 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 		checksum_string[0] = '\0';
 		// Convert the checksum to hex
 		for (j=0, k=0; j < cksum_length; ++j, k+=2)  {
-			char	hex[2];
+			char	hex[4]; // The size is 4 is to make the stack protector happy
 			sprintf(hex, "%02X", checksum[j]);
 			strcat(checksum_string+k, hex);
 		}
