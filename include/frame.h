@@ -58,7 +58,7 @@ struct _Frame {
 };
 #define	FRAME_INITSIZE	GENERICTLV_HDRSZ 
 WINEXPORT Frame*	frame_new(guint16 frame_type, gsize framesize);
-WINEXPORT Frame*	frame_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT Frame*	frame_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 WINEXPORT void frame_default_valuefinalize(gpointer value);
 ///@}
 

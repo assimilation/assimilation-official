@@ -50,7 +50,7 @@ WINEXPORT AddrFrame* addrframe_ipv4_new(guint16 frame_type, gconstpointer addr);
 WINEXPORT AddrFrame* addrframe_ipv6_new(guint16 frame_type, gconstpointer addr);
 WINEXPORT AddrFrame* addrframe_mac48_new(guint16 frame_type, gconstpointer addr);
 WINEXPORT AddrFrame* addrframe_mac64_new(guint16 frame_type, gconstpointer addr);
-WINEXPORT Frame* addrframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT Frame* addrframe_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 #endif /* _ADDRFRAME_H */

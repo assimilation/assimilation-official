@@ -256,7 +256,7 @@ ipportframe_netaddr_new(guint16 frame_type, NetAddr* addr)
 /// In other words, un-marshall the data...
 /// Note that this always returns an @ref IpPortFrame (a subclass of @ref Frame)
 WINEXPORT Frame*
-ipportframe_tlvconstructor(gconstpointer tlvstart,	///<[in] pointer to start of where to find our TLV
+ipportframe_tlvconstructor(gpointer tlvstart,		///<[in] pointer to start of where to find our TLV
 			   gconstpointer pktend,	///<[in] pointer to the first invalid address past tlvstart
 			   gpointer* ignorednewpkt,	///<[ignored] replacement packet if any
 			   gpointer* ignoredpktend)	///<[ignored] end of replaement packet

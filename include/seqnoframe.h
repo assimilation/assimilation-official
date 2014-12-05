@@ -55,7 +55,7 @@ struct _SeqnoFrame {
 };
 WINEXPORT SeqnoFrame* seqnoframe_new(guint16 frametype, int objsize);
 WINEXPORT SeqnoFrame* seqnoframe_new_init(guint16 frametype, guint64 requestid, guint16 qid);
-WINEXPORT Frame* seqnoframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT Frame* seqnoframe_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 
 ///@}
 

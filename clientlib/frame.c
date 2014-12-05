@@ -154,7 +154,7 @@ frame_new(guint16 frame_type,	///< TLV type of Frame
 /// Given marshalled data corresponding to a Frame (basic binary frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-frame_tlvconstructor(gconstpointer tlvstart,	///<[in] start of TLV for this Frame
+frame_tlvconstructor(gpointer tlvstart,		///<[in] start of TLV for this Frame
 		     gconstpointer pktend,	///<[in] first invalid byte past 'tlvstart'
 		     gpointer* ignorednewpkt,	///<[ignored] replacement packet
 		     gpointer* ignoredpktend)	///<[ignored] end of replacement packet

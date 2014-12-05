@@ -45,7 +45,7 @@ struct _IntFrame {
 };
 
 WINEXPORT IntFrame* intframe_new(guint16 frametype, int intlength);
-WINEXPORT Frame* intframe_tlvconstructor(gconstpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
+WINEXPORT Frame* intframe_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 ///@}
 
 #endif /* _INTFRAME_H */

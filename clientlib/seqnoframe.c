@@ -168,7 +168,7 @@ _seqnoframe_updatedata(Frame* fself,		///< object whose data will be put into Fr
 }
 /// Construct Frame (SeqnoFrame) object from marshalled packet data
 Frame*
-seqnoframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of SeqnoFrame TLV area
+seqnoframe_tlvconstructor(gpointer tlvstart,		///<[in] Start of SeqnoFrame TLV area
 			  gconstpointer pktend,		///<[in] first byte past end of packet
 		          gpointer* ignorednewpkt,	///<[ignored] replacement packet
 		          gpointer* ignoredpktend)	///<[ignored] end of replacement packet

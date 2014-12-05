@@ -58,5 +58,6 @@ WINEXPORT	gchar ** assim_merge_environ(const gchar *const* env, ConfigContext*);
 WINEXPORT	void assim_free_environ(gchar ** env);			///< Free environment created by assim_merge_environ
 WINEXPORT	gsize setpipebuf(int fd, gsize bufsize);		///< Set pipe buffer size (if possible)
 WINEXPORT	gsize getpipebuf(int fd);				///< Return pipe buffer size
+WINEXPORT	void assim_g_notify_unref(gpointer assimobj);		///< Unref for glib notify
 #endif /* MISC_H */
 ///@}

@@ -32,15 +32,15 @@
 #define	FMT_64BIT	"%"G_GINT64_MODIFIER				///< Format designator for a 64 bit integer
 
 #ifdef _MSC_VER
-#ifndef _W64
-#	define _W64
-#endif
+#	ifndef _W64
+#		define _W64
+#	endif
 #	define	WINEXPORT __declspec( dllexport )
 #	define	WINIMPORT __declspec( dllimport )
 #	define MSG_DONTWAIT	0	// This could be trouble!!
-#if _MSC_VER < 1300
-#	define MSG_TRUNC	0
-#endif
+#	if _MSC_VER < 1300
+#		define MSG_TRUNC	0
+#	endif
 #else
 #	define	WINEXPORT /* Nothing */
 #	define HAVE_PCAP_SET_RFMON	1	// We should test for this...
@@ -92,10 +92,14 @@
 #endif
 
 
+#define	DIRDELIM		"@DIRDELIM@"
 #define	DISCOVERY_DIR		"@DISCOVERYINSTALL@"
 #define	QUERYINSTALL_DIR	"@QUERYINSTALL@"
 #define	MONRULEINSTALL_DIR	"@MONRULEINSTALL@"
 #define	NOTIFICATION_SCRIPT_DIR "@NOTIFICATION_SCRIPT_DIR@"
+#define	CRYPTKEYDIR		"@CRYPTKEYDIR@"
+#define	PUBKEYSUFFIX		"@PUBKEYSUFFIX@"
+#define	PRIVATEKEYSUFFIX	"@PRIVATEKEYSUFFIX@"
 #define	CMAADDR			"@CMAADDR@"
 #define	NANOLISTENADDR		"@NANOLISTENADDR@"
 #define	VERSION_STRING		"@PROJVERS@"
@@ -128,6 +132,7 @@
 #cmakedefine	HAVE_SYS_SOCKET_H
 #cmakedefine	HAVE_NETDB_H
 #cmakedefine	HAVE_ZLIB_H
+#cmakedefine	HAVE_SODIUM_H
 
 #cmakedefine	HAVE_CLOCK_GETTIME
 #cmakedefine	HAVE_ENDPROTOENT

@@ -121,7 +121,7 @@ cstringframe_new(guint16 frame_type,	///< TLV type of CstringFrame
 /// return the corresponding Frame
 /// In other words, un-marshall the data...
 WINEXPORT Frame*
-cstringframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of marshalled CStringFrame data
+cstringframe_tlvconstructor(gpointer tlvstart,		///<[in] Start of marshalled CStringFrame data
 			    gconstpointer pktend,	///<[in] Pointer to first invalid byte past 'tlvstart'
 		            gpointer* ignorednewpkt,	///<[ignored] replacement packet
 		            gpointer* ignoredpktend)	///<[ignored] end of replacement packet

@@ -67,7 +67,7 @@ unknownframe_new(guint16 frame_type)	///<[in] TLV type associated with this unkn
 /// Given marshalled data corresponding to an unknown Frame (basic binary frame), return that corresponding Frame
 /// In other words, un-marshall the data...
 Frame*
-unknownframe_tlvconstructor(gconstpointer tlvstart,	///<[in] Start of our Frame in the packet
+unknownframe_tlvconstructor(gpointer tlvstart,		///<[in] Start of our Frame in the packet
 			    gconstpointer pktend,	///<[in] One byte past end of packet
 			    gpointer* ignorednewpkt,	///<[ignored]
 			    gpointer* ignorednewpktend)	///<[ignored]

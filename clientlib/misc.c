@@ -716,3 +716,9 @@ getpipebuf(int fd)
 	return 4096;
 #endif
 }
+WINEXPORT void
+assim_g_notify_unref(gpointer assimobj)
+{
+	AssimObj*	obj = CASTTOCLASS(AssimObj, assimobj);
+	obj->unref(obj);
+}
