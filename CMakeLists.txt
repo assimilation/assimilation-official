@@ -136,6 +136,7 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	QUERYINSTALL		Where we install our query flat files
 #	MONRULESUBDIR		the relative directory where we store the flat files containing our monitoring rules
 #	MONRULEINSTALL		Where we install our monitoring rule flat files
+#	CRYPTKEYDIR		Where we keep our encryption/signature keys
 #	OCFINSTALL		Where we install our OCF resource agents
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	CMAINITFILE		Name of initialization file for the CMA - defaults to /etc/cma.conf
@@ -148,7 +149,9 @@ set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR})
 set (LIB_DIRNAME ${LIB_SUFFIX})
 set (InstallLIBS ${CMAKE_INSTALL_PREFIX}/nanoprobe/${CMAKE_BUILD_TYPE})
 set (USRSHARE ${CMAKE_INSTALL_PREFIX}/nanoprobe)
+set (DIRDELIM \\ )
 else (WIN32)
+set (DIRDELIM /)
 set(CMAKE_INSTALL_PREFIX /usr)
 if (NOT LIBDIR)
   # This next command depends on the assumption that libc is in /something and that
@@ -176,6 +179,9 @@ set (MONRULESUBDIR monrules)
 set (MONRULEINSTALL ${USRSHARE}/${MONRULESUBDIR})
 set (NOTIFICATIONDIR notification.d)
 set (NOTIFICATION_SCRIPT_DIR ${USRSHARE}/${NOTIFICATIONDIR})
+set (CRYPTKEYDIR ${USRSHARE}/${crypto.d})
+set (PUBKEYSUFFIX .pub)
+set (PRIVATEKEYSUFFIX .secret)
 set (OCFINSTALL /usr/lib/ocf/resource.d/assimilation)
 #	OCFINSTALL		Where we install our OCF resource agents
 configure_file(${BUILDTOOLS}/debian/postinst.in ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst @ONLY)
@@ -263,6 +269,7 @@ CHECK_INCLUDE_FILE(sys/types.h HAVE_SYS_TYPES_H)
 CHECK_INCLUDE_FILE(sys/socket.h HAVE_SYS_SOCKET_H)
 CHECK_INCLUDE_FILE(netdb.h HAVE_NETDB_H)
 CHECK_INCLUDE_FILE(zlib.h HAVE_ZLIB_H)
+CHECK_INCLUDE_FILE(sodium.h HAVE_SODIUM_H)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
 CHECK_FUNCTION_EXISTS(clock_gettime  HAVE_CLOCK_GETTIME)
