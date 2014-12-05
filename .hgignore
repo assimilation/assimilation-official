@@ -14,7 +14,7 @@ CMakeCache.txt
 .*\.i$
 .*\.shell_history$
 .*\.nfs0000.*$
-.*\foo$
+.*/foo$
 ^testcode/filetest$
 ^testcode/mainlooptest$
 ^testcode/pinger$
@@ -41,3 +41,7 @@ Doxyfile
 ^buildtools/debian/postrm
 ^cma/AssimCtypes.py
 ^cma/AssimCtypes.py-install
+^docfiles/html
+^cma/systemtests/.*
+^.*/build.out
+^.*/docker.out
