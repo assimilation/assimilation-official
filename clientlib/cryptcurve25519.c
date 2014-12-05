@@ -395,10 +395,10 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 	gsize			cypherlength;
 				// The first key name is in sender's key name
 				// The second key name is in receiver's key name
-	CryptFramePublicKey *	sender_public_key;
-	CryptFramePrivateKey*	receiver_secret_key;
-	const char*		pubkeyname;
-	const char*		seckeyname;
+	CryptFramePublicKey *	sender_public_key = NULL;
+	CryptFramePrivateKey*	receiver_secret_key = NULL;
+	const char*		pubkeyname = NULL;
+	const char*		seckeyname = NULL;
 	int			j;
 
 	(void)ignorednewpkt; (void)ignoredpktend;
