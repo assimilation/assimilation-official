@@ -61,7 +61,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     is_valid_lldp_packet, is_valid_cdp_packet,    \
     netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new, \
     proj_class_classname,   \
-    assimobj_new, intframe_new, signframe_new, packetdecoder_new, configcontext_new, \
+    assimobj_new, intframe_new, signframe_glib_new, packetdecoder_new, configcontext_new, \
     configcontext_new_JSON_string, netio_new, netioudp_new, reliableudp_new,\
     netio_is_dual_ipv4v6_stack, create_setconfig, create_sendexpecthb, \
     get_lldptlv_first, \
@@ -1149,7 +1149,7 @@ class pySignFrame(pyFrame):
         'Initializer for pySignFrame'
         self._Cstruct = None
         if Cstruct is None:
-            Cstruct = signframe_new(gchecksumtype, 0)
+            Cstruct = signframe_glib_new(gchecksumtype, 0)
         if not Cstruct:
             raise ValueError("Invalid checksum type (%s) for PySignFrame()" % gchecksumtype)
         pyFrame.__init__(self, initval=FRAMETYPE_SIG, Cstruct=Cstruct)
