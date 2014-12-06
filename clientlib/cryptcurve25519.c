@@ -58,9 +58,9 @@ FSTATIC gboolean _is_valid_curve25519_keyname(const char * keyname, enum keytype
 FSTATIC gboolean _is_legal_curve25519_key_id(const char * keyname);
 FSTATIC char*	 _cache_curve25519_key_id_to_filename(const char * keyname, enum keytype);
 FSTATIC gboolean _cache_curve25519_keypair(const char * keyname);
-FSTATIC char* _cryptcurve25519_cachename(const char *receiver_key, const char*secretkeyname);
-FSTATIC CryptCurve25519* _cryptcurve25519_lookup_object_by_keypair(const char *receiver_key, const char*secretkeyname);
-FSTATIC void _cryptcurve25519_cache_object_by_keypair(CryptCurve25519* object, const char *receiver_key, const char*secretkeyname);
+FSTATIC char* _cryptcurve25519_cachename(const char *receiver_key, const char*sender_key_id);
+FSTATIC CryptCurve25519* _cryptcurve25519_lookup_object_by_keypair(const char *receiver_key, const char*sender_key_id);
+FSTATIC void _cryptcurve25519_cache_object_by_keypair(CryptCurve25519* object, const char *receiver_key, const char*sender_key_id);
 FSTATIC gboolean _cryptcurve25519_save_a_key(const char * key_id, enum keytype ktype, gconstpointer key);
 static GHashTable*	_curve25519_keypair_objs = NULL;
 static void (*_parentclass_finalize)(AssimObj*) = NULL;
@@ -92,15 +92,19 @@ _cache_curve25519_key_id_to_filename(const char * keyname, enum keytype ktype)
 	const char *	suffix = (PRIVATEKEY == ktype ? PRIVATEKEYSUFFIX : PUBKEYSUFFIX);
 	return g_strdup_printf("%s%s%s%s", CRYPTKEYDIR, DIRDELIM, keyname, suffix);
 }
+
+/// Create a cache name to put in a hash table for pair of key_ids
 FSTATIC char*
-_cryptcurve25519_cachename(const char *receiver_key, const char*secretkeyname)
+_cryptcurve25519_cachename(const char *receiver_key_id, const char*sender_key_id)
 {
-	return g_strdup_printf("P=%s/S=%s", receiver_key, secretkeyname);
+	return g_strdup_printf("P=%s/S=%s", receiver_key_id, sender_key_id);
 }
+
+/// Look up a CryptCurve25519 based on the pair of key ids
 FSTATIC CryptCurve25519*
-_cryptcurve25519_lookup_object_by_keypair(const char *receiver_key, const char*secretkeyname)
+_cryptcurve25519_lookup_object_by_keypair(const char *receiver_key, const char*sender_key_id)
 {
-	char *		composite_key = _cryptcurve25519_cachename(receiver_key, secretkeyname);
+	char *		composite_key = _cryptcurve25519_cachename(receiver_key, sender_key_id);
 	gpointer	ret;
 
 	if (NULL == _curve25519_keypair_objs) {
@@ -113,15 +117,17 @@ _cryptcurve25519_lookup_object_by_keypair(const char *receiver_key, const char*s
 	g_free(composite_key);
 	return (ret ? CASTTOCLASS(CryptCurve25519, ret) : NULL);
 }
+
+/// Cache a CryptCurve25519 object by the receiver_key_id/sender_key_id pair
 FSTATIC void
-_cryptcurve25519_cache_object_by_keypair(CryptCurve25519* object, const char *receiver_key, const char*secretkeyname)
+_cryptcurve25519_cache_object_by_keypair(CryptCurve25519* object, const char *receiver_key, const char*sender_key_id)
 {
-	char *		composite_key = _cryptcurve25519_cachename(receiver_key, secretkeyname);
+	char *		composite_key = _cryptcurve25519_cachename(receiver_key, sender_key_id);
 	// Don't free our composite key - the hash table needs it.
 	g_hash_table_replace(_curve25519_keypair_objs, composite_key, object);
 }
 
-/// @ref CryptCurve25519 function to check if a given curve25519 key id is properly scrubbed
+/// @ref CryptCurve25519 function to check if a given curve25519 key id is properly formatted
 /// This name might come from a bad guy, so let's carefully scrub the name
 FSTATIC gboolean
 _is_legal_curve25519_key_id(const char * key_id)
@@ -361,6 +367,8 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	 _cryptcurve25519_cache_object_by_keypair(ret, receiver_key_id, sender_key_id);
 	return ret;
 }
+
+/// Finalize (free) a CryptCurve25519 object
 FSTATIC void
 _cryptcurve25519_finalize(AssimObj* aself)
 {
@@ -491,6 +499,7 @@ _cryptcurve25519_updatedata(Frame*f, gpointer tlvstart, gconstpointer pktend, Fr
 	}
 }
 
+/// Generate a temporary (non-persistent) key pair
 WINEXPORT void
 cryptcurve25519_gen_temp_keypair(const char *keyname) ///< keyname CANNOT be NULL
 {
