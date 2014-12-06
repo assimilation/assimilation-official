@@ -59,10 +59,7 @@ FSTATIC gboolean _is_legal_curve25519_key_id(const char * keyname);
 FSTATIC char*	 _cache_curve25519_key_id_to_filename(const char * keyname, enum keytype);
 FSTATIC gboolean _cache_curve25519_keypair(const char * keyname);
 FSTATIC char* _cryptcurve25519_cachename(const char *receiver_key, const char*sender_key_id);
-FSTATIC CryptCurve25519* _cryptcurve25519_lookup_object_by_keypair(const char *receiver_key, const char*sender_key_id);
-FSTATIC void _cryptcurve25519_cache_object_by_keypair(CryptCurve25519* object, const char *receiver_key, const char*sender_key_id);
 FSTATIC gboolean _cryptcurve25519_save_a_key(const char * key_id, enum keytype ktype, gconstpointer key);
-static GHashTable*	_curve25519_keypair_objs = NULL;
 static void (*_parentclass_finalize)(AssimObj*) = NULL;
 /*
   Our CryptCurve25519 Frame (our TLV Value) looks like this on the wire
@@ -98,33 +95,6 @@ FSTATIC char*
 _cryptcurve25519_cachename(const char *receiver_key_id, const char*sender_key_id)
 {
 	return g_strdup_printf("P=%s/S=%s", receiver_key_id, sender_key_id);
-}
-
-/// Look up a CryptCurve25519 based on the pair of key ids
-FSTATIC CryptCurve25519*
-_cryptcurve25519_lookup_object_by_keypair(const char *receiver_key, const char*sender_key_id)
-{
-	char *		composite_key = _cryptcurve25519_cachename(receiver_key, sender_key_id);
-	gpointer	ret;
-
-	if (NULL == _curve25519_keypair_objs) {
-		_curve25519_keypair_objs = g_hash_table_new_full(g_str_hash, g_str_equal, g_free
-		,	assim_g_notify_unref);
-	}
-
-
-	ret = g_hash_table_lookup(_curve25519_keypair_objs, composite_key);
-	g_free(composite_key);
-	return (ret ? CASTTOCLASS(CryptCurve25519, ret) : NULL);
-}
-
-/// Cache a CryptCurve25519 object by the receiver_key_id/sender_key_id pair
-FSTATIC void
-_cryptcurve25519_cache_object_by_keypair(CryptCurve25519* object, const char *receiver_key, const char*sender_key_id)
-{
-	char *		composite_key = _cryptcurve25519_cachename(receiver_key, sender_key_id);
-	// Don't free our composite key - the hash table needs it.
-	g_hash_table_replace(_curve25519_keypair_objs, composite_key, object);
 }
 
 /// @ref CryptCurve25519 function to check if a given curve25519 key id is properly formatted
@@ -340,12 +310,10 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	if (objsize < sizeof(CryptCurve25519)) {
 		objsize = sizeof(CryptCurve25519);
 	}
-	ret = _cryptcurve25519_lookup_object_by_keypair(receiver_key_id, sender_key_id);
-	if (ret) {
-		// Just increment the reference count and return the object.
-		REF2(&ret->baseclass);
-		return ret;
+	if (NULL == sender_key_id) {
+		sender_key_id = cryptframe_get_signing_key_id();
 	}
+	g_return_val_if_fail(sender_key_id != NULL && receiver_key_id != NULL, NULL);
 	if (!_is_valid_curve25519_keyname(receiver_key_id, PUBLICKEY)) {
 		g_critical("%s.%d: public key name [%s] is invalid", __FUNCTION__, __LINE__, receiver_key_id);
 		return NULL;
@@ -364,7 +332,6 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	ret			= NEWSUBCLASS(CryptCurve25519, baseframe);
 	ret->private_key	= cryptframe_private_key_by_id(sender_key_id);
 	ret->public_key		= cryptframe_public_key_by_id(receiver_key_id);
-	 _cryptcurve25519_cache_object_by_keypair(ret, receiver_key_id, sender_key_id);
 	return ret;
 }
 

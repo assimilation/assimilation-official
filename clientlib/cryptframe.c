@@ -125,6 +125,7 @@ static GHashTable*	key_id_map_by_identity = NULL;	//< A hash table of hash table
 static CryptFramePrivateKey*	signing_key = NULL;
 #define	INITMAPS	{if (!maps_inityet) {_cryptframe_initialize_maps();}}
 static gboolean		maps_inityet = FALSE;
+
 /// Initialize all our maps
 FSTATIC void
 _cryptframe_initialize_maps(void)
@@ -371,6 +372,10 @@ cryptframe_set_signing_key_id(const char * key_id)
 {
 	CryptFramePrivateKey*	secret_key = cryptframe_private_key_by_id(key_id);
 	if (secret_key) {
+		if (signing_key) {
+			UNREF(signing_key);
+			signing_key = NULL;
+		}
 		REF(secret_key);
 		signing_key = secret_key;
 	}else{
