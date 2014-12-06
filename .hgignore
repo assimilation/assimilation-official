@@ -45,3 +45,4 @@ Doxyfile
 ^cma/systemtests/.*
 ^.*/build.out
 ^.*/docker.out
+docker/CentOS/Dockerfile
