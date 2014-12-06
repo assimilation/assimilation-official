@@ -122,6 +122,33 @@ static GHashTable*	key_id_map_by_identity = NULL;	//< A hash table of hash table
 							//< with strings for keys and values
 							//< It tells you all the key ids
 							//< associated with a given identity
+#define	INITMAPS	{if (!maps_inityet) {_cryptframe_initialize_maps();}}
+static gboolean		maps_inityet = FALSE;
+/// Initialize all our maps
+FSTATIC void
+_cryptframe_initialize_maps(void)
+{
+	if (maps_inityet) {
+		return;
+	}
+	public_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
+	private_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
+	identity_map_by_key_id = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	key_id_map_by_identity = g_hash_table_new_full(g_str_hash, g_str_equal
+	,	NULL, (GDestroyNotify)g_hash_table_destroy);
+	maps_inityet = TRUE;
+}
+
+/// Shut down our key caches and so on... (destroy our maps)
+WINEXPORT void
+cryptframe_shutdown(void)
+{
+	g_hash_table_destroy(key_id_map_by_identity);	key_id_map_by_identity=NULL;
+	g_hash_table_destroy(identity_map_by_key_id);	identity_map_by_key_id=NULL;
+	g_hash_table_destroy(public_key_map);		public_key_map=NULL;
+	g_hash_table_destroy(private_key_map);		private_key_map=NULL;
+	maps_inityet = FALSE;
+}
 
 /// Finalize (destructor) function for our CryptFramePublicKey objects
 FSTATIC void
@@ -155,22 +182,6 @@ _cryptframe_privatekey_finalize(AssimObj* privkey) ///< object to finalize/destr
 	_assimobj_finalize(privkey);
 }
 
-#define	INITMAPS	{if (!maps_inityet) {_cryptframe_initialize_maps();}}
-static gboolean		maps_inityet = FALSE;
-/// Initialize all our maps
-FSTATIC void
-_cryptframe_initialize_maps(void)
-{
-	if (maps_inityet) {
-		return;
-	}
-	public_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
-	private_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
-	identity_map_by_key_id = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-	key_id_map_by_identity = g_hash_table_new_full(g_str_hash, g_str_equal
-	,	NULL, (GDestroyNotify)g_hash_table_destroy);
-	maps_inityet = TRUE;
-}
 
 /// Create a new public key - or return the existing public key with this id
 WINEXPORT CryptFramePublicKey*

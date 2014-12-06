@@ -383,6 +383,7 @@ main(int argc, char **argv)
 	g_main_loop_unref(loop);
 	g_source_unref(&netpkt->baseclass);
 	g_main_context_unref(g_main_context_default());
+	cryptframe_shutdown();
 	// At this point - nothing should show up - we should have freed everything
 	liveobjcount = proj_class_live_object_count();
 	if (liveobjcount > 0) {

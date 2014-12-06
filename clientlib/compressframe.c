@@ -76,7 +76,7 @@ FSTATIC gpointer z_compressbuf(gconstpointer inbuf, int insize, int offset, int 
 FSTATIC gpointer z_decompressbuf(gconstpointer inbuf, int insize, int offset, int maxout, int *uncompsize);
 #endif /* HAVE_ZLIB_H */
 
-/// Set of all know compression methods
+/// Set of all known compression methods
 static struct compression_types {
 	guint8	   compression_type;		///< Type of compression
 	gpointer (*compress)(gconstpointer inbuf, int insize, int offset, int maxout, int *actualsize, int level);
@@ -387,11 +387,12 @@ z_compressbuf(gconstpointer inbuf	///<[in] Input buffer
 		return NULL;
 	}
 #if 0
-	space = insize - stream.avail_out;
-	ratio = ((double)stream.total_in/((double)stream.total_out));
-	//return 0;
-	fprintf(stderr, "Compressing %ld bytes into %ld bytes with level %d ratio %.2f:1\n", stream.total_in
-	, stream.total_out, level, ratio);
+	{
+		double ratio;
+		ratio = ((double)stream.total_in/((double)stream.total_out));
+		fprintf(stderr, "Compressing %ld bytes into %ld bytes with level %d ratio %.2f:1\n"
+		,	stream.total_in, stream.total_out, level, ratio);
+	}
 #endif
 	(void)deflateEnd(&stream);
 	*actualsize = stream.total_out + offset;
