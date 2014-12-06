@@ -251,8 +251,8 @@ cryptframe_private_key_by_id(const char* key_id) ///<[in] Key id of the given pr
 /// Return TRUE if we could make the association (it's OK to make
 /// the same valid association multiple times)
 WINEXPORT gboolean
-cryptframe_associate_identity(const char * identity,	///[in] identity to associate key with
-			      const char * key_id)	///[in] key to associate with identity
+cryptframe_associate_identity(const char * identity,	///<[in] identity to associate key with
+			      const char * key_id)	///<[in] key to associate with identity
 {
 	GHashTable*	key_id_map;
 	const char*	found_identity;
