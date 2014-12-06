@@ -68,5 +68,8 @@ WINEXPORT GHashTable*		cryptframe_key_ids_for(const char* identity);
 WINEXPORT GList*		cryptframe_get_identities(void);	// List of String values
 WINEXPORT GList*		cryptframe_get_key_ids(void);		// List of String values
 WINEXPORT void			cryptframe_shutdown(void);
+WINEXPORT void			cryptframe_set_signing_key_id(const char * key_id);
+WINEXPORT const char *		cryptframe_get_signing_key_id(void);
+WINEXPORT CryptFramePrivateKey*	cryptframe_get_signing_key(void);
 ///@}
 #endif /* _CRYPTFRAME_H */

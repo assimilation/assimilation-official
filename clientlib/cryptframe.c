@@ -122,6 +122,7 @@ static GHashTable*	key_id_map_by_identity = NULL;	//< A hash table of hash table
 							//< with strings for keys and values
 							//< It tells you all the key ids
 							//< associated with a given identity
+static CryptFramePrivateKey*	signing_key = NULL;
 #define	INITMAPS	{if (!maps_inityet) {_cryptframe_initialize_maps();}}
 static gboolean		maps_inityet = FALSE;
 /// Initialize all our maps
@@ -147,6 +148,7 @@ cryptframe_shutdown(void)
 	g_hash_table_destroy(identity_map_by_key_id);	identity_map_by_key_id=NULL;
 	g_hash_table_destroy(public_key_map);		public_key_map=NULL;
 	g_hash_table_destroy(private_key_map);		private_key_map=NULL;
+	UNREF(signing_key);
 	maps_inityet = FALSE;
 }
 
@@ -361,5 +363,33 @@ cryptframe_purge_key_id(const char * key_id)
 	}
 	g_hash_table_remove(public_key_map, key_id);
 	g_hash_table_remove(private_key_map, key_id);
+}
+
+/// Set the default signing key
+WINEXPORT void
+cryptframe_set_signing_key_id(const char * key_id)
+{
+	CryptFramePrivateKey*	secret_key = cryptframe_private_key_by_id(key_id);
+	if (secret_key) {
+		REF(secret_key);
+		signing_key = secret_key;
+	}else{
+		g_warning("%s.%d: Cannot set signing key to [%s] - no such private key"
+		,	__FUNCTION__, __LINE__, key_id);
+	}
+}
+
+/// Return the key_id of the default signing key
+WINEXPORT const char *
+cryptframe_get_signing_key_id(void)
+{
+	return (signing_key ? signing_key->key_id : NULL);
+}
+
+/// Return the default signing key
+WINEXPORT CryptFramePrivateKey*
+cryptframe_get_signing_key(void)
+{
+	return signing_key;
 }
 ///@}
