@@ -25,6 +25,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
+// #include <stdio.h>
 #include <string.h>
 #include <tlvhelper.h>
 #include <frametypes.h>
@@ -115,30 +116,34 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,//<[in] pointer to beginning of
 {
 	const guint16	reqtypes [] = {FRAMETYPE_SIG};
 	unsigned	j = 0;
-	int		lasttype = -1;
+	//int		lasttype = -1;
+	const guint8*	next;
 	if (NULL == tlv_vp || ((const guint8*)tlv_vp+GENERICTLV_HDRSZ)  > (const guint8*)pktend) {
 		g_warning("TLV Invalid because packet is too short");
 		return FALSE;
 	}
 	for (tlv_vp = get_generic_tlv_first(tlv_vp, pktend)
 	;	NULL != tlv_vp && tlv_vp < pktend
-	;	tlv_vp = get_generic_tlv_next(tlv_vp, pktend)) {
+	;	tlv_vp = next) {
 
 		guint16		ttype;
 		guint32		length;
-		const guint8*	next;
 
 		if (tlv_vp >= pktend) {
 			return FALSE;
 		}
 		ttype = get_generic_tlv_type(tlv_vp, pktend);
-		lasttype = ttype;
+		//lasttype = ttype;
 		length = get_generic_tlv_len(tlv_vp, pktend);
 		next = (const guint8*)tlv_vp + (length+GENERICTLV_HDRSZ);
 		if (next > (const guint8*) pktend) {
 			g_warning("TLV Invalid because TLV entry extends past end");
 			return FALSE;
 		}
+#if 0
+		// This is no longer true - in the presence of compression and encryption
+		// and any other kinds of frames we might want to invent that gobble up
+		// the rest of the packet to the end...
 		if (ttype == FRAMETYPE_END) {
 			if (get_generic_tlv_value(tlv_vp, pktend) == pktend) {
 				return length == 0;
@@ -147,15 +152,19 @@ is_valid_generic_tlv_packet(gconstpointer tlv_vp,//<[in] pointer to beginning of
 				return FALSE;
 			}
 		}
+#endif
 		if (j < DIMOF(reqtypes) && ttype != reqtypes[j]) {
 			g_warning("TLV Invalid because required TLV types aren't present in right order");
 			return FALSE;
 		}
 		j += 1;
 	}
+#if 0
+	// See the note above...
 	g_warning("TLV Invalid because final type wasn't FRAMETYPE_END (it was %d)"
 	,	lasttype);
-	return FALSE;
+#endif
+	return TRUE;
 }
 
 gconstpointer

@@ -269,7 +269,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	curpktoffset = pktsize;
 
 	// Marshall out all our data - in reverse order...
-	// WATCH OUT: compression and encryption can replace our packet(!)
+	// WATCH OUT: compression and encryption can replace or modify our packet(!)
 	for (curframe=fs->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
 		Frame* frame = CASTTOCLASS(Frame, curframe->data);
 	
