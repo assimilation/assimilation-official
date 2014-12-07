@@ -28,6 +28,7 @@
 #include <projectcommon.h>
 #include <glib.h>
 #include <netio.h>
+#include <cryptframe.h>
 
 ///@{
 /// @ingroup NetIOudp

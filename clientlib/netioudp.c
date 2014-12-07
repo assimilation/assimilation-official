@@ -44,6 +44,7 @@
 /// and is managed by our @ref ProjectClass system.
 /// Except for the constructor, it is identical to the NetIO class.
 
+
 /// Construct new UDP NetIO object (and its socket, etc)
 NetIOudp*
 netioudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
@@ -73,4 +74,5 @@ netioudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	g_io_channel_set_close_on_unref(ret->baseclass.giosock, TRUE);
 	return ret;
 }
+
 ///@}

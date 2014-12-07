@@ -24,6 +24,7 @@
 #ifndef _CRYPTFRAME_H
 #define _CRYPTFRAME_H
 #include <frame.h>
+#include <netaddr.h>
 
 ///@{
 /// @ingroup CryptFrame
@@ -71,5 +72,11 @@ WINEXPORT void			cryptframe_shutdown(void);
 WINEXPORT void			cryptframe_set_signing_key_id(const char * key_id);
 WINEXPORT const char *		cryptframe_get_signing_key_id(void);
 WINEXPORT CryptFramePrivateKey*	cryptframe_get_signing_key(void);
+WINEXPORT void cryptframe_set_dest_public_key(NetAddr*, CryptFramePublicKey*);
+WINEXPORT CryptFrame*		cryptframe_new_by_destaddr(guint16 frame_type, NetAddr* destination_address);
+WINEXPORT CryptFrame*		(*cryptframe_set_encryption_method) (guint16 frame_type,
+					 const char* sender_key_id, const char * receiver_key_id);
+CryptFrame* cryptframe_new(guint16 frame_type, const char *sender_key_id,
+			   const char * receiver_key_id, gsize framesize);
 ///@}
 #endif /* _CRYPTFRAME_H */
