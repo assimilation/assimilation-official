@@ -629,5 +629,14 @@ cryptcurve25519_purge_key_id(const char * key_id)
 		g_free(filename);
 	}
 }
+/// Generic "new" function to use with cryptframe_set_encryption_method()
+WINEXPORT CryptFrame*
+cryptcurve25519_new_generic(guint16 frame_type,			///< type of frame to create
+			    const char* sender_key_id,		///< sender's key id
+			    const char* receiver_key_id)	///< receiver's key id
+{
+	CryptCurve25519* ret = cryptcurve25519_new(frame_type,sender_key_id, receiver_key_id, 0);
+	return (ret ? &ret->baseclass: NULL);
+}
 
 ///@}

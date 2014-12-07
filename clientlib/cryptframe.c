@@ -114,14 +114,15 @@ FSTATIC void _cryptframe_publickey_finalize(AssimObj* key);
 FSTATIC void _cryptframe_privatekey_finalize(AssimObj* key);
 FSTATIC void _cryptframe_initialize_maps(void);
 // All our hash tables have strings for keys
-static GHashTable*	public_key_map = NULL;		//< map of all public keys by key id
-static GHashTable*	private_key_map = NULL;		//< map of all private keys by key id
-static GHashTable*	identity_map_by_key_id = NULL;	//< map of identies by key id
-static GHashTable*	key_id_map_by_identity = NULL;	//< A hash table of hash tables
-							//< keyed by identity
-							//< with strings for keys and values
-							//< It tells you all the key ids
-							//< associated with a given identity
+static GHashTable*	public_key_map = NULL;		///< map of all public keys by key id
+static GHashTable*	private_key_map = NULL;		///< map of all private keys by key id
+static GHashTable*	identity_map_by_key_id = NULL;	///< map of identies by key id
+static GHashTable*	key_id_map_by_identity = NULL;	///< A hash table of hash tables
+							///< keyed by identity
+							///< with strings for keys and values
+							///< It tells you all the key ids
+							///< associated with a given identity
+GHashTable*	addr_to_public_key_map = NULL;		///< Maps @ref NetAddr to public key
 static CryptFramePrivateKey*	default_signing_key = NULL;
 #define	INITMAPS	{if (!maps_inityet) {_cryptframe_initialize_maps();}}
 static gboolean		maps_inityet = FALSE;
@@ -399,4 +400,44 @@ cryptframe_get_signing_key(void)
 {
 	return default_signing_key;
 }
+
+static CryptFrame*	(*current_encryption_method) (guint16 frame_type,
+			 const char* sender_key_id, const char * receiver_key_id);
+///
+///	Set the encryption key to use when sending to destaddr
+///	Set destkey to NULL to stop encrypting to that destination
+WINEXPORT void
+cryptframe_set_dest_public_key(NetAddr*destaddr,	///< Destination addr,port
+			     CryptFramePublicKey*destkey)///< Public key to use when encrypting
+{
+	g_return_if_fail(NULL != destaddr);
+	if (NULL == addr_to_public_key_map) {
+		addr_to_public_key_map = g_hash_table_new_full(netaddr_g_hash_hash
+		,	netaddr_g_hash_equal, assim_g_notify_unref, assim_g_notify_unref);
+	}
+	if (NULL == destkey) {
+		g_hash_table_remove(addr_to_public_key_map, destaddr);
+	}else{
+		REF(destaddr);
+		REF(destkey);
+		g_hash_table_insert(addr_to_public_key_map, destaddr, destkey);
+	}
+}
+
+WINEXPORT CryptFrame*
+cryptframe_new_by_destaddr(guint16 frame_type, NetAddr* destaddr)
+{
+	CryptFramePublicKey* receiver_key;
+	if (NULL == current_encryption_method || NULL == default_signing_key) {
+		return NULL;
+	}
+	receiver_key = g_hash_table_lookup(addr_to_public_key_map, destaddr);
+	if (NULL == receiver_key) {
+		return NULL;
+	}
+	return current_encryption_method (frame_type,
+			 default_signing_key->key_id, receiver_key->key_id);
+}
+
+
 ///@}
