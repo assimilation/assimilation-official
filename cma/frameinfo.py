@@ -62,7 +62,7 @@ class pyCompressFrame(object):
 class pyCryptCurve25519(pyCryptFrame):
     'Placeholder class'
     def __init__(self):
-        pass
+        pyCryptFrame.__init__(self)
 
 class FrameTypes(object):
     'Class defining the universe of FrameSets - including code to generate a C header file'
@@ -185,11 +185,12 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 +----------------+---------------+--------+-----------------+-------+------+
 ''',
 	'pyCryptCurve25519':
+# pylint: disable=C0301
 '''
 +----------------+---------------+---------+----------+----------+----------+-----------------------+---------------------+------------+
 |                |               | sender  |  sender  | receiver | receiver |                       |                     |            |
 | frametype = %2d | f_length = n  | key_id  |  key id  | key name |  key id  | crypto_box_NONCEBYTES | crypto_box_MACBYTES | cyphertext |
-|   (16 bits)    |    (24-bits)  | length  |          |  length  |          | (randomeness - nonce) |  MAC for cyphertext |     --     | 
+|   (16 bits)    |    (24-bits)  | length  |          |  length  |          | (randomeness - nonce) |  MAC for cyphertext |     --     |
 |                |               |         |("length" |          |("length" |                       |                     | originally |
 |                |               | (1 byte)|  bytes)  | (1 byte) |  bytes)  |                       |                     | many frames|
 +----------------+---------------+---------+----------+----------+----------+-----------------------+---------------------+------------+
