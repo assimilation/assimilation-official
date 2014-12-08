@@ -529,7 +529,9 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 
 	cryptframe = cryptframe_new_by_destaddr(destaddr);
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
-	UNREF2(cryptframe);
+	if (cryptframe) {
+		UNREF2(cryptframe);
+	}
 	DEBUGMSG3("%s.%d: sent %ld byte packet", __FUNCTION__, __LINE__
 	,	(long)(((guint8*)frameset->pktend-(guint8*)frameset->packet)));
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);
