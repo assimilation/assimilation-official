@@ -134,11 +134,11 @@ _cryptframe_initialize_maps(void)
 	if (maps_inityet) {
 		return;
 	}
-	public_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
-	private_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
-	identity_map_by_key_id = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 	key_id_map_by_identity = g_hash_table_new_full(g_str_hash, g_str_equal
 	,	NULL, (GDestroyNotify)g_hash_table_destroy);
+	identity_map_by_key_id = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+	public_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
+	private_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
 	addr_to_public_key_map = g_hash_table_new_full(netaddr_g_hash_hash
 	,	netaddr_g_hash_equal, assim_g_notify_unref, assim_g_notify_unref);
 	maps_inityet = TRUE;
@@ -152,6 +152,7 @@ cryptframe_shutdown(void)
 	g_hash_table_destroy(identity_map_by_key_id);	identity_map_by_key_id=NULL;
 	g_hash_table_destroy(public_key_map);		public_key_map=NULL;
 	g_hash_table_destroy(private_key_map);		private_key_map=NULL;
+	g_hash_table_destroy(addr_to_public_key_map);	addr_to_public_key_map=NULL;
 	if (default_signing_key) {
 		UNREF(default_signing_key);
 	}
@@ -432,7 +433,6 @@ cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
 	CryptFramePublicKey*	destkey;
 	INITMAPS;
 	g_return_if_fail(NULL != destaddr && NULL != key_id);
-	public_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
 	destkey = g_hash_table_lookup(public_key_map, key_id);
 	g_return_if_fail(NULL != destkey);
 	cryptframe_set_dest_public_key(destaddr, destkey);

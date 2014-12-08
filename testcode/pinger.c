@@ -288,6 +288,7 @@ main(int argc, char **argv)
 			addr->setport(addr, PORT);
 			cryptcurve25519_gen_temp_keypair("pinger");
 			cryptframe_set_signing_key_id("pinger");
+DUMP("address: ", &addr->baseclass, " and that's it.");
 			cryptframe_set_dest_public_key_id(addr, "pinger");
 			cryptframe_set_encryption_method(cryptcurve25519_new_generic);
 			fprintf(stderr, "NOTE: Encryption enabled.");
