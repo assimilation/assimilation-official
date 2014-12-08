@@ -31,6 +31,7 @@
 
 #include <compressframe.h>
 #include <cryptframe.h>
+#include <cryptcurve25519.h>
 #include <intframe.h>
 #include <cstringframe.h>
 #include <addrframe.h>
@@ -280,7 +281,20 @@ main(int argc, char **argv)
 	compressionframe->compression_threshold = 1; // Make sure it gets exercised
 	config->setframe(config, CONFIGNAME_COMPRESS, &compressionframe->baseclass);
 	UNREF2(compressionframe);
-	cryptcurve25519_gen_temp_keypair("pinger");
+	// Encrypt if only one address and it's a loopback address...
+	if (NULL == optremaining[1]) {
+		NetAddr* addr = netaddr_string_new(optremaining[0]);
+		if (addr->islocal(addr)) {
+			addr->setport(addr, PORT);
+			cryptcurve25519_gen_temp_keypair("pinger");
+			crpytframe_set_signing_key_id("pinger");
+			cryptframe_set_dest_public_key_id(addr, "pinger");
+			cryptframe_set_encryption_method(cryptcurve25519_new_generic);
+			fprintf(stderr, "NOTE: Encryption enabled.");
+			g_message("NOTE: Encryption enabled.");
+		}
+		UNREF(addr);
+	}
 	transport = reliableudp_new(0, config, decoder, 0);
 	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, RCVLOSS, XMITLOSS);
 	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);

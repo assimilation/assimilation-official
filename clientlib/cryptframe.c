@@ -139,6 +139,8 @@ _cryptframe_initialize_maps(void)
 	identity_map_by_key_id = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
 	key_id_map_by_identity = g_hash_table_new_full(g_str_hash, g_str_equal
 	,	NULL, (GDestroyNotify)g_hash_table_destroy);
+	addr_to_public_key_map = g_hash_table_new_full(netaddr_g_hash_hash
+	,	netaddr_g_hash_equal, assim_g_notify_unref, assim_g_notify_unref);
 	maps_inityet = TRUE;
 }
 
@@ -410,11 +412,8 @@ WINEXPORT void
 cryptframe_set_dest_public_key(NetAddr*destaddr,	///< Destination addr,port
 			     CryptFramePublicKey*destkey)///< Public key to use when encrypting
 {
+	INITMAPS;
 	g_return_if_fail(NULL != destaddr);
-	if (NULL == addr_to_public_key_map) {
-		addr_to_public_key_map = g_hash_table_new_full(netaddr_g_hash_hash
-		,	netaddr_g_hash_equal, assim_g_notify_unref, assim_g_notify_unref);
-	}
 	if (NULL == destkey) {
 		g_hash_table_remove(addr_to_public_key_map, destaddr);
 	}else{
@@ -422,6 +421,21 @@ cryptframe_set_dest_public_key(NetAddr*destaddr,	///< Destination addr,port
 		REF(destkey);
 		g_hash_table_insert(addr_to_public_key_map, destaddr, destkey);
 	}
+}
+///
+///	Set the encryption key to use when sending to destaddr
+///	Set destkey to NULL to stop encrypting to that destination
+WINEXPORT void
+cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
+			     const char * key_id)	///< Public key id to use when encrypting
+{
+	CryptFramePublicKey*	destkey;
+	INITMAPS;
+	g_return_if_fail(NULL != destaddr && NULL != key_id);
+	public_key_map = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, assim_g_notify_unref);
+	destkey = g_hash_table_lookup(public_key_map, key_id);
+	g_return_if_fail(NULL != destkey);
+	cryptframe_set_dest_public_key(destaddr, destkey);
 }
 
 WINEXPORT CryptFrame*
