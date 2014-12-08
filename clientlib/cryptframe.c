@@ -452,6 +452,14 @@ cryptframe_new_by_destaddr(guint16 frame_type, NetAddr* destaddr)
 	return current_encryption_method (frame_type,
 			 default_signing_key->key_id, receiver_key->key_id);
 }
-
+// Set the current encryption method
+WINEXPORT void
+cryptframe_set_encryption_method(CryptFrame*	(*method)	///< method/constructor for encryption
+							(guint16 frame_type,
+					 		 const char* sender_key_id,
+							 const char * receiver_key_id))
+{
+	current_encryption_method = method;
+}
 
 ///@}
