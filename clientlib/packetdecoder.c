@@ -30,7 +30,7 @@
 #include <frameset.h>
 #include <frametypes.h>
 #include <signframe.h>
-#include <cryptframe.h>
+#include <cryptcurve25519.h>
 #include <compressframe.h>
 #include <tlvhelper.h>
 #include <packetdecoder.h>

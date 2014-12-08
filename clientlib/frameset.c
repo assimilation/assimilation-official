@@ -158,7 +158,7 @@ frameset_append_frame(FrameSet* fs,	///< FrameSet to fetch flags for
 void
 frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating a packet
 			  SignFrame* sigframe,	///< digital Signature method (cannot be NULL)
-			  Frame* cryptframe,	///< Optional Encryption method.
+			  CryptFrame* cryptframe,///< Optional Encryption method.
 						///< This method might change the packet size.
 		  CompressFrame* compressframe)	///< Optional Compression method.
 						///< This object modifies the packet "in place",
@@ -198,7 +198,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		g_return_if_fail(NULL != item);
 		switch (item->type) {
 			case FRAMETYPE_SIG:
-			case FRAMETYPE_CRYPT:
+			case FRAMETYPE_CRYPTCURVE25519:
 			case FRAMETYPE_COMPRESS:
 				UNREF(item);
 				fs->framelist->data = NULL;
@@ -241,7 +241,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		}
 	}
 	if (NULL != cryptframe) {
-		frameset_prepend_frame(fs, cryptframe);
+		frameset_prepend_frame(fs, &cryptframe->baseclass);
 	}
 	// "sigframe" cannot be NULL (see check above)
 	frameset_prepend_frame(fs, CASTTOCLASS(Frame, sigframe));
