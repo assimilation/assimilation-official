@@ -47,6 +47,7 @@
 
 /// Which kind of key (half of the key-pair) are we dealing with?
 enum keytype {
+	NOTAKEY,
 	PUBLICKEY,
 	PRIVATEKEY
 };
@@ -54,18 +55,19 @@ enum keytype {
 FSTATIC void _cryptcurve25519_finalize(AssimObj* aobj);
 FSTATIC gboolean _cryptcurve25519_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void	 _cryptcurve25519_updatedata(Frame*f, gpointer tlvstart, gconstpointer pktend, FrameSet* fs);
-FSTATIC gboolean _is_valid_curve25519_keyname(const char * keyname, enum keytype ktype);
-FSTATIC gboolean _is_legal_curve25519_key_id(const char * keyname);
-FSTATIC char*	 _cache_curve25519_key_id_to_filename(const char * keyname, enum keytype);
-FSTATIC gboolean _cache_curve25519_keypair(const char * keyname);
-FSTATIC char* _cryptcurve25519_cachename(const char *receiver_key, const char*sender_key_id);
+FSTATIC gboolean _is_valid_curve25519_key_id(const char * key_id, enum keytype ktype);
+FSTATIC gboolean _is_legal_curve25519_key_id(const char * key_id);
+FSTATIC char*	 _cache_curve25519_key_id_to_filename(const char * key_id, enum keytype);
+FSTATIC gboolean _cache_curve25519_keypair(const char * key_id);
 FSTATIC gboolean _cryptcurve25519_save_a_key(const char * key_id, enum keytype ktype, gconstpointer key);
+FSTATIC enum keytype _cryptcurve25519_keytype_from_filename(const char *filename);
+FSTATIC char * _cryptcurve25519_key_id_from_filename(const char *filename);
 static void (*_parentclass_finalize)(AssimObj*) = NULL;
 /*
   Our CryptCurve25519 Frame (our TLV Value) looks like this on the wire
   +----------+---------+----------+----------+-----------------------+---------------------+------------+
   | sender  |  sender  | receiver | receiver |                       |                     |            |
-  | keyname | key name | key name | key name | crypto_box_NONCEBYTES | crypto_box_MACBYTES | cyphertext |
+  | key_id  |  key id  | key name |  key id  | crypto_box_NONCEBYTES | crypto_box_MACBYTES | cyphertext |
   | length  |          |  length  |          | (randomeness - nonce) |  MAC for cyphertext |     --     | 
   |         |("length" |          |("length" |                       |                     | originally |
   | (1 byte)|  bytes)  | (1 byte) |  bytes)  |                       |                     | many frames|
@@ -76,31 +78,25 @@ static void (*_parentclass_finalize)(AssimObj*) = NULL;
   For the receiver: the sender key is public,  and the receiver key is private
  */
 // Since we allocate enough space for everything in advance, we can do encryption in place
-#define	TLVLEN(receiverkeyname, senderkeyname) 		\
-	(4 + strnlen(receiverkeyname, MAXCRYPTNAMELENGTH+1) + strnlen(senderkeyname, MAXCRYPTNAMELENGTH+1) \
+#define	TLVLEN(receiverkey_id, senderkey_id) 		\
+	(4 + strnlen(receiverkey_id, MAXCRYPTNAMELENGTH+1) + strnlen(senderkey_id, MAXCRYPTNAMELENGTH+1) \
 	+	crypto_box_NONCEBYTES + crypto_box_MACBYTES)
 
 /// Map a key name on the wire to a file name in the filesystem
 /// We make this a function on the idea that we might eventually want to have hashed subdirectories
 /// or something similar...
 FSTATIC char*
-_cache_curve25519_key_id_to_filename(const char * keyname, enum keytype ktype)
+_cache_curve25519_key_id_to_filename(const char * key_id,	///< key_id to convert to a filename
+				     enum keytype ktype)	///< Which type of key?
 {
 	const char *	suffix = (PRIVATEKEY == ktype ? PRIVATEKEYSUFFIX : PUBKEYSUFFIX);
-	return g_strdup_printf("%s%s%s%s", CRYPTKEYDIR, DIRDELIM, keyname, suffix);
-}
-
-/// Create a cache name to put in a hash table for pair of key_ids
-FSTATIC char*
-_cryptcurve25519_cachename(const char *receiver_key_id, const char*sender_key_id)
-{
-	return g_strdup_printf("P=%s/S=%s", receiver_key_id, sender_key_id);
+	return g_strdup_printf("%s%s%s%s", CRYPTKEYDIR, DIRDELIM, key_id, suffix);
 }
 
 /// @ref CryptCurve25519 function to check if a given curve25519 key id is properly formatted
 /// This name might come from a bad guy, so let's carefully scrub the name
 FSTATIC gboolean
-_is_legal_curve25519_key_id(const char * key_id)
+_is_legal_curve25519_key_id(const char * key_id)	///< Key id to validate
 {
 	static const char *	validchars =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -116,17 +112,69 @@ _is_legal_curve25519_key_id(const char * key_id)
 	return TRUE;
 }
 
-/// @ref CryptCurve25519 function to check if a given curve25519 key name is valid
+
+/// Determine the type of key this might be according to its filename
+FSTATIC enum keytype
+_cryptcurve25519_keytype_from_filename(const char *filename)	///< Filename to classify
+{
+	gsize	filenamesize = strlen(filename)+1;
+
+	if (filenamesize > sizeof(PUBKEYSUFFIX)) {
+		gsize offset = filenamesize - sizeof(PUBKEYSUFFIX);
+		if (strcmp(filename+offset, PUBKEYSUFFIX) == 0) {
+			return PUBLICKEY;
+		}
+	}
+	if (filenamesize > sizeof(PRIVATEKEYSUFFIX)) {
+		gsize offset = filenamesize - sizeof(PRIVATEKEYSUFFIX);
+		if (strcmp(filename+offset, PRIVATEKEYSUFFIX) == 0) {
+			return PRIVATEKEY;
+		}
+	}
+	return NOTAKEY;
+}
+
+/// Determine the key_id this might is according to its pathname
+FSTATIC char *
+_cryptcurve25519_key_id_from_filename(const char *filename)	///< filename to examine
+{
+	enum keytype	ktype = _cryptcurve25519_keytype_from_filename(filename);
+	gsize		filenamesize;
+	gsize		suffixlen;
+	gsize		prefixlen;
+	const char*	lastslash;
+	gsize		idlen;
+	char *		key_id;
+
+	if (ktype == NOTAKEY) {
+		return NULL;
+	}
+	filenamesize = strlen(filename);
+	suffixlen = (ktype == PRIVATEKEY ? sizeof(PRIVATEKEYSUFFIX) : sizeof(PUBKEYSUFFIX))-1;
+	lastslash = strrchr(filename, DIRDELIM[0]);
+	prefixlen = (lastslash == NULL ? 0 : (1+ (lastslash - filename)));
+	idlen = (filenamesize - prefixlen) - suffixlen;
+	key_id = g_strndup(filename + prefixlen, idlen);
+	if (!_is_legal_curve25519_key_id(key_id)) {
+		g_free(key_id);  key_id = NULL;
+	}
+	return key_id;
+}
+
+
+
+/// @ref CryptCurve25519 function to check if a given curve25519 key id is valid
 /// This name might come from a bad guy, so let's carefully scrub the name
 FSTATIC gboolean
-_is_valid_curve25519_keyname(const char * keyname, enum keytype ktype)
+_is_valid_curve25519_key_id(const char * key_id,	///< key_id to validate
+			     enum keytype ktype)	///< which kind of key is it?
 {
-	if (!_is_legal_curve25519_key_id(keyname)) {
+	if (!_is_legal_curve25519_key_id(key_id)) {
 		return FALSE;
 	}
-	if (_cache_curve25519_keypair(keyname)) {
+	if (_cache_curve25519_keypair(key_id)) {
 		if (ktype == PRIVATEKEY) {
-			return cryptframe_private_key_by_id(keyname) != NULL;
+			return cryptframe_private_key_by_id(key_id) != NULL;
 		}
 		return TRUE;
 	}
@@ -134,8 +182,9 @@ _is_valid_curve25519_keyname(const char * keyname, enum keytype ktype)
 }
 
 /// Validate and cache the requested curve25519 keypair (or just public if no private)
+/// If it's already in memory (like a temporary key) we won't look for it on disk.
 FSTATIC gboolean
-_cache_curve25519_keypair(const char * keyname)
+_cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 {
 	GStatBuf	statinfo;
 	char *		filename;
@@ -146,10 +195,10 @@ _cache_curve25519_keypair(const char * keyname)
 	int		rc;
 	
 	
-	if (cryptframe_public_key_by_id(keyname) != NULL) {
+	if (cryptframe_public_key_by_id(key_id) != NULL) {
 		return TRUE;
 	}
-	filename = _cache_curve25519_key_id_to_filename(keyname, PUBLICKEY);
+	filename = _cache_curve25519_key_id_to_filename(key_id, PUBLICKEY);
 	if (g_stat(filename, &statinfo) < 0) {
 		retval = FALSE;
 		goto getout;
@@ -175,7 +224,7 @@ _cache_curve25519_keypair(const char * keyname)
 	close(fd); fd = -1;
 
 	g_free(filename);
-	filename = _cache_curve25519_key_id_to_filename(keyname, PRIVATEKEY);
+	filename = _cache_curve25519_key_id_to_filename(key_id, PRIVATEKEY);
 	if (g_stat(filename, &statinfo) > 0) {
 		if (statinfo.st_size != crypto_box_SECRETKEYBYTES || !S_ISREG(statinfo.st_mode)
 		||	access(filename, R_OK) != 0) {
@@ -201,9 +250,9 @@ getout:
 	}
 	if (retval) {
 		g_assert(public_key != NULL);
-		(void)cryptframe_publickey_new(keyname, public_key);
+		(void)cryptframe_publickey_new(key_id, public_key);
 		if (secret_key) {
-			(void)cryptframe_privatekey_new(keyname, secret_key);
+			(void)cryptframe_privatekey_new(key_id, secret_key);
 		}
 	}else{
 		if (public_key) {
@@ -218,6 +267,62 @@ getout:
 	return retval;
 }
 
+/// Purge a cryptcurve25519 key from the filesystem and from memory.
+/// <i>This will modify the filesystem</i>.  It will return success if at the end of the
+/// call the files do not exist, and regardless of the return value it will purge them
+/// from our in-memory key cache
+///
+WINEXPORT gboolean 
+cryptcurve25519_purge_keypair(const char* key_id)	///< Key id of keypair to purge
+{
+	char *		filename;
+	gboolean	retval = TRUE;
+	g_return_val_if_fail(_is_legal_curve25519_key_id(key_id), FALSE);
+
+	filename = _cache_curve25519_key_id_to_filename(key_id, PUBLICKEY);
+	if (g_access(filename, F_OK) == 0) {
+		if (g_unlink(filename) != 0) {
+			g_warning("%s.%d: Unable to remove public key file [%s]. Reason: %s"
+			,	__FUNCTION__, __LINE__, filename, g_strerror(errno));
+			retval = FALSE;
+		}
+	}
+	g_free(filename); filename = NULL;
+
+	filename = _cache_curve25519_key_id_to_filename(key_id, PRIVATEKEY);
+	if (g_access(filename, F_OK) == 0) {
+		if (g_unlink(filename) != 0) {
+			g_warning("%s.%d: Unable to remove private key file [%s] Reason: %s"
+			,	__FUNCTION__, __LINE__, filename, g_strerror(errno));
+			retval = FALSE;
+		}
+	}
+	g_free(filename); filename = NULL;
+	cryptframe_purge_key_id(key_id);
+	return retval;
+}
+
+/// We read in and cache all the key pairs (or public keys) that we find in CRYPTKEYDIR
+WINEXPORT void
+cryptcurve25519_cache_all_keypairs(void)
+{
+	GDir*		key_directory = g_dir_open(CRYPTKEYDIR, 0, NULL);
+	const char*	filename;
+
+	g_return_if_fail(NULL == key_directory);
+
+	while (NULL != (filename = g_dir_read_name(key_directory))) {
+		if (_cryptcurve25519_keytype_from_filename(filename) == PUBLICKEY) {
+			char *	key_id = _cryptcurve25519_key_id_from_filename(filename);
+			if (NULL == key_id) {
+				continue;
+			}
+			_cache_curve25519_keypair(key_id);
+			g_free(key_id); key_id = NULL;
+		}
+	}
+}
+
 /// @ref CryptCurve25519 'isvalid' member function (checks for valid cryptcurve25519 objects)
 FSTATIC gboolean
 _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 object ('this')
@@ -226,7 +331,7 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 {
 	const CryptCurve25519*	self = CASTTOCONSTCLASS(CryptCurve25519, fself);
 	const guint8*	valptr;
-	const char*	keyname;
+	const char*	key_id;
 	guint		namelen;
 	gsize		pktlen;
 	int		j;
@@ -241,14 +346,14 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 		if (namelen >= MAXCRYPTNAMELENGTH || namelen < 1 ){
 			return FALSE;
 		}
-		if (!_is_valid_curve25519_keyname(self->baseclass.receiver_key_id, PUBLICKEY)) {
+		if (!_is_valid_curve25519_key_id(self->baseclass.receiver_key_id, PUBLICKEY)) {
 			return FALSE;
 		}
 		namelen = strnlen(self->baseclass.sender_key_id, MAXCRYPTNAMELENGTH+1);
 		if (namelen >= MAXCRYPTNAMELENGTH || namelen < 1 ){
 			return FALSE;
 		}
-		if (!_is_valid_curve25519_keyname(self->baseclass.sender_key_id, PRIVATEKEY)) {
+		if (!_is_valid_curve25519_key_id(self->baseclass.sender_key_id, PRIVATEKEY)) {
 			return FALSE;
 		}
 		return TRUE;
@@ -274,8 +379,8 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 		if ((gconstpointer)(valptr+namelen) > pktend) {
 			return FALSE;
 		}
-		keyname = (const char *)(valptr);
-		if (strnlen(keyname, namelen) != (namelen-1)) {
+		key_id = (const char *)(valptr);
+		if (strnlen(key_id, namelen) != (namelen-1)) {
 			return FALSE;
 		}
 		// We say PUBLICKEY since we don't know whether we're validating this
@@ -284,9 +389,9 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 		// needs a public key.  If we have a public key but need a private
 		// key that will get caught when we try and decrypt it.
 		// At least this catches garbage and unknown keys
-		if (!_is_valid_curve25519_keyname(keyname, PUBLICKEY)) {
+		if (!_is_valid_curve25519_key_id(key_id, PUBLICKEY)) {
 			g_warning("%s.%d: Packet encrypted using unknown key [%s]", __FUNCTION__, __LINE__
-			,	keyname);
+			,	key_id);
 			return FALSE;
 		}
 		valptr += namelen;
@@ -295,9 +400,7 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 }
 
 
-/// Construct a new CryptCurve25519
-/// This can only be used directly for creating CryptCurve25519 frames.
-/// Note that we avoid creating identical objects (we cache those we create);
+/// Construct a new CryptCurve25519 object (frame).
 CryptCurve25519*
 cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	  const char * sender_key_id,	///<[in] name of sender's key
@@ -314,11 +417,11 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 		sender_key_id = cryptframe_get_signing_key_id();
 	}
 	g_return_val_if_fail(sender_key_id != NULL && receiver_key_id != NULL, NULL);
-	if (!_is_valid_curve25519_keyname(receiver_key_id, PUBLICKEY)) {
+	if (!_is_valid_curve25519_key_id(receiver_key_id, PUBLICKEY)) {
 		g_critical("%s.%d: public key name [%s] is invalid", __FUNCTION__, __LINE__, receiver_key_id);
 		return NULL;
 	}
-	if (!_is_valid_curve25519_keyname(sender_key_id, PUBLICKEY)) {
+	if (!_is_valid_curve25519_key_id(sender_key_id, PUBLICKEY)) {
 		g_critical("%s.%d: public key name [%s] is invalid", __FUNCTION__, __LINE__, sender_key_id);
 		return NULL;
 	}
@@ -337,7 +440,7 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 
 /// Finalize (free) a CryptCurve25519 object
 FSTATIC void
-_cryptcurve25519_finalize(AssimObj* aself)
+_cryptcurve25519_finalize(AssimObj* aself)	///< Object to finalize/free
 {
 	CryptCurve25519*	self = CASTTOCLASS(CryptCurve25519, aself);
 	
@@ -372,47 +475,47 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 				// The second key name is in receiver's key name
 	CryptFramePublicKey *	sender_public_key = NULL;
 	CryptFramePrivateKey*	receiver_secret_key = NULL;
-	const char*		pubkeyname = NULL;
-	const char*		seckeyname = NULL;
+	const char*		pubkey_id = NULL;
+	const char*		seckey_id = NULL;
 	int			j;
 
 	(void)ignorednewpkt; (void)ignoredpktend;
 	valptr = get_generic_tlv_nonconst_value(tlvstart, pktend);
 	for (j=0; j < 2; ++j) {
-		char *	keyname;
+		char *	key_id;
 		g_return_val_if_fail((gpointer)(valptr+2) > pktend, NULL);
 		namelen = tlv_get_guint8(valptr, pktend);
 		valptr += 1;
 		g_return_val_if_fail((gpointer)(valptr+namelen) > pktend, NULL);
-		keyname = (char *)valptr;
-		g_return_val_if_fail (strnlen(keyname, namelen) == namelen -1, NULL);
-		g_return_val_if_fail(_is_valid_curve25519_keyname(keyname
+		key_id = (char *)valptr;
+		g_return_val_if_fail (strnlen(key_id, namelen) == namelen -1, NULL);
+		g_return_val_if_fail(_is_valid_curve25519_key_id(key_id
 		, 	0 == j ? PUBLICKEY : PRIVATEKEY), NULL);
 		if (0 == j) {
-			sender_public_key = cryptframe_public_key_by_id(keyname);
-			pubkeyname = keyname;
+			sender_public_key = cryptframe_public_key_by_id(key_id);
+			pubkey_id = key_id;
 		}else{
-			receiver_secret_key = cryptframe_private_key_by_id(keyname);
-			seckeyname = keyname;
+			receiver_secret_key = cryptframe_private_key_by_id(key_id);
+			seckey_id = key_id;
 		}
-		g_return_val_if_fail(keyname != NULL, NULL);
+		g_return_val_if_fail(key_id != NULL, NULL);
 		valptr += namelen;
 	}
 	g_return_val_if_fail((gpointer)(valptr + (crypto_box_NONCEBYTES+crypto_box_MACBYTES)) >= pktend, NULL);
 	nonce = valptr;
 	cyphertext = nonce + crypto_box_NONCEBYTES;
 	plaintext = cyphertext + crypto_box_MACBYTES;
-	cypherlength = pktlen - TLVLEN(pubkeyname, seckeyname);
+	cypherlength = pktlen - TLVLEN(pubkey_id, seckey_id);
 	if (crypto_box_open_easy(cyphertext, plaintext, cypherlength, nonce
 	,	sender_public_key->public_key, receiver_secret_key->private_key) != 0) {
 		g_warning("%s.%d: could not decrypt message encrypted with key pair [pub:%s, sec:%s]"
-		,	__FUNCTION__, __LINE__, pubkeyname, seckeyname);
+		,	__FUNCTION__, __LINE__, pubkey_id, seckey_id);
 		return NULL;
 	}
 	// Note that our return value's size will determine where the beginning of the
 	// decrypted data is (according to it's dataspace() member function)
-	ret = cryptcurve25519_new(get_generic_tlv_type(tlvstart, pktend), (const char *)pubkeyname
-	,	seckeyname, 0);
+	ret = cryptcurve25519_new(get_generic_tlv_type(tlvstart, pktend), (const char *)pubkey_id
+	,	seckey_id, 0);
 	return (ret ? &(ret->baseclass.baseclass) : NULL);
 }
 ///
@@ -422,7 +525,10 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 /// beginning.  We do this in-place - fortunately the algorithms allow that...
 /// We effectively suck all the remaining frames into a single encrypted frame...
 FSTATIC void	
-_cryptcurve25519_updatedata(Frame*f, gpointer tlvstart, gconstpointer pktend, FrameSet* fs)
+_cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
+			    gpointer tlvstart,		///< Start of our Frame in the packet
+			    gconstpointer pktend,	///< Last byte in the allocated packet
+			    FrameSet* fs)		///< Pointer to our containing frameset
 {
 	CryptCurve25519*self		= CASTTOCLASS(CryptCurve25519, f);
 	guint32		ouroffset;	// Offset to beginning of our frame
@@ -457,28 +563,28 @@ _cryptcurve25519_updatedata(Frame*f, gpointer tlvstart, gconstpointer pktend, Fr
 	// We're the sender - our [private] key name goes first, then the receiver's [public] key name
 	valptr = get_generic_tlv_nonconst_value(pktstart+ouroffset, pktend);
 	for (j=0; j < 2; ++j) {
-		char *	keyname = (j == 0 ? self->baseclass.sender_key_id : self->baseclass.receiver_key_id);
-		int	keylen = strlen(keyname)+1;
+		char *	key_id = (j == 0 ? self->baseclass.sender_key_id : self->baseclass.receiver_key_id);
+		int	keylen = strlen(key_id)+1;
 		tlv_set_guint8(valptr, keylen, pktend);
 		valptr += 1;
-		g_strlcpy((char *)valptr, keyname, keylen);
+		g_strlcpy((char *)valptr, key_id, keylen);
 		valptr += keylen;
 	}
 }
 
 /// Generate a temporary (non-persistent) key pair
 WINEXPORT void
-cryptcurve25519_gen_temp_keypair(const char *keyname) ///< keyname CANNOT be NULL
+cryptcurve25519_gen_temp_keypair(const char *key_id) ///< key_id CANNOT be NULL
 {
 	unsigned char*	public_key = g_malloc(crypto_box_PUBLICKEYBYTES);
 	unsigned char*	secret_key = g_malloc(crypto_box_SECRETKEYBYTES);
 	
 	crypto_box_keypair(public_key, secret_key);
-	(void)cryptframe_privatekey_new(keyname, secret_key);
-	(void)cryptframe_publickey_new(keyname, public_key);
+	(void)cryptframe_privatekey_new(key_id, secret_key);
+	(void)cryptframe_publickey_new(key_id, public_key);
 }
 
-/// Create a persistent keypair and give it a
+/// Create a persistent keypair and write it to disk
 /// Returns a MALLOCed string with the key id for the key pair.  Please free!
 WINEXPORT char *
 cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitaname can be NULL
@@ -527,15 +633,18 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 	||	_cryptcurve25519_save_a_key(key_id, PRIVATEKEY, secret_key)
 	||	cryptframe_privatekey_new(key_id, secret_key) == NULL
 	||	cryptframe_publickey_new(key_id, public_key) == NULL) {
-		cryptcurve25519_purge_key_id(key_id);
-		g_free(key_id);
+		cryptcurve25519_purge_keypair(key_id);
+		g_free(public_key); public_key = NULL;
+		g_free(secret_key); secret_key = NULL;
+		g_free(key_id); key_id = NULL;
 		return NULL;
 	}
 
+	_cache_curve25519_keypair(key_id);
 	return key_id;
 }
 
-///Save a public key away so its completely usable...
+///Save a public key away to disk so it's completely usable...
 WINEXPORT gboolean
 cryptcurve25519_save_public_key(const char * key_id,	///< key id to save key under
 				gpointer public_key,	///< pointer to public key data
@@ -557,7 +666,7 @@ cryptcurve25519_save_public_key(const char * key_id,	///< key id to save key und
 	}
 	if (!_cryptcurve25519_save_a_key(key_id, PUBLICKEY, public_key)
 	||	cryptframe_publickey_new(key_id, public_key) == NULL) {
-		cryptcurve25519_purge_key_id(key_id);
+		cryptcurve25519_purge_keypair(key_id);
 		return FALSE;
 	}
 	return TRUE;
@@ -580,12 +689,14 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 	}
 	filename = _cache_curve25519_key_id_to_filename(key_id, ktype);
 
-	if (ktype == PUBLICKEY) {
+	if (PUBLICKEY == ktype) {
 		keysize = crypto_box_PUBLICKEYBYTES;
 		createmode = 0644;
-	}else{
+	}else if (PRIVATEKEY == ktype) {
 		keysize = crypto_box_SECRETKEYBYTES;
 		createmode = 0600;
+	}else{
+		g_return_val_if_reached(FALSE);
 	}
 	fd = open(filename, O_WRONLY|O_CREAT, createmode);
 	if (fd < 0) {
@@ -612,23 +723,6 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 	return TRUE;
 }
 
-/// Purge (expire) a key - on disk and in memory.  Poof! all gone!!
-FSTATIC void
-cryptcurve25519_purge_key_id(const char * key_id)
-{
-	char * filename;
-	cryptframe_purge_key_id(key_id);
-	filename = _cache_curve25519_key_id_to_filename(key_id, PUBLICKEY);
-	if (filename) {
-		(void)g_unlink(filename);
-		g_free(filename);
-	}
-	filename = _cache_curve25519_key_id_to_filename(key_id, PRIVATEKEY);
-	if (filename) {
-		(void)g_unlink(filename);
-		g_free(filename);
-	}
-}
 /// Generic "new" function to use with cryptframe_set_encryption_method()
 WINEXPORT CryptFrame*
 cryptcurve25519_new_generic(guint16 frame_type,			///< type of frame to create
