@@ -50,10 +50,11 @@ WINEXPORT CryptCurve25519* cryptcurve25519_new(guint16 frame_type, const char * 
 WINEXPORT Frame* cryptcurve25519_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 WINEXPORT void cryptcurve25519_gen_temp_keypair(const char* keyname);
 WINEXPORT char* cryptcurve25519_gen_persistent_keypair(const char * keyname);
-WINEXPORT void cryptcurve25519_purge_key_id(const char * key_id);
 WINEXPORT gboolean cryptcurve25519_save_public_key(const char * key_id, gpointer public_key, int keysize);
 WINEXPORT CryptFrame* cryptcurve25519_new_generic(guint16 frame_type, const char* sender_key_id,
 						  const char* receiver_key_id);
+WINEXPORT void cryptcurve25519_cache_all_keypairs(void);
+WINEXPORT gboolean cryptcurve25519_purge_keypair(const char * key_id);
 
 ///@}
 
