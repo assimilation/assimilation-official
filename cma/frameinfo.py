@@ -59,6 +59,11 @@ class pyCompressFrame(object):
     def __init__(self):
         pass
 
+class pyCryptCurve25519(pyCryptFrame):
+    'Placeholder class'
+    def __init__(self):
+        pass
+
 class FrameTypes(object):
     'Class defining the universe of FrameSets - including code to generate a C header file'
     fileheader = \
@@ -127,13 +132,6 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 |   (16 bits)    | (24-bits) |      (8 bits)   |  (8 bits)  |(f_length-2 bytes) |
 +----------------+-----------+-----------------+------------+-------------------+
 ''',
-	'pyCryptFrame':
-'''
-+----------------+-----------+-------------------------+
-| frametype = %2d | f_length  | encryption information  |
-|   (16 bits)    | (24-bits) |     (f_length bytes)    |
-+----------------+-----------+-------------------------+
-''',
 	'pyCompressFrame':
 '''
 +----------------+-----------+------------------------+
@@ -186,6 +184,20 @@ This file organizes this data by the TLV type, not by the underlying @ref Frame 
 |                |               |(8 bits)|  bytes   |      |       |      |
 +----------------+---------------+--------+-----------------+-------+------+
 ''',
+	'pyCryptCurve25519':
+'''
++----------------+---------------+---------+----------+----------+----------+-----------------------+---------------------+------------+
+|                |               | sender  |  sender  | receiver | receiver |                       |                     |            |
+| frametype = %2d | f_length = n  | key_id  |  key id  | key name |  key id  | crypto_box_NONCEBYTES | crypto_box_MACBYTES | cyphertext |
+|   (16 bits)    |    (24-bits)  | length  |          |  length  |          | (randomeness - nonce) |  MAC for cyphertext |     --     | 
+|                |               |         |("length" |          |("length" |                       |                     | originally |
+|                |               | (1 byte)|  bytes)  | (1 byte) |  bytes)  |                       |                     | many frames|
++----------------+---------------+---------+----------+----------+----------+-----------------------+---------------------+------------+
+                                 |<---------------------------- length() value in memory -------------------------------->|
+                                 |<------------------------------- TLV length on the wire -------------------------------------------->|
+For the sender:   the sender key is private, and the receiver key is public
+For the receiver: the sender key is public,  and the receiver key is private
+'''
 
 }
     intframetypes = {
@@ -204,10 +216,9 @@ the end of this frame, extending through and including the last byte of the fram
 Note that this will include the encryption frame if present.
 The format and length of the digital signature depends on the type of signature.
 '''),
-  	2:  (pyCryptFrame, 'CRYPT', 'Encryption frame',
+  	2:  (pyCryptCurve25519, 'CRYPTCURVE25519', '@ref CryptCurve25519 Encryption frame',
 '''If an encryption frame is present it must be the second
 frame in the frameset, and can only be preceded by a @ref FRAMETYPE_SIG frame.
-It must have frametype <b>2</b>.
 When this frame is present, then all the frames following
 are encrypted according information in the encryption information value segment.
 '''),
@@ -338,7 +349,8 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
             Cclassname = re.sub('^py', '', pyclass)
             f.write('/**\n FRAMETYPE_%s Frame (<b>frametype %d</b>)'
                 ' Frame subclass - @ref %s\n' % (framename, frametype, Cclassname))
-            f.write('<PRE>%s</PRE>\n%s\n */\n' % (FrameTypes.asciiart[pyclass] % i, frametext))
+            print (FrameTypes.asciiart[pyclass] % i)
+            f.write('<PRE>%s</PRE>\n%s\n */\n' % ((FrameTypes.asciiart[pyclass] % i), frametext))
             f.write('#define FRAMETYPE_%s\t%d\t///< %s: @ref %s\n'
             %	(ourtuple[1], i, ourtuple[2], Cclassname))
         f.write('///@}\n')

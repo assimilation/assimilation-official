@@ -49,6 +49,7 @@
 #include <proj_classes.h>
 #include <netio.h>
 #include <frameset.h>
+#include <frametypes.h>
 FSTATIC gint _netio_getfd(const NetIO* self);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src, gboolean silent);
@@ -500,15 +501,14 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 	for (curfsl=framesets; curfsl != NULL; curfsl=curfsl->next) {
 		FrameSet* curfs		= CASTTOCLASS(FrameSet, curfsl->data);
 		SignFrame* signframe	= self->signframe(self);
-		Frame*	cryptframe	= self->cryptframe(self);
+		CryptFrame*	cryptframe	= NULL;
 		CompressFrame*	compressframe	= self->compressframe(self);
-		if (cryptframe) {
-			REF(cryptframe);
-		}
 		if (compressframe) {
 			REF2(compressframe);
 		}
+		cryptframe = cryptframe_new_by_destaddr(destaddr);
 		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
+		UNREF2(cryptframe);
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		self->stats.fswritten++;
 		
@@ -520,14 +520,16 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		     FrameSet* frameset)	///< [in] The framesets being sent
 {
 	SignFrame* signframe		= self->signframe(self);
-	Frame*	cryptframe		= self->cryptframe(self);
+	CryptFrame*	cryptframe;
 	CompressFrame*	compressframe	= self->compressframe(self);
 	g_return_if_fail(self != NULL);
 	g_return_if_fail(self->_signframe != NULL);
 	g_return_if_fail(frameset != NULL);
 	g_return_if_fail(destaddr != NULL);
 
+	cryptframe = cryptframe_new_by_destaddr(destaddr);
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
+	UNREF2(cryptframe);
 	DEBUGMSG3("%s.%d: sent %ld byte packet", __FUNCTION__, __LINE__
 	,	(long)(((guint8*)frameset->pktend-(guint8*)frameset->packet)));
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);

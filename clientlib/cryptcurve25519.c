@@ -63,6 +63,23 @@ FSTATIC gboolean _cryptcurve25519_save_a_key(const char * key_id, enum keytype k
 FSTATIC enum keytype _cryptcurve25519_keytype_from_filename(const char *filename);
 FSTATIC char * _cryptcurve25519_key_id_from_filename(const char *filename);
 static void (*_parentclass_finalize)(AssimObj*) = NULL;
+FSTATIC void dump_memory(const char * label, const guint8* start, const guint8* end);
+
+// Simple memory dump routine
+FSTATIC void
+dump_memory(const char * label, const guint8* start, const guint8* end)
+{
+	GString*		gs = g_string_new(NULL);
+	const guint8*		p;
+
+	for (p=start; p < end; ++p) {
+		g_string_append_printf(gs, " %02x", (unsigned char)*p);
+	}
+	g_info("%s [%ld bytes]%s", label, (long)(end - start), gs->str);
+	g_string_free(gs, TRUE);
+	gs = NULL;
+}
+
 /*
   Our CryptCurve25519 Frame (our TLV Value) looks like this on the wire
   +----------+---------+----------+----------+-----------------------+---------------------+------------+
@@ -463,13 +480,13 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 		          gpointer* ignorednewpkt,	///<[ignored] replacement packet
 		          gpointer* ignoredpktend)	///<[ignored] end of replacement packet
 {
-	guint8*			valptr;
+	guint8*			valptr = get_generic_tlv_nonconst_value(tlvstart, pktend);
 	guint8*			nonce;
 	guint8*			cyphertext;
-	const guint8*		plaintext;
+	const guint8*		tlvend8 = valptr + get_generic_tlv_len(tlvstart, pktend);
+	guint8*			plaintext;
 	CryptCurve25519*	ret;
 	guint			namelen;
-	gsize			pktlen = get_generic_tlv_len(tlvstart, pktend);
 	gsize			cypherlength;
 				// The first key name is in sender's key name
 				// The second key name is in receiver's key name
@@ -483,10 +500,10 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 	valptr = get_generic_tlv_nonconst_value(tlvstart, pktend);
 	for (j=0; j < 2; ++j) {
 		char *	key_id;
-		g_return_val_if_fail((gpointer)(valptr+2) > pktend, NULL);
+		g_return_val_if_fail((gpointer)(valptr+2) <= pktend, NULL);
 		namelen = tlv_get_guint8(valptr, pktend);
 		valptr += 1;
-		g_return_val_if_fail((gpointer)(valptr+namelen) > pktend, NULL);
+		g_return_val_if_fail((gpointer)(valptr+namelen) <= pktend, NULL);
 		key_id = (char *)valptr;
 		g_return_val_if_fail (strnlen(key_id, namelen) == namelen -1, NULL);
 		g_return_val_if_fail(_is_valid_curve25519_key_id(key_id
@@ -501,15 +518,15 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 		g_return_val_if_fail(key_id != NULL, NULL);
 		valptr += namelen;
 	}
-	g_return_val_if_fail((gpointer)(valptr + (crypto_box_NONCEBYTES+crypto_box_MACBYTES)) >= pktend, NULL);
+	g_return_val_if_fail((gpointer)(valptr + (crypto_box_NONCEBYTES+crypto_box_MACBYTES)) <= pktend, NULL);
 	nonce = valptr;
 	cyphertext = nonce + crypto_box_NONCEBYTES;
 	plaintext = cyphertext + crypto_box_MACBYTES;
-	cypherlength = pktlen - TLVLEN(pubkey_id, seckey_id);
-	if (crypto_box_open_easy(cyphertext, plaintext, cypherlength, nonce
+	cypherlength = tlvend8 - cyphertext;
+	if (crypto_box_open_easy(plaintext, cyphertext, cypherlength, nonce
 	,	sender_public_key->public_key, receiver_secret_key->private_key) != 0) {
-		g_warning("%s.%d: could not decrypt message encrypted with key pair [pub:%s, sec:%s]"
-		,	__FUNCTION__, __LINE__, pubkey_id, seckey_id);
+		g_warning("%s.%d: could not decrypt %d byte message encrypted with key pair [pub:%s, sec:%s]"
+		,	__FUNCTION__, __LINE__, (int)cypherlength, pubkey_id, seckey_id);
 		return NULL;
 	}
 	// Note that our return value's size will determine where the beginning of the
@@ -528,40 +545,46 @@ FSTATIC void
 _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 			    gpointer tlvstart,		///< Start of our Frame in the packet
 			    gconstpointer pktend,	///< Last byte in the allocated packet
-			    FrameSet* fs)		///< Pointer to our containing frameset
+			    FrameSet* unused_fs)	///< Pointer to our containing frameset
 {
 	CryptCurve25519*self		= CASTTOCLASS(CryptCurve25519, f);
-	guint32		ouroffset;	// Offset to beginning of our frame
 	const guint8*	pktend8		= pktend;
-	guint8*		pktstart	= fs->packet;
+	//guint8*	tlvstart8	= tlvstart;
+	guint8*		tlvval;
 	guint8*		valptr;
-	guint8*		tlvstart8	= tlvstart;
 	guint32		plaintextoffset;
-	gsize		plaintextsize;
-	gsize		cyphertextoffset;
-	gsize		nonceoffset;
+	guint32		plaintextsize;
+	guint32		cyphertextoffset;
+	guint32		nonceoffset;
+	guint32		tlvsize;
 	unsigned char*	nonce;
 	int		j;
 
-	ouroffset = tlvstart8-pktstart;
-	plaintextoffset = ouroffset + FRAME_INITSIZE + self->baseclass.baseclass.length;
-	cyphertextoffset = plaintextoffset - crypto_box_MACBYTES;
-	nonceoffset = cyphertextoffset - crypto_box_NONCEBYTES;
-	plaintextsize = pktend8 - (pktstart+plaintextoffset);
+	(void)unused_fs;
+	// [key1, key2, nonce, MAC, plaintext]
+
+	// The plain text starts immediately after our (incoming) frame
+	plaintextoffset = f->length;					// Plain text starts here
+	cyphertextoffset = plaintextoffset - crypto_box_MACBYTES;	// Preceded by MAC
+	nonceoffset = cyphertextoffset - crypto_box_NONCEBYTES;		// Preceded by nonce
+	// Our (outgoing) frame consists of the original incoming frame plus all other frames after ours
+	tlvval = get_generic_tlv_nonconst_value(tlvstart, pktend);
+	tlvsize = pktend8 - tlvval;
+	plaintextsize = (tlvsize - plaintextoffset);
 
 	// Generate a "nonce" as part of the packet - make known plaintext attacks harder
 	// ... lots of our plaintext is easy to figure out ...
-	nonce = pktstart + nonceoffset;
+	nonce = tlvval + nonceoffset;
 	randombytes_buf(nonce, crypto_box_NONCEBYTES);
 
 	// Encrypt in-place [we previously allocated enough space for authentication info]
-	crypto_box_easy(pktstart+cyphertextoffset, pktstart+plaintextoffset, plaintextsize
+	crypto_box_easy(tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
 	,	nonce, self->public_key->public_key, self->private_key->private_key);
-	set_generic_tlv_type(pktstart+ouroffset, self->baseclass.baseclass.type, pktend);
-	set_generic_tlv_len(pktstart+ouroffset, self->baseclass.baseclass.length+plaintextsize, pktend);
+	set_generic_tlv_type(tlvstart, self->baseclass.baseclass.type, pktend);
+	set_generic_tlv_len(tlvstart, tlvsize, pktend);
 	// Put in the frame type, length, key name length, and key name for both keys
 	// We're the sender - our [private] key name goes first, then the receiver's [public] key name
-	valptr = get_generic_tlv_nonconst_value(pktstart+ouroffset, pktend);
+	valptr = get_generic_tlv_nonconst_value(tlvstart, pktend);
 	for (j=0; j < 2; ++j) {
 		char *	key_id = (j == 0 ? self->baseclass.sender_key_id : self->baseclass.receiver_key_id);
 		int	keylen = strlen(key_id)+1;
@@ -570,6 +593,7 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 		g_strlcpy((char *)valptr, key_id, keylen);
 		valptr += keylen;
 	}
+	g_assert((tlvval + tlvsize) == pktend);
 }
 
 /// Generate a temporary (non-persistent) key pair
@@ -725,11 +749,10 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 
 /// Generic "new" function to use with cryptframe_set_encryption_method()
 WINEXPORT CryptFrame*
-cryptcurve25519_new_generic(guint16 frame_type,			///< type of frame to create
-			    const char* sender_key_id,		///< sender's key id
+cryptcurve25519_new_generic(const char* sender_key_id,		///< sender's key id
 			    const char* receiver_key_id)	///< receiver's key id
 {
-	CryptCurve25519* ret = cryptcurve25519_new(frame_type,sender_key_id, receiver_key_id, 0);
+	CryptCurve25519* ret = cryptcurve25519_new(FRAMETYPE_CRYPTCURVE25519, sender_key_id, receiver_key_id, 0);
 	return (ret ? &ret->baseclass: NULL);
 }
 

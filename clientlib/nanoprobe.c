@@ -29,6 +29,7 @@
 #include <frametypes.h>
 #include <compressframe.h>
 #include <cryptframe.h>
+#include <cryptcurve25519.h>
 #include <intframe.h>
 #include <cstringframe.h>
 #include <addrframe.h>

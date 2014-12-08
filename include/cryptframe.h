@@ -74,9 +74,9 @@ WINEXPORT const char *		cryptframe_get_signing_key_id(void);
 WINEXPORT CryptFramePrivateKey*	cryptframe_get_signing_key(void);
 WINEXPORT void cryptframe_set_dest_public_key(NetAddr*, CryptFramePublicKey*);
 WINEXPORT void cryptframe_set_dest_public_key_id(NetAddr*, const char * key_id);
-WINEXPORT CryptFrame*		cryptframe_new_by_destaddr(guint16 frame_type, NetAddr* destination_address);
-WINEXPORT void			cryptframe_set_encryption_method(CryptFrame*(*) (guint16 frame_type,
-					 const char* sender_key_id, const char * receiver_key_id));
+WINEXPORT CryptFrame*		cryptframe_new_by_destaddr(const NetAddr* destination_address);
+WINEXPORT void			cryptframe_set_encryption_method(CryptFrame*(*)
+					(const char* sender_key_id, const char * receiver_key_id));
 CryptFrame* cryptframe_new(guint16 frame_type, const char *sender_key_id,
 			   const char * receiver_key_id, gsize framesize);
 ///@}

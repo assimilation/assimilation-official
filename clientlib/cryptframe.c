@@ -404,8 +404,8 @@ cryptframe_get_signing_key(void)
 	return default_signing_key;
 }
 
-static CryptFrame*	(*current_encryption_method) (guint16 frame_type,
-			 const char* sender_key_id, const char * receiver_key_id);
+static CryptFrame*	(*current_encryption_method) (const char* sender_key_id,
+						      const char * receiver_key_id);
 ///
 ///	Set the encryption key to use when sending to destaddr
 ///	Set destkey to NULL to stop encrypting to that destination
@@ -439,7 +439,7 @@ cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
 }
 
 WINEXPORT CryptFrame*
-cryptframe_new_by_destaddr(guint16 frame_type, NetAddr* destaddr)
+cryptframe_new_by_destaddr(const NetAddr* destaddr)
 {
 	CryptFramePublicKey* receiver_key;
 	if (NULL == current_encryption_method || NULL == default_signing_key) {
@@ -449,14 +449,12 @@ cryptframe_new_by_destaddr(guint16 frame_type, NetAddr* destaddr)
 	if (NULL == receiver_key) {
 		return NULL;
 	}
-	return current_encryption_method (frame_type,
-			 default_signing_key->key_id, receiver_key->key_id);
+	return current_encryption_method(default_signing_key->key_id, receiver_key->key_id);
 }
 // Set the current encryption method
 WINEXPORT void
 cryptframe_set_encryption_method(CryptFrame*	(*method)	///< method/constructor for encryption
-							(guint16 frame_type,
-					 		 const char* sender_key_id,
+							(const char* sender_key_id,
 							 const char * receiver_key_id))
 {
 	current_encryption_method = method;
