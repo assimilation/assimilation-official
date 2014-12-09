@@ -326,7 +326,11 @@ cryptcurve25519_cache_all_keypairs(void)
 	GDir*		key_directory = g_dir_open(CRYPTKEYDIR, 0, NULL);
 	const char*	filename;
 
-	g_return_if_fail(NULL == key_directory);
+	if (NULL == key_directory) {
+		g_warning("%s.%d: Cannot open directory \"%s\" [%s]", __FUNCTION__, __LINE__
+		,	CRYPTKEYDIR, g_strerror(errno));
+		return;
+	}
 
 	while (NULL != (filename = g_dir_read_name(key_directory))) {
 		if (_cryptcurve25519_keytype_from_filename(filename) == PUBLICKEY) {
