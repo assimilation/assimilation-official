@@ -100,6 +100,7 @@ FSTATIC gboolean	_nano_initconfig_OK(ConfigContext* config);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 
+CryptFramePublicKey*	preferred_cma_key_id = NULL;
 gboolean		nano_shutting_down = FALSE;
 GRand*			nano_random = NULL;
 const char *		procname = "nanoprobe";
@@ -1238,6 +1239,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 
 	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
+	nanoprobe_initialize_keys();
 	// Initiate the startup process
 	g_idle_add(nano_startupidle, &cruftiness);
 }
@@ -1367,5 +1369,78 @@ _nano_final_shutdown(gpointer unused)
 	}
 	g_main_quit(mainloop);
 	return FALSE;
+}
+
+
+
+// Initialize our encryption setup...
+WINEXPORT void
+nanoprobe_initialize_keys(void)
+{
+	GList*		key_id_list;
+	GList*		thiselem;
+	char *		sysname = proj_get_sysname();
+	int		sysname_len = strlen(sysname);
+	// Read in and cache all our key pairs
+	cryptcurve25519_cache_all_keypairs();
+
+	key_id_list = cryptframe_get_key_ids();
+	// We're looking for our own signing key, and all the CMA's signing keys
+	for (thiselem = key_id_list; NULL != thiselem; thiselem=g_list_next(thiselem)) {
+		const char *	key_id = (char*)thiselem->data;
+		// Format of our key ids: "system-name@@our-key-hash-value"
+		if (strncmp(key_id, sysname, sysname_len) == 0 && key_id[sysname_len] == '@') {
+			if (NULL != cryptframe_public_key_by_id(key_id)) {
+				cryptframe_set_signing_key_id(key_id);
+			}
+		}else if (strncmp(key_id, CMA_KEY_PREFIX, sizeof(CMA_KEY_PREFIX)-1) == 0) {
+			cryptframe_associate_identity(CMA_IDENTITY_NAME, key_id);
+		}
+	}
+	if (cryptframe_key_ids_for(CMA_IDENTITY_NAME) == NULL) {
+		g_warning("%s.%d: Encryption not enabled (no CMA public key available)."
+		,	__FUNCTION__, __LINE__);
+	}else{
+		// Generate a key pair if we don't already have one
+		if (cryptframe_get_signing_key() == NULL) {
+			char *	key_id = (char*)thiselem->data;
+			key_id = cryptcurve25519_gen_persistent_keypair(NULL);
+			if (NULL != key_id) {
+				cryptframe_set_signing_key_id(key_id);
+				g_free(key_id);
+			}else{
+				g_warning("%s.%d: Encryption not enabled"
+				": cannot generate public key pair.", __FUNCTION__, __LINE__);
+			}
+		}
+		if (cryptframe_get_signing_key() != NULL) {
+			cryptframe_set_encryption_method(cryptcurve25519_new_generic);
+		}
+	}
+	g_list_free(key_id_list); key_id_list = NULL;
+	g_free(sysname); sysname = NULL;
+}
+
+/// Associate the given encryption key for all CMA addresses in the config we're given.
+/// We assume any address in the config whose name starts with "cma" is a CMA address.
+/// The purpose of this function is to make sure we use that key when talking to the CMA.
+WINEXPORT void
+nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
+{
+	GSList*	keys = cfg->keys(cfg);
+	GSList*	thiskey;
+	static const char	cmaprefix[] = "cma";
+
+	for (thiskey = keys; NULL != thiskey; thiskey=g_slist_next(thiskey)) {
+		const char *	keyname = (const char *)thiskey->data;
+
+		// Is this entry a NetAddr whose name starts with "cma"?
+		if (	cfg->gettype(cfg, keyname) == CFG_NETADDR
+		&&	strncmp(keyname, cmaprefix, sizeof(cmaprefix)-1) == 0) {
+			NetAddr*	destaddr = cfg->getaddr(cfg, keyname);
+			cryptframe_set_dest_public_key_id(destaddr, key_id);
+		}
+	}
+	g_slist_free(keys); keys=NULL;
 }
 ///@}

@@ -438,6 +438,7 @@ cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
 	cryptframe_set_dest_public_key(destaddr, destkey);
 }
 
+/// Construct a @ref CryptFrame appropriate for encrypting messages to <i>destaddr</i>
 WINEXPORT CryptFrame*
 cryptframe_new_by_destaddr(const NetAddr* destaddr)
 {

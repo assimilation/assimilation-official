@@ -38,6 +38,9 @@ struct _NanoHbStats {
 };
 WINEXPORT extern NanoHbStats	nano_hbstats;
 extern gboolean		nano_connected;
+#define	CMA_KEY_PREFIX		"#CMA#"
+#define	CMA_IDENTITY_NAME	"**CMA**"
+extern CryptFramePublicKey*	preferred_cma_key_id;
 
 WINEXPORT void				nano_start_full(const char *initdiscoverpath, guint discover_interval
 ,						NetGSource* io, ConfigContext* config);
@@ -45,6 +48,8 @@ WINEXPORT void				nano_shutdown(gboolean statreport);
 WINEXPORT PacketDecoder*	nano_packet_decoder(void);
 WINEXPORT gboolean		nano_initiate_shutdown(void);
 WINEXPORT void			nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname, guint64 howlate);
+WINEXPORT void nanoprobe_initialize_keys(void);
+WINEXPORT void nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg);
 extern const char *		procname;	///< process name
 WINEXPORT extern int			errcount;	///< error count
 WINEXPORT extern GMainLoop*		mainloop;
