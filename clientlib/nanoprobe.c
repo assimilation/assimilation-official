@@ -110,6 +110,7 @@ static NetAddr*		nanofailreportaddr = NULL;
 static NetGSource*	nanotransport = NULL;
 static guint		idle_shutdown_gsource = 0;
 static ResourceQueue*	RscQ = NULL;
+static gboolean		is_encryption_enabled = FALSE;
 
 DEBUGDECLARATIONS
 
@@ -1371,8 +1372,6 @@ _nano_final_shutdown(gpointer unused)
 	return FALSE;
 }
 
-
-
 // Initialize our encryption setup...
 WINEXPORT void
 nanoprobe_initialize_keys(void)
@@ -1415,6 +1414,7 @@ nanoprobe_initialize_keys(void)
 		}
 		if (cryptframe_get_signing_key() != NULL) {
 			cryptframe_set_encryption_method(cryptcurve25519_new_generic);
+			is_encryption_enabled = TRUE;
 		}
 	}
 	g_list_free(key_id_list); key_id_list = NULL;
@@ -1442,5 +1442,39 @@ nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
 		}
 	}
 	g_slist_free(keys); keys=NULL;
+}
+
+#define	SECOND	1000000
+#define	COMPLAINT_INTERVAL (60*SECOND)
+
+/// Return TRUE if this FrameSet came
+WINEXPORT gboolean
+nanoprobe_is_cma_frameset(const FrameSet * fs)
+{
+	gpointer		maybecrypt;
+	CryptFrame*		cryptframe;
+	const char*		identity;
+	
+	if (!is_encryption_enabled) {
+		static	gint64	last_complaint = 0L;
+		gint64		now = g_get_monotonic_time();
+		if (now >= (last_complaint+COMPLAINT_INTERVAL)) {
+			g_critical("%s.%d: Encryption is NOT enabled.  Encryption REQUIRED for production."
+			,	__FUNCTION__, __LINE__);
+			g_info("See Assimilation documentation for how to distribute the CMA's public key.");
+			last_complaint = now;
+		}
+		// Without encryption, we have to accept every frameset as authenticated...
+		return TRUE;
+	}
+
+	// If we have an encryption frame it must be the second frame
+	maybecrypt = g_slist_nth_data(fs->framelist, 2);
+	if (!OBJ_IS_A(maybecrypt, maybecrypt)) {
+		return FALSE;
+	}
+	cryptframe = CASTTOCLASS(CryptFrame, maybecrypt);
+	identity = cryptframe_whois_key_id(cryptframe->sender_key_id);
+	return (strcmp(identity, CMA_IDENTITY_NAME) == 0);
 }
 ///@}

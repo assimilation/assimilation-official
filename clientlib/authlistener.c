@@ -27,6 +27,7 @@
 #include <frameset.h>
 #define	IS_LISTENER_SUBCLASS
 #include <authlistener.h>
+#include <nanoprobe.h>
 /**
  */
 FSTATIC void _authlistener_finalize(AssimObj * self);
@@ -48,6 +49,13 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 {
 	AuthListener*		aself = CASTTOCLASS(AuthListener, self);
 	AuthListenerAction	action;
+
+	if (!nanoprobe_is_cma_frameset(fs)) {
+		char *	addr_s = addr->baseclass.toString(&addr->baseclass);
+		g_warning("%s.%d: Received unauthorized CMA command [%d] from address %s"
+		,	__FUNCTION__, __LINE__, fs->fstype, addr_s);
+		FREE(addr_s); addr_s=NULL;
+	}
 
 	action = g_hash_table_lookup(aself->actionmap, GINT_TO_POINTER((int)fs->fstype));
 
