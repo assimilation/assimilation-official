@@ -30,9 +30,12 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 #include <misc.h>
+#include <sodium.h>
 
 FSTATIC gboolean _cryptframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void _cryptframe_finalize(AssimObj* aself);
+FSTATIC CryptFramePublicKey*  cryptframe_public_key_by_id(const char* key_id);
+FSTATIC CryptFramePrivateKey*  cryptframe_private_key_by_id(const char* key_id);
 static void (*_parentclass_finalize)(AssimObj*) = NULL;
 
 ///@defgroup CryptFrame CryptFrame class
@@ -208,6 +211,8 @@ cryptframe_publickey_new (const char *key_id,	///< Key id of the given public ke
 	aself->_finalize = _cryptframe_publickey_finalize;
 	self = NEWSUBCLASS(CryptFramePublicKey, aself);
 	self->key_id = g_strdup(key_id);
+	self->key_size = crypto_box_PUBLICKEYBYTES;
+	self->frame_type = FRAMETYPE_PUBKEYCURVE25519;
 	self->public_key = public_key;
 	g_hash_table_insert(public_key_map, self->key_id, self);
 	return self;
@@ -229,12 +234,13 @@ cryptframe_privatekey_new(const char *key_id,	///<[in] Key id of given private k
 	aself->_finalize = _cryptframe_privatekey_finalize;
 	self = NEWSUBCLASS(CryptFramePrivateKey, aself);
 	self->key_id = g_strdup(key_id);
+	self->key_size = crypto_box_SECRETKEYBYTES;
 	self->private_key = private_key;
 	g_hash_table_insert(private_key_map, self->key_id, self);
 	return self;
 }
 
-/// Return the public key with the given id
+/// Return the non-const public key with the given id
 WINEXPORT CryptFramePublicKey*
 cryptframe_public_key_by_id(const char* key_id)	///[in] Key id of public key being sought
 {
@@ -243,8 +249,7 @@ cryptframe_public_key_by_id(const char* key_id)	///[in] Key id of public key bei
 	ret = g_hash_table_lookup(public_key_map, key_id);
 	return (ret ? CASTTOCLASS(CryptFramePublicKey, ret): NULL);
 }
-
-/// Return the private key with the given id
+/// Return the non-const private key with the given id
 WINEXPORT CryptFramePrivateKey*
 cryptframe_private_key_by_id(const char* key_id) ///<[in] Key id of the given private key being sought
 {

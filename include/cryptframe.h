@@ -34,12 +34,16 @@ typedef struct _CryptFrame CryptFrame;
 typedef struct {
 	AssimObj	baseclass;
 	char*		key_id;		///< unique name for this key
+	int		key_size;	///< sizeof(public_key)
+	int		frame_type;	///< FrameType of this type of public key
+					///< (we never send private keys - no symmetry here)
 	gpointer	public_key;	///< Pointer to the (malloced) public key;
 }CryptFramePublicKey;
 
 typedef struct {
 	AssimObj	baseclass;
 	char*		key_id;		///< unique name for this key
+	int		key_size;	///< sizeof(private_key)
 	gpointer	private_key;	///< Pointer to the (malloced) private key
 }CryptFramePrivateKey;
 

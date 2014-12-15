@@ -313,6 +313,13 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
   	28:  (pyCstringFrame, 'RSCJSONREPLY', 'JSON operation result',
 '''This frame provides the data describing the result of a resource action in detail.
 '''),
+  	29:  (pyCstringFrame, 'KEYID', 'Key ID',
+'''This frame provides the name of a Key ID as a C-style string.
+'''),
+  	30:  (pyFrame, 'PUBKEYCURVE25519', 'A Curve25519 Public Key',
+'''This frame provides the raw bytes of a Curve25519 Public Key.
+It is always <b>crypto_box_PUBLICKEYBYTES</b> bytes long - no more, no less.
+'''),
 
     }
     strframetypes = dict()
