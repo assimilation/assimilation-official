@@ -1154,10 +1154,15 @@ nano_reqconfig(gpointer gcruft)
 			keyidfr->baseclass.setvalue(&keyidfr->baseclass
 			,	g_strdup(keyid), strlen(keyid)+1
 			,	frame_default_valuefinalize);
+			frameset_append_frame(fs, &keyidfr->baseclass);
+			UNREF2(keyidfr);
+		
 			keyframe->setvalue(keyframe
 			,	ourpubkey->public_key
 			,	ourpubkey->key_size
 			,	NULL);
+			frameset_append_frame(fs, keyframe);
+			UNREF(keyframe);
 		}
 	}
 	

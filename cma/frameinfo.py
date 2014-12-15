@@ -226,7 +226,7 @@ are encrypted according information in the encryption information value segment.
   	3:  (pyCompressFrame, 'COMPRESS', 'Compression frame',
 '''If a compression frame is present (<b>frametype = 3</b>) it must be the second
 or third frame in the frameset, and can only be preceded by a @ref FRAMETYPE_SIG
-and @ref FRAMETYPE_CRYPT frames.
+and encryption frames.
 When this frame is present, then all the frames following
 are compreseed according information in the compression information value segment.
 The format of the compression information value segment will likely be a
@@ -357,7 +357,6 @@ It is always <b>crypto_box_PUBLICKEYBYTES</b> bytes long - no more, no less.
             Cclassname = re.sub('^py', '', pyclass)
             f.write('/**\n FRAMETYPE_%s Frame (<b>frametype %d</b>)'
                 ' Frame subclass - @ref %s\n' % (framename, frametype, Cclassname))
-            print (FrameTypes.asciiart[pyclass] % i)
             f.write('<PRE>%s</PRE>\n%s\n */\n' % ((FrameTypes.asciiart[pyclass] % i), frametext))
             f.write('#define FRAMETYPE_%s\t%d\t///< %s: @ref %s\n'
             %	(ourtuple[1], i, ourtuple[2], Cclassname))

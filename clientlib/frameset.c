@@ -125,7 +125,7 @@ frameset_new(guint16 frameset_type) ///< Type of frameset to create
 	return s;
 }
 
-#define	SPECIALFRAME(ftype)	((FRAMETYPE_COMPRESS == (ftype)) || (FRAMETYPE_CRYPT  == (ftype)) || (FRAMETYPE_SIG  == (ftype)))
+#define	SPECIALFRAME(ftype)	((FRAMETYPE_COMPRESS == (ftype)) || (FRAMETYPE_CRYPTCURVE28819  == (ftype)) || (FRAMETYPE_SIG  == (ftype)))
 
 /// Prepend frame to the front of the frame list
 void
@@ -214,13 +214,13 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	/// they have to be applied from first to last.
 	/// That means that we do these things in this order:
 	///	Compress the frame - all the frame after the @ref FRAMETYPE_COMPRESS TLV
-	///	Encrypt the frame - all the frame after the @ref FRAMETYPE_CRYPT TLV
+	///	Encrypt the frame - all the frame after the @ref FRAMETYPE_CRYPTCURVE25519 (or equivalent) TLV
 	///	Perform a signature over the whole frame after the @ref FRAMETYPE_SIG TLV
 	///
 	/// At the other end, this is reversed.
 	///	Check the signature according to the initial @ref FRAMETYPE_SIG frame,
 	///		discard if incorrect.
-	///	Decrypt the frame after the @ref FRAMETYPE_CRYPT TLV
+	///	Decrypt the frame after the @ref FRAMETYPE_CRYPTCURVE29919 TLV
 	///	Uncompress the frame after the @ref FRAMETYPE_COMPRESS TLV
 	///
 	/// Encryption tends to make data hard to compress, so it's better to compress before
