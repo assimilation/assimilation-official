@@ -1459,7 +1459,7 @@ nanoprobe_is_cma_frameset(const FrameSet * fs)
 		static	gint64	last_complaint = 0L;
 		gint64		now = g_get_monotonic_time();
 		if (now >= (last_complaint+COMPLAINT_INTERVAL)) {
-			g_critical("%s.%d: Encryption is NOT enabled.  Encryption REQUIRED for production."
+			g_warning("%s.%d: Encryption is NOT enabled.  Encryption REQUIRED for production."
 			,	__FUNCTION__, __LINE__);
 			g_info("See Assimilation documentation for how to distribute the CMA's public key.");
 			last_complaint = now;
