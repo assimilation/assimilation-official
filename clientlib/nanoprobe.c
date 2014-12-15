@@ -1142,6 +1142,26 @@ nano_reqconfig(gpointer gcruft)
 	frameset_append_frame(fs, &csf->baseclass);
 	UNREF2(csf);
 
+	if (is_encryption_enabled) {
+		const char *		keyid;
+		CryptFramePublicKey*	ourpubkey;
+		keyid = cryptframe_get_signing_key_id();
+		ourpubkey = cryptframe_public_key_by_id(keyid);
+		if (NULL != ourpubkey) {
+			CstringFrame*		keyidfr = cstringframe_new(FRAMETYPE_KEYID, 0);
+			Frame*			keyframe = frame_new(ourpubkey->frame_type, 0);
+			
+			keyidfr->baseclass.setvalue(&keyidfr->baseclass
+			,	g_strdup(keyid), strlen(keyid)+1
+			,	frame_default_valuefinalize);
+			keyframe->setvalue(keyframe
+			,	ourpubkey->public_key
+			,	ourpubkey->key_size
+			,	NULL);
+		}
+	}
+	
+
 	// We've constructed the frameset - now send it - unreliably...
 	// That's because the reply is typically from a different address
 	// which would confuse the blazes out of the reliable comm code.
