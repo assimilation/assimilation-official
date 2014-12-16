@@ -50,7 +50,6 @@ WINEXPORT gboolean		nano_initiate_shutdown(void);
 WINEXPORT void			nanoprobe_report_upstream(guint16 reporttype, NetAddr* who, const char * sysname, guint64 howlate);
 WINEXPORT void nanoprobe_initialize_keys(void);
 WINEXPORT void nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg);
-WINEXPORT gboolean nanoprobe_is_cma_frameset(const FrameSet* fs);
 extern const char *		procname;		///< process name
 WINEXPORT extern int			errcount;	///< error count
 WINEXPORT extern GMainLoop*		mainloop;

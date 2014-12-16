@@ -41,6 +41,8 @@
 #include <cryptcurve25519.h>
 #include <packetdecoder.h>
 
+#define	CRYPTO_KEYID	"pinger"
+#define	CRYPTO_IDENTITY	"us chickens"
 #define	PORT	19840
 
 #if 1
@@ -69,6 +71,7 @@ ReliableUDP*	transport = NULL;
 int		pongcount = 2;
 int		maxpingcount = 10;
 GMainLoop*	loop = NULL;
+gboolean	encryption_enabled = FALSE;
 
 ObeyFrameSetTypeMap	doit [] = {
 	{FRAMESETTYPE_PING,	obey_pingpong},
@@ -100,6 +103,15 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 
 	if (fs->fstype == FRAMESETTYPE_PONG) {
 		fprintf(stderr, "Received a PONG packet from %s\n", addrstr);
+	}
+	if (encryption_enabled) {
+		const char *	keyid = frameset_sender_key_id(fs);
+		const char *	identity = frameset_sender_identity(fs);
+
+		g_assert(NULL != keyid);
+		g_assert(NULL != identity);
+		g_assert(strcmp(keyid, CRYPTO_KEYID) == 0);
+		g_assert(strcmp(identity, CRYPTO_IDENTITY) == 0);
 	}
 	
 	
@@ -286,13 +298,13 @@ main(int argc, char **argv)
 		NetAddr* addr = netaddr_string_new(optremaining[0]);
 		if (addr->islocal(addr)) {
 			addr->setport(addr, PORT);
-			cryptcurve25519_gen_temp_keypair("pinger");
-			cryptframe_set_signing_key_id("pinger");
-DUMP("address: ", &addr->baseclass, " and that's it.");
-			cryptframe_set_dest_public_key_id(addr, "pinger");
+			cryptcurve25519_gen_temp_keypair(CRYPTO_KEYID);
+			cryptframe_set_signing_key_id(CRYPTO_KEYID);
+			cryptframe_associate_identity(CRYPTO_IDENTITY, CRYPTO_KEYID);
+			cryptframe_set_dest_public_key_id(addr, CRYPTO_KEYID);
 			cryptframe_set_encryption_method(cryptcurve25519_new_generic);
-			fprintf(stderr, "NOTE: Encryption enabled.");
-			g_message("NOTE: Encryption enabled.");
+			g_message("NOTE: Encryption enabled. Incoming packet Identities will be verified.");
+			encryption_enabled = TRUE;
 		}
 		UNREF(addr);
 	}
@@ -303,7 +315,7 @@ DUMP("address: ", &addr->baseclass, " and that's it.");
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(&transport->baseclass.baseclass, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
-	act_on_packets = authlistener_new(0, doit, config, FALSE);
+	act_on_packets = authlistener_new(0, doit, config, FALSE, NULL);
 	act_on_packets->baseclass.associate(&act_on_packets->baseclass, netpkt);
 	//g_source_ref(&netpkt->baseclass);
 
