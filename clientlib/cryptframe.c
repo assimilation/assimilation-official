@@ -466,4 +466,5 @@ cryptframe_set_encryption_method(CryptFrame*	(*method)	///< method/constructor f
 	current_encryption_method = method;
 }
 
+
 ///@}

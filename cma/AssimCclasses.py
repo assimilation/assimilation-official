@@ -44,7 +44,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     seqnoframe_new, cstringframe_new, unknownframe_new, \
     ipportframe_netaddr_new, ipportframe_ipv4_new, ipportframe_ipv6_new, \
     frameset_construct_packet, frameset_get_flags, frameset_set_flags,  frameset_clear_flags, \
-    frameset_dump,  \
+    frameset_dump,  frameset_sender_key_id, frameset_sender_identity,   \
     LLDP_TLV_END, LLDP_TLV_CHID, LLDP_TLV_PID, LLDP_TLV_TTL, LLDP_TLV_PORT_DESCR, \
     LLDP_TLV_SYS_NAME, LLDP_TLV_SYS_DESCR, LLDP_TLV_SYS_CAPS, LLDP_TLV_MGMT_ADDR, \
     LLDP_TLV_ORG_SPECIFIC,  \
@@ -78,7 +78,12 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, \
-    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new
+    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new,                               \
+    cryptframe_associate_identity,                                                      \
+    cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
+    cryptframe_private_key_by_id, cryptframe_set_encryption_method,                     \
+    cryptcurve25519_new_generic, cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX,    \
+    cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519
 
 from consts import CMAconsts
 
@@ -1173,7 +1178,124 @@ class pyNVpairFrame(pyFrame):
         'Return the name portion of a pyNVpairFrame'
         return string_at(self._Cstruct[0].value)
 
+class pyCryptFrame(pyFrame):
+    '''Abstract class for a generalized encryption frame
+    Our main importance is for our static methods which allow us
+    to map key ids to identities, and IP addresses to key ids.
+    The underlying C code then automatically creates the correct
+    CryptFrame objects for outgoing packets.
+    '''
+    def __init__(self, destaddr=None, Cstruct=None):
+        self._Cstruct = None
+        if Cstruct is None and destaddr is None:
+            raise ValueError('pyCryptFrame requires destaddr or Cstruct')
+        if Cstruct is None:
+            Cstruct = cryptframe_new_by_destaddr(destaddr._Cstruct)
+        pyFrame.__init__(self, None, Cstruct=Cstruct)
 
+    def receiver_id(self):
+        'Return the key_id of the receiver key'
+        return string_at(self._Cstruct[0].receiver_key_id)
+
+    @staticmethod
+    def get_key_ids():
+        'Returns the set of key ids that we know about'
+        keyidlist_int = cryptframe_get_key_ids()
+        keyid_gslist = cast(keyidlist_int, cClass.GSList)
+        keyid_list = []
+        curkeyid = keyid_gslist
+        while curkeyid:
+            print >> sys.stderr, ('GET_KEY_ID: %s' % (string_at(curkeyid[0].data)))
+            keyid_list.append(string_at(curkeyid[0].data))
+            curkeyid = g_slist_next(curkeyid)
+        g_slist_free(keyid_gslist)
+        return keyid_list
+
+    @staticmethod
+    def get_cma_key_ids():
+        'Return the set of CMA key ids we know about'
+        ret = []
+        for keyid in pyCryptFrame.get_key_ids():
+            if keyid.startswith(CMA_KEY_PREFIX):
+                ret.append(keyid)
+        return ret
+
+    @staticmethod
+    def associate_identity(identityname, key_id):
+        '''Associate the given identity name with the given key id
+        This allows many keys to be associated with a single identity, but
+        does not support a key being associated with multiple identities.
+        '''
+        cryptframe_associate_identity(identityname, key_id)
+
+class pyCryptCurve25519(pyCryptFrame):
+    '''Encryption Frame based on Libsodium - Curve25519 public key encryption.
+    Strangely enough, we may not actually use objects of this class - because it's
+    effectively hidden by the C code from us having to know about it.
+
+    Instead we just manage public keys, and map IP addresses to public keys
+    and the C code under us takes care of the rest in terms of creating these objects.
+    '''
+    def __init__(self, publickey_id=None, privatekey_id=None, Cstruct=None):
+        self._Cstruct = None
+        if Cstruct is None:
+            Cstruct = cryptcurve25519_new(FRAMETYPE_CRYPTCURVE25519, publickey_id, privatekey_id, 0)
+        pyCryptFrame.__init__(Cstruct=Cstruct)
+
+    @staticmethod
+    def initkeys():
+        '''Initialize our set of persistent public keys / keypairs and get ready to encrypt.
+        This involves several steps:
+            1) Read in all available public and private keys
+            2) If we have no CMA keys, then generate two keypairs and give instructions
+                on hiding the second one...
+            2) Figure out which private keys are ours and select which one (oldest) to use
+               as our preferred signing key
+            3) set the default signing method
+
+            Note that there are still two issues that this doesn't deal with:
+                Persisting the association between nanoprobe keys ids and (domain, hostname) pairs
+                Assigning default IP addresses with nanoprobe key ids.
+        '''
+        warnings = []
+        cryptcurve25519_cache_all_keypairs()
+        cma_ids = pyCryptFrame.get_cma_key_ids()
+        if len(cma_ids) == 0:
+            warnings.append('No CMA keys found. Generating two CMA key-pairs to start.')
+            for keyid in (0, 1):
+                cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX + keyid))
+            cma_ids = pyCryptFrame.get_cma_key_ids()
+        elif len(cma_ids) == 1:
+            lastkey = cma_ids[0]
+            lastseqno = int(lastkey[len(CMA_KEY_PREFIX):])
+            newkeyid = ('%s%05d' % (CMA_KEY_PREFIX, lastseqno + 1))
+            warnings.append('Generating an additional CMA key-pair.')
+            cryptcurve25519_gen_persistent_keypair(newkeyid)
+            cma_ids = pyCryptFrame.get_cma_key_ids()
+        if len(cma_ids) != 2:
+            warnings.append('Unexpected number of CMA keys.  Expecting 2, but got %d.'
+            %       len(cma_ids))
+        cma_ids.sort()
+        # We want to use the lowest-numbered private key we have access to.
+        privatecount = 0
+        extras = []
+        for keyid in cma_ids:
+            if cryptframe_private_key_by_id(keyid):
+                privatecount += 1
+                if privatecount == 1:
+                    cryptframe_set_signing_key_id(keyid)
+                else:
+                    extras.append(keyid)
+        if privatecount < 1:
+            raise RuntimeError('FATAL: No CMA private keys to sign with!')
+        if privatecount != 1:
+            warnings.append('Incorrect number of Private CMA keys.  Expecting 1, but got %d.'
+            %       len(cma_ids))
+            warnings.append('YOU MUST SECURELY HIDE all but one private CMA key.')
+            for keyid in extras:
+                warnings.append('SECURELY HIDE *private* key id %s' % keyid)
+        cryptframe_set_encryption_method(cryptcurve25519_new_generic)
+        return warnings
 
 #pylint: disable=R0921
 class pyFrameSet(pyAssimObj):
@@ -1217,6 +1339,14 @@ class pyFrameSet(pyAssimObj):
     def clear_flags(self, flags):
         "Clear the given flags for this FrameSet"
         return frameset_clear_flags(self._Cstruct, int(flags))
+
+    def sender_id(self):
+        'Return the key_id of the cryptographic sender of this FrameSet'
+        return string_at(frameset_sender_key_id(self._Cstruct))
+
+    def sender_identity(self):
+        'Return the identity of the cryptographic sender of this FrameSet'
+        return string_at(frameset_sender_identity(self._Cstruct))
 
     def dump(self):
         'Dump out the given frameset'
