@@ -97,6 +97,7 @@ FSTATIC HbListener*	_real_hblistener_new(NetAddr*, ConfigContext*);
 FSTATIC gboolean	_nano_final_shutdown(gpointer unused);
 FSTATIC gboolean	shutdown_when_outdone(gpointer unused);
 FSTATIC gboolean	_nano_initconfig_OK(ConfigContext* config);
+FSTATIC gboolean _nanoprobe_is_cma_frameset(const FrameSet * fs);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 
@@ -1263,7 +1264,7 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	g_source_ref(CASTTOCLASS(GSource, io));
 	nanotransport = io;
 
-	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE);
+	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE, _nanoprobe_is_cma_frameset);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
 	nanoprobe_initialize_keys();
 	// Initiate the startup process
@@ -1473,8 +1474,8 @@ nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
 #define	COMPLAINT_INTERVAL (60*SECOND)
 
 /// Return TRUE if this FrameSet came
-WINEXPORT gboolean
-nanoprobe_is_cma_frameset(const FrameSet * fs)
+FSTATIC gboolean
+_nanoprobe_is_cma_frameset(const FrameSet * fs)
 {
 	const char*		identity;
 	

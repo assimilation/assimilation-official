@@ -374,7 +374,7 @@ main(int argc, char **argv)
 
 	// Pretend to be the CMA...
 	// Listen for packets from our nanoprobes - scattered throughout space...
-	listentonanoprobes = authlistener_new(0, cmalist, config, TRUE);
+	listentonanoprobes = authlistener_new(0, cmalist, config, TRUE, NULL);
 	listentonanoprobes->baseclass.associate(&listentonanoprobes->baseclass, netpkt);
 
 	nano_start_full("netconfig", 900, netpkt, config);

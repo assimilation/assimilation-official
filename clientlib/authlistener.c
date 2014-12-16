@@ -27,7 +27,6 @@
 #include <frameset.h>
 #define	IS_LISTENER_SUBCLASS
 #include <authlistener.h>
-#include <nanoprobe.h>
 /**
  */
 FSTATIC void _authlistener_finalize(AssimObj * self);
@@ -50,9 +49,9 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 	AuthListener*		aself = CASTTOCLASS(AuthListener, self);
 	AuthListenerAction	action;
 
-	if (!nanoprobe_is_cma_frameset(fs)) {
+	if (aself->authenticator && !aself->authenticator(fs)) {
 		char *	addr_s = addr->baseclass.toString(&addr->baseclass);
-		g_warning("%s.%d: Received unauthorized CMA command [%d] from address %s"
+		g_warning("%s.%d: Received unauthorized command [%d] from address %s"
 		,	__FUNCTION__, __LINE__, fs->fstype, addr_s);
 		FREE(addr_s); addr_s=NULL;
 	}
@@ -63,7 +62,6 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 		g_warning("%s received FrameSet of unrecognized type %u", __FUNCTION__, fs->fstype);
 		goto returnout;
 	}
-	/// @todo need to authorize the sender of this @ref FrameSet before acting on it...
 	action(aself, fs, addr);
 	
 
@@ -131,7 +129,8 @@ AuthListener*
 authlistener_new(gsize objsize,		 ///<[in] size of Listener structure (0 for sizeof(Listener))
 		 ObeyFrameSetTypeMap*map,///<[in] NULL-terminated map of FrameSet types to action functions -
 		 ConfigContext* config,	 ///<[in/out] configuration context
-		 gboolean autoack)	 ///<[in] TRUE if the authlistener should do the ACKing for us
+		 gboolean autoack,	 ///<[in] TRUE if the authlistener should do the ACKing for us
+		 gboolean(*authenticator)(const FrameSet*fs))///<[in] Authentication function
 {
 	AuthListener * newlistener;
 	BINDDEBUG(AuthListener);
@@ -151,8 +150,7 @@ authlistener_new(gsize objsize,		 ///<[in] size of Listener structure (0 for siz
 		}
 		newlistener->actionmap = hash;
 		newlistener->autoack = autoack;
-		
-		
+		newlistener->authenticator = authenticator;
 	}
 	return newlistener;
 }

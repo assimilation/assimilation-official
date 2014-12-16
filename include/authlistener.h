@@ -42,6 +42,7 @@ struct _AuthListener {
 	Listener	baseclass;
 	GHashTable*	actionmap;
 	gboolean	autoack;
+	gboolean	(*authenticator)(const FrameSet*fs);
 };
 
 
@@ -55,6 +56,7 @@ struct _ObeyFrameSetTypeMap {
 
 /// Create an AuthListener
 WINEXPORT AuthListener* authlistener_new(gsize listen_objsize, ObeyFrameSetTypeMap* map
-,					 ConfigContext* config, gboolean autoack);
+,					 ConfigContext* config, gboolean autoack
+,	gboolean(*authenticator)(const FrameSet*fs));
 ///@}
 #endif /* _AUTHLISTENER_H */

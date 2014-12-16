@@ -409,6 +409,7 @@ _frameset_toString(gconstpointer vself)
 	return ret;
 }
 
+
 /// Return the key_id of this Frameset's CryptFrame sender -- NULL if None
 WINEXPORT const char *
 frameset_sender_key_id(const FrameSet* self)
@@ -417,7 +418,8 @@ frameset_sender_key_id(const FrameSet* self)
 	CryptFrame*		cryptframe;
 	
 	// If we have an encryption frame it *must* be the second frame
-	maybecrypt = g_slist_nth_data(self->framelist, 2);
+	// (the first frame is frame 0, and the second is frame 1)
+	maybecrypt = g_slist_nth_data(self->framelist, 1);
 	if (!OBJ_IS_A(maybecrypt, "CryptFrame")) {
 		return NULL;
 	}
