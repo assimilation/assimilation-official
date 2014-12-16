@@ -409,4 +409,27 @@ _frameset_toString(gconstpointer vself)
 	return ret;
 }
 
+/// Return the key_id of this Frameset's CryptFrame sender -- NULL if None
+WINEXPORT const char *
+frameset_sender_key_id(const FrameSet* self)
+{
+	gpointer		maybecrypt;
+	CryptFrame*		cryptframe;
+	
+	// If we have an encryption frame it *must* be the second frame
+	maybecrypt = g_slist_nth_data(self->framelist, 2);
+	if (!OBJ_IS_A(maybecrypt, "CryptFrame")) {
+		return NULL;
+	}
+	cryptframe = CASTTOCLASS(CryptFrame, maybecrypt);
+	return cryptframe->sender_key_id;
+}
+
+/// Return the identity of this Frameset's CryptFrame sender -- NULL if None or Unknown
+WINEXPORT const char *
+frameset_sender_identity(const FrameSet* self)
+{
+	return cryptframe_whois_key_id(frameset_sender_key_id(self));
+}
+
 ///@}

@@ -3,9 +3,7 @@
 /**
  * @file
  * @brief Implements the @ref CryptCurve25519 class - A Frame for encrypting packets
- * @details This frame cannot be usefully subclassed because of restrictions in FrameSets.
- * There are currently <b>no</b> implementations of encryption as of now.
- *
+ * @details It uses <i>libsodium</i> to implement public key encryption in packets.
  *
  * This file is part of the Assimilation Project.
  *

@@ -1476,8 +1476,6 @@ nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
 WINEXPORT gboolean
 nanoprobe_is_cma_frameset(const FrameSet * fs)
 {
-	gpointer		maybecrypt;
-	CryptFrame*		cryptframe;
 	const char*		identity;
 	
 	if (!is_encryption_enabled) {
@@ -1492,14 +1490,7 @@ nanoprobe_is_cma_frameset(const FrameSet * fs)
 		// Without encryption, we have to accept every frameset as authenticated...
 		return TRUE;
 	}
-
-	// If we have an encryption frame it must be the second frame
-	maybecrypt = g_slist_nth_data(fs->framelist, 2);
-	if (!OBJ_IS_A(maybecrypt, maybecrypt)) {
-		return FALSE;
-	}
-	cryptframe = CASTTOCLASS(CryptFrame, maybecrypt);
-	identity = cryptframe_whois_key_id(cryptframe->sender_key_id);
-	return (strcmp(identity, CMA_IDENTITY_NAME) == 0);
+	identity = frameset_sender_identity(fs);
+	return (identity ? strcmp(identity, CMA_IDENTITY_NAME) == 0 : FALSE);
 }
 ///@}

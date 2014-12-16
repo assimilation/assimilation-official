@@ -60,10 +60,13 @@ WINEXPORT FrameSet*	frameset_new(guint16 frameset_type);
 WINEXPORT void		frameset_prepend_frame(FrameSet* fs, Frame* f);
 WINEXPORT void		frameset_append_frame(FrameSet* fs, Frame* f);
 WINEXPORT void		frameset_construct_packet(FrameSet* fs, SignFrame* sign, CryptFrame* crypt, CompressFrame* compress);
+WINEXPORT const char *	frameset_sender_key_id(const FrameSet* self);	///< Return Crypto key_id
+WINEXPORT const char *	frameset_sender_identity(const FrameSet* self);	///< Return Crypto identity
 WINEXPORT Frame*	frame_new(guint16 frame_type, gsize framesize);
 WINEXPORT guint16	frameset_get_flags(FrameSet* fs);
 WINEXPORT guint16	frameset_set_flags(FrameSet* f, guint16 flagbits);
 WINEXPORT guint16	frameset_clear_flags(FrameSet* f, guint16 flagbits);
+WINEXPORT gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
 WINEXPORT gpointer	frame_append_to_frameset_packet(FrameSet*, Frame*, gpointer curpos);
 WINEXPORT void		frameset_dump(const FrameSet*);
 
