@@ -81,7 +81,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new,                               \
     cryptframe_associate_identity,                                                      \
     cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
-    cryptframe_private_key_by_id, cryptframe_set_encryption_method,                     \
+    cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,                     \
     cryptcurve25519_new_generic, cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX,    \
     cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519
 
@@ -1205,7 +1205,6 @@ class pyCryptFrame(pyFrame):
         keyid_list = []
         curkeyid = keyid_gslist
         while curkeyid:
-            print >> sys.stderr, ('GET_KEY_ID: %s' % (string_at(curkeyid[0].data)))
             keyid_list.append(string_at(curkeyid[0].data))
             curkeyid = g_slist_next(curkeyid)
         g_slist_free(keyid_gslist)
@@ -1260,10 +1259,14 @@ class pyCryptCurve25519(pyCryptFrame):
         warnings = []
         cryptcurve25519_cache_all_keypairs()
         cma_ids = pyCryptFrame.get_cma_key_ids()
+        cma_ids.sort()
         if len(cma_ids) == 0:
             warnings.append('No CMA keys found. Generating two CMA key-pairs to start.')
+            print >> sys.stderr, "NO CMA KEYs found"
             for keyid in (0, 1):
-                cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX + keyid))
+                print >> sys.stderr, "Generating key id", keyid
+                cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX, keyid))
+            cryptcurve25519_cache_all_keypairs()
             cma_ids = pyCryptFrame.get_cma_key_ids()
         elif len(cma_ids) == 1:
             lastkey = cma_ids[0]
@@ -1271,11 +1274,11 @@ class pyCryptCurve25519(pyCryptFrame):
             newkeyid = ('%s%05d' % (CMA_KEY_PREFIX, lastseqno + 1))
             warnings.append('Generating an additional CMA key-pair.')
             cryptcurve25519_gen_persistent_keypair(newkeyid)
+            cryptcurve25519_cache_all_keypairs()
             cma_ids = pyCryptFrame.get_cma_key_ids()
         if len(cma_ids) != 2:
             warnings.append('Unexpected number of CMA keys.  Expecting 2, but got %d.'
             %       len(cma_ids))
-        cma_ids.sort()
         # We want to use the lowest-numbered private key we have access to.
         privatecount = 0
         extras = []
@@ -1294,7 +1297,7 @@ class pyCryptCurve25519(pyCryptFrame):
             warnings.append('YOU MUST SECURELY HIDE all but one private CMA key.')
             for keyid in extras:
                 warnings.append('SECURELY HIDE *private* key id %s' % keyid)
-        cryptframe_set_encryption_method(cryptcurve25519_new_generic)
+        cryptcurve25519_set_encryption_method();
         return warnings
 
 #pylint: disable=R0921

@@ -35,6 +35,8 @@
 #include <generic_tlv_min.h>
 #include <tlvhelper.h>
 
+DEBUGDECLARATIONS
+
 #define EOS	'\0'
 #define	KEY_NAMING_CHECKSUM	G_CHECKSUM_MD5
 
@@ -114,7 +116,7 @@ FSTATIC gboolean
 _is_legal_curve25519_key_id(const char * key_id)	///< Key id to validate
 {
 	static const char *	validchars =
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_@#";
 	int			length;
 	for (length=0; length < MAXCRYPTKEYNAMELENGTH && key_id[length] != EOS; ++length) {
 		if (strchr(validchars, key_id[length]) == NULL) {
@@ -215,24 +217,30 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 	}
 	filename = _cache_curve25519_key_id_to_filename(key_id, PUBLICKEY);
 	if (g_stat(filename, &statinfo) < 0) {
+		g_warning("%s.%d: g_stat error [%s] NOT Caching key id %s", __FUNCTION__, __LINE__
+		,	filename, key_id);
 		retval = FALSE;
 		goto getout;
 	}
 	if (statinfo.st_size != crypto_box_PUBLICKEYBYTES || !S_ISREG(statinfo.st_mode)
 	||	access(filename, R_OK) != 0) {
 		retval = FALSE;
+		g_warning("%s.%d: g_stat size error on %s NOT Caching key id %s", __FUNCTION__, __LINE__
+		,	filename, key_id);
 		goto getout;
 	}
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
 		retval = FALSE;
+		g_warning("%s.%d: open error on %s NOT Caching key id %s", __FUNCTION__, __LINE__
+		,	filename, key_id);
 		goto getout;
 	}
 	public_key = g_malloc(crypto_box_PUBLICKEYBYTES);
 	rc = read(fd, public_key, crypto_box_PUBLICKEYBYTES);
 	if (rc != crypto_box_PUBLICKEYBYTES) {
-		g_warning("%s.%d: read returned %d instead of %d [%s]", __FUNCTION__, __LINE__
-		,	rc, crypto_box_PUBLICKEYBYTES, g_strerror(errno));
+		g_warning("%s.%d: public key read on %s returned %d instead of %d [%s]", __FUNCTION__, __LINE__
+		,	filename, rc, crypto_box_PUBLICKEYBYTES, g_strerror(errno));
 		retval = FALSE;
 		goto getout;
 	}
@@ -240,15 +248,26 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 
 	g_free(filename);
 	filename = _cache_curve25519_key_id_to_filename(key_id, PRIVATEKEY);
-	if (g_stat(filename, &statinfo) > 0) {
+	if (g_stat(filename, &statinfo) >= 0) {
 		if (statinfo.st_size != crypto_box_SECRETKEYBYTES || !S_ISREG(statinfo.st_mode)
 		||	access(filename, R_OK) != 0) {
+			g_warning("%s.%d: secret key stat on [%s] returned %d instead of %d [%s]"
+			,	__FUNCTION__, __LINE__, filename
+			,	(int)statinfo.st_size, crypto_box_SECRETKEYBYTES, g_strerror(errno));
 			goto getout;
 		}
 		secret_key = g_malloc(crypto_box_SECRETKEYBYTES);
+		fd = open(filename, O_RDONLY);
+		if (fd < 0) {
+			retval = FALSE;
+			g_warning("%s.%d: open error on %s NOT Caching key id %s", __FUNCTION__, __LINE__
+			,	filename, key_id);
+			goto getout;
+		}
 		rc = read(fd, secret_key, crypto_box_SECRETKEYBYTES);
-		if (rc != crypto_box_PUBLICKEYBYTES) {
-			g_warning("%s.%d: read returned %d instead of %d [%s]", __FUNCTION__, __LINE__
+		if (rc != crypto_box_SECRETKEYBYTES) {
+			g_warning("%s.%d: secret key read of %s returned %d instead of %d [%s]"
+			,	__FUNCTION__, __LINE__, filename
 			,	rc, crypto_box_SECRETKEYBYTES, g_strerror(errno));
 			retval = FALSE;
 			goto getout;
@@ -314,6 +333,7 @@ cryptcurve25519_purge_keypair(const char* key_id)	///< Key id of keypair to purg
 	}
 	g_free(filename); filename = NULL;
 	cryptframe_purge_key_id(key_id);
+	g_warning("%s.%d:  Key ID %s has been purged.", __FUNCTION__, __LINE__, key_id);
 	return retval;
 }
 
@@ -429,6 +449,7 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	CryptFrame*		baseframe;
 	CryptCurve25519*	ret;
 
+	BINDDEBUG(CryptCurve25519);
 	if (objsize < sizeof(CryptCurve25519)) {
 		objsize = sizeof(CryptCurve25519);
 	}
@@ -654,11 +675,13 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 	}else{
 		key_id = g_strdup(giveitaname);
 	}
+	DEBUGMSG1("%s.%d: Generating permanent key pair [%s]", __FUNCTION__, __LINE__, key_id);
 	// Write out the two generated keys (the key-pair) into the correct names
 	if (!_cryptcurve25519_save_a_key(key_id, PUBLICKEY, public_key)
-	||	_cryptcurve25519_save_a_key(key_id, PRIVATEKEY, secret_key)
+	||	!_cryptcurve25519_save_a_key(key_id, PRIVATEKEY, secret_key)
 	||	cryptframe_privatekey_new(key_id, secret_key) == NULL
 	||	cryptframe_publickey_new(key_id, public_key) == NULL) {
+		// Something didn't work :-(
 		cryptcurve25519_purge_keypair(key_id);
 		g_free(public_key); public_key = NULL;
 		g_free(secret_key); secret_key = NULL;
@@ -711,6 +734,7 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 	char*		filename;
 
 	if (!_is_legal_curve25519_key_id(key_id)) {
+		g_warning("%s.%d: Key id %s is illegal", __FUNCTION__, __LINE__, key_id);
 		return FALSE;
 	}
 	filename = _cache_curve25519_key_id_to_filename(key_id, ktype);
@@ -722,6 +746,7 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 		keysize = crypto_box_SECRETKEYBYTES;
 		createmode = 0600;
 	}else{
+		g_error("%s.%d: Key type %d is illegal", __FUNCTION__, __LINE__, ktype);
 		g_return_val_if_reached(FALSE);
 	}
 	fd = open(filename, O_WRONLY|O_CREAT, createmode);
@@ -741,10 +766,12 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 		return FALSE;
 	}
 	if (close(fd) < 0) {
+		g_warning("%s.%d: Close of file %s failed.", __FUNCTION__, __LINE__, filename);
 		g_unlink(filename);
 		g_free(filename);
 		return FALSE;
 	}
+	DEBUGMSG1("%s.%d: file %s successfully created!", __FUNCTION__, __LINE__, filename);
 	g_free(filename);
 	return TRUE;
 }
@@ -756,6 +783,14 @@ cryptcurve25519_new_generic(const char* sender_key_id,		///< sender's key id
 {
 	CryptCurve25519* ret = cryptcurve25519_new(FRAMETYPE_CRYPTCURVE25519, sender_key_id, receiver_key_id, 0);
 	return (ret ? &ret->baseclass: NULL);
+}
+
+
+/// Function just to make setting the encryption method simpler from Python
+WINEXPORT void
+cryptcurve25519_set_encryption_method(void)
+{
+        cryptframe_set_encryption_method(cryptcurve25519_new_generic);
 }
 
 ///@}

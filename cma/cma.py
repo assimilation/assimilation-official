@@ -102,7 +102,7 @@ import cmainit
 from assimeventobserver import ForkExecObserver
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID
 import AssimCtypes
-from AssimCclasses import pyCompressFrame
+from AssimCclasses import pyCompressFrame, pyCryptCurve25519
 from cmaconfig import ConfigFile
 import importlib
 #import atexit
@@ -198,6 +198,10 @@ def main():
     CMAdb.running_under_docker()
     make_pid_dir(opt.pidfile, opt.userid)
     drop_privileges_permanently(opt.userid)
+    cryptwarnings = pyCryptCurve25519.initkeys()
+    for warn in cryptwarnings:
+        print >> sys.stderr, ("WARNING: %s" % warn)
+    
     daemonize_me(opt.foreground, '/', opt.pidfile)
 
     rmpid_and_exit_on_signal(opt.pidfile, signal.SIGTERM)
@@ -215,6 +219,7 @@ def main():
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_OUTSIG, CONFIGNAME_COMPRESSTYPE, \
         CONFIGNAME_COMPRESS, CONFIGNAME_OUTSIG,\
         proj_class_incr_debug, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
+
 
     if opt.debug:
         print >> sys.stderr, ('Setting debug to %s' % opt.debug)
@@ -290,6 +295,8 @@ def main():
             continue
         # Neo4j started.  All is well with the world.
         break
+    for warn in cryptwarnings:
+        CMAdb.log.warning(warn)
 
     CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
