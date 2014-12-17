@@ -228,6 +228,7 @@ cryptframe_privatekey_new(const char *key_id,	///<[in] Key id of given private k
 	INITMAPS;
 	self = cryptframe_private_key_by_id(key_id);
 	if (self) {
+		g_warning("%s.%d: Private key %s Already IN private key map", __FUNCTION__, __LINE__, key_id);
 		return self;
 	}
 	aself = assimobj_new(sizeof(CryptFramePrivateKey));
@@ -363,7 +364,7 @@ WINEXPORT GList*
 cryptframe_get_key_ids(void)
 {
 	INITMAPS;
-	return g_hash_table_get_keys(identity_map_by_key_id);
+	return g_hash_table_get_keys(public_key_map);
 }
 
 WINEXPORT void

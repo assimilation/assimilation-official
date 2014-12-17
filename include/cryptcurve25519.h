@@ -55,6 +55,7 @@ WINEXPORT CryptFrame* cryptcurve25519_new_generic(const char* sender_key_id,
 						  const char* receiver_key_id);
 WINEXPORT void cryptcurve25519_cache_all_keypairs(void);
 WINEXPORT gboolean cryptcurve25519_purge_keypair(const char * key_id);
+WINEXPORT void cryptcurve25519_set_encryption_method(void);///< Just for python simplicity...
 
 ///@}
 

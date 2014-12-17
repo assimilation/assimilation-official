@@ -220,7 +220,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	/// At the other end, this is reversed.
 	///	Check the signature according to the initial @ref FRAMETYPE_SIG frame,
 	///		discard if incorrect.
-	///	Decrypt the frame after the @ref FRAMETYPE_CRYPTCURVE29919 TLV
+	///	Decrypt the frame after the @ref FRAMETYPE_CRYPTCURVE25519 (or similar) TLV
 	///	Uncompress the frame after the @ref FRAMETYPE_COMPRESS TLV
 	///
 	/// Encryption tends to make data hard to compress, so it's better to compress before
