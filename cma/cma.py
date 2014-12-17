@@ -201,7 +201,7 @@ def main():
     cryptwarnings = pyCryptCurve25519.initkeys()
     for warn in cryptwarnings:
         print >> sys.stderr, ("WARNING: %s" % warn)
-    
+
     daemonize_me(opt.foreground, '/', opt.pidfile)
 
     rmpid_and_exit_on_signal(opt.pidfile, signal.SIGTERM)
