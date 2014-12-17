@@ -81,8 +81,8 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new,                               \
     cryptframe_associate_identity,                                                      \
     cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
-    cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,                     \
-    cryptcurve25519_new_generic, cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX,    \
+    cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,                \
+    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX,                                 \
     cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519
 
 from consts import CMAconsts
@@ -1297,7 +1297,7 @@ class pyCryptCurve25519(pyCryptFrame):
             warnings.append('YOU MUST SECURELY HIDE all but one private CMA key.')
             for keyid in extras:
                 warnings.append('SECURELY HIDE *private* key id %s' % keyid)
-        cryptcurve25519_set_encryption_method();
+        cryptcurve25519_set_encryption_method()
         return warnings
 
 #pylint: disable=R0921
