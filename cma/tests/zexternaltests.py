@@ -87,7 +87,7 @@ class TestExternal(TestCase):
                 self.runacommand([f,], sudo=True)
 
     def  test_pinger(self):
-        self.runacommand(['pinger', '-c', str(pingcount), '127.0.0.1'])
+        self.runacommand(['grindping.sh',],sudo=False)
 
     @class_teardown
     def tearDown(self):
