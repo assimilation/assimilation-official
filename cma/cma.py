@@ -126,6 +126,10 @@ optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
 def main():
     'Main program for the CMA (Collective Management Authority)'
     DefaultPort = 1984
+    # This works around a bug in the glib library...
+    os.environ['G_SLICE'] = 'always-malloc'
+    # This works around a stupidity in the glib library...
+    os.environ['G_MESSAGES_DEBUG'] = 'all'
     # VERY Linux-specific - but useful and apparently correct ;-)
     PrimaryIPcmd =   \
     "ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
