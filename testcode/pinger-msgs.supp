@@ -1,0 +1,19 @@
+{
+   Crypto_box_easy - two bytes too much access to the public key
+   Memcheck:Addr8
+   fun:crypto_scalarmult_curve25519
+   fun:crypto_box_curve25519xsalsa20poly1305_beforenm
+   fun:crypto_box_detached
+   fun:crypto_box_easy
+   fun:_cryptcurve25519_updatedata
+   ...
+}
+{
+   Crypto_box_open_easy - two bytes too much access to the public key
+   Memcheck:Addr8
+   fun:crypto_scalarmult_curve25519
+   fun:crypto_box_curve25519xsalsa20poly1305_beforenm
+   fun:crypto_box_open_detached
+   fun:crypto_box_open_easy
+   ...
+}

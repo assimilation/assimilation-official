@@ -121,6 +121,9 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	if (FSPR_INSHUTDOWN(state)) {
 		// Shutting down -- ignore this message...
 		// Note that we DO have to ACK the message...
+		if (addrstr) {
+			g_free(addrstr); addrstr = NULL;
+		}
 		return;
 	}
 	if (fs->fstype == FRAMESETTYPE_PING) {

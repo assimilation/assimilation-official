@@ -249,11 +249,14 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 	g_free(filename);
 	filename = _cache_curve25519_key_id_to_filename(key_id, PRIVATEKEY);
 	if (g_stat(filename, &statinfo) >= 0) {
-		if (statinfo.st_size != crypto_box_SECRETKEYBYTES || !S_ISREG(statinfo.st_mode)
-		||	access(filename, R_OK) != 0) {
+		if (statinfo.st_size != crypto_box_SECRETKEYBYTES || !S_ISREG(statinfo.st_mode)) {
 			g_warning("%s.%d: secret key stat on [%s] returned %d instead of %d [%s]"
 			,	__FUNCTION__, __LINE__, filename
 			,	(int)statinfo.st_size, crypto_box_SECRETKEYBYTES, g_strerror(errno));
+			goto getout;
+		}
+		if (access(filename, R_OK) != 0) {
+			// Someone else's secret key... Not a problem...
 			goto getout;
 		}
 		secret_key = g_malloc(crypto_box_SECRETKEYBYTES);
@@ -360,6 +363,7 @@ cryptcurve25519_cache_all_keypairs(void)
 			g_free(key_id); key_id = NULL;
 		}
 	}
+	g_dir_close(key_directory);
 }
 
 /// @ref CryptCurve25519 'isvalid' member function (checks for valid cryptcurve25519 objects)
@@ -659,12 +663,11 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 		cksum_object = g_checksum_new(KEY_NAMING_CHECKSUM);
 		g_checksum_update(cksum_object, public_key, crypto_box_PUBLICKEYBYTES);
 		g_checksum_get_digest(cksum_object, checksum, &computed_size);
-		g_return_val_if_fail(computed_size == crypto_box_PUBLICKEYBYTES, NULL);
 		checksum_string[0] = '\0';
 		// Convert the checksum to hex
 		for (j=0, k=0; j < cksum_length; ++j, k+=2)  {
 			char	hex[4]; // The size is 4 is to make the stack protector happy
-			sprintf(hex, "%02X", checksum[j]);
+			sprintf(hex, "%02x", checksum[j]);
 			strcat(checksum_string+k, hex);
 		}
 		g_free(checksum);
@@ -771,6 +774,7 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 		g_free(filename);
 		return FALSE;
 	}
+	chmod(filename, createmode); // Ignore umask...
 	DEBUGMSG1("%s.%d: file %s successfully created!", __FUNCTION__, __LINE__, filename);
 	g_free(filename);
 	return TRUE;

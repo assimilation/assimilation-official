@@ -54,6 +54,7 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 		g_warning("%s.%d: Received unauthorized command [%d] from address %s"
 		,	__FUNCTION__, __LINE__, fs->fstype, addr_s);
 		FREE(addr_s); addr_s=NULL;
+		goto returnout;
 	}
 
 	action = g_hash_table_lookup(aself->actionmap, GINT_TO_POINTER((int)fs->fstype));

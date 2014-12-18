@@ -262,6 +262,9 @@ _compressframe_updatedata(Frame *f,		//<[in] Our frame ("self")
 	// In practice, our JSON seems to be limited to about 300K decompressed.
 	tlv_set_guint8(valptr, self->compression_method, newpktend);
 	tlv_set_guint24(valptr+1, self->decompressed_size, newpktend);
+	if (fs->packet) {
+		FREE(fs->packet);
+	}
 	fs->packet = newpacket;
 	fs->pktend = newpktend;
 }

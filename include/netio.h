@@ -63,12 +63,12 @@ struct _NetIO {
 	ConfigContext*	_configinfo;			///< I/O and other configuration information
 	PacketDecoder*	_decoder;			///< Decodes packets into FrameSets
 	SignFrame*	_signframe;			///< Signature frame to use in signing FrameSets
-	Frame*		_cryptframe;			///< Encryption frame to use in encrypting FrameSets
 	CompressFrame*	_compressframe;			///< Compression frame to use in compressing FrameSets
 	GHashTable*	aliases;			///< IP address aliases for received packets
 	double		_rcvloss;			///< private: Receive loss fraction
 	double		_xmitloss;			///< private: Transmit loss fraction
 	gboolean	_shouldlosepkts;		///< private: TRUE to enable packet loss...
+	gboolean	is_encrypted;			///< TRUE if we're sending encrypted packets
 	gboolean	(*input_queued)		///<[in] TRUE if input is queued ready to be read
 				(const NetIO* self);	///< The Object to examine
 	gboolean	(*bindaddr)		///<[in] Bind this NetIO to the given address
@@ -150,8 +150,6 @@ struct _NetIO {
 						   ;	// ";" is here to work around a doxygen bug
 	SignFrame*	(*signframe)		///< return a copied SignFrame for use in sending
 				(NetIO*self);		///<[in]
-	Frame*		(*cryptframe)		///< return a copied encryption frame for sending
-				(NetIO*self);		///<[in] 'this' object
 	CompressFrame*	(*compressframe)	///< return a copied compression frame for sending
 				(NetIO*self)		///<[in] 'this' object
 						   ;	// ";" is here to work around a doxygen bug

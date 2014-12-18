@@ -28,8 +28,8 @@ sys.path.append("cma")
 from cmaconfig import ConfigFile
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext, pySwitchDiscovery
-#from AssimCtypes import proj_class_incr_debug
+from AssimCclasses import pyNetAddr, pyConfigContext, pySwitchDiscovery, pyCryptFrame
+from AssimCtypes import cryptcurve25519_save_public_key
 from monitoring import MonitorAction
 from assimevent import AssimEvent
 
@@ -139,6 +139,9 @@ class DispatchSTARTUP(DispatchTarget):
         fstype = frameset.get_framesettype()
         localtime = None
         listenaddr = None
+        keyid = None
+        pubkey = None
+        keysize = None
 
         #print >> sys.stderr, ("DispatchSTARTUP: received [%s] FrameSet from [%s]"
         #%       (FrameSetTypes.get(fstype)[0], addrstr))
@@ -168,16 +171,36 @@ class DispatchSTARTUP(DispatchTarget):
                 json = frame.getstr()
                 #print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
                 #% (json, len(json), frame.framelen())
+            elif frametype == FrameTypes.KEYID:
+                keyid = frame.getstr()
+            elif frametype == FrameTypes.PUBKEYCURVE25519:
+                pubkey = frame.framevalue()
+                keysize = frame.framelen()
 
         joininfo = pyConfigContext(init=json)
         origaddr, isNAT = self.validate_source_ip(sysname, origaddr, joininfo, listenaddr)
 
-        CMAdb.log.info('Drone %s registered from address %s (%s) port %s'
-        %       (sysname, origaddr, addrstr, origaddr.port()))
+
+        CMAdb.log.info('Drone %s registered from address %s (%s) port %s, key_id %s'
+        %       (sysname, origaddr, addrstr, origaddr.port(), keyid))
         drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
         ,   primary_ip_addr=str(origaddr))
         drone.listenaddr = str(listenaddr)  # Seems good to hang onto this...
         drone.isNAT = isNAT                 # ditto...
+        # Did they give us the crypto info we need?
+        if keyid is not None and pubkey is not None:
+            if not hasattr(drone, 'key_id'):
+                if not keyid.startswith(sysname + "@@"):
+                    CMAdb.log.warning("Drone %s wants to register with key_id %s -- permitted."
+                    ,   sysname, keyid)
+                if not cryptcurve25519_save_public_key(keyid, pubkey, keysize):
+                    raise ValueError("Drone %s public key (key_id %s, %d bytes) is invalid."
+                    %   (sysname, keyid, keysize))
+                drone.key_id = keyid
+            elif drone.key_id != keyid:
+                raise ValueError("Drone %s tried to register with key_id %s instead of %s."
+                %   (sysname, keyid, drone.key_id))
+            pyCryptFrame.dest_set_public_key_id(origaddr, keyid)
         #
         # THIS IS HERE BECAUSE OF A PROTOCOL BUG...
         # @FIXME Protocol bug when starting up a connection if our first (this) packet gets lost,

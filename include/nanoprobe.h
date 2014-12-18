@@ -43,7 +43,8 @@ extern gboolean		nano_connected;
 extern CryptFramePublicKey*	preferred_cma_key_id;
 
 WINEXPORT void				nano_start_full(const char *initdiscoverpath, guint discover_interval
-,						NetGSource* io, ConfigContext* config);
+,						NetGSource* io, ConfigContext* config,
+					gboolean (*)(const FrameSet*));
 WINEXPORT void				nano_shutdown(gboolean statreport);
 WINEXPORT PacketDecoder*	nano_packet_decoder(void);
 WINEXPORT gboolean		nano_initiate_shutdown(void);

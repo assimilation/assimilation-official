@@ -1245,7 +1245,9 @@ WINEXPORT void
 nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial network discovery agent
 	,	guint		discover_interval///<[in] discovery interval for agent above
 	,	NetGSource*	io		///<[in/out] network connectivity object
-	,	ConfigContext* config)		///<[in/out] configuration object
+	,	ConfigContext* config		///<[in/out] configuration object
+	,	gboolean(*authfunc)(const FrameSet*))///<[in] command authentication function -
+						///< - defaults to _nanoprobe_is_cma_frameset	
 {
 	static struct startup_cruft cruftiness;
 	struct startup_cruft initcrufty = {
@@ -1259,12 +1261,15 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	if (NULL == nano_random) {
 		nano_random = g_rand_new();
 	}
+	if (NULL == authfunc) {
+		authfunc = _nanoprobe_is_cma_frameset;
+	}
  	hblistener_set_martian_callback(_real_martian_agent);
 	cruftiness = initcrufty;
 	g_source_ref(CASTTOCLASS(GSource, io));
 	nanotransport = io;
 
-	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE, _nanoprobe_is_cma_frameset);
+	obeycollective = authlistener_new(0, collective_obeylist, config, TRUE, authfunc);
 	obeycollective->baseclass.associate(&obeycollective->baseclass, io);
 	nanoprobe_initialize_keys();
 	// Initiate the startup process
@@ -1311,6 +1316,7 @@ nano_shutdown(gboolean report)
 	}
 	obeycollective->baseclass.dissociate(&obeycollective->baseclass);
 	UNREF2(obeycollective);
+	cryptframe_shutdown();
 }
 
 /// Initiate shutdown - return TRUE if we have shut down immediately...
@@ -1431,6 +1437,8 @@ nanoprobe_initialize_keys(void)
 			char *	key_id = (char*)thiselem->data;
 			key_id = cryptcurve25519_gen_persistent_keypair(NULL);
 			if (NULL != key_id) {
+				g_info("%s.%d: Generated public key pair [%s]"
+				,	__FUNCTION__, __LINE__, key_id);
 				cryptframe_set_signing_key_id(key_id);
 				g_free(key_id);
 			}else{
@@ -1438,7 +1446,10 @@ nanoprobe_initialize_keys(void)
 				": cannot generate public key pair.", __FUNCTION__, __LINE__);
 			}
 		}
-		if (cryptframe_get_signing_key() != NULL) {
+		if (cryptframe_get_signing_key() == NULL) {
+			g_warning("%s.%d: Encryption not enabled"
+			": cannot get signing key.", __FUNCTION__, __LINE__);
+		}else{
 			cryptframe_set_encryption_method(cryptcurve25519_new_generic);
 			is_encryption_enabled = TRUE;
 		}
