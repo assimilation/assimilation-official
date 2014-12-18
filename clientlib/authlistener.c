@@ -52,7 +52,10 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 	if (aself->authenticator && !aself->authenticator(fs)) {
 		char *	addr_s = addr->baseclass.toString(&addr->baseclass);
 		g_warning("%s.%d: Received unauthorized command [%d] from address %s"
-		,	__FUNCTION__, __LINE__, fs->fstype, addr_s);
+		" sender key id: %s,  sender identity: %s"
+		,	__FUNCTION__, __LINE__, fs->fstype, addr_s
+		,	frameset_sender_key_id(fs)
+		,	frameset_sender_identity(fs));
 		FREE(addr_s); addr_s=NULL;
 		goto returnout;
 	}

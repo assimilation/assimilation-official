@@ -62,7 +62,7 @@
 
 
 #define		TESTPORT	1984
-#define		CRYPTO_KEYID	CMA_KEY_PREFIX "999999"
+#define		CRYPTO_KEYID	CMA_KEY_PREFIX "999999b"
 
 #ifdef WIN32
 WINIMPORT int errcount;
@@ -223,6 +223,8 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	char *		nanostr = nanoaddr->baseclass.toString(nanoaddr);
 
 	(void)ifs;
+	// Override what the default ("real") nano startup did for/to us
+	cryptframe_set_signing_key_id(CRYPTO_KEYID);
 	g_message("CMA received startup message from nanoprobe at address %s/%d."
 	,	nanostr, nanoaddr->port(nanoaddr));
 	g_free(nanostr); nanostr = NULL;
@@ -354,8 +356,6 @@ main(int argc, char **argv)
 	cryptframe_associate_identity(CMA_IDENTITY_NAME, CRYPTO_KEYID);
 	cryptframe_set_dest_public_key_id(destaddr, CRYPTO_KEYID);
 	cryptframe_set_encryption_method(cryptcurve25519_new_generic);
-
-
 
 	// Construct another couple of NetAddrs to talk to and listen from
 	// for good measure...
