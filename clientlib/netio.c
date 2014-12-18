@@ -64,7 +64,6 @@ FSTATIC gsize _netio_getmaxpktsize(const NetIO* self);
 FSTATIC gsize _netio_setmaxpktsize(NetIO* self, gsize maxpktsize);
 FSTATIC GSList* _netio_recvframesets(NetIO*self , NetAddr** src);
 FSTATIC SignFrame* _netio_signframe (NetIO *self);
-FSTATIC Frame* _netio_cryptframe (NetIO *self);
 FSTATIC CompressFrame* _netio_compressframe (NetIO *self);
 FSTATIC gboolean _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr);
 FSTATIC gboolean _netio_setmcast_ttl(NetIO* self, guint8 ttl);
@@ -314,9 +313,6 @@ _netio_finalize(AssimObj* aself)	///<[in/out] The object being freed
 	if (self->_signframe) {
 		UNREF2(self->_signframe);
 	}
-	if (self->_cryptframe) {
-		UNREF(self->_cryptframe);
-	}
 	if (self->_compressframe) {
 		UNREF2(self->_compressframe);
 	}
@@ -351,11 +347,6 @@ FSTATIC CompressFrame*
 _netio_compressframe (NetIO *self)
 {
 	return self->_compressframe;
-}
-FSTATIC Frame*
-_netio_cryptframe(NetIO *self)
-{
-	return self->_cryptframe;
 }
 
 FSTATIC SignFrame*
@@ -392,7 +383,6 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->mcastjoin = _netio_mcastjoin;
 	ret->setmcast_ttl = _netio_setmcast_ttl;
 	ret->signframe = _netio_signframe;
-	ret->cryptframe = _netio_cryptframe;
 	ret->compressframe = _netio_compressframe;
 	ret->setpktloss = _netio_setpktloss;
 	ret->enablepktloss = _netio_enablepktloss;
@@ -406,15 +396,12 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->_maxpktsize = 65300;
 	ret->_configinfo = config;
 	ret->_decoder = decoder;
+	ret->is_encrypted = FALSE;
 	REF(decoder);
 	f =  config->getframe(config, CONFIGNAME_OUTSIG);
 	g_return_val_if_fail(f != NULL, NULL);
 	REF(f);
 	ret->_signframe = CASTTOCLASS(SignFrame, f);
-	ret->_cryptframe = config->getframe(config, CONFIGNAME_CRYPT);
-	if (ret->_cryptframe) {
-		REF(ret->_cryptframe);
-	}
 	ret->_compressframe = CASTTOCLASS(CompressFrame,config->getframe(config, CONFIGNAME_COMPRESS));
 	if (ret->_compressframe) {
 		REF2(ret->_compressframe);
@@ -508,7 +495,18 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		}
 		cryptframe = cryptframe_new_by_destaddr(destaddr);
 		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
-		UNREF2(cryptframe);
+		if (cryptframe) {
+			UNREF2(cryptframe);
+			self->is_encrypted = TRUE;
+		}else if (self->is_encrypted){
+			char *	dest = destaddr->baseclass.toString(&destaddr->baseclass);
+			char *	pkt = curfs->baseclass.toString(&curfs->baseclass);
+			g_warning("%s.%d: Sending unencrypted packet on encrypted channel to %s."
+			,	__FUNCTION__, __LINE__, dest);
+			g_warning("%s.%d: Packet being sent is %s.", __FUNCTION__, __LINE__, pkt);
+			g_free(dest); dest = NULL;
+			g_free(pkt); pkt = NULL;
+		}
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		self->stats.fswritten++;
 		
@@ -531,6 +529,16 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
 	if (cryptframe) {
 		UNREF2(cryptframe);
+		self->is_encrypted = TRUE;
+	}else if (self->is_encrypted){
+		char *	dest = destaddr->baseclass.toString(&destaddr->baseclass);
+		char *	pkt = frameset->baseclass.toString(&frameset->baseclass);
+		g_warning("%s.%d: Sending unencrypted packet on encrypted channel to %s."
+		,	__FUNCTION__, __LINE__, dest);
+		g_warning("%s.%d: Packet being sent is %s.", __FUNCTION__, __LINE__, pkt);
+		
+		g_free(dest); dest = NULL;
+		g_free(pkt); pkt = NULL;
 	}
 	DEBUGMSG3("%s.%d: sent %ld byte packet", __FUNCTION__, __LINE__
 	,	(long)(((guint8*)frameset->pktend-(guint8*)frameset->packet)));

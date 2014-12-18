@@ -58,9 +58,11 @@
 #include <nanoprobe.h>
 #include <resourcecmd.h>
 #include <cmalib.h>
+#include <cryptcurve25519.h>
 
 
 #define		TESTPORT	1984
+#define		CRYPTO_KEYID	CMA_KEY_PREFIX "999999"
 
 #ifdef WIN32
 WINIMPORT int errcount;
@@ -88,6 +90,7 @@ gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void got_heartbeat(HbListener* who);
 void got_heartbeat2(HbListener* who);
 void check_JSON(FrameSet* fs);
+FSTATIC gboolean test_cma_authentication(const FrameSet*fs);
 
 void fakecma_startup(AuthListener*, FrameSet* fs, NetAddr*);
 gboolean timeout_agent(gpointer ignored);
@@ -260,6 +263,14 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	}
 }
 
+FSTATIC gboolean
+test_cma_authentication(const FrameSet*fs)
+{
+	///@todo do something that makes sure it's encrypted
+	/// For our purposes, we don't much care how.
+	return NULL != fs;
+}
+
 /**
  * Test program looping and reading LLDP/CDP packets and exercising most of the packet
  * send/receive mechanism and a good bit of nanoprobe and CMA basic infrastructure.
@@ -337,6 +348,14 @@ main(int argc, char **argv)
 	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMAFAIL, destaddr);
 	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMADISCOVER, destaddr);
 
+	// Set up our crypto...
+	cryptcurve25519_gen_temp_keypair(CRYPTO_KEYID);
+	cryptframe_set_signing_key_id(CRYPTO_KEYID);
+	cryptframe_associate_identity(CMA_IDENTITY_NAME, CRYPTO_KEYID);
+	cryptframe_set_dest_public_key_id(destaddr, CRYPTO_KEYID);
+	cryptframe_set_encryption_method(cryptcurve25519_new_generic);
+
+
 
 	// Construct another couple of NetAddrs to talk to and listen from
 	// for good measure...
@@ -344,6 +363,8 @@ main(int argc, char **argv)
 	g_return_val_if_fail(NULL != otheraddr, 4);
 	otheraddr2 =  netaddr_ipv4_new(otheradstring2, testport);
 	g_return_val_if_fail(NULL != otheraddr2, 4);
+	cryptframe_set_dest_public_key_id(otheraddr, CRYPTO_KEYID);
+	cryptframe_set_dest_public_key_id(otheraddr2, CRYPTO_KEYID);
 
 	// Construct another NetAddr to bind to (anything)
 	anyaddr =  netaddr_ipv6_new(anyadstring, testport);
@@ -377,7 +398,7 @@ main(int argc, char **argv)
 	listentonanoprobes = authlistener_new(0, cmalist, config, TRUE, NULL);
 	listentonanoprobes->baseclass.associate(&listentonanoprobes->baseclass, netpkt);
 
-	nano_start_full("netconfig", 900, netpkt, config);
+	nano_start_full("netconfig", 900, netpkt, config, NULL);
 
 	g_timeout_add_seconds(1, timeout_agent, NULL);
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);

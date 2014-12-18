@@ -92,6 +92,7 @@ cryptframe_new( guint16 frame_type,		///<[in] TLV type of CryptFrame
 	if (!_parentclass_finalize) {
 		_parentclass_finalize = baseframe->baseclass._finalize;
 	}
+	baseframe->baseclass._finalize = _cryptframe_finalize;
 	baseframe->isvalid = _cryptframe_default_isvalid;
 	self = NEWSUBCLASS(CryptFrame, baseframe);
 	self->sender_key_id = g_strdup(sender_key_id);
@@ -203,6 +204,7 @@ cryptframe_publickey_new (const char *key_id,	///< Key id of the given public ke
 	AssimObj*		aself;
 	CryptFramePublicKey*	self;
 	INITMAPS;
+	g_return_val_if_fail(key_id != NULL && public_key != NULL, NULL);
 	self = cryptframe_public_key_by_id(key_id);
 	if (self) {
 		return self;
@@ -226,6 +228,7 @@ cryptframe_privatekey_new(const char *key_id,	///<[in] Key id of given private k
 	AssimObj*		aself;
 	CryptFramePrivateKey*	self;
 	INITMAPS;
+	g_return_val_if_fail(key_id != NULL && private_key != NULL, NULL);
 	self = cryptframe_private_key_by_id(key_id);
 	if (self) {
 		g_warning("%s.%d: Private key %s Already IN private key map", __FUNCTION__, __LINE__, key_id);
@@ -247,7 +250,7 @@ cryptframe_public_key_by_id(const char* key_id)	///[in] Key id of public key bei
 {
 	gpointer	ret;
 	INITMAPS;
-	ret = g_hash_table_lookup(public_key_map, key_id);
+	ret = (key_id ? g_hash_table_lookup(public_key_map, key_id): NULL);
 	return (ret ? CASTTOCLASS(CryptFramePublicKey, ret): NULL);
 }
 /// Return the non-const private key with the given id
@@ -256,7 +259,7 @@ cryptframe_private_key_by_id(const char* key_id) ///<[in] Key id of the given pr
 {
 	gpointer	ret;
 	INITMAPS;
-	ret = g_hash_table_lookup(private_key_map, key_id);
+	ret = (key_id ? g_hash_table_lookup(private_key_map, key_id): NULL);
 	return (ret ? CASTTOCLASS(CryptFramePrivateKey, ret): NULL);
 }
 
@@ -274,7 +277,8 @@ cryptframe_associate_identity(const char * identity,	///<[in] identity to associ
 	char*		key_id_duplicate;
 	char*		identity_duplicate;
 	INITMAPS;
-	g_return_val_if_fail(cryptframe_public_key_by_id(key_id)!= NULL, FALSE);
+	g_return_val_if_fail(key_id != NULL && identity != NULL, FALSE);
+	g_return_val_if_fail(cryptframe_public_key_by_id(key_id) != NULL, FALSE);
 	found_identity = cryptframe_whois_key_id(key_id);
 	if (found_identity) {
 		if (strcmp(found_identity, key_id) != 0) {
@@ -309,6 +313,8 @@ cryptframe_dissociate_identity(const char * identity,	///<[in] identity to disso
 	GHashTable*	key_id_map;
 	INITMAPS;
 
+	g_return_val_if_fail(identity != NULL && key_id != NULL, FALSE);
+
 	found_identity = g_hash_table_lookup(identity_map_by_key_id, key_id);
 	if (NULL == found_identity) {
 		return FALSE;
@@ -340,7 +346,8 @@ WINEXPORT const char*
 cryptframe_whois_key_id(const char * key_id)	///<[in] key id whose identity is sought
 {
 	INITMAPS;
-	return (const char *)g_hash_table_lookup(identity_map_by_key_id, key_id);
+	return (key_id ? (const char *)g_hash_table_lookup(identity_map_by_key_id, key_id)
+	:	NULL);
 }
 
 /// Return a GHashTable of strings of all the key ids associated with the given identity
@@ -348,7 +355,8 @@ WINEXPORT GHashTable*
 cryptframe_key_ids_for(const char* identity) 
 {
 	INITMAPS;
-	return (GHashTable *)g_hash_table_lookup(key_id_map_by_identity, identity);
+	return (identity? (GHashTable *)g_hash_table_lookup(key_id_map_by_identity, identity)
+	:	NULL);
 }
 
 /// Return a GList of strings of all known identities
@@ -420,7 +428,7 @@ cryptframe_set_dest_public_key(NetAddr*destaddr,	///< Destination addr,port
 			     CryptFramePublicKey*destkey)///< Public key to use when encrypting
 {
 	INITMAPS;
-	g_return_if_fail(NULL != destaddr);
+	g_return_if_fail(NULL != destaddr && NULL != destkey);
 	if (NULL == destkey) {
 		g_hash_table_remove(addr_to_public_key_map, destaddr);
 	}else{
@@ -441,7 +449,7 @@ cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
 	g_return_if_fail(NULL != destaddr && NULL != key_id);
 	destkey = g_hash_table_lookup(public_key_map, key_id);
 	g_return_if_fail(NULL != destkey);
-	cryptframe_set_dest_public_key(destaddr, destkey);
+	cryptframe_set_dest_public_key(destaddr, CASTTOCLASS(CryptFramePublicKey, destkey));
 }
 
 /// Construct a @ref CryptFrame appropriate for encrypting messages to <i>destaddr</i>

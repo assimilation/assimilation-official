@@ -177,6 +177,13 @@ FSTATIC void
 _configcontext_finalize(AssimObj* aself)
 {
 	ConfigContext*	self = CASTTOCLASS(ConfigContext, aself);
+#if 0
+	{
+		char *	s = self->baseclass.toString(&self->baseclass);
+		g_warning("%s.%d: Finalizing %p: %s", __FUNCTION__, __LINE__, aself, s);
+		g_free(s); s = NULL;
+	}
+#endif
 	
 	if (self->_values) {
 		g_hash_table_destroy(self->_values);

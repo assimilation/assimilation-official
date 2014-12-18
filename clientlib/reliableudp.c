@@ -179,6 +179,7 @@ _reliableudp_recvframesets(NetIO* nself, NetAddr** srcaddr)
 		proto->receive(proto, oursrcaddr, fs);
 		UNREF(fs);
 	}
+	g_slist_free(fsread); fsread = NULL;
 	// Do we have any packets ready to read out of the reliable protocol?
 	if (proto->iready(proto)) {
 		FrameSet*	fs = proto->read(proto, srcaddr);

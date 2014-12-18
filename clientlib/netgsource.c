@@ -174,9 +174,10 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 		,	__FUNCTION__, __LINE__, self->_gfd.revents);
 	}
 	while(NULL != (gsl = self->_netio->recvframesets(self->_netio, &srcaddr))) {
-		for (; NULL != gsl; gsl = gsl->next) {
+		GSList*		thisgsl;
+		for (thisgsl=gsl; NULL != thisgsl; thisgsl = gsl->next) {
 			Listener*	disp = NULL;
-			FrameSet*		fs = CASTTOCLASS(FrameSet, gsl->data);
+			FrameSet*	fs = CASTTOCLASS(FrameSet, thisgsl->data);
 			disp = g_hash_table_lookup(self->_dispatchers, GUINT_TO_POINTER((size_t)fs->fstype));
 			if (NULL == disp) {
 				disp = CASTTOCLASS(Listener, g_hash_table_lookup(self->_dispatchers, NULL));
@@ -188,6 +189,7 @@ _netgsource_dispatch(GSource* gself,			///<[in/out] NetGSource object being disp
 			}
 		}
 		UNREF(srcaddr);
+		g_slist_free(gsl); gsl = NULL;
 	}
 	return TRUE;
 }
