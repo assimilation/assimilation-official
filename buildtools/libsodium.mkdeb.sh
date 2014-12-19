@@ -7,7 +7,7 @@
 set -e
 sudo apt-get -y install devscripts debhelper build-essential
 export NAME=libsodium
-export VERSION=1.0.0
+export VERSION=1.0.1
 export DEBVERSION=${VERSION}-1
 export LICENSEFILE=LICENSE
 #Download and extract the archive
