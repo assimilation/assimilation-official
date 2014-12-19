@@ -4,8 +4,7 @@
 #(c)2013 Uli Koehler. Licensed as CC-By-SA 3.0 DE.
 # Original version from http://techoverflow.net/blog/2013/08/01/how-to-create-libsodium-nacl-deb-packages/
 # Modified by Alan Robertson <alanr@assimilationsystems.com>
-set -e
-sudo apt-get -y install devscripts debhelper build-essential
+apt-get -y --no-install-recommends install devscripts debhelper build-essential
 export NAME=libsodium
 export VERSION=1.0.1
 export DEBVERSION=${VERSION}-1
