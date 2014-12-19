@@ -24,6 +24,8 @@
  */
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <pwd.h>
 #include <errno.h>
 #include <string.h>
 #include <projectcommon.h>
@@ -58,6 +60,7 @@ FSTATIC void	 _cryptcurve25519_updatedata(Frame*f, gpointer tlvstart, gconstpoin
 FSTATIC gboolean _is_valid_curve25519_key_id(const char * key_id, enum keytype ktype);
 FSTATIC gboolean _is_legal_curve25519_key_id(const char * key_id);
 FSTATIC char*	 _cache_curve25519_key_id_to_filename(const char * key_id, enum keytype);
+FSTATIC char*	 _cache_curve25519_key_id_to_dirname(const char * key_id, enum keytype);
 FSTATIC gboolean _cache_curve25519_keypair(const char * key_id);
 FSTATIC gboolean _cryptcurve25519_save_a_key(const char * key_id, enum keytype ktype, gconstpointer key);
 FSTATIC enum keytype _cryptcurve25519_keytype_from_filename(const char *filename);
@@ -102,12 +105,29 @@ dump_memory(const char * label, const guint8* start, const guint8* end)
 /// Map a key name on the wire to a file name in the filesystem
 /// We make this a function on the idea that we might eventually want to have hashed subdirectories
 /// or something similar...
+/// Given how we structure the nanoprobe names, using the last three characters of the filename as the directory
+/// name would be a win.  That would give us around 4096 subdirectories for the total.  Of course, this only makes
+/// sense if you're going to have many more than 40K files (systems*2) to manage.
+
+FSTATIC char*
+_cache_curve25519_key_id_to_dirname(const char * key_id,	///< key_id to convert to a filename
+				     enum keytype ktype)	///< Which type of key?
+{
+	(void)key_id;
+	(void)ktype;
+	return g_strdup(CRYPTKEYDIR);
+}
+
 FSTATIC char*
 _cache_curve25519_key_id_to_filename(const char * key_id,	///< key_id to convert to a filename
 				     enum keytype ktype)	///< Which type of key?
 {
+	char *		dirname = _cache_curve25519_key_id_to_dirname(key_id, ktype);
 	const char *	suffix = (PRIVATEKEY == ktype ? PRIVATEKEYSUFFIX : PUBKEYSUFFIX);
-	return g_strdup_printf("%s%s%s%s", CRYPTKEYDIR, DIRDELIM, key_id, suffix);
+	char*		ret;
+	ret = g_strdup_printf("%s%s%s%s", dirname, DIRDELIM, key_id, suffix);
+	FREE(dirname);
+	return ret;
 }
 
 /// @ref CryptCurve25519 function to check if a given curve25519 key id is properly formatted
@@ -734,12 +754,14 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 	guint32		createmode;
 	int		fd;
 	int		rc;
+	char*		dirname;
 	char*		filename;
 
 	if (!_is_legal_curve25519_key_id(key_id)) {
 		g_warning("%s.%d: Key id %s is illegal", __FUNCTION__, __LINE__, key_id);
 		return FALSE;
 	}
+	dirname = _cache_curve25519_key_id_to_dirname(key_id, ktype);
 	filename = _cache_curve25519_key_id_to_filename(key_id, ktype);
 
 	if (PUBLICKEY == ktype) {
@@ -753,6 +775,29 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 		g_return_val_if_reached(FALSE);
 	}
 	fd = open(filename, O_WRONLY|O_CREAT, createmode);
+	if (fd < 0 && (ENOENT == errno)) {
+		struct passwd*	pw;
+		char *		cmd = g_strdup_printf("mkdir -p '%s'", dirname);
+		int		rc = system(cmd);
+		FREE(cmd);
+		if (rc != 0) {
+			g_warning("%s.%d: Could not make directory %s"
+			,	__FUNCTION__, __LINE__, dirname);
+		}
+		rc = chmod(dirname, 0700);
+		if (rc < 0) {
+			g_warning("%s.%d: Could not chmod 0700 %s [%s]"
+			,	__FUNCTION__, __LINE__, dirname, g_strerror(errno));
+		}
+		pw = getpwnam(CMAUSERID);
+		if (NULL != pw) {
+			rc = chown(dirname, pw->pw_uid, pw->pw_gid);
+			g_warning("%s.%d: Could not chown %s %s [%s]"
+			,	__FUNCTION__, __LINE__, CMAUSERID, dirname, g_strerror(errno));
+		}
+		fd = open(filename, O_WRONLY|O_CREAT, createmode);
+	}
+	FREE(dirname);
 	if (fd < 0) {
 		g_warning("%s.%d: cannot create file %s [%s]", __FUNCTION__, __LINE__
 		,	filename, g_strerror(errno));
