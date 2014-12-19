@@ -100,7 +100,7 @@ import optparse, time
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
-from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, CRYPTKEYDIR
 import AssimCtypes
 from AssimCclasses import pyCompressFrame, pyCryptCurve25519
 from cmaconfig import ConfigFile
@@ -201,6 +201,7 @@ def main():
     from cmadb import CMAdb
     CMAdb.running_under_docker()
     make_pid_dir(opt.pidfile, opt.userid)
+    make_key_dir(CRYPTKEYDIR, opt.userid)
     drop_privileges_permanently(opt.userid)
     cryptwarnings = pyCryptCurve25519.initkeys()
     for warn in cryptwarnings:
@@ -428,6 +429,19 @@ def make_pid_dir(pidfile, userid):
     # pylint doesn't understand about getent...
     # pylint: disable=E1101
     os.chown(piddir, userinfo.uid, userinfo.gid)
+
+def make_key_dir(keydir, userid):
+    'Make a suitable directory for us to store our keys in '
+    if os.path.isdir(keydir):
+        # Assume it's been set up suitably
+        return
+    os.mkdir(keydir, 0700)
+    userinfo = getent.passwd(userid)
+    if userinfo is None:
+        raise(OSError('Userid "%s" is unknown.' % userid))
+    # pylint doesn't understand about getent...
+    # pylint: disable=E1101
+    os.chown(keydir, userinfo.uid, userinfo.gid)
 
 if __name__ == '__main__':
     pyversion = sys.version_info
