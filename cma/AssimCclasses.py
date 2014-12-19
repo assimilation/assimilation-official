@@ -1223,7 +1223,8 @@ class pyCryptFrame(pyFrame):
     def associate_identity(identityname, key_id):
         '''Associate the given identity name with the given key id
         This allows many keys to be associated with a single identity, but
-        does not support a key being associated with multiple identities.
+        does not support a key being associated with multiple identities
+        (which doesn't make sense anyway).
         '''
         cryptframe_associate_identity(identityname, key_id)
 
