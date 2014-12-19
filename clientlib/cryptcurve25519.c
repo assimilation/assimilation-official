@@ -61,6 +61,7 @@ FSTATIC gboolean _is_valid_curve25519_key_id(const char * key_id, enum keytype k
 FSTATIC gboolean _is_legal_curve25519_key_id(const char * key_id);
 FSTATIC char*	 _cache_curve25519_key_id_to_filename(const char * key_id, enum keytype);
 FSTATIC char*	 _cache_curve25519_key_id_to_dirname(const char * key_id, enum keytype);
+FSTATIC void	 _cryptcurve25519_make_cryptdir(const char * dirname);
 FSTATIC gboolean _cache_curve25519_keypair(const char * key_id);
 FSTATIC gboolean _cryptcurve25519_save_a_key(const char * key_id, enum keytype ktype, gconstpointer key);
 FSTATIC enum keytype _cryptcurve25519_keytype_from_filename(const char *filename);
@@ -364,8 +365,11 @@ cryptcurve25519_purge_keypair(const char* key_id)	///< Key id of keypair to purg
 WINEXPORT void
 cryptcurve25519_cache_all_keypairs(void)
 {
-	GDir*		key_directory = g_dir_open(CRYPTKEYDIR, 0, NULL);
+	GDir*		key_directory;
 	const char*	filename;
+
+	_cryptcurve25519_make_cryptdir(CRYPTKEYDIR);
+	key_directory = g_dir_open(CRYPTKEYDIR, 0, NULL);
 
 	if (NULL == key_directory) {
 		g_warning("%s.%d: Cannot open directory \"%s\" [%s]", __FUNCTION__, __LINE__
@@ -744,6 +748,32 @@ cryptcurve25519_save_public_key(const char * key_id,	///< key id to save key und
 	return TRUE;
 }
 
+
+/// Make a directory for storing keys in...
+FSTATIC void
+_cryptcurve25519_make_cryptdir(const char * dirname)
+{
+	struct passwd*	pw;
+	char *		cmd = g_strdup_printf("mkdir -p '%s'", dirname);
+	int		rc = system(cmd);
+	FREE(cmd);
+	if (rc != 0) {
+		g_warning("%s.%d: Could not make directory %s"
+		,	__FUNCTION__, __LINE__, dirname);
+	}
+	rc = chmod(dirname, 0700);
+	if (rc < 0) {
+		g_warning("%s.%d: Could not chmod 0700 %s [%s]"
+		,	__FUNCTION__, __LINE__, dirname, g_strerror(errno));
+	}
+	pw = getpwnam(CMAUSERID);
+	if (NULL != pw) {
+		rc = chown(dirname, pw->pw_uid, pw->pw_gid);
+		g_warning("%s.%d: Could not chown %s %s [%s]"
+		,	__FUNCTION__, __LINE__, CMAUSERID, dirname, g_strerror(errno));
+	}
+}
+
 /// Save a curve25519 key to a file.
 FSTATIC gboolean
 _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
@@ -754,14 +784,12 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 	guint32		createmode;
 	int		fd;
 	int		rc;
-	char*		dirname;
 	char*		filename;
 
 	if (!_is_legal_curve25519_key_id(key_id)) {
 		g_warning("%s.%d: Key id %s is illegal", __FUNCTION__, __LINE__, key_id);
 		return FALSE;
 	}
-	dirname = _cache_curve25519_key_id_to_dirname(key_id, ktype);
 	filename = _cache_curve25519_key_id_to_filename(key_id, ktype);
 
 	if (PUBLICKEY == ktype) {
@@ -776,28 +804,11 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 	}
 	fd = open(filename, O_WRONLY|O_CREAT, createmode);
 	if (fd < 0 && (ENOENT == errno)) {
-		struct passwd*	pw;
-		char *		cmd = g_strdup_printf("mkdir -p '%s'", dirname);
-		int		rc = system(cmd);
-		FREE(cmd);
-		if (rc != 0) {
-			g_warning("%s.%d: Could not make directory %s"
-			,	__FUNCTION__, __LINE__, dirname);
-		}
-		rc = chmod(dirname, 0700);
-		if (rc < 0) {
-			g_warning("%s.%d: Could not chmod 0700 %s [%s]"
-			,	__FUNCTION__, __LINE__, dirname, g_strerror(errno));
-		}
-		pw = getpwnam(CMAUSERID);
-		if (NULL != pw) {
-			rc = chown(dirname, pw->pw_uid, pw->pw_gid);
-			g_warning("%s.%d: Could not chown %s %s [%s]"
-			,	__FUNCTION__, __LINE__, CMAUSERID, dirname, g_strerror(errno));
-		}
+		char*		dirname = _cache_curve25519_key_id_to_dirname(key_id, ktype);
+		_cryptcurve25519_make_cryptdir(dirname);
+		FREE(dirname);
 		fd = open(filename, O_WRONLY|O_CREAT, createmode);
 	}
-	FREE(dirname);
 	if (fd < 0) {
 		g_warning("%s.%d: cannot create file %s [%s]", __FUNCTION__, __LINE__
 		,	filename, g_strerror(errno));
