@@ -78,11 +78,11 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, \
-    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new,                               \
+    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new, NOTAKEY, PRIVATEKEY, PUBLICKEY, \
     cryptframe_associate_identity, cryptframe_set_dest_public_key_id,                   \
     cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
     cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,                \
-    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX,                                 \
+    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename,  \
     cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519
 
 from consts import CMAconsts
@@ -1185,6 +1185,9 @@ class pyCryptFrame(pyFrame):
     The underlying C code then automatically creates the correct
     CryptFrame objects for outgoing packets.
     '''
+    NOTAKEY     = NOTAKEY
+    PUBLICKEY   = PUBLICKEY
+    PRIVATEKEY  = PRIVATEKEY
     def __init__(self, destaddr=None, Cstruct=None):
         self._Cstruct = None
         if Cstruct is None and destaddr is None:
@@ -1250,6 +1253,12 @@ class pyCryptCurve25519(pyCryptFrame):
         pyCryptFrame.__init__(Cstruct=Cstruct)
 
     @staticmethod
+    def key_id_to_filename(key_id, keytype):
+        ret = curve25519_key_id_to_filename(key_id, keytype)
+        pyret = string_at(ret.raw)
+        g_free(ret)
+        return pyret
+    @staticmethod
     def initkeys():
         '''Initialize our set of persistent public keys / keypairs and get ready to encrypt.
         This involves several steps:
@@ -1305,7 +1314,8 @@ class pyCryptCurve25519(pyCryptFrame):
             %       len(cma_ids))
             warnings.append('YOU MUST SECURELY HIDE all but one private CMA key.')
             for keyid in extras:
-                warnings.append('SECURELY HIDE *private* key id %s' % keyid)
+                warnings.append('SECURELY HIDE *private* key %s' % 
+                    pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY))
         cryptcurve25519_set_encryption_method()
         return warnings
 
