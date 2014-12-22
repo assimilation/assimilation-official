@@ -35,6 +35,12 @@
 
 ///@{
 /// @ingroup CryptCurve25519
+/// Which kind of key (half of the key-pair) are we dealing with?
+enum keytype {
+	NOTAKEY,
+	PUBLICKEY,
+	PRIVATEKEY
+};
 typedef struct _CryptCurve25519 CryptCurve25519;
 
 /// This is our @ref CryptCurve25519 object - representing a Curve25519 encryption @ref Frame
@@ -56,7 +62,7 @@ WINEXPORT CryptFrame* cryptcurve25519_new_generic(const char* sender_key_id,
 WINEXPORT void cryptcurve25519_cache_all_keypairs(void);
 WINEXPORT gboolean cryptcurve25519_purge_keypair(const char * key_id);
 WINEXPORT void cryptcurve25519_set_encryption_method(void);///< Just for python simplicity...
-
+WINEXPORT char*	 curve25519_key_id_to_filename(const char * key_id, enum keytype);
 ///@}
 
 #endif /* _CRYPTCURVE25519_H */
