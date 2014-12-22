@@ -29,12 +29,13 @@ We support the following commands:
     query - perform one of our canned ClientQuery queries
 '''
 
-import sys
+import sys, os
 from query import ClientQuery
 from graphnodes import GraphNode
 from store import Store
 from py2neo import neo4j
-from AssimCtypes import QUERYINSTALL_DIR
+from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair, cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX
+from AssimCclasses import pyCryptFrame, cryptframe_private_key_by_id, pyCryptCurve25519
 #
 # These imports really are necessary - in spite of what pylint thinks...
 # pylint: disable=W0611
@@ -124,6 +125,7 @@ class loadqueries(object):
     "Class for the 'loadquery' action (sub-command). We reload the query table"
 
     def __init__(self):
+        'Default init function'
         pass
 
     @staticmethod
@@ -153,6 +155,59 @@ class loadqueries(object):
             q = q
         store.commit()
         return 0 if qcount > 0 else 1
+
+@RegisterCommand
+class genkeys(object):
+    'Generate two CMA keys and store in optional directory.'
+
+    def __init__(self):
+        'Default init function'
+        pass
+
+    @staticmethod
+    def usage():
+        "reports usage for this sub-command"
+        return 'genkeys (must run as root)'
+
+    @staticmethod
+    def execute(store, executor_context, otherargs, flagoptions):
+        executor_context = executor_context
+        flagoptions = flagoptions
+
+        if os.geteuid() != 0:
+            return usage()
+        if len(otherargs) > 0:
+            return usage()
+        cryptcurve25519_cache_all_keypairs()
+        cma_ids = pyCryptFrame.get_cma_key_ids()
+        cma_ids.sort()
+        if len(cma_ids) == 0:
+            print ('No CMA keys found. Generating two CMA key-pairs to start.')
+            for keyid in (0, 1):
+                print >> sys.stderr, "Generating key id", keyid
+                cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX, keyid))
+            cryptcurve25519_cache_all_keypairs()
+            cma_ids = pyCryptFrame.get_cma_key_ids()
+        elif len(cma_ids) == 1:
+            lastkey = cma_ids[0]
+            lastseqno = int(lastkey[len(CMA_KEY_PREFIX):])
+            newkeyid = ('%s%05d' % (CMA_KEY_PREFIX, lastseqno + 1))
+            print ('Generating an additional CMA key-pair.')
+            cryptcurve25519_gen_persistent_keypair(newkeyid)
+            cryptcurve25519_cache_all_keypairs()
+            cma_ids = pyCryptFrame.get_cma_key_ids()
+        if len(cma_ids) != 2:
+            print ('Unexpected number of CMA keys.  Expecting 2, but got %d.'
+            %       len(cma_ids))
+        extras = []
+        privatecount = 0
+        for keyid in cma_ids:
+            privatecount += 1
+            if privatecount > 1:
+                print ('SECURELY HIDE *private* key %s' %
+                    pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY))
+                extras.append(keyid)
+        
 
 options = {'language', 'format'}
 def usage():
