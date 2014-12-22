@@ -769,8 +769,10 @@ _cryptcurve25519_make_cryptdir(const char * dirname)
 	pw = getpwnam(CMAUSERID);
 	if (NULL != pw) {
 		rc = chown(dirname, pw->pw_uid, pw->pw_gid);
-		g_warning("%s.%d: Could not chown %s %s [%s]"
-		,	__FUNCTION__, __LINE__, CMAUSERID, dirname, g_strerror(errno));
+		if (rc < 0) {
+			g_warning("%s.%d: Could not chown %s %s [%s]"
+			,	__FUNCTION__, __LINE__, CMAUSERID, dirname, g_strerror(errno));
+		}
 	}
 }
 
