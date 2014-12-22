@@ -28,7 +28,7 @@ install(PROGRAMS
 	cma.py consts.py discoverylistener.py dispatchtarget.py droneinfo.py
 	frameinfo.py glib.py graphnodeexpression.py graphnodes.py hbring.py linkdiscovery.py
 	messagedispatcher.py monitoringdiscovery.py monitoring.py packetlistener.py query.py
-	store.py transaction.py procsysdicovery.py
+	store.py transaction.py procsysdiscovery.py
         COMPONENT cma-component DESTINATION ${DESTDIR}${PYINSTALL})
 
 install(FILES __init__.py 
