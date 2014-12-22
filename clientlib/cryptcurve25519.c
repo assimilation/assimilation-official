@@ -47,19 +47,12 @@ DEBUGDECLARATIONS
 /// @{
 /// @ingroup CryptFrame
 
-/// Which kind of key (half of the key-pair) are we dealing with?
-enum keytype {
-	NOTAKEY,
-	PUBLICKEY,
-	PRIVATEKEY
-};
 
 FSTATIC void _cryptcurve25519_finalize(AssimObj* aobj);
 FSTATIC gboolean _cryptcurve25519_default_isvalid(const Frame *, gconstpointer, gconstpointer);
 FSTATIC void	 _cryptcurve25519_updatedata(Frame*f, gpointer tlvstart, gconstpointer pktend, FrameSet* fs);
 FSTATIC gboolean _is_valid_curve25519_key_id(const char * key_id, enum keytype ktype);
 FSTATIC gboolean _is_legal_curve25519_key_id(const char * key_id);
-FSTATIC char*	 _cache_curve25519_key_id_to_filename(const char * key_id, enum keytype);
 FSTATIC char*	 _cache_curve25519_key_id_to_dirname(const char * key_id, enum keytype);
 FSTATIC void	 _cryptcurve25519_make_cryptdir(const char * dirname);
 FSTATIC gboolean _cache_curve25519_keypair(const char * key_id);
@@ -119,8 +112,8 @@ _cache_curve25519_key_id_to_dirname(const char * key_id,	///< key_id to convert 
 	return g_strdup(CRYPTKEYDIR);
 }
 
-FSTATIC char*
-_cache_curve25519_key_id_to_filename(const char * key_id,	///< key_id to convert to a filename
+WINEXPORT char*
+curve25519_key_id_to_filename(const char * key_id,	///< key_id to convert to a filename
 				     enum keytype ktype)	///< Which type of key?
 {
 	char *		dirname = _cache_curve25519_key_id_to_dirname(key_id, ktype);
@@ -236,7 +229,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 	if (cryptframe_public_key_by_id(key_id) != NULL) {
 		return TRUE;
 	}
-	filename = _cache_curve25519_key_id_to_filename(key_id, PUBLICKEY);
+	filename = curve25519_key_id_to_filename(key_id, PUBLICKEY);
 	if (g_stat(filename, &statinfo) < 0) {
 		g_warning("%s.%d: g_stat error [%s] NOT Caching key id %s", __FUNCTION__, __LINE__
 		,	filename, key_id);
@@ -244,7 +237,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 		goto getout;
 	}
 	if (statinfo.st_size != crypto_box_PUBLICKEYBYTES || !S_ISREG(statinfo.st_mode)
-	||	access(filename, R_OK) != 0) {
+	||	g_access(filename, R_OK) != 0) {
 		retval = FALSE;
 		g_warning("%s.%d: g_stat size error on %s NOT Caching key id %s", __FUNCTION__, __LINE__
 		,	filename, key_id);
@@ -268,7 +261,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 	close(fd); fd = -1;
 
 	g_free(filename);
-	filename = _cache_curve25519_key_id_to_filename(key_id, PRIVATEKEY);
+	filename = curve25519_key_id_to_filename(key_id, PRIVATEKEY);
 	if (g_stat(filename, &statinfo) >= 0) {
 		if (statinfo.st_size != crypto_box_SECRETKEYBYTES || !S_ISREG(statinfo.st_mode)) {
 			g_warning("%s.%d: secret key stat on [%s] returned %d instead of %d [%s]"
@@ -276,7 +269,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 			,	(int)statinfo.st_size, crypto_box_SECRETKEYBYTES, g_strerror(errno));
 			goto getout;
 		}
-		if (access(filename, R_OK) != 0) {
+		if (g_access(filename, R_OK) != 0) {
 			// Someone else's secret key... Not a problem...
 			goto getout;
 		}
@@ -337,7 +330,7 @@ cryptcurve25519_purge_keypair(const char* key_id)	///< Key id of keypair to purg
 	gboolean	retval = TRUE;
 	g_return_val_if_fail(_is_legal_curve25519_key_id(key_id), FALSE);
 
-	filename = _cache_curve25519_key_id_to_filename(key_id, PUBLICKEY);
+	filename = curve25519_key_id_to_filename(key_id, PUBLICKEY);
 	if (g_access(filename, F_OK) == 0) {
 		if (g_unlink(filename) != 0) {
 			g_warning("%s.%d: Unable to remove public key file [%s]. Reason: %s"
@@ -347,7 +340,7 @@ cryptcurve25519_purge_keypair(const char* key_id)	///< Key id of keypair to purg
 	}
 	g_free(filename); filename = NULL;
 
-	filename = _cache_curve25519_key_id_to_filename(key_id, PRIVATEKEY);
+	filename = curve25519_key_id_to_filename(key_id, PRIVATEKEY);
 	if (g_access(filename, F_OK) == 0) {
 		if (g_unlink(filename) != 0) {
 			g_warning("%s.%d: Unable to remove private key file [%s] Reason: %s"
@@ -792,7 +785,7 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 		g_warning("%s.%d: Key id %s is illegal", __FUNCTION__, __LINE__, key_id);
 		return FALSE;
 	}
-	filename = _cache_curve25519_key_id_to_filename(key_id, ktype);
+	filename = curve25519_key_id_to_filename(key_id, ktype);
 
 	if (PUBLICKEY == ktype) {
 		keysize = crypto_box_PUBLICKEYBYTES;
@@ -803,6 +796,17 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 	}else{
 		g_error("%s.%d: Key type %d is illegal", __FUNCTION__, __LINE__, ktype);
 		g_return_val_if_reached(FALSE);
+	}
+	// If it's a public key, it may exist but not be writable by us...
+	if (PUBLICKEY == ktype && g_access(filename, R_OK) == 0) {
+		// So, let's check and see if it's what we think it should be...
+		if (_cache_curve25519_keypair(key_id)) {
+			CryptFramePublicKey*	pub = cryptframe_public_key_by_id(key_id);
+			if (pub && memcmp(pub->public_key, key, keysize) == 0) {
+				FREE(filename); filename = NULL;
+				return TRUE;
+			}
+		}
 	}
 	fd = open(filename, O_WRONLY|O_CREAT, createmode);
 	if (fd < 0 && (ENOENT == errno)) {
