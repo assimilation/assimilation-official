@@ -608,8 +608,11 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 	int		j;
 
 	(void)unused_fs;
+	
 	// [key1, key2, nonce, MAC, plaintext]
 
+	DUMP3(__FUNCTION__, &f->baseclass, " is CryptCurve25519 Frame being processed.");
+	DEBUGMSG3("%s.%d: tlvstart:%p, pktend:%p", __FUNCTION__, __LINE__, tlvstart, pktend);
 	// The plain text starts immediately after our (incoming) frame
 	plaintextoffset = f->length;					// Plain text starts here
 	cyphertextoffset = plaintextoffset - crypto_box_MACBYTES;	// Preceded by MAC
@@ -622,8 +625,12 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 	// Generate a "nonce" as part of the packet - make known plaintext attacks harder
 	// ... lots of our plaintext is easy to figure out ...
 	nonce = tlvval + nonceoffset;
+	DEBUGMSG3("%s.%d: generating random nonce", __FUNCTION__, __LINE__);
 	randombytes_buf(nonce, crypto_box_NONCEBYTES);
 
+	DEBUGMSG3("%s.%d: calling crypto_box_easy(%p,%p,%d,%p,%p,%p)", __FUNCTION__, __LINE__
+	,	tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
+	,	nonce, self->public_key->public_key, self->private_key->private_key);
 	// Encrypt in-place [we previously allocated enough space for authentication info]
 	crypto_box_easy(tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
 	,	nonce, self->public_key->public_key, self->private_key->private_key);
@@ -640,7 +647,10 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 		g_strlcpy((char *)valptr, key_id, keylen);
 		valptr += keylen;
 	}
+	DEBUGMSG3("%s.%d: returning after next assert (tlvval:%p, tlvsize%d, pktend:%p"
+	,	__FUNCTION__, __LINE__, tlvval, (int)tlvsize, pktend);
 	g_assert((tlvval + tlvsize) == pktend);
+	DEBUGMSG3("%s.%d: returning (assert passed).", __FUNCTION__, __LINE__);
 }
 
 /// Generate a temporary (non-persistent) key pair
