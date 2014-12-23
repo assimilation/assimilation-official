@@ -276,6 +276,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	for (curframe=fs->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
 		Frame* frame = CASTTOCLASS(Frame, curframe->data);
 	
+		DUMP4(__FUNCTION__, &frame->baseclass, " is frame being processed");
 		// frame->dataspace() may change after calling updatedata()
 		curpktoffset = curpktoffset - frame->dataspace(frame);
 		g_return_if_fail(curpktoffset >= 0);
@@ -286,8 +287,9 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		// updatedata() can change fs->packet and fs->pktend
 		curpktpos = (guint8*)fs->packet + curpktoffset;
 		if (!frame->isvalid(frame, curpktpos, fs->pktend)) {
-			g_error("Generated %s frame is not valid(!) (length=%"G_GSIZE_FORMAT")"
+			g_warning("Generated %s frame is not valid(!) (length=%"G_GSIZE_FORMAT")"
 			,	proj_class_classname(frame), (gsize)frame->length);
+			DUMP(__FUNCTION__, &frame->baseclass, " is the invalid frame");
 		}
 	}
 	g_return_if_fail(curpktpos == (((guint8*)fs->packet)+fssize));
