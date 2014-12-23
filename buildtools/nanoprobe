@@ -83,6 +83,11 @@ case "${NANOPROBE_PIDFILE}" in
     ?*) NANOARGS="$NANOARGS --pidfile $NANOPROBE_PIDFILE";;
 esac
 
+#   NANOPROBE_CORELIMIT: What ulimit to give for ulimit -c
+case "${NANOPROBE_CORELIMIT}" in
+    ?*) ulimit -c "$NANOPROBE_CORELIMIT";;
+esac
+
 
 command=$1
 case "$command" in
