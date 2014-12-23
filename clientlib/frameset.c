@@ -283,15 +283,18 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		curpktpos = (guint8*)fs->packet + curpktoffset;
 		set_generic_tlv_type(curpktpos, frame->type, fs->pktend);
 		set_generic_tlv_len(curpktpos, frame->length, fs->pktend);
+		DUMP4(__FUNCTION__, &frame->baseclass, ": called frame->updatedata()");
 		frame->updatedata(frame, curpktpos, fs->pktend, fs);
 		// updatedata() can change fs->packet and fs->pktend
 		curpktpos = (guint8*)fs->packet + curpktoffset;
 		if (!frame->isvalid(frame, curpktpos, fs->pktend)) {
+			DUMP(__FUNCTION__, &frame->baseclass, " is an invalid frame");
 			g_warning("Generated %s frame is not valid(!) (length=%"G_GSIZE_FORMAT")"
 			,	proj_class_classname(frame), (gsize)frame->length);
-			DUMP(__FUNCTION__, &frame->baseclass, " is the invalid frame");
 		}
+		DUMP4(__FUNCTION__, &frame->baseclass, " is frame that was processed.");
 	}
+	DUMP4(__FUNCTION__, &fs->baseclass, " is frameseet that was processed");
 	g_return_if_fail(curpktpos == (((guint8*)fs->packet)+fssize));
 	// Reverse list - putting it back in the right order
 	fs->framelist = g_slist_reverse(fs->framelist);
