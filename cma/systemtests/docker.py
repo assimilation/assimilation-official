@@ -256,7 +256,7 @@ class SystemTestEnvironment(object):
         self.cleanupwhendone = cleanupwhendone
         watch = LogWatcher(logname, [])
         watch.setwatch()
-        self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
+        self.spawncma(nanodebug=3, cmadebug=5)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // java version.*') % self.cma.hostname
         watch.setregexes((regex,))
@@ -267,7 +267,7 @@ class SystemTestEnvironment(object):
         # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
         # this is because we return a different nanoprobe each time we call spawnnanoprobe()
         # pylint: disable=W0108
-        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=nanodebug), nanocount):
+        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=3), nanocount):
             self.nanoprobes.append(child())
             os.system('logger "Load Avg: $(cat /proc/loadavg)"')
             os.system('logger "$(grep MemFree: /proc/meminfo)"')
@@ -312,7 +312,7 @@ class SystemTestEnvironment(object):
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
 
-    def set_nanoconfig(self, nano, debug=0):
+    def set_nanoconfig(self, nano, debug=3, CMApubkey=None):
         'Set up our nanoprobe configuration file'
         lines = (
             ('NANOPROBE_DYNAMIC=%d' % (1 if nano is self.cma else 0)),
@@ -321,20 +321,21 @@ class SystemTestEnvironment(object):
         )
         nano.runinimage(('/bin/bash', '-c'
         ,           "echo '%s' >/etc/default/nanoprobe" % lines[0]))
-        #print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
-        #print >> sys.stderr, ('NANOPROBE [%s]' % lines[0])
+        print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
+        for line in lines:
+            print >> sys.stderr, ('NANOPROBE [%s]' % line)
         for j in range(1, len(lines)):
             nano.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
             #print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
 
-    def set_cmaconfig(self, debug=0):
+    def set_cmaconfig(self, debug=5):
         'Set up our CMA configuration file'
         lines = ( ('CMA_DEBUG=%d' % (debug)),)
         self.cma.runinimage(('/bin/bash', '-c'
         ,           "echo '%s' >/etc/default/cma" % lines[0]))
-        #print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
-        #print >> sys.stderr, ('CMA [%s]' % lines[0])
+        print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
+        print >> sys.stderr, ('CMA [%s]' % lines[0])
         for j in range(1, len(lines)):
             self.cma.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/cma" % lines[j]))
@@ -355,6 +356,9 @@ class SystemTestEnvironment(object):
         self.cma.startservice(SystemTestEnvironment.CMASERVICE)
         self.set_nanoconfig(self.cma, debug=nanodebug)
         self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
+        time.sleep(5)
+        self.cma.runinimage(('/bin/ls', '-l', '/usr/share/assimilation/crypto.d'))
+        self.cma.runinimage(('/bin/ls', '-ld', '/usr/share/assimilation/crypto.d'))
         #self.cma.runinimage(('ps', '-efl'))
         return self.cma
 
@@ -363,7 +367,7 @@ class SystemTestEnvironment(object):
         image = random.choice(self.nanoimages)
         system = self._spawnsystem(image)
         system.debug = debug
-        self.set_nanoconfig(system, debug=debug)
+        self.set_nanoconfig(system, debug=debug, CMApubkey='/tmp/#CMA#00000.pub')
         system.startservice(SystemTestEnvironment.NANOSERVICE)
         return system
 

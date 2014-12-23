@@ -628,6 +628,7 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 	DEBUGMSG3("%s.%d: generating random nonce (%p, %d, %p)", __FUNCTION__, __LINE__
 	,	nonce, (int)crypto_box_NONCEBYTES, nonce+crypto_box_NONCEBYTES);
 	randombytes_buf(nonce, crypto_box_NONCEBYTES);
+	DEBUGMSG3("%s.%d: random nonce generated.", __FUNCTION__, __LINE__);
 
 	DEBUGMSG3("%s.%d: calling crypto_box_easy(%p,%p,%d,%p,%p,%p)", __FUNCTION__, __LINE__
 	,	tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize

@@ -24,11 +24,16 @@
 #
 FROM ubuntu:latest
 RUN echo "need to make sure stuff is up to date (2)"
+ENV TERM linux
+ENV DEBIAN_FRONTEND noninteractive
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN apt-get -y update
 RUN apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents mercurial wget libpcap0.8-dev rsyslog
 RUN apt-get -y install --no-install-recommends libglib2.0 libpcap0.8 python-pip
 RUN pip install ctypesgen
-RUN cd /root && mkdir -p assimilation/src assimilation/bin assimilation/src && hg clone -r @VERSION@ http://hg.linux-ha.org/assimilation assimilation/src
+RUN cd /root && mkdir -p assimilation/src assimilation/bin/buildtools && cd /root/assimilation/bin && wget -O buildtools/libsodium.mkdeb.sh http://hg.linux-ha.org/assimilation/raw-file/tip/buildtools/libsodium.mkdeb.sh
+RUN cd /root/assimilation/bin && mkdir libsodium && cd libsodium && pwd  && ls -l ../.. >&2 && bash -x ../buildtools/libsodium.mkdeb.sh &&  dpkg --install *.deb
+RUN cd /root && hg clone -r @VERSION@ http://hg.linux-ha.org/assimilation assimilation/src
 RUN cd /root/assimilation/bin; cmake ../src && make install
 RUN cd /root/assimilation/bin; cpack
 RUN cd /root/assimilation/bin; dpkg --install assimilation-nanoprobe-*-*.deb
@@ -38,3 +43,6 @@ EXPOSE 1984
 
 # Just so we have some services to monitor...
 RUN apt-get -y install bind9 host
+RUN mkdir -p /usr/share/assimilation/crypto.d
+ADD #CMA#00001.pub /usr/share/assimilation/crypto.d/#CMA#00001.pub
+RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 700 /usr/share/assimilation/crypto.d/ && chmod 644 '/usr/share/assimilation/crypto.d/#CMA#00001.pub'
