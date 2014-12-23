@@ -425,6 +425,8 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	guint flags = 0x00;
 	g_return_if_fail(length > 0);
 
+	DUMP3(__FUNCTION__, &destaddr->baseclass, " is destination address");
+	DUMP3(__FUNCTION__, &self->baseclass, " is NetIO object");
 	if (self->_shouldlosepkts) {
 		if (g_random_double() < self->_xmitloss) {
 			g_message("%s.%d: Threw away %"G_GSSIZE_FORMAT" byte output packet"
@@ -496,6 +498,7 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		cryptframe = cryptframe_new_by_destaddr(destaddr);
 		frameset_construct_packet(curfs, signframe, cryptframe, compressframe);
 		if (cryptframe) {
+			DEBUGMSG3("%s.%d: Sending encrypted packet.", __FUNCTION__, __LINE__);
 			UNREF2(cryptframe);
 			self->is_encrypted = TRUE;
 		}else if (self->is_encrypted){
@@ -507,6 +510,7 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 			g_free(dest); dest = NULL;
 			g_free(pkt); pkt = NULL;
 		}
+		DUMP3(__FUNCTION__, &curfs->baseclass, "is the frameset being sent");
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		self->stats.fswritten++;
 		
@@ -528,6 +532,7 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 	cryptframe = cryptframe_new_by_destaddr(destaddr);
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
 	if (cryptframe) {
+		DEBUGMSG3("%s.%d: Sending encrypted packet.", __FUNCTION__, __LINE__);
 		UNREF2(cryptframe);
 		self->is_encrypted = TRUE;
 	}else if (self->is_encrypted){
@@ -540,8 +545,9 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		g_free(dest); dest = NULL;
 		g_free(pkt); pkt = NULL;
 	}
-	DEBUGMSG3("%s.%d: sent %ld byte packet", __FUNCTION__, __LINE__
+	DEBUGMSG3("%s.%d: sending %ld byte packet", __FUNCTION__, __LINE__
 	,	(long)(((guint8*)frameset->pktend-(guint8*)frameset->packet)));
+	DUMP3(__FUNCTION__, &frameset->baseclass, "is the frameset being sent");
 	_netio_sendapacket(self, frameset->packet, frameset->pktend, destaddr);
 }
 
