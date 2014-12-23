@@ -625,7 +625,8 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 	// Generate a "nonce" as part of the packet - make known plaintext attacks harder
 	// ... lots of our plaintext is easy to figure out ...
 	nonce = tlvval + nonceoffset;
-	DEBUGMSG3("%s.%d: generating random nonce", __FUNCTION__, __LINE__);
+	DEBUGMSG3("%s.%d: generating random nonce (%p, %d, %p)", __FUNCTION__, __LINE__
+	,	nonce, (int)crypto_box_NONCEBYTES, nonce+crypto_box_NONCEBYTES);
 	randombytes_buf(nonce, crypto_box_NONCEBYTES);
 
 	DEBUGMSG3("%s.%d: calling crypto_box_easy(%p,%p,%d,%p,%p,%p)", __FUNCTION__, __LINE__
