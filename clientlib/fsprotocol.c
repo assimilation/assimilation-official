@@ -1223,7 +1223,9 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 				// Not a new packet (we've sent it before)
 				continue;
 			}
+			DUMP3(__FUNCTION__, &fs->baseclass, " is frameset");
 			DUMP3(__FUNCTION__, &seq->baseclass.baseclass, " is frame being sent");
+			DUMP3(__FUNCTION__, &fspe->endpoint->baseclass, " is destination endpoint");
 			io->sendaframeset(io, fspe->endpoint, fs);
 			if (NULL == seq) {
 				g_warn_if_reached();
