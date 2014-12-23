@@ -254,6 +254,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	// Add "end" frame to the "end" - if not already present...
 	if (CASTTOCLASS(Frame, fs->framelist->data)->type != FRAMETYPE_END) {
                 Frame* endframe = frame_new(FRAMETYPE_END, 0);
+		DEBUGMSG3("%s.%d: Adding FRAMETYPE_END frame to end (beginning)", __FUNCTION__, __LINE__);
 		g_return_if_fail(NULL != endframe);
 		frameset_prepend_frame(fs, endframe);
 		UNREF(endframe);
@@ -296,6 +297,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	set_generic_tlv_type(fs->packet, fs->fstype, ((guint8*)fs->packet)+fssize);
 	set_generic_tlv_len(fs->packet, pktsize-fssize, ((guint8*)fs->packet)+fssize);
 	tlv_set_guint16(((guint8*)fs->packet)+GENERICTLV_HDRSZ, fs->fsflags, ((guint8*)fs->packet)+fssize);
+	DEBUGMSG3("%s.%d: Returning.", __FUNCTION__, __LINE__);
 }
 
 /// Return the flags currently set on this FrameSet.
