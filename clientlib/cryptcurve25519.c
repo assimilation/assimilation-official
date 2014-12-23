@@ -498,6 +498,7 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	ret			= NEWSUBCLASS(CryptCurve25519, baseframe);
 	ret->private_key	= cryptframe_private_key_by_id(sender_key_id);
 	ret->public_key		= cryptframe_public_key_by_id(receiver_key_id);
+	DUMP3(__FUNCTION__, &ret->baseclass.baseclass.baseclass, " is return value");
 	return ret;
 }
 

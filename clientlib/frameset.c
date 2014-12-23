@@ -169,6 +169,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	guint8*		curpktpos=NULL;		// Current position within packet..
 	gsize		pktsize;
 	gsize		fssize = FRAMESET_INITSIZE;	// "frameset" overhead size
+	DEBUGMSG3("%s.%d: constructing packet: sign: %p crypt: %p", __FUNCTION__, __LINE__, sigframe, cryptframe);
 	g_return_if_fail(NULL != fs);
 	g_return_if_fail(NULL != sigframe);
 	// g_return_if_fail(NULL != fs->framelist); // Is an empty frame list OK?
@@ -241,6 +242,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		}
 	}
 	if (NULL != cryptframe) {
+		DEBUGMSG3("%s.%d: prepending cryptframe: %p", __FUNCTION__, __LINE__, cryptframe);
 		frameset_prepend_frame(fs, &cryptframe->baseclass);
 	}
 	// "sigframe" cannot be NULL (see check above)
