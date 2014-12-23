@@ -477,6 +477,8 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	if (NULL == sender_key_id) {
 		sender_key_id = cryptframe_get_signing_key_id();
 	}
+	DEBUGMSG2("%s.%d:(%s, %s, %d)", __FUNCTION__, __LINE__, sender_key_id, receiver_key_id
+	,	(int)objsize);
 	g_return_val_if_fail(sender_key_id != NULL && receiver_key_id != NULL, NULL);
 	if (!_is_valid_curve25519_key_id(receiver_key_id, PUBLICKEY)) {
 		g_critical("%s.%d: public key name [%s] is invalid", __FUNCTION__, __LINE__, receiver_key_id);
