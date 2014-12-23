@@ -83,6 +83,11 @@ case "${CMA_USER}" in
     ?*) FLAGS="$FLAGS --user $CMA_USER";;
 esac
 
+#   CMA_CORELIMIT: What ulimit to give for ulimit -c
+case "${CMA_CORELIMIT}" in
+    ?*) ulimit -c "$CMA_CORELIMIT";;
+esac
+
 lockfile=/var/lock/subsys/$SERVICE
 
 start() {
