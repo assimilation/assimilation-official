@@ -428,7 +428,7 @@ if __name__ == "__main__":
         os.system("logger 'Starting test of our test cases'")
         try:
             sysenv, ourstore = AssimSysTest.initenviron(logname, maxdrones, debug
-            ,       cmadebug=0, nanodebug=0)
+            ,       cmadebug=5, nanodebug=3)
         except AssertionError:
             print 'FAILED initial startup - which is pretty basic'
             print 'Any chance you have another CMA running??'
