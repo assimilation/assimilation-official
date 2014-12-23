@@ -533,6 +533,7 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 	cryptframe = cryptframe_new_by_destaddr(destaddr);
 	DEBUGMSG3("%s.%d: cryptframe: %p", __FUNCTION__, __LINE__, cryptframe);
 	frameset_construct_packet(frameset, signframe, cryptframe, compressframe);
+	DEBUGMSG3("%s.%d: packet constructed (marshalled)", __FUNCTION__, __LINE__);
 	if (cryptframe) {
 		DEBUGMSG3("%s.%d: Sending encrypted packet.", __FUNCTION__, __LINE__);
 		UNREF2(cryptframe);
