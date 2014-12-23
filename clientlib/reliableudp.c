@@ -140,6 +140,7 @@ _reliableudp_input_queued(const NetIO* nself)
 FSTATIC void
 _reliableudp_sendaframeset(NetIO* nself, const NetAddr* dest, FrameSet* fs)
 {
+	DEBUGMSG3("%s.%d: Calling _baseclass_sendone()", __FUNCTION__, __LINE__);
 	_baseclass_sendone(nself, dest, fs);
 }
 
@@ -202,6 +203,8 @@ _reliableudp_sendareliablefs(NetIO* nself, NetAddr* dest, guint16 qid, FrameSet*
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
 	// Send it out!
+	DEBUGMSG3("%s.%d: Sending packet with _protocol->send1()", __FUNCTION__, __LINE__);
+	DUMP3("_reliableudp_sendareliablefs: Sending packet with self->_protocol->send1(fs, qid, dest) ", &dest->baseclass, "");
 	return self->_protocol->send1(self->_protocol, fs, qid, dest);
 }
 
@@ -210,7 +213,9 @@ FSTATIC gboolean
 _reliableudp_sendreliablefs(NetIO* nself, NetAddr* dest, guint16 qid, GSList* fslist)
 {
 	ReliableUDP * self = CASTTOCLASS(ReliableUDP, nself);
-	DEBUGMSG3("Sending packet with _protocol->sendareliablefs(%d)", g_slist_length(fslist));
+	DEBUGMSG3("%s.%d: Sending packet with _protocol->send(%d)", __FUNCTION__, __LINE__
+	,	g_slist_length(fslist));
+	DUMP3("_reliableudp_sendreliablefs: Sending packet with self->_protocol->send(fs, qid, dest) ", &dest->baseclass, "");
 	return self->_protocol->send(self->_protocol, fslist, qid, dest);
 }
 
