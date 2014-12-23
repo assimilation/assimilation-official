@@ -1055,9 +1055,14 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	FsProtoElem*	fspe;
 	gboolean	ret;
 
+	DEBUGMSG3("%s.%d: called", __FUNCTION__, __LINE__);
+	DUMP3( __FUNCTION__, &fs->baseclass, " is frameset");
+	DUMP3( __FUNCTION__, &toaddr->baseclass, " is dest address");
+
 	fspe = self->addconn(self, qid, toaddr);
 	if (NULL == fspe) {
 		// This can happen if we're shutting down...
+		DEBUGMSG3("%s.%d: NULL fspe", __FUNCTION__, __LINE__);
 		return FALSE;
 	}
 	g_return_val_if_fail(NULL != fspe, FALSE);	// Should not be possible...
@@ -1068,6 +1073,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 		,	__FUNCTION__, __LINE__);
 		return TRUE;
 	}
+	DEBUGMSG3("%s.%d: calling fsprotocol_fsa(FSPROTO_REQSEND)", __FUNCTION__, __LINE__);
 	_fsprotocol_fsa(fspe, FSPROTO_REQSEND, NULL);
 
 	if (fspe->outq->_q->length == 0) {
@@ -1078,10 +1084,13 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 		fspe->nextrexmit = now + self->rexmit_interval;
 		fspe->acktimeout = now + self->acktimeout;
 	}
+	DEBUGMSG4("%s.%d: calling fspe->outq->enq()", __FUNCTION__, __LINE__);
 	ret =  fspe->outq->enq(fspe->outq, fs);
 	self->io->stats.reliablesends++;
+	DEBUGMSG4("%s.%d: calling TRYXMIT()", __FUNCTION__, __LINE__);
 	TRYXMIT(fspe);
 	AUDITFSPE(fspe);
+	DEBUGMSG3("%s.%d: returning %s", __FUNCTION__, __LINE__, (ret ? "TRUE" : "FALSE"));
 	return ret;
 }
 /// Enqueue and send a list of reliable FrameSets (send all or none)
