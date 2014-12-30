@@ -89,7 +89,8 @@ proj_get_sysname(void)
 void
 daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a background job
 		const char* dirtorunin,		///<[in] Directory to cd to or NULL for default (/)
-		char* pidfile)			///<[in] Pathname of pidfile or NULL for no pidfile
+		char* pidfile,			///<[in] Pathname of pidfile or NULL for no pidfile
+		int minclosefd)			///<[in] Minimum file descriptor to close or 0
 {
 	struct rlimit		nofile_limits;
 	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
@@ -163,8 +164,11 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 			}
 		}
 	}
+	if (minclosefd < (int)DIMOF(nullperms)) {
+		minclosefd = DIMOF(nullperms);
+	}
 	// A bit paranoid - but not so much as you might think...
-	for (j=DIMOF(nullperms); j < nofile_limits.rlim_cur; ++j) {
+	for (j=minclosefd; j < nofile_limits.rlim_cur; ++j) {
 		close(j);
 	}
 }
