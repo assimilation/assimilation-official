@@ -304,7 +304,7 @@ main(int argc, char **argv)
 		g_free(pidfile);
 		exit(0);
 	}
-	daemonize_me(stay_in_foreground, SEP, pidfile);
+	daemonize_me(stay_in_foreground, SEP, pidfile, 0);
 
 	assimilation_openlog(argv[0]);
 
