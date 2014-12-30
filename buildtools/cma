@@ -60,6 +60,8 @@ FLAGS=""
 #   CMA_PIDFILE     Where to store our PID file
 #   CMA_USER        What user to run as
 #   CMA_DEBUG       What debug level to choose
+#   CMA_STRACEFILE  What file to put strace output into
+#   CMA_STRACEFLAGS What strace flags to use if ${CMA_STRACEFILE} is set
 #
 
 #   CMA_BIND: What address should we bind to locally?
@@ -88,10 +90,22 @@ case "${CMA_CORELIMIT}" in
     ?*) ulimit -c "$CMA_CORELIMIT";;
 esac
 
+#   CMA_STRACEFLAGS: What strace flags to use
+case "${CMA_CORELIMIT}" in
+    ?*);;
+    *)  CMA_STRACEFLAGS="-ff -r -tt -x -y -v -s 128"
+esac
+
 lockfile=/var/lock/subsys/$SERVICE
 
 start() {
-    $BINARY $FLAGS
+    if
+        [ ! -z "$CMA_STRACEFILE" ]
+    then
+        strace ${CMA_STRACEFLAGS} -o "${CMA_STRACEFILE}" ${BINARY} ${FLAGS} &
+    else
+        ${BINARY} ${FLAGS}
+    fi
     rc=$?
     if
       [ $rc -eq 0 ]
