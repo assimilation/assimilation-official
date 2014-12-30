@@ -46,7 +46,8 @@ char *	proj_get_sysname(void);			///< Return a malloced string of the system nam
 WINEXPORT char *get_default_pid_fileName(const char *procname);
 WINEXPORT void daemonize_me(gboolean stay_in_foreground	///< TRUE == don't fork
 ,		  const char * dirtorunin	///< Directory to cd to before running
-,		  char* pidfile);		///< pathname of pid file, or NULL
+,		  char* pidfile			///< pathname of pid file, or NULL
+,		  int	minclosefd);		///< minimum file descriptor to close - or zero
 WINEXPORT void assimilation_openlog(const char* logname);				///< Open logs in our style (syslog)
 WINEXPORT PidRunningStat are_we_already_running(const char * pidfile, int* pid);	///< Determine service status
 WINEXPORT guint	pidrunningstat_to_status(PidRunningStat);		///< Convert PidRunningStat to an exit code for status
