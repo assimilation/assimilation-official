@@ -61,6 +61,11 @@ FSTATIC enum keytype _cryptcurve25519_keytype_from_filename(const char *filename
 FSTATIC char * _cryptcurve25519_key_id_from_filename(const char *filename);
 static void (*_parentclass_finalize)(AssimObj*) = NULL;
 FSTATIC void dump_memory(const char * label, const guint8* start, const guint8* end);
+FSTATIC char* cryptcurve25519_naming_checksum(const guint8* buf, size_t buflen);
+FSTATIC void cryptcurve25519_debug_checksum(const char * function, int lineno, const char * message, const guint8* buf, size_t bufsize);
+#define DEBUGCKSUM2(msg, buf, bufsize) {if (DEBUG >= 2) cryptcurve25519_debug_checksum(__FUNCTION__, __LINE__, msg, buf, bufsize);}
+#define DEBUGCKSUM3(msg, buf, bufsize) {if (DEBUG >= 3) cryptcurve25519_debug_checksum(__FUNCTION__, __LINE__, msg, buf, bufsize);}
+#define DEBUGCKSUM4(msg, buf, bufsize) {if (DEBUG >= 4) cryptcurve25519_debug_checksum(__FUNCTION__, __LINE__, msg, buf, bufsize);}
 
 // Simple memory dump routine
 FSTATIC void
@@ -570,12 +575,17 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 	cyphertext = nonce + crypto_box_NONCEBYTES;
 	plaintext = cyphertext + crypto_box_MACBYTES;
 	cypherlength = tlvend8 - cyphertext;
+	DEBUGCKSUM4("nonce:", nonce, crypto_box_NONCEBYTES);
+	DEBUGCKSUM4("sender   public key :", sender_public_key -> public_key,  crypto_box_PUBLICKEYBYTES);
+	DEBUGCKSUM4("receiver private key:", receiver_secret_key->private_key, crypto_box_SECRETKEYBYTES);
+	DEBUGCKSUM4("cypher text:", cyphertext, cypherlength);
 	if (crypto_box_open_easy(plaintext, cyphertext, cypherlength, nonce
 	,	sender_public_key->public_key, receiver_secret_key->private_key) != 0) {
 		g_warning("%s.%d: could not decrypt %d byte message encrypted with key pair [pub:%s, sec:%s]"
 		,	__FUNCTION__, __LINE__, (int)cypherlength, pubkey_id, seckey_id);
 		return NULL;
 	}
+	DEBUGCKSUM4("plain text:", plaintext, cypherlength-crypto_box_MACBYTES);
 	// Note that our return value's size will determine where the beginning of the
 	// decrypted data is (according to it's dataspace() member function)
 	ret = cryptcurve25519_new(get_generic_tlv_type(tlvstart, pktend), (const char *)pubkey_id
@@ -630,12 +640,19 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 	randombytes_buf(nonce, crypto_box_NONCEBYTES);
 	DEBUGMSG3("%s.%d: random nonce generated.", __FUNCTION__, __LINE__);
 
+	DEBUGMSG3("%s.%d: public->key_id: [%s], private_key->key_id: [%s]", __FUNCTION__, __LINE__
+	,	self->public_key->key_id, self->private_key->key_id);
 	DEBUGMSG3("%s.%d: calling crypto_box_easy(%p,%p,%d,%p,%p,%p)", __FUNCTION__, __LINE__
 	,	tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
 	,	nonce, self->public_key->public_key, self->private_key->private_key);
+	DEBUGCKSUM4("plain text cksum:", tlvval+plaintextoffset, plaintextsize);
+	DEBUGCKSUM4("receiver public key cksum:",self->public_key -> public_key, crypto_box_PUBLICKEYBYTES);
+	DEBUGCKSUM4("sender  private key cksum:", self->private_key->private_key, crypto_box_SECRETKEYBYTES);
+	DEBUGCKSUM4("nonce cksum:", nonce, crypto_box_NONCEBYTES);
 	// Encrypt in-place [we previously allocated enough space for authentication info]
 	crypto_box_easy(tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
 	,	nonce, self->public_key->public_key, self->private_key->private_key);
+	DEBUGCKSUM4("cypher text checksum:", tlvval+cyphertextoffset, plaintextsize+crypto_box_MACBYTES);
 	set_generic_tlv_type(tlvstart, self->baseclass.baseclass.type, pktend);
 	set_generic_tlv_len(tlvstart, tlvsize, pktend);
 	// Put in the frame type, length, key name length, and key name for both keys
@@ -667,6 +684,49 @@ cryptcurve25519_gen_temp_keypair(const char *key_id) ///< key_id CANNOT be NULL
 	(void)cryptframe_publickey_new(key_id, public_key);
 }
 
+/// Return a malloced string containing the KEY_NAMING_CHECKSUM type checksum of the given data
+FSTATIC char*
+cryptcurve25519_naming_checksum(const guint8* buf,	///<[in] buffer to checksum
+				size_t buflen)		///<[in] length of 'buf'
+{
+	GChecksum*	cksum_object;
+	gsize		cksum_length;
+	gsize		computed_size;
+	guint8*		checksum;
+	char*		checksum_string;
+	unsigned	j;
+	unsigned	k;
+	cksum_length = g_checksum_type_get_length(KEY_NAMING_CHECKSUM);
+	checksum = g_malloc(cksum_length);
+	checksum_string = g_malloc(1+cksum_length*2);
+	cksum_object = g_checksum_new(KEY_NAMING_CHECKSUM);
+	g_checksum_update(cksum_object, buf, buflen);
+	g_checksum_get_digest(cksum_object, checksum, &computed_size);
+	checksum_string[0] = '\0';
+	// Convert the checksum to hex
+	for (j=0, k=0; j < cksum_length; ++j, k+=2)  {
+		char	hex[4]; // The size is 4 is to make the stack protector happy
+		sprintf(hex, "%02x", checksum[j]);
+		strcat(checksum_string+k, hex);
+	}
+	g_free(checksum);
+	g_checksum_free(cksum_object);
+	return checksum_string;
+}
+
+/// Print a debug checksum message
+FSTATIC void
+cryptcurve25519_debug_checksum( const char * function,	///[in] function name
+				int lineno,		///[in] line number
+				const char * message,	///[in] message
+				const guint8* buf,	///[in] buffer to checksum
+				size_t bufsize)		///[in] buffer size
+{
+	char *	checksum = cryptcurve25519_naming_checksum(buf, bufsize);
+	g_debug("%s.%d: %s %s", function, lineno, message, checksum);
+	g_free(checksum);
+}
+
 /// Create a persistent keypair and write it to disk
 /// Returns a MALLOCed string with the key id for the key pair.  Please free!
 WINEXPORT char *
@@ -674,13 +734,6 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 {
 	unsigned char*	public_key = g_malloc(crypto_box_PUBLICKEYBYTES);
 	unsigned char*	secret_key = g_malloc(crypto_box_SECRETKEYBYTES);
-	GChecksum*	cksum_object;
-	gsize		cksum_length;
-	char*		checksum_string;
-	guint8*		checksum;
-	gsize		computed_size;
-	unsigned	j;
-	unsigned	k;
 	char*		key_id;
 	char*		sysname;
 	
@@ -688,22 +741,9 @@ cryptcurve25519_gen_persistent_keypair(const char * giveitaname) ///< giveitanam
 	// so that we get stack protection, and clang doesn't complain...
 	crypto_box_keypair(public_key, secret_key);
 	if (NULL == giveitaname) {
+		char*		checksum_string;
 		// Then we'll generate one based on host name and key's checksum
-		cksum_length = g_checksum_type_get_length(KEY_NAMING_CHECKSUM);
-		checksum = g_malloc(cksum_length);
-		checksum_string = g_malloc(1+cksum_length*2);
-		cksum_object = g_checksum_new(KEY_NAMING_CHECKSUM);
-		g_checksum_update(cksum_object, public_key, crypto_box_PUBLICKEYBYTES);
-		g_checksum_get_digest(cksum_object, checksum, &computed_size);
-		checksum_string[0] = '\0';
-		// Convert the checksum to hex
-		for (j=0, k=0; j < cksum_length; ++j, k+=2)  {
-			char	hex[4]; // The size is 4 is to make the stack protector happy
-			sprintf(hex, "%02x", checksum[j]);
-			strcat(checksum_string+k, hex);
-		}
-		g_free(checksum);
-		g_checksum_free(cksum_object);
+		checksum_string = cryptcurve25519_naming_checksum(public_key, crypto_box_PUBLICKEYBYTES);
 		sysname = proj_get_sysname();
 		key_id = g_strdup_printf("%s@@%s", sysname, checksum_string);
 		g_free(sysname); g_free(checksum_string);
