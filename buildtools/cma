@@ -91,7 +91,7 @@ case "${CMA_CORELIMIT}" in
 esac
 
 #   CMA_STRACEFLAGS: What strace flags to use
-case "${CMA_CORELIMIT}" in
+case "${CMA_STRACEFLAGS}" in
     ?*);;
     *)  CMA_STRACEFLAGS="-ff -r -tt -x -y -v -s 128"
 esac
