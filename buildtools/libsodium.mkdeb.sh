@@ -26,7 +26,7 @@ dch --create -v $DEBVERSION --package ${NAME} ""
 cp ${LICENSEFILE} debian/copyright
 #Create control file
 echo "Source: $NAME" > debian/control
-echo "Maintainer: None <none@example.com>" >> debian/control
+echo "Maintainer: None <alanr@assimilationsystems.com>" >> debian/control
 echo "Section: misc" >> debian/control
 echo "Priority: optional" >> debian/control
 echo "Standards-Version: 3.9.5" >> debian/control
@@ -47,6 +47,15 @@ echo "Depends: \${shlibs:Depends}, \${misc:Depends}, libsodium(= $DEBVERSION)" >
 echo "Homepage: https://libsodium.org" >> debian/control
 echo "Description: development files for libsodium" >> debian/control
 echo "Section: libdevel" >> debian/control
+#debug package
+echo "" >> debian/control
+echo "Package: $NAME-dbg" >> debian/control
+echo "Architecture: any" >> debian/control
+echo "Depends: \${shlibs:Depends}, \${misc:Depends}, libsodium(= $DEBVERSION)" >> debian/control
+echo "Homepage: https://libsodium.org" >> debian/control
+echo "Description: debug files for libsodium" >> debian/control
+echo "Section: debug" >> debian/control
+echo "Priority: extra" >> debian/control
 #Rules files
 echo '#!/usr/bin/make -f' > debian/rules
 chmod a+x debian/rules
@@ -54,7 +63,7 @@ echo '%:' >> debian/rules
 echo -e '\tdh $@' >> debian/rules
 echo 'override_dh_auto_configure:' >> debian/rules
 #echo -e "\t./configure --prefix=$(pwd)/debian/$NAME/usr" >> debian/rules
-echo -e "\t./configure --prefix=/usr" DESTDIR="$(pwd)/debian/$NAME/" >> debian/rules
+echo -e "\t./configure --enable-debug --prefix=/usr" DESTDIR="$(pwd)/debian/$NAME/" >> debian/rules
 echo 'override_dh_auto_build:' >> debian/rules
 echo -e '\tmake' >> debian/rules
 echo 'override_dh_auto_install:' >> debian/rules
@@ -63,6 +72,10 @@ echo -e "\tDESTDIR="$(pwd)/debian/$NAME/" make install" >> debian/rules
 echo -e "\tmv debian/$NAME/usr/include debian/$NAME-dev/usr" >> debian/rules
 echo -e "\tmv debian/$NAME/usr/lib/libsodium.so debian/$NAME-dev/usr/lib" >> debian/rules
 #echo -e "\tmv debian/$NAME/usr/lib/libsodium.so debian/$NAME/usr/lib/libsodium.so.13 debian/$NAME/usr/lib/libsodium.la debian/$NAME-dev/usr/lib" >> debian/rules
+echo '.PHONY: override_dh_strip' >> debian/rules
+echo 'override_dh_strip:' >> debian/rules
+echo -e '\tdh_strip --dbg-package=libsodium-dbg' >> debian/rules
+        
 #Create some misc files
 mkdir -p debian/source
 echo "8" > debian/compat
