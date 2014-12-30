@@ -63,7 +63,8 @@ echo '%:' >> debian/rules
 echo -e '\tdh $@' >> debian/rules
 echo 'override_dh_auto_configure:' >> debian/rules
 #echo -e "\t./configure --prefix=$(pwd)/debian/$NAME/usr" >> debian/rules
-echo -e "\t./configure --enable-debug --prefix=/usr" DESTDIR="$(pwd)/debian/$NAME/" >> debian/rules
+#echo -e "\t./configure --enable-debug --prefix=/usr" DESTDIR="$(pwd)/debian/$NAME/" >> debian/rules
+echo -e "\t./configure --prefix=/usr" DESTDIR="$(pwd)/debian/$NAME/" >> debian/rules
 echo 'override_dh_auto_build:' >> debian/rules
 echo -e '\tmake' >> debian/rules
 echo 'override_dh_auto_install:' >> debian/rules
