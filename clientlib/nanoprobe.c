@@ -655,7 +655,7 @@ endloop:
 		}
 		if (DEBUG >= 2) {
 			DEBUGMSG("%s.%d: Validating the config we processed...", __FUNCTION__, __LINE__);
-			if (!_nano_initconfig_OK(config)) {
+			if (_nano_initconfig_OK(config)) {
 				DEBUGMSG("%s.%d: config we read is good", __FUNCTION__, __LINE__);
 			}else{
 				DEBUGMSG("%s.%d: config we read is BAD", __FUNCTION__, __LINE__);
