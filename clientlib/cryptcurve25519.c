@@ -578,6 +578,7 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 	DEBUGCKSUM4("nonce:", nonce, crypto_box_NONCEBYTES);
 	DEBUGCKSUM4("sender   public key :", sender_public_key -> public_key,  crypto_box_PUBLICKEYBYTES);
 	DEBUGCKSUM4("receiver private key:", receiver_secret_key->private_key, crypto_box_SECRETKEYBYTES);
+	DEBUGMSG4("cypher offset versus tlvstart: %ld", (long)(cyphertext-(guint8*)tlvstart));
 	DEBUGCKSUM4("cypher text:", cyphertext, cypherlength);
 	if (crypto_box_open_easy(plaintext, cyphertext, cypherlength, nonce
 	,	sender_public_key->public_key, receiver_secret_key->private_key) != 0) {
@@ -652,6 +653,7 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 	// Encrypt in-place [we previously allocated enough space for authentication info]
 	crypto_box_easy(tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
 	,	nonce, self->public_key->public_key, self->private_key->private_key);
+	DEBUGMSG4("cypher offset versus tlvstart: %ld", tlvval+cyphertextoffset-(guint8*)tlvstart);
 	DEBUGCKSUM4("cypher text checksum:", tlvval+cyphertextoffset, plaintextsize+crypto_box_MACBYTES);
 	set_generic_tlv_type(tlvstart, self->baseclass.baseclass.type, pktend);
 	set_generic_tlv_len(tlvstart, tlvsize, pktend);
@@ -723,7 +725,7 @@ cryptcurve25519_debug_checksum( const char * function,	///[in] function name
 				size_t bufsize)		///[in] buffer size
 {
 	char *	checksum = cryptcurve25519_naming_checksum(buf, bufsize);
-	g_debug("%s.%d: %s %s", function, lineno, message, checksum);
+	g_debug("%s.%d: %s [%ld]%s", function, lineno, message, (long)bufsize, checksum);
 	g_free(checksum);
 }
 
