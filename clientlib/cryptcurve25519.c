@@ -264,6 +264,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 		goto getout;
 	}
 	close(fd); fd = -1;
+	DEBUGCKSUM4(filename, public_key, crypto_box_PUBLICKEYBYTES);
 
 	g_free(filename);
 	filename = curve25519_key_id_to_filename(key_id, PRIVATEKEY);
@@ -294,6 +295,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 			retval = FALSE;
 			goto getout;
 		}
+		DEBUGCKSUM4(filename, secret_key, crypto_box_SECRETKEYBYTES);
 		close(fd); fd = -1;
 	}
 getout:
@@ -503,6 +505,8 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	ret			= NEWSUBCLASS(CryptCurve25519, baseframe);
 	ret->private_key	= cryptframe_private_key_by_id(sender_key_id);
 	ret->public_key		= cryptframe_public_key_by_id(receiver_key_id);
+	DEBUGCKSUM3("private_key:", ret->private_key->private_key, crypto_box_SECRETKEYBYTES);
+	DEBUGCKSUM3("public_key:", ret->public_key->public_key, crypto_box_PUBLICKEYBYTES);
 	DUMP3(__FUNCTION__, &ret->baseclass.baseclass.baseclass, " is return value");
 	return ret;
 }
@@ -878,6 +882,8 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 		g_free(filename);
 		return FALSE;
 	}
+	DEBUGMSG4("Saving key to file %s", filename);
+	DEBUGCKSUM4("Saved key:", key, keysize);
 	rc = write(fd, key, keysize);
 	if (rc != keysize) {
 		g_warning("%s.%d: cannot write file %s: rc=%d [%s]", __FUNCTION__, __LINE__
