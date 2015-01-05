@@ -704,29 +704,7 @@ FSTATIC char*
 cryptcurve25519_naming_checksum(const guint8* buf,	///<[in] buffer to checksum
 				size_t buflen)		///<[in] length of 'buf'
 {
-	GChecksum*	cksum_object;
-	gsize		cksum_length;
-	gsize		computed_size;
-	guint8*		checksum;
-	char*		checksum_string;
-	unsigned	j;
-	unsigned	k;
-	cksum_length = g_checksum_type_get_length(KEY_NAMING_CHECKSUM);
-	checksum = g_malloc(cksum_length);
-	checksum_string = g_malloc(1+cksum_length*2);
-	cksum_object = g_checksum_new(KEY_NAMING_CHECKSUM);
-	g_checksum_update(cksum_object, buf, buflen);
-	g_checksum_get_digest(cksum_object, checksum, &computed_size);
-	checksum_string[0] = '\0';
-	// Convert the checksum to hex
-	for (j=0, k=0; j < cksum_length; ++j, k+=2)  {
-		char	hex[4]; // The size is 4 is to make the stack protector happy
-		sprintf(hex, "%02x", checksum[j]);
-		strcat(checksum_string+k, hex);
-	}
-	g_free(checksum);
-	g_checksum_free(cksum_object);
-	return checksum_string;
+	return g_compute_checksum_for_data(KEY_NAMING_CHECKSUM, buf, buflen);
 }
 
 /// Print a debug checksum message
@@ -790,6 +768,7 @@ cryptcurve25519_save_public_key(const char * key_id,	///< key id to save key und
 				int keysize)		///< size of key
 {
 	CryptFramePublicKey*	pub;
+	gpointer*	newpub;
 	if (keysize != crypto_box_PUBLICKEYBYTES) {
 		g_warning("%s.%d: Attempt to save a public key of %d bytes (instead of %d)"
 		,	__FUNCTION__, __LINE__, keysize, crypto_box_PUBLICKEYBYTES);
@@ -803,9 +782,12 @@ cryptcurve25519_save_public_key(const char * key_id,	///< key id to save key und
 		,	__FUNCTION__, __LINE__, key_id);
 		return FALSE;
 	}
-	if (!_cryptcurve25519_save_a_key(key_id, PUBLICKEY, public_key)
-	||	cryptframe_publickey_new(key_id, public_key) == NULL) {
+	newpub = malloc(keysize);
+	memcpy(newpub, public_key, keysize);
+	if (!_cryptcurve25519_save_a_key(key_id, PUBLICKEY, newpub)
+	||	cryptframe_publickey_new(key_id, newpub) == NULL) {
 		cryptcurve25519_purge_keypair(key_id);
+		g_free(newpub); newpub = NULL;
 		return FALSE;
 	}
 	if (DEBUG) {

@@ -32,16 +32,18 @@
 #include <misc.h>
 #include <sodium.h>
 
-FSTATIC gboolean _cryptframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
-FSTATIC void _cryptframe_finalize(AssimObj* aself);
-FSTATIC CryptFramePublicKey*  cryptframe_public_key_by_id(const char* key_id);
-FSTATIC CryptFramePrivateKey*  cryptframe_private_key_by_id(const char* key_id);
-static void (*_parentclass_finalize)(AssimObj*) = NULL;
+DEBUGDECLARATIONS
+
 
 ///@defgroup CryptFrame CryptFrame class
 /// Class for encrypting FrameSets.
 /// @{
 /// @ingroup Frame
+FSTATIC gboolean _cryptframe_default_isvalid(const Frame *, gconstpointer, gconstpointer);
+FSTATIC void _cryptframe_finalize(AssimObj* aself);
+FSTATIC CryptFramePublicKey*  cryptframe_public_key_by_id(const char* key_id);
+FSTATIC CryptFramePrivateKey*  cryptframe_private_key_by_id(const char* key_id);
+static void (*_parentclass_finalize)(AssimObj*) = NULL;
 
 /// @ref CryptFrame 'isvalid' member function (checks for valid cryptframe objects)
 FSTATIC gboolean
@@ -85,6 +87,7 @@ cryptframe_new( guint16 frame_type,		///<[in] TLV type of CryptFrame
 	Frame*		baseframe;
 	CryptFrame*	self;
 
+	BINDDEBUG(CryptFrame);
 	if (objsize < sizeof(CryptFrame)) {
 		objsize = sizeof(CryptFrame);
 	}
@@ -114,8 +117,11 @@ cryptframe_tlvconstructor(gpointer tlvstart,		///<[in] Start of marshalled CStri
 	// Abstract base class - can't do this...
 	g_return_val_if_reached(NULL);
 }
+#define DEBUGCKSUM3(msg, buf) {if (DEBUG >= 3) _cryptframe_debug_checksum(__FUNCTION__, __LINE__, msg, buf);}
+#define DEBUGCKSUM4(msg, buf) {if (DEBUG >= 4) _cryptframe_debug_checksum(__FUNCTION__, __LINE__, msg, buf);}
 FSTATIC void _cryptframe_publickey_finalize(AssimObj* key);
 FSTATIC void _cryptframe_privatekey_finalize(AssimObj* key);
+FSTATIC void _cryptframe_debug_checksum(const char * function, int lineno, const char * message, const guint8* buf);
 FSTATIC void _cryptframe_initialize_maps(void);
 // All our hash tables have strings for keys
 static GHashTable*	public_key_map = NULL;		///< map of all public keys by key id
@@ -194,6 +200,19 @@ _cryptframe_privatekey_finalize(AssimObj* privkey) ///< object to finalize/destr
 	}
 	_assimobj_finalize(privkey);
 }
+/// Print a debug checksum message
+FSTATIC void
+_cryptframe_debug_checksum( const char * function,	///[in] function name
+				int lineno,		///[in] line number
+				const char * message,	///[in] message
+				const guint8* buf)	///[in] buffer to checksum
+{
+	char *	checksum = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, 32); // HARDWIRED!!
+	g_debug("%s.%d: %s [%d]%s", function, lineno, message, 32, checksum);
+	g_free(checksum);
+}
+
+/// Create a persistent keypair and write it to disk
 
 
 /// Create a new public key - or return the existing public key with this id
@@ -217,6 +236,7 @@ cryptframe_publickey_new (const char *key_id,	///< Key id of the given public ke
 	self->frame_type = FRAMETYPE_PUBKEYCURVE25519;
 	self->public_key = public_key;
 	g_hash_table_insert(public_key_map, self->key_id, self);
+	DEBUGCKSUM3(self->key_id, public_key);
 	return self;
 }
 
@@ -241,6 +261,7 @@ cryptframe_privatekey_new(const char *key_id,	///<[in] Key id of given private k
 	self->key_size = crypto_box_SECRETKEYBYTES;
 	self->private_key = private_key;
 	g_hash_table_insert(private_key_map, self->key_id, self);
+	DEBUGCKSUM3(self->key_id, private_key);
 	return self;
 }
 
