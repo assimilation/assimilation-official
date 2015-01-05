@@ -505,9 +505,18 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	ret			= NEWSUBCLASS(CryptCurve25519, baseframe);
 	ret->private_key	= cryptframe_private_key_by_id(sender_key_id);
 	ret->public_key		= cryptframe_public_key_by_id(receiver_key_id);
-	DEBUGCKSUM3("private_key:", ret->private_key->private_key, crypto_box_SECRETKEYBYTES);
-	DEBUGCKSUM3("public_key:", ret->public_key->public_key, crypto_box_PUBLICKEYBYTES);
-	DUMP3(__FUNCTION__, &ret->baseclass.baseclass.baseclass, " is return value");
+	if (ret->private_key && ret->public_key) {
+		DEBUGCKSUM3("private_key:", ret->private_key->private_key, crypto_box_SECRETKEYBYTES);
+		DEBUGCKSUM3("public_key:", ret->public_key->public_key, crypto_box_PUBLICKEYBYTES);
+		DUMP3(__FUNCTION__, &ret->baseclass.baseclass.baseclass, " is return value");
+		REF(ret->private_key);
+		REF(ret->public_key);
+	}else{
+		g_warning("%s.%d: private or public key is NULL: %p / %p", __FUNCTION__, __LINE__
+		,	ret->private_key, ret->public_key);
+		UNREF3(ret);
+		return NULL;
+	}
 	return ret;
 }
 
@@ -787,7 +796,7 @@ cryptcurve25519_save_public_key(const char * key_id,	///< key id to save key und
 		return FALSE;
 	}
 	if ((pub = cryptframe_public_key_by_id(key_id)) != NULL) {
-		if (memcmp(public_key, pub->public_key, crypto_box_PUBLICKEYBYTES) == 0) {
+		if (memcmp(public_key, pub->public_key, keysize) == 0) {
 			return TRUE;
 		}
 		g_critical("%s.%d: Attempt to modify public key with id [%s]"
@@ -798,6 +807,11 @@ cryptcurve25519_save_public_key(const char * key_id,	///< key id to save key und
 	||	cryptframe_publickey_new(key_id, public_key) == NULL) {
 		cryptcurve25519_purge_keypair(key_id);
 		return FALSE;
+	}
+	if (DEBUG) {
+		CryptFramePublicKey*	pub = cryptframe_public_key_by_id(key_id);
+		g_return_val_if_fail(pub != NULL, FALSE);
+		g_return_val_if_fail(memcmp(public_key, pub->public_key, keysize) == 0, FALSE);
 	}
 	return TRUE;
 }
