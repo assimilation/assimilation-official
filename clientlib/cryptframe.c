@@ -456,14 +456,16 @@ cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
 WINEXPORT CryptFrame*
 cryptframe_new_by_destaddr(const NetAddr* destaddr)
 {
+	gpointer g_receiver_key;
 	CryptFramePublicKey* receiver_key;
 	if (NULL == current_encryption_method || NULL == default_signing_key) {
 		return NULL;
 	}
-	receiver_key = g_hash_table_lookup(addr_to_public_key_map, destaddr);
-	if (NULL == receiver_key) {
+	g_receiver_key = g_hash_table_lookup(addr_to_public_key_map, destaddr);
+	if (NULL == g_receiver_key) {
 		return NULL;
 	}
+	receiver_key = CASTTOCLASS(CryptFramePublicKey, g_receiver_key);
 	return current_encryption_method(default_signing_key->key_id, receiver_key->key_id);
 }
 // Set the current encryption method
