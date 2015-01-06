@@ -47,26 +47,24 @@ RUN pip install ctypesgen 'py2neo<2.0' testify getent
 RUN cd /root && mkdir -p assimilation/bin/buildtools assimilation/bin/libsodium && cd /root/assimilation/bin/libsodium
 ADD http://hg.linux-ha.org/assimilation/raw-file/tip/buildtools/libsodium.mkdeb.sh /root/assimilation/bin/buildtools/
 RUN cd /root/assimilation/bin/libsodium && pwd  && ls -l ../.. >&2 && bash ../buildtools/libsodium.mkdeb.sh &&  dpkg --install *.deb && echo Installed *.deb
-RUN mkdir -p /usr/share/assimilation/crypto.d
-ADD #CMA#00001.pub /usr/share/assimilation/crypto.d/
-ADD #CMA#00001.secret /usr/share/assimilation/crypto.d/
 #
 #   Assimilation Source
 #
 #RUN cd /root && hg clone -r @VERSION@ http://hg.linux-ha.org/assimilation assimilation/src
 ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
-RUN cd /root/assimilation/ && tar xvzf tip.tar.gz && mv Assimilation-* src
+RUN cd /root/assimilation/ && tar xzf tip.tar.gz && mv Assimilation-* src
 RUN cd /root/assimilation/bin; cmake ../src && make install
 RUN cd /root/assimilation/bin; cpack
 RUN cd /root/assimilation/bin; dpkg --install assimilation-nanoprobe-*-*.deb
-RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 600 /usr/share/assimilation/crypto.d/#CMA#00001.*
+RUN mkdir -p /usr/share/assimilation/crypto.d
+RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys
 RUN PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT); echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf
-RUN echo '@TIMEZONE@' | tee /etc/timezone; dpkg-reconfigure --frontend noninteractive tzdata
-EXPOSE 1984
 
 RUN echo /usr/lib/*linux-gnu/assimilation > /etc/ld.so.conf.d/assimilation.conf
 RUN ldconfig /usr/lib/*linux-gnu/assimilation
 #RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests && service rsyslog stop
 RUN cd /root/assimilation/bin && dpkg --install assimilation-cma-*-all.deb
 RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
-RUN service neo4j-service start && service neo4j-service stop # To make a lovely empty database...
+RUN service neo4j-service start && service neo4j-service stop # Make a lovely empty database...
+ADD timezone /etc/
+RUN dpkg-reconfigure --frontend noninteractive tzdata
