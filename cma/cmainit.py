@@ -24,7 +24,7 @@
 This module provides a class which initializes the CMA.
 '''
 
-import sys
+import sys, time
 import logging, logging.handlers
 import py2neo
 from py2neo import neo4j
