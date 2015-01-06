@@ -502,6 +502,7 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	baseframe->baseclass.isvalid	= _cryptcurve25519_default_isvalid;
 	baseframe->baseclass.updatedata	= _cryptcurve25519_updatedata;
 	baseframe->baseclass.length	= TLVLEN(receiver_key_id, sender_key_id);
+	baseframe->baseclass.baseclass._finalize = _cryptcurve25519_finalize;
 	ret			= NEWSUBCLASS(CryptCurve25519, baseframe);
 	ret->private_key	= cryptframe_private_key_by_id(sender_key_id);
 	ret->public_key		= cryptframe_public_key_by_id(receiver_key_id);
@@ -695,8 +696,8 @@ cryptcurve25519_gen_temp_keypair(const char *key_id) ///< key_id CANNOT be NULL
 	unsigned char*	secret_key = g_malloc(crypto_box_SECRETKEYBYTES);
 	
 	crypto_box_keypair(public_key, secret_key);
-	(void)cryptframe_privatekey_new(key_id, secret_key);
-	(void)cryptframe_publickey_new(key_id, public_key);
+	(void) cryptframe_privatekey_new(key_id, secret_key);
+	(void) cryptframe_publickey_new(key_id, public_key);
 }
 
 /// Return a malloced string containing the KEY_NAMING_CHECKSUM type checksum of the given data
