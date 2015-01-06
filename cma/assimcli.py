@@ -182,32 +182,32 @@ class genkeys(object):
         if len(otherargs) > 0:
             return usage()
         cryptcurve25519_cache_all_keypairs()
-        cma_ids = pyCryptFrame.get_cma_key_ids()
-        cma_ids.sort()
-        if len(cma_ids) == 0:
+        cmaidlist = pyCryptFrame.get_cma_key_ids()
+        cmaidlist.sort()
+        if len(cmaidlist) == 0:
             print ('No CMA keys found. Generating two CMA key-pairs to start.')
-            for keyid in (0, 1):
-                print >> sys.stderr, "Generating key id", keyid
-                cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX, keyid))
+            for sequence in (0, 1):
+                print >> sys.stderr, "Generating key id", sequence
+                cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX, sequence))
             cryptcurve25519_cache_all_keypairs()
-            cma_ids = pyCryptFrame.get_cma_key_ids()
-        elif len(cma_ids) == 1:
-            lastkey = cma_ids[0]
+            cmaidlist = pyCryptFrame.get_cma_key_ids()
+        elif len(cmaidlist) == 1:
+            lastkey = cmaidlist[0]
             lastseqno = int(lastkey[len(CMA_KEY_PREFIX):])
             newkeyid = ('%s%05d' % (CMA_KEY_PREFIX, lastseqno + 1))
             print ('Generating an additional CMA key-pair.')
             cryptcurve25519_gen_persistent_keypair(newkeyid)
             cryptcurve25519_cache_all_keypairs()
-            cma_ids = pyCryptFrame.get_cma_key_ids()
-        if len(cma_ids) != 2:
+            cmaidlist = pyCryptFrame.get_cma_key_ids()
+        if len(cmaidlist) != 2:
             print ('Unexpected number of CMA keys.  Expecting 2, but got %d.'
-            %       len(cma_ids))
+            %       len(cmaidlist))
         extras = []
         privatecount = 0
         userinfo = getent.passwd(CMAUSERID)
         if userinfo is None:
             raise OSError('CMA user id "%s" is unknown' % CMAUSERID)
-        for keyid in cma_ids:
+        for keyid in cmaidlist:
             privatename = pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY)
             pubname = pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PUBLICKEY)
             # pylint doesn't understand about getent...

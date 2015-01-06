@@ -317,7 +317,7 @@ class SystemTestEnvironment(object):
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
 
-    def set_nanoconfig(self, nano, debug=3, CMApubkey=None):
+    def set_nanoconfig(self, nano, debug=3):
         'Set up our nanoprobe configuration file'
         lines = (
             ('NANOPROBE_DYNAMIC=%d' % (1 if nano is self.cma else 0)),
@@ -369,7 +369,7 @@ class SystemTestEnvironment(object):
         image = random.choice(self.nanoimages)
         system = self._spawnsystem(image)
         system.debug = debug
-        self.set_nanoconfig(system, debug=debug, CMApubkey='/tmp/#CMA#00000.pub')
+        self.set_nanoconfig(system, debug=debug)
         system.startservice(SystemTestEnvironment.NANOSERVICE)
         return system
 

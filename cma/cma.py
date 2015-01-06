@@ -96,7 +96,7 @@
 '''
 
 
-import optparse, time, traceback
+import optparse, traceback
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
@@ -280,8 +280,11 @@ def main():
         if elem in config:
             config[elem] = pyNetAddr(str(config[elem]), port=ourport)
     io = pyReliableUDP(config, pyPacketDecoder())
-    trycount = 0
-    cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
+    try:
+        cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
+    except RuntimeError:
+        remove_pid_file(opt.pidfile)
+        raise
     for warn in cryptwarnings:
         CMAdb.log.warning(warn)
 
