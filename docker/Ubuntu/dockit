@@ -28,7 +28,6 @@
 set -e 
 NANO="nanoprobe.ubuntu"
 CMA="cma.ubuntu"
-sudo bash -c 'cp /usr/share/assimilation/crypto.d/#CMA#00001.* .'
-sudo chmod a+r *.secret
+cp /etc/timezone .
 docker build -t $CMA .
-rm -fr *.secret *.pub
+rm -f timezone
