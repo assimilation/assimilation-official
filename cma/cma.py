@@ -284,7 +284,7 @@ def main():
     while True:
         try:
             cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
-        except RuntimeError:
+        except RuntimeError, IOError:
             print >> sys.stderr, 'TRYING AGAIN...'
             trycount += 1
             if trycount > 300:
