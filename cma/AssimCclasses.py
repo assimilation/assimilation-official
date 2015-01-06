@@ -913,7 +913,7 @@ class pyFrame(pyAssimObj):
             %   (pyclassname, frametype, Cclassname)
         #print >> sys.stderr, "EVAL:", statement
         # We construct the string from our data, so it's trusted data...
-        # pylint: disable=0123
+        # pylint: disable=W0123
         return eval(statement)
 
 class pyCompressFrame(pyFrame):
