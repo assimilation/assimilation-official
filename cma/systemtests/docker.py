@@ -269,7 +269,7 @@ class SystemTestEnvironment(object):
         # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
         # this is because we return a different nanoprobe each time we call spawnnanoprobe()
         # pylint: disable=W0108
-        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=4), nanocount):
+        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=nanodebug), nanocount):
             self.nanoprobes.append(child())
             os.system('logger "Load Avg: $(cat /proc/loadavg)"')
             os.system('logger "$(grep MemFree: /proc/meminfo)"')
@@ -347,8 +347,6 @@ class SystemTestEnvironment(object):
             self.cma.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/cma" % lines[j]))
             print >> sys.stderr, ('CMA [%s]' % lines[j])
-
-
 
     def spawncma(self, nanodebug=0, cmadebug=0):
         'Spawn a CMA instance'
@@ -457,6 +455,7 @@ class SystemTestEnvironment(object):
 
     def __del__(self):
         'Clean up any images we created'
+        return
         if self.cleanupwhendone:
             for nano in self.nanoprobes:
                 nano.destroy()

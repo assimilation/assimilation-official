@@ -39,7 +39,7 @@ class CMAinit(object):
     The CMAinit class
     '''
 
-    def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False):
+    def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False, retries=300):
         'Initialize and construct a global database instance'
         #print >> sys.stderr, 'CALLING NEW initglobal'
         CMAdb.log = logging.getLogger('cma')
@@ -59,7 +59,25 @@ class CMAinit(object):
             CMAdb.log.info('Re-initializing the NEO4j database')
             self.delete_all()
         self.db = neodb
-        CMAdb.cdb = CMAdb(db=neodb)
+        trycount=0
+        while True:
+            try:
+                CMAdb.cdb = CMAdb(db=neodb)
+                # Neo4j started.  All is well with the world.
+                break
+            except (RuntimeError, IOError, py2neo.exceptions.ClientError):
+                print >> sys.stderr, 'TRYING AGAIN...'
+                trycount += 1
+                if trycount > retries:
+                    print >> sys.stderr, ('Neo4j still not started - giving up.')
+                    CMAdb.log.critical('Neo4j still not started - giving up.')
+                    raise RuntimeError('Neo4j not running - giving up')
+                if (trycount % 60) == 1:
+                    print >> sys.stderr, ('Waiting for Neo4j to start.')
+                    CMAdb.log.warning('Waiting for Neo4j to start.')
+                # Let's try again in a second...
+                time.sleep(1)
+                continue
         Store.debug = debug
         Store.log = CMAdb.log
         CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap)

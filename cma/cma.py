@@ -281,25 +281,7 @@ def main():
             config[elem] = pyNetAddr(str(config[elem]), port=ourport)
     io = pyReliableUDP(config, pyPacketDecoder())
     trycount = 0
-    while True:
-        try:
-            cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
-        except (RuntimeError, IOError, py2neo.exceptions.ClientError):
-            print >> sys.stderr, 'TRYING AGAIN...'
-            trycount += 1
-            if trycount > 300:
-                remove_pid_file(opt.pidfile)
-                print >> sys.stderr, ('Neo4j still not started - giving up.')
-                CMAdb.log.critical('Neo4j still not started - giving up.')
-                raise SystemExit(1)
-            if (trycount % 60) == 1:
-                print >> sys.stderr, ('Waiting for Neo4j to start.')
-                CMAdb.log.warning('Waiting for Neo4j to start.')
-            # Let's try again in a second...
-            time.sleep(1)
-            continue
-        # Neo4j started.  All is well with the world.
-        break
+    cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
     for warn in cryptwarnings:
         CMAdb.log.warning(warn)
 
@@ -464,6 +446,7 @@ if __name__ == '__main__':
     pyversion = sys.version_info
     if pyversion[0] != 2 or pyversion[1] < 7:
         raise RuntimeError('Must be run using python 2.x where x >= 7')
+    exitrc = 1
     # W0703 == Too general exception catching...
     # pylint: disable=W0703
     try:
