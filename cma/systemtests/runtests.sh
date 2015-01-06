@@ -29,28 +29,18 @@ echo $name
 mkdir $dirname
 LOGMSG="STARTING ASSIMILATION TESTS in $dirname with ARGS: $@"
 LOGNAME="$dirname/testlog.txt"
+SYSLOGTAIL="$dirname/syslog"
+SYSLOG=/var/log/syslog
 echo $LOGMSG > $LOGNAME
+echo '# vim: syntax=messages' > $SYSLOGTAIL
 logger -s "$LOGMSG" 2>$LOGNAME
+tail -1f $SYSLOG >> $SYSLOGTAIL &
+syslogpid=$!
 sudo time python assimtest.py "$@" >>$LOGNAME 2>&1 &
 testpid=$!
 tail -f $LOGNAME &
 tailpid=$!
 wait $testpid
 kill $tailpid
+kill $syslogpid
 echo "Tests complete with rc $?"
-echo "Copying syslog..."
-cp /var/log/syslog $dirname/syslog
-echo "Syslog copied"
-ed - $dirname/syslog <<!ED
-H
-1,/$LOGMSG/-1d
-0i
-# vim: syntax=messages
-.
-\$
-?    TOTALS ?+2,\$d
-w
-f
-q
-!ED
-echo "Syslog trimmed"
