@@ -29,13 +29,13 @@ We support the following commands:
     query - perform one of our canned ClientQuery queries
 '''
 
-import sys, os
+import sys, os, getent
 from query import ClientQuery
 from graphnodes import GraphNode
 from store import Store
 from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
-    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX
+    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID
 from AssimCclasses import pyCryptFrame, pyCryptCurve25519
 #
 # These imports really are necessary - in spite of what pylint thinks...
@@ -204,11 +204,20 @@ class genkeys(object):
             %       len(cma_ids))
         extras = []
         privatecount = 0
+        userinfo = getent.passwd(CMAUSERID)
+        if userinfo is None:
+            raise OSError('CMA user id "%s" is unknown' % CMAUSERID)
         for keyid in cma_ids:
+            privatename = pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY)
+            pubname = pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PUBLICKEY)
+            # pylint doesn't understand about getent...
+            # pylint: disable=E1101
+            os.chown(pubname, userinfo.uid, userinfo.gid)
+            # pylint: disable=E1101
+            os.chown(privatename, userinfo.uid, userinfo.gid)
             privatecount += 1
             if privatecount > 1:
-                print ('SECURELY HIDE *private* key %s' %
-                    pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY))
+                print ('SECURELY HIDE *private* key %s' % privatename)
                 extras.append(keyid)
 
 
