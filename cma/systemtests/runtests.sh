@@ -38,11 +38,15 @@ tailpid=$!
 wait $testpid
 kill $tailpid
 echo "Tests complete with rc $?"
+echo "Copying syslog..."
 cp /var/log/syslog $dirname/syslog
 echo "Syslog copied"
 ed - $dirname/syslog <<!ED
-1,/$LOGMSG/-1d
 H
+1,/$LOGMSG/-1d
+0i
+# vim: syntax=messages
+.
 \$
 ?    TOTALS ?+2,\$d
 w

@@ -126,7 +126,7 @@ class AssimSysTest(object):
 
         regexes = []
         for nano in sysenv.nanoprobes:
-            regexes.append(r' %s cma INFO: Stored OS JSON data from (%s) '
+            regexes.append(r' %s cma INFO: Stored cpu JSON data from (%s) '
             %       (sysenv.cma.hostname, nano.hostname))
             regexes.append(r' (%s) rsyslogd: \[.*] start' % (nano.hostname))
             regexes.append(r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
