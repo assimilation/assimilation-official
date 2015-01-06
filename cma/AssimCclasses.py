@@ -912,6 +912,8 @@ class pyFrame(pyAssimObj):
             statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" \
             %   (pyclassname, frametype, Cclassname)
         #print >> sys.stderr, "EVAL:", statement
+        # We construct the string from our data, so it's trusted data...
+        # pylint: disable=0123
         return eval(statement)
 
 class pyCompressFrame(pyFrame):
@@ -1254,10 +1256,12 @@ class pyCryptCurve25519(pyCryptFrame):
 
     @staticmethod
     def key_id_to_filename(key_id, keytype):
+        'Translate a key_id to a filename'
         ret = curve25519_key_id_to_filename(key_id, keytype)
         pyret = string_at(ret.raw)
         g_free(ret)
         return pyret
+
     @staticmethod
     def initkeys():
         '''Initialize our set of persistent public keys / keypairs and get ready to encrypt.
@@ -1314,7 +1318,7 @@ class pyCryptCurve25519(pyCryptFrame):
             %       len(cma_ids))
             warnings.append('YOU MUST SECURELY HIDE all but one private CMA key.')
             for keyid in extras:
-                warnings.append('SECURELY HIDE *private* key %s' % 
+                warnings.append('SECURELY HIDE *private* key %s' %
                     pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY))
         cryptcurve25519_set_encryption_method()
         return warnings

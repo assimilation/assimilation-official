@@ -96,7 +96,7 @@
 '''
 
 
-import optparse, time
+import optparse, time, traceback
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
@@ -445,14 +445,14 @@ def make_key_dir(keydir, userid):
 
 def logger(msg):
     'Log a message to syslog using logger'
-    system("logger -s '%s'" % msg)
+    os.system("logger -s '%s'" % msg)
 
-def process_main_exception(e):
+def process_main_exception(ex):
     'Process an uncaught exception outside our event loop'
     trace = sys.exc_info()[2]
     tblist = traceback.extract_tb(trace, 20)
     # Put our traceback into the logs in a legible way
-    logger('Got an exception in Main [%s]' % str(e))
+    logger('Got an exception in Main [%s]' % str(ex))
     logger('======== Begin Main Exception Traceback ========')
     for tb in tblist:
         (filename, line, funcname, text) = tb

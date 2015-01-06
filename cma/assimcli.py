@@ -34,8 +34,9 @@ from query import ClientQuery
 from graphnodes import GraphNode
 from store import Store
 from py2neo import neo4j
-from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair, cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX
-from AssimCclasses import pyCryptFrame, cryptframe_private_key_by_id, pyCryptCurve25519
+from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
+    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX
+from AssimCclasses import pyCryptFrame, pyCryptCurve25519
 #
 # These imports really are necessary - in spite of what pylint thinks...
 # pylint: disable=W0611
@@ -171,6 +172,8 @@ class genkeys(object):
 
     @staticmethod
     def execute(store, executor_context, otherargs, flagoptions):
+        'Generate the desired key-pairs'
+        store = store
         executor_context = executor_context
         flagoptions = flagoptions
 
@@ -207,7 +210,7 @@ class genkeys(object):
                 print ('SECURELY HIDE *private* key %s' %
                     pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY))
                 extras.append(keyid)
-        
+
 
 options = {'language', 'format'}
 def usage():
