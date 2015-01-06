@@ -443,9 +443,32 @@ def make_key_dir(keydir, userid):
     # pylint: disable=E1101
     os.chown(keydir, userinfo.uid, userinfo.gid)
 
+def logger(msg):
+    'Log a message to syslog using logger'
+    system("logger -s '%s'" % msg)
+
+def process_main_exception(e):
+    'Process an uncaught exception outside our event loop'
+    trace = sys.exc_info()[2]
+    tblist = traceback.extract_tb(trace, 20)
+    # Put our traceback into the logs in a legible way
+    logger('Got an exception in Main [%s]' % str(e))
+    logger('======== Begin Main Exception Traceback ========')
+    for tb in tblist:
+        (filename, line, funcname, text) = tb
+        filename = os.path.basename(filename)
+        logger('%s.%s:%s: %s'% (filename, line, funcname, text))
+    logger('======== End Main Exception Traceback ========')
+
 if __name__ == '__main__':
     pyversion = sys.version_info
     if pyversion[0] != 2 or pyversion[1] < 7:
         raise RuntimeError('Must be run using python 2.x where x >= 7')
-    exitrc = main()
+    # W0703 == Too general exception catching...
+    # pylint: disable=W0703
+    try:
+        exitrc = main()
+    except Exception as e:
+        process_main_exception(e)
+
     sys.exit(int(exitrc))
