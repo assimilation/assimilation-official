@@ -26,6 +26,7 @@ This module provides a class which initializes the CMA.
 
 import sys
 import logging, logging.handlers
+import py2neo
 from py2neo import neo4j
 from store import Store
 from cmadb import CMAdb
@@ -77,7 +78,6 @@ class CMAinit(object):
                     CMAdb.log.warning('Waiting for Neo4j to start.')
                 # Let's try again in a second...
                 time.sleep(1)
-                continue
         Store.debug = debug
         Store.log = CMAdb.log
         CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap)
