@@ -455,7 +455,6 @@ class SystemTestEnvironment(object):
 
     def __del__(self):
         'Clean up any images we created'
-        return
         if self.cleanupwhendone:
             for nano in self.nanoprobes:
                 nano.destroy()
