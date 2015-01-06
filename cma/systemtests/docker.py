@@ -100,7 +100,7 @@ class TestSystem(object):
 
     def __del__(self):
         "Invoke our destroy operation when we're deleted"
-        self.destroy()
+        #self.destroy()
 
     def startservice(self, servicename, async=False):
         'Unimplemented start service action'
@@ -114,7 +114,6 @@ class TestSystem(object):
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
     dockercmd = '/usr/bin/docker.io'
-    nsentercmd = '/usr/local/bin/nsenter'
     servicecmd = '/usr/bin/service'
 
     def __init__(self, imagename, cmdargs=None, dockerargs=None):
@@ -142,7 +141,8 @@ class DockerSystem(TestSystem):
     def start(self):
         'Start a docker instance'
         if self.status == TestSystem.NOTINIT:
-            runargs = ['run', '--detach=true', '--name=%s' % self.name]
+            runargs = ['run', '--detach=true', '-v', '/dev/urandom:/dev/random', '--privileged'
+            ,       '--name=%s' % self.name]
             if self.dockerargs is not None:
                 runargs.extend(self.dockerargs)
             runargs.append(self.imagename)
@@ -199,19 +199,21 @@ class DockerSystem(TestSystem):
         self.status = TestSystem.NOTINIT
 
 
-    def runinimage(self, nsenterargs):
+    def runinimage(self, cmdargs, detached=True):
         'Runs the given command on our running docker image'
         if self.status != TestSystem.RUNNING:
-            raise RuntimeError('Docker Container %s is not running - nsenter not possible'
+            raise RuntimeError('Docker Container %s is not running - docker exec not possible'
             %   self.name)
-        args = [DockerSystem.nsentercmd, '--target', str(self.pid)
-        , '--mount', '--uts',  '--ipc', '--net', '--pid', '--']
-        args.extend(nsenterargs)
-        #print >> sys.stderr, 'RUNNING nsenter cmd:', args
+        if detached:
+            args = [DockerSystem.dockercmd, 'exec', '-d', str(self.name) ]
+        else:
+            args = [DockerSystem.dockercmd, 'exec', str(self.name) ]
+        args.extend(cmdargs)
+        #print >> sys.stderr, 'RUNNING docker exec cmd:', args
         subprocess.check_call(args)
 
     def startservice(self, servicename, async=False):
-        'nsenter-based start service action for docker'
+        'docker-exec-based start service action for docker'
         if servicename in self.runningservices:
             print >> sys.stderr, ('WARNING: Service %s already running in docker system %s'
             %       (servicename, self.name))
@@ -223,7 +225,7 @@ class DockerSystem(TestSystem):
             self.runinimage(('/etc/init.d/'+servicename, 'start'))
 
     def stopservice(self, servicename, async=False):
-        'nsenter-based stop service action for docker'
+        'docker-exec-based stop service action for docker'
         if servicename in self.runningservices:
             self.runningservices.remove(servicename)
         else:
@@ -244,7 +246,7 @@ class SystemTestEnvironment(object):
     # pylint - too many arguments
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
-    ,       cmaimage='cma.ubuntu', nanoimages=('nanoprobe.ubuntu',)
+    ,       cmaimage='cma.ubuntu', nanoimages=('cma.ubuntu',)
     ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = sysclass
@@ -256,7 +258,7 @@ class SystemTestEnvironment(object):
         self.cleanupwhendone = cleanupwhendone
         watch = LogWatcher(logname, [])
         watch.setwatch()
-        self.spawncma(nanodebug=3, cmadebug=5)
+        self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // java version.*') % self.cma.hostname
         watch.setregexes((regex,))
@@ -267,7 +269,7 @@ class SystemTestEnvironment(object):
         # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
         # this is because we return a different nanoprobe each time we call spawnnanoprobe()
         # pylint: disable=W0108
-        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=3), nanocount):
+        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=4), nanocount):
             self.nanoprobes.append(child())
             os.system('logger "Load Avg: $(cat /proc/loadavg)"')
             os.system('logger "$(grep MemFree: /proc/meminfo)"')
@@ -304,6 +306,9 @@ class SystemTestEnvironment(object):
                 system.destroy()
                 system = None
 
+        system.runinimage(('/bin/bash', '-c', 'mkdir /tmp/cores'))
+        #system.runinimage(('/bin/bash', '-c'
+        #,                  'echo "/tmp/cores/core.%e.%p" > /proc/sys/kernel/core_pattern'))
         # Set up logging to be forwarded to our parent logger
         system.runinimage(('/bin/bash', '-c'
         ,   '''PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT);'''
@@ -317,21 +322,23 @@ class SystemTestEnvironment(object):
         lines = (
             ('NANOPROBE_DYNAMIC=%d' % (1 if nano is self.cma else 0)),
             ('NANOPROBE_DEBUG=%d' % (debug)),
+            ('NANOPROBE_CORELIMIT=unlimited'),
             ('NANOPROBE_CMAADDR=%s:1984' % self.cma.ipaddr)
         )
         nano.runinimage(('/bin/bash', '-c'
         ,           "echo '%s' >/etc/default/nanoprobe" % lines[0]))
         print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
-        for line in lines:
-            print >> sys.stderr, ('NANOPROBE [%s]' % line)
         for j in range(1, len(lines)):
             nano.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
-            #print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
+            print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
 
     def set_cmaconfig(self, debug=5):
         'Set up our CMA configuration file'
-        lines = ( ('CMA_DEBUG=%d' % (debug)),)
+        lines = ( ('CMA_DEBUG=%d' % (debug)),
+                  ('CMA_CORELIMIT=unlimited'),
+                  #('CMA_STRACEFILE=/tmp/cma.strace')
+        )
         self.cma.runinimage(('/bin/bash', '-c'
         ,           "echo '%s' >/etc/default/cma" % lines[0]))
         print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
@@ -339,7 +346,7 @@ class SystemTestEnvironment(object):
         for j in range(1, len(lines)):
             self.cma.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/cma" % lines[j]))
-            #print >> sys.stderr, ('CMA [%s]' % lines[j])
+            print >> sys.stderr, ('CMA [%s]' % lines[j])
 
 
 
@@ -357,9 +364,6 @@ class SystemTestEnvironment(object):
         self.set_nanoconfig(self.cma, debug=nanodebug)
         self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
         time.sleep(5)
-        self.cma.runinimage(('/bin/ls', '-l', '/usr/share/assimilation/crypto.d'))
-        self.cma.runinimage(('/bin/ls', '-ld', '/usr/share/assimilation/crypto.d'))
-        #self.cma.runinimage(('ps', '-efl'))
         return self.cma
 
     def spawnnanoprobe(self, debug=0):

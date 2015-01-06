@@ -28,16 +28,7 @@
 set -e 
 NANO="nanoprobe.ubuntu"
 CMA="cma.ubuntu"
-test -d cma.d || mkdir cma.d
-test -d nanoprobe.d || mkdir nanoprobe.d
-rm -fr nanoprobe.d/* cma.d/*
-sudo cp /usr/share/assimilation/crypto.d/#CMA#00001.pub /usr/share/assimilation/crypto.d/#CMA#00001.secret cma.d/
-cp cma.d/*.pub nanoprobe.d/
-currvers=$(hg identify http://hg.linux-ha.org/assimilation)
-timezone="$(cat /etc/timezone)" # Make Docker log time zones consistent with host log timestamps
-sed -e "s%@VERSION@%${currvers}%" -e "s%@TIMEZONE@%${timezone}%" <  Dockerfile.nanoprobe-only > nanoprobe.d/Dockerfile
-cat nanoprobe.d/Dockerfile
-(cd nanoprobe.d && docker.io build -t $NANO . )
-cp Dockerfile cma.d/
-(cd cma.d && sudo docker.io build -t $CMA .)
-rm -fr */*.secret */*.pub
+sudo bash -c 'cp /usr/share/assimilation/crypto.d/#CMA#00001.* .'
+sudo chmod a+r *.secret
+docker build -t $CMA .
+rm -fr *.secret *.pub
