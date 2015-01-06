@@ -232,11 +232,21 @@ def usage():
         print >> sys.stderr, '    %s' % commands[cmd].usage()
     return 1
 
+def dbsetup():
+    'Set up our connection to Neo4j'
+    ourstore = Store(neo4j.GraphDatabaseService(), uniqueindexmap={}, classkeymap={})
+    CMAinit(None)
+    for classname in GraphNode.classmap:
+        GraphNode.initclasstypeobj(ourstore, classname)
+    return ourstore
+
 
 def main(argv):
     'Main program for command line tool'
+    ourstore = None
     executor_context = None
 
+    nodbcmds = {'genkeys'}
     selected_options = {}
     narg = 0
     skipnext = False
@@ -254,15 +264,14 @@ def main(argv):
         else:
             break
 
-    ourstore = Store(neo4j.GraphDatabaseService(), uniqueindexmap={}, classkeymap={})
-    CMAinit(None)
-    for classname in GraphNode.classmap:
-        GraphNode.initclasstypeobj(ourstore, classname)
 
     if len(argv) < 2 or argv[1] not in commands:
         usage()
         return 1
-    return commands[argv[1]].execute(ourstore, executor_context, sys.argv[2:], selected_options)
+    command = argv[1]
+    if command not in nodbcmds:
+        ourstore=dbsetup()
+    return commands[command].execute(ourstore, executor_context, sys.argv[2:], selected_options)
 
 
 if __name__ ==  '__main__':
