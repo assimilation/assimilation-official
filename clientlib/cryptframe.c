@@ -202,10 +202,10 @@ _cryptframe_privatekey_finalize(AssimObj* privkey) ///< object to finalize/destr
 }
 /// Print a debug checksum message
 FSTATIC void
-_cryptframe_debug_checksum( const char * function,	///[in] function name
-				int lineno,		///[in] line number
-				const char * message,	///[in] message
-				const guint8* buf)	///[in] buffer to checksum
+_cryptframe_debug_checksum( const char * function,	///<[in] function name
+				int lineno,		///<[in] line number
+				const char * message,	///<[in] message
+				const guint8* buf)	///<[in] buffer to checksum
 {
 	char *	checksum = g_compute_checksum_for_data(G_CHECKSUM_MD5, buf, 32); // HARDWIRED!!
 	g_debug("%s.%d: %s [%d]%s", function, lineno, message, 32, checksum);
