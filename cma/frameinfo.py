@@ -486,7 +486,7 @@ class FrameSetTypes(object):
         #f.write('}\n')
 
         f.write('#define MIN_SEQFRAMESET\tFRAMESETTYPE_ACK\t///<'
-		' First frameset type with a sequence number\n')
+            ' First frameset type with a sequence number\n')
         f.write('#endif /* _FRAMESETTYPES_H */\n')
 
 # Create conventional class.DEFINENAME attributes
