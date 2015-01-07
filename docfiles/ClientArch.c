@@ -44,7 +44,7 @@ client could tell that the link status had gone away on its own NIC (see below) 
 the event and keep letting timers pop until the NIC comes back - or it starts hearing heartbeats.
 In fact, it should probably cancel it until the NIC comes back.
 
-@subsection ClientArchSwitchDeath Misc Linux Notes about NIC configuration
+@subsection LinuxNotesAboutNICConfiguration Misc Linux Notes about NIC configuration
 This command:
 <PRE>
     $ for j in address addr_len  duplex mtu speed  carrier; do printf '%%s: ' $j; cat /sys/class/net/eth0/$j; done
@@ -58,6 +58,7 @@ Produces this output:
     speed: 100
     carrier: 1
 </PRE>
-Some of these things there are probably are pcap functions for... (addr and addr_len perhaps).
-speed and MTU and duplex and carrier are probably not known to pcap.
+There are LLDP functions for the MTU, and duplex.
+Watching for carrier changes on links should eventually be a special case, since it would tell us
+that we have the problem, not the other guy...
 */
