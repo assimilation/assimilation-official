@@ -302,7 +302,7 @@ cryptframe_associate_identity(const char * identity,	///<[in] identity to associ
 	g_return_val_if_fail(cryptframe_public_key_by_id(key_id) != NULL, FALSE);
 	found_identity = cryptframe_whois_key_id(key_id);
 	if (found_identity) {
-		if (strcmp(found_identity, key_id) != 0) {
+		if (strcmp(found_identity, identity) != 0) {
 			g_critical("%s.%d: Key id %s cannot be associated with identity %s."
 			" Already associated with identity %s", __FUNCTION__, __LINE__
 			,	key_id, identity, found_identity);
