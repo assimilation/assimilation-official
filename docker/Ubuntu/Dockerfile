@@ -1,5 +1,8 @@
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
+# Dockerfile to build Libsodium and Assimilation packages
+#   All the packages we create are conveniently copied to /root/assimilation/packages
+#
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
@@ -52,10 +55,10 @@ RUN apt-get -y install --no-install-recommends neo4j
 ###############################################################
 #   Create libsodium packages
 ###############################################################
-RUN cd /root && mkdir -p assimilation/bin/buildtools assimilation/bin/libsodium && cd /root/assimilation/bin/libsodium
+RUN cd /root && mkdir -p assimilation/bin/buildtools assimilation/bin/libsodium assimilation/packages
 #   Import our script for building libsodium...
 ADD http://hg.linux-ha.org/assimilation/raw-file/tip/buildtools/libsodium.mkdeb.sh /root/assimilation/bin/buildtools/
-RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh &&  dpkg --install *.deb
+RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh &&  dpkg --install *.deb && cp *.deb /root/assimilation/packages
 
 ###############################################################
 #   Build and install Packages from Assimilation Source
@@ -63,17 +66,13 @@ RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh
 ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
 RUN cd /root/assimilation/ && tar xzf tip.tar.gz && mv Assimilation-* src
 RUN cd /root/assimilation/bin; cmake ../src && make install && cpack
-RUN cd /root/assimilation/bin; dpkg --install assimilation-nanoprobe-*-*.deb
 #   Set up Assimilation encryption keys
 RUN mkdir -p /usr/share/assimilation/crypto.d   # putting --mode 0700 on mkdir screws up security attributes (don't do it!)
 RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys
 #   Set up syslog to log to host
 RUN PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT); echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf
-# Install be a copy of host's /etc/timezone - so logs have right TZ
-ADD timezone /etc/
-RUN dpkg-reconfigure --frontend noninteractive tzdata
 #   Install Assimilation packages
-RUN cd /root/assimilation/bin && dpkg --install assimilation-cma-*-all.deb
+RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimilation-*.deb /root/assimilation/packages
 ###############################################################
 #   Run Assimilation unit tests
 ###############################################################
@@ -85,3 +84,6 @@ RUN service rsyslog start && service neo4j-service start  && cd /root/assimilati
 ###############################################################
 RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
 RUN service neo4j-service start && service neo4j-service stop # Make a lovely empty database...
+# Install be a copy of host's /etc/timezone - so logs will have right TZ
+ADD timezone /etc/
+RUN dpkg-reconfigure --frontend noninteractive tzdata
