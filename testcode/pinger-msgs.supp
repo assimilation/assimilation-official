@@ -1,5 +1,5 @@
 {
-   Crypto_box_easy - two bytes too much access to the public key
+   Crypto_box_easy - two bytes too much access to the public key - fixed in 1.0.1?
    Memcheck:Addr8
    fun:crypto_scalarmult_curve25519
    fun:crypto_box_curve25519xsalsa20poly1305_beforenm
@@ -9,7 +9,7 @@
    ...
 }
 {
-   Crypto_box_open_easy - two bytes too much access to the public key
+   Crypto_box_open_easy - two bytes too much access to the public key - fixed in 1.0.1?
    Memcheck:Addr8
    fun:crypto_scalarmult_curve25519
    fun:crypto_box_curve25519xsalsa20poly1305_beforenm
