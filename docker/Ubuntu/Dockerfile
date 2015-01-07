@@ -69,7 +69,8 @@ RUN mkdir -p /usr/share/assimilation/crypto.d   # putting --mode 0700 on mkdir s
 RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys
 #   Set up syslog to log to host
 RUN PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT); echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf
-ADD timezone /etc/ # Install be a copy of host's /etc/timezone - so logs have right TZ
+# Install be a copy of host's /etc/timezone - so logs have right TZ
+ADD timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata
 #   Install Assimilation packages
 RUN cd /root/assimilation/bin && dpkg --install assimilation-cma-*-all.deb
