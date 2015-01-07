@@ -574,8 +574,8 @@ MATCH Ring<-[RingMember_The_One_Ring]-Drone
 RETURN Drone
 </pre>
 
-@subsection GetRingMembers Return servers on a ring with a node, in the order they appear on the ring
-Thie query below will follow the <i>RingNext</i> links from the given node around the ring
+@subsection GetOrderedRingMembers Return servers on a ring with a node, in the order they appear on the ring
+The query below will follow the <i>RingNext</i> links from the given node around the ring
 until they return to the initial node.  It's kind of a funky little query...
 <pre>
 START Drone=node:Drone(Drone="drone000001")
@@ -591,7 +591,8 @@ The results should loke something like this:
 "drone000001"	[Node 31255]
 </pre>
 Note that this query returns the initial node <i>last</i>.
-
+Also note that the Neo4j people claim you shouldn't rely on the results being
+returned in the order you want them to be.  But this does seem to work...
 
 @subsection EvenMoreQueries Even More Cool Cypher Queries
 These queries don't begin to scratch the surface of what you can do with the Assimilation

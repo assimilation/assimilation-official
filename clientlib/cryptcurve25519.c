@@ -710,11 +710,11 @@ cryptcurve25519_naming_checksum(const guint8* buf,	///<[in] buffer to checksum
 
 /// Print a debug checksum message
 FSTATIC void
-cryptcurve25519_debug_checksum( const char * function,	///[in] function name
-				int lineno,		///[in] line number
-				const char * message,	///[in] message
-				const guint8* buf,	///[in] buffer to checksum
-				size_t bufsize)		///[in] buffer size
+cryptcurve25519_debug_checksum( const char * function,	///<[in] function name
+				int lineno,		///<[in] line number
+				const char * message,	///<[in] message
+				const guint8* buf,	///<[in] buffer to checksum
+				size_t bufsize)		///<[in] buffer size
 {
 	char *	checksum = cryptcurve25519_naming_checksum(buf, bufsize);
 	g_debug("%s.%d: %s [%ld]%s", function, lineno, message, (long)bufsize, checksum);
