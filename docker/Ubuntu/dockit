@@ -1,6 +1,11 @@
 #!/bin/sh
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
+#   Set up to create the cma.ubuntu docker image and extract the packages it creates
+#   These include both the Assimilation packages and also the libsodium packages
+#   These packages are extracted into the 'packages' subdirectory
+#
+#
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
@@ -31,3 +36,6 @@ CMA="cma.ubuntu"
 cp /etc/timezone .
 docker build -t $CMA .
 rm -f timezone
+ID=$(docker run -d $CMA /bin/sleep 60)
+docker cp $ID:/root/assimilation/packages .
+docker kill $ID
