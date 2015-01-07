@@ -74,8 +74,8 @@ GMainLoop*	loop = NULL;
 gboolean	encryption_enabled = FALSE;
 
 ObeyFrameSetTypeMap	doit [] = {
-	{FRAMESETTYPE_PING,	obey_pingpong},
-	{FRAMESETTYPE_PONG,	obey_pingpong},
+	{FRAMESETTYPE_SEQPING,	obey_pingpong},
+	{FRAMESETTYPE_SEQPONG,	obey_pingpong},
 	{0,			NULL}
 };
 
@@ -101,8 +101,8 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 	char *	addrstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
 	FsProtoState	state = transport->_protocol->connstate(transport->_protocol, 0, fromaddr);
 
-	if (fs->fstype == FRAMESETTYPE_PONG) {
-		fprintf(stderr, "Received a PONG packet from %s\n", addrstr);
+	if (fs->fstype == FRAMESETTYPE_SEQPONG) {
+		fprintf(stderr, "Received a SEQPONG packet from %s\n", addrstr);
 	}
 	if (encryption_enabled) {
 		const char *	keyid = frameset_sender_key_id(fs);
@@ -126,8 +126,8 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 		}
 		return;
 	}
-	if (fs->fstype == FRAMESETTYPE_PING) {
-		FrameSet*	ping = frameset_new(FRAMESETTYPE_PING);
+	if (fs->fstype == FRAMESETTYPE_SEQPING) {
+		FrameSet*	ping = frameset_new(FRAMESETTYPE_SEQPING);
 		IntFrame*	count = intframe_new(FRAMETYPE_CINTVAL, sizeof(pingcount));
 		GSList*		flist = NULL;
 		GSList*		iter;
@@ -165,7 +165,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 					gint	theirlastcount = GPOINTER_TO_INT(theirlastcount_p);
 					if (theirnextcount != theirlastcount +1) {
 						char *	fromstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
-						g_warning("%s.%d: PING received from %s was %d should have been %d"
+						g_warning("%s.%d: SEQPING received from %s was %d should have been %d"
 						,	__FUNCTION__, __LINE__, fromstr, theirnextcount, theirlastcount+1);
 						g_free(fromstr); fromstr = NULL;
 					}
@@ -190,7 +190,7 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 
 
 		for (j=0; j < pongcount; ++j) {
-			FrameSet*	pong = frameset_new(FRAMESETTYPE_PONG);
+			FrameSet*	pong = frameset_new(FRAMESETTYPE_SEQPONG);
 			flist = g_slist_append(flist, pong);
 		}
 		
@@ -323,7 +323,7 @@ main(int argc, char **argv)
 	//g_source_ref(&netpkt->baseclass);
 
 	fprintf(stderr, "Expecting %d packets\n", maxpingcount);
-	fprintf(stderr, "Sending   %d PONG packets per PING packet\n", pongcount);
+	fprintf(stderr, "Sending   %d SEQPONG packets per SEQPING packet\n", pongcount);
 	fprintf(stderr, "Transmit packet loss: %g\n", XMITLOSS*100);
 	fprintf(stderr, "Receive packet loss:  %g\n", RCVLOSS*100);
 	
@@ -365,10 +365,10 @@ main(int argc, char **argv)
 		REF(v6addr);	// For the 'ourcounts' table
 		{
 			char *	addrstr= v6addr->baseclass.toString(&v6addr->baseclass);
-			fprintf(stderr, "Sending an initial PING to %s\n", addrstr);
+			fprintf(stderr, "Sending an initial SEQPING to %s\n", addrstr);
 			g_free(addrstr); addrstr = NULL;
 		}
-		ping = frameset_new(FRAMESETTYPE_PING);
+		ping = frameset_new(FRAMESETTYPE_SEQPING);
 		iframe->setint(iframe, 1);
 		frameset_append_frame(ping, &iframe->baseclass);
 		UNREF2(iframe);

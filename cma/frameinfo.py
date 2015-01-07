@@ -430,6 +430,8 @@ class FrameSetTypes(object):
 	'SWDISCOVER':	(31, 'Packet encapsulates switch discovery packet'),
 	'JSDISCOVERY':	(32, 'Packet contains JSON-formatted discovery data'),
 	'RSCOPREPLY':	(33, 'Packet contains return result from a resource operation'),
+	'SEQPING':	(34, 'Are you alive? (can come from anyone)'),
+	'SEQPONG':	(35, 'I am alive (can go to anyone)'),
 	# 'Privileged' FrameSets sent from the CMA to nanoprobes
 	'SENDHB':	(64, 'Send Heartbeats to these addresses'),
 	'EXPECTHB':	(65, 'Expect (listen for) Heartbeats from these addresses'),
