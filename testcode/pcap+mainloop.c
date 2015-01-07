@@ -110,12 +110,12 @@ check_JSON(FrameSet* fs)
 	int	jsoncount = 0;
 	int	errcount = 0;
 
-	g_debug("Frameset type is: %d", fs->fstype);
+	//g_debug("Frameset type is: %d", fs->fstype);
 	for (fptr=fs->framelist; fptr; fptr=fptr->next) {
 		Frame*	frame = CASTTOCLASS(Frame, fptr->data);
 		CstringFrame*	csf;
 		ConfigContext *	config;
-		g_debug("Frame type is: %d", frame->type);
+		//g_debug("Frame type is: %d", frame->type);
 		if (frame->type != FRAMETYPE_JSDISCOVER) {
 			continue;
 		}
@@ -221,14 +221,31 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	FrameSet*	pkt;
 	NetGSource*	netpkt = auth->baseclass.transport;
 	char *		nanostr = nanoaddr->baseclass.toString(nanoaddr);
+	GSList*		thisgsf;
+	const char *	keyid = NULL;
 
 	(void)ifs;
-	// Override what the default ("real") nano startup did for/to us
-	cryptframe_set_signing_key_id(CRYPTO_KEYID);
 	g_message("CMA received startup message from nanoprobe at address %s/%d."
 	,	nanostr, nanoaddr->port(nanoaddr));
 	g_free(nanostr); nanostr = NULL;
 	check_JSON(ifs);
+
+	netpkt->_netio->addalias(netpkt->_netio, nanoaddr, destaddr);
+	
+	// Set up our crypto...
+	cryptframe_set_dest_public_key_id(nanoaddr, cryptframe_get_signing_key_id());
+	cryptframe_associate_identity(CMA_IDENTITY_NAME, cryptframe_get_signing_key_id());
+	cryptframe_set_encryption_method(cryptcurve25519_new_generic);
+	for (thisgsf = ifs->framelist; thisgsf; thisgsf=thisgsf->next) {
+		Frame*	thisframe = CASTTOCLASS(Frame, thisgsf->data);
+		if (thisframe->type == FRAMETYPE_KEYID) {
+			CstringFrame* csf = CASTTOCLASS(CstringFrame, thisframe);
+			keyid = (const char *)csf->baseclass.value;
+		}else if (keyid && thisframe->type == FRAMETYPE_PUBKEYCURVE25519) {
+			cryptcurve25519_save_public_key(keyid, thisframe->value
+			,	thisframe->length);
+		}
+	}
 
 	// Send the configuration data to our new "client"
 	pkt = create_setconfig(nanoconfig);
@@ -237,14 +254,6 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 
 	// Now tell them to send/expect heartbeats to various places
 	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB, destaddr, 1);
-	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
-	UNREF(pkt);
-
-	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr, 1);
-	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
-	UNREF(pkt);
-
-	pkt = create_sendexpecthb(auth->baseclass.config, FRAMESETTYPE_SENDEXPECTHB,otheraddr2, 1);
 	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 	UNREF(pkt);
 
@@ -268,9 +277,16 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 FSTATIC gboolean
 test_cma_authentication(const FrameSet*fs)
 {
-	///@todo do something that makes sure it's encrypted
-	/// For our purposes, we don't much care how.
-	return NULL != fs;
+	gpointer	maybecrypt = g_slist_nth_data(fs->framelist, 1);
+	Frame*		mightbecrypt;
+	/// For our purposes, we don't much care how it's encrypted...
+	g_return_val_if_fail(maybecrypt != NULL, FALSE);
+	mightbecrypt = CASTTOCLASS(Frame, maybecrypt);
+	if (mightbecrypt->type != FRAMETYPE_CRYPTCURVE25519) {
+		DUMP("test_cma_authentication: ", &fs->baseclass, " was BAD");
+		return FALSE;
+	}
+	return TRUE;
 }
 
 /**
@@ -285,8 +301,8 @@ int
 main(int argc, char **argv)
 {
 	const guint8	loopback[] = CONST_IPV6_LOOPBACK;
-	const guint8	mcastaddrstring[] = CONST_ASSIM_DEFAULT_V4_MCAST;
-	NetAddr*	mcastaddr;
+	//const guint8	mcastaddrstring[] = CONST_ASSIM_DEFAULT_V4_MCAST;
+	//NetAddr*	mcastaddr;
 	const guint8	otheradstring[] = {127,0,0,1};
 	const guint8	otheradstring2[] = {10,10,10,4};
 	const guint8	anyadstring[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -308,7 +324,6 @@ main(int argc, char **argv)
 #endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 #if 0
-	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
 	proj_class_incr_debug(NULL);
@@ -350,21 +365,12 @@ main(int argc, char **argv)
 	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMAFAIL, destaddr);
 	nanoconfig->setaddr(nanoconfig, CONFIGNAME_CMADISCOVER, destaddr);
 
-	// Set up our crypto...
-	cryptcurve25519_gen_temp_keypair(CRYPTO_KEYID);
-	cryptframe_set_signing_key_id(CRYPTO_KEYID);
-	cryptframe_associate_identity(CMA_IDENTITY_NAME, CRYPTO_KEYID);
-	cryptframe_set_dest_public_key_id(destaddr, CRYPTO_KEYID);
-	cryptframe_set_encryption_method(cryptcurve25519_new_generic);
-
 	// Construct another couple of NetAddrs to talk to and listen from
 	// for good measure...
 	otheraddr =  netaddr_ipv4_new(otheradstring, testport);
 	g_return_val_if_fail(NULL != otheraddr, 4);
 	otheraddr2 =  netaddr_ipv4_new(otheradstring2, testport);
 	g_return_val_if_fail(NULL != otheraddr2, 4);
-	cryptframe_set_dest_public_key_id(otheraddr, CRYPTO_KEYID);
-	cryptframe_set_dest_public_key_id(otheraddr2, CRYPTO_KEYID);
 
 	// Construct another NetAddr to bind to (anything)
 	anyaddr =  netaddr_ipv6_new(anyadstring, testport);
@@ -374,11 +380,15 @@ main(int argc, char **argv)
 	g_return_val_if_fail(nettransport->bindaddr(nettransport, anyaddr, FALSE),16);
 	//g_return_val_if_fail(nettransport->bindaddr(nettransport, destaddr),16);
 
-	g_message("Joining multicast address.");
+	g_message("NOT Joining multicast address.");
+#if 0
+	// We can't do this because of encryption and we will likely screw up
+	// others on our network even if that weren't a problem...
 	mcastaddr =  netaddr_ipv4_new(mcastaddrstring, testport);
 	g_return_val_if_fail(nettransport->mcastjoin(nettransport, mcastaddr, NULL), 17);
 	UNREF(mcastaddr);
 	g_message("multicast join succeeded.");
+#endif
 
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
@@ -398,7 +408,7 @@ main(int argc, char **argv)
 	listentonanoprobes = authlistener_new(0, cmalist, config, TRUE, NULL);
 	listentonanoprobes->baseclass.associate(&listentonanoprobes->baseclass, netpkt);
 
-	nano_start_full("netconfig", 900, netpkt, config, NULL);
+	nano_start_full("netconfig", 900, netpkt, config, test_cma_authentication);
 
 	g_timeout_add_seconds(1, timeout_agent, NULL);
 	mainloop = g_main_loop_new(g_main_context_default(), TRUE);
@@ -447,6 +457,7 @@ main(int argc, char **argv)
 	// Free config object
 	UNREF(config);
 	UNREF(nanoconfig);
+
 
 	// At this point - nothing should show up - we should have freed everything
 	if (proj_class_live_object_count() > 0) {

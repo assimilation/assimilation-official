@@ -376,14 +376,23 @@ FSTATIC SeqnoFrame*
 _frameset_getseqno(FrameSet* self)
 {
 	GSList*	curframe;
+	int	j = 0;
 	if (self->_seqframe) {
 		return self->_seqframe;
 	}
+	if (self->fstype < MIN_SEQFRAMESET) {
+		return NULL;
+	}
+	DEBUGMSG4("%s.%d: frameset type %d", __FUNCTION__, __LINE__, self->fstype);
 	for (curframe=self->framelist; curframe != NULL; curframe = g_slist_next(curframe)) {
 		Frame* frame = CASTTOCLASS(Frame, curframe->data);
-		DEBUGMSG4("%s: LOOKING AT FRAME TYPE %d (but want sequence number)", __FUNCTION__, frame->type);
+		j += 1;
+		DEBUGMSG4("%s.%d: LOOKING AT FRAME %d TYPE %d (but want sequence number [%d])"
+		,	__FUNCTION__, __LINE__, j, frame->type, FRAMETYPE_REQID);
 		if (frame->type == FRAMETYPE_REQID) {
 			self->_seqframe = CASTTOCLASS(SeqnoFrame, frame);
+			DEBUGMSG4("%s.%d: GOT sequence number [%ld])"
+			,	__FUNCTION__, __LINE__, (long)self->_seqframe->_reqid);
 			return self->_seqframe;
 		}
 	}
