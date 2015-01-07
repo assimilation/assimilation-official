@@ -44,6 +44,7 @@ if
 then
   mkdir $ASSIM
 fi
+rm -fr $ASSIM/*
 
 if
   [ "$WSID" = "$LATESTID" ]
