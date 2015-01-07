@@ -670,11 +670,11 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 			// Some addresses can confuse our clients -- let's check our alias table...
 			if (NULL != (aliasaddr = g_hash_table_lookup(self->aliases, *src))) {
 				// This is a good-enough way to make a copy.
-				aliasaddr->toIPv6(aliasaddr);
+				NetAddr* aliascopy = aliasaddr->toIPv6(aliasaddr);
 				// Keep the incoming port - since that's always right...
-				aliasaddr->_addrport = (*src)->_addrport;
+				aliascopy->_addrport = (*src)->_addrport;
 				UNREF(*src);
-				*src = aliasaddr;
+				*src = aliascopy;
 			}
 		}else{
 			g_warning("Received a %lu byte packet that didn't make any FrameSets"
