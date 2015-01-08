@@ -50,6 +50,7 @@
 #include <netio.h>
 #include <frameset.h>
 #include <frametypes.h>
+#include <misc.h>
 FSTATIC gint _netio_getfd(const NetIO* self);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src, gboolean silent);
@@ -170,7 +171,7 @@ _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr)
 			,	__FUNCTION__);
 			goto getout;
 		}
-		
+
 		rc = setsockopt(self->getfd(self), IPPROTO_IPV6, IPV6_JOIN_GROUP
 		,	(gpointer)&multicast_request, sizeof(multicast_request));
 		if (rc != 0) {
@@ -204,7 +205,7 @@ _netio_mcastjoin(NetIO* self, const NetAddr* src, const NetAddr*localaddr)
 			memcpy(&multicast_request.imr_address, &laddr.sin_addr
 			,	sizeof(multicast_request.imr_address));
 		}
-		
+
 		rc = setsockopt(self->getfd(self), IPPROTO_IP, IP_ADD_MEMBERSHIP
 		,	(gpointer)&multicast_request, sizeof(multicast_request));
 		if (rc != 0) {
@@ -220,7 +221,7 @@ getout:
 		UNREF(genlocal);
 		genlocal = NULL;
 	}
-	
+
 	return (rc == 0);
 }
 
@@ -287,7 +288,7 @@ _netio_boundaddr(const NetIO* self)		///<[in] The object being examined
 	socklen_t		saddrlen = sizeof(saddr);
 	socklen_t		retsize = saddrlen;
 
-	
+
 	if (getsockname(sockfd, (struct sockaddr*)&saddr, &retsize) < 0) {
 		g_warning("%s: Cannot retrieve bound address [%s]", __FUNCTION__, g_strerror(errno));
 		return NULL;
@@ -297,7 +298,7 @@ _netio_boundaddr(const NetIO* self)		///<[in] The object being examined
 		return NULL;
 	}
 	return netaddr_sockaddr_new(&saddr, saddrlen);
-	
+
 }
 
 /// Member function to free this NetIO object.
@@ -318,6 +319,9 @@ _netio_finalize(AssimObj* aself)	///<[in/out] The object being freed
 	}
 	if (self->_decoder) {
 		UNREF(self->_decoder);
+	}
+	if (self->peer_identity) {
+		FREE(self->peer_identity); self->peer_identity = NULL;
 	}
 
 	// Free up our hash table of aliases
@@ -397,6 +401,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->_configinfo = config;
 	ret->_decoder = decoder;
 	ret->is_encrypted = FALSE;
+	ret->peer_identity = NULL;
 	REF(decoder);
 	f =  config->getframe(config, CONFIGNAME_OUTSIG);
 	g_return_val_if_fail(f != NULL, NULL);
@@ -514,7 +519,6 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		DUMP3(__FUNCTION__, &curfs->baseclass, "is the frameset being sent");
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
 		self->stats.fswritten++;
-		
 	}
 }
 FSTATIC void
@@ -544,7 +548,6 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 		g_warning("%s.%d: Sending unencrypted packet on encrypted channel to %s."
 		,	__FUNCTION__, __LINE__, dest);
 		g_warning("%s.%d: Packet being sent is %s.", __FUNCTION__, __LINE__, pkt);
-		
 		g_free(dest); dest = NULL;
 		g_free(pkt); pkt = NULL;
 	}
@@ -658,6 +661,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	gpointer	pktend;
 	socklen_t	addrlen;
 	struct sockaddr_in6	srcaddr;
+	GSList*		thisfs;
 
 	*src = NULL;	// Make python happy in case we fail...
 	pkt = _netio_recvapacket(self, &pktend, &srcaddr, &addrlen);
@@ -665,7 +669,7 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 	if (NULL != pkt) {
 		ret = self->_decoder->pktdata_to_framesetlist(self->_decoder, pkt, pktend);
 		if (NULL != ret) {
-			NetAddr* aliasaddr;
+			NetAddr*	aliasaddr;
 			*src = netaddr_sockaddr_new(&srcaddr, addrlen);
 			// Some addresses can confuse our clients -- let's check our alias table...
 			if (NULL != (aliasaddr = g_hash_table_lookup(self->aliases, *src))) {
@@ -679,13 +683,53 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 		}else{
 			g_warning("Received a %lu byte packet that didn't make any FrameSets"
 			,	(unsigned long)((guint8*)pktend-(guint8*)pkt));
-			FREE(ret); ret = NULL;
+			goto badret;
 		}
 		FREE(pkt);
+	}
+	// Make sure everything is encrypted as it should be...
+	// Once we start talking encrypted on a channel, we
+	for (thisfs=ret; thisfs; thisfs=thisfs->next) {
+		FrameSet*	fs = CASTTOCLASS(FrameSet, thisfs->data);
+		const char *	keyid = NULL;
+		gpointer	maybecrypt;
+		const char*	sender_id = NULL;
+		maybecrypt = g_slist_nth_data(fs->framelist, 1);
+		if (maybecrypt && OBJ_IS_A(maybecrypt, "CryptFrame")) {
+			 keyid = CASTTOCLASS(CryptFrame, maybecrypt)->sender_key_id;
+		}
+		if (keyid) {
+			sender_id = cryptframe_whois_key_id(keyid);
+			self->is_encrypted = TRUE;
+			if (sender_id && !self->peer_identity) {
+				self->peer_identity = g_strdup(sender_id);
+			}
+		}
+		if (self->peer_identity) {
+			if (!sender_id || strcmp(sender_id, self->peer_identity) != 0) {
+				g_warning("%s.%d: Discarded FrameSet with wrong identity"
+				": %s instead of %s"
+				,	__FUNCTION__, __LINE__, sender_id
+				,	self->peer_identity);
+				// If any are bad - throw out the whole packet
+				goto badret;
+			}
+		}else if (self->is_encrypted && !keyid && fs->fstype >= MIN_SEQFRAMESET) {
+			char *	srcstr = (*src)->baseclass.toString(&(*src)->baseclass);
+			g_warning("%s.%d: Discarded unencrypted FrameSet"
+			" on encrypted channel to address %s."
+			,	__FUNCTION__, __LINE__, srcstr);
+			g_free(srcstr); srcstr = NULL;
+			goto badret;
+		}
 	}
 	if (ret && *src) {
 		self->stats.fsreads += g_slist_length(ret);
 	}
+	return ret;
+badret:
+	g_slist_free_full(ret, assim_g_notify_unref);
+	ret = NULL;
 	return ret;
 }
 /// Set the desired level of packet loss - doesn't take effect from this call alone
@@ -731,10 +775,10 @@ netio_is_dual_ipv4v6_stack(void)
 	endprotoent();
 #endif
 	g_return_val_if_fail(proto != NULL, FALSE);
-	
+
 	sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 	g_return_val_if_fail(sockfd >= 0, FALSE);
-	
+
 	optlen = sizeof(retval);
 	optval = TRUE;
 	if (getsockopt(sockfd, proto->p_proto, IPV6_V6ONLY, (char *)&optval, &optlen) < 0) {

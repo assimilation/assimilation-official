@@ -69,6 +69,7 @@ struct _NetIO {
 	double		_xmitloss;			///< private: Transmit loss fraction
 	gboolean	_shouldlosepkts;		///< private: TRUE to enable packet loss...
 	gboolean	is_encrypted;			///< TRUE if we're sending encrypted packets
+	char *		peer_identity;		///< Identity of the far end...
 	gboolean	(*input_queued)		///<[in] TRUE if input is queued ready to be read
 				(const NetIO* self);	///< The Object to examine
 	gboolean	(*bindaddr)		///<[in] Bind this NetIO to the given address
