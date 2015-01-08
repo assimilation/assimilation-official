@@ -416,12 +416,12 @@ class FrameSetTypes(object):
 	'HEARTBEAT':	(1, 'A heartbeat packet'),
 	'PING':		(2, 'Are you alive? (can also come from the CMA)'),
 	'PONG':		(3,  'I am alive (can also go to the CMA)'),
+	'STARTUP':	(4, 'Nanoprobe originating packet is starting up.'),
 	# nanoprobe FrameSets sent to collective management authority
 	'ACK':		(16, 'Frame referred to has been acted on. (can also come from the CMA)'),
 	'CONNSHUT':	(17, 'Shutting down this connection (can also come from CMA)'),
 	'CONNNAK':	(18, 'Ignoring your connection start request (can also come from CMA)'),
 
-	'STARTUP':	(25, 'System originating packet looking for heartbeat configuration.'),
 	'HBDEAD':	(26, 'System named in packet appears to be dead.'),
 	'HBSHUTDOWN':	(27, 'System originating packet has shut down.'),
 	'HBLATE':	(28, 'System named in packet sent a late heartbeat.'),
