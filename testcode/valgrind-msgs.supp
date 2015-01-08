@@ -415,7 +415,7 @@
 {
    g_thread_new/pthread_create leak
    Memcheck:Leak
-   match-leak-kinds: possible
+   #match-leak-kinds: possible
    fun:calloc
    fun:allocate_dtv
    fun:_dl_allocate_tls
