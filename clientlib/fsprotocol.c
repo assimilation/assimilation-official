@@ -974,9 +974,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	if (fspe->peer_identity) {
 		if (!sender_id || strcmp(sender_id, fspe->peer_identity) != 0) {
 			char *	srcstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
-			g_warning("%s.%d: Discarded FrameSet from %s with wrong identity"
+			g_warning("%s.%d: Discarded FrameSet %d from %s with wrong identity"
 			": %s instead of %s [key id %s]"
-			,	__FUNCTION__, __LINE__, srcstr, sender_id
+			,	__FUNCTION__, __LINE__, fs->fstype, srcstr, sender_id
 			,	fspe->peer_identity, keyid);
 			g_free(srcstr); srcstr = NULL;
 			DUMP("_fsprotocol_receive: FrameSet w/wrong identity: ", &fs->baseclass, "")
@@ -985,9 +985,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		}
 	}else if (fspe->is_encrypted && !keyid && fs->fstype >= MIN_SEQFRAMESET) {
 		char *	srcstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
-		g_warning("%s.%d: Discarded unencrypted FrameSet"
+		g_warning("%s.%d: Discarded unencrypted FrameSet %d"
 		" on encrypted channel from address %s."
-		,	__FUNCTION__, __LINE__, srcstr);
+		,	__FUNCTION__, __LINE__, fs->fstype, srcstr);
 		g_free(srcstr); srcstr = NULL;
 		DUMP("_fsprotocol_receive: unencrypted FrameSet is: ", &fs->baseclass, "")
 		goto badret;

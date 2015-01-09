@@ -100,9 +100,9 @@ import optparse, traceback
 import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
-from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, CRYPTKEYDIR
+from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, CRYPTKEYDIR, CMA_KEY_PREFIX
 import AssimCtypes
-from AssimCclasses import pyCompressFrame, pyCryptCurve25519
+from AssimCclasses import pyCompressFrame, pyCryptCurve25519, pyCryptFrame
 from cmaconfig import ConfigFile
 import importlib
 #import atexit
@@ -206,6 +206,20 @@ def main():
     cryptwarnings = pyCryptCurve25519.initkeys()
     for warn in cryptwarnings:
         print >> sys.stderr, ("WARNING: %s" % warn)
+    print 'All known key ids:'
+    keyids = pyCryptFrame.get_key_ids()
+    keyids.sort()
+    for keyid in keyids:
+        if not keyid.startswith(CMA_KEY_PREFIX):
+            try:
+                # @FIXME This is not an ideal way to associate identities with hosts
+                # in a multi-tenant environment
+                hostname, post = keyid.split('@@', 1)
+                pyCryptFrame.associate_identity(hostname, keyid)
+            except ValueError:
+                pass
+        print >> sys.stderr, '>    %s/%s' % (keyid, pyCryptFrame.get_identity(keyid))
+
 
     daemonize_me(opt.foreground, '/', opt.pidfile, 20)
 
