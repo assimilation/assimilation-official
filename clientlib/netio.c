@@ -320,9 +320,6 @@ _netio_finalize(AssimObj* aself)	///<[in/out] The object being freed
 	if (self->_decoder) {
 		UNREF(self->_decoder);
 	}
-	if (self->peer_identity) {
-		FREE(self->peer_identity); self->peer_identity = NULL;
-	}
 
 	// Free up our hash table of aliases
 	if (self->aliases) {
@@ -400,8 +397,6 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->_maxpktsize = 65300;
 	ret->_configinfo = config;
 	ret->_decoder = decoder;
-	ret->is_encrypted = FALSE;
-	ret->peer_identity = NULL;
 	REF(decoder);
 	f =  config->getframe(config, CONFIGNAME_OUTSIG);
 	g_return_val_if_fail(f != NULL, NULL);
@@ -506,15 +501,6 @@ _netio_sendframesets(NetIO* self,		///< [in/out] The NetIO object doing the send
 		if (cryptframe) {
 			DEBUGMSG3("%s.%d: Sending encrypted packet.", __FUNCTION__, __LINE__);
 			UNREF2(cryptframe);
-			self->is_encrypted = TRUE;
-		}else if (self->is_encrypted){
-			char *	dest = destaddr->baseclass.toString(&destaddr->baseclass);
-			char *	pkt = curfs->baseclass.toString(&curfs->baseclass);
-			g_warning("%s.%d: Sending unencrypted packet on encrypted channel to %s."
-			,	__FUNCTION__, __LINE__, dest);
-			g_warning("%s.%d: Packet being sent is %s.", __FUNCTION__, __LINE__, pkt);
-			g_free(dest); dest = NULL;
-			g_free(pkt); pkt = NULL;
 		}
 		DUMP3(__FUNCTION__, &curfs->baseclass, "is the frameset being sent");
 		_netio_sendapacket(self, curfs->packet, curfs->pktend, destaddr);
@@ -541,15 +527,6 @@ _netio_sendaframeset(NetIO* self,		///< [in/out] The NetIO object doing the send
 	if (cryptframe) {
 		DEBUGMSG3("%s.%d: Sending encrypted packet.", __FUNCTION__, __LINE__);
 		UNREF2(cryptframe);
-		self->is_encrypted = TRUE;
-	}else if (self->is_encrypted){
-		char *	dest = destaddr->baseclass.toString(&destaddr->baseclass);
-		char *	pkt = frameset->baseclass.toString(&frameset->baseclass);
-		g_warning("%s.%d: Sending unencrypted packet on encrypted channel to %s."
-		,	__FUNCTION__, __LINE__, dest);
-		g_warning("%s.%d: Packet being sent is %s.", __FUNCTION__, __LINE__, pkt);
-		g_free(dest); dest = NULL;
-		g_free(pkt); pkt = NULL;
 	}
 	DEBUGMSG3("%s.%d: sending %ld byte packet", __FUNCTION__, __LINE__
 	,	(long)(((guint8*)frameset->pktend-(guint8*)frameset->packet)));
@@ -656,12 +633,11 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 					///< from a single address.
 		     NetAddr** src)	///<[out] constructed source address for FrameSets
 {
-	GSList*		ret = NULL;
-	gpointer	pkt;
-	gpointer	pktend;
-	socklen_t	addrlen;
+	GSList*			ret = NULL;
+	gpointer		pkt;
+	gpointer		pktend;
+	socklen_t		addrlen;
 	struct sockaddr_in6	srcaddr;
-	GSList*		thisfs;
 
 	*src = NULL;	// Make python happy in case we fail...
 	pkt = _netio_recvapacket(self, &pktend, &srcaddr, &addrlen);
@@ -686,45 +662,6 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 			goto badret;
 		}
 		FREE(pkt);
-	}
-	// Make sure everything is encrypted as it should be...
-	// Once we start talking encrypted on a channel, we make sure
-	// that all future packets are encrypted.
-	// If we know the identity of the far end, we make sure future packets
-	// come from that identity.
-	for (thisfs=ret; thisfs; thisfs=thisfs->next) {
-		FrameSet*	fs = CASTTOCLASS(FrameSet, thisfs->data);
-		const char *	keyid = NULL;
-		gpointer	maybecrypt;
-		const char*	sender_id = NULL;
-		maybecrypt = g_slist_nth_data(fs->framelist, 1);
-		if (maybecrypt && OBJ_IS_A(maybecrypt, "CryptFrame")) {
-			 keyid = CASTTOCLASS(CryptFrame, maybecrypt)->sender_key_id;
-		}
-		if (keyid) {
-			sender_id = cryptframe_whois_key_id(keyid);
-			self->is_encrypted = TRUE;
-			if (sender_id && !self->peer_identity) {
-				self->peer_identity = g_strdup(sender_id);
-			}
-		}
-		if (self->peer_identity) {
-			if (!sender_id || strcmp(sender_id, self->peer_identity) != 0) {
-				g_warning("%s.%d: Discarded FrameSet with wrong identity"
-				": %s instead of %s"
-				,	__FUNCTION__, __LINE__, sender_id
-				,	self->peer_identity);
-				// If any are bad - throw out the whole packet
-				goto badret;
-			}
-		}else if (self->is_encrypted && !keyid && fs->fstype >= MIN_SEQFRAMESET) {
-			char *	srcstr = (*src)->baseclass.toString(&(*src)->baseclass);
-			g_warning("%s.%d: Discarded unencrypted FrameSet"
-			" on encrypted channel to address %s."
-			,	__FUNCTION__, __LINE__, srcstr);
-			g_free(srcstr); srcstr = NULL;
-			goto badret;
-		}
 	}
 	if (ret && *src) {
 		self->stats.fsreads += g_slist_length(ret);
