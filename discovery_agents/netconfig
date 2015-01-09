@@ -225,6 +225,7 @@ discover() {
       #    inet6 fe80::21b:fcff:fe1b:a873/64 scope link 
       #    inet  10.10.10.5/24               brd   10.10.10.255  scope      global  eth0
       #    inet  10.10.10.21/32              brd   10.10.10.149  scope      global  eth0:home
+      #    inet 192.168.128.209              peer  192.168.128.210/32 scope global tun
       read inet  addr                        brd   baddr         scopeword  scope   stuff
     do
       : WE FOUND inet [$inet] addr [$addr] brd [$brd] baddr [$baddr] scopeword [$scopeword] scope [$scope] stuff [$stuff]
@@ -236,7 +237,7 @@ discover() {
                   innercomma=', '
   		  printf "\"$addr\":\t{" 
                   case $brd in
-                    *brd*|scope) printf "\"$brd\":\"$baddr\"";;
+                    *brd*|peer|scope) printf "\"$brd\":\"$baddr\"";;
                   esac
                   case $scopeword in
                     scope) printf ", \"scope\":\"$scope\"";;
