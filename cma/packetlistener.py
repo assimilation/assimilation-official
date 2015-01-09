@@ -248,4 +248,7 @@ class PacketListener(object):
             if fromaddr is None:
                 return
             else:
+                key_id=frameset.sender_key_id()
+                if key_id and key_id is not None:
+                    pyCryptFrame.dest_set_public_key_id(fromaddr, key_id)
                 self.dispatcher.dispatch(fromaddr, frameset)
