@@ -77,9 +77,9 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     get_cdptlv_body, \
     tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
-    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL,                                     \
+    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME,                  \
     COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new,                               \
-    cryptframe_associate_identity, cryptframe_set_dest_public_key_id,                   \
+    cryptframe_associate_identity, cryptframe_set_dest_public_key_id, cryptframe_whois_key_id,   \
     cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
     cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,                \
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename,  \
@@ -1238,6 +1238,10 @@ class pyCryptFrame(pyFrame):
         cryptframe_associate_identity(identityname, key_id)
 
     @staticmethod
+    def get_identity(key_id):
+        return cryptframe_whois_key_id(key_id)
+
+    @staticmethod
     def dest_set_public_key_id(destaddr, key_id):
         '''Set the public key we should use when talking to the given destination
         address (including port).
@@ -1309,6 +1313,7 @@ class pyCryptCurve25519(pyCryptFrame):
         extras = []
         cma_ids.sort()
         for keyid in cma_ids:
+            pyCryptFrame.associate_identity(CMA_IDENTITY_NAME, keyid)
             if cryptframe_private_key_by_id(keyid):
                 privatecount += 1
                 if privatecount == 1:
