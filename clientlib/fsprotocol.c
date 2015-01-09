@@ -544,6 +544,8 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 		ret->shuttimer = 0;
 		ret->finalizetimer = 0;
 		ret->shutdown_complete = FALSE;
+		ret->is_encrypted = FALSE;
+		ret->peer_identity = NULL;
 		// This lookup assumes FsProtoElemSearchKey looks like the start of FsProtoElem
 		g_warn_if_fail(NULL == g_hash_table_lookup(self->endpoints, ret));
 		g_hash_table_insert(self->endpoints, ret, ret);
@@ -702,7 +704,7 @@ _fsprotocol_fspe_closeconn(FsProtoElem* self)
 
 
 
-/// Construct an FsQueue object
+/// Construct an FsProtocol object
 WINEXPORT FsProtocol*
 fsprotocol_new(guint objsize		///< Size of object to be constructed
 ,	      NetIO* io			///< Pointer to NetIO for us to reference
@@ -814,6 +816,9 @@ _fsprotocol_protoelem_destroy(gpointer fsprotoelemthing)	///< FsProtoElem to des
 	DUMP3("UNREFING FSPE: OUTQ", &self->outq->baseclass, __FUNCTION__);
 	UNREF(self->outq);
 	self->parent = NULL;
+	if (self->peer_identity) {
+		FREE(self->peer_identity); self->peer_identity = NULL;
+	}
 	memset(self, 0, sizeof(*self));
 	FREECLASSOBJ(self);
 }
@@ -939,16 +944,53 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 {
 	SeqnoFrame*	seq = fs->getseqno(fs);
 	FsProtoElem*	fspe;
+	const char *	keyid = NULL;
+	gpointer	maybecrypt;
+	const char*	sender_id = NULL;
 
 	fspe = self->findbypkt(self, fromaddr, fs);
-	UNREF(fromaddr);
 	if (fspe == NULL) {
-		return;
+		goto badret;
 	}
 	AUDITIREADY(self);
 	AUDITFSPE(fspe);
 	
 	DEBUGMSG3("%s.%d: Received type FrameSet fstype=%d", __FUNCTION__, __LINE__, fs->fstype);
+	// Once we start talking encrypted on a channel, we make sure
+	// that all future packets are encrypted.
+	// If we know the identity of the far end, we make sure future packets
+	// come from that identity.
+	maybecrypt = g_slist_nth_data(fs->framelist, 1);
+	if (maybecrypt && OBJ_IS_A(maybecrypt, "CryptFrame")) {
+		 keyid = CASTTOCLASS(CryptFrame, maybecrypt)->sender_key_id;
+	}
+	if (keyid) {
+		sender_id = cryptframe_whois_key_id(keyid);
+		fspe->is_encrypted = TRUE;
+		if (sender_id && !fspe->peer_identity) {
+			fspe->peer_identity = g_strdup(sender_id);
+		}
+	}
+	if (fspe->peer_identity) {
+		if (!sender_id || strcmp(sender_id, fspe->peer_identity) != 0) {
+			char *	srcstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
+			g_warning("%s.%d: Discarded FrameSet from %s with wrong identity"
+			": %s instead of %s [key id %s]"
+			,	__FUNCTION__, __LINE__, srcstr, sender_id
+			,	fspe->peer_identity, keyid);
+			g_free(srcstr); srcstr = NULL;
+			// If any are bad - throw out the whole packet
+			goto badret;
+		}
+	}else if (fspe->is_encrypted && !keyid && fs->fstype >= MIN_SEQFRAMESET) {
+		char *	srcstr = fromaddr->baseclass.toString(&fromaddr->baseclass);
+		g_warning("%s.%d: Discarded unencrypted FrameSet"
+		" on encrypted channel from address %s."
+		,	__FUNCTION__, __LINE__, srcstr);
+		g_free(srcstr); srcstr = NULL;
+		goto badret;
+	}
+	UNREF(fromaddr);
 	switch(fs->fstype) {
 		case FRAMESETTYPE_ACK: {
 			guint64 now = g_get_monotonic_time();
@@ -1043,6 +1085,10 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	AUDITIREADY(self);
 	AUDITFSPE(fspe);
 	TRYXMIT(fspe);
+	return;
+badret:
+	UNREF(fs);
+	UNREF(fromaddr);
 }
 
 /// Enqueue and send a single reliable frameset
@@ -1102,7 +1148,6 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 {
 	FsProtoElem*	fspe = self->addconn(self, qid, toaddr);
 	gboolean	ret = TRUE;
-	int		emptyq = fspe->outq->_q->length == 0;
 	AUDITFSPE(fspe);
 	if (FSPR_INSHUTDOWN(fspe->state)) {
 		return FALSE;
@@ -1113,20 +1158,13 @@ _fsprotocol_send(FsProtocol* self	///< Our object
 	if (ret) {
 		GSList*	this;
 		int	count = 0;
-		_fsprotocol_fsa(fspe, FSPROTO_REQSEND, NULL);
 		// Loop over our framesets and send them ouit...
 		for (this=framesets; this; this=this->next) {
 			FrameSet* fs = CASTTOCLASS(FrameSet, this->data);
 			g_return_val_if_fail(fs != NULL, FALSE);
 			DEBUGMSG3("%s: queueing up frameset %d of type %d"
 			,	__FUNCTION__, count, fs->fstype);
-			fspe->outq->enq(fspe->outq, fs);
-			self->io->stats.reliablesends++;
-			if (emptyq) {
-				fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
-				emptyq = FALSE;
-			}
-			AUDITFSPE(fspe);
+			_fsprotocol_send1(self, fs, qid, toaddr);
 			++count;
 		}
 	}

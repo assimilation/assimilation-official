@@ -86,6 +86,8 @@ struct _FsProtoElem {
 	guint		shuttimer;	///< FSPROTO_SHUT_TO timer (see FSA for details)
 	guint		finalizetimer;	///< Timer for removing these objects (if not reopened)
 	gboolean	shutdown_complete;//< TRUE if the shutdown we asked for completed
+	gboolean	is_encrypted;	///< TRUE if this channel is encrypted
+	char*		peer_identity;	///< Identity of the far end...
 };
 
 /// It is REQUIRED that these fields are the same as the first two in the FsProtoElem structure
