@@ -304,6 +304,10 @@ def main():
 
     CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
+    keyids = pyCryptFrame.get_key_ids()
+    keyids.sort()
+    for keyid in keyids:
+        CMAdb.log.info('KeyId %s Identity %s' % (keyid, pyCryptFrame.get_identity(keyid)))
     if CMAdb.debug:
         CMAdb.log.debug('C-library Debug was set to %s' % opt.debug)
         CMAdb.log.debug('TheOneRing created - id = %s' % CMAdb.TheOneRing)
