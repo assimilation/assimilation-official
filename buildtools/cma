@@ -2,8 +2,10 @@
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 ### BEGIN INIT INFO
 # Provides: assimilation-cma
-# Required-Start: $local_fs $remote_fs $network neo4j-service
-# Required-Stop: $local_fs $remote_fs $network neo4j-service
+# Required-Start: $local_fs $remote_fs $network $syslog
+# Should-Start: neo4j-service
+# Required-Stop: $local_fs $remote_fs $network $syslog
+# Should-Stop: neo4j-service
 # Default-Start: 2 3 4 5
 # Default-Stop:  0 1 6
 # Short-Description: start and stop the Assimilation Monitoring System CMA Authority (CMA)
