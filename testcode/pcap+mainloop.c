@@ -234,6 +234,7 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	
 	// Set up our crypto...
 	cryptframe_set_dest_public_key_id(nanoaddr, cryptframe_get_signing_key_id());
+	cryptframe_set_dest_public_key_id(destaddr, cryptframe_get_signing_key_id());
 	cryptframe_associate_identity(CMA_IDENTITY_NAME, cryptframe_get_signing_key_id());
 	cryptframe_set_encryption_method(cryptcurve25519_new_generic);
 	for (thisgsf = ifs->framelist; thisgsf; thisgsf=thisgsf->next) {
