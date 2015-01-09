@@ -979,7 +979,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			,	__FUNCTION__, __LINE__, srcstr, sender_id
 			,	fspe->peer_identity, keyid);
 			g_free(srcstr); srcstr = NULL;
-			DUMP("_fsprotocol_receive: FrameSet w/wrong identity: ", fs, "")
+			DUMP("_fsprotocol_receive: FrameSet w/wrong identity: ", &fs->baseclass, "")
 			// If any are bad - throw out the whole packet
 			goto badret;
 		}
@@ -989,7 +989,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		" on encrypted channel from address %s."
 		,	__FUNCTION__, __LINE__, srcstr);
 		g_free(srcstr); srcstr = NULL;
-		DUMP("_fsprotocol_receive: unencrypted FrameSet is: ", fs, "")
+		DUMP("_fsprotocol_receive: unencrypted FrameSet is: ", &fs->baseclass, "")
 		goto badret;
 	}
 	UNREF(fromaddr);
