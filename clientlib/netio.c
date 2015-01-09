@@ -688,7 +688,10 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 		FREE(pkt);
 	}
 	// Make sure everything is encrypted as it should be...
-	// Once we start talking encrypted on a channel, we
+	// Once we start talking encrypted on a channel, we make sure
+	// that all future packets are encrypted.
+	// If we know the identity of the far end, we make sure future packets
+	// come from that identity.
 	for (thisfs=ret; thisfs; thisfs=thisfs->next) {
 		FrameSet*	fs = CASTTOCLASS(FrameSet, thisfs->data);
 		const char *	keyid = NULL;
