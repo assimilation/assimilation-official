@@ -64,11 +64,11 @@ RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh
 #   Build and install Packages from Assimilation Source
 ###############################################################
 ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
-RUN cd /root/assimilation/ && tar xzf tip.tar.gz && mv Assimilation-* src
+RUN cd /root/assimilation/; ls -l && ls -l tip && tar xzf tip.tar.gz && mv Assimilation-* src
 RUN cd /root/assimilation/bin; cmake ../src && make install && cpack
 #   Set up Assimilation encryption keys
-RUN mkdir -p /usr/share/assimilation/crypto.d   # putting --mode 0700 on mkdir screws up security attributes (don't do it!)
-RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys
+RUN mkdir -p /usr/share/assimilation/crypto.d  /tmp/cores # putting --mode 0700 on mkdir screws up security attributes (don't do it!)
+RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys && chmod a+w /tmp/cores
 #   Set up syslog to log to host
 RUN PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT); echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf
 #   Install Assimilation packages

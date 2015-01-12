@@ -33,6 +33,23 @@
 set -e 
 NANO="nanoprobe.ubuntu"
 CMA="cma.ubuntu"
+LOCALWS=$HOME/monitor/src
+rm -fr local
+case $1 in
+  local) 
+        mkdir local
+        cd local
+        hg archive tip.tar.gz
+        #ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
+        #RUN cd /root/assimilation/; ls -l && ls -l tip && tar xzf tip.tar.gz && mv Assimilation-* src
+        #RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
+        sed -e 's%http://hg.linux-ha.org/assimilation/archive/%%'                   \
+            -e 's%RUN.* mv Assimilation-.*%RUN cd /root/assimilation; mv tip src%'  \
+            -e 's%RUN service rsyslog start.*testify%#&%'                           \
+            < ../Dockerfile > ./Dockerfile
+        ;;
+esac
+
 cp /etc/timezone .
 docker build -t $CMA .
 rm -f timezone
