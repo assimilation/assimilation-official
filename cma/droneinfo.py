@@ -37,6 +37,8 @@ from cmaconfig import ConfigFile
 
 
 @RegisterGraphClass
+#droneinfo.py:39: [R0904:Drone] Too many public methods (21/20)
+# pylint: disable=R0904
 class Drone(SystemNode):
     '''Everything about Drones - endpoints that run our nanoprobes.
 
