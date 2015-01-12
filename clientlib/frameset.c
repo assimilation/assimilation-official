@@ -438,7 +438,7 @@ frameset_sender_key_id(const FrameSet* self)
 	// If we have an encryption frame it *must* be the second frame
 	// (the first frame is frame 0, and the second is frame 1)
 	maybecrypt = g_slist_nth_data(self->framelist, 1);
-	if (!OBJ_IS_A(maybecrypt, "CryptFrame")) {
+	if (!maybecrypt || !OBJ_IS_A(maybecrypt, "CryptFrame")) {
 		return NULL;
 	}
 	cryptframe = CASTTOCLASS(CryptFrame, maybecrypt);
