@@ -234,7 +234,6 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			}
 			if (NULL == newframe) {
 				UNREF(fs);
-				g_warn_if_reached();
 				goto getnextframeset;
 			}
 			if (TRUE == firstframe) {

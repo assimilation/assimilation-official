@@ -24,7 +24,7 @@ This implements the PacketListener class - which listens to packets then
 dispatches them.
 '''
 
-from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr
+from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr, pyCryptFrame
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from frameinfo import FrameSetTypes
 from cmadb import CMAdb
@@ -38,7 +38,7 @@ from cmadb import CMAdb
 import glib # We've replaced gi.repository and gobject with our own 'glib' module
 
 import time
-#import sys
+import sys
 
 # R0903 is too few public methods
 #pylint: disable=R0903
@@ -210,14 +210,14 @@ class PacketListener(object):
             else:
                 fromstr = repr(fromaddr)
                 if CMAdb.debug:
-                    CMAdb.log.debug("Received FrameSet from str([%s], [%s])" \
+                    CMAdb.log.debug("listenonce: Received FrameSets from str([%s], [%s])" \
                     %       (str(fromaddr), fromstr))
                 #print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
                 #%       (str(fromaddr), fromstr))
 
             for frameset in framesetlist:
                 if CMAdb.debug:
-                    CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" \
+                    CMAdb.log.debug("listenonce: FrameSet Gotten ([%s]: [%s])" \
                     %       (str(fromaddr), frameset))
                 self.dispatcher.dispatch(fromaddr, frameset)
     def _read_all_available(self):
@@ -229,7 +229,7 @@ class PacketListener(object):
             else:
                 fromstr = repr(fromaddr)
                 if CMAdb.debug:
-                    CMAdb.log.debug("Received FrameSet from str([%s], [%s])" \
+                    CMAdb.log.debug("_read_all_available: Received FrameSet from str([%s], [%s])" \
                     %       (str(fromaddr), fromstr))
                 #print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
                 #%       (str(fromaddr), fromstr))
@@ -245,10 +245,13 @@ class PacketListener(object):
         while True:
             self._read_all_available()
             fromaddr, frameset = self.dequeue_a_frameset()
+            print >> sys.stderr, 'FRAMESET IS', frameset
+            print >> sys.stderr, 'FROMADDR IS', fromaddr
             if fromaddr is None:
                 return
             else:
                 key_id=frameset.sender_key_id()
                 if key_id and key_id is not None:
+                    print >> sys.stderr, 'SETTING KEY(', fromaddr, key_id, ')'
                     pyCryptFrame.dest_set_public_key_id(fromaddr, key_id)
                 self.dispatcher.dispatch(fromaddr, frameset)

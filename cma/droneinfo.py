@@ -103,7 +103,11 @@ class Drone(SystemNode):
         return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
         ,       params=params)]
 
-
+    def crypto_identity(self):
+        '''Return the Crypto Identity that should be associated with this Drone
+        Note that this current algorithm isn't ideal for a multi-tenant environment.
+        '''
+        return self.designation
 
     def logjson(self, origaddr, jsontext):
         'Process and save away JSON discovery data'

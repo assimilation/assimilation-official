@@ -651,10 +651,11 @@ class pyNetAddr(pyAssimObj):
         self._Cstruct = None	# Silence error messages in failure cases
 
         if (Cstruct is not None):
-            assert type(Cstruct) is not int
+            assert type(Cstruct) is not int and Cstruct
             pyAssimObj.__init__(self, Cstruct=Cstruct)
             if port is not None:
                 self.setport(port)
+            assert self._Cstruct
             return
 
         if port is None:
@@ -669,9 +670,11 @@ class pyNetAddr(pyAssimObj):
             if port != 0:
                 cs[0].setport(cs, port)
             pyAssimObj.__init__(self, Cstruct=cs)
+            assert self._Cstruct
             return
 
         self._init_from_binary(addrstring, port)
+        assert self._Cstruct
 
     def _init_from_binary(self, addrstring, port):
         'Initialize an addrstring from a binary argument'
@@ -755,6 +758,7 @@ class pyNetAddr(pyAssimObj):
 
     def __repr__(self):
         'Return a canonical representation of this NetAddr'
+        assert self._Cstruct
         base = self._Cstruct[0]
         while (type(base) is not NetAddr):
             base = base.baseclass
@@ -1235,18 +1239,27 @@ class pyCryptFrame(pyFrame):
         does not support a key being associated with multiple identities
         (which doesn't make sense anyway).
         '''
-        cryptframe_associate_identity(identityname, key_id)
+        assert identityname is not None
+        assert key_id is not None
+        cryptframe_associate_identity(str(identityname), str(key_id))
 
     @staticmethod
     def get_identity(key_id):
-        return cryptframe_whois_key_id(key_id)
+        assert key_id is not None
+        cret = cryptframe_whois_key_id(str(key_id))
+        if not cret:
+            return None
+        print >> sys.stderr, 'get_identity: CRET is', cret, type(cret), type(cret.raw)
+        return str(cret)
 
     @staticmethod
     def dest_set_public_key_id(destaddr, key_id):
         '''Set the public key we should use when talking to the given destination
         address (including port).
         '''
-        cryptframe_set_dest_public_key_id(destaddr._Cstruct, key_id)
+        if not destaddr._Cstruct or key_id is None:
+            raise ValueError('illegal parameters')
+        cryptframe_set_dest_public_key_id(destaddr._Cstruct, str(key_id))
 
 class pyCryptCurve25519(pyCryptFrame):
     '''Encryption Frame based on Libsodium - Curve25519 public key encryption.
@@ -1375,13 +1388,27 @@ class pyFrameSet(pyAssimObj):
         "Clear the given flags for this FrameSet"
         return frameset_clear_flags(self._Cstruct, int(flags))
 
-    def sender_id(self):
+    def sender_key_id(self):
         'Return the key_id of the cryptographic sender of this FrameSet'
-        return string_at(frameset_sender_key_id(self._Cstruct))
+        #print >> sys.stderr, 'TYPE(self)', type(self), 'str(self)', str(self), type(self._Cstruct)
+        ret = frameset_sender_key_id(self._Cstruct)
+        print >> sys.stderr, 'sender_key_id: TYPE(ret)', type(ret), 'ret', ret, 'raw', ret.raw, 'data', ret.data
+        print >> sys.stderr, 'sender_key_id: str(ret)', str(ret), type(str(ret)), not ret
+        print type(ret.raw), ret.raw
+        if not ret:
+            print >> sys.stderr, 'Returning None(!)', self.get_framesettype()
+            return None
+        pyret = string_at(ret.raw)
+        print >> sys.stderr, 'PYRET:', type(pyret), 'pyret:', pyret
+        return pyret
 
     def sender_identity(self):
         'Return the identity of the cryptographic sender of this FrameSet'
-        return string_at(frameset_sender_identity(self._Cstruct))
+        cret = frameset_sender_identity(self._Cstruct)
+        if not cret:
+            return None
+        print >>sys.stderr, 'SENDER_IDENTITY', cret, str(cret)
+        return 'sender_identity()'
 
     def dump(self):
         'Dump out the given frameset'

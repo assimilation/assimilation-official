@@ -658,7 +658,7 @@ class Store(object):
         'Reset all our statistical counters and timers'
         self.stats = {}
         for statname in ('nodecreate', 'relate', 'separate', 'index', 'attrupdate'
-        ,       'index', 'nodedelete'):
+        ,       'index', 'nodedelete', 'addlabels'):
             self.stats[statname] = 0
         self.stats['lastcommit'] = None
         self.stats['totaltime'] = timedelta()
@@ -818,6 +818,17 @@ class Store(object):
             self._bump_stat('nodecreate')
             self.batch.create(node)
 
+    def _batch_construct_add_labels(self):
+        'Construct batch commands for all the labels to be added for this batch'
+        for pair in self._new_nodes():
+            (subj, node) = pair
+            self.batchindex += 1
+            self._bump_stat('addlabels')
+            cls = subj.__class__
+            if False and hasattr(cls, '__meta_labels__'):
+                print >> sys.stderr, 'ADDING LABELS for', type(node), cls.__meta_labels__()
+                self.batch.add_labels(node, cls.__meta_labels__())
+
     def _batch_construct_relate_nodes(self):
         'Construct the batch commands to create the requested relationships'
         for rel in self.newrels:
@@ -949,10 +960,11 @@ class Store(object):
         if self.batch is None:
             self.batch = neo4j.WriteBatch(self.db)
         self.batchindex = 0
-        self._batch_construct_create_nodes()        # These return new nodes
+        self._batch_construct_create_nodes()        # These return new nodes in the batch return result
         self._batch_construct_relate_nodes()        # These return new relationships
         self._batch_construct_new_index_entries()   # These return the objects indexed
         self._batch_construct_node_updates()        # These return None
+        self._batch_construct_add_labels()          # Not sure what these return
         self._batch_construct_deletions()           # These return None
         if Store.debug:
             print >> sys.stderr, ('Batch Updates constructed: Committing THIS THING:', str(self))

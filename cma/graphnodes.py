@@ -80,18 +80,18 @@ class GraphNode(object):
         raise NotImplementedError('Abstract base class function __meta_keyattrs__')
 
     @classmethod
-    def __meta_tags__(cls):
-        'Return the default set of tags which should be put on our objects when created'
-        tags = []
+    def __meta_labels__(cls):
+        'Return the default set of labels which should be put on our objects when created'
+        labels = []
         classes = [cls]
         classes.extend(cls.__bases__)
-        tags = []
+        labels = []
         for c in classes:
             name = c.__name__
             if name == 'GraphNode':
                 break
-            tags.append('Class_' + name)
-        return tags
+            labels.append('Class_' + name)
+        return labels
 
     def post_db_init(self):
         '''Create IS_A relationship to our 'class' node in the database, and set creation time'''
@@ -498,10 +498,10 @@ if __name__ == '__main__':
     if CMAdb.store.transaction_pending:
         print 'Transaction pending in:', CMAdb.store
         print 'Results:', CMAdb.store.commit()
-    print CMAclass.__meta_tags__()
-    print ProcessNode.__meta_tags__()
-    print SystemNode.__meta_tags__()
+    print CMAclass.__meta_labels__()
+    print ProcessNode.__meta_labels__()
+    print SystemNode.__meta_labels__()
     from droneinfo import Drone
-    print Drone.__meta_tags__()
+    print Drone.__meta_labels__()
     print 'keys:', Drone.__meta_keyattrs__()
     print >> sys.stderr, 'Init done'
