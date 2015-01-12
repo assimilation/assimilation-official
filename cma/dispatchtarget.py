@@ -52,8 +52,8 @@ class DispatchTarget(object):
         fstype = frameset.get_framesettype()
         CMAdb.log.info("Received unhandled FrameSet of type [%s] from [%s]"
         %     (FrameSetTypes.get(fstype)[0], str(origaddr)))
-        print ("Received unhandled FrameSet of type [%s] from [%s]"
-        %     (FrameSetTypes.get(fstype)[0], str(origaddr)))
+        print ("Received unhandled FrameSet of type [%d:%s] from [%s]"
+        %     (fstype, FrameSetTypes.get(fstype)[0], str(origaddr)))
         for frame in frameset.iter():
             frametype = frame.frametype()
             print "\tframe type [%s]: [%s]" \
