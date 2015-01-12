@@ -146,8 +146,8 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 			}
 		}else if (seqno->_sessionid < self->_sessionid) {
 			// Replay attack?
-			g_warning("%s: Possible replay attack? Current session id: %d, incoming session id: %d"
-			,	__FUNCTION__, self->_sessionid, seqno->_sessionid);
+			g_warning("%s.%d: Possible replay attack? Current session id: %d, incoming session id: %d"
+			,	__FUNCTION__, __LINE__, self->_sessionid, seqno->_sessionid);
 			return FALSE;
 		}else if (seqno->_sessionid > self->_sessionid) {
 			char *	clientaddr = self->_destaddr->baseclass.toString
@@ -163,8 +163,9 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 			// We need to see if we've already sent the ACK for this packet.
 			// If so, we need to ACK it again...
 			DUMP3(__FUNCTION__, &fs->baseclass, " Previously delivered to client");
-			DEBUGMSG3("%s: reason: sequence number is "FMT_64BIT"d but next is "FMT_64BIT"d"
-			,	__FUNCTION__, seqno->_reqid, self->_nextseqno);
+			DEBUGMSG3("%s.%d: reason: sequence number is "FMT_64BIT"d but next should be "FMT_64BIT"d"
+			,	__FUNCTION__, __LINE__, seqno->_reqid, self->_nextseqno);
+			// Returning FALSE will trigger resending the ACK in _fsprotocol_receive()
 			return FALSE;
 		}
 	}
