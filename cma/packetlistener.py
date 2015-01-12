@@ -38,7 +38,7 @@ from cmadb import CMAdb
 import glib # We've replaced gi.repository and gobject with our own 'glib' module
 
 import time
-import sys
+#import sys
 
 # R0903 is too few public methods
 #pylint: disable=R0903
@@ -245,13 +245,13 @@ class PacketListener(object):
         while True:
             self._read_all_available()
             fromaddr, frameset = self.dequeue_a_frameset()
-            print >> sys.stderr, 'FRAMESET IS', frameset
-            print >> sys.stderr, 'FROMADDR IS', fromaddr
+            #print >> sys.stderr, 'FRAMESET IS', frameset
+            #print >> sys.stderr, 'FROMADDR IS', fromaddr
             if fromaddr is None:
                 return
             else:
                 key_id=frameset.sender_key_id()
                 if key_id and key_id is not None:
-                    print >> sys.stderr, 'SETTING KEY(', fromaddr, key_id, ')'
+                    #print >> sys.stderr, 'SETTING KEY(', fromaddr, key_id, ')'
                     pyCryptFrame.dest_set_public_key_id(fromaddr, key_id)
                 self.dispatcher.dispatch(fromaddr, frameset)

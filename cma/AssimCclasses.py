@@ -1393,15 +1393,15 @@ class pyFrameSet(pyAssimObj):
         'Return the key_id of the cryptographic sender of this FrameSet'
         #print >> sys.stderr, 'TYPE(self)', type(self), 'str(self)', str(self), type(self._Cstruct)
         ret = frameset_sender_key_id(self._Cstruct)
-        print >> sys.stderr, 'sender_key_id: TYPE(ret)', type(ret), 'ret', ret,     \
-                 'raw', ret.raw, 'data', ret.data
-        print >> sys.stderr, 'sender_key_id: str(ret)', str(ret), type(str(ret)), not ret
-        print type(ret.raw), ret.raw
+        #print >> sys.stderr, 'sender_key_id: TYPE(ret)', type(ret), 'ret', ret,     \
+        #         'raw', ret.raw, 'data', ret.data
+        #print >> sys.stderr, 'sender_key_id: str(ret)', str(ret), type(str(ret)), not ret
+        #print type(ret.raw), ret.raw
         if not ret:
-            print >> sys.stderr, 'Returning None(!)', self.get_framesettype()
+            #print >> sys.stderr, 'Returning None(!)', self.get_framesettype()
             return None
         pyret = string_at(ret.raw)
-        print >> sys.stderr, 'PYRET:', type(pyret), 'pyret:', pyret
+        #print >> sys.stderr, 'PYRET:', type(pyret), 'pyret:', pyret
         return pyret
 
     def sender_identity(self):
