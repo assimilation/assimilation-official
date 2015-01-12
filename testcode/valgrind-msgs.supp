@@ -448,3 +448,19 @@
    fun:crypto_box_open_easy
    ...
 }
+
+{
+   Older_Linux_getpwname_apparent_memory_leak
+   Memcheck:Leak
+   fun:malloc
+   fun:nss_parse_service_list
+   fun:__nss_database_lookup
+   obj:*
+   fun:getpwnam_r@@GLIBC_2.2.5
+   fun:getpwnam
+   fun:_cryptcurve25519_make_cryptdir
+   fun:cryptcurve25519_cache_all_keypairs
+   fun:nanoprobe_initialize_keys
+   fun:nano_start_full
+   fun:main
+}

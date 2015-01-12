@@ -17,3 +17,20 @@
    fun:crypto_box_open_easy
    ...
 }
+{
+   OlderLinux_zlib_bug
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+   fun:z_decompressbuf
+   fun:compressframe_tlvconstructor
+   fun:_decode_packet_framedata_to_frameobject
+   fun:_pktdata_to_framesetlist
+   fun:_netio_recvframesets
+   fun:_reliableudp_recvframesets
+   fun:_netgsource_dispatch
+   fun:g_main_context_dispatch
+   obj:*
+   fun:g_main_loop_run
+   fun:main
+}
