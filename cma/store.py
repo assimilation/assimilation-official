@@ -960,7 +960,7 @@ class Store(object):
         if self.batch is None:
             self.batch = neo4j.WriteBatch(self.db)
         self.batchindex = 0
-        self._batch_construct_create_nodes()        # These return new nodes in the batch return result
+        self._batch_construct_create_nodes()        # These return new nodes in batch return result
         self._batch_construct_relate_nodes()        # These return new relationships
         self._batch_construct_new_index_entries()   # These return the objects indexed
         self._batch_construct_node_updates()        # These return None

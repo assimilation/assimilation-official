@@ -98,10 +98,6 @@ class TestSystem(object):
         'Unimplemented destroy action'
         raise NotImplementedError("Abstract class - doesn't implement destroy")
 
-    def __del__(self):
-        "Invoke our destroy operation when we're deleted"
-        #self.destroy()
-
     def startservice(self, servicename, async=False):
         'Unimplemented start service action'
         raise NotImplementedError("Abstract class - doesn't implement startservice")
@@ -117,7 +113,7 @@ class DockerSystem(TestSystem):
     servicecmd = '/usr/bin/service'
 
     def __init__(self, imagename, cmdargs=None, dockerargs=None):
-        'Constructor for Abstract class TestSystem'
+        'Constructor for DockerSystem class'
         if dockerargs is None:
             dockerargs = []
         self.dockerargs = dockerargs
@@ -127,6 +123,10 @@ class DockerSystem(TestSystem):
         self.pid = 'unknown'
         self.debug = 0
         TestSystem.__init__(self, imagename, cmdargs=cmdargs)
+
+    def __del__(self):
+        "Invoke our destroy operation when we're deleted"
+        #self.destroy()
 
     @staticmethod
     def run(*dockerargs):
@@ -189,12 +189,20 @@ class DockerSystem(TestSystem):
         'Stop a docker instance'
         if self.status != TestSystem.RUNNING:
             return
+        os.system('logger -s "Running services in %s: %s"' % (self.name, str(self.runningservices)))
+        self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+        DockerSystem.run('top', self.name)
         DockerSystem.run('stop', self.name)
         self.status = TestSystem.STOPPED
         self.pid = None
 
     def destroy(self):
         'Destroy a docker instance (after stopping it if necessary)'
+        if self.status == TestSystem.RUNNING:
+            os.system('logger -s "Running services in %s: %s"'
+            %   (self.name, str(self.runningservices)))
+            self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+            DockerSystem.run('top', self.name)
         DockerSystem.run('rm', '-f', self.name)
         self.status = TestSystem.NOTINIT
 
@@ -469,15 +477,12 @@ if __name__ == '__main__':
     def testmain(logname):
         'A simple test main program'
         print >> sys.stderr, 'Initializing:'
-        env = SystemTestEnvironment(logname, 5)
+        env = SystemTestEnvironment(logname, 3)
         print >> sys.stderr, 'Systems all up and running!'
-        time.sleep(5)
         for j in range(0,len(env.nanoprobes)):
-            print >> sys.stderr, 'Stopping nanoprobe on the %d one!' % j
             nano = env.nanoprobes[j]
+            print >> sys.stderr, 'Stopping nanoprobe on the %d one [%s]!' % (j, nano.name)
             nano.stopservice(SystemTestEnvironment.NANOSERVICE)
-            time.sleep(20)
-        time.sleep(120)
         env.stop()
         env = None
         print >> sys.stderr, 'All systems after deletion:', TestSystem.ManagedSystems
