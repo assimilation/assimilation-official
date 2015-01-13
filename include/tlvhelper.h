@@ -26,10 +26,10 @@
 #include <glib.h>
 
 // "Bad" values to return in case of errors
-#define	TLV_BAD8	((guint8)       0xff)
-#define	TLV_BAD16	((guint16)    0xffff)
-#define	TLV_BAD24	((guint32)  0xffffff)
-#define	TLV_BAD32	((guint32)0xffffffff)
+#define	TLV_BAD8	((guint8)               0xff)
+#define	TLV_BAD16	((guint16)            0xffff)
+#define	TLV_BAD24	((guint32)          0xffffff)
+#define	TLV_BAD32	((guint32)        0xffffffff)
 #define	TLV_BAD64	((guint64)0xffffffffffffffffUL)
 #define	TLV_BADPTR	NULL
 

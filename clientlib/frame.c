@@ -22,6 +22,7 @@
  */
 #include <frame.h>
 #include <generic_tlv_min.h>
+#include <tlvhelper.h>
 #include <memory.h>
 
 FSTATIC void _frame_default_finalize(AssimObj * self);
@@ -164,7 +165,7 @@ frame_tlvconstructor(gpointer tlvstart,		///<[in] start of TLV for this Frame
 	const guint8*	framevalue = get_generic_tlv_value(tlvstart, pktend);
 	Frame *		ret = frame_new(frametype, 0);
 	(void)ignorednewpkt; (void)ignoredpktend;
-	g_return_val_if_fail(ret != NULL, NULL);
+	g_return_val_if_fail(ret != NULL && frametype != TLV_BAD16 && framelength != TLV_BAD24, NULL);
 
 	ret->length = framelength;
 	if (framelength > 0) {
