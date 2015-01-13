@@ -63,7 +63,7 @@ get_generic_tlv_len(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV e
 {
 	const guint8 * tlvp = tlv_vp;
 	guint32 tainted_len = tlv_get_guint24(tlvp+sizeof(guint16), pktend);
-	g_return_val_if_fail((tlvp + tainted_len) > (const guint8*)pktend, 0);
+	g_return_val_if_fail((tlvp + tainted_len) <= (const guint8*)pktend, TLV_BAD24);
 	return tainted_len;
 }
 
@@ -84,6 +84,10 @@ get_generic_tlv_value(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV
 {
 	const guint8*	tlvbytes = tlv_vp;
 	const guint8*	ret = (tlvbytes + GENERICTLV_HDRSZ);
+	if (ret == (const guint8*)pktend) {
+		g_return_val_if_fail(get_generic_tlv_len(tlv_vp, pktend) == 0, TLV_BADPTR); // NULL
+		return ret;
+	}
 	g_return_val_if_fail(ret < (const guint8*)pktend, TLV_BADPTR); // NULL
 	return ret;
 }
