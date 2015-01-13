@@ -32,7 +32,7 @@ tlv_get_guint8(const void * vitem,	///< Location to get int from
 {
 	const guint8* itemptr = (const guint8*)vitem;
 	guint8 item;
-	g_return_val_if_fail(vitem != NULL && vitem < bufend, (guint8)0xff);
+	g_return_val_if_fail(vitem != NULL && vitem < bufend, TLV_BAD8);
 	item = *itemptr;
 	return item;
 }
@@ -55,10 +55,7 @@ tlv_get_guint16(const void * vitem,	///< Location to get int from
 {
 	const guint16* itemptr = (const guint16*)vitem;
 	guint16 item;
-	if (!(vitem != NULL && ((itemptr+1) <= (const guint16*)bufend))) {
-		g_error("UhOh! vitem is %p and bufend is %p", vitem, bufend);
-	}
-	g_return_val_if_fail(vitem != NULL && ((const void*)(itemptr+1) <= bufend), (guint16)0xffff);
+	g_return_val_if_fail(vitem != NULL && ((itemptr+1) <= (const guint16*)bufend), TLV_BAD16);
 	memcpy(&item, vitem, sizeof(item));
 	return g_ntohs(item);
 }
@@ -83,7 +80,7 @@ tlv_get_guint32(const void * vitem,	///< Location to get int from
 {
 	const guint32* itemptr = (const guint32*)vitem;
 	guint32 item;
-	g_return_val_if_fail(vitem != NULL && ((const void*)(itemptr+1) <= bufend), (guint32)0xffffffff);
+	g_return_val_if_fail(vitem != NULL && ((const void*)(itemptr+1) <= bufend), TLV_BAD32);
 	memcpy(&item, vitem, sizeof(item));
 	return g_ntohl(item);
 }
@@ -109,7 +106,7 @@ tlv_get_guint64(const void * vitem,	///< Location to get int from
 {
 	const guint64* itemptr = (const guint64*)vitem;
 	guint64 item;
-	g_return_val_if_fail(vitem != NULL && ((const void*)(itemptr+1) <= bufend), (guint32)0xffffffff);
+	g_return_val_if_fail(vitem != NULL && ((const void*)(itemptr+1) <= bufend), TLV_BAD24);
 	memcpy(&item, vitem, sizeof(item));
 	return GINT64_FROM_BE(item);
 }
@@ -133,7 +130,7 @@ tlv_get_guint24(const void * vitem,	///< Location to get int from
 {
 	guint32 item;
 	guint8 firstbyte;
-	g_return_val_if_fail(vitem != NULL && ((const void*)((const guint8*)vitem+3)) <= bufend, (guint32)0xffffff);
+	g_return_val_if_fail(vitem != NULL && ((const void*)((const guint8*)vitem+3)) <= bufend, TLV_BAD24);
 	firstbyte = *((const guint8*)vitem);
 	///@todo verify that this 3-byte ordering is correct - it has to match the IEEE OUI layout...
 	item = tlv_get_guint16((((const guint8 *)vitem+1)), bufend);

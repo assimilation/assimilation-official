@@ -1434,8 +1434,7 @@ nanoprobe_initialize_keys(void)
 	}else{
 		// Generate a key pair if we don't already have one
 		if (cryptframe_get_signing_key() == NULL) {
-			char *	key_id = (char*)thiselem->data;
-			key_id = cryptcurve25519_gen_persistent_keypair(NULL);
+			char *	key_id = cryptcurve25519_gen_persistent_keypair(NULL);
 			if (NULL != key_id) {
 				g_info("%s.%d: Generated public key pair [%s]"
 				,	__FUNCTION__, __LINE__, key_id);
