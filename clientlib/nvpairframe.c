@@ -75,7 +75,8 @@ _nvpairframe_default_isvalid(const Frame * self,	///<[in] NVpairFrame object ('t
 	}
 	length = get_generic_tlv_len(tlvptr, pktend);
 	namestart = get_generic_tlv_value(tlvptr, pktend);
-	if (0 == length) {
+	if (0 == length || TLV_BAD24 == length || namestart == NULL
+	||	length > (gsize)((const guint8*)pktend-namestart)) {
 		return FALSE;
 	}
 	valuestart = memchr(namestart, 0x00, length-2);
