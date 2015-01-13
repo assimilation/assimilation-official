@@ -78,7 +78,7 @@ _cstringframe_default_isvalid(const Frame * self,	///<[in] CstringFrame object (
 		stringstart = get_generic_tlv_value(tlvptr, pktend);
 		g_return_val_if_fail(NULL != tlvptr && NULL != pktend && NULL != stringstart, FALSE);
 		g_return_val_if_fail(length > 0 && length != TLV_BAD24, FALSE);
-		g_return_val_if_fail(length > (gsize)((const guint8*)pktend-stringstart), FALSE);
+		g_return_val_if_fail(length <= (gsize)((const guint8*)pktend-stringstart), FALSE);
 	}
 	endplace = stringstart + length;
 	expectedplace = endplace-1;
