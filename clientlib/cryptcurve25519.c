@@ -230,22 +230,43 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 	int		fd = -1;
 	int		rc;
 	
+	/*
+	 *	Coverity CID 1262413:
+	 *	Coverity complains about this code with a Time of Check / Time of Use warning.
+	 *	The file attributes we check in the stat calls below might have changed before
+	 *	we read the key files.
+	 *
+	 *	Although this is true, it is unlikely because of the permissions of the
+	 *	directories and files involved.
+	 *
+	 *	We only look at two attributes:
+	 *	 - file size
+	 *	 - file type
+	 *	If the file size changes, we will detect that because we try and read one extra byte.
+	 *	If the file type changes, we're screwed.  But that's really unlikely and
+	 *	unlikely to have the code succeed when reading a socket, directory, fifo or device.
+	 *	It might cause the program to hang (on read), but I think that's nearly inevitable
+	 *	and not worth the trouble to fix.
+	 *	If the file type changes, the open might hang too...
+	 *	So, we're pretty paranoid, and I judge us to be at least as paranoid as necessary.
+	 */
 	
 	if (cryptframe_public_key_by_id(key_id) != NULL) {
 		return TRUE;
 	}
 	filename = curve25519_key_id_to_filename(key_id, PUBLICKEY);
 	if (g_stat(filename, &statinfo) < 0) {
-		g_warning("%s.%d: g_stat error [%s] NOT Caching key id %s", __FUNCTION__, __LINE__
-		,	filename, key_id);
+		g_warning("%s.%d: g_stat error [%s] NOT Caching key id %s [%s]"
+		,	__FUNCTION__, __LINE__
+		,	filename, key_id, g_strerror(errno));
 		retval = FALSE;
 		goto getout;
 	}
 	if (statinfo.st_size != crypto_box_PUBLICKEYBYTES || !S_ISREG(statinfo.st_mode)
 	||	g_access(filename, R_OK) != 0) {
 		retval = FALSE;
-		g_warning("%s.%d: g_stat size error on %s NOT Caching key id %s", __FUNCTION__, __LINE__
-		,	filename, key_id);
+		g_warning("%s.%d: size/type/access error on %s NOT Caching key id %s"
+		,	__FUNCTION__, __LINE__, filename, key_id);
 		goto getout;
 	}
 	fd = open(filename, O_RDONLY);
@@ -255,14 +276,16 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 		,	filename, key_id);
 		goto getout;
 	}
-	public_key = g_malloc(crypto_box_PUBLICKEYBYTES);
-	rc = read(fd, public_key, crypto_box_PUBLICKEYBYTES);
+	public_key = g_malloc(crypto_box_PUBLICKEYBYTES+1);
+	rc = read(fd, public_key, crypto_box_PUBLICKEYBYTES+1);
 	if (rc != crypto_box_PUBLICKEYBYTES) {
-		g_warning("%s.%d: public key read on %s returned %d instead of %d [%s]", __FUNCTION__, __LINE__
-		,	filename, rc, crypto_box_PUBLICKEYBYTES, g_strerror(errno));
+		g_warning("%s.%d: public key read on %s returned %d instead of %d [%s]"
+		,	__FUNCTION__, __LINE__, filename
+		,	rc, crypto_box_PUBLICKEYBYTES, g_strerror(errno));
 		retval = FALSE;
 		goto getout;
 	}
+
 	close(fd); fd = -1;
 	DEBUGCKSUM4(filename, public_key, crypto_box_PUBLICKEYBYTES);
 
@@ -279,7 +302,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 			// Someone else's secret key... Not a problem...
 			goto getout;
 		}
-		secret_key = g_malloc(crypto_box_SECRETKEYBYTES);
+		secret_key = g_malloc(crypto_box_SECRETKEYBYTES+1);
 		fd = open(filename, O_RDONLY);
 		if (fd < 0) {
 			retval = FALSE;
@@ -287,7 +310,7 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 			,	filename, key_id);
 			goto getout;
 		}
-		rc = read(fd, secret_key, crypto_box_SECRETKEYBYTES);
+		rc = read(fd, secret_key, crypto_box_SECRETKEYBYTES+1);
 		if (rc != crypto_box_SECRETKEYBYTES) {
 			g_warning("%s.%d: secret key read of %s returned %d instead of %d [%s]"
 			,	__FUNCTION__, __LINE__, filename
@@ -299,6 +322,9 @@ _cache_curve25519_keypair(const char * key_id)	///< Key id of keypair to cache
 		close(fd); fd = -1;
 	}
 getout:
+	// Coverity: CID 1262410 - It doesn't like verifying non-NULL in this error leg
+	// But it's a goto error leg, and in the future the code might change.
+	// So I like it as is...
 	if (filename != NULL) {
 		g_free(filename);
 		filename = NULL;

@@ -62,7 +62,9 @@ get_generic_tlv_len(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV e
 		gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
 {
 	const guint8 * tlvp = tlv_vp;
-	return tlv_get_guint24(tlvp+sizeof(guint16), pktend);
+	guint32 tainted_len = tlv_get_guint24(tlvp+sizeof(guint16), pktend);
+	g_return_val_if_fail((tlvp + tainted_len) > (const guint8*)pktend, 0);
+	return tainted_len;
 }
 
 /// Set the 'Length' of the given generic T<b>L</b>V entry (first 3 bytes after type)
@@ -81,8 +83,9 @@ get_generic_tlv_value(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV
 		 gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
 {
 	const guint8*	tlvbytes = tlv_vp;
-	(void)pktend;
-	return (tlvbytes + GENERICTLV_HDRSZ);
+	const guint8*	ret = (tlvbytes + GENERICTLV_HDRSZ);
+	g_return_val_if_fail(ret < (const guint8*)pktend, TLV_BADPTR); // NULL
+	return ret;
 }
 
 /// Return a non-const (mutable) pointer to the 'Value' of the given generic TL<b>V</b> entry
@@ -90,13 +93,14 @@ gpointer
 get_generic_tlv_nonconst_value(gpointer tlv_vp,	///<[in] Pointer to beginning of TLV entry,
 		 gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
 {
-	guint8*	tlvbytes = tlv_vp;
-	(void)pktend;
+	guint8*	tlvbytes	= tlv_vp;
+	guint8*	ret		= (tlvbytes + GENERICTLV_HDRSZ);
+	g_return_val_if_fail(ret < (const guint8*)pktend, TLV_BADPTR); // NULL
 	return (tlvbytes + GENERICTLV_HDRSZ);
 }
 
 /// Set the TLV data value to the given 'tlv_vp' pointer.
-/// @pre length must have already been set in the TLV
+/// length must have already been set in the TLV
 void
 set_generic_tlv_value(gpointer tlv_vp,		///< pointer to TLV entry
 		      void* srcdata,		///< pointer to source data
@@ -175,7 +179,7 @@ get_generic_tlv_first(gconstpointer packet,	///<[in] Pointer to beginning of TLV
 	if (packet == NULL
 	||	(inittlv + GENERICTLV_HDRSZ) > (const guint8*)pktend
 	||	(inittlv + GENERICTLV_HDRSZ + get_generic_tlv_len(inittlv, pktend)) > (const guint8*)pktend) {
-		return NULL;
+		return TLV_BADPTR; // NULL
 	}
 	return inittlv;
 }
@@ -190,7 +194,7 @@ get_generic_tlv_next(gconstpointer tlv_vp,		///<[in] Pointer to  current TLV ent
 	if (tlv_vp == NULL
         ||  ((const guint8*)tlv_vp+GENERICTLV_HDRSZ) > (const guint8*)pktend
         ||  get_generic_tlv_type(tlv_vp, pktend) == FRAMETYPE_END) {
-		return NULL;
+		return TLV_BADPTR; // NULL
 	}
 	nexttlv = (const guint8*)tlv_vp  + GENERICTLV_HDRSZ + get_generic_tlv_len(tlv_vp, pktend);
 	/* Watch out for malformed packets! (BLACKHAT, PARANOIA) */
