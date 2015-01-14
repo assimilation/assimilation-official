@@ -70,6 +70,9 @@ class PacketListener(object):
         FrameSetTypes.HBMARTIAN:    PRIO_THREE,
     }
 
+    unencrypted_fstypes = {
+        FrameSetTypes.STARTUP
+    }
 
     def __init__(self, config, dispatch, io=None, encryption_required=True):
         self.config = config
@@ -250,14 +253,15 @@ class PacketListener(object):
             #print >> sys.stderr, 'FROMADDR IS', fromaddr
             if fromaddr is None:
                 return
-            else:
-                key_id=frameset.sender_key_id()
-                if key_id and key_id is not None:
-                    if CMAdb.debug:
-                        CMAdb.log.debug('SETTING KEY(%s, %s) from fstype %s'
-                        %   (fromaddr, key_id, frameset.fstypestr()))
-                    pyCryptFrame.dest_set_key_id(fromaddr, key_id)
-                elif self.encryption_required:
-                    CMAdb.log.critical('No public key for IP address %s (frameset %s)'
-                    %   (fromaddr, frameset.fstypestr()))
-                self.dispatcher.dispatch(fromaddr, frameset)
+            fstype = frameset.get_framesettype()
+            key_id=frameset.sender_key_id()
+            if key_id is not None:
+                if CMAdb.debug:
+                    CMAdb.log.debug('SETTING KEY(%s, %s) from fstype %s'
+                    %   (fromaddr, key_id, frameset.fstypestr()))
+                pyCryptFrame.dest_set_key_id(fromaddr, key_id)
+            elif (self.encryption_required and
+                fstype not in PacketListener.unencrypted_fstypes):
+                raise ValueError('Unencrypted %s frameset received from %s'
+                %       (frameset.fstypestr(), fromaddr))
+            self.dispatcher.dispatch(fromaddr, frameset)

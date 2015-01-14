@@ -333,10 +333,8 @@ class SystemTestEnvironment(object):
             ('NANOPROBE_CORELIMIT=unlimited'),
             ('NANOPROBE_CMAADDR=%s:1984' % self.cma.ipaddr)
         )
-        nano.runinimage(('/bin/bash', '-c'
-        ,           "echo '%s' >/etc/default/nanoprobe" % lines[0]))
         print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
-        for j in range(1, len(lines)):
+        for j in range(0, len(lines)):
             nano.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
             print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
