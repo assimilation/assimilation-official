@@ -79,7 +79,8 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME,                  \
     COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new,                               \
-    cryptframe_associate_identity, cryptframe_set_dest_public_key_id, cryptframe_whois_key_id,   \
+    cryptframe_associate_identity, cryptframe_set_dest_key_id, cryptframe_whois_key_id, \
+    cryptframe_get_dest_key_id,                                                         \
     cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
     cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,                \
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename,  \
@@ -1254,14 +1255,34 @@ class pyCryptFrame(pyFrame):
         return str(cret)
 
     @staticmethod
-    def dest_set_public_key_id(destaddr, key_id):
+    def get_dest_identity(destaddr):
+        'Return the identity associated with this pyNetAddr'
+        key_id = pyCryptFrame.get_dest_key_id(destaddr)
+        if key_id is None:
+            return None
+        return pyCryptFrame.get_identity(key_id)
+
+    @staticmethod
+    def get_dest_key_id(destaddr):
+        'Return the key_id associated with this pyNetAddr'
+        cret = cryptframe_get_dest_key_id(destaddr._Cstruct)
+        if not cret:
+            return None
+        return str(cret)
+
+    @staticmethod
+    def dest_set_key_id(destaddr, key_id):
         '''Set the public key we should use when talking to the given destination
         address (including port).
         '''
         if not destaddr._Cstruct or key_id is None:
             raise ValueError('illegal parameters')
-        cryptframe_set_dest_public_key_id(destaddr._Cstruct, str(key_id))
+        cryptframe_set_dest_key_id(destaddr._Cstruct, str(key_id))
 
+
+#This is a bizarre and buggy complaint...
+#AssimCclasses.py:1283: [R0904:pyCryptCurve25519] Too many public methods (21/20)
+#pylint: disable=R0904
 class pyCryptCurve25519(pyCryptFrame):
     '''Encryption Frame based on Libsodium - Curve25519 public key encryption.
     Strangely enough, we may not actually use objects of this class - because it's
@@ -1345,6 +1366,7 @@ class pyCryptCurve25519(pyCryptFrame):
                     pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY))
         cryptcurve25519_set_encryption_method()
         return warnings
+
 
 #pylint: disable=R0921
 class pyFrameSet(pyAssimObj):
@@ -1465,15 +1487,20 @@ class pyFrameSet(pyAssimObj):
             yield yieldval
             curframe = g_slist_next(curframe)
 
+    def fstypestr(self):
+        'Return the frameset type name as a string'
+        return FrameSetTypes.get(self.get_framesettype())[0]
+
     def __str__(self):
         'Convert this pyFrameSet to a String'
-        result = '%s:{' % FrameSetTypes.get(self.get_framesettype())[0]
+        result = '%s:{' % self.fstypestr()
         comma = ''
         for frame in self.iter():
             result += '%s[%d]%s' % (comma, frame.framelen(), str(frame))
             comma = ', '
         result += "}"
         return result
+
 
 
 class pyPacketDecoder(pyAssimObj):

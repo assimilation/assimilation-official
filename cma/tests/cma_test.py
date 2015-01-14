@@ -465,10 +465,10 @@ class TestCMABasic(TestCase):
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         assimcli_check('loadqueries')
         OurAddr = pyNetAddr((127,0,0,1),1984)
-        disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()})
+        disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()}, encryption_required=False)
         configinit = geninitconfig(OurAddr)
         config = pyConfigContext(init=configinit)
-        listener = PacketListener(config, disp, io=io)
+        listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
         # We send the CMA an intial STARTUP packet
         listener.listen()
@@ -552,9 +552,9 @@ class TestCMABasic(TestCase):
             FrameSetTypes.STARTUP: DispatchSTARTUP(),
             FrameSetTypes.HBDEAD: DispatchHBDEAD(),
             FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN(),
-        })
+        }, encryption_required=False)
         config = pyConfigContext(init=configinit)
-        listener = PacketListener(config, disp, io=io)
+        listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
         # We send the CMA a BUNCH of intial STARTUP packets
         # and (optionally) a bunch of HBDEAD packets
@@ -619,7 +619,7 @@ class TestMonitorBasic(TestCase):
         CMAdb.store.commit()
         CMAdb.transaction.commit_trans(io)
         self.assertEqual(len(io.packetswritten), 0) # Shouldn't have sent out any pkts yet...
-        CMAdb.transaction = Transaction()
+        CMAdb.transaction = Transaction(encryption_required=False)
 
         droneid = 1
         droneip = droneipaddress(droneid)

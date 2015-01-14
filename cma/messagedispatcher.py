@@ -35,18 +35,19 @@ from datetime import datetime
 
 class MessageDispatcher(object):
     'We dispatch incoming messages where they need to go.'
-    def __init__(self, dispatchtable, logtimes=False):
+    def __init__(self, dispatchtable, logtimes=False, encryption_required=True):
         'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()
         self.io = None
         self.dispatchcount = 0
         self.logtimes = logtimes or CMAdb.debug
+        self.encryption_required = encryption_required
 
     def dispatch(self, origaddr, frameset):
         'Dispatch a Frameset where it will get handled.'
         self.dispatchcount += 1
-        CMAdb.transaction = Transaction()
+        CMAdb.transaction = Transaction(encryption_required=self.encryption_required)
         # W0703 == Too general exception catching...
         # pylint: disable=W0703
         try:

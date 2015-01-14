@@ -214,6 +214,7 @@ def main():
             try:
                 # @FIXME This is not an ideal way to associate identities with hosts
                 # in a multi-tenant environment
+                # @FIXME - don't think I need to do the associate_identity at all any more...
                 hostname, notused_post = keyid.split('@@', 1)
                 notused_post = notused_post
                 pyCryptFrame.associate_identity(hostname, keyid)

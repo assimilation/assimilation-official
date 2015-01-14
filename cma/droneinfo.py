@@ -31,14 +31,15 @@ from consts import CMAconsts
 from store import Store
 from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID
+from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pyCryptFrame
 from assimevent import AssimEvent
 from cmaconfig import ConfigFile
 
 
 @RegisterGraphClass
 #droneinfo.py:39: [R0904:Drone] Too many public methods (21/20)
-# pylint: disable=R0904
+#droneinfo.py:39: [R0902:Drone] Too many instance attributes (11/10)
+# pylint: disable=R0904,R0902
 class Drone(SystemNode):
     '''Everything about Drones - endpoints that run our nanoprobes.
 
@@ -61,7 +62,7 @@ class Drone(SystemNode):
     # pylint: disable=R0913
     def __init__(self, designation, port=None, startaddr=None
     ,       primary_ip_addr=None, domain=CMAconsts.globaldomain
-    ,       status= '(unknown)', reason='(initialization)', roles=None):
+    ,       status= '(unknown)', reason='(initialization)', roles=None, key_id=''):
         '''Initialization function for the Drone class.
         We mainly initialize a few attributes from parameters as noted above...
 
@@ -76,6 +77,7 @@ class Drone(SystemNode):
         self.lastjoin = 'None'
         self.status = status
         self.reason = reason
+        self.key_id = key_id
         self.startaddr = str(startaddr)
         self.primary_ip_addr = str(primary_ip_addr)
         self.time_status_ms = int(round(time.time() * 1000))
@@ -311,6 +313,17 @@ class Drone(SystemNode):
         #print >> sys.stderr, ('Sent Discovery request(%s, %s) to %s Frames: %s'
         #%	(instance, str(interval), str(ourip), str(frames)))
 
+    def set_crypto_identity(self, keyid=None):
+        'Associate our IP addresses with our key id'
+        if keyid is not None and keyid != '':
+            if self.key_id != '' and keyid != self.key_id:
+                raise ValueError('Cannot change key ids for % from %s to %s'
+                %   (str(self), self.ey_id, keyid))
+            self.key_id = keyid
+        # Encryption is required elsewhere - we ignore this here...
+        if self.key_id != '':
+            pyCryptFrame.dest_set_key_id(self.destaddr(), self.key_id)
+            pyCryptFrame.associate_identity(self.crypto_identity, self.key_id)
 
     def __str__(self):
         'Give out our designation'
@@ -321,6 +334,7 @@ class Drone(SystemNode):
         'Find a drone with the given designation or IP address, or Neo4J node.'
         desigstr = str(designation)
         if isinstance(designation, Drone):
+            designation.set_crypto_identity()
             return designation
         elif isinstance(designation, str):
             if domain is None:
@@ -330,6 +344,7 @@ class Drone(SystemNode):
             ,       designation=designation)
             assert drone.designation == designation
             assert CMAdb.store.has_node(drone)
+            drone.set_crypto_identity()
             return drone
         elif isinstance(designation, pyNetAddr):
             desig = designation.toIPv6()
@@ -344,6 +359,7 @@ class Drone(SystemNode):
             drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipaddr':query})
             if drone is not None:
                 assert CMAdb.store.has_node(drone)
+                drone.set_crypto_identity()
                 return drone
             if CMAdb.debug:
                 CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]'

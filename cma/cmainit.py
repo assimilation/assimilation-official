@@ -84,7 +84,7 @@ class CMAinit(object):
         for classname in GraphNode.classmap:
             GraphNode.initclasstypeobj(CMAdb.store, classname)
         from transaction import Transaction
-        CMAdb.transaction = Transaction()
+        CMAdb.transaction = Transaction(encryption_required=False)
         #print >> sys.stderr,  'CMAdb:', CMAdb
         #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
         CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'

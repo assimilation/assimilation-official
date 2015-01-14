@@ -462,7 +462,7 @@ cryptframe_set_dest_public_key(NetAddr*destaddr,	///< Destination addr,port
 ///	Set the encryption key to use when sending to destaddr
 ///	Set destkey to NULL to stop encrypting to that destination
 WINEXPORT void
-cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
+cryptframe_set_dest_key_id(NetAddr*destaddr,	///< Destination addr,port
 			     const char * key_id)	///< Public key id to use when encrypting
 {
 	CryptFramePublicKey*	destkey;
@@ -477,17 +477,31 @@ cryptframe_set_dest_public_key_id(NetAddr*destaddr,	///< Destination addr,port
 WINEXPORT CryptFrame*
 cryptframe_new_by_destaddr(const NetAddr* destaddr)
 {
-	gpointer g_receiver_key;
-	CryptFramePublicKey* receiver_key;
+	const char *		receiver_key_id;
+	INITMAPS;
 	if (NULL == current_encryption_method || NULL == default_signing_key) {
 		return NULL;
 	}
+	receiver_key_id = cryptframe_get_dest_key_id(destaddr);
+	if (NULL == receiver_key_id) {
+		return NULL;
+	}
+	return current_encryption_method(default_signing_key->key_id, receiver_key_id);
+}
+
+/// Return the key_id associated with the given destination address
+WINEXPORT const char *
+cryptframe_get_dest_key_id(const NetAddr* destaddr)
+{
+	gpointer		g_receiver_key;
+	CryptFramePublicKey*	receiver_key;
+	INITMAPS;
 	g_receiver_key = g_hash_table_lookup(addr_to_public_key_map, destaddr);
 	if (NULL == g_receiver_key) {
 		return NULL;
 	}
 	receiver_key = CASTTOCLASS(CryptFramePublicKey, g_receiver_key);
-	return current_encryption_method(default_signing_key->key_id, receiver_key->key_id);
+	return receiver_key->key_id;
 }
 // Set the current encryption method
 WINEXPORT void

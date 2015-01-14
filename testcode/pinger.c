@@ -304,7 +304,7 @@ main(int argc, char **argv)
 			cryptcurve25519_gen_temp_keypair(CRYPTO_KEYID);
 			cryptframe_set_signing_key_id(CRYPTO_KEYID);
 			cryptframe_associate_identity(CRYPTO_IDENTITY, CRYPTO_KEYID);
-			cryptframe_set_dest_public_key_id(addr, CRYPTO_KEYID);
+			cryptframe_set_dest_key_id(addr, CRYPTO_KEYID);
 			cryptframe_set_encryption_method(cryptcurve25519_new_generic);
 			g_message("NOTE: Encryption enabled. Incoming packet Identities will be verified.");
 			encryption_enabled = TRUE;
