@@ -197,7 +197,7 @@ class DispatchSTARTUP(DispatchTarget):
                     raise ValueError("Drone %s public key (key_id %s, %d bytes) is invalid."
                     %   (sysname, keyid, keysize))
                 drone.key_id = keyid
-            elif drone.key_id != keyid:
+            elif drone.key_id != '' and drone.key_id != keyid:
                 raise ValueError("Drone %s tried to register with key_id %s instead of %s."
                 %   (sysname, keyid, drone.key_id))
             drone.set_crypto_identity(keyid)
