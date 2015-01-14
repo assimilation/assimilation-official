@@ -323,7 +323,7 @@ class Drone(SystemNode):
         # Encryption is required elsewhere - we ignore this here...
         if self.key_id != '':
             pyCryptFrame.dest_set_key_id(self.destaddr(), self.key_id)
-            pyCryptFrame.associate_identity(self.crypto_identity, self.key_id)
+            pyCryptFrame.associate_identity(self.crypto_identity(), self.key_id)
 
     def __str__(self):
         'Give out our designation'
