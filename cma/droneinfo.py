@@ -95,6 +95,7 @@ class Drone(SystemNode):
             Drone.OwnedIPsQuery_subtxt = Drone.OwnedIPsQuery_txt    \
             %       (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner)
             Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.OwnedIPsQuery_subtxt)
+        self.set_crypto_identity()
 
 
     def get_owned_ips(self):
