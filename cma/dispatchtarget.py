@@ -200,7 +200,8 @@ class DispatchSTARTUP(DispatchTarget):
             elif drone.key_id != keyid:
                 raise ValueError("Drone %s tried to register with key_id %s instead of %s."
                 %   (sysname, keyid, drone.key_id))
-            pyCryptFrame.dest_set_public_key_id(origaddr, keyid)
+            drone.set_crypto_identity(keyid)
+            pyCryptFrame.dest_set_key_id(origaddr, keyid)
         #
         # THIS IS HERE BECAUSE OF A PROTOCOL BUG...
         # @FIXME Protocol bug when starting up a connection if our first (this) packet gets lost,

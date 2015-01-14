@@ -1474,7 +1474,7 @@ nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
 		if (	cfg->gettype(cfg, keyname) == CFG_NETADDR
 		&&	strncmp(keyname, cmaprefix, sizeof(cmaprefix)-1) == 0) {
 			NetAddr*	destaddr = cfg->getaddr(cfg, keyname);
-			cryptframe_set_dest_public_key_id(destaddr, key_id);
+			cryptframe_set_dest_key_id(destaddr, key_id);
 		}
 	}
 	g_slist_free(keys); keys=NULL;

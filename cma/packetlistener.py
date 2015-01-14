@@ -63,7 +63,7 @@ class PacketListener(object):
         FrameSetTypes.STARTUP:      PRIO_ONE,   # High priority but sometimes expensive
 
         FrameSetTypes.SWDISCOVER:   PRIO_TWO,   # Not priority, often expensive
-        FrameSetTypes.JSDISCOVERY:   PRIO_TWO,
+        FrameSetTypes.JSDISCOVERY:  PRIO_TWO,
 
         FrameSetTypes.HBLATE:       PRIO_THREE, # Not terribly important
         FrameSetTypes.HBBACKALIVE:  PRIO_THREE,
@@ -71,8 +71,9 @@ class PacketListener(object):
     }
 
 
-    def __init__(self, config, dispatch, io=None):
+    def __init__(self, config, dispatch, io=None, encryption_required=True):
         self.config = config
+        self.encryption_required=encryption_required
         if io is None:
             self.io = pyReliableUDP(config, pyPacketDecoder())
         else:
@@ -252,6 +253,11 @@ class PacketListener(object):
             else:
                 key_id=frameset.sender_key_id()
                 if key_id and key_id is not None:
-                    #print >> sys.stderr, 'SETTING KEY(', fromaddr, key_id, ')'
-                    pyCryptFrame.dest_set_public_key_id(fromaddr, key_id)
+                    if CMAdb.debug:
+                        CMAdb.log.debug('SETTING KEY(%s, %s) from fstype %s'
+                        %   (fromaddr, key_id, frameset.fstypestr()))
+                    pyCryptFrame.dest_set_key_id(fromaddr, key_id)
+                elif self.encryption_required:
+                    CMAdb.log.critical('No public key for IP address %s (frameset %s)'
+                    %   (fromaddr, frameset.fstypestr()))
                 self.dispatcher.dispatch(fromaddr, frameset)

@@ -47,7 +47,7 @@ transactions - it does not worry about how they ought to be persisted.
 '''
 import sys
 from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, \
-        pyIpPortFrame
+        pyIpPortFrame, pyCryptFrame
 from frameinfo import FrameSetTypes, FrameTypes
 from assimjson import JSONtree
 from datetime import datetime, timedelta
@@ -98,7 +98,7 @@ class Transaction(object):
     Neither of those is true at the moment.
     '''
 
-    def __init__(self, json=None):
+    def __init__(self, json=None, encryption_required=False):
         'Constructor for a combined database/network transaction.'
         if json is None:
             self.tree = {'packets': []}
@@ -110,6 +110,7 @@ class Transaction(object):
         self.created = []
         self.sequence = None
         self.stats = {'lastcommit': timedelta(0), 'totaltime': timedelta(0)}
+        self.encryption_required = encryption_required
 
     def __str__(self):
         'Convert our internal tree to JSON.'
@@ -140,6 +141,10 @@ class Transaction(object):
         # Note that we don't do this as a ConfigContext - it doesn't support modifying arrays.
         # On the other hand, our JSON converts nicely into a ConfigContext - because it converts
         # arrays correctly from JSON
+
+        if self.encryption_required and pyCryptFrame.get_dest_identity(destaddr) is None:
+            raise ValueError('Destaddr %s has no identity: key id is %s'
+            %   (destaddr, pyCryptFrame.get_dest_key_id(destaddr)))
 
         # Allow 'frames' to be a single frame
         if not isinstance(frames, list) and not isinstance(frames, tuple):
@@ -174,6 +179,7 @@ class Transaction(object):
         '''
         #print >> sys.stderr, "PACKET JSON IS >>>%s<<<" % self.tree['packets']
         for packet in self.tree['packets']:
+            dest = packet['destaddr']
             fs = pyFrameSet(packet['action'])
             for frame in packet['frames']:
                 ftype = frame['frametype']
@@ -200,13 +206,13 @@ class Transaction(object):
                     raise ValueError('Unrecognized frame type [%s]: %s' % (ftype, frame))
             # In theory we could optimize multiple FrameSets in a row being sent to the
             # same address, but we can always do that later...
-            io.sendreliablefs(packet['destaddr'], (fs, ))
+            io.sendreliablefs(dest, (fs, ))
             if False:
                 if packet['action'] == FrameSetTypes.SETCONFIG:
                     print >> sys.stderr, ("LOGGING SETCONFIG CONNECTION TO %s"
-                    %   str(packet['destaddr']))
+                    %   str(dest))
                     if hasattr(io, 'log_conn'):  # Some of our test code doesn't have this
-                        io.log_conn(packet['destaddr'])
+                        io.log_conn(dest)
 
     def commit_trans(self, io):
         'Commit our transaction'
@@ -242,7 +248,7 @@ if __name__ == '__main__':
 
         config = pyConfigContext(init={CONFIGNAME_OUTSIG: pySignFrame(1)})
         io = pyReliableUDP(config, pyPacketDecoder())
-        trans = Transaction()
+        trans = Transaction(encryption_required=False)
         destaddr = pyNetAddr('10.10.10.1:1984')
         addresses = (pyNetAddr('10.10.10.5:1984'), pyNetAddr('10.10.10.6:1984'))
 
