@@ -188,19 +188,22 @@ class DispatchSTARTUP(DispatchTarget):
         drone.listenaddr = str(listenaddr)  # Seems good to hang onto this...
         drone.isNAT = isNAT                 # ditto...
         # Did they give us the crypto info we need?
-        if keyid is not None and pubkey is not None:
-            if not hasattr(drone, 'key_id'):
+        if keyid is None or pubkey is None:
+            if CMAdb.debug:
+                self.log.debug('Drone %s registered with keyid %s and pubkey provided: %s'
+                %   (self, keyid, pubkey is not None))
+        else:
+            if drone.key_id == '':
                 if not keyid.startswith(sysname + "@@"):
                     CMAdb.log.warning("Drone %s wants to register with key_id %s -- permitted."
                     ,   sysname, keyid)
                 if not cryptcurve25519_save_public_key(keyid, pubkey, keysize):
                     raise ValueError("Drone %s public key (key_id %s, %d bytes) is invalid."
                     %   (sysname, keyid, keysize))
-                drone.key_id = keyid
-            elif drone.key_id != '' and drone.key_id != keyid:
+            elif drone.key_id != keyid:
                 raise ValueError("Drone %s tried to register with key_id %s instead of %s."
                 %   (sysname, keyid, drone.key_id))
-            drone.set_crypto_identity(keyid)
+            drone.set_crypto_identity(keyid=keyid)
             pyCryptFrame.dest_set_key_id(origaddr, keyid)
         #
         # THIS IS HERE BECAUSE OF A PROTOCOL BUG...
