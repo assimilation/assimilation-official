@@ -40,6 +40,7 @@
 #include <nvpairframe.h>
 #include <cryptcurve25519.h>
 #include <packetdecoder.h>
+#include <sodium.h>
 
 #define	CRYPTO_KEYID	"pinger"
 #define	CRYPTO_IDENTITY	"us chickens"
@@ -72,6 +73,7 @@ int		pongcount = 2;
 int		maxpingcount = 10;
 GMainLoop*	loop = NULL;
 gboolean	encryption_enabled = FALSE;
+guint		pongsize = 32*1024;
 
 ObeyFrameSetTypeMap	doit [] = {
 	{FRAMESETTYPE_SEQPING,	obey_pingpong},
@@ -191,6 +193,13 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 
 		for (j=0; j < pongcount; ++j) {
 			FrameSet*	pong = frameset_new(FRAMESETTYPE_SEQPONG);
+			Frame*		boatload = frame_new(FRAMETYPE_PKTDATA, 0);
+			gpointer	loadofrandom = g_malloc(pongsize);
+			randombytes_buf(loadofrandom, pongsize);
+			boatload->setvalue(boatload, random, pongsize, NULL);
+			frameset_append_frame(pong, boatload);
+			UNREF(boatload);
+			g_free(loadofrandom);
 			flist = g_slist_append(flist, pong);
 		}
 		
@@ -254,6 +263,7 @@ main(int argc, char **argv)
 	static GOptionEntry	long_options [] = {
 		{"count",  'c', 0, G_OPTION_ARG_INT,	              &mycount,		"count of ping packets", NULL},
 		{"debug",  'd', 0, G_OPTION_ARG_INT,		      &mydebug,		"debug-level [0-5]", NULL},
+		{"size",   's', 0, G_OPTION_ARG_INT,		      &pongsize,	"pong packet size", NULL},
 		{G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_STRING_ARRAY, &optremaining,	"ip_address [ip_address ...]", NULL},
 		{NULL, 0, 0, 0, NULL, NULL, NULL}
 	};
@@ -326,6 +336,7 @@ main(int argc, char **argv)
 	fprintf(stderr, "Sending   %d SEQPONG packets per SEQPING packet\n", pongcount);
 	fprintf(stderr, "Transmit packet loss: %g\n", XMITLOSS*100);
 	fprintf(stderr, "Receive packet loss:  %g\n", RCVLOSS*100);
+	fprintf(stderr, "Pong packet padding:  %ld bytes\n", (long)pongsize);
 	
 	
 	loop = g_main_loop_new(g_main_context_default(), TRUE);
