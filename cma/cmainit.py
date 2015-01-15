@@ -66,16 +66,16 @@ class CMAinit(object):
                 CMAdb.cdb = CMAdb(db=neodb)
                 # Neo4j started.  All is well with the world.
                 break
-            except (RuntimeError, IOError, py2neo.exceptions.ClientError):
-                print >> sys.stderr, 'TRYING AGAIN...'
+            except (RuntimeError, IOError, py2neo.exceptions.ClientError) as exc:
+                print >> sys.stderr, 'TRYING AGAIN [[%s]...[%s]' % (url, str(exc))
                 trycount += 1
                 if trycount > retries:
                     print >> sys.stderr, ('Neo4j still not started - giving up.')
                     CMAdb.log.critical('Neo4j still not started - giving up.')
-                    raise RuntimeError('Neo4j not running - giving up')
+                    raise RuntimeError('Neo4j not running - giving up [%s]' % str(exc))
                 if (trycount % 60) == 1:
-                    print >> sys.stderr, ('Waiting for Neo4j to start.')
-                    CMAdb.log.warning('Waiting for Neo4j to start.')
+                    print >> sys.stderr, ('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
+                    CMAdb.log.warning('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
                 # Let's try again in a second...
                 time.sleep(1)
         Store.debug = debug
