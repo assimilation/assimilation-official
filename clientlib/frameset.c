@@ -168,7 +168,8 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	int		curpktoffset;		// Current offset as we marshall packet...
 	guint8*		curpktpos=NULL;		// Current position within packet..
 	gsize		pktsize;
-	gsize		fssize = FRAMESET_INITSIZE;	// "frameset" overhead size
+	const gsize	fssize = FRAMESET_INITSIZE;	// "frameset" overhead size
+	guint32		computed_size;
 	DEBUGMSG3("%s.%d: constructing packet: sign: %p crypt: %p", __FUNCTION__, __LINE__, sigframe, cryptframe);
 	g_return_if_fail(NULL != fs);
 	g_return_if_fail(NULL != sigframe);
@@ -294,13 +295,14 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		}
 		DUMP4(__FUNCTION__, &frame->baseclass, " is frame that was processed.");
 	}
-	DUMP4(__FUNCTION__, &fs->baseclass, " is frameseet that was processed");
+	DUMP4(__FUNCTION__, &fs->baseclass, " is frameset that was processed");
 	g_return_if_fail(curpktpos == (((guint8*)fs->packet)+fssize));
 	// Reverse list - putting it back in the right order
 	fs->framelist = g_slist_reverse(fs->framelist);
 	// Write out the initial FrameSet header.
 	set_generic_tlv_type(fs->packet, fs->fstype, ((guint8*)fs->packet)+fssize);
-	set_generic_tlv_len(fs->packet, pktsize-fssize, ((guint8*)fs->packet)+fssize);
+	computed_size = ((guint8*)fs->pktend-(guint8*)fs->packet)-fssize;
+	set_generic_tlv_len(fs->packet, computed_size, ((guint8*)fs->packet)+fssize);
 	tlv_set_guint16(((guint8*)fs->packet)+GENERICTLV_HDRSZ, fs->fsflags, ((guint8*)fs->packet)+fssize);
 	DEBUGMSG3("%s.%d: Returning.", __FUNCTION__, __LINE__);
 }
