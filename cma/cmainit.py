@@ -40,7 +40,7 @@ class CMAinit(object):
     The CMAinit class
     '''
 
-    def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False, retries=300):
+    def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False, retries=300, readonly=False, encryption_required=False):
         'Initialize and construct a global database instance'
         #print >> sys.stderr, 'CALLING NEW initglobal'
         CMAdb.log = logging.getLogger('cma')
@@ -80,20 +80,23 @@ class CMAinit(object):
                 time.sleep(1)
         Store.debug = debug
         Store.log = CMAdb.log
-        CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap)
-        for classname in GraphNode.classmap:
-            GraphNode.initclasstypeobj(CMAdb.store, classname)
-        from transaction import Transaction
-        CMAdb.transaction = Transaction(encryption_required=False)
-        #print >> sys.stderr,  'CMAdb:', CMAdb
-        #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
-        CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
-        ,           ringtype= HbRing.THEONERING)
-        CMAdb.transaction.commit_trans(io)
-        #print >> sys.stderr, 'COMMITTING Store'
-        #print >> sys.stderr, 'Transaction Commit results:', CMAdb.store.commit()
-        CMAdb.store.commit()
-        #print >> sys.stderr, 'Store COMMITTED'
+        CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap, readonly=readonly)
+        if not readonly:
+            for classname in GraphNode.classmap:
+                GraphNode.initclasstypeobj(CMAdb.store, classname)
+            from transaction import Transaction
+            CMAdb.transaction = Transaction(encryption_required=encryption_required)
+            #print >> sys.stderr,  'CMAdb:', CMAdb
+            #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
+            CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
+            ,           ringtype= HbRing.THEONERING)
+            CMAdb.transaction.commit_trans(io)
+            #print >> sys.stderr, 'COMMITTING Store'
+            #print >> sys.stderr, 'Transaction Commit results:', CMAdb.store.commit()
+            CMAdb.store.commit()
+            #print >> sys.stderr, 'Store COMMITTED'
+        else:
+            CMAdb.transaction = None
 
     @staticmethod
     def uninit():
