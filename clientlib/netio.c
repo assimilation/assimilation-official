@@ -656,9 +656,16 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 				UNREF(*src);
 				*src = aliascopy;
 			}
+			if (DEBUG >= 3) {
+				char * srcstr = (*src)->baseclass.toString(&(*src)->baseclass);
+				DEBUGMSG("%s.%d: Received %d bytes making %d FrameSets from %s"
+				,	__FUNCTION__, __LINE__, (int)((guint8*)pktend-(guint8*)pkt)
+				,	g_slist_length(ret), srcstr);
+				FREE(srcstr); srcstr = NULL;
+			}
 		}else{
-			g_warning("Received a %lu byte packet that didn't make any FrameSets"
-			,	(unsigned long)((guint8*)pktend-(guint8*)pkt));
+			g_warning("%s.%d: Received a %lu byte packet from that didn't make any FrameSets"
+			,	__FUNCTION__, __LINE__, (unsigned long)((guint8*)pktend-(guint8*)pkt));
 			goto badret;
 		}
 		FREE(pkt);
