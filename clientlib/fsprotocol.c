@@ -893,6 +893,10 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 			REF(iq->_destaddr);
 			*fromaddr = iq->_destaddr;
 			ret = iq->deq(iq);
+			DEBUGMSG3("%s.%d: Reading Frameset of type %d:"
+			,	__FUNCTION__, __LINE__, fs->fstype);
+			DUMP3("_fsprotocol_read: Dequeuing FrameSet from: ", &(*fromaddr)->baseclass, "");
+			DUMP3("_fsprotocol_read: Dequeuing FrameSet: ", &ret->baseclass, "");
 			if (seq != NULL) {
 				iq->_nextseqno += 1;
 			}else{
