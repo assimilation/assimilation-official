@@ -299,7 +299,11 @@ cryptframe_associate_identity(const char * identity,	///<[in] identity to associ
 	char*		identity_duplicate;
 	INITMAPS;
 	g_return_val_if_fail(key_id != NULL && identity != NULL, FALSE);
-	g_return_val_if_fail(cryptframe_public_key_by_id(key_id) != NULL, FALSE);
+	if (cryptframe_public_key_by_id(key_id) == NULL) {
+		g_critical("%s.%d: no public key associated with key id %s"
+		,	__FUNCTION__, __LINE__, key_id);
+		return FALSE;
+	}
 	found_identity = cryptframe_whois_key_id(key_id);
 	if (found_identity) {
 		if (strcmp(found_identity, identity) != 0) {
@@ -469,7 +473,10 @@ cryptframe_set_dest_key_id(NetAddr*destaddr,	///< Destination addr,port
 	INITMAPS;
 	g_return_if_fail(NULL != destaddr && NULL != key_id);
 	destkey = g_hash_table_lookup(public_key_map, key_id);
-	g_return_if_fail(NULL != destkey);
+	if (NULL == destkey) {
+		g_critical("%s.%d: No key assocaited with key id %s"
+		,	__FUNCTION__, __LINE__, key_id);
+	}
 	cryptframe_set_dest_public_key(destaddr, CASTTOCLASS(CryptFramePublicKey, destkey));
 }
 
