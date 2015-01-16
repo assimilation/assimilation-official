@@ -453,7 +453,7 @@ cryptframe_set_dest_public_key(NetAddr*destaddr,	///< Destination addr,port
 			     CryptFramePublicKey*destkey)///< Public key to use when encrypting
 {
 	INITMAPS;
-	g_return_if_fail(NULL != destaddr && NULL != destkey);
+	g_return_if_fail(NULL != destaddr);
 	if (NULL == destkey) {
 		g_hash_table_remove(addr_to_public_key_map, destaddr);
 	}else{
@@ -465,7 +465,7 @@ cryptframe_set_dest_public_key(NetAddr*destaddr,	///< Destination addr,port
 ///
 ///	Set the encryption key to use when sending to destaddr
 ///	Set destkey to NULL to stop encrypting to that destination
-WINEXPORT void
+WINEXPORT gboolean
 cryptframe_set_dest_key_id(NetAddr*destaddr,	///< Destination addr,port
 			     const char * key_id)	///< Public key id to use when encrypting
 {
@@ -474,10 +474,12 @@ cryptframe_set_dest_key_id(NetAddr*destaddr,	///< Destination addr,port
 	g_return_if_fail(NULL != destaddr && NULL != key_id);
 	destkey = g_hash_table_lookup(public_key_map, key_id);
 	if (NULL == destkey) {
-		g_critical("%s.%d: No key assocaited with key id %s"
+		g_critical("%s.%d: No key associated with key id %s"
 		,	__FUNCTION__, __LINE__, key_id);
+		return FALSE;
 	}
 	cryptframe_set_dest_public_key(destaddr, CASTTOCLASS(CryptFramePublicKey, destkey));
+	return TRUE;
 }
 
 /// Construct a @ref CryptFrame appropriate for encrypting messages to <i>destaddr</i>

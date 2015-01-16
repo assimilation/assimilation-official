@@ -1242,7 +1242,8 @@ class pyCryptFrame(pyFrame):
         '''
         assert identityname is not None
         assert key_id is not None
-        cryptframe_associate_identity(str(identityname), str(key_id))
+        if not cryptframe_associate_identity(str(identityname), str(key_id)):
+            raise ValueError("Problem with key id %s or identity %s" % (key_id, identityname))
 
     @staticmethod
     def get_identity(key_id):
@@ -1251,7 +1252,6 @@ class pyCryptFrame(pyFrame):
         cret = cryptframe_whois_key_id(str(key_id))
         if not cret:
             return None
-        print >> sys.stderr, 'get_identity: CRET is', cret, type(cret), type(cret.raw)
         return str(cret)
 
     @staticmethod
@@ -1277,7 +1277,8 @@ class pyCryptFrame(pyFrame):
         '''
         if not destaddr._Cstruct or key_id is None:
             raise ValueError('illegal parameters')
-        cryptframe_set_dest_key_id(destaddr._Cstruct, str(key_id))
+        if not cryptframe_set_dest_key_id(destaddr._Cstruct, str(key_id)):
+            raise ValueError("Inappropriate key_id %s" % key_id)
 
 
 #This is a bizarre and buggy complaint...
@@ -1326,7 +1327,6 @@ class pyCryptCurve25519(pyCryptFrame):
         cma_ids.sort()
         if len(cma_ids) == 0:
             warnings.append('No CMA keys found. Generating two CMA key-pairs to start.')
-            print >> sys.stderr, "NO CMA KEYs found"
             for keyid in (0, 1):
                 print >> sys.stderr, "Generating key id", keyid
                 cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX, keyid))
@@ -1431,8 +1431,7 @@ class pyFrameSet(pyAssimObj):
         cret = frameset_sender_identity(self._Cstruct)
         if not cret:
             return None
-        print >>sys.stderr, 'SENDER_IDENTITY', cret, str(cret)
-        return 'sender_identity()'
+        return str(cret)
 
     def dump(self):
         'Dump out the given frameset'
