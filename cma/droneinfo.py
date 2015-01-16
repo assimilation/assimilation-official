@@ -316,6 +316,8 @@ class Drone(SystemNode):
 
     def set_crypto_identity(self, keyid=None):
         'Associate our IP addresses with our key id'
+        if CMAdb.store.readonly:
+            return
         if keyid is not None and keyid != '':
             if self.key_id != '' and keyid != self.key_id:
                 raise ValueError('Cannot change key ids for % from %s to %s'
