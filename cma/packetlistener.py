@@ -158,9 +158,10 @@ class PacketListener(object):
             else:
                 # Frameset queue is now empty
                 del self.queue_addrs[fromaddr]
-            print >> sys.stderr, ('RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
-            CMAdb.log.debug('RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
+            print >> sys.stderr, ('dequeue_a_frameset: RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
+            CMAdb.log.debug('dequeue_a_frameset: RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
             return fromaddr, frameset
+        CMAdb.log.debug('dequeue_a_frameset: RETURNING (None, None)')
         return None, None
 
 
@@ -248,8 +249,13 @@ class PacketListener(object):
     def queueanddispatch(self):
         'Queue and dispatch all available framesets in priority order'
         while True:
+            CMA.log.warning('CALLING read_all_available')
             self._read_all_available()
+            CMA.log.warning('read_all_available returned')
+            CMA.log.warning('CALLING dequeue_a_frameset')
             fromaddr, frameset = self.dequeue_a_frameset()
+            CMA.log.warning('RETURNED FROM dequeue_a_frameset')
+            CMA.log.warning('FROMADDR IS %s, FRAMESET IS %s' % (fromaddr, frameset))
             CMA.log.debug('FROMADDR IS %s, FRAMESET IS %s' % (fromaddr, frameset))
             if fromaddr is None:
                 return
