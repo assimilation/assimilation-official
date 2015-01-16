@@ -206,7 +206,7 @@ def main():
     cryptwarnings = pyCryptCurve25519.initkeys()
     for warn in cryptwarnings:
         print >> sys.stderr, ("WARNING: %s" % warn)
-    print 'All known key ids:'
+    print >> sys.stderr, 'All known key ids:'
     keyids = pyCryptFrame.get_key_ids()
     keyids.sort()
     for keyid in keyids:

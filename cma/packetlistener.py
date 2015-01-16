@@ -38,7 +38,7 @@ from cmadb import CMAdb
 import glib # We've replaced gi.repository and gobject with our own 'glib' module
 
 import time
-#import sys
+import sys
 
 # R0903 is too few public methods
 #pylint: disable=R0903
@@ -158,7 +158,8 @@ class PacketListener(object):
             else:
                 # Frameset queue is now empty
                 del self.queue_addrs[fromaddr]
-            #print >> sys.stderr, ('RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
+            print >> sys.stderr, ('RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
+            CMAdb.log.debug('RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
             return fromaddr, frameset
         return None, None
 
@@ -249,8 +250,7 @@ class PacketListener(object):
         while True:
             self._read_all_available()
             fromaddr, frameset = self.dequeue_a_frameset()
-            #print >> sys.stderr, 'FRAMESET IS', frameset
-            #print >> sys.stderr, 'FROMADDR IS', fromaddr
+            CMA.log.debug('FROMADDR IS %s, FRAMESET IS %s' % (fromaddr, frameset))
             if fromaddr is None:
                 return
             fstype = frameset.get_framesettype()
@@ -264,4 +264,5 @@ class PacketListener(object):
                 fstype not in PacketListener.unencrypted_fstypes):
                 raise ValueError('Unencrypted %s frameset received from %s'
                 %       (frameset.fstypestr(), fromaddr))
+            CMA.log.debug('Dispatching FRAMESET from %s' % (fromaddr))
             self.dispatcher.dispatch(fromaddr, frameset)
