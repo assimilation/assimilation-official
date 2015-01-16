@@ -196,10 +196,9 @@ obey_pingpong(AuthListener* unused, FrameSet* fs, NetAddr* fromaddr)
 			Frame*		boatload = frame_new(FRAMETYPE_PKTDATA, 0);
 			gpointer	loadofrandom = g_malloc(pongsize);
 			randombytes_buf(loadofrandom, pongsize);
-			boatload->setvalue(boatload, random, pongsize, NULL);
+			boatload->setvalue(boatload, loadofrandom, pongsize, g_free);
 			frameset_append_frame(pong, boatload);
 			UNREF(boatload);
-			g_free(loadofrandom);
 			flist = g_slist_append(flist, pong);
 		}
 		
