@@ -43,6 +43,7 @@
 #include <nvpairframe.h>
 #include <unknownframe.h>
 #include <frametypes.h>
+#include <misc.h>
 /// @defgroup PacketDecoder PacketDecoder class
 /// A base class for transforming an incoming packet into a GSList of @ref FrameSet objects.
 /// Each @ref FrameSet is composed of a series of @ref Frame "Frames".
@@ -183,26 +184,36 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			 gpointer pktstart,		///<[in] start of packet
 			 gconstpointer pktend)		///<[in] first byte past end of packet
 {
-	gpointer	curframeset = pktstart;
+	guint8*		curframeset = pktstart;
 	GSList*		ret = NULL;
 
 	// Loop over all the FrameSets in the packet we were given.
-	while (curframeset < pktend) {
+	while (curframeset < (guint8*)pktend) {
 		gpointer	nextframeset = NULL;
 		gpointer	framestart = ((guint8*)curframeset + FRAMESET_INITSIZE);
 		gpointer	curframe;
-		FrameSet*	fs = _decode_packet_get_frameset_data(curframeset, pktend, &nextframeset);
+		FrameSet*	fs;
 		gconstpointer	fsend = pktend;
 		gpointer	newframestart = NULL;
 		gboolean	firstframe = TRUE;
+		guint32		framesetlen;
 
+		// Check the overall frame size
+		framesetlen = get_generic_tlv_len(curframeset, pktend);
+		if (framesetlen > ((guint8*)pktend-(curframeset+FRAMESET_INITSIZE))) {
+			g_warning("%s.%d: Received frameset length [%d] is invalid - cannot exceed %d"
+			,	__FUNCTION__, __LINE__, framesetlen
+			,	(int)((guint8*)pktend-(curframeset+FRAMESET_INITSIZE)));
+			goto errout;
+		}
+		fsend = curframeset+framesetlen+FRAMESET_INITSIZE;
+		fs = _decode_packet_get_frameset_data(curframeset, curframeset+framesetlen, &nextframeset);
 		g_return_val_if_fail(fs != NULL,  ret);
-
 		if (!is_valid_generic_tlv_packet(framestart, pktend)) {
 			g_warning("%s.%d:  Frameset type %d not a valid TLV frameset"
 			,	__FUNCTION__, __LINE__, fs->fstype);
 			UNREF(fs);
-			goto getnextframeset;
+			goto errout;
 		}
 
 		// Construct this FrameSet from the series of frames encoded in the packet.
@@ -250,6 +261,13 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			UNREF(newframe);
 		}
 	getnextframeset:
+		if (curframe != fsend) {
+			g_warning("%s.%d:  Received %d frameset - length is off by"
+			": %d instead"
+			,	__FUNCTION__, __LINE__, fs->fstype
+			,	(int)((guint8*)fsend-((guint8*)curframe)));
+			goto errout;
+		}
 		if (newframestart) {
 			g_free(newframestart); newframestart = NULL;
 		}
@@ -258,6 +276,9 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 		}
 		curframeset = nextframeset;
 	}
+	return ret;
+errout:
+	g_slist_free_full(ret, assim_g_notify_unref); ret = NULL;
 	return ret;
 }
 ///@}
