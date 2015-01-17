@@ -28,9 +28,11 @@
 #define	GENERICTLV_HDRSZ	(sizeof(guint16)+/*sizeof(guint24)*/3)
 
 WINEXPORT guint16 get_generic_tlv_type(gconstpointer tlv_vp, gconstpointer pktend);
+/// get_generic_tlv_len returns a "tainted" result which should be validated against other criteria.
 WINEXPORT guint32 get_generic_tlv_len(gconstpointer tlv_vp, gconstpointer pktend);
 WINEXPORT gconstpointer get_generic_tlv_value(gconstpointer tlv_vp, gconstpointer pktend);
 WINEXPORT gpointer get_generic_tlv_nonconst_value(gpointer tlv_vp, gconstpointer pktend);
+/// get_generic_tlv_totalsize returns a "tainted" result which should be validated against other criteria.
 WINEXPORT guint32 get_generic_tlv_totalsize(gsize datasize);
 WINEXPORT gboolean is_valid_generic_tlv_packet(gconstpointer tlv_vp, gconstpointer pktend);
 WINEXPORT gconstpointer get_generic_tlv_first(gconstpointer packet, gconstpointer pktend);

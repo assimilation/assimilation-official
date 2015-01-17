@@ -64,7 +64,7 @@ RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh
 #   Build and install Packages from Assimilation Source
 ###############################################################
 ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
-RUN cd /root/assimilation/; ls -l tip && tar xzf tip.tar.gz && mv Assimilation-* src
+RUN cd /root/assimilation/ && tar xzf tip.tar.gz && mv Assimilation-* src
 RUN cd /root/assimilation/bin; cmake ../src && make install && cpack
 #   Set up Assimilation encryption keys
 RUN mkdir -p /usr/share/assimilation/crypto.d  /tmp/cores # putting --mode 0700 on mkdir screws up security attributes (don't do it!)
@@ -77,7 +77,7 @@ RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimil
 #   Run Assimilation unit tests
 ###############################################################
 RUN pip install testify
-RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
+RUN service rsyslog start && service neo4j-service start; sleep 10; cd /root/assimilation/src && testify -v cma.tests
 
 ###############################################################
 #   Clean out the database and prepare for running system tests

@@ -210,7 +210,8 @@ class PacketListener(object):
                 cond = 'IO_HUP'
             else:
                 cond = '(%s?)' % (str(cb_condition))
-            listener.mainloop.quit()
+            CMAdb.log.critical('mainloop_callback: Received Unexpected I/O condition: %s '
+            %       (cond))
         #print >> sys.stderr, 'RETURNING True'
         return True
 
