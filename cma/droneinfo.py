@@ -321,7 +321,7 @@ class Drone(SystemNode):
         if keyid is not None and keyid != '':
             if self.key_id != '' and keyid != self.key_id:
                 raise ValueError('Cannot change key ids for % from %s to %s'
-                %   (str(self), self.ey_id, keyid))
+                %   (str(self), self.key_id, keyid))
             self.key_id = keyid
         # Encryption is required elsewhere - we ignore this here...
         if self.key_id != '':
