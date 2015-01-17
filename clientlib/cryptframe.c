@@ -472,7 +472,7 @@ cryptframe_set_dest_key_id(NetAddr*destaddr,	///< Destination addr,port
 {
 	CryptFramePublicKey*	destkey;
 	INITMAPS;
-	g_return_if_fail(NULL != destaddr && NULL != key_id);
+	g_return_val_if_fail(NULL != destaddr && NULL != key_id, FALSE);
 	destkey = g_hash_table_lookup(public_key_map, key_id);
 	if (NULL == destkey) {
 		g_critical("%s.%d: No key associated with key id %s"
