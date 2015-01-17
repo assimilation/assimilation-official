@@ -163,7 +163,6 @@ class PacketListener(object):
                 CMAdb.log.debug('dequeue_a_frameset: RETURNING (%s, %s)'
                 %   (fromaddr, str(frameset)[:80]))
             return fromaddr, frameset
-        CMAdb.log.debug('dequeue_a_frameset: RETURNING (None, None)')
         return None, None
 
 
@@ -211,7 +210,6 @@ class PacketListener(object):
                 cond = 'IO_HUP'
             else:
                 cond = '(%s?)' % (str(cb_condition))
-            CMAdb.log.warning('PacketListener::mainloop_callback(cb_condition=%s)' % (cond))
             listener.mainloop.quit()
         #print >> sys.stderr, 'RETURNING True'
         return True
@@ -276,14 +274,8 @@ class PacketListener(object):
     def queueanddispatch(self):
         'Queue and dispatch all available framesets in priority order'
         while True:
-            CMAdb.log.warning('CALLING read_all_available')
             self._read_all_available()
-            CMAdb.log.warning('read_all_available returned')
-            CMAdb.log.warning('CALLING dequeue_a_frameset')
             fromaddr, frameset = self.dequeue_a_frameset()
-            CMAdb.log.warning('RETURNED FROM dequeue_a_frameset')
-            CMAdb.log.warning('FROMADDR IS %s, FRAMESET IS %s' % (fromaddr, frameset))
-            CMAdb.log.debug('FROMADDR IS %s, FRAMESET IS %s' % (fromaddr, frameset))
             if fromaddr is None:
                 return
             fstype = frameset.get_framesettype()
@@ -300,5 +292,4 @@ class PacketListener(object):
                     fsstr = fsstr[0:90] + '...'
                 raise ValueError('Unencrypted %s frameset received from %s: frameset is %s'
                 %       (frameset.fstypestr(), fromaddr, fsstr))
-            CMAdb.log.debug('Dispatching FRAMESET from %s' % (fromaddr))
             self.dispatcher.dispatch(fromaddr, frameset)
