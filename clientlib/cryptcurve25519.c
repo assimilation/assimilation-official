@@ -498,6 +498,7 @@ CryptCurve25519*
 cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	  const char * sender_key_id,	///<[in] name of sender's key
 	  const char * receiver_key_id,	///<[in] name of receiver's key
+	  gboolean     forsending,	///<[in] TRUE if this is for sending
 	  gsize objsize)		///<[in] sizeof(this object) - or zero for default
 {
 	CryptFrame*		baseframe;
@@ -530,8 +531,8 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	baseframe->baseclass.length	= TLVLEN(receiver_key_id, sender_key_id);
 	baseframe->baseclass.baseclass._finalize = _cryptcurve25519_finalize;
 	ret			= NEWSUBCLASS(CryptCurve25519, baseframe);
-	ret->private_key	= cryptframe_private_key_by_id(sender_key_id);
-	ret->public_key		= cryptframe_public_key_by_id(receiver_key_id);
+	ret->private_key	= cryptframe_private_key_by_id(forsending ? sender_key_id : receiver_key_id);
+	ret->public_key		= cryptframe_public_key_by_id(forsending ? receiver_key_id : sender_key_id);
 	if (ret->private_key && ret->public_key) {
 		DEBUGCKSUM3("private_key:", ret->private_key->private_key, crypto_box_SECRETKEYBYTES);
 		DEBUGCKSUM3("public_key:", ret->public_key->public_key, crypto_box_PUBLICKEYBYTES);
@@ -539,8 +540,15 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 		REF(ret->private_key);
 		REF(ret->public_key);
 	}else{
-		g_warning("%s.%d: private or public key is NULL: %p / %p", __FUNCTION__, __LINE__
-		,	ret->private_key, ret->public_key);
+		if (!ret->private_key) {
+			g_warning("%s.%d: Sender private key is NULL for key id %s", __FUNCTION__, __LINE__
+			,	sender_key_id);
+			abort();
+		}
+		if (!ret->public_key) {
+			g_warning("%s.%d: Receiver public key is NULL for key id %s", __FUNCTION__, __LINE__
+			,	receiver_key_id);
+		}
 		UNREF3(ret);
 		return NULL;
 	}
@@ -584,8 +592,8 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 				// The second key name is in receiver's key name
 	CryptFramePublicKey *	sender_public_key = NULL;
 	CryptFramePrivateKey*	receiver_secret_key = NULL;
-	const char*		pubkey_id = NULL;
-	const char*		seckey_id = NULL;
+	const char*		sender_pubkey_id = NULL;
+	const char*		rcvr_seckey_id = NULL;
 	int			j;
 
 	(void)ignorednewpkt; (void)ignoredpktend;
@@ -602,13 +610,23 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 		, 	0 == j ? PUBLICKEY : PRIVATEKEY), NULL);
 		if (0 == j) {
 			sender_public_key = cryptframe_public_key_by_id(key_id);
-			pubkey_id = key_id;
+			sender_pubkey_id = key_id;
 		}else{
 			receiver_secret_key = cryptframe_private_key_by_id(key_id);
-			seckey_id = key_id;
+			rcvr_seckey_id = key_id;
 		}
 		g_return_val_if_fail(key_id != NULL, NULL);
 		valptr += namelen;
+	}
+	if (NULL == sender_public_key) {
+		g_warning("%s.%d: No access to sender %s public key"
+		,	__FUNCTION__, __LINE__, sender_pubkey_id);
+		return NULL;
+	}
+	if (NULL == receiver_secret_key) {
+		g_warning("%s.%d: No access to receiver %s private key"
+		,	__FUNCTION__, __LINE__, rcvr_seckey_id);
+		return NULL;
 	}
 	g_return_val_if_fail((gpointer)(valptr + (crypto_box_NONCEBYTES+crypto_box_MACBYTES)) <= pktend, NULL);
 	nonce = valptr;
@@ -623,14 +641,15 @@ cryptcurve25519_tlvconstructor(gpointer tlvstart,	///<[in/out] Start of marshall
 	if (crypto_box_open_easy(plaintext, cyphertext, cypherlength, nonce
 	,	sender_public_key->public_key, receiver_secret_key->private_key) != 0) {
 		g_warning("%s.%d: could not decrypt %d byte message encrypted with key pair [pub:%s, sec:%s]"
-		,	__FUNCTION__, __LINE__, (int)cypherlength, pubkey_id, seckey_id);
+		,	__FUNCTION__, __LINE__, (int)cypherlength, sender_pubkey_id, rcvr_seckey_id);
 		return NULL;
 	}
 	DEBUGCKSUM4("plain text:", plaintext, cypherlength-crypto_box_MACBYTES);
 	// Note that our return value's size will determine where the beginning of the
 	// decrypted data is (according to it's dataspace() member function)
-	ret = cryptcurve25519_new(get_generic_tlv_type(tlvstart, pktend), (const char *)pubkey_id
-	,	seckey_id, 0);
+	ret = cryptcurve25519_new(get_generic_tlv_type(tlvstart, pktend)
+	,	(const char *)sender_pubkey_id
+	,	rcvr_seckey_id, FALSE, 0);
 	return (ret ? &(ret->baseclass.baseclass) : NULL);
 }
 ///
@@ -931,9 +950,10 @@ _cryptcurve25519_save_a_key(const char * key_id,///<[in] key_id to save
 /// Generic "new" function to use with cryptframe_set_encryption_method()
 WINEXPORT CryptFrame*
 cryptcurve25519_new_generic(const char* sender_key_id,		///< sender's key id
-			    const char* receiver_key_id)	///< receiver's key id
+			    const char* receiver_key_id,	///< receiver's key id
+			    gboolean forsending)		///< TRUE if this is for sending
 {
-	CryptCurve25519* ret = cryptcurve25519_new(FRAMETYPE_CRYPTCURVE25519, sender_key_id, receiver_key_id, 0);
+	CryptCurve25519* ret = cryptcurve25519_new(FRAMETYPE_CRYPTCURVE25519, sender_key_id, receiver_key_id, forsending, 0);
 	return (ret ? &ret->baseclass: NULL);
 }
 

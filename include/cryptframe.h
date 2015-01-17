@@ -81,6 +81,6 @@ WINEXPORT gboolean cryptframe_set_dest_key_id(NetAddr*, const char * key_id);
 WINEXPORT const char * cryptframe_get_dest_key_id(const NetAddr*);
 WINEXPORT CryptFrame*		cryptframe_new_by_destaddr(const NetAddr* destination_address);
 WINEXPORT void			cryptframe_set_encryption_method(CryptFrame*(*)
-					(const char* sender_key_id, const char * receiver_key_id));
+					(const char* sender_key_id, const char * receiver_key_id, gboolean forsending));
 ///@}
 #endif /* _CRYPTFRAME_H */
