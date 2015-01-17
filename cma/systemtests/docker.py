@@ -111,6 +111,7 @@ class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
     dockercmd = '/usr/bin/docker.io'
     servicecmd = '/usr/bin/service'
+    nsentercmd = '/usr/bin/nsenter'
 
     def __init__(self, imagename, cmdargs=None, dockerargs=None):
         'Constructor for DockerSystem class'
@@ -209,6 +210,23 @@ class DockerSystem(TestSystem):
 
     def runinimage(self, cmdargs, detached=True):
         'Runs the given command on our running docker image'
+        detached = detached
+        if self.status != TestSystem.RUNNING:
+            raise RuntimeError('Docker Container %s is not running - docker exec not possible'
+            %   self.name)
+        self.docker_nsenter(cmdargs, detached)
+
+    def docker_nsenter(self, cmdargs, detached=True):
+        'Runs the given command on our running docker image using nseneter'
+        detached=detached
+        args = [DockerSystem.nsentercmd, '--target', str(self.pid), '--mount'
+        ,   '--uts', '--ipc', '--pid', '--net', '--']
+        args.extend(cmdargs)
+        #print >> sys.stderr, 'RUNNING nsenter cmd:', args
+        subprocess.check_call(args)
+
+    def dockerexec(self, cmdargs, detached=True):
+        'Runs the given command on our running docker image using docker exec'
         if self.status != TestSystem.RUNNING:
             raise RuntimeError('Docker Container %s is not running - docker exec not possible'
             %   self.name)
@@ -228,8 +246,9 @@ class DockerSystem(TestSystem):
         else:
             self.runningservices.append(servicename)
         if async:
-            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s start &' % servicename,))
+            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
         else:
+            #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
             self.runinimage(('/etc/init.d/'+servicename, 'start'))
 
     def stopservice(self, servicename, async=False):
@@ -266,6 +285,8 @@ class SystemTestEnvironment(object):
         self.cleanupwhendone = cleanupwhendone
         watch = LogWatcher(logname, [])
         watch.setwatch()
+        nanodebug=3
+        cmadebug=3
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // java version.*') % self.cma.hostname
@@ -314,7 +335,7 @@ class SystemTestEnvironment(object):
                 system.destroy()
                 system = None
 
-        system.runinimage(('/bin/bash', '-c', 'mkdir /tmp/cores'))
+        system.runinimage(('/bin/bash', '-c', 'mkdir -p /tmp/cores'))
         #system.runinimage(('/bin/bash', '-c'
         #,                  'echo "/tmp/cores/core.%e.%p" > /proc/sys/kernel/core_pattern'))
         # Set up logging to be forwarded to our parent logger
@@ -337,19 +358,16 @@ class SystemTestEnvironment(object):
         for j in range(0, len(lines)):
             nano.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
-            print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
+            #print >> sys.stderr, ('NANOPROBE [%s]' % lines[j])
 
-    def set_cmaconfig(self, debug=5):
+    def set_cmaconfig(self, debug=0):
         'Set up our CMA configuration file'
         lines = ( ('CMA_DEBUG=%d' % (debug)),
                   ('CMA_CORELIMIT=unlimited'),
                   #('CMA_STRACEFILE=/tmp/cma.strace')
         )
-        self.cma.runinimage(('/bin/bash', '-c'
-        ,           "echo '%s' >/etc/default/cma" % lines[0]))
         print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
-        print >> sys.stderr, ('CMA [%s]' % lines[0])
-        for j in range(1, len(lines)):
+        for j in range(0, len(lines)):
             self.cma.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/cma" % lines[j]))
             print >> sys.stderr, ('CMA [%s]' % lines[j])
@@ -357,8 +375,6 @@ class SystemTestEnvironment(object):
     def spawncma(self, nanodebug=0, cmadebug=0):
         'Spawn a CMA instance'
         self.cma = self._spawnsystem(self.cmaimage)
-        self.cma.runinimage(('/bin/bash', '-c'
-        ,           'echo CMA_DEBUG=0 >/etc/default/cma'))
         self.cma.runinimage(('/bin/bash', '-c'
         ,   'echo "org.neo4j.server.webserver.address=0.0.0.0" '
             '>> /var/lib/neo4j/conf/neo4j-server.properties'))

@@ -64,7 +64,7 @@ RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh
 #   Build and install Packages from Assimilation Source
 ###############################################################
 ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
-RUN cd /root/assimilation/; ls -l && ls -l tip && tar xzf tip.tar.gz && mv Assimilation-* src
+RUN cd /root/assimilation/; ls -l tip && tar xzf tip.tar.gz && mv Assimilation-* src
 RUN cd /root/assimilation/bin; cmake ../src && make install && cpack
 #   Set up Assimilation encryption keys
 RUN mkdir -p /usr/share/assimilation/crypto.d  /tmp/cores # putting --mode 0700 on mkdir screws up security attributes (don't do it!)
@@ -87,3 +87,4 @@ RUN service neo4j-service start && service neo4j-service stop # Make a lovely em
 # Install be a copy of host's /etc/timezone - so logs will have right TZ
 ADD timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata
+EXPOSE 1984/udp

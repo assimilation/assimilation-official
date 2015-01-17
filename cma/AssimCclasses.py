@@ -78,7 +78,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME,                  \
-    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new, CryptCurve25519,              \
+    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new,                               \
     cryptframe_associate_identity, cryptframe_set_dest_key_id, cryptframe_whois_key_id, \
     cryptframe_get_dest_key_id,                                                         \
     cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
@@ -86,9 +86,8 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename,  \
     cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519
 
-
 # pylint: disable=W0611
-from AssimCtypes import NOTAKEY, PRIVATEKEY, PUBLICKEY
+from AssimCtypes import NOTAKEY, PRIVATEKEY, PUBLICKEY, CryptCurve25519
 
 from consts import CMAconsts
 
