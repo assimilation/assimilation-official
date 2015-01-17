@@ -1297,7 +1297,7 @@ class pyCryptCurve25519(pyCryptFrame):
         self._Cstruct = None
         if Cstruct is None:
             Cstruct = cryptcurve25519_new(FRAMETYPE_CRYPTCURVE25519, publickey_id, privatekey_id, 0)
-        pyCryptFrame.__init__(Cstruct=Cstruct)
+        pyCryptFrame.__init__(self, Cstruct=Cstruct)
 
     @staticmethod
     def key_id_to_filename(key_id, keytype):
