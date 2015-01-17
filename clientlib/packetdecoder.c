@@ -136,6 +136,9 @@ _decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] Packet
 	}else{ 
 		ret =  unknownframe_tlvconstructor(*pktstart, *pktend, newpacket, &newpacketend);
 	}
+	if (NULL == ret) {
+		return NULL;
+	}
 	g_return_val_if_fail(ret != NULL, NULL);
 	if (NULL == *newpacket) {
 		*pktstart = (gpointer) ((guint8*)*pktstart + ret->dataspace(ret));
@@ -245,7 +248,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			}
 			if (NULL == newframe) {
 				UNREF(fs);
-				goto getnextframeset;
+				goto errout;
 			}
 			if (TRUE == firstframe) {
 				if (!OBJ_IS_A(newframe, "SignFrame")) {
@@ -253,14 +256,13 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 					UNREF(fs);
 					g_warning("%s.%d: First frame NOT a signature frame - [%d] instead"
 					,	__FUNCTION__, __LINE__, newframe->type);
-					goto getnextframeset;
+					goto errout;
 				}
 				firstframe = FALSE;
 			}
 			frameset_append_frame(fs, newframe);
 			UNREF(newframe);
 		}
-	getnextframeset:
 		if (curframe != fsend) {
 			g_warning("%s.%d:  Received %d frameset - length is off by"
 			": %d instead"

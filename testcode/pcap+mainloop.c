@@ -90,7 +90,7 @@ gboolean gotnetpkt(Listener*, FrameSet* fs, NetAddr* srcaddr);
 void got_heartbeat(HbListener* who);
 void got_heartbeat2(HbListener* who);
 void check_JSON(FrameSet* fs);
-FSTATIC gboolean test_cma_authentication(const FrameSet*fs);
+FSTATIC gboolean test_cma_authentication(const FrameSet*fs, NetAddr*);
 
 void fakecma_startup(AuthListener*, FrameSet* fs, NetAddr*);
 gboolean timeout_agent(gpointer ignored);
@@ -276,10 +276,11 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 }
 
 FSTATIC gboolean
-test_cma_authentication(const FrameSet*fs)
+test_cma_authentication(const FrameSet*fs, NetAddr* fromaddr)
 {
 	gpointer	maybecrypt = g_slist_nth_data(fs->framelist, 1);
 	Frame*		mightbecrypt;
+	(void)fromaddr;
 	/// For our purposes, we don't much care how it's encrypted...
 	g_return_val_if_fail(maybecrypt != NULL, FALSE);
 	mightbecrypt = CASTTOCLASS(Frame, maybecrypt);

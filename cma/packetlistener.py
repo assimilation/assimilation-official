@@ -159,10 +159,9 @@ class PacketListener(object):
             else:
                 # Frameset queue is now empty
                 del self.queue_addrs[fromaddr]
-            print >> sys.stderr, ('dequeue_a_frameset: RETURNING (%s, %s)'
-            %   (fromaddr, str(frameset)[:80]))
-            CMAdb.log.debug('dequeue_a_frameset: RETURNING (%s, %s)'
-            %   (fromaddr, str(frameset)[:80]))
+            if CMAdb.debug:
+                CMAdb.log.debug('dequeue_a_frameset: RETURNING (%s, %s)'
+                %   (fromaddr, str(frameset)[:80]))
             return fromaddr, frameset
         CMAdb.log.debug('dequeue_a_frameset: RETURNING (None, None)')
         return None, None
@@ -296,7 +295,10 @@ class PacketListener(object):
                 pyCryptFrame.dest_set_key_id(fromaddr, key_id)
             elif (self.encryption_required and
                 fstype not in PacketListener.unencrypted_fstypes):
+                fsstr = str(frameset)
+                if len(fsstr) > 100:
+                    fsstr = fsstr[0:90] + '...'
                 raise ValueError('Unencrypted %s frameset received from %s: frameset is %s'
-                %       (frameset.fstypestr(), fromaddr, str(frameset)))
+                %       (frameset.fstypestr(), fromaddr, fsstr))
             CMAdb.log.debug('Dispatching FRAMESET from %s' % (fromaddr))
             self.dispatcher.dispatch(fromaddr, frameset)

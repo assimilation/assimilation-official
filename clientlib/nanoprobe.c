@@ -97,7 +97,8 @@ FSTATIC HbListener*	_real_hblistener_new(NetAddr*, ConfigContext*);
 FSTATIC gboolean	_nano_final_shutdown(gpointer unused);
 FSTATIC gboolean	shutdown_when_outdone(gpointer unused);
 FSTATIC gboolean	_nano_initconfig_OK(ConfigContext* config);
-FSTATIC gboolean _nanoprobe_is_cma_frameset(const FrameSet * fs);
+FSTATIC gboolean	_nanoprobe_is_cma_frameset(const FrameSet * fs, NetAddr*);
+FSTATIC void		_nanoprobe_associate_cma_addrs(const char *key_id, ConfigContext *cfg);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 
@@ -653,6 +654,7 @@ endloop:
 			}
 			g_slist_free1(thiskey);
 		}
+		_nanoprobe_associate_cma_addrs(frameset_sender_key_id(fs), newconfig);
 		if (DEBUG >= 2) {
 			DEBUGMSG("%s.%d: Validating the config we processed...", __FUNCTION__, __LINE__);
 			if (_nano_initconfig_OK(config)) {
@@ -1246,7 +1248,8 @@ nano_start_full(const char *initdiscoverpath	///<[in] pathname of initial networ
 	,	guint		discover_interval///<[in] discovery interval for agent above
 	,	NetGSource*	io		///<[in/out] network connectivity object
 	,	ConfigContext* config		///<[in/out] configuration object
-	,	gboolean(*authfunc)(const FrameSet*))///<[in] command authentication function -
+	,	gboolean(*authfunc)(const FrameSet*, NetAddr*))
+						///<[in] command authentication function -
 						///< - defaults to _nanoprobe_is_cma_frameset	
 {
 	static struct startup_cruft cruftiness;
@@ -1461,7 +1464,7 @@ nanoprobe_initialize_keys(void)
 /// We assume any address in the config whose name starts with "cma" is a CMA address.
 /// The purpose of this function is to make sure we use that key when talking to the CMA.
 WINEXPORT void
-nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
+_nanoprobe_associate_cma_addrs(const char *key_id, ConfigContext *cfg)
 {
 	GSList*	keys = cfg->keys(cfg);
 	GSList*	thiskey;
@@ -1476,7 +1479,6 @@ nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
 			NetAddr*	destaddr = cfg->getaddr(cfg, keyname);
 
 			cryptframe_set_dest_key_id(destaddr, key_id);
-			cryptframe_associate_identity(CMA_IDENTITY_NAME, key_id);
 		}
 	}
 	g_slist_free(keys); keys=NULL;
@@ -1487,9 +1489,10 @@ nanoprobe_associate_cma_key(const char *key_id, ConfigContext *cfg)
 
 /// Return TRUE if this FrameSet came
 FSTATIC gboolean
-_nanoprobe_is_cma_frameset(const FrameSet * fs)
+_nanoprobe_is_cma_frameset(const FrameSet * fs, NetAddr* fromaddr)
 {
 	const char*		identity;
+	gboolean		retval;
 	
 	if (!is_encryption_enabled) {
 		static	gint64	last_complaint = 0L;
@@ -1504,6 +1507,10 @@ _nanoprobe_is_cma_frameset(const FrameSet * fs)
 		return TRUE;
 	}
 	identity = frameset_sender_identity(fs);
-	return (identity ? strcmp(identity, CMA_IDENTITY_NAME) == 0 : FALSE);
+	retval = (identity ? strcmp(identity, CMA_IDENTITY_NAME) == 0 : FALSE);
+	if (retval) {
+		cryptframe_set_dest_key_id(fromaddr, frameset_sender_key_id(fs));
+	}
+	return retval;
 }
 ///@}

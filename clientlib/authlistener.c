@@ -49,7 +49,7 @@ _authlistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* addr)
 	AuthListener*		aself = CASTTOCLASS(AuthListener, self);
 	AuthListenerAction	action;
 
-	if (aself->authenticator && !aself->authenticator(fs)) {
+	if (aself->authenticator && !aself->authenticator(fs, addr)) {
 		char *	addr_s = addr->baseclass.toString(&addr->baseclass);
 		g_warning("%s.%d: Received unauthorized command [%d] from address %s"
 		" sender key id: %s,  sender identity: %s"
@@ -134,7 +134,8 @@ authlistener_new(gsize objsize,		 ///<[in] size of Listener structure (0 for siz
 		 ObeyFrameSetTypeMap*map,///<[in] NULL-terminated map of FrameSet types to action functions -
 		 ConfigContext* config,	 ///<[in/out] configuration context
 		 gboolean autoack,	 ///<[in] TRUE if the authlistener should do the ACKing for us
-		 gboolean(*authenticator)(const FrameSet*fs))///<[in] Authentication function
+		 gboolean(*authenticator)(const FrameSet*fs, NetAddr*))
+					 ///<[in] Authentication function
 {
 	AuthListener * newlistener;
 	BINDDEBUG(AuthListener);

@@ -139,7 +139,7 @@ _switchdiscovery_setprotocols(ConfigContext* cfg)
 		}
 		for (j=0; j < DIMOF(map); ++j) {
 			if (strcmp(map[j].protoname, elem->u.strvalue) == 0) {
-				DEBUGMSG("%s.%d: protoname = %s", __FUNCTION__, __LINE__
+				DEBUGMSG2("%s.%d: protoname = %s", __FUNCTION__, __LINE__
 				,	elem->u.strvalue);
 				protoval |= map[j].protobit;
 				continue;
@@ -148,11 +148,11 @@ _switchdiscovery_setprotocols(ConfigContext* cfg)
 
 	}
 	if (0 == protoval) {
-		DEBUGMSG("%s.%d: returning DEFAULT_PROTOS (0x%04x)", __FUNCTION__, __LINE__
+		DEBUGMSG2("%s.%d: returning DEFAULT_PROTOS (0x%04x)", __FUNCTION__, __LINE__
 		,	DEFAULT_PROTOS);
 		return DEFAULT_PROTOS;
 	}
-	DEBUGMSG("%s.%d: returning 0x%04x", __FUNCTION__, __LINE__, protoval);
+	DEBUGMSG2("%s.%d: returning 0x%04x", __FUNCTION__, __LINE__, protoval);
 	return protoval;
 
 }
@@ -173,7 +173,6 @@ switchdiscovery_new(ConfigContext*swconfig	///<[in] Switch discoveryconfiguratio
 	Discovery * dret;
 	SwitchDiscovery* ret;
 	BINDDEBUG(SwitchDiscovery);
-	DEBUG = (DEBUG < 2 ? 2 : DEBUG); // DEFAULT DEBUG ON FOR A WHILE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 	g_return_val_if_fail(swconfig != NULL, NULL);
 	dev = swconfig->getstring(swconfig, CONFIGNAME_DEVNAME);
 	g_return_val_if_fail(dev != NULL, NULL);

@@ -52,13 +52,13 @@ struct _CryptCurve25519 {
 
 #define	MAXCRYPTNAMELENGTH	64
 
-WINEXPORT CryptCurve25519* cryptcurve25519_new(guint16 frame_type, const char * pubkeyname, const char *privkeyname, gsize objsize);
+WINEXPORT CryptCurve25519* cryptcurve25519_new(guint16 frame_type, const char * pubkeyname, const char *privkeyname, gboolean forsending, gsize objsize);
 WINEXPORT Frame* cryptcurve25519_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
 WINEXPORT void cryptcurve25519_gen_temp_keypair(const char* keyname);
 WINEXPORT char* cryptcurve25519_gen_persistent_keypair(const char * keyname);
 WINEXPORT gboolean cryptcurve25519_save_public_key(const char * key_id, gpointer public_key, int keysize);
 WINEXPORT CryptFrame* cryptcurve25519_new_generic(const char* sender_key_id,
-						  const char* receiver_key_id);
+						  const char* receiver_key_id, gboolean forsending);
 WINEXPORT void cryptcurve25519_cache_all_keypairs(void);
 WINEXPORT gboolean cryptcurve25519_purge_keypair(const char * key_id);
 WINEXPORT void cryptcurve25519_set_encryption_method(void);///< Just for python simplicity...
