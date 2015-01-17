@@ -117,10 +117,10 @@ class AssimSysTest(object):
         logwatch = LogWatcher(logname, [], timeout, returnonlymatch=True, debug=debug)
         logwatch.setwatch()
         sysenv = SystemTestEnvironment(logname, maxdrones, nanodebug=nanodebug, cmadebug=cmadebug)
-        CMAinit(None)
-        store = Store(neo4j.GraphDatabaseService
-        (   'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
-        ,   readonly=True)
+        CMAinit(None, host=str(sysenv.cma.ipaddr), readonly=True)
+        url = 'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474)
+        print >> sys.stderr, 'OPENING Neo4j at URL %s' % url
+        store = Store(neo4j.GraphDatabaseService(url), readonly=True)
         for classname in GN.GraphNode.classmap:
             GN.GraphNode.initclasstypeobj(store, classname)
 
