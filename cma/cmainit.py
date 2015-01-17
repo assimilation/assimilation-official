@@ -39,8 +39,11 @@ class CMAinit(object):
     '''
     The CMAinit class
     '''
-
-    def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False, retries=300, readonly=False, encryption_required=False):
+    #cmainit.py:43: [R0913:CMAinit.__init__] Too many arguments (9/7)
+    #cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
+    # pylint: disable=R0914,R0913
+    def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False
+    ,       retries=300, readonly=False, encryption_required=False):
         'Initialize and construct a global database instance'
         #print >> sys.stderr, 'CALLING NEW initglobal'
         CMAdb.log = logging.getLogger('cma')
@@ -80,7 +83,8 @@ class CMAinit(object):
                 time.sleep(1)
         Store.debug = debug
         Store.log = CMAdb.log
-        CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap, readonly=readonly)
+        CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap
+        ,   readonly=readonly)
         if not readonly:
             for classname in GraphNode.classmap:
                 GraphNode.initclasstypeobj(CMAdb.store, classname)

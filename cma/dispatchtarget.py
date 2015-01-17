@@ -190,7 +190,7 @@ class DispatchSTARTUP(DispatchTarget):
         # Did they give us the crypto info we need?
         if keyid is None or pubkey is None:
             if CMAdb.debug:
-                self.log.debug('Drone %s registered with keyid %s and pubkey provided: %s'
+                CMAdb.log.debug('Drone %s registered with keyid %s and pubkey provided: %s'
                 %   (self, keyid, pubkey is not None))
         else:
             if drone.key_id == '':

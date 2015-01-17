@@ -28,6 +28,7 @@ from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr, pyCryptFram
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from frameinfo import FrameSetTypes
 from cmadb import CMAdb
+import traceback, os
 #try:
     #gi.repository confuses pylint...
     #pylint: disable=E0611
@@ -158,13 +159,33 @@ class PacketListener(object):
             else:
                 # Frameset queue is now empty
                 del self.queue_addrs[fromaddr]
-            print >> sys.stderr, ('dequeue_a_frameset: RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
-            CMAdb.log.debug('dequeue_a_frameset: RETURNING (%s, %s)' % (fromaddr, str(frameset)[:80]))
+            print >> sys.stderr, ('dequeue_a_frameset: RETURNING (%s, %s)'
+            %   (fromaddr, str(frameset)[:80]))
+            CMAdb.log.debug('dequeue_a_frameset: RETURNING (%s, %s)'
+            %   (fromaddr, str(frameset)[:80]))
             return fromaddr, frameset
         CMAdb.log.debug('dequeue_a_frameset: RETURNING (None, None)')
         return None, None
 
 
+    @staticmethod
+    def process_pkt_exception(e):
+        '''Handle an unexpected exception.
+        Under us, the MessageDispatcher code will catch *most* exceptions.
+        But those that result from badly formatted/encrypted messages
+        that keep us from understanding or trusting the message
+        will get caught here.
+        '''
+        # Put everything useful into the logs in a legible way
+        trace = sys.exc_info()[2] # Ignore the etype and evalue from sys.exc_info
+        tblist = traceback.extract_tb(trace, 20)
+        CMAdb.log.critical('PacketListener exception [%s] occurred' % e)
+        CMAdb.log.info('======== Begin %s PacketListener Exception Traceback ========' % e)
+        for tb in tblist:
+            (filename, lineno, funcname, text) = tb
+            filename = os.path.basename(filename)
+            CMAdb.log.info('%s.%s:%s: %s'% (filename, lineno, funcname, text))
+        CMAdb.log.info('======== End %s PacketListener Exception Traceback ========' %  (e))
 
     @staticmethod
     def mainloop_callback(unusedsource, cb_condition, listener):
@@ -174,7 +195,14 @@ class PacketListener(object):
         if cb_condition == glib.IO_IN or cb_condition == glib.IO_PRI:
             #print >> sys.stderr, ('Calling %s.listenonce' %  listener), type(listener)
             #listener.listenonce() ##OLD CODE
-            listener.queueanddispatch()
+            # W0703 == Too general exception catching...
+            # pylint: disable=W0703
+            try:
+                listener.queueanddispatch()
+            except Exception as e:
+                # Illegitimi non carborundum
+                PacketListener.process_pkt_exception(e)
+                # Just keep on keepin' on...
         else:
             if cb_condition == glib.IO_ERR:
                 cond = 'IO_ERR'
@@ -268,7 +296,7 @@ class PacketListener(object):
                 pyCryptFrame.dest_set_key_id(fromaddr, key_id)
             elif (self.encryption_required and
                 fstype not in PacketListener.unencrypted_fstypes):
-                raise ValueError('Unencrypted %s frameset received from %s'
-                %       (frameset.fstypestr(), fromaddr))
+                raise ValueError('Unencrypted %s frameset received from %s: frameset is %s'
+                %       (frameset.fstypestr(), fromaddr, str(frameset)))
             CMAdb.log.debug('Dispatching FRAMESET from %s' % (fromaddr))
             self.dispatcher.dispatch(fromaddr, frameset)
