@@ -439,14 +439,14 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 		if (namelen >= MAXCRYPTNAMELENGTH || namelen < 1 ){
 			return FALSE;
 		}
-		if (!_is_valid_curve25519_key_id(self->baseclass.receiver_key_id, PUBLICKEY)) {
+		if (!_is_valid_curve25519_key_id(self->baseclass.receiver_key_id, self->forsending? PUBLICKEY: PRIVATEKEY)) {
 			return FALSE;
 		}
 		namelen = strnlen(self->baseclass.sender_key_id, MAXCRYPTNAMELENGTH+1);
 		if (namelen >= MAXCRYPTNAMELENGTH || namelen < 1 ){
 			return FALSE;
 		}
-		if (!_is_valid_curve25519_key_id(self->baseclass.sender_key_id, PRIVATEKEY)) {
+		if (!_is_valid_curve25519_key_id(self->baseclass.sender_key_id, self->forsending ? PRIVATEKEY: PUBLICKEY)) {
 			return FALSE;
 		}
 		return TRUE;
@@ -531,6 +531,7 @@ cryptcurve25519_new(guint16 frame_type,	///<[in] TLV type of CryptCurve25519
 	baseframe->baseclass.length	= TLVLEN(receiver_key_id, sender_key_id);
 	baseframe->baseclass.baseclass._finalize = _cryptcurve25519_finalize;
 	ret			= NEWSUBCLASS(CryptCurve25519, baseframe);
+	ret->forsending		= forsending;
 	ret->private_key	= cryptframe_private_key_by_id(forsending ? sender_key_id : receiver_key_id);
 	ret->public_key		= cryptframe_public_key_by_id(forsending ? receiver_key_id : sender_key_id);
 	if (ret->private_key && ret->public_key) {
