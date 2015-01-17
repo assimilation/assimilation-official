@@ -48,6 +48,7 @@ struct _CryptCurve25519 {
 	CryptFrame		baseclass;
 	CryptFramePublicKey*	public_key;	///< Pointer to associated public key
 	CryptFramePrivateKey*	private_key;	///< Pointer to private key
+	gboolean		forsending;	///< TRUE if this is for sending, FALSE for receiving
 };
 
 #define	MAXCRYPTNAMELENGTH	64
