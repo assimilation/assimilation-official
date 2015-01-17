@@ -33,10 +33,15 @@
 #define	TLV_BAD64	((guint64)0xffffffffffffffffUL)
 #define	TLV_BADPTR	NULL
 
+/// tlv_get_guint8 returns a "tainted" value that must be validated by other means
 WINEXPORT guint8 tlv_get_guint8 (const void* vitem,  const void* bufend);
+/// tlv_get_guint16 returns a "tainted" value that must be validated by other means
 WINEXPORT guint16 tlv_get_guint16(const void* vitem, const void* bufend);
+/// tlv_get_guint24 returns a "tainted" value that must be validated by other means
 WINEXPORT guint32 tlv_get_guint24(const void* vitem, const void* bufend);
+/// tlv_get_guint32 returns a "tainted" value that must be validated by other means
 WINEXPORT guint32 tlv_get_guint32(const void* vitem, const void* bufend);
+/// tlv_get_guint64 returns a "tainted" value that must be validated by other means
 WINEXPORT guint64 tlv_get_guint64(const void* vitem, const void* bufend);
 WINEXPORT void tlv_set_guint8 (void* vitem, guint8  item, const void* bufend);
 WINEXPORT void tlv_set_guint16(void* vitem, guint16 item, const void* bufend);

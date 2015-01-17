@@ -26,6 +26,7 @@
 #include <glib.h>
 #include <tlvhelper.h>
 /// Retrieve an unsigned 8 bit integer from the given location with error checking.
+/// Note: return result is "tainted"
 guint8
 tlv_get_guint8(const void * vitem,	///< Location to get int from
 	       const void* bufend)	///< one byte past end of buffer
@@ -49,6 +50,7 @@ tlv_set_guint8(void *	vitem,	///< Location to stuff the int into
 
 /// Retrieve an unsigned 16 bit integer from the given location with error checking and
 /// without caring about byte alignment.
+/// Note: return result is "tainted"
 guint16
 tlv_get_guint16(const void * vitem,	///< Location to get int from
 		const void* bufend)	///< one byte past end of buffer
@@ -74,6 +76,7 @@ tlv_set_guint16(void *	vitem,	///< Location to stuff the int into
 
 /// Retrieve an unsigned 32 bit integer from the given location with error checking and
 /// without caring about byte alignment.
+/// Note: return result is "tainted"
 guint32
 tlv_get_guint32(const void * vitem,	///< Location to get int from
 		const void* bufend)	///< one byte past end of buffer
@@ -100,6 +103,7 @@ tlv_set_guint32(void *	vitem,	///< Location to stuff the int into
 
 /// Retrieve an unsigned 64 bit integer from the given location with error checking and
 /// without caring about byte alignment.
+/// Note: return result is "tainted"
 guint64
 tlv_get_guint64(const void * vitem,	///< Location to get int from
 		const void* bufend)	///< one byte past end of buffer
@@ -124,6 +128,7 @@ tlv_set_guint64(void *	vitem,	///< Location to stuff the int into
 }
 /// Retrieve an unsigned 24 bit (3-byte) integer from the given location with error checking and
 /// without caring about byte alignment.  This is used for IEEE OUI values.
+/// Note: return result is "tainted"
 guint32
 tlv_get_guint24(const void * vitem,	///< Location to get int from
 		const void* bufend)	///< one byte past end of buffer
