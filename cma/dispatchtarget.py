@@ -365,3 +365,10 @@ class DispatchRSCOPREPLY(DispatchTarget):
                 return
         CMAdb.log.critical('RSCOPREPLY message from %s did not have a RSCJSONREPLY field'
         %   (str(origaddr)))
+
+@DispatchTarget.register
+class DispatchCONNSHUT(DispatchTarget):
+    'Class for handling (ignoring) CONNSHUT packets'
+    def dispatch(self, origaddr, frameset):
+        origaddr = origaddr
+        frameset = frameset
