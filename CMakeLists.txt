@@ -91,10 +91,10 @@ set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "${SUMMARY}")
 set (CPACK_PACKAGE_DESCRIPTION_FILE ${DESCRIPTION_FILE})
 set (CPACK_PACKAGE_RESOURCE_FILE_README ${CMAKE_CURRENT_SOURCE_DIR}/README)
 set (CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/buildtools/debian/postinst)
-set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Project - assimmon.org")
+set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Project - assimmon.org // Assimilation Systems Limited - assimilationsystems.com")
 set (CPACK_DEBIAN_PACKAGE_SECTION "contrib/admin")
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${PROJARCH})
-set (CPACK_DEBIAN_PACKAGE_DEPENDS "python, libc6, resource-agents python-netaddr python-flask")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "python, libc6, resource-agents, python-netaddr, python-flask")
 #When I turn on SHLIBDEPS, I get this error...
 #CPackDeb: dpkg-shlibdeps: dpkg-shlibdeps: need at least one executable
 #set (CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)	# autogenerate dependency information
