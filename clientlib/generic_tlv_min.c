@@ -57,6 +57,7 @@ set_generic_tlv_type(gpointer tlv_vp,	///<[in] Pointer to beginning of TLV entry
 }
 
 /// Return the 'Length' of the given generic T<b>L</b>V entry (first 3 bytes after type)
+/// Note: return result is "tainted" and must be validated by other means
 guint32
 get_generic_tlv_len(gconstpointer tlv_vp,	///<[in] Pointer to beginning of TLV entry
 		gconstpointer pktend)		///<[in] Pointer to one byte past end of packet
