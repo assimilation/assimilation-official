@@ -47,6 +47,24 @@ do
         break
     fi
 done
+#
+#   Process known directives from the init config file
+#   NANOPROBE_BIND	What address should we bind to locally?
+#			format is an IP:port combination - IPv4 or IPv6 format
+#			IPv6 format looks like "[v6address]:portnumber" (as it should)
+#   NANOPROBE_CMAADDR	Where to find the CMA?
+#			It defaults to our reserved multicast address
+#			format is an IP:port combination - ipv4 or ipv6 format
+#   NANOPROBE_DEBUG	Level of debug to request - 0-5
+#   NANOPROBE_DYNAMIC	If NANOPROBE_DYNAMIC is set to yes or similar then bind to an ephemeral port.
+#			This must typically be done for the machine the CMA is running on.
+#			The alternative is to specify a specific non-conflicting BIND address,
+#			or to ensure the nanoprobe starts after the CMA - in which case this
+#			happens automagically...
+#   NANOPROBE_PIDFILE	Where to store our pid file
+#   NANOPROBE_CORELIMIT	what value to give ulimit -c before starting the CMA
+#   NANOPROBE_TTL 	Multicast TTL if we're using our reserved multicast address...
+#			TTL must be between 1 and 31 inclusive.
 
 #   Where to find the CMA?  It defaults to our reserved multicast address
 #   format is an IP:port combination - ipv4 or ipv6 format
