@@ -83,6 +83,7 @@ FSTATIC void		_nano_send_rscexitstatus(ConfigContext* request, gpointer user_dat
 ,				enum HowDied reason, int rc, int signal, gboolean core_dumped
 ,				const char * stringresult);
 FSTATIC void		nanoobey_cancelrscoperation(AuthListener*, FrameSet*, NetAddr*);
+FSTATIC void		nanoobey_connshut(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nano_schedule_discovery(const char *name, guint32 interval,const char* json
 			,	ConfigContext*, NetGSource* transport, NetAddr* fromaddr);
 FSTATIC void		nano_stop_discovery(const char * discoveryname, NetGSource*, NetAddr*);
@@ -268,6 +269,13 @@ _real_comealive_agent(HbListener* who, guint64 howlate)
 		g_free(addrstring);
 		nanoprobe_report_upstream(FRAMESETTYPE_HBBACKALIVE, who->listenaddr, NULL, howlate);
 	}
+}
+FSTATIC void
+nanoobey_connshut(AuthListener* ignoreauth, FrameSet* ignorefs, NetAddr* fromaddr)
+{
+	(void)ignoreauth;
+	(void)ignorefs;
+	DUMP1("Received a CONNSHUT packet from ", &fromaddr->baseclass, "")
 }
 
 /**
@@ -1202,6 +1210,7 @@ ObeyFrameSetTypeMap collective_obeylist [] = {
 	{FRAMESETTYPE_STOPDISCOVER,	nanoobey_stopdiscover},
 	{FRAMESETTYPE_DORSCOP,		nanoobey_dorscoperation},
 	{FRAMESETTYPE_STOPRSCOP,	nanoobey_cancelrscoperation},
+	{FRAMESETTYPE_CONNSHUT,		nanoobey_connshut},
 	{0,				NULL},
 };
 
