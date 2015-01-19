@@ -862,7 +862,7 @@ _fsprotocol_outputpending(FsProtocol* self)	///< Our object
 	return self->unacked != NULL;
 }
 
-/// Read the next available packet from any of our sources
+/// Read the next available FrameSet from any of our sources
 FSTATIC FrameSet*
 _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 ,		 NetAddr** fromaddr)	///< The IP address our result came from
@@ -926,6 +926,9 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 				// at least while reading initial discovery data.
 				fspe->inq->isready = TRUE;
 				g_queue_push_tail(self->ipend, fspe);
+			}
+			if (ret && FRAMESETTYPE_CONNSHUT == ret->fstype) {
+				_fsprotocol_fsa(fspe, FSPROTO_RCVSHUTDOWN, ret);
 			}
 			TRYXMIT(fspe);
 			self->io->stats.reliablereads++;
@@ -1034,11 +1037,13 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 			AUDITIREADY(self);
 			return;
 		}
+#if 0
 		case FRAMESETTYPE_CONNSHUT: {
 			_fsprotocol_fsa(fspe, FSPROTO_RCVSHUTDOWN, fs);
 			AUDITIREADY(self);
 			return;
 		}
+#endif
 		default:
 			/* Process below... */
 			break;
