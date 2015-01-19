@@ -60,6 +60,7 @@ FLAGS=""
 #
 #   CMA_BIND        What IP:port for the CMA to bind to - defaults to ANY:1984
 #   CMA_PIDFILE     Where to store our PID file
+#   CMA_CORELIMIT   What value to give ulimit -c before starting the CMA
 #   CMA_USER        What user to run as
 #   CMA_DEBUG       What debug level to choose
 #   CMA_STRACEFILE  What file to put strace output into
