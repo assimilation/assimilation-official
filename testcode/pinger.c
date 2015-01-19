@@ -66,6 +66,7 @@
  */
 
 void		obey_pingpong(AuthListener*, FrameSet* fs, NetAddr*);
+void		obey_connshut(AuthListener*, FrameSet*, NetAddr*);
 gboolean	exit_when_connsdown(gpointer);
 void		usage(const char * cmdname);
 ReliableUDP*	transport = NULL;
@@ -78,6 +79,7 @@ guint		pongsize = 32*1024;
 ObeyFrameSetTypeMap	doit [] = {
 	{FRAMESETTYPE_SEQPING,	obey_pingpong},
 	{FRAMESETTYPE_SEQPONG,	obey_pingpong},
+	{FRAMESETTYPE_CONNSHUT,	obey_connshut},
 	{0,			NULL}
 };
 
@@ -94,6 +96,13 @@ exit_when_connsdown(gpointer unused)
 		return FALSE;
 	}
 	return TRUE;
+}
+void
+obey_connshut(AuthListener* unused, FrameSet* unusedfs, NetAddr* unusedaddr)
+{
+	(void)unused;
+	(void)unusedfs;
+	(void)unusedaddr;
 }
 
 static gint	pingcount = 1;
