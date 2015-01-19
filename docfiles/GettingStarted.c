@@ -5,10 +5,10 @@ This is a basic guide to installing, testing, configuring and using the Assimila
 system.
 Please let the <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">mailing list</a>
 know if you try this out, if you run into problems, or if it works for you.
-
 You can subscribe to the mailing list <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">here</a>
 and send emails to <a href="mailto:assimilation@lists.community.tummy.com">assimilation@lists.community.tummy.com</a>.
 Please let us know how you're doing on this!
+For more immediate feedback and help from the community, feel free to try the \#assimilation channel on the irc.freenode.net IRC server.
 
 A normal installation consists of one instance of a CMA (collective management authority)
 and <i>n+1</i> nanoprobes.  Only one machine runs the CMA software, but every machine being
@@ -24,6 +24,108 @@ package to talk to <i>neo4j</i>.
 
 This document is a more detailed version of the information provided in the project
 <a href="http://linux-ha.org/source-doc/assimilation/html/_r_e_a_d_m_e.html">README</a> file.
+
+You can either install pre-built packages, or you can build from source and install the packages you built yourself.
+If you can, we recommend installing our pre-built packages.
+
+@section PrebuiltProcessOutLine Outline of how to get started with pre-built packages.
+You must install the nanoprobe and CMA software on the CMA system before attempting to install other non-CMA machines.
+You can find our latest packages at http://bit.ly/assimbuilds and officially released versions at http://bit.ly/assimreleases.
+The general outline of how to get started is as follows:
+-# Perform the @ref PrebuiltNanoprobeProcessOutline steps on the designated CMA system.
+-# Perform the @ref PrebuiltCMAProcessOutline steps on the designated CMA system.
+-# Perform the CMA @ref StartingTheAssimilationSystem steps on the designated CMA system
+-# Perform the @ref PrebuiltNanoprobeProcessOutline steps on other systems.
+-# Perform the non-CMA @ref StartingTheAssimilationSystem steps on the other systems
+
+@subsection PrebuiltNanoprobeProcessOutline Installation of the assimilation-nanoprobe package
+These steps will eventually need to be performed on every system in your infrastructure.
+-# Install libsodium for your OS distribution - from our distribution or a prebuilt version for your OS.
+   With our prebuilt packages for Ubuntu <= 14.10, we provide libsodium.
+-# Install the assimilation-nanoprobe package on your system (this should automatically install
+   <a href="https://developer.gnome.org/glib/">glib</a>, <a href="http://www.zlib.net/">zlib</a> and <a href="http://www.tcpdump.org/">libpcap</a>).
+-# If this system is not the CMA system, you need to install a copy of the CMA's public keys created by @ref PrebuiltCMAProcessOutline.
+   If this is the CMA system, you should skip this step.
+   These public keys are named <tt>/usr/share/assimilation/crypto.d/\#CMA\#*.pub</tt>.
+   If you are using a configuration management tool
+   (<a href="http://www.ansible.com/home">ansible</a>,
+   <a href="https://www.chef.io/chef/">chef</a>,
+   <a href="http://puppetlabs.com/">puppet</a>,
+   <a href="http://www.saltstack.com/">saltstack</a>, etc), you should combine these two steps as part of the installation recipe
+   for your configuration management system.
+   If not, you should copy them over using a secure method, presumably similar to that you use to install software like the nanoprobe package itself.
+   Do <b>not</b> copy the <tt>*.secret</tt> files to other systems.
+
+@subsection PrebuiltCMAProcessOutline Installation of the assimilation-cma package
+These steps should only be performed on the system you have designated for running the CMA.
+-# Download and install the <b>neo4j</b> database as described on the <a href="http://neo4j.com/download/">neo4j</a> web site.
+-# Install the <tt>assimilation-nanoprobe</tt> package as described in @ref PrebuiltNanoprobeProcessOutline above.
+-# Install the <tt>assimilation-cma</tt> package from our prebuilt packages.
+-# Run <tt><b>sudo pip install 'py2neo<2.0' getent</b></tt>
+-# Run <tt><b>sudo /usr/sbin/assimcli genkeys</b></tt>
+   <br>As noted above, when installing nanoprobes on other system, you will need the <b>*.pub</b> keys created by this step.
+   If you do not have <tt>sudo</tt> installed on your system, then simply execute the <tt>assimcli</tt> command as root.
+-# "Hide" the higher-numbered secret key.  This file is normally named <tt>/usr/share/assimilation/crypto.d/\#CMA\#00002.secret</tt>.
+   To do this, we recommend using one or both of the following methods.
+ - Encrypt the higher-numbered .secret key using <tt>gpg --encrypt</tt> and remove the original <tt>.secret</tt> file.
+   Do not name the encrypted copy of the file using a suffix other than <tt>.secret</tt> or <tt>.pub</tt>.
+   Store the name of the key you used to encrypt it in a secure place, and take normal precautions regarding the
+   passphrase.  You will want to verify that you can properly decrypt the file before removing it.
+ - Move the higher-numbered .secret file to removable electronic medium and store that removable medium in a secure location.
+   You may want to create and verify copies of this file on multiple media before removing the original file.
+-# Create a nanoprobe startup configuration file for this system only.
+   To do this, add the following line to either <tt>/etc/default/nanoprobe</tt> or <tt>/etc/sysconfig/nanoprobe</tt> - depending on your distribution.
+   <br><tt><b>NANOPROBE_DYNAMIC=1</b></tt>
+
+@subsection StartingTheAssimilationSystem Starting the Assimilation System Software
+Once your software is installed, it will be started automatically at system reboots, so this won't be necessary after initial installation.
+But you will need to follow this procedure the first time
+- <b>For the CMA system</b>
+  -# Start neo4j using either <tt><b>service neo4j-service start</b></tt> or <tt><b>service neo4j start</b></tt> (depending on your distribution).
+  -# Verify neo4j started using either <tt><b>service neo4j-service status</b></tt> or <tt><b>service neo4j status</b></tt> (depending on your distribution).
+     Neo4j places its logs in <tt>/var/log/neo4j</tt>
+  -# Start the CMA using <tt><b>service cma start</b></tt>.
+  -# Verify that the CMA started using <tt><b>service cma status</b></tt>.
+     The CMA logs are written using syslog, so they are written whereever your system normally stores them.
+  -# Start the nanoprobe using <tt><b>service nanoprobe start</b></tt>.
+  -# Verify that the nanoprobe started using <tt><b>service nanoprobe status</b></tt>.
+     The nanoprobe logs are written using syslog, so they are written whereever your system normally stores them.
+     A nanoprobe which successfully connects to the CMA logs a message like this:
+     <br>&nbsp;&nbsp;<tt>nanoprobe[<i>pid</i>]: NOTICE: Connected to CMA.  Happiness :-D</tt>
+     <br>Note that the CMA also logs a message for each nanoprobe that connects to it.  This message looks like this:
+     <br>&nbsp;&nbsp;<tt>cma INFO: Drone <i>hostname</i> registered from address [<i>ip-address</i>]</tt>
+- <b>For non-CMA systems</b>
+  -# Start the nanoprobe using <tt><b>service nanoprobe start</b></tt>.
+  -# You can verify the nanoprobe started by examining the logs as noted in the CMA steps above.
+
+@subsection ConfiguringTheCMADaemon Configuring the CMA Daemon
+You will not normally have to do this, but if you wish, y
+you can configure the CMA daemon using either <tt>/etc/default/cma</tt> or <tt>/etc/sysconfig/cma</tt> - depending on your distribution.
+The following directives are recognized:
+- <b>CMA_BIND</b> What IP:port for the CMA to bind to - it defaults to <tt>[::]1984</tt>.
+- <b>CMA_PIDFILE</b> Where to store the CMA's PID file
+- <b>CMA_USER</b> What user to run as - defaults to <i>assimilation</i>
+- <b>CMA_DEBUG</b> What debug level to choose (0-5) - defaults to 0.
+- <b>CMA_STRACEFILE</b> If set, this starts the CMA under strace(1).  It names the file to put strace output into.  It defaults to not running the CMA under strace.
+- <b>CMA_STRACEFLAGS</b> What strace flags to use if ${CMA_STRACEFILE} is set.
+
+@subsection ConfiguringTheNanoprobeDaemon Configuring the Nanoprobe Daemon
+With the exception noted in @ref PrebuiltCMAProcessOutline for the nanoprobe running on the CMA system, you should not have to provide this file.
+When you need to, you can configure the nanoprobe daemon using either <tt>/etc/default/nanoprobe</tt> or <tt>/etc/sysconfig/nanoprobe</tt> - depending on your distribution.
+- <b>NANOPROBE_BIND</b> What address should we bind to locally?
+  Format is an IP:port combination - IPv4 or IPv6 format.  IPv6 format looks like "[v6address]:portnumber" (as it should)
+  It defaults to <tt>[::]:1984</tt>.  If this IP:port is not available, the nanoprobe will bind to an ephemeral port.
+- <b>NANOPROBE_CMAADDR</b>  Where to initially find the CMA?
+  It defaults to our reserved multicast address (224.0.2.5:1984).  Format is an IP:port combination - ipv4 or ipv6 format.
+  It can be a literal IP address, or a DNS name.  Note that this only used to locate the CMA when a nanoprobe first starts up.
+- <b>NANOPROBE_DEBUG</b> Level of debug to request (0-5) - defaults to 0.
+- <b>NANOPROBE_DYNAMIC</b> If NANOPROBE_DYNAMIC is set to 1, then bind to an ephemeral port.
+  This must typically be done for the machine the CMA is running on.
+  The alternative is to specify a specific non-conflicting BIND address, or to ensure the nanoprobe starts after the CMA - in which case this happens automagically...
+- <b>NANOPROBE_PIDFILE</b>  Where to store our pid file
+- <b>NANOPROBE_CORELIMIT</b> what value to give ulimit -c before starting the CMA
+- <b>NANOPROBE_TTL</b> Multicast TTL if we're using a multicast address.  TTL must be between 1 and 31 inclusive.
+
 
 @section BuildPrereqs Build, Test and Documentation Prerequisites
 
@@ -49,7 +151,7 @@ The following packages are needed for building the packages, testing them, or cr
 <b>CMA-only packages</b>
 - <a href="http://www.neo4j.org/install">Neo4j</a> graph database.  Note that Neo4j needs Java.  They prefer Oracle's Java.
 - <a href="http://www.python.org/">Python 2.7</a> (approximately) interpreter for the Python language
-- <a href="http://py2neo.org/">py2neo</a> Python bindings for Neo4j - version <b>1.6.1</b> or later
+- <a href="http://py2neo.org/">py2neo</a> Python bindings for Neo4j - version <b>1.6.1</b> but less than 2.0.
 - <a href="https://pypi.python.org/pypi/netaddr">python-netaddr</a> Python network address package
 - <a href="https://pypi.python.org/pypi/getent">getent</a> Python library for reading UNIX password and group files
 - <a href="http://flask.pocoo.org/">flask</a> Python web microframework
