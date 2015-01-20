@@ -353,6 +353,10 @@ class TestIO:
     def ackmessage(self, dest, fs):
         pass
 
+    def connactive(self, ioaddr, qid=0):
+        ioaddr = ioaddr
+        return True
+
     def closeconn(self, qid, dest):
         pass
 

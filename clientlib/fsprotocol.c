@@ -1217,7 +1217,9 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 	// It is possible that this packet may not be in a queue at this point in time.
 	// This can happen if there's been a protocol reset from the other end...
 	// See code in _fsqueue_inqsorted
-	if (seq->_sessionid != fspe->inq->_sessionid) {
+	// But if *our* idea of the session id is zero, then we've done a reset on the way out...
+	// They may need our ACK for them to shut down properly...
+	if (seq->_sessionid != fspe->inq->_sessionid && fspe->inq->_sessionid != 0) {
 		DEBUGMSG2("%s.%d: NOT ACKing packet with session id %d - current session id is %d"
 		,	__FUNCTION__, __LINE__, seq->_sessionid, fspe->inq->_sessionid);
 		return;
