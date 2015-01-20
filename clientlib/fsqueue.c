@@ -155,6 +155,10 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 			g_info("%s.%d: Protocol reset from client %s - session id updated to %d from %d"
 			,	__FUNCTION__, __LINE__, clientaddr, seqno->_sessionid, self->_sessionid);
 			g_free(clientaddr); clientaddr = NULL;
+			// Our peer died before we ACKed them.
+			// We may have already given them to applications...
+			// (see code in _fsprotocol_ackseqno)
+			_fsqueue_flush(self);
 			self->_sessionid = seqno->_sessionid;
 			self->_nextseqno = 1;
 		}
@@ -266,7 +270,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 /// Flush <b>all</b> framesets from the queue (if any).
 /// @todo: This is basically a protocol reset - what effect should this have upon
 /// sequence numbers and generation numbers (if any)?
-/// This is used as part of connection shutdown.
+/// This is used as part of connection shutdown, and for protocol resets from the other end...
 FSTATIC void
 _fsqueue_flush(FsQueue* self)		///< The @ref FsQueue object we're operating on
 {

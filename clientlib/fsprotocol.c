@@ -1214,6 +1214,14 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 	// Appending the seq frame will increment its reference count
 
 	fspe = self->find(self, seq->_qid, destaddr);
+	// It is possible that this packet may not be in a queue at this point in time.
+	// This can happen if there's been a protocol reset from the other end...
+	// See code in _fsqueue_inqsorted
+	if (seq->_sessionid != fspe->inq->_sessionid) {
+		DEBUGMSG2("%s.%d: NOT ACKing packet with session id %d - current session id is %d"
+		,	__FUNCTION__, __LINE__, seq->_sessionid, fspe->inq->_sessionid);
+		return;
+	}
 	// sendaframeset will hang onto frameset and frames as long as it needs them
 	AUDITFSPE(fspe);
 	self->io->sendaframeset(self->io, destaddr, fs);
