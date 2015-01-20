@@ -221,7 +221,7 @@ if __name__ == "__main__":
 
     def logmessage(msg):
         'Log a message to our system log'
-        os.system('logger "LOGWATCHER TEST: %s"' % msg)
+        os.system("logger 'LOGWATCHER TEST: %s'" % msg)
 
     def testlog(logfilename):
         'Function for doing basic testing of LogWatcher module'
