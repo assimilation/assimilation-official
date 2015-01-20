@@ -47,6 +47,7 @@ class AssimSysTest(object):
     testset = []
     stats = {}
 
+
     @staticmethod
     def register(ourclass):
         'Decorator for registering a TestCase'
@@ -56,6 +57,40 @@ class AssimSysTest(object):
             AssimSysTest.SUCCESS:0, AssimSysTest.FAIL: 0, AssimSysTest.SKIPPED:0
         }
         return ourclass
+
+    def nano_start_regexes(self, nano):
+        'Return a list of the expected regexes for a nanoprobe starting'
+        cma = self.testenviron.cma
+        return [
+            r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+            %           (cma.hostname, nano.hostname, nano.ipaddr),
+            r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'  %   (nano.hostname),
+            r' %s cma INFO: Stored cpu JSON data from (%s) ' %       (cma.hostname, nano.hostname),
+        ]
+    def nano_stop_regexes(self, nano):
+        'Return a list of the expected regexes for a nanoprobe stopping'
+        cma = self.testenviron.cma
+        return [
+        r' %s .*NOTICE: nanoprobe: exiting on SIGTERM' % (nano.hostname),
+        r' %s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
+        %               (cma.hostname, nano.hostname, nano.ipaddr),
+        r" %s nanoprobe.*: INFO: Count of 'other' pkts received: " % (nano.hostname),
+        ]
+
+    def cma_start_regexes(self):
+        'Return a list of the expected regexes for the CMA starting'
+        cma = self.testenviron.cma
+        return [
+            (' %s .* INFO: Neo4j version .* // py2neo version .*'
+                ' // Python version .* // java version.*' % cma.hostname),
+        ]
+
+    # [R0201:AssimSysTest.cma_stop_regexes] Method could be a function
+    # pylint: disable=R0201
+    def cma_stop_regexes(self):
+        'Return a list of the expected regexes for the CMA stopping'
+        #cma = self.testenviron.cma
+        return []
 
     def __init__(self, store, logfilename, testenviron, debug=False):
         'Initializer for the AssimSysTest class'
@@ -161,11 +196,7 @@ class StopNanoprobe(AssimSysTest):
         if (nano is None or nano.status != TestSystem.RUNNING or
             SystemTestEnvironment.NANOSERVICE not in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
-        regexes = (
-        (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
-        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
-        (r" %s nanoprobe.*: INFO: Count of 'other' pkts received: "
-        %           (nano.hostname)))
+        regexes = self.nano_stop_regexes(nano)
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         qstr =  (   '''START drone=node:Drone('*:*') '''
@@ -189,11 +220,7 @@ class StartNanoprobe(AssimSysTest):
             or  SystemTestEnvironment.NANOSERVICE in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
 
-        regexes = ( (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
-        %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr))
-        ,           (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
-        %           (nano.hostname))
-        )
+        regexes = self.nano_start_regexes(nano)
 
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
@@ -315,13 +342,9 @@ class SimulCMAandNanoprobeRestart(AssimSysTest):
                 return self._record(AssimSysTest.SKIPPED)
         nano = nanozero[0]
         cma = self.testenviron.cma
-        regexes = (
-        (           ' %s .* INFO: Neo4j version .* // py2neo version .*'
-                    ' // Python version .* // java version.*' % (cma.hostname)),
-        (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
-        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
-        (r" %s nanoprobe.*: INFO: Count of 'other' pkts received: "
-        %           (nano.hostname)))
+        regexes = self.nano_stop_regexes(nano)
+        regexes.extend(self.cma_stop_regexes())
+        regexes.extend(self.cma_start_regexes())
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         cma.stopservice(SystemTestEnvironment.CMASERVICE)
@@ -336,11 +359,7 @@ class SimulCMAandNanoprobeRestart(AssimSysTest):
         if rc != AssimSysTest.SUCCESS:
             return rc
         # We have to do this in two parts because of the asynchronous shutdown above
-        regexes = (
-        (           r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
-        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
-        (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
-        %           (nano.hostname)))
+        regexes = self.nano_start_regexes(nano)
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         nano.startservice(SystemTestEnvironment.NANOSERVICE)
@@ -367,6 +386,8 @@ class DiscoverService(AssimSysTest):
     # W0221:Arguments number differs from overridden method
     # pylint: disable=W0221
     def run(self, nano=None, debug=None, timeout=240, service=None, monitorname=None):
+        if debug is None:
+            debug = self.debug
         if service is None:
             service = self.service
         if monitorname is None:
@@ -378,45 +399,42 @@ class DiscoverService(AssimSysTest):
             nano = nanozero[0]
         assert service not in nano.runningservices
         if SystemTestEnvironment.NANOSERVICE not in nano.runningservices:
-            startregexes = (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
-            %           (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)
-            ,           (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
-            %           (nano.hostname)))
+            startregexes = self.nano_start_regexes(nano)
             watch = LogWatcher(self.logfilename, startregexes, timeout=timeout, debug=debug)
             watch.setwatch()
             nano.startservice(SystemTestEnvironment.NANOSERVICE)
             match = watch.look(timeout=timeout)
             if match is None:
+                print 'DiscoverService: START look failed'
                 return self._record(AssimSysTest.FAIL)
-        regexes = (
-        (r'%s cma INFO: System %s at \[::ffff:%s]:1984 reports graceful shutdown'
-        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
-        (r" %s nanoprobe.*: INFO: Count of 'other' pkts received: "
-        %           (nano.hostname)))
+        regexes = self.nano_stop_regexes(nano)
+        print 'STOP REGEXES ARE', regexes
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         nano.stopservice(SystemTestEnvironment.NANOSERVICE)
         if watch.lookforall(timeout=timeout) is None:
+            print 'DiscoverService: STOP lookforall failed'
             return self._record(AssimSysTest.FAIL)
-        regexes = (
-                    (r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
-        %               (self.testenviron.cma.hostname, nano.hostname, nano.ipaddr)),
-                    (r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
-        %           (nano.hostname)),
-                    (r'%s cma INFO: Monitoring of service %s:.*:%s::.* activated'
+        regexes = self.nano_start_regexes(nano)
+        regexes.extend((
+                    (r' %s cma INFO: Monitoring of service %s:.*:%s::.* activated'
         %               (self.testenviron.cma.hostname, nano.hostname, monitorname)),
-                    (r'%s cma INFO: Service %s:.*:%s::.* is now operational'
-        %               (self.testenviron.cma.hostname, nano.hostname, monitorname)))
+                    (r' %s cma INFO: Service %s:.*:%s::.* is now operational'
+        %               (self.testenviron.cma.hostname, nano.hostname, monitorname))))
+        print 'START REGEXES ARE', regexes
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         nano.startservice(service)
         nano.startservice(SystemTestEnvironment.NANOSERVICE)
+        if watch.lookforall(timeout=timeout) is None:
+            print 'DiscoverService: service start lookforall failed'
+            return self._record(AssimSysTest.FAIL)
         # @TODO make a better query
         # but it should be enough to let us validate the rest
         qstr = (    '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
                      '''RETURN drone''')
-        return self.checkresults(watch, timeout, qstr, None, nano)
+        return self.checkresults(watch, timeout, qstr, None, nano, debug=debug)
 
 
 # A little test code...
@@ -434,6 +452,8 @@ if __name__ == "__main__":
             print 'Any chance you have another CMA running??'
             raise RuntimeError('Another CMA is running(?)')
 
+        #for cls in [SimulCMAandNanoprobeRestart for j in range(0,20)]:
+        #for j in range(0,10):
         #for cls in [DiscoverService for j in range(0,20)]:
         for cls in AssimSysTest.testset:
             badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: ')
@@ -448,15 +468,15 @@ if __name__ == "__main__":
             else:
                 ret = cls(ourstore, logname, sysenv, debug=debug).run()
             #print >> sys.stderr, 'Got return of %s from test %s' % (ret, cls.__name__)
-            assert ret == AssimSysTest.SUCCESS
             badmatch = badwatch.look(timeout=1)
             if badmatch is not None:
                 print 'OOPS! Got bad results!', badmatch
                 raise RuntimeError('Test %s said bad words! [%s]' % (cls.__name__, badmatch))
-            os.system("logger -s 'BAD MATCH IS %s'" % str(badmatch))
+            #assert ret == AssimSysTest.SUCCESS or ret == AssimSysTest.SKIPPED
+            assert ret == AssimSysTest.SUCCESS
         print >> sys.stderr, 'WOOT! All tests were successful!'
 
     if os.access('/var/log/syslog', os.R_OK):
-        sys.exit(testmain('/var/log/syslog', debug=False))
+        sys.exit(testmain('/var/log/syslog', debug=True))
     elif os.access('/var/log/messages', os.R_OK):
-        sys.exit(testmain('/var/log/messages', debug=False))
+        sys.exit(testmain('/var/log/messages', debug=True))

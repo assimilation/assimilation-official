@@ -190,7 +190,7 @@ class DockerSystem(TestSystem):
         'Stop a docker instance'
         if self.status != TestSystem.RUNNING:
             return
-        os.system('logger -s "Running services in %s: %s"' % (self.name, str(self.runningservices)))
+        os.system("logger -s 'Running services in %s: %s'" % (self.name, str(self.runningservices)))
         self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
         DockerSystem.run('top', self.name)
         DockerSystem.run('stop', self.name)
@@ -200,7 +200,7 @@ class DockerSystem(TestSystem):
     def destroy(self):
         'Destroy a docker instance (after stopping it if necessary)'
         if self.status == TestSystem.RUNNING:
-            os.system('logger -s "Running services in %s: %s"'
+            os.system("logger -s 'Running services in %s: %s'"
             %   (self.name, str(self.runningservices)))
             self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
             DockerSystem.run('top', self.name)

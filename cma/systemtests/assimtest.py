@@ -33,7 +33,7 @@ from testcases import AssimSysTest
 
 def logit(msg):
     'log things to the system log and to stdout'
-    os.system('logger "%s"' %   (msg))
+    os.system("logger '%s'" %   (msg))
     print ("%s: %s" % (datetime.datetime.now(), msg))
 
 def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
