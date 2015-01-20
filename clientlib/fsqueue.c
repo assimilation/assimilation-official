@@ -233,21 +233,26 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	DEBUGMSG3("%s.%d: ACKing through (%d:%d:"FMT_64BIT"d)", __FUNCTION__, __LINE__
 	,	seq->getsessionid(seq), seq->getqid(seq), seq->getreqid(seq));
 	if (seq->getsessionid(seq) != self->_sessionid) {
-		if (self->_sessionid != 0) {
-			g_warning("%s.%d: Incoming ACK packet has invalid session id "
+		// It's not uncommon for a few 'old' ACKs to show up after a protocol reset
+		// If that's what it looks like, then we don't say anything...
+		if (self->_sessionid != 0 && seq->getsessionid(seq) < self->_sessionid) {
+			char * deststr = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
+			g_warning("%s.%d: Incoming ACK packet from %s has invalid session id "
 			"[%d instead of %d] (ACK ignored)."
-			,	__FUNCTION__, __LINE__, seq->getsessionid(seq)
-			,	self->_sessionid);
+			,	__FUNCTION__, __LINE__, deststr
+			,	seq->getsessionid(seq), self->_sessionid);
+			FREE(deststr);
 		}
 		return -1;
 	}
 		
 	if (seq->getreqid(seq) >= self->_nextseqno) {
-		// This is probably the result of a very fast restart - and is harmless
-		// Unless, of course, it happens a lot ;-)
-		g_warning("%s: Incoming ACK packet sequence number "FMT_64BIT"d is >= "
-		FMT_64BIT"d (ACK Ignored)."
-		,	__FUNCTION__, seq->getreqid(seq), self->_nextseqno);
+		char * deststr = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
+		// I don't think this should happn...
+		g_warning("%s: Incoming ACK packet sequence number "FMT_64BIT"d from %s is >= "
+		FMT_64BIT"d (ACK ignored)."
+		,	__FUNCTION__, seq->getreqid(seq), deststr, self->_nextseqno);
+		FREE(deststr); deststr = NULL;
 		DUMP("FsQueue", &self->baseclass, " is the queue in question.");
 		return -1;
 	}
