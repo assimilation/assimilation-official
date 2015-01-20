@@ -1,4 +1,4 @@
-#pylint: disable=C0302
+
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
 #C0302: too many lines in module
 #
@@ -1880,6 +1880,13 @@ class pyConfigValue(pyAssimObj):
 
 class pyNetIO(pyAssimObj):
     'A Network I/O object - with a variety of subclasses'
+    CONN_NONE =     0 # FSPR_NONE  -- Apparently ctypesgen doesn't do enum values...
+    CONN_INIT =     1 # FSPR_INIT
+    CONN_UP =       2 # FSPR_UP
+    CONN_SHUT1 =    3 # FSPR_SHUT1
+    CONN_SHUT2 =    4 # FSPR_SHUT2
+    CONN_SHUT3 =    5 # FSPR_SHUT3
+
     def __init__(self, configobj, packetdecoder, Cstruct=None):
         'Initializer for pyNetIO'
         self._Cstruct = None # Keep error legs from complaining.
@@ -1956,20 +1963,26 @@ class pyNetIO(pyAssimObj):
             base = base.baseclass
         return base.compressframe(self._Cstruct)
 
-    def cryptframe(self):
-        'Return the encryption frame for this pyNetIO - may be None'
-        # Doesn't make a py class object out of it yet...
-        base = self._Cstruct[0]
-        while (not hasattr(base, 'cryptframe')):
-            base = base.baseclass
-        return base.cryptframe(self._Cstruct)
-
     def signframe(self):
         'Return the digital signature frame for this pyNetIO'
         base = self._Cstruct[0]
         while (not hasattr(base, 'signframe')):
             base = base.baseclass
         return pySignFrame(0, Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
+
+    def connstate(self, peeraddr, qid=DEFAULT_FSP_QID):
+        'Return the state of this connection'
+        fsproto = self._Cstruct[0]._protocol
+        return fsproto[0].connstate(fsproto, qid, peeraddr._Cstruct)
+
+    def connactive(self, peeraddr, qid=DEFAULT_FSP_QID):
+        '''Return TRUE if this connection is active.
+        That is, if it's established and not in shutdown.
+        Note that the presence of timeouts doesn't make a connection inactive.
+        We can time out for days and still think the connection is active.
+        '''
+        connstate = self.connstate(peeraddr, qid)
+        return connstate == CONN_INIT or connstate == CONN_UP
 
     def sendframesets(self, destaddr, framesetlist):
         'Send the (collection of) frameset(s) out on this pyNetIO'
@@ -1985,7 +1998,7 @@ class pyNetIO(pyAssimObj):
         for frameset in framesetlist:
             base.sendaframeset(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
 
-    def sendreliablefs(self, destaddr, framesetlist, qid = DEFAULT_FSP_QID):
+    def sendreliablefs(self, destaddr, framesetlist, qid=DEFAULT_FSP_QID):
         'Reliably send the (collection of) frameset(s) out on this pyNetIO (if possible)'
         if destaddr.port() == 0:
             raise ValueError("Zero Port in sendreliablefs: destaddr=%s" % str(destaddr))
