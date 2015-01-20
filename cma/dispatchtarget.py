@@ -29,7 +29,7 @@ from cmaconfig import ConfigFile
 from cmadb import CMAdb
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, pySwitchDiscovery, pyCryptFrame
-from AssimCtypes import cryptcurve25519_save_public_key
+from AssimCtypes import cryptcurve25519_save_public_key, DEFAULT_FSP_QID
 from monitoring import MonitorAction
 from assimevent import AssimEvent
 
@@ -148,7 +148,6 @@ class DispatchSTARTUP(DispatchTarget):
         if CMAdb.debug:
             CMAdb.log.debug("DispatchSTARTUP: received [%s] FrameSet from [%s]"
             %       (FrameSetTypes.get(fstype)[0], addrstr))
-            #CMAdb.log.debug('Resetting communications to %s/%d' % (origaddr, DEFAULT_FSP_QID))
         if not self.io.connactive(origaddr):
             self.io.closeconn(DEFAULT_FSP_QID, origaddr)
         for frame in frameset.iter():
