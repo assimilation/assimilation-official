@@ -129,7 +129,7 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 //	 START REQSEND GOTACK       GOTCONN_NAK REQSHUTDOWN      RCVSHUTDOWN  ACKTIMEOUT       OUTDONE  SHUT_TO
-/*NONE*/ {0,    0,      A_OOPS,       A_CLOSE,  A_CLOSE,            ACKnSHUT, A_ACKTO|A_OOPS,   A_OOPS,  A_OOPS},
+/*NONE*/ {0,    0,      0,            A_CLOSE,  A_CLOSE,            ACKnSHUT, A_ACKTO|A_OOPS,   A_OOPS,  A_OOPS},
 /*INIT*/ {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT, A_CLOSE,          0,       A_OOPS},
 /*UP*/   {0,    0, 	0,            A_CLOSE,  SHUTnTIMER,         ACKnSHUT, A_ACKTO,          0,       A_OOPS},
 // SHUT1: no ACK, no CONNSHUT 
@@ -353,7 +353,7 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
 		char *	fsstr = (fs ? fs->baseclass.toString(&fs->baseclass) : NULL);
 			
-		g_critical("%s.%d: Got a %s input for %s/%d while in state %s", __FUNCTION__, __LINE__
+		g_warning("%s.%d: Got a %s input for %s/%d while in state %s", __FUNCTION__, __LINE__
 		,	_fsprotocol_fsa_inputs(input), deststr, fspe->_qid
 		,	_fsprotocol_fsa_states(curstate));
 		FREE(deststr); deststr = NULL;
