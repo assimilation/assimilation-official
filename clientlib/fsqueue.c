@@ -133,7 +133,7 @@ _fsqueue_inqsorted(FsQueue* self		///< The @ref FsQueue object we're operating o
 			self->_sessionid = seqno->_sessionid;
 			// If we've restarted since the far end did, they might have sent us
 			// a sequence number greater than 1
-			if (seqno->_reqid > 2) {
+			if (seqno->_reqid >= 2) {
 				char *	destaddr = self->_destaddr->baseclass.toString
 							(&self->_destaddr->baseclass);
 				// The possibility exists that this isn't the perfect action.
