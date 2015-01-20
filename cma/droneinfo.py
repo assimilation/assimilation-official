@@ -237,11 +237,10 @@ class Drone(SystemNode):
         # and it would be OK.
         #
         # But if it's a graceful shutdown, we need to not screw up the comm shutdown in progress
-        # It's the comm protocol's FSA's job to ensure that this doesn't happen.
-        # Looking at the FSA right now, it looks like it does that right...
         # If it's broken, our tests and the real world will eventually show that up :-D.
         #
-        self._io.closeconn(DEFAULT_FSP_QID, deadip)
+        if reason != 'HBSHUTDOWN':
+            self._io.closeconn(DEFAULT_FSP_QID, deadip)
         AssimEvent(self, AssimEvent.OBJDOWN)
 
     def start_heartbeat(self, ring, partner1, partner2=None):
