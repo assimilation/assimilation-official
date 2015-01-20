@@ -1971,7 +1971,7 @@ class pyNetIO(pyAssimObj):
         return pySignFrame(0, Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
 
     def connstate(self, peeraddr, qid=DEFAULT_FSP_QID):
-        'Return the state of this connection'
+        'Return the state of this connection - return value is one of the pyNetIO constants'
         fsproto = self._Cstruct[0]._protocol
         return fsproto[0].connstate(fsproto, qid, peeraddr._Cstruct)
 
@@ -1982,7 +1982,7 @@ class pyNetIO(pyAssimObj):
         We can time out for days and still think the connection is active.
         '''
         connstate = self.connstate(peeraddr, qid)
-        return connstate == CONN_INIT or connstate == CONN_UP
+        return connstate == pyNetIO.CONN_INIT or connstate == pyNetIO.CONN_UP
 
     def sendframesets(self, destaddr, framesetlist):
         'Send the (collection of) frameset(s) out on this pyNetIO'
