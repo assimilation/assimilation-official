@@ -72,15 +72,6 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	DEBUGMSG3("%s.%d: next sequence number for %p is "FMT_64BIT"d", __FUNCTION__, __LINE__
 	,	self, self->_nextseqno);
 
-	// Of course, the session id on outbound packets should _never_ change
-	// But an uninitialized FsQueue session id is zero
-	// So, this test could be more strict
-	// Of course, if the session id never changes, then the sequence numbers
-	// can't be reset...
-	if (seqno->_sessionid < self->_sessionid) {
-		UNREF2(seqno);
-		g_return_val_if_reached(FALSE);
-	}
 	// FYI: This coordinates with code in _fsprotocol_fspe_reinit() and seqnoframe_new_init()
 	if (0 == self->_sessionid) {
 		self->_sessionid = seqno->_sessionid;
