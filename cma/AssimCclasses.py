@@ -1,4 +1,4 @@
-
+# pylint: disable=C0302
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab
 #C0302: too many lines in module
 #
