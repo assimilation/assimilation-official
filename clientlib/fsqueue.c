@@ -242,7 +242,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	if (seq->getsessionid(seq) != self->_sessionid) {
 		return -1;
 	}
-		
+
 	if (seq->getreqid(seq) >= self->_nextseqno) {
 		char * deststr = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
 		// I don't think this should happn...
@@ -254,7 +254,7 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 		return -1;
 	}
 	reqid = seq->getreqid(seq);
-	
+
 	// The packets are in the queue in order of ascending sequence number
 	while((fs = self->qhead(self)) != NULL) {
 		SeqnoFrame*	fseq = fs->getseqno(fs);
@@ -422,7 +422,7 @@ _fsqueue_toString(gconstpointer vself)
 
 	g_return_val_if_fail(self != NULL, NULL);
 	fsqret = g_string_new("");
-	
+
 	tmp = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
 	g_string_append_printf(fsqret
 	,		"FsQueue(dest=%s//q=%d, _nextseqno="FMT_64BIT"d, _sessionid=%d, _maxqlen=%d isready=%s, ["
@@ -432,7 +432,7 @@ _fsqueue_toString(gconstpointer vself)
 
 	for (curfs=self->_q->head; curfs != NULL; curfs = g_list_next(curfs)) {
 		FrameSet*	fs = CASTTOCLASS(FrameSet, curfs->data);
-		
+
 		tmp = fs->baseclass.toString(&fs->baseclass);
 		g_string_append_printf(fsqret, "%s%s", comma, tmp);
 		g_free(tmp); tmp = NULL;
@@ -442,7 +442,7 @@ _fsqueue_toString(gconstpointer vself)
 	ret = fsqret->str;
 	g_string_free(fsqret, FALSE);
 	return ret;
-	
-	
+
+
 }
 ///@}
