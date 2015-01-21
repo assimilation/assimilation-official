@@ -75,11 +75,18 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	// Of course, the session id on outbound packets should _never_ change
 	// But an uninitialized FsQueue session id is zero
 	// So, this test could be more strict
+	// Of course, if the session id never changes, then the sequence numbers
+	// can't be reset...
 	if (seqno->_sessionid < self->_sessionid) {
 		UNREF2(seqno);
 		g_return_val_if_reached(FALSE);
 	}
-	self->_sessionid = seqno->_sessionid;
+	// FYI: This coordinates with code in _fsprotocol_fspe_reinit() and seqnoframe_new_init()
+	if (0 == self->_sessionid) {
+		self->_sessionid = seqno->_sessionid;
+	}else{
+		seqno->_sessionid = self->_sessionid;
+	}
 
 	// Put the frame at the beginning of the frameset
 	frameset_prepend_frame(fs, &seqno->baseclass);
@@ -233,16 +240,6 @@ _fsqueue_ackthrough(FsQueue* self		///< The output @ref FsQueue object we're ope
 	DEBUGMSG3("%s.%d: ACKing through (%d:%d:"FMT_64BIT"d)", __FUNCTION__, __LINE__
 	,	seq->getsessionid(seq), seq->getqid(seq), seq->getreqid(seq));
 	if (seq->getsessionid(seq) != self->_sessionid) {
-		// It's not uncommon for a few 'old' ACKs to show up after a protocol reset
-		// If that's what it looks like, then we don't say anything...
-		if (self->_sessionid != 0 && seq->getsessionid(seq) < self->_sessionid) {
-			char * deststr = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
-			g_warning("%s.%d: Incoming ACK packet from %s has invalid session id "
-			"[%d instead of %d] (ACK ignored)."
-			,	__FUNCTION__, __LINE__, deststr
-			,	seq->getsessionid(seq), self->_sessionid);
-			FREE(deststr);
-		}
 		return -1;
 	}
 		

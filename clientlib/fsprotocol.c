@@ -660,9 +660,12 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 		self->parent->unacked = g_list_remove(self->parent->unacked, self);
 		self->outq->isready = FALSE;
 	}
+	// See the code in _fsqueue_enq and also in seqnoframe_new_init for how all these pieces
+	// fit together...
 	self->outq->_nextseqno = 1;
-	self->outq->_sessionid = 0;
-
+	if (self->outq->_sessionid != 0) {
+		self->outq->_sessionid += 1;
+	}
 	if (!g_queue_is_empty(self->inq->_q)) {
 		self->inq->flush(self->inq);
 		g_queue_remove(self->parent->ipend, self);
@@ -697,7 +700,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 FSTATIC void
 _fsprotocol_fspe_closeconn(FsProtoElem* self)
 {
-	DUMP5("_fsprotocol_fspe_closeconn: closing connection to", &self->endpoint->baseclass, NULL);
+	DUMP5("_fsprotocol_fspe_closeconn: removing connection to", &self->endpoint->baseclass, NULL);
 	g_hash_table_remove(self->parent->endpoints, self);
 	self = NULL;
 }

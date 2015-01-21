@@ -74,6 +74,12 @@ The queue ID is a 16-bit integer in network byte order.
 /// - The best idea seems to be to use the time of day, but also store that
 ///		value in a file.  If the time gets set back before the previous session id,
 ///		then use the previous session id + 1.
+///
+/// Of course, this won't really work without taking into account
+/// the fact that we increment the session id by one each time we reset a connection.
+/// So, if you decide to do that, please look at _fsprotocol_fspe_reinit()
+/// and for good measure, look at _fsqueue_enq() too...
+///
 FSTATIC void
 _seqnoframe_initsessionid(void)
 {
@@ -240,7 +246,7 @@ seqnoframe_new(guint16 frametype,	///< Type of frame to create with this value
 	sframe->_qid = 0;
 	return sframe;
 }
-/// Construct a fully-iniitialized SeqnoFrame object
+/// Construct a fully-initialized SeqnoFrame object
 SeqnoFrame*
 seqnoframe_new_init(guint16 frametype,	///< Type of frame to create with this value
 		    guint64 reqid,	///< Request id
