@@ -370,6 +370,7 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		fspe->shutdown_complete = TRUE;
 		// Clean this up after a while
 		// The time was chosen to occur after the other end will have given up on us and shut down anyway...
+		/// Probably shouldn't clean this up, or we'll lose session id info
 		fspe->finalizetimer = g_timeout_add_seconds(1+parent->acktimeout/1000000, _fsprotocol_finalizetimer, fspe);
 	}
 	fspe->state = nextstate;
