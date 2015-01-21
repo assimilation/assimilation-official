@@ -203,7 +203,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 
 		// Check the overall frame size
 		framesetlen = get_generic_tlv_len(curframeset, pktend);
-		if (framesetlen > ((guint8*)pktend-(curframeset+FRAMESET_INITSIZE))) {
+		if (framesetlen > (guint32)((guint8*)pktend-(curframeset+FRAMESET_INITSIZE))) {
 			g_warning("%s.%d: Received frameset length [%d] is invalid - cannot exceed %d"
 			,	__FUNCTION__, __LINE__, framesetlen
 			,	(int)((guint8*)pktend-(curframeset+FRAMESET_INITSIZE)));
