@@ -41,7 +41,7 @@ def logger(s, hardquote=True):
     'Log our single argument to syslog'
     print >> sys.stderr, ('LOGGER: %s' % str(s))
     if hardquote:
-        s = s.replace("'", "\\'")
+        s = s.replace("'", "'\\''")
         os.system("logger -s '%s'" % s)
     else:
         s = s.replace('\\', '\\\\')
