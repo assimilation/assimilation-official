@@ -175,9 +175,11 @@ class LogWatcher(object):
                 else:
                     self.debugmsg("End of file")
                     self.debugmsg("Last line: %s " %  str(last_line))
+                    self.unmatched = self.regexes
                     return None
         self.debugmsg("Timeout")
         self.debugmsg("Last line: %s " %  str(last_line))
+        self.unmatched = self.regexes
         return None
 
     def lookforall(self, timeout=None, logloadavg=True):
