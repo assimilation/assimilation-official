@@ -205,7 +205,7 @@ def main():
     cryptwarnings = pyCryptCurve25519.initkeys()
     for warn in cryptwarnings:
         print >> sys.stderr, ("WARNING: %s" % warn)
-    print >> sys.stderr, 'All known key ids:'
+    #print >> sys.stderr, 'All known key ids:'
     keyids = pyCryptFrame.get_key_ids()
     keyids.sort()
     for keyid in keyids:
@@ -219,8 +219,7 @@ def main():
                 pyCryptFrame.associate_identity(hostname, keyid)
             except ValueError:
                 pass
-        print >> sys.stderr, '>    %s/%s' % (keyid, pyCryptFrame.get_identity(keyid))
-
+        #print >> sys.stderr, '>    %s/%s' % (keyid, pyCryptFrame.get_identity(keyid))
 
     daemonize_me(opt.foreground, '/', opt.pidfile, 20)
 
