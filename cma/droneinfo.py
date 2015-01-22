@@ -139,7 +139,6 @@ class Drone(SystemNode):
                 if CMAdb.debug:
                     CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring'
                     %       (dtype, self.designation))
-                %   (dtype, self.designation))
                 return
         self._process_json(origaddr, jsonobj)
 
