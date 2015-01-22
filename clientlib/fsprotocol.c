@@ -373,14 +373,16 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 	}
 	// Check for possible errors in our FSA tables...
 	if (FSPR_NONE == nextstate && curstate != nextstate && fspe->outq->_q->length != 0) {
-		g_critical("%s.%d: Inappropriate transition to state NONE"
+		char *	deststr = fspe->endpoint->baseclass.toString(&fspe->endpoint->baseclass);
+		g_critical("%s.%d: Inappropriate transition for %s to state NONE"
 		":  (%s, %s) => %s. Actions=[%s], outq length=%d"
-		,	__FUNCTION__, __LINE__
+		,	__FUNCTION__, __LINE__, deststr
 		,	_fsprotocol_fsa_states(curstate)
 		,	_fsprotocol_fsa_inputs(input)
 		,	_fsprotocol_fsa_states(nextstate)
 		,	_fsprotocol_fsa_actions(action)
 		,	fspe->outq->_q->length);
+		FREE(deststr); deststr = NULL;
 	}
 	fspe->state = nextstate;
 	DEBUGMSG2("} /* %s:%d */", __FUNCTION__, __LINE__);
