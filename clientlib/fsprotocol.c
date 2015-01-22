@@ -371,6 +371,17 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		/// Probably shouldn't clean this up, or we'll lose session id info
 		fspe->finalizetimer = g_timeout_add_seconds(1+parent->acktimeout/1000000, _fsprotocol_finalizetimer, fspe);
 	}
+	// Check for possible errors in our FSA tables...
+	if (FSPR_NONE == nextstate && curstate != nextstate && fspe->outq->_q->length != 0) {
+		g_critical("%s.%d: Inappropriate transition to state NONE"
+		":  (%s, %s) => %s. Actions=[%s], outq length=%d"
+		,	__FUNCTION__, __LINE__
+		,	_fsprotocol_fsa_states(curstate)
+		,	_fsprotocol_fsa_inputs(input)
+		,	_fsprotocol_fsa_states(nextstate)
+		,	_fsprotocol_fsa_actions(action)
+		,	fspe->outq->_q->length);
+	}
 	fspe->state = nextstate;
 	DEBUGMSG2("} /* %s:%d */", __FUNCTION__, __LINE__);
 }
