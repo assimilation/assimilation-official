@@ -139,6 +139,7 @@ class Drone(SystemNode):
                 if CMAdb.debug:
                     CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring'
                     %       (dtype, self.designation))
+                %   (dtype, self.designation))
                 return
         self._process_json(origaddr, jsonobj)
 
@@ -158,9 +159,8 @@ class Drone(SystemNode):
                     ,   CMAdb.log, CMAdb.debug)
                     proc.processpkt(self, origaddr, jsonobj)
         if foundone:
-            if CMAdb.debug:
-                CMAdb.log.debug('Processed %s JSON data from %s into graph.'
-                %   (dtype, self.designation))
+            CMAdb.log.info('Processed %s JSON data from %s into graph.'
+            %   (dtype, self.designation))
         else:
             CMAdb.log.info('Stored %s JSON data from %s without processing.'
             %   (dtype, self.designation))
