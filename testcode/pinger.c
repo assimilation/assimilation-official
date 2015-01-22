@@ -277,6 +277,8 @@ main(int argc, char **argv)
 	};
 	int	argcount;
 	int	exitcode = 0;
+	int	insize;
+	int	outsize;
 	GError *optionerror;
 	GOptionContext *myOptionContext;
 
@@ -333,6 +335,11 @@ main(int argc, char **argv)
 	transport->baseclass.baseclass.setpktloss(&transport->baseclass.baseclass, RCVLOSS, XMITLOSS);
 	transport->baseclass.baseclass.enablepktloss(&transport->baseclass.baseclass, TRUE);
 	g_return_val_if_fail(transport->baseclass.baseclass.bindaddr(&transport->baseclass.baseclass, anyaddr, FALSE),16);
+	insize = transport->baseclass.baseclass.getsockbufsize(&transport->baseclass.baseclass, TRUE);
+	insize = transport->baseclass.baseclass.setsockbufsize(&transport->baseclass.baseclass, TRUE, insize*16);
+	outsize = transport->baseclass.baseclass.getsockbufsize(&transport->baseclass.baseclass, FALSE);
+	outsize = transport->baseclass.baseclass.setsockbufsize(&transport->baseclass.baseclass, FALSE, outsize*16);
+	
 	// Connect up our network transport into the g_main_loop paradigm
 	// so we get dispatched when packets arrive
 	netpkt = netgsource_new(&transport->baseclass.baseclass, NULL, G_PRIORITY_HIGH, FALSE, NULL, 0, NULL);
@@ -345,6 +352,8 @@ main(int argc, char **argv)
 	fprintf(stderr, "Transmit packet loss: %g\n", XMITLOSS*100);
 	fprintf(stderr, "Receive packet loss:  %g\n", RCVLOSS*100);
 	fprintf(stderr, "Pong packet padding:  %ld bytes\n", (long)pongsize);
+	fprintf(stderr, "Socket input buffer:  %d bytes\n", insize);
+	fprintf(stderr, "Socket output buffer: %d bytes\n", outsize);
 	
 	
 	loop = g_main_loop_new(g_main_context_default(), TRUE);

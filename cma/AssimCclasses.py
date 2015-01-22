@@ -1934,6 +1934,34 @@ class pyNetIO(pyAssimObj):
         CCref(boundaddr)
         return ret
 
+    def getrcvbufsize(self):
+        'Return the receive buffer size for this socket'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'getsockbufsize')):
+            base = base.baseclass
+        return base.getsockbufsize(self._Cstruct, True)
+
+    def setrcvbufsize(self, bufsize):
+        'Set and return the receive buffer size for this socket'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'setsockbufsize')):
+            base = base.baseclass
+        return base.setsockbufsize(self._Cstruct, True, bufsize)
+
+    def getsendbufsize(self):
+        'Return the output buffer size for this socket'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'getsockbufsize')):
+            base = base.baseclass
+        return base.getsockbufsize(self._Cstruct, False)
+
+    def setsendbufsize(self, bufsize):
+        'Return the output buffer size for this socket'
+        base = self._Cstruct[0]
+        while (not hasattr(base, 'setsockbufsize')):
+            base = base.baseclass
+        return base.setsockbufsize(self._Cstruct, False, bufsize)
+
     def mcastjoin(self, addr):
         'Join the underlying socket to the given multicast address'
         base = self._Cstruct[0]

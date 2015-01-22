@@ -86,12 +86,21 @@ struct _NetIO {
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*addalias)(NetIO*, NetAddr*, NetAddr*);///< Add an alias to our received address alias table
 	
-	gint		(*getfd)		///<[in] Return file/socket descriptor
+	gint		(*getfd)			///< Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
-	void		(*setblockio)		///<[in] Set blocking/non-blocking mode
+	void		(*setblockio)			///< Set blocking/non-blocking mode
 				(const NetIO* self,	///<[in/out] 'this' Object.
 				 gboolean blocking)	///<[in] TRUE if you want it to block
 						   ;	// ";" is here to work around a doxygen bug
+	int		(*getsockbufsize)		///< Return socket buffer size: -1 on failure
+				(const NetIO* self,	///< 'this' object
+				 gboolean forinput);	///< TRUE means input, FALSE means output
+	int		(*setsockbufsize)		///< Set socket buffer size - return new size or -1
+				(const NetIO* self,	///< 'this' object
+				 gboolean forinput,	///< TRUE means input, FALSE means output
+				 gsize bufsize);	///< size to (try) to set it to
+				 
+				 
 	gsize		(*getmaxpktsize)	///< Return maximum packet size for this NetIO
 				(const NetIO* self);	///< 'this' object
 	gsize		(*setmaxpktsize)	///< Set maximum packet size
