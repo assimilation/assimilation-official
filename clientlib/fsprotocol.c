@@ -1024,7 +1024,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				fspe->nextrexmit = 0;
 				TRYXMIT(fspe);
 				fspe->acktimeout = 0;
-				_fsprotocol_fsa(fspe, FSPROTO_OUTALLDONE, fs);
+				if (ackcount > 0) {
+					_fsprotocol_fsa(fspe, FSPROTO_OUTALLDONE, fs);
+				}
 			}else{
 				fspe->nextrexmit = now + self->rexmit_interval;
 				fspe->acktimeout = now + self->acktimeout;
