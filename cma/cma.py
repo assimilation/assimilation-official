@@ -202,7 +202,6 @@ def main():
     CMAdb.running_under_docker()
     make_pid_dir(opt.pidfile, opt.userid)
     make_key_dir(CRYPTKEYDIR, opt.userid)
-    drop_privileges_permanently(opt.userid)
     cryptwarnings = pyCryptCurve25519.initkeys()
     for warn in cryptwarnings:
         print >> sys.stderr, ("WARNING: %s" % warn)
@@ -296,6 +295,9 @@ def main():
         if elem in config:
             config[elem] = pyNetAddr(str(config[elem]), port=ourport)
     io = pyReliableUDP(config, pyPacketDecoder())
+    io.setrcvbufsize(10*1024*1024) # No harm in asking - it will get us the best we can get...
+    io.setsendbufsize(1024*1024)   # Most of the traffic volume is inbound from discovery
+    drop_privileges_permanently(opt.userid)
     try:
         cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
     except RuntimeError:
@@ -306,6 +308,8 @@ def main():
 
     CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
+    CMAdb.log.info('Socket input buffer size:  %d' % io.getrcvbufsize())
+    CMAdb.log.info('Socket output buffer size: %d' % io.getsendbufsize())
     keyids = pyCryptFrame.get_key_ids()
     keyids.sort()
     for keyid in keyids:

@@ -52,6 +52,9 @@
 #include <frametypes.h>
 #include <misc.h>
 FSTATIC gint _netio_getfd(const NetIO* self);
+FSTATIC int _netio_getsockbufsize(const NetIO* self, gboolean forinput);
+FSTATIC int _netio_setsockbufsize(const NetIO* self, gboolean forinput, gsize bufsize);
+FSTATIC void _netio_maximize_sockbufsize(const NetIO* self, gboolean forinput, int desiredsize);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src, gboolean silent);
 FSTATIC gboolean _netio_input_queued(const NetIO* self);
@@ -241,6 +244,92 @@ _netio_setmcast_ttl(NetIO*	self,		///<[in/out] netIO object to set the TTL of
         return setsockopt(self->getfd(self), IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof(ttl) == 0);
 }
 
+/// Return the kernel's idea of what our input or output socket buffer size is
+FSTATIC int
+_netio_getsockbufsize(const NetIO* self, gboolean forinput)
+{
+	int		optname = (forinput ? SO_RCVBUF : SO_SNDBUF);
+	int		retval;
+	socklen_t	retvalsize = sizeof(retval);
+	
+	errno = 0;
+	if (getsockopt(self->getfd(self), SOL_SOCKET, optname, &retval, &retvalsize) < 0
+	||	retvalsize != sizeof(retval)) {
+		g_warning("%s.%d: getsockopt(%d, IPPROTO_UDP, %d, &retval, %d) failed [%s]"
+		,	__FUNCTION__, __LINE__
+		,	self->getfd(self), optname, retvalsize, g_strerror(errno));
+		return -1;
+	}
+	return (gsize)retval;
+}
+/// Set the kernel's idea of what our input or output socket buffer size as close as we can
+/// We'll even do a binary search to maximize the value if we can't get what we want.
+FSTATIC int
+_netio_setsockbufsize(const NetIO* self, gboolean forinput, gsize bufsize)
+{
+	int		optname = (forinput ? SO_RCVBUF : SO_SNDBUF);
+	int		retval;
+	socklen_t	retvalsize = sizeof(retval);
+
+	retval = bufsize;
+	DEBUGMSG2("%s.%d: trying to set %sput buffer size to %d", __FUNCTION__, __LINE__
+	,	 (forinput ? "in" : "out"), retval);
+
+	if (setsockopt(self->getfd(self), SOL_SOCKET, optname, &retval, retvalsize) < 0) {
+#ifdef SO_RCVBUFFORCE 
+		int	forcename = (forinput ? SO_RCVBUFFORCE : SO_SNDBUFFORCE);
+
+		if (setsockopt(self->getfd(self), SOL_SOCKET, forcename, &retval, retvalsize) >= 0) {
+			return _netio_getsockbufsize(self, forinput);
+		}
+#endif
+	}
+	retval =  _netio_getsockbufsize(self, forinput);
+	if (retval < (int)bufsize) {
+		_netio_maximize_sockbufsize(self, forinput, bufsize);
+		retval = _netio_getsockbufsize(self, forinput);
+	}
+	return retval;
+}
+
+/// Maximize the socket buffer size as requested - as best we can...
+FSTATIC void
+_netio_maximize_sockbufsize(const NetIO* self, gboolean forinput, int desiredsize)
+{
+	int		optname = (forinput ? SO_RCVBUF : SO_SNDBUF);
+	int		lowval = _netio_getsockbufsize(self, forinput)/2;
+	int		highval = desiredsize;
+
+	if (lowval >= desiredsize) {
+		return;
+	}
+	// This is your basic binary search...
+	while (lowval < highval) {
+		int		midpoint = (lowval + highval) / 2;
+		int		retval;
+		const socklen_t	retvalsize = sizeof(retval);
+		if (midpoint == lowval) {
+			break;
+		}
+		retval = midpoint;
+		DEBUGMSG2("%s.%d: trying %sput buffer size %d", __FUNCTION__, __LINE__
+		,	 (forinput ? "in" : "out"), retval);
+		if (setsockopt(self->getfd(self), IPPROTO_UDP, optname, &retval, retvalsize) < 0) {
+#ifdef SO_RCVBUFFORCE 
+			int	forcename = (forinput ? SO_RCVBUFFORCE : SO_SNDBUFFORCE);
+			if (setsockopt(self->getfd(self), SOL_SOCKET, forcename, &retval, retvalsize) >= 0){
+				lowval = midpoint;
+				continue;
+			}
+#endif
+			highval = midpoint;
+		}else{
+			lowval = midpoint;
+		}
+	}
+}
+
+
 /// Member function that returns TRUE if input is ready to be read
 FSTATIC gboolean
 _netio_input_queued(const NetIO* self)		///<[in] The NetIO object being queried
@@ -394,6 +483,8 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	ret->outputpending  = _netio_supportsreliable;		// It just returns FALSE
 	ret->addalias = _netio_addalias;
 	ret->closeconn = _netio_closeconn;
+	ret->setsockbufsize = _netio_setsockbufsize;
+	ret->getsockbufsize = _netio_getsockbufsize;
 	ret->_maxpktsize = 65300;
 	ret->_configinfo = config;
 	ret->_decoder = decoder;
