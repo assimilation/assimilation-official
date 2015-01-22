@@ -182,6 +182,8 @@ class AssimSysTest(object):
         raise NotImplementedError('AssimSysTest.run is an abstract method')
 
     @staticmethod
+    # too many local variables
+    # pylint: disable=R0914
     def initenviron(logname, maxdrones, debug=False, timeout=90, nanodebug=0, cmadebug=0):
         'Initialize the test environment.'
         logwatch = LogWatcher(logname, [], timeout, returnonlymatch=True, debug=debug)
@@ -206,6 +208,9 @@ class AssimSysTest(object):
         match = logwatch.lookforall(timeout=int(timeout+maxdrones*3))
         logger('$(grep MemFree: /proc/meminfo)', hardquote=False)
         if match is None:
+            logger("Missing REGexes: %s" % str(logwatch.unmatched))
+            for regex in logwatch.unmatched:
+                logger("   /%s/" % regex)
             raise RuntimeError('Not all nanoprobes started.  Do you have another CMA running?')
         tq = QueryTest(store
         ,   '''START drone=node:Drone('*:*') WHERE drone.status = "up" RETURN drone'''
