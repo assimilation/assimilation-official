@@ -102,7 +102,7 @@ enum _FsProtoInput {
 
 static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 //	    START     REQSEND	  GOTC_NAK   REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE SHUT_TO
-/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_NONE,  FSPR_NONE,  FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_NONE,  FSPR_SHUT2,  FSPR_NONE, FSPR_NONE, FSPR_NONE},
 /*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_INIT, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
 /*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
 // SHUT1: No OUTDONE, no CONNSHUT
@@ -131,7 +131,7 @@ static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
 
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
 //	 START REQSEND GOTCONN_NAK REQSHUTDOWN   RCVSHUTDOWN  ACKTIMEOUT      OUTDONE       SHUT_TO
-/*NONE*/ {0,    0,      A_CLOSE,   A_CLOSE,       ACKnSHUT,  A_ACKTO|A_OOPS,   A_OOPS,      A_OOPS},
+/*NONE*/ {0,    0,      A_CLOSE,   A_CLOSE,      SHUTnTIMER, A_ACKTO|A_OOPS,   A_OOPS,      A_OOPS},
 /*INIT*/ {0,    0, 	A_CLOSE,   SHUTnTIMER,    ACKnSHUT,  A_CLOSE,            0,         A_OOPS},
 /*UP*/   {0,    0, 	A_CLOSE,   SHUTnTIMER,    ACKnSHUT,  A_ACKTO,            0,         A_OOPS},
 //SHUT1: no OUTDONE, no CONNSHUT - only got REQSHUTDOWN
@@ -255,18 +255,15 @@ _fsprotocol_fsa_log_history(FsProtoElem* self,		///< Our FsProtoElem object
 	FREE(deststr); deststr = NULL;
 
 	// Start at the hist_next position - it's the oldest element in the circular list
-	index = self->hist_next;
+	index = (self->hist_next+1 >= FSPHISTSIZE ? 0 : self->hist_next+1)
 	j = 0;
 	do {
 		g_info("FSA History[%d]: (%s, %s) => (%s, ...)", j
 		,	_fsprotocol_fsa_states(self->fsa_states[index])
 		,	_fsprotocol_fsa_inputs((FsProtoInput)self->fsa_inputs[index])
 		,	_fsprotocol_fsa_actions(self->fsa_actions[index]));
-		index += 1;
 		j += 1;
-		if (index >= FSPE_HISTSIZE) {
-			index = 0;
-		}
+		index = ((index+1) >= FSPHISTSIZE ? 0 : (index+1));
 	} while (index != self->hist_next);
 	g_info("FSA Current[%d]: (%s, %s) => (%s , %s)", j
 	,	_fsprotocol_fsa_states(curstate)
