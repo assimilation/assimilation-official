@@ -67,7 +67,8 @@ enum _FsProtoState {
 	FSPR_INVALID,		///< End marker - Invalid state
 };
 
-#define	 FSPR_INSHUTDOWN(state)	((state) >= FSPR_SHUT1)
+#define	FSPR_INSHUTDOWN(state)	((state) >= FSPR_SHUT1)
+#define	FSPE_HISTSIZE		4
 
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.
@@ -88,6 +89,10 @@ struct _FsProtoElem {
 	gboolean	shutdown_complete;//< TRUE if the shutdown we asked for completed
 	gboolean	is_encrypted;	///< TRUE if this channel is encrypted
 	char*		peer_identity;	///< Identity of the far end...
+	int		hist_next;	///< current index into history circular queue
+	FsProtoState	fsa_states[FSPE_HISTSIZE];	///< history of FSA inputs
+	guint8		fsa_inputs[FSPE_HISTSIZE];	///< history of FSA inputs
+	guint16		fsa_actions[FSPE_HISTSIZE];	///< history of FSA actions
 };
 
 /// It is REQUIRED that these fields are the same as the first two in the FsProtoElem structure
