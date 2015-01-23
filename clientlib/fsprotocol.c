@@ -69,6 +69,9 @@ FSTATIC void		_fsprotocol_fsa(FsProtoElem* fspe, FsProtoInput input, FrameSet* f
 FSTATIC const char*	_fsprotocol_fsa_states(FsProtoState state);
 FSTATIC const char*	_fsprotocol_fsa_inputs(FsProtoInput input);
 FSTATIC const char*	_fsprotocol_fsa_actions(unsigned int actionbits);
+FSTATIC void 		_fsprotocol_fsa_history(FsProtoElem*, FsProtoState, FsProtoInput, guint16);
+FSTATIC void		_fsprotocol_fsa_log_history(FsProtoElem*,
+			    FsProtoState, FsProtoState, FsProtoInput, guint16);
 FSTATIC void		_fsprotocol_flush_pending_connshut(FsProtoElem* fspe);
 
 #define AUDITFSPE(fspe)	{ if (fspe) _fsprotocol_auditfspe(fspe, __FUNCTION__, __LINE__); }
@@ -192,7 +195,7 @@ _fsprotocol_fsa_actions(unsigned actionmask)
 		{A_OOPS,	"OOPS"},
 		{A_DEBUG,	"DEBUG"},
 		{A_SNDNAK,	"SNDNAK"},
-		{A_SNDSHUT,	"SNDSHUT"},
+		{A_SNDSHUT,	"SNDSHUT(recursion)"},
 		{A_ACKTO,	"ACKTO"},
 		{A_ACKME,	"ACKME"},
 		{A_TIMER,	"TIMER"},
@@ -219,6 +222,55 @@ _fsprotocol_fsa_actions(unsigned actionmask)
 	return result;
 }
 
+/// Add a (state, input, action) to the history for this particular FSA
+FSTATIC void
+_fsprotocol_fsa_history(FsProtoElem* self,	///< Our FS channel object
+			FsProtoState state,	///< Current FSA state
+			FsProtoInput input,	///< Current FSA input
+			guint16 actions)	///< Computed FSA actions
+{
+	int	index = self->hist_next;
+	self->fsa_states[index] = state;
+	self->fsa_inputs[index] = (guint8)input;
+	self->fsa_actions[index] = actions;
+	index += 1;
+	if (index >= FSPE_HISTSIZE) {
+		index = 0;
+	}
+}
+
+/// Log our FSA history for all to see...
+FSTATIC void
+_fsprotocol_fsa_log_history(FsProtoElem* self,		///< Our FsProtoElem object
+			    FsProtoState curstate,	///< Current state on input
+			    FsProtoState nextstate,	///< Computed Next state
+			    FsProtoInput input,		///< Current FSA input
+			    guint16 nextactions)	///< Computed FSA actions
+
+{
+	int	index;
+	char *	deststr = self->endpoint->baseclass.toString(&self->endpoint->baseclass);
+	g_info("%s.%d: FSA history for endpoint %s", __FUNCTION__, __LINE__, deststr);
+	FREE(deststr); deststr = NULL;
+
+	// Start at the hist_next position - it's the oldest element in the circular list
+	index = self->hist_next;
+	do {
+		g_info("FSA History: (%s, %s) => (%s, ...)"
+		,	_fsprotocol_fsa_states(self->fsa_states[index])
+		,	_fsprotocol_fsa_inputs((FsProtoInput)self->fsa_inputs[index])
+		,	_fsprotocol_fsa_actions(self->fsa_actions[index]));
+		index += 1;
+		if (index >= FSPE_HISTSIZE) {
+			index = 0;
+		}
+	} while (index != self->hist_next);
+	g_info("FSA Current: (%s, %s) => (%s , %s)"
+	,	_fsprotocol_fsa_states(curstate)
+	,	_fsprotocol_fsa_inputs(input)
+	,	_fsprotocol_fsa_actions(nextactions)
+	,	_fsprotocol_fsa_states(nextstate));
+}
 
 
 /// FsProtocol Finite state Automaton modelling connection establishment and shutdown.
@@ -256,6 +308,7 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		,	_fsprotocol_fsa_states(curstate), _fsprotocol_fsa_inputs(input)
 		,	_fsprotocol_fsa_states(nextstate), _fsprotocol_fsa_actions(action));
 	}
+	_fsprotocol_fsa_history(fspe, curstate, input, action);
 
 	// Complain about an ACK timeout
 	if (action & A_ACKTO) {
@@ -360,6 +413,7 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 			FREE(fsstr);
 			fsstr = NULL;
 		}
+		_fsprotocol_fsa_log_history(fspe, curstate, nextstate, input, action);
 	}
 
 	if (action & A_CLOSE) {
@@ -383,6 +437,7 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		,	_fsprotocol_fsa_actions(action)
 		,	fspe->outq->_q->length);
 		FREE(deststr); deststr = NULL;
+		_fsprotocol_fsa_log_history(fspe, curstate, nextstate, input, action);
 	}
 	fspe->state = nextstate;
 	DEBUGMSG2("} /* %s:%d */", __FUNCTION__, __LINE__);
@@ -558,6 +613,10 @@ _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 		ret->shutdown_complete = FALSE;
 		ret->is_encrypted = FALSE;
 		ret->peer_identity = NULL;
+		ret->hist_next = 0;
+		memset(ret->fsa_states, 0, sizeof(ret->fsa_states));
+		memset(ret->fsa_inputs, 0, sizeof(ret->fsa_inputs));
+		memset(ret->fsa_actions, 0, sizeof(ret->fsa_actions));
 		// This lookup assumes FsProtoElemSearchKey looks like the start of FsProtoElem
 		g_warn_if_fail(NULL == g_hash_table_lookup(self->endpoints, ret));
 		g_hash_table_insert(self->endpoints, ret, ret);
