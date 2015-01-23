@@ -68,7 +68,7 @@ enum _FsProtoState {
 };
 
 #define	FSPR_INSHUTDOWN(state)	((state) >= FSPR_SHUT1)
-#define	FSPE_HISTSIZE		4
+#define	FSPE_HISTSIZE		8
 
 
 /// Not a full-blown class - just a utility structure.  Endpoint+qid constitute a key for it.

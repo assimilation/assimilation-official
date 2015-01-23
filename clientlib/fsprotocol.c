@@ -249,23 +249,26 @@ _fsprotocol_fsa_log_history(FsProtoElem* self,		///< Our FsProtoElem object
 
 {
 	int	index;
+	int	j;
 	char *	deststr = self->endpoint->baseclass.toString(&self->endpoint->baseclass);
 	g_info("%s.%d: FSA history for endpoint %s", __FUNCTION__, __LINE__, deststr);
 	FREE(deststr); deststr = NULL;
 
 	// Start at the hist_next position - it's the oldest element in the circular list
 	index = self->hist_next;
+	j = 0;
 	do {
-		g_info("FSA History: (%s, %s) => (%s, ...)"
+		g_info("FSA History[%d]: (%s, %s) => (%s, ...)", j
 		,	_fsprotocol_fsa_states(self->fsa_states[index])
 		,	_fsprotocol_fsa_inputs((FsProtoInput)self->fsa_inputs[index])
 		,	_fsprotocol_fsa_actions(self->fsa_actions[index]));
 		index += 1;
+		j += 1;
 		if (index >= FSPE_HISTSIZE) {
 			index = 0;
 		}
 	} while (index != self->hist_next);
-	g_info("FSA Current: (%s, %s) => (%s , %s)"
+	g_info("FSA Current[%d]: (%s, %s) => (%s , %s)", j
 	,	_fsprotocol_fsa_states(curstate)
 	,	_fsprotocol_fsa_inputs(input)
 	,	_fsprotocol_fsa_actions(nextactions)
@@ -308,7 +311,6 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		,	_fsprotocol_fsa_states(curstate), _fsprotocol_fsa_inputs(input)
 		,	_fsprotocol_fsa_states(nextstate), _fsprotocol_fsa_actions(action));
 	}
-	_fsprotocol_fsa_history(fspe, curstate, input, action);
 
 	// Complain about an ACK timeout
 	if (action & A_ACKTO) {
@@ -439,6 +441,8 @@ _fsprotocol_fsa(FsProtoElem* fspe,	///< The FSPE we're processing
 		FREE(deststr); deststr = NULL;
 		_fsprotocol_fsa_log_history(fspe, curstate, nextstate, input, action);
 	}
+	// Having it here maximizes the length of the history...
+	_fsprotocol_fsa_history(fspe, curstate, input, action);
 	fspe->state = nextstate;
 	DEBUGMSG2("} /* %s:%d */", __FUNCTION__, __LINE__);
 }
