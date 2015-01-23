@@ -123,7 +123,12 @@ _hblistener_checktimeouts(gboolean urgent)	///<[in]True if you want it checked n
 			if (listener->_deadtime_callback) {
 				listener->_deadtime_callback(listener);
 			}else{
-				g_warning("our node looks dead from here...");
+				char *	addrstr
+				= listener->listenaddr->baseclass.toString
+				(	&listener->listenaddr->baseclass);
+				g_warning("%s.%d: Unhandled deadtime for %s."
+				,	__FUNCTION__, __LINE__, addrstr);
+				FREE(addrstr);
 			}
 			listener->status = HbPacketsTimedOut;
 		}
@@ -152,7 +157,15 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 	HbListener*	addmatch;
 
 	(void)self;  // Odd, but true - because we're a proxy for all hblisteners...
+
 	addmatch = hblistener_find_by_address(srcaddr);
+
+	if (DEBUG >= 4) {
+		char *	addrstr = srcaddr->baseclass.toString(&srcaddr->baseclass);
+		g_debug("%s.%d: Received heartbeat from %s (%sfound)."
+		,	__FUNCTION__, __LINE__, addrstr, (addmatch ? "" : "not "));
+		FREE(addrstr);
+	}
 	if (addmatch != NULL) {
 		if (addmatch->status == HbPacketsTimedOut) {
 			guint64 howlate = now - addmatch->nexttime;
@@ -186,7 +199,8 @@ _hblistener_got_frameset(Listener* self, FrameSet* fs, NetAddr* srcaddr)
 		_hblistener_martiancallback(srcaddr);
 	}else{ 
 		gchar *	saddr = srcaddr->baseclass.toString(srcaddr);
-		g_warning("Received 'martian' packet from address [%s]", saddr);
+		g_warning("%s.%d: Received unhandled 'martian' packet from address [%s]"
+		,	__FUNCTION__, __LINE__, saddr);
 		g_free(saddr); saddr = NULL;
 	}
 	UNREF(fs);
@@ -286,6 +300,15 @@ hblistener_new(NetAddr*	listenaddr,	///<[in] Address to listen to
 	}
 	newlistener->status = HbPacketsBeingReceived;
 	_hblistener_addlist(newlistener);
+	if (DEBUG) {
+		char *	addrstr = listenaddr->baseclass.toString(&listenaddr->baseclass);
+		g_debug("%s.%d: Start expecting heartbeats from %s. Interval: "FMT_64BIT"d"
+		" Warntime: "FMT_64BIT"d"
+		,	__FUNCTION__, __LINE__, addrstr
+		,	newlistener->_expected_interval/1000000
+		,	newlistener->_warn_interval/1000000);
+		FREE(addrstr);
+	}
         return newlistener;
 }
 
@@ -333,11 +356,22 @@ FSTATIC void
 hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from list
 {
 	HbListener* listener = hblistener_find_by_address(unlistenaddr);
+	if (DEBUG) {
+		char *	addrstr = unlistenaddr->baseclass.toString(&unlistenaddr->baseclass);
+		g_debug("%s.%d: Stop expecting heartbeats from %s (%sfound)."
+		,	__FUNCTION__, __LINE__, addrstr, (listener ? "" : "not "));
+		FREE(addrstr);
+	}
 	if (listener != NULL) {
 		_hblistener_dellist(listener);
 		return;
 	}
-	g_warning("Attempt to unlisten an unregistered address");
+	{
+		char *	addrstr = unlistenaddr->baseclass.toString(&unlistenaddr->baseclass);
+		g_warning("%s.%d: Attempt to unlisten an unregistered address: %s"
+		,	__FUNCTION__, __LINE__, addrstr);
+		FREE(addrstr);
+	}
 }
 
 /// Call to set a callback to be called when a node apparently dies

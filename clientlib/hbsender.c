@@ -147,11 +147,14 @@ hbsender_new(NetAddr* sendaddr,		///<[in] Address to send to
 		newsender->timeout_source = g_timeout_add_seconds_full
 					    (G_PRIORITY_HIGH, interval, _hbsender_gsourcefunc
 					,    newsender, _hbsender_notify_function);
-		DEBUGMSG3("Sender %p timeout source is: %d, interval is %d", newsender
-		,	  newsender->timeout_source, interval);
+		if (DEBUG) {
+			char *	addrstr = sendaddr->baseclass.toString(&sendaddr->baseclass);
+			g_debug("%s.%d: Start sending heartbeats to %s at interval "FMT_64BIT"d"
+			,	__FUNCTION__, __LINE__, addrstr, newsender->_expected_interval);
+			FREE(addrstr);
+		}
 		_hbsender_addlist(newsender);
-		// Avoid Martian packets - don't send the first one right away...
-		//	_hbsender_sendheartbeat(newsender);
+		_hbsender_sendheartbeat(newsender);
 	}
 	return newsender;
 }
@@ -162,22 +165,38 @@ void
 hbsender_stopsend(NetAddr* sendaddr)///<[in/out] Sender to remove from list
 {
 	GSList*		obj;
+	if (DEBUG) {
+		char *	addrstr = sendaddr->baseclass.toString(sendaddr);
+		g_debug("%s.%d: Stop sending heartbeats to %s"
+		,	__FUNCTION__, __LINE__, addrstr);
+		FREE(addrstr);
+	}
 	for (obj = _hb_senders; obj != NULL; obj=obj->next) {
 		HbSender* sender = CASTTOCLASS(HbSender, obj->data);
 		if (sendaddr->equal(sendaddr, sender->_sendaddr)) {
+			// Send one last heartbeat - avoid unnecessary death reports
+			_hbsender_sendheartbeat(sender);
 			sender->unref(sender);
 			return;
 		}
 	}
 }
+/// Send out a heartbeat
 FSTATIC void
 _hbsender_sendheartbeat(HbSender* self)
 {
 	FrameSet*	heartbeat = frameset_new(FRAMESETTYPE_HEARTBEAT);
 	//g_debug("Sending a heartbeat...");
+	if (DEBUG >= 4) {
+		char *	addrstr = self->_sendaddr->baseclass.toString(self->_sendaddr);
+		g_debug("%s.%d: Sending heartbeat to %s at interval "FMT_64BIT"d"
+		,	__FUNCTION__, __LINE__, addrstr, self->_expected_interval);
+		FREE(addrstr);
+	}
 	self->_outmethod->sendaframeset(self->_outmethod, self->_sendaddr, heartbeat);
 	UNREF(heartbeat);
 }
+/// Stop sending heartbeats to anyone...
 void
 hbsender_stopallsenders(void)
 {
