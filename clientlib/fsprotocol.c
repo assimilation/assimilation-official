@@ -255,7 +255,7 @@ _fsprotocol_fsa_log_history(FsProtoElem* self,		///< Our FsProtoElem object
 	FREE(deststr); deststr = NULL;
 
 	// Start at the hist_next position - it's the oldest element in the circular list
-	index = (self->hist_next+1 >= FSPHISTSIZE ? 0 : self->hist_next+1)
+	index = (self->hist_next+1 >= FSPE_HISTSIZE ? 0 : self->hist_next+1);
 	j = 0;
 	do {
 		g_info("FSA History[%d]: (%s, %s) => (%s, ...)", j
@@ -263,7 +263,7 @@ _fsprotocol_fsa_log_history(FsProtoElem* self,		///< Our FsProtoElem object
 		,	_fsprotocol_fsa_inputs((FsProtoInput)self->fsa_inputs[index])
 		,	_fsprotocol_fsa_actions(self->fsa_actions[index]));
 		j += 1;
-		index = ((index+1) >= FSPHISTSIZE ? 0 : (index+1));
+		index = ((index+1) >= FSPE_HISTSIZE ? 0 : (index+1));
 	} while (index != self->hist_next);
 	g_info("FSA Current[%d]: (%s, %s) => (%s , %s)", j
 	,	_fsprotocol_fsa_states(curstate)
