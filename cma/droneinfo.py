@@ -184,7 +184,7 @@ class Drone(SystemNode):
 
     #Current implementation does not use 'self'
     #pylint: disable=R0201
-    def _send_hbmsg(self, dest, fstype, addrlist):
+    def send_hbmsg(self, dest, fstype, addrlist):
         '''Send a message with an attached pyNetAddr list - each including port numbers'
            This is intended primarily for start or stop heartbeating messages.'''
 
@@ -257,7 +257,7 @@ class Drone(SystemNode):
         if CMAdb.debug:
             CMAdb.log.debug('STARTING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' %
                 (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
-        self._send_hbmsg(ouraddr, FrameSetTypes.SENDEXPECTHB, (partner1addr, partner2addr))
+        self.send_hbmsg(ouraddr, FrameSetTypes.SENDEXPECTHB, (partner1addr, partner2addr))
 
     def stop_heartbeat(self, ring, partner1, partner2=None):
         '''Stop heartbeating to the given partners.'
@@ -274,7 +274,7 @@ class Drone(SystemNode):
         if CMAdb.debug:
             CMAdb.log.debug('STOPPING heartbeat(s) from %s [%s] to %s [%s] and %s [%s]' %
                 (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
-        self._send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
+        self.send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
 
     def request_discovery(self, args): ##< A vector of arguments containing
         '''Send our drone a request to perform discovery

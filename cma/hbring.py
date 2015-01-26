@@ -247,6 +247,14 @@ class HbRing(GraphNode):
         self._insertpoint2 = nextnode
         CMAdb.store.relate(prevnode, self.ournexttype, nextnode)
 
+    def are_partners(self, drone1, drone2):
+        'Return True if these two drones are heartbeat partners in our ring'
+        nextelems =  CMAdb.store.load_related(drone1, self.ournexttype, Drone)
+        if drone2 in nextelems:
+            return True
+        prevelems =  CMAdb.store.load_in_related(drone1, self.ournexttype, Drone)
+        return drone2 in prevelems
+
     def members(self):
         'Return all the Drones that are members of this ring - in some random order'
         return CMAdb.store.load_related(self, self.ourreltype, Drone)
