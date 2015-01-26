@@ -303,35 +303,37 @@ class DispatchHBMARTIAN(DispatchTarget):
     '''
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
+        CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from address %s "
+            %       (FrameSetTypes.get(fstype)[0], origaddr))
         reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
-                martiansourceaddr = frame.getnetaddr()
-        martiansource = self.droneinfo.find(martiansourceaddr) # Source of MARTIAN FrameSet
+                martiansrcaddr = frame.getnetaddr()
+        martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN FrameSet
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s about %s"
-            %       (FrameSetTypes.get(fstype)[0], reporter, martiansource))
-        if martiansource.status == 'dead':
-            CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked dead' % martiansource)
-            martiansource.status='up'
-            martiansource.reason='HBMARTIAN'
+            %       (FrameSetTypes.get(fstype)[0], reporter, martiansrc))
+        if martiansrc.status == 'dead':
+            CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked dead' % martiansrc)
+            martiansrc.status='up'
+            martiansrc.reason='HBMARTIAN'
             if CMAdb.debug:
                 CMAdb.log.debug('DispatchHBMARTIAN: telling %s to stop sending to %s (dead case)'
-                %   (martiansource, reporter))
-            martiansource.send_hbmsg(martiansourceaddr, FrameSetTypes.STOPSENDEXPECTHB, origaddr)
-            CMAdb.cdb.TheOneRing.join(martiansource)
-            AssimEvent(martiansource, AssimEvent.OBJUP)
+                %   (martiansrc, reporter))
+            martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
+            CMAdb.cdb.TheOneRing.join(martiansrc)
+            AssimEvent(martiansrc, AssimEvent.OBJUP)
             return
         # OK, it's alive...
-        if CMAdb.cdb.TheOneRing.are_partners(reporter, martiansource):
+        if CMAdb.cdb.TheOneRing.are_partners(reporter, martiansrc):
             if CMAdb.debug:
                 CMAdb.log.debug('DispatchHBMARTIAN: Ignoring msg from %s about %s'
-                %   (reporter, martiansource))
+                %   (reporter, martiansrc))
         else:
             CMAdb.log.info('DispatchHBMARTIAN: telling %s to stop sending to %s (up case)'
-            %       (martiansource, reporter))
-            martiansource.send_hbmsg(martiansourceaddr, FrameSetTypes.STOPSENDEXPECTHB, origaddr)
+            %       (martiansrc, reporter))
+            martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
