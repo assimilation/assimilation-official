@@ -255,7 +255,6 @@ class HbRing(GraphNode):
         for elem in nextelems:  # nextelems is a generator
             if elem is drone2:
                 return True
-            else:
         prevelems =  CMAdb.store.load_in_related(drone1, self.ournexttype, Drone)
         for elem in prevelems:  # prevelems is a generator
             if elem is drone2:

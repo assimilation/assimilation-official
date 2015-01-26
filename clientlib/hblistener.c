@@ -367,7 +367,7 @@ hblistener_unlisten(NetAddr* unlistenaddr)///<[in/out] Listener to remove from l
 		return;
 	}
 	// This is probably triggered by a "slow to update" problem...
-	if (DEBUG >= 3) {{
+	if (DEBUG >= 3) {
 		char *	addrstr = unlistenaddr->baseclass.toString(&unlistenaddr->baseclass);
 		g_debug("%s.%d: Attempt to unlisten an unregistered address: %s"
 		,	__FUNCTION__, __LINE__, addrstr);
