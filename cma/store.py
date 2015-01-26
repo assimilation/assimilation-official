@@ -615,8 +615,11 @@ class Store(object):
 
         if name[0] != '_':
             if hasattr(objself, '_Store__store_dirty_attrs'):
-                if getattr(objself, name) == value:
-                    return
+                try:
+                    if getattr(objself, name) == value:
+                        return
+                except AttributeError: 
+                    pass
                 if objself.__store.readonly:
                     print >> sys.stderr, ('Caught %s being set to %s!' % (name, value))
                     raise RuntimeError('Attempt to set attribute %s using a read-only store' % name)
@@ -646,7 +649,10 @@ class Store(object):
             #print >> sys.stderr, ('Setting obj["%s"] to %s' % (attr, pattr))
             setattr(subj, attr, pattr)
             # Avoid unnecessary update transaction
-            del subj.__store_dirty_attrs[attr]
+            try:
+                del subj.__store_dirty_attrs[attr]
+            except KeyError:
+                pass
         if remove_subj and subj in self.clients:
             del self.clients[subj]
 
