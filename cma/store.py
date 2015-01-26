@@ -615,6 +615,8 @@ class Store(object):
 
         if name[0] != '_':
             if hasattr(objself, '_Store__store_dirty_attrs'):
+                if getattr(objself, name) == value:
+                    return
                 if objself.__store.readonly:
                     print >> sys.stderr, ('Caught %s being set to %s!' % (name, value))
                     raise RuntimeError('Attempt to set attribute %s using a read-only store' % name)
