@@ -89,16 +89,17 @@ class DispatchHBDEAD(DispatchTarget):
         'Dispatch function for HBDEAD FrameSets'
         fstype = frameset.get_framesettype()
         fromdrone = self.droneinfo.find(origaddr)
-        CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s] [%s]"
-        %      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
+        #CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s] [%s]"
+        #%      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 deaddrone = self.droneinfo.find(frame.getnetaddr())
-                CMAdb.log.warning("DispatchHBDEAD: Drone@%s is dead(%s)"
-                %   (frame.getnetaddr(), deaddrone))
-                if CMAdb.debug:
-                    CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
+                if deaddrone.status == 'up':
+                    CMAdb.log.warning("DispatchHBDEAD: Drone@%s is dead(%s)"
+                    %   (frame.getnetaddr(), deaddrone))
+                    if CMAdb.debug:
+                        CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
                 deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
 
 @DispatchTarget.register
@@ -304,7 +305,7 @@ class DispatchHBMARTIAN(DispatchTarget):
     '''
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from address %s "
                 %       (FrameSetTypes.get(fstype)[0], origaddr))
         reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
@@ -314,13 +315,13 @@ class DispatchHBMARTIAN(DispatchTarget):
             if frametype == FrameTypes.IPPORT:
                 martiansrcaddr = frame.getnetaddr()
         martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN FrameSet
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
             %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc, martiansrcaddr))
         if martiansrc.status != 'up':
             CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked %s; reason %s'
             %   (martiansrc, martiansrc.status, martiansrc.reason))
-            if True or CMAdb.debug:
+            if CMAdb.debug:
                 CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
                 %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
             martiansrc.status='up'
@@ -331,12 +332,13 @@ class DispatchHBMARTIAN(DispatchTarget):
             return
         # OK, it's alive...
         if CMAdb.cdb.TheOneRing.are_partners(reporter, martiansrc):
-            if True or CMAdb.debug:
+            if CMAdb.debug:
                 CMAdb.log.debug('DispatchHBMARTIAN: Ignoring msg from %s about %s'
                 %   (reporter, martiansrc))
         else:
-            CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
-            %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
+            if CMAdb.debug:
+                CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
+                %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
             # This probably isn't necessary in most cases, but it doesn't hurt anything
             # if the offender is just slow to update, he'll catch up...
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
