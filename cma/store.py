@@ -647,12 +647,8 @@ class Store(object):
                 remove_subj = False
                 continue
             #print >> sys.stderr, ('Setting obj["%s"] to %s' % (attr, pattr))
-            setattr(subj, attr, pattr)
-            # Avoid unnecessary update transaction
-            try:
-                del subj.__store_dirty_attrs[attr]
-            except KeyError:
-                pass
+            # Avoid getting it marked as dirty...
+            object.__setattr__(subj, attr, pattr)
         if remove_subj and subj in self.clients:
             del self.clients[subj]
 
