@@ -300,6 +300,7 @@ class DispatchHBMARTIAN(DispatchTarget):
             - It is currently marked as alive - two subcases:
                 - the reporting system is one of its partners peers - just ignore this
                 - the reporting system is not one of its partners - tell source to stop
+                    this can be caused by the system being slower to update
     '''
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
@@ -317,12 +318,13 @@ class DispatchHBMARTIAN(DispatchTarget):
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
             %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc, martiansrcaddr))
         if martiansrc.status != 'up':
-            CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked dead' % martiansrc)
-            martiansrc.status='up'
-            martiansrc.reason='HBMARTIAN'
+            CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked %s; reason %s'
+            %   (martiansrc, martiansrc.status, martiansrc.reason))
             if True or CMAdb.debug:
                 CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
                 %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
+            martiansrc.status='up'
+            martiansrc.reason='HBMARTIAN'
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
             CMAdb.cdb.TheOneRing.join(martiansrc)
             AssimEvent(martiansrc, AssimEvent.OBJUP)
@@ -335,6 +337,8 @@ class DispatchHBMARTIAN(DispatchTarget):
         else:
             CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
             %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
+            # This probably isn't necessary in most cases, but it doesn't hurt anything
+            # if the offender is just slow to update, he'll catch up...
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
 
 @DispatchTarget.register
