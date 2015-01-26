@@ -250,9 +250,13 @@ class HbRing(GraphNode):
     def are_partners(self, drone1, drone2):
         'Return True if these two drones are heartbeat partners in our ring'
         nextelems =  CMAdb.store.load_related(drone1, self.ournexttype, Drone)
+        CMAdb.log.debug('are_partners(%s-[%s]->%s) => %s'
+        %   (drone1, self.ournexttype, drone2, str(nextelems)))
         if drone2 in nextelems:
             return True
         prevelems =  CMAdb.store.load_in_related(drone1, self.ournexttype, Drone)
+        CMAdb.log.debug('are_partners(%s<-[%s]-%s) => %s'
+        %   (drone1, self.ournexttype, drone2, str(prevelems)))
         return drone2 in prevelems
 
     def members(self):
