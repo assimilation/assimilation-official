@@ -298,6 +298,7 @@ class DispatchHBMARTIAN(DispatchTarget):
         - The MARTIAN source had been erroneously declared dead (network split) with 2 subcases:
             - It is currently marked as dead - we should resurrect it and add to the ring
               mark it as alive, and tell it to stop sending
+              UNLESS it's from an HBSHUTDOWN - then it's likely bad timing...
             - It is currently marked as alive - two subcases:
                 - the reporting system is one of its partners peers - just ignore this
                 - the reporting system is not one of its partners - tell source to stop
@@ -319,6 +320,9 @@ class DispatchHBMARTIAN(DispatchTarget):
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
             %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc, martiansrcaddr))
         if martiansrc.status != 'up':
+            if martiansrc.reason == 'HBSHUTDOWN':
+                # Just bad timing.  All is well...
+                return
             CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked %s; reason %s'
             %   (martiansrc, martiansrc.status, martiansrc.reason))
             if CMAdb.debug:
