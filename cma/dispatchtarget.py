@@ -303,8 +303,9 @@ class DispatchHBMARTIAN(DispatchTarget):
     '''
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
-        CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from address %s "
-            %       (FrameSetTypes.get(fstype)[0], origaddr))
+        if True or CMAdb.debug:
+            CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from address %s "
+                %       (FrameSetTypes.get(fstype)[0], origaddr))
         reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
         martiansrcaddr = None
         for frame in frameset.iter():
@@ -312,14 +313,14 @@ class DispatchHBMARTIAN(DispatchTarget):
             if frametype == FrameTypes.IPPORT:
                 martiansrcaddr = frame.getnetaddr()
         martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN FrameSet
-        if CMAdb.debug:
+        if True or CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
             %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc, martiansrcaddr))
         if martiansrc.status != 'up':
             CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked dead' % martiansrc)
             martiansrc.status='up'
             martiansrc.reason='HBMARTIAN'
-            if CMAdb.debug:
+            if True or CMAdb.debug:
                 CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
                 %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
@@ -328,7 +329,7 @@ class DispatchHBMARTIAN(DispatchTarget):
             return
         # OK, it's alive...
         if CMAdb.cdb.TheOneRing.are_partners(reporter, martiansrc):
-            if CMAdb.debug:
+            if True or CMAdb.debug:
                 CMAdb.log.debug('DispatchHBMARTIAN: Ignoring msg from %s about %s'
                 %   (reporter, martiansrc))
         else:
