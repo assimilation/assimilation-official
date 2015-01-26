@@ -306,21 +306,22 @@ class DispatchHBMARTIAN(DispatchTarget):
         CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from address %s "
             %       (FrameSetTypes.get(fstype)[0], origaddr))
         reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
+        martiansrcaddr = None
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 martiansrcaddr = frame.getnetaddr()
         martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN FrameSet
         if CMAdb.debug:
-            CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s about %s"
-            %       (FrameSetTypes.get(fstype)[0], reporter, martiansrc))
-        if martiansrc.status == 'dead':
+            CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
+            %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc, martiansrcaddr))
+        if martiansrc.status != 'up':
             CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked dead' % martiansrc)
             martiansrc.status='up'
             martiansrc.reason='HBMARTIAN'
             if CMAdb.debug:
-                CMAdb.log.debug('DispatchHBMARTIAN: telling %s to stop sending to %s (dead case)'
-                %   (martiansrc, reporter))
+                CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
+                %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
             CMAdb.cdb.TheOneRing.join(martiansrc)
             AssimEvent(martiansrc, AssimEvent.OBJUP)
@@ -331,8 +332,8 @@ class DispatchHBMARTIAN(DispatchTarget):
                 CMAdb.log.debug('DispatchHBMARTIAN: Ignoring msg from %s about %s'
                 %   (reporter, martiansrc))
         else:
-            CMAdb.log.info('DispatchHBMARTIAN: telling %s to stop sending to %s (up case)'
-            %       (martiansrc, reporter))
+            CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
+            %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
 
 @DispatchTarget.register
