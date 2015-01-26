@@ -256,17 +256,10 @@ class HbRing(GraphNode):
             if elem is drone2:
                 return True
             else:
-                CMAdb.log.debug('are_partners(%s-[%s]->%s) element is %s'
-                %   (drone1, self.ournexttype, drone2, elem))
         prevelems =  CMAdb.store.load_in_related(drone1, self.ournexttype, Drone)
         for elem in prevelems:  # prevelems is a generator
             if elem is drone2:
                 return True
-            else:
-                CMAdb.log.debug('are_partners(%s<-[%s]-%s) element is %s'
-                %   (drone1, self.ournexttype, drone2, elem))
-        CMAdb.log.debug('are_partners(%s-[%s]-%s) returning False'
-        %   (drone1, self.ournexttype, drone2))
         return False
 
     def members(self):
