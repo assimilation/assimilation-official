@@ -73,6 +73,7 @@ FSTATIC void		nanoobey_stopsendexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_stopsendhb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_stopexpecthb(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_setconfig(AuthListener*, FrameSet* fs, NetAddr*);
+FSTATIC void		nanoobey_ackstartup(AuthListener*, FrameSet* fs, NetAddr*);
 FSTATIC void		nanoobey_change_debug(gint plusminus, AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_incrdebug(AuthListener*, FrameSet*, NetAddr*);
 FSTATIC void		nanoobey_decrdebug(AuthListener*, FrameSet*, NetAddr*);
@@ -105,6 +106,7 @@ HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblist
 
 CryptFramePublicKey*	preferred_cma_key_id = NULL;
 gboolean		nano_shutting_down = FALSE;
+static gboolean		nano_config_complete = FALSE;
 GRand*			nano_random = NULL;
 const char *		procname = "nanoprobe";
 static AuthListener*	obeycollective = NULL;
@@ -699,6 +701,28 @@ endloop:
 	g_message("Connected to CMA.  Happiness :-D");
 	nano_connected = TRUE;
 }//nanoobey_setconfig
+/**
+ * Act on (obey) a <b>FRAMESETTYPE_ACKSTARTUP</b> @ref FrameSet.
+ * This frameset is sent to signal the end of the initial configuration phase from the CMA.
+ * Although we know the configuration has started, receiving this packet means the CMA has
+ * completed the work associated with our <b>FRAMESETTYPE_STARTUP</b> @ref FrameSet.
+ * This packet exists because the startup packet is sent outside of our reliable protocol.
+ * So, it doesn't have a protocol-level-ACK associated with it.
+ * The key is that we keep sending the <b>FRAMESETTYPE_STARTUP</b> @ref FrameSet until we
+ * get this packet.  Otherwise, if the CMA crashed in the middle of configuring us, it wouldn't
+ * finish the job when it comes back up.
+ */
+void
+nanoobey_ackstartup(AuthListener* parent	///<[in] @ref AuthListener object invoking us
+	,      FrameSet*	fs		///<[in] @ref FrameSet to process
+	,      NetAddr*		fromaddr)	///<[in/out] Address this message came from
+{
+	(void)parent;
+	(void)fs;
+	(void)fromaddr;
+	DUMP2("Received nanoobey_ackstartup from ", &fromaddr->baseclass, NULL);
+	nano_config_complete = TRUE;
+}
 
 /**
  * Act on (obey) a @ref FrameSet telling us to increment or decrement debug levels
@@ -1111,8 +1135,10 @@ nano_reqconfig(gpointer gcruft)
 	// NOTE THAT THIS ADDRESS MIGHT BE MULTICAST AND MIGHT BE USED ONLY ONCE
 	g_return_val_if_fail(cmainit != NULL, FALSE);
 
-	// Our initial configuration message must contain these parameters.
-	if (_nano_initconfig_OK(context)) {
+	// We will keep sending STARTUP framesets until these conditions are fulfilled:
+	//   1) We received sufficient configuration data from the CMA
+	//   2) We received a FRAMESETTYPE_ACKSTARTUP FrameSet
+	if (_nano_initconfig_OK(context) && nano_config_complete) {
 		// We're good
 		return FALSE;
 	}
