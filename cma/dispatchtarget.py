@@ -87,8 +87,8 @@ class DispatchHBDEAD(DispatchTarget):
 
     def dispatch(self, origaddr, frameset):
         'Dispatch function for HBDEAD FrameSets'
-        fstype = frameset.get_framesettype()
-        fromdrone = self.droneinfo.find(origaddr)
+        #fromdrone = self.droneinfo.find(origaddr)
+        #fstype = frameset.get_framesettype()
         #CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s] [%s]"
         #%      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
         for frame in frameset.iter():
