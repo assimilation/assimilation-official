@@ -721,6 +721,7 @@ nanoobey_ackstartup(AuthListener* parent	///<[in] @ref AuthListener object invok
 	(void)fs;
 	(void)fromaddr;
 	DUMP2("Received nanoobey_ackstartup from ", &fromaddr->baseclass, NULL);
+	g_info("%s.%d: Configuration from CMA is complete.", __FUNCTION__, __LINE__);
 	nano_config_complete = TRUE;
 }
 
