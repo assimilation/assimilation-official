@@ -618,7 +618,7 @@ class Store(object):
                 try:
                     if getattr(objself, name) == value:
                         return
-                except AttributeError: 
+                except AttributeError:
                     pass
                 if objself.__store.readonly:
                     print >> sys.stderr, ('Caught %s being set to %s!' % (name, value))
