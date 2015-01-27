@@ -447,7 +447,8 @@ class FrameSetTypes(object):
 	'STOPDISCOVER':	(74, 'Stop a repeating JSON discovery action'),
 	'DORSCOP':	(75, 'Do a (possibly-repeating) JSON resource action'),
 	'STOPRSCOP':	(76, 'Stop a (possibly-repeating) JSON resource action'),
-	'RUNSCRIPT':	(76, 'Run an arbitrary script (not yet implemented)'),
+	'ACKSTARTUP':	(77, 'Acknowledge full response to STARTUP packet'),
+	'RUNSCRIPT':	(78, 'Run an arbitrary script (not yet implemented)'),
     }
     intframetypes = dict()
     for s in strframetypes.keys():

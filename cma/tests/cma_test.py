@@ -479,7 +479,7 @@ class TestCMABasic(TestCase):
         # Let's see what happened...
         #print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
 
-        self.assertEqual(len(io.packetswritten), 2) # Did we send out two packets?
+        self.assertEqual(len(io.packetswritten), 3) # Did we send out two packets?
                             # Note that this change over time
                             # As we change discovery...
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
