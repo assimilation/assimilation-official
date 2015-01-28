@@ -1,5 +1,32 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_0_1_5- version 0.1.5 - the 'secure communications' release - 29 January 2015
+This is the fifth in a series of releases intended to culminate in an awesomely useful release.
+This release is eminently suitable for actual deployments in an environment where the caveats are acceptable.
+We have quite a few pre-built Ubuntu packages, and a few CentOS/RHEL packages for this version in the 0.1.5 subdirectory of 
+http://bit.ly/assimreleases .
+A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.1.5.tar.gz
+@subsection Features_0_1_5 New Features
+- Encrypted Communication.  Communication between the CMA and nanoprobes are now strongly encrypted using curve25519.
+- Added <tt>genkeys</tt> option to <tt>assimcli</tt>
+- Added new queries to <tt>assimcli</tt>
+- Added discovery of /proc/sys data
+- Added feature for debugging in the field (circular FSA buffer)
+- Increased kernel buffering for the CMA
+- Improved system testing code
+- Improved scrubbing of network packets
+- Improved diagnostics on startup failures
+- Added the ability to take core dumps to the CMA and nanoprobe init scripts
+@subsection BugFixes_0_1_5 Bug Fixes
+- Several protocol holes were plugged.
+- Fixed coverity-flagged issues: 1262409, 1262410, 1262411, 1262412, 1262413
+- Fixed a few queries in <tt>assimcli</tt>
+@subsection Caveats_0_1_5 Caveats
+- No alerting, or interface to existing alerting (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own
+- the queries need to have more indexes for larger installations.
+- The CMA may suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
 
 @section Version_0_1_4- version 0.1.4 - the 'much better tested' release - 20 October 2014
 This is the fourth in a series of releases intended to culminate in a truly useful release.
