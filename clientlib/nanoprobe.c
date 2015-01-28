@@ -219,7 +219,8 @@ _real_deadtime_agent(HbListener* who)
 		char *		addrstring;
 
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
-		g_warning("Peer at address %s is dead (has timed out).", addrstring);
+		g_warning("Peer at address %s is dead (has timed out: %ld seconds).", addrstring
+		,	(long)(who->get_deadtime(who)/1000000L));
 		g_free(addrstring);
 
 		nanoprobe_report_upstream(FRAMESETTYPE_HBDEAD, who->listenaddr, NULL, 0);
@@ -265,9 +266,10 @@ _real_comealive_agent(HbListener* who, guint64 howlate)
 		nanoprobe_comealive_agent(who, howlate);
 	}else{
 		char *	addrstring;
-		double secsdead = ((double)((howlate+50000) / 100000))/10.0; // Round to nearest tenth of a second
+		double secsdead = ((double)((howlate+5000) / 10000))/100.0; // Round to nearest .01
 		addrstring = who->listenaddr->baseclass.toString(who->listenaddr);
-		g_warning("Peer at address %s came alive after being dead for %g seconds.", addrstring, secsdead);
+		g_warning("Peer at address %s came alive after being dead for %g seconds (deadtime=%ld secs)."
+		,	addrstring, secsdead, (long)(who->get_deadtime(who)/1000000));
 		g_free(addrstring);
 		nanoprobe_report_upstream(FRAMESETTYPE_HBBACKALIVE, who->listenaddr, NULL, howlate);
 	}
