@@ -307,8 +307,8 @@ class TestIO:
 
     @staticmethod
     def shutdown_on_timeout(io):
-        print 'IO-0', io, type(io), io[0], type(io[0])
-        print 'IO-1', type(io), io[1], type(io[1])
+        #print 'IO-0', io, type(io), io[0], type(io[0])
+        #print 'IO-1', type(io), io[1], type(io[1])
         if io.pipe_read >= 0:
             os.close(io.pipe_read)
             io.pipe_read = -1
