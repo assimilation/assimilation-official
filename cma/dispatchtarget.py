@@ -311,13 +311,14 @@ class DispatchHBMARTIAN(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from address %s "
-                %       (FrameSetTypes.get(fstype)[0], origaddr))
+            %       (FrameSetTypes.get(fstype)[0], origaddr))
         reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
         martiansrcaddr = None
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 martiansrcaddr = frame.getnetaddr()
+                break
         martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN event
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
@@ -346,8 +347,8 @@ class DispatchHBMARTIAN(DispatchTarget):
             if CMAdb.debug:
                 CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
                 %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
-            # This probably isn't necessary in most cases, but it doesn't hurt anything
-            # if the offender is just slow to update, he'll catch up...
+            # This probably isn't necessary in most cases, but it doesn't hurt anything.
+            # If the offender is just slow to update, he'll catch up...
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
 
 class DispatchHBBACKALIVE(DispatchTarget):
@@ -365,6 +366,7 @@ class DispatchHBBACKALIVE(DispatchTarget):
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 alivesrcaddr = frame.getnetaddr()
+                break
         alivesrc = self.droneinfo.find(alivesrcaddr) # Source of HBBACKALIVE event
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBBACKALIVE: received [%s] FrameSet from %s/%s about %s/%s"
