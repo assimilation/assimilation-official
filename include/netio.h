@@ -94,11 +94,13 @@ struct _NetIO {
 						   ;	// ";" is here to work around a doxygen bug
 	int		(*getsockbufsize)		///< Return socket buffer size: -1 on failure
 				(const NetIO* self,	///< 'this' object
-				 gboolean forinput);	///< TRUE means input, FALSE means output
+				 gboolean forinput)	///< TRUE means input, FALSE means output
+						   ;	// ";" is here to work around a doxygen bug
 	int		(*setsockbufsize)		///< Set socket buffer size - return new size or -1
 				(const NetIO* self,	///< 'this' object
 				 gboolean forinput,	///< TRUE means input, FALSE means output
-				 gsize bufsize);	///< size to (try) to set it to
+				 gsize bufsize)	///< size to (try) to set it to
+						   ;	// ";" is here to work around a doxygen bug
 				 
 				 
 	gsize		(*getmaxpktsize)	///< Return maximum packet size for this NetIO
