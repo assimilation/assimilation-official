@@ -209,9 +209,10 @@ class PacketListener(object):
             elif cb_condition == glib.IO_HUP:
                 cond = 'IO_HUP'
             else:
-                cond = '(%s?)' % (str(cb_condition))
+                cond = '(0x%08x??)' % (int(cb_condition))
             CMAdb.log.critical('mainloop_callback: Received Unexpected I/O condition: %s '
             %       (cond))
+            return False
         #print >> sys.stderr, 'RETURNING True'
         return True
 
