@@ -637,7 +637,11 @@ endloop:
 
 			switch(valtype) {
 				case CFG_NETADDR:
-					config->setaddr(config, key, newconfig->getaddr(newconfig, key));
+					// We want to keep any CMAINIT value from the command line...
+					// The CMA may not give us the 'right' value for this
+					if (strcmp(key, CONFIGNAME_CMAINIT) != 0)  {
+						config->setaddr(config, key, newconfig->getaddr(newconfig, key));
+					}
 					break;
 
 				case CFG_CFGCTX: 
