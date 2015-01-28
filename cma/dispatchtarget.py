@@ -254,7 +254,7 @@ class DispatchSTARTUP(DispatchTarget):
         This chunk of code is kinda stupid...
         There is a docker/NAT bug where it screws up the source address of multicast packets
         This code detects that that has happened and works around it...
-        ''' 
+        '''
         # Local addresses aren't NATted, but the code below will think so...
         if origaddr.islocal():
             return origaddr, False
@@ -318,7 +318,7 @@ class DispatchHBMARTIAN(DispatchTarget):
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 martiansrcaddr = frame.getnetaddr()
-        martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN FrameSet
+        martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN event
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
             %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc, martiansrcaddr))
@@ -349,6 +349,36 @@ class DispatchHBMARTIAN(DispatchTarget):
             # This probably isn't necessary in most cases, but it doesn't hurt anything
             # if the offender is just slow to update, he'll catch up...
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
+
+class DispatchHBBACKALIVE(DispatchTarget):
+    '''DispatchTarget subclass for handling incoming HBHBBACKALIVE FrameSets.
+    HBBACKALIVE packets occur when a system hears a heartbeat from a system it thought was dead.
+    '''
+    def dispatch(self, origaddr, frameset):
+        fstype = frameset.get_framesettype()
+        if CMAdb.debug:
+            CMAdb.log.debug("DispatchHBBACKALIVE: received [%s] FrameSet from address %s"
+                %       (FrameSetTypes.get(fstype)[0], origaddr))
+        reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
+        alivesrcaddr = None
+        for frame in frameset.iter():
+            frametype = frame.frametype()
+            if frametype == FrameTypes.IPPORT:
+                alivesrcaddr = frame.getnetaddr()
+        alivesrc = self.droneinfo.find(alivesrcaddr) # Source of HBBACKALIVE event
+        if CMAdb.debug:
+            CMAdb.log.debug("DispatchHBBACKALIVE: received [%s] FrameSet from %s/%s about %s/%s"
+            %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, alivesrc, alivesrcaddr))
+        if alivesrc.status != 'up':
+            if alivesrc.reason == 'HBSHUTDOWN':
+                # Just bad timing.  All is well...
+                return
+            CMAdb.log.info('DispatchHBBACKALIVE: %s had been erroneously marked %s; reason %s'
+            %   (alivesrc, alivesrc.status, alivesrc.reason))
+            alivesrc.status='up'
+            alivesrc.reason='HBBACKALIVE'
+            CMAdb.cdb.TheOneRing.join(alivesrc)
+            AssimEvent(alivesrc, AssimEvent.OBJUP)
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
