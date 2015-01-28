@@ -254,7 +254,10 @@ class DispatchSTARTUP(DispatchTarget):
         This chunk of code is kinda stupid...
         There is a docker/NAT bug where it screws up the source address of multicast packets
         This code detects that that has happened and works around it...
-        '''
+        ''' 
+        # Local addresses aren't NATted, but the code below will think so...
+        if origaddr.islocal():
+            return origaddr, False
         match = False
         isNAT = False
         jsdata = jsobj['data']
