@@ -160,6 +160,11 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 		,	  fs->fstype);
 		check_JSON(fs);
 		break;
+	case FRAMESETTYPE_RSCOPREPLY:
+		g_message("CMA Received resource operation data (type %d) over the 'wire'."
+		,	  fs->fstype);
+		check_JSON(fs);
+		break;
 	default:{
 			char *	fsstr = fs->baseclass.toString(&fs->baseclass);
 			g_message("CMA Received a FrameSet of type %d [%s] over the 'wire'."
@@ -270,6 +275,9 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 			frameset_append_frame(pkt, &csf->baseclass);
 			UNREF2(csf);
 		}
+		netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
+		UNREF(pkt);
+		pkt = frameset_new(FRAMESETTYPE_ACKSTARTUP);
 		netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 		UNREF(pkt);
 	}
