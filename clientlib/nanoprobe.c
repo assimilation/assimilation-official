@@ -1139,6 +1139,12 @@ nano_reqconfig(gpointer gcruft)
 	// We will keep sending STARTUP framesets until these conditions are fulfilled:
 	//   1) We received sufficient configuration data from the CMA
 	//   2) We received a FRAMESETTYPE_ACKSTARTUP FrameSet
+	if (DEBUG >= 3) {
+		g_debug("%s.%d: _nano_initconfig_OK(context) => %s, nano_config_complete = %s"
+		,	__FUNCTION__, __LINE__
+		,	(_nano_initconfig_OK(context) ? "True" : "False")
+		,	(nano_config_complete ? "True" : "False"));
+	}
 	if (_nano_initconfig_OK(context) && nano_config_complete) {
 		// We're good
 		return FALSE;
