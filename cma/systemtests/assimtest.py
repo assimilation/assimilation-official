@@ -38,7 +38,10 @@ def logit(msg):
 
 def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
     'Actually perform the given set of tests the given number of times, etc'
-    badregexes=(r' (ERROR:|CRIT:|CRITICAL:|nanoprobe\[[0-9]*]: segfault at) ',)
+    badregexes=(r' (ERROR:|CRIT:|CRITICAL:|nanoprobe\[[0-9]*]: segfault at|'
+            #r'Peer at address .* is dead|'
+            r'OUTALLDONE .* while in state NONE'
+            r')',)
     itercount=1
     while True:
         test = random.choice(testset)
@@ -48,13 +51,15 @@ def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
         os.system('logger -s "$(grep MemFree: /proc/meminfo)"')
         badwatch.setwatch()
         if test.__name__ == 'DiscoverService':
-            ret = test(store, logname, sysenv, debug=debug
-            ,       service='bind9', monitorname='named').run()
+            testobj = test(store, logname, sysenv, debug=debug
+            ,       service='bind9', monitorname='named')
         else:
-            ret = test(store, logname, sysenv, debug=debug).run()
+            testobj = test(store, logname, sysenv, debug=debug)
+        ret = testobj.run()
         match = badwatch.look()
         if match is not None:
             logit('BAD MESSAGE from Test %d %s: %s' % (itercount, test.__name__, match))
+            testobj.replace_result(AssimSysTest.FAIL)
             ret = AssimSysTest.FAIL
         if ret == AssimSysTest.SUCCESS:
             logit('Test %d %s succeeded!' % (itercount, test.__name__))
@@ -67,6 +72,7 @@ def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
         else:
             logit('Test %d %s RETURNED SOMETHING REALLY WEIRD [%s]'
             %   (itercount, test.__name__, str(ret)))
+            testobj.replace_result(AssimSysTest.FAIL)
         print ''
         if itercount > itermax:
             break
