@@ -182,7 +182,7 @@ class Transaction(object):
             dest = packet['destaddr']
             fs = pyFrameSet(packet['action'])
             if packet['action'] == FrameSetTypes.STARTUP:
-                raise ValueError('Packet is a STARTUP packet %s to %s ' % str(packet))
+                raise ValueError('Packet is a STARTUP packet %s to %s' % (str(packet), dest))
             if packet['action'] == FrameSetTypes.ACKSTARTUP:
                 print >> sys.stderr, ('ACKSTARTUP PACKET: %s' % str(packet))
             from cmadb import CMAdb
