@@ -177,14 +177,12 @@ class Transaction(object):
         db and network portions sequentially --  Of course, no transaction can start until
         the previous one is finished.
         '''
-        print >> sys.stderr, "PACKET JSON IS >>>%s<<<" % self.tree['packets']
+        #print >> sys.stderr, "PACKET JSON IS >>>%s<<<" % self.tree['packets']
         for packet in self.tree['packets']:
             dest = packet['destaddr']
             fs = pyFrameSet(packet['action'])
             if packet['action'] == FrameSetTypes.STARTUP:
                 raise ValueError('Packet is a STARTUP packet %s to %s' % (str(packet), dest))
-            if packet['action'] == FrameSetTypes.ACKSTARTUP:
-                print >> sys.stderr, ('ACKSTARTUP PACKET: %s' % str(packet))
             from cmadb import CMAdb
             CMAdb.log.info('SENDING PACKET: %s' % str(packet))
             for frame in packet['frames']:
