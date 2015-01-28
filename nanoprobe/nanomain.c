@@ -100,24 +100,12 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	  NetAddr* srcaddr	///<[in] Source address of this packet
 	  )
 {
-	(void)l; (void)srcaddr;
+	char*	srcstr = srcaddr->baseclass.toString(&srcaddr->baseclass);
+	(void)l;
 	++wirepktcount;
-	switch(fs->fstype) {
-		case FRAMESETTYPE_HBBACKALIVE:
-			g_message("%s.%d: Received back alive notification (type %d) over the 'wire'."
-			,	  __FUNCTION__, __LINE__, fs->fstype);
-			break;
-
-		default:
-			if (fs->fstype >= FRAMESETTYPE_STARTUP && fs->fstype < FRAMESETTYPE_SENDHB) {
-				g_warning("%s.%d: Received a FrameSet of type %d over the 'wire' (OOPS!)."
-				,	  __FUNCTION__, __LINE__, fs->fstype);
-			}else{
-				DEBUGMSG3("%s.%d: Received a FrameSet of type %d over the 'wire'."
-				,	  __FUNCTION__, __LINE__, fs->fstype);
-			}
-	}
-	DUMP3(__FUNCTION__, &srcaddr->baseclass, " Was address received from.");
+	g_warning("%s.%d: Received a FrameSet of type %d over the 'wire' from %s (OOPS!)."
+	,	__FUNCTION__, __LINE__, fs->fstype, srcstr);
+	FREE(srcstr);
 	DUMP3(__FUNCTION__, &fs->baseclass, " Was the frameset received.");
 	UNREF(fs);
 	return TRUE;
