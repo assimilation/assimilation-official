@@ -106,9 +106,9 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	if (fs->fstype != FRAMESETTYPE_HEARTBEAT) {
 		g_warning("%s.%d: Received a FrameSet of type %d over the 'wire' from %s (OOPS!)."
 		,	__FUNCTION__, __LINE__, fs->fstype, srcstr);
-		FREE(srcstr);
 		DUMP3(__FUNCTION__, &fs->baseclass, " Was the frameset received.");
 	}
+	FREE(srcstr);
 	UNREF(fs);
 	return TRUE;
 }

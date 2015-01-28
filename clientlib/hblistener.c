@@ -58,7 +58,6 @@ static gint		_hb_listener_count = 0;
 static guint64		_hb_listener_lastcheck = 0;
 static void		(*_hblistener_martiancallback)(NetAddr* who) = NULL;
 static gint		hb_timeout_id = -1;
-static HbListener*	dummy_listener = NULL;
 
 #define	ONESEC	1000000
 
@@ -235,9 +234,6 @@ hblistener_shutdown(void)
 		HbListener* listener = CASTTOCLASS(HbListener, this->data);
 		next = this->next;
 		UNREF2(listener);
-	}
-	if (dummy_listener) {
-		UNREF2(dummy_listener);
 	}
 	if (_hb_listeners) {
 		g_slist_free(_hb_listeners);
