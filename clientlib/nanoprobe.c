@@ -720,7 +720,7 @@ nanoobey_ackstartup(AuthListener* parent	///<[in] @ref AuthListener object invok
 	(void)parent;
 	(void)fs;
 	(void)fromaddr;
-	DUMP2("Received nanoobey_ackstartup from ", &fromaddr->baseclass, NULL);
+	DUMP2("Received FRAMESETTYPE_ACKSTARTUP from ", &fromaddr->baseclass, NULL);
 	g_info("%s.%d: Configuration from CMA is complete.", __FUNCTION__, __LINE__);
 	nano_config_complete = TRUE;
 }
@@ -1231,6 +1231,7 @@ ObeyFrameSetTypeMap collective_obeylist [] = {
 	{FRAMESETTYPE_STOPEXPECTHB,	nanoobey_stopexpecthb},
 	{FRAMESETTYPE_STOPSENDEXPECTHB, nanoobey_stopsendexpecthb},
 	{FRAMESETTYPE_SETCONFIG,	nanoobey_setconfig},
+	{FRAMESETTYPE_ACKSTARTUP,	nanoobey_ackstartup},
 	{FRAMESETTYPE_INCRDEBUG,	nanoobey_incrdebug},
 	{FRAMESETTYPE_DECRDEBUG,	nanoobey_decrdebug},
 	{FRAMESETTYPE_DODISCOVER,	nanoobey_startdiscover},
