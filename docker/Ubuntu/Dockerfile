@@ -35,13 +35,14 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
 RUN apt-get -y update
 RUN apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents wget libpcap0.8-dev rsyslog
 RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev
-RUN apt-get -y install --no-install-recommends bind9 host   # So we have some services to monitor in system testing
-RUN apt-get -y install --no-install-recommends strace gdb   # For debugging...
+RUN apt-get -y install --no-install-recommends bind9 host           # So we have some services to monitor in system testing
+RUN apt-get -y install --no-install-recommends strace gdb tcpdump   # For debugging...
 RUN pip install ctypesgen 'py2neo<2.0' getent
 
 ###############################################################
 #   Neo4j installation
 ###############################################################
+RUN apt-get -y update
 RUN apt-get install -y --no-install-recommends openjdk-7-jre
 # Import the Neo4j signing key
 RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 

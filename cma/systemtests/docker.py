@@ -31,7 +31,7 @@ to run a CMA and a bunch of nanoprobes on a system.
 This file does everything to help us be able to manage these systems and the services
 running on them - for the purpose of testing the Assimilation project.
 '''
-import tempfile, subprocess, sys, itertools, random, os, time
+import tempfile, subprocess, sys, random, os, time
 from logwatcher import LogWatcher
 class TestSystem(object):
     'This is the base class for managing test systems for testing the Assimilation code'
@@ -113,7 +113,7 @@ class DockerSystem(TestSystem):
     servicecmd = '/usr/bin/service'
     nsentercmd = '/usr/bin/nsenter'
 
-    def __init__(self, imagename, cmdargs=None, dockerargs=None):
+    def __init__(self, imagename, cmdargs=None, dockerargs=None, cleanupwhendone=True):
         'Constructor for DockerSystem class'
         if dockerargs is None:
             dockerargs = []
@@ -123,6 +123,7 @@ class DockerSystem(TestSystem):
         self.ipaddr = 'unknown'
         self.pid = 'unknown'
         self.debug = 0
+        self.cleanupwhendone = cleanupwhendone
         TestSystem.__init__(self, imagename, cmdargs=cmdargs)
 
     def __del__(self):
@@ -134,7 +135,7 @@ class DockerSystem(TestSystem):
         'Runs the docker command given by dockerargs'
         cmd = [DockerSystem.dockercmd,]
         cmd.extend(dockerargs)
-        print >> sys.stderr, 'RUNNING cmd:', cmd
+        #print >> sys.stderr, 'RUNNING cmd:', cmd
         rc = subprocess.check_call(cmd)
         return rc == 0
 
@@ -274,7 +275,7 @@ class SystemTestEnvironment(object):
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
     ,       cmaimage='cma.ubuntu', nanoimages=('cma.ubuntu',)
-    ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0):
+    ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = sysclass
         self.cmaimage = cmaimage
@@ -283,10 +284,13 @@ class SystemTestEnvironment(object):
         self.cma = None
         self.debug = 0
         self.cleanupwhendone = cleanupwhendone
+        self.logname = logname
         watch = LogWatcher(logname, [])
         watch.setwatch()
-        nanodebug=3
-        cmadebug=3
+        nanodebug=1
+        cmadebug=0
+        self.nanodebug = nanodebug
+        self.cmadebug = nanodebug
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // java version.*') % self.cma.hostname
@@ -295,18 +299,38 @@ class SystemTestEnvironment(object):
             raise RuntimeError('CMA did not start')
         print >> sys.stderr, 'nanocount is', nanocount
         print >> sys.stderr, 'self.nanoimages is', self.nanoimages
-        # pylint doesn't think we need a lambda: function here.  I'm pretty sure it's wrong.
-        # this is because we return a different nanoprobe each time we call spawnnanoprobe()
-        # pylint: disable=W0108
-        for child in itertools.repeat(lambda: self.spawnnanoprobe(debug=nanodebug), nanocount):
-            self.nanoprobes.append(child())
-            os.system('logger "Load Avg: $(cat /proc/loadavg)"')
-            os.system('logger "$(grep MemFree: /proc/meminfo)"')
-            self._waitforloadavg(8, 120)
+        # We do this in chunks to manage stress on our test environment
+        children_left = range(0, nanocount)
+        while (len(children_left) > 0):
+            self._create_nano_chunk(children_left[0:chunksize])
+            del children_left[0:chunksize]
+
+    def _create_nano_chunk(self, childnos):
+        'Create a chunk of nanoprobes'
+        watch = LogWatcher(self.logname, [])
+        watch.setwatch()
+        regexes = []
+        for childcount in childnos:
+            childcount = childcount # Make pylint happy...
+            nano = self.spawnnanoprobe(debug=self.nanodebug)
+            regexes .extend([
+                r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
+                %   (nano.hostname),
+                r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
+                %           (self.cma.hostname, nano.hostname, nano.ipaddr),
+                r' %s cma INFO: Processed tcpdiscovery JSON data from (%s) into graph.'
+                %       (self.cma.hostname, nano.hostname),
+            ])
+            self.nanoprobes.append(nano)
+        watch.setregexes(regexes)
+        if watch.lookforall(timeout=30) is None:
+            raise RuntimeError('Nanoprobes did not start [%s, %s] - missing %s'
+            %   (nano.hostname, nano.ipaddr, str(watch.unmatched)))
+
 
     @staticmethod
     def _waitforloadavg(maxloadavg, maxwait=30):
-        'Wait for the load average to drop below our maximum'
+        'Wait for the load average to drop below our maximum - not currently used...'
         fd = open('/proc/loadavg', 'r')
         for waittry in range(0, maxwait):
             waittry = waittry # Make pylint happy
@@ -346,7 +370,7 @@ class SystemTestEnvironment(object):
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
 
-    def set_nanoconfig(self, nano, debug=3):
+    def set_nanoconfig(self, nano, debug=0, tcpdump=False):
         'Set up our nanoprobe configuration file'
         lines = (
             ('NANOPROBE_DYNAMIC=%d' % (1 if nano is self.cma else 0)),
@@ -354,7 +378,12 @@ class SystemTestEnvironment(object):
             ('NANOPROBE_CORELIMIT=unlimited'),
             ('NANOPROBE_CMAADDR=%s:1984' % self.cma.ipaddr)
         )
-        print >> sys.stderr, ('NANOPROBE CONFIG [%s]' % nano.hostname)
+
+        if tcpdump:
+            nano.runinimage(('/bin/bash', '-c'
+            ,   'nohup /usr/sbin/tcpdump -C 10 -U -s 1024 '
+            '-w /tmp/tcpdump udp port 1984>/dev/null 2>&1 &'))
+        print >> sys.stderr, ('NANOPROBE CONFIG [%s] %s' % (nano.hostname, nano.name))
         for j in range(0, len(lines)):
             nano.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
@@ -378,12 +407,13 @@ class SystemTestEnvironment(object):
         self.cma.runinimage(('/bin/bash', '-c'
         ,   'echo "org.neo4j.server.webserver.address=0.0.0.0" '
             '>> /var/lib/neo4j/conf/neo4j-server.properties'))
+        self.cma.runinimage(('/bin/rm', '-f'
+        ,   '/usr/share/assimilation/crypto.d/#CMA#00001.secret'))
         self.cma.startservice(SystemTestEnvironment.NEO4JSERVICE)
         self.set_cmaconfig(debug=cmadebug)
         self.cma.startservice(SystemTestEnvironment.CMASERVICE)
         self.set_nanoconfig(self.cma, debug=nanodebug)
         self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
-        time.sleep(5)
         return self.cma
 
     def spawnnanoprobe(self, debug=0):
@@ -479,11 +509,13 @@ class SystemTestEnvironment(object):
         'Clean up any images we created'
         if self.cleanupwhendone:
             for nano in self.nanoprobes:
-                nano.destroy()
+                if nano.cleanupwhendone:
+                    nano.destroy()
             self.nanoprobes = []
             if self.cma is not None:
-                self.cma.destroy()
-                self.cma = None
+                if self.cma.cleanupwhendone:
+                    self.cma.destroy()
+                    self.cma = None
 
 
 # A little test code...

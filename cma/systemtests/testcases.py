@@ -76,8 +76,10 @@ class AssimSysTest(object):
         return [
             r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
             %           (cma.hostname, nano.hostname, nano.ipaddr),
-            r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'  %   (nano.hostname),
-            r' %s cma INFO: Stored cpu JSON data from (%s) ' %       (cma.hostname, nano.hostname),
+            r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'     % (nano.hostname),
+            r' (%s) nanoprobe\[.*]: INFO: .* Configuration from CMA is complete.' % (nano.hostname),
+            r' %s cma INFO: Processed tcpdiscovery JSON data from (%s) into graph.'
+            %       (cma.hostname, nano.hostname),
         ]
     def nano_stop_regexes(self, nano):
         'Return a list of the expected regexes for a nanoprobe stopping'
@@ -134,12 +136,20 @@ class AssimSysTest(object):
         self.logfilename = logfilename
         self.testenviron = testenviron
         self.debug = debug
+        self.result = None
 
     def _record(self, result):
         'Record results from a test -- success or failure'
         AssimSysTest.stats[self.__class__.__name__][result] += 1
         #print >> sys.stderr, '_RECORD RETURNING', result
+        self.result = result
         return result
+
+    def replace_result(self, newresult):
+        'Replace this test result with an updated result (usually failure)'
+        AssimSysTest.stats[self.__class__.__name__][self.result] -= 1
+        self.result = newresult
+        AssimSysTest.stats[self.__class__.__name__][newresult] += 1
 
     # pylint - R0913: too mary arguments
     # pylint: disable=R0913
@@ -196,28 +206,14 @@ class AssimSysTest(object):
         for classname in GN.GraphNode.classmap:
             GN.GraphNode.initclasstypeobj(store, classname)
 
-        regexes = []
-        for nano in sysenv.nanoprobes:
-            regexes.append(r' %s cma INFO: Stored cpu JSON data from (%s) '
-            %       (sysenv.cma.hostname, nano.hostname))
-            regexes.append(r' (%s) rsyslogd: \[.*] start' % (nano.hostname))
-            regexes.append(r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
-            %   (nano.hostname))
-        logwatch.setregexes(regexes)
-
-        match = logwatch.lookforall(timeout=int(timeout+maxdrones*3))
         logger('$(grep MemFree: /proc/meminfo)', hardquote=False)
-        if match is None:
-            logger("Missing REGexes: %s" % str(logwatch.unmatched))
-            for regex in logwatch.unmatched:
-                logger("   /%s/" % regex)
-            raise RuntimeError('Not all nanoprobes started.  Do you have another CMA running?')
         tq = QueryTest(store
         ,   '''START drone=node:Drone('*:*') WHERE drone.status = "up" RETURN drone'''
         ,   GN.nodeconstructor, debug=debug)
 
         if not tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1
-            ,   delay=0.5, maxtries=100):
+            ,   delay=0.5, maxtries=20):
+            sysenv.cma.cleanupwhendone = False
             raise RuntimeError('Query of "up" status failed. Weirdness')
         return sysenv, store
 
@@ -491,13 +487,17 @@ if __name__ == "__main__":
             print 'Any chance you have another CMA running??'
             raise RuntimeError('Another CMA is running(?)')
 
+        badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: '
+        # 'HBDEAD'
+        #,   r'Peer at address .* is dead'
+        ,   r'OUTALLDONE .* while in state NONE'
+        )
         #for cls in [SimulCMAandNanoprobeRestart for j in range(0,20)]:
         #for j in range(0,10):
         #for cls in [DiscoverService for j in range(0,100)]:
         for cls in AssimSysTest.testset:
-            badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: ')
-            #logger('CREATED LOG WATCH with %s' % str(badregexes))
             badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
+            logger('CREATED LOG WATCH with %s' % str(badregexes))
             badwatch.setwatch()
             logger('Starting test %s' %   (cls.__name__))
             if cls is DiscoverService:
