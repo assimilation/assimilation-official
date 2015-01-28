@@ -103,10 +103,12 @@ gotnetpkt(Listener* l,		///<[in/out] Input GSource
 	char*	srcstr = srcaddr->baseclass.toString(&srcaddr->baseclass);
 	(void)l;
 	++wirepktcount;
-	g_warning("%s.%d: Received a FrameSet of type %d over the 'wire' from %s (OOPS!)."
-	,	__FUNCTION__, __LINE__, fs->fstype, srcstr);
-	FREE(srcstr);
-	DUMP3(__FUNCTION__, &fs->baseclass, " Was the frameset received.");
+	if (fs->fstype != FRAMESETTYPE_HEARTBEAT) {
+		g_warning("%s.%d: Received a FrameSet of type %d over the 'wire' from %s (OOPS!)."
+		,	__FUNCTION__, __LINE__, fs->fstype, srcstr);
+		FREE(srcstr);
+		DUMP3(__FUNCTION__, &fs->baseclass, " Was the frameset received.");
+	}
 	UNREF(fs);
 	return TRUE;
 }

@@ -45,7 +45,6 @@ FSTATIC void _hblistener_set_deadtime_callback(HbListener*, void (*callback)(HbL
 FSTATIC void _hblistener_set_heartbeat_callback(HbListener*, void (*callback)(HbListener* who));
 FSTATIC void _hblistener_set_warntime_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
 FSTATIC void _hblistener_set_comealive_callback(HbListener*, void (*callback)(HbListener* who, guint64 howlate));
-FSTATIC void _hblistener_set_dummy_listener(void);
 
 DEBUGDECLARATIONS;
 
@@ -89,30 +88,8 @@ _hblistener_dellist(HbListener* self)	///<[in]The listener to remove from our li
 		_hb_listeners = g_slist_remove(_hb_listeners, self);
 		_hb_listener_count -= 1;
 		UNREF2(self);
-		if (_hb_listener_count == 0) {
-			_hblistener_set_dummy_listener();
-		}
 		return;
 	}
-}
-/// We set up a dummy listener so we can observe martian packets
-/// when all our listeners have been removed.
-/// This should normally be a temporary condition, but it can happen
-/// when timing gets a little weird...
-FSTATIC void
-_hblistener_set_dummy_listener(void)
-{
-	ConfigContext*	cfg = configcontext_new(0);
-	NetAddr*	addr = netaddr_string_new("::");
-	const guint64	really_big_number = (guint64)10UL*(guint64)1000UL*(guint64)1000000UL;
-	if (dummy_listener) {
-		return;
-	}
-	dummy_listener = hblistener_new(addr, cfg, 0);
-	dummy_listener->set_deadtime(dummy_listener, really_big_number);
-	dummy_listener->set_warntime(dummy_listener, really_big_number);
-	UNREF(cfg);
-	UNREF(addr);
 }
 
 /// Find the listener that's listening to a particular address
