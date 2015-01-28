@@ -1,0 +1,42 @@
+#!/bin/sh
+# This file is part of the Assimilation Project.
+#
+# @author Copyright &copy; 2011, 2012 - Alan Robertson <alanr@unix.sh>
+# @n
+#  The Assimilation software is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  The Assimilation software is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#	Discover operating system characteristics
+#
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "OS",
+	  "description": "OS information",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+  for j in nodename operating-system machine processor hardware-platform kernel-name kernel-release kernel-version
+  do
+    printf '    "%s": "%s",\n' "$j" "$(uname --$j)"
+  done
+  for j in -i -d -r
+  do
+    lsb_release $j | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%",%'
+  done
+  lsb_release -c   | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%"%'
+  printf '  }\n}\n'
+}
+
+discover

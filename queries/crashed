@@ -1,0 +1,17 @@
+{
+    "cypher": "START drone=node:Drone('*:*')
+               WHERE drone.status = \"dead\" and drone.reason <> \"HBSHUTDOWN\"
+               RETURN drone",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get 'crashed' servers",
+            "long":     "retrieve the full information about all crashed servers (with nanoprobes)"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${designation}",
+        "script": "${designation}"
+    },
+}

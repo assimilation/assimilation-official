@@ -1,0 +1,20 @@
+{
+    "cypher": "START ip=node:IPaddrNode('*:*')
+               OPTIONAL MATCH host-[:nicowner]->nic-[:ipowner]->ip
+               WITH ip, nic, host
+               WHERE host IS NULL
+               RETURN ip, nic
+               ORDER BY ip.ipaddr",
+    "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "find unknown IPs",
+            "long":     "retrieve all IP addresses that we don't know what they belong to"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${ip.ipaddr}	MAC(${nic.macaddr})",
+        "script": "${ip.ipaddr}	${nic.macaddr}"
+    },
+}

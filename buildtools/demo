@@ -1,0 +1,6 @@
+sudo killall -9 nanoprobe; ps axww | grep cma/cma.py | grep -v grep | cut -c1-6 | sudo xargs kill
+
+python cma/cma.py --foreground --erasedb &
+nanoprobe/nanoprobe --dynamic
+/etc/init.d/bacula-sd stop
+/etc/init.d/bacula-sd start

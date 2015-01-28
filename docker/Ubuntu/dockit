@@ -1,0 +1,60 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   Set up to create the cma.ubuntu docker image and extract the packages it creates
+#   These include both the Assimilation packages and also the libsodium packages
+#   These packages are extracted into the 'packages' subdirectory
+#
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2014 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+#
+#
+set -e 
+NANO="nanoprobe.ubuntu"
+CMA="cma.ubuntu"
+LOCALWS=$HOME/monitor/src
+PKGDIR=$(pwd)/
+rm -fr local
+case $1 in
+  local) 
+        mkdir local
+        cd local
+        hg archive tip.tar.gz
+        #ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
+        #RUN cd /root/assimilation/; ls -l && ls -l tip && tar xzf tip.tar.gz && mv Assimilation-* src
+        #RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
+        sed -e 's%http://hg.linux-ha.org/assimilation/archive/%%'                   \
+            -e 's%RUN.* mv Assimilation-.*%RUN cd /root/assimilation; mv tip src%'  \
+            -e 's%RUN service rsyslog start.*testify%#&%'                           \
+            < ../Dockerfile > ./Dockerfile
+        ;;
+esac
+
+cp /etc/timezone .
+docker build -t $CMA .
+rm -f timezone
+ID=$(docker run -d $CMA /bin/sleep 5)
+# Note that it will include the last part of the from pathname under the to path...
+docker cp $ID:/root/assimilation/packages $PKGDIR
+rm -fr local

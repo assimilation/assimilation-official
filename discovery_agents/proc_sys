@@ -1,0 +1,227 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   proc_sys: Discovery agent to discover the contents of /proc/sys
+#             - or potentially other similar structures.
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2014 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+is_int() {
+    echo "$1" | grep -q '^ *[0-9][0-9]* *$'
+}
+
+is_intarray() {
+    echo "$1" | grep -q '^ *[0-9][0-9]*[ ,	][ ,	]*[0-9][0-9	 ,]*$'
+}
+
+testcode() {
+    is_int 1                || (echo 'FAILED test 1' >&2 && exit 1)
+    is_int ' 1 '            || (echo 'FAILED test 2' >&2 && exit 1)
+    is_int 1f               && (echo 'FAILED test 3' >&2 && exit 1)
+    is_intarray '1 2'       || (echo 'FAILED test 4' >&2 && exit 1)
+    is_intarray ' 1 2 '     || (echo 'FAILED test 5' >&2 && exit 1)
+    is_intarray '  1  2  '  || (echo 'FAILED test 6' >&2 && exit 1)
+    is_intarray '1'         && (echo 'FAILED test 7' >&2 && exit 1)
+    is_int '  1  '          || (echo 'FAILED test 8' >&2 && exit 1)
+    is_int '237878	3655	0	0	0	0	0'
+    true
+}
+
+# Return True (0) if the given file requires special JSON formatting
+is_special_format() {
+    case $1 in
+        net.core.flow_limit_cpu_bitmap)
+            echo format_bitmap_array
+            return 0;;
+        sunrpc.transports)
+            echo format_nvnumbers
+            return 0;;
+        fs.binfmt_misc.status)              return 1;;
+        fs.binfmt_misc.*)                   
+            echo format_binfmt_misc
+            return 0;;
+    esac
+    return 1
+}
+
+# Format this item as a JSON integer
+format_int() {
+    echo "$1"
+}
+
+# Format this item as a JSON integer array
+format_intarray() {
+    iacomma='['
+    set $1
+    for arg
+    do
+        printf "%s%s" "${iacomma}" "${arg}"
+        iacomma=', '
+    done
+    printf ']'
+
+}
+
+format_binfmt_misc() {
+    comma='{'
+    echo "$1" |
+    while
+        read name value other
+    do
+        case "$name" in
+            disabled)   printf '%s"enabled":false'  "$comma";;
+            enabled)    printf '%s"enabled":true'   "$comma";;
+            flags:)     printf '%s"flags":"%s"'     "$comma" "$value";;
+            offset)     printf '%s"%s":%s'          "$comma" "$name" "$value";;
+            *)          printf '%s"%s":"%s"'        "$comma" "$name" "$value";;
+        esac
+        comma=', '
+    done
+    printf '}'
+}
+
+# Format this item as a JSON string
+format_string() {
+    echo '"'"$1"'"'
+}
+
+# Format this array of bitmap as an array of JSON strings
+# We do this because we don't want to deal with hex to integer conversions
+format_bitmap_array() {
+    echo "$1" | sed -e 's% %%g' -e 's%^%["%' -e 's%$%"]%' -e 's%,%","%g'
+}
+
+# Format this multi-line string as a JSON object with integer values
+format_nvnumbers() {
+    comma='{'
+    echo "$1" |
+    while read name value
+    do
+        printf '%s"%s": %s' "$comma" "$name" "$value"
+        comma=','
+    done
+    printf '}'
+}
+
+# Return the formatting function for this filename/argument
+# usage: format_type item-name "item value"
+format_type() {
+    if
+        is_special_format "$1"
+    then
+        return 0
+    elif
+        is_intarray "$2"
+    then
+        echo format_intarray
+    elif
+        is_int "$2"
+    then
+        echo format_int
+    else
+        echo format_string
+    fi
+    return 0
+}
+
+# Return True (0) if we should ignore this filename
+skip_proc_name() {
+    if
+        [ ! -r "$1" ]
+    then
+        return 0
+    fi
+    case "$1" in
+        dev/cdrom/info)                     return 0;;
+        fs/binfmt_misc/status)              return 1;;
+        fs/*-nr)                            return 0;;
+        fs/*-state)                         return 0;;
+        kernel/random/uuid)                 return 0;;
+        kernel/random/entropy_avail)        return 0;;
+        kernel/ns_last_pid)                 return 0;;
+        net/netfilter/nf_conntrack_count)   return 0;;
+        */register)                         return 0;;
+        #"kernel.random.boot_id": "8092c001-d45c-4893-b336-ab4aad473286",
+    esac
+    return 1
+}
+
+
+# Return all the file names under this directory structure in sorted order
+find_names() {
+    (find . -type f -print | sed 's%^.\/%%' | sort -u)
+}
+
+# Format the contents of the given directory as JSON object elements
+format_dir_contents() {
+    cd ${1-/proc/sys}
+    comma=''
+    find_names |
+    while
+        read proc_name
+    do
+        if
+            skip_proc_name "${proc_name}"
+        then
+            continue
+        fi
+        procdot=$(echo ${proc_name} | sed 's%/%.%g')
+        contents="$(cat "${proc_name}" 2>/dev/null)"
+        if
+            [ -z "${contents}" ]
+        then
+            continue
+        fi
+        printf '%s"%s": %s' "$comma" "${procdot}" "$($(format_type "${procdot}" "${contents}") "${contents}")"
+        comma=',
+'
+    done
+}
+
+
+set -e
+
+#
+#   Discover the contents of the ${ASSIM_discoverdir} directory - defaulting to /proc/sys
+#
+discover() {
+    dir=${ASSIM_discoverdir-/proc/sys}
+    if
+        [ ! -d "${dir}" ]
+    then
+        echo "ERROR: No such directory [$dir]" >&2
+        exit 1
+    fi
+    cat <<-!
+	{
+	  "discovertype": "proc_sys",
+	  "description": "Information derived from ${dir}",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    format_dir_contents
+  printf '  }\n}\n'
+
+}
+discover
