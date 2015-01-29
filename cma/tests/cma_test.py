@@ -287,6 +287,7 @@ class TestIO:
     '''A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read'
     and in turn saves all the packets it 'writes' for us to inspect.
     '''
+    mainloop = None
     def __init__(self, addrframesetpairs, sleepatend=0):
         if isinstance(addrframesetpairs, tuple):
             addrframesetpairs = addrframesetpairs
@@ -307,12 +308,8 @@ class TestIO:
 
     @staticmethod
     def shutdown_on_timeout(io):
-        #print 'IO-0', io, type(io), io[0], type(io[0])
-        #print 'IO-1', type(io), io[1], type(io[1])
-        if io.pipe_read >= 0:
-            os.close(io.pipe_read)
-            io.pipe_read = -1
-        io.mainloop.quit()
+        if TestIO.mainloop is not None:
+            TestIO.mainloop.quit()
         return False
 
     def recvframesets(self):
@@ -368,6 +365,10 @@ class TestIO:
             self.packetswritten.append((dest,fs))
 
     def cleanio(self):
+        if self.pipe_read >= 0:
+            os.close(self.pipe_read)
+            self.pipe_read = -1
+        TestIO.mainloop = None
         # Note that this having to do this implies that our I/O object persists
         # longer than I would have expected...
         # Is this because uninit needs to be done as part of the test instead of
@@ -476,6 +477,7 @@ class TestCMABasic(TestCase):
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
+        TestIO.mainloop = listener.mainloop
         # We send the CMA an intial STARTUP packet
         listener.listen()
         # Let's see what happened...
@@ -562,6 +564,7 @@ class TestCMABasic(TestCase):
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
+        TestIO.mainloop = listener.mainloop
         # We send the CMA a BUNCH of intial STARTUP packets
         # and (optionally) a bunch of HBDEAD packets
         assert CMAdb.io.config is not None
