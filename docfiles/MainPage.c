@@ -1,7 +1,7 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section intro Introduction
-Welcome to the Assimilation project. (@ref README "README") @htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly
+Welcome to the Assimilation project. (@ref README "README") @htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly - proudly sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Limited</a>.
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
 Here are the problems we address:
@@ -41,6 +41,9 @@ For a human-driven overview, we recommend our
 
 We also have a few <a href="http://assimilationsystems.com/category/demos/">demos</a>, which demonstrate the ease of use and power of the Assimilation software.
 
+@section ProjectSponsors Project Sponsors
+<a href="http://assimilationsystems.com">Assimilation Systems Limited </a> was founded by project founder Alan Robertson
+to provide paid support and alternative licenses to the Assimilation Project.
 @section ProjectIntegrity Project Integrity
 The project software undergoes a number of rigorous static and dynamic tests to ensure its continued integrity.
 - Highly restrictive gcc options in all compiles - no warnings allowed (<b>-Werror</b>)
