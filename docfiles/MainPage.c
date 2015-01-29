@@ -43,7 +43,7 @@ We also have a few <a href="http://assimilationsystems.com/category/demos/">demo
 
 @section ProjectSponsors Project Sponsors
 <a href="http://assimilationsystems.com">Assimilation Systems Limited </a> was founded by project founder Alan Robertson
-to provide paid support and alternative licenses to the Assimilation Project.
+to provide paid support and alternative licenses for the Assimilation Project.
 @section ProjectIntegrity Project Integrity
 The project software undergoes a number of rigorous static and dynamic tests to ensure its continued integrity.
 - Highly restrictive gcc options in all compiles - no warnings allowed (<b>-Werror</b>)
