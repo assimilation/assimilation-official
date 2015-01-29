@@ -8,7 +8,7 @@
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
-# Copyright (C) 2014 - Assimilation Systems Limited
+# Copyright (C) 2014-2015 - Assimilation Systems Limited
 #
 # Free support is available from the Assimilation Project community - http://assimproj.org
 # Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
@@ -43,7 +43,7 @@ BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gc
 BUILDREQS_2="$PYSCL-python-setuptools"
 EZINST="pip"
 PIPBUILD="ctypesgen"
-PIPRUN="py2neo netaddr getent flask"
+PIPRUN='netaddr getent flask "py2neo<2.0"'
 # Python packages we only need for testing
 PIPTEST="testify pylint"
 # RPMs we only need for testing
@@ -57,6 +57,8 @@ ASSIMVERS=tip
 ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
 EPELURL=http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm
 SCLREPO=http://dev.centos.org/centos/6/SCL/scl.repo
+LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/x86_64/libsodium-last-1.0.1-1.el6.remi.x86_64.rpm"
+LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/x86_64/libsodium-last-devel-1.0.1-1.el6.remi.x86_64.rpm"
 ARCH=x86_64
 NEO4JYUM=http://yum.neo4j.org
 RPMSRCDIR=/rpmbuild/SOURCES
@@ -65,12 +67,18 @@ TARBALL=$RPMSRCDIR/assim.${ASSIMVERS}.tgz
 enable_repos() {
   cat <<-!
 	# Enable the CentOS 6 EPEL and SCL repos
-	yum -y install wget
-	wget -q http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm -O /tmp/epel-release-6-8.noarch.rpm
-	yum -y install /tmp/epel-release-6-8.noarch.rpm
-	rm -f /tmp/epel-release-6.8.noarch.rpm
+	yum -y install wget epel-release
 	wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
 	yum -y update
+	!
+}
+
+install_libsodium() {
+  cat <<-!
+	# Pull in and install prebuilt RPMs of libsodium
+	wget -q $LIBSODIUMURL -O /tmp/$(basename $LIBSODIUMURL)
+	wget -q $LIBSODIUMDEVURL -O /tmp/$(basename $LIBSODIUMDEVURL)
+	yum -y install           /tmp/$(basename $LIBSODIUMURL) /tmp/$(basename $LIBSODIUMDEVURL)
 	!
 }
 
@@ -78,7 +86,7 @@ download_tarball() {
   cat <<-!
 	# Download the Assimilation tarball "${ASSIMVERS}" from project source control
 	mkdir -p $RPMSRCDIR
-	wget -q -O ${TARBALL} ${ASSIMURL} # ${ASSIMVERSION-${ASSIMVERS}}
+	wget -q ${ASSIMURL} -O ${TARBALL} 
 	!
 }
 
@@ -123,7 +131,7 @@ neo4j_install() {
   cat <<-!
 	# Install the ${NEOEDITION} edition of Neo4j version ${NEOVERSION}
 	yum -y install ${NEO4J_DEPS}
-	wget -q -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz "http://download.neo4j.org/artifact?edition=${NEOEDITION}&version=${NEOVERSION}&distribution=tarball"
+	wget -q -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz "http://neo4j.com/artifact.php?name=neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz"
 	tar -C $NEOPARENT -xzf /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
 	ln -s $NEOPARENT/neo4j-${NEOEDITION}-${NEOVERSION}/ $NEODIR
 	printf '\n\n' | ${NEODIR}/bin/neo4j-installer install
@@ -167,7 +175,7 @@ nanoprobe_rpm_install() {
 
 logger_install() {
   cat <<-!
-	# Install and start ${LOGGER} logger
+	# Install ${LOGGER} logger
 	yum -y install ${LOGGER}
 	!
 }
@@ -192,9 +200,8 @@ run_assimilation_tests() {
 	scl enable $PYSCL 'pip install ${PIPTEST}'
 	mkdir -p /var/lib/heartbeat/lrm
     cd /tmp/assimilation-test/src/cma
-    service $LOGGER start 
-	service ${NEOSERVICE} start 
-	sleep 10
+    service $LOGGER start &
+	service ${NEOSERVICE} start & sleep 10
 	scl enable $PYSCL 'testify -v tests'
 	!
 }
@@ -203,11 +210,11 @@ run_assimilation_tests() {
 
 step_map() {
    cat <<-!STEPMAP
-docker enable_repos download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests
-install_prebuilt_cma manual_package_download enable_repos java_install neo4j_install nanoprobe_rpm_install cma_rpm_install
-install_prebuilt_nanoprobe manual_package_download nanoprobe_rpm_install
-create_docker_cma java_install neo4j_install cma_rpm_install
-create_docker_nanoprobe nanoprobe_rpm_install
+docker enable_repos install_libsodium download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests
+install_prebuilt_cma manual_package_download enable_repos install_libsodium java_install neo4j_install nanoprobe_rpm_install cma_rpm_install
+install_prebuilt_nanoprobe install_libsodium manual_package_download nanoprobe_rpm_install
+create_docker_cma java_install neo4j_install install_libsodium cma_rpm_install
+create_docker_nanoprobe install_libsodium nanoprobe_rpm_install
 !STEPMAP
 }
 get_task_list() {
@@ -274,12 +281,12 @@ create_dockerfile() {
             while
                 read word morestuff
             do
-				case $word in
+				case "$word" in
 				  \#*)				printf '%s %s\n'				"$word $morestuff";;
 				  cd)				printf 'WORKDIR %s\n'			"$(echo $morestuff| sed 's%#.*%%')";;
 				  ASSIMVERSION=*)		printf "ENV ASSIMVERSION %s\n"	"${ASSIMVERSION}";;
-				  service)			printf 'RUN %s'					"$word $morestuff"
-				  					suck_up_remaining_tasks;;
+				  service)			printf 'RUN %s'					"$word $morestuff"; suck_up_remaining_tasks "$morestuff";;
+				  wget*)			docker_wget "$word" $morestuff;;
 				  *)				printf 'RUN %s\n'				"$word $morestuff";;
 				esac
             done
@@ -288,13 +295,52 @@ create_dockerfile() {
 	done
 }
 
+docker_wget() {
+	urlin="no-urlin"
+	fileout="no-fileout"
+	state=start
+	for arg
+	do
+		case $state in
+			got-O)	fileout="$arg"; state=done;;
+			start)
+				case "$arg" in
+					-O)	state="got-O";;
+					-q)	;;
+					'http://'*)	urlin="$arg";;
+					*)	echo "RUN $*"; return;;
+				esac;;
+			'done')	echo "RUN $*"
+					return;;
+		esac
+	done
+	outf=$(basename $fileout)
+	inf=$(basename $urlin)
+	if
+		[ "$inf" != "$outf" ]
+	then
+		echo "RUN $*"; return
+	fi
+	outdir=$(dirname $fileout)
+	echo "ADD ${urlin} ${outdir}/"
+}
+
 suck_up_remaining_tasks() {
+	case $1 in
+		*\&)	andand=" " ;;
+		*)		andand=" && ";;
+	esac
 	while
 		read word morestuff
 	do
 		case $word in
 		  \#*)				;;	# Can't tolerate comments here
-		  *)				printf ' && %s'				"$word $morestuff";;
+
+		  *)				printf '%s%s'	"$andand" "$word $morestuff"
+		  					case $morestuff in
+								*\&)	andand=" " ;;
+								*)		andand=" && ";;
+							esac;;
 		esac
 	done
 	printf '\n'
