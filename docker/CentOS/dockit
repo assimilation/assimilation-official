@@ -26,6 +26,12 @@
 #
 #
 DOCKER=docker.io
+CMA=assim.centos6
+PKGDIR=$(pwd)/
 export ASSIMVERSION="Assimilation-$(hg identify http://hg.linux-ha.org/assimilation | cut -d' ' -f1)"
 ./CentOS6-directions --format=dockerfile docker > Dockerfile
-$DOCKER build -t assim.centos6 .
+rm -fr $PKGDIR/packages
+$DOCKER build -t $CMA .
+ID=$(docker run -d $CMA /bin/sleep 5)
+# Note that it will include the last part of the from pathname (i.e. "packages") under the to path...
+docker cp $ID:/tmp/assimilation-test/packages $PKGDIR
