@@ -55,11 +55,10 @@ NEOEDITION=community
 NEOSERVICE=neo4j-service
 ASSIMVERS=tip
 ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
-EPELURL=http://mirror-fpt-telecom.fpt.net/fedora/epel/6/i386/epel-release-6-8.noarch.rpm
 SCLREPO=http://dev.centos.org/centos/6/SCL/scl.repo
-LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/x86_64/libsodium-last-1.0.1-1.el6.remi.x86_64.rpm"
-LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/x86_64/libsodium-last-devel-1.0.1-1.el6.remi.x86_64.rpm"
 ARCH=x86_64
+LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm"
+LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm"
 NEO4JYUM=http://yum.neo4j.org
 RPMSRCDIR=/rpmbuild/SOURCES
 TARBALL=$RPMSRCDIR/assim.${ASSIMVERS}.tgz
@@ -202,7 +201,16 @@ run_assimilation_tests() {
     cd /tmp/assimilation-test/src/cma
     service $LOGGER start &
 	service ${NEOSERVICE} start & sleep 10
-	scl enable $PYSCL 'testify -v tests'
+	scl enable $PYSCL 'testify -v tests.cma_test'
+	!
+}
+
+copy_packages() {
+  cat <<-!
+	# Copy the packages into a single directory for Docker extraction
+	mkdir -p /tmp/assimilation-test/packages
+	cp /rpmbuild/RPMS/$ARCH/assim*.rpm /tmp/assimilation-test/packages
+	cp /rpmbuild/SRPMS/assim*.src.rpm  /tmp/assimilation-test/packages
 	!
 }
 
@@ -210,7 +218,7 @@ run_assimilation_tests() {
 
 step_map() {
    cat <<-!STEPMAP
-docker enable_repos install_libsodium download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests
+docker enable_repos install_libsodium download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests copy_packages
 install_prebuilt_cma manual_package_download enable_repos install_libsodium java_install neo4j_install nanoprobe_rpm_install cma_rpm_install
 install_prebuilt_nanoprobe install_libsodium manual_package_download nanoprobe_rpm_install
 create_docker_cma java_install neo4j_install install_libsodium cma_rpm_install
