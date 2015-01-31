@@ -749,11 +749,15 @@ assim_set_io_watch(int		fd,		//< File descriptor
 	_io_functocall 		= func;
 	_io_add_watch_pointer	= user_data;
 	_io_channel	 	= channel;
+#ifdef DEBUG_CALLBACKS
 	g_warning("%s.%d: calling g_io_add_watch(%p, 0x%04x, (proxy:%p (real:%p)), %p)"
 	,	__FUNCTION__, __LINE__
 	,	channel, condition, _assim_proxy_io_watch, func, user_data);
+#endif
 	retval =  g_io_add_watch(channel, condition, _assim_proxy_io_watch, user_data);
+#ifdef DEBUG_CALLBACKS
 	g_warning("%s.%d: return %d;", __FUNCTION__, __LINE__, retval);
+#endif
 	return retval;
 }
 
@@ -775,18 +779,16 @@ _assim_proxy_io_watch(GIOChannel*	source,	///< Source of this condition
 		,	source, cond, data
 		,	_io_channel, _io_add_watch_pointer);
 	}
-	fprintf(stderr, "%s.%d: Calling %p(%p, 0x%04x, %p);"
-	" saved values are (%p, %p)"
-	,	__FUNCTION__, __LINE__
-	,	_io_functocall, source, cond, data
-	,	_io_channel, _io_add_watch_pointer);
+#ifdef DEBUG_CALLBACKS
 	g_warning("%s.%d: Calling %p(%p, 0x%04x, %p);"
 	" saved values are (%p, %p)"
 	,	__FUNCTION__, __LINE__
 	,	_io_functocall, source, cond, data
 	,	_io_channel, _io_add_watch_pointer);
-	sleep(1);
+#endif
 	retval = _io_functocall(source, cond, data);
+#ifdef DEBUG_CALLBACKS
 	g_warning("%s.%d: return(%d);", __FUNCTION__, __LINE__, retval);
+#endif
 	return retval;
 }
