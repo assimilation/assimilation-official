@@ -218,8 +218,11 @@ class PacketListener(object):
 
     def listen(self):
         'Listen for packets.  Get them dispatched.'
+        import sys
         self.source = glib.io_add_watch(self.io.fileno(), glib.IO_IN | glib.IO_PRI
         ,   PacketListener.mainloop_callback, self)
+        print >> sys.stderr, 'listen: self.source = %s' % str(self.source)
+        print >> sys.stderr, 'calling self.mainloop.run()'
         self.mainloop.run()
 
         # Clean up before returning [if we ever do ;-)]
