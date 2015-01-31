@@ -754,12 +754,14 @@ assim_set_io_watch(int		fd,		//< File descriptor
 	return g_io_add_watch(channel, condition, _assim_proxy_io_watch, user_data);
 }
 
+#include <stdio.h>
 /// This proxy function is here for debugging C<->Python problems...
 FSTATIC gboolean
 _assim_proxy_io_watch(GIOChannel*	source,	///< Source of this condition
 		     GIOCondition	cond,	///< I/O Condition bit mask
 		     gpointer		data)	///< user_data from 'watch'
 {
+	gboolean	retval;
 	// Validate what we've been given
 	// This only works if we have a single watch active...
 	// For the moment, that's True...
@@ -770,10 +772,18 @@ _assim_proxy_io_watch(GIOChannel*	source,	///< Source of this condition
 		,	source, cond, data
 		,	_io_channel, _io_add_watch_pointer);
 	}
+	fprintf(stderr, "%s.%d: Calling %p(%p, 0x%04x, %p);"
+	" saved values are (%p, %p)"
+	,	__FUNCTION__, __LINE__
+	,	_io_functocall, source, cond, data
+	,	_io_channel, _io_add_watch_pointer);
 	g_warning("%s.%d: Calling %p(%p, 0x%04x, %p);"
 	" saved values are (%p, %p)"
 	,	__FUNCTION__, __LINE__
 	,	_io_functocall, source, cond, data
 	,	_io_channel, _io_add_watch_pointer);
-	return _io_functocall(source, cond, data);
+	sleep(1);
+	retval = _io_functocall(source, cond, data);
+	g_warning("%s.%d: return(%d);", __FUNCTION__, __LINE__, retval);
+	return retval;
 }
