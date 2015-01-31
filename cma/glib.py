@@ -70,7 +70,7 @@ GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), py_object)
 assim_set_io_watch.argtypes = [guint, GIOCondition, GIOFunc, py_object]
 g_timeout_add.argtypes      = [guint, GSourceFunc,  py_object]
 
-save_things = []
+global save_things = []
 
 def io_add_watch(fileno, conditions, callback, otherobj=None):
     '''
@@ -87,7 +87,7 @@ def io_add_watch(fileno, conditions, callback, otherobj=None):
     Note that you must keep a reference around to the return result or the callback may crash
     if the elements of this object get garbage collected.
     '''
-    import sys
+    global save_things
     cb = GIOFunc(callback)
     obj = py_object(otherobj)
     save_things.append(cb)
