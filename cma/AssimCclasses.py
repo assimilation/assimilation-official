@@ -141,6 +141,7 @@ def CCref(obj):
 def CCunref(obj):
     'Unref an AssimObj object (or subclass)'
     base = obj[0]
+    # This 'hasattr' construct only works because we are the base C-class
     while (hasattr(base, 'baseclass')):
         base = base.baseclass
     base.unref(obj)
@@ -617,8 +618,6 @@ class pyAssimObj(object):
         'Free up the underlying Cstruct for this pyAssimObj object.'
         if not self._Cstruct or self._Cstruct is None:
             return
-        # I have no idea why the type(base) is not Frame doesn't work here...
-        # This 'hasattr' construct only works because we are a base C-class
         global badfree
         badfree = 0
         CCunref(self._Cstruct)
