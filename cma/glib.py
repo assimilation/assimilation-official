@@ -35,7 +35,7 @@ from AssimCtypes import \
     G_IO_IN, G_IO_PRI, G_IO_ERR, G_IO_OUT, G_IO_HUP,    \
     g_main_loop_new, g_main_loop_run, g_main_loop_quit, g_main_context_default, \
     g_io_channel_unix_new, assim_set_io_watch, g_source_remove, g_timeout_add,  \
-    guint, gboolean, GIOChannel, GIOCondition, GIOFunc, GSourceFunc, UNCHECKED
+    guint, gboolean, GIOChannel, GIOCondition, GIOFunc, GSourceFunc, UNCHECKED, g_main_loop_unref
 from ctypes import py_object, POINTER, CFUNCTYPE
 
 IO_IN   =   G_IO_IN
