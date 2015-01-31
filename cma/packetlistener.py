@@ -94,7 +94,8 @@ class PacketListener(object):
         self.dispatcher = dispatch
         self.source = None
         self.mainloop = glib.MainLoop()
-        #print >> sys.stderr, ('self.mainloop %s, self.mainloop.mainloop: %s' % (self.mainloop, self.mainloop.mainloop))
+        #print >> sys.stderr, ('self.mainloop %s, self.mainloop.mainloop: %s'
+        #   % (self.mainloop, self.mainloop.mainloop))
         # W0612: unused variable j
         # pylint: disable=W0612
         self.prio_queues = [[] for j in range(PacketListener.LOWEST_PRIO+1)]
@@ -213,7 +214,7 @@ class PacketListener(object):
                 cond = '(0x%08x??)' % (int(cb_condition))
             CMAdb.log.warning('mainloop_callback: Received Unexpected I/O condition: %s '
             %       (cond))
-            CMAdb.log.warning('mainloop_callback: Called with (%s, %s, %s)' 
+            CMAdb.log.warning('mainloop_callback: Called with (%s, %s, %s)'
             %   (unusedsource, cb_condition, listener))
             return True
         #print >> sys.stderr, 'RETURNING True'
