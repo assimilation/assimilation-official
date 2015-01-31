@@ -34,8 +34,8 @@ This is easy for us to do since we are using ctypes and ctypesgen anyway.
 from AssimCtypes import \
     G_IO_IN, G_IO_PRI, G_IO_ERR, G_IO_OUT, G_IO_HUP,    \
     g_main_loop_new, g_main_loop_run, g_main_loop_quit, g_main_context_default, \
-    g_io_channel_unix_new, g_io_add_watch, g_source_remove, g_timeout_add,  \
-    guint, gboolean, GIOChannel, GIOCondition, UNCHECKED
+    g_io_channel_unix_new, assim_set_io_watch, g_source_remove, g_timeout_add,  \
+    guint, gboolean, GIOChannel, GIOCondition, GIOFunc, GSourceFunc, UNCHECKED
 from ctypes import py_object, POINTER, CFUNCTYPE
 
 IO_IN   =   G_IO_IN
@@ -63,10 +63,12 @@ class MainLoop(object):
         g_main_loop_quit(self.mainloop)
         pass
 
-GIOFunc = CFUNCTYPE(UNCHECKED(gboolean), POINTER(GIOChannel), GIOCondition, py_object)
-g_io_add_watch.argtypes = [POINTER(GIOChannel), GIOCondition, GIOFunc, py_object]
+# Ctypes gets these wrong...
+# For our purposes the last argument needs to be py_object instead of gpointer
+GIOFunc = CFUNCTYPE(UNCHECKED(gboolean), POINTER(GIOChannel), guint, py_object)
 GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), py_object)
-g_timeout_add.argtypes = [guint, GSourceFunc, py_object]
+assim_set_io_watch.argtypes = [guint, GIOCondition, GIOFunc, py_object]
+g_timeout_add.argtypes      = [guint, GSourceFunc,  py_object]
 
 def io_add_watch(fileno, conditions, callback, otherobj=None):
     '''
@@ -80,10 +82,9 @@ def io_add_watch(fileno, conditions, callback, otherobj=None):
 
     Return: int (source id of our watch condition - suitable to passing to source_remove)
     '''
-    iochannel = g_io_channel_unix_new(fileno)
     cb = GIOFunc(callback)
     obj = py_object(otherobj)
-    return (g_io_add_watch(iochannel, conditions, cb, obj), cb, obj)
+    return (assim_set_io_watch(fileno, conditions, cb, obj), cb, obj)
 
 def source_remove(sourceid):
     '''
