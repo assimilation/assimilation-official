@@ -70,6 +70,8 @@ GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), py_object)
 assim_set_io_watch.argtypes = [guint, GIOCondition, GIOFunc, py_object]
 g_timeout_add.argtypes      = [guint, GSourceFunc,  py_object]
 
+save_things = []
+
 def io_add_watch(fileno, conditions, callback, otherobj=None):
     '''
     fileno is the UNIX file descriptor
@@ -81,11 +83,16 @@ def io_add_watch(fileno, conditions, callback, otherobj=None):
         and returns a bool - True if we should keep watching this file descriptor, False if not.
 
     Return: int (source id of our watch condition - suitable to passing to source_remove)
+
+    Note that you must keep a reference around to the return result or the callback may crash
+    if the elements of this object get garbage collected.
     '''
     import sys
     cb = GIOFunc(callback)
     obj = py_object(otherobj)
+    save_things.append((cb, obj))
     retval = (assim_set_io_watch(fileno, conditions, cb, obj), cb, obj)
+    print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % (callback, cb, otherobj, obj))
     print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
     return retval
 
