@@ -378,6 +378,7 @@ class TestIO:
         del self.inframes
         del self.packetswritten
         del self.config
+        self.timeout = None
 
     def getmaxpktsize(self):    return 60000
     def fileno(self):        	return self.pipe_read

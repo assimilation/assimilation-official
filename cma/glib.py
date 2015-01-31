@@ -98,7 +98,6 @@ class IOWatch(object):
         self.user_data = py_object(otherobj)
         IOWatch.save_callbacks.append(self.callback)
         self.sourceid = assim_set_io_watch(fileno, conditions, self.callback, self.user_data)
-        self.mainloop = MainLoop.default
         #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % (callback, cb, otherobj, obj))
         #print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
 
@@ -116,7 +115,6 @@ class GMainTimeout(object):
         self.callback = GSourceFunc(callback)
         self.user_data = py_object(otherobj)
         self.sourceid = g_timeout_add(interval, self.callback, self.user_data)
-        self.mainloop = MainLoop.default
         GMainTimeout.save_callbacks.append(self.callback)
 
     def __del__(self):
