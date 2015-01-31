@@ -96,7 +96,7 @@ class IOWatch(object):
         '''
         self.callback = GIOFunc(callback)
         IOWatch.save_callbacks.append(self.callback)
-        self.sourceid = assim_set_io_watch(fileno, conditions, self.callback, self.user_data)
+        self.sourceid = assim_set_io_watch(fileno, conditions, self.callback, otherobj)
         #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % (callback, cb, otherobj, obj))
         #print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
 
@@ -107,12 +107,12 @@ class IOWatch(object):
 class GMainTimeout(object):
     'This class encapsulates an timeout source based on the Glib g_timeout_add'
     save_callbacks = []
-    def __init__ (self, interval, callback, otherobj):
+    def __init__ (self, interval, callback, otherobj=None):
         '''
         Call a callback function at the (repeating) interval given
         '''
         self.callback = GSourceFunc(callback)
-        self.sourceid = g_timeout_add(interval, self.callback, self.user_data)
+        self.sourceid = g_timeout_add(interval, self.callback, otherobj)
         GMainTimeout.save_callbacks.append(self.callback)
 
     def __del__(self):
