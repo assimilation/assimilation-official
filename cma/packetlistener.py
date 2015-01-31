@@ -94,7 +94,7 @@ class PacketListener(object):
         self.dispatcher = dispatch
         self.source = None
         self.mainloop = glib.MainLoop()
-        print >> sys.stderr, ('self.mainloop %s, self.mainloop.mainloop: %s' % (self.mainloop, self.mainloop.mainloop))
+        #print >> sys.stderr, ('self.mainloop %s, self.mainloop.mainloop: %s' % (self.mainloop, self.mainloop.mainloop))
         # W0612: unused variable j
         # pylint: disable=W0612
         self.prio_queues = [[] for j in range(PacketListener.LOWEST_PRIO+1)]
@@ -221,11 +221,10 @@ class PacketListener(object):
 
     def listen(self):
         'Listen for packets.  Get them dispatched.'
-        import sys
         self.source = glib.io_add_watch(self.io.fileno(), glib.IO_IN | glib.IO_PRI
         ,   PacketListener.mainloop_callback, self)
-        print >> sys.stderr, 'listen: self.source = %s' % str(self.source)
-        print >> sys.stderr, 'calling self.mainloop.run()'
+        #print >> sys.stderr, 'listen: self.source = %s' % str(self.source)
+        #print >> sys.stderr, 'calling self.mainloop.run()'
         self.mainloop.run()
 
         # Clean up before returning [if we ever do ;-)]
