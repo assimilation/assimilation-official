@@ -41,6 +41,8 @@ import glib # We've replaced gi.repository and gobject with our own 'glib' modul
 import time
 import sys
 
+callback_save = []
+
 # R0903 is too few public methods
 #pylint: disable=R0903
 class PacketListener(object):
@@ -222,8 +224,10 @@ class PacketListener(object):
 
     def listen(self):
         'Listen for packets.  Get them dispatched.'
+        global callback_save
         self.source = glib.io_add_watch(self.io.fileno(), glib.IO_IN | glib.IO_PRI
         ,   PacketListener.mainloop_callback, self)
+        callback_save = self.source # bad things happen if this gets garbage collected
         #print >> sys.stderr, 'listen: self.source = %s' % str(self.source)
         #print >> sys.stderr, 'calling self.mainloop.run()'
         self.mainloop.run()
