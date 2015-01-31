@@ -78,7 +78,7 @@ RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimil
 #   Run Assimilation unit tests
 ###############################################################
 RUN pip install testify
-RUN service rsyslog start && service neo4j-service start; sleep 10; cd /root/assimilation/src && testify -v cma.tests
+RUN /usr/sbin/rsyslogd&  service neo4j-service start; sleep 5; cd /root/assimilation/src && testify -v cma.tests
 
 ###############################################################
 #   Clean out the database and prepare for running system tests

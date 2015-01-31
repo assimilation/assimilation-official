@@ -31,8 +31,14 @@
 #
 #
 set -e 
-NANO="nanoprobe.ubuntu"
-CMA="cma.ubuntu"
+ARGS="$*"
+cd $1
+shift
+
+CODENAME=$(basename $PWD)
+DOCKERFILE="$PWD/../Dockerfile"
+
+CMA="cma.ubuntu-$CODENAME"
 LOCALWS=$HOME/monitor/src
 PKGDIR=$(pwd)/
 rm -fr local
@@ -44,12 +50,17 @@ case $1 in
         #ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
         #RUN cd /root/assimilation/; ls -l && ls -l tip && tar xzf tip.tar.gz && mv Assimilation-* src
         #RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
+        cat $DOCKERFILE |
         sed -e 's%http://hg.linux-ha.org/assimilation/archive/%%'                   \
+            -e "s%ubuntu:latest%ubuntu:$CODENAME%"                                  \
             -e 's%RUN.* mv Assimilation-.*%RUN cd /root/assimilation; mv tip src%'  \
             -e 's%RUN service rsyslog start.*testify%#&%'                           \
-            < ../Dockerfile > ./Dockerfile
+            > Dockerfile
+        ;;
+    *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" > Dockerfile
         ;;
 esac
+grep 'FROM.*ubuntu:' Dockerfile
 
 cp /etc/timezone .
 docker build -t $CMA .
@@ -57,4 +68,5 @@ rm -f timezone
 ID=$(docker run -d $CMA /bin/sleep 5)
 # Note that it will include the last part of the from pathname under the to path...
 docker cp $ID:/root/assimilation/packages $PKGDIR
+echo "Build of $ARGS complete."
 rm -fr local
