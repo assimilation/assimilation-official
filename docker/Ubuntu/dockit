@@ -42,6 +42,10 @@ CMA="cma.ubuntu-$CODENAME"
 LOCALWS=$HOME/monitor/src
 PKGDIR=$(pwd)/
 rm -fr local
+case $CODENAME in
+  lucid)    EFLAG='-e s%resource-agents%% -e s%python-flask%% -e s%openjdk-7-jre%openjdk-6-jre%';;
+  *)        EFLAG="";;
+esac
 case $1 in
   local) 
         mkdir local
@@ -52,12 +56,12 @@ case $1 in
         #RUN service rsyslog start && service neo4j-service start  && cd /root/assimilation/src && testify -v cma.tests
         cat $DOCKERFILE |
         sed -e 's%http://hg.linux-ha.org/assimilation/archive/%%'                   \
-            -e "s%ubuntu:latest%ubuntu:$CODENAME%"                                  \
+            -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG                           \
             -e 's%RUN.* mv Assimilation-.*%RUN cd /root/assimilation; mv tip src%'  \
             -e 's%RUN service rsyslog start.*testify%#&%'                           \
             > Dockerfile
         ;;
-    *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" > Dockerfile
+    *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG > Dockerfile
         ;;
 esac
 grep 'FROM.*ubuntu:' Dockerfile
