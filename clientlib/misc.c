@@ -51,6 +51,7 @@ void assimilation_logger(const gchar *log_domain, GLogLevelFlags log_level,
 const char *	assim_syslogid = "assim"; /// Should be overridden with the name to appear in the logs
 FSTATIC void catch_pid_signal(int signum);
 FSTATIC char *	_shell_array_value(GSList* arrayvalue);
+FSTATIC gboolean _assim_proxy_io_watch(GIOChannel*, GIOCondition, gpointer);
 
 /// Function to get system name (uname -n in UNIX terms)
 #ifdef HAVE_UNAME
@@ -725,4 +726,46 @@ assim_g_notify_unref(gpointer assimobj)
 {
 	AssimObj*	obj = CASTTOCLASS(AssimObj, assimobj);
 	obj->unref(obj);
+}
+
+static GIOChannel*	_io_channel = NULL;
+static GIOFunc		_io_functocall = NULL;
+static gpointer		_io_add_watch_pointer	 = NULL;
+#define			MAXCOND	(G_IO_IN|G_IO_OUT|G_IO_PRI|G_IO_HUP|G_IO_ERR|G_IO_NVAL)
+/// Simiplified interface to g_io_add_watch for our Python code
+WINEXPORT guint
+assim_set_io_watch(int		fd,		//< File descriptor
+		   GIOCondition	condition,	//< Desired Condition
+		   GIOFunc	func,		//< Function to call
+		   gpointer	user_data)	//< data to pass 'func'
+{
+	GIOChannel*	channel;
+#ifdef WIN32
+	channel = g_io_channel_win32_new_fd(fd);
+#else
+	channel = g_io_channel_unix_new(fd);
+#endif
+	_io_functocall 		= func;
+	_io_add_watch_pointer	= user_data;
+	_io_channel	 	= channel;
+	return g_io_add_watch(channel, condition, _assim_proxy_io_watch, user_data);
+}
+
+/// This proxy function is here for debugging C<->Python problems...
+FSTATIC gboolean
+_assim_proxy_io_watch(GIOChannel*	source,	///< Source of this condition
+		     GIOCondition	cond,	///< I/O Condition bit mask
+		     gpointer		data)	///< user_data from 'watch'
+{
+	// Validate what we've been given
+	// This only works if we have a single watch active...
+	// For the moment, that's True...
+	if (source != _io_channel || data != _io_add_watch_pointer
+	||	(cond&(~MAXCOND)) != 0) {
+		g_error("%s.%d: Called with invalid arguments (%p, 0x%04x, %p)"
+		" saved values are (%p, %p)", __FUNCTION__, __LINE__
+		,	source, cond, data
+		,	_io_channel, _io_add_watch_pointer);
+	}
+	return _io_functocall(source, cond, data);
 }

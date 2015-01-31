@@ -54,11 +54,14 @@ WINEXPORT guint	pidrunningstat_to_status(PidRunningStat);		///< Convert PidRunni
 gboolean	create_pid_file(const char * pidfile);			///< Create pid file - return TRUE on success
 WINEXPORT void	remove_pid_file(const char * pidfile);			///< Remove pid file we created (if we created one)
 WINEXPORT int	kill_pid_service(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
-void		rmpid_and_exit_on_signal(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
-WINEXPORT	gchar ** assim_merge_environ(const gchar *const* env, ConfigContext*);///< Create new env merged from ConfigContext
-WINEXPORT	void assim_free_environ(gchar ** env);			///< Free environment created by assim_merge_environ
-WINEXPORT	gsize setpipebuf(int fd, gsize bufsize);		///< Set pipe buffer size (if possible)
-WINEXPORT	gsize getpipebuf(int fd);				///< Return pipe buffer size
-WINEXPORT	void assim_g_notify_unref(gpointer assimobj);		///< Unref for glib notify
+WINEXPORT void	rmpid_and_exit_on_signal(const char * pidfile, int signal);	///< Issue given signal to the pidfile-indicated running process
+WINEXPORT gchar** assim_merge_environ(const gchar *const* env, ConfigContext*);///< Create new env merged from ConfigContext
+WINEXPORT void	assim_free_environ(gchar ** env);		///< Free environment created by assim_merge_environ
+WINEXPORT gsize	setpipebuf(int fd, gsize bufsize);		///< Set pipe buffer size (if possible)
+WINEXPORT gsize	getpipebuf(int fd);				///< Return pipe buffer size
+WINEXPORT void	assim_g_notify_unref(gpointer assimobj);	///< Unref for glib notify
+WINEXPORT guint	assim_set_io_watch(int fd, GIOCondition condition, GIOFunc func, gpointer user_data);
+
+WINEXPORT	
 #endif /* MISC_H */
 ///@}
