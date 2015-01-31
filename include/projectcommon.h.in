@@ -123,6 +123,7 @@
 #define	GLIB_g_main_quit		g_main_quit
 #define	GLIB_source_remove		g_source_remove
 #define	GLIB_main_context_default	g_main_context_default
+#define GLIB_g_main_loop_unref		g_main_loop_unref
 
 #cmakedefine	HAVE_UNISTD_H
 #cmakedefine	HAVE_SYS_UTSNAME_H
