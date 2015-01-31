@@ -94,7 +94,7 @@ class PacketListener(object):
         #print "IO[socket=%d,maxpacket=%d] created." \
         #%  (self.io.fileno(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
-        self.source = None
+        self.iowatch = None
         self.mainloop = glib.MainLoop()
         #print >> sys.stderr, ('self.mainloop %s, self.mainloop.mainloop: %s'
         #   % (self.mainloop, self.mainloop.mainloop))
@@ -224,17 +224,14 @@ class PacketListener(object):
 
     def listen(self):
         'Listen for packets.  Get them dispatched.'
-        global callback_save
-        self.source = glib.io_add_watch(self.io.fileno(), glib.IO_IN | glib.IO_PRI
+        self.iowatch = glib.IOWatch(self.io.fileno(), glib.IO_IN | glib.IO_PRI
         ,   PacketListener.mainloop_callback, self)
-        callback_save = self.source # bad things happen if this gets garbage collected
-        #print >> sys.stderr, 'listen: self.source = %s' % str(self.source)
+        #print >> sys.stderr, 'listen: self.iowatch = %s' % str(self.iowatch)
         #print >> sys.stderr, 'calling self.mainloop.run()'
         self.mainloop.run()
 
         # Clean up before returning [if we ever do ;-)]
-        glib.source_remove(self.source)
-        self.source = None
+        self.iowatch = None
         self.mainloop = None
 
     def OLDlisten(self):

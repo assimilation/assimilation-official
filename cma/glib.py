@@ -49,63 +49,75 @@ class MainLoop(object):
     '''
     This class encapsulates the glib mainloop paradigm.
     '''
+    default = None
     def __init__(self):
         'Create a default mainloop object'
         self.mainloop = g_main_loop_new(g_main_context_default(), True)
+        MainLoop.default = self
 
     def run(self):
         'Run this mainloop until quit is called on it'
         g_main_loop_run(self.mainloop)
-        pass
 
     def quit(self):
         'Stop this mainloop - causing run() call to return'
         g_main_loop_quit(self.mainloop)
-        pass
 
-# Ctypes gets these wrong...
-# For our purposes the last argument needs to be py_object instead of gpointer
+    def __del__(self):
+        self.quit()
+        g_main_loop_unref(self.mainloop)
+
+# Ctypesgen gets these wrong from our perspective...
+# For our purposes, the last argument needs to be py_object instead of gpointer
 GIOFunc = CFUNCTYPE(UNCHECKED(gboolean), POINTER(GIOChannel), guint, py_object)
 GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), py_object)
+
 assim_set_io_watch.argtypes = [guint, GIOCondition, GIOFunc, py_object]
 g_timeout_add.argtypes      = [guint, GSourceFunc,  py_object]
 
-save_things = []
 
-def io_add_watch(fileno, conditions, callback, otherobj=None):
-    '''
-    fileno is the UNIX file descriptor
-    Conditions is a bitwise-OR of at least one of {IO_IN, IO_PRI, IO_ERR, IO_OUT, IO_HUP}
-    The callback function receives three parameters:
-            source
-            calledcondition
-            otherobj (as passed to io_add_watch)
-        and returns a bool - True if we should keep watching this file descriptor, False if not.
+class IOWatch(object):
+    'This class encapsulates an I/O source based on the Glib g_io_add_watch'
+    save_callbacks = []
+    def __init__(self, fileno, conditions, callback, otherobj=None):
+        '''
+        fileno is the UNIX file descriptor
+        Conditions is a bitwise-OR of at least one of {IO_IN, IO_PRI, IO_ERR, IO_OUT, IO_HUP}
+        The callback function receives three parameters:
+                source
+                calledcondition
+                otherobj (as passed to io_add_watch)
+            and returns a bool - True if we should keep watching this file descriptor, False if not.
 
-    Return: int (source id of our watch condition - suitable to passing to source_remove)
+        Return: int (source id of our watch condition - suitable to passing to source_remove)
 
-    Note that you must keep a reference around to the return result or the callback may crash
-    if the elements of this object get garbage collected.
-    '''
-    global save_things
-    cb = GIOFunc(callback)
-    obj = py_object(otherobj)
-    save_things.append(cb)
-    retval = (assim_set_io_watch(fileno, conditions, cb, obj), cb, obj)
-    #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % (callback, cb, otherobj, obj))
-    #print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
-    return retval
+        Note that you must keep a reference around to the return result or the callback may crash
+        if the elements of this object get garbage collected.
+        '''
+        self.callback = GIOFunc(callback)
+        self.user_data = py_object(otherobj)
+        IOWatch.save_callbacks.append(self.callback)
+        self.sourceid = assim_set_io_watch(fileno, conditions, self.callback, self.user_data)
+        self.mainloop = MainLoop.default
+        #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % (callback, cb, otherobj, obj))
+        #print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
 
-def source_remove(sourceid):
-    '''
-    We remove a source - from io_add_watch() above
-    '''
-    g_source_remove(sourceid[0])
+    def __del__(self):
+        g_source_remove(self.sourceid)
 
-def timeout_add(interval, callback, otherobj):
-    '''
-    Call a callback function at the (repeating) interval given
-    '''
-    cb = GSourceFunc(callback)
-    obj = py_object(otherobj)
-    return (g_timeout_add(interval, cb, obj), cb, obj)
+
+class GMainTimeout(object):
+    'This class encapsulates an timeout source based on the Glib g_timeout_add'
+    save_callbacks = []
+    def __init__ (self, interval, callback, otherobj):
+        '''
+        Call a callback function at the (repeating) interval given
+        '''
+        self.callback = GSourceFunc(callback)
+        self.user_data = py_object(otherobj)
+        self.sourceid = g_timeout_add(interval, self.callback, self.user_data)
+        self.mainloop = MainLoop.default
+        GMainTimeout.save_callbacks.append(self.callback)
+
+    def __del__(self):
+        g_source_remove(self.sourceid)

@@ -322,7 +322,7 @@ class TestIO:
                 auditallrings()
         if self.index >= len(self.inframes):
             if not self.atend:
-                self.timeout = glib.timeout_add(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
+                self.timeout = glib.GMainTimeout(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
                 self.atend = True
                 #self.config = None
             else:
@@ -365,6 +365,8 @@ class TestIO:
             self.packetswritten.append((dest,fs))
 
     def cleanio(self):
+        if TestIO.mainloop is not None:
+            TestIO.mainloop.quit()
         if self.pipe_read >= 0:
             os.close(self.pipe_read)
             self.pipe_read = -1

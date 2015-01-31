@@ -46,3 +46,7 @@ Doxyfile
 ^.*/build.out
 ^.*/docker.out
 docker/CentOS/Dockerfile
+docker/Ubuntu/trusty
+docker/Ubuntu/lucid
+docker/Ubuntu/utopic
+docker/Ubuntu/precise
