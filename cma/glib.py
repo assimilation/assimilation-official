@@ -95,7 +95,6 @@ class IOWatch(object):
         if the elements of this object get garbage collected.
         '''
         self.callback = GIOFunc(callback)
-        self.user_data = py_object(otherobj)
         IOWatch.save_callbacks.append(self.callback)
         self.sourceid = assim_set_io_watch(fileno, conditions, self.callback, self.user_data)
         #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % (callback, cb, otherobj, obj))
@@ -113,7 +112,6 @@ class GMainTimeout(object):
         Call a callback function at the (repeating) interval given
         '''
         self.callback = GSourceFunc(callback)
-        self.user_data = py_object(otherobj)
         self.sourceid = g_timeout_add(interval, self.callback, self.user_data)
         GMainTimeout.save_callbacks.append(self.callback)
 
