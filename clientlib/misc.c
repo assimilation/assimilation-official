@@ -740,6 +740,7 @@ assim_set_io_watch(int		fd,		//< File descriptor
 		   gpointer	user_data)	//< data to pass 'func'
 {
 	GIOChannel*	channel;
+	guint		retval;
 #ifdef WIN32
 	channel = g_io_channel_win32_new_fd(fd);
 #else
@@ -751,7 +752,9 @@ assim_set_io_watch(int		fd,		//< File descriptor
 	g_warning("%s.%d: calling g_io_add_watch(%p, 0x%04x, (proxy:%p (real:%p)), %p)"
 	,	__FUNCTION__, __LINE__
 	,	channel, condition, _assim_proxy_io_watch, func, user_data);
-	return g_io_add_watch(channel, condition, _assim_proxy_io_watch, user_data);
+	retval =  g_io_add_watch(channel, condition, _assim_proxy_io_watch, user_data);
+	g_warning("%s.%d: return %d;", __FUNCTION__, __LINE__, retval);
+	return retval;
 }
 
 #include <stdio.h>

@@ -82,9 +82,12 @@ def io_add_watch(fileno, conditions, callback, otherobj=None):
 
     Return: int (source id of our watch condition - suitable to passing to source_remove)
     '''
+    import sys
     cb = GIOFunc(callback)
     obj = py_object(otherobj)
-    return (assim_set_io_watch(fileno, conditions, cb, obj), cb, obj)
+    retval = (assim_set_io_watch(fileno, conditions, cb, obj), cb, obj)
+    print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
+    return retval
 
 def source_remove(sourceid):
     '''
