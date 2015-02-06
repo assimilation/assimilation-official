@@ -60,7 +60,8 @@ ARCH=x86_64
 LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm"
 LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm"
 NEO4JYUM=http://yum.neo4j.org
-RPMSRCDIR=/rpmbuild/SOURCES
+RPMDIR=/root/rpmbuild
+RPMSRCDIR=$RPMDIR/SOURCES
 TARBALL=$RPMSRCDIR/assim.${ASSIMVERS}.tgz
 
 enable_repos() {
@@ -99,7 +100,7 @@ rpm_build() {
 	mkdir /tmp/assim-rpm
 	cd /tmp/assim-rpm
 	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec
-	rm -f /rpmbuild/RPMS/${ARCH}/assimilation-*.rpm
+	rm -f $RPMDIR/RPMS/${ARCH}/assimilation-*.rpm
 	mv $TARBALL $RPMSRCDIR/\${ASSIMVERSION}.tgz
 	scl enable $PYSCL 'easy_install pip'
 	scl enable $PYSCL 'pip install ${PIPBUILD}'
@@ -115,7 +116,7 @@ manual_package_download() {
 	# Scroll down and select the version you want to install (later is typically better), and click on that version
 	# Click on the directory that corresponds to your OS
 	# Save the packages that you want to install - you may need to right-click and [Save As].
-	# If you can, save them in /rpmbuild/RPMS/${ARCH} - the remaining steps assume that directory
+	# If you can, save them in $RPMDIR/RPMS/${ARCH} - the remaining steps assume that directory
 	# You should only run the CMA package on one system
 	!
 }
@@ -166,7 +167,7 @@ cma_rpm_install() {
 nanoprobe_rpm_install() {
   cat <<-!
 	# Install the CentOS 6 Assimilation nanoprobe RPM
-	cd /rpmbuild/RPMS/${ARCH}/ # Or whereever you saved the RPMs
+	cd $RPMDIR/RPMS/${ARCH}/ # Or whereever you saved the RPMs
 	yum -y install assimilation-nanoprobe*.${ARCH}.rpm
 	!
 }
@@ -209,8 +210,8 @@ copy_packages() {
   cat <<-!
 	# Copy the packages into a single directory for Docker extraction
 	mkdir -p /tmp/assimilation-test/packages
-	cp /rpmbuild/RPMS/$ARCH/assim*.rpm /tmp/assimilation-test/packages
-	cp /rpmbuild/SRPMS/assim*.src.rpm  /tmp/assimilation-test/packages
+	cp $RPMDIR/RPMS/$ARCH/assim*.rpm /tmp/assimilation-test/packages
+	cp $RPMDIR/SRPMS/assim*.src.rpm  /tmp/assimilation-test/packages
 	!
 }
 
