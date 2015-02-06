@@ -173,6 +173,10 @@ the assimilation-nanoprobe daemon.
 %package -n assimilation-nanoprobe
 Group:         Applications/System
 Summary:       Nanoprobe distributed monitoring agent for Assimilation
+BuildRequires: glib2-devel
+BuildRequires: libpcap-devel
+BuildRequires: zlib-devel
+BuildRequires: %{libsodium}-devel >= 1.0.1
 %if %{uses_systemd}
 Requires(post):   systemd
 Requires(preun):  systemd
