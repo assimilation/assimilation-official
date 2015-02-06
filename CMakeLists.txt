@@ -94,7 +94,8 @@ set (CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/buildtools/d
 set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Project - assimmon.org // Assimilation Systems Limited - assimilationsystems.com")
 set (CPACK_DEBIAN_PACKAGE_SECTION "contrib/admin")
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${PROJARCH})
-set (CPACK_DEBIAN_PACKAGE_DEPENDS "python, libc6, resource-agents, python-netaddr, python-flask")
+set (CPACK_DEB_NANOPROBE_PACKAGE_DEPENDS "libc6, resource-agents")
+set (CPACK_DEB_CMA_PACKAGE_DEPENDS "python, python-netaddr, python-flask")
 #When I turn on SHLIBDEPS, I get this error...
 #CPackDeb: dpkg-shlibdeps: dpkg-shlibdeps: need at least one executable
 #set (CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)	# autogenerate dependency information
