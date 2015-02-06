@@ -45,6 +45,9 @@
 %if %(test -z  "%{?assimversion}" && echo 1 || echo 0)
 %global assimversion must-define-assimilation-version-to-rpmbuild-using--define=version_version-hash
 %endif
+%if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
+%global libsodium libsodium
+%endif
 
 %global pymajor %(python -c 'import sys; print "%s" % sys.version_info[0]')
 %global pyminor %(python -c 'import sys; print "%s" % sys.version_info[1]')
@@ -187,6 +190,7 @@ Requires:         resource-agents
 Requires:         libpcap
 Requires:         glib2
 Requires:         zlib
+Requires:         %{libsodium} >= 1.0.1
 
 %description -n assimilation-nanoprobe
 This package contains the nanoprobe distributed monitoring agent for
