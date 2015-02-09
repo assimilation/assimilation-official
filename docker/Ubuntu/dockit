@@ -36,12 +36,16 @@ cd $1
 shift
 
 CODENAME=$(basename $PWD)
+NANONAME="assim-nanoprobe.ubuntu-$CODENAME"
+CMANAME="assim-cma-ubuntu-$CODENAME"
 DOCKERFILE="$PWD/../Dockerfile"
+NANOFILE="$PWD/../nanoDockerfile"
+CMAFILE="$PWD/../cmaDockerfile"
 
-CMA="cma.ubuntu-$CODENAME"
+BUILD="build.ubuntu-$CODENAME"
 LOCALWS=$HOME/monitor/src
 PKGDIR=$(pwd)/
-rm -fr local
+rm -fr local nanoprobe cma
 case $CODENAME in
   lucid)    EFLAG='-e s%resource-agents%% -e s%python-flask%% -e s%openjdk-7-jre%openjdk-6-jre%';;
   *)        EFLAG="";;
@@ -67,10 +71,33 @@ esac
 grep 'FROM.*ubuntu:' Dockerfile
 
 cp /etc/timezone .
-docker build -t $CMA .
+docker build -t $BUILD .
 rm -fr timezone $PKGDIR/packages
-ID=$(docker run -d $CMA /bin/sleep 5)
+ID=$(docker run -d $BUILD /bin/sleep 5)
 # Note that it will include the last part of the from pathname under the to path...
 docker cp $ID:/root/assimilation/packages $PKGDIR
-echo "Build of $ARGS complete."
-rm -fr local
+echo "Build of $ARGS BUILD complete."
+mkdir nanoprobe cma
+cp $PKGDIR/packages/*.deb nanoprobe/
+PACKAGES=$(ls $PKGDIR/packages)
+NANOPKG=$(echo "$PACKAGES" | grep assimilation-nanoprobe)
+CMAPKG=$(echo "$PACKAGES" | grep assimilation-cma)
+SODIUMPKG=$(echo "$PACKAGES" | grep libsodium_ )
+cat $NANOFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG   \
+            -e "s%@NANOPKG@%${NANOPKG}%"                            \
+            -e "s%@SODIUMPKG@%${SODIUMPKG}%"                        \
+            > nanoprobe/Dockerfile
+cd nanoprobe
+docker build -t $NANONAME .
+echo "Build of $ARGS $NANONAME complete."
+case $CODENAME in
+  lucid)    echo "No CMA for $CODENAME. We're done."; exit 0;;
+esac
+cd ..
+cp $PKGDIR/packages/*cma*.deb cma/
+cat $CMAFILE | sed -e "s%@NANOBASE@%${NANONAME}:latest%" ${EFLAG}   \
+            -e "s%@CMAPKG@%${CMAPKG}%"                              \
+            > cma/Dockerfile
+cd cma
+docker build -t $CMANAME .
+echo "Build of $ARGS $CMANAME complete."
