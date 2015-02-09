@@ -55,3 +55,4 @@ RUN rm -fr /tmp/pkgs/
 #   Set up Assimilation encryption keys
 RUN mkdir -p /usr/share/assimilation/crypto.d  /tmp/cores # putting --mode 0700 on mkdir screws up security attributes
 RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys
+RUN /usr/sbin/cma --background & sleep 5; /usr/sbin/cma -s && /usr/sbin/cma -k
