@@ -32,11 +32,10 @@ ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 WORKDIR /root
+RUN apt-get install --no-install-recommends libpcap0.8 libglib2.0-0
 RUN mkdir /tmp/pkgs
 ADD @NANOPKG@ /tmp/pkgs/
 ADD @SODIUMPKG@ /tmp/pkgs/
-RUN ls -l /tmp/pkgs
-RUN pwd; ls -l
-RUN find / -name '*.deb' -print
 RUN dpkg --install /tmp/pkgs/*.deb
 RUN rm -fr /tmp/pkgs/
+RUN /usr/sbin/nanoprobe # make sure library dependencies are met
