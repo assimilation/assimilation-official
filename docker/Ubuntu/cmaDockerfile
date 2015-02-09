@@ -48,10 +48,10 @@ RUN apt-get -y update
 RUN apt-get -y install --no-install-recommends neo4j
 #
 RUN mkdir -p /tmp/pkgs
-ADD @CMAPKG@ /tmp/pkgs
+ADD @CMAPKG@ /tmp/pkgs/
+#   Install Assimilation CMA package
+RUN dpkg --install /tmp/pkgs/@CMAPKG@
+RUN rm -fr /tmp/pkgs/
 #   Set up Assimilation encryption keys
 RUN mkdir -p /usr/share/assimilation/crypto.d  /tmp/cores # putting --mode 0700 on mkdir screws up security attributes
 RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys
-#   Install Assimilation packages
-RUN dpkg --install /tmp/pkgs/@CMAPKG@
-RUN rm -fr /tmp/pkgs
