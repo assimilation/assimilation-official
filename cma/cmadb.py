@@ -67,8 +67,12 @@ class CMAdb(object):
     def running_under_docker():
         "Return True if we're running under docker - must be root the first time we're called"
         if CMAdb.underdocker is None:
-            initcmd = os.readlink("/proc/1/exe")
-            CMAdb.underdocker =  (os.path.basename(initcmd) != 'init')
+            try:
+                initcmd = os.readlink("/proc/1/exe")
+                CMAdb.underdocker =  (os.path.basename(initcmd) != 'init')
+            except OSError:
+                print >> sys.stderr, ('Assimilation needs to run --privileged under docker')
+                CMAdb.underdocker =  True
         return CMAdb.underdocker
 
 
