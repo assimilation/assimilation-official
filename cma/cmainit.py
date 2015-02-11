@@ -43,7 +43,7 @@ class CMAinit(object):
     #cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
     # pylint: disable=R0914,R0913
     def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False
-    ,       retries=300, readonly=False, encryption_required=False):
+    ,       retries=300, readonly=False, encryption_required=False, use_network=True):
         'Initialize and construct a global database instance'
         #print >> sys.stderr, 'CALLING NEW initglobal'
         CMAdb.log = logging.getLogger('cma')
@@ -63,6 +63,7 @@ class CMAinit(object):
             CMAdb.log.info('Re-initializing the NEO4j database')
             self.delete_all()
         self.db = neodb
+        CMAdb.use_network = use_network
         trycount=0
         while True:
             try:

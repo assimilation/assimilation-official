@@ -241,10 +241,10 @@ def usage():
         print >> sys.stderr, '    %s' % commands[cmd].usage()
     return 1
 
-def dbsetup():
+def dbsetup(readonly=False):
     'Set up our connection to Neo4j'
     ourstore = Store(neo4j.GraphDatabaseService(), uniqueindexmap={}, classkeymap={})
-    CMAinit(None)
+    CMAinit(None, readonly=readonly, use_network=False)
     for classname in GraphNode.classmap:
         GraphNode.initclasstypeobj(ourstore, classname)
     return ourstore
@@ -256,6 +256,7 @@ def main(argv):
     executor_context = None
 
     nodbcmds = {'genkeys'}
+    rwcmds = {'loadqueries'}
     selected_options = {}
     narg = 0
     skipnext = False
@@ -279,7 +280,7 @@ def main(argv):
         return 1
     command = argv[1]
     if command not in nodbcmds:
-        ourstore=dbsetup()
+        ourstore=dbsetup(readonly=(command not in rwcmds))
     return commands[command].execute(ourstore, executor_context, sys.argv[2:], selected_options)
 
 
