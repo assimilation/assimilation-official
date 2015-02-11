@@ -4,7 +4,7 @@
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
-# Copyright (C) 2014 - Assimilation Systems Limited
+# Copyright (C) 2015 - Assimilation Systems Limited
 #
 # Free support is available from the Assimilation Project community - http://assimproj.org
 # Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
