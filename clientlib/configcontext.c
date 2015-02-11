@@ -983,7 +983,7 @@ _configcontext_JSON_parse_value(GScanner* scan)
 			}
 			val = _configcontext_value_new(CFG_INT64);
 			GULP;
-			val->u.intvalue = scan->value.v_int64;
+			val->u.intvalue = -scan->value.v_int64;
 			return val;
 		}
 		break;
