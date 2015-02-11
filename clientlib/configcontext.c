@@ -972,6 +972,22 @@ _configcontext_JSON_parse_value(GScanner* scan)
 			return val;
 		}
 
+		case '-': {			// Minus sign (negative integer)
+			ConfigValue* val;
+			GULP;
+			toktype = g_scanner_peek_next_token(scan);
+			if (toktype != G_TOKEN_INT) {
+				g_warning("Got token type %u after -", g_scanner_get_next_token(scan));
+				SYNERROR(scan, G_TOKEN_NONE, NULL, "Unexpected symbol after -.");
+				return NULL;
+			}
+			val = _configcontext_value_new(CFG_INT64);
+			GULP;
+			val->u.intvalue = scan->value.v_int64;
+			return val;
+		}
+		break;
+
 		case G_TOKEN_INT: {		// Integer
 			ConfigValue* val = _configcontext_value_new(CFG_INT64);
 			GULP;
