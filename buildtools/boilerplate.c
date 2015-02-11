@@ -1,9 +1,10 @@
 /**
+ * vim: number
  * @file
  * @brief Implements SOMETHING OR OTHER
  * @details Allows THE IMPLEMENTATION OF SOMETHING OR OTHER
  *
- * @author  Alan Robertson <alanr@unix.sh> - Copyright &copy; 2013 - Assimilation Systems Limited
+ * @author  Alan Robertson <alanr@unix.sh> - Copyright &copy; 2015 - Assimilation Systems Limited
  * Free support is available from the Assimilation Project community - http://assimproj.org
  * Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
  *
