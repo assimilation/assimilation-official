@@ -29,11 +29,11 @@
 #   Install required base packages
 ######################################################
 FROM ubuntu:latest
+MAINTAINER Alan Robertson <alanr@assimilationsystems.com>
 ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
-RUN apt-get -y update
-RUN apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents wget libpcap0.8-dev rsyslog
+RUN apt-get -y update && apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents wget libpcap0.8-dev rsyslog
 RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev
 RUN apt-get -y install --no-install-recommends bind9 host           # So we have some services to monitor in system testing
 RUN apt-get -y install --no-install-recommends strace gdb tcpdump   # For debugging...
@@ -42,15 +42,13 @@ RUN pip install ctypesgen 'py2neo<2.0' getent
 ###############################################################
 #   Neo4j installation
 ###############################################################
-RUN apt-get -y update
-RUN apt-get install -y --no-install-recommends openjdk-7-jre
+RUN apt-get -y install --no-install-recommends openjdk-7-jre
 # Import the Neo4j signing key
 RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 # Create an Apt sources.list file for neo4j.
 RUN neoversion=stable; echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 #RUN ls -l /etc/apt/sources.list.d && cat /etc/apt/sources.list.d/neo4j.list
-RUN apt-get -y update
-RUN apt-get -y install --no-install-recommends neo4j
+RUN apt-get update && apt-get -y install --no-install-recommends neo4j
 #
 
 ###############################################################
@@ -86,6 +84,5 @@ RUN /usr/sbin/rsyslogd&  service neo4j-service start; sleep 5; cd /root/assimila
 RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
 RUN service neo4j-service start && service neo4j-service stop # Make a lovely empty database...
 # Install be a copy of host's /etc/timezone - so logs will have right TZ
-ADD timezone /etc/
+COPY timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata
-EXPOSE 1984/udp

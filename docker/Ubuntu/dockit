@@ -36,13 +36,14 @@ cd $1
 shift
 
 CODENAME=$(basename $PWD)
-NANONAME="assim-nanoprobe.ubuntu-$CODENAME"
-CMANAME="assim-cma-ubuntu-$CODENAME"
+NANONAME="assimilation/nanoprobe-$CODENAME"
+CMANAME="assimilation/cma-$CODENAME"
 DOCKERFILE="$PWD/../Dockerfile"
 NANOFILE="$PWD/../nanoDockerfile"
 CMAFILE="$PWD/../cmaDockerfile"
+STARTFILE="$PWD/../cmaStart"
 
-BUILD="build.ubuntu-$CODENAME"
+BUILD="assimilation/build-$CODENAME"
 LOCALWS=$HOME/monitor/src
 PKGDIR=$(pwd)/
 rm -fr local nanoprobe cma
@@ -94,7 +95,7 @@ case $CODENAME in
   lucid)    echo "No CMA for $CODENAME. We're done."; exit 0;;
 esac
 cd ..
-cp $PKGDIR/packages/*cma*.deb cma/
+cp $PKGDIR/packages/*cma*.deb $STARTFILE cma/
 cat $CMAFILE | sed -e "s%@NANOBASE@%${NANONAME}:latest%" ${EFLAG}   \
             -e "s%@CMAPKG@%${CMAPKG}%"                              \
             > cma/Dockerfile
