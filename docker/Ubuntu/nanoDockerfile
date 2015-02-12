@@ -28,14 +28,16 @@
 #   Install required base packages
 ######################################################
 FROM ubuntu:latest
+MAINTAINER Alan Robertson <alanr@assimilationsystems.com>
 ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 WORKDIR /root
-RUN apt-get install --no-install-recommends libpcap0.8 libglib2.0-0
+RUN apt-get install -y --no-install-recommends libpcap0.8 libglib2.0-0 rsyslog
 RUN mkdir /tmp/pkgs
-ADD @NANOPKG@ /tmp/pkgs/
-ADD @SODIUMPKG@ /tmp/pkgs/
+COPY @NANOPKG@ /tmp/pkgs/
+COPY @SODIUMPKG@ /tmp/pkgs/
 RUN dpkg --install /tmp/pkgs/*.deb
 RUN rm -fr /tmp/pkgs/
-RUN /usr/sbin/nanoprobe # make sure library dependencies are met
+# Make sure library dependencies are met
+RUN /usr/sbin/nanoprobe && sleep 2 && /usr/sbin/nanoprobe -k

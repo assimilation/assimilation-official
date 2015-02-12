@@ -62,7 +62,7 @@ LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi
 NEO4JYUM=http://yum.neo4j.org
 RPMDIR=/root/rpmbuild
 RPMSRCDIR=$RPMDIR/SOURCES
-TARBALL=$RPMSRCDIR/assim.${ASSIMVERS}.tgz
+TARBALL=$RPMSRCDIR/${ASSIMVERS}.tar.gz
 
 enable_repos() {
   cat <<-!
@@ -104,7 +104,7 @@ rpm_build() {
 	mv $TARBALL $RPMSRCDIR/\${ASSIMVERSION}.tgz
 	scl enable $PYSCL 'easy_install pip'
 	scl enable $PYSCL 'pip install ${PIPBUILD}'
-	rpmbuild -ba /tmp/assim-rpm/\${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec --define="assimversion \${ASSIMVERSION}"
+	rpmbuild -ba /tmp/assim-rpm/\${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec --define="assimversion \${ASSIMVERSION}" --define="libsodium libsodium-last"
 	cd /
 	rm -fr /tmp/assim-rpm
 	!
@@ -131,7 +131,7 @@ neo4j_install() {
   cat <<-!
 	# Install the ${NEOEDITION} edition of Neo4j version ${NEOVERSION}
 	yum -y install ${NEO4J_DEPS}
-	wget -q -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz "http://neo4j.com/artifact.php?name=neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz"
+	wget -q "http://neo4j.com/artifact.php?name=neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz" -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
 	tar -C $NEOPARENT -xzf /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
 	ln -s $NEOPARENT/neo4j-${NEOEDITION}-${NEOVERSION}/ $NEODIR
 	printf '\n\n' | ${NEODIR}/bin/neo4j-installer install
@@ -182,7 +182,6 @@ logger_install() {
 build_for_test() {
   cat <<-!
 	# (re-)Build the Assimilation software for testing
-    set -x
 	mkdir /tmp/assimilation-test /tmp/assimilation-test/bin
 	cd /tmp/assimilation-test
     tar xzf $RPMSRCDIR/\${ASSIMVERSION}.tgz
@@ -202,7 +201,7 @@ run_assimilation_tests() {
     cd /tmp/assimilation-test/src/cma
     service $LOGGER start &
 	service ${NEOSERVICE} start & sleep 10
-	scl enable $PYSCL 'testify -v tests.cma_test'
+	scl enable $PYSCL 'assimcli genkeys && testify -v tests'
 	!
 }
 
@@ -310,9 +309,12 @@ docker_wget() {
 	state=start
 	for arg
 	do
+		echo state $state >&2
+		echo arg $arg >&2
 		case $state in
 			got-O)	fileout="$arg"; state=done;;
-			start)
+			start)	state=wget;;
+			wget)
 				case "$arg" in
 					-O)	state="got-O";;
 					-q)	;;
@@ -325,6 +327,8 @@ docker_wget() {
 	done
 	outf=$(basename $fileout)
 	inf=$(basename $urlin)
+	echo "FILEOUT is $fileout outf is [$outf]" >&2
+	echo "URLIN is $urlin out inf is [$inf]" >&2
 	if
 		[ "$inf" != "$outf" ]
 	then
