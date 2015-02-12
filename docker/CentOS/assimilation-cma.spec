@@ -195,6 +195,7 @@ Requires:         libpcap
 Requires:         glib2
 Requires:         zlib
 Requires:         %{libsodium} >= 1.0.1
+Requires:         iproute
 
 %description -n assimilation-nanoprobe
 This package contains the nanoprobe distributed monitoring agent for
