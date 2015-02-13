@@ -1,5 +1,23 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_0_5 version 0.5 - the "Valentine's day" release - 14 February 2015
+This is release is sixth in a series of releases intended to culminate in an awesomely useful release.
+It is primarily a bug fix release.
+This release is eminently suitable for deployments in environments where the caveats are acceptable.
+We have quite a few pre-built Ubuntu packages, and a few CentOS/RHEL packages for this version in the 0.5 subdirectory of 
+http://bit.ly/assimreleases.
+A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v0.5.tar.gz
+@subsection Features_0_5 New Features
+- We now produce Docker images for several versions of Linux, suitable for doing demos, testing, and learning about the software.
+@subsection BugFixes_0_5 Bug Fixes
+- Fixed a bug where command line (assimcli) queries sometimes failed due to interactions with Linux security modules
+- Fixed a longstanding-but-previously-unknown bugs where it didn't like floating point numbers or negative integers in JSON
+@subsection Caveats_0_5 Caveats
+- No alerting, or interface to existing alerting (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- the queries need to have more indexes for larger installations.
+- The CMA may suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
 @section Version_0_1_5- version 0.1.5 - the 'secure communications' release - 29 January 2015
 This is the fifth in a series of releases intended to culminate in an awesomely useful release.
 This release is eminently suitable for actual deployments in an environment where the caveats are acceptable.
@@ -23,7 +41,7 @@ A tar ball for this version can be found here: http://hg.linux-ha.org/assimilati
 - Fixed a few queries in <tt>assimcli</tt>
 @subsection Caveats_0_1_5 Caveats
 - No alerting, or interface to existing alerting (hooks to build your own interface are included)
-- high availability option for the CMA is roll-your-own
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
 - the queries need to have more indexes for larger installations.
 - The CMA may suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
 - no GUI
