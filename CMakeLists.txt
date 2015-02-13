@@ -1,4 +1,4 @@
-#
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
 #
@@ -21,7 +21,7 @@
 cmake_minimum_required(VERSION 2.6.4)
 project(assimilation C)
 execute_process (OUTPUT_VARIABLE BUILDTIME OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND date +%s)
-set (BASEVERSION "0.1.5")
+set (BASEVERSION "0.5")
 set (PROJVERS "${BASEVERSION}.${BUILDTIME}")
 set (SRCROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set (BINROOT ${CMAKE_CURRENT_BINARY_DIR})
@@ -72,8 +72,12 @@ endif (SYSTYPE STREQUAL "Linux" OR SYSTYPE STREQUAL "linux")
 if (CPACK_GENERATOR STREQUAL "DEB")
     set (NOARCH all)
     execute_process (OUTPUT_VARIABLE PROJARCH OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND dpkg --print-architecture)
+    set (LIBPCAP libpcap0.8)
+    set (LIBGLIB libglib2.0)
 else (CPACK_GENERATOR STREQUAL "DEB")
     set (NOARCH noarch)
+    set (LIBPCAP libpcap)
+    set (LIBGLIB libglib2.0)
 endif (CPACK_GENERATOR STREQUAL "DEB")
 #############################################################
 #
@@ -94,7 +98,7 @@ set (CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_CURRENT_BINARY_DIR}/buildtools/d
 set (CPACK_PACKAGE_VENDOR_NAME "The Assimilation Project - assimmon.org // Assimilation Systems Limited - assimilationsystems.com")
 set (CPACK_DEBIAN_PACKAGE_SECTION "contrib/admin")
 set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${PROJARCH})
-set (CPACK_DEB_NANOPROBE_PACKAGE_DEPENDS "libc6, resource-agents")
+set (CPACK_DEB_NANOPROBE_PACKAGE_DEPENDS "libc6, resource-agents iproute ${LIBPCAP} ${LIBGLIB}")
 set (CPACK_DEB_CMA_PACKAGE_DEPENDS "python, python-netaddr, python-flask")
 #When I turn on SHLIBDEPS, I get this error...
 #CPackDeb: dpkg-shlibdeps: dpkg-shlibdeps: need at least one executable
