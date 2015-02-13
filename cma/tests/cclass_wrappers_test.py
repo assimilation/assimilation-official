@@ -772,8 +772,10 @@ class pyConfigContextTest(TestCase):
         self.assertEqual(foo["seven"], 7)
         self.assertEqual(foo["negseven"], -9)
         self.assertEqual(str(foo), '{"arthur":42,"negseven":-9,"seven":7}')
-        bar = pyConfigContext('{"arthur":42,"negseven":-9,"seven":7}')
-        self.assertEqual(str(bar), '{"arthur":42,"negseven":-9,"seven":7}')
+        foo['plusfloat'] = 42.42
+        foo['negfloat'] = -42.42
+        bar = pyConfigContext('{"arthur":42,"negseven":-9,"seven":7, "plusfloat":42.42, "negfloat": -42.42 }')
+        self.assertEqual(str(bar), '{"arthur":42,"negfloat":-42.42,"negseven":-9,"plusfloat":42.42,"seven":7}')
         self.assertEqual(str(foo), str(bar))
 
     def test_child_ConfigContext(self):

@@ -142,6 +142,8 @@ configcontext_new(gsize objsize)	///< size of ConfigContext structure (or zero f
 	baseobj = assimobj_new(objsize);
 	newcontext = NEWSUBCLASS(ConfigContext, baseobj);
 	newcontext->getint	=	_configcontext_getint;
+	newcontext->setdouble	=	_configcontext_setdouble;
+	newcontext->getdouble	=	_configcontext_getdouble;
 	newcontext->setint	=	_configcontext_setint;
 	newcontext->appendint	=	_configcontext_appendint;
 	newcontext->getbool	=	_configcontext_getbool;
@@ -972,18 +974,25 @@ _configcontext_JSON_parse_value(GScanner* scan)
 			return val;
 		}
 
-		case '-': {			// Minus sign (negative integer)
+		case '-': {			// Minus sign (negative number)
 			ConfigValue* val;
-			GULP;
+			GULP;	// Throw away the negative sign
 			toktype = g_scanner_peek_next_token(scan);
-			if (toktype != G_TOKEN_INT) {
+			if (toktype == G_TOKEN_INT) {
+				val = _configcontext_value_new(CFG_INT64);
+				GULP;
+				val->u.intvalue = -scan->value.v_int64;
+				return val;
+			}else if (toktype == G_TOKEN_FLOAT) {
+				val = _configcontext_value_new(CFG_FLOAT);
+				GULP;
+				val->u.floatvalue = -scan->value.v_float;
+				return val;
+			}else{
 				g_warning("Got token type %u after -", g_scanner_get_next_token(scan));
 				SYNERROR(scan, G_TOKEN_NONE, NULL, "Unexpected symbol after -.");
 				return NULL;
 			}
-			val = _configcontext_value_new(CFG_INT64);
-			GULP;
-			val->u.intvalue = -scan->value.v_int64;
 			return val;
 		}
 		break;

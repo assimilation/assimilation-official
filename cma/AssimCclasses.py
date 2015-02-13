@@ -1578,11 +1578,11 @@ class pyConfigContext(pyAssimObj):
 
     def getfloat(self, name):
         'Return the floating point value associated with "name"'
-        return self._Cstruct[0].getfloat(self._Cstruct, name)
+        return self._Cstruct[0].getdouble(self._Cstruct, name)
 
     def setfloat(self, name, value):
         'Set the floating point value associated with "name"'
-        self._Cstruct[0].setfloat(self._Cstruct, name, float(value))
+        self._Cstruct[0].setdouble(self._Cstruct, name, float(value))
 
     def getaddr(self, name):
         'Return the NetAddr associated with "name"'
