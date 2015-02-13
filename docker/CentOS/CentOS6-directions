@@ -60,7 +60,7 @@ ARCH=x86_64
 LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm"
 LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm"
 NEO4JYUM=http://yum.neo4j.org
-RPMDIR=/root/rpmbuild
+RPMDIR=/rpmbuild
 RPMSRCDIR=$RPMDIR/SOURCES
 TARBALL=$RPMSRCDIR/${ASSIMVERS}.tar.gz
 
