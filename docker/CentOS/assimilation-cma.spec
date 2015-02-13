@@ -45,9 +45,6 @@
 %if %(test -z  "%{?assimversion}" && echo 1 || echo 0)
 %global assimversion must-define-assimilation-version-to-rpmbuild-using--define=version_version-hash
 %endif
-%if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
-%global libsodium libsodium
-%endif
 
 %global pymajor %(python -c 'import sys; print "%s" % sys.version_info[0]')
 %global pyminor %(python -c 'import sys; print "%s" % sys.version_info[1]')
@@ -55,6 +52,9 @@
 %global uses_systemd  %(test -f /usr/lib/systemd/systemd && echo 1 || echo 0)
 %global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
 %if %{python27_native}
+%if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
+%global libsodium libsodium
+%endif
 %else
 %global scl_python python27
 %global scl %{scl_python}
@@ -65,6 +65,11 @@
 %global __python_provides %{%{scl_python}_python_provides} 
 %global __os_install_post %{%{scl_python}_os_install_post}
 %global python_sitearch %{_scl_root}/%{_libdir}/python2.7/site-packages
+# You can find libsodium-last at ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm
+# and libsodium-last-devel at ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm
+%if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
+%global libsodium libsodium-last
+%endif
 %endif
 
 
