@@ -65,7 +65,16 @@ if (SYSTYPE STREQUAL "Linux" OR SYSTYPE STREQUAL "linux")
   if("${CMAKE_C_COMPILER}" MATCHES ".*/cc")
     set (CMAKE_C_COMPILER "/usr/bin/gcc")
   endif("${CMAKE_C_COMPILER}" MATCHES ".*/cc")
+  execute_process (OUTPUT_VARIABLE DISTRIBUTOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND lsb_release -si)
+  execute_process (OUTPUT_VARIABLE RELEASE     OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND lsb_release -sr)
+  if (DISTRIBUTOR STREQUAL "Ubuntu" AND RELEASE VERSION_LESS "14.04")
+    set (IPROUTE "iproute,")
+  else (DISTRIBUTOR STREQUAL "Ubuntu" AND RELEASE VERSION_LESS "14.04")
+    set (IPROUTE "iproute2,")
+  endif (DISTRIBUTOR STREQUAL "Ubuntu" AND RELEASE VERSION_LESS "14.04")
+
 endif (SYSTYPE STREQUAL "Linux" OR SYSTYPE STREQUAL "linux")
+
 
 
 
@@ -101,8 +110,8 @@ set (CPACK_DEBIAN_PACKAGE_ARCHITECTURE ${PROJARCH})
 # The CPACK_NANOPROBE_PACKAGE_DEPENDS only works with patched versions of cpack - so I repeat the nanoprobe ones below
 # I can't do that for the CMA dependencies, or the nanoprobe will pick up those dependencies too - which it doesn't need.
 # So, without this patch, these CMA dependencies will be missing :-(
-set (CPACK_DEB_NANOPROBE_PACKAGE_DEPENDS "libc6, resource-agents, iproute2, ${LIBPCAP}, ${LIBGLIB}")
-set (CPACK_DEBIAN_PACKAGE_DEPENDS        "libc6, resource-agents, iproute2, ${LIBPCAP}, ${LIBGLIB}")
+set (CPACK_DEB_NANOPROBE_PACKAGE_DEPENDS "libc6, resource-agents, ${IPROUTE} ${LIBPCAP}, ${LIBGLIB}")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS        "libc6, resource-agents, ${IPROUTE} ${LIBPCAP}, ${LIBGLIB}")
 set (CPACK_DEB_CMA_PACKAGE_DEPENDS "python, python-netaddr, python-flask")
 #When I turn on SHLIBDEPS, I get this error...
 #CPackDeb: dpkg-shlibdeps: dpkg-shlibdeps: need at least one executable
