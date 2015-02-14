@@ -34,7 +34,7 @@ ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN apt-get -y update && apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents wget libpcap0.8-dev rsyslog
-RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev
+RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release
 RUN apt-get -y install --no-install-recommends bind9 host           # So we have some services to monitor in system testing
 RUN apt-get -y install --no-install-recommends strace gdb tcpdump   # For debugging...
 RUN pip install ctypesgen 'py2neo<2.0' getent
@@ -71,6 +71,7 @@ RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/s
 #   Set up syslog to log to host
 RUN PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT); echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf
 #   Install Assimilation packages
+RUN lsb_release -a
 RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimilation-*.deb /root/assimilation/packages
 ###############################################################
 #   Run Assimilation unit tests

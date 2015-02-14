@@ -192,8 +192,8 @@ class DockerSystem(TestSystem):
         if self.status != TestSystem.RUNNING:
             return
         os.system("logger -s 'Running services in %s: %s'" % (self.name, str(self.runningservices)))
-        self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
-        DockerSystem.run('top', self.name)
+        #self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+        #DockerSystem.run('top', self.name)
         DockerSystem.run('stop', self.name)
         self.status = TestSystem.STOPPED
         self.pid = None
@@ -203,8 +203,8 @@ class DockerSystem(TestSystem):
         if self.status == TestSystem.RUNNING:
             os.system("logger -s 'Running services in %s: %s'"
             %   (self.name, str(self.runningservices)))
-            self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
-            DockerSystem.run('top', self.name)
+            #self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+            #DockerSystem.run('top', self.name)
         DockerSystem.run('rm', '-f', self.name)
         self.status = TestSystem.NOTINIT
 
@@ -274,7 +274,7 @@ class SystemTestEnvironment(object):
     # pylint - too many arguments
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
-    ,       cmaimage='cma.ubuntu', nanoimages=('cma.ubuntu',)
+    ,       cmaimage='assimilation/build-utopic', nanoimages=('assimilation/build-utopic',)
     ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = sysclass
