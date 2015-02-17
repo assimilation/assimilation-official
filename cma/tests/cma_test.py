@@ -43,6 +43,7 @@ from graphnodes import GraphNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
 from cmaconfig import ConfigFile
+from graphnodeexpression import ExpressionContext
 import glib # This is now our glib bindings...
 import discoverylistener
 
@@ -724,19 +725,19 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-        for tup in (sshrule.specmatch(None, (udevnode,))
-        ,   sshrule.specmatch(None, (neonode,))
-        ,   neorule.specmatch(None, (sshnode,))):
+        for tup in (sshrule.specmatch(ExpressionContext((udevnode,)))
+        ,   sshrule.specmatch(ExpressionContext((neonode,)))
+        ,   neorule.specmatch(ExpressionContext((sshnode,)))):
             (prio, table) = tup
             self.assertEqual(prio, MonitoringRule.NOMATCH)
             self.assertTrue(table is None)
 
-        (prio, table) = sshrule.specmatch(None, (sshnode,))
+        (prio, table) = sshrule.specmatch(ExpressionContext((sshnode,)))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'ssh')
 
-        (prio, table) = neorule.specmatch(None, (neonode,))
+        (prio, table) = neorule.specmatch(ExpressionContext((neonode,)))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'neo4j-service')
@@ -826,12 +827,13 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         # We'll be missing the value of 'port'
-        (prio, table, missing) = neo4j.specmatch(None, (neonode,))
+        neocontext = ExpressionContext((neonode,))
+        (prio, table, missing) = neo4j.specmatch(neocontext)
         self.assertEqual(prio, MonitoringRule.PARTMATCH)
         self.assertEqual(missing, ['port'])
         # Now fill in the port value
         neonode.port=7474
-        (prio, table) = neo4j.specmatch(None, (neonode,))
+        (prio, table) = neo4j.specmatch(neocontext)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(table['monitortype'], 'neo4j')
         self.assertEqual(table['monitorclass'], 'ocf')
@@ -909,12 +911,13 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         #neonode.serviceport=7474
-        first = MonitoringRule.findbestmatch((neonode,))
-        second = MonitoringRule.findbestmatch((neonode,), False)
-        list1 = MonitoringRule.findallmatches((neonode,))
+        context = ExpressionContext((neonode,))
+        first = MonitoringRule.findbestmatch(context)
+        second = MonitoringRule.findbestmatch(context, False)
+        list1 = MonitoringRule.findallmatches(context)
         neonode.serviceport=7474
-        third = MonitoringRule.findbestmatch((neonode,))
-        list2 = MonitoringRule.findallmatches((neonode,))
+        third = MonitoringRule.findbestmatch(context)
+        list2 = MonitoringRule.findallmatches(context)
 
         # first should be the LSB instance
         self.assertEqual(first[1]['monitorclass'], 'lsb')
@@ -1011,19 +1014,23 @@ class TestMonitorBasic(TestCase):
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         testnode.JSON_procinfo = neo4j_json
-        (prio, match) = MonitoringRule.findbestmatch((testnode,))
+        context = ExpressionContext((testnode,))
+        (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(match['arglist']['ipaddr'], '::1')
         self.assertEqual(match['arglist']['port'], '1337')
 
         testnode.JSON_procinfo = ssh_json
-        (prio, match) = MonitoringRule.findbestmatch((testnode,))
+        context = ExpressionContext((testnode,))
+        (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
+        print 'GOT MATCH:', match
         self.assertEqual(match['arglist']['port'], '22')
         self.assertEqual(match['arglist']['ipaddr'], '127.0.0.1')
 
         testnode.JSON_procinfo = bacula_json
-        (prio, match) = MonitoringRule.findbestmatch((testnode,))
+        context = ExpressionContext((testnode,))
+        (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(match['arglist']['port'], '9101')
         self.assertEqual(match['arglist']['ipaddr'], '10.10.10.5')
