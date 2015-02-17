@@ -36,7 +36,7 @@ from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
-from graphnodeexpression import GraphNodeExpression
+from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
@@ -346,35 +346,35 @@ class MonitoringRule(object):
         MonitoringRule.monitorobjects[monitorclass].append(self)
 
 
-    def specmatch(self, values, graphnodes):
-        '''Return a MonitorAction if this rule can be applies to this particular set of GraphNodes
+    def specmatch(self, context):
+        '''Return a MonitorAction if this rule can be applies in this context (GraphNodes)
         Note that the GraphNodes that we're given at the present time are typically expected to be
         the Drone node for the node it's running on and the Process node for the process
         to be monitored.
         We return (MonitoringRule.NOMATCH, None) on no match
         '''
-        if values is None:
-            values = {}
         for tup in self._tuplespec:
             expression = tup[0]
-            value = GraphNodeExpression.evaluate(expression, values, graphnodes)
+            value = GraphNodeExpression.evaluate(expression, context)
             if value is None:
+                print >> sys.stderr, 'NOMATCH from expression', expression
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
         for tup in self._tuplespec:
             name = tup[0]
             regex = tup[1]
-            val = values[name]
+            val = context.get(name)
             if not isinstance(val, (str, unicode)):
                 val = str(val)
             if not regex.match(val):
+                print >> sys.stderr, 'NOMATCH from regex', self._tuplespec, regex, val
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
-        return self.constructaction(values, graphnodes)
+        return self.constructaction(context)
 
 
 
-    def constructaction(self, values, graphnodes):
+    def constructaction(self, context):
         '''Return a tuple consisting of a tuple as noted:
             (MonitoringRule.PRIORITYVALUE, MonitorActionArgs, optional-information)
         If PRIORITYVALUE is NOMATCH, the MonitorAction will be None -- and vice versa
@@ -455,9 +455,9 @@ class MonitoringRule(object):
         raise ValueError('Invalid resource class ("class" = "%s")' % rscclass)
 
     @staticmethod
-    def compute_available_agents(graphnodes):
+    def compute_available_agents(context):
         '''Create a cache of all our available monitoring agents - and return it'''
-        for node in graphnodes:
+        for node in context.objects:
             if not hasattr(node, 'JSON_monitoringagents'):
                 continue
             if hasattr(node, '_agentcache'):
@@ -479,7 +479,7 @@ class MonitoringRule(object):
 
 
     @staticmethod
-    def findbestmatch(graphnodes, preferlowoverpart=True):
+    def findbestmatch(context, preferlowoverpart=True):
         '''
         Find the best match among the complete collection of MonitoringRules
         against this particular set of graph nodes.
@@ -491,7 +491,7 @@ class MonitoringRule(object):
 
         Parameters
         ----------
-        graphnodes: GraphNode
+        context: ExpressionContext
             The set of graph nodes with relevant attributes.  This is normally the
                      ProcessNode being monitored and the Drone the services runs on
         preferlowoverpath: Bool
@@ -508,8 +508,6 @@ class MonitoringRule(object):
         if len(rsctypes) < len(MonitoringRule.monitorobjects.keys()):
             raise RuntimeError('Update rsctypes list in findbestmatch()!')
 
-        rvalues = {}    # Most rules will examine common expressions
-                        # This handy map caches expression values.
         bestmatch = (MonitoringRule.NOMATCH, None)
 
         # Search the rule types in priority order
@@ -518,7 +516,7 @@ class MonitoringRule(object):
                 continue
             # Search every rule of class 'rtype'
             for rule in MonitoringRule.monitorobjects[rtype]:
-                match = rule.specmatch(rvalues, graphnodes)
+                match = rule.specmatch(context)
                 prio = match[0]
                 if prio == MonitoringRule.NOMATCH:
                     continue
@@ -539,18 +537,17 @@ class MonitoringRule(object):
         return bestmatch
 
     @staticmethod
-    def findallmatches(graphnodes):
+    def findallmatches(context):
         '''
         We return all possible matches as seen by our complete and wonderful set of
         MonitoringRules.
         '''
         result = []
-        rvalues = {}
         keys = MonitoringRule.monitorobjects.keys()
         keys.sort()
         for rtype in keys:
             for rule in MonitoringRule.monitorobjects[rtype]:
-                match = rule.specmatch(rvalues, graphnodes)
+                match = rule.specmatch(context)
                 if match[0] != MonitoringRule.NOMATCH:
                     result.append(match)
         return result
@@ -595,10 +592,10 @@ class LSBMonitoringRule(MonitoringRule):
         self.servicename = servicename
         MonitoringRule.__init__(self, 'lsb', tuplespec)
 
-    def constructaction(self, values, graphnodes):
+    def constructaction(self, context):
         '''Construct arguments
         '''
-        agentcache = MonitoringRule.compute_available_agents(graphnodes)
+        agentcache = MonitoringRule.compute_available_agents(context)
         if 'lsb' in agentcache and self.servicename not in agentcache['lsb']:
             return (MonitoringRule.NOMATCH, None)
         return (MonitoringRule.LOWPRIOMATCH
@@ -619,7 +616,7 @@ class NEVERMonitoringRule(MonitoringRule):
         self.servicename = servicename
         MonitoringRule.__init__(self, 'NEVERMON', tuplespec)
 
-    def constructaction(self, values, graphnodes):
+    def constructaction(self, context):
         '''Construct arguments
         '''
         return (MonitoringRule.NEVERMATCH
@@ -686,7 +683,7 @@ class OCFMonitoringRule(MonitoringRule):
         MonitoringRule.__init__(self, 'ocf', tuplespec)
 
 
-    def constructaction(self, values, graphnodes):
+    def constructaction(self, context):
         '''Construct arguments to give MonitorAction constructor
             We can either return a complete match (HIGHPRIOMATCH)
             or an incomplete match (PARTMATCH) if we can't find
@@ -694,7 +691,7 @@ class OCFMonitoringRule(MonitoringRule):
             We can also return NOMATCH if some things don't match
             at all.
         '''
-        agentcache = MonitoringRule.compute_available_agents(graphnodes)
+        agentcache = MonitoringRule.compute_available_agents(context)
         agentpath = '%s/%s' % (self.provider, self.rsctype)
         if 'ocf' in agentcache and agentpath not in agentcache['ocf']:
             return (MonitoringRule.NOMATCH, None)
@@ -711,7 +708,7 @@ class OCFMonitoringRule(MonitoringRule):
                 optional = False
                 exprname=name
             expression = self.nvpairs[name]
-            val = GraphNodeExpression.evaluate(expression, values, graphnodes)
+            val = GraphNodeExpression.evaluate(expression, context)
             if val is None and not optional:
                 missinglist.append(exprname)
             else:
@@ -804,12 +801,12 @@ if __name__ == '__main__':
     neonode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/java', neoprocargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-    print 'Should be (3, {something}):	', sshrule.specmatch(None, (sshnode,))
-    print 'This should be (0, None):	', sshrule.specmatch(None, (udevnode,))
-    print 'This should be (0, None):	', sshrule.specmatch(None, (neonode,))
-    print 'This should be (0, None):	', neorule.specmatch(None, (sshnode,))
-    print 'Should be (3, {something}):	', neorule.specmatch(None, (neonode,))
-    print 'Should be (4, {something}):	', neoocfrule.specmatch(None, (neonode,))
+    print 'Should be (3, {something}):	', sshrule.specmatch(ExpressionContext((sshnode,)))
+    print 'This should be (0, None):	', sshrule.specmatch(ExpressionContext((udevnode,)))
+    print 'This should be (0, None):	', sshrule.specmatch(ExpressionContext((neonode,)))
+    print 'This should be (0, None):	', neorule.specmatch(ExpressionContext((sshnode,)))
+    print 'Should be (3, {something}):	', neorule.specmatch(ExpressionContext((neonode,)))
+    print 'Should be (4, {something}):	', neoocfrule.specmatch(ExpressionContext((neonode,)))
     print 'Documentation of functions available for use in match expressions:'
     longest = 0
     for (funcname, description) in GraphNodeExpression.FunctionDescriptions():

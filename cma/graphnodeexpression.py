@@ -28,14 +28,14 @@ from AssimCclasses import pyNetAddr
 import sys
 #
 #
-class GraphNodeExpression:
+class GraphNodeExpression(object):
     '''We implement Graph node expressions - we are't a real class'''
     functions = {}
     def __init__(self):
-        raise NotImplementedMethod("This is not a real class")
+        raise NotImplementedMethod('This is not a real class')
 
     @staticmethod
-    def evaluate(expression, values, graphnodes):
+    def evaluate(expression, context):
         '''
         Evaluate an expression.
         It can be:
@@ -51,27 +51,27 @@ class GraphNodeExpression:
         if expression.startswith("'"):
             # The value of this parameter is a constant...
             return expression[1:]
+        if expression.startswith('0x') and len(expression) > 3:
+            return int(expression[2:], 16)
+        if expression.isdigit():
+            if expression.startswith('0'):
+                return int(expression, 8)
+            else:
+                return int(expression)
         if expression.startswith('@'):
-            value = GraphNodeExpression.functioncall(expression[1:], values, graphnodes)
-            values[expression] = value
-        if expression in values:
-            return values[expression]
-        for node in graphnodes:
-            value = node.get(expression)
-            if value is not None:
-                values[expression] = value
-                return value
-        return None
+            value = GraphNodeExpression.functioncall(expression[1:], context)
+            context[expression] = value
+        return context.get(expression, None)
 
     @staticmethod
-    def functioncall(expression, values, graphnodes):
+    def functioncall(expression, context):
         '''Performs a function call for our expression language
 
         Figures out the function name, and the arguments and then
         calls that function with those arguments.
 
-        All our defined functions take an argv argument string first, then the values
-        and graphnodes arguments.
+        All our defined functions take an argv argument string first, then an
+        ExpressionContext argument.
 
         '''
         expression = expression.strip()
@@ -89,7 +89,7 @@ class GraphNodeExpression:
                 args.append(arg.strip())
         if funname not in GraphNodeExpression.functions:
             return None
-        return GraphNodeExpression.functions[funname](args, values, graphnodes)
+        return GraphNodeExpression.functions[funname](args, context)
  
     @staticmethod
     def FunctionDescriptions():
@@ -103,14 +103,158 @@ class GraphNodeExpression:
             ret.append((name, inspect.getdoc(GraphNodeExpression.functions[name])))
         return ret
 
-
     @staticmethod
     def RegisterFun(function):
         'Function to register other functions as built-in GraphNodeExpression functions'
         GraphNodeExpression.functions[function.__name__] = function
 
+
+class ExpressionContext(object):
+    '''This class defines a context for an expression evaluation.
+    There are three parts to it:
+        1)  A cache of values which have already been computed
+        2)  A scope/context for expression evaluation - a default name prefix
+        3)  A set of objects which implement the 'get' operation to be used in
+            evaluating values of names
+
+    We act like a dict, implementing these member functions:
+    __iter__, __contains__, __len__, __getitem__ __setitem__, __delitem__,
+    get, keys, has_key, clear, items
+    '''
+
+    def __init__(self, objects, prefix=None):
+        'Initialize our ExpressionContext'
+        self.objects = objects
+        self.prefix = prefix
+        self.values = {}
+
+    def keys(self):
+        '''Return the keys in our cache - this is NOT all known keys'''
+        return self.values.keys()
+
+    def get(self, key, alternative=None):
+        '''Return the value associated with a key - cached or otherwise
+        and cache it.'''
+        if key in self.values:
+            return self.values[key]
+        for obj in self.objects:
+            ret = obj.get(key, None)
+            if ret is not None:
+                self.values[key] = ret
+                return ret
+            if self.prefix is not None:
+                ret = obj.get('%s.%s' % (self.prefix, key), None)
+                if ret is not None:
+                    self.values[key] = ret
+                    return ret
+        return alternative
+
+    def clear(self):
+        'Clear our cached values'
+        self.values = {}
+
+    def items(self):
+        'Return all items from our cache'
+        return self.values.items()
+        
+
+    def __iter__(self):
+        'Yield each key from self.keys() in turn'
+        for key in self.keys():
+            yield key
+
+    def __contains__(self, key):
+        'Return True if we can get() this key'
+        return self.get(key, None) is not None
+
+    def has_key(self, key):
+        'Return True if we can get() this key'
+        return self.get(key, None) is not None
+
+
+    def __len__(self):
+        'Return the length of our cache in self.keys() - probably not useful'
+        return len(self.values)
+
+    def __getitem__(self, key):
+        'Return the given item, or raise KeyError if not found'
+        ret = self.get(key, None)
+        if ret is None:
+            raise KeyError(key)
+        return ret
+
+    def __setitem__(self, key, value):
+        'Cache the value associated with this key'
+        self.values[key] = value
+
+    def __delitem__(self, key):
+        'Remove the cache value associated with this key'
+        del self.values[key]
+
+
 @GraphNodeExpression.RegisterFun
-def argequals(args, values, graphnodes):
+def EQ(args, context):
+    'Function to return True if each argument in the list matches the first one'
+    val0 = GraphNodeExpression.evaluate(args[0], context)
+    for arg in args[1:]:
+        val = GraphNodeExpression.evaluate(arg, context)
+        if val0 != val:
+            return False
+    return True
+
+@GraphNodeExpression.RegisterFun
+def NE(args, context):
+    'Function to return True if no argument in the list matches the first one'
+    val0 = GraphNodeExpression.evaluate(args[0], context)
+    for arg in args[1:]:
+        val = GraphNodeExpression.evaluate(arg, context)
+        if val0 == val:
+            return False
+    return True
+
+@GraphNodeExpression.RegisterFun
+def IN(args, context):
+    'Function to return True if first argument is in the list that follows'
+    val0 = GraphNodeExpression.evaluate(args[0], context)
+    for arg in args[1:]:
+        val = GraphNodeExpression.evaluate(arg, context)
+        if val0 == val:
+            return True
+    return False
+
+@GraphNodeExpression.RegisterFun
+def NOTIN(args, context):
+    'Function to return True if first argument is NOT in the list that follows'
+    val0 = GraphNodeExpression.evaluate(args[0], context)
+    for arg in args[1:]:
+        val = GraphNodeExpression.evaluate(arg, context)
+        if val0 == val:
+            return False
+    return True
+
+@GraphNodeExpression.RegisterFun
+def NOT(args, context):
+    'Function to Negate the Truth value of its single argument'
+    return not GraphNodeExpression.evaluate(args[0], context)
+
+_regex_cache = {}
+@GraphNodeExpression.RegisterFun
+def match(args, context):
+    'Function to return True if first argument matches the second argument (a regex) - optional 3rd argument is RE flags'
+    lhs = GraphNodeExpression.evaluate(args[0], context)
+    rhs = GraphNodeExpression.evaluate(args[1], context)
+    global _regex_cache
+    flags = args[2] if len(args) > 2 else None
+    cache_key = '%s//%s' % (str(rhs), str(flags))
+    if cache_key in _regex_cache:
+        regex = _regex_cache[cache_key]
+    else:
+        regex = re.compile(args[1], flags)
+        _regex_cache[cache_key] = regex
+    return regex.search(lhs) is not None
+
+@GraphNodeExpression.RegisterFun
+def argequals(args, context):
     '''
     A function which searches a list for an argument of the form name=value.
     The name is given by the argument in args, and the list 'argv'
@@ -126,15 +270,10 @@ def argequals(args, values, graphnodes):
     else:
         argname = 'argv'
         definename = args[0]
-    if argname in values:
-        listtosearch = values[argname]
+    if argname in context:
+        listtosearch = context[argname]
     else:
-        listtosearch = None
-        for node in graphnodes:
-            value = node.get(argname)
-            if value is not None:
-                listtosearch = value
-                break
+        listtosearch = context.get(argname, None)
     if listtosearch is None:
         return None
     prefix = '%s=' % definename
@@ -149,7 +288,7 @@ def argequals(args, values, graphnodes):
     return None
 
 @GraphNodeExpression.RegisterFun
-def flagvalue(args, values, graphnodes):
+def flagvalue(args, context):
     '''
     A function which searches a list for a -flag and returns
     the value of the option which is the next argument.
@@ -169,7 +308,7 @@ def flagvalue(args, values, graphnodes):
         argname = 'argv'
         flagname = args[0]
 
-    progargs = GraphNodeExpression.evaluate(argname, values, graphnodes)
+    progargs = GraphNodeExpression.evaluate(argname, context)
     argslen = len(progargs)
     flaglen = len(flagname)
     for pos in range(0, argslen):
@@ -186,7 +325,7 @@ def flagvalue(args, values, graphnodes):
     return None
 
 @GraphNodeExpression.RegisterFun
-def OR(args, values, graphnodes):
+def OR(args, context):
     '''
     A function which evaluates the each expression in turn, and returns the value
     of the first expression which is not None.
@@ -194,13 +333,28 @@ def OR(args, values, graphnodes):
     if len(args) < 2:
         return None
     for arg in args:
-        value = GraphNodeExpression.evaluate(arg, values, graphnodes)
+        value = GraphNodeExpression.evaluate(arg, context)
         if value is not None:
             return value
     return None
 
 @GraphNodeExpression.RegisterFun
-def is_upstartjob(args, values, graphnodes):
+def bitwiseOR(args, context):
+    '''
+    A function which evaluates the each expression and returns the bitwise OR of
+    all the expressions given as arguments
+    '''
+    if len(args) < 2:
+        return None
+    result = 0
+    for arg in args:
+        value = GraphNodeExpression.evaluate(arg, context)
+        if value is not None:
+            result |= value
+    return result
+
+@GraphNodeExpression.RegisterFun
+def is_upstartjob(args, context):
     '''
     Returns "true" if any of its arguments names an upstart job, "false" otherwise
     If no arguments are given, it returns whether this system has upstart enabled.
@@ -208,21 +362,21 @@ def is_upstartjob(args, values, graphnodes):
 
 
     from monitoring import MonitoringRule
-    agentcache = MonitoringRule.compute_available_agents(graphnodes)
+    agentcache = MonitoringRule.compute_available_agents(context)
 
     if 'upstart' not in agentcache or len(agentcache['upstart']) == 0:
         return 'false'
 
     for arg in args:
-        value = GraphNodeExpression.evaluate(arg, values, graphnodes)
+        value = GraphNodeExpression.evaluate(arg, context)
         if value in agentcache['upstart']:
             return 'true'
-    return len(values) == 0
+    return len(args) == 0
 
 
 # Netstat format IP:port pattern
 ipportregex = re.compile('(.*):([^:]*)$')
-def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
+def selectanipport(arg, context, preferlowestport=True, preferv4=True):
     '''This function searches discovery information for a suitable IP
     address/port combination to go with the service.
     '''
@@ -245,7 +399,6 @@ def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
                 ipport = pyNetAddr('::1', port=ipport.port())
         return ipport
 
-    graphnodes = graphnodes
         
     try:
         portlist = {}
@@ -275,21 +428,20 @@ def selectanipport(arg, graphnodes, preferlowestport=True, preferv4=True):
         return None
 
 @GraphNodeExpression.RegisterFun
-def serviceip(args, values, graphnodes):
+def serviceip(args, context):
     '''
     This function searches discovery information for a suitable concrete IP
     address for a service.
     The argument to this function tells it an expression that will give
     it the hash table (map) of IP/port combinations for this service.
     '''
-    values = values
     if len(args) == 0:
         args = ('JSON_procinfo.listenaddrs',)
     for arg in args:
-        nmap = GraphNodeExpression.evaluate(arg, values, graphnodes)
+        nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
             continue
-        ipport = selectanipport(nmap, graphnodes)
+        ipport = selectanipport(nmap, context)
         if ipport is None:
             continue
         ipport.setport(0) # Make sure return value doesn't include the port
@@ -297,7 +449,7 @@ def serviceip(args, values, graphnodes):
     return None
 
 @GraphNodeExpression.RegisterFun
-def serviceport(args, values, graphnodes):
+def serviceport(args, context):
     '''
     This function searches discovery information for a suitable port for a service.
     The argument to this function tells it an expression that will give
@@ -305,19 +457,18 @@ def serviceport(args, values, graphnodes):
     '''
     if len(args) == 0:
         args = ('JSON_procinfo.listenaddrs',)
-    values = values
     for arg in args:
-        nmap = GraphNodeExpression.evaluate(arg, values, graphnodes)
+        nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
             continue
-        port = selectanipport(nmap, graphnodes).port()
+        port = selectanipport(nmap, context).port()
         if port is None:
             continue
         return str(port)
     return None
 
 @GraphNodeExpression.RegisterFun
-def serviceipport(args, values, graphnodes):
+def serviceipport(args, context):
     '''
     This function searches discovery information for a suitable ip:port combination.
     The argument to this function tells it an expression that will give
@@ -327,28 +478,26 @@ def serviceipport(args, values, graphnodes):
     '''
     if len(args) == 0:
         args = ('JSON_procinfo.listenaddrs',)
-    values = values
     for arg in args:
-        nmap = GraphNodeExpression.evaluate(arg, values, graphnodes)
+        nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
             continue
-        ipport = selectanipport(nmap, graphnodes)
+        ipport = selectanipport(nmap, context)
         if ipport is None:
             continue
         return str(ipport)
     return None
 
 @GraphNodeExpression.RegisterFun
-def basename(args, values, graphnodes):
+def basename(args, context):
     '''
     This function returns the basename from a pathname.
     If no pathname is supplied, then the executable name is assumed.
     '''
     if len(args) == 0:
         args = ('pathname',)    # Default to the name of the executable
-    values = values
     for arg in args:
-        pathname = GraphNodeExpression.evaluate(arg, values, graphnodes)
+        pathname = GraphNodeExpression.evaluate(arg, context)
         if pathname is None:
             continue
         return os.path.basename(pathname)
@@ -356,16 +505,15 @@ def basename(args, values, graphnodes):
 
 
 @GraphNodeExpression.RegisterFun
-def dirname(args, values, graphnodes):
+def dirname(args, context):
     '''
     This function returns the directory name from a pathname.
     If no pathname is supplied, then the discovered service executable name is assumed.
     '''
     if len(args) == 0:
         args = ('pathname',)    # Default to the name of the executable
-    values = values
     for arg in args:
-        pathname = GraphNodeExpression.evaluate(arg, values, graphnodes)
+        pathname = GraphNodeExpression.evaluate(arg, context)
         if pathname is None:
             continue
         return os.path.dirname(pathname)
