@@ -416,6 +416,7 @@ class Drone(SystemNode):
         for msgtype in msgtypes:
             if msgtype not in Drone._JSONprocessors[priority]:
                 Drone._JSONprocessors[priority][msgtype] = []
-            Drone._JSONprocessors[priority][msgtype].append(clstoadd)
+            if clstoadd not in Drone._JSONprocessors[priority][msgtype]:
+                Drone._JSONprocessors[priority][msgtype].append(clstoadd)
 
         return clstoadd
