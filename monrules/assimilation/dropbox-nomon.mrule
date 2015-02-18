@@ -20,6 +20,6 @@
     "class":    "NEVERMON",
     "type":     "dropbox",
     "classconfig": [
-        ["pathname", "/home/[^/]*/\\.dropbox-dist/dropbox$"]
+        ["$pathname", "/home/[^/]*/\\.dropbox-dist/dropbox$"]
 	]
 }

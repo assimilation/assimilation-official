@@ -23,6 +23,6 @@
     "type":     "rpcbind",
     "classconfig": [
         ["@basename()", "rpcbind$"],
-        ["uid",         "root$"]
+        ["$uid",         "root$"]
 	]
 }

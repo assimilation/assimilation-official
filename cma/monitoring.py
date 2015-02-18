@@ -353,24 +353,30 @@ class MonitoringRule(object):
         to be monitored.
         We return (MonitoringRule.NOMATCH, None) on no match
         '''
+        #print >> sys.stderr, 'SPECMATCH BEING EVALED:', self._tuplespec, self.__class__
         for tup in self._tuplespec:
             expression = tup[0]
             value = GraphNodeExpression.evaluate(expression, context)
             if value is None:
-                print >> sys.stderr, 'NOMATCH from expression', expression
+                #print >> sys.stderr, 'NOMATCH from expression', expression
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
         for tup in self._tuplespec:
             name = tup[0]
             regex = tup[1]
-            val = context.get(name)
+            #print >> sys.stderr, 'TUPLE BEING EVALED:', name, regex.pattern
+            val = GraphNodeExpression.evaluate(name, context)
+            #print >> sys.stderr, 'EXPRESSION %s => %s' % (name, val)
             if not isinstance(val, (str, unicode)):
                 val = str(val)
             if not regex.match(val):
-                print >> sys.stderr, 'NOMATCH from regex', self._tuplespec, regex, val
+                #print >> sys.stderr, 'NOMATCH from regex [%s] [%s]' % (regex.pattern, val)
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
-        return self.constructaction(context)
+        #print >> sys.stderr, 'CALLING CONSTRUCTACTION:', self._tuplespec
+        ret =  self.constructaction(context)
+        #print >> sys.stderr, 'CONSTRUCTACTION => %s' % str(ret)
+        return ret
 
 
 
@@ -517,6 +523,7 @@ class MonitoringRule(object):
             # Search every rule of class 'rtype'
             for rule in MonitoringRule.monitorobjects[rtype]:
                 match = rule.specmatch(context)
+                #print >> sys.stderr, 'GOT A MATCH------------->', match
                 prio = match[0]
                 if prio == MonitoringRule.NOMATCH:
                     continue
@@ -709,6 +716,7 @@ class OCFMonitoringRule(MonitoringRule):
                 exprname=name
             expression = self.nvpairs[name]
             val = GraphNodeExpression.evaluate(expression, context)
+            #print >> sys.stderr, 'CONSTRUCTACTION.eval(%s) => %s' % (expression, val)
             if val is None and not optional:
                 missinglist.append(exprname)
             else:

@@ -22,6 +22,6 @@
     "classconfig": [
         ["@basename()",         "perl$"],
         ["@basename(argv[-1])", "munin-node$"],
-        ["uid",                 "root$"]
+        ["$uid",                 "root$"]
 	]
 }
