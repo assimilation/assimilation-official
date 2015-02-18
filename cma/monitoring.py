@@ -745,19 +745,19 @@ class OCFMonitoringRule(MonitoringRule):
 if __name__ == '__main__':
     from graphnodes import ProcessNode
     neolsbargs = (
-                ('argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
-                ('argv[3]', r'-server$'),             # Probably overkill
-                ('argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+                ('$argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                ('$argv[3]', r'-server$'),             # Probably overkill
+                ('$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
         )
     neorule = LSBMonitoringRule('neo4j-service', neolsbargs)
     neolsbargs = (
-                ('argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
-                ('argv[3]', r'-server$'),             # Probably overkill
-                ('argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+                ('$argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                ('$argv[3]', r'-server$'),             # Probably overkill
+                ('$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
         )
     neoocfargs = (
         (None,          "@basename()",               "java$"),
-        (None,          "argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"),
+        (None,          "$argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"),
         #("ipport",      "@serviceipport()",          "..."),
         ("neo4j_home",  "@argequals(-Dneo4j.home)", "/"),
         ("neo4j",       "@basename(@argequals(-Dneo4j.home))",".")
@@ -772,7 +772,7 @@ if __name__ == '__main__':
     sshargs = (
                 # This means one of our nodes should have a value called
                 # pathname, and it should end in '/sshd'
-                ('pathname', '.*/sshd$'),
+                ('$pathname', '.*/sshd$'),
         )
     sshrule = LSBMonitoringRule('ssh', sshargs)
 
