@@ -809,12 +809,43 @@ if __name__ == '__main__':
     neonode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/java', neoprocargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-    print 'Should be (3, {something}):	', sshrule.specmatch(ExpressionContext((sshnode,)))
-    print 'This should be (0, None):	', sshrule.specmatch(ExpressionContext((udevnode,)))
-    print 'This should be (0, None):	', sshrule.specmatch(ExpressionContext((neonode,)))
-    print 'This should be (0, None):	', neorule.specmatch(ExpressionContext((sshnode,)))
-    print 'Should be (3, {something}):	', neorule.specmatch(ExpressionContext((neonode,)))
-    print 'Should be (4, {something}):	', neoocfrule.specmatch(ExpressionContext((neonode,)))
+    tests = [
+        (sshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.LOWPRIOMATCH),
+        (sshrule.specmatch(ExpressionContext((udevnode,))), MonitoringRule.NOMATCH),
+        (sshrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.NOMATCH),
+        (neorule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.NOMATCH),
+        (neorule.specmatch(ExpressionContext((neonode,))), MonitoringRule.LOWPRIOMATCH),
+        (neoocfrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.HIGHPRIOMATCH),
+    ]
+    fieldmap = {'monitortype': str, 'arglist':dict, 'monitorclass': str, 'provider':str}
+    for count in range(0, len(tests)):
+        testresult = tests[count][0]
+        expected = tests[count][1]
+        assert (testresult[0] == expected)
+        if testresult[0] == MonitoringRule.NOMATCH:
+            assert testresult[1] is None
+        else:
+            assert isinstance(testresult[1], dict)
+            for field in fieldmap.keys():
+                assert field in testresult[1]
+                fieldvalue = testresult[1][field]
+                assert fieldvalue is None or isinstance(fieldvalue, fieldmap[field])
+            assert testresult[1]['monitorclass'] in ('ocf', 'lsb')
+            if testresult[1]['monitorclass'] == 'ocf':
+                assert testresult[1]['provider'] is not None
+                assert isinstance(testresult[1]['arglist'], dict)
+            elif testresult[1]['monitorclass'] == 'lsb':
+                assert testresult[1]['provider'] is None
+                assert testresult[1]['arglist'] is None
+                assert isinstance(testresult[1]['rscname'], str)
+            if testresult[0] == MonitoringRule.PARTMATCH:
+                assert testresult[1]['monitorclass'] in ('ocf',)
+                assert len(testresult) == 3
+                assert isinstance(testresult[2], (list, tuple)) # List of missing fields...
+                assert len(testresult[2]) > 0
+
+        print "Test %s passes [%s]." % (count, testresult)
+
     print 'Documentation of functions available for use in match expressions:'
     longest = 0
     for (funcname, description) in GraphNodeExpression.FunctionDescriptions():
@@ -831,4 +862,3 @@ if __name__ == '__main__':
             print fmt2 % descr
 
     MonitoringRule.load_tree("monrules")
-    print MonitoringRule.monitorobjects
