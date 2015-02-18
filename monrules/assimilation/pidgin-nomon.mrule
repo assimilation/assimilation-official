@@ -20,6 +20,6 @@
     "class":    "NEVERMON",
     "type":     "pidgin",
     "classconfig": [
-        ["pathname", "/usr/bin/pidgin$"]
+        ["$pathname", "/usr/bin/pidgin$"]
 	]
 }

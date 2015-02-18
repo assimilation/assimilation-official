@@ -20,6 +20,6 @@
     "class":    "NEVERMON",
     "type":     "turbo print daemon",
     "classconfig": [
-        ["pathname", "/usr/bin/tprintdaemon$"]
+        ["$pathname", "/usr/bin/tprintdaemon$"]
 	]
 }

@@ -684,9 +684,9 @@ class TestMonitorBasic(TestCase):
 
     def test_automonitor_LSB_basic(self):
         neoargs = (
-                    ('argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
-                    ('argv[3]', r'-server$'),             # Probably overkill
-                    ('argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+                    ('$argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
+                    ('$argv[3]', r'-server$'),             # Probably overkill
+                    ('$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
             )
         neorule = LSBMonitoringRule('neo4j-service', neoargs)
 
@@ -769,13 +769,13 @@ class TestMonitorBasic(TestCase):
     def test_automonitor_OCF_basic(self):
         kitchensink = OCFMonitoringRule('assimilation', 'neo4j',
         (   ('cantguess',)                  #   length 1 - name
-        ,   ('port', 'port')                #   length 2 - name, expression
-        ,   (None, 'port')                  #   length 2 - name, expression
-        ,   ('-', 'pathname')               #   length 2 - name, expression
-        ,   ('port', 'port', '[0-9]+$')     #   length 3 - name, expression, regex
-        ,   (None, 'pathname', '.*/java$')  #   length 3 - name, expression, regex
+        ,   ('port', '$port')               #   length 2 - name, expression
+        ,   (None, '$port')                 #   length 2 - name, expression
+        ,   ('-', '$pathname')              #   length 2 - name, expression
+        ,   ('port', '$port', '[0-9]+$')    #   length 3 - name, expression, regex
+        ,   (None, '$pathname', '.*/java$') #   length 3 - name, expression, regex
         ,   (None, '@basename()', 'java$')  #   length 3 - name, expression, regex
-        ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
+        ,   ('-', '$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
                                             #   length 3 - name, expression, regex
         ,   ('port', '@serviceport()', '[0-9]+$', re.I)  #   length 4 - name, expression, regex, flags
         ))
@@ -793,7 +793,7 @@ class TestMonitorBasic(TestCase):
             self.assertEqual(type(tup[1]), regextype)
             exprlist.append(tup[0])
         self.assertEqual(str(exprlist)
-        ,   "['port', 'pathname', '@basename()', 'argv[-1]', '@serviceport()']")
+        ,   "['$port', '$pathname', '@basename()', '$argv[-1]', '@serviceport()']")
         #
         # That was a pain...
         #
@@ -801,9 +801,9 @@ class TestMonitorBasic(TestCase):
         # set of arguments to a (hypothetical) OCF resource agent
         #
         neo4j = OCFMonitoringRule('assimilation', 'neo4j',
-            (   ('port', 'port')
-            ,   (None, 'pathname', '.*/java$')
-            ,   ('-', 'argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
+            (   ('port', '$port')
+            ,   (None, '$pathname', '.*/java$')
+            ,   ('-', '$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
             ,   ('home', '@argequals(-Dneo4j.home)', '/.*')
             ,   ('neo4j', '@basename(@argequals(-Dneo4j.home))', '.')
             )
@@ -828,6 +828,7 @@ class TestMonitorBasic(TestCase):
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         # We'll be missing the value of 'port'
         neocontext = ExpressionContext((neonode,))
+        match = neo4j.specmatch(neocontext)
         (prio, table, missing) = neo4j.specmatch(neocontext)
         self.assertEqual(prio, MonitoringRule.PARTMATCH)
         self.assertEqual(missing, ['port'])
@@ -858,7 +859,7 @@ class TestMonitorBasic(TestCase):
         "provider":     "assimilation",
         "classconfig": [
             [null,      "@basename()",              "java$"],
-            [null,      "argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"],
+            [null,      "$argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"],
             ["PORT",    "serviceport",              "[0-9]+$"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
@@ -871,7 +872,7 @@ class TestMonitorBasic(TestCase):
         "type":         "neo4j",
         "classconfig": [
             ["@basename()",    "java$"],
-            ["argv[-1]",       "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["$argv[-1]",       "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
 }'''
         lsb = MonitoringRule.ConstructFromString(lsb_string)
@@ -883,8 +884,8 @@ class TestMonitorBasic(TestCase):
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
             [null,      "@basename()",          "java$"],
-            [null,      "argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
-            ["PORT",    "serviceport"],
+            [null,      "$argv[-1]",             "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["PORT",    "$serviceport"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
         }'''
@@ -893,7 +894,7 @@ class TestMonitorBasic(TestCase):
         "class":        "lsb", "type":         "neo4j",
         "classconfig": [
             ["@basename()",    "java$"],
-            ["argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
+            ["$argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
         }'''
         MonitoringRule.ConstructFromString(lsb_string)
@@ -949,7 +950,7 @@ class TestMonitorBasic(TestCase):
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
             ["classpath",   "@flagvalue(-cp)"],
-            ["ipaddr",      "@serviceip(JSON_procinfo.listenaddrs)"],
+            ["ipaddr",      "@serviceip($JSON_procinfo.listenaddrs)"],
             ["port",        "@serviceport()",   "[0-9]+$"]
         ]
         }'''
@@ -1024,7 +1025,6 @@ class TestMonitorBasic(TestCase):
         context = ExpressionContext((testnode,))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
-        print 'GOT MATCH:', match
         self.assertEqual(match['arglist']['port'], '22')
         self.assertEqual(match['arglist']['ipaddr'], '127.0.0.1')
 

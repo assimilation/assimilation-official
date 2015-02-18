@@ -34,8 +34,8 @@
     "classconfig": [
 #       OCF parameter   expression-to-eval  regular expression
         [null,          "@basename()",      "named$"],
-        ["named",       "pathname"],
-        ["named_user",  "uid"],
+        ["named",       "$pathname"],
+        ["named_user",  "$uid"],
         ["?configfile", "@flagvalue(-c)"]
 	]
 }

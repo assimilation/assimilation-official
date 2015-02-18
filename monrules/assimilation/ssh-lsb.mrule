@@ -21,7 +21,7 @@
     "type":     "ssh",
     "classconfig": [
         ["@basename()", "sshd$"],
-        ["uid",         "root$"],
+        ["@uid",         "root$"],
 #       Ubuntu supplies an init script, but manages sshd w/upstart - so the init script won't work
         ["@is_upstartjob()", "false"]
 	]
