@@ -46,7 +46,7 @@ if
   [ $# = 0 ]
 then
   LIST='AssimCclasses.py assimjson.py cmadb.py cma.py cmainit.py consts.py dispatchtarget.py droneinfo.py frameinfo.py hbring.py messagedispatcher.py packetlistener.py query.py store.py transaction.py'
-  LIST='AssimCclasses.py assimcli.py assimevent.py assimeventobserver.py assimjson.py checksumdiscovery.py cmadb.py cmainit.py cma.py cmaconfig.py consts.py discoverylistener.py dispatchtarget.py droneinfo.py frameinfo.py graphnodes.py hbring.py linkdiscovery.py messagedispatcher.py monitoring.py monitoringdiscovery.py packetlistener.py query.py store.py transaction.py flask/hello.py'
+  LIST='AssimCclasses.py assimcli.py assimevent.py assimeventobserver.py assimjson.py bestpractices.py checksumdiscovery.py cmadb.py cmainit.py cma.py cmaconfig.py consts.py discoverylistener.py dispatchtarget.py droneinfo.py frameinfo.py graphnodes.py hbring.py linkdiscovery.py messagedispatcher.py monitoring.py monitoringdiscovery.py packetlistener.py query.py store.py transaction.py flask/hello.py'
  LIST="$LIST $(echo systemtests/*.py)"
 else
   LIST="$@"

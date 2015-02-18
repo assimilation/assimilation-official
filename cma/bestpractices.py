@@ -36,6 +36,9 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+'''
+This module defines some classes related to evaluating best practices based on discovery information
+'''
 from droneinfo import Drone
 from discoverylistener import DiscoveryListener
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
@@ -72,6 +75,7 @@ class BestPractices(DiscoveryListener):
 
     def processpkt(self, drone, srcaddr, jsonobj):
         '''Inform interested rule sets about this change'''
+        self = self
         discovertype = jsonobj['discovertype']
         if discovertype not in BestPractices.evaluators:
             return
@@ -80,10 +84,11 @@ class BestPractices(DiscoveryListener):
             failures = rule.evaluate(drone, srcaddr, jsonobj)
             if failures is not None:
                 for failure in failures:
-                    pass
+                    failure = failure
 
     def evaluate(self, unuseddrone, unusedsrcaddr, unusedjsonobj):
         'Evaluate our rules given this changed data'
+        self = self
         unuseddrone = unuseddrone
         unusedsrcaddr = unusedsrcaddr
         unusedjsonobj = unusedjsonobj
@@ -95,7 +100,7 @@ class BestPracticesProcSys(BestPractices):
     'Best Practices for Linux /proc/sys values'
     rules = [
         {'tags': 'security',    'rule': 'EQ($kernel.core_setuid_ok, 0)'},
-        {'tags': 'security',    'rule': 
+        {'tags': 'security',    'rule':
                         'OR(EQ($kernel.core_uses_pid, 1), NE($kernel.core_pattern, ""))'},
         {'tags': 'security',    'rule': 'EQ($kernel.ctrl-alt-del, 0)'},
         {'tags': 'security',    'rule': 'EQ($kernel.exec-shield, 1)'},
@@ -112,10 +117,11 @@ class BestPracticesProcSys(BestPractices):
         {'tags': 'security',    'rule': 'EQ($net.net.ip6.redirect, 0)'},
     ]
 
-    
+
     def evaluate(self, drone, unusedsrcaddr, jsonobj):
         'Evaluate our rules given the current data'
         unusedsrcaddr = unusedsrcaddr
+        drone = drone
         #oldcontext = ExpressionContext((drone,), prefix='JSON_proc_sys')
         newcontext = ExpressionContext((jsonobj,))
         for ruleinfo in BestPracticesProcSys.rules:
@@ -162,8 +168,10 @@ if __name__ == '__main__':
     "net.ipv6.conf.all.accept_redirects": 1,
     "net.ipv6.conf.all.accept_source_route": 0
     }}'''
-    jsonobj = pyConfigContext(JSON_data)['data']
+    testjsonobj = pyConfigContext(JSON_data)['data']
     procsys = BestPracticesProcSys(None, None, None, None, False)
-    procsys.evaluate(None, None, jsonobj)
+    procsys.evaluate(None, None, testjsonobj)
+    # [W0212:] Access to a protected member _JSONprocessors of a client class
+    # pylint: disable=W0212
     print Drone._JSONprocessors
     print BestPractices.evaluators
