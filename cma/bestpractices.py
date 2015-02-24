@@ -99,22 +99,48 @@ class BestPractices(DiscoveryListener):
 class BestPracticesProcSys(BestPractices):
     'Best Practices for Linux /proc/sys values'
     rules = [
-        {'tags': 'security',    'rule': 'EQ($kernel.core_setuid_ok, 0)'},
-        {'tags': 'security',    'rule':
-                        'OR(EQ($kernel.core_uses_pid, 1), NE($kernel.core_pattern, ""))'},
-        {'tags': 'security',    'rule': 'EQ($kernel.ctrl-alt-del, 0)'},
-        {'tags': 'security',    'rule': 'EQ($kernel.exec-shield, 1)'},
-        {'tags': 'security',    'rule': 'EQ($kernel.exec-shield-randomize, 1)'},
-        {'tags': 'security',    'rule': 'EQ($kernel.sysrq, 0)'},
-        {'tags': 'security',    'rule': 'EQ($kernel.randomize_va_space, 2)'},
-        {'tags': 'security',    'rule': 'EQ($kernel.use-nx, 2)'},
-        {'tags': 'network',     'rule': 'IN($net.core.default_qdisc, fq_codel, codel)'},
-        {'tags': 'security',    'rule': 'EQ($net.inet.icmp.bmcastecho, 2)'},
-        {'tags': 'security',    'rule': 'EQ($net.ipv4.icmp.bmcastecho, 2)'},
-        {'tags': 'security',    'rule': 'EQ($net.ipv4.icmp.rediraccept, 0)'},
-        {'tags': 'security',    'rule': 'EQ($net.inet.ip.accept_sourceroute, 0)'},
-        {'tags': 'security',    'rule': 'EQ($net.net.ip6.rediraccept, 0)'},
-        {'tags': 'security',    'rule': 'EQ($net.net.ip6.redirect, 0)'},
+        {'tags': 'security',
+         'rule': 'EQ($kernel.core_setuid_ok, 0)',
+         'url': 'https://trello.com/c/g9z9hDy8' },
+        {'tags': 'security',
+         'rule': 'OR(EQ($kernel.core_uses_pid, 1), NE($kernel.core_pattern, ""))',
+         'url': 'https://trello.com/c/6LOXeyDD' },
+        {'tags': 'security',
+         'rule': 'EQ($kernel.ctrl-alt-del, 0)',
+         'url': 'https://trello.com/c/aUmn4WFg' },
+        {'tags': 'security',
+         'rule': 'EQ($kernel.exec-shield, 1)',
+         'url': 'https://trello.com/c/pBBZezUS' },
+        {'tags': 'security',
+         'rule': 'EQ($kernel.exec-shield-randomize, 1)',
+         'url': 'https://trello.com/c/ddbaElZM' },
+        {'tags': 'security',
+         'rule': 'EQ($kernel.sysrq, 0)',
+         'url': 'https://trello.com/c/QSovxhup' },
+        {'tags': 'security',
+         'rule': 'EQ($kernel.randomize_va_space, 2)',
+         'url': 'https://trello.com/c/5d5o5TAi' },
+        {'tags': 'security',
+         'rule': 'EQ($kernel.use-nx, 2)',
+         'url': 'https://trello.com/c/aBHWB70x' },
+        {'tags': 'network',
+         'rule': 'IN($net.core.default_qdisc, fq_codel, codel)',
+         'url': 'https://trello.com/c/EwPF4S9z' },
+        {'tags': 'security',
+         'rule': 'EQ($net.ipv4.icmp.bmcastecho, 2)',
+         'url': 'https://trello.com/c/N3wHjSFb' },
+        {'tags': 'security',
+         'rule': 'EQ($net.ipv4.icmp.rediraccept, 0)',
+         'url': 'https://trello.com/c/CZYlfHWv' },
+        {'tags': 'security',
+         'rule': 'EQ($net.inet.ip.accept_sourceroute, 0)',
+         'url': 'https://trello.com/c/hKkKhNl1' },
+        {'tags': 'security',
+         'rule': 'EQ($net.net.ip6.rediraccept, 0)',
+         'url': 'https://trello.com/c/CZYlfHWv' },
+        {'tags': 'security',
+         'rule': 'EQ($net.net.ip6.redirect, 0)',
+         'url': 'https://trello.com/c/Zzk5HX4j' },
     ]
 
 
@@ -127,6 +153,7 @@ class BestPracticesProcSys(BestPractices):
         for ruleinfo in BestPracticesProcSys.rules:
             rule = ruleinfo['rule']
             tags = ruleinfo['tags']
+            url = ruleinfo['url']
             result = GraphNodeExpression.evaluate(rule, newcontext)
             if result is None:
                 print >> sys.stderr, 'n/a:  %s (%s)' % (rule, tags)
@@ -135,7 +162,7 @@ class BestPracticesProcSys(BestPractices):
             elif result:
                 print >> sys.stderr, 'PASS: %s (%s)' % (rule, tags)
             else:
-                print >> sys.stderr, 'FAIL: %s %s (%s)' % (rule, result, tags)
+                print >> sys.stderr, 'FAIL: %s %s (%s) => %s' % (rule, result, tags, url)
 
 if __name__ == '__main__':
     from AssimCclasses import pyConfigContext
