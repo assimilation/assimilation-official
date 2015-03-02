@@ -67,7 +67,7 @@ resourceocf_new(
 		return NULL;
 	}
 	if (strchr(restype, '/') != NULL) {
-		g_warning("%s.%d: "CONFIGNAME_TYPE" field in LSB agent contains a slash."
+		g_warning("%s.%d: "CONFIGNAME_TYPE" field in OCF agent contains a slash."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
@@ -78,7 +78,7 @@ resourceocf_new(
 		return NULL;
 	}
 	if (strchr(provider, '/') != NULL) {
-		g_warning("%s.%d: "REQPROVIDERNAMEFIELD" field in LSB agent contains a slash."
+		g_warning("%s.%d: "REQPROVIDERNAMEFIELD" field in OCF agent contains a slash."
 		,	__FUNCTION__, __LINE__);
 		return NULL;
 	}
