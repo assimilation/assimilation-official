@@ -1,0 +1,88 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   nsswitch discovery agent
+# 
+#   We reformat files in nsswitch.conf format into JSON
+#   Our 'data' JSON object contains one name/value for each service in the file
+#   The values for each service are an array of possible sources for that service
+#   Each value is a JSON object with a name of "source" and the value of that source
+#   name.  Any optional [foo=bar] modifiers then get translated into JSON "foo": "bar"
+#   name/value pairs in the source object.
+#
+#   This script operates by default on /etc/nsswitch.conf, but we take ${NSSWITCH} from the
+#   environment if you want this script to operate on some other similarly-formatted file...
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+set -e
+: ${NSSWITCH=/etc/nsswitch.conf}
+
+# Format our $NSSWITCH file information into JSON
+# The [name=value] actions following source names put a kink into otherwise simple output...
+nsswitch_info() {
+    dbdelim='    '
+    while read dbname words
+    do
+        case $dbname in
+          \#*|'')  continue;;
+        esac
+        dbname=$(echo "$dbname" | tr -d :)
+        printf '%s"%s": [' "$dbdelim" "$dbname"
+        delim=''
+        for word in ${words}
+        do
+            case $word in 
+                *=*)
+                    printf '%s%s' "$(echo "$word" | sed -e 's%^\[\(.*\)=\(.*\)]%, "\1":"\2"%')"
+                    ;;
+                *)  printf '%s{"source": "%s"' "${delim}" "$word";;
+            esac
+            delim='}, '
+        done
+        printf '}]'
+        dbdelim=',
+    '
+    done
+}
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "nsswitch",
+	  "description": "Discover $NSSWITCH configuration",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+	nsswitch_info < $1
+  printf '\n  }\n}\n'
+}
+
+if
+    [ -f "$NSSWITCH"  -a -r "$NSSWITCH" ]
+then
+    discover /etc/nsswitch.conf
+else
+    echo "No $NSSWITCH file present.  Discovery not possible." >&2
+    exit 1
+fi
