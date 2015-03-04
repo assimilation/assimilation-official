@@ -47,9 +47,9 @@ discover_commands() {
 }
 
 format_output() {
-	comma='    '
+	comma='  '
     delim=',
-    '
+  '
     while
         read cmd
     do
@@ -61,14 +61,14 @@ format_output() {
 discover() {
     cat <<-!
 	{
-	  "discovertype": "commands",
-	  "description": "Available commands in PATH $DISCOVER_PATH",
-	  "host": "$(uname -n)",
-	  "source": "$0",
-	  "data": {
+	 "discovertype": "commands",
+	 "description": "Available commands in PATH $DISCOVER_PATH",
+	 "host": "$(uname -n)",
+	 "source": "$0",
+	 "data": {
 	!
     discover_commands | sort -u | format_output
-  printf '\n  }\n}\n'
+  printf '\n }\n}\n'
 }
 
 discover
