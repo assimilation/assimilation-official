@@ -1,0 +1,116 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   active mount discovery agent
+# 
+#   We create discovery information from the currently mounted filesystems
+#   using the Linux-only findmnt command and output it in JSON
+#
+#   Mount flags that just appear without a value show up in our output
+#   as names with the value true.  For example, ro shows up as "ro":true
+#
+#   Special note: file and directory modes appear in the output as JSON integers
+#   This may be confusing at first since JSON doesn't support octal integers
+#   so they appear in decimal in the JSON.
+#
+#   Below are a few common octal modes and their decimal equivalents
+#      0755 => 493
+#      0700 => 448
+#      0770 => 504
+#      0750 => 488
+#      0777 => 511
+#      0644 => 420
+#      0620 => 400
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+set -e
+
+# Format our findmnt output into JSON
+# The [name=value] actions following source names put a kink into otherwise simple output...
+findmnt_info() {
+    linecomma=$1
+    comma=''
+    read target source fstype options
+    while 
+        read target source fstype options
+    do
+        printf '%s"%s": {"source":"%s", "fstype":"%s", "options":{%s}}' \
+            "$comma" "$target" "$source" "$fstype" "$(format_options "$options")"
+        comma="$linecomma"
+    done
+}
+# Format a value as a string or an integer, taking special care with octal
+# integers (which JSON doesn't support).
+typefmt() {
+    if
+        expr "$1" + 1 >/dev/null 2>&1
+    then
+        : "It's an integer"
+    else
+        printf '"%s"' "$1"
+        return
+    fi
+    ival=$1
+    # A few of the mode values aren't prefixed by a zero... Sigh...
+    case $2 in
+      *mode) ival=0$ival;;
+    esac
+    printf '%d' $ival
+}
+
+# Format the mount options
+format_options() {
+    comma=''
+    echo "$@" | tr ',' '\012' |
+    while
+        read option
+    do
+        case $option in
+          *=*)
+            name="$(echo "$option" | sed -e 's%=.*%%')"
+            value="$(echo "$option" | sed -e 's%.*=%%')"
+            printf '%s"%s":%s' "$comma" "$name" "$(typefmt "$value" "$name")"
+            ;;
+          *)    printf '%s"%s":true' "$comma" "$option";;
+        esac
+        comma=', '
+    done
+}
+discover() {
+    prefix="    "
+    cat <<-!
+	{
+	  "discovertype": "findmnt",
+	  "description": "Discover current mounts using the Linux-only findmnt command",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    printf "%s" "$prefix"
+	findmnt -c -A --raw | findmnt_info ",
+$prefix"
+  printf '\n  }\n}\n'
+}
+
+discover
