@@ -1,0 +1,74 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   Discover the set of commands available in the given DISCOVER_PATH
+#   It defaults to /sbin /usr/sbin /bin /usr/bin /usr/local/sbin /usr/local/bin
+#
+# This file is part of the Assimilation Project.
+#
+# @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
+# @n
+#  The Assimilation software is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  The Assimilation software is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+:   ${DISCOVER_PATH:="/sbin /usr/sbin /bin /usr/bin /usr/local/sbin /usr/local/bin"}
+#
+#
+discover_commands() {
+	comma='    '
+    delim=',
+  '
+    for dir in ${DISCOVER_PATH}
+    do
+        test -d "$dir" || continue
+        ls $dir | \
+        while
+          read cmd
+        do
+          if
+            [ ! -f "$dir/$cmd" -o ! -x "$dir/$cmd" ]
+          then
+            continue
+          fi
+          echo $cmd
+        done
+    done
+}
+
+format_output() {
+	comma='    '
+    delim=',
+    '
+    while
+        read cmd
+    do
+        printf '%s"%s":null' "$comma" "$cmd"
+        comma="$delim"
+    done
+}
+
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "commands",
+	  "description": "Available commands in PATH $DISCOVER_PATH",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    discover_commands | sort -u | format_output
+  printf '\n  }\n}\n'
+}
+
+discover
