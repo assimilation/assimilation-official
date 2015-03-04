@@ -1,5 +1,9 @@
 #!/bin/sh
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   Discover the set of available monitoring agents - this currently includes
+#   lsb, ocf, upstart and nagios agents
+#
 # This file is part of the Assimilation Project.
 #
 # @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
@@ -17,7 +21,9 @@
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
-#	Discover Available Monitoring Agents
+#
+:   ${NAGIOS_DIRS:="/usr/lib/nagios/plugins /usr/local/nagios/libexec /usr/nagios/libexec /opt/nrpe/libexec"}
+#
 #
 discover_lsb() {
 	printf "%s" '"lsb": ['
@@ -58,6 +64,28 @@ discover_ocf() {
 	printf '%s' ']'
 }
 
+discover_nagios() {
+	printf "%s" '"nagios": ['
+	comma=''
+    for dir in ${NAGIOS_DIRS}
+    do
+        test -d "$dir" || continue
+        ls $dir | \
+        while
+          read agent
+        do
+          if
+            [ ! -f "$dir/$agent" -o ! -x "$dir/$agent" ]
+          then
+            continue
+          fi
+          printf "%s" "${comma}\"${agent}\""
+          comma=', '
+        done
+    done | sort -u
+    printf '%s' ']'
+}
+
 INITCTL=/sbin/initctl
 
 have_upstart() {
@@ -67,7 +95,7 @@ have_upstart() {
     return 1
   else
       case "$("${INITCTL}" version 2>/dev/null)" in
-        *'(upstart '*')')   return 0;;
+        *upstart*)   return 0;;
       esac
   fi
   return 1
@@ -101,7 +129,7 @@ discover() {
 	!
 	comma='    '
 	# Keep these alphabetical by resource class.
-	for method in discover_lsb discover_ocf discover_upstart
+	for method in discover_lsb discover_nagios discover_ocf discover_upstart
         do
 	  printf "%s" "${comma}$($method)"
           comma=",
