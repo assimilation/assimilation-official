@@ -50,10 +50,13 @@ class ConfigFile(object):
         'contrib_modules':      [str],      # List of contrib modules to be included
                                             # We have no idea what contrib modules there might be
         'initial_discovery':    [           # Below is the list of known discovery agents...
-                                    {'cpu',                 # Discovers CPU details
+                                    {'commands',            # Discovers installed commands
+                                     'cpu',                 # CPU details
+                                     'findmnt',             # Discovers mounted filesystems (Linux)
                                      'packages',            # Discovers installed packages
                                      'monitoringagents',    # Discovers monitoring agents
-                                     'os',                  # Discovers OS configuration
+                                     'nsswitch',            # Discovers nsswitch configuration (GNU)
+                                     'os',                  # Discovers OS version configuration
                                      'tcpdiscovery',        # Discovers network-facing processes
                                      'ulimit',              # Discovers ulimit settings
                                     },
@@ -148,6 +151,9 @@ class ConfigFile(object):
                                  'packages',        # What packages are installed?
                                  'monitoringagents',# What monitoring agents are installed?
                                  'ulimit',          # What are current ulimit values?
+                                 'commands',        # Discovers installed commands
+                                 'nsswitch',        # Discovers nsswitch configuration (Linux)
+                                 'findmnt',         # Discovers mounted filesystems (Linux)
                                  'tcpdiscovery'     # Discover services
                             ],
             'cmaport':                  1984,                       # Our listening port
