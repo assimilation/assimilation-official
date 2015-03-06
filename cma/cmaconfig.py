@@ -56,7 +56,8 @@ class ConfigFile(object):
                                      'packages',            # Discovers installed packages
                                      'monitoringagents',    # Discovers monitoring agents
                                      'nsswitch',            # Discovers nsswitch configuration (GNU)
-                                     'os',                  # Discovers OS version configuration
+                                     'os',                  # Discovers OS version information
+                                     'sshd',                # Discovers sshd configuration
                                      'tcpdiscovery',        # Discovers network-facing processes
                                      'ulimit',              # Discovers ulimit settings
                                     },
@@ -154,6 +155,7 @@ class ConfigFile(object):
                                  'commands',        # Discovers installed commands
                                  'nsswitch',        # Discovers nsswitch configuration (Linux)
                                  'findmnt',         # Discovers mounted filesystems (Linux)
+                                 'sshd',            # Discovers sshd configuration
                                  'tcpdiscovery'     # Discover services
                             ],
             'cmaport':                  1984,                       # Our listening port

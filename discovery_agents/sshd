@@ -1,0 +1,173 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   sshd configuration discovery (/etc/ssh/sshd_config)
+#   A non-default sshd configuration file can be parsed by setting the
+#   environment variable ${SSHD_CONFIG}
+#
+#   The match directive hasn't been well-tested (poor documentation)
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+set -e
+: ${SSHD_CONFIG:=/etc/ssh/sshd_config}
+nl='
+'
+
+# Format our sshd config file output into JSON
+findsshd_info() {
+    prefix=$1
+    comma=''
+    origcomma=",${nl}${prefix}"
+    matchcomma="${origcomma}${prefix}"
+    linecomma="$origcomma"
+    inmatch=no
+    matchend='}}'
+    comma=''
+    hostkey=''
+    subsystem=''
+    matchcnt=0
+    while
+        read keyword value
+    do
+        test -z "$keyword" -o -z "$value"  && continue
+        case $keyword in
+            [Hh][Oo][Ss][Tt][Kk][Ee][Yy])
+                hostkey="$hostkey $value"
+                continue
+                ;;
+            [Ss][Uu][Bb][Ss][Yy][Ss][Tt][Ee][Mm])
+                if
+                    [ -z "$subsystem" ]
+                then
+                    subsystem="$value"
+                else
+                    subsystem="${subsystem}${nl}$value"
+                fi
+                continue
+                ;;
+            [Mm][Aa][Tt][Cc][Hh])
+                hostkey "$linecomma" "$hostkey"
+                subsys "$linecomma" "$subsystem"
+                subsystem=''
+                hostkey=''
+                case $inmatch in
+                    yes)    printf "%s" "$matchend";;
+                esac
+                inmatch=yes
+                matchcnt=$(expr $matchcnt + 1)
+                printf '%s"%s:%d": { "condition": "%s"' "$origcomma" "$keyword" $matchcnt "$value"
+                linecomma="$matchcomma"
+                ;;
+            *)  printf '%s"%s":%s' "$comma" "$keyword" "$(fmtitem "$value")"
+                ;;
+        esac
+        comma="$linecomma"
+    done
+
+    hostkey "$linecomma" "$hostkey"
+    subsys "$linecomma" "$subsystem"
+    case $inmatch in
+        yes)    printf "%s" "$matchend";;
+    esac
+}
+
+# Format accumulated subsystem directives
+subsys() {
+    linecomma=$1
+    subsystem=$2
+    if
+        [ ! -z "$subsystem" ]
+    then
+        printf '%s"Subsystem":{' "$linecomma"
+        sscomma=''
+        echo "$subsystem" | \
+        while read subsys args
+        do
+            printf '%s"%s":%s' "$sscomma" "$subsys" "$(fmtitem "$args")"
+            sscomma=', '
+        done
+        printf '}'
+    fi
+}
+# Format accumulated hostkey directives
+hostkey() {
+    linecomma=$1
+    hostkey=$2
+    if
+        [ ! -z "$hostkey" ]
+    then
+        printf '%s"HostKey": %s' "$linecomma" "$(fmtitem "$hostkey")"
+        hostkey=""
+    fi
+}
+
+# Format a value as a string or an integer, taking special care with octal
+# integers (which JSON doesn't support).
+typefmt() {
+    if
+        expr "$1" + 1 >/dev/null 2>&1
+    then
+        printf '%d' $1
+    else
+        case $1 in
+            [Yy][Ee][Ss])   printf true;;
+            [Nn][Oo])       printf false;;
+            *)              printf '"%s"' "$1"
+        esac
+    fi
+}
+fmtitem() {
+    set $*
+    if
+      [ $# -eq 1 ]
+    then
+        printf "%s" "$(typefmt "$1")"
+    else
+        printf '['
+        acomma=''
+        for val in "$@"
+        do
+            printf '%s%s' "$acomma" $(typefmt "$val")
+            acomma=', '
+        done
+        printf ']'
+    fi
+}
+
+discover() {
+    prefix="    "
+    cat <<-!
+	{
+	  "discovertype": "sshd",
+	  "description": "Discover sshd configuration in $SSHD_CONFIG",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    printf '%s' "$prefix"
+	sed -e s'%#.*%%' ${SSHD_CONFIG} | findsshd_info "$prefix"
+  printf '\n  }\n}\n'
+}
+
+discover
