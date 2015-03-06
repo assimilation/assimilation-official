@@ -156,6 +156,12 @@ fmtitem() {
 }
 
 discover() {
+    if
+        [ ! -f "$SSHD_CONFIG" -o  ! -r  "$SSHD_CONFIG" ]
+    then
+        echo "Cannot discover sshd configuration - cannot read $SSHD_CONFIG" >&2
+        exit 1
+    fi
     prefix="    "
     cat <<-!
 	{
