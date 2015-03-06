@@ -1,6 +1,6 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
-@section intro Introduction
+@section overview Overview
 Welcome to the Assimilation project. (@ref README "README") @htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly - proudly sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Limited</a>.
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
@@ -17,6 +17,7 @@ What we do: Continually discover and monitor systems, services, switches and dep
 - Discover systems, services, switches and dependencies using zero network footprint techniques
 - Monitor systems and services with very low overhead and extreme scalability
 - Make montoring easy to configure and manage
+@section intro Introduction
 
 The Assimilation Project is designed to discover and monitor infrastructure, services, and dependencies on a network of
 potentially unlimited size, without significant growth in centralized resources.
