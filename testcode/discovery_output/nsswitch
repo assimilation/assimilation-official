@@ -1,0 +1,18 @@
+{
+  "discovertype": "nsswitch",
+  "description": "Discover nsswitch configuration",
+  "host": "servidor",
+  "source": "../../discovery_agents/nsswitch",
+  "data": {
+    "passwd": [{"source": "compat"}],
+    "group": [{"source": "compat"}],
+    "shadow": [{"source": "compat"}],
+    "hosts": [{"source": "files"}, {"source": "mdns4_minimal", "NOTFOUND":"return"}, {"source": "dns"}],
+    "networks": [{"source": "files"}],
+    "protocols": [{"source": "db"}, {"source": "files"}],
+    "services": [{"source": "db"}, {"source": "files"}],
+    "ethers": [{"source": "db"}, {"source": "files"}],
+    "rpc": [{"source": "db"}, {"source": "files"}],
+    "netgroup": [{"source": "nis"}]
+  }
+}

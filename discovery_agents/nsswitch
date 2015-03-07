@@ -10,7 +10,7 @@
 #   name.  Any optional [foo=bar] modifiers then get translated into JSON "foo": "bar"
 #   name/value pairs in the source object.
 #
-#   This script operates by default on /etc/nsswitch.conf, but we take ${NSSWITCH} from the
+#   This script operates by default on /etc/nsswitch.conf, but we take ${NSSWITCH_CONFIG} from the
 #   environment if you want this script to operate on some other similarly-formatted file...
 #
 # This file is part of the Assimilation Project.
@@ -36,9 +36,9 @@
 #
 #
 set -e
-: ${NSSWITCH=/etc/nsswitch.conf}
+: ${NSSWITCH_CONFIG:=/etc/nsswitch.conf}
 
-# Format our $NSSWITCH file information into JSON
+# Format our $NSSWITCH_CONFIG file information into JSON
 # The [name=value] actions following source names put a kink into otherwise simple output...
 nsswitch_info() {
     dbdelim='    '
@@ -69,20 +69,20 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "nsswitch",
-	  "description": "Discover $NSSWITCH configuration",
+	  "description": "Discover $NSSWITCH_CONFIG configuration",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {
 	!
-	nsswitch_info < $1
+    if
+        [ -f "$1"  -a -r "$1" ]
+    then
+	    nsswitch_info < $1
+    else
+        printf '    "NODATA": "ERROR: Cannot read %s."\n' "$1"
+    fi
   printf '\n  }\n}\n'
 }
 
-if
-    [ -f "$NSSWITCH"  -a -r "$NSSWITCH" ]
-then
-    discover /etc/nsswitch.conf
-else
-    echo "No $NSSWITCH file present.  Discovery not possible." >&2
-    exit 1
-fi
+discover "${NSSWITCH_CONFIG}"
+exit 0
