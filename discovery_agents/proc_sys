@@ -206,22 +206,21 @@ set -e
 #
 discover() {
     dir=${ASSIM_discoverdir-/proc/sys}
-    if
-        [ ! -d "${dir}" ]
-    then
-        echo "ERROR: No such directory [$dir]" >&2
-        exit 1
-    fi
     cat <<-!
 	{
 	  "discovertype": "proc_sys",
-	  "description": "Information derived from ${dir}",
+	  "description": "Information gleaned from the ${dir} directory",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {
 	!
-    format_dir_contents
-  printf '  }\n}\n'
-
+    if
+        [ ! -d "${dir}" ]
+    then
+        printf '    "NODATA": "No such directory: %s"\n' "${dir}"
+    else
+        format_dir_contents
+    fi
+    printf '  }\n}\n'
 }
 discover

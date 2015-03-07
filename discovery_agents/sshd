@@ -156,12 +156,6 @@ fmtitem() {
 }
 
 discover() {
-    if
-        [ ! -f "$SSHD_CONFIG" -o  ! -r  "$SSHD_CONFIG" ]
-    then
-        echo "Cannot discover sshd configuration - cannot read $SSHD_CONFIG" >&2
-        exit 1
-    fi
     prefix="    "
     cat <<-!
 	{
@@ -171,8 +165,14 @@ discover() {
 	  "source": "$0",
 	  "data": {
 	!
-    printf '%s' "$prefix"
-	sed -e s'%#.*%%' ${SSHD_CONFIG} | findsshd_info "$prefix"
+    if
+        [ ! -f "$SSHD_CONFIG" -o  ! -r  "$SSHD_CONFIG" ]
+    then
+        printf '    "NODATA": "ERROR: Cannot read %s"\n' "$SSHD_CONFIG"
+    else
+        printf '%s' "$prefix"
+        sed -e s'%#.*%%' ${SSHD_CONFIG} | findsshd_info "$prefix"
+    fi
   printf '\n  }\n}\n'
 }
 
