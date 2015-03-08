@@ -1,7 +1,7 @@
 {
   "discovertype": "partitions",
   "description": "Discover partitions configuration",
-  "host": "servidor",
+  "host": "FAKETESTHOST",
   "source": "../../discovery_agents/partitions",
   "data": {
     "sda": {"major":8, "minor":0 "blocks": 976762584"},

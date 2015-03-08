@@ -1,10 +1,11 @@
 {
   "discovertype": "pam",
   "description": "Discover PAM configuration in pam",
-  "host": "servidor",
+  "host": "FAKETESTHOST",
   "source": "../../discovery_agents/pam",
   "data": {
-    "accountsservice":[
+    /home/alanr/monitor/src/testcode/discovery_input/pam
+"accountsservice":[
       {"service":"password", "type": {"keyword":"substack"}, "module":{"path":"common-password"}},
       {"service":"password", "type": {"keyword":"optional"}, "module":{"path":"pam_pin.so"}}
     ],

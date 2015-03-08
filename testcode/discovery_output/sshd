@@ -1,7 +1,7 @@
 {
   "discovertype": "sshd",
   "description": "Discover sshd configuration in sshd",
-  "host": "servidor",
+  "host": "FAKETESTHOST",
   "source": "../../discovery_agents/sshd",
   "data": {
     "Port":22,
