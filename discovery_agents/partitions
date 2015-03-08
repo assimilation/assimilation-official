@@ -30,7 +30,6 @@ set -e
 : ${PROC_PARTITIONS:=/proc/partitions}
 
 # Format our $PROC_PARTITIONS file information into JSON
-# The [name=value] actions following source names put a kink into otherwise simple output...
 partitions_info() {
     comma=''
     printf '    '
