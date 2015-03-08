@@ -104,8 +104,9 @@ run_regression_test() {
 failcount=0
 testlines='mdadm MDADM_CONFIG
 nsswitch NSSWITCH_CONFIG
-sshd SSHD_CONFIG
-partitions PROC_PARTITIONS'
+pam PAM_DIRECTORY
+partitions PROC_PARTITIONS
+sshd SSHD_CONFIG'
 echo "$testlines" |
 while
   read test varname

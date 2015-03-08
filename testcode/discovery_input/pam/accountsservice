@@ -1,0 +1,6 @@
+#%PAM-1.0
+# Must use substack here, so the success of pam_unix will still
+# cause our pam_pin to run
+password   substack      common-password
+password   optional      pam_pin.so
+

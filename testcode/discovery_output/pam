@@ -1,0 +1,226 @@
+{
+  "discovertype": "pam",
+  "description": "Discover PAM configuration in pam",
+  "host": "servidor",
+  "source": "../../discovery_agents/pam",
+  "data": {
+    "accountsservice":[
+      {"service":"password", "type": {"keyword":"substack"}, "module":{"path":"common-password"}},
+      {"service":"password", "type": {"keyword":"optional"}, "module":{"path":"pam_pin.so"}}
+    ],
+    "atd":[
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session-noninteractive"},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "user_readenv":1}}
+    ],
+    "chfn":[
+      {"service":"auth", "type": {"keyword":"sufficient"}, "module":{"path":"pam_rootok.so"}},
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session"}
+    ],
+    "chpasswd":[
+      {"service": "@include", "filename": "common-password"}
+    ],
+    "chsh":[
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_shells.so"}},
+      {"service":"auth", "type": {"keyword":"sufficient"}, "module":{"path":"pam_rootok.so"}},
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session"}
+    ],
+    "common-account":[
+      {"service":"account", "type": {"success":1, "new_authtok_reqd":"done", "default":"ignore"}, "module":{"path":"pam_unix.so"}},
+      {"service":"account", "type": {"keyword":"requisite"}, "module":{"path":"pam_deny.so"}},
+      {"service":"account", "type": {"keyword":"required"}, "module":{"path":"pam_permit.so"}}
+    ],
+    "common-auth":[
+      {"service":"auth", "type": {"success":1, "default":"ignore"}, "module":{"path":"pam_unix.so", "nullok_secure":true}},
+      {"service":"auth", "type": {"keyword":"requisite"}, "module":{"path":"pam_deny.so"}},
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_permit.so"}},
+      {"service":"auth", "type": {"keyword":"optional"}, "module":{"path":"pam_cap.so"}}
+    ],
+    "common-password":[
+      {"service":"password", "type": {"success":1, "default":"ignore"}, "module":{"path":"pam_unix.so", "obscure":true, "sha512":true}},
+      {"service":"password", "type": {"keyword":"requisite"}, "module":{"path":"pam_deny.so"}},
+      {"service":"password", "type": {"keyword":"required"}, "module":{"path":"pam_permit.so"}},
+      {"service":"password", "type": {"keyword":"optional"}, "module":{"path":"pam_gnome_keyring.so"}}
+    ],
+    "common-session":[
+      {"service":"session", "type": {"default":1}, "module":{"path":"pam_permit.so"}},
+      {"service":"session", "type": {"keyword":"requisite"}, "module":{"path":"pam_deny.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_permit.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_umask.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_unix.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_systemd.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_ck_connector.so", "nox11":true}}
+    ],
+    "common-session-noninteractive":[
+      {"service":"session", "type": {"default":1}, "module":{"path":"pam_permit.so"}},
+      {"service":"session", "type": {"keyword":"requisite"}, "module":{"path":"pam_deny.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_permit.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_umask.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_unix.so"}}
+    ],
+    "cron":[
+      {"service": "@include", "filename": "common-auth"},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_loginuid.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "envfile":"/etc/default/locale"}},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session-noninteractive"},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}}
+    ],
+    "cups":[
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session"}
+    ],
+    "lightdm":[
+      {"service":"auth", "type": {"keyword":"requisite"}, "module":{"path":"pam_nologin.so"}},
+      {"service":"auth", "type": {"keyword":"sufficient"}, "module":{"path":"pam_succeed_if.so", "user":true, "ingroup":true, "nopasswdlogin":true}},
+      {"service": "@include", "filename": "common-auth"},
+      {"service":"auth", "type": {"keyword":"optional"}, "module":{"path":"pam_gnome_keyring.so"}},
+      {"service":"auth", "type": {"keyword":"optional"}, "module":{"path":"pam_kwallet.so"}},
+      {"service": "@include", "filename": "common-account"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "close":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}},
+      {"service": "@include", "filename": "common-session"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "open":true}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_gnome_keyring.so", "auto_start":true}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_kwallet.so", "auto_start":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "user_readenv":1, "envfile":"/etc/default/locale"}},
+      {"service": "@include", "filename": "common-password"}
+    ],
+    "lightdm-autologin":[
+      {"service":"auth", "type": {"keyword":"requisite"}, "module":{"path":"pam_nologin.so"}},
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_permit.so"}},
+      {"service": "@include", "filename": "common-account"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "close":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}},
+      {"service": "@include", "filename": "common-session"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "open":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "user_readenv":1, "envfile":"/etc/default/locale"}},
+      {"service": "@include", "filename": "common-password"}
+    ],
+    "lightdm-greeter":[
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_permit.so"}},
+      {"service":"auth", "type": {"keyword":"optional"}, "module":{"path":"pam_gnome_keyring.so"}},
+      {"service":"auth", "type": {"keyword":"optional"}, "module":{"path":"pam_kwallet.so"}},
+      {"service": "@include", "filename": "common-account"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "close":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}},
+      {"service": "@include", "filename": "common-session"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "open":true}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_gnome_keyring.so", "auto_start":true}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_kwallet.so", "auto_start":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "user_readenv":1, "envfile":"/etc/default/locale"}}
+    ],
+    "login":[
+      {"service":"auth", "type": {"keyword":"optional"}, "module":{"path":"pam_faildelay.so", "delay":3000000}},
+      {"service":"auth", "type": {"success":"ok", "new_authtok_reqd":"ok", "ignore":"ignore", "user_unknown":"bad", "default":"die"}, "module":{"path":"pam_securetty.so"}},
+      {"service":"auth", "type": {"keyword":"requisite"}, "module":{"path":"pam_nologin.so"}},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "close":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "envfile":"/etc/default/locale"}},
+      {"service": "@include", "filename": "common-auth"},
+      {"service":"auth", "type": {"keyword":"optional"}, "module":{"path":"pam_group.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_lastlog.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_motd.so", "motd":"/run/motd.dynamic", "noupdate":true}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_motd.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_mail.so", "standard":true}},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session"},
+      {"service": "@include", "filename": "common-password"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "open":true}}
+    ],
+    "newusers":[
+      {"service": "@include", "filename": "common-password"}
+    ],
+    "other":[
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-password"},
+      {"service": "@include", "filename": "common-session"}
+    ],
+    "passwd":[
+      {"service": "@include", "filename": "common-password"}
+    ],
+    "polkit-1":[
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-password"},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "user_readenv":0}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "envfile":"/etc/default/locale", "user_readenv":0}},
+      {"service": "@include", "filename": "common-session"}
+    ],
+    "ppp":[
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_nologin.so"}},
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session"}
+    ],
+    "runuser":[
+      {"service":"auth", "type": {"keyword":"sufficient"}, "module":{"path":"pam_rootok.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_keyinit.so", "revoke":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_unix.so"}}
+    ],
+    "runuser-l":[
+      {"service":"auth", "type": {"keyword":"include"}, "module":{"path":"runuser"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_keyinit.so", "force":true, "revoke":true}},
+      {"service":"-session", "type": {"keyword":"optional"}, "module":{"path":"pam_systemd.so"}},
+      {"service":"session", "type": {"keyword":"include"}, "module":{"path":"runuser"}}
+    ],
+    "samba":[
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session-noninteractive"}
+    ],
+    "sshd":[
+      {"service": "@include", "filename": "common-auth"},
+      {"service":"account", "type": {"keyword":"required"}, "module":{"path":"pam_nologin.so"}},
+      {"service": "@include", "filename": "common-account"},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "close":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_loginuid.so"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_keyinit.so", "force":true, "revoke":true}},
+      {"service": "@include", "filename": "common-session"},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_motd.so", "motd":"/run/motd.dynamic"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_motd.so", "noupdate":true}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_mail.so", "standard":true, "noenv":true}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_limits.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "user_readenv":1, "envfile":"/etc/default/locale"}},
+      {"service":"session", "type": {"success":"ok", "ignore":"ignore", "module_unknown":"ignore", "default":"bad"}, "module":{"path":"pam_selinux.so", "open":true}},
+      {"service": "@include", "filename": "common-password"}
+    ],
+    "su":[
+      {"service":"auth", "type": {"keyword":"sufficient"}, "module":{"path":"pam_rootok.so"}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1}},
+      {"service":"session", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "envfile":"/etc/default/locale"}},
+      {"service":"session", "type": {"keyword":"optional"}, "module":{"path":"pam_mail.so", "nopen":true}},
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session"}
+    ],
+    "sudo":[
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "user_readenv":0}},
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_env.so", "readenv":1, "envfile":"/etc/default/locale", "user_readenv":0}},
+      {"service": "@include", "filename": "common-auth"},
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session-noninteractive"}
+    ],
+    "systemd-user":[
+      {"service": "@include", "filename": "common-account"},
+      {"service": "@include", "filename": "common-session"},
+      {"service":"auth", "type": {"keyword":"required"}, "module":{"path":"pam_deny.so"}},
+      {"service":"password", "type": {"keyword":"required"}, "module":{"path":"pam_deny.so"}}
+    ]
+  }
+}
