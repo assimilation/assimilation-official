@@ -1,0 +1,68 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   /proc/partitions discovery agent
+# 
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+set -e
+: ${PROC_PARTITIONS:=/proc/partitions}
+
+# Format our $PROC_PARTITIONS file information into JSON
+# The [name=value] actions following source names put a kink into otherwise simple output...
+partitions_info() {
+    comma=''
+    printf '    '
+    while 
+        read major minor blocks device
+    do
+        case $major in
+          major|'')  continue;;
+        esac
+        printf '%s"%s": {"major":%d, "minor":%d "blocks": %d"}' "$comma" $device $major $minor $blocks
+        comma=',
+    '
+    done
+}
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "partitions",
+	  "description": "Discover $PROC_PARTITIONS configuration",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    if
+        [ -f "$1"  -a -r "$1" ]
+    then
+	    sort -n +0 -1 +1 -2 $1 | partitions_info
+    else
+        printf '    "NODATA": "ERROR: Cannot read %s."\n' "$1"
+    fi
+  printf '\n  }\n}\n'
+}
+
+discover "${PROC_PARTITIONS}"
+exit 0
