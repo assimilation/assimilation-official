@@ -99,7 +99,7 @@ run_regression_test() {
             jsonlint $TMPOUT >/dev/null
         then
             if
-                we_have_cmd('jq')
+                we_have_cmd 'jq'
             then
                 ERROUT=$(jq --ascii-output --raw-output .data.NODATA < $TMPOUT)
                 case $ERROUT in
