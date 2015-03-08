@@ -1,7 +1,7 @@
 {
   "discovertype": "mdadm",
   "description": "Discover mdadm configuration in mdadm",
-  "host": "servidor",
+  "host": "FAKETESTHOST",
   "source": "../../discovery_agents/mdadm",
       "reminder": "All JSON integers are decimal.",
   "data": {

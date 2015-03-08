@@ -54,7 +54,7 @@ run_regression_test() {
     cd $INPUTDIR
     if
         eval export $varname='$test'
-        $TESTNAME > $TMPOUT 2>&1
+        $TESTNAME | sed -e 's%^\( *"host": *\)"[^"]*"\(.*\)$%\1"FAKETESTHOST"\2%' > $TMPOUT 2>&1
     then
         : OK it thinks it succeeded
         if
@@ -79,7 +79,7 @@ run_regression_test() {
         then
           : Great!
         else
-            echo "ERROR: Discovery output $test was incorrect."
+            echo "ERROR: Discovery output $test was incorrect (has changed)."
             echo "Diff -u follows"
             diff -u $OUTFILE $TMPOUT
             return 1
@@ -123,7 +123,8 @@ run_regression_test() {
 }
 
 failcount=0
-testlines='mdadm MDADM_CONFIG
+testlines='findmnt FINDMNT_TEST_DATA
+mdadm MDADM_CONFIG
 nsswitch NSSWITCH_CONFIG
 pam PAM_DIRECTORY
 partitions PROC_PARTITIONS

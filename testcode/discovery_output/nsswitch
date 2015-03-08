@@ -1,7 +1,7 @@
 {
   "discovertype": "nsswitch",
   "description": "Discover nsswitch configuration",
-  "host": "servidor",
+  "host": "FAKETESTHOST",
   "source": "../../discovery_agents/nsswitch",
   "data": {
     "passwd": [{"source": "compat"}],

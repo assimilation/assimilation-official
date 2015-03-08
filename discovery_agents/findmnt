@@ -46,6 +46,16 @@
 #
 set -e
 
+findmnt_proxy() {
+    if
+        [ ! -z "${FINDMNT_TEST_DATA}" -a -f "${FINDMNT_TEST_DATA}" ]
+    then
+        cat $FINDMNT_TEST_DATA
+    else
+        findmnt "$@"
+    fi
+}
+
 # Format our findmnt output into JSON
 # The [name=value] actions following source names put a kink into otherwise simple output...
 findmnt_info() {
@@ -108,9 +118,15 @@ discover() {
 	  "data": {
 	!
     printf "%s" "$prefix"
-	findmnt -c -A --raw | findmnt_info ",
+    if
+        [ ! -z "${FINDMNT_TEST_DATA}" -a ! -f "${FINDMNT_TEST_DATA}" ]
+    then
+        printf '    "NODATA": "ERROR: Cannot read test data in %s."\n' "$FINDMNT_TEST_DATA"
+    else
+        findmnt_proxy -c --raw | findmnt_info ",
 $prefix"
-  printf '\n  }\n}\n'
+    fi
+    printf '\n  }\n}\n'
 }
 
 discover
