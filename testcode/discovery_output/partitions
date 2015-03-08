@@ -1,0 +1,28 @@
+{
+  "discovertype": "partitions",
+  "description": "Discover partitions configuration",
+  "host": "servidor",
+  "source": "../../discovery_agents/partitions",
+  "data": {
+    "sda": {"major":8, "minor":0 "blocks": 976762584"},
+    "sda1": {"major":8, "minor":1 "blocks": 3905536"},
+    "sda2": {"major":8, "minor":2 "blocks": 487424"},
+    "sda3": {"major":8, "minor":3 "blocks": 195312640"},
+    "sda4": {"major":8, "minor":4 "blocks": 777055232"},
+    "sdb": {"major":8, "minor":16 "blocks": 976762584"},
+    "sdb1": {"major":8, "minor":17 "blocks": 3905536"},
+    "sdb2": {"major":8, "minor":18 "blocks": 487424"},
+    "sdb3": {"major":8, "minor":19 "blocks": 195312640"},
+    "sdb4": {"major":8, "minor":20 "blocks": 777055232"},
+    "sdc": {"major":8, "minor":32 "blocks": 2930266584"},
+    "sdc1": {"major":8, "minor":33 "blocks": 2930265088"},
+    "sdd": {"major":8, "minor":48 "blocks": 2930266584"},
+    "sdd1": {"major":8, "minor":49 "blocks": 2930265088"},
+    "md124": {"major":9, "minor":124 "blocks": 487104"},
+    "md125": {"major":9, "minor":125 "blocks": 195181440"},
+    "md126": {"major":9, "minor":126 "blocks": 776923968"},
+    "md127": {"major":9, "minor":127 "blocks": 2930133824"},
+    "drbd0": {"major":147, "minor":0 "blocks": 2930044364"},
+    "drbd1": {"major":147, "minor":1 "blocks": 195175444"}
+  }
+}
