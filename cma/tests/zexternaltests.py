@@ -89,6 +89,9 @@ class TestExternal(TestCase):
     def  test_pinger(self):
         self.runacommand(['grindping.sh',],sudo=False)
 
+    def  test_discovery_tests(self):
+        self.runacommand(['test_discovery.sh',],sudo=False)
+
     @class_teardown
     def tearDown(self):
         pass

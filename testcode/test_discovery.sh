@@ -31,7 +31,23 @@ INPUTDIR=$PWD/$ourdir/discovery_input
 OUTPUTDIR=$PWD/$ourdir/discovery_output
 TMPOUT=/tmp/$$.testout
 
+
+we_have_cmd() {
+    cmd=$1
+    for dir in $(echo "$PATH" | tr ':' ' ')
+    do
+        if
+            [ -f $dir/$cmd -a -x $dir/$cmd ]
+        then
+            return 0
+        fi
+    done
+    return 1
+}
+
 run_regression_test() {
+    test=$1
+    varname=$2
     TESTNAME=$TESTDIR/$test
     TESTFILE=$INPUTDIR/$test
     OUTFILE=$OUTPUTDIR/$test
@@ -61,7 +77,7 @@ run_regression_test() {
         if
             cmp $TMPOUT $OUTFILE
         then
-          echo "Discovery test $test succeeded."
+          : Great!
         else
             echo "ERROR: Discovery output $test was incorrect."
             echo "Diff -u follows"
@@ -82,12 +98,16 @@ run_regression_test() {
         if
             jsonlint $TMPOUT >/dev/null
         then
-            ERROUT=$(jq --ascii-output --raw-output .data.NODATA < $TMPOUT)
-            case $ERROUT in
-                *ERROR*)    : OK;;
-                *)  echo "Discovery failure test produced incorrect result [$ERROUT]"
-                    return 1;;
-            esac
+            if
+                we_have_cmd('jq')
+            then
+                ERROUT=$(jq --ascii-output --raw-output .data.NODATA < $TMPOUT)
+                case $ERROUT in
+                    *ERROR*)    : OK;;
+                    *)  echo "Discovery failure test produced incorrect result [$ERROUT]"
+                        return 1;;
+                esac
+            fi
         else
             jsonlint -v $TMPOUT
             echo "Discovery failure $test produced invalid JSON - output follows"
@@ -98,6 +118,7 @@ run_regression_test() {
         echo "ERROR: Discovery failure $test exited with return code $?"
         return 1
     fi
+    echo "Discovery test $test succeeded."
     return 0
 }
 
@@ -109,9 +130,9 @@ partitions PROC_PARTITIONS
 sshd SSHD_CONFIG'
 echo "$testlines" |
 while
-  read test varname
+  read testname envname
 do
-    run_regression_test "$test" "$varname"
+    run_regression_test "$testname" "$envname"
     failcount=$(expr $failcount + $?)
 done
 exit $failcount
