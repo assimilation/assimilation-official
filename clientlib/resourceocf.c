@@ -206,6 +206,7 @@ _resourceocf_finalize(AssimObj* aself)
 	_resourceocf_save_finalize(aself);
 }
 
+// Return TRUE if this operation type returns a string
 FSTATIC gboolean
 _resourceocf_outputs_string(const char * operation)
 {
