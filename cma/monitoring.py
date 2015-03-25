@@ -308,7 +308,8 @@ class MonitoringRule(object):
     NEVERMATCH = 1      # Matched this 'un-rule' - OK not to monitor this service
     PARTMATCH = 2       # Partial match - we match this rule, but need more config info
     LOWPRIOMATCH = 3    # We match - but we aren't a very good monitoring method
-    HIGHPRIOMATCH = 4   # We match and we are a good monitoring method
+    MEDPRIOMATCH = 4    # We match - but we could be a better monitoring method
+    HIGHPRIOMATCH = 5   # We match and we are a good monitoring method
 
     monitorobjects = {}
 
@@ -326,6 +327,8 @@ class MonitoringRule(object):
 
         self.monitorclass = monitorclass
         self._tuplespec = []
+        if not(hasattr(self, 'nvpairs')):
+            self.nvpairs = {}
         for tup in tuplespec:
             if len(tup) < 2 or len(tup) > 3:
                 raise ValueError('Improperly formed constructor argument')
@@ -344,6 +347,31 @@ class MonitoringRule(object):
         if monitorclass not in MonitoringRule.monitorobjects:
             MonitoringRule.monitorobjects[monitorclass] = []
         MonitoringRule.monitorobjects[monitorclass].append(self)
+
+    def tripletuplecheck(self, triplespec):
+        'Validate and remember things for our child triple tuple specifications'
+        self.nvpairs = {}
+        tuplespec = []
+        for tup in triplespec:
+            tuplen = len(tup)
+            if tuplen == 4:
+                (name, expression, regex, flags) = tup
+                if regex is not None:
+                    tuplespec.append((expression, regex, flags))
+            elif tuplen == 3:
+                (name, expression, regex) = tup
+                if regex is not None:
+                    tuplespec.append((expression, regex))
+            elif tuplen == 2:
+                (name, expression) = tup
+            elif tuplen == 1:
+                name = tup[0]
+                expression = None
+            else:
+                raise ValueError('Invalid tuple length (%d)' % tuplen)
+            if name is not None and name != '-':
+                self.nvpairs[name] = expression
+        return tuplespec
 
 
     def specmatch(self, context):
@@ -436,6 +464,9 @@ class MonitoringRule(object):
                     {'class': True, 'type': True, 'classconfig': True, 'provider': True},
                  'lsb':
                     {'class': True, 'type': True, 'classconfig': True},
+                 'nagios':
+                    {'class': True, 'type': True, 'classconfig': True
+                    ,       'prio': True, 'initargs': True},
                  'NEVERMON':
                     {'class': True, 'type': True, 'classconfig': True}
                 }
@@ -455,6 +486,9 @@ class MonitoringRule(object):
             return LSBMonitoringRule(obj['type'], obj['classconfig'])
         if rscclass == 'ocf':
             return OCFMonitoringRule(obj['provider'], obj['type'], obj['classconfig'])
+        if rscclass == 'nagios':
+            return NagiosMonitoringRule(obj['type'], obj['prio']
+            ,   obj['initargs'], obj['classconfig'])
         if rscclass == 'NEVERMON':
             return NEVERMonitoringRule(obj['type'], obj['classconfig'])
 
@@ -633,10 +667,13 @@ class NEVERMonitoringRule(MonitoringRule):
                 ,   'arglist':      None}
         )
 
+
+
 class OCFMonitoringRule(MonitoringRule):
     '''Class for implementing monitoring rules for OCF style init script monitoring
     OCF ==  Open Cluster Framework
     '''
+
     def __init__(self, provider, rsctype, triplespec):
         '''
         Parameters
@@ -665,28 +702,8 @@ class OCFMonitoringRule(MonitoringRule):
         '''
         self.provider = provider
         self.rsctype = rsctype
-        self.nvpairs = {}
-        tuplespec = []
 
-        for tup in triplespec:
-            tuplen = len(tup)
-            if tuplen == 4:
-                (name, expression, regex, flags) = tup
-                if regex is not None:
-                    tuplespec.append((expression, regex, flags))
-            elif tuplen == 3:
-                (name, expression, regex) = tup
-                if regex is not None:
-                    tuplespec.append((expression, regex))
-            elif tuplen == 2:
-                (name, expression) = tup
-            elif tuplen == 1:
-                name = tup[0]
-                expression = None
-            else:
-                raise ValueError('Invalid tuple length (%d)' % tuplen)
-            if name is not None and name != '-':
-                self.nvpairs[name] = expression
+        tuplespec = self.tripletuplecheck(triplespec)
         MonitoringRule.__init__(self, 'ocf', tuplespec)
 
 
@@ -714,7 +731,7 @@ class OCFMonitoringRule(MonitoringRule):
             else:
                 optional = False
                 exprname=name
-            expression = self.nvpairs[name]
+            expression = self.nvpairs[name] # NOT exprname
             val = GraphNodeExpression.evaluate(expression, context)
             #print >> sys.stderr, 'CONSTRUCTACTION.eval(%s) => %s' % (expression, val)
             if val is None and not optional:
@@ -724,7 +741,7 @@ class OCFMonitoringRule(MonitoringRule):
         if len(missinglist) == 0:
             # Hah!  We can automatically monitor it!
             return  (MonitoringRule.HIGHPRIOMATCH
-                    ,    {   'monitorclass': 'ocf'
+                    ,    {   'monitorclass':    'ocf'
                             ,   'monitortype':  self.rsctype
                             ,   'provider':     self.provider
                             ,   'arglist':      arglist
@@ -734,9 +751,123 @@ class OCFMonitoringRule(MonitoringRule):
             # We can monitor it with some more help from a human
             # Better incomplete than a sharp stick in the eye ;-)
             return (MonitoringRule.PARTMATCH
-                    ,   {   'monitorclass': 'ocf'
+                    ,   {   'monitorclass':     'ocf'
                             ,   'monitortype':  self.rsctype
                             ,   'provider':     self.provider
+                            ,   'arglist':      arglist
+                        }
+                    ,   missinglist
+                    )
+
+class NagiosMonitoringRule(MonitoringRule):
+    '''Class for implementing monitoring rules for Nagios style init script monitoring
+    '''
+    priomap = {
+            'low':  MonitoringRule.LOWPRIOMATCH,
+            'med':  MonitoringRule.MEDPRIOMATCH,
+            'high': MonitoringRule.HIGHPRIOMATCH,
+    }
+    def __init__(self, rsctype, prio, initargs, triplespec):
+        '''
+        Parameters
+        ----------
+        rsctype: str
+            The OCF resource type for this resource (service)
+            This is the same as the script name for the resource
+
+        prio: str
+            The priority of this Nagios agent: 'low', 'med', or 'high'
+
+        initargs: list
+            Initial arguments given unconditionally to the Nagios agent
+
+        triplespec: list
+            Similar to but wider than the MonitoringRule tuplespec
+            (name,  expression, regex,  regexflags(optional))
+
+            'name' is the name of an environment RA parameter or flag name, or None or '-'
+            'expression' is an expression for computing the value for that name
+            'regex' is a regular expression that the value of 'expression' has to match
+            'regexflags' is the optional re flages for 'regex'
+
+            If there is no name to go with the tuple, then the name is given as None or '-'
+            If there is no regular expression to go with the name, then the expression
+                and remaining tuple elements are missing.  This can happen if there
+                is no mechanical way to determine this value from discovery information.
+            If there is a name and expression but no regex, the regex is assumed to be '.'
+        '''
+        if prio not in self.priomap:
+            raise ValueError('Priority %s is not a valid priority' % prio)
+
+        self.rsctype = rsctype
+        self.argv = []
+        self.initargs = initargs
+        self.prio = self.priomap[prio]
+        tuplespec = self.tripletuplecheck(triplespec)
+        MonitoringRule.__init__(self, 'nagios', tuplespec)
+
+
+    def constructaction(self, context):
+        '''Construct arguments to give MonitorAction constructor
+            We can either return a complete match (HIGHPRIOMATCH)
+            or an incomplete match (PARTMATCH) if we can't find
+            all the parameter values in the nodes we're given
+            We can also return NOMATCH if some things don't match
+            at all.
+        '''
+        agentcache = MonitoringRule.compute_available_agents(context)
+        if 'nagios' in agentcache and self.rsctype not in agentcache['nagios']:
+            return (MonitoringRule.NOMATCH, None)
+        #
+        missinglist = []
+        arglist = {}
+        argv = self.argv
+        final_argv = []
+        # Figure out what we know how to supply and what we need to ask
+        # a human for -- in order to properly monitor this resource
+        for name in self.nvpairs:
+            # This code is very similar to the OCF code - but not quite the same...
+            if name.startswith('?'):
+                optional = True
+                exprname = name[1:]
+            else:
+                optional = False
+                exprname=name
+            expression = self.nvpairs[exprname]
+            #print >> sys.stderr, 'exprname is %s, expression is %s' % (exprname,expression)
+            val = GraphNodeExpression.evaluate(expression, context)
+            #print >> sys.stderr, 'CONSTRUCTACTION.eval(%s) => %s' % (expression, val)
+            if val is None:
+                if not optional:
+                    missinglist.append(exprname)
+                else:
+                    continue
+            if exprname.startswith('-'):
+                argv.append(exprname)
+                argv.append(str(val))
+            elif exprname == '__ARGV__':
+                final_argv.append(str(val))
+            else:
+                arglist[exprname] = str(val)
+        argv.extend(final_argv)
+        if len(missinglist) == 0:
+            # Hah!  We can automatically monitor it!
+            return  (self.prio
+                    ,    {   'monitorclass':    'nagios'
+                            ,   'monitortype':  self.rsctype
+                            ,   'provider':     None
+                            ,   'argv':         argv
+                            ,   'arglist':      arglist
+                        }
+                    )
+        else:
+            # We can monitor it with some more help from a human
+            # Better incomplete than a sharp stick in the eye ;-)
+            return (MonitoringRule.PARTMATCH
+                    ,   {   'monitorclass':     'nagios'
+                            ,   'monitortype':  self.rsctype
+                            ,   'provider':     None
+                            ,   'argv':         argv
                             ,   'arglist':      arglist
                         }
                     ,   missinglist
@@ -768,13 +899,23 @@ if __name__ == '__main__':
     #   (domain, processname, host, pathname, argv, uid, gid, cwd, roles=None):
     sshnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+    setattr(sshnode, 'JSON_procinfo'
+    ,   '{"listenaddrs":{"0.0.0.0:22":"tcp", ":::22":"tcp6"}}')
 
-    sshargs = (
+    lsbsshargs = (
                 # This means one of our nodes should have a value called
                 # pathname, and it should end in '/sshd'
                 ('$pathname', '.*/sshd$'),
         )
-    sshrule = LSBMonitoringRule('ssh', sshargs)
+    lsbsshrule = LSBMonitoringRule('ssh', lsbsshargs)
+
+    nagiossshargs = (
+                (None, '@basename()', '.*sshd$'),
+                ('-p', '@serviceport()', '[0-9]+'),
+                ('__ARGV__', '@serviceip()', '.'),
+    )
+    nagiossshrule = NagiosMonitoringRule('check_ssh', 'med', ['-t', '3600'], nagiossshargs)
+
 
     udevnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/udevd', ['/usr/bin/udevd']
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
@@ -810,12 +951,16 @@ if __name__ == '__main__':
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
     tests = [
-        (sshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.LOWPRIOMATCH),
-        (sshrule.specmatch(ExpressionContext((udevnode,))), MonitoringRule.NOMATCH),
-        (sshrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.NOMATCH),
+        (lsbsshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.LOWPRIOMATCH),
+        (lsbsshrule.specmatch(ExpressionContext((udevnode,))), MonitoringRule.NOMATCH),
+        (lsbsshrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.NOMATCH),
         (neorule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.NOMATCH),
         (neorule.specmatch(ExpressionContext((neonode,))), MonitoringRule.LOWPRIOMATCH),
         (neoocfrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.HIGHPRIOMATCH),
+        (neoocfrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.HIGHPRIOMATCH),
+        (nagiossshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.MEDPRIOMATCH),
+        (nagiossshrule.specmatch(ExpressionContext((udevnode,))), MonitoringRule.NOMATCH),
+        (nagiossshrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.NOMATCH),
     ]
     fieldmap = {'monitortype': str, 'arglist':dict, 'monitorclass': str, 'provider':str}
     for count in range(0, len(tests)):
@@ -830,7 +975,7 @@ if __name__ == '__main__':
                 assert field in testresult[1]
                 fieldvalue = testresult[1][field]
                 assert fieldvalue is None or isinstance(fieldvalue, fieldmap[field])
-            assert testresult[1]['monitorclass'] in ('ocf', 'lsb')
+            assert testresult[1]['monitorclass'] in ('ocf', 'lsb', 'nagios')
             if testresult[1]['monitorclass'] == 'ocf':
                 assert testresult[1]['provider'] is not None
                 assert isinstance(testresult[1]['arglist'], dict)
