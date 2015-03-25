@@ -49,6 +49,11 @@ class BestPractices(DiscoveryListener):
     prio = DiscoveryListener.PRI_OPTION
     wantedpackets = []
     evaluators = {}
+    category = None
+    application = None
+    discovery_name = None
+    sensitive_to = None
+    rules = {}
 
     def __init__(self, config, packetio, store, log, debug):
         'Initialize our BestPractices object'
@@ -60,7 +65,7 @@ class BestPractices(DiscoveryListener):
         Return value: our decorator function'''
         def decorator(cls):
             '''Register our class with the packet types given to 'register' above.
-            Return value: Class that we registered
+            Return value: Class that we registered.
             '''
             for pkttype in pkttypes:
                 if pkttype not in BestPractices.wantedpackets:
@@ -86,83 +91,107 @@ class BestPractices(DiscoveryListener):
                 for failure in failures:
                     failure = failure
 
-    def evaluate(self, unuseddrone, unusedsrcaddr, unusedjsonobj):
-        'Evaluate our rules given this changed data'
-        self = self
-        unuseddrone = unuseddrone
-        unusedsrcaddr = unusedsrcaddr
-        unusedjsonobj = unusedjsonobj
-        raise NotImplementedError("Abstract class method (evaluate)")
-
-
-@BestPractices.register('proc_sys')
-class BestPracticesProcSys(BestPractices):
-    'Best Practices for Linux /proc/sys values'
-    rules = [
-        {'tags': 'security',
-         'rule': 'EQ($kernel.core_setuid_ok, 0)',
-         'url': 'https://trello.com/c/g9z9hDy8' },
-        {'tags': 'security',
-         'rule': 'OR(EQ($kernel.core_uses_pid, 1), NE($kernel.core_pattern, ""))',
-         'url': 'https://trello.com/c/6LOXeyDD' },
-        {'tags': 'security',
-         'rule': 'EQ($kernel.ctrl-alt-del, 0)',
-         'url': 'https://trello.com/c/aUmn4WFg' },
-        {'tags': 'security',
-         'rule': 'EQ($kernel.exec-shield, 1)',
-         'url': 'https://trello.com/c/pBBZezUS' },
-        {'tags': 'security',
-         'rule': 'EQ($kernel.exec-shield-randomize, 1)',
-         'url': 'https://trello.com/c/ddbaElZM' },
-        {'tags': 'security',
-         'rule': 'EQ($kernel.sysrq, 0)',
-         'url': 'https://trello.com/c/QSovxhup' },
-        {'tags': 'security',
-         'rule': 'EQ($kernel.randomize_va_space, 2)',
-         'url': 'https://trello.com/c/5d5o5TAi' },
-        {'tags': 'security',
-         'rule': 'EQ($kernel.use-nx, 2)',
-         'url': 'https://trello.com/c/aBHWB70x' },
-        {'tags': 'network',
-         'rule': 'IN($net.core.default_qdisc, fq_codel, codel)',
-         'url': 'https://trello.com/c/EwPF4S9z' },
-        {'tags': 'security',
-         'rule': 'EQ($net.ipv4.icmp.bmcastecho, 2)',
-         'url': 'https://trello.com/c/N3wHjSFb' },
-        {'tags': 'security',
-         'rule': 'EQ($net.ipv4.icmp.rediraccept, 0)',
-         'url': 'https://trello.com/c/CZYlfHWv' },
-        {'tags': 'security',
-         'rule': 'EQ($net.inet.ip.accept_sourceroute, 0)',
-         'url': 'https://trello.com/c/hKkKhNl1' },
-        {'tags': 'security',
-         'rule': 'EQ($net.net.ip6.rediraccept, 0)',
-         'url': 'https://trello.com/c/CZYlfHWv' },
-        {'tags': 'security',
-         'rule': 'EQ($net.net.ip6.redirect, 0)',
-         'url': 'https://trello.com/c/Zzk5HX4j' },
-    ]
-
-
     def evaluate(self, drone, unusedsrcaddr, jsonobj):
-        'Evaluate our rules given the current data'
+        'Evaluate our rules given the current/changed data'
         unusedsrcaddr = unusedsrcaddr
         drone = drone
         #oldcontext = ExpressionContext((drone,), prefix='JSON_proc_sys')
         newcontext = ExpressionContext((jsonobj,))
-        for ruleinfo in BestPracticesProcSys.rules:
+        ruleids = self.rules.keys()
+        ruleids.sort()
+        for rulekey in ruleids:
+            ruleinfo = self.rules[rulekey]
             rule = ruleinfo['rule']
-            tags = ruleinfo['tags']
             url = ruleinfo['url']
+            ruleid = ruleinfo['id']
             result = GraphNodeExpression.evaluate(rule, newcontext)
             if result is None:
-                print >> sys.stderr, 'n/a:  %s (%s)' % (rule, tags)
+                print >> sys.stderr, 'n/a:  ID %s %s (%s)' % (ruleid, rule, self.category)
             elif not isinstance(result, bool):
-                print >> sys.stderr, 'Rule %s returned %s (%s)' % (rule, result, type(result))
+                print >> sys.stderr, 'Rule id %s %s returned %s (%s)' % (ruleid
+                ,       rule, result, type(result))
             elif result:
-                print >> sys.stderr, 'PASS: %s (%s)' % (rule, tags)
+                print >> sys.stderr, 'PASS: ID %s %s (%s)' % (ruleid, rule, self.category)
             else:
-                print >> sys.stderr, 'FAIL: %s %s (%s) => %s' % (rule, result, tags, url)
+                print >> sys.stderr, 'FAIL: ID %s %s %s (%s) => %s' % (ruleid
+                ,       rule, result, self.category, url)
+
+
+@BestPractices.register('proc_sys')
+class BestSecPracticesProcSys(BestPractices):
+    'Security Best Practices which are evaluated agains Linux /proc/sys values'
+    category = 'security'
+    application = 'os'
+    discovery_name = 'JSON_proc_sys'
+    sensitive_to = ('proc_sys',)
+    rules = {
+         'BPC-00001-1':
+            {'rule': 'EQ($kernel.core_setuid_ok, 0)',
+             'id':   'BPC-00001-1',
+             'url': 'https://trello.com/c/g9z9hDy8' },
+         'BPC-00002-1':
+            {'rule': 'OR(EQ($kernel.core_uses_pid, 1), NE($kernel.core_pattern, ""))',
+             'id':   'BPC-00002-1',
+             'url': 'https://trello.com/c/6LOXeyDD' },
+         'BPC-00003-1':
+            {'rule': 'EQ($kernel.ctrl-alt-del, 0)',
+             'id':   'BPC-00003-1',
+             'url': 'https://trello.com/c/aUmn4WFg' },
+         'BPC-00004-1':
+            {'rule': 'EQ($kernel.exec-shield, 1)',
+             'id':   'BPC-00004-1',
+             'url': 'https://trello.com/c/pBBZezUS' },
+         'BPC-00005-1':
+            {'rule': 'EQ($kernel.exec-shield-randomize, 1)',
+             'id':   'BPC-00005-1',
+             'url': 'https://trello.com/c/ddbaElZM' },
+         'BPC-00006-1':
+            {'rule': 'EQ($kernel.sysrq, 0)',
+             'id':   'BPC-00006-1',
+             'url': 'https://trello.com/c/QSovxhup' },
+         'BPC-00007-1':
+            {'rule': 'EQ($kernel.randomize_va_space, 2)',
+             'id':   'BPC-00007-1',
+             'url': 'https://trello.com/c/5d5o5TAi' },
+         'BPC-00008-1':
+            {'rule': 'EQ($kernel.use-nx, 2)',
+             'id':   'BPC-00008-1',
+             'url': 'https://trello.com/c/aBHWB70x' },
+         'BPC-00009-1':
+            {'rule': 'EQ($net.ipv4.icmp.bmcastecho, 2)',
+             'id':   'BPC-00009-1',
+             'url': 'https://trello.com/c/N3wHjSFb' },
+         'BPC-00010-1':
+            {'rule': 'EQ($net.ipv4.icmp.rediraccept, 0)',
+             'id':   'BPC-00010-1',
+             'url': 'https://trello.com/c/CZYlfHWv' },
+         'BPC-00011-1':
+            {'rule': 'EQ($net.inet.ip.accept_sourceroute, 0)',
+             'id':   'BPC-00011-1',
+             'url': 'https://trello.com/c/hKkKhNl1' },
+         'BPC-00012-1':
+            {'rule': 'EQ($net.net.ip6.rediraccept, 0)',
+             'id':   'BPC-00012-1',
+             'url': 'https://trello.com/c/CZYlfHWv' },
+         'BPC-00013-1':
+            {'rule': 'EQ($net.net.ip6.redirect, 0)',
+             'id':   'BPC-00013-1',
+             'url': 'https://trello.com/c/Zzk5HX4j' },
+    }
+
+@BestPractices.register('proc_sys')
+class BestNetPracticesProcSys(BestPractices):
+    'Network Best Practices for Linux /proc/sys values'
+    category = 'network'
+    application = 'os'
+    discovery_name = 'JSON_proc_sys'
+    sensitive_to = ('proc_sys',)
+    rules = {
+        'BPC-000014-1':
+            {'rule': 'IN($net.core.default_qdisc, fq_codel, codel)',
+             'id':   'BPC-00014-1',
+             'url': 'https://trello.com/c/EwPF4S9z' },
+    }
 
 if __name__ == '__main__':
     from AssimCclasses import pyConfigContext
@@ -196,8 +225,9 @@ if __name__ == '__main__':
     "net.ipv6.conf.all.accept_source_route": 0
     }}'''
     testjsonobj = pyConfigContext(JSON_data)['data']
-    procsys = BestPracticesProcSys(None, None, None, None, False)
-    procsys.evaluate(None, None, testjsonobj)
+    for ruleclass in BestPractices.evaluators['proc_sys']:
+        procsys = ruleclass(None, None, None, None, False)
+        procsys.evaluate(None, None, testjsonobj)
     # [W0212:] Access to a protected member _JSONprocessors of a client class
     # pylint: disable=W0212
     print Drone._JSONprocessors

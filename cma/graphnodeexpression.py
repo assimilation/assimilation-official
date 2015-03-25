@@ -512,9 +512,9 @@ def serviceip(args, context):
     The argument to this function tells it an expression that will give
     it the hash table (map) of IP/port combinations for this service.
     '''
-    #print >> sys.stderr, 'SERVICEIP(%s)' % str(args)
     if len(args) == 0:
         args = ('$JSON_procinfo.listenaddrs',)
+    #print >> sys.stderr, 'SERVICEIP(%s)' % str(args)
     for arg in args:
         nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
@@ -537,6 +537,7 @@ def serviceport(args, context):
     '''
     if len(args) == 0:
         args = ('$JSON_procinfo.listenaddrs',)
+    #print >> sys.stderr, 'SERVICEPORT ARGS are %s' % (str(args))
     for arg in args:
         nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
