@@ -29,7 +29,8 @@
     "class":    "nagios",
     "type":     "check_ssh",
     "prio":     "med",
-    "initargs": [],
+    "objclass":  "service",     # possible values are "service" or "host"
+    "initargs": ["-t", "3600"], # Nanoprobes have their own timeouts...
     "classconfig": [
 #       parameter   expression-to-evaluate      regular expression
         [null,          "@basename()",          "sshd$"],

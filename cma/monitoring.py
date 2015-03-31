@@ -93,7 +93,6 @@ class MonitorAction(GraphNode):
             for name in self._arglist:
                 self.arglist.append(name)
                 self.arglist.append(str(self._arglist[name]))
-
     def longname(self):
         'Return a long name for the type of monitoring this rule provides'
         if self.provider is not None:
@@ -109,7 +108,7 @@ class MonitorAction(GraphNode):
           Parameters
           ----------
           monitoredentity : GraphNode
-                The graph node which we are monitoring
+                The graph node which we are monitoring either a service or a ManagedSystem
           runon : Drone
                 The particular Drone which is running this monitoring action.
                 Defaults to 'monitoredentity'
@@ -311,9 +310,10 @@ class MonitoringRule(object):
     MEDPRIOMATCH = 4    # We match - but we could be a better monitoring method
     HIGHPRIOMATCH = 5   # We match and we are a good monitoring method
 
-    monitorobjects = {}
+    monitor_objects = {}
+    legal_monitor_types = {'service', 'host'}
 
-    def __init__(self, monitorclass, tuplespec):
+    def __init__(self, monitorclass, tuplespec, objclass='service'):
         '''It is constructed from an list of tuples, each one of which represents
         a value expression and a regular expression.  Each value expression
         is a specification to a GraphNode 'get' operation.  Each regular expression
@@ -326,6 +326,7 @@ class MonitoringRule(object):
             raise ValueError('Improper tuplespec')
 
         self.monitorclass = monitorclass
+        self.objclass = objclass
         self._tuplespec = []
         if not(hasattr(self, 'nvpairs')):
             self.nvpairs = {}
@@ -344,9 +345,17 @@ class MonitoringRule(object):
             self._tuplespec.append((tup[0], regex))
 
         # Register us in the grand and glorious set of all monitoring rules
-        if monitorclass not in MonitoringRule.monitorobjects:
-            MonitoringRule.monitorobjects[monitorclass] = []
-        MonitoringRule.monitorobjects[monitorclass].append(self)
+        if self.objclass not in self.monitor_objects:
+            if self.objclass not in self.legal_monitor_types:
+                raise ValueError('Monitor object class %s is not recognized' % self.objclass)
+            self.monitor_objects[self.objclass] = {}
+        monrules = self.monobjclass(self.objclass)
+        if monitorclass not in monrules:
+            monrules[monitorclass] = []
+        monrules[monitorclass].append(self)
+
+    def monobjclass(self, mtype='service'):
+        return self.monitor_objects[mtype]
 
     def tripletuplecheck(self, triplespec):
         'Validate and remember things for our child triple tuple specifications'
@@ -447,7 +456,7 @@ class MonitoringRule(object):
         raise NotImplementedError('Abstract class')
 
     @staticmethod
-    def ConstructFromString(s):
+    def ConstructFromString(s, objclass='service'):
         '''
         Construct a MonitoringRule from a string parameter.
         It will construct the appropriate subclass depending on its input
@@ -466,7 +475,7 @@ class MonitoringRule(object):
                     {'class': True, 'type': True, 'classconfig': True},
                  'nagios':
                     {'class': True, 'type': True, 'classconfig': True
-                    ,       'prio': True, 'initargs': True},
+                    ,       'prio': True, 'initargs': True, 'objclass': True},
                  'NEVERMON':
                     {'class': True, 'type': True, 'classconfig': True}
                 }
@@ -482,13 +491,14 @@ class MonitoringRule(object):
             if key not in l:
                 raise ValueError('%s object cannot have a %s field' % (rscclass, key))
 
+        objclass = obj.get('objclass', 'service')
         if rscclass == 'lsb':
             return LSBMonitoringRule(obj['type'], obj['classconfig'])
         if rscclass == 'ocf':
             return OCFMonitoringRule(obj['provider'], obj['type'], obj['classconfig'])
         if rscclass == 'nagios':
             return NagiosMonitoringRule(obj['type'], obj['prio']
-            ,   obj['initargs'], obj['classconfig'])
+            ,   obj['initargs'], obj['classconfig'], objclass=objclass)
         if rscclass == 'NEVERMON':
             return NEVERMonitoringRule(obj['type'], obj['classconfig'])
 
@@ -519,7 +529,7 @@ class MonitoringRule(object):
 
 
     @staticmethod
-    def findbestmatch(context, preferlowoverpart=True):
+    def findbestmatch(context, preferlowoverpart=True, objclass='service'):
         '''
         Find the best match among the complete collection of MonitoringRules
         against this particular set of graph nodes.
@@ -541,21 +551,24 @@ class MonitoringRule(object):
             automated monitoring running now over finding a human to fill in the
             other parameters.
 
-            Of course, we always prefer a HIGHPRIOMATCH monitoring method.
+            Of course, we always prefer a HIGHPRIOMATCH monitoring method first
+            and a MEDPRIOMATCH if that's not available.
         '''
-        rsctypes = ['ocf', 'lsb', 'NEVERMON'] # Priority ordering...
+        rsctypes = ['ocf', 'nagios', 'lsb', 'NEVERMON'] # Priority ordering...
         # This will make sure the priority list above is maintained :-D
-        if len(rsctypes) < len(MonitoringRule.monitorobjects.keys()):
+        # Nagios rules can be of a variety of monitoring levels...
+        mon_objects = self.monobjclass(self, objclass)
+        if len(rsctypes) < len(mon_objects.keys()):
             raise RuntimeError('Update rsctypes list in findbestmatch()!')
 
         bestmatch = (MonitoringRule.NOMATCH, None)
 
         # Search the rule types in priority order
         for rtype in rsctypes:
-            if rtype not in MonitoringRule.monitorobjects:
+            if rtype not in mon_objects:
                 continue
             # Search every rule of class 'rtype'
-            for rule in MonitoringRule.monitorobjects[rtype]:
+            for rule in mon_objects[rtype]:
                 match = rule.specmatch(context)
                 #print >> sys.stderr, 'GOT A MATCH------------->', match
                 prio = match[0]
@@ -578,16 +591,17 @@ class MonitoringRule(object):
         return bestmatch
 
     @staticmethod
-    def findallmatches(context):
+    def findallmatches(context, objclass='service'):
         '''
         We return all possible matches as seen by our complete and wonderful set of
         MonitoringRules.
         '''
         result = []
-        keys = MonitoringRule.monitorobjects.keys()
+        mon_objects = self.monobjclass(objclass)
+        keys = mon_objects.keys()
         keys.sort()
         for rtype in keys:
-            for rule in MonitoringRule.monitorobjects[rtype]:
+            for rule in mon_objects[rtype]:
                 match = rule.specmatch(context)
                 if match[0] != MonitoringRule.NOMATCH:
                     result.append(match)
@@ -607,7 +621,7 @@ class MonitoringRule(object):
         return MonitoringRule.ConstructFromString(s)
 
     @staticmethod
-    def load_tree(rootdirname, pattern=r".*\.mrule$", followlinks=False):
+    def load_tree(rootdirname, pattern=r".*\.mrule$", followlinks=False, objclass='service'):
         '''
         Add a set of MonitoringRules to our universe from a directory tree
         using the ConstructFromFileName function.
@@ -767,7 +781,7 @@ class NagiosMonitoringRule(MonitoringRule):
             'med':  MonitoringRule.MEDPRIOMATCH,
             'high': MonitoringRule.HIGHPRIOMATCH,
     }
-    def __init__(self, rsctype, prio, initargs, triplespec):
+    def __init__(self, rsctype, prio, initargs, triplespec, objclass='service'):
         '''
         Parameters
         ----------
@@ -804,7 +818,7 @@ class NagiosMonitoringRule(MonitoringRule):
         self.initargs = initargs
         self.prio = self.priomap[prio]
         tuplespec = self.tripletuplecheck(triplespec)
-        MonitoringRule.__init__(self, 'nagios', tuplespec)
+        MonitoringRule.__init__(self, 'nagios', tuplespec, objclass=objclass)
 
 
     def constructaction(self, context):
@@ -872,7 +886,6 @@ class NagiosMonitoringRule(MonitoringRule):
                         }
                     ,   missinglist
                     )
-
 if __name__ == '__main__':
     from graphnodes import ProcessNode
     neolsbargs = (
@@ -916,6 +929,10 @@ if __name__ == '__main__':
     )
     nagiossshrule = NagiosMonitoringRule('check_ssh', 'med', ['-t', '3600'], nagiossshargs)
 
+    nagiossensorsargs =  ((None, 'hascmd(sensors)', "True"),)
+    nagiossensorsrule = NagiosMonitoringRule('check_sensors', 'med', [], nagiossensorsargs
+    ,   objclass='host')
+
 
     udevnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/udevd', ['/usr/bin/udevd']
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
@@ -949,6 +966,8 @@ if __name__ == '__main__':
 
     neonode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/java', neoprocargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+    withsensors = {'JSON_commands' :  '{"sensors": true}'}
+    nosensors = {'JSON_commands':'{"bash": true}'}
 
     tests = [
         (lsbsshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.LOWPRIOMATCH),
@@ -961,6 +980,9 @@ if __name__ == '__main__':
         (nagiossshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.MEDPRIOMATCH),
         (nagiossshrule.specmatch(ExpressionContext((udevnode,))), MonitoringRule.NOMATCH),
         (nagiossshrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.NOMATCH),
+        (nagiossensorsrule.specmatch(ExpressionContext((withsensors,)))
+        ,                                                        MonitoringRule.MEDPRIOMATCH),
+        (nagiossensorsrule.specmatch(ExpressionContext((nosensors,))), MonitoringRule.NOMATCH),
     ]
     fieldmap = {'monitortype': str, 'arglist':dict, 'monitorclass': str, 'provider':str}
     for count in range(0, len(tests)):
