@@ -139,12 +139,12 @@ class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
     '''This class performs host-level monitoring.
     For the moment, that's only using Nagios agents.
     '''
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
+    def processpkt(self, drone, unused_srcaddr, unused_jsonobj):
         "Send commands to monitor host aspects for the given Drone"
         unused_srcaddr = unused_srcaddr
+        unused_jsonobj = unused_jsonobj
 
         drone.monitors_activated = True
-        data = jsonobj['data'] # The data portion of the JSON message
         montuples = MonitoringRule.findallmatches(drone, objclass='host')
         for montuple in montuples:
             if montuple[0] == MonitoringRule.NOMATCH:
