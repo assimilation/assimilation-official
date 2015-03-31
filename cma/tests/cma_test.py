@@ -879,7 +879,7 @@ class TestMonitorBasic(TestCase):
         self.assertTrue(isinstance(lsb, LSBMonitoringRule))
 
     def test_automonitor_search_basic(self):
-        MonitoringRule.monitorobjects = {}
+        MonitoringRule.monitor_objects = {'service': {}, 'host':{}}
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
@@ -945,7 +945,7 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(list2[1][1]['monitorclass'], 'ocf')
 
     def test_automonitor_functions(self):
-        MonitoringRule.monitorobjects = {}
+        MonitoringRule.monitor_objects = {'service': {}, 'host':{}}
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
