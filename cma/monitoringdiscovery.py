@@ -133,3 +133,31 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
             print >> sys.stderr, ('Previously monitored %s on %s'
             %       (monitortype, drone.designation))
         monnode.activate(monitoredservice, drone)
+
+@Drone.add_json_processor
+class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
+    '''This class performs host-level monitoring.
+    For the moment, that's only using Nagios agents.
+    '''
+    def processpkt(self, drone, unused_srcaddr, jsonobj):
+        "Send commands to monitor host aspects for the given Drone"
+        unused_srcaddr = unused_srcaddr
+
+        drone.monitors_activated = True
+        data = jsonobj['data'] # The data portion of the JSON message
+        montuples = MonitoringRule.findallmatches(drone, objclass='host')
+        for montuple in montuples:
+            if montuple[0] == MonitoringRule.NOMATCH:
+                continue
+            elif montuple[0] == MonitoringRule.PARTMATCH:
+                print >> sys.stderr, (
+                'Automatic host monitoring of %s not possible with %s: missing %s'
+                %   (drone.designation, str(montuple[1]), str(montuple[2])))
+                self.log.warning('Insufficient information to monitor host %s'
+                ' using %s: %s is missing.'
+                %   (drone.designation, str(montuple[1]), str(montuple[2])))
+            else:
+                agent = montuple[1]
+                self._add_service_monitoring(drone, drone, agent)
+                print >> sys.stderr, ('START monitoring host %s using %s:%s agent'
+                %   (drone.designation, agent['monitorclass'], agent['monitortype']))

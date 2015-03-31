@@ -1,0 +1,228 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+# Discover file attributes
+#   We discover them for the list of files in ${LS_FILELIST}
+#
+#   If a file in $LS_FILELIST name ends in /, then we assume it's a directory and also
+#   discover the information for every file inside that directory
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+nl='
+'
+: ${LS_FILELIST='/ /etc /lib /usr/ /var/ /run /run/lock /run/user /bin /sbin /usr/local/'}
+
+have_getfattr='false'
+
+#
+#   Encode file mode from the ls command into JSON
+#
+encode_mode() {
+    filename="$1"
+    set -- $(echo "$2" | sed 's%.%& %g')
+    ftype=$1
+    rowner=$2; wowner=$3; xowner=$4
+    rgroup=$5; wgroup=$6; xgroup=$7
+    rother=$8; wother=$9; xother=${10}
+    aclflag=${11}
+
+    printf '"type": "%s", "perms": {"owner":{' "$ftype"
+    case $rowner in
+        r)  printf '"read":true';;
+        *)  printf '"read":false';;
+    esac
+    case $wowner in
+        w)  printf ', "write":true';;
+        *)  printf ', "write":false';;
+    esac
+    case $xowner in
+        x)  printf ', "exec":true, "setid":false';;
+        s)  printf ', "exec":true, "setid":true';;
+        S)  printf ', "exec":false, "setid":true';;
+        *)  printf ', "exec":false, "setid":false';;
+    esac
+    printf '}, "group": {'
+    case $rgroup in
+        r)  printf '"read":true';;
+        *)  printf '"read":false';;
+    esac
+    case $wgroup in
+        w)  printf ', "write":true';;
+        *)  printf ', "write":false';;
+    esac
+    case $xgroup in
+        x)  printf ', "exec":true, "setid":false';;
+        s)  printf ', "exec":true, "setid":true';;
+        S)  printf ', "exec":false, "setid":true';;
+        *)  printf ', "exec":false, "setid":false';;
+    esac
+    printf '}, "other": {'
+    case $rother in
+        r)  printf '"read":true';;
+        *)  printf '"read":false';;
+    esac
+    case $wother in
+        w)  printf ', "write":true';;
+        *)  printf ', "write":false';;
+    esac
+    stickybit='false'
+    case $xother in
+        x)  printf ', "exec":true';;
+        t)  printf ', "exec":true'
+            stickybit='true';;
+        T)  stickybit='true'
+            printf ', "exec":false';;
+        *)  printf ', "exec":false';;
+    esac
+    printf '}'
+    case $aclflag in
+      +)    encode_acls "$filename"
+    esac
+    printf ', "sticky":%s}}' "$stickybit"
+}
+
+#
+#   Encode ACL information for this file into JSON
+#
+encode_acls() {
+    : 'Ought to do something eventually'
+}
+
+#   $ getfattr -m- -d .
+#   # file: .
+#   security.selinux="unconfined_u:object_r:user_home_t:s0"
+#
+encode_fattrs() {
+    # filename "$(ls -lZ thingie...)"
+    if
+        [ $have_getfattr = true ]
+    then
+        : yay we have getfattr
+    else
+        # So, instead we do what we can do...
+        encode_selinuxcontext "$2"
+    fi
+    getfattr -m- -d --absolute-names "$1" |
+    while
+        read line
+    do
+        case "$line" in
+            '#'*)   continue;;
+            *=*)    ;;
+            *)      continue;;
+        esac
+        name="$(echo "$line" | sed -e 's%=.*%%' -e s'%\.%:%g')"
+        value="$(echo "$line" | sed -e 's%^[^=]*=%%' -e's%"%%g')"
+        case $name in
+            'security:selinux') printf ', %s'           "$(encode_selinuxcontext "$value")";;
+            *)                  printf ', "%s":"%s"'    "$name" "$value";;
+        esac
+    done
+}
+#   Encode the SELinux security context into JSON
+#
+encode_selinuxcontext() {
+    context=$1
+    case "$context" in
+        '"'*'"')    context="$(echo "$context" | tr -d '"')";;
+    esac
+    # See if it looks like an SELinux security context value...
+    case "$context" in
+        *:*:*:*)
+            printf '%s' "$context" | sed -e \
+            's%\(.*\):\(.*\):\(.*\):\(.*\)%"security:selinux":{"user":"\1","role":"\2","type":"\3","level":"\4"}, %';;
+        *)  return;;
+    esac
+}
+
+#
+#   Encode file information into JSON
+#
+fileinfo_linux() {
+    ls -ldZ "$1" | 
+    (
+        printf '"%s": {' "$1"
+        read modebits linkcount uid gid selinuxcontext size month day time name
+        printf '"owner": "%s", "group": "%s", ' "$uid" "$gid"
+        encode_fattrs "$1" "$selinuxcontext"
+        encode_mode "$1" "$modebits"
+    )
+}
+
+#
+#   Discover and print file attributes as JSON
+#   Arguments are a list of files
+#   If a file name ends in /, then we discover the attributes for its immediate descendants...
+#
+discover_files() {
+    linespace="$1"
+    shift
+    comma="$linespace"
+    for file
+    do
+        if
+            [ -z "$file" -o ! -e "$file" ]
+        then
+            continue
+        fi
+        case $file in
+            *?/)
+                printf '%s%s' "$comma" "$(fileinfo_linux $(echo "$file" | sed 's%./$%&%'))"
+                for dirfile in ${file}*
+                do
+                    if
+                        test ! -z "$dirfile" -a -e "$dirfile"
+                    then
+                        printf '%s%s' "$comma" "$(fileinfo_linux "$dirfile")"
+                        comma=",${nl}${linespace}"
+                    fi
+                done
+                ;;
+            *)  printf '%s%s' "$comma" "$(fileinfo_linux "$file")";;
+        esac
+        comma=",${nl}${linespace}"
+    done
+}
+
+
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "ls",
+	  "description": "ls-style file information",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    discover_files '    ' "$@"
+    printf '\n  }\n}\n'
+}
+
+if
+    getfattr --help >/dev/null 2>&1
+then
+    have_getfattr=true
+fi
+# Temporary crufty list of things to check modes of
+discover $LS_FILELIST

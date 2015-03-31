@@ -601,3 +601,16 @@ def dirname(args, context):
             continue
         return os.path.dirname(pathname)
     return None
+
+@GraphNodeExpression.RegisterFun
+def hascmd(args, context):
+    '''
+    This function returns True if the given list of commands are all present on the given Drone.
+    It determines this by looking at the value of $JSON_commands
+    '''
+    cmdlist = GraphNodeExpression.evaluate('$JSON_commands', context)
+    print >> sys.stderr, 'cmdlist:', cmdlist
+    for arg in args:
+        if arg not in cmdlist:
+            return None
+    return True
