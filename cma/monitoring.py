@@ -310,15 +310,15 @@ class MonitoringRule(object):
     MEDPRIOMATCH = 4    # We match - but we could be a better monitoring method
     HIGHPRIOMATCH = 5   # We match and we are a good monitoring method
 
-    monitor_objects = {}
-    legal_monitor_types = {'service', 'host'}
+    monitor_objects = {'service': {}, 'host': {}}
 
     def __init__(self, monitorclass, tuplespec, objclass='service'):
         '''It is constructed from an list of tuples, each one of which represents
         a value expression and a regular expression.  Each value expression
-        is a specification to a GraphNode 'get' operation.  Each regular expression
-        is a specification of a regex to match against the corresponding field
-        expression.  By default, all regexes are anchored (implicitly start with ^)
+        is a specification to a GraphNode 'get' operation - or a more complex GraphNodeExpression.
+        Each regular expression is a specification of a regex to match against the
+        corresponding field expression.
+        By default, all regexes are anchored (implicitly start with ^)
         This rule can only apply if all the RegExes match.
         NOTE: It can still fail to apply even if the RegExes all match.
         '''
@@ -346,16 +346,16 @@ class MonitoringRule(object):
 
         # Register us in the grand and glorious set of all monitoring rules
         if self.objclass not in self.monitor_objects:
-            if self.objclass not in self.legal_monitor_types:
-                raise ValueError('Monitor object class %s is not recognized' % self.objclass)
-            self.monitor_objects[self.objclass] = {}
+            raise ValueError('Monitor object class %s is not recognized' % self.objclass)
         monrules = self.monobjclass(self.objclass)
         if monitorclass not in monrules:
             monrules[monitorclass] = []
         monrules[monitorclass].append(self)
 
-    def monobjclass(self, mtype='service'):
-        return self.monitor_objects[mtype]
+    @staticmethod
+    def monobjclass(mtype='service'):
+        'Return the monitoring objects that go with this service type'
+        return MonitoringRule.monitor_objects[mtype]
 
     def tripletuplecheck(self, triplespec):
         'Validate and remember things for our child triple tuple specifications'
@@ -557,7 +557,7 @@ class MonitoringRule(object):
         rsctypes = ['ocf', 'nagios', 'lsb', 'NEVERMON'] # Priority ordering...
         # This will make sure the priority list above is maintained :-D
         # Nagios rules can be of a variety of monitoring levels...
-        mon_objects = self.monobjclass(self, objclass)
+        mon_objects = MonitoringRule.monobjclass(objclass)
         if len(rsctypes) < len(mon_objects.keys()):
             raise RuntimeError('Update rsctypes list in findbestmatch()!')
 
@@ -597,7 +597,7 @@ class MonitoringRule(object):
         MonitoringRules.
         '''
         result = []
-        mon_objects = self.monobjclass(objclass)
+        mon_objects = MonitoringRule.monobjclass(objclass)
         keys = mon_objects.keys()
         keys.sort()
         for rtype in keys:
@@ -621,7 +621,7 @@ class MonitoringRule(object):
         return MonitoringRule.ConstructFromString(s)
 
     @staticmethod
-    def load_tree(rootdirname, pattern=r".*\.mrule$", followlinks=False, objclass='service'):
+    def load_tree(rootdirname, pattern=r".*\.mrule$", followlinks=False):
         '''
         Add a set of MonitoringRules to our universe from a directory tree
         using the ConstructFromFileName function.
