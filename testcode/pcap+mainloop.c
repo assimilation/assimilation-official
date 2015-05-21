@@ -1,4 +1,4 @@
-/**
+/** vim: smartindent number syntax=c
  * @file
  * @brief Simple pcap testing code using 'mainloop'.
  * Listens for CDP or LLDP packets on the network - all using the mainloop dispatch code.
@@ -219,6 +219,18 @@ timeout_agent(gpointer ignored)
 #define MONITOR REQUEST(MONITOROP,	2, 0, 0)	// Repeat every second - no delay
 #define STOP REQUEST(STOPOP,		3, 0, 5)	// No repeat - 5 second delay
 
+#define	ETHNAME	"eth0"
+#define	ETHDEV	"\"" CONFIGNAME_DEVNAME		"\": \"" ETHNAME "\""
+#define	SWTYPE	"\"" CONFIGNAME_TYPE		"\": \"#SWITCH\""
+#define	SWINST	"\"" CONFIGNAME_INSTANCE	"\": \"#_SWITCH_" ETHNAME "\""
+#define	SWINSTNM				"#_SWITCH_" ETHNAME
+#define	SWPROTOS "\"" CONFIGNAME_SWPROTOS	"\": [\"lldp\", \"cdp\"]"
+#define	ARPTYPE	"\"" CONFIGNAME_TYPE		"\": \"#ARP\""
+#define	ARPINST	"\"" CONFIGNAME_INSTANCE	"\": \"#_ARP_" ETHNAME "\""
+#define	ARPINSTNM				"#_ARP_" ETHNAME
+#define	SWITCHDISCOVER 				"{" SWTYPE ", "  SWINST ", "  ETHDEV ", " SWPROTOS "}"
+#define	ARPDISCOVER				"{" ARPTYPE ", " ARPINST ", " ETHDEV "}"
+
 /// Routine to pretend to be the initial CMA
 void
 fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
@@ -264,25 +276,51 @@ fakecma_startup(AuthListener* auth, FrameSet* ifs, NetAddr* nanoaddr)
 	UNREF(pkt);
 
 	{
-		const char *	json[] = { START, MONITOR, STOP};
+		const char *	monopjson[] = { START, MONITOR, STOP};
 		unsigned	j;
 		// Create a frameset for a few resource operations
 		pkt = frameset_new(FRAMESETTYPE_DORSCOP);
-		for (j=0; j < DIMOF(json); j++) {
+		for (j=0; j < DIMOF(monopjson); j++) {
 			CstringFrame*	csf = cstringframe_new(FRAMETYPE_RSCJSON,0);
-			csf->baseclass.setvalue(&csf->baseclass, g_strdup(json[j])
-			,	strlen(json[j])+1, g_free);
+			csf->baseclass.setvalue(&csf->baseclass, g_strdup(monopjson[j])
+			,	strlen(monopjson[j])+1, g_free);
 			frameset_append_frame(pkt, &csf->baseclass);
 			UNREF2(csf);
 		}
 		netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 		UNREF(pkt);
-		pkt = frameset_new(FRAMESETTYPE_ACKSTARTUP);
+	}
+	{
+		const char *	discoverjson[] = {SWITCHDISCOVER, ARPDISCOVER};
+		const char *	discoverinstnm[] = {SWINSTNM, ARPINSTNM};
+		unsigned	j;
+		// Create a frameset for a few discovery operations
+		pkt = frameset_new(FRAMESETTYPE_DODISCOVER);
+		for (j=0; j < DIMOF(discoverjson); j++) {
+			CstringFrame*	csf = cstringframe_new(FRAMETYPE_DISCJSON,0);
+			CstringFrame*	inst = cstringframe_new(FRAMETYPE_DISCNAME,0);
+			fprintf(stderr, "Creating discovery frameset: %s: %s\n"
+			,	discoverinstnm[j]
+			,	discoverjson[j]);
+			inst->baseclass.setvalue(&inst->baseclass, g_strdup(discoverjson[j])
+			,	strlen(discoverjson[j])+1, g_free);
+			frameset_append_frame(pkt, &inst->baseclass);
+			UNREF2(inst);
+			csf->baseclass.setvalue(&csf->baseclass, g_strdup(discoverjson[j])
+			,	strlen(discoverjson[j])+1, g_free);
+			frameset_append_frame(pkt, &csf->baseclass);
+			UNREF2(csf);
+		}
 		netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
 		UNREF(pkt);
 	}
+	pkt = frameset_new(FRAMESETTYPE_ACKSTARTUP);
+	netpkt->_netio->sendareliablefs(netpkt->_netio, nanoaddr, DEFAULT_FSP_QID, pkt);
+	UNREF(pkt);
+	g_info("ACKSTARTUP packet queued to send");
 }
 
+/// Routine to (fake) validate that we have proper authentication...
 FSTATIC gboolean
 test_cma_authentication(const FrameSet*fs, NetAddr* fromaddr)
 {
@@ -322,6 +360,7 @@ main(int argc, char **argv)
 	ConfigContext*	config = configcontext_new(0);
 	PacketDecoder*	decoder = nano_packet_decoder();
 	AuthListener*	listentonanoprobes;
+	ReliableUDP*	rtransport;
 
 #if 0
 #	ifdef HAVE_MCHECK_PEDANTIC
@@ -356,7 +395,9 @@ main(int argc, char **argv)
 	config->setframe(config, CONFIGNAME_OUTSIG, &signature->baseclass);
 
 	// Create a network transport object for normal UDP packets
-	nettransport = &(reliableudp_new(0, config, decoder, 0)->baseclass.baseclass);
+	rtransport = reliableudp_new(0, config, decoder, 0);
+	rtransport->_protocol->window_size = 8;
+	nettransport = &(rtransport->baseclass.baseclass);
 	g_return_val_if_fail(NULL != nettransport, 2);
 
 	// Set up the parameters the 'CMA' is going to send to our 'nanoprobe'

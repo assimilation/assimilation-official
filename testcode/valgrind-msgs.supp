@@ -464,3 +464,13 @@
    fun:nano_start_full
    fun:main
 }
+{
+   pcap_activate uninitialized bind bug
+   Memcheck:Param
+   socketcall.bind(my_addr.sa_data)
+   fun:bind
+   obj:/usr/lib/x86_64-linux-gnu/libpcap.so.1.6.2
+   fun:pcap_activate
+   fun:create_pcap_listener
+   ...
+}
