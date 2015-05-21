@@ -24,6 +24,7 @@
  */
 #include <projectcommon.h>
 #include <string.h>
+#include <stdlib.h>
 #include <frameset.h>
 #include <framesettypes.h>
 #include <frametypes.h>
@@ -602,13 +603,13 @@ nanoobey_setconfig(AuthListener* parent	///<[in] @ref AuthListener object invoki
 				// This is a good place to check for a compression threshold
 				// And possibly other parameters
 				if (newconfig) {
-					cprs_thresh = 
+					cprs_thresh =
 					newconfig->getint(newconfig, CONFIGNAME_CPRS_THRESH);
 					if (cprs_thresh > 0) {
 						Frame*	f;
 						f = config->getframe(config, CONFIGNAME_COMPRESS);
 						if (f) {
-							CompressFrame*	cf 
+							CompressFrame*	cf
 							=	CASTTOCLASS(CompressFrame, f);
 							cf->compression_threshold = cprs_thresh;
 						}
@@ -646,7 +647,7 @@ endloop:
 					}
 					break;
 
-				case CFG_CFGCTX: 
+				case CFG_CFGCTX:
 					config->setconfig(config, key, newconfig->getconfig(newconfig, key));
 					break;
 
@@ -672,7 +673,7 @@ endloop:
 		}
 		_nanoprobe_associate_cma_addrs(frameset_sender_key_id(fs), newconfig);
 		if (DEBUG >= 2) {
-			DEBUGMSG("%s.%d: Validating the config we processed...", __FUNCTION__, __LINE__);
+			g_info("%s.%d: Validating the config we processed...", __FUNCTION__, __LINE__);
 			if (_nano_initconfig_OK(config)) {
 				DEBUGMSG("%s.%d: config we read is good", __FUNCTION__, __LINE__);
 			}else{
@@ -1021,7 +1022,6 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 			NetAddr* fromaddr)	///<[in/out] Requestor's address
 {
 	ConfigContext*	jsonroot;
-	JsonDiscovery*	discovery;
 	const char*	disctype;
 
 	(void)fromaddr;
@@ -1033,21 +1033,39 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 	g_return_if_fail(disctype != NULL);
 
         if (strcmp(disctype, "#SWITCH") == 0) {
-            //printf("*** jsonroot = %s: \n", jsonroot->baseclass.toString(&jsonroot->baseclass));
-	    DEBUGMSG3("%s.%d: jsonroot = %s", __FUNCTION__, __LINE__, jsonroot->baseclass.toString(&jsonroot->baseclass));
-	    switchdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
-	    ,	transport, config, 0);
-        } else if (strcmp(disctype, "#ARP") == 0) {
-            //printf("*** jsonroot = %s: \n", jsonroot->baseclass.toString(&jsonroot->baseclass));
-	    DEBUGMSG3("%s.%d: jsonroot = %s", __FUNCTION__, __LINE__, jsonroot->baseclass.toString(&jsonroot->baseclass));
-	    arpdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
-	    ,	transport, config, 0);
-        } else {
-	    discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
-	    ,			      transport, config, 0);
-	    if (discovery) {
-		UNREF2(discovery);
-	    }
+		SwitchDiscovery*	discovery;
+		DEBUGMSG3("%s.%d: jsonroot = %s", __FUNCTION__, __LINE__
+		,	jsonroot->baseclass.toString(&jsonroot->baseclass));
+		discovery = switchdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
+		,	transport, config, 0);
+		if (discovery) {
+			UNREF2(discovery);
+		}else{
+			g_warning("%s.%d: Cannot start switch discovery: %s."
+			,	__FUNCTION__, __LINE__, json);
+		}
+        }else if (strcmp(disctype, "#ARP") == 0){
+		ArpDiscovery*	discovery;
+		DEBUGMSG3("%s.%d: jsonroot = %s", __FUNCTION__, __LINE__
+		,	jsonroot->baseclass.toString(&jsonroot->baseclass));
+		discovery = arpdiscovery_new(jsonroot, G_PRIORITY_LOW, g_main_context_default()
+		,	transport, config, 0);
+		if (discovery) {
+			UNREF2(discovery);
+		}else{
+			g_warning("%s.%d: Cannot start ARP discovery: %s."
+			,	__FUNCTION__, __LINE__, json);
+		}
+	}else{
+		JsonDiscovery*	discovery;
+		discovery = jsondiscovery_new(disctype, instance, interval, jsonroot
+		,			      transport, config, 0);
+		if (discovery) {
+			UNREF2(discovery);
+		}else{
+			g_warning("%s.%d: Cannot execute discovery script %s."
+			,	__FUNCTION__, __LINE__, disctype);
+		}
         }
 
 	UNREF(jsonroot);
@@ -1085,8 +1103,14 @@ nano_startupidle(gpointer gcruft)
 		,	cruft->discover_interval
 		,	jsondata
 		,	cruft->iosource, obeycollective->baseclass.config, 0);
+		if (jd) {
+			UNREF2(jd);
+		}else{
+			g_critical("%s.%d: Cannot execute initial startup discovery script %s. Exiting."
+			,	__FUNCTION__, __LINE__, cruft->initdiscover);
+			exit(1);
+		}
 		UNREF(jsondata);
-		UNREF2(jd);
 		state = WAIT;
 		return TRUE;
 	}
@@ -1110,8 +1134,10 @@ _nano_initconfig_OK(ConfigContext* config)
 		,	CONFIGNAME_CMAFAIL, CONFIGNAME_CMADISCOVER)
 		return TRUE;
 	}
-	DUMP2("_nano_initconfig_OK: Could not find both of " CONFIGNAME_CMAFAIL
-	" and " CONFIGNAME_CMADISCOVER "  in " , &config->baseclass, "");
+	if (nano_config_complete || DEBUG >= 2) {
+		DUMP("_nano_initconfig_OK: Could not find both of " CONFIGNAME_CMAFAIL
+		" and " CONFIGNAME_CMADISCOVER "  in " , &config->baseclass, "");
+	}
 	return FALSE;
 }
 
@@ -1223,7 +1249,7 @@ nano_reqconfig(gpointer gcruft)
 	cruft->iosource->sendaframeset(cruft->iosource, cmainit, fs);
 	DEBUGMSG("%s.%d: Sent initial STARTUP frameset for %s."
 	,	__FUNCTION__, __LINE__, sysname);
-	g_free(sysname); sysname = NULL; 
+	g_free(sysname); sysname = NULL;
 	UNREF(fs);
 	return TRUE;
 }
