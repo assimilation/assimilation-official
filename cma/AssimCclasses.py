@@ -2164,18 +2164,3 @@ def dump_c_objects():
     print >> sys.stderr, ('%d python wrappers referring to %d C-objects'
     %   (cobjcount, proj_class_live_object_count()))
     proj_class_dump_live_objects()
-
-if __name__ == '__main__':
-    import pcapy
-    names= ('../pcap/cdp.pcap', '../pcap/cdp-BCM1100.pcap','../pcap/n0.eth2.cdp.pcap')
-    for pcapname in names:
-        print >> sys.stderr, 'PARSING', pcapname
-        reader = pcapy.open_offline(pcapname)
-        pcap = reader.next()
-        pcapdata = pcap[1]
-        testpktstart = create_string_buffer(pcapdata)
-        endaddr = addressof(testpktstart) + len(pcapdata)
-        cdp = pySwitchDiscovery._decode_cdp('host', pcapname, 0, testpktstart, endaddr)
-        print >> sys.stderr, 'GOTTEN CDP:', str(cdp)
-        print >> sys.stderr, '\n'
-
