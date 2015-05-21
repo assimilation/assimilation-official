@@ -120,7 +120,7 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		}
 	}
 	if (pcap_lookupnet(dev, &netp, &maskp, errbuf) != 0) {
-		g_warning("pcap_lookupnet failed: [%s]", errbuf);
+		g_warning("pcap_lookupnet failed for device %s: [%s]", dev, errbuf);
 		goto oopsie;
 	}
 	
