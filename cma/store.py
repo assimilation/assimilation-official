@@ -623,6 +623,10 @@ class Store(object):
                 if objself.__store.readonly:
                     print >> sys.stderr, ('Caught %s being set to %s!' % (name, value))
                     raise RuntimeError('Attempt to set attribute %s using a read-only store' % name)
+                if hasattr(value, '__iter__') and len(value) == 0:
+                    raise ValueError(
+                    'Attempt to set attribute %s to empty array (Neo4j limitation)' % name)
+
                 objself.__store_dirty_attrs[name] = True
                 objself.__store.clients[objself] = True
         object.__setattr__(objself, name, value)

@@ -14,6 +14,7 @@ RUN cmake ../src && make install
 #EXPOSE 55604 7473 7474 1984 1337
 ENV BROKENDNS true
 RUN yum -y install rsyslog
+RUN yum -y install jq
 WORKDIR /root/rpmbuild/RPMS/x86_64/
 RUN yum -y install assimilation-nanoprobe*.rpm assimilation-cma*.rpm
 RUN echo "/usr/lib*/assimilation" > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib*/assimilation
