@@ -823,6 +823,8 @@ class NagiosMonitoringRule(MonitoringRule):
         MonitoringRule.__init__(self, 'nagios', tuplespec, objclass=objclass)
 
 
+    # [R0912:NagiosMonitoringRule.constructaction] Too many branches (13/12)
+    # pylint: disable=R0912
     def constructaction(self, context):
         '''Construct arguments to give MonitorAction constructor
             We can either return a complete match (HIGHPRIOMATCH)
