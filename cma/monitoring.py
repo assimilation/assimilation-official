@@ -507,6 +507,8 @@ class MonitoringRule(object):
     @staticmethod
     def compute_available_agents(context):
         '''Create a cache of all our available monitoring agents - and return it'''
+        if not hasattr(context, 'get'):
+            context = ExpressionContext(context)
         for node in context.objects:
             if not hasattr(node, 'JSON_monitoringagents'):
                 continue
@@ -864,6 +866,8 @@ class NagiosMonitoringRule(MonitoringRule):
             else:
                 arglist[exprname] = str(val)
         argv.extend(final_argv)
+        if len(arglist) == 0:
+            arglist = None
         if len(missinglist) == 0:
             # Hah!  We can automatically monitor it!
             return  (self.prio

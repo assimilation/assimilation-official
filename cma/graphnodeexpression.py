@@ -50,6 +50,8 @@ class GraphNodeExpression(object):
             #print >> sys.stderr, 'RETURNING NONSTRING:', expression
             return expression
         expression = expression.strip()
+        if not hasattr(context, 'get') or not hasattr(context, '__setitem__'):
+            context = ExpressionContext(context)
         #print >> sys.stderr, '''EVALUATE('%s') (%s):''' % (expression, type(expression))
         if expression.startswith('"'):
             # The value of this parameter is a constant...
@@ -183,7 +185,10 @@ class ExpressionContext(object):
 
     def __init__(self, objects, prefix=None):
         'Initialize our ExpressionContext'
-        self.objects = objects
+        if hasattr(objects, '__iter__'):
+            self.objects = objects
+        else:
+            self.objects = (objects,)
         self.prefix = prefix
         self.values = {}
 
