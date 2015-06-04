@@ -137,6 +137,10 @@ _resource_queue_Qcmd(ResourceQueue* self
 	cmd = resourcecmd_new(request, NULL, _resource_queue_endnotify);
 
 	if (cmd == NULL) {
+		if (callback) {
+			callback(request, user_data, EXITED_INVAL
+			,	0, 0, FALSE, "Invalid Arguments");
+		}
 		return FALSE;
 	}
 

@@ -28,11 +28,11 @@ rules for certain kinds of services automatically.
 '''
 
 
-from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD       \
-,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL    \
-,   CONFIGNAME_TIMEOUT ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD               \
-,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD                                                  \
-,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO
+from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD            \
+,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL   \
+,   CONFIGNAME_TIMEOUT ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD                    \
+,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD                                                      \
+,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
@@ -214,8 +214,10 @@ class MonitorAction(GraphNode):
             explanation = 'monitoring could not be killed'
         elif reason_enum == EXITED_TIMEOUT:
             explanation = 'monitoring timed out'
+        elif reason_enum == EXITED_INVAL:
+            explanation = 'invalid monitoring request'
         else:
-            explanation = 'GOT REAL WEIRD'
+            explanation = 'GOT REAL WEIRD (%d)' % int(reason_enum)
             fubar = True
         rscname = monmsgobj[CONFIGNAME_INSTANCE]
         msg = 'Service %s %s' % (rscname, explanation)
