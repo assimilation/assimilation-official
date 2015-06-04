@@ -705,8 +705,10 @@ endloop:
 		}
 		REF(nanofailreportaddr);
 	}
-	g_message("Connected to CMA.  Happiness :-D");
-	nano_connected = TRUE;
+	if (!nano_connected) {
+		g_message("Connected to CMA.  Happiness :-D");
+		nano_connected = TRUE;
+	}
 }//nanoobey_setconfig
 /**
  * Act on (obey) a <b>FRAMESETTYPE_ACKSTARTUP</b> @ref FrameSet.

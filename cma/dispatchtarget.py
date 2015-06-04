@@ -151,6 +151,7 @@ class DispatchSTARTUP(DispatchTarget):
             %       (FrameSetTypes.get(fstype)[0], addrstr))
         if not self.io.connactive(origaddr):
             self.io.closeconn(DEFAULT_FSP_QID, origaddr)
+            CMAdb.transaction.post_transaction_packets.append(FrameSetTypes.ACKSTARTUP)
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.WALLCLOCK:

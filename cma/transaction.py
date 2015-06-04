@@ -111,6 +111,7 @@ class Transaction(object):
         self.sequence = None
         self.stats = {'lastcommit': timedelta(0), 'totaltime': timedelta(0)}
         self.encryption_required = encryption_required
+        self.post_transaction_packets = []
 
     def __str__(self):
         'Convert our internal tree to JSON.'

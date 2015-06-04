@@ -105,17 +105,11 @@ class MessageDispatcher(object):
             if CMAdb.debug:
                 CMAdb.log.debug('No database changes this time')
             CMAdb.store.abort()
-        if fstype == FrameSetTypes.STARTUP:
-            # We need to send a STARTUP ACK packet after all is done.
-            # For non-STARTUP cases we ACK packets as part of the protocol.
-            # But the STARTUP packet is outside the protocol, so we need to let the nanoprobe
-            # know we've _finished_ responding to the STARTUP packet.
-            # So we do it with an ACKSTARTUP packet which is a normal reliable data packet.
-            # This means the nanoprobe will keep sending STARTUPs until it gets the
-            # ACKSTARTUP packet.
-            # FYI: We use the network transaction object because it's convenient ;-)
-            CMAdb.transaction.add_packet(origaddr, FrameSetTypes.ACKSTARTUP, [])
+        for pkttype in CMAdb.transaction.post_transaction_packets:
+            CMAdb.transaction.add_packet(origaddr, pkttype, [])
+        if len(CMAdb.transaction.post_transaction_packets) > 0:
             CMAdb.transaction.commit_trans(CMAdb.io)
+            CMAdb.post_transaction_packets = []
         dispatchend = datetime.now()
         if self.logtimes:
             CMAdb.log.info('Total dispatch time for %s frameset: %s'

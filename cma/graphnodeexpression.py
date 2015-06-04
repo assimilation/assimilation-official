@@ -614,7 +614,6 @@ def hascmd(args, context):
     It determines this by looking at the value of $JSON_commands
     '''
     cmdlist = GraphNodeExpression.evaluate('$JSON_commands', context)
-    print >> sys.stderr, 'cmdlist:', cmdlist
     for arg in args:
         if arg not in cmdlist:
             return None
