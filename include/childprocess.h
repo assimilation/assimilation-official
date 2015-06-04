@@ -39,6 +39,7 @@ enum HowDied {
 	EXITED_SIGNAL = 3,		///< Exited with a signal
 	EXITED_TIMEOUT = 4,		///< Timed out and was killed
 	EXITED_HUNG = 5,		///< Timed out and would not die
+	EXITED_INVAL = 6,		///< Was not attempted - invalid request
 };
 
 enum ChildErrLogMode {
