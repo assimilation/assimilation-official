@@ -64,6 +64,8 @@ class MessageDispatcher(object):
             %   (fstypename, origaddr))
         self.io.ackmessage(origaddr, frameset)
 
+    # [R0912:MessageDispatcher._try_dispatch_action] Too many branches (13/12)
+    # pylint: disable=R0912
     def _try_dispatch_action(self, origaddr, frameset):
         '''Core code to actually dispatch the Frameset.
         It should be run inside a try/except construct so that anything
