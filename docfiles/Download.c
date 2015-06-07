@@ -9,4 +9,6 @@ If you would prefer to create your own packages from source, check out the @ref 
 If you choose this option, then be sure and run all the unit tests to make sure it is operating correctly
 in your environment.
 
+Report bugs and other issues <a href="https://trello.com/b/98QrdEK1/issues-bugs">on our Trello board</a>.
+
 */
