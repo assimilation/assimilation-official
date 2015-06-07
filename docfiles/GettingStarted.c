@@ -220,6 +220,9 @@ It is also possible that you're compiling for an older system - but this is like
 Please report any problems you encounter to the mailing list.
 The packages seem to be usable when you make them for Ubuntu.  Other OSes may or may make good packages yet.
 
+@section ReportingBugs Reporting Bugs
+We currently use <a href="https://trello.com">Trello</a> for our bug reporting.
+You can find the current set of bugs and other issues at this <a href="https://trello.com/b/98QrdEK1/issues-bugs">trello board</a>.
 @section MakingTheDocs Making The Documentation (this web site)
 To make the documentation for the project, issue this command
 - <tt>make doc</tt>
