@@ -313,8 +313,10 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	g_return_val_if_fail(dev != NULL, NULL);
 	instance = arpconfig->getstring(arpconfig, CONFIGNAME_INSTANCE);
 	g_return_val_if_fail(instance != NULL, NULL);
-	dret = discovery_new(instance, iosrc, config
-	,	objsize < sizeof(ArpDiscovery) ? sizeof(ArpDiscovery) : objsize);
+	if (objsize < sizeof(ArpDiscovery)) {
+		objsize = sizeof(ArpDiscovery);
+	}
+	dret = discovery_new(instance, iosrc, config, objsize);
 	g_return_val_if_fail(dret != NULL, NULL);
 	interval = arpconfig->getint(arpconfig, CONFIGNAME_INTERVAL);
 	if (interval <= 0) {
