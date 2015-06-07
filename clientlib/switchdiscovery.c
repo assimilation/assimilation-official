@@ -178,8 +178,10 @@ switchdiscovery_new(ConfigContext*swconfig	///<[in] Switch discoveryconfiguratio
 	g_return_val_if_fail(dev != NULL, NULL);
 	instance = swconfig->getstring(swconfig, CONFIGNAME_INSTANCE);
 	g_return_val_if_fail(instance != NULL, NULL);
-	dret = discovery_new(instance, iosrc, config
-	,		objsize < sizeof(SwitchDiscovery) ? sizeof(SwitchDiscovery) : objsize);
+	if (objsize < sizeof(SwitchDiscovery)) {
+		objsize = sizeof(SwitchDiscovery);
+	}
+	dret = discovery_new(instance, iosrc, config, objsize);
 	g_return_val_if_fail(dret != NULL, NULL);
 	proj_class_register_subclassed(dret, "SwitchDiscovery");
 	ret = CASTTOCLASS(SwitchDiscovery, dret);
