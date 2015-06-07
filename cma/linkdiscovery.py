@@ -88,7 +88,7 @@ class LinkDiscoveryListener(DiscoveryListener):
 
         data = jsonobj['data'] # the data portion of the JSON message
         for devname in data.keys():
-            #print >> sys.stderr, "*** devname:", devname
+            #print >> sys.stderr, "*** SWITCH DISCOVERY devname:", devname
             devinfo = data[devname]
             if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
                                           and str(devinfo['address']) != '00-00-00-00-00-00'
@@ -97,7 +97,7 @@ class LinkDiscoveryListener(DiscoveryListener):
                 params[CONFIGNAME_INSTANCE] = instance
                 params[CONFIGNAME_DEVNAME] = devname
                 params[CONFIGNAME_SWPROTOS] = ["lldp", "cdp"]
-                #print >> sys.stderr, '#SWITCH parameters:', params
+                #print >> sys.stderr, '***#SWITCH parameters:', params
                 drone.request_discovery((params,))
 
     def processpkt_linkdiscovery(self, drone, unused_srcaddr, jsonobj):
