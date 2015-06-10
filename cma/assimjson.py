@@ -37,9 +37,10 @@ class JSONtree(object):
     REESC = re.compile('\\\\')
     REQUOTE = re.compile('"')
 
-    def __init__(self, tree, expandJSON=False):
+    def __init__(self, tree, expandJSON=False, maxJSON=0):
         self.tree = tree
         self.expandJSON = expandJSON
+        self.maxJSON = maxJSON
 
     def __str__(self):
         'Convert our internal tree to JSON.'
@@ -110,6 +111,8 @@ class JSONtree(object):
             if attr.startswith('_'):
                 continue
             value = getattr(thing, attr)
+            if self.maxJSON > 0 and attr.startswith('JSON_') and len(value) > self.maxJSON:
+                continue
             if self.expandJSON and attr.startswith('JSON_'):
                 js = pyConfigContext(value)
                 if js is not None:

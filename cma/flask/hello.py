@@ -33,7 +33,13 @@ from py2neo import neo4j
 from store import Store
 from graphnodes import GraphNode
 from query import ClientQuery
+import cmainit
 from AssimCtypes import QUERYINSTALL_DIR
+# These next two imports are actually needed because they register
+# some types. But pylint doesn't know that.
+# pylint: disable=W0611
+from droneinfo import Drone
+from hbring import HbRing
 allqueries = {}
 
 app = Flask(__name__)
@@ -59,10 +65,14 @@ def doquery(queryname):
         return 'No such query: %s' % queryname
     query = allqueries[queryname]
     try:
-        query.validate_parameters(request.args)
+        req = {}
+        argdict = dict(request.args)
+        for arg in argdict:
+            req[arg] = str(argdict[arg][0])
+        query.validate_parameters(req)
     except ValueError, e:
         return 'Invalid Parameters to %s [%s]' % (queryname, str(e))
-    return Response(query.execute(None, idsonly=False, expandJSON=True)
+    return Response(query.execute(None, idsonly=False, expandJSON=True, maxJSON=1024, **req)
     ,               mimetype='application/javascript')
 
 if __name__ == '__main__':
@@ -102,6 +112,8 @@ if __name__ == '__main__':
         #queryquery = neo4j.CypherQuery(neodb, Q)
         #print 'Neodb =', neodb
         #print 'qstore =', qstore
+
+    cmainit.CMAinit(io=None, readonly=True, use_network=False)
     setup(querypath=QUERYINSTALL_DIR)
     app.debug = True
     app.run()

@@ -113,7 +113,7 @@ class ClientQuery(GraphNode):
             self._db = db
             self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
 
-    def execute(self, executor_context, idsonly=False, expandJSON=False, elemsonly=False
+    def execute(self, executor_context, idsonly=False, expandJSON=False, maxJSON=0, elemsonly=False
     ,       **params):
         'Execute the query and return an iterator that produces sanitized (filtered) results'
         if self._query is None:
@@ -128,8 +128,11 @@ class ClientQuery(GraphNode):
             if pname not in qparams:
                 raise ValueError('Excess parameter "%s" supplied for %s query'
                 %    (pname, self.queryname))
-        resultiter = self._store.load_cypher_query(self._query, GraphNode.factory, params=params)
-        return self.filter_json(executor_context, idsonly, expandJSON, resultiter, elemsonly)
+        fixedparams = self.validate_parameters(params)
+        resultiter = self._store.load_cypher_query(self._query, GraphNode.factory
+        ,       params=fixedparams)
+        return self.filter_json(executor_context, idsonly, expandJSON
+        ,   maxJSON, resultiter, elemsonly)
 
 
     def supports_cmdline(self, language='en'):
@@ -142,7 +145,8 @@ class ClientQuery(GraphNode):
         if fmtstring is None:
             fmtstring = self._JSON_metadata['cmdline'][language]
         fixedparams = self.validate_parameters(params)
-        for json in self.execute(executor_context, expandJSON=True, elemsonly=True, **fixedparams):
+        for json in self.execute(executor_context, expandJSON=True
+        ,           maxJSON=100, elemsonly=True, **fixedparams):
             obj = pyConfigContext(json)
             yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
@@ -158,7 +162,8 @@ class ClientQuery(GraphNode):
             result += extra
         return result
 
-    def filter_json(self, executor_context, idsonly, expandJSON, resultiter, elemsonly=False):
+    def filter_json(self, executor_context, idsonly, expandJSON, maxJSON
+    ,       resultiter, elemsonly=False):
         '''Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
@@ -188,15 +193,15 @@ class ClientQuery(GraphNode):
                     ,   ClientQuery.node_query_url
                     ,   Store.id(result[0]))
                 else:
-                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandJSON))
+                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandJSON
+                    ,   maxJSON=maxJSON))
             else:
                 delim = rowdelim + '{'
                 row = ''
                 # W0212: Access to a protected member _fields of a client class
                 # No other way to get the list of columns/fields...
                 # pylint: disable=W0212
-                columns = result._fields
-                for attr in columns:
+                for attr in result._fields:
                     value = getattr(result, attr)
                     if idsonly:
                         row +=  '%s"%s":"%s"' % (
@@ -208,7 +213,7 @@ class ClientQuery(GraphNode):
                         row += '%s"%s":%s' % (
                                 delim
                             ,   attr
-                            ,   str(JSONtree(value, expandJSON=expandJSON)))
+                            ,   str(JSONtree(value, expandJSON=expandJSON, maxJSON=maxJSON)))
                     delim = ','
                 yield row + '}'
             if not elemsonly:
