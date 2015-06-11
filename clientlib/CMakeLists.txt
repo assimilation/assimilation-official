@@ -85,7 +85,7 @@ SET_SOURCE_FILES_PROPERTIES(${CTYPEBIN} PROPERTIES GENERATED 1)
 
 
 
-add_library (${CLIENTLIB} SHARED proj_classes.c cdp_min.c lldp_min.c pcap_min.c generic_tlv_min.c pcap_GSource.c tlvhelper.c frameset.c frame.c intframe.c addrframe.c cstringframe.c signframe.c unknownframe.c seqnoframe.c packetdecoder.c arpdiscovery.c discovery.c switchdiscovery.c netio.c netioudp.c netgsource.c netaddr.c hblistener.c hbsender.c cryptframe.c cryptcurve25519.c compressframe.c nvpairframe.c listener.c configcontext.c assimobj.c authlistener.c jsondiscovery.c nanoprobe.c cmalib.c ipportframe.c misc.c fsqueue.c fsprotocol.c reliableudp.c replacement_funs.c gmainfd.c logsourcefd.c childprocess.c resourcecmd.c resourceocf.c resourcequeue.c resourcelsb.c)
+add_library (${CLIENTLIB} SHARED proj_classes.c cdp_min.c lldp_min.c pcap_min.c generic_tlv_min.c pcap_GSource.c tlvhelper.c frameset.c frame.c intframe.c addrframe.c cstringframe.c signframe.c unknownframe.c seqnoframe.c packetdecoder.c arpdiscovery.c discovery.c switchdiscovery.c netio.c netioudp.c netgsource.c netaddr.c hblistener.c hbsender.c cryptframe.c cryptcurve25519.c compressframe.c nvpairframe.c listener.c configcontext.c assimobj.c authlistener.c jsondiscovery.c nanoprobe.c cmalib.c ipportframe.c misc.c fsqueue.c fsprotocol.c reliableudp.c replacement_funs.c gmainfd.c logsourcefd.c childprocess.c resourcecmd.c resourceocf.c resourcequeue.c resourcelsb.c resourcenagios.c)
 SET_SOURCE_FILES_PROPERTIES(${FST_H} PROPERTIES GENERATED 1)
 SET_SOURCE_FILES_PROPERTIES(${FT_H} PROPERTIES GENERATED 1)
 ADD_DEPENDENCIES(${CLIENTLIB} generate_framesettypes generate_frametypes)

@@ -27,6 +27,7 @@
 #include <resourcecmd.h>
 #include <resourceocf.h>
 #include <resourcelsb.h>
+#include <resourcenagios.h>
 
 DEBUGDECLARATIONS
 
@@ -49,7 +50,8 @@ static const struct {
 ,			ResourceCmdCallback callback);
 }subclasses[] = {
 	{"ocf", resourceocf_new},	//< OCF resource agents
-	{"lsb", resourcelsb_new}	//< LSB (/etc/init.d) resource agents
+	{"lsb", resourcelsb_new},	//< LSB (/etc/init.d) resource agents
+	{"nagios", resourcenagios_new}	//< NAGIOS resource agents
 };
 FSTATIC void _resourcecmd_finalize(AssimObj*);
 FSTATIC void _resourcecmd_execute(ResourceCmd* self);	///< Moan and complain - abstract class

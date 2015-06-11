@@ -70,7 +70,6 @@ FSTATIC gint	_configcontext_key_compare(gconstpointer a, gconstpointer b);
 
 
 FSTATIC char *	_configcontext_toString(gconstpointer aself);
-FSTATIC char * _configcontext_elem_toString(ConfigValue* val);
 FSTATIC char *	JSONquotestring(char * s);
 FSTATIC ConfigContext*	_configcontext_JSON_parse_string(const char * json);
 FSTATIC GScanner*	_configcontext_JSON_GScanner_new(void);
@@ -576,7 +575,7 @@ _configcontext_getstr(const ConfigContext* self , const char* name)
 	if (cfval == NULL) {
 		return NULL;
 	}
-	return _configcontext_elem_toString(cfval);
+	return configcontext_elem_toString(cfval);
 }
 
 /// Create a ConfigValue object (containing an object and its type)
@@ -693,7 +692,7 @@ _configcontext_toString(gconstpointer aself)
 	for (keyelem = self->keys(self); keyelem; keyelem = nextkeyelem) {
 		char *		thiskey = keyelem->data;
 		ConfigValue*	val = self->getvalue(self, thiskey);
-		gchar*		elem = _configcontext_elem_toString(val);
+		gchar*		elem = configcontext_elem_toString(val);
 		g_string_append_printf(gsret, "%s\"%s\":%s", comma, thiskey, elem);
 		g_free(elem);
 		comma=",";
@@ -705,8 +704,8 @@ _configcontext_toString(gconstpointer aself)
 	return g_string_free(gsret, FALSE);
 }
 /// Convert a ConfigContext element (ConfigValue) to a String
-FSTATIC char *
-_configcontext_elem_toString(ConfigValue* val)
+WINEXPORT char *
+configcontext_elem_toString(ConfigValue* val)
 {
 	switch (val->valtype) {
 		case CFG_BOOL:
@@ -734,7 +733,7 @@ _configcontext_elem_toString(ConfigValue* val)
 
 			for (this = val->u.arrayvalue; this; this = this->next) {
 				ConfigValue*	val = CASTTOCLASS(ConfigValue, this->data);
-				gchar*	elem = _configcontext_elem_toString(val);
+				gchar*	elem = configcontext_elem_toString(val);
 				g_string_append_printf(ret, "%s%s", acomma, elem);
 				g_free(elem);
 				acomma=",";
