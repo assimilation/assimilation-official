@@ -349,4 +349,4 @@ _resourcenagios_child_notify(ChildProcess* child
 	DEBUGMSG5("%s.%d: UNREF resourcenagios: %p", __FUNCTION__,__LINE__,self);
 	UNREF2(self);  // Undo the ref we did before executing
 }
-
+/// @}
