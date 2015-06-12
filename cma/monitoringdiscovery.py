@@ -104,6 +104,7 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         monitorinterval = params['parameters']['repeat']
         monitortimeout  = params['parameters']['timeout']
         monitorarglist = moninfo.get('arglist', {})
+        monargv = moninfo.get('argv', None)
 
         # Make up a monitor name that should be unique to us -- but reproducible
         # We create the monitor name from the host name, the monitor class,
@@ -128,7 +129,9 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         monnode = self.store.load_or_create(MonitorAction, domain=drone.domain
         ,   monitorname=monitorname, monitorclass=monitorclass
         ,   monitortype=monitortype, interval=monitorinterval, timeout=monitortimeout
-        ,   provider=monitorprovider, arglist=monitorarglist)
+        ,   provider=monitorprovider, arglist=monitorarglist, argv=monargv)
+        if monitorclass == 'nagios':
+            monnode.nagiospath = self.config['monitoring']['nagiospath']
         if not Store.is_abstract(monnode):
             print >> sys.stderr, ('Previously monitored %s on %s'
             %       (monitortype, drone.designation))

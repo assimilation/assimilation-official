@@ -204,8 +204,8 @@ timeout_agent(gpointer ignored)
 #define	DUMMYTYPE	"\"" CONFIGNAME_TYPE		"\": \"Dummy\""
 #define	STARTOP		"\"" REQOPERATIONNAMEFIELD	"\": \"start\""
 #define	STOPOP		"\"" REQOPERATIONNAMEFIELD	"\": \"stop\""
-#define	MONITOROP	"\"" REQOPERATIONNAMEFIELD	"\": \"monitor\""
-#define	METADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \"meta-data\""
+#define	UMONITOROP	"\"" REQOPERATIONNAMEFIELD	"\": \""MONITOROP"\""
+#define	UMETADATAOP	"\"" REQOPERATIONNAMEFIELD	"\": \""METADATAOP"\""
 #define	RESOURCENAME	"\"" CONFIGNAME_INSTANCE	"\": \"DummyTestGTest01\""
 #define	NULLPARAMS	"\"" REQENVIRONNAMEFIELD	"\": {}"
 #define	C ","
@@ -216,7 +216,7 @@ timeout_agent(gpointer ignored)
 #define REQUEST(type,id, repeat,delay)	\
 	"{" COMMREQUEST C type C REQID(id) C REPEAT(repeat) C INITDELAY(delay)"}"
 #define START REQUEST(STARTOP,		1, 0, 0)	// One shot - no delay
-#define MONITOR REQUEST(MONITOROP,	2, 0, 0)	// Repeat every second - no delay
+#define MONITOR REQUEST(UMONITOROP,	2, 0, 0)	// Repeat every second - no delay
 #define STOP REQUEST(STOPOP,		3, 0, 5)	// No repeat - 5 second delay
 
 #define	ETHNAME	"eth0"

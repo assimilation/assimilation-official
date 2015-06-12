@@ -39,9 +39,6 @@
  *
  */
 
-#define	MONITOROP	"monitor"
-#define	METADATAOP	"meta-data"
-
 typedef struct _ResourceOCF	ResourceOCF;
 
 struct _ResourceOCF{

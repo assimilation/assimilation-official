@@ -79,6 +79,10 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 #define	REQCOREDUMPNAMEFIELD	"coredumped"
 #define	REQSTRINGRETNAMEFIELD	"stringret"
 #define	REQARGVNAMEFIELD	"argv"
+
+#define	MONITOROP	"monitor"
+#define	METADATAOP	"meta-data"
+
 #ifdef RESOURCECMD_SUBCLASS
 WINEXPORT ResourceCmd* resourcecmd_constructor(guint structsize, ConfigContext* request, gpointer user_data
 ,			 ResourceCmdCallback callback);
