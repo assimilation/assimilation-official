@@ -30,8 +30,8 @@ rules for certain kinds of services automatically.
 
 from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD            \
 ,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL   \
-,   CONFIGNAME_TIMEOUT ,   REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD                    \
-,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD                                                      \
+,   CONFIGNAME_TIMEOUT , REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, REQNAGIOSPATH       \
+,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD                                    \
 ,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
@@ -62,7 +62,7 @@ class MonitorAction(GraphNode):
     # R0913: too many arguments
     # pylint: disable=R0913
     def __init__(self, domain, monitorname, monitorclass, monitortype, interval
-    ,   timeout, provider=None, arglist=None):
+    ,   timeout, provider=None, arglist=None, argv=None):
         'Create the requested monitoring rule object.'
         GraphNode.__init__(self, domain)
         self.monitorname = monitorname
@@ -75,6 +75,7 @@ class MonitorAction(GraphNode):
         self.isworking = True
         self.reason = 'initial monitor creation'
         self.request_id = MonitorAction.request_id
+        self.argv=argv
         MonitorAction.request_id += 1
         if arglist is None:
             self.arglist = None
@@ -260,8 +261,20 @@ class MonitorAction(GraphNode):
             provider_str = ''
         else:
             provider_str = ', "%s":"%s"' % (REQPROVIDERNAMEFIELD, self.provider)
+        path_str = ''
+        if hasattr(self, 'nagiospath'):
+            path_str = ', "%s": %s' % (REQNAGIOSPATH, getattr(self, 'nagiospath'))
+            path_str = path_str.replace("u'", '"')
+            path_str = path_str.replace("'", '"')
+        argv_str = ''
+        if self.argv is not None:
+            argv_str = ', "%s": %s' % (REQARGVNAMEFIELD, getattr(self, 'argv'))
+            argv_str = argv_str.replace("u'", '"')
+            argv_str = argv_str.replace("'", '"')
 
-        json = '{"%s": %d, "%s":"%s", "%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s":%d%s%s}' % \
+        json = (
+            '{"%s": %d, "%s":"%s", "%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s":%d%s%s%s%s}'
+            %
         (   REQIDENTIFIERNAMEFIELD, self.request_id
         ,   REQOPERATIONNAMEFIELD, operation
         ,   REQCLASSNAMEFIELD, self.monitorclass
@@ -269,7 +282,7 @@ class MonitorAction(GraphNode):
         ,   CONFIGNAME_INSTANCE, self.monitorname
         ,   CONFIGNAME_INTERVAL, self.interval
         ,   CONFIGNAME_TIMEOUT, self.timeout
-        ,   provider_str, arglist_str)
+        ,   provider_str, arglist_str, path_str, argv_str))
         return str(pyConfigContext(init=json))
 
 
@@ -509,7 +522,7 @@ class MonitoringRule(object):
     @staticmethod
     def compute_available_agents(context):
         '''Create a cache of all our available monitoring agents - and return it'''
-        if not hasattr(context, 'get'):
+        if not hasattr(context, 'get') or not hasattr(context, 'objects'):
             context = ExpressionContext(context)
         for node in context.objects:
             if not hasattr(node, 'JSON_monitoringagents'):
@@ -818,7 +831,7 @@ class NagiosMonitoringRule(MonitoringRule):
             raise ValueError('Priority %s is not a valid priority' % prio)
 
         self.rsctype = rsctype
-        self.argv = []
+        self.argv = None
         self.initargs = initargs
         self.prio = self.priomap[prio]
         tuplespec = self.tripletuplecheck(triplespec)
@@ -841,7 +854,11 @@ class NagiosMonitoringRule(MonitoringRule):
         #
         missinglist = []
         arglist = {}
-        argv = self.argv
+        argv = []
+        if self.initargs:
+            argv = self.initargs
+        if self.argv:
+            argv.extend(self.argv)
         final_argv = []
         # Figure out what we know how to supply and what we need to ask
         # a human for -- in order to properly monitor this resource
@@ -872,6 +889,8 @@ class NagiosMonitoringRule(MonitoringRule):
         argv.extend(final_argv)
         if len(arglist) == 0:
             arglist = None
+        if not argv:
+            argv = None
         if len(missinglist) == 0:
             # Hah!  We can automatically monitor it!
             return  (self.prio

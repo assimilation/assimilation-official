@@ -50,9 +50,7 @@ struct _ResourceLSB{
 };
 
 #define LSB_ROOT	"/etc/init.d"
-#define MONITOROP	"monitor"
 #define STATUSOP	"status"
-#define METADATAOP	"meta-data"
 #define VALIDATEOP	"validate-all"
 
 // This 'constructor' creates a subclass object, but returns a superclass object type.

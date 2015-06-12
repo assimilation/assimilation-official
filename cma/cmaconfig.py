@@ -98,6 +98,7 @@ class ConfigFile(object):
                                     'args':     {str: object},
                                 },
                 },
+                'nagiospath': [str],
         },
         'heartbeats':   {
             'repeat':   {int,long},    # how frequently to heartbeat - in seconds
@@ -184,6 +185,11 @@ class ConfigFile(object):
                                     # "lsb::ssh":               {'repeat': int, 'timeout': int},
                                     # "ocf::Neo4j/servidor":    {'repeat': int, 'timeout': int},
                 },
+                'nagiospath': [ "/usr/lib/nagios/plugins",
+                                "/usr/local/nagios/libexec",
+                                "/usr/nagios/libexec",
+                                "/opt/nrpe/libexec"
+                ],
             },
             'heartbeats':   {
             'repeat':    1,     # how frequently to heartbeat - in seconds
@@ -315,7 +321,7 @@ class ConfigFile(object):
             # Every key in the configobj must also be in the template
             for elemname in keys:
                 if elemname not in template:
-                    return (False, ('%s is not one of %s' % (elemname, str(keys))))
+                    return (False, ('%s is not one of %s' % (elemname, str(template.keys()))))
                 ret = ConfigFile._check_validity(template[elemname], configobj[elemname])
                 if not ret[0]:
                     return (False, 'Element %s: %s' % (elemname, ret[1]))
