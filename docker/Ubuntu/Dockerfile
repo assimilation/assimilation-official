@@ -34,7 +34,7 @@ ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN apt-get -y update && apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents wget libpcap0.8-dev rsyslog 
-RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release
+RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release python-demjson
 RUN apt-get -y install --no-install-recommends bind9 host           # So we have some services to monitor in system testing
 RUN apt-get -y install --no-install-recommends strace gdb tcpdump   # For debugging...
 RUN pip install ctypesgen 'py2neo<2.0' getent
@@ -77,6 +77,7 @@ RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimil
 #   Run Assimilation unit tests
 ###############################################################
 RUN apt-get -y install --no-install-recommends jq || true
+
 RUN pip install testify
 RUN /usr/sbin/rsyslogd&  service neo4j-service start; sleep 5; cd /root/assimilation/src && testify -v cma.tests
 
