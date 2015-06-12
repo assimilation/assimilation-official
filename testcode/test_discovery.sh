@@ -30,6 +30,7 @@ TESTDIR=../../discovery_agents
 INPUTDIR=$PWD/$ourdir/discovery_input
 OUTPUTDIR=$PWD/$ourdir/discovery_output
 TMPOUT=/tmp/$$.testout
+export CDPATH=''
 
 
 we_have_cmd() {

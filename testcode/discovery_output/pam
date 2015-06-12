@@ -4,8 +4,7 @@
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/pam",
   "data": {
-    /home/alanr/monitor/src/testcode/discovery_input/pam
-"accountsservice":[
+    "accountsservice":[
       {"service":"password", "type": {"keyword":"substack"}, "module":{"path":"common-password"}},
       {"service":"password", "type": {"keyword":"optional"}, "module":{"path":"pam_pin.so"}}
     ],
