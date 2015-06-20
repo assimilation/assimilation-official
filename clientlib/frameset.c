@@ -225,8 +225,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	///	Decrypt the frame after the @ref FRAMETYPE_CRYPTCURVE25519 (or similar) TLV
 	///	Uncompress the frame after the @ref FRAMETYPE_COMPRESS TLV
 	///
-	/// Encryption tends to make data hard to compress, so it's better to compress before
-	/// encrypting.
+	/// Encryption makes data hard (impossible) to compress, so we compress before encrypting.
 	///@}
 	/// 
 	if (NULL != compressframe) {
@@ -284,7 +283,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 		curpktpos = (guint8*)fs->packet + curpktoffset;
 		set_generic_tlv_type(curpktpos, frame->type, fs->pktend);
 		set_generic_tlv_len(curpktpos, frame->length, fs->pktend);
-		DUMP4(__FUNCTION__, &frame->baseclass, ": called frame->updatedata()");
+		DUMP4(__FUNCTION__, &frame->baseclass, ": calling frame->updatedata()");
 		frame->updatedata(frame, curpktpos, fs->pktend, fs);
 		// updatedata() can change fs->packet and fs->pktend
 		curpktpos = (guint8*)fs->packet + curpktoffset;
