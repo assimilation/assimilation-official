@@ -125,9 +125,7 @@ _intframe_updatedata(Frame* fself,		///< object whose data will be put into Fram
 		     FrameSet* fs)		///< FrameSet that we're doing this for
 {
 	IntFrame* self = CASTTOCLASS(IntFrame, fself);
-	// NOTE - this gets rid of the "const" coming out of get_generic_tlv_value...
-	///@todo add a new get_generic_nonconst_tlv_value() function.
-	void * pktpos = GINT_TO_POINTER(GPOINTER_TO_INT(get_generic_tlv_value(tlvptr, pktend)));
+	void * pktpos = get_generic_tlv_nonconst_value(tlvptr, pktend);
 	(void)fs;
 	g_return_if_fail(NULL != pktpos);
 
