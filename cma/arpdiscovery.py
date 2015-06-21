@@ -112,23 +112,25 @@ class ArpDiscoveryListener(DiscoveryListener):
         '''
 
         unused_srcaddr = unused_srcaddr # make pylint happy
-        params = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
+        init_params = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
         netconfiginfo = pyConfigContext(jsonobj)
         
-        params[CONFIGNAME_TYPE] = '#ARP'
 
         data = jsonobj['data'] # the data portion of the JSON message
+        discovery_args = []
         for devname in data.keys():
             #print >> sys.stderr, "*** devname:", devname
             devinfo = data[devname]
             if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
                                           and str(devinfo['address']) != '00-00-00-00-00-00'
                                           and str(devinfo['address']) != ''):
-                instance = '#ARP_' + devname
-                params[CONFIGNAME_INSTANCE] = instance
+                params = dict(init_params)
+                params[CONFIGNAME_INSTANCE] = '#ARP_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
                 #print >> sys.stderr, '#ARP parameters:', params
-                drone.request_discovery((params,))
+                discovery_args.append(params)
+        if discovery_args:
+            drone.request_discovery(discovery_args)
 
     def processpkt_arp(self, drone, unused_srcaddr, jsonobj):
         '''We want to update the database when we hear a 'ARP' discovery packet
