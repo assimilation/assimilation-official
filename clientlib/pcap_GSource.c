@@ -200,7 +200,10 @@ g_source_pcap_dispatch(GSource* src, ///<[in] source being <i>dispatch</i>ed
 			return FALSE;
 		}
 	}
-	// @todo: should check for errors in 'rc'
+	if (rc < 0) {
+		g_warning("%s.%d: pcap_next_ex() returned %d [%s]. Returning FALSE."
+		,	__FUNCTION__, __LINE__, rc, pcap_geterr(psrc->capture));
+	}
 	return rc >= 0;
 }
 /// The GMainLoop <i>finalize</i> function for libpcap packet capturing
