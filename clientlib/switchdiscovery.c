@@ -196,6 +196,7 @@ switchdiscovery_new(ConfigContext*swconfig	///<[in] Switch discoveryconfiguratio
 	if (objsize == sizeof(SwitchDiscovery)) {
 		// Subclass constructors need to register themselves, but we'll register
 		// ourselves.
+		DUMP3("Registering switch discovery", &dret->baseclass, dret->instancename(dret));
 		discovery_register(dret);
 	}
 	ret->switchid = NULL;	ret->switchidlen = -1;
