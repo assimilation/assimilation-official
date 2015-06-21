@@ -120,8 +120,10 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		}
 	}
 	if (pcap_lookupnet(dev, &netp, &maskp, errbuf) != 0) {
-		g_warning("pcap_lookupnet failed for device %s: [%s]", dev, errbuf);
-		goto oopsie;
+		// This is not a problem for non-IPv4 protocols...
+		// It just looks up the ipv4 address - which we mostly don't care about.
+		g_info("%s.%d: pcap_lookupnet(\"%s\") failed: [%s]"
+		,	__FUNCTION__, __LINE__, dev, errbuf);
 	}
 	
 	if (NULL == (pcdescr = pcap_create(dev, errbuf))) {
@@ -144,6 +146,7 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	pcap_setdirection(pcdescr, PCAP_D_IN);
 	// Weird bug - returns -3 and doesn't show an error message...
 	// And pcap_getnonblock also returns -3... Neither should happen AFAIK...
+	errbuf[0] = '\0';
 	if ((rc = pcap_setnonblock(pcdescr, !blocking, errbuf)) < 0 && errbuf[0] != '\0') {
 		g_warning("pcap_setnonblock(%d) failed: [%s] [rc=%d]", !blocking, errbuf, rc);
 		g_warning("Have no idea why this happens - current blocking state is: %d."
@@ -170,12 +173,15 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		g_warning("pcap_setfilter on [%s] failed: [%s]", expr, pcap_geterr(pcdescr));
 		goto oopsie;
 	}
-	DEBUGMSG1("Compile of [%s] worked!\n", expr);
+	DEBUGMSG1("Compile of [%s] worked!", expr);
+	g_info("Compile of [%s] worked! Returning %p", expr, pcdescr);
 	free(expr); expr = NULL;
 	return(pcdescr);
 
 oopsie:	// Some kind of failure - free things up and return NULL
 
+	g_warning("%s.%d: Could not set up PCAP on %s"
+	,	__FUNCTION__, __LINE__, dev);
 	if (expr) {
 		free(expr);
 		expr = NULL;
