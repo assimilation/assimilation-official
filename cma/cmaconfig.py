@@ -184,8 +184,21 @@ class ConfigFile(object):
                                     # optionally including machine
                                     # "lsb::ssh":               {'repeat': int, 'timeout': int},
                                     # "ocf::Neo4j/servidor":    {'repeat': int, 'timeout': int},
+                                    #
+                                    "nagios::check_load":    {'repeat': 60, 'timeout': 30,
+                                    #
+                                    # I would really rather have a pure run queue length
+                                    # but there's no agent for that. Sigh...
+                                    #
+                                    # -r == scale load average by by number of CPUs
+                                    # -w == floating point warning load averages
+                                    #       (1,5,15 minute values)
+                                    # -c == floating point critical load averages
+                                    #       (1,5,15 minute values)
+                                    #
+                                        'args': {'__ARGS__': ['-r', '-w', '4,3,2', '-c', '4,3,2']}},
                 },
-                'nagiospath': [ "/usr/lib/nagios/plugins",
+                'nagiospath': [ "/usr/lib/nagios/plugins", # places to look for Nagios agents
                                 "/usr/local/nagios/libexec",
                                 "/usr/nagios/libexec",
                                 "/opt/nrpe/libexec"
