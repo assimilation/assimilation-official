@@ -356,6 +356,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 
 	if (objsize == sizeof(ArpDiscovery)) {
 		// Subclass constructors need to register themselves, but we'll register ourselves.
+		DUMP3("Registering ARP discovery", &dret->baseclass, " and returning it");
 		discovery_register(dret);
 	}
 	return ret;
