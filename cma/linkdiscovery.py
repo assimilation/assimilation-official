@@ -36,7 +36,7 @@ from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyNetAddr
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
-from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
+from AssimCtypes import CONFIGNAME_INSTANCE
 from AssimCtypes import CONFIGNAME_DEVNAME, CONFIGNAME_SWPROTOS
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone

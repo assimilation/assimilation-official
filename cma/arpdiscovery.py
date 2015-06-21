@@ -38,7 +38,7 @@ from store import Store
 from AssimCclasses import pyNetAddr
 from AssimCclasses import pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
-from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE, CONFIGNAME_DEVNAME
+from AssimCtypes import CONFIGNAME_INSTANCE, CONFIGNAME_DEVNAME
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, GraphNode
