@@ -83,22 +83,26 @@ class LinkDiscoveryListener(DiscoveryListener):
         '''
 
         unused_srcaddr = unused_srcaddr # make pylint happy
-        params = ConfigFile.agent_params(self.config, 'discovery', '#SWITCH', drone.designation)
-        params[CONFIGNAME_TYPE] = '#SWITCH'
+        init_params = ConfigFile.agent_params(self.config, 'discovery', '#SWITCH'
+        ,   drone.designation)
 
         data = jsonobj['data'] # the data portion of the JSON message
+        print >> sys.stderr, "*** SWITCH DISCOVERY on:", str(data)
+        discovery_args = []
         for devname in data.keys():
-            #print >> sys.stderr, "*** SWITCH DISCOVERY devname:", devname
+            print >> sys.stderr, "*** SWITCH DISCOVERY devname:", devname
             devinfo = data[devname]
             if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
                                           and str(devinfo['address']) != '00-00-00-00-00-00'
                                           and str(devinfo['address']) != ''):
-                instance = '#SWITCH_' + devname
-                params[CONFIGNAME_INSTANCE] = instance
+                params = dict(init_params)
+                params[CONFIGNAME_INSTANCE] = '#SWITCH_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
                 params[CONFIGNAME_SWPROTOS] = ["lldp", "cdp"]
                 #print >> sys.stderr, '***#SWITCH parameters:', params
-                drone.request_discovery((params,))
+                discovery_args.append(params)
+        if discovery_args:
+            drone.request_discovery(discovery_args)
 
     def processpkt_linkdiscovery(self, drone, unused_srcaddr, jsonobj):
         'Add Low Level (Link Level) discovery data to the database'
