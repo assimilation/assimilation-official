@@ -1030,7 +1030,11 @@ nano_schedule_discovery(const char *instance,	///<[in] Name of this particular i
 
 	DEBUGMSG3("%s(%s,%d,%s)", __FUNCTION__, instance, interval, json);
 	jsonroot = configcontext_new_JSON_string(json);
-	g_return_if_fail(jsonroot != NULL);
+	if (NULL == jsonroot) {
+		g_warning("%s.%d: Invalid JSON discovery sent for instance %s: JSON string = \"%s\""
+		,	__FUNCTION__, __LINE__, instance, json);
+		return;
+	}
 	disctype = jsonroot->getstring(jsonroot, CONFIGNAME_TYPE);
 	g_return_if_fail(disctype != NULL);
 

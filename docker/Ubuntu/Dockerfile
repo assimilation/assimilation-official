@@ -34,7 +34,7 @@ ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN apt-get -y update && apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents wget libpcap0.8-dev rsyslog 
-RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release python-demjson
+RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release python-demjson iproute2
 RUN apt-get -y install --no-install-recommends bind9 host           # So we have some services to monitor in system testing
 RUN apt-get -y install --no-install-recommends strace gdb tcpdump   # For debugging...
 RUN pip install ctypesgen 'py2neo<2.0' getent
@@ -42,6 +42,7 @@ RUN pip install ctypesgen 'py2neo<2.0' getent
 ###############################################################
 #   Neo4j installation
 ###############################################################
+ENV NEOROOT /var/lib/neo4j
 RUN apt-get -y install --no-install-recommends openjdk-7-jre
 # Import the Neo4j signing key
 RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
@@ -79,12 +80,14 @@ RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimil
 RUN apt-get -y install --no-install-recommends jq || true
 
 RUN pip install testify
+RUN ls $NEOROOT
+RUN cat $NEOROOT/conf/neo4j-server.properties; echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 RUN /usr/sbin/rsyslogd&  service neo4j-service start; sleep 5; cd /root/assimilation/src && testify -v cma.tests
 
 ###############################################################
 #   Clean out the database and prepare for running system tests
 ###############################################################
-RUN rm -fr /opt/neo4j/data/graph.db/* /opt/neo4j/data/graph.db/keystore /opt/neo4j/data/log/* /opt/neo4j/data/rrd /opt/neo4j/data/neo4j-service.pid
+RUN rm -fr $NEOROOT/data/graph.db/* $NEOROOT/data/graph.db/keystore $NEOROOT/data/log/* $NEOROOT/data/rrd $NEOROOT/data/neo4j-service.pid
 RUN service neo4j-service start && service neo4j-service stop # Make a lovely empty database...
 # Install be a copy of host's /etc/timezone - so logs will have right TZ
 COPY timezone /etc/

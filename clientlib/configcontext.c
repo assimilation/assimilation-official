@@ -83,6 +83,8 @@ FSTATIC ConfigValue* _configcontext_value_new(enum ConfigValType);
 FSTATIC void _configcontext_value_vfinalize(gpointer vself);
 FSTATIC void _configcontext_value_finalize(AssimObj* aself);
 FSTATIC void _key_free(gpointer vself);
+FSTATIC void _configcontext_JSON_errmsg(GScanner*, gchar*, gboolean);
+
 #ifdef BROKEN_G_SLIST_FREE_FULL
 void assim_slist_free_full(GSList* list, void (*)(gpointer));
 #endif
@@ -766,6 +768,15 @@ configcontext_elem_toString(ConfigValue* val)
 	/*NOTREACHED*/
 	return g_strdup("null");
 }
+///
+///	Output a scanning error message for our JSON parsing
+FSTATIC void
+_configcontext_JSON_errmsg(GScanner* _unused_scanner, gchar*message, gboolean _unused_isError)
+{
+	(void)_unused_scanner;
+	(void)_unused_isError;
+	g_warning("%s.%d: JSON syntax error: %s", __FUNCTION__, __LINE__, message);
+}
 
 ///
 ///	Create a GScanner object that is set up to scan JSON text.
@@ -822,6 +833,7 @@ _configcontext_JSON_GScanner_new(void)
 		g_scanner_scope_add_symbol(retval, 0, True, True);
 		g_scanner_scope_add_symbol(retval, 0, False, False);
 		g_scanner_scope_add_symbol(retval, 0, Null, Null);
+		retval->msg_handler = _configcontext_JSON_errmsg;
 	}
 	return retval;
 }
@@ -830,7 +842,7 @@ _configcontext_JSON_GScanner_new(void)
 #define	GULP	(void)g_scanner_get_next_token(scan)
 
 #define SYNERROR(scan, token, symbol, msg)	\
-		{g_warning("In Function %s line %d", __FUNCTION__, __LINE__);g_scanner_unexp_token(scan, token, "keyword", "keyword", symbol, msg, TRUE);}
+		{g_warning("%s.%d: JSON syntax error.", __FUNCTION__, __LINE__);g_scanner_unexp_token(scan, token, "keyword", "keyword", symbol, msg, TRUE);}
 
 /// Construct a ConfigContext object from the given JSON string
 ConfigContext*
