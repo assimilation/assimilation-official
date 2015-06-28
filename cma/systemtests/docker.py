@@ -247,10 +247,12 @@ class DockerSystem(TestSystem):
         else:
             self.runningservices.append(servicename)
         if async:
-            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
+            #self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
+            self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
         else:
             #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
-            self.runinimage(('/etc/init.d/'+servicename, 'start'))
+            #self.runinimage(('/etc/init.d/'+servicename, 'start'))
+            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
 
     def stopservice(self, servicename, async=False):
         'docker-exec-based stop service action for docker'
@@ -367,6 +369,8 @@ class SystemTestEnvironment(object):
         ,   '''PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT);'''
         +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf'''))
         # And of course, start logging...
+        system.stopservice(SystemTestEnvironment.LOGGINGSERVICE)
+        system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system
 
