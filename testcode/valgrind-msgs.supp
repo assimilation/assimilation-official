@@ -469,7 +469,7 @@
    Memcheck:Param
    socketcall.bind(my_addr.sa_data)
    fun:bind
-   obj:/usr/lib/x86_64-linux-gnu/libpcap*
+   obj:*
    fun:pcap_activate
    fun:create_pcap_listener
    ...

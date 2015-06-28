@@ -50,3 +50,4 @@ docker/Ubuntu/trusty
 docker/Ubuntu/lucid
 docker/Ubuntu/utopic
 docker/Ubuntu/precise
+docker/Ubuntu/vivid

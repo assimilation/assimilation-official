@@ -22,5 +22,6 @@ WORKDIR /root/assimilation/src/cma
 RUN sed /etc/rsyslog.conf -e 's%^$.*imjournal%#&%' -e 's%.*$OmitLocalLogging.*%$OmitLocalLogging off%' > /tmp/foo
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
+RUN yum -y install python-demjson
 RUN rsyslogd && /etc/init.d/neo4j-service start&  sleep 15; ps -ef; ls -l /dev/*log*; testify -v tests
 ###  Our RPMs
