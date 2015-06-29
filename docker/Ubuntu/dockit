@@ -48,7 +48,8 @@ LOCALWS=$HOME/monitor/src
 PKGDIR=$(pwd)/
 rm -fr local nanoprobe cma
 case $CODENAME in
-  lucid)    EFLAG='-e s%resource-agents%% -e s%python-flask%% -e s%openjdk-7-jre%openjdk-6-jre%';;
+  lucid)    EFLAG='-e s%resource-agents%% -e s%python-flask%% -e s%openjdk-7-jre%openjdk-6-jre% -e s%iproute2%%';;
+  precise)    EFLAG='-e s%iproute2%%';;
   *)        EFLAG="";;
 esac
 case $1 in
