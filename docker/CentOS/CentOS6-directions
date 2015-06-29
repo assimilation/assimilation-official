@@ -57,10 +57,10 @@ ASSIMVERS=tip
 ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
 SCLREPO=http://dev.centos.org/centos/6/SCL/scl.repo
 ARCH=x86_64
-LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm"
-LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm"
+LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.3-1.el6.remi.$ARCH.rpm"
+LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.3-1.el6.remi.$ARCH.rpm"
 NEO4JYUM=http://yum.neo4j.org
-RPMDIR=/rpmbuild
+RPMDIR=/root/rpmbuild
 RPMSRCDIR=$RPMDIR/SOURCES
 TARBALL=$RPMSRCDIR/${ASSIMVERS}.tar.gz
 
@@ -310,8 +310,8 @@ docker_wget() {
 	state=start
 	for arg
 	do
-		echo state $state >&2
-		echo arg $arg >&2
+		#echo state $state >&2
+		#echo arg $arg >&2
 		case $state in
 			got-O)	fileout="$arg"; state=done;;
 			start)	state=wget;;

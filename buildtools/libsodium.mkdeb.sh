@@ -6,7 +6,7 @@
 # Modified by Alan Robertson <alanr@assimilationsystems.com>
 apt-get -y --no-install-recommends install devscripts debhelper build-essential fakeroot
 export NAME=libsodium
-export VERSION=1.0.1
+export VERSION=1.0.3
 export DEBVERSION=${VERSION}-1
 export LICENSEFILE=LICENSE
 #Download and extract the archive
