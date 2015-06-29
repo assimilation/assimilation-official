@@ -43,7 +43,7 @@ BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gc
 BUILDREQS_2="$PYSCL-python-setuptools"
 EZINST="pip"
 PIPBUILD="ctypesgen"
-PIPRUN='netaddr getent flask "py2neo<2.0"'
+PIPRUN='netaddr getent flask "py2neo<2.0" demjson'
 # Python packages we only need for testing
 PIPTEST="testify pylint"
 # RPMs we only need for testing
@@ -198,8 +198,9 @@ run_assimilation_tests() {
 	yum -y install ${TESTREQS}
 	scl enable $PYSCL 'pip install ${PIPTEST}'
 	mkdir -p /var/lib/heartbeat/lrm
-    cd /tmp/assimilation-test/src/cma
-    service $LOGGER start &
+	echo 'dbms.security.auth_enabled=false' >> $NEODIR/conf/neo4j-server.properties
+	cd /tmp/assimilation-test/src/cma
+	service $LOGGER start &
 	service ${NEOSERVICE} start & sleep 10
 	scl enable $PYSCL 'assimcli genkeys && testify -v tests'
 	!
