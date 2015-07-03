@@ -1,5 +1,50 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_0 version 1.0 - the "Independence Day" release - 4 July 2015
+This release provides a number of new features, and a number of bug fixes.
+This release is eminently suitable for deployments in environments where the caveats are acceptable.
+We have quite a few pre-built Ubuntu packages, and a few CentOS/RHEL packages for this version in the 1.0 subdirectory of 
+http://bit.ly/assimreleases.
+A tar ball for this version can be found here: http://hg.linux-ha.org/assimilation/archive/v1.0.tar.gz
+@subsection Features_1_0 New Features
+- Support for <a href="https://trello.com/c/gBvVYLfFP">Nagios remote agent APIs</a> from Carrie Oswald <carrieao@comcast.net>.
+  Not all Nagios agents are automatically configured, some are duplicates of generally superior OCF resource agents.
+  You can easily add configuration for anything you want Nagios to monitor.
+  This version includes automatic configuration of the following Nagios agents:
+ - check_load (load average)
+ - sensors (checking for temperatures, fan speeds, etc)
+ - sshd (secure shell daemon/service)
+- Added nagios to the set of discovery agents we discover using the monitoringagents discovery agent.
+- Optimize initial nanoprobe setup time by <a href="https://trello.com/c/uIwMlDxQ">combining all the ARP and switch discovery requests into one packet</a>.
+  In addition to being a significant optimization, it is also required for systems with large numbers of interfaces to avoid queue overflow.
+- Provided some initial API documentation
+- New discovery agents: PAM, /proc/partitions, mdadm, findmnt, nsswitch, commands, sshd configuration.
+- Prototype (toy) code for evaluating best practices (security, network, etc.).
+- <a href="https://trello.com/c/eq3Jn6Rf">added the location of where to report bugs to the web site</a>.
+- Added a download link to the top right of every page. Thanks to Dimitri van Heesch for teaching us how to do that.
+-  <a href="https://trello.com/c/0pcKwdLK"> Eliminated a number of redundant startup messages.</a>
+- Minor change to allow us to build under docker for precise, trusty, utopic, and vivid
+- Added a number of new unit test cases - particularly for discovery agents.
+
+@subsection BugFixes_1_0 Bug Fixes
+- <a href="https://trello.com/c/nmbxX6kY">Flask queries with parameters don't work</a> - also added code to limit the max size of JSON_ node attributes in query results.
+- <a href="https://trello.com/c/3tIhv3Jp">pcap_lookupnet() failure should not be fatal</a>
+- <a href="https://trello.com/c/Htc1T9H9">Timestamps in discovery results were never set</a>.
+- <a href="https://trello.com/c/upkwQiZA">Code was not listening to ARP or LLDP/CDP packets</a>.
+  This probably wasn't an issue in the last release, but got introduced between releases.
+- <a href="https://trello.com/c/AxcvC9zW">resources monitored by invalid monitoring requests aren't marked as down</a>.
+  This only can occur when the CMA and nanoprobe versions are out of sync with each other - like in the middle of adding nagios support for example ;-).
+- Fixed a number of bugs associated with testing (not real code bugs).
+- Corrected a number of dependencies for building and final packages.
+
+@subsection Caveats_1_0 Caveats
+- No alerting, or interface to existing alerting (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA may suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- use with recent versions of Neo4j requires disabling authentication on Neo4j
+
 @section Version_0_5 version 0.5 - the "Valentine's day" release - 14 February 2015
 This is release is sixth in a series of releases intended to culminate in an awesomely useful release.
 It is primarily a bug fix release.
