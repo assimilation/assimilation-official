@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#!/bin/bash -eu
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
