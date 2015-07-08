@@ -100,7 +100,7 @@ encode_mode() {
     case $aclflag in
       +)    encode_acls "$filename"
     esac
-    printf ', "sticky":%s}}' "$stickybit"
+    printf ', "sticky":%s}' "$stickybit"
 }
 encode_rwx_only() {
     case $rwx in
@@ -198,6 +198,7 @@ fileinfo_linux() {
         then
            stat --printf ', "octal": "0%a"' "$1"
         fi
+        printf '}'
     )
 }
 
@@ -210,6 +211,7 @@ discover_files() {
     linespace="$1"
     shift
     comma="$linespace"
+    printf '{\n'
     for file
     do
         if
@@ -220,13 +222,13 @@ discover_files() {
         case $file in
             *?/)
                 printf '%s%s' "$comma" "$(fileinfo_linux $(echo "$file" | sed 's%./$%&%'))"
+                comma=",${nl}${linespace}"
                 for dirfile in ${file}*
                 do
                     if
                         test ! -z "$dirfile" -a -e "$dirfile"
                     then
                         printf '%s%s' "$comma" "$(fileinfo_linux "$dirfile")"
-                        comma=",${nl}${linespace}"
                     fi
                 done
                 ;;
@@ -234,6 +236,7 @@ discover_files() {
         esac
         comma=",${nl}${linespace}"
     done
+    printf '\n%s}\n' "$linespace"
 }
 
 
@@ -244,10 +247,10 @@ discover() {
 	  "description": "ls-style file information",
 	  "host": "$(uname -n)",
 	  "source": "$0",
-	  "data": {
 	!
+	printf '  "data": '
     discover_files '    ' "$@"
-    printf '\n  }\n}\n'
+    printf '}\n'
 }
 
 if
@@ -262,6 +265,6 @@ then
 fi
 # Check the modes on everything...
 case $1 in
-  ls-args)  shift; discover_files "$@";; # First argument is prefix (white space) for each line.
+  ls-args)  shift;  discover_files "$@";; # First argument is prefix (white space) for each line.
   *)        discover $LS_FILELIST;;
 esac
