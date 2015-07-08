@@ -34,6 +34,7 @@ nl='
 : ${LS_FILELIST='/ /etc /lib /usr/ /var/ /run /run/lock /run/user /bin /sbin /usr/local/'}
 
 have_getfattr='false'
+have_stat='false'
 
 #
 #   Encode file mode from the ls command into JSON
@@ -101,12 +102,33 @@ encode_mode() {
     esac
     printf ', "sticky":%s}}' "$stickybit"
 }
+encode_rwx_only() {
+    case $rwx in
+        r--)    echo '{"r": true,  "w": false, "x": false}';;
+        rw-)    echo '{"r": true,  "w": true,  "x": false}';;
+        rwx)    echo '{"r": true,  "w": true,  "x": true}';;
+        r-x)    echo '{"r": true,  "w": false, "x": true}';;
+        -w-)    echo '{"r": false, "w": true,  "x": false}';;
+        -wx)    echo '{"r": false, "w": true,  "x": true}';;
+        --x)    echo '{"r": false, "w": false, "x": true}';;
+        *)      echo '{"r": false, "w": false, "x": false}';;
+    esac
+}
 
 #
 #   Encode ACL information for this file into JSON
 #
 encode_acls() {
-    : 'Ought to do something eventually'
+    : 'Encode POSIX ACLs for this file into JSON.'
+    printf ', "ACL": {'
+    comma=''
+    getfacl -p -c "$1" | grep . | sed -e 's%^%"%' -e 's%:\([^:]*\)$%": \1%' |
+    while read attr rwx
+    do
+        printf '%s%s%s' "$comma" "$attr" "$(encode_rwx_only "$rwx")"
+        comma=', '
+    done
+    printf '}'
 }
 
 #   $ getfattr -m- -d .
@@ -122,7 +144,9 @@ encode_fattrs() {
     else
         # So, instead we do what we can do...
         encode_selinuxcontext "$2"
+        return
     fi
+    comma=''
     getfattr -m- -d --absolute-names "$1" |
     while
         read line
@@ -135,9 +159,11 @@ encode_fattrs() {
         name="$(echo "$line" | sed -e 's%=.*%%' -e s'%\.%:%g')"
         value="$(echo "$line" | sed -e 's%^[^=]*=%%' -e's%"%%g')"
         case $name in
-            'security:selinux') printf ', %s'           "$(encode_selinuxcontext "$value")";;
-            *)                  printf ', "%s":"%s"'    "$name" "$value";;
+            'system:posix_acl_access') continue;;
+            'security:selinux') printf '%s %s'           "$comma" "$(encode_selinuxcontext "$value"),";;
+            *)                  printf '%s "%s":"%s",'    "$comma" "$name" "$value";;
         esac
+        comma=','
     done
 }
 #   Encode the SELinux security context into JSON
@@ -167,6 +193,11 @@ fileinfo_linux() {
         printf '"owner": "%s", "group": "%s", ' "$uid" "$gid"
         encode_fattrs "$1" "$selinuxcontext"
         encode_mode "$1" "$modebits"
+        if
+            [ $have_stat = true ]
+        then
+           stat --printf ', "octal": "0%a"' "$1"
+        fi
     )
 }
 
@@ -224,5 +255,13 @@ if
 then
     have_getfattr=true
 fi
-# Temporary crufty list of things to check modes of
-discover $LS_FILELIST
+if
+    stat --version >/dev/null 2>&1
+then
+    have_stat=true
+fi
+# Check the modes on everything...
+case $1 in
+  ls-args)  shift; discover_files "$@";; # First argument is prefix (white space) for each line.
+  *)        discover $LS_FILELIST;;
+esac
