@@ -21,7 +21,7 @@
 #
 _suites = ['all', 'cma']
 import sys
-sys.path.append("../cma")
+sys.path.insert(0, "../cma")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from py2neo import neo4j
 from testify import *
