@@ -56,13 +56,7 @@ class GraphNodeExpression(object):
         if expression.startswith('"'):
             # The value of this parameter is a constant...
             if expression[-1] != '"':
-                print >> sys.stderr, '''Unterminated string %s''' % expression
-                return None
-            return expression[1:-2]
-        if expression.startswith("'"):
-            # The value of this parameter is a constant...
-            if expression[-1] != "'":
-                print >> sys.stderr, '''Unterminated string %s''' % expression
+                print >> sys.stderr, "Unterminated string '%s'" % expression
                 return None
             return expression[1:-2]
         if expression.startswith('0x') and len(expression) > 3:
