@@ -42,6 +42,7 @@ This module defines some classes related to evaluating best practices based on d
 from droneinfo import Drone
 from discoverylistener import DiscoveryListener
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
+import logging
 
 @Drone.add_json_processor
 class BestPractices(DiscoveryListener):
@@ -52,6 +53,8 @@ class BestPractices(DiscoveryListener):
     application = None
     discovery_name = None
     sensitive_to = None
+    application = 'os'
+    BASEURL = 'http://ITBestPractices.info/query'
 
     def __init__(self, config, packetio, store, log, debug):
         'Initialize our BestPractices object'
@@ -76,6 +79,16 @@ class BestPractices(DiscoveryListener):
             return cls
         return decorator
 
+    def url(self, drone, ruleid, ruleobj):
+        '''
+        Return the URL in the IT Best Practices project that goes with this
+        particular rule.
+        '''
+        # We should eventually use the drone to hone in more on the OS and so on...
+        drone = drone
+        return '%s/%s/%s?application=%s' % (self.BASEURL, ruleobj['category']
+        ,   ruleid, self.application)
+
     def processpkt(self, drone, srcaddr, jsonobj):
         '''Inform interested rule sets about this change'''
         self = self
@@ -97,9 +110,6 @@ class BestPractices(DiscoveryListener):
         newcontext = ExpressionContext((jsonobj,))
         ruleids = ruleobj.keys()
         ruleids.sort()
-        print 'LOOKING AT jsonobj', jsonobj
-        print 'LOOKING AT RULEOBJ', ruleobj
-        print 'RULEIDS:', ruleids
         statuses = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
         for ruleid in ruleids:
             ruleinfo = ruleobj[ruleid]
@@ -124,12 +134,13 @@ class BestPractices(DiscoveryListener):
                 print >> sys.stderr, 'FAIL:   ID %s %s (%s)' % (ruleid
                 ,       rule, rulecategory)
                 statuses['fail'].append(ruleid)
+                self.log.warning('BESTPRACTICES: Node %s failed %s rule %s: %s'
+                ,   drone, rulecategory, ruleid, self.url(drone, ruleid, ruleinfo))
         return statuses
 
 @BestPractices.register('proc_sys')
 class BestPracticesProcSys(BestPractices):
     'Security Best Practices which are evaluated agains Linux /proc/sys values'
-    category = 'security'
     application = 'os'
     discovery_name = 'JSON_proc_sys'
     sensitive_to = ('proc_sys',)
@@ -168,14 +179,15 @@ if __name__ == '__main__':
     with open('../best-practices/proc_sys.json', 'r') as procsys_file:
         testrules = pyConfigContext(procsys_file.read())
     testjsonobj = pyConfigContext(JSON_data)['data']
+    logger = logging.getLogger('BestPracticesTest')
+    logger.addHandler(logging.StreamHandler(sys.stderr))
     for ruleclass in BestPractices.evaluators['proc_sys']:
-        procsys = ruleclass(None, None, None, None, False)
-        statuses = procsys.evaluate(None, None, testjsonobj, testrules)
-        size = sum([len(statuses[st]) for st in statuses.keys()])
+        procsys = ruleclass(None, None, None, logger, False)
+        ourstats = procsys.evaluate("testdrone", None, testjsonobj, testrules)
+        size = sum([len(ourstats[st]) for st in ourstats.keys()])
         assert size == len(testrules)
-        assert statuses['fail'] == ['itbp-00001', 'nist_V-38526', 'nist_V-38601']
-        assert size == len(testrules)
-        assert len(statuses['NA']) >= 13
-        assert len(statuses['pass']) >= 3
-        assert len(statuses['ignore']) == 1
+        assert ourstats['fail'] == ['itbp-00001', 'nist_V-38526', 'nist_V-38601']
+        assert len(ourstats['NA']) >= 13
+        assert len(ourstats['pass']) >= 3
+        assert len(ourstats['ignore']) == 1
         print 'Results look correct!'
