@@ -190,4 +190,4 @@ if __name__ == '__main__':
         assert len(ourstats['NA']) >= 13
         assert len(ourstats['pass']) >= 3
         assert len(ourstats['ignore']) == 1
-        print 'Results look correct!'
+    print 'Results look correct!'
