@@ -255,6 +255,12 @@ class ExpressionContext(object):
         'Remove the cache value associated with this key'
         del self.values[key]
 
+@GraphNodeExpression.RegisterFun
+def IGNORE(ignoreargs, ignorecontext):
+    'Function to ignore its argument(s) and return True all the time'
+    ignoreargs = ignoreargs
+    ignorecontext = ignorecontext
+    return True
 
 @GraphNodeExpression.RegisterFun
 def EQ(args, context):
