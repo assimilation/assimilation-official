@@ -1,0 +1,16 @@
+{
+    "cypher": "MATCH n
+               RETURN n.nodetype AS NodeType, count(n) AS Count",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get list of node types and their counts",
+            "long":     "get a list of node types written to the database and their counts" 
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${NodeType} ${Count}",
+        "script": "${NodeType} ${Count}"
+    }
+}

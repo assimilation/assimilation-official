@@ -1,0 +1,141 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   Discover the set of available monitoring agents - this currently includes
+#   lsb, ocf, upstart and nagios agents
+#
+# This file is part of the Assimilation Project.
+#
+# @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
+# @n
+#  The Assimilation software is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  The Assimilation software is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+:   ${NAGIOS_DIRS:="/usr/lib/nagios/plugins /usr/local/nagios/libexec /usr/nagios/libexec /opt/nrpe/libexec"}
+#
+#
+discover_lsb() {
+	printf "%s" '"lsb": ['
+	comma=''
+	ls /etc/init.d | \
+	while
+	  read agent
+	do
+	  if
+	    [ ! -x "/etc/init.d/$agent" ]
+	  then
+	    continue
+	  fi
+	  printf "%s" "${comma}\"${agent}\""
+	  comma=', '
+	done
+	printf '%s' ']'
+}
+discover_ocf() {
+	printf "%s" '"ocf": ['
+	comma=''
+	(cd /usr/lib/ocf/resource.d && find -L * -print | sort) | \
+	while
+	  read agent
+	do
+	  path="/usr/lib/ocf/resource.d/$agent"
+	  if
+	    [ ! -f "$path" ]
+	  then
+	    continue
+	  fi
+	  case $agent in
+	    */.*|*/*.metadata|*/*/*)		continue;;
+          esac
+	  printf "%s" "${comma}\"${agent}\""
+	  comma=', '
+	done
+	printf '%s' ']'
+}
+
+discover_nagios() {
+	printf "%s" '"nagios": ['
+	comma=''
+    for dir in ${NAGIOS_DIRS}
+    do
+        test -d "$dir" || continue
+        ls $dir | \
+        while
+          read agent
+        do
+          if
+            [ ! -f "$dir/$agent" -o ! -x "$dir/$agent" ]
+          then
+            continue
+          fi
+          printf "%s" "${comma}\"${agent}\""
+          comma=', '
+        done
+    done | sort -u
+    printf '%s' ']'
+}
+
+INITCTL=/sbin/initctl
+
+have_upstart() {
+  if
+    [ ! -f "${INITCTL}" -o ! -x "${INITCTL}" ]
+  then
+    return 1
+  else
+      case "$("${INITCTL}" version 2>/dev/null)" in
+        *upstart*)   return 0;;
+      esac
+  fi
+  return 1
+}
+
+discover_upstart() {
+    printf '"upstart": ['
+    if
+        have_upstart
+    then
+        upcomma=''
+        "${INITCTL}" list 2>/dev/null | sort -u |
+        while
+            read service status
+        do
+            printf '%s"%s"' "${upcomma}" "${service}"
+            upcomma=', '
+        done
+    fi
+    printf ']'
+}
+        
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "monitoringagents",
+	  "description": "Available Monitoring Agents",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+	comma='    '
+	# Keep these alphabetical by resource class.
+	for method in discover_lsb discover_nagios discover_ocf discover_upstart
+        do
+	  printf "%s" "${comma}$($method)"
+          comma=",
+    "
+        done
+  printf '\n  }\n}\n'
+}
+
+discover

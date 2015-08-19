@@ -1,0 +1,179 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+### BEGIN INIT INFO
+# Provides: assimilation-cma
+# Required-Start: $local_fs $remote_fs $network $syslog
+# Should-Start: neo4j-service
+# Required-Stop: $local_fs $remote_fs $network $syslog
+# Should-Stop: neo4j-service
+# Default-Start: 2 3 4 5
+# Default-Stop:  0 1 6
+# Short-Description: start and stop the Assimilation Monitoring System CMA Authority (CMA)
+# Description: The Assimilation System provides fully-distributed, highly-scalable
+#              discovery-driven monitoring. See http://assimilationsystems.com/ and
+#              http://assimproj.org/ for more details
+#              If the CMA is run on the same system as a nanoprobe (the normal practice),
+#              the CMA must start BEFORE the nanoprobe or the poor CMA
+#              won't be able to start (and it will be very sad :-() or you have to specify
+#              the NANOPROBE_DYNAMIC=yes for the nanoprobe init.
+#              The CMA must start *after* neo4j has been started.
+### END INIT INFO
+#
+# This file is part of the Assimilation Project.
+#
+# @author Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2012, 2013, 2014 - Assimilation Systems Limited
+# @n
+#  The Assimilation software is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  The Assimilation software is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+
+BINARY=/usr/sbin/cma
+FLAGS=""
+
+SERVICE=$(basename $BINARY)
+
+#           Ubuntu        Red Hat/SuSE
+for dir in /etc/default  /etc/sysconfig
+do
+    file="$dir/$SERVICE"
+    if
+        [ -f "$file" -a -r "$file" ]
+    then
+        . "$file"
+        break
+    fi
+done
+FLAGS=""
+#
+#   Process known directives from the init config file
+#
+#   CMA_BIND        What IP:port for the CMA to bind to - defaults to ANY:1984
+#   CMA_PIDFILE     Where to store our PID file
+#   CMA_CORELIMIT   What value to give ulimit -c before starting the CMA
+#   CMA_USER        What user to run as
+#   CMA_DEBUG       What debug level to choose
+#   CMA_STRACEFILE  What file to put strace output into
+#   CMA_STRACEFLAGS What strace flags to use if ${CMA_STRACEFILE} is set
+#
+
+#   CMA_BIND: What address should we bind to locally?
+#   format is an IP:port combination - ipv4 or ipv6 format
+case "${CMA_BIND}" in
+    ?*) FLAGS="$FLAGS --bind $CMA_BIND";;
+esac
+
+#   CMA_PIDFILE: Where to put our pid file?
+case "${CMA_PIDFILE}" in
+    ?*) FLAGS="$FLAGS --pidfile $CMA_PIDFILE";;
+esac
+
+#   CMA_DEBUG: debug level
+case "${CMA_DEBUG}" in
+    [1-9]) FLAGS="$FLAGS --debug $CMA_DEBUG";;
+esac
+
+#   CMA_USER: What user to run as?
+case "${CMA_USER}" in
+    ?*) FLAGS="$FLAGS --user $CMA_USER";;
+esac
+
+#   CMA_CORELIMIT: What ulimit to give for ulimit -c
+case "${CMA_CORELIMIT}" in
+    ?*) ulimit -c "$CMA_CORELIMIT";;
+esac
+
+#   CMA_STRACEFLAGS: What strace flags to use
+case "${CMA_STRACEFLAGS}" in
+    ?*);;
+    *)  CMA_STRACEFLAGS="-ff -r -tt -x -y -v -s 128"
+esac
+
+lockfile=/var/lock/subsys/$SERVICE
+
+start() {
+    if
+        [ ! -z "$CMA_STRACEFILE" ]
+    then
+        strace ${CMA_STRACEFLAGS} -o "${CMA_STRACEFILE}" ${BINARY} ${FLAGS} &
+    else
+        ${BINARY} ${FLAGS}
+    fi
+    rc=$?
+    if
+      [ $rc -eq 0 ]
+    then
+      logger -s "$SERVICE started on $(uname -n)."
+      if
+        test -d $(dirname "$lockfile")
+      then
+        touch "$lockfile"
+      fi
+    else
+      logger -s "$SERVICE NOT started on $(uname -n)!" >&2
+    fi
+    return $rc
+}
+
+stop() {
+    $BINARY $FLAGS --kill
+    rc=$?
+    if
+      [ $rc -eq 0 ]
+    then
+      logger -s "$SERVICE stopped on $(uname -n)."
+      rm -f "$lockfile"
+    else
+      logger -s "$SERVICE NOT stopped on $(uname -n)!" >&2
+    fi
+    return $rc
+}
+
+restart() {
+    stop && start
+}
+
+
+command=$1
+case "$command" in
+  start|stop|restart)
+        $command
+		exit $?;;
+
+  status)
+        $BINARY $FLAGS --status
+		rc=$?
+		case $rc in
+		  0)	echo "$SERVICE is running." >&2;;
+		  1)	echo "$SERVICE stopped, but /var/run pid file exists." >&2;;
+		  2)	echo "$SERVICE stopped, but /var/lock lock file exists." >&2;;
+		  3)	echo "$SERVICE not running." >&2;;
+		  *)	echo "$SERVICE status unknown." >&2;;
+		esac
+		exit $rc;;
+
+  force-reload) restart;;
+
+  try-restart|condrestart)
+        if
+            $BINARY $FLAGS --status 
+        then
+            restart
+        fi
+        exit $?;;
+
+
+    *)  echo "$0: Action $command not supported for $SERVICE" >&2
+        echo "Usage: $0 {start|stop|status|restart|try-restart|force-reload|condrestart}" >&2
+		exit 3;;
+esac

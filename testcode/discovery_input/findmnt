@@ -1,0 +1,33 @@
+TARGET SOURCE FSTYPE OPTIONS
+/sys sysfs sysfs rw,nosuid,nodev,noexec,relatime
+/proc proc proc rw,nosuid,nodev,noexec,relatime
+/dev udev devtmpfs rw,relatime,size=1852824k,nr_inodes=463206,mode=755
+/dev/pts devpts devpts rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000
+/run tmpfs tmpfs rw,nosuid,noexec,relatime,size=379120k,mode=755
+/ /dev/md126 ext4 rw,relatime,errors=remount-ro,data=ordered
+/sys/fs/cgroup cgroup tmpfs rw,relatime,mode=755
+/sys/fs/fuse/connections  fusectl rw,relatime
+/sys/kernel/debug  debugfs rw,relatime
+/sys/kernel/security  securityfs rw,relatime
+/run/lock  tmpfs rw,nosuid,nodev,noexec,relatime,size=5120k
+/run/shm  tmpfs rw,nosuid,nodev,relatime
+/run/user  tmpfs rw,nosuid,nodev,noexec,relatime,size=102400k,mode=755
+/sys/fs/cgroup/cpuset cgroup cgroup rw,relatime,cpuset
+/sys/fs/cgroup/cpu cgroup cgroup rw,relatime,cpu
+/sys/fs/cgroup/cpuacct cgroup cgroup rw,relatime,cpuacct
+/sys/fs/cgroup/memory cgroup cgroup rw,relatime,memory
+/sys/fs/cgroup/devices cgroup cgroup rw,relatime,devices
+/sys/fs/cgroup/freezer cgroup cgroup rw,relatime,freezer
+/sys/fs/cgroup/blkio cgroup cgroup rw,relatime,blkio
+/sys/fs/cgroup/perf_event cgroup cgroup rw,relatime,perf_event,release_agent=/run/cgmanager/agents/cgm-release-agent.perf_event
+/boot /dev/md124 ext2 rw,relatime,errors=continue
+/run/rpc_pipefs rpc_pipefs rpc_pipefs rw,relatime
+/drbd1 /dev/drbd1 ext4 rw,relatime,data=ordered
+/home2 /dev/drbd0 ext4 rw,relatime,data=ordered
+/proc/fs/nfsd nfsd nfsd rw,relatime
+/sys/fs/cgroup/net_prio cgroup cgroup rw,relatime,net_prio
+/sys/fs/cgroup/hugetlb cgroup cgroup rw,relatime,hugetlb,release_agent=/run/cgmanager/agents/cgm-release-agent.hugetlb
+/proc/sys/fs/binfmt_misc binfmt_misc binfmt_misc rw,nosuid,nodev,noexec,relatime
+/var/lib/docker/aufs /dev/sda1[/var/lib/docker/aufs] ext4 rw,relatime,errors=remount-ro,data=ordered
+/home 10.10.10.21:/home nfs rw,nodev,relatime,vers=3,rsize=8192,wsize=8192,namlen=255,acregmin=120,acregmax=120,acdirmin=120,acdirmax=120,hard,nolock,proto=udp,timeo=11,retrans=3,sec=sys,mountaddr=10.10.10.21,mountvers=3,mountport=44110,mountproto=udp,local_lock=all,addr=10.10.10.21
+/sys/fs/cgroup/systemd systemd cgroup rw,nosuid,nodev,noexec,relatime,release_agent=/run/cgmanager/agents/cgm-release-agent.systemd,name=systemd
