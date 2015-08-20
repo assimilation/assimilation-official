@@ -1,0 +1,85 @@
+{
+  "IGNOREME": {
+	"category": "comment",
+        "rule": "IGNORE(\"This is a copyright notice not a best practices rule\")",
+	"copyright": "This file Copyright (c) 2015 - Assimilation Systems Limited",
+	"license": "GPL v3",
+	"comment": "A collection of best practices rules sensitive to /proc/sys values"
+	},
+  "itbp-00001": {
+	"category": "networking",
+        "rule": "IN($net.core.default_qdisc, fq_codel, codel)"
+	},
+  "nist_V-38511": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.ip_forward, 0)"
+	},
+  "nist_V-38523": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.all.accept_source_route, 0)"
+	},
+  "nist_V-38524": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.all.accept_redirects, 0)"
+	},
+  "nist_V-38526": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.all.secure_redirects, 0)"
+	},
+  "nist_V-38528": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.all.log_martians, 1)"
+	},
+  "nist_V-38529": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.default.accept_source_route, 0)"
+	},
+  "nist_V-38532": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.default.secure_redirects, 0)"
+	},
+  "nist_V-38533": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.default.accept_redirects, 0)"
+	},
+  "nist_V-38535": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.icmp_echo_ignore_broadcasts, 1)"
+	},
+  "nist_V-38537": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.icmp_ignore_bogus_error_responses, 1)"
+	},
+  "nist_V-38539": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.tcp_syncookies, 1)"
+	},
+  "nist_V-38542": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.all.rp_filter, 1)"
+	},
+  "nist_V-38544": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.default.rp_filter, 1)"
+	},
+  "nist_V-38548": {
+	"category": "security",
+        "rule": "EQ($net.ipv6.conf.default.accept_redirects, 0)"
+	},
+  "nist_V-38596": {
+	"category": "security",
+        "rule": "EQ($kernel.randomize_va_space, 2)"
+	},
+  "nist_V-38597": {
+	"category": "security",
+        "rule": "EQ($kernel.exec-shield, 1)"
+	},
+  "nist_V-38600": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.default.send_redirects, 0)"
+	},
+  "nist_V-38601": {
+	"category": "security",
+        "rule": "EQ($net.ipv4.conf.all.send_redirects, 0)"
+	}
+}

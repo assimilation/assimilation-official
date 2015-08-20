@@ -150,6 +150,8 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	USRSHARECMA		Our CMA subdirectory under /usr/share
 #	DAGENTS			the relative directory name we source discovery agents from
 #	DISCOVERYINSTALL	Where we install our discovery scripts
+#	BPRULES			the relative directory name we source best practices rules from
+#	BPINSTALL       Where we install our base best-practice ruleset
 #	QUERYSUBDIR		the relative directory where we store the flat files we make query nodes from
 #	QUERYINSTALL		Where we install our query flat files
 #	MONRULESUBDIR		the relative directory where we store the flat files containing our monitoring rules
@@ -190,7 +192,9 @@ execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE 
 set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 
 set (DAGENTS discovery_agents)
+set (BPRULES best_practices)
 set (DISCOVERYINSTALL ${USRSHARE}/${DAGENTS})
+set (BPINSTALL ${USRSHARE}/${BPRULES})
 set (QUERYSUBDIR queries)
 set (QUERYINSTALL ${USRSHARE}/${QUERYSUBDIR})
 set (MONRULESUBDIR monrules)
@@ -413,6 +417,10 @@ install (DIRECTORY ${MONRULESUBDIR} COMPONENT cma-component DESTINATION ${DESTDI
 #	Install our OCF scripts under /usr/lib/ocf/resource.d/assimilation - as part of the nanoprobe package
 #
 install (PROGRAMS ocf/neo4j COMPONENT nanoprobe-component DESTINATION ${DESTDIR}${OCFINSTALL})
+#
+#	Install our best practices rules under /usr/share/assimilation - as part of the CMA package
+#
+install (DIRECTORY best_practices COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 #
 #	Create an empty notification script directory under /usr/share/assimilation/notification.d
 #
