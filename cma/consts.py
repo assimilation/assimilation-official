@@ -53,6 +53,8 @@ class CMAconsts(object):
     NODE_ipproc     = 'ProcessNode'   # A client and/or server process
     NODE_tcpipport  = 'IPtcpportNode' # (ip, port) tuple for a TCP service
     NODE_monitoraction  = 'MonitorAction' # A (hopefully active) monitoring action
+    NODE_bprules    = 'BPRules'       # A (hopefully active) monitoring action
+    NODE_bpruleset  = 'BPRuleSet'     # A (hopefully active) monitoring action
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
@@ -69,6 +71,8 @@ class CMAconsts(object):
     REL_hosting     = 'hosting'     # NODE_drone        ->  NODE_ipproc
     REL_monitoring  = 'monitoring'  # NODE_monitoraction->  NODE_ipproc OR SystemNode
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
+    REL_basedon     = 'basedon'     # NODE_BPRuleSet    ->  NODE_BPRuleSet
+    REL_basis       = 'basis'       # NODE_BPRules      ->  NODE_BPRules
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 #

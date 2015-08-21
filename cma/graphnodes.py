@@ -23,6 +23,7 @@
 ''' This module defines the classes for most of our CMA nodes ...  '''
 from consts import CMAconsts
 from store import Store
+from cmadb import CMAdb
 import sys, re, time
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
@@ -284,7 +285,7 @@ class CMAclass(GraphNode):
             if Store.is_abstract(self):
                 result += comma + 'HasNode = "abstract"'
             else:
-                result += (comma + 'HasNode = %d' %Store.id(self))
+                result += (comma + 'HasNode = %d' % Store.id(self))
 
         result += "\n})"
         return result
@@ -293,6 +294,41 @@ class CMAclass(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['name']
+
+@RegisterGraphClass
+class BPRules(GraphNode):
+    '''Class defining best practice rules'''
+
+    def __init__(self, bp_class, json, rulesetname):
+        GraphNode.__init__(self, domain='metadata')
+        self.bp_class = bp_class
+        self.rulesetname = rulesetname
+        self.json = json
+        self._jsonobj = pyConfigContext(json)
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['bp_class', 'rulesetname']
+
+@RegisterGraphClass
+class BPRuleSet(GraphNode):
+    '''Class defining best practice rule sets'''
+
+    def __init__(self, rulesetname, basisrules=None):
+        GraphNode.__init__(self, domain='metadata')
+        self.rulesetname = rulesetname
+        self.basisrules = basisrules
+        if self.basisrules is None or not Store.is_abstract(self):
+            return
+        query = '''START n=node:BPRuleSet('{name}:*') WHERE n.rulesetname = {name} RETURN n'''
+        parent = CMAdb.store.load_cypher_node(query, BPRuleSet, params={'name': basisrules})
+        CMAdb.store.relate_new(self, CMAconsts.REL_basedon, parent)
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['rulesetname']
 
 @RegisterGraphClass
 class SystemNode(GraphNode):
@@ -492,7 +528,6 @@ class ProcessNode(GraphNode):
 
 if __name__ == '__main__':
     from cmainit import CMAinit
-    from cmadb import CMAdb
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)
     if CMAdb.store.transaction_pending:

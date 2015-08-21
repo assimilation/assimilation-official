@@ -42,7 +42,10 @@ This module defines some classes related to evaluating best practices based on d
 from droneinfo import Drone
 from discoverylistener import DiscoveryListener
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
-import logging
+from consts import CMAconsts
+from store import Store
+from graphnodes import BPRules, BPRuleSet
+import os, logging
 
 @Drone.add_json_processor
 class BestPractices(DiscoveryListener):
@@ -55,6 +58,7 @@ class BestPractices(DiscoveryListener):
     sensitive_to = None
     application = 'os'
     BASEURL = 'http://ITBestPractices.info/query'
+    BASERULESETNAME = 'BASE'
 
     def __init__(self, config, packetio, store, log, debug):
         'Initialize our BestPractices object'
@@ -78,6 +82,52 @@ class BestPractices(DiscoveryListener):
                     BestPractices.evaluators[pkttype].append(cls)
             return cls
         return decorator
+
+    @staticmethod
+    def load_json(store, json, bp_class, rulesetname, basedon=None):
+        '''Load JSON for a single JSON ruleset'''
+        if bp_class not in BestPractices.wantedpackets:
+            raise ValueError('%s is not a valid best practice class name' % bp_class)
+        rules = store.load_or_create(BPRules, bp_class=bp_class, json=json,
+                                           rulesetname=rulesetname)
+        if basedon is None or not Store.is_abstract(rules):
+            return
+        query = '''START n=node:BPRules('{classname}:{ruleset}')
+        WHERE n.rulesetname = {classname} and n.rulesetname={ruleset}
+        RETURN n'''
+        parent = store.load_cypher_node(query, BPRules
+        ,           params={'classname': bp_class, 'ruleset': basedon})
+        store.relate_new(rules, CMAconsts.REL_basis, parent)
+        return rules
+
+    @staticmethod
+    def load_from_file(store, filename, bp_class, rulesetname, basedon=None):
+        '''Load JSON from a single ruleset file'''
+        with open(filename, 'r') as jsonfile:
+            json = jsonfile.read()
+            return BestPractices.load_json(store, json, bp_class, rulesetname, basedon)
+
+    @staticmethod
+    def load_directory(store, directoryname, rulesetname, basedon=None):
+        '''
+        Load all the rules in the 'best_practices_dir' directory as ruleset named 'rulesetname'
+        and link them up as being based on the given rule set name.
+
+        If 'basedon' is not None, then we derive a set of basis ordering which we use
+        to compute the ordering of any rule sets.
+        If we have any missing rule sets in a given basis rule set, they are based on the
+        corresponding rule set back further in the set until the 'BASE'
+        '''
+        store.load_or_create(BPRuleSet, rulesetname=rulesetname, basisrules=basedon)
+        files = os.listdir(directoryname)
+        files.sort()
+        for filename in files:
+            if filename.startswith('.'):
+                continue
+            path = os.path.join(directoryname, filename)
+            classname = filename.replace('.json', '')
+            yield BestPractices.load_from_file(store, path, classname, rulesetname, basedon)
+
 
     def url(self, drone, ruleid, ruleobj):
         '''
@@ -103,11 +153,14 @@ class BestPractices(DiscoveryListener):
                     failure = failure
 
     def evaluate(self, drone, unusedsrcaddr, jsonobj, ruleobj):
-        'Evaluate our rules given the current/changed data'
+        '''Evaluate our rules given the current/changed data.
+        '''
         unusedsrcaddr = unusedsrcaddr
         drone = drone
         #oldcontext = ExpressionContext((drone,), prefix='JSON_proc_sys')
         newcontext = ExpressionContext((jsonobj,))
+        if hasattr(ruleobj, '_jsonobj'):
+            ruleobj = getattr(ruleobj, '_jsonobj')
         ruleids = ruleobj.keys()
         ruleids.sort()
         statuses = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
