@@ -35,13 +35,14 @@ from graphnodes import GraphNode
 from store import Store
 from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
-    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID
+    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID, BPINSTALL_DIR
 from AssimCclasses import pyCryptFrame, pyCryptCurve25519
 #
 # These imports really are necessary - in spite of what pylint thinks...
 # pylint: disable=W0611
 import droneinfo, hbring, monitoring
 from cmainit import CMAinit
+from bestpractices import BestPractices
 
 commands = {}
 
@@ -152,6 +153,45 @@ class loadqueries(object):
 
         qcount = 0
         for q in ClientQuery.load_tree(store, querydir):
+            qcount += 1
+            q = q
+        store.commit()
+        return 0 if qcount > 0 else 1
+
+@RegisterCommand
+class loadbp(object):
+    "Class for the 'loadbp' action (sub-command). We load up a set of best practices"
+
+    def __init__(self):
+        'Default init function'
+        pass
+
+    @staticmethod
+    def usage():
+        "reports usage for this sub-command"
+        return 'loadbp [ruleset-directory ruleset-name [based-on-ruleset-name]]'
+
+    @staticmethod
+    def execute(store, executor_context, otherargs, flagoptions):
+        'Load best practices from the specified directory.'
+
+        executor_context = executor_context
+        flagoptions = flagoptions
+        basedon = None
+
+        if len(otherargs) not in (0,2,3):
+            return usage()
+        elif len(otherargs) >= 2:
+            bpdir = otherargs[0]
+            rulesetname = otherargs[1]
+            if len(otherargs) > 2:
+                basedon = otherargs[2]
+        else:
+            bpdir = BPINSTALL_DIR
+            rulesetname = 'BASE'
+
+        qcount = 0
+        for q in BestPractices.load_directory(store, bpdir, rulesetname, basedon):
             qcount += 1
             q = q
         store.commit()

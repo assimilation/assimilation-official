@@ -149,18 +149,18 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	USRSHARE		Our nanoprobe subdirectory under /usr/share
 #	USRSHARECMA		Our CMA subdirectory under /usr/share
 #	DAGENTS			the relative directory name we source discovery agents from
-#	DISCOVERYINSTALL	Where we install our discovery scripts
+#	DISCOVERYINSTALL Where we install our discovery scripts
 #	BPRULES			the relative directory name we source best practices rules from
-#	BPINSTALL       Where we install our base best-practice ruleset
+#	BPINSTALL	    Where we install our base best-practice ruleset
 #	QUERYSUBDIR		the relative directory where we store the flat files we make query nodes from
-#	QUERYINSTALL		Where we install our query flat files
-#	MONRULESUBDIR		the relative directory where we store the flat files containing our monitoring rules
-#	MONRULEINSTALL		Where we install our monitoring rule flat files
+#	QUERYINSTALL	Where we install our query flat files
+#	MONRULESUBDIR	the relative directory where we store the flat files containing our monitoring rules
+#	MONRULEINSTALL	Where we install our monitoring rule flat files
 #	CRYPTKEYDIR		Where we keep our encryption/signature keys
 #	OCFINSTALL		Where we install our OCF resource agents
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	CMAINITFILE		Name of initialization file for the CMA - defaults to /etc/cma.conf
-#	NANOLISTENADDR		Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
+#	NANOLISTENADDR	Default listen address/port for nanoprobes - defaults to 0.0.0.0:1984
 #	CMAUSERID		The user id to run the CMA as - defaults to 'assimilation'
 #	
 
@@ -420,7 +420,7 @@ install (PROGRAMS ocf/neo4j COMPONENT nanoprobe-component DESTINATION ${DESTDIR}
 #
 #	Install our best practices rules under /usr/share/assimilation - as part of the CMA package
 #
-install (DIRECTORY best_practices COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
+install (DIRECTORY ${BPRULES} COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 #
 #	Create an empty notification script directory under /usr/share/assimilation/notification.d
 #

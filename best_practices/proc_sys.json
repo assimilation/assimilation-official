@@ -1,7 +1,7 @@
 {
   "IGNOREME": {
 	"category": "comment",
-        "rule": "IGNORE(\"This is a copyright notice not a best practices rule\")",
+        "rule": "IGNORE(\"copyright notice\")",
 	"copyright": "This file Copyright (c) 2015 - Assimilation Systems Limited",
 	"license": "GPL v3",
 	"comment": "A collection of best practices rules sensitive to /proc/sys values"
