@@ -34,7 +34,7 @@ More details are documented in the LinkDiscoveryListener class
 
 from consts import CMAconsts
 from store import Store
-from AssimCclasses import pyNetAddr
+from AssimCclasses import pyNetAddr, pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCtypes import CONFIGNAME_INSTANCE
 from AssimCtypes import CONFIGNAME_DEVNAME, CONFIGNAME_SWPROTOS
@@ -87,15 +87,13 @@ class LinkDiscoveryListener(DiscoveryListener):
         ,   drone.designation)
 
         data = jsonobj['data'] # the data portion of the JSON message
-        print >> sys.stderr, "*** SWITCH DISCOVERY on:", str(data)
         discovery_args = []
         for devname in data.keys():
-            print >> sys.stderr, "*** SWITCH DISCOVERY devname:", devname
             devinfo = data[devname]
             if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
                                           and str(devinfo['address']) != '00-00-00-00-00-00'
                                           and str(devinfo['address']) != ''):
-                params = dict(init_params)
+                params = pyConfigContext(init_params)
                 params[CONFIGNAME_INSTANCE] = '#SWITCH_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
                 params[CONFIGNAME_SWPROTOS] = ["lldp", "cdp"]
