@@ -306,7 +306,7 @@ class BPRules(GraphNode):
         self.json = json
         self._jsonobj = pyConfigContext(json)
 
-    def jsonob(self):
+    def jsonobj(self):
         'Return the JSON object corresponding to our rules'
         return self._jsonobj
 

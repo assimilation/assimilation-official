@@ -124,7 +124,7 @@ class ArpDiscoveryListener(DiscoveryListener):
             if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
                                           and str(devinfo['address']) != '00-00-00-00-00-00'
                                           and str(devinfo['address']) != ''):
-                params = dict(init_params)
+                params = pyConfigContext(init_params)
                 params[CONFIGNAME_INSTANCE] = '#ARP_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
                 #print >> sys.stderr, '#ARP parameters:', params
@@ -226,8 +226,6 @@ class ArpDiscoveryListener(DiscoveryListener):
                 for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner
                     , GraphNode.factory):
                     self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
-            print >> sys.stderr, ('RELATING (%s)-[:ipowner]->(%s)	[%s]'
-            %       (str(nicnode.macaddr), str(ipnode.ipaddr), org))
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)
             if org != macprefix and not hasattr(nicnode, 'OUI'):
                 nicnode.OUI = org

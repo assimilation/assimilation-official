@@ -101,7 +101,7 @@ class Drone(SystemNode):
             bprules = CMAdb.io.config['bprulesbydomain']
             rulesetname = bprules[domain] if domain in bprules else bprules[CMAconsts.globaldomain]
             for rule in BestPractices.gen_bp_rules_by_ruleset(CMAdb.store, rulesetname):
-                CMAdb.store.relate(rule, CMAconsts.REL_bprulefor, self,
+                CMAdb.store.relate(self, CMAconsts.REL_bprulefor, rule,
                                    properties={'bp_class': rule.bp_class})
 
     def gen_current_bp_rules(self):
@@ -142,7 +142,9 @@ class Drone(SystemNode):
         ret = start.jsonobj()
         this = start
         while True:
-            nextrule = CMAdb.store.load_related(this, CMAconsts.REL_basis, BPRules)
+            nextrule = None
+            for nextrule in CMAdb.store.load_related(this, CMAconsts.REL_basis, BPRules):
+                break
             if nextrule is None:
                 break
             nextobj = nextrule.jsonobj()

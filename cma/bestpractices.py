@@ -9,7 +9,8 @@
 #	1) The best practices are hard-wired into the code
 #       They probably should be stored in the database
 #       They should probably be initialized from some JSON describing them
-#	2) There are no alert objects to track the failure or repair of best practices
+#	2) There are no alert objects to track the failure or repair of best
+#      practices
 #	3) We need to be able to dynamically request the things we're interested in
 #      not just statically.  This is related to Drone.add_json_processor()
 #   4) No doubt more deficiencies to be discovered as the code is written.
@@ -19,8 +20,10 @@
 # Author: Alan Robertson <alanr@unix.sh>
 # Copyright (C) 2015 - Assimilation Systems Limited
 #
-# Free support is available from the Assimilation Project community - http://assimproj.org
-# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+# - http://assimilationsystems.com
 #
 # The Assimilation software is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,7 +40,8 @@
 #
 #
 '''
-This module defines some classes related to evaluating best practices based on discovery information
+This module defines some classes related to evaluating best practices based
+on discovery information
 '''
 from droneinfo import Drone
 from consts import CMAconsts
@@ -51,7 +55,7 @@ class BestPractices(DiscoveryListener):
     'Base class for evaluating changes against best practices'
     prio = DiscoveryListener.PRI_OPTION
     prio = DiscoveryListener.PRI_OPTION   # What priority are we?
-    wantedpackets = []  # Used to register ourselves for incoming discovery packets
+    wantedpackets = []  # Used to register ourselves for discovery packets
     evaluators = {}
     application = None
     discovery_name = None
@@ -80,8 +84,6 @@ class BestPractices(DiscoveryListener):
         "Register that class 'cls' wants to see packet of type 'pkttype'"
         if pkttype not in BestPractices.wantedpackets:
             BestPractices.wantedpackets.append(pkttype)
-            print >> sys.stderr, ('Registering class %s for packet types: %s'
-                                  % (bpcls, str(BestPractices.wantedpackets)))
             Drone.add_json_processor(BestPractices)
         if pkttype not in BestPractices.evaluators:
             BestPractices.evaluators[pkttype] = []
@@ -131,7 +133,6 @@ class BestPractices(DiscoveryListener):
         It's also perfectly OK for a dependent rule set to have rules not
         present in the basis rule set.
         '''
-        Store.debug = True
         store.load_or_create(BPRuleSet, rulesetname=rulesetname, basisrules=basedon)
         files = os.listdir(directoryname)
         files.sort()
@@ -171,47 +172,46 @@ class BestPractices(DiscoveryListener):
             ruleclsobj = rulecls(self.config, self.packetio, self.store,
                                  self.log, self.debug)
             rulesobj = ruleclsobj.fetch_rules(drone, srcaddr, discovertype)
-            statuses = ruleclsobj.evaluate(drone, srcaddr, jsonobj, rulesobj)
+            statuses = ruleclsobj.evaluate(drone, srcaddr, jsonobj['data'], rulesobj)
             self.log_rule_results(statuses, drone, srcaddr, discovertype, rulesobj)
 
     def log_rule_results(self, results, drone, _srcaddr, discovertype, rulesobj):
         '''Log the results of this set of rule evaluations'''
-        print >> sys.stderr, ('RESULTS of %s RULES EVALUATED FOR %s: %s'
-                              % (discovertype, drone, str(results)))
         status_name = 'BP_%s_rulestatus' % discovertype
         if hasattr(drone, status_name):
             oldstats = pyConfigContext(getattr(drone, status_name))
         else:
             oldstats = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
-        attrlist = ('pass', 'fail', 'ignore', 'NA')
-        for stat in ('pass', 'fail'):
-            ruleids = results[stat]
-            for ruleid in ruleids:
+        for stat in ('pass', 'fail', 'ignore'):
+            logmethod = self.log.info if stat == 'pass' else self.log.warning
+            for ruleid in results[stat]:
                 oldstat = None
-                for statold in attrlist:
+                for statold in ('pass', 'fail', 'ignore', 'NA'):
                     if ruleid in oldstats[statold]:
                         oldstat = statold
                         break
                 if oldstat == stat or stat == 'NA':
                     # No change
                     continue
-                rulecategory = rulesobj[ruleid]
-                statusstr = stat.upper()
-                self.log.warning('Node %s %sED %s rule %s: %s', drone,
-                                 statusstr, rulecategory, ruleid,
-                                 self.url(drone, ruleid, rulesobj))
+                thisrule = rulesobj[ruleid]
+                rulecategory = thisrule['category']
+                logmethod('%s %sED %s rule %s: %s [%s]' % (drone,
+                                 stat.upper(), rulecategory, ruleid,
+                                 self.url(drone, ruleid, rulesobj[ruleid]),
+                                 thisrule['rule']))
         setattr(Drone, status_name, str(results))
 
 
 
-    def fetch_rules(self, _drone, _unusedsrcaddr, _jsonobj):
+    def fetch_rules(self, _drone, _unusedsrcaddr, _discovertype):
         '''Evaluate our rules given the current/changed data.
         Note that fetch_rules is separate from rule evaluation to simplify
         testing.
         '''
         raise NotImplementedError('class BestPractices is an abstract class')
 
-    def evaluate(self, drone, _unusedsrcaddr, jsonobj, ruleobj):
+    @staticmethod
+    def evaluate(drone, _unusedsrcaddr, jsonobj, ruleobj):
         '''Evaluate our rules given the current/changed data.
         '''
         drone = drone
@@ -228,7 +228,7 @@ class BestPractices(DiscoveryListener):
             rulecategory = ruleinfo['category']
             result = GraphNodeExpression.evaluate(rule, newcontext)
             if result is None:
-                print >> sys.stderr, 'n/a:    ID %s %s (%s)' % (ruleid, rule, rulecategory)
+                print >> sys.stderr, 'n/a:    %s ID %s %s' % (rulecategory, ruleid, rule)
                 statuses['NA'].append(ruleid)
             elif not isinstance(result, bool):
                 print >> sys.stderr, 'Rule id %s %s returned %s (%s)' % (ruleid
@@ -236,17 +236,17 @@ class BestPractices(DiscoveryListener):
                 statuses['fail'].append(ruleid)
             elif result:
                 if rule.startswith('IGNORE'):
-                    statuses['ignore'].append(ruleid)
-                    print >> sys.stderr, 'IGNORE: ID %s %s (%s)' % (ruleid, rule, rulecategory)
+                    if not rulecategory.lower().startswith('comment'):
+                        statuses['ignore'].append(ruleid)
+                        print >> sys.stderr, 'IGNORE: %s ID %s %s' % \
+                            (rulecategory, ruleid, rule)
                 else:
                     statuses['pass'].append(ruleid)
-                    print >> sys.stderr, 'PASS:   ID %s %s (%s)' % (ruleid, rule, rulecategory)
+                    print >> sys.stderr, 'PASS:   %s ID %s %s' % (rulecategory, ruleid, rule)
             else:
-                print >> sys.stderr, 'FAIL:   ID %s %s (%s)' % (ruleid
-                ,       rule, rulecategory)
+                print >> sys.stderr, 'FAIL:   %s ID %s %s' % (rulecategory
+                ,       ruleid, rule)
                 statuses['fail'].append(ruleid)
-                self.log.warning('BESTPRACTICES: Node %s failed %s rule %s: %s'
-                ,   drone, rulecategory, ruleid, self.url(drone, ruleid, ruleinfo))
         return statuses
 
 @BestPractices.register('proc_sys')
@@ -261,14 +261,14 @@ class BestPracticesCMA(BestPractices):
         from cmaconfig import ConfigFile
         ConfigFile.register_callback(BestPracticesCMA.configcallback, args=None)
 
-    def fetch_rules(self, drone, _unusedsrcaddr, jsonobj):
+    def fetch_rules(self, drone, _unusedsrcaddr, discovertype):
         '''Evaluate our rules given the current/changed data.
         Note that fetch_rules is separate from rule evaluation to
         simplify testing.
         In our case, we ask our Drone to provide us with the merged rule
         sets for the current kind of incoming packet.
         '''
-        return drone.get_bp_merged_rules(jsonobj['discovertype'])
+        return drone.get_merged_bp_rules(discovertype)
 
     @staticmethod
     def configcallback(config, changedname, _unusedargs):
