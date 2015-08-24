@@ -937,10 +937,19 @@ class Store(object):
                 self._bump_stat('index')
                 if subj.__store_index_unique:
                     if Store.debug:
-                        print >> sys.stderr,('add_to_index_or_fail: node %s; index %s("%s","%s")'
+                        print >> sys.stderr,('add_to_index[_or_fail]: node %s; index %s("%s","%s")'
                             % (subj.__store_batchindex, idx, key, value))
-                    self.batch.add_to_index_or_fail(neo4j.Node, idx, key, value
-                    ,   subj.__store_batchindex)
+                    vers = (  int(self.db.neo4j_version[0])*100
+                            + int(self.db.neo4j_version[1])*10
+                            + int(self.db.neo4j_version[2]))
+                    if vers >= 210:
+                        # Work around bug in add_to_index_or_fail()...
+                        self.batch.add_to_index(neo4j.Node, idx, key, value
+                        ,   subj.__store_batchindex)
+                    else:
+                        self.batch.add_to_index_or_fail(neo4j.Node, idx, key, value
+                        ,   subj.__store_batchindex)
+
                 else:
                     if Store.debug:
                         print >> sys.stderr, ('add_to_index: node %s added to index %s(%s,%s)' %
@@ -1007,9 +1016,9 @@ class Store(object):
         start = datetime.now()
         submit_results = self.batch.submit()
         if Store.debug:
+            print >> sys.stderr, 'SUBMIT RESULTS FOLLOW:'
             for result in submit_results:
-                print >> sys.stderr, 'SUBMITRESULT:', result
-
+                print >> sys.stderr, 'SUBMITRESULT:', type(result), result
         end = datetime.now()
         diff = end - start
         self.stats['lastcommit'] = diff
