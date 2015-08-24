@@ -31,6 +31,7 @@ We support the following commands:
 
 import sys, os, getent
 from query import ClientQuery
+from consts import CMAconsts
 from graphnodes import GraphNode
 from store import Store
 from py2neo import neo4j
@@ -173,8 +174,7 @@ class loadbp(object):
 
     @staticmethod
     def execute(store, executor_context, otherargs, flagoptions):
-        'Load best practices from the specified directory.'
-
+        'Load all best practice files we find in the specified directory.'
         executor_context = executor_context
         flagoptions = flagoptions
         basedon = None
@@ -188,7 +188,7 @@ class loadbp(object):
                 basedon = otherargs[2]
         else:
             bpdir = BPINSTALL_DIR
-            rulesetname = 'BASE'
+            rulesetname = CMAconsts.BASERULESETNAME
 
         qcount = 0
         for q in BestPractices.load_directory(store, bpdir, rulesetname, basedon):
