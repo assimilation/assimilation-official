@@ -306,6 +306,10 @@ class BPRules(GraphNode):
         self.json = json
         self._jsonobj = pyConfigContext(json)
 
+    def jsonob(self):
+        'Return the JSON object corresponding to our rules'
+        return self._jsonobj
+
     @staticmethod
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
@@ -314,14 +318,13 @@ class BPRules(GraphNode):
 @RegisterGraphClass
 class BPRuleSet(GraphNode):
     '''Class defining best practice rule sets'''
-
     def __init__(self, rulesetname, basisrules=None):
         GraphNode.__init__(self, domain='metadata')
         self.rulesetname = rulesetname
         self.basisrules = basisrules
         if self.basisrules is None or not Store.is_abstract(self):
             return
-        query = '''START n=node:BPRuleSet('{name}:*') WHERE n.rulesetname = {name} RETURN n'''
+        query = CMAconsts.QUERY_RULESET_RULES
         parent = CMAdb.store.load_cypher_node(query, BPRuleSet, params={'name': basisrules})
         CMAdb.store.relate_new(self, CMAconsts.REL_basedon, parent)
 

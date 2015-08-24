@@ -29,7 +29,7 @@ from py2neo import neo4j
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
-from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode
+from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode, BPRules
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pyCryptFrame
 from assimevent import AssimEvent
@@ -96,6 +96,63 @@ class Drone(SystemNode):
             %       (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner)
             Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.OwnedIPsQuery_subtxt)
         self.set_crypto_identity()
+        if Store.is_abstract(self):
+            from bestpractices import BestPractices
+            bprules = CMAdb.io.config['bprulesbydomain']
+            rulesetname = bprules[domain] if domain in bprules else bprules[CMAconsts.globaldomain]
+            for rule in BestPractices.gen_bp_rules_by_ruleset(CMAdb.store, rulesetname):
+                CMAdb.store.relate(rule, CMAconsts.REL_bprulefor, self,
+                                   properties={'bp_class': rule.bp_class})
+
+    def gen_current_bp_rules(self):
+        '''Return a generator producing all the best practice rules
+        that apply to this Drone.
+        '''
+        return CMAdb.store.load_related(self, CMAconsts.REL_bprulefor, BPRules)
+
+    def get_bp_head_rule_for(self, trigger_discovery_type):
+        '''
+        Return the head of the ruleset chain for the particular set of rules
+        that go with this particular node
+        '''
+        rules = CMAdb.store.load_related(self, CMAconsts.REL_bprulefor, BPRules)
+        for rule in rules:
+            if rule.bp_class == trigger_discovery_type:
+                return rule
+        return None
+
+    def get_merged_bp_rules(self, trigger_discovery_type):
+        '''Return a merged version of the best practices rules for this
+        particular discovery type.  This involves creating a hash table
+        of rules, where the contents are merged together such that we return
+        a single consolidated view of the rules to our viewer.
+        We start out with the head of the ruleset chain and then merge in the
+        ones its based on.
+
+        We return a dict-like object reflecting this merger suitable
+        for evaluating the rules. You just walk the set of rules
+        and evaluate them.
+        '''
+        # Although we ought to hit the database once and get the PATH of the
+        # rules in one fell swoop, we don't yet support PATHs, so we're going
+        # at it the somewhat slower way -- incrementally.
+        start = self.get_bp_head_rule_for(trigger_discovery_type)
+        if start is None:
+            return {}
+        ret = start.jsonobj()
+        this = start
+        while True:
+            nextrule = CMAdb.store.load_related(this, CMAconsts.REL_basis, BPRules)
+            if nextrule is None:
+                break
+            nextobj = nextrule.jsonobj()
+            for elem in nextobj:
+                if elem not in ret:
+                    ret[elem] = nextobj[elem]
+            this = nextrule
+        return ret
+
+
 
 
     def get_owned_ips(self):

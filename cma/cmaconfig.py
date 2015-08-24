@@ -27,12 +27,15 @@ This file implements things related to Configuration files for the CMA.
 Not quite sure what all it will do, but hey, this comment is slightly better than nothing.
 '''
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
+from consts import CMAconsts
 from types import ClassType
+
 class ConfigFile(object):
     '''
     This class implements configuration file management, including validation
     and default values for parameters.
     '''
+    callbacks = []
     # A template is a pattern for how to validate a dict-like object
     # like those that come from pyConfigContexts -- which in turn model JSON
     default_template = {
@@ -101,11 +104,18 @@ class ConfigFile(object):
                 'nagiospath': [str],
         },
         'heartbeats':   {
-            'repeat':   {int,long},    # how frequently to heartbeat - in seconds
-            'warn':     {int,long},    # How long to wait when issuing a late heartbeat warning
-            'timeout':  {int,long},    # How long to wait before declaring a system dead
+            'repeat':   {int,long},     # how frequently to heartbeat - in seconds
+            'warn':     {int,long},     # How long to wait when issuing a late heartbeat warning
+            'timeout':  {int,long},     # How long to wait before declaring a system dead
         },
+        'bprulesbydomain': {str: str},  # Which best practice rule sets to use by default?
+        'allbpdiscoverytypes': [str],   # List of all best practice discovery types
     }
+    @staticmethod
+    def register_callback(function, **args):
+        'Register a callback to let someone know when we create or modify this configuration'
+        ConfigFile.callbacks.append((function, args))
+
     # This is the default configuration for the Assimilation project CMA
     # It should/must conform to the default_template above
     @staticmethod
@@ -209,6 +219,16 @@ class ConfigFile(object):
             'warn':      5,     # How long to wait when issuing a late heartbeat warning
             'timeout':  30,     # How long to wait before declaring a system dead
             },
+            'bprulesbydomain': {# Default best practice rule sets by domain
+                    # Default the global domain to the base rule set
+                    CMAconsts.globaldomain: CMAconsts.BASERULESETNAME,
+                    # If you want different defaults for the global domain or
+                    # for any other domain, put them in your local config file.
+                    # I suspect these default rules will turn out to be a bit
+                    # harsh for many sites.
+            },
+            # List of all best practice discovery types
+            'allbpdiscoverytypes': ['proc_sys'],
         } # End of return value
 
     def __init__(self, filename=None, template=None, defaults=None):
@@ -220,6 +240,11 @@ class ConfigFile(object):
             defaults = ConfigFile.default_defaults()
         self.defaults = defaults
         self.config = pyConfigContext(filename=filename)
+        # Call any registered callbacks
+        for callbacktuple in ConfigFile.callbacks:
+            function, args = callbacktuple
+            function(self, None, args)
+
 
     def __contains__(self, name):
         "We're basically a dict lookalike - implement __contains__"
@@ -243,6 +268,9 @@ class ConfigFile(object):
         valid = self.isvalid()
         if not valid[0]:
             raise ValueError(valid[1])
+        for callbacktuple in ConfigFile.callbacks:
+            function, args = callbacktuple
+            function(self, name, args)
 
 
     @staticmethod

@@ -341,16 +341,24 @@ class Store(object):
         #print ('load_indexed: returning %s' % ret[0].__dict__)
         return ret
 
-    def load_or_create(self, cls, **clsargs):
-        '''Analogous to 'save' - for loading an object or creating it if it
-        doesn't exist
+    def load(self, cls, **clsargs):
+        '''Load a pre-existing object from its constructor arguments.
         '''
         if not cls.__name__ in self.classkeymap:
             print >> sys.stderr, (self.classkeymap)
             raise ValueError("Class [%s] does not have a known index [%s]"
             %   (cls.__name__, self.classkeymap))
-        subj = self.callconstructor(cls, clsargs)
-        (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=subj)
+        try:
+            (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=clsargs)
+        except KeyError:
+            # On rare occasions, constructors create some default "unique" values
+            # which don't appear as arguments, then the call above fails with KeyError.
+            # The rest of the time, just using subj=clsargs is cheaper...
+            # There are no cases where it produces different results.
+            # If we're called by load_or_save() it will call the constructor again,
+            # so it seems good to avoid that.
+            subj = self.save(self.callconstructor(cls, clsargs))
+            (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=subj)
         if not self.is_uniqueindex(index_name):
             raise ValueError("Class [%s] is not a unique indexed class" % cls)
 
@@ -362,7 +370,16 @@ class Store(object):
         node = self.db.get_indexed_node(index_name, idxkey, idxvalue)
         if node is not None:
             return self._construct_obj_from_node(node, cls)
-        return self.save(subj)
+        return None
+
+    def load_or_create(self, cls, **clsargs):
+        '''Analogous to 'save' - for loading an object or creating it if it
+        doesn't exist
+        '''
+        obj = self.load(cls, **clsargs)
+        if obj is not None:
+            return obj
+        return self.save(self.callconstructor(cls, clsargs))
 
 
     def relate(self, subj, rel_type, obj, properties=None):
@@ -423,9 +440,13 @@ class Store(object):
 
     def load_related(self, subj, rel_type, cls):
         'Load all outgoing-related nodes with the specified relationship type'
+        # It would be really nice to be able to filter on relationship properties
+        # All it would take would be to write a little Cypher query
+        # Of course, that still leaves the recently-created case unhandled...
 
         if Store.is_abstract(subj):
             # @TODO Should search recently created relationships...
+            #raise ValueError('Node to load related to cannot be abstract')
             return
         rels = subj.__store_node.match_outgoing(rel_type)
         for rel in rels:
@@ -433,7 +454,11 @@ class Store(object):
 
     def load_in_related(self, subj, rel_type, cls):
         'Load all incoming-related nodes with the specified relationship type'
+        # It would be really nice to be able to filter on relationship properties
+        # All it would take would be to write a little Cypher query
+        # Of course, that still leaves the recently-created case unhandled...
         if subj.__store_node.is_abstract:
+            # @TODO Should search recently created relationships...
             raise ValueError('Node to load related from cannot be abstract')
         rels = subj.__store_node.match_incoming(rel_type)
         for rel in rels:
