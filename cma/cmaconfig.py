@@ -110,6 +110,8 @@ class ConfigFile(object):
         },
         'bprulesbydomain': {str: str},  # Which best practice rule sets to use by default?
         'allbpdiscoverytypes': [str],   # List of all best practice discovery types
+        'checksum_cmds': [str],         # Ordered List of checksum commands to use
+        'checksum_files': [str],        # Files to always perform the checksum of
     }
     @staticmethod
     def register_callback(function, **args):
@@ -227,8 +229,26 @@ class ConfigFile(object):
                     # I suspect these default rules will turn out to be a bit
                     # harsh for many sites.
             },
-            # List of all best practice discovery types
+            # List of all the known best practice discovery types
             'allbpdiscoverytypes': ['proc_sys'],
+            # Prioritized list of checksum commands to use
+            # we use the first one that's installed.
+            'checksum_cmds': [
+                '/usr/bin/sha256sum',
+                '/usr/bin/sha224sum',
+                '/usr/bin/sha384sum',
+                '/usr/bin/sha512sum',
+                '/usr/bin/sha1sum',
+                '/usr/bin/md5sum',
+                '/usr/bin/cksum',
+                '/usr/bin/crc32'],
+            # Files we *always* checksum
+            'checksum_files': [
+                '/bin/sh',
+                '/bin/bash',
+                '/bin/login',
+                '/usr/bin/passwd',
+                ],
         } # End of return value
 
     def __init__(self, filename=None, template=None, defaults=None):
