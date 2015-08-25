@@ -25,11 +25,17 @@
 #
 
 '''
-Discovery Listener infrastructure
-This is the base class for code that wants to hear about various
-discovery packets as they arrive.
+Checksum generation/checking code.
+This is the class which wants to perform checksums and also
+wants to hear about checksums as they are computed.
 
-More details are documented in the DiscoveryListener class
+It's interesting that we ask for a certain set of files to be checksummed
+but the discovery agent actually checksums those files and the ones that
+ldd says those files use. So we typically wind up checksumming more files
+than we asked for.
+
+If we ask for a file which doesn't exist (like bad JARs in the CLASSPATH),
+then those files won't show up in the results.
 '''
 import sys
 from droneinfo import Drone
@@ -58,21 +64,9 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         "Send commands to generate checksums for this Drone's net-facing things"
         unused_srcaddr = unused_srcaddr
         params = ConfigFile.agent_params(self.config, 'discovery', 'checksums', drone.designation)
-        filelist = ['/bin/sh'
-                    ,   '/bin/bash'
-                    ,   '/bin/login'
-                    ,   '/usr/bin/passwd'
-                    ,   '/tmp/foobar']
+        filelist = self.config['checksum_files']
+        sumcmds = self.config['checksum_cmds']
         params['parameters'] = pyConfigContext()
-        sumcmds = [
-                        '/usr/bin/sha256sum'
-                    ,   '/usr/bin/sha224sum'
-                    ,   '/usr/bin/sha384sum'
-                    ,   '/usr/bin/sha512sum'
-                    ,   '/usr/bin/sha1sum'
-                    ,   '/usr/bin/md5sum'
-                    ,   '/usr/bin/cksum'
-                    ,   '/usr/bin/crc32']
         params[CONFIGNAME_TYPE] = 'checksums'
         params[CONFIGNAME_INSTANCE] = '_auto_checksumdiscovery'
         data = jsonobj['data'] # The data portion of the JSON message

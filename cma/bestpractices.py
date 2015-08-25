@@ -201,8 +201,6 @@ class BestPractices(DiscoveryListener):
                                  thisrule['rule']))
         setattr(Drone, status_name, str(results))
 
-
-
     def fetch_rules(self, _drone, _unusedsrcaddr, _discovertype):
         '''Evaluate our rules given the current/changed data.
         Note that fetch_rules is separate from rule evaluation to simplify
