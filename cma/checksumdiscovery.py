@@ -64,8 +64,9 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         "Send commands to generate checksums for this Drone's net-facing things"
         unused_srcaddr = unused_srcaddr
         params = ConfigFile.agent_params(self.config, 'discovery', 'checksums', drone.designation)
-        filelist = self.config['checksum_files']
         sumcmds = self.config['checksum_cmds']
+        filelist = self.config['checksum_files']
+        filelist.extend(sumcmds)
         params['parameters'] = pyConfigContext()
         params[CONFIGNAME_TYPE] = 'checksums'
         params[CONFIGNAME_INSTANCE] = '_auto_checksumdiscovery'
