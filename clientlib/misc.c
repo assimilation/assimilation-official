@@ -29,6 +29,7 @@
 #ifdef HAVE_UNISTD_H
 #	include <unistd.h>
 #endif
+#include <ctype.h>
 #ifdef HAVE_SYS_UTSNAME_H
 #	include <sys/utsname.h>
 #endif
@@ -53,14 +54,22 @@ FSTATIC void catch_pid_signal(int signum);
 FSTATIC char *	_shell_array_value(GSList* arrayvalue);
 FSTATIC gboolean _assim_proxy_io_watch(GIOChannel*, GIOCondition, gpointer);
 
-/// Function to get system name (uname -n in UNIX terms)
+/// Function to get system name (uname -n in UNIX terms) - and return *in lower case*
 #ifdef HAVE_UNAME
 char *
 proj_get_sysname(void)
 {
 	struct utsname	un;	// System name, etc.
+	char *	dupname;
 	uname(&un);
-	return g_strdup(un.nodename);
+	dupname =  g_strdup(un.nodename);
+	if (dupname) {
+		char *	dupp;
+		for (dupp = dupname; *dupp; ++dupp) {
+			*dupp = tolower(*dupp);
+		}
+	}
+	return dupname;
 }
 #else
 #	ifdef HAVE_GETCOMPUTERNAME
@@ -74,8 +83,13 @@ proj_get_sysname(void)
 	BOOL ret;
 
 	ret = GetComputerName((LPSTR) sn, &snsize);
-	if(ret) {
-		return g_strdup(sn);
+	if (ret) {
+		char *	dupname = g_strdup(sn);
+		char *	dupp;
+		for (dupp = dupname; *dupp; ++dupp) {
+			*dupp = tolower(*dupp);
+		}
+		return(dupname);
 	}
 
 	return g_strdup("GetComputerName failed");
