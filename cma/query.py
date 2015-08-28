@@ -146,7 +146,7 @@ class ClientQuery(GraphNode):
             fmtstring = self._JSON_metadata['cmdline'][language]
         fixedparams = self.validate_parameters(params)
         for json in self.execute(executor_context, expandJSON=True
-        ,           maxJSON=100, elemsonly=True, **fixedparams):
+        ,           maxJSON=2048, elemsonly=True, **fixedparams):
             obj = pyConfigContext(json)
             yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
