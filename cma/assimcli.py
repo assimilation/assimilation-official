@@ -306,22 +306,22 @@ def main(argv):
             skipnext = False
             continue
         if arg.startswith('--'):
+            skipnext = True
             option = arg[2:]
             if option not in options:
                 usage()
                 return 1
-            selected_options[option] = argv[arg+1]
+            selected_options[option] = argv[narg+1]
         else:
+            command=arg
             break
 
-
-    if len(argv) < 2 or argv[1] not in commands:
+    if len(argv) < 2 or command not in commands:
         usage()
         return 1
-    command = argv[1]
     if command not in nodbcmds:
         ourstore=dbsetup(readonly=(command not in rwcmds))
-    return commands[command].execute(ourstore, executor_context, sys.argv[2:], selected_options)
+    return commands[command].execute(ourstore, executor_context, sys.argv[narg+1:], selected_options)
 
 
 if __name__ ==  '__main__':
