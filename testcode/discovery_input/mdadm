@@ -1,0 +1,36 @@
+#This test data taken from the mdadm manual page
+DEVICE /dev/sd[bcdjkl]1
+DEVICE /dev/hda1 /dev/hdb1
+
+# /dev/md0 is known by its UUID.
+ARRAY /dev/md0 UUID=3aaa0122:29827cfa:5331ad66:ca767371
+# /dev/md1 contains all devices with a minor number of
+#   1 in the superblock.
+ARRAY /dev/md1 superminor=1
+# /dev/md2 is made from precisely these two devices
+ARRAY /dev/md2 devices=/dev/hda1,/dev/hdb1
+# /dev/md4 and /dev/md5 are a spare-group and spares
+#  can be moved between them
+ARRAY /dev/md4 uuid=b23f3c6d:aec43a9f:fd65db85:369432df
+                  spare-group=group1
+ARRAY /dev/md5 uuid=19464854:03f71b1b:e0df2edd:246cc977
+                  spare-group=group1
+# /dev/md/home is created if need to be a partitionable md array
+# any spare device number is allocated.
+ARRAY /dev/md/home UUID=9187a482:5dde19d9:eea3cc4a:d646ab8b
+                  auto=part
+POLICY domain=domain1 metadata=imsm path=pci-0000:00:1f.2-scsi-*
+                  action=spare
+POLICY domain=domain1 metadata=imsm path=pci-0000:04:00.0-scsi-[01]*
+                  action=include
+# One domain comprising of devices attached to specified paths is defined.
+# Bare device matching first path will be made an imsm spare on hot plug.
+# If more than one array is created on devices belonging to domain1 and
+# one of them becomes degraded, then any imsm spare matching any path for
+# given domain name can be migrated.
+MAILADDR root@mydomain.tld
+PROGRAM /usr/sbin/handle-mdadm-events
+CREATE group=system mode=0640 auto=part-8
+HOMEHOST <system>
+AUTO +1.x homehost -all
+

@@ -1,0 +1,21 @@
+{
+    "cypher": "START service=node:ProcessNode('*:*')
+               OPTIONAL MATCH service<-[:monitoring]->monitor
+               WITH service, monitor
+               MATCH host-[:hosting]->service
+               WHERE monitor IS NULL AND \"server\" in service.roles
+               RETURN DISTINCT host, service
+               ORDER BY service.pathname, host.designation",
+    "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "find unmonitored services",
+            "long":     "retrieve all services which we are not monitoring"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${host.designation} ${service.pathname}:${service.JSON_procinfo.listenaddrs}",
+        "script": "${ip.ipaddr}	${nic.macaddr}"
+    },
+}

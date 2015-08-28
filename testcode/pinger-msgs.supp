@@ -1,0 +1,46 @@
+{
+   Crypto_box_easy - two bytes too much access to the public key - fixed in 1.0.1?
+   Memcheck:Addr8
+   fun:crypto_scalarmult_curve25519
+   fun:crypto_box_curve25519xsalsa20poly1305_beforenm
+   fun:crypto_box_detached
+   fun:crypto_box_easy
+   fun:_cryptcurve25519_updatedata
+   ...
+}
+{
+   Crypto_box_open_easy - two bytes too much access to the public key - fixed in 1.0.1?
+   Memcheck:Addr8
+   fun:crypto_scalarmult_curve25519
+   fun:crypto_box_curve25519xsalsa20poly1305_beforenm
+   fun:crypto_box_open_detached
+   fun:crypto_box_open_easy
+   ...
+}
+{
+   OlderLinux_zlib_bug
+   Memcheck:Cond
+   fun:inflateReset2
+   fun:inflateInit2_
+   fun:z_decompressbuf
+   fun:compressframe_tlvconstructor
+   fun:_decode_packet_framedata_to_frameobject
+   fun:_pktdata_to_framesetlist
+   fun:_netio_recvframesets
+   fun:_reliableudp_recvframesets
+   fun:_netgsource_dispatch
+   fun:g_main_context_dispatch
+   obj:*
+   fun:g_main_loop_run
+   fun:main
+}
+{
+   pcap_activate uninitialized bind bug
+   Memcheck:Param
+   socketcall.bind(my_addr.sa_data)
+   fun:bind
+   obj:*
+   fun:pcap_activate
+   fun:create_pcap_listener
+   ...
+}

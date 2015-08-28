@@ -1,0 +1,311 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   mdadm configuration discovery (/etc/mdadm/mdadm.conf)
+#   A non-default mdadm configuration file can be parsed by setting the
+#   environment variable ${MDADM_CONFIG}
+#
+#   NOTE: modes will show up (correctly) but in decimal because of JSON rules
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+set -e
+: ${MDADM_CONFIG:=/etc/mdadm/mdadm.conf}
+nl='
+'
+mdadmEOF=false
+mdadmprevline=''
+
+# The mdadm line continuation mode makes life *waay* too complicated...
+# Basically, if a line begins with white space, then it's a continuation line...
+read_mdadm_line() {
+	oldIFS="$IFS"
+    mdadmret="$mdadmprevline"
+    while
+        if
+            [ $mdadmEOF != "true" ]
+        then
+            if
+                IFS="$nl"
+                read mdadmline
+            then
+                IFS=${oldIFS}
+                case $mdadmline in
+                    ' '*)   true;;
+                    '	'*) true;;
+                    *)      false;;
+                esac
+            else
+                IFS=${oldIFS}
+                mdadmEOF=true
+                false
+            fi
+        else
+            false
+        fi
+    do
+        mdadmret="${mdadmret}${mdadmline}"
+    done
+    if
+        [ $mdadmEOF = "true" ]
+    then
+        mdadmprevline=''
+        if
+            [ -z "$mdadmline" ]
+        then
+            return 1
+        fi
+    else
+        mdadmprevline="$mdadmline"
+    fi
+	IFS="$oldIFS"
+    prefix=''
+    for value in ${mdadmret}
+    do
+        eval $1='$'value
+        if
+            [ $# -gt 1 ]
+        then
+            eval $1='$'value
+            shift
+            prefix=''
+        else
+            prefix="$prefix $value"
+            eval $1='$'prefix
+        fi
+    done
+    return 0
+}
+
+devices=''
+collect_device() {
+    devices="${devices} ${*}"
+}
+format_devices() {
+    if
+        [ ! -z "$devices" ]
+    then
+        format_list DEVICE $devices
+    fi
+}
+arraylines=''
+collect_array() {
+    if
+        [ -z "$arraylines" ]
+    then
+        arraylines="$*"
+    else
+        arraylines="${arraylines}${nl}${*}"
+    fi
+}
+
+format_array() {
+    if
+        [ -z "$arraylines" ]
+    then
+        return
+    fi
+    printf '"ARRAY": {'
+    comma=''
+    echo "$arraylines" |
+    while
+        read devname keywords
+    do
+        printf '%s%s' "$comma" "$(format_keywords "$devname" $keywords)"
+        comma=",$nl        "
+    done
+    printf '}'
+}
+policylines=''
+collect_policy() {
+    if
+        [ -z "$policylines" ]
+    then
+        policylines="$*"
+    else
+        policylines="${policylines}${nl}${*}"
+    fi
+}
+
+format_policy() {
+    if
+        [ -z "$policylines" ]
+    then
+        return
+    fi
+    printf '"POLICY": ['
+    comma=''
+    echo "$policylines" | 
+    while
+        read line
+    do
+        printf '%s{%s}' "$comma" "$(format_kw $line)"
+        comma=', '
+    done
+    printf ']'
+}
+
+format_kw() {
+    kwcomma=''
+    for arg
+    do
+        case $arg in
+            *=*)    name=$( echo "$arg" | sed 's%=.*%%')
+                    value=$(echo "$arg" | sed 's%.*=%%')
+                    printf '%s"%s":%s' "$kwcomma" "$name" "$(fmtitem "$value" "$name")";;
+            *)      printf '%s"%s":true' "$kwcomma" "$arg";;
+        esac
+        kwcomma=', '
+    done
+}
+
+format_keywords() {
+    printf '"%s": {' "$1"
+    shift
+    format_kw "$@"
+    printf '}'
+}
+
+format_list() {
+    printf '"%s": [' "$1"
+    shift
+    comma=''
+    for arg in $(echo $*)
+    do
+        printf '%s"%s"' "$comma" "$arg"
+        comma=', '
+    done
+    printf ']'
+}
+format_simple() {
+    key=$1
+    shift
+    printf '"%s": "%s"' "$key" "$*"
+}
+
+
+# Format our mdadm config file output into JSON
+find_mdadm_info() {
+    keyword=''
+    linecomma=''
+    secondcomma=",${nl}    "
+    while
+        read_mdadm_line keyword options
+    do
+        #echo "KEYWORD: $keyword"
+        #echo "OPTIONS: $options"
+        out=''
+        #set -x
+        case $keyword in
+            "");;                   # ignore me
+            [Mm][Aa][Ai][Ll][Ff]*)  out="$(format_simple   MAILFROM     $options)";;
+            [Mm][Aa][Ii]*)          out="$(format_simple   MAILADDR     $options)";;
+            [Pp][Rr][Oo]*)          out="$(format_simple   PROGRAM      $options)";;
+            [Cc][Rr][Ee]*)          out="$(format_keywords CREATE       $options)";;
+            [Hh][Oo][Mm]*)          out="$(format_simple   HOMEHOST     $options)";;
+            [Aa][Uu][Tt]*)          out="$(format_list     AUTO         $options)";;
+            [Aa][Rr][Rr]*)          collect_array                       $options;;
+            [Dd][Ee][Vv]*)          collect_device                      $options;;
+            [Pp][Oo][Ll]*)          collect_policy                      $options;;
+            *)                      out="$(format_list     $keyword     $options)";;
+        esac
+        case $out in
+            '')                     ;;
+            *)                      printf '%s%s' "$linecomma" "$out"
+                                    linecomma="$secondcomma";;
+        esac
+        keyword=''
+    done
+    for fmt in format_array format_devices format_policy
+    do
+        out="$($fmt)"
+        if
+            [ ! -z "$out" ]
+        then
+            printf '%s%s' "$linecomma" "$out"
+            linecomma="$secondcomma"
+        fi
+    done
+}
+
+
+# Format a value as a string or an integer, taking special care with octal
+# integers (which JSON doesn't support).
+typefmt() {
+    if
+        expr "$1" + 1 >/dev/null 2>&1
+    then
+        # It's an integer
+        ival=$1
+        case "$2" in
+            mode)   ival="0$1";;    # In case they forgot the leading zero...
+        esac
+        printf '%d' $ival
+    else
+        printf '"%s"' "$1"
+    fi
+}
+
+#
+# Format a value as an comma-separated array, string or integer, allowing for things not arrays
+#
+fmtitem() {
+    item=$1
+    case $item in
+        *,*)    ;;
+        *)  typefmt "$item"
+            return;;
+    esac
+    printf '['
+    itemcomma=''
+    for thing in $(echo $(echo $item | tr ',' ' '))
+    do
+        printf '%s%s' "$itemcomma" "$(typefmt "$thing")"
+        itemcomma=', '
+    done
+    printf ']'
+}
+
+discover() {
+    prefix="    "
+    cat <<-!
+	{
+	  "discovertype": "mdadm",
+	  "description": "Discover mdadm configuration in $MDADM_CONFIG",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+      "reminder": "All JSON integers are decimal.",
+	  "data": {
+	!
+    if
+        [ ! -f "$MDADM_CONFIG" -o  ! -r  "$MDADM_CONFIG" ]
+    then
+        printf '%s"NODATA": "ERROR: Cannot read %s"\n' "$prefix" "$MDADM_CONFIG"
+    else
+        printf '%s' "$prefix"
+        sed -e s'%#.*%%' ${MDADM_CONFIG} | find_mdadm_info "$prefix"
+    fi
+  printf '\n  }\n}\n'
+}
+
+discover

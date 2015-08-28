@@ -1,0 +1,187 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   PAM configuration discovery (/etc/pam.d)
+#   An alternative location can be specified by setting PAM_DIRECTORY
+#
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+set -e
+: ${PAM_DIRECTORY:=/etc/pam.d}
+nl='
+'
+mdadmEOF=false
+mdadmprevline=''
+
+prefix1="    "
+prefix2="${prefix1}  "
+prefix3="${prefix2}  "
+
+# Format name=value keywords into JSON
+fmtkw() {
+    kwcomma=''
+    for arg
+    do
+        case $arg in
+            *=*)    name=$( echo "$arg" | sed 's%=.*%%')
+                    value=$(echo "$arg" | sed 's%.*=%%')
+                    printf '%s"%s":%s' "$kwcomma" "$name" "$(fmtitem "$value" "$name")";;
+            *)      printf '%s"%s":true' "$kwcomma" "$arg";;
+        esac
+        kwcomma=', '
+    done
+}
+
+
+# Format our mdadm config file output into JSON
+parsePAMfile() {
+    linecomma="$prefix2"
+    printf '"%s":[\n' "$(basename $1)"
+    sed -e 's%#.*%%' $1 | 
+    while
+        read service type more
+    do
+        case $service in
+            '@include')   printf '%s{"service": "%s", "filename": "%s"}' \
+                        "$linecomma" "$service" "$type"
+                        linecomma=",$nl${prefix2}"
+                        continue
+                        ;;
+            '')         continue;;
+        esac
+        typeobj=''
+        printf '%s{"service":"%s", "type": {' "$linecomma" "$service"
+        linecomma=",$nl${prefix2}"
+        case $type in
+            '['*)  type=$(echo "$type" | sed 's%^\[%%');;
+            *)      typeobj=$(printf '"keyword":"%s"' "$type")
+                    printf '%s' "$typeobj";;
+        esac
+        set $more
+        if
+            [ -z "$typeobj" ]
+        then
+            kwcomma=''
+            set $type $*
+            while
+                [ ! -z "$1" ]
+            do
+                #echo "LOOKINGAT $1"
+                arg=$1
+                shift
+                case "$arg" in
+                    *])   arg=$(echo "$arg" | sed 's%\]$%%')
+                            printf '%s%s' "$kwcomma" "$(fmtkw "$arg")"
+                            break
+                            ;;
+                    *)      printf '%s%s'  "$kwcomma" "$(fmtkw "$arg")"
+                            ;;
+                esac
+                kwcomma=', '
+            done
+        fi
+        printf '}, "module":{"path":"%s"' "$1"
+        shift
+        for kw
+        do
+            printf ', %s'  "$(fmtkw "$kw")"
+        done
+        printf '}}'
+    done
+    printf '\n%s]' "$prefix1"
+}
+
+parseAllPAMFiles() {
+    PAMdir=$1
+    cd $PAMdir
+    filecomma=''
+    for pamfile in *
+    do
+        if
+            [ ! -f "$pamfile" -o ! -r "$pamfile" ]
+        then
+            printf '%s"%s": {"NODATA": "ERROR: Cannot read PAM file."}\n' "$filecomma" "$pamfile" "$(pwd)"
+        else
+            printf '%s%s' "$filecomma" "$file" "$(parsePAMfile "$pamfile")"
+        fi
+        filecomma=",$nl${prefix1}"
+    done
+}
+
+
+# Format a value as a string or an integer, taking special care with octal
+# integers (which JSON doesn't support).
+typefmt() {
+    if
+        expr "$1" + 1 >/dev/null 2>&1
+    then
+        # It's an integer
+        printf '%d' $1
+    else
+        printf '"%s"' "$1"
+    fi
+}
+
+#
+# Format a value as an comma-separated array, string or integer, allowing for things not arrays
+#
+fmtitem() {
+    item=$1
+    case $item in
+        *,*)    ;;
+        *)  typefmt "$item"
+            return;;
+    esac
+    printf '['
+    itemcomma=''
+    for thing in $(echo $(echo $item | tr ',' ' '))
+    do
+        printf '%s%s' "$itemcomma" "$(typefmt "$thing")"
+        itemcomma=', '
+    done
+    printf ']'
+}
+
+
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "pam",
+	  "description": "Discover PAM configuration in $PAM_DIRECTORY",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    if
+        [ ! -d "$PAM_DIRECTORY" -o  ! -r  "$PAM_DIRECTORY" ]
+    then
+        printf '%s"NODATA": "ERROR: Cannot read %s"\n' "$prefix" "$PAM_DIRECTORY"
+    else
+        printf '%s' "$prefix1"
+        parseAllPAMFiles "${PAM_DIRECTORY}"
+    fi
+  printf '\n  }\n}\n'
+}
+
+discover

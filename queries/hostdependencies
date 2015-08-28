@@ -1,0 +1,28 @@
+{
+    "cypher": "START host=node:Drone('*:*')
+               MATCH host-[:hosting]->service-[:tcpservice]->ipport-[:tcpclient]->client<-[:hosting]-clienthost
+               WHERE \"server\" in service.roles and host.designation = {host}
+               RETURN DISTINCT host, service, client, clienthost",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "host's service dependencies",
+            "long":     "retrieve information about all services a host depends on directly"
+        }
+    },
+    "parameters": {
+        "host": {
+            "type": "hostname",
+            "lang": {
+                "en": {
+                    "short": "host name",
+                    "long":  "name of host (server) you want to query for dependencies"
+                }
+            }
+         }
+    },
+    "cmdline": {
+        "en": "${host.designation}<-${service.pathname}<-${client.pathname}<-${clienthost.designation}",
+        "script": "${host.designation} ${service.pathname} ${client.pathname} ${clienthost.designation}"
+    }
+}

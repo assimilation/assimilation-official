@@ -1,0 +1,28 @@
+{
+    "cypher": "START host=node:Drone('*:*')
+               MATCH switch-[:nicowner]->swnic-[:wiredto]-hostnic<-[:nicowner]-host
+               WHERE host.designation = {host}
+               RETURN switch, swnic, hostnic, host",
+    "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get switch port connections",
+            "long":     "retrieve all switch ports associated with the given system"
+        }
+    },
+    "parameters": {
+        "host": {
+            "type": "hostname",
+            "lang": {
+                "en": {
+                    "short": "host name",
+                    "long":  "name of host (server) you want to know switch connectivity for"
+                }
+            }
+         }
+    },
+    "cmdline": {
+        "en": "${hostnic.ifname}->${switch.SystemName}[${switch.SystemDescription}]:${swnic.PortId}[${swnic.PortDescription}]",
+        "script": "${host.designation}	${hostnic.ifname}	${switch.SystemName}	${swnic.PortId}",
+    },
+}

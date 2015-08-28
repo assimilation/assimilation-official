@@ -1,0 +1,415 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 number
+#
+#
+#	CentOS6-directions -- File to give directions for building us on top of CentOS 6
+#							in a variety of formats - scripts, documentation, etc.
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2014-2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+set -e
+#
+#
+# It is possible these might eventually need to change
+NEOVERSION=2.1.3
+JAVA="java-1.7.0-openjdk"
+LOGGER=rsyslog
+CENTOSVERS="centos:centos6"
+DROPBOX=https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADkfkqzXOLfA-cwHIdlcdGTa/builds
+#
+# The rest is less malleable - but also could change as the project matures
+#
+CMAKE=cmake28
+PYSCL=python27
+BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gcc scl-utils $PYSCL-python $PYSCL-python-devel $CMAKE $PYSCL-python-setuptools"
+BUILDREQS_2="$PYSCL-python-setuptools"
+EZINST="pip"
+PIPBUILD="ctypesgen"
+PIPRUN='netaddr getent flask "py2neo<2.0" demjson'
+# Python packages we only need for testing
+PIPTEST="testify pylint"
+# RPMs we only need for testing
+TESTREQS="valgrind"
+NEO4J_DEPS="which lsof tar"
+NEOPARENT=/var/lib
+NEODIR=$NEOPARENT/neo4j
+NEOEDITION=community
+NEOSERVICE=neo4j-service
+ASSIMVERS=tip
+ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
+SCLREPO=http://dev.centos.org/centos/6/SCL/scl.repo
+ARCH=x86_64
+LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.3-1.el6.remi.$ARCH.rpm"
+LIBSODIUMDEVURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.3-1.el6.remi.$ARCH.rpm"
+NEO4JYUM=http://yum.neo4j.org
+RPMDIR=/root/rpmbuild
+RPMSRCDIR=$RPMDIR/SOURCES
+TARBALL=$RPMSRCDIR/${ASSIMVERS}.tar.gz
+
+enable_repos() {
+  cat <<-!
+	# Enable the CentOS 6 EPEL and SCL repos
+	yum -y install wget epel-release
+	wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
+	yum -y update
+	!
+}
+
+install_libsodium() {
+  cat <<-!
+	# Pull in and install prebuilt RPMs of libsodium
+	wget -q $LIBSODIUMURL -O /tmp/$(basename $LIBSODIUMURL)
+	wget -q $LIBSODIUMDEVURL -O /tmp/$(basename $LIBSODIUMDEVURL)
+	yum -y install           /tmp/$(basename $LIBSODIUMURL) /tmp/$(basename $LIBSODIUMDEVURL)
+	!
+}
+
+download_tarball() {
+  cat <<-!
+	# Download the Assimilation tarball "${ASSIMVERS}" from project source control
+	mkdir -p $RPMSRCDIR
+	wget -q ${ASSIMURL} -O ${TARBALL} 
+	!
+}
+
+rpm_build() {
+  cat <<-!
+	# Build the Assimilation RPMs for ${ARCH} from the project tarball
+	yum -y install $BUILDREQS
+	cd $RPMSRCDIR
+	ASSIMVERSION=\$(tar tzf ${TARBALL} | head -1 | sed 's%/.*%%')
+	echo "Downloaded Assimilation version \${ASSIMVERSION}"
+	mkdir /tmp/assim-rpm
+	cd /tmp/assim-rpm
+	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec
+	rm -f $RPMDIR/RPMS/${ARCH}/assimilation-*.rpm
+	mv $TARBALL $RPMSRCDIR/\${ASSIMVERSION}.tgz
+	scl enable $PYSCL 'easy_install pip'
+	scl enable $PYSCL 'pip install ${PIPBUILD}'
+	rpmbuild -ba /tmp/assim-rpm/\${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec --define="assimversion \${ASSIMVERSION}" --define="libsodium libsodium-last"
+	cd /
+	rm -fr /tmp/assim-rpm
+	!
+}
+manual_package_download() {
+  cat <<-!
+	# *Manual* steps to download packages from the Assimilation Dropbox site
+	# Open up a browser window at ${DROPBOX}
+	# Scroll down and select the version you want to install (later is typically better), and click on that version
+	# Click on the directory that corresponds to your OS
+	# Save the packages that you want to install - you may need to right-click and [Save As].
+	# If you can, save them in $RPMDIR/RPMS/${ARCH} - the remaining steps assume that directory
+	# You should only run the CMA package on one system
+	!
+}
+
+java_install() {
+  cat <<-!
+	# Install JAVA from ${JAVA}
+	yum -y install ${JAVA}
+	!
+}
+neo4j_install() {
+  cat <<-!
+	# Install the ${NEOEDITION} edition of Neo4j version ${NEOVERSION}
+	yum -y install ${NEO4J_DEPS}
+	wget -q "http://neo4j.com/artifact.php?name=neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz" -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
+	tar -C $NEOPARENT -xzf /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
+	ln -s $NEOPARENT/neo4j-${NEOEDITION}-${NEOVERSION}/ $NEODIR
+	printf '\n\n' | ${NEODIR}/bin/neo4j-installer install
+	!
+}
+
+neo4j_rpm_install() { # This RPM is currently broken!
+  cat <<-!
+	# Install the ${NEOEDITION} edition RPM of Neo4j version ${NEOVERSION}
+	wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key
+	rpm --import /tmp/neo4j.key
+	rm -f /tmp/neo4j.key
+	cat <<-!REPO > /etc/yum.repos.d/neo4j.repo
+		[neo4j]
+		name=Neo4j Yum Repo
+		baseurl=$NEO4JYUM
+		enabled=1
+		gpgcheck=1
+	!REPO
+	yum -y install neo4j
+	!
+}
+
+cma_rpm_install() {
+  cat <<-!
+	# Install the CentOS 6 Assimilation CMA RPM
+	yum -y install $PYSCL-python-setuptools
+	scl enable $PYSCL 'easy_install pip'
+	scl enable $PYSCL 'pip install ${PIPRUN}'
+	yum -y install assimilation-cma*.${ARCH}.rpm
+	!
+}
+nanoprobe_rpm_install() {
+  cat <<-!
+	# Install the CentOS 6 Assimilation nanoprobe RPM
+	cd $RPMDIR/RPMS/${ARCH}/ # Or whereever you saved the RPMs
+	yum -y install assimilation-nanoprobe*.${ARCH}.rpm
+	!
+}
+
+
+logger_install() {
+  cat <<-!
+	# Install ${LOGGER} logger
+	yum -y install ${LOGGER}
+	!
+}
+build_for_test() {
+  cat <<-!
+	# (re-)Build the Assimilation software for testing
+	mkdir /tmp/assimilation-test /tmp/assimilation-test/bin
+	cd /tmp/assimilation-test
+    tar xzf $RPMSRCDIR/\${ASSIMVERSION}.tgz
+	mv \${ASSIMVERSION} src
+    cd /tmp/assimilation-test/bin
+    /usr/bin/${CMAKE} ../src
+    scl enable $PYSCL make
+	!
+}
+
+run_assimilation_tests() {
+  cat <<-!
+	# Run the Assimilation unit tests
+	yum -y install ${TESTREQS}
+	scl enable $PYSCL 'pip install ${PIPTEST}'
+	mkdir -p /var/lib/heartbeat/lrm
+	echo 'dbms.security.auth_enabled=false' >> $NEODIR/conf/neo4j-server.properties
+	cd /tmp/assimilation-test/src/cma
+	service $LOGGER start &
+	service ${NEOSERVICE} start & sleep 10
+	scl enable $PYSCL 'assimcli genkeys && testify -v tests'
+	!
+}
+
+copy_packages() {
+  cat <<-!
+	# Copy the packages into a single directory for Docker extraction
+	mkdir -p /tmp/assimilation-test/packages
+	cp $RPMDIR/RPMS/$ARCH/assim*.rpm /tmp/assimilation-test/packages
+	cp $RPMDIR/SRPMS/assim*.src.rpm  /tmp/assimilation-test/packages
+	!
+}
+
+#mkdir -p /var/lib/heartbeat/lrm
+
+step_map() {
+   cat <<-!STEPMAP
+docker enable_repos install_libsodium download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests copy_packages
+install_prebuilt_cma manual_package_download enable_repos install_libsodium java_install neo4j_install nanoprobe_rpm_install cma_rpm_install
+install_prebuilt_nanoprobe install_libsodium manual_package_download nanoprobe_rpm_install
+create_docker_cma java_install neo4j_install install_libsodium cma_rpm_install
+create_docker_nanoprobe install_libsodium nanoprobe_rpm_install
+!STEPMAP
+}
+get_task_list() {
+    step_map | grep "^$1 " | cut -d' ' -f2-
+}
+
+create_task_script() {
+    echo "set -e"
+    for task in $(get_task_list "$1")
+    do
+        $task
+        echo ""
+    done
+}
+
+create_doxygen_docs() {
+    for task in $(get_task_list "$1")
+    do
+        $task | (
+            read task_description
+            description=$(echo "$task_description" | sed 's%^# *%%')
+            printf ' -# <b>%s</b>\n' "$description"
+            while
+                read step_text
+            do
+                printf '  -# <tt>%s</tt>\n' "$step_text"
+            done
+        )
+    done
+}
+
+create_asciidoc() {
+	printf '.Ordered\n'
+    for task in $(get_task_list "$1")
+    do
+        $task | (
+            read task_description
+            description=$(echo "$task_description" | sed 's%^# *%%')
+            printf '.*%s*\n' "$description"
+            while
+                read step_text
+            do
+				case $step_text in
+					\#*)	step_text=$(echo "$step_text" | sed 's%^# *%%')
+							printf '_%s_\n'	"$step_text";;
+					*)		printf '..+%s+\n' "$step_text";;
+				esac
+            done
+        )
+    done
+	printf '\n'
+}
+
+
+create_dockerfile() {
+	printf 'FROM %s\n' $CENTOSVERS
+	printf "# Created by %s --format=dockerfile %s\n" "$0" "$1"
+    for task in $(get_task_list "$1")
+    do
+        $task | (
+            read task_description
+            description=$(echo "$task_description" | sed 's%^# *%%')
+            printf '# %s: %s\n' "$task" "$description"
+            while
+                read word morestuff
+            do
+				case "$word" in
+				  \#*)				printf '%s %s\n'				"$word $morestuff";;
+				  cd)				printf 'WORKDIR %s\n'			"$(echo $morestuff| sed 's%#.*%%')";;
+				  ASSIMVERSION=*)		printf "ENV ASSIMVERSION %s\n"	"${ASSIMVERSION}";;
+				  service)			printf 'RUN %s'					"$word $morestuff"; suck_up_remaining_tasks "$morestuff";;
+				  wget*)			docker_wget "$word" $morestuff;;
+				  *)				printf 'RUN %s\n'				"$word $morestuff";;
+				esac
+            done
+			)
+			printf '\n'
+	done
+}
+
+docker_wget() {
+	urlin="no-urlin"
+	fileout="no-fileout"
+	state=start
+	for arg
+	do
+		#echo state $state >&2
+		#echo arg $arg >&2
+		case $state in
+			got-O)	fileout="$arg"; state=done;;
+			start)	state=wget;;
+			wget)
+				case "$arg" in
+					-O)	state="got-O";;
+					-q)	;;
+					'http://'*)	urlin="$arg";;
+					*)	echo "RUN $*"; return;;
+				esac;;
+			'done')	echo "RUN $*"
+					return;;
+		esac
+	done
+	outf=$(basename $fileout)
+	inf=$(basename $urlin)
+	echo "FILEOUT is $fileout outf is [$outf]" >&2
+	echo "URLIN is $urlin out inf is [$inf]" >&2
+	if
+		[ "$inf" != "$outf" ]
+	then
+		echo "RUN $*"; return
+	fi
+	outdir=$(dirname $fileout)
+	echo "ADD ${urlin} ${outdir}/"
+}
+
+suck_up_remaining_tasks() {
+	case $1 in
+		*\&)	andand=" " ;;
+		*)		andand=" && ";;
+	esac
+	while
+		read word morestuff
+	do
+		case $word in
+		  \#*)				;;	# Can't tolerate comments here
+
+		  *)				printf '%s%s'	"$andand" "$word $morestuff"
+		  					case $morestuff in
+								*\&)	andand=" " ;;
+								*)		andand=" && ";;
+							esac;;
+		esac
+	done
+	printf '\n'
+}
+
+
+known_tasks() {
+    step_map | cut -d' ' -f1
+}
+
+is_known_task() {
+    step_map | grep -q "^$1 "
+}
+
+test_thyself() {
+    # The set -e will cause us to fail if any tasks aren't known
+	for cmd in create_task_script create_dockerfile create_doxygen_docs create_asciidoc
+	do
+		for task in $(known_tasks)
+		do
+			echo "################# $cmd output for task $task #########################"
+			$cmd "$task"
+		done
+	done
+}
+
+usage() {
+cat <<-!USAGE >&2
+	Usage: $0 [--format={dockerfile|script|doxygen)] task-name
+    $0 generates scripts to perform Assimilation installation tasks for CentOS6/RHEL6
+	Known tasks are:
+	$(known_tasks | sed 's%^%	%')
+	!USAGE
+    exit 1
+}
+cmd=create_task_script
+case $1 in
+ --format=dockerfile)	cmd=create_dockerfile;		shift;;
+ --format=script)		cmd=create_task_script; 	shift;;
+ --format=doxygen)		cmd=create_doxygen_docs; 	shift;;
+ --format=asciidoc)		cmd=create_asciidoc; 		shift;;
+ --format=test)			cmd=test_thyself; 			shift;;
+esac
+
+if
+    [ $# -ne 1 ]
+then
+    usage
+fi
+if
+    is_known_task "$1"
+then
+    : Glad to know that $1 is a known task
+else
+    usage
+fi
+$cmd "$1"
+exit $?
