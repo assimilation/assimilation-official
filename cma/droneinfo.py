@@ -96,7 +96,7 @@ class Drone(SystemNode):
             %       (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner)
             Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.OwnedIPsQuery_subtxt)
         self.set_crypto_identity()
-        if Store.is_abstract(self):
+        if Store.is_abstract(self) and not CMAdb.store.readonly:
             from bestpractices import BestPractices
             bprules = CMAdb.io.config['bprulesbydomain']
             rulesetname = bprules[domain] if domain in bprules else bprules[CMAconsts.globaldomain]
