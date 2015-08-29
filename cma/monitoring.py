@@ -410,17 +410,18 @@ class MonitoringRule(object):
             expression = tup[0]
             value = GraphNodeExpression.evaluate(expression, context)
             if value is None:
-                #print >> sys.stderr, 'NOMATCH from expression', expression
+                #print >> sys.stderr, 'NOMATCH from expression %s =>[%s]' % (expression, value)
                 return (MonitoringRule.NOMATCH, None)
         # We now have a complete set of values to match against our regexes...
         for tup in self._tuplespec:
             name = tup[0]
             regex = tup[1]
-            #print >> sys.stderr, 'TUPLE BEING EVALED:', name, regex.pattern
+            #print >> sys.stderr, 'TUPLE BEING EVALED ("%s","%s")' %  (name, regex.pattern)
             val = GraphNodeExpression.evaluate(name, context)
             #print >> sys.stderr, 'EXPRESSION %s => %s' % (name, val)
             if not isinstance(val, (str, unicode)):
                 val = str(val)
+            #print >> sys.stderr, 'value, REGEX BEING EVALED ("%s","%s")' %  (val, regex.pattern)
             if not regex.match(val):
                 #print >> sys.stderr, 'NOMATCH from regex [%s] [%s]' % (regex.pattern, val)
                 return (MonitoringRule.NOMATCH, None)
@@ -540,7 +541,6 @@ class MonitoringRule(object):
                         ret[cls] = {}
                     ret[cls][agent] = True
             setattr(node, '_agentcache', ret)
-            #print >> sys.stderr, 'AGENT CACHE IS ', ret
             return ret
         return {}
 
@@ -915,6 +915,37 @@ class NagiosMonitoringRule(MonitoringRule):
                     )
 if __name__ == '__main__':
     from graphnodes import ProcessNode
+
+    # R0903 too few public methods (it's test code!)
+    #pylint: disable=R0903
+    class FakeDrone(object):
+        'Fake Drone class just for monitoring agents'
+
+        @staticmethod
+        def get(_unused_name, ret):
+            'Fake Drone get function'
+            return ret
+
+        def __init__(self, obj):
+            'Fake Drone init for knowing monitoring agents'
+            self.JSON_monitoringagents = obj
+
+    fdrone = FakeDrone({
+        'data': {
+            'lsb':  {
+                    'neo4j-service',
+                    'ssh'
+                    },
+            'nagios':{
+                    'check_ssh',
+                    'check_sensors',
+            },
+            'ocf':  {
+                    'assimilation/neo4j',
+                    'assimilation/ssh',
+                },
+            }
+        })
     neolsbargs = (
                 ('$argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
                 ('$argv[3]', r'-server$'),             # Probably overkill
@@ -997,19 +1028,21 @@ if __name__ == '__main__':
     nosensors = {'JSON_commands':'{"bash": true}'}
 
     tests = [
-        (lsbsshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.LOWPRIOMATCH),
-        (lsbsshrule.specmatch(ExpressionContext((udevnode,))), MonitoringRule.NOMATCH),
-        (lsbsshrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.NOMATCH),
-        (neorule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.NOMATCH),
-        (neorule.specmatch(ExpressionContext((neonode,))), MonitoringRule.LOWPRIOMATCH),
-        (neoocfrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.HIGHPRIOMATCH),
-        (neoocfrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.HIGHPRIOMATCH),
-        (nagiossshrule.specmatch(ExpressionContext((sshnode,))), MonitoringRule.MEDPRIOMATCH),
-        (nagiossshrule.specmatch(ExpressionContext((udevnode,))), MonitoringRule.NOMATCH),
-        (nagiossshrule.specmatch(ExpressionContext((neonode,))), MonitoringRule.NOMATCH),
-        (nagiossensorsrule.specmatch(ExpressionContext((withsensors,)))
-        ,                                                        MonitoringRule.MEDPRIOMATCH),
-        (nagiossensorsrule.specmatch(ExpressionContext((nosensors,))), MonitoringRule.NOMATCH),
+        (lsbsshrule.specmatch(ExpressionContext((sshnode, fdrone))), MonitoringRule.LOWPRIOMATCH),
+        (lsbsshrule.specmatch(ExpressionContext((udevnode, fdrone))), MonitoringRule.NOMATCH),
+        (lsbsshrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.NOMATCH),
+        (neorule.specmatch(ExpressionContext((sshnode, fdrone))), MonitoringRule.NOMATCH),
+        (neorule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.LOWPRIOMATCH),
+        (neoocfrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.HIGHPRIOMATCH),
+        (neoocfrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.HIGHPRIOMATCH),
+        (nagiossshrule.specmatch(ExpressionContext((sshnode, fdrone))),
+         MonitoringRule.MEDPRIOMATCH),
+        (nagiossshrule.specmatch(ExpressionContext((udevnode, fdrone))), MonitoringRule.NOMATCH),
+        (nagiossshrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.NOMATCH),
+        (nagiossensorsrule.specmatch(ExpressionContext((withsensors, fdrone))),
+         MonitoringRule.MEDPRIOMATCH),
+        (nagiossensorsrule.specmatch(ExpressionContext((nosensors, fdrone))),
+         MonitoringRule.NOMATCH),
     ]
     fieldmap = {'monitortype': str, 'arglist':dict, 'monitorclass': str, 'provider':str}
     for count in range(0, len(tests)):
