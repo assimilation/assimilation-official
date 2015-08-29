@@ -84,7 +84,7 @@ class ConfigFile(object):
                                     'repeat':   {int,long}, # repeat for this particular agent
                                     'warn':     {int,long}, # How long before slow discovery warning
                                     'timeout':  {int,long}, # timeout for this particular agent
-                                    'args':     {str: object},
+                                    'argv':     {str: object},
                                 },
                 },
         },
@@ -98,7 +98,8 @@ class ConfigFile(object):
                                     'repeat':   {int,long}, # repeat for this particular agent
                                     'warn':     {int,long}, # How long before slow warning
                                     'timeout':  {int,long}, # timeout for this particular agent
-                                    'args':     {str: object},
+                                    'argv':     [str],
+                                    'env':     {str: str},
                                 },
                 },
                 'nagiospath': [str],
@@ -112,6 +113,7 @@ class ConfigFile(object):
         'allbpdiscoverytypes': [str],   # List of all best practice discovery types
         'checksum_cmds': [str],         # Ordered List of checksum commands to use
         'checksum_files': [str],        # Files to always perform the checksum of
+        'permission_files': [str],      # Files to always check the permissions of
     }
     @staticmethod
     def register_callback(function, **args):
@@ -208,7 +210,7 @@ class ConfigFile(object):
                                     # -c == floating point critical load averages
                                     #       (1,5,15 minute values)
                                     #
-                                        'args': {'__ARGS__': ['-r', '-w', '4,3,2', '-c', '4,3,2']}},
+                                    'argv':  ['-r', '-w', '4,3,2', '-c', '4,3,2']},
                 },
                 'nagiospath': [ "/usr/lib/nagios/plugins", # places to look for Nagios agents
                                 "/usr/local/nagios/libexec",
@@ -248,6 +250,48 @@ class ConfigFile(object):
                 '/bin/bash',
                 '/bin/login',
                 '/usr/bin/passwd',
+                ],
+            # Files/directories to always get the permissions of
+            # Directories ending in / also have their contained files checked.
+            'permission_files': [
+                #'/',
+                #'/bin',
+                #'/dev',
+                #'/etc',
+                '/etc/audit/',
+                '/etc/bash.bashrc',
+                '/etc/bashrc',
+                '/etc/bash_completion',
+                '/etc/bash_completion.d/',
+                #'/etc/grub.conf/',
+                #'/etc/grub.d/',
+                '/etc/group',
+                '/etc/gshadow',
+                '/etc/init.d/',
+                '/etc/login.defs',
+                '/etc/passwd',
+                '/etc/profile',
+                '/etc/profile.d/',
+                '/etc/csh.cshrc',
+                '/etc/selinux/',
+                '/etc/shadow',
+                '/lib/',
+                '/lib64/',
+                '/lib/modules/',
+                #'/run',
+                #'/run/lock',
+                #'/run/user',
+                '/sbin/',
+                '/usr/',
+                #'/usr/bin/',
+                #'/usr/lib/',
+                #'/usr/lib64/',
+                '/usr/local/',
+                #'/usr/local/bin/',
+                #'/usr/local/sbin/',
+                #'/usr/sbin',
+                #'/var/',
+                #'/var/log/',
                 ],
         } # End of return value
 
@@ -417,19 +461,26 @@ class ConfigFile(object):
         - Top level is for all agents.
         - Second level is for specific agents.
         - Third level is for specific agents on specific machines.
+        agenttype should be one of 'monitoring' or 'discovery'
+        agentname for discovery:
+            name of discovery agent
+        agentname for monitoring:
+            monitoring-class::provider:monitortype for OCF
+            monitoring-class::monitortype for non-OCF
+
         We implement this.
         '''
         compoundname = '%s/%s' % (agentname, dronedesignation)
         subconfig = config[agenttype]
         result = pyConfigContext('{"type": "%s", "parameters":{}}' % agentname)
         if compoundname in subconfig:
-            result = subconfig[compoundname]
-        if agentname in subconfig:
-            for tag in subconfig[agentname]:
+            result['parameters'] = subconfig[compoundname]
+        if 'agents' in subconfig and agentname in subconfig['agents']:
+            agentlist = subconfig['agents']
+            for tag in agentlist[agentname]:
                 if tag not in result:
-                    subval = subconfig[agentname][tag]
-                    if not hasattr(subval, 'keys'):
-                        result['parameters'][tag] = subconfig[agentname][tag]
+                    subval = agentlist[agentname][tag]
+                    result['parameters'][tag] = agentlist[agentname][tag]
         for tag in subconfig:
             if tag not in result:
                 subval = subconfig[tag]

@@ -668,7 +668,7 @@ class LSBMonitoringRule(MonitoringRule):
         '''Construct arguments
         '''
         agentcache = MonitoringRule.compute_available_agents(context)
-        if 'lsb' in agentcache and self.servicename not in agentcache['lsb']:
+        if 'lsb' not in agentcache or self.servicename not in agentcache['lsb']:
             return (MonitoringRule.NOMATCH, None)
         return (MonitoringRule.LOWPRIOMATCH
         ,       {   'monitorclass': 'lsb'
@@ -748,7 +748,7 @@ class OCFMonitoringRule(MonitoringRule):
         '''
         agentcache = MonitoringRule.compute_available_agents(context)
         agentpath = '%s/%s' % (self.provider, self.rsctype)
-        if 'ocf' in agentcache and agentpath not in agentcache['ocf']:
+        if 'ocf' not in agentcache or agentpath not in agentcache['ocf']:
             return (MonitoringRule.NOMATCH, None)
         #
         missinglist = []
@@ -849,7 +849,7 @@ class NagiosMonitoringRule(MonitoringRule):
             at all.
         '''
         agentcache = MonitoringRule.compute_available_agents(context)
-        if 'nagios' in agentcache and self.rsctype not in agentcache['nagios']:
+        if 'nagios' not in agentcache or self.rsctype not in agentcache['nagios']:
             return (MonitoringRule.NOMATCH, None)
         #
         missinglist = []

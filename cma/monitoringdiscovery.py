@@ -90,21 +90,48 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         '''
         We start the monitoring of 'monitoredservice' using the information
         in 'moninfo' - which came from MonitoringRule.constructaction()
+        and is based on discovery and general rules for that monitoring action
+        Moninfo includes the following kinds of metadata:
+            - identification parameters - class, provider, type
+            - environment variables
+            - command line arguments
         '''
         monitorclass    = moninfo['monitorclass']
         monitortype     = moninfo['monitortype']
-        if 'provider' in moninfo:
-            monitorprovider = moninfo['provider']
-            classtype = "%s::%s:%s" % (monitorclass, monitorprovider, monitortype)
+        monitorprovider = moninfo.get('provider', None)
+        if monitorprovider is not None:
+            classtype = "%s::%s:%s" % (monitorclass, moninfo['provider'], monitortype)
         else:
-            monitorprovider = None
             classtype = "%s::%s" % (monitorclass, monitortype)
         # Compute interval and timeout - based on global 'config'
-        params = ConfigFile.agent_params(self.config, 'monitoring', classtype, drone.designation)
-        monitorinterval = params['parameters']['repeat']
-        monitortimeout  = params['parameters']['timeout']
-        monitorarglist = moninfo.get('arglist', {})
-        monargv = moninfo.get('argv', None)
+        agent_params = ConfigFile.agent_params(self.config, 'monitoring',
+                                               classtype, drone.designation)
+        # This produces the following metadata:
+        #   - class-independent parameters: repeat, timeout, etc
+        #   - environment variables
+        #   - command line arguments
+        # These are merged together with the moninfo parameters in the following way
+        #   - Class-independent variables are taken from 'params' if conflicting
+        #   - Environment variables are taken from 'params' if there's a conflict
+        #   - command line arguments from params come first, followed by the
+        #     any that come from 'moninfo'
+        parameters = agent_params['parameters']
+        paraminterval = parameters['repeat']
+        paramtimeout  = parameters['timeout']
+        paramargv = parameters.get('argv', [])
+        paramenv = parameters.get('env', {})
+        monargv = moninfo.get('argv', [])
+        monenv = moninfo.get('arglist', {})
+        argv = [] # pyConfigContext doesn't handle arrays well...
+        if paramargv is not None:
+            argv.extend(paramargv)
+        if monargv is not None:
+            argv.extend(monargv)
+        environ = {}
+        for envset in (monenv, paramenv):
+            if envset is not None:
+                for env in envset:
+                    environ[env] = envset[env]
 
         # Make up a monitor name that should be unique to us -- but reproducible
         # We create the monitor name from the host name, the monitor class,
@@ -116,20 +143,24 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         # pylint: disable=E1101
         d.update('%s:%s:%s:%s'
         %   (drone.designation, monitorclass, monitortype, monitorprovider))
-        if monitorarglist is not None:
-            names = monitorarglist.keys()
+        if environ is not None:
+            names = environ.keys()
             names.sort()
             for name in names:
                 # pylint thinks md5 objects don't have update member
                 # pylint: disable=E1101
-                d.update('"%s": "%s"' % (name, monitorarglist[name]))
+                d.update('"%s": "%s"' % (name, environ[name]))
+        for arg in argv:
+            d.update('"%s"' % str(arg))
 
         monitorname = ('%s:%s:%s::%s'
         %   (drone.designation, monitorclass, monitortype, d.hexdigest()))
         monnode = self.store.load_or_create(MonitorAction, domain=drone.domain
         ,   monitorname=monitorname, monitorclass=monitorclass
-        ,   monitortype=monitortype, interval=monitorinterval, timeout=monitortimeout
-        ,   provider=monitorprovider, arglist=monitorarglist, argv=monargv)
+        ,   monitortype=monitortype, interval=paraminterval, timeout=paramtimeout
+        ,   provider=monitorprovider
+        ,   arglist = environ if environ else None
+        ,   argv = argv if argv else None) # Neo4j restriction...
         if monitorclass == 'nagios':
             monnode.nagiospath = self.config['monitoring']['nagiospath']
         if not Store.is_abstract(monnode):
