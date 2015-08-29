@@ -321,7 +321,8 @@ def main(argv):
         return 1
     if command not in nodbcmds:
         ourstore=dbsetup(readonly=(command not in rwcmds))
-    return commands[command].execute(ourstore, executor_context, sys.argv[narg+1:], selected_options)
+    return commands[command].execute(ourstore, executor_context, sys.argv[narg+1:],
+                                     selected_options)
 
 
 if __name__ ==  '__main__':
