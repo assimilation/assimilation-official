@@ -755,8 +755,13 @@ _netio_recvframesets(NetIO* self,	///<[in/out] NetIO routine to receive a set of
 				FREE(srcstr); srcstr = NULL;
 			}
 		}else{
-			g_warning("%s.%d: Received a %lu byte packet from that didn't make any FrameSets"
-			,	__FUNCTION__, __LINE__, (unsigned long)((guint8*)pktend-(guint8*)pkt));
+			NetAddr* 	badsrc = netaddr_sockaddr_new(&srcaddr, addrlen);
+			char*		srcstr = badsrc->baseclass.toString(badsrc);
+			g_warning("%s.%d: Received a %lu byte packet from %s that didn't make any FrameSets"
+			,	__FUNCTION__, __LINE__, (unsigned long)((guint8*)pktend-(guint8*)pkt)
+			,	srcstr);
+			FREE(srcstr);
+			UNREF(badsrc);
 			goto badret;
 		}
 		FREE(pkt);
