@@ -177,6 +177,14 @@ _resourcenagios_create_argv(char *        argv0,          ///< The string we wan
 		result[argc] = nextval;
 	}
 	result[argc] = NULL;
+	if (DEBUG >= 3) {
+		int	j;
+		g_warning("%s.%d: Dumping %d Arguments for %s:", __FUNCTION__, __LINE__
+			  , argc+1, argv0);
+		for (j=0; result[argc]; ++j) {
+			g_warning("%s.%d: arg[%d] = %s", __FUNCTION__, __LINE__, j, result[j]);
+		}
+	}
 	return result;
 }
 

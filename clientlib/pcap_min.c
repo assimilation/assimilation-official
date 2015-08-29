@@ -174,7 +174,6 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		goto oopsie;
 	}
 	DEBUGMSG1("Compile of [%s] worked!", expr);
-	g_info("Compile of [%s] worked! Returning %p", expr, pcdescr);
 	free(expr); expr = NULL;
 	return(pcdescr);
 
