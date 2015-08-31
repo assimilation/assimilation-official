@@ -178,7 +178,7 @@ class ConfigFile(object):
             'compression_threshold':    20000,                      # Compress packets >= 20 kbytes
             'compression_method':       "zlib",                     # Compression method
             'discovery': {
-                'repeat':           15*60,  # Default repeat interval in seconds
+                'repeat':           60,     # Default repeat interval in seconds
                 'warn':             120,    # Default slow discovery warning time
                 'timeout':          300,    # Default timeout interval in seconds
                 'agents': {         # Configuration information for individual agent types,
@@ -191,7 +191,7 @@ class ConfigFile(object):
                 },
             },
             'monitoring': {
-                'repeat':           120,    # Default repeat interval in seconds
+                'repeat':           15,    # Default repeat interval in seconds
                 'warn':             60,     # Default slow monitoring warning time
                 'timeout':          180,    # Default repeat interval in seconds
                 'agents': {         # Configuration information for individual agent types,

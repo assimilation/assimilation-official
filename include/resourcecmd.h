@@ -70,7 +70,7 @@ ResourceCmd* resourcecmd_new(ConfigContext* request, gpointer user_data
 #define	REQPROVIDERNAMEFIELD	"provider"
 #define	REQOPERATIONNAMEFIELD	"operation"
 #define	REQENVIRONNAMEFIELD	"environ"
-#define	REQREPEATNAMEFIELD	"repeat_interval"
+#define	REQREPEATNAMEFIELD	"repeat"
 #define	REQCANCELONFAILFIELD	"cancel_on_fail"
 #define	REQIDENTIFIERNAMEFIELD	"reqid"
 #define	REQREASONENUMNAMEFIELD	"reason_enum"
