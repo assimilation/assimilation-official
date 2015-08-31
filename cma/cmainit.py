@@ -94,7 +94,7 @@ class CMAinit(object):
             #print >> sys.stderr,  'CMAdb:', CMAdb
             #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
             CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
-            ,           ringtype= HbRing.THEONERING)
+            ,           ringtype=HbRing.THEONERING)
             CMAdb.transaction.commit_trans(io)
             #print >> sys.stderr, 'COMMITTING Store'
             #print >> sys.stderr, 'Transaction Commit results:', CMAdb.store.commit()
