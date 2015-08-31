@@ -48,6 +48,7 @@ from consts import CMAconsts
 from graphnodes import BPRules, BPRuleSet
 from discoverylistener import DiscoveryListener
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
+from AssimCclasses import pyConfigContext
 from store import Store
 import os, logging, sys
 
@@ -172,7 +173,8 @@ class BestPractices(DiscoveryListener):
             ruleclsobj = rulecls(self.config, self.packetio, self.store,
                                  self.log, self.debug)
             rulesobj = ruleclsobj.fetch_rules(drone, srcaddr, discovertype)
-            statuses = ruleclsobj.evaluate(drone, srcaddr, jsonobj['data'], rulesobj)
+            statuses = pyConfigContext(ruleclsobj.evaluate(drone, srcaddr,
+                                       jsonobj['data'], rulesobj))
             self.log_rule_results(statuses, drone, srcaddr, discovertype, rulesobj)
 
     def log_rule_results(self, results, drone, _srcaddr, discovertype, rulesobj):
@@ -280,7 +282,6 @@ class BestPracticesCMA(BestPractices):
                 BestPractices.register_sensitivity(BestPracticesCMA, pkttype)
 
 if __name__ == '__main__':
-    from AssimCclasses import pyConfigContext
     #import sys
     JSON_data = '''
 {
