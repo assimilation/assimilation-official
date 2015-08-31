@@ -313,8 +313,9 @@ _resource_queue_qelem_new(ResourceCmd* cmd, ResourceQueue* parent
 	initdelay = cmd->request->getint(cmd->request, CONFIGNAME_INITDELAY);
 	initdelay = (initdelay > 0 ? initdelay : 0);
 	cmd->starttime = self->queuetime + (initdelay*uSPERSEC);
-	DEBUGMSG2("%s.%d: %s:%s (initdelay %ld)",	__FUNCTION__, __LINE__
-	,	self->cmd->resourcename, self->cmd->operation, (long)initdelay);
+	DEBUGMSG2("%s.%d: %s:%s (initdelay: %ld, repeat: %ld)",	__FUNCTION__, __LINE__
+	,	self->cmd->resourcename, self->cmd->operation, (long)initdelay
+	,	(long)self->repeatinterval);
 	return self;
 }
 
@@ -430,6 +431,10 @@ _resource_queue_endnotify
 	// Should this request repeat?
 	if (self->cancelme || (self->cancelonfail && exittype != EXITED_ZERO)
 	||	(0 == self->repeatinterval)) {
+		DEBUGMSG3("%s.%d: shouldrepeat:FALSE"
+		" // cancelme:%d, cancelonfail:%d, exittype:%d repeatinterval:%ld"
+		,	__FUNCTION__, __LINE__, self->cancelme
+		,	self->cancelonfail, exittype, (long)self->repeatinterval);
 		shouldrepeat = FALSE;
 	}else{
 		shouldrepeat = TRUE;

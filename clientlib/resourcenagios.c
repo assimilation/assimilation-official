@@ -277,6 +277,7 @@ _resourcenagios_execute(ResourceCmd* cmdself)
 	}
 	if (self->child) {
 		// Oh... A repeating operation
+		DEBUGMSG3("UNREFing previous child at %p", self->child);
 		UNREF(self->child);
 	}
 	logmode = (self->baseclass.callback ? CHILD_NOLOG : CHILD_LOGALL);
