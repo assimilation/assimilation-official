@@ -2,7 +2,7 @@
     "cypher": "START ip=node:IPaddrNode('*:*')
                OPTIONAL MATCH ip<-[:ipowner]-nic
                OPTIONAL MATCH ip<-[:ipowner]-nic<-[:nicowner]-system
-               RETURN ip, nic, system
+               RETURN DISTINCT ip, nic, system
                ORDER BY ip.ipaddr",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
