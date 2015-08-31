@@ -296,7 +296,7 @@ def main(argv):
     executor_context = None
 
     nodbcmds = {'genkeys'}
-    rwcmds = {'loadqueries'}
+    rwcmds = {'loadqueries', 'loadbp'}
     selected_options = {}
     narg = 0
     skipnext = False
