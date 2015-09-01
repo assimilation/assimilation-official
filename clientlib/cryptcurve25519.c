@@ -433,20 +433,30 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 	if (NULL == tlvstart) {
 		namelen = strnlen(self->baseclass.receiver_key_id, MAXCRYPTNAMELENGTH+1);
 		if (fself->length != TLVLEN(self->baseclass.receiver_key_id, self->baseclass.sender_key_id)) {
+			g_warning("%s.%d: Packet length [%d] is incorrect."
+			,	__FUNCTION__, __LINE__, (int)fself->length);
 			return FALSE;
 		}
 		namelen = strnlen(self->baseclass.receiver_key_id, MAXCRYPTNAMELENGTH+1);
 		if (namelen >= MAXCRYPTNAMELENGTH || namelen < 1 ){
+			g_warning("%s.%d: Packet length [%d] is invalid."
+			,	__FUNCTION__, __LINE__, (int)namelen);
 			return FALSE;
 		}
 		if (!_is_valid_curve25519_key_id(self->baseclass.receiver_key_id, self->forsending? PUBLICKEY: PRIVATEKEY)) {
+			g_warning("%s.%d: %s ID is not a valid curve25519 key ID."
+			,	__FUNCTION__, __LINE__, self->forsending ? "PUBLICKEY": "PRIVATEKEY");
 			return FALSE;
 		}
 		namelen = strnlen(self->baseclass.sender_key_id, MAXCRYPTNAMELENGTH+1);
 		if (namelen >= MAXCRYPTNAMELENGTH || namelen < 1 ){
+			g_warning("%s.%d: key id length (%d) is invalid"
+			,	__FUNCTION__, __LINE__, namelen);
 			return FALSE;
 		}
 		if (!_is_valid_curve25519_key_id(self->baseclass.sender_key_id, self->forsending ? PRIVATEKEY: PUBLICKEY)) {
+			g_warning("%s.%d: %s ID is not a valid curve25519 key ID."
+			,	__FUNCTION__, __LINE__, self->forsending ? "PRIVATEKEY" : "PUBLICKEY");
 			return FALSE;
 		}
 		return TRUE;
@@ -456,24 +466,33 @@ _cryptcurve25519_default_isvalid(const Frame * fself,	///<[in] CryptCurve25519 o
 	pktlen = get_generic_tlv_len(tlvstart, pktend);
 	// 6 == two 1-byte lengths, and two NUL-terminated strings of at least 2 bytes each
 	if (pktlen < (crypto_box_NONCEBYTES + crypto_box_MACBYTES+6)) {
+		g_warning("%s.%d: Packet length [%d] is too short."
+		,	__FUNCTION__, __LINE__, (int)pktlen);
 		return FALSE;
 	}
 	valptr = get_generic_tlv_value(tlvstart, pktend);
 	// Validate both key names in the packet...
 	for (j=0; j < 2; ++ j) {
 		if ((gconstpointer)(valptr+3) >= pktend) {
+			g_warning("%s.%d: Key name (%d) extends beyond end."
+			,	__FUNCTION__, __LINE__, j);
 			return FALSE;
 		}
 		namelen = tlv_get_guint8(valptr, pktend);
 		if (namelen < 2 || (namelen-1) > MAXCRYPTNAMELENGTH) {
+			g_warning("%s.%d: Name (%d) length (%d) is invalid."
+			,	__FUNCTION__, __LINE__, j, namelen);
 			return FALSE;
 		}
 		valptr += 1;
 		if ((gconstpointer)(valptr+namelen) > pktend) {
+			g_warning("%s.%d: Key name (%d) extends beyond end", __FUNCTION__, __LINE__, j);
 			return FALSE;
 		}
 		key_id = (const char *)(valptr);
 		if (strnlen(key_id, namelen) != (namelen-1)) {
+			g_warning("%s.%d: Key name (%d) length %d improperly terminated"
+			,	__FUNCTION__, __LINE__, j, namelen);
 			return FALSE;
 		}
 		// We say PUBLICKEY since we don't know whether we're validating this
