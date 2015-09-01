@@ -51,7 +51,7 @@ struct _CryptCurve25519 {
 	gboolean		forsending;	///< TRUE if this is for sending, FALSE for receiving
 };
 
-#define	MAXCRYPTNAMELENGTH	64
+#define	MAXCRYPTNAMELENGTH	128
 
 WINEXPORT CryptCurve25519* cryptcurve25519_new(guint16 frame_type, const char * pubkeyname, const char *privkeyname, gboolean forsending, gsize objsize);
 WINEXPORT Frame* cryptcurve25519_tlvconstructor(gpointer tlvstart, gconstpointer pktend, gpointer*,gpointer*);
