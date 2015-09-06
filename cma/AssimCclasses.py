@@ -1781,6 +1781,7 @@ class pyConfigContext(pyAssimObj):
 
     def __getitem__(self, name):
         'Return a value associated with "name"'
+        name = str(name)
         ktype = self.gettype(name)
         ret = None
         #print >> sys.stderr, '************ GETITEM[%s] => %d *********************' % (name, ktype)

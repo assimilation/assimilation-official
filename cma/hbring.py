@@ -286,8 +286,7 @@ class HbRing(GraphNode):
              MATCH p=Drone-[:%s*0..]->NextDrone
              WHERE length(p) = 0 or Drone <> NextDrone
              RETURN NextDrone''' % (startid, self.ournexttype)
-        query = neo4j.CypherQuery(CMAdb.cdb.db, q)
-        for elem in CMAdb.store.load_cypher_nodes(query, Drone):
+        for elem in CMAdb.store.load_cypher_nodes(q, Drone):
             yield elem
         return
 

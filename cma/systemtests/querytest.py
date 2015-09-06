@@ -100,9 +100,8 @@ class QueryTest(object):
         if debug:
             print >> sys.stderr, 'Final query string [%s]' % finalquerystring
         self.store.clean_store()
-        query = neo4j.CypherQuery(self.db, finalquerystring)
         rowcount = 0
-        for row in self.store.load_cypher_nodes(query, self.classfactory, debug=debug):
+        for row in self.store.load_cypher_nodes(finalquerystring, self.classfactory, debug=debug):
             rowcount += 1
             if debug:
                 print >> sys.stderr, ("DEBUG: row [%d] is %s" % (rowcount, str(row)))

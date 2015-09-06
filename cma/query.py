@@ -111,7 +111,7 @@ class ClientQuery(GraphNode):
             self._store = store
         if self._db is not db:
             self._db = db
-            self._query = neo4j.CypherQuery(db, self._JSON_metadata['cypher'])
+            self._query = self._JSON_metadata['cypher']
 
     def execute(self, executor_context, idsonly=False, expandJSON=False, maxJSON=0, elemsonly=False
     ,       **params):
@@ -146,7 +146,7 @@ class ClientQuery(GraphNode):
             fmtstring = self._JSON_metadata['cmdline'][language]
         fixedparams = self.validate_parameters(params)
         for json in self.execute(executor_context, expandJSON=True
-        ,           maxJSON=100, elemsonly=True, **fixedparams):
+        ,           maxJSON=5120, elemsonly=True, **fixedparams):
             obj = pyConfigContext(json)
             yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
@@ -463,6 +463,7 @@ class ClientQuery(GraphNode):
     @staticmethod
     def load_from_file(store, pathname, queryname=None):
         'Load a query with metadata from a file'
+        import sys
         fd = open(pathname, 'r')
         json = fd.read()
         fd.close()
@@ -515,7 +516,7 @@ ClientQuery._validationmethods = {
 }
 
 if __name__ == '__main__':
-    import sys
+    import sys, re
     from store import Store
     metadata1 = \
     '''
@@ -583,9 +584,8 @@ if __name__ == '__main__':
     '''
     q3 = ClientQuery('ipowners', metadata3)
 
-    neodb = neo4j.GraphDatabaseService()
-    neodb.clear()
-    print >> sys.stderr, '========>classmap: %s' % (GraphNode.classmap)
+    neodb = neo4j.Graph()
+    neodb.delete_all()
 
     umap  = {'ClientQuery': True}
     ckmap = {'ClientQuery': {'index': 'ClientQuery', 'kattr':'queryname', 'value':'None'}}
@@ -604,9 +604,11 @@ if __name__ == '__main__':
     testresult = ''
     for s in qe2.execute(None, idsonly=False, expandJSON=True):
         testresult += s
-    print testresult
+    print 'RESULT', testresult
     # Test out a command line query
     for s in qe2.cmdline_exec(None):
+        if re.match(s, '[	 ]unknown$'):
+            raise RuntimeError('Search result contains unknown: %s' % s)
         print s
 
     print "All done!"
