@@ -25,7 +25,6 @@ drones as a Python class.
 '''
 import time, sys
 #import os, traceback
-from py2neo import neo4j
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
@@ -90,7 +89,7 @@ class Drone(SystemNode):
         self.monitors_activated = False
 
         if Drone.IPownerquery_1 is None:
-            Drone.IPownerquery_1 = (Drone.IPownerquery_1_txt 
+            Drone.IPownerquery_1 = (Drone.IPownerquery_1_txt
                                     % (CMAconsts.REL_ipowner, CMAconsts.REL_nicowner))
             Drone.OwnedIPsQuery_subtxt = (Drone.OwnedIPsQuery_txt    \
                                           % (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner))

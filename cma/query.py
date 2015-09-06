@@ -463,7 +463,6 @@ class ClientQuery(GraphNode):
     @staticmethod
     def load_from_file(store, pathname, queryname=None):
         'Load a query with metadata from a file'
-        import sys
         fd = open(pathname, 'r')
         json = fd.read()
         fd.close()
@@ -516,7 +515,7 @@ ClientQuery._validationmethods = {
 }
 
 if __name__ == '__main__':
-    import sys, re
+    import re
     from store import Store
     metadata1 = \
     '''

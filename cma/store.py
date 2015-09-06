@@ -223,7 +223,7 @@ class Store(object):
     @staticmethod
     def bound(subj):
         'Returns True if the underlying database node is bound (i.e., not abstract)'
-        return not is_abstract(subj)
+        return subj.__store_node.bound
 
     def is_uniqueindex(self, index_name):
         'Return True if this index is known to be a unique index'
@@ -485,7 +485,7 @@ class Store(object):
         if params is None:
             params = {}
         if debug:
-            print >> sys.stderr, 'Starting query %s(%s)' % (query, params)
+            print >> sys.stderr, 'Starting query %s(%s)' % (querystr, params)
         for row in self.db.cypher.stream(querystr, **params):
             if debug:
                 print >> sys.stderr, 'Received Row from stream: %s' % (row)
@@ -871,7 +871,7 @@ class Store(object):
             self.batchindex += 1
             cls = subj.__class__
             if False and hasattr(cls, '__meta_labels__'):
-                print >> sys.stderr, '=====================ADDING LABELS for', type(subj), cls.__meta_labels__()
+                print >> sys.stderr, 'ADDING LABELS for', type(subj), cls.__meta_labels__()
                 self._bump_stat('addlabels')
                 self.batch.add_labels(node, cls.__meta_labels__())
 
@@ -898,7 +898,8 @@ class Store(object):
             rel['abstract'] = absrel
             self.batchindex += 1
             if Store.debug:
-                print >> sys.stderr, ('==== Performing batch.create(%s): node relationships' % absrel)
+                print >> sys.stderr, ('Performing batch.create(%s): node relationships'
+                                      % absrel)
             self._bump_stat('relate')
             if Store.debug:
                 print >> sys.stderr, ('ADDING rel %s' % absrel)
@@ -1017,8 +1018,8 @@ class Store(object):
         '''Commit all the changes we've created since our last transaction'''
         if Store.debug:
             print >> sys.stderr, ('COMMITTING THIS THING:', str(self))
-        if self.batch is None:
-            self.batch = py2neo.legacy.LegacyWriteBatch(self.db)
+        self.batch = self.batch if self.batch is not None \
+                     else py2neo.legacy.LegacyWriteBatch(self.db)
         self.batchindex = 0
         self._batch_construct_create_nodes()        # These return new nodes in batch return result
         self._batch_construct_relate_nodes()        # These return new relationships
@@ -1054,11 +1055,9 @@ class Store(object):
             # pylint: disable=W0612
             (subj, unused) = pair
             index = subj.__store_batchindex
-            if Store.debug:
-                print >> sys.stderr, 'LOOKING at new node with batch index %d' % index
             newnode = submit_results[index]
             if Store.debug:
-                raise ValueError('debug')
+                print >> sys.stderr, 'LOOKING at new node with batch index %d' % index
                 print >> sys.stderr, 'NEW NODE looks like %s' % str(newnode)
                 print >> sys.stderr, 'SUBJ (our copy) looks like %s' % str(subj)
                 print >> sys.stderr, ('NEONODE (their copy) looks like %d, %s'

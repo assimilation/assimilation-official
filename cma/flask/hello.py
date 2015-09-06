@@ -93,8 +93,8 @@ if __name__ == '__main__':
         '''
         if dburl is None:
             dburl = ('http://%s:%d/db/data/' % (dbhost, dbport))
-        print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % dburl
-        neodb = neo4j.GraphDatabaseService(dburl)
+        print >> sys.stderr, 'CREATING Graph("%s")' % dburl
+        neodb = neo4j.Graph(dburl)
         qstore = Store(neodb, None, None)
         print GraphNode.classmap
         for classname in GraphNode.classmap:

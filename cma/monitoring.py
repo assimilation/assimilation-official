@@ -42,7 +42,6 @@ from cmadb import CMAdb
 from consts import CMAconsts
 import os, re, time
 import sys
-from py2neo import neo4j
 from store import Store
 #
 #
