@@ -33,6 +33,7 @@ class CMAconsts(object):
     '''
     globaldomain    = 'global'
     metadomain      = 'metadata'
+    BASERULESETNAME = 'BASE'
 
 #########################################################################
 #       Indexes:
@@ -53,6 +54,8 @@ class CMAconsts(object):
     NODE_ipproc     = 'ProcessNode'   # A client and/or server process
     NODE_tcpipport  = 'IPtcpportNode' # (ip, port) tuple for a TCP service
     NODE_monitoraction  = 'MonitorAction' # A (hopefully active) monitoring action
+    NODE_bprules    = 'BPRules'       # Best practices rules
+    NODE_bpruleset  = 'BPRuleSet'     # A set of best practice rules
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
@@ -69,6 +72,9 @@ class CMAconsts(object):
     REL_hosting     = 'hosting'     # NODE_drone        ->  NODE_ipproc
     REL_monitoring  = 'monitoring'  # NODE_monitoraction->  NODE_ipproc OR SystemNode
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport
+    REL_basedon     = 'basedon'     # NODE_BPRuleSet    ->  NODE_BPRuleSet
+    REL_basis       = 'basis'       # NODE_BPRules      ->  NODE_BPRules
+    REL_bprulefor   = 'ruledbybp'   # NODE_drone        ->  NODE_BPRules
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 #
@@ -95,6 +101,13 @@ class CMAconsts(object):
     ROLE_server         = 'server'
 
 
+    # Return all the BPrules objects  which are part of the given ruleset
+    # Our index would find us exactly the ones we want, but substituting into
+    # it doesn't work correctly. The good news is that there aren't many
+    # BPrule objects :-)
+    QUERY_RULESET_RULES = '''START n=node:BPRules('*:*')
+                             WHERE n.rulesetname = {rulesetname}
+                             RETURN n'''
+
     classkeymap = {}
     uniqueindexes = {}
-

@@ -46,6 +46,7 @@ from cmaconfig import ConfigFile
 from graphnodeexpression import ExpressionContext
 import glib # This is now our glib bindings...
 import discoverylistener
+from store import Store
 
 
 os.environ['G_MESSAGES_DEBUG'] =  'all'
@@ -208,7 +209,7 @@ class AUDITS(TestCase):
         # Was it a SETCONFIG packet?
         self.assertEqual(sentfs.get_framesettype(), FrameSetTypes.SETCONFIG)
         # Was the SETCONFIG sent back to the drone?
-        self.assertEqual(toaddr,droneip)
+        self.assertEqual(toaddr, droneip)
         # Lets check the number of Frames in the SETCONFIG Frameset
         self.assertEqual(1, len(sentfs))  # Was it the right size?
 
@@ -233,15 +234,13 @@ class AUDITS(TestCase):
 def auditalldrones():
     audit = AUDITS()
     qtext = "START droneroot=node:CMAclass('Drone:*') MATCH drone-[:IS_A]->droneroot RETURN drone"
-    query = neo4j.CypherQuery(CMAdb.cdb.db, qtext)
-    droneobjs = CMAdb.store.load_cypher_nodes(query, Drone)
+    droneobjs = CMAdb.store.load_cypher_nodes(qtext, Drone)
     droneobjs = [drone for drone in droneobjs]
     numdrones = len(droneobjs)
     for droneid in range(0, numdrones):
         droneid = int(droneobjs[droneid].designation[6:])
         audit.auditadrone(droneid)
-    query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:Drone('*:*') RETURN n''')
-    queryobjs = CMAdb.store.load_cypher_nodes(query, Drone)
+    queryobjs = CMAdb.store.load_cypher_nodes('''START n=node:Drone('*:*') RETURN n''', Drone)
     queryobjs = [drone for drone in queryobjs]
     dronetbl = {}
     for drone in droneobjs:
@@ -258,8 +257,7 @@ def auditalldrones():
 
 def auditallrings():
     audit = AUDITS()
-    query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:HbRing('*:*') RETURN n''')
-    for ring in CMAdb.store.load_cypher_nodes(query, HbRing):
+    for ring in CMAdb.store.load_cypher_nodes("START n=node:HbRing('*:*') RETURN n", HbRing):
         ring.AUDIT()
 
 ASSIMCLI='assimcli'
@@ -391,6 +389,13 @@ class TestIO:
         print >>sys.stderr, 'Sent %d packets' % len(self.packetswritten)
         for packet in self.packetswritten:
             print 'PACKET: %s (%s)' % (packet[0], packet[1])
+    
+class FakeDrone(object):
+    def __init__(self, json):
+        self.JSON_monitoringagents = json
+    def get(self, name, ret):
+        return ret
+
     
 
 class TestTestInfrastructure(TestCase):
@@ -524,6 +529,8 @@ class TestCMABasic(TestCase):
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
         SETCONFIG message and then send back a bunch of discovery requests.'''
+        if Store.debug:
+            raise ValueError('Debug enabled')
         if DEBUG:
             print >> sys.stderr, 'Running test_several_startups()'
         OurAddr = pyNetAddr((10,10,10,5), 1984)
@@ -576,8 +583,7 @@ class TestCMABasic(TestCase):
         # We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
-        query = neo4j.CypherQuery(CMAdb.cdb.db, "START n=node:Drone('*:*') RETURN n")
-        Drones = CMAdb.store.load_cypher_nodes(query, Drone)
+        Drones = CMAdb.store.load_cypher_nodes("START n=node:Drone('*:*') RETURN n", Drone)
         Drones = [drone for drone in Drones]
         #print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
         self.assertEqual(len(Drones), maxdrones)
@@ -683,6 +689,14 @@ class TestMonitorBasic(TestCase):
         io.cleanio()
 
     def test_automonitor_LSB_basic(self):
+        drone = FakeDrone({
+                'data': {
+                        'lsb': {
+                            'ssh',
+                            'neo4j-service',
+                        }
+                }
+            })
         neoargs = (
                     ('$argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
                     ('$argv[3]', r'-server$'),             # Probably overkill
@@ -725,19 +739,19 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-        for tup in (sshrule.specmatch(ExpressionContext((udevnode,)))
-        ,   sshrule.specmatch(ExpressionContext((neonode,)))
-        ,   neorule.specmatch(ExpressionContext((sshnode,)))):
+        for tup in (sshrule.specmatch(ExpressionContext((udevnode, drone)))
+        ,   sshrule.specmatch(ExpressionContext((neonode, drone)))
+        ,   neorule.specmatch(ExpressionContext((sshnode, drone)))):
             (prio, table) = tup
             self.assertEqual(prio, MonitoringRule.NOMATCH)
             self.assertTrue(table is None)
 
-        (prio, table) = sshrule.specmatch(ExpressionContext((sshnode,)))
+        (prio, table) = sshrule.specmatch(ExpressionContext((sshnode, drone)))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'ssh')
 
-        (prio, table) = neorule.specmatch(ExpressionContext((neonode,)))
+        (prio, table) = neorule.specmatch(ExpressionContext((neonode, drone)))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
         self.assertEqual(table['monitorclass'], 'lsb')
         self.assertEqual(table['monitortype'], 'neo4j-service')
@@ -767,6 +781,13 @@ class TestMonitorBasic(TestCase):
             ((),))
 
     def test_automonitor_OCF_basic(self):
+        drone = FakeDrone({
+                'data': {
+                        'ocf': {
+                            'assimilation/neo4j',
+                        }
+                    }
+                })
         kitchensink = OCFMonitoringRule('assimilation', 'neo4j',
         (   ('cantguess',)                  #   length 1 - name
         ,   ('port', '$port')               #   length 2 - name, expression
@@ -827,7 +848,7 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         # We'll be missing the value of 'port'
-        neocontext = ExpressionContext((neonode,))
+        neocontext = ExpressionContext((neonode, drone))
         match = neo4j.specmatch(neocontext)
         (prio, table, missing) = neo4j.specmatch(neocontext)
         self.assertEqual(prio, MonitoringRule.PARTMATCH)
@@ -879,6 +900,16 @@ class TestMonitorBasic(TestCase):
         self.assertTrue(isinstance(lsb, LSBMonitoringRule))
 
     def test_automonitor_search_basic(self):
+        drone = FakeDrone({
+                'data': {
+                        'ocf': {
+                            'assimilation/neo4j',
+                        },
+                        'lsb': {
+                            'neo4j-service',
+                        }
+                    }
+                })
         MonitoringRule.monitor_objects = {'service': {}, 'host':{}}
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
@@ -891,7 +922,7 @@ class TestMonitorBasic(TestCase):
         }'''
         MonitoringRule.ConstructFromString(ocf_string)
         lsb_string = '''{
-        "class":        "lsb", "type":         "neo4j",
+        "class":        "lsb", "type":         "neo4j-service",
         "classconfig": [
             ["@basename()",    "java$"],
             ["$argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
@@ -912,7 +943,7 @@ class TestMonitorBasic(TestCase):
         neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         #neonode.serviceport=7474
-        context = ExpressionContext((neonode,))
+        context = ExpressionContext((neonode, drone))
         first = MonitoringRule.findbestmatch(context)
         second = MonitoringRule.findbestmatch(context, False)
         list1 = MonitoringRule.findallmatches(context)
@@ -946,6 +977,16 @@ class TestMonitorBasic(TestCase):
 
     def test_automonitor_functions(self):
         MonitoringRule.monitor_objects = {'service': {}, 'host':{}}
+        drone = FakeDrone({
+                'data': {
+                        'ocf': {
+                            'assimilation/neo4j',
+                        },
+                        'lsb': {
+                            'bacula',
+                        },
+                    }
+                })
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
@@ -1015,21 +1056,21 @@ class TestMonitorBasic(TestCase):
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
         testnode.JSON_procinfo = neo4j_json
-        context = ExpressionContext((testnode,))
+        context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(match['arglist']['ipaddr'], '::1')
         self.assertEqual(match['arglist']['port'], '1337')
 
         testnode.JSON_procinfo = ssh_json
-        context = ExpressionContext((testnode,))
+        context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(match['arglist']['port'], '22')
         self.assertEqual(match['arglist']['ipaddr'], '127.0.0.1')
 
         testnode.JSON_procinfo = bacula_json
-        context = ExpressionContext((testnode,))
+        context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(match['arglist']['port'], '9101')

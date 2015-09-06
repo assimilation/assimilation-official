@@ -23,6 +23,7 @@
 ''' This module defines the classes for most of our CMA nodes ...  '''
 from consts import CMAconsts
 from store import Store
+from cmadb import CMAdb
 import sys, re, time
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
@@ -250,7 +251,7 @@ class GraphNode(object):
             else:
                 ckm_entry['value'] = 'None'
             store.classkeymap[nodetype] = ckm_entry
-        store.db.get_or_create_index(neo4j.Node, nodetype)
+        store.db.legacy.get_or_create_index(neo4j.Node, nodetype)
         ourtypeobj = store.load_or_create(rootclass, name=nodetype)
         assert ourtypeobj.name == nodetype
         if Store.is_abstract(ourtypeobj) and nodetype != CMAconsts.NODE_nodetype:
@@ -284,7 +285,7 @@ class CMAclass(GraphNode):
             if Store.is_abstract(self):
                 result += comma + 'HasNode = "abstract"'
             else:
-                result += (comma + 'HasNode = %d' %Store.id(self))
+                result += (comma + 'HasNode = %d' % Store.id(self))
 
         result += "\n})"
         return result
@@ -293,6 +294,44 @@ class CMAclass(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['name']
+
+@RegisterGraphClass
+class BPRules(GraphNode):
+    '''Class defining best practice rules'''
+
+    def __init__(self, bp_class, json, rulesetname):
+        GraphNode.__init__(self, domain='metadata')
+        self.bp_class = bp_class
+        self.rulesetname = rulesetname
+        self.json = json
+        self._jsonobj = pyConfigContext(json)
+
+    def jsonobj(self):
+        'Return the JSON object corresponding to our rules'
+        return self._jsonobj
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['bp_class', 'rulesetname']
+
+@RegisterGraphClass
+class BPRuleSet(GraphNode):
+    '''Class defining best practice rule sets'''
+    def __init__(self, rulesetname, basisrules=None):
+        GraphNode.__init__(self, domain='metadata')
+        self.rulesetname = rulesetname
+        self.basisrules = basisrules
+        if self.basisrules is None or not Store.is_abstract(self):
+            return
+        query = CMAconsts.QUERY_RULESET_RULES
+        parent = CMAdb.store.load_cypher_node(query, BPRuleSet, params={'name': basisrules})
+        CMAdb.store.relate_new(self, CMAconsts.REL_basedon, parent)
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['rulesetname']
 
 @RegisterGraphClass
 class SystemNode(GraphNode):
