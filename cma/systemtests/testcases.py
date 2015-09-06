@@ -202,7 +202,7 @@ class AssimSysTest(object):
         CMAinit(None, host=str(sysenv.cma.ipaddr), readonly=True)
         url = 'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474)
         print >> sys.stderr, 'OPENING Neo4j at URL %s' % url
-        store = Store(neo4j.GraphDatabaseService(url), readonly=True)
+        store = Store(neo4j.Graph(url), readonly=True)
         for classname in GN.GraphNode.classmap:
             GN.GraphNode.initclasstypeobj(store, classname)
 

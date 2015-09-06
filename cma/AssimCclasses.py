@@ -26,12 +26,7 @@
 A collection of classes which wrap our @ref C-Classes and provide Pythonic interfaces
 to these C-classes.
 '''
-
-#pylint: disable=W0611
-from AssimCtypes import AddrFrame, CstringFrame, UnknownFrame, ConfigValue, IpPortFrame, \
-    FrameSet, PacketDecoder, guint8, IntFrame, ConfigContext, SignFrame, CompressFrame, \
-    proj_class_live_object_count, proj_class_dump_live_objects, CONFIGNAME_CMAPORT
-#pylint: enable=W0611
+import AssimCtypes
 from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_string_buffer, \
     c_char_p, byref, memmove,    badfree,  \
     g_free, GSList, GDestroyNotify, g_slist_length, g_slist_next, struct__GSList, \
@@ -84,39 +79,36 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,  \
     cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,                \
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename,  \
-    cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519
-
-# pylint: disable=W0611
-from AssimCtypes import NOTAKEY, PRIVATEKEY, PUBLICKEY, CryptCurve25519
-
+    cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519, \
+    proj_class_live_object_count, proj_class_dump_live_objects
 from consts import CMAconsts
-
 from frameinfo import FrameTypes, FrameSetTypes
 import collections
 import traceback
 import sys, gc
+
 
 #pylint: disable=R0903
 class cClass (object):
     'Just a handy collection of POINTER() objects'
     def __init__(self):
         pass
-    NetAddr = POINTER(NetAddr)
-    Frame = POINTER(Frame)
-    AddrFrame = POINTER(AddrFrame)
-    IntFrame = POINTER(IntFrame)
-    SeqnoFrame = POINTER(SeqnoFrame)
-    CstringFrame = POINTER(CstringFrame)
-    UnknownFrame = POINTER(UnknownFrame)
-    SignFrame = POINTER(SignFrame)
-    FrameSet = POINTER(FrameSet)
-    ConfigContext = POINTER(ConfigContext)
-    ConfigValue = POINTER(ConfigValue)
-    IpPortFrame = POINTER(IpPortFrame)
-    CompressFrame = POINTER(CompressFrame)
-    guint8 = POINTER(guint8)
-    GSList = POINTER(GSList)
-    CryptCurve25519 = POINTER(CryptCurve25519)
+    NetAddr = POINTER(AssimCtypes.NetAddr)
+    Frame = POINTER(AssimCtypes.Frame)
+    AddrFrame = POINTER(AssimCtypes.AddrFrame)
+    IntFrame = POINTER(AssimCtypes.IntFrame)
+    SeqnoFrame = POINTER(AssimCtypes.SeqnoFrame)
+    CstringFrame = POINTER(AssimCtypes.CstringFrame)
+    UnknownFrame = POINTER(AssimCtypes.UnknownFrame)
+    SignFrame = POINTER(AssimCtypes.SignFrame)
+    FrameSet = POINTER(AssimCtypes.FrameSet)
+    ConfigContext = POINTER(AssimCtypes.ConfigContext)
+    ConfigValue = POINTER(AssimCtypes.ConfigValue)
+    IpPortFrame = POINTER(AssimCtypes.IpPortFrame)
+    CompressFrame = POINTER(AssimCtypes.CompressFrame)
+    guint8 = POINTER(AssimCtypes.guint8)
+    GSList = POINTER(AssimCtypes.GSList)
+    CryptCurve25519 = POINTER(AssimCtypes.CryptCurve25519)
 
 def CCref(obj):
     '''
@@ -1195,9 +1187,9 @@ class pyCryptFrame(pyFrame):
     The underlying C code then automatically creates the correct
     CryptFrame objects for outgoing packets.
     '''
-    NOTAKEY     = NOTAKEY
-    PUBLICKEY   = PUBLICKEY
-    PRIVATEKEY  = PRIVATEKEY
+    NOTAKEY     = AssimCtypes.NOTAKEY
+    PUBLICKEY   = AssimCtypes.PUBLICKEY
+    PRIVATEKEY  = AssimCtypes.PRIVATEKEY
     def __init__(self, destaddr=None, Cstruct=None):
         self._Cstruct = None
         if Cstruct is None and destaddr is None:
@@ -1512,7 +1504,7 @@ class pyPacketDecoder(pyAssimObj):
     def fslist_from_pktdata(self, pktlocation):
         'Make a list of FrameSets out of a packet.'
         base = self._Cstruct[0]
-        while (type(base)is not PacketDecoder):
+        while (type(base)is not AssimCtypes.PacketDecoder):
             base = base.baseclass
         fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct, pktlocation[0], pktlocation[1])
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
