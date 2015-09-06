@@ -46,6 +46,7 @@ from cmaconfig import ConfigFile
 from graphnodeexpression import ExpressionContext
 import glib # This is now our glib bindings...
 import discoverylistener
+from store import Store
 
 
 os.environ['G_MESSAGES_DEBUG'] =  'all'
@@ -233,15 +234,13 @@ class AUDITS(TestCase):
 def auditalldrones():
     audit = AUDITS()
     qtext = "START droneroot=node:CMAclass('Drone:*') MATCH drone-[:IS_A]->droneroot RETURN drone"
-    query = neo4j.CypherQuery(CMAdb.cdb.db, qtext)
-    droneobjs = CMAdb.store.load_cypher_nodes(query, Drone)
+    droneobjs = CMAdb.store.load_cypher_nodes(qtext, Drone)
     droneobjs = [drone for drone in droneobjs]
     numdrones = len(droneobjs)
     for droneid in range(0, numdrones):
         droneid = int(droneobjs[droneid].designation[6:])
         audit.auditadrone(droneid)
-    query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:Drone('*:*') RETURN n''')
-    queryobjs = CMAdb.store.load_cypher_nodes(query, Drone)
+    queryobjs = CMAdb.store.load_cypher_nodes('''START n=node:Drone('*:*') RETURN n''', Drone)
     queryobjs = [drone for drone in queryobjs]
     dronetbl = {}
     for drone in droneobjs:
@@ -258,8 +257,7 @@ def auditalldrones():
 
 def auditallrings():
     audit = AUDITS()
-    query = neo4j.CypherQuery(CMAdb.cdb.db, '''START n=node:HbRing('*:*') RETURN n''')
-    for ring in CMAdb.store.load_cypher_nodes(query, HbRing):
+    for ring in CMAdb.store.load_cypher_nodes("START n=node:HbRing('*:*') RETURN n", HbRing):
         ring.AUDIT()
 
 ASSIMCLI='assimcli'
@@ -531,6 +529,8 @@ class TestCMABasic(TestCase):
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
         SETCONFIG message and then send back a bunch of discovery requests.'''
+        if Store.debug:
+            raise ValueError('Debug enabled')
         if DEBUG:
             print >> sys.stderr, 'Running test_several_startups()'
         OurAddr = pyNetAddr((10,10,10,5), 1984)
@@ -583,8 +583,7 @@ class TestCMABasic(TestCase):
         # We audit after each packet is processed
         # The auditing code will make sure all is well...
         # But it doesn't know how many drones we just registered
-        query = neo4j.CypherQuery(CMAdb.cdb.db, "START n=node:Drone('*:*') RETURN n")
-        Drones = CMAdb.store.load_cypher_nodes(query, Drone)
+        Drones = CMAdb.store.load_cypher_nodes("START n=node:Drone('*:*') RETURN n", Drone)
         Drones = [drone for drone in Drones]
         #print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
         self.assertEqual(len(Drones), maxdrones)

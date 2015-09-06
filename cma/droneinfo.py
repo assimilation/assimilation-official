@@ -66,8 +66,8 @@ class Drone(SystemNode):
         '''Initialization function for the Drone class.
         We mainly initialize a few attributes from parameters as noted above...
 
-        The first time around we also initialize a couple of class-wide CypherQuery
-        objects for a couple of queries we know we'll need later.
+        The first time around we also initialize a couple of class-wide query
+        strings for a few queries we know we'll need later.
         '''
         SystemNode.__init__(self, domain=domain, designation=designation)
         if roles is None:
@@ -90,11 +90,11 @@ class Drone(SystemNode):
         self.monitors_activated = False
 
         if Drone.IPownerquery_1 is None:
-            Drone.IPownerquery_1 =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.IPownerquery_1_txt
-            % (CMAconsts.REL_ipowner, CMAconsts.REL_nicowner))
-            Drone.OwnedIPsQuery_subtxt = Drone.OwnedIPsQuery_txt    \
-            %       (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner)
-            Drone.OwnedIPsQuery =  neo4j.CypherQuery(CMAdb.cdb.db, Drone.OwnedIPsQuery_subtxt)
+            Drone.IPownerquery_1 = (Drone.IPownerquery_1_txt 
+                                    % (CMAconsts.REL_ipowner, CMAconsts.REL_nicowner))
+            Drone.OwnedIPsQuery_subtxt = (Drone.OwnedIPsQuery_txt    \
+                                          % (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner))
+            Drone.OwnedIPsQuery =  Drone.OwnedIPsQuery_subtxt
         self.set_crypto_identity()
         if Store.is_abstract(self) and not CMAdb.store.readonly:
             from bestpractices import BestPractices

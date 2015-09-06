@@ -148,18 +148,6 @@ class BestPractices(DiscoveryListener):
     def gen_bp_rules_by_ruleset(store, rulesetname):
         '''Return generator providing all BP rules for the given ruleset
         '''
-        from py2neo import neo4j
-        query = neo4j.CypherQuery(store.db, CMAconsts.QUERY_RULESET_RULES)
-        return store.load_cypher_nodes(query, BPRules
-        ,       params={'rulesetname': rulesetname})
-
-
-    def url(self, _drone, ruleid, ruleobj):
-        '''
-        Return the URL in the IT Best Practices project that goes with this
-        particular rule.
-        '''
-        # We should eventually use the drone to hone in more on the OS and so on...
         return '%s/%s/%s?application=%s' % (self.BASEURL, ruleobj['category']
         ,   ruleid, self.application)
 

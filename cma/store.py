@@ -31,7 +31,8 @@ Object-Graph-Mapping API (or something a lot like it)
 '''
 import re, inspect, weakref
 #import traceback
-from py2neo import neo4j
+import py2neo
+from py2neo import neo4j, GraphError
 from datetime import datetime, timedelta
 from collections import namedtuple
 import sys # only for stderr
@@ -198,7 +199,9 @@ class Store(object):
     @staticmethod
     def id(subj):
         'Returns the id of the neo4j.Node associated with the given object'
-        return subj.__store_node._id
+        if subj.__store_node.bound:
+            return subj.__store_node._id
+        return None
 
     @staticmethod
     def has_node(subj):
@@ -215,7 +218,12 @@ class Store(object):
         'Returns True if the underlying database node is Abstract'
         if not hasattr(subj, '_Store__store_node'):
             return True
-        return subj.__store_node.is_abstract
+        return not subj.__store_node.bound
+
+    @staticmethod
+    def bound(subj):
+        'Returns True if the underlying database node is bound (i.e., not abstract)'
+        return not is_abstract(subj)
 
     def is_uniqueindex(self, index_name):
         'Return True if this index is known to be a unique index'
@@ -257,7 +265,7 @@ class Store(object):
         if not isinstance(subj, tuple) and not isinstance(subj, list):
             subj = (subj,)
         for obj in subj:
-            self._register(obj, neo4j.Node.abstract(**Store.safe_attrs(obj))
+            self._register(obj, neo4j.Node(**Store.safe_attrs(obj))
             ,   index=index_name, key=key, value=value, unique=False)
 
     def save_unique(self, index_name, key, value, subj):
@@ -290,7 +298,7 @@ class Store(object):
         if not cls.__name__ in self.classkeymap:
             # Not an indexed object...
             if subj not in self.clients:
-                self._register(subj, neo4j.Node.abstract(**Store.safe_attrs(subj)))
+                self._register(subj, neo4j.Node(**Store.safe_attrs(subj)))
             return subj
         (index, key, value) = self._get_idx_key_value(cls, subj.__dict__)
 
@@ -308,7 +316,7 @@ class Store(object):
         if self.readonly:
             raise RuntimeError('Attempt to delete an object from a read-only store')
         node = subj.__store_node
-        if node.is_abstract:
+        if not node.bound:
             raise ValueError('Node cannot be abstract')
         self.separate(subj)
         self.separate_in(subj)
@@ -332,7 +340,7 @@ class Store(object):
                      which constructs the desired object
         '''
 
-        idx = self.db.get_index(neo4j.Node, index_name)
+        idx = self.db.legacy.get_index(neo4j.Node, index_name)
         nodes = idx.get(key, value)
         #print ('idx["%s",%s].get("%s", "%s") => %s' % (index_name, idx, key, value, nodes))
         ret = []
@@ -367,7 +375,7 @@ class Store(object):
         if ret is not None:
             return ret
 
-        node = self.db.get_indexed_node(index_name, idxkey, idxvalue)
+        node = self.db.legacy.get_indexed_node(index_name, idxkey, idxvalue)
         if node is not None:
             return self._construct_obj_from_node(node, cls)
         return None
@@ -388,6 +396,12 @@ class Store(object):
         if self.readonly:
             raise RuntimeError('Attempt to relate objects in a read-only store')
         self.newrels.append({'from':subj, 'to':obj, 'type':rel_type, 'props':properties})
+        if Store.debug:
+            print >> sys.stderr, 'NEW RELATIONSHIP FROM %s to %s' % (subj, obj)
+            if not Store.is_abstract(subj):
+                print >> sys.stderr, 'FROM id is %s' % Store.id(subj)
+            if not Store.is_abstract(obj):
+                print >> sys.stderr, 'TO id is %s' % Store.id(obj)
 
     def relate_new(self, subj, rel_type, obj, properties=None):
         '''Define a 'rel_type' relationship subj-[:rel_type]->obj'''
@@ -399,7 +413,7 @@ class Store(object):
             if rel['from'] is subj and rel['to'] is obj and rel['type'] == rel_type:
                 return
         # Check for pre-existing relationships
-        if not objnode.is_abstract and not subjnode.is_abstract:
+        if objnode.bound and subjnode.bound:
             rels = [rel for rel in subjnode.match_outgoing(rel_type, objnode)]
             if len(rels) > 0:
                 return
@@ -408,11 +422,11 @@ class Store(object):
     def separate(self, subj, rel_type=None, obj=None):
         'Separate nodes related by the specified relationship type'
         fromnode = subj.__store_node
-        if fromnode.is_abstract:
+        if not fromnode.bound:
             raise ValueError('Subj Node cannot be abstract')
         if obj is not None:
             obj = obj.__store_node
-            if obj.is_abstract:
+            if not obj.bound:
                 raise ValueError('Obj Node cannot be abstract')
 
         # No errors - give it a shot!
@@ -426,11 +440,11 @@ class Store(object):
     def separate_in(self, subj, rel_type=None, obj=None):
         'Separate nodes related by the specified relationship type'
         fromnode = subj.__store_node
-        if fromnode.is_abstract:
+        if not fromnode.bound:
             raise ValueError('Node cannot be abstract')
         if obj is not None:
             obj = obj.__store_node
-            if obj.is_abstract:
+            if not obj.bound:
                 raise ValueError('Node cannot be abstract')
 
         # No errors - give it a shot!
@@ -454,17 +468,16 @@ class Store(object):
 
     def load_in_related(self, subj, rel_type, cls):
         'Load all incoming-related nodes with the specified relationship type'
-        # It would be really nice to be able to filter on relationship properties
+        if not subj.__store_node.bound:
         # All it would take would be to write a little Cypher query
         # Of course, that still leaves the recently-created case unhandled...
-        if subj.__store_node.is_abstract:
             # @TODO Should search recently created relationships...
             raise ValueError('Node to load related from cannot be abstract')
         rels = subj.__store_node.match_incoming(rel_type)
         for rel in rels:
             yield (self._construct_obj_from_node(rel.start_node, cls))
 
-    def load_cypher_nodes(self, query, cls, params=None, maxcount=None, debug=False):
+    def load_cypher_nodes(self, querystr, cls, params=None, maxcount=None, debug=False):
         '''Execute the given query that yields a single column of nodes
         all of the same Class (cls) and yield each of those Objects in turn
         through an iterator (generator)'''
@@ -473,10 +486,10 @@ class Store(object):
             params = {}
         if debug:
             print >> sys.stderr, 'Starting query %s(%s)' % (query, params)
-        for row in query.stream(**params):
+        for row in self.db.cypher.stream(querystr, **params):
             if debug:
                 print >> sys.stderr, 'Received Row from stream: %s' % (row)
-            for key in row.columns:
+            for key in row.__producer__.columns:
                 if debug:
                     print >> sys.stderr, 'looking for column %s' % (key)
                 node = getattr(row, key)
@@ -506,7 +519,7 @@ class Store(object):
             return node
         return None
 
-    def load_cypher_query(self, query, clsfact, params=None, maxcount=None):
+    def load_cypher_query(self, querystr, clsfact, params=None, maxcount=None):
         '''Iterator returning results from a query translated into classes, and so on
         Each iteration returns a namedtuple with node fields as classes, etc.
         Note that 'clsfact' must be a class "factory" capable of translating any
@@ -518,12 +531,12 @@ class Store(object):
             params = {}
         rowfields = None
         rowclass = None
-        for row in query.stream(**params):
+        for row in self.db.cypher.stream(querystr, **params):
             if rowfields is None:
-                rowfields = row.columns
+                rowfields = row.__producer__.columns
                 rowclass = namedtuple('FilteredRecord', rowfields)
             yieldval = []
-            for attr in row.columns:
+            for attr in rowfields:
                 value = getattr(row, attr)
                 if isinstance(value, neo4j.Node):
                     obj = self.constructobj(clsfact, value)
@@ -799,7 +812,7 @@ class Store(object):
         if subj.__class__ not in self.classes:
             subj.__class__.__setattr__ = Store._storesetattr
             self.classes[subj.__class__] = True
-        if node is not None and not node.is_abstract:
+        if node is not None and node.bound:
             if node._id in self.weaknoderefs:
                 weakling = self.weaknoderefs[node._id]()
                 if weakling is None:
@@ -812,7 +825,7 @@ class Store(object):
         if node is not None:
             if 'post_db_init' in dir(subj):
                 subj.post_db_init()
-            if node.is_abstract:
+            if not node.bound:
                 # Create an event to commemorate the creation of the new database object
                 AssimEvent(subj, AssimEvent.CREATEOBJ)
 
@@ -845,7 +858,7 @@ class Store(object):
             Store._update_node_from_obj(subj)
             subj.__store_batchindex = self.batchindex
             if Store.debug:
-                print >> sys.stderr, ('Performing batch.create(%d: %s) - for new node'
+                print >> sys.stderr, ('====== Performing batch.create(%d: %s) - for new node'
                 %   (self.batchindex, str(node)))
             self.batchindex += 1
             self._bump_stat('nodecreate')
@@ -856,10 +869,10 @@ class Store(object):
         for pair in self._new_nodes():
             (subj, node) = pair
             self.batchindex += 1
-            self._bump_stat('addlabels')
             cls = subj.__class__
             if False and hasattr(cls, '__meta_labels__'):
-                print >> sys.stderr, 'ADDING LABELS for', type(node), cls.__meta_labels__()
+                print >> sys.stderr, '=====================ADDING LABELS for', type(subj), cls.__meta_labels__()
+                self._bump_stat('addlabels')
                 self.batch.add_labels(node, cls.__meta_labels__())
 
     def _batch_construct_relate_nodes(self):
@@ -871,21 +884,21 @@ class Store(object):
             tonode = toobj.__store_node
             reltype = rel['type']
             props = rel['props']
-            if fromnode.is_abstract:
+            if not fromnode.bound:
                 fromnode = fromobj.__store_batchindex
-            if tonode.is_abstract:
+            if not tonode.bound:
                 tonode = toobj.__store_batchindex
             if props is None:
-                absrel = neo4j.Relationship.abstract(fromnode, reltype, tonode)
+                absrel = neo4j.Relationship(fromnode, reltype, tonode)
             else:
-                absrel = neo4j.Relationship.abstract(fromnode, reltype, tonode, **props)
+                absrel = neo4j.Relationship(fromnode, reltype, tonode, **props)
             # Record where this relationship will show up in batch output
             # No harm in remembering this until transaction end...
             rel['seqno'] = self.batchindex
             rel['abstract'] = absrel
             self.batchindex += 1
             if Store.debug:
-                print >> sys.stderr, ('Performing batch.create(%s): node relationships' % absrel)
+                print >> sys.stderr, ('==== Performing batch.create(%s): node relationships' % absrel)
             self._bump_stat('relate')
             if Store.debug:
                 print >> sys.stderr, ('ADDING rel %s' % absrel)
@@ -926,15 +939,9 @@ class Store(object):
     def _batch_construct_new_index_entries(self):
         'Construct batch commands for adding newly created nodes to the indexes'
         for pair in self._new_nodes():
-            # unused variable
-            # pylint: disable=W0612
-            (subj, unused) = pair
+            subj = pair[0]
             if subj.__store_index is not None:
-                idx = self.db.get_index(neo4j.Node, subj.__store_index)
-                key = subj.__store_index_key
-                value = subj.__store_index_value
-                self.index_entry_count += 1
-                self._bump_stat('index')
+                idx, key, value = self._compute_batch_index(subj)
                 if subj.__store_index_unique:
                     if Store.debug:
                         print >> sys.stderr,('add_to_index[_or_fail]: node %s; index %s("%s","%s")'
@@ -957,6 +964,17 @@ class Store(object):
                     self.batch.add_to_index(neo4j.Node, idx, key, value
                     ,   subj.__store_batchindex)
 
+    def _compute_batch_index(self, subj):
+        '''
+        Compute index information for a new node
+        '''
+        idx = self.db.legacy.get_index(neo4j.Node, subj.__store_index)
+        key = subj.__store_index_key
+        value = subj.__store_index_value
+        self.index_entry_count += 1
+        self._bump_stat('index')
+        return (idx, key, value)
+
     def _batch_construct_node_updates(self):
         'Construct batch commands for updating attributes on "old" nodes'
         clientset = {}
@@ -964,7 +982,7 @@ class Store(object):
             assert not subj in clientset
             clientset[subj] = True
             node = subj.__store_node
-            if node.is_abstract:
+            if not node.bound:
                 continue
             for attr in subj.__store_dirty_attrs.keys():
                 # Each of these items will return None in the HTTP stream...
@@ -982,7 +1000,7 @@ class Store(object):
     def abort(self):
         'Clear out any currently pending transaction work - start fresh'
         if self.batch is not None:
-            self.batch.clear()
+            self.batch = None
         self.batchindex = 0
         for subj in self.clients:
             subj.__store_dirty_attrs = {}
@@ -1000,7 +1018,7 @@ class Store(object):
         if Store.debug:
             print >> sys.stderr, ('COMMITTING THIS THING:', str(self))
         if self.batch is None:
-            self.batch = neo4j.WriteBatch(self.db)
+            self.batch = py2neo.legacy.LegacyWriteBatch(self.db)
         self.batchindex = 0
         self._batch_construct_create_nodes()        # These return new nodes in batch return result
         self._batch_construct_relate_nodes()        # These return new relationships
@@ -1014,7 +1032,13 @@ class Store(object):
                 Store.log.debug('Batch Updates constructed: Committing THIS THING: %s'
                 %   str(self))
         start = datetime.now()
-        submit_results = self.batch.submit()
+        try:
+            submit_results = self.batch.submit()
+        except GraphError as e:
+            print >> sys.stderr, ('FAILED TO COMMIT THIS THING:', str(self))
+            print >> sys.stderr, self
+            print >> sys.stderr, ('BatchError: %s' % e)
+            raise e
         if Store.debug:
             print >> sys.stderr, 'SUBMIT RESULTS FOLLOW:'
             for result in submit_results:
@@ -1034,6 +1058,7 @@ class Store(object):
                 print >> sys.stderr, 'LOOKING at new node with batch index %d' % index
             newnode = submit_results[index]
             if Store.debug:
+                raise ValueError('debug')
                 print >> sys.stderr, 'NEW NODE looks like %s' % str(newnode)
                 print >> sys.stderr, 'SUBJ (our copy) looks like %s' % str(subj)
                 print >> sys.stderr, ('NEONODE (their copy) looks like %d, %s'
@@ -1082,16 +1107,19 @@ if __name__ == "__main__":
                 'This is a doc string too'
                 return 'a=%s b=%s name=%s' % (self.a, self.b, self.name)
 
-        ourdb = neo4j.GraphDatabaseService()
-        ourdb.get_or_create_index(neo4j.Node, 'Drone')
+            @classmethod
+            def __meta_labels__(cls):
+                return ['Class_%s' % cls.__name__]
+
+        ourdb = neo4j.Graph()
+        ourdb.legacy.get_or_create_index(neo4j.Node, 'Drone')
         dbvers = ourdb.neo4j_version
         # Clean out the database
         if dbvers[0] >= 2:
             qstring = 'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r'
         else:
             qstring = 'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r'
-        query = neo4j.CypherQuery(ourdb, qstring)
-        query.run()
+        ourdb.cypher.run(qstring)
         # Which fields of which types are used for indexing
         classkeymap = {
             Drone:   # this is for the Drone class
@@ -1188,11 +1216,11 @@ if __name__ == "__main__":
         print >> sys.stderr, ('Statistics:', store.stats)
 
         # Test a simple cypher query...
-        query = neo4j.CypherQuery(ourdb, "START d=node:Drone('*:*') RETURN d")
-        qnode = store.load_cypher_node(query, Drone) # Returns a single node
+        qstr = "START d=node:Drone('*:*') RETURN d"
+        qnode = store.load_cypher_node(qstr, Drone) # Returns a single node
         print >> sys.stderr, ('qnode=%s' % qnode)
         assert qnode is fred
-        qnodes = store.load_cypher_nodes(query, Drone) # Returns iterable
+        qnodes = store.load_cypher_nodes(qstr, Drone) # Returns iterable
         qnodes = [qnode for qnode in qnodes]
         assert len(qnodes) == 1
         assert qnode is fred
@@ -1215,5 +1243,5 @@ if __name__ == "__main__":
         print >> sys.stderr, ('Final returned values look good!')
 
 
-    Store.debug = True
+    Store.debug = False
     testme()

@@ -70,7 +70,7 @@ def assert_no_dangling_Cclasses(doassert=None):
 def CreateIndexes(indexlist):
     'Create Indexes(indexlist) - a list of strings for Node indexes to create'
     for index in indexlist:
-        db.get_or_create_index(neo4j.Node, index, None)
+        db.legacy.get_or_create_index(neo4j.Node, index, None)
      
 
 @RegisterGraphClass
@@ -187,10 +187,10 @@ for key in keymap:
 ##print seven.designation
 ##print seven.roles
 ##print Annika.firstname, Annika.lastname
-db = neo4j.GraphDatabaseService(None)
+db = neo4j.Graph(None)
 print >> sys.stderr, 'USING NEO4J VERSION %s' % str(db.neo4j_version)
 print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
-db.clear()
+db.delete_all()
 OurStore = None
 
 def initstore():
@@ -198,7 +198,7 @@ def initstore():
     GraphNode.clean_graphnodes()
     if OurStore is not None:
         OurStore.clean_store()
-    db.clear()
+    db.delete_all()
     CMAinit(None)
     OurStore = Store(db, uniqueindexmap=uniqueindexes, classkeymap=keymap)
     CreateIndexes([cls.__name__ for cls in Classes])
@@ -224,6 +224,7 @@ class TestCreateOps(TestCase):
 
     def test_person(self):
         store = initstore()
+        #store.debug = True
         Annika = Person('Annika', 'Hansen')
         store.save(Annika)
         store.commit()
@@ -385,8 +386,7 @@ class TestGeneralQuery(TestCase):
         Qstr='''START drone=node:TestDrone('sevenofnine:*')
         MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
         RETURN person, drone, nic, ipaddr'''
-        Query = neo4j.CypherQuery(store.db, Qstr)
-        iter = store.load_cypher_query(Query, GraphNode.factory)
+        iter = store.load_cypher_query(Qstr, GraphNode.factory)
         rowcount = 0
         foundaddr1=False
         foundaddr2=False
@@ -468,8 +468,7 @@ class TestDatabaseWrites(TestCase):
                     danglingweakref = True
             self.assertTrue(not danglingweakref)
         store.weaknoderefs = {}
-        Query = neo4j.CypherQuery(store.db, Qstr)
-        iter = store.load_cypher_query(Query, GraphNode.factory)
+        iter = store.load_cypher_query(Qstr, GraphNode.factory)
         rowcount = 0
         foundaddr1=False
         foundaddr2=False

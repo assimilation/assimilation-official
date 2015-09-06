@@ -123,7 +123,6 @@ run_regression_test() {
     return 0
 }
 
-failcount=0
 testlines='findmnt FINDMNT_TEST_DATA
 mdadm MDADM_CONFIG
 nsswitch NSSWITCH_CONFIG
@@ -131,10 +130,14 @@ pam PAM_DIRECTORY
 partitions PROC_PARTITIONS
 sshd SSHD_CONFIG'
 echo "$testlines" |
-while
-  read testname envname
-do
-    run_regression_test "$testname" "$envname"
-    failcount=$(expr $failcount + $?)
-done
-exit $failcount
+(
+    failcount=0
+    while
+      read testname envname
+    do
+        run_regression_test "$testname" "$envname"
+        failcount=$(expr $failcount + $?)
+    done
+    exit $failcount
+)
+exit $?

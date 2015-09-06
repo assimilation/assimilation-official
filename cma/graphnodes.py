@@ -251,7 +251,7 @@ class GraphNode(object):
             else:
                 ckm_entry['value'] = 'None'
             store.classkeymap[nodetype] = ckm_entry
-        store.db.get_or_create_index(neo4j.Node, nodetype)
+        store.db.legacy.get_or_create_index(neo4j.Node, nodetype)
         ourtypeobj = store.load_or_create(rootclass, name=nodetype)
         assert ourtypeobj.name == nodetype
         if Store.is_abstract(ourtypeobj) and nodetype != CMAconsts.NODE_nodetype:

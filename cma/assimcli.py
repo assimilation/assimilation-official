@@ -81,11 +81,10 @@ class query(object):
         queryname = otherargs[0]
         nvpairs = otherargs[1:]
 
-        cypher = 'START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
+        cypher = ('START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
+                  % (queryname, queryname))
 
-        metaquery = neo4j.CypherQuery(store.db, cypher % (queryname, queryname))
-
-        request = store.load_cypher_node(metaquery, ClientQuery)
+        request = store.load_cypher_node(cypher, ClientQuery)
 
         if request is None:
             print >> sys.stderr, ("No query named '%s'." % queryname)
@@ -156,6 +155,7 @@ class loadqueries(object):
         for q in ClientQuery.load_tree(store, querydir):
             qcount += 1
             q = q
+        #Store.debug = True
         store.commit()
         return 0 if qcount > 0 else 1
 
@@ -283,7 +283,7 @@ def usage():
 
 def dbsetup(readonly=False):
     'Set up our connection to Neo4j'
-    ourstore = Store(neo4j.GraphDatabaseService(), uniqueindexmap={}, classkeymap={})
+    ourstore = Store(neo4j.Graph(), uniqueindexmap={}, classkeymap={})
     CMAinit(None, readonly=readonly, use_network=False)
     for classname in GraphNode.classmap:
         GraphNode.initclasstypeobj(ourstore, classname)

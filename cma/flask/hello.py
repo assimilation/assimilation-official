@@ -108,8 +108,7 @@ if __name__ == '__main__':
         qstore.commit()
         for q in allqueries:
             allqueries[q].bind_store(qstore)
-        #Q = 'START q1=node:ClientQuery({queryname}) RETURN q1 LIMIT 1'
-        #queryquery = neo4j.CypherQuery(neodb, Q)
+        #queryquery = 'START q1=node:ClientQuery({queryname}) RETURN q1 LIMIT 1'
         #print 'Neodb =', neodb
         #print 'qstore =', qstore
 
