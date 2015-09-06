@@ -152,8 +152,7 @@ class MonitorAction(GraphNode):
     def find(name, domain=None):
         'Iterate through a series of MonitorAction nodes matching the criteria'
         if MonitorAction.findquery is None:
-            cypher = 'START m=node:MonitorAction({q}) RETURN m'
-            MonitorAction.findquery = neo4j.CypherQuery(CMAdb.store.db, cypher)
+            MonitorAction.findquery = 'START m=node:MonitorAction({q}) RETURN m'
         name = Store.lucene_escape(name)
         qvalue = '%s:%s' % (name, '*' if domain is None else domain)
         return CMAdb.store.load_cypher_nodes(MonitorAction.findquery, MonitorAction
@@ -236,7 +235,6 @@ class MonitorAction(GraphNode):
             else:
                 CMAdb.log.warning(msg)
                 AssimEvent(self, AssimEvent.OBJDOWN, extrainfo=extrainfo)
-
 
     def construct_mon_json(self, operation='monitor'):
         '''

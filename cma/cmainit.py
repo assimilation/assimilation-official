@@ -57,7 +57,45 @@ class CMAinit(object):
         CMAdb.log.setLevel(logging.DEBUG)
         url = ('http://%s:%d/db/data/' % (host, port))
         #print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
-        neodb = neo4j.GraphDatabaseService(url)
+        neodb = neo4j.Graph(url)
+        self.db = neodb
+        if cleanoutdb:
+            CMAdb.log.info('Re-initializing the NEO4j database')
+            self.delete_all()
+        self.db = neodb
+        CMAdb.use_network = use_network
+        trycount=0
+        while True:
+            try:
+                CMAdb.cdb = CMAdb(db=neodb)
+                # Neo4j started.  All is well with the world.
+                break
+            except (RuntimeError, IOError, py2neo.exceptions.ClientError) as exc:
+                print >> sys.stderr, 'TRYING AGAIN [[%s]...[%s]' % (url, str(exc))
+                trycount += 1
+                if trycount > retries:
+                    print >> sys.stderr, ('Neo4j still not started - giving up.')
+                    CMAdb.log.critical('Neo4j still not started - giving up.')
+                    raise RuntimeError('Neo4j not running - giving up [%s]' % str(exc))
+                if (trycount % 60) == 1:
+                    print >> sys.stderr, ('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
+                    CMAdb.log.warning('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
+                # Let's try again in a second...
+                time.sleep(1)
+        Store.debug = debug
+        Store.log = CMAdb.log
+        CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap
+        ,   readonly=readonly)
+        if not readonly:
+            for classname in GraphNode.classmap:
+                GraphNode.initclasstypeobj(CMAdb.store, classname)
+            from transaction import Transaction
+            CMAdb.transaction = Transaction(encryption_required=encryption_required)
+            #print >> sys.stderr,  'CMAdb:', CMAdb
+            #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
+            CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring',
+                                                          ringtype=HbRing.THEONERING)
+
         self.db = neodb
         if cleanoutdb:
             CMAdb.log.info('Re-initializing the NEO4j database')
@@ -121,17 +159,16 @@ class CMAinit(object):
         else:
             qstring = 'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r'
 
-        query = neo4j.CypherQuery(self.db, qstring)
-        result = query.execute()
+        result = self.db.cypher.execute(qstring)
         if CMAdb.debug:
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % query)
             CMAdb.log.debug('Execution results: %s' % str(result))
-        indexes = self.db.get_indexes(neo4j.Node)
+        indexes = self.db.legacy.get_indexes(neo4j.Node)
         for index in indexes.keys():
             if CMAdb.debug:
                 CMAdb.log.debug('Deleting index %s' % str(index))
-            self.db.delete_index(neo4j.Node, index)
+            self.db.legacy.delete_index(neo4j.Node, index)
 
 
 

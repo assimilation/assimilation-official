@@ -33,7 +33,7 @@ from store import Store
 class CMAdb(object):
     '''Class defining our Neo4J database.'''
     nodename = os.uname()[1]
-    debug = True
+    debug = False
     transaction = None
     log = None
     store = None
