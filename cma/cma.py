@@ -94,10 +94,16 @@
 #
 ################################################################################
 '''
+SUPPORTED_PYTHON_VERSIONS = ('2.7',)
+SUPPORTED_PY2NEO_VERSIONS = (2,)
+SUPPORTED_NEO4J_VERSIONS = (2,)
+import sys
+PYTHON_VERSION = ('%s.%s' % sys.version_info[0:2])
+if PYTHON_VERSION not in SUPPORTED_PYTHON_VERSIONS:
+    raise EnvironmentError('Python Version %s not supported' % PYTHON_VERSION)
 
-
+import os, signal
 import optparse, traceback
-import os, sys, signal
 import cmainit
 from assimeventobserver import ForkExecObserver
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, CRYPTKEYDIR, CMA_KEY_PREFIX
@@ -116,6 +122,7 @@ optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
     ,                   'monitoringdiscovery'
     ,                   'arpdiscovery'
     ]
+PY2NEO_VERSION = py2neo.__version__
 #
 #   "Main" program starts below...
 #   It is a the real CMA intended to run with some real nanoprobes running
@@ -125,6 +132,9 @@ optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
 #pylint: disable=R0912,R0914,R0915
 def main():
     'Main program for the CMA (Collective Management Authority)'
+    py2neo_major_version = int(PY2NEO_VERSION.partition('.')[0])
+    if py2neo_major_version not in SUPPORTED_PY2NEO_VERSIONS:
+        raise EnvironmentError('py2neo version %s not supported' % PY2NEO_VERSION)
     DefaultPort = 1984
     # This works around a bug in the glib library...
     os.environ['G_SLICE'] = 'always-malloc'
@@ -304,7 +314,9 @@ def main():
         raise
     for warn in cryptwarnings:
         CMAdb.log.warning(warn)
-
+    if CMAdb.cdb.db.neo4j_version[0] not in SUPPORTED_NEO4J_VERSIONS:
+        raise EnvironmentError('Neo4j version %s.%s.%s not supported'
+                               % CMAdb.cdb.db.neo4j_version)
     CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
     CMAdb.log.info('Socket input buffer size:  %d' % io.getrcvbufsize())
@@ -322,10 +334,11 @@ def main():
     jvers = jvmfd.readline()
     jvmfd.close()
     disp = MessageDispatcher(DispatchTarget.dispatchtable)
+
     CMAdb.log.info('Starting CMA version %s - licensed under %s'
     %   (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING))
     CMAdb.log.info('Neo4j version %s // py2neo version %s // Python version %s // %s'
-        % (('%s.%s.%s%s' % CMAdb.cdb.db.neo4j_version)
+        % (('%s.%s.%s' % CMAdb.cdb.db.neo4j_version)
         ,   str(py2neo.__version__)
         ,   ('%s.%s.%s' % sys.version_info[0:3])
         ,   jvers))
@@ -333,8 +346,8 @@ def main():
         print >> sys.stderr, ('Starting CMA version %s - licensed under %s'
         %   (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING))
         print >> sys.stderr, ('Neo4j version %s // py2neo version %s // Python version %s // %s'
-            % (('%s.%s.%s%s' % CMAdb.cdb.db.neo4j_version)
-            ,   str(py2neo.__version__)
+            % (('%s.%s.%s' % CMAdb.cdb.db.neo4j_version)
+            ,   PY2NEO_VERSION
             ,   ('%s.%s.%s' % sys.version_info[0:3])
             ,   jvers))
     # Important to note that we don't want PacketListener to create its own 'io' object
