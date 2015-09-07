@@ -39,7 +39,7 @@ partitions_info() {
         case $major in
           major|'')  continue;;
         esac
-        printf '%s"%s": {"major":%d, "minor":%d "blocks": %d"}' "$comma" $device $major $minor $blocks
+        printf '%s"%s": {"major":%d, "minor":%d, "blocks": %d"}' "$comma" $device $major $minor $blocks
         comma=',
     '
     done
