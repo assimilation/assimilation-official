@@ -641,6 +641,12 @@ class Store(object):
             raise ValueError("Attr %s of object %s of type %s isn't really acceptable"
             %   (attr, obj, type(value)))
 
+    @staticmethod
+    def mark_dirty(objself, attr):
+        'Mark the given attribute as dirty in our store'
+        if hasattr(objself, '_Store__store_dirty_attrs'):
+            objself.__store_dirty_attrs[attr] = True
+            objself.__store.clients[objself] = True
 
     @staticmethod
     def _storesetattr(objself, name, value):
@@ -655,6 +661,7 @@ class Store(object):
             if hasattr(objself, '_Store__store_dirty_attrs'):
                 try:
                     if getattr(objself, name) == value:
+                        #print >> sys.stderr, 'Value of %s already set to %s' % (name, value)
                         return
                 except AttributeError:
                     pass
@@ -673,9 +680,11 @@ class Store(object):
     def _update_node_from_obj(subj):
         'Update the node from its paired object'
         node = subj.__store_node
-        for attr in subj.__store_dirty_attrs.keys():
-            #print >> sys.stderr, ('Setting node["%s"] to %s' % (attr, getattr(subj, attr)))
+        attrlist = subj.__store_dirty_attrs.keys()
+        for attr in attrlist:
             node[attr] = Store._proper_attr_value(subj, attr)
+            #print >> sys.stderr, ('SETTING node["%s"] to %s' %
+            #                      (attr, Store._proper_attr_value(subj, attr)))
         subj.__store_dirty_attrs = {}
 
     def _update_obj_from_node(self, subj):
@@ -1071,6 +1080,7 @@ class Store(object):
                 elif getattr(subj, attr) != newnode[attr]:
                     print >> sys.stderr, ("OOPS - attribute %s is %s and should be %s" \
                     %   (attr, getattr(subj, attr), newnode[attr]))
+                    #self.dump_clients()
         self.abort()
         return submit_results
 

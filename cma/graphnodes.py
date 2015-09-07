@@ -364,6 +364,8 @@ class SystemNode(GraphNode):
             self.roles = [roles]
         elif not roles in self.roles:
             self.roles.append(roles)
+        # Make sure the 'roles' attribute gets marked as dirty...
+        Store.mark_dirty(self, 'roles')
         return self.roles
 
     def delrole(self, roles):
@@ -375,6 +377,8 @@ class SystemNode(GraphNode):
         assert isinstance(roles, str) or isinstance(roles, unicode)
         if roles in self.roles:
             self.roles.remove(roles)
+        # Make sure the 'roles' attribute gets marked as dirty...
+        Store.mark_dirty(self, 'roles')
         return self.roles
 
 
@@ -511,6 +515,8 @@ class ProcessNode(GraphNode):
             self.roles = [roles]
         elif not roles in self.roles:
             self.roles.append(roles)
+        # Make sure the 'roles' attribute gets marked as dirty...
+        Store.mark_dirty(self, 'roles')
         return self.roles
 
     def delrole(self, roles):
@@ -522,6 +528,8 @@ class ProcessNode(GraphNode):
         assert isinstance(roles, str) or isinstance(roles, unicode)
         if roles in self.roles:
             self.roles.remove(roles)
+        # Make sure the 'roles' attribute gets marked as dirty...
+        Store.mark_dirty(self, 'roles')
         return self.roles
 
     @staticmethod
