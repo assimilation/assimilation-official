@@ -1,6 +1,6 @@
 
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -251,19 +251,19 @@ class ExpressionContext(object):
         del self.values[key]
 
 @GraphNodeExpression.RegisterFun
-def IGNORE(ignoreargs, ignorecontext):
+def IGNORE(_ignoreargs, _ignorecontext):
     'Function to ignore its argument(s) and return True all the time'
-    ignoreargs = ignoreargs
-    ignorecontext = ignorecontext
     return True
 
 @GraphNodeExpression.RegisterFun
 def EQ(args, context):
-    'Function to return True if each argument in the list matches the first one'
+    '''Function to return True if each non-None argument in the list matches
+    the first one or None if all subsequent arguments are None
+    '''
     val0 = args[0]
-    anymatch = None
     if val0 is None:
         return None
+    anymatch = None
     for val in args[1:]:
         if val is None:
             continue
@@ -274,26 +274,30 @@ def EQ(args, context):
 
 @GraphNodeExpression.RegisterFun
 def NE(args, context):
-    'Function to return True if no argument in the list matches the first one'
+    '''Function to return True if no non-None argument in the list matches
+    the first one or None if all subsequent arguments are None'''
     #print >> sys.stderr, 'NE(%s, %s)' % (args[0], str(args[1:]))
     val0 = args[0]
     if val0 is None:
         return None
+    anymatch = None
     for val in args[1:]:
         #print >> sys.stderr, '+NE(%s, %s) (%s, %s)' % (val0, val, type(val0), type(val))
         if val is None:
             return None
-        if val0 == val:
+        if val0 == val or str(val0) == str(val):
             return False
-    return True
+        anymatch = True
+    return anymatch
 
 @GraphNodeExpression.RegisterFun
 def LT(args, context):
-    'Function to return True if the first argument is < other arguments'
+    '''Function to return True if each non-None argument in the list is
+    less than the first one or None if all subsequent arguments are None'''
     val0 = args[0]
-    anymatch = None
     if val0 is None:
         return None
+    anymatch = None
     for val in args[1:]:
         if val is None:
             continue
@@ -304,11 +308,12 @@ def LT(args, context):
 
 @GraphNodeExpression.RegisterFun
 def GT(args, context):
-    'Function to return True if the first argument is > each argument in the list'
+    '''Function to return True if each non-None argument in the list is
+    greater than the first one or None if all subsequent arguments are None'''
     val0 = args[0]
-    anymatch = None
     if val0 is None:
         return None
+    anymatch = None
     for val in args[1:]:
         if val is None:
             continue
@@ -319,11 +324,12 @@ def GT(args, context):
 
 @GraphNodeExpression.RegisterFun
 def LE(args, context):
-    'Function to return True if each argument in the list is <= the first one'
+    '''Function to return True if each non-None argument in the list is
+    less than or equal to first one or None if all subsequent arguments are None'''
     val0 = args[0]
-    anymatch = None
     if val0 is None:
         return None
+    anymatch = None
     for val in args[1:]:
         if val is None:
             continue
@@ -334,11 +340,12 @@ def LE(args, context):
 
 @GraphNodeExpression.RegisterFun
 def GE(args, context):
-    'Function to return True if each argument in the list is >= the first one'
+    '''Function to return True if each non-None argument in the list is
+    greater than or equal to first one or None if all subsequent arguments are None'''
     val0 = args[0]
-    anymatch = None
     if val0 is None:
         return None
+    anymatch = None
     for val in args[1:]:
         if val is None:
             continue
@@ -500,6 +507,62 @@ def OR(args, context):
     return None
 
 @GraphNodeExpression.RegisterFun
+def PAMMODARGS(args, context):
+    '''
+    We pass the following arguments to PAMSELECTARGS:
+        section - the section value to select from
+        service - service type to search for
+        module - the module to select arguments from
+        argument - the arguments to select
+
+    We return the arguments from the first occurance of the module that we find.
+    '''
+    #print >> sys.stderr, 'PAMMODARGS(%s)' % (str(args))
+    if len(args) != 4:
+        print >> sys.stderr, 'WRONG NUMBER OF ARGUMENTS (%d) TO PAMMODARGS' % (len(args))
+        return False
+    section = args[0]
+    reqservice = args[1]
+    reqmodule = args[2]
+    reqarg = args[3]
+
+    if section is None:
+        #print >> sys.stderr, 'Section is None in PAM object'
+        return None
+    # Each section is a list of lines
+    for line in section:
+        # Each line is a dict with potential keys of:
+        #  - service: a keyword saying what kind of service
+        #  - filename:(only for includes)
+        #  - type: dict of keywords (requisite, required, optional, etc)
+        #  - module: Module dict keywords with:
+        #       - path - pathname of module ending in .so 
+        #       - other arguments as per the module's requirements
+        #         simple flags without '=' values show up with True as value
+        # 
+        if 'service' not in line or line['service'] != reqservice:
+            #print >> sys.stderr, 'Service %s not in PAM line %s' % (reqservice, str(line))
+            continue
+        if 'module' not in line:
+            #print >> sys.stderr, '"module" not in PAM line %s' % str(line)
+            continue
+        if 'path' not in line['module']:
+            #print >> sys.stderr, '"path" not in PAM module %s' % str(line['module'])
+            #print >> sys.stderr, '"path" not in PAM line %s' % str(line)
+            continue
+        modargs = line['module']
+        if reqmodule != 'ANY' and (modargs['path'] != reqmodule and
+                                   modargs['path'] != (reqmodule + '.so')):
+            #print >> sys.stderr, 'Module %s not in PAM line %s' % (reqmodule, str(line))
+            continue
+        ret = modargs[reqarg] if reqarg in modargs else None
+        if ret is None and reqmodule == 'ANY':
+            continue
+        #print >> sys.stderr, 'RETURNING %s from %s' % (ret, str(line))
+        return ret
+    return None
+
+@GraphNodeExpression.RegisterFun
 def MUST(args, _unused_context):
     'Return True if all args are True. A None arg is the same as False to us'
     #print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
@@ -508,6 +571,17 @@ def MUST(args, _unused_context):
             #print >> sys.stderr, '+++MUST returns FALSE'
             return False
     #print >> sys.stderr, '+++MUST returns TRUE'
+    return True
+
+@GraphNodeExpression.RegisterFun
+def NONEOK(args, _unused_context):
+    'Return True if all args are True or None'
+    #print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
+    for arg in args:
+        if arg is not None and not arg:
+            #print >> sys.stderr, '+++NONEOK returns FALSE'
+            return False
+    #print >> sys.stderr, '+++NONEOK returns TRUE'
     return True
 
 @GraphNodeExpression.RegisterFun
