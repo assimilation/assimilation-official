@@ -110,6 +110,7 @@ from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, CRYPTKE
 import AssimCtypes
 from AssimCclasses import pyCompressFrame, pyCryptCurve25519, pyCryptFrame
 from cmaconfig import ConfigFile
+from bestpractices import BestPractices
 import importlib
 #import atexit
 import getent
@@ -375,6 +376,12 @@ def main():
         if opt.foreground:
             print >> sys.stderr, (
             'cma: Starting up untraced listener.listen() in foreground; debug=%d' % opt.debug)
+
+        # This is kind of a kludge, we should really look again at
+        # at initializition and so on.
+        # This module *ought* to be optional.
+        # that would involve adding some Drone callbacks for creation of new Drones
+        BestPractices(config, io, CMAdb.store, CMAdb.log, opt.debug)
         listener.listen()
     return 0
 

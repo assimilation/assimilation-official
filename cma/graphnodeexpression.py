@@ -58,7 +58,7 @@ class GraphNodeExpression(object):
             if expression[-1] != '"':
                 print >> sys.stderr, "Unterminated string '%s'" % expression
                 return None
-            return expression[1:-2]
+            return expression[1:-1]
         if expression.startswith('0x') and len(expression) > 3:
             return int(expression[2:], 16)
         if expression.isdigit():
@@ -71,7 +71,8 @@ class GraphNodeExpression(object):
             context[expression] = value
             return value
         if expression.startswith('$'):
-            #print >> sys.stderr, 'RETURNING VALUE OF %s = %s'% (expression, context.get(expression[1:], None))
+            #print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
+            #   % (expression, context.get(expression[1:], None))
             return context.get(expression[1:], None)
         return expression
 
@@ -140,7 +141,7 @@ class GraphNodeExpression(object):
         if funname not in GraphNodeExpression.functions:
             print >> sys.stderr, 'BAD FUNCTION NAME: %s' % funname
             return None
-        #print >> sys.stderr, 'ARGSTRINGS: %s' % (str(argstrings))
+        #print >> sys.stderr, 'ARGSTRINGS %s(%s)' % (funname, str(argstrings))
         #print >> sys.stderr, 'ARGS: %s' % (str(args))
         ret = GraphNodeExpression.functions[funname](args, context)
         #print >> sys.stderr, '%s(%s) => %s' % (funname, args, ret)
@@ -285,15 +286,90 @@ def NE(args, context):
     return True
 
 @GraphNodeExpression.RegisterFun
-def IN(args, context):
-    'Function to return True if first argument is in the list that follows'
+def LT(args, context):
+    'Function to return True if the first argument is < other arguments'
     val0 = args[0]
+    anymatch = None
     if val0 is None:
         return None
     for val in args[1:]:
-        if val0 == val:
-            return True
-    return False
+        if val is None:
+            continue
+        if val0 >= val:
+            return False
+        anymatch = True
+    return anymatch
+
+@GraphNodeExpression.RegisterFun
+def GT(args, context):
+    'Function to return True if the first argument is > each argument in the list'
+    val0 = args[0]
+    anymatch = None
+    if val0 is None:
+        return None
+    for val in args[1:]:
+        if val is None:
+            continue
+        if val0 <=val:
+            return False
+        anymatch = True
+    return anymatch
+
+@GraphNodeExpression.RegisterFun
+def LE(args, context):
+    'Function to return True if each argument in the list is <= the first one'
+    val0 = args[0]
+    anymatch = None
+    if val0 is None:
+        return None
+    for val in args[1:]:
+        if val is None:
+            continue
+        if val0 > val:
+            return False
+        anymatch = True
+    return anymatch
+
+@GraphNodeExpression.RegisterFun
+def GE(args, context):
+    'Function to return True if each argument in the list is >= the first one'
+    val0 = args[0]
+    anymatch = None
+    if val0 is None:
+        return None
+    for val in args[1:]:
+        if val is None:
+            continue
+        if val0 < val:
+            return False
+        anymatch = True
+    return anymatch
+
+@GraphNodeExpression.RegisterFun
+def IN(args, context):
+    '''Function to return True if first argument is in the list that follows.
+    If the first argument is iterable, then each element in it must be 'in'
+    the list that follows.
+    '''
+
+    val0 = args[0]
+    if val0 is None:
+        return None
+    if hasattr(val0, '__iter__'):
+        # Iterable
+        anyTrue = False
+        for elem in val0:
+            if elem is None:
+                continue
+            if elem not in args[1:] and str(elem) not in args[1:]:
+                return False
+            anytrue = True
+        return True if anytrue else None
+    # Not an iterable: string, int, NoneType, etc.
+    if val0 is None:
+        return None
+    #print >> sys.stderr, type(val0), val0, type(args[1]), args[1]
+    return val0 in args[1:] or str(val0) in args[1:]
 
 @GraphNodeExpression.RegisterFun
 def NOTIN(args, context):
@@ -301,10 +377,13 @@ def NOTIN(args, context):
     val0 = args[0]
     if val0 is None:
         return None
-    for val in args[1:]:
-        if val0 == val:
-            return False
-    return True
+    if hasattr(val0, '__iter__'):
+        # Iterable
+        for elem in val0:
+            if elem in args[1:] or str(elem) in args[1:]:
+                return False
+        return True
+    return val0 not in args[1:] and str(val0) not in args[1:]
 
 @GraphNodeExpression.RegisterFun
 def NOT(args, context):
@@ -417,6 +496,17 @@ def OR(args, context):
         if value is not None and value:
             return value
     return None
+
+@GraphNodeExpression.RegisterFun
+def MUST(args, _unused_context):
+    'Return True if all args are True. A None arg is the same as False to us'
+    #print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
+    for arg in args:
+        if arg is None or not arg:
+            #print >> sys.stderr, '+++MUST returns FALSE'
+            return False
+    #print >> sys.stderr, '+++MUST returns TRUE'
+    return True
 
 @GraphNodeExpression.RegisterFun
 def bitwiseOR(args, context):

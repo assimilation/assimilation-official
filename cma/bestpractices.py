@@ -57,7 +57,9 @@ class BestPractices(DiscoveryListener):
     prio = DiscoveryListener.PRI_OPTION
     prio = DiscoveryListener.PRI_OPTION   # What priority are we?
     wantedpackets = []  # Used to register ourselves for discovery packets
-    evaluators = {}
+    eval_objects = {}
+    eval_classes = {}
+    evaled_classes = {}
     application = None
     discovery_name = None
     application = 'os'
@@ -66,6 +68,22 @@ class BestPractices(DiscoveryListener):
     def __init__(self, config, packetio, store, log, debug):
         'Initialize our BestPractices object'
         DiscoveryListener.__init__(self, config, packetio, store, log, debug)
+        if self.__class__ != BestPractices:
+            return
+        for pkttype in config['allbpdiscoverytypes']:
+            BestPractices.register_sensitivity(BestPracticesCMA, pkttype)
+        for pkttype in BestPractices.eval_classes:
+            if pkttype not in BestPractices.eval_objects:
+                BestPractices.eval_objects[pkttype] = []
+            if pkttype not in BestPractices.evaled_classes:
+                BestPractices.evaled_classes[pkttype] = {}
+
+            for bpcls in BestPractices.eval_classes[pkttype]:
+                if bpcls not in BestPractices.evaled_classes[pkttype]:
+                    BestPractices.eval_objects[pkttype]                 \
+                        .append(bpcls(config, packetio, store, log, debug))
+                BestPractices.evaled_classes[pkttype][bpcls] = True
+
 
     @staticmethod
     def register(*pkttypes):
@@ -82,20 +100,19 @@ class BestPractices(DiscoveryListener):
 
     @staticmethod
     def register_sensitivity(bpcls, pkttype):
-        "Register that class 'cls' wants to see packet of type 'pkttype'"
+        "Register that class 'bpcls' wants to see packet of type 'pkttype'"
+        #print >> sys.stderr, '%s is looking for packet of type %s' % (bpcls, pkttype)
         if pkttype not in BestPractices.wantedpackets:
             BestPractices.wantedpackets.append(pkttype)
             Drone.add_json_processor(BestPractices)
-        if pkttype not in BestPractices.evaluators:
-            BestPractices.evaluators[pkttype] = []
-        if bpcls not in BestPractices.evaluators[pkttype]:
-            BestPractices.evaluators[pkttype].append(bpcls)
+        if pkttype not in BestPractices.eval_classes:
+            BestPractices.eval_classes[pkttype] = []
+        if bpcls not in BestPractices.eval_classes[pkttype]:
+            BestPractices.eval_classes[pkttype].append(bpcls)
 
     @staticmethod
     def load_json(store, json, bp_class, rulesetname, basedon=None):
         '''Load JSON for a single JSON ruleset into the database.'''
-        if bp_class not in BestPractices.wantedpackets:
-            raise ValueError('%s is not a valid best practice discovery name' % bp_class)
         rules = store.load_or_create(BPRules, bp_class=bp_class, json=json,
                                            rulesetname=rulesetname)
         if basedon is None or not Store.is_abstract(rules):
@@ -165,14 +182,18 @@ class BestPractices(DiscoveryListener):
         '''Inform interested rule objects about this change'''
         self = self
         discovertype = jsonobj['discovertype']
-        if discovertype not in BestPractices.evaluators:
+        if discovertype not in BestPractices.eval_objects:
+            print >> sys.stderr, 'NO %s in eval objects %s' % (discovertype, str(BestPractices.eval_objects))
             return
-        for rulecls in BestPractices.evaluators[discovertype]:
-            ruleclsobj = rulecls(self.config, self.packetio, self.store,
-                                 self.log, self.debug)
-            rulesobj = ruleclsobj.fetch_rules(drone, srcaddr, discovertype)
-            statuses = pyConfigContext(ruleclsobj.evaluate(drone, srcaddr,
+        #print >> sys.stderr, 'IN PROCESSPKT for %s: %s %s' % \
+        #   (drone, discovertype, BestPractices.eval_objects[discovertype])
+        for rule_obj in BestPractices.eval_objects[discovertype]:
+            #print  >> sys.stderr, 'Fetching %s rules for %s' % (discovertype, drone)
+            rulesobj = rule_obj.fetch_rules(drone, srcaddr, discovertype)
+            #print >> sys.stderr, 'RULES ARE:', rulesobj
+            statuses = pyConfigContext(rule_obj.evaluate(drone, srcaddr,
                                        jsonobj['data'], rulesobj))
+            #print >> sys.stderr, 'RESULTS ARE:', statuses
             self.log_rule_results(statuses, drone, srcaddr, discovertype, rulesobj)
 
     def log_rule_results(self, results, drone, _srcaddr, discovertype, rulesobj):
@@ -256,8 +277,7 @@ class BestPracticesCMA(BestPractices):
 
     def __init__(self, config, packetio, store, log, debug):
         BestPractices.__init__(self, config, packetio, store, log, debug)
-        from cmaconfig import ConfigFile
-        ConfigFile.register_callback(BestPracticesCMA.configcallback, args=None)
+
 
     def fetch_rules(self, drone, _unusedsrcaddr, discovertype):
         '''Evaluate our rules given the current/changed data.
@@ -274,7 +294,9 @@ class BestPracticesCMA(BestPractices):
         We use it to make sure all we get callbacks for all
         our discovery types.
         this might be overkill, but it's not expensive ;-).
+        And, it doesn't do anything useful at the moment...
         '''
+        print >> sys.stderr, 'Config Callback for name %s' % changedname
         if changedname in (None, 'allbpdiscoverytypes'):
             for pkttype in config['allbpdiscoverytypes']:
                 BestPractices.register_sensitivity(BestPracticesCMA, pkttype)
@@ -314,14 +336,15 @@ if __name__ == '__main__':
     testjsonobj = pyConfigContext(JSON_data)['data']
     logger = logging.getLogger('BestPracticesTest')
     logger.addHandler(logging.StreamHandler(sys.stderr))
-    for ruleclass in BestPractices.evaluators['proc_sys']:
-        procsys = ruleclass(None, None, None, logger, False)
+    BestPractices(None, None, None, logger, False)
+    for procsys in BestPractices.eval_classes['proc_sys']:
         ourstats = procsys.evaluate("testdrone", None, testjsonobj, testrules)
         size = sum([len(ourstats[st]) for st in ourstats.keys()])
-        assert size == len(testrules)
+        print size, len(testrules)
+        assert size == len(testrules)-1 # One rule is an IGNOREd comment
         assert ourstats['fail'] == ['itbp-00001', 'nist_V-38526', 'nist_V-38601']
         assert len(ourstats['NA']) >= 13
         assert len(ourstats['pass']) >= 3
-        assert len(ourstats['ignore']) == 1
-        print ruleclass, ourstats
+        assert len(ourstats['ignore']) == 0
+        print ourstats
     print 'Results look correct!'
