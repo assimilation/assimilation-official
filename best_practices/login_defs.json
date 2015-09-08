@@ -1,0 +1,33 @@
+{
+  "copyright": {
+	"category": "comment",
+        "rule": "IGNORE(copyright notice)",
+	"copyright": "This file Copyright (c) 2015 - Assimilation Systems Limited",
+	"license": "GPL v3",
+	"comment": "A collection of best practices rules sensitive to /etc/login.defs configuration"
+	},
+  "nist_V-38475": {
+	"category": "security",
+        "rule": "MUST(GE($PASS_MIN_LEN, 14))"
+	},
+  "nist_V-38477": {
+	"category": "security",
+        "rule": "MUST(GE($PASS_MIN_DAYS, 1))"
+	},
+  "nist_V-38479": {
+	"category": "security",
+        "rule": "MUST(LE($PASS_MAX_DAYS, 60))"
+	},
+  "nist_V-38480": {
+	"category": "security",
+        "rule": "MUST(EQ($PASS_WARN_AGE, 7))"
+	},
+  "nist_V-38576": {
+	"category": "security",
+        "rule": "MUST(EQ($ENCRYPT_METHOD, SHA512))"
+	},
+  "nist_V-38645": {
+	"category": "security",
+        "rule": "MUST(EQ($UMASK, 077))"
+	}
+}

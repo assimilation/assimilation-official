@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # bestpractices - prototypical implementation of best practices evaluation
 #                 As of now, this is toy code.  Really...
@@ -193,7 +193,7 @@ class BestPractices(DiscoveryListener):
             rulesobj = rule_obj.fetch_rules(drone, srcaddr, discovertype)
             #print >> sys.stderr, 'RULES ARE:', rulesobj
             statuses = pyConfigContext(rule_obj.evaluate(drone, srcaddr,
-                                       jsonobj['data'], rulesobj))
+                                       jsonobj, rulesobj))
             #print >> sys.stderr, 'RESULTS ARE:', statuses
             self.log_rule_results(statuses, drone, srcaddr, discovertype, rulesobj)
 
@@ -231,10 +231,11 @@ class BestPractices(DiscoveryListener):
         raise NotImplementedError('class BestPractices is an abstract class')
 
     @staticmethod
-    def evaluate(drone, _unusedsrcaddr, jsonobj, ruleobj):
+    def evaluate(_unused_drone, _unusedsrcaddr, wholejsonobj, ruleobj):
         '''Evaluate our rules given the current/changed data.
         '''
-        drone = drone
+
+        jsonobj = wholejsonobj['data']
         #oldcontext = ExpressionContext((drone,), prefix='JSON_proc_sys')
         newcontext = ExpressionContext((jsonobj,))
         if hasattr(ruleobj, '_jsonobj'):
@@ -242,17 +243,20 @@ class BestPractices(DiscoveryListener):
         ruleids = ruleobj.keys()
         ruleids.sort()
         statuses = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
+        print >> sys.stderr, '==== Evaluating %d Best Practices rules on "%s"' \
+            % (len(ruleids)-1, wholejsonobj['description'])
         for ruleid in ruleids:
             ruleinfo = ruleobj[ruleid]
             rule = ruleinfo['rule']
             rulecategory = ruleinfo['category']
             result = GraphNodeExpression.evaluate(rule, newcontext)
             if result is None:
-                print >> sys.stderr, 'n/a:    %s ID %s %s' % (rulecategory, ruleid, rule)
+                print >> sys.stderr, 'n/a:    %s ID %s %s' \
+                    % (rulecategory, ruleid, rule)
                 statuses['NA'].append(ruleid)
             elif not isinstance(result, bool):
-                print >> sys.stderr, 'Rule id %s %s returned %s (%s)' % (ruleid
-                ,       rule, result, type(result))
+                print >> sys.stderr, 'Rule id %s %s returned %s (%s)' \
+                    % (ruleid, rule, result, type(result))
                 statuses['fail'].append(ruleid)
             elif result:
                 if rule.startswith('IGNORE'):
@@ -262,10 +266,11 @@ class BestPractices(DiscoveryListener):
                             (rulecategory, ruleid, rule)
                 else:
                     statuses['pass'].append(ruleid)
-                    print >> sys.stderr, 'PASS:   %s ID %s %s' % (rulecategory, ruleid, rule)
+                    print >> sys.stderr, 'PASS:   %s ID %s %s' \
+                        % (rulecategory, ruleid, rule)
             else:
-                print >> sys.stderr, 'FAIL:   %s ID %s %s' % (rulecategory
-                ,       ruleid, rule)
+                print >> sys.stderr, 'FAIL:   %s ID %s %s'\
+                    % (rulecategory, ruleid, rule)
                 statuses['fail'].append(ruleid)
         return statuses
 

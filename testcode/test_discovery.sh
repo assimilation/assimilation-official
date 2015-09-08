@@ -112,7 +112,7 @@ run_regression_test() {
         else
             jsonlint -v $TMPOUT
             echo "Discovery failure $test produced invalid JSON - output follows"
-            cat $OUTFILE
+            cat $TMPOUT
             return 1
         fi
     else
@@ -124,11 +124,13 @@ run_regression_test() {
 }
 
 testlines='findmnt FINDMNT_TEST_DATA
+login_defs LOGIN_DEFS_CONFIG
 mdadm MDADM_CONFIG
 nsswitch NSSWITCH_CONFIG
 pam PAM_DIRECTORY
 partitions PROC_PARTITIONS
 sshd SSHD_CONFIG'
+
 echo "$testlines" |
 (
     failcount=0
