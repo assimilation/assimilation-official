@@ -1,7 +1,6 @@
 {
   "discovertype": "findmnt",
   "description": "current mounts from the (Linux-only) findmnt command",
-
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/findmnt",
   "data": {
