@@ -261,14 +261,16 @@ def IGNORE(ignoreargs, ignorecontext):
 def EQ(args, context):
     'Function to return True if each argument in the list matches the first one'
     val0 = args[0]
+    anymatch = None
     if val0 is None:
         return None
     for val in args[1:]:
         if val is None:
-            return None
+            continue
         if val0 != val:
             return False
-    return True
+        anymatch = True
+    return anymatch
 
 @GraphNodeExpression.RegisterFun
 def NE(args, context):
