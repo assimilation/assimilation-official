@@ -56,6 +56,7 @@ class ConfigFile(object):
                                     {'commands',            # Discovers installed commands
                                      'cpu',                 # CPU details
                                      'login_defs',          # /etc/login.defs configuration
+                                     'pam',                 # PAM configuration
                                      'findmnt',             # Discovers mounted filesystems (Linux)
                                      'packages',            # Discovers installed packages
                                      'monitoringagents',    # Discovers monitoring agents
@@ -166,6 +167,7 @@ class ConfigFile(object):
             'initial_discovery':['os',              # OS properties
                                  'cpu',             # CPU properties
                                  'login_defs',      # /etc/login.defs configuration
+                                 'pam',             # PAM configuration
                                  'packages',        # What packages are installed?
                                  'monitoringagents',# What monitoring agents are installed?
                                  'ulimit',          # What are current ulimit values?
@@ -234,7 +236,7 @@ class ConfigFile(object):
                     # harsh for many sites.
             },
             # List of all the known best practice discovery types
-            'allbpdiscoverytypes': ['proc_sys', 'login_defs', 'sshd'],
+            'allbpdiscoverytypes': ['login_defs', 'pam', 'proc_sys', 'sshd'],
             # Prioritized list of checksum commands to use
             # we use the first one that's installed.
             'checksum_cmds': [

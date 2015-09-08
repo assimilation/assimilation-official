@@ -28,7 +28,7 @@
 	},
   "nist_V-38612": {
 	"category": "security",
-        "rule": "IN($HostbasedAuthentication, \"no\", False))"
+        "rule": "NONEOK(IN($HostbasedAuthentication, \"no\", False))"
 	},
   "nist_V-38613": {
 	"category": "security",
@@ -36,7 +36,7 @@
 	},
   "nist_V-38614": {
 	"category": "security",
-        "rule": "IN($PermitEmptyPasswords, \"no\", False)"
+        "rule": "NONEOK(IN($PermitEmptyPasswords, \"no\", False))"
 	},
   "nist_V-38615": {
 	"category": "security",

@@ -293,7 +293,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "mdadm",
-	  "description": "Discover mdadm configuration in $MDADM_CONFIG",
+	  "description": "mdadm configuration from $MDADM_CONFIG",
 	  "host": "$(uname -n)",
 	  "source": "$0",
       "reminder": "All JSON integers are decimal.",

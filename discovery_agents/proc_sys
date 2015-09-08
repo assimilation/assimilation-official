@@ -209,7 +209,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "proc_sys",
-	  "description": "Information gleaned from the ${dir} directory",
+	  "description": "Information from ${dir}",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {

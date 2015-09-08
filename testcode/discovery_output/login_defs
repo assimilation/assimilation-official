@@ -1,6 +1,6 @@
 {
   "discovertype": "login_defs",
-  "description": "Discover login.defs configuration in login_defs",
+  "description": "login configuration from login_defs",
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/login_defs",
   "data": {

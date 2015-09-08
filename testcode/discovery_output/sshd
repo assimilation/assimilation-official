@@ -1,6 +1,6 @@
 {
   "discovertype": "sshd",
-  "description": "Discover sshd configuration in sshd",
+  "description": "sshd configuration from sshd",
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/sshd",
   "data": {

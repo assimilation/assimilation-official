@@ -160,7 +160,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "sshd",
-	  "description": "Discover sshd configuration in $SSHD_CONFIG",
+	  "description": "sshd configuration from $SSHD_CONFIG",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {

@@ -112,7 +112,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "findmnt",
-	  "description": "Discover current mounts using the Linux-only findmnt command",
+	  "description": "current mounts from the (Linux-only) findmnt command",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {

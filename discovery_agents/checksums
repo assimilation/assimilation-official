@@ -106,7 +106,7 @@ sumfiles() {
     cat <<!EOF1
 {
  "discovertype": "checksum",
- "description": "Checksum information for files and dependent libraries",
+ "description": "File Checksums from parameters",
  "host": "$(uname -n)",
  "source": "$0",
  "sumcmd": "${SUMCMD}",
