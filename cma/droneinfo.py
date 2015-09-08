@@ -96,10 +96,13 @@ class Drone(SystemNode):
             Drone.OwnedIPsQuery =  Drone.OwnedIPsQuery_subtxt
         self.set_crypto_identity()
         if Store.is_abstract(self) and not CMAdb.store.readonly:
+            #print 'Creating BP rules for', self.designation
             from bestpractices import BestPractices
             bprules = CMAdb.io.config['bprulesbydomain']
             rulesetname = bprules[domain] if domain in bprules else bprules[CMAconsts.globaldomain]
             for rule in BestPractices.gen_bp_rules_by_ruleset(CMAdb.store, rulesetname):
+                #print >> sys.stderr, 'ADDING RELATED RULE SET for', \
+                    #self.designation, rule.bp_class, rule
                 CMAdb.store.relate(self, CMAconsts.REL_bprulefor, rule,
                                    properties={'bp_class': rule.bp_class})
 

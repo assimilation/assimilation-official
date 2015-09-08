@@ -232,7 +232,7 @@ class ConfigFile(object):
                     # harsh for many sites.
             },
             # List of all the known best practice discovery types
-            'allbpdiscoverytypes': ['proc_sys'],
+            'allbpdiscoverytypes': ['proc_sys', 'sshd'],
             # Prioritized list of checksum commands to use
             # we use the first one that's installed.
             'checksum_cmds': [
