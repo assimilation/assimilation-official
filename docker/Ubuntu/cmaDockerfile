@@ -35,7 +35,7 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN apt-get -y update
 RUN apt-get -y install --no-install-recommends wget python-pip python-flask lsof python-netaddr
-RUN pip install 'py2neo<2.0' getent
+RUN pip install 'py2neo>=2.0' getent
 
 ###############################################################
 #   Neo4j installation

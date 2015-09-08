@@ -183,7 +183,8 @@ class BestPractices(DiscoveryListener):
         self = self
         discovertype = jsonobj['discovertype']
         if discovertype not in BestPractices.eval_objects:
-            print >> sys.stderr, 'NO %s in eval objects %s' % (discovertype, str(BestPractices.eval_objects))
+            print >> sys.stderr, 'NO %s in eval objects %s' % \
+                (discovertype, str(BestPractices.eval_objects))
             return
         #print >> sys.stderr, 'IN PROCESSPKT for %s: %s %s' % \
         #   (drone, discovertype, BestPractices.eval_objects[discovertype])
