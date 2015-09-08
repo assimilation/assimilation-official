@@ -1,6 +1,6 @@
 {
   "discovertype": "nsswitch",
-  "description": "Discover nsswitch configuration",
+  "description": "nsswitch configuration from nsswitch",
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/nsswitch",
   "data": {

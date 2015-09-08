@@ -48,7 +48,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "partitions",
-	  "description": "Discover $PROC_PARTITIONS configuration",
+	  "description": "partition configuration from $PROC_PARTITIONS",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {

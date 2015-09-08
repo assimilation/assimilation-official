@@ -69,7 +69,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "nsswitch",
-	  "description": "Discover $NSSWITCH_CONFIG configuration",
+	  "description": "nsswitch configuration from $NSSWITCH_CONFIG",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {

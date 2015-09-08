@@ -62,7 +62,7 @@ discover() {
     cat <<-!
 	{
 	 "discovertype": "commands",
-	 "description": "Available commands in PATH $DISCOVER_PATH",
+	 "description": "Commands in $DISCOVER_PATH",
 	 "host": "$(uname -n)",
 	 "source": "$0",
 	 "data": {

@@ -95,7 +95,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "login_defs",
-	  "description": "Discover login.defs configuration in $LOGIN_DEFS_CONFIG",
+	  "description": "login configuration from $LOGIN_DEFS_CONFIG",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {

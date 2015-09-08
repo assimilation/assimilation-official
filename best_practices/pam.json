@@ -1,0 +1,57 @@
+{
+  "copyright": {
+	"category": "comment",
+        "rule": "IGNORE(copyright notice)",
+	"copyright": "This file Copyright (c) 2015 - Assimilation Systems Limited",
+	"license": "GPL v3",
+	"comment": "A collection of best practices rules sensitive to sshd configuration"
+	},
+  "nist_V-38482": {
+	"category": "security",
+        "rule": "MUST(LE(PAMMODARGS(OR($system-auth, $common-auth), auth,  pam_cracklib, dcredit),-1))"
+	},
+  "nist_V-38497": {
+	"category": "security",
+        "rule": "NONEOK(NE(True, PAMMODARGS(OR($system-auth, $common-auth), auth,  ANY, nullok)))"
+	},
+  "nist_V-38501": {
+	"category": "security",
+        "rule": "NONEOK(GE(PAMMODARGS(OR($system-auth, $common-auth), password,  pam_unix, nullok), 900))"
+	},
+  "nist_V-38569": {
+	"category": "security",
+        "rule": "MUST(LE(PAMMODARGS(OR($system-auth, $common-auth), password,  pam_cracklib, ucredit),-1))"
+	},
+  "nist_V-38570": {
+	"category": "security",
+        "rule": "MUST(LE(PAMMODARGS(OR($system-auth, $common-auth), password,  pam_cracklib, ocredit),-1))"
+	},
+  "nist_V-38571": {
+	"category": "security",
+        "rule": "MUST(LE(PAMMODARGS(OR($system-auth, $common-auth), password,  pam_cracklib, lcredit),-1))"
+	},
+  "nist_V-38572": {
+	"category": "security",
+        "rule": "MUST(GE(PAMMODARGS(OR($system-auth, $common-auth), password,  pam_cracklib, difok),4))"
+	},
+  "nist_V-38574": {
+	"category": "security",
+        "rule": "MUST(EQ(True, PAMMODARGS(OR($system-auth, $common-auth), password,  pam_unix, sha512), PAMMODARGS(OR($system-auth-ac, $common-auth), password,  pam_unix, sha512)))"
+	},
+  "nist_V-38658": {
+	"category": "security",
+        "rule": "MUST(GE(PAMMODARGS(OR($system-auth, $common-auth), password,  pam_faillock, remember),24))"
+	},
+  "nist_V-38693": {
+	"category": "security",
+        "rule": "MUST(LE(PAMMODARGS(OR($system-auth, $common-auth), password,  pam_cracklib, maxrepeat),3))"
+	},
+  "nist_V-51875": {
+	"category": "security",
+        "rule": "MUST(EQ(True, PAMMODARGS(OR($system-auth, $common-auth), session,  pam_lastlog, showfailed)))"
+	},
+  "nist_V-51875": {
+	"category": "security",
+        "rule": "MUST(EQ(PAMMODARGS(OR($system-auth, $common-auth), session,  pam_lastlog, showfailed),True))"
+	}
+}

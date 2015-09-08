@@ -1,6 +1,6 @@
 {
   "discovertype": "partitions",
-  "description": "Discover partitions configuration",
+  "description": "partition configuration from partitions",
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/partitions",
   "data": {

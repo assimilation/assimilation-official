@@ -168,7 +168,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "pam",
-	  "description": "Discover PAM configuration in $PAM_DIRECTORY",
+	  "description": "PAM configuration from $PAM_DIRECTORY",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	  "data": {

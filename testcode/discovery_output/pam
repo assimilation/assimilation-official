@@ -1,6 +1,6 @@
 {
   "discovertype": "pam",
-  "description": "Discover PAM configuration in pam",
+  "description": "PAM configuration from pam",
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/pam",
   "data": {

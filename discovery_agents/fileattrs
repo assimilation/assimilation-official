@@ -244,7 +244,7 @@ discover() {
     cat <<-!
 	{
 	  "discovertype": "ls",
-	  "description": "ls-style file information",
+	  "description": "ls-style information about files and directories",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	!
