@@ -1,0 +1,54 @@
+{
+  "discovertype": "sudoers",
+  "description": "sudoers configuration",
+  "host": "FAKETESTHOST",
+  "source": "../../discovery_agents/sudoers",
+  "data": {
+    "HostAliases": {
+       "SPARC": ["bigtime", "eclipse", "moet", "anchor"],
+       "SGI": ["grolsch", "dandelion", "black"],
+       "ALPHA": ["widget", "thalamus", "foobar"],
+       "HPPA": ["boa", "nag", "python"],
+       "CUNETS": ["128.138.0.0/255.255.0.0"],
+       "CSNETS": ["128.138.243.0", "128.138.204.0/24", "128.138.242.0"],
+       "SERVERS": ["master", "mail", "www", "ns"],
+       "CDROM": ["orion", "perseus", "hercules"]
+     },
+    "CommandAliases": {
+       "DUMPS": ["/usr/bin/mt", "/usr/sbin/dump", "/usr/sbin/rdump", "/usr/sbin/restore", "/usr/sbin/rrestore", {"sum": "sha224:0GomF8mNN3wlDt1HD9XldjJ3SNgpFdbjO1+NsQ==", "file": "/home/operator/bin/start_backups"}],
+       "KILL": ["/usr/bin/kill"],
+       "PRINTING": ["/usr/sbin/lpc", "/usr/bin/lprm"],
+       "SHUTDOWN": ["/usr/sbin/shutdown"],
+       "HALT": ["/usr/sbin/halt"],
+       "REBOOT": ["/usr/sbin/reboot"],
+       "SHELLS": ["/usr/bin/sh", "/usr/bin/csh", "/usr/bin/ksh", "/usr/local/bin/tcsh", "/usr/bin/rsh", "/usr/local/bin/zsh"],
+       "SU": ["/usr/bin/su"],
+       "PAGERS": ["/usr/bin/more", "/usr/bin/pg", "/usr/bin/less"]
+     },
+    "UserAliases": {
+       "FULLTIMERS": ["millert", "mikef", "dowdy"],
+       "PARTTIMERS": ["bostley", "jwfox", "crawl"],
+       "WEBMASTERS": ["will", "wendy", "wim"]
+     },
+    "RunasAliases": {
+       "OP": ["root", "operator"],
+       "DB": ["oracle", "sybase"],
+       "ADMINGRP": ["adm", "oper"]
+     },
+    "Defaults": {
+          "user:FULLTIMERS": {"lecture": false},
+          "user:millert": {"authenticate": false},
+          "command:PAGERS": {"noexec": true},
+          "runas:root": {"set_logname": false},
+          "system:SERVERS": {"log_year": true, "logfile": "/var/log/sudo.log"},
+          "ANY": {"syslog": "auth"}
+    },
+    "rules": [
+         {"users": ["root"], "rulelist": [{"hosts": ["ALL"], "runas": {"users":["ALL"], "groups":[]}, "command": "ALL"}]},
+         {"users": ["%wheel"], "rulelist": [{"hosts": ["ALL"], "runas": {"users":["ALL"], "groups":[]}, "command": "ALL"}]},
+         {"users": ["FULLTIMERS"], "rulelist": [{"hosts": ["ALL"], "TAG_NOPASSWD": true, "command": "ALL"}]},
+         {"users": ["PARTTIMERS"], "rulelist": [{"hosts": ["ALL"], "command": "ALL"}]},
+         {"users": ["alanr", "lmb"], "rulelist": [{"hosts": ["10.10.10.100", "ALL"], "command": "ALL"}]}
+    ]
+  }
+}
