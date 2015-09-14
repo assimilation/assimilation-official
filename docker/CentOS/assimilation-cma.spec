@@ -82,7 +82,7 @@
 %endif
 
 Name:       assimilation-cma
-Version:    0.1.4
+Version:    1.0.1
 Release:    0.30
 Summary:    Collective Management Authority (CMA) for Assimilation
 
