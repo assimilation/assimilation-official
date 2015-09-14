@@ -25,10 +25,10 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-DOCKER=docker.io
+DOCKER=docker
 CMA=assim.centos6
 PKGDIR=$(pwd)/
-export ASSIMVERSION="Assimilation-$(hg identify http://hg.linux-ha.org/assimilation | cut -d' ' -f1)"
+export ASSIMVERSION="assimilation-assimilation-official-$(git rev-parse --short master)"
 ./CentOS6-directions --format=dockerfile docker > Dockerfile
 rm -fr $PKGDIR/packages
 $DOCKER build -t $CMA .

@@ -65,6 +65,12 @@ findmnt_info() {
     while 
         read target source fstype options
     do
+        case $fstype in
+            *,*)    # findmnt weirdness
+                    options=$fstype
+                    fstype=$source # Or maybe "kernel"??
+                    ;;
+        esac
         printf '%s"%s": {"source":"%s", "fstype":"%s", "options":{%s}}' \
             "$comma" "$target" "$source" "$fstype" "$(format_options "$options")"
         comma="$linecomma"

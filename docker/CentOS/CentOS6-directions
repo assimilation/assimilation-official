@@ -43,7 +43,7 @@ BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gc
 BUILDREQS_2="$PYSCL-python-setuptools"
 EZINST="pip"
 PIPBUILD="ctypesgen"
-PIPRUN='netaddr getent flask "py2neo<2.0" demjson'
+PIPRUN='netaddr getent flask "py2neo>=2.0" demjson'
 # Python packages we only need for testing
 PIPTEST="testify pylint"
 # RPMs we only need for testing
@@ -53,8 +53,10 @@ NEOPARENT=/var/lib
 NEODIR=$NEOPARENT/neo4j
 NEOEDITION=community
 NEOSERVICE=neo4j-service
-ASSIMVERS=tip
-ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
+ASSIMVERS=master
+#ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
+ASSIMURL=https://github.com/assimilation/assimilation-official/tarball/${ASSIMVERS}
+
 SCLREPO=http://dev.centos.org/centos/6/SCL/scl.repo
 ARCH=x86_64
 LIBSODIUMURL="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.3-1.el6.remi.$ARCH.rpm"
@@ -85,6 +87,7 @@ install_libsodium() {
 download_tarball() {
   cat <<-!
 	# Download the Assimilation tarball "${ASSIMVERS}" from project source control
+	set -x
 	mkdir -p $RPMSRCDIR
 	wget -q ${ASSIMURL} -O ${TARBALL} 
 	!
@@ -93,10 +96,16 @@ download_tarball() {
 rpm_build() {
   cat <<-!
 	# Build the Assimilation RPMs for ${ARCH} from the project tarball
+	set -x
 	yum -y install $BUILDREQS
 	cd $RPMSRCDIR
+	echo foo 1
 	ASSIMVERSION=\$(tar tzf ${TARBALL} | head -1 | sed 's%/.*%%')
 	echo "Downloaded Assimilation version \${ASSIMVERSION}"
+	echo "Version info"
+	tar tzf ${TARBALL} | head -5
+	echo "Looking for spec file"
+	tar tzf ${TARBALL} | grep 'docker'
 	mkdir /tmp/assim-rpm
 	cd /tmp/assim-rpm
 	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec

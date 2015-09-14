@@ -30,6 +30,11 @@
 ######################################################
 FROM ubuntu:latest
 MAINTAINER Alan Robertson <alanr@assimilationsystems.com>
+ENV GITREPOSITORY=assimilation-official
+ENV GITVERSION=master
+ENV GITHUB=https://github.com/assimilation/$GITREPOSITORY
+ENV GITTARZAN=$GITHUB/tarball/$GITVERSION
+ENV GITRAW=https://raw.githubusercontent.com/assimilation/$GITREPOSITORY/$GITVERSION/
 ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
@@ -57,14 +62,14 @@ RUN apt-get update && apt-get -y install --no-install-recommends neo4j
 ###############################################################
 RUN cd /root && mkdir -p assimilation/bin/buildtools assimilation/bin/libsodium assimilation/packages
 #   Import our script for building libsodium...
-ADD http://hg.linux-ha.org/assimilation/raw-file/tip/buildtools/libsodium.mkdeb.sh /root/assimilation/bin/buildtools/
+ADD $GITRAW/buildtools/libsodium.mkdeb.sh /root/assimilation/bin/buildtools/
 RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh &&  dpkg --install *.deb && cp *.deb /root/assimilation/packages
 
 ###############################################################
 #   Build and install Packages from Assimilation Source
 ###############################################################
-ADD http://hg.linux-ha.org/assimilation/archive/tip.tar.gz /root/assimilation/
-RUN cd /root/assimilation/ && tar xzf tip.tar.gz && mv Assimilation-* src
+ADD $GITTARZAN /root/assimilation/
+RUN cd /root/assimilation/ && tar xzf $GITVERSION && mv [Aa]ssimilation-* src
 RUN cd /root/assimilation/bin; cmake ../src && make install && cpack
 #   Set up Assimilation encryption keys
 RUN mkdir -p /usr/share/assimilation/crypto.d  /tmp/cores # putting --mode 0700 on mkdir screws up security attributes (don't do it!)
