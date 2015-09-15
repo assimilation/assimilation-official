@@ -23,7 +23,7 @@ all the configuation and status information for the collection of machines
 package to talk to <i>neo4j</i>.
 
 This document is a more detailed version of the information provided in the project
-<a href="http://linux-ha.org/source-doc/assimilation/html/_r_e_a_d_m_e.html">README</a> file.
+<a href="http://linux-ha.org/source-doc/assimilation/html/md__r_e_a_d_m_e.html">README.md</a> file.
 
 You can either install pre-built packages, or you can build from source and install the packages you built yourself.
 If you can, we recommend installing our pre-built packages.

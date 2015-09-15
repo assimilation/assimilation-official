@@ -1,16 +1,16 @@
-/** @page README Assimilation README file
 Welcome to the Assimilation README file :-D.
 
-This code builds with cmake, not the autofoo tools...
+This code builds with cmake, not autotools.
 You can find a formatted version of this README online at
-http://linux-ha.org/source-doc/assimilation/html/_r_e_a_d_m_e.html
+http://linux-ha.org/source-doc/assimilation/html/md__r_e_a_d_m_e.html
 A more detailed Getting Started guide can be found here
 http://linux-ha.org/source-doc/assimilation/html/_getting_started.html
 The project home page is at http://assimmon.org/ - check it out!
 Please join the project mailing list at http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
 
 
-@section Dependencies
+# Dependencies
+
 We like to have a reasonable number of things in the build environment.
 - Cmake (and cpack) - http://cmake.org/
 - C compiler (gcc, clang, or MS VC tools) - http://www.gnu.org/software/gcc/ <i>et al</i>
@@ -28,13 +28,19 @@ In addition, the following systems are needed in the runtime environment for the
 - Neo4J - http://neo4j.org/
 - py2neo - http://py2neo.org/	(<tt>pip install py2neo</tt>)
 
-@section GettingSource Getting Source for the Assimilation Monitoring Project
+# GettingSource 
+
+Getting Source for the Assimilation Monitoring Project
 The source to the Assimilation Project can be found at http://hg.linux-ha.org/
 
-@section MakingIt Making The Assimilation Monitoring System from Source
-If you know how to use cmake, you probably already know what to do.
+# MakingIt 
 
-@subsection MakingItForLinux Making The Assimilation Monitoring System for *NIX Systems
+Making The Assimilation Monitoring System from Source is done with cmake.
+
+
+## MakingItForLinux 
+
+Making The Assimilation Monitoring System for *NIX Systems
 If not, you can follow these instructions for *NIX type systems.
 - Extract the source into "path-to-source-directory"
 - mkdir "path-to-binary-directory"
@@ -42,7 +48,9 @@ If not, you can follow these instructions for *NIX type systems.
 - cmake "path-to-source-directory"
 - make install
 
-@subsection MakingRPMandDEBPackages Making RPM or DEB packages
+## MakingRPMandDEBPackages 
+
+Making RPM or DEB packages
 The Cmake project provides cpack to make minimal RPM and DEB packages
 Cpack also makes OS X and Windows packages - but that's untested.
 Patches to make this work would be appreciated.
@@ -59,10 +67,14 @@ If it can't figure out which kind of package to build, it will default to buildi
 Patches are being solicited to build Windows and OS X packages (read the cpack docs).
 Other package formats aren't supported by cpack, and will have to be supported by other mechanisms.
 
-@subsection MakingItForWindows Making The Assimilation Monitoring System for Windows
+## MakingItForWindows 
+
+Making The Assimilation Monitoring System for Windows
 - That's something we need to work out.  An earlier verison of 'nanoprobe' did compile and run successfully on Windows
 
-@section TestingIt Running our Tests
+# TestingIt
+
+Running our Tests
 There are currently two test modules that you can run after building it.  They can be run
 like this:
 - cd testcode; sh path-to-source-tree/testcode/grind.sh	# Assumes you have valgrind installed.
@@ -75,8 +87,8 @@ or the installed version in the python install place
 (on my machine that's currently /usr/lib/python2.7/dist-packages/assimilation)
 
 
-@section OtherTargets Other Make Targets
+# OtherTargets 
+
+Other Make Targets
 - doc - makes the documentation If you just want to view the latest version online,
 go to http://assimmon.org/
-
-*/
