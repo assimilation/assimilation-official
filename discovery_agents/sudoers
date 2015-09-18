@@ -48,6 +48,11 @@ RULES="${TMPDIR}/Rules"
 nl='
 '
 
+#	Read a single line - allow for "line" to be missing
+firstline() {
+	head -n 1
+}
+
 #   Read a line with \ as continuation charcter at the end of the line
 read_cont_line() {
     initline=''
@@ -380,7 +385,7 @@ process_rules() {
       read cmd_spec
     do
         rulelist=$(divide_up_rule $cmd_spec)
-        user_list=$(echo "$rulelist" | line)
+        user_list=$(echo "$rulelist" | firstline)
         everything_else=$(echo "$rulelist" | tail -1)
         usercomma=''
         printf '%s{"users": [' "$cmdcomma"
