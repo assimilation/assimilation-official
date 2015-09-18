@@ -1,0 +1,9 @@
+wget -O - http://debian.neo4j.org/neotechnology.gpg.key| apt-key add - # Import our signing key
+echo 'deb http://debian.neo4j.org/repo stable/' > /etc/apt/sources.list.d/neo4j.list # Create an Apt sources.list file
+apt-get update -y # Find out about the files in our repository
+apt-get install neo4j -y # Install Neo4j, community edition
+NEOROOT="/var/lib/neo4j"
+export NEOROOT
+cat $NEOROOT/conf/neo4j-server.properties
+echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
+service neo4j-service restart

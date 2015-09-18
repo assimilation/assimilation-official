@@ -1,0 +1,33 @@
+sudo: required
+language: c
+
+env:
+  global:
+    - BROKENDNS=1
+
+install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-gi python-netaddr python-demjson openjdk-7-jre
+  - sudo -H pip install --upgrade pip
+  - sudo -H pip install ctypesgen testify flask getent py2neo
+before_script:
+  - sudo $TRAVIS_BUILD_DIR/ci/install_neo4j
+  - sudo $TRAVIS_BUILD_DIR/ci/install_libsodium
+script:
+  - cd $TRAVIS_BUILD_DIR
+  - cd ..
+  - mkdir root_of_binary_tree
+  - cd root_of_binary_tree
+  - cmake $TRAVIS_BUILD_DIR
+  - sudo make install
+  - sudo ldconfig /usr/lib/x86_64-linux-gnu/assimilation
+  - sudo cpack
+  - sudo dpkg -i *.deb
+  - sudo /etc/init.d/nanoprobe stop
+  - sudo /etc/init.d/cma stop
+  - sudo assimcli genkeys
+  - cd $TRAVIS_BUILD_DIR/cma
+  - sudo testify -v tests
+  - $TRAVIS_BUILD_DIR/discovery_agents/netconfig
+  - cd $TRAVIS_BUILD_DIR
+  - ../root_of_binary_tree/testcode/pinger ::1

@@ -1,0 +1,8 @@
+wget https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+tar xvfz LATEST.tar.gz
+cd libsodium*
+./configure
+make
+make check
+sudo make install
+ldconfig
