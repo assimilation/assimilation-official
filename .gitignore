@@ -45,7 +45,11 @@ docfiles/html
 cma/systemtests/*
 */build.out
 */docker.out
+test.out
+*/test.out
 docker/CentOS/Dockerfile
+docker/installertest/Dockerfile
+docker/installertest/installme
 docker/Ubuntu/trusty
 docker/Ubuntu/lucid
 docker/Ubuntu/utopic

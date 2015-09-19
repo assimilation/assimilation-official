@@ -1,0 +1,65 @@
+#!/bin/sh -eu
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=80
+#
+# Program for testing our magical 'installme' script in different
+# Linux environments
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+#   - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
+#
+
+setup() {
+    LOGGER=rsyslog
+    cp ../../buildtools/installme .
+    ls -l installme
+    case $1 in
+        *centos*)           INSTALLER=yum;;
+        *ubuntu*|*debian)   INSTALLER=apt-get;;
+    esac
+    cat <<-! > Dockerfile
+		FROM $1
+		ENV WORK /tmp/workdir
+		RUN mkdir /tmp/workdir
+		WORKDIR /tmp/workdir
+		RUN : "Version $(date)"
+		ADD installme /tmp/workdir/
+		RUN chmod 755 installme
+		RUN ls -l \$WORK
+		RUN $INSTALLER -q -y install ${LOGGER}
+		RUN /bin/sh -e installme --startrsyslog $2 || true
+		!
+}
+
+#for pairs in ubuntu:vivid ubuntu:trusty centos:centos6 centos:centos7
+#for pairs in centos:centos6
+for pairs in ubuntu:vivid ubuntu:trusty centos:centos6 centos:centos7
+do
+    for role in test cma nanoprobe
+    do
+        setup $pairs $role
+        echo "RUNNING TEST FOR $pairs in role $role $(date)"
+        time docker build .
+        echo "TEST FOR $pairs in role $role COMPLETE $(date)"
+    done
+done
