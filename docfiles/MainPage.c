@@ -1,7 +1,7 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section overview Overview
-Welcome to the Assimilation project. (@ref README "README") @htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly - proudly sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Limited</a>.
+Welcome to the Assimilation project. (@ref README.md "README") @htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly - proudly sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Limited</a>.
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
 Here are the problems we address:
