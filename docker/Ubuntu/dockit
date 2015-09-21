@@ -57,15 +57,21 @@ case $1 in
         mkdir local
         cd local
         pwd
-        (D=$PWD; cd ../../.. && git archive -o $D/tip.tar.gz HEAD)
+        (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
+        62,65c64,68
+
         cat $DOCKERFILE |
-        sed -e 's%http://hg.linux-ha.org/assimilation/archive/%%'                   \
-            -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG                           \
-            -e 's%RUN.* mv Assimilation-.*%RUN cd /root/assimilation; mv tip src%'  \
-            -e 's%RUN service rsyslog start.*testify%#&%'                           \
+        sed -e 's%ENV GITTARZAN=.*%ENV GITTARZAN=tip.tar.gz%'   \
+            -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG       \
+            -e 's%RUN.* mv .*ssimilation-.*%# &%'               \
+            -e "s%@OURDATE@%$(date)%"                           \
+            -e 's%RUN service rsyslog start.*testify%#&%'       \
             > Dockerfile
         ;;
-    *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG > Dockerfile
+    *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG \
+                "s%@OURDATE@%$(date)%" > Dockerfile
+    74c75,76
+
         ;;
 esac
 grep 'FROM.*ubuntu:' Dockerfile

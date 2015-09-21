@@ -68,6 +68,7 @@ RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh
 ###############################################################
 #   Build and install Packages from Assimilation Source
 ###############################################################
+RUN echo @OURDATE@ # to make sure we always rebuild
 ADD $GITTARZAN /root/assimilation/
 RUN cd /root/assimilation/ && tar xzf $GITVERSION && mv [Aa]ssimilation-* src
 RUN cd /root/assimilation/bin; cmake ../src && make install && cpack
@@ -88,7 +89,7 @@ RUN pip install 'mock<1.1.3' # testify wants this, but we don't use features tha
 #               Versions starting with 1.1.3 don't install on earlier systems
 RUN pip install 'testify'
 RUN ls $NEOROOT
-RUN cat $NEOROOT/conf/neo4j-server.properties; echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
+RUN echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 RUN /usr/sbin/rsyslogd&  service neo4j-service start; sleep 5; cd /root/assimilation/src && testify -v cma.tests
 
 ###############################################################
