@@ -479,6 +479,7 @@ format_host_and_commands() {
 
 
 sudoer_info() {
+    export LC_ALL='C' # Make sure sort gives consistent results
     flatten_sudoer_files ${SUDOERS_FILE} > ${EXPANDEDFILE}
     split_sudoers "${EXPANDEDFILE}"
     sort -s -o "${DEFAULTS}" "${DEFAULTS}" 

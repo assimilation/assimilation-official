@@ -84,7 +84,9 @@ RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimil
 ###############################################################
 RUN apt-get -y install --no-install-recommends jq || true
 
-RUN pip install testify
+RUN pip install 'mock<1.1.3' # testify wants this, but we don't use features that need it.
+#               Versions starting with 1.1.3 don't install on earlier systems
+RUN pip install 'testify'
 RUN ls $NEOROOT
 RUN cat $NEOROOT/conf/neo4j-server.properties; echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 RUN /usr/sbin/rsyslogd&  service neo4j-service start; sleep 5; cd /root/assimilation/src && testify -v cma.tests
