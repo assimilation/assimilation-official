@@ -1,0 +1,108 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#   Set up to create the cma.debian docker image and extract the packages it creates
+#   These include both the Assimilation packages and also the libsodium packages
+#   These packages are extracted into the 'packages' subdirectory
+#
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2014 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+#
+#
+set -e 
+ARGS="$*"
+cd $1
+shift
+
+CODENAME=$(basename $PWD)
+NANONAME="assimilation/nanoprobe-$CODENAME"
+CMANAME="assimilation/cma-$CODENAME"
+DOCKERFILE="$PWD/../Dockerfile"
+NANOFILE="$PWD/../nanoDockerfile"
+CMAFILE="$PWD/../cmaDockerfile"
+# Note that we just use the one we wrote for Ubuntu...
+STARTFILE="$PWD/../../Ubuntu/cmaStart"
+
+BUILD="assimilation/build-$CODENAME"
+LOCALWS=$HOME/monitor/src
+PKGDIR=$(pwd)/
+rm -fr local nanoprobe cma
+
+# Stuff left over from Ubuntu
+case $CODENAME in
+  wheezy)   EFLAG='-e s%iproute2%%';;
+  *)        EFLAG="";;
+esac
+case $1 in
+  local) 
+        mkdir local
+        cd local
+        pwd
+        (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
+        cat $DOCKERFILE |
+        sed -e 's%ENV GITTARZAN=.*%ENV GITTARZAN=tip.tar.gz%'   \
+            -e "s%debian:latest%debian:$CODENAME%" $EFLAG       \
+            -e 's%RUN.* mv .*ssimilation-.*%# &%'               \
+            -e "s%@OURDATE@%$(date)%"                           \
+            -e 's%RUN service rsyslog start.*testify%#&%'       \
+            > Dockerfile
+        ;;
+    *)  cat $DOCKERFILE | sed -e "s%debian:latest%debian:$CODENAME%" $EFLAG \
+            "s%@OURDATE@%$(date)%" > Dockerfile
+        ;;
+esac
+grep 'FROM.*debian:' Dockerfile
+more Dockerfile
+
+cp /etc/timezone .
+docker build -t $BUILD .
+rm -fr timezone $PKGDIR/packages
+ID=$(docker run -d $BUILD /bin/sleep 5)
+# Note that it will include the last part of the from pathname under the to path...
+docker cp $ID:/root/assimilation/packages $PKGDIR
+echo "Build of $ARGS BUILD complete."
+mkdir nanoprobe cma
+cp $PKGDIR/packages/*.deb nanoprobe/
+PACKAGES=$(ls $PKGDIR/packages)
+NANOPKG=$(echo "$PACKAGES" | grep assimilation-nanoprobe)
+CMAPKG=$(echo "$PACKAGES" | grep assimilation-cma)
+SODIUMPKG=$(echo "$PACKAGES" | grep libsodium_ )
+cat $NANOFILE | sed -e "s%debian:latest%debian:$CODENAME%" $EFLAG   \
+            -e "s%@NANOPKG@%${NANOPKG}%"                            \
+            -e "s%@SODIUMPKG@%${SODIUMPKG}%"                        \
+            > nanoprobe/Dockerfile
+cd nanoprobe
+docker build -t $NANONAME .
+echo "Build of $ARGS $NANONAME complete."
+case $CODENAME in
+  lucid)    echo "No CMA for $CODENAME. We're done."; exit 0;;
+esac
+cd ..
+cp $PKGDIR/packages/*cma*.deb $STARTFILE cma/
+cat $CMAFILE | sed -e "s%@NANOBASE@%${NANONAME}:latest%" ${EFLAG}   \
+            -e "s%@CMAPKG@%${CMAPKG}%"                              \
+            > cma/Dockerfile
+cd cma
+docker build -t $CMANAME .
+echo "Build of $ARGS $CMANAME complete."

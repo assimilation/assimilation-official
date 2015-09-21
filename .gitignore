@@ -15,6 +15,9 @@ Makefile
 *.shell_history
 *.nfs0000*
 */foo
+*/*build.out
+*/*/*build.out
+*/test.out
 testcode/filetest
 testcode/mainlooptest
 testcode/pinger
@@ -41,6 +44,7 @@ buildtools/debian/postinst
 buildtools/debian/postrm
 cma/AssimCtypes.py
 cma/AssimCtypes.py-install
+cma/violations.sqlite
 docfiles/html
 cma/systemtests/*
 */build.out
@@ -50,8 +54,11 @@ test.out
 docker/CentOS/Dockerfile
 docker/installertest/Dockerfile
 docker/installertest/installme
-docker/Ubuntu/trusty
+docker/Debian/jessie
+docker/Debian/sid
+docker/Debian/wheezy
 docker/Ubuntu/lucid
-docker/Ubuntu/utopic
 docker/Ubuntu/precise
+docker/Ubuntu/trusty
+docker/Ubuntu/utopic
 docker/Ubuntu/vivid
