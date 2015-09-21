@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/assimilation/assimilation-official.svg?branch=master)](https://travis-ci.org/assimilation/assimilation-official)
 [![Coverity Status](https://scan.coverity.com/projects/9/badge.svg)](https://scan.coverity.com/projects/9)
 
-Welcome to the Assimilation README file :-D.
+# Welcome to the Assimilation README file :-D.
 
 This code builds with cmake, not autotools.
 You can find a formatted version of this README online at
@@ -12,7 +12,7 @@ The project home page is at http://assimmon.org/ - check it out!
 Please join the project mailing list at http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
 
 
-# Dependencies
+## Dependencies
 
 We like to have a reasonable number of things in the build environment.
 - Cmake (and cpack) - http://cmake.org/
@@ -31,17 +31,17 @@ In addition, the following systems are needed in the runtime environment for the
 - Neo4J - http://neo4j.org/
 - py2neo - http://py2neo.org/	(<tt>pip install py2neo</tt>)
 
-# GettingSource 
+## GettingSource 
 
 Getting Source for the Assimilation Monitoring Project
 The source to the Assimilation Project can be found at http://hg.linux-ha.org/
 
-# MakingIt 
+## MakingIt 
 
 Making The Assimilation Monitoring System from Source is done with cmake.
 
 
-## MakingItForLinux 
+### MakingItForLinux 
 
 Making The Assimilation Monitoring System for *NIX Systems
 If not, you can follow these instructions for *NIX type systems.
@@ -51,7 +51,7 @@ If not, you can follow these instructions for *NIX type systems.
 - cmake "path-to-source-directory"
 - make install
 
-## MakingRPMandDEBPackages 
+### MakingRPMandDEBPackages 
 
 Making RPM or DEB packages
 The Cmake project provides cpack to make minimal RPM and DEB packages
@@ -70,12 +70,12 @@ If it can't figure out which kind of package to build, it will default to buildi
 Patches are being solicited to build Windows and OS X packages (read the cpack docs).
 Other package formats aren't supported by cpack, and will have to be supported by other mechanisms.
 
-## MakingItForWindows 
+### MakingItForWindows 
 
 Making The Assimilation Monitoring System for Windows
 - That's something we need to work out.  An earlier verison of 'nanoprobe' did compile and run successfully on Windows
 
-# TestingIt
+## TestingIt
 
 Running our Tests
 There are currently two test modules that you can run after building it.  They can be run
@@ -90,7 +90,7 @@ or the installed version in the python install place
 (on my machine that's currently /usr/lib/python2.7/dist-packages/assimilation)
 
 
-# OtherTargets 
+## OtherTargets 
 
 Other Make Targets
 - doc - makes the documentation If you just want to view the latest version online,
