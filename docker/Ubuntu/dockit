@@ -58,7 +58,6 @@ case $1 in
         cd local
         pwd
         (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
-        62,65c64,68
 
         cat $DOCKERFILE |
         sed -e 's%ENV GITTARZAN=.*%ENV GITTARZAN=tip.tar.gz%'   \
@@ -70,8 +69,6 @@ case $1 in
         ;;
     *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG \
                 "s%@OURDATE@%$(date)%" > Dockerfile
-    74c75,76
-
         ;;
 esac
 grep 'FROM.*ubuntu:' Dockerfile
