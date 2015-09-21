@@ -36,12 +36,12 @@
        "ADMINGRP": ["adm", "oper"]
      },
     "Defaults": {
+          "ANY": {"syslog": "auth"}
+          "command:PAGERS": {"noexec": true},
           "user:FULLTIMERS": {"lecture": false},
           "user:millert": {"authenticate": false},
-          "command:PAGERS": {"noexec": true},
           "runas:root": {"set_logname": false},
           "system:SERVERS": {"log_year": true, "logfile": "/var/log/sudo.log"},
-          "ANY": {"syslog": "auth"}
     },
     "rules": [
          {"users": ["root"], "rulelist": [{"hosts": ["ALL"], "runas": {"users":["ALL"], "groups":[]}, "command": "ALL"}]},
