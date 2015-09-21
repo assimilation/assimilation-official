@@ -362,7 +362,7 @@ fi
 
 
 %files
-%doc legal/COPYING README
+%doc legal/COPYING README.md
 %{_sbindir}/cma
 %{_sbindir}/assimcli
 %attr(0755,%{cma_user},%{cma_group}) %dir %{cma_rundir}
