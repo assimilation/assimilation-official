@@ -2,7 +2,7 @@
 #
 # This file is part of the Assimilation Project.
 #
-# Copyright (C) 2011, 2012, 2013, 2014 - Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2011-2015 - Alan Robertson <alanr@unix.sh>
 #
 #  The Assimilation software is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -69,15 +69,12 @@ if (SYSTYPE STREQUAL "Linux" OR SYSTYPE STREQUAL "linux")
   execute_process (OUTPUT_VARIABLE RELEASE     OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND lsb_release -sr)
   if (DISTRIBUTOR STREQUAL "Ubuntu" AND RELEASE VERSION_LESS "14.04")
     set (IPROUTE "iproute,")
-  else (DISTRIBUTOR STREQUAL "Ubuntu" AND RELEASE VERSION_LESS "14.04")
-    set (IPROUTE "iproute2,")
-  endif (DISTRIBUTOR STREQUAL "Ubuntu" AND RELEASE VERSION_LESS "14.04")
-  if (DISTRIBUTOR STREQUAL "Debian" AND RELEASE VERSION_LESS "8.0")
+  elseif (DISTRIBUTOR STREQUAL "Debian" AND RELEASE VERSION_LESS "8.0")
     set (IPROUTE "iproute,")
-  endif (DISTRIBUTOR STREQUAL "Debian" AND RELEASE VERSION_LESS "8.0")
-
+  else (DISTRIBUTOR STREQUAL "Debian" AND RELEASE VERSION_LESS "8.0")
+      set (IPROUTE "iproute2,")
+  endif (DISTRIBUTOR STREQUAL "Ubuntu" AND RELEASE VERSION_LESS "14.04")
 endif (SYSTYPE STREQUAL "Linux" OR SYSTYPE STREQUAL "linux")
-
 
 
 
@@ -193,6 +190,8 @@ set (SERVERLIB ${PROJECT_NAME}serverlib)
 # This isn't perfect, but it should be good enough for us to get things going...
 execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/install-path.py)
 set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
+MESSAGE ("Python INSTALLDIR IS ${PYINSTALL}")
+
 
 set (DAGENTS discovery_agents)
 set (BPRULES best_practices)

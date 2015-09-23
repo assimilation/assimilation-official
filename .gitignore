@@ -15,9 +15,10 @@ Makefile
 *.shell_history
 *.nfs0000*
 */foo
-*/*build.out
-*/*/*build.out
-*/test.out
+*.out
+*/*.out
+*/*/*.out
+*/*/*/*.out
 testcode/filetest
 testcode/mainlooptest
 testcode/pinger
@@ -34,7 +35,6 @@ include/frametypes.h
 include/projectcommon.h
 nanoprobe/nanoprobe
 install_manifest.txt
-discovery_agents/*.out
 discovery_agents/*.txt
 _CPack_Packages/*
 *.deb
@@ -47,10 +47,6 @@ cma/AssimCtypes.py-install
 cma/violations.sqlite
 docfiles/html
 cma/systemtests/*
-*/build.out
-*/docker.out
-test.out
-*/test.out
 docker/CentOS/Dockerfile
 docker/installertest/Dockerfile
 docker/installertest/installme

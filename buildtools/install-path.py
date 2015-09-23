@@ -1,3 +1,4 @@
+#/usr/bin/env python
 #
 #
 # This file is part of the Assimilation Project.
@@ -25,14 +26,5 @@ It is known to work for at least some Ubuntu versions.  Hope it works elsewhere 
 There is no doubt a more wonderful pythonic way to do it.  If you read this and
 know of this better way, please let us know, and we'll fix it.
 '''
-from os.path import join, isfile, isdir
 import sys
-#print sys.path
-if (join(sys.path[1], 'dist-packages')) in sys.path:
-  print join(sys.path[1], 'dist-packages')
-  sys.exit(0)
-for p in sys.path[1:]:
-  if p != '' and isfile(join(p,'README.md')):
-    print p
-    sys.exit(0)
-sys.exit(1)
+print([p for p in sys.path if p.endswith("/dist-packages")][0])
