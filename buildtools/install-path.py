@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#!/usr/bin/env python
 #
 #
 # This file is part of the Assimilation Project.
@@ -27,4 +27,7 @@ There is no doubt a more wonderful pythonic way to do it.  If you read this and
 know of this better way, please let us know, and we'll fix it.
 '''
 import sys
-print([p for p in sys.path if p.endswith("/dist-packages")][0])
+try :
+	print([p for p in sys.path if p.endswith("/dist-packages")][0])
+except IndexError: 
+	print([p for p in sys.path if p.endswith("/site-packages")][0])
