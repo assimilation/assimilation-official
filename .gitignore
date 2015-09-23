@@ -53,6 +53,7 @@ docker/installertest/installme
 docker/Debian/jessie
 docker/Debian/sid
 docker/Debian/wheezy
+docker/Fedora/2[0-9]
 docker/Ubuntu/lucid
 docker/Ubuntu/precise
 docker/Ubuntu/trusty
