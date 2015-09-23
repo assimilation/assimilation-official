@@ -69,7 +69,7 @@ case $1 in
             > Dockerfile
         ;;
     *)  cat $DOCKERFILE | sed -e "s%debian:latest%debian:$CODENAME%" $EFLAG \
-            "s%@OURDATE@%$(date)%" > Dockerfile
+            -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;
 esac
 grep 'FROM.*debian:' Dockerfile
