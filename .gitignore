@@ -47,6 +47,7 @@ cma/AssimCtypes.py-install
 cma/violations.sqlite
 docfiles/html
 cma/systemtests/*
+docker/CentOS6/Dockerfile
 docker/CentOS/Dockerfile
 docker/installertest/Dockerfile
 docker/installertest/installme

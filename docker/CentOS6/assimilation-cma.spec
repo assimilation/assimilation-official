@@ -270,8 +270,8 @@ cp -a build/doxygen/html %{buildroot}%{_docdir}/assimilation
 %endif
 
 %if %{uses_systemd}
-install -p -D -m0644 %{_builddir}/%{assimversion}/docker/CentOS/assimilation-cma.service %{buildroot}%{_unitdir}/assimilation-cma.service
-install -p -D -m0644 %{_builddir}/%{assimversion}/docker/CentOS/assimilation-nanoprobe.service %{buildroot}%{_unitdir}/assimilation-nanoprobe.service
+install -p -D -m0644 %{_builddir}/%{assimversion}/docker/CentOS6/assimilation-cma.service %{buildroot}%{_unitdir}/assimilation-cma.service
+install -p -D -m0644 %{_builddir}/%{assimversion}/docker/CentOS6/assimilation-nanoprobe.service %{buildroot}%{_unitdir}/assimilation-nanoprobe.service
 %else
 install -p -D -m0755 %{buildroot}/etc/init.d/cma       %{buildroot}%{_initddir}/assimilation-cma
 install -p -D -m0755 %{buildroot}/etc/init.d/nanoprobe %{buildroot}%{_initddir}/assimilation-nanoprobe

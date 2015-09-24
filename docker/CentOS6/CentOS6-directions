@@ -106,12 +106,12 @@ rpm_build() {
 	echo TAR VERSION IS $(tar tzf $RPMSRCDIR/master.tar.gz | head -n1 | sed 's%/.*%%')
 	mkdir /tmp/assim-rpm
 	cd /tmp/assim-rpm
-	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec
+	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS6/assimilation-cma.spec
 	rm -f $RPMDIR/RPMS/${ARCH}/assimilation-*.rpm
 	mv $TARBALL $RPMSRCDIR/\${ASSIMVERSION}.tgz
 	scl enable $PYSCL 'easy_install pip'
 	scl enable $PYSCL 'pip install ${PIPBUILD}'
-	rpmbuild -ba /tmp/assim-rpm/\${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec --define="assimversion \${ASSIMVERSION}" --define="libsodium libsodium-last"
+	rpmbuild -ba /tmp/assim-rpm/\${ASSIMVERSION}/docker/CentOS6/assimilation-cma.spec --define="assimversion \${ASSIMVERSION}" --define="libsodium libsodium-last"
 	cd /
 	rm -fr /tmp/assim-rpm
 	!
