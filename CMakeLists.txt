@@ -439,7 +439,7 @@ install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-compon
 #install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 
 # Create the CMA user id at install time as part of the CMA component
-install (CODE "execute_process ( COMMAND /bin/sh -c \"getent passwd assimilation >/dev/null || adduser --disabled-login --disabled-password --no-create-home --gecos 'Assimilation software CMA' --shell /bin/false ${CMAUSERID}\" )" COMPONENT cma-component ) 
+install (CODE "execute_process ( COMMAND /bin/sh -c \"getent passwd assimilation >/dev/null || adduser --system --no-create-home --gecos 'Assimilation software CMA' --shell /bin/false ${CMAUSERID}\" )" COMPONENT cma-component ) 
 
 
 #
