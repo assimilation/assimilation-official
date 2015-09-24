@@ -68,7 +68,7 @@ case $1 in
             > Dockerfile
         ;;
     *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG \
-                "s%@OURDATE@%$(date)%" > Dockerfile
+                -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;
 esac
 grep 'FROM.*ubuntu:' Dockerfile

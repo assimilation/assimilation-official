@@ -1,7 +1,7 @@
 #!/bin/sh
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
-#   Set up to create the cma.fedora docker image and extract the packages it creates
+#   Set up to create the cma.centos docker image and extract the packages it creates
 #   These include both the Assimilation packages and also the libsodium packages
 #   These packages are extracted into the 'packages' subdirectory
 #
@@ -33,25 +33,19 @@
 set -e 
 ARGS="$*"
 cd $1
-if
-    [ $1 -gt 21 ]
-then
-    YUM='dnf -y'
-else
-    YUM='yum -y'
-fi
+YUM='yum -y'
 shift
 
-FEDORAREL=$(basename $PWD)
-NANONAME="assimilation/nanoprobe-$FEDORAREL"
-CMANAME="assimilation/cma-$FEDORAREL"
+CENTOSREL=$(basename $PWD)
+NANONAME="assimilation/nanoprobe-$CENTOSREL"
+CMANAME="assimilation/cma-$CENTOSREL"
 DOCKERFILE="$PWD/../Dockerfile"
 NANOFILE="$PWD/../nanoDockerfile"
 CMAFILE="$PWD/../cmaDockerfile"
 # Note that we just use the one we wrote for Ubuntu...
 STARTFILE="$PWD/../../Ubuntu/cmaStart"
 
-BUILD="assimilation/build_fedora_$FEDORAREL"
+BUILD="assimilation/build_centos_$CENTOSREL"
 LOCALWS=$HOME/monitor/src
 PKGDIR=$(pwd)/packages
 rm -fr local
@@ -67,7 +61,7 @@ case $1 in
         (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
         cat $DOCKERFILE |
         sed -e 's%ENV GITTARZAN=.*%ENV GITTARZAN=tip.tar.gz%'   \
-            -e "s%fedora:latest%fedora:$FEDORAREL%" $EFLAG      \
+            -e "s%centos:latest%centos:$CENTOSREL%" $EFLAG      \
             -e "s%^ENV GITHASH=.*%ENV GITHASH=$GITHASH%"        \
             -e 's%^RUN.* mv .*ssimilation-.*%# &%'              \
             -e "s%@YUM@%${YUM}%"                                \
@@ -77,13 +71,13 @@ case $1 in
         ;;
     *)  GITHASH=$(git rev-parse --short HEAD)
         cat $DOCKERFILE |                                       \
-            sed -e "s%fedora:latest%fedora:$FEDORAREL%" $EFLAG  \
+            sed -e "s%centos:latest%centos:$CENTOSREL%" $EFLAG  \
             -e "s%^ENV GITHASH=.*%ENV GITHASH=$GITHASH%"        \
             -e "s%@YUM@%${YUM}%"                                \
             -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;
 esac
-grep 'FROM.*fedora:' Dockerfile
+grep 'FROM.*centos:' Dockerfile
 
 cp /etc/timezone .
 docker build -t $BUILD .

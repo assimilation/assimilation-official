@@ -1,0 +1,136 @@
+#!/bin/sh -eu
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+#	Builditall: build all our platforms using Docker
+#
+#	That's a lot of plaftforms - all 64-bit
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+
+TMPDIR=$(mktemp -d)
+trap 'rm -fr ${TMPDIR}' 0
+touch $TMPDIR/failures
+touch $TMPDIR/successes
+
+log_success() {
+    echo "$*" >> $TMPDIR/successes
+}
+log_failure() {
+    echo "$*" >> $TMPDIR/failures
+}
+
+
+smiley=':-D'
+frowny=':-('
+
+buildaplatform() {
+    (
+        plat=$1
+        pkg=${2-.}
+        cd $plat
+        if
+            [ $# -gt 1 ]
+        then
+            mkdir -p $pkg
+        fi
+        if
+            (time ./dockit $pkg) > ${pkg}/build.out 2>&1
+        then
+            signpackages ${pkg}/build.out ${pkg}/packages
+            rc=$?
+            if
+                [ $rc -eq 0 ]
+            then
+                log_success $*
+                cat <<-!HURRAY >&2
+					AWESOME! BUILD OF $plat:${pkg} SUCCEEDED! $smiley
+					Output is in $plat/${pkg}/build.out
+					!HURRAY
+            fi
+            exit $rc
+        else
+            rc=$?
+            log_failure $*
+            cat <<-!OOPS >&2
+				BUILD of $plat:${pkg} failed $frowny [rc=$rc]
+				Output is in $plat/${pkg}/build.out
+				!OOPS
+            exit $rc
+        fi
+    )
+
+}
+
+# Create SHA256 sums for the packages we created
+signpackages() {
+    : Do something...
+    (cd $2; sha256sum *) >> $1
+    cp $1 $2
+}
+
+buildcentos() {
+    # CentOS images on Docker: https://hub.docker.com/_/centos/
+    # CentOS end of life: https://wiki.centos.org/FAQ/General#head-fe8a0be91ee3e7dea812e8694491e1dde5b75e6d
+    # Similar for Red Hat: https://access.redhat.com/support/policy/updates/errata
+    buildaplatform CentOS6 # It's Unique...
+    for centos in centos7
+    do
+        buildaplatform CentOS $centos
+    done
+}
+
+buildfedora() {
+    # Fedora release schedule: https://fedoraproject.org/wiki/Releases
+    # Fedora images on Docker: https://hub.docker.com/_/fedora/
+    for fedora in 21 22 # 23
+    do
+        buildaplatform Fedora $fedora
+    done
+}
+
+buildubuntu() {
+    # Ubuntu images on Docker: https://hub.docker.com/_/ubuntu/
+    # Ubuntu end-of-lifes: http://www.ubuntu.com/info/release-end-of-life
+    # Ubuntu releases https://wiki.ubuntu.com/Releases
+    for ubuntu in precise trusty vivid # wily
+    do
+        buildaplatform Ubuntu $ubuntu
+    done
+}
+builddebian() {
+    for debian in jessie wheezy
+    do
+        buildaplatform Debian $debian
+    done
+}
+buildcentos &
+buildubuntu &
+builddebian &
+buildfedora &
+wait
+printf "\nSuccesses:\n"
+cat $TMPDIR/successes
+printf "\nFailures:\n"
+cat $TMPDIR/failures
+
+test ! -s $TMPDIR/failures

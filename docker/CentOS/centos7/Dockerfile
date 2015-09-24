@@ -1,14 +1,14 @@
-FROM fedora:latest
+FROM centos:centos7
 # Tag in "FROM" will be replaced by "dockit" script
 MAINTAINER Alan Robertson <alanr@assimilationsystems.com>
 ENV YUM="yum -y
-ENV YUM="@YUM@"
+ENV YUM="yum -y"
 ENV ARCH=x86_64
 ENV GITREPOSITORY=assimilation-official
 ENV GITVERSION=master
 ENV GITHUB=https://github.com/assimilation/$GITREPOSITORY
 ENV GITTARZAN=$GITHUB/tarball/$GITVERSION
-ENV GITHASH=5e5971a # Will be updated by "dockit" script
+ENV GITHASH=b39e37e
 ENV GITPATH=assimilation-${GITREPOSITORY}-${GITHASH}
 RUN $YUM install epel-release pkg-config || true
 RUN $YUM install deltarpm glib2 libpcap zlib-devel python	\
@@ -19,7 +19,7 @@ RUN $YUM remove vim-minimal && $YUM install doxygen graphviz
 RUN $YUM install python-pip
 RUN pip install testify 'py2neo>2.0' getent netaddr && pip install ctypesgen --pre
 RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
-RUN echo "@OURDATE@"
+RUN echo "Thu Sep 24 11:58:31 MDT 2015"
 RUN mkdir -p /root/assimilation/bin /root/assimilation/packages /run/systemd/journal /root/rpmbuild/SOURCES 
 ADD $GITTARZAN /root/assimilation/
 WORKDIR /root/assimilation
