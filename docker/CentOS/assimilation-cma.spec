@@ -65,7 +65,7 @@
 %global __python_provides %{%{scl_python}_python_provides} 
 %global __os_install_post %{%{scl_python}_os_install_post}
 #%global python_sitearch %{_scl_root}/%{_libdir}/python2.7/site-packages
-%global python_sitearch %{_scl_root}/$(python -c 'import sys; print([p for p in sys.path if p.endswith("dist-packages")][0])')
+%global python_sitearch %{_scl_root}/%(python -c 'import sys; print([p for p in sys.path if p.endswith("dist-packages")][0])')
 
 # You can find libsodium-last at ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm
 # and libsodium-last-devel at ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm
