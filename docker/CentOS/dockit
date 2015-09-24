@@ -29,9 +29,10 @@ DOCKER=docker
 CMA=assim.centos6
 PKGDIR=$(pwd)/
 export ASSIMVERSION="assimilation-assimilation-official-$(git rev-parse --short master)"
+echo $ASSIMVERSION
 ./CentOS6-directions --format=dockerfile docker > Dockerfile
 rm -fr $PKGDIR/packages
 $DOCKER build -t $CMA .
 ID=$(docker run -d $CMA /bin/sleep 5)
 # Note that it will include the last part of the from pathname (i.e. "packages") under the to path...
-docker cp $ID:/tmp/assimilation-test/packages $PKGDIR
+docker cp "$ID:/root/rpmbuild/RPMS/" $PKGDIR

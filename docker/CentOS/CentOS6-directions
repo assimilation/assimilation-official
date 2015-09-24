@@ -78,9 +78,9 @@ enable_repos() {
 install_libsodium() {
   cat <<-!
 	# Pull in and install prebuilt RPMs of libsodium
-	wget -q $LIBSODIUMURL -O /tmp/$(basename $LIBSODIUMURL)
+	wget -q $LIBSODIUMURL -O    /tmp/$(basename $LIBSODIUMURL)
 	wget -q $LIBSODIUMDEVURL -O /tmp/$(basename $LIBSODIUMDEVURL)
-	yum -y install           /tmp/$(basename $LIBSODIUMURL) /tmp/$(basename $LIBSODIUMDEVURL)
+	yum -y install          /tmp/$(basename $LIBSODIUMURL) /tmp/$(basename $LIBSODIUMDEVURL)
 	!
 }
 
@@ -89,23 +89,21 @@ download_tarball() {
 	# Download the Assimilation tarball "${ASSIMVERS}" from project source control
 	set -x
 	mkdir -p $RPMSRCDIR
+	date
 	wget -q ${ASSIMURL} -O ${TARBALL};  : ${ASSIMVERSION}
 	!
 }
 
+tarheadsedcmd="tar tzf ${TARBALL} | head -1 | sed 's%/.*%%'"
 rpm_build() {
   cat <<-!
 	# Build the Assimilation RPMs for ${ARCH} from the project tarball
 	set -x
 	yum -y install $BUILDREQS
 	cd $RPMSRCDIR
-	echo foo 1
-	ASSIMVERSION=\$(tar tzf ${TARBALL} | head -1 | sed 's%/.*%%')
+	ASSIMVERSION=${ASSIMVERSION-$($tarheadsedcmd)}
 	echo "Downloaded Assimilation version \${ASSIMVERSION}"
-	echo "Version info"
-	tar tzf ${TARBALL} | head -5
-	echo "Looking for spec file"
-	tar tzf ${TARBALL} | grep 'docker'
+	echo TAR VERSION IS $(tar tzf $RPMSRCDIR/master.tar.gz | head -n1 | sed 's%/.*%%')
 	mkdir /tmp/assim-rpm
 	cd /tmp/assim-rpm
 	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS/assimilation-cma.spec
@@ -300,9 +298,10 @@ create_dockerfile() {
                 read word morestuff
             do
 				case "$word" in
-				  \#*)				printf '%s %s\n'				"$word $morestuff";;
+				  \#*)				printf '%s %s\n'				"$word" "$morestuff";;
 				  cd)				printf 'WORKDIR %s\n'			"$(echo $morestuff| sed 's%#.*%%')";;
-				  ASSIMVERSION=*)		printf "ENV ASSIMVERSION %s\n"	"${ASSIMVERSION}";;
+				  ASSIMVERSION=*)	printf "ENV ASSIMVERSION=%s\n"	"${ASSIMVERSION-$($tarheadsedcmd)}";;
+				  date)				printf 'RUN echo %s\n' "$(date)";;
 				  service)			printf 'RUN %s'					"$word $morestuff"; suck_up_remaining_tasks "$morestuff";;
 				  wget*)			docker_wget "$word" $morestuff;;
 				  *)				printf 'RUN %s\n'				"$word $morestuff";;
