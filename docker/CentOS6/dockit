@@ -31,6 +31,7 @@ CMA=assim.centos6
 PKGDIR=$(pwd)/packages
 REPO=assimilation/assimilation-official
 HASH=$(git ls-remote --heads https://github.com/$REPO | grep refs/heads/master | cut -c1-7)
+test ! -z "$HASH"
 export ASSIMVERSION="$(echo $REPO | tr '/' '-')-$HASH"
 echo "Working with version $ASSIMVERSION"
 bash ./CentOS6-directions --format=dockerfile docker > Dockerfile
