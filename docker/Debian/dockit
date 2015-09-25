@@ -61,7 +61,7 @@ case $1 in
         pwd
         (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
         cat $DOCKERFILE |
-        sed -e 's%ENV GITTARZAN=.*%ENV GITTARZAN=tip.tar.gz%'   \
+        sed -e 's%ENV GITTARZAN.*%ENV GITTARZAN tip.tar.gz%'   \
             -e "s%debian:latest%debian:$CODENAME%" $EFLAG       \
             -e 's%RUN.* mv .*ssimilation-.*%# &%'               \
             -e "s%@OURDATE@%$(date)%"                           \

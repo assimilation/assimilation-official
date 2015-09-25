@@ -30,11 +30,11 @@
 ######################################################
 FROM debian:latest
 MAINTAINER Alan Robertson <alanr@assimilationsystems.com>
-ENV GITREPOSITORY=assimilation-official
-ENV GITVERSION=master
-ENV GITHUB=https://github.com/assimilation/$GITREPOSITORY
-ENV GITTARZAN=$GITHUB/tarball/$GITVERSION
-ENV GITRAW=https://raw.githubusercontent.com/assimilation/$GITREPOSITORY/$GITVERSION/
+ENV GITREPOSITORY assimilation-official
+ENV GITVERSION master
+ENV GITHUB https://github.com/assimilation/$GITREPOSITORY
+ENV GITTARZAN $GITHUB/tarball/$GITVERSION
+ENV GITRAW https://raw.githubusercontent.com/assimilation/$GITREPOSITORY/$GITVERSION/
 ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections

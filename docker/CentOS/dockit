@@ -60,9 +60,9 @@ case $1 in
         GITHASH=$(git rev-parse --short master)
         (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
         cat $DOCKERFILE |
-        sed -e 's%ENV GITTARZAN=.*%ENV GITTARZAN=tip.tar.gz%'   \
+        sed -e 's%ENV GITTARZAN .*%ENV GITTARZAN tip.tar.gz%'   \
             -e "s%centos:latest%centos:$CENTOSREL%" $EFLAG      \
-            -e "s%^ENV GITHASH=.*%ENV GITHASH=$GITHASH%"        \
+            -e "s%^ENV GITHASH .*%ENV GITHASH $GITHASH%"        \
             -e 's%^RUN.* mv .*ssimilation-.*%# &%'              \
             -e "s%@YUM@%${YUM}%"                                \
             -e "s%@OURDATE@%$(date)%"                           \
@@ -72,7 +72,7 @@ case $1 in
     *)  GITHASH=$(git rev-parse --short HEAD)
         cat $DOCKERFILE |                                       \
             sed -e "s%centos:latest%centos:$CENTOSREL%" $EFLAG  \
-            -e "s%^ENV GITHASH=.*%ENV GITHASH=$GITHASH%"        \
+            -e "s%^ENV GITHASH .*%ENV GITHASH $GITHASH%"        \
             -e "s%@YUM@%${YUM}%"                                \
             -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;

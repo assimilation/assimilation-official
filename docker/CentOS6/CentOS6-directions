@@ -300,7 +300,7 @@ create_dockerfile() {
 				case "$word" in
 				  \#*)				printf '%s %s\n'				"$word" "$morestuff";;
 				  cd)				printf 'WORKDIR %s\n'			"$(echo $morestuff| sed 's%#.*%%')";;
-				  ASSIMVERSION=*)	printf "ENV ASSIMVERSION=%s\n"	"${ASSIMVERSION-$($tarheadsedcmd)}";;
+				  ASSIMVERSION=*)	printf "ENV ASSIMVERSION %s\n"	"${ASSIMVERSION-$($tarheadsedcmd)}";;
 				  date)				printf 'RUN echo %s\n' "$(date)";;
 				  service)			printf 'RUN %s'					"$word $morestuff"; suck_up_remaining_tasks "$morestuff";;
 				  wget*)			docker_wget "$word" $morestuff;;
