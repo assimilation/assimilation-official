@@ -254,10 +254,12 @@ int
 main(int argc, char ** argv)
 {
 #ifdef HAVE_MCHECK_PEDANTIC
-	g_assert(mcheck_pedantic(NULL) == 0);
+	// Unfortunately sometimes being first thing in main isn't soon enough :-(
+	mcheck_pedantic(NULL);
 #else
 #	ifdef HAVE_MCHECK
-	g_assert(mcheck(NULL) == 0);
+	// Unfortunately sometimes being first thing in main isn't soon enough :-(
+	mcheck(NULL);
 #	endif
 #endif
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
