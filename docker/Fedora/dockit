@@ -72,6 +72,7 @@ case $1 in
             -e 's%^RUN.* mv .*ssimilation-.*%# &%'              \
             -e "s%@YUM@%${YUM}%"                                \
             -e "s%@OURDATE@%$(date)%"                           \
+            -e 's%@ARCH@%x86_64%'                           \
             -e 's%RUN service rsyslog start.*testify%#&%'       \
             > Dockerfile
         ;;
@@ -80,6 +81,7 @@ case $1 in
             sed -e "s%fedora:latest%fedora:$FEDORAREL%" $EFLAG  \
             -e "s%^ENV GITHASH.*%ENV GITHASH $GITHASH%"        \
             -e "s%@YUM@%${YUM}%"                                \
+            -e 's%@ARCH@%x86_64%'                           \
             -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;
 esac

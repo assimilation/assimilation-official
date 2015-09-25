@@ -2,7 +2,6 @@ FROM fedora:latest
 # Tag in "FROM" will be replaced by "dockit" script
 MAINTAINER Alan Robertson <alanr@assimilationsystems.com>
 ENV YUM @YUM@
-ENV ARCH x86_64
 ENV GITREPOSITORY assimilation-official
 ENV GITVERSION master
 ENV GITHUB https://github.com/assimilation/$GITREPOSITORY
@@ -33,7 +32,8 @@ RUN cmake ../src && make install
 ENV BROKENDNS true
 RUN $YUM install rsyslog
 RUN $YUM install jq
-WORKDIR /root/rpmbuild/RPMS/$ARCH/
+WORKDIR /root/rpmbuild/RPMS/@ARCH@/
+RUN pwd
 RUN $YUM install assimilation-nanoprobe*.rpm assimilation-cma*.rpm
 RUN echo "/usr/lib*/assimilation" > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib*/assimilation
 WORKDIR /root/assimilation/src/cma
@@ -43,6 +43,6 @@ RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
 RUN $YUM install python-demjson
 RUN rsyslogd && /etc/init.d/neo4j-service start&  sleep 15; ps -ef; ls -l /dev/*log*; testify -v tests
-RUN cp /root/rpmbuild/RPMS/$ARCH/* /root/assimilation/packages
+RUN cp /root/rpmbuild/RPMS/@ARCH@/* /root/assimilation/packages
 RUN echo "GOOD BUILD: fedora:latest" # Will be updated by "dockit" script
 ###  Our RPMs
