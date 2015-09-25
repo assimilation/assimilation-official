@@ -29,6 +29,8 @@
 #ifdef HAVE_UNISTD_H
 #	include <unistd.h>
 #endif
+#include <sys/types.h>
+#include <signal.h>
 #include <string.h>
 #include <glib.h>
 #include <gmainfd.h>
@@ -740,8 +742,10 @@ test_safe_queue_lsbops(void)
 int
 main(int argc, char ** argv)
 {
+	gboolean	can_kill;
 #if 0
 	#ifdef HAVE_MCHECK_PEDANTIC
+		// Unfortunately, even being the first code in main is not soon enough :-(
 		g_assert(mcheck_pedantic(NULL) == 0);
 	#else
 	#	ifdef HAVE_MCHECK
@@ -749,19 +753,28 @@ main(int argc, char ** argv)
 	#	endif
 	#endif
 #endif
+	// Processes run as part of "docker build" can't kill(2) any processes
+	can_kill = (kill(getpid(), 0) == 0);
+	if (!can_kill) {
+		g_message("Tests that kill processes not run.");
+	}
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 	g_test_init(&argc, &argv, NULL);
 	g_test_add_func("/gtest01/gmain/command-output", test_read_command_output_at_EOF);
 	g_test_add_func("/gtest01/gmain/log-command-output", test_log_command_output);
 	g_test_add_func("/gtest01/gmain/childprocess_log_all", test_childprocess_log_all);
 	g_test_add_func("/gtest01/gmain/childprocess_false", test_childprocess_false);
-	g_test_add_func("/gtest01/gmain/childprocess_timeout", test_childprocess_timeout);
+	if (can_kill) {
+		g_test_add_func("/gtest01/gmain/childprocess_timeout", test_childprocess_timeout);
+	}
 	g_test_add_func("/gtest01/gmain/childprocess_save_command_output"
 	,	test_childprocess_save_command_output);
-	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_timeout"
-	,	test_childprocess_save_command_output_timeout);
-	g_test_add_func("/gtest01/gmain/childprocess_save_command_output_signal"
-	,	test_childprocess_save_command_output_signal);
+	if (can_kill) {
+		g_test_add_func("/gtest01/gmain/childprocess_save_command_output_timeout"
+		,	test_childprocess_save_command_output_timeout);
+		g_test_add_func("/gtest01/gmain/childprocess_save_command_output_signal"
+		,	test_childprocess_save_command_output_signal);
+	}
 	g_test_add_func("/gtest01/gmain/childprocess_stderr_logging"
 	,	test_childprocess_stderr_logging);
 	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
