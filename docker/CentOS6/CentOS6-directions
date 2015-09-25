@@ -101,9 +101,9 @@ rpm_build() {
 	set -x
 	yum -y install $BUILDREQS
 	cd $RPMSRCDIR
-	ASSIMVERSION=${ASSIMVERSION-$($tarheadsedcmd)}
+	ASSIMVERSION=${ASSIMVERSION-$(tar tzf $TARBALL | head -n 1 | sed 's%/.*%%')}
 	echo "Downloaded Assimilation version \${ASSIMVERSION}"
-	echo TAR VERSION IS $(tar tzf $RPMSRCDIR/master.tar.gz | head -n1 | sed 's%/.*%%')
+	echo TAR VERSION IS $(tar tzf $TARBALL | head -n 1 | sed 's%/.*%%')
 	mkdir /tmp/assim-rpm
 	cd /tmp/assim-rpm
 	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS6/assimilation-cma.spec
