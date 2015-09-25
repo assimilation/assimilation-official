@@ -60,3 +60,4 @@ docker/Ubuntu/precise
 docker/Ubuntu/trusty
 docker/Ubuntu/utopic
 docker/Ubuntu/vivid
+docker/Ubuntu/wily

@@ -54,8 +54,16 @@ NEODIR=$NEOPARENT/neo4j
 NEOEDITION=community
 NEOSERVICE=neo4j-service
 ASSIMVERS=master
+REPO=assimilation/assimilation-official
+if
+	[ -z "$ASSIMVERSION" ]
+then
+	HASH=$(git ls-remote --heads https://github.com/$REPO | grep refs/heads/master | cut -c1-7)
+  	export ASSIMVERSION="$(echo $REPO | tr '/' '-')-$HASH"
+fi
+echo "Building Version $ASSIMVERSION" >&2
 #ASSIMURL=http://hg.linux-ha.org/assimilation/archive/${ASSIMVERS}.tar.gz
-ASSIMURL=https://github.com/assimilation/assimilation-official/tarball/${ASSIMVERS}
+ASSIMURL=https://github.com/$REPO/tarball/${ASSIMVERS}
 
 SCLREPO=http://dev.centos.org/centos/6/SCL/scl.repo
 ARCH=x86_64
@@ -94,16 +102,15 @@ download_tarball() {
 	!
 }
 
-tarheadsedcmd="tar tzf ${TARBALL} | head -1 | sed 's%/.*%%'"
 rpm_build() {
   cat <<-!
 	# Build the Assimilation RPMs for ${ARCH} from the project tarball
 	set -x
 	yum -y install $BUILDREQS
 	cd $RPMSRCDIR
-	ASSIMVERSION=${ASSIMVERSION-$(tar tzf $TARBALL | head -n 1 | sed 's%/.*%%')}
+	ASSIMVERSION=${ASSIMVERSION}
 	echo "Downloaded Assimilation version \${ASSIMVERSION}"
-	echo TAR VERSION IS $(tar tzf $TARBALL | head -n 1 | sed 's%/.*%%')
+	echo TAR VERSION IS \$(tar tzf $TARBALL 2>/dev/null | head -n 1 | sed 's%/.*%%')
 	mkdir /tmp/assim-rpm
 	cd /tmp/assim-rpm
 	tar xvf ${TARBALL} \${ASSIMVERSION}/docker/CentOS6/assimilation-cma.spec
@@ -208,7 +215,7 @@ run_assimilation_tests() {
 	echo 'dbms.security.auth_enabled=false' >> $NEODIR/conf/neo4j-server.properties
 	cd /tmp/assimilation-test/src/cma
 	service $LOGGER start &
-	service ${NEOSERVICE} start & sleep 10
+	service ${NEOSERVICE} start & sleep 20
 	scl enable $PYSCL 'assimcli genkeys && testify -v tests'
 	!
 }
@@ -226,7 +233,7 @@ copy_packages() {
 
 step_map() {
    cat <<-!STEPMAP
-docker enable_repos install_libsodium download_tarball java_install neo4j_install rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests copy_packages
+docker enable_repos install_libsodium java_install neo4j_install download_tarball rpm_build nanoprobe_rpm_install cma_rpm_install logger_install build_for_test run_assimilation_tests copy_packages
 install_prebuilt_cma manual_package_download enable_repos install_libsodium java_install neo4j_install nanoprobe_rpm_install cma_rpm_install
 install_prebuilt_nanoprobe install_libsodium manual_package_download nanoprobe_rpm_install
 create_docker_cma java_install neo4j_install install_libsodium cma_rpm_install
@@ -302,7 +309,7 @@ create_dockerfile() {
 				  cd)				printf 'WORKDIR %s\n'			"$(echo $morestuff| sed 's%#.*%%')";;
 				  ASSIMVERSION=*)	printf "ENV ASSIMVERSION %s\n"	"${ASSIMVERSION-$($tarheadsedcmd)}";;
 				  date)				printf 'RUN echo %s\n' "$(date)";;
-				  service)			printf 'RUN %s'					"$word $morestuff"; suck_up_remaining_tasks "$morestuff";;
+				  service)			docker_doservice "$word" "$morestuff";;
 				  wget*)			docker_wget "$word" $morestuff;;
 				  *)				printf 'RUN %s\n'				"$word $morestuff";;
 				esac
@@ -310,6 +317,11 @@ create_dockerfile() {
 			)
 			printf '\n'
 	done
+}
+docker_doservice() {
+	(	printf 'RUN %s' "$*"
+	  	suck_up_remaining_tasks "$2"
+	) | sed -e "s% service $NEOSERVICE start% $NEODIR/bin/neo4j console%g"
 }
 
 docker_wget() {

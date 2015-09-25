@@ -47,6 +47,7 @@ buildaplatform() {
     (
         plat=$1
         pkg=${2-.}
+        echo "Building $plat:${pkg} $(date)"
         cd $plat
         if
             [ $# -gt 1 ]
@@ -56,7 +57,7 @@ buildaplatform() {
         if
             (time ./dockit $pkg) > ${pkg}/build.out 2>&1
         then
-            signpackages ${pkg}/build.out ${pkg}/packages
+            signbuilds ${pkg}/build.out ${pkg}/packages
             rc=$?
             if
                 [ $rc -eq 0 ]
@@ -65,6 +66,7 @@ buildaplatform() {
                 cat <<-!HURRAY >&2
 					AWESOME! BUILD OF $plat:${pkg} SUCCEEDED! $smiley
 					Output is in $plat/${pkg}/build.out
+                    $(date)
 					!HURRAY
             fi
             exit $rc
@@ -82,7 +84,7 @@ buildaplatform() {
 }
 
 # Create SHA256 sums for the packages we created
-signpackages() {
+signbuilds() {
     : Do something...
     (cd $2; sha256sum *) >> $1
     cp $1 $2
@@ -102,7 +104,7 @@ buildcentos() {
 buildfedora() {
     # Fedora release schedule: https://fedoraproject.org/wiki/Releases
     # Fedora images on Docker: https://hub.docker.com/_/fedora/
-    for fedora in 21 22 # 23
+    for fedora in 21 22 23
     do
         buildaplatform Fedora $fedora
     done
@@ -112,9 +114,9 @@ buildubuntu() {
     # Ubuntu images on Docker: https://hub.docker.com/_/ubuntu/
     # Ubuntu end-of-lifes: http://www.ubuntu.com/info/release-end-of-life
     # Ubuntu releases https://wiki.ubuntu.com/Releases
-    for ubuntu in precise trusty vivid # wily
+    for ubuntu in precise trusty vivid wily
     do
-        buildaplatform Ubuntu $ubuntu
+        buildaplatform Ubuntu $ubuntu &
     done
 }
 builddebian() {
