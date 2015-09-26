@@ -50,8 +50,12 @@ class CMAinit(object):
         CMAdb.debug = debug
         CMAdb.io = io
         from hbring import HbRing
-        syslog = logging.handlers.SysLogHandler(address='/dev/log'
-        ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
+        try:
+            syslog = logging.handlers.SysLogHandler(address='/dev/log'
+            ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
+        except EnvironmentError:
+            # Docker doesn't really get along with logging - sigh...
+            syslog = logging.handlers.StreamHandler()
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
         CMAdb.log.addHandler(syslog)
         CMAdb.log.setLevel(logging.DEBUG)
