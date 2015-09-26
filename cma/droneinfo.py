@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -67,6 +67,19 @@ class Drone(SystemNode):
 
         The first time around we also initialize a couple of class-wide query
         strings for a few queries we know we'll need later.
+
+        We also behave as though we're a dict from the perspective of JSON attributes.
+        These discovery strings are converted into pyConfigContext objects and are
+        then searchable like dicts themselves - however updating these dicts has
+        no direct impact on the underlying JSON strings stored in the database.
+
+        The reason for treating these as a dict is so we can easily change
+        the implementation to put JSON strings in separate nodes, or perhaps
+        eventually in a separate data store.
+
+        This is necessary because the performance of putting lots of really large
+        strings in Neo4j is absolutely horrible. Putting large strings in is dumb
+        and what Neo4j does with them is even dumber...
         '''
         SystemNode.__init__(self, domain=domain, designation=designation)
         if roles is None:
@@ -157,8 +170,6 @@ class Drone(SystemNode):
         return ret
 
 
-
-
     def get_owned_ips(self):
         '''Return a list of all the IP addresses that this Drone owns'''
         params = {'droneid':Store.id(self)}
@@ -176,7 +187,7 @@ class Drone(SystemNode):
         return self.designation
 
     def logjson(self, origaddr, jsontext):
-        'Process and save away JSON discovery data'
+        'Process and save away JSON discovery data.'
         assert CMAdb.store.has_node(self)
         jsonobj = pyConfigContext(jsontext)
         if not 'discovertype' in jsonobj or not 'data' in jsonobj:
@@ -202,6 +213,85 @@ class Drone(SystemNode):
                     %       (dtype, self.designation))
                 return
         self._process_json(origaddr, jsonobj)
+
+    def jsonval(self, jsontype):
+        'Construct a python object associated with a particular JSON discovery value.'
+        jsonname = 'JSON_' + jsontype
+        if hasattr(self, jsonname):
+            return pyConfigContext(getattr(self, jsonname))
+        else:
+            return None
+
+    def get(self, key, alternative=None):
+        '''Return JSON object if the given key exists - 'alternative' if not.'''
+        ret = self.jsonval(key)
+        return ret if ret is not None else alternative
+
+    def deepget(self, key, alternative=None):
+        '''Return value if object contains the given *structured* key - 'alternative' if not.'''
+        keyparts = key.split('.', 1)
+        if len(keyparts) == 1:
+            return self.get(key, alternative)
+        jsonmap = self.jsonval(keyparts[0])
+        if jsonmap is None:
+            return alternative
+        return jsonmap.deepget(keyparts[1], alternative)
+
+    def __getitem__(self, key):
+        'Return the given JSON value or raise IndexError.'
+        ret = self.jsonval(key)
+        if ret is None:
+            raise IndexError('No such JSON value [%s].' % key)
+        return ret
+
+    def json_eq(self, key, newvalue):
+        '''Return True if this new value is equal to the current value for
+        the given key (JSON attribute name).
+
+        This sounds kinda stupid given the current implementation, but for
+        future implementations, it makes a lot more sense.
+
+        We can store the hash of the current value and compare that without
+        going to a separate data store. Any selected hash value has to be
+        representable in fewer than 60 bytes to maximize Neo4j performance.
+        '''
+        jsonname = 'JSON_' + jsontype
+        return getattr(self, jsonname) == newvalue if hasattr(self, jsonname) else False
+        
+
+    def jsonattrs(self):
+        'Return the names of all our JSON discovery attributes.'
+        return self.keys()
+
+    def keys(self):
+        'Return the names of all our JSON discovery attributes.'
+        return [attr for attr in dir(self) if attr.startswith('JSON_')]
+
+    def __iter__(self):
+        'Iterate over self.keys() - giving the names of all our JSON attributes.'
+        for key in self.keys():
+            yield key
+
+    def __contains__(self, key):
+        'Return True if our object contains the given key.'
+        return hasattr(self, 'JSON_'+key)
+
+    def __len__(self):
+        'Return the number of JSON items in this Drone.'
+        return len(self.keys())
+
+    def __setitem(self, name, value):
+        'Set the given JSON value to the given object/string.'
+        value = str(pyConfigContext(value))
+        setattr(self, 'JSON_' + name, value)
+
+    def __delitem(self, name):
+        'Delete the given JSON value from the Drone.'
+        try:
+            delattr(self, 'JSON_' + name)
+        except AttributeError:
+            raise IndexError('No such JSON attribute [%s].' % name)
+
 
     def _process_json(self, origaddr, jsonobj):
         'Pass the JSON data along to interested discovery plugins (if any)'
@@ -378,7 +468,7 @@ class Drone(SystemNode):
             return
         if keyid is not None and keyid != '':
             if self.key_id != '' and keyid != self.key_id:
-                raise ValueError('Cannot change key ids for % from %s to %s'
+                raise ValueError('Cannot change key ids for % from %s to %s.'
                 %   (str(self), self.key_id, keyid))
             self.key_id = keyid
         # Encryption is required elsewhere - we ignore this here...
