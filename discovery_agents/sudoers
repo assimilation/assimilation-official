@@ -208,8 +208,11 @@ process_defaults() {
             if
                 [ "${prevsect}" != "" ]
             then
-                printf '},\n%s' "$space"
+                printf '}%s\n%s' "$optscomma" "$space"
+            else
+                printf '%s' "$optscomma"
             fi
+            optscomma=","
             prevsect="${default}"
             suffix=$(echo "$default" | sed -e 's%Defaults.%%')
             case $default in
@@ -225,9 +228,7 @@ process_defaults() {
                     printf '    "command:%s": {' "$suffix";;
             esac
         fi
-        printf '%s' "$optscomma"
         process_default_opts ${stuff}
-        optscomma=', '
     done < $1
     printf '}\n    }\n'
 }
