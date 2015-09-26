@@ -85,12 +85,12 @@ flatten_sudoer_files() {
                 dir=$(echo "$cont_line" | sed --e 's%#includedir *%%' -e 's% *$%%')
                 for file in $(echo $dir/*)
                 do
-                    flatten_sudo_files "$file"
+                    flatten_sudoer_files "$file"
                 done
                 ;;
             '#include'*)
                 file=$(echo "$cont_line" | sed --e 's%#include *%%' -e 's *$%%')
-                flatten_sudo_files "$file"
+                flatten_sudoer_files "$file"
                 ;;
             *)  echo "$cont_line"
                 ;;
@@ -197,6 +197,7 @@ process_defaults() {
     fi
     prevsect=''
     space='      '
+    optscomma=''
     printf '"Defaults": {\n%s' "$space"
     while
         read default stuff
@@ -224,7 +225,9 @@ process_defaults() {
                     printf '    "command:%s": {' "$suffix";;
             esac
         fi
+        printf '%s' "$optscomma"
         process_default_opts ${stuff}
+        optscomma=', '
     done < $1
     printf '}\n    }\n'
 }
@@ -242,12 +245,20 @@ process_default_opts() {
                 *=*)    
                     name=$(echo "$arg" | sed 's%=.*%%')
                     value=$(echo "$arg" | sed 's%.*=%%')
-                    printf '%s"%s": "%s"' "$comma" "$name" "$value"
+                    case $value in
+                      '"'*'"')  printf '%s"%s": %s' "$comma" "$name" "$value"
+                                ;;
+                      *)        printf '%s"%s": "%s"' "$comma" "$name" "$value"
+                                ;;
+                    esac
+                    comma=', '
                     ;;
                 !*) name=$(echo "$arg" | sed 's%^!%%')
                     printf '%s"%s": false' "$comma" "$name"
+                    comma=', '
                     ;;
                 ?*) printf '%s"%s": true' "$comma" "$arg"
+                    comma=', '
                     ;;
             esac
             comma=', '
@@ -379,6 +390,7 @@ process_rules() {
     # ":" separates our hostlist = cmd_spec_list
     suffix=$(echo "$suffix" | tr ',' '\012')
     cmdcomma=''
+    listcomma=''
     printf '"rules": [\n         '
     echo "$suffix" |
     while
@@ -397,7 +409,7 @@ process_rules() {
         printf '], "rulelist": ['
         # This uses a GNU Sed extension (\o012 for newline)
         # Sorry!
-        echo "$everything_else" | sed 's% : %\o012%g' |
+        echo "$everything_else" | sed -e 's% : %\o012%g' -e 's%=% = %g' |
         (rulecomma=''
         while
             read a_rule
