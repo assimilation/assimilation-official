@@ -198,6 +198,7 @@ process_defaults() {
     prevsect=''
     space='      '
     optscomma=''
+    sectcomma=''
     printf '"Defaults": {\n%s' "$space"
     while
         read default stuff
@@ -208,13 +209,11 @@ process_defaults() {
             if
                 [ "${prevsect}" != "" ]
             then
-                printf '}%s\n%s' "$optscomma" "$space"
-            else
-                printf '%s' "$optscomma"
+                printf '}%s\n%s' "$sectcomma" "$space"
             fi
-            optscomma=","
             prevsect="${default}"
             suffix=$(echo "$default" | sed -e 's%Defaults.%%')
+            printf '%s' "$optscomma"
             case $default in
                 'Defaults')
                     printf '    "ANY": {';;
@@ -227,8 +226,14 @@ process_defaults() {
                 'Defaults!'*)
                     printf '    "command:%s": {' "$suffix";;
             esac
+            sectcomma=''
+            optscomma=''
+        else
+            optscomma=''
         fi
-        process_default_opts ${stuff}
+        printf '%s%s' "$sectcomma" $(process_default_opts ${stuff})
+        sectcomma=', '
+
     done < $1
     printf '}\n    }\n'
 }
@@ -241,18 +246,15 @@ process_default_opts() {
         comma=''
         for arg
         do
+            # Remove trailing commas...
             arg=$(echo "$arg" | sed 's%,$%%')
             case $arg in
                 *=*)    
                     name=$(echo "$arg" | sed 's%=.*%%')
                     value=$(echo "$arg" | sed 's%.*=%%')
-                    case $value in
-                      '"'*'"')  printf '%s"%s": %s' "$comma" "$name" "$value"
-                                ;;
-                      *)        printf '%s"%s": "%s"' "$comma" "$name" "$value"
-                                ;;
-                    esac
+                    printf '%s' "$comma"
                     comma=', '
+                    process_default_name_value "$name" "$value"
                     ;;
                 !*) name=$(echo "$arg" | sed 's%^!%%')
                     printf '%s"%s": false' "$comma" "$name"
@@ -264,6 +266,42 @@ process_default_opts() {
             esac
             comma=', '
         done
+    )
+}
+
+# Process name/value pairs in the defaults section
+process_default_name_value() {
+    name=$1
+    value=$2
+    case "$name" in
+        *_path)
+                process_path_nv "$name" "$value";;
+        *)  case $value in
+                '"'*'"')  printf '"%s": %s' "$name" "$value"
+                        ;;
+                *)        printf '"%s": "%s"' "$name" "$value"
+                        ;;
+            esac
+            ;;
+    esac
+}
+
+# Process a name/value pair with a :-delimited group of strings...
+process_path_nv() {
+    name=$1
+    value=$(echo "$2" | sed -e 's%^"%%' -e 's%"$%%')
+    (
+        
+        printf '"%s": [' "$name"
+        IFS=':'
+        set -- $value
+        comma=''
+        for dir
+        do
+            printf '%s"%s"' "$comma" "$dir"
+            comma=', '
+        done
+        printf ']'
     )
 }
 
