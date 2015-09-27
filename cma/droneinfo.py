@@ -252,9 +252,9 @@ class Drone(SystemNode):
         going to a separate data store. Any selected hash value has to be
         representable in fewer than 60 bytes to maximize Neo4j performance.
         '''
-        jsonname = 'JSON_' + jsontype
+        jsonname = 'JSON_' + key
         return getattr(self, jsonname) == newvalue if hasattr(self, jsonname) else False
-        
+
 
     def jsonattrs(self):
         'Return the names of all our JSON discovery attributes.'
