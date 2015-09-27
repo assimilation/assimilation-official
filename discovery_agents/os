@@ -21,7 +21,7 @@
 discover() {
     cat <<-!
 	{
-	  "discovertype": "OS",
+	  "discovertype": "os",
 	  "description": "OS information",
 	  "host": "$(uname -n)",
 	  "source": "$0",

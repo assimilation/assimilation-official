@@ -102,6 +102,7 @@ FSTATIC gboolean	shutdown_when_outdone(gpointer unused);
 FSTATIC gboolean	_nano_initconfig_OK(ConfigContext* config);
 FSTATIC gboolean	_nanoprobe_is_cma_frameset(const FrameSet * fs, NetAddr*);
 FSTATIC void		_nanoprobe_associate_cma_addrs(const char *key_id, ConfigContext *cfg);
+FSTATIC void		_nano_initial_discovery(AuthListener*parent, NetAddr*	fromaddr);
 
 HbListener* (*nanoprobe_hblistener_new)(NetAddr*, ConfigContext*) = _real_hblistener_new;
 
@@ -707,6 +708,8 @@ endloop:
 	}
 	if (!nano_connected) {
 		g_message("Connected to CMA.  Happiness :-D");
+		// Do this before we get any more work from the CMA
+		_nano_initial_discovery(parent, fromaddr);
 		nano_connected = TRUE;
 	}
 }//nanoobey_setconfig
@@ -732,6 +735,30 @@ nanoobey_ackstartup(AuthListener* parent	///<[in] @ref AuthListener object invok
 	DUMP2("Received FRAMESETTYPE_ACKSTARTUP from ", &fromaddr->baseclass, NULL);
 	g_info("%s.%d: Configuration from CMA is complete.", __FUNCTION__, __LINE__);
 	nano_config_complete = TRUE;
+}
+
+/**
+ * Perform any self-initiated one-shot discovery actions to make sure these run first.
+ * At this time, this is only used to discover our OS details. We need those to
+ * happen before almost anything else...
+ *
+ */
+FSTATIC void
+_nano_initial_discovery(AuthListener* 	parent
+		,	NetAddr*	fromaddr) {
+	unsigned	j;
+	static struct {
+		const char *	name;
+		const char *	json;
+	} initdiscovery [] = {
+		{ "os",		"{\"type\": \"os\", \"parameters\":{}}"},
+	};
+	for (j=0; j < DIMOF(initdiscovery); ++j) {
+		nano_schedule_discovery(initdiscovery[j].name, 0, initdiscovery[j].json
+		,			parent->baseclass.config
+		,			parent->baseclass.transport
+		,			fromaddr);
+	}
 }
 
 /**

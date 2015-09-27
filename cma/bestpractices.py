@@ -63,7 +63,7 @@ class BestPractices(DiscoveryListener):
     application = None
     discovery_name = None
     application = 'os'
-    BASEURL = 'http://ITBestPractices.info/query'
+    BASEURL = 'http://ITBestPractices.info:500'
 
     def __init__(self, config, packetio, store, log, debug):
         'Initialize our BestPractices object'
@@ -169,14 +169,40 @@ class BestPractices(DiscoveryListener):
         ,       params={'rulesetname': rulesetname})
 
 
-    def url(self, _drone, ruleid, ruleobj):
+    def url(self, drone, ruleid, ruleobj):
         '''
         Return the URL in the IT Best Practices project that goes with this
         particular rule.
+
+        Emily Ratliff <ejratl@gmail.com> defines the API this way:
+
+        .../v1.0/doquery?app=os&domain=security&class=posix
+            &os=linux&osname=redhat&release=6&tipname=nist_V-58901
         '''
-        # We should eventually use the drone to hone in more on the OS and so on...
-        return '%s/%s/%s?application=%s' % (self.BASEURL, ruleobj['category']
-        ,   ruleid, self.application)
+        values={'app':      'os',
+                'class':    'posix',
+                'domain':   ruleobj['category'],
+                'tipname':  ruleid}
+        osinfo = drone.jsonval('os')
+        if osinfo is not None and 'data' in osinfo:
+            osdata = osinfo['data']
+            if 'kernel-name' in osdata:
+                values['os'] = osdata['kernel-name']
+            if 'Distributor ID' in osdata:
+                values['osname'] = osdata['Distributor ID']
+            if 'Release' in osdata:
+                values['release'] = osdata['Release']
+        else:
+            print >> sys.stderr, 'OOPS: osinfo is %s' % str(osinfo)
+        names = values.keys()
+        names.sort()
+
+        ret = 'v1.0/doquery'
+        delim='?'
+        for name in names:
+            ret += '%s%s=%s' % (delim, name, values[name])
+            delim='&'
+        return '%s/%s' % (self.BASEURL, ret)
 
     def processpkt(self, drone, srcaddr, jsonobj):
         '''Inform interested rule objects about this change'''

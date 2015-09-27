@@ -217,10 +217,7 @@ class Drone(SystemNode):
     def jsonval(self, jsontype):
         'Construct a python object associated with a particular JSON discovery value.'
         jsonname = 'JSON_' + jsontype
-        if hasattr(self, jsonname):
-            return pyConfigContext(getattr(self, jsonname))
-        else:
-            return None
+        return pyConfigContext(getattr(self, jsonname)) if hasattr(self, jsonname) else None
 
     def get(self, key, alternative=None):
         '''Return JSON object if the given key exists - 'alternative' if not.'''
