@@ -47,7 +47,7 @@ STARTFILE="$PWD/../../Ubuntu/cmaStart"
 
 BUILD="assimilation/build_centos_$CENTOSREL"
 LOCALWS=$HOME/monitor/src
-PKGDIR=$(pwd)/packages
+PKGDIR=$(pwd)
 rm -fr local
 
 EFLAG=''
@@ -84,6 +84,5 @@ docker build -t $BUILD .
 rm -fr timezone $PKGDIR/packages
 ID=$(docker run -d $BUILD /bin/sleep 5)
 # Note that it will include the last part of the from pathname under the to path...
-mkdir -p $PKGDIR
 docker cp $ID:/root/assimilation/packages $PKGDIR
 echo "Build of $ARGS BUILD complete."
