@@ -1,5 +1,5 @@
 #!/bin/sh -eu
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=80
 #
 #	Builditall: build all our platforms using Docker
 #
@@ -10,11 +10,13 @@
 # Author: Alan Robertson <alanr@unix.sh>
 # Copyright (C) 2015 - Assimilation Systems Limited
 #
-# Free support is available from the Assimilation Project community - http://assimproj.org
-# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+#   - http://assimilationsystems.com
 #
-# The Assimilation software is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# The Assimilation software is free software: you can redistribute it and/or
+# modify # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
@@ -24,7 +26,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
 #
 
 TMPDIR=$(mktemp -d)
@@ -69,7 +72,6 @@ buildaplatform() {
                     $(date)
 					!HURRAY
             fi
-            exit $rc
         else
             rc=$?
             log_failure $*
@@ -77,11 +79,42 @@ buildaplatform() {
 				BUILD of $plat:${pkg} failed $frowny [rc=$rc]
 				Output is in $plat/${pkg}/build.out
 				!OOPS
-            exit $rc
         fi
     )
-
 }
+
+#
+#   Docker has a few weird glitches where tests fail for reasons having
+#   nothing to do with our code or test infrastructrure. Looks like a
+#   Docker bug to me...
+#
+attemptbuild() {
+    count=1
+    plat=$1
+    pkg=${2-.}
+    for count in 1 2 3
+    do
+        if
+            buildaplatform "$@"
+        then
+            return 0
+        else
+            rc=$?
+            if
+                grep -i 'Cannot bind to address' \
+                    $plat/$pkg/build.out >/dev/null
+            then
+                echo "Address in use failure - sigh..."
+                echo "RETRYING..."
+                sleep 10
+            else
+                echo "RETRYING ANYWAY..."
+            fi
+        fi
+    done
+    return $rc
+}
+
 
 # Create SHA256 sums for the packages we created
 signbuilds() {
@@ -92,12 +125,15 @@ signbuilds() {
 
 buildcentos() {
     # CentOS images on Docker: https://hub.docker.com/_/centos/
-    # CentOS end of life: https://wiki.centos.org/FAQ/General#head-fe8a0be91ee3e7dea812e8694491e1dde5b75e6d
-    # Similar for Red Hat: https://access.redhat.com/support/policy/updates/errata
-    buildaplatform CentOS6 # It's Unique...
+    # CentOS end of life:
+    #  https://wiki.centos.org/FAQ/General#head-fe8a0be91ee3e7dea812e8694491e1dde5b75e6d
+    # Similar for Red Hat:
+    #  https://access.redhat.com/support/policy/updates/errata
+
+    attemptbuild CentOS6 # Centos6 is unique
     for centos in centos7
     do
-        buildaplatform CentOS $centos
+        attemptbuild CentOS $centos
     done
 }
 
@@ -106,7 +142,7 @@ buildfedora() {
     # Fedora images on Docker: https://hub.docker.com/_/fedora/
     for fedora in 21 22
     do
-        buildaplatform Fedora $fedora
+        attemptbuild Fedora $fedora
     done
 }
 
@@ -116,13 +152,13 @@ buildubuntu() {
     # Ubuntu releases https://wiki.ubuntu.com/Releases
     for ubuntu in precise trusty vivid wily
     do
-        buildaplatform Ubuntu $ubuntu # &
+        attemptbuild Ubuntu $ubuntu # &
     done
 }
 builddebian() {
     for debian in jessie wheezy
     do
-        buildaplatform Debian $debian
+        attemptbuild Debian $debian
     done
 }
 buildcentos # &
