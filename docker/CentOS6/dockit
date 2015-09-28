@@ -35,11 +35,10 @@ test ! -z "$HASH"
 export ASSIMVERSION="$(echo $REPO | tr '/' '-')-$HASH"
 echo "Working with version $ASSIMVERSION"
 bash ./CentOS6-directions --format=dockerfile docker > Dockerfile
-rm -fr $PKGDIR/packages
+rm -fr $PKGDIR/*
 $DOCKER build -t $CMA .
 ID=$(docker run -d $CMA /bin/sleep 5)
 # Note that it will include the last part of the from pathname (i.e. "RPMS") under the to path...
 docker cp "$ID:/root/rpmbuild/RPMS/" .
-mkdir -p packages
-cp RPMS/*/* $PKGDIR
+mv RPMS/*/* $PKGDIR
 rm -fr RPMS
