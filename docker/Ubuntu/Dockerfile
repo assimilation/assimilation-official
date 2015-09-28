@@ -96,7 +96,6 @@ RUN /usr/sbin/rsyslogd&  /var/lib/neo4j/bin/neo4j console & sleep 20; cd /root/a
 #   Clean out the database and prepare for running system tests
 ###############################################################
 RUN rm -fr $NEOROOT/data/graph.db/* $NEOROOT/data/graph.db/keystore $NEOROOT/data/log/* $NEOROOT/data/rrd $NEOROOT/data/neo4j-service.pid
-RUN service neo4j-service start && service neo4j-service stop # Make a lovely empty database...
 # Install be a copy of host's /etc/timezone - so logs will have right TZ
 COPY timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata

@@ -39,7 +39,7 @@ ENV TERM linux
 ENV DEBIAN_FRONTEND noninteractive
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 RUN apt-get -y update && apt-get -y install --no-install-recommends gcc cmake make pkg-config libglib2.0-dev resource-agents wget libpcap0.8-dev rsyslog 
-RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release python-demjson iproute2
+RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release python-demjson iproute2 adduser
 RUN apt-get -y install --no-install-recommends bind9 host           # So we have some services to monitor in system testing
 RUN apt-get -y install --no-install-recommends strace gdb tcpdump   # For debugging...
 RUN pip install ctypesgen 'py2neo>=2.0' getent
@@ -96,7 +96,6 @@ RUN /usr/sbin/rsyslogd&  /var/lib/neo4j/bin/neo4j console & sleep 20; cd /root/a
 #   Clean out the database and prepare for running system tests
 ###############################################################
 RUN rm -fr $NEOROOT/data/graph.db/* $NEOROOT/data/graph.db/keystore $NEOROOT/data/log/* $NEOROOT/data/rrd $NEOROOT/data/neo4j-service.pid
-RUN service neo4j-service start && service neo4j-service stop # Make a lovely empty database...
 # Install be a copy of host's /etc/timezone - so logs will have right TZ
 COPY timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata

@@ -42,7 +42,6 @@ RUN printf "%s\n%s\n" '$ModLoad imuxsock' '$SystemLogSocketName /dev/log' >> /tm
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
 RUN $YUM install python-demjson
-#RUN rsyslogd && /etc/init.d/neo4j-service start&  sleep 15; ps -ef; ls -l /dev/*log*; testify -v tests
 RUN /usr/sbin/rsyslogd&  /opt/neo4j/bin/neo4j console & sleep 20; testify -v tests
 RUN cp /root/rpmbuild/RPMS/x86_64/* /root/assimilation/packages
 RUN echo "GOOD BUILD: fedora:latest" # Will be updated by "dockit" script
