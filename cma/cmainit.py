@@ -55,7 +55,7 @@ class CMAinit(object):
             ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
         except EnvironmentError:
             # Docker doesn't really get along with logging - sigh...
-            syslog = logging.handlers.StreamHandler()
+            syslog = logging.StreamHandler()
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
         CMAdb.log.addHandler(syslog)
         CMAdb.log.setLevel(logging.DEBUG)
