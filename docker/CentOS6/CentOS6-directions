@@ -29,7 +29,7 @@ set -e
 #
 #
 # It is possible these might eventually need to change
-NEOVERSION=2.1.3
+NEOVERSION=2.2.5
 JAVA="java-1.7.0-openjdk"
 LOGGER=rsyslog
 CENTOSVERS="centos:centos6"
