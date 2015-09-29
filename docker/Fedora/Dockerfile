@@ -16,7 +16,7 @@ RUN $YUM install deltarpm glib2 libpcap zlib-devel python	\
 RUN $YUM remove vim-minimal && $YUM install doxygen graphviz
 RUN $YUM install python-pip
 RUN pip install testify 'py2neo>2.0' getent netaddr && pip install ctypesgen --pre
-RUN wget -q http://dist.neo4j.org/neo4j-community-2.0.1-unix.tar.gz -O /tmp/neo4j-community-2.0.1-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.0.1-unix.tar.gz && ln -s /opt/neo4j-community-2.0.1/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
+RUN wget -q http://dist.neo4j.org/neo4j-community-2.2.5-unix.tar.gz -O /tmp/neo4j-community-2.2.5-unix.tar.gz && tar -C /opt -xzf /tmp/neo4j-community-2.2.5-unix.tar.gz && ln -s /opt/neo4j-community-2.2.5/ /opt/neo4j && (echo ''; echo '') | /opt/neo4j/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
 RUN echo "@OURDATE@"
 RUN mkdir -p /root/assimilation/bin /root/assimilation/packages /run/systemd/journal /root/rpmbuild/SOURCES 
 ADD $GITTARZAN /root/assimilation/
