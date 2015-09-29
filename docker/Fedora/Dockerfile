@@ -46,3 +46,4 @@ RUN rsyslogd && /opt/neo4j/bin/neo4j console&  sleep 20; ps -ef; ls -l /dev/*log
 RUN cp /root/rpmbuild/RPMS/@ARCH@/* /root/assimilation/packages
 RUN echo "GOOD BUILD: fedora:latest" # Will be updated by "dockit" script
 ###  Our RPMs
+RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"

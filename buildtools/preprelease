@@ -1,0 +1,229 @@
+#!/bin/sh -eu
+#
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=80
+#
+#   preprelease: Verify and prepare a release for publishing
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+#   - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
+#
+
+DROPBOXDIR=$(jq  -r .personal.path ~/.dropbox/info.json)
+RELEASEDIR=${DROPBOXDIR}/Public/builds/Releases
+SHAPAT='^[0-9a-f]{64} '
+
+
+# Figure out which Assimilation release has been built
+infer_assimrelease() {
+    pkgdir=$1
+    prefix='assimilation-cma-'
+    afile=$(ls $pkgdir/$prefix*.deb $pkgdir/$prefix*.rpm 2>/dev/null | head -n 1)
+    suffix=$(echo $afile | sed "s%.*/$prefix%%")
+    case $afile in
+        *.deb)  release=$(echo "$suffix" |
+                sed 's%\.[0-9][0-9][0-9][0-9][0-9]*.*.deb%%')
+                ;;
+        *.rpm)  release=$(echo "$suffix" | sed 's%-.*%%')
+                ;;
+    esac
+    echo $release
+}
+
+infer_all_assim_releases() {
+    builddir=${1-.}
+    for dir in $(find ${builddir} -type d -name packages -print)
+    do
+        infer_assimrelease $dir
+    done
+}
+# Make sure all our packages are for the same Assimilation release
+verify_assim_relno_consistency() {
+    builddir=${1-.}
+    prevrel=''
+    rc=0
+    for release in $(infer_all_assim_releases)
+    do
+        if
+            [ ! -z "$prevrel" -a "$prevrel" != "$release" ]
+        then
+            echo "OOPS: Releases are mixed between $prevrel and $release" >&2
+            rc=1
+        fi
+        prevrel=$release
+    done
+    return $rc
+}
+
+# Return which version of our software this is (github 7-char has signature)
+get_git_hash_info() {
+    buildout=$1
+    egrep 'assimilation-assimilation-official-[0-9a-f]{7}' < $buildout |
+        head -n1 | sed 's%.*assimilation-assimilation-official-%%'
+}
+
+# Report all the git hash signatures for complaints
+report_git_hash_info() {
+    builddir=${1-.}
+    prevhash=''
+    for dir in $(find ${builddir} -type d -name packages -print)
+    do
+        hash=$(get_git_hash_info "$dir/build.out")
+        printf 'Git hash [%7s] for %s\n' "$hash" "$dir"
+    done
+}
+
+
+# Make sure all our packages are built from the same git version
+verify_git_hash_consistency() {
+    builddir=${1-.}
+    prevhash=''
+    for dir in $(find ${builddir} -type d -name packages -print)
+    do
+        #echo $dir/build.out
+        hash=$(get_git_hash_info "$dir/build.out")
+        if
+            [ ! -z "$prevhash" -a "$prevhash" != "$hash" ]
+        then
+            echo "OOPS: Hashes are inconsistent." >&2
+            report_git_hash_info $builddir
+            return 1
+        fi
+        prevhash=$hash
+    done
+    return 0
+}
+
+# Return the OS information from the build - what OS was it built on?
+os_release_info() {
+    build_out=$1
+    test -f "$build_out" &&
+    rel=$(grep '^GOODBUILD=...*' < $build_out | sed 's%GOODBUILD=%%')
+    case $rel in
+        centos*|debian*)    echo "$rel" | sed 's%\.[^-]*-%-%';;
+        *)                  echo $rel;;
+    esac
+}
+
+# Make sure every build.out has release information in it
+verify_os_release_info() {
+    builddir=${1-.}
+    rc=0
+    for dir in $(find ${builddir} -type d -name packages -print)
+    do
+        if
+            [ -z "$(os_release_info $dir/build.out)" ]
+        then
+            echo "No release info found in $dir/build.out" >&2
+            rc=1
+        fi
+    done
+    return $rc
+}
+
+# Verify package checksums match what they were when they were built
+verify_checksums() {
+    rc=0
+    for dir in $(find ${builddir} -type d -name packages -print)
+    do
+        if (
+            if
+                [ ! -f $dir/build.out ]
+            then
+                continue
+            fi
+            cd $dir
+            if
+                egrep "${SHAPAT}" < build.out | sha256sum -c --status
+            then
+                : "OK checksumd in $dir"
+            else
+                echo "Failed checksums for files in $dir:"
+                egrep '^[0-9a-f]{64} ' < build.out | sha256sum -c --quiet
+                exit 1
+            fi
+          )
+        then
+          : "OK checksums in $dir"
+        else
+            rc=1
+        fi
+    done
+    return $rc
+}
+
+# Verify all the release pieces are complete and consistent with each other
+verify_release_consistency() {
+    ourrc=0
+    for method in verify_assim_relno_consistency verify_git_hash_consistency  \
+        verify_os_release_info verify_checksums
+    do
+        if
+            $method
+        then
+            : "OK for $method"
+        else
+            ourrc=1
+        fi
+    done
+    if
+        [ "$ourrc" -ne 0 ]
+    then
+        exit 1
+    fi
+    echo "Consistency checks pass."
+    return 0
+}
+
+# Copy this release to dropbox
+copy_release_to_dropbox() {
+    builddir=${1-.}
+    prevrel=''
+    rc=0
+    ASSIMREL=$(infer_all_assim_releases | head -n 1)
+    echo "Updating Dropbox files for release $ASSIMREL"
+    NEWRELDIR=${RELEASEDIR}/$ASSIMREL
+    test ! -d ${NEWRELDIR} && mkdir $NEWRELDIR
+    for pkgdir in $(find ${builddir} -type d -name packages -print)
+    do
+        buildout=${pkgdir}/build.out
+        test -f "$pkgdir/build.out" || continue
+        relsubdir=$(os_release_info $pkgdir/build.out)
+        echo "Copying $pkgdir packages to $relsubdir"
+        for file in $(egrep "${SHAPAT}" < $buildout | cut -c66-)
+        do
+            test -d $NEWRELDIR/$relsubdir || mkdir $NEWRELDIR/$relsubdir
+            cp $pkgdir/$file $NEWRELDIR/$relsubdir/
+        done
+        cp $pkgdir/build.out $NEWRELDIR/$relsubdir/
+    done
+}
+
+if 
+    verify_release_consistency
+then
+    copy_release_to_dropbox
+else
+    return 1
+fi
+echo "All done"

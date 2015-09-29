@@ -161,9 +161,9 @@ builddebian() {
         attemptbuild Debian $debian
     done
 }
-buildcentos # &
 buildubuntu # &
 builddebian # &
+buildcentos # &
 buildfedora # &
 wait
 printf "\nSuccesses:\n"

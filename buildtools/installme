@@ -27,22 +27,23 @@
 # along with the Assimilation Project software.
 # If not, see http://www.gnu.org/licenses/
 #
-REL=1.0
+REL=1.0.1
 WORKLOG=/tmp/assimilation-install.txt
 ASSIMSHARE=/usr/share/assimilation
 BASEURL=https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADYcxtYYwlFZxV-P0LpRA4ra/builds/Releases
 BASEURL=https://dl.dropboxusercontent.com/u/65564307/builds/releases
 SRCROOT=https://github.com/assimilation/assimilation-official/raw
 NEOVERS=2.2.5
+BUILDLOG=build.out
 
 DEBIAN_BASE_CMA_PKGS='python-pip python-flask lsof python-netaddr
             resource-agents
-            iproute2
             lsb-release
             libpcap0.8
             gcc
+            adduser
 			ca-certificates'
-DEBIAN_BASE_NANO_PKGS='resource-agents iproute2 lsb-release libpcap0.8'
+DEBIAN_BASE_NANO_PKGS='resource-agents lsb-release libpcap0.8 adduser'
 DEBIAN_BASE_PIP_PKGS='getent' # Plus py2neo
 DEBIAN_LIBSODIUM='libsodium13'
 
@@ -54,6 +55,7 @@ CENTOS_BASE_CMA_PKGS='python-pip
             resource-agents
             gcc
 			ca-certificates'
+CENTOS_BASE_NANO_PKGS=''
 CENTOS_BASE_PIP_PKGS='getent' # Plus py2neo
 CENTOS_LIBSODIUM='libsodium'
 CENTOS6_BASE_NANO_PKGS='scl-utils'
@@ -87,9 +89,9 @@ py2neo_version() {
     if
         [ $(version_compare $REL 1) -le 0 ]
     then
-        echo 'py2neo>=2.0'
-    else
         echo 'py2neo<2.0'
+    else
+        echo 'py2neo>=2.0'
     fi
 }
 
@@ -274,8 +276,12 @@ determine_os_version_etc_redhat_release() {
     test -f /etc/redhat-release -a -r /etc/redhat-release || return 1
     OSCLASS='gnu/linux'
     DISTRIB_ID=$(egrep -o '^[^ ]*' /etc/redhat-release)
-    DISTRIB_RELEASE=$(egrep -o '[0-9+]\.[0-9]+' /etc/redhat-release)
-    DISTRIB_CODENAME=unknown
+    DISTRIB_RELEASE=$(egrep -o '[0-9.]+' /etc/redhat-release)
+    case $(cat /etc/redhat-release) in
+      *\(*\)*)  DISTRIB_CODENAME=$(sed -e 's%.*(%%' -e 's%).*%%' < /etc/redhat-release)
+                ;;
+        *)      DISTRIB_CODENAME=unknown;;
+    esac
     return 0
 }
 
@@ -382,7 +388,10 @@ test_version_comparisons() {
                 1.0     1.0.1   -1
                 1.0.1   1.0      1
                 1.0     1.0a    -1
-                1.0a    1.0      1"
+                1.0a    1.0      1
+                21      22      -1
+                22      22       0
+                22      21       1"
     echo "$test_cases" |
     while
         read lhs rhs answer
@@ -404,12 +413,12 @@ test_version_comparisons() {
         echo 'COMPARISONS FAILED!'
         return 1
     else
-        : echo 'All comparisons succeeded. Hurray!!'
+        echo 'All comparisons succeeded. Hurray!!'
     fi
 }
 
-# Try really hard to figure out what version of what OS we have
-determine_os_version() {
+# Try really hard to figure out what version of Linux we have
+determine_linux_version() {
     for method in $osversion_methods
     do
         if
@@ -419,16 +428,6 @@ determine_os_version() {
             DISTRIB_ID=$(echo $DISTRIB_ID | tr 'A-Z' 'a-z')
             DISTRIB_RELEASE=$(echo $DISTRIB_RELEASE | tr 'A-Z' 'a-z')
             DISTRIB_CODENAME=$(echo $DISTRIB_CODENAME | tr 'A-Z' 'a-z')
-            fixup_codename_if_possible
-            case $DISTRIB_CODENAME in
-                unknown|none)
-                    VERS="$DISTRIB_ID $OSCLASS version $DISTRIB_RELEASE"
-                    ;;
-                *) VERS="$DISTRIB_ID $OSCLASS version $DISTRIB_RELEASE"
-                   VERS="$VERS [$DISTRIB_CODENAME]"
-                   ;;
-            esac
-            DISTRIB_DESCRIPTION=$VERS
             export OSCLASS DISTRIB_ID DISTRIB_RELEASE DISTRIB_CODENAME
             export DISTRIB_DESCRIPTION
             return 0
@@ -436,6 +435,51 @@ determine_os_version() {
     done
     return 1
 }
+
+# AIX is pretty simple :-)
+determine_aix_version() {
+    OSCLASS='aix'
+    DISTRIB_ID='ibm'
+    DISTRIB_RELEASE="$(uname -v).$(uname -r)"
+    DISTRIB_CODENAME='none'
+}
+
+# Solaris is pretty simple :-)
+determine_solaris_version() {
+    OSCLASS='solaris'
+    DISTRIB_ID='oracle'
+    DISTRIB_RELEASE=$(uname -r)
+    DISTRIB_CODENAME='none'
+}
+# BSD versions are pretty simple too :-)
+determine_bsd_version() {
+    DISTRIB_ID=$(OSCLASS)
+    DISTRIB_RELEASE=$(uname -r)
+    DISTRIB_CODENAME='none'
+}
+
+# Try really hard to figure out what version of what OS we're running
+# Good info on this here: https://en.wikipedia.org/wiki/Uname
+determine_os_version() {
+    uname_s=$(uname -s | tr 'A-Z' 'a-z')
+    OSCLASS=$uname_s # preliminary guess
+    case $uname_s in
+        linux)      determine_linux_version;;
+        aix)        determine_aix_version;;
+        solaris)    deterine_solaris_version;;
+        sunos)      deterine_solaris_version;;
+        freebsd)        deterine_bsd_version;;
+    esac
+    fixup_codename_if_possible
+    DISTRIB_DESCRIPTION="$DISTRIB_ID $OSCLASS version $DISTRIB_RELEASE"
+    case $DISTRIB_CODENAME in
+        unknown|none)
+            ;;
+        *)  DISTRIB_DESCRIPTION="$DISTRIB_DESCRIPTION [$DISTRIB_CODENAME]"
+            ;;
+    esac
+}
+
 
 # return the packaging type if known...
 # We don't support all these formats, but it's good to know...
@@ -501,11 +545,53 @@ is_package_installed() {
     return 1
 }
 
-# Install packages from repositories (system packages)
-install_sys_package() {
+yum_or_dnf() {
+    case $DISTRIB_ID in
+        fedora)
+            if
+                [ $(version_compare $DISTRIB_RELEASE 21) -gt 0 ]
+            then
+                echo dnf
+            else
+                echo yum
+            fi;;
+        *)  echo yum
+    esac
+}
+
+# Which iproute package do we require?
+iproute_version() {
+    case $DISTRIB_ID in
+        ubuntu)
+            if
+                [ $(version_compare $DISTRIB_RELEASE 14.04) -gt 0 ]
+            then
+                echo 'iproute2'
+            else
+                echo 'iproute'
+            fi;;
+        debian)
+            if
+                [ $(version_compare $DISTRIB_RELEASE 8) -ge 0 ]
+            then
+                echo 'iproute2'
+            else
+                echo 'iproute'
+            fi;;
+        *)  echo 'iproute2'
+    esac
+}
+
+# Install packages from repositories (system packages) - try once...
+install_sys_package_onetry() {
     pkglist=''
+    flags=''
     for pkg
     do
+        case $pkg in
+            --*)    flags="$flags $pkg"
+                    continue;;
+        esac
         if
             is_package_installed $pkg
         then
@@ -521,17 +607,48 @@ install_sys_package() {
     fi 
     logwork "Installing repo packages: $pkglist"
     case $(packaging_type) in
-        rpm)    yum -y -q install $pkglist
-                #rpm -qi $pkglist || true
+        rpm)    $(yum_or_dnf) -y -q $flags install $pkglist
                 ;;
-        deb)    apt-get -y -q --no-install-recommends install $pkglist;;
+        deb)    apt-get -y -q --no-install-recommends $flags install $pkglist;;
     esac
+}
+
+# Install packages from repositories (system packages) - with a few retries
+# It's my observation that otherwise about 5%-10% of installs break
+# because the packaging system can't seem to install something-or-other...
+install_sys_package() {
+    # We do the retries at this level so that we don't repeat any part
+    # that might have succeeded. Some packaging systems get irritated
+    # if you tell it to install things that are already installed.
+    # Not to count the fact that it's wasted work...
+    rc=0
+    for j in 1 2 3
+    do
+        if
+            [ $j -gt 1 ]
+        then
+            printf 'Retrying package installation. [try %d]...\n' $j
+        fi
+        if
+            install_sys_package_onetry "$@"
+        then
+            return 0
+        else
+            rc=$?
+            case $(packaging_type) in
+                deb)    logwork "Seeing if apt-get update will fix it."
+                        apt-get update;;
+            esac
+            sleep 10
+        fi
+    done
+    return $rc
 }
 
 install_local_package() {
     logwork "Installing package files:" $*
     case $(packaging_type) in
-        rpm)    yum -q -y install "$@";;
+        rpm)    $(yum_or_dnf) -q -y install "$@";;
         deb)    dpkg --install "$@";;
     esac
 }
@@ -545,28 +662,28 @@ package_architecture() {
 
 # Map the given release ID into one of our build IDs
 map_release_id() {
+    # Not currently necessary
     case $DISTRIB_ID in
-        centos|redhat|scientific|fedora)
-            baseid=$(echo $DISTRIB_RELEASE | sed 's%[.].*%%')
-            case $baseid in
-                6)  mapid=6.5;;
-                7)  mapid=7.0;;
-                *)  mapid=$DISTRIB_RELEASE
-            esac;;
+        centos|redhat|scientific|debian)
+            mapid=$(echo $DISTRIB_RELEASE | sed 's%[.].*%%')
+            ;;
         *)  mapid=$DISTRIB_RELEASE;;
     esac
     echo $mapid
+}
+
+assim_packaging_arch() {
+    uname -m
 }
 
 assim_packaging_dir() {
     # BASEURL
     # REL=1.0
     case $DISTRIB_ID in
-        ubuntu)                             distid=ubuntu;;
-        centos|redhat|scientific|fedora)    distid=centos;;
+        centos|redhat|scientific)   distid=centos;;
+        *)                          distid=$DISTRIB_ID;;
     esac
-    mapped_release=$(map_release_id)
-    echo $BASEURL/$REL/${distid}_${mapped_release}-$(uname -p)
+    echo $BASEURL/$REL/${distid}_$(map_release_id)-$(assim_packaging_arch)
 }
 
 initial_checks() {
@@ -575,7 +692,7 @@ initial_checks() {
     then
         echo "$DISTRIB_ID $OSCLASS is a supported distribution"
     else
-        echo "Sorry, $DISTRIB_ID $OSCLASS is NOT a supported distribution"
+        echo "Sorry, $DISTRIB_DESCRIPTION is NOT a supported distribution"
         exit 1
     fi
     case $(id -u) in
@@ -586,19 +703,17 @@ initial_checks() {
     esac
 }
 
-# return needed base (command, package) pairs as space-delimited words
+# return needed base packages 
 minimum_packages() {
     case $DISTRIB_ID in
       ubuntu|debian)
         cat <<-!EOF
-        	wget            wget
-			apt-sortpkgs    apt-utils
+        	wget
 		!EOF
         ;;
       centos|redhat|scientific|fedora)
         cat <<-!EOF
-        	wget    wget
-			update-ca-certificates   ca-certificates
+        	wget
 		!EOF
         ;;
     esac
@@ -610,18 +725,7 @@ initial_setup() {
     cd $TMPDIR
     setup_path
     determine_os_version
-    minimum_packages |
-    while
-        read cmd package
-    do
-        if
-            does_command_exist $cmd
-        then
-            : "OK command $cmd exists in package $package"
-        else
-            install_sys_package $package
-        fi
-    done
+    install_sys_package $(minimum_packages)
 }
 
 
@@ -651,43 +755,43 @@ get_release_file() {
 
 is_supported_release() {
     if
-        get_release_file build.log
+        get_release_file $BUILDLOG
     then
         : "Assim $REL $DISTRIB_ID $DISTRIB_RELEASE: good release"
+        cat $TMPDIR/$BUILDLOG
         return 0
     fi
         : "Assim $REL $DISTRIB_ID $DISTRIB_RELEASE: UNKNOWN release"
-    exit 1
     return 1
 }
 
-assim_pkg_md5sums() {
-    egrep '^[0-9a-f]{32} *[a-zA-Z]' $TMPDIR/build.log 2>/dev/null
+assim_pkg_sha256sums() {
+    egrep '^[0-9a-f]{64}' $TMPDIR/$BUILDLOG 2>/dev/null
 }
 
 #   Return our generated package names...
 assim_package_names() {
     if
-        [ -s $TMPDIR/build.log ]
+        [ -s $TMPDIR/$BUILDLOG ]
     then
-        assim_pkg_md5sums | cut -c35-
+        assim_pkg_sha256sums | cut -c67-
     else
         return 1
     fi
 }
 
 # Verify MD5 sums - if we can...
-check_assim_pkg_md5s() {
+check_assim_pkg_checksums() {
     if
-        assim_pkg_md5sums > $TMPDIR/packages.md5
+        assim_pkg_sha256sums > $TMPDIR/packages.sums
     then
         if
-            md5sum --status --check $TMPDIR/packages.md5
+            sha256sum --status --check $TMPDIR/packages.sums
         then
-            : "md5 sums are all good!"
+            : "SHA256 sums are all good!"
         else
-            echo "MD5 sums of packages are incorrect"
-            md5sum --check $TMPDIR/packages.md5
+            echo "SHA256 sums of packages are incorrect"
+            sha256sum --check $TMPDIR/packages.sums
         fi
     else
         : "No md5 sums to compare to"
@@ -699,7 +803,7 @@ download_assim_packages() {
     do
         get_release_file $pkg
     done
-    check_assim_pkg_md5s
+    check_assim_pkg_checksums
 }
 
 # Install base .deb and python CMA packages
@@ -712,7 +816,7 @@ install_debian_cma_base() {
 }
 # Install base CentOS RPM and python CMA packages
 install_centos_cma_base() {
-    install_sys_package epel-release
+    install_sys_package epel-release || true
     if
         [ $(version_compare $DISTRIB_RELEASE 7) -ge 0 ]
     then
@@ -736,9 +840,16 @@ install_centos_cma_base() {
     fi
 }
 
+# Install minimal fedora packages
+install_fedora_cma_base() {
+    install_sys_package $CENTOS_BASE_CMA_PKGS
+    logwork "Running: pip install $(py2neo_version) $CENTOS_BASE_PIP_PKGS"
+    pip install "$(py2neo_version)" $CENTOS_BASE_PIP_PKGS
+}
+
 # Install base .deb and python nanoprobe packages
 install_debian_nano_base() {
-    install_sys_package $DEBIAN_BASE_NANO_PKGS
+    install_sys_package $DEBIAN_BASE_NANO_PKGS $(iproute_version)
     # This comparison only works for Ubuntu, will need to change
     # for other Debian distros...
     if
@@ -759,7 +870,7 @@ install_debian_nano_base() {
 
 # Install CENTOS base RPM and python nanoprobe packages
 install_centos_nano_base() {
-    install_sys_package epel-release
+    install_sys_package epel-release || true
     install_sys_package $CENTOS_BASE_NANO_PKGS
     if
         [ $(version_compare $DISTRIB_RELEASE 7) -ge 0 ]
@@ -774,6 +885,11 @@ install_centos_nano_base() {
         wget -q -O libsodium.$ARCH.rpm $URL
         install_local_package libsodium.$ARCH.rpm
     fi
+}
+
+# Install minimal fedora nanoprobe packages
+install_fedora_nano_base() {
+    install_sys_package $CENTOS_BASE_NANO_PKGS
 }
 
 # Install Nano config files for the CMA system only
@@ -819,21 +935,33 @@ install_debian_neo4j() {
     apt-get -y update
     install_sys_package neo4j
 }
-install_centos_neo4j() {
+
+# Figure out which version of Java to install
+select_java_rpm_version() {
+    case $DISTRIB_ID in
+        centos|redhat|scientific)
+            boundary8=7;;
+        fedora)
+            boundary8=22;;
+    esac
+    if
+        [ $(version_compare $DISTRIB_RELEASE $boundary8) -ge 0 ]
+    then
+        JAVA="java"
+    else
+        JAVA="java-1.7.0-openjdk"
+    fi
+}
+
+# Install the RPM (centos/fedora) version of Neo4j
+install_rpm_neo4j() {
     JAVA=java-1.7.0-openjdk
     if
         does_command_exist java
     then
         : OK Java already installed - leave it alone...
     else
-        if
-            [ $(version_compare $DISTRIB_RELEASE 7) -ge 0 ]
-        then
-            JAVA="java-1.8.0-openjdk"
-        else
-            JAVA="java-1.7.0-openjdk"
-        fi
-        install_sys_package $JAVA
+        install_sys_package $(select_java_rpm_version)
     fi
     logwork "Adding Neo4j signing key"
     NEOKEY=https://debian.neo4j.org/neotechnology.gpg.key
@@ -849,8 +977,8 @@ install_centos_neo4j() {
 		gpgcheck=1
 		!EOF
     install_sys_package neo4j-${NEOVERS}
-
 }
+
 # Fix up neo4j configuration
 update_neo4j_config() {
     configdir=${1-/etc/neo4j}
@@ -889,7 +1017,11 @@ install_debian_cma() {
 }
 install_centos_cma() {
     install_centos_cma_base
-    install_centos_neo4j
+    install_rpm_neo4j
+}
+install_fedora_cma() {
+    install_fedora_cma_base
+    install_rpm_neo4j
 }
 
 # Install the nanoprobe on Ubuntu or Debian
@@ -900,12 +1032,17 @@ install_debian_nanoprobe() {
 install_centos_nanoprobe() {
     install_centos_nano_base
 }
+# Install the nanoprobe on Fedora
+install_fedora_nanoprobe() {
+    : "Do nothing..."
+}
 
 # Install the nanoprobe on whatever OS
 install_nanoprobe() {
     case $DISTRIB_ID in
-        ubuntu|debian)          install_debian_nanoprobe;;
-        centos|redhat|scientific|fedora)   install_centos_nanoprobe;;
+        ubuntu|debian)              install_debian_nanoprobe;;
+        centos|redhat|scientific)   install_centos_nanoprobe;;
+        fedora)                     install_fedora_nanoprobe;;
     esac
     install_nanoprobe_packages
 }
@@ -915,13 +1052,13 @@ install_cma() {
     install_nano_config_for_cma # Before installing the nanoprobe...
     install_nanoprobe
     case $DISTRIB_ID in
-        ubuntu|debian)          install_debian_cma;;
-        centos|redhat|scientific|fedora)   install_centos_cma;;
+        ubuntu|debian)              install_debian_cma;;
+        centos|redhat|scientific)   install_centos_cma;;
+        fedora)                     install_fedora_cma;;
     esac
     update_neo4j_config
     restart_neo4j
     sleep 10 # Wait for neo4j to start
-    ps axww | grep neo4j
     install_cma_packages
     init_database
     stop_neo4j
@@ -938,8 +1075,8 @@ restart_neo4j() {
 stop_neo4j() {
     logwork 'stopping Neo4j'
     case $DISTRIB_ID in
-        ubuntu|debian)          service neo4j-service stop;;
-        centos|redhat|scientific|fedora)   /etc/init.d/neo4j     stop;;
+        ubuntu|debian)                      service neo4j-service stop;;
+        centos|redhat|scientific|fedora)    /etc/init.d/neo4j     stop;;
     esac
 }
 init_database() {
@@ -951,18 +1088,17 @@ init_database() {
 
 init_install() {
     > $WORKLOG
-    if
-        test_version_comparisons
-    then
-        : OK
-    else
-        echo "Version comparision code is broken"
-        exit 1
-    fi
     initial_setup
     initial_checks
     trap 'cd /; rm -fr ${TMPDIR}' 0
-    is_supported_release
+    if
+        is_supported_release
+    then
+        : "Cool! we have packages for $DISTRIB_DESCRIPTION"
+    else
+        echo "Sorry, we don't have packages for $DISTRIB_DESCRIPTION" >&2
+        exit 1
+    fi
     download_assim_packages
 }
 usage() {
@@ -970,16 +1106,26 @@ usage() {
     cat <<-!USAGE
 	    usage: $name (cma|nanoprobe|test)
 
-        $0 installs the $REL Assimilation release on the current machine.
+        $name installs the $REL Assimilation release on the current machine.
         It either installs it as a CMA (collective management authority)
         machine or as a nanoprobe-only (drone) machine.
 
 		A copy of the nanoprobe software is automatically installed on the CMA.
 
+        Note that nanoprobe-only systems will need a copy of the CMA's
+        public keys for them to be able to communicate with each other.
+
         The test argument tests the code for determining which OS
         you're running, and also some other internal aspects of the code.
 		!USAGE
 }
+
+if
+    [ $# -lt 1 -o $# -gt 3 ]
+then
+    usage "$0" "$@" >&2
+    exit 1
+fi
 
 case $1 in
                     # This is because the CMA code insists on logging
@@ -1002,5 +1148,8 @@ case $1 in
             echo "Installation complete. Actions logged in $WORKLOG."
             ;;
     test)   test_version_comparisons; test_os_versions;;
-    *)      usage "$0" "$@";;
+    -h|--help)
+            usage "$0" "$@";;
+    *)      usage "$0" "$@">&2
+            exit 1
 esac

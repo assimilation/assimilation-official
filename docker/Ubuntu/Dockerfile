@@ -70,8 +70,10 @@ RUN cd /root/assimilation/bin/libsodium && bash ../buildtools/libsodium.mkdeb.sh
 ###############################################################
 RUN echo @OURDATE@ # to make sure we always rebuild
 ADD $GITTARZAN /root/assimilation/
-RUN cd /root/assimilation/ && tar xzf $GITVERSION && mv [Aa]ssimilation-* src
-RUN cd /root/assimilation/bin; cmake ../src && make install && cpack
+WORKDIR /root/assimilation
+RUN tar xzf $GITVERSION 
+RUN echo [Aa]ssimilation-* && mv [Aa]ssimilation-* src
+RUN cd bin; cmake ../src && make install && cpack
 #   Set up Assimilation encryption keys
 RUN mkdir -p /usr/share/assimilation/crypto.d  /tmp/cores # putting --mode 0700 on mkdir screws up security attributes (don't do it!)
 RUN chown assimilation -R /usr/share/assimilation/crypto.d/ && chmod 0700 /usr/share/assimilation/crypto.d && /usr/sbin/assimcli genkeys && chmod a+w /tmp/cores
@@ -99,3 +101,4 @@ RUN rm -fr $NEOROOT/data/graph.db/* $NEOROOT/data/graph.db/keystore $NEOROOT/dat
 # Install be a copy of host's /etc/timezone - so logs will have right TZ
 COPY timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata
+RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"

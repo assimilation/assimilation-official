@@ -45,4 +45,5 @@ RUN $YUM install python-demjson
 RUN /usr/sbin/rsyslogd&  /opt/neo4j/bin/neo4j console & sleep 20; testify -v tests
 RUN cp /root/rpmbuild/RPMS/x86_64/* /root/assimilation/packages
 RUN echo "GOOD BUILD: fedora:latest" # Will be updated by "dockit" script
+RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"
 ###  Our RPMs
