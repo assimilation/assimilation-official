@@ -185,7 +185,7 @@ class Transaction(object):
             if packet['action'] == FrameSetTypes.STARTUP:
                 raise ValueError('Packet is a STARTUP packet %s to %s' % (str(packet), dest))
             from cmadb import CMAdb
-            CMAdb.log.info('SENDING PACKET: %s' % str(packet))
+            #CMAdb.log.info('SENDING PACKET: %s' % str(packet))
             for frame in packet['frames']:
                 ftype = frame['frametype']
                 fvalue = frame['framevalue']

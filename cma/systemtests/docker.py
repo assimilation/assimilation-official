@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=90
 #
 # This file is part of the Assimilation Project.
 #
@@ -109,7 +109,7 @@ class TestSystem(object):
 
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
-    dockercmd = '/usr/bin/docker.io'
+    dockercmd = '/usr/bin/docker'
     servicecmd = '/usr/bin/service'
     nsentercmd = '/usr/bin/nsenter'
 
@@ -215,7 +215,8 @@ class DockerSystem(TestSystem):
         if self.status != TestSystem.RUNNING:
             raise RuntimeError('Docker Container %s is not running - docker exec not possible'
             %   self.name)
-        self.docker_nsenter(cmdargs, detached)
+        #self.docker_nsenter(cmdargs, detached)
+        self.docker_exec(cmdargs, detached)
 
     def docker_nsenter(self, cmdargs, detached=True):
         'Runs the given command on our running docker image using nseneter'
@@ -226,7 +227,7 @@ class DockerSystem(TestSystem):
         #print >> sys.stderr, 'RUNNING nsenter cmd:', args
         subprocess.check_call(args)
 
-    def dockerexec(self, cmdargs, detached=True):
+    def docker_exec(self, cmdargs, detached=True):
         'Runs the given command on our running docker image using docker exec'
         if self.status != TestSystem.RUNNING:
             raise RuntimeError('Docker Container %s is not running - docker exec not possible'
@@ -298,6 +299,7 @@ class SystemTestEnvironment(object):
                 ' // Python version .* // java version.*') % self.cma.hostname
         watch.setregexes((regex,))
         if watch.lookforall(timeout=60) is None:
+            print >> sys.stderr, 'CMA did not start!!'
             raise RuntimeError('CMA did not start')
         print >> sys.stderr, 'nanocount is', nanocount
         print >> sys.stderr, 'self.nanoimages is', self.nanoimages
