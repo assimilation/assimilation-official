@@ -758,7 +758,6 @@ is_supported_release() {
         get_release_file $BUILDLOG
     then
         : "Assim $REL $DISTRIB_ID $DISTRIB_RELEASE: good release"
-        cat $TMPDIR/$BUILDLOG
         return 0
     fi
         : "Assim $REL $DISTRIB_ID $DISTRIB_RELEASE: UNKNOWN release"
