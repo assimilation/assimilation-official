@@ -1,5 +1,49 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_0_1 version 1.0.1 - the "Day 30" release - 30 September 2015
+@subsection Features_1_0_1 New Features
+- Moved development to git and github
+- Continuous integration via travis-ci
+- Awesome universal installer - run this script to install a CMA or nanoprobe system and be happy. Will install any of the systems handling everything.
+- Building includes 10(!) 64-bit platforms:
+ - Ubuntu precise, trusty, vivid, and wily.
+ - Debian jessie and wheezy.
+ - CentOS 6 and 7.
+ - Fedora 21 and 22.
+- Added over 40 best practice rules from the <a href="http://ITBestPractices.info>IT Best Practices project</a>. Most are security rules, but one is a networking rule. These include DISA rules for:
+ - PAM
+ - /proc/sys
+ - sshd
+ - /etc/login.defs
+ - many more to come in the future!
+- increased maximum host name length so it doesn't barf on 56-character host names(!) in travis-ci.
+- added the loadbp command to load best practices
+- perform checksums over all known checksum programs
+- made list of default checksum files be configurable
+- updated it to work with newer version of Neo4j and py2neo version 2.x
+- improved the process for putting out a release so that everything is consistent and is marked with the right version number.
+- Added discovery for /etc/sudoers
+- Added travis-ci and coverity badges to github site.
+@subsection BugFixes_1_0_1 Bug Fixes
+- bug in partitions discovery agent
+- bug in mdadm discovery agent
+- fixed UnknownIPs query
+- removed duplicates from the allips query
+- discovery test failures didn't cause overall test results to be marked as failed
+- several discovery tests weren't quite right.
+@subsection Caveats_1_0_1 Caveats
+- Documentation has not been updated to reflect move to github. No doubt other shortcomings exist as well. Sorry! Please fix and generate a pull request.
+- No alerting, or interface to existing alerting (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- use with recent versions of Neo4j requires disabling authentication on Neo4j
+- performance with Neo4j is poor. Strangely, it's not a scalability problem. Fixes will be in a future release.
+- Best practices alerts currently only come out in syslog - not as events. Sorry!
+- Our current process only allows us to distribute 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
+- The magic installer can't install CMAs onto Fedora.
+
 @section Version_1_0 version 1.0 - the "Independence Day" release - 4 July 2015
 This release provides a number of new features, and a number of bug fixes.
 This release is eminently suitable for deployments in environments where the caveats are acceptable.

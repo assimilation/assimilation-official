@@ -28,6 +28,32 @@ This document is a more detailed version of the information provided in the proj
 You can either install pre-built packages, or you can build from source and install the packages you built yourself.
 If you can, we recommend installing our pre-built packages.
 
+@section MagicInstallerOutline How to get started with the magic installer
+As of release 1.0.1 we have a <i>magic</i> installer script designed to work on every platform for which we have pre-built packages. This is the recommended procedure for most people.
+The 64-bit platforms which we currently have prebuilt packages for are:
+ - Ubuntu precise, trusty, vivid, and wily.
+ - Debian jessie and wheezy.
+ - CentOS 6 and 7.
+ - Fedora 21 and 22.
+We do not currently produce any prebuilt 32-bit packages. Sorry!
+You can find the prebuilt installer at https://raw.githubusercontent.com/assimilation/assimilation-official/master/buildtools/installme.
+This is pointed to by this shorter URL: http://bit.ly/assiminstall.
+
+To use the installer follow these steps:
+-# Download the installer from one of the links above
+-# Inspect it if you like. It's long, but mostly straightforward.
+Pull requests including improvements are solicited.
+-# <tt>chmod 744 assiminstall</tt>
+-# <tt>./assiminstall cma</tt> \# on the machine you wish to be your CMA
+-# <tt> mkdir /usr/share/assimilation/crypto.d</tt> on each non-CMA machine.
+-# <tt>./assiminstall nano</tt> \# on machines besides your CMA
+-# <tt>chmod 700 /usr/share/assimilation/crypto.d</tt> \# on each non-CMA machine.
+-# Copy the public keys from the CMA onto your nanoprobe machines. You will find them in
+/usr/share/assimilation/crypto.d. The public keys in question will be named <tt>\#CMA\#0000.pub</tt> and <tt>\#CMA\#0001.pub</tt>. Put them in the same location on the other machines. Do <i>not</i> copy the <i>.secret</i> keys over the other machines. The <i>crypto.d</i> directory <i>must</i> be mode 0600.
+-# Hide the <tt>\#CMA\#0001.secret</tt> key somewhere besides in plain text on the same machine. Encrypt it and change its name, or hide it in a lock box or something similar.
+
+You're now all installed and ready to get started - if you can use multicast for your entire set of expected machines.
+
 @section PrebuiltProcessOutLine Outline of how to get started with pre-built packages.
 You must install the nanoprobe and CMA software on the CMA system before attempting to install other non-CMA machines.
 You can find our latest packages at http://bit.ly/assimbuilds and officially released versions at http://bit.ly/assimreleases.
