@@ -27,9 +27,8 @@ WSIDFILE=$WORKSPACE/.wsid
 WSBIN=$ASSIM/bin
 WSCLANG=$WSBIN/analysis
 SCANBUILD="scan-build"
-URL='http://hg.linux-ha.org/|experimental/assimilation/'
+URL=https://github.com/assimilation/assimilation-official
 URL=$HOME/monitor/src
-LATESTID=`hg id -i -r tip "$URL"`
 GRIND=valgrind
 ERRORS=no
 
@@ -46,27 +45,15 @@ then
 fi
 rm -fr $ASSIM/*
 
-if
-  [ "$WSID" = "$LATESTID" ]
-then
-  exit 0
-fi
-
 sudo service cma stop
+rm -fr $WORKSPACE
 if
   [ ! -d $WORKSPACE ]
 then
   mkdir -p $WORKSPACE
 fi
 cd $WORKSPACE
-if
-  [ ! -d "$WORKSPACE/.hg" ]
-then
-  hg clone -r tip "$URL" "$WORKSPACE" 
-else
-  hg update -r tip
-fi
-echo "$LATESTID" >$WSIDFILE
+git clone "$URL" "$WORKSPACE"
 DOXYVERS=`doxygen --help | grep 'Doxygen version ' | sed 's%.* %%'`
 CLANGVERS=`clang -v 2>&1 | grep -i 'version '`
 [ -d "$WSBIN" ] || mkdir -p "$WSBIN"
@@ -143,7 +130,7 @@ case $ERRORS in
   	echo "Syncing up documents"
 	rsync -r  $WSBIN/doxygen/html/ alanr@www.linux-ha.org:assimilation/doxygen/html/
 	cd $URL
-	hg push
+	git push
 	echo "Completed at $(date)"
 	;;
 	
