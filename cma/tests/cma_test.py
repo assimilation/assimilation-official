@@ -44,7 +44,7 @@ from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMoni
 from transaction import Transaction
 from cmaconfig import ConfigFile
 from graphnodeexpression import ExpressionContext
-import glib # This is now our glib bindings...
+import assimglib as glib # This is now our glib bindings...
 import discoverylistener
 from store import Store
 
