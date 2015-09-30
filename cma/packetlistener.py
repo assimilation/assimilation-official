@@ -36,7 +36,7 @@ import traceback, os
 #except ImportError:
     #pylint: disable=F0401
     #import gobject as glib
-import glib # We've replaced gi.repository and gobject with our own 'glib' module
+import assimglib as glib # We've replaced gi.repository and gobject with our own 'glib' module
 
 import time
 import sys
