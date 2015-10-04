@@ -1,16 +1,17 @@
 [![Build Status](https://travis-ci.org/assimilation/assimilation-official.svg?branch=master)](https://travis-ci.org/assimilation/assimilation-official)
 [![Coverity Status](https://scan.coverity.com/projects/9/badge.svg)](https://scan.coverity.com/projects/9)
 
-# Welcome to the Assimilation README file :-D.
+# Welcome to the Assimilation README file.
 
-This code builds with cmake, not autotools.
-You can find a formatted version of this README online at
-http://linux-ha.org/source-doc/assimilation/html/md__r_e_a_d_m_e.html
+The project home page is here :
+http://linux-ha.org/source-doc/assimilation/html/index.html
+
 A more detailed Getting Started guide can be found here
 http://linux-ha.org/source-doc/assimilation/html/_getting_started.html
-The project home page is at http://assimmon.org/ - check it out!
+
 Please join the project mailing list at http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
 
+This code builds with cmake.
 
 ## Dependencies
 
