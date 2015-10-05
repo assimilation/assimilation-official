@@ -62,6 +62,8 @@ CREATE_SUBDIRS         = NO
 
 OUTPUT_LANGUAGE        = English
 
+MARKDOWN_SUPPORT       = YES
+
 # If the BRIEF_MEMBER_DESC tag is set to YES (the default) Doxygen will 
 # include brief member descriptions after the members that are listed in 
 # the file and class documentation (similar to JavaDoc). 
@@ -609,6 +611,7 @@ FILE_PATTERNS          = *.c \
                          *.php3 \
                          *.inc \
                          *.m \
+                         *.md \
                          *.mm \
                          *.dox \
                          *.py \

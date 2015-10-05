@@ -4,12 +4,11 @@
 # Welcome to the Assimilation README file :-D.
 
 This code builds with cmake, not autotools.
-You can find a formatted version of this README online at
-http://linux-ha.org/source-doc/assimilation/html/md__r_e_a_d_m_e.html
 A more detailed Getting Started guide can be found here
 http://linux-ha.org/source-doc/assimilation/html/_getting_started.html
-The project home page is at http://assimmon.org/ - check it out!
+The open source project home page is at http://assimmon.org/ - check it out!
 Please join the project mailing list at http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
+This project proudly sponsored by [Assimilation Systems Limited](http://AssimilationSystems.com)</a>.
 
 
 ## Dependencies

@@ -1,9 +1,9 @@
 /**
 @mainpage Incredibly easy to configure, easy on your network, incredibly scalable.
 @section overview Overview
-Welcome to the Assimilation project. (@ref README.md "README")
-@htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly - proudly sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Limited</a>.
-@htmlonly<a href="https://travis-ci.org/assimilation/assimilation-official"><img alt="Build Status" src="https://travis-ci.org/assimilation/assimilation-official.svg?branch=master"</a>@endhtmlonly - Travis CI build status
+Welcome to the Assimilation project.   @htmlonly<a href="https://github.com/assimilation/assimilation-official/blob/master/README.md">(README)</a> - proudly sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Limited</a>.@endhtmlonly 
+@htmlonly<a href="https://scan.coverity.com/projects/9"><img alt="Coverity Status" src="https://scan.coverity.com/projects/9/badge.svg"></a>@endhtmlonly
+@htmlonly<a href="https://travis-ci.org/assimilation/assimilation-official"><img alt="Travis CI Build Status" src="https://travis-ci.org/assimilation/assimilation-official.svg?branch=master"></a>@endhtmlonly
 
 We provide open source discovery with zero network footprint integrated with <i>highly</i>-scalable monitoring.
 Here are the problems we address:
