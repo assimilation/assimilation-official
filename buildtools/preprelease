@@ -201,9 +201,9 @@ copy_release_to_dropbox() {
     prevrel=''
     rc=0
     ASSIMREL=$(infer_all_assim_releases | head -n 1)
-    echo "Updating Dropbox files for release $ASSIMREL"
     NEWRELDIR=${RELEASEDIR}/$ASSIMREL
     test ! -d ${NEWRELDIR} && mkdir $NEWRELDIR
+    echo "Updating Dropbox files for release $ASSIMREL in $NEWRELDIR"
     for pkgdir in $(find ${builddir} -type d -name packages -print)
     do
         buildout=${pkgdir}/build.out
