@@ -71,6 +71,9 @@ class GraphNodeExpression(object):
             context[expression] = value
             return value
         if expression.startswith('$'):
+            #print >> sys.stderr, 'RETURNING VALUE OF %s' % expression[1:]
+            #print >> sys.stderr, 'Context is %s' % str(context)
+            #   % (expression, context.get(expression[1:], None))
             #print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
             #   % (expression, context.get(expression[1:], None))
             return context.get(expression[1:], None)
@@ -180,10 +183,7 @@ class ExpressionContext(object):
 
     def __init__(self, objects, prefix=None):
         'Initialize our ExpressionContext'
-        if hasattr(objects, '__iter__'):
-            self.objects = objects
-        else:
-            self.objects = (objects,)
+        self.objects = objects if isinstance(objects, (list, tuple)) else (objects,)
         self.prefix = prefix
         self.values = {}
 
@@ -197,7 +197,12 @@ class ExpressionContext(object):
         if key in self.values:
             return self.values[key]
         for obj in self.objects:
-            ret = obj.get(key, None)
+            try:
+                ret = obj.get(key, None)
+            except:
+                ret = None
+                print >> sys.stderr, 'OOPS: self.objects = %s' % str(self.objects)
+                print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
             if ret is not None:
                 self.values[key] = ret
                 return ret
@@ -252,13 +257,17 @@ class ExpressionContext(object):
 
 @GraphNodeExpression.RegisterFun
 def IGNORE(_ignoreargs, _ignorecontext):
-    'Function to ignore its argument(s) and return True all the time'
+    '''Function to ignore its argument(s) and return True all the time.
+    This is a special kind of no-op in that it is used to override
+    and ignore an underlying rule. It is expected that its arguments
+    will explain why it is being ignored in this rule set.
+    '''
     return True
 
 @GraphNodeExpression.RegisterFun
 def EQ(args, context):
     '''Function to return True if each non-None argument in the list matches
-    the first one or None if all subsequent arguments are None
+    every non-None argument and at least one of its subsequent arguments are not None.
     '''
     val0 = args[0]
     if val0 is None:

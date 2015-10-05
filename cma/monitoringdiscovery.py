@@ -179,7 +179,7 @@ class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
         unused_jsonobj = unused_jsonobj
 
         drone.monitors_activated = True
-        montuples = MonitoringRule.findallmatches(drone, objclass='host')
+        montuples = MonitoringRule.findallmatches((drone,), objclass='host')
         for montuple in montuples:
             if montuple[0] == MonitoringRule.NOMATCH:
                 continue
