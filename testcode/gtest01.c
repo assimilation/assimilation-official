@@ -780,9 +780,9 @@ main(int argc, char ** argv)
 	g_test_add_func("/gtest01/gmain/childprocess_modenv", test_childprocess_modenv);
 	g_test_add_func("/gtest01/gmain/safe_ocfops", test_safe_ocfops);
 	g_test_add_func("/gtest01/gmain/safe_queue_ocfops", test_safe_queue_ocfops);
-	if (can_kill) {
-		// This one fails under docker for reasons not clear to me...
-		g_test_add_func("/gtest01/gmain/safe_queue_lsbops", test_safe_queue_lsbops);
-	}
+#if 0
+	// LSB status operation is broken under systemd.
+	g_test_add_func("/gtest01/gmain/safe_queue_lsbops", test_safe_queue_lsbops);
+#endif
 	return g_test_run();
 }
