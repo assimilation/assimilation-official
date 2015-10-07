@@ -63,8 +63,7 @@ class ConfigFile(object):
                                      'nsswitch',            # Discovers nsswitch configuration (GNU)
                                      'os',                  # Discovers OS version information
                                      'sshd',                # Discovers sshd configuration
-                                     # sudoers is not yet used, and somewhat broken...
-                                     #'sudoers',            # Discovers sudoers configuration
+                                     'sudoers',             # Discovers sudoers configuration
                                      'tcpdiscovery',        # Discovers network-facing processes
                                      'ulimit',              # Discovers ulimit settings
                                     },
@@ -170,7 +169,8 @@ class ConfigFile(object):
                                  'cpu',             # CPU properties
                                  'login_defs',      # /etc/login.defs configuration
                                  'pam',             # PAM configuration
-                                 'sudoers',         # sudoers configuration
+                                 # sudoers is not yet used, and somewhat broken...
+                                 #'sudoers',            # Discovers sudoers configuration
                                  'packages',        # What packages are installed?
                                  'monitoringagents',# What monitoring agents are installed?
                                  'ulimit',          # What are current ulimit values?
