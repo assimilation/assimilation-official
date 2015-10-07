@@ -78,7 +78,7 @@ enable_repos() {
   cat <<-!
 	# Enable the CentOS 6 EPEL and SCL repos
 	yum -y install wget epel-release
-	wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo >> /etc/yum.repos.d/centos.scl.repo
+	wget -qO- $SCLREPO/scl.repo >> /etc/yum.repos.d/centos.scl.repo
 	yum -y update
 	!
 }
