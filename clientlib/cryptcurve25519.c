@@ -135,7 +135,7 @@ FSTATIC gboolean
 _is_legal_curve25519_key_id(const char * key_id)	///< Key id to validate
 {
 	static const char *	validchars =
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_@#";
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.+@#";
 	int			length;
 	for (length=0; length < MAXCRYPTKEYNAMELENGTH && key_id[length] != EOS; ++length) {
 		if (strchr(validchars, key_id[length]) == NULL) {

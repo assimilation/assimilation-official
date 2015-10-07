@@ -314,7 +314,7 @@ exit 0
 %systemd_postun_with_restart assimilation-cma.service
 
 %post -n assimilation-nanoprobe
-echo %{_libdir}/assimilation > /etc/ld.so.conf/assimilation.conf
+echo %{_libdir}/assimilation > /etc/ld.so.conf.d/assimilation.conf
 /sbin/ldconfig
 %systemd_post assimilation-nanoprobe.service
 

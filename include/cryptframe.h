@@ -28,7 +28,7 @@
 
 ///@{
 /// @ingroup CryptFrame
-#define MAXCRYPTKEYNAMELENGTH	64	///< Maximum length of a crypt key name
+#define MAXCRYPTKEYNAMELENGTH	128	///< Maximum length of a crypt key name
 typedef struct _CryptFrame CryptFrame;
 
 typedef struct {
