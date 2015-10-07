@@ -178,7 +178,7 @@ the assimilation-nanoprobe daemon.
 
 %package -n assimilation-nanoprobe
 Group:         Applications/System
-Summary:       Nanoprobe distributed monitoring agent for Assimilation
+Summary:       Nanoprobe distributed discovery and monitoring agent for Assimilation
 BuildRequires: glib2-devel
 BuildRequires: libpcap-devel
 BuildRequires: zlib-devel
@@ -188,6 +188,7 @@ Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
 Requires:         iw
+Requires:         net-tools
 %else
 Requires(post):   chkconfig
 Requires(preun):  chkconfig
