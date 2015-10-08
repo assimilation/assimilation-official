@@ -1,5 +1,33 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_0_2 version 1.0.2 - the "pre-Columbus Day" release - 08 October 2015
+This is a bug-fix-only release of things discovered once we got more people to install it with the easy-installer
+@subsection BugFixes_1_0_1 Bug Fixes
+- Added net-tools dependency for CentOS >= 7
+- Worked around brain-dead-bug in systemd
+- Fixed bug around iterable Drone objects which caused some discovery to be ignored.
+- Fixed broken links on the web site
+- Created directories for nanoprobe pid file
+- Fixed ldconfig typo in RPM packages
+- Added '.' character as permissible system name
+- Increased maximum system name length
+- Disabled sudoers discovery to avoid periodic errors
+@subsection Features_1_0_1 New Features
+- <i>none</i>
+@subsection Caveats_1_0_1 Caveats
+- Sudoers discovery is disabled for this release - will reappear later on
+- Documentation has not been updated to reflect move to github. No doubt other shortcomings exist as well. Sorry! Please fix and generate a pull request.
+- No alerting, or interface to existing alerting (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- use with recent versions of Neo4j requires disabling authentication on Neo4j
+- performance with Neo4j is poor. Strangely, it's not a scalability problem. Fixes will be in a future release.
+- Best practices alerts currently only come out in syslog - not as events. Sorry!
+- Our current process only allows us to distribute 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
+- The magic installer can't install CMAs onto Fedora.
+
 @section Version_1_0_1 version 1.0.1 - the "Day 30" release - 30 September 2015
 @subsection Features_1_0_1 New Features
 - Moved development to git and github
