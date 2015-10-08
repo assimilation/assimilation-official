@@ -38,6 +38,7 @@ bash ./CentOS6-directions --format=dockerfile docker > Dockerfile
 cat <<'!EOF' >> Dockerfile
 RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"
 !EOF
+mkdir -p $PKGDIR
 rm -fr $PKGDIR/*
 $DOCKER build -t $CMA .
 ID=$(docker run -d $CMA /bin/sleep 5)
