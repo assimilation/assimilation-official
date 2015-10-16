@@ -30,8 +30,9 @@
 REL=1.0.2
 WORKLOG=/tmp/assimilation-install.txt
 ASSIMSHARE=/usr/share/assimilation
-BASEURL=https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADYcxtYYwlFZxV-P0LpRA4ra/builds/Releases
-BASEURL=https://dl.dropboxusercontent.com/u/65564307/builds/releases
+ROOTURL=https://dl.dropboxusercontent.com/u/65564307/builds
+BASEURL=$ROOTURL/Releases
+PRERELURL=$ROOTURL/Prereleases
 SRCROOT=https://github.com/assimilation/assimilation-official/raw
 NEOVERS=2.2.5
 BUILDLOG=build.out
@@ -1103,7 +1104,7 @@ init_install() {
 usage() {
     name=$(basename $1)
     cat <<-!USAGE
-	    usage: $name (cma|nanoprobe|test)
+	    usage: $name [flags] (cma|nanoprobe|test)
 
         $name installs the $REL Assimilation release on the current machine.
         It either installs it as a CMA (collective management authority)
@@ -1116,6 +1117,10 @@ usage() {
 
         The test argument tests the code for determining which OS
         you're running, and also some other internal aspects of the code.
+
+        Legal flags include:
+            --rel=releasenumber - which release to install
+            --prerel=releasenumber - which prerelease to install
 		!USAGE
 }
 
@@ -1134,6 +1139,10 @@ case $1 in
                     ;;
 
     --rel=*)        REL=$(echo $1 | sed 's%.*=%%')
+                    shift
+                    ;;
+    --prerel=*)     REL=$(echo $1 | sed 's%.*=%%')
+                    BASEURL=$PRERELURL
                     shift
                     ;;
 

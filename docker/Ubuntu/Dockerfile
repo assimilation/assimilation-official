@@ -102,3 +102,4 @@ RUN rm -fr $NEOROOT/data/graph.db/* $NEOROOT/data/graph.db/keystore $NEOROOT/dat
 COPY timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata
 RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"
+RUN echo "ASSIMVERSION=$(cma --version)"

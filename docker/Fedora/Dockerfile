@@ -50,3 +50,4 @@ RUN cp /root/rpmbuild/RPMS/@ARCH@/* /root/assimilation/packages
 RUN echo "GOOD BUILD: fedora:latest" # Will be updated by "dockit" script
 ###  Our RPMs
 RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"
+RUN echo "ASSIMVERSION=$(cma --version)"

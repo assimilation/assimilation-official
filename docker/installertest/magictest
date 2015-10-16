@@ -29,6 +29,8 @@
 # If not, see http://www.gnu.org/licenses/
 #
 
+INSTALLMEOPTS=''
+
 setup() {
     LOGGER=rsyslog
     cp ../../buildtools/installme .
@@ -45,33 +47,44 @@ setup() {
 		ADD installme /tmp/workdir/
 		RUN chmod 755 installme
 		RUN ls -l \$WORK
-		#RUN $INSTALLER -q -y install ${LOGGER}
-		RUN /bin/sh -ex installme $2
+		RUN /bin/sh -ex installme $INSTALLMEOPTS $2
+        RUN sed 's%^%LOG: %' < /tmp/assimilation-install.txt
 		!
 }
 
-ubupairs="ubuntu:vivid ubuntu:trusty ubuntu:precise ubuntu:wily" 
-debpairs="debian:wheezy debian:jessie"
-fedpairs="fedora:21 fedora:22"
-centpairs="centos:centos6 centos:centos7"
+test_installer() {
+    if
+        [ $# -ge 1 ]
+    then
+        INSTALLMEOPTS="$*"
+    fi
 
-for pairs in $debpairs $fedpairs $centpairs $ubupairs
-do
-    for role in cma # nanoprobe # test
+    ubupairs="ubuntu:vivid ubuntu:trusty ubuntu:precise ubuntu:wily" 
+    debpairs="debian:wheezy debian:jessie"
+    fedpairs="fedora:21 fedora:22"
+    centpairs="centos:centos6 centos:centos7"
+
+    for pairs in $debpairs $fedpairs $centpairs $ubupairs
     do
-        # Java dependency currently prohibits clean cma install with RPMs
-        # But RPMs might not be the best choice.
-        case $pairs:$role in
-            fedora:*:cma)   continue;;
-        esac
-        setup $pairs $role
-        echo "TEST FOR $pairs in role $role STARTED $(date)"
-        if
-            time docker build . > ${pairs}.${role}.out 2>&1
-        then
-            echo "TEST FOR $pairs in role $role COMPLETE $(date)"
-        else
-            echo "TEST FOR $pairs in role $role FAILED $(date)"
-        fi
+        for role in cma # nanoprobe # test
+        do
+            # Java dependency currently prohibits clean cma install with RPMs
+            # So RPMs might not be the best choice for Fedora - or anyone
+            # because they drop their untested prereleases in their repository
+            case $pairs:$role in
+                fedora:*:cma)   continue;;
+            esac
+            setup $pairs $role
+            echo "TEST FOR $pairs in role $role STARTED $(date)"
+            if
+                time docker build . > ${pairs}.${role}.out 2>&1
+            then
+                echo "TEST FOR $pairs in role $role COMPLETE $(date)"
+            else
+                echo "TEST FOR $pairs in role $role FAILED $(date)"
+            fi
+        done
     done
-done
+}
+
+test_installer "$@"

@@ -49,4 +49,5 @@ RUN /usr/sbin/rsyslogd&  $NEOROOT/bin/neo4j console & sleep 20; testify -v tests
 RUN cp /root/rpmbuild/RPMS/x86_64/* /root/assimilation/packages
 RUN echo "GOOD BUILD: centos:latest" # Will be updated by "dockit" script
 RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"
+RUN echo "ASSIMVERSION=$(cma --version)"
 ###  Our RPMs
