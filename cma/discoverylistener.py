@@ -207,8 +207,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                     print >> sys.stderr, 'currip:%s, currips:%s' %  (str(currip), str(currips))
                     self.log.debug('Deleting address %s from MAC %s' %  (currip, macaddr))
                     self.log.debug('currip:%s, currips:%s' %  (str(currip), str(currips)))
-                    # @FIXME - this is a bug -- 'currip' is a string... - or _something_ is...
-                    self.store.separate(mac, currip, CMAconsts.REL_ipowner)
+                    self.store.separate(mac, rel_type=CMAconsts.REL_ipowner, obj=currip)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     self.store.delete(currip)
                     del currips[ipaddr]
