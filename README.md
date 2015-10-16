@@ -3,11 +3,14 @@
 
 # Welcome to the Assimilation README file :-D.
 
+The Assimilation System Management Suite provides a variety of system management capabilities with near-zero configuration. The project web site is at [assimproj.org](http://assimproj.org/), and commercial support and alternative licenses are available from [Assimilation Systems](http://AssimilationSystems.com). A more comprehensive explanation of our many capabilities can be found on the [Assimilation Systems](http://AssimilationSystems.com) site, and on their [blog](http://assimilationsystems.com/category/blog/).
+
+Although we use the github issues mechanism, most of our issues can be found [on Trello](https://trello.com/b/98QrdEK1/issues-bugs).
+
 This code builds with cmake, not autotools.
-A more detailed Getting Started guide can be found here
-http://linux-ha.org/source-doc/assimilation/html/_getting_started.html
-The open source project home page is at http://assimmon.org/ - check it out!
-Please join the project mailing list at http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
+A more detailed Getting Started guide can be found [here](http://linux-ha.org/source-doc/assimilation/html/_getting_started.html).
+The open source project home page is at http://assimproj.org/ - check it out!
+Please join the open source project mailing list [on Mailman](http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation).
 This project proudly sponsored by [Assimilation Systems Limited](http://AssimilationSystems.com)</a>.
 
 
