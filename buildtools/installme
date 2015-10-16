@@ -976,7 +976,9 @@ install_rpm_neo4j() {
 		enabled=1
 		gpgcheck=1
 		!EOF
-    install_sys_package neo4j-${NEOVERS}
+    install_sys_package yum-versionlock neo4j-${NEOVERS}
+    logwork "Locking Neo4j version to $NEOVERS"
+    $(yum_or_dnf) versionlock add neo4j
 }
 
 # Fix up neo4j configuration
