@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -335,6 +335,9 @@ def main():
     jvers = jvmfd.readline()
     jvmfd.close()
     disp = MessageDispatcher(DispatchTarget.dispatchtable)
+    neovers = CMAdb.cdb.db.neo4j_version
+    neoversstring = (('%s.%s.%s'if len(neovers) == 3 else '%s.%s.%s%s')
+                     %   neovers[0:3])
 
     CMAdb.log.info('Starting CMA version %s - licensed under %s'
     %   (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING))
@@ -347,10 +350,14 @@ def main():
         print >> sys.stderr, ('Starting CMA version %s - licensed under %s'
         %   (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING))
         print >> sys.stderr, ('Neo4j version %s // py2neo version %s // Python version %s // %s'
-            % (('%s.%s.%s' % CMAdb.cdb.db.neo4j_version)
+            % ( neoversstring
             ,   PY2NEO_VERSION
             ,   ('%s.%s.%s' % sys.version_info[0:3])
             ,   jvers))
+    if len(neovers) > 3:
+        CMAdb.log.warning('Neo4j version %s is beta code - results not guaranteed.'
+                          % str(neovers))
+
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...
     listener = PacketListener(config, disp, io=io)
