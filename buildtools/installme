@@ -59,7 +59,7 @@ CENTOS_BASE_CMA_PKGS='python-pip
 CENTOS_BASE_NANO_PKGS=''
 CENTOS_BASE_PIP_PKGS='getent' # Plus py2neo
 CENTOS_LIBSODIUM='libsodium'
-CENTOS6_BASE_NANO_PKGS='scl-utils'
+CENTOS6_BASE_NANO_PKGS=''
 CENTOS6_PYSCL=python27
 CENTOS6_BASE_CMA_PKGS="lsof
             resource-agents
@@ -68,6 +68,8 @@ CENTOS6_BASE_CMA_PKGS="lsof
             lsof
             gcc
 			ca-certificates
+            scl-utils
+            $CENTOS6_PYSCL-python
             $CENTOS6_PYSCL-python
             $CENTOS6_PYSCL-python-setuptools"
 CENTOS6_BASE_PIP_PKGS="flask netaddr getent demjson" # Plus py2neo
@@ -339,7 +341,7 @@ fixup_codename_if_possible() {
                 14.04)  DISTRIB_CODENAME=trusty;;
                 13.10)  DISTRIB_CODENAME=saucy;;
                 13.04)  DISTRIB_CODENAME=raring;;
-                12.10)  DISTRIB_CODENAME=quatnal;;
+                12.10)  DISTRIB_CODENAME=quantal;;
                 12.04)  DISTRIB_CODENAME=precise;;
             esac
             ;;
@@ -377,6 +379,19 @@ test_os_versions() {
         fi
     ) done
 }
+
+LOGURL='https://docs.google.com/forms/d/1n1RponvHNLB_4Kl6EEZyhT8FAx2f9TDwZoh0egsT2h0/formResponse'
+IPURL='http://www.ipchicken.com/' # Yes, really...
+getip() {
+	wget -q -O- $IPURL | egrep '^  *[0-9.]+ *<br>' | sed 's% *\([0-9.]*\).*%\1%'
+}
+
+loginstall() {
+    itype=$1
+    shift
+    wget -q --post-data "entry.59650547=$REL&entry.1354036570=$itype&entry.2040350945=$OSCLASS&entry.1731073781=$DISTRIB_ID&entry.1416063754=$DISTRIB_RELEASE&entry.1919357490=$(uname -n)&entry.1150686738=$DISTRIB_CODENAME&entry.2051158958=$(getip)&entry.1053325124=$*" $LOGURL >/dev/null
+}
+
 #
 test_version_comparisons() {
     test_cases="1       1        0
@@ -531,6 +546,11 @@ is_supported_os() {
 
 # Is the given package installed?
 is_package_installed() {
+    if
+        [ $# -lt 1 ]
+    then
+        return 0
+    fi
     case $(packaging_type) in
         rpm)    case "$(rpm -q "$1" 2>/dev/null)" in
                     *'is not installed'*)   return 1;;
@@ -628,7 +648,7 @@ install_sys_package() {
         if
             [ $j -gt 1 ]
         then
-            printf 'Retrying package installation. [try %d]...\n' $j
+            printf "Retrying package installation of %s. [try %d]...\n" "$*" $j
         fi
         if
             install_sys_package_onetry "$@"
@@ -824,14 +844,7 @@ install_centos_cma_base() {
         logwork "Running: pip install $(py2neo_version) $CENTOS_BASE_PIP_PKGS"
         pip install "$(py2neo_version)" $CENTOS_BASE_PIP_PKGS
     else
-        # This is annoying and ugly. Not much choice :-(
-        if
-            [ ! -f /etc/yum.repos.d/centos.scl.repo ]
-        then
-            logwork "Enabling CentOS SCL repo"
-            wget -qO- http://dev.centos.org/centos/6/SCL/scl.repo \
-                >>  /etc/yum.repos.d/centos.scl.repo
-        fi
+        install_sys_package centos-release-SCL
         install_sys_package $CENTOS6_BASE_CMA_PKGS
         pyscl easy_install pip
         pyscl pip install $CENTOS6_BASE_PIP_PKGS
@@ -879,7 +892,7 @@ install_centos_nano_base() {
     else
         install_sys_package $CENTOS6_BASE_NANO_PKGS
         ARCH=$(package_architecture)
-        SUFFIX="$ARCH/libsodium-last-1.0.3-1.el6.remi.$ARCH.rpm"
+        SUFFIX="$ARCH/libsodium-last-1.0.5-1.el6.remi.$ARCH.rpm"
         URL=$CENTOS6_LIBSODIUMBASE/$SUFFIX
         logwork "wget: retrieving $URL"
         wget -q -O libsodium.$ARCH.rpm $URL
@@ -1127,28 +1140,36 @@ usage() {
 }
 
 if
-    [ $# -lt 1 -o $# -gt 3 ]
+    [ $# -lt 1 -o $# -gt 4 ]
 then
     usage "$0" "$@" >&2
     exit 1
 fi
+logme=true
+while
+    case $1 in
+        --*)    true;;
+        *)      false;;
+    esac
+do
+    case $1 in
+        --startrsyslog) rsyslogd& >/dev/null 2>&1
+                        shift
+                        ;;
 
-case $1 in
-                    # This is because the CMA code insists on logging
-                    # and gets unhappy when it can't (notably in docker).
-    --startrsyslog) rsyslogd& >/dev/null 2>&1
-                    shift
-                    ;;
+        --rel=*)        REL=$(echo $1 | sed 's%.*=%%')
+                        shift
+                        ;;
+        --prerel=*)     REL=$(echo $1 | sed 's%.*=%%')
+                        BASEURL=$PRERELURL
+                        shift
+                        ;;
+        --nolog)        logme=false
+                        shift
+                        ;;
 
-    --rel=*)        REL=$(echo $1 | sed 's%.*=%%')
-                    shift
-                    ;;
-    --prerel=*)     REL=$(echo $1 | sed 's%.*=%%')
-                    BASEURL=$PRERELURL
-                    shift
-                    ;;
-
-esac
+    esac
+done
 
 case $1 in
     cma|nanoprobe)
@@ -1156,6 +1177,7 @@ case $1 in
             init_install;
             install_$1
             echo "Installation complete. Actions logged in $WORKLOG."
+            test $logme = false || loginstall $1
             ;;
     test)   test_version_comparisons; test_os_versions;;
     -h|--help)
