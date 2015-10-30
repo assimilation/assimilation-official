@@ -460,12 +460,65 @@ class TestTestInfrastructure(TestCase):
         assert_no_dangling_Cclasses()
 
 class TestCMABasic(TestCase):
+    OS_DISCOVERY = '''{
+  "discovertype": "os",
+  "description": "OS information",
+  "host": "drone000001",
+  "source": "../discovery_agents/os",
+  "data": {
+    "nodename": "drone000001",
+    "operating-system": "GNU/Linux",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "hardware-platform": "x86_64",
+    "kernel-name": "Linux",
+    "kernel-release": "3.19.0-31-generic",
+    "kernel-version": "#36-Ubuntu SMP Wed Oct 7 15:04:02 UTC 2015",
+    "Distributor ID":   "Ubuntu",
+    "Description":      "Ubuntu 15.04",
+    "Release":  "15.04",
+    "Codename": "vivid"
+  }
+}'''
+    ULIMIT_DISCOVERY= '''{
+  "discovertype": "ulimit",
+  "description": "ulimit values for root",
+  "host": "drone000001",
+  "source": "../discovery_agents/ulimit",
+  "data": {
+    "hard": {"c":null,"d":null,"f":null,"l":null,"m":null,"n":65536,"p":63557,"s":null,"t":null,"v":null},
+    "soft": {"c":0,"d":null,"f":null,"l":null,"m":null,"n":1024,"p":63557,"s":8192,"t":null,"v":null}
+  }
+}'''
+    def check_discovery(self, drone, expectedjson):
+        'We check to see if the discovery JSON object thingy is working...'
+        disctypes = []
+
+        for json in expectedjson:
+            jsobj = pyConfigContext(json)
+            dtype = jsobj['discovertype']
+            # Compare hash sums - without retrieving the big string from Neo4j
+            self.assertTrue(drone.json_eq(dtype, json))
+            # Fetch string from the database and compare for string equality
+            self.assertEqual(json, str(drone[dtype]))
+            disctypes.append(dtype)
+
+        disctypes.sort()
+        dronekeys = drone.keys()
+        dronekeys.sort()
+        self.assertEqual(dronekeys, disctypes)
+
+
+    
     def test_startup(self):
         '''A semi-interesting test: We send a STARTUP message and get back a
-        SETCONFIG message with lots of good stuff in it.'''
+        SETCONFIG message with lots of good stuff in it.
+        and for good measure, we also send along some discovery packets.
+        '''
         if BuildListOnly: return
         if DEBUG:
             print >> sys.stderr, 'Running test_startup()'
+        from dispatchtarget import DispatchTarget
         droneid = 1
         droneip = droneipaddress(droneid)
         designation = dronedesignation(droneid)
@@ -475,27 +528,39 @@ class TestCMABasic(TestCase):
         fs = pyFrameSet(FrameSetTypes.STARTUP)
         fs.append(designationframe)
         fs.append(discoveryframe)
-        fsin = ((droneip, (fs,)),)
+
+        fs2 = pyFrameSet(FrameSetTypes.JSDISCOVERY)
+        osdiscovery=pyCstringFrame(FrameTypes.JSDISCOVER, self.OS_DISCOVERY)
+        fs2.append(osdiscovery)
+        fs3 = pyFrameSet(FrameSetTypes.JSDISCOVERY)
+        ulimitdiscovery=pyCstringFrame(FrameTypes.JSDISCOVER, self.ULIMIT_DISCOVERY)
+        fs3.append(ulimitdiscovery)
+        fsin = ((droneip, (fs,)), (droneip, (fs2,)), (droneip, (fs3,)))
         io = TestIO(fsin,0)
         #print >> sys.stderr, 'CMAinit: %s' % str(CMAinit)
         #print >> sys.stderr, 'CMAinit.__init__: %s' % str(CMAinit.__init__)
-        CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        assimcli_check('loadqueries')
         OurAddr = pyNetAddr((127,0,0,1),1984)
-        disp = MessageDispatcher({FrameSetTypes.STARTUP: DispatchSTARTUP()}, encryption_required=False)
         configinit = geninitconfig(OurAddr)
         config = pyConfigContext(init=configinit)
+        io.config = config
+        CMAinit(io, cleanoutdb=True, debug=DEBUG)
+        CMAdb.io.config = config
+        assimcli_check('loadqueries')
+        disp = MessageDispatcher(DispatchTarget.dispatchtable, encryption_required=False)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
         TestIO.mainloop = listener.mainloop
         # We send the CMA an intial STARTUP packet
         listener.listen()
         # Let's see what happened...
+        #print >> sys.stderr, ('READ: %s' % io.packetsread)
         #print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
+        #print >> sys.stderr, ('PACKETS WRITTEN: %s' % str(io.packetswritten))
 
-        self.assertEqual(len(io.packetswritten), 2) # Did we send out two packets?
+        self.assertEqual(len(io.packetswritten), 2) # Did we send out four packets?
                             # Note that this change over time
                             # As we change discovery...
+        self.assertEqual(io.packetsread, 3) # Did we read 3 packets?
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
         io.cleanio()
         assimcli_check("query allips", 1)
@@ -504,6 +569,12 @@ class TestCMABasic(TestCase):
         assimcli_check("query shutdown", 0)
         assimcli_check("query crashed", 0)
         assimcli_check("query unknownips", 0)
+        CMAdb.io.config = config
+        Drones = CMAdb.store.load_cypher_nodes("START n=node:Drone('*:*') RETURN n", Drone)
+        Drones = [drone for drone in Drones]
+        for drone in Drones:
+            self.check_discovery(drone, (dronediscovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
+        self.assertEqual(len(Drones), 1) # Should only be one drone
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)

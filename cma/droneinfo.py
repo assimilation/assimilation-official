@@ -64,6 +64,8 @@ class Drone(SystemNode):
                            WHERE r.jsonname={jsonname}
                            return json'''
 
+    HASH_PREFIX = 'JSON__hash__'
+
 
     # R0913: Too many arguments to __init__()
     # pylint: disable=R0913
@@ -234,7 +236,7 @@ class Drone(SystemNode):
 
     def __contains__(self, key):
         'Return True if our object contains the given key (JSON name).'
-        return hasattr(self, 'JSON_hash_' + key)
+        return hasattr(self, self.HASH_PREFIX + key)
 
     def __len__(self):
         'Return the number of JSON items in this Drone.'
@@ -242,7 +244,7 @@ class Drone(SystemNode):
 
     def jsonval(self, jsontype):
         'Construct a python object associated with a particular JSON discovery value.'
-        if not hasattr(self, 'JSON_hash_' + jsontype):
+        if not hasattr(self, self.HASH_PREFIX + jsontype):
             return None
         return CMAdb.store.load_cypher_node(self.JSONsingleattr, JSONMapNode,
                                      params={'droneid': Store.id(self),
@@ -279,7 +281,7 @@ class Drone(SystemNode):
                 # This will likely involve *not* doing a 'del' here
                 del self[name]
         jsonnode = CMAdb.store.load_or_create(JSONMapNode, json=value)
-        setattr(self, 'JSON_hash_' + name, jsonnode.jhash)
+        setattr(self, self.HASH_PREFIX + name, jsonnode.jhash)
         CMAdb.store.relate(self, CMAconsts.REL_jsonattr, jsonnode,
                            properties={'jsonname':  name,
                                        'time':   long(round(time.time()))
@@ -288,7 +290,7 @@ class Drone(SystemNode):
     def __delitem__(self, name):
         'Delete the given JSON value from the Drone.'
         try:
-            delattr(self, 'JSON_hash_' + name)
+            delattr(self, self.HASH_PREFIX + name)
         except AttributeError:
             raise IndexError('No such JSON attribute [%s].' % name)
         jsonnode=self[name]
@@ -317,7 +319,7 @@ class Drone(SystemNode):
         '''
         if key not in self:
             return False
-        hashname = 'JSON_hash' + key
+        hashname = self.HASH_PREFIX + key
         newhash = JSONMapNode.strhash(newvalue)
         return getattr(self, hashname) == newhash
 
