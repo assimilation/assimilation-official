@@ -562,7 +562,6 @@ class TestCMABasic(TestCase):
                             # As we change discovery...
         self.assertEqual(io.packetsread, 3) # Did we read 3 packets?
         AUDITS().auditSETCONFIG(io.packetswritten[0], droneid, configinit)
-        io.cleanio()
         assimcli_check("query allips", 1)
         assimcli_check("query allservers", 1)
         assimcli_check("query findip %s" % str(droneip), 1)
@@ -575,6 +574,7 @@ class TestCMABasic(TestCase):
         for drone in Drones:
             self.check_discovery(drone, (dronediscovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
         self.assertEqual(len(Drones), 1) # Should only be one drone
+        io.cleanio()
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
