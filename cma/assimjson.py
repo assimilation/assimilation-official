@@ -113,7 +113,7 @@ class JSONtree(object):
             value = getattr(thing, attr)
             if self.maxJSON > 0 and attr.startswith('JSON_') and len(value) > self.maxJSON:
                 continue
-            if self.expandJSON and attr.startswith('JSON_'):
+            if self.expandJSON and attr.startswith('JSON_') and value.startswith('{'):
                 js = pyConfigContext(value)
                 if js is not None:
                     value = js

@@ -1,6 +1,6 @@
 
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -24,7 +24,7 @@
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
-import sys, re, time
+import sys, re, time, hashlib
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
 from py2neo import neo4j
@@ -536,6 +536,76 @@ class ProcessNode(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['processname', 'domain']
+
+@RegisterGraphClass
+class JSONMapNode(GraphNode):
+    '''A node representing a map object encoded as a JSON string
+    This has everything to do with performance in Neo4j.
+    They don't support maps, and they do a poor (*very* slow) job of supporting large strings.
+    The only way I know of to support our JSON-based maps in Neo4j is as large strings.
+    These used to be stored in the Drone nodes themselves, but that meant that every time
+    a Drone was transferred to the python code, it transferred *all* of its attributes, which
+    means transferring lots and lots of very slow and rarely needed string data.
+
+    Although these are transmitted in UDP packets, they are compressed, and JSON compresses very
+    well, and in some cases extremely well. I've actually seen 3M of JSON compress down to less
+    than 40K of binary.
+    '''
+
+    def __init__(self, json, jhash=None):
+        GraphNode.__init__(self, domain='metadata')
+        self._map = pyConfigContext(json)
+        self.json = json
+        # We use sha224 to keep the length under 60 characters (56 to be specific)
+        # This is a performance consideration for the current (2.3) verison of Neo4j
+        if jhash is None:
+            jhash = self.strhash(json)
+        self.jhash = jhash
+
+    @staticmethod
+    def strhash(string):
+        'Return our canonical hash value (< 60 chars long)'
+        return hashlib.sha224(string).hexdigest()
+
+    def __str__(self):
+        'Convert to string - returning the JSON string itself'
+        return self.json
+
+    def hash(self):
+        'Return the (sha224) hash of this JSON string'
+        return self.jhash
+
+    def keys(self):
+        'Return the keys that go with our map'
+        return self._map.keys()
+
+    def get(self, key, alternative=None):
+        '''Return JSON object if the given key exists - 'alternative' if not.'''
+        return self._map.get(key, alternative)
+
+    def deepget(self, key, alternative=None):
+        '''Return value if object contains the given *structured* key - 'alternative' if not.'''
+        return self._map.deepget(key, alternative)
+
+    def __getitem__(self, key):
+        return self._map[key]
+
+    def __iter__(self):
+        'Iterate over self.keys() - giving the names of all our *top level* attributes.'
+        for key in self.keys():
+            yield key
+
+    def __contains__(self, key):
+        return key in self._map
+
+    def __len__(self):
+        return len(self._map)
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return  ['jhash']
+
 
 if __name__ == '__main__':
     from cmainit import CMAinit

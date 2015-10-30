@@ -28,7 +28,8 @@ import time, sys
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
-from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode, BPRules
+from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode, BPRules, \
+    JSONMapNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pyCryptFrame
 from assimevent import AssimEvent
@@ -55,6 +56,13 @@ class Drone(SystemNode):
     OwnedIPsQuery_txt = '''START d=node({droneid})
                            MATCH d-[:%s]->()-[:%s]->ip
                            return ip'''
+    JSONattrnames =        '''START d=node({droneid})
+                           MATCH d-[r:jsonattr]->()
+                           return r.jsonname as key'''
+    JSONsingleattr =      '''START d=node({droneid})
+                           MATCH d-[r:jsonattr]->(json)
+                           WHERE r.jsonname={jsonname}
+                           return json'''
 
 
     # R0913: Too many arguments to __init__()
@@ -80,6 +88,7 @@ class Drone(SystemNode):
         This is necessary because the performance of putting lots of really large
         strings in Neo4j is absolutely horrible. Putting large strings in is dumb
         and what Neo4j does with them is even dumber...
+        The result is at least DUMB^2 -not 2*DUMB ;-)
         '''
         SystemNode.__init__(self, domain=domain, designation=designation)
         if roles is None:
@@ -194,12 +203,10 @@ class Drone(SystemNode):
             CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
             return
         dtype = jsonobj['discovertype']
-        jsonname = 'JSON_' + dtype
-        if not hasattr(self, jsonname) or str(getattr(self, jsonname)) != jsontext:
-            if CMAdb.debug:
-                CMAdb.log.debug("Saved discovery type %s for endpoint %s."
-                %       (dtype, self.designation))
-            setattr(self, jsonname, jsontext)
+        if not self.json_eq(dtype, jsontext):
+            CMAdb.log.debug("Saved discovery type %s for endpoint %s."
+            %       (dtype, self.designation))
+            self[dtype] = jsontext # This is stored in separate nodes for performance
         else:
             if not self.monitors_activated and dtype == 'tcpdiscovery':
                 # This is because we need to start the monitors anyway...
@@ -214,15 +221,43 @@ class Drone(SystemNode):
                 return
         self._process_json(origaddr, jsonobj)
 
+
+    def __iter__(self):
+        'Iterate over our child JSON attribute names'
+        for tup in CMAdb.store.load_cypher_query(self.JSONattrnames, None,
+                                     params={'droneid': Store.id(self)}):
+            yield tup.key
+
+    def keys(self):
+        'Return the names of all our JSON discovery attributes.'
+        return [attr for attr in self]
+
+    def __contains__(self, key):
+        'Return True if our object contains the given key (JSON name).'
+        return hasattr(self, 'JSON_hash_' + key)
+
+    def __len__(self):
+        'Return the number of JSON items in this Drone.'
+        return len(self.keys())
+
     def jsonval(self, jsontype):
         'Construct a python object associated with a particular JSON discovery value.'
-        jsonname = 'JSON_' + jsontype
-        return pyConfigContext(getattr(self, jsonname)) if hasattr(self, jsonname) else None
-
+        if not hasattr(self, 'JSON_hash_' + jsontype):
+            return None
+        return CMAdb.store.load_cypher_node(self.JSONsingleattr, JSONMapNode,
+                                     params={'droneid': Store.id(self),
+                                             'jsonname': jsontype})
     def get(self, key, alternative=None):
         '''Return JSON object if the given key exists - 'alternative' if not.'''
         ret = self.jsonval(key)
         return ret if ret is not None else alternative
+
+    def __getitem__(self, key):
+        'Return the given JSON value or raise IndexError.'
+        ret = self.jsonval(key)
+        if ret is None:
+            raise IndexError('No such JSON attribute [%s].' % key)
+        return ret
 
     def deepget(self, key, alternative=None):
         '''Return value if object contains the given *structured* key - 'alternative' if not.'''
@@ -234,60 +269,57 @@ class Drone(SystemNode):
             return alternative
         return jsonmap.deepget(keyparts[1], alternative)
 
-    def __getitem__(self, key):
-        'Return the given JSON value or raise IndexError.'
-        ret = self.jsonval(key)
-        if ret is None:
-            raise IndexError('No such JSON value [%s].' % key)
-        return ret
+    def __setitem__(self, name, value):
+        'Set the given JSON value to the given object/string.'
+        if name in self:
+            if self.json_eq(name, value):
+                return
+            else:
+                # FIXME: ADD ATTRIBUTE HISTORY (enhancement)
+                # This will likely involve *not* doing a 'del' here
+                del self[name]
+        jsonnode = CMAdb.store.load_or_create(JSONMapNode, json=value)
+        setattr(self, 'JSON_hash_' + name, jsonnode.jhash)
+        CMAdb.store.relate(self, CMAconsts.REL_jsonattr, jsonnode,
+                           properties={'jsonname':  name,
+                                       'time':   long(round(time.time()))
+                                       })
+
+    def __delitem__(self, name):
+        'Delete the given JSON value from the Drone.'
+        try:
+            delattr(self, 'JSON_hash_' + name)
+        except AttributeError:
+            raise IndexError('No such JSON attribute [%s].' % name)
+        jsonnode=self[name]
+        should_delnode = True
+        # See if it has any remaining references...
+        for node in CMAdb.store.load_in_related(jsonnode,
+                                                CMAconsts.REL_jsonattr,
+                                                nodeconstructor):
+            if node is not self:
+                should_delnode = False
+                break
+        CMAdb.store.separate(self, CMAconsts.REL_jsonattr, jsonnode)
+        if should_delnode:
+            # Avoid dangling properties...
+            CMAdb.store.delete(jsonnode)
 
     def json_eq(self, key, newvalue):
         '''Return True if this new value is equal to the current value for
         the given key (JSON attribute name).
 
-        This sounds kinda stupid given the current implementation, but for
-        future implementations, it makes a lot more sense.
+        We do this by comparing hash values. This keeps us from having to
+        fetch potentially very large strings (read VERY SLOW) if we can
+        compare hash values instead.
 
-        We can store the hash of the current value and compare that without
-        going to a separate data store. Any selected hash value has to be
-        representable in fewer than 60 bytes to maximize Neo4j performance.
+        Our hash values are representable in fewer than 60 bytes to maximize Neo4j performance.
         '''
-        jsonname = 'JSON_' + key
-        return getattr(self, jsonname) == newvalue if hasattr(self, jsonname) else False
-
-
-    def jsonattrs(self):
-        'Return the names of all our JSON discovery attributes.'
-        return self.keys()
-
-    def keys(self):
-        'Return the names of all our JSON discovery attributes.'
-        return [attr for attr in dir(self) if attr.startswith('JSON_')]
-
-    def __iter__(self):
-        'Iterate over self.keys() - giving the names of all our JSON attributes.'
-        for key in self.keys():
-            yield key
-
-    def __contains__(self, key):
-        'Return True if our object contains the given key.'
-        return hasattr(self, 'JSON_'+key)
-
-    def __len__(self):
-        'Return the number of JSON items in this Drone.'
-        return len(self.keys())
-
-    def __setitem(self, name, value):
-        'Set the given JSON value to the given object/string.'
-        value = str(pyConfigContext(value))
-        setattr(self, 'JSON_' + name, value)
-
-    def __delitem(self, name):
-        'Delete the given JSON value from the Drone.'
-        try:
-            delattr(self, 'JSON_' + name)
-        except AttributeError:
-            raise IndexError('No such JSON attribute [%s].' % name)
+        if key not in self:
+            return False
+        hashname = 'JSON_hash' + key
+        newhash = JSONMapNode.strhash(newvalue)
+        return getattr(self, hashname) == newhash
 
 
     def _process_json(self, origaddr, jsonobj):

@@ -73,7 +73,6 @@ class GraphNodeExpression(object):
         if expression.startswith('$'):
             #print >> sys.stderr, 'RETURNING VALUE OF %s' % expression[1:]
             #print >> sys.stderr, 'Context is %s' % str(context)
-            #   % (expression, context.get(expression[1:], None))
             #print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
             #   % (expression, context.get(expression[1:], None))
             return context.get(expression[1:], None)
@@ -186,6 +185,16 @@ class ExpressionContext(object):
         self.objects = objects if isinstance(objects, (list, tuple)) else (objects,)
         self.prefix = prefix
         self.values = {}
+
+    def __str__(self):
+        ret = 'ExpressionContext('
+        delim='['
+        for obj in self.objects:
+            ret +=  ('%s%s' % (delim, str(obj)))
+            delim=', '
+        ret += '])'
+        return ret
+
 
     def keys(self):
         '''Return the keys in our cache - this is NOT all known keys'''
@@ -693,7 +702,7 @@ def serviceip(args, context):
     it the hash table (map) of IP/port combinations for this service.
     '''
     if len(args) == 0:
-        args = ('$JSON_procinfo.listenaddrs',)
+        args = ('$procinfo.listenaddrs',)
     #print >> sys.stderr, 'SERVICEIP(%s)' % str(args)
     for arg in args:
         nmap = GraphNodeExpression.evaluate(arg, context)
@@ -716,7 +725,7 @@ def serviceport(args, context):
     it the hash table (map) of IP/port combinations for this service.
     '''
     if len(args) == 0:
-        args = ('$JSON_procinfo.listenaddrs',)
+        args = ('$procinfo.listenaddrs',)
     #print >> sys.stderr, 'SERVICEPORT ARGS are %s' % (str(args))
     for arg in args:
         nmap = GraphNodeExpression.evaluate(arg, context)
@@ -738,7 +747,7 @@ def serviceipport(args, context):
     address type (ipv4 or ipv6)
     '''
     if len(args) == 0:
-        args = ('$JSON_procinfo.listenaddrs',)
+        args = ('$procinfo.listenaddrs',)
     for arg in args:
         nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
@@ -786,9 +795,9 @@ def dirname(args, context):
 def hascmd(args, context):
     '''
     This function returns True if the given list of commands are all present on the given Drone.
-    It determines this by looking at the value of $JSON_commands
+    It determines this by looking at the value of $commands
     '''
-    cmdlist = GraphNodeExpression.evaluate('$JSON_commands', context)
+    cmdlist = GraphNodeExpression.evaluate('$commands', context)
     for arg in args:
         if cmdlist is None or arg not in cmdlist:
             return None

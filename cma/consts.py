@@ -56,6 +56,7 @@ class CMAconsts(object):
     NODE_monitoraction  = 'MonitorAction' # A (hopefully active) monitoring action
     NODE_bprules    = 'BPRules'       # Best practices rules
     NODE_bpruleset  = 'BPRuleSet'     # A set of best practice rules
+    NODE_jsonmap    = 'JSONMapNode'   # JSON map object stored as a string
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
@@ -75,6 +76,7 @@ class CMAconsts(object):
     REL_basedon     = 'basedon'     # NODE_BPRuleSet    ->  NODE_BPRuleSet
     REL_basis       = 'basis'       # NODE_BPRules      ->  NODE_BPRules
     REL_bprulefor   = 'ruledbybp'   # NODE_drone        ->  NODE_BPRules
+    REL_jsonattr    = 'jsonattr'    # NODE_system       ->  NODE_jsonmap
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 #

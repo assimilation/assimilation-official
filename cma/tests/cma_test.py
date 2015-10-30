@@ -184,7 +184,7 @@ class AUDITS(TestCase):
         self.assertEqual(len(ipnodes), 1)
         ipnode = ipnodes[0]
         ipnodeaddr = pyNetAddr(ipnode.ipaddr)
-        json = drone.JSON_netconfig
+        json = drone['netconfig']
         jsobj = pyConfigContext(init=json)
         jsdata = jsobj['data']
         eth0obj = jsdata['eth0']
@@ -265,6 +265,7 @@ inityet = False
 def assimcli_check(command, expectedcount=None):
     'This code only works if you have assimcli installed'
     cmd='%s %s' % (ASSIMCLI, command)
+    #print >> sys.stderr, 'RUNNING COMMAND: %s' % str(command)
     if expectedcount is None:
         subprocess.check_call(('sh', '-c', cmd))
     else:
@@ -276,7 +277,7 @@ def assimcli_check(command, expectedcount=None):
             linecount += 1
         rc = fd.close()
         if expectedcount != linecount:
-            print >> sys.stderr, 'Rerunning query:'
+            print >> sys.stderr, 'Rerunning query [%s]:' % cmd
             subprocess.check_call(('sh', '-c', cmd))
             raise RuntimeError('%s command produced %s lines instead of %s'
             %   (cmd, linecount, expectedcount))
@@ -991,7 +992,7 @@ class TestMonitorBasic(TestCase):
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
             ["classpath",   "@flagvalue(-cp)"],
-            ["ipaddr",      "@serviceip($JSON_procinfo.listenaddrs)"],
+            ["ipaddr",      "@serviceip($procinfo.listenaddrs)"],
             ["port",        "@serviceport()",   "[0-9]+$"]
         ]
         }'''
@@ -1055,21 +1056,21 @@ class TestMonitorBasic(TestCase):
         testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
 
-        testnode.JSON_procinfo = neo4j_json
+        testnode.procinfo = neo4j_json
         context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(match['arglist']['ipaddr'], '::1')
         self.assertEqual(match['arglist']['port'], '1337')
 
-        testnode.JSON_procinfo = ssh_json
+        testnode.procinfo = ssh_json
         context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(match['arglist']['port'], '22')
         self.assertEqual(match['arglist']['ipaddr'], '127.0.0.1')
 
-        testnode.JSON_procinfo = bacula_json
+        testnode.procinfo = bacula_json
         context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)

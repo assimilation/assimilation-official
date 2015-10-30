@@ -514,8 +514,7 @@ class Store(object):
         'Load a single node as a result of a Cypher query'
         if params is None:
             params = {}
-        nodes = self.load_cypher_nodes(query, cls, params, maxcount=1)
-        for node in nodes:
+        for node in self.load_cypher_nodes(query, cls, params, maxcount=1):
             return node
         return None
 

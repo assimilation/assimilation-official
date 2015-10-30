@@ -118,7 +118,8 @@ class query(object):
             for line in iterator:
                 print line
         except ValueError as err:
-            print >> sys.stderr, ('Invalid query: %s' % (str(err)))
+            print >> sys.stderr, ('Invalid query [%s %s]: %s.' % (queryname, str(params), str(err)))
+            print >> sys.stderr, ('CYPHER IS: %s' % request._query)
             return 1
         return 0
 
