@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -119,6 +119,8 @@ class query(object):
                 print line
         except ValueError as err:
             print >> sys.stderr, ('Invalid query [%s %s]: %s.' % (queryname, str(params), str(err)))
+            # pylint W0212 -- access to a protected member
+            # pylint: disable=W0212
             print >> sys.stderr, ('CYPHER IS: %s' % request._query)
             return 1
         return 0
