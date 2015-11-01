@@ -35,6 +35,7 @@ from cmainit import CMAinit
 DEBUG=False
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
+AssertOnDanglingClasses = sys.version_info.minor > 7 or sys.version_info.micro > 3
 
 WorstDanglingCount = 0
 

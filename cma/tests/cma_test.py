@@ -54,6 +54,8 @@ WorstDanglingCount = 0
 
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
+AssertOnDanglingClasses = sys.version_info.minor > 7 or sys.version_info.micro > 3
+
 DEBUG=False
 DoAudit=True
 doHBDEAD=True
