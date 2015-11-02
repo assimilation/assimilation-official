@@ -1,14 +1,15 @@
 /**
 @page ReleaseDescriptions Release Descriptions
-@section Version_1_0_3 version 1.0.3 - the Halloween release - 31 October 2015
+@section Version_1_1_0 version 1.1.0 - the MCH Release
 <b>Special Note</b> This release cannot make use of older databases. The workaround is to start the CMA <i>one time</i> with the --cleandb flag, and restart all your nanoprobes. Sorry about that.
-@subsection BugFixes_1_0_3 Bug Fixes
+This release is named after my Father-in-law - whose 94th birthday was 1 November 2015. Happy Birthday!
+@subsection BugFixes_1_1_0 Bug Fixes
 - Installer now locks down the version of Neo4j RPMs it installs. https://trello.com/c/o2KPR0aB 
 - Made the code stop barfing on Neo4j beta release version numbers https://trello.com/c/eTwkkWMI
 - Ensured that built releases have the right version number everywhere https://trello.com/c/cc8k892c
 - Changing MAC/IP association no longer makes the CMA sick https://trello.com/c/ySlAkWJC
 - README.md fixes
-@subsection Features_1_0_3 New Features
+@subsection Features_1_1_0 New Features
 - <i>Significant</i> performance improvement for accessing Drone (server) nodes in the database. https://trello.com/c/p19w7Jyn
 - Added a best practice rule to discourage tunnelled ssh passwords.
 - Verified operation against Neo4j 2.3.0 - and changed installer to favor that release. https://trello.com/c/nHUuTNUT
