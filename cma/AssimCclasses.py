@@ -84,7 +84,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
 from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
 import collections
-import traceback
+import traceback, types
 import sys, gc
 
 
@@ -2150,10 +2150,18 @@ def dump_c_objects():
             print >> sys.stderr, ('FOUND C object class(%s): %s -> %s'
             %   (obj.__class__.__name__, str(obj)[:512], cobj))
             if get_referrers:
-                for referrer in gc.get_referrers(obj):
-                    print >> sys.stderr, ('++++Referred to by(%s): %s'
-                    %   (type(referrer), str(referrer)[:512]))
+                follow_referrer_back(obj)
 
     print >> sys.stderr, ('%d python wrappers referring to %d C-objects'
     %   (cobjcount, proj_class_live_object_count()))
     proj_class_dump_live_objects()
+
+def follow_referrer_back(obj, level=0, maxlevel=4):
+    print >> sys.stderr, ('++++%sREFERRERS' %   (level * '**'))
+    for referrer in gc.get_referrers(obj):
+        if isinstance(referrer, (list, types.FrameType)):
+            continue
+        print >> sys.stderr, ('++++%sReferred to by(%s): %s'
+                %   (level * '**', type(referrer), str(referrer)[:512]))
+        if level < maxlevel:
+            follow_referrer_back(referrer, level+1)
