@@ -835,7 +835,8 @@ class Store(object):
                 subj.post_db_init()
             if not node.bound:
                 # Create an event to commemorate the creation of the new database object
-                AssimEvent(subj, AssimEvent.CREATEOBJ)
+                if AssimEvent.event_observation_enabled:
+                    AssimEvent(subj, AssimEvent.CREATEOBJ)
 
         return subj
 
