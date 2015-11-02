@@ -44,7 +44,6 @@ if 'BROKENDNS' in os.environ:
 
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
-AssertOnDanglingClasses = sys.version_info.minor > 7 or sys.version_info.micro > 3
 
 if not CheckForDanglingClasses:
     print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
@@ -54,6 +53,7 @@ elif not AssertOnDanglingClasses:
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
     global WorstDanglingCount
+    sys._clear_type_cache()
     gc.collect()
     count =  proj_class_live_object_count()
     # Avoid cluttering the output up with redundant messages...

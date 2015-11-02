@@ -35,7 +35,6 @@ from cmainit import CMAinit
 DEBUG=False
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
-AssertOnDanglingClasses = sys.version_info.minor > 7 or sys.version_info.micro > 3
 
 WorstDanglingCount = 0
 
@@ -49,6 +48,7 @@ print >> sys.stderr, 'USING PYTHON VERSION %s' % str(sys.version)
 def assert_no_dangling_Cclasses(doassert=None):
     global CheckForDanglingClasses
     global WorstDanglingCount
+    sys._clear_type_cache()
     if doassert is None:
         doassert = AssertOnDanglingClasses
     CMAinit.uninit()

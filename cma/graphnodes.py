@@ -575,20 +575,24 @@ class JSONMapNode(GraphNode):
         'Return the (sha224) hash of this JSON string'
         return self.jhash
 
+    def map(self):
+        'Return the map (pyConfigContext) that corresponds to our JSON string'
+        return self._map
+
     def keys(self):
         'Return the keys that go with our map'
-        return self._map.keys()
+        return self.map().keys()
 
     def get(self, key, alternative=None):
         '''Return JSON object if the given key exists - 'alternative' if not.'''
-        return self._map.get(key, alternative)
+        return self.map().get(key, alternative)
 
     def deepget(self, key, alternative=None):
         '''Return value if object contains the given *structured* key - 'alternative' if not.'''
-        return self._map.deepget(key, alternative)
+        return self.map().deepget(key, alternative)
 
     def __getitem__(self, key):
-        return self._map[key]
+        return self.map()[key]
 
     def __iter__(self):
         'Iterate over self.keys() - giving the names of all our *top level* attributes.'
@@ -596,10 +600,10 @@ class JSONMapNode(GraphNode):
             yield key
 
     def __contains__(self, key):
-        return key in self._map
+        return key in self.map()
 
     def __len__(self):
-        return len(self._map)
+        return len(self.map())
 
     @staticmethod
     def __meta_keyattrs__():

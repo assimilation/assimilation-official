@@ -2157,6 +2157,7 @@ def dump_c_objects():
     proj_class_dump_live_objects()
 
 def follow_referrer_back(obj, level=0, maxlevel=4):
+    'Follow and print object referrer chains back through "maxlevel" levels'
     print >> sys.stderr, ('++++%sREFERRERS' %   (level * '**'))
     for referrer in gc.get_referrers(obj):
         if isinstance(referrer, (list, types.FrameType)):

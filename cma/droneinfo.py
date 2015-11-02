@@ -247,8 +247,9 @@ class Drone(SystemNode):
         if not hasattr(self, self.HASH_PREFIX + jsontype):
             return None
         return CMAdb.store.load_cypher_node(self.JSONsingleattr, JSONMapNode,
-                                     params={'droneid': Store.id(self),
-                                             'jsonname': jsontype})
+                                            params={'droneid': Store.id(self),
+                                            'jsonname': jsontype}
+                                            ).map()
     def get(self, key, alternative=None):
         '''Return JSON object if the given key exists - 'alternative' if not.'''
         ret = self.jsonval(key)

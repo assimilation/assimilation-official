@@ -34,6 +34,8 @@ from assimeventobserver import ForkExecObserver
 
 DEBUG=False
 
+AssimEvent.enable_all_observers()
+
 def makescript(createdscriptname, outfile):
     'Create the requested script - outputting to requested file'
     script='''#!/bin/sh
@@ -92,6 +94,7 @@ class TestAssimEvent(TestCase):
 
     def test_simple_init_good(self):
         'Perform a few simple AssimEvent good initializations'
+        AssimEvent.enable_all_observers()
         AssimEvent.observers = []
         observer=DummyObserver()
         AssimEvent.registerobserver(observer)
@@ -109,6 +112,7 @@ class TestAssimEvent(TestCase):
 
     def test_simple_init_bad(self):
         'Perform a few simple AssimEvent bad initializations'
+        AssimEvent.enable_all_observers()
         AssimEvent.observers = []
         observer=DummyObserver()
         badobserver=BadObserver()
@@ -120,6 +124,7 @@ class TestAssimEvent(TestCase):
         '''This test will create a fork/exec event observer script
         and then test to see if its getting invoked properly...
         '''
+        AssimEvent.enable_all_observers()
         tmpdir = tempfile.mkdtemp('.d', 'testexec_')
         (fd, pathname) = tempfile.mkstemp('.out.txt')
         execscript = os.path.join(tmpdir, 'observer.sh')
@@ -169,6 +174,7 @@ ASSIM_sevenofnine=Annika
         and then kill the child listener and verify that it is handled
         correctly.
         '''
+        AssimEvent.enable_all_observers()
         tmpdir = tempfile.mkdtemp('.d', 'testexec_')
         (fd, pathname) = tempfile.mkstemp('.out.txt')
         execscript = os.path.join(tmpdir, 'observer.sh')

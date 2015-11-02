@@ -42,6 +42,7 @@ import optparse
 from graphnodes import GraphNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import Transaction
+from assimevent import AssimEvent
 from cmaconfig import ConfigFile
 from graphnodeexpression import ExpressionContext
 import assimglib as glib # This is now our glib bindings...
@@ -54,7 +55,6 @@ WorstDanglingCount = 0
 
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
-AssertOnDanglingClasses = sys.version_info.minor > 7 or sys.version_info.micro > 3
 
 DEBUG=False
 DoAudit=True
@@ -90,11 +90,12 @@ elif not AssertOnDanglingClasses:
 
 #gc.set_threshold(t1, t2, t3)
 
+AssimEvent.disable_all_observers()
 
 def assert_no_dangling_Cclasses(doassert=None):
-    return
     global CheckForDanglingClasses
     global WorstDanglingCount
+    sys._clear_type_cache()
     if doassert is None:
         doassert = AssertOnDanglingClasses
     CMAinit.uninit()
@@ -106,13 +107,14 @@ def assert_no_dangling_Cclasses(doassert=None):
         WorstDanglingCount = count
         if doassert:
             print >> sys.stderr, 'STARTING OBJECT DUMP'
-            print 'stdout STARTING OBJECT DUMP'
             dump_c_objects()
             print >> sys.stderr, 'OBJECT DUMP COMPLETE'
             print 'stdout OBJECT DUMP COMPLETE'
             raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
+
+
 
 # Values to substitute into this string via '%' operator:
 # dronedesignation (%s) MAC address byte (%02x), MAC address byte (%02x), IP address (%s)
@@ -381,6 +383,11 @@ class TestIO:
         del self.packetswritten
         del self.config
         self.timeout = None
+        if CMAdb.store:
+            CMAdb.store.abort()
+            CMAdb.store.weaknoderefs = {}
+            CMAdb.store = None
+        CMAinit.uninit()
 
     def getmaxpktsize(self):    return 60000
     def fileno(self):        	return self.pipe_read
@@ -413,6 +420,7 @@ class TestTestInfrastructure(TestCase):
         # just make sure it seems to do the right thing
         (foo, bar) = io.recvframesets()
         assert foo is None
+        del io
         assert_no_dangling_Cclasses()
 
     def test_get1pkt(self):
@@ -434,6 +442,7 @@ class TestTestInfrastructure(TestCase):
         self.assertEqual(len(gottenfs), 2)
         assert gottenfs[0] is None
         io.cleanio()
+        del io
 
     def test_echo1pkt(self):
         'Read a packet and write it back out'
@@ -456,6 +465,7 @@ class TestTestInfrastructure(TestCase):
         self.assertEqual(len(gottenfs), 2)
         assert gottenfs[0] is None
         io.cleanio()
+        del io
 
     @class_teardown
     def tearDown(self):
@@ -502,7 +512,7 @@ class TestCMABasic(TestCase):
             # Compare hash sums - without retrieving the big string from Neo4j
             self.assertTrue(drone.json_eq(dtype, json))
             # Fetch string from the database and compare for string equality
-            self.assertEqual(json, str(drone[dtype]))
+            self.assertEqual(str(pyConfigContext(json)), str(drone[dtype]))
             disctypes.append(dtype)
 
         disctypes.sort()
@@ -576,7 +586,12 @@ class TestCMABasic(TestCase):
         for drone in Drones:
             self.check_discovery(drone, (dronediscovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
         self.assertEqual(len(Drones), 1) # Should only be one drone
+        io.config = None
         io.cleanio()
+        del io
+        del ulimitdiscovery, osdiscovery, Drones
+        DispatchTarget.dispatchtable = {}
+        del DispatchTarget
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
@@ -695,6 +710,7 @@ class TestCMABasic(TestCase):
         #io.dumppackets()
         io.config = None
         io.cleanio()
+        del io
 
 
     @class_teardown
@@ -761,6 +777,7 @@ class TestMonitorBasic(TestCase):
 
         # TODO: Add test for deactivating the resource(s)
         io.cleanio()
+        del io
 
     def test_automonitor_LSB_basic(self):
         drone = FakeDrone({
