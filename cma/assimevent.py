@@ -51,6 +51,8 @@ class AssimEvent(object):
         OBJDELETE:  'delete'
     }
 
+    event_observation_enabled = True
+
     observers = []
 
     def __init__(self, associatedobject, eventtype, extrainfo=None):
@@ -71,7 +73,18 @@ class AssimEvent(object):
         self.associatedobject = associatedobject
         self.eventtype = eventtype
         self.extrainfo = extrainfo
-        self.notifynewevent()
+        if AssimEvent.event_observation_enabled:
+            self.notifynewevent()
+
+    @staticmethod
+    def disable_all_observers():
+        "Useful when testing and we don't want to trigger external event observers..."
+        AssimEvent.event_observation_enabled = False
+
+    @staticmethod
+    def enable_all_observers():
+        "Useful when testing and we want to undo the operation above..."
+        AssimEvent.event_observation_enabled = True
 
     @staticmethod
     def is_registered(observer):
