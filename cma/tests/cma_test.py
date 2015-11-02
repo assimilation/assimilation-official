@@ -414,6 +414,7 @@ class TestTestInfrastructure(TestCase):
         if BuildListOnly: return
         if DEBUG:
             print >> sys.stderr, 'Running test_test_eof()'
+        AssimEvent.disable_all_observers()
         framesets=[]
         io = TestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
@@ -428,6 +429,7 @@ class TestTestInfrastructure(TestCase):
         if BuildListOnly: return
         if DEBUG:
             print >> sys.stderr, 'Running test_test_eof()'
+        AssimEvent.disable_all_observers()
         otherguy = pyNetAddr([1,2,3,4],)
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
@@ -449,6 +451,7 @@ class TestTestInfrastructure(TestCase):
         if BuildListOnly: return
         if DEBUG:
             print >> sys.stderr, 'Running test_echo1pkt()'
+        AssimEvent.disable_all_observers()
         strframe1=pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
         fs.append(strframe1)
@@ -530,6 +533,7 @@ class TestCMABasic(TestCase):
         if BuildListOnly: return
         if DEBUG:
             print >> sys.stderr, 'Running test_startup()'
+        AssimEvent.disable_all_observers()
         from dispatchtarget import DispatchTarget
         droneid = 1
         droneip = droneipaddress(droneid)
@@ -622,6 +626,7 @@ class TestCMABasic(TestCase):
             raise ValueError('Debug enabled')
         if DEBUG:
             print >> sys.stderr, 'Running test_several_startups()'
+        AssimEvent.disable_all_observers()
         OurAddr = pyNetAddr((10,10,10,5), 1984)
         configinit = geninitconfig(OurAddr)
         # Create the STARTUP FrameSets that our fake Drones should appear to send
@@ -719,6 +724,7 @@ class TestCMABasic(TestCase):
 
 class TestMonitorBasic(TestCase):
     def test_activate(self):
+        AssimEvent.disable_all_observers()
         io = TestIO([],0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         dummy = CMAdb.store.load_or_create(MonitorAction, domain='global', monitorname='DummyName'
@@ -780,6 +786,7 @@ class TestMonitorBasic(TestCase):
         del io
 
     def test_automonitor_LSB_basic(self):
+        AssimEvent.disable_all_observers()
         drone = FakeDrone({
                 'data': {
                         'lsb': {
@@ -848,6 +855,7 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(table['monitortype'], 'neo4j-service')
 
     def test_automonitor_LSB_failures(self):
+        AssimEvent.disable_all_observers()
         self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', [])
         self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
             (('a.b.c', ')'),))
@@ -866,12 +874,14 @@ class TestMonitorBasic(TestCase):
         pass
 
     def test_automonitor_OCF_failures(self):
+        AssimEvent.disable_all_observers()
         self.assertRaises(ValueError, OCFMonitoringRule, 'assimilation', 'neo4j',
             ((1,2,3,4,5),))
         self.assertRaises(ValueError, OCFMonitoringRule, 'assimilation', 'neo4j',
             ((),))
 
     def test_automonitor_OCF_basic(self):
+        AssimEvent.disable_all_observers()
         drone = FakeDrone({
                 'data': {
                         'ocf': {
@@ -964,6 +974,7 @@ class TestMonitorBasic(TestCase):
 
     def test_automonitor_strings_basic(self):
         # Clean things out so we only see what we want to see...
+        AssimEvent.disable_all_observers()
         ocf_string = '''{
 #       comment
         "class":        "ocf",
@@ -991,6 +1002,7 @@ class TestMonitorBasic(TestCase):
         self.assertTrue(isinstance(lsb, LSBMonitoringRule))
 
     def test_automonitor_search_basic(self):
+        AssimEvent.disable_all_observers()
         drone = FakeDrone({
                 'data': {
                         'ocf': {
@@ -1067,6 +1079,7 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(list2[1][1]['monitorclass'], 'ocf')
 
     def test_automonitor_functions(self):
+        AssimEvent.disable_all_observers()
         MonitoringRule.monitor_objects = {'service': {}, 'host':{}}
         drone = FakeDrone({
                 'data': {
