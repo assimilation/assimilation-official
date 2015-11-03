@@ -27,7 +27,7 @@
 # along with the Assimilation Project software.
 # If not, see http://www.gnu.org/licenses/
 #
-REL=1.1.0
+REL=1.0.3
 WORKLOG=/tmp/assimilation-install.txt
 ASSIMSHARE=/usr/share/assimilation
 ROOTURL=https://dl.dropboxusercontent.com/u/65564307/builds
