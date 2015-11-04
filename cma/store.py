@@ -375,10 +375,11 @@ class Store(object):
         if ret is not None:
             return ret
 
-        node = self.db.legacy.get_indexed_node(index_name, idxkey, idxvalue)
-        if node is not None:
-            return self._construct_obj_from_node(node, cls)
-        return None
+        try:
+            node = self.db.legacy.get_indexed_node(index_name, idxkey, idxvalue)
+        except GraphError:
+            return None
+        return self._construct_obj_from_node(node, cls) if node is not None else None
 
     def load_or_create(self, cls, **clsargs):
         '''Analogous to 'save' - for loading an object or creating it if it
