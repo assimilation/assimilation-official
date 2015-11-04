@@ -364,8 +364,8 @@ if __name__ == '__main__':
     "net.ipv6.conf.all.accept_source_route": 0
     }}'''
     rulefile = None
-    for dir in ('.', '..', '../..', '../../..'):
-        rulefile= '%s/best_practices/proc_sys.json' % dir
+    for dirname in ('.', '..', '../..', '../../..'):
+        rulefile= '%s/best_practices/proc_sys.json' % dirname
         if os.access(rulefile, os.R_OK):
             break
     with open(rulefile, 'r') as procsys_file:
