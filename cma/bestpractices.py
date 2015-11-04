@@ -363,7 +363,12 @@ if __name__ == '__main__':
     "net.ipv6.conf.all.accept_redirects": 1,
     "net.ipv6.conf.all.accept_source_route": 0
     }}'''
-    with open('../best_practices/proc_sys.json', 'r') as procsys_file:
+    rulefile = None
+    for dir in ('.', '..', '../..', '../../..'):
+        rulefile= '%s/best_practices/proc_sys.json' % dir
+        if os.access(rulefile, os.R_OK):
+            break
+    with open(rulefile, 'r') as procsys_file:
         testrules = pyConfigContext(procsys_file.read())
     testjsonobj = pyConfigContext(JSON_data)
     logger = logging.getLogger('BestPracticesTest')

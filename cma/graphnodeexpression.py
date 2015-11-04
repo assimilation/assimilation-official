@@ -207,12 +207,12 @@ class ExpressionContext(object):
             return self.values[key]
         for obj in self.objects:
             ret = obj.get(key, None)
-            #try:
-                #ret = obj.get(key, None)
-            #except Exception as e:
-                #ret = None
-                #print >> sys.stderr, 'OOPS: self.objects = %s' % str(self.objects)
-                #print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
+            try:
+                ret = obj.get(key, None)
+            except Exception as e:
+                ret = None
+                print >> sys.stderr, 'OOPS: self.objects = %s' % str(self.objects)
+                print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
             if ret is not None:
                 self.values[key] = ret
                 return ret
