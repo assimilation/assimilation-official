@@ -17,7 +17,7 @@ RUN $YUM install deltarpm glib2 libpcap zlib-devel python	\
 	wget libpcap-devel pylint rpm-build iproute
 RUN $YUM remove vim-minimal && $YUM install doxygen graphviz
 RUN $YUM install python-pip
-RUN pip install testify 'py2neo>2.0' getent netaddr && pip install ctypesgen --pre
+RUN pip install testify 'py2neo>2.0.7' getent netaddr && pip install ctypesgen --pre
 RUN wget -q http://dist.neo4j.org/neo4j-community-$NEOVERS-unix.tar.gz -O /tmp/neo4j-community-$NEOVERS-unix.tar.gz && tar -C $(dirname $NEOROOT) -xzf /tmp/neo4j-community-$NEOVERS-unix.tar.gz && ln -s $(dirname $NEOROOT)/neo4j-community-$NEOVERS/ $NEOROOT && (echo ''; echo '') | $NEOROOT/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
 RUN echo "@OURDATE@"
 RUN mkdir -p /root/assimilation/bin /root/assimilation/packages /run/systemd/journal /root/rpmbuild/SOURCES 

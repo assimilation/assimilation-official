@@ -43,7 +43,7 @@ BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gc
 BUILDREQS_2="$PYSCL-python-setuptools"
 EZINST="pip"
 PIPBUILD="ctypesgen"
-PIPRUN='netaddr getent flask "py2neo>=2.0" demjson'
+PIPRUN='netaddr getent flask "py2neo>2.0.7" demjson'
 # Python packages we only need for testing
 PIPTEST="testify pylint"
 # RPMs we only need for testing

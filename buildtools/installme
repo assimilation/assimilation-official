@@ -94,7 +94,7 @@ py2neo_version() {
     then
         echo 'py2neo<2.0'
     else
-        echo 'py2neo>=2.0'
+        echo 'py2neo>2.0.7'
     fi
 }
 
