@@ -195,7 +195,8 @@ db.delete_all()
 OurStore = None
 
 def initstore():
-    global OurStore
+    global OurStore, db
+    db = neo4j.Graph(None)
     GraphNode.clean_graphnodes()
     if OurStore is not None:
         OurStore.clean_store()
