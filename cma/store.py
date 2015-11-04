@@ -432,7 +432,8 @@ class Store(object):
         # No errors - give it a shot!
         rels = subj.__store_node.match_outgoing(rel_type, obj)
         for rel in rels:
-            #print ('DELETING RELATIONSHIP %s of type %s: %s' % (rel._id, rel_type, rel))
+            if Store.debug:
+                print ('DELETING RELATIONSHIP %s of type %s: %s' % (rel._id, rel_type, rel))
             if obj is not None:
                 assert rel.end_node._id == obj._id
             self.deletions.append(rel)

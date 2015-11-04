@@ -337,6 +337,3 @@ class HbRing(GraphNode):
         #ret += ']'
         ret += ')'
         return ret
-
-if __name__ == '__main__':
-    db = CMAdb()

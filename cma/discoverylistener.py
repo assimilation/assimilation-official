@@ -32,7 +32,6 @@ discovery packets as they arrive.
 More details are documented in the DiscoveryListener class
 '''
 import re, sys
-from monitoring import MonitoringRule
 from droneinfo import Drone
 from consts import CMAconsts
 from store import Store
@@ -84,11 +83,10 @@ class MonitoringAgentDiscoveryListener(DiscoveryListener):
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('monitoringagents',)
 
-    def processpkt(self, drone, unused_srcaddr, unused_jsonobj):
+    def processpkt(self, drone, _unused_srcaddr, jsonobj):
         '''Update the _agentcache when we get a new set of available agents'''
-        unused_jsonobj = unused_jsonobj
-        unused_srcaddr = unused_srcaddr
-        MonitoringRule.compute_available_agents((self,))
+        #print >> sys.stderr, 'SETTING MONITORING AGENTS: ', jsonobj['data']
+        setattr(drone, '_agentcache', jsonobj['data'])
 
 # R0912 -- too many branches
 # R0914 -- too many local variables
@@ -203,8 +201,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 if ipaddr in newips:
                     newips[ipaddr] = currip.update_attributes(newips[ipaddr])
                 else:
-                    print >> sys.stderr, 'Deleting address %s from MAC %s' %  (currip, macaddr)
-                    print >> sys.stderr, 'currip:%s, currips:%s' %  (str(currip), str(currips))
+                    #print >> sys.stderr, 'Deleting address %s from MAC %s' %  (currip, macaddr)
+                    #print >> sys.stderr, 'currip:%s, currips:%s' %  (str(currip), str(currips))
                     self.log.debug('Deleting address %s from MAC %s' %  (currip, macaddr))
                     self.log.debug('currip:%s, currips:%s' %  (str(currip), str(currips)))
                     self.store.separate(mac, rel_type=CMAconsts.REL_ipowner, obj=currip)
@@ -261,7 +259,7 @@ class TCPDiscoveryListener(DiscoveryListener):
             ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
             ,   cwd=procinfo.get('cwd', '/'))
             assert hasattr(processproc, '_Store__store_node')
-            processproc.JSON_procinfo = str(procinfo)
+            processproc.procinfo = str(procinfo)
 
             newprocs[processproc.processname] = processproc
             newprocmap[procname] = processproc

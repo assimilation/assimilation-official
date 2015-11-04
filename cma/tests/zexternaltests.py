@@ -1,11 +1,11 @@
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab colorcolumn=80
 #
 # This file is part of the Assimilation Project.
 #
 # Copyright (C) 2011, 2012 - Alan Robertson <alanr@unix.sh>
 #
-#  The Assimilation software is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
+#  The Assimilation software is free software: you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
@@ -15,7 +15,8 @@
 #  GNU General Public License for more details.
 #
 #  You should have received a copy of the GNU General Public License
-#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#  along with the Assimilation Project software.
+#  If not, see http://www.gnu.org/licenses/
 #
 #
 _suites = ['all', 'external']
@@ -28,7 +29,8 @@ pingcount=30
 placestolook = ('.', '..', 'testcode', '../testcode', '../../testcode'
 ,   '../bin/testcode', '../../bin/testcode', 'src/testcode', '../src/testcode'
 ,   'root_of_binary_tree/testcode', '../root_of_binary_tree/testcode'
-,   '../../root_of_binary_tree/testcode')
+,   '../../root_of_binary_tree/testcode'
+,   'cma', '../cma', '../../cma', 'src/cma','../src/cma',  '../../src/cma')
 
 def findcmd(argv):
     arg0 = argv[0]
@@ -49,7 +51,7 @@ class TestExternal(TestCase):
     Run all the tests that don't run natively under testify
     '''
     gtestdir = None
-    gtestpattern = re.compile('gtest[0-9]+$')   # pattern of names of all our gtest tests...
+    gtestpattern = re.compile('gtest[0-9]+$')   # pattern of names of our gtests
 
     @class_setup
     def setUp(self):
@@ -70,7 +72,7 @@ class TestExternal(TestCase):
             argv.insert(0, sudocmd)
             print 'ARGV: %s' %  str(argv)
         start = datetime.datetime.now()
-        subprocess.check_call(argv)    # Will raise an exception if it exits non-zero
+        subprocess.check_call(argv)    # Will raise exception if non-zero exit
         end = datetime.datetime.now()
         diff = end - start
         print '\nSUCCESS: %s exited with return code 0 in %s' % (str(argv), diff)
@@ -91,6 +93,14 @@ class TestExternal(TestCase):
 
     def  test_discovery_tests(self):
         self.runacommand(['test_discovery.sh',],sudo=False)
+
+    def test_python_external(self):
+        MODULES = ('bestpractices.py', 'cmaconfig.py', 'cmainit.py',
+                   'cmadb.py', 'graphnodes.py', 'monitoring.py', 'query.py',
+                   'store.py', 'transaction.py')
+        for mod in MODULES:
+            modpath = findcmd([mod,])
+            self.runacommand(['/usr/bin/env', 'python', modpath[0]], False)
 
     @class_teardown
     def tearDown(self):

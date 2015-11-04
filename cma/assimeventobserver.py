@@ -104,6 +104,8 @@ class AssimEventObserver(object):
         value = None
         if hasattr(event, attr):
             value = getattr(event, attr)
+        elif hasattr(event.associatedobject, attr):
+            value = getattr(event.associatedobject, attr)
         else:
             try:
                 value = event.associatedobject.get(attr)

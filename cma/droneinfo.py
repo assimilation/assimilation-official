@@ -201,13 +201,13 @@ class Drone(SystemNode):
         'Process and save away JSON discovery data.'
         assert CMAdb.store.has_node(self)
         jsonobj = pyConfigContext(jsontext)
-        if not 'discovertype' in jsonobj or not 'data' in jsonobj:
+        if 'instance' not in jsonobj or not 'data' in jsonobj:
             CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
             return
-        dtype = jsonobj['discovertype']
+        dtype = jsonobj['instance']
         if not self.json_eq(dtype, jsontext):
-            CMAdb.log.debug("Saved discovery type %s for endpoint %s."
-            %       (dtype, self.designation))
+            CMAdb.log.debug("Saved discovery type %s [%s] for endpoint %s."
+            %       (jsonobj['discovertype'], dtype, self.designation))
             self[dtype] = jsontext # This is stored in separate nodes for performance
         else:
             if not self.monitors_activated and dtype == 'tcpdiscovery':
@@ -245,14 +245,21 @@ class Drone(SystemNode):
     def jsonval(self, jsontype):
         'Construct a python object associated with a particular JSON discovery value.'
         if not hasattr(self, self.HASH_PREFIX + jsontype):
+            #print >> sys.stderr, 'DOES NOT HAVE ATTR %s' % jsontype
+            #print >> sys.stderr, 'ATTRIBUTES ARE:' , str(self.keys())
             return None
-        return CMAdb.store.load_cypher_node(self.JSONsingleattr, JSONMapNode,
+        #print >> sys.stderr, 'LOADING', self.JSONsingleattr, \
+        #       {'droneid': Store.id(self), 'jsonname': jsontype}
+        node = CMAdb.store.load_cypher_node(self.JSONsingleattr, JSONMapNode,
                                             params={'droneid': Store.id(self),
                                             'jsonname': jsontype}
-                                            ).map()
+                                            )
+        #assert self.json_eq(jsontype, str(node))
+        return node
+
     def get(self, key, alternative=None):
         '''Return JSON object if the given key exists - 'alternative' if not.'''
-        ret = self.jsonval(key)
+        ret = self.deepget(key)
         return ret if ret is not None else alternative
 
     def __getitem__(self, key):
@@ -266,11 +273,10 @@ class Drone(SystemNode):
         '''Return value if object contains the given *structured* key - 'alternative' if not.'''
         keyparts = key.split('.', 1)
         if len(keyparts) == 1:
-            return self.get(key, alternative)
+            ret = self.jsonval(key)
+            return ret if ret is not None else alternative
         jsonmap = self.jsonval(keyparts[0])
-        if jsonmap is None:
-            return alternative
-        return jsonmap.deepget(keyparts[1], alternative)
+        return alternative if jsonmap is None else jsonmap.deepget(keyparts[1], alternative)
 
     def __setitem__(self, name, value):
         'Set the given JSON value to the given object/string.'
@@ -278,6 +284,7 @@ class Drone(SystemNode):
             if self.json_eq(name, value):
                 return
             else:
+                #print >> sys.stderr, 'DELETING ATTRIBUTE', name
                 # FIXME: ADD ATTRIBUTE HISTORY (enhancement)
                 # This will likely involve *not* doing a 'del' here
                 del self[name]
@@ -290,11 +297,16 @@ class Drone(SystemNode):
 
     def __delitem__(self, name):
         'Delete the given JSON value from the Drone.'
+        #print >> sys.stderr, 'ATTRIBUTE DELETION:', name
+        jsonnode=self.get(name, None)
         try:
             delattr(self, self.HASH_PREFIX + name)
         except AttributeError:
             raise IndexError('No such JSON attribute [%s].' % name)
-        jsonnode=self[name]
+        if jsonnode is None:
+            CMAdb.log.warning('Missing JSON attribute: %s' % name)
+            print >> sys.stderr, ('Missing JSON attribute: %s' % name)
+            return
         should_delnode = True
         # See if it has any remaining references...
         for node in CMAdb.store.load_in_related(jsonnode,
@@ -321,8 +333,10 @@ class Drone(SystemNode):
         if key not in self:
             return False
         hashname = self.HASH_PREFIX + key
-        newhash = JSONMapNode.strhash(newvalue)
-        return getattr(self, hashname) == newhash
+        oldhash = getattr(self, hashname)
+        newhash = JSONMapNode.strhash(str(pyConfigContext(newvalue)))
+        #print >> sys.stderr, 'COMPARING %s to %s for value %s' % (oldhash, newhash, key)
+        return oldhash == newhash
 
 
     def _process_json(self, origaddr, jsonobj):

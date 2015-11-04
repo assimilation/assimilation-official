@@ -365,10 +365,11 @@ if __name__ == '__main__':
     }}'''
     with open('../best_practices/proc_sys.json', 'r') as procsys_file:
         testrules = pyConfigContext(procsys_file.read())
-    testjsonobj = pyConfigContext(JSON_data)['data']
+    testjsonobj = pyConfigContext(JSON_data)
     logger = logging.getLogger('BestPracticesTest')
     logger.addHandler(logging.StreamHandler(sys.stderr))
-    BestPractices(None, None, None, logger, False)
+    testconfig = {'allbpdiscoverytypes': ['login_defs', 'pam', 'proc_sys', 'sshd']}
+    BestPractices(testconfig, None, None, logger, False)
     for procsys in BestPractices.eval_classes['proc_sys']:
         ourstats = procsys.evaluate("testdrone", None, testjsonobj, testrules)
         size = sum([len(ourstats[st]) for st in ourstats.keys()])

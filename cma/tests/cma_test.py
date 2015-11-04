@@ -122,6 +122,7 @@ netdiscoveryformat='''
 {
   "discovertype": "netconfig",
   "description": "IP Network Configuration",
+  "instance": "netconfig",
   "source": "netconfig",
   "host": "%s",
   "data": {
@@ -200,8 +201,8 @@ class AUDITS(TestCase):
         # Do we know that eth0 is the default gateway?
         self.assertEqual(eth0obj['default_gw'], True)
         
-        # the JSON should have exactly 5 top-level keys
-        self.assertEqual(len(jsobj.keys()), 5)
+        # the JSON should have exactly 6 top-level keys
+        self.assertEqual(len(jsobj.keys()), 6)
         # Was the JSON host name saved away correctly?
         self.assertEqual(jsobj['host'], designation)
     
@@ -400,9 +401,9 @@ class TestIO:
         for packet in self.packetswritten:
             print 'PACKET: %s (%s)' % (packet[0], packet[1])
     
-class FakeDrone(object):
+class FakeDrone(dict):
     def __init__(self, json):
-        self.JSON_monitoringagents = json
+        self['monitoringagents'] = json
     def get(self, name, ret):
         return ret
 
@@ -479,6 +480,7 @@ class TestCMABasic(TestCase):
   "discovertype": "os",
   "description": "OS information",
   "host": "drone000001",
+  "instance": "os",
   "source": "../discovery_agents/os",
   "data": {
     "nodename": "drone000001",
@@ -499,6 +501,7 @@ class TestCMABasic(TestCase):
   "discovertype": "ulimit",
   "description": "ulimit values for root",
   "host": "drone000001",
+  "instance": "ulimit",
   "source": "../discovery_agents/ulimit",
   "data": {
     "hard": {"c":null,"d":null,"f":null,"l":null,"m":null,"n":65536,"p":63557,"s":null,"t":null,"v":null},
@@ -511,7 +514,7 @@ class TestCMABasic(TestCase):
 
         for json in expectedjson:
             jsobj = pyConfigContext(json)
-            dtype = jsobj['discovertype']
+            dtype = jsobj['instance']
             # Compare hash sums - without retrieving the big string from Neo4j
             self.assertTrue(drone.json_eq(dtype, json))
             # Fetch string from the database and compare for string equality

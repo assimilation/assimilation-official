@@ -555,11 +555,11 @@ class JSONMapNode(GraphNode):
     def __init__(self, json, jhash=None):
         GraphNode.__init__(self, domain='metadata')
         self._map = pyConfigContext(json)
-        self.json = json
+        self.json = str(self._map)
         # We use sha224 to keep the length under 60 characters (56 to be specific)
         # This is a performance consideration for the current (2.3) verison of Neo4j
         if jhash is None:
-            jhash = self.strhash(json)
+            jhash = self.strhash(self.json)
         self.jhash = jhash
 
     @staticmethod
@@ -584,8 +584,8 @@ class JSONMapNode(GraphNode):
         return self.map().keys()
 
     def get(self, key, alternative=None):
-        '''Return JSON object if the given key exists - 'alternative' if not.'''
-        return self.map().get(key, alternative)
+        '''Return value if object contains the given *structured* key - 'alternative' if not.'''
+        return self.map().deepget(key, alternative)
 
     def deepget(self, key, alternative=None):
         '''Return value if object contains the given *structured* key - 'alternative' if not.'''

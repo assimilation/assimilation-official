@@ -520,15 +520,18 @@ class MonitoringRule(object):
     @staticmethod
     def compute_available_agents(context):
         '''Create a cache of all our available monitoring agents - and return it'''
+        #print >> sys.stderr, 'CREATING AGENT CACHE'
         if not hasattr(context, 'get') or not hasattr(context, 'objects'):
             context = ExpressionContext(context)
+        #print >> sys.stderr, 'CREATING AGENT CACHE (%s)' % str(context)
         for node in context.objects:
-            if not hasattr(node, 'JSON_monitoringagents'):
-                continue
             if hasattr(node, '_agentcache'):
                 # Keep pylint from getting irritated...
+                #print >> sys.stderr, 'AGENT ATTR IS', getattr(node, '_agentcache')
                 return getattr(node, '_agentcache')
-            agentobj = pyConfigContext(node.JSON_monitoringagents)
+            if not hasattr(node, '__iter__') or 'monitoringagents' not in node:
+                continue
+            agentobj = pyConfigContext(node['monitoringagents'])
             agentobj = agentobj['data']
             ret = {}
             for cls in agentobj.keys():
@@ -538,7 +541,9 @@ class MonitoringRule(object):
                         ret[cls] = {}
                     ret[cls][agent] = True
             setattr(node, '_agentcache', ret)
+            #print >> sys.stderr, 'AGENT CACHE IS', str(ret)
             return ret
+        #print >> sys.stderr, 'RETURNING NO AGENT CACHE AT ALL!'
         return {}
 
 
@@ -746,6 +751,7 @@ class OCFMonitoringRule(MonitoringRule):
         agentcache = MonitoringRule.compute_available_agents(context)
         agentpath = '%s/%s' % (self.provider, self.rsctype)
         if 'ocf' not in agentcache or agentpath not in agentcache['ocf']:
+            #print >> sys.stderr, "OCF agent %s not in agent cache" % agentpath
             return (MonitoringRule.NOMATCH, None)
         #
         missinglist = []
@@ -915,7 +921,7 @@ if __name__ == '__main__':
 
     # R0903 too few public methods (it's test code!)
     #pylint: disable=R0903
-    class FakeDrone(object):
+    class FakeDrone(dict):
         'Fake Drone class just for monitoring agents'
 
         @staticmethod
@@ -925,7 +931,8 @@ if __name__ == '__main__':
 
         def __init__(self, obj):
             'Fake Drone init for knowing monitoring agents'
-            self.JSON_monitoringagents = obj
+            dict.__init__(self)
+            self['monitoringagents'] = obj
 
     fdrone = FakeDrone({
         'data': {
@@ -967,7 +974,7 @@ if __name__ == '__main__':
     #   (domain, processname, host, pathname, argv, uid, gid, cwd, roles=None):
     sshnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
-    setattr(sshnode, 'JSON_procinfo'
+    setattr(sshnode, 'procinfo'
     ,   '{"listenaddrs":{"0.0.0.0:22":"tcp", ":::22":"tcp6"}}')
 
     lsbsshargs = (
@@ -1021,8 +1028,8 @@ if __name__ == '__main__':
 
     neonode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/java', neoprocargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
-    withsensors = {'JSON_commands' :  '{"sensors": true}'}
-    nosensors = {'JSON_commands':'{"bash": true}'}
+    withsensors = {'commands' :  '{"sensors": true}'}
+    nosensors = {'commands':'{"bash": true}'}
 
     tests = [
         (lsbsshrule.specmatch(ExpressionContext((sshnode, fdrone))), MonitoringRule.LOWPRIOMATCH),

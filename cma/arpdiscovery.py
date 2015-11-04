@@ -125,7 +125,7 @@ class ArpDiscoveryListener(DiscoveryListener):
                                           and str(devinfo['address']) != '00-00-00-00-00-00'
                                           and str(devinfo['address']) != ''):
                 params = pyConfigContext(init_params)
-                params[CONFIGNAME_INSTANCE] = '#ARP_' + devname
+                params[CONFIGNAME_INSTANCE] = '_ARP_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
                 #print >> sys.stderr, '#ARP parameters:', params
                 discovery_args.append(params)

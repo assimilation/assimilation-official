@@ -56,7 +56,7 @@ class GraphNodeExpression(object):
         if expression.startswith('"'):
             # The value of this parameter is a constant...
             if expression[-1] != '"':
-                print >> sys.stderr, "Unterminated string '%s'" % expression
+                #print >> sys.stderr, "Unterminated string '%s'" % expression
                 return None
             return expression[1:-1]
         if expression.startswith('0x') and len(expression) > 3:
@@ -206,12 +206,13 @@ class ExpressionContext(object):
         if key in self.values:
             return self.values[key]
         for obj in self.objects:
-            try:
-                ret = obj.get(key, None)
-            except:
-                ret = None
-                print >> sys.stderr, 'OOPS: self.objects = %s' % str(self.objects)
-                print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
+            ret = obj.get(key, None)
+            #try:
+                #ret = obj.get(key, None)
+            #except Exception as e:
+                #ret = None
+                #print >> sys.stderr, 'OOPS: self.objects = %s' % str(self.objects)
+                #print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
             if ret is not None:
                 self.values[key] = ret
                 return ret

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab
+# vim: smartindent number tabstop=4 shiftwidth=4 expandtab colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
