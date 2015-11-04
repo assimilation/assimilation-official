@@ -73,6 +73,8 @@ def assert_no_dangling_Cclasses(doassert=None):
 def CreateIndexes(db, indexlist):
     'Create Indexes(indexlist) - a list of strings for Node indexes to create'
     for index in indexlist:
+        db.legacy.delete_index(neo4j.Node, index)
+    for index in indexlist:
         db.legacy.get_or_create_index(neo4j.Node, index, None)
      
 
