@@ -45,6 +45,8 @@ elif not AssertOnDanglingClasses:
 
 print >> sys.stderr, 'USING PYTHON VERSION %s' % str(sys.version)
 
+version_printed = False
+
 def assert_no_dangling_Cclasses(doassert=None):
     global CheckForDanglingClasses
     global WorstDanglingCount
@@ -68,7 +70,7 @@ def assert_no_dangling_Cclasses(doassert=None):
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
 
-def CreateIndexes(indexlist):
+def CreateIndexes(db, indexlist):
     'Create Indexes(indexlist) - a list of strings for Node indexes to create'
     for index in indexlist:
         db.legacy.get_or_create_index(neo4j.Node, index, None)
@@ -188,22 +190,20 @@ for key in keymap:
 ##print seven.designation
 ##print seven.roles
 ##print Annika.firstname, Annika.lastname
-db = neo4j.Graph(None)
-print >> sys.stderr, 'USING NEO4J VERSION %s' % str(db.neo4j_version)
-print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
-db.delete_all()
-OurStore = None
 
 def initstore():
-    global OurStore, db
+    global version_printed
     db = neo4j.Graph(None)
+    if not version_printed:
+        print >> sys.stderr, 'USING NEO4J VERSION %s' % str(db.neo4j_version)
+        print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
+        version_printed = True
     GraphNode.clean_graphnodes()
-    if OurStore is not None:
-        OurStore.clean_store()
     db.delete_all()
     CMAinit(None)
     OurStore = Store(db, uniqueindexmap=uniqueindexes, classkeymap=keymap)
-    CreateIndexes([cls.__name__ for cls in Classes])
+    OurStore.clean_store()
+    CreateIndexes(db, [cls.__name__ for cls in Classes])
     return OurStore
 
 
