@@ -27,7 +27,7 @@
 This module provides classes associated with querying - including providing metadata
 about these queries for the client code.
 '''
-import os
+import os, sys
 from py2neo import neo4j
 from graphnodes import GraphNode, RegisterGraphClass
 from AssimCclasses import pyConfigContext, pyNetAddr
@@ -594,7 +594,8 @@ if __name__ == '__main__':
         GraphNode.initclasstypeobj(qstore, classname)
 
     print "LOADING TREE!"
-    queries = ClientQuery.load_tree(qstore, "/home/alanr/monitor/src/queries")
+
+    queries = ClientQuery.load_tree(qstore, "%s/../queries" % (os.path.dirname(sys.argv[0])))
     qlist = [q for q in queries]
     qstore.commit()
     print "%d node TREE LOADED!" % len(qlist)
