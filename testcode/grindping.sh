@@ -20,7 +20,7 @@
 #
 #
 HERE=$(dirname $0)
-ARGLIST="-c 30 ::1"
+ARGLIST="-c 15 ::1"
 G_MESSAGES_DEBUG=all
 G_SLICE=always-malloc
 export G_MESSAGES_DEBUG G_SLICE
