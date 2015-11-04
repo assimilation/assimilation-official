@@ -48,7 +48,7 @@ RUN pip install ctypesgen 'py2neo>2.0.7' getent
 #   Neo4j installation
 ###############################################################
 ENV NEOROOT /var/lib/neo4j
-RUN apt-get -y install --no-install-recommends openjdk-7-jre
+RUN apt-get -y update && apt-get -y install --no-install-recommends openjdk-7-jre
 # Import the Neo4j signing key
 RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 # Create an Apt sources.list file for neo4j.
