@@ -29,7 +29,7 @@
 # If not, see http://www.gnu.org/licenses/
 #
 
-INSTALLMEOPTS='--nolog'
+INSTALLMEOPTS=''
 
 setup() {
     LOGGER=rsyslog
@@ -47,12 +47,34 @@ setup() {
 		ADD installme /tmp/workdir/
 		RUN chmod 755 installme
 		RUN ls -l \$WORK
-		RUN /bin/sh -ex installme $INSTALLMEOPTS $2
+		RUN /bin/sh -ex installme --nolog $INSTALLMEOPTS $2
         RUN sed 's%^%LOG: %' < /tmp/assimilation-install.txt
 		!
 }
 
+# Figure out where to put our installation logs
+# We do that by looking at the installation log and seeing where
+# the packages it installed came from.
+# The line we're looking for look like this:
+#LOG: Tue Nov  3 04:29:20 UTC 2015: Retrieving https://dl.dropboxusercontent.com/u/65564307/builds/Prereleases/1.1.0/debian_8-x86_64/build.out
+releasedir() {
+    dbdir=$(grep '^LOG: .*Retrieving https.*dropboxusercontent.*/builds/' $1 |
+            head -n1)
+    pkg=$(echo "$dbdir" | sed -e "s%^.*/builds/%${BUILDDIR}%")
+    dirname $pkg
+}
+
+# Save the install log under the right Dropbox directory
+# That is - the same one we did our test installation from...
+save_install_log() {
+    logfile=$1
+    reldir=$(releasedir "$logfile")
+    grep '^LOG: '  < $logfile | sed 's%^LOG: %%' > $reldir/$role.install.log
+}
+
 test_installer() {
+    DROPBOXDIR=$(jq  -r .personal.path ~/.dropbox/info.json)
+    BUILDDIR=${DROPBOXDIR}/Public/builds/
     if
         [ $# -ge 1 ]
     then
@@ -64,27 +86,29 @@ test_installer() {
     fedpairs="fedora:21 fedora:22"
     centpairs="centos:centos6 centos:centos7"
 
-    for pairs in $debpairs $fedpairs $centpairs $ubupairs
+    for pair in $debpairs $fedpairs $centpairs $ubupairs
     do
-        for role in cma # nanoprobe # test
+        for role in cma nanoprobe # test
         do
             # Java dependency currently prohibits clean cma install with RPMs
             # So RPMs might not be the best choice for Fedora - or anyone
             # because they drop their untested prereleases in their repository
-            case $pairs:$role in
+            case $pair:$role in
                 fedora:*:cma)   continue;;
             esac
-            setup $pairs $role
-            echo "TEST FOR $pairs in role $role STARTED $(date)"
+            setup $pair $role
+            echo "TEST FOR $pair in role $role STARTED $(date)"
             if
-                time docker build . > ${pairs}.${role}.out 2>&1
+                time docker build . > ${pair}.${role}.out 2>&1
             then
-                echo "TEST FOR $pairs in role $role COMPLETE $(date)"
+                echo "TEST FOR $pair in role $role COMPLETE $(date)"
+                save_install_log "${pair}.${role}.out"
             else
-                echo "TEST FOR $pairs in role $role FAILED $(date)"
+                echo "TEST FOR $pair in role $role FAILED $(date)"
             fi
         done
     done
 }
+
 
 test_installer "$@"
