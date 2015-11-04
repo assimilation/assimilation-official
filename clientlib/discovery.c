@@ -224,11 +224,26 @@ _discovery_sendjson(Discovery* self,	///< Our discovery object
 	NetGSource*	io = self->_iosource;
 	NetAddr*	cma;
 	const char *	basename = self->instancename(self);
+	ConfigContext*	jsonobject;
 
 	g_return_if_fail(cfg != NULL && io != NULL);
 
+	if (NULL == (jsonobject = configcontext_new_JSON_string(jsonout))) {
+		g_warning("%s.%d: JSON Discovery is not legal JSON [%s]"
+		,	__FUNCTION__, __LINE__, jsonout);
+		return;
+	}
+	g_free(jsonout);
+	
+	jsonobject->setstring(jsonobject, CONFIGNAME_INSTANCE, basename);
+	jsonout = jsonobject->baseclass.toString(&jsonobject->baseclass);
+	jsonlen = strlen(jsonout);
+	UNREF(jsonobject);
+	
 	DEBUGMSG2("%s.%d: discovering %s: _sentyet == %d"
 	,	__FUNCTION__, __LINE__, basename, self->_sentyet);
+	
+	
 	// Primitive caching - don't send what we've already sent.
 	if (self->_sentyet) {
 		const char *	oldvalue = cfg->getstring(cfg, basename);
