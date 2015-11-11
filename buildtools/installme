@@ -28,9 +28,17 @@
 # If not, see http://www.gnu.org/licenses/
 #
 REL=1.1.0
+LOGME=true
+RELFLAG=''
+LOGFLAG=''
+REMOTERUNAS=''
+REMOTESUDO='sudo'
+LOCALSUDO='sudo'
 WORKLOG=/tmp/assimilation-install.txt
 ASSIMSHARE=/usr/share/assimilation
+CRYPTODIR="$ASSIMSHARE/crypto.d"
 ROOTURL=https://dl.dropboxusercontent.com/u/65564307/builds
+INSTALLURL=http://bit.ly/assiminstall
 BASEURL=$ROOTURL/Releases
 PRERELURL=$ROOTURL/Prereleases
 SRCROOT=https://github.com/assimilation/assimilation-official/raw
@@ -544,6 +552,32 @@ is_supported_os() {
     return 1
 }
 
+# Transform a filename to a package name
+package_from_filename() {
+    case $1 in
+        *assimilation-nanoprobe)    echo assimilation-nanoprobe;;
+        *assimilation-cma)          echo assimilation-cma;;
+        *)                          basename $1 | sed 's%-[0-9].*%%';;
+    esac
+}
+
+# This is because our package names include the version info - which is probably
+# broken - but it's what we've done...
+debian_current_pkg_names() {
+    for pkg
+    do
+        case $pkg in
+            assimilation-nanoprobe*)    dpkg-query -W assimilation-nanoprobe\*;;
+            assimilation-cma*)          dpkg-query -W assimilation-cma\*;;
+            libsodium-dev*)             dpkg-query -W libsodium-dev\*;;
+            libsodium-dbg*)             dpkg-query -W libsodium-dbg\*;;
+            libsodium*)                 dpkg-query -W libsodium\* | \
+                                                    egrep -v '[-](dev|dbg)';;
+            *)                          dpkg-query -W $pkg;;
+        esac 2>/dev/null | cut -f1 | head -n 1
+    done
+}
+
 # Is the given package installed?
 is_package_installed() {
     if
@@ -551,13 +585,28 @@ is_package_installed() {
     then
         return 0
     fi
+    pkg=$1
+    if
+        [ -f "$pkg" ]
+    then
+        pkg=$(package_from_filename "$1")
+        case $(packaging_type) in
+            deb)    installname=$(debian_current_pkg_names "$pkg")
+                    if
+                        [ ! -z "$(echo $installname)" ]
+                    then
+                        pkg=$installname
+                    fi
+                    ;;
+        esac
+    fi
     case $(packaging_type) in
-        rpm)    case "$(rpm -q "$1" 2>/dev/null)" in
+        rpm)    case "$(rpm -q "$pkg" 2>/dev/null)" in
                     *'is not installed'*)   return 1;;
                     *)                      return 0;;
                 esac
                 ;;
-        deb)    case "$(dpkg --status "$1" 2>/dev/null| grep 'Status:')" in
+        deb)    case "$(dpkg --status "$pkg" 2>/dev/null| grep 'Status:')" in
                    *ok*installed)   return 0;;
                     *)              return 1;;
                 esac
@@ -666,12 +715,28 @@ install_sys_package() {
     return $rc
 }
 
-install_local_package() {
-    logwork "Installing package files:" $*
+upgrade_local_packages() {
+    logwork "Upgrading from local package files:" $*
     case $(packaging_type) in
-        rpm)    $(yum_or_dnf) -q -y install "$@";;
-        deb)    dpkg --install "$@";;
+        rpm)    $(yum_or_dnf) -q -y upgrade "$@"
+                ;;
+        deb)    dpkg --remove --force-depends $(debian_current_pkg_names "$@")
+                dpkg --install "$@"
+                ;;
     esac
+}
+install_local_packages() {
+    logwork "Installing from local package files:" $*
+    if
+        is_package_installed "$1"
+    then
+        upgrade_local_packages "$@"
+    else
+        case $(packaging_type) in
+            rpm)    $(yum_or_dnf) -q -y install "$@";;
+            deb)    dpkg --install "$@";;
+        esac
+    fi
 }
 
 package_architecture() {
@@ -742,7 +807,6 @@ minimum_packages() {
 
 # perform initial setup of the OS
 initial_setup() {
-    TMPDIR=$(mktmpdir)
     cd $TMPDIR
     setup_path
     determine_os_version
@@ -800,7 +864,7 @@ assim_package_names() {
     fi
 }
 
-# Verify MD5 sums - if we can...
+# Verify SHA256 sums - if we can...
 check_assim_pkg_checksums() {
     if
         assim_pkg_sha256sums > $TMPDIR/packages.sums
@@ -896,7 +960,7 @@ install_centos_nano_base() {
         URL=$CENTOS6_LIBSODIUMBASE/$SUFFIX
         logwork "wget: retrieving $URL"
         wget -q -O libsodium.$ARCH.rpm $URL
-        install_local_package libsodium.$ARCH.rpm
+        install_local_packages libsodium.$ARCH.rpm
     fi
 }
 
@@ -1015,13 +1079,10 @@ update_neo4j_config() {
 }
 
 # Install our local CMA packages
-install_cma_packages() {
-    install_local_package $(assim_package_names | grep assimilation-cma)
-}
 
 # Install our local nanoprobe packages
 install_nanoprobe_packages() {
-    install_local_package $(assim_package_names | 
+    install_local_packages $(assim_package_names | 
         egrep 'assimilation-nano|sodium')
 }
 
@@ -1053,19 +1114,23 @@ install_fedora_nanoprobe() {
 }
 
 # Install the nanoprobe on whatever OS
-install_nanoprobe() {
+install_nanoprobe_prereqs() {
     case $DISTRIB_ID in
         ubuntu|debian)              install_debian_nanoprobe;;
         centos|redhat|scientific)   install_centos_nanoprobe;;
         fedora)                     install_fedora_nanoprobe;;
     esac
+}
+# Install the nanoprobe on whatever OS
+install_nanoprobe() {
+    install_nanoprobe_prereqs
     install_nanoprobe_packages
 }
 
 # Install the CMA
 install_cma() {
     install_nano_config_for_cma # Before installing the nanoprobe...
-    install_nanoprobe
+    install_nanoprobe_prereqs
     case $DISTRIB_ID in
         ubuntu|debian)              install_debian_cma;;
         centos|redhat|scientific)   install_centos_cma;;
@@ -1074,7 +1139,7 @@ install_cma() {
     update_neo4j_config
     restart_neo4j
     sleep 10 # Wait for neo4j to start
-    install_cma_packages
+    install_local_packages $(assim_package_names)
     init_database
     stop_neo4j
 }
@@ -1083,8 +1148,8 @@ install_cma() {
 restart_neo4j() {
     logwork '(re)starting Neo4j'
     case $DISTRIB_ID in
-        ubuntu|debian)          service neo4j-service restart;;
-        centos|redhat|scientific|fedora)  /etc/init.d/neo4j     restart;;
+        ubuntu|debian)                      service neo4j-service restart;;
+        centos|redhat|scientific|fedora)    /etc/init.d/neo4j     restart;;
     esac
 }
 stop_neo4j() {
@@ -1096,16 +1161,48 @@ stop_neo4j() {
 }
 init_database() {
     # The assimcli shell script works in RHEL6
-    assimcli genkeys
-    assimcli loadqueries
-    assimcli loadbp >/dev/null 2>&1 || true # old versions don't have this
+    if
+        [ ! -f "$CRYPTODIR/#CMA#00000.secret" ]
+    then
+        assimcli genkeys
+        assimcli loadqueries
+        assimcli loadbp >/dev/null 2>&1 || true # old versions don't have this
+    fi
+}
+
+#
+# Install nanoprobes on remote machines, copying over the public keys
+#
+remote_nano_install() {
+    RMTTMPDIR=/tmp/$(uname -n).$$.assiminstall
+    wget -q -O $TMPDIR/installme $INSTALLURL;
+    chmod 755 installme
+    TARBALL=/tmp/$(uname -n).cmapubkeys.tar
+    CHECKSUM=$(make_pubkey_tarball $TARBALL)
+    REMOTEINSTALL="set -e;
+        trap \"cd /; rm -fr $RMTTMPDIR $TARBALL\" 0;
+        mkdir --mode 700 $RMTTMPDIR && cd $RMTTMPDIR;
+        echo \"$CHECKSUM\"  | sha256sum --check --quiet;
+        sh -c \"tar -P -xf $TARBALL && chmod 700 $CRYPTODIR && /bin/sh ./installme $RELFLAG $LOGFLAG nanoprobe && chown assimilation:assimilation $CRYPTODIR\"
+        "
+    for system
+    do
+        echo "Installing nanoprobe on $system" >&2
+        scp -q -p $TARBALL ${REMOTERUNAS}$system:$TARBALL
+        ssh -t ${REMOTERUNAS}${system} "${REMOTESUDO} sh -c '$REMOTEINSTALL\"'"
+    done
+}
+
+# Make a tarball for us to use
+make_pubkey_tarball() {
+    $LOCALSUDO sh -c "tar -P -cf $1 installme $CRYPTODIR/*CMA*.pub" >&2
+    sha256sum  $1
 }
 
 init_install() {
     > $WORKLOG
     initial_setup
     initial_checks
-    trap 'cd /; rm -fr ${TMPDIR}' 0
     if
         is_supported_release
     then
@@ -1119,24 +1216,42 @@ init_install() {
 usage() {
     name=$(basename $1)
     cat <<-!USAGE
-	    usage: $name [flags] (cma|nanoprobe|test)
+	Usage: $name [flags] (cma|nanoprobe|test)
+	       $name [flags] remote remote-system ...
 
-        $name installs the $REL Assimilation release on the current machine.
-        It either installs it as a CMA (collective management authority)
-        machine or as a nanoprobe-only (drone) machine.
+	$name installs the $REL Assimilation release on the current machine
+	or a remote machine if remote is selected as the action.
 
-		A copy of the nanoprobe software is automatically installed on the CMA.
+	For a local machine, you can install it as a CMA (collective management
+    authority) machine or as a nanoprobe-only (drone) machine.
 
-        Note that nanoprobe-only systems will need a copy of the CMA's
-        public keys for them to be able to communicate with each other.
+	A copy of the nanoprobe software is automatically installed on the CMA.
 
-        The test argument tests the code for determining which OS
-        you're running, and also some other internal aspects of the code.
+	Nanoprobe-only systems will need a copy of the CMA's public keys for them
+    to be able to communicate with the CMA. These are automatically provided
+    when remote installation is selected.
 
-        Legal flags include:
-            --rel=releasenumber - which release to install
-            --prerel=releasenumber - which prerelease to install
-		!USAGE
+	The test argument tests the code for determining which OS you're running,
+    and also some other internal aspects of the code.  This option may produce
+    failure messages. This is normal.
+
+	Legal flags include:
+	    --rel=releasenumber - which release to install
+	    --prerel=releasenumber - which prerelease to install
+	    --runas=remote-ssh-user - which remote user to ssh to for remote
+	        installations ('remote' command only)
+	    --sudo=remote-sudo-command - what command to use as sudo for remote
+          installations ('remote' command only)
+
+	Special notes regarding remote installation:
+	 - you must have already installed a CMA system
+	 - the system you're running it from should be the CMA - or have a copy
+	    of the CMA's public keys from a prior installation.
+	 - you must either ssh as root to the destination machine or you have
+	    to be able sudo to root from the id you're ssh-ing as
+	 - we will perform an scp and an ssh, and run a script via sudo.
+	    this could mean up to 3 password prompts per machine installed.
+	!USAGE
 }
 
 if
@@ -1145,7 +1260,7 @@ then
     usage "$0" "$@" >&2
     exit 1
 fi
-logme=true
+LOGME=true
 while
     case $1 in
         --*)    true;;
@@ -1158,26 +1273,54 @@ do
                         ;;
 
         --rel=*)        REL=$(echo $1 | sed 's%.*=%%')
+                        RELFLAG="$1"
                         shift
                         ;;
         --prerel=*)     REL=$(echo $1 | sed 's%.*=%%')
+                        RELFLAG="$1"
                         BASEURL=$PRERELURL
                         shift
                         ;;
-        --nolog)        logme=false
+        --runas=*)      REMOTERUNAS=$(echo $1 | sed 's%.*=%%')
+                        REMOTERUNAS="${REMOTERUNAS}@"
                         shift
+                        ;;
+        --sudo=*)       REMOTESUDO=$(echo $1 | sed 's%.*=%%')
+                        shift
+                        ;;
+        --nolog)        LOGME=false
+                        LOGFLAG="$1"
+                        shift
+                        ;;
+
+        -*)             usage "$0" "$@"
+                        exit 1
                         ;;
 
     esac
 done
 
+if
+    [ -z "$RELFLAG" ]
+then
+    RELFLAG="--rel=$REL"
+fi
+
+TMPDIR=$(mktmpdir)
+cd $TMPDIR
+trap 'cd /; rm -fr ${TMPDIR}; $LOCALSUDO rm -f ${TARBALL}' 0
 case $1 in
     cma|nanoprobe)
             echo "Installing release $REL of Assimilation $1 on $(uname -n)"
             init_install;
             install_$1
             echo "Installation complete. Actions logged in $WORKLOG."
-            test $logme = false || loginstall $1
+            test $LOGME = false || loginstall $1
+            ;;
+    remote)
+            shift
+            printf 'Performing remote installation of %s on: [%s]\n' "$REL" "$*"
+            remote_nano_install "$@"
             ;;
     test)   test_version_comparisons; test_os_versions;;
     -h|--help)
