@@ -241,12 +241,14 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSe
 			gconstpointer pkt,		  ///<[in] captured packet
 			gconstpointer pktend,		  ///<[in] one byte past end of pkt
 			const struct pcap_pkthdr* pkthdr, ///<[in] libpcap packet header
-			const char * interfacep)	  ///<[in] interface it was captured on
+			const char * interfacep,	  ///<[in] interface it was captured on
+			const char * instancename)	  ///<[in] discovery instance
 {
 	IntFrame*	timeframe = intframe_new(FRAMETYPE_WALLCLOCK, sizeof(proj_timeval_to_g_real_time(NULL)));
 	Frame* 		pktframe = frame_new(FRAMETYPE_PKTDATA, 0);
 	CstringFrame*	intfname = cstringframe_new(FRAMETYPE_INTERFACE, 0);
 	CstringFrame*	fsysname = cstringframe_new(FRAMETYPE_HOSTNAME, 0);
+	CstringFrame*	finstname = cstringframe_new(FRAMETYPE_DISCNAME, 0);
 	FrameSet*	fs = frameset_new(framesettype);
 	const guint8*	bpkt = (const guint8*) pkt;
 	gsize		pktlen = ((const guint8*)pktend-bpkt);
@@ -260,6 +262,7 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSe
 	g_return_val_if_fail(pktframe != NULL, NULL);
 	g_return_val_if_fail(intfname != NULL, NULL);
 	g_return_val_if_fail(cppkt != NULL, NULL);
+	g_return_val_if_fail(finstname != NULL, NULL);
 
 	// System name
 	fsysname->baseclass.setvalue(&fsysname->baseclass, sysname, strlen(sysname)+1, g_free);
@@ -270,6 +273,11 @@ construct_pcap_frameset(guint16 framesettype,		  ///<[in] type to create FrameSe
 	intfname->baseclass.setvalue(&intfname->baseclass, g_strdup(interfacep), strlen(interfacep)+1, g_free);
 	frameset_append_frame(fs, &intfname->baseclass);
 	UNREF2(intfname);
+
+	// Instance name
+	finstname->baseclass.setvalue(&finstname->baseclass, g_strdup(instancename), strlen(instancename)+1, g_free);
+	frameset_append_frame(fs, &finstname->baseclass);
+	UNREF2(finstname);
 
 	// Local time stamp
 	timeframe->setint(timeframe, proj_timeval_to_g_real_time(&(pkthdr->ts)));

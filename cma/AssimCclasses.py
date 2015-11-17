@@ -1,5 +1,5 @@
 # pylint: disable=C0302
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #C0302: too many lines in module
 #
 #
@@ -238,12 +238,14 @@ class pySwitchDiscovery(object):
         return None
 
     @staticmethod
-    def decode_discovery(host, interface, wallclock, pktstart, pktend):
+    def decode_discovery(host, interface, instance, wallclock, pktstart, pktend):
         'Return a JSON packet corresponding to the given switch discovery packet'
         if is_valid_lldp_packet(pktstart, pktend):
-            return pySwitchDiscovery._decode_lldp(host, interface, wallclock, pktstart, pktend)
+            return pySwitchDiscovery._decode_lldp(host, interface, instance,
+                                                  wallclock, pktstart, pktend)
         if is_valid_cdp_packet(pktstart, pktend):
-            return pySwitchDiscovery._decode_cdp(host, interface, wallclock, pktstart, pktend)
+            return pySwitchDiscovery._decode_cdp(host, interface, instance,
+                                                 wallclock, pktstart, pktend)
         raise ValueError('Malformed Switch Discovery Packet')
 
     @staticmethod
@@ -271,7 +273,7 @@ class pySwitchDiscovery(object):
 
     #pylint: disable=R0914,R0912
     @staticmethod
-    def _decode_lldp(host, interface, wallclock, pktstart, pktend):
+    def _decode_lldp(host, interface, instance, wallclock, pktstart, pktend):
         'Decode LLDP packet into a JSON discovery packet'
         #print >> sys.stderr, 'DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
         thisportinfo = pyConfigContext(init={
@@ -285,6 +287,7 @@ class pySwitchDiscovery(object):
                 'description':          'Link Level Switch Discovery (lldp)',
                 'source':               '_decode_lldp()',
                 'host':                 host,
+                'instance':             instance,
                 'localtime':            str(wallclock),
                 'data':                 switchinfo,
             }
@@ -373,7 +376,7 @@ class pySwitchDiscovery(object):
 
 
     @staticmethod
-    def _decode_cdp(host, interface, wallclock, pktstart, pktend):
+    def _decode_cdp(host, interface, instance, wallclock, pktstart, pktend):
         'Decode CDP packet into a JSON discovery packet'
         thisportinfo = pyConfigContext(init={
                 'ConnectsToHost':       host,
@@ -386,6 +389,7 @@ class pySwitchDiscovery(object):
                 'description':          'Link Level Switch Discovery (cdp)',
                 'source':               '_decode_cdp()',
                 'host':                 host,
+                'instance':             instance,
                 'localtime':            str(wallclock),
                 'data':                 switchinfo,
             }

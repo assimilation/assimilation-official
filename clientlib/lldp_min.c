@@ -231,8 +231,8 @@ get_lldp_chassis_id(gconstpointer	tlv_vp,		///<[in] Pointer to beginning of LLDP
 	if (tlventry == NULL) {
 		return NULL;
 	}
-	*idlength = get_lldptlv_len(tlv_vp, pktend);
-	return get_lldptlv_body(tlv_vp, pktend);
+	*idlength = get_lldptlv_len(tlventry, pktend);
+	return get_lldptlv_body(tlventry, pktend);
 }
 
 /// Return a pointer to the port id Value entry, and its length.
@@ -248,6 +248,6 @@ get_lldp_port_id(gconstpointer tlv_vp,	///<[in] Pointer to beginning of LLDP pac
 	if (tlventry == NULL) {
 		return NULL;
 	}
-	*idlength = get_lldptlv_len(tlv_vp, pktend);
-	return get_lldptlv_body(tlv_vp, pktend);
+	*idlength = get_lldptlv_len(tlventry, pktend);
+	return get_lldptlv_body(tlventry, pktend);
 }

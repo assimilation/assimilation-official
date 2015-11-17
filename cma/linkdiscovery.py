@@ -73,7 +73,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         else:
             print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
 
-    def processpkt_netconfig(self, drone, unused_srcaddr, jsonobj):
+    def processpkt_netconfig(self, drone, _unused_srcaddr, jsonobj):
         '''We want to trigger Switch discovery when we hear a 'netconfig' packet
 
         Build up the parameters for the discovery
@@ -81,8 +81,6 @@ class LinkDiscoveryListener(DiscoveryListener):
         To build up the parameters, you use ConfigFile.agent_params()
         which will pull values from the system configuration.
         '''
-
-        unused_srcaddr = unused_srcaddr # make pylint happy
         init_params = ConfigFile.agent_params(self.config, 'discovery', '#SWITCH'
         ,   drone.designation)
 
@@ -115,7 +113,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         #
         unused_srcaddr = unused_srcaddr
         data = jsonobj['data']
-        #print >> sys.stderr, 'SWITCH JSON:', str(data)
+        print >> sys.stderr, 'SWITCH JSON:', str(data)
         if 'ChassisId' not in data:
             self.log.warning('Chassis ID missing from discovery data from switch [%s]'
             %   (str(data)))

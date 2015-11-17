@@ -32,6 +32,7 @@ FSTATIC void _switchdiscovery_finalize(AssimObj* self);
 FSTATIC gboolean _switchdiscovery_cache_info(SwitchDiscovery* self, gconstpointer pkt, gconstpointer pend);
 FSTATIC gboolean _switchdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconstpointer, gconstpointer, const struct pcap_pkthdr* pkthdr, const char * capturedev, gpointer selfptr);
 FSTATIC guint _switchdiscovery_setprotocols(ConfigContext* cfg);
+FSTATIC void _dumphex(const char * id, gconstpointer idstart, gssize len);
 ///@defgroup SwitchDiscoveryClass SwitchDiscovery class
 /// Class providing a switch discovery class for discovering network switch properties - subclass of @ref DiscoveryClass.
 /// We deal with things like CDP, LDP and so on in order to "hear" our switch/port configuration.
@@ -103,11 +104,13 @@ _switchdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causi
 	/// Don't cache if we can't send - and don't send if we have sent this info previously.
 	++ self->baseclass.discovercount;
 	if (!dest || !_switchdiscovery_cache_info(self, pkt, pend)) {
+		DEBUGMSG5("NOT Sending out LLDP/CDP packet - (already cached)");
 		return TRUE;
 	}
 	++ self->baseclass.reportcount;
 	DEBUGMSG2("Sending out LLDP/CDP packet - hurray!");
-	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev);
+	fs = construct_pcap_frameset(FRAMESETTYPE_SWDISCOVER, pkt, pend, pkthdr, capturedev,
+				     self->baseclass.instancename(&self->baseclass));
 	transport->_netio->sendareliablefs(transport->_netio, dest, DEFAULT_FSP_QID, fs);
 	UNREF(fs);
 	return TRUE;
@@ -181,6 +184,7 @@ switchdiscovery_new(ConfigContext*swconfig	///<[in] Switch discoveryconfiguratio
 	if (objsize < sizeof(SwitchDiscovery)) {
 		objsize = sizeof(SwitchDiscovery);
 	}
+	//fprintf(stderr, "%s:%d: instance = %s, dev=%s", __FUNCTION__, __LINE__, instance, dev);
 	dret = discovery_new(instance, iosrc, config, objsize);
 	g_return_val_if_fail(dret != NULL, NULL);
 	proj_class_register_subclassed(dret, "SwitchDiscovery");
@@ -202,6 +206,18 @@ switchdiscovery_new(ConfigContext*swconfig	///<[in] Switch discoveryconfiguratio
 	ret->switchid = NULL;	ret->switchidlen = -1;
 	ret->portid = NULL;	ret->portidlen = -1;
 	return ret;
+}
+
+/// Dump stuff out in hex with a label...
+FSTATIC void
+_dumphex(const char * id, gconstpointer idstart, gssize len)
+{
+	gssize	j;
+	fprintf(stderr, "HEX[%d]: %s:", (int)(len), id);
+	for (j=0; j < len; ++j) {
+		fprintf(stderr, " %02x", ((const guint8*)idstart)[j]);
+	}
+	fprintf(stderr, "\n");
 }
 
 typedef struct _SwitchDiscoveryType SwitchDiscoveryType;
@@ -238,6 +254,14 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 		curportid = discovery_types[j].get_port_id(pkt, &curportidlen, pktend);
 		g_return_val_if_fail(curswitchid != NULL, FALSE);
 		g_return_val_if_fail(curportid != NULL, FALSE);
+		_dumphex("switch id", curswitchid, curswitchidlen);
+		_dumphex("port id", curportid, curportidlen);
+		if (NULL != self->switchid) {
+			_dumphex("previous switch id", self->switchid, self->switchidlen);
+		}
+		if (NULL != self->portid) {
+			_dumphex("previous port id", self->portid, self->portidlen);
+		}
 
 		if (self->switchid == NULL || self->portid == NULL
                     || curportidlen != self->portidlen || curswitchidlen != self->switchidlen
@@ -254,6 +278,7 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 			self->portid = g_memdup(curportid, curportidlen);
 			self->switchidlen = curswitchidlen;
 			self->portidlen = curportidlen;
+			DEBUGMSG2("Caching current %s switch info...", discovery_types[j].discoverytype);
 			return TRUE;
 		}
 		break;

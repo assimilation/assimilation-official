@@ -77,5 +77,6 @@ WINEXPORT GSource* g_source_pcap_new(const char * dev,
 			  );
 WINEXPORT void g_source_pcap_finalize(GSource* src); // Here to work around some Glib bugs/misunderstandings...
 WINEXPORT FrameSet* construct_pcap_frameset(guint16 framesettype, gconstpointer pkt, gconstpointer pktend,
-				  const struct pcap_pkthdr* pkthdr, const char * interfacep);
+				  const struct pcap_pkthdr* pkthdr, const char * interfacep,
+				  const char * instancename);
 #endif /* _PCAP_GSOURCE_H */

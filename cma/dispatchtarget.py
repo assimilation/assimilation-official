@@ -420,12 +420,15 @@ class DispatchSWDISCOVER(DispatchTarget):
         wallclock = None
         interface = None
         designation = None
+        instance = None
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.HOSTNAME:
                 designation = frame.getstr()
             elif frametype == FrameTypes.INTERFACE:
                 interface = frame.getstr()
+            elif frametype == FrameTypes.DISCNAME:
+                instance = frame.getstr()
             elif frametype == FrameTypes.WALLCLOCK:
                 wallclock = frame.getint()
             elif frametype == FrameTypes.PKTDATA:
@@ -433,8 +436,10 @@ class DispatchSWDISCOVER(DispatchTarget):
                     raise ValueError('Incomplete Switch Discovery Packet')
                 pktstart = frame.framevalue()
                 pktend = frame.frameend()
+                if instance is None:
+                    instance = '_switch_%s' % interface
                 switchjson = pySwitchDiscovery.decode_discovery(designation, interface
-                ,               wallclock, pktstart, pktend)
+                ,               instance, wallclock, pktstart, pktend)
                 if CMAdb.debug:
                     CMAdb.log.debug('Got Link discovery info from %s: %s' \
                     %   (interface, str(switchjson)))
