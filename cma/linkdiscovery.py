@@ -113,7 +113,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         #
         unused_srcaddr = unused_srcaddr
         data = jsonobj['data']
-        print >> sys.stderr, 'SWITCH JSON:', str(data)
+        #print >> sys.stderr, 'SWITCH JSON:', str(data)
         if 'ChassisId' not in data:
             self.log.warning('Chassis ID missing from discovery data from switch [%s]'
             %   (str(data)))

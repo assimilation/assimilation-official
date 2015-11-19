@@ -248,6 +248,8 @@ class Store(object):
         for client in self.clients:
             namedyet = False
             for attr in Store._safe_attr_names(client):
+                if not hasattr(client, '__store_dirty_attrs'):
+                    continue
                 if attr in client.__store_dirty_attrs.keys():
                     if not namedyet:
                         result += ('Client %s:%s: {' % (client, Store.id(client)))

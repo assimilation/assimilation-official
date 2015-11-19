@@ -87,15 +87,23 @@ class AssimEventObserver(object):
             return True
         for attr in self.constraints:
             value = AssimEventObserver.getvalue(event, attr)
+            #print >>sys.stderr, 'VALUE of attr %s is %s' % (attr, value)
             if value is None:
                 # @FIXME: Is this the right treatment of no-such-value (None)?
                 continue
             constraint = self.constraints[attr]
-            if isinstance(constraint, (list, dict)):
+            #print >>sys.stderr, 'CONSTRAINT is %s' % constraint
+            if isinstance(constraint, (list, dict, tuple)):
                 if value not in constraint:
+                    if DEBUG:
+                        print >> sys.stderr, 'Event is not interesting(1)'
                     return False
-            if value != constraint:
+            elif value != constraint:
+                if DEBUG:
+                    print >> sys.stderr, 'Event is not interesting(2)'
                 return False
+        if DEBUG:
+            print >> sys.stderr, 'Event IS interesting'
         return True
 
     @staticmethod
@@ -174,7 +182,7 @@ class FIFOEventObserver(AssimEventObserver):
                 print >> sys.stderr, '*************EVENT SENT (%d bytes)' % (jsonlen+1)
         except OSError, e:
             if DEBUG:
-                print >> sys.stderr, '+++++++++++++++++FIFO write error: %s' % str(e)
+                print >> sys.stderr, '+++++++++++++++++EVENT FIFO write error: %s' % str(e)
             self.errcount += 1
             self.ioerror(event)
 
@@ -212,16 +220,18 @@ class ForkExecObserver(FIFOEventObserver):
         FIFOEventObserver.__init__(self, pipefds[1], constraints)
         self.childpid = os.fork()
         if self.childpid == 0:
+            print >> sys.stderr, ('EVENT Fork/Event Child observer dispatching from %s' % scriptdir)
             self.listenforevents()
         else:
             os.close(self.FIFOreadfd)
             self.FIFOreadfd = -1
+            print >> sys.stderr, ('EVENT Fork/Event Parent observer dispatching from %s' % scriptdir)
 
     def ioerror(self, event):
         '''Re-initialize (respawn) our child in response to an I/O error'''
 
         if DEBUG:
-            print >> sys.stderr, '**********Reinitializing child process'
+            print >> sys.stderr, '**********Reinitializing child EVENT process'
         if self.childpid > 0:
             os.kill(self.childpid, signal.SIGKILL)
             self.childpid = 0
@@ -256,10 +266,10 @@ class ForkExecObserver(FIFOEventObserver):
         while True:
             try:
                 if DEBUG:
-                    print >> sys.stderr, 'ISSUING READ...'
+                    print >> sys.stderr, 'ISSUING EVENT READ...'
                 currentbuf += os.read(self.FIFOreadfd, 4096)
                 if DEBUG:
-                    print >> sys.stderr, 'READ returned %d bytes' % (len(currentbuf))
+                    print >> sys.stderr, 'EVENT READ returned %d bytes' % (len(currentbuf))
                 if len(currentbuf) == 0:
                     # We don't want any kind of python cleanup going on here...
                     # so we access the 'protected' member _exit of os, and irritate pylint
@@ -313,10 +323,10 @@ class ForkExecObserver(FIFOEventObserver):
         for script in self.listscripts():
             args = [script, eventtype, aobjclass]
             if DEBUG:
-                print >> sys.stderr, 'STARTING SCRIPT: %s' % (str(args))
+                print >> sys.stderr, 'STARTING EVENT SCRIPT: %s' % (str(args))
             os.spawnve(os.P_WAIT, script, args, env)
             if DEBUG:
-                print >> sys.stderr, 'SCRIPT %s IS NOW DONE' % (str(args))
+                print >> sys.stderr, 'EVENT SCRIPT %s IS NOW DONE' % (str(args))
 
     def listscripts(self):
         'Return the list of pathnames which we will execute when we get notified of an event'
