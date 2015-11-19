@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -225,7 +225,7 @@ class ForkExecObserver(FIFOEventObserver):
         else:
             os.close(self.FIFOreadfd)
             self.FIFOreadfd = -1
-            print >> sys.stderr, ('EVENT Fork/Event Parent observer dispatching from %s' % scriptdir)
+            print >> sys.stderr, ('Fork/Event Parent observer dispatching from %s' % scriptdir)
 
     def ioerror(self, event):
         '''Re-initialize (respawn) our child in response to an I/O error'''
