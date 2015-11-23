@@ -222,7 +222,7 @@ class ForkExecObserver(FIFOEventObserver):
         FIFOEventObserver.__init__(self, pipefds[1], constraints)
         self.childpid = os.fork()
         if self.childpid == 0:
-            #print >> sys.stderr, ('EVENT Fork/Event Child observer dispatching from %s' % scriptdir)
+            #print >> sys.stderr, ('Child EVENT observer dispatching from %s' % scriptdir)
             self.listenforevents()
         else:
             os.close(self.FIFOreadfd)
@@ -294,14 +294,11 @@ class ForkExecObserver(FIFOEventObserver):
                 sys.exit(0)
 
 
-    def processJSONevent(self, jsonstr):
-        'Process a single JSON event from our input stream'
-        eventobj = pyConfigContext(jsonstr)
+    @staticmethod
+    def _JSONevent_env(eventobj):
+        'Create the environment for our child processes'
         aobj = eventobj['associatedobject']
-        aobjclass = aobj['nodetype']
-        eventtype = AssimEvent.eventtypenames[eventobj['eventtype']]
         env = {}
-
         # Initialize the child environment with our current environment
         for item in os.environ:
             env[item] = os.environ[item]
@@ -317,6 +314,14 @@ class ForkExecObserver(FIFOEventObserver):
             avalue = aobj[attr]
             if isinstance(avalue, (str, unicode, int, float, long, bool)):
                 env['ASSIM_%s' % attr] = str(avalue)
+        return env
+
+    def processJSONevent(self, jsonstr):
+        'Process a single JSON event from our input stream'
+        eventobj = pyConfigContext(jsonstr)
+        aobjclass = eventobj['associatedobject']['nodetype']
+        eventtype = AssimEvent.eventtypenames[eventobj['eventtype']]
+        childenv = self._JSONevent_env(eventobj)
 
         # It's an event we want our scripts to know about...
         # So, let them know!
@@ -330,7 +335,7 @@ class ForkExecObserver(FIFOEventObserver):
             args = [script, eventtype, aobjclass]
             if DEBUG:
                 print >> sys.stderr, 'STARTING EVENT SCRIPT: %s' % (str(args))
-            subprocess.call(args, env=env, stdin=jsontmpfile)
+            subprocess.call(args, env=childenv, stdin=jsontmpfile)
             if DEBUG:
                 print >> sys.stderr, 'EVENT SCRIPT %s IS NOW DONE' % (str(args))
 

@@ -41,7 +41,7 @@ from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
 import os, re, time
-import sys
+#import sys
 from store import Store
 #
 #
