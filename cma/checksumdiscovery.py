@@ -1,16 +1,18 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=80
 #
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
-# Copyright (C) 2013 - Assimilation Systems Limited
+# Copyright (C) 2013-2015 - Assimilation Systems Limited
 #
-# Free support is available from the Assimilation Project community - http://assimproj.org
-# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+#   - http://assimilationsystems.com
 #
-# The Assimilation software is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# The Assimilation software is free software: you can redistribute it and/or
+# modify # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
@@ -20,7 +22,8 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
 #
 #
 
@@ -48,7 +51,7 @@ from discoverylistener import DiscoveryListener
 
 @Drone.add_json_processor
 class TCPDiscoveryChecksumGenerator(DiscoveryListener):
-    'Class for generating checksums based on the content of tcpdiscovery packets'
+    'Class for generating checksums based on our tcpdiscovery packets'
     prio = DiscoveryListener.PRI_OPTION
     wantedpackets = ('tcpdiscovery', 'checksum')
 
@@ -58,12 +61,14 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         elif jsonobj['discovertype'] == 'checksum':
             self.processchecksumpkt(drone, srcaddr, jsonobj)
         else:
-            print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
+            print >> sys.stderr, ('OOPS! bad packet type [%s]' %
+                                  jsonobj['discovertype'])
 
     def processtcpdiscoverypkt(self, drone, unused_srcaddr, jsonobj):
         "Send commands to generate checksums for this Drone's net-facing things"
         unused_srcaddr = unused_srcaddr
-        params = ConfigFile.agent_params(self.config, 'discovery', 'checksums', drone.designation)
+        params = ConfigFile.agent_params(self.config, 'discovery', 'checksums',
+                                         drone.designation)
         sumcmds = self.config['checksum_cmds']
         filelist = self.config['checksum_files']
         filelist.extend(sumcmds)
@@ -71,8 +76,8 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         params[CONFIGNAME_TYPE] = 'checksums'
         params[CONFIGNAME_INSTANCE] = '_auto_checksumdiscovery'
         data = jsonobj['data'] # The data portion of the JSON message
-        for procname in data.keys():    # List of nanoprobe-assigned names of processes...
-            procinfo = data[procname]
+        for procname in data.keys():    # List of of process names...
+            procinfo = data[procname]   # (names assigned by the nanoprobe)
             if 'exe' not in procinfo:
                 continue
             exename = procinfo.get('exe')
@@ -93,22 +98,26 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
 
         params['parameters']['ASSIM_sumcmds'] = sumcmds
         params['parameters']['ASSIM_filelist'] = filelist
-        # Request discovery of checksums of all the binaries talking (tcp) over the network
+        # Request checksums of all the binaries talking (tcp) over the network
         print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF %d files'
         %   (len(params['parameters']['ASSIM_filelist'])))
         drone.request_discovery((params,))
 
     def processchecksumpkt(self, drone, unused_srcaddr, jsonobj):
-        'Process updated checksums. Note that our drone-owned-JSON is already updated'
+        '''Process updated checksums. Note that our drone-owned-JSON is already
+        updated. This is a mistake. We should update attributes at the end
+        of a transaction.  I wonder if this is in fact the case with the new
+        storage method for JSON string attributes.
+        '''
         unused_srcaddr = unused_srcaddr # make pylint happy...
         data = jsonobj['data'] # The data portion of the JSON message
         print >> sys.stderr, 'PROCESSING CHECKSUM DATA'
-        if hasattr(drone, 'JSON_OLD_checksums'):
+        if ('OLD_checksums' in drone):
             print >> sys.stderr, 'COMPARING CHECKSUM DATA'
-            olddata = pyConfigContext(drone.JSON_OLD_checksums)['data']
+            olddata = pyConfigContext(drone['OLD_checksums'])['data']
             self.compare_checksums(drone, olddata, data)
         print >> sys.stderr, 'UPDATING CHECKSUM DATA for %d files' % len(data)
-        drone.JSON_OLD_checksums = str(jsonobj)
+        drone['OLD_checksums'] = str(jsonobj)
 
     def compare_checksums(self, drone, oldobj, newobj):
         'Compare checksums and complain about those that change'
