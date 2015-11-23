@@ -48,6 +48,9 @@ def makescript(createdscriptname, outfile):
             j=$(expr $j + 1)
         done
         env |  grep '^ASSIM_' | LC_ALL=C sort
+        echo "==== JSON START ===="
+        cat
+        printf '\n==== JSON END ====\n'
         echo "====END===="
     ) >> %s 2>&1
 '''
@@ -145,19 +148,23 @@ class TestAssimEvent(TestCase):
 '''====START====
 ARG1=create
 ARG2=ClientClass
-ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
 ASSIM_fred=fred
 ASSIM_nodetype=ClientClass
 ASSIM_sevenofnine=Annika
+==== JSON START ====
+{"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
+==== JSON END ====
 ====END====
 ====START====
 ARG1=up
 ARG2=ClientClass
-ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":1,"extrainfo":{"origaddr":"10.10.10.254"}}
 ASSIM_fred=fred
 ASSIM_nodetype=ClientClass
 ASSIM_origaddr=10.10.10.254
 ASSIM_sevenofnine=Annika
+==== JSON START ====
+{"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":1,"extrainfo":{"origaddr":"10.10.10.254"}}
+==== JSON END ====
 ====END====
 '''
         TestAssimEvent.waitfor(pathname, expectedcontent)
@@ -203,10 +210,12 @@ ASSIM_sevenofnine=Annika
 '''====START====
 ARG1=create
 ARG2=ClientClass
-ASSIM_JSONobj={"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
 ASSIM_fred=fred
 ASSIM_nodetype=ClientClass
 ASSIM_sevenofnine=Annika
+==== JSON START ====
+{"associatedobject":{"foo":{"foo":"bar"},"fred":"fred","nodetype":"ClientClass","sevenofnine":"Annika"},"eventtype":0,"extrainfo":null}
+==== JSON END ====
 ====END====
 '''
         TestAssimEvent.waitfor(pathname, expectedcontent)
