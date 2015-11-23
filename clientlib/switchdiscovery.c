@@ -254,8 +254,10 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 		curportid = discovery_types[j].get_port_id(pkt, &curportidlen, pktend);
 		g_return_val_if_fail(curswitchid != NULL, FALSE);
 		g_return_val_if_fail(curportid != NULL, FALSE);
-		_dumphex("switch id", curswitchid, curswitchidlen);
-		_dumphex("port id", curportid, curportidlen);
+		if (DEBUG > 3) {
+			_dumphex("switch id", curswitchid, curswitchidlen);
+			_dumphex("port id", curportid, curportidlen);
+		}
 		if (NULL != self->switchid) {
 			_dumphex("previous switch id", self->switchid, self->switchidlen);
 		}
