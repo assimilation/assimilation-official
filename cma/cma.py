@@ -265,7 +265,13 @@ def main():
     print >> sys.stderr, ('Monitoring rules loaded from %s' % MONRULEINSTALL_DIR)
 
     execobserver_constraints = {
-        'nodetype': ['Drone', 'SystemNode', 'IPaddrNode', 'ProcessNode', 'MonitorAction']
+        'nodetype': ['Drone',
+                     'IPaddrNode',
+                     'MonitorAction',
+                     'NICNode',
+                     'ProcessNode',
+                     'SystemNode',
+                    ]
     }
     ForkExecObserver(constraints=execobserver_constraints, scriptdir=NOTIFICATION_SCRIPT_DIR)
     print >> sys.stderr, ('Fork/Event observer dispatching from %s' % NOTIFICATION_SCRIPT_DIR)

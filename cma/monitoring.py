@@ -31,7 +31,7 @@ rules for certain kinds of services automatically.
 from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD            \
 ,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL   \
 ,   CONFIGNAME_TIMEOUT , REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, REQNAGIOSPATH       \
-,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD                                    \
+,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD, REQSTRINGRETNAMEFIELD             \
 ,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
@@ -207,6 +207,8 @@ class MonitorAction(GraphNode):
             explanation = 'is now operational'
         elif reason_enum == EXITED_NONZERO:
             explanation = 'monitoring failed with return code %s' % monmsgobj[REQRCNAMEFIELD]
+            if REQSTRINGRETNAMEFIELD in monmsgobj:
+                explanation += ': %s' % str(monmsgobj[REQSTRINGRETNAMEFIELD])
         elif reason_enum == EXITED_SIGNAL:
             explanation = 'monitoring was killed by signal %s' % monmsgobj[REQSIGNALNAMEFIELD]
         elif reason_enum == EXITED_HUNG:
@@ -222,7 +224,7 @@ class MonitorAction(GraphNode):
         msg = 'Service %s %s' % (rscname, explanation)
         self.isworking = success and not fubar
         self.reason = explanation
-        print >> sys.stderr, 'MESSAGE:', msg
+        #print >> sys.stderr, 'MESSAGE:', msg
         if fubar:
             CMAdb.log.critical(msg)
         else:

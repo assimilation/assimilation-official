@@ -2049,7 +2049,7 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while (not hasattr(base, 'closeconn')):
             base = base.baseclass
-        print >> sys.stderr, ('CLOSING CONNECTION (closeconn) TO %s' % str(destaddr))
+        print >> sys.stderr, ('RESETTING CONNECTION (closeconn) TO %s' % str(destaddr))
         base.closeconn(self._Cstruct, qid, destaddr._Cstruct)
 
     def addalias(self, fromaddr, toaddr):

@@ -32,9 +32,7 @@ from AssimCtypes import NOTIFICATION_SCRIPT_DIR, setpipebuf
 from AssimCclasses import pyConfigContext
 from assimevent import AssimEvent
 from assimjson import JSONtree
-import fcntl
-import os, signal
-import sys
+import os, signal, subprocess, sys, fcntl, tempfile
 
 DEBUG = True
 DEBUG = False
@@ -83,27 +81,31 @@ class AssimEventObserver(object):
         event: AssimEvent
             The event we're evaluating to see if our listeners want to hear about it.
         '''
+        if DEBUG:
+            print >> sys.stderr, 'is_interesting(%s, %s)?' % (self.constraints, event.eventtype)
         if self.constraints is None:
             return True
         for attr in self.constraints:
             value = AssimEventObserver.getvalue(event, attr)
-            #print >>sys.stderr, 'VALUE of attr %s is %s' % (attr, value)
+            if DEBUG:
+                print >>sys.stderr, 'VALUE of attr %s is %s' % (attr, value)
             if value is None:
                 # @FIXME: Is this the right treatment of no-such-value (None)?
                 continue
             constraint = self.constraints[attr]
-            #print >>sys.stderr, 'CONSTRAINT is %s' % constraint
+            if DEBUG:
+                print >>sys.stderr, 'CONSTRAINT is %s' % constraint
             if isinstance(constraint, (list, dict, tuple)):
                 if value not in constraint:
                     if DEBUG:
-                        print >> sys.stderr, 'Event is not interesting(1)'
+                        print >> sys.stderr, 'Event is not interesting(1)', value, constraint
                     return False
             elif value != constraint:
                 if DEBUG:
-                    print >> sys.stderr, 'Event is not interesting(2)'
+                    print >> sys.stderr, 'Event is not interesting(2)', value, constraint
                 return False
         if DEBUG:
-            print >> sys.stderr, 'Event IS interesting'
+            print >> sys.stderr, 'Event %s IS interesting' % event.eventtype
         return True
 
     @staticmethod
@@ -220,12 +222,12 @@ class ForkExecObserver(FIFOEventObserver):
         FIFOEventObserver.__init__(self, pipefds[1], constraints)
         self.childpid = os.fork()
         if self.childpid == 0:
-            print >> sys.stderr, ('EVENT Fork/Event Child observer dispatching from %s' % scriptdir)
+            #print >> sys.stderr, ('EVENT Fork/Event Child observer dispatching from %s' % scriptdir)
             self.listenforevents()
         else:
             os.close(self.FIFOreadfd)
             self.FIFOreadfd = -1
-            print >> sys.stderr, ('Fork/Event Parent observer dispatching from %s' % scriptdir)
+            #print >> sys.stderr, ('Fork/Event Parent observer dispatching from %s' % scriptdir)
 
     def ioerror(self, event):
         '''Re-initialize (respawn) our child in response to an I/O error'''
@@ -293,7 +295,7 @@ class ForkExecObserver(FIFOEventObserver):
 
 
     def processJSONevent(self, jsonstr):
-        'Process a single JSON event from out input stream'
+        'Process a single JSON event from our input stream'
         eventobj = pyConfigContext(jsonstr)
         aobj = eventobj['associatedobject']
         aobjclass = aobj['nodetype']
@@ -308,28 +310,32 @@ class ForkExecObserver(FIFOEventObserver):
             extrastuff = eventobj['extrainfo']
             for extra in extrastuff.keys():
                 evextra = extrastuff[extra]
-                env['ASSIM_%s' % extra] = str(evextra)
+                if isinstance(evextra, (str, unicode, int, float, long, bool)):
+                    env['ASSIM_%s' % extra] = str(evextra)
         # Add all the scalars in the associated object
         for attr in aobj.keys():
             avalue = aobj[attr]
             if isinstance(avalue, (str, unicode, int, float, long, bool)):
                 env['ASSIM_%s' % attr] = str(avalue)
-        env['ASSIM_JSONobj'] = str(jsonstr)
 
         # It's an event we want our scripts to know about...
         # So, let them know!
         if DEBUG:
             print >> sys.stderr, 'TO RUN: %s' % (str(self.listscripts()))
+        # Put the full JSON in a temporary file, so our scripts can read it from stdin
+        jsontmpfile = tempfile.TemporaryFile()
+        jsontmpfile.write(str(eventobj))
+        jsontmpfile.seek(0)
         for script in self.listscripts():
             args = [script, eventtype, aobjclass]
             if DEBUG:
                 print >> sys.stderr, 'STARTING EVENT SCRIPT: %s' % (str(args))
-            os.spawnve(os.P_WAIT, script, args, env)
+            subprocess.call(args, env=env, stdin=jsontmpfile)
             if DEBUG:
                 print >> sys.stderr, 'EVENT SCRIPT %s IS NOW DONE' % (str(args))
 
     def listscripts(self):
-        'Return the list of pathnames which we will execute when we get notified of an event'
+        'Return the list of pathnames to execute when we get notified of an event'
         retval = []
         for script in os.listdir(self.scriptdir):
             path = os.path.join(self.scriptdir, script)
