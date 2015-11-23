@@ -29,7 +29,7 @@ The base class of these various classes is the abstract class AssimEventObserver
 '''
 
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, setpipebuf
-from AssimCclasses import pyConfigContext
+from AssimCclasses import pyConfigContext, pyNetAddr
 from assimevent import AssimEvent
 from assimjson import JSONtree
 import os, signal, subprocess, sys, fcntl, tempfile
@@ -307,12 +307,12 @@ class ForkExecObserver(FIFOEventObserver):
             extrastuff = eventobj['extrainfo']
             for extra in extrastuff.keys():
                 evextra = extrastuff[extra]
-                if isinstance(evextra, (str, unicode, int, float, long, bool)):
+                if isinstance(evextra, (str, unicode, int, float, long, bool, pyNetAddr)):
                     env['ASSIM_%s' % extra] = str(evextra)
         # Add all the scalars in the associated object
         for attr in aobj.keys():
             avalue = aobj[attr]
-            if isinstance(avalue, (str, unicode, int, float, long, bool)):
+            if isinstance(avalue, (str, unicode, int, float, long, bool, pyNetAddr)):
                 env['ASSIM_%s' % attr] = str(avalue)
         return env
 
