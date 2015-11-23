@@ -297,6 +297,7 @@ class ForkExecObserver(FIFOEventObserver):
     @staticmethod
     def _JSONevent_env(eventobj):
         'Create the environment for our child processes'
+        scalars = (str, unicode, int, float, long, bool, pyNetAddr)
         aobj = eventobj['associatedobject']
         env = {}
         # Initialize the child environment with our current environment
@@ -307,12 +308,12 @@ class ForkExecObserver(FIFOEventObserver):
             extrastuff = eventobj['extrainfo']
             for extra in extrastuff.keys():
                 evextra = extrastuff[extra]
-                if isinstance(evextra, (str, unicode, int, float, long, bool, pyNetAddr)):
+                if isinstance(evextra, scalars):
                     env['ASSIM_%s' % extra] = str(evextra)
         # Add all the scalars in the associated object
         for attr in aobj.keys():
             avalue = aobj[attr]
-            if isinstance(avalue, (str, unicode, int, float, long, bool, pyNetAddr)):
+            if isinstance(avalue, scalars):
                 env['ASSIM_%s' % attr] = str(avalue)
         return env
 
