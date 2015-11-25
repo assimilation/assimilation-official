@@ -9,7 +9,7 @@ At this point in time, we support three different APIs:
 The command line query provides the ability to perform a number of canned queries
 from the command line, and receive the results to standard output.
 There is a <a href="http://assimilationsystems.com/2014/04/02/new-command-line-queries-in-the-assimilation-software/">blog article</a>  describing the API in more detail.
-This API is suitable for using via scripts or integrating into chat room bots.
+This API is suitable for use by scripts or integrating into chat room bots.
 
 @section REST_API REST Query API
 The REST query API is an exact mirror of the command line queries, except they are provided over
@@ -23,8 +23,14 @@ The information from that AssimEvent object is then passed to whatever scripts a
 in /usr/share/notification.d.
 Simple attributes of the AssimEvent come through named ASSIM_<i>attribute-name</i>.
 More specifically, string, unicode, into, float, long and bool objects receive this treatment.
-The entire AssimEvent is rendered into a JSON string and passed to the script as the
-environment variable ASSIM_JSONobj.
+The entire AssimEvent is rendered into a JSON string and passed to the script as its standard input.
+A sample email notification
+<a href="https://github.com/assimilation/assimilation-official/blob/master/samples.d/event-exec.d/sendemail.sh">
+script</a> can be found on github.  This script is a worked example of how to use the event API.
+A <a href="https://github.com/assimilation/assimilation-official/blob/master/samples.d/event-exec.d/README.md">
+README</a> in that same directory gives additional details on the API.
+
+
 
 In the future, events may be available by other methods besides fork/exec, but not
 as of this writing.

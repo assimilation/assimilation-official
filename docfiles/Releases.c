@@ -1,5 +1,27 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_1_1 version 1.1.1 - the Thanksgiving Release
+@subsection Features_1_1_1 New Features
+- Added sample notification API client code - https://trello.com/c/LmBhODaa
+- Added --remote option to the installer - https://trello.com/c/P2czyw9x
+@subsection BugFixes_1_1_1 Bug Fixes
+- Fixed notification API filter code - https://trello.com/c/RFpMIIhP
+- Fixed switch discovery - https://trello.com/c/ZJacf7EI
+@subsection Caveats_1_1_1 Caveats
+- Not compatible with database formats before 1.1.0
+- Sudoers discovery is disabled for this release - will reappear later on
+- Documentation has not been updated to reflect move to github. No doubt other shortcomings exist as well. Sorry! Please fix and generate a pull request.
+- No alerting, or interface to existing alerting (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- use with recent versions of Neo4j requires disabling authentication on Neo4j
+- performance with Neo4j is poor. Strangely, it's not a scalability problem. Fixes will be in a future release.
+- Best practices alerts currently only come out in syslog - not as events. Sorry!
+- Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
+- The magic installer can't install CMAs onto Fedora due to Neo4j dependency issues.
+
 @section Version_1_1_0 version 1.1.0 - the MCH Release
 <b>Special Note</b> This release cannot make use of older databases. The workaround is to start the CMA <i>one time</i> with the --cleandb flag, and restart all your nanoprobes. Sorry about that.
 This release is named after my Father-in-law - whose 94th birthday was 1 November 2015. Happy Birthday!
@@ -14,7 +36,7 @@ This release is named after my Father-in-law - whose 94th birthday was 1 Novembe
 - Added a best practice rule to discourage tunnelled ssh passwords.
 - Verified operation against Neo4j 2.3.0 - and changed installer to favor that release. https://trello.com/c/nHUuTNUT
 - Register installations via Google forms https://trello.com/c/jGsV4dt4
-@subsection Caveats_1_0_3 Caveats
+@subsection Caveats_1_1_0 Caveats
 - Not compatible with previous database formats.
 - Sudoers discovery is disabled for this release - will reappear later on
 - Documentation has not been updated to reflect move to github. No doubt other shortcomings exist as well. Sorry! Please fix and generate a pull request.
