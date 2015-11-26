@@ -7,6 +7,7 @@
 @subsection BugFixes_1_1_1 Bug Fixes
 - Fixed notification API filter code - https://trello.com/c/RFpMIIhP
 - Fixed switch discovery - https://trello.com/c/ZJacf7EI
+- Fixed installer to not remove file that doesn't exist - https://trello.com/c/5RcOfd3H
 @subsection Caveats_1_1_1 Caveats
 - Not compatible with database formats before 1.1.0
 - Sudoers discovery is disabled for this release - will reappear later on

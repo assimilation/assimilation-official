@@ -44,6 +44,7 @@ PRERELURL=$ROOTURL/Prereleases
 SRCROOT=https://github.com/assimilation/assimilation-official/raw
 NEOVERS=2.2.5
 BUILDLOG=build.out
+TARBALL=''
 
 DEBIAN_BASE_CMA_PKGS='python-pip python-flask lsof python-netaddr
             resource-agents
@@ -1308,7 +1309,7 @@ fi
 
 TMPDIR=$(mktmpdir)
 cd $TMPDIR
-trap 'cd /; rm -fr ${TMPDIR}; $LOCALSUDO rm -f ${TARBALL}' 0
+trap 'cd /; rm -fr ${TMPDIR}' 0
 case $1 in
     cma|nanoprobe)
             echo "Installing release $REL of Assimilation $1 on $(uname -n)"
@@ -1318,6 +1319,7 @@ case $1 in
             test $LOGME = false || loginstall $1
             ;;
     remote)
+            trap 'cd /; rm -fr ${TMPDIR}; $LOCALSUDO rm -f ${TARBALL}' 0
             shift
             printf 'Performing remote installation of %s on: [%s]\n' "$REL" "$*"
             remote_nano_install "$@"
