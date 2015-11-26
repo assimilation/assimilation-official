@@ -27,7 +27,7 @@
 # along with the Assimilation Project software.
 # If not, see http://www.gnu.org/licenses/
 #
-REL=1.1.0
+REL=1.1.1
 LOGME=true
 RELFLAG=''
 LOGFLAG=''
