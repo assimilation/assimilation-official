@@ -4,6 +4,9 @@
 #
 # sudoers: Discovery module for the /etc/sudoers configuration file(s)
 #          Sudoer configuration is a bit obscure to say the least...
+#          Parsing it in the shell is messy, probably a bad idea...
+#          Wrong tool for the job - all except for the fact that it's
+#          ubiquitous and easily distributed...
 #
 # This file is part of the Assimilation Project.
 #
@@ -53,7 +56,7 @@ firstline() {
 	head -n 1
 }
 
-#   Read a line with \ as continuation charcter at the end of the line
+#   Read a line with \ as continuation character at the end of the line
 read_cont_line() {
     initline=''
     while
@@ -190,31 +193,32 @@ process_alias_names() {
 
 #   Process the defaults section...
 process_defaults() {
-    if
-        [ ! -f "$1" ]
-    then
-        return 1
-    fi
-    prevsect=''
+    prevname=''
+    suffix=''
     space='      '
+    prevsect=''
     optscomma=''
     sectcomma=''
     printf '"Defaults": {\n%s' "$space"
+    sed -e 's%=% = %' -e 's%+ =%+=%' < $1 | 
+    (
     while
-        read default stuff
+        read defaultword name operator values
     do
+        #printf "\nOPERATOR IS [%s] [%s] [%s] [%s]\n" "$defaultword" "$name" "$operator" "$values"
         if
-            [ "${default}" != "${prevsect}" ]
+            [ "${defaultword}" != "${prevsect}" ]
         then
             if
                 [ "${prevsect}" != "" ]
             then
-                printf '}%s\n%s' "$sectcomma" "$space"
+                printf '%s}%s\n%s' "$closing" "$sectcomma" "$space"
+                closing=''
             fi
-            prevsect="${default}"
-            suffix=$(echo "$default" | sed -e 's%Defaults.%%')
+            prevsect="${defaultword}"
+            suffix=$(echo "$defaultword" | sed -e 's%Defaults.%%')
             printf '%s' "$optscomma"
-            case $default in
+            case $defaultword in
                 'Defaults')
                     printf '    "ANY": {';;
                 'Defaults>'*)
@@ -228,45 +232,95 @@ process_defaults() {
             esac
             sectcomma=''
             optscomma=''
+            prevname=''
         else
             optscomma=''
         fi
-        printf '%s%s' "$sectcomma" $(process_default_opts ${stuff})
+        if
+            [ "X$name" != "X$prevname" -o "X$operator" != "X+=" ]
+        then
+            #printf "\nOPERATOR IS '%s'\n" "$operator"
+            if
+                [ "$prevname" != "" ]
+            then
+                #echo "ADDING BACK SUFFIX"
+                printf '%s,' "$closing"
+                closing=''
+            fi
+            process_default_opts "$name" "$operator" "$values"
+            prevname="$name"
+            case "$name" in
+                *_path)     closing=']';;
+                env_keep)   closing='}';;
+                *)          closing='';;
+            esac
+        else
+            #printf "\nOPERATOR IS '+='\n"
+            printf ', %s' "$(process_default_value "$name" $values)"
+        fi
         sectcomma=', '
+    done
+    printf '}%s\n%s}\n' "$closing" '    '
+    )
 
-    done < $1
-    printf '}\n    }\n'
 }
+
 #
 #   Process the options given on a Defaults line
 #
 process_default_opts() {
-    set -- $*
+    args=$(echo $* | sed -e 's% *= *%=%g')
     (
         comma=''
-        for arg
+        for arg in $args
         do
-            # Remove trailing commas...
-            arg=$(echo "$arg" | sed 's%,$%%')
+            # Remove trailing commas and quotes...
+            arg=$(echo "$arg" | sed -e 's%,$%%' -e 's%"$%%')
             case $arg in
                 *=*)    
                     name=$(echo "$arg" | sed 's%=.*%%')
                     value=$(echo "$arg" | sed 's%.*=%%')
                     printf '%s' "$comma"
                     comma=', '
-                    process_default_name_value "$name" "$value"
+                    case $name in
+                        *_path)     prefix=': [';;
+                        env_keep)   prefix=': {';;
+                        *)          prefix=':';;
+                    esac
+                        
+                    printf '"%s"%s%s' "$name" "$prefix"    \
+                            "$(process_default_value "$name" "$value")"
                     ;;
                 !*) name=$(echo "$arg" | sed 's%^!%%')
-                    printf '%s"%s": false' "$comma" "$name"
+                    printf '%s"%s":false' "$comma" "$name"
                     comma=', '
                     ;;
-                ?*) printf '%s"%s": true' "$comma" "$arg"
+                ?*) printf '%s"%s":true' "$comma" "$arg"
                     comma=', '
                     ;;
             esac
             comma=', '
         done
     )
+}
+
+process_default_value() {
+    name=$1
+    shift
+    value=$(echo $*)
+    case $name in
+        *_path)     value=$(echo $value | sed 's%:%", "%g')
+                    printf '"%s"' "$value"
+                    ;;
+
+        env_keep)   value=$(echo $value | sed -e 's%"* *$%"%' \
+                        -e 's% %": true, "%g')
+                    printf '%s: true' "$value"
+                    ;;
+
+        *)          printf '"%s"' "$value"
+                    ;;
+    esac
 }
 
 # Process name/value pairs in the defaults section
@@ -277,9 +331,9 @@ process_default_name_value() {
         *_path)
                 process_path_nv "$name" "$value";;
         *)  case $value in
-                '"'*'"')  printf '"%s": %s' "$name" "$value"
+                '"'*'"')  printf '"%s":%s' "$name" "$value"
                         ;;
-                *)        printf '"%s": "%s"' "$name" "$value"
+                *)        printf '"%s":"%s"' "$name" "$value"
                         ;;
             esac
             ;;
@@ -289,7 +343,8 @@ process_default_name_value() {
 # Process a name/value pair with a :-delimited group of strings...
 process_path_nv() {
     name=$1
-    value=$(echo "$2" | sed -e 's%^"%%' -e 's%"$%%')
+    # Strip quotes
+    value=$(echo "$2" | sed -e 's%^ *" *%%' -e 's%" *$%%')
     (
         
         printf '"%s": [' "$name"
@@ -425,6 +480,7 @@ divide_up_rule() {
 process_rules() {
     prefix=$(echo "$*" | sed 's% *=.*%%')
     suffix=$(echo "$*" | sed 's%.*= *%%')
+    closing=''
     # This prefix can be a set of users followed by hosts
     # ":" separates our hostlist = cmd_spec_list
     suffix=$(echo "$suffix" | tr ',' '\012')
@@ -533,8 +589,7 @@ sudoer_info() {
     export LC_ALL='C' # Make sure sort gives consistent results
     flatten_sudoer_files ${SUDOERS_FILE} > ${EXPANDEDFILE}
     split_sudoers "${EXPANDEDFILE}"
-    sort -s -o "${DEFAULTS}" "${DEFAULTS}" 
-#cat $EXPANDEDFILE
+    sort +0 -2 -s -o "${DEFAULTS}" "${DEFAULTS}" 
     commands="process_aliases HostAliases   ${HOST_ALIAS}
     process_aliases CommandAliases          ${CMND_ALIAS}
     process_aliases UserAliases             ${USER_ALIAS}

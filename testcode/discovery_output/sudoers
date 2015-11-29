@@ -36,19 +36,20 @@
        "ADMINGRP": ["adm", "oper"]
      },
     "Defaults": {
-          "ANY": {"syslog":"auth"}, 
+          "ANY": {"syslog":"auth","always_set_home":true,"env_keep": {"COLORS": true, "DISPLAY":true, "HOSTNAME":true, "HISTSIZE":true, "INPUTRC":true, "KDEDIR":true, "LS_COLORS":true, "MAIL": true, "PS1": true, "PS2": true, "QTDIR": true, "USERNAME": true, "LANG": true, "LC_ADDRESS": true, "LC_CTYPE": true, "LC_COLLATE": true, "LC_IDENTIFICATION": true, "LC_MEASUREMENT": true, "LC_MESSAGES": true, "LC_MONETARY": true, "LC_NAME": true, "LC_NUMERIC": true, "LC_PAPER": true, "LC_TELEPHONE": true, "LC_TIME": true, "LC_ALL": true, "LANGUAGE": true, "LINGUAS": true, "_XKB_CHARSET": true, "XAUTHORITY": true},"env_reset":true,"secure_path": ["/sbin", "/bin", "/usr/sbin", "/usr/bin"],"visiblepw":false}, 
           "command:PAGERS": {"noexec":true}, 
           "user:FULLTIMERS": {"lecture":false}, 
           "user:millert": {"authenticate":false}, 
           "runas:root": {"set_logname":false}, 
-          "system:SERVERS": {"log_year":true,"logfile":"/var/log/sudo.log"}
+          "system:SERVERS": {"log_year":true, "logfile":"/var/log/sudo.log"}
     },
     "rules": [
          {"users": ["root"], "rulelist": [{"hosts": ["ALL"], "runas": {"users":["ALL"], "groups":[]}, "command": "ALL"}]},
          {"users": ["%wheel"], "rulelist": [{"hosts": ["ALL"], "runas": {"users":["ALL"], "groups":[]}, "command": "ALL"}]},
          {"users": ["FULLTIMERS"], "rulelist": [{"hosts": ["ALL"], "TAG_NOPASSWD": true, "command": "ALL"}]},
          {"users": ["PARTTIMERS"], "rulelist": [{"hosts": ["ALL"], "command": "ALL"}]},
-         {"users": ["alanr", "lmb"], "rulelist": [{"hosts": ["10.10.10.100", "ALL"], "command": "ALL"}]}
+         {"users": ["alanr", "lmb"], "rulelist": [{"hosts": ["10.10.10.100", "ALL"], "command": "ALL"}]},
+         {"users": ["%vagrant"], "rulelist": [{"hosts": ["ALL"], "runas": {"users":["ALL"], "groups":[]}, "TAG_NOPASSWD": true, "command": "ALL"}]}
     ]
   }
 }
