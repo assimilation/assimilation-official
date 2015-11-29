@@ -318,9 +318,27 @@ process_default_value() {
                     printf '%s: true' "$value"
                     ;;
 
-        *)          printf '"%s"' "$value"
+        *)          typefmt "$value"
                     ;;
     esac
+}
+
+# Format a value as a string, integer or floating - this handles octal and hex
+typefmt() {
+    if
+        expr "$1" + 1 >/dev/null 2>&1
+    then
+        printf '%d' $1
+    elif
+        case "$1" in
+            *.*)    printf '%g' "$1" >/dev/null 2>&1;;
+            *)      false;;
+        esac
+    then
+        printf '%g' "$1"
+    else
+        printf '"%s"' "$1"
+    fi
 }
 
 # Process a name/value pair with a :-delimited group of strings...

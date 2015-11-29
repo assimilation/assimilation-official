@@ -47,7 +47,7 @@ Cmnd_Alias      PAGERS = /usr/bin/more, /usr/bin/pg, /usr/bin/less
 #Note that this will not effectively constrain users with sudo ALL privileges.
 
 # Override built-in defaults
-Defaults                syslog=auth
+Defaults                syslog=auth, timestamp_timeout=3.5, umask=0777, loglinelen=100
 Defaults>root           !set_logname
 Defaults:FULLTIMERS     !lecture
 Defaults:millert        !authenticate

@@ -36,7 +36,7 @@
        "ADMINGRP": ["adm", "oper"]
      },
     "Defaults": {
-          "ANY": {"syslog":"auth","always_set_home":true,"env_keep": {"COLORS": true, "DISPLAY":true, "HOSTNAME":true, "HISTSIZE":true, "INPUTRC":true, "KDEDIR":true, "LS_COLORS":true, "MAIL": true, "PS1": true, "PS2": true, "QTDIR": true, "USERNAME": true, "LANG": true, "LC_ADDRESS": true, "LC_CTYPE": true, "LC_COLLATE": true, "LC_IDENTIFICATION": true, "LC_MEASUREMENT": true, "LC_MESSAGES": true, "LC_MONETARY": true, "LC_NAME": true, "LC_NUMERIC": true, "LC_PAPER": true, "LC_TELEPHONE": true, "LC_TIME": true, "LC_ALL": true, "LANGUAGE": true, "LINGUAS": true, "_XKB_CHARSET": true, "XAUTHORITY": true},"env_reset":true,"secure_path": ["/sbin", "/bin", "/usr/sbin", "/usr/bin"],"visiblepw":false}, 
+          "ANY": {"syslog":"auth", "timestamp_timeout":3.5, "umask":511, "loglinelen":100,"always_set_home":true,"env_keep": {"COLORS": true, "DISPLAY":true, "HOSTNAME":true, "HISTSIZE":true, "INPUTRC":true, "KDEDIR":true, "LS_COLORS":true, "MAIL": true, "PS1": true, "PS2": true, "QTDIR": true, "USERNAME": true, "LANG": true, "LC_ADDRESS": true, "LC_CTYPE": true, "LC_COLLATE": true, "LC_IDENTIFICATION": true, "LC_MEASUREMENT": true, "LC_MESSAGES": true, "LC_MONETARY": true, "LC_NAME": true, "LC_NUMERIC": true, "LC_PAPER": true, "LC_TELEPHONE": true, "LC_TIME": true, "LC_ALL": true, "LANGUAGE": true, "LINGUAS": true, "_XKB_CHARSET": true, "XAUTHORITY": true},"env_reset":true,"secure_path": ["/sbin", "/bin", "/usr/sbin", "/usr/bin"],"visiblepw":false}, 
           "command:PAGERS": {"noexec":true}, 
           "user:FULLTIMERS": {"lecture":false}, 
           "user:millert": {"authenticate":false}, 
