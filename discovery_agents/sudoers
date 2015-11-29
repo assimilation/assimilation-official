@@ -260,7 +260,7 @@ process_defaults() {
         fi
         sectcomma=', '
     done
-    printf '}%s\n%s}\n' "$closing" '    '
+    printf '%s}\n%s}\n' "$closing" '    '
     )
 
 }
@@ -309,7 +309,7 @@ process_default_value() {
     shift
     value=$(echo $*)
     case $name in
-        *_path)     value=$(echo $value | sed 's%:%", "%g')
+        *_path)     value=$(echo $value | sed -e 's%^ *"%%' -e 's%:%", "%g')
                     printf '"%s"' "$value"
                     ;;
 
@@ -320,23 +320,6 @@ process_default_value() {
 
         *)          printf '"%s"' "$value"
                     ;;
-    esac
-}
-
-# Process name/value pairs in the defaults section
-process_default_name_value() {
-    name=$1
-    value=$2
-    case "$name" in
-        *_path)
-                process_path_nv "$name" "$value";;
-        *)  case $value in
-                '"'*'"')  printf '"%s":%s' "$name" "$value"
-                        ;;
-                *)        printf '"%s":"%s"' "$name" "$value"
-                        ;;
-            esac
-            ;;
     esac
 }
 
