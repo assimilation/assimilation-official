@@ -512,7 +512,7 @@ packaging_type() {
     case "${OSCLASS}" in
         *linux)
             case $DISTRIB_ID in
-                suse|centos|redhat|scientific|fedora)
+                suse|centos|redhat|scientific|scientificfermi|fedora)
                         echo rpm; return 0;;
                 debian|ubuntu|mint|netrunner|deepin)
                         echo deb; return 0;;
@@ -546,7 +546,7 @@ is_supported_os() {
     case $OSCLASS in
         *linux)
                 case $DISTRIB_ID in
-                    centos|redhat|scientific|fedora)   return 0;;
+                    centos|redhat|scientific|scientificfermi|fedora) return 0;;
                     ubuntu|debian)          return 0;;
                 esac
     esac
@@ -751,7 +751,7 @@ package_architecture() {
 map_release_id() {
     # Not currently necessary
     case $DISTRIB_ID in
-        centos|redhat|scientific|debian)
+        centos|redhat|scientific|scientificfermi|debian)
             mapid=$(echo $DISTRIB_RELEASE | sed 's%[.].*%%')
             ;;
         *)  mapid=$DISTRIB_RELEASE;;
@@ -767,8 +767,8 @@ assim_packaging_dir() {
     # BASEURL
     # REL=1.0
     case $DISTRIB_ID in
-        centos|redhat|scientific)   distid=centos;;
-        *)                          distid=$DISTRIB_ID;;
+        centos|redhat|scientific|scientificfermi)   distid=centos;;
+        *)                                          distid=$DISTRIB_ID;;
     esac
     echo $BASEURL/$REL/${distid}_$(map_release_id)-$(assim_packaging_arch)
 }
@@ -798,7 +798,7 @@ minimum_packages() {
         	wget
 		!EOF
         ;;
-      centos|redhat|scientific|fedora)
+      centos|redhat|scientific|scientificfermi|fedora)
         cat <<-!EOF
         	wget
 		!EOF
@@ -1017,7 +1017,7 @@ install_debian_neo4j() {
 # Figure out which version of Java to install
 select_java_rpm_version() {
     case $DISTRIB_ID in
-        centos|redhat|scientific)
+        centos|redhat|scientific|scientificfermi)
             boundary8=7;;
         fedora)
             boundary8=22;;
@@ -1118,7 +1118,8 @@ install_fedora_nanoprobe() {
 install_nanoprobe_prereqs() {
     case $DISTRIB_ID in
         ubuntu|debian)              install_debian_nanoprobe;;
-        centos|redhat|scientific)   install_centos_nanoprobe;;
+        centos|redhat|scientific|scientificfermi)
+                                    install_centos_nanoprobe;;
         fedora)                     install_fedora_nanoprobe;;
     esac
 }
@@ -1134,7 +1135,8 @@ install_cma() {
     install_nanoprobe_prereqs
     case $DISTRIB_ID in
         ubuntu|debian)              install_debian_cma;;
-        centos|redhat|scientific)   install_centos_cma;;
+        centos|redhat|scientific|scientificfermi)
+                                    install_centos_cma;;
         fedora)                     install_fedora_cma;;
     esac
     update_neo4j_config
@@ -1149,15 +1151,17 @@ install_cma() {
 restart_neo4j() {
     logwork '(re)starting Neo4j'
     case $DISTRIB_ID in
-        ubuntu|debian)                      service neo4j-service restart;;
-        centos|redhat|scientific|fedora)    /etc/init.d/neo4j     restart;;
+        ubuntu|debian)                  service neo4j-service restart;;
+        centos|redhat|scientific|scientificfermi|fedora)
+                                        /etc/init.d/neo4j     restart;;
     esac
 }
 stop_neo4j() {
     logwork 'stopping Neo4j'
     case $DISTRIB_ID in
-        ubuntu|debian)                      service neo4j-service stop;;
-        centos|redhat|scientific|fedora)    /etc/init.d/neo4j     stop;;
+        ubuntu|debian)                  service neo4j-service stop;;
+        centos|redhat|scientific|scientificfermi|fedora)
+                                        /etc/init.d/neo4j     stop;;
     esac
 }
 init_database() {
