@@ -43,7 +43,7 @@
 
 
 %if %(test -z  "%{?assimversion}" && echo 1 || echo 0)
-%global assimversion must-define-assimilation-version-to-rpmbuild-using--define=version_version-hash
+%global assimversion must-define-assimilation-version-to-rpmbuild-using--define=assimversion version-hash
 %endif
 
 %global pymajor %(python -c 'import sys; print "%s" % sys.version_info[0]')
@@ -51,6 +51,7 @@
 
 %global uses_systemd  %(test -f /usr/lib/systemd/systemd && echo 1 || echo 0)
 %global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
+%global is_rhfamily  %(test -f /etc/redhat-release && echo 1 || echo 0)
 %if %{python27_native}
 %if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
 %global libsodium libsodium
@@ -239,8 +240,10 @@ ls -l
 
 
 %build
-mkdir -p build
-pushd build
+%if is_rhfamily
+  mkdir -p build
+  pushd build
+%endif
 %if %{python27_native}
 %cmake .. -DCMAKE_SKIP_BUILD_RPATH=1
 %else
