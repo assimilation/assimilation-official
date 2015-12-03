@@ -240,10 +240,8 @@ ls -l
 
 
 %build
-%if is_rhfamily
-  mkdir -p build
-  pushd build
-%endif
+mkdir -p build
+pushd build
 %if %{python27_native}
 %cmake .. -DCMAKE_SKIP_BUILD_RPATH=1
 %else
