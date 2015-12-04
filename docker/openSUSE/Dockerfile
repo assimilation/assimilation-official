@@ -23,7 +23,7 @@ RUN echo "@OURDATE@"
 RUN mkdir -p /root/assimilation/bin $RPMDIR /run/systemd/journal $RPMDIR/SOURCES 
 ADD $GITTARZAN /root/assimilation/
 WORKDIR /root/assimilation
-RUN tar xvzf $GITVERSION && mv [Aa]ssimilation-* src
+RUN tar xzf $GITVERSION && mv [Aa]ssimilation-* src
 RUN set -x; cp $GITVERSION $RPMDIR/SOURCES/${GITPATH}.tgz
 # Build the RPM
 WORKDIR $RPMDIR/SOURCES
@@ -43,11 +43,11 @@ RUN sed /etc/rsyslog.conf -e 's%^$.*imjournal%#&%' -e 's%.*$OmitLocalLogging.*%$
 RUN printf "%s\n%s\n" '$ModLoad imuxsock' '$SystemLogSocketName /dev/log' >> /tmp/foo
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
-RUN $ZYPPER install python-demjson
+RUN pip install demjson
 RUN echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 RUN rsyslogd && $NEOROOT/bin/neo4j console&  sleep 20; testify -v tests
-RUN cp $RPMDIR/RPMS/@ARCH@/* $RPMDIR
-RUN echo "GOOD BUILD: fedora:latest" # Will be updated by "dockit" script
+RUN mkdir -p /root/assimilation/packages && cp $RPMDIR/RPMS/@ARCH@/*.rpm /root/assimilation/packages
+RUN echo "GOOD BUILD: opensuse:latest" # Will be updated by "dockit" script
 ###  Our RPMs
 RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"
 RUN echo "ASSIMVERSION=$(cma --version)"

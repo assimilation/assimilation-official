@@ -86,5 +86,5 @@ docker build -t $BUILD .
 rm -fr timezone $PKGDIR/packages
 ID=$(docker run -d $BUILD /bin/sleep 5)
 # Note that it will include the last part of the from pathname under the to path...
-docker cp $ID:/root/assimilation/packages $PKGDIR
+docker cp "$ID:/root/assimilation/packages/" $PKGDIR
 echo "Build of $ARGS BUILD complete."
