@@ -545,6 +545,26 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 
 }
 
+/*
+ *
+ * Let's get rid of this warning/error:
+ *
+ * error: stack protector not protecting function: all local arrays are less than 8 bytes long
+ *
+ * We used to have an extra array here just for this purpose, but in recent versions the optimizer
+ * realized we weren't using it, and eliminated it. So now we'll add it to the 'addresses' array.
+ * Hopefully some future optimizer won't realize they're just for the stack protector too...
+ *
+ * But the chances of that are small, because we pass it to netaddr_ipv4_new(), which in theory
+ * might use those extra bytes for *something*... Of course, it "knows" the array is 4 bytes
+ * long, because it's supposed to be a binary ipv4 address...
+ *
+ * In turn, it passes the array to netaddr_new(), along with a length of 4 (constant)
+ * All these functions are in the same file, so in theory a really good optimizer could figure
+ * this out and then screw us, but it would have to work a lot harder to do it ;-)
+ */
+#define EXTRA_STACK_PROTECTOR_BYTES	8	// Make the stack protector really happy...
+
 /// Convert a string to an IPv4 NetAddr
 FSTATIC NetAddr*
 _netaddr_string_ipv4_new(const char* addrstr)
@@ -552,8 +572,7 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	// Must have four numbers [0-255] in decimal - optionally followed by : port number...
 	int		dotpositions[3];
 	int		colonpos = -1;
-	guint8		addresses[4];
-	guint8		stack_protector_dummy[8];
+	guint8		addresses[4 + EXTRA_STACK_PROTECTOR_BYTES];
 	guint		whichdot = 0;
 	int		byte;
 	NetAddr*	ret;
@@ -563,7 +582,6 @@ _netaddr_string_ipv4_new(const char* addrstr)
 	int	debug = FALSE;
 	int	lastpos = 0;
 
-	(void)stack_protector_dummy;
 	//debug = g_ascii_isdigit(addrstr[0]);
 
 	if (debug) {
