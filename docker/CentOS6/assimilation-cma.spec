@@ -1,4 +1,4 @@
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -50,8 +50,15 @@
 %global pyminor %(python -c 'import sys; print "%s" % sys.version_info[1]')
 
 %global uses_systemd  %(test -f /usr/lib/systemd/systemd && echo 1 || echo 0)
-%global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
 %global is_rhfamily  %(test -f /etc/redhat-release && echo 1 || echo 0)
+%if %{is_rhfamily}
+%global %pre_cmake mkdir -p build; pushd build
+%global %post_cmake popd
+%else
+%global %pre_cmake  # No-op
+%global %post_cmake # No-op
+%endif
+%global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
 %if %{python27_native}
 %if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
 %global libsodium libsodium
@@ -157,11 +164,11 @@ The Assimilation System maintains a Configuration Management Data Base (CMDB)
 which is used as the basis for system automation - including automated
 monitoring.
 
-The Assimilation System is designed to manage and monitor systems and services on a network of
-potentially unlimited size, with minimal growth in centralized resources.
-The work of discovery and monitoring is delegated uniformly in tiny pieces to
-the various machines being monitored in a network-aware topology, minimizing
-network overhead and being naturally geographically sensitive.
+The Assimilation System is designed to manage and monitor systems and services
+on a network of potentially unlimited size, with minimal growth in centralized
+resources.  The work of discovery and monitoring is delegated uniformly in tiny
+pieces to the various machines being monitored in a network-aware topology,
+minimizing network overhead and being naturally geographically sensitive.
 
 The main features include:
  - Creates and keeps up to date a detailed and extensible CMDB
@@ -213,19 +220,19 @@ The Assimilation System maintains a Configuration Management Data Base (CMDB)
 which is used as the basis for system automation - including automated
 monitoring.
 
-The Assimilation System is designed to manage and monitor systems and services on a network of
-potentially unlimited size, with minimal growth in centralized resources.
-The work of discovery and monitoring is delegated uniformly in tiny pieces to
-the various machines being monitored in a network-aware topology, minimizing
-network overhead and being naturally geographically sensitive.
+The Assimilation System is designed to manage and monitor systems and services
+on a network of potentially unlimited size, with minimal growth in centralized
+resources.  The work of discovery and monitoring is delegated uniformly in
+tiny pieces to the various machines being monitored in a network-aware topology,
+minimizing network overhead and being naturally geographically sensitive.
 
 The main features include:
  - Creates and keeps up to date a detailed and extensible CMDB
- - Drives automated actions from the CMDB (including monitoring and audits)
+ - Drives automated actions from the CMDB (including monitoring and continuous compliance)
  - Easily and massively scales
  - Monitor systems and services with near-zero overhead
- - Auto-configuration and integrated continuous low-profile discovery of
-   systems, services and dependencies
+ - Auto-configuration and integrated continuous low-profile discovery of systems,
+   services and dependencies
  - Easy to configure and manage
 
 A normal installation consists of one instance of a Collective Management
@@ -240,14 +247,13 @@ ls -l
 
 
 %build
-mkdir -p build
-pushd build
+%{pre_cmake}
 %if %{python27_native}
 %cmake .. -DCMAKE_SKIP_BUILD_RPATH=1
 %else
 scl enable %{scl_python} 'cmake28 .. -DCMAKE_SKIP_BUILD_RPATH=1'
 %endif
-popd
+%{post_cmake}
 
 %if 0%{?enable_docs}
 pushd build
