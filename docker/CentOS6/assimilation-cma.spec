@@ -201,7 +201,7 @@ Summary:       Nanoprobe distributed discovery and monitoring agent for Assimila
 BuildRequires: glib2-devel
 BuildRequires: libpcap-devel
 BuildRequires: zlib-devel
-BuildRequires: %{libsodiumdevel} >= 1.0.1
+BuildRequires: %{libsodiumdevel}
 %if %{uses_systemd}
 Requires(post):   systemd
 Requires(preun):  systemd
@@ -220,7 +220,7 @@ Requires:         resource-agents
 Requires:         libpcap
 Requires:         glib2
 Requires:         zlib
-Requires:         %{libsodium} >= 1.0.1
+Requires:         %{libsodium}
 Requires:         iproute
 
 %description -n assimilation-nanoprobe
