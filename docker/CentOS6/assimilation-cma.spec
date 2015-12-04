@@ -51,6 +51,17 @@
 
 %global uses_systemd  %(test -f /usr/lib/systemd/systemd && echo 1 || echo 0)
 %global is_rhfamily  %(test -f /etc/redhat-release && echo 1 || echo 0)
+%if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
+%   if %{is_rhfamily}
+%       global libsodium libsodium
+%   else
+%       global libsodium       libsodium13
+%       global libsodiumdevel  libsodium-devel
+%   endif
+%endif
+%if %(test -z  "%{?libsodiumdevel}" && echo 1 || echo 0)
+%global libsodiumdevel %{libsodium}-devel
+%endif
 %if %{is_rhfamily}
 %global pre_cmake mkdir -p build; pushd build
 %global post_cmake popd
@@ -64,9 +75,6 @@
 %endif
 %global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
 %if %{python27_native}
-%if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
-%global libsodium libsodium
-%endif
 %else
 %global scl_python python27
 %global scl %{scl_python}
@@ -164,11 +172,10 @@ Provides:  assimilation = 0:%{release}
 This package contains the Collective Management Authority (CMA) for
 the Assimilation System software.
 
-The Assimilation System maintains a Configuration Management Data Base (CMDB)
-which is used as the basis for system automation - including automated
-monitoring.
+The Assimilation System Management Suite maintains a Configuration Management Data Base
+(CMDB) which is used as the basis for system automation - including automated monitoring.
 
-The Assimilation System is designed to manage and monitor systems and services
+The Assimilation Suite is designed to manage and monitor systems and services
 on a network of potentially unlimited size, with minimal growth in centralized
 resources.  The work of discovery and monitoring is delegated uniformly in tiny
 pieces to the various machines being monitored in a network-aware topology,
@@ -177,10 +184,10 @@ minimizing network overhead and being naturally geographically sensitive.
 The main features include:
  - Creates and keeps up to date a detailed and extensible CMDB
  - Drives automated actions from the CMDB (including monitoring and audits)
- - Easily and massively scales
+ - Scales easily and massively
  - Monitor systems and services with near-zero overhead
  - Auto-configuration and integrated continuous low-profile discovery of
-   systems, services and dependencies
+   systems, services, switch connections, dependencies and configuration
  - Easy to configure and manage
 
 A normal installation consists of one instance of a Collective Management
@@ -194,7 +201,7 @@ Summary:       Nanoprobe distributed discovery and monitoring agent for Assimila
 BuildRequires: glib2-devel
 BuildRequires: libpcap-devel
 BuildRequires: zlib-devel
-BuildRequires: %{libsodium}-devel >= 1.0.1
+BuildRequires: %{libsodiumdevel} >= 1.0.1
 %if %{uses_systemd}
 Requires(post):   systemd
 Requires(preun):  systemd
@@ -218,11 +225,10 @@ Requires:         iproute
 
 %description -n assimilation-nanoprobe
 This package contains the nanoprobe distributed monitoring agent for
-Assimilation.
+the Assimilation System Management Suite
 
-The Assimilation System maintains a Configuration Management Data Base (CMDB)
-which is used as the basis for system automation - including automated
-monitoring.
+The Assimilation System Management Suite maintains a Configuration Management Data Base
+(CMDB) which is used as the basis for system automation - including automated monitoring.
 
 The Assimilation System is designed to manage and monitor systems and services
 on a network of potentially unlimited size, with minimal growth in centralized
