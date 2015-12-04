@@ -52,12 +52,12 @@
 %global uses_systemd  %(test -f /usr/lib/systemd/systemd && echo 1 || echo 0)
 %global is_rhfamily  %(test -f /etc/redhat-release && echo 1 || echo 0)
 %if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
-%   if %{is_rhfamily}
-%       global libsodium libsodium
-%   else
-%       global libsodium       libsodium13
-%       global libsodiumdevel  libsodium-devel
-%   endif
+%if %{is_rhfamily}
+%global libsodium libsodium
+%else
+%global libsodium       libsodium13
+%global libsodiumdevel  libsodium-devel
+%endif
 %endif
 %if %(test -z  "%{?libsodiumdevel}" && echo 1 || echo 0)
 %global libsodiumdevel %{libsodium}-devel
