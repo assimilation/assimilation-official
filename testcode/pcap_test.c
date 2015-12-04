@@ -59,8 +59,7 @@ cast_frameset_tests(void)
 	SignFrame*	sigf = signframe_glib_new(G_CHECKSUM_SHA256, 0);
 	guint8		address[] = {127, 0, 0, 1};
 	gchar		fred[]  = "fred";
-	gchar		george[]  = "george";
-	char		stackprotectionstuff[8];
+	gchar		george[]  = "king_george_the_third"; // At least 8 characters for stack protector
 
 	Frame*		fcast;
 	AddrFrame*	afcast;
@@ -68,8 +67,6 @@ cast_frameset_tests(void)
 	IntFrame*	intfcast;
 	FrameSet*	fs = frameset_new(42);
 
-	stackprotectionstuff[0] = '\0';	// Make it think we need stackprotection stuff...
-	(void)stackprotectionstuff;
 
 	g_message("Performing c-class cast tests");
 	fcast = CASTTOCLASS(Frame, f);
