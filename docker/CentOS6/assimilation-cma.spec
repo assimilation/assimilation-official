@@ -52,11 +52,11 @@
 %global uses_systemd  %(test -f /usr/lib/systemd/systemd && echo 1 || echo 0)
 %global is_rhfamily  %(test -f /etc/redhat-release && echo 1 || echo 0)
 %if %{is_rhfamily}
-%global %pre_cmake mkdir -p build; pushd build
-%global %post_cmake popd
+%global pre_cmake mkdir -p build; pushd build
+%global post_cmake popd
 %else
-%global %pre_cmake  # No-op
-%global %post_cmake # No-op
+%global pre_cmake  # No-op
+%global post_cmake # No-op
 %endif
 %global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
 %if %{python27_native}
