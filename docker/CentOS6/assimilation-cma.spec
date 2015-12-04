@@ -54,9 +54,11 @@
 %if %{is_rhfamily}
 %global pre_cmake mkdir -p build; pushd build
 %global post_cmake popd
+%global LSB_packages    redhat-lsb-core
 %else
 %global pre_cmake  # No-op
 %global post_cmake # No-op
+%global LSB_packages    lsb-release
 %endif
 %global python27_native %(test %{pyminor} -ge 7 && echo 1 || echo 0)
 %if %{python27_native}
