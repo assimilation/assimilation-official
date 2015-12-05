@@ -14,7 +14,7 @@ ENV RPMDIR /usr/src/packages
 RUN $ZYPPER install pkg-config || true
 RUN $ZYPPER install deltarpm glib2 libpcap zlib-devel python	\
 	python-devel python-flask which java-1.7.0-openjdk lsof	\
-	'libsodium-devel>=1.0.1' gcc cmake make glib2-devel valgrind resource-agents \
+	'libsodium-devel' gcc cmake make glib2-devel valgrind resource-agents \
 	wget libpcap-devel python3-pylint rpm-build iproute
 RUN $ZYPPER install doxygen graphviz python-pip ca-certificates-mozilla ca-certificates-cacert
 RUN pip install 'py2neo>2.0.7' testify getent netaddr && pip install ctypesgen --pre
