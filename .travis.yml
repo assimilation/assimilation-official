@@ -13,6 +13,7 @@ before_script:
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_neo4j
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
   - sudo sh -c 'echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  - ifconfig
 script:
   - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
   - cd $TRAVIS_BUILD_DIR
