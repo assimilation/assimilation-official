@@ -161,6 +161,14 @@ builddebian() {
         attemptbuild Debian $debian
     done
 }
+
+buildsuse() {
+    for suse in 13.2 42.1
+    do
+        attemptbuild openSUSE $suse
+    done
+}
+buildsuse # &
 buildubuntu # &
 builddebian # &
 buildcentos # &
