@@ -1,28 +1,108 @@
-{
-  "discovertype": "partitions",
-  "description": "partition configuration from partitions",
-  "host": "FAKETESTHOST",
-  "source": "../../discovery_agents/partitions",
-  "data": {
-    "sda": {"major":8, "minor":0, "blocks": 976762584},
-    "sda1": {"major":8, "minor":1, "blocks": 3905536},
-    "sda2": {"major":8, "minor":2, "blocks": 487424},
-    "sda3": {"major":8, "minor":3, "blocks": 195312640},
-    "sda4": {"major":8, "minor":4, "blocks": 777055232},
-    "sdb": {"major":8, "minor":16, "blocks": 976762584},
-    "sdb1": {"major":8, "minor":17, "blocks": 3905536},
-    "sdb2": {"major":8, "minor":18, "blocks": 487424},
-    "sdb3": {"major":8, "minor":19, "blocks": 195312640},
-    "sdb4": {"major":8, "minor":20, "blocks": 777055232},
-    "sdc": {"major":8, "minor":32, "blocks": 2930266584},
-    "sdc1": {"major":8, "minor":33, "blocks": 2930265088},
-    "sdd": {"major":8, "minor":48, "blocks": 2930266584},
-    "sdd1": {"major":8, "minor":49, "blocks": 2930265088},
-    "md124": {"major":9, "minor":124, "blocks": 487104},
-    "md125": {"major":9, "minor":125, "blocks": 195181440},
-    "md126": {"major":9, "minor":126, "blocks": 776923968},
-    "md127": {"major":9, "minor":127, "blocks": 2930133824},
-    "drbd0": {"major":147, "minor":0, "blocks": 2930044364},
-    "drbd1": {"major":147, "minor":1, "blocks": 195175444}
-  }
+{ 
+  "data" : { 
+      "drbd0" : { 
+          "blocks" : 2930044364,
+          "major" : 147,
+          "minor" : 0
+        },
+      "drbd1" : { 
+          "blocks" : 195175444,
+          "major" : 147,
+          "minor" : 1
+        },
+      "md124" : { 
+          "blocks" : 487104,
+          "major" : 9,
+          "minor" : 124
+        },
+      "md125" : { 
+          "blocks" : 195181440,
+          "major" : 9,
+          "minor" : 125
+        },
+      "md126" : { 
+          "blocks" : 776923968,
+          "major" : 9,
+          "minor" : 126
+        },
+      "md127" : { 
+          "blocks" : 2930133824,
+          "major" : 9,
+          "minor" : 127
+        },
+      "sda" : { 
+          "blocks" : 976762584,
+          "major" : 8,
+          "minor" : 0
+        },
+      "sda1" : { 
+          "blocks" : 3905536,
+          "major" : 8,
+          "minor" : 1
+        },
+      "sda2" : { 
+          "blocks" : 487424,
+          "major" : 8,
+          "minor" : 2
+        },
+      "sda3" : { 
+          "blocks" : 195312640,
+          "major" : 8,
+          "minor" : 3
+        },
+      "sda4" : { 
+          "blocks" : 777055232,
+          "major" : 8,
+          "minor" : 4
+        },
+      "sdb" : { 
+          "blocks" : 976762584,
+          "major" : 8,
+          "minor" : 16
+        },
+      "sdb1" : { 
+          "blocks" : 3905536,
+          "major" : 8,
+          "minor" : 17
+        },
+      "sdb2" : { 
+          "blocks" : 487424,
+          "major" : 8,
+          "minor" : 18
+        },
+      "sdb3" : { 
+          "blocks" : 195312640,
+          "major" : 8,
+          "minor" : 19
+        },
+      "sdb4" : { 
+          "blocks" : 777055232,
+          "major" : 8,
+          "minor" : 20
+        },
+      "sdc" : { 
+          "blocks" : 2930266584,
+          "major" : 8,
+          "minor" : 32
+        },
+      "sdc1" : { 
+          "blocks" : 2930265088,
+          "major" : 8,
+          "minor" : 33
+        },
+      "sdd" : { 
+          "blocks" : 2930266584,
+          "major" : 8,
+          "minor" : 48
+        },
+      "sdd1" : { 
+          "blocks" : 2930265088,
+          "major" : 8,
+          "minor" : 49
+        }
+    },
+  "description" : "partition configuration from partitions",
+  "discovertype" : "partitions",
+  "host" : "FAKETESTHOST",
+  "source" : "../../discovery_agents/partitions"
 }

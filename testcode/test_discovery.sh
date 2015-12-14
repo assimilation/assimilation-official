@@ -68,6 +68,8 @@ run_regression_test() {
             cat $OUTFILE
             return 1
         fi
+        jsonlint -f $TMPOUT > ${TMPOUT}.tmp
+        mv ${TMPOUT}.tmp ${TMPOUT}
         if
             [ ! -f $OUTFILE ]
         then
