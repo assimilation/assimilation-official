@@ -68,7 +68,7 @@ run_regression_test() {
             cat $OUTFILE
             return 1
         fi
-        jsonlint -f $TMPOUT > ${TMPOUT}.tmp
+        jsonlint -F $TMPOUT > ${TMPOUT}.tmp
         mv ${TMPOUT}.tmp ${TMPOUT}
         if
             [ ! -f $OUTFILE ]
@@ -84,7 +84,10 @@ run_regression_test() {
         else
             echo "ERROR: Discovery output $test was incorrect (has changed)."
             echo "Diff -u follows"
-            diff -u $OUTFILE $TMPOUT
+            jsonlint -f $TMPOUT > $TMPOUT.pretty
+            jsonlint -f $OUTFILE > $OUTFILE.pretty
+            diff -u $OUTFILE.pretty $TMPOUT.pretty
+            rm -f $TMPOUT.pretty $OUTFILE.pretty
             return 1
         fi
     else
