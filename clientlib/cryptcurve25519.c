@@ -730,8 +730,8 @@ _cryptcurve25519_updatedata(Frame* f,			///< Frame to marshall
 	DEBUGCKSUM4("sender  private key cksum:", self->private_key->private_key, crypto_box_SECRETKEYBYTES);
 	DEBUGCKSUM4("nonce cksum:", nonce, crypto_box_NONCEBYTES);
 	// Encrypt in-place [we previously allocated enough space for authentication info]
-	crypto_box_easy(tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
-	,	nonce, self->public_key->public_key, self->private_key->private_key);
+	g_return_if_fail(0 == crypto_box_easy(tlvval+cyphertextoffset, tlvval+plaintextoffset, plaintextsize
+	,	nonce, self->public_key->public_key, self->private_key->private_key));
 	DEBUGMSG4("cypher offset versus tlvstart: %ld", (long)(tlvval+cyphertextoffset-(guint8*)tlvstart));
 	DEBUGCKSUM4("cypher text checksum:", tlvval+cyphertextoffset, plaintextsize+crypto_box_MACBYTES);
 	set_generic_tlv_type(tlvstart, self->baseclass.baseclass.type, pktend);
