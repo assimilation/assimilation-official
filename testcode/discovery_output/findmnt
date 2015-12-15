@@ -1,1 +1,342 @@
-{"data":{"/":{"fstype":"ext4","options":{"data":"ordered","errors":"remount-ro","relatime":true,"rw":true},"source":"/dev/md126"},"/boot":{"fstype":"ext2","options":{"errors":"continue","relatime":true,"rw":true},"source":"/dev/md124"},"/dev":{"fstype":"devtmpfs","options":{"mode":493,"nr_inodes":463206,"relatime":true,"rw":true,"size":"1852824k"},"source":"udev"},"/dev/pts":{"fstype":"devpts","options":{"gid":5,"mode":400,"noexec":true,"nosuid":true,"ptmxmode":0,"relatime":true,"rw":true},"source":"devpts"},"/drbd1":{"fstype":"ext4","options":{"data":"ordered","relatime":true,"rw":true},"source":"/dev/drbd1"},"/home":{"fstype":"nfs","options":{"acdirmax":120,"acdirmin":120,"acregmax":120,"acregmin":120,"addr":"10.10.10.21","hard":true,"local_lock":"all","mountaddr":"10.10.10.21","mountport":44110,"mountproto":"udp","mountvers":3,"namlen":255,"nodev":true,"nolock":true,"proto":"udp","relatime":true,"retrans":3,"rsize":8192,"rw":true,"sec":"sys","timeo":11,"vers":3,"wsize":8192},"source":"10.10.10.21:/home"},"/home2":{"fstype":"ext4","options":{"data":"ordered","relatime":true,"rw":true},"source":"/dev/drbd0"},"/proc":{"fstype":"proc","options":{"nodev":true,"noexec":true,"nosuid":true,"relatime":true,"rw":true},"source":"proc"},"/proc/fs/nfsd":{"fstype":"nfsd","options":{"relatime":true,"rw":true},"source":"nfsd"},"/proc/sys/fs/binfmt_misc":{"fstype":"binfmt_misc","options":{"nodev":true,"noexec":true,"nosuid":true,"relatime":true,"rw":true},"source":"binfmt_misc"},"/run":{"fstype":"tmpfs","options":{"mode":493,"noexec":true,"nosuid":true,"relatime":true,"rw":true,"size":"379120k"},"source":"tmpfs"},"/run/lock":{"fstype":"tmpfs","options":{"nodev":true,"noexec":true,"nosuid":true,"relatime":true,"rw":true,"size":"5120k"},"source":"tmpfs"},"/run/rpc_pipefs":{"fstype":"rpc_pipefs","options":{"relatime":true,"rw":true},"source":"rpc_pipefs"},"/run/shm":{"fstype":"tmpfs","options":{"nodev":true,"nosuid":true,"relatime":true,"rw":true},"source":"tmpfs"},"/run/user":{"fstype":"tmpfs","options":{"mode":493,"nodev":true,"noexec":true,"nosuid":true,"relatime":true,"rw":true,"size":"102400k"},"source":"tmpfs"},"/sys":{"fstype":"sysfs","options":{"nodev":true,"noexec":true,"nosuid":true,"relatime":true,"rw":true},"source":"sysfs"},"/sys/fs/cgroup":{"fstype":"tmpfs","options":{"mode":493,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/blkio":{"fstype":"cgroup","options":{"blkio":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/cpu":{"fstype":"cgroup","options":{"cpu":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/cpuacct":{"fstype":"cgroup","options":{"cpuacct":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/cpuset":{"fstype":"cgroup","options":{"cpuset":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/devices":{"fstype":"cgroup","options":{"devices":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/freezer":{"fstype":"cgroup","options":{"freezer":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/hugetlb":{"fstype":"cgroup","options":{"hugetlb":true,"relatime":true,"release_agent":"/run/cgmanager/agents/cgm-release-agent.hugetlb","rw":true},"source":"cgroup"},"/sys/fs/cgroup/memory":{"fstype":"cgroup","options":{"memory":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/net_prio":{"fstype":"cgroup","options":{"net_prio":true,"relatime":true,"rw":true},"source":"cgroup"},"/sys/fs/cgroup/perf_event":{"fstype":"cgroup","options":{"perf_event":true,"relatime":true,"release_agent":"/run/cgmanager/agents/cgm-release-agent.perf_event","rw":true},"source":"cgroup"},"/sys/fs/cgroup/systemd":{"fstype":"cgroup","options":{"name":"systemd","nodev":true,"noexec":true,"nosuid":true,"relatime":true,"release_agent":"/run/cgmanager/agents/cgm-release-agent.systemd","rw":true},"source":"systemd"},"/sys/fs/fuse/connections":{"fstype":"fusectl","options":{"relatime":true,"rw":true},"source":"fusectl"},"/sys/kernel/debug":{"fstype":"debugfs","options":{"relatime":true,"rw":true},"source":"debugfs"},"/sys/kernel/security":{"fstype":"securityfs","options":{"relatime":true,"rw":true},"source":"securityfs"},"/var/lib/docker/aufs":{"fstype":"ext4","options":{"data":"ordered","errors":"remount-ro","relatime":true,"rw":true},"source":"/dev/sda1[/var/lib/docker/aufs]"}},"description":"current mounts from the (Linux-only) findmnt command","discovertype":"findmnt","host":"FAKETESTHOST","source":"../../discovery_agents/findmnt"}
+{ 
+  "data" : { 
+      "/" : { 
+          "fstype" : "ext4",
+          "options" : { 
+              "data" : "ordered",
+              "errors" : "remount-ro",
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "/dev/md126"
+        },
+      "/boot" : { 
+          "fstype" : "ext2",
+          "options" : { 
+              "errors" : "continue",
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "/dev/md124"
+        },
+      "/dev" : { 
+          "fstype" : "devtmpfs",
+          "options" : { 
+              "mode" : 493,
+              "nr_inodes" : 463206,
+              "relatime" : true,
+              "rw" : true,
+              "size" : "1852824k"
+            },
+          "source" : "udev"
+        },
+      "/dev/pts" : { 
+          "fstype" : "devpts",
+          "options" : { 
+              "gid" : 5,
+              "mode" : 400,
+              "noexec" : true,
+              "nosuid" : true,
+              "ptmxmode" : 0,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "devpts"
+        },
+      "/drbd1" : { 
+          "fstype" : "ext4",
+          "options" : { 
+              "data" : "ordered",
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "/dev/drbd1"
+        },
+      "/home" : { 
+          "fstype" : "nfs",
+          "options" : { 
+              "acdirmax" : 120,
+              "acdirmin" : 120,
+              "acregmax" : 120,
+              "acregmin" : 120,
+              "addr" : "10.10.10.21",
+              "hard" : true,
+              "local_lock" : "all",
+              "mountaddr" : "10.10.10.21",
+              "mountport" : 44110,
+              "mountproto" : "udp",
+              "mountvers" : 3,
+              "namlen" : 255,
+              "nodev" : true,
+              "nolock" : true,
+              "proto" : "udp",
+              "relatime" : true,
+              "retrans" : 3,
+              "rsize" : 8192,
+              "rw" : true,
+              "sec" : "sys",
+              "timeo" : 11,
+              "vers" : 3,
+              "wsize" : 8192
+            },
+          "source" : "10.10.10.21:/home"
+        },
+      "/home2" : { 
+          "fstype" : "ext4",
+          "options" : { 
+              "data" : "ordered",
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "/dev/drbd0"
+        },
+      "/proc" : { 
+          "fstype" : "proc",
+          "options" : { 
+              "nodev" : true,
+              "noexec" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "proc"
+        },
+      "/proc/fs/nfsd" : { 
+          "fstype" : "nfsd",
+          "options" : { 
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "nfsd"
+        },
+      "/proc/sys/fs/binfmt_misc" : { 
+          "fstype" : "binfmt_misc",
+          "options" : { 
+              "nodev" : true,
+              "noexec" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "binfmt_misc"
+        },
+      "/run" : { 
+          "fstype" : "tmpfs",
+          "options" : { 
+              "mode" : 493,
+              "noexec" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "rw" : true,
+              "size" : "379120k"
+            },
+          "source" : "tmpfs"
+        },
+      "/run/lock" : { 
+          "fstype" : "tmpfs",
+          "options" : { 
+              "nodev" : true,
+              "noexec" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "rw" : true,
+              "size" : "5120k"
+            },
+          "source" : "tmpfs"
+        },
+      "/run/rpc_pipefs" : { 
+          "fstype" : "rpc_pipefs",
+          "options" : { 
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "rpc_pipefs"
+        },
+      "/run/shm" : { 
+          "fstype" : "tmpfs",
+          "options" : { 
+              "nodev" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "tmpfs"
+        },
+      "/run/user" : { 
+          "fstype" : "tmpfs",
+          "options" : { 
+              "mode" : 493,
+              "nodev" : true,
+              "noexec" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "rw" : true,
+              "size" : "102400k"
+            },
+          "source" : "tmpfs"
+        },
+      "/sys" : { 
+          "fstype" : "sysfs",
+          "options" : { 
+              "nodev" : true,
+              "noexec" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "sysfs"
+        },
+      "/sys/fs/cgroup" : { 
+          "fstype" : "tmpfs",
+          "options" : { 
+              "mode" : 493,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/blkio" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "blkio" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/cpu" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "cpu" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/cpuacct" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "cpuacct" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/cpuset" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "cpuset" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/devices" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "devices" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/freezer" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "freezer" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/hugetlb" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "hugetlb" : true,
+              "relatime" : true,
+              "release_agent" : "/run/cgmanager/agents/cgm-release-agent.hugetlb",
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/memory" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "memory" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/net_prio" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "net_prio" : true,
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/perf_event" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "perf_event" : true,
+              "relatime" : true,
+              "release_agent" : "/run/cgmanager/agents/cgm-release-agent.perf_event",
+              "rw" : true
+            },
+          "source" : "cgroup"
+        },
+      "/sys/fs/cgroup/systemd" : { 
+          "fstype" : "cgroup",
+          "options" : { 
+              "name" : "systemd",
+              "nodev" : true,
+              "noexec" : true,
+              "nosuid" : true,
+              "relatime" : true,
+              "release_agent" : "/run/cgmanager/agents/cgm-release-agent.systemd",
+              "rw" : true
+            },
+          "source" : "systemd"
+        },
+      "/sys/fs/fuse/connections" : { 
+          "fstype" : "fusectl",
+          "options" : { 
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "fusectl"
+        },
+      "/sys/kernel/debug" : { 
+          "fstype" : "debugfs",
+          "options" : { 
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "debugfs"
+        },
+      "/sys/kernel/security" : { 
+          "fstype" : "securityfs",
+          "options" : { 
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "securityfs"
+        },
+      "/var/lib/docker/aufs" : { 
+          "fstype" : "ext4",
+          "options" : { 
+              "data" : "ordered",
+              "errors" : "remount-ro",
+              "relatime" : true,
+              "rw" : true
+            },
+          "source" : "/dev/sda1[/var/lib/docker/aufs]"
+        }
+    },
+  "description" : "current mounts from the (Linux-only) findmnt command",
+  "discovertype" : "findmnt",
+  "host" : "FAKETESTHOST",
+  "source" : "../../discovery_agents/findmnt"
+}

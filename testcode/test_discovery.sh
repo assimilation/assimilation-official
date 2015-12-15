@@ -30,6 +30,7 @@ TESTDIR=../../discovery_agents
 INPUTDIR=$PWD/$ourdir/discovery_input
 OUTPUTDIR=$PWD/$ourdir/discovery_output
 TMPOUT=/tmp/$$.testout
+trap 'rm -f $TMPOUT' 0
 export CDPATH=''
 
 
@@ -68,8 +69,6 @@ run_regression_test() {
             cat $OUTFILE
             return 1
         fi
-        jsonlint -F $TMPOUT > ${TMPOUT}.tmp
-        mv ${TMPOUT}.tmp ${TMPOUT}
         if
             [ ! -f $OUTFILE ]
         then
@@ -77,15 +76,16 @@ run_regression_test() {
             cp $TMPOUT $OUTFILE
             return 0
         fi
+        jsonlint -f $TMPOUT > $TMPOUT.pretty
+        jsonlint -f $OUTFILE > $OUTFILE.pretty
         if
-            cmp $TMPOUT $OUTFILE
+            cmp $TMPOUT.pretty $OUTFILE.pretty
         then
-          : Great!
+            : "They're the same - Great!"
+            rm -f $TMPOUT.pretty $OUTFILE.pretty
         else
             echo "ERROR: Discovery output $test was incorrect (has changed)."
             echo "Diff -u follows"
-            jsonlint -f $TMPOUT > $TMPOUT.pretty
-            jsonlint -f $OUTFILE > $OUTFILE.pretty
             diff -u $OUTFILE.pretty $TMPOUT.pretty
             rm -f $TMPOUT.pretty $OUTFILE.pretty
             return 1

@@ -1,1 +1,235 @@
-{"data":{"CommandAliases":{"DUMPS":["/usr/bin/mt","/usr/sbin/dump","/usr/sbin/rdump","/usr/sbin/restore","/usr/sbin/rrestore",{"file":"/home/operator/bin/start_backups","sum":"sha224:0GomF8mNN3wlDt1HD9XldjJ3SNgpFdbjO1+NsQ=="}],"HALT":["/usr/sbin/halt"],"KILL":["/usr/bin/kill"],"PAGERS":["/usr/bin/more","/usr/bin/pg","/usr/bin/less"],"PRINTING":["/usr/sbin/lpc","/usr/bin/lprm"],"REBOOT":["/usr/sbin/reboot"],"SHELLS":["/usr/bin/sh","/usr/bin/csh","/usr/bin/ksh","/usr/local/bin/tcsh","/usr/bin/rsh","/usr/local/bin/zsh"],"SHUTDOWN":["/usr/sbin/shutdown"],"SU":["/usr/bin/su"]},"Defaults":{"ANY":{"always_set_home":true,"env_keep":{"COLORS":true,"DISPLAY":true,"HISTSIZE":true,"HOSTNAME":true,"INPUTRC":true,"KDEDIR":true,"LANG":true,"LANGUAGE":true,"LC_ADDRESS":true,"LC_ALL":true,"LC_COLLATE":true,"LC_CTYPE":true,"LC_IDENTIFICATION":true,"LC_MEASUREMENT":true,"LC_MESSAGES":true,"LC_MONETARY":true,"LC_NAME":true,"LC_NUMERIC":true,"LC_PAPER":true,"LC_TELEPHONE":true,"LC_TIME":true,"LINGUAS":true,"LS_COLORS":true,"MAIL":true,"PS1":true,"PS2":true,"QTDIR":true,"USERNAME":true,"XAUTHORITY":true,"_XKB_CHARSET":true},"env_reset":true,"loglinelen":100,"secure_path":["/sbin","/bin","/usr/sbin","/usr/bin"],"syslog":"auth","timestamp_timeout":3.5,"umask":511,"visiblepw":false},"command:PAGERS":{"noexec":true},"runas:root":{"set_logname":false},"system:SERVERS":{"logfile":"/var/log/sudo.log","log_year":true},"user:FULLTIMERS":{"lecture":false},"user:millert":{"authenticate":false}},"HostAliases":{"ALPHA":["widget","thalamus","foobar"],"CDROM":["orion","perseus","hercules"],"CSNETS":["128.138.243.0","128.138.204.0/24","128.138.242.0"],"CUNETS":["128.138.0.0/255.255.0.0"],"HPPA":["boa","nag","python"],"SERVERS":["master","mail","www","ns"],"SGI":["grolsch","dandelion","black"],"SPARC":["bigtime","eclipse","moet","anchor"]},"rules":[{"rulelist":[{"command":"ALL","hosts":["ALL"],"runas":{"groups":[],"users":["ALL"]}}],"users":["root"]},{"rulelist":[{"command":"ALL","hosts":["ALL"],"runas":{"groups":[],"users":["ALL"]}}],"users":["%wheel"]},{"rulelist":[{"command":"ALL","hosts":["ALL"],"TAG_NOPASSWD":true}],"users":["FULLTIMERS"]},{"rulelist":[{"command":"ALL","hosts":["ALL"]}],"users":["PARTTIMERS"]},{"rulelist":[{"command":"ALL","hosts":["10.10.10.100","ALL"]}],"users":["alanr","lmb"]},{"rulelist":[{"command":"ALL","hosts":["ALL"],"runas":{"groups":[],"users":["ALL"]},"TAG_NOPASSWD":true}],"users":["%vagrant"]}],"RunasAliases":{"ADMINGRP":["adm","oper"],"DB":["oracle","sybase"],"OP":["root","operator"]},"UserAliases":{"FULLTIMERS":["millert","mikef","dowdy"],"PARTTIMERS":["bostley","jwfox","crawl"],"WEBMASTERS":["will","wendy","wim"]}},"description":"sudoers configuration","discovertype":"sudoers","host":"FAKETESTHOST","source":"../../discovery_agents/sudoers"}
+{ 
+  "data" : { 
+      "CommandAliases" : { 
+          "DUMPS" : [ 
+              "/usr/bin/mt",
+              "/usr/sbin/dump",
+              "/usr/sbin/rdump",
+              "/usr/sbin/restore",
+              "/usr/sbin/rrestore",
+              { 
+                "file" : "/home/operator/bin/start_backups",
+                "sum" : "sha224:0GomF8mNN3wlDt1HD9XldjJ3SNgpFdbjO1+NsQ=="
+              }
+            ],
+          "HALT" : [ "/usr/sbin/halt" ],
+          "KILL" : [ "/usr/bin/kill" ],
+          "PAGERS" : [ 
+              "/usr/bin/more",
+              "/usr/bin/pg",
+              "/usr/bin/less"
+            ],
+          "PRINTING" : [ 
+              "/usr/sbin/lpc",
+              "/usr/bin/lprm"
+            ],
+          "REBOOT" : [ "/usr/sbin/reboot" ],
+          "SHELLS" : [ 
+              "/usr/bin/sh",
+              "/usr/bin/csh",
+              "/usr/bin/ksh",
+              "/usr/local/bin/tcsh",
+              "/usr/bin/rsh",
+              "/usr/local/bin/zsh"
+            ],
+          "SHUTDOWN" : [ "/usr/sbin/shutdown" ],
+          "SU" : [ "/usr/bin/su" ]
+        },
+      "Defaults" : { 
+          "ANY" : { 
+              "always_set_home" : true,
+              "env_keep" : { 
+                  "COLORS" : true,
+                  "DISPLAY" : true,
+                  "HISTSIZE" : true,
+                  "HOSTNAME" : true,
+                  "INPUTRC" : true,
+                  "KDEDIR" : true,
+                  "LANG" : true,
+                  "LANGUAGE" : true,
+                  "LC_ADDRESS" : true,
+                  "LC_ALL" : true,
+                  "LC_COLLATE" : true,
+                  "LC_CTYPE" : true,
+                  "LC_IDENTIFICATION" : true,
+                  "LC_MEASUREMENT" : true,
+                  "LC_MESSAGES" : true,
+                  "LC_MONETARY" : true,
+                  "LC_NAME" : true,
+                  "LC_NUMERIC" : true,
+                  "LC_PAPER" : true,
+                  "LC_TELEPHONE" : true,
+                  "LC_TIME" : true,
+                  "LINGUAS" : true,
+                  "LS_COLORS" : true,
+                  "MAIL" : true,
+                  "PS1" : true,
+                  "PS2" : true,
+                  "QTDIR" : true,
+                  "USERNAME" : true,
+                  "XAUTHORITY" : true,
+                  "_XKB_CHARSET" : true
+                },
+              "env_reset" : true,
+              "loglinelen" : 100,
+              "secure_path" : [ 
+                  "/sbin",
+                  "/bin",
+                  "/usr/sbin",
+                  "/usr/bin"
+                ],
+              "syslog" : "auth",
+              "timestamp_timeout" : 3.5,
+              "umask" : 511,
+              "visiblepw" : false
+            },
+          "command:PAGERS" : { "noexec" : true },
+          "runas:root" : { "set_logname" : false },
+          "system:SERVERS" : { 
+              "logfile" : "/var/log/sudo.log",
+              "log_year" : true
+            },
+          "user:FULLTIMERS" : { "lecture" : false },
+          "user:millert" : { "authenticate" : false }
+        },
+      "HostAliases" : { 
+          "ALPHA" : [ 
+              "widget",
+              "thalamus",
+              "foobar"
+            ],
+          "CDROM" : [ 
+              "orion",
+              "perseus",
+              "hercules"
+            ],
+          "CSNETS" : [ 
+              "128.138.243.0",
+              "128.138.204.0/24",
+              "128.138.242.0"
+            ],
+          "CUNETS" : [ "128.138.0.0/255.255.0.0" ],
+          "HPPA" : [ 
+              "boa",
+              "nag",
+              "python"
+            ],
+          "SERVERS" : [ 
+              "master",
+              "mail",
+              "www",
+              "ns"
+            ],
+          "SGI" : [ 
+              "grolsch",
+              "dandelion",
+              "black"
+            ],
+          "SPARC" : [ 
+              "bigtime",
+              "eclipse",
+              "moet",
+              "anchor"
+            ]
+        },
+      "rules" : [ 
+          { 
+            "rulelist" : [ { 
+                  "command" : "ALL",
+                  "hosts" : [ "ALL" ],
+                  "runas" : { 
+                      "groups" : [  ],
+                      "users" : [ "ALL" ]
+                    }
+                } ],
+            "users" : [ "root" ]
+          },
+          { 
+            "rulelist" : [ { 
+                  "command" : "ALL",
+                  "hosts" : [ "ALL" ],
+                  "runas" : { 
+                      "groups" : [  ],
+                      "users" : [ "ALL" ]
+                    }
+                } ],
+            "users" : [ "%wheel" ]
+          },
+          { 
+            "rulelist" : [ { 
+                  "command" : "ALL",
+                  "hosts" : [ "ALL" ],
+                  "TAG_NOPASSWD" : true
+                } ],
+            "users" : [ "FULLTIMERS" ]
+          },
+          { 
+            "rulelist" : [ { 
+                  "command" : "ALL",
+                  "hosts" : [ "ALL" ]
+                } ],
+            "users" : [ "PARTTIMERS" ]
+          },
+          { 
+            "rulelist" : [ { 
+                  "command" : "ALL",
+                  "hosts" : [ 
+                      "10.10.10.100",
+                      "ALL"
+                    ]
+                } ],
+            "users" : [ 
+                "alanr",
+                "lmb"
+              ]
+          },
+          { 
+            "rulelist" : [ { 
+                  "command" : "ALL",
+                  "hosts" : [ "ALL" ],
+                  "runas" : { 
+                      "groups" : [  ],
+                      "users" : [ "ALL" ]
+                    },
+                  "TAG_NOPASSWD" : true
+                } ],
+            "users" : [ "%vagrant" ]
+          }
+        ],
+      "RunasAliases" : { 
+          "ADMINGRP" : [ 
+              "adm",
+              "oper"
+            ],
+          "DB" : [ 
+              "oracle",
+              "sybase"
+            ],
+          "OP" : [ 
+              "root",
+              "operator"
+            ]
+        },
+      "UserAliases" : { 
+          "FULLTIMERS" : [ 
+              "millert",
+              "mikef",
+              "dowdy"
+            ],
+          "PARTTIMERS" : [ 
+              "bostley",
+              "jwfox",
+              "crawl"
+            ],
+          "WEBMASTERS" : [ 
+              "will",
+              "wendy",
+              "wim"
+            ]
+        }
+    },
+  "description" : "sudoers configuration",
+  "discovertype" : "sudoers",
+  "host" : "FAKETESTHOST",
+  "source" : "../../discovery_agents/sudoers"
+}
