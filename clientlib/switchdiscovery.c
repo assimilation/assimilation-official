@@ -258,10 +258,10 @@ _switchdiscovery_cache_info(SwitchDiscovery* self,  ///<[in/out] Our SwitchDisco
 			_dumphex("switch id", curswitchid, curswitchidlen);
 			_dumphex("port id", curportid, curportidlen);
 		}
-		if (NULL != self->switchid) {
+		if (DEBUG >= 3 && NULL != self->switchid) {
 			_dumphex("previous switch id", self->switchid, self->switchidlen);
 		}
-		if (NULL != self->portid) {
+		if (DEBUG >= 3 && NULL != self->portid) {
 			_dumphex("previous port id", self->portid, self->portidlen);
 		}
 
