@@ -32,14 +32,14 @@ WORKDIR /root/assimilation/bin
 # Now build separately to test installing the packages and run our tests...
 RUN cmake ../src && make install
 ENV BROKENDNS true
-RUN $YUM install rsyslog
+RUN $YUM install rsyslog || /bin/true
 RUN $YUM install jq
 WORKDIR /root/rpmbuild/RPMS/x86_64/
 RUN pwd; ls -l
 RUN $YUM install assimilation-nanoprobe*.rpm assimilation-cma*.rpm
 RUN echo "/usr/lib*/assimilation" > /etc/ld.so.conf.d/assimilation.conf && ldconfig /usr/lib*/assimilation
 WORKDIR /root/assimilation/src/cma
-RUN sed /etc/rsyslog.conf -e 's%^$.*imjournal%#&%' -e 's%.*$OmitLocalLogging.*%$OmitLocalLogging off%' > /tmp/foo
+RUN if test -f /etc/rsyslog.conf; then  sed /etc/rsyslog.conf -e 's%^$.*imjournal%#&%' -e 's%.*$OmitLocalLogging.*%$OmitLocalLogging off%' > /tmp/foo; fi
 RUN printf "%s\n%s\n" '$ModLoad imuxsock' '$SystemLogSocketName /dev/log' >> /tmp/foo
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
