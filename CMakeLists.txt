@@ -400,6 +400,18 @@ if(DOXYGEN_FOUND)
   COMMENT "Generating API documentation with Doxygen" VERBATIM
   )
 endif(DOXYGEN_FOUND)
+add_custom_target(tests # ALL
+testify cma.tests -v
+WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+COMMENT "Make install must be done first. Also, port 1984 must be available (free)" VERBATIM
+)
+add_dependencies(tests public_keys_for_testing)
+add_custom_target(public_keys_for_testing # ALL
+sudo python ${PROJECT_SOURCE_DIR}/cma/assimcli.py genkeys
+WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/cma
+COMMENT "Generating public keys for testing (with sudo)" VERBATIM
+)
+
 #
 #	Install our discovery agents under /usr/share/assimilation.  Retain permissions from source control.
 #
@@ -439,7 +451,7 @@ install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-compon
 #install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT cma-component DESTINATION ${DESTDIR}${USRSHARE})
 
 # Create the CMA user id at install time as part of the CMA component
-install (CODE "execute_process ( COMMAND /bin/sh -c \"getent passwd assimilation >/dev/null || adduser --system --no-create-home --gecos 'Assimilation software CMA' --shell /bin/false ${CMAUSERID}\" )" COMPONENT cma-component ) 
+install (CODE "execute_process ( COMMAND /bin/sh -c \"getent passwd assimilation >/dev/null || adduser --system --no-create-home --shell /bin/false ${CMAUSERID}\" )" COMPONENT cma-component ) 
 
 
 #
