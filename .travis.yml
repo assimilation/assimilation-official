@@ -12,7 +12,9 @@ install:
 before_script:
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_neo4j
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
+  - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
 script:
+  - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
   - cd $TRAVIS_BUILD_DIR
   - cd ..
   - mkdir root_of_binary_tree
@@ -27,6 +29,4 @@ script:
   - sudo assimcli genkeys
   - cd $TRAVIS_BUILD_DIR/cma
   - sudo testify -v tests
-  - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
   - cd $TRAVIS_BUILD_DIR
-  - "../root_of_binary_tree/testcode/pinger ::1"
