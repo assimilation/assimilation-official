@@ -110,6 +110,14 @@ class cClass (object):
     GSList = POINTER(AssimCtypes.GSList)
     CryptCurve25519 = POINTER(AssimCtypes.CryptCurve25519)
 
+#
+def not_this_exact_type(obj, cls):
+    '''Do return True if this is NOT the given type.
+    This is necessary for dealing with Ctypes, but pylint hates this construct
+    so we ignore its warning.
+    '''
+    return type(obj) is not cls
+
 def CCref(obj):
     '''
     Increment the reference count to an AssimObj (_not_ a pyAssimObj)
@@ -126,7 +134,7 @@ def CCref(obj):
         to.
     '''
     base = obj[0]
-    while (type(base) is not AssimObj):
+    while (not_this_exact_type(base, AssimObj)):
         base = base.baseclass
     base.ref(obj)
 
@@ -587,7 +595,7 @@ class pyAssimObj(object):
         'Create a base pyAssimObj object'
         self._Cstruct = None
         if (Cstruct is not None):
-            assert type(Cstruct) is not int
+            assert not isinstance(Cstruct,  (int, long))
             self._Cstruct = Cstruct
         else:
             self._Cstruct = assimobj_new(0)
@@ -602,7 +610,7 @@ class pyAssimObj(object):
         if not self._Cstruct:
             return "[None]"
         base = self._Cstruct[0]
-        while (type(base) is not AssimObj):
+        while (not_this_exact_type(base, AssimObj)):
             base = base.baseclass
         cstringret = cast(base.toString(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
@@ -647,7 +655,7 @@ class pyNetAddr(pyAssimObj):
         self._Cstruct = None	# Silence error messages in failure cases
 
         if (Cstruct is not None):
-            assert type(Cstruct) is not int and Cstruct
+            assert (not isinstance(Cstruct, (int, long))) and Cstruct
             pyAssimObj.__init__(self, Cstruct=Cstruct)
             if port is not None:
                 self.setport(port)
@@ -681,9 +689,7 @@ class pyNetAddr(pyAssimObj):
         for i in range(0, alen):
             asi = addrstring[i]
             #print >> sys.stderr, "ASI_TYPE: (%s,%s)" % (type(asi), asi)
-            if type(asi) is str:
-                addr[i] = asi
-            elif type(asi) is unicode:
+            if isinstance(asi, (str, unicode)):
                 addr[i] = str(asi)
             else:
                 addr[i] = chr(asi)
@@ -705,49 +711,49 @@ class pyNetAddr(pyAssimObj):
     def port(self):
         'Return the port (if any) for this pyNetAddr object'
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         return base.port(self._Cstruct)
 
     def setport(self, port):
         'Return the port (if any) for this pyNetAddr object'
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         base.setport(self._Cstruct, port)
 
     def addrtype(self):
         'Return the type of address for this pyNetAddr object'
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         return base.addrtype(self._Cstruct)
 
     def addrlen(self):
         "Return the number of bytes necessary to represent this pyNetAddr object on the wire."
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         return base._addrlen
 
     def islocal(self):
         'Return True if this address is a local address'
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         return base.islocal(self._Cstruct)
 
     def isanyaddr(self):
         'Return True if this address is a local address'
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         return base.isanyaddr(self._Cstruct)
 
     def toIPv6(self, port=None):
         'Return an equivalent IPv6 address to the one that was given. Guaranteed to be a copy'
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         newcs =  cast(base.toIPv6(self._Cstruct), cClass.NetAddr)
         return pyNetAddr(None, Cstruct=newcs, port=port)
@@ -756,7 +762,7 @@ class pyNetAddr(pyAssimObj):
         'Return a canonical representation of this NetAddr'
         assert self._Cstruct
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         cstringret =  base.canonStr(self._Cstruct)
         ret = string_at(cstringret)
@@ -769,7 +775,7 @@ class pyNetAddr(pyAssimObj):
         if not other._Cstruct or not self._Cstruct:
             return False
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         return base.equal(self._Cstruct, other._Cstruct)
 
@@ -778,7 +784,7 @@ class pyNetAddr(pyAssimObj):
         if not self._Cstruct:
             return 0
         base = self._Cstruct[0]
-        while (type(base) is not NetAddr):
+        while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
         return base.hash(self._Cstruct)
 
@@ -817,42 +823,42 @@ class pyFrame(pyAssimObj):
     def frametype(self):
         "Return the TLV type for the pyFrame object."
         base = self._Cstruct[0]
-        while (type(base)is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
         return base.type
 
     def framelen(self):
         "Return the length of this frame in bytes (TLV length)."
         base = self._Cstruct[0]
-        while (type(base)is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
         return base.length
 
     def framevalue(self):
         'Return a C-style pointer to the underlying raw TLV data (if any)'
         base = self._Cstruct[0]
-        while (type(base)is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
         return cast(base.value, c_char_p)
 
     def frameend(self):
         'Return a C-style pointer to the underlying raw TLV data (if any)'
         base = self._Cstruct[0]
-        while (type(base)is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
         return cast(base.value+base.length, c_char_p)
 
     def dataspace(self):
         'Return the amount of space this frame needs - including type and length'
         base = self._Cstruct[0]
-        while (type(base) is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
         return base.dataspace(self._Cstruct)
 
     def isvalid(self):
         "Return True if this Frame is valid"
         base = self._Cstruct[0]
-        while (type(base) is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
 #        pstart = pointer(cast(base.value, c_char_p))
 #        if pstart[0] is None:
@@ -862,7 +868,7 @@ class pyFrame(pyAssimObj):
     def setvalue(self, value):
         'Assign a chunk of memory to the Value portion of this Frame'
         vlen = len(value)
-        if type(value) is str:
+        if isinstance(value, (str, unicode)):
             valbuf = create_string_buffer(vlen+1)
             for i in range(0, vlen):
                 vi = value[i]
@@ -877,21 +883,21 @@ class pyFrame(pyAssimObj):
         base = self._Cstruct[0]
         valptr = MALLOC(vlen)
         memmove(valptr, valbuf, vlen)
-        while (type(base) is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
         base.setvalue(self._Cstruct, valptr, vlen, cast(None, GDestroyNotify))
 
     def dump(self, prefix):
         'Dump out this Frame (using C-class "dump" member function)'
         base = self._Cstruct[0]
-        while (type(base) is not Frame):
+        while (not_this_exact_type(base, Frame)):
             base = base.baseclass
         base.dump(self._Cstruct, cast(prefix, c_char_p))
 
     def __str__(self):
         'Convert this Frame to a string'
         base = self._Cstruct[0]
-        while (type(base) is not AssimObj):
+        while (not_this_exact_type(base, AssimObj)):
             base = base.baseclass
         cstringret = cast(base.toString(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
@@ -1144,7 +1150,7 @@ class pySeqnoFrame(pyFrame):
     def __eq__(self, rhs):
         'Compare this pySeqnoFrame to another pySeqnoFrame'
         lhsbase = self._Cstruct[0]
-        while (type(lhsbase) is not SeqnoFrame):
+        while (not_this_exact_type(lhsbase, SeqnoFrame)):
             lhsbase = lhsbase.baseclass
         return lhsbase.equal(self._Cstruct, rhs._Cstruct)
 
@@ -1508,7 +1514,7 @@ class pyPacketDecoder(pyAssimObj):
     def fslist_from_pktdata(self, pktlocation):
         'Make a list of FrameSets out of a packet.'
         base = self._Cstruct[0]
-        while (type(base)is not AssimCtypes.PacketDecoder):
+        while (not_this_exact_type(base, AssimCtypes.PacketDecoder)):
             base = base.baseclass
         fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct, pktlocation[0], pktlocation[1])
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
@@ -2113,7 +2119,7 @@ class pyReliableUDP(pyNetIOudp):
     def log_conn(self, destaddr, qid=DEFAULT_FSP_QID):
         'Log connection status/info to system logs'
         base = self._Cstruct[0]
-        while (type(base) is not ReliableUDP):
+        while (not_this_exact_type(base, ReliableUDP)):
             base = base.baseclass
         base.log_conn(self._Cstruct, qid, destaddr._Cstruct)
 

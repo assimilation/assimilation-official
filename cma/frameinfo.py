@@ -333,8 +333,8 @@ It is always <b>crypto_box_PUBLICKEYBYTES</b> bytes long - no more, no less.
     @staticmethod
     def get(key):
         'Return the tuple that corresponds to this key (integer or string)'
-        if type(key) is str:
-            return FrameTypes.strframetypes[key]
+        if isinstance(key, (str, unicode)):
+            return FrameTypes.strframetypes[str(key)]
         else:
             if FrameTypes.intframetypes.has_key(int(key)):
                 return FrameTypes.intframetypes[int(key)]
@@ -461,8 +461,8 @@ class FrameSetTypes(object):
     @staticmethod
     def get(key):
         'Return the tuple that corresponds to this key (integer or string)'
-        if type(key) is str:
-            return FrameSetTypes.strframetypes[key]
+        if isinstance(key, (str, unicode)):
+            return FrameSetTypes.strframetypes[str(key)]
         else:
             if FrameSetTypes.intframetypes.has_key(int(key)):
                 return FrameSetTypes.intframetypes[int(key)]
