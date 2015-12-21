@@ -41,6 +41,10 @@
 
 %global _hardened_build 1
 
+# Not every platform has a working neo4j package
+# We could be more specific, but this is a pretty obvious dependency
+%global require_neo4j_package 0
+
 
 %if %(test -z  "%{?assimversion}" && echo 1 || echo 0)
 %global assimversion must-define-assimilation-version-to-rpmbuild-using--define=assimversion version-hash
@@ -140,12 +144,14 @@ BuildRequires:  cmake28
 #BuildRequires: %{scl_prefix}ctypesgen
 Requires:       %{scl_prefix}python
 Requires:       scl-utils
-#Requires:      %{scl_prefix}py2neo
+#Requires:      %{scl_prefix}python-py2neo
 #Requires:      %{scl_prefix}scldevel
 %endif
 
-#   The current version of the Neo4j package looks to be broken.
-#Requires:         neo4j
+if %{require_neo4j_package}
+Requires:         neo4j
+%endif
+
 Requires:         assimilation-nanoprobe = %{version}-%{release}
 #
 #   The next couple things are different if we have python >= 2.7 available...
@@ -181,7 +187,7 @@ minimizing network overhead and being naturally geographically sensitive.
 
 The main features include:
  - Creates and keeps up to date a detailed and extensible CMDB
- - Drives automated actions from the CMDB (including monitoring and audits)
+ - Drives automated actions from the CMDB (including monitoring and best practice audits)
  - Scales easily and massively
  - Monitor systems and services with near-zero overhead
  - Auto-configuration and integrated continuous low-profile discovery of
