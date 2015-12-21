@@ -1,0 +1,32 @@
+Here is what the various Python programs in the _cma_ directory do:
+- **arpdiscovery** handles incoming ARP discovery packets (class ArpDiscoveryListener)
+- **AssimCclasses** pythonic bindings for the C programs described in _AssimCtypes.py_.
+- **AssimCtypes** - ctypes bindings _automatically created_ by ctypesgen
+- **assimeventobserver** - class implementing Assimilation (fork/exec) event API.
+- **assimevent** - base AssimEvent class - tracking important events
+- **assimglib** - our bindings to glib2.
+- **assimjson** - class for creating JSON from any python object
+- **bestpractices** - Implement best practice rule evaluations
+- **checksumdiscovery** - handles incoming checksum discovery data
+- **cmaconfig** - implements CMA configuration file
+- **cmadb** - initialization of the Neo4j database and checking to see if we're running under Docker
+- **cmainit** - CMA initialization for the CMA and test code
+- **cma** - "main" program for the CMA
+- **consts** - Overall constants
+- **discoverylistener** - Handles discovery packets, and dispatches to classes looking for specific types of discovery packets.
+- **dispatchtarget** - Dispatches handlers for handling different incoming FrameTypes
+- **droneinfo** - Information about a "drone" (a system running our agent)
+- **frameinfo** - Generates C header files and provides model of FrameTypes and FrameSetTypes
+- **graphnodeexpression** - implements an expression language associated with GraphNode objects
+- **graphnodes** - base class for all GraphNode classes + a number of simpler classes
+- **hbring** - Implements the neighbor heartbeat arrangement
+- **__init__** - _empty file_
+- **linkdiscovery** - processes incoming _JSON_ switch discovery data (LLDP or CDP)
+- **messagedispatcher** - processes each incoming packet and handles exceptions
+- **monitoringdiscovery** - generates monitoring when tcpdiscovery packets arrive
+- **monitoring** - implements MonitorAction and MonitoringRule classes and MonitoringRule subclasses (like OCF and Nagios)
+- **packetlistener** - Listens for packets and dispatches them to interested objects
+- **procsysdiscovery** - listens for OS discovery data and triggers /proc/sys discovery
+- **query** - implements our canned queries (reports)
+- **store** - implements graph object model on top of Neo4j
+- **transaction** - implements network and database transactions
