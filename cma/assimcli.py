@@ -286,7 +286,7 @@ def usage():
         print >> sys.stderr, '    %s' % commands[cmd].usage()
     return 1
 
-# pylint: too few public methods...
+# pylint too few public methods...
 # pylint: disable=R0903
 class DummyIO(object):
     '''
