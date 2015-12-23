@@ -36,8 +36,10 @@ from graphnodes import GraphNode
 from store import Store
 from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
-    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID, BPINSTALL_DIR
+    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID, BPINSTALL_DIR,   \
+    CMAINITFILE
 from AssimCclasses import pyCryptFrame, pyCryptCurve25519
+from cmaconfig import ConfigFile
 #
 # These imports really are necessary - in spite of what pylint thinks...
 # pylint: disable=W0611
@@ -284,10 +286,22 @@ def usage():
         print >> sys.stderr, '    %s' % commands[cmd].usage()
     return 1
 
+class DummyIO(object):
+    '''
+    A Dummy I/O object which has a config member...
+    '''
+    def __init__(self, config=None):
+        if config is None:
+            try:
+                config = ConfigFile(filename=CMAINITFILE)
+            except IOError:
+                config = ConfigFile()
+        self.config = config
+
 def dbsetup(readonly=False):
     'Set up our connection to Neo4j'
     ourstore = Store(neo4j.Graph(), uniqueindexmap={}, classkeymap={})
-    CMAinit(None, readonly=readonly, use_network=False)
+    CMAinit(DummyIO(), readonly=readonly, use_network=False)
     for classname in GraphNode.classmap:
         GraphNode.initclasstypeobj(ourstore, classname)
     return ourstore

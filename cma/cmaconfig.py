@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -63,12 +63,12 @@ class ConfigFile(object):
                                      'nsswitch',            # Discovers nsswitch configuration (GNU)
                                      'os',                  # Discovers OS version information
                                      'sshd',                # Discovers sshd configuration
-                                     'sudoers',             # Discovers sudoers configuration
+                                     'sudoers',             # Discovers /etc/sudoers configuration
                                      'tcpdiscovery',        # Discovers network-facing processes
                                      'ulimit',              # Discovers ulimit settings
                                     },
                                ],
-        'cmaport':              {int, long}, # CMA listening port
+        'cmaport':              {int, long},# CMA listening port
         'cmainit':              pyNetAddr,  # Initial contact address for the CMA
         'cmaaddr':              pyNetAddr,  # CMA's base address...
         'cmadisc':              pyNetAddr,  # Address to send discovery information
@@ -167,19 +167,18 @@ class ConfigFile(object):
             #
             'initial_discovery':['os',              # OS properties
                                  'cpu',             # CPU properties
+                                 'packages',        # What packages are installed?
+                                 'commands',        # Discovers installed commands
+                                 'monitoringagents',# What monitoring agents are installed?
                                  'login_defs',      # /etc/login.defs configuration
                                  'pam',             # PAM configuration
-                                 # sudoers is not yet used, and somewhat broken...
-                                 #'sudoers',            # Discovers sudoers configuration
-                                 'packages',        # What packages are installed?
-                                 'monitoringagents',# What monitoring agents are installed?
+                                 'sudoers',         # Discovers /etc/sudoers configuration
                                  'ulimit',          # What are current ulimit values?
-                                 'commands',        # Discovers installed commands
                                  'nsswitch',        # Discovers nsswitch configuration (Linux)
                                  'findmnt',         # Discovers mounted filesystems (Linux)
                                  'sshd',            # Discovers sshd configuration
                                  'tcpdiscovery'     # Discover services
-                            ],
+                                ],
             'cmaport':                  1984,                       # Our listening port
             'cmainit':                  pyNetAddr("0.0.0.0:1984"),  # Our listening address
             'compression_threshold':    20000,                      # Compress packets >= 20 kbytes
@@ -194,11 +193,10 @@ class ConfigFile(object):
                                     ,           'warn':300},
                                     "os":  {'repeat': 0,    'timeout': 60, 'warn': 5},
                                     "cpu": {'repeat': 0,    'timeout': 60, 'warn': 5}
-                                    # "arpdiscovery/servidor":               {'repeat': 60},
                 },
             },
             'monitoring': {
-                'repeat':           15,    # Default repeat interval in seconds
+                'repeat':           15,     # Default repeat interval in seconds
                 'warn':             60,     # Default slow monitoring warning time
                 'timeout':          180,    # Default repeat interval in seconds
                 'agents': {         # Configuration information for individual agent types,
@@ -303,14 +301,17 @@ class ConfigFile(object):
         } # End of return value
 
     def __init__(self, filename=None, template=None, defaults=None):
-        'Init function for ConfigFile class, give us a filename!'
+        'Init function for ConfigFile class, give us a filename - or None!'
         if template is None:
             template = ConfigFile.default_template
         self.template = template
         if defaults is None:
             defaults = ConfigFile.default_defaults()
         self.defaults = defaults
-        self.config = pyConfigContext(filename=filename)
+        if filename is None:
+            self.config = pyConfigContext(self.defaults)
+        else:
+            self.config = pyConfigContext(filename=filename)
         # Call any registered callbacks
         for callbacktuple in ConfigFile.callbacks:
             function, args = callbacktuple
