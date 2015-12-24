@@ -1,7 +1,7 @@
 #!/bin/sh
 # This file is part of the Assimilation Project.
 #
-# @author Copyright &copy; 2011, 2012 - Alan Robertson <alanr@unix.sh>
+# @author Copyright &copy; 2011, 2012, 2015 - Alan Robertson <alanr@unix.sh>
 # @n
 #  The Assimilation software is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -31,11 +31,15 @@ discover() {
   do
     printf '    "%s": "%s",\n' "$j" "$(uname --$j)"
   done
-  for j in -i -d -r
-  do
-    lsb_release $j | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%",%'
-  done
-  lsb_release -c   | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%"%'
+  if
+    [ -x /usr/bin/lsb_release -o -x /bin/lsb_release ]
+  then
+    for j in -i -d -r
+    do
+      lsb_release $j | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%",%'
+    done
+    lsb_release -c   | sed -e 's%^%    "%' -e 's%:%":%' -e 's%:[ 	]*%:	"%' -e 's%$%"%'
+  fi
   printf '  }\n}\n'
 }
 
