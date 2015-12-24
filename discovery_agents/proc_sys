@@ -7,7 +7,7 @@
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
-# Copyright (C) 2014 - Assimilation Systems Limited
+# Copyright (C) 2014,2015 - Assimilation Systems Limited
 #
 # Free support is available from the Assimilation Project community - http://assimproj.org
 # Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
@@ -186,7 +186,7 @@ format_dir_contents() {
             continue
         fi
         procdot=$(echo ${proc_name} | sed 's%/%.%g')
-        contents="$(cat "${proc_name}" 2>/dev/null)"
+        contents="$(cat "${proc_name}" 2>/dev/null || true)"
         if
             [ -z "${contents}" ]
         then
