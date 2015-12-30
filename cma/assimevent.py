@@ -39,14 +39,16 @@ class AssimEvent(object):
     OBJUP = 1       # Object status is now up
     OBJDOWN = 2     # Object status is now down
     OBJWARN = 3     # Object status is now in a warning state
-    OBJUPDATE = 4   # Object was updated
-    OBJDELETE = 5   # Object is about to be deleted
+    OBJUNWARN = 4   # Object status has exited a warning state
+    OBJUPDATE = 5   # Object was updated
+    OBJDELETE = 6   # Object is about to be deleted
 
     eventtypenames = {
         CREATEOBJ:  'create',
         OBJUP:      'up',
         OBJDOWN:    'down',
         OBJWARN:    'warn',
+        OBJUNWARN:  'unwarn',
         OBJUPDATE:  'update',
         OBJDELETE:  'delete'
     }
