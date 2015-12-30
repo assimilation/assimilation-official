@@ -206,14 +206,21 @@ _is_valid_curve25519_key_id(const char * key_id,	///< key_id to validate
 			     enum keytype ktype)	///< which kind of key is it?
 {
 	if (!_is_legal_curve25519_key_id(key_id)) {
+		g_warning("%s.%d: Key id %s is not legal.", __FUNCTION__, __LINE__, key_id);
 		return FALSE;
 	}
 	if (_cache_curve25519_keypair(key_id)) {
 		if (ktype == PRIVATEKEY) {
-			return cryptframe_private_key_by_id(key_id) != NULL;
+			CryptFramePrivateKey*	secret = cryptframe_private_key_by_id(key_id);
+			if (NULL == secret) {
+				g_warning("%s.%d: Private Key id %s not cached."
+				,	__FUNCTION__, __LINE__, key_id);
+				return FALSE;
+			}
 		}
 		return TRUE;
 	}
+	g_warning("%s.%d: Key id %s could not be cached.", __FUNCTION__, __LINE__, key_id);
 	return FALSE;
 }
 
