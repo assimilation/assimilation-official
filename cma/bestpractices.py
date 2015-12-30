@@ -50,6 +50,8 @@ from discoverylistener import DiscoveryListener
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from AssimCclasses import pyConfigContext
 from store import Store
+from assimevent import AssimEvent
+from assimeventobserver import AssimEventObserver
 import os, logging, sys
 
 class BestPractices(DiscoveryListener):
@@ -223,6 +225,25 @@ class BestPractices(DiscoveryListener):
             #print >> sys.stderr, 'RESULTS ARE:', statuses
             self.log_rule_results(statuses, drone, srcaddr, discovertype, rulesobj)
 
+    @staticmethod
+    def send_rule_event(oldstat, newstat, drone, ruleid, _ruleobj):
+        ''' Newstat can never be None. '''
+        if oldstat is None:
+            if newstat == 'fail':
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+        elif oldstat == 'pass':
+            if newstat == 'fail':
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+        elif oldstat == 'fail':
+            if newstat == 'pass' or newstat == 'ignore' or newstat == 'NA':
+                AssimEvent(drone, AssimEvent.OBJUNWARN, extrainfo = {'ruleid' : ruleid})
+        elif oldstat == 'ignore':
+            if newstat == 'fail':
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+        elif oldstat == 'NA':
+            if newstat == 'fail':
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+
     def log_rule_results(self, results, drone, _srcaddr, discovertype, rulesobj):
         '''Log the results of this set of rule evaluations'''
         status_name = 'BP_%s_rulestatus' % discovertype
@@ -230,7 +251,7 @@ class BestPractices(DiscoveryListener):
             oldstats = pyConfigContext(getattr(drone, status_name))
         else:
             oldstats = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
-        for stat in ('pass', 'fail', 'ignore'):
+        for stat in ('pass', 'fail', 'ignore', 'NA'):
             logmethod = self.log.info if stat == 'pass' else self.log.warning
             for ruleid in results[stat]:
                 oldstat = None
@@ -241,6 +262,7 @@ class BestPractices(DiscoveryListener):
                 if oldstat == stat or stat == 'NA':
                     # No change
                     continue
+                BestPractices.send_rule_event(oldstat, stat, drone, ruleid, rulesobj)
                 thisrule = rulesobj[ruleid]
                 rulecategory = thisrule['category']
                 logmethod('%s %sED %s rule %s: %s [%s]' % (drone,
@@ -333,6 +355,32 @@ class BestPracticesCMA(BestPractices):
             for pkttype in config['allbpdiscoverytypes']:
                 BestPractices.register_sensitivity(BestPracticesCMA, pkttype)
 
+
+
+
+
+class DebugEventObserver(AssimEventObserver):
+    '''
+    Event observer for testing the send event code
+    '''
+    expectResults = {
+                     'f2p' : AssimEvent.OBJUNWARN,
+                     'n2f' : AssimEvent.OBJWARN,
+                     'p2f' : AssimEvent.OBJWARN,
+                     'i2f' : AssimEvent.OBJWARN,
+                     'f2i' : AssimEvent.OBJUNWARN,
+                     'f2na' : AssimEvent.OBJUNWARN,
+                     'na2f' : AssimEvent.OBJWARN
+                     }
+    def __init__(self):
+        AssimEventObserver.__init__(self,None)
+    def notifynewevent(self,event):
+        if event.eventtype == DebugEventObserver.expectResults[event.extrainfo['ruleid']]:
+            print "Success Result for %s is correct" % event.extrainfo['ruleid']
+        else:
+            print "Failure Result for %s is incorrect" % event.extrainfo['ruleid']
+            sys.exit(1)
+
 if __name__ == '__main__':
     #import sys
     JSON_data = '''
@@ -385,4 +433,12 @@ if __name__ == '__main__':
         assert len(ourstats['pass']) >= 3
         assert len(ourstats['ignore']) == 0
         print ourstats
+    DebugEventObserver()
+    BestPractices.send_rule_event('fail', 'pass', 'testdrone', 'f2p', None)
+    BestPractices.send_rule_event(None, 'fail', 'testdrone', 'n2f', None)
+    BestPractices.send_rule_event('pass', 'fail', 'testdrone', 'p2f', None)
+    BestPractices.send_rule_event('ignore', 'fail', 'testdrone', 'i2f', None)
+    BestPractices.send_rule_event('fail', 'ignore', 'testdrone', 'f2i', None)
+    BestPractices.send_rule_event('fail', 'NA', 'testdrone', 'f2na', None)
+    BestPractices.send_rule_event('NA', 'fail', 'testdrone', 'na2f', None)
     print 'Results look correct!'
