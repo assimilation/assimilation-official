@@ -213,7 +213,7 @@ _is_valid_curve25519_key_id(const char * key_id,	///< key_id to validate
 		if (ktype == PRIVATEKEY) {
 			CryptFramePrivateKey*	secret = cryptframe_private_key_by_id(key_id);
 			if (NULL == secret) {
-				g_warning("%s.%d: Private Key id %s not cached."
+				g_warning("%s.%d: Private Key id %s is not cached."
 				,	__FUNCTION__, __LINE__, key_id);
 				return FALSE;
 			}
