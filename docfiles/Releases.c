@@ -1,5 +1,33 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_1_2 version 1.1.2 - the Happy 2016 release
+@subsection Features_1_1_2 New Features
+- Now produce packages and installer works on openSUSE
+- best practice compliance code now issues warn and unwarn events
+- new code for debugging bad key id problems
+- added overview documentation of cma python files
+- you can now say "make tests" to run tests
+- changed libsodium RPM dependency to not be so particular about the version of libsodium available
+- added support for scientific and scientificfermi linux
+- enabled /etc/sudoers discovery by default
+
+@subsection BugFixes_1_1_2 Bug Fixes
+- discovery of /proc/sys now ignores I/O errors (this happens on some newer kernels)
+- linux os discovery won't issue funky messages when lsb_release is not installed
+- assimcli now works with a non-empty database again
+- fixed sudoers command to support += operator
+
+@subsection Caveats_1_1_2 Caveats
+- Not compatible with database formats before 1.1.0
+- Documentation has not been updated to reflect move to github. No doubt other shortcomings exist as well. Sorry! Please fix and generate a pull request.
+- No alerting, or interface to existing alerting beyond a sample email script (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- use with recent versions of Neo4j requires disabling authentication on Neo4j
+- Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
+
 @section Version_1_1_1 version 1.1.1 - the Thanksgiving Release
 @subsection Features_1_1_1 New Features
 - Added sample notification API client code - https://trello.com/c/LmBhODaa
