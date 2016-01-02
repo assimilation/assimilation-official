@@ -85,8 +85,9 @@ test_installer() {
     debpairs="debian:wheezy debian:jessie"
     fedpairs="fedora:21 fedora:22"
     centpairs="centos:centos6 centos:centos7"
+    susepairs="opensuse:42.1 opensuse:13.2"
 
-    for pair in $debpairs $fedpairs $centpairs $ubupairs
+    for pair in $susepairs $debpairs $fedpairs $centpairs $ubupairs
     do
         for role in cma nanoprobe # test
         do

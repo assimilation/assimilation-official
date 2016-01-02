@@ -80,7 +80,8 @@ verify_package_relno_consistency() {
 get_git_hash_info() {
     buildout=$1
     egrep 'assimilation-assimilation-official-[0-9a-f]{7}' < $buildout |
-        head -n1 | sed 's%.*assimilation-assimilation-official-%%'
+        head -n1 | sed -e 's%.*assimilation-assimilation-official-%%' \
+            -e 's%\.tgz$%%'
 }
 
 # Report all the git hash signatures for complaints
@@ -168,6 +169,7 @@ os_release_info() {
     rel=$(grep '^GOODBUILD=...*' < $build_out | sed 's%GOODBUILD=%%')
     case $rel in
         centos*|debian*)    echo "$rel" | sed 's%\.[^-]*-%-%';;
+        suse*|opensuse*)    echo "$rel" | sed 's%^[^_]*%suse%';;
         *)                  echo $rel;;
     esac
 }
@@ -261,10 +263,10 @@ copy_release_to_dropbox() {
         echo "Copying $pkgdir packages to $relsubdir"
         for file in $(egrep "${SHAPAT}" < $buildout | cut -c66-)
         do
-            test -d $NEWRELDIR/$relsubdir || mkdir $NEWRELDIR/$relsubdir
-            cp -p $pkgdir/$file $NEWRELDIR/$relsubdir/
+            test -d "$NEWRELDIR/$relsubdir" || mkdir "$NEWRELDIR/$relsubdir"
+            cp -p "$pkgdir/$file" "$NEWRELDIR/$relsubdir/"
         done
-        cp -p $pkgdir/build.out $NEWRELDIR/$relsubdir/
+        cp -p "$pkgdir/build.out" "$NEWRELDIR/$relsubdir/"
     done
 }
 usage() {

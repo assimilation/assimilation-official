@@ -43,6 +43,13 @@ BASEURL=$ROOTURL/Releases
 PRERELURL=$ROOTURL/Prereleases
 SRCROOT=https://github.com/assimilation/assimilation-official/raw
 NEOVERS=2.2.5
+NEO="https://neo4j.com/" # Certificate has expired :-(
+NEO="http://neo4j.com/"
+NEO4J_ROOTDIR=/opt/neo4j
+NEOTARDIR="neo4j-community-${NEOVERS}"
+NEOTARFILE="${NEOTARDIR}-unix.tar.gz"
+NEOTARURL="${NEO}artifact.php?name=${NEOTARFILE}"
+NEO4J_SERVICEFILE=/lib/systemd/system/neo4j.service
 BUILDLOG=build.out
 TARBALL=''
 
@@ -52,7 +59,7 @@ DEBIAN_BASE_CMA_PKGS='python-pip python-flask lsof python-netaddr
             libpcap0.8
             gcc
             adduser
-			ca-certificates'
+            ca-certificates'
 DEBIAN_BASE_NANO_PKGS='resource-agents lsb-release libpcap0.8 adduser'
 DEBIAN_BASE_PIP_PKGS='getent' # Plus py2neo
 DEBIAN_LIBSODIUM='libsodium13'
@@ -64,6 +71,7 @@ CENTOS_BASE_CMA_PKGS='python-pip
             initscripts
             resource-agents
             gcc
+            tar
 			ca-certificates'
 CENTOS_BASE_NANO_PKGS=''
 CENTOS_BASE_PIP_PKGS='getent' # Plus py2neo
@@ -76,13 +84,26 @@ CENTOS6_BASE_CMA_PKGS="lsof
             lsb-release
             lsof
             gcc
-			ca-certificates
+            ca-certificates
             scl-utils
             $CENTOS6_PYSCL-python
             $CENTOS6_PYSCL-python
             $CENTOS6_PYSCL-python-setuptools"
 CENTOS6_BASE_PIP_PKGS="flask netaddr getent demjson" # Plus py2neo
 CENTOS6_LIBSODIUMBASE="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi"
+
+SUSE_BASE_CMA_PKGS='python-pip
+            python-flask
+            lsof
+            python-netaddr
+            resource-agents
+            gcc
+            tar
+            which
+            ca-certificates
+            ca-certificates-mozilla'
+SUSE_BASE_NANO_PKGS='libsodium13'
+SUSE_BASE_PIP_PKGS='getent py2neo'
 
 logwork() {
     : "ACTION LOG: $*"
@@ -255,6 +276,12 @@ determine_os_version_lsb_release() {
     DISTRIB_RELEASE=$(lsb_release -s -r)
     DISTRIB_CODENAME=$(lsb_release -s -c)
     OSCLASS='gnu/linux'
+    case ${DISTRIB_ID} in
+        SUSE*)  DISTRIB_ID=suse;;
+    esac
+    case ${DISTRIB_CODENAME} in
+        n/a)    DISTRIB_CODENAME=unknown;;
+    esac
     return 0
 }
 
@@ -263,22 +290,6 @@ determine_os_version_etc_lsb_release() {
     grep '^DISTRIB_ID=' /etc/lsb-release >/dev/null 2>&1 || return 1
     . /etc/lsb-release
     OSCLASS='gnu/linux'
-    return 0
-}
-# Determine the OS version using the /etc/os-release file
-determine_os_version_etc_os_release() {
-    grep '^ID=' /etc/lsb-release >/dev/null 2>&1 || return 1
-    . /etc/os-release
-    OSCLASS='gnu/linux'
-    DISTRIB_ID=$ID
-    DISTRIB_RELEASE=$VERSION_ID
-    case $VERSION in
-        *'('*')'*)
-            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*\(%%' -e 's%\)%%')
-            ;;
-      *)    DISTRIB_CODENAME=unknown
-            ;;
-    esac
     return 0
 }
 
@@ -329,12 +340,31 @@ determine_os_version_hostnamectl() {
 }
 # Determine the OS version using the /etc/SuSE-release file
 determine_os_version_etc_suse_release() {
-    grep 'VERSION.*=' /etc/[SsUuSsEe]-release >/dev/null 2>&1 || return 1
+    grep 'VERSION.*=' /etc/[Ss][Uu][Ss][Ee]-release >/dev/null 2>&1 || return 1
     DISTRIB_ID=suse
-    RELINFO=$('VERSION.*=' /etc/[SsUuSsEe]-release | myline)
-    DISTRIB_RELEASE=$(echo "$RELINFO" | grep -o '[0-9.]')
-    DISTRIB_CODENAME=none
+    DISTRIB_RELEASE=$(grep 'VERSION.*=' /etc/[Ss][Uu][Ss][Ee]-release | 
+        sed 's%.*= *%%')
+    DISTRIB_CODENAME=$(grep 'CODENAME*=' /etc/[Ss][Uu][Ss][Ee]-release | 
+        sed 's%.*= *%%')
     OSCLASS='gnu/linux'
+}
+
+# Determine the OS version using the /etc/os-release file
+determine_os_version_etc_os_release() {
+    grep '^ID *=' /etc/os-release >/dev/null 2>&1 || return 1
+    . /etc/os-release
+    OSCLASS='gnu/linux'
+    DISTRIB_ID=$ID
+    DISTRIB_RELEASE=$VERSION_ID
+    DISTRIB_LIKE=$ID_LIKE
+    case $VERSION in
+        *'('*')'*)
+            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*\(%%' -e 's%\)%%')
+            ;;
+      *)    DISTRIB_CODENAME=unknown
+            ;;
+    esac
+    return 0
 }
 
 #
@@ -362,6 +392,13 @@ fixup_codename_if_possible() {
                 5|5.*)  DISTRIB_CODENAME=lenny;;
                 4|4.*)  DISTRIB_CODENAME=etch;;
             esac
+            ;;
+        opensuse|suse)
+            case $DISTRIB_RELEASE in
+                42.1)   DISTRIB_CODENAME=malachite;;
+                13.2)   DISTRIB_CODENAME=harlequin;;
+                13.1)   DISTRIB_CODENAME=bottle;;
+            esac
     esac
 }
 
@@ -370,7 +407,8 @@ osversion_methods="determine_os_version_lsb_release
         determine_os_version_etc_lsb_release
         determine_os_version_etc_suse_release
         determine_os_version_etc_redhat_release
-        determine_os_version_etc_debian_version"
+        determine_os_version_etc_debian_version
+        determine_os_version_etc_os_release"
 
 # Test each of the OS version scripts on the current OS
 test_os_versions() {
@@ -493,7 +531,7 @@ determine_os_version() {
         aix)        determine_aix_version;;
         solaris)    deterine_solaris_version;;
         sunos)      deterine_solaris_version;;
-        freebsd)        deterine_bsd_version;;
+        freebsd)    deterine_bsd_version;;
     esac
     fixup_codename_if_possible
     DISTRIB_DESCRIPTION="$DISTRIB_ID $OSCLASS version $DISTRIB_RELEASE"
@@ -512,7 +550,7 @@ packaging_type() {
     case "${OSCLASS}" in
         *linux)
             case $DISTRIB_ID in
-                suse|centos|redhat|scientific|scientificfermi|fedora)
+                suse|opensuse|centos|redhat|scientific|scientificfermi|fedora)
                         echo rpm; return 0;;
                 debian|ubuntu|mint|netrunner|deepin)
                         echo deb; return 0;;
@@ -542,11 +580,24 @@ packaging_type() {
     return 1
 }
 
+# return true (0) if we should use systemd for neo4j
+use_systemd_for_neo4j() {
+    case "${OSCLASS}" in
+        *linux)
+            case $DISTRIB_ID in
+                *suse|fedora)
+                return 0;;
+            esac;;
+    esac
+    return 1
+}
+
 is_supported_os() {
     case $OSCLASS in
         *linux)
                 case $DISTRIB_ID in
                     centos|redhat|scientific|scientificfermi|fedora) return 0;;
+                    opensuse|suse)          return 0;;
                     ubuntu|debian)          return 0;;
                 esac
     esac
@@ -618,15 +669,16 @@ is_package_installed() {
 
 yum_or_dnf() {
     case $DISTRIB_ID in
+        suse|opensuse)  echo zypper --non-interactive;;
         fedora)
             if
                 [ $(version_compare $DISTRIB_RELEASE 21) -gt 0 ]
             then
-                echo dnf
+                echo dnf -y
             else
-                echo yum
+                echo yum -y
             fi;;
-        *)  echo yum
+        *)  echo yum -y
     esac
 }
 
@@ -678,9 +730,9 @@ install_sys_package_onetry() {
     fi 
     logwork "Installing repo packages: $pkglist"
     case $(packaging_type) in
-        rpm)    $(yum_or_dnf) -y -q $flags install $pkglist
+        rpm)    $(yum_or_dnf) -q $flags install $pkglist
                 ;;
-        deb)    apt-get -y -q --no-install-recommends $flags install $pkglist;;
+        deb)    apt-get -q --no-install-recommends $flags install $pkglist;;
     esac
 }
 
@@ -719,7 +771,12 @@ install_sys_package() {
 upgrade_local_packages() {
     logwork "Upgrading from local package files:" $*
     case $(packaging_type) in
-        rpm)    $(yum_or_dnf) -q -y upgrade "$@"
+        rpm)    $(yum_or_dnf) -q upgrade "$@"
+                cmd=$(yum_or_dnf)
+                case $cmd in
+                    zypper*)    $cmd -q install "$@";;
+                    *)          $cmd -q upgrade "$@";;
+                esac
                 ;;
         deb)    dpkg --remove --force-depends $(debian_current_pkg_names "$@")
                 dpkg --install "$@"
@@ -734,7 +791,7 @@ install_local_packages() {
         upgrade_local_packages "$@"
     else
         case $(packaging_type) in
-            rpm)    $(yum_or_dnf) -q -y install "$@";;
+            rpm)    $(yum_or_dnf) -q install "$@";;
             deb)    dpkg --install "$@";;
         esac
     fi
@@ -793,7 +850,7 @@ initial_checks() {
 # return needed base packages 
 minimum_packages() {
     case $DISTRIB_ID in
-      ubuntu|debian)
+      ubuntu|debian|*suse*)
         cat <<-!EOF
         	wget
 		!EOF
@@ -918,6 +975,12 @@ install_centos_cma_base() {
     fi
 }
 
+install_suse_cma_base(){
+        install_sys_package $SUSE_BASE_CMA_PKGS
+        logwork "Running: pip install $(py2neo_version) $SUSE_BASE_PIP_PKGS"
+        pip install $SUSE_BASE_PIP_PKGS
+}
+
 # Install minimal fedora packages
 install_fedora_cma_base() {
     install_sys_package $CENTOS_BASE_CMA_PKGS
@@ -957,7 +1020,7 @@ install_centos_nano_base() {
     else
         install_sys_package $CENTOS6_BASE_NANO_PKGS
         ARCH=$(package_architecture)
-        SUFFIX="$ARCH/libsodium-last-1.0.5-2.el6.remi.$ARCH.rpm"
+        SUFFIX="$ARCH/libsodium-last-1.0.8-2.el6.remi.$ARCH.rpm"
         URL=$CENTOS6_LIBSODIUMBASE/$SUFFIX
         logwork "wget: retrieving $URL"
         wget -q -O libsodium.$ARCH.rpm $URL
@@ -968,6 +1031,10 @@ install_centos_nano_base() {
 # Install minimal fedora nanoprobe packages
 install_fedora_nano_base() {
     install_sys_package $CENTOS_BASE_NANO_PKGS
+}
+
+install_suse_nano_base() {
+    install_sys_package $SUSE_BASE_NANO_PKGS
 }
 
 # Install Nano config files for the CMA system only
@@ -1004,8 +1071,9 @@ install_debian_neo4j() {
         return
     fi
     logwork "Installing Neo4j cert from $CERT"
-    wget -q https://certs.godaddy.com/repository/gdig2.crt
-    wget -q --ca-certificate gdig2.crt -O - $CERT | apt-key add -
+    #wget -q https://certs.godaddy.com/repository/gdig2.crt
+    # The --no-check-certificate is godaddy's fault. 
+    wget -q --no-check-certificate -O - $CERT | apt-key add -
     logwork "Adding Neo4j repo"
     echo "deb $NEODEB/repo ${neoversion}/" \
             > /etc/apt/sources.list.d/neo4j.list
@@ -1021,6 +1089,8 @@ select_java_rpm_version() {
             boundary8=7;;
         fedora)
             boundary8=22;;
+        *)
+            boundary8=0;;
     esac
     if
         [ $(version_compare $DISTRIB_RELEASE $boundary8) -ge 0 ]
@@ -1029,11 +1099,24 @@ select_java_rpm_version() {
     else
         JAVA="java-1.7.0-openjdk"
     fi
+    echo $JAVA
 }
 
-# Install the RPM (centos/fedora) version of Neo4j
+lock_rpm_version() {
+    logwork "Locking neo4j version to $NEOVERS"
+    cmd=$(yum_or_dnf)
+    case $cmd in
+        zypper*)    zypper addlock neo4j
+                    ;;
+        *)          install_sys_package yum-versionlock neo4j-${NEOVERS}
+                    $cmd versionlock add neo4j
+                    ;;
+    esac
+}
+
+
+# Install the RPM (centos) version of Neo4j
 install_rpm_neo4j() {
-    JAVA=java-1.7.0-openjdk
     if
         does_command_exist java
     then
@@ -1043,21 +1126,30 @@ install_rpm_neo4j() {
     fi
     logwork "Adding Neo4j signing key"
     NEOKEY=https://debian.neo4j.org/neotechnology.gpg.key
-    wget -q https://certs.godaddy.com/repository/gdig2.crt
-    wget -q --ca-certificate gdig2.crt $NEOKEY
+    # The --no-check-certificate is godaddy's fault. 
+    wget -q --no-check-certificate $NEOKEY
     rpm --import neotechnology.gpg.key
-    logwork "Adding Neo4j repo to /etc/yum.repos.d/neo4j.repo"
-    cat <<-!EOF > /etc/yum.repos.d/neo4j.repo
+    logwork "Adding and enabling Neo4j repo at yum.neo4j.org"
+    case $(yum_or_dnf) in
+        *zypper*)   zypper lr | grep neo4j >/dev/null || \
+                    zypper addrepo http://yum.neo4j.org neo4j
+                    # zypper thinks something is wrong with the neo4j repo
+                    install_sys_package --no-gpg-checks neo4j-${NEOVERS}
+                    ;;
+        *)
+        cat <<-!EOF > /etc/yum.repos.d/neo4j.repo
 		[neo4j]
 		name=Neo4j Yum Repo
 		baseurl=http://yum.neo4j.org
 		enabled=1
 		gpgcheck=1
 		!EOF
-    install_sys_package yum-versionlock neo4j-${NEOVERS}
-    logwork "Locking Neo4j version to $NEOVERS"
-    $(yum_or_dnf) versionlock add neo4j
+        install_sys_package neo4j-${NEOVERS}
+        ;;
+    esac
+    lock_rpm_version
 }
+
 
 # Fix up neo4j configuration
 update_neo4j_config() {
@@ -1098,7 +1190,7 @@ install_centos_cma() {
 }
 install_fedora_cma() {
     install_fedora_cma_base
-    install_rpm_neo4j
+    install_tarball_systemd_neo4j
 }
 
 # Install the nanoprobe on Ubuntu or Debian
@@ -1109,9 +1201,20 @@ install_debian_nanoprobe() {
 install_centos_nanoprobe() {
     install_centos_nano_base
 }
-# Install the nanoprobe on Fedora
+
+# Install the nanoprobe prereqs on Fedora
 install_fedora_nanoprobe() {
-    : "Do nothing..."
+    : "Do nothing more..."
+}
+
+install_suse_cma() {
+    install_suse_cma_base
+    install_tarball_systemd_neo4j
+}
+
+# Install the nanoprobe prereqs on SuSE
+install_suse_nanoprobe() {
+    : "Do nothing more..."
 }
 
 # Install the nanoprobe on whatever OS
@@ -1121,6 +1224,7 @@ install_nanoprobe_prereqs() {
         centos|redhat|scientific|scientificfermi)
                                     install_centos_nanoprobe;;
         fedora)                     install_fedora_nanoprobe;;
+        suse|opensuse)              install_suse_nanoprobe;;
     esac
 }
 # Install the nanoprobe on whatever OS
@@ -1138,6 +1242,7 @@ install_cma() {
         centos|redhat|scientific|scientificfermi)
                                     install_centos_cma;;
         fedora)                     install_fedora_cma;;
+        suse*)                      install_suse_cma;;
     esac
     update_neo4j_config
     restart_neo4j
@@ -1147,21 +1252,85 @@ install_cma() {
     stop_neo4j
 }
 
+create_neo4j_service_file() {
+    mkdir -p $(dirname ${NEO4J_SERVICEFILE})
+    logwork "Creating Neo4j service file in ${NEO4J_SERVICEFILE}"
+    cat <<-!NEO4J_SERVICE > ${NEO4J_SERVICEFILE}
+		[Unit]
+		Description = Neo4j Graph Database
+		After = network.target
+
+		[Service]
+		Type = simple
+		ExecStart = ${NEO4J_ROOTDIR}/bin/neo4j console
+		TimeoutStartSec = 120
+		TimeoutStopSec = 30
+		User = neo4j
+		Group = neo4j
+
+		[Install]
+		WantedBy = multi-user.target
+	!NEO4J_SERVICE
+}
+
+# Install the Tarball (systemd) version of Neo4j
+install_tarball_systemd_neo4j() {
+    if
+        does_command_exist java
+    then
+        : OK Java already installed - leave it alone...
+    else
+        install_sys_package $(select_java_rpm_version)
+    fi
+    (
+    if
+        [ ! -L ${NEO4J_ROOTDIR} ]
+    then
+        logwork 'Adding neo4j user and group to the system.'
+        useradd  --system --shell /bin/false --no-create-home neo4j || true
+        groupadd --system neo4j || true
+    fi
+    cd $(dirname ${NEO4J_ROOTDIR})
+    logwork "Installing ${NEOTARURL} in $(pwd)/$NEOTARDIR"
+    wget -q -O ${NEOTARFILE} $NEOTARURL
+    tar zxf ${NEOTARFILE}
+    rm -f ${NEOTARFILE}
+    chown -R neo4j:neo4j ${NEOTARDIR}
+    if
+        [ -L neo4j ] && [ "$(readlink neo4j)" != "${NEOTARDIR}" ]
+    then
+        olddir=$(readlink neo4j)
+        rm -fr ${NEOTARDIR}/data
+        logwork "Moving Neo4j data from ${olddir}/data to ${NEOTARDIR}/data"
+        mv ${olddir}/data ${NEOTARDIR}/data
+    fi
+    rm -f neo4j /etc/neo4j
+    ln -s ${NEOTARDIR} neo4j
+    logwork 'Creating /etc/neo4j symlink'
+    ln -s ${NEO4J_ROOTDIR}/conf /etc/neo4j
+    create_neo4j_service_file
+    )
+}
 
 restart_neo4j() {
     logwork '(re)starting Neo4j'
     case $DISTRIB_ID in
         ubuntu|debian)                  service neo4j-service restart;;
-        centos|redhat|scientific|scientificfermi|fedora)
+        centos|redhat|scientific|scientificfermi)
                                         /etc/init.d/neo4j     restart;;
+        fedora|*suse)                   systemctl restart neo4j || \
+		                                ${NEO4J_ROOTDIR}/bin/neo4j console & \
+                                        NEOPID=$!;;
     esac
 }
 stop_neo4j() {
     logwork 'stopping Neo4j'
     case $DISTRIB_ID in
         ubuntu|debian)                  service neo4j-service stop;;
-        centos|redhat|scientific|scientificfermi|fedora)
+        centos|redhat|scientific|scientificfermi)
                                         /etc/init.d/neo4j     stop;;
+        fedora|*suse)                   systemctl stop neo4j || \
+                                        kill ${NEOPID};;
     esac
 }
 init_database() {
