@@ -58,8 +58,7 @@ DEBIAN_BASE_CMA_PKGS='python-pip python-flask lsof python-netaddr
             lsb-release
             libpcap0.8
             gcc
-            adduser
-            ca-certificates'
+            adduser'
 DEBIAN_BASE_NANO_PKGS='resource-agents lsb-release libpcap0.8 adduser'
 DEBIAN_BASE_PIP_PKGS='getent' # Plus py2neo
 DEBIAN_LIBSODIUM='libsodium13'
@@ -72,7 +71,7 @@ CENTOS_BASE_CMA_PKGS='python-pip
             resource-agents
             gcc
             tar
-			ca-certificates'
+            which'
 CENTOS_BASE_NANO_PKGS=''
 CENTOS_BASE_PIP_PKGS='getent' # Plus py2neo
 CENTOS_LIBSODIUM='libsodium'
@@ -84,7 +83,7 @@ CENTOS6_BASE_CMA_PKGS="lsof
             lsb-release
             lsof
             gcc
-            ca-certificates
+            which'
             scl-utils
             $CENTOS6_PYSCL-python
             $CENTOS6_PYSCL-python
@@ -102,9 +101,7 @@ SUSE_BASE_CMA_PKGS='python-pip
             resource-agents
             gcc
             tar
-            which
-            ca-certificates
-            ca-certificates-mozilla'
+            which'
 SUSE_BASE_NANO_PKGS='libsodium13'
 SUSE_BASE_PIP_PKGS='getent py2neo'
 
@@ -735,7 +732,7 @@ install_sys_package_onetry() {
     case $(packaging_type) in
         rpm)    $(yum_or_dnf) -q $flags install $pkglist
                 ;;
-        deb)    apt-get -q --no-install-recommends $flags install $pkglist;;
+        deb)    apt-get -y -q --no-install-recommends $flags install $pkglist;;
     esac
 }
 
@@ -853,14 +850,23 @@ initial_checks() {
 # return needed base packages 
 minimum_packages() {
     case $DISTRIB_ID in
-      ubuntu|debian|*suse*)
+      ubuntu|debian)
         cat <<-!EOF
-        	wget
+			wget
+			ca-certificates
 		!EOF
         ;;
       centos|redhat|scientific|scientificfermi|fedora)
         cat <<-!EOF
-        	wget
+			wget
+			ca-certificates
+		!EOF
+        ;;
+      *suse)
+        cat <<-!EOF
+			wget
+			ca-certificates
+			ca-certificates-mozilla
 		!EOF
         ;;
     esac
@@ -1023,7 +1029,7 @@ install_centos_nano_base() {
     else
         install_sys_package $CENTOS6_BASE_NANO_PKGS
         ARCH=$(package_architecture)
-        SUFFIX="$ARCH/libsodium-last-1.0.8-2.el6.remi.$ARCH.rpm"
+        SUFFIX="$ARCH/libsodium-last-1.0.8-1.el6.remi.$ARCH.rpm"
         URL=$CENTOS6_LIBSODIUMBASE/$SUFFIX
         logwork "wget: retrieving $URL"
         wget -q -O libsodium.$ARCH.rpm $URL
@@ -1090,10 +1096,7 @@ select_java_rpm_version() {
     case $DISTRIB_ID in
         centos|redhat|scientific|scientificfermi)
             boundary8=7;;
-        fedora)
-            boundary8=22;;
-        *)
-            boundary8=0;;
+        *)  boundary8=0;;
     esac
     if
         [ $(version_compare $DISTRIB_RELEASE $boundary8) -ge 0 ]
@@ -1306,6 +1309,8 @@ install_tarball_systemd_neo4j() {
         rm -fr ${NEOTARDIR}/data
         logwork "Moving Neo4j data from ${olddir}/data to ${NEOTARDIR}/data"
         mv ${olddir}/data ${NEOTARDIR}/data
+        logwork "Moving Neo4j conf from ${olddir}/conf to ${NEOTARDIR}/conf"
+        mv ${olddir}/conf ${NEOTARDIR}/conf
     fi
     rm -f neo4j /etc/neo4j
     ln -s ${NEOTARDIR} neo4j
