@@ -148,7 +148,7 @@ Requires:       scl-utils
 #Requires:      %{scl_prefix}scldevel
 %endif
 
-if %{require_neo4j_package}
+%if %{require_neo4j_package}
 Requires:         neo4j
 %endif
 
