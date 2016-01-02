@@ -91,6 +91,9 @@ CENTOS6_BASE_CMA_PKGS="lsof
             $CENTOS6_PYSCL-python-setuptools"
 CENTOS6_BASE_PIP_PKGS="flask netaddr getent demjson" # Plus py2neo
 CENTOS6_LIBSODIUMBASE="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi"
+#wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+#wget http://rpms.remirepo.net/enterprise/remi-release-6.rpm
+#rpm -Uvh remi-release-6.rpm epel-release-latest-6.noarch.rpm
 
 SUSE_BASE_CMA_PKGS='python-pip
             python-flask
