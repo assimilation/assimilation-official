@@ -49,19 +49,24 @@ class AssimEventObserver(object):
 
         Parameters:
         -----------
-        constraints: dict
+        constraints: dict-like *or* callable() returning bool
             A dict describing our desired events. The constraints in the dict are
             effectively ANDed together.  Each key is an attribute name in either
             the event itself or its associated object.  The value associated with
-            each attribute is either a list or a scalar value.  A list implies that
-            any one of those values is acceptable.  A scalar value implies that it
-            *must* have that value.
+            each attribute is either a list or a scalar value or something
+            implementing __contains__.  A scalar value implies that it *must* have exactly
+            that value, otherwise it must be *in* the associated list/tuple/etc.
 
             This should be able to constrain the type of event we're looking at, the
             type of event-object we're looking at, and the domain of the event-object -
             and lots of other potentially useful things.
 
             See the "is_interesting" method below for implementation details...
+
+            If 'constraints' is a callable (that is, callable(constraints) is True), then
+            we will just call constraints(event) to see if the event is interesting to
+            this observer. Whatever 'constraints' returns will be interpreted in a
+            boolean context - so returning a bool would be a good idea...
         '''
         self.constraints = constraints
         AssimEvent.registerobserver(self)
@@ -72,9 +77,12 @@ class AssimEventObserver(object):
         '''
         raise NotImplementedError('AssimEventObserver is an abstract base class')
 
+    # [R0912:AssimEventObserver.is_interesting] Too many branches (13/12)
+    # This is triggered largely by the if DEBUG statements...
+    # pylint: disable=R0912
     def is_interesting(self, event):
         '''Return True if the given event conforms to our constraints.  That is, would it
-        be interesting to our observers.
+        be interesting to our observers?
 
         Parameters:
         -----------
@@ -85,6 +93,8 @@ class AssimEventObserver(object):
             print >> sys.stderr, 'is_interesting(%s, %s)?' % (self.constraints, event.eventtype)
         if self.constraints is None:
             return True
+        if callable(self.constraints):
+            return self.constraints(event)
         for attr in self.constraints:
             value = AssimEventObserver.getvalue(event, attr)
             if DEBUG:
@@ -95,7 +105,7 @@ class AssimEventObserver(object):
             constraint = self.constraints[attr]
             if DEBUG:
                 print >>sys.stderr, 'CONSTRAINT is %s' % constraint
-            if isinstance(constraint, (list, dict, tuple)):
+            if hasattr(constraint, '__contains__'):
                 if value not in constraint:
                     if DEBUG:
                         print >> sys.stderr, 'Event is not interesting(1)', value, constraint
@@ -188,11 +198,10 @@ class FIFOEventObserver(AssimEventObserver):
             self.errcount += 1
             self.ioerror(event)
 
-    def ioerror(self, unusedevent):
+    def ioerror(self, _unusedevent):
         '''This function gets called when we get an I/O error writing to the FIFO.
         This is likely an EPIPE (broken pipe) error.
         '''
-        unusedevent = unusedevent # Make pylint happy...
         if self.maxerrcount is not None and self.errcount > self.maxerrcount:
             AssimEvent.unregisterobserver(self)
 
