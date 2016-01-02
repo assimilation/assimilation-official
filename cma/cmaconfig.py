@@ -498,9 +498,13 @@ class ConfigFile(object):
 
 
 if __name__ == '__main__':
+    import subprocess
     cf = ConfigFile()
-    isvalid = cf.isvalid()
-    print 'Is ConfigFile.default_default() valid?:', isvalid
-    print 'Complete config:', cf.complete_config()  # checks for validity
+    assert cf.isvalid()
     # Make sure it's making correct JSON...
     pyConfigContext(str(cf.complete_config()))
+    #print 'Complete config:', cf.complete_config()  # also checks for validity
+    lint = subprocess.Popen(('/usr/bin/jsonlint',  '-f', '-'), stdin=subprocess.PIPE)
+    print >> lint.stdin, '%s\n' % cf.complete_config()
+    lint.stdin.close()
+    assert lint.wait() == 0
