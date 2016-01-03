@@ -95,7 +95,7 @@ test_installer() {
             # So RPMs might not be the best choice for Fedora - or anyone
             # because they drop their untested prereleases in their repository
             case $pair:$role in
-                fedora:*:cma)   continue;;
+                opensuse:13.2:cma)   continue;;
             esac
             setup $pair $role
             echo "TEST FOR $pair in role $role STARTED $(date)"
