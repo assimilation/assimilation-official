@@ -1163,7 +1163,7 @@ update_neo4j_config() {
     serverconfig=$configdir/neo4j-server.properties
     # This is the wrong answer for the long term
     authflag='dbms.security.auth_enabled'
-    desiredauth="$authflag=false"
+    desiredauth="$authflag=true"
     if
         grep -q "^$desiredauth" $serverconfig
     then
