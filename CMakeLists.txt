@@ -157,6 +157,7 @@ set (CPACK_COMPONENT_NANOPROBE-COMPONENT_GROUP "${NANOPROBENAME}")
 #	MONRULESUBDIR	the relative directory where we store the flat files containing our monitoring rules
 #	MONRULEINSTALL	Where we install our monitoring rule flat files
 #	CRYPTKEYDIR		Where we keep our encryption/signature keys
+#	NEO4JCREDFILENAME Where we stash our Neo4j credentials
 #	OCFINSTALL		Where we install our OCF resource agents
 #	CMAADDR			Default address and port of the CMA - defaults to 224.0.2.5:1984
 #	CMAINITFILE		Name of initialization file for the CMA - defaults to /etc/cma.conf
@@ -204,6 +205,7 @@ set (MONRULEINSTALL ${USRSHARE}/${MONRULESUBDIR})
 set (NOTIFICATIONDIR notification.d)
 set (NOTIFICATION_SCRIPT_DIR ${USRSHARE}/${NOTIFICATIONDIR})
 set (CRYPTKEYDIR ${USRSHARE}/crypto.d)
+set (NEO4JCREDFILENAME ${CRYPTKEYDIR}/neo4j.creds)
 set (PUBKEYSUFFIX .pub)
 set (PRIVATEKEYSUFFIX .secret)
 set (OCFINSTALL /usr/lib/ocf/resource.d/assimilation)

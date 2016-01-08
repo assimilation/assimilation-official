@@ -29,7 +29,7 @@ import logging, logging.handlers
 import py2neo
 from py2neo import neo4j
 from store import Store
-from cmadb import CMAdb
+from cmadb import CMAdb, Neo4jCreds
 from consts import CMAconsts
 from graphnodes import GraphNode
 
@@ -59,8 +59,10 @@ class CMAinit(object):
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
         CMAdb.log.addHandler(syslog)
         CMAdb.log.setLevel(logging.DEBUG)
-        url = ('http://%s:%d/db/data/' % (host, port))
-        #print >> sys.stderr, 'CREATING GraphDatabaseService("%s")' % url
+        hostport = '%s:%s' % (host, port)
+        url = ('https://%s/db/data/' % (hostport))
+        url = ('http://%s/db/data/' % (hostport))
+        Neo4jCreds().authenticate(hostport)
         neodb = neo4j.Graph(url)
         self.db = neodb
         if cleanoutdb:
@@ -75,7 +77,7 @@ class CMAinit(object):
                 # Neo4j started.  All is well with the world.
                 break
             except (RuntimeError, IOError, py2neo.GraphError) as exc:
-                print >> sys.stderr, 'TRYING AGAIN [[%s]...[%s]' % (url, str(exc))
+                print >> sys.stderr, 'TRYING AGAIN [%s]...[%s]' % (url, str(exc))
                 trycount += 1
                 if trycount > retries:
                     print >> sys.stderr, ('Neo4j still not started - giving up.')

@@ -517,6 +517,7 @@ ClientQuery._validationmethods = {
 if __name__ == '__main__':
     import re
     from store import Store
+    from cmadb import Neo4jCreds
     metadata1 = \
     '''
     {   "cypher": "START n=node:ClientQuery('*:*') RETURN n",
@@ -583,6 +584,7 @@ if __name__ == '__main__':
     '''
     q3 = ClientQuery('ipowners', metadata3)
 
+    Neo4jCreds().authenticate()
     neodb = neo4j.Graph()
     neodb.delete_all()
 

@@ -1101,6 +1101,7 @@ class Store(object):
         self.abort()
 
 if __name__ == "__main__":
+    from cmadb import Neo4jCreds
     # I'm not too concerned about this test code...
     # R0914:923,4:testme: Too many local variables (17/15)
     # pylint: disable=R0914
@@ -1124,6 +1125,7 @@ if __name__ == "__main__":
             def __meta_labels__(cls):
                 return ['Class_%s' % cls.__name__]
 
+        Neo4jCreds().authenticate()
         ourdb = neo4j.Graph()
         ourdb.legacy.get_or_create_index(neo4j.Node, 'Drone')
         dbvers = ourdb.neo4j_version

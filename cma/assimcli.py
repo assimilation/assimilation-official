@@ -37,9 +37,10 @@ from store import Store
 from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID, BPINSTALL_DIR,   \
-    CMAINITFILE
+    CMAINITFILE, CMAUSERID
 from AssimCclasses import pyCryptFrame, pyCryptCurve25519
 from cmaconfig import ConfigFile
+from cmadb import Neo4jCreds
 #
 # These imports really are necessary - in spite of what pylint thinks...
 # pylint: disable=W0611
@@ -213,18 +214,14 @@ class genkeys(object):
     @staticmethod
     def usage():
         "reports usage for this sub-command"
-        return 'genkeys (must run as root)'
+        return 'genkeys'
 
     @staticmethod
-    def execute(store, executor_context, otherargs, flagoptions):
+    def execute(store, _executor_context, otherargs, _flagoptions):
         'Generate the desired key-pairs'
         store = store
-        executor_context = executor_context
-        flagoptions = flagoptions
 
-        if os.geteuid() != 0:
-            return usage()
-        if len(otherargs) > 0:
+        if os.geteuid() != 0 or len(otherargs) > 0:
             return usage()
         cryptcurve25519_cache_all_keypairs()
         cmaidlist = pyCryptFrame.get_cma_key_ids()
@@ -264,6 +261,22 @@ class genkeys(object):
             if privatecount > 1:
                 print ('SECURELY HIDE *private* key %s' % privatename)
                 extras.append(keyid)
+@RegisterCommand
+class neo4jpass(object):
+    'Generate and remember a new neo4j password'
+
+    @staticmethod
+    def usage():
+        "reports usage for this sub-command"
+        return 'neo4jpass [optional-new-password]'
+
+    @staticmethod
+    def execute(_store, _executor_context, otherargs, _flagoptions):
+        'Generate and remember a new neo4j password'
+        if os.geteuid() != 0 or len(otherargs) > 1:
+            return usage()
+        Neo4jCreds().update(newauth=otherargs[0] if len(otherargs) > 0 else None)
+
 
 
 options = {'language', 'format'}
@@ -284,6 +297,7 @@ def usage():
     print >> sys.stderr, '    Legal sub-command usages are:'
     for cmd in cmds:
         print >> sys.stderr, '    %s' % commands[cmd].usage()
+    print >> sys.stderr, '(all sub-commands must be run as root or %s)' % CMAUSERID
     return 1
 
 # pylint too few public methods...
@@ -302,6 +316,7 @@ class DummyIO(object):
 
 def dbsetup(readonly=False):
     'Set up our connection to Neo4j'
+    Neo4jCreds().authenticate()
     ourstore = Store(neo4j.Graph(), uniqueindexmap={}, classkeymap={})
     CMAinit(DummyIO(), readonly=readonly, use_network=False)
     for classname in GraphNode.classmap:
@@ -314,7 +329,7 @@ def main(argv):
     ourstore = None
     executor_context = None
 
-    nodbcmds = {'genkeys'}
+    nodbcmds = {'genkeys', 'neo4jpass'}
     rwcmds = {'loadqueries', 'loadbp'}
     selected_options = {}
     narg = 0

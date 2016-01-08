@@ -31,6 +31,7 @@ from AssimCclasses import pyNetAddr, dump_c_objects
 from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count, proj_class_dump_live_objects
 from graphnodes import GraphNode, RegisterGraphClass
 from cmainit import CMAinit
+from cmadb import Neo4jCreds
 
 DEBUG=False
 CheckForDanglingClasses = True
@@ -198,6 +199,7 @@ for key in keymap:
 
 def initstore():
     global version_printed
+    Neo4jCreds().authenticate()
     db = neo4j.Graph(None)
     if not version_printed:
         print >> sys.stderr, 'USING NEO4J VERSION %s' % str(db.neo4j_version)
