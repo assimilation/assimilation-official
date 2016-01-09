@@ -11,9 +11,9 @@ ENV GITTARZAN $GITHUB/tarball/$GITVERSION
 ENV GITHASH 5e5971a # Will be updated by "dockit" script
 ENV GITPATH assimilation-${GITREPOSITORY}-${GITHASH}
 RUN $YUM install epel-release pkg-config || true
-RUN $YUM install deltarpm glib2 libpcap zlib-devel python	\
-	python-devel python-flask which java-1.8.0-openjdk lsof	\
-	libsodium-devel gcc cmake make glib2-devel valgrind resource-agents \
+RUN $YUM install deltarpm glib2 libpcap zlib-devel python			\
+	python-devel python-flask which java-1.8.0-openjdk lsof			\
+	libsodium-devel gcc cmake make glib2-devel valgrind resource-agents	\
 	wget libpcap-devel pylint rpm-build iproute
 RUN $YUM remove vim-minimal && $YUM install doxygen graphviz
 RUN $YUM install python-pip
@@ -44,7 +44,6 @@ RUN printf "%s\n%s\n" '$ModLoad imuxsock' '$SystemLogSocketName /dev/log' >> /tm
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
 RUN $YUM install python-demjson
-RUN echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 RUN rsyslogd && $NEOROOT/bin/neo4j console&  sleep 20; testify -v tests
 RUN cp /root/rpmbuild/RPMS/@ARCH@/* /root/assimilation/packages
 RUN echo "GOOD BUILD: fedora:latest" # Will be updated by "dockit" script

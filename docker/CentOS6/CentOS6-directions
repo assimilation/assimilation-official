@@ -212,7 +212,6 @@ run_assimilation_tests() {
 	yum -y install ${TESTREQS}
 	scl enable $PYSCL 'pip install ${PIPTEST}'
 	mkdir -p /var/lib/heartbeat/lrm
-	echo 'dbms.security.auth_enabled=false' >> $NEODIR/conf/neo4j-server.properties
 	cd /tmp/assimilation-test/src/cma
 	service $LOGGER start &
 	service ${NEOSERVICE} start & sleep 20

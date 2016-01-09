@@ -44,7 +44,6 @@ RUN printf "%s\n%s\n" '$ModLoad imuxsock' '$SystemLogSocketName /dev/log' >> /tm
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
 RUN $YUM install python-demjson
-RUN echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 RUN /usr/sbin/rsyslogd&  $NEOROOT/bin/neo4j console & sleep 20; testify -v tests
 RUN cp /root/rpmbuild/RPMS/x86_64/* /root/assimilation/packages
 RUN echo "GOOD BUILD: centos:latest" # Will be updated by "dockit" script

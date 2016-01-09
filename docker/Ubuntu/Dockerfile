@@ -91,7 +91,6 @@ RUN pip install 'mock<1.1.3' # testify wants this, but we don't use features tha
 #               Versions starting with 1.1.3 don't install on earlier systems
 RUN pip install 'testify'
 #RUN ls $NEOROOT
-RUN echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 RUN /usr/sbin/rsyslogd&  /var/lib/neo4j/bin/neo4j console & sleep 20; cd /root/assimilation/src && testify -v cma.tests
 
 ###############################################################
