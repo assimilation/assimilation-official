@@ -5,5 +5,4 @@ apt-get install neo4j -y # Install Neo4j, community edition
 NEOROOT="/var/lib/neo4j"
 export NEOROOT
 cat $NEOROOT/conf/neo4j-server.properties
-echo 'dbms.security.auth_enabled=false' >> $NEOROOT/conf/neo4j-server.properties
 service neo4j-service restart
