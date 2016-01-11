@@ -28,5 +28,7 @@ script:
   - sudo /etc/init.d/cma stop
   - sudo assimcli genkeys
   - cd $TRAVIS_BUILD_DIR/cma
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
+  - neoauth neo4j neo4j neo4j 2>&1 || true
   - sudo testify -v tests
   - cd $TRAVIS_BUILD_DIR
