@@ -96,7 +96,8 @@ class TestExternal(TestCase):
 
     def test_python_external(self):
         MODULES = ('bestpractices.py', 'cmaconfig.py', 'cmainit.py',
-                   'cmadb.py', 'graphnodes.py', 'monitoring.py', 'query.py',
+                   'cmadb.py', 'graphnodes.py', 'graphnodeexpression.py',
+                   'monitoring.py', 'query.py',
                    'store.py', 'transaction.py')
         for mod in MODULES:
             modpath = findcmd([mod,])

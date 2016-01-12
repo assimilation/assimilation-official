@@ -169,6 +169,7 @@ class GraphNodeExpression(object):
     def RegisterFun(function):
         'Function to register other functions as built-in GraphNodeExpression functions'
         GraphNodeExpression.functions[function.__name__] = function
+        return function
 
 
 class ExpressionContext(object):
@@ -292,7 +293,7 @@ def EQ(args, _context):
     for val in args[1:]:
         if val is None:
             continue
-        if val0 != val:
+        if val0 != val and str(val0) != str(val):
             return False
         anymatch = True
     return anymatch
@@ -389,7 +390,7 @@ def IN(args, _context):
     val0 = args[0]
     if val0 is None:
         return None
-    if hasattr(val0, '__iter__'):
+    if hasattr(val0, '__iter__') and not isinstance(val0, (str, unicode)):
         # Iterable
         anyTrue = False
         for elem in val0:
@@ -411,7 +412,7 @@ def NOTIN(args, _context):
     val0 = args[0]
     if val0 is None:
         return None
-    if hasattr(val0, '__iter__'):
+    if hasattr(val0, '__iter__') and not isinstance(val0, (str, unicode)):
         # Iterable
         for elem in val0:
             if elem in args[1:] or str(elem) in args[1:]:
@@ -422,8 +423,11 @@ def NOTIN(args, _context):
 @GraphNodeExpression.RegisterFun
 def NOT(args, _context):
     'Function to Negate the Truth value of its single argument'
-    ret = args[0]
-    return None if ret is None else not ret
+    try:
+        val0 = args[0]
+    except TypeError:
+        val0 = args
+    return None if val0 is None else not val0
 
 _regex_cache = {}
 @GraphNodeExpression.RegisterFun
@@ -434,7 +438,7 @@ def match(args, _context):
     rhs = args[1]
     if lhs is None or rhs is None:
         return None
-    flags = args[2] if len(args) > 2 else None
+    flags = args[2] if len(args) > 2 else 0
     cache_key = '%s//%s' % (str(rhs), str(flags))
     if cache_key in _regex_cache:
         regex = _regex_cache[cache_key]
@@ -659,6 +663,8 @@ def PAMMODARGS(args, _context):
 def MUST(args, _unused_context):
     'Return True if all args are True. A None arg is the same as False to us'
     #print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
+    if not hasattr(args, '__iter__') or isinstance(args, (str, unicode)):
+        args = (args,)
     for arg in args:
         if arg is None or not arg:
             #print >> sys.stderr, '+++MUST returns FALSE'
@@ -670,6 +676,8 @@ def MUST(args, _unused_context):
 def NONEOK(args, _unused_context):
     'Return True if all args are True or None'
     #print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
+    if not hasattr(args, '__iter__') or isinstance(args, (str, unicode)):
+        args = (args,)
     for arg in args:
         if arg is not None and not arg:
             #print >> sys.stderr, '+++NONEOK returns FALSE'
@@ -690,7 +698,23 @@ def bitwiseOR(args, context):
         value = GraphNodeExpression.evaluate(arg, context)
         if value is None:
             return None
-        result |= value
+        result |= int(value)
+    return result
+
+@GraphNodeExpression.RegisterFun
+def bitwiseAND(args, context):
+    '''
+    A function which evaluates the each expression and returns the bitwise AND of
+    all the expressions given as arguments
+    '''
+    if len(args) < 2:
+        return None
+    result = int(args[0])
+    for arg in args:
+        value = GraphNodeExpression.evaluate(arg, context)
+        if value is None:
+            return None
+        result &= int(value)
     return result
 
 @GraphNodeExpression.RegisterFun
@@ -843,6 +867,8 @@ def basename(args, context):
     This function returns the basename from a pathname.
     If no pathname is supplied, then the executable name is assumed.
     '''
+    if isinstance(args, (str, unicode)):
+        args = (args,)
     if len(args) == 0:
         args = ('$pathname',)    # Default to the name of the executable
     for arg in args:
@@ -861,6 +887,8 @@ def dirname(args, context):
     This function returns the directory name from a pathname.
     If no pathname is supplied, then the discovered service executable name is assumed.
     '''
+    if isinstance(args, (str, unicode)):
+        args = (args,)
     if len(args) == 0:
         args = ('$pathname',)    # Default to the name of the executable
     for arg in args:
@@ -881,3 +909,57 @@ def hascmd(args, context):
         if cmdlist is None or arg not in cmdlist:
             return None
     return True
+
+if __name__ == '__main__':
+
+    def simpletests():
+        '''These tests don't require a real context'''
+        assert NOT((True,), None) == False
+        assert NOT((False,), None) == True
+        assert EQ((1,1,'1'), None)
+        assert NOT(EQ((1,), None), None) is None
+        assert MUST(NOT(EQ((1,), None), None), None) == False
+        assert NONEOK(NOT(EQ((1,), None), None), None) == True
+        assert NOT(EQ((1,1,'2'), None), None)
+        assert NOT(EQ((0,0,'2'), None), None)
+        assert EQ(('a','a','a'), None)
+        assert EQ(('0','0',0), None)
+        assert NOT(NE((1,1,'1'), None), None)
+        assert NOT(NE((1,), None), None) is None
+        assert NONEOK(NOT(NE((1,), None), None), None) == True
+        assert MUST(NOT(NE((1,), None), None), None) == False
+        assert NOT(NE((1,1,'2'), None), None)
+        assert NOT(NE((0,0,'2'), None), None)
+        assert NOT(NE(('a','a','a'), None), None)
+        assert NOT(NE(('0','0',0), None), None)
+        assert LE((1,1), None)
+        assert LE((1,5), None)
+        assert NOT(LT((1,1), None), None)
+        assert LT((1,5), None)
+        assert NOT(GT((1,1), None), None)
+        assert GE((1,1), None)
+        assert IN ((1, 2 , 3, 4, 1), None)
+        assert IN ((1, 2 , 3, 4, '1'), None)
+        assert NOT(IN((1, 2 , 3, 4), None), None)
+        assert NOT(NOTIN((1, 2 , 3, 4, 1), None), None)
+        assert NOT(NOTIN((1, 2 , 3, 4, '1'), None), None)
+        assert NOTIN((1, 2 , 3, 4), None)
+        assert bitwiseOR((1, 2, 4), None) == 7
+        assert bitwiseOR((1, 2, '4'), None) == 7
+        assert bitwiseAND((7, 3), None) == 3
+        assert bitwiseAND((7, 1, '2'), None) == 0
+        assert bitwiseAND(('15', '7', '3'), None) == 3
+        assert IGNORE((False, False, False), None)
+        assert MUST(None, None) == False
+        assert MUST(True, None) == True
+        assert MUST(False, None) == False
+        assert NONEOK(None, None) == True
+        assert NONEOK(True, None) == True
+        assert NONEOK(False, None) == False
+        assert match(('fred', 'fre'), None)
+        assert not match(('fred', 'FRE'), None)
+        assert basename(('/dev/null'), None) == 'null'
+        assert dirname(('/dev/null'), None) == '/dev'
+        print >> sys.stderr, 'Simple tests passed.'
+    simpletests()
+    print >> sys.stderr, 'All tests passed.'
