@@ -112,7 +112,7 @@ else
 fi
 cd $WORKSPACE
 if
-  (testify -v cma.tests)
+  (sudo testify -v cma.tests)
 then
   : testify $PWD/cmd/tests looks good
 else
