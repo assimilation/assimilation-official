@@ -4,5 +4,7 @@ apt-get update -y # Find out about the files in our repository
 apt-get install neo4j -y # Install Neo4j, community edition
 NEOROOT="/var/lib/neo4j"
 export NEOROOT
-cat $NEOROOT/conf/neo4j-server.properties
+wc /var/lib/neo4j/conf/neo4j-server.properties
+grep -n dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
 service neo4j-service restart
+grep -n dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
