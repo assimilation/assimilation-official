@@ -1,3 +1,5 @@
+#!/bin/sh -eu
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 #
 # This file is part of the Assimilation Project.
@@ -45,13 +47,26 @@ esac
 if
   [ $# = 0 ]
 then
-  LIST='AssimCclasses.py assimjson.py cmadb.py cma.py cmainit.py consts.py dispatchtarget.py droneinfo.py frameinfo.py hbring.py messagedispatcher.py packetlistener.py query.py store.py transaction.py'
-  LIST='AssimCclasses.py assimcli.py assimevent.py assimeventobserver.py assimjson.py bestpractices.py checksumdiscovery.py cmadb.py cmainit.py cma.py cmaconfig.py consts.py discoverylistener.py dispatchtarget.py droneinfo.py frameinfo.py graphnodes.py hbring.py linkdiscovery.py messagedispatcher.py monitoring.py monitoringdiscovery.py packetlistener.py query.py store.py transaction.py flask/hello.py'
- LIST="$LIST $(echo systemtests/*.py)"
+  LIST=$(echo *.py systemtests/*.py)
 else
   LIST="$@"
 fi
+
+NLIST=''
+for file in $LIST
+do
+    case $file in
+        *AssimCtypes*|*SAVE*|*OLD*) ;;
+        *)                          NLIST="$NLIST $file"
+    esac
+done
+
 case $vers in
- 1.1)	pylint --init-hook="sys.path.append('systemtests')" --msg-template='{path}:{line}: [{msg_id}:{obj}] {msg}' $FLAGS --rcfile pylint${vers}.cfg $LIST;;
- *)	pylint --init-hook="sys.path.append('systemtests')" $FLAGS --rcfile pylint${vers}.cfg $LIST;;
+ 1.1)	pylint --init-hook="sys.path.append('systemtests')"                 \
+            --msg-template='{path}:{line}: [{msg_id}:{obj}] {msg}' $FLAGS   \
+            --rcfile pylint${vers}.cfg $NLIST
+        ;;
+ *)     pylint --init-hook="sys.path.append('systemtests')" $FLAGS --rcfile \
+                pylint${vers}.cfg $NLIST
+        ;;
 esac

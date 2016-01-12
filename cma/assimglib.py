@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -24,17 +24,17 @@
 #
 #
 '''
-This file provides wrapper functions for some glib mainloop-related classes that we need to know about.
-It is somewhat compatible with the GObject introspection libraries for the same code.
-The advantage we have is that we don't need that code which can be complicated to get in a particular
-environment - since it involved both Python code and C code.
+This file provides wrapper functions for some glib mainloop-related classes that we need to know
+about.  It is somewhat compatible with the GObject introspection libraries for the same code.
+The advantage we have is that we don't need that code which can be complicated to get in a
+particular environment - since it involved both Python code and C code.
 This is easy for us to do since we are using ctypes and ctypesgen anyway.
 '''
 
 from AssimCtypes import \
-    G_IO_IN, G_IO_PRI, G_IO_ERR, G_IO_OUT, G_IO_HUP,    \
+    G_IO_IN, G_IO_PRI, G_IO_ERR, G_IO_OUT, G_IO_HUP,                            \
     g_main_loop_new, g_main_loop_run, g_main_loop_quit, g_main_context_default, \
-    g_io_channel_unix_new, assim_set_io_watch, g_source_remove, g_timeout_add,  \
+    assim_set_io_watch, g_source_remove, g_timeout_add,                         \
     guint, gboolean, GIOChannel, GIOCondition, GIOFunc, GSourceFunc, UNCHECKED, g_main_loop_unref
 from ctypes import py_object, POINTER, CFUNCTYPE
 
@@ -76,6 +76,9 @@ assim_set_io_watch.argtypes = [guint, GIOCondition, GIOFunc, py_object]
 g_timeout_add.argtypes      = [guint, GSourceFunc,  py_object]
 
 
+
+# We don't need any additional public methods (pylint complaint)
+# pylint: disable=R0903
 class IOWatch(object):
     'This class encapsulates an I/O source based on the Glib g_io_add_watch'
     save_callbacks = []
@@ -97,13 +100,16 @@ class IOWatch(object):
         self.callback = GIOFunc(callback)
         IOWatch.save_callbacks.append(self.callback)
         self.sourceid = assim_set_io_watch(fileno, conditions, self.callback, otherobj)
-        #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % (callback, cb, otherobj, obj))
+        #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % \
+        #        (callback, cb, otherobj, obj))
         #print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
 
     def __del__(self):
         g_source_remove(self.sourceid)
 
 
+# We don't need any additional public methods (pylint complaint)
+# pylint: disable=R0903
 class GMainTimeout(object):
     'This class encapsulates an timeout source based on the Glib g_timeout_add'
     save_callbacks = []

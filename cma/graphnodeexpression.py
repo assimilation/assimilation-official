@@ -32,7 +32,7 @@ class GraphNodeExpression(object):
     '''We implement Graph node expressions - we are't a real class'''
     functions = {}
     def __init__(self):
-        raise NotImplementedMethod('This is not a real class')
+        raise NotImplementedError('This is not a real class')
 
     @staticmethod
     def evaluate(expression, context):
@@ -53,30 +53,64 @@ class GraphNodeExpression(object):
         if not hasattr(context, 'get') or not hasattr(context, '__setitem__'):
             context = ExpressionContext(context)
         #print >> sys.stderr, '''EVALUATE('%s') (%s):''' % (expression, type(expression))
+        # The value of this parameter is a constant...
+        #if expression[-1] != '"':
+        #    print >> sys.stderr, "Unterminated string '%s'" % expression
         if expression.startswith('"'):
-            # The value of this parameter is a constant...
-            if expression[-1] != '"':
-                #print >> sys.stderr, "Unterminated string '%s'" % expression
-                return None
-            return expression[1:-1]
-        if expression.startswith('0x') and len(expression) > 3:
+            return expression[1:-1] if expression[-1] == '"' else None
+        if (expression.startswith('0x') or expression.startswith('0X')) and len(expression) > 3:
             return int(expression[2:], 16)
         if expression.isdigit():
-            if expression.startswith('0'):
-                return int(expression, 8)
-            else:
-                return int(expression)
+            return int(expression, 8) if expression.startswith('0') else int(expression)
         if expression.find('(') >= 0:
             value = GraphNodeExpression.functioncall(expression, context)
             context[expression] = value
             return value
-        if expression.startswith('$'):
-            #print >> sys.stderr, 'RETURNING VALUE OF %s' % expression[1:]
-            #print >> sys.stderr, 'Context is %s' % str(context)
-            #print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
-            #   % (expression, context.get(expression[1:], None))
-            return context.get(expression[1:], None)
-        return expression
+        #if expression.startswith('$'):
+        #print >> sys.stderr, 'RETURNING VALUE OF %s' % expression[1:]
+        #print >> sys.stderr, 'Context is %s' % str(context)
+        #print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
+        #   % (expression, context.get(expression[1:], None))
+        return context.get(expression[1:], None) if expression.startswith('$') else expression
+
+    @staticmethod
+    def _compute_function_args(arglist, context):
+        '''Compute the arguments to a function call. May contain function calls
+        and other GraphNodeExpression
+        '''
+        args = []
+        argstrings = []
+        nestcount=0
+        arg = ''
+        for char in arglist:
+            if nestcount == 0 and char == ',':
+                arg = arg.strip()
+                if arg == '':
+                    continue
+                args.append(GraphNodeExpression.evaluate(arg, context))
+                argstrings.append(arg)
+                arg = ''
+            elif char == '(':
+                nestcount += 1
+                arg += char
+            elif char == ')':
+                arg += char
+                nestcount -= 1
+                if nestcount < 0:
+                    return (None, None)
+                if nestcount == 0:
+                    arg = arg.strip()
+                    args.append(GraphNodeExpression.functioncall(arg, context))
+                    argstrings.append(arg)
+                    arg = ''
+            else:
+                arg += char
+        if nestcount > 0:
+            return (None, None)
+        if arg != '':
+            args.append(GraphNodeExpression.evaluate(arg, context))
+            argstrings.append(arg)
+        return (args, argstrings)
 
     @staticmethod
     def functioncall(expression, context):
@@ -104,39 +138,9 @@ class GraphNodeExpression(object):
         # At this point we have all our arguments as a string , but it might contain
         # other (nested) calls for us to evaluate
         #
-        args = []
-        argstrings = []
-        nestcount=0
-        arg = ''
-        for char in arglist:
-            if nestcount == 0 and char == ',':
-                arg = arg.strip()
-                if arg == '':
-                    continue
-                args.append(GraphNodeExpression.evaluate(arg, context))
-                argstrings.append(arg)
-                arg = ''
-            elif char == '(':
-                nestcount += 1
-                arg += char
-            elif char == ')':
-                arg += char
-                nestcount -= 1
-                if nestcount < 0:
-                    return None
-                if nestcount == 0:
-                    arg = arg.strip()
-                    args.append(GraphNodeExpression.functioncall(arg, context))
-                    argstrings.append(arg)
-                    arg = ''
-            else:
-                arg += char
-        if nestcount > 0:
+        args, _argstrings = GraphNodeExpression._compute_function_args(arglist, context)
+        if args is None:
             return None
-        if arg != '':
-            args.append(GraphNodeExpression.evaluate(arg, context))
-            argstrings.append(arg)
-
 
         if funname.startswith('@'):
             funname = funname[1:]
@@ -148,7 +152,7 @@ class GraphNodeExpression(object):
         ret = GraphNodeExpression.functions[funname](args, context)
         #print >> sys.stderr, '%s(%s) => %s' % (funname, args, ret)
         return ret
- 
+
     @staticmethod
     def FunctionDescriptions():
         '''Return a list of tuples of (funcname, docstring) for all our GraphNodeExpression
@@ -206,12 +210,14 @@ class ExpressionContext(object):
         if key in self.values:
             return self.values[key]
         for obj in self.objects:
-            ret = obj.get(key, None)
+            ret = None
             try:
                 ret = obj.get(key, None)
+            # Too general exception catching...
+            # pylint: disable=W0703
             except Exception as e:
                 ret = None
-                print >> sys.stderr, 'OOPS: self.objects = %s' % str(self.objects)
+                print >> sys.stderr, 'OOPS: self.objects = %s / exception %s' % str(self.objects, e)
                 print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
             if ret is not None:
                 self.values[key] = ret
@@ -230,7 +236,7 @@ class ExpressionContext(object):
     def items(self):
         'Return all items from our cache'
         return self.values.items()
-        
+
 
     def __iter__(self):
         'Yield each key from self.keys() in turn'
@@ -275,7 +281,7 @@ def IGNORE(_ignoreargs, _ignorecontext):
     return True
 
 @GraphNodeExpression.RegisterFun
-def EQ(args, context):
+def EQ(args, _context):
     '''Function to return True if each non-None argument in the list matches
     every non-None argument and at least one of its subsequent arguments are not None.
     '''
@@ -292,7 +298,7 @@ def EQ(args, context):
     return anymatch
 
 @GraphNodeExpression.RegisterFun
-def NE(args, context):
+def NE(args, _context):
     '''Function to return True if no non-None argument in the list matches
     the first one or None if all subsequent arguments are None'''
     #print >> sys.stderr, 'NE(%s, %s)' % (args[0], str(args[1:]))
@@ -310,7 +316,7 @@ def NE(args, context):
     return anymatch
 
 @GraphNodeExpression.RegisterFun
-def LT(args, context):
+def LT(args, _context):
     '''Function to return True if each non-None argument in the list is
     less than the first one or None if all subsequent arguments are None'''
     val0 = args[0]
@@ -326,7 +332,7 @@ def LT(args, context):
     return anymatch
 
 @GraphNodeExpression.RegisterFun
-def GT(args, context):
+def GT(args, _context):
     '''Function to return True if each non-None argument in the list is
     greater than the first one or None if all subsequent arguments are None'''
     val0 = args[0]
@@ -342,7 +348,7 @@ def GT(args, context):
     return anymatch
 
 @GraphNodeExpression.RegisterFun
-def LE(args, context):
+def LE(args, _context):
     '''Function to return True if each non-None argument in the list is
     less than or equal to first one or None if all subsequent arguments are None'''
     val0 = args[0]
@@ -358,7 +364,7 @@ def LE(args, context):
     return anymatch
 
 @GraphNodeExpression.RegisterFun
-def GE(args, context):
+def GE(args, _context):
     '''Function to return True if each non-None argument in the list is
     greater than or equal to first one or None if all subsequent arguments are None'''
     val0 = args[0]
@@ -374,7 +380,7 @@ def GE(args, context):
     return anymatch
 
 @GraphNodeExpression.RegisterFun
-def IN(args, context):
+def IN(args, _context):
     '''Function to return True if first argument is in the list that follows.
     If the first argument is iterable, then each element in it must be 'in'
     the list that follows.
@@ -391,8 +397,8 @@ def IN(args, context):
                 continue
             if elem not in args[1:] and str(elem) not in args[1:]:
                 return False
-            anytrue = True
-        return True if anytrue else None
+            anyTrue = True
+        return True if anyTrue else None
     # Not an iterable: string, int, NoneType, etc.
     if val0 is None:
         return None
@@ -400,7 +406,7 @@ def IN(args, context):
     return val0 in args[1:] or str(val0) in args[1:]
 
 @GraphNodeExpression.RegisterFun
-def NOTIN(args, context):
+def NOTIN(args, _context):
     'Function to return True if first argument is NOT in the list that follows'
     val0 = args[0]
     if val0 is None:
@@ -414,20 +420,20 @@ def NOTIN(args, context):
     return val0 not in args[1:] and str(val0) not in args[1:]
 
 @GraphNodeExpression.RegisterFun
-def NOT(args, context):
+def NOT(args, _context):
     'Function to Negate the Truth value of its single argument'
     ret = args[0]
     return None if ret is None else not ret
 
 _regex_cache = {}
 @GraphNodeExpression.RegisterFun
-def match(args, context):
-    'Function to return True if first argument matches the second argument (a regex) - optional 3rd argument is RE flags'
+def match(args, _context):
+    '''Function to return True if first argument matches the second argument (a regex)
+    - optional 3rd argument is RE flags'''
     lhs = args[0]
     rhs = args[1]
     if lhs is None or rhs is None:
         return None
-    global _regex_cache
     flags = args[2] if len(args) > 2 else None
     cache_key = '%s//%s' % (str(rhs), str(flags))
     if cache_key in _regex_cache:
@@ -526,7 +532,73 @@ def OR(args, context):
     return None
 
 @GraphNodeExpression.RegisterFun
-def PAMMODARGS(args, context):
+def ATTRSEARCH(args, context):
+    '''
+    Search our first context object for an attribute with the given name and (if supplied) value.
+    If 'value' is None, then we simply search for the given name.
+    We return True if we found what we were looking for, and False otherwise.
+
+    The object to search in is is args[0], the name is args[1],
+    and the optional desired value is args[2].
+    '''
+    return True if FINDATTRVALUE(args, context) else False
+    # return FINDATTRVALUE(args, context) is not None
+    # These are equivalent. Not sure which is clearer...
+
+@GraphNodeExpression.RegisterFun
+def FINDATTRVALUE(args, _context):
+    '''
+    Search our first context object for an attribute with the given name and (if supplied) value.
+    We return the value found, if it is in the context objects, or None if it is not
+    If 'value' is None, then we simply search for the given name.
+
+    We return True if the desired value is None, and so is the value we found -
+    otherwise we return the value associated with 'name' or None if not found.
+
+    The object to search in is is args[0], the name is args[1],
+    and the optional desired value is args[2].
+    '''
+    if len(args) not in (2,3):
+        print >> sys.stderr, 'WRONG NUMBER OF ARGUMENTS (%d) TO FINDATTRVALUE' % (len(args))
+        return None
+    desiredvalue = args[2] if len(args) > 2 else None
+    return _attrfind(args[0], args[1], desiredvalue)
+
+def _is_scalar(obj):
+    'Return True if this object is a pyConfigContext/JSON "scalar"'
+    return isinstance(obj, (str, unicode, int, long, float, bool, pyNetAddr))
+
+def _attrfind(obj, name, desiredvalue):
+    '''
+    Recursively search the given object for an attribute with the given name
+    and value. If 'value' is None, then we simply search for the given name.
+
+    We return True if the desired value is None, and the value we found is also None -
+    otherwise we return the value associated with 'name' or None if not found.
+    '''
+    if _is_scalar(obj):
+        return None
+    if hasattr(obj, '__getitem__'):
+        for key in obj:
+            keyval = obj[key]
+            if key == name:
+                if desiredvalue is None:
+                    return keyval if keyval is not None else True
+                elif keyval == desiredvalue or str(keyval) == str(desiredvalue):
+                    # We use str() to allow pyNetAddr objects to compare equal
+                    # and the possibility of type mismatches (strings versus integers, for example)
+                    # This may also improve the chance of floating point compares working as
+                    # intended.
+                    return keyval
+    elif hasattr(obj, '__iter__'):
+        for elem in obj:
+            ret = _attrfind(elem, name, desiredvalue)
+            if ret is not None:
+                return ret
+    return None
+
+@GraphNodeExpression.RegisterFun
+def PAMMODARGS(args, _context):
     '''
     We pass the following arguments to PAMSELECTARGS:
         section - the section value to select from
@@ -534,7 +606,7 @@ def PAMMODARGS(args, context):
         module - the module to select arguments from
         argument - the arguments to select
 
-    We return the arguments from the first occurance of the module that we find.
+    We return the arguments from the first occurence of the module that we find.
     '''
     #print >> sys.stderr, 'PAMMODARGS(%s)' % (str(args))
     if len(args) != 4:
@@ -555,10 +627,10 @@ def PAMMODARGS(args, context):
         #  - filename:(only for includes)
         #  - type: dict of keywords (requisite, required, optional, etc)
         #  - module: Module dict keywords with:
-        #       - path - pathname of module ending in .so 
+        #       - path - pathname of module ending in .so
         #       - other arguments as per the module's requirements
         #         simple flags without '=' values show up with True as value
-        # 
+        #
         if 'service' not in line or line['service'] != reqservice:
             #print >> sys.stderr, 'Service %s not in PAM line %s' % (reqservice, str(line))
             continue
@@ -580,6 +652,8 @@ def PAMMODARGS(args, context):
         #print >> sys.stderr, 'RETURNING %s from %s' % (ret, str(line))
         return ret
     return None
+
+
 
 @GraphNodeExpression.RegisterFun
 def MUST(args, _unused_context):
@@ -639,46 +713,50 @@ def is_upstartjob(args, context):
             return 'true'
     return len(args) == 0
 
+def _regexmatch(key):
+    '''Handy internal function to pull out the IP and port into a pyNetAddr
+    Note that the format is the format used in the discovery information
+    which in turn is the format used by netstat.
+    This is not a "standard" format, but it's what netstat uses - so it's
+    what we use.
+    '''
+    mobj = ipportregex.match(key)
+    if mobj is None:
+        return None
+    (ip, port) = mobj.groups()
+    ipport = pyNetAddr(ip, port=int(port))
+    if ipport.isanyaddr():
+        if ipport.addrtype() == ADDR_FAMILY_IPV4:
+            ipport = pyNetAddr('127.0.0.1', port=ipport.port())
+        else:
+            ipport = pyNetAddr('::1', port=ipport.port())
+    return ipport
+
+def _collect_ip_ports(service):
+    'Collect out complete set of IP/Port combinations for this service'
+    portlist = {}
+    for key in service.keys():
+        ipport = _regexmatch(key)
+        if ipport.port() == 0:
+            continue
+        port = ipport.port()
+        if port in portlist:
+            portlist[port].append(ipport)
+        else:
+            portlist[port] = [ipport,]
+    return portlist
 
 # Netstat format IP:port pattern
 ipportregex = re.compile('(.*):([^:]*)$')
-def selectanipport(arg, context, preferlowestport=True, preferv4=True):
+def selectanipport(arg, _context, preferlowestport=True, preferv4=True):
     '''This function searches discovery information for a suitable IP
     address/port combination to go with the service.
     '''
-    def regexmatch(key):
-        '''Handy internal function to pull out the IP and port into a pyNetAddr
-        Note that the format is the format used in the discovery information
-        which in turn is the format used by netstat.
-        This is not a "standard" format, but it's what netstat uses - so it's
-        what we use.
-        '''
-        mobj = ipportregex.match(key)
-        if mobj is None:
-            return None
-        (ip, port) = mobj.groups()
-        ipport = pyNetAddr(ip, port=int(port))
-        if ipport.isanyaddr():
-            if ipport.addrtype() == ADDR_FAMILY_IPV4:
-                ipport = pyNetAddr('127.0.0.1', port=ipport.port())
-            else:
-                ipport = pyNetAddr('::1', port=ipport.port())
-        return ipport
 
-        
     #print >> sys.stderr, 'SELECTANIPPORT(%s)' % arg
     try:
-        portlist = {}
-        for key in arg.keys():
-            ipport = regexmatch(key)
-            if ipport.port() == 0:
-                continue
-            port = ipport.port()
-            if port in portlist:
-                portlist[port].append(ipport)
-            else:
-                portlist[port] = [ipport,]
 
+        portlist = _collect_ip_ports(arg)
         portkeys = portlist.keys()
         if preferlowestport:
             portkeys.sort()
@@ -771,7 +849,7 @@ def basename(args, context):
         pathname = GraphNodeExpression.evaluate(arg, context)
         if pathname is None:
             continue
-        #print >> sys.stderr, 'BASENAME(%s) => %s' % ( pathname 
+        #print >> sys.stderr, 'BASENAME(%s) => %s' % ( pathname
         #,   os.path.basename(pathname))
         return os.path.basename(pathname)
     return None

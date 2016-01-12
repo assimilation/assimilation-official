@@ -35,14 +35,13 @@ More details are documented in the ArpDiscoveryListener class
 
 from consts import CMAconsts
 from store import Store
-from AssimCclasses import pyNetAddr
 from AssimCclasses import pyConfigContext
-from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCtypes import CONFIGNAME_INSTANCE, CONFIGNAME_DEVNAME
 from discoverylistener import DiscoveryListener
 from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, GraphNode
 from cmaconfig import ConfigFile
+from linkdiscovery import discovery_indicates_link_is_up
 import netaddr
 import sys
 
@@ -102,7 +101,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         else:
             print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
 
-    def processpkt_netconfig(self, drone, unused_srcaddr, jsonobj):
+    def processpkt_netconfig(self, drone, _unused_srcaddr, jsonobj):
         '''We want to trigger ARP discovery when we hear a 'netconfig' packet
 
         Build up the parameters for the discovery
@@ -111,19 +110,14 @@ class ArpDiscoveryListener(DiscoveryListener):
         which will pull values from the system configuration.
         '''
 
-        unused_srcaddr = unused_srcaddr # make pylint happy
         init_params = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
-        netconfiginfo = pyConfigContext(jsonobj)
-        
 
         data = jsonobj['data'] # the data portion of the JSON message
         discovery_args = []
         for devname in data.keys():
             #print >> sys.stderr, "*** devname:", devname
             devinfo = data[devname]
-            if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
-                                          and str(devinfo['address']) != '00-00-00-00-00-00'
-                                          and str(devinfo['address']) != ''):
+            if discovery_indicates_link_is_up(devinfo):
                 params = pyConfigContext(init_params)
                 params[CONFIGNAME_INSTANCE] = '_ARP_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
@@ -132,14 +126,14 @@ class ArpDiscoveryListener(DiscoveryListener):
         if discovery_args:
             drone.request_discovery(discovery_args)
 
-    def processpkt_arp(self, drone, unused_srcaddr, jsonobj):
+    def processpkt_arp(self, drone, _unused_srcaddr, jsonobj):
         '''We want to update the database when we hear a 'ARP' discovery packet
         These discovery entries are the result of listening to ARP packets
         in the nanoprobes.  Some may already be in our database, and some may not be.
 
         As we process the packets we create any IPaddrNode and NICNode objects
         that correspond to the things we've discovered.  Since IP addresses
-        can move around, we potentially need to clean up relationships to 
+        can move around, we potentially need to clean up relationships to
         NICNodes - so that any given IP address is only associated with a single
         MAC address.
 
@@ -190,6 +184,8 @@ class ArpDiscoveryListener(DiscoveryListener):
         nicnode = self.store.load_or_create(NICNode, domain=drone.domain, macaddr=macaddr)
         macprefix = str(nicnode.macaddr)[0:8]
         try:
+            # Pylint is confused about the netaddr.EUI.oui.registration return result...
+            # pylint: disable=E1101
             org = str(netaddr.EUI(nicnode.macaddr).oui.registration().org)
         except netaddr.NotRegisteredError:
             local_OUI_map = self.config['OUI']

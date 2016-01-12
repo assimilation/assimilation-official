@@ -31,7 +31,7 @@ discovery packets as they arrive.
 
 More details are documented in the DiscoveryListener class
 '''
-import sys
+#import sys
 from droneinfo import Drone
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE

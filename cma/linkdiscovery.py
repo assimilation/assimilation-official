@@ -44,6 +44,13 @@ from graphnodes import NICNode, IPaddrNode, SystemNode
 from cmaconfig import ConfigFile
 import sys
 
+def discovery_indicates_link_is_up(devinfo):
+    'return True if this link is up-and-operational'
+    return ('operstate' in devinfo and 'carrier' in devinfo and 'address' in devinfo
+        and str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
+        and str(devinfo['address']) != '00-00-00-00-00-00'
+        and str(devinfo['address']) != '')
+
 @Drone.add_json_processor
 class LinkDiscoveryListener(DiscoveryListener):
     '''Class for processing Link Discovery JSON messages
@@ -88,9 +95,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         discovery_args = []
         for devname in data.keys():
             devinfo = data[devname]
-            if (str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
-                                          and str(devinfo['address']) != '00-00-00-00-00-00'
-                                          and str(devinfo['address']) != ''):
+            if discovery_indicates_link_is_up(devinfo):
                 params = pyConfigContext(init_params)
                 params[CONFIGNAME_INSTANCE] = '#SWITCH_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
