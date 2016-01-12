@@ -11,22 +11,35 @@ install:
   - sudo -H pip install ctypesgen testify flask getent py2neo
 before_script:
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_neo4j
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
   - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
 script:
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
+  - neoauth neo4j neo4j neo4j 2>&1 || true
   - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
   - cd $TRAVIS_BUILD_DIR
   - cd ..
   - mkdir root_of_binary_tree
   - cd root_of_binary_tree
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - cmake $TRAVIS_BUILD_DIR
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo make install
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo ldconfig /usr/lib/x86_64-linux-gnu/assimilation
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo cpack
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo dpkg -i *.deb
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo /etc/init.d/nanoprobe stop
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo /etc/init.d/cma stop
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - sudo assimcli genkeys
+  - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - cd $TRAVIS_BUILD_DIR/cma
   - grep dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - neoauth neo4j neo4j neo4j 2>&1 || true
