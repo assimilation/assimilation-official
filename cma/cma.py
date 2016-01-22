@@ -299,8 +299,8 @@ def main():
     if (CONFIGNAME_COMPRESSTYPE in configinfo):
         configinfo[CONFIGNAME_COMPRESS]     \
         =   pyCompressFrame(compression_method=configinfo[CONFIGNAME_COMPRESSTYPE])
+    configinfo[CONFIGNAME_OUTSIG] = pySignFrame(1)
     config = configinfo.complete_config()
-    config[CONFIGNAME_OUTSIG] = pySignFrame(1)
 
     addr = config[CONFIGNAME_CMAINIT]
     if addr.port() == 0:

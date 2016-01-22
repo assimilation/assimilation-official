@@ -314,9 +314,11 @@ class DummyIO(object):
                 config = ConfigFile()
         self.config = config
 
-def dbsetup(readonly=False):
+def dbsetup(readonly=False, url=None):
     'Set up our connection to Neo4j'
-    Neo4jCreds().authenticate()
+    if url is None:
+        url = 'localhost.com:7474'
+    Neo4jCreds().authenticate(url)
     ourstore = Store(neo4j.Graph(), uniqueindexmap={}, classkeymap={})
     CMAinit(DummyIO(), readonly=readonly, use_network=False)
     for classname in GraphNode.classmap:
