@@ -291,6 +291,8 @@ class BestPractices(DiscoveryListener):
         ruleids = ruleobj.keys()
         ruleids.sort()
         statuses = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
+        if len(ruleids) < 1:
+            return statuses
         print >> sys.stderr, '\n==== Evaluating %d Best Practices rules on "%s"' \
             % (len(ruleids)-1, wholejsonobj['description'])
         for ruleid in ruleids:
