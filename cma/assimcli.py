@@ -40,7 +40,7 @@ from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair
     CMAINITFILE, CMAUSERID
 from AssimCclasses import pyCryptFrame, pyCryptCurve25519
 from cmaconfig import ConfigFile
-from cmadb import Neo4jCreds
+from cmadb import Neo4jCreds, CMAdb
 #
 # These imports really are necessary - in spite of what pylint thinks...
 # pylint: disable=W0611
@@ -323,6 +323,7 @@ def dbsetup(readonly=False, url=None):
     CMAinit(DummyIO(), readonly=readonly, use_network=False)
     for classname in GraphNode.classmap:
         GraphNode.initclasstypeobj(ourstore, classname)
+    CMAdb.store = ourstore
     return ourstore
 
 
