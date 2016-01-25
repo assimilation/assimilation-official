@@ -200,7 +200,7 @@ class LinkDiscoveryListener(DiscoveryListener):
             else:
                 nicmac = chassisid # Hope that works ;-)
             nicnode = self.store.load_or_create(NICNode, domain=drone.domain
-            ,   macaddr=nicmac, **attrs)
+            ,   macaddr=nicmac, json=str(thisport), ifname=thisport['PortId'], **attrs)
             self.store.relate(switch, CMAconsts.REL_nicowner, nicnode, {'causes': True})
             try:
                 assert thisport['ConnectsToHost'] == drone.designation

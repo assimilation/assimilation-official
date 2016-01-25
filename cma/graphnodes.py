@@ -386,7 +386,7 @@ class SystemNode(GraphNode):
 @RegisterGraphClass
 class NICNode(GraphNode):
     'An object that represents a NIC - characterized by its MAC address'
-    def __init__(self, domain, macaddr, ifname=None):
+    def __init__(self, domain, macaddr, ifname=None, json=None):
         GraphNode.__init__(self, domain=domain)
         mac = pyNetAddr(macaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
@@ -394,6 +394,12 @@ class NICNode(GraphNode):
         self.macaddr = str(mac)
         if ifname is not None:
             self.ifname = ifname
+        if json is not None:
+            self.json = json
+            self._json = pyConfigContext(json)
+            for attr in ('carrier', 'duplex', 'MTU', 'operstate', 'speed'):
+                if attr in self._json:
+                    setattr(self, attr, self._json[attr])
 
     @staticmethod
     def __meta_keyattrs__():

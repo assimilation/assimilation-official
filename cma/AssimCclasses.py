@@ -173,7 +173,7 @@ class pySwitchDiscovery(object):
             LLDP_ORG802_3_PHY_CONFIG:   ('PhysicalConfiguration', False),
             LLDP_ORG802_3_POWERVIAMDI:  ('PowerViaMDI', False),
             LLDP_ORG802_3_LINKAGG:      ('LinkAggregation', False),
-            LLDP_ORG802_3_MTU:          ('MTU', False),
+            LLDP_ORG802_3_MTU:          ('mtu', False),
     }
 
     cdpnames = {
@@ -192,8 +192,8 @@ class pySwitchDiscovery(object):
         CDP_TLV_VLREPLY:            ('VlanReply', False),
         CDP_TLV_PORTID:             ('PortId', False),
         CDP_TLV_EXT_PORTID:         ('PortDescription', False),
-        CDP_TLV_DUPLEX:             ('Duplex', False),
-        CDP_TLV_MTU:                ('MTU', False),
+        CDP_TLV_DUPLEX:             ('duplex', False),
+        CDP_TLV_MTU:                ('mtu', False),
         CDP_TLV_POWER:              ('PortPower', False),
     }
 
@@ -318,6 +318,7 @@ class pySwitchDiscovery(object):
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
             tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
+            #print >> sys.stderr, 'TLV type %d' % tlvtype
             value = None
             if tlvtype not in pySwitchDiscovery.lldpnames:
                 print >> sys.stderr, 'Cannot find tlvtype %d' % tlvtype
@@ -360,9 +361,8 @@ class pySwitchDiscovery(object):
 
 
             elif tlvtype == LLDP_TLV_ORG_SPECIFIC: ######################################
-                print >> sys.stderr, (
-                'Found %d bytes of LLDP org-specific extensions (not processed)'
-                %       tlvlen)
+                pySwitchDiscovery._decode_lldp_org_specific(switchinfo, thisportinfo,
+                        tlvptr, tlvlen, pktend)
 
             if value is not None:
                 if tlvtype == LLDP_TLV_PID:
@@ -381,7 +381,167 @@ class pySwitchDiscovery(object):
             this = get_lldptlv_next(this, pktend)
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
+    @staticmethod
+    def _dump_c_bytes(prefix, tlvstart, tlvlen):
+        '''Dump out data from a given C-style address'''
+        dump = "%s: DUMP (%d bytes):" % (prefix, tlvlen)
+        for offset in range(0, tlvlen):
+            dump += ' %02x' % pySwitchDiscovery._byteN(tlvstart, offset)
+        print >> sys.stderr, dump
 
+    @staticmethod
+    def _decode_lldp_org_specific(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
+        '''Decode LLDP org-specific TLV sets (or not...)'''
+        oui = tlv_get_guint24(tlvptr, pktend)
+        #pySwitchDiscovery._dump_c_bytes(("ORG SPECIFIC DUMP: %06x" % oui), tlvptr, tlvlen)
+        # We need to fix this so that duplex and speed come through
+        tlv3ptr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
+        if oui == 0x0080c2:
+            pySwitchDiscovery._decode_lldp_802_1(switchinfo, thisportinfo,
+                tlv3ptr, tlvlen-3, pktend)
+        elif oui == 0x00120f:
+            pySwitchDiscovery._decode_lldp_802_3(switchinfo, thisportinfo,
+                    tlv3ptr, tlvlen-3, pktend)
+        elif oui == 0x0012bb:
+            pySwitchDiscovery._decode_lldp_med(switchinfo, thisportinfo,
+                    tlv3ptr, tlvlen-3, pktend)
+        elif oui == 0x00ceff:
+            pySwitchDiscovery._decode_lldp_profibus(switchinfo, thisportinfo,
+                    tlv3ptr, tlvlen-3, pktend)
+        elif oui == 0x00cecf:
+            pySwitchDiscovery._decode_lldp_hytec(switchinfo, thisportinfo,
+                    tlv3ptr, tlvlen-3, pktend)
+        else:
+            print >> sys.stderr, (
+                'Ignored %d bytes of unknown LLDP org-specific extensions. OUI: %06x.'
+                %   (tlvlen, oui))
+
+    @staticmethod
+    def _decode_lldp_802_1(_switchinfo, _thisportinfo, tlvptr, tlvlen, _pktend):
+        '''Decode 802.1 LLDP org-specific TLV sets (or not...)'''
+        subtype = pySwitchDiscovery._byte0(tlvptr)
+        print >> sys.stderr, (
+            'Ignored %d bytes of LLDP 802.1 extensions (Annex F, subtype %d).'
+            % (tlvlen, subtype))
+
+    @staticmethod
+    def _decode_lldp_802_3(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
+        '''Decode 802.3 LLDP org-specific TLV sets (or not...)'''
+        subtype = pySwitchDiscovery._byte0(tlvptr)
+        if subtype == 1:
+            pySwitchDiscovery._decode_lldp_802_3_mac_phy(switchinfo, thisportinfo,
+                pySwitchDiscovery._byte1addr(tlvptr), tlvlen-1, pktend)
+            return
+        print >> sys.stderr, (
+            'Ignored %d bytes of LLDP 802.3 extensions (Annex G, subtype %d).'
+            % (tlvlen, subtype))
+
+    @staticmethod
+    def dot3MauTypes(mautype):
+        '''MAU types and characteristics from RFC 3636 - starting at page 9
+        The LLDP spec says that MAU types returned by G2.3 MAU type are to be
+        the same as dot3MauType information in RFC 3636.
+        This is my take on that information.
+        '''
+        mautypes = {
+                1:      {'speed':10, 'duplex':'half', 'media': 'thick coax'},
+                2:      {'speed':10, 'duplex':'half', 'media': 'FOIRL'},
+                3:      {'speed':10, 'duplex':'half', 'media': 'thick coax'},
+                4:      {'speed':10, 'duplex':'half', 'media': 'thin coax'},
+                5:      {'speed':10, 'media': 'UTP'},
+
+                6:      {'speed':10, 'media': 'passive fiber'},
+                7:      {'speed':10, 'media': 'sync fiber'},
+                8:      {'speed':10, 'media': 'async fiber'},
+                9:      {'speed':10, 'media': 'broadband DTE'},
+                10:     {'speed':10, 'duplex':'half',   'media': 'UTP'},
+
+                11:     {'speed':10, 'duplex':'full',   'media': 'UTP'},
+                12:     {'speed':10, 'duplex':'half',   'media': 'async fiber'},
+                13:     {'speed':10, 'duplex':'full',   'media': 'async fiber'},
+                14:     {'speed':100,                   'media': '4 pair category 3 UTP'},
+                15:     {'speed':100, 'duplex':'half',  'media': '2 pair category 5 UTP'},
+
+                16:     {'speed':100, 'duplex':'half',  'media': '2 pair category 5 UTP'},
+                17:     {'speed':100, 'duplex':'half',  'media': 'X fiber over PMT'},
+                18:     {'speed':100, 'duplex':'full',  'media': 'X fiber over PMT'},
+                19:     {'speed':100, 'duplex':'half',  'media': '2 pair category 3 UTP'},
+                20:     {'speed':100, 'duplex':'full',  'media': '2 pair category 3 UTP'},
+
+                21:     {'speed':1000, 'duplex':'half',  'media': 'PCS/PMA, unknown PMD'},
+                22:     {'speed':1000, 'duplex':'full',  'media': 'PCS/PMA, unknown PMD'},
+                23:     {'speed':1000, 'duplex':'half',  'media':
+                                                            'fiber over long-wavelength laser'},
+                24:     {'speed':1000, 'duplex':'full',  'media':
+                                                            'fiber over long-wavelength laser'},
+                25:     {'speed':1000, 'duplex':'half',  'media':
+                                                            'fiber over short-wavelength laser'},
+
+                26:     {'speed':1000, 'duplex':'full',  'media':
+                                                            'fiber over short-wavelength laser'},
+                27:     {'speed':1000, 'duplex':'half',  'media':
+                                                            'copper over 150-ohm balanced cable'},
+                28:     {'speed':1000, 'duplex':'full',  'media':
+                                                            'copper over 150-ohm balanced cable'},
+                29:     {'speed':1000, 'duplex':'half',  'media': 'Four-pair Category 5 UTP'},
+                30:     {'speed':1000, 'duplex':'full',  'media': 'Four-pair Category 5 UTP'},
+
+                31:     {'speed':10000, 'media': 'X PCS/PMA, unknown MD'},
+                32:     {'speed':10000, 'media': 'X fiber over WWDM optics'},
+                33:     {'speed':10000, 'media': 'R PCS/PMA, unknown PMD'},
+                34:     {'speed':10000, 'media': 'R fiber over 1550 nm optics'},
+                35:     {'speed':10000, 'media': 'R fiber over 1310 nm optics'},
+
+                36:     {'speed':10000, 'media': 'R fiber over 850 nm optics'},
+                37:     {'speed':10000, 'media': 'W PCS/PMA, unknown PMD'},
+                38:     {'speed':10000, 'media': 'W fiber over 1550 nm optics'},
+                39:     {'speed':10000, 'media': 'R fiber over 1310 nm optics'},
+                40:     {'speed':10000, 'media': 'R fiber over 850 nm optics'},
+        }
+        return mautypes[mautype] if mautype in mautypes else {}
+
+    @staticmethod
+    def _decode_lldp_802_3_mac_phy(_switchinfo, thisportinfo,
+            tlvptr, tlvlen, pktend):
+        '''Decode 802.3 MAC/PHY TLV org-specific TLV (or not...)'''
+        if tlvlen != 5:
+            print >> sys.stderr, (
+                'Invalid %d byte LLDP 802.3 MAC/PHY information (Annex G.2).' % tlvlen)
+            return
+        autoneg_status = pySwitchDiscovery._byte0(tlvptr)
+        pmd_autoneg_addr = pySwitchDiscovery._byte1addr(tlvptr)
+        pmd_autoneg = tlv_get_guint16(pmd_autoneg_addr, pktend)
+        mau_addr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
+        mau_type = tlv_get_guint16(mau_addr, pktend)
+        thisportinfo['autoneg_supported'] = (autoneg_status & 0x01) == 0x01
+        thisportinfo['autoneg_enabled']   = (autoneg_status & 0x10) == 0x10
+        mauinfo = pySwitchDiscovery.dot3MauTypes(mau_type)
+        for key in mauinfo:
+            thisportinfo[key] = mauinfo[key]
+        #@TODO: Need to add info about autonegotiation speeds/duplexes supported (pmd_autoneg)
+        #print >> sys.stderr, ("Autoneg_status: 0x%02x" % autoneg_status)
+        print >> sys.stderr, ("pmd_autoneg: %d" % pmd_autoneg)
+        #print >> sys.stderr, ("MAU type: %d" % mau_type)
+
+    @staticmethod
+    def _decode_lldp_med(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
+        '''Decode LLDP-MED org-specific TLV (or not...)'''
+        #@TODO: Ought to add LLDP-MED support - some of it looks pretty cool in wireshark ;-)
+        # and my current netgear switches support it.
+        print >> sys.stderr, (
+            'Ignored %d bytes of LLDP-MED extensions.' % tlvlen)
+
+    @staticmethod
+    def _decode_lldp_profibus(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
+        '''Decode LLDP Profibus org-specific TLV (or not...)'''
+        print >> sys.stderr, (
+            'Ignored %d bytes of Profibus International LLDP extensions.' % tlvlen)
+
+    @staticmethod
+    def _decode_lldp_hytec(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
+        '''Decode LLDP Hytec org-specific TLV (or not...)'''
+        print >> sys.stderr, (
+            'Ignored %d bytes of Hytec Geraetebau GmbH LLDP extensions.' % tlvlen)
 
     @staticmethod
     def _decode_cdp(host, interface, instance, wallclock, pktstart, pktend):
@@ -474,8 +634,8 @@ class pySwitchDiscovery(object):
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
-                #print >> sys.stderr, ('TLVNAME %s has value "%s" -- len: %d'
-                #%   (tlvname, value, len(str(value))))
+                print >> sys.stderr, ('TLVNAME %s has value "%s" -- len: %d'
+                %   (tlvname, value, len(str(value))))
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
 

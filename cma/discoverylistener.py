@@ -128,9 +128,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 continue
             #print >> sys.stderr, 'CREATING NIC: MAC(%s) IF(%s)' %  (str(macaddr), str(ifname))
             newnic = self.store.load_or_create(NICNode, domain=drone.domain
-            ,       macaddr=macaddr, ifname=ifname)
-            newnic.ifname = ifname # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION??
-            newnic.domain = drone.domain # @FIXME SHOULD THIS BE FIXED IN OBJECT CREATION??
+            ,       macaddr=macaddr, ifname=ifname, json=str(ifinfo))
             #print >> sys.stderr, 'NIC CREATED: %s' %  (str(newnic))
             newmacs[macaddr] = newnic
             if 'default_gw' in ifinfo and primaryifname == None:
