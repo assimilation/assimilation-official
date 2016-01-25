@@ -60,7 +60,7 @@ This is a very flexible and powerful graph drawing method, for which
 the code is simple and common - and the formats are more complicated.
 '''
 
-from __future__ import print_function, unicode_literals
+from __future__ import print_function #, unicode_literals
 from graphnodes import GraphNode
 from assimcli import dbsetup
 import sys
@@ -74,14 +74,16 @@ class DictObj(object):
     rules.
     '''
 
-    def __init__(self, obj, kw=None):
+    def __init__(self, obj, kw=None, failreturn=''):
         '''Initialization'''
         self.obj = obj
+        self.failreturn = failreturn
         if kw is None:
             kw = {}
         self.kw = kw
 
     def __contains__(self, name):
+        'Return True if we can find the given attribute/index'
         try:
             if name in self.kw or name in self.obj:
                 return True
@@ -90,22 +92,76 @@ class DictObj(object):
         return hasattr(self.obj, name)
 
     def __getitem__(self, name):
+        'Return the given attribute or item from our object'
         if name in self.kw:
-            return self.kw[name]
+            if callable(self.kw[name]):
+                return self.kw[name](self.obj, name).strip()
+            return self.kw[name].strip()
         try:
-            return self.obj[name]
+            return self.obj[name].strip()
         except (IndexError, KeyError, TypeError):
             pass
-        return getattr(self.obj, name)
+        try:
+            return getattr(self.obj, name).strip()
+        except AttributeError:
+            pass
+        return self._failreturn(self.obj, name)
+
+    def _failreturn(self, obj, name):
+        '''Return a failure'''
+        if callable(self.failreturn):
+            return self.failreturn(obj, name).strip()
+        return self.failreturn.strip()
+
+class FancyDictObj(DictObj):
+    '''A fancy DictObj that knows how to get some aggregate data
+    for use as pseudo-attributes of the objects we know and love ;-)
+
+    '''
+    os_namemap = {
+            'description':     'Description',
+            'distro':          'Distributor ID',
+            'distributor':     'Distributor ID',
+            'release':         'Release',
+            'codename':        'Codename',
+    }
+    @staticmethod
+    def osinfo(obj, name):
+        '''Provide aliases for various OS attributes for formatting
+        These will only work on a Drone node'''
+        if name.startswith('os_'):
+            name = name[3:]
+        try:
+            if name in FancyDictObj.os_namemap:
+                return obj['os']['data'][FancyDictObj.os_namemap[name]]
+            return obj['os']['data'][name]
+        #except (KeyError, IndexError,TypeError):
+        except (KeyboardInterrupt):
+            return '(unknown)'
+
+    def __init__(self, obj, kw=None, failreturn=''):
+        DictObj.__init__(self, obj, kw, failreturn)
+        for key in self.os_namemap:
+            self.kw['os_' + key] = FancyDictObj.osinfo
+        for key in ('nodename', 'operating-system', 'machine',
+                    'processor', 'hardware-platform', 'kernel-name',
+                    'kernel-release', 'kernel-version'):
+            self.kw['os_' + key] = FancyDictObj.osinfo
+
+
 
 class DotGraph(object):
     '''Class to format Assimilation graphs as 'dot' graphs'''
+    # pylint - too many arguments. It's a bit flexible...
+    # pylint: disable=R0913
     def __init__(self, formatdict, dburl=None, nodequery=None,
-            nodequeryparams=None, relquery=None, relqueryparams=None):
+            nodequeryparams=None, relquery=None, relqueryparams=None,
+            dictclass=FancyDictObj):
         '''Initialization'''
         self.formatdict = formatdict
         self.store = dbsetup(readonly=True, url=dburl)
         self.nodeids = None
+        self.dictclass = dictclass
         if nodequery is None:
             nodequery = 'START n=node(*) RETURN n'
         self.nodequery = nodequery
@@ -134,10 +190,11 @@ class DotGraph(object):
                 if node.nodetype not in nodeformats:
                     continue
                 self.nodeids.add(self.store.id(node))
-                dictobj = DictObj(node,
+                dictobj = self.dictclass(node,
                         {'id': DotGraph.idname(self.store.id(node))})
                 yield nodeformats[node.nodetype] % dictobj
-        except KeyError as e:
+        #except KeyError as e:
+        except KeyboardInterrupt as e:
             print('Bad node type: %s' %  e, file=sys.stderr)
 
     def _outrels(self):
@@ -154,7 +211,8 @@ class DotGraph(object):
                 or rel.start_node._id not in self.nodeids
                 or rel.type not in relformats):
                 continue
-            dictobj = DictObj(rel, {'from': DotGraph.idname(rel.start_node._id),
+            dictobj = self.dictclass(rel, {
+                'from': DotGraph.idname(rel.start_node._id),
                 'to': DotGraph.idname(rel.end_node._id)})
             yield relformats[rel.type] % dictobj
 
@@ -179,25 +237,24 @@ class DotGraph(object):
         return ret
 
 if __name__ == '__main__':
+    # Line is too long - I don't care ;-)
+    #pylint: disable=C0301
     ipmaconly = {
         'nodes': {
             'IPaddrNode':
-            '''
-            %(id)s [shape=box color=blue label="%(ipaddr)s"] ''',
+            r'''%(id)s [shape=box color=blue label="%(ipaddr)s"] ''',
             'NICNode':
-            '''
-            %(id)s [shape=ellipse color=red label="%(macaddr)s"]''',
+            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s\n%(ifname)s"]''',
             'Drone':
-            '''
-            %(id)s [shape=house color=orange label="%(designation)s"] ''',
+            r'''
+            %(id)s [shape=house color=orange label="%(designation)s\n%(os_description)s\n%(os_kernel-release)s"] ''',
             },
 
         'relationships': {
             'ipowner':
-            '''
-            %(from)s->%(to)s [color=hotpink]''',
+            r'''%(from)s->%(to)s [color=hotpink]''',
             'nicowner':
-            ''' %(from)s->%(to)s [color=black]''',
+            r''' %(from)s->%(to)s [color=black]''',
         }
     }
 
