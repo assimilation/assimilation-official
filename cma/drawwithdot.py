@@ -63,6 +63,7 @@ the code is simple and common - and the formats are more complicated.
 from __future__ import print_function #, unicode_literals
 from graphnodes import GraphNode
 from assimcli import dbsetup
+from AssimCclasses import pyConfigContext
 import sys
 
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
@@ -70,8 +71,8 @@ import sys
 class DictObj(object):
     '''This is a class that allows us to see the objects below us as a
     dict-like object - both for any dict-like characteristics and for its
-    attributes.  This is for formatting them with the "usual" Python formatting
-    rules.
+    attributes.  This is for formatting them with the "usual" Python
+    formatting rules like for example, "%(ipaddr)s".
     '''
 
     def __init__(self, obj, kw=None, failreturn=''):
@@ -92,17 +93,31 @@ class DictObj(object):
         return hasattr(self.obj, name)
 
     def __getitem__(self, name):
+        ret = self._getitem(name)
+        return ret.strip() if isinstance(ret, (str, unicode)) else ret
+
+    def _getitem(self, name):
         'Return the given attribute or item from our object'
         if name in self.kw:
-            if callable(self.kw[name]):
-                return self.kw[name](self.obj, name).strip()
-            return self.kw[name].strip()
+            return self.kw[name](self.obj, name) if callable(self.kw[name]) \
+                else self.kw[name]
         try:
-            return self.obj[name].strip()
+            obj = self.obj
+            #print("Looking for %s in %s." % (name, type(obj)), file=sys.stderr)
+            return obj.deepget(name, self.failreturn(obj, name)) \
+                if hasattr(obj, 'deepget') else obj[name]
         except (IndexError, KeyError, TypeError):
             pass
         try:
-            return getattr(self.obj, name).strip()
+            if not hasattr(obj, name):
+                #print("Name %s not found in %s." % (name, type(obj)),
+                # file=sys.stderr)
+                if name.find('.') > 0:
+                    prefix, suffix = name.split('.', 1)
+                    base = getattr(obj,prefix)
+                    subobj = pyConfigContext(base)
+                    return subobj.deepget(suffix)
+            return getattr(self.obj, name)
         except AttributeError:
             pass
         return self._failreturn(self.obj, name)
@@ -110,8 +125,8 @@ class DictObj(object):
     def _failreturn(self, obj, name):
         '''Return a failure'''
         if callable(self.failreturn):
-            return self.failreturn(obj, name).strip()
-        return self.failreturn.strip()
+            return self.failreturn(obj, name)
+        return self.failreturn
 
 class FancyDictObj(DictObj):
     '''A fancy DictObj that knows how to get some aggregate data
@@ -135,8 +150,7 @@ class FancyDictObj(DictObj):
             if name in FancyDictObj.os_namemap:
                 return obj['os']['data'][FancyDictObj.os_namemap[name]]
             return obj['os']['data'][name]
-        #except (KeyError, IndexError,TypeError):
-        except (KeyboardInterrupt):
+        except (KeyError, IndexError,TypeError):
             return '(unknown)'
 
     def __init__(self, obj, kw=None, failreturn=''):
@@ -154,17 +168,43 @@ class DotGraph(object):
     '''Class to format Assimilation graphs as 'dot' graphs'''
     # pylint - too many arguments. It's a bit flexible...
     # pylint: disable=R0913
-    def __init__(self, formatdict, dburl=None, nodequery=None,
+    def __init__(self, formatdict, dburl=None, nodequeries=None,
             nodequeryparams=None, relquery=None, relqueryparams=None,
             dictclass=FancyDictObj):
-        '''Initialization'''
+        '''Initialization
+        Here are the main two things to understand:
+            formatdict is a dict-like object which provides a format string
+            for each kind of relationship and node.
+
+            These format strings are then interpolated with the values
+            from the relationship or node as filtered by @dictclass objects.
+            The @dictclass object must behave like a dict. When format items
+            are requested by a format in the formatdict, the dictclass object
+            is expected to provide those values.
+        params:
+            @formatdict - dictionary providing format strings for
+                          nodes and relationships
+            @dburl - URL for opening the database
+            @nodequeries - a list of Cypher query strings (or a single string)
+                            which enumerate all the desired nodes.
+                            Defaults to all nodes.
+            @nodequeryparams - parameters to plug into the queries
+            @relquery - a Cypher query which enumerates all potentially
+                    interesting relationships.
+                    Defaults to all relationships.
+            @dictclass - a dict-like class which can take a node or
+                    relationship as a parameter for its constructor
+                    along with extra keywords as the kw parameter.
+        '''
         self.formatdict = formatdict
         self.store = dbsetup(readonly=True, url=dburl)
         self.nodeids = None
         self.dictclass = dictclass
-        if nodequery is None:
-            nodequery = 'START n=node(*) RETURN n'
-        self.nodequery = nodequery
+        if nodequeries is None:
+            nodequeries = ('START n=node(*) RETURN n', )
+        if isinstance(nodequeries, (str, unicode)):
+            nodequeries = (nodequeries, )
+        self.nodequeries = nodequeries
         self.nodequeryparams = nodequeryparams
         if relquery is None:
             relquery = '''START fromnode=node(*) MATCH fromnode-[rel]->tonode
@@ -179,23 +219,23 @@ class DotGraph(object):
         return 'node_%d' % nodeid
 
     def _outnodes(self):
-        '''Output our nodes, formatted for 'dot'
+        '''Yield the requested nodes, formatted for 'dot'
         '''
         self.nodeids = set()
-        nodeiter = self.store.load_cypher_nodes(self.nodequery, GraphNode.factory,
-               self.nodequeryparams)
-        nodeformats = self.formatdict['nodes']
-        try:
-            for node in nodeiter:
-                if node.nodetype not in nodeformats:
-                    continue
-                self.nodeids.add(self.store.id(node))
-                dictobj = self.dictclass(node,
-                        {'id': DotGraph.idname(self.store.id(node))})
-                yield nodeformats[node.nodetype] % dictobj
-        #except KeyError as e:
-        except KeyboardInterrupt as e:
-            print('Bad node type: %s' %  e, file=sys.stderr)
+        for nodequery in self.nodequeries:
+            nodeiter = self.store.load_cypher_nodes(nodequery,
+                   GraphNode.factory, self.nodequeryparams)
+            nodeformats = self.formatdict['nodes']
+            try:
+                for node in nodeiter:
+                    if node.nodetype not in nodeformats:
+                        continue
+                    self.nodeids.add(self.store.id(node))
+                    dictobj = self.dictclass(node,
+                            kw={'id': DotGraph.idname(self.store.id(node))})
+                    yield nodeformats[node.nodetype] % dictobj
+            except KeyError as e:
+                print('Bad node type: %s' %  e, file=sys.stderr)
 
     def _outrels(self):
         '''Yield relationships, formatted for 'dot'
@@ -211,7 +251,7 @@ class DotGraph(object):
                 or rel.start_node._id not in self.nodeids
                 or rel.type not in relformats):
                 continue
-            dictobj = self.dictclass(rel, {
+            dictobj = self.dictclass(rel, kw={
                 'from': DotGraph.idname(rel.start_node._id),
                 'to': DotGraph.idname(rel.end_node._id)})
             yield relformats[rel.type] % dictobj
@@ -244,17 +284,21 @@ if __name__ == '__main__':
             'IPaddrNode':
             r'''%(id)s [shape=box color=blue label="%(ipaddr)s"] ''',
             'NICNode':
-            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s\n%(ifname)s"]''',
+            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s\n%(ifname)s\nMTU %(json.mtu)s\nduplex %(json.duplex)s\ncarrier %(carrier)s"]''',
             'Drone':
             r'''
             %(id)s [shape=house color=orange label="%(designation)s\n%(os_description)s\n%(os_kernel-release)s"] ''',
+            'SystemNode':
+            r'''%(id)s [shape=box color=black label="%(designation)s"] ''',
             },
 
         'relationships': {
             'ipowner':
-            r'''%(from)s->%(to)s [color=hotpink]''',
+            r'''%(from)s->%(to)s [color=hotpink label=ipowner]''',
             'nicowner':
-            r''' %(from)s->%(to)s [color=black]''',
+            r''' %(from)s->%(to)s [color=black label=nicowner]''',
+            'wiredto':
+            r''' %(from)s->%(to)s [color=blue label=wiredto]''',
         }
     }
 
