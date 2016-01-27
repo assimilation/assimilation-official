@@ -432,7 +432,7 @@ class pySwitchDiscovery(object):
             pySwitchDiscovery._decode_lldp_802_3_mac_phy(switchinfo, thisportinfo,
                 pySwitchDiscovery._byte1addr(tlvptr), tlvlen-1, pktend)
             return
-        if subtype == 4:
+        if subtype == 4: # G.5: Maximum Frame Size TLV
             mtuaddr = pySwitchDiscovery._byte1addr(tlvptr)
             thisportinfo['mtu'] = tlv_get_guint16(mtuaddr, pktend)
             return
