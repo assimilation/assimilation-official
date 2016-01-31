@@ -716,8 +716,18 @@ configcontext_elem_toString(ConfigValue* val)
 		case CFG_INT64:
 			return g_strdup_printf(FMT_64BIT"d", val->u.intvalue);
 
-		case CFG_FLOAT:
-			return g_strdup_printf("%g", val->u.floatvalue);
+		case CFG_FLOAT: {
+			// Let's make sure we put out a floating point string
+			char * ret = g_strdup_printf("%g", val->u.floatvalue);
+			if (index(ret, '.') == 0) {
+				// OOPS! No decimal point
+				FREE(ret);
+				// So, let's add one...
+				return g_strdup_printf("%g.", val->u.floatvalue);
+			}else{
+				return ret;
+			}
+		}
 
 		case CFG_STRING: {
 			//g_message("Got string pointer: %p", val->u.strvalue);
