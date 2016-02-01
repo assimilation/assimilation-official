@@ -1,19 +1,7 @@
 #!/usr/bin/env python
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
-# bestpractices - prototypical implementation of best practices evaluation
-#                 As of now, this is toy code.  Really...
-#
-# This implementation has several deficiencies which must be eliminated in
-# a more final/production implementation.
-#	1) The best practices are hard-wired into the code
-#       They probably should be stored in the database
-#       They should probably be initialized from some JSON describing them
-#	2) There are no alert objects to track the failure or repair of best
-#      practices
-#	3) We need to be able to dynamically request the things we're interested in
-#      not just statically.  This is related to Drone.add_json_processor()
-#   4) No doubt more deficiencies to be discovered as the code is written.
+# bestpractices - implementation of best practices evaluation
 #
 # This file is part of the Assimilation Project.
 #
@@ -223,34 +211,52 @@ class BestPractices(DiscoveryListener):
             statuses = pyConfigContext(rule_obj.evaluate(drone, srcaddr,
                                        jsonobj, rulesobj))
             #print >> sys.stderr, 'RESULTS ARE:', statuses
-            self.log_rule_results(statuses, drone, srcaddr, discovertype, rulesobj)
+            self.log_rule_results(statuses, drone, srcaddr, jsonobj, rulesobj)
 
     @staticmethod
-    def send_rule_event(oldstat, newstat, drone, ruleid, _ruleobj):
-        ''' Newstat can never be None. '''
+    def send_rule_event(oldstat, newstat, drone, ruleid, ruleobj):
+        ''' Newstat, ruleid, and ruleobj can never be None. '''
+        extrainfo = {'ruleid': ruleid, 'category': ruleobj[ruleid]['category']}
         if oldstat is None:
             if newstat == 'fail':
-                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo=extrainfo)
         elif oldstat == 'pass':
             if newstat == 'fail':
-                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo=extrainfo)
         elif oldstat == 'fail':
             if newstat == 'pass' or newstat == 'ignore' or newstat == 'NA':
-                AssimEvent(drone, AssimEvent.OBJUNWARN, extrainfo = {'ruleid' : ruleid})
+                AssimEvent(drone, AssimEvent.OBJUNWARN, extrainfo=extrainfo)
         elif oldstat == 'ignore':
             if newstat == 'fail':
-                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo=extrainfo)
         elif oldstat == 'NA':
             if newstat == 'fail':
-                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo = {'ruleid' : ruleid})
+                AssimEvent(drone, AssimEvent.OBJWARN, extrainfo=extrainfo)
+    @staticmethod
+    def category_score_name(category):
+        'Compute the attribute name of a best practice score category'
+        return 'bp_category_%s_score' % category
 
-    def log_rule_results(self, results, drone, _srcaddr, discovertype, rulesobj):
+    @staticmethod
+    def incredibly_basic_rule_score_algorithm(_drone, _rule, status):
+        'An incredibly basic (nearly-stupid) best practice scoring algorithm'
+        return 1.0 if status == 'fail' else 0.0
+
+
+    @staticmethod
+    def determine_rule_score_algorithm(_drone, rulesobj):
+        'Select the algorithm for scoring these rules for this Drone'
+        return (rulesobj.score_algorithm if hasattr(rulesobj, 'score_algorithm') else
+                BestPractices.incredibly_basic_rule_score_algorithm)
+
+    def log_rule_results(self, results, drone, _srcaddr, discoveryobj, rulesobj):
         '''Log the results of this set of rule evaluations'''
+        discovertype = discoveryobj['discovertype']
         status_name = 'BP_%s_rulestatus' % discovertype
         if hasattr(drone, status_name):
             oldstats = pyConfigContext(getattr(drone, status_name))
         else:
-            oldstats = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
+            oldstats = {'pass': [], 'fail': [], 'ignore': [], 'NA': [], 'score': 0.0}
         for stat in ('pass', 'fail', 'ignore', 'NA'):
             logmethod = self.log.info if stat == 'pass' else self.log.warning
             for ruleid in results[stat]:
@@ -269,7 +275,89 @@ class BestPractices(DiscoveryListener):
                                  stat.upper(), rulecategory, ruleid,
                                  self.url(drone, ruleid, rulesobj[ruleid]),
                                  thisrule['rule']))
+        self.compute_score_updates(discoveryobj, drone, rulesobj, results, oldstats)
         setattr(Drone, status_name, str(results))
+
+
+
+    @staticmethod
+    def compute_scores_by_category(drone, rulesobj, statuses):
+        '''Compute the scores from this set of statuses - organized by category
+        We return the total score, and the scores organized by category
+        '''
+        score_algorithm = BestPractices.determine_rule_score_algorithm(drone, rulesobj)
+        scores = {}
+        totalscore=0
+        for status in statuses:
+            if status is 'score':
+                continue
+            for ruleid in statuses[status]:
+                rule = rulesobj[ruleid]
+                rulescore = score_algorithm(drone, rule, status)
+                totalscore += rulescore
+                if rule['category'] not in scores:
+                    scores[rule['category']] = 0.0
+                scores[rule['category']] += rulescore
+        return totalscore, scores
+
+    #pylint  disable=R0914 -- too many local variables
+    #pylint: disable=R0914
+    @staticmethod
+    def compute_score_updates(discovery_json, drone, rulesobj, newstats, oldstats):
+        '''We compute the score updates for the rules and results we've been given.
+        The drone is a Drone (or host), the 'rulesobj' contains the rules and their categories.
+        Statuses contains the results of evaluating the rules.
+        Our job is to compute the scores for each of the categories of rules in the
+        statuses, issue events for score changes, and update the category scores in the host.
+
+        We're storing the successes, failures, etc, for this discovery object for this drone.
+
+        Note tha this can fail if we change our algorithm - because we don't know the values
+            the old algorithm gave us, only what the current algorithm gives us on the old results.
+
+        @TODO: We eventually want to update the scores for the domain to which this drone
+        belongs.
+
+
+        '''
+        _, oldcatscores = BestPractices.compute_scores_by_category(drone, rulesobj, oldstats)
+        _, newcatscores = BestPractices.compute_scores_by_category(drone, rulesobj, newstats)
+        keys = set(newcatscores)
+        keys |= set(oldcatscores)
+        # I have no idea why "keys = set(newcatscores) | set(oldcatscores)" did not work...
+        # It worked fine in an interactive python session...
+
+        diffs = {}
+
+        for category in keys:
+            newscore = newcatscores.get(category, 0.0)
+            oldscore = oldcatscores.get(category, 0.0)
+            catattr = BestPractices.category_score_name(category)
+            # I just compare two floating point numbers without a lot of formality.
+            # This should be OK because they're both computed by the same algorithm
+            # And at this level algorithms mostly produce integers
+            # This is not a numerical analysis problem ;-)
+            if newscore != oldscore:
+                diff = newscore - oldscore
+                if category in diffs:
+                    diffs[category] += diff
+                else:
+                    diffs[category] = diff
+                eventtype = AssimEvent.OBJWARN if newscore > oldscore else AssimEvent.OBJUNWARN
+                extrainfo = {'category':    category,
+                             'oldscore': str(oldscore),
+                             'newscore': str(newscore),
+                             'discovery_type': discovery_json['discovertype'],
+                             'discovery_description': discovery_json['description']
+                             }
+                # POTENTIALCONCURRENCY
+                # As long as no one else is updating this attribute for this drone
+                # we shouldn't have concurrency problems.
+                oldval = getattr(drone, catattr) if hasattr(drone, catattr) else 0.0
+                setattr(drone, catattr, oldval + diff)
+                AssimEvent(drone, eventtype, extrainfo=extrainfo)
+        return newcatscores, diffs
+
 
     def fetch_rules(self, _drone, _unusedsrcaddr, _discovertype):
         '''Evaluate our rules given the current/changed data.
@@ -290,7 +378,7 @@ class BestPractices(DiscoveryListener):
             ruleobj = getattr(ruleobj, '_jsonobj')
         ruleids = ruleobj.keys()
         ruleids.sort()
-        statuses = {'pass': [], 'fail': [], 'ignore': [], 'NA': []}
+        statuses = {'pass': [], 'fail': [], 'ignore': [], 'NA': [], 'score': 0.0}
         if len(ruleids) < 1:
             return statuses
         print >> sys.stderr, '\n==== Evaluating %d Best Practices rules on "%s"' \
@@ -327,13 +415,12 @@ class BestPractices(DiscoveryListener):
 @BestPractices.register('proc_sys')
 @Drone.add_json_processor
 class BestPracticesCMA(BestPractices):
-    'Security Best Practices which are evaluated against Linux /proc/sys values'
+    'Security Best Practices which are evaluated against various discovery modules'
     application = 'os'
     discovery_name = 'JSON_proc_sys'
 
     def __init__(self, config, packetio, store, log, debug):
         BestPractices.__init__(self, config, packetio, store, log, debug)
-
 
     def fetch_rules(self, drone, _unusedsrcaddr, discovertype):
         '''Evaluate our rules given the current/changed data.
@@ -357,34 +444,35 @@ class BestPracticesCMA(BestPractices):
             for pkttype in config['allbpdiscoverytypes']:
                 BestPractices.register_sensitivity(BestPracticesCMA, pkttype)
 
-
-
-
-
-class DebugEventObserver(AssimEventObserver):
-    '''
-    Event observer for testing the send event code
-    '''
-    expectResults = {
-                     'f2p' : AssimEvent.OBJUNWARN,
-                     'n2f' : AssimEvent.OBJWARN,
-                     'p2f' : AssimEvent.OBJWARN,
-                     'i2f' : AssimEvent.OBJWARN,
-                     'f2i' : AssimEvent.OBJUNWARN,
-                     'f2na' : AssimEvent.OBJUNWARN,
-                     'na2f' : AssimEvent.OBJWARN
-                     }
-    def __init__(self):
-        AssimEventObserver.__init__(self,None)
-    def notifynewevent(self,event):
-        if event.eventtype == DebugEventObserver.expectResults[event.extrainfo['ruleid']]:
-            print "Success Result for %s is correct" % event.extrainfo['ruleid']
-        else:
-            print "Failure Result for %s is incorrect" % event.extrainfo['ruleid']
-            sys.exit(1)
-
 if __name__ == '__main__':
     #import sys
+
+    class DebugEventObserver(AssimEventObserver):
+        '''
+        Event observer for testing the send event code
+        '''
+        expectResults = {
+                         'f2p' : AssimEvent.OBJUNWARN,
+                         'n2f' : AssimEvent.OBJWARN,
+                         'p2f' : AssimEvent.OBJWARN,
+                         'i2f' : AssimEvent.OBJWARN,
+                         'f2i' : AssimEvent.OBJUNWARN,
+                         'f2na': AssimEvent.OBJUNWARN,
+                         'na2f': AssimEvent.OBJWARN
+                         }
+        def __init__(self):
+            AssimEventObserver.__init__(self,None)
+        def notifynewevent(self,event):
+            if event.eventtype == DebugEventObserver.expectResults[event.extrainfo['ruleid']]:
+                print "Success Result for %s is correct" % event.extrainfo['ruleid']
+            else:
+                print "Failure Result for %s is incorrect" % event.extrainfo['ruleid']
+                sys.exit(1)
+
+    #pylint: disable=R0903
+    class DummyDrone(object):
+        'Really dummy object'
+        pass
     JSON_data = '''
 {
   "discovertype": "proc_sys",
@@ -414,6 +502,7 @@ if __name__ == '__main__':
     "net.ipv6.conf.all.accept_source_route": 0
     }}'''
     rulefile = None
+    dummydrone = DummyDrone()
     for dirname in ('.', '..', '../..', '../../..'):
         rulefile= '%s/best_practices/proc_sys.json' % dirname
         if os.access(rulefile, os.R_OK):
@@ -427,20 +516,45 @@ if __name__ == '__main__':
     BestPractices(testconfig, None, None, logger, False)
     for procsys in BestPractices.eval_classes['proc_sys']:
         ourstats = procsys.evaluate("testdrone", None, testjsonobj, testrules)
-        size = sum([len(ourstats[st]) for st in ourstats.keys()])
-        print size, len(testrules)
+        size = sum([len(ourstats[st]) for st in ourstats.keys() if st != 'score'])
+        #print size, len(testrules)
         assert size == len(testrules)-1 # One rule is an IGNOREd comment
         assert ourstats['fail'] == ['itbp-00001', 'nist_V-38526', 'nist_V-38601']
         assert len(ourstats['NA']) >= 13
         assert len(ourstats['pass']) >= 3
         assert len(ourstats['ignore']) == 0
-        print ourstats
+        score, tstdiffs = BestPractices.compute_score_updates(testjsonobj, dummydrone, testrules,
+                                                           ourstats, {})
+        assert str(pyConfigContext(score)) == '{"networking":1.,"security":2.}'
+        # pylint: disable=E1101
+        assert dummydrone.bp_category_networking_score == 1.0   # should be OK for integer values
+        assert dummydrone.bp_category_security_score == 2.0     # should be OK for integer values
+        assert type(dummydrone.bp_category_networking_score) == float
+        assert type(dummydrone.bp_category_security_score) == float
+        assert str(pyConfigContext(tstdiffs)) == '{"networking":1.,"security":2.}'
+        score, tstdiffs = BestPractices.compute_score_updates(testjsonobj, dummydrone, testrules,
+                                                           ourstats, ourstats)
+        assert str(pyConfigContext(score)) == '{"networking":1.,"security":2.}'
+        assert str(pyConfigContext(tstdiffs)) == '{}'
+        score, tstdiffs = BestPractices.compute_score_updates(testjsonobj, dummydrone, testrules,
+                                                           {}, ourstats)
+        assert str(pyConfigContext(tstdiffs)) == '{"networking":-1.,"security":-2.}'
+        assert dummydrone.bp_category_networking_score == 0.0   # should be OK for integer values
+        assert dummydrone.bp_category_security_score == 0.0     # should be OK for integer values
     DebugEventObserver()
-    BestPractices.send_rule_event('fail', 'pass', 'testdrone', 'f2p', None)
-    BestPractices.send_rule_event(None, 'fail', 'testdrone', 'n2f', None)
-    BestPractices.send_rule_event('pass', 'fail', 'testdrone', 'p2f', None)
-    BestPractices.send_rule_event('ignore', 'fail', 'testdrone', 'i2f', None)
-    BestPractices.send_rule_event('fail', 'ignore', 'testdrone', 'f2i', None)
-    BestPractices.send_rule_event('fail', 'NA', 'testdrone', 'f2na', None)
-    BestPractices.send_rule_event('NA', 'fail', 'testdrone', 'na2f', None)
+    atestrule = testrules['itbp-00001']
+    # Create temporary rules for the send_rule_event tests
+    for case in ('f2p', 'n2f', 'p2f', 'i2f', 'f2i', 'f2na', 'na2f'):
+        testrules[case] = atestrule
+    BestPractices.send_rule_event('fail', 'pass', 'testdrone', 'f2p', testrules)
+    BestPractices.send_rule_event(None, 'fail', 'testdrone', 'n2f', testrules)
+    BestPractices.send_rule_event('pass', 'fail', 'testdrone', 'p2f', testrules)
+    BestPractices.send_rule_event('ignore', 'fail', 'testdrone', 'i2f', testrules)
+    BestPractices.send_rule_event('fail', 'ignore', 'testdrone', 'f2i', testrules)
+    BestPractices.send_rule_event('fail', 'NA', 'testdrone', 'f2na', testrules)
+    BestPractices.send_rule_event('NA', 'fail', 'testdrone', 'na2f', testrules)
+    # Get rid of the temporary rules for the send_rule_event tests
+    for case in ('f2p', 'n2f', 'p2f', 'i2f', 'f2i', 'f2na', 'na2f'):
+        del testrules[case]
+
     print 'Results look correct!'
