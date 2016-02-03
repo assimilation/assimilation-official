@@ -128,7 +128,8 @@ run_regression_test() {
     return 0
 }
 
-testlines='findmnt FINDMNT_TEST_DATA
+testlines='auditd_conf AUDITD_CONFIG
+findmnt FINDMNT_TEST_DATA
 login_defs LOGIN_DEFS_CONFIG
 mdadm MDADM_CONFIG
 nsswitch NSSWITCH_CONFIG

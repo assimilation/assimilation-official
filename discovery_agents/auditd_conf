@@ -1,0 +1,107 @@
+#!/bin/sh -eu
+#
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
+#
+#	auditd_conf - discover the configuration from /etc/audit/auditd_conf
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+#   - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
+#
+set -e
+: ${AUDITD_CONFIG:=/etc/audit/auditd.conf}
+nl='
+'
+mdadmEOF=false
+mdadmprevline=''
+
+# Format a value - integer, string or yes/no (boolean)
+format_value() {
+    case $1 in
+        [0-9]*)	echo $1;;
+        yes)	echo true;;
+		no)     echo false;;
+		exec)   if
+                    [ $# -eq 2 ]
+                then
+                    echo '["exec", "'$2\""]"
+                else
+		            echo \""$1"\"
+                fi;;
+		*)      echo \""$1"\";;
+    esac
+}
+
+# These lines are name = value -- or in name = exec value
+format_line() {
+    delim="$1"
+    optioname="$2"
+    shift; shift
+    printf '%s"%s": %s' "$delim" "$optionname" "$(format_value "$@")"
+}
+
+# Format out the entire (preprocessed) auditd_file
+format_auditd_conf() {
+    delim="$1"
+    loopdelim=",${nl}${delim}"
+    while
+        read optionname equal foo bar
+    do
+        if
+            [ "$equal" != "=" ]
+        then
+            echo "ERROR: Malformed auditd_conf line: $optionname $equal $foo $bar"
+        else
+            format_line "$delim" "$optionname" "$foo" $bar
+        fi
+        delim="$loopdelim"
+    done
+}
+
+auditd_conf_preprocess() {
+    grep -v '^#' "$1" | sed -e 's%=% = %' | tr 'A-Z' 'a-z' | grep .
+}
+
+discover() {
+    # We decidedly do not want pathname expansion...
+    # It would screws up some of our eval stuff in read_mdadm_line()
+    # It also appears that set -f is part of the POSIX standard
+    prefix="    "
+    cat <<-!
+	{
+	  "discovertype": "auditd_conf",
+	  "description": "$AUDITD_CONFIG configuration",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    if
+        [ ! -f "$AUDITD_CONFIG" -o  ! -r  "$AUDITD_CONFIG" ]
+    then
+        printf '%s"NODATA": "ERROR: Cannot read %s"\n' "$prefix" "$AUDITD_CONFIG"
+    else
+        auditd_conf_preprocess "${AUDITD_CONFIG}" | format_auditd_conf "$prefix"
+    fi
+  printf '\n  }\n}\n'
+}
+discover
