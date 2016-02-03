@@ -528,12 +528,32 @@ class pySwitchDiscovery(object):
         #print >> sys.stderr, ("MAU type: %d" % mau_type)
 
     @staticmethod
-    def _decode_lldp_med(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
+    def _decode_lldp_med(switchinfo, _thisportinfo, tlvptr, tlvlen, _pktend):
         '''Decode LLDP-MED org-specific TLV (or not...)'''
-        #@TODO: Ought to add LLDP-MED support - some of it looks pretty cool in wireshark ;-)
-        # and my current netgear switches support it.
-        print >> sys.stderr, (
-            'Ignored %d bytes of LLDP-MED extensions.' % tlvlen)
+        subtype = pySwitchDiscovery._byte0(tlvptr)
+        if subtype == 5:
+            pySwitchDiscovery._get_med_string(switchinfo, 'hardware-revision', tlvptr, tlvlen)
+        elif subtype == 6:
+            pySwitchDiscovery._get_med_string(switchinfo, 'firmware-revision', tlvptr, tlvlen)
+        elif subtype == 7:
+            pySwitchDiscovery._get_med_string(switchinfo, 'software-revision', tlvptr, tlvlen)
+        elif subtype == 8:
+            pySwitchDiscovery._get_med_string(switchinfo, 'serial-number', tlvptr, tlvlen)
+        elif subtype == 9:
+            pySwitchDiscovery._get_med_string(switchinfo, 'manufacturer', tlvptr, tlvlen)
+        elif subtype == 10:
+            pySwitchDiscovery._get_med_string(switchinfo, 'model', tlvptr, tlvlen)
+        elif subtype == 11:
+            pySwitchDiscovery._get_med_string(switchinfo, 'asset-id', tlvptr, tlvlen)
+        else:
+            print >> sys.stderr, (
+                'Ignored %d bytes of LLDP-MED type %d extensions.' % (tlvlen, subtype))
+
+    @staticmethod
+    def _get_med_string(info, name, tlvptr, tlvlen):
+        '''Decode LLDP-MED string value - trim off extra white space at end'''
+        strptr = cast(pySwitchDiscovery._byte1addr(tlvptr), c_char_p)
+        info[name] = string_at(strptr, tlvlen-1).strip()
 
     @staticmethod
     def _decode_lldp_profibus(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
@@ -1964,6 +1984,8 @@ class pyConfigContext(pyAssimObj):
             ret = self.getframe(name)
         elif ktype == CFG_INT64:
             ret = self.getint(name)
+        elif ktype == CFG_FLOAT:
+            ret = self.getfloat(name)
         elif ktype == CFG_BOOL:
             ret = self.getbool(name)
         elif ktype == CFG_ARRAY:
@@ -2340,3 +2362,6 @@ def follow_referrer_back(obj, level=0, maxlevel=4):
                 %   (level * '**', type(referrer), str(referrer)[:512]))
         if level < maxlevel:
             follow_referrer_back(referrer, level+1)
+
+if __name__ == '__main__':
+    pass
