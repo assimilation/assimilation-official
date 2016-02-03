@@ -1,0 +1,60 @@
+{
+  "copyright": {
+	"category": "comment",
+        "rule": "IGNORE(copyright notice)",
+	"copyright": "This file Copyright (c) 2016 - Assimilation Systems Limited",
+	"license": "GPL v3",
+	"comment": "A collection of best practices rules sensitive to /etc/audit/auditd.conf configuration"
+	},
+
+  "nist_V-38464": {
+	"category": "security",
+        "rule": "MUST(OR(IN($disk_error_action, syslog, single, halt), EQ($disk_error_action[0], exec)))"
+	},
+
+  "nist_V-38468": {
+	"category": "security",
+        "rule": "MUST(OR(IN($disk_full_action, syslog, single, halt), EQ($disk_full_action[0], exec)))"
+	},
+
+  "nist_V-38470": {
+	"category": "security",
+        "rule": "MUST(IN($space_left_action, syslog, email))"
+	},
+
+  "nist_V-38633": {
+	"category": "security",
+        "rule": "MUST(GT($max_log_file, 6))"
+	},
+
+  "nist_V-38634": {
+	"category": "security",
+        "rule": "MUST(EQ($max_log_file_action, rotate))"
+	},
+
+  "nist_V-38636": {
+	"category": "security",
+        "rule": "MUST(GE($num_logs, 5))"
+	},
+
+  "nist_V-38678": {
+	"category": "security",
+	"comment": "This isn't quite the requirement - also check the local documented requirement",
+        "rule": "MUST(GE($space_left, 20))"
+	},
+
+  "nist_V-38680": {
+	"category": "security",
+        "rule": "MUST(EQ($action_main_acct, root))"
+	},
+
+  "nist_V-54381": {
+	"category": "security",
+        "rule": "MUST(IN($admin_space_left_action, single, suspend, halt))"
+	},
+
+  "nist_V-54381": {
+	"category": "security",
+        "rule": "MUST(IN($admin_space_left_action, single, suspend, halt))"
+	}
+}

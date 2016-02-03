@@ -53,7 +53,8 @@ class ConfigFile(object):
         'contrib_modules':      [str],      # List of contrib modules to be included
                                             # We have no idea what contrib modules there might be
         'initial_discovery':    [           # Below is the list of known discovery agents...
-                                    {'commands',            # Discovers installed commands
+                                    {'auditd_conf',         # /etc/audit/auditd.conf config
+                                     'commands',            # Discovers installed commands
                                      'cpu',                 # CPU details
                                      'login_defs',          # /etc/login.defs configuration
                                      'pam',                 # PAM configuration
@@ -171,6 +172,7 @@ class ConfigFile(object):
                                  'commands',        # Discovers installed commands
                                  'monitoringagents',# What monitoring agents are installed?
                                  'login_defs',      # /etc/login.defs configuration
+                                 'auditd_conf',     # /etc/audit/auditd.conf config
                                  'pam',             # PAM configuration
                                  'sudoers',         # Discovers /etc/sudoers configuration
                                  'ulimit',          # What are current ulimit values?
