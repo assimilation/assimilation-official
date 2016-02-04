@@ -547,7 +547,7 @@ class pySwitchDiscovery(object):
             pySwitchDiscovery._get_med_string(switchinfo, 'asset-id', tlvptr, tlvlen)
         else:
             print >> sys.stderr, (
-                'Ignored %d bytes of LLDP-MED type %d extensions.' % (tlvlen, subtype))
+                'Ignored %d bytes of LLDP-MED extensions (subtype %d).' % (tlvlen, subtype))
 
     @staticmethod
     def _get_med_string(info, name, tlvptr, tlvlen):
