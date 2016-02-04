@@ -513,18 +513,25 @@ class pySwitchDiscovery(object):
                 'Invalid %d byte LLDP 802.3 MAC/PHY information (Annex G.2).' % tlvlen)
             return
         autoneg_status = pySwitchDiscovery._byte0(tlvptr)
-        pmd_autoneg_addr = pySwitchDiscovery._byte1addr(tlvptr)
-        pmd_autoneg = tlv_get_guint16(pmd_autoneg_addr, pktend)
-        mau_addr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
-        mau_type = tlv_get_guint16(mau_addr, pktend)
         thisportinfo['autoneg_supported'] = (autoneg_status & 0x01) == 0x01
         thisportinfo['autoneg_enabled']   = (autoneg_status & 0x10) == 0x10
+        #@TODO: Need to add info about autonegotiation speeds/duplexes supported (pmd_autoneg)
+        # I'm ignoring the PMD_AUTONEG field because it's not horribly important
+        # and it's incorrect on the switches in my test lab - and it's kinda
+        # complicated to decode and figure out ;-)
+        #
+        # It has one bit for each speed/duplex it is _capable_ of autonegotiating.
+        # PMD auto-negotiation advertised capability is described as the field
+        # ifMauAutoNegCapAdvertisedBits in RFC 3636 (page 42)
+        # pmd_autoneg_addr = pySwitchDiscovery._byte1addr(tlvptr)
+        # pmd_autoneg = tlv_get_guint16(pmd_autoneg_addr, pktend)
+        mau_addr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
+        mau_type = tlv_get_guint16(mau_addr, pktend)
         mauinfo = pySwitchDiscovery.dot3MauTypes(mau_type)
         for key in mauinfo:
             thisportinfo[key] = mauinfo[key]
-        #@TODO: Need to add info about autonegotiation speeds/duplexes supported (pmd_autoneg)
         #print >> sys.stderr, ("Autoneg_status: 0x%02x" % autoneg_status)
-        print >> sys.stderr, ("pmd_autoneg: %d" % pmd_autoneg)
+        #print >> sys.stderr, ("pmd_autoneg: %d" % pmd_autoneg)
         #print >> sys.stderr, ("MAU type: %d" % mau_type)
 
     @staticmethod
