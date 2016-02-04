@@ -24,7 +24,7 @@
 
 import re, os, inspect
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
-from AssimCclasses import pyNetAddr
+from AssimCclasses import pyNetAddr, pyConfigContext
 import sys
 #
 #
@@ -47,16 +47,17 @@ class GraphNodeExpression(object):
             We may add other kinds of expressions in the future...
         '''
         if not isinstance(expression, (str, unicode)):
-            #print >> sys.stderr, 'RETURNING NONSTRING:', expression
+            # print >> sys.stderr, 'RETURNING NONSTRING:', expression
             return expression
         expression = expression.strip()
         if not hasattr(context, 'get') or not hasattr(context, '__setitem__'):
             context = ExpressionContext(context)
-        #print >> sys.stderr, '''EVALUATE('%s') (%s):''' % (expression, type(expression))
+        # print >> sys.stderr, '''EVALUATE('%s') (%s):''' % (expression, type(expression))
         # The value of this parameter is a constant...
-        #if expression[-1] != '"':
-        #    print >> sys.stderr, "Unterminated string '%s'" % expression
         if expression.startswith('"'):
+            if expression[-1] != '"':
+                print >> sys.stderr, "Unterminated string '%s'" % expression
+            # print >> sys.stderr, '''Constant string: "%s"''' % (expression[1:-1])
             return expression[1:-1] if expression[-1] == '"' else None
         if (expression.startswith('0x') or expression.startswith('0X')) and len(expression) > 3:
             return int(expression[2:], 16)
@@ -66,50 +67,86 @@ class GraphNodeExpression(object):
             value = GraphNodeExpression.functioncall(expression, context)
             context[expression] = value
             return value
-        #if expression.startswith('$'):
-        #print >> sys.stderr, 'RETURNING VALUE OF %s' % expression[1:]
-        #print >> sys.stderr, 'Context is %s' % str(context)
-        #print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
+        # if expression.startswith('$'):
+            # print >> sys.stderr, 'RETURNING VALUE OF %s' % expression[1:]
+        # print >> sys.stderr, 'Context is %s' % str(context)
+        # print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
         #   % (expression, context.get(expression[1:], None))
         return context.get(expression[1:], None) if expression.startswith('$') else expression
 
+    # pylint R0912: too many branches - really ought to write a lexical analyzer and parser
+    # On the whole it would be simpler and easier to understand...
+    # pylint: disable=R0912
     @staticmethod
     def _compute_function_args(arglist, context):
         '''Compute the arguments to a function call. May contain function calls
-        and other GraphNodeExpression
+        and other GraphNodeExpression, or quoted strings...
+        Ugly lexical analysis.
+        Really ought to write a real recursive descent parser...
         '''
+        # print >> sys.stderr, '_compute_function_args(%s)' % str(arglist)
         args = []
         argstrings = []
         nestcount=0
         arg = ''
+        instring = False
+        prevwasquoted = False
         for char in arglist:
-            if nestcount == 0 and char == ',':
-                arg = arg.strip()
-                if arg == '':
-                    continue
-                args.append(GraphNodeExpression.evaluate(arg, context))
-                argstrings.append(arg)
-                arg = ''
+            if instring:
+                if char == '"':
+                    instring = False
+                    prevwasquoted = True
+                else:
+                    arg += char
+            elif nestcount == 0 and char == '"':
+                instring = True
+            elif nestcount == 0 and char == ',':
+                if prevwasquoted:
+                    prevwasquoted = False
+                    args.append(arg)
+                    argstrings.append(arg)
+                else:
+                    arg = arg.strip()
+                    if arg == '':
+                        continue
+                    #print >> sys.stderr, "EVALUATING [%s]" % arg
+                    args.append(GraphNodeExpression.evaluate(arg, context))
+                    argstrings.append(arg)
+                    arg = ''
             elif char == '(':
                 nestcount += 1
+                #print >> sys.stderr, "++nesting: %d" % (nestcount)
                 arg += char
             elif char == ')':
                 arg += char
                 nestcount -= 1
+                #print >> sys.stderr, "--nesting: %d" % (nestcount)
                 if nestcount < 0:
                     return (None, None)
                 if nestcount == 0:
-                    arg = arg.strip()
-                    args.append(GraphNodeExpression.functioncall(arg, context))
+                    if prevwasquoted:
+                        #print >> sys.stderr, '_compute_function_args: QUOTED argument: "%s"' % arg
+                        args.append(arg)
+                    else:
+                        arg = arg.strip()
+                        #print >> sys.stderr, "GnE.functioncall [%s]" % arg
+                        args.append(GraphNodeExpression.functioncall(arg, context))
                     argstrings.append(arg)
                     arg = ''
             else:
                 arg += char
-        if nestcount > 0:
+        if nestcount > 0 or instring:
+            #print "Nestcount: %d, instring: %s" % (nestcount, instring)
             return (None, None)
         if arg != '':
-            args.append(GraphNodeExpression.evaluate(arg, context))
+            if prevwasquoted:
+                #print >> sys.stderr, '_compute_function_args: quoted argument: "%s"' % arg
+                args.append(arg)
+            else:
+                #print >> sys.stderr, "GnE.evaluate [%s]" % arg
+                args.append(GraphNodeExpression.evaluate(arg, context))
             argstrings.append(arg)
+        #print >> sys.stderr, 'RETURNING [%s] [%s]' % (args, argstrings)
         return (args, argstrings)
 
     @staticmethod
@@ -131,14 +168,17 @@ class GraphNodeExpression(object):
             return None
         expression = expression[:len(expression)-1]
         (funname, arglist) = expression.split('(', 1)
-        #print >> sys.stderr, 'FUNCTIONCALL: %s(%s)' % (funname, arglist)
+        # print >> sys.stderr, 'FUNCTIONCALL: %s(%s)' % (funname, arglist)
         funname = funname.strip()
         arglist = arglist.strip()
         #
         # At this point we have all our arguments as a string , but it might contain
         # other (nested) calls for us to evaluate
         #
+        # print >> sys.stderr, 'FunctionCall: arglist: [%s]' % (arglist)
         args, _argstrings = GraphNodeExpression._compute_function_args(arglist, context)
+        # print >> sys.stderr, 'args: %s' % (args)
+        # print >> sys.stderr, '_argstrings: %s' % (_argstrings)
         if args is None:
             return None
 
@@ -147,10 +187,10 @@ class GraphNodeExpression(object):
         if funname not in GraphNodeExpression.functions:
             print >> sys.stderr, 'BAD FUNCTION NAME: %s' % funname
             return None
-        #print >> sys.stderr, 'ARGSTRINGS %s(%s)' % (funname, str(argstrings))
-        #print >> sys.stderr, 'ARGS: %s' % (str(args))
+        # print >> sys.stderr, 'ARGSTRINGS %s(%s)' % (funname, str(_argstrings))
+        # print >> sys.stderr, 'ARGS: %s' % (str(args))
         ret = GraphNodeExpression.functions[funname](args, context)
-        #print >> sys.stderr, '%s(%s) => %s' % (funname, args, ret)
+        # print >> sys.stderr, '%s(%s) => %s' % (funname, args, ret)
         return ret
 
     @staticmethod
@@ -202,8 +242,12 @@ class ExpressionContext(object):
 
 
     def keys(self):
-        '''Return the keys in our cache - this is NOT all known keys'''
-        return self.values.keys()
+        '''Return the complete set of keys in all our constituent objects'''
+        retkeys = set()
+        for obj in self.objects:
+            for key in obj:
+                retkeys.add(key)
+        return retkeys
 
     def get(self, key, alternative=None):
         '''Return the value associated with a key - cached or otherwise
@@ -213,12 +257,17 @@ class ExpressionContext(object):
         for obj in self.objects:
             ret = None
             try:
+                #print >> sys.stderr, 'GETTING %s in %s: %s' % (key, type(obj), obj)
                 ret = obj.get(key, None)
+                if ret is None and hasattr(obj, 'deepget'):
+                    ret = obj.deepget(key, None)
+                #print >> sys.stderr, 'RETURNED %s' % ret
             # Too general exception catching...
             # pylint: disable=W0703
             except Exception as e:
                 ret = None
-                print >> sys.stderr, 'OOPS: self.objects = %s / exception %s' % str(self.objects, e)
+                print >> sys.stderr, 'OOPS: self.objects = %s / exception %s' % (str(self.objects),
+                                                                                 e)
                 print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
             if ret is not None:
                 self.values[key] = ret
@@ -254,8 +303,8 @@ class ExpressionContext(object):
 
 
     def __len__(self):
-        'Return the length of our cache in self.keys() - probably not useful'
-        return len(self.values)
+        'Return the number of keys in our objects'
+        return len(self.keys())
 
     def __getitem__(self, key):
         'Return the given item, or raise KeyError if not found'
@@ -286,6 +335,7 @@ def EQ(args, _context):
     '''Function to return True if each non-None argument in the list matches
     every non-None argument and at least one of its subsequent arguments are not None.
     '''
+    #print >> sys.stderr, 'EQ(%s) =>?' % str(args)
     val0 = args[0]
     if val0 is None:
         return None
@@ -293,9 +343,13 @@ def EQ(args, _context):
     for val in args[1:]:
         if val is None:
             continue
-        if val0 != val and str(val0) != str(val):
+        if type(val0) != type(val):
+            if str(val0) != str(val):
+                return False
+        elif val0 != val:
             return False
         anymatch = True
+    #print >> sys.stderr, 'EQ(%s) => %s' % (str(args), str(anymatch))
     return anymatch
 
 @GraphNodeExpression.RegisterFun
@@ -536,6 +590,26 @@ def OR(args, context):
     return None
 
 @GraphNodeExpression.RegisterFun
+def AND(args, context):
+    '''
+    A function which evaluates  each expression in turn, and returns the value
+    of the first expression which is not None - or None
+    '''
+    # print >> sys.stderr, 'AND(%s)' % (str(args))
+    argisnone = True
+    if len(args) < 1:
+        return None
+    for arg in args:
+        value = GraphNodeExpression.evaluate(arg, context)
+        if value is None:
+            argisnone = None
+        elif not value:
+            # print >> sys.stderr, 'AND(%s) => False' % (str(args))
+            return False
+    # print >> sys.stderr, 'AND(%s) => %s' % (str(args), argisnone)
+    return argisnone
+
+@GraphNodeExpression.RegisterFun
 def ATTRSEARCH(args, context):
     '''
     Search our first context object for an attribute with the given name and (if supplied) value.
@@ -662,14 +736,14 @@ def PAMMODARGS(args, _context):
 @GraphNodeExpression.RegisterFun
 def MUST(args, _unused_context):
     'Return True if all args are True. A None arg is the same as False to us'
-    #print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
+    # print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
     if not hasattr(args, '__iter__') or isinstance(args, (str, unicode)):
         args = (args,)
     for arg in args:
         if arg is None or not arg:
             #print >> sys.stderr, '+++MUST returns FALSE'
             return False
-    #print >> sys.stderr, '+++MUST returns TRUE'
+    # print >> sys.stderr, '+++MUST returns TRUE'
     return True
 
 @GraphNodeExpression.RegisterFun
@@ -684,6 +758,63 @@ def NONEOK(args, _unused_context):
             return False
     #print >> sys.stderr, '+++NONEOK returns TRUE'
     return True
+@GraphNodeExpression.RegisterFun
+def FOREACH(args, context):
+    '''Applies the (string) expression (across all values in the context,
+    returning the 'AND' of the evaluation of the expression-evaluations
+    across the top level values in the context. It stops evaluation on
+    the first False return.
+
+    The final argument is the expression (predicate) to be evaluated. Any
+    previous arguments in 'args' are expressions to be evaluated in the context
+    'context' then used as the 'context' for this the expression in this FOREACH.
+    Note that this desired predicate is a _string_, which is then evaluated
+    (like 'eval').  It is not a normal expression, but a string containing
+    an expression.  You _will_ have to quote it.
+
+    When given a single argument, it will evaluate the string expression
+    for each of  top-level values in the object. Normally this would be the 'data'
+    portion of a discovery object. So, for example, if each of the top level keys
+    is a file name and the values are file properties, then it will evaluate the
+    expression on the properties of every file in the object.
+
+    If you need to evaluate this across all the elements of a sub-object named
+    "filenames" in the top level "data" object then you give "$filenames" as the
+    context argument, and your predicate as the expression like this:
+        ["$filenames", "<your-desired-predicate>"].
+
+    The code to do this is simpler than the explanation ;-)
+    '''
+    anynone = False
+    if len(args) == 1:
+        objectlist = context.objects
+    else:
+        objectlist = [GraphNodeExpression.evaluate(obj, context) for obj in args[:-1]]
+
+    expressionstring=args[-1]
+    if not isinstance(expressionstring, (str, unicode)):
+        print >> sys.stderr, 'FOREACH expression must be a string, not %s' % type(expressionstring)
+        return False
+    # print >>sys.stderr, 'OBJECTLIST is:', objectlist
+    for obj in objectlist:
+        # print >>sys.stderr, 'OBJ is:', obj
+        for key in obj:
+            item = obj[key]
+            if not hasattr(item, '__contains__') or not hasattr(item, '__iter__'):
+                print >> sys.stderr, 'UNSUITABLE FOREACH CONTEXT[%s]: %s' % (key, item)
+                continue
+            # print >> sys.stderr, 'CREATING CONTEXT[%s]: %s' % (key, item)
+            itemcontext = ExpressionContext(item)
+            # print >> sys.stderr, 'CONTEXT IS:', itemcontext
+            value = GraphNodeExpression.evaluate(expressionstring, itemcontext)
+            # print >> sys.stderr, 'VALUE of %s IS [%s] in context: %s' % (str(args), value, item)
+            if value is None:
+                anynone = True
+            elif not value:
+                return False
+    return None if anynone else True
+
+
 
 @GraphNodeExpression.RegisterFun
 def bitwiseOR(args, context):
@@ -961,5 +1092,37 @@ if __name__ == '__main__':
         assert basename(('/dev/null'), None) == 'null'
         assert dirname(('/dev/null'), None) == '/dev'
         print >> sys.stderr, 'Simple tests passed.'
+
+    def contexttests():
+        'GraphNodeExpression tests that need a context'
+
+        lsattrs='''{
+    "/var/log/audit/": {"owner": "root", "group": "root", "type": "d", "perms": {"owner":{"read":true, "write":true, "exec":true, "setid":false}, "group": {"read":true, "write":false, "exec":true, "setid":false}, "other": {"read":false, "write":false, "exec":false}, "sticky":false}, "octal": "0750"},
+    "/var/log/audit/audit.log": {"owner": "root", "group": "root", "type": "-", "perms": {"owner":{"read":true, "write":true, "exec":false, "setid":false}, "group": {"read":false, "write":false, "exec":false, "setid":false}, "other": {"read":false, "write":false, "exec":false}, "sticky":false}, "octal": "0600"},
+    "/var/log/audit/audit.log.1": {"owner": "root", "group": "root", "type": "-", "perms": {"owner":{"read":true, "write":false, "exec":false, "setid":false}, "group": {"read":false, "write":false, "exec":false, "setid":false}, "other": {"read":false, "write":false, "exec":false}, "sticky":false}, "octal": "0400"}
+}'''
+        lscontext = ExpressionContext(pyConfigContext(lsattrs,))
+
+        Pie_context = ExpressionContext((
+            pyConfigContext({'a': {'b': 'c', 'pie': 3, 'pi': 3, 'const': 'constant'},
+                            'f': {'g': 'h', 'pie': '3', 'pi': 3, 'const': 'constant'}}),
+            pyConfigContext({'math': {'pi': 3.14159, 'pie': 3, 'const': 'constant'}}),
+            pyConfigContext({'geography': {'Europe': 'big', 'const': 'constant'}}),
+            ))
+        complicated_context = ExpressionContext(pyConfigContext({'a': {'b': {'pie': 3}}}),)
+        assert FOREACH(("EQ(False, $perms.group.write, $perms.other.write)",), lscontext) == True
+        assert FOREACH(("EQ($pi, 3)",), Pie_context) == False
+        assert FOREACH(("EQ($pie, 3)",), Pie_context) is None
+        assert FOREACH(("$a", "EQ($pie, 3)"), complicated_context) == True
+        assert FOREACH(("$a", "EQ($pie, 3.14159)"), complicated_context) == False
+        assert FOREACH(("$a", "EQ($pi, 3.14159)"), complicated_context) == None
+        assert FOREACH(("EQ($const, constant)",), Pie_context) == True
+        assert GraphNodeExpression.evaluate('EQ($math.pie, 3)', Pie_context) == True
+        assert FOREACH(("EQ($group, root)",), lscontext) == True
+        assert FOREACH(("EQ($owner, root)",), lscontext) == True
+        assert FOREACH(("AND(EQ($owner, root), EQ($group, root))",), lscontext) == True
+        print >> sys.stderr, 'Context tests passed.'
+
     simpletests()
+    contexttests()
     print >> sys.stderr, 'All tests passed.'

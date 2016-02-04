@@ -32,6 +32,7 @@ from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNo
     JSONMapNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pyCryptFrame
+from AssimCtypes import CONFIGNAME_TYPE
 from assimevent import AssimEvent
 from cmaconfig import ConfigFile
 
@@ -486,13 +487,15 @@ class Drone(SystemNode):
         #fs = pyFrameSet(FrameSetTypes.DODISCOVER)
         frames = []
         for arg in args:
+            agent_params = ConfigFile.agent_params(CMAdb.io.config, 'discovery',
+                                                   arg[CONFIGNAME_TYPE], self.designation)
+            for key in ('repeat', 'warn' 'timeout', 'nice'):
+                if key in agent_params and key not in arg:
+                    arg[key] = agent_params[arg]
             instance = arg['instance']
             frames.append({'frametype': FrameTypes.DISCNAME, 'framevalue': instance})
             if 'repeat' in arg:
                 interval = int(arg['repeat'])
-            else:
-                interval = None
-            if interval is not None:
                 frames.append({'frametype': FrameTypes.DISCINTERVAL, 'framevalue': int(interval)})
             frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': str(arg)})
         # This doesn't work if the client has bound to a VIP

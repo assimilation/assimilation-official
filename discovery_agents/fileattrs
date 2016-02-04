@@ -2,9 +2,9 @@
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # Discover file attributes
-#   We discover them for the list of files in ${LS_FILELIST}
+#   We discover them for the list of files in ${ASSIM_filelist}
 #
-#   If a file in $LS_FILELIST name ends in /, then we assume it's a directory and also
+#   If a file in $ASSIM_filelist name ends in /, then we assume it's a directory and also
 #   discover the information for every file inside that directory
 #
 # This file is part of the Assimilation Project.
@@ -31,7 +31,7 @@
 #
 nl='
 '
-: ${LS_FILELIST='/ /etc /lib /usr/ /var/ /run /run/lock /run/user /bin /sbin /usr/local/'}
+: ${ASSIM_filelist='/ /etc /lib /usr/ /var/ /run /run/lock /run/user /bin /sbin /usr/local/'}
 
 have_getfattr='false'
 have_stat='false'
@@ -243,8 +243,8 @@ discover_files() {
 discover() {
     cat <<-!
 	{
-	  "discovertype": "ls",
-	  "description": "ls-style information about files and directories",
+	  "discovertype": "fileattrs",
+	  "description": "file and directory attributes",
 	  "host": "$(uname -n)",
 	  "source": "$0",
 	!
@@ -266,5 +266,5 @@ fi
 # Check the modes on everything...
 case $1 in
   ls-args)  shift;  discover_files "$@";; # First argument is prefix (white space) for each line.
-  *)        discover $LS_FILELIST;;
+  *)        discover $ASSIM_filelist;;
 esac

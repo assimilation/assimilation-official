@@ -196,20 +196,27 @@ class BestPractices(DiscoveryListener):
 
     def processpkt(self, drone, srcaddr, jsonobj):
         '''Inform interested rule objects about this change'''
-        self = self
         discovertype = jsonobj['discovertype']
-        if discovertype not in BestPractices.eval_objects:
-            print >> sys.stderr, 'NO %s in eval objects %s' % \
-                (discovertype, str(BestPractices.eval_objects))
-            return
-        #print >> sys.stderr, 'IN PROCESSPKT for %s: %s %s' % \
-        #   (drone, discovertype, BestPractices.eval_objects[discovertype])
-        for rule_obj in BestPractices.eval_objects[discovertype]:
-            #print  >> sys.stderr, 'Fetching %s rules for %s' % (discovertype, drone)
-            rulesobj = rule_obj.fetch_rules(drone, srcaddr, discovertype)
+        discoverinstance = jsonobj['instance']
+        if discoverinstance in BestPractices.eval_objects:
+            #print 'MATCHING ON INSTANCE: %s: %s' % (discoverinstance, str(jsonobj))
+            self._processpkt_by_type(drone, srcaddr, discoverinstance, jsonobj)
+        elif discovertype in BestPractices.eval_objects:
+            #print 'MATCHING BY DISCOVERTYPE: %s: %s' % (discovertype, str(jsonobj))
+            self._processpkt_by_type(drone, srcaddr, discovertype, jsonobj)
+        else:
+            print >> sys.stderr, 'No BP rules for %s/%s' % (discovertype, discoverinstance)
+
+    def _processpkt_by_type(self, drone, srcaddr, evaltype, jsonobj):
+        'process a discovery object against its set of rules'
+        #print >> sys.stderr, 'IN PROCESSPKT_BY_TYPE for %s: %s %s' % \
+        #   (drone, evaltype, BestPractices.eval_objects[evaltype])
+        for rule_obj in BestPractices.eval_objects[evaltype]:
+            #print  >> sys.stderr, 'Fetching %s rules for %s' % (evaltype, drone)
+            rulesobj = rule_obj.fetch_rules(drone, srcaddr, evaltype)
             #print >> sys.stderr, 'RULES ARE:', rulesobj
             statuses = pyConfigContext(rule_obj.evaluate(drone, srcaddr,
-                                       jsonobj, rulesobj))
+                                       jsonobj, rulesobj, evaltype))
             #print >> sys.stderr, 'RESULTS ARE:', statuses
             self.log_rule_results(statuses, drone, srcaddr, jsonobj, rulesobj)
 
@@ -278,8 +285,6 @@ class BestPractices(DiscoveryListener):
         self.compute_score_updates(discoveryobj, drone, rulesobj, results, oldstats)
         setattr(Drone, status_name, str(results))
 
-
-
     @staticmethod
     def compute_scores_by_category(drone, rulesobj, statuses):
         '''Compute the scores from this set of statuses - organized by category
@@ -289,7 +294,7 @@ class BestPractices(DiscoveryListener):
         scores = {}
         totalscore=0
         for status in statuses:
-            if status is 'score':
+            if status == 'score':
                 continue
             for ruleid in statuses[status]:
                 rule = rulesobj[ruleid]
@@ -355,6 +360,7 @@ class BestPractices(DiscoveryListener):
                 # we shouldn't have concurrency problems.
                 oldval = getattr(drone, catattr) if hasattr(drone, catattr) else 0.0
                 setattr(drone, catattr, oldval + diff)
+                print >> sys.stderr, 'Setting %s.%s to %d' % (drone, catattr, oldval+diff)
                 AssimEvent(drone, eventtype, extrainfo=extrainfo)
         return newcatscores, diffs
 
@@ -367,10 +373,9 @@ class BestPractices(DiscoveryListener):
         raise NotImplementedError('class BestPractices is an abstract class')
 
     @staticmethod
-    def evaluate(_unused_drone, _unusedsrcaddr, wholejsonobj, ruleobj):
+    def evaluate(_unused_drone, _unusedsrcaddr, wholejsonobj, ruleobj, description):
         '''Evaluate our rules given the current/changed data.
         '''
-
         jsonobj = wholejsonobj['data']
         #oldcontext = ExpressionContext((drone,), prefix='JSON_proc_sys')
         newcontext = ExpressionContext((jsonobj,))
@@ -381,8 +386,8 @@ class BestPractices(DiscoveryListener):
         statuses = {'pass': [], 'fail': [], 'ignore': [], 'NA': [], 'score': 0.0}
         if len(ruleids) < 1:
             return statuses
-        print >> sys.stderr, '\n==== Evaluating %d Best Practices rules on "%s"' \
-            % (len(ruleids)-1, wholejsonobj['description'])
+        print >> sys.stderr, '\n==== Evaluating %d Best Practice rules on "%s" [%s]' \
+            % (len(ruleids)-1, wholejsonobj['description'], description)
         for ruleid in ruleids:
             ruleinfo = ruleobj[ruleid]
             rule = ruleinfo['rule']

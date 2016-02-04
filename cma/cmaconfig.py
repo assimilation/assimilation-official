@@ -82,13 +82,14 @@ class ConfigFile(object):
                 'repeat':   {int,long},     # how often to repeat a discovery action
                 'warn':     {int,long},     # How long to wait when issuing a slow discovery warning
                 'timeout':  {int,long},     # how long wait before declaring failure
+                'nice':     {int,long},     # Optional UNIX-style 'nice' value
                 'agents': {     # Configuration information for individual agent types,
                                 # optionally including machine
                                 str:{
                                     'repeat':   {int,long}, # repeat for this particular agent
                                     'warn':     {int,long}, # How long before slow discovery warning
                                     'timeout':  {int,long}, # timeout for this particular agent
-                                    'argv':     {str: object},
+                                    'nice':     {int,long}, # UNIX-style nice value
                                 },
                 },
         },
@@ -96,14 +97,16 @@ class ConfigFile(object):
                 'repeat':   {int,long},    # Default repeat interval in seconds
                 'warn':     {int,long},    # How long to wait when issuing a slow monitoring warning
                 'timeout':  {int,long},    # How long to wait before declaring failure
+                'nice':     {int,long},    # Optional UNIX-style 'nice' value
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
                                 str:{
                                     'repeat':   {int,long}, # repeat for this particular agent
                                     'warn':     {int,long}, # How long before slow warning
                                     'timeout':  {int,long}, # timeout for this particular agent
+                                    'nice':     {int,long}, # UNIX-style nice value
                                     'argv':     [str],
-                                    'env':     {str: str},
+                                    'env':      {str: str},
                                 },
                 },
                 'nagiospath': [str],
@@ -192,7 +195,7 @@ class ConfigFile(object):
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
                                     "checksumdiscovery": {'repeat':3600*8, 'timeout': 10*60
-                                    ,           'warn':300},
+                                    ,           'warn':5*60},
                                     "os":  {'repeat': 0,    'timeout': 60, 'warn': 5},
                                     "cpu": {'repeat': 0,    'timeout': 60, 'warn': 5}
                 },
@@ -239,7 +242,8 @@ class ConfigFile(object):
                     # harsh for many sites.
             },
             # List of all the known best practice discovery types
-            'allbpdiscoverytypes': ['auditd_conf', 'login_defs', 'pam', 'proc_sys', 'sshd'],
+            'allbpdiscoverytypes': ['auditd_conf', 'auditd_fileattrs', 'fileattrs',
+                                    'login_defs', 'pam', 'proc_sys', 'sshd'],
             # Prioritized list of checksum commands to use
             # we use the first one that's installed.
             'checksum_cmds': [

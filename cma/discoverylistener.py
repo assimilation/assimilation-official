@@ -31,11 +31,12 @@ discovery packets as they arrive.
 
 More details are documented in the DiscoveryListener class
 '''
-import re, sys
+import re, sys, os
 from droneinfo import Drone
 from consts import CMAconsts
 from store import Store
-from AssimCclasses import pyNetAddr
+from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
+from AssimCclasses import pyNetAddr, pyConfigContext
 
 from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, GraphNode
 
@@ -88,10 +89,36 @@ class MonitoringAgentDiscoveryListener(DiscoveryListener):
         #print >> sys.stderr, 'SETTING MONITORING AGENTS: ', jsonobj['data']
         setattr(drone, '_agentcache', jsonobj['data'])
 
+
+@Drone.add_json_processor
+class AuditdConfDiscoveryListener(DiscoveryListener):
+    'Class for discovering audit permissions'
+
+    prio = DiscoveryListener.PRI_CORE
+    wantedpackets = ('auditd_conf',)
+
+    def processpkt(self, drone, _unused_srcaddr, jsonobj):
+        '''Request discovery of auditd (log) files and directories.
+        They will be evaluated by some auditd best practice rules'''
+        data = jsonobj['data'] # The data portion of the JSON message
+        params = pyConfigContext()
+        params['parameters'] = pyConfigContext()
+        params[CONFIGNAME_TYPE] = 'fileattrs'
+        params[CONFIGNAME_INSTANCE] = 'auditd_fileattrs'
+        filelist = ''
+        if 'log_file' in data:
+            filelist = os.path.dirname(data['log_file']) + '/'
+        else:
+            filelist= '/var/log/audit/'
+        params['parameters']['filelist'] = filelist
+        params['parameters']['ASSIM_filelist'] = filelist
+        #print >> sys.stderr, 'DISCOVERING %s' % str(params)
+        # repeat, warn, and interval are automatically added
+        drone.request_discovery((params,))
+
 # R0912 -- too many branches
 # R0914 -- too many local variables
 #pylint: disable=R0914,R0912
-
 @Drone.add_json_processor
 class NetconfigDiscoveryListener(DiscoveryListener):
     'Class for the (initial) netconfig discovery packet'
