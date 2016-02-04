@@ -520,7 +520,7 @@ if __name__ == '__main__':
     testconfig = {'allbpdiscoverytypes': ['login_defs', 'pam', 'proc_sys', 'sshd']}
     BestPractices(testconfig, None, None, logger, False)
     for procsys in BestPractices.eval_classes['proc_sys']:
-        ourstats = procsys.evaluate("testdrone", None, testjsonobj, testrules)
+        ourstats = procsys.evaluate("testdrone", None, testjsonobj, testrules, 'proc_sys')
         size = sum([len(ourstats[st]) for st in ourstats.keys() if st != 'score'])
         #print size, len(testrules)
         assert size == len(testrules)-1 # One rule is an IGNOREd comment
