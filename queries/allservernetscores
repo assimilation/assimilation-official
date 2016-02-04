@@ -1,0 +1,15 @@
+{
+    "cypher": "START drone=node:Drone('*:*') RETURN drone.bp_category_networking_score AS score, drone ORDER BY score DESCENDING",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "return host network BP scores",
+            "long":     "retrieve the networking best practice scores from all agent-equipped servers"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en":     "${score}	${drone.designation}",
+        "script": "${score}	${drone.designation}"
+    }
+}
