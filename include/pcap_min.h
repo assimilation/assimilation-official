@@ -1,3 +1,5 @@
+#ifndef _PCAP_MIN_H
+#define _PCAP_MIN_H
 /**
  * @file
  * @brief Simple libpcap interface definitions
@@ -43,5 +45,13 @@
 ///	Enable ARP protocol
 #	define	ENABLE_ARP	0x4 
 /// @}
+struct pcap_capture_iter {
+	pcap_t*	pcfd;
+};
+
 WINEXPORT pcap_t* create_pcap_listener(const char * dev, gboolean blocking, unsigned listenmask, struct bpf_program*);
-WINEXPORT void	  close_pcap_listener(pcap_t*, const char* dev, unsigned listenmask);
+WINEXPORT void	 	close_pcap_listener(pcap_t*, const char* dev, unsigned listenmask);
+WINEXPORT struct 	pcap_capture_iter* pcap_capture_iter_new(const char* capture_filename);
+WINEXPORT void	 	pcap_capture_iter_del(struct pcap_capture_iter* iter);
+WINEXPORT const guint8*	pcap_capture_iter_next(struct pcap_capture_iter* iter, const guint8** pktend, guint* pktlen);
+#endif

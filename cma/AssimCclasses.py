@@ -28,7 +28,7 @@ to these C-classes.
 '''
 import AssimCtypes
 from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_string_buffer, \
-    c_char_p, byref, memmove,    badfree,  \
+    c_char_p, byref, memmove, c_int, badfree,  \
     g_free, GSList, GDestroyNotify, g_slist_length, g_slist_next, struct__GSList, \
     g_slist_free,   \
     MALLOC, memmove, \
@@ -70,6 +70,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     get_cdptlv_type, \
     get_cdptlv_len, \
     get_cdptlv_body, \
+    pcap_capture_iter_new, pcap_capture_iter_del, pcap_capture_iter_next, \
     tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
     CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME,                  \
@@ -2337,6 +2338,31 @@ class CMAlib(object):
         fs = cast(ucfs, cClass.FrameSet)
         return pyFrameSet(None, Cstruct=fs)
 
+class pyPcapCapture(object):
+    'Class to read binary packets from pcap packet  capture files'
+    def __init__(self, filename):
+        self._Cstruct = pcap_capture_iter_new(filename)
+        if not self._Cstruct:
+            raise ValueError('Invalid parameters to pyPcapCapture constructor')
+        # I'm saving this here because for some unclear reason it goes to None...
+        self.destructor = pcap_capture_iter_del
+
+    def __del__(self):
+        'Clean up our pcap capture file descriptor'
+        if self._Cstruct:
+            self.destructor(self._Cstruct)
+            self._Cstruct = None
+
+    def __iter__(self):
+        pktlen =  c_int()
+        pktend = cClass.guint8()
+        ret = pcap_capture_iter_next(self._Cstruct, byref(pktend), byref(pktlen))
+        if not ret:
+            self.destructor(self._Cstruct)
+            self._Cstruct = None
+            return
+        yield (cast(ret, cClass.guint8), pktend, int(pktlen.value))
+
 def dump_c_objects():
     'Dump out live objects to help locate memory leaks'
     print >> sys.stderr, 'GC Garbage: [%s]' % str(gc.garbage)
@@ -2371,4 +2397,9 @@ def follow_referrer_back(obj, level=0, maxlevel=4):
             follow_referrer_back(referrer, level+1)
 
 if __name__ == '__main__':
-    pass
+    for f in ('../pcap/cdp_v2.pcap', '../pcap/lldp.detailed.pcap'):
+        print 'Capture file: %s' % f
+        capture = pyPcapCapture(f)
+        for results in capture:
+            (pkt, pktend, pktlen) = results
+            print 'Pkt', pkt, 'pktend', pktend, 'pktlen', pktlen

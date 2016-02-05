@@ -98,7 +98,7 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 			filterlen += strlen(filterinfo[j].filter);
 		}
 	}
-	
+
 	if (filterlen < 2) {
 		g_warning("Constructed filter is too short - invalid mask argument.");
 		return NULL;
@@ -125,7 +125,7 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 		g_info("%s.%d: pcap_lookupnet(\"%s\") failed: [%s]"
 		,	__FUNCTION__, __LINE__, dev, errbuf);
 	}
-	
+
 	if (NULL == (pcdescr = pcap_create(dev, errbuf))) {
 		g_warning("pcap_create failed: [%s]", errbuf);
 		goto oopsie;
@@ -243,4 +243,56 @@ _enable_mcast_address(const char * addrstring	///<[in] multicast MAC address str
 	}
 	DEBUGMSG1("Previous IP command returned %d", exit_status);
 	return exit_status == 0;
+}
+
+// Create an iterator object for iterating over libpcap-captured packets
+// These are pcap_capture files are primarily for writing tests in Python
+// We have to do this testing in Python, because our C code just encapsulates them
+// and passes them in binary to the CMA. It does this so we don't have to distribute
+// all the smarts about these packets, and their extensions out to all the nanoprobes.
+WINEXPORT struct pcap_capture_iter*
+pcap_capture_iter_new(const char* capture_filename)
+{
+	pcap_t*	pcfd;
+	struct pcap_capture_iter *	iter;
+	char	errbuf[PCAP_ERRBUF_SIZE];
+	errbuf[0] = '\0';
+	pcfd = pcap_open_offline(capture_filename, errbuf);
+	if (NULL == pcfd) {
+		g_warning("%s.%d: cannot open capture file %s: %s"
+		,	__FUNCTION__, __LINE__, capture_filename, errbuf);
+		return NULL;
+	}
+	iter = MALLOCTYPE(struct pcap_capture_iter);
+	iter->pcfd = pcfd;
+	return iter;
+}
+
+// Free (destroy) an iterator object for iterating over libpcap-captured packets
+WINEXPORT void
+pcap_capture_iter_del(struct pcap_capture_iter* iter)
+{
+	if (iter != NULL && iter->pcfd != NULL) {
+		pcap_close(iter->pcfd);
+		iter->pcfd = NULL;
+		FREE(iter);
+	}
+}
+
+// Return the next libpcap-captured packet from our iterator.
+// We return NULL if there are no more packets in the capture.
+WINEXPORT const guint8*
+pcap_capture_iter_next(struct pcap_capture_iter* iter, const guint8** pktend, guint* pktlen)
+{
+	const guint8*		pkt;
+	struct pcap_pkthdr*	hdr;
+
+	if (pcap_next_ex(iter->pcfd, &hdr, &pkt) < 0) {
+		*pktlen = 0;
+		*pktend = NULL;
+		return NULL;
+	}
+	*pktlen = hdr->caplen;
+	*pktend = pkt + hdr->caplen;
+	return pkt;
 }
