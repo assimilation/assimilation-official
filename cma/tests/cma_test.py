@@ -135,7 +135,7 @@ netdiscoveryformat='''
     "speed": 1000,
     "default_gw": true,
     "ipaddrs": { "%s/16": {"brd":"10.20.255.255", "scope":"global", "name":"eth0"}}
-    }, 
+    },
     "lo": {
     "address": "00:00:00:00:00:00",
     "carrier": 1,
@@ -167,7 +167,7 @@ def hostdiscoveryinfo(hostnumber):
     ip.setport(0)
     s = str(ip)
     return netdiscoveryformat % (dronedesignation(hostnumber), byte3, byte4, s)
-    
+
 def geninitconfig(ouraddr):
     configinfo = ConfigFile()
     for j in ('cmainit', 'cmaaddr', 'cmadisc', 'cmafail'):
@@ -200,17 +200,18 @@ class AUDITS(TestCase):
 
         # Do we know that eth0 is the default gateway?
         self.assertEqual(eth0obj['default_gw'], True)
-        
+
         # the JSON should have exactly 6 top-level keys
         self.assertEqual(len(jsobj.keys()), 6)
         # Was the JSON host name saved away correctly?
         self.assertEqual(jsobj['host'], designation)
-    
+        assert drone.get_active_nic_count() == 1
+
     def auditSETCONFIG(self, packetreturn, droneid, configinit):
         toaddr = packetreturn[0]
         sentfs = packetreturn[1]
         droneip = droneipaddress(droneid)
-        
+
         # Was it a SETCONFIG packet?
         self.assertEqual(sentfs.get_framesettype(), FrameSetTypes.SETCONFIG)
         # Was the SETCONFIG sent back to the drone?
@@ -223,7 +224,7 @@ class AUDITS(TestCase):
         # Check that each element of the ring is connected to its neighbors...
         print "Ring %s" % (str(ring))
         listmembers = {}
-        
+
         ringmembers = {}
         for drone in ring.members():
             ringmembers[drone.designation] = None
@@ -234,7 +235,7 @@ class AUDITS(TestCase):
         for drone in ringmembers.keys():
             print >> sys.stderr, 'RINGMEMBERS: %s: members:%s' % (str(drone), listmembers)
             self.assertTrue(drone in listmembers)
-        
+
 
 def auditalldrones():
     audit = AUDITS()
@@ -338,7 +339,7 @@ class TestIO:
             self.readfails += 1
             if self.readfails > self.initpackets+4:
                 self.mainloop.quit()
-                
+
             return (None, None)
         ret = self.inframes[self.index]
         self.index += 1
@@ -400,14 +401,14 @@ class TestIO:
         print >>sys.stderr, 'Sent %d packets' % len(self.packetswritten)
         for packet in self.packetswritten:
             print 'PACKET: %s (%s)' % (packet[0], packet[1])
-    
+
 class FakeDrone(dict):
     def __init__(self, json):
         self['monitoringagents'] = json
     def get(self, name, ret):
         return ret
 
-    
+
 
 class TestTestInfrastructure(TestCase):
     def test_eof(self):
@@ -527,7 +528,7 @@ class TestCMABasic(TestCase):
         self.assertEqual(dronekeys, disctypes)
 
 
-    
+
     def test_startup(self):
         '''A semi-interesting test: We send a STARTUP message and get back a
         SETCONFIG message with lots of good stuff in it.
@@ -860,13 +861,13 @@ class TestMonitorBasic(TestCase):
     def test_automonitor_LSB_failures(self):
         AssimEvent.disable_all_observers()
         self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', [])
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
             (('a.b.c', ')'),))
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
             ((1,2,3,4,5),))
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
             ((1,),))
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', 
+        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
             ((),))
 
 

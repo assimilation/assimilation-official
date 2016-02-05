@@ -29,7 +29,7 @@ from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
 from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode, BPRules, \
-    JSONMapNode
+    JSONMapNode, NICNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pyCryptFrame
 from AssimCtypes import CONFIGNAME_TYPE
@@ -99,6 +99,7 @@ class Drone(SystemNode):
         self.addrole(roles)
         self._io = CMAdb.io
         self.lastjoin = 'None'
+        self._active_nic_count = None
         self.status = status
         self.reason = reason
         self.key_id = key_id
@@ -191,6 +192,22 @@ class Drone(SystemNode):
 
         return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
         ,       params=params)]
+
+    def get_owned_nics(self):
+        '''Return an iterator returning all the NICs that this Drone owns'''
+        return CMAdb.store.load_related(self, CMAconsts.REL_nicowner, NICNode)
+
+    def get_active_nic_count(self):
+        '''Return the number of "active" NICs this Drone has'''
+        if self._active_nic_count is not None:
+            return self._active_nic_count
+        count = 0
+        for nic in self.get_owned_nics():
+            if nic.operstate == 'up' and nic.carrier and nic.macaddr != '00-00-00-00-00-00':
+                count += 1
+        self._active_nic_count = count
+        return count
+
 
     def crypto_identity(self):
         '''Return the Crypto Identity that should be associated with this Drone
