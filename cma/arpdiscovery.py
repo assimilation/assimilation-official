@@ -42,7 +42,6 @@ from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, GraphNode
 from cmaconfig import ConfigFile
 from linkdiscovery import discovery_indicates_link_is_up
-import netaddr
 import sys
 
 @Drone.add_json_processor   # Register ourselves to process discovery packets
@@ -182,17 +181,6 @@ class ArpDiscoveryListener(DiscoveryListener):
         The parameters are expected to be canonical address strings like str(pyNetAddr(...)).
         '''
         nicnode = self.store.load_or_create(NICNode, domain=drone.domain, macaddr=macaddr)
-        macprefix = str(nicnode.macaddr)[0:8]
-        try:
-            # Pylint is confused about the netaddr.EUI.oui.registration return result...
-            # pylint: disable=E1101
-            org = str(netaddr.EUI(nicnode.macaddr).oui.registration().org)
-        except netaddr.NotRegisteredError:
-            local_OUI_map = self.config['OUI']
-            if macprefix in local_OUI_map:
-                org = local_OUI_map[macprefix]
-            else:
-                org = macprefix
         if not Store.is_abstract(nicnode):
             # This NIC already existed - let's see what IPs it already owned
             currips = {}
@@ -223,6 +211,3 @@ class ArpDiscoveryListener(DiscoveryListener):
                     , GraphNode.factory):
                     self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)
-            if org != macprefix and not hasattr(nicnode, 'OUI'):
-                nicnode.OUI = org
-

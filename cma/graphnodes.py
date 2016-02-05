@@ -24,7 +24,7 @@
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
-import sys, re, time, hashlib
+import sys, re, time, hashlib, netaddr
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
 from py2neo import neo4j
@@ -400,6 +400,21 @@ class NICNode(GraphNode):
             for attr in ('carrier', 'duplex', 'MTU', 'operstate', 'speed'):
                 if attr in self._json:
                     setattr(self, attr, self._json[attr])
+        if not hasattr(self, 'OUI'):
+            oui = self.mac_to_oui(self.macaddr)
+            if oui is not None:
+                self.OUI = oui
+
+    @staticmethod
+    def mac_to_oui(macaddr):
+        'Convert a MAC address to an OUI organization string - or raise KeyError'
+        try:
+            # Pylint is confused about the netaddr.EUI.oui.registration return result...
+            # pylint: disable=E1101
+            return str(netaddr.EUI(macaddr).oui.registration().org)
+        except netaddr.NotRegisteredError:
+            prefix = str(macaddr)[0:8]
+            return CMAdb.io.config['OUI'][prefix] if prefix in CMAdb.io.config['OUI'] else None
 
     @staticmethod
     def __meta_keyattrs__():

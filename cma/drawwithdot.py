@@ -83,8 +83,24 @@ class DictObj(object):
             kw = {}
         self.kw = kw
 
+    @staticmethod
+    def _strip_itemname(name):
+        'Strip the out and return itemname out of the format name'
+        return name if name.find(':') < 0 else name.split(':')[1]
+
+    @staticmethod
+    def _labelstring(name):
+        'Strip the out and return label out of the format'
+        if name.find(':') < 0:
+            return ''
+        label = name.split(':')[0]
+        if len(label) == 0:
+            return r'\n' + label
+        return r'\n' + label + ': '
+
     def __contains__(self, name):
         'Return True if we can find the given attribute/index'
+        name = DictObj._strip_itemname(name)
         try:
             if name in self.kw or name in self.obj:
                 return True
@@ -93,8 +109,14 @@ class DictObj(object):
         return hasattr(self.obj, name)
 
     def __getitem__(self, name):
-        ret = self._getitem(name)
-        return ret.strip() if isinstance(ret, (str, unicode)) else ret
+        try:
+            ret = self._getitem(self._strip_itemname(name))
+            if ret is None or ret == '':
+                raise ValueError
+            ret = ret.strip() if isinstance(ret, (str, unicode)) else ret
+            return self._labelstring(name) + str(ret)
+        except ValueError:
+            return self._failreturn(name)
 
     def _getitem(self, name):
         'Return the given attribute or item from our object'
@@ -102,30 +124,34 @@ class DictObj(object):
             return self.kw[name](self.obj, name) if callable(self.kw[name]) \
                 else self.kw[name]
         try:
-            obj = self.obj
-            #print("Looking for %s in %s." % (name, type(obj)), file=sys.stderr)
-            return obj.deepget(name, self.failreturn(obj, name)) \
-                if hasattr(obj, 'deepget') else obj[name]
+            #print("Looking for %s in %s." % (name, type(self.obj)),
+            #   file=sys.stderr)
+            ret = self.obj.deepget(name) if hasattr(self.obj, 'deepget')   \
+                    else self.obj[name]
+            if ret is not None:
+                return ret
         except (IndexError, KeyError, TypeError):
             pass
         try:
-            if not hasattr(obj, name):
-                #print("Name %s not found in %s." % (name, type(obj)),
-                # file=sys.stderr)
+            if not hasattr(self.obj, name):
+                #print("Name %s not found in %s." % (name, type(self.obj)),
+                #    file=sys.stderr)
                 if name.find('.') > 0:
                     prefix, suffix = name.split('.', 1)
-                    base = getattr(obj,prefix)
+                    base = getattr(self.obj,prefix)
                     subobj = pyConfigContext(base)
                     return subobj.deepget(suffix)
+            #print("Returning getattr( %s, %s." % (type(self.obj), name),
+            #    file=sys.stderr)
             return getattr(self.obj, name)
         except AttributeError:
             pass
-        return self._failreturn(self.obj, name)
+        raise ValueError(name)
 
-    def _failreturn(self, obj, name):
+    def _failreturn(self, name):
         '''Return a failure'''
         if callable(self.failreturn):
-            return self.failreturn(obj, name)
+            return self.failreturn(self.obj, name)
         return self.failreturn
 
 class FancyDictObj(DictObj):
@@ -284,12 +310,12 @@ if __name__ == '__main__':
             'IPaddrNode':
             r'''%(id)s [shape=box color=blue label="%(ipaddr)s"] ''',
             'NICNode':
-            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s\n%(ifname)s\nMTU %(json.mtu)s\nduplex %(json.duplex)s\ncarrier %(carrier)s"]''',
+            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s%(intf:ifname)s%(:PortDescription)s%(MTU:json.mtu)s%(:OUI)s%(Duplex:json.duplex)s%(carrier:carrier)s"]''',
             'Drone':
             r'''
-            %(id)s [shape=house color=orange label="%(designation)s\n%(os_description)s\n%(os_kernel-release)s"] ''',
+            %(id)s [shape=house color=orange label="%(designation)s\n%(os_description)s\n%(os_kernel-release)s%(secscore:bp_category_security_score)s"] ''',
             'SystemNode':
-            r'''%(id)s [shape=box color=black label="%(designation)s"] ''',
+            r'''%(id)s [shape=box color=black label="%(designation)s%(Name:SystemName)s%(:SystemDescription)s%(Manufacturer:manufacturer)s%(Model:model)s%(Roles:roles)s%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s%(serial:serial-number)s%(Asset:asset-id)s"] ''',
             },
 
         'relationships': {

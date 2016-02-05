@@ -144,13 +144,17 @@ class ConfigFile(object):
                 #      http://standards.ieee.org/cgi-bin/ouisearch
                 '18-0c-ac': 'Canon, Inc.',
                 '28-d2-44': 'LCFC(HeFei) Electronics Technology Co., Ltd.',
+                '56-84-7a': '(linux bridge)',
+                '64-bc-0c': 'LG Electronics',
                 '84-7a-88': 'HTC Corporation',
+                'a8-66-7f': 'Apple, Inc.',
                 'b0-79-3c': 'Revolv, Inc.',
                 'b8-ee-65': 'Liteon Technology Corporation',
                 'bc-ee-7b': 'ASUSTek Computer, Inc.',
-                'c8-b5-b7': 'Apple.',
+                'c8-b5-b7': 'Apple, Inc.',
                 'cc-3a-61': 'SAMSUNG ELECTRO MECHANICS CO., LTD.',
                 'd8-50-e6': 'ASUSTek COMPUTER INC.',
+                'd8-cb-8a': 'Micro-Star INTL CO., LTD.',
                 'e8-ab-fa': 'Shenzhen Reecam Tech.Ltd.',
             },
             #
