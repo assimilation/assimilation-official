@@ -308,14 +308,14 @@ if __name__ == '__main__':
     ipmaconly = {
         'nodes': {
             'IPaddrNode':
-            r'''%(id)s [shape=box color=blue label="%(ipaddr)s"] ''',
+            r'''%(id)s [shape=box color=blue label="%(ipaddr)s%(:hostname)s"] ''',
             'NICNode':
-            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s%(intf:ifname)s%(:PortDescription)s%(MTU:json.mtu)s%(:OUI)s%(Duplex:json.duplex)s%(carrier:carrier)s"]''',
+            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s%(MTU:json.mtu)s%(:OUI)s%(Duplex:json.duplex)s%(carrier:carrier)s"]''',
             'Drone':
             r'''
-            %(id)s [shape=house color=orange label="%(designation)s\n%(os_description)s\n%(os_kernel-release)s%(secscore:bp_category_security_score)s"] ''',
+            %(id)s [shape=house color=orange penwidth=3 label="%(designation)s\n%(os_description)s\n%(os_kernel-release)s%(SecScore:bp_category_security_score)s"]''',
             'SystemNode':
-            r'''%(id)s [shape=box color=black label="%(designation)s%(Name:SystemName)s%(:SystemDescription)s%(Manufacturer:manufacturer)s%(Model:model)s%(Roles:roles)s%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s%(serial:serial-number)s%(Asset:asset-id)s"] ''',
+            r'''%(id)s [shape=box color=black penwidth=3 label="%(designation)s%(Name:SystemName)s%(:SystemDescription)s%(Manufacturer:manufacturer)s%(Model:model)s%(Roles:roles)s%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s%(serial:serial-number)s%(Asset:asset-id)s"] ''',
             },
 
         'relationships': {
@@ -324,7 +324,7 @@ if __name__ == '__main__':
             'nicowner':
             r''' %(from)s->%(to)s [color=black label=nicowner]''',
             'wiredto':
-            r''' %(from)s->%(to)s [color=blue label=wiredto]''',
+            r''' %(from)s->%(to)s [color=blue label=wiredto penwidth=3]''',
         }
     }
 

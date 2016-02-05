@@ -24,7 +24,7 @@
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
-import sys, re, time, hashlib, netaddr
+import sys, re, time, hashlib, netaddr, socket
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
 from py2neo import neo4j
@@ -427,6 +427,7 @@ class IPaddrNode(GraphNode):
     '''An object that represents a v4 or v6 IP address without a port - characterized by its
     IP address. They are always represented in the database in ipv6 format.
     '''
+    StoreHostNames = True
     def __init__(self, domain, ipaddr, cidrmask='unknown'):
         'Construct an IPaddrNode - validating our parameters'
         GraphNode.__init__(self, domain=domain)
@@ -446,6 +447,12 @@ class IPaddrNode(GraphNode):
             %   (str(ipaddr), type(ipaddr)))
         self.ipaddr = ipaddr
         self.cidrmask = cidrmask
+        if IPaddrNode.StoreHostNames and not hasattr(self, 'hostname'):
+            ip = repr(pyNetAddr(ipaddr))
+            try:
+                self.hostname = socket.gethostbyaddr(ip)[0]
+            except socket.herror:
+                return
 
     @staticmethod
     def __meta_keyattrs__():

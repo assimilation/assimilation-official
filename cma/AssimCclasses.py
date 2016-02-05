@@ -935,7 +935,7 @@ class pyNetAddr(pyAssimObj):
         return base.islocal(self._Cstruct)
 
     def isanyaddr(self):
-        'Return True if this address is a local address'
+        '''Return True if this address is the 'ANY' address'''
         base = self._Cstruct[0]
         while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
