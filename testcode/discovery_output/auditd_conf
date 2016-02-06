@@ -1,0 +1,10 @@
+{
+  "discovertype": "auditd_conf",
+  "description": "auditd_conf configuration",
+  "host": "FAKETESTHOST",
+  "source": "../../discovery_agents/auditd_conf",
+  "data": {
+    "NODATA": "ERROR: Cannot read auditd_conf"
+
+  }
+}
