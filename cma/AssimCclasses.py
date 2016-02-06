@@ -2397,9 +2397,12 @@ def follow_referrer_back(obj, level=0, maxlevel=4):
             follow_referrer_back(referrer, level+1)
 
 if __name__ == '__main__':
-    for f in ('../pcap/cdp_v2.pcap', '../pcap/lldp.detailed.pcap'):
-        print 'Capture file: %s' % f
-        capture = pyPcapCapture(f)
-        for results in capture:
-            (pkt, pktend, pktlen) = results
-            print 'Pkt', pkt, 'pktend', pktend, 'pktlen', pktlen
+    def test_pcap_captures():
+        'Code to minimally exercise the pyPcapCapture class'
+        for f in ('../pcap/cdp_v2.pcap', '../pcap/lldp.detailed.pcap'):
+            print 'Capture file: %s' % f
+            capture = pyPcapCapture(f)
+            for results in capture:
+                (pkt, pktend, pktlen) = results
+                print 'Pkt', pkt, 'pktend', pktend, 'pktlen', pktlen
+    test_pcap_captures()
