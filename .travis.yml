@@ -17,9 +17,11 @@ script:
   - neoauth neo4j neo4j neo4j 2>&1 || true
   - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
   - cd $TRAVIS_BUILD_DIR
+  - pwd
   - cd ..
   - mkdir root_of_binary_tree
   - cd root_of_binary_tree
+  - pwd
   - cmake $TRAVIS_BUILD_DIR
   - sudo make install
   - sudo ldconfig /usr/lib/x86_64-linux-gnu/assimilation
@@ -30,5 +32,6 @@ script:
   - sudo assimcli genkeys
   - cd $TRAVIS_BUILD_DIR/cma
   - grep -n dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
+  - pwd
   - sudo testify -v tests
   - cd $TRAVIS_BUILD_DIR

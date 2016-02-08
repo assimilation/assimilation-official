@@ -67,7 +67,7 @@ def assert_no_dangling_Cclasses():
 
 def findfile(f):
     for first in ('.', '..', '../..', '../../..'):
-        for second in ('.', 'src/pcap', 'root_of_source_tree/pcap'):
+        for second in ('.', 'pcap', 'src/pcap', 'root_of_source_tree/pcap', 'root_of_binary_tree/pcap'):
             if os.access(os.path.join(first, second, f), os.R_OK):
                 return os.path.join(first, second, f)
     return f
