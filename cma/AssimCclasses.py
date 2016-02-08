@@ -52,6 +52,7 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     CDP_TLV_DEVID, CDP_TLV_ADDRESS, CDP_TLV_PORTID, CDP_TLV_CAPS, CDP_TLV_VERS, CDP_TLV_POWER, \
     CDP_TLV_PLATFORM, CDP_TLV_MTU, CDP_TLV_SYSTEM_NAME, CDP_TLV_MANAGEMENT_ADDR, CDP_TLV_DUPLEX, \
     CDP_TLV_LOCATION, CDP_TLV_EXT_PORTID, CDP_TLV_NATIVEVLAN, CDP_TLV_VLREPLY, CDP_TLV_VLQUERY, \
+    CDP_TLV_VTPDOMAIN,  CDP_TLV_TRUST_BITMAP, CDP_TLV_UNTRUSTED_COS, CDP_TLV_HELLO, \
     ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802, \
     is_valid_lldp_packet, is_valid_cdp_packet,    \
     netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new, \
@@ -174,7 +175,7 @@ class pySwitchDiscovery(object):
             LLDP_ORG802_3_PHY_CONFIG:   ('PhysicalConfiguration', False),
             LLDP_ORG802_3_POWERVIAMDI:  ('PowerViaMDI', False),
             LLDP_ORG802_3_LINKAGG:      ('LinkAggregation', False),
-            LLDP_ORG802_3_MTU:          ('mtu', False),
+
     }
 
     cdpnames = {
@@ -183,12 +184,16 @@ class pySwitchDiscovery(object):
         CDP_TLV_CAPS:               ('SystemCapabilities', True),
         CDP_TLV_VERS:               ('SystemVersion', True),
         CDP_TLV_PLATFORM:           ('SystemPlatform', True),
+        CDP_TLV_VTPDOMAIN:          ('VLANManagementDomain', True),
         CDP_TLV_ADDRESS:            ('SystemAddress', True),
         CDP_TLV_MANAGEMENT_ADDR:    ('ManagementAddress', True),
         CDP_TLV_SYSTEM_NAME:        ('SystemName', True),
         CDP_TLV_LOCATION:           ('SystemDescription', True),
+        CDP_TLV_HELLO:              ('CiscoHello', True),
         # Per-port capabilities follow
-        CDP_TLV_NATIVEVLAN:         ('VlanName', False),
+        CDP_TLV_TRUST_BITMAP:       ('CiscoTrustBitMap', False),
+        CDP_TLV_UNTRUSTED_COS:      ('CiscoUnTrustedPortCOS', False),
+        CDP_TLV_NATIVEVLAN:         ('VlanId', False),
         CDP_TLV_VLQUERY:            ('VlanQuery', False),
         CDP_TLV_VLREPLY:            ('VlanReply', False),
         CDP_TLV_PORTID:             ('PortId', False),
@@ -249,10 +254,14 @@ class pySwitchDiscovery(object):
     @staticmethod
     def decode_discovery(host, interface, instance, wallclock, pktstart, pktend):
         'Return a JSON packet corresponding to the given switch discovery packet'
+
         if is_valid_lldp_packet(pktstart, pktend):
+            #print >> sys.stderr, '>>>>>>>>>>>>>>>LLDP PACKET'
             return pySwitchDiscovery._decode_lldp(host, interface, instance,
                                                   wallclock, pktstart, pktend)
+
         if is_valid_cdp_packet(pktstart, pktend):
+            #print >> sys.stderr, '>>>>>>>>>>>>>>>CDP PACKET'
             return pySwitchDiscovery._decode_cdp(host, interface, instance,
                                                  wallclock, pktstart, pktend)
         raise ValueError('Malformed Switch Discovery Packet')
@@ -319,7 +328,6 @@ class pySwitchDiscovery(object):
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
             tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
-            #print >> sys.stderr, 'TLV type %d' % tlvtype
             value = None
             if tlvtype not in pySwitchDiscovery.lldpnames:
                 print >> sys.stderr, 'Cannot find tlvtype %d' % tlvtype
@@ -372,8 +380,8 @@ class pySwitchDiscovery(object):
                     numericpart = value
                     while len(numericpart) > 0 and not numericpart.isdigit():
                         numericpart = numericpart[1:]
-                    if len > 0 and numericpart.isdigit():
-                        thisportinfo['PORTNUM'] = int(numericpart)
+                    #if len > 0 and numericpart.isdigit():
+                    #    thisportinfo['PORTNUM'] = int(numericpart)
                 else:
                     if isswitchinfo:
                         switchinfo[tlvname] = value
@@ -391,11 +399,15 @@ class pySwitchDiscovery(object):
         print >> sys.stderr, dump
 
     @staticmethod
+    def compare_json(lhs, rhs):
+        lhs = str(pyConfigContext(lhs))
+        rhs = str(pyConfigContext(rhs))
+
+    @staticmethod
     def _decode_lldp_org_specific(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
         '''Decode LLDP org-specific TLV sets (or not...)'''
         oui = tlv_get_guint24(tlvptr, pktend)
-        #pySwitchDiscovery._dump_c_bytes(("ORG SPECIFIC DUMP: %06x" % oui), tlvptr, tlvlen)
-        # We need to fix this so that duplex and speed come through
+        #print >> sys.stderr, 'ORG_OUI: 0x%06x' % oui
         tlv3ptr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
         if oui == 0x0080c2:
             pySwitchDiscovery._decode_lldp_802_1(switchinfo, thisportinfo,
@@ -418,12 +430,33 @@ class pySwitchDiscovery(object):
                 %   (tlvlen, oui))
 
     @staticmethod
-    def _decode_lldp_802_1(_switchinfo, _thisportinfo, tlvptr, tlvlen, _pktend):
+    def _decode_lldp_802_1(_switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
         '''Decode 802.1 LLDP org-specific TLV sets (or not...)'''
         subtype = pySwitchDiscovery._byte0(tlvptr)
-        print >> sys.stderr, (
-            'Ignored %d bytes of LLDP 802.1 extensions (Annex F, subtype %d).'
-            % (tlvlen, subtype))
+        tlvstart = pySwitchDiscovery._byte1addr(tlvptr)
+        if subtype == 1:
+            thisportinfo['pvid'] = tlv_get_guint16(tlvstart, pktend)
+        elif subtype == 2:
+            ppstatus = pySwitchDiscovery._byte0(tlvstart)
+            thisportinfo['pp_vlan_capable'] = ((ppstatus & 2) == 2)
+            thisportinfo['pp_vlan_enabled'] = ((ppstatus & 4) == 4)
+            thisportinfo['ppvid'] = tlv_get_guint16(
+                                     pySwitchDiscovery._byte1addr(tlvstart), pktend)
+        elif subtype == 3:
+            vlannameaddr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
+            namelen = pySwitchDiscovery._byte0(vlannameaddr)
+            if namelen != tlvlen - 4:
+                print >> sys.stderr, 'F.4: invalid name length %s out of total of %s' % (namelen,
+                                                                                         tlvlen)
+                pySwitchDiscovery._dump_c_bytes('PACKET:' , tlvptr, tlvlen)
+            else:
+                thisportinfo['vid'] = tlv_get_guint16(tlvstart, pktend)
+                thisportinfo['vlan_name'] = string_at(pySwitchDiscovery._byte1addr(vlannameaddr),
+                        namelen).strip()
+        else:
+            print >> sys.stderr, (
+                'Ignored %d bytes of LLDP 802.1 extensions (Annex F, subtype %d).'
+                % (tlvlen, subtype))
 
     @staticmethod
     def _decode_lldp_802_3(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
@@ -539,6 +572,23 @@ class pySwitchDiscovery(object):
     def _decode_lldp_med(switchinfo, _thisportinfo, tlvptr, tlvlen, _pktend):
         '''Decode LLDP-MED org-specific TLV (or not...)'''
         subtype = pySwitchDiscovery._byte0(tlvptr)
+        #  for Location Identification (0x03) see https://tools.ietf.org/html/rfc4776#page-7
+        # Co-ordinate LCI
+        # Coordinate-based location data format uses geospatial data, that is, latitude,
+        # longitude, and altitude (height or floors), including indications of resolution, with
+        # reference to a particular datum: WGS 84, NAD83-North American Vertical Datum of 1988
+        # (NAVD88), or NAD83-Mean Lower Low Water (MLLW). For more information, see RFC 3825,
+        # Dynamic Host Configuration Protocol Option for Coordinate-based Location
+        # Configuration Information.
+
+        # ELIN LCI
+        # Emergency Location Identification Number (ELIN) location data format provides a unique
+        # number for each location for Emergency Call Services (ECS). In North America, ELINs
+        # are typically 10 digits long; ELINs up to 25 digits are supported.
+
+        # Civic Address LCI
+        # The Civic Address location data format uses common street address format, as described
+        # in RFC4776.
         if subtype == 5:
             pySwitchDiscovery._get_med_string(switchinfo, 'hardware-revision', tlvptr, tlvlen)
         elif subtype == 6:
@@ -607,51 +657,59 @@ class pySwitchDiscovery(object):
             this = get_cdptlv_next(this, pktend)
             value = None
             if tlvtype not in pySwitchDiscovery.cdpnames:
-                tlvtype = ('TLV_0x%02x' % tlvtype)
+                tlvname = ('TLV_0x%02x' % tlvtype)
                 isswitchinfo = True # Gotta do _something_...
             else:
                 (tlvname, isswitchinfo)  = pySwitchDiscovery.cdpnames[tlvtype]
             if tlvtype == CDP_TLV_DEVID:
-                value = string_at(tlvptr, tlvlen)
+                value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_ADDRESS:
                 # 4 byte count + 'count' addresses
                 value = pySwitchDiscovery.getcdpaddresses(tlvlen, tlvptr, pktend)
             elif tlvtype == CDP_TLV_PORTID:
-                value = string_at(tlvptr, tlvlen)
+                value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_CAPS:
-                #bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
-                #print 'CAPBYTES = ', bytez
+                bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
+                #print >> sys.stderr, 'CAPBYTES = ', bytez
                 caps = pySwitchDiscovery.getNint(tlvptr, 4, pktend)
                 #print >> sys.stderr, ('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen))
                 value = pySwitchDiscovery.construct_cdp_caps(caps)
             elif tlvtype == CDP_TLV_VERS:
-                value = string_at(tlvptr, tlvlen)
+                value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_PLATFORM:
-                value = string_at(tlvptr, tlvlen)
+                value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_POWER:
                 tlen = tlvlen if tlvlen <= 2 else 2
                 value = pySwitchDiscovery.getNint(tlvptr, tlen, pktend)
             elif tlvtype == CDP_TLV_MTU:
                 value = pySwitchDiscovery.getNint(tlvptr, tlvlen, pktend)
             elif tlvtype == CDP_TLV_SYSTEM_NAME:
-                value = string_at(tlvptr, tlvlen)
+                value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_MANAGEMENT_ADDR:
                     # 4 byte count + 'count' addresses
                 value = pySwitchDiscovery.getcdpaddresses(tlvlen, tlvptr, pktend)
+            elif tlvtype == CDP_TLV_VTPDOMAIN:
+                value = string_at(tlvptr, tlvlen-4)
+            elif tlvtype == CDP_TLV_NATIVEVLAN:
+                value = tlv_get_guint16(tlvptr, pktend)
+            elif tlvtype == CDP_TLV_UNTRUSTED_COS:
+                value = pySwitchDiscovery._byte0(tlvptr)
             elif tlvtype == CDP_TLV_DUPLEX:
                 value = 'half' if pySwitchDiscovery._byte0(tlvptr) == 0 else 'full'
             elif tlvtype == CDP_TLV_LOCATION:
-                value = string_at(tlvptr, tlvlen)
+                value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_EXT_PORTID:
-                value = string_at(tlvptr, tlvlen)
+                value = string_at(tlvptr, tlvlen-4)
             else:
                 value='0x'
-                for offset in range(0,tlvlen):
+                for offset in range(0, tlvlen):
                     value += ('%02x' % pySwitchDiscovery._byteN(tlvptr, offset))
+                #print >> sys.stderr, 'Ignoring CDP field %s: %s' % (tlvname, value)
+                value = None
 
             if value is None:
-                print >> sys.stderr, ('Could not process value for %s field [0x%02x]'
-                %   (tlvname, tlvtype))
+                print >> sys.stderr, ('Ignored %d bytes for %s field [0x%02x]'
+                %   (tlvlen, tlvname, tlvtype))
             else:
                 if tlvtype == CDP_TLV_PORTID:
                     switchinfo['ports'][value] = thisportinfo
@@ -659,15 +717,15 @@ class pySwitchDiscovery(object):
                     numericpart = value
                     while len(numericpart) > 0 and not numericpart.isdigit():
                         numericpart = numericpart[1:]
-                    if len > 0 and numericpart.isdigit():
-                        thisportinfo['PORTNUM'] = int(numericpart)
+                    #if len > 0 and numericpart.isdigit():
+                    #    thisportinfo['PORTNUM'] = int(numericpart)
                 else:
                     if isswitchinfo:
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
-                print >> sys.stderr, ('TLVNAME %s has value "%s" -- len: %d'
-                %   (tlvname, value, len(str(value))))
+                #print >> sys.stderr, ('TLVNAME[%s] %s has value "%s" -- len: %d'
+                #%   (tlvtype, tlvname, value, len(str(value))))
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
 
@@ -697,11 +755,11 @@ class pySwitchDiscovery(object):
         ,               CMAconsts.ROLE_igmp,        CMAconsts.ROLE_repeater
         ]
         mask = 1
-        value = pyConfigContext()
+        value = []
         for j in range(0, len(capnames)):
             if (capval & mask):
                 #value[capnames[j]] = ((capval & mask) != 0)
-                value[capnames[j]] = True
+                value.append(capnames[j])
             mask <<= 1
         return value
 

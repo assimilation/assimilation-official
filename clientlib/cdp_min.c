@@ -23,6 +23,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/.
  */
 #include <stdio.h>
+#include <memory.h>
 
 #ifdef _MSC_VER
 #	include <winsock.h>
@@ -93,24 +94,30 @@ WINEXPORT gboolean
 is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
                     const void* pktend)	///< [in]First byte after the last CDP packet byte
 {
-	const unsigned	reqtypes [] = {1};	// The set of required initial TLV types
-						// The LLDP list is slighly more impressive ;-)
+
+	const unsigned	reqtypes [] = {CDP_TLV_DEVID, CDP_TLV_PLATFORM, CDP_TLV_VERS, CDP_TLV_CAPS};
+	unsigned	foundtypes[32];	// TLV types in this packet
 	unsigned	j = 0;
 	const void*	tlv_vp;			// Pointer to a TLV entry in the CDP packet.
 	const void*	next = NULL;
 	unsigned	vers;
 
 
-	fprintf(stderr, "Validating CDP packet: %p,  pktend: %p\n", packet, pktend);
+	memset(foundtypes, 0, sizeof(foundtypes));
+	//fprintf(stderr, "Validating CDP packet: %p,  pktend: %p\n", packet, pktend);
 	if ((const void *)((const unsigned char *)packet+CDPTLV_TYPELENSZ)  > pktend || packet == NULL) {
                 fprintf(stderr, "BAD1 packet: %p,  pktend: %p\n", packet, pktend);
 		return FALSE;
 	}
 	/* Heuristic - at this writing, version could be 1 or 2 - Cisco currently defaults to 2 ... */
-	if ((vers=get_cdp_vers(packet, pktend)) < 1 || vers > 4
-	||  get_cdp_ttl(packet, pktend) < 3) {
-                fprintf(stderr, "BAD2 packet: %p,  pktend: %p [vers=%d, ttl=%d]\n", packet, pktend
-		,	get_cdp_vers(packet, pktend), get_cdp_ttl(packet, pktend));
+	vers=get_cdp_vers(packet, pktend);
+	if (vers < 1 || vers > 4) {
+		// Clearly not a CDP packet. 
+		return FALSE;
+	}
+	if (get_cdp_ttl(packet, pktend) < 3) {
+                fprintf(stderr, "BAD2 packet: %p,  pktend: %p [ttl=%d]\n", packet, pktend
+		,	get_cdp_ttl(packet, pktend));
 		return FALSE;
 	}
 
@@ -123,22 +130,32 @@ is_valid_cdp_packet(const void* packet,		///< [in]Start of CDP packet
 		ttype  = get_cdptlv_type(tlv_vp, pktend);
 		length = get_cdptlv_len (tlv_vp, pktend);
 		next = (const void *)((const unsigned char *)tlv_vp + length);
+		//fprintf(stderr, "ttype=0x%x, length = %d, here=%p, next=%p end=%p\n"
+		//,	ttype, length, tlv_vp, next, pktend);
 		if ((const void *)((const unsigned char *)tlv_vp+CDPTLV_TYPELENSZ) > pktend) {
 			fprintf(stderr, "BAD3 tlv_vp: %p,  pktend: %p j=%d [vers=%d, ttl=%d]\n"
 			,	tlv_vp, pktend, j
 			,	get_cdp_vers(packet, pktend), get_cdp_ttl(packet, pktend));
 			return FALSE;
 		}
-		if (next > pktend
-		||	length < CDPTLV_TYPELENSZ
-		||	(j < DIMOF(reqtypes) && ttype != reqtypes[j])) {
+		if (next > pktend || length < CDPTLV_TYPELENSZ) {
                 	fprintf(stderr, "BAD4 packet: %p,  pktend: %p, next %p, frame %d, type %d\n"
 			,	packet, pktend, next, j, ttype);
 			return FALSE;
 		}
+		if (ttype < DIMOF(foundtypes)) {
+			foundtypes[ttype] = TRUE;
+		}
 		j += 1;
 	}
 	// The only way to exit that loop without returning FALSE is if tlp_vp == pktend
+	for (j=0; j < DIMOF(reqtypes); ++j) {
+		if (!foundtypes[reqtypes[j]]) {
+                	fprintf(stderr, "%s.%d: invalid CDP packet missing TLV %d"
+			,	__FUNCTION__, __LINE__, reqtypes[j]);
+			return FALSE;
+		}
+	}
 	return TRUE;
 }
 

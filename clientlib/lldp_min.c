@@ -136,31 +136,52 @@ is_valid_lldp_packet(const void* tlv_vp,	//<[in] pointer to beginning pf LLDP pa
 			return FALSE;
 		}
 		ttype = get_lldptlv_type(tlv_vp, pktend);
+		if (ttype != 127 && ttype > 16) { // As of this writing, current limit is actually 8...
+			//g_warning("%s.%d: LLDP Invalid because TLV type %d is invalid \n"
+			//,	__FUNCTION__, __LINE__, ttype);
+			return FALSE;
+		}
 #ifdef PEDANTIC_LLDP_NERD
 		lasttype = ttype;
 #endif
 		length = get_lldptlv_len(tlv_vp, pktend);
 		next = (const guint8*)tlv_vp + (length+NETTLV_HDRSZ);
 		if (next > (const guint8*)pktend) {
-			g_warning("LLDP Invalid because TLV entry extends past end\n");
+			g_warning("%s.%d: LLDP Invalid because TLV entry extends past end\n"
+			,	__FUNCTION__, __LINE__);
 			return FALSE;
 		}
 		if (ttype == LLDP_TLV_END) {
 			if (get_lldptlv_body(tlv_vp, pktend) == pktend) {
 				return length == 0;
 			}else{
-				g_warning("LLDP Invalid because END item isn't at end of packet\n");
+				g_warning("%s.%d: LLDP Invalid because END item isn't at end of packet\n"
+				,	__FUNCTION__, __LINE__);
 				return FALSE;
 			}
 		}
 		if (j < DIMOF(reqtypes) && ttype != reqtypes[j]) {
-			g_warning("LLDP Invalid because required TLV type [%d] isn't present in right position (%d)\n"
-			,	reqtypes[j], j);
+			g_warning("%s.%d: LLDP Invalid because required TLV type [%d] isn't present in right position (%d)\n"
+			,	__FUNCTION__, __LINE__, reqtypes[j], j);
 			return FALSE;
 		}
 		j += 1;
 	}
+
+	if (j < DIMOF(reqtypes)) {
+		// If it's wildly invalid - it's probably a CDP packet...
+		if (j > 0) {
+			g_warning("%s.%d: LLDP Invalid because required TLV types are missing (%d)\n"
+			,	__FUNCTION__, __LINE__, j);
+		}
+		return FALSE;
+	}
 #ifdef PEDANTIC_LLDP_NERD
+	if (tlv_vp != NULL || tlv_vp < pktend) {
+		g_warning("%s.%d: LLDP Invalid because packet longer than TLVs account for (%d)\n"
+		,	__FUNCTION__, __LINE__, j);
+		return FALSE;
+	}
 	if (lasttype != LLDP_TLV_END) {
 		g_warning("LLDP Invalid because final type wasn't LLDP_TLV_END (it was %d)\n"
 		,	lasttype);
