@@ -399,11 +399,6 @@ class pySwitchDiscovery(object):
         print >> sys.stderr, dump
 
     @staticmethod
-    def compare_json(lhs, rhs):
-        lhs = str(pyConfigContext(lhs))
-        rhs = str(pyConfigContext(rhs))
-
-    @staticmethod
     def _decode_lldp_org_specific(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
         '''Decode LLDP org-specific TLV sets (or not...)'''
         oui = tlv_get_guint24(tlvptr, pktend)
@@ -466,7 +461,7 @@ class pySwitchDiscovery(object):
             pySwitchDiscovery._decode_lldp_802_3_mac_phy(switchinfo, thisportinfo,
                 pySwitchDiscovery._byte1addr(tlvptr), tlvlen-1, pktend)
             return
-        if subtype == 4: # G.5: Maximum Frame Size TLV
+        if subtype == LLDP_ORG802_3_MTU: # G.5: Maximum Frame Size TLV (4)
             mtuaddr = pySwitchDiscovery._byte1addr(tlvptr)
             thisportinfo['mtu'] = tlv_get_guint16(mtuaddr, pktend)
             return
@@ -669,7 +664,7 @@ class pySwitchDiscovery(object):
             elif tlvtype == CDP_TLV_PORTID:
                 value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_CAPS:
-                bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
+                #bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
                 #print >> sys.stderr, 'CAPBYTES = ', bytez
                 caps = pySwitchDiscovery.getNint(tlvptr, 4, pktend)
                 #print >> sys.stderr, ('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen))

@@ -103,7 +103,7 @@ class pySwitchDiscoveryTest(TestCase):
         return pySwitchDiscovery.decode_discovery('me', 'eth0', filename, '<now>', pkt, pktend)['data']
 
     def test_switch_discovery(self): 
-        cdp_files = (('lldp.detailed.pcap','''{ 
+        discovery_files = (('lldp.detailed.pcap','''{ 
   "ChassisId" : "00-01-30-f9-ad-a0",
   "ManagementAddress" : "00-01-30-f9-ad-a0",
   "ports" : { "1/1" : { 
@@ -251,7 +251,7 @@ class pySwitchDiscoveryTest(TestCase):
   "VLANManagementDomain" : "MYDOMAIN"
 }'''),
         )
-        for (f, out) in cdp_files:
+        for (f, out) in discovery_files:
             for pcap_entry in pyPcapCapture(findfile(f)):
                 pktstart, pktend, pktlen = pcap_entry
                 #print >> sys.stderr, 'Got %d bytes from %s' % (pktlen, f)
@@ -259,6 +259,7 @@ class pySwitchDiscoveryTest(TestCase):
                 json = self.validate_switch_discovery(f, pktstart, pktend)
                 #print >> sys.stderr, '<---- Done processing %d bytes from %s' % (pktlen, f)
                 assert compare_json(out, json)
+        print 'Passed %d switch discovery tests' % (len(discovery_files))
 
     def not_a_test_output(self):
         files = (
