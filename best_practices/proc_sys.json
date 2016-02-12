@@ -8,7 +8,7 @@
 	},
   "itbp-00001": {
 	"category": "networking",
-        "rule": "IN($net.core.default_qdisc, fq_codel, codel)"
+        "rule": "IN($net.core.default_qdisc, sch_fq, sch_fq_codel)"
 	},
   "nist_V-38511": {
 	"category": "security",
