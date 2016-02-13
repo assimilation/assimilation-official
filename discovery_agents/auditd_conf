@@ -83,9 +83,6 @@ auditd_conf_preprocess() {
 }
 
 discover() {
-    # We decidedly do not want pathname expansion...
-    # It would screws up some of our eval stuff in read_mdadm_line()
-    # It also appears that set -f is part of the POSIX standard
     prefix="    "
     cat <<-!
 	{
