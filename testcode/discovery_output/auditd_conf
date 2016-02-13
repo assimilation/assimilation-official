@@ -4,7 +4,30 @@
   "host": "FAKETESTHOST",
   "source": "../../discovery_agents/auditd_conf",
   "data": {
-    "NODATA": "ERROR: Cannot read auditd_conf"
-
+    "log_file": "/var/log/audit/audit.log",
+    "log_format": "raw",
+    "log_group": "root",
+    "priority_boost": 4,
+    "flush": "incremental",
+    "freq": 20,
+    "num_logs": 5,
+    "disp_qos": "lossy",
+    "dispatcher": "/sbin/audispd",
+    "name_format": "none",
+    "max_log_file": 6,
+    "max_log_file_action": "rotate",
+    "space_left": 75,
+    "space_left_action": "syslog",
+    "action_mail_acct": "root",
+    "admin_space_left": 50,
+    "admin_space_left_action": ["exec", "/usr/lib/uhoh_admin_audit_out_of_space"],
+    "disk_full_action": "suspend",
+    "disk_error_action": "suspend",
+    "use_libwrap": true,
+    "tcp_listen_queue": 5,
+    "tcp_max_per_addr": 1,
+    "tcp_client_max_idle": 0,
+    "enable_krb5": false,
+    "krb5_principal": "auditd"
   }
 }
