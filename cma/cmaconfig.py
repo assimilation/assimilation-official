@@ -43,7 +43,7 @@ class ConfigFile(object):
         'optional_modules':     [   # List of optional modules to be included
                                     # Below is the list of all known optional modules
                                     {'linkdiscovery',       # listens for CMA/LLDP packets
-                                     'checksumdiscovery',   # Checksums network-facing files
+                                     'checksums',           # Checksums network-facing files
                                      'monitoringdiscovery', # Automatically monitors services
                                      'arpdiscovery',        # Listens for ARP packets for
                                                             # network mapping...

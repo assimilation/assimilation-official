@@ -23,7 +23,7 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-DEFAULTSUMLIST="/usr/bin/sha384sum /usr/bin/sha512sum /usr/bin/sha256sum /usr/bin/sha224sum /usr/bin/sha1sum /usr/bin/shasum /usr/bin/md5sum /usr/bin/cksum /usr/bin/crc32"
+DEFAULTSUMLIST="/usr/bin/sha256sum /usr/bin/sha384sum /usr/bin/sha512sum /usr/bin/sha224sum /usr/bin/sha1sum /usr/bin/shasum /usr/bin/md5sum /usr/bin/cksum /usr/bin/crc32"
 
 : ${ASSIM_sumcmds:=${DEFAULTSUMLIST}}
 
@@ -69,7 +69,7 @@ lddependencies() {
   done
 }
 
-SUMCMD=/usr/bin/sha512sum
+SUMCMD=/usr/bin/sha256sum
 
 # Select the first executable sum command in our list of possible commands
 find_sumcmd() {
