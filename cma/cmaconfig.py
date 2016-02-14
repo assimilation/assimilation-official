@@ -43,7 +43,7 @@ class ConfigFile(object):
         'optional_modules':     [   # List of optional modules to be included
                                     # Below is the list of all known optional modules
                                     {'linkdiscovery',       # listens for CMA/LLDP packets
-                                     'checksums',           # Checksums network-facing files
+                                     'checksumdiscovery',   # Checksums network-facing files
                                      'monitoringdiscovery', # Automatically monitors services
                                      'arpdiscovery',        # Listens for ARP packets for
                                                             # network mapping...
@@ -198,7 +198,7 @@ class ConfigFile(object):
                 'timeout':          300,    # Default timeout interval in seconds
                 'agents': {         # Configuration information for individual agent types,
                                     # optionally including machine
-                                    "checksumdiscovery": {'repeat':3600*8, 'timeout': 10*60
+                                    "checksums": {'repeat':3600*8, 'timeout': 10*60
                                     ,           'warn':5*60},
                                     "os":  {'repeat': 0,    'timeout': 60, 'warn': 5},
                                     "cpu": {'repeat': 0,    'timeout': 60, 'warn': 5}
