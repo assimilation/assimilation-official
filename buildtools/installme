@@ -430,7 +430,7 @@ test_os_versions() {
 LOGURL='https://docs.google.com/forms/d/1n1RponvHNLB_4Kl6EEZyhT8FAx2f9TDwZoh0egsT2h0/formResponse'
 IPURL='http://www.ipchicken.com/' # Yes, really...
 getip() {
-	wget -q -O- $IPURL | egrep '^  *[0-9.]+ *<br>' | sed 's% *\([0-9.]*\).*%\1%'
+	wget -q -O- $IPURL | egrep '^ *[0-9.]+ *<br>' | sed 's% *\([0-9.]*\).*%\1%'
 }
 
 loginstall() {
