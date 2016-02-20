@@ -69,7 +69,7 @@ class CMAconsts(object):
     REL_parentring  = 'parentring'  # NODE_ring         ->  NODE_ring
     REL_baseip      = 'baseip'      # NODE_tcpipport    ->  NODE_ipaddr
     REL_tcpservice  = 'tcpservice'  # NODE_tcpipport    ->  NODE_ipproc
-    REL_ipphost     = 'ipphost'     # NODE_tcpipport    ->  NODE_system or subclass
+    #REL_ipphost    = 'ipphost'     # NODE_tcpipport    ->  NODE_system or subclass
     REL_hosting     = 'hosting'     # NODE_drone        ->  NODE_ipproc
     REL_monitoring  = 'monitoring'  # NODE_monitoraction->  NODE_ipproc OR SystemNode
     REL_tcpclient   = 'tcpclient'   # NODE_ipproc       ->  NODE_tcpipport

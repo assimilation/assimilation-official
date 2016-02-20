@@ -5,7 +5,7 @@
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
-# Copyright (C) 2015 - Assimilation Systems Limited
+# Copyright (C) 2016 - Assimilation Systems Limited
 #
 # Free support is available from the Assimilation Project community
 #   - http://assimproj.org
@@ -29,6 +29,7 @@
 '''
 
 Drawwithdot: Sample program to draw Assimilation graphs using Dot
+             from the 'graphviz' software.
 
 The core part of this program is pretty simple.
 The complicated part is getting the 'dot' diagram to look pretty
@@ -64,7 +65,7 @@ from __future__ import print_function #, unicode_literals
 from graphnodes import GraphNode
 from assimcli import dbsetup
 from AssimCclasses import pyConfigContext
-import sys
+import sys, os
 
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
 #pylint: disable=R0903
@@ -95,8 +96,25 @@ class DictObj(object):
             return ''
         label = name.split(':')[0]
         if len(label) == 0:
-            return r'\n' + label
+            return r'\n'
         return r'\n' + label + ': '
+
+    @staticmethod
+    def _fixup(value):
+        'Fix up our values for printing neatly in minimal space'
+        if isinstance(value, unicode):
+            return str(value).strip()
+        elif isinstance(value, str):
+            return value
+        elif hasattr(value, '__iter__'):
+            ret = '['
+            prefix = ''
+            for item in value:
+                ret += '%s%s' % (prefix, str(item).strip())
+                prefix=', '
+            ret += ']'
+            return ret
+        return str(value)
 
     def __contains__(self, name):
         'Return True if we can find the given attribute/index'
@@ -114,7 +132,7 @@ class DictObj(object):
             if ret is None or ret == '':
                 raise ValueError
             ret = ret.strip() if isinstance(ret, (str, unicode)) else ret
-            return self._labelstring(name) + str(ret)
+            return self._labelstring(name) + DictObj._fixup(ret)
         except ValueError:
             return self._failreturn(name)
 
@@ -179,6 +197,31 @@ class FancyDictObj(DictObj):
         except (KeyError, IndexError,TypeError):
             return '(unknown)'
 
+    @staticmethod
+    def proc_name(obj, _name):
+        'Construct a reasonable looking string to display for a process name.'
+        retname = os.path.basename(obj.pathname)
+        if retname.endswith('java'):
+            retname += r'\n%s' % obj.argv[-1]
+        elif len(obj.argv) > 1:
+            if not obj.argv[1].startswith('-'):
+                retname += ' %s' % obj.argv[1]
+        return retname
+
+    @staticmethod
+    def sec_color(obj, _name):
+        'Construct a reasonable looking string to set the host color.'
+        secscore = obj.bp_category_security_score if \
+                hasattr(obj, 'bp_category_security_score') else 0
+        if secscore < 1:
+            return 'color=green penwidth=3'
+        elif secscore <= 10:
+            return 'color=yellow penwidth=4'
+        if secscore <= 20:
+            return 'color=orange penwidth=4'
+        return 'color=red penwidth=5'
+
+
     def __init__(self, obj, kw=None, failreturn=''):
         DictObj.__init__(self, obj, kw, failreturn)
         for key in self.os_namemap:
@@ -187,6 +230,8 @@ class FancyDictObj(DictObj):
                     'processor', 'hardware-platform', 'kernel-name',
                     'kernel-release', 'kernel-version'):
             self.kw['os_' + key] = FancyDictObj.osinfo
+        self.kw['proc-name'] = FancyDictObj.proc_name
+        self.kw['sec-color'] = FancyDictObj.sec_color
 
 
 
@@ -259,6 +304,9 @@ class DotGraph(object):
                     self.nodeids.add(self.store.id(node))
                     dictobj = self.dictclass(node,
                             kw={'id': DotGraph.idname(self.store.id(node))})
+                    #print('Nodetype: %s' % node.nodetype, file=sys.stderr)
+                    #print('nodeformats: %s' % nodeformats[node.nodetype],
+                    #       file=sys.stderr)
                     yield nodeformats[node.nodetype] % dictobj
             except KeyError as e:
                 print('Bad node type: %s' %  e, file=sys.stderr)
@@ -302,31 +350,133 @@ class DotGraph(object):
             ret += '%s\n' % line
         return ret
 
-if __name__ == '__main__':
-    # Line is too long - I don't care ;-)
-    #pylint: disable=C0301
-    ipmaconly = {
-        'nodes': {
-            'IPaddrNode':
-            r'''%(id)s [shape=box color=blue label="%(ipaddr)s%(:hostname)s"] ''',
-            'NICNode':
-            r'''%(id)s [shape=ellipse color=red label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s%(MTU:json.mtu)s%(:OUI)s%(Duplex:json.duplex)s%(carrier:carrier)s"]''',
-            'Drone':
-            r'''
-            %(id)s [shape=house color=orange penwidth=3 label="%(designation)s\n%(os_description)s\n%(os_kernel-release)s%(SecScore:bp_category_security_score)s"]''',
-            'SystemNode':
-            r'''%(id)s [shape=box color=black penwidth=3 label="%(designation)s%(Name:SystemName)s%(:SystemDescription)s%(Manufacturer:manufacturer)s%(Model:model)s%(Roles:roles)s%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s%(serial:serial-number)s%(Asset:asset-id)s"] ''',
-            },
+ip_format = r'''%(id)s [shape=box color=blue label="%(ipaddr)s%(:hostname)s"]'''
 
+drone_format = r'''%(id)s [shape=house %(sec-color)s label=''' + \
+'''"%(designation)s%(:os_description)s%(:os_kernel-release)''' + \
+'''s%(Security Risk:bp_category_security_score)s''' + \
+'''%(Status:status)s%(Reason:reason)s%(:roles)s"]'''
+
+switch_format = r'''%(id)s [shape=box color=black penwidth=3 ''' + \
+r'''label="%(designation)s%(Name:SystemName)s%(:SystemDescription)s''' + \
+r'''%(Manufacturer:manufacturer)s%(Model:model)s%(Roles:roles)s''' + \
+r'''%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s''' + \
+r'''%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s''' + \
+r'''%(serial:serial-number)s%(Asset:asset-id)s"]'''
+
+MAC_format = r'''%(id)s [shape=ellipse color=red ''' + \
+r'''label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s''' + \
+r'''%(:OUI)s%(MTU:json.mtu)s%(Duplex:json.duplex)s%(carrier:carrier)s"]'''
+processnode_format   = r'''%(id)s [label="%(proc-name)s''' + \
+r'''%(uid:uid)s%(gid:gid)s%(pwd:cwd)s"]'''
+iptcpportnode_format = r'''%(id)s [label="%(_repr)s"]'''
+monitoraction_format = r'''%(id)s [label="%(monitorclass)s%(:monitortype)s"]'''
+
+default_relfmt = r'''%(from)s->%(to)s [label=%(type)s]'''
+ipowner_format = r'''%(from)s->%(to)s [color=hotpink label=ipowner]'''
+nicowner_format = r'''%(from)s->%(to)s [color=black label=nicowner]'''
+wiredto_format = r'''%(from)s->%(to)s [color=blue label=wiredto penwidth=3]'''
+
+#
+#   This defines all our various 'skins'
+#   A skin defines how we tell dot to draw nodes and relationships
+#   in a given diagram.
+#
+skin_formats = {
+    'default': {    # The default drawing 'skin'
+        'nodes': {
+            'IPaddrNode': ip_format,
+            'NICNode': MAC_format,
+            'Drone': drone_format,
+            'SystemNode': switch_format,
+            'ProcessNode': processnode_format,
+            'IPtcpportNode': iptcpportnode_format,
+            'MonitorAction': monitoraction_format,
+        },
         'relationships': {
-            'ipowner':
-            r'''%(from)s->%(to)s [color=hotpink label=ipowner]''',
-            'nicowner':
-            r''' %(from)s->%(to)s [color=black label=nicowner]''',
-            'wiredto':
-            r''' %(from)s->%(to)s [color=blue label=wiredto penwidth=3]''',
+            'baseip': default_relfmt,
+            'hosting': default_relfmt,
+            'ipowner': ipowner_format,
+            'monitoring': default_relfmt,
+            'nicowner': nicowner_format,
+            'tcpservice': default_relfmt,
+            'tcpclient': default_relfmt,
+            'wiredto': wiredto_format,
+            'RingNext_The_One_Ring': default_relfmt,
         }
     }
+}
 
-    dot = DotGraph(ipmaconly)
+#
+# A drawing type is a collection of nodes, relationships that we want to
+# make sure show up in the drawing
+#
+# Eventually this should probably include queries that produce the
+# particular desired nodes that go with this particular diagram.
+#
+drawing_types = {
+    'network': {
+        'description': 'Network diagram',
+        'nodes': ['IPaddrNode', 'NICNode', 'Drone', 'SystemNode'],
+        'relationships': ['ipowner', 'nicowner', 'wiredto'],
+        },
+    'service': {
+        'description': 'Services diagram',
+        'nodes': ['Drone', 'ProcessNode', 'IPtcpportNode'],
+        'relationships': [ 'ipowner', 'baseip', 'hosting', 'tcpservice',
+            'tcpclient'],
+        },
+    'monitoring': {
+        'description': 'monitoring diagram',
+        'nodes': ['Drone', 'MonitorAction', 'ProcessNode'],
+        'relationships': ['monitoring', 'hosting', 'tcpservice']
+    },
+    'monring': {
+        'description': 'neighbor monitoring ring diagram',
+        'nodes': ['Drone'],
+        'relationships': ['RingNext_The_One_Ring'],
+    }
+}
+
+def validate_drawing_types(dtypes=None, skins=None):
+    '''We make sure that all the drawing types we have available
+    are well-defined in each of the skins...
+    This is really just for debugging, but it's quick enough to do
+    each time...
+    '''
+    if dtypes is None:
+        dtypes=drawing_types
+    if skins is None:
+        skins=skin_formats
+    for skin in skins:
+        nodetypes = skins[skin]['nodes']
+        reltypes = skins[skin]['relationships']
+        for dtype in dtypes:
+            dnodes = dtypes[dtype]['nodes']
+            for nodetype in dnodes:
+                if nodetype not in nodetypes:
+                    raise ValueError('Nodetype %s not in skin %s' %
+                                     (nodetype, skin))
+            drels = dtypes[dtype]['relationships']
+            for reltype in drels:
+                if reltype not in reltypes:
+                    raise ValueError('Relationship type %s not in skin %s' %
+                                     (reltype, skin))
+
+def construct_dot_formats(drawingtype='network', skintype='default'):
+    '''Construct 'dot' formats from our skins and this drawing type'''
+    diagram = drawing_types[drawingtype]
+    skin = skin_formats[skintype]
+    result = {'nodes': {}, 'relationships':{}}
+    for nodetype in diagram['nodes']:
+        result['nodes'][nodetype] = skin['nodes'][nodetype]
+    for reltype in diagram['relationships']:
+        result['relationships'][reltype] = skin['relationships'][reltype]
+    return result
+
+
+if __name__ == '__main__':
+
+    validate_drawing_types()
+    dot = DotGraph(construct_dot_formats(drawingtype='network'))
     dot.out()

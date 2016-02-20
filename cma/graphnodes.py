@@ -465,11 +465,14 @@ class IPtcpportNode(GraphNode):
     def __init__(self, domain, ipaddr, port=None, protocol='tcp'):
         'Construct an IPtcpportNode - validating our parameters'
         GraphNode.__init__(self, domain=domain)
-        if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
+        if isinstance(ipaddr, (str, unicode)):
             ipaddr = pyNetAddr(str(ipaddr))
         if isinstance(ipaddr, pyNetAddr):
             if port is None:
                 port = ipaddr.port()
+            else:
+                ipaddr.setport(port)
+            self._repr = repr(ipaddr)
             if port <= 0 or port >= 65536:
                 raise ValueError('Invalid port for constructor: %s' % str(port))
             addrtype = ipaddr.addrtype()
