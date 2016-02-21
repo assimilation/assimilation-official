@@ -250,6 +250,13 @@ class FancyDictObj(DictObj):
             return 'color=red penwidth=5 style=filled fillcolor=hotpink'
         return ''
 
+    @staticmethod
+    def nic_attrs(obj, _name):
+        'Construct a reasonable looking string to set NIC options.'
+        ret = 'shape=octagon color=navy '
+        if hasattr(obj, 'carrier') and not obj.carrier:
+            ret += 'style=dotted penwidth=2 '
+        return ret
 
     def __init__(self, obj, kw=None, failreturn=''):
         DictObj.__init__(self, obj, kw, failreturn)
@@ -263,6 +270,7 @@ class FancyDictObj(DictObj):
         self.kw['drone-attrs'] = FancyDictObj.drone_attrs
         self.kw['service-attrs'] = FancyDictObj.service_attrs
         self.kw['monitor-attrs'] = FancyDictObj.monitor_attrs
+        self.kw['nic-attrs'] = FancyDictObj.nic_attrs
 
 
 class DotGraph(object):
@@ -415,7 +423,7 @@ r'''%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s''' + \
 r'''%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s''' + \
 r'''%(serial:serial-number)s%(Asset:asset-id)s"]'''
 
-MAC_format = r'''%(id)s [shape=ellipse color=red ''' + \
+MAC_format = r'''%(id)s [%(nic-attrs)s ''' + \
 r'''label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s''' + \
 r'''%(:OUI)s%(MTU:json.mtu)s%(Duplex:json.duplex)s%(carrier:carrier)s"]'''
 processnode_format   = r'''%(id)s [%(service-attrs)s label="%(proc-name)s''' + \
@@ -427,7 +435,8 @@ monitoraction_format = r'''%(id)s [%(monitor-attrs)s shape=component ''' + \
 default_relfmt = r'''%(from)s->%(to)s [label=%(type)s]'''
 ipowner_format = r'''%(from)s->%(to)s [color=hotpink label=ipowner]'''
 nicowner_format = r'''%(from)s->%(to)s [color=black label=nicowner]'''
-wiredto_format = r'''%(from)s->%(to)s [color=blue label=wiredto penwidth=3]'''
+wiredto_format = r'''%(from)s->%(to)s [color=blue label=wiredto '''+\
+'''penwidth=3 arrowhead=none]'''
 
 #
 #   This defines all our various 'skins'
