@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -31,6 +31,7 @@ rules for certain kinds of services automatically.
 from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD            \
 ,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL   \
 ,   CONFIGNAME_TIMEOUT , REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, REQNAGIOSPATH       \
+,   CONFIGNAME_WARNTIME                                                                     \
 ,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD, REQSTRINGRETNAMEFIELD             \
 ,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
 from AssimCclasses import pyConfigContext
@@ -41,7 +42,7 @@ from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
 import os, re, time
-#import sys
+import sys
 from store import Store
 #
 #
@@ -61,7 +62,7 @@ class MonitorAction(GraphNode):
     # R0913: too many arguments
     # pylint: disable=R0913
     def __init__(self, domain, monitorname, monitorclass, monitortype, interval
-    ,   timeout, provider=None, arglist=None, argv=None):
+    ,   timeout, warntime=None, provider=None, arglist=None, argv=None):
         'Create the requested monitoring rule object.'
         GraphNode.__init__(self, domain)
         self.monitorname = monitorname
@@ -69,6 +70,7 @@ class MonitorAction(GraphNode):
         self.monitortype = monitortype
         self.interval = int(interval)
         self.timeout = int(timeout)
+        self.warntime = int(warntime) if warntime is not None else self.timeout/2
         self.provider = provider
         self.isactive = False
         self.isworking = True
@@ -224,7 +226,7 @@ class MonitorAction(GraphNode):
         msg = 'Service %s %s' % (rscname, explanation)
         self.isworking = success and not fubar
         self.reason = explanation
-        #print >> sys.stderr, 'MESSAGE:', msg
+        print >> sys.stderr, 'MESSAGE:', msg
         if fubar:
             CMAdb.log.critical(msg)
         else:
@@ -272,7 +274,7 @@ class MonitorAction(GraphNode):
             argv_str = argv_str.replace("'", '"')
 
         json = (
-            '{"%s": %d, "%s":"%s", "%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s":%d%s%s%s%s}'
+        '{"%s": %d, "%s":"%s", "%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s": %d,"%s":%d%s%s%s%s}'
             %
         (   REQIDENTIFIERNAMEFIELD, self.request_id
         ,   REQOPERATIONNAMEFIELD, operation
@@ -281,7 +283,9 @@ class MonitorAction(GraphNode):
         ,   CONFIGNAME_INSTANCE, self.monitorname
         ,   CONFIGNAME_INTERVAL, self.interval
         ,   CONFIGNAME_TIMEOUT, self.timeout
+        ,   CONFIGNAME_WARNTIME, self.warntime
         ,   provider_str, arglist_str, path_str, argv_str))
+        #print >> sys.stderr, 'MONITOR JSON:', str(pyConfigContext(init=json))
         return str(pyConfigContext(init=json))
 
 

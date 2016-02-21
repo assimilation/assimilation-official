@@ -64,10 +64,12 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
                 continue
             montuple = MonitoringRule.findbestmatch((processproc, drone))
             if montuple[0] == MonitoringRule.NOMATCH:
+                processproc.is_monitored = False
                 print >> sys.stderr, "**don't know how to monitor %s" % str(processproc.argv)
                 self.log.warning('No rules to monitor %s service %s'
                 %   (drone.designation, str(processproc.argv)))
             elif montuple[0] == MonitoringRule.PARTMATCH:
+                processproc.is_monitored = False
                 print >> sys.stderr, (
                 'Automatic monitoring not possible for %s -- %s is missing %s'
                 %   (str(processproc.argv), str(montuple[1]), str(montuple[2])))
@@ -76,6 +78,7 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
                 %   (drone.designation, str(processproc.argv)
                 ,    str(montuple[1]), str(montuple[2])))
             else:
+                processproc.is_monitored = True
                 agent = montuple[1]
                 self._add_service_monitoring(drone, processproc, agent)
                 if agent['monitorclass'] == 'NEVERMON':
@@ -118,6 +121,7 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         parameters = agent_params['parameters']
         paraminterval = parameters['repeat']
         paramtimeout  = parameters['timeout']
+        paramwarntime  = parameters['warn']
         paramargv = parameters.get('argv', [])
         paramenv = parameters.get('env', {})
         monargv = moninfo.get('argv', [])
@@ -158,6 +162,7 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         monnode = self.store.load_or_create(MonitorAction, domain=drone.domain
         ,   monitorname=monitorname, monitorclass=monitorclass
         ,   monitortype=monitortype, interval=paraminterval, timeout=paramtimeout
+        ,   warntime=paramwarntime
         ,   provider=monitorprovider
         ,   arglist = environ if environ else None
         ,   argv = argv if argv else None) # Neo4j restriction...

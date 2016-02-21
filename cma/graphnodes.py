@@ -509,14 +509,16 @@ class ProcessNode(GraphNode):
     'A node representing a running process in a host'
     # R0913: Too many arguments (9/7)
     # pylint: disable=R0913
-    def __init__(self, domain, processname, host, pathname, argv, uid, gid, cwd, roles=None):
+    def __init__(self, domain, processname, host, pathname, argv, uid, gid, cwd, roles=None,
+            is_monitored=False):
         GraphNode.__init__(self, domain=domain)
         self.host = host
-        self.pathname   = pathname
-        self.argv       = argv
-        self.uid        = uid
-        self.gid        = gid
-        self.cwd        = cwd
+        self.pathname       = pathname
+        self.argv           = argv
+        self.uid            = uid
+        self.gid            = gid
+        self.cwd            = cwd
+        self.is_monitored   = is_monitored
         if roles is None:
             self.roles = ['']
         else:

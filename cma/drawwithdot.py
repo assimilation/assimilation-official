@@ -65,7 +65,7 @@ from __future__ import print_function #, unicode_literals
 from graphnodes import GraphNode
 from assimcli import dbsetup
 from AssimCclasses import pyConfigContext
-import sys, os
+import sys, os, optparse
 
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
 #pylint: disable=R0903
@@ -188,7 +188,7 @@ class FancyDictObj(DictObj):
     def osinfo(obj, name):
         '''Provide aliases for various OS attributes for formatting
         These will only work on a Drone node'''
-        if name.startswith('os_'):
+        if name.startswith('os-'):
             name = name[3:]
         try:
             if name in FancyDictObj.os_namemap:
@@ -209,30 +209,60 @@ class FancyDictObj(DictObj):
         return retname
 
     @staticmethod
-    def sec_color(obj, _name):
-        'Construct a reasonable looking string to set the host color.'
+    def drone_attrs(obj, _name):
+        'Construct a string to set the attributes for Drone nodes.'
         secscore = obj.bp_category_security_score if \
                 hasattr(obj, 'bp_category_security_score') else 0
+        init=''
+        if obj.status != 'up':
+            if obj.reason == 'HBSHUTDOWN':
+                init = 'style="filled,dashed" fillcolor=gray90 '
+            else:
+                init = 'style="filled,dashed" fillcolor=hotpink1 fontname=bold '
         if secscore < 1:
-            return 'color=green penwidth=3'
+            return init + 'color=green penwidth=3'
         elif secscore <= 10:
-            return 'color=yellow penwidth=4'
+            return init + 'color=yellow penwidth=4'
         if secscore <= 20:
-            return 'color=orange penwidth=4'
-        return 'color=red penwidth=5'
+            return init + 'color=orange penwidth=4'
+        return init + 'color=red penwidth=10'
+
+    @staticmethod
+    def service_attrs(obj, _name):
+        'Construct a reasonable looking string to set the service options.'
+        ret=' color=blue'
+        if 'server' in obj.roles and not obj.is_monitored:
+            ret += ' style=dashed penwidth=2'
+        if obj.uid == 'root' or obj.gid == 'root':
+            ret += ' fontcolor=red'
+        if 'server' in obj.roles:
+            ret += ' shape=folder'
+        else:
+            ret += ' shape=rectangle'
+        return ret
+
+    @staticmethod
+    def monitor_attrs(obj, _name):
+        'Construct a reasonable looking string to set monitor options.'
+        if obj.monitorclass == 'NEVERMON' or not obj.isactive:
+            return 'style=filled fillcolor=gray90'
+        if not obj.isworking:
+            return 'color=red penwidth=5 style=filled fillcolor=hotpink'
+        return ''
 
 
     def __init__(self, obj, kw=None, failreturn=''):
         DictObj.__init__(self, obj, kw, failreturn)
         for key in self.os_namemap:
-            self.kw['os_' + key] = FancyDictObj.osinfo
-        for key in ('nodename', 'operating-system', 'machine',
-                    'processor', 'hardware-platform', 'kernel-name',
-                    'kernel-release', 'kernel-version'):
-            self.kw['os_' + key] = FancyDictObj.osinfo
+            self.kw['os-' + key] = FancyDictObj.osinfo
+        for key in ('nodename', 'operating-system', 'machine', 'distributor'
+                    'codename', 'distro', 'processor', 'hardware-platform',
+                    'kernel-name', 'kernel-release', 'kernel-version'):
+            self.kw['os-' + key] = FancyDictObj.osinfo
         self.kw['proc-name'] = FancyDictObj.proc_name
-        self.kw['sec-color'] = FancyDictObj.sec_color
-
+        self.kw['drone-attrs'] = FancyDictObj.drone_attrs
+        self.kw['service-attrs'] = FancyDictObj.service_attrs
+        self.kw['monitor-attrs'] = FancyDictObj.monitor_attrs
 
 
 class DotGraph(object):
@@ -241,7 +271,7 @@ class DotGraph(object):
     # pylint: disable=R0913
     def __init__(self, formatdict, dburl=None, nodequeries=None,
             nodequeryparams=None, relquery=None, relqueryparams=None,
-            dictclass=FancyDictObj):
+            dictclass=FancyDictObj, options=None):
         '''Initialization
         Here are the main two things to understand:
             formatdict is a dict-like object which provides a format string
@@ -283,6 +313,7 @@ class DotGraph(object):
             '''
         self.relquery = relquery
         self.relqueryparams = relqueryparams
+        self.options = options
 
     @staticmethod
     def idname(nodeid):
@@ -330,9 +361,28 @@ class DotGraph(object):
                 'to': DotGraph.idname(rel.end_node._id)})
             yield relformats[rel.type] % dictobj
 
+    def render_options(self):
+        'Render overall graph options as a dot-formatted string'
+        ret = ''
+        if not self.options:
+            return ''
+        for option in self.options:
+            optvalue=self.options[option]
+            if isinstance(optvalue, (str, unicode, bool, int, float, long)):
+                ret += ' %s="%s"' % (str(option), str(optvalue))
+                continue
+            if hasattr(optvalue, '__iter__'):
+                listval=''
+                delim=''
+                for elem in optvalue:
+                    listval += '%s%s' % (delim, elem)
+                    delim=','
+                ret += ' %s="%s"' % (str(option), str(listval))
+        return ret
+
     def __iter__(self):
         '''Yield 'dot' strings for our nodes and relationships'''
-        yield 'Digraph G {\n'
+        yield 'Digraph G {%s\n' % self.render_options()
         for line in self._outnodes():
             yield line.strip() + '\n'
         for line in self._outrels():
@@ -352,8 +402,9 @@ class DotGraph(object):
 
 ip_format = r'''%(id)s [shape=box color=blue label="%(ipaddr)s%(:hostname)s"]'''
 
-drone_format = r'''%(id)s [shape=house %(sec-color)s label=''' + \
-'''"%(designation)s%(:os_description)s%(:os_kernel-release)''' + \
+drone_format = r'''%(id)s [shape=house %(drone-attrs)s label=''' + \
+'''"%(designation)s''' + \
+'''%(:os-description)s %(os-codename)s%(:os-kernel-release)''' + \
 '''s%(Security Risk:bp_category_security_score)s''' + \
 '''%(Status:status)s%(Reason:reason)s%(:roles)s"]'''
 
@@ -367,10 +418,11 @@ r'''%(serial:serial-number)s%(Asset:asset-id)s"]'''
 MAC_format = r'''%(id)s [shape=ellipse color=red ''' + \
 r'''label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s''' + \
 r'''%(:OUI)s%(MTU:json.mtu)s%(Duplex:json.duplex)s%(carrier:carrier)s"]'''
-processnode_format   = r'''%(id)s [label="%(proc-name)s''' + \
+processnode_format   = r'''%(id)s [%(service-attrs)s label="%(proc-name)s''' + \
 r'''%(uid:uid)s%(gid:gid)s%(pwd:cwd)s"]'''
 iptcpportnode_format = r'''%(id)s [label="%(_repr)s"]'''
-monitoraction_format = r'''%(id)s [label="%(monitorclass)s%(:monitortype)s"]'''
+monitoraction_format = r'''%(id)s [%(monitor-attrs)s shape=component ''' + \
+        r'''label="%(monitorclass)s%(:monitortype)s"]'''
 
 default_relfmt = r'''%(from)s->%(to)s [label=%(type)s]'''
 ipowner_format = r'''%(from)s->%(to)s [color=hotpink label=ipowner]'''
@@ -415,6 +467,11 @@ skin_formats = {
 # particular desired nodes that go with this particular diagram.
 #
 drawing_types = {
+    'everything': {
+        'description': 'Everything and the kitchen sink',
+        'nodes': skin_formats['default']['nodes'].keys(),
+        'relationships': skin_formats['default']['relationships'].keys()
+        },
     'network': {
         'description': 'Network diagram',
         'nodes': ['IPaddrNode', 'NICNode', 'Drone', 'SystemNode'],
@@ -474,9 +531,54 @@ def construct_dot_formats(drawingtype='network', skintype='default'):
         result['relationships'][reltype] = skin['relationships'][reltype]
     return result
 
+def drawing_type_help():
+    'Create help string for the --drawingtype option'
+    ret = 'Type of drawing to create. Must be one of '
+    delim='('
+    for dtype in drawing_types.keys():
+        ret += '%s%s' % (delim, dtype)
+        delim=', '
+    ret += '). '
+    for dtype in drawing_types.keys():
+        ret += '"%s": %s. ' % (dtype, drawing_types[dtype]['description'])
+    return ret
+
 
 if __name__ == '__main__':
-
     validate_drawing_types()
-    dot = DotGraph(construct_dot_formats(drawingtype='network'))
+
+    opts = optparse.OptionParser()
+    opts.add_option('-d', '--drawingtype',
+                      action='store',
+                      dest='drawingtype',
+                      type='choice',
+                      choices=drawing_types.keys(),
+                      help=drawing_type_help()
+            )
+    opts.set_defaults(drawingtype='everything')
+    opts.add_option('-D', '--dpi',
+                      action='store',
+                      dest='dpi',
+                      type='int',
+                      help='Dots-per-inch for drawing'
+            )
+    opts.add_option('-s', '--size',
+                      action='store',
+                      dest='size',
+                      type='int',
+                      nargs=2,
+                      help='(x,y) dimensions of drawing in inches'
+            )
+    #opts.set_defaults('size', (30,8))
+    cmdoptions, args = opts.parse_args()
+    cmdoptions.skin='default'
+
+    # Process all the overall command line options...
+    graphoptions = {}
+    for attr in ('size', 'dpi'):
+        graphoptions[attr] = getattr(cmdoptions, attr)
+
+    dot = DotGraph(construct_dot_formats(cmdoptions.drawingtype,
+                                         skintype=cmdoptions.skin),
+                   options=graphoptions)
     dot.out()
