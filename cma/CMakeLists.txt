@@ -22,10 +22,11 @@
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cma.in ${CMAKE_CURRENT_BINARY_DIR}/cma @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/assimcli.in ${CMAKE_CURRENT_BINARY_DIR}/assimcli @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/drawwithdot.in ${CMAKE_CURRENT_BINARY_DIR}/drawwithdot @ONLY)
 install(PROGRAMS
 	arpdiscovery.py AssimCclasses.py assimcli.py assimeventobserver.py assimevent.py
 	assimjson.py bestpractices.py checksumdiscovery.py cmaconfig.py cmadb.py cmainit.py
-	cma.py consts.py discoverylistener.py dispatchtarget.py droneinfo.py
+	cma.py consts.py drawwithdot.py discoverylistener.py dispatchtarget.py droneinfo.py
 	frameinfo.py assimglib.py graphnodeexpression.py graphnodes.py hbring.py linkdiscovery.py
 	messagedispatcher.py monitoringdiscovery.py monitoring.py packetlistener.py query.py
 	store.py transaction.py procsysdiscovery.py
