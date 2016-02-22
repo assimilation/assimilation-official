@@ -64,7 +64,7 @@ the code is simple and common - and the formats are more complicated.
 from __future__ import print_function #, unicode_literals
 from graphnodes import GraphNode
 from assimcli import dbsetup
-from AssimCclasses import pyConfigContext
+from AssimCclasses import pyConfigContext, pyNetAddr
 import sys, os, optparse
 
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
@@ -103,6 +103,12 @@ class DictObj(object):
     def _fixup(value):
         'Fix up our values for printing neatly in minimal space'
         if isinstance(value, unicode):
+            if value.startswith('::'):
+                try:
+                    ip=pyNetAddr(value)
+                    value=repr(ip)
+                except ValueError:
+                    pass
             return str(value).strip()
         elif isinstance(value, str):
             return value
@@ -428,7 +434,8 @@ r'''label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s''' + \
 r'''%(:OUI)s%(MTU:json.mtu)s%(Duplex:json.duplex)s%(carrier:carrier)s"]'''
 processnode_format   = r'''%(id)s [%(service-attrs)s label="%(proc-name)s''' + \
 r'''%(uid:uid)s%(gid:gid)s%(pwd:cwd)s"]'''
-iptcpportnode_format = r'''%(id)s [label="%(_repr)s"]'''
+iptcpportnode_format = r'''%(id)s [shape=rectangle fontsize=10 ''' + \
+'''label="%(ipaddr)s%(:port)s"]'''
 monitoraction_format = r'''%(id)s [%(monitor-attrs)s shape=component ''' + \
         r'''label="%(monitorclass)s%(:monitortype)s"]'''
 
