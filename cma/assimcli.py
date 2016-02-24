@@ -33,6 +33,7 @@ import sys, os, getent
 from query import ClientQuery
 from consts import CMAconsts
 from graphnodes import GraphNode
+from droneinfo import Drone
 from store import Store
 from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
@@ -277,9 +278,134 @@ class neo4jpass(object):
             return usage()
         Neo4jCreds().update(newauth=otherargs[0] if len(otherargs) > 0 else None)
 
+@RegisterCommand
+class dtypescores(object):
+    'Compute and print scores for the given categories'
+
+    @staticmethod
+    def usage():
+        "reports usage for this sub-command"
+        return 'dtypescores [--details] [list of score categories...]'
+
+    @staticmethod
+    def execute(store, _executor_context, otherargs, flagoptions):
+        'Compute and print scores for the given categories'
+        delim=','
+        dtype_totals, drone_totals = grab_category_scores(store, otherargs)
+        if 'hostnames' in flagoptions:
+            for tup in yield_drone_scores(otherargs, drone_totals, dtype_totals):
+                print delim.join(tup)
+        else:
+            for tup in yield_category_scores(otherargs, dtype_totals):
+                print delim.join(tup)
+
+@RegisterCommand
+class secdtypes (object):
+    'Compute and print security scores'
+    @staticmethod
+    def usage():
+        'reports usage for this sub-command'
+        return 'secdtypes [--hostnames]'
+
+    @staticmethod
+    def execute(store, executor_context, _otherargs, flagoptions):
+        'Compute and print security scores as requested'
+        dtypescores.execute(store, executor_context, ['security'], flagoptions)
 
 
-options = {'language', 'format'}
+def grab_category_scores(store, categories=None, debug=False):
+    '''Program to create and return some python Dicts with security scores and totals by category
+    and totals by drone/category
+    Categories is None or a list of desired categories.
+    '''
+    cypher = '''START drone=node:Drone('*:*') RETURN drone'''
+
+    BestPractices(CMAdb.io.config, CMAdb.io, store, CMAdb.log, debug=debug)
+    dtype_totals = {} # scores organized by (category, discovery-type)
+    drone_totals = {} # scores organized by (category, discovery-type, drone)
+
+    for drone in store.load_cypher_nodes(cypher, Drone):
+        designation = drone.designation
+        discoverytypes = drone.bp_discoverytypes_list()
+        for dtype in discoverytypes:
+            dattr = Drone.bp_discoverytype_result_attrname(dtype)
+            statuses = getattr(drone, dattr)
+            for rule_obj in BestPractices.eval_objects[dtype]:
+                rulesobj = rule_obj.fetch_rules(drone, None, dtype)
+                _, scores = BestPractices.compute_scores_by_category(drone, rulesobj, statuses)
+                for category in scores:
+                    if category not in categories and categories:
+                        continue
+                    # Accumulate scores by (category, discovery_type)
+                    if category not in dtype_totals:
+                        dtype_totals[category] = {}
+                    if dtype not in dtype_totals[category]:
+                        dtype_totals[category][dtype] = 0.0
+                    dtype_totals[category][dtype] += scores[category]
+                    # Accumulate scores by (category, discovery_type, drone)
+                    if category not in drone_totals:
+                        drone_totals[category] = {}
+                    if dtype not in drone_totals[category]:
+                        drone_totals[category][dtype] = {}
+                    if designation not in drone_totals[category][dtype]:
+                        drone_totals[category][dtype][designation] = 0.0
+                    drone_totals[category][dtype][designation] += scores[category]
+    return dtype_totals, drone_totals
+
+def yield_category_scores(categories, dtype_totals):
+    'Format the dtype_totals as a CSV-style output'
+    ignore_category = categories and len(categories) == 1
+    ignore_category = categories and len(categories) == 1
+    cats = dtype_totals.keys()
+    cats.sort()
+    dtypes = set()
+    for cat in cats:
+        for dtype in dtype_totals[cat]:
+            dtypes.add(dtype)
+    dtypes = list(dtypes)
+    dtypes.sort()
+    for cat in cats:
+        for dtype in dtypes:
+            if dtype not in dtype_totals[cat]:
+                continue
+            if ignore_category:
+                yield (str(dtype_totals[cat][dtype]), dtype)
+            else:
+                yield (cat, str(dtype_totals[cat][dtype]), dtype)
+
+def yield_drone_scores(categories, drone_totals, dtype_totals):
+    '''Format the drone_totals + dtype_totals as a CSV-style output
+    We output the following fields:
+        1:  category name - ONLY PRESENT IF MULTIPLE CATEGORIES REQUESTED
+        2:  total score for this drone for this discovery type
+        3:  drone designation (name)
+        4:  discovery-type
+        5:  total score for this category _across all drones_
+    '''
+    ignore_category = categories and len(categories) == 1
+    ignore_category = categories and len(categories) == 1
+    cats = drone_totals.keys()
+    cats.sort()
+    dtypes = set()
+    for cat in cats:
+        for dtype in drone_totals[cat]:
+            dtypes.add(dtype)
+    dtypes = list(dtypes)
+    dtypes.sort()
+    for cat in cats:
+        for dtype in dtypes:
+            if dtype not in drone_totals[cat]:
+                continue
+            for drone in drone_totals[cat][dtype]:
+                if ignore_category:
+                    yield (str(drone_totals[cat][dtype][drone]), drone, dtype,
+                           str(dtype_totals[cat][dtype]))
+                else:
+                    yield (cat, str(drone_totals[cat][dtype][drone]), drone, dtype,
+                           str(dtype_totals[cat][dtype]))
+
+
+options = {'language':True, 'format':True, 'hostnames':False}
 def usage():
     'Construct and print usage message'
     argv = sys.argv
@@ -348,7 +474,12 @@ def main(argv):
             if option not in options:
                 usage()
                 return 1
-            selected_options[option] = argv[narg+1]
+            if options[option]:
+                selected_options[option] = argv[narg+1]
+                skipnext = True
+            else:
+                selected_options[option] = True
+                skipnext = False
         else:
             command=arg
             break
