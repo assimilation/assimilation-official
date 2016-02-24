@@ -226,11 +226,11 @@ class FancyDictObj(DictObj):
             else:
                 init = 'style="filled,dashed" fillcolor=hotpink1 fontname=bold '
         if secscore < 1:
-            return init + 'color=green penwidth=3'
+            return init + 'color=green penwidth=3 '
         elif secscore <= 10:
-            return init + 'color=yellow penwidth=4'
+            return init + 'color=yellow penwidth=4 '
         if secscore <= 20:
-            return init + 'color=orange penwidth=4'
+            return init + 'color=orange penwidth=4 '
         return init + 'color=red penwidth=10'
 
     @staticmethod
