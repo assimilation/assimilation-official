@@ -182,6 +182,31 @@ class Drone(SystemNode):
             this = nextrule
         return ret
 
+    @staticmethod
+    def bp_category_score_attrname(category):
+        'Compute the attribute name of a best practice score category'
+        return 'bp_category_%s_score' % category
+
+    def bp_category_list(self):
+        'Provide the list best practice score categories that we have stored'
+        result = []
+        for attr in dir(self):
+            if attr.startswith('bp_category_') and attr.endswith('_score'):
+                result.append(attr[12:-6])
+        return result
+
+    def bp_discoverytypes_list(self):
+        'List the discovery types that we have recorded'
+        result = []
+        for attr in dir(self):
+            if attr.startswith('BP_') and attr.endswith('_rulestatus'):
+                result.append(attr[3:-11])
+        return result
+
+    @staticmethod
+    def bp_discoverytype_result_attrname(discoverytype):
+        'Compute the attribute name of a best practice score category'
+        return 'BP_%s_rulestatus' % discoverytype
 
     def get_owned_ips(self):
         '''Return a list of all the IP addresses that this Drone owns'''

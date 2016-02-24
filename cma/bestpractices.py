@@ -218,7 +218,7 @@ class BestPractices(DiscoveryListener):
             statuses = pyConfigContext(rule_obj.evaluate(drone, srcaddr,
                                        jsonobj, rulesobj, evaltype))
             #print >> sys.stderr, 'RESULTS ARE:', statuses
-            self.log_rule_results(statuses, drone, srcaddr, jsonobj, rulesobj)
+            self.log_rule_results(statuses, drone, srcaddr, jsonobj, evaltype, rulesobj)
 
     @staticmethod
     def send_rule_event(oldstat, newstat, drone, ruleid, ruleobj):
@@ -239,10 +239,6 @@ class BestPractices(DiscoveryListener):
         elif oldstat == 'NA':
             if newstat == 'fail':
                 AssimEvent(drone, AssimEvent.OBJWARN, extrainfo=extrainfo)
-    @staticmethod
-    def category_score_name(category):
-        'Compute the attribute name of a best practice score category'
-        return 'bp_category_%s_score' % category
 
     @staticmethod
     def incredibly_basic_rule_score_algorithm(_drone, _rule, status):
@@ -256,10 +252,9 @@ class BestPractices(DiscoveryListener):
         return (rulesobj.score_algorithm if hasattr(rulesobj, 'score_algorithm') else
                 BestPractices.incredibly_basic_rule_score_algorithm)
 
-    def log_rule_results(self, results, drone, _srcaddr, discoveryobj, rulesobj):
+    def log_rule_results(self, results, drone, _srcaddr, discoveryobj, discovertype, rulesobj):
         '''Log the results of this set of rule evaluations'''
-        discovertype = discoveryobj['discovertype']
-        status_name = 'BP_%s_rulestatus' % discovertype
+        status_name = Drone.bp_discoverytype_result_attrname(discovertype)
         if hasattr(drone, status_name):
             oldstats = pyConfigContext(getattr(drone, status_name))
         else:
@@ -283,7 +278,7 @@ class BestPractices(DiscoveryListener):
                                  self.url(drone, ruleid, rulesobj[ruleid]),
                                  thisrule['rule']))
         self.compute_score_updates(discoveryobj, drone, rulesobj, results, oldstats)
-        setattr(Drone, status_name, str(results))
+        setattr(drone, status_name, str(results))
 
     @staticmethod
     def compute_scores_by_category(drone, rulesobj, statuses):
@@ -293,6 +288,8 @@ class BestPractices(DiscoveryListener):
         score_algorithm = BestPractices.determine_rule_score_algorithm(drone, rulesobj)
         scores = {}
         totalscore=0
+        if isinstance(statuses, (str, unicode)):
+            statuses = pyConfigContext(statuses)
         for status in statuses:
             if status == 'score':
                 continue
@@ -317,7 +314,7 @@ class BestPractices(DiscoveryListener):
 
         We're storing the successes, failures, etc, for this discovery object for this drone.
 
-        Note tha this can fail if we change our algorithm - because we don't know the values
+        Note that this can fail if we change our algorithm - because we don't know the values
             the old algorithm gave us, only what the current algorithm gives us on the old results.
 
         @TODO: We eventually want to update the scores for the domain to which this drone
@@ -337,7 +334,7 @@ class BestPractices(DiscoveryListener):
         for category in keys:
             newscore = newcatscores.get(category, 0.0)
             oldscore = oldcatscores.get(category, 0.0)
-            catattr = BestPractices.category_score_name(category)
+            catattr = Drone.bp_category_score_attrname(category)
             # I just compare two floating point numbers without a lot of formality.
             # This should be OK because they're both computed by the same algorithm
             # And at this level algorithms mostly produce integers
