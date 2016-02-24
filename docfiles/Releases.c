@@ -1,5 +1,35 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_1_3 version 1.1.3 - the Leap Day Release
+@subsection Features_1_1_3 New Features
+- We now work with (and enable) Neo4j authentication
+- Added the drawwithdot command - draw pictures of subsets of the graph data
+- Improved LLDP data capture (including LLDP-MED)
+- Added test code for LLDP and CDP packet handling
+- Added best practice scoring system
+- Added three new canned best practice score reports (queries)
+- Added discovery of the contents of /etc/auditd.conf
+- Added auditd.conf best practice rules
+- Added new assimcli subcommand for printing scores summarized by discovery type
+- Added new assimcli subcommand for printing scores summarized by discovery type and hostname
+  The new subcommands and queries are great for planning security/compliance triage
+
+@subsection BugFixes_1_1_3 Bug Fixes
+- Fixed a bug in conversion of JSON floating point numbers
+- Made CDP data capture work
+- Made discovery code obey timeout and warntime directives
+- Fixed checksum program default configuration
+@subsection Caveats_1_1_3 Caveats
+- Not compatible with database formats before 1.1.0
+- **Documentation has not been updated to reflect move to github.** No doubt other shortcomings exist as well. Sorry! Please fix and generate a pull request.
+- No alerting, or interface to existing alerting beyond a sample email script.(hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- use with recent versions of Neo4j requires disabling authentication on Neo4j
+- Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
+
 @section Version_1_1_2 version 1.1.2 - the Happy 2016 release
 @subsection Features_1_1_2 New Features
 - Now produce packages and installer works on openSUSE
