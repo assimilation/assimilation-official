@@ -73,7 +73,7 @@ _discovery_finalize(AssimObj* gself)	///<[in/out] Object to finalize (free)
 {
 	Discovery*	self = CASTTOCLASS(Discovery, gself);
 	char *		instancename = self->_instancename;
-	
+
 	if (self->_timerid > 0) {
 		g_source_remove(self->_timerid);
 		self->_timerid = 0;
@@ -89,7 +89,7 @@ _discovery_finalize(AssimObj* gself)	///<[in/out] Object to finalize (free)
 		g_free(instancename);
 		self->_instancename = instancename = NULL;
 	}
-	
+
 	FREECLASSOBJ(self); self=NULL;
 }
 
@@ -234,16 +234,16 @@ _discovery_sendjson(Discovery* self,	///< Our discovery object
 		return;
 	}
 	g_free(jsonout);
-	
+
 	jsonobject->setstring(jsonobject, CONFIGNAME_INSTANCE, basename);
 	jsonout = jsonobject->baseclass.toString(&jsonobject->baseclass);
 	jsonlen = strlen(jsonout);
 	UNREF(jsonobject);
-	
+
 	DEBUGMSG2("%s.%d: discovering %s: _sentyet == %d"
 	,	__FUNCTION__, __LINE__, basename, self->_sentyet);
-	
-	
+
+
 	// Primitive caching - don't send what we've already sent.
 	if (self->_sentyet) {
 		const char *	oldvalue = cfg->getstring(cfg, basename);

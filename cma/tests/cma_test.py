@@ -29,7 +29,7 @@ from testify.utils import turtle
 
 from frameinfo import *
 from AssimCclasses import *
-import gc, sys, time, collections, os, subprocess
+import gc, sys, time, collections, os, subprocess, re
 from graphnodes import nodeconstructor, CMAclass, ProcessNode
 from cmainit import CMAinit
 from cmadb import CMAdb
@@ -509,6 +509,8 @@ class TestCMABasic(TestCase):
     "soft": {"c":0,"d":null,"f":null,"l":null,"m":null,"n":1024,"p":63557,"s":8192,"t":null,"v":null}
   }
 }'''
+    DRAWING_PRODUCER = 'drawwithdot'
+
     def check_discovery(self, drone, expectedjson):
         'We check to see if the discovery JSON object thingy is working...'
         disctypes = []
@@ -622,6 +624,55 @@ class TestCMABasic(TestCase):
         self.assertEqual(livecount, expectedlivecount)
         self.assertEqual(ringcount, expectedringmembercount)
 
+    def construct_and_verify_diagram(self, diagramtype, patterncounts):
+        'Construct a "drawithdot" diagram and then validate it'
+        print >> sys.stderr, 'PROCESSING DIAGRAM TYPE: %s' % diagramtype
+        dot = subprocess.Popen((self.DRAWING_PRODUCER, diagramtype), stdout=subprocess.PIPE, shell=True)
+        foundcounts = {}
+        for line in dot.stdout.readlines():
+            #print >> sys.stderr, 'GOT: %s' % line.strip()
+            for pattern in patterncounts:
+                if re.search(pattern, line) is not None:
+                    if pattern not in foundcounts:
+                        foundcounts[pattern] = 0
+                    foundcounts[pattern] += 1
+        dot.stdout.close()
+
+        errcount = 0
+        for pattern in patterncounts:
+            found = foundcounts[pattern] if pattern in foundcounts else 0
+            if found != patterncounts[pattern]:
+                print >> sys.stderr, ('Expecting %d matches of %s. Found %d instead.'
+                        % (patterncounts[pattern], pattern, found))
+                errcount += 1
+        self.assertEqual(errcount, 0)
+
+    def diagram_patterns(self, diagramtype, nodecount):
+        upnode='shape=house color=green penwidth=3.*label="%s'
+        downnode='shape=house style="filled,dashed" fillcolor=gray90 .*label="%s'
+        anynode='shape=house'
+        ringnext='node_.*->node_.* \[label=RingNext_The_One_Ring\]'
+
+        pats = {
+                'node_.*->node_.* label=nicowner':  nodecount*2,
+                '\[shape=octagon color=navy label="00-00-00-00-00-00': 1,
+                # Is having only one loopback NIC a bug?? I think maybe so!
+                '\[shape=octagon color=navy label="00-1b-fc-.*ASUSTek COMPUTER INC\.': nodecount,
+
+                'node_.*->node_.* label=ipowner':   nodecount,
+        }
+        pats[upnode % dronedesignation(1)] = 1
+        if doHBDEAD:
+            for node in range(2, nodecount+1):
+                pats[downnode % dronedesignation(node)] = 1
+            pats[ringnext] = 0
+        else:
+            for node in range(2, nodecount+1):
+                pats[upnode % dronedesignation(node)] = 1
+            pats[ringnext] = nodecount if nodecount > 2 else 1
+        return pats
+
+
     # Drone and Ring tables are automatically audited after each packet
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
@@ -712,6 +763,8 @@ class TestCMABasic(TestCase):
         if DoAudit:
             auditalldrones()
             auditallrings()
+        for dtype in ('monitoring', 'network', 'service', 'monring', 'everything'):
+            self.construct_and_verify_diagram(dtype, self.diagram_patterns(dtype, MaxDrone))
 
         if DEBUG:
             print "The CMA read %d packets."  % io.packetsread
