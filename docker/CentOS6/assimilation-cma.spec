@@ -388,6 +388,7 @@ fi
 %doc legal/COPYING README.md
 %{_sbindir}/cma
 %{_sbindir}/assimcli
+%{_sbindir}/drawwithdot
 %attr(0755,%{cma_user},%{cma_group}) %dir %{cma_rundir}
 
 %if %{uses_systemd}
