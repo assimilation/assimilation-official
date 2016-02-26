@@ -390,6 +390,7 @@ add_subdirectory(testcode)
 add_subdirectory(nanoprobe)
 add_subdirectory(include)
 add_subdirectory(cma)
+add_subdirectory(docker/CentOS6)
 #
 # Doxygen documentation stuff...
 #

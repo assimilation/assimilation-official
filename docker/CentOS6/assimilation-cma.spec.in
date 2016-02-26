@@ -88,8 +88,11 @@
 %global __os_install_post %{%{scl_python}_os_install_post}
 %global python_sitearch %{_scl_root}/%{_libdir}/python2.7/site-packages
 
-# You can find libsodium-last at ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm
-# and libsodium-last-devel at ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm
+# You can find libsodium-last at
+# ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-1.0.1-1.el6.remi.$ARCH.rpm
+# and libsodium-last-devel at
+# ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi/$ARCH/libsodium-last-devel-1.0.1-1.el6.remi.$ARCH.rpm
+# We really need to add those to our repositories...
 %if %(test -z  "%{?libsodium}" && echo 1 || echo 0)
 %global libsodium libsodium-last
 %endif
@@ -105,7 +108,7 @@
 %endif
 
 Name:       assimilation-cma
-Version:    1.1.3
+Version:    @BASEVERSION@
 Release:    0.30
 Summary:    Collective Management Authority (CMA) for Assimilation
 
