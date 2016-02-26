@@ -626,7 +626,7 @@ class TestCMABasic(TestCase):
 
     def construct_and_verify_diagram(self, diagramtype, patterncounts):
         'Construct a "drawithdot" diagram and then validate it'
-        print >> sys.stderr, 'PROCESSING DIAGRAM TYPE: %s' % diagramtype
+        #print >> sys.stderr, 'PROCESSING DIAGRAM TYPE: %s' % diagramtype
         dot = subprocess.Popen((self.DRAWING_PRODUCER, diagramtype), stdout=subprocess.PIPE, shell=True)
         foundcounts = {}
         for line in dot.stdout.readlines():
