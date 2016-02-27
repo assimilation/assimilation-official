@@ -484,17 +484,17 @@ skin_formats = {
 #
 drawing_types = {
     'everything': {
-        'description': 'Everything and the kitchen sink',
+        'description': 'everything and the kitchen sink',
         'nodes': skin_formats['default']['nodes'].keys(),
         'relationships': skin_formats['default']['relationships'].keys()
         },
     'network': {
-        'description': 'Network diagram',
+        'description': 'network diagram',
         'nodes': ['IPaddrNode', 'NICNode', 'Drone', 'SystemNode'],
         'relationships': ['ipowner', 'nicowner', 'wiredto'],
         },
     'service': {
-        'description': 'Services diagram',
+        'description': 'attack surface (services) diagram',
         'nodes': ['Drone', 'ProcessNode', 'IPtcpportNode'],
         'relationships': [ 'ipowner', 'baseip', 'hosting', 'tcpservice',
             'tcpclient'],
