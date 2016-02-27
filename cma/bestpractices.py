@@ -281,12 +281,14 @@ class BestPractices(DiscoveryListener):
         setattr(drone, status_name, str(results))
 
     @staticmethod
-    def compute_scores_by_category(drone, rulesobj, statuses):
+    def compute_scores(drone, rulesobj, statuses):
         '''Compute the scores from this set of statuses - organized by category
-        We return the total score, and the scores organized by category
+        We return the total score, scores organized by category
+        and the scoring detailed on a rule-by-rule basis.
         '''
         score_algorithm = BestPractices.determine_rule_score_algorithm(drone, rulesobj)
         scores = {}
+        rulescores = {}
         totalscore=0
         if isinstance(statuses, (str, unicode)):
             statuses = pyConfigContext(statuses)
@@ -295,12 +297,16 @@ class BestPractices(DiscoveryListener):
                 continue
             for ruleid in statuses[status]:
                 rule = rulesobj[ruleid]
+                rulecat = rule['category']
                 rulescore = score_algorithm(drone, rule, status)
+                if rulecat not in rulescores:
+                    rulescores[rulecat] = {}
+                rulescores[rulecat][ruleid] = rulescore
                 totalscore += rulescore
-                if rule['category'] not in scores:
-                    scores[rule['category']] = 0.0
-                scores[rule['category']] += rulescore
-        return totalscore, scores
+                if rulecat not in scores:
+                    scores[rulecat] = 0.0
+                scores[rulecat] += rulescore
+        return totalscore, scores, rulescores
 
     #pylint  disable=R0914 -- too many local variables
     #pylint: disable=R0914
@@ -322,8 +328,8 @@ class BestPractices(DiscoveryListener):
 
 
         '''
-        _, oldcatscores = BestPractices.compute_scores_by_category(drone, rulesobj, oldstats)
-        _, newcatscores = BestPractices.compute_scores_by_category(drone, rulesobj, newstats)
+        _, oldcatscores, _ = BestPractices.compute_scores(drone, rulesobj, oldstats)
+        _, newcatscores, _ = BestPractices.compute_scores(drone, rulesobj, newstats)
         keys = set(newcatscores)
         keys |= set(oldcatscores)
         # I have no idea why "keys = set(newcatscores) | set(oldcatscores)" did not work...
