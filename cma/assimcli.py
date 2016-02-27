@@ -371,10 +371,6 @@ def setup_dict3(d, key1, key2, key3):
     if key3 not in d[key1][key2]:
         d[key1][key2][key3] = 0.0
 
-# [R0912:grab_category_scores] Too many branches (14/12)
-# Not sure what to do about this, it's straightforward, but it's really simpler to
-# accumulate them all here, and that results in a few extra branches...
-# pylint: disable=R0912
 
 def grab_category_scores(store, categories=None, debug=False):
     '''Program to create and return some python Dicts with security scores and totals by category
