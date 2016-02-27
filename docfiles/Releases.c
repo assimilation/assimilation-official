@@ -12,6 +12,7 @@
 - Added auditd.conf best practice rules
 - Added new assimcli subcommand for printing scores summarized by discovery type
 - Added new assimcli subcommand for printing scores summarized by discovery type and hostname
+- Added new assimcli subcommand for printing scores summarized by discovery type and ruleid
   The new subcommands and queries are great for planning security/compliance triage
 
 @subsection BugFixes_1_1_3 Bug Fixes
