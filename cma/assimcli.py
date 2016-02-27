@@ -296,7 +296,7 @@ class dtypescores(object):
     @staticmethod
     def usage():
         "reports usage for this sub-command"
-        return 'dtypescores [--hostnames|--rulenames] [list of score categories...]'
+        return 'dtypescores [--hostnames|--ruleids] [list of score categories...]'
 
     @staticmethod
     def execute(store, _executor_context, otherargs, flagoptions):
@@ -317,7 +317,7 @@ class dtypescores(object):
                     print ourjoin(tup[1:], delim=delim)
                 else:
                     print ourjoin(tup, delim=delim)
-        elif 'rulenames' in flagoptions:
+        elif 'ruleids' in flagoptions:
             # 0:  category name
             # 1:  discovery-type
             # 2:  total score for this discovery type _across all rules
@@ -355,6 +355,26 @@ class secdtypes (object):
         'Compute and print security scores as requested'
         dtypescores.execute(store, executor_context, ('security',), flagoptions)
 
+def setup_dict2(d, key1, key2):
+    'Initialize the given subkey (2 layers down)to 0.0'
+    if key1 not in d:
+        d[key1] = {}
+    if key2 not in d[key1]:
+        d[key1][key2] = 0.0
+
+def setup_dict3(d, key1, key2, key3):
+    'Initialize the given subkey (3 layers down)to 0.0'
+    if key1 not in d:
+        d[key1] = {}
+    if key2 not in d[key1]:
+        d[key1][key2] = {}
+    if key3 not in d[key1][key2]:
+        d[key1][key2][key3] = 0.0
+
+# [R0912:grab_category_scores] Too many branches (14/12)
+# Not sure what to do about this, it's straightforward, but it's really simpler to
+# accumulate them all here, and that results in a few extra branches...
+# pylint: disable=R0912
 
 def grab_category_scores(store, categories=None, debug=False):
     '''Program to create and return some python Dicts with security scores and totals by category
@@ -381,26 +401,14 @@ def grab_category_scores(store, categories=None, debug=False):
                     if category not in categories and categories:
                         continue
                     # Accumulate scores by (category, discovery_type)
-                    if category not in dtype_totals:
-                        dtype_totals[category] = {}
-                    if dtype not in dtype_totals[category]:
-                        dtype_totals[category][dtype] = 0.0
+                    setup_dict2(dtype_totals, category, dtype)
                     dtype_totals[category][dtype] += scores[category]
                     # Accumulate scores by (category, discovery_type, drone)
-                    if category not in drone_totals:
-                        drone_totals[category] = {}
-                    if dtype not in drone_totals[category]:
-                        drone_totals[category][dtype] = {}
-                    if designation not in drone_totals[category][dtype]:
-                        drone_totals[category][dtype][designation] = 0.0
+                    setup_dict3(drone_totals, category, dtype, designation)
                     drone_totals[category][dtype][designation] += scores[category]
-                    if category not in rule_totals:
-                        rule_totals[category] = {}
-                    if dtype not in rule_totals[category]:
-                        rule_totals[category][dtype] = {}
+                    # Accumulate scores by (category, discovery_type, ruleid)
                     for ruleid in rulescores[category]:
-                        if ruleid not in rule_totals[category][dtype]:
-                            rule_totals[category][dtype][ruleid] = 0.0
+                        setup_dict3(rule_totals, category, dtype, ruleid)
                         rule_totals[category][dtype][ruleid] += rulescores[category][ruleid]
 
     return dtype_totals, drone_totals, rule_totals
@@ -419,6 +427,8 @@ def yield_category_scores(categories, dtype_totals):
             dtypes.add(dtype)
     dtypes = list(dtypes)
     for cat in cats:
+        if categories and cat not in categories:
+            continue
         for dtype in dtypes:
             if dtype not in dtype_totals[cat]:
                 continue
@@ -442,6 +452,8 @@ def yield_drone_scores(categories, drone_totals, dtype_totals):
             dtypes.add(dtype)
     dtypes = list(dtypes)
     for cat in cats:
+        if categories and cat not in categories:
+            continue
         for dtype in dtypes:
             if dtype not in drone_totals[cat]:
                 continue
@@ -459,16 +471,17 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
         3:  rule id
         4:  total score for this rule id
     '''
-    dtypes = set()
     # rule_totals = # scores organized by (category, discovery-type, rule)
     for cat in sorted(rule_totals, reverse=True):
+        if categories and cat not in categories:
+            continue
         for dtype in rule_totals[cat]:
             for ruleid in rule_totals[cat][dtype]:
                 score = rule_totals[cat][dtype][ruleid]
                 if score > 0:
                     yield (cat, dtype, dtype_totals[cat][dtype], ruleid, score)
 
-options = {'language':True, 'format':True, 'hostnames':False, 'rulenames': False}
+options = {'language':True, 'format':True, 'hostnames':False, 'ruleids': False}
 def usage():
     'Construct and print usage message'
     argv = sys.argv
