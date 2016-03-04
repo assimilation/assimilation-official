@@ -1,4 +1,5 @@
 /**
+ * vim: number colorcolumn=100
  * @file
  * @brief functions for handling standard client incoming ARP packet dispatch.
  * @details It passes off incoming ARP packet info to the appropriate functions.
@@ -6,7 +7,7 @@
  * This file is part of the Assimilation Project.
  *
  * @author Carrie Oswald (carrie_oswald@yahoo.com)
- * Copyright (c) 2014 - Assimilation Systems Limited
+ * Copyright (c) 2014,2016 - Assimilation Systems Limited
  * @n
  *  The Assimilation software is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -41,7 +42,7 @@
  * <PRE>
  * +----------------------------------+----------------------------------+
  * |        Hardware Type (HRD)       |        Protocol Type (PRO)       |
- * |              2 bytes             |              2 bytes             |    
+ * |              2 bytes             |              2 bytes             |
  * |-----------------+----------------+----------------------------------|
  * |  Hardware       |  Protocol      |                                  |
  * |  Address        |  Address       |            Opcode (OP)           |
@@ -87,7 +88,6 @@ FSTATIC gboolean _arpdiscovery_discover(Discovery* self);
 FSTATIC void _arpdiscovery_finalize(AssimObj* self);
 FSTATIC gboolean _arpdiscovery_dispatch(GSource_pcap_t* gsource, pcap_t*, gconstpointer, gconstpointer,
                           const struct pcap_pkthdr*, const char *, gpointer selfptr);
-FSTATIC void _arpdiscovery_notify_function(gpointer data);
 FSTATIC void _arpdiscovery_sendarpcache(ArpDiscovery* self);
 FSTATIC gboolean _arpdiscovery_gsourcefunc(gpointer);
 FSTATIC gboolean _arpdiscovery_first_discovery(gpointer);
@@ -149,7 +149,7 @@ _arpdiscovery_first_discovery(gpointer gself) ///<[in/out] Pointer to 'self'
 	self->timeout_source
 	=	g_timeout_add_seconds_full
         	(G_PRIORITY_HIGH, interval, _arpdiscovery_gsourcefunc
-        	,	self, _arpdiscovery_notify_function);
+        	,	self, NULL);
 	DEBUGMSG3("Sender %p subsequent timeout source is: %d, interval is %d", self
    	,         self->timeout_source, interval);
         _arpdiscovery_sendarpcache(self);
@@ -166,15 +166,6 @@ _arpdiscovery_gsourcefunc(gpointer gself) ///<[in/out] Pointer to 'self'
         return TRUE;
 }
 
-
-/// Callback function from the GSource world - notifying us when we're getting shut down
-/// from their end
-FSTATIC void
-_arpdiscovery_notify_function(gpointer data)
-{
-        ArpDiscovery* self = CASTTOCLASS(ArpDiscovery, data);
-        self->timeout_source = 0;
-}
 
 /// Internal pcap gsource dispatch routine - called when we get an ARP packet.
 /// It examines the ARP packet and sees if it is the same IP address and MAC address as previously discovered.
@@ -349,8 +340,7 @@ arpdiscovery_new(ConfigContext*	arpconfig	///<[in] ARP configuration info
 	firstinterval = g_rand_int_range(nano_random, interval, 2*interval);
 	ret->timeout_source
 	=	g_timeout_add_seconds_full
-        	(G_PRIORITY_HIGH, firstinterval, _arpdiscovery_first_discovery
-        	,	ret, _arpdiscovery_notify_function);
+        	(G_PRIORITY_HIGH, firstinterval, _arpdiscovery_first_discovery, ret, NULL);
 	DEBUGMSG3("Sender %p initial timeout source is: %d, interval is %d", ret
    	,         ret->timeout_source, interval);
 
