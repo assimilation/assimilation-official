@@ -40,12 +40,13 @@ Then you've come to the right place!
 
 Here are the steps you'll need to take to become a contributor to the Assimilation project:
 - Join the Assimilation Mailing List - and the devlopment mailing list
-- Get a copy of Mercurial from http://mercurial.selenic.com
-- Clone the repository at http://hg.linux-ha.org/assimilation/
+- Get a copy of Git from your Linux distro or https://git-scm.com/.
+- Fork the repository at https://github.com/assimilation/assimilation-official.git
 - Sign the Assimilation Contributor Agreement as described below
+- Feel free to take on tasks from our <a href="https://trello.com/b/98QrdEK1/issues-bugs">Trello issues board</a>, or add bugs and feature requests there.
 - Discuss your ideas and on the development mailing list
-- Create a patch implementing your ideas following project standards
-- Send Mercurial patches of your contributions to the Assimilation mailing list (use <b>hg export</b>).
+- Create a working and tested version of your code following @ref CodingStandards.
+- Make a pull request.
 - Discuss on the mailing list
 
 @section WhyAContributorAgreement Why A Contributor Agreement?
