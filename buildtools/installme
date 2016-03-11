@@ -332,7 +332,7 @@ determine_os_version_hostnamectl() {
     DISTRIB_RELEASE=$(echo $osinfo | egrep -o '[0-9.]+')
     case $osinfo in
         *'('*')'*)
-            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*\(%%' -e 's%\)%%')
+            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*\\(%%' -e 's%\\)%%')
             ;;
         *)  DISTRIB_CODENAME=unknown
             ;;
@@ -359,7 +359,7 @@ determine_os_version_etc_os_release() {
     DISTRIB_LIKE=$ID_LIKE
     case $VERSION in
         *'('*')'*)
-            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*\(%%' -e 's%\)%%')
+            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*(%%' -e 's%)%%')
             ;;
       *)    DISTRIB_CODENAME=unknown
             ;;
@@ -371,8 +371,15 @@ determine_os_version_etc_os_release() {
 #   Code names are nice to know, let's fix it up if we weren't told...
 #
 fixup_codename_if_possible() {
+    DISTRIB_MAPID=$(echo $DISTRIB_ID | tr 'A-Z' 'a-z')
+    case $DISTRIB_MAPID in
+        opensuse|suse)
+            DISTRIB_MAPID=suse;;
+         centos|redhat|scientific|scientificfermi|red)
+            DISTRIB_MAPID=centos;;
+    esac
     test "$DISTRIB_CODENAME" != unknown && return 0
-    case $(echo $DISTRIB_ID | tr 'A-Z' 'a-z') in
+    case $DISTRIB_MAPID in
         ubuntu)
             case $DISTRIB_RELEASE in
                 15.04)  DISTRIB_CODENAME=vivid;;
@@ -418,7 +425,7 @@ test_os_versions() {
             $method
         then
             fixup_codename_if_possible
-            echo  "  == OSCLASS [$OSCLASS] ID [$DISTRIB_ID]" \
+            echo  "  == OSCLASS [$OSCLASS] ID [$DISTRIB_ID] [$DISTRIB_MAPID]" \
                  "RELEASE [$DISTRIB_RELEASE] CODENAME [$DISTRIB_CODENAME]" \
                  " <== $method"
         else
@@ -487,12 +494,13 @@ determine_linux_version() {
         if
             $method
         then
+            fixup_codename_if_possible
             OSCLASS=$(echo "$OSCLASS" | tr 'A-Z' 'a-z')
             DISTRIB_ID=$(echo $DISTRIB_ID | tr 'A-Z' 'a-z')
             DISTRIB_RELEASE=$(echo $DISTRIB_RELEASE | tr 'A-Z' 'a-z')
             DISTRIB_CODENAME=$(echo $DISTRIB_CODENAME | tr 'A-Z' 'a-z')
             export OSCLASS DISTRIB_ID DISTRIB_RELEASE DISTRIB_CODENAME
-            export DISTRIB_DESCRIPTION
+            export DISTRIB_DESCRIPTION DISTRIB_MAPID
             return 0
         fi
     done
@@ -549,7 +557,7 @@ determine_os_version() {
 packaging_type() {
     case "${OSCLASS}" in
         *linux)
-            case $DISTRIB_ID in
+            case $DISTRIB_MAPID in
                 suse|opensuse|centos|redhat|scientific|scientificfermi|fedora)
                         echo rpm; return 0;;
                 debian|ubuntu|mint|netrunner|deepin)
@@ -584,7 +592,7 @@ packaging_type() {
 use_systemd_for_neo4j() {
     case "${OSCLASS}" in
         *linux)
-            case $DISTRIB_ID in
+            case $DISTRIB_MAPID in
                 *suse|fedora)
                 return 0;;
             esac;;
@@ -595,7 +603,7 @@ use_systemd_for_neo4j() {
 is_supported_os() {
     case $OSCLASS in
         *linux)
-                case $DISTRIB_ID in
+                case $DISTRIB_MAPID in
                     centos|redhat|scientific|scientificfermi|fedora) return 0;;
                     opensuse|suse)          return 0;;
                     ubuntu|debian)          return 0;;
@@ -668,7 +676,7 @@ is_package_installed() {
 }
 
 yum_or_dnf() {
-    case $DISTRIB_ID in
+    case $DISTRIB_MAPID in
         suse|opensuse)  echo zypper --non-interactive;;
         fedora)
             if
@@ -684,7 +692,7 @@ yum_or_dnf() {
 
 # Which iproute package do we require?
 iproute_version() {
-    case $DISTRIB_ID in
+    case $DISTRIB_MAPID in
         ubuntu)
             if
                 [ $(version_compare $DISTRIB_RELEASE 14.04) -gt 0 ]
@@ -804,17 +812,14 @@ package_architecture() {
     esac
 }
 
-# Map the given release ID into one of our build IDs
 map_release_id() {
-    # Not currently necessary
-    case $DISTRIB_ID in
-        centos|redhat|scientific|scientificfermi|debian)
-            mapid=$(echo $DISTRIB_RELEASE | sed 's%[.].*%%')
-            ;;
-        *)  mapid=$DISTRIB_RELEASE;;
+    case $DISTRIB_MAPID in
+        centos|debian) mapid=$(echo $DISTRIB_RELEASE | sed 's%[.].*%%');;
+        *)      mapid=$DISTRIB_RELEASE;;
     esac
     echo $mapid
 }
+
 
 assim_packaging_arch() {
     uname -m
@@ -823,11 +828,7 @@ assim_packaging_arch() {
 assim_packaging_dir() {
     # BASEURL
     # REL=1.0
-    case $DISTRIB_ID in
-        centos|redhat|scientific|scientificfermi)   distid=centos;;
-        *)                                          distid=$DISTRIB_ID;;
-    esac
-    echo $BASEURL/$REL/${distid}_$(map_release_id)-$(assim_packaging_arch)
+    echo $BASEURL/$REL/${DISTRIB_MAPID}_$(map_release_id)-$(assim_packaging_arch)
 }
 
 initial_checks() {
@@ -909,10 +910,10 @@ is_supported_release() {
     if
         get_release_file $BUILDLOG
     then
-        : "Assim $REL $DISTRIB_ID $DISTRIB_RELEASE: good release"
+        : "Assim $REL $DISTRIB_MAPID $DISTRIB_RELEASE: good release"
         return 0
     fi
-        : "Assim $REL $DISTRIB_ID $DISTRIB_RELEASE: UNKNOWN release"
+        : "Assim $REL $DISTRIB_MAPID $DISTRIB_RELEASE: UNKNOWN release"
     return 1
 }
 
@@ -1093,7 +1094,7 @@ install_debian_neo4j() {
 
 # Figure out which version of Java to install
 select_java_rpm_version() {
-    case $DISTRIB_ID in
+    case $DISTRIB_MAPID in
         centos|redhat|scientific|scientificfermi)
             boundary8=7;;
         *)  boundary8=0;;
@@ -1225,7 +1226,7 @@ install_suse_nanoprobe() {
 
 # Install the nanoprobe on whatever OS
 install_nanoprobe_prereqs() {
-    case $DISTRIB_ID in
+    case $DISTRIB_MAPID in
         ubuntu|debian)              install_debian_nanoprobe;;
         centos|redhat|scientific|scientificfermi)
                                     install_centos_nanoprobe;;
@@ -1243,7 +1244,7 @@ install_nanoprobe() {
 install_cma() {
     install_nano_config_for_cma # Before installing the nanoprobe...
     install_nanoprobe_prereqs
-    case $DISTRIB_ID in
+    case $DISTRIB_MAPID in
         ubuntu|debian)              install_debian_cma;;
         centos|redhat|scientific|scientificfermi)
                                     install_centos_cma;;
@@ -1322,7 +1323,7 @@ install_tarball_systemd_neo4j() {
 
 restart_neo4j() {
     logwork '(re)starting Neo4j'
-    case $DISTRIB_ID in
+    case $DISTRIB_MAPID in
         ubuntu|debian)                  service neo4j-service restart;;
         centos|redhat|scientific|scientificfermi)
                                         /etc/init.d/neo4j     restart;;
@@ -1333,7 +1334,7 @@ restart_neo4j() {
 }
 stop_neo4j() {
     logwork 'stopping Neo4j'
-    case $DISTRIB_ID in
+    case $DISTRIB_MAPID in
         ubuntu|debian)                  service neo4j-service stop;;
         centos|redhat|scientific|scientificfermi)
                                         /etc/init.d/neo4j     stop;;
