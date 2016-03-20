@@ -1,4 +1,5 @@
 /**
+ * vim: number colorcolumn=100
  * @file 
  * @brief Miscellaneous library functions - doing varied interesting things.
  * These include:
@@ -7,7 +8,7 @@
  *
  * This file is part of the Assimilation Project.
  *
- * @author Copyright &copy; 2012 - Alan Robertson <alanr@unix.sh>
+ * @author Copyright &copy; 2012-2016 - Alan Robertson <alanr@unix.sh>
  * @n
  *  The Assimilation software is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -104,13 +105,25 @@ proj_get_sysname(void)
 void
 daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a background job
 		const char* dirtorunin,		///<[in] Directory to cd to or NULL for default (/)
-		char* pidfile,			///<[in] Pathname of pidfile or NULL for no pidfile
+		char* origpidfile,		///<[in] Pathname of pidfile or NULL for no pidfile
 		int minclosefd)			///<[in] Minimum file descriptor to close or 0
 {
 	struct rlimit		nofile_limits;
 	int			nullperms[] = { O_RDONLY, O_WRONLY, O_WRONLY};
 	unsigned		j;
+	char*			pidfile = NULL;
 	getrlimit(RLIMIT_NOFILE, &nofile_limits);
+	if (origpidfile) {
+		// Some OSes like to make a directory with our app/package name
+		// for us to put pid files in...
+		if (g_file_test(origpidfile, G_FILE_TEST_IS_DIR)) {
+			char * base = g_path_get_basename(origpidfile);
+			pidfile = g_build_filename(origpidfile, base, NULL);
+			FREE(base);
+		}else{
+			pidfile = strdup(origpidfile);
+		}
+	}
 
 	// g_warning("%s.%d: pid file is %s", __FUNCTION__, __LINE__, pidfile);
 	if (pidfile) {
@@ -127,7 +140,7 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 
 		(void)setsid();
 
-		
+
 		for (k=0; k < 2; ++k) {
 			childpid = fork();
 			if (childpid < 0) {
@@ -157,6 +170,7 @@ daemonize_me(	gboolean stay_in_foreground,	///<[in] TRUE to not make a backgroun
 		if (!create_pid_file(pidfile)) {
 			exit(1);
 		}
+		FREE(pidfile); pidfile = NULL;
 	}
 	// Now make sure we don't have any funky file descriptors hanging around here...
 	if (!stay_in_foreground) {
