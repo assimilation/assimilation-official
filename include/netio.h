@@ -59,6 +59,7 @@ struct _NetIO {
 	AssimObj	baseclass;
 	NetIOstats	stats;				///< Net I/O stats
 	GIOChannel*	giosock;			///< Glib GIOChannel for this socket
+	gboolean	v4only;				///< True if giosock is an IPv4 socket
 	gint		_maxpktsize;			///< Maximum packet size for this transport
 	ConfigContext*	_configinfo;			///< I/O and other configuration information
 	PacketDecoder*	_decoder;			///< Decodes packets into FrameSets
@@ -85,7 +86,7 @@ struct _NetIO {
 				 guint8 ttl)		///<[in] Multicast TTL value
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*addalias)(NetIO*, NetAddr*, NetAddr*);///< Add an alias to our received address alias table
-	
+
 	gint		(*getfd)			///< Return file/socket descriptor
 				(const NetIO* self);	///<[in] 'this' Object
 	void		(*setblockio)			///< Set blocking/non-blocking mode
@@ -101,8 +102,8 @@ struct _NetIO {
 				 gboolean forinput,	///< TRUE means input, FALSE means output
 				 gsize bufsize)	///< size to (try) to set it to
 						   ;	// ";" is here to work around a doxygen bug
-				 
-				 
+
+
 	gsize		(*getmaxpktsize)	///< Return maximum packet size for this NetIO
 				(const NetIO* self);	///< 'this' object
 	gsize		(*setmaxpktsize)	///< Set maximum packet size
@@ -143,7 +144,7 @@ struct _NetIO {
 				 NetAddr* dest,		///<[in] destination address
 				 FrameSet* frameset)	///<[in] The FrameSet to ACK - note that it must
 				 			///< have a sequence number.  Good thing to remember
-							///< that the client (that is <i>you</i> has to 
+							///< that the client (that is <i>you</i> has to
 							///< ACK packets or they won't get ACKed -
 							///< which will totally ball things up...
 						   ;	// ";" is here to work around a doxygen bug
@@ -169,7 +170,7 @@ struct _NetIO {
 				 double xmit)		///< Packet transmission loss (0:1]
 						   ;	// ";" is here to work around a doxygen bug
 	void		(*enablepktloss)	///< enable packet loss (as set above)
-				(NetIO* self,		///<[in/out] 'this' object	
+				(NetIO* self,		///<[in/out] 'this' object
 				 gboolean enable)	///<TRUE == enable, FALSE == disable
 						   ;	// ";" is here to work around a doxygen bug
 };

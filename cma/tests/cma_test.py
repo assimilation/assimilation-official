@@ -405,6 +405,7 @@ class TestIO:
 class FakeDrone(dict):
     def __init__(self, json):
         self['monitoringagents'] = json
+
     def get(self, name, ret):
         return ret
 
@@ -1146,16 +1147,32 @@ class TestMonitorBasic(TestCase):
                         'lsb': {
                             'bacula',
                         },
+                        'nagios': {
+                            'check_ssh',
+                        },
                     }
                 })
         ocf_string = '''{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
-            ["classpath",   "@flagvalue(-cp)"],
-            ["ipaddr",      "@serviceip($procinfo.listenaddrs)"],
+            [null,          "@basename()", "java"],
+            ["classpath",   "@flagvalue(-cp)", "..."],
+            ["ipaddr",      "@serviceip($procinfo.listenaddrs)", "..."],
             ["port",        "@serviceport()",   "[0-9]+$"]
         ]
         }'''
+        nagios_string = '''{
+    "class":    "nagios",
+    "type":     "check_ssh",
+    "prio":     "med",
+    "objclass":  "service",     # possible values are "service" or "host"
+    "initargs": ["-t", "3600"], # Nanoprobes have their own timeouts...
+    "classconfig": [
+        [null,          "@basename()",          "sshd$"],
+        ["-p",          "@serviceport()",       "[0-9]+"],
+        ["__ARGV__",    "@serviceip()",         "..."]
+	]
+}'''
         ssh_json = '''{
           "exe": "/usr/sbin/sshd",
           "argv": [ "/usr/sbin/sshd", "-D" ],
@@ -1163,9 +1180,9 @@ class TestMonitorBasic(TestCase):
           "gid": "root",
           "cwd": "/",
           "listenaddrs": {
-            "0.0.0.0:22": {
+            "127.0.0.1:22": {
               "proto": "tcp",
-              "addr": "0.0.0.0",
+              "addr": "127.0.0.1",
               "port": 22
             },
             ":::22": {
@@ -1185,9 +1202,9 @@ class TestMonitorBasic(TestCase):
           "gid": "neo4j",
           "cwd": "/var/lib/neo4j",
           "listenaddrs": {
-            ":::1337": {
+            "::1:1337": {
               "proto": "tcp6",
-              "addr": "::",
+              "addr": "::1",
               "port": 1337
             },
             ":::39185": {
@@ -1212,6 +1229,7 @@ class TestMonitorBasic(TestCase):
       }
     }'''
         MonitoringRule.ConstructFromString(ocf_string)
+        MonitoringRule.ConstructFromString(nagios_string)
         neoargs = pyConfigContext(neo4j_json)['argv']
         testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
@@ -1223,20 +1241,15 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(match['arglist']['ipaddr'], '::1')
         self.assertEqual(match['arglist']['port'], '1337')
 
+        sshargs = pyConfigContext(ssh_json)['argv']
+        testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/sshd', sshargs
+        ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
         testnode.procinfo = ssh_json
         context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
-        self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
-        self.assertEqual(match['arglist']['port'], '22')
-        self.assertEqual(match['arglist']['ipaddr'], '127.0.0.1')
-
-        testnode.procinfo = bacula_json
-        context = ExpressionContext((testnode, drone))
-        (prio, match) = MonitoringRule.findbestmatch(context)
-        self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
-        self.assertEqual(match['arglist']['port'], '9101')
-        self.assertEqual(match['arglist']['ipaddr'], '10.10.10.5')
-
+        #print >> sys.stderr, 'MATCH:', match
+        self.assertEqual(prio, MonitoringRule.MEDPRIOMATCH)
+        self.assertEqual(match['argv'], ['-t', '3600', '-p', '22', '127.0.0.1'])
 
 
     def test_automonitor_OCF_complete(self):

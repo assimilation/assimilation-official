@@ -22,6 +22,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 #include <memory.h>
+#include <errno.h>
 #include <sys/types.h>
 #ifdef _MSC_VER
 #	include <winsock2.h>
@@ -44,6 +45,7 @@
 /// and is managed by our @ref ProjectClass system.
 /// Except for the constructor, it is identical to the NetIO class.
 
+#undef TESTIPV4ONLY
 
 /// Construct new UDP NetIO object (and its socket, etc)
 NetIOudp*
@@ -61,7 +63,22 @@ netioudp_new(gsize objsize		///<[in] Size of NetIOudp object, or zero.
 	iret = netio_new(objsize, config, decoder);
 	proj_class_register_subclassed(iret, "NetIOudp");
 	ret = CASTTOCLASS(NetIOudp, iret);
+#ifdef TESTIPV4ONLY
+	sockfd = -1;
+#else
 	sockfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+#endif
+	if (sockfd < 0) {
+		sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		if (sockfd < 0) {
+			g_critical("%s.%d: socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP) failed: %s [%d]"
+			,	__FUNCTION__, __LINE__, g_strerror(errno), errno);
+			UNREF(iret);
+			return NULL;
+		}
+		g_warning("%s.%d: IPv6 is disabled.", __FUNCTION__, __LINE__);
+		iret->v4only = TRUE;
+	}
 #ifdef WIN32
 	{
 		u_long iMode=1;

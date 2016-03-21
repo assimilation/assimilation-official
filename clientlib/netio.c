@@ -57,12 +57,14 @@ FSTATIC int _netio_setsockbufsize(const NetIO* self, gboolean forinput, gsize bu
 FSTATIC void _netio_maximize_sockbufsize(const NetIO* self, gboolean forinput, int desiredsize);
 FSTATIC void _netio_setblockio(const NetIO* self, gboolean blocking);
 FSTATIC gboolean _netio_bindaddr(NetIO* self, const NetAddr* src, gboolean silent);
+FSTATIC gboolean _netio_bindaddr_v4(NetIO* self, const NetAddr* src, gboolean silent);
 FSTATIC gboolean _netio_input_queued(const NetIO* self);
 FSTATIC NetAddr* _netio_boundaddr(const NetIO* self);
 FSTATIC void _netio_sendframesets(NetIO* self, const NetAddr* destaddr, GSList* framesets);
 FSTATIC void _netio_sendaframeset(NetIO* self, const NetAddr* destaddr, FrameSet* frameset);
 FSTATIC void _netio_finalize(AssimObj* self);
 FSTATIC void _netio_sendapacket(NetIO* self, gconstpointer packet, gconstpointer pktend, const NetAddr* destaddr);
+FSTATIC void _netio_sendapacket_v4(NetIO* self, gconstpointer packet, gconstpointer pktend, const NetAddr* destaddr);
 FSTATIC gpointer _netio_recvapacket(NetIO*, gpointer*, struct sockaddr_in6*, socklen_t*addrlen);
 FSTATIC gsize _netio_getmaxpktsize(const NetIO* self);
 FSTATIC gsize _netio_setmaxpktsize(NetIO* self, gsize maxpktsize);
@@ -347,6 +349,9 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 	gint			sockfd;
 	struct sockaddr_in6	saddr;
 	int			rc;
+	if (self->v4only) {
+		return _netio_bindaddr_v4(self, src, silent);
+	}
 	g_return_val_if_fail(NULL != self, FALSE);
 	g_return_val_if_fail(NULL != self->giosock, FALSE);
 	sockfd = self->getfd(self);
@@ -355,9 +360,6 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 		g_warning("%s: Attempt to bind to multicast address.", __FUNCTION__);
 		return FALSE;
 	}
-	memset(&saddr, 0x00, sizeof(saddr));
-	saddr.sin6_family = AF_INET6;
-	saddr.sin6_port = src->port(src);
 	g_return_val_if_fail(src->addrtype(src) == ADDR_FAMILY_IPV4 || src->addrtype(src) == ADDR_FAMILY_IPV6, FALSE);
 
 	saddr = src->ipv6sockaddr(src);
@@ -368,6 +370,42 @@ _netio_bindaddr(NetIO* self,		///<[in/out] The object being bound
 	}
 	return rc == 0;
 }
+/// Member function to bind this NewIO object to an <i>IPv4</i> NetAddr address
+FSTATIC gboolean
+_netio_bindaddr_v4(NetIO* self,		///<[in/out] The object being bound
+		const NetAddr* src,	///<[in] The address to bind it to
+		gboolean silent)	///<[in] TRUE if no message on error
+{
+	gint			sockfd;
+	struct sockaddr_in	saddr;
+	int			rc;
+	NetAddr*		v4src;
+	g_return_val_if_fail(NULL != self, FALSE);
+	g_return_val_if_fail(NULL != self->giosock, FALSE);
+	sockfd = self->getfd(self);
+	if (src->ismcast(src)) {
+		g_warning("%s: Attempt to bind to multicast address.", __FUNCTION__);
+		return FALSE;
+	}
+	v4src = src->toIPv4(src);
+	if (NULL == v4src) {
+		char *	srcstr = src->baseclass.toString(src);
+		g_warning("%s.%d: Could not convert address %s to IPv4 for IPv4-only socket."
+		,	__FUNCTION__, __LINE__, srcstr);
+		FREE(srcstr);
+		return FALSE;
+	}
+	saddr = v4src->ipv4sockaddr(v4src);
+	UNREF(v4src);
+
+	rc = bind(sockfd, (struct sockaddr*)&saddr, sizeof(saddr));
+	if (rc != 0 && !silent) {
+		g_warning("%s: Cannot bind to address for socket %d [%s (errno:%d)]"
+		,	__FUNCTION__, sockfd, g_strerror(errno), errno);
+	}
+	return rc == 0;
+}
+
 /// Member function to return the bound NetAddr (with port) of this NetIO object
 FSTATIC NetAddr*
 _netio_boundaddr(const NetIO* self)		///<[in] The object being examined
@@ -382,7 +420,7 @@ _netio_boundaddr(const NetIO* self)		///<[in] The object being examined
 		g_warning("%s: Cannot retrieve bound address [%s]", __FUNCTION__, g_strerror(errno));
 		return NULL;
 	}
-	if (retsize != saddrlen) {
+	if (retsize != saddrlen && (!self->v4only || retsize != sizeof(struct sockaddr_in))) {
 		g_warning("%s: Truncated getsockname() return [%d/%d bytes]", __FUNCTION__, retsize, saddrlen);
 		return NULL;
 	}
@@ -497,6 +535,7 @@ netio_new(gsize objsize			///<[in] The size of the object to construct (or zero)
 	if (ret->_compressframe) {
 		REF2(ret->_compressframe);
 	}
+	ret->v4only = FALSE;
 	ret->aliases = g_hash_table_new_full(netaddr_g_hash_hash, netaddr_g_hash_equal
         ,		_netio_netaddr_destroy, _netio_netaddr_destroy);  // Keys and data are same type...
 	memset(&ret->stats, 0, sizeof(ret->stats));
@@ -515,9 +554,11 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	gssize rc;
 	guint flags = 0x00;
 	g_return_if_fail(length > 0);
-
 	DUMP3(__FUNCTION__, &destaddr->baseclass, " is destination address");
 	DUMP3(__FUNCTION__, &self->baseclass, " is NetIO object");
+	if (self->v4only) {
+		return _netio_sendapacket_v4(self, packet, pktend, destaddr);
+	}
 	if (self->_shouldlosepkts) {
 		if (g_random_double() < self->_xmitloss) {
 			g_message("%s.%d: Threw away %"G_GSSIZE_FORMAT" byte output packet"
@@ -527,6 +568,10 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	}
 
 	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v6addr, sizeof(v6addr));
+	if (rc < 0 && errno == EADDRNOTAVAIL)  {
+		self->v4only = TRUE;
+		return _netio_sendapacket_v4(self, packet, pktend, destaddr);
+	}
 	DEBUGMSG3("%s.%d: sendto(%d, %ld, [%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x], port=%d) returned %ld"
 	,	__FUNCTION__, __LINE__, self->getfd(self), (long)length
 	,	ntohs(v6addr.sin6_addr.s6_addr16[0])
@@ -538,6 +583,56 @@ _netio_sendapacket(NetIO* self,			///<[in] Object doing the sending
 	,	ntohs(v6addr.sin6_addr.s6_addr16[6])
 	,	ntohs(v6addr.sin6_addr.s6_addr16[7])
 	,	ntohs(v6addr.sin6_port)
+	,	(long)rc);
+	self->stats.sendcalls ++;
+	self->stats.pktswritten ++;
+	if (rc == -1 && errno == EPERM) {
+		g_info("%s.%d: Got a weird sendto EPERM error for %"G_GSSIZE_FORMAT" byte packet."
+		,	__FUNCTION__, __LINE__, (gssize)length);
+		g_info("%s.%d: This only seems to happen under Docker..."
+		,	__FUNCTION__, __LINE__);
+		return;
+	}
+        if (rc != length) {
+		char *	tostring = destaddr->baseclass.toString(destaddr);
+		g_warning(
+		"%s: sendto returned %"G_GSSIZE_FORMAT " vs %"G_GSSIZE_FORMAT" with errno %s"
+		,	__FUNCTION__, rc, (gssize)length, g_strerror(errno));
+		g_warning("%s: destaddr:[%s] ", __FUNCTION__, tostring);
+		g_free(tostring); tostring = NULL;
+	}
+	//g_return_if_fail(rc == length);
+	g_warn_if_fail(rc == length);
+}
+
+/// NetIO internal function to send a packet (datagram)
+FSTATIC void
+_netio_sendapacket_v4(NetIO* self,		///<[in] Object doing the sending
+		   gconstpointer packet,	///<[in] Packet to send
+		   gconstpointer pktend,	///<[in] one byte past end of packet
+		   const NetAddr* destaddr)	///<[in] where to send it
+{
+	struct sockaddr_in v4addr = destaddr->ipv4sockaddr(destaddr);
+	gssize length = (const guint8*)pktend - (const guint8*)packet;
+	gssize rc;
+	guint flags = 0x00;
+	g_return_if_fail(length > 0);
+
+	DUMP3(__FUNCTION__, &destaddr->baseclass, " is destination address");
+	DUMP3(__FUNCTION__, &self->baseclass, " is NetIO object");
+	if (self->_shouldlosepkts) {
+		if (g_random_double() < self->_xmitloss) {
+			g_message("%s.%d: Threw away %"G_GSSIZE_FORMAT" byte output packet"
+			,	__FUNCTION__, __LINE__, length);
+			return;
+		}
+	}
+
+	rc = sendto(self->getfd(self),  packet, (size_t)length, flags, (const struct sockaddr*)&v4addr, sizeof(v4addr));
+	DEBUGMSG3("%s.%d: sendto(%d, %ld, [%08x], port=%d) returned %ld"
+	,	__FUNCTION__, __LINE__, self->getfd(self), (long)length
+	,	ntohs(v4addr.sin_addr.s_addr)
+	,	ntohs(v4addr.sin_port)
 	,	(long)rc);
 	self->stats.sendcalls ++;
 	self->stats.pktswritten ++;
