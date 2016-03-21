@@ -193,6 +193,7 @@ class pyNetAddrTest(TestCase):
         self.assertEqual(str(ipv6),'[::ffff:213.138.100.204]:57225')
         ipv6 = pyNetAddr(str(ipv6))
         self.assertEqual(str(ipv6),'[::ffff:213.138.100.204]:57225')
+        self.assertEqual(ipstr, str(ipv6.toIPv4()))
         #
         ipstr= '213.138.100.255:65535'
         ipv4 = pyNetAddr(ipstr)
@@ -203,6 +204,7 @@ class pyNetAddrTest(TestCase):
         self.assertEqual(str(ipv6),'[::ffff:213.138.100.255]:65535')
         ipv6 = pyNetAddr(str(ipv6))
         self.assertEqual(str(ipv6),'[::ffff:213.138.100.255]:65535')
+        self.assertEqual(ipstr, str(ipv6.toIPv4()))
         #
         ipstr= '255.255.255.255:65535'
         ipv4 = pyNetAddr(ipstr)
@@ -213,6 +215,21 @@ class pyNetAddrTest(TestCase):
         self.assertEqual(str(ipv6),'[::ffff:255.255.255.255]:65535')
         ipv6 = pyNetAddr(str(ipv6))
         self.assertEqual(str(ipv6),'[::ffff:255.255.255.255]:65535')
+        self.assertEqual(ipstr, str(ipv6.toIPv4()))
+        loopv6 = pyNetAddr('::1')
+        self.assertEqual('127.0.0.1', str(loopv6.toIPv4()))
+        self.assertEqual(pyNetAddr('127.0.0.1'), loopv6.toIPv4())
+        anyv6 = pyNetAddr('::')
+        self.assertEqual('0.0.0.0', str(anyv6.toIPv4()))
+        # @FIXME: I think the next two should work...
+        #self.assertEqual(pyNetAddr('0.0.0.0'), anyv6)
+        #self.assertEqual(pyNetAddr('0.0.0.0').toIPv6(), anyv6)
+        self.assertEqual(pyNetAddr('0.0.0.0'), anyv6.toIPv4())
+        self.assertEqual('::1', str(pyNetAddr('127.0.0.1').toIPv6()))
+        self.assertEqual(pyNetAddr('::1'), pyNetAddr('::ffff:127.0.0.1'))
+        # @FIXME: I think this one shouldn't need to go back and forth to ipv4 to work...(?)
+        self.assertEqual('::1', str(pyNetAddr('::ffff:127.0.0.1').toIPv4().toIPv6()))
+
 
     def test_ipv6_strinit(self): 
         'Test constructing ipv6 addresses from strings.'

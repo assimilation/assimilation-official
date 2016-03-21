@@ -59,6 +59,7 @@ FSTATIC gchar * _netaddr_toStringflex(const NetAddr*, gboolean canonformat);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_canonStr(const NetAddr*);
 FSTATIC NetAddr* _netaddr_toIPv6(const NetAddr*);
+FSTATIC NetAddr* _netaddr_toIPv4(const NetAddr*);
 FSTATIC gchar * _netaddr_toString_ipv6_ipv4(const NetAddr* self, gboolean ipv4format);
 FSTATIC NetAddr* _netaddr_string_ipv4_new(const char* addrstr);
 FSTATIC NetAddr* _netaddr_string_ipv6_new(const char* addrstr);
@@ -74,9 +75,13 @@ DEBUGDECLARATIONS
 /// It is a class from which we might eventually make subclasses,
 /// and is managed by our @ref ProjectClass system.
 
-static const guchar ipv6loop [16]		= CONST_IPV6_LOOPBACK;	
-static const guchar ipv4loopversion2 [16]	= {CONST_IPV6_IPV4SPACE, 127, 0, 0, 1};
-static const guchar ipv4loop [4]		= CONST_IPV4_LOOPBACK;
+static const guint8 ipv6loop [16]		= CONST_IPV6_LOOPBACK;	
+static const guint8 ipv4loopversion2 [16]	= {CONST_IPV6_IPV4SPACE, 127, 0, 0, 1};
+static const guint8 ipv4loop [4]		= CONST_IPV4_LOOPBACK;
+static const guint8 v4anyaddr[16] =		{0,0,0,0};
+static const guint8 v6anyaddr[16] =		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static const guint8 v6v4anyaddr[16] =		{CONST_IPV6_IPV4SPACE, 0, 0, 0, 0};
+static const guint8 v4prefix[] =		{CONST_IPV6_IPV4SPACE};
 
 /// Convert this IPv6-encapsulated IPv4 NetAddr to a string
 FSTATIC gchar *
@@ -128,7 +133,7 @@ _netaddr_canonStr(const NetAddr* self)
 NetAddr*
 _netaddr_toIPv6(const NetAddr* self)
 {
-	
+
 	switch (self->_addrtype) {
 		case ADDR_FAMILY_IPV6:
 			// Return a copy of this IPv6 address
@@ -152,6 +157,39 @@ _netaddr_toIPv6(const NetAddr* self)
 	}
 	/// @todo Convert MAC addresses to IPv6 addresses??
 	g_return_val_if_reached(NULL);
+}
+
+NetAddr*
+_netaddr_toIPv4(const NetAddr* self)
+{
+	switch (self->_addrtype) {
+		case ADDR_FAMILY_IPV4:
+			// Return a copy of this IPv4 address
+			return netaddr_ipv4_new(self->_addrbody, self->_addrport);
+		case ADDR_FAMILY_IPV6:
+			// We can convert three kinds of IPv
+			//  - Encapsulated ipv4 addresses
+			//  - ::1
+			//  - ::
+			//  And that's it. Everything else fails...
+			break;
+		default:
+			return NULL;
+	}
+	// v6 encapsulated v4 address
+	if (memcmp(self->_addrbody, v4prefix, sizeof(v4prefix)) == 0) {
+		return netaddr_ipv4_new(((guint8*)self->_addrbody)+sizeof(v4prefix), self->_addrport);
+	}
+	// v6 loopback
+	if (memcmp(self->_addrbody, ipv6loop, sizeof(ipv6loop)) == 0) {
+		return netaddr_ipv4_new(ipv4loop, self->_addrport);
+	}
+	// v6 ANY address
+	if (memcmp(self->_addrbody, v6anyaddr, sizeof(v6anyaddr)) == 0) {
+		return netaddr_ipv4_new(v4anyaddr, self->_addrport);
+	}
+	return NULL;
+
 }
 
 
@@ -484,17 +522,21 @@ _netaddr_islocal(const NetAddr* self)
 FSTATIC gboolean
 _netaddr_isanyaddr(const NetAddr* self)
 {
-	const guint8	anyaddr[16] =		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	const guint8    v6v4anyaddr[16] =	{CONST_IPV6_IPV4SPACE, 0, 0, 0, 0};
 	if (self->_addrtype != ADDR_FAMILY_IPV4 && self->_addrtype != ADDR_FAMILY_IPV6) {
 		return FALSE;
 	}
-	if (memcmp(self->_addrbody, anyaddr, self->_addrlen) == 0) {
-		return TRUE;
+	switch (self->_addrtype) {
+		case ADDR_FAMILY_IPV4:
+			return memcmp(self->_addrbody, v4anyaddr, sizeof(v4anyaddr)) == 0;
+		case ADDR_FAMILY_IPV6:
+			if (memcmp(self->_addrbody, v6anyaddr, self->_addrlen) == 0) {
+				return TRUE;
+			}
+			return memcmp(self->_addrbody, v6v4anyaddr, self->_addrlen) == 0;
 	}
-	return memcmp(self->_addrbody, v6v4anyaddr, self->_addrlen) == 0;
+	return FALSE;
 }
-	
+
 
 /// Generic NetAddr constructor.
 NetAddr*
@@ -526,6 +568,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	baseobj->toString = _netaddr_toString;
 	self->canonStr = _netaddr_canonStr;
 	self->toIPv6 = _netaddr_toIPv6;
+	self->toIPv4 = _netaddr_toIPv4;
 	self->_addrport = port;
 	self->_addrtype = addrtype;
 	self->_addrlen = addrlen;
@@ -1132,7 +1175,6 @@ _netaddr_ipv4sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 	struct sockaddr_in	saddr;
 
 	memset(&saddr, 0x00, sizeof(saddr));
-
 	switch (self->_addrtype) {
 		case ADDR_FAMILY_IPV4:
 			g_return_val_if_fail(4 == self->_addrlen, saddr);
@@ -1140,6 +1182,16 @@ _netaddr_ipv4sockaddr(const NetAddr* self)	//<[in] NetAddr object to convert to 
 			saddr.sin_port = htons(self->_addrport);
 			memcpy(&saddr.sin_addr, self->_addrbody, 4);
 			break;
+		case ADDR_FAMILY_IPV6: {
+			NetAddr*	v4addr = self->toIPv4(self);
+			if (NULL != v4addr) {
+				saddr = _netaddr_ipv4sockaddr(v4addr);
+				UNREF(v4addr)
+			}else{
+				g_return_val_if_reached(saddr);
+			}
+			break;
+		}
 
 		default:
 			g_return_val_if_reached(saddr);

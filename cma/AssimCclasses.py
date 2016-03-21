@@ -1003,6 +1003,17 @@ class pyNetAddr(pyAssimObj):
         newcs =  cast(base.toIPv6(self._Cstruct), cClass.NetAddr)
         return pyNetAddr(None, Cstruct=newcs, port=port)
 
+    def toIPv4(self, port=None):
+        '''Return an equivalent IPv4 address to the one that was given - if possible.
+        Guaranteed to be a copy'''
+        base = self._Cstruct[0]
+        while (not_this_exact_type(base, NetAddr)):
+            base = base.baseclass
+        newcs =  cast(base.toIPv4(self._Cstruct), cClass.NetAddr)
+        if not newcs:
+            raise ValueError('Could not be converted to IPv4: %s' % (str(self)))
+        return pyNetAddr(None, Cstruct=newcs, port=port)
+
     def __repr__(self):
         'Return a canonical representation of this NetAddr'
         assert self._Cstruct
