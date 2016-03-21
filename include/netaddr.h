@@ -54,6 +54,7 @@ struct _NetAddr {
 	guint		(*hash)(const NetAddr*);		///< Compute hash of the NetAddr
 	char *		(*canonStr)(const NetAddr*);		///< Canonical form toString
 	NetAddr*	(*toIPv6)(const NetAddr*);		///< Convert this NetAddr to the IPv6 equivalent
+	NetAddr*	(*toIPv4)(const NetAddr*);		///< Convert this NetAddr to the IPv4 equivalent if possible
 								///< It always returns a new object
 	gpointer	_addrbody;		///< private: Address body
 	guint16		_addrtype;		///< private: Address type
