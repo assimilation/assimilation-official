@@ -483,7 +483,51 @@ def NOT(args, _context):
         val0 = args
     return None if val0 is None else not val0
 
+
+def _str_to_regexflags(s):
+    r'''Transform a string of single character regex flags to the corresponding integer.
+    Note that the flag names are all the Python single character flag names from the 're' module.
+    They are as follows:
+        A   perform 8-bit ASCII-only matching (Python 3 only)
+        I   Perform non-case-sensitive matching
+        L   Use locale settings for \w, =W, \b and \B
+        M   Multi-line match - allow ^ and $ to apply to individual lines in the string
+        S   Allow the dot character to also match a newline
+        U   Uses information from the Unicode character properties for \w, \W, \b and \B.
+            (python 2 only)
+        X   Ignores unescaped whitespace and comments in the pattern string.
+    '''
+
+    flags = 0
+    if s is not None:
+        for char in s:
+            if char == 'A':
+                flags |= re.ASCII
+            elif char == 'I':
+                flags |= re.IGNORECASE
+            elif char == 'L':
+                flags |= re.LOCALE
+            elif char == 'M':
+                flags |= re.MULTILINE
+            elif char == 'S':
+                flags |= re.DOTALL
+            elif char == 'U':
+                flags |= re.UNICODE
+            elif char == 'X':
+                flags |= re.VERBOSE
+    return flags
+
 _regex_cache = {}
+def _compile_and_cache_regex(regexstr, flags=None):
+    'Compile and cache a regular expression with the given flags'
+    cache_key = '%s//%s' % (str(regexstr), str(flags))
+    if cache_key in _regex_cache:
+        regex = _regex_cache[cache_key]
+    else:
+        regex = re.compile(regexstr, _str_to_regexflags(flags))
+        _regex_cache[cache_key] = regex
+    return regex
+
 @GraphNodeExpression.RegisterFun
 def match(args, _context):
     '''Function to return True if first argument matches the second argument (a regex)
@@ -492,37 +536,26 @@ def match(args, _context):
     rhs = args[1]
     if lhs is None or rhs is None:
         return None
-    flags = args[2] if len(args) > 2 else 0
-    cache_key = '%s//%s' % (str(rhs), str(flags))
-    if cache_key in _regex_cache:
-        regex = _regex_cache[cache_key]
-    else:
-        regex = re.compile(args[1], flags)
-        _regex_cache[cache_key] = regex
+    flags = args[2] if len(args) > 2 else None
+    regex = _compile_and_cache_regex(rhs, flags)
     return regex.search(lhs) is not None
 
 @GraphNodeExpression.RegisterFun
 def argequals(args, context):
     '''
+    usage: argequals  name-to-search-for [list-to-search]
+
     A function which searches a list for an argument of the form name=value.
-    The name is given by the argument in args, and the list 'argv'
-    is assumed to be the list of arguments.
-    If there are two arguments in args, then the first argument is the
-    array value to search in for the name=value string instead of 'argv'
+    The value '$argv' is the default name of the list to search.
+    If there is a second argument, then that second argument is an expression
+    expected to yield an iterable to search in for the name=value string instead of '$argv'
     '''
     #print >> sys.stderr, 'ARGEQUALS(%s)' % (str(args))
     if len(args) > 2 or len(args) < 1:
         return None
-    if len(args) == 2:
-        argname = args[0]
-        definename = args[1]
-    else:
-        argname = 'argv'
-        definename = args[0]
-    if argname in context:
-        listtosearch = context[argname]
-    else:
-        listtosearch = context.get(argname, None)
+    definename = args[0]
+    argname = args[1] if len(args) >= 2 else '$argv'
+    listtosearch = GraphNodeExpression.evaluate(argname, context)
     #print >> sys.stderr, 'SEARCHING in %s FOR %s in %s' % (argname, definename, listtosearch)
     if listtosearch is None:
         return None
@@ -538,8 +571,61 @@ def argequals(args, context):
     return None
 
 @GraphNodeExpression.RegisterFun
+def argmatch(args, context):
+    '''
+    usage: argmatch regular-expression [list-to-search [regex-flags]]
+
+    Argmatch searches a list for an value that matches a given regex.
+    The regular expression is given by the argument in args, and the list 'argv'
+    defaults to be the list of arguments to be searched.
+
+    If there are two arguments in args, then the first argument is the
+    array value to search in for the regular expression string instead of 'argv'
+
+    If the regex contains a parenthesized groups, then the value of the first such group
+    is returned, otherwise the part of the argument that matches the regex is returned.
+
+    Note that this regular expression is 'anchored' that is, it starts with the first character
+    in the argument. If you want it to be floating, then you may want to start your regex
+    with '.*' and possibly parenthesize the part you want to return.
+    '''
+    #print >> sys.stderr, 'ARGMATCH(%s)' % (str(args))
+    #print >> sys.stderr, 'ARGMATCHCONTEXT(%s)' % (str(context))
+    if len(args) > 3 or len(args) < 1:
+        return None
+    regexstr = args[0]
+    argname = args[1] if len(args) >= 2 else '$argv'
+    flags   = args[2] if len(args) >= 3 else None
+    listtosearch = GraphNodeExpression.evaluate(argname, context)
+    if listtosearch is None:
+        return None
+
+    # W0702: No exception type specified for except statement
+    # pylint: disable=W0702
+    try:
+        #print >>sys.stderr,  'Compiling regex: /%s/' % regexstr
+        regex = _compile_and_cache_regex(regexstr, flags)
+        #print >>sys.stderr, 'Matching against list %s' % (str(listtosearch))
+        for elem in listtosearch:
+            #print >>sys.stderr, 'Matching %s against %s' % (regexstr, elem)
+            matchobj = regex.match(elem)
+            if matchobj:
+                # Did they specify any parenthesized groups?
+                if len(matchobj.groups()) > 0:
+                    # yes - return the (first) parenthesized match
+                    return matchobj.groups()[0]
+                else:
+                    # no - return everything matched
+                    return matchobj.group()
+    except: # No matter the cause of failure, return None...
+            # That includes ill-formed regular expressions...
+        pass
+    return None
+
+@GraphNodeExpression.RegisterFun
 def flagvalue(args, context):
     '''
+    usage: flagvalue flag-name [list-to-search]
     A function which searches a list for a -flag and returns
     the value of the string which is the next argument.
     The -flag is given by the argument in args, and the list 'argv'
@@ -551,12 +637,8 @@ def flagvalue(args, context):
     '''
     if len(args) > 2 or len(args) < 1:
         return None
-    if len(args) == 2:
-        argname = args[0]
-        flagname = args[1]
-    else:
-        argname = '$argv'
-        flagname = args[0]
+    flagname = args[0]
+    argname = args[1] if len(args) >= 2 else '$argv'
 
     progargs = GraphNodeExpression.evaluate(argname, context)
     argslen = len(progargs)
@@ -1089,6 +1171,7 @@ if __name__ == '__main__':
         assert NONEOK(False, None) == False
         assert match(('fred', 'fre'), None)
         assert not match(('fred', 'FRE'), None)
+        assert match(('fred', 'FRE', 'I'), None)
         assert basename(('/dev/null'), None) == 'null'
         assert dirname(('/dev/null'), None) == '/dev'
         print >> sys.stderr, 'Simple tests passed.'
@@ -1110,6 +1193,9 @@ if __name__ == '__main__':
             pyConfigContext({'geography': {'Europe': 'big', 'const': 'constant'}}),
             ))
         complicated_context = ExpressionContext(pyConfigContext({'a': {'b': {'pie': 3}}}),)
+        argcontext = ExpressionContext(
+            pyConfigContext('{"argv": ["command-name-suffix", "thing-one", "thang-two"]}'),)
+
         assert FOREACH(("EQ(False, $perms.group.write, $perms.other.write)",), lscontext) == True
         assert FOREACH(("EQ($pi, 3)",), Pie_context) == False
         assert FOREACH(("EQ($pie, 3)",), Pie_context) is None
@@ -1121,6 +1207,12 @@ if __name__ == '__main__':
         assert FOREACH(("EQ($group, root)",), lscontext) == True
         assert FOREACH(("EQ($owner, root)",), lscontext) == True
         assert FOREACH(("AND(EQ($owner, root), EQ($group, root))",), lscontext) == True
+        assert argmatch(('thing-(.*)',), argcontext) == 'one'
+        assert argmatch(('THING-(.*)','$argv', 'I'), argcontext) == 'one'
+        assert argmatch(('thang-(.*)',), argcontext) == 'two'
+        assert argmatch(('THANG-(.*)','$argv', 'I'), argcontext) == 'two'
+        assert argmatch(('thang-.*',), argcontext) == 'thang-two'
+        assert argmatch(('THANG-.*','$argv', 'I'), argcontext) == 'thang-two'
         print >> sys.stderr, 'Context tests passed.'
 
     simpletests()
