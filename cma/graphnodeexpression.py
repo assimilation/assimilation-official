@@ -502,7 +502,8 @@ def _str_to_regexflags(s):
     if s is not None:
         for char in s:
             if char == 'A':
-                flags |= re.ASCII
+                if hasattr(re, 'ASCII'):
+                    flags |= getattr(re, 'ASCII')
             elif char == 'I':
                 flags |= re.IGNORECASE
             elif char == 'L':
