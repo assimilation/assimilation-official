@@ -16,19 +16,19 @@ If there are any source files which are not marked in this fashion, it is a cler
 Those files are also provided under these same terms.
 
 @section SourceLocation Where To Find The Current Project Source
-As of this writing, the source to the latest version of this software is stored under Mercurial
-and can be found at http://hg.linux-ha.org/
-or more specifically at <a href="http://hg.linux-ha.org/assimilation/">http://hg.linux-ha.org/assimilation/</a>.
-You can get your own copy of the Mercurial repository using this command:
+As of this writing, the source to the latest version of this software is stored under GitHub
+and can be found at https://github.com/assimilation/assimilation-official
+
+You can get your own copy of the git repository using this command:
 @code
-  hg clone http://hg.linux-ha.org/assimilation/
+  git clone https://github.com/assimilation/assimilation-official.git
 @endcode
 
 You can get and install the absolute latest tar ball using this command:
 @code
-   wget http://hg.linux-ha.org/assimilation/raw-file/tip/buildtools/assimDnI
+   https://github.com/assimilation/assimilation-official/archive/master.tar.gz
 @endcode
-Note that this does not require that you have a copy of Mercurical.
+Note that this does not require that you have a copy of git.
 If you do not have the <i>wget</i> command, you can save that URL using your favorite browser instead.
 
 An online version of these documents that corresponds to the latest version of the source can be found here:
@@ -39,15 +39,12 @@ Interested in contributing to the Assimilation Project?
 Then you've come to the right place!
 
 Here are the steps you'll need to take to become a contributor to the Assimilation project:
-- Join the Assimilation Mailing List - and the devlopment mailing list
-- Get a copy of Git from your Linux distro or https://git-scm.com/.
-- Fork the repository at https://github.com/assimilation/assimilation-official.git
+- <a href="http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation">Join</a> the Assimilation Mailing List
+- <a href="https://help.github.com/articles/cloning-a-repository/">Clone</a> the repository at https://github.com/assimilation/assimilation-official.git
 - Sign the Assimilation Contributor Agreement as described below
 - Feel free to take on tasks from our <a href="https://trello.com/b/98QrdEK1/issues-bugs">Trello issues board</a>, or add bugs and feature requests there.
-- Discuss your ideas and on the development mailing list
-- Create a working and tested version of your code following @ref CodingStandards.
-- Make a pull request.
-- Discuss on the mailing list
+- Discuss your ideas and participate on the development mailing list
+- Submit a <a href="https://help.github.com/articles/creating-a-pull-request/">pull request</a> implementing your ideas following @ref CodingStandards.
 
 @section WhyAContributorAgreement Why A Contributor Agreement?
 Contributor agreements are provided for a few reasons:
@@ -69,8 +66,8 @@ these contributor agreements.
 Note that this agreement creates a rights sharing arrangement with the project.
 <i>You do not lose any rights to use or relicense your contribution any way you wish by signing this contribution agreement</i>.
 
-- http://hg.linux-ha.org/assimilation/raw-file/tip/legal/AssimilationIndividualContributorAgreement-v1.0.pdf - md5 sum 15fff2cc37118835f98827ffd84b8288
-- http://hg.linux-ha.org/assimilation/raw-file/tip/legal/AssimilationEntityContributorAgreement-v1.0.pdf -     md5 sum df2793e8d13e4df7001a5b88a15fd06f
+- https://github.com/assimilation/assimilation-official/blob/master/legal/AssimilationEntityContributorAgreement-v1.0.pdf - md5 sum 15fff2cc37118835f98827ffd84b8288
+- https://github.com/assimilation/assimilation-official/blob/master/legal/AssimilationIndividualContributorAgreement-v1.0.pdf - md5 sum df2793e8d13e4df7001a5b88a15fd06f
 
 @section SigningContributorAgreement How to Provide a Signed Copy of the Contributor Agreement
 There are two ways to provide a signed copy of the agreement:
@@ -115,8 +112,6 @@ to the project, please discuss this on the project mailing list.
 /**
 @page ContactInfo Contact Information 
 @section ContactInfoSection Contact Information
-- Development mailing list http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assim-devel
- -  list archives <a href="http://lists.community.tummy.com/pipermail/assim-devel/">pipermail</a>.
 - General project mailing list http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assimilation
  - list archives <a href="http://dir.gmane.org/gmane.comp.monitoring.assimilation">Gmane</a> or
    <a href="http://lists.community.tummy.com/pipermail/assimilation/">pipermail</a>.
@@ -127,6 +122,6 @@ http://lists.community.tummy.com/cgi-bin/mailman/listinfo/assim-devel
 - Alan Robertson - email: alanr@@unix.sh - Twitter: @@OSSAlanR
 - Roger Massey - email: sadsaddle (a) gmail (and-the-usual-ending) - Twitter @@rhm84119
 @section ProjectSponsorContact Project Sponsor
-This Assimilation Project is sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Lmited</a>.
+This Assimilation Project is sponsored by <a href="http://assimilationsystems.com">Assimilation Systems Limited</a>.
 
 */
