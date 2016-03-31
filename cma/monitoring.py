@@ -952,7 +952,7 @@ if __name__ == '__main__':
             },
             'ocf':  {
                     'assimilation/neo4j',
-                    'assimilation/ssh',
+                    'heartbeat/oracle',
                 },
             }
         })
@@ -962,11 +962,6 @@ if __name__ == '__main__':
                 ('$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
         )
     neorule = LSBMonitoringRule('neo4j-service', neolsbargs)
-    neolsbargs = (
-                ('$argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
-                ('$argv[3]', r'-server$'),             # Probably overkill
-                ('$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
-        )
     neoocfargs = (
         (None,          "@basename()",               "java$"),
         (None,          "$argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"),
@@ -1037,7 +1032,17 @@ if __name__ == '__main__':
     withsensors = {'commands' :  '{"sensors": true}'}
     nosensors = {'commands':'{"bash": true}'}
 
+    oracleocfargs = (
+        (None,          "@basename()",               "oracle$"),
+        ("sid",         "@argmatch(\"ora_pmon_(.*)\")", "..*")
+    )
+    oracleocfrule = OCFMonitoringRule('heartbeat', 'oracle', oracleocfargs)
+    oraclenode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/oracle'
+    ,   ['ora_pmon_InstanceName'], 'oracle', 'oracle', '/', roles=(CMAconsts.ROLE_server,))
+
     tests = [
+        (oracleocfrule.specmatch(ExpressionContext((oraclenode, fdrone))),
+                                 MonitoringRule.HIGHPRIOMATCH),
         (lsbsshrule.specmatch(ExpressionContext((sshnode, fdrone))), MonitoringRule.LOWPRIOMATCH),
         (lsbsshrule.specmatch(ExpressionContext((udevnode, fdrone))), MonitoringRule.NOMATCH),
         (lsbsshrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.NOMATCH),
