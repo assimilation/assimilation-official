@@ -1,5 +1,26 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_1_4 version 1.1.4 - the April Fools Release (not a joke)
+@subsection Features_1_1_4 New Features
+- Recognize and automatically monitor Oracle
+- Added new argmatch() function for returning a portion of a string matching a () regex
+- Added support for IPv4-only systems (whether disabled by either known method)
+- Added support for systems which create pidfile directories for us
+- README updates
+- Updated documentation to reflect use of GitHub instead of Mercurial (hurray!)
+- Updated basic coding standards documentation
+- Added yet-another-RedHat clone to the installer (and made that process easier)
+@subsection BugFixes_1_1_4 Bug Fixes
+- <i>none</i>
+@subsection Caveats_1_1_4 Caveats
+- Not compatible with database formats before 1.1.0
+- No alerting, or interface to existing alerting beyond a sample email script.(hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
+
 @section Version_1_1_3 version 1.1.3 - the Leap Day Release
 @subsection Features_1_1_3 New Features
 - We now work with (and enable) Neo4j authentication
@@ -28,7 +49,6 @@
 - queries could benefit from more indexes for larger installations.
 - The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
 - no GUI
-- use with recent versions of Neo4j requires disabling authentication on Neo4j
 - Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
 
 @section Version_1_1_2 version 1.1.2 - the Happy 2016 release
