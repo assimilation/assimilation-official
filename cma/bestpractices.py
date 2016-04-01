@@ -53,7 +53,7 @@ class BestPractices(DiscoveryListener):
     application = None
     discovery_name = None
     application = 'os'
-    BASEURL = 'http://ITBestPractices.info:500'
+    BASEURL = 'http://db.ITBestPractices.info:%d'
 
     def __init__(self, config, packetio, store, log, debug):
         'Initialize our BestPractices object'
@@ -159,7 +159,7 @@ class BestPractices(DiscoveryListener):
         ,       params={'rulesetname': rulesetname})
 
 
-    def url(self, drone, ruleid, ruleobj):
+    def url(self, drone, ruleid, ruleobj, html=True, port=5000):
         '''
         Return the URL in the IT Best Practices project that goes with this
         particular rule.
@@ -177,22 +177,22 @@ class BestPractices(DiscoveryListener):
         if osinfo is not None and 'data' in osinfo:
             osdata = osinfo['data']
             if 'kernel-name' in osdata:
-                values['os'] = osdata['kernel-name']
+                values['os'] = osdata['kernel-name'].lower()
             if 'Distributor ID' in osdata:
-                values['osname'] = osdata['Distributor ID']
+                values['osname'] = osdata['Distributor ID'].lower()
             if 'Release' in osdata:
-                values['release'] = osdata['Release']
+                values['release'] = osdata['Release'].lower()
         else:
             print >> sys.stderr, 'OOPS: osinfo is %s' % str(osinfo)
         names = values.keys()
         names.sort()
 
-        ret = 'v1.0/doquery'
+        ret = 'itbp/v1.0/%s' % ('show' if html else 'showjson')
         delim='?'
         for name in names:
             ret += '%s%s=%s' % (delim, name, values[name])
             delim='&'
-        return '%s/%s' % (self.BASEURL, ret)
+        return '%s/%s' % ((self.BASEURL % port), ret)
 
     def processpkt(self, drone, srcaddr, jsonobj):
         '''Inform interested rule objects about this change'''
