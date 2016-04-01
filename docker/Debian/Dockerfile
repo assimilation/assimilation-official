@@ -42,7 +42,7 @@ RUN apt-get -y update && apt-get -y install --no-install-recommends gcc cmake ma
 RUN apt-get -y install --no-install-recommends python-pip python-flask debianutils lsof python-netaddr valgrind python-dev lsb-release python-demjson iproute2 adduser
 RUN apt-get -y install --no-install-recommends bind9 host           # So we have some services to monitor in system testing
 RUN apt-get -y install --no-install-recommends strace gdb tcpdump   # For debugging...
-RUN pip install ctypesgen 'py2neo>2.0.7' getent
+RUN pip install ctypesgen 'py2neo==2.0.8' getent
 
 ###############################################################
 #   Neo4j installation
