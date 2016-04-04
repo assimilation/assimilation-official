@@ -1372,7 +1372,7 @@ remote_nano_install() {
     do
         echo "Installing nanoprobe on $system" >&2
         scp -q -p $TARBALL ${REMOTERUNAS}$system:$TARBALL
-        ssh -t ${REMOTERUNAS}${system} "${REMOTESUDO} sh -c '$REMOTEINSTALL\"'"
+        ssh -t ${REMOTERUNAS}${system} "${REMOTESUDO} sh -c '$REMOTEINSTALL'"
     done
 }
 
