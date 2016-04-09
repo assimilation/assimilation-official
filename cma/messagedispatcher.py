@@ -91,7 +91,7 @@ class MessageDispatcher(object):
         # Commit the database transaction here
         if CMAdb.store.transaction_pending:
             result = CMAdb.store.commit()
-            if self.logtimes:
+            if self.logtimes or CMAdb.debug:
                 CMAdb.log.info('Neo4j transaction time: %s'
                 %   (str(CMAdb.store.stats['lastcommit'])))
             if CMAdb.debug:
@@ -113,7 +113,7 @@ class MessageDispatcher(object):
             CMAdb.transaction.commit_trans(CMAdb.io)
             CMAdb.post_transaction_packets = []
         dispatchend = datetime.now()
-        if self.logtimes:
+        if self.logtimes or CMAdb.debug:
             CMAdb.log.info('Total dispatch time for %s frameset: %s'
             %   (fstype, dispatchend-dispatchstart))
 
