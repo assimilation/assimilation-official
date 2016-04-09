@@ -1086,6 +1086,8 @@ class Store(object):
                     %   (attr, getattr(subj, attr), newnode[attr]))
                     #self.dump_clients()
         self.abort()
+        if Store.debug:
+            print >> sys.stderr, 'DB TRANSACTION COMPLETED SUCCESSFULLY'
         return submit_results
 
     def clean_store(self):

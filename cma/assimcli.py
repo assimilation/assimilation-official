@@ -30,11 +30,9 @@ We support the following commands:
 '''
 
 import sys, os, getent
-from operator import itemgetter
 from query import ClientQuery
 from consts import CMAconsts
 from graphnodes import GraphNode
-from droneinfo import Drone
 from store import Store
 from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
@@ -49,6 +47,7 @@ from cmadb import Neo4jCreds, CMAdb
 import droneinfo, hbring, monitoring
 from cmainit import CMAinit
 from bestpractices import BestPractices
+from collections import namedtuple
 
 commands = {}
 
@@ -94,8 +93,9 @@ class query(object):
         if request is None:
             print >> sys.stderr, ("No query named '%s'." % queryname)
             return 1
+        request.bind_store(store)
 
-        param_names = request.cypher_parameter_names()
+        param_names = request.parameter_names()
 
         params = {}
         # Convert name=value strings into a Dict
@@ -279,203 +279,6 @@ class neo4jpass(object):
             return usage()
         Neo4jCreds().update(newauth=otherargs[0] if len(otherargs) > 0 else None)
 
-def ourjoin(listarg, delim=','):
-    'We join anything as though it were a string...'
-    curdelim = ''
-    result = ''
-    for elem in listarg:
-        result += '%s%s' % (curdelim, str(elem))
-        curdelim=delim
-    return result
-
-
-@RegisterCommand
-class dtypescores(object):
-    'Compute and print scores for the given categories'
-
-    @staticmethod
-    def usage():
-        "reports usage for this sub-command"
-        return 'dtypescores [--hostnames|--ruleids] [list of score categories...]'
-
-    @staticmethod
-    def execute(store, _executor_context, otherargs, flagoptions):
-        'Compute and print scores for the given categories'
-        delim=','
-        dtype_totals, drone_totals, rule_totals = grab_category_scores(store, otherargs)
-        dropfirstfield = otherargs and len(otherargs) == 1
-        if 'hostnames' in flagoptions:
-            # 0:  category name
-            # 1:  discovery-type
-            # 2:  total score for this discovery type _across all drones_
-            # 3:  drone designation (name)
-            # 4:  total score for this drone for this discovery type
-            sortkeys = itemgetter(0,2,4,1,3)
-            for tup in sorted(yield_drone_scores(otherargs, drone_totals, dtype_totals),
-                              key=sortkeys, reverse=True):
-                if dropfirstfield:
-                    print ourjoin(tup[1:], delim=delim)
-                else:
-                    print ourjoin(tup, delim=delim)
-        elif 'ruleids' in flagoptions:
-            # 0:  category name
-            # 1:  discovery-type
-            # 2:  total score for this discovery type _across all rules
-            # 3:  rule id
-            # 4:  total score for this rule id
-            sortkeys = itemgetter(0,2,4,1,3)
-            for tup in sorted(yield_rule_scores(otherargs, dtype_totals, rule_totals),
-                              key=sortkeys, reverse=True):
-                if dropfirstfield:
-                    print ourjoin(tup[1:], delim=delim)
-                else:
-                    print ourjoin(tup, delim=delim)
-        else:
-            # 0:  category name
-            # 1:  discovery-type
-            # 2:  total score for this discovery-type _across all drones_
-            sortkeys = itemgetter(0,2,1)
-            for tup in sorted(yield_category_scores(otherargs, dtype_totals),
-                              key=sortkeys, reverse=True):
-                if dropfirstfield:
-                    print ourjoin(tup[1:], delim=delim)
-                else:
-                    print ourjoin(tup, delim=delim)
-
-@RegisterCommand
-class secdtypes (object):
-    'Compute and print security scores'
-    @staticmethod
-    def usage():
-        'reports usage for this sub-command'
-        return 'secdtypes [--hostnames]'
-
-    @staticmethod
-    def execute(store, executor_context, _otherargs, flagoptions):
-        'Compute and print security scores as requested'
-        dtypescores.execute(store, executor_context, ('security',), flagoptions)
-
-def setup_dict2(d, key1, key2):
-    'Initialize the given subkey (2 layers down)to 0.0'
-    if key1 not in d:
-        d[key1] = {}
-    if key2 not in d[key1]:
-        d[key1][key2] = 0.0
-
-def setup_dict3(d, key1, key2, key3):
-    'Initialize the given subkey (3 layers down)to 0.0'
-    if key1 not in d:
-        d[key1] = {}
-    if key2 not in d[key1]:
-        d[key1][key2] = {}
-    if key3 not in d[key1][key2]:
-        d[key1][key2][key3] = 0.0
-
-
-def grab_category_scores(store, categories=None, debug=False):
-    '''Program to create and return some python Dicts with security scores and totals by category
-    and totals by drone/category
-    Categories is None or a list of desired categories.
-    '''
-    cypher = '''START drone=node:Drone('*:*') RETURN drone'''
-
-    BestPractices(CMAdb.io.config, CMAdb.io, store, CMAdb.log, debug=debug)
-    dtype_totals = {} # scores organized by (category, discovery-type)
-    drone_totals = {} # scores organized by (category, discovery-type, drone)
-    rule_totals = {} # scores organized by (category, discovery-type, rule)
-
-    for drone in store.load_cypher_nodes(cypher, Drone):
-        designation = drone.designation
-        discoverytypes = drone.bp_discoverytypes_list()
-        for dtype in discoverytypes:
-            dattr = Drone.bp_discoverytype_result_attrname(dtype)
-            statuses = getattr(drone, dattr)
-            for rule_obj in BestPractices.eval_objects[dtype]:
-                rulesobj = rule_obj.fetch_rules(drone, None, dtype)
-                _, scores, rulescores = BestPractices.compute_scores(drone, rulesobj, statuses)
-                for category in scores:
-                    if category not in categories and categories:
-                        continue
-                    # Accumulate scores by (category, discovery_type)
-                    setup_dict2(dtype_totals, category, dtype)
-                    dtype_totals[category][dtype] += scores[category]
-                    # Accumulate scores by (category, discovery_type, drone)
-                    setup_dict3(drone_totals, category, dtype, designation)
-                    drone_totals[category][dtype][designation] += scores[category]
-                    # Accumulate scores by (category, discovery_type, ruleid)
-                    for ruleid in rulescores[category]:
-                        setup_dict3(rule_totals, category, dtype, ruleid)
-                        rule_totals[category][dtype][ruleid] += rulescores[category][ruleid]
-
-    return dtype_totals, drone_totals, rule_totals
-
-def yield_category_scores(categories, dtype_totals):
-    '''Return the dtype_totals as a CSV-style output.
-    We output the following fields:
-        0:  category name
-        1:  discovery-type
-        2:  total score for this discovery-type _across all drones_
-   '''
-    cats = sorted(dtype_totals.keys(), reverse=True)
-    dtypes = set()
-    for cat in cats:
-        for dtype in dtype_totals[cat]:
-            dtypes.add(dtype)
-    dtypes = list(dtypes)
-    for cat in cats:
-        if categories and cat not in categories:
-            continue
-        for dtype in dtypes:
-            if dtype not in dtype_totals[cat]:
-                continue
-            score = dtype_totals[cat][dtype]
-            if score > 0:
-                yield (cat, dtype, score)
-
-def yield_drone_scores(categories, drone_totals, dtype_totals):
-    '''Format the drone_totals + dtype_totals as a CSV-style output
-    We output the following fields:
-        0:  category name
-        1:  discovery-type
-        2:  total score for this discovery type _across all drones_
-        3:  drone designation (name)
-        4:  total score for this drone for this discovery type
-    '''
-    cats = sorted(drone_totals.keys(), reverse=True)
-    dtypes = set()
-    for cat in cats:
-        for dtype in drone_totals[cat]:
-            dtypes.add(dtype)
-    dtypes = list(dtypes)
-    for cat in cats:
-        if categories and cat not in categories:
-            continue
-        for dtype in dtypes:
-            if dtype not in drone_totals[cat]:
-                continue
-            for drone in drone_totals[cat][dtype]:
-                score = drone_totals[cat][dtype][drone]
-                if score > 0:
-                    yield (cat, dtype, dtype_totals[cat][dtype], drone, score)
-
-def yield_rule_scores(categories, dtype_totals, rule_totals):
-    '''Format the rule totals + dtype_totals as a CSV-style output
-    We output the following fields:
-        0:  category name
-        1:  discovery-type
-        2:  total score for this discovery type _across all rules
-        3:  rule id
-        4:  total score for this rule id
-    '''
-    # rule_totals = # scores organized by (category, discovery-type, rule)
-    for cat in sorted(rule_totals, reverse=True):
-        if categories and cat not in categories:
-            continue
-        for dtype in rule_totals[cat]:
-            for ruleid in rule_totals[cat][dtype]:
-                score = rule_totals[cat][dtype][ruleid]
-                if score > 0:
-                    yield (cat, dtype, dtype_totals[cat][dtype], ruleid, score)
 
 options = {'language':True, 'format':True, 'hostnames':False, 'ruleids': False}
 def usage():
