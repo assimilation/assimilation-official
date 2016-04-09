@@ -539,6 +539,8 @@ class Drone(SystemNode):
             if 'repeat' in arg:
                 interval = int(arg['repeat'])
                 frames.append({'frametype': FrameTypes.DISCINTERVAL, 'framevalue': int(interval)})
+            else:
+                interval = 0
             frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': str(arg)})
         # This doesn't work if the client has bound to a VIP
         ourip = self.select_ip()    # meaning select our primary IP
