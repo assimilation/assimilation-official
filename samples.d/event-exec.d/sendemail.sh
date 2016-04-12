@@ -159,6 +159,25 @@ notify_system() {
     esac
 }
 
+#
+# Send notification of a system (Drone) going in or out of compliance with best practices
+# We only send notifications on transitions from in->out or out->in
+#
+notify_warn_unwarn() {
+    eventtype=$1
+    SYSTEM=$ASSIM_designation
+    CAT=$ASSIM_category
+    RULE=$ASSIM_ruleid
+    case $eventtype in
+        warn)
+            sendemail "WARNING: System $SYSTEM out of compliance with $CAT best practice $RULE"
+            ;;
+        unwarn)
+            sendemail "HURRAY: System $SYSTEM now in compliance with $CAT best practice $RULE"
+            ;;
+    esac
+}
+
 # Every object in our database has an object type - $ASSIM_nodetype
 # This is also passed to our 'main' as $2
 process_objstatus() {
@@ -193,6 +212,7 @@ MASTER_ARGLIST="$*"
 create_json_attachment "$@"
 #dump_event "$@"
 case $1 in
-    up|down)    process_objstatus "$@";;
+    up|down)        process_objstatus  "$@";;
+    warn|unwarn)    notify_warn_unwarn "$@";;
     #*)          dump_event "$@";;
 esac
