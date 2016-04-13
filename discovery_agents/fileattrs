@@ -1,5 +1,5 @@
 #!/bin/sh
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # Discover file attributes
 #   We discover them for the list of files in ${ASSIM_filelist}
@@ -203,6 +203,37 @@ fileinfo_linux() {
 }
 
 #
+#   If the argument is a directory, and it exists, we follow the symlink...
+#   
+find_real_directory() {
+    case "$1" in
+        */)
+            file=$(echo "$1" | sed 's%/$%%')
+            if
+                # test -d follows symlinks...
+                [ -L "$file" -a -d "$file" ]
+            then
+                echo $(cd "$file"; /bin/pwd -P)/
+            else
+                echo "$1"
+            fi
+            ;;
+        *)  echo "$1";;
+    esac
+}
+
+# We sort and remove duplicates - and follow symlinks for directories we're going to look at
+sort_filenames() {
+    for arg
+    do
+        case $arg in
+            *?/)    find_real_directory "$arg";;
+            *)      echo "$arg";;
+        esac
+    done | sort -u
+}
+
+#
 #   Discover and print file attributes as JSON
 #   Arguments are a list of files
 #   If a file name ends in /, then we discover the attributes for its immediate descendants...
@@ -212,7 +243,7 @@ discover_files() {
     shift
     comma="$linespace"
     printf '{\n'
-    for file
+    for file in $(sort_filenames "$@")
     do
         if
             [ -z "$file" -o ! -e "$file" ]
