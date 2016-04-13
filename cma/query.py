@@ -27,7 +27,7 @@
 This module provides classes associated with querying - including providing metadata
 about these queries for the client code.
 '''
-import os, sys
+import os, sys, re
 import collections, operator
 from py2neo import neo4j
 from graphnodes import GraphNode, RegisterGraphClass
@@ -266,9 +266,7 @@ class ClientQuery(GraphNode):
             if 'type' not in pinfo:
                 raise ValueError('Parameter %s missing type field' % param)
             ptype = pinfo['type']
-            validtypes = ('int', 'float', 'string', 'ipaddr', 'macaddr', 'bool'
-            ,   'hostname', 'dnsname', 'enum')
-            if ptype not in validtypes:
+            if ptype not in ClientQuery._validationmethods:
                 raise ValueError('Parameter %s has invalid type %s'% (param, ptype))
             if 'min' in pinfo and ptype != 'int' and ptype != 'float':
                 raise ValueError('Min only valid on numeric fields [%s]'% param )
@@ -365,15 +363,13 @@ class ClientQuery(GraphNode):
                 %   (name, val, maxval))
         return val
 
-    # W0613: unused argument
-    # pylint: disable=W0613
     @staticmethod
-    def _validate_string(name, paraminfo, value):
+    def _validate_string(_name, _paraminfo, value):
         'Validate an string value (always valid)'
         return value
 
     @staticmethod
-    def _validate_macaddr(name, paraminfo, value):
+    def _validate_macaddr(name, _paraminfo, value):
         'Validate an MAC address value'
         mac = pyNetAddr(value)
         if mac is None:
@@ -383,7 +379,7 @@ class ClientQuery(GraphNode):
         return str(mac)
 
     @staticmethod
-    def _validate_ipaddr(name, paraminfo, value):
+    def _validate_ipaddr(name, _paraminfo, value):
         'Validate an IP address value'
         ip = pyNetAddr(value)
         if ip is None:
@@ -396,10 +392,20 @@ class ClientQuery(GraphNode):
         raise ValueError('Value of %s [%s] not an IP address' % (name, value))
 
     @staticmethod
-    def _validate_bool(name, paraminfo, value):
+    def _validate_bool(name, _paraminfo, value):
         'Validate an Boolean value'
         if not isinstance(value, bool):
             raise ValueError('Value of %s [%s] not a boolean' % (name, value))
+        return value
+
+    @staticmethod
+    def _validate_regex(name, _paraminfo, value):
+        'Validate a regular expression'
+        try:
+            re.compile(value)
+        except re.error as e:
+            raise ValueError('Value of %s ("%s") is not a valid regular expression [%s]' %
+                             (name, value, str(e)))
         return value
 
     @staticmethod
@@ -407,10 +413,8 @@ class ClientQuery(GraphNode):
         'Validate a hostname value'
         return ClientQuery._validate_dnsname(name, paraminfo, value)
 
-    # W0613: unused argument
-    # pylint: disable=W0613
     @staticmethod
-    def _validate_dnsname(name, paraminfo, value):
+    def _validate_dnsname(_name, _paraminfo, value):
         'Validate an DNS name value'
         value = str(value)
         return value.lower()
@@ -461,7 +465,10 @@ class ClientQuery(GraphNode):
         files.sort()
         for filename in files:
             path = os.path.join(directoryname, filename)
-            yield ClientQuery.load_from_file(store, path)
+            try:
+                yield ClientQuery.load_from_file(store, path)
+            except ValueError as e:
+                print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
 
     @staticmethod
     def load_tree(store, rootdirname, followlinks=False):
@@ -478,7 +485,10 @@ class ClientQuery(GraphNode):
                 path = os.path.join(dirpath, filename)
                 if filename.startswith('.'):
                     continue
-                yield ClientQuery.load_from_file(store, path, queryname=queryname)
+                try:
+                    yield ClientQuery.load_from_file(store, path)
+                except ValueError as e:
+                    print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
 
 class QueryExecutor(object):
     '''An abstract class which knows which can perform a variety of types of queries
@@ -829,6 +839,113 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
                     if score > 0:
                         yield RuleScore(domain, cat, dtype, dtype_totals[domain][cat][dtype],
                                         ruleid, score)
+PackageTuple = collections.namedtuple('PackageTuple',
+                                      ['domain', 'drone', 'package', 'version', 'packagetype'])
+@PythonExec.register
+class PythonPackagePrefixQuery(PythonExec):
+    '''query executor returning packages matching the given prefix'''
+    PARAMETERS = ['prefix']
+    def result_iterator(self, params):
+        prefix = params['prefix']
+        # 0:  domain
+        # 1:  Drone
+        # 2:  Package name
+        # 3:  Package Version
+        # 4:  Package type
+        cypher = (
+        '''START drone=node:Drone('*:*')
+        MATCH (drone)-[rel:jsonattr]->(jsonmap)
+        WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
+        return drone, jsonmap.json AS json
+        '''     %   prefix)
+        for (drone, json) in self.store.load_cypher_query(cypher, Drone):
+            jsonobj = pyConfigContext(json)
+            jsondata = jsonobj['data']
+            for pkgtype in jsondata:
+                for package in jsondata[pkgtype]:
+                    if package.startswith(prefix):
+                        yield PackageTuple(drone.domain, drone, package,
+                                           jsondata[pkgtype][package], pkgtype)
+
+
+@PythonExec.register
+class PythonAllPackageQuery(PythonExec):
+    '''query executor returning all packages on all systems'''
+    PARAMETERS = []
+    def result_iterator(self, params):
+        # 0:  domain
+        # 1:  Drone
+        # 2:  Package name
+        # 3:  Package Version
+        cypher = (
+        '''START drone=node:Drone('*:*')
+           MATCH (drone)-[rel:jsonattr]->(jsonmap)
+           WHERE rel.jsonname = '_init_packages'
+           RETURN drone, jsonmap.json AS json
+        ''')
+
+        for (drone, json) in self.store.load_cypher_query(cypher, Drone):
+            jsonobj = pyConfigContext(json)
+            jsondata = jsonobj['data']
+            for pkgtype in jsondata:
+                for package in jsondata[pkgtype]:
+                    yield PackageTuple(drone.domain, drone, package,
+                                       jsondata[pkgtype][package], pkgtype)
+
+@PythonExec.register
+class PythonPackageRegexQuery(PythonExec):
+    '''query executor returning packages matching the given regular expression'''
+    PARAMETERS = ['regex']
+    def result_iterator(self, params):
+        regex = params['regex']
+        # 0:  domain
+        # 1:  Drone
+        # 2:  Package name
+        # 3:  Package Version
+        cypher = (
+        '''START drone=node:Drone('*:*')
+           MATCH (drone)-[rel:jsonattr]->(jsonmap)
+           WHERE rel.jsonname = '_init_packages' AND jsonmap.json =~ '.*%s.*.*'
+           RETURN drone, jsonmap.json AS json
+        '''     %   regex)
+
+        regexobj = re.compile('.*' + regex)
+        for (drone, json) in self.store.load_cypher_query(cypher, Drone):
+            jsonobj = pyConfigContext(json)
+            jsondata = jsonobj['data']
+            for pkgtype in jsondata:
+                for package in jsondata[pkgtype]:
+                    if regexobj.match(package):
+                        yield PackageTuple(drone.domain, drone, package,
+                                           jsondata[pkgtype][package], pkgtype)
+
+
+@PythonExec.register
+class PythonPackageQuery(PythonExec):
+    '''query executor returning packages of the given name'''
+    PARAMETERS = ['packagename']
+    def result_iterator(self, params):
+        packagename = params['packagename']
+        if not packagename.find('::') >= 0:
+            packagename += '::'
+        # 0:  domain
+        # 1:  Drone
+        # 2:  Package name
+        # 3:  Package Version
+        cypher = (
+        '''START drone=node:Drone('*:*')
+        MATCH (drone)-[rel:jsonattr]->(jsonmap)
+        WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
+        return drone, jsonmap.json as json
+        '''     %   packagename)
+        for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
+            jsonobj = pyConfigContext(json)
+            jsondata = jsonobj['data']
+            for pkgtype in jsondata:
+                for package in jsondata[pkgtype]:
+                    if package.startswith(packagename):
+                        yield PackageTuple(drone.domain, drone, package,
+                                           jsondata[pkgtype][package], pkgtype)
 
 # message 0212: access to protected member of client class
 # pylint: disable=W0212
@@ -842,10 +959,10 @@ ClientQuery._validationmethods = {
     'macaddr':  ClientQuery._validate_macaddr,
     'hostname': ClientQuery._validate_hostname,
     'dnsname':  ClientQuery._validate_dnsname,
+    'regex':    ClientQuery._validate_regex,
 }
 
 if __name__ == '__main__':
-    import re
     from store import Store
     from cmadb import Neo4jCreds
     metadata1 = \
