@@ -486,7 +486,7 @@ class ClientQuery(GraphNode):
                 if filename.startswith('.'):
                     continue
                 try:
-                    yield ClientQuery.load_from_file(store, path)
+                    yield ClientQuery.load_from_file(store, path, queryname)
                 except ValueError as e:
                     print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
 
@@ -884,7 +884,7 @@ class PythonAllPackageQuery(PythonExec):
            RETURN drone, jsonmap.json AS json
         ''')
 
-        for (drone, json) in self.store.load_cypher_query(cypher, Drone):
+        for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
             jsonobj = pyConfigContext(json)
             jsondata = jsonobj['data']
             for pkgtype in jsondata:
@@ -910,7 +910,7 @@ class PythonPackageRegexQuery(PythonExec):
         '''     %   regex)
 
         regexobj = re.compile('.*' + regex)
-        for (drone, json) in self.store.load_cypher_query(cypher, Drone):
+        for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
             jsonobj = pyConfigContext(json)
             jsondata = jsonobj['data']
             for pkgtype in jsondata:
