@@ -236,7 +236,7 @@ class ClientQuery(GraphNode):
     # R0912: Too many branches; R0914: too many local variables
     # pylint: disable=R0914,R0912
     def validate_json(self):
-        '''Validate the JSON for this query - it's complicated!'''
+        '''Validate the JSON metadata for this query - it's complicated!'''
         queryobj = QueryExecutor.construct_query(self._store, self._JSON_metadata)
         query_parameter_names = queryobj.parameter_names()
         if 'parameters' not in self._JSON_metadata:
@@ -245,6 +245,8 @@ class ClientQuery(GraphNode):
         if 'descriptions' not in self._JSON_metadata:
             print >> sys.stderr, 'METADATA:', self._JSON_metadata
             raise ValueError('descriptions missing from metadata')
+
+        # Validate query descriptions
         languages = self._JSON_metadata['descriptions']
         for lang in languages:
             thislang = languages[lang]
@@ -261,6 +263,7 @@ class ClientQuery(GraphNode):
             if name not in query_parameter_names:
                 raise ValueError('JSON parameter %s not required by query' % name)
 
+        # Validate query parameters
         for param in queryobj.parameter_names():
             pinfo = paramdict[param]
             if 'type' not in pinfo:
@@ -282,6 +285,7 @@ class ClientQuery(GraphNode):
                         %   (enum, type(enum)))
             if 'lang' not in pinfo:
                 raise ValueError("Parameter %s must include 'lang' information" % param)
+            # Validate parameter information for this (param) language
             langs = pinfo['lang']
             for lang in languages.keys():
                 if lang not in langs:
