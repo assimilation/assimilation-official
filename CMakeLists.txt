@@ -315,18 +315,21 @@ CHECK_FUNCTION_EXISTS(uname HAVE_UNAME)
 
 CHECK_SYMBOL_EXISTS(GetComputerNameA "Windows.h" HAVE_GETCOMPUTERNAME) 
 
+set (ADDRESS_SANITIZER -fsanitize=address)
+set (ADDRESS_SANITIZER )
+
 #
 #	Compiler flags for various compilers and platforms...
 #
-set (Best_GNUCC_FLAGS "-g -O2 -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wformat-security -D_FORTIFY_SOURCE=2")
+set (Best_GNUCC_FLAGS "-g -O2 ${ADDRESS_SANITIZER} -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wformat-security -D_FORTIFY_SOURCE=2")
 
-set (Lesser_GNUCC_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -Wcast-qual -D_FORTIFY_SOURCE=2")
-set (Best_CLANG_FLAGS "-Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
+set (Lesser_GNUCC_FLAGS "${ADDRESS_SANITIZER} -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast -Wcast-qual -D_FORTIFY_SOURCE=2")
+set (Best_CLANG_FLAGS "-fsanitize=address -Werror -Wall -Wformat=2 -Wmissing-prototypes -Wmissing-declarations -Wstrict-prototypes -Wdeclaration-after-statement -Wpointer-arith -Wwrite-strings -Wcast-qual -Wcast-align -Winline -Wmissing-format-attribute -Wno-strict-aliasing -funsigned-char -Wextra -Wstack-protector")
 
 set (Active_CLANG_FLAGS ${Best_CLANG_FLAGS})
 
 if (NOT WIN32)
-set (OUR_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now")
+    set (OUR_LINKER_FLAGS "-Wl,-Bsymbolic-functions -Wl,-z,relro -z now ${ADDRESS_SANITIZER}")
 endif (NOT WIN32)
 
 if("${CMAKE_C_COMPILER}" MATCHES ".*/ccc-analyze")
