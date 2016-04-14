@@ -33,9 +33,10 @@
 
 ///@}
 #define KBYTES(n)	((n)*1024)
-/// In practice, our max JSON decompressed size is under 325K, so 1M seems safe
-/// more or less not matter what compression method one uses -- on JSON...
-#define	MAXUNCOMPRESSEDSIZE	KBYTES(1024)
+
+// Some of our data is very compressible - almost as bad as XML
+// Hopefully we won't get _too_ many packets like this...
+#define	MAXUNCOMPRESSEDSIZE	KBYTES(4096)
 
 #include  <glib.h>
 #include  <fcntl.h>
@@ -173,7 +174,7 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 		return ((gsize)self->compression_index) < DIMOF(allcompressions)
 	&&	allcompressions[self->compression_index].compression_type == self->compression_method;
 	}
-	
+
 	if (	((const guint8*)pktend-(const guint8*)tlvstart) < 12
 	|| 	get_generic_tlv_len(tlvstart, pktend) <= 8) {
 		return FALSE;
@@ -183,7 +184,14 @@ _compressframe_isvalid(const Frame *fself, gconstpointer tlvstart, gconstpointer
 	g_return_val_if_fail(_compressframe_findmethod(compresstype) >= 0, FALSE);
 	origlen = tlv_get_guint24(valptr+1, pktend);
 	// Trying to avoid a DOS attack using huge packets
-	g_return_val_if_fail(origlen <= MAXUNCOMPRESSEDSIZE || origlen >= 16, FALSE);
+	// But typically they are signed - so our attacker would have to have control over
+	// a nanoprobe on one of our machines.
+	if (origlen > MAXUNCOMPRESSEDSIZE) {
+		g_warning("%s.%d: Excessively large compressed packet: %ld bytes (%ld compressed)"
+		,	__FUNCTION__, __LINE__
+		,	(long)origlen, (long)get_generic_tlv_len(tlvstart, pktend));
+		return FALSE;
+	}
 	return TRUE;
 }
 
@@ -298,14 +306,18 @@ compressframe_tlvconstructor(gpointer tlvstart,		///<[in] Start of the compressi
 	decompressed_size = tlv_get_guint24(valueptr+1, pktend);
 	compression_index = _compressframe_findmethod(compression_type);
 	// Trying to mitigate possible DOS attack using huge packets
-	// In practice, our max JSON decompressed size is under 325K
-	g_return_val_if_fail(decompressed_size <= MAXUNCOMPRESSEDSIZE, NULL);
+	if (decompressed_size > MAXUNCOMPRESSEDSIZE) {
+		g_warning("%s.%d: Excessively large compressed packet: %ld bytes (%ld compressed)"
+		,	__FUNCTION__, __LINE__
+		,	(long)decompressed_size, (long)get_generic_tlv_len(tlvstart, pktend));
+		return FALSE;
+	}
 	g_return_val_if_fail(decompressed_size > 16, NULL);
 	g_return_val_if_fail(compression_index >= 0, NULL);
 	packet = valueptr + COMPRESSFRAMEMIN;
 
 	cmppktsize = pktend8 - tlvstart8;	// Compressed packet size
-	
+
 	*newpacket = allcompressions[compression_index].decompress
 		(packet, cmppktsize, 0, decompressed_size, &actual_size);
 	g_return_val_if_fail(*newpacket != NULL, NULL);
