@@ -701,6 +701,15 @@ class AllPythonHostScores(PythonExec):
         for tup in sorted(yield_drone_scores([], drone_totals, dtype_totals),
                           key=sortkeys, reverse=True):
             yield tup
+@PythonExec.register
+class AllPythonTotalScores(PythonExec):
+    '''query executor returning domain, score-category, total-score'''
+    PARAMETERS = []
+    def result_iterator(self, _params):
+        dtype_totals, _drone_totals, _rule_totals = grab_category_scores(self.store)
+        for tup in yield_total_scores(dtype_totals):
+            yield tup
+
 
 def setup_dict3(d, key1, key2, key3):
     'Initialize the given subkey (3 layers down)to 0.0'
@@ -771,29 +780,24 @@ def grab_category_scores(store, categories=None, domains=None, debug=False):
 
     return dtype_totals, drone_totals, rule_totals
 
-def yield_category_scores(categories, dtype_totals):
-    '''Return the dtype_totals as a CSV-style output.
+def yield_total_scores(dtype_totals, categories=None):
+    '''Format the total scores by category as a named tuple.
     We output the following fields:
-        0:  category name
-        1:  discovery-type
-        2:  total score for this discovery-type _across all drones_
+        0:  domain
+        1:  category name
+        3:  total score for this category
     '''
-    CategoryScore = collections.namedtuple('CategoryScore', ['category', 'discovery_type', 'score'])
-    cats = sorted(dtype_totals.keys(), reverse=True)
-    dtypes = set()
-    for cat in cats:
-        for dtype in dtype_totals[cat]:
-            dtypes.add(dtype)
-    dtypes = list(dtypes)
-    for cat in cats:
-        if categories and cat not in categories:
-            continue
-        for dtype in dtypes:
-            if dtype not in dtype_totals[cat]:
+    TotalScore = collections.namedtuple('TotalScore', ['domain', 'category', 'score'])
+    for domain in sorted(dtype_totals):
+        domain_scores = dtype_totals[domain]
+        for category in sorted(domain_scores):
+            total = 0.0
+            if categories is not None and category not in categories:
                 continue
-            score = dtype_totals[cat][dtype]
-            if score > 0:
-                yield CategoryScore(cat, dtype, score)
+            cat_scores = domain_scores[category]
+            for dtype in cat_scores:
+                total += cat_scores[dtype]
+            yield TotalScore(domain, category, total)
 
 def yield_drone_scores(categories, drone_totals, dtype_totals):
     '''Format the drone_totals + dtype_totals as a named tuple
