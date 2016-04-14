@@ -154,7 +154,7 @@ _resourcenagios_create_argv(char *        argv0,          ///< The string we wan
 	char**  result;
 
 	// Needs to be +2, not +1 as noted above
-	result = (char **) malloc((incoming_count+2)*sizeof(char *));
+	result = (char **) MALLOC((incoming_count+2)*sizeof(char *));
 
 	// Make our return result (argument list)
 	result[0] = g_strdup(argv0);

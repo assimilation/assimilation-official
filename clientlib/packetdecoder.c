@@ -191,7 +191,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 	GSList*		ret = NULL;
 
 	// Loop over all the FrameSets in the packet we were given.
-	while (curframeset < (guint8*)pktend) {
+	while (curframeset < (const guint8*)pktend) {
 		gpointer	nextframeset = NULL;
 		gpointer	framestart = ((guint8*)curframeset + FRAMESET_INITSIZE);
 		gpointer	curframe;
@@ -203,10 +203,10 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 
 		// Check the overall frame size
 		framesetlen = get_generic_tlv_len(curframeset, pktend);
-		if (framesetlen > (guint32)((guint8*)pktend-(curframeset+FRAMESET_INITSIZE))) {
+		if (framesetlen > (guint32)((const guint8*)pktend-(curframeset+FRAMESET_INITSIZE))) {
 			g_warning("%s.%d: Received frameset length [%d] is invalid - cannot exceed %d"
 			,	__FUNCTION__, __LINE__, framesetlen
-			,	(int)((guint8*)pktend-(curframeset+FRAMESET_INITSIZE)));
+			,	(int)((const guint8*)pktend-(curframeset+FRAMESET_INITSIZE)));
 			goto errout;
 		}
 		fsend = curframeset+framesetlen+FRAMESET_INITSIZE;
@@ -267,7 +267,7 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 			g_warning("%s.%d:  Received %d frameset - length is off by"
 			": %d instead"
 			,	__FUNCTION__, __LINE__, fs->fstype
-			,	(int)((guint8*)fsend-((guint8*)curframe)));
+			,	(int)((const guint8*)fsend-((guint8*)curframe)));
 			goto errout;
 		}
 		if (newframestart) {
