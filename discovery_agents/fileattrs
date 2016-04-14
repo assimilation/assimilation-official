@@ -147,7 +147,7 @@ encode_fattrs() {
         return
     fi
     comma=''
-    getfattr -m- -d --absolute-names "$1" |
+    getfattr -m- -d --absolute-names "$1" 2>/dev/null |
     while
         read line
     do
