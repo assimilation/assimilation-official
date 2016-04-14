@@ -121,6 +121,22 @@ class ConfigFile(object):
         'checksum_cmds': [str],         # Ordered List of checksum commands to use
         'checksum_files': [str],        # Files to always perform the checksum of
         'permission_files': [str],      # Files to always check the permissions of
+        'sysfile_discovery':[str],      # Standard/common system files perms to discover
+        'libmodules_discovery':[str],   # Standard/common library directories perms to discover
+        'lib_discovery':[str],          # Standard/common library perms to discover
+        'lib64_discovery':[str],        # Standard/common library perms to discover
+        'libgnu_discovery':[str],       # Standard/common library perms to discover
+        'libgnu64_discovery':[str],     # Standard/common library perms to discover
+        'usrlib_discovery':[str],       # Standard/common library perms to discover
+        'usrlib64_discovery':[str],     # Standard/common library perms to discover
+        'usrlibgnu_discovery':[str],    # Standard/common library perms to discover
+        'usrlibgnu64_discovery':[str],  # Standard/common library perms to discover
+        'bin_discovery':[str],          # Standard/common command directories perms to discover
+        'sbin_discovery': [str],        # Standard/common command directories perms to discover
+        'usr_bin_discovery': [str],     # Standard/common command directories perms to discover
+        'usr_local_discovery': [str],   # Standard/common command directories perms to discover
+        'usr_sbin_discovery': [str],    # Standard/common command directories perms to discover
+        'perm_discovery_lists': [str],  # List of all the collections of perms to discover
     }
     @staticmethod
     def register_callback(function, **args):
@@ -268,19 +284,17 @@ class ConfigFile(object):
                 ],
             # Files/directories to always get the permissions of
             # Directories ending in / also have their contained files checked.
-            'permission_files': [
-                #'/',
-                #'/bin',
-                #'/dev',
-                #'/etc',
+        'sysfile_discovery':[
+                '/',
                 '/etc/audit/',
                 '/etc/bash.bashrc',
                 '/etc/bashrc',
                 '/etc/bash_completion',
                 '/etc/bash_completion.d/',
-                #'/etc/grub.conf/',
-                #'/etc/grub.d/',
+                '/etc/default/grub',
                 '/etc/group',
+                '/etc/grub.conf',
+                '/etc/grub.d/',
                 '/etc/gshadow',
                 '/etc/init.d/',
                 '/etc/login.defs',
@@ -290,24 +304,34 @@ class ConfigFile(object):
                 '/etc/csh.cshrc',
                 '/etc/selinux/',
                 '/etc/shadow',
-                '/lib/',
-                '/lib64/',
-                '/lib/modules/',
-                #'/run',
-                #'/run/lock',
-                #'/run/user',
-                '/sbin/',
                 '/usr/',
-                #'/usr/bin/',
-                #'/usr/lib/',
-                #'/usr/lib64/',
                 '/usr/local/',
-                #'/usr/local/bin/',
-                #'/usr/local/sbin/',
-                #'/usr/sbin',
-                #'/var/',
-                #'/var/log/',
+                '/var/',
                 ],
+        # A collection of directories to gather the permissions of
+        # Note that all these discovery names are in 'perm_discovery_lists' below
+        # That's what triggers them to be discovered.
+        # They are all broken up into several lists because the output is verbose
+        # Both UDP and Neo4j hate large discovery blobs
+        'libmodules_discovery':[ '/lib/modules/' ],
+        'lib_discovery':['/lib/', '/lib/i386-linux-gnu/'],
+        'lib64_discovery':['/lib64', '/lib/x86_64-linux-gnu/'],
+        'usrlib_discovery':['/usr/lib/', '/usr/lib/i386-linux-gnu/' ],
+        'usrlib64_discovery':['/usr/lib64/', '/usr/lib/x86_64-linux-gnu/'],
+        'bin_discovery':['/bin/', '/sbin/'],
+        'usr_bin_discovery': ['/usr/bin/', '/usr/sbin/'],
+        'usr_local_discovery': [ '/usr/local/bin/', '/usr/local/sbin/', '/usr/local/lib/'],
+        'perm_discovery_lists': [
+                'bin_discovery',
+                'lib64_discovery',
+                'libmodules_discovery',
+                'lib_discovery',
+                'sysfile_discovery',
+                'usrlib64_discovery',
+                'usrlib_discovery',
+                'usr_bin_discovery',
+                'usr_local_discovery',
+        ]
         } # End of return value
 
     def __init__(self, filename=None, template=None, defaults=None):

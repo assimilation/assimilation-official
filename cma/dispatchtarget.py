@@ -244,6 +244,16 @@ class DispatchSTARTUP(DispatchTarget):
             params['agent'] = agent
             params['instance'] = '_init_%s' % agent
             discovery_params.append(params)
+        # Discover the permissions of all the lists of files we're configured to ask about
+        # Note that there are several lists to keep the amount of data in any one list
+        # down to a somewhat more reasonable level. 'fileattrs' output is really verbose
+        for pathlist_name in self.config['perm_discovery_lists']:
+            paths = self.config[pathlist_name]
+            params = ConfigFile.agent_params(self.config, 'discovery', 'fileattrs', sysname)
+            params['agent'] = 'fileattrs'
+            params['instance'] = '_init_fileattrs_%s' % pathlist_name
+            params['parameters'] = {'ASSIM_filelist': paths}
+            discovery_params.append(params)
         if CMAdb.debug:
             CMAdb.log.debug('Discovery details:  %s' % str(discovery_params))
         drone.request_discovery(discovery_params)
