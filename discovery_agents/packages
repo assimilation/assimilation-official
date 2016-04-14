@@ -1,5 +1,5 @@
 #!/bin/sh
-# vim: smartindent shiftwidth=2 number
+# vim: smartindent tabstop=4 shiftwidth=4 number expandtab colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -37,18 +37,14 @@ cmdexists() {
 }
 
 
+# Debian Packages
 dpkg_pkgs() {
-  if
-    cmdexists dpkg-query >/dev/null 2>&1
-  then
-    : OK
-  else
-    return 1
-  fi
+  DPKG=$(cmdexists dpkg-query) || return 1
   printf '%s"deb":{' "$ourcomma"
   comma='
 '
-  dpkg-query --show --showformat='"${package;0}::${architecture;0}":"${version;0}"\n' 2>/dev/null |
+  "${DPKG}" --show --showformat='"${package;0}::${architecture;0}":"${version;0}"\n' 2>/dev/null |
+  sort -u |
   while
     read line
   do
@@ -60,18 +56,13 @@ dpkg_pkgs() {
   return 0
 }
 
+# RPM Packages
 rpm_pkgs() {
-  if
-    cmdexists rpm >/dev/null 2>&1
-  then
-    : OK
-  else
-    return 1
-  fi
+  RPM=$(cmdexists rpm) || return 1
   printf '%s"rpm":{' "$ourcomma"
   comma='
 '
-  rpm -qa --queryformat='"%{NAME}::%{ARCH}":"%{VERSION}-%{RELEASE}"\n' 2>/dev/null |
+  "${RPM}" -qa --queryformat='"%{NAME}::%{ARCH}":"%{VERSION}-%{RELEASE}"\n' 2>/dev/null | sort -u |
   while
     read line
   do
@@ -83,6 +74,99 @@ rpm_pkgs() {
   return 0
 }
 
+# Python (pip) Packages
+pip_pkgs() {
+  PIP=$(cmdexists pip) || return 1
+  printf '%s"pip":{' "$ourcomma"
+  comma='
+'
+  "${PIP}" list 2>/dev/null | sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' | sort -u |
+  while
+    read line
+  do
+    printf '%s%s' "${comma}" "${line}"
+
+    comma=',
+'
+  done
+  printf '\n}'
+  return 0
+}
+
+# Ruby GEMs
+gem_pkgs() {
+  GEM=$(cmdexists gem) || return 1
+  printf '%s"gem":{' "$ourcomma"
+  comma='
+'
+  "${GEM}" list -q 2>/dev/null | sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' | sort -u |
+  while
+    read line
+  do
+    printf '%s%s' "${comma}" "${line}"
+
+    comma=',
+'
+  done
+  printf '\n}'
+  return 0
+}
+
+#
+#   Node.js commonly has several versions of a given package loaded...
+#   so we add a suffix onto the later versions...
+#
+npm_pkgs(){
+  NPM=$(cmdexists npm) || return 1
+  printf '%s"npm":{' "$ourcomma"
+  comma='
+'
+  "${NPM}" -g ls 2>/dev/null | sed -e 's%[^A-Za-z_]* %%' -e 's%@%	%' | sort -u | (
+  seq=1
+  prevpkg=NOSUCHPACKAGE
+  while
+    read package version
+  do
+    test -z "$version"  && continue
+    if
+        [ "X$package" != "X$prevpkg" ]
+    then
+        seq=1
+        printf '%s"%s": "%s"' "${comma}" "${package}" "$version"
+    else
+        seq=$(expr $seq + 1)
+        printf '%s"%s#%d": "%s"' "${comma}" "${package}" "$seq" "$version"
+    fi
+    prevpkg=$package
+    comma=',
+'
+  done)
+  printf '\n}'
+  return 0
+}
+
+# PHP packages
+php_pkgs() {
+  PHP=$(cmdexists php) || return 1
+  printf '%s"php":{' "$ourcomma"
+  comma='
+'
+  "${PHP}"  -r 'foreach (get_loaded_extensions() as $extension) echo "\"$extension\": " . "\"" . phpversion($extension) . "\"\n";' |
+  sort -u |
+  while
+    read line
+  do
+    case $line in
+        *'""'*)     continue;;
+        *)          : OK ;;
+    esac
+    printf '%s%s' "${comma}" "${line}"
+    comma=',
+'
+  done
+  printf '\n}'
+  return 0
+}
 
 discover() {
     cat <<-!
@@ -94,15 +178,19 @@ discover() {
 	  "data": {
 	!
   ourcomma=""
-  for pkgtype in dpkg_pkgs rpm_pkgs
+  # Maybe one day I'll look at Perl - the complete answer is quite slow, and requires installing
+  # a package not otherwise required.
+  # For Java it would probably have to be a separate package since there is no central
+  # repository for JARs like other languages have.
+  # For that case, we could trigger discovery based on Java programs talking on the network
+  # like we do for collecting checksums.
+  for pkgtype in dpkg_pkgs gem_pkgs npm_pkgs php_pkgs pip_pkgs rpm_pkgs
   do
     if 
       $pkgtype "$ourcomma"
     then
       ourcomma=",
 "
-    else
-      ourcomma=""
     fi
   done
   echo "}}"
