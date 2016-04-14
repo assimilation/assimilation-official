@@ -169,10 +169,11 @@ class BestPractices(DiscoveryListener):
         .../v1.0/doquery?app=os&domain=security&class=posix
             &os=linux&osname=redhat&release=6&tipname=nist_V-58901
         '''
-        values={'app':      'os',
+        values={'app':      ruleobj.get('application', 'os'),
                 'class':    'posix',
                 'domain':   ruleobj['category'],
-                'tipname':  ruleid}
+                'tipname':  ruleid
+                }
         osinfo = drone.jsonval('os')
         if osinfo is not None and 'data' in osinfo:
             osdata = osinfo['data']
@@ -182,8 +183,6 @@ class BestPractices(DiscoveryListener):
                 values['osname'] = osdata['Distributor ID'].lower()
             if 'Release' in osdata:
                 values['release'] = osdata['Release'].lower()
-        else:
-            print >> sys.stderr, 'OOPS: osinfo is %s' % str(osinfo)
         names = values.keys()
         names.sort()
 
@@ -221,9 +220,9 @@ class BestPractices(DiscoveryListener):
             self.log_rule_results(statuses, drone, srcaddr, jsonobj, evaltype, rulesobj)
 
     @staticmethod
-    def send_rule_event(oldstat, newstat, drone, ruleid, ruleobj):
+    def send_rule_event(oldstat, newstat, drone, ruleid, ruleobj, url):
         ''' Newstat, ruleid, and ruleobj can never be None. '''
-        extrainfo = {'ruleid': ruleid, 'category': ruleobj[ruleid]['category']}
+        extrainfo = {'ruleid': ruleid, 'category': ruleobj[ruleid]['category'], 'url': url}
         if oldstat is None:
             if newstat == 'fail':
                 AssimEvent(drone, AssimEvent.OBJWARN, extrainfo=extrainfo)
@@ -252,6 +251,8 @@ class BestPractices(DiscoveryListener):
         return (rulesobj.score_algorithm if hasattr(rulesobj, 'score_algorithm') else
                 BestPractices.incredibly_basic_rule_score_algorithm)
 
+    #R0914 -- too many local variables
+    #pylint: disable=R0914
     def log_rule_results(self, results, drone, _srcaddr, discoveryobj, discovertype, rulesobj):
         '''Log the results of this set of rule evaluations'''
         status_name = Drone.bp_discoverytype_result_attrname(discovertype)
@@ -270,13 +271,12 @@ class BestPractices(DiscoveryListener):
                 if oldstat == stat or stat == 'NA':
                     # No change
                     continue
-                BestPractices.send_rule_event(oldstat, stat, drone, ruleid, rulesobj)
+                url = self.url(drone, ruleid, rulesobj[ruleid])
+                BestPractices.send_rule_event(oldstat, stat, drone, ruleid, rulesobj, url)
                 thisrule = rulesobj[ruleid]
                 rulecategory = thisrule['category']
-                logmethod('%s %sED %s rule %s: %s [%s]' % (drone,
-                                 stat.upper(), rulecategory, ruleid,
-                                 self.url(drone, ruleid, rulesobj[ruleid]),
-                                 thisrule['rule']))
+                logmethod('%s %sED %s rule %s: %s [%s]' %
+                          (drone, stat.upper(), rulecategory, ruleid, url, thisrule['rule']))
         self.compute_score_updates(discoveryobj, drone, rulesobj, results, oldstats)
         setattr(drone, status_name, str(results))
 
@@ -554,13 +554,13 @@ if __name__ == '__main__':
     # Create temporary rules for the send_rule_event tests
     for case in ('f2p', 'n2f', 'p2f', 'i2f', 'f2i', 'f2na', 'na2f'):
         testrules[case] = atestrule
-    BestPractices.send_rule_event('fail', 'pass', 'testdrone', 'f2p', testrules)
-    BestPractices.send_rule_event(None, 'fail', 'testdrone', 'n2f', testrules)
-    BestPractices.send_rule_event('pass', 'fail', 'testdrone', 'p2f', testrules)
-    BestPractices.send_rule_event('ignore', 'fail', 'testdrone', 'i2f', testrules)
-    BestPractices.send_rule_event('fail', 'ignore', 'testdrone', 'f2i', testrules)
-    BestPractices.send_rule_event('fail', 'NA', 'testdrone', 'f2na', testrules)
-    BestPractices.send_rule_event('NA', 'fail', 'testdrone', 'na2f', testrules)
+    BestPractices.send_rule_event('fail', 'pass', 'testdrone', 'f2p', testrules,   'https://URL')
+    BestPractices.send_rule_event(None, 'fail', 'testdrone', 'n2f', testrules,     'https://URL')
+    BestPractices.send_rule_event('pass', 'fail', 'testdrone', 'p2f', testrules,   'https://URL')
+    BestPractices.send_rule_event('ignore', 'fail', 'testdrone', 'i2f', testrules, 'https://URL')
+    BestPractices.send_rule_event('fail', 'ignore', 'testdrone', 'f2i', testrules, 'https://URL')
+    BestPractices.send_rule_event('fail', 'NA', 'testdrone', 'f2na', testrules,    'https://URL')
+    BestPractices.send_rule_event('NA', 'fail', 'testdrone', 'na2f', testrules,    'https://URL')
     # Get rid of the temporary rules for the send_rule_event tests
     for case in ('f2p', 'n2f', 'p2f', 'i2f', 'f2i', 'f2na', 'na2f'):
         del testrules[case]
