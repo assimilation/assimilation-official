@@ -1,0 +1,17 @@
+{
+    "copyright": "Copyright(C) 2016 Assimilation Systems Limited",
+    "querytype": "PythonExec",
+    "subtype": "AllPythonTotalScores",
+    "descriptions": {
+        "en": {
+            "short":    "get total category scores",
+            "long":     "get total scores organized by domain, category, category-score."
+        }
+    },
+    "parameters": {
+    },
+    "cmdline": {
+        "en":     "${domain}, ${category}, ${score}",
+        "script": "${domain},${category},${score}"
+    }
+}
