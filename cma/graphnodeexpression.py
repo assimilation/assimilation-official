@@ -666,11 +666,15 @@ def OR(args, context):
     #print >> sys.stderr, 'OR(%s)' % (str(args))
     if len(args) < 1:
         return None
+    anyfalse = False
     for arg in args:
         value = GraphNodeExpression.evaluate(arg, context)
-        if value is not None and value:
-            return value
-    return None
+        if value is not None:
+            if value:
+                return value
+            else:
+                anyfalse = True
+    return False if anyfalse else None
 
 @GraphNodeExpression.RegisterFun
 def AND(args, context):
@@ -831,7 +835,7 @@ def MUST(args, _unused_context):
 
 @GraphNodeExpression.RegisterFun
 def NONEOK(args, _unused_context):
-    'Return True if all args are True or None'
+    'Return True if all args are True or None - that is, if no args are False'
     #print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
     if not hasattr(args, '__iter__') or isinstance(args, (str, unicode)):
         args = (args,)
