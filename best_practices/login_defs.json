@@ -8,26 +8,32 @@
 	},
   "nist_V-38475": {
 	"category": "security",
+	"severity": "medium",
         "rule": "MUST(GE($PASS_MIN_LEN, 14))"
 	},
   "nist_V-38477": {
 	"category": "security",
+	"severity": "medium",
         "rule": "MUST(GE($PASS_MIN_DAYS, 1))"
 	},
   "nist_V-38479": {
 	"category": "security",
+	"severity": "medium",
         "rule": "MUST(LE($PASS_MAX_DAYS, 60))"
 	},
   "nist_V-38480": {
 	"category": "security",
+	"severity": "low",
         "rule": "MUST(EQ($PASS_WARN_AGE, 7))"
 	},
   "nist_V-38576": {
 	"category": "security",
+	"severity": "medium",
         "rule": "MUST(EQ($ENCRYPT_METHOD, SHA512))"
 	},
   "nist_V-38645": {
 	"category": "security",
+	"severity": "low",
         "rule": "MUST(EQ($UMASK, 077))"
 	}
 }
