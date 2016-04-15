@@ -251,7 +251,7 @@ class DispatchSTARTUP(DispatchTarget):
             paths = self.config[pathlist_name]
             params = ConfigFile.agent_params(self.config, 'discovery', 'fileattrs', sysname)
             params['agent'] = 'fileattrs'
-            params['instance'] = '_init_fileattrs_%s' % pathlist_name
+            params['instance'] = pathlist_name
             params['parameters'] = {'ASSIM_filelist': paths}
             discovery_params.append(params)
         if CMAdb.debug:

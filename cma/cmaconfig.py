@@ -121,21 +121,21 @@ class ConfigFile(object):
         'checksum_cmds': [str],         # Ordered List of checksum commands to use
         'checksum_files': [str],        # Files to always perform the checksum of
         'permission_files': [str],      # Files to always check the permissions of
-        'sysfile_discovery':[str],      # Standard/common system files perms to discover
-        'libmodules_discovery':[str],   # Standard/common library directories perms to discover
-        'lib_discovery':[str],          # Standard/common library perms to discover
-        'lib64_discovery':[str],        # Standard/common library perms to discover
-        'libgnu_discovery':[str],       # Standard/common library perms to discover
-        'libgnu64_discovery':[str],     # Standard/common library perms to discover
-        'usrlib_discovery':[str],       # Standard/common library perms to discover
-        'usrlib64_discovery':[str],     # Standard/common library perms to discover
-        'usrlibgnu_discovery':[str],    # Standard/common library perms to discover
-        'usrlibgnu64_discovery':[str],  # Standard/common library perms to discover
-        'bin_discovery':[str],          # Standard/common command directories perms to discover
-        'sbin_discovery': [str],        # Standard/common command directories perms to discover
-        'usr_bin_discovery': [str],     # Standard/common command directories perms to discover
-        'usr_local_discovery': [str],   # Standard/common command directories perms to discover
-        'usr_sbin_discovery': [str],    # Standard/common command directories perms to discover
+        'sysfile_fileattrs':[str],      # Standard/common system files perms to discover
+        'libmodules_fileattrs':[str],   # Standard/common library directories perms to discover
+        'lib_fileattrs':[str],          # Standard/common library perms to discover
+        'lib64_fileattrs':[str],        # Standard/common library perms to discover
+        'libgnu_fileattrs':[str],       # Standard/common library perms to discover
+        'libgnu64_fileattrs':[str],     # Standard/common library perms to discover
+        'usrlib_fileattrs':[str],       # Standard/common library perms to discover
+        'usrlib64_fileattrs':[str],     # Standard/common library perms to discover
+        'usrlibgnu_fileattrs':[str],    # Standard/common library perms to discover
+        'usrlibgnu64_fileattrs':[str],  # Standard/common library perms to discover
+        'bin_fileattrs':[str],          # Standard/common command directories perms to discover
+        'sbin_fileattrs': [str],        # Standard/common command directories perms to discover
+        'usr_bin_fileattrs': [str],     # Standard/common command directories perms to discover
+        'usr_local_fileattrs': [str],   # Standard/common command directories perms to discover
+        'usr_sbin_fileattrs': [str],    # Standard/common command directories perms to discover
         'perm_discovery_lists': [str],  # List of all the collections of perms to discover
     }
     @staticmethod
@@ -151,7 +151,7 @@ class ConfigFile(object):
         Sounds kinda weird, but it makes sense - and is handy for our tests to not have to
         have the current defaults updated all the time...
         '''
-        return {
+        retval = {
             'OUI': {
                 # Addendum of locally-known OUIs - feel free to contribute ones you find...
                 # Python includes lots of them, but is missing newer ones.
@@ -284,7 +284,7 @@ class ConfigFile(object):
                 ],
             # Files/directories to always get the permissions of
             # Directories ending in / also have their contained files checked.
-        'sysfile_discovery':[
+        'sysfile_fileattrs':[
                 '/',
                 '/etc/audit/',
                 '/etc/bash.bashrc',
@@ -313,26 +313,28 @@ class ConfigFile(object):
         # That's what triggers them to be discovered.
         # They are all broken up into several lists because the output is verbose
         # Both UDP and Neo4j hate large discovery blobs
-        'libmodules_discovery':[ '/lib/modules/' ],
-        'lib_discovery':['/lib/', '/lib/i386-linux-gnu/'],
-        'lib64_discovery':['/lib64', '/lib/x86_64-linux-gnu/'],
-        'usrlib_discovery':['/usr/lib/', '/usr/lib/i386-linux-gnu/' ],
-        'usrlib64_discovery':['/usr/lib64/', '/usr/lib/x86_64-linux-gnu/'],
-        'bin_discovery':['/bin/', '/sbin/'],
-        'usr_bin_discovery': ['/usr/bin/', '/usr/sbin/'],
-        'usr_local_discovery': [ '/usr/local/bin/', '/usr/local/sbin/', '/usr/local/lib/'],
+        'libmodules_fileattrs':[ '/lib/modules/' ],
+        'lib_fileattrs':['/lib/', '/lib/i386-linux-gnu/'],
+        'lib64_fileattrs':['/lib64', '/lib/x86_64-linux-gnu/'],
+        'usrlib_fileattrs':['/usr/lib/', '/usr/lib/i386-linux-gnu/' ],
+        'usrlib64_fileattrs':['/usr/lib64/', '/usr/lib/x86_64-linux-gnu/'],
+        'bin_fileattrs':['/bin/', '/sbin/'],
+        'usr_bin_fileattrs': ['/usr/bin/', '/usr/sbin/'],
+        'usr_local_fileattrs': [ '/usr/local/bin/', '/usr/local/sbin/', '/usr/local/lib/'],
         'perm_discovery_lists': [
-                'bin_discovery',
-                'lib64_discovery',
-                'libmodules_discovery',
-                'lib_discovery',
-                'sysfile_discovery',
-                'usrlib64_discovery',
-                'usrlib_discovery',
-                'usr_bin_discovery',
-                'usr_local_discovery',
+                'bin_fileattrs',
+                'lib64_fileattrs',
+                'libmodules_fileattrs',
+                'lib_fileattrs',
+                'sysfile_fileattrs',
+                'usrlib64_fileattrs',
+                'usrlib_fileattrs',
+                'usr_bin_fileattrs',
+                'usr_local_fileattrs',
         ]
         } # End of return value
+        retval['allbpdiscoverytypes'].extend(retval['perm_discovery_lists'])
+        return retval
 
     def __init__(self, filename=None, template=None, defaults=None):
         'Init function for ConfigFile class, give us a filename - or None!'
