@@ -564,10 +564,10 @@ if __name__ == '__main__':
     validate_drawing_types()
     desc = 'Create illustration from Assimilation graph database'
     usage = 'usage: drawwithdot [options] '
-    prefix='('
-    for dtype in sorted(drawing_types.keys()):
-        usage += '%s%s' % (prefix, dtype)
-        prefix = '|'
+    delimiter='('
+    for drawing_type in sorted(drawing_types.keys()):
+        usage += '%s%s' % (delimiter, drawing_type)
+        delimiter = '|'
     usage += ')'
 
 
