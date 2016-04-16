@@ -562,8 +562,16 @@ def drawing_type_help():
 
 if __name__ == '__main__':
     validate_drawing_types()
+    desc = 'Create illustration from Assimilation graph database'
+    usage = 'usage: drawwithdot [options] '
+    prefix='('
+    for dtype in sorted(drawing_types.keys()):
+        usage += '%s%s' % (prefix, dtype)
+        prefix = '|'
+    usage += ')'
 
-    opts = optparse.OptionParser()
+
+    opts = optparse.OptionParser(description=desc, usage=usage)
     opts.add_option('-d', '--drawingtype',
                       action='store',
                       dest='drawingtype',
@@ -588,6 +596,18 @@ if __name__ == '__main__':
     #opts.set_defaults('size', (30,8))
     cmdoptions, args = opts.parse_args()
     cmdoptions.skin='default'
+    if len(args) == 1:
+        if args[0] not in drawing_types:
+            print('ERROR: "%s" is not a known illustration type.' % args[0],
+                  file=sys.stderr)
+            print('Known illustration types: %s' % str(drawing_types.keys()))
+            exit(1)
+        cmdoptions.drawingtype = args[0]
+    elif len(args) > 1:
+        print ('ERROR: Only one illustration type allowed.', file=sys.stderr)
+        exit(1)
+
+
 
     # Process all the overall command line options...
     graphoptions = {}
