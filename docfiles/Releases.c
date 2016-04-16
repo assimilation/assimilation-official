@@ -1,5 +1,33 @@
 /**
 @page ReleaseDescriptions Release Descriptions
+@section Version_1_1_5 version 1.1.5 - the DevOpsRox release
+@subsection Features_1_1_5 New Features
+- Added <a href="https://trello.com/c/G1DSBE6U">queries for installed packages</a>
+- Added <a href=https://trello.com/c/9NxqFAGG"">OUIs to some MAC queries</a>
+- Added <a href="https://trello.com/c/10HLSbEP">DNS/hosts names to some IP queries</a>
+- Added a <a href="https://trello.com/c/IPIE00rw">query for MAC addresses without OUIs</a>
+- Added a <a href="https://trello.com/c/qeEpY0wY">query for IP addresses without DNS/hosts names</a>
+- Collect file ownership, permissions for system files
+- Added <a href="https://trello.com/c/py1Eo7RT">security rules for password, group and shadow file permissions.</a>
+- Added an <a href="https://trello.com/c/ceIgGgZI">/etc/sudoers best practice rule</a>
+- Added <a href="https://trello.com/c/K6c0Qevr">security notifications to our sample email tool.</a>
+- Added <a href="https://trello.com/c/KsGkBqTz">capability to make python queries be usable the same way as pure Cypher queries.</a>
+
+@subsection BugFixes_1_1_5 Bug Fixes
+- <tt>assimcli loadqueries</tt> <a href="https://trello.com/c/cXc5wweQ">accepted bad JSON</a>
+- Neo4j OCF monitoring agent now <a href="https://trello.com/c/ItD29HS0">works with Neo4j database with authentication enabled</a>.
+- fixed "<a href="https://trello.com/c/tDQI98Au">Unterminated quoted string"</a> in <i>installme</i> installer
+
+@subsection Caveats_1_1_5 Caveats
+- a few options were shuffled for <i>assimcli query</i> score reporting queries.
+- Not compatible with database formats before 1.1.0
+- No alerting, or interface to existing alerting beyond a sample email script. (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and Debian, SuSE and 7.0 and later versions of CentOS.
+
 @section Version_1_1_4 version 1.1.4 - the April Fools Release (not a joke)
 @subsection Features_1_1_4 New Features
 - Recognize and automatically monitor Oracle
