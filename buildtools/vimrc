@@ -1,0 +1,7 @@
+# Set this as a .vimrc and call your edits with "vim -u <this_vimrc> <file>"
+set smartindent 
+set tabstop=4 
+set shiftwidth=4 
+set expandtab 
+set number 
+set colorcolumn=80
