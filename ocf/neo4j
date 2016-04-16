@@ -28,8 +28,11 @@
 #                       In theory we could parse the config file to get this ;-)
 #       query       What query to run for $OCF_CHECK_LEVEL < 20
 #       query20     What query to run for $OCF_CHECK_LEVEL >= 20
+#       query20count How many lines of output should query20 produce?
+#       query20fields How many fields does query20 produce?
 #       regex       What regex to use to examine query output for $OCF_CHECK_LEVEL < 20
 #       regex20     What regex to use to examine query output for $OCF_CHECK_LEVEL >= 20
+#                   NOTE THAT REGEXES ARE CURRENTLY IGNORED
 #       grepflags   What flags to give to grep with the regex
 #
 #   We also support two levels of monitoring: $OCF_CHECK_LEVEL < 20 and >= 20
@@ -47,7 +50,9 @@ OCF_ERR_INSTALLED=5
 
 :   ${neo4j_java:=${OCF_RESKEY_neo4j_java-'java'}}
 :   ${query:=${OCF_RESKEY_query-'START one=node(*) RETURN one LIMIT 1'}}
-:   ${query20:=${OCF_RESKEY_query20-'START one=node(*) MATCH one-[rel]-two RETURN one, type(rel), two LIMIT 1'}}
+:   ${query20:=${OCF_RESKEY_query20-'START one=node(*) MATCH one-[rel]-two RETURN one, type(rel), two LIMIT 2'}}
+:   ${query20count:=${OCF_RESKEY_query20count-2}}
+:   ${query20fields:=${OCF_RESKEY_query20fields-3}}
 :   ${regex:=${OCF_RESKEY_regex-'^{ *"results" *: *\[.*\] *, *"errors" *: *\[ *\] *}$'}}
 :   ${regex20:=${OCF_RESKEY_regex-'^{ *"results" *: *\[.*\] *, *"errors" *: *\[ *\] *}$'}}
 :   ${grepflags:=${OCF_RESKEY_grepflags-''}}
@@ -57,6 +62,9 @@ OCF_ERR_INSTALLED=5
 neo4j_home="/var/lib/${neo4j}"
 pidfile=${neo4j_home}/data/neo4j-service.pid
 startscript=${neo4j_home}/bin/neo4j
+
+EXPECTEDCOUNT=1
+EXPECTEDFIELDS=1
 
 config_param() {
     config=${neo4j_home}/conf/neo4j-server.properties
@@ -99,6 +107,8 @@ if
 then
     query=${query20}
     regex=${regex20}
+    EXPECTEDCOUNT=${query20count}
+    EXPECTEDFIELDS=${query20fields}
 fi
 
 binary_in_path() {
@@ -165,6 +175,61 @@ neo4j_stop() {
 }
 
 
+#
+# Function to perform a cypher query using the neo4j-shell program
+# Arguments are:
+#     - expected number of fields in query output
+#     - expected number of lines of output from query
+#     - Cypher query to execute (must yield a node in the first column)
+#
+CypherShellQuery() {
+    expected_fields=$1
+    expected_lines=$2
+    cypher="$3"
+    OUT=$(neo4j-shell -c "${cypher};" 2>&1 )
+    # Look for the uninterrupted dash lines - should be three of them
+    count=$(echo "$OUT" | grep -c '^+-[-]*-+$')
+    case "$count" in
+        3)    : OK ;;
+        *)    log_failure_message "${neo4j} query [$cypher] failed."
+              return 1;;
+    esac
+    # See if we got the right number of rows according to the query summary line
+    if
+        echo "$OUT" | egrep "^${expected_lines} rows?$" >/dev/null 2>&1
+    then
+        : OK
+    else
+        rows=$(egrep " rows?$")
+        log_failure_message "${neo4j} query: wrong number of rows [$rows] from [$cypher]."
+        return 2
+    fi
+    j=0
+    greppat='| Node\['
+    while
+        [ $j -lt $expected_fields ]
+    do
+        j=$(expr $j + 1)
+        greppat="${greppat}.*|"
+    done
+    # Now see if we really got the right number of lines with *at least* the expected fields...
+    # It might keep us from seeing a bug in the output, but that isn't likely.
+    count=$(echo "$OUT" | grep -c "^$greppat$")
+    if
+        [ $count -eq $expected_lines ]
+    then
+        : OK
+    else
+        log_failure_message "${neo4j} query: wrong number of rows/columns from [$cypher]."
+        return 3
+    fi
+}
+
+
+runquery_shell() {
+    CypherShellQuery "$EXPECTEDFIELDS" "$EXPECTEDCOUNT" "$query"
+}
+
 runquery() {
     queryjson="{\"statements\" : [ { \"statement\" : \"$query\" } ] }"
     committrans='db/data/transaction/commit'
@@ -180,17 +245,18 @@ runquery() {
 }
 
 neo4j_monitor() {
-    if
-        [ ${no_wget_or_curl} -ne 0 ]
-    then
-        log_failure_msg 'Must have either curl or wget installed for monitor.'
-        return ${OCF_ERR_INSTALLED}
-    fi
+    #if
+    #    [ ${no_wget_or_curl} -ne 0 ]
+    #then
+    #    log_failure_msg 'Must have either curl or wget installed for monitor.'
+    #    return ${OCF_ERR_INSTALLED}
+    #fi
     if
         neo4j_silent_status
     then
         if
-            runquery | grep ${grepflags} "${regex}" >/dev/null
+            # runquery | grep ${grepflags} "${regex}" >/dev/null
+            runquery_shell
         then
             log_success_msg "${neo4j} is operational."
             return ${OCF_SUCCESS}
