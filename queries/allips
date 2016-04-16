@@ -13,7 +13,7 @@
     },
     "parameters": {},
     "cmdline": {
-        "en": "${ip.ipaddr} ${nic.macaddr} ${system.designation}",
-        "script": "${ip.ipaddr}	${nic.macaddr}"
+        "en": "${ip.ipaddr} ${system.designation} DNS: ${ip.hostname} ${nic.macaddr} OUI:${nic.OUI}",
+        "script": "${ip.ipaddr},${ip.hostname},${nic.macaddr},${nic.OUI}"
     }
 }

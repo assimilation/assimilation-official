@@ -14,7 +14,7 @@
     },
     "parameters": {},
     "cmdline": {
-        "en": "${ip.ipaddr}	MAC(${nic.macaddr})",
-        "script": "${ip.ipaddr}	${nic.macaddr}"
+        "en": "${ip.ipaddr}	DNS: ${ip.hostname} MAC: ${nic.macaddr} OUI:${nic.OUI})",
+        "script": "${ip.ipaddr},${ip.hostname},${nic.macaddr},${nic.OUI}"
     },
 }

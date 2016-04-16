@@ -22,7 +22,7 @@
         }
     },
     "cmdline": {
-        "en": "${system.designation} [MAC:${nic.macaddr}]",
-        "script": "${system.designation}"
+        "en": "${system.designation} DNS: ${ip.hostname} [MAC:${nic.macaddr}, OUI:${nic.OUI}]",
+        "script": "${system.designation},${ip.hostname}"
     },
 }
