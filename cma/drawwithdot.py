@@ -65,6 +65,8 @@ from __future__ import print_function #, unicode_literals
 from graphnodes import GraphNode
 from assimcli import dbsetup
 from AssimCclasses import pyConfigContext, pyNetAddr
+from AssimCtypes import VERSION_STRING, LONG_LICENSE_STRING,    \
+        SHORT_LICENSE_STRING
 import sys, os, optparse
 
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
@@ -563,6 +565,7 @@ def drawing_type_help():
 if __name__ == '__main__':
     validate_drawing_types()
     desc = 'Create illustration from Assimilation graph database'
+    desc += '.\nLicensed under the %s' % LONG_LICENSE_STRING
     usage = 'usage: drawwithdot [options] '
     delimiter='('
     for drawing_type in sorted(drawing_types.keys()):
@@ -571,7 +574,8 @@ if __name__ == '__main__':
     usage += ')'
 
 
-    opts = optparse.OptionParser(description=desc, usage=usage)
+    opts = optparse.OptionParser(description=desc, usage=usage,
+            version=VERSION_STRING + ' (License: %s)' % SHORT_LICENSE_STRING)
     opts.add_option('-d', '--drawingtype',
                       action='store',
                       dest='drawingtype',
