@@ -749,7 +749,7 @@ def grab_category_scores(store, categories=None, domains=None, debug=False):
     if categories is not None:
         categories = (categories,) if isinstance(categories, (str, unicode)) else list(categories)
 
-    BestPractices(CMAdb.io.config, CMAdb.io, store, CMAdb.log, debug=debug)
+    bpobj = BestPractices(CMAdb.io.config, CMAdb.io, store, CMAdb.log, debug=debug)
     dtype_totals = {} # scores organized by (domain, category, discovery-type)
     drone_totals = {} # scores organized by (domain, category, discovery-type, drone)
     rule_totals  = {} # scores organized by (domain, category, discovery-type, rule)
@@ -763,7 +763,7 @@ def grab_category_scores(store, categories=None, domains=None, debug=False):
             statuses = getattr(drone, dattr)
             for rule_obj in BestPractices.eval_objects[dtype]:
                 rulesobj = rule_obj.fetch_rules(drone, None, dtype)
-                _, scores, rulescores = BestPractices.compute_scores(drone, rulesobj, statuses)
+                _, scores, rulescores = bpobj.compute_scores(drone, rulesobj, statuses)
                 for category in scores:
                     if categories and category not in categories:
                         continue

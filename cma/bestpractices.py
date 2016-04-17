@@ -239,17 +239,20 @@ class BestPractices(DiscoveryListener):
             if newstat == 'fail':
                 AssimEvent(drone, AssimEvent.OBJWARN, extrainfo=extrainfo)
 
-    @staticmethod
-    def incredibly_basic_rule_score_algorithm(_drone, _rule, status):
-        'An incredibly basic (nearly-stupid) best practice scoring algorithm'
-        return 1.0 if status == 'fail' else 0.0
-
-
-    @staticmethod
-    def determine_rule_score_algorithm(_drone, rulesobj):
-        'Select the algorithm for scoring these rules for this Drone'
-        return (rulesobj.score_algorithm if hasattr(rulesobj, 'score_algorithm') else
-                BestPractices.incredibly_basic_rule_score_algorithm)
+    def basic_rule_score_algorithm(self, _drone, rule, status):
+        'A very basic best practice scoring algorithm'
+        if status != 'fail':
+            return 0.0
+        category = rule.get('category', 'security')
+        if category == 'comment':
+            return 0.0
+        severity = rule.get('severity', 'medium')
+        default_sevmap = {'high': 3.0, 'medium': 2.0, 'low': 1.0}
+        if 'score_severity_map' in self.config:
+            sevmap = self.config['score_severity_map'].get(category, default_sevmap)
+        else:
+            sevmap = default_sevmap
+        return sevmap.get(severity, sevmap['medium'])
 
     #R0914 -- too many local variables
     #pylint: disable=R0914
@@ -280,13 +283,11 @@ class BestPractices(DiscoveryListener):
         self.compute_score_updates(discoveryobj, drone, rulesobj, results, oldstats)
         setattr(drone, status_name, str(results))
 
-    @staticmethod
-    def compute_scores(drone, rulesobj, statuses):
+    def compute_scores(self, drone, rulesobj, statuses):
         '''Compute the scores from this set of statuses - organized by category
         We return the total score, scores organized by category
         and the scoring detailed on a rule-by-rule basis.
         '''
-        score_algorithm = BestPractices.determine_rule_score_algorithm(drone, rulesobj)
         scores = {}
         rulescores = {}
         totalscore=0
@@ -298,7 +299,7 @@ class BestPractices(DiscoveryListener):
             for ruleid in statuses[status]:
                 rule = rulesobj[ruleid]
                 rulecat = rule['category']
-                rulescore = score_algorithm(drone, rule, status)
+                rulescore = self.basic_rule_score_algorithm(drone, rule, status)
                 if rulecat not in rulescores:
                     rulescores[rulecat] = {}
                 rulescores[rulecat][ruleid] = rulescore
@@ -310,8 +311,7 @@ class BestPractices(DiscoveryListener):
 
     #pylint  disable=R0914 -- too many local variables
     #pylint: disable=R0914
-    @staticmethod
-    def compute_score_updates(discovery_json, drone, rulesobj, newstats, oldstats):
+    def compute_score_updates(self, discovery_json, drone, rulesobj, newstats, oldstats):
         '''We compute the score updates for the rules and results we've been given.
         The drone is a Drone (or host), the 'rulesobj' contains the rules and their categories.
         Statuses contains the results of evaluating the rules.
@@ -328,8 +328,8 @@ class BestPractices(DiscoveryListener):
 
 
         '''
-        _, oldcatscores, _ = BestPractices.compute_scores(drone, rulesobj, oldstats)
-        _, newcatscores, _ = BestPractices.compute_scores(drone, rulesobj, newstats)
+        _, oldcatscores, _ = self.compute_scores(drone, rulesobj, oldstats)
+        _, newcatscores, _ = self.compute_scores(drone, rulesobj, newstats)
         keys = set(newcatscores)
         keys |= set(oldcatscores)
         # I have no idea why "keys = set(newcatscores) | set(oldcatscores)" did not work...
@@ -521,7 +521,7 @@ if __name__ == '__main__':
     logger = logging.getLogger('BestPracticesTest')
     logger.addHandler(logging.StreamHandler(sys.stderr))
     testconfig = {'allbpdiscoverytypes': ['login_defs', 'pam', 'proc_sys', 'sshd']}
-    BestPractices(testconfig, None, None, logger, False)
+    bpobj = BestPractices(testconfig, None, None, logger, False)
     for procsys in BestPractices.eval_classes['proc_sys']:
         ourstats = procsys.evaluate("testdrone", None, testjsonobj, testrules, 'proc_sys')
         size = sum([len(ourstats[st]) for st in ourstats.keys() if st != 'score'])
@@ -531,22 +531,22 @@ if __name__ == '__main__':
         assert len(ourstats['NA']) >= 13
         assert len(ourstats['pass']) >= 3
         assert len(ourstats['ignore']) == 0
-        score, tstdiffs = BestPractices.compute_score_updates(testjsonobj, dummydrone, testrules,
+        score, tstdiffs = bpobj.compute_score_updates(testjsonobj, dummydrone, testrules,
                                                            ourstats, {})
-        assert str(pyConfigContext(score)) == '{"networking":1.,"security":2.}'
+        assert str(pyConfigContext(score)) == '{"networking":1.,"security":4.}'
         # pylint: disable=E1101
         assert dummydrone.bp_category_networking_score == 1.0   # should be OK for integer values
-        assert dummydrone.bp_category_security_score == 2.0     # should be OK for integer values
+        assert dummydrone.bp_category_security_score   == 4.0   # should be OK for integer values
         assert type(dummydrone.bp_category_networking_score) == float
         assert type(dummydrone.bp_category_security_score) == float
-        assert str(pyConfigContext(tstdiffs)) == '{"networking":1.,"security":2.}'
-        score, tstdiffs = BestPractices.compute_score_updates(testjsonobj, dummydrone, testrules,
+        assert str(pyConfigContext(tstdiffs)) == '{"networking":1.,"security":4.}'
+        score, tstdiffs = bpobj.compute_score_updates(testjsonobj, dummydrone, testrules,
                                                            ourstats, ourstats)
-        assert str(pyConfigContext(score)) == '{"networking":1.,"security":2.}'
+        assert str(pyConfigContext(score)) == '{"networking":1.,"security":4.}'
         assert str(pyConfigContext(tstdiffs)) == '{}'
-        score, tstdiffs = BestPractices.compute_score_updates(testjsonobj, dummydrone, testrules,
+        score, tstdiffs = bpobj.compute_score_updates(testjsonobj, dummydrone, testrules,
                                                            {}, ourstats)
-        assert str(pyConfigContext(tstdiffs)) == '{"networking":-1.,"security":-2.}'
+        assert str(pyConfigContext(tstdiffs)) == '{"networking":-1.,"security":-4.}'
         assert dummydrone.bp_category_networking_score == 0.0   # should be OK for integer values
         assert dummydrone.bp_category_security_score == 0.0     # should be OK for integer values
     DebugEventObserver()

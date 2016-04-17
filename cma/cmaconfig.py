@@ -78,6 +78,7 @@ class ConfigFile(object):
         'compress':             pyCompressFrame,# Packet compression frame
         'compression_method':   {'zlib'},   # Packet compression method
         'compression_threshold':{int,long}, # Threshold for when to start compressing
+        'score_severity_map':   {str: {'high': float, 'medium': float, 'low': float}},
         'discovery': {
                 'repeat':   {int,long},     # how often to repeat a discovery action
                 'warn':     {int,long},     # How long to wait when issuing a slow discovery warning
@@ -208,6 +209,9 @@ class ConfigFile(object):
             'cmainit':                  pyNetAddr("0.0.0.0:1984"),  # Our listening address
             'compression_threshold':    20000,                      # Compress packets >= 20 kbytes
             'compression_method':       "zlib",                     # Compression method
+            'score_severity_map':   {'security':    {'high': 3.0, 'medium': 2.0, 'low': 1.0},
+                                     'networking':  {'high': 3.0, 'medium': 2.0, 'low': 1.0},
+                                    },
             'discovery': {
                 'repeat':           60,     # Default repeat interval in seconds
                 'warn':             120,    # Default slow discovery warning time
