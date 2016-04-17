@@ -2,7 +2,8 @@
 @page ReleaseDescriptions Release Descriptions
 @section Version_1_1_5 version 1.1.5 - the DevOpsRox release
 @subsection Features_1_1_5 New Features
-- Added <a href="https://trello.com/c/G1DSBE6U">queries for installed packages</a>
+- Added several <a href="https://trello.com/c/G1DSBE6U">queries for installed packages</a>
+- <a href="https://trello.com/c/s4vLO6Cv">Incorporate severities</a> into best practice score calculations.
 - Added <a href=https://trello.com/c/9NxqFAGG"">OUIs to some MAC queries</a>
 - Added <a href="https://trello.com/c/10HLSbEP">DNS/hosts names to some IP queries</a>
 - Added a <a href="https://trello.com/c/IPIE00rw">query for MAC addresses without OUIs</a>
