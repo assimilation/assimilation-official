@@ -187,7 +187,7 @@ _configcontext_finalize(AssimObj* aself)
 		g_free(s); s = NULL;
 	}
 #endif
-	
+
 	if (self->_values) {
 		g_hash_table_destroy(self->_values);
 		self->_values = NULL;
@@ -661,8 +661,8 @@ JSONquotestring(char * s)
 	const char *	replacechars = JSONREPLACES;
 	ret = g_string_sized_new(strlen(s)+5);
 	g_string_append_c(ret, '"');
-	
-	
+
+
 	for (str=s; *str; ++str ) {
 		const char *	found;
 		if (NULL != (found=strchr(replacechars, *str ))) {
@@ -687,7 +687,7 @@ _configcontext_toString(gconstpointer aself)
 	GSList*		keyelem;
 	GSList*		nextkeyelem;
 	const char *	comma = "";
-	
+
 	if (!self->_values) {
 		return NULL;
 	}
@@ -722,8 +722,8 @@ configcontext_elem_toString(ConfigValue* val)
 			if (index(ret, '.') == 0) {
 				// OOPS! No decimal point
 				FREE(ret);
-				// So, let's add one...
-				return g_strdup_printf("%g.", val->u.floatvalue);
+				// So, let's add one... JSON requires a zero on the end...
+				return g_strdup_printf("%g.0", val->u.floatvalue);
 			}else{
 				return ret;
 			}
