@@ -533,20 +533,20 @@ if __name__ == '__main__':
         assert len(ourstats['ignore']) == 0
         score, tstdiffs = bpobj.compute_score_updates(testjsonobj, dummydrone, testrules,
                                                            ourstats, {})
-        assert str(pyConfigContext(score)) == '{"networking":1.,"security":4.}'
+        assert str(pyConfigContext(score)) == '{"networking":1.0,"security":4.0}'
         # pylint: disable=E1101
         assert dummydrone.bp_category_networking_score == 1.0   # should be OK for integer values
         assert dummydrone.bp_category_security_score   == 4.0   # should be OK for integer values
         assert type(dummydrone.bp_category_networking_score) == float
         assert type(dummydrone.bp_category_security_score) == float
-        assert str(pyConfigContext(tstdiffs)) == '{"networking":1.,"security":4.}'
+        assert str(pyConfigContext(tstdiffs)) == '{"networking":1.0,"security":4.0}'
         score, tstdiffs = bpobj.compute_score_updates(testjsonobj, dummydrone, testrules,
                                                            ourstats, ourstats)
-        assert str(pyConfigContext(score)) == '{"networking":1.,"security":4.}'
+        assert str(pyConfigContext(score)) == '{"networking":1.0,"security":4.0}'
         assert str(pyConfigContext(tstdiffs)) == '{}'
         score, tstdiffs = bpobj.compute_score_updates(testjsonobj, dummydrone, testrules,
                                                            {}, ourstats)
-        assert str(pyConfigContext(tstdiffs)) == '{"networking":-1.,"security":-4.}'
+        assert str(pyConfigContext(tstdiffs)) == '{"networking":-1.0,"security":-4.0}'
         assert dummydrone.bp_category_networking_score == 0.0   # should be OK for integer values
         assert dummydrone.bp_category_security_score == 0.0     # should be OK for integer values
     DebugEventObserver()
