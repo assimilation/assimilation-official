@@ -136,7 +136,8 @@ nsswitch NSSWITCH_CONFIG
 pam PAM_DIRECTORY
 partitions PROC_PARTITIONS
 sshd SSHD_CONFIG
-sudoers SUDOERS_FILE'
+sudoers SUDOERS_FILE
+passwd PASSWD_FILE'
 
 echo "$testlines" |
 (
