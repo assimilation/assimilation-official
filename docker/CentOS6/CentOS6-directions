@@ -215,7 +215,7 @@ run_assimilation_tests() {
 	cd /tmp/assimilation-test/src/cma
 	service $LOGGER start &
 	service ${NEOSERVICE} start & sleep 20
-	scl enable $PYSCL 'assimcli genkeys && py.test -rw -v tests
+	scl enable $PYSCL 'assimcli genkeys && py.test -rw -v tests'
 	!
 }
 
