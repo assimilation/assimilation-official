@@ -110,9 +110,9 @@ else
   echo "Pylint ERRORS found in source"
   ERRORS=yes
 fi
-cd $WORKSPACE
+cd $WORKSPACE/cma
 if
-  (sudo testify -v cma.tests)
+  (sudo py.test -rw -v tests)
 then
   : testify $PWD/cmd/tests looks good
 else
