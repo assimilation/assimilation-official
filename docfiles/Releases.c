@@ -13,6 +13,7 @@
 - Added an <a href="https://trello.com/c/ceIgGgZI">/etc/sudoers best practice rule</a>
 - Added <a href="https://trello.com/c/K6c0Qevr">security notifications to our sample email tool.</a>
 - Added <a href="https://trello.com/c/KsGkBqTz">capability to make python queries be usable the same way as pure Cypher queries.</a>
+- Moved test infrastructure <a href="https://trello.com/c/oXM25X6e">from Testify to py.test</a>
 
 @subsection BugFixes_1_1_5 Bug Fixes
 - <tt>assimcli loadqueries</tt> <a href="https://trello.com/c/cXc5wweQ">accepted bad JSON</a>

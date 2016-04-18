@@ -407,7 +407,7 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 add_custom_target(tests # ALL
-testify cma.tests -v
+cd cma; py.test -rw -v -v tests
 WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 COMMENT "Make install must be done first. Also, port 1984 must be available (free)" VERBATIM
 )
