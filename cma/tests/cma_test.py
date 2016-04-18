@@ -24,8 +24,6 @@ import sys
 sys.path.insert(0, "../cma")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from py2neo import neo4j
-from testify import *
-from testify.utils import turtle
 
 from frameinfo import *
 from AssimCclasses import *
@@ -56,6 +54,7 @@ WorstDanglingCount = 0
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
 
+DEBUG=True
 DEBUG=False
 DoAudit=True
 doHBDEAD=True
@@ -95,9 +94,14 @@ AssimEvent.disable_all_observers()
 def assert_no_dangling_Cclasses(doassert=None):
     global CheckForDanglingClasses
     global WorstDanglingCount
+    if not CheckForDanglingClasses:
+        return
     sys._clear_type_cache()
     if doassert is None:
         doassert = AssertOnDanglingClasses
+    print 'ASSERTNODANGLING SHUTDOWN CALL'
+    IOTestIO.shutdown()
+    print 'DANGLING UNINIT CALL'
     CMAinit.uninit()
     gc.collect()    # For good measure...
     count =  proj_class_live_object_count()
@@ -113,6 +117,31 @@ def assert_no_dangling_Cclasses(doassert=None):
             raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
+
+
+class TestCase(object):
+    def assertEqual(self, a, b):
+        assert a == b
+
+    def assertNotEqual(self, a, b):
+        assert a != b
+
+    def assertTrue(self, a):
+        assert a is True
+
+    def assertFalse(self, a):
+        assert a is False
+
+    def assertRaises(self, exception, function, *args):
+        try:
+            function(*args)
+            raise Exception('Did not raise exception %s: %s(%s)', exception, function, str(args))
+        except exception as e:
+            return True
+
+    def teardown_method(self, method):
+        print '__del__ CALL for %s' % str(method)
+        assert_no_dangling_Cclasses()
 
 
 
@@ -238,10 +267,16 @@ class AUDITS(TestCase):
 
 
 def auditalldrones():
+    print 'DRONE1: CMADB', CMAdb
+    print 'DRONE1: CMADB.IO:', CMAdb.io
+    print 'DRONE1: CMADB.store', CMAdb.store
     audit = AUDITS()
     qtext = "START droneroot=node:CMAclass('Drone:*') MATCH drone-[:IS_A]->droneroot RETURN drone"
     droneobjs = CMAdb.store.load_cypher_nodes(qtext, Drone)
     droneobjs = [drone for drone in droneobjs]
+    print 'DRONE2: CMADB', CMAdb
+    print 'DRONE2: CMADB.IO:', CMAdb.io
+    print 'DRONE2: CMADB.store', CMAdb.store
     numdrones = len(droneobjs)
     for droneid in range(0, numdrones):
         droneid = int(droneobjs[droneid].designation[6:])
@@ -259,9 +294,21 @@ def auditalldrones():
         assert(querytbl[drone] is dronetbl[drone])
     for drone in querytbl:
         assert(querytbl[drone] is dronetbl[drone])
+    print 'DRONE3: CMADB', CMAdb
+    print 'DRONE3: CMADB.IO:', CMAdb.io
+    print 'DRONE3: CMADB.store', CMAdb.store
 
 
 def auditallrings():
+    print 'AUDIT: CMADB', CMAdb
+    print 'AUDIT: CMADB.IO:', CMAdb.io
+    print 'AUDIT: CMADB.store', CMAdb.store
+
+    if CMAdb.store is None:
+        print 'SKIPPING RING AUDIT' 
+        raise ValueError('STORE IS NONE')
+        return
+    print 'PERFORMING RING AUDIT' 
     audit = AUDITS()
     for ring in CMAdb.store.load_cypher_nodes("START n=node:HbRing('*:*') RETURN n", HbRing):
         ring.AUDIT()
@@ -289,12 +336,20 @@ def assimcli_check(command, expectedcount=None):
             %   (cmd, linecount, expectedcount))
         assert rc is None or rc == 0
 
-class TestIO:
+class IOTestIO:
     '''A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read'
     and in turn saves all the packets it 'writes' for us to inspect.
     '''
     mainloop = None
+    @staticmethod
+    def shutdown():
+        if IOTestIO.singleinstance is not None:
+            print 'CLEANING OUT SINGLEINSTANCE IO OBJECT'
+            IOTestIO.singleinstance.cleanio()
+            IOTestIO.singleinstance = None
+
     def __init__(self, addrframesetpairs, sleepatend=0):
+        IOTestIO.singleinstance = self
         if isinstance(addrframesetpairs, tuple):
             addrframesetpairs = addrframesetpairs
         self.inframes = addrframesetpairs
@@ -314,21 +369,36 @@ class TestIO:
 
     @staticmethod
     def shutdown_on_timeout(io):
-        if TestIO.mainloop is not None:
-            TestIO.mainloop.quit()
+        if IOTestIO.mainloop is not None:
+            IOTestIO.mainloop.quit()
         return False
 
     def recvframesets(self):
+        print 'RECV: CMADB', CMAdb
+        print 'RECV: CMADB.IO:', CMAdb.io
+        print 'RECV: CMADB.store', CMAdb.store
         # Audit after each packet is processed - and once before the first packet.
         assert CMAdb.io.config is not None
         if DoAudit:
             if self.packetsread < 200 or (self.packetsread % 500) == 0:
+                print 'RECV2: CMADB', CMAdb
+                print 'RECV2: CMADB.IO:', CMAdb.io
+                print 'RECV2: CMADB.store', CMAdb.store
                 CMAdb.store.commit()
+                print 'RECV3: CMADB', CMAdb
+                print 'RECV3: CMADB.IO:', CMAdb.io
+                print 'RECV3: CMADB.store', CMAdb.store
                 auditalldrones()
+                print 'RECV4: CMADB', CMAdb
+                print 'RECV4: CMADB.IO:', CMAdb.io
+                print 'RECV4: CMADB.store', CMAdb.store
                 auditallrings()
+                print 'RECV5: CMADB', CMAdb
+                print 'RECV5: CMADB.IO:', CMAdb.io
+                print 'RECV5: CMADB.store', CMAdb.store
         if self.index >= len(self.inframes):
             if not self.atend:
-                self.timeout = glib.GMainTimeout(int(self.sleepatend*1000), TestIO.shutdown_on_timeout, self)
+                self.timeout = glib.GMainTimeout(int(self.sleepatend*1000), IOTestIO.shutdown_on_timeout, self)
                 self.atend = True
                 #self.config = None
             else:
@@ -371,19 +441,20 @@ class TestIO:
             self.packetswritten.append((dest,fs))
 
     def cleanio(self):
-        if TestIO.mainloop is not None:
-            TestIO.mainloop.quit()
+        print 'CLEANING OUT IO OBJECT'
+        if IOTestIO.mainloop is not None:
+            IOTestIO.mainloop.quit()
         if self.pipe_read >= 0:
             os.close(self.pipe_read)
             self.pipe_read = -1
-        TestIO.mainloop = None
+        IOTestIO.mainloop = None
         # Note that this having to do this implies that our I/O object persists
         # longer than I would have expected...
         # Is this because uninit needs to be done as part of the test instead of
         # as part of the cleanup action?
-        del self.inframes
-        del self.packetswritten
-        del self.config
+        self.inframes = []
+        self.packetswritten = 0
+        self.config = None
         self.timeout = None
         if CMAdb.store:
             CMAdb.store.abort()
@@ -419,13 +490,15 @@ class TestTestInfrastructure(TestCase):
             print >> sys.stderr, 'Running test_test_eof()'
         AssimEvent.disable_all_observers()
         framesets=[]
-        io = TestIO(framesets, 0)
+        io = IOTestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
+        print 'IO:', io
+        print 'CMADB', CMAdb
+        print 'CMADB.store', CMAdb.store
         # just make sure it seems to do the right thing
         (foo, bar) = io.recvframesets()
         assert foo is None
-        del io
-        assert_no_dangling_Cclasses()
+        #assert_no_dangling_Cclasses()
 
     def test_get1pkt(self):
         'Read a single packet'
@@ -438,7 +511,7 @@ class TestTestInfrastructure(TestCase):
         fs = pyFrameSet(42)
         fs.append(strframe1)
         framesets=((otherguy, (strframe1,)),)
-        io = TestIO(framesets, 0)
+        io = IOTestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         gottenfs = io.recvframesets()
         self.assertEqual(len(gottenfs), 2)
@@ -446,8 +519,7 @@ class TestTestInfrastructure(TestCase):
         gottenfs = io.recvframesets()
         self.assertEqual(len(gottenfs), 2)
         assert gottenfs[0] is None
-        io.cleanio()
-        del io
+        #assert_no_dangling_Cclasses()
 
     def test_echo1pkt(self):
         'Read a packet and write it back out'
@@ -460,7 +532,7 @@ class TestTestInfrastructure(TestCase):
         fs.append(strframe1)
         otherguy = pyNetAddr([1,2,3,4],)
         framesets=((otherguy, (strframe1,)),)
-        io = TestIO(framesets, 0)
+        io = IOTestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         fslist = io.recvframesets()     # read in a packet
         self.assertEqual(len(fslist), 2)
@@ -470,12 +542,7 @@ class TestTestInfrastructure(TestCase):
         gottenfs = io.recvframesets()
         self.assertEqual(len(gottenfs), 2)
         assert gottenfs[0] is None
-        io.cleanio()
-        del io
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
+        #assert_no_dangling_Cclasses()
 
 class TestCMABasic(TestCase):
     OS_DISCOVERY = '''{
@@ -559,7 +626,7 @@ class TestCMABasic(TestCase):
         ulimitdiscovery=pyCstringFrame(FrameTypes.JSDISCOVER, self.ULIMIT_DISCOVERY)
         fs3.append(ulimitdiscovery)
         fsin = ((droneip, (fs,)), (droneip, (fs2,)), (droneip, (fs3,)))
-        io = TestIO(fsin,0)
+        io = IOTestIO(fsin,0)
         #print >> sys.stderr, 'CMAinit: %s' % str(CMAinit)
         #print >> sys.stderr, 'CMAinit.__init__: %s' % str(CMAinit.__init__)
         OurAddr = pyNetAddr((127,0,0,1),1984)
@@ -572,7 +639,7 @@ class TestCMABasic(TestCase):
         disp = MessageDispatcher(DispatchTarget.dispatchtable, encryption_required=False)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
-        TestIO.mainloop = listener.mainloop
+        IOTestIO.mainloop = listener.mainloop
         # We send the CMA an intial STARTUP packet
         listener.listen()
         # Let's see what happened...
@@ -598,11 +665,10 @@ class TestCMABasic(TestCase):
             self.check_discovery(drone, (dronediscovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
         self.assertEqual(len(Drones), 1) # Should only be one drone
         io.config = None
-        io.cleanio()
-        del io
         del ulimitdiscovery, osdiscovery, Drones
         DispatchTarget.dispatchtable = {}
         del DispatchTarget
+        #assert_no_dangling_Cclasses()
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
         Drones = CMAdb.store.load_cypher_nodes(query, Drone)
@@ -715,7 +781,7 @@ class TestCMABasic(TestCase):
                 hostframe=pyCstringFrame(FrameTypes.HOSTNAME, designation)
                 fs.append(hostframe)
                 fsin.append((droneip, (fs,)))
-        io = TestIO(fsin)
+        io = IOTestIO(fsin)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         assert CMAdb.io.config is not None
         assimcli_check('loadqueries')
@@ -727,7 +793,7 @@ class TestCMABasic(TestCase):
         config = pyConfigContext(init=configinit)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
-        TestIO.mainloop = listener.mainloop
+        IOTestIO.mainloop = listener.mainloop
         # We send the CMA a BUNCH of intial STARTUP packets
         # and (optionally) a bunch of HBDEAD packets
         assert CMAdb.io.config is not None
@@ -773,19 +839,13 @@ class TestCMABasic(TestCase):
             print "The CMA read %d packets."  % io.packetsread
             print "The CMA wrote %d packets." % io.writecount
         #io.dumppackets()
-        io.config = None
-        io.cleanio()
-        del io
+        #assert_no_dangling_Cclasses()
 
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
 class TestMonitorBasic(TestCase):
     def test_activate(self):
         AssimEvent.disable_all_observers()
-        io = TestIO([],0)
+        io = IOTestIO([],0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         dummy = CMAdb.store.load_or_create(MonitorAction, domain='global', monitorname='DummyName'
         ,       monitorclass='OCF', monitortype='Dummy', interval=1, timeout=120, provider='heartbeat')
@@ -842,8 +902,7 @@ class TestMonitorBasic(TestCase):
                             self.assertTrue(isinstance(table[n], t))
 
         # TODO: Add test for deactivating the resource(s)
-        io.cleanio()
-        del io
+        #assert_no_dangling_Cclasses()
 
     def test_automonitor_LSB_basic(self):
         AssimEvent.disable_all_observers()
@@ -925,6 +984,7 @@ class TestMonitorBasic(TestCase):
             ((1,),))
         self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
             ((),))
+        #assert_no_dangling_Cclasses()
 
 
     def test_automonitor_LSB_complete(self):
@@ -939,6 +999,7 @@ class TestMonitorBasic(TestCase):
             ((1,2,3,4,5),))
         self.assertRaises(ValueError, OCFMonitoringRule, 'assimilation', 'neo4j',
             ((),))
+        #assert_no_dangling_Cclasses()
 
     def test_automonitor_OCF_basic(self):
         AssimEvent.disable_all_observers()
@@ -1031,6 +1092,7 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(arglist['port'], '7474')
         self.assertEqual(arglist['home'], '/var/lib/neo4j')
         self.assertEqual(arglist['neo4j'], 'neo4j')
+        #assert_no_dangling_Cclasses()
 
     def test_automonitor_strings_basic(self):
         # Clean things out so we only see what we want to see...
@@ -1060,6 +1122,7 @@ class TestMonitorBasic(TestCase):
 }'''
         lsb = MonitoringRule.ConstructFromString(lsb_string)
         self.assertTrue(isinstance(lsb, LSBMonitoringRule))
+        #assert_no_dangling_Cclasses()
 
     def test_automonitor_search_basic(self):
         AssimEvent.disable_all_observers()
@@ -1137,6 +1200,7 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(list2[0][1]['monitorclass'], 'lsb')
         self.assertEqual(list2[1][0], MonitoringRule.HIGHPRIOMATCH)
         self.assertEqual(list2[1][1]['monitorclass'], 'ocf')
+        #assert_no_dangling_Cclasses()
 
     def test_automonitor_functions(self):
         AssimEvent.disable_all_observers()
@@ -1252,6 +1316,7 @@ class TestMonitorBasic(TestCase):
         #print >> sys.stderr, 'MATCH:', match
         self.assertEqual(prio, MonitoringRule.MEDPRIOMATCH)
         self.assertEqual(match['argv'], ['-t', '3600', '-p', '22', '127.0.0.1'])
+        #assert_no_dangling_Cclasses()
 
 
     def test_automonitor_OCF_complete(self):
@@ -1259,11 +1324,6 @@ class TestMonitorBasic(TestCase):
         # actually construct an auto-generated OCF monitoring node and activate it
         # It will have to add name, timeout and repeat intervals before activating it.
         pass
-
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
 
 if __name__ == "__main__":

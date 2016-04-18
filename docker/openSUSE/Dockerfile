@@ -15,9 +15,9 @@ RUN $ZYPPER install pkg-config || true
 RUN $ZYPPER install deltarpm glib2 libpcap zlib-devel python	\
 	python-devel python-flask which java-1.7.0-openjdk lsof	\
 	'libsodium-devel' gcc cmake make glib2-devel valgrind resource-agents \
-	wget libpcap-devel python3-pylint rpm-build iproute
+	wget libpcap-devel python3-pylint rpm-build iproute python-pytest
 RUN $ZYPPER install doxygen graphviz python-pip ca-certificates-mozilla ca-certificates-cacert
-RUN pip install 'py2neo>2.0.7' testify getent netaddr && pip install ctypesgen --pre
+RUN pip install 'py2neo>2.0.7' getent netaddr && pip install ctypesgen --pre
 RUN wget -q http://dist.neo4j.org/neo4j-community-$NEOVERS-unix.tar.gz -O /tmp/neo4j-community-$NEOVERS-unix.tar.gz && tar -C $(dirname $NEOROOT) -xzf /tmp/neo4j-community-$NEOVERS-unix.tar.gz && ln -s $(dirname $NEOROOT)/neo4j-community-$NEOVERS/ $NEOROOT && (echo ''; echo '') | $NEOROOT/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
 RUN echo "@OURDATE@"
 RUN mkdir -p /root/assimilation/bin $RPMDIR /run/systemd/journal $RPMDIR/SOURCES 
@@ -44,7 +44,7 @@ RUN printf "%s\n%s\n" '$ModLoad imuxsock' '$SystemLogSocketName /dev/log' >> /tm
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
 RUN pip install demjson
-RUN rsyslogd && $NEOROOT/bin/neo4j console&  sleep 20; testify -v tests
+RUN rsyslogd && $NEOROOT/bin/neo4j console&  sleep 20; py.test -rw -v tests
 RUN mkdir -p /root/assimilation/packages && cp $RPMDIR/RPMS/@ARCH@/*.rpm /root/assimilation/packages
 RUN echo "GOOD BUILD: opensuse:latest" # Will be updated by "dockit" script
 ###  Our RPMs

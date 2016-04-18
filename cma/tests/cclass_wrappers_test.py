@@ -23,9 +23,9 @@ _suites = ['all', 'cclass']
 import sys, os
 import traceback
 #traceback.print_exc()
+sys.path.append("..")
 sys.path.append("../cma")
 os.environ['G_MESSAGES_DEBUG'] =  'all'
-from testify import *
 
 from frameinfo import *
 from AssimCclasses import *
@@ -36,8 +36,8 @@ from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
-DEBUG=True
 DEBUG=False
+DEBUG=True
 BROKENDNS=False
 if 'BROKENDNS' in os.environ:
     BROKENDNS=True
@@ -65,7 +65,31 @@ def assert_no_dangling_Cclasses():
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
 
-class pyNetAddrTest(TestCase):
+class TestCase(object):
+    def assertEqual(self, a, b):
+        assert a == b
+
+    def assertNotEqual(self, a, b):
+        assert a != b
+
+    def assertTrue(self, a):
+        assert a is True
+
+    def assertFalse(self, a):
+        assert a is False
+
+    def assertRaises(self, exception, function, *args, **kw):
+        try:
+            function(*args, **kw)
+            raise Exception('Did not raise exception %s: %s(%s)', exception, function, str(args))
+        except exception as e:
+            return True
+
+    def teardown_method(self, method):
+        print '__del__ CALL for %s' % str(method)
+        assert_no_dangling_Cclasses()
+
+class TestpyNetAddr(TestCase):
     "A pyNetAddr is a network address of some kind... - let's test it"
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
@@ -79,7 +103,7 @@ class pyNetAddrTest(TestCase):
         self.assertEqual(str(mac48), "01-02-03-04-05-06")
         self.assertEqual(str(mac64), "01-02-03-04-05-06-07-08")
         self.assertFalse(ipv4 != ipv4)
-        self.assertTrue(ipv4   ==  ipv4)
+        self.assertTrue(ipv4  ==  ipv4)
         self.assertTrue(mac48  ==  mac48)
         self.assertTrue(mac64  ==  mac64)
         self.assertFalse(ipv4  ==  ipv4b)
@@ -330,11 +354,7 @@ class pyNetAddrTest(TestCase):
             for j in range(1,5):
                 proj_class_decr_debug('NetAddr')
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-class pyFrameTest(TestCase):
+class TestpyFrame(TestCase):
     '''Frames are our basic superclass for things we put on the wire.
        This base class just has a generic binary blob with no special
        properties.  They are all valid (if they have a value)'''
@@ -348,16 +368,12 @@ class pyFrameTest(TestCase):
         if DEBUG: print >>sys.stderr, "===============test_setvalue(pyFrameTest)"
         pyf = pyFrame(101)
         pyf.setvalue('fred')
-        self.assertTrue(pyf.isvalid(), "PyFrame('fred') failed isvalid())")
+        self.assertTrue(pyf.isvalid())
         self.assertEqual(pyf.framelen(), 5)
         self.assertEqual(pyf.dataspace(), 10) # Total space for this Frame on the wire
         self.assertEqual(string_at(pyf.framevalue()), 'fred') # Raw from 'C'
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-class pyAddrFrameTest(TestCase):
+class TestpyAddrFrame(TestCase):
     'An AddrFrame wraps a NetAddr for sending on the wire'
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "===============test_constructor(pyAddrFrameTest)"
@@ -366,15 +382,11 @@ class pyAddrFrameTest(TestCase):
         self.assertEqual(pyf.framelen(), 6)
         self.assertEqual(str(pyf), 'pyAddrFrame(200, (1.2.3.4))')
         self.assertEqual(pyf.addrtype(), 1)
-        self.assertTrue(pyf.isvalid(), "AddrFrame(200, (1,2,3,4)) failed isvalid()")
+        self.assertTrue(pyf.isvalid())
         self.assertRaises(ValueError, pyAddrFrame, 201, addrstring=(1,2,3))
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
-
-class pyIpPortFrameTest1(TestCase):
+class TestpyIpPortFrame1(TestCase):
     'An IpPortFrame wraps a NetAddr (with port!) for sending on the wire'
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, '===============test_constructor(pyIpPortFrameTest1)'
@@ -384,7 +396,7 @@ class pyIpPortFrameTest1(TestCase):
         self.assertEqual(py4.framelen(), 8)
         self.assertEqual(str(py4), '201: IpPortFrame(201, 1.2.3.4:1984)')
         self.assertEqual(py4.addrtype(), 1)
-        self.assertTrue(py4.isvalid(), 'pyIpPortFrame(201, (1.2.3.4:1984)) failed isvalid()')
+        self.assertTrue(py4.isvalid())
         self.assertRaises(ValueError, pyIpPortFrame, 201, pyNetAddr((1,2,3,4,5,6),)) # MAC address
         addrv6=pyNetAddr('[::1]:79')
         py6 = pyIpPortFrame(302, addrv6)
@@ -392,12 +404,8 @@ class pyIpPortFrameTest1(TestCase):
         self.assertEqual(py6.framelen(), 20)
         self.assertEqual(str(py6), '302: IpPortFrame(302, [::1]:79)')
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
-
-class pyIpPortFrameTest2(TestCase):
+class TestpyIpPortFrame2(TestCase):
     'An AddrFrame wraps a NetAddr *with a port* for sending on the wire'
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "===============test_constructor(pyIpAddrFrameTest)"
@@ -407,13 +415,13 @@ class pyIpPortFrameTest2(TestCase):
         self.assertEqual(str(pyf), '200: IpPortFrame(200, 1.2.3.4:1984)')
         self.assertEqual(pyf.getnetaddr(), pyNetAddr('1.2.3.4:1984'))
         self.assertEqual(pyf.addrtype(), 1)
-        self.assertTrue(pyf.isvalid(), "pyIpPortFrame(200, (1,2,3,4:1984)) failed isvalid()")
+        self.assertTrue(pyf.isvalid())
         self.assertRaises(ValueError, pyIpPortFrame, 201, (1,2,3),80)
         pyf = pyIpPortFrame(202, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 1984)
         self.assertEqual(pyf.frametype(), 202)
         self.assertEqual(pyf.framelen(), 20)
         self.assertEqual(pyf.addrtype(), 2)
-        self.assertTrue(pyf.isvalid(), 'pyIpPortFrame(202, ([102:304:506:708:90a:b0c:d0e:f10]:1984))')
+        self.assertTrue(pyf.isvalid())
         self.assertEqual(str(pyf), '202: IpPortFrame(202, [102:304:506:708:90a:b0c:d0e:f10]:1984)')
         sameaddr = pyNetAddr([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10], port=1984)
         self.assertEqual(pyf.getnetaddr(), sameaddr)
@@ -422,11 +430,7 @@ class pyIpPortFrameTest2(TestCase):
         self.assertEqual(pyf.getnetaddr(), sameaddr)
 
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-class pyIntFrameTest(TestCase):
+class TestpyIntFrame(TestCase):
     'An IntFrame wraps various sizes of unsigned integers for sending on the wire'
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "========================test_constructor(pyIntFrameTest)"
@@ -452,52 +456,44 @@ class pyIntFrameTest(TestCase):
             self.assertEqual(str(pyf), ('pyIntFrame(320, (%d))' % val))
         
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-class pyUnknownFrameTest(TestCase):
+class TestpyUnknownFrame(TestCase):
     "An unknown frame is one we don't recognize the type of."
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "========================test_constructor(pyUnknownFrameTest)"
         pyf = pyUnknownFrame(400)
         self.assertEqual(pyf.frametype(), 400)
         # All Unknown frames are invalid...
-        self.assertFalse(pyf.isvalid(), "pyUnkownFrame(400) should not have passed isvalid()")
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
+        self.assertFalse(pyf.isvalid())
 
 
-class pySeqnoFrameTest(TestCase):
+class TestpySeqnoFrame(TestCase):
     'A SeqnoFrame is a frame wrapping an ordered pair for a sequence number'
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "========================test_constructor(pySeqnoFrameTest)"
         pyf = pySeqnoFrame(500)
         self.assertEqual(pyf.frametype(), 500)
-        self.assertTrue(pyf.isvalid(), 'pySeqnoFrame(500) did not pass isvalid()')
+        self.assertTrue(pyf.isvalid())
         pyf = pySeqnoFrame(501,(1,2))
         self.assertEqual(pyf.frametype(), 501)
-        self.assertTrue(pyf.isvalid(), 'pySeqnoFrame(501) did not pass isvalid()')
+        self.assertTrue(pyf.isvalid())
 
     def test_reqid(self):
         'reqid is the request id of a sequence number'
         if DEBUG: print >>sys.stderr, "========================test_reqid(pySeqnoFrameTest)"
         pyf = pySeqnoFrame(502)
         pyf.setreqid(42)
-        self.assertTrue(pyf.getreqid, 42)
+        self.assertEqual(pyf.getreqid(), 42)
         pyf.setreqid(43)
-        self.assertTrue(pyf.getreqid, 43)
+        self.assertEqual(pyf.getreqid(), 43)
 
     def test_qid(self):
         'qid is analogous to a port - it is the id of a queue on the other side'
         if DEBUG: print >>sys.stderr, "========================test_qid(pySeqnoFrameTest)"
         pyf = pySeqnoFrame(503)
         pyf.setqid(6)
-        self.assertTrue(pyf.getqid, 6)
+        self.assertEqual(pyf.getqid(), 6)
         pyf.setqid(7)
-        self.assertTrue(pyf.getqid, 7)
+        self.assertEqual(pyf.getqid(), 7)
 
     def test_equal(self):
         'A bit of overkill, but nothing really wrong with it'
@@ -538,12 +534,8 @@ class pySeqnoFrameTest(TestCase):
         self.assertTrue (seqFrame4 == seqFrame4b)
         self.assertTrue(seqFrame4b == seqFrame4)
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
-
-class pyCstringFrameTest(TestCase):
+class TestpyCstringFrame(TestCase):
     '''A CstringFrame is a frame which can only hold NUL-terminated C strings.
        The last byte must be the one and only NUL character in a CstringFrame value.'''
     def test_constructor(self): 
@@ -557,11 +549,7 @@ class pyCstringFrameTest(TestCase):
         self.assertTrue(pyf2.isvalid())
         self.assertEqual(str(pyf2), '601: CstringFrame(601, "42")')
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-class pySignFrameTest(TestCase):
+class TestpySignFrame(TestCase):
     'A SignFrame is a digital signature frame.'
     def test_constructor(self): 
         if DEBUG: print >>sys.stderr, "========================test_constructor(pySignFrameTest)"
@@ -569,12 +557,8 @@ class pySignFrameTest(TestCase):
         self.assertTrue(pyf.isvalid())
         self.assertRaises(ValueError, pySignFrame, 935) # Just a random invalid signature type
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
-
-class pyFrameSetTest(TestCase):
+class TestpyFrameSet(TestCase):
     'A FrameSet is a collection of frames - typically to be sent over the wire'
 
     @staticmethod
@@ -585,12 +569,12 @@ class pyFrameSetTest(TestCase):
         return s
 
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "========================test_constructor(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_constructor(TestpyFrameSet)"
         pyf = pyFrameSet(700) # The 700 is the frameset (message) type
         self.assertEqual(pyf.get_framesettype(), 700)
 
     def test_flags(self): 
-        if DEBUG: print >>sys.stderr, "========================test_flags(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_flags(TestpyFrameSet)"
         'Flags are bit masks, to be turned on or off. They are 16-bits only.'
         pyf = pyFrameSet(701)
         self.assertEqual(pyf.get_flags(), 0x00)
@@ -609,7 +593,7 @@ class pyFrameSetTest(TestCase):
 
     def test_buildlistforward(self):
         'Build a FrameSet using append and verify that it gets built right'
-        if DEBUG: print >>sys.stderr, "========================test_buildlistforward(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_buildlistforward(TestpyFrameSet)"
         pyfs = pyFrameSet(702)
         sign = pySignFrame(1) # digital signature frame
         flist = (pyFrame(703), pyAddrFrame(704, (42,42,42,42)), pyIntFrame(705,42),
@@ -656,7 +640,7 @@ class pyFrameSetTest(TestCase):
     def test_buildlistbackwards(self):
         '''Build a FrameSet using prepend and verify that it gets built right.
            Similar to the append testing above, but backwards ;-)'''
-        if DEBUG: print >>sys.stderr, "========================test_buildlistbackwards(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_buildlistbackwards(TestpyFrameSet)"
         pyfs = pyFrameSet(707)
         sign = pySignFrame(1)
         flist = (pyFrame(708), pyAddrFrame(709, (42,42,42,42)), pyIntFrame(710,42), pyCstringFrame(711, "HhGttG"),
@@ -680,7 +664,7 @@ class pyFrameSetTest(TestCase):
 
     def test_buildpacket(self):
         'Build a FrameSet, then make it into a packet, and make a frameset list out of the packet'
-        if DEBUG: print >>sys.stderr, "========================test_buildpacket(pyFrameSetTest)"
+        if DEBUG: print >>sys.stderr, "========================test_buildpacket(TestpyFrameSet)"
         pyfs = pyFrameSet(801)
         sign = pySignFrame(1) # digital signature frame
         flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.WALLCLOCK,42), pyCstringFrame(FrameTypes.INTERFACE, "HhGttG"),
@@ -719,14 +703,10 @@ class pyFrameSetTest(TestCase):
             strx = re.sub(str(x), ' instance at .*>', ' instance at -somewhere- >')
             stry = re.sub(str(y), ' instance at .*>', ' instance at -somewhere- >')
             self.assertEqual(strx, stry)
-            self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
+            self.assertEqual(TestpyFrameSet.cmpstring(x), TestpyFrameSet.cmpstring(y))
 
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-class pyConfigContextTest(TestCase):
+class TestpyConfigContext(TestCase):
 
     def test_constructor(self):
         if DEBUG: print >>sys.stderr, "===============test_constructor(pyConfigContextTest)"
@@ -933,11 +913,7 @@ class pyConfigContextTest(TestCase):
 
 
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-class pyNetIOudpTest(TestCase):
+class TestpyNetIOudp(TestCase):
 
     def test_constructor(self):
         if DEBUG: print >>sys.stderr, "========================test_constructor(pyNetIOudpTest)"
@@ -1006,12 +982,8 @@ class pyNetIOudpTest(TestCase):
            self.assertEqual(x.dataspace(), y.dataspace())
            self.assertEqual(type(x), type(y))
            self.assertEqual(x.__class__, y.__class__)
-           self.assertEqual(pyFrameSetTest.cmpstring(x), pyFrameSetTest.cmpstring(y))
+           self.assertEqual(TestpyFrameSet.cmpstring(x), TestpyFrameSet.cmpstring(y))
         io.config = None
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
 if __name__ == "__main__":
     run()

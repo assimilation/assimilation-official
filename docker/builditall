@@ -168,10 +168,10 @@ buildsuse() {
         attemptbuild openSUSE $suse
     done
 }
+buildcentos # &
 buildsuse # &
 buildubuntu # &
 builddebian # &
-buildcentos # &
 buildfedora # &
 wait
 printf "\nSuccesses:\n"

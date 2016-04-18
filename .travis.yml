@@ -6,9 +6,9 @@ env:
 
 install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-gi python-netaddr python-demjson openjdk-7-jre
+  - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-netaddr python-demjson openjdk-7-jre python-pytest
   - sudo -H pip install --upgrade pip
-  - sudo -H pip install ctypesgen testify flask getent py2neo
+  - sudo -H pip install ctypesgen flask getent py2neo
 before_script:
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_neo4j
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
@@ -30,8 +30,8 @@ script:
   - sudo /etc/init.d/nanoprobe stop
   - sudo /etc/init.d/cma stop
   - sudo assimcli genkeys
-  - cd $TRAVIS_BUILD_DIR/cma
   - grep -n dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
+  - cd $TRAVIS_BUILD_DIR/cma
   - pwd
-  - sudo testify -v tests
+  - sudo py.test -rw -v tests
   - cd $TRAVIS_BUILD_DIR

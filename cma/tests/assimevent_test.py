@@ -25,9 +25,9 @@
 #
 _suites = ['all', 'events']
 import sys
+sys.path.append("..")
 sys.path.append("../cma")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
-from testify import *
 import os, sys, tempfile, time, signal
 from assimevent import AssimEvent
 from assimeventobserver import ForkExecObserver
@@ -80,6 +80,19 @@ class BadObserver:
     def __init__(self):
         pass
 
+class TestCase(object):
+    def assertEqual(self, a, b):
+        assert a == b
+    def assertTrue(self, a):
+        assert a is True
+    def assertFalse(self, a):
+        assert a is False
+    def assertRaises(self, exception, function, *args):
+        try:
+            function(*args)
+            raise Exception('Did not raise exception %s: %s(%s)', exception, function, str(args))
+        except exception as e:
+            return True
 
 class TestAssimEvent(TestCase):
     'Class for basic AssimEvent testing'
@@ -103,15 +116,15 @@ class TestAssimEvent(TestCase):
         AssimEvent.registerobserver(observer)
         event1 = AssimEvent('first', AssimEvent.CREATEOBJ)
         self.assertEqual(len(observer.events), 1)
-        self.assertTrue(observer.events[0], event1)
+        self.assertEqual(observer.events[0], event1)
         self.assertEqual(AssimEvent.unregisterobserver(observer), True)
         event2 = AssimEvent('second', AssimEvent.CREATEOBJ)
         self.assertEqual(len(observer.events), 1)
-        self.assertTrue(observer.events[0], event1)
+        self.assertEqual(observer.events[0], event1)
         AssimEvent.registerobserver(observer)
         event3 = AssimEvent('third', AssimEvent.CREATEOBJ)
         self.assertEqual(len(observer.events), 2)
-        self.assertTrue(observer.events[0], event3)
+        self.assertEqual(observer.events[1], event3)
 
     def test_simple_init_bad(self):
         'Perform a few simple AssimEvent bad initializations'

@@ -21,7 +21,6 @@
 #
 _suites = ['all', 'external']
 import sys, os, subprocess, time, datetime, re
-from testify import *
 
 
 pingcount=30
@@ -46,15 +45,14 @@ def findcmd(argv):
 
 sudocmd = '/usr/bin/sudo'
 gtestdir = None
-class TestExternal(TestCase):
+class TestExternal(object):
     '''
     Run all the tests that don't run natively under testify
     '''
     gtestdir = None
     gtestpattern = re.compile('gtest[0-9]+$')   # pattern of names of our gtests
 
-    @class_setup
-    def setUp(self):
+    def setup_class(self):
         '''This function is designed to Fail right away and make sure the other
         tests don't bother running if we can't find an example test.
         Turns out to be handy to know where that command is anyway...
@@ -102,10 +100,6 @@ class TestExternal(TestCase):
         for mod in MODULES:
             modpath = findcmd([mod,])
             self.runacommand(['/usr/bin/env', 'python', modpath[0]], False)
-
-    @class_teardown
-    def tearDown(self):
-        pass
 
 
 if __name__ == "__main__":

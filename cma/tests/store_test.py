@@ -25,7 +25,6 @@ import gc
 sys.path.extend(['..', '../cma', "/usr/local/lib/python2.7/dist-packages"])
 import py2neo
 from py2neo import neo4j, GraphError
-from testify import *
 from store import Store
 from AssimCclasses import pyNetAddr, dump_c_objects
 from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count, proj_class_dump_live_objects
@@ -71,6 +70,31 @@ def assert_no_dangling_Cclasses(doassert=None):
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
 
+
+class TestCase(object):
+    def assertEqual(self, a, b):
+        assert a == b
+
+    def assertNotEqual(self, a, b):
+        assert a != b
+
+    def assertTrue(self, a):
+        assert a is True
+
+    def assertFalse(self, a):
+        assert a is False
+
+    def assertRaises(self, exception, function, *args, **kw):
+        try:
+            function(*args, **kw)
+            raise Exception('Did not raise exception %s: %s(%s)', exception, function, str(args))
+        except exception as e:
+            return True
+
+    def teardown_method(self, method):
+        print '__del__ CALL for %s' % str(method)
+        assert_no_dangling_Cclasses()
+
 def CreateIndexes(db, indexlist):
     'Create Indexes(indexlist) - a list of strings for Node indexes to create'
     for index in indexlist:
@@ -101,7 +125,7 @@ class Person(GraphNode):
 
 
 @RegisterGraphClass
-class TestSystem(GraphNode):
+class aTestSystem(GraphNode):
     'Some kind of semi-intelligent system'
     def __init__(self, designation, domain='global', roles=None):
         GraphNode.__init__(self, domain)
@@ -129,19 +153,19 @@ class TestSystem(GraphNode):
         return ['designation', 'domain']
     
 @RegisterGraphClass
-class TestDrone(TestSystem):
+class aTestDrone(aTestSystem):
     def __init__(self, designation, domain='global', roles=None):
-        TestSystem.__init__(self, designation=designation)
+        aTestSystem.__init__(self, designation=designation)
         if roles is None:
             roles = []
         elif isinstance(roles, str):
             roles = [roles]
         roles.extend(['host', 'Drone'])
-        TestSystem.__init__(self, designation, domain=domain, roles=roles)
+        aTestSystem.__init__(self, designation, domain=domain, roles=roles)
 
         
 @RegisterGraphClass
-class TestIPaddr(GraphNode):
+class aTestIPaddr(GraphNode):
     def __init__(self, ipaddr):
         GraphNode.__init__(self, domain='global')
         if isinstance(ipaddr, str):
@@ -156,7 +180,7 @@ class TestIPaddr(GraphNode):
         return ['ipaddr']
 
 @RegisterGraphClass
-class TestNIC(GraphNode):
+class aTestNIC(GraphNode):
     def __init__(self, MACaddr):
         GraphNode.__init__(self, domain='global')
         mac = pyNetAddr(MACaddr)
@@ -171,13 +195,13 @@ class TestNIC(GraphNode):
         return ['MACaddr']
 
      
-Classes = [Person, TestSystem, TestDrone, TestIPaddr, TestNIC]
+Classes = [Person, aTestSystem, aTestDrone, aTestIPaddr, aTestNIC]
 
 keymap = {'Person': {'index':'Person','kattr': 'lastname', 'vattr': 'firstname'},
-          'TestSystem': {'index':'TestSystem','kattr': 'designation', 'value': 'global'},
-          'TestDrone':  {'index':'TestDrone','kattr': 'designation', 'value': 'global'},
-          'TestIPaddr': {'index':'TestIPaddr','kattr': 'ipaddr', 'value': 'global'},
-          'TestNIC':    {'index':'TestNIC','kattr': 'MACaddr', 'value': 'global'}
+          'aTestSystem': {'index':'aTestSystem','kattr': 'designation', 'value': 'global'},
+          'aTestDrone':  {'index':'aTestDrone','kattr': 'designation', 'value': 'global'},
+          'aTestIPaddr': {'index':'aTestIPaddr','kattr': 'ipaddr', 'value': 'global'},
+          'aTestNIC':    {'index':'aTestNIC','kattr': 'MACaddr', 'value': 'global'}
           }
 uniqueindexes = {}
 for key in keymap:
@@ -217,7 +241,7 @@ def initstore():
 class TestCreateOps(TestCase):
     def test_drone(self):
         store = initstore()
-        seven = store.load_or_create(TestDrone, designation='SevenOfNine', roles='Borg')
+        seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
         self.assertTrue('host' in seven.roles)
         self.assertTrue('Drone' in seven.roles)
         self.assertTrue('Borg' in seven.roles)
@@ -227,7 +251,7 @@ class TestCreateOps(TestCase):
         self.assertTrue('Drone' in seven.roles)
         self.assertTrue('Borg' in seven.roles)
         self.assertTrue(not store.is_abstract(seven))
-        self.assertTrue(isinstance(seven, TestSystem))
+        self.assertTrue(isinstance(seven, aTestSystem))
         self.assertEqual(seven.designation, 'sevenofnine')
         self.assertFalse(store.is_abstract(seven))
 
@@ -244,7 +268,7 @@ class TestCreateOps(TestCase):
 
     def test_system(self):
         store = initstore()
-        fredsys = store.load_or_create(TestSystem, designation='Fred', roles=['bridge', 'router'])
+        fredsys = store.load_or_create(aTestSystem, designation='Fred', roles=['bridge', 'router'])
         self.assertTrue('bridge' in fredsys.roles)
         self.assertTrue('router' in fredsys.roles)
         self.assertFalse('host' in fredsys.roles)
@@ -256,42 +280,37 @@ class TestCreateOps(TestCase):
 
     def test_nic(self):
         store = initstore()
-        freddiemac = store.load_or_create(TestNIC, MACaddr='AA-BB-CC-DD-EE-FF')
+        freddiemac = store.load_or_create(aTestNIC, MACaddr='AA-BB-CC-DD-EE-FF')
         self.assertEqual(freddiemac.MACaddr, 'aa-bb-cc-dd-ee-ff')
-        sys64 = store.load_or_create(TestNIC, MACaddr='00-11-CC-DD-EE-FF:AA:BB')
+        sys64 = store.load_or_create(aTestNIC, MACaddr='00-11-CC-DD-EE-FF:AA:BB')
         self.assertEqual(sys64.MACaddr, '00-11-cc-dd-ee-ff-aa-bb')
-        self.assertRaises(ValueError, store.load_or_create, TestNIC, MACaddr='AA-BB-CC-DD-EE-FF:')
-        self.assertRaises(ValueError, store.load_or_create, TestNIC, MACaddr='AA-BB-CC-DD-EE-FF:00')
-        self.assertRaises(ValueError, store.load_or_create, TestNIC, MACaddr='AA-BB-CC-DD-EE-FF-')
-        self.assertRaises(ValueError, store.load_or_create, TestNIC, MACaddr='10.10.10.5')
+        self.assertRaises(ValueError, store.load_or_create, aTestNIC, MACaddr='AA-BB-CC-DD-EE-FF:')
+        self.assertRaises(ValueError, store.load_or_create, aTestNIC, MACaddr='AA-BB-CC-DD-EE-FF:00')
+        self.assertRaises(ValueError, store.load_or_create, aTestNIC, MACaddr='AA-BB-CC-DD-EE-FF-')
+        self.assertRaises(ValueError, store.load_or_create, aTestNIC, MACaddr='10.10.10.5')
         self.assertTrue(store.is_abstract(freddiemac))
         store.commit()
         self.assertEqual(freddiemac.MACaddr, 'aa-bb-cc-dd-ee-ff')
         self.assertEqual(sys64.MACaddr, '00-11-cc-dd-ee-ff-aa-bb')
         self.assertTrue(not store.is_abstract(freddiemac))
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
-
 class TestRelateOps(TestCase):
 
     def test_relate1(self):
         store = initstore()
         Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
-        seven = store.load_or_create(TestDrone, designation='SevenOfNine', roles='Borg')
+        seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
         store.relate(seven, 'formerly', Annika)
         # Borg Drones need 64 bit MAC addresses ;-) (or maybe more)
-        sevennic = store.load_or_create(TestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
+        sevennic = store.load_or_create(aTestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
         store.relate(seven, 'nicowner', sevennic)
-        self.assertTrue(sevennic.MACaddr, 'ff:ff:07:0f:09:07:0f:09')
-        self.assertTrue(isinstance(seven, TestSystem))
-        self.assertTrue(isinstance(seven, TestDrone))
+        self.assertEqual(str(sevennic.MACaddr), 'ff-ff-07-0f-09-07-0f-09')
+        self.assertTrue(isinstance(seven, aTestSystem))
+        self.assertTrue(isinstance(seven, aTestDrone))
         self.assertTrue(isinstance(seven, GraphNode))
         self.assertTrue(isinstance(Annika, Person))
         self.assertTrue(isinstance(Annika, GraphNode))
-        self.assertTrue(isinstance(sevennic, TestNIC))
+        self.assertTrue(isinstance(sevennic, aTestNIC))
         self.assertTrue(isinstance(sevennic, GraphNode))
 
         # It would be nice if the following tests would work even before committing...
@@ -302,23 +321,23 @@ class TestRelateOps(TestCase):
             count += 1
         self.assertEqual(count, 1)
         count=0
-        for node in store.load_in_related(Annika, 'formerly', TestDrone):
+        for node in store.load_in_related(Annika, 'formerly', aTestDrone):
             self.assertTrue(node is seven)
             count += 1
         self.assertEqual(count, 1)
         count=0
-        for node in store.load_related(seven, 'nicowner', TestNIC):
+        for node in store.load_related(seven, 'nicowner', aTestNIC):
             self.assertTrue(node is sevennic)
             count += 1
         self.assertEqual(count, 1)
 
     def test_relate2(self):
         store = initstore()
-        seven = store.load_or_create(TestDrone, designation='SevenOfNine', roles='Borg')
-        sevennic1 = store.load_or_create(TestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
-        sevennic2 = store.load_or_create(TestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
-        ipaddr1=store.load_or_create(TestIPaddr, ipaddr='10.10.10.1')
-        ipaddr2=store.load_or_create(TestIPaddr, ipaddr='10.10.10.2')
+        seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
+        sevennic1 = store.load_or_create(aTestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
+        sevennic2 = store.load_or_create(aTestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
+        ipaddr1=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
+        ipaddr2=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
         store.relate(seven, 'nicowner', sevennic1)
         store.relate(seven, 'nicowner', sevennic2)
         store.relate(sevennic1, 'ipowner', ipaddr1)
@@ -327,12 +346,12 @@ class TestRelateOps(TestCase):
 
         prevnode = None
         count=0
-        for node in store.load_related(seven, 'nicowner', TestNIC):
+        for node in store.load_related(seven, 'nicowner', aTestNIC):
             self.assertTrue((node is sevennic1 or node is sevennic2) and node is not prevnode)
             prevnode = node
             count += 1
             ipcount=0
-            for ip in store.load_related(node, 'ipowner', TestIPaddr):
+            for ip in store.load_related(node, 'ipowner', aTestIPaddr):
                 if node is sevennic1:
                     self.assertTrue(ip is ipaddr1)
                 else:
@@ -343,11 +362,11 @@ class TestRelateOps(TestCase):
 
     def test_separate1(self):
         store = initstore()
-        seven = store.load_or_create(TestDrone, designation='SevenOfNine', roles='Borg')
-        sevennic1 = store.load_or_create(TestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
-        sevennic2 = store.load_or_create(TestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
-        ipaddr1=store.load_or_create(TestIPaddr, ipaddr='10.10.10.1')
-        ipaddr2=store.load_or_create(TestIPaddr, ipaddr='10.10.10.2')
+        seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
+        sevennic1 = store.load_or_create(aTestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
+        sevennic2 = store.load_or_create(aTestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
+        ipaddr1=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
+        ipaddr2=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
         store.relate(seven, 'nicowner', sevennic1)
         store.relate(seven, 'nicowner', sevennic2)
         store.relate(sevennic1, 'ipowner', ipaddr1)
@@ -357,31 +376,27 @@ class TestRelateOps(TestCase):
         store.separate(seven, 'nicowner', sevennic2)
         store.commit()
         count=0
-        for node in store.load_related(seven, 'nicowner', TestNIC):
+        for node in store.load_related(seven, 'nicowner', aTestNIC):
             self.assertTrue(node is sevennic1)
             count += 1
             ipcount=0
-            for ip in store.load_related(node, 'ipowner', TestIPaddr):
+            for ip in store.load_related(node, 'ipowner', aTestIPaddr):
                 self.assertTrue(ip is ipaddr1)
                 ipcount += 1
             self.assertTrue(ipcount == 1)
         self.assertEqual(count, 1)
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
 class TestGeneralQuery(TestCase):
 
     def test_multicolumn_query(self):
         store = initstore()
         Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
-        seven = store.load_or_create(TestDrone, designation='SevenOfNine', roles='Borg')
+        seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
         store.relate(seven, 'formerly', Annika)
-        sevennic1 = store.load_or_create(TestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
-        sevennic2 = store.load_or_create(TestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
-        ipaddr1=store.load_or_create(TestIPaddr, ipaddr='10.10.10.1')
-        ipaddr2=store.load_or_create(TestIPaddr, ipaddr='10.10.10.2')
+        sevennic1 = store.load_or_create(aTestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
+        sevennic2 = store.load_or_create(aTestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
+        ipaddr1=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
+        ipaddr2=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
         store.relate(seven, 'nicowner', sevennic1)
         store.relate(seven, 'nicowner', sevennic2)
         store.relate(sevennic1, 'ipowner', ipaddr1)
@@ -392,7 +407,7 @@ class TestGeneralQuery(TestCase):
         # seven-[:nicowner]-> sevennic1-[:ipowner]->10.10.10.1
         # seven-[:nicowner]-> sevennic2-[:ipowner]->10.10.10.2
 
-        Qstr='''START drone=node:TestDrone('sevenofnine:*')
+        Qstr='''START drone=node:aTestDrone('sevenofnine:*')
         MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
         RETURN person, drone, nic, ipaddr'''
         iter = store.load_cypher_query(Qstr, GraphNode.factory)
@@ -415,10 +430,6 @@ class TestGeneralQuery(TestCase):
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
 
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
-
 class TestDatabaseWrites(TestCase):
     mac1= 'ff-ff:7-0f-9:7-0f-9'
     mac2= '00-00:7-0f-9:7-0f-9'
@@ -426,13 +437,13 @@ class TestDatabaseWrites(TestCase):
     ip2= '10.10.10.2'
 
     def create_stuff(self, store):
-        seven = store.load_or_create(TestDrone, designation='SevenOfNine', roles='Borg')
+        seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
         #Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
         #store.relate(seven, 'formerly', Annika)
-        #sevennic1 = store.load_or_create(TestNIC, MACaddr=TestDatabaseWrites.mac1)
-        #sevennic2 = store.load_or_create(TestNIC, MACaddr=TestDatabaseWrites.mac2)
-        #ipaddr1=store.load_or_create(TestIPaddr,   ipaddr=TestDatabaseWrites.ip1)
-        #ipaddr2=store.load_or_create(TestIPaddr,   ipaddr=TestDatabaseWrites.ip2)
+        #sevennic1 = store.load_or_create(aTestNIC, MACaddr=TestDatabaseWrites.mac1)
+        #sevennic2 = store.load_or_create(aTestNIC, MACaddr=TestDatabaseWrites.mac2)
+        #ipaddr1=store.load_or_create(aTestIPaddr,   ipaddr=TestDatabaseWrites.ip1)
+        #ipaddr2=store.load_or_create(aTestIPaddr,   ipaddr=TestDatabaseWrites.ip2)
         #store.relate(seven, 'nicowner', sevennic1)
         #store.relate(seven, 'nicowner', sevennic2)
         #store.relate(sevennic1, 'ipowner', ipaddr1)
@@ -447,10 +458,10 @@ class TestDatabaseWrites(TestCase):
     def test_create_and_query(self):
         '''The main point of this test is to verify that things actually go into the
         database correctly.'''
-        Qstr='''START drone=node:TestDrone('sevenofnine:*')
+        Qstr='''START drone=node:aTestDrone('sevenofnine:*')
         MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
         RETURN person, drone, nic, ipaddr'''
-        Qstr='''START drone=node:TestDrone('sevenofnine:*')
+        Qstr='''START drone=node:aTestDrone('sevenofnine:*')
         RETURN drone'''
         store = initstore()
         #print >> sys.stderr, 'RUNNING create_stuff' 
@@ -499,10 +510,6 @@ class TestDatabaseWrites(TestCase):
         self.assertEqual(rowcount, 1)
         #self.assertTrue(foundaddr1)
         #self.assertTrue(foundaddr2)
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
 # Other things that ought to have tests:
 #   node deletion

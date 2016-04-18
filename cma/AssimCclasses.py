@@ -1033,7 +1033,7 @@ class pyNetAddr(pyAssimObj):
         base = self._Cstruct[0]
         while (not_this_exact_type(base, NetAddr)):
             base = base.baseclass
-        return base.equal(self._Cstruct, other._Cstruct)
+        return True if base.equal(self._Cstruct, other._Cstruct) else False
 
     def __hash__(self):
         'Return a hash value for the given pyNetAddr'
@@ -1408,7 +1408,7 @@ class pySeqnoFrame(pyFrame):
         lhsbase = self._Cstruct[0]
         while (not_this_exact_type(lhsbase, SeqnoFrame)):
             lhsbase = lhsbase.baseclass
-        return lhsbase.equal(self._Cstruct, rhs._Cstruct)
+        return True if lhsbase.equal(self._Cstruct, rhs._Cstruct) else False
 
     def __str__(self):
         'Convert this pySeqnoFrame to a String'

@@ -39,7 +39,7 @@ dosudo() {
 dir=$(dirname $0)
 cmd=mainlooptest
 
-placestolook=". testcode .. ../testcode bin bin/testcode ../bin ../bin/testcode root_of_binary_tree/testcode ../root_of_binary_tree/testcode ../../root_of_binary_tree/testcode ../../bin/testcode"
+placestolook=". testcode .. ../testcode bin bin/testcode ../bin ../bin/testcode root_of_binary_tree/testcode ../root_of_binary_tree/testcode ../../root_of_binary_tree/testcode ../../bin/testcode ../../../testcode ../../../bin/testcode ../../../root_of_binary_tree/testcode"
 for place in $placestolook
 do
   filename="$place/$cmd"

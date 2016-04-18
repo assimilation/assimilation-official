@@ -14,13 +14,14 @@ RUN $YUM install epel-release pkg-config || true
 RUN $YUM install deltarpm glib2 libpcap zlib-devel python	\
 	python-devel python-flask which java-1.8.0-openjdk lsof	\
 	libsodium-devel gcc cmake make glib2-devel valgrind resource-agents \
-	wget libpcap-devel pylint rpm-build iproute
+	wget libpcap-devel pylint rpm-build iproute python-pytest
 RUN $YUM remove vim-minimal && $YUM install doxygen graphviz
 RUN $YUM install python-pip
-RUN pip install testify 'py2neo>2.0.7' getent netaddr && pip install ctypesgen --pre
+RUN pip install 'py2neo>2.0.7' getent netaddr && pip install ctypesgen --pre
 RUN wget -q http://dist.neo4j.org/neo4j-community-$NEOVERS-unix.tar.gz -O /tmp/neo4j-community-$NEOVERS-unix.tar.gz && tar -C $(dirname $NEOROOT) -xzf /tmp/neo4j-community-$NEOVERS-unix.tar.gz && ln -s $(dirname $NEOROOT)/neo4j-community-$NEOVERS/ $NEOROOT && (echo ''; echo '') | $NEOROOT/bin/neo4j-installer install && rm -fr /tmp/neo4j-community-*.tar.gz && mkdir -p /var/lib/heartbeat/lrm
 RUN echo "@OURDATE@"
 RUN mkdir -p /root/assimilation/bin /root/assimilation/packages /run/systemd/journal /root/rpmbuild/SOURCES 
+RUN echo RUNNING "ADD $GITTARZAN /root/assimilation"
 ADD $GITTARZAN /root/assimilation/
 WORKDIR /root/assimilation
 RUN tar xzf $GITVERSION && mv [Aa]ssimilation-* src
@@ -44,7 +45,7 @@ RUN printf "%s\n%s\n" '$ModLoad imuxsock' '$SystemLogSocketName /dev/log' >> /tm
 RUN  cp /tmp/foo /etc/rsyslog.conf; rm /tmp/foo
 RUN /usr/sbin/assimcli genkeys
 RUN $YUM install python-demjson
-RUN /usr/sbin/rsyslogd&  $NEOROOT/bin/neo4j console & sleep 20; testify -v tests
+RUN /usr/sbin/rsyslogd&  $NEOROOT/bin/neo4j console & sleep 20; py.test -rw -v tests
 RUN cp /root/rpmbuild/RPMS/x86_64/* /root/assimilation/packages
 RUN echo "GOOD BUILD: centos:latest" # Will be updated by "dockit" script
 RUN echo "GOODBUILD=$(echo "$(lsb_release -i -s)_$(lsb_release -r -s)-$(uname -m)" | tr '[A-Z]' '[a-z]')"

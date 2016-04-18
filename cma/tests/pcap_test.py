@@ -24,8 +24,8 @@ import sys, os, subprocess
 import traceback
 #traceback.print_exc()
 sys.path.append("../cma")
+sys.path.append('..')
 os.environ['G_MESSAGES_DEBUG'] =  'all'
-from testify import *
 
 from frameinfo import *
 from AssimCclasses import *
@@ -65,6 +65,30 @@ def assert_no_dangling_Cclasses():
         else:
             print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
 
+class TestCase(object):
+    def assertEqual(self, a, b):
+        assert a == b
+
+    def assertNotEqual(self, a, b):
+        assert a != b
+
+    def assertTrue(self, a):
+        assert a is True
+
+    def assertFalse(self, a):
+        assert a is False
+
+    def assertRaises(self, exception, function, *args):
+        try:
+            function(*args)
+            raise Exception('Did not raise exception %s: %s(%s)', exception, function, str(args))
+        except exception as e:
+            return True
+
+    def teardown_method(self, method):
+        print '__del__ CALL for %s' % str(method)
+        assert_no_dangling_Cclasses()
+
 def findfile(f):
     for first in ('.', '..', '../..', '../../..'):
         for second in ('.', 'pcap', 'src/pcap', 'root_of_source_tree/pcap', 'root_of_binary_tree/pcap'):
@@ -92,7 +116,7 @@ def compare_json(lhs, rhs):
 
 
 
-class pySwitchDiscoveryTest(TestCase):
+class TestpySwitchDiscovery(TestCase):
     "A pyNetAddr is a network address of some kind... - let's test it"
     def validate_switch_discovery(self, filename, pkt, pktend):
         packet_validation_count = 0
@@ -282,10 +306,6 @@ class pySwitchDiscoveryTest(TestCase):
                 output_json(self.validate_switch_discovery(f, pktstart, pktend))
                 print("'''),")
                 sys.stdout.flush()
-
-    @class_teardown
-    def tearDown(self):
-        assert_no_dangling_Cclasses()
 
 if __name__ == "__main__":
     run()
