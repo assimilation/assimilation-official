@@ -1120,9 +1120,9 @@ def dirname(args, context):
 def hascmd(args, context):
     '''
     This function returns True if the given list of commands are all present on the given Drone.
-    It determines this by looking at the value of $commands
+    It determines this by looking at the value of $_init_commands.data
     '''
-    cmdlist = GraphNodeExpression.evaluate('$commands', context)
+    cmdlist = GraphNodeExpression.evaluate('$_init_commands.data', context)
     for arg in args:
         if cmdlist is None or arg not in cmdlist:
             return None
