@@ -48,7 +48,7 @@
 	"severity": "medium",
         "rule": "MUST(EQ($/etc/group.group, root))"
 	},
-  "nist_V-38472": {
+  "nist_V-38461": {
 	"category": "security",
 	"severity": "medium",
         "rule": "MUST(NOT(OR($/etc/group.perms.group.write, $/etc/group.perms.group.execute, $/etc/group.perms.other.write, $/etc/group.perms.other.execute)))"
