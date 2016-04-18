@@ -39,7 +39,7 @@ DROPBOX=https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADkfkqzXOLfA-cwHIdlcdGTa/bui
 #
 CMAKE=cmake28
 PYSCL=python27
-BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gcc scl-utils $PYSCL-python $PYSCL-python-devel $CMAKE $PYSCL-python-setuptools"
+BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gcc scl-utils $PYSCL-python $PYSCL-python-devel $CMAKE $PYSCL-python-setuptools python-demjson"
 BUILDREQS_2="$PYSCL-python-setuptools"
 EZINST="pip"
 PIPBUILD="ctypesgen"
