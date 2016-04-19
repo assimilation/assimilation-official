@@ -124,7 +124,7 @@ py2neo_version() {
     then
         echo 'py2neo<2.0'
     else
-        echo 'py2neo>2.0.7'
+        echo 'py2neo==2.0.8'
     fi
 }
 
@@ -1030,7 +1030,7 @@ install_centos_nano_base() {
     else
         install_sys_package $CENTOS6_BASE_NANO_PKGS
         ARCH=$(package_architecture)
-        SUFFIX="$ARCH/libsodium-last-1.0.8-1.el6.remi.$ARCH.rpm"
+        SUFFIX="$ARCH/libsodium-last-1.0.10-1.el6.remi.$ARCH.rpm"
         URL=$CENTOS6_LIBSODIUMBASE/$SUFFIX
         logwork "wget: retrieving $URL"
         wget -q -O libsodium.$ARCH.rpm $URL

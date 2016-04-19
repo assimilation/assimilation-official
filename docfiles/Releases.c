@@ -1,7 +1,7 @@
 /**
 @page ReleaseDescriptions Release Descriptions
-@section Version_1_1_5 version 1.1.5 - the DevOpsRox release
-@subsection Features_1_1_5 New Features
+@section Version_1_1_6 version 1.1.5 - the DevOpsRox release
+@subsection Features_1_1_6 New Features
 - Added several <a href="https://trello.com/c/G1DSBE6U">queries for installed packages</a>
 - <a href="https://trello.com/c/s4vLO6Cv">Incorporate severities</a> into best practice score calculations.
 - Added <a href=https://trello.com/c/9NxqFAGG"">OUIs to some MAC queries</a>
@@ -15,12 +15,13 @@
 - Added <a href="https://trello.com/c/KsGkBqTz">capability to make python queries be usable the same way as pure Cypher queries.</a>
 - Moved test infrastructure <a href="https://trello.com/c/oXM25X6e">from Testify to py.test</a>
 
-@subsection BugFixes_1_1_5 Bug Fixes
+@subsection BugFixes_1_1_6 Bug Fixes
 - <tt>assimcli loadqueries</tt> <a href="https://trello.com/c/cXc5wweQ">accepted bad JSON</a>
 - Neo4j OCF monitoring agent now <a href="https://trello.com/c/ItD29HS0">works with Neo4j database with authentication enabled</a>.
 - fixed "<a href="https://trello.com/c/tDQI98Au">Unterminated quoted string"</a> in <i>installme</i> installer
+- fixed the numbering of a NIST/DISA best practice.
 
-@subsection Caveats_1_1_5 Caveats
+@subsection Caveats_1_1_6 Caveats
 - a few options were shuffled for <i>assimcli query</i> score reporting queries.
 - Not compatible with database formats before 1.1.0
 - No alerting, or interface to existing alerting beyond a sample email script. (hooks to build your own interface are included)
