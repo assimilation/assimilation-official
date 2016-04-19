@@ -1029,8 +1029,8 @@ if __name__ == '__main__':
 
     neonode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/java', neoprocargs
     ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
-    withsensors = {'commands' :  '{"sensors": true}'}
-    nosensors = {'commands':'{"bash": true}'}
+    withsensors = pyConfigContext('{"_init_commands" :  {"data": {"sensors": null}}}')
+    nosensors = pyConfigContext('{"_init_commands": {"data": {"bash": null}}}')
 
     oracleocfargs = (
         (None,          "@basename()",               "oracle$"),
