@@ -80,7 +80,17 @@ pip_pkgs() {
   printf '%s"pip":{' "$ourcomma"
   comma='
 '
-  "${PIP}" list 2>/dev/null | sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' | sort -u |
+  "${PIP}" list 2>/dev/null | sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' |
+  while
+      read line
+  do
+      case $line in
+        '"Exception:'*) echo '"pip-list-got-an-exception": "0.0.p.s"'
+                        break
+                        ;;
+      esac
+      echo "$line"
+  done | sort -u |
   while
     read line
   do
