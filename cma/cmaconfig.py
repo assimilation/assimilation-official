@@ -56,6 +56,7 @@ class ConfigFile(object):
                                     {'auditd_conf',         # /etc/audit/auditd.conf config
                                      'commands',            # Discovers installed commands
                                      'cpu',                 # CPU details
+                                     'docker',              # Docker host & container configuration
                                      'login_defs',          # /etc/login.defs configuration
                                      'pam',                 # PAM configuration
                                      'findmnt',             # Discovers mounted filesystems (Linux)
@@ -203,6 +204,7 @@ class ConfigFile(object):
                                  'nsswitch',        # Discovers nsswitch configuration (Linux)
                                  'findmnt',         # Discovers mounted filesystems (Linux)
                                  'sshd',            # Discovers sshd configuration
+                                 'docker',          # Docker host & container configuration
                                  'tcpdiscovery'     # Discover services
                                 ],
             'cmaport':                  1984,                       # Our listening port
