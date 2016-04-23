@@ -108,7 +108,7 @@ global_docker_info() {
         comma=',
 '
     done | sed 's%^%      %'
-    printf '\n    },'
+    printf '\n    },\n'
 }
 
 output_line() {
