@@ -407,15 +407,14 @@ if(DOXYGEN_FOUND)
   )
 endif(DOXYGEN_FOUND)
 add_custom_target(tests # ALL
-cd cma; py.test -rw -v -v tests
-WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-COMMENT "Make install must be done first. Also, port 1984 must be available (free)" VERBATIM
+    sudo py.test -rw -v -v tests
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/cma
+    COMMENT "\"make install public_keys\" must precede first test run. Also, UDP port 1984 must be available (free)" VERBATIM
 )
-add_dependencies(tests public_keys_for_testing)
-add_custom_target(public_keys_for_testing # ALL
-sudo python ${PROJECT_SOURCE_DIR}/cma/assimcli.py genkeys
-WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/cma
-COMMENT "Generating public keys for testing (with sudo)" VERBATIM
+add_custom_target(public_keys # ALL
+    sudo python ${PROJECT_SOURCE_DIR}/cma/assimcli.py genkeys
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/cma
+    COMMENT "Generating public keys for testing (with sudo)" VERBATIM
 )
 
 #
