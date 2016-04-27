@@ -110,7 +110,7 @@ else
   echo "Pylint ERRORS found in source"
   ERRORS=yes
 fi
-cd $WORKSPACE
+cd $WSBIN
 if
   make tests
 then
