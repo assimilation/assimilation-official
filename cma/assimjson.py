@@ -29,6 +29,7 @@ File containing the JSONtree class
 
 import re
 from AssimCclasses import pyConfigContext, pyNetAddr
+from store import Store
 
 # R0903: Too few public methods
 # pylint: disable=R0903
@@ -36,8 +37,10 @@ class JSONtree(object):
     "Class to convert things to JSON strings - that's about all"
     REESC = re.compile('\\\\')
     REQUOTE = re.compile('"')
+    filterprefixes = ['_', 'JSON__hash__']
 
-    def __init__(self, tree, expandJSON=False, maxJSON=0):
+    def __init__(self, tree, expandJSON=False, maxJSON=0, filterprefixes=None):
+        self.filterprefixes = filterprefixes if filterprefixes is not None else JSONtree.filterprefixes
         self.tree = tree
         self.expandJSON = expandJSON
         self.maxJSON = maxJSON
@@ -58,7 +61,7 @@ class JSONtree(object):
     def _jsonstr(self, thing):
         'Recursively convert ("pickle") this thing to JSON'
 
-        if isinstance(thing, list) or isinstance(thing, tuple):
+        if isinstance(thing, (list, tuple)):
             ret = ''
             comma = '['
             if len(thing) == 0:
@@ -107,8 +110,16 @@ class JSONtree(object):
         comma = ''
         attrs = thing.__dict__.keys()
         attrs.sort()
+        if Store.has_node(thing) and Store.id(thing) is not None:
+            ret += '"_id": %s' %  str(Store.id(thing))
+            comma = ','
         for attr in attrs:
-            if attr.startswith('_'):
+            skip = False
+            for prefix in self.filterprefixes:
+                if attr.startswith(prefix):
+                    skip = True
+                    continue
+            if skip:
                 continue
             value = getattr(thing, attr)
             if self.maxJSON > 0 and attr.startswith('JSON_') and len(value) > self.maxJSON:
