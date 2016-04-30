@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -138,35 +138,37 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         assert self.store.has_node(drone)
         data = jsonobj['data'] # The data portion of the JSON message
 
-        currmacs = {}
+        currmacs = {}   # Currmacs is a list of current NICNode objects belonging to this host
+                        # indexed by MAC address
         # Get our current list of NICs
         iflist = self.store.load_related(drone, CMAconsts.REL_nicowner, NICNode)
         for nic in iflist:
             currmacs[nic.macaddr] = nic
 
         primaryifname = None
-        newmacs = {}
+        newmacs = {}    # Newmacs is a list of NICNode objects found/created by this discovery
+                        # They are indexed by MAC address
         for ifname in data.keys(): # List of interfaces just below the data section
             ifinfo = data[ifname]
             if not 'address' in ifinfo:
                 continue
             macaddr = str(ifinfo['address'])
-            if macaddr.startswith('00:00:00:'):
-                continue
-            #print >> sys.stderr, 'CREATING NIC: MAC(%s) IF(%s)' %  (str(macaddr), str(ifname))
             newnic = self.store.load_or_create(NICNode, domain=drone.domain
             ,       macaddr=macaddr, ifname=ifname, json=str(ifinfo))
-            #print >> sys.stderr, 'NIC CREATED: %s' %  (str(newnic))
             newmacs[macaddr] = newnic
             if 'default_gw' in ifinfo and primaryifname == None:
                 primaryifname = ifname
 
-        # Now compare the two sets of MAC addresses (old and new)
+        # Now compare the two sets of MAC addresses (old and new) and update the "old" MAC
+        # address with info from the new discovery and deleting any MAC addresses that
+        # we don't have any more...
         for macaddr in currmacs.keys():
             currmac = currmacs[macaddr]
             if macaddr in newmacs:
+                # This MAC may need updating
                 newmacs[macaddr] = currmac.update_attributes(newmacs[macaddr])
             else:
+                # This MAC has disappeared
                 self.store.separate(drone, CMAconsts.REL_ipowner, currmac)
                 #self.store.separate(drone, CMAconsts.REL_causes,  currmac)
                 # @TODO Needs to be a 'careful, complete' reference count deletion...
@@ -174,13 +176,13 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 del currmacs[macaddr]
         currmacs = None
 
-        # Create REL_nicowner relationships for the newly created NIC nodes
+        # Create REL_nicowner relationships for any newly created NIC nodes
         for macaddr in newmacs.keys():
             nic = newmacs[macaddr]
             self.store.relate_new(drone, CMAconsts.REL_nicowner, nic, {'causes': True})
             #self.store.relate(drone, CMAconsts.REL_causes,   nic)
 
-        # Now newmacs contains all the current info about our NICs - old and new...
+        # Now newmacs contains all the updated info about our current NICs
         # Let's figure out what's happening with our IP addresses...
 
         primaryip = None
@@ -367,8 +369,13 @@ class TCPDiscoveryListener(DiscoveryListener):
             if not anyaddr:
                 return
         if not anyaddr:
-            print >> sys.stderr, ('LOOKING FOR %s in: %s'
-            %       (netaddr, [str(ip.ipaddr) for ip in allourips]))
-            raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
-            %       (drone, addr))
+            print >> sys.stderr, ('LOOKING FOR %s (%s, %s) in: %s'
+            %       (netaddr, type(ip), type(netaddr), [str(ip.ipaddr) for ip in allourips]))
+            #raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
+            #%       (drone, addr))
+            # Must not have been discovered yet. Hopefully discovery will come along and
+            # fill in the cidrmask, and create the NIC relationship ;-)
+            ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=addr)
+            allourips.append(ipnode)
+            self._add_serveripportnodes(drone, addr, port, processnode, allourips)
 
