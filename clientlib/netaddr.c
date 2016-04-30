@@ -492,7 +492,7 @@ _netaddr_ismcast(const NetAddr* self)
 	}
 	return	FALSE;
 }
-/// Return TRUE if this is a multicast address
+/// Return TRUE if this is a loopback address
 FSTATIC gboolean
 _netaddr_islocal(const NetAddr* self)
 {
