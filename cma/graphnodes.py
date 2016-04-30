@@ -95,11 +95,10 @@ class GraphNode(object):
         return labels
 
     def post_db_init(self):
-        '''Create IS_A relationship to our 'class' node in the database, and set creation time'''
+        '''Set node creation time'''
         if not self._baseinitfinished:
             self._baseinitfinished = True
-            if Store.is_abstract(self) and self.nodetype != CMAconsts.NODE_nodetype:
-                store = Store.getstore(self)
+            if Store.is_abstract(self):
                 self.time_create_ms = int(round(time.time()*1000))
                 self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 
