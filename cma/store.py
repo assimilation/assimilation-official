@@ -211,7 +211,7 @@ class Store(object):
     @staticmethod
     def getstore(subj):
         'Returns the Store associated with this object'
-        return subj.__store
+        return subj.__store if hasattr(subj, '_Store__store') else None
 
     @staticmethod
     def is_abstract(subj):
@@ -381,7 +381,7 @@ class Store(object):
             node = self.db.legacy.get_indexed_node(index_name, idxkey, idxvalue)
         except GraphError:
             return None
-        return self._construct_obj_from_node(node, cls) if node is not None else None
+        return self._construct_obj_from_node(node, cls, clsargs) if node is not None else None
 
     def load_or_create(self, cls, **clsargs):
         '''Analogous to 'save' - for loading an object or creating it if it
@@ -540,21 +540,32 @@ class Store(object):
                 rowclass = namedtuple('FilteredRecord', rowfields)
             yieldval = []
             for attr in rowfields:
-                value = getattr(row, attr)
-                if isinstance(value, neo4j.Node):
-                    obj = self.constructobj(clsfact, value)
-                    yieldval.append(obj)
-                elif isinstance(value, neo4j.Relationship):
-                    yieldval.append('RelationshipsNotYetSupported - Sorry :-(')
-                elif isinstance(value, neo4j.Path):
-                    yieldval.append('PathsNotYetSupported - Sorry :-(')
-                else:
-                    # Integers, strings, None, etc.
-                    yieldval.append(value)
+                yieldval.append(self._yielded_value(getattr(row, attr), clsfact))
             count += 1
             if maxcount is not None and count > maxcount:
                 return
             yield rowclass._make(yieldval)
+
+    def _yielded_value(self, value, clsfact):
+        if isinstance(value, neo4j.Node):
+            obj = self.constructobj(clsfact, value)
+            return obj
+        elif isinstance(value, neo4j.Relationship):
+            from graphnodes import NodeRelationship
+            return NodeRelationship(value)
+        elif isinstance(value, neo4j.Path):
+            from graphnodes import NodeRelPath
+            #print >> sys.stderr, 'PATH!'
+            return NodeRelPath(value)
+        elif isinstance(value, (list, tuple)):
+            ret = []
+            for elem in value:
+                ret.append(self._yielded_value(elem, clsfact))
+            return ret
+        else:
+            # Integers, strings, None, etc.
+            return ret
+
 
     @property
     def transaction_pending(self):
@@ -566,16 +577,15 @@ class Store(object):
         'Call a constructor (or function) in a (hopefully) correct way'
         try:
             # unused variable
-            # pylint: disable=W0612
-            args, unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor)
+            args, _unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor)
         except TypeError:
-            args, unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor.__init__)
+            args, _unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor.__init__)
         newkwargs = {}
         extraattrs = {}
-        if varkw:
+        if varkw: # Allows any keyword arguments
             newkwargs = kwargs
-        else:
-            for arg in kwargs.keys():
+        else: # Only allows some keyword arguments
+            for arg in kwargs:
                 if arg in args:
                     newkwargs[arg] = kwargs[arg]
                 else:
@@ -584,18 +594,16 @@ class Store(object):
 
 
         # Make sure the attributes match the desired values
-        for attr in kwargs.keys():
+        for attr in kwargs:
             kwa = kwargs[attr]
             if attr in extraattrs:
                 if not hasattr(ret, attr) or getattr(ret, attr) != kwa:
-                    #print >> sys.stderr, 'SETTING EXTRA ATTR %s to %s' % (attr, kwa)
                     object.__setattr__(ret, attr, kwa)
             elif not hasattr(ret, attr) or getattr(ret, attr) is None:
                 # If the constructor set this attribute to a value, but it doesn't match the db
                 # then we let it stay as the constructor set it
                 # We gave this value to the constructor as a keyword argument.
                 # Sometimes constructors need to do that...
-                #print >> sys.stderr, 'SETTING ATTR %s to %s' % (attr, kwa)
                 object.__setattr__(ret, attr, kwa)
         return ret
 
@@ -787,8 +795,9 @@ class Store(object):
                 return client
         return None
 
-    def _construct_obj_from_node(self, node, cls):
+    def _construct_obj_from_node(self, node, cls, clsargs=None):
         'Construct an object associated with the given node'
+        clsargs = [] if clsargs is None else clsargs
         # Do we already have a copy of an object that goes with this node somewhere?
         # If so, we need to update and return it instead of creating a new object
         nodeid = node._id
@@ -803,6 +812,10 @@ class Store(object):
                 return subj
         #print >> sys.stderr, 'NODE ID: %d, node = %s' % (node._id, str(node))
         retobj = Store.callconstructor(cls, node.get_properties())
+        for attr in clsargs:
+            if not hasattr(retobj, attr) or getattr(retobj, attr) is None:
+                # None isn't a legal value for Neo4j to store in the database
+                setattr(retobj, attr, clsargs[attr])
         return self._register(retobj, node=node)
 
     def _register(self, subj, node=None, index=None, unique=None, key=None, value=None):
