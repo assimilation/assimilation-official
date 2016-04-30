@@ -100,10 +100,6 @@ class GraphNode(object):
             self._baseinitfinished = True
             if Store.is_abstract(self) and self.nodetype != CMAconsts.NODE_nodetype:
                 store = Store.getstore(self)
-                if self.nodetype not in GraphNode.classtypeobjs:
-                    GraphNode.initclasstypeobj(store, self.nodetype)
-                store.relate(self, CMAconsts.REL_isa, GraphNode.classtypeobjs[self.nodetype])
-                assert GraphNode.classtypeobjs[self.nodetype].name == self.nodetype
                 self.time_create_ms = int(round(time.time()*1000))
                 self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 
@@ -254,9 +250,6 @@ class GraphNode(object):
         store.db.legacy.get_or_create_index(neo4j.Node, nodetype)
         ourtypeobj = store.load_or_create(rootclass, name=nodetype)
         assert ourtypeobj.name == nodetype
-        if Store.is_abstract(ourtypeobj) and nodetype != CMAconsts.NODE_nodetype:
-            roottype = store.load_or_create(rootclass, name=CMAconsts.NODE_nodetype)
-            store.relate(ourtypeobj, CMAconsts.REL_isa, roottype)
         GraphNode.classtypeobjs[nodetype] = ourtypeobj
 
 
@@ -642,7 +635,6 @@ class JSONMapNode(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return  ['jhash']
-
 
 if __name__ == '__main__':
     from cmainit import CMAinit
