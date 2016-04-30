@@ -62,7 +62,6 @@ class CMAconsts(object):
 # ---------------------------------------------------------------
 #   Constant name    reltype        fromnodetype       tonodetype
 # ---------------    --------       ------------       ----------
-    REL_isa         = 'IS_A'        # Any node          ->  NODE_nodetype
     REL_nicowner    = 'nicowner'    # NODE_NIC          ->  NODE_system - or subclass
     REL_wiredto     = 'wiredto'     # NODE_NIC          ->  NODE_NIC
     REL_ipowner     = 'ipowner'     # NODE_ipaddr       ->  NODE_NIC
