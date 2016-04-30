@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -40,7 +40,8 @@ class JSONtree(object):
     filterprefixes = ['_', 'JSON__hash__']
 
     def __init__(self, tree, expandJSON=False, maxJSON=0, filterprefixes=None):
-        self.filterprefixes = filterprefixes if filterprefixes is not None else JSONtree.filterprefixes
+        self.filterprefixes = filterprefixes if filterprefixes is not None \
+            else JSONtree.filterprefixes
         self.tree = tree
         self.expandJSON = expandJSON
         self.maxJSON = maxJSON

@@ -161,13 +161,14 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _cmdline_substitute(fmtstring, queryresult):
-        'Substitute fields into the command line output'
+        '''Perform expression substitution for command line queries.
+        'Substitute fields into the command line output'''
         chunks = fmtstring.split('${')
         result = chunks[0]
         for j in range(1, len(chunks)):
             # Now we split it up into variable-expression, '}' and extrastuff...
             (variable, extra) = chunks[j].split('}')
-            result += str(queryresult.deepget(variable, 'undefined'))
+            result += str(JSONtree(queryresult.deepget(variable, 'undefined')))
             result += extra
         return result
 

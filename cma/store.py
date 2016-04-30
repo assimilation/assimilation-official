@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -547,16 +547,18 @@ class Store(object):
             yield rowclass._make(yieldval)
 
     def _yielded_value(self, value, clsfact):
+        'Return the value for us to yield - supporting collection objects'
         if isinstance(value, neo4j.Node):
             obj = self.constructobj(clsfact, value)
             return obj
         elif isinstance(value, neo4j.Relationship):
-            from graphnodes import NodeRelationship
-            return NodeRelationship(value)
+            #from graphnodes import NodeRelationship
+            #return NodeRelationship(value)
+            return 'Relationship not yet supported'
         elif isinstance(value, neo4j.Path):
-            from graphnodes import NodeRelPath
-            #print >> sys.stderr, 'PATH!'
-            return NodeRelPath(value)
+            #from graphnodes import NodeRelPath
+            #return NodeRelPath(value)
+            return 'Path not yet supported'
         elif isinstance(value, (list, tuple)):
             ret = []
             for elem in value:
@@ -576,10 +578,9 @@ class Store(object):
     def callconstructor(constructor, kwargs):
         'Call a constructor (or function) in a (hopefully) correct way'
         try:
-            # unused variable
-            args, _unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor)
+            args, _unusedvarargs, varkw, _unuseddefaults = inspect.getargspec(constructor)
         except TypeError:
-            args, _unusedvarargs, varkw, unuseddefaults = inspect.getargspec(constructor.__init__)
+            args, _unusedvarargs, varkw, _unuseddefaults = inspect.getargspec(constructor.__init__)
         newkwargs = {}
         extraattrs = {}
         if varkw: # Allows any keyword arguments
