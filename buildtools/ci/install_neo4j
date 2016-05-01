@@ -4,4 +4,4 @@ apt-get -y update # Find out about the files in our repository
 rm -f /etc/init.d/neo4j
 apt-get --force-yes install neo4j=2.3.3 </dev/null # Install Neo4j, community edition - force version 
 #			That's because Neo4j 3.0 can't be started with the old Java
-service neo4j restart
+service neo4j-service restart
