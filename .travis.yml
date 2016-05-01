@@ -6,7 +6,7 @@ env:
 
 install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-netaddr python-demjson openjdk-7-jre
+  - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-netaddr python-demjson openjdk-8-jre
   - sudo -H pip install --upgrade pip
   - sudo -H pip install ctypesgen flask getent py2neo pytest
 before_script:
