@@ -22,13 +22,14 @@
 _suites = ['all', 'cma']
 import sys
 sys.path.insert(0, "../cma")
+sys.path.insert(0, "..")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 from py2neo import neo4j
 
 from frameinfo import *
 from AssimCclasses import *
 import gc, sys, time, collections, os, subprocess, re
-from graphnodes import nodeconstructor, CMAclass, ProcessNode
+from graphnodes import nodeconstructor, ProcessNode
 from cmainit import CMAinit
 from cmadb import CMAdb
 from packetlistener import PacketListener
@@ -140,9 +141,8 @@ class TestCase(object):
             return True
 
     def teardown_method(self, method):
-        print '__del__ CALL for %s' % str(method)
+        print 'teardown_method CALL for %s' % str(method)
         assert_no_dangling_Cclasses()
-
 
 
 # Values to substitute into this string via '%' operator:
@@ -271,7 +271,7 @@ def auditalldrones():
     print 'DRONE1: CMADB.IO:', CMAdb.io
     print 'DRONE1: CMADB.store', CMAdb.store
     audit = AUDITS()
-    qtext = "START droneroot=node:CMAclass('Drone:*') MATCH drone-[:IS_A]->droneroot RETURN drone"
+    qtext = "MATCH drone WHERE drone.nodetype = 'Drone' RETURN drone"
     droneobjs = CMAdb.store.load_cypher_nodes(qtext, Drone)
     droneobjs = [drone for drone in droneobjs]
     print 'DRONE2: CMADB', CMAdb
@@ -366,6 +366,7 @@ class IOTestIO:
         self.atend = False
         self.readfails = 0
         self.initpackets = len(self.inframes)
+        print >> sys.stderr, 'INITPACKETS: self.initpackets'
 
     @staticmethod
     def shutdown_on_timeout(io):
@@ -417,6 +418,7 @@ class IOTestIO:
         return ret
 
     def sendframesets(self, dest, fslist):
+        print >> sys.stderr, 'SENDING FRAMESET'
         if not isinstance(fslist, collections.Sequence):
             return self._sendaframeset(dest, fslist)
         for fs in fslist:
@@ -608,7 +610,6 @@ class TestCMABasic(TestCase):
         if DEBUG:
             print >> sys.stderr, 'Running test_startup()'
         AssimEvent.disable_all_observers()
-        from dispatchtarget import DispatchTarget
         droneid = 1
         droneip = droneipaddress(droneid)
         designation = dronedesignation(droneid)
@@ -636,6 +637,7 @@ class TestCMABasic(TestCase):
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         CMAdb.io.config = config
         assimcli_check('loadqueries')
+        from dispatchtarget import DispatchTarget
         disp = MessageDispatcher(DispatchTarget.dispatchtable, encryption_required=False)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
@@ -643,9 +645,9 @@ class TestCMABasic(TestCase):
         # We send the CMA an intial STARTUP packet
         listener.listen()
         # Let's see what happened...
-        #print >> sys.stderr, ('READ: %s' % io.packetsread)
-        #print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
-        #print >> sys.stderr, ('PACKETS WRITTEN: %s' % str(io.packetswritten))
+        print >> sys.stderr, ('READ: %s' % io.packetsread)
+        print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
+        print >> sys.stderr, ('PACKETS WRITTEN: %s' % str(io.packetswritten))
 
         self.assertEqual(len(io.packetswritten), 2) # Did we send out four packets?
                             # Note that this change over time
@@ -665,7 +667,7 @@ class TestCMABasic(TestCase):
             self.check_discovery(drone, (dronediscovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
         self.assertEqual(len(Drones), 1) # Should only be one drone
         io.config = None
-        del ulimitdiscovery, osdiscovery, Drones
+        del ulimitdiscovery, osdiscovery, Drones, disp, listener
         DispatchTarget.dispatchtable = {}
         del DispatchTarget
         #assert_no_dangling_Cclasses()

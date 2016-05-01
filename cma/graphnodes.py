@@ -55,7 +55,6 @@ class GraphNode(object):
     REESC = re.compile(r'\\')
     REQUOTE = re.compile(r'"')
     classmap = {}
-    classtypeobjs = {}
 
     @staticmethod
     def factory(**kwargs):
@@ -65,7 +64,7 @@ class GraphNode(object):
     @staticmethod
     def clean_graphnodes():
         'Invalidate any persistent objects that might become invalid when resetting the database'
-        GraphNode.classtypeobjs = {}
+        pass
 
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None):
         'Abstract Graph node base class'
@@ -222,21 +221,16 @@ class GraphNode(object):
 
     @staticmethod
     def initclasstypeobj(store, nodetype):
-        '''Initialize GraphNode.classtypeobjs for our "nodetype"
+        '''Initialize things for our "nodetype"
         This involves
-         - Ensuring that there's an index for this class, and the NODE_nodetype class
+         - Ensuring that there's an index for this class
          - Caching the class that goes with this nodetype
          - setting up all of our IS_A objects, including the root object if necessary,
          - updating the store's uniqueindexmap[nodetype]
          - updating the store's classkeymap[nodetype]
-         - updating GraphNode.classtypeobjs[nodetype]
          This should eliminate the need to do any of these things for any class.
         '''
-        if nodetype != CMAconsts.NODE_nodetype and CMAconsts.NODE_nodetype not in store.classkeymap:
-            # Have to make sure our root type node exists and is set up properly
-            GraphNode.initclasstypeobj(store, CMAconsts.NODE_nodetype)
         ourclass = GraphNode.classmap[nodetype]
-        rootclass = GraphNode.classmap[CMAconsts.NODE_nodetype]
         if nodetype not in store.classkeymap:
             store.uniqueindexmap[nodetype] = True
             keys = ourclass.__meta_keyattrs__()
@@ -247,45 +241,8 @@ class GraphNode(object):
                 ckm_entry['value'] = 'None'
             store.classkeymap[nodetype] = ckm_entry
         store.db.legacy.get_or_create_index(neo4j.Node, nodetype)
-        ourtypeobj = store.load_or_create(rootclass, name=nodetype)
-        assert ourtypeobj.name == nodetype
-        GraphNode.classtypeobjs[nodetype] = ourtypeobj
 
 
-
-# R0903: Too few public methods (0/2)
-# pylint: disable=R0903
-@RegisterGraphClass
-class CMAclass(GraphNode):
-    '''Class defining the relationships of our CMA classes to each other'''
-
-    def __init__(self, name):
-        GraphNode.__init__(self, domain='metadata')
-        self.name = name
-        self.domain = CMAconsts.metadomain
-        self.nodetype = CMAconsts.NODE_nodetype
-        assert str(self.name) == str(name)
-
-    def __str__(self):
-        'Default routine for printing CMAclass objects'
-        result = '%s({' % self.__class__.__name__
-        comma  = ''
-        for attr in Store.safe_attrs(self):
-            result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
-            comma = ",\n    "
-        if Store.has_node(self):
-            if Store.is_abstract(self):
-                result += comma + 'HasNode = "abstract"'
-            else:
-                result += (comma + 'HasNode = %d' % Store.id(self))
-
-        result += "\n})"
-        return result
-
-    @staticmethod
-    def __meta_keyattrs__():
-        'Return our key attributes in order of significance'
-        return ['name']
 
 @RegisterGraphClass
 class BPRules(GraphNode):
@@ -642,7 +599,6 @@ if __name__ == '__main__':
     if CMAdb.store.transaction_pending:
         print 'Transaction pending in:', CMAdb.store
         print 'Results:', CMAdb.store.commit()
-    print CMAclass.__meta_labels__()
     print ProcessNode.__meta_labels__()
     print SystemNode.__meta_labels__()
     from droneinfo import Drone

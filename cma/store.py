@@ -566,7 +566,7 @@ class Store(object):
             return ret
         else:
             # Integers, strings, None, etc.
-            return ret
+            return value
 
 
     @property

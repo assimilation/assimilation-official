@@ -45,7 +45,6 @@ class CMAconsts(object):
 #
 #       Node types [nodetype enumeration values]:
 #
-    NODE_nodetype   = 'CMAclass'      # A type node - for all nodes of that type
     NODE_ring       = 'HbRing'        # A ring of Drones
     NODE_drone      = 'Drone'         # A server running our nanoprobes
     NODE_system     = 'SystemNode'    # A system without a nanoprobe - switches so far...
