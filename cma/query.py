@@ -1016,7 +1016,7 @@ if __name__ == '__main__':
     '''
     {
         "cypher": "START ip=node:IPaddr('{ipaddr}:*')
-                   MATCH ip<-[:ipowner]-()<-[:nicowner]-system
+                   MATCH (ip)<-[:ipowner]-()<-[:nicowner]-(system)
                    RETURN system",
 
         "descriptions": {

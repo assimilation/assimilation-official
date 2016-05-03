@@ -268,7 +268,7 @@ class HbRing(GraphNode):
         'Return all the Drones that are members of this ring - in ring order'
         ## FIXME - There's a cypher query that will return these all in one go
         # START Drone=node:Drone(Drone="drone000001")
-        # MATCH Drone-[:RingNext_The_One_Ring*]->NextDrone
+        # MATCH (Drone)-[:RingNext_The_One_Ring*]->(NextDrone)
         # RETURN NextDrone.designation, NextDrone
 
         if self._insertpoint1 is None:
@@ -282,7 +282,7 @@ class HbRing(GraphNode):
         startid = Store.id(self._insertpoint1)
         # We can't pre-compile this, but we hopefully we won't use it much...
         q = '''START Drone=node(%s)
-             MATCH p=Drone-[:%s*0..]->NextDrone
+             MATCH p=(Drone)-[:%s*0..]->(NextDrone)
              WHERE length(p) = 0 or Drone <> NextDrone
              RETURN NextDrone''' % (startid, self.ournexttype)
         for elem in CMAdb.store.load_cypher_nodes(q, Drone):

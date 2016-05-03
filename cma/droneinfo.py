@@ -52,16 +52,16 @@ class Drone(SystemNode):
     IPownerquery_1 = None
     OwnedIPsQuery = None
     IPownerquery_1_txt = '''START n=node:IPaddrNode({ipaddr})
-                            MATCH n<-[:%s]-()<-[:%s]-drone
+                            MATCH (n)<-[:%s]-()<-[:%s]-(drone)
                             return drone LIMIT 1'''
     OwnedIPsQuery_txt = '''START d=node({droneid})
-                           MATCH d-[:%s]->()-[:%s]->ip
+                           MATCH (d)-[:%s]->()-[:%s]->(ip)
                            return ip'''
     JSONattrnames =        '''START d=node({droneid})
-                           MATCH d-[r:jsonattr]->()
+                           MATCH (d)-[r:jsonattr]->()
                            return r.jsonname as key'''
     JSONsingleattr =      '''START d=node({droneid})
-                           MATCH d-[r:jsonattr]->(json)
+                           MATCH (d)-[r:jsonattr]->(json)
                            WHERE r.jsonname={jsonname}
                            return json'''
 
