@@ -1147,9 +1147,9 @@ if __name__ == "__main__":
         dbvers = ourdb.neo4j_version
         # Clean out the database
         if dbvers[0] >= 2:
-            qstring = 'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r'
+            qstring = 'match n optional match (n)-[r]-() delete n,r'
         else:
-            qstring = 'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r'
+            qstring = 'start n=node(*) match n-[r?]-() delete n,r'
         ourdb.cypher.run(qstring)
         # Which fields of which types are used for indexing
         classkeymap = {

@@ -124,9 +124,9 @@ class CMAinit(object):
         'Empty everything out of our database - start over!'
         dbvers = self.db.neo4j_version
         if dbvers[0] >= 2:
-            qstring = 'start n=node(*) optional match n-[r]-() where id(n) <> 0 delete n,r'
+            qstring = 'match n optional match (n)-[r]-() delete n,r'
         else:
-            qstring = 'start n=node(*) match n-[r?]-() where id(n) <> 0 delete n,r'
+            qstring = 'start n=node(*) match n-[r?]-() delete n,r'
 
         result = self.db.cypher.execute(qstring)
         if CMAdb.debug:
