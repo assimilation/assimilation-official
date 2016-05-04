@@ -552,13 +552,10 @@ class Store(object):
             obj = self.constructobj(clsfact, value)
             return obj
         elif isinstance(value, neo4j.Relationship):
-            #from graphnodes import NodeRelationship
-            #return NodeRelationship(value)
-            return 'Relationship not yet supported'
+            from graphnodes import NeoRelationship
+            return NeoRelationship(value)
         elif isinstance(value, neo4j.Path):
-            #from graphnodes import NodeRelPath
-            #return NodeRelPath(value)
-            return 'Path not yet supported'
+            return '''Sorry, Path values aren't yet supported'''
         elif isinstance(value, (list, tuple)):
             ret = []
             for elem in value:

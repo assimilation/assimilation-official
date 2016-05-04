@@ -27,8 +27,8 @@ from cmadb import CMAdb
 import sys, re, time, hashlib, netaddr, socket
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
+from assimjson import JSONtree
 from py2neo import neo4j
-
 
 def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
@@ -591,6 +591,19 @@ class JSONMapNode(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return  ['jhash']
+
+class NeoRelationship(object):
+    '''Our encapsulation of a Neo4j Relationship - good for displaying them '''
+    def __init__(self, relationship):
+        '''Constructor for our Relationship proxy
+        Relationship should be a neo4j.Relationship
+        '''
+        self._relationship = relationship
+        self._id = relationship._id
+        self.type = relationship.type
+        self.start_node = relationship.start_node._id
+        self.end_node = relationship.end_node._id
+        self.properties = relationship.properties
 
 if __name__ == '__main__':
     from cmainit import CMAinit
