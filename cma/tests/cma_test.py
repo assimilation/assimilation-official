@@ -271,7 +271,7 @@ def auditalldrones():
     print 'DRONE1: CMADB.IO:', CMAdb.io
     print 'DRONE1: CMADB.store', CMAdb.store
     audit = AUDITS()
-    qtext = "MATCH drone WHERE drone.nodetype = 'Drone' RETURN drone"
+    qtext = "MATCH (drone) WHERE drone.nodetype = 'Drone' RETURN drone"
     droneobjs = CMAdb.store.load_cypher_nodes(qtext, Drone)
     droneobjs = [drone for drone in droneobjs]
     print 'DRONE2: CMADB', CMAdb
