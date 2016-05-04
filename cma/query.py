@@ -167,7 +167,7 @@ class ClientQuery(GraphNode):
         result = chunks[0]
         for j in range(1, len(chunks)):
             # Now we split it up into variable-expression, '}' and extrastuff...
-            (variable, extra) = chunks[j].split('}')
+            (variable, extra) = chunks[j].split('}',1)
             result += str(JSONtree(queryresult.deepget(variable, 'undefined')))
             result += extra
         return result
