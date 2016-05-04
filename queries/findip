@@ -1,6 +1,6 @@
 {
     "cypher": "START ip=node:IPaddrNode(\"*:*\")
-               MATCH ip<-[:ipowner]-nic<-[:nicowner]-system
+               MATCH (ip)<-[:ipowner]-(nic)<-[:nicowner]-(system)
                WHERE ip.ipaddr = {ipaddr}
                RETURN system, nic, ip",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",

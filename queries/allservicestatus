@@ -1,6 +1,6 @@
 {
     "cypher": "START servicehost=node:Drone('*:*')
-               MATCH monitor-[:monitoring]->service<-[:hosting]-servicehost
+               MATCH (monitor)-[:monitoring]->(service)<-[:hosting]-(servicehost)
                RETURN monitor, service, servicehost
                ORDER BY servicehost.designation, service.pathname",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",

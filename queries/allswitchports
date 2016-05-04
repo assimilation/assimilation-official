@@ -1,6 +1,6 @@
 {
     "cypher": "START host=node:Drone('*:*')
-               MATCH switch-[:nicowner]->swnic-[:wiredto]-hostnic<-[:nicowner]-host
+               MATCH (switch)-[:nicowner]->(swnic)-[:wiredto]-(hostnic)<-[:nicowner]-(host)
                RETURN switch, swnic, hostnic, host",
     "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
     "descriptions": {

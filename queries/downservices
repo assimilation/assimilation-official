@@ -1,7 +1,7 @@
 {
     "cypher": "START monitor=node:MonitorAction('*:*')
                WHERE monitor.isactive AND NOT monitor.isworking
-               MATCH monitor-[:monitoring]->service<-[:hosting]-servicehost
+               MATCH (monitor)-[:monitoring]->(service)<-[:hosting]-(servicehost)
                RETURN monitor, service, servicehost",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {

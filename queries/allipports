@@ -1,6 +1,6 @@
 {
     "cypher": "START ipport=node:IPtcpportNode('*:*')
-               MATCH host-[:hosting]->service-[:tcpservice]->ipport
+               MATCH (host)-[:hosting]->(service)-[:tcpservice]->(ipport)
                RETURN ipport, service, host
                ORDER BY ipport.port, service.pathname, ipport.ipaddr",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",

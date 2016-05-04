@@ -1,6 +1,6 @@
 {
     "cypher": "START host=node:Drone('*:*')
-               MATCH host-[:hosting]->service-[:tcpservice]->ipport
+               MATCH (host)-[:hosting]->(service)-[:tcpservice]->(ipport)
                WHERE host.designation = {systemname}
                RETURN ipport, service, host
                ORDER BY ipport.port, service.pathname, ipport.ipaddr",

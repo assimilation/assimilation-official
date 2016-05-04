@@ -1,8 +1,8 @@
 {
     "cypher": "START service=node:ProcessNode('*:*')
-               OPTIONAL MATCH service<-[:monitoring]->monitor
+               OPTIONAL MATCH (service)<-[:monitoring]->(monitor)
                WITH service, monitor
-               MATCH host-[:hosting]->service
+               MATCH (host)-[:hosting]->(service)
                WHERE monitor IS NULL AND \"server\" in service.roles
                RETURN DISTINCT host, service
                ORDER BY service.pathname, host.designation",

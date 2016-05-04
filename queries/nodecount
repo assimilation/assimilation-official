@@ -1,5 +1,5 @@
 {
-    "cypher": "MATCH n
+    "cypher": "MATCH (n)
                RETURN n.nodetype AS NodeType, count(n) AS Count",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
