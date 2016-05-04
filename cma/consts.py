@@ -48,7 +48,7 @@ class CMAconsts(object):
     NODE_ring       = 'HbRing'        # A ring of Drones
     NODE_drone      = 'Drone'         # A server running our nanoprobes
     NODE_system     = 'SystemNode'    # A system without a nanoprobe - switches so far...
-    NODE_NIC        = 'NICNode'       # A network interface card (connection)
+    NODE_nicnode    = 'NICNode'       # A network interface card (connection)
     NODE_ipaddr     = 'IPaddrNode'    # IP address
     NODE_ipproc     = 'ProcessNode'   # A client and/or server process
     NODE_tcpipport  = 'IPtcpportNode' # (ip, port) tuple for a TCP service

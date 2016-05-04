@@ -27,7 +27,6 @@ from cmadb import CMAdb
 import sys, re, time, hashlib, netaddr, socket
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
-from assimjson import JSONtree
 from py2neo import neo4j
 
 def nodeconstructor(**properties):
@@ -592,6 +591,9 @@ class JSONMapNode(GraphNode):
         'Return our key attributes in order of significance'
         return  ['jhash']
 
+# pylint  W0212: we need to get the value of the _id fields...
+# pylint  R0903: too few public methods. Not appropriate here...
+# pylint: disable=W0212,R0903
 class NeoRelationship(object):
     '''Our encapsulation of a Neo4j Relationship - good for displaying them '''
     def __init__(self, relationship):

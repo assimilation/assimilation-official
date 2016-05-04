@@ -101,7 +101,7 @@ class query(object):
         # Convert name=value strings into a Dict
         for elem in nvpairs:
             try:
-                (name, value) = nvpairs.split('=')
+                (name, value) = elem.split('=')
                 params[name] = value
             except AttributeError as err:
                 if len(param_names) == 0:
