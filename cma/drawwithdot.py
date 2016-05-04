@@ -324,7 +324,8 @@ class DotGraph(object):
         self.nodequeries = nodequeries
         self.nodequeryparams = nodequeryparams
         if relquery is None:
-            relquery = '''START fromnode=node(*) MATCH fromnode-[rel]->tonode
+            relquery = '''START fromnode=node(*)
+            MATCH (fromnode)-[rel]->(tonode)
             RETURN rel
             '''
         self.relquery = relquery
