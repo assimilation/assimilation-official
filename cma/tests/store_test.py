@@ -408,7 +408,7 @@ class TestGeneralQuery(TestCase):
         # seven-[:nicowner]-> sevennic2-[:ipowner]->10.10.10.2
 
         Qstr='''START drone=node:aTestDrone('sevenofnine:*')
-        MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
+        MATCH (person)<-[:formerly]-(drone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
         RETURN person, drone, nic, ipaddr'''
         iter = store.load_cypher_query(Qstr, GraphNode.factory)
         rowcount = 0
@@ -459,7 +459,7 @@ class TestDatabaseWrites(TestCase):
         '''The main point of this test is to verify that things actually go into the
         database correctly.'''
         Qstr='''START drone=node:aTestDrone('sevenofnine:*')
-        MATCH person<-[:formerly]-drone-[:nicowner]->nic-[:ipowner]->ipaddr
+        MATCH (person)<-[:formerly]-(drone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
         RETURN person, drone, nic, ipaddr'''
         Qstr='''START drone=node:aTestDrone('sevenofnine:*')
         RETURN drone'''
