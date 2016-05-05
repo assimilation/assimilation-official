@@ -37,6 +37,7 @@ from assimjson import JSONtree
 from bestpractices import BestPractices
 from cmadb import CMAdb
 from droneinfo import Drone
+from consts import CMAconsts
 
 @RegisterGraphClass
 class ClientQuery(GraphNode):
@@ -267,26 +268,11 @@ class ClientQuery(GraphNode):
         # Validate query parameters
         for param in queryobj.parameter_names():
             pinfo = paramdict[param]
-            if 'type' not in pinfo:
-                raise ValueError('Parameter %s missing type field' % param)
             ptype = pinfo['type']
-            if ptype not in ClientQuery._validationmethods:
-                raise ValueError('Parameter %s has invalid type %s'% (param, ptype))
-            if 'min' in pinfo and ptype != 'int' and ptype != 'float':
-                raise ValueError('Min only valid on numeric fields [%s]'% param )
-            if 'max' in pinfo and ptype != 'int' and ptype != 'float':
-                raise ValueError('Max only valid on numeric fields [%s]'% param )
-            if ptype == 'enum':
-                if 'enumlist' not in pinfo:
-                    raise ValueError('Enum type [%s] requires enumlist'% (param))
-                elist = pinfo['enumlist']
-                for enum in elist:
-                    if not isinstance(enum, str) and not isinstance(enum, unicode):
-                        raise ValueError('Enumlist values [%s] must be strings - not %s'
-                        %   (enum, type(enum)))
+            self.validate_query_parameter_metadata(param, pinfo)
+            # Validate parameter information for this (param) language
             if 'lang' not in pinfo:
                 raise ValueError("Parameter %s must include 'lang' information" % param)
-            # Validate parameter information for this (param) language
             langs = pinfo['lang']
             for lang in languages.keys():
                 if lang not in langs:
@@ -302,17 +288,43 @@ class ClientQuery(GraphNode):
                 if 'long' not in thislang:
                     raise ValueError("Parameter %s, language %s must include 'long' info"
                     %       (param, eachlang))
-                if ptype == 'enum':
+                if ptype == 'enum' or (ptype == 'list' and pinfo['listtype']['type'] == 'enum'):
                     if 'enumlist' not in thislang:
                         raise ValueError("Parameter %s, language %s must include 'enumlist' info"
                         %       (param, eachlang))
                     enums = thislang['enumlist']
-                    for e in elist.keys():  # From code above
+                    elist = pinfo['enumlist'] if ptype == 'enum' else pinfo['listtype']['enumlist']
+                    for e in elist:
                         if e not in enums:
                             raise ValueError("Parameter %s, language %s missing enum value %s"
                             %       (param, eachlang, e))
-
         return True
+
+
+    def validate_query_parameter_metadata(self, param, pinfo):
+        'Validate the paramater metadata for this query'
+        if 'type' not in pinfo:
+            raise ValueError('Parameter %s missing type field' % param)
+        ptype = pinfo['type']
+        if ptype not in ClientQuery._validationmethods:
+            raise ValueError('Parameter %s has invalid type %s'% (param, ptype))
+        if 'min' in pinfo and ptype != 'int' and ptype != 'float':
+            raise ValueError('Min only valid on numeric fields [%s]'% param )
+        if 'max' in pinfo and ptype != 'int' and ptype != 'float':
+            raise ValueError('Max only valid on numeric fields [%s]'% param )
+        if ptype == 'list':
+            if 'listtype' not in pinfo:
+                raise ValueError('List type [%s] requires listtype'% (param))
+            self.validate_query_parameter_metadata('list', pinfo['listtype'])
+        if ptype == 'enum':
+            if 'enumlist' not in pinfo:
+                raise ValueError('Enum type [%s] requires enumlist'% (param))
+            elist = pinfo['enumlist']
+            for enum in elist:
+                if not isinstance(enum, str) and not isinstance(enum, unicode):
+                    raise ValueError('Enumlist values [%s] must be strings - not %s'
+                    %   (enum, type(enum)))
+
     def validate_parameters(self, parameters):
         '''
         parameters is a Dict-like object containing parameter names and values
@@ -370,7 +382,9 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _validate_string(_name, _paraminfo, value):
-        'Validate an string value (always valid)'
+        'Validate a string value (FIXME: should this always be valid??)'
+        # FIXME: This should probably make sure no " or ' or [], ;'s - maybe others?
+        # Probably should allow ":"
         return value
 
     @staticmethod
@@ -435,6 +449,61 @@ class ClientQuery(GraphNode):
             if cmpval == value:
                 return cmpval
         raise ValueError('Value of %s [%s] not in enumlist' % (paraminfo['name'], value))
+
+    @staticmethod
+    def _validate_list(name, paraminfo, listvalue):
+        'Validate a list value'
+        if isinstance(listvalue, (str, unicode)):
+            listvalue = listvalue.split(',')
+        result = []
+        listtype = paraminfo['listtype']
+        for elem in listvalue:
+            result.append(ClientQuery._validate_value(name, listtype, elem))
+        return result
+
+    @staticmethod
+    def _get_nodetype(nodetype):
+        'Return the value of a node type - if valid'
+        nodetypes = set()
+        for attr in dir(CMAconsts):
+            if attr.startswith('NODE_') and isinstance(getattr(CMAconsts, attr), (str, unicode)):
+                nodetypes.add(attr[5:])
+                nodetypes.add(getattr(CMAconsts, attr))
+        if nodetype not in nodetypes:
+            return None
+        defname = 'NODE_' + nodetype
+        return getattr(CMAconsts, defname) if hasattr(CMAconsts, defname) else nodetype
+
+
+    @staticmethod
+    def _validate_nodetype(name, _paraminfo, value):
+        'validate a node type - ignoring case'
+        ret = ClientQuery._get_nodetype(value)
+        if ret is not None:
+            return ret
+        raise ValueError('Value of %s [%s] is not a known node type' % (name, value))
+
+
+    @staticmethod
+    def _get_reltype(reltype):
+        'Return the value of a relationship type - if valid'
+        reltypes = set()
+        for attr in dir(CMAconsts):
+            if attr.startswith('REL_') and isinstance(getattr(CMAconsts, attr), (str, unicode)):
+                reltypes.add(attr[4:])
+                reltypes.add(getattr(CMAconsts, attr))
+        if reltype not in reltypes:
+            return None
+        defname = 'REL_' + reltype
+        return getattr(CMAconsts, defname) if hasattr(CMAconsts, defname) else reltype
+
+    @staticmethod
+    def _validate_reltype(name, _paraminfo, value):
+        'Validate a relationship type - ignoring case'
+        ret = ClientQuery._get_reltype(value)
+        if ret is not None:
+            return ret
+        raise ValueError('Value of %s [%s] is not a known relationship type' % (name, value))
 
     _validationmethods = {}
 
@@ -956,6 +1025,36 @@ class PythonPackageQuery(PythonExec):
                         yield PackageTuple(drone.domain, drone, package,
                                            jsondata[pkgtype][package], pkgtype)
 
+@PythonExec.register
+class PythonDroneSubgraphQuery(PythonExec):
+    'A class to return a subgraph centered around a Drone'
+    PARAMETERS = ['nodetypes', 'reltypes', 'hostname']
+    basequery = \
+        '''START start=node:Drone('*:*')
+        WHERE start.nodetype = 'Drone' AND start.designation = '%s'
+        MATCH p = shortestPath( (start)-[%s*]-(m) )
+        WHERE m.nodetype IN %s
+        UNWIND nodes(p) AS n
+        UNWIND rels(p) AS r
+        RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
+        COLLECT(DISTINCT r) AS relationships'''
+
+    def result_iterator(self, params):
+        nodetypes = params['nodetypes']
+        reltypes  = params['reltypes']
+        designation = params['hostname']
+        relstring = ''
+        delim=''
+        for reltype in reltypes:
+            relstring  += '%s:%s' % (delim, reltype)
+            delim = '|'
+        nodestr = str(nodetypes)
+        query = PythonDroneSubgraphQuery.basequery % (designation, relstring, nodestr, nodestr)
+        #print >> sys.stderr, 'RUNNING THIS QUERY:', query
+        for row in self.store.load_cypher_query(query, GraphNode.factory):
+            yield row
+
+
 # message 0212: access to protected member of client class
 # pylint: disable=W0212
 ClientQuery._validationmethods = {
@@ -965,10 +1064,13 @@ ClientQuery._validationmethods = {
     'string':   ClientQuery._validate_string,
     'enum':     ClientQuery._validate_enum,
     'ipaddr':   ClientQuery._validate_ipaddr,
+    'list':     ClientQuery._validate_list,
     'macaddr':  ClientQuery._validate_macaddr,
     'hostname': ClientQuery._validate_hostname,
     'dnsname':  ClientQuery._validate_dnsname,
     'regex':    ClientQuery._validate_regex,
+    'nodetype': ClientQuery._validate_nodetype,
+    'reltype':  ClientQuery._validate_reltype,
 }
 
 if __name__ == '__main__':
@@ -1038,7 +1140,55 @@ if __name__ == '__main__':
         }
     }
     '''
+    metadata4 =  \
+    r''' {
+        "cypher": 	"START start=node:Drone('*:*')
+                    WHERE start.nodetype = 'Drone' AND start.designation = '{host}'
+                    MATCH p = shortestPath( (start)-[*]-(m) )
+                    WHERE m.nodetype IN {nodetypes}
+                    UNWIND nodes(p) as n
+                    UNWIND rels(p) as r
+                    RETURN [x in collect(distinct n) WHERE x.nodetype in {nodetypes}]] as nodes,
+                   collect(distinct r) as relationships",
+        "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+        "descriptions": {
+            "en": {
+                "short":    "return entire graph",
+                "long":     "retrieve all nodes and all relationships"
+            }
+        },
+        "parameters": {
+            "host": {
+                "type": "hostname",
+                "lang": {
+                    "en": {
+                        "short":    "starting host name",
+                        "long":     "name of host to start the query at"
+                    }
+                }
+            },
+            "nodetypes": {
+                "type": "list",
+                "listtype": {
+                    "type": "nodetype"
+                },
+                "lang": {
+                    "en": {
+                        "short":    "node types",
+                        "long":     "set of node types to include in query result",
+                     }
+                }
+            }
+        },
+        "cmdline": {
+            "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
+            "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
+        },
+    }'''
     q3 = ClientQuery('ipowners', metadata3)
+    q3.validate_json()
+    q4 = ClientQuery('subgraph', metadata4)
+    q4.validate_json()
 
     Neo4jCreds().authenticate()
     neodb = neo4j.Graph()
