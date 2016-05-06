@@ -43,7 +43,7 @@ if
 then
   mkdir $ASSIM
 fi
-rm -fr $ASSIM/*
+sudo rm -fr $ASSIM/*
 
 sudo service cma stop
 rm -fr $WORKSPACE
