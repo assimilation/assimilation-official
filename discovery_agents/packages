@@ -22,104 +22,127 @@
 # You should have received a copy of the GNU General Public License
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
+set -e
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
+PACKAGETYPES="deb_pkgs gem_pkgs npm_pkgs php_pkgs pip_pkgs rpm_pkgs"
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-cmdexists() {
-  for dir in $(echo $PATH | tr ':' ' ')
-  do
+export PATH
+ENVIRONMENT=''
+
+tempfile() {
     if
-      [ -f "$dir/$1" -a -x "$dir/$1" ]
+        false and mktemp
     then
-      echo "$dir/$1"
-      return 0
+        : OK
+    else
+        name=$(echo /tmp/$$.packages-discovery-$(date --rfc-3339=ns | tr ' ' '_'))
+        echo > $name
+        echo $name
     fi
-  done
-  return 1
 }
 
+TMPFILE=$(tempfile)
+
+
+check_tmpfile() {
+    test -s "$TMPFILE" || return 1
+    case $(head -n1 $TMPFILE) in
+        *[Cc]annot*run*exec*|*executable*file*not*found*|*[Ss]ystem*error*)   return 1;;
+    esac
+    return 0
+}
 
 # Debian Packages
-dpkg_pkgs() {
-  DPKG=$(cmdexists dpkg-query) || return 1
-  printf '%s"deb":{' "$ourcomma"
-  comma='
+deb_pkgs() {
+    comma='
 '
-  "${DPKG}" --show --showformat='"${package;0}::${architecture;0}":"${version;0}"\n' 2>/dev/null |
-  sort -u |
-  while
-    read line
-  do
-    printf '%s' "${comma}${line}"
-    comma=',
+    assim_run_in_context dpkg-query --show \
+      --showformat='"${package;0}::${architecture;0}":"${version;0}"\n' > $TMPFILE 2>/dev/null 
+
+    check_tmpfile || return 1
+
+
+    printf '%s"deb":{' "$ourcomma"
+    sort -u < $TMPFILE |
+    while
+        read line
+    do
+        printf '%s' "${comma}${line}"
+        comma=',
 '
-  done
-  printf '}'
-  return 0
+    done
+    printf '}'
+    return 0
 }
 
 # RPM Packages
 rpm_pkgs() {
-  RPM=$(cmdexists rpm) || return 1
-  printf '%s"rpm":{' "$ourcomma"
-  comma='
+    assim_run_in_context rpm -qa --queryformat='"%{NAME}::%{ARCH}":"%{VERSION}-%{RELEASE}"\n' \
+      > $TMPFILE 2>/dev/null
+    check_tmpfile || return 1
+    printf '%s"rpm":{' "$ourcomma"
+    comma='
 '
-  "${RPM}" -qa --queryformat='"%{NAME}::%{ARCH}":"%{VERSION}-%{RELEASE}"\n' 2>/dev/null | sort -u |
-  while
-    read line
-  do
-    printf '%s' "${comma}${line}"
-    comma=',
+    sort -u $TMPFILE |
+    while
+        read line
+    do
+        printf '%s' "${comma}${line}"
+        comma=',
 '
-  done
-  printf '}'
-  return 0
+    done
+    printf '}'
+    return 0
 }
 
 # Python (pip) Packages
 pip_pkgs() {
-  PIP=$(cmdexists pip) || return 1
-  printf '%s"pip":{' "$ourcomma"
-  comma='
+    assim_run_in_context pip list >$TMPFILE 2>/dev/null
+    check_tmpfile || return 1
+    printf '%s"pip":{' "$ourcomma"
+    comma='
 '
-  "${PIP}" list 2>/dev/null | sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' |
-  while
-      read line
-  do
-      case $line in
-        '"Exception:'*) echo '"pip-list-got-an-exception": "0.0.p.s"'
+    sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' $TMPFILE |
+    while
+        read line
+    do
+      # Work around a pip bug...
+        case $line in
+            '"Exception:'*) echo '"pip-list-got-an-exception": "0.0.p.s"'
                         break
                         ;;
-      esac
-      echo "$line"
-  done | sort -u |
-  while
-    read line
-  do
-    printf '%s%s' "${comma}" "${line}"
-
-    comma=',
+        esac
+        echo "$line"
+    done | sort -u |
+    while
+        read line
+    do
+        printf '%s%s' "${comma}" "${line}"
+        comma=',
 '
-  done
-  printf '\n}'
-  return 0
+    done
+    printf '\n}'
+    return 0
 }
 
 # Ruby GEMs
 gem_pkgs() {
-  GEM=$(cmdexists gem) || return 1
-  printf '%s"gem":{' "$ourcomma"
-  comma='
+    assim_run_in_context gem list -q >$TMPFILE 2>/dev/null
+    check_tmpfile || return 1
+    printf '%s"gem":{' "$ourcomma"
+    comma='
 '
-  "${GEM}" list -q 2>/dev/null | sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' | sort -u |
-  while
-    read line
-  do
-    printf '%s%s' "${comma}" "${line}"
-
-    comma=',
+      sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' $TMPFILE | sort -u |
+    while
+        read line
+    do
+        printf '%s%s' "${comma}" "${line}"
+        comma=',
 '
-  done
-  printf '\n}'
-  return 0
+    done
+    printf '\n}'
+    return 0
 }
 
 #
@@ -127,82 +150,102 @@ gem_pkgs() {
 #   so we add a suffix onto the later versions...
 #
 npm_pkgs(){
-  NPM=$(cmdexists npm) || return 1
-  printf '%s"npm":{' "$ourcomma"
-  comma='
+    assim_run_in_context npm -g ls >$TMPFILE 2>/dev/null
+    check_tmpfile || return 1
+    printf '%s"npm":{' "$ourcomma"
+    comma='
 '
-  "${NPM}" -g ls 2>/dev/null | sed -e 's%[^A-Za-z_]* %%' -e 's%@%	%' | sort -u | (
-  seq=1
-  prevpkg=NOSUCHPACKAGE
-  while
-    read package version
-  do
-    test -z "$version"  && continue
-    if
-        [ "X$package" != "X$prevpkg" ]
-    then
-        seq=1
-        printf '%s"%s": "%s"' "${comma}" "${package}" "$version"
-    else
-        seq=$(expr $seq + 1)
-        printf '%s"%s#%d": "%s"' "${comma}" "${package}" "$seq" "$version"
-    fi
-    prevpkg=$package
-    comma=',
+    sed -e 's%[^A-Za-z_]* %%' -e 's%@%	%' $TMPFILE | sort -u | (
+    seq=1
+    prevpkg=NOSUCHPACKAGE
+    while
+        read package version
+    do
+        test -z "$version"  && continue
+        if
+            [ "X$package" != "X$prevpkg" ]
+        then
+            seq=1
+            printf '%s"%s": "%s"' "${comma}" "${package}" "$version"
+        else
+            seq=$(expr $seq + 1)
+            printf '%s"%s#%d": "%s"' "${comma}" "${package}" "$seq" "$version"
+        fi
+        prevpkg=$package
+        comma=',
 '
-  done)
-  printf '\n}'
-  return 0
+    done)
+    printf '\n}'
+    return 0
 }
 
 # PHP packages
 php_pkgs() {
-  PHP=$(cmdexists php) || return 1
-  printf '%s"php":{' "$ourcomma"
-  comma='
+    assim_run_in_context php  -r \
+        'foreach (get_loaded_extensions() as $extension) echo "\"$extension\": " . "\"" . phpversion($extension) . "\"\n";'     \
+      >$TMPFILE 2>/dev/null
+    check_tmpfile || return 1
+    printf '%s"php":{' "$ourcomma"
+    comma='
 '
-  "${PHP}"  -r 'foreach (get_loaded_extensions() as $extension) echo "\"$extension\": " . "\"" . phpversion($extension) . "\"\n";' |
-  sort -u |
-  while
-    read line
-  do
-    case $line in
-        *'""'*)     continue;;
-        *)          : OK ;;
-    esac
-    printf '%s%s' "${comma}" "${line}"
-    comma=',
+    sort -u $TMPFILE |
+    while
+        read line
+    do
+        case $line in
+            *'""'*)     continue;;
+            *)          : OK ;;
+        esac
+        printf '%s%s' "${comma}" "${line}"
+        comma=',
 '
-  done
-  printf '\n}'
-  return 0
+    done
+    printf '\n}'
+    return 0
+}
+
+# Discover all our packages in our current environment (default OS)
+discover_packages_basic() {
+    ourcomma=''
+    for pkgtype in $PACKAGETYPES
+    do
+        if 
+            $pkgtype "$ourcomma"
+        then
+            ourcomma=",
+"
+        fi
+    done
 }
 
 discover() {
+    HOST=$(uname -n)
+    PKGSTR=$(echo $PACKAGETYPES | sed -e 's%_pkgs%%g' -e 's% %", "%g' -e 's%^%["%' -e 's%$%"]%')
     cat <<-!
 	{
 	  "discovertype": "packages",
-	  "description": "Package information",
-	  "host": "$(uname -n)",
+	  "description": "Installed package information",
+	  "packagetypes": $PKGSTR,
+	  "host": "${HOST}",
+	  "proxy": "${ASSIM_PROXY_PATH}",
 	  "source": "$0",
 	  "data": {
 	!
-  ourcomma=""
-  # Maybe one day I'll look at Perl - the complete answer is quite slow, and requires installing
-  # a package not otherwise required.
-  # For Java it would probably have to be a separate package since there is no central
-  # repository for JARs like other languages have.
-  # For that case, we could trigger discovery based on Java programs talking on the network
-  # like we do for collecting checksums.
-  for pkgtype in dpkg_pkgs gem_pkgs npm_pkgs php_pkgs pip_pkgs rpm_pkgs
-  do
-    if 
-      $pkgtype "$ourcomma"
-    then
-      ourcomma=",
-"
-    fi
-  done
-  echo "}}"
+    ourcomma=""
+    # Maybe one day I'll look at Perl - the complete answer is quite slow,
+    # and requires installing a package not otherwise required.
+    #
+    # For Java it would probably have to be a separate discovery method since there is no central
+    # repository for JARs like other languages have.
+    # For that case, we could trigger discovery based on Java programs talking on the network
+    # like we do for collecting checksums.
+    case $ENVIRONMENT in
+        docker) case $ASSIM_LOCAL_PROXY_DEST in
+                    ?*) discover_packages_basic;;
+                    *)  discover_docker;;
+                esac;;
+        *)  discover_packages_basic;;
+    esac
+    echo "}}"
 }
 discover

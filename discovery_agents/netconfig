@@ -1,4 +1,31 @@
-#!/bin/sh
+#!/bin/sh -eu
+#
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2016 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+#   - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
+#
 #
 #	Command to discover our local network configuration and output the results in JSON format.
 #	It requires /sys/class/net and the ip command (/sbin/ip).
@@ -53,6 +80,9 @@
 #    }
 #  }
 #}
+
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
 
 NETDIR=/sys/class/net
 IP=/sbin/ip
@@ -122,22 +152,23 @@ arrayval() {
 #	Network discovery
 #
 discover() {
-  test ! -d "$NETDIR" -o ! -x "$IP" && return 1
+  assim_run_in_context test ! -d "$NETDIR" -o ! -x "$IP" && return 1
 
-  DEVICES=$(ls "$NETDIR")
-  DEFAULTGW=`cat /proc/net/route | cut -c1-14 | grep '^[^	]*	00000000' | cut -f1 | head -1`
+  DEVICES=$(assim_run_in_context ls "$NETDIR")
+  DEFAULTGW=$(assim_run_in_context cat /proc/net/route | cut -c1-14 | grep '^[^	]*	00000000' | cut -f1 | head -1)
   printf '{\n'
   printf '  "discovertype": "netconfig",\n'
   printf '  "description": "IP Network Configuration",\n'
   printf '  "source": "'$US'",\n'
   printf '  "host": "'`uname -n`'",\n'
+  printf '  "proxy: "%s",' "${ASSIM_PROXY_PATH}",
   printf '  "data": {\n'
   outercomma=''
 
 
   for device in $DEVICES
   do
-    test ! -d "$NETDIR/$device" && continue
+    assim_run_in_context test ! -d "$NETDIR/$device" && continue
     printf  "$outercomma"
     outercomma=', \n'
     printf "    \"$device\": {\n"
@@ -147,13 +178,14 @@ discover() {
     for field in address carrier duplex mtu operstate speed
     do
       file="$NETDIR/$device/$field"
-      [ ! -f "$file" ] && continue
-      value=`cat $file 2>/dev/null`
+      assim_run_in_context test ! -f "$file"  && continue
+      value=$(assim_run_in_context cat $file 2>/dev/null || true)
       [ -z "$value" ] && continue
       # Change carrier from a {0,1} integer to a boolean
       case "$field:$value" in
          'carrier:1')	value=true;;
          'carrier:0')	value=false;;
+         *:)            break;;
       esac
       printf '	%s,\n' "$(scalarval "$field" "$value" )"
     done
@@ -163,7 +195,7 @@ discover() {
 
     # Is this a wireless connection?
     if
-      [ -d "$NETDIR/$device/wireless" ]
+      assim_run_in_context test -d "$NETDIR/$device/wireless"
     then
       #printf '	"is_wireless": true,\n'
         # sample iwconfig output:
@@ -183,15 +215,15 @@ discover() {
 
     # Is it a bonded link?
     if
-      [ -d "$NETDIR/$device/bonding" ]
+      assim_run_in_context test -d "$NETDIR/$device/bonding"
     then
       # Array fields
       for field in slaves
       do
         if 
-          [ -f "$NETDIR/$device/bonding/$field" ]
+          assim_run_in_context test -f "$NETDIR/$device/bonding/$field"
         then
-          value=$(cat "$NETDIR/$device/bonding/$field")
+          value=$(assim_run_in_context cat "$NETDIR/$device/bonding/$field")
           printf '\t"%s": %s,\n' "bonding_$field" "$(arrayval "" $value)"
         fi 
       done
@@ -199,9 +231,9 @@ discover() {
       for field in mode
       do
         if 
-          [ -f "$NETDIR/$device/bonding/$field" ]
+          assim_run_in_context test -f "$NETDIR/$device/bonding/$field"
         then
-          value=$(cat "$NETDIR/$device/bonding/$field" )
+          value=$(assim_run_in_context cat "$NETDIR/$device/bonding/$field" )
           printf '	"%s": %s,\n' "bonding_$field" "$(scalarfmt "$value")"
         fi 
       done
@@ -220,7 +252,7 @@ discover() {
     printf '	"ipaddrs": {'
     innercomma=''
     #
-    $IP addr show "$device" | grep '^ *inet' |
+    assim_run_in_context $IP addr show "$device" | grep '^ *inet' |
     while
       #    inet6 fe80::21b:fcff:fe1b:a873/64 scope link 
       #    inet  10.10.10.5/24               brd   10.10.10.255  scope      global  eth0

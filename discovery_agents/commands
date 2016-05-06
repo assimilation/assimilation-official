@@ -22,6 +22,8 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
 :   ${DISCOVER_PATH:="/sbin /usr/sbin /bin /usr/bin /usr/local/sbin /usr/local/bin"}
 #
 #
@@ -31,18 +33,8 @@ discover_commands() {
   '
     for dir in ${DISCOVER_PATH}
     do
-        test -d "$dir" || continue
-        ls $dir | \
-        while
-          read cmd
-        do
-          if
-            [ ! -f "$dir/$cmd" -o ! -x "$dir/$cmd" ]
-          then
-            continue
-          fi
-          echo $cmd
-        done
+        assim_run_in_context test -d "$dir" || continue
+        assim_run_in_context ls $dir 
     done
 }
 
@@ -64,6 +56,7 @@ discover() {
 	 "discovertype": "commands",
 	 "description": "Commands in $DISCOVER_PATH",
 	 "host": "$(uname -n)",
+	 "proxy": "${ASSIM_PROXY_PATH}",
 	 "source": "$0",
 	 "data": {
 	!

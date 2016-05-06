@@ -29,6 +29,8 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
 nl='
 '
 : ${ASSIM_filelist='/ /etc /lib /usr/ /var/ /run /run/lock /run/user /bin /sbin /usr/local/'}
@@ -147,7 +149,7 @@ encode_fattrs() {
         return
     fi
     comma=''
-    getfattr -m- -d --absolute-names "$1" 2>/dev/null |
+    assim_run_in_context getfattr -m- -d --absolute-names "$1" 2>/dev/null |
     while
         read line
     do
@@ -186,7 +188,7 @@ encode_selinuxcontext() {
 #   Encode file information into JSON
 #
 fileinfo_linux() {
-    ls -ldZ "$1" | 
+    assim_run_in_context ls -ldZ "$1" | 
     (
         printf '"%s": {' "$1"
         read modebits linkcount uid gid selinuxcontext size month day time name
@@ -196,7 +198,7 @@ fileinfo_linux() {
         if
             [ $have_stat = true ]
         then
-           stat --printf ', "octal": "0%a"' "$1"
+           assim_run_in_context stat --printf ', "octal": "0%a"' "$1"
         fi
         printf '}'
     )
@@ -254,10 +256,10 @@ discover_files() {
             *?/)
                 printf '%s%s' "$comma" "$(fileinfo_linux $(echo "$file" | sed 's%./$%&%'))"
                 comma=",${nl}${linespace}"
-                for dirfile in ${file}*
+                for dirfile in $(assim_run_in_context sh -c "echo ${file}*")
                 do
                     if
-                        test ! -z "$dirfile" -a -e "$dirfile"
+                        assim_run_in_context test ! -z "$dirfile" -a -e "$dirfile"
                     then
                         printf '%s%s' "$comma" "$(fileinfo_linux "$dirfile")"
                     fi
@@ -277,6 +279,7 @@ discover() {
 	  "discovertype": "fileattrs",
 	  "description": "file and directory attributes",
 	  "host": "$(uname -n)",
+	  "proxy": "${ASSIM_PROXY_PATH}",
 	  "source": "$0",
 	!
 	printf '  "data": '
@@ -285,12 +288,12 @@ discover() {
 }
 
 if
-    getfattr --help >/dev/null 2>&1
+    assim_run_in_context getfattr --help >/dev/null 2>&1
 then
     have_getfattr=true
 fi
 if
-    stat --version >/dev/null 2>&1
+    assim_run_in_context stat --version >/dev/null 2>&1
 then
     have_stat=true
 fi

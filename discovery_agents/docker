@@ -28,6 +28,8 @@
 # along with the Assimilation Project software.
 # If not, see http://www.gnu.org/licenses/
 #
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
 
 
 # Return true if the argument is a number...
@@ -70,13 +72,13 @@ global_docker_info() {
     comma=''
     echo '    "info": {'
     printf '      '
-    docker --version | sed  -e 's%^Docker *%%'                  \
+    assim_run_in_context docker --version | sed  -e 's%^Docker *%%'                  \
                             -e 's%version *%"version": "%'      \
                             -e 's%,%",%'                        \
                             -e 's%build %"build": "%'           \
                             -e 's%$%",%'                        \
 
-    docker info 2>/dev/null | sed 's%^ %NESTED %'  |
+    assim_run_in_context docker info 2>/dev/null | sed 's%^ %NESTED %'  |
     while
         read line
     do
@@ -129,12 +131,13 @@ output_registry() {
 }
 
 running_docker_containers() {
-    docker ps | cut -d' ' -f1 | grep -v '^CONTAINER$'
+    assim_run_in_context docker ps | cut -d' ' -f1 | grep -v '^CONTAINER$'
 }
 
 #   Information about a single container...
 container_info() {
-    docker inspect "$@" 2>/dev/null | sed -e 's%^\[{%{%' -e 's%^]$%%'
+    assim_run_in_context docker inspect "$@" 2>/dev/null |
+        sed -e 's%^\[{%{%' -e 's%^]$%%'
 }
 
 # JSON Information about each running container

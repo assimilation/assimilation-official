@@ -1,5 +1,5 @@
 #!/bin/sh
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -23,6 +23,9 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
+
 DEFAULTSUMLIST="/usr/bin/sha256sum /usr/bin/sha384sum /usr/bin/sha512sum /usr/bin/sha224sum /usr/bin/sha1sum /usr/bin/shasum /usr/bin/md5sum /usr/bin/cksum /usr/bin/crc32"
 
 : ${ASSIM_sumcmds:=${DEFAULTSUMLIST}}
@@ -47,7 +50,7 @@ trap 'rm -fr "$TMPDIR"' 0
 
 # Produces the list of libraries that this binary depends on
 lddependencies() {
-  ldd $1 2>/dev/null |
+    assim_run_in_context ldd $1 2>/dev/null |
   while
     read line
   do
@@ -76,7 +79,7 @@ find_sumcmd() {
     for cmd in ${ASSIM_sumcmds}
     do
         if
-            [ -f "$cmd" -a -x "$cmd" ]
+            assim_run_in_context test -f "$cmd" -a -x "$cmd" 
         then
             SUMCMD="${cmd}"
             return
@@ -88,7 +91,7 @@ find_sumcmd() {
 
 
 sumcmd() {
-    ${SUMCMD} "$1" | cut -f1 -d' '
+    assim_run_in_context ${SUMCMD} "$1" 2>/dev/null | cut -f1 -d' '
 }
 
 #   Expand the list of requested filenames to include things which this file depends on
@@ -96,7 +99,7 @@ sumcmd() {
 expandlist() {
     for arg in "$@"
     do
-        if [ ! -f "$arg" ]; then continue; fi
+        if assim_run_in_context test ! -f "$arg"; then continue; fi
         echo "$arg"
         lddependencies "$arg"
     done >> ${TMPDIR}/filelist
@@ -109,16 +112,17 @@ sumfiles() {
  "description": "File Checksums from parameters",
  "host": "$(uname -n)",
  "source": "$0",
+ "proxy": "${ASSIM_PROXY_PATH}",
  "sumcmd": "${SUMCMD}",
  "data": {
 !EOF1
     comma='  '
-    sort -u ${TMPDIR}/filelist |
+    assim_run_in_context ${SUMCMD} $(sort -u < $TMPDIR/filelist) 2>/dev/null|
+    awk '{printf "{\"%s\": \"%s\"}\n", $2 , $1}' |
     while
         read line
     do
-        checksum=$(sumcmd "$line")
-        printf "${comma}"'"%s": "%s"' "$line" "$checksum"
+        printf '%s%s' "${comma}" "$line"
         comma=',
   '
     done
