@@ -161,7 +161,7 @@ discover() {
   printf '  "description": "IP Network Configuration",\n'
   printf '  "source": "'$US'",\n'
   printf '  "host": "'`uname -n`'",\n'
-  printf '  "proxy: "%s",' "${ASSIM_PROXY_PATH}",
+  printf '  "proxy": "%s",\n' "${ASSIM_PROXY_PATH}"
   printf '  "data": {\n'
   outercomma=''
 
