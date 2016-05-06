@@ -103,7 +103,7 @@ class query(object):
             try:
                 (name, value) = elem.split('=')
                 params[name] = value
-            except (ValueError) as err:
+            except (AttributeError,ValueError) as err:
                 if len(param_names) == 0:
                     print >> sys.stderr, ('%s query does not take any parameters' % queryname)
                     return 1
