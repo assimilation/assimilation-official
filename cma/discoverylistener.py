@@ -405,14 +405,23 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
                 continue
             # Connect it to its parent system
             self.store.relate_new(system, CMAconsts.REL_parentsys, drone)
+
+            runspec = ' "runas_user": "%s",' % system.runas_user        \
+                    if system.runas_user is not None else ''
+            if system.runas_group is not None:
+                if runspec != '':
+                    runspec += ', '
+                runspec += ' "runas_group": "%s",' % system.runas_group
+
             allparams = []
             for dtype in discovery_types:
                 # kick off discovery...
                 instance = '_init_%s_%s' % (dtype, system.childpath)
                 allparams.append(pyConfigContext(
-                                        '{"%s": "%s", "%s": "%s", "parameters":{"%s": "%s"}}'
+                                        '{"%s": "%s", "%s": "%s",%s "parameters":{"%s": "%s"}}'
                                         %   (CONFIGNAME_TYPE, dtype,
                                              CONFIGNAME_INSTANCE, instance,
+                                             runspec,
                                              'ASSIM_PROXY_PATH', system.childpath
                                             )))
             # kick off discovery...

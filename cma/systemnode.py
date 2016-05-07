@@ -318,6 +318,8 @@ class ChildSystem(SystemNode):
             else:
                 childpath = '%s/%s' % (self.__class__.DiscoveryPath, designation)
         self.childpath = childpath
+        self.runas_user = None
+        self.runas_group = None
         if _parentsystem is not None:
             self._parentsystem = _parentsystem
         #print >> sys.stderr, 'YAY GOT A CHILD NODE!=====================: %s' % str(self)
@@ -372,12 +374,22 @@ class ChildSystem(SystemNode):
 class DockerSystem(ChildSystem):
     'A class representing a Docker container'
     DiscoveryPath='docker'
+    def post_db_init(self):
+        ChildSystem.post_db_init(self)
+        self.runas_user  =  'nobody'
+        self.runas_group =  'docker'
 
 @RegisterGraphClass
 class VagrantSystem(ChildSystem):
     'A class representing a Vagrant VM'
     DiscoveryPath='vagrant'
 
+    def post_db_init(self):
+        ChildSystem.post_db_init(self)
+        if not hasattr(self, 'runas_user'):
+            jsonobj = pyConfigContext(self._selfjson)
+            self.runas_user  = jsonobj['user']
+            self.runas_group = jsonobj['group']
 
 if __name__ == '__main__':
     def maintest():
