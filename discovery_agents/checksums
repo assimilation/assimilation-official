@@ -118,7 +118,7 @@ sumfiles() {
 !EOF1
     comma='  '
     assim_run_in_context ${SUMCMD} $(sort -u < $TMPDIR/filelist) 2>/dev/null|
-    awk '{printf "{\"%s\": \"%s\"}\n", $2 , $1}' |
+    awk '{printf "\"%s\": \"%s\"\n", $2 , $1}' |
     while
         read line
     do
@@ -133,8 +133,8 @@ sumfiles() {
 !EOF2
 }
 
-#MINLIST="/bin/bash /bin/sh /bin/login /usr/bin/passwd ${SUMCMD} /usr/sbin/nanoprobe"
 MINLIST="${SUMCMD} /usr/sbin/nanoprobe"
+MINLIST="/bin/bash /bin/sh /bin/login /usr/bin/passwd ${SUMCMD} /usr/sbin/nanoprobe"
 
 discover() {
     find_sumcmd
