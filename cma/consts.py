@@ -45,17 +45,20 @@ class CMAconsts(object):
 #
 #       Node types [nodetype enumeration values]:
 #
-    NODE_ring       = 'HbRing'        # A ring of Drones
-    NODE_drone      = 'Drone'         # A server running our nanoprobes
-    NODE_system     = 'SystemNode'    # A system without a nanoprobe - switches so far...
-    NODE_nicnode    = 'NICNode'       # A network interface card (connection)
-    NODE_ipaddr     = 'IPaddrNode'    # IP address
-    NODE_ipproc     = 'ProcessNode'   # A client and/or server process
-    NODE_tcpipport  = 'IPtcpportNode' # (ip, port) tuple for a TCP service
+    NODE_ring           = 'HbRing'        # A ring of Drones
+    NODE_drone          = 'Drone'         # A server running our nanoprobes
+    NODE_system         = 'SystemNode'    # A system without a nanoprobe - switches so far...
+    NODE_nicnode        = 'NICNode'       # A network interface card (connection)
+    NODE_ipaddr         = 'IPaddrNode'    # IP address
+    NODE_ipproc         = 'ProcessNode'   # A client and/or server process
+    NODE_tcpipport      = 'IPtcpportNode' # (ip, port) tuple for a TCP service
     NODE_monitoraction  = 'MonitorAction' # A (hopefully active) monitoring action
-    NODE_bprules    = 'BPRules'       # Best practices rules
-    NODE_bpruleset  = 'BPRuleSet'     # A set of best practice rules
-    NODE_jsonmap    = 'JSONMapNode'   # JSON map object stored as a string
+    NODE_bprules        = 'BPRules'       # Best practices rules
+    NODE_bpruleset      = 'BPRuleSet'     # A set of best practice rules
+    NODE_jsonmap        = 'JSONMapNode'   # JSON map object stored as a string
+    NODE_childsystem    = 'ChildSystem'   # A VM or container system
+    NODE_vagrantsystem  = 'VagrantSystem' # A child Vagrant VM system
+    NODE_dockersystem   = 'DockerSystem'  # A child Docker container
 #
 #       Relationship types [reltype enumeration values]
 # ---------------------------------------------------------------
@@ -75,6 +78,7 @@ class CMAconsts(object):
     REL_basis       = 'basis'       # NODE_BPRules      ->  NODE_BPRules
     REL_bprulefor   = 'ruledbybp'   # NODE_drone        ->  NODE_BPRules
     REL_jsonattr    = 'jsonattr'    # NODE_system       ->  NODE_jsonmap
+    REL_parentsys   = 'parentsys'   # NODE_ChildSystem  ->  NODE_system
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 #

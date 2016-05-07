@@ -37,6 +37,7 @@ from consts import CMAconsts
 from store import Store
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
 from AssimCclasses import pyNetAddr, pyConfigContext
+from systemnode import ChildSystem
 
 from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, GraphNode
 
@@ -378,4 +379,40 @@ class TCPDiscoveryListener(DiscoveryListener):
             ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=addr)
             allourips.append(ipnode)
             self._add_serveripportnodes(drone, addr, port, processnode, allourips)
+
+class SystemSubclassDiscoveryListener(DiscoveryListener):
+    'Listening for subsystem discovery results'
+
+    prio = DiscoveryListener.PRI_CORE
+    wantedpackets = ('vagrant', 'docker')
+
+    def processpkt(self, drone, _unused_srcaddr, jsonobj):
+        ''' Kick off discovery for a Docker or vagrant instance - as though it were a
+            real boy -- I mean a real Drone
+        '''
+
+        data = jsonobj['data']
+        if 'containers' not in data:
+            return
+        systems = data['containers']
+        childtype = data['discovertype']
+        discovery_types = self.config['containers'][childtype]['initial_discovery']
+        for sysid in systems:
+            system = ChildSystem.childfactory(drone, childtype, sysid, systems[sysid])
+            if not Store.is_abstract(system):
+                continue
+            # Connect it to its parent system
+            self.store.relate_new(system, CMAconsts.REL_parentsys, drone)
+            allparams = []
+            for dtype in discovery_types:
+                # kick off discovery...
+                instance = '_init_%s_%s' % (dtype, system.childpath)
+                allparams.append(pyConfigContext(
+                                        '{"parameters":{"%s": "%s", "%s": "%s", "%s": "%s"}}'
+                                        %   (CONFIGNAME_TYPE, dtype,
+                                             CONFIGNAME_INSTANCE, instance,
+                                             'ASSIM_PROXY_PATH', system.childpath
+                                            )))
+            # kick off discovery...
+            system.request_discovery(allparams)
 

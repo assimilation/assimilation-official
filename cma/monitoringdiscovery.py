@@ -33,21 +33,21 @@ More details are documented in the DiscoveryListener class
 '''
 import sys, hashlib
 from monitoring import MonitoringRule, MonitorAction
-from droneinfo import Drone
+from systemnode import SystemNode
 from store import Store
 
 from graphnodes import ProcessNode
 from discoverylistener import DiscoveryListener
 from cmaconfig import ConfigFile
 
-@Drone.add_json_processor
+@SystemNode.add_json_processor
 class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
     'Class for generating and activating monitoring from the TCP discovery data'
     prio = DiscoveryListener.PRI_OPTION
     wantedpackets = ('tcpdiscovery',)
 
     def processpkt(self, drone, unused_srcaddr, jsonobj):
-        "Send commands to monitor services for this Drone's listening processes"
+        "Send commands to monitor services for this Systems's listening processes"
         unused_srcaddr = unused_srcaddr
 
         drone.monitors_activated = True
@@ -173,13 +173,13 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
             %       (monitortype, drone.designation))
         monnode.activate(monitoredservice, drone)
 
-@Drone.add_json_processor
+@SystemNode.add_json_processor
 class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
     '''This class performs host-level monitoring.
     For the moment, that's only using Nagios agents.
     '''
     def processpkt(self, drone, unused_srcaddr, unused_jsonobj):
-        "Send commands to monitor host aspects for the given Drone"
+        "Send commands to monitor host aspects for the given System"
         unused_srcaddr = unused_srcaddr
         unused_jsonobj = unused_jsonobj
 

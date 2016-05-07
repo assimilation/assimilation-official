@@ -39,8 +39,8 @@ from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCtypes import CONFIGNAME_INSTANCE
 from AssimCtypes import CONFIGNAME_DEVNAME, CONFIGNAME_SWPROTOS
 from discoverylistener import DiscoveryListener
-from droneinfo import Drone
-from graphnodes import NICNode, IPaddrNode, SystemNode
+from graphnodes import NICNode, IPaddrNode
+from systemnode import SystemNode
 from cmaconfig import ConfigFile
 import sys
 
@@ -51,7 +51,7 @@ def discovery_indicates_link_is_up(devinfo):
         and str(devinfo['address']) != '00-00-00-00-00-00'
         and str(devinfo['address']) != '')
 
-@Drone.add_json_processor
+@SystemNode.add_json_processor
 class LinkDiscoveryListener(DiscoveryListener):
     '''Class for processing Link Discovery JSON messages
     We create the System nodes for switches we discover and

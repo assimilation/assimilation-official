@@ -28,13 +28,14 @@ import time, sys
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
-from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, SystemNode, BPRules, \
-    JSONMapNode, NICNode
+from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, BPRules, \
+    NICNode
+from systemnode import SystemNode
 from frameinfo import FrameSetTypes, FrameTypes
-from AssimCclasses import pyNetAddr, pyConfigContext, DEFAULT_FSP_QID, pyCryptFrame
-from AssimCtypes import CONFIGNAME_TYPE
+from AssimCclasses import pyNetAddr, DEFAULT_FSP_QID, pyCryptFrame
 from assimevent import AssimEvent
 from cmaconfig import ConfigFile
+from graphnodes import GraphNode
 
 
 @RegisterGraphClass
@@ -48,7 +49,6 @@ class Drone(SystemNode):
     Drone.IPownerquery_1: Given an IP address, return th SystemNode (probably Drone) 'owning' it.
     Drone.OwnedIPsQuery:  Given a Drone object, return all the IPaddrNodes that it 'owns'
     '''
-    _JSONprocessors = None
     IPownerquery_1 = None
     OwnedIPsQuery = None
     IPownerquery_1_txt = '''START n=node:IPaddrNode({ipaddr})
@@ -57,15 +57,6 @@ class Drone(SystemNode):
     OwnedIPsQuery_txt = '''START d=node({droneid})
                            MATCH (d)-[:%s]->()-[:%s]->(ip)
                            return ip'''
-    JSONattrnames =        '''START d=node({droneid})
-                           MATCH (d)-[r:jsonattr]->()
-                           return r.jsonname as key'''
-    JSONsingleattr =      '''START d=node({droneid})
-                           MATCH (d)-[r:jsonattr]->(json)
-                           WHERE r.jsonname={jsonname}
-                           return json'''
-
-    HASH_PREFIX = 'JSON__hash__'
 
 
     # R0913: Too many arguments to __init__()
@@ -111,8 +102,6 @@ class Drone(SystemNode):
             self.port = int(port)
         else:
             self.port = None
-
-        self.monitors_activated = False
 
         if Drone.IPownerquery_1 is None:
             Drone.IPownerquery_1 = (Drone.IPownerquery_1_txt
@@ -240,170 +229,6 @@ class Drone(SystemNode):
         '''
         return self.designation
 
-    def logjson(self, origaddr, jsontext):
-        'Process and save away JSON discovery data.'
-        assert CMAdb.store.has_node(self)
-        jsonobj = pyConfigContext(jsontext)
-        if 'instance' not in jsonobj or not 'data' in jsonobj:
-            CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
-            return
-        dtype = jsonobj['instance']
-        if not self.json_eq(dtype, jsontext):
-            CMAdb.log.debug("Saved discovery type %s [%s] for endpoint %s."
-            %       (jsonobj['discovertype'], dtype, self.designation))
-            self[dtype] = jsontext # This is stored in separate nodes for performance
-        else:
-            if not self.monitors_activated and dtype == 'tcpdiscovery':
-                # This is because we need to start the monitors anyway...
-                if CMAdb.debug:
-                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged'
-                    '. PROCESSING ANYWAY.'
-                    %       (dtype, self.designation))
-            else:
-                if CMAdb.debug:
-                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring'
-                    %       (dtype, self.designation))
-                return
-        self._process_json(origaddr, jsonobj)
-
-
-    def __iter__(self):
-        'Iterate over our child JSON attribute names'
-        for tup in CMAdb.store.load_cypher_query(self.JSONattrnames, None,
-                                     params={'droneid': Store.id(self)}):
-            yield tup.key
-
-    def keys(self):
-        'Return the names of all our JSON discovery attributes.'
-        return [attr for attr in self]
-
-    def __contains__(self, key):
-        'Return True if our object contains the given key (JSON name).'
-        return hasattr(self, self.HASH_PREFIX + key)
-
-    def __len__(self):
-        'Return the number of JSON items in this Drone.'
-        return len(self.keys())
-
-    def jsonval(self, jsontype):
-        'Construct a python object associated with a particular JSON discovery value.'
-        if not hasattr(self, self.HASH_PREFIX + jsontype):
-            #print >> sys.stderr, 'DOES NOT HAVE ATTR %s' % jsontype
-            #print >> sys.stderr, 'ATTRIBUTES ARE:' , str(self.keys())
-            return None
-        #print >> sys.stderr, 'LOADING', self.JSONsingleattr, \
-        #       {'droneid': Store.id(self), 'jsonname': jsontype}
-        node = CMAdb.store.load_cypher_node(self.JSONsingleattr, JSONMapNode,
-                                            params={'droneid': Store.id(self),
-                                            'jsonname': jsontype}
-                                            )
-        #assert self.json_eq(jsontype, str(node))
-        return node
-
-    def get(self, key, alternative=None):
-        '''Return JSON object if the given key exists - 'alternative' if not.'''
-        ret = self.deepget(key)
-        return ret if ret is not None else alternative
-
-    def __getitem__(self, key):
-        'Return the given JSON value or raise IndexError.'
-        ret = self.jsonval(key)
-        if ret is None:
-            raise IndexError('No such JSON attribute [%s].' % key)
-        return ret
-
-    def deepget(self, key, alternative=None):
-        '''Return value if object contains the given *structured* key - 'alternative' if not.'''
-        keyparts = key.split('.', 1)
-        if len(keyparts) == 1:
-            ret = self.jsonval(key)
-            return ret if ret is not None else alternative
-        jsonmap = self.jsonval(keyparts[0])
-        return alternative if jsonmap is None else jsonmap.deepget(keyparts[1], alternative)
-
-    def __setitem__(self, name, value):
-        'Set the given JSON value to the given object/string.'
-        if name in self:
-            if self.json_eq(name, value):
-                return
-            else:
-                #print >> sys.stderr, 'DELETING ATTRIBUTE', name
-                # FIXME: ADD ATTRIBUTE HISTORY (enhancement)
-                # This will likely involve *not* doing a 'del' here
-                del self[name]
-        jsonnode = CMAdb.store.load_or_create(JSONMapNode, json=value)
-        setattr(self, self.HASH_PREFIX + name, jsonnode.jhash)
-        CMAdb.store.relate(self, CMAconsts.REL_jsonattr, jsonnode,
-                           properties={'jsonname':  name,
-                                       'time':   long(round(time.time()))
-                                       })
-
-    def __delitem__(self, name):
-        'Delete the given JSON value from the Drone.'
-        #print >> sys.stderr, 'ATTRIBUTE DELETION:', name
-        jsonnode=self.get(name, None)
-        try:
-            delattr(self, self.HASH_PREFIX + name)
-        except AttributeError:
-            raise IndexError('No such JSON attribute [%s].' % name)
-        if jsonnode is None:
-            CMAdb.log.warning('Missing JSON attribute: %s' % name)
-            print >> sys.stderr, ('Missing JSON attribute: %s' % name)
-            return
-        should_delnode = True
-        # See if it has any remaining references...
-        for node in CMAdb.store.load_in_related(jsonnode,
-                                                CMAconsts.REL_jsonattr,
-                                                nodeconstructor):
-            if node is not self:
-                should_delnode = False
-                break
-        CMAdb.store.separate(self, CMAconsts.REL_jsonattr, jsonnode)
-        if should_delnode:
-            # Avoid dangling properties...
-            CMAdb.store.delete(jsonnode)
-
-    def json_eq(self, key, newvalue):
-        '''Return True if this new value is equal to the current value for
-        the given key (JSON attribute name).
-
-        We do this by comparing hash values. This keeps us from having to
-        fetch potentially very large strings (read VERY SLOW) if we can
-        compare hash values instead.
-
-        Our hash values are representable in fewer than 60 bytes to maximize Neo4j performance.
-        '''
-        if key not in self:
-            return False
-        hashname = self.HASH_PREFIX + key
-        oldhash = getattr(self, hashname)
-        newhash = JSONMapNode.strhash(str(pyConfigContext(newvalue)))
-        #print >> sys.stderr, 'COMPARING %s to %s for value %s' % (oldhash, newhash, key)
-        return oldhash == newhash
-
-
-    def _process_json(self, origaddr, jsonobj):
-        'Pass the JSON data along to interested discovery plugins (if any)'
-        dtype = jsonobj['discovertype']
-        foundone = False
-        if CMAdb.debug:
-            CMAdb.log.debug('Processing JSON for discovery type [%s]' % dtype)
-        for prio in range(0, len(Drone._JSONprocessors)):
-            if dtype in Drone._JSONprocessors[prio]:
-                foundone = True
-                classes = Drone._JSONprocessors[prio][dtype]
-                #print >> sys.stderr, 'PROC[%s][%s] = %s' % (prio, dtype, str(classes))
-                for cls in classes:
-                    proc = cls(CMAdb.io.config, CMAdb.transaction, CMAdb.store
-                    ,   CMAdb.log, CMAdb.debug)
-                    proc.processpkt(self, origaddr, jsonobj)
-        if foundone:
-            CMAdb.log.info('Processed %s JSON data from %s into graph.'
-            %   (dtype, self.designation))
-        else:
-            CMAdb.log.info('Stored %s JSON data from %s without processing.'
-            %   (dtype, self.designation))
-
 
     def destaddr(self, ring=None):
         '''Return the "primary" IP for this host as a pyNetAddr with port'''
@@ -420,6 +245,21 @@ class Drone(SystemNode):
         # For TheOneRing, we want their primary IP address.
         ring = ring
         return self.primary_ip_addr
+
+    def send_frames(self, framesettype, frames):
+        'Send messages to our real concrete Drone system...'
+        # This doesn't work if the client has bound to a VIP
+        ourip = self.select_ip()    # meaning select our primary IP
+        ourip = pyNetAddr(ourip)
+        if ourip.port() == 0:
+            ourip.setport(self.port)
+        #print >> sys.stderr, ('ADDING PACKET TO TRANSACTION: %s', str(frames))
+        if CMAdb.debug:
+            CMAdb.log.debug('Sending request to %s Frames: %s'
+            %	(str(ourip), str(frames)))
+        CMAdb.transaction.add_packet(ourip,  framesettype, frames)
+        #print >> sys.stderr, ('Sent Discovery request(%s, %s) to %s Frames: %s'
+        #%	(instance, str(interval), str(ourip), str(frames)))
 
 
     #Current implementation does not use 'self'
@@ -515,46 +355,6 @@ class Drone(SystemNode):
                 (self, ouraddr, partner1, partner1addr, partner2, partner2addr))
         self.send_hbmsg(ouraddr, FrameSetTypes.STOPSENDEXPECTHB, (partner1addr, partner2addr))
 
-    def request_discovery(self, args): ##< A vector of arguments containing
-        '''Send our drone a request to perform discovery
-        We send a           DISCNAME frame with the instance name
-        then an optional    DISCINTERVAL frame with the repeat interval
-        then a              DISCJSON frame with the JSON data for the discovery operation.
-
-        Our argument is a vector of pyConfigContext objects with values for
-            'instance'  Name of this discovery instance
-            'interval'  How often to repeat this discovery action
-            'timeout'   How long to wait before considering this discovery failed...
-        '''
-        #fs = pyFrameSet(FrameSetTypes.DODISCOVER)
-        frames = []
-        for arg in args:
-            agent_params = ConfigFile.agent_params(CMAdb.io.config, 'discovery',
-                                                   arg[CONFIGNAME_TYPE], self.designation)
-            for key in ('repeat', 'warn' 'timeout', 'nice'):
-                if key in agent_params and key not in arg:
-                    arg[key] = agent_params[arg]
-            instance = arg['instance']
-            frames.append({'frametype': FrameTypes.DISCNAME, 'framevalue': instance})
-            if 'repeat' in arg:
-                interval = int(arg['repeat'])
-                frames.append({'frametype': FrameTypes.DISCINTERVAL, 'framevalue': int(interval)})
-            else:
-                interval = 0
-            frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': str(arg)})
-        # This doesn't work if the client has bound to a VIP
-        ourip = self.select_ip()    # meaning select our primary IP
-        ourip = pyNetAddr(ourip)
-        if ourip.port() == 0:
-            ourip.setport(self.port)
-        #print >> sys.stderr, ('ADDING PACKET TO TRANSACTION: %s', str(frames))
-        if CMAdb.debug:
-            CMAdb.log.debug('Sending Discovery request(%s, %s) to %s Frames: %s'
-            %	(instance, str(interval), str(ourip), str(frames)))
-        CMAdb.transaction.add_packet(ourip,  FrameSetTypes.DODISCOVER, frames)
-        #print >> sys.stderr, ('Sent Discovery request(%s, %s) to %s Frames: %s'
-        #%	(instance, str(interval), str(ourip), str(frames)))
-
     def set_crypto_identity(self, keyid=None):
         'Associate our IP addresses with our key id'
         if CMAdb.store.readonly or not CMAdb.use_network:
@@ -572,6 +372,24 @@ class Drone(SystemNode):
     def __str__(self):
         'Give out our designation'
         return 'Drone(%s)' % self.designation
+
+    def find_child_system_from_json(self, jsonobj):
+        '''Locate the child drone that goes with this JSON - or maybe it's us'''
+        if 'proxy' in jsonobj:
+            path = jsonobj['proxy']
+            if path == 'local/local':
+                return self
+        else:
+            return self
+        # This works - could be faster if you have lots of child nodes...
+        q = '''MATCH (drone)<-[:parentsys*]-(child)
+               WHERE ID(drone) = {id} AND drone.childpath = {path}
+               RETURN child'''
+        store = Store.getstore(self)
+        child = store.load_cypher_node(q, GraphNode.factory, {'id': store.id(self), 'path': path})
+        if child is None:
+            raise(ValueError('Child system %s from %s was not found.' % (path, str(self))))
+        return child
 
     @staticmethod
     def find(designation, port=None, domain=None):
@@ -644,23 +462,3 @@ class Drone(SystemNode):
             drone.port = port
         return drone
 
-    @staticmethod
-    def add_json_processor(clstoadd):
-        "Register (add) all the json processors we've been given as arguments"
-
-        if Drone._JSONprocessors is None:
-            Drone._JSONprocessors = []
-            for prio in range(0, clstoadd.PRI_LIMIT):
-                prio = prio # Make pylint happy
-                Drone._JSONprocessors.append({})
-
-        priority = clstoadd.priority()
-        msgtypes = clstoadd.desiredpackets()
-
-        for msgtype in msgtypes:
-            if msgtype not in Drone._JSONprocessors[priority]:
-                Drone._JSONprocessors[priority][msgtype] = []
-            if clstoadd not in Drone._JSONprocessors[priority][msgtype]:
-                Drone._JSONprocessors[priority][msgtype].append(clstoadd)
-
-        return clstoadd

@@ -41,7 +41,7 @@ If we ask for a file which doesn't exist (like bad JARs in the CLASSPATH),
 then those files won't show up in the results.
 '''
 import sys
-from droneinfo import Drone
+from systemnode import SystemNode
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
 from assimevent import AssimEvent
@@ -49,7 +49,7 @@ from cmaconfig import ConfigFile
 
 from discoverylistener import DiscoveryListener
 
-@Drone.add_json_processor
+@SystemNode.add_json_processor
 class TCPDiscoveryChecksumGenerator(DiscoveryListener):
     'Class for generating checksums based on our tcpdiscovery packets'
     prio = DiscoveryListener.PRI_OPTION
@@ -65,7 +65,7 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                                   jsonobj['discovertype'])
 
     def processtcpdiscoverypkt(self, drone, unused_srcaddr, jsonobj):
-        "Send commands to generate checksums for this Drone's net-facing things"
+        "Send commands generating checksums for the Systems's net-facing things"
         unused_srcaddr = unused_srcaddr
         params = ConfigFile.agent_params(self.config, 'discovery', 'checksums',
                                          drone.designation)

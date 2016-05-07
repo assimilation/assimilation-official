@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
@@ -99,7 +98,6 @@ class GraphNode(object):
             if Store.is_abstract(self):
                 self.time_create_ms = int(round(time.time()*1000))
                 self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
-
 
     def update_attributes(self, other):
         'Update our attributes from another node of the same type'
@@ -242,6 +240,34 @@ class GraphNode(object):
         store.db.legacy.get_or_create_index(neo4j.Node, nodetype)
 
 
+def add_an_array_item(currarray, itemtoadd):
+    'Function to add an item to an array of strings (like for roles)'
+    if currarray is not None and len(currarray) == 1 and currarray[0] == '':
+        currarray = []
+    if isinstance(itemtoadd, (tuple, list)):
+        for item in itemtoadd:
+            currarray = add_an_array_item(currarray, item)
+        return currarray
+    assert isinstance(itemtoadd, (str, unicode))
+    if currarray is None:
+        currarray = [itemtoadd]
+    elif not currarray in currarray:
+        currarray.append(itemtoadd)
+    return currarray
+
+def delete_an_array_item(currarray, itemtodel):
+    'Function to delete an item from an array of strings (like for roles)'
+    if isinstance(itemtodel, (tuple, list)):
+        for item in itemtodel:
+            currarray = delete_an_array_item(currarray, item)
+        return currarray
+    assert isinstance(itemtodel, (str, unicode))
+    if itemtodel is not None and itemtodel in currarray:
+        currarray = currarray.remove(itemtodel)
+    if len(currarray) == 0:
+        currarray = ['']    # Limitation of Neo4j
+    return currarray
+
 
 @RegisterGraphClass
 class BPRules(GraphNode):
@@ -280,56 +306,6 @@ class BPRuleSet(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['rulesetname']
-
-@RegisterGraphClass
-class SystemNode(GraphNode):
-    'An object that represents a physical or virtual system (server, switch, etc)'
-    # We really ought to figure out how to make Drone a subclass of SystemNode
-    def __init__(self, domain, designation, roles=None):
-        GraphNode.__init__(self, domain=domain)
-        self.designation = str(designation).lower()
-        if roles == None or roles == []:
-            # Neo4j can't initialize node properties to empty arrays because
-            # it wants to know what kind of array it is...
-            roles = ['']
-        self.roles = roles
-
-    @staticmethod
-    def __meta_keyattrs__():
-        'Return our key attributes in order of significance'
-        return ['designation', 'domain']
-
-    def addrole(self, roles):
-        'Add a role to our GraphNode'
-        if self.roles is not None and len(self.roles) > 0 and self.roles[0] == '':
-            self.delrole('')
-        if isinstance(roles, tuple) or isinstance(roles, list):
-            for role in roles:
-                self.addrole(role)
-            return self.roles
-        assert isinstance(roles, str) or isinstance(roles, unicode)
-        if self.roles is None:
-            self.roles = [roles]
-        elif not roles in self.roles:
-            self.roles.append(roles)
-        # Make sure the 'roles' attribute gets marked as dirty...
-        Store.mark_dirty(self, 'roles')
-        return self.roles
-
-    def delrole(self, roles):
-        'Delete a role from our GraphNode'
-        if isinstance(roles, tuple) or isinstance(roles, list):
-            for role in roles:
-                self.delrole(role)
-            return self.roles
-        assert isinstance(roles, str) or isinstance(roles, unicode)
-        if roles in self.roles:
-            self.roles.remove(roles)
-        # Make sure the 'roles' attribute gets marked as dirty...
-        Store.mark_dirty(self, 'roles')
-        return self.roles
-
-
 
 @RegisterGraphClass
 class NICNode(GraphNode):
@@ -483,33 +459,18 @@ class ProcessNode(GraphNode):
         #self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
         self.processname = processname
 
+
     def addrole(self, roles):
-        'Add a role to our GraphNode'
-        if self.roles is not None and len(self.roles) > 0 and self.roles[0] == '':
-            self.delrole('')
-        if isinstance(roles, tuple) or isinstance(roles, list):
-            for role in roles:
-                self.addrole(role)
-            return self.roles
-        assert isinstance(roles, str) or isinstance(roles, unicode)
-        if self.roles is None:
-            self.roles = [roles]
-        elif not roles in self.roles:
-            self.roles.append(roles)
-        # Make sure the 'roles' attribute gets marked as dirty...
+        'Add a role to our ProcessNode'
+        self.roles = add_an_array_item(self.roles, roles)
+        # Make sure the Processnode 'roles' attribute gets marked as dirty...
         Store.mark_dirty(self, 'roles')
         return self.roles
 
     def delrole(self, roles):
-        'Delete a role from our GraphNode'
-        if isinstance(roles, tuple) or isinstance(roles, list):
-            for role in roles:
-                self.delrole(role)
-            return self.roles
-        assert isinstance(roles, str) or isinstance(roles, unicode)
-        if roles in self.roles:
-            self.roles.remove(roles)
-        # Make sure the 'roles' attribute gets marked as dirty...
+        'Delete a role from our ProcessNode'
+        self.roles = delete_an_array_item(self.roles, roles)
+        # Mark our Processnode 'roles' attribute dirty...
         Store.mark_dirty(self, 'roles')
         return self.roles
 
@@ -525,12 +486,13 @@ class JSONMapNode(GraphNode):
     They don't support maps, and they do a poor (*very* slow) job of supporting large strings.
     The only way I know of to support our JSON-based maps in Neo4j is as large strings.
     These used to be stored in the Drone nodes themselves, but that meant that every time
-    a Drone was transferred to the python code, it transferred *all* of its attributes, which
-    means transferring lots and lots of very slow and rarely needed string data.
+    a Drone was transferred to the python code, it transferred *all* of its attributes,
+    which means transferring lots and lots of very slow and rarely needed string data.
 
     Although these are transmitted in UDP packets, they are compressed, and JSON compresses very
-    well, and in some cases extremely well. I've actually seen 3M of JSON compress down to less
-    than 40K of binary.
+    well, and in some cases extremely well. I've actually seen 3M of (unusually verbose)
+    JSON discovery data compress down to less than 40K of binary.
+    XML blobs are typically more compressible than the average JSON blob.
     '''
 
     def __init__(self, json, jhash=None):
@@ -608,15 +570,21 @@ class NeoRelationship(object):
         self.properties = relationship.properties
 
 if __name__ == '__main__':
-    from cmainit import CMAinit
-    print >> sys.stderr, 'Starting'
-    CMAinit(None, cleanoutdb=True, debug=True)
-    if CMAdb.store.transaction_pending:
-        print 'Transaction pending in:', CMAdb.store
-        print 'Results:', CMAdb.store.commit()
-    print ProcessNode.__meta_labels__()
-    print SystemNode.__meta_labels__()
-    from droneinfo import Drone
-    print Drone.__meta_labels__()
-    print 'keys:', Drone.__meta_keyattrs__()
-    print >> sys.stderr, 'Init done'
+    def maintest():
+        'test main program'
+        from cmainit import CMAinit
+        from droneinfo import Drone
+        from systemnode import SystemNode
+        print >> sys.stderr, 'Starting'
+        CMAinit(None, cleanoutdb=True, debug=True)
+        if CMAdb.store.transaction_pending:
+            print 'Transaction pending in:', CMAdb.store
+            print 'Results:', CMAdb.store.commit()
+        print ProcessNode.__meta_labels__()
+        print SystemNode.__meta_labels__()
+        print Drone.__meta_labels__()
+        print 'keys:', Drone.__meta_keyattrs__()
+        print >> sys.stderr, 'Init done'
+        return 0
+
+    sys.exit(maintest())

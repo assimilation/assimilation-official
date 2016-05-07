@@ -553,6 +553,7 @@ class TestCMABasic(TestCase):
   "host": "drone000001",
   "instance": "os",
   "source": "../discovery_agents/os",
+  "proxy": "local/local",
   "data": {
     "nodename": "drone000001",
     "operating-system": "GNU/Linux",
@@ -574,6 +575,7 @@ class TestCMABasic(TestCase):
   "host": "drone000001",
   "instance": "ulimit",
   "source": "../discovery_agents/ulimit",
+  "proxy": "local/local",
   "data": {
     "hard": {"c":null,"d":null,"f":null,"l":null,"m":null,"n":65536,"p":63557,"s":null,"t":null,"v":null},
     "soft": {"c":0,"d":null,"f":null,"l":null,"m":null,"n":1024,"p":63557,"s":8192,"t":null,"v":null}

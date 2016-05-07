@@ -34,6 +34,7 @@ on discovery information
 from droneinfo import Drone
 from consts import CMAconsts
 from graphnodes import BPRules, BPRuleSet
+from systemnode import SystemNode
 from discoverylistener import DiscoveryListener
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from AssimCclasses import pyConfigContext
@@ -94,7 +95,7 @@ class BestPractices(DiscoveryListener):
         #print >> sys.stderr, '%s is looking for packet of type %s' % (bpcls, pkttype)
         if pkttype not in BestPractices.wantedpackets:
             BestPractices.wantedpackets.append(pkttype)
-            Drone.add_json_processor(BestPractices)
+            SystemNode.add_json_processor(BestPractices)
         if pkttype not in BestPractices.eval_classes:
             BestPractices.eval_classes[pkttype] = []
         if bpcls not in BestPractices.eval_classes[pkttype]:
@@ -421,7 +422,7 @@ class BestPractices(DiscoveryListener):
         return statuses
 
 @BestPractices.register('proc_sys')
-@Drone.add_json_processor
+@SystemNode.add_json_processor
 class BestPracticesCMA(BestPractices):
     'Security Best Practices which are evaluated against various discovery modules'
     application = 'os'

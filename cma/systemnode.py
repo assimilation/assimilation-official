@@ -27,6 +27,9 @@ import sys, time
 from AssimCclasses import pyConfigContext
 from graphnodes import RegisterGraphClass, GraphNode, JSONMapNode,  \
         add_an_array_item, delete_an_array_item, nodeconstructor
+from cmaconfig import ConfigFile
+from AssimCtypes import CONFIGNAME_TYPE
+from frameinfo import FrameTypes, FrameSetTypes
 
 @RegisterGraphClass
 class SystemNode(GraphNode):
@@ -211,6 +214,40 @@ class SystemNode(GraphNode):
         #print >> sys.stderr, 'COMPARING %s to %s for value %s' % (oldhash, newhash, key)
         return oldhash == newhash
 
+    def send_frames(self, _framesettype, _frames):
+        'Send messages to our parent - or their parent, or their parent...'
+        raise ValueError('Cannot send frames to a %s - must be a subclass'
+                         %  (str(self.__class__)))
+
+    def request_discovery(self, args): ##< A vector of arguments containing
+        '''Send our System a request to perform discovery
+        We send a           DISCNAME frame with the instance name
+        then an optional    DISCINTERVAL frame with the repeat interval
+        then a              DISCJSON frame with the JSON data for the discovery operation.
+
+        Our argument is a vector of pyConfigContext objects with values for
+            'instance'  Name of this discovery instance
+            'interval'  How often to repeat this discovery action
+            'timeout'   How long to wait before considering this discovery failed...
+        '''
+        #fs = pyFrameSet(FrameSetTypes.DODISCOVER)
+        frames = []
+        for arg in args:
+            agent_params = ConfigFile.agent_params(CMAdb.io.config, 'discovery',
+                                                   arg[CONFIGNAME_TYPE], self.designation)
+            for key in ('repeat', 'warn' 'timeout', 'nice'):
+                if key in agent_params and key not in arg:
+                    arg[key] = agent_params[arg]
+            instance = arg['instance']
+            frames.append({'frametype': FrameTypes.DISCNAME, 'framevalue': instance})
+            if 'repeat' in arg:
+                interval = int(arg['repeat'])
+                frames.append({'frametype': FrameTypes.DISCINTERVAL, 'framevalue': int(interval)})
+            else:
+                interval = 0
+            frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': str(arg)})
+        self.send_frames(FrameSetTypes.DODISCOVER, frames)
+
 
     def _process_json(self, origaddr, jsonobj):
         'Pass the JSON data along to interested discovery plugins (if any)'
@@ -253,6 +290,84 @@ class SystemNode(GraphNode):
                 SystemNode._JSONprocessors[priority][msgtype].append(clstoadd)
 
         return clstoadd
+
+class ChildSystem(SystemNode):
+    'A class representing a Child System (like a VM or a container)'
+
+    DiscoveryPath = None
+
+    # pylint R0913: too many arguments - needed because of the way we retrieve from the database
+    # and we never call the constructor directly - we call it via "childfactory" or the
+    # database calls it with args
+    # pylint: disable=R0913
+    def __init__(self, designation, parentsystem=None, domain=None, roles=None, selfjson=None,
+                 uniqueid=None, childpath=None):
+        if domain is None:
+            domain=parentsystem.domain
+        SystemNode.__init__(self, domain=domain, designation=designation, roles=roles)
+        self.selfjson = selfjson
+        if uniqueid is None:
+            uniqueid = ChildSystem.compute_uniqueid(designation, parentsystem, domain)
+        self.uniqueid = uniqueid
+        if childpath is None:
+            if hasattr(parentsystem, 'childpath'):
+                childpath = '%s/%s:%s' % (self.__class__.DiscoveryPath, designation,
+                                          parentsystem.childpath)
+            else:
+                childpath = '%s/%s' % (self.__class__.DiscoveryPath, designation)
+        self.childpath = childpath
+        if parentsystem is not None:
+            self._parentsystem = parentsystem
+        else:
+            store = Store.getstore(self)
+            for node in store.load_related(self, CMAconsts.REL_parentsys, nodeconstructor):
+                self._parentsystem = node
+                break
+        if self._parentsystem.__class__ is SystemNode:
+            raise ValueError('Parent system cannot be a base "SystemNode" object')
+
+    def send_frames(self, framesettype, frames):
+        'Send messages to our parent - or their parent, or their parent...'
+        self._parentsystem.send_frames(framesettype, frames)
+
+
+    @staticmethod
+    def compute_uniqueid(designation, parentsystem, domain=None):
+        'We compute the unique id we use to find this in the database'
+        if domain is None:
+            domain = parentsystem.domain
+        if hasattr(parentsystem, 'uniqueid'):
+            return getattr(parentsystem, 'uniqueid') + '::' + designation
+        return ('%s::%s::%s' %(designation, parentsystem.designation, domain))
+
+    @staticmethod
+    def childfactory(parentsystem, childtype, designation, jsonobj, roles=None, domain=None):
+        'We construct an appropriate ChildSystem subclass object - or find it in the database'
+        store = Store.getstore(parentsystem)
+        childtype = jsonobj['discoverytype']
+        if childtype == 'docker':
+            cls = DockerSystem
+        elif childtype == 'vagrant':
+            cls = VagrantSystem
+        else:
+            raise ValueError('Unknown ChildSystem type(%s)' % childtype)
+        uniqueid = ChildSystem.compute_uniqueid(designation, parentsystem, domain)
+        return store.load_or_create(cls, designation=designation, parentsystem=parentsystem,
+                                    selfjson=str(jsonobj), roles=roles, uniqueid=uniqueid)
+
+    @staticmethod
+    def __meta_keyattrs__():
+        'Return our key attributes in order of significance'
+        return ['uniqueid']
+
+class DockerSystem(ChildSystem):
+    'A class representing a Docker container'
+    DiscoveryPath='docker'
+
+class VagrantSystem(ChildSystem):
+    'A class representing a Vagrant VM'
+    DiscoveryPath='vagrant'
+
 
 if __name__ == '__main__':
     def maintest():

@@ -408,14 +408,15 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 sysname = frame.getstr()
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
+                jsonconfig = pyConfigContext(init=json)
                 #print 'JSON received: ', json
                 if sysname is None:
-                    jsonconfig = pyConfigContext(init=json)
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
                 #print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
-                #print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
-                drone.logjson(origaddr, json)
+                print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
+                child = drone.find_child_system_from_json(jsonconfig)
+                child.logjson(origaddr, json)
                 sysname = None
 
 @DispatchTarget.register

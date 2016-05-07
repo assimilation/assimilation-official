@@ -38,13 +38,13 @@ from store import Store
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_INSTANCE, CONFIGNAME_DEVNAME
 from discoverylistener import DiscoveryListener
-from droneinfo import Drone
 from graphnodes import NICNode, IPaddrNode, GraphNode
+from systemnode import SystemNode
 from cmaconfig import ConfigFile
 from linkdiscovery import discovery_indicates_link_is_up
 import sys
 
-@Drone.add_json_processor   # Register ourselves to process discovery packets
+@SystemNode.add_json_processor   # Register ourselves to process discovery packets
 class ArpDiscoveryListener(DiscoveryListener):
     '''Class for processing ARP cache discovery entries.
     The data section contains (IPaddress, MACaddress) pairs as a hash table (JSON object)

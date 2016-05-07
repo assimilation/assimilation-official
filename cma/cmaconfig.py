@@ -52,11 +52,12 @@ class ConfigFile(object):
                                 ],
         'contrib_modules':      [str],      # List of contrib modules to be included
                                             # We have no idea what contrib modules there might be
-        'initial_discovery':    [           # Below is the list of known discovery agents...
+        'initial_discovery':       # Below is the list of known discovery agents...
                                     {'auditd_conf',         # /etc/audit/auditd.conf config
                                      'commands',            # Discovers installed commands
                                      'cpu',                 # CPU details
                                      'docker',              # Docker host & container configuration
+                                     'vagrant',             # Vagrant host & VM configuration
                                      'login_defs',          # /etc/login.defs configuration
                                      'pam',                 # PAM configuration
                                      'findmnt',             # Discovers mounted filesystems (Linux)
@@ -68,8 +69,7 @@ class ConfigFile(object):
                                      'sudoers',             # Discovers /etc/sudoers configuration
                                      'tcpdiscovery',        # Discovers network-facing processes
                                      'ulimit',              # Discovers ulimit settings
-                                    },
-                               ],
+                               },
         'cmaport':              {int, long},# CMA listening port
         'cmainit':              pyNetAddr,  # Initial contact address for the CMA
         'cmaaddr':              pyNetAddr,  # CMA's base address...
@@ -139,7 +139,14 @@ class ConfigFile(object):
         'usr_local_fileattrs': [str],   # Standard/common command directories perms to discover
         'usr_sbin_fileattrs': [str],    # Standard/common command directories perms to discover
         'perm_discovery_lists': [str],  # List of all the collections of perms to discover
+        'containers': {
+            'docker': {
+             },
+            'vagrant': {
+             },
+        }
     }
+
     @staticmethod
     def register_callback(function, **args):
         'Register a callback to let someone know when we create or modify this configuration'
@@ -337,7 +344,27 @@ class ConfigFile(object):
                 'usrlib_fileattrs',
                 'usr_bin_fileattrs',
                 'usr_local_fileattrs',
-        ]
+        ],
+        'containers': {
+            'docker': {
+                'initial_discovery':[
+                    'os',              # OS properties
+                    'packages',        # What packages are installed?
+                    'commands',        # Discovers installed commands
+                    'ulimit',          # What are current ulimit values?
+                ],
+             },
+            'vagrant': {
+                'initial_discovery':[
+                    'os',              # CPU properties
+                    'netconfig',       # Network configuration
+                    'packages',        # What packages are installed?
+                    'commands',        # Discovers installed commands
+                    'ulimit',          # What are current ulimit values?
+                    'tcpdiscovery'     # Discover services
+                ],
+             },
+        }
         } # End of return value
         retval['allbpdiscoverytypes'].extend(retval['perm_discovery_lists'])
         return retval
@@ -452,6 +479,14 @@ class ConfigFile(object):
     @staticmethod
     def _check_validity_set(template, configobj):
         'Make sure the configobj is of a string matching something in the set'
+        if isinstance(configobj, list):
+            # Or maybe a list of things all of which have to be in the set...
+            for elem in configobj:
+                ret = ConfigFile._check_validity_set(template, elem)
+                if not ret[0]:
+                    return (False, 'Element %s: %s' % (elem, ret[1]))
+            return (True, '')
+
         if configobj not in template and type(configobj) not in template:
             return (False, '%s is not in %s' % (configobj, template))
         return (True, '')
@@ -538,6 +573,11 @@ class ConfigFile(object):
                     result['parameters'][tag] = subconfig[tag]
         return result
 
+# Simplify setting up initial discovery validation for our container types
+for container in ConfigFile.default_template['containers']:
+    ConfigFile.default_template['containers'][container]['initial_discovery'] \
+        = ConfigFile.default_template['initial_discovery']
+ConfigFile.default_template['containers']['vagrant']['initial_discovery'].add('netconfig')
 
 if __name__ == '__main__':
     import subprocess

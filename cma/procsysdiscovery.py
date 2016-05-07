@@ -32,14 +32,14 @@ discovery packets as they arrive.
 More details are documented in the DiscoveryListener class
 '''
 #import sys
-from droneinfo import Drone
+from systemnode import SystemNode
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
 from cmaconfig import ConfigFile
 
 from discoverylistener import DiscoveryListener
 
-@Drone.add_json_processor
+@SystemNode.add_json_processor
 class ProcSysDiscovery(DiscoveryListener):
     'Class for discovering the contents of /proc/sys'
     prio = DiscoveryListener.PRI_OPTION
