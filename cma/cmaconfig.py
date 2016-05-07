@@ -212,6 +212,7 @@ class ConfigFile(object):
                                  'findmnt',         # Discovers mounted filesystems (Linux)
                                  'sshd',            # Discovers sshd configuration
                                  'docker',          # Docker host & container configuration
+                                 'vagrant',         # Vagrant host & VM configuration
                                  'tcpdiscovery'     # Discover services
                                 ],
             'cmaport':                  1984,                       # Our listening port

@@ -381,14 +381,15 @@ class Drone(SystemNode):
                 return self
         else:
             return self
-        # This works - could be faster if you have lots of child nodes...
+        # This works - could be a bit slow if you have lots of child nodes...
         q = '''MATCH (drone)<-[:parentsys*]-(child)
-               WHERE ID(drone) = {id} AND drone.childpath = {path}
+               WHERE ID(drone) = {id} AND child.childpath = {path}
                RETURN child'''
         store = Store.getstore(self)
         child = store.load_cypher_node(q, GraphNode.factory, {'id': store.id(self), 'path': path})
         if child is None:
-            raise(ValueError('Child system %s from %s was not found.' % (path, str(self))))
+            raise(ValueError('Child system %s from %s [%s] was not found.'
+                %       (path, str(self), str(Store.id(self)))))
         return child
 
     @staticmethod

@@ -69,6 +69,10 @@ class GraphNode(object):
         self.domain = domain
         self.nodetype = self.__class__.__name__
         self._baseinitfinished = False
+        if time_create_ms is None:
+            time_create_ms = int(round(time.time()*1000))
+        if time_create_iso8601 is None:
+            time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         self.time_create_iso8601 = time_create_iso8601
         self.time_create_ms = time_create_ms
 
@@ -95,9 +99,6 @@ class GraphNode(object):
         '''Set node creation time'''
         if not self._baseinitfinished:
             self._baseinitfinished = True
-            if Store.is_abstract(self):
-                self.time_create_ms = int(round(time.time()*1000))
-                self.time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
 
     def update_attributes(self, other):
         'Update our attributes from another node of the same type'

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent number tabstop=4 shiftwidth=4 expandtab
+# vim: smartindent number tabstop=4 shiftwidth=4 expandtab colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -414,8 +414,11 @@ class DispatchJSDISCOVERY(DispatchTarget):
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
                 #print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
-                print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
+                #print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
                 child = drone.find_child_system_from_json(jsonconfig)
+                #if child is not drone:
+                #    print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>>LOGGED child system Discovery %s: %s'
+                #            %   (str(child), json))
                 child.logjson(origaddr, json)
                 sysname = None
 

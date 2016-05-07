@@ -380,6 +380,7 @@ class TCPDiscoveryListener(DiscoveryListener):
             allourips.append(ipnode)
             self._add_serveripportnodes(drone, addr, port, processnode, allourips)
 
+@Drone.add_json_processor
 class SystemSubclassDiscoveryListener(DiscoveryListener):
     'Listening for subsystem discovery results'
 
@@ -394,8 +395,9 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
         data = jsonobj['data']
         if 'containers' not in data:
             return
+        childtype = jsonobj['discovertype']
         systems = data['containers']
-        childtype = data['discovertype']
+        #print >> sys.stderr, '=====================GOT %s packet' % (childtype)
         discovery_types = self.config['containers'][childtype]['initial_discovery']
         for sysid in systems:
             system = ChildSystem.childfactory(drone, childtype, sysid, systems[sysid])
@@ -408,11 +410,12 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
                 # kick off discovery...
                 instance = '_init_%s_%s' % (dtype, system.childpath)
                 allparams.append(pyConfigContext(
-                                        '{"parameters":{"%s": "%s", "%s": "%s", "%s": "%s"}}'
+                                        '{"%s": "%s", "%s": "%s", "parameters":{"%s": "%s"}}'
                                         %   (CONFIGNAME_TYPE, dtype,
                                              CONFIGNAME_INSTANCE, instance,
                                              'ASSIM_PROXY_PATH', system.childpath
                                             )))
             # kick off discovery...
+            #print >> sys.stderr, '=====================REQUESTING DISCOVERY: %s' % (str(allparams))
             system.request_discovery(allparams)
 

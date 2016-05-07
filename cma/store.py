@@ -647,7 +647,9 @@ class Store(object):
         if isinstance(value, (str, unicode, float, int, long, list, tuple)):
             return value
         else:
-            raise ValueError("Attr %s of object %s of type %s isn't really acceptable"
+            print >> sys.stderr,  ("Attr %s of object %s of type %s isn't acceptable"
+            %   (attr, obj, type(value)))
+            raise ValueError("Attr %s of object %s of type %s isn't acceptable"
             %   (attr, obj, type(value)))
 
     @staticmethod

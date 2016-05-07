@@ -291,6 +291,7 @@ class SystemNode(GraphNode):
 
         return clstoadd
 
+@RegisterGraphClass
 class ChildSystem(SystemNode):
     'A class representing a Child System (like a VM or a container)'
 
@@ -300,29 +301,37 @@ class ChildSystem(SystemNode):
     # and we never call the constructor directly - we call it via "childfactory" or the
     # database calls it with args
     # pylint: disable=R0913
-    def __init__(self, designation, parentsystem=None, domain=None, roles=None, selfjson=None,
+    def __init__(self, designation, _parentsystem=None, domain=None, roles=None, _selfjson=None,
                  uniqueid=None, childpath=None):
+        #print >> sys.stderr, 'CONSTRUCTING CHILD NODE!====================: %s' % str(designation)
         if domain is None:
-            domain=parentsystem.domain
+            domain=_parentsystem.domain
         SystemNode.__init__(self, domain=domain, designation=designation, roles=roles)
-        self.selfjson = selfjson
+        self._selfjson = _selfjson
         if uniqueid is None:
-            uniqueid = ChildSystem.compute_uniqueid(designation, parentsystem, domain)
+            uniqueid = ChildSystem.compute_uniqueid(designation, _parentsystem, domain)
         self.uniqueid = uniqueid
         if childpath is None:
-            if hasattr(parentsystem, 'childpath'):
+            if hasattr(_parentsystem, 'childpath'):
                 childpath = '%s/%s:%s' % (self.__class__.DiscoveryPath, designation,
-                                          parentsystem.childpath)
+                                          _parentsystem.childpath)
             else:
                 childpath = '%s/%s' % (self.__class__.DiscoveryPath, designation)
         self.childpath = childpath
-        if parentsystem is not None:
-            self._parentsystem = parentsystem
-        else:
-            store = Store.getstore(self)
-            for node in store.load_related(self, CMAconsts.REL_parentsys, nodeconstructor):
+        if _parentsystem is not None:
+            self._parentsystem = _parentsystem
+        #print >> sys.stderr, 'YAY GOT A CHILD NODE!=====================: %s' % str(self)
+
+    def post_db_init(self):
+        '''Do post-constructor database updates'''
+        if not hasattr(self, '_parentsystem'):
+            for node in CMAdb.store.load_related(self, CMAconsts.REL_parentsys, nodeconstructor):
                 self._parentsystem = node
                 break
+        if self._selfjson is not None:
+            self['selfjson'] = self._selfjson
+        if not hasattr(self, '_parentsystem'):
+            raise RuntimeError('Cannot find parent system for %s (%s)' % (type(self), self))
         if self._parentsystem.__class__ is SystemNode:
             raise ValueError('Parent system cannot be a base "SystemNode" object')
 
@@ -344,7 +353,6 @@ class ChildSystem(SystemNode):
     def childfactory(parentsystem, childtype, designation, jsonobj, roles=None, domain=None):
         'We construct an appropriate ChildSystem subclass object - or find it in the database'
         store = Store.getstore(parentsystem)
-        childtype = jsonobj['discoverytype']
         if childtype == 'docker':
             cls = DockerSystem
         elif childtype == 'vagrant':
@@ -352,18 +360,20 @@ class ChildSystem(SystemNode):
         else:
             raise ValueError('Unknown ChildSystem type(%s)' % childtype)
         uniqueid = ChildSystem.compute_uniqueid(designation, parentsystem, domain)
-        return store.load_or_create(cls, designation=designation, parentsystem=parentsystem,
-                                    selfjson=str(jsonobj), roles=roles, uniqueid=uniqueid)
+        return store.load_or_create(cls, designation=designation, _selfjson=str(jsonobj),
+                                    _parentsystem=parentsystem, roles=roles, uniqueid=uniqueid)
 
     @staticmethod
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['uniqueid']
 
+@RegisterGraphClass
 class DockerSystem(ChildSystem):
     'A class representing a Docker container'
     DiscoveryPath='docker'
 
+@RegisterGraphClass
 class VagrantSystem(ChildSystem):
     'A class representing a Vagrant VM'
     DiscoveryPath='vagrant'
