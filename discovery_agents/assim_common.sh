@@ -72,7 +72,7 @@ _assim_vagrant_run_() {
         set -e
         assim_vagrant_dir=$(vagrant global-status | grep "^${ASSIM_LOCAL_PROXY_DEST} " |
                 sed 's%^[^/]*/%/%')
-                cd ${assim_vagrant_dir} 2>/dev/null && vagrant ssh -- $(_assim_quote_command "$@")
+                cd ${assim_vagrant_dir} 2>/dev/null && vagrant ssh -- $(_assim_quote_command sudo "$@")
         exit $?
     )
 }
@@ -121,6 +121,16 @@ assim_run_in_context() {
         vagrant)    _assim_vagrant_run_ "$@"    ;;
         *)          "$@"                        ;;
     esac
+}
+
+assim_cat() {
+    assim_run_in_context cat "$@"
+}
+assim_test() {
+    assim_run_in_context test "$@"
+}
+assim_ls() {
+    assim_run_in_context ls "$@"
 }
 
 #

@@ -1,5 +1,5 @@
 #!/bin/sh
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #	@brief Command to discover processes listening for connections or connecting over tcp
 #	and output the results in JSON format.
 #	@details Output validated at jsonlint.com (good to validate future versions there too!)
@@ -24,9 +24,11 @@
 # @author &copy; 2013 - Alan Robertson <alanr@unix.sh>
 # @n
 # Licensed under the GNU General Public License (GPL) version 3 or any later version at your option.
-#!/usr/bin/python
 
-NETSTAT=netstat
+DIR=$(dirname $0)
+. $DIR/assim_common.sh
+
+NETSTAT="assim_run_in_context netstat"
 skiplocal=yes
 exestoskip='.*/(firefox|thunderbird|chromium-browser|konquerer|rekonq)( *\(deleted\) *)?$'
 sumstotry="md5sum sha1sum sha256sum crc32 sum"
@@ -76,37 +78,69 @@ sumstdin() {
 slashproc_cmdline() {
     case $1 in
         -|.)  echo '["kernel"]';;
-        *)  tr '\0' '' < /proc/${1}/cmdline |  sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%["&"]\n%';;
+        *)  assim_cat /proc/${1}/cmdline | tr '\0' '' |  tee /tmp/cmdline | \
+            sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%["&"]\n%'
+            ;;
     esac
 }
 
 slashproc_exe() {
     case $1 in
         -|.)  echo '/boot/kernel';;
-        *)  readlink /proc/$1/exe;;
+        *)  assim_run_in_context readlink /proc/$1/exe;;
     esac
 }
 
 slashproc_curdir() {
     case $1 in
         -|.)  echo '/';;
-        *)  readlink /proc/$1/cwd;;
+        *)  assim_run_in_context readlink /proc/$1/cwd;;
     esac
 }
 
 slashproc_uid() {
     case $1 in
         -|.)  echo 'root';;
-        *)  ls -ld /proc/$1 | cut -d' ' -f3;;
-    esac
-}
-slashproc_gid() {
-    case $1 in
-        -|.)  echo 'root';;
-        *)  ls -ld /proc/$1 | cut -d' ' -f4;;
+        *)  assim_ls -ld /proc/$1 | cut -d' ' -f3;;
     esac
 }
 
+slashproc_gid() {
+    case $1 in
+        -|.)  echo 'root';;
+        *)  assim_ls -ld /proc/$1 | cut -d' ' -f4;;
+    esac
+}
+
+slashproc_ids() {
+    case $2 in
+        -|.)    echo '"uid": "root"'
+                return
+                ;;
+    esac
+    assim_cat /proc/$2/status | grep -i "^$1:" |
+    (
+        read label real effective saved filesystem
+        printf "\"$1\": %d, \"e$1\": %d, \"saved_$1\": %d, \"filesystem_$1\": %d\n" \
+                     $real  $effective  $saved           $filesystem
+    )
+}
+
+#
+#   Compute the proxy method to contact its container...
+#   Currently only docker but presumably other cgroup-based containers could be supported as well
+#
+slashproc_proxy() {
+    case $1 in
+        -|.)  echo 'local/local'; return;;
+    esac
+    cgroup=$(assim_cat /proc/$1/cgroup | grep '\/docker-.*\.scope' | head -n 1 |
+            sed -e 's%.*\(docker-\)%\1%' -e 's%\(...................\).*%\1%' -e 's%-%/%')
+    case $cgroup in
+        docker*)    echo "$cgroup";;
+        *)          echo 'local/local';;
+    esac
+}
 
 
 procsuminfo() {
@@ -121,8 +155,8 @@ procsuminfo() {
     (
         slashproc_cmdline "$1"
         echo "${exe}"
-        slashproc_uid "$1"
-        slashproc_gid "$1"
+        slashproc_ids uid "$1"
+        slashproc_ids gid "$1"
     )  2>/dev/null | sumstdin
 }
 
@@ -156,7 +190,7 @@ logclient() {
     foreignaddr=$2
     protocol=$3
     if
-        shouldskipaddr "$foreignaddr" || shouldskipclient $pid || [ ! -d /proc/$pid ]
+        shouldskipaddr "$foreignaddr" || shouldskipclient $pid || assim_test ! -d /proc/$pid 
     then
         return
     fi
@@ -174,20 +208,20 @@ logserver() {
     listenaddr=$2
     protocol=$3
     if
-        shouldskipaddr "$listenaddr" || [ ! -d /proc/$pid ]
+        shouldskipaddr "$listenaddr" || assim_test ! -d /proc/$pid
     then
         return
     fi
     sum=$(procsuminfo $pid)
     if
-        [ ! -d /proc/$pid ]
+        assim_test ! -d /proc/$pid
     then
         return
     fi
     echo "${listenaddr}	${protocol}" >> ${TMPDIR}/${sum}.tcplisten
     echo "$pid" > ${TMPDIR}/${sum}.pid
     if
-        [ ! -d /proc/$pid ]
+        assim_test ! -d /proc/$pid
     then
         rm -f ${TMPDIR}/${sum}.tcplisten ${TMPDIR}/${sum}.pid
     fi
@@ -235,11 +269,12 @@ format_addrs() {
 }
 
 format_procinfo() {
-    printf "${2}"'"exe": "%s",\n'     "$(slashproc_exe "$1")"
-    printf "${2}"'"cmdline": %s,\n'   "$(slashproc_cmdline "$1")"
-    printf "${2}"'"uid": "%s",\n'     "$(slashproc_uid "$1")"
-    printf "${2}"'"gid": "%s",\n'     "$(slashproc_gid "$1")"
-    printf "${2}"'"cwd": "%s",\n'     "$(slashproc_curdir "$1")"
+    printf "${2}"'"exe": "%s",\n'       "$(slashproc_exe "$1")"
+    printf "${2}"'"cmdline": %s,\n'     "$(slashproc_cmdline "$1")"
+    printf "${2}%s,\n"                  "$(slashproc_ids uid "$1")"
+    printf "${2}%s,\n"                  "$(slashproc_ids gid "$1")"
+    printf "${2}"'"cwd": "%s",\n'       "$(slashproc_curdir "$1")"
+    printf "${2}"'"proxy": "%s",\n'     "$(slashproc_proxy "$1")"
 }
 
 
@@ -257,7 +292,7 @@ format_netstatinfo() {
         pid=$(cat $pidfile)
         formatted_procinfo=$(format_procinfo "$pid" "    " 2>/dev/null)
         if
-            [ ! -d /proc/$pid ]
+            assim_test ! -d /proc/$pid
         then
             continue
         fi
@@ -297,6 +332,7 @@ discover()
 	  "description": "TCP client and server processes",
 	  "source": "$US",
 	  "host": "$(uname -n)",
+	  "proxy": "${ASSIM_PROXY_PATH}",
 	  "data":
 	!HEADER
     format_netstatinfo | sed 's%^%    %'
