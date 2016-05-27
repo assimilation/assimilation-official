@@ -38,13 +38,12 @@ WORKLOG=/tmp/assimilation-install.txt
 ASSIMSHARE=/usr/share/assimilation
 CRYPTODIR="$ASSIMSHARE/crypto.d"
 ROOTURL=https://dl.dropboxusercontent.com/u/65564307/builds
-INSTALLURL=http://bit.ly/assiminstall
+INSTALLURL=https://bit.ly/assiminstall
 BASEURL=$ROOTURL/Releases
 PRERELURL=$ROOTURL/Prereleases
 SRCROOT=https://github.com/assimilation/assimilation-official/raw
-NEOVERS=2.2.5
-NEO="https://neo4j.com/" # Certificate has expired :-(
-#NEO="http://neo4j.com/"
+NEOVERS=2.3.4
+NEO="https://neo4j.com/"
 NEO4J_ROOTDIR=/opt/neo4j
 NEOTARDIR="neo4j-community-${NEOVERS}"
 NEOTARFILE="${NEOTARDIR}-unix.tar.gz"
@@ -53,13 +52,15 @@ NEO4J_SERVICEFILE=/lib/systemd/system/neo4j.service
 BUILDLOG=build.out
 TARBALL=''
 
-DEBIAN_BASE_CMA_PKGS='python-pip python-flask lsof python-netaddr
+DEBIAN_BASE_CMA_PKGS='python-pip python-flask
+            lsof python-netaddr
+            cluster-glue
             resource-agents
             lsb-release
             libpcap0.8
             gcc
             adduser'
-DEBIAN_BASE_NANO_PKGS='resource-agents lsb-release libpcap0.8 adduser'
+DEBIAN_BASE_NANO_PKGS='apt-transport-https resource-agents lsb-release libpcap0.8 adduser'
 DEBIAN_BASE_PIP_PKGS='getent' # Plus py2neo
 DEBIAN_LIBSODIUM='libsodium13'
 
@@ -91,7 +92,7 @@ CENTOS6_BASE_CMA_PKGS="lsof
 CENTOS6_BASE_PIP_PKGS="flask netaddr getent demjson" # Plus py2neo
 CENTOS6_LIBSODIUMBASE="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi"
 #wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
-#wget http://rpms.remirepo.net/enterprise/remi-release-6.rpm
+#wget https://rpms.remirepo.net/enterprise/remi-release-6.rpm
 #rpm -Uvh remi-release-6.rpm epel-release-latest-6.noarch.rpm
 
 SUSE_BASE_CMA_PKGS='python-pip
@@ -103,7 +104,7 @@ SUSE_BASE_CMA_PKGS='python-pip
             tar
             which'
 SUSE_BASE_NANO_PKGS='libsodium13'
-SUSE_BASE_PIP_PKGS='getent py2neo'
+SUSE_BASE_PIP_PKGS='getent'
 
 logwork() {
     : "ACTION LOG: $*"
@@ -268,6 +269,11 @@ version_compare() {
 
 }
 
+# What's the currently installed java version?
+java_version() {
+    vstring=$(java -version 2>&1 | grep -i runtime || echo 0.0)
+    echo "$vstring" | sed -e 's%^[^0-9]*%%' -e 's%[-_].*%%' -e 's%\.[^.]*$%%'
+}
 
 # Determine the OS version using the lsb_release command
 determine_os_version_lsb_release() {
@@ -435,7 +441,7 @@ test_os_versions() {
 }
 
 LOGURL='https://docs.google.com/forms/d/1n1RponvHNLB_4Kl6EEZyhT8FAx2f9TDwZoh0egsT2h0/formResponse'
-IPURL='http://www.ipchicken.com/' # Yes, really...
+IPURL='https://www.ipchicken.com/' # Yes, really...
 getip() {
 	wget -q -O- $IPURL | egrep '^ *[0-9.]+ *<br>' | sed 's% *\([0-9.]*\).*%\1%'
 }
@@ -976,7 +982,8 @@ install_centos_cma_base() {
         logwork "Running: pip install $(py2neo_version) $CENTOS_BASE_PIP_PKGS"
         pip install "$(py2neo_version)" $CENTOS_BASE_PIP_PKGS
     else
-        install_sys_package centos-release-SCL
+        #install_sys_package centos-release-SCL
+        install_sys_package centos-release-scl
         install_sys_package $CENTOS6_BASE_CMA_PKGS
         pyscl easy_install pip
         pyscl pip install $CENTOS6_BASE_PIP_PKGS
@@ -988,7 +995,7 @@ install_centos_cma_base() {
 install_suse_cma_base(){
         install_sys_package $SUSE_BASE_CMA_PKGS
         logwork "Running: pip install $(py2neo_version) $SUSE_BASE_PIP_PKGS"
-        pip install $SUSE_BASE_PIP_PKGS
+        pip install $(py2neo_version) $SUSE_BASE_PIP_PKGS
 }
 
 # Install minimal fedora packages
@@ -1009,6 +1016,7 @@ install_debian_nano_base() {
         if
             grep "^deb.* $DISTRIB_CODENAME.* universe" /etc/apt/sources.list
         then
+            install_sys_package software-properties-common
             install_sys_package software-properties-common
             logwork "Enabling universe repository to get libsodium"
             add-apt-repository "deb http://us.archive.ubuntu.com/ubuntu/ \
@@ -1088,7 +1096,7 @@ install_debian_neo4j() {
             > /etc/apt/sources.list.d/neo4j.list
     logwork "Running apt-get -y update"
     apt-get -y update
-    install_sys_package neo4j
+    install_sys_package neo4j=$NEOVERS
 }
 
 # Figure out which version of Java to install
@@ -1123,17 +1131,11 @@ lock_rpm_version() {
 
 # Install the RPM (centos) version of Neo4j
 install_rpm_neo4j() {
-    if
-        does_command_exist java
-    then
-        : OK Java already installed - leave it alone...
-    else
-        install_sys_package $(select_java_rpm_version)
-    fi
+    install_sys_package $(select_java_rpm_version)
     logwork "Adding Neo4j signing key"
     NEOKEY=https://debian.neo4j.org/neotechnology.gpg.key
     # The --no-check-certificate is godaddy's fault. 
-    wget -q --no-check-certificate $NEOKEY
+    wget -q $NEOKEY
     rpm --import neotechnology.gpg.key
     logwork "Adding and enabling Neo4j repo at yum.neo4j.org"
     case $(yum_or_dnf) in
@@ -1281,13 +1283,7 @@ create_neo4j_service_file() {
 
 # Install the Tarball (systemd) version of Neo4j
 install_tarball_systemd_neo4j() {
-    if
-        does_command_exist java
-    then
-        : OK Java already installed - leave it alone...
-    else
-        install_sys_package $(select_java_rpm_version)
-    fi
+    install_sys_package $(select_java_rpm_version)
     (
     if
         [ ! -L ${NEO4J_ROOTDIR} ]
@@ -1322,6 +1318,7 @@ install_tarball_systemd_neo4j() {
 
 restart_neo4j() {
     logwork '(re)starting Neo4j'
+    echo "Java version: $(java_version)"
     case $DISTRIB_MAPID in
         ubuntu|debian)                  service neo4j-service restart;;
         centos|redhat|scientific|scientificfermi)
