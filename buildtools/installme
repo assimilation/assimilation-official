@@ -44,7 +44,7 @@ PRERELURL=$ROOTURL/Prereleases
 SRCROOT=https://github.com/assimilation/assimilation-official/raw
 NEOVERS=2.2.5
 NEO="https://neo4j.com/" # Certificate has expired :-(
-NEO="http://neo4j.com/"
+#NEO="http://neo4j.com/"
 NEO4J_ROOTDIR=/opt/neo4j
 NEOTARDIR="neo4j-community-${NEOVERS}"
 NEOTARFILE="${NEOTARDIR}-unix.tar.gz"
@@ -1082,8 +1082,7 @@ install_debian_neo4j() {
     fi
     logwork "Installing Neo4j cert from $CERT"
     #wget -q https://certs.godaddy.com/repository/gdig2.crt
-    # The --no-check-certificate is godaddy's fault. 
-    wget -q --no-check-certificate -O - $CERT | apt-key add -
+    wget -q -O - $CERT | apt-key add -
     logwork "Adding Neo4j repo"
     echo "deb $NEODEB/repo ${neoversion}/" \
             > /etc/apt/sources.list.d/neo4j.list
