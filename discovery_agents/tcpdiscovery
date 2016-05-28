@@ -155,8 +155,8 @@ procsuminfo() {
     (
         slashproc_cmdline "$1"
         echo "${exe}"
-        slashproc_ids uid "$1"
-        slashproc_ids gid "$1"
+        slashproc_uid "$1"  # We deliberately don't use all the uid and gid info.
+        slashproc_gid "$1"  # Some apps swap privileges as they run This should be good enough.
     )  2>/dev/null | sumstdin
 }
 
@@ -270,7 +270,7 @@ format_addrs() {
 
 format_procinfo() {
     printf "${2}"'"exe": "%s",\n'       "$(slashproc_exe "$1")"
-    printf "${2}"'"cmdline": %s,\n'     "$(slashproc_cmdline "$1")"
+    printf "${2}"'"cmdline": %s",\n'     "$(slashproc_cmdline "$1")"
     printf "${2}%s,\n"                  "$(slashproc_ids uid "$1")"
     printf "${2}%s,\n"                  "$(slashproc_ids gid "$1")"
     printf "${2}"'"cwd": "%s",\n'       "$(slashproc_curdir "$1")"
