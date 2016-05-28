@@ -70,6 +70,16 @@ class query(object):
         "reports usage for this sub-command"
         return 'query queryname [query-parameter=value ...]'
 
+    @staticmethod
+    def load_query_object(store, queryname):
+        'Function to return the query object for a given query name'
+        cypher = ('START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
+                  % (queryname, queryname))
+        ret =  store.load_cypher_node(cypher, ClientQuery)
+        if ret is not None:
+            ret.bind_store(store)
+        return ret
+
     # pylint R0911 -- too many return statements
     # pylint: disable=R0911
     @staticmethod
@@ -85,15 +95,11 @@ class query(object):
         queryname = otherargs[0]
         nvpairs = otherargs[1:]
 
-        cypher = ('START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
-                  % (queryname, queryname))
-
-        request = store.load_cypher_node(cypher, ClientQuery)
+        request = query.load_query_object(store, queryname)
 
         if request is None:
             print >> sys.stderr, ("No query named '%s'." % queryname)
             return 1
-        request.bind_store(store)
 
         param_names = request.parameter_names()
 

@@ -67,6 +67,7 @@ from assimcli import dbsetup
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import VERSION_STRING, LONG_LICENSE_STRING,    \
         SHORT_LICENSE_STRING
+import assimcli
 import sys, os, optparse
 
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
@@ -137,8 +138,9 @@ class DictObj(object):
     def __getitem__(self, name):
         try:
             ret = self._getitem(self._strip_itemname(name))
-            if ret is None or ret == '':
+            if ret is None or str(ret) == '':
                 raise ValueError
+            ret = str(ret)
             ret = ret.strip() if isinstance(ret, (str, unicode)) else ret
             return self._labelstring(name) + DictObj._fixup(ret)
         except ValueError:
@@ -199,21 +201,24 @@ class FancyDictObj(DictObj):
         if name.startswith('os-'):
             name = name[3:]
         try:
+            print ('OBJ' % str(obj))
+            print ('OBJ.os: %s' % str(obj['os']))
+            print ('OBJ.os.data: %s' % str(obj['os']['data']))
+            return obj['os']['data'][name]
             if name in FancyDictObj.os_namemap:
                 return obj['os']['data'][FancyDictObj.os_namemap[name]]
-            return obj['os']['data'][name]
         except (KeyError, IndexError,TypeError):
             return '(unknown)'
 
     @staticmethod
     def proc_name(obj, _name):
         'Construct a reasonable looking string to display for a process name.'
-        retname = os.path.basename(obj.pathname)
+        retname = os.path.basename(obj['pathname'])
         if retname.endswith('java'):
-            retname += r'\n%s' % obj.argv[-1]
-        elif len(obj.argv) > 1:
-            if not obj.argv[1].startswith('-'):
-                retname += ' %s' % obj.argv[1]
+            retname += r'\n%s' % obj['argv'][-1]
+        elif len(obj['argv']) > 1:
+            if not obj['argv'][1].startswith('-'):
+                retname += ' %s' % obj['argv'][1]
         return retname
 
     @staticmethod
@@ -222,8 +227,8 @@ class FancyDictObj(DictObj):
         secscore = obj.bp_category_security_score if \
                 hasattr(obj, 'bp_category_security_score') else 0
         init=''
-        if obj.status != 'up':
-            if obj.reason == 'HBSHUTDOWN':
+        if obj['status'] != 'up':
+            if obj['reason'] == 'HBSHUTDOWN':
                 init = 'style="filled,dashed" fillcolor=gray90 '
             else:
                 init = 'style="filled,dashed" fillcolor=hotpink1 fontname=bold '
@@ -239,11 +244,11 @@ class FancyDictObj(DictObj):
     def service_attrs(obj, _name):
         'Construct a reasonable looking string to set the service options.'
         ret=' color=blue'
-        if 'server' in obj.roles and not obj.is_monitored:
+        if 'server' in obj['roles'] and not obj['is_monitored']:
             ret += ' style=dashed penwidth=2'
-        if obj.uid == 'root' or obj.gid == 'root':
+        if obj['uid'] == 'root' or obj['gid'] == 'root':
             ret += ' fontcolor=red'
-        if 'server' in obj.roles:
+        if 'server' in obj['roles']:
             ret += ' shape=folder'
         else:
             ret += ' shape=rectangle'
@@ -252,9 +257,9 @@ class FancyDictObj(DictObj):
     @staticmethod
     def monitor_attrs(obj, _name):
         'Construct a reasonable looking string to set monitor options.'
-        if obj.monitorclass == 'NEVERMON' or not obj.isactive:
+        if obj['monitorclass'] == 'NEVERMON' or not obj['isactive']:
             return 'style=filled fillcolor=gray90'
-        if not obj.isworking:
+        if not obj['isworking']:
             return 'color=red penwidth=5 style=filled fillcolor=hotpink'
         return ''
 
@@ -262,7 +267,7 @@ class FancyDictObj(DictObj):
     def nic_attrs(obj, _name):
         'Construct a reasonable looking string to set NIC options.'
         ret = 'shape=octagon color=navy '
-        if hasattr(obj, 'carrier') and not obj.carrier:
+        if 'carrier' in obj and not obj['carrier']:
             ret += 'style=dotted penwidth=2 '
         return ret
 
@@ -285,9 +290,8 @@ class DotGraph(object):
     '''Class to format Assimilation graphs as 'dot' graphs'''
     # pylint - too many arguments. It's a bit flexible...
     # pylint: disable=R0913
-    def __init__(self, formatdict, dburl=None, nodequeries=None,
-            nodequeryparams=None, relquery=None, relqueryparams=None,
-            dictclass=FancyDictObj, options=None):
+    def __init__(self, formatdict, dburl=None, dronelist=None,
+            dictclass=FancyDictObj, options=None, executor_context=None):
         '''Initialization
         Here are the main two things to understand:
             formatdict is a dict-like object which provides a format string
@@ -302,13 +306,7 @@ class DotGraph(object):
             @formatdict - dictionary providing format strings for
                           nodes and relationships
             @dburl - URL for opening the database
-            @nodequeries - a list of Cypher query strings (or a single string)
-                            which enumerate all the desired nodes.
-                            Defaults to all nodes.
-            @nodequeryparams - parameters to plug into the queries
-            @relquery - a Cypher query which enumerates all potentially
-                    interesting relationships.
-                    Defaults to all relationships.
+            @dronelist - a possibly-None list of drones to start from
             @dictclass - a dict-like class which can take a node or
                     relationship as a parameter for its constructor
                     along with extra keywords as the kw parameter.
@@ -317,66 +315,51 @@ class DotGraph(object):
         self.store = dbsetup(readonly=True, url=dburl)
         self.nodeids = None
         self.dictclass = dictclass
-        if nodequeries is None:
-            nodequeries = ('START n=node(*) RETURN n', )
-        if isinstance(nodequeries, (str, unicode)):
-            nodequeries = (nodequeries, )
-        self.nodequeries = nodequeries
-        self.nodequeryparams = nodequeryparams
-        if relquery is None:
-            relquery = '''START fromnode=node(*)
-            MATCH (fromnode)-[rel]->(tonode)
-            RETURN rel
-            '''
-        self.relquery = relquery
-        self.relqueryparams = relqueryparams
         self.options = options
+        self.executor_context = executor_context
+        if isinstance(dronelist, (str, unicode)):
+            self.dronelist = [dronelist]
+        else:
+            self.dronelist = dronelist
 
     @staticmethod
     def idname(nodeid):
         'Format a node id so dot will like it (not numeric)'
         return 'node_%d' % nodeid
 
-    def _outnodes(self):
+    def _outnodes(self, nodes):
         '''Yield the requested nodes, formatted for 'dot'
         '''
         self.nodeids = set()
-        for nodequery in self.nodequeries:
-            nodeiter = self.store.load_cypher_nodes(nodequery,
-                   GraphNode.factory, self.nodequeryparams)
-            nodeformats = self.formatdict['nodes']
-            try:
-                for node in nodeiter:
-                    if node.nodetype not in nodeformats:
-                        continue
-                    self.nodeids.add(self.store.id(node))
-                    dictobj = self.dictclass(node,
-                            kw={'id': DotGraph.idname(self.store.id(node))})
-                    #print('Nodetype: %s' % node.nodetype, file=sys.stderr)
-                    #print('nodeformats: %s' % nodeformats[node.nodetype],
-                    #       file=sys.stderr)
-                    yield nodeformats[node.nodetype] % dictobj
-            except KeyError as e:
-                print('Bad node type: %s' %  e, file=sys.stderr)
+        #print('NODES: %s' % nodes)
+        nodeformats = self.formatdict['nodes']
+        for node in nodes:
+            nodetype = node['nodetype']
+            if nodetype not in nodeformats:
+                continue
+            nodeid = node['_id']
+            self.nodeids.add(nodeid)
+            dictobj = self.dictclass(node,
+                    kw={'id': DotGraph.idname(nodeid)})
+            #print('Nodetype: %s' % node.nodetype, file=sys.stderr)
+            #print('nodeformats: %s' % nodeformats[node.nodetype],
+            #       file=sys.stderr)
+            yield nodeformats[nodetype] % dictobj
 
-    def _outrels(self):
+    def _outrels(self, relationships):
         '''Yield relationships, formatted for 'dot'
         '''
         relformats = self.formatdict['relationships']
-        reliter = self.store.db.cypher.stream(self.relquery,
-                self.relqueryparams)
-        for result in reliter:
-            rel = result[0]
-            # We really need the id. The API calls it _id. Sorry about that...
-            # pylint: disable=W0212
-            if (rel.end_node._id not in self.nodeids
-                or rel.start_node._id not in self.nodeids
-                or rel.type not in relformats):
+        for rel in relationships:
+            reltype = rel['type']
+            if (rel['end_node'] not in self.nodeids
+                or rel['start_node'] not in self.nodeids
+                or reltype not in relformats):
                 continue
             dictobj = self.dictclass(rel, kw={
-                'from': DotGraph.idname(rel.start_node._id),
-                'to': DotGraph.idname(rel.end_node._id)})
-            yield relformats[rel.type] % dictobj
+                'from': DotGraph.idname(rel['start_node']),
+                'to': DotGraph.idname(rel['end_node'])})
+            yield relformats[reltype] % dictobj
 
     def render_options(self):
         'Render overall graph options as a dot-formatted string'
@@ -400,9 +383,30 @@ class DotGraph(object):
     def __iter__(self):
         '''Yield 'dot' strings for our nodes and relationships'''
         yield 'Digraph G {%s\n' % self.render_options()
-        for line in self._outnodes():
+        nodetypes = self.formatdict['nodes'].keys()
+        reltypes = self.formatdict['relationships'].keys()
+        if self.dronelist is None:
+            params = {'nodetypes': nodetypes, 'reltypes': reltypes}
+            queryname = 'allhostsubgraph'
+        else:
+            queryname = 'hostsubgraph'
+            params = {'nodetypes': nodetypes, 'reltypes': reltypes,
+                      'hostname': self.dronelist}
+        print ('NODETYPES: %s ' % str(nodetypes), file=sys.stderr)
+        print ('RELTYPES: %s ' % str(reltypes), file=sys.stderr)
+        querymeta = assimcli.query.load_query_object(self.store, queryname)
+        queryiter = querymeta.execute(self.executor_context,
+                                      expandJSON=True, elemsonly=True,
+                                      **params)
+        # Subgraph queries produce a single row, with two elements:
+        #   nodes and relationships
+        for jsonline in queryiter:
+            queryobj = pyConfigContext(jsonline)
+            break
+
+        for line in self._outnodes(queryobj['nodes']):
             yield line.strip() + '\n'
-        for line in self._outrels():
+        for line in self._outrels(queryobj['relationships']):
             yield line.strip() + '\n'
         yield '}\n'
 

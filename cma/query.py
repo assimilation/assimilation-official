@@ -211,6 +211,7 @@ class ClientQuery(GraphNode):
                 row = ''
                 # W0212: Access to a protected member _fields of a client class
                 # No other way to get the list of columns/fields...
+                # OK - there may be another way, but I didn't how to apply what Nigel told me
                 # pylint: disable=W0212
                 for attr in result._fields:
                     value = getattr(result, attr)
@@ -620,7 +621,7 @@ class CypherExecutor(QueryExecutor):
 
     def __init__(self, store, metadata):
         if 'cypher' not in metadata:
-            raise ValueError('cypher query missing from metadata')
+            raise ValueError('cypher query missing from metadata: %s' % str(metadata))
         QueryExecutor.__init__(self, store, metadata)
         self.query = metadata['cypher']
 
@@ -1025,13 +1026,24 @@ class PythonPackageQuery(PythonExec):
                         yield PackageTuple(drone.domain, drone, package,
                                            jsondata[pkgtype][package], pkgtype)
 
+def reltype_expr(reltypes):
+    'Create a Cypher query expression for (multiple) relationship types'
+    if isinstance(reltypes, (str, unicode)):
+        reltypes = (reltypes,)
+    relationship_expression = ''
+    delim=''
+    for reltype in reltypes:
+        relationship_expression  += '%s:%s' % (delim, reltype)
+        delim = '|'
+    return relationship_expression
+
 @PythonExec.register
 class PythonDroneSubgraphQuery(PythonExec):
-    'A class to return a subgraph centered around a Drone'
+    'A class to return a subgraph centered around one or more Drones'
     PARAMETERS = ['nodetypes', 'reltypes', 'hostname']
     basequery = \
         '''START start=node:Drone('*:*')
-        WHERE start.nodetype = 'Drone' AND start.designation = '%s'
+        WHERE start.nodetype = 'Drone' AND start.designation in '%s'
         MATCH p = shortestPath( (start)-[%s*]-(m) )
         WHERE m.nodetype IN %s
         UNWIND nodes(p) AS n
@@ -1043,19 +1055,42 @@ class PythonDroneSubgraphQuery(PythonExec):
         nodetypes = params['nodetypes']
         reltypes  = params['reltypes']
         designation = params['hostname']
-        relstring = ''
-        delim=''
-        for reltype in reltypes:
-            relstring  += '%s:%s' % (delim, reltype)
-            delim = '|'
+        if isinstance(designation, (str, unicode)):
+            designation = [designation]
+        designation = str(designation)
+        relstr = reltype_expr(reltypes)
         nodestr = str(nodetypes)
-        query = PythonDroneSubgraphQuery.basequery % (designation, relstring, nodestr, nodestr)
+        query = PythonDroneSubgraphQuery.basequery % (designation, relstr, nodestr, nodestr)
+        #print >> sys.stderr, 'RUNNING THIS QUERY:', query
+        for row in self.store.load_cypher_query(query, GraphNode.factory):
+            yield row
+
+@PythonExec.register
+class PythonAllDronesSubgraphQuery(PythonExec):
+    'A class to return a subgraph centered around a Drone'
+    PARAMETERS = ['nodetypes', 'reltypes']
+    basequery = \
+        '''START start=node:Drone('*:*')
+        WHERE start.nodetype = 'Drone'
+        MATCH p = shortestPath( (start)-[%s*]-(m) )
+        WHERE m.nodetype IN %s
+        UNWIND nodes(p) AS n
+        UNWIND rels(p) AS r
+        RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
+        COLLECT(DISTINCT r) AS relationships'''
+
+    def result_iterator(self, params):
+        nodetypes = params['nodetypes']
+        reltypes  = params['reltypes']
+        relstr = reltype_expr(reltypes)
+        nodestr = str(nodetypes)
+        query = PythonAllDronesSubgraphQuery.basequery % (relstr, nodestr, nodestr)
         #print >> sys.stderr, 'RUNNING THIS QUERY:', query
         for row in self.store.load_cypher_query(query, GraphNode.factory):
             yield row
 
 
-# message 0212: access to protected member of client class
+# message W0212: access to protected member of client class
 # pylint: disable=W0212
 ClientQuery._validationmethods = {
     'int':      ClientQuery._validate_int,
@@ -1203,7 +1238,9 @@ if __name__ == '__main__':
 
     print "LOADING TREE!"
 
-    queries = ClientQuery.load_tree(qstore, "%s/../queries" % (os.path.dirname(sys.argv[0])))
+    dirname = os.path.dirname(sys.argv[0])
+    dirname = '.' if dirname == '' else dirname
+    queries = ClientQuery.load_tree(qstore, "%s/../queries" % dirname)
     qlist = [q for q in queries]
     qstore.commit()
     print "%d node TREE LOADED!" % len(qlist)

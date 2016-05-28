@@ -79,6 +79,8 @@ class CMAconsts(object):
     REL_bprulefor   = 'ruledbybp'   # NODE_drone        ->  NODE_BPRules
     REL_jsonattr    = 'jsonattr'    # NODE_system       ->  NODE_jsonmap
     REL_parentsys   = 'parentsys'   # NODE_ChildSystem  ->  NODE_system
+    REL_oneringnext = 'RingNext_The_One_Ring'   # NODE_drone  ->  NODE_Drone
+    REL_onering     = 'RingMember_The_One_Ring'   # NODE_drone  ->  NODE_ring
     #                  RingMember_* # NODE_drone        ->  NODE_ring
     #                  RingNext_*   # NODE_drone        ->  NODE_drone
 #
