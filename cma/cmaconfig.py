@@ -587,7 +587,7 @@ if __name__ == '__main__':
     # Make sure it's making correct JSON...
     pyConfigContext(str(cf.complete_config()))
     #print 'Complete config:', cf.complete_config()  # also checks for validity
-    lint = subprocess.Popen(('/usr/bin/jsonlint',  '-f'), stdin=subprocess.PIPE)
+    lint = subprocess.Popen(('jsonlint',  '-f'), stdin=subprocess.PIPE)
     print >> lint.stdin, '%s\n' % cf.complete_config()
     lint.stdin.close()
     assert lint.wait() == 0
