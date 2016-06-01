@@ -22,10 +22,9 @@
 #
 ''' This module defines Functions to evaluate GraphNode expressions...  '''
 
-import re, os, inspect
+import re, os, inspect, sys
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyNetAddr, pyConfigContext
-import sys
 #
 #
 class GraphNodeExpression(object):
@@ -343,7 +342,7 @@ def EQ(args, _context):
     for val in args[1:]:
         if val is None:
             continue
-        if type(val0) != type(val):
+        if not isinstance(val, type(val0)):
             if str(val0) != str(val):
                 return False
         elif val0 != val:
@@ -1132,51 +1131,51 @@ if __name__ == '__main__':
 
     def simpletests():
         '''These tests don't require a real context'''
-        assert NOT((True,), None) == False
-        assert NOT((False,), None) == True
-        assert EQ((1,1,'1'), None)
+        assert NOT((True,), None) is False
+        assert NOT((False,), None) is True
+        assert EQ((1,1,'1'), None) is True
         assert NOT(EQ((1,), None), None) is None
-        assert MUST(NOT(EQ((1,), None), None), None) == False
-        assert NONEOK(NOT(EQ((1,), None), None), None) == True
-        assert NOT(EQ((1,1,'2'), None), None)
-        assert NOT(EQ((0,0,'2'), None), None)
-        assert EQ(('a','a','a'), None)
-        assert EQ(('0','0',0), None)
-        assert NOT(NE((1,1,'1'), None), None)
+        assert MUST(NOT(EQ((1,), None), None), None) is False
+        assert NONEOK(NOT(EQ((1,), None), None), None) is True
+        assert NOT(EQ((1,1,'2'), None), None) is True
+        assert NOT(EQ((0,0,'2'), None), None) is True
+        assert EQ(('a','a','a'), None) is True
+        assert EQ(('0','0',0), None) is True
+        assert NOT(NE((1,1,'1'), None), None) is True
         assert NOT(NE((1,), None), None) is None
-        assert NONEOK(NOT(NE((1,), None), None), None) == True
-        assert MUST(NOT(NE((1,), None), None), None) == False
-        assert NOT(NE((1,1,'2'), None), None)
-        assert NOT(NE((0,0,'2'), None), None)
-        assert NOT(NE(('a','a','a'), None), None)
-        assert NOT(NE(('0','0',0), None), None)
-        assert LE((1,1), None)
-        assert LE((1,5), None)
-        assert NOT(LT((1,1), None), None)
-        assert LT((1,5), None)
-        assert NOT(GT((1,1), None), None)
-        assert GE((1,1), None)
-        assert IN ((1, 2 , 3, 4, 1), None)
-        assert IN ((1, 2 , 3, 4, '1'), None)
-        assert NOT(IN((1, 2 , 3, 4), None), None)
-        assert NOT(NOTIN((1, 2 , 3, 4, 1), None), None)
-        assert NOT(NOTIN((1, 2 , 3, 4, '1'), None), None)
-        assert NOTIN((1, 2 , 3, 4), None)
+        assert NONEOK(NOT(NE((1,), None), None), None) is True
+        assert MUST(NOT(NE((1,), None), None), None) is False
+        assert NOT(NE((1,1,'2'), None), None) is True
+        assert NOT(NE((0,0,'2'), None), None) is True
+        assert NOT(NE(('a','a','a'), None), None) is True
+        assert NOT(NE(('0','0',0), None), None) is True
+        assert LE((1,1), None) is True
+        assert LE((1,5), None) is True
+        assert NOT(LT((1,1), None), None) is True
+        assert LT((1,5), None) is True
+        assert NOT(GT((1,1), None), None) is True
+        assert GE((1,1), None) is True
+        assert IN ((1, 2 , 3, 4, 1), None) is True
+        assert IN ((1, 2 , 3, 4, '1'), None) is True
+        assert NOT(IN((1, 2 , 3, 4), None), None) is True
+        assert NOT(NOTIN((1, 2 , 3, 4, 1), None), None) is True
+        assert NOT(NOTIN((1, 2 , 3, 4, '1'), None), None) is True
+        assert NOTIN((1, 2 , 3, 4), None) is True
         assert bitwiseOR((1, 2, 4), None) == 7
         assert bitwiseOR((1, 2, '4'), None) == 7
         assert bitwiseAND((7, 3), None) == 3
         assert bitwiseAND((7, 1, '2'), None) == 0
         assert bitwiseAND(('15', '7', '3'), None) == 3
         assert IGNORE((False, False, False), None)
-        assert MUST(None, None) == False
-        assert MUST(True, None) == True
-        assert MUST(False, None) == False
-        assert NONEOK(None, None) == True
-        assert NONEOK(True, None) == True
-        assert NONEOK(False, None) == False
+        assert MUST(None, None) is False
+        assert MUST(True, None) is True
+        assert MUST(False, None) is False
+        assert NONEOK(None, None) is True
+        assert NONEOK(True, None) is True
+        assert NONEOK(False, None) is False
         assert match(('fred', 'fre'), None)
-        assert not match(('fred', 'FRE'), None)
-        assert match(('fred', 'FRE', 'I'), None)
+        assert match(('fred', 'FRE'), None) is False
+        assert match(('fred', 'FRE', 'I'), None) is True
         assert basename(('/dev/null'), None) == 'null'
         assert dirname(('/dev/null'), None) == '/dev'
         print >> sys.stderr, 'Simple tests passed.'
@@ -1201,17 +1200,17 @@ if __name__ == '__main__':
         argcontext = ExpressionContext(
             pyConfigContext('{"argv": ["command-name-suffix", "thing-one", "thang-two"]}'),)
 
-        assert FOREACH(("EQ(False, $perms.group.write, $perms.other.write)",), lscontext) == True
-        assert FOREACH(("EQ($pi, 3)",), Pie_context) == False
+        assert FOREACH(("EQ(False, $perms.group.write, $perms.other.write)",), lscontext) is True
+        assert FOREACH(("EQ($pi, 3)",), Pie_context) is False
         assert FOREACH(("EQ($pie, 3)",), Pie_context) is None
-        assert FOREACH(("$a", "EQ($pie, 3)"), complicated_context) == True
-        assert FOREACH(("$a", "EQ($pie, 3.14159)"), complicated_context) == False
-        assert FOREACH(("$a", "EQ($pi, 3.14159)"), complicated_context) == None
-        assert FOREACH(("EQ($const, constant)",), Pie_context) == True
-        assert GraphNodeExpression.evaluate('EQ($math.pie, 3)', Pie_context) == True
-        assert FOREACH(("EQ($group, root)",), lscontext) == True
-        assert FOREACH(("EQ($owner, root)",), lscontext) == True
-        assert FOREACH(("AND(EQ($owner, root), EQ($group, root))",), lscontext) == True
+        assert FOREACH(("$a", "EQ($pie, 3)"), complicated_context) is True
+        assert FOREACH(("$a", "EQ($pie, 3.14159)"), complicated_context) is False
+        assert FOREACH(("$a", "EQ($pi, 3.14159)"), complicated_context) is None
+        assert FOREACH(("EQ($const, constant)",), Pie_context) is True
+        assert GraphNodeExpression.evaluate('EQ($math.pie, 3)', Pie_context) is True
+        assert FOREACH(("EQ($group, root)",), lscontext) is True
+        assert FOREACH(("EQ($owner, root)",), lscontext) is True
+        assert FOREACH(("AND(EQ($owner, root), EQ($group, root))",), lscontext) is True
         assert argmatch(('thing-(.*)',), argcontext) == 'one'
         assert argmatch(('THING-(.*)','$argv', 'I'), argcontext) == 'one'
         assert argmatch(('thang-(.*)',), argcontext) == 'two'

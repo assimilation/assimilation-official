@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -33,6 +33,7 @@ It is a subclass of the DiscoveryListener class.
 More details are documented in the ArpDiscoveryListener class
 '''
 
+import sys
 from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyConfigContext
@@ -42,7 +43,6 @@ from graphnodes import NICNode, IPaddrNode, GraphNode
 from systemnode import SystemNode
 from cmaconfig import ConfigFile
 from linkdiscovery import discovery_indicates_link_is_up
-import sys
 
 @SystemNode.add_json_processor   # Register ourselves to process discovery packets
 class ArpDiscoveryListener(DiscoveryListener):
@@ -199,15 +199,14 @@ class ArpDiscoveryListener(DiscoveryListener):
 
         # Now we have a NIC and IPs which aren't already related to it
         for ip in IPlist:
-            ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain
-            ,       ipaddr=ip)
+            ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=ip)
             #print >> sys.stderr, ('CREATING IP %s for NIC %s'
             #%       (str(ipnode.ipaddr), str(nicnode.macaddr)))
             if not Store.is_abstract(ipnode):
                 # Then this IP address already existed,
                 # but it wasn't related to our NIC...
                 # Make sure it isn't related to a different NIC
-                for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner
-                    , GraphNode.factory):
+                for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner,
+                                                             GraphNode.factory):
                     self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)

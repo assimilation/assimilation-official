@@ -20,10 +20,10 @@
 #
 #
 ''' This module defines the classes for several of our System nodes ...  '''
+import sys, time
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
-import sys, time
 from AssimCclasses import pyConfigContext
 from graphnodes import RegisterGraphClass, GraphNode, JSONMapNode,  \
         add_an_array_item, delete_an_array_item, nodeconstructor
@@ -49,7 +49,7 @@ class SystemNode(GraphNode):
         GraphNode.__init__(self, domain=domain)
         self.designation = str(designation).lower()
         self.monitors_activated = False
-        if roles == None or roles == []:
+        if roles is None or roles == []:
             # Neo4j can't initialize node properties to empty arrays because
             # it wants to know what kind of array it is...
             roles = ['']
@@ -77,7 +77,7 @@ class SystemNode(GraphNode):
         'Process and save away JSON discovery data.'
         assert CMAdb.store.has_node(self)
         jsonobj = pyConfigContext(jsontext)
-        if 'instance' not in jsonobj or not 'data' in jsonobj:
+        if 'instance' not in jsonobj or 'data' not in jsonobj:
             CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
             return
         dtype = jsonobj['instance']

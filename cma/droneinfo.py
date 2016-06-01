@@ -249,8 +249,7 @@ class Drone(SystemNode):
     def send_frames(self, framesettype, frames):
         'Send messages to our real concrete Drone system...'
         # This doesn't work if the client has bound to a VIP
-        ourip = self.select_ip()    # meaning select our primary IP
-        ourip = pyNetAddr(ourip)
+        ourip = pyNetAddr(self.select_ip()) # meaning select our primary IP
         if ourip.port() == 0:
             ourip.setport(self.port)
         #print >> sys.stderr, ('ADDING PACKET TO TRANSACTION: %s', str(frames))

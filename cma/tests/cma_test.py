@@ -52,6 +52,8 @@ from store import Store
 os.environ['G_MESSAGES_DEBUG'] =  'all'
 WorstDanglingCount = 0
 
+CheckForDanglingClasses = False
+AssertOnDanglingClasses = False
 CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
 
@@ -415,6 +417,8 @@ class IOTestIO:
         ret = self.inframes[self.index]
         self.index += 1
         self.packetsread += len(ret[1])
+        print >> sys.stderr, "RET[0]: %s" % ret[0]
+        print >> sys.stderr, "RET[1][0]: %s" % ret[1][0]
         return ret
 
     def sendframesets(self, dest, fslist):
@@ -611,6 +615,7 @@ class TestCMABasic(TestCase):
         if BuildListOnly: return
         if DEBUG:
             print >> sys.stderr, 'Running test_startup()'
+        CMAdb.debug = True
         AssimEvent.disable_all_observers()
         droneid = 1
         droneip = droneipaddress(droneid)
@@ -651,7 +656,7 @@ class TestCMABasic(TestCase):
         print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
         print >> sys.stderr, ('PACKETS WRITTEN: %s' % str(io.packetswritten))
 
-        self.assertEqual(len(io.packetswritten), 2) # Did we send out four packets?
+        self.assertEqual(len(io.packetswritten), 2) # Did we send out two packets?
                             # Note that this change over time
                             # As we change discovery...
         self.assertEqual(io.packetsread, 3) # Did we read 3 packets?
@@ -750,8 +755,8 @@ class TestCMABasic(TestCase):
     def test_several_startups(self):
         '''A very interesting test: We send a STARTUP message and get back a
         SETCONFIG message and then send back a bunch of discovery requests.'''
-        if Store.debug:
-            raise ValueError('Debug enabled')
+        #if Store.debug:
+        #    raise ValueError('Debug enabled')
         if DEBUG:
             print >> sys.stderr, 'Running test_several_startups()'
         AssimEvent.disable_all_observers()

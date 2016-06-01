@@ -26,9 +26,9 @@
 This file implements things related to Configuration files for the CMA.
 Not quite sure what all it will do, but hey, this comment is slightly better than nothing.
 '''
+from types import ClassType
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
 from consts import CMAconsts
-from types import ClassType
 
 class ConfigFile(object):
     '''
@@ -400,7 +400,7 @@ class ConfigFile(object):
         "We're basically a dict lookalike - implement __delitem__"
         del self.config[name]
 
-    def __len__(self, name):
+    def __len__(self):
         "We're basically a dict lookalike - implement __len__"
         return len(self.config)
 
@@ -488,7 +488,9 @@ class ConfigFile(object):
                     return (False, 'Element %s: %s' % (elem, ret[1]))
             return (True, '')
 
-        if configobj not in template and type(configobj) not in template:
+        # Pylint doesn't like our type matching - so I hid it from pylint through 'configtype'
+        configtype = type(configobj)
+        if configobj not in template and configtype not in template:
             return (False, '%s is not in %s' % (configobj, template))
         return (True, '')
 
@@ -581,6 +583,7 @@ for container in ConfigFile.default_template['containers']:
 ConfigFile.default_template['containers']['vagrant']['initial_discovery'].add('netconfig')
 
 if __name__ == '__main__':
+    # pylint: disable=C0411,C0413
     import subprocess
     cf = ConfigFile()
     assert cf.isvalid()

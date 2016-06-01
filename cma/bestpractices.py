@@ -31,6 +31,7 @@
 This module defines some classes related to evaluating best practices based
 on discovery information
 '''
+import os, logging, sys
 from droneinfo import Drone
 from consts import CMAconsts
 from graphnodes import BPRules, BPRuleSet
@@ -41,7 +42,6 @@ from AssimCclasses import pyConfigContext
 from store import Store
 from assimevent import AssimEvent
 from assimeventobserver import AssimEventObserver
-import os, logging, sys
 
 class BestPractices(DiscoveryListener):
     'Base class for evaluating changes against best practices'
@@ -263,7 +263,8 @@ class BestPractices(DiscoveryListener):
         if hasattr(drone, status_name):
             oldstats = pyConfigContext(getattr(drone, status_name))
         else:
-            oldstats = {'pass': [], 'fail': [], 'ignore': [], 'NA': [], 'score': 0.0}
+            oldstats = pyConfigContext({'pass': [], 'fail': [], 'ignore': [],
+                                        'NA': [], 'score': 0.0})
         for stat in ('pass', 'fail', 'ignore', 'NA'):
             logmethod = self.log.info if stat == 'pass' else self.log.warning
             for ruleid in results[stat]:
@@ -538,8 +539,8 @@ if __name__ == '__main__':
         # pylint: disable=E1101
         assert dummydrone.bp_category_networking_score == 1.0   # should be OK for integer values
         assert dummydrone.bp_category_security_score   == 4.0   # should be OK for integer values
-        assert type(dummydrone.bp_category_networking_score) == float
-        assert type(dummydrone.bp_category_security_score) == float
+        assert isinstance(dummydrone.bp_category_networking_score, float)
+        assert isinstance(dummydrone.bp_category_security_score, float)
         assert str(pyConfigContext(tstdiffs)) == '{"networking":1.0,"security":4.0}'
         score, tstdiffs = bpobj.compute_score_updates(testjsonobj, dummydrone, testrules,
                                                            ourstats, ourstats)

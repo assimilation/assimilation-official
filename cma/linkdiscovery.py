@@ -32,6 +32,7 @@ It is a subclass of the DiscoveryListener class.
 More details are documented in the LinkDiscoveryListener class
 '''
 
+import sys
 from consts import CMAconsts
 from store import Store
 from AssimCclasses import pyNetAddr, pyConfigContext
@@ -42,7 +43,6 @@ from discoverylistener import DiscoveryListener
 from graphnodes import NICNode, IPaddrNode
 from systemnode import SystemNode
 from cmaconfig import ConfigFile
-import sys
 
 def discovery_indicates_link_is_up(devinfo):
     'return True if this link is up-and-operational'
@@ -137,7 +137,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         attrs['domain'] =  drone.domain
         switch = self.store.load_or_create(SystemNode, **attrs)
 
-        if not 'SystemCapabilities' in data:
+        if 'SystemCapabilities' not in data:
             switch.addrole(CMAconsts.ROLE_bridge)
         else:
             caps = data['SystemCapabilities']

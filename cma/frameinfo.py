@@ -496,6 +496,7 @@ for s in FrameSetTypes.strframetypes.keys():
 
 
 if __name__ == "__main__":
+    # pylint: disable=C0413
     import sys
     if len(sys.argv) != 3 \
     or	( sys.argv[1] != "frametypes" and sys.argv[1] != "framesettypes"):

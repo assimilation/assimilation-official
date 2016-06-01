@@ -939,6 +939,8 @@ class PythonPackagePrefixQuery(PythonExec):
         '''     %   prefix)
         for (drone, json) in self.store.load_cypher_query(cypher, Drone):
             jsonobj = pyConfigContext(json)
+            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
+            # pylint: disable=E1133
             jsondata = jsonobj['data']
             for pkgtype in jsondata:
                 for package in jsondata[pkgtype]:
@@ -965,6 +967,8 @@ class PythonAllPackageQuery(PythonExec):
 
         for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
             jsonobj = pyConfigContext(json)
+            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
+            # pylint: disable=E1133
             jsondata = jsonobj['data']
             for pkgtype in jsondata:
                 for package in jsondata[pkgtype]:
@@ -991,6 +995,8 @@ class PythonPackageRegexQuery(PythonExec):
         regexobj = re.compile('.*' + regex)
         for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
             jsonobj = pyConfigContext(json)
+            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
+            # pylint: disable=E1133
             jsondata = jsonobj['data']
             for pkgtype in jsondata:
                 for package in jsondata[pkgtype]:
@@ -1005,7 +1011,7 @@ class PythonPackageQuery(PythonExec):
     PARAMETERS = ['packagename']
     def result_iterator(self, params):
         packagename = params['packagename']
-        if not packagename.find('::') >= 0:
+        if packagename.find('::') < 0:
             packagename += '::'
         # 0:  domain
         # 1:  Drone
@@ -1019,6 +1025,8 @@ class PythonPackageQuery(PythonExec):
         '''     %   packagename)
         for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
             jsonobj = pyConfigContext(json)
+            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
+            # pylint: disable=E1133
             jsondata = jsonobj['data']
             for pkgtype in jsondata:
                 for package in jsondata[pkgtype]:
@@ -1057,10 +1065,10 @@ class PythonDroneSubgraphQuery(PythonExec):
         designation = params['hostname']
         if isinstance(designation, (str, unicode)):
             designation = [designation]
-        designation = str(designation)
+        designation_s = str(designation)
         relstr = reltype_expr(reltypes)
         nodestr = str(nodetypes)
-        query = PythonDroneSubgraphQuery.basequery % (designation, relstr, nodestr, nodestr)
+        query = PythonDroneSubgraphQuery.basequery % (designation_s, relstr, nodestr, nodestr)
         #print >> sys.stderr, 'RUNNING THIS QUERY:', query
         for row in self.store.load_cypher_query(query, GraphNode.factory):
             yield row
@@ -1109,6 +1117,7 @@ ClientQuery._validationmethods = {
 }
 
 if __name__ == '__main__':
+    # pylint: disable=C0413
     from store import Store
     from cmadb import Neo4jCreds
     metadata1 = \

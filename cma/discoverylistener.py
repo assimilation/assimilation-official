@@ -151,13 +151,13 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                         # They are indexed by MAC address
         for ifname in data.keys(): # List of interfaces just below the data section
             ifinfo = data[ifname]
-            if not 'address' in ifinfo:
+            if 'address' not in ifinfo:
                 continue
             macaddr = str(ifinfo['address'])
             newnic = self.store.load_or_create(NICNode, domain=drone.domain
             ,       macaddr=macaddr, ifname=ifname, json=str(ifinfo))
             newmacs[macaddr] = newnic
-            if 'default_gw' in ifinfo and primaryifname == None:
+            if 'default_gw' in ifinfo and primaryifname is None:
                 primaryifname = ifname
 
         # Now compare the two sets of MAC addresses (old and new) and update the "old" MAC
@@ -272,11 +272,11 @@ class TCPDiscoveryListener(DiscoveryListener):
         for procname in data.keys():    # List of nanoprobe-assigned names of processes...
             procinfo = data[procname]
             if 'listenaddrs' in procinfo:
-                if not CMAconsts.ROLE_server in discoveryroles:
+                if CMAconsts.ROLE_server not in discoveryroles:
                     discoveryroles[CMAconsts.ROLE_server] = True
                     drone.addrole(CMAconsts.ROLE_server)
             if 'clientaddrs' in procinfo:
-                if not CMAconsts.ROLE_client in discoveryroles:
+                if CMAconsts.ROLE_client not in discoveryroles:
                     discoveryroles[CMAconsts.ROLE_client] = True
                     drone.addrole(CMAconsts.ROLE_client)
             #print >> sys.stderr, 'CREATING PROCESS %s!!' % procname
@@ -304,7 +304,7 @@ class TCPDiscoveryListener(DiscoveryListener):
             assert hasattr(proc, '_Store__store_node')
             procname = proc.processname
             oldprocs[procname] = proc
-            if not procname in newprocs:
+            if procname not in newprocs:
                 if len(proc.delrole(discoveryroles.keys())) == 0:
                     assert not Store.is_abstract(proc)
                     self.store.separate(drone, CMAconsts.REL_hosting, proc)

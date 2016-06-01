@@ -94,16 +94,13 @@
 #
 ################################################################################
 '''
-SUPPORTED_PYTHON_VERSIONS = ('2.7',)
-SUPPORTED_PY2NEO_VERSIONS = (2,)
-SUPPORTED_NEO4J_VERSIONS = (2,3)
 import sys
-PYTHON_VERSION = ('%s.%s' % sys.version_info[0:2])
-if PYTHON_VERSION not in SUPPORTED_PYTHON_VERSIONS:
-    raise EnvironmentError('Python Version %s not supported' % PYTHON_VERSION)
-
 import os, signal
 import optparse, traceback
+import importlib
+#import atexit
+import getent
+import py2neo
 import cmainit
 from assimeventobserver import ForkExecObserver
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, CMAINITFILE, CMAUSERID, CRYPTKEYDIR, CMA_KEY_PREFIX
@@ -111,10 +108,14 @@ import AssimCtypes
 from AssimCclasses import pyCompressFrame, pyCryptCurve25519, pyCryptFrame
 from cmaconfig import ConfigFile
 from bestpractices import BestPractices
-import importlib
-#import atexit
-import getent
-import py2neo
+
+SUPPORTED_PYTHON_VERSIONS = ('2.7',)
+SUPPORTED_PY2NEO_VERSIONS = (2,)
+SUPPORTED_NEO4J_VERSIONS = (2,3)
+
+PYTHON_VERSION = ('%s.%s' % sys.version_info[0:2])
+if PYTHON_VERSION not in SUPPORTED_PYTHON_VERSIONS:
+    raise EnvironmentError('Python Version %s not supported' % PYTHON_VERSION)
 
 
 optional_modules = [    'discoverylistener' # NOT OPTIONAL(!)
@@ -247,8 +248,7 @@ def main():
          pyPacketDecoder
     from AssimCtypes import CONFIGNAME_CMAINIT, CONFIGNAME_CMAADDR, CONFIGNAME_CMADISCOVER, \
         CONFIGNAME_CMAFAIL, CONFIGNAME_CMAPORT, CONFIGNAME_OUTSIG, CONFIGNAME_COMPRESSTYPE, \
-        CONFIGNAME_COMPRESS, CONFIGNAME_OUTSIG,\
-        proj_class_incr_debug, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
+        CONFIGNAME_COMPRESS, proj_class_incr_debug, LONG_LICENSE_STRING, MONRULEINSTALL_DIR
 
 
     if opt.debug:
@@ -303,6 +303,8 @@ def main():
     config = configinfo.complete_config()
 
     addr = config[CONFIGNAME_CMAINIT]
+    # pylint is confused: addr is a pyNetAddr, not a pyConfigContext
+    # pylint: disable=E1101
     if addr.port() == 0:
         addr.setport(DefaultPort)
     ourport = addr.port()
@@ -370,6 +372,8 @@ def main():
     mandatory_modules = [ 'discoverylistener' ]
     for mandatory in mandatory_modules:
         importlib.import_module(mandatory)
+    #pylint is confused here...
+    # pylint: disable=E1133
     for optional in config['optional_modules']:
         importlib.import_module(optional)
     if opt.doTrace:

@@ -30,14 +30,14 @@ We support the following commands:
 '''
 
 import sys, os, getent
+from py2neo import neo4j
 from query import ClientQuery
 from consts import CMAconsts
 from graphnodes import GraphNode
 from store import Store
-from py2neo import neo4j
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID, BPINSTALL_DIR,   \
-    CMAINITFILE, CMAUSERID
+    CMAINITFILE
 from AssimCclasses import pyCryptFrame, pyCryptCurve25519
 from cmaconfig import ConfigFile
 from cmadb import Neo4jCreds, CMAdb
@@ -47,7 +47,6 @@ from cmadb import Neo4jCreds, CMAdb
 import droneinfo, hbring, monitoring
 from cmainit import CMAinit
 from bestpractices import BestPractices
-from collections import namedtuple
 
 commands = {}
 

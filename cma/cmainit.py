@@ -55,6 +55,8 @@ class CMAinit(object):
             ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
         except EnvironmentError:
             # Docker doesn't really get along with logging - sigh...
+            # And pylint doesn't like us assigning syslog a different type...
+            # pylint: disable=R0204
             syslog = logging.StreamHandler()
         syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
         CMAdb.log.addHandler(syslog)

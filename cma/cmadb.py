@@ -25,9 +25,9 @@ This module defines our CMAdb class and so on...
 
 import os, sys, random, subprocess
 import getent
+import py2neo
 from store import Store
 from AssimCtypes import NEO4JCREDFILENAME, CMAUSERID
-import py2neo
 
 DEBUG = False
 
@@ -167,6 +167,7 @@ class Neo4jCreds(object):
 
 
 if __name__ == '__main__':
+    # pylint: disable=C0413
     from cmainit import CMAinit
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)

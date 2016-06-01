@@ -28,11 +28,11 @@ This module implements observer classes associated with Events in the Assimilati
 The base class of these various classes is the abstract class AssimEventObserver.
 '''
 
+import os, signal, subprocess, sys, fcntl, tempfile
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, setpipebuf
 from AssimCclasses import pyConfigContext, pyNetAddr
 from assimevent import AssimEvent
 from assimjson import JSONtree
-import os, signal, subprocess, sys, fcntl, tempfile
 
 DEBUG = True
 DEBUG = False

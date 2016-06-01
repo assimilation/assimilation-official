@@ -28,12 +28,8 @@ rules for certain kinds of services automatically.
 '''
 
 
-from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD            \
-,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL   \
-,   CONFIGNAME_TIMEOUT , REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, REQNAGIOSPATH       \
-,   CONFIGNAME_WARNTIME                                                                     \
-,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD, REQSTRINGRETNAMEFIELD             \
-,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
+import os, re, time
+import sys
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
 from graphnodes import GraphNode, RegisterGraphClass
@@ -41,9 +37,13 @@ from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
-import os, re, time
-import sys
 from store import Store
+from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD            \
+,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL   \
+,   CONFIGNAME_TIMEOUT , REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, REQNAGIOSPATH       \
+,   CONFIGNAME_WARNTIME                                                                     \
+,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD, REQSTRINGRETNAMEFIELD             \
+,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
 #
 #
 # too many instance attributes
@@ -420,10 +420,8 @@ class MonitoringRule(object):
             name = tup[0]
             regex = tup[1]
             #print >> sys.stderr, 'TUPLE BEING EVALED ("%s","%s")' %  (name, regex.pattern)
-            val = GraphNodeExpression.evaluate(name, context)
+            val = str(GraphNodeExpression.evaluate(name, context))
             #print >> sys.stderr, 'EXPRESSION %s => %s' % (name, val)
-            if not isinstance(val, (str, unicode)):
-                val = str(val)
             #print >> sys.stderr, 'value, REGEX BEING EVALED ("%s","%s")' %  (val, regex.pattern)
             if not regex.match(val):
                 #print >> sys.stderr, 'NOMATCH from regex [%s] [%s]' % (regex.pattern, val)
@@ -923,6 +921,7 @@ class NagiosMonitoringRule(MonitoringRule):
                     ,   missinglist
                     )
 if __name__ == '__main__':
+    # pylint: disable=C0413
     from graphnodes import ProcessNode
 
     # R0903 too few public methods (it's test code!)

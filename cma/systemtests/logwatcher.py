@@ -149,19 +149,9 @@ class LogWatcher(object):
                     if not first_line:
                         first_line=line
                         self.debugmsg("First line: "+ line)
-                    which=-1
-                    for regex in self.regexes:
-                        which=which+1
-                        self.debugmsg("Comparing line to " + regex, 4)
-                        #matchobj = re.search(string.lower(regex), string.lower(line))
-                        matchobj = re.search(regex, line)
-                        if matchobj:
-                            self.whichmatched=which
-                            if self.returnonlymatch:
-                                return matchobj.group(self.returnonlymatch)
-                            else:
-                                self.debugmsg("Returning line: " + line)
-                                return line
+                    match = self._match_against_regexes(line)
+                    if match is not None:
+                        return match
             else: # make sure the file hasn't been recreated...
                 fsinfo = os.stat(self.filename)
                 if fsinfo.st_dev != self.st_dev or fsinfo.st_ino != self.st_ino:
@@ -180,6 +170,22 @@ class LogWatcher(object):
         self.debugmsg("Timeout")
         self.debugmsg("Last line: %s " %  str(last_line))
         self.unmatched = self.regexes
+        return None
+
+    def _match_against_regexes(self, line):
+        'Match this line against all our regexes - return appropriate value'
+        which=-1
+        for regex in self.regexes:
+            self.debugmsg("Comparing line to " + regex, 4)
+            #matchobj = re.search(string.lower(regex), string.lower(line))
+            matchobj = re.search(regex, line)
+            if matchobj:
+                self.whichmatched=which
+                if self.returnonlymatch:
+                    return matchobj.group(self.returnonlymatch)
+                else:
+                    self.debugmsg("Returning line: " + line)
+                    return line
         return None
 
     def lookforall(self, timeout=None, logloadavg=True):

@@ -62,13 +62,11 @@ the code is simple and common - and the formats are more complicated.
 '''
 
 from __future__ import print_function #, unicode_literals
-from graphnodes import GraphNode
-from assimcli import dbsetup
+import sys, os, optparse
+import assimcli
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import VERSION_STRING, LONG_LICENSE_STRING,    \
         SHORT_LICENSE_STRING
-import assimcli
-import sys, os, optparse
 
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
 #pylint: disable=R0903
@@ -204,7 +202,6 @@ class FancyDictObj(DictObj):
             print ('OBJ' % str(obj))
             print ('OBJ.os: %s' % str(obj['os']))
             print ('OBJ.os.data: %s' % str(obj['os']['data']))
-            return obj['os']['data'][name]
             if name in FancyDictObj.os_namemap:
                 return obj['os']['data'][FancyDictObj.os_namemap[name]]
         except (KeyError, IndexError,TypeError):
@@ -312,7 +309,7 @@ class DotGraph(object):
                     along with extra keywords as the kw parameter.
         '''
         self.formatdict = formatdict
-        self.store = dbsetup(readonly=True, url=dburl)
+        self.store = assimcli.dbsetup(readonly=True, url=dburl)
         self.nodeids = None
         self.dictclass = dictclass
         self.options = options

@@ -317,9 +317,9 @@ class HbRing(GraphNode):
             #,   ('%s status: %s mbrcount: %d, nextcount:%d, incount:%d, ringcount:%d'
             #%   (drone, drone.status, mbrcount, nextcount, incount, ringcount))
             assert drone.status == 'up'
-            assert mbrcount < 2 or 1 == nextcount
-            assert mbrcount < 2 or 1 == incount
-            assert 1 == ringcount
+            assert mbrcount < 2 or nextcount == 1
+            assert mbrcount < 2 or incount == 1
+            assert ringcount == 1
 
         for drone in listmembers.keys():
             assert(drone in ringmembers)

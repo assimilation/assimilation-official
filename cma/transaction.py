@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -46,11 +46,11 @@ In either case, this class won't be directly affected - since it only stores and
 transactions - it does not worry about how they ought to be persisted.
 '''
 import sys
+from datetime import datetime, timedelta
 from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, \
         pyIpPortFrame, pyCryptFrame
 from frameinfo import FrameSetTypes, FrameTypes
 from assimjson import JSONtree
-from datetime import datetime, timedelta
 
 class Transaction(object):
     '''This class implements database/nanoprobe transactions.
@@ -98,14 +98,9 @@ class Transaction(object):
     Neither of those is true at the moment.
     '''
 
-    def __init__(self, json=None, encryption_required=False):
+    def __init__(self, encryption_required=False):
         'Constructor for a combined database/network transaction.'
-        if json is None:
-            self.tree = {'packets': []}
-        else:
-            self.tree = pyConfigContext(init=str(json))
-            if not 'packets' in self.tree:
-                raise ValueError('Incoming JSON is malformed: >>%s<<' % json)
+        self.tree = {'packets': []} # 'tree' cannot be pyConfigContext: we append to its array
         self.namespace = {}
         self.created = []
         self.sequence = None
@@ -142,6 +137,7 @@ class Transaction(object):
         # Note that we don't do this as a ConfigContext - it doesn't support modifying arrays.
         # On the other hand, our JSON converts nicely into a ConfigContext - because it converts
         # arrays correctly from JSON
+        #print >> sys.stderr, 'ADDING THESE FRAMES: %s' % str(frames)
 
         if self.encryption_required and pyCryptFrame.get_dest_identity(destaddr) is None:
             raise ValueError('Destaddr %s has no identity: key id is %s'
@@ -149,7 +145,7 @@ class Transaction(object):
 
         # Allow 'frames' to be a single frame
         if not isinstance(frames, list) and not isinstance(frames, tuple):
-            frames = (frames, )
+            frames = [frames]
         # Allow 'frames' to be a list of frame <i>values</i> - if they're all the same frametype
         if frametype is not None:
             newframes = []
@@ -179,6 +175,9 @@ class Transaction(object):
         the previous one is finished.
         '''
         #print >> sys.stderr, "PACKET JSON IS >>>%s<<<" % self.tree['packets']
+        #print >> sys.stderr, 'COMMITTING THESE FRAMES: %s' % str(self.tree['packets'])
+        # pylint is confused here - self.tree['packets'] _is_ very much iterable...
+        # pylint: disable=E1133
         for packet in self.tree['packets']:
             dest = packet['destaddr']
             fs = pyFrameSet(packet['action'])
@@ -212,12 +211,6 @@ class Transaction(object):
             # In theory we could optimize multiple FrameSets in a row being sent to the
             # same address, but we can always do that later...
             io.sendreliablefs(dest, (fs, ))
-            if False:
-                if packet['action'] == FrameSetTypes.SETCONFIG:
-                    print >> sys.stderr, ("LOGGING SETCONFIG CONNECTION TO %s"
-                    %   str(dest))
-                    if hasattr(io, 'log_conn'):  # Some of our test code doesn't have this
-                        io.log_conn(dest)
 
     def commit_trans(self, io):
         'Commit our transaction'
@@ -227,7 +220,7 @@ class Transaction(object):
         #print >> sys.stderr, "HERE IS OUR TREE:"
         #print >> sys.stderr, str(self)
         #print >> sys.stderr, "CONVERTING BACK TO TREE"
-        #self.tree = pyConfigContext(str(self))
+        self.tree = pyConfigContext(str(self))
         if len(self.tree['packets']) > 0:
             start = datetime.now()
             self._commit_network_trans(io)
@@ -259,14 +252,17 @@ if __name__ == '__main__':
 
         trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB
         ,       addresses, frametype=FrameTypes.IPPORT)
+        assert len(trans.tree['packets']) == 1
 
         trans.add_packet(pyNetAddr('10.10.10.1:1984')
         ,   FrameSetTypes.SENDEXPECTHB
         ,   (pyNetAddr('10.10.10.5:1984')
         ,   pyNetAddr('10.10.10.6:1984'))
         ,   frametype=FrameTypes.IPPORT)
+        assert len(trans.tree['packets']) == 2
 
         print >> sys.stderr, 'JSON: %s\n' % str(trans)
         print >> sys.stderr, 'JSON: %s\n' % str(pyConfigContext(str(trans)))
         trans.commit_trans(io)
+        assert len(trans.tree['packets']) == 0
     testme()

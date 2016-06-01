@@ -26,54 +26,56 @@
 A collection of classes which wrap our @ref C-Classes and provide Pythonic interfaces
 to these C-classes.
 '''
+import collections
+import traceback, types
+import sys, gc
 import AssimCtypes
 from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_string_buffer, \
     c_char_p, byref, memmove, c_int, badfree,  \
     g_free, GSList, GDestroyNotify, g_slist_length, g_slist_next, struct__GSList, \
-    g_slist_free,   \
-    MALLOC, memmove, \
-    FRAMETYPE_SIG,      \
-    Frame, AssimObj, NetAddr, SeqnoFrame, ReliableUDP, \
+    g_slist_free,           \
+    MALLOC,                 \
+    FRAMETYPE_SIG,          \
+    Frame, AssimObj, NetAddr, SeqnoFrame, ReliableUDP,          \
     frame_new, addrframe_new, \
     nvpairframe_new, frameset_new, frameset_append_frame, frameset_prepend_frame,   \
     seqnoframe_new, cstringframe_new, unknownframe_new, \
     ipportframe_netaddr_new, ipportframe_ipv4_new, ipportframe_ipv6_new, \
-    frameset_construct_packet, frameset_get_flags, frameset_set_flags,  frameset_clear_flags, \
-    frameset_dump,  frameset_sender_key_id, frameset_sender_identity,   \
+    frameset_construct_packet, frameset_get_flags, frameset_set_flags, frameset_clear_flags, \
+    frameset_dump, frameset_sender_key_id, frameset_sender_identity,   \
     LLDP_TLV_END, LLDP_TLV_CHID, LLDP_TLV_PID, LLDP_TLV_TTL, LLDP_TLV_PORT_DESCR, \
     LLDP_TLV_SYS_NAME, LLDP_TLV_SYS_DESCR, LLDP_TLV_SYS_CAPS, LLDP_TLV_MGMT_ADDR, \
     LLDP_TLV_ORG_SPECIFIC,  \
     LLDP_ORG802_1_VLAN_PVID, LLDP_ORG802_1_VLAN_PORTPROTO, LLDP_ORG802_1_VLAN_NAME, \
     LLDP_ORG802_1_VLAN_PROTOID, LLDP_ORG802_3_PHY_CONFIG, LLDP_ORG802_3_POWERVIAMDI, \
     LLDP_ORG802_3_LINKAGG, LLDP_ORG802_3_MTU,           \
-    LLDP_PIDTYPE_ALIAS,  LLDP_PIDTYPE_IFNAME,  LLDP_PIDTYPE_LOCAL,  LLDP_CHIDTYPE_ALIAS, \
-    LLDP_CHIDTYPE_IFNAME,  LLDP_CHIDTYPE_LOCAL,  LLDP_CHIDTYPE_MACADDR, \
+    LLDP_PIDTYPE_ALIAS, LLDP_PIDTYPE_IFNAME, LLDP_PIDTYPE_LOCAL, LLDP_CHIDTYPE_ALIAS, \
+    LLDP_CHIDTYPE_IFNAME, LLDP_CHIDTYPE_LOCAL, LLDP_CHIDTYPE_MACADDR, \
     LLDP_CHIDTYPE_COMPONENT, LLDP_CHIDTYPE_NETADDR,  \
     CDP_TLV_DEVID, CDP_TLV_ADDRESS, CDP_TLV_PORTID, CDP_TLV_CAPS, CDP_TLV_VERS, CDP_TLV_POWER, \
     CDP_TLV_PLATFORM, CDP_TLV_MTU, CDP_TLV_SYSTEM_NAME, CDP_TLV_MANAGEMENT_ADDR, CDP_TLV_DUPLEX, \
     CDP_TLV_LOCATION, CDP_TLV_EXT_PORTID, CDP_TLV_NATIVEVLAN, CDP_TLV_VLREPLY, CDP_TLV_VLQUERY, \
-    CDP_TLV_VTPDOMAIN,  CDP_TLV_TRUST_BITMAP, CDP_TLV_UNTRUSTED_COS, CDP_TLV_HELLO, \
+    CDP_TLV_VTPDOMAIN, CDP_TLV_TRUST_BITMAP, CDP_TLV_UNTRUSTED_COS, CDP_TLV_HELLO, \
     ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802, \
-    is_valid_lldp_packet, is_valid_cdp_packet,    \
+    is_valid_lldp_packet, is_valid_cdp_packet, \
     netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new, \
     proj_class_classname,   \
     assimobj_new, intframe_new, signframe_glib_new, packetdecoder_new, configcontext_new, \
     configcontext_new_JSON_string, netio_new, netioudp_new, reliableudp_new,\
     netio_is_dual_ipv4v6_stack, create_setconfig, create_sendexpecthb, \
-    get_lldptlv_first, \
-    get_lldptlv_next, \
-    get_lldptlv_type, \
-    get_lldptlv_len, \
-    get_lldptlv_body, \
-    get_lldptlv_next, \
-    get_cdptlv_first, \
-    get_cdptlv_next, \
-    get_cdptlv_type, \
-    get_cdptlv_len, \
-    get_cdptlv_body, \
+    get_lldptlv_type,       \
+    get_lldptlv_len,        \
+    get_lldptlv_body,       \
+    get_lldptlv_first,      \
+    get_lldptlv_next,       \
+    get_cdptlv_type,        \
+    get_cdptlv_len,         \
+    get_cdptlv_body,        \
+    get_cdptlv_first,       \
+    get_cdptlv_next,        \
     pcap_capture_iter_new, pcap_capture_iter_del, pcap_capture_iter_next, \
     tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
-    CFG_EEXIST, CFG_CFGCTX, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
+    CFG_EEXIST, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY,   \
     CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME,                  \
     COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new_string,                        \
     cryptframe_associate_identity, cryptframe_set_dest_key_id, cryptframe_whois_key_id, \
@@ -85,13 +87,10 @@ from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_str
     proj_class_live_object_count, proj_class_dump_live_objects
 from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
-import collections
-import traceback, types
-import sys, gc
 
 
 #pylint: disable=R0903
-class cClass (object):
+class cClass(object):
     'Just a handy collection of POINTER() objects'
     def __init__(self):
         pass
@@ -112,7 +111,7 @@ class cClass (object):
     GSList = POINTER(AssimCtypes.GSList)
     CryptCurve25519 = POINTER(AssimCtypes.CryptCurve25519)
 
-#
+#pylint: disable=C0123
 def not_this_exact_type(obj, cls):
     '''Do return True if this is NOT the given type.
     This is necessary for dealing with Ctypes, but pylint hates this construct
@@ -136,7 +135,7 @@ def CCref(obj):
         to.
     '''
     base = obj[0]
-    while (not_this_exact_type(base, AssimObj)):
+    while not_this_exact_type(base, AssimObj):
         base = base.baseclass
     base.ref(obj)
 
@@ -144,7 +143,7 @@ def CCunref(obj):
     'Unref an AssimObj object (or subclass)'
     base = obj[0]
     # This 'hasattr' construct only works because we are the base C-class
-    while (hasattr(base, 'baseclass')):
+    while hasattr(base, 'baseclass'):
         base = base.baseclass
     base.unref(obj)
 
@@ -154,27 +153,27 @@ class pySwitchDiscovery(object):
     Currently only LLDP is fully implemented.
     '''
     lldpnames = {
-            LLDP_TLV_END:           ('END', True),
-            LLDP_TLV_CHID:          ('ChassisId', True),
-            LLDP_TLV_PID:           ('PortId', True),
-            LLDP_TLV_TTL:           ('TTL', True),
-            LLDP_TLV_PORT_DESCR:    ('PortDescription', False),
-            LLDP_TLV_SYS_NAME:      ('SystemName', True),
-            LLDP_TLV_SYS_DESCR:     ('SystemDescription', True),
-            LLDP_TLV_SYS_CAPS:      ('SystemCapabilities', True),
-            LLDP_TLV_MGMT_ADDR:     ('ManagementAddress', True),
-            LLDP_TLV_ORG_SPECIFIC:  ('(OrgSpecific)', True),
+        LLDP_TLV_END:           ('END', True),
+        LLDP_TLV_CHID:          ('ChassisId', True),
+        LLDP_TLV_PID:           ('PortId', True),
+        LLDP_TLV_TTL:           ('TTL', True),
+        LLDP_TLV_PORT_DESCR:    ('PortDescription', False),
+        LLDP_TLV_SYS_NAME:      ('SystemName', True),
+        LLDP_TLV_SYS_DESCR:     ('SystemDescription', True),
+        LLDP_TLV_SYS_CAPS:      ('SystemCapabilities', True),
+        LLDP_TLV_MGMT_ADDR:     ('ManagementAddress', True),
+        LLDP_TLV_ORG_SPECIFIC:  ('(OrgSpecific)', True),
     }
     lldp802_1names = {
-            LLDP_ORG802_1_VLAN_PVID:        ('VlanPvId', False),
-            LLDP_ORG802_1_VLAN_PORTPROTO:   ('VlanPortProtocol', False),
-            LLDP_ORG802_1_VLAN_NAME:        ('VlanName', False),
-            LLDP_ORG802_1_VLAN_PROTOID:     ('VlanProtocolId', False),
+        LLDP_ORG802_1_VLAN_PVID:        ('VlanPvId', False),
+        LLDP_ORG802_1_VLAN_PORTPROTO:   ('VlanPortProtocol', False),
+        LLDP_ORG802_1_VLAN_NAME:        ('VlanName', False),
+        LLDP_ORG802_1_VLAN_PROTOID:     ('VlanProtocolId', False),
     }
     lldp802_3names = {
-            LLDP_ORG802_3_PHY_CONFIG:   ('PhysicalConfiguration', False),
-            LLDP_ORG802_3_POWERVIAMDI:  ('PowerViaMDI', False),
-            LLDP_ORG802_3_LINKAGG:      ('LinkAggregation', False),
+        LLDP_ORG802_3_PHY_CONFIG:   ('PhysicalConfiguration', False),
+        LLDP_ORG802_3_POWERVIAMDI:  ('PowerViaMDI', False),
+        LLDP_ORG802_3_LINKAGG:      ('LinkAggregation', False),
 
     }
 
@@ -272,9 +271,9 @@ class pySwitchDiscovery(object):
         chidtype = pySwitchDiscovery._byte0(tlvptr)
 
         if (chidtype == LLDP_CHIDTYPE_COMPONENT or chidtype == LLDP_CHIDTYPE_ALIAS
-        or      chidtype == LLDP_CHIDTYPE_IFNAME or chidtype == LLDP_CHIDTYPE_LOCAL):
+                or chidtype == LLDP_CHIDTYPE_IFNAME or chidtype == LLDP_CHIDTYPE_LOCAL):
             sloc = pySwitchDiscovery._byte1addr(tlvptr)
-            value = string_at(sloc, tlvlen-1)
+            return string_at(sloc, tlvlen-1)
         elif chidtype == LLDP_CHIDTYPE_MACADDR:
             byte1addr = pySwitchDiscovery._byte1addr(tlvptr)
             Cmacaddr = None
@@ -283,11 +282,11 @@ class pySwitchDiscovery(object):
             elif tlvlen == 9:
                 Cmacaddr = netaddr_mac64_new(byte1addr)
             if Cmacaddr is not None:
-                value = pyNetAddr(None, Cstruct=Cmacaddr)
+                return pyNetAddr(None, Cstruct=Cmacaddr)
         elif chidtype == LLDP_CHIDTYPE_NETADDR:
             byte1addr = pySwitchDiscovery._byte1addr(tlvptr)
-            value = pySwitchDiscovery._decode_netaddr(byte1addr, tlvlen-1)
-        return value
+            return pySwitchDiscovery._decode_netaddr(byte1addr, tlvlen-1)
+        return None
 
     #pylint: disable=R0914,R0912
     @staticmethod
@@ -295,26 +294,30 @@ class pySwitchDiscovery(object):
         'Decode LLDP packet into a JSON discovery packet'
         #print >> sys.stderr, 'DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
         thisportinfo = pyConfigContext(init={
-                'ConnectsToHost':       host,
-                'ConnectsToInterface':  interface,
+            'ConnectsToHost':       host,
+            'ConnectsToInterface':  interface,
             }
-        )
-        switchinfo = pyConfigContext(init = {'ports': pyConfigContext()})
+                                      )
+        switchinfo = pyConfigContext(init={'ports': pyConfigContext()})
         metadata = pyConfigContext(init={
-                'discovertype':         '__LinkDiscovery',
-                'description':          'Link Level Switch Discovery (lldp)',
-                'source':               '_decode_lldp()',
-                'host':                 host,
-                'instance':             instance,
-                'localtime':            str(wallclock),
-                'data':                 switchinfo,
+            'discovertype':         '__LinkDiscovery',
+            'description':          'Link Level Switch Discovery (lldp)',
+            'source':               '_decode_lldp()',
+            'host':                 host,
+            'instance':             instance,
+            'localtime':            str(wallclock),
+            'data':                 switchinfo,
             }
-        )
-        capnames =  [   None,                   CMAconsts.ROLE_repeater
-        ,               CMAconsts.ROLE_bridge,  CMAconsts.ROLE_AccessPoint
-        ,               CMAconsts.ROLE_router,  CMAconsts.ROLE_phone
-        ,               CMAconsts.ROLE_DOCSIS,  CMAconsts.ROLE_Station
-        ]
+                                  )
+        capnames = [None,
+                    CMAconsts.ROLE_repeater,
+                    CMAconsts.ROLE_bridge,
+                    CMAconsts.ROLE_AccessPoint,
+                    CMAconsts.ROLE_router,
+                    CMAconsts.ROLE_phone,
+                    CMAconsts.ROLE_DOCSIS,
+                    CMAconsts.ROLE_Station
+                   ]
 
         sourcemacptr = pySwitchDiscovery._byteNaddr(cast(pktstart, cClass.guint8), 6)
         if not sourcemacptr:
@@ -333,16 +336,16 @@ class pySwitchDiscovery(object):
                 print >> sys.stderr, 'Cannot find tlvtype %d' % tlvtype
                 tlvtype = None
             else:
-                (tlvname, isswitchinfo)  = pySwitchDiscovery.lldpnames[tlvtype]
+                (tlvname, isswitchinfo) = pySwitchDiscovery.lldpnames[tlvtype]
 
             if (tlvtype == LLDP_TLV_PORT_DESCR or tlvtype == LLDP_TLV_SYS_NAME or
-                tlvtype == LLDP_TLV_SYS_DESCR): #########################################
+                    tlvtype == LLDP_TLV_SYS_DESCR): #########################################
                 value = string_at(tlvptr, tlvlen)
 
             elif tlvtype == LLDP_TLV_PID: ###############################################
                 pidtype = pySwitchDiscovery._byte0(tlvptr)
                 if (pidtype == LLDP_PIDTYPE_ALIAS or pidtype == LLDP_PIDTYPE_IFNAME
-                or  pidtype == LLDP_PIDTYPE_LOCAL):
+                        or pidtype == LLDP_PIDTYPE_LOCAL):
                     sloc = pySwitchDiscovery._byte1addr(tlvptr)
                     value = string_at(sloc, tlvlen-1)
 
@@ -361,13 +364,14 @@ class pySwitchDiscovery(object):
                 byte3 = pySwitchDiscovery._byteN(tlvptr, 3)
                 caps0 = (byte0 << 8 | byte1)
                 caps1 = (byte2 << 8 | byte3)
+                # The values we assign here have many possibilities
+                # pylint: disable=R0204
                 value = pyConfigContext()
                 mask = 2
                 for j in range(1, 7):
-                    if (caps0 & mask):
+                    if caps0 & mask:
                         value[capnames[j]] = ((caps1 & mask) != 0)
                     mask <<= 1
-
 
             elif tlvtype == LLDP_TLV_ORG_SPECIFIC: ######################################
                 pySwitchDiscovery._decode_lldp_org_specific(switchinfo, thisportinfo,
@@ -651,6 +655,8 @@ class pySwitchDiscovery(object):
             tlvptr = cast(get_cdptlv_body(this, pktend), cClass.guint8)
             this = get_cdptlv_next(this, pktend)
             value = None
+            # Each of the different cases handles 'value' differently
+            # pylint: disable=R0204
             if tlvtype not in pySwitchDiscovery.cdpnames:
                 tlvname = ('TLV_0x%02x' % tlvtype)
                 isswitchinfo = True # Gotta do _something_...
@@ -728,7 +734,7 @@ class pySwitchDiscovery(object):
     @staticmethod
     def getNint(tlvptr, tlvlen, pktend):
         'Return an integer of any size that we support...'
-        intptr =  tlvptr
+        intptr = tlvptr
         if tlvlen == 1:
             return tlv_get_guint8(intptr, pktend)
         if tlvlen == 2:
@@ -744,15 +750,18 @@ class pySwitchDiscovery(object):
     @staticmethod
     def construct_cdp_caps(capval):
         'Construct Capability value from the CDP capability integer'
-        capnames =  [   CMAconsts.ROLE_router
-        ,               CMAconsts.ROLE_tb_bridge,   CMAconsts.ROLE_srcbridge
-        ,               CMAconsts.ROLE_bridge,      CMAconsts.ROLE_host
-        ,               CMAconsts.ROLE_igmp,        CMAconsts.ROLE_repeater
-        ]
+        capnames = [CMAconsts.ROLE_router,
+                    CMAconsts.ROLE_tb_bridge,
+                    CMAconsts.ROLE_srcbridge,
+                    CMAconsts.ROLE_bridge,
+                    CMAconsts.ROLE_host,
+                    CMAconsts.ROLE_igmp,
+                    CMAconsts.ROLE_repeater
+                   ]
         mask = 1
         value = []
         for j in range(0, len(capnames)):
-            if (capval & mask):
+            if capval & mask:
                 #value[capnames[j]] = ((capval & mask) != 0)
                 value.append(capnames[j])
             mask <<= 1
@@ -839,7 +848,7 @@ class pyAssimObj(object):
     def __init__(self, Cstruct=None):
         'Create a base pyAssimObj object'
         self._Cstruct = None
-        if (Cstruct is not None):
+        if Cstruct is not None:
             assert not isinstance(Cstruct,  (int, long))
             self._Cstruct = Cstruct
         else:
@@ -855,7 +864,7 @@ class pyAssimObj(object):
         if not self._Cstruct:
             return "[None]"
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, AssimObj)):
+        while not_this_exact_type(base, AssimObj):
             base = base.baseclass
         cstringret = cast(base.toString(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
@@ -879,7 +888,7 @@ class pyAssimObj(object):
     def refcount(self):
         'Return the reference count for this object'
         base = self._Cstruct[0]
-        while (hasattr(base, 'baseclass')):
+        while hasattr(base, 'baseclass'):
             base = base.baseclass
         return base._refcount
 
@@ -899,7 +908,7 @@ class pyNetAddr(pyAssimObj):
 
         self._Cstruct = None	# Silence error messages in failure cases
 
-        if (Cstruct is not None):
+        if Cstruct is not None:
             assert (not isinstance(Cstruct, (int, long))) and Cstruct
             pyAssimObj.__init__(self, Cstruct=Cstruct)
             if port is not None:
@@ -956,49 +965,49 @@ class pyNetAddr(pyAssimObj):
     def port(self):
         'Return the port (if any) for this pyNetAddr object'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         return base.port(self._Cstruct)
 
     def setport(self, port):
         'Return the port (if any) for this pyNetAddr object'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         base.setport(self._Cstruct, port)
 
     def addrtype(self):
         'Return the type of address for this pyNetAddr object'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         return base.addrtype(self._Cstruct)
 
     def addrlen(self):
         "Return the number of bytes necessary to represent this pyNetAddr object on the wire."
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         return base._addrlen
 
     def islocal(self):
         'Return True if this address is a local address'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         return base.islocal(self._Cstruct)
 
     def isanyaddr(self):
         '''Return True if this address is the 'ANY' address'''
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         return base.isanyaddr(self._Cstruct)
 
     def toIPv6(self, port=None):
         'Return an equivalent IPv6 address to the one that was given. Guaranteed to be a copy'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         newcs =  cast(base.toIPv6(self._Cstruct), cClass.NetAddr)
         return pyNetAddr(None, Cstruct=newcs, port=port)
@@ -1007,7 +1016,7 @@ class pyNetAddr(pyAssimObj):
         '''Return an equivalent IPv4 address to the one that was given - if possible.
         Guaranteed to be a copy'''
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         newcs =  cast(base.toIPv4(self._Cstruct), cClass.NetAddr)
         if not newcs:
@@ -1018,7 +1027,7 @@ class pyNetAddr(pyAssimObj):
         'Return a canonical representation of this NetAddr'
         assert self._Cstruct
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         cstringret =  base.canonStr(self._Cstruct)
         ret = string_at(cstringret)
@@ -1031,7 +1040,7 @@ class pyNetAddr(pyAssimObj):
         if not other._Cstruct or not self._Cstruct:
             return False
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         return True if base.equal(self._Cstruct, other._Cstruct) else False
 
@@ -1040,7 +1049,7 @@ class pyNetAddr(pyAssimObj):
         if not self._Cstruct:
             return 0
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, NetAddr)):
+        while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         return base.hash(self._Cstruct)
 
@@ -1079,42 +1088,42 @@ class pyFrame(pyAssimObj):
     def frametype(self):
         "Return the TLV type for the pyFrame object."
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
         return base.type
 
     def framelen(self):
         "Return the length of this frame in bytes (TLV length)."
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
         return base.length
 
     def framevalue(self):
         'Return a C-style pointer to the underlying raw TLV data (if any)'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
         return cast(base.value, c_char_p)
 
     def frameend(self):
         'Return a C-style pointer to the underlying raw TLV data (if any)'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
         return cast(base.value+base.length, c_char_p)
 
     def dataspace(self):
         'Return the amount of space this frame needs - including type and length'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
         return base.dataspace(self._Cstruct)
 
     def isvalid(self):
         "Return True if this Frame is valid"
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
 #        pstart = pointer(cast(base.value, c_char_p))
 #        if pstart[0] is None:
@@ -1139,21 +1148,21 @@ class pyFrame(pyAssimObj):
         base = self._Cstruct[0]
         valptr = MALLOC(vlen)
         memmove(valptr, valbuf, vlen)
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
         base.setvalue(self._Cstruct, valptr, vlen, cast(None, GDestroyNotify))
 
     def dump(self, prefix):
         'Dump out this Frame (using C-class "dump" member function)'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, Frame)):
+        while not_this_exact_type(base, Frame):
             base = base.baseclass
         base.dump(self._Cstruct, cast(prefix, c_char_p))
 
     def __str__(self):
         'Convert this Frame to a string'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, AssimObj)):
+        while not_this_exact_type(base, AssimObj):
             base = base.baseclass
         cstringret = cast(base.toString(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
@@ -1319,7 +1328,7 @@ class pyCstringFrame(pyFrame):
     def getstr(self):
         'Return the String part of this pyCstringFrame'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'value')):
+        while not hasattr(base, 'value'):
             base = base.baseclass
         return string_at(base.value)
 
@@ -1406,7 +1415,7 @@ class pySeqnoFrame(pyFrame):
     def __eq__(self, rhs):
         'Compare this pySeqnoFrame to another pySeqnoFrame'
         lhsbase = self._Cstruct[0]
-        while (not_this_exact_type(lhsbase, SeqnoFrame)):
+        while not_this_exact_type(lhsbase, SeqnoFrame):
             lhsbase = lhsbase.baseclass
         return True if lhsbase.equal(self._Cstruct, rhs._Cstruct) else False
 
@@ -1625,7 +1634,6 @@ class pyCryptCurve25519(pyCryptFrame):
         return warnings
 
 
-#pylint: disable=R0921
 class pyFrameSet(pyAssimObj):
     'Class for Frame Sets - for collections of Frames making up a logical packet'
     def __init__(self, framesettype, Cstruct=None):
@@ -1770,7 +1778,7 @@ class pyPacketDecoder(pyAssimObj):
     def fslist_from_pktdata(self, pktlocation):
         'Make a list of FrameSets out of a packet.'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, AssimCtypes.PacketDecoder)):
+        while not_this_exact_type(base, AssimCtypes.PacketDecoder):
             base = base.baseclass
         fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct, pktlocation[0], pktlocation[1])
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
@@ -1793,7 +1801,6 @@ class pyPacketDecoder(pyAssimObj):
 #pylint: disable=R0904
 class pyConfigContext(pyAssimObj):
     'Class for Holding configuration information - now a general JSON-compatible data bag'
-    #pylint: disable=R0921
 
     def __init__(self, init=None, filename=None, Cstruct=None):
         'Initializer for pyConfigContext'
@@ -1805,7 +1812,7 @@ class pyConfigContext(pyAssimObj):
                 # filename overrides init
                 init = f.read()
                 f.close()
-            if (isinstance(init, str) or isinstance(init, unicode)):
+            if isinstance(init, str) or isinstance(init, unicode):
                 Cstruct = configcontext_new_JSON_string(str(init))
                 if not Cstruct:
                     raise ValueError('Bad JSON [%s]' % str(init))
@@ -2041,35 +2048,36 @@ class pyConfigContext(pyAssimObj):
         'Return a value associated with "name"'
         name = str(name)
         ktype = self.gettype(name)
-        ret = None
         #print >> sys.stderr, '************ GETITEM[%s] => %d *********************' % (name, ktype)
         if ktype == CFG_EEXIST:
             traceback.print_stack()
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
         elif ktype == CFG_CFGCTX:
-            ret = self.getconfig(name)
+            return self.getconfig(name)
         elif ktype == CFG_STRING:
-            ret = self.getstring(name)
+            return self.getstring(name)
         elif ktype == CFG_NETADDR:
-            ret = self.getaddr(name)
+            return self.getaddr(name)
         elif ktype == CFG_FRAME:
-            ret = self.getframe(name)
+            return self.getframe(name)
         elif ktype == CFG_INT64:
-            ret = self.getint(name)
+            return self.getint(name)
         elif ktype == CFG_FLOAT:
-            ret = self.getfloat(name)
+            return self.getfloat(name)
         elif ktype == CFG_BOOL:
-            ret = self.getbool(name)
+            return self.getbool(name)
         elif ktype == CFG_ARRAY:
             #print >> sys.stderr, '************ GETITEM[%s] => getarray(%s) *********************' \
             #   %   (name, name)
-            ret = self.getarray(name)
-        return ret
+            return self.getarray(name)
+        return None
 
     def __setitem__(self, name, value):
         'Set a value associated with "name" - in the appropriate table'
         if isinstance(value, str):
             return self.setstring(name, value)
+        if isinstance(value, unicode):
+            return self.setstring(name, str(value))
         if isinstance(value, pyNetAddr):
             return self.setaddr(name, value)
         if isinstance(value, pyFrame):
@@ -2098,29 +2106,32 @@ class pyConfigValue(pyAssimObj):
         'Convert the given pyConfigValue to a String'
         str(self.get())
 
+    # Too many returns
+    # pylint: disable=R0911
     def get(self):
         'Return the value of this object'
         ret = None
         vtype = self._Cstruct[0].valtype
         if vtype == CFG_BOOL:
-            ret = self._Cstruct[0].u.intvalue != 0
+            return self._Cstruct[0].u.intvalue != 0
         elif vtype == CFG_INT64:
-            ret =  int(self._Cstruct[0].u.intvalue)
+            return int(self._Cstruct[0].u.intvalue)
         elif vtype == CFG_STRING:
-            ret =  str(self._Cstruct[0].u.strvalue)
+            return str(self._Cstruct[0].u.strvalue)
         elif vtype == CFG_FLOAT:
-            ret =  float(self._Cstruct[0].u.floatvalue)
+            return float(self._Cstruct[0].u.floatvalue)
         elif vtype == CFG_CFGCTX:
             # We're creating a new reference to the pre-existing NetAddr
             CCref(self._Cstruct[0].u.cfgctxvalue)
-            ret =  pyConfigContext(Cstruct=self._Cstruct[0].u.cfgctxvalue)
+            return  pyConfigContext(Cstruct=self._Cstruct[0].u.cfgctxvalue)
         elif vtype == CFG_NETADDR:
-            ret =  pyNetAddr(None, Cstruct=self._Cstruct[0].u.addrvalue)
+            net =  pyNetAddr(None, Cstruct=self._Cstruct[0].u.addrvalue)
             # We're creating a new reference to the pre-existing NetAddr
-            CCref(ret._Cstruct)
+            CCref(net._Cstruct)
+            return net
         elif vtype == CFG_FRAME:
             #       Cstruct2Frame calls CCref() - so we don't need to
-            ret =  pyFrame.Cstruct2Frame(self._Cstruct[0].u.framevalue)
+            return  pyFrame.Cstruct2Frame(self._Cstruct[0].u.framevalue)
         elif vtype == CFG_ARRAY:
             # An Array is a linked list (GSList) of ConfigValue objects...
             ret = []
@@ -2132,11 +2143,10 @@ class pyConfigValue(pyAssimObj):
                 thisobj = pyConfigValue(cast(dataptr, cClass.ConfigValue)).get()
                 ret.append(thisobj)
                 this = g_slist_next(this)
+            return ret
         elif vtype == CFG_NULL:
             return None
-        if ret is None:
-            raise ValueError('Invalid valtype (%s)in pyConfigValue object' % self._Cstruct.valtype)
-        return ret
+        raise ValueError('Invalid valtype (%s)in pyConfigValue object' % self._Cstruct.valtype)
 
 class pyNetIO(pyAssimObj):
     'A Network I/O object - with a variety of subclasses'
@@ -2156,7 +2166,7 @@ class pyNetIO(pyAssimObj):
         else:
             self._Cstruct = Cstruct
             base = self._Cstruct[0]
-            while (not hasattr(base, '_configinfo')):
+            while not hasattr(base, '_configinfo'):
                 base = base.baseclass
             self.config = pyConfigContext(Cstruct=base._configinfo)
             CCref(base._configinfo)
@@ -2165,28 +2175,28 @@ class pyNetIO(pyAssimObj):
     def setblockio(self, mode):
         'Set this NetIO object to blocking IO mode'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'setblockio')):
+        while not hasattr(base, 'setblockio'):
             base = base.baseclass
         return base.setblockio(self._Cstruct, int(mode))
 
     def fileno(self):
         'Return the file descriptor for this pyNetIO object'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'getfd')):
+        while not hasattr(base, 'getfd'):
             base = base.baseclass
         return base.getfd(self._Cstruct)
 
     def bindaddr(self, addr, silent=False):
         'Bind the socket underneath this NetIO object to the given address'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'bindaddr')):
+        while not hasattr(base, 'bindaddr'):
             base = base.baseclass
         return base.bindaddr(self._Cstruct, addr._Cstruct, silent)
 
     def boundaddr(self):
         'Return the socket underlying this NetIO object'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'bindaddr')):
+        while not hasattr(base, 'bindaddr'):
             base = base.baseclass
         boundaddr = base.boundaddr(self._Cstruct)
         # We're creating a new reference to the pre-existing NetAddr
@@ -2197,49 +2207,49 @@ class pyNetIO(pyAssimObj):
     def getrcvbufsize(self):
         'Return the receive buffer size for this socket'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'getsockbufsize')):
+        while not hasattr(base, 'getsockbufsize'):
             base = base.baseclass
         return base.getsockbufsize(self._Cstruct, True)
 
     def setrcvbufsize(self, bufsize):
         'Set and return the receive buffer size for this socket'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'setsockbufsize')):
+        while not hasattr(base, 'setsockbufsize'):
             base = base.baseclass
         return base.setsockbufsize(self._Cstruct, True, bufsize)
 
     def getsendbufsize(self):
         'Return the output buffer size for this socket'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'getsockbufsize')):
+        while not hasattr(base, 'getsockbufsize'):
             base = base.baseclass
         return base.getsockbufsize(self._Cstruct, False)
 
     def setsendbufsize(self, bufsize):
         'Return the output buffer size for this socket'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'setsockbufsize')):
+        while not hasattr(base, 'setsockbufsize'):
             base = base.baseclass
         return base.setsockbufsize(self._Cstruct, False, bufsize)
 
     def mcastjoin(self, addr):
         'Join the underlying socket to the given multicast address'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'mcastjoin')):
+        while not hasattr(base, 'mcastjoin'):
             base = base.baseclass
         return base.mcastjoin(self._Cstruct, addr._Cstruct, None)
 
     def getmaxpktsize(self):
         'Return the max packet size for this pyNetIO'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'getmaxpktsize')):
+        while not hasattr(base, 'getmaxpktsize'):
             base = base.baseclass
         return base.getmaxpktsize(self._Cstruct)
 
     def setmaxpktsize(self, size):
         'Set the max packet size for this pyNetIO'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'setmaxpktsize')):
+        while not hasattr(base, 'setmaxpktsize'):
             base = base.baseclass
         return base.setmaxpktsize(self._Cstruct, int(size))
 
@@ -2247,14 +2257,14 @@ class pyNetIO(pyAssimObj):
         'Return the compression frame for this pyNetIO - may be None'
         # Doesn't make a py class object out of it yet...
         base = self._Cstruct[0]
-        while (not hasattr(base, 'compressframe')):
+        while not hasattr(base, 'compressframe'):
             base = base.baseclass
         return base.compressframe(self._Cstruct)
 
     def signframe(self):
         'Return the digital signature frame for this pyNetIO'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'signframe')):
+        while not hasattr(base, 'signframe'):
             base = base.baseclass
         return pySignFrame(0, Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
 
@@ -2279,7 +2289,7 @@ class pyNetIO(pyAssimObj):
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist, )
         base = self._Cstruct[0]
-        while (not hasattr(base, 'sendaframeset')):
+        while not hasattr(base, 'sendaframeset'):
             base = base.baseclass
         # We ought to eventually construct a GSList of them and then call sendframesets
         # But this is easy for now...
@@ -2293,7 +2303,7 @@ class pyNetIO(pyAssimObj):
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist, )
         base = self._Cstruct[0]
-        while (not hasattr(base, 'sendaframeset')):
+        while not hasattr(base, 'sendaframeset'):
             base = base.baseclass
         for frameset in framesetlist:
             success = base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
@@ -2304,14 +2314,14 @@ class pyNetIO(pyAssimObj):
         'ACK (acknowledge) this frameset - (presumably sent reliably).'
 
         base = self._Cstruct[0]
-        while (not hasattr(base, 'ackmessage')):
+        while not hasattr(base, 'ackmessage'):
             base = base.baseclass
         base.ackmessage(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
 
     def closeconn(self, qid, destaddr):
         'Close (reset) our connection to this address'
         base = self._Cstruct[0]
-        while (not hasattr(base, 'closeconn')):
+        while not hasattr(base, 'closeconn'):
             base = base.baseclass
         print >> sys.stderr, ('RESETTING CONNECTION (closeconn) TO %s' % str(destaddr))
         base.closeconn(self._Cstruct, qid, destaddr._Cstruct)
@@ -2320,7 +2330,7 @@ class pyNetIO(pyAssimObj):
         'Close (reset) our connection to this address'
 
         base = self._Cstruct[0]
-        while (not hasattr(base, 'addalias')):
+        while not hasattr(base, 'addalias'):
             base = base.baseclass
         base.addalias(self._Cstruct, fromaddr._Cstruct, toaddr._Cstruct)
 
@@ -2330,7 +2340,7 @@ class pyNetIO(pyAssimObj):
          #GSList * 	_netio_recvframesets (NetIO *self,NetAddr **src)
 
         base = self._Cstruct[0]
-        while (not hasattr(base, 'recvframesets')):
+        while not hasattr(base, 'recvframesets'):
             base = base.baseclass
         netaddrint =  netaddr_ipv4_new(create_string_buffer(4), 101)
         netaddr =  cast(netaddrint, cClass.NetAddr)
@@ -2377,7 +2387,7 @@ class pyReliableUDP(pyNetIOudp):
     def log_conn(self, destaddr, qid=DEFAULT_FSP_QID):
         'Log connection status/info to system logs'
         base = self._Cstruct[0]
-        while (not_this_exact_type(base, ReliableUDP)):
+        while not_this_exact_type(base, ReliableUDP):
             base = base.baseclass
         base.log_conn(self._Cstruct, qid, destaddr._Cstruct)
 

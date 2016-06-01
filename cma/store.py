@@ -30,12 +30,12 @@ Store module - contains a transactional batch implementation of Nigel Small's
 Object-Graph-Mapping API (or something a lot like it)
 '''
 import re, inspect, weakref
+from collections import namedtuple
 #import traceback
+import sys # only for stderr
+from datetime import datetime, timedelta
 import py2neo
 from py2neo import neo4j, GraphError
-from datetime import datetime, timedelta
-from collections import namedtuple
-import sys # only for stderr
 from assimevent import AssimEvent
 
 # R0902: Too many instance attributes (17/10)
@@ -297,7 +297,7 @@ class Store(object):
 
         # Figure out all the indexed stuff...
         cls = subj.__class__
-        if not cls.__name__ in self.classkeymap:
+        if cls.__name__ not in self.classkeymap:
             # Not an indexed object...
             if subj not in self.clients:
                 self._register(subj, neo4j.Node(**Store.safe_attrs(subj)))
@@ -354,7 +354,7 @@ class Store(object):
     def load(self, cls, **clsargs):
         '''Load a pre-existing object from its constructor arguments.
         '''
-        if not cls.__name__ in self.classkeymap:
+        if cls.__name__ not in self.classkeymap:
             print >> sys.stderr, (self.classkeymap)
             raise ValueError("Class [%s] does not have a known index [%s]"
             %   (cls.__name__, self.classkeymap))
@@ -845,7 +845,7 @@ class Store(object):
                 else:
                     print >> sys.stderr, ('OOPS! - already here... self.weaknoderefs'
                     ,   weakling, weakling.__dict__)
-            assert not node._id in self.weaknoderefs or self.weaknoderefs[node._id] is None
+            assert node._id not in self.weaknoderefs or self.weaknoderefs[node._id] is None
             self.weaknoderefs[node._id] = weakref.ref(subj)
         if node is not None:
             if 'post_db_init' in dir(subj):
@@ -1006,7 +1006,7 @@ class Store(object):
         'Construct batch commands for updating attributes on "old" nodes'
         clientset = {}
         for subj in self.clients:
-            assert not subj in clientset
+            assert subj not in clientset
             clientset[subj] = True
             node = subj.__store_node
             if not node.bound:
@@ -1116,6 +1116,7 @@ class Store(object):
         self.abort()
 
 if __name__ == "__main__":
+    #pylint: disable=C0413
     from cmadb import Neo4jCreds
     # I'm not too concerned about this test code...
     # R0914:923,4:testme: Too many local variables (17/15)

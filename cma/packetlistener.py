@@ -24,11 +24,13 @@ This implements the PacketListener class - which listens to packets then
 dispatches them.
 '''
 
+import traceback, os
+import time
+import sys
 from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr, pyCryptFrame
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from frameinfo import FrameSetTypes
 from cmadb import CMAdb
-import traceback, os
 #try:
     #gi.repository confuses pylint...
     #pylint: disable=E0611
@@ -38,8 +40,6 @@ import traceback, os
     #import gobject as glib
 import assimglib as glib # We've replaced gi.repository and gobject with our own 'glib' module
 
-import time
-import sys
 
 callback_save = []
 

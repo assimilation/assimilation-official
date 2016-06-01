@@ -23,15 +23,15 @@ This is the overall message dispatcher - it receives incoming messages as they a
 then call dispatch it so it will get handled.
 '''
 
+import os, sys, traceback
+import gc
+from datetime import datetime
 from cmadb import CMAdb
 from transaction import Transaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
 from AssimCtypes import proj_class_live_object_count, proj_class_max_object_count
 from AssimCclasses import pyAssimObj, dump_c_objects
-import os, sys, traceback
-import gc
-from datetime import datetime
 
 class MessageDispatcher(object):
     'We dispatch incoming messages where they need to go.'

@@ -94,7 +94,7 @@ class QueryTest(object):
         We return False if the validator dislikes any query row, or if the wrong number of
         rows was returned, and True if everything looks good.
         '''
-        if debug == None:
+        if debug is None:
             debug = self.debug
         finalquerystring = self.querystring.format(*objectlist)
         if debug:
@@ -122,6 +122,7 @@ class QueryTest(object):
 
 # A little test code...
 if __name__ == "__main__":
+    # pylint: disable=C0411,C0413,E0401
     import os
     from docker import SystemTestEnvironment
     sys.path.append('..')

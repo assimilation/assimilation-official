@@ -20,13 +20,15 @@
 #
 #
 ''' This module defines the classes for most of our CMA nodes ...  '''
+# Pylint is nuts here...
+# pylint: disable=C0411
+import sys, re, time, hashlib, netaddr, socket
+from py2neo import neo4j
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
-import sys, re, time, hashlib, netaddr, socket
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
-from py2neo import neo4j
 
 def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
@@ -252,7 +254,7 @@ def add_an_array_item(currarray, itemtoadd):
     assert isinstance(itemtoadd, (str, unicode))
     if currarray is None:
         currarray = [itemtoadd]
-    elif not currarray in currarray:
+    elif currarray not in currarray:
         currarray.append(itemtoadd)
     return currarray
 
@@ -357,20 +359,21 @@ class IPaddrNode(GraphNode):
         'Construct an IPaddrNode - validating our parameters'
         GraphNode.__init__(self, domain=domain)
         if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
-            ipaddr = pyNetAddr(str(ipaddr))
-        if isinstance(ipaddr, pyNetAddr):
-            addrtype = ipaddr.addrtype()
+            ipaddrout = pyNetAddr(str(ipaddr))
+        else:
+            ipaddrout = ipaddr
+        if isinstance(ipaddrout, pyNetAddr):
+            addrtype = ipaddrout.addrtype()
             if addrtype == ADDR_FAMILY_IPV4:
-                ipaddr = ipaddr.toIPv6()
+                ipaddrout = ipaddrout.toIPv6()
             elif addrtype != ADDR_FAMILY_IPV6:
                 raise ValueError('Invalid network address type for IPaddrNode constructor: %s'
-                %   str(ipaddr))
-            ipaddr.setport(0)
-            ipaddr = unicode(str(ipaddr))
+                %   str(ipaddrout))
+            ipaddrout.setport(0)
         else:
             raise ValueError('Invalid address type for IPaddrNode constructor: %s type(%s)'
             %   (str(ipaddr), type(ipaddr)))
-        self.ipaddr = ipaddr
+        self.ipaddr = unicode(str(ipaddrout))
         self.cidrmask = cidrmask
         if IPaddrNode.StoreHostNames and not hasattr(self, 'hostname'):
             ip = repr(pyNetAddr(ipaddr))
@@ -407,11 +410,10 @@ class IPtcpportNode(GraphNode):
                 raise ValueError('Invalid network address type [%s] for constructor: %s'
                 %  (addrtype, str(ipaddr)))
             ipaddr.setport(0)
-            ipaddr = unicode(str(ipaddr))
         else:
-            raise ValueError('Invalid address type for constructor: %s type(%s)'
+            raise ValueError('Invalid initial value for IPtcpportNode constructor: %s type(%s)'
             %   (str(ipaddr), type(ipaddr)))
-        self.ipaddr = ipaddr
+        self.ipaddr = unicode(str(ipaddr))
         self.port = port
         self.protocol = protocol
         self.ipport = self.format_ipport()
