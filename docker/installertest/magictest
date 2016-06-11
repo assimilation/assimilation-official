@@ -48,7 +48,7 @@ setup() {
 		RUN chmod 755 installme
 		RUN ls -l \$WORK
 		RUN /bin/sh -ex installme --nolog $INSTALLMEOPTS $2
-        RUN sed 's%^%LOG: %' < /tmp/assimilation-install.txt
+	    RUN sed 's%^%LOG: %' < /tmp/assimilation-install.txt
 		!
 }
 
@@ -82,8 +82,8 @@ test_installer() {
     fi
 
     ubupairs="ubuntu:vivid ubuntu:trusty ubuntu:precise ubuntu:wily" 
-    debpairs="debian:wheezy debian:jessie"
-    fedpairs="fedora:21 fedora:22"
+    debpairs="debian:jessie"
+    fedpairs="fedora:21"
     centpairs="centos:centos6 centos:centos7"
     susepairs="opensuse:42.1 opensuse:13.2"
 
@@ -94,9 +94,6 @@ test_installer() {
             # Java dependency currently prohibits clean cma install with RPMs
             # So RPMs might not be the best choice for Fedora - or anyone
             # because they drop their untested prereleases in their repository
-            case $pair:$role in
-                opensuse:13.2:cma)   continue;;
-            esac
             setup $pair $role
             echo "TEST FOR $pair in role $role STARTED $(date)"
             if
