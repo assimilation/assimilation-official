@@ -29,8 +29,14 @@ set -e
 #
 #
 # It is possible these might eventually need to change
-NEOVERSION=2.2.5
-JAVA="java-1.7.0-openjdk"
+NEOVERSION=2.3.3
+NEOVERSION=3.0.1
+PY2NEOVERS=2.0.8
+NEOPARENT=/usr/share
+NEODIR=$NEOPARENT/neo4j
+NEOCONF=/etc/neo4j
+NEODATA=/var/lib/neo4j/data
+JRE="java-1.8.0-openjdk-headless"
 LOGGER=rsyslog
 CENTOSVERS="centos:centos6"
 DROPBOX=https://www.dropbox.com/sh/4olv5bw1cx8bduq/AADkfkqzXOLfA-cwHIdlcdGTa/builds
@@ -43,14 +49,12 @@ BUILDREQS="rpm-build tar scl-utils-build glib2-devel libpcap-devel zlib-devel gc
 BUILDREQS_2="$PYSCL-python-setuptools"
 EZINST="pip"
 PIPBUILD="ctypesgen"
-PIPRUN='netaddr getent flask "py2neo==2.0.8" demjson'
+PIPRUN="netaddr getent flask py2neo==${PY2NEOVERS} demjson"
 # Python packages we only need for testing
 PIPTEST="pylint pytest"
 # RPMs we only need for testing
 TESTREQS="valgrind"
 NEO4J_DEPS="which lsof tar"
-NEOPARENT=/var/lib
-NEODIR=$NEOPARENT/neo4j
 NEOEDITION=community
 NEOSERVICE=neo4j-service
 ASSIMVERS=master
@@ -77,7 +81,7 @@ TARBALL=$RPMSRCDIR/${ASSIMVERS}.tar.gz
 enable_repos() {
   cat <<-!
 	# Enable the CentOS 6 EPEL and SCL repos
-	yum -y install wget epel-release centos-release-SCL
+	yum -y install wget epel-release centos-release-scl
 	yum -y update
 	!
 }
@@ -136,22 +140,35 @@ manual_package_download() {
 
 java_install() {
   cat <<-!
-	# Install JAVA from ${JAVA}
-	yum -y install ${JAVA}
+	# Install JAVA from ${JRE}
+	yum -y install ${JRE}
 	!
 }
 neo4j_install() {
+  # There is currently no installer - so we do it ourselves
   cat <<-!
 	# Install the ${NEOEDITION} edition of Neo4j version ${NEOVERSION}
 	yum -y install ${NEO4J_DEPS}
-	wget -q "http://neo4j.com/artifact.php?name=neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz" -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
+	wget -q "https://neo4j.com/artifact.php?name=neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz" -O /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
 	tar -C $NEOPARENT -xzf /tmp/neo4j-${NEOEDITION}-${NEOVERSION}-unix.tar.gz
+	rm -f $NEODIR
 	ln -s $NEOPARENT/neo4j-${NEOEDITION}-${NEOVERSION}/ $NEODIR
-	printf '\n\n' | ${NEODIR}/bin/neo4j-installer install
+	useradd -c 'Neo4j Graph database' -d $NEOPARENT/neo4j --user-group --no-create-home --system --shell /bin/false neo4j
+	chown -R neo4j:neo4j  $NEOPARENT/neo4j-${NEOEDITION}-${NEOVERSION}/
+	mkdir -p $NEOCONF
+	cp -R $NEOPARENT/neo4j/conf/* $NEOCONF
+	chown -R neo4j:neo4j $NEOCONF
+	printf 'NEO4J_CONF=%s su --shell /bin/sh -m -c "%s \$@" neo4j\\\\n' "$NEOCONF" "$NEOPARENT/neo4j/bin/neo4j" > /etc/init.d/neo4j
+	cat /etc/init.d/neo4j
+	chmod 755 /etc/init.d/neo4j
+	mkdir -p $NEODATA/databases
+	chown -R neo4j:neo4j $NEODATA
+	rm -fr $NEODIR/data
+	ln -s $NEODATA $NEODIR/data
 	!
 }
 
-neo4j_rpm_install() { # This RPM is currently broken!
+neo4j_rpm_install() { # This RPM is not production-ready
   cat <<-!
 	# Install the ${NEOEDITION} edition RPM of Neo4j version ${NEOVERSION}
 	wget http://debian.neo4j.org/neotechnology.gpg.key -O /tmp/neo4j.key

@@ -40,13 +40,14 @@ RUN pip install 'py2neo==2.0.8' getent
 ###############################################################
 #   Neo4j installation
 ###############################################################
-RUN apt-get install -y --no-install-recommends openjdk-7-jre
+@BACKPORTS@
+RUN apt-get -y update && apt-get -y install --no-install-recommends @JDK@
 # Import the Neo4j signing key
 RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 # Create an Apt sources.list file for neo4j.
 RUN neoversion=stable; echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 RUN apt-get -y update
-RUN apt-get -y install --no-install-recommends neo4j
+RUN apt-get update && apt-get -y install --no-install-recommends neo4j=@NEOVERS@
 #
 RUN mkdir -p /tmp/pkgs
 COPY @CMAPKG@ /tmp/pkgs/

@@ -33,8 +33,19 @@
 set -e 
 ARGS="$*"
 cd $1
+REL=$(echo $1 | sed 's%\..*%%')
 ZYPPER='zypper --non-interactive'
 shift
+
+NEOVERS=3.0.1
+NEOEDITION=community
+NEOCONF=/etc/neo4j
+NEOPARENT=/usr/share/
+NEOROOT=/usr/share/neo4j
+NEOSERVFILE=/usr/lib/systemd/system/neo4j.service
+
+PY2NEOVERS=2.0.8
+JVM=java-1_8_0-openjdk-headless
 
 SUSEREL=$(basename $PWD)
 NANONAME="assimilation/nanoprobe-$SUSEREL"
@@ -60,28 +71,45 @@ case $1 in
         GITHASH=$(git rev-parse --short master)
         (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
         cat $DOCKERFILE |
-        sed -e 's%ENV GITTARZAN.*%ENV GITTARZAN tip.tar.gz%'   \
-            -e "s%suse:latest%suse:$SUSEREL%" $EFLAG      \
-            -e "s%^ENV GITHASH.*%ENV GITHASH $GITHASH%"        \
+        sed -e 's%ENV GITTARZAN.*%ENV GITTARZAN tip.tar.gz%'    \
+            -e "s%suse:latest%suse:$SUSEREL%" $EFLAG            \
+            -e "s%^ENV GITHASH.*%ENV GITHASH $GITHASH%"         \
             -e 's%^RUN.* mv .*ssimilation-.*%# &%'              \
-            -e "s%@ZYPPER@%${ZYPPER}%"                                \
+            -e "s%@NEOVERS@%${NEOVERS}%g"                       \
+            -e "s%@NEOEDITION@%${NEOEDITION}%g"                 \
+            -e "s%@NEOPARENT@%$NEOPARENT%g"                     \
+            -e "s%@NEOROOT@%$NEOROOT%g"                         \
+            -e "s%@NEOCONF@%$NEOCONF%g"                         \
+            -e "s%@NEOSERVFILE@%${NEOSERVFILE}%g"               \
+            -e "s%@PY2NEOVERS@%${PY2NEOVERS}%g"                 \
+            -e "s%@JVM@%${JVM}%"                                \
+            -e "s%@ZYPPER@%${ZYPPER}%"                          \
             -e "s%@OURDATE@%$(date)%"                           \
-            -e 's%@ARCH@%x86_64%'                           \
+            -e 's%@ARCH@%x86_64%'                               \
             -e 's%RUN service rsyslog start.*testify%#&%'       \
             > Dockerfile
         ;;
     *)  GITHASH=$(git rev-parse --short HEAD)
-        cat $DOCKERFILE |                                       \
-            sed -e "s%opensuse:latest%opensuse:$SUSEREL%" $EFLAG  \
-            -e "s%^ENV GITHASH.*%ENV GITHASH $GITHASH%"        \
-            -e "s%@ZYPPER@%${ZYPPER}%"                                \
-            -e 's%@ARCH@%x86_64%'                           \
+        cat $DOCKERFILE |                                           \
+            sed -e "s%opensuse:latest%opensuse:$SUSEREL%" $EFLAG    \
+            -e "s%^ENV GITHASH.*%ENV GITHASH $GITHASH%"             \
+            -e "s%@ZYPPER@%${ZYPPER}%"                              \
+            -e "s%@NEOVERS@%${NEOVERS}%g"                           \
+            -e "s%@NEOEDITION@%${NEOEDITION}%g"                     \
+            -e "s%@NEOPARENT@%$NEOPARENT%g"                         \
+            -e "s%@NEOROOT@%$NEOROOT%g"                             \
+            -e "s%@NEOCONF@%${NEOCONF}%g"                           \
+            -e "s%@NEOSERVFILE@%${NEOSERVFILE}%g"                   \
+            -e "s%@PY2NEOVERS@%${PY2NEOVERS}%g"                     \
+            -e "s%@JVM@%${JVM}%"                                    \
+            -e 's%@ARCH@%x86_64%'                                   \
             -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;
 esac
 grep -i 'FROM.*suse:' Dockerfile
 
 cp /etc/timezone .
+cp ../dummy.spec .
 docker build -t $BUILD .
 rm -fr timezone $PKGDIR/packages
 ID=$(docker run -d $BUILD /bin/sleep 5)

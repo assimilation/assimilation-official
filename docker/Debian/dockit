@@ -35,11 +35,18 @@ ARGS="$*"
 cd $1
 shift
 
+NEOVERS=3.0.0
+NEOCONF=/etc/neo4j
+NEODBROOT=/var/lib/neo4j/
+NEOBIN=/usr/share/neo4j/bin
+PY2NEOVERS=2.0.8
+JDK=openjdk-8-jre
 CODENAME=$(basename $PWD)
 NANONAME="assimilation/nanoprobe-$CODENAME"
 CMANAME="assimilation/cma-$CODENAME"
 DOCKERFILE="$PWD/../Dockerfile"
 NANOFILE="$PWD/../nanoDockerfile"
+CMAFILE="$PWD/../cmaDockerfile"
 CMAFILE="$PWD/../cmaDockerfile"
 # Note that we just use the one we wrote for Ubuntu...
 STARTFILE="$PWD/../../Ubuntu/cmaStart"
@@ -51,8 +58,18 @@ rm -fr local nanoprobe cma
 
 # Stuff left over from Ubuntu
 case $CODENAME in
-  wheezy)   EFLAG='-e s%iproute2%%';;
-  *)        EFLAG="";;
+  wheezy)   EFLAG='-e s%iproute2%%'
+            NEOBIN=/var/lib/neo4j/bin
+            NEOVERS=2.3.3
+            JDK=openjdk-7-jre
+            NEODBROOT=/var/lib/neo4j/data/
+            BACKPORTS='# backports cannot help us - sigh...'
+            ;;
+  jessie)   BACKPORTS='RUN grep jessie-backports /etc/apt/sources.list || echo "deb http://http.debian.net/debian jessie-backports main" >> /etc/apt/sources.list'
+            ;;
+  *)        EFLAG=""
+            BACKPORTS='# no backports needed'
+            ;;
 esac
 case $1 in
   local) 
@@ -61,19 +78,32 @@ case $1 in
         pwd
         (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
         cat $DOCKERFILE |
-        sed -e 's%ENV GITTARZAN.*%ENV GITTARZAN tip.tar.gz%'   \
+        sed -e 's%ENV GITTARZAN.*%ENV GITTARZAN tip.tar.gz%'    \
             -e "s%debian:latest%debian:$CODENAME%" $EFLAG       \
             -e 's%RUN.* mv .*ssimilation-.*%# &%'               \
             -e "s%@OURDATE@%$(date)%"                           \
+            -e "s%@NEOVERS@%${NEOVERS}%"                        \
+            -e "s%@NEOBIN@%${NEOBIN}%"                          \
+            -e "s%@NEOCONF@%${NEOCONF}%"                        \
+            -e "s%@NEODBROOT@%${NEODBROOT}%"                    \
+            -e "s%@PY2NEOVERS@%${PY2NEOVERS}%"                  \
+            -e "s%@JDK@%${JDK}%"                                \
+            -e "s%@BACKPORTS@%${BACKPORTS}%"                    \
             -e 's%RUN service rsyslog start.*testify%#&%'       \
             > Dockerfile
         ;;
     *)  cat $DOCKERFILE | sed -e "s%debian:latest%debian:$CODENAME%" $EFLAG \
+            -e "s%@NEOVERS@%${NEOVERS}%"                                    \
+            -e "s%@JDK@%${JDK}%"                                            \
+            -e "s%@NEOCONF@%${NEOCONF}%"                                    \
+            -e "s%@PY2NEOVERS@%${PY2NEOVERS}%"                              \
+            -e "s%@NEODBROOT@%${NEODBROOT}%"                                \
+            -e "s%@NEOBIN@%${NEOBIN}%"                                      \
+            -e "s%@BACKPORTS@%${BACKPORTS}%"                                \
             -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;
 esac
 grep 'FROM.*debian:' Dockerfile
-more Dockerfile
 
 cp /etc/timezone .
 docker build -t $BUILD .
@@ -101,6 +131,13 @@ esac
 cd ..
 cp $PKGDIR/packages/*cma*.deb $STARTFILE cma/
 cat $CMAFILE | sed -e "s%@NANOBASE@%${NANONAME}:latest%" ${EFLAG}   \
+            -e "s%@NEOVERS@%${NEOVERS}%"                            \
+            -e "s%@JDK@%${JDK}%"                                    \
+            -e "s%@NEOCONF@%${NEOCONF}%"                            \
+            -e "s%@NEODBROOT@%${NEODBROOT}%"                        \
+            -e "s%@NEOBIN@%${NEOBIN}%"                              \
+            -e "s%@BACKPORTS@%${BACKPORTS}%"                        \
+            -e "s%@PY2NEOVERS@%${PY2NEOVERS}%"                      \
             -e "s%@CMAPKG@%${CMAPKG}%"                              \
             > cma/Dockerfile
 cd cma

@@ -47,14 +47,15 @@ RUN pip install ctypesgen 'py2neo==2.0.8' getent pytest
 ###############################################################
 #   Neo4j installation
 ###############################################################
-ENV NEOROOT /var/lib/neo4j
-RUN apt-get -y update && apt-get -y install --no-install-recommends openjdk-7-jre
+ENV NEODBROOT @NEODBROOT@
+@BACKPORTS@
+RUN apt-get -y update && apt-get -y install --no-install-recommends @JDK@
 # Import the Neo4j signing key
 RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 # Create an Apt sources.list file for neo4j.
 RUN neoversion=stable; echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 #RUN ls -l /etc/apt/sources.list.d && cat /etc/apt/sources.list.d/neo4j.list
-RUN apt-get update && apt-get -y install --no-install-recommends neo4j
+RUN apt-get update && apt-get -y install --no-install-recommends neo4j=@NEOVERS@
 #
 
 ###############################################################
@@ -85,13 +86,13 @@ RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimil
 ###############################################################
 RUN apt-get -y install --no-install-recommends jq || true
 
-RUN ls $NEOROOT
-RUN /usr/sbin/rsyslogd&  /var/lib/neo4j/bin/neo4j console & sleep 20; cd /root/assimilation/src/cma && py.test -rw -v tests
+RUN ls $NEODBROOT || true
+RUN /usr/sbin/rsyslogd&  NEO4J_CONF=@NEOCONF@ @NEOBIN@/neo4j console & sleep 20; cd /root/assimilation/src/cma && py.test -rw -v tests
 
 ###############################################################
 #   Clean out the database and prepare for running system tests
 ###############################################################
-RUN rm -fr $NEOROOT/data/graph.db/* $NEOROOT/data/graph.db/keystore $NEOROOT/data/log/* $NEOROOT/data/rrd $NEOROOT/data/neo4j-service.pid
+RUN rm -fr $NEODBROOT/data/graph.db/* $NEODBROOT/data/graph.db/keystore $NEODBROOT/data/log/* $NEODBROOT/data/rrd $NEODBROOT/data/neo4j-service.pid
 # Install be a copy of host's /etc/timezone - so logs will have right TZ
 COPY timezone /etc/
 RUN dpkg-reconfigure --frontend noninteractive tzdata

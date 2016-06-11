@@ -48,13 +48,14 @@ RUN pip install ctypesgen 'py2neo==2.0.8' getent pytest
 #   Neo4j installation
 ###############################################################
 ENV NEOROOT /var/lib/neo4j
-RUN apt-get -y install --no-install-recommends openjdk-7-jre
+@JAVAREPOSETUP@
+RUN apt-get -y install --no-install-recommends openjdk-8-jre
 # Import the Neo4j signing key
-RUN wget -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
+RUN wget -O - https://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 # Create an Apt sources.list file for neo4j.
 RUN neoversion=stable; echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 #RUN ls -l /etc/apt/sources.list.d && cat /etc/apt/sources.list.d/neo4j.list
-RUN apt-get update && apt-get -y install --no-install-recommends neo4j
+RUN apt-get update && apt-get -y install --no-install-recommends @NEOVERS@
 #
 
 ###############################################################
@@ -88,7 +89,7 @@ RUN cd /root/assimilation/bin && dpkg --install assimilation-*.deb && cp assimil
 RUN apt-get -y install --no-install-recommends jq || true
 
 #RUN ls $NEOROOT
-RUN /usr/sbin/rsyslogd&  /var/lib/neo4j/bin/neo4j console & sleep 20; cd /root/assimilation/src/cma && py.test -rw -v tests
+RUN /usr/sbin/rsyslogd&  NEO4J_CONF=/etc/neo4j @NEODIR@/bin/neo4j console & sleep 20; cd /root/assimilation/src/cma && py.test -rw -v tests
 
 ###############################################################
 #   Clean out the database and prepare for running system tests

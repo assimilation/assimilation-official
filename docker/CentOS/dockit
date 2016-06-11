@@ -36,6 +36,11 @@ cd $1
 YUM='yum -y'
 shift
 
+NEOVERS=3.0.1
+NEOCONF=/etc/neo4j
+NEOEDITION=community
+PY2NEOVERS=2.0.8
+JRE=java-1.8.0-openjdk-headless
 CENTOSREL=$(basename $PWD)
 NANONAME="assimilation/nanoprobe-$CENTOSREL"
 CMANAME="assimilation/cma-$CENTOSREL"
@@ -60,21 +65,33 @@ case $1 in
         GITHASH=$(git rev-parse --short master)
         (D=$PWD; cd ../../../.. && git archive --prefix=src/ -o $D/tip.tar.gz HEAD)
         cat $DOCKERFILE |
-        sed -e 's%ENV GITTARZAN .*%ENV GITTARZAN tip.tar.gz%'   \
-            -e "s%centos:latest%centos:$CENTOSREL%" $EFLAG      \
-            -e "s%^ENV GITHASH .*%ENV GITHASH $GITHASH%"        \
+        sed -e 's%ENV GITTARZAN .*%ENV GITTARZAN tip.tar.gz%g'  \
+            -e "s%centos:latest%centos:$CENTOSREL%g" $EFLAG     \
+            -e "s%^ENV GITHASH .*%ENV GITHASH $GITHASH%g"       \
             -e 's%^RUN.* mv .*ssimilation-.*%# &%'              \
-            -e "s%@YUM@%${YUM}%"                                \
-            -e "s%@OURDATE@%$(date)%"                           \
+            -e "s%@NEOVERS@%${NEOVERS}%g"                       \
+            -e "s%@NEOCONF@%${NEOCONF}%g"                       \
+            -e "s%@NEOEDITION@%${NEOEDITION}%g"                 \
+            -e "s%@PY2NEOVERS@%${PY2NEOVERS}%g"                 \
+            -e "s%@YUM@%${YUM}%g"                               \
+            -e "s%@JRE@%${JRE}%g"                               \
+            -e "s%@OURDATE@%$(date)g"                           \
+            -e 's%@ARCH@%x86_64%g'                              \
             -e 's%RUN service rsyslog start.*testify%#&%'       \
             > Dockerfile
         ;;
     *)  GITHASH=$(git rev-parse --short HEAD)
         cat $DOCKERFILE |                                       \
-            sed -e "s%centos:latest%centos:$CENTOSREL%" $EFLAG  \
-            -e "s%^ENV GITHASH .*%ENV GITHASH $GITHASH%"        \
-            -e "s%@YUM@%${YUM}%"                                \
-            -e "s%@OURDATE@%$(date)%" > Dockerfile
+            sed -e "s%centos:latest%centos:$CENTOSREL%g" $EFLAG \
+            -e "s%^ENV GITHASH .*%ENV GITHASH $GITHASH%g"       \
+            -e "s%@YUM@%${YUM}%g"                               \
+            -e "s%@JRE@%${JRE}%g"                               \
+            -e "s%@NEOVERS@%${NEOVERS}%g"                       \
+            -e "s%@NEOCONF@%${NEOCONF}%g"                       \
+            -e "s%@NEOEDITION@%${NEOEDITION}%g"                 \
+            -e "s%@PY2NEOVERS@%${PY2NEOVERS}%g"                 \
+            -e 's%@ARCH@%x86_64%g'                              \
+            -e "s%@OURDATE@%$(date)%g" > Dockerfile
         ;;
 esac
 grep 'FROM.*centos:' Dockerfile
