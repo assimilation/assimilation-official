@@ -422,7 +422,6 @@ class IOTestIO:
         return ret
 
     def sendframesets(self, dest, fslist):
-        print >> sys.stderr, 'SENDING FRAMESET'
         if not isinstance(fslist, collections.Sequence):
             return self._sendaframeset(dest, fslist)
         for fs in fslist:
