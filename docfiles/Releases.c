@@ -1,6 +1,26 @@
 /**
 @page ReleaseDescriptions Release Descriptions
-@section Version_1_1_6 version 1.1.5 - the DevOpsRox release
+@section Version_1_1_7 version 1.1.6 - the "From The Heart" release
+@subsection Features_1_1_7 New Features
+- Added two subgraph queries to assimcli
+- Changed <i>drawwithdot</i> to use subgraph queries - much faster results
+- Added support for Docker containers
+- Added support for Vagrant VMs
+- Updated to Neo4j 3.0.1
+- Updated to Py2neo 2.0.8
+@subsection BugFixes_1_1_7 Bug Fixes
+<i>none</i>
+@subsection Caveats_1_1_7 Caveats
+- Neo4j requires Java 1.8 - this eliminates some platforms
+- Not compatible with database formats before 1.1.0
+- No alerting, or interface to existing alerting beyond a sample email script. (hooks to build your own interface are included)
+- high availability option for the CMA is roll-your-own using Pacemaker or similar
+- queries could benefit from more indexes for larger installations.
+- The CMA will suffer performance problems when discovering IP addresses when large numbers of nanoprobes are on a subnet.
+- no GUI
+- Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and Debian, SuSE and 7.0 and later versions of CentOS.
+
+
 @subsection Features_1_1_6 New Features
 - Added several <a href="https://trello.com/c/G1DSBE6U">queries for installed packages</a>
 - <a href="https://trello.com/c/s4vLO6Cv">Incorporate severities</a> into best practice score calculations.

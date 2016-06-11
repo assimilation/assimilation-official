@@ -1061,7 +1061,6 @@ NetAddr*
 netaddr_macaddr_new(gconstpointer macbuf,	///<[in] Pointer to physical (MAC) address
 			 guint16 maclen)	///<[in] length of 'macbuf'
 {
-	
 	g_return_val_if_fail(maclen == 6 || maclen == 8, NULL);
 	return netaddr_new(0, 0, ADDR_FAMILY_802, macbuf, maclen);
 }
