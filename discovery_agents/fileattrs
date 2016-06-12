@@ -148,8 +148,6 @@ encode_fattrs() {
         encode_selinuxcontext "$2"
         return
     fi
-    comma=''
-    assim_run_in_context getfattr -m- -d --absolute-names "$1" 2>/dev/null |
     if
         assim_run_in_context test -d "$1"
     then
@@ -157,6 +155,8 @@ encode_fattrs() {
     else
         isdir=false
     fi
+    comma=''
+    assim_run_in_context getfattr -m- -d --absolute-names "$1" 2>/dev/null |
     while
         read line
     do
