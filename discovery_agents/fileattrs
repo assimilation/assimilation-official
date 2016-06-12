@@ -150,6 +150,13 @@ encode_fattrs() {
     fi
     comma=''
     assim_run_in_context getfattr -m- -d --absolute-names "$1" 2>/dev/null |
+    if
+        assim_run_in_context test -d "$1"
+    then
+        isdir=true
+    else
+        isdir=false
+    fi
     while
         read line
     do
@@ -163,7 +170,7 @@ encode_fattrs() {
         case $name in
             'system:posix_acl_access') continue;;
             'security:selinux') printf '%s %s'           "$comma" "$(encode_selinuxcontext "$value"),";;
-            *)                  printf '%s "%s":"%s",'    "$comma" "$name" "$value";;
+            *)      test "$isdir" = false && printf '%s "%s":"%s",'    "$comma" "$name" "$value";;
         esac
         comma=','
     done
