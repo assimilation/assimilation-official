@@ -94,8 +94,13 @@
 #
 ################################################################################
 '''
+import os
+# This works around a bug in the glib library...
+os.environ['G_SLICE'] = 'always-malloc'
+# This works around a stupidity in the glib library...
+os.environ['G_MESSAGES_DEBUG'] = 'all'
 import sys
-import os, signal
+import signal
 import optparse, traceback
 import importlib
 #import atexit
@@ -138,10 +143,6 @@ def main():
     if py2neo_major_version not in SUPPORTED_PY2NEO_VERSIONS:
         raise EnvironmentError('py2neo version %s not supported' % PY2NEO_VERSION)
     DefaultPort = 1984
-    # This works around a bug in the glib library...
-    os.environ['G_SLICE'] = 'always-malloc'
-    # This works around a stupidity in the glib library...
-    os.environ['G_MESSAGES_DEBUG'] = 'all'
     # VERY Linux-specific - but useful and apparently correct ;-)
     PrimaryIPcmd =   \
     "ip address show primary scope global | grep '^ *inet' | sed -e 's%^ *inet *%%' -e 's%/.*%%'"
