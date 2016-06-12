@@ -78,7 +78,7 @@ sumstdin() {
 slashproc_cmdline() {
     case $1 in
         -|.)  echo '["kernel"]';;
-        *)  assim_cat /proc/${1}/cmdline | tr '\0' '' |  tee /tmp/cmdline | \
+        *)  assim_cat /proc/${1}/cmdline | tr '\0' '' |  \
             sed -e 's%$%%' -e 's%\\\\%\\\\\\\\%g' -e 's%"%\\"%g' -e 's%%", "%g' -e 's%.*%["&"]\n%'
             ;;
     esac
@@ -270,7 +270,7 @@ format_addrs() {
 
 format_procinfo() {
     printf "${2}"'"exe": "%s",\n'       "$(slashproc_exe "$1")"
-    printf "${2}"'"cmdline": %s",\n'     "$(slashproc_cmdline "$1")"
+    printf "${2}"'"cmdline": %s,\n'     "$(slashproc_cmdline "$1")"
     printf "${2}%s,\n"                  "$(slashproc_ids uid "$1")"
     printf "${2}%s,\n"                  "$(slashproc_ids gid "$1")"
     printf "${2}"'"cwd": "%s",\n'       "$(slashproc_curdir "$1")"
