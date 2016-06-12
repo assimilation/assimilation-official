@@ -85,7 +85,7 @@ _jsondiscovery_discover(Discovery* dself)
 	ConfigContext*	cfg = dself->_config;
 
 	dself->starttime = g_get_real_time();
-	
+
 	if (NULL != self->child) {
 		g_warning("%s.%d: JSON discovery process still running - skipping this iteration."
 		,	  __FUNCTION__, __LINE__);
@@ -93,7 +93,7 @@ _jsondiscovery_discover(Discovery* dself)
 	}
 	++ self->baseclass.discovercount;
 	if (cfg->getaddr(cfg, CONFIGNAME_CMADISCOVER) == NULL) {
-		DEBUGMSG2("%s.%d: don't have [%s] address yet - continuing." 
+		DEBUGMSG2("%s.%d: don't have [%s] address yet - continuing."
 		,	  __FUNCTION__, __LINE__, CONFIGNAME_CMADISCOVER);
 	}
 	argv[0] = self->_fullpath;
@@ -122,7 +122,7 @@ _jsondiscovery_discover(Discovery* dself)
 		// Can't call childwatch w/o valid child...
 		return FALSE;
 	}
-	
+
 	// Don't want us going away while we have a child out there...
 	REF2(self);
 	return TRUE;
@@ -152,12 +152,17 @@ _jsondiscovery_childwatch(ChildProcess* child			///< The @ref ChildProcess objec
 		g_warning("JSON discovery [%s] produced no output.", self->_fullpath);
 		goto quitchild;
 	}
-	DEBUGMSG3("Got %zd bytes of JSON TEXT: [%s]", jsonlen, jsonout);
+	DEBUGMSG3("%s.%d: Got %zd bytes of JSON TEXT: [%s]", __FUNCTION__, __LINE__, jsonlen, jsonout);
 	if (DEBUG) {
 		ConfigContext* jsobj = configcontext_new_JSON_string(jsonout);
 		if (jsobj == NULL) {
-			g_warning("JSON discovery [%s - %zd bytes] produced bad JSON."
-			,	self->_fullpath, jsonlen);
+			char * params;
+			g_warning("JSON discovery [%s instance %s - %zd bytes] produced bad JSON."
+			,	self->_fullpath, self->baseclass._instancename, jsonlen);
+			params = self->jsonparams->baseclass.toString(&self->jsonparams->baseclass);
+			DEBUGMSG3("%s.%d: JSON parameters: [%s]", __FUNCTION__, __LINE__, params);
+			FREE(params); params = NULL;
+			DEBUGMSG3("%s.%d: BAD JSON: [%s]", __FUNCTION__, __LINE__, jsonout);
 			FREE(jsonout); jsonout = NULL;
 			goto quitchild;
 		}else{
