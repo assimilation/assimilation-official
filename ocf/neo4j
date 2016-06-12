@@ -46,7 +46,7 @@ OCF_ERR_GENERIC=1
 OCF_ERR_UNIMPLEMENTED=3
 OCF_ERR_INSTALLED=5
 
-:	${neo4j:=${OCF_RESKEY_neo4j-'neo4j'}}
+:	${config_dir:=${OCF_RESKEY_config_dir-'/etc/neo4j'}}
 
 :   ${neo4j_java:=${OCF_RESKEY_neo4j_java-'java'}}
 :   ${query:=${OCF_RESKEY_query-'START one=node(*) RETURN one LIMIT 1'}}
@@ -57,6 +57,7 @@ OCF_ERR_INSTALLED=5
 :   ${regex20:=${OCF_RESKEY_regex-'^{ *"results" *: *\[.*\] *, *"errors" *: *\[ *\] *}$'}}
 :   ${grepflags:=${OCF_RESKEY_grepflags-''}}
 :   ${OCF_CHECK_LEVEL:=10}
+neo4j=neo4j
 
 # Things we can't mess with...
 neo4j_home="/var/lib/${neo4j}"
@@ -131,7 +132,13 @@ else
 fi
 
 neo4j_silent_status() {
-    pidofproc -p "${pidfile}" "${neo4j_java}" >/dev/null
+    if
+        [ -x /etc/init.d/neo4j ]
+    then
+        /etc/init.d/neo4j status >/dev/null 2>&1
+    else
+        systemctl status neo4j >/dev/null 2>&1
+    fi
 }
 
 neo4j_start() {
