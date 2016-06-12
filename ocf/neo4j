@@ -60,7 +60,7 @@ OCF_ERR_INSTALLED=5
 neo4j=neo4j
 
 # Things we can't mess with...
-neo4j_home="/var/lib/${neo4j}"
+neo4j_home="/usr/share/${neo4j}"
 pidfile=${neo4j_home}/data/neo4j-service.pid
 startscript=${neo4j_home}/bin/neo4j
 

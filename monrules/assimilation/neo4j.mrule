@@ -79,9 +79,8 @@
     "classconfig": [
 #       OCF parameter   expression-to-evaluate      regular expression
         [null,          "@basename()",               "java$"],
-        [null,          "$argv[-1]",                 "org\\.neo4j\\.server\\..*Bootstrapper$"],
+        [null,          "@argmatch(org\\.neo4j\\.server\\..*)", "..."],
         ["ipport",      "@serviceipport()",          "..."],
-        ["neo4j_home",  "@argequals(-Dneo4j.home)", "/"],
-        ["neo4j",       "@basename(@argequals(-Dneo4j.home))","."]
+        ["?config_dir",  "@argequals(--config-dir)", "."]
 	]
 }
