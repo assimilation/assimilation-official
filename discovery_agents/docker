@@ -137,7 +137,7 @@ running_docker_containers() {
 #   Information about a single container...
 container_info() {
     assim_run_in_context docker inspect "$@" 2>/dev/null |
-        sed -e 's%^\[{%{%' -e 's%^]$%%'
+        sed -e 's%^\[{%{%' -e 's%^]$%%' -e 's%^\[$%%' -e s'%^]$%%'
 }
 
 # JSON Information about each running container
