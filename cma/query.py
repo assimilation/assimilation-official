@@ -932,10 +932,11 @@ class PythonPackagePrefixQuery(PythonExec):
         # 3:  Package Version
         # 4:  Package type
         cypher = (
-        '''START drone=node:Drone('*:*')
-        MATCH (drone)-[rel:jsonattr]->(jsonmap)
-        WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
-        return drone, jsonmap.json AS json
+        '''MATCH (system)-[rel:jsonattr]->(jsonmap)
+        WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
+            AND jsonmap.nodetype = 'JSONMapNode'
+            AND rel.jsonname =~ '^_init_packages.*' AND jsonmap.json CONTAINS '"%s'
+        RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
         '''     %   prefix)
         for (drone, json) in self.store.load_cypher_query(cypher, Drone):
             jsonobj = pyConfigContext(json)
@@ -959,10 +960,10 @@ class PythonAllPackageQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        '''START drone=node:Drone('*:*')
-           MATCH (drone)-[rel:jsonattr]->(jsonmap)
-           WHERE rel.jsonname = '_init_packages'
-           RETURN drone, jsonmap.json AS json
+        '''MATCH (system)-[rel:jsonattr]->(jsonmap)
+        WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
+            AND rel.jsonname =~ '^_init_packages.*'
+        RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
         ''')
 
         for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
@@ -988,8 +989,8 @@ class PythonPackageRegexQuery(PythonExec):
         cypher = (
         '''START drone=node:Drone('*:*')
            MATCH (drone)-[rel:jsonattr]->(jsonmap)
-           WHERE rel.jsonname = '_init_packages' AND jsonmap.json =~ '.*%s.*.*'
-           RETURN drone, jsonmap.json AS json
+           WHERE rel.jsonname =~ '^_init_packages.*' AND jsonmap.json =~ '.*%s.*.*'
+           RETURN drone, jsonmap.json AS json ORDER BY system.domain, system.designation
         '''     %   regex)
 
         regexobj = re.compile('.*' + regex)
