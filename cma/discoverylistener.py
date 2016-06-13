@@ -409,8 +409,6 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
             runspec = ' "runas_user": "%s",' % system.runas_user        \
                     if system.runas_user is not None else ''
             if system.runas_group is not None:
-                if runspec != '':
-                    runspec += ', '
                 runspec += ' "runas_group": "%s",' % system.runas_group
 
             allparams = []
