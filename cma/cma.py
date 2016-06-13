@@ -99,6 +99,9 @@ import os
 os.environ['G_SLICE'] = 'always-malloc'
 # This works around a stupidity in the glib library...
 os.environ['G_MESSAGES_DEBUG'] = 'all'
+# The environment assignments above *must* come before the imports below.
+# It *might* be sufficient to put them before AssimCtypes, but that would also make pylint bitch...
+# pylint: disable=C0413
 import sys
 import signal
 import optparse, traceback
