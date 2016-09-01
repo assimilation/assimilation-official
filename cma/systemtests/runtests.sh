@@ -41,6 +41,8 @@ testpid=$!
 tail -f $LOGNAME &
 tailpid=$!
 wait $testpid
+rc=$?
 kill $tailpid
 kill $syslogpid
-echo "Tests complete with rc $?"
+echo "Tests complete with rc $rc"
+exit $rc
