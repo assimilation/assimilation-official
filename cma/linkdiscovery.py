@@ -70,15 +70,15 @@ class LinkDiscoveryListener(DiscoveryListener):
     #R0914:684,4:LinkDiscoveryListener.processpkt: Too many local variables (25/15)
     # pylint: disable=R0914
 
-    def processpkt(self, drone, _unused_srcaddr, jsonobj, discoverychanged):
+    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         '''Trigger Switch discovery or add Low Level (Link Level) discovery data to the database.
         '''
         if not discoverychanged:
             return
         if jsonobj['discovertype'] == '__LinkDiscovery':
-            self.processpkt_linkdiscovery(drone, unused_srcaddr, jsonobj)
+            self.processpkt_linkdiscovery(drone, srcaddr, jsonobj)
         elif jsonobj['discovertype'] == 'netconfig':
-            self.processpkt_netconfig(drone, unused_srcaddr, jsonobj)
+            self.processpkt_netconfig(drone, srcaddr, jsonobj)
         else:
             print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
 
@@ -107,7 +107,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         if discovery_args:
             drone.request_discovery(discovery_args)
 
-    def processpkt_linkdiscovery(self, drone, unused_srcaddr, jsonobj):
+    def processpkt_linkdiscovery(self, drone, _unused_srcaddr, jsonobj):
         'Add Low Level (Link Level) discovery data to the database'
         #
         #   This code doesn't yet deal with moving network connections around

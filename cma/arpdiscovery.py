@@ -100,7 +100,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         elif jsonobj['discovertype'] == 'netconfig':
             self.processpkt_netconfig(drone, srcaddr, jsonobj)
         else:
-            print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
+            print >> sys.stderr, 'OOPS! unexpected packet type [%s]', jsonobj['discovertype']
 
     def processpkt_netconfig(self, drone, _unused_srcaddr, jsonobj):
         '''We want to trigger ARP discovery when we hear a 'netconfig' packet
