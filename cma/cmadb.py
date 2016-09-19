@@ -85,11 +85,16 @@ class Neo4jCreds(object):
     default_length = 16         # default length of a randomly-generated password
     passchange = 'neoauth'      # Program to change passwords
 
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, neologin=None, neopass=None):
         '''Neoj4Creds constructor
 
         :arg filename location of where to find/stash the credentials (optional)
         '''
+        if neologin is not None and neopass is not None:
+            self.isdefault = False
+            self.name=neologin
+            self.auth=neopass
+            return
         if filename is None:
             filename = NEO4JCREDFILENAME
         self.filename = filename
