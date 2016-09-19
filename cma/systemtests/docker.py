@@ -7,7 +7,8 @@
 # Copyright (C) 2014 - Assimilation Systems Limited
 #
 # Free support is available from the Assimilation Project community - http://assimproj.org
-# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+# Paid support is available from Assimilation Systems Limited
+# - http://assimilationsystems.com
 #
 # The Assimilation software is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,9 +25,9 @@
 #
 #
 '''
-This file provides a basic set of classes to allow us to create a semi-realistic test environment
-for testing the Assimilation project software.  We use containers (or potentially virtual machines)
-to run a CMA and a bunch of nanoprobes on a system.
+This file provides a basic set of classes to allow us to create a semi-realistic test
+environment for testing the Assimilation project software.  We use containers
+(or potentially virtual machines) to run a CMA and a bunch of nanoprobes on a system.
 
 This file does everything to help us be able to manage these systems and the services
 running on them - for the purpose of testing the Assimilation project.
@@ -113,7 +114,7 @@ class DockerSystem(TestSystem):
     servicecmd = '/usr/bin/service'
     nsentercmd = '/usr/bin/nsenter'
 
-    def __init__(self, imagename, cmdargs=None, dockerargs=None, cleanupwhendone=True):
+    def __init__(self, imagename, cmdargs=None, dockerargs=None, cleanupwhendone=False):
         'Constructor for DockerSystem class'
         if dockerargs is None:
             dockerargs = []
@@ -237,7 +238,8 @@ class DockerSystem(TestSystem):
         else:
             args = [DockerSystem.dockercmd, 'exec', str(self.name) ]
         args.extend(cmdargs)
-        #print >> sys.stderr, 'RUNNING docker exec cmd:', args
+        print >> sys.stderr, ('%s: RUNNING docker exec cmd: %s'
+                              % (time.asctime(), str(args)))
         subprocess.check_call(args)
 
     def startservice(self, servicename, async=False):
@@ -247,13 +249,15 @@ class DockerSystem(TestSystem):
             %       (servicename, self.name))
         else:
             self.runningservices.append(servicename)
+        if servicename == 'neo4j':
+            return self.startneo4j()
         if async:
-            #self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
-            self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
+            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
+            #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
         else:
             #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
-            #self.runinimage(('/etc/init.d/'+servicename, 'start'))
-            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
+            self.runinimage(('/etc/init.d/'+servicename, 'start'))
+            #self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
 
     def stopservice(self, servicename, async=False):
         'docker-exec-based stop service action for docker'
@@ -262,23 +266,38 @@ class DockerSystem(TestSystem):
         else:
             print >> sys.stderr, ('WARNING: Service %s not running in docker system %s'
             %       (servicename, self.name))
+        if servicename == 'neo4j':
+            return self.stopneo4j()
         if async:
             self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
         else:
             self.runinimage(('/etc/init.d/'+servicename, 'stop'))
 
+    def startneo4j(self):
+        'Start Neo4j'
+        self.runinimage(('/bin/bash', '-c',
+                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j start; '
+                         'sleep 20'), detached=False)
+    def stopneo4j(self):
+        'Stop Neo4j'
+        self.runinimage(('/bin/bash', '-c',
+                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j stop'),
+                         detached=False)
 
 class SystemTestEnvironment(object):
     'A basic system test environment'
     CMASERVICE      = 'cma'
     NANOSERVICE     = 'nanoprobe'
-    NEO4JSERVICE    = 'neo4j-service'
+    NEO4JSERVICE    = 'neo4j'
     LOGGINGSERVICE  = 'rsyslog'
+    NEO4JPASS='neo4j2'
+    NEO4JLOGIN='neo4j'
     # pylint - too many arguments
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
-    ,       cmaimage='assimilation/build-utopic', nanoimages=('assimilation/build-utopic',)
-    ,       sysclass=DockerSystem, cleanupwhendone=True, nanodebug=0, cmadebug=0, chunksize=20):
+    #,       cmaimage='assimilation/build-wily', nanoimages=('assimilation/build-wily',)
+    ,       cmaimage='62d3df3c0741', nanoimages=('62d3df3c0741',)
+    ,       sysclass=DockerSystem, cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = sysclass
         self.cmaimage = cmaimage
@@ -291,12 +310,12 @@ class SystemTestEnvironment(object):
         watch = LogWatcher(logname, [])
         watch.setwatch()
         nanodebug=1
-        cmadebug=0
+        cmadebug=2
         self.nanodebug = nanodebug
         self.cmadebug = nanodebug
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
-                ' // Python version .* // java version.*') % self.cma.hostname
+                ' // Python version .* // (java|openjdk) version.*') % self.cma.hostname
         watch.setregexes((regex,))
         if watch.lookforall(timeout=60) is None:
             print >> sys.stderr, 'CMA did not start!!'
@@ -311,25 +330,27 @@ class SystemTestEnvironment(object):
 
     def _create_nano_chunk(self, childnos):
         'Create a chunk of nanoprobes'
-        watch = LogWatcher(self.logname, [])
+        watch = LogWatcher(self.logname, [], debug=5)
         watch.setwatch()
         regexes = []
         for childcount in childnos:
             childcount = childcount # Make pylint happy...
             nano = self.spawnnanoprobe(debug=self.nanodebug)
             regexes .extend([
-                r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
+                r' %s nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'
                 %   (nano.hostname),
                 r' %s cma INFO: Drone %s registered from address \[::ffff:%s]'
                 %           (self.cma.hostname, nano.hostname, nano.ipaddr),
-                r' %s cma INFO: Processed tcpdiscovery JSON data from (%s) into graph.'
+                r' %s cma INFO: Processed u?n?changed tcpdiscovery'
+                r' JSON data from %s into graph.'
                 %       (self.cma.hostname, nano.hostname),
             ])
             self.nanoprobes.append(nano)
+        print >> sys.stderr, len(regexes), 'NANOPROBE REGEXES ARE:', (regexes)
         watch.setregexes(regexes)
-        if watch.lookforall(timeout=30) is None:
-            raise RuntimeError('Nanoprobes did not start [%s, %s] - missing %s'
-            %   (nano.hostname, nano.ipaddr, str(watch.unmatched)))
+        if watch.lookforall(timeout=60) is None:
+            raise RuntimeError('Nanoprobes did not start - missing %s'
+            %   (str(watch.unmatched)))
 
 
     @staticmethod
@@ -407,15 +428,23 @@ class SystemTestEnvironment(object):
             ,           "echo '%s' >>/etc/default/cma" % lines[j]))
             print >> sys.stderr, ('CMA [%s]' % lines[j])
 
+    def fixneo4jpass(self):
+        'Fix up the neo4j password for our test copy of neo4j'
+        self.cma.runinimage(('assimcli', 'neo4jpass', self.NEO4JPASS), detached=False)
+        self.cma.runinimage(('cat', '/usr/share/assimilation/crypto.d/neo4j.creds'), detached=False)
+        self.cma.runinimage(('ls', '-al', '/usr/share/assimilation/crypto.d/'), detached=False)
+
     def spawncma(self, nanodebug=0, cmadebug=0):
         'Spawn a CMA instance'
         self.cma = self._spawnsystem(self.cmaimage)
         self.cma.runinimage(('/bin/bash', '-c'
-        ,   'echo "org.neo4j.server.webserver.address=0.0.0.0" '
-            '>> /var/lib/neo4j/conf/neo4j-server.properties'))
+            ,   'echo "dbms.connector.http.address=0.0.0.0:7474"'
+            '>> /etc/neo4j/neo4j.conf'))
         self.cma.runinimage(('/bin/rm', '-f'
         ,   '/usr/share/assimilation/crypto.d/#CMA#00001.secret'))
         self.cma.startservice(SystemTestEnvironment.NEO4JSERVICE)
+        time.sleep(20)
+        self.fixneo4jpass()
         self.set_cmaconfig(debug=cmadebug)
         self.cma.startservice(SystemTestEnvironment.CMASERVICE)
         self.set_nanoconfig(self.cma, debug=nanodebug)

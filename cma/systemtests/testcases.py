@@ -79,7 +79,7 @@ class AssimSysTest(object):
             %           (cma.hostname, nano.hostname, nano.ipaddr),
             r' (%s) nanoprobe\[.*]: NOTICE: Connected to CMA.  Happiness :-D'     % (nano.hostname),
             r' (%s) nanoprobe\[.*]: INFO: .* Configuration from CMA is complete.' % (nano.hostname),
-            r' %s cma INFO: Processed tcpdiscovery JSON data from (%s) into graph.'
+            r' %s cma INFO: Processed u?n?changed tcpdiscovery JSON data from (%s) into graph.'
             %       (cma.hostname, nano.hostname),
         ]
     def nano_stop_regexes(self, nano):
@@ -97,7 +97,7 @@ class AssimSysTest(object):
         cma = self.testenviron.cma
         return [
             (' %s .* INFO: Neo4j version .* // py2neo version .*'
-                ' // Python version .* // java version.*' % cma.hostname),
+                ' // Python version .* // (java|openjdk) version.*' % cma.hostname),
         ]
 
     def nano_startmonitor_regexes(self, nano, monitorname):
@@ -200,9 +200,13 @@ class AssimSysTest(object):
         logwatch = LogWatcher(logname, [], timeout, returnonlymatch=True, debug=debug)
         logwatch.setwatch()
         sysenv = SystemTestEnvironment(logname, maxdrones, nanodebug=nanodebug, cmadebug=cmadebug)
-        CMAinit(None, host=str(sysenv.cma.ipaddr), readonly=True)
+        CMAinit(None, host=str(sysenv.cma.ipaddr), readonly=True,
+                neologin=SystemTestEnvironment.NEO4JLOGIN, neopass=SystemTestEnvironment.NEO4JPASS)
         url = 'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474)
         print >> sys.stderr, 'OPENING Neo4j at URL %s' % url
+        neo4j.authenticate('%s:7474' % sysenv.cma.ipaddr,
+                           SystemTestEnvironment.NEO4JLOGIN,
+                           SystemTestEnvironment.NEO4JPASS)
         store = Store(neo4j.Graph(url), readonly=True)
         for classname in GN.GraphNode.classmap:
             GN.GraphNode.initclasstypeobj(store, classname)
@@ -330,9 +334,8 @@ class RestartCMA(AssimSysTest):
             debug = self.debug
         cma = self.testenviron.cma
         cma.stopservice(SystemTestEnvironment.CMASERVICE)
-        regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
-                ' // Python version .* // java version.*') % cma.hostname
-        watch = LogWatcher(self.logfilename, (regex,), timeout=timeout, debug=debug)
+        regexes = self.cma_start_regexes()
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         if self.delay > 0:
             time.sleep(self.delay)
