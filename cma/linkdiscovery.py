@@ -70,9 +70,11 @@ class LinkDiscoveryListener(DiscoveryListener):
     #R0914:684,4:LinkDiscoveryListener.processpkt: Too many local variables (25/15)
     # pylint: disable=R0914
 
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
+    def processpkt(self, drone, _unused_srcaddr, jsonobj, discoverychanged):
         '''Trigger Switch discovery or add Low Level (Link Level) discovery data to the database.
         '''
+        if not discoverychanged:
+            return
         if jsonobj['discovertype'] == '__LinkDiscovery':
             self.processpkt_linkdiscovery(drone, unused_srcaddr, jsonobj)
         elif jsonobj['discovertype'] == 'netconfig':
@@ -116,7 +118,6 @@ class LinkDiscoveryListener(DiscoveryListener):
         #       We are connecting to somewhere different
         #           Drop any wiredto relationship between the switch port and us
         #
-        unused_srcaddr = unused_srcaddr
         data = jsonobj['data']
         #print >> sys.stderr, 'SWITCH JSON:', str(data)
         if 'ChassisId' not in data:

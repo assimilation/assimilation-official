@@ -55,7 +55,10 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
     prio = DiscoveryListener.PRI_OPTION
     wantedpackets = ('tcpdiscovery', 'checksum')
 
-    def processpkt(self, drone, srcaddr, jsonobj):
+    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
+        '''Inform interested rule objects about this change'''
+        if not discoverychanged:
+            return
         if jsonobj['discovertype'] == 'tcpdiscovery':
             self.processtcpdiscoverypkt(drone, srcaddr, jsonobj)
         elif jsonobj['discovertype'] == 'checksum':

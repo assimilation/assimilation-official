@@ -90,9 +90,11 @@ class ArpDiscoveryListener(DiscoveryListener):
     ip_map = {}
     mac_map = {}
 
-    def processpkt(self, drone, srcaddr, jsonobj):
+    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         '''Trigger ARP discovery or add ARP data to the database.
         '''
+        if not discoverychanged:
+            return
         if jsonobj['discovertype'] == 'ARP':
             self.processpkt_arp(drone, srcaddr, jsonobj)
         elif jsonobj['discovertype'] == 'netconfig':

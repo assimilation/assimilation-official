@@ -73,7 +73,7 @@ class DiscoveryListener(object):
         'Return the set of packets we want to be called for'
         return cls.wantedpackets
 
-    def processpkt(self, drone, srcaddr, json):
+    def processpkt(self, drone, srcaddr, json, discoverychanged):
         'A desired packet has been received - process it'
         raise NotImplementedError('Abstract class - processpkt()')
 
@@ -85,8 +85,10 @@ class MonitoringAgentDiscoveryListener(DiscoveryListener):
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('monitoringagents',)
 
-    def processpkt(self, drone, _unused_srcaddr, jsonobj):
+    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         '''Update the _agentcache when we get a new set of available agents'''
+        if not discoverychanged:
+            return
         #print >> sys.stderr, 'SETTING MONITORING AGENTS: ', jsonobj['data']
         setattr(drone, '_agentcache', jsonobj['data'])
 
@@ -98,9 +100,11 @@ class AuditdConfDiscoveryListener(DiscoveryListener):
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('auditd_conf',)
 
-    def processpkt(self, drone, _unused_srcaddr, jsonobj):
+    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         '''Request discovery of auditd (log) files and directories.
         They will be evaluated by some auditd best practice rules'''
+        if not discoverychanged:
+            return
         data = jsonobj['data'] # The data portion of the JSON message
         params = pyConfigContext()
         params['parameters'] = pyConfigContext()
@@ -127,7 +131,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('netconfig',)
 
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
+    def processpkt(self, drone, _srcaddr, jsonobj, discoverychanged):
         '''Save away the network configuration data we got from netconfig JSON discovery.
         This includes all our NICs, their MAC addresses, all our IP addresses and so on
         for any (non-loopback) interface.  Whee!
@@ -135,8 +139,9 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         This code is more complicated than I'd like but it's not obvious how to simplify it...
         '''
 
-        unused_srcaddr = unused_srcaddr
         assert self.store.has_node(drone)
+        if not discoverychanged:
+            return
         data = jsonobj['data'] # The data portion of the JSON message
 
         currmacs = {}   # Currmacs is a list of current NICNode objects belonging to this host
@@ -255,9 +260,10 @@ class TCPDiscoveryListener(DiscoveryListener):
     # disable=R0914 means too many local variables...
     # disable=R0912 means too many branches
     # pylint: disable=R0914,R0912
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
+    def processpkt(self, drone, _srcaddr, jsonobj, discoverychanged):
         '''Add TCP listeners and clients.'''
-        unused_srcaddr = unused_srcaddr # Make pylint happy
+        if not discoverychanged:
+            return
         data = jsonobj['data'] # The data portion of the JSON message
         if self.debug:
             self.log.debug('_add_tcplisteners(data=%s)' % data)
@@ -387,10 +393,12 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('vagrant', 'docker')
 
-    def processpkt(self, drone, _unused_srcaddr, jsonobj):
+    def processpkt(self, drone, _unused_srcaddr, jsonobj, discoverychanged):
         ''' Kick off discovery for a Docker or vagrant instance - as though it were a
             real boy -- I mean a real Drone
         '''
+        if not discoverychanged:
+            return
 
         data = jsonobj['data']
         if 'containers' not in data:

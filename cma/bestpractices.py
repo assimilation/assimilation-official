@@ -194,8 +194,10 @@ class BestPractices(DiscoveryListener):
             delim='&'
         return '%s/%s' % ((self.BASEURL % port), ret)
 
-    def processpkt(self, drone, srcaddr, jsonobj):
+    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         '''Inform interested rule objects about this change'''
+        if not discoverychanged:
+            return
         discovertype = jsonobj['discovertype']
         discoverinstance = jsonobj['instance']
         if discoverinstance in BestPractices.eval_objects:

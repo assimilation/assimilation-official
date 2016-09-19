@@ -45,9 +45,10 @@ class ProcSysDiscovery(DiscoveryListener):
     prio = DiscoveryListener.PRI_OPTION
     wantedpackets = ('OS', 'os')
 
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
+    def processpkt(self, drone, _unused_srcaddr, jsonobj, discoverychanged):
         "Send commands to gather discovery data from /proc/sys"
-        unused_srcaddr = unused_srcaddr
+        if not discoverychanged:
+            return
         data = jsonobj['data'] # The data portion of the JSON message
         osfield='operating-system'
         if osfield not in data:

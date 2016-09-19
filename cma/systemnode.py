@@ -81,23 +81,16 @@ class SystemNode(GraphNode):
             CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
             return
         dtype = jsonobj['instance']
-        if not self.json_eq(dtype, jsontext):
+        discoverychanged = not self.json_eq(dtype, jsontext)
+        if not discoverychanged:
             CMAdb.log.debug("Saved discovery type %s [%s] for endpoint %s."
             %       (jsonobj['discovertype'], dtype, self.designation))
-            self[dtype] = jsontext # This is stored in separate nodes for performance
         else:
-            if not self.monitors_activated and dtype == 'tcpdiscovery':
-                # This is because we need to start the monitors anyway...
-                if CMAdb.debug:
-                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged'
-                    '. PROCESSING ANYWAY.'
-                    %       (dtype, self.designation))
-            else:
-                if CMAdb.debug:
-                    CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged. ignoring'
-                    %       (dtype, self.designation))
-                return
-        self._process_json(origaddr, jsonobj)
+            if CMAdb.debug:
+                CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged.'
+                %       (dtype, self.designation))
+        self._process_json(origaddr, jsonobj, discoverychanged)
+        self[dtype] = jsontext # This is stored in separate nodes for performance
 
 
     def __iter__(self):
@@ -249,7 +242,7 @@ class SystemNode(GraphNode):
         self.send_frames(FrameSetTypes.DODISCOVER, frames)
 
 
-    def _process_json(self, origaddr, jsonobj):
+    def _process_json(self, origaddr, jsonobj, discoverychanged):
         'Pass the JSON data along to interested discovery plugins (if any)'
         dtype = jsonobj['discovertype']
         foundone = False
@@ -263,11 +256,11 @@ class SystemNode(GraphNode):
                 for cls in classes:
                     proc = cls(CMAdb.io.config, CMAdb.transaction, CMAdb.store
                     ,   CMAdb.log, CMAdb.debug)
-                    proc.processpkt(self, origaddr, jsonobj)
+                    proc.processpkt(self, origaddr, jsonobj, discoverychanged)
         if foundone:
-            CMAdb.log.info('Processed %s JSON data from %s into graph.'
-            %   (dtype, self.designation))
-        else:
+            CMAdb.log.info('Processed %schanged %s JSON data from %s into graph.'
+            %   ('' if discoverychanged else 'un', dtype, self.designation))
+        elif discoverychanged:
             CMAdb.log.info('Stored %s JSON data from %s without processing.'
             %   (dtype, self.designation))
 

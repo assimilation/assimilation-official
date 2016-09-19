@@ -46,9 +46,10 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
     prio = DiscoveryListener.PRI_OPTION
     wantedpackets = ('tcpdiscovery',)
 
-    def processpkt(self, drone, unused_srcaddr, jsonobj):
-        "Send commands to monitor services for this Systems's listening processes"
-        unused_srcaddr = unused_srcaddr
+    def processpkt(self, drone, _unused_srcaddr, jsonobj, _discoverychanged):
+        '''Send commands to monitor services for this Systems's listening processes
+        We ignore discoverychanged because we always want to monitor even if a system
+        has just come up with the same discovery as before it went down.'''
 
         drone.monitors_activated = True
         data = jsonobj['data'] # The data portion of the JSON message
@@ -178,10 +179,11 @@ class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
     '''This class performs host-level monitoring.
     For the moment, that's only using Nagios agents.
     '''
-    def processpkt(self, drone, unused_srcaddr, unused_jsonobj):
-        "Send commands to monitor host aspects for the given System"
-        unused_srcaddr = unused_srcaddr
-        unused_jsonobj = unused_jsonobj
+    def processpkt(self, drone, _unused_srcaddr, _unused_jsonobj, _discoverychanged):
+        '''Send commands to monitor host aspects for the given System.
+        We ignore discoverychanged because we always want to monitor even if a system
+        has just come up with the same discovery as before it went down.
+        '''
 
         drone.monitors_activated = True
         montuples = MonitoringRule.findallmatches((drone,), objclass='host')
