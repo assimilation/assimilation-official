@@ -176,6 +176,7 @@ class LogWatcher(object):
         'Match this line against all our regexes - return appropriate value'
         which=-1
         for regex in self.regexes:
+            which += 1
             self.debugmsg("Comparing line to " + regex, 4)
             #matchobj = re.search(string.lower(regex), string.lower(line))
             matchobj = re.search(regex, line)
@@ -209,6 +210,7 @@ class LogWatcher(object):
                 self.regexes = save_regexes
                 return None
             returnresult.append(oneresult)
+            self.debugmsg('Deleting %s' % str(self.regexes[self.whichmatched]))
             del self.regexes[self.whichmatched]
             if logloadavg:
                 os.system('logger "Load Avg: $(cat /proc/loadavg)"')
