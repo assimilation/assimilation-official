@@ -96,7 +96,8 @@ class TestExternal(object):
         MODULES = ('bestpractices.py', 'cmaconfig.py', 'cmainit.py',
                    'cmadb.py', 'graphnodes.py', 'graphnodeexpression.py',
                    'monitoring.py', 'query.py',
-                   'store.py', 'transaction.py')
+                   'store.py', 'transaction.py',
+                   'systemtests/logwatcher.py')
         for mod in MODULES:
             modpath = findcmd([mod,])
             self.runacommand(['/usr/bin/env', 'python', modpath[0]], False)
