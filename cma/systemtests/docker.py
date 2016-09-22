@@ -295,8 +295,8 @@ class SystemTestEnvironment(object):
     # pylint - too many arguments
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
-    #,       cmaimage='assimilation/build-wily', nanoimages=('assimilation/build-wily',)
-    ,       cmaimage='62d3df3c0741', nanoimages=('62d3df3c0741',)
+    ,       cmaimage='assimilation/build-wily', nanoimages=('assimilation/build-wily',)
+    #,       cmaimage='3f06b7c84030', nanoimages=('3f06b7c84030',)
     ,       sysclass=DockerSystem, cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = sysclass
@@ -330,7 +330,7 @@ class SystemTestEnvironment(object):
 
     def _create_nano_chunk(self, childnos):
         'Create a chunk of nanoprobes'
-        watch = LogWatcher(self.logname, [], debug=5)
+        watch = LogWatcher(self.logname, [], debug=0)
         watch.setwatch()
         regexes = []
         for childcount in childnos:
@@ -440,8 +440,9 @@ class SystemTestEnvironment(object):
         self.cma.runinimage(('/bin/bash', '-c'
             ,   'echo "dbms.connector.http.address=0.0.0.0:7474"'
             '>> /etc/neo4j/neo4j.conf'))
-        self.cma.runinimage(('/bin/rm', '-f'
-        ,   '/usr/share/assimilation/crypto.d/#CMA#00001.secret'))
+        self.cma.runinimage(('/bin/rm', '-fr'
+        ,   '/usr/share/assimilation/crypto.d/#CMA#00001.secret'
+        ,   '/var/lib/neo4j/data/databases/graph.db'))
         self.cma.startservice(SystemTestEnvironment.NEO4JSERVICE)
         time.sleep(20)
         self.fixneo4jpass()
