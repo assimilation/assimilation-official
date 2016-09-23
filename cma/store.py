@@ -939,13 +939,17 @@ class Store(object):
             if isinstance(relorobj, neo4j.Relationship):
                 relid = relorobj._id
                 if relid not in delrels:
-                    if Store.debug:
-                        print >> sys.stderr, ('DELETING rel %d: %s' % (relorobj._id, relorobj))
+                    if Store.debug and Store.log:
+                        Store.log.debug('DELETING rel %d: %s' % (relorobj._id, relorobj))
                     self._bump_stat('separate')
                     self.batch.delete(relorobj)
                     delrels[relid] = True
             else:
                 # Then it must be a node-related object...
+                if Store.debug and Store.log:
+                    Store.log.debug('DELETING NODE %d: %s, %s %s' % 
+                                    (relorobj._id, str(relorobj.__dict__.keys()), relorobj))
+                relorobj.__dict__.keys():
                 node = relorobj.__store_node
                 nodeid = node._id
                 if nodeid in delnodes:
@@ -956,8 +960,8 @@ class Store(object):
                 for attr in relorobj.__dict__.keys():
                     if attr.startswith('_Store__store'):
                         delattr(relorobj, attr)
-                if Store.debug:
-                    print >> sys.stderr, ('DELETING node %s' % node)
+                if Store.debug and Store.log:
+                    Store.log.debug('DELETING node %s' % node)
                 self._bump_stat('nodedelete')
                 self.batch.delete(node)
                 delnodes[relid] = True

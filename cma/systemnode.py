@@ -187,6 +187,8 @@ class SystemNode(GraphNode):
         CMAdb.store.separate(self, CMAconsts.REL_jsonattr, jsonnode)
         if should_delnode:
             # Avoid dangling properties...
+
+            CMAdb.log.warning('Deleting old attribute value: %s [%s]' % (name, str(jsonnode)))
             CMAdb.store.delete(jsonnode)
 
     def json_eq(self, key, newvalue):
