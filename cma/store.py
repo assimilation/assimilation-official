@@ -949,7 +949,6 @@ class Store(object):
                 if Store.debug and Store.log:
                     Store.log.debug('DELETING NODE %d: %s, %s %s' % 
                                     (relorobj._id, str(relorobj.__dict__.keys()), relorobj))
-                relorobj.__dict__.keys():
                 node = relorobj.__store_node
                 nodeid = node._id
                 if nodeid in delnodes:
