@@ -82,7 +82,7 @@ class SystemNode(GraphNode):
             return
         dtype = jsonobj['instance']
         discoverychanged = not self.json_eq(dtype, jsontext)
-        if not discoverychanged:
+        if discoverychanged:
             CMAdb.log.debug("Saved discovery type %s [%s] for endpoint %s."
             %       (jsonobj['discovertype'], dtype, self.designation))
         else:

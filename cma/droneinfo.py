@@ -257,8 +257,8 @@ class Drone(SystemNode):
             CMAdb.log.debug('Sending request to %s Frames: %s'
             %	(str(ourip), str(frames)))
         CMAdb.transaction.add_packet(ourip,  framesettype, frames)
-        #print >> sys.stderr, ('Sent Discovery request(%s, %s) to %s Frames: %s'
-        #%	(instance, str(interval), str(ourip), str(frames)))
+        #print >> sys.stderr, ('Sent Discovery request to %s Frames: %s'
+        #%	(str(ourip), str(frames)))
 
 
     #Current implementation does not use 'self'
@@ -460,5 +460,12 @@ class Drone(SystemNode):
         drone.iso8601 = time.strftime('%Y-%m-%d %H:%M:%S')
         if port is not None:
             drone.port = port
+        if primary_ip_addr is not None and drone.primary_ip_addr != primary_ip_addr:
+            # This means they've changed their IP address and/or port since we last saw them...
+            CMAdb.log.info('DRONE %s changed IP address from %s to %s' % 
+                           (str(drone), drone.primary_ip_addr, primary_ip_addr))
+            drone.primary_ip_addr = str(primary_ip_addr)
+            if port is None:
+                drone.port = int(origaddr.port())
         return drone
 

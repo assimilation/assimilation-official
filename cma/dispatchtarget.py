@@ -189,6 +189,10 @@ class DispatchSTARTUP(DispatchTarget):
         ,   primary_ip_addr=str(origaddr))
         drone.listenaddr = str(listenaddr)  # Seems good to hang onto this...
         drone.isNAT = isNAT                 # ditto...
+        if CMAdb.debug:
+            CMAdb.log.debug('DRONE select_ip() result: %s' % (drone.select_ip()))
+            CMAdb.log.debug('DRONE listenaddr: %s' % (drone.listenaddr))
+            CMAdb.log.debug('DRONE port: %s (%s)' % (drone.port, type(drone.port)))
         # Did they give us the crypto info we need?
         if keyid is None or pubkey is None:
             if CMAdb.debug:
@@ -256,6 +260,8 @@ class DispatchSTARTUP(DispatchTarget):
             discovery_params.append(params)
         if CMAdb.debug:
             CMAdb.log.debug('Discovery details:  %s' % str(discovery_params))
+            for item in discovery_params:
+                CMAdb.log.debug('Discovery item details:  %s' % str(item))
         drone.request_discovery(discovery_params)
         AssimEvent(drone, AssimEvent.OBJUP)
 
