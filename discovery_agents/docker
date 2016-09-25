@@ -124,10 +124,14 @@ output_line() {
 #   
 output_registry() {
     printf '%s' "$1"
-    echo "$2" | sed -e 's%Registry: *%"Registry": %'    \
+    case $2 in
+        *']'*)  echo "$2" | sed -e 's%Registry: *%"Registry": %'    \
                     -e 's%\[%["%'                       \
                     -e 's%]%"]%'                        \
                     -e 's% *, *%", "%'
+                    ;;
+        *)  echo "$2" | sed -e 's%Registry: *\(.*\)%"Registry": "\1"%'
+    esac
 }
 
 running_docker_containers() {
