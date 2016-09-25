@@ -48,7 +48,7 @@ class GraphNodeExpression(object):
         if not isinstance(expression, (str, unicode)):
             # print >> sys.stderr, 'RETURNING NONSTRING:', expression
             return expression
-        expression = expression.strip()
+        expression = str(expression.strip())
         if not hasattr(context, 'get') or not hasattr(context, '__setitem__'):
             context = ExpressionContext(context)
         # print >> sys.stderr, '''EVALUATE('%s') (%s):''' % (expression, type(expression))
@@ -64,6 +64,8 @@ class GraphNodeExpression(object):
             return int(expression, 8) if expression.startswith('0') else int(expression)
         if expression.find('(') >= 0:
             value = GraphNodeExpression.functioncall(expression, context)
+            if isinstance(value, unicode):
+                value = str(value)
             context[expression] = value
             return value
         # if expression.startswith('$'):
@@ -71,7 +73,10 @@ class GraphNodeExpression(object):
         # print >> sys.stderr, 'Context is %s' % str(context)
         # print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
         #   % (expression, context.get(expression[1:], None))
-        return context.get(expression[1:], None) if expression.startswith('$') else expression
+        value = context.get(expression[1:], None) if expression.startswith('$') else expression
+        if isinstance(value, unicode):
+            value = str(value)
+        return value
 
     # pylint R0912: too many branches - really ought to write a lexical analyzer and parser
     # On the whole it would be simpler and easier to understand...
@@ -248,6 +253,18 @@ class ExpressionContext(object):
                 retkeys.add(key)
         return retkeys
 
+    @staticmethod
+    def _fixvalue(v):
+        'Fix up a return value to avoid unicode values...'
+        if isinstance(v, unicode):
+            return str(v)
+        if not isinstance(v, str) and hasattr(v, '__iter__') and not hasattr(v, '__getitem__'):
+            ret = []
+            for item in v:
+                ret.append(ExpressionContext._fixvalue(item))
+            return ret
+        return v
+
     def get(self, key, alternative=None):
         '''Return the value associated with a key - cached or otherwise
         and cache it.'''
@@ -260,6 +277,8 @@ class ExpressionContext(object):
                 ret = obj.get(key, None)
                 if ret is None and hasattr(obj, 'deepget'):
                     ret = obj.deepget(key, None)
+                    if isinstance(ret, unicode):
+                        ret = str(ret)
                 #print >> sys.stderr, 'RETURNED %s' % ret
             # Too general exception catching...
             # pylint: disable=W0703
@@ -268,11 +287,12 @@ class ExpressionContext(object):
                 print >> sys.stderr, 'OOPS: self.objects = %s / exception %s' % (str(self.objects),
                                                                                  e)
                 print >> sys.stderr, 'OOPS: OUR object = %s (%s)' % (str(obj), type(obj))
+            ret = ExpressionContext._fixvalue(ret)
             if ret is not None:
                 self.values[key] = ret
                 return ret
             if self.prefix is not None:
-                ret = obj.get('%s.%s' % (self.prefix, key), None)
+                ret = ExpressionContext._fixvalue(obj.get('%s.%s' % (self.prefix, key), None))
                 if ret is not None:
                     self.values[key] = ret
                     return ret
@@ -532,7 +552,7 @@ def _compile_and_cache_regex(regexstr, flags=None):
 def match(args, _context):
     '''Function to return True if first argument matches the second argument (a regex)
     - optional 3rd argument is RE flags'''
-    lhs = args[0]
+    lhs = str(args[0])
     rhs = args[1]
     if lhs is None or rhs is None:
         return None

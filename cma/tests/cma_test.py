@@ -480,7 +480,7 @@ class IOTestIO:
 
 class FakeDrone(dict):
     def __init__(self, json):
-        self['monitoringagents'] = json
+        self['_init_monitoringagents'] = json
 
     def get(self, name, ret):
         return ret

@@ -97,15 +97,15 @@ class SystemNode(GraphNode):
         'Iterate over our child JSON attribute names'
         for tup in CMAdb.store.load_cypher_query(self.JSONattrnames, None,
                                      params={'droneid': Store.id(self)}):
-            yield tup.key
+            yield str(tup.key)
 
     def keys(self):
         'Return the names of all our JSON discovery attributes.'
-        return [attr for attr in self]
+        return [str(attr) for attr in self]
 
     def __contains__(self, key):
         'Return True if our object contains the given key (JSON name).'
-        return hasattr(self, self.HASH_PREFIX + key)
+        return hasattr(self, str(self.HASH_PREFIX + key))
 
     def __len__(self):
         'Return the number of JSON items in this SystemNode.'
@@ -113,7 +113,7 @@ class SystemNode(GraphNode):
 
     def jsonval(self, jsontype):
         'Construct a python object associated with a particular JSON discovery value.'
-        if not hasattr(self, self.HASH_PREFIX + jsontype):
+        if not hasattr(self, str(self.HASH_PREFIX + jsontype)):
             #print >> sys.stderr, 'DOES NOT HAVE ATTR %s' % jsontype
             #print >> sys.stderr, 'ATTRIBUTES ARE:' , str(self.keys())
             return None
@@ -121,14 +121,14 @@ class SystemNode(GraphNode):
         #       {'droneid': Store.id(self), 'jsonname': jsontype}
         node = CMAdb.store.load_cypher_node(self.JSONsingleattr, JSONMapNode,
                                             params={'droneid': Store.id(self),
-                                            'jsonname': jsontype}
+                                            'jsonname': str(jsontype)}
                                             )
         #assert self.json_eq(jsontype, str(node))
         return node
 
     def get(self, key, alternative=None):
         '''Return JSON object if the given key exists - 'alternative' if not.'''
-        ret = self.deepget(key)
+        ret = self.deepget(str(key))
         return ret if ret is not None else alternative
 
     def __getitem__(self, key):

@@ -419,17 +419,18 @@ class MonitoringRule(object):
         for tup in self._tuplespec:
             name = tup[0]
             regex = tup[1]
-            #print >> sys.stderr, 'TUPLE BEING EVALED ("%s","%s")' %  (name, regex.pattern)
+            #CMAdb.log.debug('TUPLE BEING EVALED ("%s","%s")' %  (name, regex.pattern))
             val = str(GraphNodeExpression.evaluate(name, context))
-            #print >> sys.stderr, 'EXPRESSION %s => %s' % (name, val)
+            #CMAdb.log.debug('EXPRESSION %s => %s' % (name, val))
             #print >> sys.stderr, 'value, REGEX BEING EVALED ("%s","%s")' %  (val, regex.pattern)
             if not regex.match(val):
                 #print >> sys.stderr, 'NOMATCH from regex [%s] [%s]' % (regex.pattern, val)
+                #CMAdb.log.debug('NOMATCH from regex [%s] [%s]:%s' % (regex.pattern, val, type(val)))
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
         #print >> sys.stderr, 'CALLING CONSTRUCTACTION:', self._tuplespec
         ret =  self.constructaction(context)
-        #print >> sys.stderr, 'CONSTRUCTACTION => %s' % str(ret)
+        #CMAdb.log.debug('GOT MATCH: CONSTRUCTACTION => %s' % str(ret))
         return ret
 
 
@@ -524,18 +525,20 @@ class MonitoringRule(object):
     @staticmethod
     def compute_available_agents(context):
         '''Create a cache of all our available monitoring agents - and return it'''
-        #print >> sys.stderr, 'CREATING AGENT CACHE'
         if not hasattr(context, 'get') or not hasattr(context, 'objects'):
             context = ExpressionContext(context)
-        #print >> sys.stderr, 'CREATING AGENT CACHE (%s)' % str(context)
+        #CMAdb.log.debug('CREATING AGENT CACHE (%s)' % str(context))
         for node in context.objects:
             if hasattr(node, '_agentcache'):
                 # Keep pylint from getting irritated...
-                #print >> sys.stderr, 'AGENT ATTR IS', getattr(node, '_agentcache')
+                #CMAdb.log.debug('AGENT ATTR IS %s' % getattr(node, '_agentcache'))
                 return getattr(node, '_agentcache')
-            if not hasattr(node, '__iter__') or 'monitoringagents' not in node:
+            if not hasattr(node, '__iter__') or '_init_monitoringagents' not in node:
+                #CMAdb.log.debug('SKIPPING AGENT NODE (%s)' % (str(node)))
+                #if hasattr(node, 'keys'):
+                #    CMAdb.log.debug('SKIPPING AGENT NODE keys: (%s)' % (str(node.keys())))
                 continue
-            agentobj = pyConfigContext(node['monitoringagents'])
+            agentobj = pyConfigContext(node['_init_monitoringagents'])
             agentobj = agentobj['data']
             ret = {}
             for cls in agentobj.keys():
@@ -545,9 +548,9 @@ class MonitoringRule(object):
                         ret[cls] = {}
                     ret[cls][agent] = True
             setattr(node, '_agentcache', ret)
-            #print >> sys.stderr, 'AGENT CACHE IS', str(ret)
+            #CMAdb.log.debug('AGENT CACHE IS: %s' % str(ret))
             return ret
-        #print >> sys.stderr, 'RETURNING NO AGENT CACHE AT ALL!'
+        #CMAdb.log.debug('RETURNING NO AGENT CACHE AT ALL!')
         return {}
 
 
@@ -856,7 +859,9 @@ class NagiosMonitoringRule(MonitoringRule):
             at all.
         '''
         agentcache = MonitoringRule.compute_available_agents(context)
-        if 'nagios' not in agentcache or self.rsctype not in agentcache['nagios']:
+        if 'nagios' not in agentcache or str(self.rsctype) not in agentcache['nagios']:
+            #CMAdb.log.debug('CONSTRUCTACTION.NOMATCH(%s) %s' % (self.rsctype, type(self.rsctype)))
+            #CMAdb.log.debug('AGENTCACHE: %s' % (str(agentcache)))
             return (MonitoringRule.NOMATCH, None)
         #
         missinglist = []
@@ -878,9 +883,9 @@ class NagiosMonitoringRule(MonitoringRule):
                 optional = False
                 exprname=name
             expression = self.nvpairs[exprname]
-            #print >> sys.stderr, 'exprname is %s, expression is %s' % (exprname,expression)
+            #CMAdb.log.debug('exprname is %s, expression is %s' % (exprname,expression))
             val = GraphNodeExpression.evaluate(expression, context)
-            #print >> sys.stderr, 'CONSTRUCTACTION.eval(%s) => %s' % (expression, val)
+            #CMAdb.log.debug('CONSTRUCTACTION.eval(%s) => %s' % (expression, val))
             if val is None:
                 if not optional:
                     missinglist.append(exprname)
@@ -937,7 +942,7 @@ if __name__ == '__main__':
         def __init__(self, obj):
             'Fake Drone init for knowing monitoring agents'
             dict.__init__(self)
-            self['monitoringagents'] = obj
+            self['_init_monitoringagents'] = obj
 
     fdrone = FakeDrone({
         'data': {

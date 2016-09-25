@@ -52,8 +52,8 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         has just come up with the same discovery as before it went down.'''
 
         drone.monitors_activated = True
-        self.log.debug('In TCPDiscoveryGenerateMonitoring::processpkt for %s with %s (%s)'
-                       %    (drone, _discoverychanged, str(_unused_jsonobj)))
+        #self.log.debug('In TCPDiscoveryGenerateMonitoring::processpkt for %s with %s (%s)'
+        #               %    (drone, _discoverychanged, str(jsonobj)))
         data = jsonobj['data'] # The data portion of the JSON message
         for procname in data.keys():    # List of nanoprobe-assigned names of processes...
             procinfo = data[procname]
@@ -188,8 +188,8 @@ class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
         '''
 
         drone.monitors_activated = True
-        self.log.debug('In DiscoveryGenerateHostMonitoring::processpkt for %s with %s (%s)'
-                       %    (drone, _discoverychanged, str(_unused_jsonobj)))
+        #self.log.debug('In DiscoveryGenerateHostMonitoring::processpkt for %s with %s (%s)'
+        #               %    (drone, _discoverychanged, str(_unused_jsonobj)))
         montuples = MonitoringRule.findallmatches((drone,), objclass='host')
         for montuple in montuples:
             if montuple[0] == MonitoringRule.NOMATCH:
