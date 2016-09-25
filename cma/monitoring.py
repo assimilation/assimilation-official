@@ -425,7 +425,8 @@ class MonitoringRule(object):
             #print >> sys.stderr, 'value, REGEX BEING EVALED ("%s","%s")' %  (val, regex.pattern)
             if not regex.match(val):
                 #print >> sys.stderr, 'NOMATCH from regex [%s] [%s]' % (regex.pattern, val)
-                #CMAdb.log.debug('NOMATCH from regex [%s] [%s]:%s' % (regex.pattern, val, type(val)))
+                #CMAdb.log.debug('NOMATCH from regex [%s] [%s]:%s'
+                #                % (regex.pattern, val, type(val)))
                 return (MonitoringRule.NOMATCH, None)
         # We now have a matching set of values to give our monitoring constructor
         #print >> sys.stderr, 'CALLING CONSTRUCTACTION:', self._tuplespec
