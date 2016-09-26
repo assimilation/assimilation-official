@@ -67,9 +67,8 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
             print >> sys.stderr, ('OOPS! bad packet type [%s]' %
                                   jsonobj['discovertype'])
 
-    def processtcpdiscoverypkt(self, drone, unused_srcaddr, jsonobj):
+    def processtcpdiscoverypkt(self, drone, _unused_srcaddr, jsonobj):
         "Send commands generating checksums for the Systems's net-facing things"
-        unused_srcaddr = unused_srcaddr
         params = ConfigFile.agent_params(self.config, 'discovery', 'checksums',
                                          drone.designation)
         sumcmds = self.config['checksum_cmds']
@@ -106,21 +105,17 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         %   (len(params['parameters']['ASSIM_filelist'])))
         drone.request_discovery((params,))
 
-    def processchecksumpkt(self, drone, unused_srcaddr, jsonobj):
-        '''Process updated checksums. Note that our drone-owned-JSON is already
-        updated. This is a mistake. We should update attributes at the end
-        of a transaction.  I wonder if this is in fact the case with the new
-        storage method for JSON string attributes.
+    def processchecksumpkt(self, drone, _unused_srcaddr, jsonobj):
+        '''Process updated checksums. The value of drone['checksums'] (if any)
+        is the _previous_ value of the checksums attribute.
         '''
-        unused_srcaddr = unused_srcaddr # make pylint happy...
         data = jsonobj['data'] # The data portion of the JSON message
         print >> sys.stderr, 'PROCESSING CHECKSUM DATA'
-        if ('OLD_checksums' in drone):
+        if ('checksums' in drone):
             print >> sys.stderr, 'COMPARING CHECKSUM DATA'
-            olddata = pyConfigContext(drone['OLD_checksums'])['data']
+            olddata = pyConfigContext(drone['checksums'])['data']
             self.compare_checksums(drone, olddata, data)
         print >> sys.stderr, 'UPDATING CHECKSUM DATA for %d files' % len(data)
-        drone['OLD_checksums'] = str(jsonobj)
 
     def compare_checksums(self, drone, oldobj, newobj):
         'Compare checksums and complain about those that change'
@@ -137,4 +132,4 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
             %   (designation, oldfile, oldchecksum, newchecksum))
             changes[oldfile] = (oldchecksum, newchecksum)
         extrainfo = {'CHANGETYPE': 'checksums', 'changes': changes}
-        AssimEvent(drone, AssimEvent.OBJUPDATE, extrainfo=extrainfo)
+        AssimEvent(drone, AssimEvent.OBJUPDATE, extrainfo=extrainfo
