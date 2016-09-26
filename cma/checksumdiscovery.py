@@ -132,4 +132,4 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
             %   (designation, oldfile, oldchecksum, newchecksum))
             changes[oldfile] = (oldchecksum, newchecksum)
         extrainfo = {'CHANGETYPE': 'checksums', 'changes': changes}
-        AssimEvent(drone, AssimEvent.OBJUPDATE, extrainfo=extrainfo
+        AssimEvent(drone, AssimEvent.OBJUPDATE, extrainfo=extrainfo)
