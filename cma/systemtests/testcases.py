@@ -226,7 +226,7 @@ class AssimSysTest(object):
 @AssimSysTest.register
 class StopNanoprobe(AssimSysTest):
     'A stop nanoprobe test'
-    def run(self, nano=None, debug=None, timeout=30):
+    def run(self, nano=None, debug=None, timeout=180):
         'Actually stop the nanoprobe and see if it worked'
         if debug is None:
             debug = self.debug
@@ -370,7 +370,7 @@ class SimulCMAandNanoprobeRestart(AssimSysTest):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
-    def run(self, nano=None, debug=None, timeout=180):
+    def run(self, nano=None, debug=None, timeout=300):
         '''Our default timeout is so long because we can take a while to give up shutting down
         the nanoprobe - an ACK timeout might have to occur before it can shut down.
         '''
