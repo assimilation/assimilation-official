@@ -256,8 +256,8 @@ class DockerSystem(TestSystem):
             #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
         else:
             #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
-            self.runinimage(('/etc/init.d/'+servicename, 'start'))
-            #self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
+            #self.runinimage(('/etc/init.d/'+servicename, 'start'))
+            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
 
     def stopservice(self, servicename, async=False):
         'docker-exec-based stop service action for docker'
@@ -318,8 +318,9 @@ class SystemTestEnvironment(object):
                 ' // Python version .* // (java|openjdk) version.*') % self.cma.hostname
         watch.setregexes((regex,))
         if watch.lookforall(timeout=60) is None:
-            print >> sys.stderr, 'CMA did not start!!'
-            raise RuntimeError('CMA did not start')
+            os.system("logger -s 'CMA did not start!! [[%s]]'" % (regex))
+            print >> sys.stderr, 'CMA did not start!! %s' % regex
+            raise RuntimeError('CMA did not start: %s' % regex)
         print >> sys.stderr, 'nanocount is', nanocount
         print >> sys.stderr, 'self.nanoimages is', self.nanoimages
         # We do this in chunks to manage stress on our test environment
@@ -393,6 +394,7 @@ class SystemTestEnvironment(object):
         +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf'''))
         # And of course, start logging...
         system.stopservice(SystemTestEnvironment.LOGGINGSERVICE)
+        system.runinimage(('/bin/bash', '-c', 'echo STARTING > /var/log/syslog'))
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
         return system

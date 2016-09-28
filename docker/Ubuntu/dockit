@@ -61,7 +61,7 @@ case $CODENAME in
             JAVAREPOSETUP="RUN apt-get -y install $ADDREPPKG \&\& $ADDPPA"
             ;;
   *)        EFLAG=""
-            NEOVERS=neo4j=3.0.1
+            NEOVERS=neo4j=3.0.4
             NEODIR=/usr/share/neo4j
             JAVAREPOSETUP="# Skip java ppa repo setup for $CODENAME"
             ;;
@@ -77,12 +77,12 @@ case $1 in
         sed -e 's%ENV GITTARZAN .*%ENV GITTARZAN tip.tar.gz%'   \
             -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG       \
             -e 's%RUN.* mv .*ssimilation-.*%# &%'               \
-            -e 's%RUN.* mv .*ssimilation-.*%# &%'               \
+            -e 's%RUN tar xzf $GITVERSION.*%# &%'               \
+            -e 's%RUN service rsyslog start.*%# &%'             \
             -e "s%@NEOVERS@%$NEOVERS%"                          \
             -e "s%@NEODIR@%$NEODIR%"                            \
             -e "s%@JAVAREPOSETUP@%${JAVAREPOSETUP}%"            \
             -e "s%@OURDATE@%$(date)%"                           \
-            -e 's%RUN service rsyslog start.*#&%'               \
             > Dockerfile
         ;;
     *)  cat $DOCKERFILE | sed -e "s%ubuntu:latest%ubuntu:$CODENAME%" $EFLAG \

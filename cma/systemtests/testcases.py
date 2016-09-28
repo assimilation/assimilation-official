@@ -415,7 +415,7 @@ class DiscoverService(AssimSysTest):
     discover the service pretty quickly.
     '''
     def __init__(self, store, logfilename, testenviron, debug=False
-    ,   service='bind9', monitorname=None):
+    ,   service='ssh', monitorname=None):
         'Initializer for the DiscoverService class'
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.service=service
@@ -435,7 +435,6 @@ class DiscoverService(AssimSysTest):
         if nano is None:
             nanozero = self.testenviron.select_nano_noservice(service=service)
             if nanozero is None or len(nanozero) < 1:
-                # bind doesn't seem to shut down properly - need to look into that...
                 return self._record(AssimSysTest.SKIPPED)
             else:
                 nano = nanozero[0]
@@ -506,7 +505,7 @@ if __name__ == "__main__":
             logger('Starting test %s' %   (cls.__name__))
             if cls is DiscoverService:
                 ret = cls(ourstore, logname, sysenv, debug=debug
-                ,       service='bind9', monitorname='named').run()
+                ,       service='ssh', monitorname='check_ssh').run()
             else:
                 ret = cls(ourstore, logname, sysenv, debug=debug).run()
             #print >> sys.stderr, 'Got return of %s from test %s' % (ret, cls.__name__)

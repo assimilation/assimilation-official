@@ -52,7 +52,7 @@ def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
         badwatch.setwatch()
         if test.__name__ == 'DiscoverService':
             testobj = test(store, logname, sysenv, debug=debug
-            ,       service='bind9', monitorname='named')
+            ,       service='ssh', monitorname='check_ssh')
         else:
             testobj = test(store, logname, sysenv, debug=debug)
         ret = testobj.run()

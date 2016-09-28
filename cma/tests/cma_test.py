@@ -307,10 +307,10 @@ def auditallrings():
     print 'AUDIT: CMADB.store', CMAdb.store
 
     if CMAdb.store is None:
-        print 'SKIPPING RING AUDIT' 
+        print 'SKIPPING RING AUDIT'
         raise ValueError('STORE IS NONE')
         return
-    print 'PERFORMING RING AUDIT' 
+    print 'PERFORMING RING AUDIT'
     audit = AUDITS()
     for ring in CMAdb.store.load_cypher_nodes("START n=node:HbRing('*:*') RETURN n", HbRing):
         ring.AUDIT()
