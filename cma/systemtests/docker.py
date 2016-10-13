@@ -317,7 +317,7 @@ class SystemTestEnvironment(object):
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // (java|openjdk) version.*') % self.cma.hostname
         watch.setregexes((regex,))
-        if watch.lookforall(timeout=60) is None:
+        if watch.lookforall(timeout=120) is None:
             os.system("logger -s 'CMA did not start!! [[%s]]'" % (regex))
             print >> sys.stderr, 'CMA did not start!! %s' % regex
             raise RuntimeError('CMA did not start: %s' % regex)
@@ -349,7 +349,7 @@ class SystemTestEnvironment(object):
             self.nanoprobes.append(nano)
         print >> sys.stderr, len(regexes), 'NANOPROBE REGEXES ARE:', (regexes)
         watch.setregexes(regexes)
-        if watch.lookforall(timeout=60) is None:
+        if watch.lookforall(timeout=120) is None:
             raise RuntimeError('Nanoprobes did not start - missing %s'
             %   (str(watch.unmatched)))
 
@@ -390,7 +390,7 @@ class SystemTestEnvironment(object):
         #,                  'echo "/tmp/cores/core.%e.%p" > /proc/sys/kernel/core_pattern'))
         # Set up logging to be forwarded to our parent logger
         system.runinimage(('/bin/bash', '-c'
-        ,   '''PARENT=$(/sbin/route | grep '^default' | cut -c17-32); PARENT=$(echo $PARENT);'''
+        ,   '''PARENT=$(/sbin/route -n | grep '^0\.0\.0\.0' | cut -c17-32); PARENT=$(echo $PARENT);'''
         +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf'''))
         # And of course, start logging...
         system.stopservice(SystemTestEnvironment.LOGGINGSERVICE)
