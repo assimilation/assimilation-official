@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
 #
 # This file is part of the Assimilation Project.
 #
@@ -37,6 +37,9 @@ from docker import SystemTestEnvironment, TestSystem
 import graphnodes as GN
 from cmainit import CMAinit
 from store import Store
+from cmadb import CMAdb
+from hbring import HbRing
+from droneinfo import Drone
 
 def logger(s, hardquote=True):
     'Log our single argument to syslog'
@@ -48,6 +51,35 @@ def logger(s, hardquote=True):
         s = s.replace('\\', '\\\\')
         s = s.replace('"', '\\"')
         os.system('logger -s "%s"' % s)
+
+def get_ring(store):
+    'Return The One Ring'
+    if not hasattr(CMAdb, 'TheOneRing'):
+        CMAdb.TheOneRing = store.load_or_create(HbRing, name='The_One_Ring',
+                                                      ringtype=HbRing.THEONERING)
+    return CMAdb.TheOneRing
+
+#def get_ring_members(ring):
+#    'Return the members of the ring - in ring-order'
+#    return ring.members_ring_order()
+
+def get_nano_neighbors(store, ring, nano):
+    'Get the ring-neighbors of this nanoprobe for the given ring'
+    if ring is None:
+        ring = get_ring(store)
+    query = ('''START d=node:Drone('*:*') WHERE d.designation = "%s" return d'''
+             % nano.hostname)
+    drone = store.load_cypher_node(query, Drone)
+    neighbors = []
+    prevnode = None
+    for prevnode in store.load_in_related(drone, ring.ournexttype, Drone):
+        neighbors.append(prevnode.designation)
+    assert (len(neighbors) <= 1)
+    for nextnode in store.load_related(drone, ring.ournexttype, Drone):
+        neighbors.append(nextnode.designation)
+    assert (len(neighbors) <= 2)
+    return neighbors
+
 
 class AssimSysTest(object):
     '''AssimSysTest is an abstract base class for all our system-level tests.
@@ -91,6 +123,24 @@ class AssimSysTest(object):
         %               (cma.hostname, nano.hostname, nano.ipaddr),
         r" %s nanoprobe.*: INFO: Count of 'other' pkts received: " % (nano.hostname),
         ]
+
+    def nano_kill9_regexes(self, nano):
+        'Return a list of the expected regexes for a nanoprobe being kill-9ed'
+        cma = self.testenviron.cma
+        #print >> sys.stderr, 'NANO NEIGHBORS', get_nano_neighbors(self.store, None, nano)
+        regexes = [
+        (r' %s cma INFO: Node %s has been reported as dead by address .* Reason: HBDEAD packet'
+         %  (cma.hostname, nano.hostname))
+        ]
+        neighbors = set()
+        for peer in get_nano_neighbors(self.store, None, nano):
+            if peer in neighbors:
+                continue
+            neighbors.add(peer)
+            #%s nanoprobe[345]: WARN: Peer at address [::ffff:172.17.0.3]:1984 is dead
+            regexes.append(' %s nanoprobe.*: WARN: Peer at address \\[::ffff:%s]:1984 is dead.*'
+                           % (peer, nano.ipaddr))
+        return regexes
 
     def cma_start_regexes(self):
         'Return a list of the expected regexes for the CMA starting'
@@ -247,6 +297,31 @@ class StopNanoprobe(AssimSysTest):
         return self.checkresults(watch, timeout, qstr, None, nano)
 
 @AssimSysTest.register
+class KillNanoprobe(AssimSysTest):
+    'A kill -9 nanoprobe test'
+    def run(self, nano=None, debug=None, timeout=180):
+        'Actually stop the nanoprobe and see if it worked'
+        if debug is None:
+            debug = self.debug
+        if nano is None:
+            nanozero = self.testenviron.select_nano_service()
+            if len(nanozero) > 0:
+                nano = nanozero[0]
+        if (nano is None or nano.status != TestSystem.RUNNING or
+            SystemTestEnvironment.NANOSERVICE not in nano.runningservices):
+            return self._record(AssimSysTest.SKIPPED)
+        regexes = self.nano_kill9_regexes(nano)
+        print >> sys.stderr, 'KILL9_REGEXES ARE:', regexes
+        watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
+        watch.setwatch()
+        qstr =  (   '''START drone=node:Drone('*:*') '''
+                     '''WHERE drone.designation = "{0.hostname}" and drone.status = "dead" '''
+                     '''and drone.reason = "HBDEAD packet received"       RETURN drone''')
+        nano.kill9service(SystemTestEnvironment.NANOSERVICE)
+        #print >> sys.stderr, 'NANO NEIGHBORS', get_nano_neighbors(self.store, None, nano)
+        return self.checkresults(watch, timeout, qstr, None, nano)
+
+@AssimSysTest.register
 class StartNanoprobe(AssimSysTest):
     'A start nanoprobe test'
     def run(self, nano=None, debug=None, timeout=240):
@@ -366,7 +441,7 @@ class RestartCMAandNanoprobe(AssimSysTest):
 @AssimSysTest.register
 class SimulCMAandNanoprobeRestart(AssimSysTest):
     'Simultaneously restart the CMA and a nanoprobe'
-    def __init__(self, store, logfilename, testenviron, debug=False, delay=0):
+    def __init__(self, store, logfilename, testenviron, debug=False, delay=1):
         AssimSysTest.__init__(self, store, logfilename, testenviron, debug)
         self.delay = delay
 
@@ -389,15 +464,16 @@ class SimulCMAandNanoprobeRestart(AssimSysTest):
         watch.setwatch()
         cma.stopservice(SystemTestEnvironment.CMASERVICE)
         nano.stopservice(SystemTestEnvironment.NANOSERVICE, async=True)
-        cma.startservice(SystemTestEnvironment.CMASERVICE)
         if self.delay > 0:
             time.sleep(self.delay)
+        cma.startservice(SystemTestEnvironment.CMASERVICE)
         qstr =  (   '''START drone=node:Drone('*:*') '''
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "dead" '''
                      '''and drone.reason = "HBSHUTDOWN"       RETURN drone''')
         rc = self.checkresults(watch, timeout, qstr, None, nano)
         if rc != AssimSysTest.SUCCESS:
             return rc
+        AssimSysTest.stats[self.__class__.__name__][rc] -= 1
         # We have to do this in two parts because of the asynchronous shutdown above
         regexes = self.nano_start_regexes(nano)
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
@@ -474,6 +550,32 @@ class DiscoverService(AssimSysTest):
                      '''WHERE drone.designation = "{0.hostname}" and drone.status = "up" '''
                      '''RETURN drone''')
         return self.checkresults(watch, timeout, qstr, None, nano, debug=debug)
+
+#
+#   Here are some other tests that I think we should do:
+#
+#   Kill -9 on a nanoprobe
+#       There are two non-skip cases:
+#           - Where 2 systems total (CMA+1) are up
+#           - Where more than 2 (> CMA+1) are up
+#       The software has special cases up to 4 systems, IIRC.
+#       Skip this test if all nanoprobes are down
+#
+#   Move the IP address the nanoprobe is connecting from to an alternate IP address
+#       This requires allocating/setting up 2 IP addresses per system
+#   Switch the port a nanoprobe is connecting from
+#   Shut down all (up) nanoprobes at once
+#   Start up all (down) nanoprobes at once
+#   Restarting the CMA, its nanoprobe and every other nanoprobe approximately at once
+#   Shut down half of the nanoprobes - every other one starting from the CMA's nanoprobe
+#
+#
+#   To do these I'll need to look at:
+#   - finding immediate neighbor(s) from the neighbor graph
+#   - returning all the systems in the neighbor graph in order by neighbor connectivity
+#   - allocating 2 IP addresses per system
+#   - choosing a second unoccupied port (1985?)
+#
 
 
 # A little test code...

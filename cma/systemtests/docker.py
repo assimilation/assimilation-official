@@ -107,6 +107,10 @@ class TestSystem(object):
         'Unimplemented stop service action'
         raise NotImplementedError("Abstract class - doesn't implement stopservice")
 
+    def kill9service(self, servicename, async=False):
+        'Unimplemented kill -9 action'
+        raise NotImplementedError("Abstract class - doesn't implement stopservice")
+
 
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
@@ -252,12 +256,13 @@ class DockerSystem(TestSystem):
         if servicename == 'neo4j':
             return self.startneo4j()
         if async:
-            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
+            self.runinimage(('/bin/bash', '-c',
+                             '/etc/init.d/%s start >/dev/null 2>&1 &' % servicename,))
             #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
         else:
-            #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
+            self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
             #self.runinimage(('/etc/init.d/'+servicename, 'start'))
-            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
+            #self.runinimage(('/usr/sbin/service',  servicename, 'start'))
 
     def stopservice(self, servicename, async=False):
         'docker-exec-based stop service action for docker'
@@ -269,9 +274,19 @@ class DockerSystem(TestSystem):
         if servicename == 'neo4j':
             return self.stopneo4j()
         if async:
-            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
+            self.runinimage(('/bin/sh', '-c',
+                             '/etc/init.d/%s stop >/dev/null 2>&1 &' % servicename,))
         else:
             self.runinimage(('/etc/init.d/'+servicename, 'stop'))
+
+    def kill9service(self, servicename, async=False):
+        'docker-exec-based kill -9 service action for docker'
+        if servicename in self.runningservices:
+            self.runningservices.remove(servicename)
+        else:
+            print >> sys.stderr, ('WARNING: Service %s not running in docker system %s'
+            %       (servicename, self.name))
+        self.runinimage(('killall', '-9', servicename))
 
     def startneo4j(self):
         'Start Neo4j'
@@ -309,8 +324,8 @@ class SystemTestEnvironment(object):
         self.logname = logname
         watch = LogWatcher(logname, [])
         watch.setwatch()
-        nanodebug=1
-        cmadebug=2
+        nanodebug = 1
+        cmadebug = 2
         self.nanodebug = nanodebug
         self.cmadebug = nanodebug
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
