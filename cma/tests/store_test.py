@@ -104,7 +104,7 @@ def CreateIndexes(db, indexlist):
             pass
     for index in indexlist:
         db.legacy.get_or_create_index(neo4j.Node, index, None)
-     
+
 
 @RegisterGraphClass
 class Person(GraphNode):
@@ -117,7 +117,7 @@ class Person(GraphNode):
             self.dateofbirth = dateofbirth
         else:
             self.dateofbirth='unknown'
-            
+
     @staticmethod
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
@@ -136,7 +136,7 @@ class aTestSystem(GraphNode):
         if domain is None:
             domain='global'
         self.domain = domain
-            
+
     def addroles(self, role):
         if self.roles[0] == '':
             del self.roles[0]
@@ -151,7 +151,7 @@ class aTestSystem(GraphNode):
     def __meta_keyattrs__():
         'Return our key attributes in order of significance'
         return ['designation', 'domain']
-    
+
 @RegisterGraphClass
 class aTestDrone(aTestSystem):
     def __init__(self, designation, domain='global', roles=None):
@@ -163,7 +163,7 @@ class aTestDrone(aTestSystem):
         roles.extend(['host', 'Drone'])
         aTestSystem.__init__(self, designation, domain=domain, roles=roles)
 
-        
+
 @RegisterGraphClass
 class aTestIPaddr(GraphNode):
     def __init__(self, ipaddr):
@@ -185,7 +185,7 @@ class aTestNIC(GraphNode):
         GraphNode.__init__(self, domain='global')
         mac = pyNetAddr(MACaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
-            raise ValueError('Not a legal MAC address [%s // %s]: %s (%s)' 
+            raise ValueError('Not a legal MAC address [%s // %s]: %s (%s)'
             %       (MACaddr, str(mac), str(mac.addrtype()), mac.addrlen()))
         self.MACaddr = str(mac)
 
@@ -194,7 +194,7 @@ class aTestNIC(GraphNode):
         'Return our key attributes in order of significance'
         return ['MACaddr']
 
-     
+
 Classes = [Person, aTestSystem, aTestDrone, aTestIPaddr, aTestNIC]
 
 keymap = {'Person': {'index':'Person','kattr': 'lastname', 'vattr': 'firstname'},
@@ -268,7 +268,8 @@ class TestCreateOps(TestCase):
 
     def test_system(self):
         store = initstore()
-        fredsys = store.load_or_create(aTestSystem, designation='Fred', roles=['bridge', 'router'])
+        # a pyNetAddr is kind of a stupid value for role, but it makes a good test case ;-)
+        fredsys = store.load_or_create(aTestSystem, designation='Fred', roles=['bridge', 'router', pyNetAddr('1.2.3.4')])
         self.assertTrue('bridge' in fredsys.roles)
         self.assertTrue('router' in fredsys.roles)
         self.assertFalse('host' in fredsys.roles)
@@ -464,10 +465,10 @@ class TestDatabaseWrites(TestCase):
         Qstr='''START drone=node:aTestDrone('sevenofnine:*')
         RETURN drone'''
         store = initstore()
-        #print >> sys.stderr, 'RUNNING create_stuff' 
+        #print >> sys.stderr, 'RUNNING create_stuff'
         self.create_stuff(store)    # Everything has gone out of scope
                                     # so nothing is cached any more
-        #print >> sys.stderr, 'RUNNING test_create_and_query' 
+        #print >> sys.stderr, 'RUNNING test_create_and_query'
         # Verify nothing is cached any more
         self.assertEqual(store.batchindex, 0)
         self.assertEqual(len(store.clients), 0)
@@ -517,7 +518,7 @@ class TestDatabaseWrites(TestCase):
 #   Filtered queries - note that fields have to be filtered out in the JSON
 #   they can't be reliably filtered out of the nodes
 #   other things?
-    
+ 
 if __name__ == "__main__":
     run()
 

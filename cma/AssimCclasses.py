@@ -1037,7 +1037,7 @@ class pyNetAddr(pyAssimObj):
 
     def __eq__(self, other):
         "Return True if the two pyNetAddrs are equal"
-        if not other._Cstruct or not self._Cstruct:
+        if not hasattr(other, '_Cstruct') or not other._Cstruct or not self._Cstruct:
             return False
         base = self._Cstruct[0]
         while not_this_exact_type(base, NetAddr):

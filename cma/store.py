@@ -37,6 +37,7 @@ from datetime import datetime, timedelta
 import py2neo
 from py2neo import neo4j, GraphError
 from assimevent import AssimEvent
+from AssimCclasses import pyNetAddr
 
 # R0902: Too many instance attributes (17/10)
 # R0904: Too many public methods (27/20)
@@ -637,15 +638,34 @@ class Store(object):
         'Return a dictionary of supported attributes from the given object'
         ret = {}
         for attr in Store._safe_attr_names(subj):
-            ret[attr] = subj.__dict__[attr]
+            ret[attr] = Store._fixup_attr_value(subj, attr, subj.__dict__[attr])
         return ret
 
     @staticmethod
     def _proper_attr_value(obj, attr):
         'Ensure that the value being set is acceptable to neo4j.Node objects'
         value = getattr(obj, attr)
-        if isinstance(value, (str, unicode, float, int, long, list, tuple)):
+        return Store._fixup_attr_value(obj, attr, value)
+
+    @staticmethod
+    def _fixup_attr_value(obj, attr, value):
+        'Validate and fix up the value so it can be stored in the Neo4j database'
+        if isinstance(value, (str, unicode, float, int, long)):
             return value
+        if isinstance(value, (list, tuple)):
+            ret = []
+            for elem in value:
+                ret.append(Store._fixup_attr_value(obj, attr, elem))
+            if len(ret) < 1:
+                print >> sys.stderr,  ("Attr %s of object %s cannot be an empty list" % (attr, obj))
+                raise ValueError("Attr %s of object %s cannot be an empty list" % (attr, obj))
+            # We don't check that all array elements are of the same type - Neo4j requirement
+            # Elements also can't be a list or tuple...
+            # In theory, one could simply make all array elements to be strings and that would
+            # take care of the cases we know of - but that's probably not a good choice...
+            return ret
+        if isinstance(value, pyNetAddr):
+            return str(value)
         else:
             print >> sys.stderr,  ("Attr %s of object %s of type %s isn't acceptable"
             %   (attr, obj, type(value)))
