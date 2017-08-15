@@ -251,6 +251,7 @@ if __name__ == '__main__':
         def __init__(self, name):
             BaseGraph.__init__(self)
             self.name = name
+            self.nodetype = self.__class__.__name__
 
         @staticmethod
         def meta_labels():
@@ -278,6 +279,7 @@ if __name__ == '__main__':
             Humanoid.__init__(self, name)
             self.hobbithole = hobbithole
             self.forty_two = 42
+            self.nodetype = 'Hobbit'
 
         @staticmethod
         def meta_labels():
@@ -293,12 +295,6 @@ if __name__ == '__main__':
             """
             return ['name', 'hobbithole']
 
-        @property
-        def nodetype(self):
-            """
-            :return:
-            """
-            return self.__class__.__name__
 
     class Store(object):
         """
