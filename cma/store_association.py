@@ -187,7 +187,7 @@ class StoreAssociation(object):
         :return: str: Cypher query as described above...
         """
         result = self.cypher_find_match_clause()
-        result += '\nRETURN ID(%s), %s' % (self.variable_name, self.variable_name)
+        result += ' RETURN ID(%s), %s' % (self.variable_name, self.variable_name)
         return result
 
     def cypher_update_clause(self, attributes):
@@ -214,10 +214,10 @@ class StoreAssociation(object):
         :return:str: Cypher query string to create this node
         """
         # assert self.is_abstract
-        result = 'CREATE (%s' % self.variable_name
-        for label in self.default_labels:
-            result += ':%s' % label
-        result += ' {'
+        words = ['CREATE (%s' % self.variable_name]
+        words.extend(self.default_labels)
+        result = ':'.join(words)
+        result += ') {'
         delimiter = ''
         for attr in [a for a in self.obj.__dict__.keys() if not a.startswith('_')]:
             result += ('%s%s: %s' % (delimiter, attr, self.cypher_repr(getattr(self.obj, attr))))
@@ -322,9 +322,9 @@ if __name__ == '__main__':
         samwise = Hobbit('Samwise', 'Shire-too')
         sam_association = StoreAssociation(samwise, store=store, node_id=13)
         for association in (frodo_association, sam_association):
-            for fun in ('cypher_find_match_clause',
-                        'cypher_find_query',
-                        'cypher_create_node_query'):
+            for fun in ('cypher_create_node_query',
+                        'cypher_find_match_clause',
+                        'cypher_find_query'):
 
                 print(getattr(association, fun)())
             print(association.cypher_update_clause(['name']))
