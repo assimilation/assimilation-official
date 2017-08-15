@@ -217,12 +217,12 @@ class StoreAssociation(object):
         words = ['CREATE (%s' % self.variable_name]
         words.extend(self.default_labels)
         result = ':'.join(words)
-        result += ') {'
+        result += ' { '
         delimiter = ''
         for attr in [a for a in self.obj.__dict__.keys() if not a.startswith('_')]:
             result += ('%s%s: %s' % (delimiter, attr, self.cypher_repr(getattr(self.obj, attr))))
             delimiter = ', '
-        return result + '})'
+        return result + ' })'
 
 if __name__ == '__main__':
     class BaseGraph(object):
