@@ -205,7 +205,8 @@ class StoreAssociation(object):
             return 'MATCH (%s) WHERE ID(%s) = %d' % (var_name, var_name, self.node_id)
         else:
             label = 'Class_%s' % self.obj.nodetype
-            result = 'MATCH (%s:%s) WHERE %s.nodetype = "%s"' % (var_name, label, var_name, self.obj.nodetype)
+            result = 'MATCH (%s:%s) WHERE %s.nodetype = %s' % (var_name, label, var_name,
+                                                               self.cypher_repr(self.obj.nodetype))
             for attr in self.key_attributes:
                 result += (' AND %s.%s = %s' % (var_name, attr,
                                                 self.cypher_repr(getattr(self.obj, attr))))
@@ -359,43 +360,53 @@ if __name__ == '__main__':
         import json
         saved_output = {}
         expected_output = {
-            "cypher_find_match_clauseFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype "
-                                             "= \"Hobbit\" AND Hobbit1.name = 'Frodo' AND "
-                                             "Hobbit1.hobbithole = 'Shire'",
-            "update:name:hobbitholeSamwise": "MATCH (Hobbit2) WHERE ID(Hobbit2) = 13 SET "
-                                             "Hobbit2.name = 'Samwise', Hobbit2.hobbithole = "
-                                             "'Shire-too'",
-            "cypher_create_node_queryFrodo": "CREATE (Hobbit1:Class_Humanoid:Class_Hobbit { "
+            'cypher_find_match_clauseFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype '
+                                             '= \'Hobbit\' AND Hobbit1.name = \'Frodo\' AND '
+                                             'Hobbit1.hobbithole = \'Shire\'',
+            'update:name:hobbitholeSamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype '
+                                             '= \'Hobbit\' AND Hobbit2.name = \'Samwise\' AND '
+                                             'Hobbit2.hobbithole = \'Shire-too\' SET Hobbit2.name '
+                                             '= \'Samwise\', Hobbit2.hobbithole = \'Shire-too\'',
+            'cypher_create_node_queryFrodo': "CREATE (Hobbit1:Class_Humanoid:Class_Hobbit { "
                                              "hobbithole: 'Shire', forty_two: 42, nodetype: "
                                              "'Hobbit', name: 'Frodo' })",
-            "cypher_find_match_clauseSamwise": "MATCH (Hobbit2) WHERE ID(Hobbit2) = 13",
-            "update:name:hobbithole:42Samwise": "MATCH (Hobbit2) WHERE ID(Hobbit2) = 13 SET "
-                                                "Hobbit2.name = 'Samwise', Hobbit2.hobbithole = "
-                                                "'Shire-too', Hobbit2.forty_two = 42",
-            "update:name:hobbitholeFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = "
-                                           "\"Hobbit\" AND Hobbit1.name = 'Frodo' AND "
-                                           "Hobbit1.hobbithole = 'Shire' SET Hobbit1.name = "
-                                           "'Frodo', Hobbit1.hobbithole = 'Shire'",
-            "cypher_create_node_querySamwise": "CREATE (Hobbit2:Class_Humanoid:Class_Hobbit { "
+            'cypher_find_match_clauseSamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE '
+                                               'Hobbit2.nodetype = \'Hobbit\' AND Hobbit2.name = '
+                                               '\'Samwise\' AND Hobbit2.hobbithole = '
+                                               '\'Shire-too\'',
+            'update:name:hobbithole:42Samwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE '
+                                                'Hobbit2.nodetype = \'Hobbit\' AND Hobbit2.name = '
+                                                '\'Samwise\' AND Hobbit2.hobbithole = '
+                                                '\'Shire-too\' SET Hobbit2.name = \'Samwise\', '
+                                                'Hobbit2.hobbithole = \'Shire-too\', '
+                                                'Hobbit2.forty_two = 42',
+            'update:name:hobbitholeFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = '
+                                           '\'Hobbit\' AND Hobbit1.name = \'Frodo\' AND '
+                                           'Hobbit1.hobbithole = \'Shire\' SET Hobbit1.name = '
+                                           '\'Frodo\', Hobbit1.hobbithole = \'Shire\'',
+            'cypher_create_node_querySamwise': "CREATE (Hobbit2:Class_Humanoid:Class_Hobbit { "
                                                "hobbithole: 'Shire-too', forty_two: 42, nodetype:"
                                                " 'Hobbit', name: 'Samwise' })",
-            "cypher_find_querySamwise": "MATCH (Hobbit2) WHERE ID(Hobbit2) = 13 RETURN ID("
-                                        "Hobbit2), Hobbit2",
-            "update:nameFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = \"Hobbit\" "
-                                "AND Hobbit1.name = 'Frodo' AND Hobbit1.hobbithole = 'Shire' SET "
-                                "Hobbit1.name = 'Frodo'",
-            "update:name:hobbithole:42Frodo": "MATCH (Hobbit1:Class_Hobbit) WHERE "
-                                              "Hobbit1.nodetype = \"Hobbit\" AND Hobbit1.name = "
-                                              "'Frodo' AND "
-                                              "Hobbit1.hobbithole = 'Shire' SET Hobbit1.name = "
-                                              "'Frodo', Hobbit1.hobbithole = 'Shire', "
-                                              "Hobbit1.forty_two = 42",
-            "update:nameSamwise": "MATCH (Hobbit2) WHERE ID(Hobbit2) = 13 SET Hobbit2.name = "
-                                  "'Samwise'",
-            "cypher_find_queryFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = "
-                                      "\"Hobbit\" AND Hobbit1.name = 'Frodo' AND "
-                                      "Hobbit1.hobbithole = 'Shire' RETURN ID(Hobbit1), Hobbit1 "
+            'cypher_find_querySamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype = '
+                                        '\'Hobbit\' AND Hobbit2.name = \'Samwise\' AND '
+                                        'Hobbit2.hobbithole = \'Shire-too\' RETURN ID(Hobbit2), '
+                                        'Hobbit2',
+            'update:nameFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = \'Hobbit\' '
+                                'AND Hobbit1.name = \'Frodo\' AND Hobbit1.hobbithole = \'Shire\' '
+                                'SET Hobbit1.name = \'Frodo\'',
+            'update:name:hobbithole:42Frodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE '
+                                              'Hobbit1.nodetype = \'Hobbit\' AND Hobbit1.name = '
+                                              '\'Frodo\' AND Hobbit1.hobbithole = \'Shire\' SET '
+                                              'Hobbit1.name = \'Frodo\', Hobbit1.hobbithole = '
+                                              '\'Shire\', Hobbit1.forty_two = 42',
+            'update:nameSamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype = \'Hobbit\' '
+                                  'AND Hobbit2.name = \'Samwise\' AND Hobbit2.hobbithole = '
+                                  '\'Shire-too\' SET Hobbit2.name = \'Samwise\'',
+            'cypher_find_queryFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = '
+                                      '\'Hobbit\' AND Hobbit1.name = \'Frodo\' AND '
+                                      'Hobbit1.hobbithole = \'Shire\' RETURN ID(Hobbit1), Hobbit1'
         }
+
         store = Store()
         frodo = Hobbit('Frodo', 'Shire')
         frodo_association = StoreAssociation(frodo, store=store)
@@ -430,4 +441,5 @@ if __name__ == '__main__':
             keys.sort()
             for key in keys:
                 print(saved_output[key])
+        #print(saved_output)
     test_main()
