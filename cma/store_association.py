@@ -30,16 +30,27 @@ store_association module - associations between objects, py2neo.Nodes and Stores
 from __future__ import print_function
 # import inject
 from AssimCclasses import pyNetAddr
+import py2neo
 
 
 class StoreAssociation(object):
     """
     Class to represent the association between an object and a Neo4j Node
+
+    Each object is given a unique variable name to use in the Cypher which will be consistent
+    within a transaction. You can read it in early in the transaction, and later on trust
+    that that variable name is the same later on in the transaction.
+
+    The "variable_name" field is the field for the variable name. It is created by
+    the _new_variable_name function. No guarantee that the same Cypher Node will have the same
+    variable name from one transaction to the next. Only if the object lasts from one
+    transaction to the next would this be true. This shouldn't happen often - if at all.
+
     """
     VARIABLE_NAME_PATTERN = 'var_%d'
     last_variable_id = 0
 
-    def __init__(self, obj, node=None, node_id=None, store=None):
+    def __init__(self, obj, node=None, store=None):
         """
         Associate the given object with the given node
 
@@ -52,7 +63,6 @@ class StoreAssociation(object):
         self.obj = obj
         self.key_attributes = obj.__class__.meta_key_attributes()
         self.node = node
-        self._node_id = node_id
         self.variable_name = self._new_variable_name()
         for attr in self.key_attributes:
             if not hasattr(obj, attr):
@@ -69,23 +79,16 @@ class StoreAssociation(object):
         StoreAssociation.last_variable_id += 1
         return StoreAssociation.VARIABLE_NAME_PATTERN % StoreAssociation.last_variable_id
 
-    def set_node_id(self, node_id):
-        """
-        Set the node id of this node in Neo4j. This makes for efficient queries
-        NOTE: they cannot be considered to be persistent.
-        :param node_id: int: id to associate with the node
-        :return: None
-        """
-        assert self.node is not None
-        self._node_id = node_id
-
     @property
     def node_id(self):
         """
         Return the node id of the associated Neo4j node
         :return: int: Node id
         """
-        return self._node_id
+        try:  # getattr avoids complaints from various tools about accessing the _id attribute
+            return getattr(py2neo.remote(self.node), '_id')
+        except AttributeError:
+            return None
 
     @property
     def is_abstract(self):
@@ -160,6 +163,34 @@ class StoreAssociation(object):
             return self.cypher_array_repr(thing)
         return self.cypher_scalar_repr(thing)
 
+    def attribute_string(self, attributes):
+        """
+        Return the Cypher representation of a bunch of attributes
+        :param attributes: dict: attributes as a dict
+        :return: str: Cypher attributes
+        """
+        result = ''
+        delimiter=''
+        if attributes is None:
+            return ''
+        for key, item in attributes.viewitems():
+            if key.startswith('_'):
+                continue
+            result += '%s%s: %s' % (delimiter, key, self.cypher_repr(item))
+            delimiter = ', '
+        return result
+
+    @staticmethod
+    def find_store_association(obj):
+        """
+        Find the StoreAssociation associated with this object
+        :param obj: object: the object of interest
+        :return: the associated StoreAssociation object
+        """
+        if not hasattr(obj, '_Store__store_association'):
+            raise ValueError('%s is not associated with a Store.' % obj)
+        return getattr(obj, '_Store__store_association')
+
     def cypher_find_match_clause(self):
         """
         Construct a cypher match clause which will uniquely find this object if it exists
@@ -216,13 +247,25 @@ class StoreAssociation(object):
         # assert self.is_abstract
         words = ['CREATE (%s' % self.variable_name]
         words.extend(self.default_labels)
-        result = ':'.join(words)
-        result += ' { '
-        delimiter = ''
-        for attr in [a for a in self.obj.__dict__.keys() if not a.startswith('_')]:
-            result += ('%s%s: %s' % (delimiter, attr, self.cypher_repr(getattr(self.obj, attr))))
-            delimiter = ', '
-        return result + ' })'
+        return ':'.join(words) + ' { ' + self.attribute_string(self.obj.__dict__) + ' })'
+
+    def cypher_relate_node(self, relationship_type, to_object, rel_attrs=None):
+        """
+        Relate the current node to the 'to_obj' with the arrow pointing from self->to_obj
+
+        NOTE: if the objects have not been "read in" yet, they may need to be read in first.
+
+        :param relationship_type: str: relationship type
+        :param to_object: object: object to relate to
+        :param rel_attrs: dict: attributes of this relationship
+        :return: str: Cypher query string
+        """
+        to_association = self.find_store_association(to_object)
+        return ('CREATE (%s)-[:%s { %s }]->(%s)' % (self.variable_name,
+                                                    relationship_type,
+                                                    self.attribute_string(rel_attrs),
+                                                    to_association.variable_name))
+
 
 if __name__ == '__main__':
     class BaseGraph(object):
@@ -308,23 +351,80 @@ if __name__ == '__main__':
             """
             pass
 
+
     def test_main():
         """
         :return: None
         """
+        import json
+        saved_output = {}
+        expected_output = {
+            "cypher_find_match_clauseFrodo": "MATCH (var_1:Class_Hobbit) WHERE var_1.nodetype = "
+                                             "\"Hobbit\" AND var_1.name = 'Frodo' AND "
+                                             "var_1.hobbithole = 'Shire'",
+            "update:name:hobbitholeSamwise": "MATCH (var_2) WHERE ID(var_2) = 13 SET var_2.name = "
+                                             "'Samwise', var_2.hobbithole = 'Shire-too'",
+            "cypher_create_node_queryFrodo": "CREATE (var_1:Class_Humanoid:Class_Hobbit { "
+                                             "hobbithole: 'Shire', forty_two: 42, nodetype: "
+                                             "'Hobbit', name: 'Frodo' })",
+            "cypher_find_match_clauseSamwise": "MATCH (var_2) WHERE ID(var_2) = 13",
+            "update:name:hobbithole:42Samwise": "MATCH (var_2) WHERE ID(var_2) = 13 SET "
+                                                "var_2.name = 'Samwise', var_2.hobbithole = "
+                                                "'Shire-too', var_2.forty_two = 42",
+            "update:name:hobbitholeFrodo": "MATCH (var_1:Class_Hobbit) WHERE var_1.nodetype = "
+                                           "\"Hobbit\" AND var_1.name = 'Frodo' AND "
+                                           "var_1.hobbithole = 'Shire' SET var_1.name = 'Frodo', "
+                                           "var_1.hobbithole = 'Shire'",
+            "cypher_create_node_querySamwise": "CREATE (var_2:Class_Humanoid:Class_Hobbit { "
+                                               "hobbithole: 'Shire-too', forty_two: 42, nodetype:"
+                                               " 'Hobbit', name: 'Samwise' })",
+            "cypher_find_querySamwise": "MATCH (var_2) WHERE ID(var_2) = 13 RETURN ID(var_2), " 
+                                                "var_2",
+            "update:nameFrodo": "MATCH (var_1:Class_Hobbit) WHERE var_1.nodetype = \"Hobbit\" AND "
+                                "var_1.name = 'Frodo' AND var_1.hobbithole = 'Shire' SET "
+                                "var_1.name = 'Frodo'",
+            "update:name:hobbithole:42Frodo": "MATCH (var_1:Class_Hobbit) WHERE var_1.nodetype = "
+                                              "\"Hobbit\" AND var_1.name = 'Frodo' AND "
+                                              "var_1.hobbithole = 'Shire' SET var_1.name = "
+                                              "'Frodo', var_1.hobbithole = 'Shire', "
+                                              "var_1.forty_two = 42",
+            "update:nameSamwise": "MATCH (var_2) WHERE ID(var_2) = 13 SET var_2.name = 'Samwise'",
+            "cypher_find_queryFrodo": "MATCH (var_1:Class_Hobbit) WHERE var_1.nodetype = "
+                                      "\"Hobbit\" AND var_1.name = 'Frodo' AND var_1.hobbithole = "
+                                      "'Shire' RETURN ID(var_1), var_1"
+        }
         store = Store()
         frodo = Hobbit('Frodo', 'Shire')
         frodo_association = StoreAssociation(frodo, store=store)
         samwise = Hobbit('Samwise', 'Shire-too')
-        sam_association = StoreAssociation(samwise, store=store, node_id=13)
+        sam_association = StoreAssociation(samwise, store=store)
         for association in (frodo_association, sam_association):
             for fun in ('cypher_create_node_query',
                         'cypher_find_match_clause',
                         'cypher_find_query'):
 
-                print(getattr(association, fun)())
-            print(association.cypher_update_clause(['name']))
-            print(association.cypher_update_clause(['name', 'hobbithole']))
-            print(association.cypher_update_clause(['name', 'hobbithole', 'forty_two']))
+                saved_output[(fun + association.obj.name)] = getattr(association, fun)()
 
+            saved_output['update:name' + association.obj.name] = \
+                association.cypher_update_clause(['name'])
+            saved_output['update:name:hobbithole' + association.obj.name] = \
+                association.cypher_update_clause(['name', 'hobbithole'])
+            saved_output['update:name:hobbithole:42' + association.obj.name] = \
+                association.cypher_update_clause(['name', 'hobbithole', 'forty_two'])
+
+        failcount = 0
+        testcount = 0
+        for key in expected_output:
+            testcount += 1
+            if expected_output[key] != saved_output[key]:
+                print("Key: %s" % key)
+                print("    %s" % expected_output[key])
+                print("    %s" % saved_output[key])
+                failcount += 1
+        print("%d tests completed. %d failed." % (testcount, failcount))
+        if failcount == 0:
+            keys = saved_output.keys()
+            keys.sort()
+            for key in keys:
+                print(saved_output[key])
     test_main()
