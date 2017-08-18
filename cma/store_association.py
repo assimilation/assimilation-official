@@ -312,6 +312,39 @@ class StoreAssociation(object):
                    '-' if reverse else '->',
                    to_association.variable_name))
 
+    def cypher_relationship_match_phrase(self, relationship_type, to_association=None,
+                                         direction='forward', attrs=None):
+        """
+        Create a match phrase to match things directly related to this node (if any)
+        that has the specified type and attributes. We generate a relationship variable
+        and return that in the results.
+
+        :param relationship_type: str: relationship type
+        :param to_association: StoreAssociation: object to relate to
+        :param direction: str: 'forward', 'reverse' or 'bidirectional'
+        :param attrs: dict: attributes of this relationship
+        :return: (str, str): (relationship_variable, match phrase)
+        """
+        relationship_name = self.new_relationship_name()
+        if to_association:
+            if hasattr(to_association, 'variable_name'):
+                to_name = to_association.variable_name
+            else:
+                to_name = to_association
+        else:
+            to_name = ''
+        lhs_arrow = '<-' if direction == self.REVERSE else '-'
+        rhs_arrow = '->' if direction == self.FORWARD else '-'
+        result = ('(%s)%s[%s:%s%s]%s(%s)'
+                  % (self.variable_name,
+                     lhs_arrow,
+                     relationship_name,
+                     relationship_type,
+                     self.attribute_string(attrs),
+                     rhs_arrow,
+                     to_name))
+        return relationship_name, result
+
     def cypher_unrelate_node(self, relationship_type, to_association=None,
                              direction='forward', attrs=None):
         """
@@ -328,18 +361,12 @@ class StoreAssociation(object):
         :param attrs: dict: attributes of this relationship
         :return: str: Cypher query string
         """
-        relationship_name = self.new_relationship_name()
-        lhs_arrow = '<-' if direction == self.REVERSE else '-'
-        rhs_arrow = '->' if direction == self.FORWARD else '-'
-        result = ('MATCH (%s)%s[%s:%s%s]%s(%s)\n'
-                  % (self.variable_name,
-                     lhs_arrow,
-                     relationship_name,
-                     relationship_type,
-                     self.attribute_string(attrs),
-                     rhs_arrow,
-                     to_association.variable_name if to_association else ''))
-        result += 'DELETE %s\n' % relationship_name
+        (relationship_name, cypher_string) = \
+            self.cypher_relationship_match_phrase(relationship_type,
+                                                  to_association=to_association,
+                                                  direction=direction,
+                                                  attrs=attrs)
+        result = 'MATCH %s\nDELETE %s\n' % (cypher_string, relationship_name)
         return result
 
 if __name__ == '__main__':
@@ -433,7 +460,6 @@ if __name__ == '__main__':
         """
         :return: None
         """
-        import json
         saved_output = {}
         expected_output = {
             'cypher_find_match_clauseFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype '
