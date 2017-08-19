@@ -87,7 +87,7 @@ class StoreAssociation(object):
 
     def new_relationship_name(self):
         """
-        Return a unique relatinship name for use in Cypher queries
+        Return a unique relationship name for use in Cypher queries
         :return: str: unique, legal Cypher relationship name
         """
         StoreAssociation.last_relationship_id += 1
@@ -152,7 +152,7 @@ class StoreAssociation(object):
 
     def cypher_array_repr(self, array):
         """
-        Return the cypher representation of an array/list/tuple of items
+        Return the Cypher representation of an array/list/tuple of items
         :return: str: Cypher representation of the list
 
         :param array: [object]: array of scalar items
@@ -207,7 +207,7 @@ class StoreAssociation(object):
 
     def cypher_find_where_clause(self):
         """
-        Construct a cypher where clause which will uniquely find this object if it exists
+        Construct a Cypher where clause which will uniquely find this object if it exists
         It constructs a query which uses this object's key attributes to find the
         py2neo (Neo4j) node that goes with it in the database.
         We only construct the where clause - not a whole query...
@@ -226,7 +226,7 @@ class StoreAssociation(object):
 
     def cypher_find_match_clause(self):
         """
-        Construct a cypher match clause which will uniquely find this object if it exists
+        Construct a Cypher match clause which will uniquely find this object if it exists
         It constructs a query which uses this object's key attributes to find the
         py2neo (Neo4j) node that goes with it in the database.
         We only construct the match clause - not a whole query...
@@ -244,7 +244,7 @@ class StoreAssociation(object):
 
     def cypher_find_query(self):
         """
-        Construct a cypher query which will uniquely return this object and its id if it exists
+        Construct a Cypher query which will uniquely return this object and its id if it exists
 
         :return: str: Cypher query as described above...
         """
@@ -280,7 +280,8 @@ class StoreAssociation(object):
         words.extend(self.default_labels)
         return ':'.join(words) + self.attribute_string(self.obj.__dict__) + ')\n'
 
-    def cypher_relate_node(self, relationship_type, to_association, direction='forward', attrs=None):
+    def cypher_relate_node(self, relationship_type, to_association,
+                           direction='forward', attrs=None):
         """
         Relate the current node to the 'to_obj' with the arrow pointing from self->to_obj
 
@@ -320,7 +321,8 @@ class StoreAssociation(object):
         and return that in the results.
 
         :param relationship_type: str: relationship type
-        :param to_association: StoreAssociation: object to relate to
+        :param to_association: StoreAssociation: object to relate to *or* a string
+                                                 telling us the other node's variable name
         :param direction: str: 'forward', 'reverse' or 'bidirectional'
         :param attrs: dict: attributes of this relationship
         :return: (str, str): (relationship_variable, match phrase)
@@ -379,11 +381,36 @@ class StoreAssociation(object):
         :param attrs: dict: attributes of the desired relationship (or None or {})
         :return: str: Cypher statement to return related nodes
         """
-        return ('MATCH %s\nRETURN destnode'
+        return ('MATCH %s\nRETURN destination'
                 % self.cypher_relationship_match_phrase(relationship_type,
-                                                        to_association='destnode',
+                                                        to_association='destination',
                                                         direction=direction,
                                                         attrs=attrs)[1])
+
+    def cypher_add_labels_clause(self, labels):
+        """
+        Create a Cypher clause to add labels to this node
+        You must have already MATCHed to specify the node
+
+        :param labels: list(str): labels to add
+        :return: str: Cypher string to delete labels from this node
+        """
+        if labels:
+            return "SET %s:%s" % (self.variable_name, ':'.join(labels))
+        return ''
+
+    def cypher_delete_labels_clause(self, labels):
+        """
+        Create a Cypher clause to remove labels from this node
+        You must have already MATCHed to specify the node
+
+        :param labels: list(str): labels to delete
+        :return: str: Cypher string to delete labels from this node
+        """
+        if labels:
+            return "REMOVE %s:%s" % (self.variable_name, ':'.join(labels))
+        return ''
+
 
 if __name__ == '__main__':
     class BaseGraph(object):
@@ -544,17 +571,17 @@ if __name__ == '__main__':
             saved_output['update:name:hobbithole:42' + association.obj.name] = \
                 association.cypher_update_clause(['name', 'hobbithole', 'forty_two'])
 
-        failcount = 0
-        testcount = 0
+        fail_count = 0
+        test_count = 0
         for key in expected_output:
-            testcount += 1
+            test_count += 1
             if expected_output[key] != saved_output[key]:
                 print("Key: %s" % key)
                 print("    %s" % expected_output[key])
                 print("    %s" % saved_output[key])
-                failcount += 1
-        print("%d tests completed. %d failed." % (testcount, failcount))
-        if False and failcount == 0:
+                fail_count += 1
+        print("%d tests completed. %d failed." % (test_count, fail_count))
+        if False and fail_count == 0:
             keys = saved_output.keys()
             keys.sort()
             for key in keys:
@@ -592,7 +619,7 @@ if __name__ == '__main__':
                                                        attrs={'since': 'years_ago'})
         cypher += "RETURN Hobbit1, Hobbit2"
         print(cypher)
-        graph = py2neo.Graph(password='centur10n')
+        graph = py2neo.Graph(password='PASSWORD')
         data = graph.data(cypher)[0]
         print(type(data))
         print(data)
