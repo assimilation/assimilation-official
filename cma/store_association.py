@@ -369,6 +369,22 @@ class StoreAssociation(object):
         result = 'MATCH %s\nDELETE %s\n' % (cypher_string, relationship_name)
         return result
 
+    def cypher_return_related_nodes(self, relationship_type, direction='forward', attrs=None):
+        """
+        Complete Cypher query to Return nodes related to the current one
+        Parameters mean the same as in cypher_relationship_match_phrase()
+
+        :param relationship_type: str: relationship type
+        :param direction: str: 'forward', 'reverse' or 'bidirectional'
+        :param attrs: dict: attributes of the desired relationship (or None or {})
+        :return: str: Cypher statement to return related nodes
+        """
+        return ('MATCH %s\nRETURN destnode'
+                % self.cypher_relationship_match_phrase(relationship_type,
+                                                        to_association='destnode',
+                                                        direction=direction,
+                                                        attrs=attrs)[1])
+
 if __name__ == '__main__':
     class BaseGraph(object):
         """
@@ -561,7 +577,11 @@ if __name__ == '__main__':
                                                                 to_node,
                                                                 direction=direction,
                                                                 attrs=attrs)))
-
+                    node = to_node if to_node is not None else frodo_association
+                    print('%s: %s' %
+                          (direction, node.cypher_return_related_nodes('FriendsWith',
+                                                                       direction=direction,
+                                                                       attrs=attrs)))
         # print(saved_output)
 
         cypher = frodo_association.cypher_create_node_query()
