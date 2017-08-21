@@ -249,7 +249,7 @@ class StoreAssociation(object):
         :return: str: Cypher query as described above...
         """
         result = self.cypher_find_match_clause()
-        result += 'RETURN ID(%s), %s' % (self.variable_name, self.variable_name)
+        result += '%s' % self.variable_name
         return result
 
     def cypher_update_clause(self, attributes):
@@ -381,9 +381,9 @@ class StoreAssociation(object):
         :param attrs: dict: attributes of the desired relationship (or None or {})
         :return: str: Cypher statement to return related nodes
         """
-        return ('MATCH %s\nRETURN destination'
+        return ('MATCH %s\nRETURN other'
                 % self.cypher_relationship_match_phrase(relationship_type,
-                                                        to_association='destination',
+                                                        to_association='other',
                                                         direction=direction,
                                                         attrs=attrs)[1])
 
@@ -399,17 +399,22 @@ class StoreAssociation(object):
             return "SET %s:%s" % (self.variable_name, ':'.join(labels))
         return ''
 
-    def cypher_delete_labels_clause(self, labels):
+    def cypher_delete_attributes_clause(self, attributes):
         """
-        Create a Cypher clause to remove labels from this node
+        Create a Cypher clause to remove attributes from this node
         You must have already MATCHed to specify the node
 
-        :param labels: list(str): labels to delete
+        :param attributes: list(str): attributes to delete
         :return: str: Cypher string to delete labels from this node
         """
-        if labels:
-            return "REMOVE %s:%s" % (self.variable_name, ':'.join(labels))
-        return ''
+        result = ''
+        if attributes:
+            result += 'REMOVE '
+            delimiter = ''
+            for attribute in attributes:
+                result += "%s%s.%s" % (delimiter, self.variable_name, attribute)
+            delimiter = ', '
+        return result
 
 
 if __name__ == '__main__':
