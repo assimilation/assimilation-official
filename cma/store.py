@@ -986,16 +986,6 @@ class Store(object):
         return [client for client in self.clients if client.is_abstract]
 
 
-    @staticmethod
-    def node(subj):
-        """
-        Returns the neo4j.Node associated with the given object
-
-        :param subj: object: object of interest
-        :return: neo4j.Node: associated node
-        """
-        return subj.association.node
-
      #
      #   Except for commit() and abort(), all member functions from here on
      #   construct the batch job from previous requests

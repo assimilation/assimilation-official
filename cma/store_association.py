@@ -177,7 +177,7 @@ class StoreAssociation(object):
         result = ' {'
         delimiter = ''
         for key, item in attributes.viewitems():
-            if key.startswith('_'):
+            if key.startswith('_') or key == 'association':
                 continue
             result += '%s%s: %s' % (delimiter, key, self.cypher_repr(item))
             delimiter = ', '
@@ -358,7 +358,8 @@ class StoreAssociation(object):
         result = 'MATCH %s\nDELETE %s\n' % (cypher_string, relationship_name)
         return result
 
-    def cypher_return_related_nodes(self, relationship_type, other_node=None, direction='forward', attrs=None):
+    def cypher_return_related_nodes(self, relationship_type, other_node=None,
+                                    direction='forward', attrs=None):
         """
         Complete Cypher query to Return nodes related to the current one
         Parameters mean the same as in cypher_relationship_match_phrase()
@@ -379,7 +380,7 @@ class StoreAssociation(object):
     def cypher_add_labels_clause(self, labels):
         """
         Create a Cypher clause to add labels to this node
-        You must have already MATCHed to specify the node
+        You must have already MATCH-ed to specify the node
 
         :param labels: list(str): labels to add
         :return: str: Cypher string to delete labels from this node
@@ -391,7 +392,7 @@ class StoreAssociation(object):
     def cypher_delete_attributes_clause(self, attributes):
         """
         Create a Cypher clause to remove attributes from this node
-        You must have already MATCHed to specify the node
+        You must have already MATCH-ed to specify the node
 
         :param attributes: list(str): attributes to delete
         :return: str: Cypher string to delete labels from this node
@@ -402,7 +403,7 @@ class StoreAssociation(object):
             delimiter = ''
             for attribute in attributes:
                 result += "%s%s.%s" % (delimiter, self.variable_name, attribute)
-            delimiter = ', '
+                delimiter = ', '
         return result
 
 
