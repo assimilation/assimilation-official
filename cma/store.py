@@ -126,14 +126,11 @@ class Store(object):
     object constructors which would be a bad thing worth recognizing -- but I don't
     do anything special for this case at the moment.
     """
-    LUCENE_RE = re.compile(r'([\-+&\|!\(\)\{\}[\]^"~\*?:\\])')
-    LUCENE_RE = re.compile(r'([:[\]])')
-
     debug = True
     log = None
 
-    @inject.params(db=neo4j.Graph, log=logging.Logger)
-    def __init__(self, db=None, log=None, readonly=False):
+    @inject.params(db=neo4j.Graph, log=logging.Logger, factory_constructor=None)
+    def __init__(self, db=None, log=None, readonly=False, factory_constructor=None):
         """
         Constructor for Transactional Write (Batch) Store objects
         ---------
@@ -152,8 +149,7 @@ class Store(object):
         self.deletions = []
         self.classes = {}
         self.weaknoderefs = {}
-        self._transaction_create_map = {}
-        self._transaction_variables_defined = set()
+        self._transaction_variables = {} # Variables defined in this transaction
         self.batch = None
         self.create_node_count = 0
         self.relate_node_count = 0
@@ -162,6 +158,7 @@ class Store(object):
         self.node_deletion_count = 0
         self.node_separate_count = 0
         self.cypher = ''
+        self.factory = factory_constructor if factory_constructor else GraphNode.factory
 
     def __str__(self):
         """
@@ -198,7 +195,7 @@ class Store(object):
 
         :return: None
         """
-        print ("CURRENT CLIENTS (%s:%d):" % (self, len(self.clients)), file=sys.stderr)
+        print("CURRENT CLIENTS (%s:%d):" % (self, len(self.clients)), file=sys.stderr)
         for client in self.clients:
             print('Client %s:' % client, file=sys.stderr)
             for attr in Store._safe_attr_names(client):
@@ -234,16 +231,39 @@ class Store(object):
         :param subj: object: associated with a Neo4j node
         :return: None
         """
-        if not hasattr(subj, '_Store__store_node'):
-            raise ValueError('Object not associated with the Store system')
         if self.readonly:
             raise RuntimeError('Attempt to delete an object from a read-only store')
-        node = subj.__store_node
-        if not node.bound:
+        if subj.association.is_abstract:
             raise ValueError('Node cannot be abstract')
         self.separate(subj)
         self.separate_in(subj)
         self.deletions.append(subj)
+
+
+    def _get_key_values(self, cls, clsargs, subj=None):
+        """
+        Return a dict of key names and values
+        :param cls: classtype: resulting class
+        :param clsargs: constructor arguments to class
+        :param subj: object possibly from a constructor...
+        :return: dict: key name/value pairs
+        """
+        result = {}
+        for attr in cls.meta_key_attributes():
+            if hasattr(subj, attr):
+                result[attr] = getattr(subj, attr)
+            else:
+                result[attr] = clsargs[attr]
+        return result
+
+    @staticmethod
+    def neo_node_id(node):
+        """
+        Return the Neo4j node ID from the node
+        :param node: py2neo.Node
+        :return: int: node id
+        """
+        return getattr(py2neo.remote(node), '_id') if node else None
 
 
     def load(self, cls, **clsargs):
@@ -252,36 +272,20 @@ class Store(object):
 
         :param cls: class of the resulting object
         :param clsargs: arguments to the class
-        :return:
+        :return: object
         """
-        if cls.__name__ not in self.classkeymap:
-            print (self.classkeymap, file=sys.stderr)
-            raise ValueError("Class [%s] does not have a known index [%s]"
-                             % (cls.__name__, self.classkeymap))
-        try:
-            (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=clsargs)
-        except KeyError:
-            # On rare occasions, constructors create some default "unique" values
-            # which don't appear as arguments, then the call above fails with KeyError.
-            # The rest of the time, just using subj=clsargs is cheaper...
-            # There are no cases where it produces different results.
-            # If we're called by load_or_save() it will call the constructor again,
-            # so it seems good to avoid that.
-            subj = self.save(self.callconstructor(cls, clsargs))
-            (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls, clsargs, subj=subj)
-        if not self.is_uniqueindex(index_name):
-            raise ValueError("Class [%s] is not a unique indexed class" % cls)
+        subj = self.callconstructor(cls, clsargs)
+        key_values = self._get_key_values(cls, clsargs, subj=subj)
 
         # See if we can find this node in memory somewhere...
-        ret = self._localsearch(cls, idxkey, idxvalue)
-        if ret is not None:
+        ret = self._localsearch(cls, key_values)
+        if ret:
             return ret
-
         try:
-            node = self.db.legacy.get_indexed_node(index_name, idxkey, idxvalue)
+            node = self.db.evaluate(subj.association.cypher_find_query())
         except GraphError:
             return None
-        return self._construct_obj_from_node(node, cls, clsargs) if node is not None else None
+        return self._update_obj_from_node(subj, node) if node else None
 
     def load_or_create(self, cls, **clsargs):
         """
@@ -297,7 +301,7 @@ class Store(object):
             if Store.debug:
                 print('LOADED node[%s]: %s' % (str(clsargs), str(obj)), file=sys.stderr)
             return obj
-        return self.save(self.callconstructor(cls, clsargs))
+        return self.callconstructor(cls, clsargs)
 
     def relate(self, subj, rel_type, obj, properties=None):
         """
@@ -314,11 +318,30 @@ class Store(object):
             raise RuntimeError('Attempt to relate objects in a read-only store')
         self.newrels.append({'from': subj, 'to': obj, 'type': rel_type, 'props': properties})
         if Store.debug:
-            print ('NEW RELATIONSHIP FROM %s to %s' % (subj, obj), file=sys.stderr)
+            print('NEW RELATIONSHIP FROM %s to %s' % (subj, obj), file=sys.stderr)
             if not Store.is_abstract(subj):
                 print('FROM id is %s' % Store.id(subj), file=sys.stderr)
             if not Store.is_abstract(obj):
                 print('TO id is %s' % Store.id(obj), file=sys.stderr)
+
+    def get_related(self, subj, rel_type, obj=None, direction='forward', properties=None):
+        """
+        Return nodes related to this one by the given 'rel_type'
+        :param subj: GraphNode: from node
+        :param rel_type:
+        :param obj: GraphNode: to node
+        :param direction: which direction should the relationship go?
+        :param properties: properties to set on the new relationship
+        :return: generator yielding related nodes
+        """
+        query = subj.association.cypher_return_related_nodes(rel_type,
+                                                             direction=direction,
+                                                             other_node=obj,
+                                                             attrs=properties)
+        cursor = self.db.run(query)
+        while cursor.forward():
+            yield self._construct_obj_from_node(cursor.current, self.factory)
+
 
     def relate_new(self, subj, rel_type, obj, properties=None):
         """
@@ -331,17 +354,14 @@ class Store(object):
         :param properties: relationship properties
         :return: None
         """
-        subjnode = subj.__store_node
-        objnode = obj.__store_node
 
         # Check for relationships created in this transaction...
         for rel in self.newrels:
             if rel['from'] is subj and rel['to'] is obj and rel['type'] == rel_type:
                 return
         # Check for pre-existing relationships
-        if objnode.bound and subjnode.bound:
-            rels = [rel for rel in subjnode.match_outgoing(rel_type, objnode)]
-            if len(rels) > 0:
+        if not subj.association.is_abstract and not obj.association.is_abstract:
+            while self.get_related(subj, rel_type, obj):
                 return
         self.relate(subj, rel_type, obj, properties)
 
@@ -355,19 +375,20 @@ class Store(object):
         :param obj: to-node
         :return: None
         """
-        fromnode = subj.__store_node
-        if not fromnode.bound:
+        # TODO: eliminate use of node
+        if subj.association.is_abstract:
             raise ValueError('Subj Node cannot be abstract')
         if obj is not None:
-            obj = obj.__store_node
-            if not obj.bound:
+            if obj.association.is_abstract:
                 raise ValueError('Obj Node cannot be abstract')
 
         # No errors - give it a shot!
+        # TODO: eliminate use of node
         rels = subj.__store_node.match_outgoing(rel_type, obj)
         for rel in rels:
             if Store.debug:
-                print ('DELETING RELATIONSHIP %s of type %s: %s' % (rel._id, rel_type, rel))
+                print('DELETING RELATIONSHIP %s of type %s: %s' % (rel._id, rel_type, rel),
+                      file=sys.stderr)
             if obj is not None:
                 assert rel.end_node._id == obj._id
             self.deletions.append(rel)
@@ -382,15 +403,15 @@ class Store(object):
         :param obj:
         :return:
         """
-        fromnode = subj.__store_node
-        if not fromnode.bound:
+        # TODO: eliminate use of node
+        if subj.association.is_abstract:
             raise ValueError('Node cannot be abstract')
         if obj is not None:
-            obj = obj.__store_node
-            if not obj.bound:
+            if obj.association.is_abstract:
                 raise ValueError('Node cannot be abstract')
 
         # No errors - give it a shot!
+        # FIXME: eliminate use of node
         rels = subj.__store_node.match_incoming(rel_type)
         for rel in rels:
             self.deletions.append(rel)
@@ -408,9 +429,10 @@ class Store(object):
         :return: generator(object): all the related objects
         """
 
-        if Store.is_abstract(subj):
+        if subj.association.is_abstract:
             # @TODO Should search recently created relationships...
             raise ValueError('Node to load_related from cannot be abstract')
+        # FIXME: eliminate use of node
         rels = subj.__store_node.match_outgoing(rel_type)
         for rel in rels:
             yield self._construct_obj_from_node(rel.end_node, cls)
@@ -427,9 +449,10 @@ class Store(object):
         :param cls: class or general constructor function
         :return: generator(object): all the related objects
         """
-        if not subj.__store_node.bound:
+        if subj.association.is_abstract:
             # @TODO Should search recently created relationships...
             raise ValueError('Node to load related from cannot be abstract')
+        # FIXME: eliminate use of node
         rels = subj.__store_node.match_incoming(rel_type)
         for rel in rels:
             yield (self._construct_obj_from_node(rel.start_node, cls))
@@ -565,7 +588,8 @@ class Store(object):
         :return: object: whatever the constructor/function gives us
         """
         if Store.debug:
-             print("CALLING CONSTRUCTOR: %s(%s)" % (constructor.__name__, str(kwargs)))
+             print("CALLING CONSTRUCTOR: %s(%s)" % (constructor.__name__, str(kwargs)),
+                   file=sys.stderr)
         try:
              args, _unusedvarargs, varkw, _unuseddefaults = inspect.getargspec(constructor)
         except TypeError:
@@ -581,7 +605,6 @@ class Store(object):
                  else:
                      extraattrs[arg] = kwargs[arg]
         ret = constructor(**newkwargs)
-
 
          # Make sure the attributes match the desired values
         for attr in kwargs:
@@ -606,9 +629,9 @@ class Store(object):
         :return: object: constructed object
         """
         kwargs = node.get_properties()
-        #print >> sys.stderr, 'constructobj NODE PROPERTIES', kwargs
+        #print('constructobj NODE PROPERTIES', kwargs, file=sys.stderr)
         subj = Store.callconstructor(constructor, kwargs)
-        #print >> sys.stderr, 'constructobj CONSTRUCTED NODE ', subj
+        #print('constructobj CONSTRUCTED NODE ', subj, file=sys.stderr)
         cls = subj.__class__
         (index_name, idxkey, idxvalue) = self._get_idx_key_value(cls,  {}, subj=subj)
         if not self.is_uniqueindex(index_name):
@@ -767,30 +790,13 @@ class Store(object):
                 objself.__store.clients[objself] = True
         object.__setattr__(objself, name, value)
 
-    @staticmethod
-    def _update_node_from_obj(subj):
-        """
-        Update the node from its paired object - _clearing_ dirty attributes
-
-        :param subj: object: object to be used to update node from
-        :return: None
-        """
-        node = subj.__store_node
-        attrlist = subj.__store_dirty_attrs.keys()
-        for attr in attrlist:
-            node[attr] = Store._neo4j_attr_value(subj, attr)
-            # print('SETTING node["%s"] to %s' %
-            #                      (attr, Store.__attr_value(subj, attr)), file=sys.stderr)
-        subj.__store_dirty_attrs = {}
-
-    def _update_obj_from_node(self, subj):
+    def _update_obj_from_node(self, subj, node):
         """
         'Update an object from its paired node - preserving "dirty" attributes'
 
         :param subj: object: thing to be updated
         :return: None
         """
-        node = subj.__store_node
         nodeprops = node.get_properties()
         remove_subj = subj not in self.clients
         for attr in nodeprops.keys():
@@ -798,7 +804,7 @@ class Store(object):
             if attr in subj.__store_dirty_attrs:
                 remove_subj = False
                 continue
-            #print >> sys.stderr, ('Setting obj["%s"] to %s' % (attr, pattr))
+            #print(('Setting obj["%s"] to %s' % (attr, pattr), file=sys.stderr)
             # Avoid getting it marked as dirty...
             object.__setattr__(subj, attr, pattr)
         if remove_subj and subj in self.clients:
@@ -809,6 +815,8 @@ class Store(object):
             if attr not in nodeprops:
                 subj.__store_dirty_attrs[attr] = True
                 self.clients[subj] = True
+        subj.association.node_id = self.neo_node_id(node)
+        return subj
 
     def reset_stats(self):
         """
@@ -834,7 +842,7 @@ class Store(object):
         self.stats[statname] += increment
 
 
-    def _localsearch(self, cls, idxkey, idxvalue):
+    def _localsearch(self, cls, key_values):
         """
         Search the 'client' array and the weaknoderefs to see if we can find
         the requested object before going to the database
@@ -873,6 +881,7 @@ class Store(object):
                     found = False
                     break
             if found:
+                # FIXME: eliminate use of node
                 assert hasattr(client, '_Store__store_node')
                 return client
         return None
@@ -897,7 +906,7 @@ class Store(object):
                 del self.weaknoderefs[nodeid]
             else:
                 # Yes, we have a copy laying around somewhere - update it...
-                # print >> sys.stderr, ('WE HAVE NODE LAYING AROUND...', node.get_properties())
+                # print(('WE HAVE NODE LAYING AROUND...', node.get_properties(), file=sys.stderr)
                 self._update_obj_from_node(subj)
                 return subj
         # print('NODE ID: %d, node = %s' % (node._node_id, str(node)), file=sys.stderr)
@@ -936,6 +945,7 @@ class Store(object):
         # We don't really need attributes, we can look things up in a table anyway...
         # This might be slightly faster, but dicts in python are very fast
         subj.__store = self
+        # FIXME: eliminate use of node
         subj.__store_node = node
         subj.__store_index = index
         subj.__store_index_key = key
@@ -997,12 +1007,11 @@ class Store(object):
          for subj in self._newly_created_nodes():
              assert isinstance(subj, GraphNode)
              if Store.debug:
-                 print ('====== Performing batch.create(%s: %s) - for new node'
+                 print('====== Performing batch.create(%s: %s) - for new node'
                  %   (subj.association.variable_name, str(subj)), file=sys.stderr)
 
              self.cypher += subj.association.cypher_create_node_query()
-             self._transaction_create_map[subj.association.variable_name] = subj
-             self._transaction_variables_defined.add(subj.association.variable_name)
+             self._transaction_variables[subj.association.variable_name] = subj.association
              self._bump_stat('nodecreate')
 
     def _batch_define_if_undefined(self, subj):
@@ -1012,9 +1021,9 @@ class Store(object):
         :return: None
         """
         variable_name = subj.association.variable_name
-        if variable_name not in self._transaction_variables_defined:
+        if variable_name not in self._transaction_variables:
             self.cypher += subj.association.cypher_find_match_clause()
-            self._transaction_variables_defined.add(variable_name)
+            self._transaction_variables[variable_name] = subj.association
 
     def _batch_construct_add_labels(self):
         """
@@ -1066,6 +1075,7 @@ class Store(object):
                  if Store.debug and Store.log:
                      Store.log.debug('DELETING NODE %s: %s' %
                                      (str(relorobj.__dict__.keys()), relorobj))
+                 # FIXME: eliminate use of node
                  node = relorobj.__store_node
                  nodeid = node._id
                  if nodeid in delnodes:
@@ -1083,101 +1093,119 @@ class Store(object):
                  delnodes[relid] = True
 
     def _batch_construct_node_updates(self):
-         'Construct batch commands for updating attributes on "old" nodes'
-         # todo: needs complete redesign to create Cypher statements
-         clientset = {}
-         for subj in self.clients:
-             assert subj not in clientset
-             clientset[subj] = True
-             node = subj.__store_node
-             if not node.bound:
-                 continue
-             for attr in subj.__store_dirty_attrs.keys():
-                 # Each of these items will return None in the HTTP stream...
-                 self.node_update_count += 1
-                 self._bump_stat('attrupdate')
-                 setattr(node, attr, Store._neo4j_attr_value(subj, attr))
-                 if Store.debug:
-                     print >> sys.stderr, ('Setting property %s of node %d to %s' % (attr
-                     ,       node._id, Store._proper_attr_value(subj, attr)))
-                     if Store.log:
-                         Store.log.debug('Setting property %s of %d to %s' % (attr
-                         ,       node._id, Store._proper_attr_value(subj, attr)))
-                 self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
+        """
+        Construct batch commands for updating attributes on "old" nodes
 
-    def abort(self):
-         'Clear out any currently pending transaction work - start fresh'
-         if self.batch is not None:
-             self.batch = None
-         for subj in self.clients:
-             subj.__store_dirty_attrs = {}  # should probably be a set...
-         self.clients = {}  # should also be a set...
-         self.newrels = []
-         self.deletions = []
-         # Clean out dead node references
-         for nodeid in self.weaknoderefs.keys():
-             subj = self.weaknoderefs[nodeid]()
-             if subj is None or not hasattr(subj, '_Store__store_node'):
-                 del self.weaknoderefs[nodeid]
+        :param self:
+        :return:
+        """
+        # todo: needs complete redesign to create Cypher statements
+        clientset = {}
+        for subj in self.clients:
+            assert subj not in clientset
+            clientset[subj] = True
+            if subj.association.is_abstract:
+                continue
+            node = subj.association.node
+            for attr in subj.__store_dirty_attrs.keys():
+                # Each of these items will return None in the HTTP stream...
+                self.node_update_count += 1
+                self._bump_stat('attrupdate')
+                setattr(node, attr, Store._neo4j_attr_value(subj, attr))
+                if Store.debug:
+                    print('Setting property %s of node %d to %s'
+                          % (attr , node._id, Store._proper_attr_value(subj, attr)),
+                          file=sys.stderr)
+                    if Store.log:
+                        Store.log.debug('Setting property %s of %d to %s' % (attr
+                        ,       node._id, Store._proper_attr_value(subj, attr)))
+                self.batch.set_property(node, attr, Store._proper_attr_value(subj, attr))
 
     def commit(self):
-         '''Commit all the changes we've created since our last transaction'''
-         if Store.debug:
-             print >> sys.stderr, ('COMMITTING THIS THING:', str(self))
-         self.batch = self.batch if self.batch is not None \
-                      else py2neo.legacy.LegacyWriteBatch(self.db)
-         self._batch_construct_create_nodes()        # These return new nodes in batch return result
-         self._batch_construct_relate_nodes()        # These return new relationships
-         self._batch_construct_new_index_entries()   # These return the objects indexed
-         self._batch_construct_node_updates()        # These return None
-         self._batch_construct_add_labels()          # Not sure what these return
-         self._batch_construct_deletions()           # These return None
-         if Store.debug:
-             print >> sys.stderr, ('Batch Updates constructed: Committing THIS THING:', str(self))
-             if Store.log:
-                 Store.log.debug('Batch Updates constructed: Committing THIS THING: %s'
-                 %   str(self))
-         start = datetime.now()
-         try:
-             submit_results = self.batch.submit()
-         except GraphError as e:
-             print >> sys.stderr, ('FAILED TO COMMIT THIS THING:', str(self))
-             print >> sys.stderr, self
-             print >> sys.stderr, ('BatchError: %s' % e)
-             raise e
-         if Store.debug:
-             print >> sys.stderr, 'SUBMIT RESULTS FOLLOW:'
-             for result in submit_results:
-                 print >> sys.stderr, 'SUBMITRESULT:', type(result), result
-         end = datetime.now()
-         diff = end - start
-         self.stats['lastcommit'] = diff
-         self.stats['totaltime'] += diff
+        """
+        Commit all the changes we've created since our last transaction
 
-         # Save away (update) any newly created nodes...
-         for subj in self._newly_created_nodes():
-             # TODO: REWRITE THIS...
-             newnode = submit_results[index]
-             if Store.debug:
-                 print('LOOKING at new node with batch index %d' % index, file=sys.stderr)
-                 print('NEW NODE looks like %s' % str(newnode), file=sys.stderr)
-                 print('SUBJ (our copy) looks like %s' % str(subj), file=sys.stderr)
-                 print('NEONODE (their copy) looks like %d, %s'
-                 %       (newnode._id, str(newnode.get_properties())), file=sys.stderr)
-             # This 'subj' used to have an abstract node, now it's concrete
-             subj.__store_node = newnode
-             self.weaknoderefs[newnode._id] = weakref.ref(subj)
-             for attr in newnode.get_properties():
-                 if not hasattr(subj, attr):
-                     print ("OOPS - we're missing attribute %s" % attr, file=sys.stderr)
-                 elif getattr(subj, attr) != newnode[attr]:
-                     print ("OOPS - attribute %s is %s and should be %s"
-                     %   (attr, getattr(subj, attr), newnode[attr]), file=sys.stderr)
-                     #self.dump_clients()
-         self.abort()
-         if Store.debug:
-             print('DB TRANSACTION COMPLETED SUCCESSFULLY', file=sys.stderr)
-         return submit_results
+        :return: None
+        """
+        if Store.debug:
+            print('COMMITTING THIS THING:', str(self), file=sys.stderr)
+        self.cypher = None
+        self._batch_construct_create_nodes()        # These return new nodes in batch return result
+        self._batch_construct_relate_nodes()        # These return new relationships
+        self._batch_construct_new_index_entries()   # These return the objects indexed
+        self._batch_construct_node_updates()        # These return None
+        self._batch_construct_add_labels()          # Not sure what these return
+        self._batch_construct_deletions()           # These return None
+
+
+        if Store.debug:
+            print('Batch Updates constructed: Committing THIS THING:', str(self), file=sys.stderr)
+            if Store.log:
+                Store.log.debug('Batch Updates constructed: Committing THIS THING: %s'
+                %   str(self))
+        start = datetime.now()
+        try:
+            submit_results = self.batch.submit()
+        except GraphError as e:
+            print('FAILED TO COMMIT THIS THING:', str(self), file=sys.stderr)
+            print(self, file=sys.stderr)
+            print('BatchError: %s' % e, file=sys.stderr)
+            raise e
+        if Store.debug:
+            print('SUBMIT RESULTS FOLLOW:', file=sys.stderr)
+            for result in submit_results:
+                print('SUBMITRESULT:', type(result), result, file=sys.stderr)
+        end = datetime.now()
+        diff = end - start
+        self.stats['lastcommit'] = diff
+        self.stats['totaltime'] += diff
+
+        # Save away (update) any newly created nodes...
+        for subj in self._newly_created_nodes():
+            # TODO: REWRITE THIS...
+            newnode = submit_results[index]
+            if Store.debug:
+                print('LOOKING at new node with batch index %d' % index, file=sys.stderr)
+                print('NEW NODE looks like %s' % str(newnode), file=sys.stderr)
+                print('SUBJ (our copy) looks like %s' % str(subj), file=sys.stderr)
+                print('NEONODE (their copy) looks like %d, %s'
+                %       (newnode._id, str(newnode.get_properties())), file=sys.stderr)
+            # This 'subj' used to have an abstract node, now it's concrete
+            # FIXME: eliminate use of node
+            subj.__store_node = newnode
+            self.weaknoderefs[newnode._id] = weakref.ref(subj)
+            for attr in newnode.get_properties():
+                if not hasattr(subj, attr):
+                    print("OOPS - we're missing attribute %s" % attr, file=sys.stderr)
+                elif getattr(subj, attr) != newnode[attr]:
+                    print("OOPS - attribute %s is %s and should be %s"
+                    %   (attr, getattr(subj, attr), newnode[attr]), file=sys.stderr)
+                    #self.dump_clients()
+        self.abort()
+        if Store.debug:
+            print('DB TRANSACTION COMPLETED SUCCESSFULLY', file=sys.stderr)
+        return submit_results
+
+    def abort(self):
+        """
+        Clear out any currently pending transaction work - start fresh'
+
+        :param self:
+        :return:
+        """
+        if self.batch is not None:
+            self.batch = None
+        for subj in self.clients:
+            subj.__store_dirty_attrs = {}  # should probably be a set...
+        self.clients = {}  # should also be a set...
+        self.newrels = []
+        self.deletions = []
+        # Clean out dead node references
+        for nodeid in self.weaknoderefs.keys():
+            subj = self.weaknoderefs[nodeid]()
+            # FIXME: eliminate use of node
+            if subj is None or not hasattr(subj, '_Store__store_node'):
+                del self.weaknoderefs[nodeid]
 
     def clean_store(self):
          '''Clean out all the objects we used to have in our store - afterwards we
@@ -1271,7 +1299,7 @@ class Store(object):
          for rel in rellist:
              store.relate_new(fred, rel, fred)
          store.commit()  # The updates have been captured...
-         print >> sys.stderr, ('Statistics:', store.stats)
+         print('Statistics:', store.stats, file=sys.stderr)
 
          assert fred.a == 52
          assert fred.b == 2
@@ -1291,16 +1319,16 @@ class Store(object):
          assert fred.b == 2
          assert fred.name == DRONE
          assert fred.c > 3.14158 and fred.c < 3.146
-         print >> sys.stderr, (store)
+         print(store, file=sys.stderr)
          assert not store.transaction_pending
 
          #Add another new field
          fred.x = 'malcolm'
          store.dump_clients()
-         print >> sys.stderr, ('store:', store)
+         print('store:', store, file=sys.stderr)
          assert store.transaction_pending
          store.commit()
-         print >> sys.stderr, ('Statistics:', store.stats)
+         print('Statistics:', store.stats, file=sys.stderr)
          assert not store.transaction_pending
          assert fred.a == 52
          assert fred.b == 2
@@ -1310,12 +1338,12 @@ class Store(object):
 
          # Check out load_indexed...
          newnode = store.load_indexed('Drone', 'Drone', fred.name, Drone)[0]
-         print >> sys.stderr, ('LoadIndexed NewNode: %s %s' % (newnode, store.safe_attrs(newnode)))
+         print('LoadIndexed NewNode: %s %s' % (newnode, store.safe_attrs(newnode)), file=sys.stderr)
          # It's dangerous to have two separate objects which are the same thing be distinct
          # so we if we fetch a node, and one we already have, we get the original one...
          assert fred is newnode
          if store.transaction_pending:
-             print >> sys.stderr, ('UhOh, we have a transaction pending.')
+             print('UhOh, we have a transaction pending.', file=sys.stderr)
              store.dump_clients()
              assert not store.transaction_pending
          assert newnode.a == 52
@@ -1324,12 +1352,12 @@ class Store(object):
          store.separate(fred, 'WILLBEA')
          assert store.transaction_pending
          store.commit()
-         print >> sys.stderr, ('Statistics:', store.stats)
+         print('Statistics:', store.stats, file=sys.stderr)
 
          # Test a simple cypher query...
          qstr = "START d=node:Drone('*:*') RETURN d"
          qnode = store.load_cypher_node(qstr, Drone) # Returns a single node
-         print >> sys.stderr, ('qnode=%s' % qnode)
+         print('qnode=%s' % qnode, file=sys.stderr)
          assert qnode is fred
          qnodes = store.load_cypher_nodes(qstr, Drone) # Returns iterable
          qnodes = [qnode for qnode in qnodes]
@@ -1346,11 +1374,12 @@ class Store(object):
 
          # When we delete an object from the database, the  python object
          # is disconnected from the database...
+         # FIXME: eliminate use of node
          assert not hasattr(fred, '_Store__store_node')
          assert not store.transaction_pending
 
-         print >> sys.stderr, ('Statistics:', store.stats)
-         print >> sys.stderr, ('Final returned values look good!')
+         print('Statistics:', store.stats, file=sys.stderr)
+         print('Final returned values look good!', file=sys.stderr)
 
 
      Store.debug = False

@@ -56,25 +56,25 @@ class StoreAssociation(object):
     REVERSE = 'reverse'
     BOTH = 'bidirectional'
 
-    def __init__(self, obj, node=None, store=None):
+    def __init__(self, obj, node_id=None, store=None):
         """
         Associate the given object with the given node
 
         :param obj: object: object to associate with the Store
-        :param node: py2neo.node: node that goes with it (if any)
+        :param node_id: int: node_id of the node that goes with it (if any)
+                             e.g,: getattr(py2neo.remote(node), '_id')
         :param store: Store; the Store that we are associated with
         """
         self.transaction_name = None
-        self.dirty_attributes = {}
         self.obj = obj
         self.key_attributes = obj.__class__.meta_key_attributes()
-        self.node = node
+        self.node_id = node_id
         self.variable_name = self._new_variable_name()
         for attr in self.key_attributes:
             if not hasattr(obj, attr):
                 raise ValueError("Key attribute %s not present in object type %s [%s]"
                                  % (attr, type(obj), obj))
-        store.register(obj, node, self)
+        store.register(obj, node_id, self)
 
     def _new_variable_name(self):
         """
@@ -92,17 +92,6 @@ class StoreAssociation(object):
         """
         StoreAssociation.last_relationship_id += 1
         return StoreAssociation.RELATIONSHIP_PATTERN % self.last_relationship_id
-
-    @property
-    def node_id(self):
-        """
-        Return the node id of the associated Neo4j node
-        :return: int: Node id
-        """
-        try:  # getattr avoids complaints from various tools about accessing the _id attribute
-            return getattr(py2neo.remote(self.node), '_id')
-        except AttributeError:
-            return None
 
     @property
     def is_abstract(self):
@@ -201,9 +190,7 @@ class StoreAssociation(object):
         :param obj: object: the object of interest
         :return: the associated StoreAssociation object
         """
-        if not hasattr(obj, '_Store__store_association'):
-            raise ValueError('%s is not associated with a Store.' % obj)
-        return getattr(obj, '_Store__store_association')
+        return obj.association
 
     def cypher_find_where_clause(self):
         """
@@ -249,7 +236,7 @@ class StoreAssociation(object):
         :return: str: Cypher query as described above...
         """
         result = self.cypher_find_match_clause()
-        result += '%s' % self.variable_name
+        result += 'RETURN %s' % self.variable_name
         return result
 
     def cypher_update_clause(self, attributes):
@@ -371,19 +358,21 @@ class StoreAssociation(object):
         result = 'MATCH %s\nDELETE %s\n' % (cypher_string, relationship_name)
         return result
 
-    def cypher_return_related_nodes(self, relationship_type, direction='forward', attrs=None):
+    def cypher_return_related_nodes(self, relationship_type, other_node=None, direction='forward', attrs=None):
         """
         Complete Cypher query to Return nodes related to the current one
         Parameters mean the same as in cypher_relationship_match_phrase()
 
         :param relationship_type: str: relationship type
+        :param other_node: object: other node (optional)
         :param direction: str: 'forward', 'reverse' or 'bidirectional'
         :param attrs: dict: attributes of the desired relationship (or None or {})
         :return: str: Cypher statement to return related nodes
         """
+        other_node = 'other' if other_node is None else other_node
         return ('MATCH %s\nRETURN other'
                 % self.cypher_relationship_match_phrase(relationship_type,
-                                                        to_association='other',
+                                                        to_association=other_node,
                                                         direction=direction,
                                                         attrs=attrs)[1])
 
