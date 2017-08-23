@@ -29,6 +29,7 @@
 """
 This file provides secret management for the Assimilation project.
 """
+import neokit
 import stat
 import os.path
 import pwd

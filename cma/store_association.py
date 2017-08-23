@@ -70,6 +70,7 @@ class StoreAssociation(object):
         self.key_attributes = obj.__class__.meta_key_attributes()
         self.node_id = node_id
         self.variable_name = self._new_variable_name()
+        self.dirty_attrs = set()
         for attr in self.key_attributes:
             if not hasattr(obj, attr):
                 raise ValueError("Key attribute %s not present in object type %s [%s]"
@@ -211,6 +212,14 @@ class StoreAssociation(object):
                                                 self.cypher_repr(getattr(self.obj, attr))))
         return result
 
+    def cypher_delete_node_query(self):
+        """
+        Construct a cypher clause to delete this graph node
+
+        :return: str: Cypher delete query
+        """
+        return self.cypher_find_where_clause() + 'DELETE %s\n' % self.variable_name
+
     def cypher_find_match_clause(self):
         """
         Construct a Cypher match clause which will uniquely find this object if it exists
@@ -231,7 +240,7 @@ class StoreAssociation(object):
 
     def cypher_find_query(self):
         """
-        Construct a Cypher query which will uniquely return this object and its id if it exists
+        Construct a Cypher query which will uniquely return this object if it exists
 
         :return: str: Cypher query as described above...
         """
