@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
@@ -20,83 +19,305 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 This module provides a class which initializes the CMA.
-'''
+"""
 
-import sys, time
-import logging, logging.handlers
+import sys
+import time
+import os
+import logging
+import logging.handlers
+import random
+import subprocess
+import getent
+import inject
 import py2neo
-from py2neo import neo4j
+import neokit
 from store import Store
-from cmadb import CMAdb, Neo4jCreds
 from consts import CMAconsts
 from graphnodes import GraphNode
+from AssimCtypes import NEO4JCREDFILENAME, CMAUSERID
 
-# R0903: too few public methods
-# pylint: disable=R0903
-class CMAinit(object):
-    '''
-    The CMAinit class
-    '''
-    #cmainit.py:43: [R0913:CMAinit.__init__] Too many arguments (9/7)
-    #cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
-    # pylint: disable=R0914,R0913
-    def __init__(self, io, host='localhost', port=7474, cleanoutdb=False, debug=False
-    ,       retries=300, readonly=False, encryption_required=False, use_network=True
-    ,       neologin=None, neopass=None):
-        'Initialize and construct a global database instance'
-        #print >> sys.stderr, 'CALLING NEW initglobal'
-        CMAdb.log = logging.getLogger('cma')
-        CMAdb.debug = debug
-        CMAdb.io = io
-        from hbring import HbRing
+
+class Neo4jCreds(object):
+    """Neo4j credentials object.
+    We own the login name and password for getting at our instance of Neo4j.
+    This includes caching the login and password.
+    If we're invoked and there is no cached password, we generate a random
+    password and tell Neo4j that's the one it should use.
+    We also own the authentication process.
+    Our object is suitable for injection...
+    """
+    default_name = 'neo4j'  # Default "login" name
+    default_auth = 'neo4j'  # built-in default password
+    default_length = 16     # default length of a randomly-generated password
+    passchange = 'neoauth'  # Program to change passwords
+    DEBUG = False
+
+    @inject.params(log=logging.Logger)
+    def __init__(self, log=None, filename=None, neologin=None, neopass=None, install_dir=None):
+        """Neoj4Creds constructor
+
+        :arg filename location of where to find/stash the credentials (optional)
+        """
+        self.install_dir = install_dir or '/usr/share/neo4j'
+
+        print("Calling Neo4jCreds.__init__(log=%s)" % log)
+        log.warning("Calling Neo4jCreds.__init__()")
+        if neologin is not None and neopass is not None:
+            self.isdefault = False
+            self.name = neologin
+            self.auth = neopass
+            return
+        if filename is None:
+            filename = NEO4JCREDFILENAME
+        self.filename = filename
+        self.dirname = os.path.dirname(self.filename)
+        self.isdefault = True
+        if not os.access(self.dirname, os.W_OK | os.R_OK):
+            raise IOError('Directory %s not accessible (are you root?)' % self.dirname)
         try:
-            syslog = logging.handlers.SysLogHandler(address='/dev/log'
-            ,       facility=logging.handlers.SysLogHandler.LOG_DAEMON)
+            with open(self.filename) as f:
+                self.name = f.readline().strip()
+                self.auth = f.readline().strip()
+                self.isdefault = False
+        except IOError:
+            self.name = Neo4jCreds.default_name
+            self.auth = Neo4jCreds.default_auth
+        self._log = log
+
+    @staticmethod
+    def randpass(length):
+        """
+        Generate a random password from letters, digits and punctuation
+
+        :param length: length of the password to generate
+        :return: password string
+        """
+        chars = r'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' \
+                r'!@#$%^&*()_-+=|\~`{[}]:;,.<>/?'
+        ret = ''.join((random.choice(chars)) for _ in range(length))
+        return str(ret)
+
+    def update(self, newauth=None, length=None):
+        """Update credentials from the new authorization info we've been given.
+        """
+        if length is None or length < 1:
+            length = Neo4jCreds.default_length
+        if not os.access(self.dirname, os.W_OK):
+            raise IOError('Directory %s not writable (are you root?)' % self.dirname)
+        if newauth is None:
+            newauth = Neo4jCreds.randpass(length)
+        if self.DEBUG:
+            self._log.debug('Calling %s' % Neo4jCreds.passchange)
+        server = neokit.GraphServer(home=self.install_dir)
+        rc = server.update_password(self.name, self.auth, newauth)
+
+        if rc is not None and rc != 0:
+            raise IOError('Cannot update neo4j credentials.')
+        self.auth = newauth
+        if self.DEBUG:
+            print >> sys.stderr, ('%s "%s:%s" successful.'
+                                  % (Neo4jCreds.passchange, self.name, self.auth))
+        userinfo = getent.passwd(CMAUSERID)
+        if userinfo is None:
+            raise OSError('CMA user id "%s" is unknown.' % CMAUSERID)
+        with open(self.filename, 'w') as f:
+            self.auth = newauth
+            os.chmod(self.filename, 0o600)
+            # pylint is confused about getent.passwd...
+            # pylint: disable=E1101
+            os.chown(self.filename, userinfo.uid, userinfo.gid)
+            f.write('%s\n%s\n' % (self.name, self.auth))
+        self._log.info('Updated Neo4j credentials cached in %s.' % self.filename)
+
+    def authenticate(self, uri='localhost:7474'):
+        """
+        Authenticate ourselves to the neo4j database using our credentials
+        """
+        if self.isdefault:
+            self.update()
+        if self.DEBUG:
+            print >> sys.stderr, 'AUTH WITH ("%s")' % str(self)
+        py2neo.authenticate(uri, self.name, self.auth)
+
+    def __str__(self, filename=None):
+        """We return the current assimilation Neo4j credentials (login, password) as a string
+        :return: credentials tuple (login, password)
+        """
+        return '%s:%s' % (self.name, self.auth)
+
+
+# Pylint wants us to have an __init__ for this pseudo-class
+# pylint: disable=W0232
+class CMAInjectables(object):
+    """
+    This class is more of a naming convention than a class ;-)
+    It contains most of what you need for injecting our various objects where they're needed.
+    """
+    settings = {
+        'LOG_NAME':         'cma',
+        'LOG_FACILITY':     logging.handlers.SysLogHandler.LOG_DAEMON,
+        'LOG_LEVEL':        logging.DEBUG,
+        'LOG_DEVICE':       '/dev/log',
+        'LOG_FORMAT':       '%(name)s %(levelname)s: %(message)s',
+        'NEO4J_HTTPS':      True,
+        'NEO4J_HOST':       'localhost',
+        'NEO4J_PORT':       7474,
+        'NEO4J_READONLY':   False,
+        'NEO4J_RETRIES':    300,
+    }
+
+    @staticmethod
+    def setup_prod_logging(name=None, address=None, facility=None, level=None):
+        """Set up a perfectly wonderful logging environment for us - or at least try...
+        This is perfectly well-suited for being an injector of logging.Logger"""
+        name =     CMAInjectables.settings['LOG_NAME']     if name     is None else name
+        address =  CMAInjectables.settings['LOG_DEVICE']   if address  is None else address
+        facility = CMAInjectables.settings['LOG_FACILITY'] if facility is None else facility
+        level =    CMAInjectables.settings['LOG_LEVEL']    if level    is None else level
+        try:
+            syslog = logging.handlers.SysLogHandler(address, facility)
         except EnvironmentError:
             # Docker doesn't really get along with logging - sigh...
             # And pylint doesn't like us assigning syslog a different type...
             # pylint: disable=R0204
             syslog = logging.StreamHandler()
-        syslog.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
-        CMAdb.log.addHandler(syslog)
-        CMAdb.log.setLevel(logging.DEBUG)
+        syslog.setFormatter(logging.Formatter(CMAInjectables.settings['LOG_FORMAT']))
+        log = logging.getLogger(name)
+        log.addHandler(syslog)
+        log.setLevel(level)
+        return log
+
+    @staticmethod
+    def setup_test_logging(name=None, address=None, facility=None, level=None):
+        """Set up a perfectly wonderful logging environment for testing (stderr) - or at least try...
+        This is perfectly well-suited for being an injector of logging.Logger
+        """
+        logger = logging.getLogger('testcode')
+        stream = logging.StreamHandler()
+        stream.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
+        logger.addHandler(logging.StreamHandler())
+        logger.setLevel(logging.DEBUG)
+        print >> sys.stderr,"LOGGER IS: %s type is %s" % (logger, type(logger))
+        return logger
+
+    @staticmethod
+    @inject.params(neocredentials=Neo4jCreds, log=logging.Logger)
+    def setup_db(neocredentials, log, host=None, port=None, https=None):
+        """Return a neo4j.Graph object (open channel to the Neo4j database)
+        We're great as an injector for neo4j.Graph
+        """
+        host = CMAInjectables.settings['NEO4J_HOST'] if host is None else host
+        port = CMAInjectables.settings['NEO4J_PORT'] if port is None else port
+        https = CMAInjectables.settings['NEO4J_HTTPS'] if https is None else https
+        https = False
+
         hostport = '%s:%s' % (host, port)
-        url = ('https://%s/db/data/' % (hostport))
-        url = ('http://%s/db/data/' % (hostport))
-        Neo4jCreds(neologin=neologin, neopass=neopass).authenticate(hostport)
-        neodb = neo4j.Graph(url)
-        self.db = neodb
-        if cleanoutdb:
-            CMAdb.log.info('Re-initializing the NEO4j database')
-            self.delete_all()
-        self.db = neodb
-        CMAdb.use_network = use_network
-        trycount=0
+        url = '%s://%s/db/data/' % ('https' if https else 'http', hostport)
+
+        trycount = 0
         while True:
             try:
-                CMAdb.cdb = CMAdb(db=neodb)
+                neocredentials.authenticate(hostport)
+                neodb = py2neo.Graph(url)
                 # Neo4j started.  All is well with the world.
                 break
             except (RuntimeError, IOError, py2neo.GraphError) as exc:
                 print >> sys.stderr, 'TRYING AGAIN [%s]...[%s]' % (url, str(exc))
                 trycount += 1
-                if trycount > retries:
+                if trycount > CMAInjectables.settings['NEO4J_RETRIES']:
                     print >> sys.stderr, ('Neo4j still not started - giving up.')
-                    CMAdb.log.critical('Neo4j still not started - giving up.')
+                    log.critical('Neo4j still not started - giving up.')
                     raise RuntimeError('Neo4j not running - giving up [%s]' % str(exc))
                 if (trycount % 60) == 1:
                     print >> sys.stderr, ('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
-                    CMAdb.log.warning('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
+                    log.warning('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
                 # Let's try again in a second...
                 time.sleep(1)
-        Store.debug = debug
-        Store.log = CMAdb.log
-        CMAdb.store = Store(neodb, CMAconsts.uniqueindexes, CMAconsts.classkeymap
-        ,   readonly=readonly)
+        return neodb
 
-        if not readonly:
+
+    @staticmethod
+    @inject.params(db=py2neo.Graph)
+    def setup_store(db=None, readonly=None):
+        """Return a Store object for mapping our objects to the database (OGM model)
+        We're happy to be an injector for Store objects...
+        """
+        readonly = CMAInjectables.settings['NEO4J_READONLY'] if readonly is None else readonly
+        return Store(db=db, readonly=readonly)
+
+    @staticmethod
+    def default_config_injection(binder):
+        """Perform our default injection setup
+        """
+        binder.bind_to_constructor(logging.Logger, CMAInjectables.setup_prod_logging)
+        binder.bind_to_provider(Neo4jCreds, Neo4jCreds)  # odd, but intentional...
+        binder.bind_to_constructor(py2neo.Graph, CMAInjectables.setup_db)
+        # Should we use bind_to_provider so we get a new Store each time?
+        # Will the Store will hang around, and screw up our checks for memory leaks...
+        binder.bind_to_constructor(Store, CMAInjectables.setup_store)
+
+    @staticmethod
+    def test_config_injection(binder):
+        """Perform our test injection setup
+        """
+        binder.bind_to_constructor(logging.Logger, CMAInjectables.setup_test_logging)
+        binder.bind_to_provider(Neo4jCreds, Neo4jCreds)  # odd, but intentional...
+        binder.bind_to_constructor(py2neo.Graph, CMAInjectables.setup_db)
+        # Should we use bind_to_provider so we get a new Store each time?
+        # Will the Store will hang around, and screw up our checks for memory leaks...
+        binder.bind_to_constructor(Store, CMAInjectables.setup_store)
+
+    @staticmethod
+    def default_CMA_injection_configuration(config=None, injectable_config=None):
+        """Do it all in one easy step... -- InjectItAll :-)
+        The configuration parameters will be used to configure all our
+        injectable objects. Only those listed in CMAInjectables.settings
+        are legal keys (config names) to use in the 'config' parameter.
+        """
+        if injectable_config is None:
+            injectable_config = CMAInjectables.default_config_injection
+        if config is not None:
+            for param in config:
+                if param not in CMAInjectables.settings:
+                    raise ValueError("%s is not a valid configuration parameter")
+                CMAInjectables.settings[param] = config[param]
+        inject.configure(injectable_config)
+
+
+# R0903: too few public methods
+# pylint: disable=R0903
+class CMAinit(object):
+    """
+    The CMAinit class
+    """
+    #cmainit.py:43: [R0913:CMAinit.__init__] Too many arguments (9/7)
+    #cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
+    # pylint: disable=R0914,R0913
+    @inject.params(log=logging.Logger, store=Store, db=py2neo.Graph)
+    def __init__(self, io, db=None, store=None, log=None, cleanoutdb=False, debug=False,
+                 encryption_required=False, use_network=True):
+        """Initialize and construct a global database instance
+        """
+        #print >> sys.stderr, 'CALLING NEW initglobal'
+        CMAdb.log = log
+        CMAdb.debug = debug
+        CMAdb.io = io
+        CMAdb.store = store
+        self.db = db
+        self.store = store
+        self.io = io
+        self.debug = debug
+
+        if cleanoutdb:
+            CMAdb.log.info('Re-initializing the NEO4j database')
+            self.delete_all()
+
+        CMAdb.use_network = use_network
+        if not store.readonly:
+            from hbring import HbRing
             for classname in GraphNode.classmap:
                 GraphNode.initclasstypeobj(CMAdb.store, classname)
             from transaction import Transaction
@@ -115,7 +336,8 @@ class CMAinit(object):
 
     @staticmethod
     def uninit():
-        "Undo initialization to make sure we aren't hanging onto any objects"
+        """Undo initialization to make sure we aren't hanging onto any objects
+        """
         CMAdb.cdb = None
         CMAdb.transaction = None
         CMAdb.TheOneRing = None
@@ -124,7 +346,8 @@ class CMAinit(object):
 
 
     def delete_all(self):
-        'Empty everything out of our database - start over!'
+        """Empty everything out of our database - start over!
+        """
         dbvers = self.db.neo4j_version
         if dbvers[0] >= 2:
             qstring = 'match (n) optional match (n)-[r]-() delete n,r'
@@ -136,11 +359,11 @@ class CMAinit(object):
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % qstring)
             CMAdb.log.debug('Execution results: %s' % str(result))
-        indexes = self.db.legacy.get_indexes(neo4j.Node)
+        indexes = self.db.legacy.get_indexes(py2neo.Node)
         for index in indexes.keys():
             if CMAdb.debug:
                 CMAdb.log.debug('Deleting index %s' % str(index))
-            self.db.legacy.delete_index(neo4j.Node, index)
+            self.db.legacy.delete_index(py2neo.Node, index)
 
 
 

@@ -31,6 +31,7 @@ from __future__ import print_function
 # import inject
 from AssimCclasses import pyNetAddr
 import py2neo
+import sys
 
 
 class StoreAssociation(object):
@@ -71,11 +72,14 @@ class StoreAssociation(object):
         self.node_id = node_id
         self.variable_name = self._new_variable_name()
         self.dirty_attrs = set()
-        for attr in self.key_attributes:
-            if not hasattr(obj, attr):
-                raise ValueError("Key attribute %s not present in object type %s [%s]"
-                                 % (attr, type(obj), obj))
-        store.register(obj, node_id, self)
+        print ("SELF.KEYS: %s" % self.key_attributes, file=sys.stderr)
+        if False:
+            for attr in self.key_attributes:
+                print ("ATTRIBUTE: %s" % attr, file=sys.stderr)
+                if not hasattr(obj, attr):
+                    raise ValueError("Key attribute %s not present in object type %s"
+                                     % (attr, type(obj)))
+        store.register(obj, node_id)
 
     def _new_variable_name(self):
         """
@@ -254,6 +258,8 @@ class StoreAssociation(object):
         :param attributes: [str]: attribute names to update
         :return: None
         """
+        if attributes is None:
+            attributes = self.dirty_attrs
         result = self.cypher_find_match_clause()
         result += 'SET '
         delimiter = ''

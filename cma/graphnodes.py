@@ -22,13 +22,14 @@
 ''' This module defines the classes for most of our CMA nodes ...  '''
 # Pylint is nuts here...
 # pylint: disable=C0411
-import sys, re, time, hashlib, netaddr, socket
-from py2neo import neo4j
+import sys, re, time, hashlib, netaddr, socket, logging, inject
+import py2neo
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
+from store_association import StoreAssociation
 
 def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
@@ -40,6 +41,7 @@ def nodeconstructor(**properties):
     # with the values in 'properties' as arguments
     return Store.callconstructor(realcls, properties)
 
+
 def RegisterGraphClass(classtoregister):
     '''Register the given class as being a Graph class so we can
     map the class name to the class object.
@@ -47,6 +49,7 @@ def RegisterGraphClass(classtoregister):
     '''
     GraphNode.classmap[classtoregister.__name__] = classtoregister
     return classtoregister
+
 
 class GraphNode(object):
     '''
@@ -66,11 +69,15 @@ class GraphNode(object):
         'Invalidate any persistent objects that might become invalid when resetting the database'
         pass
 
-    def __init__(self, domain, time_create_ms=None, time_create_iso8601=None):
+    @inject.params(store=Store, log=logging.Logger)
+    def __init__(self, domain, time_create_ms=None, time_create_iso8601=None, store=None, log=None):
         'Abstract Graph node base class'
         self.domain = domain
         self.nodetype = self.__class__.__name__
+        self.association = StoreAssociation(self, store=store)
         self._baseinitfinished = False
+        self._store = store
+        self._log = log
         if time_create_ms is None:
             time_create_ms = int(round(time.time()*1000))
         if time_create_iso8601 is None:
@@ -79,12 +86,12 @@ class GraphNode(object):
         self.time_create_ms = time_create_ms
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
-        raise NotImplementedError('Abstract base class function __meta_keyattrs__')
+        raise NotImplementedError('Abstract base class function meta_key_attributes')
 
     @classmethod
-    def __meta_labels__(cls):
+    def meta_labels(cls):
         'Return the default set of labels which should be put on our objects when created'
         labels = []
         classes = [cls]
@@ -96,6 +103,52 @@ class GraphNode(object):
                 break
             labels.append('Class_' + name)
         return labels
+
+    @staticmethod
+    def cypher_all_label_indexes():
+        """
+        Create all the label indexes that seem good to make ;-)
+        This includes a composite index over all key components and an
+        index on each field that's part of that key
+
+        :return:str: Cypher commands to create indexes
+        """
+        result = ''
+        for classname, cls in GraphNode.classmap.viewitems():
+            class_label = 'Class_' + classname
+            key_attrs = cls.meta_key_attributes()
+            for attr in key_attrs:
+                result += 'CREATE INDEX ON :%s(%s)\n' % (class_label, attr)
+            if len(key_attrs) > 1:
+                result += ('CREATE INDEX ON :%s(%s)\n' % (key_attrs, ':'.join(key_attrs)))
+        return result
+
+    @staticmethod
+    def cypher_all_label_constraints(use_enterprise_features=False):
+        """
+        Output Cypher to create all the label constraints we can
+        - or all that don't require Neo4j enterprise features...
+
+        Most constraints require Neo4j Enterprise features...
+
+        :param use_enterprise_features: bool: True if we want to use enterprise features
+        :return: str: Cypher commands to create constraints (or "")
+        """
+        result = ''
+        for classname, cls in GraphNode.classmap.viewitems():
+            class_label = 'Class_' + classname
+            key_attrs = cls.meta_key_attributes()
+            if use_enterprise_features:
+                for attr in key_attrs:
+                    result += ('CREATE CONSTRAINT ON (n:%s) ASSERT EXISTS(n.%s)\n'
+                               % (class_label, attr))
+            if len(key_attrs) == 1:
+                result += ('CREATE CONSTRAINT ON (n:%s) ASSERT (n.%s) IS UNIQUE\n'
+                           % (class_label, key_attrs[0]))
+            elif use_enterprise_features:
+                result += ('CREATE CONSTRAINT ON (n.%s) ASSERT (n.%s) IS NODE KEY\n'
+                           % (class_label, ', n.'.join(key_attrs)))
+        return result
 
     def post_db_init(self):
         '''Set node creation time'''
@@ -119,11 +172,7 @@ class GraphNode(object):
         for attr in Store.safe_attrs(self):
             result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
-        if Store.has_node(self):
-            if Store.is_abstract(self):
-                result += comma + 'HasNode = "abstract"'
-            else:
-                result += (comma + 'HasNode = %d' %Store.id(self))
+            result += comma + 'HasNode:%s' % self.association.node_id
 
         result += "\n})"
         return result
@@ -231,16 +280,6 @@ class GraphNode(object):
          This should eliminate the need to do any of these things for any class.
         '''
         ourclass = GraphNode.classmap[nodetype]
-        if nodetype not in store.classkeymap:
-            store.uniqueindexmap[nodetype] = True
-            keys = ourclass.__meta_keyattrs__()
-            ckm_entry = {'kattr': keys[0], 'index': nodetype}
-            if len(keys) > 1:
-                ckm_entry['vattr'] = keys[1]
-            else:
-                ckm_entry['value'] = 'None'
-            store.classkeymap[nodetype] = ckm_entry
-        store.db.legacy.get_or_create_index(neo4j.Node, nodetype)
 
 
 def add_an_array_item(currarray, itemtoadd):
@@ -288,7 +327,7 @@ class BPRules(GraphNode):
         return self._jsonobj
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['bp_class', 'rulesetname']
 
@@ -306,7 +345,7 @@ class BPRuleSet(GraphNode):
         CMAdb.store.relate_new(self, CMAconsts.REL_basedon, parent)
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['rulesetname']
 
@@ -344,7 +383,7 @@ class NICNode(GraphNode):
             return CMAdb.io.config['OUI'][prefix] if prefix in CMAdb.io.config['OUI'] else None
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in decreasing order of significance'
         return ['macaddr', 'domain']
 
@@ -383,7 +422,7 @@ class IPaddrNode(GraphNode):
                 return
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['ipaddr', 'domain']
 
@@ -419,7 +458,7 @@ class IPtcpportNode(GraphNode):
         self.ipport = self.format_ipport()
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['ipport', 'domain']
 
@@ -468,6 +507,7 @@ class ProcessNode(GraphNode):
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the Processnode 'roles' attribute gets marked as dirty...
         Store.mark_dirty(self, 'roles')
+        # TODO: Add role-based label
         return self.roles
 
     def delrole(self, roles):
@@ -475,10 +515,11 @@ class ProcessNode(GraphNode):
         self.roles = delete_an_array_item(self.roles, roles)
         # Mark our Processnode 'roles' attribute dirty...
         Store.mark_dirty(self, 'roles')
+        # TODO: Delete role-based label
         return self.roles
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['processname', 'domain']
 
@@ -552,11 +593,11 @@ class JSONMapNode(GraphNode):
         return len(self.map())
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return  ['jhash']
 
-# pylint  W0212: we need to get the value of the _id fields...
+# pylint  W0212: we need to get the value of the _node_id fields...
 # pylint  R0903: too few public methods. Not appropriate here...
 # pylint: disable=W0212,R0903
 class NeoRelationship(object):
@@ -583,10 +624,10 @@ if __name__ == '__main__':
         if CMAdb.store.transaction_pending:
             print 'Transaction pending in:', CMAdb.store
             print 'Results:', CMAdb.store.commit()
-        print ProcessNode.__meta_labels__()
-        print SystemNode.__meta_labels__()
-        print Drone.__meta_labels__()
-        print 'keys:', Drone.__meta_keyattrs__()
+        print ProcessNode.meta_labels()
+        print SystemNode.meta_labels()
+        print Drone.meta_labels()
+        print 'keys:', Drone.meta_key_attributes()
         print >> sys.stderr, 'Init done'
         return 0
 
