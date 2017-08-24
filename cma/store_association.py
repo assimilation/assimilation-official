@@ -104,7 +104,7 @@ class StoreAssociation(object):
         Return True if the associated node is abstract (not yet real)
         :return: bool: as noted
         """
-        return self.node_id is not None
+        return self.node_id is None
 
     @property
     def default_labels(self):

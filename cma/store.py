@@ -874,7 +874,10 @@ class Store(object):
 
         :return: [(object, neo4j.Node)]
         """
-        return [client for client in self.clients if client.association.is_abstract]
+        new_ones = [client for client in self.clients if client.association.is_abstract]
+        print("New ones: %s" % new_ones, file=sys.stderr)
+        print("Node_ids:: %s" % [client.node_id for client in self.clients], file=sys.stderr)
+        return new_ones
 
 
      #
@@ -888,6 +891,7 @@ class Store(object):
 
         :return: None
         """
+        print ("CLIENTS: %s" % self.clients)
         for subj in self._newly_created_nodes():
             assert isinstance(subj, self.graph_node)
             if Store.debug:
@@ -999,6 +1003,7 @@ class Store(object):
         :return: None
         """
         self.cypher = ''
+        print ("COMMIT CLIENTS: %s" % self.clients)
         for phase in ('create_nodes', 'node_updates', 'relate_nodes',
                       'node_deletions', 'return_statement'):
             print('Performing step %s' % phase, file=sys.stderr)
@@ -1086,7 +1091,8 @@ if __name__ == "__main__":
     inject.configure_once(CMAInjectables.test_config_injection)
 
 
-    def testme():
+    @inject.params(store=Store, ourdb=py2neo.Graph)
+    def testme(store=Store, ourdb=py2neo.Graph):
         """
         'A little test code...'
         :return: None
@@ -1117,13 +1123,11 @@ if __name__ == "__main__":
                 return ['name', 'a', 'b']
 
         Neo4jCreds().authenticate()
-        ourdb = py2neo.Graph()
         dbvers = ourdb.neo4j_version
         # Clean out the database
         qstring = 'match (n) optional match (n)-[r]-() delete n,r'
         ourdb.run(qstring)
 
-        store = Store(ourdb)
         DRONE = 'Drone121'
 
         # Construct an initial Drone
@@ -1133,6 +1137,7 @@ if __name__ == "__main__":
         #   load_or_create() is the preferred way to create an object...
         #
         fred = store.load_or_create(Drone, a=1, b=2, name=DRONE)
+        print ('TEST1: clients: %s' % store.clients, file=sys.stderr)
 
         assert fred.a == 1
         assert fred.b == 2
@@ -1147,11 +1152,14 @@ if __name__ == "__main__":
         assert 3.14158 < fred.c < 3.146
         # Create some relationships...
         rellist = ['ISA', 'WASA', 'WILLBEA']
+        print ('TEST2: clients: %s' % store.clients, file=sys.stderr)
         for rel in rellist:
             store.relate(fred, rel, fred)
         # These should have no effect - but let's make sure...
+        print ('TEST3: clients: %s' % store.clients, file=sys.stderr)
         for rel in rellist:
             store.relate_new(fred, rel, fred)
+        print ('TEST4: clients: %s' % store.clients, file=sys.stderr)
         store.commit()  # The updates have been captured...
         print('Statistics:', store.stats, file=sys.stderr)
 
