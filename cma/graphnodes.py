@@ -31,6 +31,7 @@ from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCclasses import pyNetAddr, pyConfigContext
 from store_association import StoreAssociation
 
+
 def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
     It's a form of "factory" for our database classes
@@ -60,6 +61,15 @@ class GraphNode(object):
     classmap = {}
 
     @staticmethod
+    def register(classtoregister):
+        """
+
+        :param classtoregister:
+        :return:
+        """
+        return RegisterGraphClass(classtoregister)
+
+    @staticmethod
     def factory(**kwargs):
         'A factory "constructor" function - acts like a universal constructor for GraphNode types'
         return nodeconstructor(**kwargs)
@@ -69,21 +79,76 @@ class GraphNode(object):
         'Invalidate any persistent objects that might become invalid when resetting the database'
         pass
 
-    @inject.params(store=Store, log=logging.Logger)
+    @staticmethod
+    def str_to_class(class_name):
+        """
+        Return the class corresponding to this class name
+        :param class_name: str: class name
+        :return: cls
+        """
+        print('CLASSMAP', GraphNode.classmap)
+        return GraphNode.classmap[str(class_name)]
+
+    @inject.params(store='Store', log='logging.Logger')
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None, store=None, log=None):
         'Abstract Graph node base class'
         self.domain = domain
         self.nodetype = self.__class__.__name__
-        self.association = StoreAssociation(self, store=store)
         self._baseinitfinished = False
         self._store = store
         self._log = log
         if time_create_ms is None:
             time_create_ms = int(round(time.time()*1000))
         if time_create_iso8601 is None:
-            time_create_iso8601  = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+            time_create_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         self.time_create_iso8601 = time_create_iso8601
         self.time_create_ms = time_create_ms
+        assert hasattr(self, 'nodetype')
+        self._association = StoreAssociation(self, store=store)
+        self.association.dirty_attrs = set()
+
+    @property
+    def association(self):
+        """
+        :return: StoreAssociation: self._association
+        """
+        return self._association
+
+    def __setattr__(self, name, value):
+        """
+        Does a setattr() - and marks changed attributes "dirty".  This
+        permits us to know when attributes change, and automatically
+        include them in the next transaction.
+        This is a GoodThing.
+
+        :param self:
+        :param name:
+        :param value:
+        :return:
+        """
+
+        if not hasattr(self, '_association') or self._association is None:
+            object.__setattr__(self, name, value)
+            return
+        if name in ('node_id', 'dirty_attrs'):
+            raise(ValueError('Bad attribute name: %s' % name))
+        if not name.startswith('_'):
+            try:
+                if getattr(self, name) == value:
+                    # print('Value of %s already set to %s' % (name, value), file=sys.stderr)
+                    return
+            except AttributeError:
+                pass
+            if self.association.store.readonly:
+                print >> sys.stderr, ('Caught Read-Only %s being set to %s!' % (name, value))
+                raise RuntimeError('Attempt to set attribute %s using a read-only store' % name)
+            if hasattr(value, '__iter__') and len(value) == 0:
+                raise ValueError(
+                    'Attempt to set attribute %s to empty array (Neo4j limitation)' % name)
+            self.association.dirty_attrs.add(name)
+            self.association.store.clients.add(self)
+        print>> sys.stderr, ('SETTING %s to %s' % (name, value))
+        object.__setattr__(self, name, value)
 
     @staticmethod
     def meta_key_attributes():

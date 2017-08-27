@@ -57,17 +57,17 @@ class StoreAssociation(object):
     REVERSE = 'reverse'
     BOTH = 'bidirectional'
 
-    def __init__(self, obj, node_id=None, store=None):
+    def __init__(self, obj, store=None, node_id=None):
         """
         Associate the given object with the given node
 
         :param obj: object: object to associate with the Store
+        :param store: Store; the Store that we are associated with
         :param node_id: int: node_id of the node that goes with it (if any)
                              e.g,: getattr(py2neo.remote(node), '_id')
-        :param store: Store; the Store that we are associated with
         """
-        self.transaction_name = None
         self.obj = obj
+        self.store = store
         self.key_attributes = obj.__class__.meta_key_attributes()
         self.node_id = node_id
         self.variable_name = self._new_variable_name()
@@ -252,7 +252,7 @@ class StoreAssociation(object):
         result += 'RETURN %s' % self.variable_name
         return result
 
-    def cypher_update_clause(self, attributes):
+    def cypher_update_clause(self, attributes=None):
         """
         Create a query to update the given attributes
         :param attributes: [str]: attribute names to update
@@ -261,7 +261,7 @@ class StoreAssociation(object):
         if attributes is None:
             attributes = self.dirty_attrs
         result = self.cypher_find_match_clause()
-        result += 'SET '
+        result += ' SET '
         delimiter = ''
         for attr in attributes:
             result += ('%s%s.%s = %s' % (delimiter, self.variable_name, attr,
