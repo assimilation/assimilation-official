@@ -79,7 +79,6 @@ class StoreAssociation(object):
                 if not hasattr(obj, attr):
                     raise ValueError("Key attribute %s not present in object type %s"
                                      % (attr, type(obj)))
-        store.register(obj, node_id)
 
     def _new_variable_name(self):
         """

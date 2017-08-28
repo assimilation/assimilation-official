@@ -55,7 +55,7 @@ class Neo4jCreds(object):
     passchange = 'neoauth'  # Program to change passwords
     DEBUG = False
 
-    @inject.params(log=logging.Logger)
+    @inject.params(log='logging.Logger')
     def __init__(self, log=None, filename=None, neologin=None, neopass=None, install_dir=None):
         """Neoj4Creds constructor
 
@@ -169,6 +169,7 @@ class CMAInjectables(object):
         'NEO4J_RETRIES':    300,
     }
 
+
     @staticmethod
     def setup_prod_logging(name=None, address=None, facility=None, level=None):
         """Set up a perfectly wonderful logging environment for us - or at least try...
@@ -204,7 +205,7 @@ class CMAInjectables(object):
         return logger
 
     @staticmethod
-    @inject.params(neocredentials=Neo4jCreds, log=logging.Logger)
+    @inject.params(neocredentials='Neo4jCreds', log='logging.Logger')
     def setup_db(neocredentials, log, host=None, port=None, https=None):
         """Return a neo4j.Graph object (open channel to the Neo4j database)
         We're great as an injector for neo4j.Graph
@@ -238,37 +239,35 @@ class CMAInjectables(object):
                 time.sleep(1)
         return neodb
 
-
     @staticmethod
-    @inject.params(db=py2neo.Graph)
-    def setup_store(db=None, readonly=None):
+    @inject.params(db='py2neo.Graph', log='logging.Logger')
+    def setup_store(db, log, readonly=None):
         """Return a Store object for mapping our objects to the database (OGM model)
         We're happy to be an injector for Store objects...
         """
         readonly = CMAInjectables.settings['NEO4J_READONLY'] if readonly is None else readonly
-        return Store(db=db, readonly=readonly)
+        store = Store(db=db, readonly=readonly, log=log)
+        print >> sys.stderr, ('RETURNING STORE: %s' % store)
+        return store
 
     @staticmethod
     def default_config_injection(binder):
         """Perform our default injection setup
         """
-        binder.bind_to_constructor(logging.Logger, CMAInjectables.setup_prod_logging)
-        binder.bind_to_provider(Neo4jCreds, Neo4jCreds)  # odd, but intentional...
-        binder.bind_to_constructor(py2neo.Graph, CMAInjectables.setup_db)
-        # Should we use bind_to_provider so we get a new Store each time?
-        # Will the Store will hang around, and screw up our checks for memory leaks...
-        binder.bind_to_constructor(Store, CMAInjectables.setup_store)
+        binder.bind_to_constructor('logging.Logger', CMAInjectables.setup_prod_logging)
+        binder.bind_to_provider('Neo4jCreds', Neo4jCreds)  # odd, but intentional...
+        binder.bind_to_constructor('py2neo.Graph', CMAInjectables.setup_db)
+        binder.bind_to_constructor('Store', CMAInjectables.setup_store)
 
     @staticmethod
     def test_config_injection(binder):
         """Perform our test injection setup
         """
-        binder.bind_to_constructor(logging.Logger, CMAInjectables.setup_test_logging)
-        binder.bind_to_provider(Neo4jCreds, Neo4jCreds)  # odd, but intentional...
-        binder.bind_to_constructor(py2neo.Graph, CMAInjectables.setup_db)
-        # Should we use bind_to_provider so we get a new Store each time?
-        # Will the Store will hang around, and screw up our checks for memory leaks...
-        binder.bind_to_constructor(Store, CMAInjectables.setup_store)
+        binder.bind_to_constructor('logging.Logger', CMAInjectables.setup_test_logging)
+        binder.bind_to_provider('Neo4jCreds', Neo4jCreds)  # odd, but intentional...
+        binder.bind_to_constructor('py2neo.Graph', CMAInjectables.setup_db)
+        binder.bind_to_constructor('Store', CMAInjectables.setup_store)
+        return
 
     @staticmethod
     def default_CMA_injection_configuration(config=None, injectable_config=None):
@@ -284,7 +283,8 @@ class CMAInjectables(object):
                 if param not in CMAInjectables.settings:
                     raise ValueError("%s is not a valid configuration parameter")
                 CMAInjectables.settings[param] = config[param]
-        inject.configure(injectable_config)
+        if not inject.is_configured():
+            inject.configure_once(injectable_config)
 
 
 # R0903: too few public methods
@@ -296,8 +296,8 @@ class CMAinit(object):
     #cmainit.py:43: [R0913:CMAinit.__init__] Too many arguments (9/7)
     #cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
     # pylint: disable=R0914,R0913
-    @inject.params(log=logging.Logger, store=Store, db=py2neo.Graph)
-    def __init__(self, io, db=None, store=None, log=None, cleanoutdb=False, debug=False,
+    @inject.params(log='logging.Logger', store='Store', db='py2neo.Graph')
+    def __init__(self, io, db, store, log, cleanoutdb=False, debug=False,
                  encryption_required=False, use_network=True):
         """Initialize and construct a global database instance
         """

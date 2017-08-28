@@ -104,8 +104,9 @@ class GraphNode(object):
         self.time_create_iso8601 = time_create_iso8601
         self.time_create_ms = time_create_ms
         assert hasattr(self, 'nodetype')
-        self._association = StoreAssociation(self, store=store)
-        self.association.dirty_attrs = set()
+        association = StoreAssociation(self, store=store)
+        association.dirty_attrs = set()
+        self._association = association
 
     @property
     def association(self):
@@ -146,7 +147,6 @@ class GraphNode(object):
                 raise ValueError(
                     'Attempt to set attribute %s to empty array (Neo4j limitation)' % name)
             self.association.dirty_attrs.add(name)
-            self.association.store.clients.add(self)
         print>> sys.stderr, ('SETTING %s to %s' % (name, value))
         object.__setattr__(self, name, value)
 
@@ -237,7 +237,8 @@ class GraphNode(object):
         for attr in Store.safe_attrs(self):
             result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
-            result += comma + 'HasNode:%s' % self.association.node_id
+        result += '%sobject.__str__ =  "%s"' % (comma, object.__str__(self))
+        result += comma + 'HasNode:%s' % self.association.node_id
 
         result += "\n})"
         return result
