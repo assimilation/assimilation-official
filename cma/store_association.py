@@ -221,7 +221,8 @@ class StoreAssociation(object):
 
         :return: str: Cypher delete query
         """
-        return self.cypher_find_where_clause() + 'DELETE %s\n' % self.variable_name
+        return self.cypher_find_match_clause() + ' WITH %s DELETE %s\n'\
+                                                 % (self.variable_name, self.variable_name)
 
     def cypher_find_match_clause(self):
         """
@@ -338,11 +339,11 @@ class StoreAssociation(object):
             to_name = ''
         lhs_arrow = '<-' if direction == self.REVERSE else '-'
         rhs_arrow = '->' if direction == self.FORWARD else '-'
-        result = ('(%s)%s[%s:%s%s]%s(%s)'
+        result = ('(%s)%s[%s%s%s]%s(%s)'
                   % (self.variable_name,
                      lhs_arrow,
                      relationship_name,
-                     relationship_type,
+                     (':' + relationship_type) if relationship_type is not None else '',
                      self.attribute_string(attrs),
                      rhs_arrow,
                      to_name))
@@ -369,7 +370,8 @@ class StoreAssociation(object):
                                                   to_association=to_association,
                                                   direction=direction,
                                                   attrs=attrs)
-        result = 'MATCH %s\nDELETE %s\n' % (cypher_string, relationship_name)
+        result = 'MATCH %s\nWITH %s DELETE %s\n'\
+                 % (cypher_string, relationship_name, relationship_name)
         return result
 
     def cypher_return_related_nodes(self, relationship_type, other_node=None,

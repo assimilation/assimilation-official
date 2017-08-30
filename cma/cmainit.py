@@ -132,15 +132,15 @@ class Neo4jCreds(object):
             f.write('%s\n%s\n' % (self.name, self.auth))
         self._log.info('Updated Neo4j credentials cached in %s.' % self.filename)
 
-    def authenticate(self, uri='localhost:7474'):
+    def authenticate(self, uri='http://localhost:7474'):
         """
         Authenticate ourselves to the neo4j database using our credentials
         """
         if self.isdefault:
             self.update()
-        if self.DEBUG:
-            print >> sys.stderr, 'AUTH WITH ("%s")' % str(self)
-        py2neo.authenticate(uri, self.name, self.auth)
+        if True or self.DEBUG:
+            print >> sys.stderr, 'AUTH against %s WITH ("%s")' % (str(uri), self)
+        py2neo.authenticate(uri, user=self.name, password=self.auth)
 
     def __str__(self, filename=None):
         """We return the current assimilation Neo4j credentials (login, password) as a string
@@ -210,19 +210,20 @@ class CMAInjectables(object):
         """Return a neo4j.Graph object (open channel to the Neo4j database)
         We're great as an injector for neo4j.Graph
         """
-        host = CMAInjectables.settings['NEO4J_HOST'] if host is None else host
-        port = CMAInjectables.settings['NEO4J_PORT'] if port is None else port
-        https = CMAInjectables.settings['NEO4J_HTTPS'] if https is None else https
+        host = host or CMAInjectables.settings['NEO4J_HOST']
+        port = port or CMAInjectables.settings['NEO4J_PORT']
+        https = https or CMAInjectables.settings['NEO4J_HTTPS']
         https = False
 
         hostport = '%s:%s' % (host, port)
         url = '%s://%s/db/data/' % ('https' if https else 'http', hostport)
+        print >> sys.stderr, ("URL: %s" % url)
 
         trycount = 0
         while True:
             try:
                 neocredentials.authenticate(hostport)
-                neodb = py2neo.Graph(url)
+                neodb = py2neo.Graph(uri=url, bolt=False, https=False, http=True, host=host, port=7474)
                 # Neo4j started.  All is well with the world.
                 break
             except (RuntimeError, IOError, py2neo.GraphError) as exc:
@@ -236,7 +237,7 @@ class CMAInjectables(object):
                     print >> sys.stderr, ('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
                     log.warning('Waiting for Neo4j [%s] to start [%s].' % (url, str(exc)))
                 # Let's try again in a second...
-                time.sleep(1)
+                time.sleep(10)
         return neodb
 
     @staticmethod

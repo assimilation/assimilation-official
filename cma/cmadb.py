@@ -46,7 +46,7 @@ class CMAdb(object):
     # versions we know we can't work with...
     neo4jblacklist = ['2.0.0']
 
-    @inject.params(db=py2neo.Graph, store=Store)
+    @inject.params(db='py2neo.Graph', store='Store')
     def __init__(self, db, store):
         self.db = db
         self.io = None
