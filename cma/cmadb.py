@@ -38,7 +38,7 @@ class CMAdb(object):
     '''Class defining our Neo4J database.'''
     nodename = os.uname()[1]
     debug = False
-    transaction = None
+    net_transaction = None
     log = None
     store = None
     globaldomain = 'global'

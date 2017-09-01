@@ -18,61 +18,80 @@
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
-'''
+"""
 This is the overall message dispatcher - it receives incoming messages as they arrive
 then call dispatch it so it will get handled.
-'''
+"""
 
-import os, sys, traceback
+import os
+import sys
+import traceback
 import gc
+import inject
 from datetime import datetime
 from cmadb import CMAdb
-from transaction import Transaction
+from transaction import NetTransaction
 from dispatchtarget import DispatchTarget
 from frameinfo import FrameSetTypes
 from AssimCtypes import proj_class_live_object_count, proj_class_max_object_count
 from AssimCclasses import pyAssimObj, dump_c_objects
 
+
 class MessageDispatcher(object):
     'We dispatch incoming messages where they need to go.'
-    def __init__(self, dispatchtable, logtimes=False, encryption_required=True):
+    @inject.params(store='Store')
+    def __init__(self, dispatchtable, store, logtimes=False, encryption_required=True):
         'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()
         self.io = None
+        self.store = store
         self.dispatchcount = 0
         self.logtimes = logtimes or CMAdb.debug
         self.encryption_required = encryption_required
 
     def dispatch(self, origaddr, frameset):
-        'Dispatch a Frameset where it will get handled.'
+        """
+        Dispatch a Frameset where it will get handled.
+        This is where all the work associated with processing an incoming packet gets done.
+
+        :param origaddr: pyNetAddr: Origination address for the packet
+        :param frameset: pyFrameSet: FrameSet to act on (process)
+        :return: None
+        """
         self.dispatchcount += 1
-        CMAdb.transaction = Transaction(encryption_required=self.encryption_required)
         # W0703 == Too general exception catching...
         # pylint: disable=W0703
         try:
-            self._try_dispatch_action(origaddr, frameset)
-            if (self.dispatchcount % 100) == 1:
-                self._check_memory_usage()
+            # The __enter__ functions are called in the order given, but the exits are called in the
+            # opposite order they're listed. The exits are what commit the transactions...
+            # As a result, the idempotent NetTransaction is committed first...
+
+            with self.store.db.begin(autocommit=False) as self.store.db_transaction,\
+                    NetTransaction(self.io, encryption_required=self.encryption_required)\
+                            as CMAdb.net_transaction:
+                self._try_dispatch_action(origaddr, frameset)
+                if (self.dispatchcount % 100) == 1:
+                    self._check_memory_usage()
         except Exception as e:
             self._process_exception(e, origaddr, frameset)
-        # We want to ack the packet even in the failed case - retries are unlikely to help
-        # and we need to avoid getting stuck in a loop retrying it forever...
         if CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
             CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
-            %   (fstypename, origaddr))
+                            % (fstypename, origaddr))
+        # We want to ack the packet even in the failed case - retries are unlikely to help
+        # and we need to avoid getting stuck in a loop retrying it forever...
         self.io.ackmessage(origaddr, frameset)
 
     # [R0912:MessageDispatcher._try_dispatch_action] Too many branches (13/12)
     # pylint: disable=R0912
     def _try_dispatch_action(self, origaddr, frameset):
-        '''Core code to actually dispatch the Frameset.
+        """Core code to actually dispatch the Frameset.
         It should be run inside a try/except construct so that anything
         we barf up won't cause the CMA to die.
-        '''
+        """
         fstype = frameset.get_framesettype()
-        #print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
+        # print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
         dispatchstart = datetime.now()
         if fstype in self.dispatchtable:
             self.dispatchtable[fstype].dispatch(origaddr, frameset)
@@ -83,10 +102,10 @@ class MessageDispatcher(object):
             CMAdb.log.info('Initial dispatch time for %s frameset: %s'
             %   (fstype, dispatchend-dispatchstart))
         # Commit the network transaction here
-        CMAdb.transaction.commit_trans(CMAdb.io)
+        CMAdb.net_transaction.commit_trans(CMAdb.io)
         if self.logtimes:
             CMAdb.log.info('Network transaction time: %s'
-            %   (str(CMAdb.transaction.stats['lastcommit'])))
+            %   (str(CMAdb.net_transaction.stats['lastcommit'])))
 
         # Commit the database transaction here
         if CMAdb.store.transaction_pending:
@@ -107,10 +126,10 @@ class MessageDispatcher(object):
             if CMAdb.debug:
                 CMAdb.log.debug('No database changes this time')
             CMAdb.store.abort()
-        for pkttype in CMAdb.transaction.post_transaction_packets:
-            CMAdb.transaction.add_packet(origaddr, pkttype, [])
-        if len(CMAdb.transaction.post_transaction_packets) > 0:
-            CMAdb.transaction.commit_trans(CMAdb.io)
+        for pkttype in CMAdb.net_transaction.post_transaction_packets:
+            CMAdb.net_transaction.add_packet(origaddr, pkttype, [])
+        if len(CMAdb.net_transaction.post_transaction_packets) > 0:
+            CMAdb.net_transaction.commit_trans(CMAdb.io)
             CMAdb.post_transaction_packets = []
         dispatchend = datetime.now()
         if self.logtimes or CMAdb.debug:
@@ -146,9 +165,9 @@ class MessageDispatcher(object):
         if CMAdb.store is not None:
             CMAdb.log.critical("Aborting Neo4j transaction %s" % CMAdb.store)
             CMAdb.store.abort()
-        if CMAdb.transaction is not None:
-            CMAdb.log.critical("Aborting network transaction %s" % CMAdb.transaction.tree)
-            CMAdb.transaction = None
+        if CMAdb.net_transaction is not None:
+            CMAdb.log.critical("Aborting network transaction %s" % CMAdb.net_transaction.tree)
+            CMAdb.net_transaction = None
 
 
     @staticmethod

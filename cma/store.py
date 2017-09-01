@@ -159,6 +159,7 @@ class Store(object):
         self.node_deletion_count = 0
         self.node_separate_count = 0
         self.factory = factory_constructor if factory_constructor else GraphNode.factory
+        self.db_transaction = None
         print("RETURNING class %s" % self.__class__.__name__)
         return
 
@@ -344,7 +345,7 @@ class Store(object):
         print("load_related: %s" % query, file=stderr)
         cursor = self.db.run(query)
         while cursor.forward():
-            yield self._construct_obj_from_node(cursor.current()[0], self.factory)
+            yield self._construct_obj_from_node(cursor.current()[0])
 
     def load_in_related(self, subj, rel_type, obj=None, properties=None):
         """
@@ -472,6 +473,13 @@ class Store(object):
             print('FROM id is %s' % subj.association.node_id, file=stderr)
             print('TO id is %s' % obj.association.node_id, file=stderr)
 
+        cypher = subj.association.cypher_find_match_clause() + '\n'
+        if subj is not obj:
+            cypher += obj.association.cypher_find_match_clause() + '\n'
+        cypher += subj.association.cypher_relate_node(rel_type, obj.association, attrs=properties)
+        print('ADDREL Cypher:', cypher)
+        self.db_transaction.run(cypher).forward()
+
     def relate_new(self, subj, rel_type, obj, properties=None):
         """
         Define a 'rel_type' relationship subj-[:rel_type]->obj but guaranteed that there
@@ -510,6 +518,14 @@ class Store(object):
         self.deleted_rels.append({'subj': subj, 'rel_type': rel_type, 'obj': obj,
                                   'direction': direction})
         print('*****DELETING: ', self.deleted_rels, file=stderr)
+        cypher = subj.association.cypher_find_match_clause() + '\n'
+        if subj is not obj:
+            cypher += obj.association.cypher_find_match_clause() + '\n'
+        cypher += subj.association.cypher_unrelate_node(rel_type,
+                                                        to_association=obj,
+                                                        direction=direction)
+        print('DELREL Cypher:', cypher)
+        self.db_transaction.run(cypher).forward()
 
     def separate_in(self, subj, rel_type=None, obj=None):
         """
@@ -547,7 +563,8 @@ class Store(object):
         print("TOTAL LEN: %s" % (len(self.newrels) + len(self.deleted_nodes) + len(self.deleted_rels)), file=stderr)
         return (len(self.newrels) + len(self.deleted_nodes) + len(self.deleted_rels)) > 0
 
-    def callconstructor(self, constructor, kwargs):
+    @staticmethod
+    def callconstructor(constructor, kwargs):
         """
         Call a constructor (or function) in a (hopefully) correct way
 
@@ -573,10 +590,10 @@ class Store(object):
                 else:
                     extraattrs[arg] = kwargs[arg]
         print("NEWKWARGS:", newkwargs)
-        self._audit_weaknodes_clients()
+        # self._audit_weaknodes_clients()
         ret = constructor(**newkwargs)
-        self._audit_weaknodes_clients()
-        assert isinstance(ret, self.graph_node)
+        # self._audit_weaknodes_clients()
+        # assert isinstance(ret, self.graph_node)
 
         # Make sure the attributes match the desired values
         for attr in kwargs:
@@ -591,9 +608,9 @@ class Store(object):
                 # Sometimes constructors need to do that...
                 # TODO: I wonder if that is really right - in spite of the comments above ;-)
                 object.__setattr__(ret, attr, kwa)
-        self._audit_weaknodes_clients()
+        # self._audit_weaknodes_clients()
         ret.association.dirty_attrs = set()
-        self._audit_weaknodes_clients()
+        # self._audit_weaknodes_clients()
         return ret
 
     @staticmethod
@@ -836,10 +853,12 @@ class Store(object):
         :return: dict(str, object): attribute dict
         """
         result = {}
+        assert isinstance(node, py2neo.Node)
+        print('VIEWKEYS:', node.viewkeys())
         for attribute in node.viewkeys():
-            if attribute.startswith('_') or callable(node.attribute):
+            if attribute.startswith('_'):
                 continue
-            result[attribute] = getattr(node, attribute)
+            result[attribute] = node[attribute]
         return result
 
     def _search_for_same_node(self, node):
@@ -937,23 +956,27 @@ class Store(object):
                             % (type(subj), node, self.neo_node_id(node), type(node)))
             self._log.debug("Clients of %s include: %s" % (self, str(self.clients)))
 
-        if node is not None:
+        if node is None:
+            self.execute_create_node(subj)
+            node_id = subj.association.node_id
+        else:
             assert self.neo_node_id(node) is not None
             node_id = self.neo_node_id(node)
             subj.association.node_id = node_id
-            if node_id in self.weaknoderefs:
-                weakling = self.weaknoderefs[node_id]()
-                if weakling is None:
-                    del self.weaknoderefs[node_id]
-                else:
-                    print('OOPS! - already here... self.weaknoderefs',
-                          weakling, weakling.__dict__, file=stderr)
+
+        if node_id in self.weaknoderefs:
+            weakling = self.weaknoderefs[node_id]()
+            if weakling is None:
+                del self.weaknoderefs[node_id]
+            else:
+                print('OOPS! - already here... self.weaknoderefs',
+                      weakling, weakling.__dict__, file=stderr)
             assert node_id not in self.weaknoderefs
             self._audit_weaknodes_clients()
             self.weaknoderefs[node_id] = weakref.ref(subj)
             self._audit_weaknodes_clients()
-            if hasattr(subj, 'post_db_init'):
-                subj.post_db_init()
+        if hasattr(subj, 'post_db_init'):
+            subj.post_db_init()
         return subj
 
     def _newly_created_nodes(self):
@@ -1009,6 +1032,23 @@ class Store(object):
                 transaction_variables[variable].association.node_id = result[variable]
         else:
             raise RuntimeError("No results from Cypher RETURN statement.")
+
+    def execute_create_node(self, subj):
+        """
+        Construct Cypher statements for all the new objects in this batch
+
+        :param: subj: GraphNode: Node to be created
+
+        :return: None
+        """
+        assert isinstance(subj, self.graph_node)
+        variable = subj.association.variable_name
+        cypher = subj.association.cypher_create_node_query() + 'RETURN ID(%s)' % variable
+        self._bump_stat('nodecreate')
+        # Our return statement just returns the node id. We already have the object ;-)
+        print('CYPHER: %s' % cypher, file=stderr)
+        subj.association.node_id = self.db_transaction.evaluate(cypher)
+        subj.association.dirty_attrs = set()
 
     def _batch_construct_return_statement(self):
         """
@@ -1107,18 +1147,20 @@ class Store(object):
             print('DELETING RELATIONSHIP: %s %s' % (subj, obj), file=stderr)
             self._batch_define_variable(subj)
             print('OBJ: %s' % obj)
-            self._batch_define_variable(obj)
+            if subj is not obj:
+                self._batch_define_variable(obj)
 
             cypher += subj.association.cypher_unrelate_node(rel['rel_type'],
-                                                                 to_association=obj,
-                                                                 direction=rel['direction'])
+                                                            to_association=obj,
+                                                            direction=rel['direction'])
         cypher and transaction.run(cypher)
 
     def batch_execute_node_updates(self, transaction):
         """
         Construct batch commands for updating attributes on nodes
 
-        :param self:
+        :param transaction: py2neo.Transaction
+
         :return:
         """
         cypher = ''
@@ -1139,12 +1181,13 @@ class Store(object):
         print ("COMMIT CLIENTS: %s" % self.clients)
         # Transaction will commit once the 'with' is complete...
         # But this is not auto-commit...
+        if not self.db_transaction.finished():
+            self.db_transaction.commit()
         with self.db.begin(autocommit=False) as transaction:
-            for phase in ('create_nodes', 'node_updates', 'relate_nodes',
-                          'relationship_deletions',
+            for phase in ('node_updates',
                           'node_deletions'):
                 print('Performing step %s' % phase, file=stderr)
-                print("TRANSACTION IS: %s. Finished? %s" % (transaction, transaction.finished))
+                print("TRANSACTION IS: %s. Finished? %s" % (transaction, transaction.finished()))
                 getattr(self, 'batch_execute_%s' % phase)(transaction)
 
             # self.batch_execute_add_labels()          # NOTIMPLEMENTED
@@ -1259,6 +1302,7 @@ if __name__ == "__main__":
         #
         #   load_or_create() is the preferred way to create an object...
         #
+        store.db_transaction = store.db.begin(autocommit=False)
         fred = store.load_or_create(Drone, a=1, b=2, name=DRONE)
         print ('TEST1: clients of %s: %s' % (store, store.clients), file=stderr)
 

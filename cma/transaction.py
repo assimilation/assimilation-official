@@ -23,7 +23,7 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 This file implements the transaction class - a class which encapsulates a description of a database
 transaction and a corresponding set of network operations on nanoprobes.  It is these two things
 which constitute the transaction.  These transactions are idempotent - that is, they describe
@@ -44,7 +44,7 @@ system.
 
 In either case, this class won't be directly affected - since it only stores and executes
 transactions - it does not worry about how they ought to be persisted.
-'''
+"""
 import sys
 from datetime import datetime, timedelta
 from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, \
@@ -52,8 +52,9 @@ from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, py
 from frameinfo import FrameSetTypes, FrameTypes
 from assimjson import JSONtree
 
-class Transaction(object):
-    '''This class implements database/nanoprobe transactions.
+
+class NetTransaction(object):
+    """This class implements nanoprobe network transactions.
 
     The nanoprobe portions of the transaction support the following operations:
         Start sending heartbeats
@@ -66,55 +67,52 @@ class Transaction(object):
         Stop a monitoring action
         Start a discovery action
         Stop a discovery action
+    """
 
-    The database portions of the transaction support the following operations:
-        Insert a node possibly including a subtree to be inserted
-        Replace a node possibly including owned subtrees to be replaced
-        Delete a node and possible owned subtrees
-
-    The semantics of the database updates are worth describing in further detail
-        An "owned" subtree means that the node in question has ownership of all nodes
-            related to it by the given relationship types, and if the node is deleted
-            then all the things it owns should also be deleted
-
-        If it is replaced, then all of its nodes related to it by the given
-            relationship types should be replaced by the given nodes described in
-            the transaction - and no other nodes related to it by these relationship
-            types should exist.  If they do, they need to be deleted.
-
-    Is this too complex?  Should the originator of the request be responsible for knowing what
-            nodes he needs to delete?
-            If this is eventually going to be executed by a plugin into the database engine,
-            then the more work you leave to the executor of the transaction, the faster this
-            code will run.  On the other hand, it delays the mess until transaction execution
-            time and makes the code for creating the transaction simpler...
-            I'm gonna opt for the complexity in processing of the transaction rather than
-            complexity in all the places where people might add things to the transaction.
-
-
-    @NOTE AND WARNING:
-    Transactions need to be somehow repeatable...  This means if this transaction
-    was committed, we need to <i>not</i> repeat it - or make sure it's idempotent.
-    Neither of those is true at the moment.
-    '''
-
-    def __init__(self, encryption_required=False):
+    def __init__(self, io, encryption_required=False):
         'Constructor for a combined database/network transaction.'
-        self.tree = {'packets': []} # 'tree' cannot be pyConfigContext: we append to its array
+        self.encryption_required = encryption_required
+        self._io = io
+        self.__enter__()
+
+    def __enter__(self):
+        """
+        Context method to support "with" statements
+        :return: None
+        """
+        self.tree = {'packets': []}  # 'tree' cannot be pyConfigContext: we append to its array
         self.namespace = {}
         self.created = []
         self.sequence = None
         self.stats = {'lastcommit': timedelta(0), 'totaltime': timedelta(0)}
-        self.encryption_required = encryption_required
         self.post_transaction_packets = []
 
+    def __exit__(self, exception_type, value, traceback):
+        """
+        Context method to support "with" statements
+        :param exception_type: type of exception from this context
+        :param value:
+        :param traceback:
+        :return: None
+        """
+        if exception_type is None:
+            self.commit_trans()
+            return True
+        else:
+            self.abort_trans()
+            return None
+
     def __str__(self):
-        'Convert our internal tree to JSON.'
+        """
+        Convert our internal tree to JSON.
+
+        :return:
+        """
         return str(JSONtree(self.tree))
 
 ###################################################################################################
 #
-#   This collection of member functions accumulate work to be done for our Transaction
+#   This collection of member functions accumulate work to be done for our NetTransaction
 #
 ###################################################################################################
 
@@ -223,7 +221,7 @@ class Transaction(object):
         self.tree = pyConfigContext(str(self))
         if len(self.tree['packets']) > 0:
             start = datetime.now()
-            self._commit_network_trans(io)
+            self._commit_network_trans(self._io)
             end = datetime.now()
             diff = end - start
             self.stats['lastcommit'] = diff
@@ -246,23 +244,24 @@ if __name__ == '__main__':
 
         config = pyConfigContext(init={CONFIGNAME_OUTSIG: pySignFrame(1)})
         io = pyReliableUDP(config, pyPacketDecoder())
-        trans = Transaction(encryption_required=False)
+        trans = NetTransaction(io, encryption_required=False)
         destaddr = pyNetAddr('10.10.10.1:1984')
         addresses = (pyNetAddr('10.10.10.5:1984'), pyNetAddr('10.10.10.6:1984'))
 
-        trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB
-        ,       addresses, frametype=FrameTypes.IPPORT)
+        trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB,
+                         addresses,
+                         frametype=FrameTypes.IPPORT)
         assert len(trans.tree['packets']) == 1
 
-        trans.add_packet(pyNetAddr('10.10.10.1:1984')
-        ,   FrameSetTypes.SENDEXPECTHB
-        ,   (pyNetAddr('10.10.10.5:1984')
-        ,   pyNetAddr('10.10.10.6:1984'))
-        ,   frametype=FrameTypes.IPPORT)
+        trans.add_packet(pyNetAddr('10.10.10.1:1984'),
+                         FrameSetTypes.SENDEXPECTHB,
+                         (pyNetAddr('10.10.10.5:1984'),
+                          pyNetAddr('10.10.10.6:1984')),
+                         frametype=FrameTypes.IPPORT)
         assert len(trans.tree['packets']) == 2
 
         print >> sys.stderr, 'JSON: %s\n' % str(trans)
         print >> sys.stderr, 'JSON: %s\n' % str(pyConfigContext(str(trans)))
-        trans.commit_trans(io)
+        trans.commit_trans()
         assert len(trans.tree['packets']) == 0
     testme()

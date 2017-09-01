@@ -321,26 +321,26 @@ class CMAinit(object):
             from hbring import HbRing
             for classname in GraphNode.classmap:
                 GraphNode.initclasstypeobj(CMAdb.store, classname)
-            from transaction import Transaction
-            CMAdb.transaction = Transaction(encryption_required=encryption_required)
+            from transaction import NetTransaction
+            CMAdb.net_transaction = NetTransaction(encryption_required=encryption_required)
             #print >> sys.stderr,  'CMAdb:', CMAdb
             #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
             CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
             ,           ringtype=HbRing.THEONERING)
-            CMAdb.transaction.commit_trans(io)
+            CMAdb.net_transaction.commit_trans(io)
             #print >> sys.stderr, 'COMMITTING Store'
-            #print >> sys.stderr, 'Transaction Commit results:', CMAdb.store.commit()
+            #print >> sys.stderr, 'NetTransaction Commit results:', CMAdb.store.commit()
             CMAdb.store.commit()
             #print >> sys.stderr, 'Store COMMITTED'
         else:
-            CMAdb.transaction = None
+            CMAdb.net_transaction = None
 
     @staticmethod
     def uninit():
         """Undo initialization to make sure we aren't hanging onto any objects
         """
         CMAdb.cdb = None
-        CMAdb.transaction = None
+        CMAdb.net_transaction = None
         CMAdb.TheOneRing = None
         CMAdb.store = None
         CMAdb.io = None
@@ -372,6 +372,6 @@ if __name__ == '__main__':
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)
     if CMAdb.store.transaction_pending:
-        print >> sys.stderr, 'Transaction pending in:', CMAdb.store
+        print >> sys.stderr, 'NetTransaction pending in:', CMAdb.store
         print >> sys.stderr, 'Results:', CMAdb.store.commit()
     print >> sys.stderr, 'Init done'
