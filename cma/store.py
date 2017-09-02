@@ -147,19 +147,11 @@ class Store(object):
         self.stats = {}
         self.reset_stats()
         self.clients = set()
-        self.newrels = []
-        self.deleted_nodes = []
-        self.deleted_rels = []
         self.classes = {}
         self.weaknoderefs = {}
-        self.create_node_count = 0
-        self.relate_node_count = 0
-        self.index_entry_count = 0
-        self.node_update_count = 0
-        self.node_deletion_count = 0
-        self.node_separate_count = 0
         self.factory = factory_constructor if factory_constructor else GraphNode.factory
         self.db_transaction = None
+        self.db_transaction_ops_pending = False
         print("RETURNING class %s" % self.__class__.__name__)
         return
 
@@ -170,7 +162,7 @@ class Store(object):
         """
         ret = '{\n\tdb: %s' % self.db
         ret += ',\n\tclasses: %s' % self.classes
-        for attr in ('clients', 'newrels', 'deleted_nodes', 'deleted_rels'):
+        for attr in ('clients', ):
             avalue = getattr(self, attr)
             acomma = '['
             s = "\n"
@@ -242,10 +234,15 @@ class Store(object):
         """
         if self.readonly:
             raise RuntimeError('Attempt to delete an object from a read-only store')
-        if subj.association.is_abstract:
-            raise ValueError('Node cannot be abstract')
-        self.separate(subj, direction='bidirectional')
-        self.deleted_nodes.append(subj)
+        self.db_transaction_ops_pending = True
+        cypher = subj.association.cypher_delete_node_query()
+        print('DELETE cypher:', cypher)
+        self.db_transaction.run(cypher).forward()
+        node_id = subj.association.node_id
+        subj._association = None
+        self.clients.remove(subj)
+        if node_id in self.weaknoderefs:
+            del self.weaknoderefs[node_id]
 
     @staticmethod
     def _get_key_values(cls, clsargs=None, subj=None):
@@ -323,6 +320,7 @@ class Store(object):
             return obj
         print('NOT LOADED node[%s]: %s' % (str(clsargs), str(obj)))
         subj = self.callconstructor(cls, clsargs)
+        self.db_transaction_ops_pending = False
         self.register(subj)
         if AssimEvent.event_observation_enabled:
             AssimEvent(subj, AssimEvent.CREATEOBJ)
@@ -467,12 +465,12 @@ class Store(object):
         assert not isinstance(obj, str)
         if self.readonly:
             raise RuntimeError('Attempt to relate objects in a read-only store')
-        self.newrels.append({'from': subj, 'to': obj, 'type': rel_type, 'props': properties})
         if Store.debug:
             print('NEW RELATIONSHIP FROM %s to %s' % (subj, obj), file=stderr)
             print('FROM id is %s' % subj.association.node_id, file=stderr)
             print('TO id is %s' % obj.association.node_id, file=stderr)
 
+        self.db_transaction_ops_pending = True
         cypher = subj.association.cypher_find_match_clause() + '\n'
         if subj is not obj:
             cypher += obj.association.cypher_find_match_clause() + '\n'
@@ -493,10 +491,6 @@ class Store(object):
         :return: None
         """
 
-        # Check for relationships created in this transaction...
-        for rel in self.newrels:
-            if rel['from'] is subj and rel['to'] is obj and rel['type'] == rel_type:
-                return
         # Check for pre-existing relationships
         if not subj.association.is_abstract and not obj.association.is_abstract:
             # TODO: NEEDS MORE WORK
@@ -515,11 +509,11 @@ class Store(object):
         :param direction: str: direction of relationship: forward, reverse, bidirectional
         :return: None
         """
-        self.deleted_rels.append({'subj': subj, 'rel_type': rel_type, 'obj': obj,
-                                  'direction': direction})
-        print('*****DELETING: ', self.deleted_rels, file=stderr)
-        cypher = subj.association.cypher_find_match_clause() + '\n'
-        if subj is not obj:
+        self.db_transaction_ops_pending = True
+        cypher = ''
+        if subj:
+            cypher += subj.association.cypher_find_match_clause() + '\n'
+        if obj and subj is not obj:
             cypher += obj.association.cypher_find_match_clause() + '\n'
         cypher += subj.association.cypher_unrelate_node(rel_type,
                                                         to_association=obj,
@@ -537,8 +531,7 @@ class Store(object):
         :param obj:
         :return:
         """
-        self.deleted_rels.append({'subj': subj, 'rel_type': rel_type, 'obj': obj,
-                                  'direction': 'reverse'})
+        self.separate(subj=subj, rel_type=rel_type, obj=obj, direction='reverse')
 
     @property
     def transaction_pending(self):
@@ -547,21 +540,15 @@ class Store(object):
 
         :return: bool: as noted
         """
+        if self.db_transaction_ops_pending:
+            return True
         for client in self.clients:
-            if client.association.node_id is None or client.association.dirty_attrs:
+            if client.association.dirty_attrs:
                 print('CLIENT: %s' % object.__str__(client), file=stderr)
                 print('NODE ID', client.association.node_id, file=stderr)
                 print('dirty_attrs', client.association.dirty_attrs, file=stderr)
                 return True
-
-        print ('CLIENTS:', self.clients, file=stderr)
-        self.dump_clients()
-        print ('NEWRELS:', self.newrels, file=stderr)
-        print ('DELETED NODES:', self.deleted_nodes, file=stderr)
-        print ('DELETED RELS:', self.deleted_rels, file=stderr)
-
-        print("TOTAL LEN: %s" % (len(self.newrels) + len(self.deleted_nodes) + len(self.deleted_rels)), file=stderr)
-        return (len(self.newrels) + len(self.deleted_nodes) + len(self.deleted_rels)) > 0
+        return False
 
     @staticmethod
     def callconstructor(constructor, kwargs):
@@ -869,7 +856,8 @@ class Store(object):
         :return:
         """
         node_id = self.neo_node_id(node)
-        if node_id is not None and node_id in self.weaknoderefs and self.weaknoderefs[node_id]():
+        assert node_id is not None
+        if node_id in self.weaknoderefs and self.weaknoderefs[node_id]():
             return self.weaknoderefs[node_id]()
         return None
 
@@ -947,7 +935,6 @@ class Store(object):
         if other:
             raise RuntimeError('Equivalent Object %s already exists: %s' % (subj, other))
         self._audit_weaknodes_clients()
-        self.clients.add(subj)
         self._audit_weaknodes_clients()
         # subj.association.node_id = self.neo_node_id(node)
         if Store.debug:
@@ -964,198 +951,36 @@ class Store(object):
             node_id = self.neo_node_id(node)
             subj.association.node_id = node_id
 
-        if node_id in self.weaknoderefs:
-            weakling = self.weaknoderefs[node_id]()
-            if weakling is None:
-                del self.weaknoderefs[node_id]
-            else:
-                print('OOPS! - already here... self.weaknoderefs',
-                      weakling, weakling.__dict__, file=stderr)
-            assert node_id not in self.weaknoderefs
+        assert node_id is not None
+        weakling = self.weaknoderefs[node_id]() if node_id in self.weaknoderefs else None
+        if weakling:
+            print('OOPS! - already here... self.weaknoderefs',
+                  weakling, weakling.__dict__, file=stderr)
             self._audit_weaknodes_clients()
+            raise ValueError('Node id %s already registered' % node_id)
+        else:
             self.weaknoderefs[node_id] = weakref.ref(subj)
             self._audit_weaknodes_clients()
         if hasattr(subj, 'post_db_init'):
             subj.post_db_init()
         return subj
 
-    def _newly_created_nodes(self):
-        """
-        Return the set of newly created nodes for this transaction
-
-        :return: [(object, neo4j.Node)]
-        """
-        print('self.clients: %s' % self.clients, file=stderr)
-        new_ones = [client for client in self.clients if client.association and client.association.is_abstract]
-        print("New ones: %s" % new_ones, file=stderr)
-        print("Node_ids:: %s"
-              % [client.association.node_id for client in new_ones], file=stderr)
-        return new_ones
-
-    #
-    #   Except for commit() and abort(), all member functions from here on
-    #   construct the batch job from previous requests
-    #
-
-    def batch_execute_create_nodes(self, transaction):
-        """
-        Construct Cypher statements for all the new objects in this batch
-
-        :return: None
-        """
-        print ("CLIENTS: %s" % self.clients)
-        cypher=''
-        transaction_variables = {}
-        for subj in self._newly_created_nodes():
-            assert isinstance(subj, self.graph_node)
-            if Store.debug:
-                print('====== Performing batch.create(%s: %s) - for new node'
-                      % (subj.association.variable_name, str(subj)), file=stderr)
-            cypher += subj.association.cypher_create_node_query()
-            transaction_variables[subj.association.variable_name] = subj
-            # We took care of all the attributes - effectively none are dirty now.
-            subj.association.dirty_attrs = set()
-            self._bump_stat('nodecreate')
-        if cypher == '':
-            return
-        # Our return statement just returns the node ids. We already have the objects ;-)
-        cypher += self._batch_construct_return_statement()
-        print('CYPHER: %s' % cypher, file=stderr)
-        cursor = transaction.run(cypher)
-        print ('transaction[%s].run IS: %s' % (transaction, cursor), file=stderr)
-        if cursor.forward():
-            result = cursor.current()
-            # We should only get one line from the return statement.
-            for variable in transaction_variables:
-                print('GOT %s.node_id = %s' % (variable, result[variable]), file=stderr)
-                # This works out nicely :-)
-                transaction_variables[variable].association.node_id = result[variable]
-        else:
-            raise RuntimeError("No results from Cypher RETURN statement.")
-
     def execute_create_node(self, subj):
         """
-        Construct Cypher statements for all the new objects in this batch
+        Create a node and capture the new node's node id
 
-        :param: subj: GraphNode: Node to be created
-
+        :param subj:
         :return: None
         """
         assert isinstance(subj, self.graph_node)
-        variable = subj.association.variable_name
-        cypher = subj.association.cypher_create_node_query() + 'RETURN ID(%s)' % variable
-        self._bump_stat('nodecreate')
-        # Our return statement just returns the node id. We already have the object ;-)
-        print('CYPHER: %s' % cypher, file=stderr)
-        subj.association.node_id = self.db_transaction.evaluate(cypher)
-        subj.association.dirty_attrs = set()
+        cypher = subj.association.cypher_create_node_query()
+        cypher += '\n RETURN ID(%s)' % subj.association.variable_name
+        print('CREATE CYPHER: %s' % cypher)
+        node_id = self.db_transaction.evaluate(cypher)
+        print('NODE_ID:', node_id)
+        subj.association.node_id = node_id
 
-    def _batch_construct_return_statement(self):
-        """
-        Construct the return statement which will return all our new node ids
-        This is amazingly awesome. We return each node id as the name of
-        the variable we use to refer to that node.
-        And once we've constructed the nodes, we have the node IDs of the nodes,
-        and we can use (and will) use them in subsequent operations.
-        :return:
-        """
-        new_nodes = self._newly_created_nodes()
-        if not new_nodes:
-            return
-        cypher = 'RETURN '
-        delimiter = ''
-        for subj in new_nodes:
-            assert isinstance(subj, self.graph_node)
-            variable = subj.association.variable_name
-            cypher += '%sID(%s) AS %s' % (delimiter, variable, variable)
-            delimiter = ', '
-        cypher += '\n'
-        return cypher
-
-    def _batch_define_variable(self, subj):
-        """
-        Define a variable by searching the database for it - we typically know its node id
-        :return: str: Cypher to define this variable
-        """
-        if subj is None:
-            return
-        print('define_variable: SUBJ:', subj, file=stderr)
-        variable_name = subj.association.variable_name
-        return subj.association.cypher_find_match_clause()
-
-    def batch_execute_add_labels(self, transaction):
-        """
-        Construct batch commands for all the labels to be added for this batch
-        Note that we add "default" labels from class membership for objects automatically
-
-        :return: None
-        """
-        # todo: needs complete redesign to create Cypher statements
-        raise NotImplementedError("No labels to add...")
-
-    def batch_execute_relate_nodes(self, transaction):
-        """
-        Construct the batch commands to create the requested relationships
-        return: None
-        """
-        cypher = ''
-        for rel in self.newrels:
-            fromobj = rel['from']
-            toobj = rel['to']
-            self._batch_define_variable(fromobj)
-            self._batch_define_variable(toobj)
-            self._bump_stat('relate')
-            if Store.debug:
-                print('ADDING rel %s' % rel, file=stderr)
-            cypher += fromobj.association.cypher_relate_node(rel['type'],
-                                                                  toobj.association,
-                                                                  attrs=rel['props'])
-        cypher and transaction.run(cypher)
-
-    def batch_execute_node_deletions(self, transaction):
-        """
-        Construct batch commands for removing nodes'
-
-        :return: None
-        """
-        cypher=''
-        for obj in self.deleted_nodes:
-            assert isinstance(obj, self.graph_node)
-            if Store.debug and Store.log:
-                Store.log.debug('DELETING NODE %s: %s' %
-                                (str(obj.__dict__.keys()), obj))
-            node_id = obj.association.node_id
-            if node_id in self.weaknoderefs:
-                del self.weaknoderefs[node_id]
-            if Store.debug and Store.log:
-                Store.log.debug('DELETING node %s' % obj)
-            self._bump_stat('nodedelete')
-            cypher += obj.association.cypher_delete_node_query()
-            # disconnect it from the database
-            obj._association = None # Bad things happen if we use it after this...
-        cypher and transaction.run(cypher)
-
-    def batch_execute_relationship_deletions(self, transaction):
-        """
-
-        :return:
-        """
-        cypher = ''
-        for rel in self.deleted_rels:
-            subj = rel['subj']
-            obj = rel['obj']
-            print('DELETING RELATIONSHIP: %s %s' % (subj, obj), file=stderr)
-            self._batch_define_variable(subj)
-            print('OBJ: %s' % obj)
-            if subj is not obj:
-                self._batch_define_variable(obj)
-
-            cypher += subj.association.cypher_unrelate_node(rel['rel_type'],
-                                                            to_association=obj,
-                                                            direction=rel['direction'])
-        cypher and transaction.run(cypher)
-
-    def batch_execute_node_updates(self, transaction):
+    def batch_execute_node_updates(self):
         """
         Construct batch commands for updating attributes on nodes
 
@@ -1163,14 +988,12 @@ class Store(object):
 
         :return:
         """
-        cypher = ''
         for subj in self.clients:
-            if subj.association.is_abstract or not subj.association.dirty_attrs:
+            if not subj.association.dirty_attrs:
                 continue
-            node_id = subj.association.node_id
-            self._batch_define_variable(subj)
+            cypher = subj.association.cypher_find_match_clause() + '\n'
             cypher += subj.association.cypher_update_clause()  # Defaults to dirty attributes
-        cypher and transaction.run(cypher)
+            self.db_transaction.run(cypher).forward()
 
     def commit(self):
         """
@@ -1181,28 +1004,9 @@ class Store(object):
         print ("COMMIT CLIENTS: %s" % self.clients)
         # Transaction will commit once the 'with' is complete...
         # But this is not auto-commit...
-        if not self.db_transaction.finished():
-            self.db_transaction.commit()
-        with self.db.begin(autocommit=False) as transaction:
-            for phase in ('node_updates',
-                          'node_deletions'):
-                print('Performing step %s' % phase, file=stderr)
-                print("TRANSACTION IS: %s. Finished? %s" % (transaction, transaction.finished()))
-                getattr(self, 'batch_execute_%s' % phase)(transaction)
-
-            # self.batch_execute_add_labels()          # NOTIMPLEMENTED
-            if Store.debug:
-                print('COMMITTING THIS THING:', str(self), file=stderr)
-
-            if Store.debug:
-                print('Batch Updates submitted. Committing THIS THING:', self, file=stderr)
-                if Store.log:
-                    Store.log.debug('Batch Updates constructed: Committing THIS: %s' % self)
-            start = datetime.now()
-        end = datetime.now()
-        diff = end - start
-        self.stats['lastcommit'] = diff
-        self.stats['totaltime'] += diff
+        start = datetime.now()
+        self.batch_execute_node_updates()
+        self.db_transaction.commit()
         if self.debug:
             print('DB TRANSACTION COMPLETED SUCCESSFULLY', file=stderr)
             self.abort()
@@ -1219,9 +1023,7 @@ class Store(object):
             print('CLIENT/subj: %s' % subj, file=stderr)
             subj.association.dirty_attrs = set()
         self.clients = set()
-        self.newrels = []
-        self.deleted_nodes = []
-        self.deleted_rels = []
+        self.db_transaction_ops_pending = False
         # Clean out dead node references
         for nodeid in self.weaknoderefs.keys():
             subj = self.weaknoderefs[nodeid]()
@@ -1353,6 +1155,7 @@ if __name__ == "__main__":
         print(store, file=stderr)
         store.dump_clients()
         assert not store.transaction_pending
+        store.db_transaction = store.db.begin(autocommit=False)
 
         # Add another new field
         fred.x = 'malcolm'
@@ -1372,6 +1175,7 @@ if __name__ == "__main__":
         assert 3.14158 < fred.c < 3.146
         assert fred.x == 'malcolm'
 
+        store.db_transaction = store.db.begin(autocommit=False)
         # Check out load()...
         store._audit_weaknodes_clients()
         newnode = store.load(Drone, name=fred.name, a=fred.a, b=fred.b)
@@ -1391,6 +1195,7 @@ if __name__ == "__main__":
         assert newnode.a == 52
         assert newnode.b == 2
         assert newnode.x == 'malcolm'
+        store.db_transaction = store.db.begin(autocommit=False)
         store.separate(fred, 'WILLBEA')
         assert store.transaction_pending
         store.commit()
@@ -1414,14 +1219,19 @@ if __name__ == "__main__":
         rels = [rel for rel in rels]
         print('REMAINING RELS: %s' % rels, file=stderr)
         assert len(rels) == 0
+        store.db_transaction = store.db.begin(autocommit=False)
         store.delete(fred)
         assert store.transaction_pending
-        # store.commit() # Commit appears to be automatic...
+        store.commit()
 
         # When we delete an object from the database, the  python object
         # is disconnected from the database...
         assert fred.association is None
         assert not store.transaction_pending
+        store.db_transaction = store.db.begin(autocommit=False)
+        notfred = store.load(Drone, name=fred.name, a=fred.a, b=fred.b)
+        assert notfred is None
+        store.commit()
 
         print('Statistics:', store.stats, file=stderr)
         print('Final returned values look good!', file=stderr)

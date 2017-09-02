@@ -221,7 +221,7 @@ class StoreAssociation(object):
 
         :return: str: Cypher delete query
         """
-        return self.cypher_find_match_clause() + ' WITH %s DELETE %s\n'\
+        return self.cypher_find_match_clause() + ' WITH %s DETACH DELETE %s\n'\
                                                  % (self.variable_name, self.variable_name)
 
     def cypher_find_match_clause(self):
