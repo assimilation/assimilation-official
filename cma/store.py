@@ -509,6 +509,8 @@ class Store(object):
         :param direction: str: direction of relationship: forward, reverse, bidirectional
         :return: None
         """
+        if self.readonly:
+            raise RuntimeError('Attempt to separate() an object from a read-only store')
         self.db_transaction_ops_pending = True
         cypher = ''
         if subj:
@@ -775,9 +777,6 @@ class Store(object):
         idxkey, idxvalue uniquely determine which object we're after
                 they're effectively key values
 
-        TODO: This needs to be completely redesigned, and rewritten
-              Needs new API
-
         :param cls: class: class of object
         :param key_values: dict(str, str): key values for this object
         :return: GraphNode or None
@@ -839,12 +838,11 @@ class Store(object):
         :param node:
         :return: dict(str, object): attribute dict
         """
+        # TODO: return dict(node) ??
         result = {}
         assert isinstance(node, py2neo.Node)
         print('VIEWKEYS:', node.viewkeys())
         for attribute in node.viewkeys():
-            if attribute.startswith('_'):
-                continue
             result[attribute] = node[attribute]
         return result
 
@@ -878,6 +876,7 @@ class Store(object):
         # If so, we need to update and return it instead of creating a new object
         current_obj = self._search_for_same_node(node)
         if current_obj:
+            # FIXME: I think I should just return the current object...
             return self._update_obj_from_node(current_obj, node)
 
         node_id = self.neo_node_id(node)
@@ -947,7 +946,6 @@ class Store(object):
             self.execute_create_node(subj)
             node_id = subj.association.node_id
         else:
-            assert self.neo_node_id(node) is not None
             node_id = self.neo_node_id(node)
             subj.association.node_id = node_id
 
@@ -977,16 +975,15 @@ class Store(object):
         cypher += '\n RETURN ID(%s)' % subj.association.variable_name
         print('CREATE CYPHER: %s' % cypher)
         node_id = self.db_transaction.evaluate(cypher)
+        assert node_id is not None
         print('NODE_ID:', node_id)
         subj.association.node_id = node_id
 
     def batch_execute_node_updates(self):
         """
-        Construct batch commands for updating attributes on nodes
+        Construct and execute batch commands for updating attributes on nodes
 
-        :param transaction: py2neo.Transaction
-
-        :return:
+        :return: None
         """
         for subj in self.clients:
             if not subj.association.dirty_attrs:
@@ -998,12 +995,12 @@ class Store(object):
     def commit(self):
         """
         Commit all the changes we've created since our last transaction
+        This is only needed for testing - the production code has a 'with' statement
+        that takes care of committing the transaction.
 
         :return: None
         """
         print ("COMMIT CLIENTS: %s" % self.clients)
-        # Transaction will commit once the 'with' is complete...
-        # But this is not auto-commit...
         start = datetime.now()
         self.batch_execute_node_updates()
         self.db_transaction.commit()
