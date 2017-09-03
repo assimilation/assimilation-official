@@ -20,45 +20,62 @@
 #
 #
 _suites = ['all', 'cma']
-import sys, os
+import sys
 import gc
+import logging
+import inject
 sys.path.extend(['..', '../cma', "/usr/local/lib/python2.7/dist-packages"])
 import py2neo
-from py2neo import neo4j, GraphError
+from py2neo import Graph, GraphError
 from store import Store
 from AssimCclasses import pyNetAddr, dump_c_objects
 from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count, proj_class_dump_live_objects
-from graphnodes import GraphNode, RegisterGraphClass
-from cmainit import CMAinit
-from cmadb import Neo4jCreds
+from graphnodes import GraphNode, RegisterGraphClass, JSONMapNode
+from systemnode import SystemNode
+from cmainit import  CMAInjectables, CMAinit
 
 DEBUG=False
-CheckForDanglingClasses = True
-AssertOnDanglingClasses = True
+class TestFoo:
+    db = None
+    log = None
+    store = None
+    initialized_yet = False
+    CheckForDanglingClasses = True
+    AssertOnDanglingClasses = False
+    AssertOnDanglingClasses = True
+    WorstDanglingCount = 0
 
-WorstDanglingCount = 0
+    @staticmethod
+    @inject.params(db='py2neo.Graph', log='logging.Logger', store='Store')
+    def config_foo(db=None, log=None, store=None):
+        print "config_foo(%s, %s, %s)" % (db, log, store)
+        log.warning("config_foo(%s, %s, %s)" % (db, log, store))
+        TestFoo.db = db
+        TestFoo.log = log
+        TestFoo.store = store
 
-if not CheckForDanglingClasses:
+if not TestFoo.CheckForDanglingClasses:
     print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
-elif not AssertOnDanglingClasses:
+elif not TestFoo.AssertOnDanglingClasses:
     print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
 
 print >> sys.stderr, 'USING PYTHON VERSION %s' % str(sys.version)
 
-version_printed = False
+def setup_module(module):
+    """Setup for this entire file"""
 
 def assert_no_dangling_Cclasses(doassert=None):
-    global CheckForDanglingClasses
-    global WorstDanglingCount
+    return
+    TestFoo.store.clean_store()
     sys._clear_type_cache()
     if doassert is None:
-        doassert = AssertOnDanglingClasses
+        doassert = TestFoo.AssertOnDanglingClasses
     CMAinit.uninit()
     gc.collect()    # For good measure...
     count =  proj_class_live_object_count()
     #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
     # Avoid cluttering the output up with redundant messages...
-    if count > WorstDanglingCount and CheckForDanglingClasses:
+    if count > TestFoo.WorstDanglingCount and TestFoo.CheckForDanglingClasses:
         WorstDanglingCount = count
         if doassert:
             print >> sys.stderr, 'STARTING OBJECT DUMP'
@@ -95,16 +112,6 @@ class TestCase(object):
         print '__del__ CALL for %s' % str(method)
         assert_no_dangling_Cclasses()
 
-def CreateIndexes(db, indexlist):
-    'Create Indexes(indexlist) - a list of strings for Node indexes to create'
-    for index in indexlist:
-        try:
-            db.legacy.delete_index(neo4j.Node, index)
-        except GraphError:
-            pass
-    for index in indexlist:
-        db.legacy.get_or_create_index(neo4j.Node, index, None)
-
 
 @RegisterGraphClass
 class Person(GraphNode):
@@ -119,7 +126,7 @@ class Person(GraphNode):
             self.dateofbirth='unknown'
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['lastname', 'firstname']
 
@@ -148,7 +155,7 @@ class aTestSystem(GraphNode):
         return self.roles
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['designation', 'domain']
 
@@ -175,7 +182,7 @@ class aTestIPaddr(GraphNode):
         self.ipaddr = str(ipaddr)
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['ipaddr']
 
@@ -190,25 +197,15 @@ class aTestNIC(GraphNode):
         self.MACaddr = str(mac)
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['MACaddr']
 
 
-Classes = [Person, aTestSystem, aTestDrone, aTestIPaddr, aTestNIC]
-
-keymap = {'Person': {'index':'Person','kattr': 'lastname', 'vattr': 'firstname'},
-          'aTestSystem': {'index':'aTestSystem','kattr': 'designation', 'value': 'global'},
-          'aTestDrone':  {'index':'aTestDrone','kattr': 'designation', 'value': 'global'},
-          'aTestIPaddr': {'index':'aTestIPaddr','kattr': 'ipaddr', 'value': 'global'},
-          'aTestNIC':    {'index':'aTestNIC','kattr': 'MACaddr', 'value': 'global'}
-          }
-uniqueindexes = {}
-for key in keymap:
-    uniqueindexes[key] = True
+Classes = [Person, aTestSystem, aTestDrone, aTestIPaddr, aTestNIC, SystemNode]
 
 
-##mys = Store(db, uniqueindexmap=uniqueindexes, classkeymap=keymap)
+##mys = Store(db)
 ##
 ##fred = System('Fred')
 ##fred.addroles('server')
@@ -221,22 +218,20 @@ for key in keymap:
 ##print seven.roles
 ##print Annika.firstname, Annika.lastname
 
-def initstore():
-    global version_printed
-    Neo4jCreds().authenticate()
-    db = neo4j.Graph(None)
-    if not version_printed:
-        print >> sys.stderr, 'USING NEO4J VERSION %s' % str(db.neo4j_version)
-        print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
-        version_printed = True
-    GraphNode.clean_graphnodes()
-    db.delete_all()
-    CMAinit(None)
-    OurStore = Store(db, uniqueindexmap=uniqueindexes, classkeymap=keymap)
-    OurStore.clean_store()
-    CreateIndexes(db, [cls.__name__ for cls in Classes])
-    return OurStore
 
+def initstore():
+    if not TestFoo.initialized_yet:
+        inject.configure_once(CMAInjectables.test_config_injection)
+        TestFoo.config_foo()
+        print >> sys.stderr, 'USING NEO4J VERSION %s' % str(TestFoo.db.neo4j_version)
+        print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
+        TestFoo.initialized_yet = True
+    TestFoo.db.delete_all()
+    TestFoo.store.clean_store()
+    TestFoo.store.db_transaction = TestFoo.store.db.begin(autocommit=False)
+    CMAinit(None)
+    TestFoo.store.db_transaction = TestFoo.store.db.begin(autocommit=False)
+    return TestFoo.store
 
 class TestCreateOps(TestCase):
     def test_drone(self):
@@ -464,17 +459,18 @@ class TestDatabaseWrites(TestCase):
         RETURN person, drone, nic, ipaddr'''
         Qstr='''START drone=node:aTestDrone('sevenofnine:*')
         RETURN drone'''
+        Qstr="""
+        MATCH (person:Class_aTestDrone)<-[:formerly]-(drone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
+        WHERE person.designation = 'sevenofnine'
+        RETURN person, drone, nic, ipaddr'''
+        """
         store = initstore()
         #print >> sys.stderr, 'RUNNING create_stuff'
         self.create_stuff(store)    # Everything has gone out of scope
                                     # so nothing is cached any more
         #print >> sys.stderr, 'RUNNING test_create_and_query'
         # Verify nothing is cached any more
-        self.assertEqual(store.batchindex, 0)
         self.assertEqual(len(store.clients), 0)
-        self.assertEqual(len(store.newrels), 0)
-        self.assertEqual(len(store.deletions), 0)
-        self.assertEqual(len(store.deletions), 0)
         gc.collect()
         danglingweakref=False
         if False:
@@ -512,6 +508,33 @@ class TestDatabaseWrites(TestCase):
         #self.assertTrue(foundaddr1)
         #self.assertTrue(foundaddr2)
 
+
+class TestSystemNode(TestCase):
+    def test_systemnode_json(self):
+        """Test that our SystemNode JSON "dict" works like it should"""
+        from cmadb import CMAdb
+        store = initstore()
+        CMAdb.store = store
+        Store.debug = True
+        designation="SystemNodeUno"
+        sysnode = store.load_or_create(SystemNode, domain="global", designation=designation, roles=['Server', 'Switch'])
+        sysnode['FunkyAttributeab'] = '''{"a": "b"}'''
+        sysnode['FunkyAttributecd'] = '''{"c": "d"}'''
+        store.commit()
+        Store.debug = True
+        sysnode = None
+        print >> sys.stderr, ("COMMIT done")
+        query_string='''MATCH(sys) WHERE sys.nodetype='SystemNode' AND sys.designation=toLower({desig}) RETURN sys'''
+        qnode = store.load_cypher_node(query_string, params={'desig': designation})
+        assert qnode is not None
+        print("Qnode: %s" % (qnode.__dict__.keys()))
+        print(qnode.keys())
+        assert str(qnode['FunkyAttributeab']) == '''{"a":"b"}'''
+        assert str(qnode['FunkyAttributecd']) == '''{"c":"d"}'''
+        print >> sys.stderr,('JSONMAP NODE CLASS attributes: %s' % JSONMapNode.__dict__)
+
+
+
 # Other things that ought to have tests:
 #   node deletion
 #   Searching for nodes we just added (I forgot which ones work that way)
@@ -520,5 +543,6 @@ class TestDatabaseWrites(TestCase):
 #   other things?
  
 if __name__ == "__main__":
-    run()
+    TestSystemNode().test_systemnode_json()
+
 
