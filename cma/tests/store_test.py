@@ -35,28 +35,31 @@ from systemnode import SystemNode
 from cmainit import  CMAInjectables, CMAinit
 
 DEBUG=False
-class TestFoo:
+class FooClass:
     db = None
     log = None
     store = None
     initialized_yet = False
     CheckForDanglingClasses = True
-    AssertOnDanglingClasses = False
     AssertOnDanglingClasses = True
     WorstDanglingCount = 0
 
     @staticmethod
     @inject.params(db='py2neo.Graph', log='logging.Logger', store='Store')
     def config_foo(db=None, log=None, store=None):
-        print "config_foo(%s, %s, %s)" % (db, log, store)
+        # print "config_foo(%s, %s, %s)" % (db, log, store)
         log.warning("config_foo(%s, %s, %s)" % (db, log, store))
-        TestFoo.db = db
-        TestFoo.log = log
-        TestFoo.store = store
+        FooClass.db = db
+        FooClass.log = log
+        FooClass.store = store
 
-if not TestFoo.CheckForDanglingClasses:
+    @staticmethod
+    def new_transaction():
+        FooClass.store.db_transaction = FooClass.store.db.begin(autocommit=False)
+
+if not FooClass.CheckForDanglingClasses:
     print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
-elif not TestFoo.AssertOnDanglingClasses:
+elif not FooClass.AssertOnDanglingClasses:
     print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
 
 print >> sys.stderr, 'USING PYTHON VERSION %s' % str(sys.version)
@@ -66,16 +69,16 @@ def setup_module(module):
 
 def assert_no_dangling_Cclasses(doassert=None):
     return
-    TestFoo.store.clean_store()
+    FooClass.store.clean_store()
     sys._clear_type_cache()
     if doassert is None:
-        doassert = TestFoo.AssertOnDanglingClasses
+        doassert = FooClass.AssertOnDanglingClasses
     CMAinit.uninit()
     gc.collect()    # For good measure...
     count =  proj_class_live_object_count()
     #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
     # Avoid cluttering the output up with redundant messages...
-    if count > TestFoo.WorstDanglingCount and TestFoo.CheckForDanglingClasses:
+    if count > FooClass.WorstDanglingCount and FooClass.CheckForDanglingClasses:
         WorstDanglingCount = count
         if doassert:
             print >> sys.stderr, 'STARTING OBJECT DUMP'
@@ -109,7 +112,7 @@ class TestCase(object):
             return True
 
     def teardown_method(self, method):
-        print '__del__ CALL for %s' % str(method)
+        # print '__del__ CALL for %s' % str(method)
         assert_no_dangling_Cclasses()
 
 
@@ -220,18 +223,18 @@ Classes = [Person, aTestSystem, aTestDrone, aTestIPaddr, aTestNIC, SystemNode]
 
 
 def initstore():
-    if not TestFoo.initialized_yet:
+    if not FooClass.initialized_yet:
         inject.configure_once(CMAInjectables.test_config_injection)
-        TestFoo.config_foo()
-        print >> sys.stderr, 'USING NEO4J VERSION %s' % str(TestFoo.db.neo4j_version)
+        FooClass.config_foo()
+        print >> sys.stderr, 'USING NEO4J VERSION %s' % str(FooClass.db.neo4j_version)
         print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
-        TestFoo.initialized_yet = True
-    TestFoo.db.delete_all()
-    TestFoo.store.clean_store()
-    TestFoo.store.db_transaction = TestFoo.store.db.begin(autocommit=False)
+        FooClass.initialized_yet = True
+    FooClass.db.delete_all()
+    FooClass.store.clean_store()
+    FooClass.new_transaction()
     CMAinit(None)
-    TestFoo.store.db_transaction = TestFoo.store.db.begin(autocommit=False)
-    return TestFoo.store
+    FooClass.new_transaction()
+    return FooClass.store
 
 class TestCreateOps(TestCase):
     def test_drone(self):
@@ -240,22 +243,19 @@ class TestCreateOps(TestCase):
         self.assertTrue('host' in seven.roles)
         self.assertTrue('Drone' in seven.roles)
         self.assertTrue('Borg' in seven.roles)
-        self.assertTrue(store.is_abstract(seven))
         store.commit()
         self.assertTrue('host' in seven.roles)
         self.assertTrue('Drone' in seven.roles)
         self.assertTrue('Borg' in seven.roles)
-        self.assertTrue(not store.is_abstract(seven))
         self.assertTrue(isinstance(seven, aTestSystem))
         self.assertEqual(seven.designation, 'sevenofnine')
-        self.assertFalse(store.is_abstract(seven))
 
     def test_person(self):
         store = initstore()
-        #store.debug = True
-        Annika = Person('Annika', 'Hansen')
-        store.save(Annika)
+        # store.debug = True
+        Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
         store.commit()
+        FooClass.new_transaction()
         whoami = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
         self.assertTrue(whoami is Annika)
         self.assertEqual(Annika.firstname, 'Annika')
@@ -269,9 +269,7 @@ class TestCreateOps(TestCase):
         self.assertTrue('router' in fredsys.roles)
         self.assertFalse('host' in fredsys.roles)
         self.assertFalse('drone' in fredsys.roles)
-        self.assertTrue(store.is_abstract(fredsys))
         store.commit()
-        self.assertFalse(store.is_abstract(fredsys))
         self.assertEqual(fredsys.designation, 'fred')
 
     def test_nic(self):
@@ -284,11 +282,10 @@ class TestCreateOps(TestCase):
         self.assertRaises(ValueError, store.load_or_create, aTestNIC, MACaddr='AA-BB-CC-DD-EE-FF:00')
         self.assertRaises(ValueError, store.load_or_create, aTestNIC, MACaddr='AA-BB-CC-DD-EE-FF-')
         self.assertRaises(ValueError, store.load_or_create, aTestNIC, MACaddr='10.10.10.5')
-        self.assertTrue(store.is_abstract(freddiemac))
         store.commit()
         self.assertEqual(freddiemac.MACaddr, 'aa-bb-cc-dd-ee-ff')
         self.assertEqual(sys64.MACaddr, '00-11-cc-dd-ee-ff-aa-bb')
-        self.assertTrue(not store.is_abstract(freddiemac))
+
 
 class TestRelateOps(TestCase):
 
@@ -312,17 +309,17 @@ class TestRelateOps(TestCase):
         # It would be nice if the following tests would work even before committing...
         store.commit()
         count=0
-        for node in store.load_related(seven, 'formerly', Person):
+        for node in store.load_related(seven, 'formerly'):
             self.assertTrue(node is Annika)
             count += 1
         self.assertEqual(count, 1)
         count=0
-        for node in store.load_in_related(Annika, 'formerly', aTestDrone):
+        for node in store.load_in_related(Annika, 'formerly'):
             self.assertTrue(node is seven)
             count += 1
         self.assertEqual(count, 1)
         count=0
-        for node in store.load_related(seven, 'nicowner', aTestNIC):
+        for node in store.load_related(seven, 'nicowner'):
             self.assertTrue(node is sevennic)
             count += 1
         self.assertEqual(count, 1)
@@ -332,8 +329,8 @@ class TestRelateOps(TestCase):
         seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
         sevennic1 = store.load_or_create(aTestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
         sevennic2 = store.load_or_create(aTestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
-        ipaddr1=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
-        ipaddr2=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
+        ipaddr1 = store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
+        ipaddr2 = store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
         store.relate(seven, 'nicowner', sevennic1)
         store.relate(seven, 'nicowner', sevennic2)
         store.relate(sevennic1, 'ipowner', ipaddr1)
@@ -342,13 +339,16 @@ class TestRelateOps(TestCase):
 
         prevnode = None
         count=0
-        for node in store.load_related(seven, 'nicowner', aTestNIC):
-            self.assertTrue((node is sevennic1 or node is sevennic2) and node is not prevnode)
-            prevnode = node
+        for nic in store.load_related(seven, 'nicowner'):
+            self.assertTrue((nic is sevennic1 or nic is sevennic2) and nic is not prevnode)
+            prevnode = nic
             count += 1
             ipcount=0
-            for ip in store.load_related(node, 'ipowner', aTestIPaddr):
-                if node is sevennic1:
+            # print >> sys.stderr, ('NIC IS %s' % nic)
+            for ip in store.load_related(nic, 'ipowner'):
+                # print >> sys.stderr, ('IPaddr is IS %s' % ip)
+                if nic is sevennic1:
+                    # print >> sys.stderr, ('IP IS %s NOT ipaddr1' % ip)
                     self.assertTrue(ip is ipaddr1)
                 else:
                     self.assertTrue(ip is ipaddr2)
@@ -361,26 +361,28 @@ class TestRelateOps(TestCase):
         seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
         sevennic1 = store.load_or_create(aTestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
         sevennic2 = store.load_or_create(aTestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
-        ipaddr1=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
-        ipaddr2=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
+        ipaddr1 = store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
+        ipaddr2 = store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
         store.relate(seven, 'nicowner', sevennic1)
         store.relate(seven, 'nicowner', sevennic2)
         store.relate(sevennic1, 'ipowner', ipaddr1)
         store.relate(sevennic2, 'ipowner', ipaddr2)
         store.commit()
+        FooClass.new_transaction()
         store.separate(sevennic2, 'ipowner')
         store.separate(seven, 'nicowner', sevennic2)
         store.commit()
         count=0
-        for node in store.load_related(seven, 'nicowner', aTestNIC):
+        for node in store.load_related(seven, 'nicowner'):
             self.assertTrue(node is sevennic1)
             count += 1
             ipcount=0
-            for ip in store.load_related(node, 'ipowner', aTestIPaddr):
+            for ip in store.load_related(node, 'ipowner'):
                 self.assertTrue(ip is ipaddr1)
                 ipcount += 1
             self.assertTrue(ipcount == 1)
         self.assertEqual(count, 1)
+
 
 class TestGeneralQuery(TestCase):
 
@@ -391,8 +393,8 @@ class TestGeneralQuery(TestCase):
         store.relate(seven, 'formerly', Annika)
         sevennic1 = store.load_or_create(aTestNIC, MACaddr='ff-ff:7-0f-9:7-0f-9')
         sevennic2 = store.load_or_create(aTestNIC, MACaddr='00-00:7-0f-9:7-0f-9')
-        ipaddr1=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
-        ipaddr2=store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
+        ipaddr1 = store.load_or_create(aTestIPaddr, ipaddr='10.10.10.1')
+        ipaddr2 = store.load_or_create(aTestIPaddr, ipaddr='10.10.10.2')
         store.relate(seven, 'nicowner', sevennic1)
         store.relate(seven, 'nicowner', sevennic2)
         store.relate(sevennic1, 'ipowner', ipaddr1)
@@ -403,14 +405,17 @@ class TestGeneralQuery(TestCase):
         # seven-[:nicowner]-> sevennic1-[:ipowner]->10.10.10.1
         # seven-[:nicowner]-> sevennic2-[:ipowner]->10.10.10.2
 
-        Qstr='''START drone=node:aTestDrone('sevenofnine:*')
-        MATCH (person)<-[:formerly]-(drone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
+        Qstr='''
+        MATCH (person:Class_Person)<-[:formerly]-(drone:Class_aTestDrone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
+        WHERE person.firstname = 'Annika' and person.lastname = 'Hansen'
         RETURN person, drone, nic, ipaddr'''
-        iter = store.load_cypher_query(Qstr, GraphNode.factory)
+        iterator = store.load_cypher_query(Qstr)
         rowcount = 0
-        foundaddr1=False
-        foundaddr2=False
-        for row in iter:
+        foundaddr1 = False
+        foundaddr2 = False
+        for row in iterator:
+            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.IPADDR: %s' % row.ipaddr.ipaddr)
+            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.MACADDR: %s' % row.nic.MACaddr)
             rowcount += 1
             # fields are person, drone, nic and ipaddr
             self.assertTrue(row.person is Annika)
@@ -422,91 +427,88 @@ class TestGeneralQuery(TestCase):
                 self.assertTrue(row.nic is sevennic2)
                 self.assertTrue(row.ipaddr is ipaddr2)
                 foundaddr2 = True
+        # print >> sys.stderr, ('ROWCOUNT: %s', rowcount)
         self.assertEqual(rowcount, 2)
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
 
 class TestDatabaseWrites(TestCase):
-    mac1= 'ff-ff:7-0f-9:7-0f-9'
-    mac2= '00-00:7-0f-9:7-0f-9'
-    ip1= '10.10.10.1'
-    ip2= '10.10.10.2'
+    mac1 = 'ff-ff:7-0f-9:7-0f-9'
+    mac2 = '00-00:7-0f-9:7-0f-9'
+    ip1 = '10.10.10.1'
+    ip2 = '10.10.10.2'
 
     def create_stuff(self, store):
+        FooClass.new_transaction()
         seven = store.load_or_create(aTestDrone, designation='SevenOfNine', roles='Borg')
-        #Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
-        #store.relate(seven, 'formerly', Annika)
-        #sevennic1 = store.load_or_create(aTestNIC, MACaddr=TestDatabaseWrites.mac1)
-        #sevennic2 = store.load_or_create(aTestNIC, MACaddr=TestDatabaseWrites.mac2)
-        #ipaddr1=store.load_or_create(aTestIPaddr,   ipaddr=TestDatabaseWrites.ip1)
-        #ipaddr2=store.load_or_create(aTestIPaddr,   ipaddr=TestDatabaseWrites.ip2)
-        #store.relate(seven, 'nicowner', sevennic1)
-        #store.relate(seven, 'nicowner', sevennic2)
-        #store.relate(sevennic1, 'ipowner', ipaddr1)
-        #store.relate(sevennic2, 'ipowner', ipaddr2)
+        Annika = store.load_or_create(Person, firstname='Annika', lastname='Hansen')
+        store.relate(seven, 'formerly', Annika)
+        sevennic1 = store.load_or_create(aTestNIC, MACaddr=TestDatabaseWrites.mac1)
+        sevennic2 = store.load_or_create(aTestNIC, MACaddr=TestDatabaseWrites.mac2)
+        ipaddr1 = store.load_or_create(aTestIPaddr,   ipaddr=TestDatabaseWrites.ip1)
+        ipaddr2 = store.load_or_create(aTestIPaddr,   ipaddr=TestDatabaseWrites.ip2)
+        store.relate(seven, 'nicowner', sevennic1)
+        store.relate(seven, 'nicowner', sevennic2)
+        store.relate(sevennic1, 'ipowner', ipaddr1)
+        store.relate(sevennic2, 'ipowner', ipaddr2)
         store.commit()
         # Now we have something to test queries against...
         # seven-[:formerly]->Annika
         # seven-[:nicowner]-> sevennic1-[:ipowner]->10.10.10.1
         # seven-[:nicowner]-> sevennic2-[:ipowner]->10.10.10.2
         # When we return, we should not have anything in our cache
+        FooClass.new_transaction()
 
     def test_create_and_query(self):
-        '''The main point of this test is to verify that things actually go into the
-        database correctly.'''
-        Qstr='''START drone=node:aTestDrone('sevenofnine:*')
-        MATCH (person)<-[:formerly]-(drone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
-        RETURN person, drone, nic, ipaddr'''
-        Qstr='''START drone=node:aTestDrone('sevenofnine:*')
-        RETURN drone'''
-        Qstr="""
-        MATCH (person:Class_aTestDrone)<-[:formerly]-(drone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
-        WHERE person.designation = 'sevenofnine'
-        RETURN person, drone, nic, ipaddr'''
         """
+        The main point of this test is to verify that things actually go into the
+        database correctly.
+
+        :return: None
+        """
+        Qstr='''
+        MATCH (person:Class_Person)<-[:formerly]-(drone:Class_aTestDrone)-[:nicowner]->(nic)-[:ipowner]->(ipaddr)
+        WHERE person.firstname = "Annika" AND person.lastname="Hansen"
+        RETURN person, drone, nic, ipaddr
+        '''
         store = initstore()
         #print >> sys.stderr, 'RUNNING create_stuff'
         self.create_stuff(store)    # Everything has gone out of scope
                                     # so nothing is cached any more
         #print >> sys.stderr, 'RUNNING test_create_and_query'
         # Verify nothing is cached any more
-        self.assertEqual(len(store.clients), 0)
-        gc.collect()
-        danglingweakref=False
-        if False:
-            # This subtest used to work, but once I added AssimEvents to the mix
-            # some of our former objects now hang around - I have no idea why...
-            # This varies by OS and python version - but not in any rational way...
-            for ref in store.weaknoderefs:
-                wref = store.weaknoderefs[ref]()
-                if wref is not None:
-                    print >> sys.stderr, ('OOPS: weakref %s still alive' % str(wref))
-                    print >> sys.stderr, ('PYTHON VERSION: %s' % str(sys.version))
-                    danglingweakref = True
-            self.assertTrue(not danglingweakref)
+        store.clients = set()
         store.weaknoderefs = {}
-        iter = store.load_cypher_query(Qstr, GraphNode.factory)
+        gc.collect()
+        store.weaknoderefs = {}
+        iterator = store.load_cypher_query(Qstr)
         rowcount = 0
-        foundaddr1=False
-        foundaddr2=False
-        for row in iter:
+        foundaddr1 = False
+        foundaddr2 = False
+        for row in iterator:
             rowcount += 1
             # fields are person, drone, nic and ipaddr
-            #self.assertEqual(row.person.firstname, 'Annika')
-            #self.assertEqual(row.person.lastname, 'Hansen')
+            self.assertEqual(row.person.firstname, 'Annika')
+            self.assertEqual(row.person.lastname, 'Hansen')
             self.assertEqual(row.drone.designation, 'SevenOfNine'.lower())
             for role in ('host', 'Drone', 'Borg'):
                 self.assertTrue(role in row.drone.roles)
-            if False and row.nic.MACaddr == TestDatabaseWrites.mac1:
-                self.assertEqual(row.ipaddr.ipaddr, TestDatabaseWrites.ip1)
+            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.IPADDR: %s' % row.ipaddr.ipaddr)
+            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.MACADDR: %s' % row.nic.MACaddr)
+            # print >> sys.stderr, ('MAC1:', TestDatabaseWrites.mac1)
+            # print >> sys.stderr, ('MAC2:', TestDatabaseWrites.mac2)
+            if pyNetAddr(row.nic.MACaddr) == pyNetAddr(TestDatabaseWrites.mac1):
+                self.assertEqual(pyNetAddr(row.ipaddr.ipaddr), pyNetAddr(TestDatabaseWrites.ip1))
                 foundaddr1 = True
-            elif False:
-                self.assertEqual(row.nic.MACaddr, TestDatabaseWrites.mac2)
-                self.assertEqual(row.ipaddr.ipaddr, TestDatabaseWrites.ip2)
+            else:
+                self.assertEqual(pyNetAddr(row.ipaddr.ipaddr), pyNetAddr(TestDatabaseWrites.ip2))
+                self.assertEqual(pyNetAddr(row.nic.MACaddr), pyNetAddr(TestDatabaseWrites.mac2))
                 foundaddr2 = True
-        self.assertEqual(rowcount, 1)
-        #self.assertTrue(foundaddr1)
-        #self.assertTrue(foundaddr2)
+            # print >> sys.stderr, ('GOT A ROW: %s' % str(row))
+        # print >>sys.stderr, ("ROWCOUNT = %s" % rowcount)
+        self.assertEqual(rowcount, 2)
+        self.assertTrue(foundaddr1)
+        self.assertTrue(foundaddr2)
 
 
 class TestSystemNode(TestCase):
@@ -515,23 +517,23 @@ class TestSystemNode(TestCase):
         from cmadb import CMAdb
         store = initstore()
         CMAdb.store = store
-        Store.debug = True
+        # Store.debug = True
         designation="SystemNodeUno"
         sysnode = store.load_or_create(SystemNode, domain="global", designation=designation, roles=['Server', 'Switch'])
         sysnode['FunkyAttributeab'] = '''{"a": "b"}'''
         sysnode['FunkyAttributecd'] = '''{"c": "d"}'''
         store.commit()
-        Store.debug = True
+        Store.debug = False
         sysnode = None
-        print >> sys.stderr, ("COMMIT done")
-        query_string='''MATCH(sys) WHERE sys.nodetype='SystemNode' AND sys.designation=toLower({desig}) RETURN sys'''
+        # print >> sys.stderr, ("COMMIT done")
+        query_string='''MATCH(sys:Class_SystemNode) WHERE sys.nodetype='SystemNode' AND sys.designation=toLower({desig}) RETURN sys'''
         qnode = store.load_cypher_node(query_string, params={'desig': designation})
         assert qnode is not None
-        print("Qnode: %s" % (qnode.__dict__.keys()))
-        print(qnode.keys())
+        # print("Qnode: %s" % (qnode.__dict__.keys()))
+        # print(qnode.keys())
         assert str(qnode['FunkyAttributeab']) == '''{"a":"b"}'''
         assert str(qnode['FunkyAttributecd']) == '''{"c":"d"}'''
-        print >> sys.stderr,('JSONMAP NODE CLASS attributes: %s' % JSONMapNode.__dict__)
+        # print >> sys.stderr,('JSONMAP NODE CLASS attributes: %s' % JSONMapNode.__dict__)
 
 
 
@@ -543,6 +545,25 @@ class TestSystemNode(TestCase):
 #   other things?
  
 if __name__ == "__main__":
-    TestSystemNode().test_systemnode_json()
+    import inspect
 
+    test_count = 0
 
+    test_classes = []
+    for name, obj in dict(globals()).viewitems():
+        if inspect.isclass(obj) and name.startswith('Test'):
+            test_classes.append((name, obj))
+    test_classes.sort()
+    for name, cls in test_classes:
+        obj = cls()
+        if hasattr(cls, 'setup_method'):
+            obj.setup_method()
+        for item, fun in dict(cls.__dict__).viewitems():
+            if item.lower().startswith('test_') and callable(fun):
+                print >> sys.stderr, ('===================RUNNING TEST %s.%s' % (name, item))
+                # print('====================RUNNING TEST %s.%s' % (name, item))
+                fun(obj)
+                test_count += 1
+        if hasattr(cls, 'teardown_method'):
+            obj.teardown_method(name)
+    print('Completed %d tests.' % test_count)
