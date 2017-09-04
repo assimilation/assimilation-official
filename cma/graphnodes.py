@@ -147,13 +147,14 @@ class GraphNode(object):
                 raise ValueError(
                     'Attempt to set attribute %s to empty array (Neo4j limitation)' % name)
             self.association.dirty_attrs.add(name)
-        print>> sys.stderr, ('SETTING %s to %s' % (name, value))
+        # print>> sys.stderr, ('SETTING %s to %s' % (name, value))
         object.__setattr__(self, name, value)
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
-        raise NotImplementedError('Abstract base class function meta_key_attributes')
+        raise NotImplementedError('Abstract base class method meta_key_attributes for %s'
+                                  % cls.__name__)
 
     @classmethod
     def meta_labels(cls):
@@ -238,7 +239,8 @@ class GraphNode(object):
             result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
         result += '%sobject.__str__ =  "%s"' % (comma, object.__str__(self))
-        result += comma + 'HasNode:%s' % self.association.node_id
+        node_id = self.association.node_id if self.association is not None else 'None(0)'
+        result += comma + 'HasNode:%s' % node_id
 
         result += "\n})"
         return result

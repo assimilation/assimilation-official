@@ -31,7 +31,7 @@ from __future__ import print_function
 # import inject
 from AssimCclasses import pyNetAddr
 import py2neo
-import sys
+# from sys import stderr
 
 
 class StoreAssociation(object):
@@ -72,10 +72,10 @@ class StoreAssociation(object):
         self.node_id = node_id
         self.variable_name = self._new_variable_name()
         self.dirty_attrs = set()
-        print ("SELF.KEYS: %s" % self.key_attributes, file=sys.stderr)
+        # print ("SELF.KEYS: %s" % self.key_attributes, file=stderr)
         if False:
             for attr in self.key_attributes:
-                print ("ATTRIBUTE: %s" % attr, file=sys.stderr)
+                # print ("ATTRIBUTE: %s" % attr, file=stderr)
                 if not hasattr(obj, attr):
                     raise ValueError("Key attribute %s not present in object type %s"
                                      % (attr, type(obj)))
@@ -136,7 +136,7 @@ class StoreAssociation(object):
             if isinstance(scalar, pyNetAddr):
                 scalar = str(scalar)
             scalar_str = self.cypher_str_repr(scalar)
-        elif isinstance(scalar, (bool, int, float)):
+        elif isinstance(scalar, (bool, int, float, long)):
             scalar_str = str(scalar)
         else:
             raise ValueError('Inappropriate Neo4j value: "%s" (type %s)'
@@ -242,6 +242,32 @@ class StoreAssociation(object):
             result = 'MATCH (%s:%s) WHERE %s' % (var_name, label, where_clause)
         return result + '\n'
 
+    @staticmethod
+    def _cypher_match_var(var):
+        if hasattr(var, 'variable_name'):
+            return '(%s:%s)' % (var.variable_name, 'Class_' + var.obj.nodetype)
+        else:
+            return '(%s)' % var
+
+    def cypher_find_match2_clause(self, others):
+        """
+        Return Cypher for performing matches on multiple items simultaneously
+
+        :param others:
+        :return:
+        """
+        cypher = 'MATCH %s' % self._cypher_match_var(self)
+        if isinstance(others, str) or not hasattr(others, '__iter__'):
+            others=(others,)
+        for other in others:
+            cypher += ', ' + self._cypher_match_var(other)
+
+        cypher += '\nWHERE ' + self.cypher_find_where_clause()
+        for other in others:
+            if other is not self and not isinstance(other, str):
+                cypher += ' AND ' + other.cypher_find_where_clause()
+        return cypher
+
     def cypher_find_query(self):
         """
         Construct a Cypher query which will uniquely return this object if it exists
@@ -316,7 +342,8 @@ class StoreAssociation(object):
                    to_association.variable_name))
 
     def cypher_relationship_match_phrase(self, relationship_type, to_association=None,
-                                         direction='forward', attrs=None):
+                                         direction='forward', attrs=None,
+                                         relationship_variable=True):
         """
         Create a match phrase to match things directly related to this node (if any)
         that has the specified type and attributes. We generate a relationship variable
@@ -327,12 +354,17 @@ class StoreAssociation(object):
                                                  telling us the other node's variable name
         :param direction: str: 'forward', 'reverse' or 'bidirectional'
         :param attrs: dict: attributes of this relationship
+        :param relationship_variable: True if we provide a relationship variable
         :return: (str, str): (relationship_variable, match phrase)
         """
-        relationship_name = self.new_relationship_name()
+        relationship_name = self.new_relationship_name() if relationship_variable else ''
         if to_association:
+            # print('TO_ASSOCIATION: type: %s value:%s' % (type(to_association), to_association),
+            #       file=stderr)
             if hasattr(to_association, 'variable_name'):
                 to_name = to_association.variable_name
+            elif hasattr(to_association, 'association'):
+                to_name = to_association.association.variable_name
             else:
                 to_name = to_association
         else:
@@ -374,7 +406,7 @@ class StoreAssociation(object):
                  % (cypher_string, relationship_name, relationship_name)
         return result
 
-    def cypher_return_related_nodes(self, relationship_type, other_node=None,
+    def cypher_return_related_nodes(self, relationship_type, other_node='other',
                                     direction='forward', attrs=None):
         """
         Complete Cypher query to Return nodes related to the current one
@@ -386,12 +418,21 @@ class StoreAssociation(object):
         :param attrs: dict: attributes of the desired relationship (or None or {})
         :return: str: Cypher statement to return related nodes
         """
-        other_node = 'other' if other_node is None else other_node
-        return ('MATCH %s\nRETURN other'
-                % self.cypher_relationship_match_phrase(relationship_type,
-                                                        to_association=other_node,
-                                                        direction=direction,
-                                                        attrs=attrs)[1])
+        if other_node is None:
+            other_node = 'other'
+
+        var_name, match_phrase = self.cypher_relationship_match_phrase(relationship_type,
+                                                                       to_association=other_node,
+                                                                       direction=direction,
+                                                                       attrs=attrs,
+                                                                       relationship_variable=False)
+        if isinstance(other_node, str):
+            other_name = other_node
+        else:
+            other_name = other_node.variable_name
+        cypher = self.cypher_find_match2_clause(other_node) + ' AND '
+        cypher += '%s\nRETURN %s' % (match_phrase, other_name)
+        return cypher
 
     def cypher_add_labels_clause(self, labels):
         """

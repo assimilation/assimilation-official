@@ -37,6 +37,7 @@ import neokit
 from store import Store
 from consts import CMAconsts
 from graphnodes import GraphNode
+from cmadb import CMAdb
 from AssimCtypes import NEO4JCREDFILENAME, CMAUSERID
 
 
@@ -63,8 +64,8 @@ class Neo4jCreds(object):
         """
         self.install_dir = install_dir or '/usr/share/neo4j'
 
-        print("Calling Neo4jCreds.__init__(log=%s)" % log)
-        log.warning("Calling Neo4jCreds.__init__()")
+        # print("Calling Neo4jCreds.__init__(log=%s)" % log)
+        # log.warning("Calling Neo4jCreds.__init__()")
         if neologin is not None and neopass is not None:
             self.isdefault = False
             self.name = neologin
@@ -138,7 +139,7 @@ class Neo4jCreds(object):
         """
         if self.isdefault:
             self.update()
-        if True or self.DEBUG:
+        if self.DEBUG:
             print >> sys.stderr, 'AUTH against %s WITH ("%s")' % (str(uri), self)
         py2neo.authenticate(uri, user=self.name, password=self.auth)
 
@@ -201,7 +202,7 @@ class CMAInjectables(object):
         stream.setFormatter(logging.Formatter('%(name)s %(levelname)s: %(message)s'))
         logger.addHandler(logging.StreamHandler())
         logger.setLevel(logging.DEBUG)
-        print >> sys.stderr,"LOGGER IS: %s type is %s" % (logger, type(logger))
+        # print >> sys.stderr,"LOGGER IS: %s type is %s" % (logger, type(logger))
         return logger
 
     @staticmethod
@@ -248,7 +249,7 @@ class CMAInjectables(object):
         """
         readonly = CMAInjectables.settings['NEO4J_READONLY'] if readonly is None else readonly
         store = Store(db=db, readonly=readonly, log=log)
-        print >> sys.stderr, ('RETURNING STORE: %s' % store)
+        # print >> sys.stderr, ('RETURNING STORE: %s' % store)
         return store
 
     @staticmethod
@@ -322,7 +323,7 @@ class CMAinit(object):
             for classname in GraphNode.classmap:
                 GraphNode.initclasstypeobj(CMAdb.store, classname)
             from transaction import NetTransaction
-            CMAdb.net_transaction = NetTransaction(encryption_required=encryption_required)
+            CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
             #print >> sys.stderr,  'CMAdb:', CMAdb
             #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
             CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
