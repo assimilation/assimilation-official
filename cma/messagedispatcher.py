@@ -60,21 +60,23 @@ class MessageDispatcher(object):
         :return: None
         """
         self.dispatchcount += 1
+        assert self.io is not None
         # W0703 == Too general exception catching...
         # pylint: disable=W0703
-        try:
             # The __enter__ functions are called in the order given, but the exits are called in the
             # opposite order they're listed. The exits are what commit the transactions...
             # As a result, the idempotent NetTransaction is committed first...
 
-            with self.store.db.begin(autocommit=False) as self.store.db_transaction,\
-                    NetTransaction(self.io, encryption_required=self.encryption_required)\
-                            as CMAdb.net_transaction:
+        with self.store.db.begin(autocommit=False) as self.store.db_transaction,\
+                NetTransaction(self.io, encryption_required=self.encryption_required)\
+                        as CMAdb.net_transaction:
+            try:
                 self._try_dispatch_action(origaddr, frameset)
+            except Exception as e:
+                self._process_exception(e, origaddr, frameset)
                 if (self.dispatchcount % 100) == 1:
                     self._check_memory_usage()
-        except Exception as e:
-            self._process_exception(e, origaddr, frameset)
+                raise e
         if CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
             CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
@@ -90,8 +92,9 @@ class MessageDispatcher(object):
         It should be run inside a try/except construct so that anything
         we barf up won't cause the CMA to die.
         """
+        print >>sys.stderr, 'Got Frameset:', frameset
         fstype = frameset.get_framesettype()
-        # print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
+        print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
         dispatchstart = datetime.now()
         if fstype in self.dispatchtable:
             self.dispatchtable[fstype].dispatch(origaddr, frameset)
@@ -99,33 +102,12 @@ class MessageDispatcher(object):
             self.default.dispatch(origaddr, frameset)
         dispatchend = datetime.now()
         if self.logtimes:
-            CMAdb.log.info('Initial dispatch time for %s frameset: %s'
-            %   (fstype, dispatchend-dispatchstart))
-        # Commit the network transaction here
-        CMAdb.net_transaction.commit_trans(CMAdb.io)
-        if self.logtimes:
-            CMAdb.log.info('Network transaction time: %s'
-            %   (str(CMAdb.net_transaction.stats['lastcommit'])))
-
-        # Commit the database transaction here
-        if CMAdb.store.transaction_pending:
-            result = CMAdb.store.commit()
-            if self.logtimes or CMAdb.debug:
-                CMAdb.log.info('Neo4j transaction time: %s'
-                %   (str(CMAdb.store.stats['lastcommit'])))
-            if CMAdb.debug:
-                resultlines = str(result).splitlines()
-                CMAdb.log.debug('Commit results follow:')
-                for line in resultlines:
-                    CMAdb.log.debug(line.expandtabs())
-                CMAdb.log.debug('end of commit results.')
-                # This is a VERY expensive call...
-                # Good thing we only do it when debug is enabled...
-                CMAdb.TheOneRing.AUDIT()
-        else:
-            if CMAdb.debug:
-                CMAdb.log.debug('No database changes this time')
-            CMAdb.store.abort()
+            CMAdb.log.info('Initial dispatch time for %s frameset: %s' %
+                           (fstype, dispatchend-dispatchstart))
+        if CMAdb.debug:
+            # This is a VERY expensive call...
+            # Good thing we only do it when debug is enabled...
+            CMAdb.TheOneRing.AUDIT()
         for pkttype in CMAdb.net_transaction.post_transaction_packets:
             CMAdb.net_transaction.add_packet(origaddr, pkttype, [])
         if len(CMAdb.net_transaction.post_transaction_packets) > 0:
@@ -134,7 +116,7 @@ class MessageDispatcher(object):
         dispatchend = datetime.now()
         if self.logtimes or CMAdb.debug:
             CMAdb.log.info('Total dispatch time for %s frameset: %s'
-            %   (fstype, dispatchend-dispatchstart))
+                           % (fstype, dispatchend-dispatchstart))
 
     @staticmethod
     def _process_exception(e, origaddr, frameset):

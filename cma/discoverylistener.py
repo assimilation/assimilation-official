@@ -139,7 +139,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         This code is more complicated than I'd like but it's not obvious how to simplify it...
         '''
 
-        assert self.store.has_node(drone)
+        assert drone.association.node_id is not None
         if not discoverychanged:
             return
         data = jsonobj['data'] # The data portion of the JSON message
@@ -147,7 +147,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         currmacs = {}   # Currmacs is a list of current NICNode objects belonging to this host
                         # indexed by MAC address
         # Get our current list of NICs
-        iflist = self.store.load_related(drone, CMAconsts.REL_nicowner, NICNode)
+        iflist = self.store.load_related(drone, CMAconsts.REL_nicowner)
         for nic in iflist:
             currmacs[nic.macaddr] = nic
 
@@ -201,7 +201,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             #print >> sys.stderr, 'IFNAME IS', str(ifname)
             iptable = data[str(ifname)]['ipaddrs']
             currips = {}
-            iplist = self.store.load_related(mac, CMAconsts.REL_ipowner, IPaddrNode)
+            iplist = self.store.load_related(mac, CMAconsts.REL_ipowner)
             for ip in iplist:
                 currips[ip.ipaddr] = ip
 
@@ -304,7 +304,7 @@ class TCPDiscoveryListener(DiscoveryListener):
 
         oldprocs = {}
         # Several kinds of nodes have the same relationship to the host...
-        for proc in self.store.load_related(drone, CMAconsts.REL_hosting, GraphNode.factory):
+        for proc in self.store.load_related(drone, CMAconsts.REL_hosting):
             if not isinstance(proc, ProcessNode):
                 continue
             assert hasattr(proc, '_Store__store_node')

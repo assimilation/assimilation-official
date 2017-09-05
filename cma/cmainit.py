@@ -328,11 +328,12 @@ class CMAinit(object):
             #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
             CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring'
             ,           ringtype=HbRing.THEONERING)
-            CMAdb.net_transaction.commit_trans(io)
+            CMAdb.net_transaction.commit_trans()
             #print >> sys.stderr, 'COMMITTING Store'
             #print >> sys.stderr, 'NetTransaction Commit results:', CMAdb.store.commit()
             CMAdb.store.commit()
             #print >> sys.stderr, 'Store COMMITTED'
+            CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
         else:
             CMAdb.net_transaction = None
 
@@ -351,21 +352,13 @@ class CMAinit(object):
         """Empty everything out of our database - start over!
         """
         dbvers = self.db.neo4j_version
-        if dbvers[0] >= 2:
-            qstring = 'match (n) optional match (n)-[r]-() delete n,r'
-        else:
-            qstring = 'start n=node(*) match n-[r?]-() delete n,r'
+        qstring = 'match (n) optional match (n)-[r]-() delete n,r'
 
-        result = self.db.cypher.execute(qstring)
+        result = self.db.run(qstring)
         if CMAdb.debug:
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % qstring)
             CMAdb.log.debug('Execution results: %s' % str(result))
-        indexes = self.db.legacy.get_indexes(py2neo.Node)
-        for index in indexes.keys():
-            if CMAdb.debug:
-                CMAdb.log.debug('Deleting index %s' % str(index))
-            self.db.legacy.delete_index(py2neo.Node, index)
 
 
 

@@ -108,16 +108,16 @@ class Drone(SystemNode):
                                     % (CMAconsts.REL_ipowner, CMAconsts.REL_nicowner))
             Drone.OwnedIPsQuery_subtxt = (Drone.OwnedIPsQuery_txt    \
                                           % (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner))
-            Drone.OwnedIPsQuery =  Drone.OwnedIPsQuery_subtxt
+            Drone.OwnedIPsQuery = Drone.OwnedIPsQuery_subtxt
         self.set_crypto_identity()
-        if Store.is_abstract(self) and not CMAdb.store.readonly:
-            #print 'Creating BP rules for', self.designation
+        if self.association.is_abstract and not CMAdb.store.readonly:
+            # print 'Creating BP rules for', self.designation
             from bestpractices import BestPractices
             bprules = CMAdb.io.config['bprulesbydomain']
             rulesetname = bprules[domain] if domain in bprules else bprules[CMAconsts.globaldomain]
             for rule in BestPractices.gen_bp_rules_by_ruleset(CMAdb.store, rulesetname):
-                #print >> sys.stderr, 'ADDING RELATED RULE SET for', \
-                    #self.designation, rule.bp_class, rule
+                # print >> sys.stderr, ('ADDING RELATED RULE SET for',
+                #                       self.designation, rule.bp_class, rule)
                 CMAdb.store.relate(self, CMAconsts.REL_bprulefor, rule,
                                    properties={'bp_class': rule.bp_class})
 
@@ -125,14 +125,14 @@ class Drone(SystemNode):
         '''Return a generator producing all the best practice rules
         that apply to this Drone.
         '''
-        return CMAdb.store.load_related(self, CMAconsts.REL_bprulefor, BPRules)
+        return CMAdb.store.load_related(self, CMAconsts.REL_bprulefor)
 
     def get_bp_head_rule_for(self, trigger_discovery_type):
         '''
         Return the head of the ruleset chain for the particular set of rules
         that go with this particular node
         '''
-        rules = CMAdb.store.load_related(self, CMAconsts.REL_bprulefor, BPRules)
+        rules = CMAdb.store.load_related(self, CMAconsts.REL_bprulefor)
         for rule in rules:
             if rule.bp_class == trigger_discovery_type:
                 return rule
@@ -160,7 +160,7 @@ class Drone(SystemNode):
         this = start
         while True:
             nextrule = None
-            for nextrule in CMAdb.store.load_related(this, CMAconsts.REL_basis, BPRules):
+            for nextrule in CMAdb.store.load_related(this, CMAconsts.REL_basis):
                 break
             if nextrule is None:
                 break
@@ -204,12 +204,11 @@ class Drone(SystemNode):
             print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
             %   (Drone.OwnedIPsQuery_subtxt, str(params)))
 
-        return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, IPaddrNode
-        ,       params=params)]
+        return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, params=params)]
 
     def get_owned_nics(self):
         '''Return an iterator returning all the NICs that this Drone owns'''
-        return CMAdb.store.load_related(self, CMAconsts.REL_nicowner, NICNode)
+        return CMAdb.store.load_related(self, CMAconsts.REL_nicowner)
 
     def get_active_nic_count(self):
         '''Return the number of "active" NICs this Drone has'''
@@ -256,7 +255,7 @@ class Drone(SystemNode):
         if CMAdb.debug:
             CMAdb.log.debug('Sending request to %s Frames: %s'
             %	(str(ourip), str(frames)))
-        CMAdb.transaction.add_packet(ourip,  framesettype, frames)
+        CMAdb.net_transaction.add_packet(ourip,  framesettype, frames)
         #print >> sys.stderr, ('Sent Discovery request to %s Frames: %s'
         #%	(str(ourip), str(frames)))
 
@@ -280,7 +279,7 @@ class Drone(SystemNode):
                 continue
             framelist.append({'frametype': FrameTypes.IPPORT, 'framevalue': addr})
 
-        CMAdb.transaction.add_packet(dest, fstype, framelist)
+        CMAdb.net_transaction.add_packet(dest, fstype, framelist)
 
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
@@ -303,7 +302,7 @@ class Drone(SystemNode):
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        for mightbering in CMAdb.store.load_in_related(self, None, nodeconstructor):
+        for mightbering in CMAdb.store.load_in_related(self, None):
             if isinstance(mightbering, HbRing):
                 mightbering.leave(self)
         deadip = pyNetAddr(self.select_ip(), port=self.port)
@@ -385,7 +384,7 @@ class Drone(SystemNode):
                WHERE ID(drone) = {id} AND child.childpath = {path}
                RETURN child'''
         store = Store.getstore(self)
-        child = store.load_cypher_node(q, GraphNode.factory, {'id': store.id(self), 'path': path})
+        child = store.load_cypher_node(q, {'id': store.id(self), 'path': path})
         if child is None:
             raise(ValueError('Child system %s from %s [%s] was not found.'
                 %       (path, str(self), str(Store.id(self)))))
@@ -402,10 +401,10 @@ class Drone(SystemNode):
             if domain is None:
                 domain = CMAconsts.globaldomain
             designation = designation.lower()
-            drone = CMAdb.store.load_or_create(Drone, port=port, domain=domain
-            ,       designation=designation)
+            drone = CMAdb.store.load_or_create(Drone, port=port, domain=domain,
+                                               designation=designation)
             assert drone.designation == designation
-            assert CMAdb.store.has_node(drone)
+            assert drone.association.node_id is not None
             drone.set_crypto_identity()
             return drone
         elif isinstance(designation, pyNetAddr):
@@ -418,9 +417,9 @@ class Drone(SystemNode):
                 dstr = domain
             query = '%s:%s' % (str(Store.lucene_escape(desigstr)), dstr)
             #We now do everything by IPv6 addresses...
-            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, Drone, {'ipaddr':query})
+            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, {'ipaddr':query})
             if drone is not None:
-                assert CMAdb.store.has_node(drone)
+                assert drone.association.node_id is not None
                 drone.set_crypto_identity()
                 return drone
             if CMAdb.debug:
@@ -453,7 +452,7 @@ class Drone(SystemNode):
         'Add a drone to our set unless it is already there.'
         drone = CMAdb.store.load_or_create(Drone, domain=domain, designation=designation
         ,   primary_ip_addr=primary_ip_addr, port=port, status=status, reason=reason)
-        assert CMAdb.store.has_node(drone)
+        assert drone.association.node_id is not None
         drone.reason = reason
         drone.status = status
         drone.statustime = int(round(time.time() * 1000))

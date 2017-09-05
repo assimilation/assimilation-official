@@ -86,6 +86,7 @@ class NetTransaction(object):
         self.sequence = None
         self.stats = {'lastcommit': timedelta(0), 'totaltime': timedelta(0)}
         self.post_transaction_packets = []
+        return self
 
     def __exit__(self, exception_type, value, traceback):
         """
@@ -210,7 +211,7 @@ class NetTransaction(object):
             # same address, but we can always do that later...
             io.sendreliablefs(dest, (fs, ))
 
-    def commit_trans(self, io):
+    def commit_trans(self):
         'Commit our transaction'
         # This is just to test that our tree serializes successfully - before we
         # persist it on disk later.  Once we're doing that, this will be
