@@ -1,5 +1,5 @@
 {
-    "cypher": "START service=node:ProcessNode('*:*')
+    "cypher": "MATCH(service:Class_ProcessNode)
                OPTIONAL MATCH (service)<-[:monitoring]->(monitor)
                WITH service, monitor
                MATCH (host)-[:hosting]->(service)

@@ -1,5 +1,5 @@
 {
-    "cypher": "START nic=node:NICNode('*:*')
+    "cypher": "MATCH(nic:Class_NICNode)
                WHERE NOT EXISTS (nic.OUI)
                OPTIONAL MATCH (ip)<-[:ipowner]-(nic)
                OPTIONAL MATCH (ip)<-[:ipowner]-(nic)<-[:nicowner]-(system)

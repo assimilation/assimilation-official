@@ -1,7 +1,6 @@
 {
-    "cypher": "START host=node:Drone('*:*')
-               MATCH (host)-[:hosting]->(service)-[:tcpservice]->(ipport)
-               WHERE host.designation = {systemname}
+    "cypher": "MATCH (host:Class_Drone)-[:hosting]->(service)-[:tcpservice]->(ipport)
+               WHERE host.designation = $systemname
                RETURN ipport, service, host
                ORDER BY ipport.port, service.pathname, ipport.ipaddr",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",

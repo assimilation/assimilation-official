@@ -23,24 +23,27 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 Assimilation Command Line tool.
 We support the following commands:
     query - perform one of our canned ClientQuery queries
-'''
+"""
 
-import sys, os, getent
-from py2neo import neo4j
+import sys
+import os
+import getent
+import inject
+from py2neo import Graph
 from query import ClientQuery
 from consts import CMAconsts
-from graphnodes import GraphNode
 from store import Store
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID, BPINSTALL_DIR,   \
     CMAINITFILE
 from AssimCclasses import pyCryptFrame, pyCryptCurve25519
 from cmaconfig import ConfigFile
-from cmadb import Neo4jCreds, CMAdb
+from cmadb import CMAdb
+from cmainit import Neo4jCreds, CMAInjectables
 #
 # These imports really are necessary - in spite of what pylint thinks...
 # pylint: disable=W0611
@@ -72,9 +75,8 @@ class query(object):
     @staticmethod
     def load_query_object(store, queryname):
         'Function to return the query object for a given query name'
-        cypher = ('START q=node:ClientQuery("%s:*") WHERE q.queryname="%s" RETURN q LIMIT 1'
-                  % (queryname, queryname))
-        ret =  store.load_cypher_node(cypher, ClientQuery)
+        cypher = 'MATCH (q:Class_ClientQuery) WHERE q.queryname=$queryname RETURN q LIMIT 1'
+        ret = store.load_cypher_node(cypher, {'queryname': queryname})
         if ret is not None:
             ret.bind_store(store)
         return ret
@@ -271,6 +273,7 @@ class genkeys(object):
 @RegisterCommand
 class neo4jpass(object):
     'Generate and remember a new neo4j password'
+    creds = None
 
     @staticmethod
     def usage():
@@ -306,12 +309,13 @@ def usage():
     print >> sys.stderr, '(all sub-commands must be run as root or %s)' % CMAUSERID
     return 1
 
+
 # pylint too few public methods...
 # pylint: disable=R0903
 class DummyIO(object):
-    '''
+    """
     A Dummy I/O object which has a config member...
-    '''
+    """
     def __init__(self, config=None):
         if config is None:
             try:
@@ -320,17 +324,16 @@ class DummyIO(object):
                 config = ConfigFile()
         self.config = config
 
-def dbsetup(readonly=False, url=None):
-    'Set up our connection to Neo4j'
-    if url is None:
-        url = 'localhost.com:7474'
-    Neo4jCreds().authenticate(url)
-    ourstore = Store(neo4j.Graph(), uniqueindexmap={}, classkeymap={})
-    CMAinit(DummyIO(), readonly=readonly, use_network=False)
-    for classname in GraphNode.classmap:
-        GraphNode.initclasstypeobj(ourstore, classname)
-    CMAdb.store = ourstore
-    return ourstore
+
+@inject.params(db='py2neo.Graph', store='Store')
+def dbsetup(db=None, store=None):
+    """Set up our connection to Neo4j
+    """
+    assert isinstance(db, Graph)
+    CMAinit(DummyIO(), store=store, use_network=False)
+    CMAdb.store = store
+    store.db_transaction = db.begin(autocommit=False)
+    return store
 
 
 def main(argv):
@@ -340,6 +343,8 @@ def main(argv):
 
     nodbcmds = {'genkeys', 'neo4jpass'}
     rwcmds = {'loadqueries', 'loadbp'}
+    ourstore = None
+    command = None
     selected_options = {}
     narg = 0
     skipnext = False
@@ -361,14 +366,15 @@ def main(argv):
                 selected_options[option] = True
                 skipnext = False
         else:
-            command=arg
+            command = arg
             break
 
     if len(argv) < 2 or command not in commands:
         usage()
         return 1
+    CMAInjectables.default_CMA_injection_configuration({'NEO4J_READONLY': command not in rwcmds})
     if command not in nodbcmds:
-        ourstore=dbsetup(readonly=(command not in rwcmds))
+        ourstore = dbsetup()
     return commands[command].execute(ourstore, executor_context, sys.argv[narg+1:],
                                      selected_options)
 

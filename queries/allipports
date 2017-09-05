@@ -1,9 +1,8 @@
 {
-    "cypher": "START ipport=node:IPtcpportNode('*:*')
-               MATCH (host)-[:hosting]->(service)-[:tcpservice]->(ipport)
+    "cypher": "MATCH (host:Class_IPtcpportNode)-[:hosting]->(service)-[:tcpservice]->(ipport)
                RETURN ipport, service, host
                ORDER BY ipport.port, service.pathname, ipport.ipaddr",
-    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "copyright": "Copyright(C) 2017 Assimilation Systems Limited",
     "descriptions": {
         "en": {
             "short":    "get all port/ip/service/hosts",

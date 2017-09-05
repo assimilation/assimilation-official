@@ -1,7 +1,6 @@
 {
-    "cypher": "START nic=node:NICNode('*:*')
-               MATCH (nic)<-[:nicowner]-(system)
-               WHERE nic.macaddr = {macaddr}
+    "cypher": "MATCH (nic:Class_NICNode)<-[:nicowner]-(system:Class_SystemNode)
+               WHERE nic.macaddr = $macaddr
                RETURN nic, system",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {

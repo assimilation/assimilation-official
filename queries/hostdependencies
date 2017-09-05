@@ -1,7 +1,6 @@
 {
-    "cypher": "START host=node:Drone('*:*')
-               MATCH (host)-[:hosting]->(service)-[:tcpservice]->(ipport)-[:tcpclient]->(client)<-[:hosting]-(clienthost)
-               WHERE \"server\" in service.roles and host.designation = {host}
+    "cypher": "MATCH (host:Class_Drone)-[:hosting]->(service)-[:tcpservice]->(ipport)-[:tcpclient]->(client)<-[:hosting]-(clienthost)
+               WHERE \"server\" in service.roles and host.designation = $host
                RETURN DISTINCT host, service, client, clienthost",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {

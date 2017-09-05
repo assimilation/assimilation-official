@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100 fileencoding=utf-8
 #
 # This file is part of the Assimilation Project.
 #
@@ -46,7 +46,6 @@ import weakref
 # import traceback
 from sys import stderr
 from datetime import datetime, timedelta
-import logging
 import inject
 import py2neo
 from assimevent import AssimEvent
@@ -179,30 +178,30 @@ class Store(object):
         return ret
 
     # For debugging...
-    def dump_clients(self, title=None, file=stderr):
+    def dump_clients(self, title=None, outfile=stderr):
         """
         Dump out all our client objects and their supported attribute values and states
 
         :return: None
         """
         if title:
-            print(title, file=file)
-        print("CURRENT CLIENTS (%s:%d):" % (self, len(self.clients)), file=file)
+            print(title, file=outfile)
+        print("CURRENT CLIENTS (%s:%d):" % (self, len(self.clients)), file=outfile)
         for client in self.clients:
             print('Client %s [%s]:'
-                  % (client.association.variable_name, client.association.node_id),  file=file)
+                  % (client.association.variable_name, client.association.node_id), file=outfile)
             for attr in Store._safe_attr_names(client):
                 dirty = 'dirty' if attr in client.association.dirty_attrs else 'clean'
-                print('%10s: %s - %s' % (attr, dirty, getattr(client, attr)), file=file)
+                print('%10s: %s - %s' % (attr, dirty, getattr(client, attr)), file=outfile)
             print('%10s: %s: %s' % ('node_id', client.association.node_id,
-                                    object.__str__(client)), file=file)
+                                    object.__str__(client)), file=outfile)
 
         for obj_pointer in self.weaknoderefs.viewvalues():
             obj = obj_pointer()
             if obj is None:
                 del self.weaknoderefs[obj]
             elif obj not in self.clients:
-                print("WEAK: %s" % obj, file=file)
+                print("WEAK: %s" % obj, file=outfile)
         self._audit_weaknodes_clients()
 
     def fmt_dirty_attrs(self):
@@ -237,7 +236,8 @@ class Store(object):
             raise RuntimeError('Attempt to delete an object from a read-only store')
         self.db_transaction_ops_pending = True
         cypher = subj.association.cypher_delete_node_query()
-        # print('DELETE cypher:', cypher)
+        if self.debug:
+            print('DELETE cypher:', cypher, file=stderr)
         self.db_transaction.run(cypher).forward()
         node_id = subj.association.node_id
         subj._association = None
@@ -343,6 +343,8 @@ class Store(object):
                                                              other_node=obj,
                                                              attrs=properties)
         # print("load_related: %s" % query, file=stderr)
+        if self.debug:
+            print('load_related cypher:', query, file=stderr)
         cursor = self.db.run(query)
         while cursor.forward():
             yield self._construct_obj_from_node(cursor.current()[0])
@@ -377,7 +379,7 @@ class Store(object):
         count = 0
         if params is None:
             params = {}
-        if debug:
+        if self.debug or debug:
             print('Starting query %s(%s)' % (querystr, params), file=stderr)
         cursor = self.db.run(querystr, params)
         while cursor.forward():
@@ -420,15 +422,15 @@ class Store(object):
         count = 0
         if params is None:
             params = {}
-        rowfields = None
-        rowclass = None
-        # print('CYPHER QUERY: %s' % querystr, file=stderr)
+        if self.debug:
+            print('load_cypher_query: %s' % querystr, file=stderr)
         cursor = self.db.run(querystr, params)
         tuple_class = None
         while cursor.forward():
             yieldval = []
             current = cursor.current()
-            # print('CURRENT.keys[%s]: cursor.current.keys(): %s' % (type(current), str(current.keys())))
+            # print('CURRENT.keys[%s]: cursor.current.keys(): %s'
+            #       % (type(current), str(current.keys())))
             for elem in current:
                 yieldval.append(self._yielded_value(elem))
             if tuple_class is None:
@@ -483,6 +485,8 @@ class Store(object):
         cypher = subj.association.cypher_find_match2_clause(obj.association) + '\n'
         cypher += subj.association.cypher_relate_node(rel_type, obj.association, attrs=properties)
         # print('ADDREL Cypher:', cypher, file=stderr)
+        if self.debug:
+            print('relate(%s)' % cypher, file=stderr)
         self.db_transaction.run(cypher).forward()
 
     def relate_new(self, subj, rel_type, obj, properties=None):
@@ -526,7 +530,8 @@ class Store(object):
         cypher += subj.association.cypher_unrelate_node(rel_type,
                                                         to_association=obj,
                                                         direction=direction)
-        # print('DELREL Cypher:', cypher)
+        if self.debug:
+            print('delrel(%s)' % cypher, file=stderr)
         self.db_transaction.run(cypher).forward()
 
     def separate_in(self, subj, rel_type=None, obj=None):
@@ -760,7 +765,7 @@ class Store(object):
         """
         self.stats = {}
         for statname in ('nodecreate', 'relate', 'separate', 'index', 'attrupdate',
-                         'index', 'nodedelete', 'addlabels'):
+                         'index', 'nodedelete', 'addlabels', 'commit'):
             self.stats[statname] = 0
         self.stats['lastcommit'] = None
         self.stats['totaltime'] = timedelta()
@@ -788,7 +793,6 @@ class Store(object):
         :return: GraphNode or None
         """
 
-        searchset = set()
         # print('SEARCHING FOR class %s with %s' % (cls, key_values), file=stderr)
         result = self._weaknodes_search(cls, key_values=key_values, need_node=need_node)
         if result:
@@ -807,7 +811,8 @@ class Store(object):
                 searchset.add(client)
         result = self._find_keys_in_iterable(cls, key_values, searchset, need_node=need_node)
         # if result:
-            # print('Found client %s in weaknoderefs %s' % (object.__str__(result), key_values), file=stderr)
+        #     print('Found client %s in weaknoderefs %s'
+        #           % (object.__str__(result), key_values), file=stderr)
         return result
 
     @staticmethod
@@ -840,7 +845,8 @@ class Store(object):
                 return client
         return None
 
-    def _node_to_dict(self, node):
+    @staticmethod
+    def _node_to_dict(node):
         """
         Convert all the attributes in a node to a dict
         :param node:
@@ -998,6 +1004,8 @@ class Store(object):
                 continue
             cypher = subj.association.cypher_find_match_clause() + '\n'
             cypher += subj.association.cypher_update_clause()  # Defaults to dirty attributes
+            if self.debug:
+                print('batch_execute_node_updates:%s' % cypher, file=stderr)
             self.db_transaction.run(cypher).forward()
 
     def commit(self):
@@ -1012,6 +1020,10 @@ class Store(object):
         start = datetime.now()
         self.batch_execute_node_updates()
         self.db_transaction.commit()
+        end = datetime.now()
+        self.stats['lastcommit'] = end
+        self.stats['totaltime'] += (end-start)
+
         if self.debug:
             print('DB TRANSACTION COMPLETED SUCCESSFULLY', file=stderr)
             self.abort()
@@ -1054,7 +1066,7 @@ class Store(object):
 
 if __name__ == "__main__":
     # pylint: disable=C0413
-    from cmainit import (CMAInjectables, Neo4jCreds)
+    from cmainit import CMAInjectables
     inject.configure_once(CMAInjectables.test_config_injection)
 
     # I'm not too concerned about this test code...
@@ -1069,7 +1081,7 @@ if __name__ == "__main__":
         :return: None
         """
 
-        print("NAME: %s"% store.__class__.__name__)
+        print("NAME: %s" % store.__class__.__name__)
         # Must be a subclass of 'GraphNode'...
         # pylint: disable=R0903
         from graphnodes import GraphNode
@@ -1080,7 +1092,7 @@ if __name__ == "__main__":
             This is a Class docstring
             """
             def __init__(self, a=None, b=None, name=None):
-                'This is a doc string'
+                """This is a doc string"""
                 GraphNode.__init__(self, domain='global')
                 self.a = a
                 self.b = b
@@ -1088,40 +1100,40 @@ if __name__ == "__main__":
                 assert self.nodetype == self.__class__.__name__
 
             def foo_is_blacklisted(self):
-                'This is a doc string too'
+                """This is a doc string too"""
                 return 'a=%s b=%s name=%s' % (self.a, self.b, self.name)
 
             @classmethod
             def meta_key_attributes(cls):
+                """key attributes"""
                 return ['domain', 'name']
 
-        dbvers = ourdb.neo4j_version
         # Clean out the database
         qstring = 'match (n) optional match (n)-[r]-() delete n,r'
         ourdb.run(qstring)
 
-        DRONE = 'Drone121'
+        drone = 'Drone121'
 
         # Construct an initial Drone
-        #   fred = Drone(a=1,b=2,name=DRONE)
+        #   fred = Drone(a=1,b=2,name=drone)
         #   store.save(fred)    # Drone is a 'known' type, so we know which fields are index key(s)
         #
         #   load_or_create() is the preferred way to create an object...
         #
         store.db_transaction = store.db.begin(autocommit=False)
-        fred = store.load_or_create(Drone, a=1, b=2, name=DRONE)
+        fred = store.load_or_create(Drone, a=1, b=2, name=drone)
         print ('TEST1: clients of %s: %s' % (store, store.clients), file=stderr)
 
         assert fred.a == 1
         assert fred.b == 2
-        assert fred.name == DRONE
+        assert fred.name == drone
         assert not hasattr(fred, 'c')
         # Modify some fields -- add some...
         fred.a = 52
         fred.c = 3.14159
         assert fred.a == 52
         assert fred.b == 2
-        assert fred.name == DRONE
+        assert fred.name == drone
         assert 3.14158 < fred.c < 3.146
         # Create some relationships...
         rellist = ['ISA', 'WASA', 'WILLBEA']
@@ -1138,7 +1150,7 @@ if __name__ == "__main__":
 
         assert fred.a == 52
         assert fred.b == 2
-        assert fred.name == DRONE
+        assert fred.name == drone
         assert 3.14158 < fred.c < 3.146
 
         # See if the relationships 'stuck'...
@@ -1154,7 +1166,7 @@ if __name__ == "__main__":
             assert len(ret) == 1 and ret[0] is fred
         assert fred.a == 52
         assert fred.b == 2
-        assert fred.name == DRONE
+        assert fred.name == drone
         assert 3.14158 < fred.c < 3.146
         print(store, file=stderr)
         store.dump_clients()
@@ -1175,7 +1187,7 @@ if __name__ == "__main__":
         assert not store.transaction_pending
         assert fred.a == 52
         assert fred.b == 2
-        assert fred.name == DRONE
+        assert fred.name == drone
         assert 3.14158 < fred.c < 3.146
         assert fred.x == 'malcolm'
 
@@ -1184,7 +1196,9 @@ if __name__ == "__main__":
         store._audit_weaknodes_clients()
         newnode = store.load(Drone, name=fred.name, a=fred.a, b=fred.b)
         store._audit_weaknodes_clients()
-        print('Load NewNode: %s::%s %s' % (object.__str__(newnode), newnode, store.safe_attrs(newnode)), file=stderr)
+        print('Load NewNode: %s::%s %s'
+              % (object.__str__(newnode), newnode, store.safe_attrs(newnode)),
+              file=stderr)
         # It's dangerous to have two separate objects which are the same thing be distinct
         # so we if we fetch a node, and one we already have, we get the original one...
         print("FRED: %s" % object.__str__(fred), file=stderr)

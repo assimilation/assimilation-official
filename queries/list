@@ -1,4 +1,4 @@
-{   "cypher": "START Q=node:ClientQuery('*:*') RETURN Q ORDER BY Q.queryname",
+{   "cypher": "MATCH (Q:Class_ClientQuery) RETURN Q ORDER BY Q.queryname",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "parameters": {},
     "descriptions": {

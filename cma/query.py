@@ -23,13 +23,13 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 This module provides classes associated with querying - including providing metadata
 about these queries for the client code.
-'''
+"""
 import os, sys, re
 import collections, operator
-from py2neo import neo4j
+from py2neo import Graph
 from graphnodes import GraphNode, RegisterGraphClass
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import ADDR_FAMILY_IPV6, ADDR_FAMILY_IPV4, ADDR_FAMILY_802
@@ -41,12 +41,12 @@ from consts import CMAconsts
 
 @RegisterGraphClass
 class ClientQuery(GraphNode):
-    '''This class defines queries which can be requested from clients (typically JavaScript)
+    """This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism
-    '''
+    """
     node_query_url = "/doquery/GetaNodeById"
     def __init__(self, queryname, JSON_metadata=None):
-        '''Parameters
+        """Parameters
         ----------
         JSON_metadata  - a JSON string containing
                 'querytype':    a string denoting our query type - defaults to 'cypher'
@@ -78,9 +78,8 @@ class ClientQuery(GraphNode):
             hostname- a host name (as string - always converted to lower case)
             dnsname - a DNS name (as a string - always converted to lower case)
             enum    - a finite enumeration of permissible values (case-insensitive)
-        '''
+        """
 
-        GraphNode.__init__(self, domain='metadata')
         self.queryname = queryname
         self.JSON_metadata = JSON_metadata
         self._store = None
@@ -92,9 +91,10 @@ class ClientQuery(GraphNode):
             self._JSON_metadata = pyConfigContext(JSON_metadata)
             if self._JSON_metadata is None:
                 raise ValueError('Parameter JSON_metadata is invalid [%s]' % JSON_metadata)
+        GraphNode.__init__(self, domain='metadata')
 
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of decreasing significance'
         return ['queryname']
 
@@ -162,8 +162,8 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _cmdline_substitute(fmtstring, queryresult):
-        '''Perform expression substitution for command line queries.
-        'Substitute fields into the command line output'''
+        """Perform expression substitution for command line queries.
+        'Substitute fields into the command line output"""
         chunks = fmtstring.split('${')
         result = chunks[0]
         for j in range(1, len(chunks)):
@@ -173,9 +173,10 @@ class ClientQuery(GraphNode):
             result += extra
         return result
 
-    def filter_json(self, executor_context, idsonly, expandJSON, maxJSON
+    @staticmethod
+    def filter_json(executor_context, idsonly, expandJSON, maxJSON
     ,       resultiter, elemsonly=False):
-        '''Return a sanitized (filtered) JSON stream from the input iterator
+        """Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
         This is currently completely ignored, and everthing is returned - as is.
@@ -187,9 +188,7 @@ class ClientQuery(GraphNode):
         ids_only - if True, return only the URL of the objects (via object id)
                         otherwise return the objects themselves
         resultiter - iterator giving return results for us to filter
-        '''
-        self = self
-
+        """
         idsonly = idsonly
         executor_context = executor_context
         rowdelim = '{"data":[' if not elemsonly else ''
@@ -239,7 +238,7 @@ class ClientQuery(GraphNode):
     # R0912: Too many branches; R0914: too many local variables
     # pylint: disable=R0914,R0912
     def validate_json(self):
-        '''Validate the JSON metadata for this query - it's complicated!'''
+        """Validate the JSON metadata for this query - it's complicated!"""
         queryobj = QueryExecutor.construct_query(self._store, self._JSON_metadata)
         query_parameter_names = queryobj.parameter_names()
         if 'parameters' not in self._JSON_metadata:
@@ -327,9 +326,9 @@ class ClientQuery(GraphNode):
                     %   (enum, type(enum)))
 
     def validate_parameters(self, parameters):
-        '''
+        """
         parameters is a Dict-like object containing parameter names and values
-        '''
+        """
         # Let's see if all the parameters were supplied
         paramdict = self._JSON_metadata['parameters']
         queryobj = QueryExecutor.construct_query(self._store, self._JSON_metadata)
@@ -510,7 +509,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _validate_value(name, paraminfo, value):
-        '''Validate the value given our metadata'''
+        """Validate the value given our metadata"""
         valtype = paraminfo['type']
         return ClientQuery._validationmethods[valtype](name, paraminfo, value)
 
@@ -566,22 +565,22 @@ class ClientQuery(GraphNode):
                     print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
 
 class QueryExecutor(object):
-    '''An abstract class which knows which can perform a variety of types of queries
+    """An abstract class which knows which can perform a variety of types of queries
     At the moment that's "python" and "cypher".
-    '''
+    """
     DEFAULT_EXECUTOR_METHOD = 'CypherExecutor'
     EXECUTOR_METHODS = {}
 
     def __init__(self, store, metadata):
-        '''Construct an object remembering our metadata'''
+        """Construct an object remembering our metadata"""
         self.store = store
         self.metadata = metadata
 
     @staticmethod
     def construct_query(store, metadata):
-        '''Construct a query of the type requested.
+        """Construct a query of the type requested.
         We return None if we can't construct a query from our metadata.
-        '''
+        """
         querytype = (metadata['querytype'] if 'querytype' in metadata
                      else QueryExecutor.DEFAULT_EXECUTOR_METHOD)
 
@@ -598,21 +597,21 @@ class QueryExecutor(object):
         return ourclass
 
     def parameter_names(self):
-        '''We return a set of parameters that we expect.
+        """We return a set of parameters that we expect.
         We return None if we are flexible (or don't know) about our expected parameters.
-        '''
+        """
         raise NotImplementedError('QueryExecutor is an abstract class')
 
     def result_iterator(self, params):
-        '''We return an iterator which will yield the results of performing
+        """We return an iterator which will yield the results of performing
         this query with these parameters.
-        '''
+        """
         raise NotImplementedError('QueryExecutor is an abstract class')
 
 
 @QueryExecutor.register
 class CypherExecutor(QueryExecutor):
-    '''QueryExecutor subclass for Cypher queries'''
+    """QueryExecutor subclass for Cypher queries"""
 
     @staticmethod
     def construct_query(store, metadata):
@@ -626,52 +625,53 @@ class CypherExecutor(QueryExecutor):
         self.query = metadata['cypher']
 
     def parameter_names(self):
-        '''We return a set of parameters that we expect.
+        """We return a set of parameters that we expect.
         We return None if we are flexible (or don't know) about our expected parameters.
-        Return the parameter names our cypher query uses'''
+        Return the parameter names our cypher query uses"""
 
         START       = 1
         BACKSLASH   = 2
-        GOTLCURLY   = 3
-        results     = []
-        paramname   = ''
+        GOTDOLLAR   = 3
+
+        results = []
+        paramname = ''
         state = START
 
         for c in self.metadata['cypher']:
             if state == START:
                 if c == '\\':
                     state = BACKSLASH
-                if c == '{':
-                    state = GOTLCURLY
+                if c == '$':
+                    state = GOTDOLLAR
             elif state == BACKSLASH:
                 state = START
-            else: # GOTLCURLY
-                if c == '}':
+            else:  # GOTDOLLAR
+                if c.isalnum():
+                    paramname += c
+                else:
                     if paramname != '':
                         results.append(paramname)
                         paramname = ''
                     state = START
-                else:
-                    paramname += c
         return results
 
     def result_iterator(self, params):
-        '''We return an iterator which will yield the results of performing
+        """We return an iterator which will yield the results of performing
         this query with these parameters.
-        '''
-        return self.store.load_cypher_query(self.query, GraphNode.factory, params=params)
+        """
+        return self.store.load_cypher_query(self.query, params=params)
 
 @QueryExecutor.register
 class PythonExec(QueryExecutor):
-    '''QueryExecutor subclass for Python code queries'''
+    """QueryExecutor subclass for Python code queries"""
 
     EXECUTOR_METHODS = {}
     PARAMETERS = []
 
     def parameter_names(self):
-        '''We return a set of parameters that we expect.
+        """We return a set of parameters that we expect.
         We return None if we are flexible (or don't know) about our expected parameters.
-        Return the parameter names our cypher query uses'''
+        Return the parameter names our cypher query uses"""
         return self.PARAMETERS
 
     @staticmethod
@@ -680,9 +680,9 @@ class PythonExec(QueryExecutor):
         return ourclass
 
     def result_iterator(self, params):
-        '''We return an iterator which will yield the results of performing
+        """We return an iterator which will yield the results of performing
         this query with these parameters.
-        '''
+        """
         raise NotImplementedError('PythonExec is an abstract class')
 
     @staticmethod
@@ -698,13 +698,13 @@ class PythonExec(QueryExecutor):
 
 @PythonExec.register
 class AllPythonRuleScores(PythonExec):
-    '''Return discovery type+rule scores for all discovery types'''
+    """Return discovery type+rule scores for all discovery types"""
     PARAMETERS = []
 
     def result_iterator(self, _params):
-        '''We return an iterator which will yield the results of performing
+        """We return an iterator which will yield the results of performing
         this query with these parameters.
-        '''
+        """
         dtype_totals, _drone_totals, rule_totals = grab_category_scores(self.store)
         # 0:  domain
         # 1:  category name
@@ -719,12 +719,12 @@ class AllPythonRuleScores(PythonExec):
 
 @PythonExec.register
 class PythonSecRuleScores(PythonExec):
-    '''query executor returning discovery type+rule scores for security scores'''
+    """query executor returning discovery type+rule scores for security scores"""
     PARAMETERS = []
     def result_iterator(self, _params):
-        '''We return an iterator which will yield the results of performing
+        """We return an iterator which will yield the results of performing
         this query with these parameters.
-        '''
+        """
         dtype_totals, _drone_totals, rule_totals =grab_category_scores(self.store,
                                                                       categories='security')
         # 0:  domain
@@ -740,8 +740,8 @@ class PythonSecRuleScores(PythonExec):
 
 @PythonExec.register
 class PythonHostSecScores(PythonExec):
-    '''Return discovery type+host security scores'''
-    PARAMETERS = []
+    """Return discovery type+host security scores
+    """
     PARAMETERS = []
     def result_iterator(self, _params):
         dtype_totals, drone_totals, _rule_totals = grab_category_scores(self.store)
@@ -758,7 +758,7 @@ class PythonHostSecScores(PythonExec):
 
 @PythonExec.register
 class AllPythonHostScores(PythonExec):
-    '''query executor returning discovery type+host scores for all score types'''
+    """query executor returning discovery type+host scores for all score types"""
     PARAMETERS = []
     def result_iterator(self, _params):
         dtype_totals, drone_totals, _rule_totals = grab_category_scores(self.store)
@@ -774,7 +774,7 @@ class AllPythonHostScores(PythonExec):
             yield tup
 @PythonExec.register
 class AllPythonTotalScores(PythonExec):
-    '''query executor returning domain, score-category, total-score'''
+    """query executor returning domain, score-category, total-score"""
     PARAMETERS = []
     def result_iterator(self, _params):
         dtype_totals, _drone_totals, _rule_totals = grab_category_scores(self.store)
@@ -806,13 +806,13 @@ def setup_dict4(d, key1, key2, key3, key4):
 # [R0914:grab_category_scores] Too many local variables (19/15)
 # pylint: disable=R0914
 def grab_category_scores(store, categories=None, domains=None, debug=False):
-    '''Method to create and return some python Dicts with security scores and totals by category
+    """Method to create and return some python Dicts with security scores and totals by category
     and totals by drone/category
     Categories is None, a desired category, or a list of desired categories.
     domains is None, a desired domain, or a list of desired domains.
-    '''
+    """
     if domains is None:
-        cypher = '''START drone=node:Drone('*:*') RETURN drone'''
+        cypher = """START drone=node:Drone('*:*') RETURN drone"""
     else:
         domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
         cypher = ("START drone=node:Drone('*:*') WHERE drone.domain IN %s RETURN drone"
@@ -821,11 +821,11 @@ def grab_category_scores(store, categories=None, domains=None, debug=False):
         categories = (categories,) if isinstance(categories, (str, unicode)) else list(categories)
 
     bpobj = BestPractices(CMAdb.io.config, CMAdb.io, store, CMAdb.log, debug=debug)
-    dtype_totals = {} # scores organized by (domain, category, discovery-type)
-    drone_totals = {} # scores organized by (domain, category, discovery-type, drone)
-    rule_totals  = {} # scores organized by (domain, category, discovery-type, rule)
+    dtype_totals = {}  # scores organized by (domain, category, discovery-type)
+    drone_totals = {}  # scores organized by (domain, category, discovery-type, drone)
+    rule_totals  = {}  # scores organized by (domain, category, discovery-type, rule)
 
-    for drone in store.load_cypher_nodes(cypher, Drone):
+    for drone in store.load_cypher_nodes(cypher):
         domain = drone.domain
         designation = drone.designation
         discoverytypes = drone.bp_discoverytypes_list()
@@ -852,12 +852,12 @@ def grab_category_scores(store, categories=None, domains=None, debug=False):
     return dtype_totals, drone_totals, rule_totals
 
 def yield_total_scores(dtype_totals, categories=None):
-    '''Format the total scores by category as a named tuple.
+    """Format the total scores by category as a named tuple.
     We output the following fields:
         0:  domain
         1:  category name
         3:  total score for this category
-    '''
+    """
     TotalScore = collections.namedtuple('TotalScore', ['domain', 'category', 'score'])
     for domain in sorted(dtype_totals):
         domain_scores = dtype_totals[domain]
@@ -871,7 +871,7 @@ def yield_total_scores(dtype_totals, categories=None):
             yield TotalScore(domain, category, total)
 
 def yield_drone_scores(categories, drone_totals, dtype_totals):
-    '''Format the drone_totals + dtype_totals as a named tuple
+    """Format the drone_totals + dtype_totals as a named tuple
     We output the following fields:
         0:  domain
         1:  category name
@@ -879,7 +879,7 @@ def yield_drone_scores(categories, drone_totals, dtype_totals):
         3:  total score for this discovery type _across all drones_
         4:  drone designation (name)
         5:  total score for this drone for this discovery type
-    '''
+    """
     DroneScore = collections.namedtuple('DroneScore', ['domain', 'category', 'discovery_type',
                                            'dtype_score', 'drone', 'drone_score'])
     for domain in drone_totals:
@@ -894,7 +894,7 @@ def yield_drone_scores(categories, drone_totals, dtype_totals):
                                          drone, score)
 
 def yield_rule_scores(categories, dtype_totals, rule_totals):
-    '''Format the rule totals + dtype_totals as a CSV-style output
+    """Format the rule totals + dtype_totals as a CSV-style output
     We output the following fields:
         0:  domain
         1:  category name
@@ -902,7 +902,7 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
         3:  total score for this discovery type _across all rules
         5:  rule id
         6:  total score for this rule id
-    '''
+    """
     # rule_totals = # scores organized by (category, discovery-type, rule)
 
     RuleScore = collections.namedtuple('RuleScore',
@@ -922,7 +922,7 @@ PackageTuple = collections.namedtuple('PackageTuple',
                                       ['domain', 'drone', 'package', 'version', 'packagetype'])
 @PythonExec.register
 class PythonPackagePrefixQuery(PythonExec):
-    '''query executor returning packages matching the given prefix'''
+    """query executor returning packages matching the given prefix"""
     PARAMETERS = ['prefix']
     def result_iterator(self, params):
         prefix = params['prefix']
@@ -932,13 +932,13 @@ class PythonPackagePrefixQuery(PythonExec):
         # 3:  Package Version
         # 4:  Package type
         cypher = (
-        '''MATCH (system)-[rel:jsonattr]->(jsonmap)
+        """MATCH (system)-[rel:jsonattr]->(jsonmap)
         WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
             AND jsonmap.nodetype = 'JSONMapNode'
             AND rel.jsonname =~ '^_init_packages.*' AND jsonmap.json CONTAINS '"%s'
         RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-        '''     %   prefix)
-        for (drone, json) in self.store.load_cypher_query(cypher, Drone):
+        """     %   prefix)
+        for (drone, json) in self.store.load_cypher_query(cypher):
             jsonobj = pyConfigContext(json)
             # pylint is confused here - jsonobj['data'] _is_ very much iterable...
             # pylint: disable=E1133
@@ -952,7 +952,7 @@ class PythonPackagePrefixQuery(PythonExec):
 
 @PythonExec.register
 class PythonAllPackageQuery(PythonExec):
-    '''query executor returning all packages on all systems'''
+    """query executor returning all packages on all systems"""
     PARAMETERS = []
     def result_iterator(self, params):
         # 0:  domain
@@ -960,13 +960,13 @@ class PythonAllPackageQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        '''MATCH (system)-[rel:jsonattr]->(jsonmap)
+        """MATCH (system)-[rel:jsonattr]->(jsonmap)
         WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
             AND rel.jsonname =~ '^_init_packages.*'
         RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-        ''')
+        """)
 
-        for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
+        for (drone, json) in self.store.load_cypher_query(cypher):
             jsonobj = pyConfigContext(json)
             # pylint is confused here - jsonobj['data'] _is_ very much iterable...
             # pylint: disable=E1133
@@ -978,7 +978,7 @@ class PythonAllPackageQuery(PythonExec):
 
 @PythonExec.register
 class PythonPackageRegexQuery(PythonExec):
-    '''query executor returning packages matching the given regular expression'''
+    """query executor returning packages matching the given regular expression"""
     PARAMETERS = ['regex']
     def result_iterator(self, params):
         regex = params['regex']
@@ -987,14 +987,14 @@ class PythonPackageRegexQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        '''START drone=node:Drone('*:*')
+        """START drone=node:Drone('*:*')
            MATCH (drone)-[rel:jsonattr]->(jsonmap)
            WHERE rel.jsonname =~ '^_init_packages.*' AND jsonmap.json =~ '.*%s.*.*'
            RETURN drone, jsonmap.json AS json ORDER BY system.domain, system.designation
-        '''     %   regex)
+        """     %   regex)
 
         regexobj = re.compile('.*' + regex)
-        for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
+        for (drone, json) in self.store.load_cypher_query(cypher):
             jsonobj = pyConfigContext(json)
             # pylint is confused here - jsonobj['data'] _is_ very much iterable...
             # pylint: disable=E1133
@@ -1008,7 +1008,7 @@ class PythonPackageRegexQuery(PythonExec):
 
 @PythonExec.register
 class PythonPackageQuery(PythonExec):
-    '''query executor returning packages of the given name'''
+    """query executor returning packages of the given name"""
     PARAMETERS = ['packagename']
     def result_iterator(self, params):
         packagename = params['packagename']
@@ -1019,12 +1019,12 @@ class PythonPackageQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        '''START drone=node:Drone('*:*')
+        """START drone=node:Drone('*:*')
         MATCH (drone)-[rel:jsonattr]->(jsonmap)
         WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
         return drone, jsonmap.json as json
-        '''     %   packagename)
-        for (drone, json) in self.store.load_cypher_query(cypher, GraphNode.factory):
+        """     %   packagename)
+        for (drone, json) in self.store.load_cypher_query(cypher):
             jsonobj = pyConfigContext(json)
             # pylint is confused here - jsonobj['data'] _is_ very much iterable...
             # pylint: disable=E1133
@@ -1051,14 +1051,14 @@ class PythonDroneSubgraphQuery(PythonExec):
     'A class to return a subgraph centered around one or more Drones'
     PARAMETERS = ['nodetypes', 'reltypes', 'hostname']
     basequery = \
-        '''START start=node:Drone('*:*')
+        """START start=node:Drone('*:*')
         WHERE start.nodetype = 'Drone' AND start.designation in '%s'
         MATCH p = shortestPath( (start)-[%s*]-(m) )
         WHERE m.nodetype IN %s
         UNWIND nodes(p) AS n
         UNWIND rels(p) AS r
         RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
-        COLLECT(DISTINCT r) AS relationships'''
+        COLLECT(DISTINCT r) AS relationships"""
 
     def result_iterator(self, params):
         nodetypes = params['nodetypes']
@@ -1071,7 +1071,7 @@ class PythonDroneSubgraphQuery(PythonExec):
         nodestr = str(nodetypes)
         query = PythonDroneSubgraphQuery.basequery % (designation_s, relstr, nodestr, nodestr)
         #print >> sys.stderr, 'RUNNING THIS QUERY:', query
-        for row in self.store.load_cypher_query(query, GraphNode.factory):
+        for row in self.store.load_cypher_query(query):
             yield row
 
 @PythonExec.register
@@ -1079,14 +1079,14 @@ class PythonAllDronesSubgraphQuery(PythonExec):
     'A class to return a subgraph centered around a Drone'
     PARAMETERS = ['nodetypes', 'reltypes']
     basequery = \
-        '''START start=node:Drone('*:*')
+        """START start=node:Drone('*:*')
         WHERE start.nodetype = 'Drone'
         MATCH p = shortestPath( (start)-[%s*]-(m) )
         WHERE m.nodetype IN %s
         UNWIND nodes(p) AS n
         UNWIND rels(p) AS r
         RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
-        COLLECT(DISTINCT r) AS relationships'''
+        COLLECT(DISTINCT r) AS relationships"""
 
     def result_iterator(self, params):
         nodetypes = params['nodetypes']
@@ -1095,7 +1095,7 @@ class PythonAllDronesSubgraphQuery(PythonExec):
         nodestr = str(nodetypes)
         query = PythonAllDronesSubgraphQuery.basequery % (relstr, nodestr, nodestr)
         #print >> sys.stderr, 'RUNNING THIS QUERY:', query
-        for row in self.store.load_cypher_query(query, GraphNode.factory):
+        for row in self.store.load_cypher_query(query):
             yield row
 
 
@@ -1120,9 +1120,9 @@ ClientQuery._validationmethods = {
 if __name__ == '__main__':
     # pylint: disable=C0413
     from store import Store
-    from cmadb import Neo4jCreds
+    from cmainit import Neo4jCreds
     metadata1 = \
-    '''
+    """
     {   "cypher": "START n=node:ClientQuery('*:*') RETURN n",
         "parameters": {},
         "descriptions": {
@@ -1132,11 +1132,11 @@ if __name__ == '__main__':
             }
         }
     }
-    '''
+    """
     q1 = ClientQuery('allqueries', metadata1)
 
     metadata2 = \
-    '''
+    """
     {   "cypher":   "START n=node:ClientQuery('{queryname}:metadata') RETURN n",
         "parameters": {
             "queryname": {
@@ -1156,11 +1156,11 @@ if __name__ == '__main__':
             }
         }
     }
-    '''
+    """
     q2 = ClientQuery('allqueries', metadata2)
 
     metadata3 = \
-    '''
+    """
     {
         "cypher": "START ip=node:IPaddr('{ipaddr}:*')
                    MATCH (ip)<-[:ipowner]-()<-[:nicowner]-(system)
@@ -1184,9 +1184,9 @@ if __name__ == '__main__':
             }
         }
     }
-    '''
+    """
     metadata4 =  \
-    r''' {
+    r""" {
         "cypher": 	"START start=node:Drone('*:*')
                     WHERE start.nodetype = 'Drone' AND start.designation = '{host}'
                     MATCH p = shortestPath( (start)-[*]-(m) )
@@ -1229,14 +1229,14 @@ if __name__ == '__main__':
             "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
             "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
         },
-    }'''
+    }"""
     q3 = ClientQuery('ipowners', metadata3)
     q3.validate_json()
     q4 = ClientQuery('subgraph', metadata4)
     q4.validate_json()
 
     Neo4jCreds().authenticate()
-    neodb = neo4j.Graph()
+    neodb = Graph()
     neodb.delete_all()
 
     umap  = {'ClientQuery': True}

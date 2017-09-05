@@ -1,5 +1,5 @@
 {
-    "cypher": "START ip=node:IPaddrNode('*:*')
+    "cypher": "MATCH(ip:Class_IPaddrNode)
                WHERE NOT EXISTS (ip.hostname)
                OPTIONAL MATCH (ip)<-[:ipowner]-(nic)
                OPTIONAL MATCH (ip)<-[:ipowner]-(nic)<-[:nicowner]-(system)

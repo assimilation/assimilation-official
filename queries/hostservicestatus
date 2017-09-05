@@ -1,7 +1,6 @@
 {
-    "cypher": "START servicehost=node:Drone('*:*')
-               MATCH (monitor)-[:monitoring]->(service)<-[:hosting]-(servicehost)
-               WHERE servicehost.designation = {host}
+    "cypher": "MATCH (monitor)-[:monitoring]->(service)<-[:hosting]-(servicehost:Class_Drone)
+               WHERE servicehost.designation = $host
                RETURN monitor, service, servicehost",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {

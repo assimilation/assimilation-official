@@ -1,5 +1,5 @@
 {
-    "cypher": "START monitor=node:MonitorAction('*:*')
+    "cypher": "MATCH (monitor:Class_MonitorAction)
                WHERE monitor.isactive AND NOT monitor.isworking
                MATCH (monitor)-[:monitoring]->(service)<-[:hosting]-(servicehost)
                RETURN monitor, service, servicehost",

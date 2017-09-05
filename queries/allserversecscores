@@ -1,5 +1,5 @@
 {
-    "cypher": "START drone=node:Drone('*:*') RETURN drone.bp_category_security_score AS score, drone ORDER BY score DESCENDING",
+    "cypher": "MATCH(drone:Class_Drone) RETURN drone.bp_category_security_score AS score, drone ORDER BY score DESCENDING",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
     "descriptions": {
         "en": {

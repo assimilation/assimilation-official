@@ -1,5 +1,5 @@
 {
-    "cypher": "START drone=node:Drone('*:*')
+    "cypher": "MATCH (drone:Class_Drone)
                WHERE drone.status = \"dead\" and drone.reason <> \"HBSHUTDOWN\"
                RETURN drone",
     "copyright": "Copyright(C) 2013 Assimilation Systems Limited",

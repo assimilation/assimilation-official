@@ -4,7 +4,7 @@
     "subtype": "PythonDroneSubgraphQuery",
     "descriptions": {
         "en": {
-            "short":    "return entire graph",
+            "short":    "return entire graph near hostnames",
             "long":     "retrieve all nodes and all relationships"
         }
     },
