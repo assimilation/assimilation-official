@@ -70,6 +70,7 @@ class MessageDispatcher(object):
         with self.store.db.begin(autocommit=False) as self.store.db_transaction,\
                 NetTransaction(self.io, encryption_required=self.encryption_required)\
                         as CMAdb.net_transaction:
+            print >> sys.stderr, ('NEW TRANSACTION: %s' % self.store.db_transaction)
             try:
                 self._try_dispatch_action(origaddr, frameset)
             except Exception as e:
@@ -77,6 +78,8 @@ class MessageDispatcher(object):
                 if (self.dispatchcount % 100) == 1:
                     self._check_memory_usage()
                 raise e
+        assert self.store.db_transaction.finished
+        print >> sys.stderr, ('TRANSACTIONs COMMITTED!')
         if CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
             CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
@@ -129,6 +132,7 @@ class MessageDispatcher(object):
         fstype = frameset.get_framesettype()
         fstypename = FrameSetTypes.get(fstype)[0]
 
+        sys.stdout.flush()
         print >> sys.stderr, ('MessageDispatcher exception [%s] occurred' % (e))
         CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
         ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
@@ -150,6 +154,7 @@ class MessageDispatcher(object):
         if CMAdb.net_transaction is not None:
             CMAdb.log.critical("Aborting network transaction %s" % CMAdb.net_transaction.tree)
             CMAdb.net_transaction = None
+        os._exit(1)
 
 
     @staticmethod

@@ -282,10 +282,14 @@ class Store(object):
         :param clsargs: arguments to the class
         :return: object
         """
+        print('LOAD: %s' % (str(clsargs)))
         self._audit_weaknodes_clients()
         subj = self.callconstructor(cls, clsargs)
+        print('LOAD class %s: constructed obj: %s' % (cls.__name__, object.__str__(subj)), file=stderr)
         self._audit_weaknodes_clients()
         key_values = self._get_key_values(cls, subj=subj)
+        print('LOAD class %s: clsargs: %s' % (cls.__name__, str(clsargs)), file=stderr)
+        print('LOAD class %s: key values: %s' % (cls.__name__, str(key_values)), file=stderr)
 
         # See if we can find this node in memory somewhere...
         result = self._localsearch(cls, key_values)
@@ -297,11 +301,15 @@ class Store(object):
             return result
 
         try:
-            node = self.db.evaluate(subj.association.cypher_find_query())
+            query = subj.association.cypher_find_query()
+            print('LOAD class %s: query: %s' % (cls.__name__, query), file=stderr)
+            node = self.db.evaluate(query)
+            print('LOAD class %s: node: %s' % (cls.__name__, node), file=stderr)
         except py2neo.GraphError:
             return None
         self._audit_weaknodes_clients()
         result = self._construct_obj_from_node(node) if node else None
+        print('LOAD class %s: result: %s' % (cls.__name__, object.__str__(result)), file=stderr)
         # print("NOT FOUND IN LOCALSEARCH - returning %s/%s" % (object.__str__(result), result))
         self._audit_weaknodes_clients()
         return result
@@ -315,6 +323,7 @@ class Store(object):
         :param clsargs: arguments to the class constructor
         :return: object: as created by the 'cls' constructor
         """
+        print('LOAD OR CREATE: %s' % (str(clsargs)))
         obj = self.load(cls, **clsargs)
         if obj is not None:
             if Store.debug:
@@ -793,7 +802,7 @@ class Store(object):
         :return: GraphNode or None
         """
 
-        # print('SEARCHING FOR class %s with %s' % (cls, key_values), file=stderr)
+        print('SEARCHING FOR class %s with %s' % (cls, key_values), file=stderr)
         result = self._weaknodes_search(cls, key_values=key_values, need_node=need_node)
         if result:
             return result
@@ -805,10 +814,12 @@ class Store(object):
         :return: GraphNode: or None
         """
         searchset = set()
-        for weakclient in self.weaknoderefs.viewvalues():
+        for node_id, weakclient in self.weaknoderefs.viewitems():
             client = weakclient()
             if client:
+                print('Weaknodes: node_id: %s Client: %s' % (node_id, object.__str__(client)), file=stderr)
                 searchset.add(client)
+        print('Weaknodes: key_values: %s' % str(key_values), file=stderr)
         result = self._find_keys_in_iterable(cls, key_values, searchset, need_node=need_node)
         # if result:
         #     print('Found client %s in weaknoderefs %s'
@@ -826,6 +837,7 @@ class Store(object):
         :return: GraphNode
         """
         class_name = cls.__name__
+        print('FIND KEYS: %s' % str(key_values), file=stderr)
         for client in searchset:
             if client.__class__.__name__ != class_name:
                 # print('LOOKING: %s is NOT %s'
@@ -836,13 +848,14 @@ class Store(object):
             found = True
             for attr, value in key_values.viewitems():
                 if not hasattr(client, attr) or getattr(client, attr) != value:
-                    # print('LOOKING: %s.%s is NOT %s'
-                    #       % (client.association.variable_name, attr, value), file=stderr)
+                    print('FIND KEYS IN ITERABLE: %s.%s is NOT %s'
+                          % (client.association.variable_name, attr, value), file=stderr)
                     found = False
                     break
             if found:
-                # print('FOUND CLIENT: %s' % client, file=stderr)
+                print('FOUND CLIENT: %s with %s' % (object.__str__(client), key_values), file=stderr)
                 return client
+        print('NO MATCH FOR %s' % key_values, file=stderr)
         return None
 
     @staticmethod
@@ -927,9 +940,10 @@ class Store(object):
             cls = comparison.__class__
             key_values = self._get_key_values(cls, subj=comparison)
             other = self._find_keys_in_iterable(cls, key_values, sublist)
-            if other:
-                print("OOPS: Comparison: %s vs %s" % (comparison, other))
-                print('j=%d: %s' % (j, complete_list))
+            if other is not None:
+                print("OOPS: Comparison: %s vs %s" % (object.__str__(comparison), object.__str__(other)), file=stderr)
+                print("OOPS: Comparison: %s vs %s" % (comparison, other), file=stderr)
+                print('j=%d: %s' % (j, complete_list), file=stderr)
             assert other is None
 
     def register(self, subj, node=None):
@@ -941,13 +955,16 @@ class Store(object):
         :return: object: subj - the original object - now decorated
         """
         assert isinstance(subj, self.graph_node)
-        # print('LOOKING AT %s (class %s)' % (subj, subj.__class__), file=stderr)
+        print('REGISTERING in store %s transaction %s / %s' % (object.__str__(self),
+                                                               self.db_transaction,
+                                                               object.__str__(self.db_transaction)),
+              file=stderr)
+        print('REGISTERING class %s: %s / %s' % (subj.__class__, object.__str__(subj), str(subj)), file=stderr)
         key_values = self._get_key_values(subj.__class__, subj=subj)
         # print ('DOING LOCALSEARCH WITH %s' % key_values, file=stderr)
         other = self._localsearch(subj.__class__, key_values)
         if other:
             raise RuntimeError('Equivalent Object %s already exists: %s' % (subj, other))
-        self._audit_weaknodes_clients()
         self._audit_weaknodes_clients()
         # subj.association.node_id = self.neo_node_id(node)
         if Store.debug:
@@ -971,6 +988,8 @@ class Store(object):
             self._audit_weaknodes_clients()
             raise ValueError('Node id %s already registered' % node_id)
         else:
+            print("Registering node %s with node id %d [%s]"
+                  % (object.__str__(subj), node_id, subj), file=stderr)
             self.weaknoderefs[node_id] = weakref.ref(subj)
             self._audit_weaknodes_clients()
         if hasattr(subj, 'post_db_init'):
@@ -987,10 +1006,10 @@ class Store(object):
         assert isinstance(subj, self.graph_node)
         cypher = subj.association.cypher_create_node_query()
         cypher += '\n RETURN ID(%s)' % subj.association.variable_name
-        # print('CREATE CYPHER: %s' % cypher)
+        print('CREATE CYPHER: %s' % cypher, file=stderr)
         node_id = self.db_transaction.evaluate(cypher)
         assert node_id is not None
-        # print('NODE_ID:', node_id)
+        print('NODE_ID:', node_id, file=stderr)
         subj.association.node_id = node_id
 
     def batch_execute_node_updates(self):
@@ -1024,7 +1043,7 @@ class Store(object):
         self.stats['lastcommit'] = end
         self.stats['totaltime'] += (end-start)
 
-        if self.debug:
+        if True or self.debug:
             print('DB TRANSACTION COMPLETED SUCCESSFULLY', file=stderr)
             self.abort()
 
@@ -1053,9 +1072,11 @@ class Store(object):
         Clean out all the objects we used to have in our store - afterwards we
         have none associated with this Store. Very useful for testing when
         trying to verify that all our 'C' objects were freed...
+        But should only be used in testing situations...
 
         :return: None
         """
+        print('PERFORMING CLEAN_STORE! (for testing only)', file=stderr)
         for nodeid in self.weaknoderefs:
             obj = self.weaknoderefs[nodeid]()
             if obj is not None:

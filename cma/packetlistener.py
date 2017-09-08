@@ -98,9 +98,7 @@ class PacketListener(object):
         self.mainloop = glib.MainLoop()
         #print >> sys.stderr, ('self.mainloop %s, self.mainloop.mainloop: %s'
         #   % (self.mainloop, self.mainloop.mainloop))
-        # W0612: unused variable j
-        # pylint: disable=W0612
-        self.prio_queues = [[] for j in range(PacketListener.LOWEST_PRIO+1)]
+        self.prio_queues = [[] for _ in range(PacketListener.LOWEST_PRIO+1)]
         self.queue_addrs = {} # Indexed by IP addresses - which queue is this IP in?
 
     @staticmethod
@@ -148,6 +146,7 @@ class PacketListener(object):
         priority scheme if there are no higher priority queues with packets to read.
         '''
         for prio_queue in self.prio_queues:
+            print('PRIORITY QUEUE: Length %d' % len(prio_queue))
             if len(prio_queue) == 0:
                 continue
             frameset_queue = prio_queue.pop(0)
@@ -166,6 +165,8 @@ class PacketListener(object):
             if CMAdb.debug:
                 CMAdb.log.debug('dequeue_a_frameset: RETURNING (%s, %s)'
                 %   (fromaddr, str(frameset)[:80]))
+            print >> sys.stderr, ('dequeue_a_frameset: RETURNING (%s, %s)'
+                            %   (fromaddr, str(frameset)[:80]))
             return fromaddr, frameset
         return None, None
 
@@ -244,6 +245,8 @@ class PacketListener(object):
         'Process framesets received as a single packet'
         while True:
             (fromaddr, framesetlist) = self.io.recvframesets()
+            print >> sys.stderr, ("Got FrameSet from str([%s], [%s])"
+                                  % (str(fromaddr), repr(fromaddr)))
             if fromaddr is None:
                 # Must have read an ACK or something...
                 return
@@ -252,18 +255,21 @@ class PacketListener(object):
                 if CMAdb.debug:
                     CMAdb.log.debug("listenonce: Received FrameSets from str([%s], [%s])" \
                     %       (str(fromaddr), fromstr))
-                #print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
-                #%       (str(fromaddr), fromstr))
+            print >> sys.stderr, ("Received FrameSet from str([%s], [%s])"
+                                  % (str(fromaddr), fromstr))
 
             for frameset in framesetlist:
                 if CMAdb.debug:
                     CMAdb.log.debug("listenonce: FrameSet Gotten ([%s]: [%s])" \
                     %       (str(fromaddr), frameset))
                 self.dispatcher.dispatch(fromaddr, frameset)
+
     def _read_all_available(self):
         'Read All available framesets into our queue system'
         while True:
             (fromaddr, framesetlist) = self.io.recvframesets()
+            print >> sys.stderr, ("Got FrameSet from str([%s], [%s])"
+                                  % (str(fromaddr), repr(fromaddr)))
             if fromaddr is None:
                 break
             else:
@@ -271,13 +277,15 @@ class PacketListener(object):
                 if CMAdb.debug:
                     CMAdb.log.debug("_read_all_available: Received FrameSet from str([%s], [%s])" \
                     %       (str(fromaddr), fromstr))
-                #print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
-                #%       (str(fromaddr), fromstr))
+            print >> sys.stderr, ("Received FrameSet from str([%s], [%s])" \
+            %       (str(fromaddr), fromstr))
 
             for frameset in framesetlist:
                 if CMAdb.debug:
                     CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" \
                     %       (str(fromaddr), frameset))
+                print >> sys.stderr, ("Enqueueing FrameSet from str([%s], [%s])" \
+                                      %       (str(fromaddr), str(frameset)))
                 self.enqueue_frameset(frameset, fromaddr)
 
     def queueanddispatch(self):
@@ -285,7 +293,10 @@ class PacketListener(object):
         while True:
             self._read_all_available()
             fromaddr, frameset = self.dequeue_a_frameset()
+            print >> sys.stderr, ("Dequeueing FrameSet from ([%s], [%s])"
+                                  % (str(fromaddr), str(frameset)))
             if fromaddr is None:
+                print('FROMADDR IS NONE IN QUEUEANDDISPATCH')
                 return
             fstype = frameset.get_framesettype()
             key_id=frameset.sender_key_id()
