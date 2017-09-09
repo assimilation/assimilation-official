@@ -44,8 +44,8 @@ from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD
 ,   CONFIGNAME_WARNTIME                                                                     \
 ,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD, REQSTRINGRETNAMEFIELD             \
 ,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
-#
-#
+
+
 # too many instance attributes
 # pylint: disable=R0902
 @RegisterGraphClass
@@ -54,15 +54,15 @@ class MonitorAction(GraphNode):
     '''
     request_id = time.time()
     @staticmethod
-    def __meta_keyattrs__():
+    def meta_key_attributes():
         'Return our key attributes in order of significance (sort order)'
         return ['monitorname', 'domain']
 
 
     # R0913: too many arguments
     # pylint: disable=R0913
-    def __init__(self, domain, monitorname, monitorclass, monitortype, interval
-    ,   timeout, warntime=None, provider=None, arglist=None, argv=None):
+    def __init__(self, domain, monitorname, monitorclass, monitortype, interval,
+                 timeout, warntime=None, provider=None, arglist=None, argv=None):
         'Create the requested monitoring rule object.'
         GraphNode.__init__(self, domain)
         self.monitorname = monitorname
@@ -76,7 +76,7 @@ class MonitorAction(GraphNode):
         self.isworking = True
         self.reason = 'initial monitor creation'
         self.request_id = MonitorAction.request_id
-        self.argv=argv
+        self.argv = argv
         MonitorAction.request_id += 1
         if arglist is None:
             self.arglist = None
@@ -133,7 +133,7 @@ class MonitorAction(GraphNode):
             %   (str(runon)))
         else:
             reqjson = self.construct_mon_json()
-            CMAdb.transaction.add_packet(runon.destaddr(), FrameSetTypes.DORSCOP, reqjson
+            CMAdb.net_transaction.add_packet(runon.destaddr(), FrameSetTypes.DORSCOP, reqjson
             ,   frametype=FrameTypes.RSCJSON)
             self.isactive = True
         CMAdb.log.info('Monitoring of service %s activated' % (self.monitorname))
@@ -143,7 +143,7 @@ class MonitorAction(GraphNode):
         from droneinfo import Drone
         reqjson = self.construct_mon_json()
         for drone in CMAdb.store.load_related(self, CMAconsts.REL_hosting, Drone):
-            CMAdb.transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP
+            CMAdb.net_transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP
             ,   reqjson, frametype=FrameTypes.RSCJSON)
         self.isactive = False
 
@@ -153,11 +153,9 @@ class MonitorAction(GraphNode):
     def find(name, domain=None):
         'Iterate through a series of MonitorAction nodes matching the criteria'
         if MonitorAction.findquery is None:
-            MonitorAction.findquery = 'START m=node:MonitorAction({q}) RETURN m'
-        name = Store.lucene_escape(name)
+            MonitorAction.findquery = 'MATCH(m:MonitorAction) WHERE m.monitorname = $q RETURN m'
         qvalue = '%s:%s' % (name, '*' if domain is None else domain)
-        return CMAdb.store.load_cypher_nodes(MonitorAction.findquery, MonitorAction
-        ,   params={'q': qvalue})
+        return CMAdb.store.load_cypher_nodes(MonitorAction.findquery, params={'q': qvalue})
 
     @staticmethod
     def find1(name, domain=None):

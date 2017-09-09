@@ -574,7 +574,7 @@ class ProcessNode(GraphNode):
         'Add a role to our ProcessNode'
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the Processnode 'roles' attribute gets marked as dirty...
-        Store.mark_dirty(self, 'roles')
+        self.association.dirty_attrs.add('roles')
         # TODO: Add role-based label
         return self.roles
 
@@ -582,7 +582,7 @@ class ProcessNode(GraphNode):
         'Delete a role from our ProcessNode'
         self.roles = delete_an_array_item(self.roles, roles)
         # Mark our Processnode 'roles' attribute dirty...
-        Store.mark_dirty(self, 'roles')
+        self.association.dirty_attrs.add('roles')
         # TODO: Delete role-based label
         return self.roles
 

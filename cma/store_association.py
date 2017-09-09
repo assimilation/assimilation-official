@@ -138,6 +138,8 @@ class StoreAssociation(object):
             scalar_str = self.cypher_str_repr(scalar)
         elif isinstance(scalar, (bool, int, float, long)):
             scalar_str = str(scalar)
+        elif scalar is None:
+            scalar_str = 'null'
         else:
             raise ValueError('Inappropriate Neo4j value: "%s" (type %s)'
                              % (scalar, type(scalar)))
