@@ -31,7 +31,7 @@ from __future__ import print_function
 # import inject
 from AssimCclasses import pyNetAddr
 import py2neo
-# from sys import stderr
+from sys import stderr
 
 
 class StoreAssociation(object):
@@ -431,6 +431,7 @@ class StoreAssociation(object):
         if isinstance(other_node, str):
             other_name = other_node
         else:
+            print('OTHER_NODE = %s' % other_node, file=stderr)
             other_name = other_node.variable_name
         cypher = self.cypher_find_match2_clause(other_node) + ' AND '
         cypher += '%s\nRETURN %s' % (match_phrase, other_name)

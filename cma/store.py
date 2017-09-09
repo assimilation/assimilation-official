@@ -347,9 +347,10 @@ class Store(object):
         :param properties: properties to set on the new relationship
         :return: generator yielding related nodes
         """
+        other_association = obj.association if obj is not None else None
         query = subj.association.cypher_return_related_nodes(rel_type,
                                                              direction=direction,
-                                                             other_node=obj,
+                                                             other_node=other_association,
                                                              attrs=properties)
         # print("load_related: %s" % query, file=stderr)
         if self.debug:
@@ -485,7 +486,7 @@ class Store(object):
         assert not isinstance(obj, str)
         if self.readonly:
             raise RuntimeError('Attempt to relate objects in a read-only store')
-        if Store.debug:
+        if True or Store.debug:
             print('NEW RELATIONSHIP FROM %s to %s' % (subj, obj), file=stderr)
             print('FROM id is %s' % subj.association.node_id, file=stderr)
             print('TO id is %s' % obj.association.node_id, file=stderr)
@@ -513,8 +514,10 @@ class Store(object):
 
         # Check for pre-existing relationships
         # TODO: NEEDS MORE WORK
-        while self.load_related(subj, rel_type, obj):
-            return
+        for other in self.load_related(subj, rel_type, obj):
+            if other is not None:
+                print('RELATIONSHIP from %s to %s already exists' % (subj, other), file=stderr)
+                return
         self.relate(subj, rel_type, obj, properties)
 
     def separate(self, subj, rel_type=None, obj=None, direction='forward'):

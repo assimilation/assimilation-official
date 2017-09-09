@@ -133,9 +133,10 @@ class MonitorAction(GraphNode):
             %   (str(runon)))
         else:
             reqjson = self.construct_mon_json()
-            CMAdb.net_transaction.add_packet(runon.destaddr(), FrameSetTypes.DORSCOP, reqjson
-            ,   frametype=FrameTypes.RSCJSON)
+            CMAdb.net_transaction.add_packet(runon.destaddr(), FrameSetTypes.DORSCOP,
+                                             reqjson, frametype=FrameTypes.RSCJSON)
             self.isactive = True
+        print >> sys.stderr, ('Monitoring of service %s activated.' % (self.monitorname))
         CMAdb.log.info('Monitoring of service %s activated' % (self.monitorname))
 
     def deactivate(self):
@@ -143,8 +144,8 @@ class MonitorAction(GraphNode):
         from droneinfo import Drone
         reqjson = self.construct_mon_json()
         for drone in CMAdb.store.load_related(self, CMAconsts.REL_hosting, Drone):
-            CMAdb.net_transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP
-            ,   reqjson, frametype=FrameTypes.RSCJSON)
+            CMAdb.net_transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP,
+                                             reqjson, frametype=FrameTypes.RSCJSON)
         self.isactive = False
 
 
