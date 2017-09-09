@@ -885,7 +885,7 @@ class Store(object):
         """
         node_id = self.neo_node_id(node)
         assert node_id is not None
-        if node_id in self.weaknoderefs and self.weaknoderefs[node_id]():
+        if node_id in self.weaknoderefs:
             return self.weaknoderefs[node_id]()
         return None
 
@@ -905,13 +905,12 @@ class Store(object):
         # Do we already have a copy of an object that goes with this node somewhere?
         # If so, we need to update and return it instead of creating a new object
         current_obj = self._search_for_same_node(node)
-        if current_obj:
+        if current_obj is not None:
             # FIXME: I think I should just return the current object...(??)
             return self._update_obj_from_node(current_obj, node)
 
         node_id = self.neo_node_id(node)
         assert node_id not in self.weaknoderefs or self.weaknoderefs[node_id]() is None
-        # print('NODE ID: %s, node = %s' % (self.neo_node_id(node), str(node)), file=stderr)
         retobj = Store.callconstructor(self.factory, self._node_to_dict(node))
         for attr in clsargs:
             if not hasattr(retobj, attr) or getattr(retobj, attr) is None:
