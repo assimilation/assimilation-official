@@ -273,28 +273,18 @@ class HbRing(GraphNode):
         # MATCH (Drone)-[:RingNext_The_One_Ring*]->(NextDrone)
         # RETURN NextDrone.designation, NextDrone
         if start is None:
-            ringmembers = CMAdb.store.load_in_related(self, self.ourreltype)
-            for member in ringmembers:
+            for member in self.members():
                 start = member
                 break
-
         if start is None:
-            #print >> stderr, 'NO START'
+            # print >> stderr, 'NO START'
             return
-        if Store.is_abstract(start):
-            #print >> stderr, ('YIELDING START:', start, type(start)
-            yield start
-            return
-        startid = Store.id(start)
+        startid = start.association.node_id
         # We can't pre-compile this, but we hopefully we won't use it much...
-        q = '''START Drone=node(%s)
-             MATCH p=(Drone)-[:%s*0..]->(NextDrone)
-             WHERE length(p) = 0 or Drone <> NextDrone
-             RETURN NextDrone''' % (startid, self.ournexttype)
-        q = '''START Drone=node(%s)
-             MATCH p=allShortestPaths((Drone)-[:%s*0..]->(NextDrone))
-             RETURN NextDrone ORDER BY length(p)''' % (startid, self.ournexttype)
-        for elem in CMAdb.store.load_cypher_nodes(q):
+        q = '''MATCH p=allShortestPaths((Drone:Class_Drone)-[:%s*0..]->(NextDrone))
+             WHERE ID(Drone) = $id
+             RETURN NextDrone ORDER BY length(p)''' % self.ournexttype
+        for elem in CMAdb.store.load_cypher_nodes(q, {'id': startid}):
             yield elem
         return
 

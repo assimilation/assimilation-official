@@ -57,16 +57,16 @@ _suites = ['all', 'cma']
 os.environ['G_MESSAGES_DEBUG'] =  'all'
 WorstDanglingCount = 0
 
-CheckForDanglingClasses = True
-AssertOnDanglingClasses = True
 CheckForDanglingClasses = False
 AssertOnDanglingClasses = False
+CheckForDanglingClasses = True
+AssertOnDanglingClasses = True
 
 inject.configure_once(CMAInjectables.test_config_injection)
 
 DEBUG=True
 DEBUG=False
-DoAudit=False
+DoAudit=True
 doHBDEAD=True
 BuildListOnly = False
 SavePackets=True
@@ -320,7 +320,7 @@ def auditalldrones():
     for droneid in range(0, numdrones):
         droneid = int(droneobjs[droneid].designation[6:])
         audit.auditadrone(droneid)
-    queryobjs = CMAdb.store.load_cypher_nodes('''START n=node:Drone('*:*') RETURN n''')
+    queryobjs = CMAdb.store.load_cypher_nodes('''MATCH(n:Class_Drone) RETURN n''')
     queryobjs = [drone for drone in queryobjs]
     dronetbl = {}
     for drone in droneobjs:
@@ -349,7 +349,7 @@ def auditallrings():
         return
     print 'PERFORMING RING AUDIT'
     audit = AUDITS()
-    for ring in CMAdb.store.load_cypher_nodes("START n=node:HbRing('*:*') RETURN n", HbRing):
+    for ring in CMAdb.store.load_cypher_nodes("MATCH (n:Class_HbRing) RETURN n"):
         ring.AUDIT()
 
 ASSIMCLI='assimcli'
@@ -429,7 +429,6 @@ class IOTestIO:
                 print 'RECV2: CMADB', CMAdb
                 print 'RECV2: CMADB.IO:', CMAdb.io
                 print 'RECV2: CMADB.store', CMAdb.store
-                CMAdb.store.commit()
                 print 'RECV3: CMADB', CMAdb
                 print 'RECV3: CMADB.IO:', CMAdb.io
                 print 'RECV3: CMADB.store', CMAdb.store
@@ -717,24 +716,22 @@ class TestCMABasic(TestCase):
         assimcli_check("query crashed", 0)
         assimcli_check("query unknownips", 0)
         CMAdb.io.config = config
-        Drones = CMAdb.store.load_cypher_nodes("MATCH(n:Class_Drone) RETURN n")
-        Drones = [drone for drone in Drones]
-        for drone in Drones:
+        drones = [drone for drone in CMAdb.store.load_cypher_nodes("MATCH(n:Class_Drone) RETURN n")]
+        for drone in drones:
             self.check_discovery(drone, (drone_network_discovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
-        self.assertEqual(len(Drones), 1) # Should only be one drone
+        self.assertEqual(len(drones), 1) # Should only be one drone
         io.config = None
-        del ulimitdiscovery, osdiscovery, Drones, disp, listener
+        del ulimitdiscovery, osdiscovery, drones, disp, listener
         DispatchTarget.dispatchtable = {}
         del DispatchTarget
         #assert_no_dangling_Cclasses()
 
     def check_live_counts(self, expectedlivecount, expectedpartnercount, expectedringmembercount):
-        Drones = CMAdb.store.load_cypher_nodes(query)
-        Drones = [drone for drone in Drones]
+        drones = [drone for drone in CMAdb.store.load_cypher_nodes("MATCH(n:Class_Drone) RETURN n")]
         partnercount = 0
         livecount = 0
         ringcount = 0
-        for drone1 in Drones:
+        for drone1 in drones:
             if drone1.status != 'dead': livecount += 1
             for partner in CMAdb.store.load_related(drone1, CMAdb.TheOneRing.ournexttype):
                 partnercount += 1
@@ -1417,9 +1414,8 @@ if __name__ == "__main__":
             sys.stdout.flush()
             if item.lower().startswith('test_') and callable(fun):
                 TestFoo.new_transaction()
-                print >> sys.stderr, ('===================RUNNING TEST %s.%s' % (name, item))
-                print('====================RUNNING TEST %s.%s' % (name, item))
                 sys.stdout.flush()
+                print >> sys.stderr, ('===================RUNNING TEST %s.%s' % (name, item))
                 fun(obj)
                 sys.stdout.flush()
                 print >> sys.stderr, ('====================TEST %s.%s completed' % (name, item))

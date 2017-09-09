@@ -840,7 +840,6 @@ class Store(object):
         :return: GraphNode
         """
         class_name = cls.__name__
-        print('FIND KEYS: %s' % str(key_values), file=stderr)
         for client in searchset:
             if client.__class__.__name__ != class_name:
                 # print('LOOKING: %s is NOT %s'
@@ -851,14 +850,10 @@ class Store(object):
             found = True
             for attr, value in key_values.viewitems():
                 if not hasattr(client, attr) or getattr(client, attr) != value:
-                    print('FIND KEYS IN ITERABLE: %s.%s is NOT %s'
-                          % (client.association.variable_name, attr, value), file=stderr)
                     found = False
                     break
             if found:
-                print('FOUND CLIENT: %s with %s' % (object.__str__(client), key_values), file=stderr)
                 return client
-        print('NO MATCH FOR %s' % key_values, file=stderr)
         return None
 
     @staticmethod
