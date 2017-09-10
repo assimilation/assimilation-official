@@ -64,7 +64,6 @@ AssertOnDanglingClasses = True
 
 inject.configure_once(CMAInjectables.test_config_injection)
 
-DEBUG=True
 DEBUG=False
 DoAudit=True
 doHBDEAD=True
@@ -137,9 +136,7 @@ def assert_no_dangling_Cclasses(doassert=None):
     sys._clear_type_cache()
     if doassert is None:
         doassert = AssertOnDanglingClasses
-    print 'ASSERTNODANGLING SHUTDOWN CALL'
     IOTestIO.shutdown()
-    print 'DANGLING UNINIT CALL'
     CMAinit.uninit()
     gc.collect()    # For good measure...
     count = proj_class_live_object_count()
@@ -160,7 +157,7 @@ def assert_no_dangling_Cclasses(doassert=None):
 class TestCase(object):
     def assertEqual(self, a, b):
         assert a == b
-
+#
     def assertNotEqual(self, a, b):
         assert a != b
 
@@ -178,7 +175,7 @@ class TestCase(object):
             return True
 
     def teardown_method(self, method):
-        print 'teardown_method CALL for %s' % str(method)
+        print '                                %s::teardown_method' % str(method)
         IOTestIO.shutdown()
         assert_no_dangling_Cclasses()
 
@@ -306,16 +303,16 @@ class AUDITS(TestCase):
 
 
 def auditalldrones():
-    print 'DRONE1: CMADB', CMAdb
-    print 'DRONE1: CMADB.IO:', CMAdb.io
-    print 'DRONE1: CMADB.store', CMAdb.store
+    # print 'DRONE1: CMADB', CMAdb
+    # print 'DRONE1: CMADB.IO:', CMAdb.io
+    # print 'DRONE1: CMADB.store', CMAdb.store
     audit = AUDITS()
     qtext = "MATCH (drone) WHERE drone.nodetype = 'Drone' RETURN drone"
     droneobjs = CMAdb.store.load_cypher_nodes(qtext)
     droneobjs = [drone for drone in droneobjs]
-    print 'DRONE2: CMADB', CMAdb
-    print 'DRONE2: CMADB.IO:', CMAdb.io
-    print 'DRONE2: CMADB.store', CMAdb.store
+    # print 'DRONE2: CMADB', CMAdb
+    # print 'DRONE2: CMADB.IO:', CMAdb.io
+    # print 'DRONE2: CMADB.store', CMAdb.store
     numdrones = len(droneobjs)
     for droneid in range(0, numdrones):
         droneid = int(droneobjs[droneid].designation[6:])
@@ -333,21 +330,21 @@ def auditalldrones():
         assert(querytbl[drone] is dronetbl[drone])
     for drone in querytbl:
         assert(querytbl[drone] is dronetbl[drone])
-    print 'DRONE3: CMADB', CMAdb
-    print 'DRONE3: CMADB.IO:', CMAdb.io
-    print 'DRONE3: CMADB.store', CMAdb.store
+    # print 'DRONE3: CMADB', CMAdb
+    # print 'DRONE3: CMADB.IO:', CMAdb.io
+    # print 'DRONE3: CMADB.store', CMAdb.store
 
 
 def auditallrings():
-    print 'AUDIT: CMADB', CMAdb
-    print 'AUDIT: CMADB.IO:', CMAdb.io
-    print 'AUDIT: CMADB.store', CMAdb.store
+    # print 'AUDIT: CMADB', CMAdb
+    # print 'AUDIT: CMADB.IO:', CMAdb.io
+    # print 'AUDIT: CMADB.store', CMAdb.store
 
     if CMAdb.store is None:
         print 'SKIPPING RING AUDIT'
         raise ValueError('STORE IS NONE')
         return
-    print 'PERFORMING RING AUDIT'
+    # print 'PERFORMING RING AUDIT'
     audit = AUDITS()
     for ring in CMAdb.store.load_cypher_nodes("MATCH (n:Class_HbRing) RETURN n"):
         ring.AUDIT()
@@ -387,11 +384,11 @@ class IOTestIO:
     @staticmethod
     def shutdown():
         if IOTestIO.singleinstance is not None:
-            print 'CLEANING OUT SINGLEINSTANCE IO OBJECT'
+            # print 'CLEANING OUT SINGLEINSTANCE IO OBJECT'
             IOTestIO.singleinstance.cleanio()
             IOTestIO.singleinstance = None
 
-    def __init__(self, addrframesetpairs, sleepatend=5):
+    def __init__(self, addrframesetpairs, sleepatend=10):
         IOTestIO.singleinstance = self
         if isinstance(addrframesetpairs, tuple):
             addrframesetpairs = addrframesetpairs
@@ -410,7 +407,6 @@ class IOTestIO:
         self.atend = False
         self.readfails = 0
         self.initpackets = len(self.inframes)
-        print >> sys.stderr, 'INITPACKETS:', self.initpackets
 
     @staticmethod
     def shutdown_on_timeout(io):
@@ -419,27 +415,12 @@ class IOTestIO:
         return False
 
     def recvframesets(self):
-        print 'RECV: CMADB', CMAdb
-        print 'RECV: CMADB.IO:', CMAdb.io
-        print 'RECV: CMADB.store', CMAdb.store
         # Audit after each packet is processed - and once before the first packet.
         assert CMAdb.io.config is not None
         if DoAudit:
             if self.packetsread < 200 or (self.packetsread % 500) == 0:
-                print 'RECV2: CMADB', CMAdb
-                print 'RECV2: CMADB.IO:', CMAdb.io
-                print 'RECV2: CMADB.store', CMAdb.store
-                print 'RECV3: CMADB', CMAdb
-                print 'RECV3: CMADB.IO:', CMAdb.io
-                print 'RECV3: CMADB.store', CMAdb.store
                 auditalldrones()
-                print 'RECV4: CMADB', CMAdb
-                print 'RECV4: CMADB.IO:', CMAdb.io
-                print 'RECV4: CMADB.store', CMAdb.store
                 auditallrings()
-                print 'RECV5: CMADB', CMAdb
-                print 'RECV5: CMADB.IO:', CMAdb.io
-                print 'RECV5: CMADB.store', CMAdb.store
         if self.index >= len(self.inframes):
             if not self.atend:
                 self.timeout = glib.GMainTimeout(int(self.sleepatend*1000), IOTestIO.shutdown_on_timeout, self)
@@ -452,17 +433,16 @@ class IOTestIO:
                         os.close(self.pipe_read)
                         self.pipe_read = -1
             self.readfails += 1
-            print('GOT A READFAIL...')
             if self.readfails > self.initpackets+20:
-                print('MAINLOOP QUIT')
+                print >> sys.stderr, ('MAINLOOP QUIT')
                 self.mainloop.quit()
             return None, None
         ret = self.inframes[self.index]
-        print >> sys.stderr, ('RETURNING packet %d: %s %s' % (self.index, ret[0], ret[1][0]))
+        # print >> sys.stderr, ('RETURNING packet %d: %s %s' % (self.index, ret[0], ret[1][0]))
         self.index += 1
         self.packetsread += len(ret[1])
-        print >> sys.stderr, "RET[0]: %s" % ret[0]
-        print >> sys.stderr, "RET[1][0]: %s" % ret[1][0]
+        # print >> sys.stderr, "RET[0]: %s" % ret[0]
+        # print >> sys.stderr, "RET[1][0]: %s" % ret[1][0]
         return ret
 
     def sendframesets(self, dest, fslist):
@@ -490,7 +470,7 @@ class IOTestIO:
             self.packetswritten.append((dest, fs))
 
     def cleanio(self):
-        print 'CLEANING OUT IO OBJECT'
+        # print 'CLEANING OUT IO OBJECT'
         if IOTestIO.mainloop is not None:
             IOTestIO.mainloop.quit()
         if self.pipe_read >= 0:
@@ -542,9 +522,9 @@ class TestTestInfrastructure(TestCase):
         framesets=[]
         io = IOTestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        print 'IO:', io
-        print 'CMADB', CMAdb
-        print 'CMADB.store', CMAdb.store
+        # print 'IO:', io
+        # print 'CMADB', CMAdb
+        # print 'CMADB.store', CMAdb.store
         # just make sure it seems to do the right thing
         (foo, bar) = io.recvframesets()
         assert foo is None
@@ -638,7 +618,7 @@ class TestCMABasic(TestCase):
         for json in expectedjson:
             jsobj = pyConfigContext(json)
             dtype = jsobj['instance']
-            print 'FAILURE DEBUG:', json, 'keys:', drone.keys(), str(drone)
+            # print 'FAILURE DEBUG:', json, 'keys:', drone.keys(), str(drone)
             # Fetch string from the database and compare for string equality
             self.assertEqual(str(pyConfigContext(json)), str(drone[dtype]))
             # Compare hash sums - without retrieving the big string from Neo4j
@@ -700,9 +680,9 @@ class TestCMABasic(TestCase):
         # We send the CMA an intial STARTUP packet
         listener.listen()
         # Let's see what happened...
-        print >> sys.stderr, ('READ: %s' % io.packetsread)
-        print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
-        print >> sys.stderr, ('PACKETS WRITTEN: %s' % str(io.packetswritten))
+        # print >> sys.stderr, ('READ: %s' % io.packetsread)
+        # print >> sys.stderr, ('WRITTEN: %s' % len(io.packetswritten))
+        # print >> sys.stderr, ('PACKETS WRITTEN: %s' % str(io.packetswritten))
 
         self.assertEqual(len(io.packetswritten), 2) # Did we send out two packets?
                             # Note that this change over time
@@ -732,7 +712,8 @@ class TestCMABasic(TestCase):
         livecount = 0
         ringcount = 0
         for drone1 in drones:
-            if drone1.status != 'dead': livecount += 1
+            if drone1.status != 'dead':
+                livecount += 1
             for partner in CMAdb.store.load_related(drone1, CMAdb.TheOneRing.ournexttype):
                 partnercount += 1
             for partner in CMAdb.store.load_in_related(drone1, CMAdb.TheOneRing.ournexttype):
@@ -860,7 +841,9 @@ class TestCMABasic(TestCase):
         # But it doesn't know how many drones we just registered
         Drones = CMAdb.store.load_cypher_nodes("MATCH (n:Class_Drone) RETURN n")
         Drones = [drone for drone in Drones]
-        print >> sys.stderr, 'WE NOW HAVE THESE DRONES:', Drones
+        # print >> sys.stderr, ('WE NOW HAVE THESE DRONES[%s]: %s' % (maxdrones, Drones))
+        # for drone in Drones:
+        #     print >> sys.stderr, ('Drone: %s / %s' % (object.__str__(drone), drone))
         self.assertEqual(len(Drones), maxdrones)
         if doHBDEAD:
             # Verify that all drones except one are dead
@@ -878,12 +861,12 @@ class TestCMABasic(TestCase):
             else:
                 partnercount=2*maxdrones
             #                      livecount  partnercount  ringmemberships
-            #self.check_live_counts(maxdrones, partnercount, maxdrones)
+            # self.check_live_counts(maxdrones, partnercount, maxdrones)
             assimcli_check("query allservers", maxdrones)
             assimcli_check("query down", 0)
             assimcli_check("query shutdown", 0)
         assimcli_check("query unknownips", 0)
-        for droneid in range(1,MaxDrone+1):
+        for droneid in range(1, MaxDrone+1):
             droneip = droneipaddress(droneid)
             assimcli_check("query findip %s" % str(droneip), 1)
         if DoAudit:
@@ -938,7 +921,7 @@ class TestMonitorBasic(TestCase):
         for obj in CMAdb.store.load_related(droneone, CMAconsts.REL_hosting):
             self.assertTrue(obj is dummy)
             count += 1
-        print >> sys.stderr, ('RELATED COUNT: %s' % count)
+        # print >> sys.stderr, ('RELATED COUNT: %s' % count)
         self.assertEqual(count, 1)
         self.assertTrue(dummy.isactive)
         count=0
@@ -1418,8 +1401,8 @@ if __name__ == "__main__":
                 print >> sys.stderr, ('===================RUNNING TEST %s.%s' % (name, item))
                 fun(obj)
                 sys.stdout.flush()
-                print >> sys.stderr, ('====================TEST %s.%s completed' % (name, item))
+                print >> sys.stderr, ('====================       TEST %s.%s completed' % (name, item))
                 test_count += 1
-            if hasattr(cls, 'teardown_method'):
-                obj.teardown_method(name)
+                if hasattr(cls, 'teardown_method'):
+                    obj.teardown_method(name + '.' + item)
     print('Completed %d tests.' % test_count)

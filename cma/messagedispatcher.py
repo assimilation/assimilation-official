@@ -70,7 +70,7 @@ class MessageDispatcher(object):
         with self.store.db.begin(autocommit=False) as self.store.db_transaction,\
                 NetTransaction(self.io, encryption_required=self.encryption_required)\
                         as CMAdb.net_transaction:
-            print >> sys.stderr, ('NEW TRANSACTION: %s' % self.store.db_transaction)
+            # print >> sys.stderr, ('NEW TRANSACTION: %s' % self.store.db_transaction)
             try:
                 self._try_dispatch_action(origaddr, frameset)
             except Exception as e:
@@ -79,7 +79,7 @@ class MessageDispatcher(object):
                     self._check_memory_usage()
                 raise e
         assert self.store.db_transaction.finished
-        print >> sys.stderr, ('TRANSACTIONs COMMITTED!')
+        # print >> sys.stderr, ('TRANSACTIONs COMMITTED!')
         if CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
             CMAdb.log.debug('MessageDispatcher - ACKing %s message from %s'
@@ -95,9 +95,9 @@ class MessageDispatcher(object):
         It should be run inside a try/except construct so that anything
         we barf up won't cause the CMA to die.
         """
-        print >>sys.stderr, 'Got Frameset:', frameset
+        # print >>sys.stderr, 'Got Frameset:', frameset
         fstype = frameset.get_framesettype()
-        print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
+        # print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
         dispatchstart = datetime.now()
         if fstype in self.dispatchtable:
             self.dispatchtable[fstype].dispatch(origaddr, frameset)
@@ -135,27 +135,25 @@ class MessageDispatcher(object):
         sys.stdout.flush()
         print >> sys.stderr, ('MessageDispatcher exception [%s] occurred' % (e))
         CMAdb.log.critical('MessageDispatcher exception [%s] occurred while'
-        ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
+                           ' handling [%s] FrameSet from %s' % (e, fstypename, origaddr))
         lines = str(frameset).splitlines()
         CMAdb.log.info('FrameSet Contents follows (%d lines):' % len(lines))
         for line in lines:
             CMAdb.log.info(line.expandtabs())
         CMAdb.log.info('======== Begin %s Message %s Exception Traceback ========'
-        %   (fstypename, e))
+                       % (fstypename, e))
         for tb in tblist:
             (filename, line, funcname, text) = tb
             filename = os.path.basename(filename)
             CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
         CMAdb.log.info('======== End %s Message %s Exception Traceback ========'
-        %   (fstypename, e))
+                       % (fstypename, e))
         if CMAdb.store is not None:
             CMAdb.log.critical("Aborting Neo4j transaction %s" % CMAdb.store)
             CMAdb.store.abort()
         if CMAdb.net_transaction is not None:
             CMAdb.log.critical("Aborting network transaction %s" % CMAdb.net_transaction.tree)
             CMAdb.net_transaction = None
-        os._exit(1)
-
 
     @staticmethod
     def _check_memory_usage():
@@ -165,10 +163,10 @@ class MessageDispatcher(object):
         for elem in gccount:
             gctotal += elem
         CMAdb.log.info('Total allocated Objects: %s. gc levels: %s'
-        %   (gctotal, str(gccount)))
+                       % (gctotal, str(gccount)))
         cobjcount = proj_class_live_object_count()
         CMAdb.log.info('Total/max allocated C-Objects: %s/%s'
-        %   (cobjcount, proj_class_max_object_count()))
+                       % (cobjcount, proj_class_max_object_count()))
         if gctotal < 20 and cobjcount > 5000:
             dump_c_objects()
 
@@ -176,7 +174,7 @@ class MessageDispatcher(object):
             # Another very expensive set of debug-only calls
             assimcount = 0
             for obj in gc.get_objects():
-                if isinstance(obj, (pyAssimObj)):
+                if isinstance(obj, pyAssimObj):
                     assimcount += 1
             CMAdb.log.info('Total allocated C-Objects: %s' % assimcount)
 
@@ -186,4 +184,3 @@ class MessageDispatcher(object):
         self.default.setconfig(io, config)
         for msgtype in self.dispatchtable.keys():
             self.dispatchtable[msgtype].setconfig(io, config)
-

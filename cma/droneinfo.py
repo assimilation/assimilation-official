@@ -199,7 +199,7 @@ class Drone(SystemNode):
 
     def get_owned_ips(self):
         '''Return a list of all the IP addresses that this Drone owns'''
-        params = {'droneid':Store.id(self)}
+        params = {'droneid': self.association.node_id}
         if CMAdb.debug:
             print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
             %   (Drone.OwnedIPsQuery_subtxt, str(params)))
@@ -284,11 +284,12 @@ class Drone(SystemNode):
     def death_report(self, status, reason, fromaddr, frameset):
         'Process a death/shutdown report for us.  RIP us.'
         from hbring import HbRing
+        # print >> sys.stderr, ('DEAD REPORT: %s' % self)
         frameset = frameset # We don't use the frameset at this point in time
         if reason != 'HBSHUTDOWN':
             if self.status != status or self.reason != reason:
                 CMAdb.log.info('Node %s has been reported as %s by address %s. Reason: %s'
-                %   (self.designation, status, str(fromaddr), reason))
+                               % (self.designation, status, str(fromaddr), reason))
         oldstatus = self.status
         self.status = status
         self.reason = reason
@@ -302,9 +303,17 @@ class Drone(SystemNode):
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        for mightbering in CMAdb.store.load_in_related(self, None):
-            if isinstance(mightbering, HbRing):
-                mightbering.leave(self)
+        for label in self.association.store.labels(self):
+            if label.startswith('Ring_'):
+                ring_name = label[5:]
+                query = 'MATCH(r:Class_HbRing) WHERE r.name=$name RETURN r'
+                ring = self.association.store.load_cypher_node(query, {'name': ring_name})
+                if ring is None:
+                    print >> sys.stderr, ('Ring %s NOT FOUND.' % ring_name)
+                    CMAdb.log.critical('Ring %s NOT FOUND.' % ring_name)
+                else:
+                    # print >> sys.stderr, ('Calling Ring(%s).leave(%s).' % (ring_name, self))
+                    ring.leave(self)
         deadip = pyNetAddr(self.select_ip(), port=self.port)
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
@@ -416,8 +425,8 @@ class Drone(SystemNode):
             else:
                 dstr = domain
             query = '%s:%s' % (str(Store.lucene_escape(desigstr)), dstr)
-            #We now do everything by IPv6 addresses...
-            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, {'ipaddr':query})
+            # We do everything by IPv6 addresses...
+            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, {'ipaddr': query})
             if drone is not None:
                 assert drone.association.node_id is not None
                 drone.set_crypto_identity()
@@ -450,8 +459,11 @@ class Drone(SystemNode):
     def add(designation, reason, status='up', port=None, domain=CMAconsts.globaldomain
     ,       primary_ip_addr=None):
         'Add a drone to our set unless it is already there.'
-        drone = CMAdb.store.load_or_create(Drone, domain=domain, designation=designation
-        ,   primary_ip_addr=primary_ip_addr, port=port, status=status, reason=reason)
+        drone = CMAdb.store.load_or_create(Drone, domain=domain, designation=designation,
+                                           primary_ip_addr=primary_ip_addr,
+                                           port=port,
+                                           status=status,
+                                           reason=reason)
         assert drone.association.node_id is not None
         drone.reason = reason
         drone.status = status

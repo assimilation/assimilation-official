@@ -22,7 +22,7 @@
 '''
 This file is all about the Rings - we implement rings.
 '''
-#import sys
+from sys import stderr
 from cmadb import CMAdb
 from droneinfo import Drone
 from graphnodes import GraphNode, RegisterGraphClass
@@ -46,8 +46,9 @@ class HbRing(GraphNode):
             raise ValueError("Invalid ring type [%s]" % str(ringtype))
         self.ringtype = ringtype
         self.name = str(name)
-        self.ourreltype = HbRing.memberprefix + self.name # Our membership relationship type
-        self.ournexttype = HbRing.nextprefix + self.name # Our 'next' relationship type
+        self.ourreltype = HbRing.memberprefix + self.name
+        self.ournexttype = HbRing.nextprefix + self.name   # Our 'next' relationship type
+        self.our_member_label = 'Ring_' + self.name
         self._ringinitfinished = False
         self._insertpoint1 = None
         self._insertpoint2 = None
@@ -55,8 +56,7 @@ class HbRing(GraphNode):
     @staticmethod
     def meta_key_attributes():
         'Return our key attributes in order of decreasing significance'
-        return ['name']
-
+        return ['name', 'domain']
 
     def post_db_init(self):
         GraphNode.post_db_init(self)
@@ -66,23 +66,23 @@ class HbRing(GraphNode):
         self._insertpoint1 = None
         self._insertpoint2 = None
         # print >> stderr, 'CMAdb(hbring.py):', CMAdb
-        # print >> stderr, 'CMAdb.store(hbring.py):', CMAdb.store
-        # print >> stderr, 'Our relation type: %s' % self.ourreltype
-        rellist = CMAdb.store.load_related(self, self.ourreltype)
-        for rel in rellist:
+        # print >> stderr, 'self.association.store(hbring.py):', self.association.store
+        # print >> stderr, 'Our relation type: %s' % self.our_member_label
+        query = ("""OPTIONAL MATCH (node1:Class_Drone)-[:%s]->(node2) RETURN node1, node2 LIMIT 1"""
+                 % self.ournexttype)
+        for  member1, member2 in self.association.store.load_cypher_query(query):
+            break
+        # print >> stderr, ("MEMBER1: %s, MEMBER2: %s" % (member1, member2))
+        for rel in self.members():
             self._insertpoint1 = rel
             #print >> stderr, 'INSERTPOINT1: ', self._insertpoint1
             #print >> stderr, 'Our relation type: %s' % self.ournexttype
-            ip2rellist = CMAdb.store.load_related(self._insertpoint1, self.ournexttype)
+            ip2rellist = self.association.store.load_related(self._insertpoint1, self.ournexttype)
             for rel2 in ip2rellist:
                 self._insertpoint2 = rel2
                 break
             break
-        # Need to figure out what to do about pre-existing members of this ring...
-        # For the moment, let's make the entirely inadequate assumption that
-        # the data in the database is correct.
-        ## FIXME - assumption about database being correct :-D
-
+        # print >> stderr, ('INSERTPOINT1: %s, POINT2: %s '% (self._insertpoint1, self._insertpoint2))
 
     def _findringpartners(self, drone):
         '''Find (one or) two partners for this drone to heartbeat with.
@@ -99,39 +99,33 @@ class HbRing(GraphNode):
 
     def join(self, drone):
         'Add this drone to our ring'
+        assert drone.association.node_id is not None
         if CMAdb.debug:
-            CMAdb.log.debug('1:Adding Drone %s to ring %s w/port %s' \
-            %   (str(drone), str(self), drone.port))
-        # Make sure he's not already in our ring according to our 'database'
-        rels = CMAdb.store.load_in_related(drone, self.ourreltype)
-        rels = [rel for rel in rels]
-        if len(rels) > 0:
-            # TODO: Is this the right thing to do? Do we really want to do this?
-            CMAdb.log.critical("%s is already a member of this ring [%s]"
-            " - removing and re-adding." % (drone, self))
-            self.leave(drone)
-
+            CMAdb.log.debug('1:Adding Drone %s to ring %s w/port %s'
+                            % (str(drone), str(self), drone.port))
+        assert self.our_member_label not in self.association.store.labels(drone)
         # Create a 'ringmember' relationship to this drone
-        CMAdb.store.relate(self, self.ourreltype, drone)
+        #######  self.association.store.relate(self, self.ourreltype, drone)
+        self.association.store.add_labels(drone, (self.our_member_label,))
         # Should we keep a 'ringip' relationship for this drone?
         # Probably eventually...
 
         #print >>stderr,'Adding drone %s to talk to partners' % drone
-
+        thisring = {'ring_name': self.name}
         if self._insertpoint1 is None:   # Zero nodes previously
             self._insertpoint1 = drone
             return
 
         if CMAdb.debug:
-            CMAdb.log.debug('2:Adding Drone %s to ring %s w/port %s' \
-            %   (str(drone), str(self), drone.port))
+            CMAdb.log.debug('2:Adding Drone %s to ring %s w/port %s'
+                            % (str(drone), str(self), drone.port))
         if self._insertpoint2 is None:   # One node previously
             # Create the initial circular list.
             ## FIXME: Ought to label ring membership relationships with IP involved
             # This is because we might change configurations and we need to know
             # what IP we're actually using for this connection...
-            CMAdb.store.relate(drone, self.ournexttype, self._insertpoint1)
-            CMAdb.store.relate(self._insertpoint1, self.ournexttype, drone)
+            self.association.store.relate(drone, self.ournexttype, self._insertpoint1, attrs=thisring)
+            self.association.store.relate(self._insertpoint1, self.ournexttype, drone, attrs=thisring)
             if CMAdb.debug:
                 CMAdb.log.debug('3:Adding Drone %s to ring %s w/port %s'
                 %       (str(drone), str(self), drone.port))
@@ -144,7 +138,8 @@ class HbRing(GraphNode):
 
         # Two or more nodes previously
         nextnext = None
-        for nextnext in CMAdb.store.load_related(self._insertpoint2, self.ournexttype):
+        for nextnext in self.association.store.load_related(self._insertpoint2, self.ournexttype,
+                                                 attrs=thisring):
             break
         if CMAdb.debug:
             CMAdb.log.debug('4:Adding Drone %s to ring %s w/port %s' \
@@ -163,7 +158,8 @@ class HbRing(GraphNode):
             self._insertpoint2 = nextnext
             self._insertpoint1.stop_heartbeat(self, self._insertpoint2)
             self._insertpoint2.stop_heartbeat(self, self._insertpoint1)
-        CMAdb.store.separate(self._insertpoint1, self.ournexttype, self._insertpoint2)
+        self.association.store.separate(self._insertpoint1, self.ournexttype, self._insertpoint2,
+                             attrs=thisring)
         # Now we just have had X->point1 and point2->Y
         if CMAdb.debug:
             CMAdb.log.debug('5:Adding Drone %s to ring %s w/port %s' \
@@ -171,9 +167,9 @@ class HbRing(GraphNode):
         drone.start_heartbeat(self, self._insertpoint1, self._insertpoint2)
         self._insertpoint1.start_heartbeat(self, drone)
         self._insertpoint2.start_heartbeat(self, drone)
-        CMAdb.store.relate(self._insertpoint1, self.ournexttype, drone)
+        self.association.store.relate(self._insertpoint1, self.ournexttype, drone, attrs=thisring)
         # after above statement: we have x->insertpoint1-> drone and insertpoint2->y
-        CMAdb.store.relate(drone, self.ournexttype, self._insertpoint2)
+        self.association.store.relate(drone, self.ournexttype, self._insertpoint2, attrs=thisring)
         # after above statement: we have insertpoint1-> drone->insertpoint2
         #
         # In the future we might want to mark these relationships with the IP addresses involved
@@ -188,25 +184,34 @@ class HbRing(GraphNode):
         self._insertpoint1 = drone
         #print >>stderr, 'RING3 IS NOW:', str(self), 'DRONE ADDED:', drone
 
+    def dump_ring_in_order(self, title='Drones in Ring Order', our_drone=None):
+        print('%s++++++++++' % title)
+        for drone in self.members_ring_order():
+            print >> stderr, ('%s %s %s' %
+                              ('-->' if drone is our_drone  else '   ',
+                               drone,
+                               object.__str__(drone)))
+
     def leave(self, drone):
         'Remove a drone from this heartbeat Ring.'
-        #print >> stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
-        #ringlist = self.members_ring_order()
-        #print >>stderr, 'RING IN ORDER:'
-        #for elem in ringlist:
-            #print >>stderr, 'RING NODE: %s' % elem
+        store = self.association.store
+        # print >> stderr, 'DRONE %s leaving Ring [%s]' % (drone, self)
+        # self.dump_ring_in_order('RING BEFORE DELETION', drone)
 
-        # TODO: We can do this with a single database query to give us both our peers
+        #labels = store.labels(drone)
+        #print >> stderr, ("ALL LABELS (del): %s" % str(labels))
+        assert self.our_member_label in store.labels(drone)
+        store.delete_labels(drone, (self.our_member_label,))
+        thisring = {'ring_name': self.name}
         prevnode = None
-        for prevnode in CMAdb.store.load_in_related(drone, self.ournexttype):
-            break
         nextnode = None
-        for nextnode in CMAdb.store.load_related(drone, self.ournexttype):
+        for prevnode in store.load_in_related(drone, self.ournexttype, attrs=thisring):
+            break
+        for nextnode in store.load_related(drone, self.ournexttype, attrs=thisring):
             break
 
         # Clean out the parent (ring) relationship to our dearly departed drone
-        #print >> stderr, 'Separating ourselves (%s) from drone %s' % (self, drone)
-        CMAdb.store.separate(self, self.ourreltype, drone)
+        # print >> stderr, 'Separating ourselves (%s) from drone %s' % (self, drone)
         # Clean out the next link relationships to our dearly departed drone
         if nextnode is None and prevnode is None:   # Previous length:  1
             self._insertpoint1 = None               # result length:    0
@@ -214,14 +219,15 @@ class HbRing(GraphNode):
             # No other database links to remove
             if CMAdb.debug:
                 CMAdb.log.debug('Last Drone %s has now left the building...' % (drone))
+            # self.dump_ring_in_order('RING AFTER DELETION(1)', drone)
             return
 
         # Clean out the next link relationships to our dearly departed drone
-        CMAdb.store.separate(prevnode, self.ournexttype, obj=drone)
-        CMAdb.store.separate(drone,    self.ournexttype, obj=nextnode)
+        store.separate(prevnode, self.ournexttype, obj=drone, attrs=thisring)
+        store.separate(drone,    self.ournexttype, obj=nextnode, attrs=thisring)
 
-        #print >> stderr, ('PREVNODE: %s NEXTNODE: %s prev is next? %s'
-        #%           (str(prevnode), str(nextnode), prevnode is nextnode))
+        # print >> stderr, ('PREVNODE: %s NEXTNODE: %s prev is next? %s'
+        #                   % (str(prevnode), str(nextnode), prevnode is nextnode))
 
         if prevnode is nextnode:                  # Previous length:  2
             #drone.stop_heartbeat(self, prevnode)  # Result length:    1
@@ -229,12 +235,13 @@ class HbRing(GraphNode):
             prevnode.stop_heartbeat(self, drone)
             self._insertpoint2 = None
             self._insertpoint1 = prevnode
+            # self.dump_ring_in_order('RING AFTER DELETION(2)', drone)
             return
 
         # Previous length had to be >= 3        # Previous length:  >=3
-                                                # Result length:    >=2
+        #                                       # Result length:    >=2
         nextnext = None
-        for nextnext in CMAdb.store.load_related(nextnode, self.ournexttype):
+        for nextnext in store.load_related(nextnode, self.ournexttype, attrs=thisring):
             break
         prevnode.stop_heartbeat(self, drone)
         nextnode.stop_heartbeat(self, drone)
@@ -246,32 +253,30 @@ class HbRing(GraphNode):
         #drone.stop_heartbeat(self, prevnode, nextnode) # don't send packets to dead machines
         self._insertpoint1 = prevnode
         self._insertpoint2 = nextnode
-        CMAdb.store.relate(prevnode, self.ournexttype, nextnode)
+        store.relate(prevnode, self.ournexttype, nextnode, attrs=thisring)
+        # self.dump_ring_in_order('RING AFTER DELETION(3)', drone)
 
     def are_partners(self, drone1, drone2):
         'Return True if these two drones are heartbeat partners in our ring'
+        thisring = {'ring_name': self.name}
         CMAdb.log.debug('calling are_partners(%s-[%s]-%s)'
-        %   (drone1, self.ournexttype, drone2))
-        nextelems =  CMAdb.store.load_related(drone1, self.ournexttype)
+                        % (drone1, self.ournexttype, drone2))
+        nextelems = self.association.store.load_related(drone1, self.ournexttype, attrs=thisring)
         for elem in nextelems:  # nextelems is a generator
             if elem is drone2:
                 return True
-        prevelems =  CMAdb.store.load_in_related(drone1, self.ournexttype)
+        prevelems = self.association.store.load_in_related(drone1, self.ournexttype, attrs=thisring)
         for elem in prevelems:  # prevelems is a generator
-            if elem is drone2:
-                return True
+            return elem is drone2
         return False
 
     def members(self):
         'Return all the Drones that are members of this ring - in some random order'
-        return CMAdb.store.load_related(self, self.ourreltype)
+        query = 'MATCH (drone:%s) RETURN drone' % self.our_member_label
+        return self.association.store.load_cypher_nodes(query)
 
     def members_ring_order(self, start=None):
         'Return all the Drones that are members of this ring - in ring order'
-        ## FIXME - There's a cypher query that will return these all in one go
-        # START Drone=node:Drone(Drone="drone000001")
-        # MATCH (Drone)-[:RingNext_The_One_Ring*]->(NextDrone)
-        # RETURN NextDrone.designation, NextDrone
         if start is None:
             for member in self.members():
                 start = member
@@ -284,7 +289,7 @@ class HbRing(GraphNode):
         q = '''MATCH p=allShortestPaths((Drone:Class_Drone)-[:%s*0..]->(NextDrone))
              WHERE ID(Drone) = $id
              RETURN NextDrone ORDER BY length(p)''' % self.ournexttype
-        for elem in CMAdb.store.load_cypher_nodes(q, {'id': startid}):
+        for elem in self.association.store.load_cypher_nodes(q, {'id': startid}):
             yield elem
         return
 
@@ -293,36 +298,30 @@ class HbRing(GraphNode):
         listmembers = {}
         ringmembers = {}
         mbrcount = 0
-        for drone in self.members():
-            ringmembers[drone.designation] = None
-            mbrcount += 1
+        ringmembers = {drone for drone in self.members()}
+        listmembers = {drone for drone in self.members_ring_order()}
+        assert listmembers.difference(ringmembers) == set()
+        assert ringmembers.difference(listmembers) == set()
 
-        for drone in self.members_ring_order():
-            listmembers[drone.designation] = None
+        for drone in listmembers:
             nextcount = 0
-            nextlist = CMAdb.store.load_related(drone, self.ournexttype)
+            nextlist = self.association.store.load_related(drone, self.ournexttype)
             # pylint: disable=W0612
             for elem in nextlist:
                 nextcount += 1
             incount = 0
-            inlist = CMAdb.store.load_in_related(drone, self.ournexttype)
+            inlist = self.association.store.load_in_related(drone, self.ournexttype)
             for elem in inlist:
                 incount += 1
-            ringcount = 0
-            dronelist = CMAdb.store.load_in_related(drone, self.ourreltype)
-            for elem in dronelist:
-                ringcount += 1
-            # print >> stderr    \
-            # ,   ('%s status: %s mbrcount: %d, nextcount:%d, incount:%d, ringcount:%d'
-            # %   (drone, drone.status, mbrcount, nextcount, incount, ringcount))
-            assert drone.status == 'up'
+            # print >> stderr, ('CHECKING %s status: %s mbrcount: %d, nextcount:%d, incount:%d, labels: %s'
+            #      %   (drone, drone.status, mbrcount, nextcount, incount, str(drone.association.store.labels(drone))))
+            # assert drone.status == 'up'
             assert mbrcount < 2 or nextcount == 1
             assert mbrcount < 2 or incount == 1
-            assert ringcount == 1
 
-        for drone in listmembers.keys():
+        for drone in listmembers:
             assert(drone in ringmembers)
-        for drone in ringmembers.keys():
+        for drone in ringmembers:
             assert(drone in listmembers)
 
 

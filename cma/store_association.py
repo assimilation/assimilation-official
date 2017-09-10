@@ -431,7 +431,7 @@ class StoreAssociation(object):
         if isinstance(other_node, str):
             other_name = other_node
         else:
-            print('OTHER_NODE = %s' % other_node, file=stderr)
+            # print('OTHER_NODE = %s' % other_node, file=stderr)
             other_name = other_node.variable_name
         cypher = self.cypher_find_match2_clause(other_node) + ' AND '
         cypher += '%s\nRETURN %s' % (match_phrase, other_name)
@@ -447,6 +447,18 @@ class StoreAssociation(object):
         """
         if labels:
             return "SET %s:%s" % (self.variable_name, ':'.join(labels))
+        return ''
+
+    def cypher_delete_labels_clause(self, labels):
+        """
+        Create a Cypher clause to add labels to this node
+        You must have already MATCH-ed to specify the node
+
+        :param labels: list(str): labels to add
+        :return: str: Cypher string to delete labels from this node
+        """
+        if labels:
+            return "REMOVE %s:%s" % (self.variable_name, ':'.join(labels))
         return ''
 
     def cypher_delete_attributes_clause(self, attributes):

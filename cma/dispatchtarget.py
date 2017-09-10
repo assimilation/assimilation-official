@@ -18,10 +18,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
-'''
+"""
 This file is responsible for a variety of dispatch classes - for handling all our
 various types of incoming packets.
-'''
+"""
 
 import sys
 sys.path.append("cma")
@@ -51,9 +51,9 @@ class DispatchTarget(object):
         self = self # Make pylint happy...
         fstype = frameset.get_framesettype()
         CMAdb.log.info("Received unhandled FrameSet of type [%s] from [%s]"
-        %     (FrameSetTypes.get(fstype)[0], str(origaddr)))
+                       % (FrameSetTypes.get(fstype)[0], str(origaddr)))
         print ("Received unhandled FrameSet of type [%d:%s] from [%s]"
-        %     (fstype, FrameSetTypes.get(fstype)[0], str(origaddr)))
+               % (fstype, FrameSetTypes.get(fstype)[0], str(origaddr)))
         for frame in frameset.iter():
             frametype = frame.frametype()
             print "\tframe type [%s]: [%s]" \
@@ -97,7 +97,7 @@ class DispatchHBDEAD(DispatchTarget):
                 deaddrone = self.droneinfo.find(frame.getnetaddr())
                 if deaddrone.status == 'up':
                     CMAdb.log.warning("DispatchHBDEAD: Drone@%s is dead(%s)"
-                    %   (frame.getnetaddr(), deaddrone))
+                                      % (frame.getnetaddr(), deaddrone))
                     if CMAdb.debug:
                         CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
                 deaddrone.death_report('dead', 'HBDEAD packet received', origaddr, frameset)
@@ -116,17 +116,17 @@ class DispatchHBSHUTDOWN(DispatchTarget):
                 fromdrone = self.droneinfo.find(hostname, port=origaddr.port())
                 if fromdrone is not None:
                     CMAdb.log.info("System %s at %s reports graceful shutdown."
-                    %   (hostname, str(origaddr)))
+                                   % (hostname, str(origaddr)))
                     print >> sys.stderr, ("System %s at %s reports graceful shutdown."
-                    %   (hostname, str(origaddr)))
+                                          %   (hostname, str(origaddr)))
                     fromdrone.death_report('dead', fsname, origaddr, frameset)
                 else:
                     CMAdb.log.error(
-                    "DispatchHBSHUTDOWN: received %s FrameSet from unknown drone %s at [%s]"
-                    %   (fsname, hostname, str(origaddr)))
+                        "DispatchHBSHUTDOWN: received %s FrameSet from unknown drone %s at [%s]"
+                        % (fsname, hostname, str(origaddr)))
                 return
         CMAdb.log.error("DispatchHBSHUTDOWN: received invalid %s FrameSet from drone at [%s]"
-        %      (fsname, str(origaddr)))
+                        % (fsname, str(origaddr)))
         CMAdb.log.error("DispatchHBSHUTDOWN: invalid FrameSet: %s", str(frameset))
 
 
@@ -148,10 +148,10 @@ class DispatchSTARTUP(DispatchTarget):
         #%       (FrameSetTypes.get(fstype)[0], addrstr))
         if CMAdb.debug:
             CMAdb.log.debug("DispatchSTARTUP: received [%s] FrameSet from [%s]"
-            %       (FrameSetTypes.get(fstype)[0], addrstr))
+                            % (FrameSetTypes.get(fstype)[0], addrstr))
         if not self.io.connactive(origaddr):
             self.io.closeconn(DEFAULT_FSP_QID, origaddr)
-            CMAdb.transaction.post_transaction_packets.append(FrameSetTypes.ACKSTARTUP)
+            CMAdb.net_transaction.post_transaction_packets.append(FrameSetTypes.ACKSTARTUP)
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.WALLCLOCK:
@@ -184,31 +184,31 @@ class DispatchSTARTUP(DispatchTarget):
 
 
         CMAdb.log.info('Drone %s registered from address %s (%s) port %s, key_id %s'
-        %       (sysname, origaddr, addrstr, origaddr.port(), keyid))
-        drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port()
-        ,   primary_ip_addr=str(origaddr))
+                       % (sysname, origaddr, addrstr, origaddr.port(), keyid))
+        drone = self.droneinfo.add(sysname, 'STARTUP packet', port=origaddr.port(),
+                                   primary_ip_addr=str(origaddr))
         drone.listenaddr = str(listenaddr)  # Seems good to hang onto this...
         drone.isNAT = isNAT                 # ditto...
         if CMAdb.debug:
             CMAdb.log.debug('DRONE select_ip() result: %s' % (drone.select_ip()))
-            CMAdb.log.debug('DRONE listenaddr: %s' % (drone.listenaddr))
+            CMAdb.log.debug('DRONE listenaddr: %s' % drone.listenaddr)
             CMAdb.log.debug('DRONE port: %s (%s)' % (drone.port, type(drone.port)))
         # Did they give us the crypto info we need?
         if keyid is None or pubkey is None:
             if CMAdb.debug:
                 CMAdb.log.debug('Drone %s registered with keyid %s and pubkey provided: %s'
-                %   (self, keyid, pubkey is not None))
+                                % (self, keyid, pubkey is not None))
         else:
             if drone.key_id == '':
                 if not keyid.startswith(sysname + "@@"):
-                    CMAdb.log.warning("Drone %s wants to register with key_id %s -- permitted."
-                    ,   sysname, keyid)
+                    CMAdb.log.warning("Drone %s wants to register with key_id %s -- permitted.",
+                                      sysname, keyid)
                 if not cryptcurve25519_save_public_key(keyid, pubkey, keysize):
                     raise ValueError("Drone %s public key (key_id %s, %d bytes) is invalid."
-                    %   (sysname, keyid, keysize))
+                                     % (sysname, keyid, keysize))
             elif drone.key_id != keyid:
                 raise ValueError("Drone %s tried to register with key_id %s instead of %s."
-                %   (sysname, keyid, drone.key_id))
+                                 % (sysname, keyid, drone.key_id))
             drone.set_crypto_identity(keyid=keyid)
             pyCryptFrame.dest_set_key_id(origaddr, keyid)
         #
@@ -222,7 +222,7 @@ class DispatchSTARTUP(DispatchTarget):
         # definitely wasn't ACKed.
         # Once this is fixed, this "add_packet" call needs to go *after* the 'if' statement below.
         #
-        CMAdb.transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
+        CMAdb.net_transaction.add_packet(origaddr, FrameSetTypes.SETCONFIG, (str(self.config), )
         ,   FrameTypes.CONFIGJSON)
 
         if (localtime is not None):
@@ -239,7 +239,7 @@ class DispatchSTARTUP(DispatchTarget):
             drone.logjson(origaddr, json)
         if CMAdb.debug:
             CMAdb.log.debug('Joining TheOneRing: %s / %s / %s' % (drone, type(drone), drone.port))
-        CMAdb.cdb.TheOneRing.join(drone)
+        CMAdb.TheOneRing.join(drone)
         if CMAdb.debug:
             CMAdb.log.debug('Requesting Discovery from  %s' % str(drone))
         discovery_params = []
@@ -294,19 +294,20 @@ class DispatchSTARTUP(DispatchTarget):
         # It should evolve to do the right things for real NAT configurations...
         if not match:
             CMAdb.log.warning('Drone %s sent STARTUP packet with NATted source address (%s)'
-            %       (sysname, origaddr))
+                              % (sysname, origaddr))
             isNAT = True
             if primaryip is not None:
                 if CMAdb.running_under_docker():
                     CMAdb.log.warning('Drone %s STARTUP orig address assumed to be (%s)'
-                    %       (sysname, primaryip))
+                                      % (sysname, primaryip))
                     CMAdb.log.warning('Presumed to be due to a known Docker bug.')
                     origaddr = primaryip
                     if listenaddr is not None and primaryip.port() != listenaddr.port():
                         CMAdb.log.warning('Drone %s STARTUP port is NATted: Assumed to be (%s)'
-                        %       (sysname, listenaddr.port()))
+                                          % (sysname, listenaddr.port()))
                         origaddr = pyNetAddr(origaddr, port=listenaddr.port())
         return origaddr, isNAT
+
 
 @DispatchTarget.register
 class DispatchHBMARTIAN(DispatchTarget):
@@ -328,27 +329,29 @@ class DispatchHBMARTIAN(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from address %s "
-            %       (FrameSetTypes.get(fstype)[0], origaddr))
-        reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
+                            % (FrameSetTypes.get(fstype)[0], origaddr))
+        reporter = self.droneinfo.find(origaddr)  # System receiving the MARTIAN FrameSet
         martiansrcaddr = None
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 martiansrcaddr = frame.getnetaddr()
                 break
-        martiansrc = self.droneinfo.find(martiansrcaddr) # Source of MARTIAN event
+        martiansrc = self.droneinfo.find(martiansrcaddr)  # Source of MARTIAN event
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBMARTIAN: received [%s] FrameSet from %s/%s about %s/%s"
-            %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc, martiansrcaddr))
+                            % (FrameSetTypes.get(fstype)[0], reporter, origaddr, martiansrc,
+                               martiansrcaddr))
         if martiansrc.status != 'up':
             if martiansrc.reason == 'HBSHUTDOWN':
                 # Just bad timing.  All is well...
                 return
             CMAdb.log.info('DispatchHBMARTIAN: %s had been erroneously marked %s; reason %s'
-            %   (martiansrc, martiansrc.status, martiansrc.reason))
+                           % (martiansrc, martiansrc.status, martiansrc.reason))
             if CMAdb.debug:
                 CMAdb.log.info('DispatchHBMARTIAN: telling %s/%s to stop sending to %s/%s (%s case)'
-                %       (martiansrc, martiansrcaddr, reporter, origaddr, martiansrc.status))
+                               % (martiansrc, martiansrcaddr, reporter, origaddr,
+                                  martiansrc.status))
             martiansrc.status='up'
             martiansrc.reason='HBMARTIAN'
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
@@ -368,6 +371,7 @@ class DispatchHBMARTIAN(DispatchTarget):
             # If the offender is just slow to update, he'll catch up...
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
 
+
 class DispatchHBBACKALIVE(DispatchTarget):
     '''DispatchTarget subclass for handling incoming HBHBBACKALIVE FrameSets.
     HBBACKALIVE packets occur when a system hears a heartbeat from a system it thought was dead.
@@ -376,28 +380,30 @@ class DispatchHBBACKALIVE(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBBACKALIVE: received [%s] FrameSet from address %s"
-                %       (FrameSetTypes.get(fstype)[0], origaddr))
-        reporter = self.droneinfo.find(origaddr) # System receiving the MARTIAN FrameSet
+                            % (FrameSetTypes.get(fstype)[0], origaddr))
+        reporter = self.droneinfo.find(origaddr)  # System receiving the MARTIAN FrameSet
         alivesrcaddr = None
         for frame in frameset.iter():
             frametype = frame.frametype()
             if frametype == FrameTypes.IPPORT:
                 alivesrcaddr = frame.getnetaddr()
                 break
-        alivesrc = self.droneinfo.find(alivesrcaddr) # Source of HBBACKALIVE event
+        alivesrc = self.droneinfo.find(alivesrcaddr)  # Source of HBBACKALIVE event
         if CMAdb.debug:
             CMAdb.log.debug("DispatchHBBACKALIVE: received [%s] FrameSet from %s/%s about %s/%s"
-            %       (FrameSetTypes.get(fstype)[0], reporter, origaddr, alivesrc, alivesrcaddr))
+                            % (FrameSetTypes.get(fstype)[0], reporter, origaddr, alivesrc,
+                               alivesrcaddr))
         if alivesrc.status != 'up':
             if alivesrc.reason == 'HBSHUTDOWN':
                 # Just bad timing.  All is well...
                 return
             CMAdb.log.info('DispatchHBBACKALIVE: %s had been erroneously marked %s; reason %s'
-            %   (alivesrc, alivesrc.status, alivesrc.reason))
+                           % (alivesrc, alivesrc.status, alivesrc.reason))
             alivesrc.status='up'
             alivesrc.reason='HBBACKALIVE'
             CMAdb.cdb.TheOneRing.join(alivesrc)
             AssimEvent(alivesrc, AssimEvent.OBJUP)
+
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
@@ -406,7 +412,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             CMAdb.log.debug("DispatchJSDISCOVERY: received [%s] FrameSet from [%s]"
-            %       (FrameSetTypes.get(fstype)[0], repr(origaddr)))
+                            % (FrameSetTypes.get(fstype)[0], repr(origaddr)))
         sysname = None
         for frame in frameset.iter():
             frametype = frame.frametype()
@@ -415,18 +421,19 @@ class DispatchJSDISCOVERY(DispatchTarget):
             if frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
                 jsonconfig = pyConfigContext(init=json)
-                #print 'JSON received: ', json
+                # print 'JSON received: ', json
                 if sysname is None:
                     sysname = jsonconfig.getstring('host')
                 drone = self.droneinfo.find(sysname)
-                #print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
-                #print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
+                # print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
+                # print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
                 child = drone.find_child_system_from_json(jsonconfig)
-                #if child is not drone:
+                # if child is not drone:
                 #    print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>>LOGGED child system Discovery %s: %s'
                 #            %   (str(child), json))
                 child.logjson(origaddr, json)
                 sysname = None
+
 
 @DispatchTarget.register
 class DispatchSWDISCOVER(DispatchTarget):
@@ -436,7 +443,7 @@ class DispatchSWDISCOVER(DispatchTarget):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             CMAdb.log.debug("DispatchSWDISCOVER: received [%s] FrameSet from [%s]"
-            %       (FrameSetTypes.get(fstype)[0], str(origaddr)))
+                            % (FrameSetTypes.get(fstype)[0], str(origaddr)))
         wallclock = None
         interface = None
         designation = None
@@ -458,25 +465,31 @@ class DispatchSWDISCOVER(DispatchTarget):
                 pktend = frame.frameend()
                 if instance is None:
                     instance = '_switch_%s' % interface
-                switchjson = pySwitchDiscovery.decode_discovery(designation, interface
-                ,               instance, wallclock, pktstart, pktend)
+                switchjson = pySwitchDiscovery.decode_discovery(designation,
+                                                                interface,
+                                                                instance,
+                                                                wallclock,
+                                                                pktstart,
+                                                                pktend)
                 if CMAdb.debug:
-                    CMAdb.log.debug('Got Link discovery info from %s: %s' \
-                    %   (interface, str(switchjson)))
+                    CMAdb.log.debug('Got Link discovery info from %s: %s'
+                                    % (interface, str(switchjson)))
                 drone = self.droneinfo.find(designation)
                 drone.logjson(origaddr, str(switchjson))
                 break
+
 
 @DispatchTarget.register
 class DispatchRSCOPREPLY(DispatchTarget):
     'DispatchTarget subclass for handling incoming RSCOPREPLY FrameSets.'
     GOODTOBAD = 1
     BADTOGOOD = 2
+
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
         if CMAdb.debug:
             CMAdb.log.debug("DispatchRSCOPREPLY: received [%s] FrameSet from [%s]"
-            %       (FrameSetTypes.get(fstype)[0], str(origaddr)))
+                            % (FrameSetTypes.get(fstype)[0], str(origaddr)))
 
         for frame in frameset.iter():
             frametype = frame.frametype()
@@ -485,11 +498,13 @@ class DispatchRSCOPREPLY(DispatchTarget):
                 MonitorAction.logchange(origaddr, obj)
                 return
         CMAdb.log.critical('RSCOPREPLY message from %s did not have a RSCJSONREPLY field'
-        %   (str(origaddr)))
+                           % (str(origaddr)))
+
 
 @DispatchTarget.register
 class DispatchCONNSHUT(DispatchTarget):
     'Class for handling (ignoring) CONNSHUT packets'
+
     def dispatch(self, origaddr, frameset):
         origaddr = origaddr
         frameset = frameset

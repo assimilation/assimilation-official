@@ -64,18 +64,18 @@ class SystemNode(GraphNode):
         'Add a role to our SystemNode'
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the 'roles' attribute gets marked as dirty...
-        Store.mark_dirty(self, 'roles')
+        self.association.dirty_attrs.add('roles')
         return self.roles
 
     def delrole(self, roles):
         'Delete a role from our SystemNode'
         self.roles = delete_an_array_item(self.roles, roles)
-        Store.mark_dirty(self, 'roles')
+        self.association.dirty_attrs.add('roles')
         return self.roles
 
     def logjson(self, origaddr, jsontext):
         'Process and save away JSON discovery data.'
-        assert CMAdb.store.has_node(self)
+        assert self.association.node_id is not None
         jsonobj = pyConfigContext(jsontext)
         if 'instance' not in jsonobj or 'data' not in jsonobj:
             CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
@@ -84,7 +84,7 @@ class SystemNode(GraphNode):
         discoverychanged = not self.json_eq(dtype, jsontext)
         if discoverychanged:
             CMAdb.log.debug("Saved discovery type %s [%s] for endpoint %s."
-            %       (jsonobj['discovertype'], dtype, self.designation))
+                            % (jsonobj['discovertype'], dtype, self.designation))
         else:
             if CMAdb.debug:
                 CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged.'
@@ -160,7 +160,7 @@ class SystemNode(GraphNode):
         # print('JUST CREATED JSON NODE: %s' % str(jsonnode))
         setattr(self, unicode(self.HASH_PREFIX + name), jsonnode.jhash)
         self._store.relate(self, CMAconsts.REL_jsonattr, jsonnode,
-                           properties={'jsonname':  name,
+                           attrs={'jsonname':  name,
                                        'time': long(round(time.time()))
                                        })
 
@@ -255,15 +255,15 @@ class SystemNode(GraphNode):
                 classes = SystemNode._JSONprocessors[prio][dtype]
                 # print('PROC[%s][%s] = %s' % (prio, dtype, str(classes)), file=stderr)
                 for cls in classes:
-                    proc = cls(CMAdb.io.config, CMAdb.transaction, CMAdb.store,
+                    proc = cls(CMAdb.io.config, CMAdb.net_transaction, CMAdb.store,
                                CMAdb.log, CMAdb.debug)
                     proc.processpkt(self, origaddr, jsonobj, discoverychanged)
         if foundone:
             CMAdb.log.info('Processed %schanged %s JSON data from %s into graph.'
-            %   ('' if discoverychanged else 'un', dtype, self.designation))
+                           % ('' if discoverychanged else 'un', dtype, self.designation))
         elif discoverychanged:
             CMAdb.log.info('Stored %s JSON data from %s without processing.'
-            %   (dtype, self.designation))
+                           % (dtype, self.designation))
 
     @staticmethod
     def add_json_processor(clstoadd):
