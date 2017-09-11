@@ -111,8 +111,8 @@ class JSONtree(object):
         comma = ''
         attrs = thing.__dict__.keys()
         attrs.sort()
-        if Store.has_node(thing) and Store.id(thing) is not None:
-            ret += '"_id": %s' %  str(Store.id(thing))
+        if thing.association.node_id is not None:
+            ret += '"_node_id": %s' % thing.association.node_id
             comma = ','
         for attr in attrs:
             skip = False
