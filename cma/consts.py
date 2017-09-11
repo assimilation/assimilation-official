@@ -111,9 +111,7 @@ class CMAconsts(object):
     # Our index would find us exactly the ones we want, but substituting into
     # it doesn't work correctly. The good news is that there aren't many
     # BPrule objects :-)
-    QUERY_RULESET_RULES = '''START n=node:BPRules('*:*')
-                             WHERE n.rulesetname = {rulesetname}
-                             RETURN n'''
+    QUERY_RULESET_RULES = '''MATCH(n:BPRules) WHERE n.rulesetname = $rulesetname RETURN n'''
 
     classkeymap = {}
     uniqueindexes = {}

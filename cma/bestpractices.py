@@ -156,8 +156,8 @@ class BestPractices(DiscoveryListener):
     def gen_bp_rules_by_ruleset(store, rulesetname):
         '''Return generator providing all BP rules for the given ruleset
         '''
-        return store.load_cypher_nodes(CMAconsts.QUERY_RULESET_RULES, BPRules
-        ,       params={'rulesetname': rulesetname})
+        return store.load_cypher_nodes(CMAconsts.QUERY_RULESET_RULES,
+                                       params={'rulesetname': rulesetname})
 
 
     def url(self, drone, ruleid, ruleobj, html=True, port=5000):

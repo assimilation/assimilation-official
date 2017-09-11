@@ -812,10 +812,10 @@ def grab_category_scores(store, categories=None, domains=None, debug=False):
     domains is None, a desired domain, or a list of desired domains.
     """
     if domains is None:
-        cypher = """START drone=node:Drone('*:*') RETURN drone"""
+        cypher = """MATCH(drone:Class_Drone) RETURN drone"""
     else:
         domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
-        cypher = ("START drone=node:Drone('*:*') WHERE drone.domain IN %s RETURN drone"
+        cypher = ("MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone"
                  %  str(list(domains)))
     if categories is not None:
         categories = (categories,) if isinstance(categories, (str, unicode)) else list(categories)
@@ -987,11 +987,10 @@ class PythonPackageRegexQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        """START drone=node:Drone('*:*')
-           MATCH (drone)-[rel:jsonattr]->(jsonmap)
+        """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
            WHERE rel.jsonname =~ '^_init_packages.*' AND jsonmap.json =~ '.*%s.*.*'
            RETURN drone, jsonmap.json AS json ORDER BY system.domain, system.designation
-        """     %   regex)
+        """ % regex)
 
         regexobj = re.compile('.*' + regex)
         for (drone, json) in self.store.load_cypher_query(cypher):
@@ -1019,8 +1018,7 @@ class PythonPackageQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        """START drone=node:Drone('*:*')
-        MATCH (drone)-[rel:jsonattr]->(jsonmap)
+        """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
         WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
         return drone, jsonmap.json as json
         """     %   packagename)
@@ -1051,7 +1049,7 @@ class PythonDroneSubgraphQuery(PythonExec):
     'A class to return a subgraph centered around one or more Drones'
     PARAMETERS = ['nodetypes', 'reltypes', 'hostname']
     basequery = \
-        """START start=node:Drone('*:*')
+        """MATCH (start:Class_Drone)
         WHERE start.nodetype = 'Drone' AND start.designation in '%s'
         MATCH p = shortestPath( (start)-[%s*]-(m) )
         WHERE m.nodetype IN %s
@@ -1079,9 +1077,7 @@ class PythonAllDronesSubgraphQuery(PythonExec):
     'A class to return a subgraph centered around a Drone'
     PARAMETERS = ['nodetypes', 'reltypes']
     basequery = \
-        """START start=node:Drone('*:*')
-        WHERE start.nodetype = 'Drone'
-        MATCH p = shortestPath( (start)-[%s*]-(m) )
+        """MATCH p = shortestPath( (start:Class_Drone)-[%s*]-(m) )
         WHERE m.nodetype IN %s
         UNWIND nodes(p) AS n
         UNWIND rels(p) AS r
@@ -1090,11 +1086,11 @@ class PythonAllDronesSubgraphQuery(PythonExec):
 
     def result_iterator(self, params):
         nodetypes = params['nodetypes']
-        reltypes  = params['reltypes']
+        reltypes = params['reltypes']
         relstr = reltype_expr(reltypes)
         nodestr = str(nodetypes)
         query = PythonAllDronesSubgraphQuery.basequery % (relstr, nodestr, nodestr)
-        #print >> sys.stderr, 'RUNNING THIS QUERY:', query
+        print >> sys.stderr, 'RUNNING THIS QUERY:', query
         for row in self.store.load_cypher_query(query):
             yield row
 
@@ -1123,7 +1119,7 @@ if __name__ == '__main__':
     from cmainit import Neo4jCreds
     metadata1 = \
     """
-    {   "cypher": "START n=node:ClientQuery('*:*') RETURN n",
+    {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
         "parameters": {},
         "descriptions": {
             "en": {
@@ -1137,7 +1133,7 @@ if __name__ == '__main__':
 
     metadata2 = \
     """
-    {   "cypher":   "START n=node:ClientQuery('{queryname}:metadata') RETURN n",
+    {   "cypher":   "MATCH(n:Class_ClientQuery) WHERE n.queryname = $queryname RETURN n",
         "parameters": {
             "queryname": {
                 "type": "string",
@@ -1162,8 +1158,8 @@ if __name__ == '__main__':
     metadata3 = \
     """
     {
-        "cypher": "START ip=node:IPaddr('{ipaddr}:*')
-                   MATCH (ip)<-[:ipowner]-()<-[:nicowner]-(system)
+        "cypher": "MATCH (ip:Class_IPaddr)<-[:ipowner]-()<-[:nicowner]-(system)
+                   WHERE ip.ipaddr = $ipaddr
                    RETURN system",
 
         "descriptions": {
@@ -1187,8 +1183,8 @@ if __name__ == '__main__':
     """
     metadata4 =  \
     r""" {
-        "cypher": 	"START start=node:Drone('*:*')
-                    WHERE start.nodetype = 'Drone' AND start.designation = '{host}'
+        "cypher":  "MATCH (start:Class_Drone)
+                    WHERE start.nodetype = 'Drone' AND start.designation = $host
                     MATCH p = shortestPath( (start)-[*]-(m) )
                     WHERE m.nodetype IN {nodetypes}
                     UNWIND nodes(p) as n
