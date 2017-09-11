@@ -26,7 +26,7 @@
 # along with the Assimilation Project software.
 # If not, see http://www.gnu.org/licenses/
 #
-'''
+"""
 
 Drawwithdot: Sample program to draw Assimilation graphs using Dot
              from the 'graphviz' software.
@@ -59,11 +59,14 @@ When we format relationships, the following variables are available:
 
 This is a very flexible and powerful graph drawing method, for which
 the code is simple and common - and the formats are more complicated.
-'''
+"""
 
 from __future__ import print_function #, unicode_literals
 import sys, os, optparse
+import inject
 import assimcli
+from cmainit import CMAInjectables
+from store import Store
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import VERSION_STRING, LONG_LICENSE_STRING,    \
         SHORT_LICENSE_STRING
@@ -71,14 +74,14 @@ from AssimCtypes import VERSION_STRING, LONG_LICENSE_STRING,    \
 #pylint complaint: too few public methods. It's OK - it's a utility class ;-)
 #pylint: disable=R0903
 class DictObj(object):
-    '''This is a class that allows us to see the objects below us as a
+    """This is a class that allows us to see the objects below us as a
     dict-like object - both for any dict-like characteristics and for its
     attributes.  This is for formatting them with the "usual" Python
     formatting rules like for example, "%(ipaddr)s".
-    '''
+    """
 
     def __init__(self, obj, kw=None, failreturn=''):
-        '''Initialization'''
+        """Initialization"""
         self.obj = obj
         self.failreturn = failreturn
         if kw is None:
@@ -175,16 +178,16 @@ class DictObj(object):
         raise ValueError(name)
 
     def _failreturn(self, name):
-        '''Return a failure'''
+        """Return a failure"""
         if callable(self.failreturn):
             return self.failreturn(self.obj, name)
         return self.failreturn
 
 class FancyDictObj(DictObj):
-    '''A fancy DictObj that knows how to get some aggregate data
+    """A fancy DictObj that knows how to get some aggregate data
     for use as pseudo-attributes of the objects we know and love ;-)
 
-    '''
+    """
     os_namemap = {
             'description':     'Description',
             'distro':          'Distributor ID',
@@ -194,12 +197,12 @@ class FancyDictObj(DictObj):
     }
     @staticmethod
     def osinfo(obj, name):
-        '''Provide aliases for various OS attributes for formatting
-        These will only work on a Drone node'''
+        """Provide aliases for various OS attributes for formatting
+        These will only work on a Drone node"""
         if name.startswith('os-'):
             name = name[3:]
         try:
-            print ('OBJ' % str(obj))
+            print ('OBJ %s' % str(obj))
             print ('OBJ.os: %s' % str(obj['os']))
             print ('OBJ.os.data: %s' % str(obj['os']['data']))
             if name in FancyDictObj.os_namemap:
@@ -284,12 +287,13 @@ class FancyDictObj(DictObj):
 
 
 class DotGraph(object):
-    '''Class to format Assimilation graphs as 'dot' graphs'''
+    """Class to format Assimilation graphs as 'dot' graphs"""
     # pylint - too many arguments. It's a bit flexible...
     # pylint: disable=R0913
-    def __init__(self, formatdict, dburl=None, dronelist=None,
+    @inject.params(store=Store)
+    def __init__(self, formatdict, store=None, dronelist=None,
             dictclass=FancyDictObj, options=None, executor_context=None):
-        '''Initialization
+        """Initialization
         Here are the main two things to understand:
             formatdict is a dict-like object which provides a format string
             for each kind of relationship and node.
@@ -307,9 +311,9 @@ class DotGraph(object):
             @dictclass - a dict-like class which can take a node or
                     relationship as a parameter for its constructor
                     along with extra keywords as the kw parameter.
-        '''
+        """
         self.formatdict = formatdict
-        self.store = assimcli.dbsetup(readonly=True, url=dburl)
+        self.store = store
         self.nodeids = None
         self.dictclass = dictclass
         self.options = options
@@ -325,8 +329,8 @@ class DotGraph(object):
         return 'node_%d' % nodeid
 
     def _outnodes(self, nodes):
-        '''Yield the requested nodes, formatted for 'dot'
-        '''
+        """Yield the requested nodes, formatted for 'dot'
+        """
         self.nodeids = set()
         #print('NODES: %s' % nodes)
         nodeformats = self.formatdict['nodes']
@@ -334,7 +338,7 @@ class DotGraph(object):
             nodetype = node['nodetype']
             if nodetype not in nodeformats:
                 continue
-            nodeid = node['_id']
+            nodeid = node['_node_id']
             self.nodeids.add(nodeid)
             dictobj = self.dictclass(node,
                     kw={'id': DotGraph.idname(nodeid)})
@@ -344,8 +348,8 @@ class DotGraph(object):
             yield nodeformats[nodetype] % dictobj
 
     def _outrels(self, relationships):
-        '''Yield relationships, formatted for 'dot'
-        '''
+        """Yield relationships, formatted for 'dot'
+        """
         relformats = self.formatdict['relationships']
         for rel in relationships:
             reltype = rel['type']
@@ -378,7 +382,8 @@ class DotGraph(object):
         return ret
 
     def __iter__(self):
-        '''Yield 'dot' strings for our nodes and relationships'''
+        """Yield 'dot' strings for our nodes and relationships"""
+        queryobj = None
         yield 'Digraph G {%s\n' % self.render_options()
         nodetypes = self.formatdict['nodes'].keys()
         reltypes = self.formatdict['relationships'].keys()
@@ -391,7 +396,10 @@ class DotGraph(object):
                       'hostname': self.dronelist}
         print ('NODETYPES: %s ' % str(nodetypes), file=sys.stderr)
         print ('RELTYPES: %s ' % str(reltypes), file=sys.stderr)
+        print ('RELTYPES: %s ' % str(reltypes), file=sys.stderr)
+        print ('QUERYNAME: %s ' % str(queryname), file=sys.stderr)
         querymeta = assimcli.query.load_query_object(self.store, queryname)
+        print ('QUERYMETA: %s ' % str(querymeta), file=sys.stderr)
         queryiter = querymeta.execute(self.executor_context,
                                       expandJSON=True, elemsonly=True,
                                       **params)
@@ -408,46 +416,46 @@ class DotGraph(object):
         yield '}\n'
 
     def out(self, outfile=sys.stdout):
-        '''Output nodes and relationships to the 'outfile'.'''
+        """Output nodes and relationships to the 'outfile'."""
         outfile.writelines(self.__iter__())
 
     def __str__(self):
-        '''Output nodes and relationships in a string.'''
+        """Output nodes and relationships in a string."""
         ret = ''
         for line in self.__iter__():
             ret += '%s\n' % line
         return ret
 
-ip_format = r'''%(id)s [shape=box color=blue label="%(ipaddr)s%(:hostname)s"]'''
+ip_format = r"""%(id)s [shape=box color=blue label="%(ipaddr)s%(:hostname)s"]"""
 
-drone_format = r'''%(id)s [shape=house %(drone-attrs)s label=''' + \
-'''"%(designation)s''' + \
-'''%(:os-description)s %(os-codename)s%(:os-kernel-release)''' + \
-'''s%(Security Risk:bp_category_security_score)s''' + \
-'''%(Status:status)s%(Reason:reason)s%(:roles)s"]'''
+drone_format = r"""%(id)s [shape=house %(drone-attrs)s label=""" + \
+""""%(designation)s""" + \
+"""%(:os-description)s %(os-codename)s%(:os-kernel-release)""" + \
+"""s%(Security Risk:bp_category_security_score)s""" + \
+"""%(Status:status)s%(Reason:reason)s%(:roles)s"]"""
 
-switch_format = r'''%(id)s [shape=box color=black penwidth=3 ''' + \
-r'''label="%(designation)s%(Name:SystemName)s%(:SystemDescription)s''' + \
-r'''%(Manufacturer:manufacturer)s%(Model:model)s%(Roles:roles)s''' + \
-r'''%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s''' + \
-r'''%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s''' + \
-r'''%(serial:serial-number)s%(Asset:asset-id)s"]'''
+switch_format = r"""%(id)s [shape=box color=black penwidth=3 """ + \
+r"""label="%(designation)s%(Name:SystemName)s%(:SystemDescription)s""" + \
+r"""%(Manufacturer:manufacturer)s%(Model:model)s%(Roles:roles)s""" + \
+r"""%(Address:ManagementAddress)s%(HW Vers:hardware-revision)s""" + \
+r"""%(FW Vers:firmware-revision)s%(SW Vers:software-revision)s""" + \
+r"""%(serial:serial-number)s%(Asset:asset-id)s"]"""
 
-MAC_format = r'''%(id)s [%(nic-attrs)s ''' + \
-r'''label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s''' + \
-r'''%(:OUI)s%(MTU:json.mtu)s%(Duplex:json.duplex)s%(carrier:carrier)s"]'''
-processnode_format   = r'''%(id)s [%(service-attrs)s label="%(proc-name)s''' + \
-r'''%(uid:uid)s%(gid:gid)s%(pwd:cwd)s"]'''
-iptcpportnode_format = r'''%(id)s [shape=rectangle fontsize=10 ''' + \
-'''label="%(ipaddr)s%(:port)s"]'''
-monitoraction_format = r'''%(id)s [%(monitor-attrs)s shape=component ''' + \
-        r'''label="%(monitorclass)s%(:monitortype)s"]'''
+MAC_format = r"""%(id)s [%(nic-attrs)s """ + \
+r"""label="%(macaddr)s%(NIC:ifname)s%(:PortDescription)s""" + \
+r"""%(:OUI)s%(MTU:json.mtu)s%(Duplex:json.duplex)s%(carrier:carrier)s"]"""
+processnode_format   = r"""%(id)s [%(service-attrs)s label="%(proc-name)s""" + \
+r"""%(uid:uid)s%(gid:gid)s%(pwd:cwd)s"]"""
+iptcpportnode_format = r"""%(id)s [shape=rectangle fontsize=10 """ + \
+"""label="%(ipaddr)s%(:port)s"]"""
+monitoraction_format = r"""%(id)s [%(monitor-attrs)s shape=component """ + \
+        r"""label="%(monitorclass)s%(:monitortype)s"]"""
 
-default_relfmt = r'''%(from)s->%(to)s [label=%(type)s]'''
-ipowner_format = r'''%(from)s->%(to)s [color=hotpink label=ipowner]'''
-nicowner_format = r'''%(from)s->%(to)s [color=black label=nicowner]'''
-wiredto_format = r'''%(from)s->%(to)s [color=blue label=wiredto '''+\
-'''penwidth=3 arrowhead=none]'''
+default_relfmt = r"""%(from)s->%(to)s [label=%(type)s]"""
+ipowner_format = r"""%(from)s->%(to)s [color=hotpink label=ipowner]"""
+nicowner_format = r"""%(from)s->%(to)s [color=black label=nicowner]"""
+wiredto_format = r"""%(from)s->%(to)s [color=blue label=wiredto """+\
+"""penwidth=3 arrowhead=none]"""
 
 #
 #   This defines all our various 'skins'
@@ -516,11 +524,11 @@ drawing_types = {
 }
 
 def validate_drawing_types(dtypes=None, skins=None):
-    '''We make sure that all the drawing types we have available
+    """We make sure that all the drawing types we have available
     are well-defined in each of the skins...
     This is really just for debugging, but it's quick enough to do
     each time...
-    '''
+    """
     if dtypes is None:
         dtypes=drawing_types
     if skins is None:
@@ -541,7 +549,7 @@ def validate_drawing_types(dtypes=None, skins=None):
                                      (reltype, skin))
 
 def construct_dot_formats(drawingtype='network', skintype='default'):
-    '''Construct 'dot' formats from our skins and this drawing type'''
+    """Construct 'dot' formats from our skins and this drawing type"""
     diagram = drawing_types[drawingtype]
     skin = skin_formats[skintype]
     result = {'nodes': {}, 'relationships':{}}
@@ -565,6 +573,7 @@ def drawing_type_help():
 
 
 if __name__ == '__main__':
+    CMAInjectables.default_CMA_injection_configuration()
     validate_drawing_types()
     desc = 'Create illustration from Assimilation graph database'
     desc += '.\nLicensed under the %s' % LONG_LICENSE_STRING
