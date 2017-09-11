@@ -369,7 +369,4 @@ class CMAinit(object):
 if __name__ == '__main__':
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)
-    if CMAdb.store.transaction_pending:
-        print >> sys.stderr, 'NetTransaction pending in:', CMAdb.store
-        print >> sys.stderr, 'Results:', CMAdb.store.commit()
     print >> sys.stderr, 'Init done'

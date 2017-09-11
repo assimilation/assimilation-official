@@ -689,9 +689,7 @@ if __name__ == '__main__':
         from systemnode import SystemNode
         print >> sys.stderr, 'Starting'
         CMAinit(None, cleanoutdb=True, debug=True)
-        if CMAdb.store.transaction_pending:
-            print 'Transaction pending in:', CMAdb.store
-            print 'Results:', CMAdb.store.commit()
+        print 'Results:', CMAdb.store.commit()
         print ProcessNode.meta_labels()
         print SystemNode.meta_labels()
         print Drone.meta_labels()

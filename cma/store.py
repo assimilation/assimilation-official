@@ -58,19 +58,12 @@ class Store(object):
     """This 'Store' class is a transaction-oriented implementation of Nigel Small's
     OGM (Object-Graph-Mapping) API - with a few extensions and a few things not implemented.
 
-    Unimplemented APIs
-    -----------------
-    The following member functions aren't provided:
-        is_saved() - replaced by the transaction_pending property
-
     Some interesting extensions:
     ----------------------------
         -   You can tell the Store constructor things about your Classes and Indexes
                 makes handling indexes simpler and less error prone. This affects the
                 save() method and makes it usable far more often.
         -   All updates are happen in a batch job - as a single transaction.
-        -   You never need to call save once an object was created.  We
-            track changes to the attributes.
 
     New methods:
     -----------
@@ -84,7 +77,6 @@ class Store(object):
         id              returns the id of the neo4j.Node associated with an object
         is_uniqueindex  returns True if the given index name is known to be unique
         __str__         formats information about this Store
-        transaction_pending -- Property: True means a transaction is pending
         stats           a data member containing statistics in a dict
         reset_stats     Reset statistics counters and timers
 
@@ -151,7 +143,6 @@ class Store(object):
         self.weaknoderefs = {}
         self.factory = factory_constructor if factory_constructor else GraphNode.factory
         self.db_transaction = None
-        self.db_transaction_ops_pending = False
         # print("RETURNING class %s" % self.__class__.__name__)
         return
 
@@ -234,7 +225,6 @@ class Store(object):
         """
         if self.readonly:
             raise RuntimeError('Attempt to delete an object from a read-only store')
-        self.db_transaction_ops_pending = True
         cypher = subj.association.cypher_delete_node_query()
         if self.debug:
             print('DELETE cypher:', cypher, file=stderr)
@@ -361,7 +351,6 @@ class Store(object):
             return obj
         # print('NOT LOADED node[%s]: %s' % (str(clsargs), str(obj)))
         subj = self.callconstructor(cls, clsargs)
-        self.db_transaction_ops_pending = False
         self.register(subj)
         if AssimEvent.event_observation_enabled:
             AssimEvent(subj, AssimEvent.CREATEOBJ)
@@ -537,7 +526,6 @@ class Store(object):
             print('FROM id is %s' % subj.association.node_id, file=stderr)
             print('TO id is %s' % obj.association.node_id, file=stderr)
 
-        self.db_transaction_ops_pending = True
         cypher = subj.association.cypher_find_match2_clause(obj.association) + '\n'
         cypher += subj.association.cypher_relate_node(rel_type, obj.association, attrs=attrs)
         # print('ADDREL Cypher:', cypher, file=stderr)
@@ -580,7 +568,6 @@ class Store(object):
         """
         if self.readonly:
             raise RuntimeError('Attempt to separate() an object from a read-only store')
-        self.db_transaction_ops_pending = True
         cypher = ''
         if subj:
             cypher += subj.association.cypher_find_match_clause() + '\n'
@@ -606,22 +593,6 @@ class Store(object):
         """
         self.separate(subj=subj, rel_type=rel_type, obj=obj, direction='reverse')
 
-    @property
-    def transaction_pending(self):
-        """
-        Return True if we have pending transaction work that needs flushing out
-
-        :return: bool: as noted
-        """
-        if self.db_transaction_ops_pending:
-            return True
-        for client in self.clients:
-            if client.association.dirty_attrs:
-                # print('CLIENT: %s' % object.__str__(client), file=stderr)
-                # print('NODE ID', client.association.node_id, file=stderr)
-                # print('dirty_attrs', client.association.dirty_attrs, file=stderr)
-                return True
-        return False
 
     @staticmethod
     def callconstructor(constructor, kwargs):
@@ -1239,21 +1210,14 @@ if __name__ == "__main__":
         assert 3.14158 < fred.c < 3.146
         print(store, file=stderr)
         store.dump_clients()
-        assert not store.transaction_pending
         store.db_transaction = store.db.begin(autocommit=False)
 
         # Add another new field
         fred.x = 'malcolm'
         store.dump_clients()
         print('store:', store, file=stderr)
-        assert store.transaction_pending
         store.commit()
-        if store.transaction_pending:
-            print('UhOh, we have a transaction pending(0).', file=stderr)
-            store.dump_clients()
-            assert not store.transaction_pending
         print('Statistics:', store.stats, file=stderr)
-        assert not store.transaction_pending
         assert fred.a == 52
         assert fred.b == 2
         assert fred.name == drone
@@ -1275,25 +1239,18 @@ if __name__ == "__main__":
         assert fred is newnode
         assert newnode.association.node_id is not None
         store._audit_weaknodes_clients()
-        if store.transaction_pending:
-            print('UhOh, we have a transaction pending.', file=stderr)
-            store.dump_clients('BAD TRANSACTION')
-            assert not store.transaction_pending
         assert newnode.a == 52
         assert newnode.b == 2
         assert newnode.x == 'malcolm'
         store.db_transaction = store.db.begin(autocommit=False)
         store.separate(fred, 'WILLBEA')
-        assert store.transaction_pending
         store.commit()
-        assert not store.transaction_pending
         print('Statistics:', store.stats, file=stderr)
 
         # Test a simple cypher query...
         qstr = "MATCH(d:Class_Drone) RETURN d"
         qnode = store.load_cypher_node(qstr)  # Returns a single node
         store.dump_clients()
-        assert not store.transaction_pending
         print('qnode=%s' % qnode, file=stderr)
         assert qnode is fred
         qnodes = store.load_cypher_nodes(qstr)  # Returns iterable
@@ -1308,13 +1265,11 @@ if __name__ == "__main__":
         assert len(rels) == 0
         store.db_transaction = store.db.begin(autocommit=False)
         store.delete(fred)
-        assert store.transaction_pending
         store.commit()
 
         # When we delete an object from the database, the  python object
         # is disconnected from the database...
         assert fred.association is None
-        assert not store.transaction_pending
         store.db_transaction = store.db.begin(autocommit=False)
         notfred = store.load(Drone, name=fred.name, a=fred.a, b=fred.b)
         assert notfred is None
