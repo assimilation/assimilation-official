@@ -546,9 +546,7 @@ class TestSystemNode(TestCase):
  
 if __name__ == "__main__":
     import inspect
-
     test_count = 0
-
     test_classes = []
     for name, obj in dict(globals()).viewitems():
         if inspect.isclass(obj) and name.startswith('Test'):
