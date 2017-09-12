@@ -65,12 +65,17 @@ class SystemNode(GraphNode):
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the 'roles' attribute gets marked as dirty...
         self.association.dirty_attrs.add('roles')
+        self.association.store.add_labels(self, ['Role_%s' % role
+                                                 for role in roles if role not in self.roles])
         return self.roles
 
     def delrole(self, roles):
         'Delete a role from our SystemNode'
         self.roles = delete_an_array_item(self.roles, roles)
         self.association.dirty_attrs.add('roles')
+        self.association.store.add_labels(self, ['Role_%s' % role for role in roles])
+        self.association.store.add_labels(self, ['Role_%s' % role
+                                                 for role in roles if role in self.roles])
         return self.roles
 
     def logjson(self, origaddr, jsontext):

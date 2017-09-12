@@ -86,7 +86,6 @@ class GraphNode(object):
         :param class_name: str: class name
         :return: cls
         """
-        print('CLASSMAP', GraphNode.classmap)
         return GraphNode.classmap[str(class_name)]
 
     @inject.params(store='Store', log='logging.Logger')
@@ -103,7 +102,6 @@ class GraphNode(object):
             time_create_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         self.time_create_iso8601 = time_create_iso8601
         self.time_create_ms = time_create_ms
-        assert hasattr(self, 'nodetype')
         association = StoreAssociation(self, store=store)
         association.dirty_attrs = set()
         self._association = association
@@ -399,6 +397,7 @@ class BPRules(GraphNode):
         'Return our key attributes in order of significance'
         return ['bp_class', 'rulesetname']
 
+
 @RegisterGraphClass
 class BPRuleSet(GraphNode):
     '''Class defining best practice rule sets'''
@@ -416,6 +415,7 @@ class BPRuleSet(GraphNode):
     def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['rulesetname']
+
 
 @RegisterGraphClass
 class NICNode(GraphNode):
@@ -494,6 +494,93 @@ class IPaddrNode(GraphNode):
         'Return our key attributes in order of significance'
         return ['ipaddr', 'domain']
 
+    class Subnet(GraphNode):
+        """
+        A class representing a subnet
+
+        A key feature that's a bit hard to deal with here is that we need to give it a
+        unique name.
+
+        """
+
+        def __init__(self, domain, ipaddr, cidrmask, context='_GLOBAL_'):
+            """
+
+            :param domain: Domain of this Subnet
+            :param ipaddr: pyNetAddr: either IPv4 or IPv6
+            :param cidrmask: int: subnet mask in CIDR format (just a single int)
+            :param context: str: Further context - if any...
+            """
+            GraphNode.__init__(self, domain=domain)
+            self._ipaddr = pyNetAddr(str(self.ipaddr))
+            self._ipaddr.port = 0
+            self.ipaddr = str(self._ipaddr)
+            self.domain = domain
+            self.name = str(self)
+            try:
+                self.cidrmask = int(cidrmask)
+            except ValueError:
+                self.cidrmask = self.v4_to_cidr(cidrmask)
+            self.context = context
+
+        @staticmethod
+        def v4_to_cidr(mask):
+            """
+            Convert a old-style IPV4 netmask to CIDR notation (e.g., '255.255.255.0' to 24)
+            :param mask: str: old-style netmask
+            :return: int: CIDR integer equivalent
+            """
+            powers = {255: 8, 127: 7, 63: 6, 31: 5, 15: 4, 7: 3, 3: 2, 1: 1, 0: 0}
+            bit_count = 0
+            elems = [int(elem) for elem in mask.split('.')]
+            for elem in elems:
+                bit_count += powers[elem]
+            assert 0 < bit_count <= 32
+            return 32 - bit_count
+
+        def __str__(self):
+            return '%s_%s_%s_%d' % (self.domain, self.context, self.ipaddr, self.cidrmask)
+
+        @property
+        def subnet_label(self):
+            """
+            For IP addresses things are associated with this subnet, label them with this label.
+            :return:
+            """
+            return str(self).replace('.', '_').replace(':', '_').replace('-', '_')
+
+        def members(self, cls=None):
+            """
+            Return the objects that are associated with this subnet
+            :param cls: ClassType: Desired class of associated objects = or None for any
+            :return: Generator(GraphNode): Generator yielding the desired objects
+            """
+            if cls is not None:
+                query = "MATCH (n:%s:Class_%s) RETURN n" % (self.subnet_label, cls.__name__)
+            else:
+                query = "MATCH (n:%s) RETURN n" % self.subnet_label
+            return self.association.store.load_cypher_nodes(query)
+
+        @staticmethod
+        def find_subnet(store, subnet_name):
+            """
+
+            :param store: Store: our Store object
+            :param subnet_name: str: subnet name
+            :return: Subnet: the desired subnet -- or None
+            """
+            query = "MATCH (n:Class_Subnet) WHERE n.name = $name RETURN n"
+            return store.load_cypher_node(query, {'name': subnet_name})
+
+
+        @staticmethod
+        def meta_key_attributes():
+            """
+            Return our key attributes in order of significance
+            """
+            return ['context', 'ipaddr', 'cidrmask', 'domain', 'name']
+
+
 @RegisterGraphClass
 class IPtcpportNode(GraphNode):
     'An object that represents an IP:port combination characterized by the pair'
@@ -569,13 +656,13 @@ class ProcessNode(GraphNode):
         #self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
         self.processname = processname
 
-
     def addrole(self, roles):
         'Add a role to our ProcessNode'
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the Processnode 'roles' attribute gets marked as dirty...
         self.association.dirty_attrs.add('roles')
-        # TODO: Add role-based label
+        self.association.store.add_labels(self, ['Role_%s' % role
+                                                 for role in roles if role not in self.roles])
         return self.roles
 
     def delrole(self, roles):
@@ -583,13 +670,15 @@ class ProcessNode(GraphNode):
         self.roles = delete_an_array_item(self.roles, roles)
         # Mark our Processnode 'roles' attribute dirty...
         self.association.dirty_attrs.add('roles')
-        # TODO: Delete role-based label
+        self.association.store.delete_labels(self, ['Role_%s' % role
+                                                    for role in roles if role in self.roles])
         return self.roles
 
     @staticmethod
     def meta_key_attributes():
         'Return our key attributes in order of significance'
         return ['processname', 'domain']
+
 
 @RegisterGraphClass
 class JSONMapNode(GraphNode):
@@ -664,6 +753,7 @@ class JSONMapNode(GraphNode):
     def meta_key_attributes():
         'Return our key attributes in order of significance'
         return  ['jhash']
+
 
 # pylint  W0212: we need to get the value of the _node_id fields...
 # pylint  R0903: too few public methods. Not appropriate here...

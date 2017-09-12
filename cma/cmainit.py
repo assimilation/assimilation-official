@@ -351,7 +351,6 @@ class CMAinit(object):
         CMAdb.store = None
         CMAdb.io = None
 
-
     def delete_all(self):
         """Empty everything out of our database - start over!
         """
