@@ -503,24 +503,35 @@ class IPaddrNode(GraphNode):
 
         """
 
-        def __init__(self, domain, ipaddr, cidrmask, context='_GLOBAL_'):
+        def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_'):
             """
+            A class defining a subnet. Like every other part of the system, we really only
+            believe in IPv6 addresses. We convert IPV4 to IPv6
 
             :param domain: Domain of this Subnet
-            :param ipaddr: pyNetAddr: either IPv4 or IPv6
+            :param ipaddr: pyNetAddr or str: either IPv4 or IPv6 format
             :param cidrmask: int: subnet mask in CIDR format (just a single int)
+                             If ipaddr is a string and contains a /, the part after the '
+                             is considered to be the 'cidrmask'
             :param context: str: Further context - if any...
             """
             GraphNode.__init__(self, domain=domain)
+            if isinstance(ipaddr, str) and '/' in ipaddr:
+                ipaddr, cidrmask = ipaddr.split('/', 1)
             self._ipaddr = pyNetAddr(str(self.ipaddr))
             self._ipaddr.port = 0
-            self.ipaddr = str(self._ipaddr)
-            self.domain = domain
-            self.name = str(self)
             try:
                 self.cidrmask = int(cidrmask)
             except ValueError:
+                # Maybe it's an old-style IPv4 netmask??
                 self.cidrmask = self.v4_to_cidr(cidrmask)
+            if self._ipaddr.addrtype() == ADDR_FAMILY_IPV4:
+                self._ipaddr = self._ipaddr.toIPv6()
+                self.cidrmask += 96
+            self._ipaddr.and_with_cidr(self.cidrmask)
+            self.ipaddr = str(self._ipaddr)
+            self.domain = domain
+            self.name = str(self)
             self.context = context
 
         @staticmethod
