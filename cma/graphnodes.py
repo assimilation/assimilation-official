@@ -518,7 +518,7 @@ class IPaddrNode(GraphNode):
             GraphNode.__init__(self, domain=domain)
             if isinstance(ipaddr, str) and '/' in ipaddr:
                 ipaddr, cidrmask = ipaddr.split('/', 1)
-            self._ipaddr = pyNetAddr(str(self.ipaddr))
+            self._ipaddr = pyNetAddr(str(ipaddr))
             self._ipaddr.port = 0
             try:
                 self.cidrmask = int(cidrmask)
@@ -527,7 +527,7 @@ class IPaddrNode(GraphNode):
                 self.cidrmask = self.v4_to_cidr(cidrmask)
             if self._ipaddr.addrtype() == ADDR_FAMILY_IPV4:
                 self._ipaddr = self._ipaddr.toIPv6()
-                self.cidrmask += 96
+                self.cidrmask += 96  # a.k.a. 128-32
             self._ipaddr.and_with_cidr(self.cidrmask)
             self.ipaddr = str(self._ipaddr)
             self.domain = domain
