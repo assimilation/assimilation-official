@@ -24,6 +24,7 @@
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <ctype.h>
@@ -55,6 +56,7 @@ FSTATIC gboolean _netaddr_isanyaddr(const NetAddr* self);
 FSTATIC gconstpointer _netaddr_addrinnetorder(gsize *addrlen);
 FSTATIC gboolean _netaddr_equal(const NetAddr*, const NetAddr*);
 FSTATIC guint _netaddr_hash(const NetAddr*);
+FSTATIC void    _netaddr_and_with_cidr(NetAddr*, guint);
 FSTATIC gchar * _netaddr_toStringflex(const NetAddr*, gboolean canonformat);
 FSTATIC gchar * _netaddr_toString(gconstpointer);
 FSTATIC gchar * _netaddr_canonStr(const NetAddr*);
@@ -261,7 +263,6 @@ _netaddr_toStringflex(const NetAddr* self, gboolean canon_format)
 		if (self->_addrport) {
 			g_string_append_printf(gsret, "]:%d", self->_addrport);
 		}
-		
 	}else{
 		for (nbyte = 0; nbyte < self->_addrlen; ++nbyte) {
 			g_string_append_printf(gsret, (nbyte == 0 ? "%02x" : "-%02x"),
@@ -330,9 +331,9 @@ _netaddr_equal(const NetAddr*self, const NetAddr*other)
 			}
 		}
 	}
-	
+
 	DEBUGMSG5("%s.%d: checking to see if we need to reverse operands...", __FUNCTION__, __LINE__)
-	
+
 	if (self->_addrtype == ADDR_FAMILY_IPV4 && other->_addrtype == ADDR_FAMILY_IPV6) {
 		gboolean	retval;
 		// Switch the operands and try again...
@@ -419,6 +420,46 @@ _netaddr_hash(const NetAddr* self)
 		addrtouse = NULL;
 	}
 	return result;
+}
+/// Mask the given IP address with a CIDR-style mask (as an int)
+FSTATIC void
+_netaddr_and_with_cidr(NetAddr* self,	///< Object we're operating on (self)
+		guint cidrcount)	///< CIDR-style mask (as int)
+{
+	if (self->_addrtype == ADDR_FAMILY_IPV4) {
+		guint32 ipv4_mask = 0xffffffff;
+		guint32 shifted_mask;
+		guint32	host_ipv4;
+		guint32	net_ipv4;
+
+		memcpy(&net_ipv4, self->_addrbody, sizeof(guint32));
+		host_ipv4 = ntohl(net_ipv4);
+		shifted_mask = (ipv4_mask << (32-cidrcount));
+		host_ipv4 = (host_ipv4 & shifted_mask);
+		net_ipv4 = htonl(host_ipv4);
+		memcpy(self->_addrbody, &net_ipv4, sizeof(guint32));
+	}else if (self->_addrtype == ADDR_FAMILY_IPV6) {
+		guint64 ipv6_mask1 = 0xffffffffffffffff;
+		guint64 ipv6_mask2 = 0xffffffffffffffff;
+		guint	cidrshift = 128 - cidrcount;
+		guint	nbyte;
+
+		if (cidrshift >= 64) {
+			ipv6_mask2 = 0;
+			ipv6_mask1 <<= (cidrshift-64);
+		}else{
+			ipv6_mask2 <<= cidrshift;
+		}
+		// Now apply the two masks...
+		for (nbyte = 0; nbyte < sizeof(guint64); nbyte += 1) {
+			const guint8 mask = (guint8)(((ipv6_mask1) >> ((7-nbyte)*8)) & 0xff);
+			((guint8*)self->_addrbody)[nbyte] &= mask;
+		}
+		for (nbyte = sizeof(guint64); nbyte < self->_addrlen; nbyte += 1) {
+			const guint8 mask = (guint8)(((ipv6_mask2) >> ((15-nbyte)*8)) & 0xff);
+			((guint8*)self->_addrbody)[nbyte] &= mask;
+		}
+	}
 }
 
 /// g_hash_table equal comparator for a NetAddr
@@ -549,7 +590,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	AssimObj*	baseobj;
 	NetAddr*	self;
 
-	
+
 	BINDDEBUG(NetAddr);
 	if (objsize < sizeof(NetAddr)) {
 		objsize = sizeof(NetAddr);
@@ -557,7 +598,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	g_return_val_if_fail(addrbody != NULL, NULL);
 	g_return_val_if_fail(addrlen >= 4, NULL);
 
-	
+
 
 	baseobj = assimobj_new(objsize);
 	proj_class_register_subclassed(baseobj, "NetAddr");
@@ -583,6 +624,7 @@ netaddr_new(gsize objsize,				///<[in] Size of object to construct
 	self->isanyaddr = _netaddr_isanyaddr;
 	self->equal = _netaddr_equal;
 	self->hash = _netaddr_hash;
+	self-> and_with_cidr =  _netaddr_and_with_cidr;
 
 	return self;
 

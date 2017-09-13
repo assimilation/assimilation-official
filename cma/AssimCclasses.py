@@ -1004,6 +1004,17 @@ class pyNetAddr(pyAssimObj):
             base = base.baseclass
         return base.isanyaddr(self._Cstruct)
 
+    def and_with_cidr(self, cidr):
+        """
+        Bitwise AND this IP address with a CIDR mask - in place
+        :return: NetAddr: (self)
+        """
+        base = self._Cstruct[0]
+        while not_this_exact_type(base, NetAddr):
+            base = base.baseclass
+        base.and_with_cidr(self._Cstruct, int(cidr))
+        return self
+
     def toIPv6(self, port=None):
         'Return an equivalent IPv6 address to the one that was given. Guaranteed to be a copy'
         base = self._Cstruct[0]
@@ -1033,7 +1044,6 @@ class pyNetAddr(pyAssimObj):
         ret = string_at(cstringret)
         g_free(cstringret)
         return ret
-
 
     def __eq__(self, other):
         "Return True if the two pyNetAddrs are equal"

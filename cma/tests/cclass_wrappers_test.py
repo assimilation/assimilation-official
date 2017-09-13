@@ -89,6 +89,7 @@ class TestCase(object):
         print '__del__ CALL for %s' % str(method)
         assert_no_dangling_Cclasses()
 
+
 class TestpyNetAddr(TestCase):
     "A pyNetAddr is a network address of some kind... - let's test it"
     def test_constructor(self): 
@@ -126,6 +127,38 @@ class TestpyNetAddr(TestCase):
         self.assertRaises(ValueError, pyNetAddr, (1,2,3,4,5,6,7,8,9,10,11,12,13,14))
         self.assertRaises(ValueError, pyNetAddr, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15))
         self.assertRaises(ValueError, pyNetAddr, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17))
+
+    def test_cidr_and(self):
+        one = pyNetAddr('10.10.10.103')
+        one_mask32 = pyNetAddr('10.10.10.103')
+        one_mask24 = pyNetAddr('10.10.10.0')
+        one_mask16 = pyNetAddr('10.10.0.0')
+        one_mask8 = pyNetAddr('10.0.0.0')
+        masks = (32, 24, 16, 8)
+        counter = 0
+        for result in (one_mask32, one_mask24, one_mask16, one_mask8):
+            test_data = pyNetAddr(one)
+            test_data.and_with_cidr(masks[counter])
+            assert test_data == result
+            test_data_64 = pyNetAddr(one).toIPv6()
+            test_data_64.and_with_cidr(masks[counter]+96)
+            assert test_data_64 == result.toIPv6()
+            counter += 1
+
+        one = pyNetAddr('0123:4567:89ab:cdef:fedc:ba98:7654:3210')
+        one_mask64 = pyNetAddr('0123:4567:89ab:cdef:0000:0000:0000:0000')
+        one_mask48 = pyNetAddr('0123:4567:89ab:0000:0000:0000:0000:0000')
+        one_mask44 = pyNetAddr('0123:4567:89a0:0000:0000:0000:0000:0000')
+
+        counter = 0
+        masks = (128, 44, 48, 64)
+        for result in (one, one_mask44, one_mask48, one_mask64):
+            print >> sys.stderr, ('COUNTER:', counter)
+            test_data = pyNetAddr(one)
+            test_data.and_with_cidr(masks[counter])
+            assert test_data == result
+            counter += 1
+
 
     def test_ipv4_eq(self): 
         'Test if various ipv4 addresses are equal'
@@ -254,8 +287,7 @@ class TestpyNetAddr(TestCase):
         # @FIXME: I think this one shouldn't need to go back and forth to ipv4 to work...(?)
         self.assertEqual('::1', str(pyNetAddr('::ffff:127.0.0.1').toIPv4().toIPv6()))
 
-
-    def test_ipv6_strinit(self): 
+    def test_ipv6_strinit(self):
         'Test constructing ipv6 addresses from strings.'
         if DEBUG:
             for j in range(1,5):
@@ -353,6 +385,7 @@ class TestpyNetAddr(TestCase):
         if DEBUG:
             for j in range(1,5):
                 proj_class_decr_debug('NetAddr')
+
 
 class TestpyFrame(TestCase):
     '''Frames are our basic superclass for things we put on the wire.
