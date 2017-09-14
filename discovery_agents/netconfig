@@ -131,7 +131,7 @@ scalarfmt() {
 scalarval() {
   name="$1"
   value="$2"
-  printf '"%s": %s' "$field" "$(scalarfmt "$value")"
+  printf '"%s": %s' "$name" "$(scalarfmt "$value")"
 }
 
 # Print out an array of scalars in JSON notation
@@ -172,10 +172,15 @@ discover() {
     printf  "$outercomma"
     outercomma=', \n'
     printf "    \"$device\": {\n"
+    LINK=$(assim_run_in_context ls -l "$NETDIR/$device" 2>/dev/null)
+    case $LINK in
+        *virtual*)  VIRTUAL=true;;
+        *)  VIRTUAL=false;;
+    esac
     # 
     # Gather various information concerning this network interface from $NETDIR/$device files
     # 
-    for field in address carrier duplex mtu operstate speed
+    for field in address carrier duplex mtu operstate speed type
     do
       file="$NETDIR/$device/$field"
       assim_run_in_context test ! -f "$file"  && continue
@@ -192,6 +197,30 @@ discover() {
     case $device in
       $DEFAULTGW) 	printf '	"default_gw": true,\n'
     esac
+    printf "	\"virtual\": $VIRTUAL,\n"
+    if
+      assim_run_in_context test -d "$NETDIR/$device/bridge"
+    then
+      for field in bridge_id
+      do
+        file="$NETDIR/$device/bridge/$field"
+        value=$(assim_run_in_context cat $file 2>/dev/null)
+        if
+          [ "XX$value" = 'XX' ]
+        then
+          value='(unknown)'
+        fi
+        printf '	%s,\n' "$(scalarval "${field}" "$value")"
+      done
+    fi
+    BRIDGE=$(assim_run_in_context ls -l "$NETDIR/$device/brport/bridge" 2>/dev/null | sed 's%.*/%%')
+    if
+      [ "X$BRIDGE" != X ]
+    then
+      printf '	%s,\n' "$(scalarval "brport_bridge" "$BRIDGE")"
+    fi
+
+
 
     # Is this a wireless connection?
     if
