@@ -56,6 +56,8 @@ struct _NetAddr {
 	NetAddr*	(*toIPv6)(const NetAddr*);		///< Convert this NetAddr to the IPv6 equivalent
 	NetAddr*	(*toIPv4)(const NetAddr*);		///< Convert this NetAddr to the IPv4 equivalent if possible
 								///< It always returns a new object
+	void		(*and_with_cidr)(NetAddr*, guint);	///< And the given NetAddr with the given subnet mask
+								///< (mask is in host byte order)
 	gpointer	_addrbody;		///< private: Address body
 	guint16		_addrtype;		///< private: Address type
 	guint16		_addrlen;		///< private: Length of _addrbody

@@ -524,7 +524,7 @@ class IPaddrNode(GraphNode):
                 self.cidrmask = int(cidrmask)
             except ValueError:
                 # Maybe it's an old-style IPv4 netmask??
-                self.cidrmask = self.v4_to_cidr(cidrmask)
+                self.cidrmask = self.v4_netmask_to_cidr(cidrmask)
             if self._ipaddr.addrtype() == ADDR_FAMILY_IPV4:
                 self._ipaddr = self._ipaddr.toIPv6()
                 self.cidrmask += 96  # a.k.a. 128-32
@@ -535,18 +535,23 @@ class IPaddrNode(GraphNode):
             self.context = context
 
         @staticmethod
-        def v4_to_cidr(mask):
+        def v4_netmask_to_cidr(mask):
             """
-            Convert a old-style IPV4 netmask to CIDR notation (e.g., '255.255.255.0' to 24)
+            Convert a old-style IPV4 netmask to CIDR notation (e.g., '255.255.255.0' => 24)
             :param mask: str: old-style netmask
             :return: int: CIDR integer equivalent
             """
-            powers = {255: 8, 127: 7, 63: 6, 31: 5, 15: 4, 7: 3, 3: 2, 1: 1, 0: 0}
+            powers = {255: 8, 254: 7, 252: 6, 248: 5, 240: 4, 224: 3, 192: 2, 128: 1, 0: 0}
             bit_count = 0
-            elems = [int(elem) for elem in mask.split('.')]
-            for elem in elems:
-                bit_count += powers[elem]
-            assert 0 < bit_count <= 32
+            elems = [elem for elem in mask.split('.')]
+            if len(elems) != 4:
+                raise ValueError('Invalid old-style netmask [%s]' % mask)
+            elem = None
+            try:
+                for elem in elems:
+                    bit_count += powers[int(elem)]
+            except (KeyError, ValueError):
+                raise ValueError('Invalid element [%s] in old-style netmask [%s]' % (elem, mask))
             return 32 - bit_count
 
         def __str__(self):
@@ -556,7 +561,7 @@ class IPaddrNode(GraphNode):
         def subnet_label(self):
             """
             For IP addresses things are associated with this subnet, label them with this label.
-            :return:
+            :return: str: subnet label
             """
             return str(self).replace('.', '_').replace(':', '_').replace('-', '_')
 
@@ -575,6 +580,7 @@ class IPaddrNode(GraphNode):
         @staticmethod
         def find_subnet(store, subnet_name):
             """
+            Locate the subnet with the given name.
 
             :param store: Store: our Store object
             :param subnet_name: str: subnet name
