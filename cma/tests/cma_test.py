@@ -41,7 +41,7 @@ from messagedispatcher import MessageDispatcher
 from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, DispatchSWDISCOVER, DispatchHBSHUTDOWN
 from hbring import HbRing
 from droneinfo import Drone
-from graphnodes import GraphNode
+from graphnodes import GraphNode, Subnet, IPaddrNode, NICNode
 from monitoring import MonitorAction, LSBMonitoringRule, MonitoringRule, OCFMonitoringRule
 from transaction import NetTransaction
 from assimevent import AssimEvent
@@ -151,7 +151,7 @@ def assert_no_dangling_Cclasses(doassert=None):
             print 'stdout OBJECT DUMP COMPLETE'
             raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
-            print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
+            print >> sys.stderr, ("*****ERROR: Dangling C-class objects - %d still around" % count)
 
 
 class TestCase(object):
@@ -1372,12 +1372,45 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(match['argv'], ['-t', '3600', '-p', '22', '127.0.0.1'])
         #assert_no_dangling_Cclasses()
 
-
     def test_automonitor_OCF_complete(self):
         # @TODO What I have in mind for this test is that it
         # actually construct an auto-generated OCF monitoring node and activate it
         # It will have to add name, timeout and repeat intervals before activating it.
         pass
+
+
+class TestNetDevices(TestCase):
+    """
+    Test case to test network devices - IP addresses, subnets, and MAC addresses (NICs)
+   """
+    def test_subnet_init(self):
+        """
+        initializing subnets in a variety of ways...
+        return: None
+        """
+
+        net1 = Subnet('global', '10.10.10.20', 24)
+        assert net1.cidrmask == 120
+        net2 = Subnet('global', '10.10.10.20/24')
+        assert net2.cidrmask == 120
+        net3 = Subnet('global', '10.10.10.20/255.255.255.0')
+        assert net3.cidrmask == 120
+        net4 = Subnet('global', '10.10.10.20', '255.255.255.0')
+        assert net4.cidrmask == 120
+        net5 = Subnet('global', pyNetAddr('10.10.10.20:80'), 24)
+        assert net5.cidrmask == 120
+        net6 = Subnet('global', '10.10.10.10/32')
+        print(net6)
+        print(net6.subnet_label)
+        assert net6.cidrmask == 128
+        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/33')
+        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/')
+        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255')
+        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.256')
+        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.255.0')
+        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.0xff.255')
+        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.256')
+
 
 TestFoo.config_foo()
 
@@ -1390,6 +1423,8 @@ if __name__ == "__main__":
             test_classes.append((name, obj))
     test_classes.sort()
     for name, cls in test_classes:
+        if cls.__name__ != 'TestNetDevices':
+            continue
         obj = cls()
         if hasattr(cls, 'setup_method'):
             obj.setup_method()

@@ -494,108 +494,117 @@ class IPaddrNode(GraphNode):
         'Return our key attributes in order of significance'
         return ['ipaddr', 'domain']
 
-    class Subnet(GraphNode):
+class Subnet(GraphNode):
+    """
+    A class representing a subnet
+
+    A key feature that's a bit hard to deal with here is that we need to give it a
+    unique name.
+
+    """
+
+    def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_'):
         """
-        A class representing a subnet
+        A class defining a subnet. Like every other part of the system, we really only
+        believe in IPv6 addresses. We convert IPV4 to IPv6
 
-        A key feature that's a bit hard to deal with here is that we need to give it a
-        unique name.
-
+        :param domain: Domain of this Subnet
+        :param ipaddr: pyNetAddr or str: either IPv4 or IPv6 format
+        :param cidrmask: int: subnet mask in CIDR format (just a single int)
+                         If ipaddr is a string and contains a /, the part after the '
+                         is considered to be the 'cidrmask'
+        :param context: str: Further context - if any...
         """
+        GraphNode.__init__(self, domain=domain)
+        if isinstance(ipaddr, str) and '/' in ipaddr:
+            ipaddr, cidrmask = ipaddr.split('/', 1)
+        self._ipaddr = pyNetAddr(str(ipaddr))
+        self._ipaddr.port = 0
+        try:
+            self.cidrmask = int(cidrmask)
+        except ValueError:
+            # Maybe it's an old-style IPv4 netmask??
+            self.cidrmask = self.v4_netmask_to_cidr(cidrmask)
+        if self._ipaddr.addrtype() == ADDR_FAMILY_IPV4:
+            self._ipaddr = self._ipaddr.toIPv6()
+            self.cidrmask += 96  # a.k.a. 128-32
+        self._ipaddr.and_with_cidr(self.cidrmask)
+        self.ipaddr = str(self._ipaddr)
+        self.domain = domain
+        self.context = context
+        self.name = str(self)
+        if self.cidrmask > 128:
+            raise ValueError('Illigal CIDR mask')
 
-        def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_'):
-            """
-            A class defining a subnet. Like every other part of the system, we really only
-            believe in IPv6 addresses. We convert IPV4 to IPv6
+    @property
+    def base_address(self):
+        """
+        Return the base address as a pyNetAddr
+        :return: pyNetAddr
+        """
+        return self._ipaddr
 
-            :param domain: Domain of this Subnet
-            :param ipaddr: pyNetAddr or str: either IPv4 or IPv6 format
-            :param cidrmask: int: subnet mask in CIDR format (just a single int)
-                             If ipaddr is a string and contains a /, the part after the '
-                             is considered to be the 'cidrmask'
-            :param context: str: Further context - if any...
-            """
-            GraphNode.__init__(self, domain=domain)
-            if isinstance(ipaddr, str) and '/' in ipaddr:
-                ipaddr, cidrmask = ipaddr.split('/', 1)
-            self._ipaddr = pyNetAddr(str(ipaddr))
-            self._ipaddr.port = 0
-            try:
-                self.cidrmask = int(cidrmask)
-            except ValueError:
-                # Maybe it's an old-style IPv4 netmask??
-                self.cidrmask = self.v4_netmask_to_cidr(cidrmask)
-            if self._ipaddr.addrtype() == ADDR_FAMILY_IPV4:
-                self._ipaddr = self._ipaddr.toIPv6()
-                self.cidrmask += 96  # a.k.a. 128-32
-            self._ipaddr.and_with_cidr(self.cidrmask)
-            self.ipaddr = str(self._ipaddr)
-            self.domain = domain
-            self.name = str(self)
-            self.context = context
+    @staticmethod
+    def v4_netmask_to_cidr(mask):
+        """
+        Convert a old-style IPV4 netmask to CIDR notation (e.g., '255.255.255.0' => 24)
+        :param mask: str: old-style netmask
+        :return: int: CIDR integer equivalent
+        """
+        powers = {255: 8, 254: 7, 252: 6, 248: 5, 240: 4, 224: 3, 192: 2, 128: 1, 0: 0}
+        bit_count = 0
+        elems = [elem for elem in mask.split('.')]
+        if len(elems) != 4:
+            raise ValueError('Invalid old-style netmask [%s]' % mask)
+        elem = None
+        try:
+            for elem in elems:
+                bit_count += powers[int(elem)]
+        except (KeyError, ValueError):
+            raise ValueError('Invalid element [%s] in old-style netmask [%s]' % (elem, mask))
+        return bit_count
 
-        @staticmethod
-        def v4_netmask_to_cidr(mask):
-            """
-            Convert a old-style IPV4 netmask to CIDR notation (e.g., '255.255.255.0' => 24)
-            :param mask: str: old-style netmask
-            :return: int: CIDR integer equivalent
-            """
-            powers = {255: 8, 254: 7, 252: 6, 248: 5, 240: 4, 224: 3, 192: 2, 128: 1, 0: 0}
-            bit_count = 0
-            elems = [elem for elem in mask.split('.')]
-            if len(elems) != 4:
-                raise ValueError('Invalid old-style netmask [%s]' % mask)
-            elem = None
-            try:
-                for elem in elems:
-                    bit_count += powers[int(elem)]
-            except (KeyError, ValueError):
-                raise ValueError('Invalid element [%s] in old-style netmask [%s]' % (elem, mask))
-            return 32 - bit_count
+    def __str__(self):
+        return '%s_%s_%s/%d' % (self.domain, self.context, self.ipaddr, self.cidrmask)
 
-        def __str__(self):
-            return '%s_%s_%s_%d' % (self.domain, self.context, self.ipaddr, self.cidrmask)
+    @property
+    def subnet_label(self):
+        """
+        For IP addresses things are associated with this subnet, label them with this label.
+        :return: str: subnet label
+        """
+        return str(self).replace('.', '_').replace(':', '_').replace('-', '_').replace('/', '_')
 
-        @property
-        def subnet_label(self):
-            """
-            For IP addresses things are associated with this subnet, label them with this label.
-            :return: str: subnet label
-            """
-            return str(self).replace('.', '_').replace(':', '_').replace('-', '_')
+    def members(self, cls=None):
+        """
+        Return the objects that are associated with this subnet
+        :param cls: ClassType: Desired class of associated objects = or None for any
+        :return: Generator(GraphNode): Generator yielding the desired objects
+        """
+        if cls is not None:
+            query = "MATCH (n:%s:Class_%s) RETURN n" % (self.subnet_label, cls.__name__)
+        else:
+            query = "MATCH (n:%s) RETURN n" % self.subnet_label
+        return self.association.store.load_cypher_nodes(query)
 
-        def members(self, cls=None):
-            """
-            Return the objects that are associated with this subnet
-            :param cls: ClassType: Desired class of associated objects = or None for any
-            :return: Generator(GraphNode): Generator yielding the desired objects
-            """
-            if cls is not None:
-                query = "MATCH (n:%s:Class_%s) RETURN n" % (self.subnet_label, cls.__name__)
-            else:
-                query = "MATCH (n:%s) RETURN n" % self.subnet_label
-            return self.association.store.load_cypher_nodes(query)
+    @staticmethod
+    def find_subnet(store, subnet_name):
+        """
+        Locate the subnet with the given name.
 
-        @staticmethod
-        def find_subnet(store, subnet_name):
-            """
-            Locate the subnet with the given name.
+        :param store: Store: our Store object
+        :param subnet_name: str: subnet name
+        :return: Subnet: the desired subnet -- or None
+        """
+        query = "MATCH (n:Class_Subnet) WHERE n.name = $name RETURN n"
+        return store.load_cypher_node(query, {'name': subnet_name})
 
-            :param store: Store: our Store object
-            :param subnet_name: str: subnet name
-            :return: Subnet: the desired subnet -- or None
-            """
-            query = "MATCH (n:Class_Subnet) WHERE n.name = $name RETURN n"
-            return store.load_cypher_node(query, {'name': subnet_name})
-
-
-        @staticmethod
-        def meta_key_attributes():
-            """
-            Return our key attributes in order of significance
-            """
-            return ['context', 'ipaddr', 'cidrmask', 'domain', 'name']
+    @staticmethod
+    def meta_key_attributes():
+        """
+        Return our key attributes in order of significance
+        """
+        return ['context', 'ipaddr', 'cidrmask', 'domain', 'name']
 
 
 @RegisterGraphClass
@@ -772,9 +781,8 @@ class JSONMapNode(GraphNode):
         return  ['jhash']
 
 
-# pylint  W0212: we need to get the value of the _node_id fields...
 # pylint  R0903: too few public methods. Not appropriate here...
-# pylint: disable=W0212,R0903
+# pylint: disable=R0903
 class NeoRelationship(object):
     '''Our encapsulation of a Neo4j Relationship - good for displaying them '''
     def __init__(self, relationship):
@@ -784,8 +792,8 @@ class NeoRelationship(object):
         self._relationship = relationship
         self._id = relationship._id
         self.type = relationship.type
-        self.start_node = relationship.start_node._id
-        self.end_node = relationship.end_node._id
+        self.start_node = getattr(relationship.start_node, '_id')  # Make pylint happy...
+        self.end_node = getattr(relationship.end_node, '_id')      # Make pylint happy...
         self.properties = relationship.properties
 
 if __name__ == '__main__':
