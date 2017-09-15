@@ -37,7 +37,7 @@ LOCALSUDO='sudo'
 WORKLOG=/tmp/assimilation-install.txt
 ASSIMSHARE=/usr/share/assimilation
 CRYPTODIR="$ASSIMSHARE/crypto.d"
-ROOTURL=https://dl.dropboxusercontent.com/u/65564307/builds
+ROOTURL=https://www.dropbox.com/sh/7dk588n0oxmjh27/AAAOiAqSecvhOI_mS0bJpPDsa?dl=0
 INSTALLURL=https://bit.ly/assiminstall
 BASEURL=$ROOTURL/Releases
 PRERELURL=$ROOTURL/Prereleases
