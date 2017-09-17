@@ -131,7 +131,7 @@ class GraphNode(object):
             return
         if name in ('node_id', 'dirty_attrs'):
             raise(ValueError('Bad attribute name: %s' % name))
-        if not name.startswith('_'):
+        if not name.startswith('_') and name != 'association':
             try:
                 if getattr(self, name) == value:
                     # print('Value of %s already set to %s' % (name, value), file=sys.stderr)
@@ -218,6 +218,7 @@ class GraphNode(object):
         '''Set node creation time'''
         if not self._baseinitfinished:
             self._baseinitfinished = True
+            self.association.store.add_labels(self, self.meta_labels())
 
     def update_attributes(self, other):
         'Update our attributes from another node of the same type'
@@ -420,8 +421,9 @@ class BPRuleSet(GraphNode):
 @RegisterGraphClass
 class NICNode(GraphNode):
     'An object that represents a NIC - characterized by its MAC address'
-    def __init__(self, domain, macaddr, ifname=None, json=None):
-        GraphNode.__init__(self, domain=domain)
+    def __init__(self, domain, macaddr, subnet, ifname=None, json=None):
+        assert isinstance(subnet, Subnet)
+        GraphNode.__init__(self, domain=domain if domain is not None else subnet.domain)
         mac = pyNetAddr(macaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
             raise ValueError('Not a legal MAC address [%s]' % macaddr)
@@ -438,6 +440,7 @@ class NICNode(GraphNode):
             oui = self.mac_to_oui(self.macaddr)
             if oui is not None:
                 self.OUI = oui
+        self.subnet = subnet.name
 
     @staticmethod
     def mac_to_oui(macaddr):
@@ -452,19 +455,35 @@ class NICNode(GraphNode):
 
     @staticmethod
     def meta_key_attributes():
-        'Return our key attributes in decreasing order of significance'
-        return ['macaddr', 'domain']
+        """
+        Return our key attributes in decreasing order of significance
+        :return:  [str]
+        """
+        return ['macaddr', 'subnet', 'domain']
+
+    def post_db_init(self):
+        """Set up the labels on the graph"""
+        GraphNode.post_db_init(self)
+        self.association.store.add_labels(self, (Subnet.name_to_label(self.subnet),))
 
 
 @RegisterGraphClass
 class IPaddrNode(GraphNode):
-    '''An object that represents a v4 or v6 IP address without a port - characterized by its
+    """An object that represents a v4 or v6 IP address without a port - characterized by its
     IP address. They are always represented in the database in ipv6 format.
-    '''
+    It is must be unique within the 'subnet' passed as a parameter
+    """
     StoreHostNames = True
-    def __init__(self, domain, ipaddr, cidrmask='unknown'):
-        'Construct an IPaddrNode - validating our parameters'
-        GraphNode.__init__(self, domain=domain)
+
+    def __init__(self, ipaddr, subnet):
+        """
+        Construct an IPaddrNode - validating our parameters
+
+        :param ipaddr: Union(str, pyIPaddr): the IP address for this node
+        :param subnet:
+        """
+        assert isinstance(subnet, Subnet)
+        GraphNode.__init__(self, domain=subnet.domain)
         if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
             ipaddrout = pyNetAddr(str(ipaddr))
         else:
@@ -475,24 +494,41 @@ class IPaddrNode(GraphNode):
                 ipaddrout = ipaddrout.toIPv6()
             elif addrtype != ADDR_FAMILY_IPV6:
                 raise ValueError('Invalid network address type for IPaddrNode constructor: %s'
-                %   str(ipaddrout))
+                                 % str(ipaddrout))
             ipaddrout.setport(0)
         else:
             raise ValueError('Invalid address type for IPaddrNode constructor: %s type(%s)'
-            %   (str(ipaddr), type(ipaddr)))
+                             % (str(ipaddr), type(ipaddr)))
         self.ipaddr = unicode(str(ipaddrout))
-        self.cidrmask = cidrmask
+        self._ipaddr = ipaddrout
+        self.cidrmask = subnet.cidrmask
+        if not subnet.belongs_on_this_subnet(ipaddrout):
+            raise ValueError('IP address %s does not belong on subnet %s' % (ipaddrout, subnet))
+
         if IPaddrNode.StoreHostNames and not hasattr(self, 'hostname'):
             ip = repr(pyNetAddr(ipaddr))
             try:
                 self.hostname = socket.gethostbyaddr(ip)[0]
             except socket.herror:
-                return
+                pass
+        self.subnet = subnet.name
+        self.association.store.add_labels(self, (subnet.subnet_label,))
 
     @staticmethod
     def meta_key_attributes():
-        'Return our key attributes in order of significance'
-        return ['ipaddr', 'domain']
+        """
+        Return our key attributes in order of significance
+        Domain is redundant, but nice to have indexed
+        :return: [str]
+        """
+        return ['ipaddr', 'subnet', 'domain']
+
+    def post_db_init(self):
+        """Set up the labels on the graph"""
+        GraphNode.post_db_init(self)
+        print >> sys.stderr, ('POST_DB_INIT: Adding labels: %s' % Subnet.name_to_label(self.subnet))
+        self.association.store.add_labels(self, (Subnet.name_to_label(self.subnet),))
+
 
 class Subnet(GraphNode):
     """
@@ -500,9 +536,7 @@ class Subnet(GraphNode):
 
     A key feature that's a bit hard to deal with here is that we need to give it a
     unique name.
-
     """
-
     def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_'):
         """
         A class defining a subnet. Like every other part of the system, we really only
@@ -513,13 +547,13 @@ class Subnet(GraphNode):
         :param cidrmask: int: subnet mask in CIDR format (just a single int)
                          If ipaddr is a string and contains a /, the part after the '
                          is considered to be the 'cidrmask'
-        :param context: str: Further context - if any...
+        :param context: str: Further context system name, etc.
         """
         GraphNode.__init__(self, domain=domain)
         if isinstance(ipaddr, str) and '/' in ipaddr:
             ipaddr, cidrmask = ipaddr.split('/', 1)
         self._ipaddr = pyNetAddr(str(ipaddr))
-        self._ipaddr.port = 0
+        self._ipaddr.setport(0)
         try:
             self.cidrmask = int(cidrmask)
         except ValueError:
@@ -573,7 +607,17 @@ class Subnet(GraphNode):
         For IP addresses things are associated with this subnet, label them with this label.
         :return: str: subnet label
         """
-        return str(self).replace('.', '_').replace(':', '_').replace('-', '_').replace('/', '_')
+        return self.name_to_label(str(self))
+
+    @staticmethod
+    def name_to_label(name):
+        """
+        Convert this subnet name to a subnet label
+        :param name: str: subnet name
+        :return: str: subnet label
+        """
+        return ('Subnet_' + str(name).replace('.', '_').replace(':', '_')
+                .replace('-', '_').replace('/', '_'))
 
     def members(self, cls=None):
         """
@@ -599,12 +643,32 @@ class Subnet(GraphNode):
         query = "MATCH (n:Class_Subnet) WHERE n.name = $name RETURN n"
         return store.load_cypher_node(query, {'name': subnet_name})
 
+    def belongs_on_this_subnet(self, ipaddr):
+        """
+        Return True if this IP address belongs on this subnet...
+        :param ipaddr: pyNetAddr: Address to test
+        :return: True or False
+        """
+        base_ip = ipaddr.and_with_cidr(self.cidrmask)
+        return base_ip == self._ipaddr
+
+    def __eq__(self, other):
+        """
+        Equal operation between two Subnet objects
+        :param other: Subnet: The other subnet
+        :return: bool: what you'd expect...
+        """
+        assert isinstance(other, Subnet)
+        return self.name == other.name
+
     @staticmethod
     def meta_key_attributes():
         """
         Return our key attributes in order of significance
+        Everything else is redundant with respect to name
+        Do I need the others indexed too?
         """
-        return ['context', 'ipaddr', 'cidrmask', 'domain', 'name']
+        return ['name', 'context', 'ipaddr', 'cidrmask', 'domain']
 
 
 @RegisterGraphClass

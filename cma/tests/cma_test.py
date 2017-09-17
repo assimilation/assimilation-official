@@ -84,7 +84,7 @@ class TestFoo:
     @inject.params(db='py2neo.Graph', log='logging.Logger', store='Store')
     def config_foo(db=None, log=None, store=None):
         # print "config_foo(%s, %s, %s)" % (db, log, store)
-        log.warning("config_foo(%s, %s, %s)" % (db, log, store))
+        # log.warning("config_foo(%s, %s, %s)" % (db, log, store))
         TestFoo.db = db
         TestFoo.log = log
         TestFoo.store = store
@@ -98,6 +98,23 @@ class TestFoo:
                 print >> sys.stderr, ('COMMITTING PENDING TRANSACTION')
                 TestFoo.store.db_transaction.commit()
         TestFoo.store.db_transaction = TestFoo.store.db.begin(autocommit=False)
+
+    @staticmethod
+    def cleanstore():
+        if TestFoo.store:
+            # print >> sys.stderr, ('CLEANING OUT STORE AND SO ON...')
+            for thing in [ref() for ref in TestFoo.store.weaknoderefs.viewvalues()]:
+                if thing is None:
+                    continue
+                thing.association.obj = None
+                thing.association.store = None
+            for client in TestFoo.store.clients:
+                if client.association:
+                    client.association.store = None
+                    client.association.obj = None
+            TestFoo.store.abort()
+            TestFoo.store.weaknoderefs = {}
+            TestFoo.store.clients = set()
 
 if BuildListOnly:
     doHBDEAD=False
@@ -176,6 +193,7 @@ class TestCase(object):
 
     def teardown_method(self, method):
         print '                                %s::teardown_method' % str(method)
+        TestFoo.cleanstore()
         IOTestIO.shutdown()
         assert_no_dangling_Cclasses()
 
@@ -485,11 +503,7 @@ class IOTestIO:
         self.packetswritten = 0
         self.config = None
         self.timeout = None
-        if CMAdb.store:
-            CMAdb.store.abort()
-            CMAdb.store.weaknoderefs = {}
-            CMAdb.store.clients = set()
-            CMAdb.store = None
+        TestFoo.cleanstore()
         CMAinit.uninit()
 
     def getmaxpktsize(self):    return 60000
@@ -509,7 +523,6 @@ class FakeDrone(dict):
 
     def get(self, name, ret):
         return ret
-
 
 
 class TestTestInfrastructure(TestCase):
@@ -1388,7 +1401,6 @@ class TestNetDevices(TestCase):
         initializing subnets in a variety of ways...
         return: None
         """
-
         net1 = Subnet('global', '10.10.10.20', 24)
         assert net1.cidrmask == 120
         net2 = Subnet('global', '10.10.10.20/24')
@@ -1397,11 +1409,12 @@ class TestNetDevices(TestCase):
         assert net3.cidrmask == 120
         net4 = Subnet('global', '10.10.10.20', '255.255.255.0')
         assert net4.cidrmask == 120
-        net5 = Subnet('global', pyNetAddr('10.10.10.20:80'), 24)
+        net5 = Subnet('global', pyNetAddr('10.10.10.32:80'), 24)
         assert net5.cidrmask == 120
+        assert net5.ipaddr == net1.ipaddr
+        assert net5.ipaddr == str(pyNetAddr('10.10.10.0').toIPv6())
         net6 = Subnet('global', '10.10.10.10/32')
-        print(net6)
-        print(net6.subnet_label)
+        assert len(net6.subnet_label) >= len(str(net6))
         assert net6.cidrmask == 128
         self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/33')
         self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/')
@@ -1409,8 +1422,29 @@ class TestNetDevices(TestCase):
         self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.256')
         self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.255.0')
         self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.0xff.255')
-        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.256')
 
+    def test_subnet_and_ipaddr(self):
+        """
+        A test of subnets and IP addresses together
+        :return: None
+        """
+        store=TestFoo.store
+        CMAinit(None, cleanoutdb=True, debug=DEBUG)
+        TestFoo.new_transaction()
+        subnet = store.load_or_create(Subnet, domain='global', ipaddr='10.10.10.20/255.255.255.0')
+        ipaddr1 = store.load_or_create(IPaddrNode, ipaddr='10.10.10.20', subnet=subnet)
+        assert ipaddr1.subnet == subnet.name
+        ipaddr1.association.store.commit()
+        TestFoo.new_transaction()
+        print(ipaddr1.association.store.labels(ipaddr1))
+        assert subnet.subnet_label in ipaddr1.association.store.labels(ipaddr1)
+
+    def test_subnet_and_macaddr(self):
+        """
+        A test of subnets and MAC addresses (NICNodes) together
+        :return: None
+        """
+        pass
 
 TestFoo.config_foo()
 
