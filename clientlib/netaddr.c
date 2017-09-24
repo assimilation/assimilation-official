@@ -1038,7 +1038,6 @@ netaddr_dns_new(const char * sysname_or_addr)	//< System name/address
 	}
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_DGRAM;
 	rc =  getaddrinfo(sysname, service, &hints, &sysinfo);
 	if (0 != rc) {
 		DEBUGMSG("%s.%d: Could not resolve %s - reason: %s"
