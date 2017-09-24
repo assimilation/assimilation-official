@@ -564,6 +564,55 @@ class ClientQuery(GraphNode):
                 except ValueError as e:
                     print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
 
+    # [R0914:grab_category_scores] Too many local variables (19/15)
+    # pylint: disable=R0914
+    def grab_category_scores(self, categories=None, domains=None, debug=False):
+        """Method to create and return some python Dicts with security scores and totals by category
+        and totals by drone/category
+        Categories is None, a desired category, or a list of desired categories.
+        domains is None, a desired domain, or a list of desired domains.
+        """
+        if domains is None:
+            cypher = """MATCH(drone:Class_Drone) RETURN drone"""
+        else:
+            domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
+            cypher = ("MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone"
+                      % str(list(domains)))
+        if categories is not None:
+            categories = ((categories,) if isinstance(categories, (str, unicode))
+                          else list(categories))
+
+        bpobj = BestPractices(CMAdb.config, CMAdb.io, self._store, self._log, debug=debug)
+        dtype_totals = {}  # scores organized by (domain, category, discovery-type)
+        drone_totals = {}  # scores organized by (domain, category, discovery-type, drone)
+        rule_totals = {}   # scores organized by (domain, category, discovery-type, rule)
+
+        for drone in self._store.load_cypher_nodes(cypher):
+            domain = drone.domain
+            designation = drone.designation
+            discoverytypes = drone.bp_discoverytypes_list()
+            for dtype in discoverytypes:
+                dattr = Drone.bp_discoverytype_result_attrname(dtype)
+                statuses = getattr(drone, dattr)
+                for rule_obj in BestPractices.eval_objects[dtype]:
+                    rulesobj = rule_obj.fetch_rules(drone, None, dtype)
+                    _, scores, rulescores = bpobj.compute_scores(drone, rulesobj, statuses)
+                    for category in scores:
+                        if categories and category not in categories:
+                            continue
+                        # Accumulate scores by (domain, category, discovery_type)
+                        setup_dict3(dtype_totals, domain, category, dtype)
+                        dtype_totals[domain][category][dtype] += scores[category]
+                        # Accumulate scores by (domain, category, discovery_type, drone)
+                        setup_dict4(drone_totals, domain, category, dtype, designation)
+                        drone_totals[domain][category][dtype][designation] += scores[category]
+                        # Accumulate scores by (domain, category, discovery_type, ruleid)
+                        for ruleid in rulescores[category]:
+                            setup_dict4(rule_totals, domain, category, dtype, ruleid)
+                            rule_totals[domain][category][dtype][ruleid] \
+                                += rulescores[category][ruleid]
+
+        return dtype_totals, drone_totals, rule_totals
 class QueryExecutor(object):
     """An abstract class which knows which can perform a variety of types of queries
     At the moment that's "python" and "cypher".
@@ -738,11 +787,13 @@ class PythonSecRuleScores(PythonExec):
                           key=sortkeys, reverse=True):
             yield tup
 
+
 @PythonExec.register
 class PythonHostSecScores(PythonExec):
     """Return discovery type+host security scores
     """
     PARAMETERS = []
+
     def result_iterator(self, _params):
         dtype_totals, drone_totals, _rule_totals = grab_category_scores(self.store)
         # 0:  domain
@@ -755,6 +806,7 @@ class PythonHostSecScores(PythonExec):
         for tup in sorted(yield_drone_scores([], drone_totals, dtype_totals),
                           key=sortkeys, reverse=True):
             yield tup
+
 
 @PythonExec.register
 class AllPythonHostScores(PythonExec):
@@ -791,6 +843,7 @@ def setup_dict3(d, key1, key2, key3):
     if key3 not in d[key1][key2]:
         d[key1][key2][key3] = 0.0
 
+
 def setup_dict4(d, key1, key2, key3, key4):
     'Initialize the given subkey (4 layers down)to 0.0'
     if key1 not in d:
@@ -803,53 +856,6 @@ def setup_dict4(d, key1, key2, key3, key4):
         d[key1][key2][key3][key4] = 0.0
 
 
-# [R0914:grab_category_scores] Too many local variables (19/15)
-# pylint: disable=R0914
-def grab_category_scores(store, categories=None, domains=None, debug=False):
-    """Method to create and return some python Dicts with security scores and totals by category
-    and totals by drone/category
-    Categories is None, a desired category, or a list of desired categories.
-    domains is None, a desired domain, or a list of desired domains.
-    """
-    if domains is None:
-        cypher = """MATCH(drone:Class_Drone) RETURN drone"""
-    else:
-        domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
-        cypher = ("MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone"
-                 %  str(list(domains)))
-    if categories is not None:
-        categories = (categories,) if isinstance(categories, (str, unicode)) else list(categories)
-
-    bpobj = BestPractices(CMAdb.io.config, CMAdb.io, store, CMAdb.log, debug=debug)
-    dtype_totals = {}  # scores organized by (domain, category, discovery-type)
-    drone_totals = {}  # scores organized by (domain, category, discovery-type, drone)
-    rule_totals  = {}  # scores organized by (domain, category, discovery-type, rule)
-
-    for drone in store.load_cypher_nodes(cypher):
-        domain = drone.domain
-        designation = drone.designation
-        discoverytypes = drone.bp_discoverytypes_list()
-        for dtype in discoverytypes:
-            dattr = Drone.bp_discoverytype_result_attrname(dtype)
-            statuses = getattr(drone, dattr)
-            for rule_obj in BestPractices.eval_objects[dtype]:
-                rulesobj = rule_obj.fetch_rules(drone, None, dtype)
-                _, scores, rulescores = bpobj.compute_scores(drone, rulesobj, statuses)
-                for category in scores:
-                    if categories and category not in categories:
-                        continue
-                    # Accumulate scores by (domain, category, discovery_type)
-                    setup_dict3(dtype_totals, domain, category, dtype)
-                    dtype_totals[domain][category][dtype] += scores[category]
-                    # Accumulate scores by (domain, category, discovery_type, drone)
-                    setup_dict4(drone_totals, domain, category, dtype, designation)
-                    drone_totals[domain][category][dtype][designation] += scores[category]
-                    # Accumulate scores by (domain, category, discovery_type, ruleid)
-                    for ruleid in rulescores[category]:
-                        setup_dict4(rule_totals, domain, category, dtype, ruleid)
-                        rule_totals[domain][category][dtype][ruleid] += rulescores[category][ruleid]
-
-    return dtype_totals, drone_totals, rule_totals
 
 def yield_total_scores(dtype_totals, categories=None):
     """Format the total scores by category as a named tuple.

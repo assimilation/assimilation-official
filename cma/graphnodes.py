@@ -420,38 +420,195 @@ class BPRuleSet(GraphNode):
 
 @RegisterGraphClass
 class NICNode(GraphNode):
-    'An object that represents a NIC - characterized by its MAC address'
-    def __init__(self, domain, macaddr, subnet, ifname=None, json=None):
-        assert isinstance(subnet, Subnet)
-        GraphNode.__init__(self, domain=domain if domain is not None else subnet.domain)
+    """
+    An object that represents a NIC - characterized by its MAC address
+    We handily ignore the fact that a single NIC can have multiple MAC addresses...
+
+    One of the problematic issues about NICs is that in fact, they can be duplicated.
+    Theory says otherwise "mostly" but obvious examples are the loopback device and
+    virtual NICs. There is no mechanism to insure that virtual NICs aren't duplicated
+    within an enterprise. So the practical matter is that they can show up multiple times,
+    and the same NIC can show up in mulitple contexts - confusing the issue.
+
+    And what is the issue?  The issue is that we want each NIC (real or virtual) to appear exactly
+    once in our database.
+
+    There are currently three different contexts in which we might find a NIC:
+
+        a)  It might be a NIC attached to one of our Drones. It might be real, or it might
+            be virtual. It might have associated IP addresses, or it might not. If it has
+            an IP address, which in turn is associated with a subnet.
+
+        b)  It might be discovered by our ARP listeners. In this case, it might be real,
+            or it could be virtual. But it always has an associated IP address, which
+            has an associated subnet.
+
+        c)  It might be a NIC attached to a switch which we've discovered - currently only by LLDP
+            but it could eventually be through SNMP or other types of discovery. Most of these
+            are real, but it's not obvious what some of them are (virtual spanned??).
+            Some will have associated IP addresses, but most will not.
+
+    The issue here is that some NICs discovered by (b) might also have been discovered previously
+    by method (a) or (c). Conversely, some discovered by (a) or (c) might have previously been
+    discovered by method (b).
+
+    100% of the confusion comes from category (b). But in category (b) there is something
+    interesting going on - the MACs have associated IPv4 IPs. There's a pretty simple query which
+    will find any similar pairs in this particular domain - or for that matter in the
+    entire database.
+
+    But in cases (a) and (c) the NICs need to be owned by this particular SystemNode.
+    Here's an algorithm that might work:
+        for case (b) - always look for the IP/MAC pair (in this domain?)
+                       if you find it, then that's your NIC/MAC.
+                       if not, then create it.
+                       You need something to ensure that this is unique.
+                       So, use the subnet it's on to ensure uniqueness.
+        for cases (a) and (c) if it exists - then you're done - return that NICNode
+        If it doesn't exist and it doesn't have a non-local IP, then create it - you're done.
+        If it doesn't exist but has an associated non-local IP, then you search for
+        all the IPs associated with this MAC in your domain. If any of them match your IPs
+        then return that NICNode.
+
+    To make things a bit more complicated - it's possible for a given ethernet broadcast domain to
+    cover multiple subnets. This only comes up for case (b).
+
+    Do we need to represent broadcast domains as well as subnets?  How do we identify broadcast
+    domains? How to name them?
+
+
+    Either a NIC is associated with an IP address or a host.  NICs which aren't associated with
+    either one can't be seen.
+
+    IP addresses can either be associated with a subnet (like found through the 'ip' command)
+    or they are associated with a network segment via an ARP.
+
+    The key thing I still don't understand is how to name a network segment particularly before we
+    know which subnets are associated with that network segment. We always know one of the subnets
+    that's associated with it. And the set of subnets may change over time - especially if one
+    or more of them was due to a mistake ;-)
+
+    For the case where I'm doing a netconfig discovery:
+
+    That data is organized by NICs. Each NIC is potentially its own network segment.
+
+    When I'm processing an ARP packet, I can query the NICs for a network segment attribute, and
+    assign that network segment to my NIC and all the other NICs I heard about in the ARP packet.
+    If the query returns no NICs with an assigned network segment attribute, then I'll construct
+    a network segment UUID - and use that for creating all the NICs.
+
+    The question is how will I make sure I don't get a different NIC with the same MAC address?
+    The only way to know for sure is if we can hear ARPs, and figure out which MACs go together.
+
+    I think the bigger question is when I create a MAC address from the get-go from Drone
+    discovery, whether that particular MAC address has been seen before...
+
+    When creating a MAC address from netconfig, it should probably be enough to say "We found the
+    same IP/MAC pair in the database for the same domain - if we did then that's ours.
+    We may need to update the IP to have
+
+    Conversely, when we hear IP/MACs
+
+    We assume that IPs that we hear from in tcpdiscovery are global.
+
+    There are three ways we discover IP addresses:
+    1) netconfig
+    2) ARP caches
+    3) tcpdiscovery
+    """
+    def __init__(self, domain, macaddr, scope, ifname=None, json=None, net_segment=None):
+        """
+        Construct a NICNode object from our parameters
+        :param domain: str: domain of this object - which customer is it?
+        :param macaddr: str: MAC address in one of the standard formats
+        :param scope: str: the scope of this MAC address - part of its fully qualified name
+        :param ifname: str: interface name if known
+        :param json: str: JSON string from netconfig discovery
+        :param net_segment: str: UUID of our network segment - or None
+                                 We only know the network segment when we are dealing with ARP
+                                 caches. Maybe we should set it to 'unknown' otherwise?
+        """
+        GraphNode.__init__(self, domain=domain)
         mac = pyNetAddr(macaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
             raise ValueError('Not a legal MAC address [%s]' % macaddr)
         self.macaddr = str(mac)
-        if ifname is not None:
-            self.ifname = ifname
+        self.ifname = ifname  # If it's none it doesn't go into the database...
         if json is not None:
             self.json = json
             self._json = pyConfigContext(json)
-            for attr in ('carrier', 'duplex', 'MTU', 'operstate', 'speed'):
+            for attr in ('carrier', 'duplex', 'MTU', 'operstate', 'speed', 'virtual', 'type'
+                         'bridge_id', 'brport_bridge'):
                 if attr in self._json:
                     setattr(self, attr, self._json[attr])
         if not hasattr(self, 'OUI'):
             oui = self.mac_to_oui(self.macaddr)
             if oui is not None:
                 self.OUI = oui
-        self.subnet = subnet.name
+        self.scope = scope
+        self.net_segment = net_segment
+
+    def guess_net_segment(self, ip_mac_pairs, fraction=0.5):
+        """
+        Determine (guess) the network segment for this NICNode if we can figure it out...
+        The theory behind this is that the same combination of IP:MAC pairs only exists
+        in this one network segment. This is not guaranteed, and in fact, for the case
+        of local container or VM networks
+
+        The most reliable use of this algorithm would be when looking at ARP discovery
+        output. It could probably also be used for a single IP/MAC pair as well - but
+        not as reliably...
+
+        :param ip_mac_pairs: [(str,str)]: list of (MAC, ip) tuples
+        :param fraction: What % of ip_mac_pairs must be matched?
+        :return: str: matching net segment name or None
+        """
+        mac_addrs = list({str(each[0]) for each in ip_mac_pairs})
+        ip_addrs = list({str(each[1]) for each in ip_mac_pairs})
+
+        query = """
+        MATCH (ip:Class_IPaddrNode)->[:ipowner]->(mac:Class_NICNode)
+        WHERE ip.ipaddr in $ip_addrs AND mac.macaddr in $mac_addrs
+        AND ip.domain = $domain AND mac.domain = $domain
+        AND mac.net_segment IS NOT NULL
+        RETURN ip.ipaddr as ipaddr, mac.macaddr as macaddr, mac.net_segment as net_segment
+        """
+        #
+        # The return result is not guaranteed to be what we're looking for, but it's very likely
+        # to be what we're looking for. We need to filter out to get what we're looking for...
+        #
+        possible_segments = {}
+        bad_segments = set()
+        parameters = {'domain': self.domain, 'mac_addrs': mac_addrs, 'ip_addrs': ip_addrs}
+        for result in self.association.store.load_cypher_query(query, params=parameters):
+            pair = (result.macaddr, result.ipaddr)
+            segment = result.net_segment
+            if segment not in possible_segments:
+                possible_segments[segment] = 0
+            if pair in ip_mac_pairs:
+                possible_segments[segment] += 1
+            else:
+                possible_segments[segment] -= 1
+        # Now we have a count of how many times we have a good match minus how many
+        # we had a mismatch on... We'll take the segment with the highest positive count...
+        max_count = 0
+        best_segment = None
+        for segment, count in possible_segments.viewitems():
+            if count > max_count:
+                best_segment = segment
+                max_count = count
+        return best_segment if max_count >= int(len(ip_mac_pairs)*fraction) else None
 
     @staticmethod
     def mac_to_oui(macaddr):
-        'Convert a MAC address to an OUI organization string - or raise KeyError'
+        'Convert a MAC address to an OUI organization string - or return None'
         try:
             # Pylint is confused about the netaddr.EUI.oui.registration return result...
             # pylint: disable=E1101
             return str(netaddr.EUI(macaddr).oui.registration().org)
         except netaddr.NotRegisteredError:
             prefix = str(macaddr)[0:8]
-            return CMAdb.io.config['OUI'][prefix] if prefix in CMAdb.io.config['OUI'] else None
+            return CMAdb.config['OUI'][prefix] if prefix in CMAdb.config['OUI'] else None
 
     @staticmethod
     def meta_key_attributes():
@@ -459,7 +616,7 @@ class NICNode(GraphNode):
         Return our key attributes in decreasing order of significance
         :return:  [str]
         """
-        return ['macaddr', 'subnet', 'domain']
+        return ['macaddr', 'scope', 'domain']
 
     def post_db_init(self):
         """Set up the labels on the graph"""
@@ -519,14 +676,15 @@ class IPaddrNode(GraphNode):
         """
         Return our key attributes in order of significance
         Domain is redundant, but nice to have indexed
+        Not sure what it means to have an optional value listed as a potential key value
         :return: [str]
         """
-        return ['ipaddr', 'subnet', 'domain']
+        return ['ipaddr', 'subnet', 'domain', 'net_segment']
 
     def post_db_init(self):
         """Set up the labels on the graph"""
         GraphNode.post_db_init(self)
-        print >> sys.stderr, ('POST_DB_INIT: Adding labels: %s' % Subnet.name_to_label(self.subnet))
+        # print >> stderr, ('POST_DB_INIT: Adding labels: %s' % Subnet.name_to_label(self.subnet))
         self.association.store.add_labels(self, (Subnet.name_to_label(self.subnet),))
 
 

@@ -101,6 +101,7 @@ class TestFoo:
 
     @staticmethod
     def cleanstore():
+        CMAInjectables.set_config({})
         if TestFoo.store:
             # print >> sys.stderr, ('CLEANING OUT STORE AND SO ON...')
             for thing in [ref() for ref in TestFoo.store.weaknoderefs.viewvalues()]:
@@ -154,7 +155,7 @@ def assert_no_dangling_Cclasses(doassert=None):
     if doassert is None:
         doassert = AssertOnDanglingClasses
     IOTestIO.shutdown()
-    CMAinit.uninit()
+    # CMAinit.uninit()
     gc.collect()    # For good measure...
     count = proj_class_live_object_count()
     # print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
@@ -434,7 +435,6 @@ class IOTestIO:
 
     def recvframesets(self):
         # Audit after each packet is processed - and once before the first packet.
-        assert CMAdb.io.config is not None
         if DoAudit:
             if self.packetsread < 200 or (self.packetsread % 500) == 0:
                 auditalldrones()
@@ -501,10 +501,10 @@ class IOTestIO:
         # as part of the cleanup action?
         self.inframes = []
         self.packetswritten = 0
-        self.config = None
+        # self.config = None
         self.timeout = None
         TestFoo.cleanstore()
-        CMAinit.uninit()
+        #CMAinit.uninit()
 
     def getmaxpktsize(self):    return 60000
     def fileno(self):        	return self.pipe_read
@@ -652,6 +652,7 @@ class TestCMABasic(TestCase):
         if DEBUG:
             print >> sys.stderr, 'Running test_startup()'
         CMAdb.debug = True
+        CMAInjectables.set_config(ConfigFile().complete_config())
         AssimEvent.disable_all_observers()
         #
         #   Create the initial STARTUP frame with network discovery attached
@@ -681,9 +682,8 @@ class TestCMABasic(TestCase):
         our_addr = pyNetAddr((127,0,0,1),1984)
         configinit = geninitconfig(our_addr)
         config = pyConfigContext(init=configinit)
-        io.config = config
+        CMAInjectables.set_config(config)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        CMAdb.io.config = config
         assimcli_check('loadqueries')
         from dispatchtarget import DispatchTarget
         disp = MessageDispatcher(DispatchTarget.dispatchtable, encryption_required=False)
@@ -708,12 +708,10 @@ class TestCMABasic(TestCase):
         assimcli_check("query shutdown", 0)
         assimcli_check("query crashed", 0)
         assimcli_check("query unknownips", 0)
-        CMAdb.io.config = config
         drones = [drone for drone in CMAdb.store.load_cypher_nodes("MATCH(n:Class_Drone) RETURN n")]
         for drone in drones:
             self.check_discovery(drone, (drone_network_discovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
         self.assertEqual(len(drones), 1) # Should only be one drone
-        io.config = None
         del ulimitdiscovery, osdiscovery, drones, disp, listener
         DispatchTarget.dispatchtable = {}
         del DispatchTarget
@@ -801,11 +799,11 @@ class TestCMABasic(TestCase):
         if DEBUG:
             print >> sys.stderr, 'Running test_several_startups()'
         AssimEvent.disable_all_observers()
-        OurAddr = pyNetAddr((10,10,10,5), 1984)
+        OurAddr = pyNetAddr((10, 10, 10, 5), 1984)
         configinit = geninitconfig(OurAddr)
         # Create the STARTUP FrameSets that our fake Drones should appear to send
         fsin = []
-        droneid=0
+        droneid = 0
         for droneid in range(1, MaxDrone+1):
             droneip = droneipaddress(droneid)
             designation = dronedesignation(droneid)
@@ -833,7 +831,6 @@ class TestCMABasic(TestCase):
                 fsin.append((droneip, (fs,)))
         io = IOTestIO(fsin)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        assert CMAdb.io.config is not None
         assimcli_check('loadqueries')
         disp = MessageDispatcher( {
             FrameSetTypes.STARTUP: DispatchSTARTUP(),
@@ -841,12 +838,12 @@ class TestCMABasic(TestCase):
             FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN(),
         }, encryption_required=False)
         config = pyConfigContext(init=configinit)
+        CMAInjectables.set_config(config)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
         IOTestIO.mainloop = listener.mainloop
         # We send the CMA a BUNCH of intial STARTUP packets
         # and (optionally) a bunch of HBDEAD packets
-        assert CMAdb.io.config is not None
         assert CMAdb.net_transaction is not None
         listener.listen()
         # We audit after each packet is processed
@@ -1428,7 +1425,8 @@ class TestNetDevices(TestCase):
         A test of subnets and IP addresses together
         :return: None
         """
-        store=TestFoo.store
+        CMAInjectables.set_config(ConfigFile().complete_config())
+        store = TestFoo.store
         CMAinit(None, cleanoutdb=True, debug=DEBUG)
         TestFoo.new_transaction()
         subnet = store.load_or_create(Subnet, domain='global', ipaddr='10.10.10.20/255.255.255.0')
@@ -1436,15 +1434,25 @@ class TestNetDevices(TestCase):
         assert ipaddr1.subnet == subnet.name
         ipaddr1.association.store.commit()
         TestFoo.new_transaction()
-        print(ipaddr1.association.store.labels(ipaddr1))
-        assert subnet.subnet_label in ipaddr1.association.store.labels(ipaddr1)
+        assert subnet.subnet_label in store.labels(ipaddr1)
+        assert Subnet.find_subnet(store, ipaddr1.subnet) is subnet
 
-    def test_subnet_and_macaddr(self):
+    def test_scope_and_macaddr(self):
         """
-        A test of subnets and MAC addresses (NICNodes) together
+        A test of MAC addresses (NICNodes) with scopes...
         :return: None
         """
-        pass
+        CMAInjectables.set_config(ConfigFile().complete_config())
+        store = TestFoo.store
+        CMAinit(None, cleanoutdb=True, debug=DEBUG)
+        TestFoo.new_transaction()
+        macaddr1 = store.load_or_create(NICNode, domain='global',
+                                        macaddr='aa-bb-cc-dd-ee-ff',
+                                        ifname='eth0',
+                                        scope='global:servidor')
+        assert macaddr1.scope == 'global:servidor'
+        macaddr1.association.store.commit()
+        TestFoo.new_transaction()
 
 TestFoo.config_foo()
 
@@ -1457,8 +1465,6 @@ if __name__ == "__main__":
             test_classes.append((name, obj))
     test_classes.sort()
     for name, cls in test_classes:
-        if cls.__name__ != 'TestNetDevices':
-            continue
         obj = cls()
         if hasattr(cls, 'setup_method'):
             obj.setup_method()

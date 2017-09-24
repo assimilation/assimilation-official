@@ -431,8 +431,8 @@ class BestPracticesCMA(BestPractices):
     application = 'os'
     discovery_name = 'JSON_proc_sys'
 
-    def __init__(self, config, packetio, store, log, debug):
-        BestPractices.__init__(self, config, packetio, store, log, debug)
+    def __init__(self, packetio, store, log, debug):
+        BestPractices.__init__(self, packetio, store, log, debug)
 
     def fetch_rules(self, drone, _unusedsrcaddr, discovertype):
         '''Evaluate our rules given the current/changed data.

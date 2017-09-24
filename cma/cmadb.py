@@ -41,16 +41,18 @@ class CMAdb(object):
     net_transaction = None
     log = None
     store = None
+    config = {}
     globaldomain = 'global'
     underdocker = None
     # versions we know we can't work with...
     neo4jblacklist = ['2.0.0']
 
-    @inject.params(db='py2neo.Graph', store='Store')
-    def __init__(self, db, store):
+    @inject.params(db='py2neo.Graph', store='Store', config='Config')
+    def __init__(self, db, store, config):
         self.db = db
         self.io = None
         CMAdb.store = store
+        CMAdb.config = config
         self.dbversion = self.db.neo4j_version
         vers = ""
         dot = ""

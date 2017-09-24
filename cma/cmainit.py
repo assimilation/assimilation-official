@@ -169,7 +169,18 @@ class CMAInjectables(object):
         'NEO4J_READONLY':   False,
         'NEO4J_RETRIES':    300,
     }
+    config = {}
 
+    @staticmethod
+    def set_config(config):
+        """
+        Set things up so our config gets used during injection. Should be used
+        before setting up injection.
+        :param config: dict OR callable returning dict
+        :return: None
+        """
+        CMAInjectables.config = config
+        CMAdb.config = config
 
     @staticmethod
     def setup_prod_logging(name=None, address=None, facility=None, level=None):
@@ -191,6 +202,12 @@ class CMAInjectables(object):
         log.addHandler(syslog)
         log.setLevel(level)
         return log
+
+    @staticmethod
+    def setup_config():
+        if callable(CMAInjectables.config):
+            return CMAInjectables.config()
+        return CMAInjectables.config
 
     @staticmethod
     def setup_test_logging(name=None, address=None, facility=None, level=None):
@@ -260,6 +277,7 @@ class CMAInjectables(object):
         binder.bind_to_provider('Neo4jCreds', Neo4jCreds)  # odd, but intentional...
         binder.bind_to_constructor('py2neo.Graph', CMAInjectables.setup_db)
         binder.bind_to_constructor('Store', CMAInjectables.setup_store)
+        binder.bind_to_provider('Config', CMAInjectables.setup_config)
 
     @staticmethod
     def test_config_injection(binder):
@@ -269,6 +287,7 @@ class CMAInjectables(object):
         binder.bind_to_provider('Neo4jCreds', Neo4jCreds)  # odd, but intentional...
         binder.bind_to_constructor('py2neo.Graph', CMAInjectables.setup_db)
         binder.bind_to_constructor('Store', CMAInjectables.setup_store)
+        binder.bind_to_provider('Config', CMAInjectables.setup_config)
         return
 
     @staticmethod
@@ -334,9 +353,9 @@ class CMAinit(object):
                     CMAdb.net_transaction.commit_trans()
                 #print >> sys.stderr, 'COMMITTING Store'
                 #print >> sys.stderr, 'NetTransaction Commit results:', CMAdb.store.commit()
-                if CMAdb.store.db_transaction:
+                if CMAdb.store.db_transaction and not CMAdb.store.db_transaction.finished:
                     CMAdb.store.commit()
-                #print >> sys.stderr, 'Store COMMITTED'
+                    #print >> sys.stderr, 'Store COMMITTED'
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
         else:
             CMAdb.net_transaction = None

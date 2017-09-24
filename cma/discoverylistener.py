@@ -121,6 +121,7 @@ class AuditdConfDiscoveryListener(DiscoveryListener):
         # repeat, warn, and interval are automatically added
         drone.request_discovery((params,))
 
+
 # R0912 -- too many branches
 # R0914 -- too many local variables
 #pylint: disable=R0914,R0912

@@ -113,7 +113,7 @@ class Drone(SystemNode):
         if self.association.is_abstract and not CMAdb.store.readonly:
             # print 'Creating BP rules for', self.designation
             from bestpractices import BestPractices
-            bprules = CMAdb.io.config['bprulesbydomain']
+            bprules = CMAdb.config['bprulesbydomain']
             rulesetname = bprules[domain] if domain in bprules else bprules[CMAconsts.globaldomain]
             for rule in BestPractices.gen_bp_rules_by_ruleset(CMAdb.store, rulesetname):
                 # print >> sys.stderr, ('ADDING RELATED RULE SET for',
@@ -271,8 +271,7 @@ class Drone(SystemNode):
         #   One FrameTypes.RSCJSON frame containing JSON Heartbeat parameters
         #   one frame per dest, type FrameTypes.IPPORT
         #
-        params = ConfigFile.agent_params(CMAdb.io.config
-        ,       'heartbeats', None, self.designation)
+        params = ConfigFile.agent_params(CMAdb.config, 'heartbeats', None, self.designation)
         framelist = [{'frametype': FrameTypes.RSCJSON, 'framevalue': str(params)},]
         for addr in addrlist:
             if addr is None:
