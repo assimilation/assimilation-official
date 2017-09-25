@@ -233,7 +233,7 @@ class SystemNode(GraphNode):
         # fs = pyFrameSet(FrameSetTypes.DODISCOVER)
         frames = []
         for arg in args:
-            agent_params = ConfigFile.agent_params(CMAdb.io.config, 'discovery',
+            agent_params = ConfigFile.agent_params(CMAdb.config, 'discovery',
                                                    arg[CONFIGNAME_TYPE], self.designation)
             for key in ('repeat', 'warn' 'timeout', 'nice'):
                 if key in agent_params and key not in arg:
@@ -260,8 +260,8 @@ class SystemNode(GraphNode):
                 classes = SystemNode._JSONprocessors[prio][dtype]
                 # print('PROC[%s][%s] = %s' % (prio, dtype, str(classes)), file=stderr)
                 for cls in classes:
-                    proc = cls(CMAdb.io.config, CMAdb.net_transaction, CMAdb.store,
-                               CMAdb.log, CMAdb.debug)
+                    proc = cls(CMAdb.config, CMAdb.net_transaction, self._store,
+                               self._log, CMAdb.debug)
                     proc.processpkt(self, origaddr, jsonobj, discoverychanged)
         if foundone:
             CMAdb.log.info('Processed %schanged %s JSON data from %s into graph.'
