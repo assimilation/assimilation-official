@@ -23,6 +23,7 @@
 # Pylint is nuts here...
 # pylint: disable=C0411
 import sys, re, time, hashlib, netaddr, socket, logging, inject
+import uuid
 import py2neo
 from consts import CMAconsts
 from store import Store
@@ -526,7 +527,7 @@ class NICNode(GraphNode):
         :param json: str: JSON string from netconfig discovery
         :param net_segment: str: UUID of our network segment - or None
                                  We only know the network segment when we are dealing with ARP
-                                 caches. Maybe we should set it to 'unknown' otherwise?
+                                 caches. It's None otherwise...
         """
         GraphNode.__init__(self, domain=domain)
         mac = pyNetAddr(macaddr)
@@ -552,12 +553,11 @@ class NICNode(GraphNode):
         """
         Determine (guess) the network segment for this NICNode if we can figure it out...
         The theory behind this is that the same combination of IP:MAC pairs only exists
-        in this one network segment. This is not guaranteed, and in fact, for the case
-        of local container or VM networks
+        in this one network segment. This is not guaranteed, and in fact, may happen
+        quite a bit for the case of local container or VM networks
 
         The most reliable use of this algorithm would be when looking at ARP discovery
-        output. It could probably also be used for a single IP/MAC pair as well - but
-        not as reliably...
+        output. It could be used for a single IP/MAC pair as well - but not as reliably...
 
         :param ip_mac_pairs: [(str,str)]: list of (MAC, ip) tuples
         :param fraction: What % of ip_mac_pairs must be matched?
@@ -574,8 +574,9 @@ class NICNode(GraphNode):
         RETURN ip.ipaddr as ipaddr, mac.macaddr as macaddr, mac.net_segment as net_segment
         """
         #
-        # The return result is not guaranteed to be what we're looking for, but it's very likely
-        # to be what we're looking for. We need to filter out to get what we're looking for...
+        # The return result is not guaranteed to be what we're looking for,
+        # but it's likely to be the one we're looking for.
+        # Let's go after the best match.
         #
         possible_segments = {}
         bad_segments = set()
@@ -597,7 +598,45 @@ class NICNode(GraphNode):
             if count > max_count:
                 best_segment = segment
                 max_count = count
-        return best_segment if max_count >= int(len(ip_mac_pairs)*fraction) else None
+        return best_segment if max_count >= int((len(ip_mac_pairs)*fraction) + 0.5) else None
+
+    @staticmethod
+    @def find_this_macaddr(store, domain,  macaddr, system=None, net_segment=None):
+        """
+        Locate this MAC address somehow...
+        :param store: Store: Our store
+        :param domain: str: Domain for the NIC
+        :param macaddr: str: MAC address
+        :param system: SystemNode: The associated SystemNode if known
+        :param net_segment: str or None: our network segment or None
+        :return: NICNode or None
+        """
+        if system is None:
+            query = 'MATCH(nic:Class_NicNode) WHERE nic.domain = $domain and nic.macaddr = $macaddr'
+        else:
+            query = """
+            MATCH(nic:Class_NicNode)-[:nicowner]->(system:Class_SystemNode)
+            WHERE nic.domain = $domain and nic.macaddr = $macaddr AND ID(system) = $system_id
+            """
+        if net_segment is not None:
+            query += ' AND nic.net_segment = $net_segment'
+        parameters = {
+            'domain': domain,
+            'macaddr': macaddr,
+            'net_segment': net_segment,
+            'system_id': system.association.node_id if system is not None else None,
+        }
+        query += ' RETURN nic'
+        mac = store.load_cypher_node(query, parameters)
+        if mac or system is None:  # Can't improve our answer...
+            return mac
+        query = """
+        MATCH(nic:Class_NicNode)
+        WHERE nic.domain = $domain and nic.macaddr = $macaddr AND NOT (nic)-[:nicowner]->()
+        """
+        query += ' RETURN nic'
+        return store.load_cypher_node(query, parameters)
+
 
     @staticmethod
     def mac_to_oui(macaddr):
@@ -688,12 +727,13 @@ class IPaddrNode(GraphNode):
         self.association.store.add_labels(self, (Subnet.name_to_label(self.subnet),))
 
 
+@RegisterGraphClass
 class Subnet(GraphNode):
     """
     A class representing a subnet
 
     A key feature that's a bit hard to deal with here is that we need to give it a
-    unique name.
+    unique name. Ideally one that's generated from the things we know...
     """
     def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_'):
         """
@@ -828,6 +868,29 @@ class Subnet(GraphNode):
         """
         return ['name', 'context', 'ipaddr', 'cidrmask', 'domain']
 
+
+@RegisterGraphClass
+class NetworkSegment(GraphNode):
+    """
+    A Class to represent a network segment.
+    Network segments are tricky. Although they are associated with
+     a collection of Subnets (usually one), they have no natural naming conventions
+     and no natural names. So we generate a name for each one with a UUID.
+    """
+    def __init__(self, domain, name=None):
+
+        GraphNode.__init__(self, domain=domain)
+        if name is None:
+            name = uuid.uuid4()
+        self.name = name
+
+    @staticmethod
+    def meta_key_attributes():
+        """
+        Return our key attributes in order of significance
+        Domain is redundant with respect to name
+        """
+        return ['name']
 
 @RegisterGraphClass
 class IPtcpportNode(GraphNode):
