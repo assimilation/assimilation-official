@@ -93,8 +93,8 @@ class ClientQuery(GraphNode):
                 raise ValueError('Parameter JSON_metadata is invalid [%s]' % JSON_metadata)
         GraphNode.__init__(self, domain='metadata')
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of decreasing significance'
         return ['queryname']
 

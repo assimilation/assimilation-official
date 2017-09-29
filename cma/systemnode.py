@@ -55,8 +55,8 @@ class SystemNode(GraphNode):
             roles = ['']
         self.roles = roles
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
         return ['designation', 'domain']
 
@@ -363,8 +363,8 @@ class ChildSystem(SystemNode):
         return store.load_or_create(cls, designation=designation, _selfjson=str(jsonobj),
                                     _parentsystem=parentsystem, roles=roles, uniqueid=uniqueid)
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
         return ['uniqueid']
 

@@ -478,4 +478,3 @@ class Drone(SystemNode):
             if port is None:
                 drone.port = int(primary_ip_addr.port())
         return drone
-

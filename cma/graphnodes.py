@@ -22,9 +22,10 @@
 ''' This module defines the classes for most of our CMA nodes ...  '''
 # Pylint is nuts here...
 # pylint: disable=C0411
-import sys, re, time, hashlib, netaddr, socket, logging, inject
+from __future__ import print_function
+import re, time, hashlib, netaddr, socket, inject
+from sys import stderr
 import uuid
-import py2neo
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
@@ -37,7 +38,7 @@ def nodeconstructor(**properties):
     '''A generic class-like constructor that knows our class name is stored as nodetype
     It's a form of "factory" for our database classes
     '''
-    #print >> sys.stderr, 'Calling nodeconstructor with properties: %s' % (str(properties))
+    # print('Calling nodeconstructor with properties: %s' % (str(properties)), file=stderr)
     realcls = GraphNode.classmap[str(properties['nodetype'])]
     # callconstructor is kinda cool - it figures out how to correctly call the constructor
     # with the values in 'properties' as arguments
@@ -135,18 +136,18 @@ class GraphNode(object):
         if not name.startswith('_') and name != 'association':
             try:
                 if getattr(self, name) == value:
-                    # print('Value of %s already set to %s' % (name, value), file=sys.stderr)
+                    # print('Value of %s already set to %s' % (name, value), file=stderr)
                     return
             except AttributeError:
                 pass
             if self.association.store.readonly:
-                print >> sys.stderr, ('Caught Read-Only %s being set to %s!' % (name, value))
+                print('Caught Read-Only %s being set to %s!' % (name, value), file=stderr)
                 raise RuntimeError('Attempt to set attribute %s using a read-only store' % name)
             if hasattr(value, '__iter__') and len(value) == 0:
                 raise ValueError(
                     'Attempt to set attribute %s to empty array (Neo4j limitation)' % name)
             self.association.dirty_attrs.add(name)
-        # print>> sys.stderr, ('SETTING %s to %s' % (name, value))
+        # print('SETTING %s to %s' % (name, value), file=stderr)
         object.__setattr__(self, name, value)
 
     @classmethod
@@ -304,7 +305,8 @@ class GraphNode(object):
             attrstodump.append(attr)
         ret = '{'
         comma = ''
-        for attr in attrstodump.sort():
+        attrstodump.sort()
+        for attr in attrstodump:
             ret += '%s"%s": %s' % (comma, attr, GraphNode._JSONelem(getattr(self, attr)))
             comma = ','
         ret += '}'
@@ -394,8 +396,8 @@ class BPRules(GraphNode):
         'Return the JSON object corresponding to our rules'
         return self._jsonobj
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
         return ['bp_class', 'rulesetname']
 
@@ -407,14 +409,14 @@ class BPRuleSet(GraphNode):
         GraphNode.__init__(self, domain='metadata')
         self.rulesetname = rulesetname
         self.basisrules = basisrules
-        if self.basisrules is None or not Store.is_abstract(self):
+        if self.basisrules is None:
             return
         query = CMAconsts.QUERY_RULESET_RULES
         parent = CMAdb.store.load_cypher_node(query, BPRuleSet, params={'name': basisrules})
         CMAdb.store.relate_new(self, CMAconsts.REL_basedon, parent)
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
         return ['rulesetname']
 
@@ -512,10 +514,25 @@ class NICNode(GraphNode):
 
     We assume that IPs that we hear from in tcpdiscovery are global.
 
-    There are three ways we discover IP addresses:
+    There are two ways we discover MAC addresses:
     1) netconfig
     2) ARP caches
-    3) tcpdiscovery
+
+    IP addresses add one more way - tcpdiscovery
+
+    The key thing seems to be that we can make mistakes here. There doesn't seem to be any
+    perfect way to guarantee that we discover things and assign the correct network segments
+    to them without accidentally merging them together, or having them be separate...
+
+    Only in the presence of complete understanding of all the virtual plumbing and all the
+    routing information can we really understand what is connected where. On systems where
+    ARPs are filtered (like clouds), it becomes impossible to really know what's going on.
+    On the other hand, in clouds, it's also possible to get insight into routing that might
+    be more difficult than in a conventional architecture.
+
+    So, we plunge ahead making the best guesses we can - when in fact we don't know as much
+    as we'd like...
+
     """
     def __init__(self, domain, macaddr, scope, ifname=None, json=None, net_segment=None):
         """
@@ -549,61 +566,20 @@ class NICNode(GraphNode):
         self.scope = scope
         self.net_segment = net_segment
 
-    def guess_net_segment(self, ip_mac_pairs, fraction=0.5):
+    def set_net_segment(self, net_segment):
         """
-        Determine (guess) the network segment for this NICNode if we can figure it out...
-        The theory behind this is that the same combination of IP:MAC pairs only exists
-        in this one network segment. This is not guaranteed, and in fact, may happen
-        quite a bit for the case of local container or VM networks
-
-        The most reliable use of this algorithm would be when looking at ARP discovery
-        output. It could be used for a single IP/MAC pair as well - but not as reliably...
-
-        :param ip_mac_pairs: [(str,str)]: list of (MAC, ip) tuples
-        :param fraction: What % of ip_mac_pairs must be matched?
-        :return: str: matching net segment name or None
+        Set the network segment once we've discovered it...
+        :param net_segment: str: network segment name (UUID)
+        :return: None
         """
-        mac_addrs = list({str(each[0]) for each in ip_mac_pairs})
-        ip_addrs = list({str(each[1]) for each in ip_mac_pairs})
-
-        query = """
-        MATCH (ip:Class_IPaddrNode)->[:ipowner]->(mac:Class_NICNode)
-        WHERE ip.ipaddr in $ip_addrs AND mac.macaddr in $mac_addrs
-        AND ip.domain = $domain AND mac.domain = $domain
-        AND mac.net_segment IS NOT NULL
-        RETURN ip.ipaddr as ipaddr, mac.macaddr as macaddr, mac.net_segment as net_segment
-        """
-        #
-        # The return result is not guaranteed to be what we're looking for,
-        # but it's likely to be the one we're looking for.
-        # Let's go after the best match.
-        #
-        possible_segments = {}
-        bad_segments = set()
-        parameters = {'domain': self.domain, 'mac_addrs': mac_addrs, 'ip_addrs': ip_addrs}
-        for result in self.association.store.load_cypher_query(query, params=parameters):
-            pair = (result.macaddr, result.ipaddr)
-            segment = result.net_segment
-            if segment not in possible_segments:
-                possible_segments[segment] = 0
-            if pair in ip_mac_pairs:
-                possible_segments[segment] += 1
-            else:
-                possible_segments[segment] -= 1
-        # Now we have a count of how many times we have a good match minus how many
-        # we had a mismatch on... We'll take the segment with the highest positive count...
-        max_count = 0
-        best_segment = None
-        for segment, count in possible_segments.viewitems():
-            if count > max_count:
-                best_segment = segment
-                max_count = count
-        return best_segment if max_count >= int((len(ip_mac_pairs)*fraction) + 0.5) else None
+        self.net_segment = net_segment
 
     @staticmethod
-    @def find_this_macaddr(store, domain,  macaddr, system=None, net_segment=None):
+    def find_this_macaddr(store, domain,  macaddr, system=None, net_segment=None):
         """
-        Locate this MAC address somehow...
+        Locate this MAC address taking into account that it might not be unique...
+        Please pass the related 'system' if known...
+
         :param store: Store: Our store
         :param domain: str: Domain for the NIC
         :param macaddr: str: MAC address
@@ -634,9 +610,10 @@ class NICNode(GraphNode):
         MATCH(nic:Class_NicNode)
         WHERE nic.domain = $domain and nic.macaddr = $macaddr AND NOT (nic)-[:nicowner]->()
         """
+        if net_segment is not None:
+            query += ' AND nic.net_segment = $net_segment'
         query += ' RETURN nic'
         return store.load_cypher_node(query, parameters)
-
 
     @staticmethod
     def mac_to_oui(macaddr):
@@ -649,8 +626,8 @@ class NICNode(GraphNode):
             prefix = str(macaddr)[0:8]
             return CMAdb.config['OUI'][prefix] if prefix in CMAdb.config['OUI'] else None
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         """
         Return our key attributes in decreasing order of significance
         :return:  [str]
@@ -671,15 +648,14 @@ class IPaddrNode(GraphNode):
     """
     StoreHostNames = True
 
-    def __init__(self, ipaddr, subnet):
+    def __init__(self, ipaddr, domain, subnet):
         """
         Construct an IPaddrNode - validating our parameters
 
         :param ipaddr: Union(str, pyIPaddr): the IP address for this node
-        :param subnet:
+        :param subnet: Subnet: The subnet this IP address is on...
         """
-        assert isinstance(subnet, Subnet)
-        GraphNode.__init__(self, domain=subnet.domain)
+        GraphNode.__init__(self, domain=domain)
         if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
             ipaddrout = pyNetAddr(str(ipaddr))
         else:
@@ -697,9 +673,13 @@ class IPaddrNode(GraphNode):
                              % (str(ipaddr), type(ipaddr)))
         self.ipaddr = unicode(str(ipaddrout))
         self._ipaddr = ipaddrout
-        self.cidrmask = subnet.cidrmask
-        if not subnet.belongs_on_this_subnet(ipaddrout):
-            raise ValueError('IP address %s does not belong on subnet %s' % (ipaddrout, subnet))
+        if subnet is not None:
+            if not isinstance(subnet, (str, unicode)):
+                if not subnet.belongs_on_this_subnet(ipaddrout):
+                    raise ValueError('IP address %s does not belong on subnet %s'
+                                     % (ipaddrout, subnet))
+                subnet = subnet.name
+        self.subnet = subnet
 
         if IPaddrNode.StoreHostNames and not hasattr(self, 'hostname'):
             ip = repr(pyNetAddr(ipaddr))
@@ -707,18 +687,15 @@ class IPaddrNode(GraphNode):
                 self.hostname = socket.gethostbyaddr(ip)[0]
             except socket.herror:
                 pass
-        self.subnet = subnet.name
-        self.association.store.add_labels(self, (subnet.subnet_label,))
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         """
         Return our key attributes in order of significance
-        Domain is redundant, but nice to have indexed
         Not sure what it means to have an optional value listed as a potential key value
         :return: [str]
         """
-        return ['ipaddr', 'subnet', 'domain', 'net_segment']
+        return ['ipaddr', 'subnet', 'domain']
 
     def post_db_init(self):
         """Set up the labels on the graph"""
@@ -734,8 +711,23 @@ class Subnet(GraphNode):
 
     A key feature that's a bit hard to deal with here is that we need to give it a
     unique name. Ideally one that's generated from the things we know...
+
+    As it stands, there's a chance that we will connect several different NICs on the
+    same subnet with different subnets. We would need to repair that later if we do.
+    Or is it better to consider them as being globally unique, and splitting them out later
+    once (and if) we figure out which network segments they're part of...
+
+    On the other hand, a reasonable approach might be to call anything on a virtual NIC as
+    a local subnet, and anything on a real NIC as global...
+    Three cases for context:
+        real NIC: None
+        bridge: host:bridge
+        virtual NIC attached to a bridge: host:bridge
+        other virtual: host:ifname
+    If it's a bridge, then it should be the host+bridge name
+
     """
-    def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_'):
+    def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_', net_segment=None):
         """
         A class defining a subnet. Like every other part of the system, we really only
         believe in IPv6 addresses. We convert IPV4 to IPv6
@@ -748,25 +740,37 @@ class Subnet(GraphNode):
         :param context: str: Further context system name, etc.
         """
         GraphNode.__init__(self, domain=domain)
-        if isinstance(ipaddr, str) and '/' in ipaddr:
-            ipaddr, cidrmask = ipaddr.split('/', 1)
-        self._ipaddr = pyNetAddr(str(ipaddr))
-        self._ipaddr.setport(0)
-        try:
-            self.cidrmask = int(cidrmask)
-        except ValueError:
-            # Maybe it's an old-style IPv4 netmask??
-            self.cidrmask = self.v4_netmask_to_cidr(cidrmask)
-        if self._ipaddr.addrtype() == ADDR_FAMILY_IPV4:
-            self._ipaddr = self._ipaddr.toIPv6()
-            self.cidrmask += 96  # a.k.a. 128-32
-        self._ipaddr.and_with_cidr(self.cidrmask)
+        self._ipaddr, self.cidrmask = self.str_to_ip_cidr(ipaddr, cidrmask)
         self.ipaddr = str(self._ipaddr)
         self.domain = domain
         self.context = context
+        self.net_segment = net_segment
         self.name = str(self)
         if self.cidrmask > 128:
             raise ValueError('Illigal CIDR mask')
+
+    @staticmethod
+    def str_to_ip_cidr(ipaddr, cidrmask):
+        """
+        Convert a string to a subnet with CIDR-style mask (bit count)
+        :param ipaddr:
+        :param cidrmask:
+        :return:
+        """
+        if isinstance(ipaddr, str) and '/' in ipaddr:
+            ipaddr, cidrmask = ipaddr.split('/', 1)
+        ipaddr = pyNetAddr(str(ipaddr))
+        ipaddr.setport(0)
+        try:
+            cidrmask = int(cidrmask)
+        except ValueError:
+            # Maybe it's an old-style IPv4 netmask??
+            cidrmask = Subnet.v4_netmask_to_cidr(cidrmask)
+        if ipaddr.addrtype() == ADDR_FAMILY_IPV4:
+            ipaddr = ipaddr.toIPv6()
+            cidrmask += 96  # a.k.a. 128-32
+        ipaddr.and_with_cidr(cidrmask)
+        return ipaddr, cidrmask
 
     @property
     def base_address(self):
@@ -797,7 +801,7 @@ class Subnet(GraphNode):
         return bit_count
 
     def __str__(self):
-        return '%s_%s_%s/%d' % (self.domain, self.context, self.ipaddr, self.cidrmask)
+        return '%s/%d_%s_%s' % (self.ipaddr, self.cidrmask, self.domain, self.context)
 
     @property
     def subnet_label(self):
@@ -830,7 +834,7 @@ class Subnet(GraphNode):
         return self.association.store.load_cypher_nodes(query)
 
     @staticmethod
-    def find_subnet(store, subnet_name):
+    def find_subnet_by_name(store, subnet_name):
         """
         Locate the subnet with the given name.
 
@@ -840,6 +844,36 @@ class Subnet(GraphNode):
         """
         query = "MATCH (n:Class_Subnet) WHERE n.name = $name RETURN n"
         return store.load_cypher_node(query, {'name': subnet_name})
+
+    @staticmethod
+    def find_subnet(store, ipaddr, cidrmask, domain, context='_GLOBAL_', net_segment=None):
+        """
+        Find this subnet based on some combination of the parameters
+        :param store: Store; the Store to use to find the subnet
+        :param ipaddr: str: Base IP address, possibly with '/' notation for the CIDR mask
+        :param cidrmask: int: CIDR mask (ipv6) - overriddeden by ipaddr if it has a /
+        :param domain: str: domain
+        :param context: str: context (if known)
+        :param net_segment: network segment (if known)
+        :return: Subnet: or None
+        """
+        ipaddr, cidrmask = Subnet.str_to_ip_cidr(ipaddr, cidrmask)
+        query = """
+        MATCH (n:Class_Subnet) WHERE n.ipaddr = $ipaddr AND n.cidrmask = $cidrmask
+        AND domain = $domain
+        """
+        if context is not None:
+            query += ' AND n.context = $context'
+        if net_segment is not None:
+            query += ' AND n.net_segment = $net_segment'
+        parameters = {
+            "ipaddr": str(ipaddr),
+            "cidrmask": int(cidrmask),
+            "domain": domain,
+            "net_segment": net_segment,
+        }
+        query += 'RETURN n'
+        return store.load_cypher_node(query, parameters)
 
     def belongs_on_this_subnet(self, ipaddr):
         """
@@ -859,14 +893,14 @@ class Subnet(GraphNode):
         assert isinstance(other, Subnet)
         return self.name == other.name
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         """
         Return our key attributes in order of significance
         Everything else is redundant with respect to name
         Do I need the others indexed too?
         """
-        return ['name', 'context', 'ipaddr', 'cidrmask', 'domain']
+        return ['name', 'context', 'ipaddr', 'cidrmask', 'domain', 'net_segment']
 
 
 @RegisterGraphClass
@@ -885,12 +919,68 @@ class NetworkSegment(GraphNode):
         self.name = name
 
     @staticmethod
-    def meta_key_attributes():
+    def guess_net_segment(store, domain, ip_mac_pairs, fraction=0.5):
+        """
+        Determine (guess) the network segment for this NICNode if we can figure it out...
+        The theory behind this is that the same combination of IP:MAC pairs only exists
+        in this one network segment. This is not guaranteed, and in fact, may happen
+        quite a bit for the case of local container or VM networks
+
+        The most reliable use of this algorithm would be when looking at ARP discovery
+        output. It could be used for a single IP/MAC pair as well - but not as reliably...
+
+        :param store: Store: store to query
+        :param domain: str: Domain
+        :param ip_mac_pairs: [(str,str)]: list of (MAC, ip) tuples
+        :param fraction: What % of ip_mac_pairs must be matched?
+        :return: str: matching net segment name or None
+        """
+        if len(ip_mac_pairs) < 1:
+            return None
+        mac_addrs = list({str(each[0]) for each in ip_mac_pairs})
+        ip_addrs = list({str(each[1]) for each in ip_mac_pairs})
+
+        query = """
+        MATCH (ip:Class_IPaddrNode)->[:ipowner]->(mac:Class_NICNode)
+        WHERE ip.ipaddr in $ip_addrs AND mac.macaddr in $mac_addrs
+        AND ip.domain = $domain AND mac.domain = $domain
+        AND mac.net_segment IS NOT NULL
+        RETURN ip.ipaddr as ipaddr, mac.macaddr as macaddr, mac.net_segment as net_segment
+        """
+        #
+        # The return result is not guaranteed to be what we're looking for,
+        # but it's likely to be the one we're looking for.
+        # Let's go after the best match.
+        #
+        possible_segments = {}
+        parameters = {'domain': domain, 'mac_addrs': mac_addrs, 'ip_addrs': ip_addrs}
+        for row in store.load_cypher_query(query, params=parameters):
+            pair = (row.macaddr, row.ipaddr)
+            segment = row.net_segment
+            if segment not in possible_segments:
+                possible_segments[segment] = 0
+            if pair in ip_mac_pairs:
+                possible_segments[segment] += 1
+            else:
+                possible_segments[segment] -= 1
+        # Now we have a count of how many times we have a good match minus how many
+        # we had a mismatch on... We'll take the segment with the highest positive count...
+        max_count = 0
+        best_segment = None
+        for segment, count in possible_segments.viewitems():
+            if count > max_count:
+                best_segment = segment
+                max_count = count
+        return best_segment if max_count >= int((len(ip_mac_pairs)*fraction) + 0.5) else None
+
+    @classmethod
+    def meta_key_attributes(cls):
         """
         Return our key attributes in order of significance
         Domain is redundant with respect to name
         """
         return ['name']
+
 
 @RegisterGraphClass
 class IPtcpportNode(GraphNode):
@@ -923,8 +1013,8 @@ class IPtcpportNode(GraphNode):
         self.protocol = protocol
         self.ipport = self.format_ipport()
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
         return ['ipport', 'domain']
 
@@ -985,8 +1075,8 @@ class ProcessNode(GraphNode):
                                                     for role in roles if role in self.roles])
         return self.roles
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
         return ['processname', 'domain']
 
@@ -1060,8 +1150,8 @@ class JSONMapNode(GraphNode):
     def __len__(self):
         return len(self.map())
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of significance'
         return  ['jhash']
 
@@ -1080,21 +1170,3 @@ class NeoRelationship(object):
         self.start_node = getattr(relationship.start_node, '_id')  # Make pylint happy...
         self.end_node = getattr(relationship.end_node, '_id')      # Make pylint happy...
         self.properties = relationship.properties
-
-if __name__ == '__main__':
-    def maintest():
-        'test main program'
-        from cmainit import CMAinit
-        from droneinfo import Drone
-        from systemnode import SystemNode
-        print >> sys.stderr, 'Starting'
-        CMAinit(None, cleanoutdb=True, debug=True)
-        print 'Results:', CMAdb.store.commit()
-        print ProcessNode.meta_labels()
-        print SystemNode.meta_labels()
-        print Drone.meta_labels()
-        print 'keys:', Drone.meta_key_attributes()
-        print >> sys.stderr, 'Init done'
-        return 0
-
-    sys.exit(maintest())

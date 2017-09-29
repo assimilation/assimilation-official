@@ -35,11 +35,12 @@ import re, sys, os
 from droneinfo import Drone
 from consts import CMAconsts
 from store import Store
-from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
+from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE, ADDR_FAMILY_IPV4
 from AssimCclasses import pyNetAddr, pyConfigContext
 from systemnode import ChildSystem
 
-from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, GraphNode
+from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, NetworkSegment, Subnet
+
 
 class DiscoveryListener(object):
     '''Class for listening to discovery packets
@@ -105,7 +106,7 @@ class AuditdConfDiscoveryListener(DiscoveryListener):
         They will be evaluated by some auditd best practice rules'''
         if not discoverychanged:
             return
-        data = jsonobj['data'] # The data portion of the JSON message
+        data = jsonobj['data']  # The data portion of the JSON message
         params = pyConfigContext()
         params['parameters'] = pyConfigContext()
         params[CONFIGNAME_TYPE] = 'fileattrs'
@@ -114,17 +115,17 @@ class AuditdConfDiscoveryListener(DiscoveryListener):
         if 'log_file' in data:
             filelist = os.path.dirname(data['log_file']) + '/'
         else:
-            filelist= '/var/log/audit/'
+            filelist =  '/var/log/audit/'
         params['parameters']['filelist'] = filelist
         params['parameters']['ASSIM_filelist'] = filelist
-        #print >> sys.stderr, 'DISCOVERING %s' % str(params)
+        # print >> sys.stderr, 'DISCOVERING %s' % str(params)
         # repeat, warn, and interval are automatically added
         drone.request_discovery((params,))
 
 
 # R0912 -- too many branches
 # R0914 -- too many local variables
-#pylint: disable=R0914,R0912
+# pylint: disable=R0914,R0912
 @Drone.add_json_processor
 class NetconfigDiscoveryListener(DiscoveryListener):
     'Class for the (initial) netconfig discovery packet'
@@ -132,36 +133,77 @@ class NetconfigDiscoveryListener(DiscoveryListener):
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('netconfig',)
 
-    def processpkt(self, drone, _srcaddr, jsonobj, discoverychanged):
-        '''Save away the network configuration data we got from netconfig JSON discovery.
+    @staticmethod
+    def determine_scope_from_ifinfo(drone, ifinfo):
+        """
+        Determine the value for 'scope' from the interface information for this interface
+        :param drone: SystemNode: System that this info is from
+        :param ifinfo: dict-like: Interface information
+        :return: str: scope value
+        """
+        if ifinfo['virtual']:
+            return drone.designation
+        return '_GLOBAL_'
+
+    def guess_net_segment(self, system, if_info):
+        """
+        :param system: SystemNode: System Node that this inteface goes with...
+        :param if_info: dict-like: single interface information from discovery
+        :return: str
+        """
+        macaddr = str(if_info['address'])
+        pairs = []
+        for ip in if_info['ipaddrs']:
+            iponly, _ = ip.split('/')
+            addr = pyNetAddr(iponly)
+            if addr.addrtype() != ADDR_FAMILY_IPV4:
+                continue
+            addr = str(addr.toIPv6())
+            pairs.append((macaddr, addr))
+        return NetworkSegment.guess_net_segment(self.store, system.domain, pairs)
+
+    def processpkt(self, drone, _, jsonobj, discoverychanged):
+        """Save away the network configuration data we got from netconfig JSON discovery.
         This includes all our NICs, their MAC addresses, all our IP addresses and so on
         for any (non-loopback) interface.  Whee!
 
         This code is more complicated than I'd like but it's not obvious how to simplify it...
-        '''
-
+        """
         assert drone.association.node_id is not None
+        store = drone.association.store
         if not discoverychanged:
             return
-        data = jsonobj['data'] # The data portion of the JSON message
+        data = jsonobj['data']  # The data portion of the JSON message
 
         currmacs = {}   # Currmacs is a list of current NICNode objects belonging to this host
-                        # indexed by MAC address
+        #                 indexed by MAC address
         # Get our current list of NICs
         iflist = self.store.load_related(drone, CMAconsts.REL_nicowner)
         for nic in iflist:
             currmacs[nic.macaddr] = nic
 
         primaryifname = None
+        net_segments = {}
         newmacs = {}    # Newmacs is a list of NICNode objects found/created by this discovery
-                        # They are indexed by MAC address
-        for ifname in data.keys(): # List of interfaces just below the data section
+        #                 indexed by MAC address
+        for ifname in data.keys():  # List of interfaces just below the data section
             ifinfo = data[ifname]
             if 'address' not in ifinfo:
                 continue
             macaddr = str(ifinfo['address'])
-            newnic = self.store.load_or_create(NICNode, domain=drone.domain
-            ,       macaddr=macaddr, ifname=ifname, json=str(ifinfo))
+            net_segment = self.guess_net_segment(drone, ifinfo)
+            net_segments[macaddr] = net_segment
+            newnic = NICNode.find_this_macaddr(store, drone.domain,  macaddr, system=drone,
+                                               net_segment=net_segment)
+            if newnic is None:
+                scope = self.determine_scope_from_ifinfo(drone, ifinfo)
+                newnic = self.store.load_or_create(NICNode,
+                                                   domain=drone.domain,
+                                                   scope=scope,
+                                                   macaddr=macaddr,
+                                                   ifname=ifname,
+                                                   json=str(ifinfo),
+                                                   net_segment=net_segment)
             newmacs[macaddr] = newnic
             if 'default_gw' in ifinfo and primaryifname is None:
                 primaryifname = ifname
@@ -177,7 +219,6 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             else:
                 # This MAC has disappeared
                 self.store.separate(drone, CMAconsts.REL_ipowner, currmac)
-                #self.store.separate(drone, CMAconsts.REL_causes,  currmac)
                 # @TODO Needs to be a 'careful, complete' reference count deletion...
                 self.store.delete(currmac)
                 del currmacs[macaddr]
@@ -187,7 +228,6 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         for macaddr in newmacs.keys():
             nic = newmacs[macaddr]
             self.store.relate_new(drone, CMAconsts.REL_nicowner, nic, {'causes': True})
-            #self.store.relate(drone, CMAconsts.REL_causes,   nic)
 
         # Now newmacs contains all the updated info about our current NICs
         # Let's figure out what's happening with our IP addresses...
@@ -197,9 +237,9 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         for macaddr in newmacs.keys():
             mac = newmacs[macaddr]
             ifname = mac.ifname
-            #print >> sys.stderr, 'MAC IS', str(mac)
-            #print >> sys.stderr, 'DATA IS:', str(data)
-            #print >> sys.stderr, 'IFNAME IS', str(ifname)
+            # print >> sys.stderr, 'MAC IS', str(mac)
+            # print >> sys.stderr, 'DATA IS:', str(data)
+            # print >> sys.stderr, 'IFNAME IS', str(ifname)
             iptable = data[str(ifname)]['ipaddrs']
             currips = {}
             iplist = self.store.load_related(mac, CMAconsts.REL_ipowner)
@@ -208,23 +248,37 @@ class NetconfigDiscoveryListener(DiscoveryListener):
 
             newips = {}
             for ip in iptable.keys():   # keys are 'ip/mask' in CIDR format
-                ipname = ':::INVALID:::'
                 ipinfo = iptable[ip]
-                if 'name' in ipinfo:
-                    ipname = ipinfo['name']
-                if ipinfo['scope'] != 'global':
-                    continue
+                ipname = ipinfo.get('name', ':::INVALID:::')
+                # if ipinfo['scope'] != 'global':
+                #     continue
                 iponly, cidrmask = ip.split('/')
                 netaddr = pyNetAddr(iponly).toIPv6()
-                if netaddr.islocal():       # We ignore loopback addresses - might be wrong...
-                    continue
-                ipnode = self.store.load_or_create(IPaddrNode
-                ,   domain=drone.domain, ipaddr=str(netaddr), cidrmask=cidrmask)
-                ## FIXME: Not an ideal way to determine primary (preferred) IP address...
-                ## it's a bit idiosyncratic to Linux...
-                ## A better way would be to use their 'startaddr' (w/o the port)
-                ## This uses the IP address they used to talk to us.
-                if ifname == primaryifname  and primaryip is None and ipname == ifname:
+                subnet_context = drone.designation if mac.virtual else '__GLOBAL__',
+                #   This is a more forgiving/generous subnet finding algorithm than load_or_create
+                subnet = Subnet.find_subnet(self.store,
+                                            domain=drone.domain,
+                                            ipaddr=iponly,
+                                            cidrmask=int(cidrmask),
+                                            context=subnet_context,
+                                            net_segment=net_segments[macaddr])
+                if subnet is None:
+                    subnet = self.store.load_or_create(Subnet,
+                                                       domain=drone.domain,
+                                                       ipaddr=iponly,
+                                                       cidrmask=int(cidrmask),
+                                                       context=subnet_context,
+                                                       net_segment=net_segments[macaddr])
+                ipnode = self.store.load_or_create(IPaddrNode,
+                                                   ipaddr=str(netaddr),
+                                                   domain=drone.domain,
+                                                   subnet=subnet)
+
+                # FIXME: Not an ideal way to determine primary (preferred) IP address...
+                # it's a bit idiosyncratic to Linux...
+                # A better way would be to use their 'startaddr' (w/o the port)
+                # This uses the IP address they used to talk to us.
+                if ifname == primaryifname and primaryip is None and ipname == ifname:
                     primaryip = ipnode
                     drone.primary_ip_addr = str(primaryip.ipaddr)
                 newips[str(netaddr)] = ipnode
@@ -241,6 +295,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                     self.log.debug('currip:%s, currips:%s' %  (str(currip), str(currips)))
                     self.store.separate(mac, rel_type=CMAconsts.REL_ipowner, obj=currip)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
+                    # @TODO May also need to delete a subnet if no other references...
+                    # On the other hand, garbage collection is a good thought...
                     self.store.delete(currip)
                     del currips[ipaddr]
 
@@ -248,7 +304,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             for ipaddr in newips.keys():
                 ip = newips[ipaddr]
                 self.store.relate_new(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
-                #self.store.relate(mac, CMAconsts.REL_causes,  ip)
+
 
 @Drone.add_json_processor
 class TCPDiscoveryListener(DiscoveryListener):
@@ -261,7 +317,7 @@ class TCPDiscoveryListener(DiscoveryListener):
     # disable=R0914 means too many local variables...
     # disable=R0912 means too many branches
     # pylint: disable=R0914,R0912
-    def processpkt(self, drone, _srcaddr, jsonobj, discoverychanged):
+    def processpkt(self, drone, _, jsonobj, discoverychanged):
         '''Add TCP listeners and clients.'''
         if not discoverychanged:
             return
@@ -394,7 +450,7 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('vagrant', 'docker')
 
-    def processpkt(self, drone, _unused_srcaddr, jsonobj, discoverychanged):
+    def processpkt(self, drone, _, jsonobj, discoverychanged):
         ''' Kick off discovery for a Docker or vagrant instance - as though it were a
             real boy -- I mean a real Drone
         '''

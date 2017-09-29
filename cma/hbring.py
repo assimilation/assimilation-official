@@ -53,8 +53,8 @@ class HbRing(GraphNode):
         self._insertpoint1 = None
         self._insertpoint2 = None
 
-    @staticmethod
-    def meta_key_attributes():
+    @classmethod
+    def meta_key_attributes(cls):
         'Return our key attributes in order of decreasing significance'
         return ['name', 'domain']
 
