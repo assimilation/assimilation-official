@@ -560,7 +560,7 @@ class NICNode(GraphNode):
                 if attr in self._json:
                     setattr(self, attr, self._json[attr])
         if not hasattr(self, 'OUI'):
-            oui = self.mac_to_oui(self.macaddr)
+            ui = self.mac_to_oui(self.macaddr)
             if oui is not None:
                 self.OUI = oui
         self.scope = scope
@@ -821,6 +821,31 @@ class Subnet(GraphNode):
         return ('Subnet_' + str(name).replace('.', '_').replace(':', '_')
                 .replace('-', '_').replace('/', '_'))
 
+    @staticmethod
+    def find_matching_subnets(store, domain, ipaddr, contexts):
+        """
+        Yield each matching subnet in turn. Might be zero or one - could be more
+        This is slow if you have lots of subnets to search
+        :param store: Store: store to search
+        :param domain: str: domain to search - could be None
+        :param ipaddr: str: IP address
+        :param contexts: [str] or None: Contexts that interest us - or None
+        :return: generator(Subnet)
+        """
+        query = 'MATCH(subnet:Class_Subnet) '
+        if query is not None and contexts is not None:
+            query += 'WHERE '
+        if query is not None:
+            query += 'subnet.domain = $domain '
+        if contexts is not None:
+            query += 'subnet.context in $contexts '
+        query += 'RETURN subnet'
+
+        result = []
+        for subnet in store.load_cypher_nodes(query, {'domain': domain, 'contexts': contexts}):
+            if subnet.belongs_on_this_subnet(ipaddr):
+                yield subnet
+
     def members(self, cls=None):
         """
         Return the objects that are associated with this subnet
@@ -844,6 +869,19 @@ class Subnet(GraphNode):
         """
         query = "MATCH (n:Class_Subnet) WHERE n.name = $name RETURN n"
         return store.load_cypher_node(query, {'name': subnet_name})
+
+    @staticmethod
+    def find_matching_subnet(ip, subnets):
+        """
+        Find a matching subnet from the iterable 'subnets'
+        :param ip: str: IP in IPv6 format
+        :param subnets: iterable(Subnet): list of subnets
+        :return: Subnet or None
+        """
+        for subnet in subnets:
+            if subnet.belongs_on_this_subnet(ip, subnet):
+                return subnet
+        return None
 
     @staticmethod
     def find_subnet(store, ipaddr, cidrmask, domain, context='_GLOBAL_', net_segment=None):

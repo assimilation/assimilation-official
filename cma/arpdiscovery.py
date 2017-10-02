@@ -39,7 +39,7 @@ from store import Store
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_INSTANCE, CONFIGNAME_DEVNAME
 from discoverylistener import DiscoveryListener
-from graphnodes import NICNode, IPaddrNode, GraphNode
+from graphnodes import NICNode, IPaddrNode, NetworkSegment, Subnet
 from systemnode import SystemNode
 from cmaconfig import ConfigFile
 from linkdiscovery import discovery_indicates_link_is_up
@@ -148,18 +148,149 @@ class ArpDiscoveryListener(DiscoveryListener):
         '''
 
         data = jsonobj['data']
-        maciptable = {}
+        device_name = jsonobj['device']
+        device = self.find_nic(device_name)
+        mac_ip_table = {}
         # Group the IP addresses by MAC address - reversing the map
-        for ip in data.keys():
-            mac = str(data[ip])
-            if mac not in maciptable:
-                maciptable[mac] = []
-            maciptable[mac].append(ip)
+        for ip, mac in data.viewitems():
+            macstr = str(mac)
+            if macstr not in mac_ip_table:
+                mac_ip_table[macstr] = []
+            mac_ip_table[macstr].append(ip)
 
-        for mac in maciptable:
-            self.filtered_add_mac_ip(drone, mac, maciptable[mac])
+        net_segment = self.find_net_segment(drone, device, mac_ip_table)
+        device.net_segment = net_segment.name
 
-    def filtered_add_mac_ip(self, drone, macaddr, IPlist):
+        for mac, ip in mac_ip_table.viewitems():
+            self.filtered_add_mac_ip(drone, device, net_segment, mac, ip)
+        self.fix_net_segment(net_segment, mac_ip_table)
+
+    def find_net_segment(self, drone, device, mac_ip_table):
+        """
+        Figure out which network segment this Drone belongs to...
+
+        :param drone: Drone:  this NIC segment is attached to
+        :param device: NICNode: device these ARPs were heard on
+        :param mac_ip_table: Table of IPs associated with NICs
+        :return: NetworkSegment
+        """
+        if device.net_segment is not None:
+            return drone.store.load(domain=device.domain, name=device.net_segment)
+        mac_ip_pairs = []
+        for mac, ip_list in mac_ip_table.viewitems():
+            for ip in ip_list:
+                mac_ip_pairs.append((mac, ip))
+        segment = NetworkSegment.guess_net_segment(device.domain, mac_ip_pairs)
+        if segment is not None:
+            return self.store.load(NetworkSegment, domain=device.domain, name=segment)
+        return self.store.load_or_create(NetworkSegment, domain=device.domain)
+
+    def fix_net_segment(self, domain, device, net_segment, mac_ip_table):
+        """
+        Fix up the network segment for the MAC/IP pairs on this network segment
+        :param domain: str: Domain for created IP/MAC addresses
+        :param device: NICNode: device where this was discovered
+        :param net_segment: NetworkSegment: our network segment
+        :param mac_ip_table: MAC/IP map - organized by MAC address
+        :return: None
+        """
+        mac_ip_query = """
+        MATCH(nic:Class_NICNode)-[:ipowner]->(ip:Class_IPaddrNode)
+        WHERE ip.ipaddr in $ipaddrs AND nic.macaddr in $macaddrs
+        AND (nic.net_segment = $net_segment OR nic.net_segment IS NULL)
+        RETURN nic, ip
+        """
+        # Our algorithm is as follows:
+        # - Find all the IP,MAC pairs that are either in our network segment, or could be part of
+        #   our network segment, and update the network segment of those that aren't yet in any
+        #   network segment.
+        # - along the way, collect the set of subnets that the IP addresses belong to, and the
+        #   IP addresses that don't belong to any subnet yet
+        # - All those pairs that don't yet exist, create them, and link them together and
+        #   make them part of our network segment
+        # - Walk through the IP addresses we've collected, and make them part of one of these
+        #   subnets if we can.
+        #
+        #   Something I haven't throught through yet...
+        #   What happens when a MAC address gets a new IP address?
+        #
+        mac_ip_pairs = set()
+        mac_list = []
+        ip_list = []
+        for mac, ip_list in mac_ip_table.viewitems():
+            mac_list.append(mac)
+            for ip in ip_list:
+                mac_ip_pairs.add((mac, ip))
+                ip_list.append(ip)
+        parameters = {
+            'ipaddrs': ip_list,
+            'macaddrs': mac_list,
+            'net_segment': net_segment
+        }
+        missing_pairs = mac_ip_pairs
+        found_pairs = set()
+        found_subnets = {}
+
+        for mac, ip in self.store.load_cypher_query(mac_ip_query, parameters):
+            if (mac.macaddr, ip.ipaddr) not in missing_pairs:
+                # Could be a mismatched pair...
+                continue
+            missing_pairs.remove((mac.macaddr, ip.ipaddr))
+            found_pairs.add((mac, ip))
+            if mac.net_segment is None:
+                mac.net_segment = net_segment
+            if ip.subnet is not None and ip.subnet not in found_subnets:
+                found_subnets[ip.subnet] = Subnet.find_subnet_by_name(self.store, ip.subnet)
+        # Now we have a list of all the (MAC, IP) pairs that are missing...
+        scope = '_GLOBAL_'
+        self.create_missing_mac_ip_pairs(domain, device.scope, net_segment,
+                                         missing_pairs, found_subnets)
+        self.fix_ip_subnets(found_subnets, ip_list)
+
+    def create_missing_mac_ip_pairs(self, domain, scope, net_segment, missing_pairs, found_subnets):
+        """
+        Create all the missing (mac, IP) pairs
+        :param domain: str: domain for IP and MAC addresses
+        :param scope: str: scope for created MAC addresses
+        :param net_segment: str: the network segment to associate them with
+        :param missing_pairs: set((str,str)) - set of (mac, IP) addresses in canonical form
+        :param found_subnets: set(Subnet) - list of subnets found on this network segment
+        :return: None
+        """
+        for mac, ip in missing_pairs:
+            # find_this_macaddr is a more generous find operation than load_or_create()...
+            nic = NICNode.find_this_macaddr(self.store, domain=domain,  macaddr=mac,
+                                            net_segment=net_segment)
+            if nic is None:
+                nic = self.store.load_or_create(NICNode, domain=domain, macaddr=mac,
+                                                scope=scope, net_segment=net_segment)
+            subnet = Subnet.find_matching_subnet(ip, found_subnets)
+            # FIXME: THIS IS BROKEN!!!
+            other_ip = self.store.load_related(nic, CMAconsts.REL_ipowner)
+            if other_ip is not None:
+                if other_ip.ipaddr == ip:
+                    other_ip.subnet = subnet
+                    return
+                else:
+                    self.store.separate(nic, CMAconsts.REL_ipowner, other_ip)
+                    other_ip = None
+            ipnode = self.store.load_or_create(IPaddrNode, ipaddr=ip, domain=domain, subnet=subnet)
+            self.store.relate(nic, CMAconsts.REL_ipowner, ipnode)
+
+    def fix_ip_subnets(self, found_subnets, ip_list):
+        """
+        Fix up the subnets of everything we can on this Network Segment
+
+        :param found_subnets:
+        :param ip_list:
+        :return:
+        """
+        for ip in ip_list:
+            subnet = Subnet.find_matching_subnet(ip, found_subnets)
+            if subnet is not None:
+                ip.subnet = subnet.name
+
+    def filtered_add_mac_ip(self, drone, device, net_segment, macaddr, ip_list):
         '''We process all the IP addresses that go with a given MAC address (NICNode)
         The parameters are expected to be canonical address strings like str(pyNetAddr(...)).
 
@@ -167,48 +298,43 @@ class ArpDiscoveryListener(DiscoveryListener):
         were given before.  This is why we keep these two in-memory maps
         - to help speed that up by a huge factor.
         '''
-        for ip in IPlist:
+        for ip in ip_list:
             if ArpDiscoveryListener.ip_map.get(ip) != macaddr:
-                self.add_mac_ip(drone, macaddr, IPlist)
-                for ip in IPlist:
-                    ArpDiscoveryListener.ip_map[ip] = macaddr
+                self.add_mac_ip(drone, device, net_segment, macaddr, ip_list)
+                # FIXME: I'm not sure what this 2nd loop is doing... This looks broken...
+                for ip2 in ip_list:
+                    ArpDiscoveryListener.ip_map[ip2] = macaddr
                     if macaddr not in ArpDiscoveryListener.mac_map:
                         ArpDiscoveryListener.mac_map[macaddr] = []
                     if ip not in ArpDiscoveryListener.mac_map[macaddr]:
-                        ArpDiscoveryListener.mac_map[macaddr].append(ip)
+                        ArpDiscoveryListener.mac_map[macaddr].append(ip2)
                 return
 
-    def add_mac_ip(self, drone, macaddr, IPlist):
+    def add_mac_ip(self, drone, device, net_segment, macaddr, ip_list):
         '''We process all the IP addresses that go with a given MAC address (NICNode)
         The parameters are expected to be canonical address strings like str(pyNetAddr(...)).
         '''
         nicnode = self.store.load_or_create(NICNode, domain=drone.domain, macaddr=macaddr)
-        if not Store.is_abstract(nicnode):
-            # This NIC already existed - let's see what IPs it already owned
-            currips = {}
-            oldiplist = self.store.load_related(nicnode, CMAconsts.REL_ipowner, IPaddrNode)
-            for ipnode in oldiplist:
-                currips[ipnode.ipaddr] = ipnode
-                #print >> sys.stderr, ('IP %s already related to NIC %s'
-                #%       (str(ipnode.ipaddr), str(nicnode.macaddr)))
-            # See what IPs still need to be added
-            ips_to_add = []
-            for ip in IPlist:
-                if ip not in currips:
-                    ips_to_add.append(ip)
-            # Replace the original list of IPs with those not already there...
-            IPlist = ips_to_add
+        currips = {}
+        oldiplist = self.store.load_related(nicnode, CMAconsts.REL_ipowner)
+        for ipnode in oldiplist:
+            currips[ipnode.ipaddr] = ipnode
+            # print >> sys.stderr, ('IP %s already related to NIC %s'
+            # %       (str(ipnode.ipaddr), str(nicnode.macaddr)))
+        # See what IPs still need to be added
+        ips_to_add = []
+        for ip in ip_list:
+            if ip not in currips:
+                ips_to_add.append(ip)
+        # Replace the original list of IPs with those not already there...
+        ip_list = ips_to_add
 
         # Now we have a NIC and IPs which aren't already related to it
-        for ip in IPlist:
+        for ip in ip_list:
             ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=ip)
-            #print >> sys.stderr, ('CREATING IP %s for NIC %s'
-            #%       (str(ipnode.ipaddr), str(nicnode.macaddr)))
-            if not Store.is_abstract(ipnode):
-                # Then this IP address already existed,
-                # but it wasn't related to our NIC...
-                # Make sure it isn't related to a different NIC
-                for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner,
-                                                             GraphNode.factory):
-                    self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
+            # print >> sys.stderr, ('CREATING IP %s for NIC %s'
+            # %       (str(ipnode.ipaddr), str(nicnode.macaddr)))
+        # Make sure it isn't related to a different NIC
+            for oldnicnode in self.store.load_in_related(ipnode, CMAconsts.REL_ipowner):
+                self.store.separate(oldnicnode, CMAconsts.REL_ipowner, ipnode)
             self.store.relate(nicnode, CMAconsts.REL_ipowner, ipnode)

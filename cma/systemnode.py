@@ -32,6 +32,7 @@ from cmaconfig import ConfigFile
 from AssimCtypes import CONFIGNAME_TYPE
 from frameinfo import FrameTypes, FrameSetTypes
 
+
 @RegisterGraphClass
 class SystemNode(GraphNode):
     'An object that represents a physical or virtual system (server, switch, etc)'
@@ -289,6 +290,24 @@ class SystemNode(GraphNode):
                 SystemNode._JSONprocessors[priority][msgtype].append(clstoadd)
 
         return clstoadd
+
+    def find_nic(self, ifname):
+        """
+        Locate our NIC with this name
+        :param ifname: str: name of this interface
+        :return:
+        """
+        query = """
+        MATCH(self:class_SystemNode)-[:nicowner]->(nic:class_NICnode)
+        WHERE ID(self) = id AND nic.ifname = $ifname
+        RETURN nic
+        """
+        return self.association.store.load_cypher_node(query,
+                                                       {
+                                                           'id': self.association.node_id,
+                                                           'ifname': ifname
+                                                       })
+
 
 @RegisterGraphClass
 class ChildSystem(SystemNode):

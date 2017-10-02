@@ -220,6 +220,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 # This MAC has disappeared
                 self.store.separate(drone, CMAconsts.REL_ipowner, currmac)
                 # @TODO Needs to be a 'careful, complete' reference count deletion...
+                # On the other hand, garbage collection is a good thought...
                 self.store.delete(currmac)
                 del currmacs[macaddr]
         currmacs = None
@@ -227,7 +228,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         # Create REL_nicowner relationships for any newly created NIC nodes
         for macaddr in newmacs.keys():
             nic = newmacs[macaddr]
-            self.store.relate_new(drone, CMAconsts.REL_nicowner, nic, {'causes': True})
+            self.store.relate_new(drone, CMAconsts.REL_nicowner, nic)
 
         # Now newmacs contains all the updated info about our current NICs
         # Let's figure out what's happening with our IP addresses...
@@ -303,7 +304,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             # Create REL_ipowner relationships for all the newly created IP nodes
             for ipaddr in newips.keys():
                 ip = newips[ipaddr]
-                self.store.relate_new(mac, CMAconsts.REL_ipowner, ip, {'causes': True})
+                self.store.relate_new(mac, CMAconsts.REL_ipowner, ip)
 
 
 @Drone.add_json_processor
@@ -325,7 +326,6 @@ class TCPDiscoveryListener(DiscoveryListener):
         if self.debug:
             self.log.debug('_add_tcplisteners(data=%s)' % data)
 
-        assert(not Store.is_abstract(drone))
         allourips = drone.get_owned_ips()
         if self.debug:
             self.log.debug('Processing keys(%s)' % data.keys())
@@ -349,13 +349,12 @@ class TCPDiscoveryListener(DiscoveryListener):
             ,   pathname=procinfo.get('exe', 'unknown'), argv=procinfo.get('cmdline', 'unknown')
             ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
             ,   cwd=procinfo.get('cwd', '/'))
-            assert hasattr(processproc, '_Store__store_node')
             processproc.procinfo = str(procinfo)
 
             newprocs[processproc.processname] = processproc
             newprocmap[procname] = processproc
             if self.store.is_abstract(processproc):
-                self.store.relate(drone, CMAconsts.REL_hosting, processproc, {'causes':True})
+                self.store.relate(drone, CMAconsts.REL_hosting, processproc)
             if self.debug:
                 self.log.debug('procinfo(%s) - processproc created=> %s' % (procinfo, processproc))
 
@@ -364,14 +363,13 @@ class TCPDiscoveryListener(DiscoveryListener):
         for proc in self.store.load_related(drone, CMAconsts.REL_hosting):
             if not isinstance(proc, ProcessNode):
                 continue
-            assert hasattr(proc, '_Store__store_node')
             procname = proc.processname
             oldprocs[procname] = proc
             if procname not in newprocs:
                 if len(proc.delrole(discoveryroles.keys())) == 0:
-                    assert not Store.is_abstract(proc)
                     self.store.separate(drone, CMAconsts.REL_hosting, proc)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
+                    # On the other hand, garbage collection is a good thought...
                     print >> sys.stderr, ('TRYING TO DELETE node %s'
                     %   (procname))
                     for newprocname in newprocs:
@@ -426,9 +424,7 @@ class TCPDiscoveryListener(DiscoveryListener):
                 continue
             ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
             ,   ipaddr=ipaddr.ipaddr, port=port)
-            assert hasattr(ip_port, '_Store__store_node')
             self.store.relate_new(processnode, CMAconsts.REL_tcpservice, ip_port)
-            assert hasattr(ipaddr, '_Store__store_node')
             self.store.relate_new(ip_port, CMAconsts.REL_baseip, ipaddr)
             if not anyaddr:
                 return
@@ -462,17 +458,15 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
             return
         childtype = jsonobj['discovertype']
         systems = data['containers']
-        #print >> sys.stderr, '=====================GOT %s packet' % (childtype)
+        # print >> sys.stderr, '=====================GOT %s packet' % (childtype)
         discovery_types = self.config['containers'][childtype]['initial_discovery']
         for sysid in systems:
             system = ChildSystem.childfactory(drone, childtype, sysid, systems[sysid])
-            if not Store.is_abstract(system):
-                continue
             # Connect it to its parent system
             self.store.relate_new(system, CMAconsts.REL_parentsys, drone)
 
-            runspec = ' "runas_user": "%s",' % system.runas_user        \
-                    if system.runas_user is not None else ''
+            runspec = (' "runas_user": "%s",' % system.runas_user
+                    if system.runas_user is not None else '')
             if system.runas_group is not None:
                 runspec += ' "runas_group": "%s",' % system.runas_group
 
@@ -482,12 +476,11 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
                 instance = '_init_%s_%s' % (dtype, system.childpath)
                 allparams.append(pyConfigContext(
                                         '{"%s": "%s", "%s": "%s",%s "parameters":{"%s": "%s"}}'
-                                        %   (CONFIGNAME_TYPE, dtype,
-                                             CONFIGNAME_INSTANCE, instance,
-                                             runspec,
-                                             'ASSIM_PROXY_PATH', system.childpath
-                                            )))
+                                        % (CONFIGNAME_TYPE, dtype,
+                                           CONFIGNAME_INSTANCE, instance,
+                                           runspec,
+                                           'ASSIM_PROXY_PATH', system.childpath)))
             # kick off discovery...
-            #print >> sys.stderr, '=====================REQUESTING DISCOVERY: %s' % (str(allparams))
+            # print >> sys.stderr, '=====================REQUESTING DISCOVERY: %s' % (str(allparams))
             system.request_discovery(allparams)
 
