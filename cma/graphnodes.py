@@ -704,6 +704,7 @@ class IPaddrNode(GraphNode):
         self.association.store.add_labels(self, (Subnet.name_to_label(self.subnet),))
 
 
+SUBNET_GLOBAL = '_GLOBAL_'
 @RegisterGraphClass
 class Subnet(GraphNode):
     """
@@ -727,7 +728,7 @@ class Subnet(GraphNode):
     If it's a bridge, then it should be the host+bridge name
 
     """
-    def __init__(self, domain, ipaddr, cidrmask=None, context='_GLOBAL_', net_segment=None):
+    def __init__(self, domain, ipaddr, cidrmask=None, context=SUBNET_GLOBAL, net_segment=None):
         """
         A class defining a subnet. Like every other part of the system, we really only
         believe in IPv6 addresses. We convert IPV4 to IPv6
@@ -846,6 +847,42 @@ class Subnet(GraphNode):
             if subnet.belongs_on_this_subnet(ipaddr):
                 yield subnet
 
+    @staticmethod
+    def normalize_subnet_set(subnet_set):
+        """
+        Groom out duplicate subnets - choosing which ones we're going to keep if there are
+        duplicates or overlaps. We remove ones that seem redundant.
+        Although this is an N^2 operation, normally there is only one element in the set
+        and in the worst cases, only a handful...
+        :param subnet_set: set(Subnet)
+        :return: set(Subnet)
+        """
+        subnets = [s for s in subnet_set]
+        removed = set()
+        for j in range(len(subnets)):
+            if j in removed:
+                continue
+            subnet = subnets[j]
+            for k in range(j+1, len(subnets)):
+                if k in removed:
+                    continue
+                other = subnets[k]
+                if subnet.equivalent(other):
+                    if subnet.context != SUBNET_GLOBAL and other.context == SUBNET_GLOBAL:
+                        subnets.remove(subnet)
+                        removed.add(j)
+                    else:
+                        subnets.remove(other)
+                        removed.add(k)
+                # These last two really shouldn't happen...
+                # They are indicative of a network misconfiguration
+                elif subnet.subsumes(other):
+                    subnets.remove(other)
+                    removed.add(k)
+                elif other.subsumes(subnet):
+                    subnets.remove(subnet)
+                    removed.add(j)
+
     def members(self, cls=None):
         """
         Return the objects that are associated with this subnet
@@ -879,7 +916,7 @@ class Subnet(GraphNode):
         :return: Subnet or None
         """
         for subnet in subnets:
-            if subnet.belongs_on_this_subnet(ip, subnet):
+            if subnet is not None and subnet.belongs_on_this_subnet(ip, subnet):
                 return subnet
         return None
 
@@ -930,6 +967,22 @@ class Subnet(GraphNode):
         """
         assert isinstance(other, Subnet)
         return self.name == other.name
+
+    def equivalent(self, other):
+        """
+        Return True if these two subnets are equivalent
+        :param other: Subnet
+        :return: bool: True if the two subnets are equivalent
+        """
+        return self.base_address == other.base_address and self.cidrmask == other.cidrmask
+
+    def subsumes(self, other):
+        """
+        Return True if our subnet subsumes (includes) the other subnet
+        :param other: Subnet: other subnet to compare
+        :return: bool: True if the this subnet subsumes the other subnet
+        """
+        return self.belongs_on_this_subnet(other.base_address) and (self.cidrmask <= other.cidrmask)
 
     @classmethod
     def meta_key_attributes(cls):

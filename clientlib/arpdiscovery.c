@@ -122,7 +122,7 @@ _arpdiscovery_finalize(AssimObj* dself)
 
 	UNREF(self->ArpMap);
 	self->ArpMapData = NULL;	// Child object of ArpMap
-	
+
 	// Call base object finalization routine (which we saved away)
 	self->finalize(&self->baseclass.baseclass);
 }
@@ -173,6 +173,8 @@ _arpdiscovery_gsourcefunc(gpointer gself) ///<[in/out] Pointer to 'self'
 /// If not new, then it checks to see if the corresponding MAC address has changed.  
 /// If so, then it adds it to the hash table.
 /// All we really care about are those two fields (Sender IP & MAC addresses)--the rest we leave to the CMA.
+/// We really should be removing (timing out) entries - otherwise we might think a MAC address
+/// has multiple IP addresses, when it's just a changed IP address...
 FSTATIC gboolean
 _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing dispatch
                           pcap_t* capstruct,	   ///<[in] Pointer to structure capturing for us
