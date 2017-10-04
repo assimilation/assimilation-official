@@ -126,7 +126,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         """
         init_params = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
 
-        data = jsonobj['data'] # the data portion of the JSON message
+        data = jsonobj['data']  # the data portion of the JSON message
         discovery_args = []
         for devname in data.keys():
             # print ("*** devname:", devname, file=stderr)
@@ -238,7 +238,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         # - Walk through the IP addresses we've collected, and make them part of one of these
         #   subnets if we can.
         #
-        #   Something I haven't throught through yet...
+        #   Something I haven't completley thought through yet...
         #   What happens when a MAC address gets a new IP address?
         #
         mac_ip_pairs = set()
@@ -269,11 +269,11 @@ class ArpDiscoveryListener(DiscoveryListener):
             if ip.subnet is not None and ip.subnet not in subnet_names:
                 found_subnets.add(Subnet.find_subnet_by_name(self.store, ip.subnet))
                 subnet_names.add(ip.subnet)
-        Subnet.normalize_subnet_set(found_subnets)
-        # Now we have a list of all the (MAC, IP) pairs that are missing...
+        Subnet.normalize_subnet_set(found_subnets)  # This removes duplicate/overlapping subnets
+        # Now we have a list of all the missing (MAC, IP) pairs - create them
         self.create_missing_mac_ip_pairs(domain, device.scope, net_segment,
                                          missing_pairs, found_subnets)
-        self.fix_ip_subnets(found_subnets, ip_list)
+        self.fix_ip_subnets(found_subnets, [pair[1] for pair in found_pairs])
 
     def create_missing_mac_ip_pairs(self, domain, scope, net_segment, missing_pairs, found_subnets):
         """
@@ -307,7 +307,7 @@ class ArpDiscoveryListener(DiscoveryListener):
     def fix_ip_subnets(found_subnets, ip_list):
         """
         Fix up the subnets of everything we can on this Network Segment.
-        "We can" means we _know_ which subnets a particular IP address goes with.
+        "We can" means we _know_ which subnet a particular IP address goes with.
         IPs may change what subnet they go with...
 
         :param found_subnets: Iterable(Subnet): Candidate subnets
