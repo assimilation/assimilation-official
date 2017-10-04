@@ -156,7 +156,7 @@ buildubuntu() {
     done
 }
 builddebian() {
-    for debian in jessie # wheezy
+    for debian in stretch jessie # wheezy
     do
         attemptbuild Debian $debian
     done
