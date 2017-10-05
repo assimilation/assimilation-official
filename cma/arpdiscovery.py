@@ -238,7 +238,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         # - Walk through the IP addresses we've collected, and make them part of one of these
         #   subnets if we can.
         #
-        #   Something I haven't completley thought through yet...
+        #   Something I haven't completely thought through yet...
         #   What happens when a MAC address gets a new IP address?
         #
         mac_ip_pairs = set()
@@ -308,7 +308,6 @@ class ArpDiscoveryListener(DiscoveryListener):
         """
         Fix up the subnets of everything we can on this Network Segment.
         "We can" means we _know_ which subnet a particular IP address goes with.
-        IPs may change what subnet they go with...
 
         :param found_subnets: Iterable(Subnet): Candidate subnets
         :param ip_list: Iterable(IPaddrNode): IP addresses to fix up with their subnets
