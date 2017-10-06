@@ -110,8 +110,6 @@ class cClass(object):
     IpPortFrame = POINTER(AssimCtypes.IpPortFrame)
     CompressFrame = POINTER(AssimCtypes.CompressFrame)
     guint8 = POINTER(AssimCtypes.guint8)
-    gpointer = POINTER(AssimCtypes.gpointer)
-    gconstpointer = POINTER(AssimCtypes.gconstpointer)
     GSList = POINTER(AssimCtypes.GSList)
     CryptCurve25519 = POINTER(AssimCtypes.CryptCurve25519)
 
@@ -331,11 +329,12 @@ class pySwitchDiscovery(object):
 
 
         this = cast(get_lldptlv_first(pktstart, pktend),
-                cClass.gconstpointer)
-        while this and this < pktend:
+                cClass.guint8)
+        while this:
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
             tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
+            #print >> sys.stderr, "EXAMINE:", tlvptr, tlvtype, tlvlen
             value = None
             if tlvtype not in pySwitchDiscovery.lldpnames:
                 print >> sys.stderr, 'Cannot find tlvtype %d' % tlvtype
@@ -396,7 +395,8 @@ class pySwitchDiscovery(object):
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
-            this = get_lldptlv_next(this, pktend)
+            this = cast(get_lldptlv_next(this, pktend),
+                    cClass.guint8)
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
     @staticmethod
@@ -653,12 +653,12 @@ class pySwitchDiscovery(object):
             return metadata
         Cmacaddr = netaddr_mac48_new(sourcemacptr)
         sourcemac = pyNetAddr(None, Cstruct=Cmacaddr)
-        this = get_cdptlv_first(pktstart, pktend)
-        while this and this < pktend:
+        this = cast(get_cdptlv_first(pktstart, pktend), cClass.guint8)
+        while this:
             tlvtype = get_cdptlv_type(this, pktend)
             tlvlen = get_cdptlv_len(this, pktend)
             tlvptr = cast(get_cdptlv_body(this, pktend), cClass.guint8)
-            this = get_cdptlv_next(this, pktend)
+            this = cast(get_cdptlv_next(this, pktend), cClass.guint8)
             value = None
             # Each of the different cases handles 'value' differently
             # pylint: disable=R0204
@@ -1786,8 +1786,8 @@ class pyPacketDecoder(pyAssimObj):
         while not_this_exact_type(base, AssimCtypes.PacketDecoder):
             base = base.baseclass
         fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct,
-                cast(pktlocation[0], cClass.gpointer),
-                cast(pktlocation[1], cClass.gconstpointer))
+                cast(pktlocation[0], cClass.guint8),
+                cast(pktlocation[1], cClass.guint8))
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
 
     @staticmethod
