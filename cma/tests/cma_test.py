@@ -217,6 +217,7 @@ netdiscoveryformat='''
     "mtu": 1500,
     "operstate": "up",
     "speed": 1000,
+    "virtual": false,
     "default_gw": true,
     "ipaddrs": { "%s/16": {"brd":"10.20.255.255", "scope":"global", "name":"eth0"}}
     },
@@ -224,6 +225,7 @@ netdiscoveryformat='''
     "address": "00:00:00:00:00:00",
     "carrier": 1,
     "mtu": 16436,
+    "virtual": false,
     "operstate": "unknown",
     "ipaddrs": { "127.0.0.1/8": {"scope":"host"}, "::1/128": {"scope":"host"}}
     }

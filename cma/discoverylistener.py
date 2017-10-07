@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100 fileencoding=utf-8
 #
 # This file is part of the Assimilation Project.
 #
@@ -24,17 +24,19 @@
 #
 #
 
-'''
+"""
 Discovery Listener infrastructure
 This is the base class for code that wants to hear about various
 discovery packets as they arrive.
 
 More details are documented in the DiscoveryListener class
-'''
-import re, sys, os
+"""
+from __future__ import print_function
+import re
+from sys import stderr
+import os
 from droneinfo import Drone
 from consts import CMAconsts
-from store import Store
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE, ADDR_FAMILY_IPV4
 from AssimCclasses import pyNetAddr, pyConfigContext
 from systemnode import ChildSystem
@@ -43,13 +45,13 @@ from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, NetworkS
 
 
 class DiscoveryListener(object):
-    '''Class for listening to discovery packets
+    """Class for listening to discovery packets
     We support three different categories/priorities of discovery actions
     as documented below:
-    '''
+    """
 
-    PRI_CORE   = 0              # This discovery plugin is part of the core system
-    PRI_OPTION  = 1             # This is an optional capability that comes with the system
+    PRI_CORE = 0              # This discovery plugin is part of the core system
+    PRI_OPTION = 1             # This is an optional capability that comes with the system
     PRI_CONTRIB = 2             # This is a contributed (and optional) capability
     PRI_LIMIT = PRI_CONTRIB+1
 
@@ -57,7 +59,7 @@ class DiscoveryListener(object):
     wantedpackets = None
 
     def __init__(self, config, packetio, store, log, debug):
-        'Init function for DiscoveryListener'
+        """Init function for DiscoveryListener"""
         self.packetio = packetio
         self.store = store
         self.log = log
@@ -66,44 +68,44 @@ class DiscoveryListener(object):
 
     @classmethod
     def priority(cls):
-        'Return the priority (ordering) that this should be invoked at'
+        """Return the priority (ordering) that this should be invoked at"""
         return cls.prio
 
     @classmethod
     def desiredpackets(cls):
-        'Return the set of packets we want to be called for'
+        """Return the set of packets we want to be called for"""
         return cls.wantedpackets
 
     def processpkt(self, drone, srcaddr, json, discoverychanged):
-        'A desired packet has been received - process it'
+        """A desired packet has been received - process it"""
         raise NotImplementedError('Abstract class - processpkt()')
 
 
 @Drone.add_json_processor
 class MonitoringAgentDiscoveryListener(DiscoveryListener):
-    'Class for updating our agent cache when we get new monitoringagents information'
+    """Class for updating our agent cache when we get new monitoringagents information"""
 
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('monitoringagents',)
 
     def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
-        '''Update the _agentcache when we get a new set of available agents'''
+        """Update the _agentcache when we get a new set of available agents"""
         if not discoverychanged:
             return
-        #print >> sys.stderr, 'SETTING MONITORING AGENTS: ', jsonobj['data']
+        # print ('SETTING MONITORING AGENTS: %s' %  jsonobj['data'], file=stderr)
         setattr(drone, '_agentcache', jsonobj['data'])
 
 
 @Drone.add_json_processor
 class AuditdConfDiscoveryListener(DiscoveryListener):
-    'Class for discovering audit permissions'
+    """Class for discovering audit permissions"""
 
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('auditd_conf',)
 
     def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
-        '''Request discovery of auditd (log) files and directories.
-        They will be evaluated by some auditd best practice rules'''
+        """Request discovery of auditd (log) files and directories.
+        They will be evaluated by some auditd best practice rules"""
         if not discoverychanged:
             return
         data = jsonobj['data']  # The data portion of the JSON message
@@ -111,14 +113,13 @@ class AuditdConfDiscoveryListener(DiscoveryListener):
         params['parameters'] = pyConfigContext()
         params[CONFIGNAME_TYPE] = 'fileattrs'
         params[CONFIGNAME_INSTANCE] = 'auditd_fileattrs'
-        filelist = ''
         if 'log_file' in data:
             filelist = os.path.dirname(data['log_file']) + '/'
         else:
-            filelist =  '/var/log/audit/'
+            filelist = '/var/log/audit/'
         params['parameters']['filelist'] = filelist
         params['parameters']['ASSIM_filelist'] = filelist
-        # print >> sys.stderr, 'DISCOVERING %s' % str(params)
+        # print('DISCOVERING %s' % str(params), file=stderr)
         # repeat, warn, and interval are automatically added
         drone.request_discovery((params,))
 
@@ -128,7 +129,7 @@ class AuditdConfDiscoveryListener(DiscoveryListener):
 # pylint: disable=R0914,R0912
 @Drone.add_json_processor
 class NetconfigDiscoveryListener(DiscoveryListener):
-    'Class for the (initial) netconfig discovery packet'
+    """Class for the (initial) netconfig discovery packet"""
 
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('netconfig',)
@@ -193,6 +194,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             macaddr = str(ifinfo['address'])
             net_segment = self.guess_net_segment(drone, ifinfo)
             net_segments[macaddr] = net_segment
+            # A slightly more generous/forgiving find operation than load_or_create()
             newnic = NICNode.find_this_macaddr(store, drone.domain,  macaddr, system=drone,
                                                net_segment=net_segment)
             if newnic is None:
@@ -223,7 +225,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 # On the other hand, garbage collection is a good thought...
                 self.store.delete(currmac)
                 del currmacs[macaddr]
-        currmacs = None
+        del currmacs
 
         # Create REL_nicowner relationships for any newly created NIC nodes
         for macaddr in newmacs.keys():
@@ -238,9 +240,9 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         for macaddr in newmacs.keys():
             mac = newmacs[macaddr]
             ifname = mac.ifname
-            # print >> sys.stderr, 'MAC IS', str(mac)
-            # print >> sys.stderr, 'DATA IS:', str(data)
-            # print >> sys.stderr, 'IFNAME IS', str(ifname)
+            # print ('MAC IS', str(mac), file=stderr)
+            # print ('DATA IS:', str(data), file=stderr)
+            # print ('IFNAME IS', str(ifname), file=stderr)
             iptable = data[str(ifname)]['ipaddrs']
             currips = {}
             iplist = self.store.load_related(mac, CMAconsts.REL_ipowner)
@@ -255,7 +257,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 #     continue
                 iponly, cidrmask = ip.split('/')
                 netaddr = pyNetAddr(iponly).toIPv6()
-                subnet_context = drone.designation if mac.virtual else '__GLOBAL__',
+                subnet_context = drone.designation if mac.virtual else '__GLOBAL__'
                 #   This is a more forgiving/generous subnet finding algorithm than load_or_create
                 subnet = Subnet.find_subnet(self.store,
                                             domain=drone.domain,
@@ -290,10 +292,10 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 if ipaddr in newips:
                     newips[ipaddr] = currip.update_attributes(newips[ipaddr])
                 else:
-                    #print >> sys.stderr, 'Deleting address %s from MAC %s' %  (currip, macaddr)
-                    #print >> sys.stderr, 'currip:%s, currips:%s' %  (str(currip), str(currips))
-                    self.log.debug('Deleting address %s from MAC %s' %  (currip, macaddr))
-                    self.log.debug('currip:%s, currips:%s' %  (str(currip), str(currips)))
+                    # print ('Deleting address %s from MAC %s' %  (currip, macaddr), file=stderr)
+                    # print ('currip:%s, currips:%s' %  (str(currip), str(currips)), file=stderr)
+                    self.log.debug('Deleting address %s from MAC %s' % (currip, macaddr))
+                    self.log.debug('currip:%s, currips:%s' % (str(currip), str(currips)))
                     self.store.separate(mac, rel_type=CMAconsts.REL_ipowner, obj=currip)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     # @TODO May also need to delete a subnet if no other references...
@@ -309,7 +311,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
 
 @Drone.add_json_processor
 class TCPDiscoveryListener(DiscoveryListener):
-    'Class for TCP discovery handling'
+    """Class for TCP discovery handling"""
 
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('tcpdiscovery',)
@@ -319,10 +321,10 @@ class TCPDiscoveryListener(DiscoveryListener):
     # disable=R0912 means too many branches
     # pylint: disable=R0914,R0912
     def processpkt(self, drone, _, jsonobj, discoverychanged):
-        '''Add TCP listeners and clients.'''
+        """Add TCP listeners and clients."""
         if not discoverychanged:
             return
-        data = jsonobj['data'] # The data portion of the JSON message
+        data = jsonobj['data']   # The data portion of the JSON message
         if self.debug:
             self.log.debug('_add_tcplisteners(data=%s)' % data)
 
@@ -342,13 +344,15 @@ class TCPDiscoveryListener(DiscoveryListener):
                 if CMAconsts.ROLE_client not in discoveryroles:
                     discoveryroles[CMAconsts.ROLE_client] = True
                     drone.addrole(CMAconsts.ROLE_client)
-            #print >> sys.stderr, 'CREATING PROCESS %s!!' % procname
-            processproc = self.store.load_or_create(ProcessNode, domain=drone.domain
-            ,   processname=procname
-            ,   host=drone.designation
-            ,   pathname=procinfo.get('exe', 'unknown'), argv=procinfo.get('cmdline', 'unknown')
-            ,   uid=procinfo.get('uid','unknown'), gid=procinfo.get('gid', 'unknown')
-            ,   cwd=procinfo.get('cwd', '/'))
+            # print ('CREATING PROCESS %s!!' % procname, file=stderr)
+            processproc = self.store.load_or_create(ProcessNode, domain=drone.domain,
+                                                    processname=procname,
+                                                    host=drone.designation,
+                                                    pathname=procinfo.get('exe', 'unknown'),
+                                                    argv=procinfo.get('cmdline', 'unknown'),
+                                                    uid=procinfo.get('uid', 'unknown'),
+                                                    gid=procinfo.get('gid', 'unknown'),
+                                                    cwd=procinfo.get('cwd', '/'))
             processproc.procinfo = str(procinfo)
 
             newprocs[processproc.processname] = processproc
@@ -370,16 +374,14 @@ class TCPDiscoveryListener(DiscoveryListener):
                     self.store.separate(drone, CMAconsts.REL_hosting, proc)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     # On the other hand, garbage collection is a good thought...
-                    print >> sys.stderr, ('TRYING TO DELETE node %s'
-                    %   (procname))
+                    print('TRYING TO DELETE node %s' % procname, file=stderr)
                     for newprocname in newprocs:
-                        print >> sys.stderr, ('*** new procs: proc.procname %s'
-                        %   (str(newprocname)))
-                    print >> sys.stderr, ('*** DELETING proc: proc.procname %s: proc=%s'
-                    %   (str(procname), str(proc)))
+                        print('*** new procs: proc.procname %s' % str(newprocname), file=stderr)
+                    print('*** DELETING proc: proc.procname %s: proc=%s'
+                          % (str(procname), str(proc)), file=stderr)
                     self.store.delete(proc)
 
-        for procname in data.keys(): # List of names of processes...
+        for procname in data.keys():  # List of names of processes...
             processnode = newprocmap[procname]
             procinfo = data[procname]
             if self.debug:
@@ -400,18 +402,20 @@ class TCPDiscoveryListener(DiscoveryListener):
                     self._add_clientipportnode(drone, ip, int(port), processnode)
 
     def _add_clientipportnode(self, drone, ipaddr, servport, processnode):
-        '''Add the information for a single client IPtcpportNode to the database.'''
+        """Add the information for a single client IPtcpportNode to the database."""
         servip_name = str(pyNetAddr(ipaddr).toIPv6())
         servip = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=servip_name)
-        ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
-        ,       ipaddr=servip_name, port=servport)
+        ip_port = self.store.load_or_create(IPtcpportNode,
+                                            domain=drone.domain,
+                                            ipaddr=servip_name,
+                                            port=servport)
         self.store.relate_new(ip_port, CMAconsts.REL_baseip, servip)
         self.store.relate_new(ip_port, CMAconsts.REL_tcpclient, processnode)
 
     def _add_serveripportnodes(self, drone, ip, port, processnode, allourips):
-        '''We create tcpipports objects that correspond to the given json object in
+        """We create tcpipports objects that correspond to the given json object in
         the context of the set of IP addresses that we support - including support
-        for the ANY ipv4 and ipv6 addresses'''
+        for the ANY ipv4 and ipv6 addresses"""
         netaddr = pyNetAddr(str(ip)).toIPv6()
         if netaddr.islocal():
             self.log.warning('add_serveripportnodes("%s"): address is local' % netaddr)
@@ -422,34 +426,37 @@ class TCPDiscoveryListener(DiscoveryListener):
         for ipaddr in allourips:
             if not anyaddr and str(ipaddr.ipaddr) != addr:
                 continue
-            ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain
-            ,   ipaddr=ipaddr.ipaddr, port=port)
+            ip_port = self.store.load_or_create(IPtcpportNode, domain=drone.domain,
+                                                ipaddr=ipaddr.ipaddr, port=port)
             self.store.relate_new(processnode, CMAconsts.REL_tcpservice, ip_port)
             self.store.relate_new(ip_port, CMAconsts.REL_baseip, ipaddr)
             if not anyaddr:
                 return
         if not anyaddr:
-            print >> sys.stderr, ('LOOKING FOR %s (%s, %s) in: %s'
-            %       (netaddr, type(ip), type(netaddr), [str(ip.ipaddr) for ip in allourips]))
-            #raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
-            #%       (drone, addr))
+            print('LOOKING FOR %s (%s, %s) in: %s'
+                  % (netaddr, type(ip), type(netaddr),
+                     [str(ip.ipaddr) for ip in allourips]),
+                  file=stderr)
+            # raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
+            # %       (drone, addr))
             # Must not have been discovered yet. Hopefully discovery will come along and
             # fill in the cidrmask, and create the NIC relationship ;-)
             ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=addr)
             allourips.append(ipnode)
             self._add_serveripportnodes(drone, addr, port, processnode, allourips)
 
+
 @Drone.add_json_processor
 class SystemSubclassDiscoveryListener(DiscoveryListener):
-    'Listening for subsystem discovery results'
+    """Listening for subsystem discovery results"""
 
     prio = DiscoveryListener.PRI_CORE
     wantedpackets = ('vagrant', 'docker')
 
     def processpkt(self, drone, _, jsonobj, discoverychanged):
-        ''' Kick off discovery for a Docker or vagrant instance - as though it were a
+        """ Kick off discovery for a Docker or vagrant instance - as though it were a
             real boy -- I mean a real Drone
-        '''
+        """
         if not discoverychanged:
             return
 
@@ -458,7 +465,7 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
             return
         childtype = jsonobj['discovertype']
         systems = data['containers']
-        # print >> sys.stderr, '=====================GOT %s packet' % (childtype)
+        # print('=====================GOT %s packet' % (childtype), file=stderr)
         discovery_types = self.config['containers'][childtype]['initial_discovery']
         for sysid in systems:
             system = ChildSystem.childfactory(drone, childtype, sysid, systems[sysid])
@@ -466,7 +473,7 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
             self.store.relate_new(system, CMAconsts.REL_parentsys, drone)
 
             runspec = (' "runas_user": "%s",' % system.runas_user
-                    if system.runas_user is not None else '')
+                       if system.runas_user is not None else '')
             if system.runas_group is not None:
                 runspec += ' "runas_group": "%s",' % system.runas_group
 
@@ -481,6 +488,5 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
                                            runspec,
                                            'ASSIM_PROXY_PATH', system.childpath)))
             # kick off discovery...
-            # print >> sys.stderr, '=====================REQUESTING DISCOVERY: %s' % (str(allparams))
+            # print('=====================REQUESTING DISCOVERY: %s' % (str(allparams)), file=stderr)
             system.request_discovery(allparams)
-

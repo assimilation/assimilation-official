@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100 fileencoding=utf-8
 #
 # This file is part of the Assimilation Project.
 #
@@ -560,7 +560,7 @@ class NICNode(GraphNode):
                 if attr in self._json:
                     setattr(self, attr, self._json[attr])
         if not hasattr(self, 'OUI'):
-            ui = self.mac_to_oui(self.macaddr)
+            oui = self.mac_to_oui(self.macaddr)
             if oui is not None:
                 self.OUI = oui
         self.scope = scope
@@ -637,7 +637,6 @@ class NICNode(GraphNode):
     def post_db_init(self):
         """Set up the labels on the graph"""
         GraphNode.post_db_init(self)
-        self.association.store.add_labels(self, (Subnet.name_to_label(self.subnet),))
 
 
 @RegisterGraphClass
@@ -705,6 +704,8 @@ class IPaddrNode(GraphNode):
 
 
 SUBNET_GLOBAL = '_GLOBAL_'
+
+
 @RegisterGraphClass
 class Subnet(GraphNode):
     """
@@ -749,6 +750,10 @@ class Subnet(GraphNode):
         self.name = str(self)
         if self.cidrmask > 128:
             raise ValueError('Illigal CIDR mask')
+        print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s'
+              % (domain, ipaddr, cidrmask, context, net_segment), file=stderr)
+        print('Subnet Created: %s' % str(self), file=stderr)
+        assert context is None or isinstance(context, (str, unicode))
 
     @staticmethod
     def str_to_ip_cidr(ipaddr, cidrmask):
@@ -935,7 +940,7 @@ class Subnet(GraphNode):
         ipaddr, cidrmask = Subnet.str_to_ip_cidr(ipaddr, cidrmask)
         query = """
         MATCH (n:Class_Subnet) WHERE n.ipaddr = $ipaddr AND n.cidrmask = $cidrmask
-        AND domain = $domain
+        AND n.domain = $domain
         """
         if context is not None:
             query += ' AND n.context = $context'
@@ -947,7 +952,7 @@ class Subnet(GraphNode):
             "domain": domain,
             "net_segment": net_segment,
         }
-        query += 'RETURN n'
+        query += ' RETURN n'
         return store.load_cypher_node(query, parameters)
 
     def belongs_on_this_subnet(self, ipaddr):
@@ -1032,7 +1037,7 @@ class NetworkSegment(GraphNode):
         ip_addrs = list({str(each[1]) for each in ip_mac_pairs})
 
         query = """
-        MATCH (ip:Class_IPaddrNode)->[:ipowner]->(mac:Class_NICNode)
+        MATCH (ip:Class_IPaddrNode)-[:ipowner]->(mac:Class_NICNode)
         WHERE ip.ipaddr in $ip_addrs AND mac.macaddr in $mac_addrs
         AND ip.domain = $domain AND mac.domain = $domain
         AND mac.net_segment IS NOT NULL
