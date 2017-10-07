@@ -94,7 +94,9 @@ class cClass(object):
     'Just a handy collection of POINTER() objects'
     def __init__(self):
         pass
+    AssimObj = POINTER(AssimCtypes.AssimObj)
     NetAddr = POINTER(AssimCtypes.NetAddr)
+    NetIO = POINTER(AssimCtypes.NetIO)
     Frame = POINTER(AssimCtypes.Frame)
     AddrFrame = POINTER(AssimCtypes.AddrFrame)
     IntFrame = POINTER(AssimCtypes.IntFrame)
@@ -326,11 +328,13 @@ class pySwitchDiscovery(object):
         sourcemac = pyNetAddr(None, Cstruct=Cmacaddr)
 
 
-        this = get_lldptlv_first(pktstart, pktend)
-        while this and this < pktend:
+        this = cast(get_lldptlv_first(pktstart, pktend),
+                cClass.guint8)
+        while this:
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
             tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
+            #print >> sys.stderr, "EXAMINE:", tlvptr, tlvtype, tlvlen
             value = None
             if tlvtype not in pySwitchDiscovery.lldpnames:
                 print >> sys.stderr, 'Cannot find tlvtype %d' % tlvtype
@@ -391,7 +395,8 @@ class pySwitchDiscovery(object):
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
-            this = get_lldptlv_next(this, pktend)
+            this = cast(get_lldptlv_next(this, pktend),
+                    cClass.guint8)
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
     @staticmethod
@@ -648,12 +653,12 @@ class pySwitchDiscovery(object):
             return metadata
         Cmacaddr = netaddr_mac48_new(sourcemacptr)
         sourcemac = pyNetAddr(None, Cstruct=Cmacaddr)
-        this = get_cdptlv_first(pktstart, pktend)
-        while this and this < pktend:
+        this = cast(get_cdptlv_first(pktstart, pktend), cClass.guint8)
+        while this:
             tlvtype = get_cdptlv_type(this, pktend)
             tlvlen = get_cdptlv_len(this, pktend)
             tlvptr = cast(get_cdptlv_body(this, pktend), cClass.guint8)
-            this = get_cdptlv_next(this, pktend)
+            this = cast(get_cdptlv_next(this, pktend), cClass.guint8)
             value = None
             # Each of the different cases handles 'value' differently
             # pylint: disable=R0204
@@ -852,7 +857,7 @@ class pyAssimObj(object):
             assert not isinstance(Cstruct,  (int, long))
             self._Cstruct = Cstruct
         else:
-            self._Cstruct = assimobj_new(0)
+            self._Cstruct = cast(assimobj_new(0), cClass.AssimObj)
         #print 'ASSIMOBJ:init: %s' % (Cstruct)
 
     def cclassname(self):
@@ -922,7 +927,7 @@ class pyNetAddr(pyAssimObj):
         if isinstance(addrstring, unicode) or isinstance(addrstring, pyNetAddr):
             addrstring = str(addrstring)
         if isinstance(addrstring, str):
-            cs = netaddr_dns_new(addrstring)
+            cs = cast(netaddr_dns_new(addrstring), cClass.NetAddr)
             if not cs:
                 raise ValueError('Illegal NetAddr initial value: "%s"' % addrstring)
             if port != 0:
@@ -950,17 +955,17 @@ class pyNetAddr(pyAssimObj):
         #print >> sys.stderr, 'ADDR = %s'  % addr
         if alen == 4:		# ipv4
             NA = netaddr_ipv4_new(addr, port)
-            pyAssimObj.__init__(self, Cstruct=NA)
         elif alen == 16:	# ipv6
-            pyAssimObj.__init__(self, netaddr_ipv6_new(addr, port))
+            NA = netaddr_ipv6_new(addr, port)
         elif alen == 6:		# "Normal" 48-bit MAC address
             assert port == 0
-            pyAssimObj.__init__(self, netaddr_mac48_new(addr, port))
+            NA = netaddr_mac48_new(addr, port)
         elif alen == 8:		# Extended 64-bit MAC address
             assert port == 0
-            pyAssimObj.__init__(self, netaddr_mac64_new(addr, port))
+            NA = netaddr_mac64_new(addr, port)
         else:
             raise ValueError('Invalid address length - not 4, 6, 8, or 16')
+        pyAssimObj.__init__(self, Cstruct=cast(NA, cClass.NetAddr))
 
     def port(self):
         'Return the port (if any) for this pyNetAddr object'
@@ -1040,7 +1045,7 @@ class pyNetAddr(pyAssimObj):
         base = self._Cstruct[0]
         while not_this_exact_type(base, NetAddr):
             base = base.baseclass
-        cstringret =  base.canonStr(self._Cstruct)
+        cstringret = cast(base.canonStr(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
         g_free(cstringret)
         return ret
@@ -1091,7 +1096,7 @@ class pyFrame(pyAssimObj):
             except(AttributeError):
                 frametype = int(initval)
             # If we don't do this, then a subclass __init__ function must do it instead...
-            pyAssimObj.__init__(self, Cstruct=frame_new(frametype, 0))
+            pyAssimObj.__init__(self, Cstruct=cast(frame_new(frametype, 0), cClass.Frame))
         else:
             pyAssimObj.__init__(self, Cstruct=Cstruct)
 
@@ -1160,7 +1165,7 @@ class pyFrame(pyAssimObj):
         memmove(valptr, valbuf, vlen)
         while not_this_exact_type(base, Frame):
             base = base.baseclass
-        base.setvalue(self._Cstruct, valptr, vlen, cast(None, GDestroyNotify))
+        base.setvalue(self._Cstruct, cast(valptr, c_char_p), vlen, cast(None, GDestroyNotify))
 
     def dump(self, prefix):
         'Dump out this Frame (using C-class "dump" member function)'
@@ -1330,7 +1335,7 @@ class pyCstringFrame(pyFrame):
         '''Constructor for pyCstringFrame object - initial value should be something
         that looks a lot like a Python string'''
         if Cstruct is None:
-            Cstruct = cstringframe_new(frametype, 0)
+            Cstruct = cast(cstringframe_new(frametype, 0), cClass.CstringFrame)
         pyFrame.__init__(self, frametype, Cstruct)
         if initval is not None:
             self.setvalue(initval)
@@ -1790,7 +1795,9 @@ class pyPacketDecoder(pyAssimObj):
         base = self._Cstruct[0]
         while not_this_exact_type(base, AssimCtypes.PacketDecoder):
             base = base.baseclass
-        fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct, pktlocation[0], pktlocation[1])
+        fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct,
+                cast(pktlocation[0], cClass.guint8),
+                cast(pktlocation[1], cClass.guint8))
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
 
     @staticmethod
@@ -2171,7 +2178,8 @@ class pyNetIO(pyAssimObj):
         'Initializer for pyNetIO'
         self._Cstruct = None # Keep error legs from complaining.
         if Cstruct is None:
-            Cstruct = netio_new(0, configobj._Cstruct, packetdecoder._Cstruct)
+            Cstruct = cast(netio_new(0, configobj._Cstruct,
+                packetdecoder._Cstruct), cClass.NetIO)
             self.config = configobj
         else:
             self._Cstruct = Cstruct
@@ -2316,7 +2324,10 @@ class pyNetIO(pyAssimObj):
         while not hasattr(base, 'sendaframeset'):
             base = base.baseclass
         for frameset in framesetlist:
-            success = base.sendareliablefs(self._Cstruct, destaddr._Cstruct, qid, frameset._Cstruct)
+            success = base.sendareliablefs(
+                cast(self._Cstruct, cClass.NetIO),
+                cast(destaddr._Cstruct, cClass.NetAddr),
+                qid, frameset._Cstruct)
             if not success:
                 raise IOError("sendareliablefs(%s, %s) failed." % (destaddr, frameset))
 
