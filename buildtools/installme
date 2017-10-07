@@ -37,7 +37,7 @@ LOCALSUDO='sudo'
 WORKLOG=/tmp/assimilation-install.txt
 ASSIMSHARE=/usr/share/assimilation
 CRYPTODIR="$ASSIMSHARE/crypto.d"
-ROOTURL=https://dl.dropboxusercontent.com/u/65564307/builds
+ROOTURL=https://www.dropbox.com/sh/7dk588n0oxmjh27/AAAOiAqSecvhOI_mS0bJpPDsa?dl=0
 INSTALLURL=https://bit.ly/assiminstall
 BASEURL=$ROOTURL/Releases
 PRERELURL=$ROOTURL/Prereleases
@@ -1038,7 +1038,7 @@ install_centos_nano_base() {
     else
         install_sys_package $CENTOS6_BASE_NANO_PKGS
         ARCH=$(package_architecture)
-        SUFFIX="$ARCH/libsodium-last-1.0.10-1.el6.remi.$ARCH.rpm"
+        SUFFIX="$ARCH/libsodium-last-1.0.14-1.el6.remi.$ARCH.rpm"
         URL=$CENTOS6_LIBSODIUMBASE/$SUFFIX
         logwork "wget: retrieving $URL"
         wget -q -O libsodium.$ARCH.rpm $URL
