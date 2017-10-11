@@ -30,10 +30,11 @@ mkdir $dirname
 LOGMSG="STARTING ASSIMILATION TESTS in $dirname with ARGS: $@"
 LOGNAME="$dirname/testlog.txt"
 SYSLOGTAIL="$dirname/syslog"
-SYSLOG=/var/log/syslog
 echo $LOGMSG > $LOGNAME
 echo '# vim: syntax=messages' > $SYSLOGTAIL
 logger -s "$LOGMSG" 2>$LOGNAME
+SYSLOG=`echo $@ | sed 's/.*-l  *\([^ ]*\).*/\1/'`
+: ${SYSLOG="/var/log/syslog"}
 tail -1f $SYSLOG >> $SYSLOGTAIL &
 syslogpid=$!
 sudo time python assimtest.py "$@" >>$LOGNAME 2>&1 &

@@ -147,6 +147,13 @@ def testmain(logname):
     ,   help
     =   'Random seed - a comma-separated list of 8 integers between 0 and 255 - from previous run')
 
+    parser.add_option('-l', '--logname'
+    ,   action='store'
+    ,   default=logname
+    ,   dest='logname'
+    ,   help
+    =   'Log file where syslog sends messages')
+
     (opts, args) = parser.parse_args()
     opts.cmadebug = int(opts.cmadebug)
     opts.nanodebug = int(opts.nanodebug)
@@ -184,7 +191,7 @@ def testmain(logname):
         testset = [test for test in AssimSysTest.testset]
 
     # Set up the test environment as requested
-    env, store = AssimSysTest.initenviron(logname, maxdrones
+    env, store = AssimSysTest.initenviron(opts.logname, maxdrones
     ,   (opts.cmadebug > 0 or opts.nanodebug > 0)
     ,   cmadebug=opts.cmadebug, nanodebug=opts.nanodebug)
 
@@ -194,7 +201,7 @@ def testmain(logname):
 
     print '\n'
     logit('STARTING %d tests on %d nanoprobes + CMA' % (itercount, maxdrones))
-    return perform_tests(testset, env, store, itercount, logname)
+    return perform_tests(testset, env, store, itercount, opts.logname)
 
 
 sys.stdout = sys.stderr # Get rid of that nasty buffering...
