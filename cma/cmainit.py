@@ -133,13 +133,13 @@ class Neo4jCreds(object):
             f.write('%s\n%s\n' % (self.name, self.auth))
         self._log.info('Updated Neo4j credentials cached in %s.' % self.filename)
 
-    def authenticate(self, uri='http://localhost:7474'):
+    def authenticate(self, uri='localhost:7474'):
         """
         Authenticate ourselves to the neo4j database using our credentials
         """
         if self.isdefault:
             self.update()
-        if self.DEBUG:
+        if True or self.DEBUG:
             print >> sys.stderr, 'AUTH against %s WITH ("%s")' % (str(uri), self)
         py2neo.authenticate(uri, user=self.name, password=self.auth)
 
@@ -163,7 +163,9 @@ class CMAInjectables(object):
         'LOG_LEVEL':        logging.DEBUG,
         'LOG_DEVICE':       '/dev/log',
         'LOG_FORMAT':       '%(name)s %(levelname)s: %(message)s',
-        'NEO4J_HTTPS':      True,
+        'NEO4J_HTTP':       True,
+        'NEO4J_HTTPS':      False,
+        'NEO4J_BOLT':       False,
         'NEO4J_HOST':       'localhost',
         'NEO4J_PORT':       7474,
         'NEO4J_READONLY':   False,
@@ -224,24 +226,30 @@ class CMAInjectables(object):
 
     @staticmethod
     @inject.params(neocredentials='Neo4jCreds', log='logging.Logger')
-    def setup_db(neocredentials, log, host=None, port=None, https=None):
+    def setup_db(neocredentials, log, host=None, port=None, https=False, http=False, bolt=False):
         """Return a neo4j.Graph object (open channel to the Neo4j database)
         We're great as an injector for neo4j.Graph
         """
         host = host or CMAInjectables.settings['NEO4J_HOST']
         port = port or CMAInjectables.settings['NEO4J_PORT']
+        http = http or CMAInjectables.settings['NEO4J_HTTP']
         https = https or CMAInjectables.settings['NEO4J_HTTPS']
-        https = False
+        bolt = bolt or CMAInjectables.settings['NEO4J_BOLT']
 
         hostport = '%s:%s' % (host, port)
-        url = '%s://%s/db/data/' % ('https' if https else 'http', hostport)
-        print >> sys.stderr, ("URL: %s" % url)
+        protocol = 'bolt' if bolt else ('https' if https else 'http')
+        url = '%s://%s/db/data/' % (protocol, hostport)
 
         trycount = 0
         while True:
             try:
+                print >> sys.stderr, ("URI: %s" % url)
+                print >> sys.stderr, ("hostport: %s" % hostport)
                 neocredentials.authenticate(hostport)
-                neodb = py2neo.Graph(uri=url, bolt=False, https=False, http=True, host=host, port=7474)
+                print >> sys.stderr, ('URI:%s bolt:%s, https:%s, http:%s, host:%s, port=%s'
+                      % (url, bolt, https, http, host, port))
+                neodb = py2neo.Graph(uri=url, bolt=bolt, https=https, http=http,
+                                     host=host, port=port)
                 # Neo4j started.  All is well with the world.
                 break
             except (RuntimeError, IOError, py2neo.GraphError) as exc:

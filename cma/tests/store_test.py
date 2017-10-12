@@ -229,6 +229,8 @@ def initstore():
         print >> sys.stderr, 'USING NEO4J VERSION %s' % str(FooClass.db.neo4j_version)
         print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
         FooClass.initialized_yet = True
+    if FooClass.store.db_transaction and not FooClass.store.db_transaction.finished():
+        FooClass.store.db_transaction.finish()
     FooClass.db.delete_all()
     FooClass.store.clean_store()
     FooClass.new_transaction()
@@ -476,11 +478,6 @@ class TestDatabaseWrites(TestCase):
         self.create_stuff(store)    # Everything has gone out of scope
                                     # so nothing is cached any more
         #print >> sys.stderr, 'RUNNING test_create_and_query'
-        # Verify nothing is cached any more
-        store.clients = set()
-        store.weaknoderefs = {}
-        gc.collect()
-        store.weaknoderefs = {}
         iterator = store.load_cypher_query(Qstr)
         rowcount = 0
         foundaddr1 = False
@@ -509,6 +506,7 @@ class TestDatabaseWrites(TestCase):
         self.assertEqual(rowcount, 2)
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
+        FooClass.store.db_transaction.finish()
 
 
 class TestSystemNode(TestCase):
