@@ -34,6 +34,7 @@ running on them - for the purpose of testing the Assimilation project.
 '''
 import tempfile, subprocess, sys, random, os, time
 from logwatcher import LogWatcher
+
 class TestSystem(object):
     'This is the base class for managing test systems for testing the Assimilation code'
     nameindex = 0
@@ -62,6 +63,7 @@ class TestSystem(object):
         self.pid = None
         self.hostname = None
         self.ipaddr = None
+        self.runningservices = []
         TestSystem.ManagedSystems[self.name] = self
 
     @staticmethod
@@ -100,18 +102,51 @@ class TestSystem(object):
         raise NotImplementedError("Abstract class - doesn't implement destroy")
 
     def startservice(self, servicename, async=False):
-        'Unimplemented start service action'
-        raise NotImplementedError("Abstract class - doesn't implement startservice")
+        'start service in a container'
+        if servicename in self.runningservices:
+            print >> sys.stderr, ('WARNING: Service %s already running in system %s'
+            %       (servicename, self.name))
+        else:
+            self.runningservices.append(servicename)
+        if servicename == 'neo4j':
+            return self.startneo4j()
+        if async:
+            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
+            #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
+        else:
+            #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
+            #self.runinimage(('/etc/init.d/'+servicename, 'start'))
+            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
 
     def stopservice(self, servicename, async=False):
-        'Unimplemented stop service action'
-        raise NotImplementedError("Abstract class - doesn't implement stopservice")
+        'stop service in a container'
+        if servicename in self.runningservices:
+            self.runningservices.remove(servicename)
+        else:
+            print >> sys.stderr, ('WARNING: Service %s not running in system %s'
+            %       (servicename, self.name))
+        if servicename == 'neo4j':
+            return self.stopneo4j()
+        if async:
+            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
+        else:
+            self.runinimage(('/etc/init.d/'+servicename, 'stop'))
 
+
+    def startneo4j(self):
+        'Start Neo4j'
+        self.runinimage(('/bin/bash', '-c',
+                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j start; '
+                         'sleep 20'), detached=False)
+    def stopneo4j(self):
+        'Stop Neo4j'
+        self.runinimage(('/bin/bash', '-c',
+                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j stop'),
+                         detached=False)
 
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
     dockercmd = '/usr/bin/docker'
-    servicecmd = '/usr/bin/service'
     nsentercmd = '/usr/bin/nsenter'
 
     def __init__(self, imagename, cmdargs=None, dockerargs=None, cleanupwhendone=False):
@@ -119,7 +154,6 @@ class DockerSystem(TestSystem):
         if dockerargs is None:
             dockerargs = []
         self.dockerargs = dockerargs
-        self.runningservices = []
         self.hostname = 'unknown'
         self.ipaddr = 'unknown'
         self.pid = 'unknown'
@@ -242,48 +276,6 @@ class DockerSystem(TestSystem):
                               % (time.asctime(), str(args)))
         subprocess.check_call(args)
 
-    def startservice(self, servicename, async=False):
-        'docker-exec-based start service action for docker'
-        if servicename in self.runningservices:
-            print >> sys.stderr, ('WARNING: Service %s already running in docker system %s'
-            %       (servicename, self.name))
-        else:
-            self.runningservices.append(servicename)
-        if servicename == 'neo4j':
-            return self.startneo4j()
-        if async:
-            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
-            #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
-        else:
-            #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
-            #self.runinimage(('/etc/init.d/'+servicename, 'start'))
-            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
-
-    def stopservice(self, servicename, async=False):
-        'docker-exec-based stop service action for docker'
-        if servicename in self.runningservices:
-            self.runningservices.remove(servicename)
-        else:
-            print >> sys.stderr, ('WARNING: Service %s not running in docker system %s'
-            %       (servicename, self.name))
-        if servicename == 'neo4j':
-            return self.stopneo4j()
-        if async:
-            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
-        else:
-            self.runinimage(('/etc/init.d/'+servicename, 'stop'))
-
-    def startneo4j(self):
-        'Start Neo4j'
-        self.runinimage(('/bin/bash', '-c',
-                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j start; '
-                         'sleep 20'), detached=False)
-    def stopneo4j(self):
-        'Stop Neo4j'
-        self.runinimage(('/bin/bash', '-c',
-                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j stop'),
-                         detached=False)
-
 class SystemTestEnvironment(object):
     'A basic system test environment'
     CMASERVICE      = 'cma'
@@ -295,7 +287,7 @@ class SystemTestEnvironment(object):
     # pylint - too many arguments
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
-    ,       cmaimage='assimilation/build-wily', nanoimages=('assimilation/build-wily',)
+    ,       cmaimage='assimilation/build-stretch', nanoimages=('assimilation/build-stretch',)
     #,       cmaimage='3f06b7c84030', nanoimages=('3f06b7c84030',)
     ,       sysclass=DockerSystem, cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
@@ -535,7 +527,6 @@ class SystemTestEnvironment(object):
             if len(result) == count or len(servlist) == 0:
                 break
         return result
-
 
     def stop(self):
         'Stop our entire SystemTestEnvironment'

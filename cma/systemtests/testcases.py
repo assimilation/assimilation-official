@@ -32,7 +32,7 @@ sys.path.append('..')
 sys.path.append('.')
 from logwatcher import LogWatcher
 from querytest import QueryTest
-from docker import SystemTestEnvironment, TestSystem
+from sysmgmt import SystemTestEnvironment, TestSystem
 # pylint: disable=E0401
 import graphnodes as GN
 from cmainit import CMAinit
