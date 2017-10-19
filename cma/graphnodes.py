@@ -947,9 +947,10 @@ class Subnet(GraphNode):
         if net_segment is not None:
             query += ' AND n.net_segment = $net_segment'
         parameters = {
-            "ipaddr": str(ipaddr),
             "cidrmask": int(cidrmask),
+            "context": context,
             "domain": domain,
+            "ipaddr": str(ipaddr),
             "net_segment": net_segment,
         }
         query += ' RETURN n'
