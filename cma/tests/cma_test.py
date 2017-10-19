@@ -270,19 +270,18 @@ class AUDITS(TestCase):
         drone=Drone.find(designation)
         self.assertTrue(drone is not None)
         # Did the drone's list of addresses get updated?
-        ipnodes = drone.get_owned_ips()
-        ipnodes = [ip for ip in ipnodes]
-        self.assertEqual(len(ipnodes), 1)
+        ipnodes = [ip for ip in drone.get_owned_ips()]
+        self.assertEqual(len(ipnodes), 2)
+        ipaddrs = [pyNetAddr(str(ip.ipaddr)) for ip in ipnodes]
         ipnode = ipnodes[0]
         ipnodeaddr = pyNetAddr(ipnode.ipaddr)
         json = drone['netconfig']
         jsobj = pyConfigContext(init=json)
         jsdata = jsobj['data']
         eth0obj = jsdata['eth0']
-        eth0addrcidr = eth0obj['ipaddrs'].keys()[0]
-        eth0addrstr, cidrmask = eth0addrcidr.split('/')
-        eth0addr = pyNetAddr(eth0addrstr)
-        self.assertTrue(eth0addr == ipnodeaddr)
+        for eth0addrcidr in eth0obj['ipaddrs']:
+            eth0addr = pyNetAddr(eth0addrcidr.split('/')[0])
+            self.assertTrue(eth0addr in ipaddrs)
 
         # Do we know that eth0 is the default gateway?
         self.assertEqual(eth0obj['default_gw'], True)

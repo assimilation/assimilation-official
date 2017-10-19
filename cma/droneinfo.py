@@ -51,11 +51,11 @@ class Drone(SystemNode):
     '''
     IPownerquery_1 = None
     OwnedIPsQuery = None
-    IPownerquery_1_txt = '''START n=node:IPaddrNode({ipaddr})
-                            MATCH (n)<-[:%s]-()<-[:%s]-(drone)
-                            return drone LIMIT 1'''
-    OwnedIPsQuery_txt = '''START d=node({droneid})
-                           MATCH (d)-[:%s]->()-[:%s]->(ip)
+    IPownerquery_1_txt = '''MATCH (n:Class_IPaddrNode)<-[:%s]-()<-[:%s]-(drone)
+                            WHERE n.ipaddr = $ipaddr
+                            RETURN drone LIMIT 1'''
+    OwnedIPsQuery_txt = '''MATCH (d:Class_Drone)-[:%s]->()-[:%s]->(ip:Class_IPaddrNode)
+                           WHERE ID(d) = $droneid
                            return ip'''
 
 
@@ -204,7 +204,10 @@ class Drone(SystemNode):
             print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
             %   (Drone.OwnedIPsQuery_subtxt, str(params)))
 
-        return [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, params=params)]
+        ip_list = [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, params=params)]
+        # print >> sys.stderr, ("Query returned: %s"
+        #                       % str([str(ip) for ip in ip_list]))
+        return ip_list
 
     def get_owned_nics(self):
         '''Return an iterator returning all the NICs that this Drone owns'''
