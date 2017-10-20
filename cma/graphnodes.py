@@ -838,12 +838,12 @@ class Subnet(GraphNode):
         :param contexts: [str] or None: Contexts that interest us - or None
         :return: generator(Subnet)
         """
-        query = 'MATCH(subnet:Class_Subnet) '
-        if query is not None and contexts is not None:
-            query += 'WHERE '
-        if query is not None:
+        query = 'MATCH(subnet:Class_Subnet) WHERE '
+        if domain is not None:
             query += 'subnet.domain = $domain '
         if contexts is not None:
+            if domain is not None:
+                query += 'AND '
             query += 'subnet.context in $contexts '
         query += 'RETURN subnet'
 

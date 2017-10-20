@@ -305,17 +305,9 @@ class Drone(SystemNode):
         # in terms of the number of peers this particular drone had
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
-        for label in self.association.store.labels(self):
-            if label.startswith('Ring_'):
-                ring_name = label[5:]
-                query = 'MATCH(r:Class_HbRing) WHERE r.name=$name RETURN r'
-                ring = self.association.store.load_cypher_node(query, {'name': ring_name})
-                if ring is None:
-                    print >> sys.stderr, ('Ring %s NOT FOUND.' % ring_name)
-                    CMAdb.log.critical('Ring %s NOT FOUND.' % ring_name)
-                else:
-                    # print >> sys.stderr, ('Calling Ring(%s).leave(%s).' % (ring_name, self))
-                    ring.leave(self)
+        for ring in self.find_associated_rings():
+            # print >> sys.stderr, ('Calling Ring(%s).leave(%s).' % (ring_name, self))
+            ring.leave(self)
         deadip = pyNetAddr(self.select_ip(), port=self.port)
         if CMAdb.debug:
             CMAdb.log.debug('Closing connection to %s/%d' % (deadip, DEFAULT_FSP_QID))
@@ -329,6 +321,22 @@ class Drone(SystemNode):
         if reason != 'HBSHUTDOWN':
             self._io.closeconn(DEFAULT_FSP_QID, deadip)
         AssimEvent(self, AssimEvent.OBJDOWN)
+
+    def find_associated_rings(self):
+        """
+        Return a generator yielding the ring objects which this Drone is a member of
+        This could be more efficient, albeit without some error checking we're doing now...
+        :return: generator(HbRing)
+        """
+        for label in self.association.store.labels(self):
+            if label.startswith('Ring_'):
+                ring_name = label[5:]
+                query = 'MATCH(r:Class_HbRing) WHERE r.name=$name RETURN r'
+                ring = self.association.store.load_cypher_node(query, {'name': ring_name})
+                if ring is None:
+                    raise RuntimeError('Cannot locate ring [%s] for %s' % (ring_name, self))
+                else:
+                    yield ring
 
     def start_heartbeat(self, ring, partner1, partner2=None):
         '''Start heartbeating to the given partners.

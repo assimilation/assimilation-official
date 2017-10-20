@@ -351,19 +351,18 @@ class CMAinit(object):
                 GraphNode.initclasstypeobj(CMAdb.store, classname)
             from transaction import NetTransaction
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
-            #print >> sys.stderr,  'CMAdb:', CMAdb
-            #print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
-            if True:
-                store.db_transaction = db.begin(autocommit=False)
-                CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring',
-                                                              ringtype=HbRing.THEONERING)
-                if CMAdb.use_network:
-                    CMAdb.net_transaction.commit_trans()
-                #print >> sys.stderr, 'COMMITTING Store'
-                #print >> sys.stderr, 'NetTransaction Commit results:', CMAdb.store.commit()
-                if CMAdb.store.db_transaction and not CMAdb.store.db_transaction.finished:
-                    CMAdb.store.commit()
-                    #print >> sys.stderr, 'Store COMMITTED'
+            # print >> sys.stderr,  'CMAdb:', CMAdb
+            # print >> sys.stderr,  'CMAdb.store(cmadb.py):', CMAdb.store
+            store.db_transaction = db.begin(autocommit=False)
+            CMAdb.TheOneRing = CMAdb.store.load_or_create(HbRing, name='The_One_Ring',
+                                                          ringtype=HbRing.THEONERING)
+            print >> sys.stderr, ('Created TheOneRing: %s' % CMAdb.TheOneRing)
+            if CMAdb.use_network:
+                CMAdb.net_transaction.commit_trans()
+            print >> sys.stderr, 'COMMITTING Store'
+            print >> sys.stderr, 'NetTransaction Commit results:', CMAdb.store.commit()
+            if CMAdb.store.db_transaction and not CMAdb.store.db_transaction.finished():
+                CMAdb.store.commit()
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
         else:
             CMAdb.net_transaction = None
