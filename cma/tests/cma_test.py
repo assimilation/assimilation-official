@@ -505,7 +505,7 @@ class IOTestIO:
         # self.config = None
         self.timeout = None
         TestFoo.cleanstore()
-        #CMAinit.uninit()
+        CMAinit.uninit()
 
     def getmaxpktsize(self):    return 60000
     def fileno(self):        	return self.pipe_read
@@ -899,6 +899,7 @@ class TestMonitorBasic(TestCase):
     def test_activate(self):
         AssimEvent.disable_all_observers()
         io = IOTestIO([],0)
+        CMAInjectables.set_config(ConfigFile().complete_config())
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         TestFoo.new_transaction()
         # TODO: This guy needs an 'argv' supplied...
@@ -1431,12 +1432,13 @@ class TestNetDevices(TestCase):
         CMAinit(None, cleanoutdb=True, debug=DEBUG)
         TestFoo.new_transaction()
         subnet = store.load_or_create(Subnet, domain='global', ipaddr='10.10.10.20/255.255.255.0')
-        ipaddr1 = store.load_or_create(IPaddrNode, ipaddr='10.10.10.20', subnet=subnet)
+        ipaddr1 = store.load_or_create(IPaddrNode, ipaddr='10.10.10.20', domain='global',
+                                       subnet=subnet)
         assert ipaddr1.subnet == subnet.name
         ipaddr1.association.store.commit()
         TestFoo.new_transaction()
         assert subnet.subnet_label in store.labels(ipaddr1)
-        assert Subnet.find_subnet(store, ipaddr1.subnet) is subnet
+        assert Subnet.find_subnet_by_name(store, ipaddr1.subnet) is subnet
 
     def test_scope_and_macaddr(self):
         """
