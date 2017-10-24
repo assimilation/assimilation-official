@@ -240,8 +240,11 @@ if __name__ == '__main__':
 
     def testme():
         'This is a string'
+        import inject
         from AssimCtypes import CONFIGNAME_OUTSIG
         from AssimCclasses import pyReliableUDP, pyPacketDecoder, pySignFrame
+        from cmainit import CMAInjectables
+        inject.configure_once(CMAInjectables.test_config_injection)
 
         config = pyConfigContext(init={CONFIGNAME_OUTSIG: pySignFrame(1)})
         io = pyReliableUDP(config, pyPacketDecoder())

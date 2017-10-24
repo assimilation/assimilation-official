@@ -1121,8 +1121,10 @@ ClientQuery._validationmethods = {
 
 if __name__ == '__main__':
     # pylint: disable=C0413
+    import inject
     from store import Store
-    from cmainit import Neo4jCreds
+    from cmainit import Neo4jCreds, CMAInjectables
+    inject.configure_once(CMAInjectables.test_config_injection)
     metadata1 = \
     """
     {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
