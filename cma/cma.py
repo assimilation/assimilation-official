@@ -118,8 +118,8 @@ from cmaconfig import ConfigFile
 from bestpractices import BestPractices
 
 SUPPORTED_PYTHON_VERSIONS = ('2.7',)
-SUPPORTED_PY2NEO_VERSIONS = (2,)
-SUPPORTED_NEO4J_VERSIONS = (2,3)
+SUPPORTED_PY2NEO_VERSIONS = (3,)
+SUPPORTED_NEO4J_VERSIONS = (3,)
 
 PYTHON_VERSION = ('%s.%s' % sys.version_info[0:2])
 if PYTHON_VERSION not in SUPPORTED_PYTHON_VERSIONS:
