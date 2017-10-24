@@ -392,6 +392,7 @@ class CMAinit(object):
 
 
 if __name__ == '__main__':
+    inject.configure_once(CMAInjectables.test_config_injection)
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)
     print >> sys.stderr, 'Init done'
