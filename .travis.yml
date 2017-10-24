@@ -12,7 +12,7 @@ install:
 before_script:
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_neo4j
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
-  - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+    # - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6' # should not need this any more...
 script:
   - neoauth neo4j neo4j neo4j 2>&1 || true
   - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
