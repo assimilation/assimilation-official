@@ -4,8 +4,8 @@ apt-get -y update # Find out about the files in our repository
 rm -f /etc/init.d/neo4j
 
 echo 'y' | apt-get install python-software-properties
-add-apt-repository ppa:openjdk-r/ppa
+echo 'y' | add-apt-repository ppa:openjdk-r/ppa
 apt-get -y update # Find out about the files in our repository
-$apt-get install openjdk-8-jre-headless </dev/null
+echo 'y' | apt-get install openjdk-8-jre-headless </dev/null
 apt-get install neo4j=3.2.6 </dev/null # Install Neo4j, community edition - force version 
 service neo4j restart
