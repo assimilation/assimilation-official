@@ -1122,152 +1122,153 @@ ClientQuery._validationmethods = {
 if __name__ == '__main__':
     # pylint: disable=C0413
     import inject
-    from store import Store
-    from cmainit import Neo4jCreds, CMAInjectables
+    from cmainit import CMAInjectables
     inject.configure_once(CMAInjectables.test_config_injection)
-    metadata1 = \
-    """
-    {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
-        "parameters": {},
-        "descriptions": {
-            "en": {
-                "short":    "list all queries",
-                "long":     "return a list of all available queries"
-            }
-        }
-    }
-    """
-    q1 = ClientQuery('allqueries', metadata1)
 
-    metadata2 = \
-    """
-    {   "cypher":   "MATCH(n:Class_ClientQuery) WHERE n.queryname = $queryname RETURN n",
-        "parameters": {
-            "queryname": {
-                "type": "string",
-                "lang": {
-                    "en": {
-                        "short":    "query name",
-                        "long":     "Name of query to retrieve"
-                    }
-                }
-            }
-        },
-        "descriptions": {
-            "en": {
-                "short":    "Retrieve a query",
-                "long":     "Retrieve all the information about a query"
-            }
-        }
-    }
-    """
-    q2 = ClientQuery('allqueries', metadata2)
+    @inject.params(neodb='py2neo.Graph', qstore='Store')
+    def testcode(neodb, qstore):
+        """
 
-    metadata3 = \
-    """
-    {
-        "cypher": "MATCH (ip:Class_IPaddr)<-[:ipowner]-()<-[:nicowner]-(system)
-                   WHERE ip.ipaddr = $ipaddr
-                   RETURN system",
-
-        "descriptions": {
-            "en": {
-                "short":    "get system from IP",
-                "long":     "retrieve the system owning the requested IP"
-            }
-        },
-        "parameters": {
-            "ipaddr": {
-                "type": "ipaddr",
-                "lang": {
-                    "en": {
-                        "short":    "IP address",
-                        "long":     "IP (IPv4 or IPv6) address of system of interest"
-                    }
+        :param neodb: py2neo.Graph
+        :param store: Store
+        :return: None
+        """
+        metadata1 = \
+        """
+        {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
+            "parameters": {},
+            "descriptions": {
+                "en": {
+                    "short":    "list all queries",
+                    "long":     "return a list of all available queries"
                 }
             }
         }
-    }
-    """
-    metadata4 =  \
-    r""" {
-        "cypher":  "MATCH (start:Class_Drone)
-                    WHERE start.nodetype = 'Drone' AND start.designation = $host
-                    MATCH p = shortestPath( (start)-[*]-(m) )
-                    WHERE m.nodetype IN {nodetypes}
-                    UNWIND nodes(p) as n
-                    UNWIND rels(p) as r
-                    RETURN [x in collect(distinct n) WHERE x.nodetype in {nodetypes}]] as nodes,
-                   collect(distinct r) as relationships",
-        "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
-        "descriptions": {
-            "en": {
-                "short":    "return entire graph",
-                "long":     "retrieve all nodes and all relationships"
-            }
-        },
-        "parameters": {
-            "host": {
-                "type": "hostname",
-                "lang": {
-                    "en": {
-                        "short":    "starting host name",
-                        "long":     "name of host to start the query at"
+        """
+        q1 = ClientQuery('allqueries', metadata1)
+
+        metadata2 = \
+        """
+        {   "cypher":   "MATCH(n:Class_ClientQuery) WHERE n.queryname = $queryname RETURN n",
+            "parameters": {
+                "queryname": {
+                    "type": "string",
+                    "lang": {
+                        "en": {
+                            "short":    "query name",
+                            "long":     "Name of query to retrieve"
+                        }
                     }
                 }
             },
-            "nodetypes": {
-                "type": "list",
-                "listtype": {
-                    "type": "nodetype"
-                },
-                "lang": {
-                    "en": {
-                        "short":    "node types",
-                        "long":     "set of node types to include in query result",
-                     }
+            "descriptions": {
+                "en": {
+                    "short":    "Retrieve a query",
+                    "long":     "Retrieve all the information about a query"
                 }
             }
-        },
-        "cmdline": {
-            "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
-            "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
-        },
-    }"""
-    q3 = ClientQuery('ipowners', metadata3)
-    q3.validate_json()
-    q4 = ClientQuery('subgraph', metadata4)
-    q4.validate_json()
+        }
+        """
+        q2 = ClientQuery('allqueries', metadata2)
 
-    Neo4jCreds().authenticate()
-    neodb = Graph()
-    neodb.delete_all()
+        metadata3 = \
+        """
+        {
+            "cypher": "MATCH (ip:Class_IPaddr)<-[:ipowner]-()<-[:nicowner]-(system)
+                       WHERE ip.ipaddr = $ipaddr
+                       RETURN system",
 
-    umap  = {'ClientQuery': True}
-    ckmap = {'ClientQuery': {'index': 'ClientQuery', 'kattr':'queryname', 'value':'None'}}
+            "descriptions": {
+                "en": {
+                    "short":    "get system from IP",
+                    "long":     "retrieve the system owning the requested IP"
+                }
+            },
+            "parameters": {
+                "ipaddr": {
+                    "type": "ipaddr",
+                    "lang": {
+                        "en": {
+                            "short":    "IP address",
+                            "long":     "IP (IPv4 or IPv6) address of system of interest"
+                        }
+                    }
+                }
+            }
+        }
+        """
+        metadata4 =  \
+        r""" {
+            "cypher":  "MATCH (start:Class_Drone)
+                        WHERE start.designation = $host
+                        MATCH p = shortestPath( (start)-[*]-(m) )
+                        WHERE m.nodetype IN {nodetypes}
+                        UNWIND nodes(p) as n
+                        UNWIND rels(p) as r
+                        RETURN [x in collect(distinct n) WHERE x.nodetype in $nodetypes]] as nodes,
+                       collect(distinct r) as relationships",
+            "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+            "descriptions": {
+                "en": {
+                    "short":    "return entire graph",
+                    "long":     "retrieve all nodes and all relationships"
+                }
+            },
+            "parameters": {
+                "host": {
+                    "type": "hostname",
+                    "lang": {
+                        "en": {
+                            "short":    "starting host name",
+                            "long":     "name of host to start the query at"
+                        }
+                    }
+                },
+                "nodetypes": {
+                    "type": "list",
+                    "listtype": {
+                        "type": "nodetype"
+                    },
+                    "lang": {
+                        "en": {
+                            "short":    "node types",
+                            "long":     "set of node types to include in query result",
+                         }
+                    }
+                }
+            },
+            "cmdline": {
+                "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
+                "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
+            },
+        }"""
+        q3 = ClientQuery('ipowners', metadata3)
+        q3.validate_json()
+        q4 = ClientQuery('subgraph', metadata4)
+        q4.validate_json()
 
-    qstore = Store(neodb, uniqueindexmap=umap, classkeymap=ckmap)
-    for classname in GraphNode.classmap:
-        GraphNode.initclasstypeobj(qstore, classname)
 
-    print "LOADING TREE!"
+        print "LOADING TREE!"
 
-    dirname = os.path.dirname(sys.argv[0])
-    dirname = '.' if dirname == '' else dirname
-    queries = ClientQuery.load_tree(qstore, "%s/../queries" % dirname)
-    qlist = [q for q in queries]
-    qstore.commit()
-    print "%d node TREE LOADED!" % len(qlist)
-    qe2 = qstore.load_or_create(ClientQuery, queryname='list')
-    qe2.bind_store(qstore)
-    testresult = ''
-    for s in qe2.execute(None, idsonly=False, expandJSON=True):
-        testresult += s
-    print 'RESULT', testresult
-    # Test out a command line query
-    for s in qe2.cmdline_exec(None):
-        if re.match(s, '[	 ]unknown$'):
-            raise RuntimeError('Search result contains unknown: %s' % s)
-        print s
+        dirname = os.path.dirname(sys.argv[0])
+        dirname = '.' if dirname == '' else dirname
+        queries = ClientQuery.load_tree(qstore, "%s/../queries" % dirname)
+        qstore.db_transaction = qstore.db.begin(autocommit=False)
+        qlist = [q for q in queries]
+        qstore.commit()
+        print "%d node TREE LOADED!" % len(qlist)
+        qstore.db_transaction = qstore.db.begin(autocommit=False)
+        qe2 = qstore.load_or_create(ClientQuery, queryname='list')
+        qe2.bind_store(qstore)
+        testresult = ''
+        for s in qe2.execute(None, idsonly=False, expandJSON=True):
+            testresult += s
+        print 'RESULT', testresult
+        # Test out a command line query
+        for s in qe2.cmdline_exec(None):
+            if re.match(s, '[	 ]unknown$'):
+                raise RuntimeError('Search result contains unknown: %s' % s)
+            print s
 
-    print "All done!"
+        print "All done!"
+    testcode()
