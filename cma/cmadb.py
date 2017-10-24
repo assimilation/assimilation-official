@@ -88,7 +88,8 @@ class CMAdb(object):
 
 if __name__ == '__main__':
     # pylint: disable=C0413
-    from cmainit import CMAinit
+    from cmainit import CMAinit, CMAInjectables
+    inject.configure_once(CMAInjectables.test_config_injection)
     print >> sys.stderr, 'Starting'
     CMAinit(None, cleanoutdb=True, debug=True)
     print >> sys.stderr, 'Init done'
