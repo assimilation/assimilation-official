@@ -31,6 +31,5 @@ script:
   - sudo /etc/init.d/nanoprobe stop
   - sudo /etc/init.d/cma stop
   - sudo assimcli genkeys
-  - grep -n dbms.security /var/lib/neo4j/conf/neo4j-server.properties /dev/null
   - make tests # contains sudo commands
   - cd $TRAVIS_BUILD_DIR
