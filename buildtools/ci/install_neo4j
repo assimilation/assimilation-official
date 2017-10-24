@@ -2,6 +2,10 @@ wget -O - http://debian.neo4j.org/neotechnology.gpg.key| apt-key add - # Import 
 echo 'deb http://debian.neo4j.org/repo stable/' > /etc/apt/sources.list.d/neo4j.list # Create an Apt sources.list file
 apt-get -y update # Find out about the files in our repository
 rm -f /etc/init.d/neo4j
-apt-get --force-yes install neo4j=2.3.4 </dev/null # Install Neo4j, community edition - force version 
-#			That's because Neo4j 3.0 can't be started with the old Java
-service neo4j-service restart
+
+apt-get --force-yes install python-software-properties
+add-apt-repository ppa:openjdk-r/ppa
+apt-get -y update # Find out about the files in our repository
+apt-get --force-yes install openjdk-8-jre-headless
+apt-get --force-yes install neo4j=3.2.6 </dev/null # Install Neo4j, community edition - force version 
+service neo4j restart
