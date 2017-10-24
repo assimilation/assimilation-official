@@ -94,11 +94,8 @@ class JSONtree(object):
         if isinstance(thing, (int, long, float, pyConfigContext)):
             return str(thing)
 
-        if isinstance(thing, unicode) or isinstance(thing, pyNetAddr):
+        if isinstance(thing, (unicode, str, pyNetAddr)):
             return '"%s"' % (JSONtree._jsonesc(str(thing)))
-
-        if isinstance(thing, str):
-            return '"%s"' % (JSONtree._jsonesc(thing))
 
         if thing is None:
             return 'null'
@@ -111,7 +108,7 @@ class JSONtree(object):
         comma = ''
         attrs = thing.__dict__.keys()
         attrs.sort()
-        if thing.association.node_id is not None:
+        if hasattr(thing, 'association') and thing.association.node_id is not None:
             ret += '"_node_id": %s' % thing.association.node_id
             comma = ','
         for attr in attrs:
