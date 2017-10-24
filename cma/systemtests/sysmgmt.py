@@ -48,10 +48,9 @@ class TestSystem(object):
     STOPPED = 2
     ManagedSystems = {}
 
-    def __init__(self, imagename, cmdargs=None):
+    def __init__(self, imagename, imagecount=2, cmdargs=None):
         'Constructor for Abstract class TestSystem'
-        self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
-        ,   TestSystem.nameindex)
+        self.mkname(imagename)
         TestSystem.nameindex += 1
         if TestSystem.tmpdir is None:
             TestSystem.tmpdir = tempfile.mkdtemp(TestSystem.tmpsuffix
@@ -149,7 +148,7 @@ class DockerSystem(TestSystem):
     dockercmd = '/usr/bin/docker'
     nsentercmd = '/usr/bin/nsenter'
 
-    def __init__(self, imagename, cmdargs=None, dockerargs=None, cleanupwhendone=False):
+    def __init__(self, imagename, imagecount=2, cmdargs=None, dockerargs=None, cleanupwhendone=False):
         'Constructor for DockerSystem class'
         if dockerargs is None:
             dockerargs = []
@@ -164,6 +163,11 @@ class DockerSystem(TestSystem):
     def __del__(self):
         "Invoke our destroy operation when we're deleted"
         #self.destroy()
+
+    def mkname(self, imagename):
+        self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
+        ,   TestSystem.nameindex)
+        TestSystem.nameindex += 1
 
     @staticmethod
     def run(*dockerargs):
@@ -231,7 +235,6 @@ class DockerSystem(TestSystem):
         #DockerSystem.run('top', self.name)
         DockerSystem.run('stop', self.name)
         self.status = TestSystem.STOPPED
-        self.pid = None
 
     def destroy(self):
         'Destroy a docker instance (after stopping it if necessary)'
@@ -276,6 +279,85 @@ class DockerSystem(TestSystem):
                               % (time.asctime(), str(args)))
         subprocess.check_call(args)
 
+import fabric.api
+class VagrantSystem(TestSystem):
+    'This class implements managing local Vagrant-based test systems'
+    vagrantcmd = 'vagrant'
+
+    def __init__(self, imagename, imagecount=2, cmdargs=None, cleanupwhendone=False):
+        'Constructor for VagrantSystem class'
+        import vagrant
+        self.imagecount = imagecount
+        # need to pass the number of nanoprobe VMs to Vagrant
+        os_env = os.environ.copy()
+        os_env['NUM_NANOPROBES'] = str(imagecount-1)
+        self.v = vagrant.Vagrant(env=os_env, quiet_stdout=False, quiet_stderr=False)
+        self.hostname = 'unknown'
+        self.ipaddr = 'unknown'
+        self.debug = 0
+        self.cleanupwhendone = cleanupwhendone
+        TestSystem.__init__(self, imagename)
+
+    def __del__(self):
+        "Invoke our destroy operation when we're deleted"
+        #self.destroy()
+
+    def mkname(self, imagename):
+        TestSystem.nameindex += 1
+        if imagename == "nanoprobe":
+            self.name = "nanoprobe%d" % TestSystem.nameindex
+        else:
+            self.name = imagename
+
+    def start(self):
+        'Start a vagrant instance'
+        if self.status == TestSystem.NOTINIT:
+            self.v.up(vm_name=self.name)
+            self.status = TestSystem.RUNNING
+            fabric.api.env.host_string = self.v.user_hostname_port(vm_name=self.name).replace("vagrant@","root@")
+            fabric.api.env.key_filename = self.v.keyfile(vm_name=self.name)
+            self.hostname = fabric.api.run("hostname")
+            outp = fabric.api.run("ip address show scope global")
+            addr_net = outp.partition("inet")[2].split()[0]
+            self.ipaddr = addr_net[0:addr_net.index("/")]
+        elif self.status == TestSystem.STOPPED:
+            self.v.up(vm_name=self.name)
+            self.status = TestSystem.RUNNING
+        elif self.status == TestSystem.RUNNING:
+            self.v.reload(vm_name=self.name)
+
+    def stop(self):
+        'Stop a vagrant instance'
+        if self.status != TestSystem.RUNNING:
+            return
+        os.system("logger -s 'Running services in %s: %s'" % (self.name, str(self.runningservices)))
+        #self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+        #VagrantSystem.run('top', self.name)
+        self.v.halt(vm_name=self.name)
+        self.status = TestSystem.STOPPED
+
+    def destroy(self):
+        'Destroy a vagrant instance (after stopping it if necessary)'
+        if self.status == TestSystem.RUNNING:
+            os.system("logger -s 'Running services in %s: %s'"
+            %   (self.name, str(self.runningservices)))
+            #self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+            #VagrantSystem.run('top', self.name)
+        self.v.destroy(vm_name=self.name, force=True)
+        self.status = TestSystem.NOTINIT
+
+    def runinimage(self, cmdargs, detached=True):
+        'Runs the given command on our running vm using fabric.api'
+        if self.status != TestSystem.RUNNING:
+            raise RuntimeError('Vagrant vm %s is not running' %   self.name)
+        if cmdargs[0] == "/bin/bash":
+            cmd = ' '.join(cmdargs[2:])
+        else:
+            cmd = ' '.join(cmdargs)
+#        if detached:
+#            cmd = "%s &" % cmd
+        fabric.api.run(cmd, shell=False)
+
 class SystemTestEnvironment(object):
     'A basic system test environment'
     CMASERVICE      = 'cma'
@@ -287,13 +369,15 @@ class SystemTestEnvironment(object):
     # pylint - too many arguments
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
-    ,       cmaimage='assimilation/build-stretch', nanoimages=('assimilation/build-stretch',)
-    #,       cmaimage='3f06b7c84030', nanoimages=('3f06b7c84030',)
-    ,       sysclass=DockerSystem, cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
+    ,       cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
-        self.sysclass = sysclass
+        self.sysclass = DockerSystem
+        if mgmtsystem == 'vagrant':
+            self.sysclass = VagrantSystem
+            os.chdir('vagrant')
         self.cmaimage = cmaimage
         self.nanoimages = nanoimages
+        self.nanocount = nanocount
         self.nanoprobes = []
         self.cma = None
         self.debug = 0
@@ -367,7 +451,9 @@ class SystemTestEnvironment(object):
             try:
                 # Docker has a bug where it will screw up and give us
                 system = self.sysclass(imagename
-                ,   ('/bin/bash', '-c', 'while sleep 10; do wait -n; done'))
+                ,   imagecount=self.nanocount
+                ,   cmdargs=('/bin/bash', '-c', 'while sleep 10; do wait -n; done')
+                )
                 system.start()
                 break
             except RuntimeError:
