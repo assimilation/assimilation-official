@@ -1202,7 +1202,7 @@ if __name__ == '__main__':
             "cypher":  "MATCH (start:Class_Drone)
                         WHERE start.designation = $host
                         MATCH p = shortestPath( (start)-[*]-(m) )
-                        WHERE m.nodetype IN {nodetypes}
+                        WHERE m.nodetype IN $nodetypes
                         UNWIND nodes(p) as n
                         UNWIND rels(p) as r
                         RETURN [x in collect(distinct n) WHERE x.nodetype in $nodetypes]] as nodes,
