@@ -927,7 +927,10 @@ class NagiosMonitoringRule(MonitoringRule):
                     )
 if __name__ == '__main__':
     # pylint: disable=C0413
+    import inject
+    from cmainit import CMAInjectables
     from graphnodes import ProcessNode
+    inject.configure_once(CMAInjectables.test_config_injection)
 
     # R0903 too few public methods (it's test code!)
     #pylint: disable=R0903
