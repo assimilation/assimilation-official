@@ -22,11 +22,12 @@
 '''
 This module defines our CMAdb class and so on...
 '''
-
+from __future__ import print_function
 import os
 import sys
+from sys import stderr
 import inject
-import py2neo
+from py2neo import DBMS
 from store import Store
 
 
@@ -35,7 +36,7 @@ DEBUG = False
 # R0903: Too few public methods
 # pylint: disable=R0903
 class CMAdb(object):
-    '''Class defining our Neo4J database.'''
+    """Class defining our Neo4J database."""
     nodename = os.uname()[1]
     debug = False
     net_transaction = None
@@ -63,13 +64,18 @@ class CMAdb(object):
             dot = '.'
         self.dbversstring = vers
         if self.dbversstring in CMAdb.neo4jblacklist:
-            print >> sys.stderr, ("The Assimilation CMA isn't compatible with Neo4j version %s"
-            %   self.dbversstring)
+            print("The Assimilation CMA isn't compatible with Neo4j version %s"
+                    %   self.dbversstring, file=stderr)
             sys.exit(1)
-        self.nextlabelid = 0
+
+        if DBMS.config.get('cypher.forbid_shortestpath_common_nodes', True):
+            print('Neo4j must be configured with "cypher.forbid_shortestpath_common_nodes=false"',
+                    file=stderr)
+            sys.exit(1)
+
         if CMAdb.debug:
             CMAdb.log.debug('Neo4j version: %s' % str(self.dbversion))
-            print >> sys.stderr, ('HELP Neo4j version: %s' % str(self.dbversion))
+            print('HELP Neo4j version: %s' % str(self.dbversion), file=stderr)
 
     @staticmethod
     def running_under_docker():
@@ -79,17 +85,15 @@ class CMAdb(object):
                 initcmd = os.readlink("/proc/1/exe")
                 CMAdb.underdocker =  (os.path.basename(initcmd) != 'init')
             except OSError:
-                print >> sys.stderr, ('Assimilation needs to run --privileged under docker')
+                print('Assimilation needs to run --privileged under docker', file=stderr)
                 CMAdb.underdocker =  True
         return CMAdb.underdocker
-
-
 
 
 if __name__ == '__main__':
     # pylint: disable=C0413
     from cmainit import CMAinit, CMAInjectables
     inject.configure_once(CMAInjectables.test_config_injection)
-    print >> sys.stderr, 'Starting'
+    print('Starting', file=stderr)
     CMAinit(None, cleanoutdb=True, debug=True)
-    print >> sys.stderr, 'Init done'
+    print('Init done', file=stderr)
