@@ -147,6 +147,34 @@ def testmain(logname):
     ,   help
     =   'Random seed - a comma-separated list of 8 integers between 0 and 255 - from previous run')
 
+    parser.add_option('-l', '--logname'
+    ,   action='store'
+    ,   default=logname
+    ,   dest='logname'
+    ,   help
+    =   'Log file where syslog sends messages')
+
+    parser.add_option('-m', '--mgmtsystem'
+    ,   action='store'
+    ,   default="docker"
+    ,   dest='mgmtsystem'
+    ,   help
+    =   'Management system to use for VMs/containers (docker or vagrant)')
+
+    parser.add_option('-C', '--cmaimage'
+    ,   action='store'
+    ,   default="assimilation/build-stretch"
+    ,   dest='cmaimage'
+    ,   help
+    =   'VM/container image to use for cma')
+
+    parser.add_option('-N', '--nanoimages'
+    ,   action='store'
+    ,   default="assimilation/build-stretch"
+    ,   dest='nanoimages'
+    ,   help
+    =   'VM/container images to use for nanoprobes (use space as a separator)')
+
     (opts, args) = parser.parse_args()
     opts.cmadebug = int(opts.cmadebug)
     opts.nanodebug = int(opts.nanodebug)
@@ -183,9 +211,18 @@ def testmain(logname):
     else:
         testset = [test for test in AssimSysTest.testset]
 
+    # Use cmaimage for nanoimages as default
+    if len(opts.nanoimages) > 0:
+        nanoimages=opts.nanoimages.split()
+    else:
+        nanoimages=[opts.cmaimage]
+
     # Set up the test environment as requested
-    env, store = AssimSysTest.initenviron(logname, maxdrones
+    env, store = AssimSysTest.initenviron(opts.logname, maxdrones
+    ,   opts.mgmtsystem
     ,   (opts.cmadebug > 0 or opts.nanodebug > 0)
+    ,   cmaimage=opts.cmaimage
+    ,   nanoimages=nanoimages
     ,   cmadebug=opts.cmadebug, nanodebug=opts.nanodebug)
 
     logit('CMA:  %s %15s %6d %s' % (env.cma.hostname, env.cma.ipaddr, env.cma.pid, env.cma.name))
@@ -194,7 +231,7 @@ def testmain(logname):
 
     print '\n'
     logit('STARTING %d tests on %d nanoprobes + CMA' % (itercount, maxdrones))
-    return perform_tests(testset, env, store, itercount, logname)
+    return perform_tests(testset, env, store, itercount, opts.logname)
 
 
 sys.stdout = sys.stderr # Get rid of that nasty buffering...

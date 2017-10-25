@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+
+NEOVERS=3.0.0
+neoversion=stable
+echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+apt-get -y update
+apt-get -y install --no-install-recommends gnupg wget python-setuptools python-pip python-netaddr lsb-release iproute2 adduser
+pip install 'py2neo==2.0.8' getent
+wget -q -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
+echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
+apt-get -y update
+apt-get -y install --no-install-recommends neo4j=$NEOVERS
+apt-get -y install --no-install-recommends /vagrant/assimilation-cma_*.deb

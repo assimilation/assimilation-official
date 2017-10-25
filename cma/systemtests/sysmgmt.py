@@ -34,6 +34,7 @@ running on them - for the purpose of testing the Assimilation project.
 '''
 import tempfile, subprocess, sys, random, os, time
 from logwatcher import LogWatcher
+
 class TestSystem(object):
     'This is the base class for managing test systems for testing the Assimilation code'
     nameindex = 0
@@ -47,10 +48,9 @@ class TestSystem(object):
     STOPPED = 2
     ManagedSystems = {}
 
-    def __init__(self, imagename, cmdargs=None):
+    def __init__(self, imagename, imagecount=2, cmdargs=None):
         'Constructor for Abstract class TestSystem'
-        self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
-        ,   TestSystem.nameindex)
+        self.mkname(imagename)
         TestSystem.nameindex += 1
         if TestSystem.tmpdir is None:
             TestSystem.tmpdir = tempfile.mkdtemp(TestSystem.tmpsuffix
@@ -62,6 +62,7 @@ class TestSystem(object):
         self.pid = None
         self.hostname = None
         self.ipaddr = None
+        self.runningservices = []
         TestSystem.ManagedSystems[self.name] = self
 
     @staticmethod
@@ -100,26 +101,58 @@ class TestSystem(object):
         raise NotImplementedError("Abstract class - doesn't implement destroy")
 
     def startservice(self, servicename, async=False):
-        'Unimplemented start service action'
-        raise NotImplementedError("Abstract class - doesn't implement startservice")
+        'start service in a container'
+        if servicename in self.runningservices:
+            print >> sys.stderr, ('WARNING: Service %s already running in system %s'
+            %       (servicename, self.name))
+        else:
+            self.runningservices.append(servicename)
+        if servicename == 'neo4j':
+            return self.startneo4j()
+        if async:
+            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
+            #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
+        else:
+            #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
+            #self.runinimage(('/etc/init.d/'+servicename, 'start'))
+            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
 
     def stopservice(self, servicename, async=False):
-        'Unimplemented stop service action'
-        raise NotImplementedError("Abstract class - doesn't implement stopservice")
+        'stop service in a container'
+        if servicename in self.runningservices:
+            self.runningservices.remove(servicename)
+        else:
+            print >> sys.stderr, ('WARNING: Service %s not running in system %s'
+            %       (servicename, self.name))
+        if servicename == 'neo4j':
+            return self.stopneo4j()
+        if async:
+            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
+        else:
+            self.runinimage(('/etc/init.d/'+servicename, 'stop'))
 
+
+    def startneo4j(self):
+        'Start Neo4j'
+        self.runinimage(('/bin/bash', '-c',
+                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j start; '
+                         'sleep 20'), detached=False)
+    def stopneo4j(self):
+        'Stop Neo4j'
+        self.runinimage(('/bin/bash', '-c',
+                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j stop'),
+                         detached=False)
 
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
     dockercmd = '/usr/bin/docker'
-    servicecmd = '/usr/bin/service'
     nsentercmd = '/usr/bin/nsenter'
 
-    def __init__(self, imagename, cmdargs=None, dockerargs=None, cleanupwhendone=False):
+    def __init__(self, imagename, imagecount=2, cmdargs=None, dockerargs=None, cleanupwhendone=False):
         'Constructor for DockerSystem class'
         if dockerargs is None:
             dockerargs = []
         self.dockerargs = dockerargs
-        self.runningservices = []
         self.hostname = 'unknown'
         self.ipaddr = 'unknown'
         self.pid = 'unknown'
@@ -130,6 +163,11 @@ class DockerSystem(TestSystem):
     def __del__(self):
         "Invoke our destroy operation when we're deleted"
         #self.destroy()
+
+    def mkname(self, imagename):
+        self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
+        ,   TestSystem.nameindex)
+        TestSystem.nameindex += 1
 
     @staticmethod
     def run(*dockerargs):
@@ -197,7 +235,6 @@ class DockerSystem(TestSystem):
         #DockerSystem.run('top', self.name)
         DockerSystem.run('stop', self.name)
         self.status = TestSystem.STOPPED
-        self.pid = None
 
     def destroy(self):
         'Destroy a docker instance (after stopping it if necessary)'
@@ -242,47 +279,84 @@ class DockerSystem(TestSystem):
                               % (time.asctime(), str(args)))
         subprocess.check_call(args)
 
-    def startservice(self, servicename, async=False):
-        'docker-exec-based start service action for docker'
-        if servicename in self.runningservices:
-            print >> sys.stderr, ('WARNING: Service %s already running in docker system %s'
-            %       (servicename, self.name))
-        else:
-            self.runningservices.append(servicename)
-        if servicename == 'neo4j':
-            return self.startneo4j()
-        if async:
-            self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
-            #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
-        else:
-            #self.runinimage(('/bin/bash',  ('/etc/init.d/%s' % servicename), 'start',))
-            #self.runinimage(('/etc/init.d/'+servicename, 'start'))
-            self.runinimage(('/usr/sbin/service',  servicename, 'restart'))
+import fabric.api
+class VagrantSystem(TestSystem):
+    'This class implements managing local Vagrant-based test systems'
+    vagrantcmd = 'vagrant'
 
-    def stopservice(self, servicename, async=False):
-        'docker-exec-based stop service action for docker'
-        if servicename in self.runningservices:
-            self.runningservices.remove(servicename)
-        else:
-            print >> sys.stderr, ('WARNING: Service %s not running in docker system %s'
-            %       (servicename, self.name))
-        if servicename == 'neo4j':
-            return self.stopneo4j()
-        if async:
-            self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
-        else:
-            self.runinimage(('/etc/init.d/'+servicename, 'stop'))
+    def __init__(self, imagename, imagecount=2, cmdargs=None, cleanupwhendone=False):
+        'Constructor for VagrantSystem class'
+        import vagrant
+        self.imagecount = imagecount
+        # need to pass the number of nanoprobe VMs to Vagrant
+        os_env = os.environ.copy()
+        os_env['NUM_NANOPROBES'] = str(imagecount-1)
+        self.v = vagrant.Vagrant(env=os_env, quiet_stdout=False, quiet_stderr=False)
+        self.hostname = 'unknown'
+        self.ipaddr = 'unknown'
+        self.debug = 0
+        self.cleanupwhendone = cleanupwhendone
+        TestSystem.__init__(self, imagename)
 
-    def startneo4j(self):
-        'Start Neo4j'
-        self.runinimage(('/bin/bash', '-c',
-                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j start; '
-                         'sleep 20'), detached=False)
-    def stopneo4j(self):
-        'Stop Neo4j'
-        self.runinimage(('/bin/bash', '-c',
-                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j stop'),
-                         detached=False)
+    def __del__(self):
+        "Invoke our destroy operation when we're deleted"
+        #self.destroy()
+
+    def mkname(self, imagename):
+        TestSystem.nameindex += 1
+        if imagename == "nanoprobe":
+            self.name = "nanoprobe%d" % TestSystem.nameindex
+        else:
+            self.name = imagename
+
+    def start(self):
+        'Start a vagrant instance'
+        if self.status == TestSystem.NOTINIT:
+            self.v.up(vm_name=self.name)
+            self.status = TestSystem.RUNNING
+            fabric.api.env.host_string = self.v.user_hostname_port(vm_name=self.name).replace("vagrant@","root@")
+            fabric.api.env.key_filename = self.v.keyfile(vm_name=self.name)
+            self.hostname = fabric.api.run("hostname")
+            outp = fabric.api.run("ip address show scope global")
+            addr_net = outp.partition("inet")[2].split()[0]
+            self.ipaddr = addr_net[0:addr_net.index("/")]
+        elif self.status == TestSystem.STOPPED:
+            self.v.up(vm_name=self.name)
+            self.status = TestSystem.RUNNING
+        elif self.status == TestSystem.RUNNING:
+            self.v.reload(vm_name=self.name)
+
+    def stop(self):
+        'Stop a vagrant instance'
+        if self.status != TestSystem.RUNNING:
+            return
+        os.system("logger -s 'Running services in %s: %s'" % (self.name, str(self.runningservices)))
+        #self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+        #VagrantSystem.run('top', self.name)
+        self.v.halt(vm_name=self.name)
+        self.status = TestSystem.STOPPED
+
+    def destroy(self):
+        'Destroy a vagrant instance (after stopping it if necessary)'
+        if self.status == TestSystem.RUNNING:
+            os.system("logger -s 'Running services in %s: %s'"
+            %   (self.name, str(self.runningservices)))
+            #self.runinimage(('/bin/echo', 'THIS IS', '/tmp/cores/*',), detached=False)
+            #VagrantSystem.run('top', self.name)
+        self.v.destroy(vm_name=self.name, force=True)
+        self.status = TestSystem.NOTINIT
+
+    def runinimage(self, cmdargs, detached=True):
+        'Runs the given command on our running vm using fabric.api'
+        if self.status != TestSystem.RUNNING:
+            raise RuntimeError('Vagrant vm %s is not running' %   self.name)
+        if cmdargs[0] == "/bin/bash":
+            cmd = ' '.join(cmdargs[2:])
+        else:
+            cmd = ' '.join(cmdargs)
+#        if detached:
+#            cmd = "%s &" % cmd
+        fabric.api.run(cmd, shell=False)
 
 class SystemTestEnvironment(object):
     'A basic system test environment'
@@ -295,13 +369,15 @@ class SystemTestEnvironment(object):
     # pylint - too many arguments
     # pylint: disable=R0913
     def __init__(self, logname, nanocount=10
-    ,       cmaimage='assimilation/build-wily', nanoimages=('assimilation/build-wily',)
-    #,       cmaimage='3f06b7c84030', nanoimages=('3f06b7c84030',)
-    ,       sysclass=DockerSystem, cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
+    ,       cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
-        self.sysclass = sysclass
+        self.sysclass = DockerSystem
+        if mgmtsystem == 'vagrant':
+            self.sysclass = VagrantSystem
+            os.chdir('vagrant')
         self.cmaimage = cmaimage
         self.nanoimages = nanoimages
+        self.nanocount = nanocount
         self.nanoprobes = []
         self.cma = None
         self.debug = 0
@@ -375,7 +451,9 @@ class SystemTestEnvironment(object):
             try:
                 # Docker has a bug where it will screw up and give us
                 system = self.sysclass(imagename
-                ,   ('/bin/bash', '-c', 'while sleep 10; do wait -n; done'))
+                ,   imagecount=self.nanocount
+                ,   cmdargs=('/bin/bash', '-c', 'while sleep 10; do wait -n; done')
+                )
                 system.start()
                 break
             except RuntimeError:
@@ -535,7 +613,6 @@ class SystemTestEnvironment(object):
             if len(result) == count or len(servlist) == 0:
                 break
         return result
-
 
     def stop(self):
         'Stop our entire SystemTestEnvironment'
