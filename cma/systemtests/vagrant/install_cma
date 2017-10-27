@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 
-NEOVERS=3.0.0
+NEOREL=3.0.0
 neoversion=stable
 echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 apt-get -y update
@@ -10,5 +10,16 @@ pip install 'py2neo==2.0.8' getent
 wget -q -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 apt-get -y update
-apt-get -y install --no-install-recommends neo4j=$NEOVERS
+apt-get -y install --no-install-recommends neo4j=$NEOREL
 apt-get -y install --no-install-recommends /vagrant/assimilation-cma_*.deb
+
+echo "dbms.connector.http.address=0.0.0.0:7474" >> /etc/neo4j/neo4j.conf
+rm -f /usr/share/assimilation/crypto.d/#CMA#00001.secret
+rm -fr /var/lib/neo4j/data/databases/graph.db /var/lib/neo4j/data/dbms/auth
+service neo4j start; sleep 10
+assimcli genkeys
+assimcli neo4jpass neo4j2
+service neo4j stop
+
+# create keys tarball for drones
+tar -cf cma_pubkeys.tar /usr/share/assimilation/crypto.d/*CMA*.pub
