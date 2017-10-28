@@ -458,6 +458,11 @@ install (FILES  ${PROJECT_SOURCE_DIR}/legal/copyright COMPONENT nanoprobe-compon
 # Create the CMA user id at install time as part of the CMA component
 install (CODE "execute_process ( COMMAND /bin/sh -c \"getent passwd assimilation >/dev/null || adduser --system --no-create-home --shell /bin/false ${CMAUSERID}\" )" COMPONENT cma-component ) 
 
+#
+#	Create an empty "crypto.d" file with restrictive permissions
+#
+install (CODE "execute_process ( COMMAND /bin/sh -c \"echo '-- Installing: ${DESTDIR}${CRYPTKEYDIR}' && mkdir -p ${DESTDIR}${CRYPTKEYDIR} && chmod 0700 ${DESTDIR}${CRYPTKEYDIR} && chown ${CMAUSERID} ${DESTDIR}${CRYPTKEYDIR}\" )" COMPONENT cma-component ) 
+
 
 #
 #	This has to be the last command in the file
