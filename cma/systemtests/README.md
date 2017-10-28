@@ -4,7 +4,7 @@ System testing
 This is the system testing machinery, based on VM/container
 systems.
 
-Either docker or vagrant setup is necessary to run it.
+Either docker or vagrant is required for VM management.
 
 It is also necessary to configure your host's syslog for remote
 logging. For instance, for rsyslog, one can use something like
@@ -24,14 +24,19 @@ to the log file. Or just do this:
 
 	$ sudo chmod 644 /var/log/assim.log
 
-The script to start the tests is runtests.sh. Example use:
+The script to start the tests is runtests.sh. Example use for
+vagrant:
 
-	$ sh runtests.sh -l /var/log/assim.log -m vagrant 20
+	$ sh runtests.sh -l /var/log/assim.log -m vagrant -C cma -N nanoprobe 20
+
+Example for docker:
+
+	$ sh runtests.sh -l /var/log/assim.log 20
 
 Docker
 ------
 
-The tests use docker containers by default. The tests can be used
+The tests use docker containers by default. They can be run
 without any further configuration after successfully building
 packages in the docker directory which is at the top of the
 project.
@@ -53,6 +58,10 @@ it with the VMs.
 The VMs are going to be "cma" (for the cma) and "nanoprobe%n"
 (for nanoprobes) where "%n" stands for a nanoprobe number (a
 small integer). The nanoprobe VMs count starts at 1.
+
+The Vagrantfile contains also configuration for the
+apt-cacher-ng. It is not strictly required, but reduces runtime
+considerably.
 
 To use other boxes/distributions please modify the Vagrantfile
 and the provisioning scripts accordingly. For other Debian based

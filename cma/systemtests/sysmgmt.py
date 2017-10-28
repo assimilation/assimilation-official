@@ -107,8 +107,6 @@ class TestSystem(object):
             %       (servicename, self.name))
         else:
             self.runningservices.append(servicename)
-        if servicename == 'neo4j':
-            return self.startneo4j()
         if async:
             self.runinimage(('/bin/bash', '-c', '/etc/init.d/%s start &' % servicename,))
             #self.runinimage(('/bin/bash', '-c', '/usr/sbin/service %s restart &' % servicename,))
@@ -124,24 +122,10 @@ class TestSystem(object):
         else:
             print >> sys.stderr, ('WARNING: Service %s not running in system %s'
             %       (servicename, self.name))
-        if servicename == 'neo4j':
-            return self.stopneo4j()
         if async:
             self.runinimage(('/bin/sh', '-c', '/etc/init.d/%s stop &' % servicename,))
         else:
             self.runinimage(('/etc/init.d/'+servicename, 'stop'))
-
-
-    def startneo4j(self):
-        'Start Neo4j'
-        self.runinimage(('/bin/bash', '-c',
-                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j start; '
-                         'sleep 20'), detached=False)
-    def stopneo4j(self):
-        'Stop Neo4j'
-        self.runinimage(('/bin/bash', '-c',
-                         'NEO4J_CONF=/etc/neo4j /usr/share/neo4j/bin/neo4j stop'),
-                         detached=False)
 
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
@@ -167,7 +151,6 @@ class DockerSystem(TestSystem):
     def mkname(self, imagename):
         self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
         ,   TestSystem.nameindex)
-        TestSystem.nameindex += 1
 
     @staticmethod
     def run(*dockerargs):
@@ -290,7 +273,7 @@ class VagrantSystem(TestSystem):
         self.imagecount = imagecount
         # need to pass the number of nanoprobe VMs to Vagrant
         os_env = os.environ.copy()
-        os_env['NUM_NANOPROBES'] = str(imagecount-1)
+        os_env['NUM_NANOPROBES'] = str(imagecount)
         self.v = vagrant.Vagrant(env=os_env, quiet_stdout=False, quiet_stderr=False)
         self.hostname = 'unknown'
         self.ipaddr = 'unknown'
@@ -303,7 +286,6 @@ class VagrantSystem(TestSystem):
         #self.destroy()
 
     def mkname(self, imagename):
-        TestSystem.nameindex += 1
         if imagename == "nanoprobe":
             self.name = "nanoprobe%d" % TestSystem.nameindex
         else:
@@ -317,9 +299,20 @@ class VagrantSystem(TestSystem):
             fabric.api.env.host_string = self.v.user_hostname_port(vm_name=self.name).replace("vagrant@","root@")
             fabric.api.env.key_filename = self.v.keyfile(vm_name=self.name)
             self.hostname = fabric.api.run("hostname")
-            outp = fabric.api.run("ip address show scope global")
-            addr_net = outp.partition("inet")[2].split()[0]
-            self.ipaddr = addr_net[0:addr_net.index("/")]
+            for l in fabric.api.run("ip address show scope global").splitlines():
+                if l.find("inet") > 0 and l.find("10.0.2") == -1:
+                    addr_net = l.partition("inet")[2].split()[0]
+                    self.ipaddr = addr_net[0:addr_net.index("/")]
+                    break
+            # there's an issue with syncing shared directory
+            # at least during the provisioning
+            if self.hostname == "cma":
+                fabric.api.run("tar -cf cma_pubkeys.tar /usr/share/assimilation/crypto.d/*CMA*.pub")
+                fabric.api.get("cma_pubkeys.tar", ".")
+            # and at other times too
+            else:
+                fabric.api.put("cma_pubkeys.tar", ".")
+                fabric.api.run("tar -C / -xf cma_pubkeys.tar")
         elif self.status == TestSystem.STOPPED:
             self.v.up(vm_name=self.name)
             self.status = TestSystem.RUNNING
@@ -368,7 +361,8 @@ class SystemTestEnvironment(object):
     NEO4JLOGIN='neo4j'
     # pylint - too many arguments
     # pylint: disable=R0913
-    def __init__(self, logname, nanocount=10
+    def __init__(self, logname, nanocount, mgmtsystem
+    ,       cmaimage=None, nanoimages=[]
     ,       cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = DockerSystem
@@ -463,21 +457,12 @@ class SystemTestEnvironment(object):
                 system.destroy()
                 system = None
 
-        system.runinimage(('/bin/bash', '-c', 'mkdir -p /tmp/cores'))
-        #system.runinimage(('/bin/bash', '-c'
-        #,                  'echo "/tmp/cores/core.%e.%p" > /proc/sys/kernel/core_pattern'))
-        # Set up logging to be forwarded to our parent logger
-        system.runinimage(('/bin/bash', '-c'
-        ,   '''PARENT=$(/sbin/route -n | grep '^0\.0\.0\.0' | cut -c17-32); PARENT=$(echo $PARENT);'''
-        +   ''' echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf'''))
         # And of course, start logging...
-        system.stopservice(SystemTestEnvironment.LOGGINGSERVICE)
-        system.runinimage(('/bin/bash', '-c', 'echo STARTING > /var/log/syslog'))
         system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
-        system.startservice(SystemTestEnvironment.LOGGINGSERVICE)
+        system.runinimage(('/bin/bash', '-c', 'logger STARTING'))
         return system
 
-    def set_nanoconfig(self, nano, debug=0, tcpdump=False):
+    def set_nanoconfig(self, nano, debug=0, tcpdump=True):
         'Set up our nanoprobe configuration file'
         lines = (
             ('NANOPROBE_DYNAMIC=%d' % (1 if nano is self.cma else 0)),
@@ -487,10 +472,10 @@ class SystemTestEnvironment(object):
         )
 
         if tcpdump:
-            nano.runinimage(('/bin/bash', '-c'
-            ,   'nohup /usr/sbin/tcpdump -C 10 -U -s 1024 '
-            '-w /tmp/tcpdump udp port 1984>/dev/null 2>&1 &'))
+            nano.runinimage(('nohup /usr/sbin/tcpdump -C 10 -U -s 1024 '
+            '-w /tmp/tcpdump udp port 1984>/dev/null 2>&1 &',))
         print >> sys.stderr, ('NANOPROBE CONFIG [%s] %s' % (nano.hostname, nano.name))
+        nano.runinimage(('rm', '-f', '/etc/default/nanoprobe'))
         for j in range(0, len(lines)):
             nano.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/nanoprobe" % lines[j]))
@@ -503,29 +488,20 @@ class SystemTestEnvironment(object):
                   #('CMA_STRACEFILE=/tmp/cma.strace')
         )
         print >> sys.stderr, ('CMA CONFIG [%s]' % self.cma.hostname)
+        self.cma.runinimage(('rm', '-f', '/etc/default/cma'))
         for j in range(0, len(lines)):
             self.cma.runinimage(('/bin/bash', '-c'
             ,           "echo '%s' >>/etc/default/cma" % lines[j]))
             print >> sys.stderr, ('CMA [%s]' % lines[j])
 
-    def fixneo4jpass(self):
-        'Fix up the neo4j password for our test copy of neo4j'
-        self.cma.runinimage(('assimcli', 'neo4jpass', self.NEO4JPASS), detached=False)
-        self.cma.runinimage(('cat', '/usr/share/assimilation/crypto.d/neo4j.creds'), detached=False)
-        self.cma.runinimage(('ls', '-al', '/usr/share/assimilation/crypto.d/'), detached=False)
-
     def spawncma(self, nanodebug=0, cmadebug=0):
         'Spawn a CMA instance'
         self.cma = self._spawnsystem(self.cmaimage)
-        self.cma.runinimage(('/bin/bash', '-c'
-            ,   'echo "dbms.connector.http.address=0.0.0.0:7474"'
-            '>> /etc/neo4j/neo4j.conf'))
-        self.cma.runinimage(('/bin/rm', '-fr'
-        ,   '/usr/share/assimilation/crypto.d/#CMA#00001.secret'
-        ,   '/var/lib/neo4j/data/databases/graph.db'))
+        # make sure that neo4j owns its stuff
+        self.cma.runinimage(("chown", "-R", "neo4j", "/var/lib/neo4j",
+            "/var/log/neo4j"))
         self.cma.startservice(SystemTestEnvironment.NEO4JSERVICE)
         time.sleep(20)
-        self.fixneo4jpass()
         self.set_cmaconfig(debug=cmadebug)
         self.cma.startservice(SystemTestEnvironment.CMASERVICE)
         self.set_nanoconfig(self.cma, debug=nanodebug)
