@@ -366,9 +366,9 @@ class SystemTestEnvironment(object):
     ,       cleanupwhendone=False, nanodebug=0, cmadebug=0, chunksize=20):
         'Init/constructor for our SystemTestEnvironment'
         self.sysclass = DockerSystem
-        if mgmtsystem == 'vagrant':
+        if mgmtsystem.startswith('vagrant:'):
             self.sysclass = VagrantSystem
-            os.chdir('vagrant')
+            os.chdir(mgmtsystem.split(':')[-1])
         self.cmaimage = cmaimage
         self.nanoimages = nanoimages
         self.nanocount = nanocount

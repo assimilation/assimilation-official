@@ -65,6 +65,8 @@ considerably.
 
 To use other boxes/distributions please modify the Vagrantfile
 and the provisioning scripts accordingly. For other Debian based
-distributions such as Ubuntu, it should be enough just to modify
-the base box name. It is out of scope for this document to
-describe vagrant, but it should not be very difficult.
+distributions such as Ubuntu, it _should_ be enough just to
+modify the base box name. Best to make copies in another
+directory and then use the "-D" option. It is out of scope for
+this document to describe vagrant, but it should not be very
+difficult.

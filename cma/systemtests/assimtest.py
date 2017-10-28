@@ -175,6 +175,13 @@ def testmain(logname):
     ,   help
     =   'VM/container images to use for nanoprobes (use space as a separator)')
 
+    parser.add_option('-D', '--vagrantdir'
+    ,   action='store'
+    ,   default="vagrant"
+    ,   dest='vagrantdir'
+    ,   help
+    =   'The vagrant directory (only valid with -m vagrant)')
+
     (opts, args) = parser.parse_args()
     opts.cmadebug = int(opts.cmadebug)
     opts.nanodebug = int(opts.nanodebug)
@@ -217,9 +224,14 @@ def testmain(logname):
     else:
         nanoimages=[opts.cmaimage]
 
+    # Add vagrant directory to mgmtsystem (if vagrant)
+    mgmtsystem = opts.mgmtsystem
+    if mgmtsystem == "vagrant":
+        mgmtsystem = "%s:%s" % (opts.mgmtsystem, opts.vagrantdir)
+
     # Set up the test environment as requested
     env, store = AssimSysTest.initenviron(opts.logname, maxdrones
-    ,   opts.mgmtsystem
+    ,   mgmtsystem
     ,   (opts.cmadebug > 0 or opts.nanodebug > 0)
     ,   cmaimage=opts.cmaimage
     ,   nanoimages=nanoimages
