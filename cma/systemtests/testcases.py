@@ -32,7 +32,7 @@ sys.path.append('..')
 sys.path.append('.')
 from logwatcher import LogWatcher
 from querytest import QueryTest
-from docker import SystemTestEnvironment, TestSystem
+from sysmgmt import SystemTestEnvironment, TestSystem
 # pylint: disable=E0401
 import graphnodes as GN
 from cmainit import CMAinit
@@ -245,11 +245,12 @@ class AssimSysTest(object):
     @staticmethod
     # too many local variables
     # pylint: disable=R0914
-    def initenviron(logname, maxdrones, debug=False, timeout=90, nanodebug=0, cmadebug=0):
+    def initenviron(logname, maxdrones, mgmtsystem, debug=False, cmaimage='', nanoimages=[], timeout=90, nanodebug=0, cmadebug=0):
         'Initialize the test environment.'
         logwatch = LogWatcher(logname, [], timeout, returnonlymatch=True, debug=debug)
         logwatch.setwatch()
-        sysenv = SystemTestEnvironment(logname, maxdrones, nanodebug=nanodebug, cmadebug=cmadebug)
+    
+        sysenv = SystemTestEnvironment(logname, maxdrones, mgmtsystem, cmaimage=cmaimage, nanoimages=nanoimages, nanodebug=nanodebug, cmadebug=cmadebug)
         CMAinit(None, host=str(sysenv.cma.ipaddr), readonly=True,
                 neologin=SystemTestEnvironment.NEO4JLOGIN, neopass=SystemTestEnvironment.NEO4JPASS)
         url = 'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474)

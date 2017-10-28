@@ -1,0 +1,35 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+if ENV['NUM_NANOPROBES']
+	N = ENV['NUM_NANOPROBES'].to_i
+else
+	N = 1
+end
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "debian/stretch64"
+  config.vm.box_check_update = false
+  config.vm.network "private_network", type: "dhcp",
+	  use_dhcp_assigned_default_route: true
+  #config.apt_proxy.http = "http://192.168.121.1:3142"
+  config.apt_proxy.http = "http://10.0.2.2:3142"
+  config.apt_proxy.https = "DIRECT"
+  config.vm.define "cma" do |cma|
+	  cma.vm.hostname = "cma"
+	  cma.vm.provision :shell, path: "install_nanoprobe"
+	  cma.vm.provision :shell, path: "install_cma"
+	  cma.vm.provision :shell, path: "common"
+	  config.vm.network :forwarded_port, guest: 7474, host: 17474
+  end
+  (1..N).each do |i|
+	  config.vm.define "nanoprobe#{i}" do |nanoprobe|
+		  nanoprobe.vm.hostname = "nanoprobe#{i}"
+		  nanoprobe.vm.provision :shell, path: "install_nanoprobe"
+		  nanoprobe.vm.provision :shell, path: "common"
+	  end
+  end
+end
