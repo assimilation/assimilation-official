@@ -9,9 +9,9 @@ install:
   - sudo apt-get update -qq
   - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-netaddr python-demjson openjdk-7-jre
   - sudo -H pip install --upgrade pip
-  - sudo -H pip install ctypesgen flask getent py2neo==3.1.2 pytest
+  - sudo -H pip install ctypesgen flask getent py2neo==3.1.2 pytest inject
 before_script:
-  - docker run -d --publish=7474:7474 --publish=7687:7687 --volume=$HOME/neo4j/data:/data neo4j:2.3.4
+  - docker run -d --publish=7474:7474 --publish=7687:7687 --volume=$HOME/neo4j/data:/data --volume=$TRAVIS_BUILD_DIR/buildtools/ci/docker/neo4j/conf:/conf neo4j:3.2.5
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
     # - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6' # should not need this any more...
 script:
@@ -29,7 +29,7 @@ script:
   - sudo cpack
   - sudo dpkg -i *.deb
   - sudo /etc/init.d/nanoprobe stop
-  - sudo /etc/init.d/cma stop
-  - sudo assimcli genkeys
+  - sudo PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/cma /etc/init.d/cma stop
+  - sudo PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR/cma assimcli genkeys
   - make tests # contains sudo commands
   - cd $TRAVIS_BUILD_DIR
