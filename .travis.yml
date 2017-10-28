@@ -11,7 +11,7 @@ install:
   - sudo -H pip install --upgrade pip
   - sudo -H pip install ctypesgen flask getent py2neo==2.0.8 pytest
 before_script:
-  - docker run -d --publish=7474:7474 --publish=7687:7687 --volume=$HOME/neo4j/data:/data neo4j:2.3.4
+  - docker run -d --publish=7474:7474 --publish=7687:7687 --volume=$HOME/neo4j/data:/data --volume=$TRAVIS_BUILD_DIR/buildtools/ci/docker/neo4j/conf:/conf neo4j:3.2.5
   - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
   - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
 script:
