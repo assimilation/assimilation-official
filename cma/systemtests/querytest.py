@@ -124,7 +124,7 @@ class QueryTest(object):
 if __name__ == "__main__":
     # pylint: disable=C0411,C0413,E0401
     import os
-    from docker import SystemTestEnvironment
+    from sysmgmt import SystemTestEnvironment
     sys.path.append('..')
     import graphnodes as GN
     from store import Store

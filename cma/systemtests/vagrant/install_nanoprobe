@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+
+apt-get -y update
+apt-get -y install --no-install-recommends rsyslog net-tools tcpdump
+apt-get -y install --no-install-recommends /vagrant/libsodium_*.deb /vagrant/assimilation-nanoprobe_*.deb
