@@ -27,7 +27,6 @@
 This file defines classes which perform individual system tests.
 '''
 import sys, time, os
-from py2neo import neo4j
 sys.path.append('..')
 sys.path.append('.')
 from logwatcher import LogWatcher
