@@ -1,12 +1,16 @@
 #!/bin/sh
 #
 
-NEOREL=3.0.0
+# route patching :-/
+route del default gw 172.28.128.1
+route add default gw 10.0.2.2
+
+NEOREL=3.2.6
 neoversion=stable
 echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 apt-get -y update
 apt-get -y install --no-install-recommends gnupg wget python-setuptools python-pip python-netaddr lsb-release iproute2 adduser
-pip install 'py2neo==2.0.8' getent
+pip install 'py2neo==3.1.2' getent inject
 wget -q -O - http://debian.neo4j.org/neotechnology.gpg.key | apt-key add - 
 echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d/neo4j.list
 apt-get -y update
@@ -14,7 +18,11 @@ apt-get -y install --no-install-recommends neo4j=$NEOREL
 apt-get -y install --no-install-recommends /vagrant/assimilation-cma_*.deb
 
 echo "dbms.connector.http.address=0.0.0.0:7474" >> /etc/neo4j/neo4j.conf
-rm -f /usr/share/assimilation/crypto.d/#CMA#00001.secret
+# py2neo wants the config elsewhere
+mkdir -p /usr/share/neo4j/conf
+ln -s /etc/neo4j/neo4j.conf /usr/share/neo4j/conf
+chown -R neo4j /usr/share/neo4j/conf
+# rm -f /usr/share/assimilation/crypto.d/#CMA#00000.secret
 rm -fr /var/lib/neo4j/data/databases/graph.db /var/lib/neo4j/data/dbms/auth
 service neo4j start; sleep 10
 assimcli genkeys

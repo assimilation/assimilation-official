@@ -38,7 +38,6 @@ it might make sense to just compile them from text each time and not fool with p
 So that's what I'm going to do.
 '''
 import sys, time
-from py2neo import neo4j
 
 # pylint -- too few public methods
 # pylint: disable=R0903

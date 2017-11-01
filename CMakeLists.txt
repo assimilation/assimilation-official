@@ -128,8 +128,8 @@ set (CPACK_PACKAGE_VERSION "${PROJVERS}")
 
 # Fool Cpack into generating conventional package names
 if (${CPACK_GENERATOR} STREQUAL "DEB")
-  set(CMANAME cma-${PROJVERS}-${NOARCH})
-  set(NANOPROBENAME nanoprobe-${PROJVERS}-${PROJARCH})
+  set(CMANAME cma_${PROJVERS}-${NOARCH})
+  set(NANOPROBENAME nanoprobe_${PROJVERS}-${PROJARCH})
 elseif (${CPACK_GENERATOR} STREQUAL "RPM")
 else (${CPACK_GENERATOR} STREQUAL "RPM")
   set(CMANAME cma-${PROJVERS}-${NOARCH})

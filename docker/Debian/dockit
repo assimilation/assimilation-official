@@ -66,11 +66,23 @@ case $CODENAME in
             BACKPORTS='# backports cannot help us - sigh...'
             ;;
   jessie)   BACKPORTS='RUN grep jessie-backports /etc/apt/sources.list || echo "deb http://http.debian.net/debian jessie-backports main" >> /etc/apt/sources.list'
+            JDK="-t jessie-backports openjdk-8-jre"
             ;;
   *)        EFLAG=""
             BACKPORTS='# no backports needed'
             ;;
 esac
+
+apt_proxy_port=$(
+    grep -w Acquire::http::Proxy /etc/apt/apt.conf.d/* 2>/dev/null |
+    awk '{print $2}' | sed 's/.*:\([0-9][0-9]*\).*/\1/'
+    )
+if [ -n "$apt_proxy_port" ]; then
+    APTPROXY="RUN ip route | awk '/default/ { print \\\"Acquire::http::Proxy \\\\\"http://\"\$3\":$apt_proxy_port\\\\\";\" }' > /etc/apt/apt.conf.d/30proxy"
+else
+    APTPROXY=
+fi
+
 case $1 in
   local) 
         mkdir local
@@ -89,6 +101,7 @@ case $1 in
             -e "s%@PY2NEOVERS@%${PY2NEOVERS}%"                  \
             -e "s%@JDK@%${JDK}%"                                \
             -e "s%@BACKPORTS@%${BACKPORTS}%"                    \
+            -e "s%@APTPROXY@%${APTPROXY}%"                      \
             -e 's%RUN service rsyslog start.*testify%#&%'       \
             > Dockerfile
         ;;
@@ -100,6 +113,7 @@ case $1 in
             -e "s%@NEODBROOT@%${NEODBROOT}%"                                \
             -e "s%@NEOBIN@%${NEOBIN}%"                                      \
             -e "s%@BACKPORTS@%${BACKPORTS}%"                                \
+            -e "s%@APTPROXY@%${APTPROXY}%"                                  \
             -e "s%@OURDATE@%$(date)%" > Dockerfile
         ;;
 esac
