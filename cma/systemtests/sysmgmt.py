@@ -127,6 +127,15 @@ class TestSystem(object):
         else:
             self.runinimage(('/etc/init.d/'+servicename, 'stop'))
 
+    def kill9service(self, servicename, async=False):
+        'kill -9 service action'
+        if servicename in self.runningservices:
+            self.runningservices.remove(servicename)
+        else:
+            print >> sys.stderr, ('WARNING: Service %s not running in system %s'
+            %       (servicename, self.name))
+        self.runinimage(('killall', '-9', servicename))
+
 class DockerSystem(TestSystem):
     'This class implements managing local Docker-based test systems'
     dockercmd = '/usr/bin/docker'
