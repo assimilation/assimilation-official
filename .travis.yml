@@ -46,3 +46,11 @@ script:
   - sudo assimcli genkeys
   - make tests # contains sudo commands
   - cd $TRAVIS_BUILD_DIR
+deploy:
+  provider: bintray
+  file: $TRAVIS_BUILD_DIR/buildtools/ci/bintray/descriptor_file
+  user: borgified
+  on: bintray
+  dry-run: false
+  key:
+    secure: e6ItT1B7OgSeAoskyQz9oKTbrN1zBwuslycBMeUHQ9wlyk3dLRaHjdhWWa/uN7FYZe+D9NIVExP+kjgcQXi6TM6tVzT4X1TUPxSmLsHUMDiScxGwhrJOLF4lFa+0OLN/PQvNplW1J6unv6TYsHnXOIqJgIk1tISeFG4saUbwNZbxkOEFnBBcqzPg93kdMor63O9QTwe0aULy+y7fW7CVN9742WReWrQqoS9IGmQ5y8tdwtAApVjZ6OGYaNq6aMBNyJAP8faAMqfOoQ7FPT/Hgik/3t/vogjEs9iZvVKeqdpdlIYSmf/z3nqpDKOv4XlbVkAk7zr3MJUABc4V6IhnwIMdFJVBpV49imJulw1YlGlHq2TMVRY8dZ4vheSnHiRRIRxKBYQahrKR6+HEHrxj4NvLTzBN+qJ21znhRwpF/54+0BtXS3WQ5MYTBUtS+xxMpZQFi1AQ4/TJ67DArxG/0QDvHOjPqGY88+IhOrhm/utyadLr47Pz2XzC3ediHuc8KDrbD66by1SMZ02eXLEbxPu/I5Q5g1/X2wSKgSSAe8h6BEMxiyfFJmcbvtaMS05za7C2FWI+8ZemVwqpe7D86oGYn0NHddiey6mlhmFk0in/B3PggD0wy71fBucJ42bLeOpb25qSra5ruGs2UbUAbU7YItZUHpSyAxJZiprvISc=
