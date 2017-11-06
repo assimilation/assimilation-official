@@ -3,8 +3,21 @@ language: c
 env:
   global:
     - BROKENDNS=1
+    - secure: "AyYFSFiE38WN5OxBHo3cKYVPBnhroLb2Fh9qr/HgCC2wvLZzmNs56UdaH8EoqX+JdhYPUx8aevlwqtR5VBFJ3MDRA/bFIWWbQM8FYdILoB5mVcV2y0BdH9so/diXzR5+GMh+pwCtUmhiePse7Oym0QtwAkp6M460LKpLVJgn9VxLTJ6fhEkSFJH7Qz3al8rI9zY/FpO0a96i4Ak/3RKyNNM6x2pKMFD2mpVvARBJDrP3osnP+c4QozEpba2OP3ffPLwW0HbTEykqgaCXuJQYGo8xgFNKgdbXPFQRkPdDiTDPLLIF4F8cdQJmSTojLETRCL/qKb5g4JTOEosfnSn3pHh1xlo+1mT/iokzxldOU4/1E2sKO6+Tm3JtcjkRw8E50kGyzonWTCfSvG7inrZiSpc4lftgk6/IgZLLZtz7BW+CMzuNenIpRdOpI6pVSSEpWDJbJ19D29acG4+rpKjQVk6TC6RbVK2j/raXUwmUf/Q/zEF+bZOwHVmmtgNUnmuQkJiITCt1b4/+QK+oZtMotNHRRa343ymvjTJfjulzI7uP1bSx2s3uX6FhDyROCzUVnu69BQy4g76JhIzPGNluDRL3OLA7vQt5nk3odLjqHPC+oy+OOyBiUd+Ysz8KJjexpMA39KDBGHv+SyysXX5WVDOsW0+U7e4cL22Ov+N5vSE="
+
 services:
   - docker
+before_install:
+  - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+addons:
+  coverity_scan:
+    project:
+      name: "assimilation/assimilation-official"
+      description: "Build submitted via Travis CI"
+    notification_email: borgified@gmail.com
+    build_command_prepend: "mkdir -p root_of_binary_tree; cd root_of_binary_tree"
+    build_command: "cmake $TRAVIS_BUILD_DIR"
+    branch_pattern: coverity_scan
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-netaddr python-demjson openjdk-7-jre
@@ -20,7 +33,7 @@ script:
   - cd $TRAVIS_BUILD_DIR
   - pwd
   - cd ..
-  - mkdir root_of_binary_tree
+  - mkdir -p root_of_binary_tree
   - cd root_of_binary_tree
   - pwd
   - cmake $TRAVIS_BUILD_DIR
