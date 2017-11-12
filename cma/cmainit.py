@@ -340,6 +340,7 @@ class CMAinit(object):
         self.io = io
         self.debug = debug
 
+        CMAdb.cdb = CMAdb(db=db)
         if cleanoutdb:
             CMAdb.log.info('Re-initializing the NEO4j database')
             self.delete_all()
