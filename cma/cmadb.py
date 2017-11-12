@@ -68,7 +68,7 @@ class CMAdb(object):
                     %   self.dbversstring, file=stderr)
             sys.exit(1)
 
-        if DBMS.config.get('cypher.forbid_shortestpath_common_nodes', True):
+        if DBMS().config['cypher.forbid_shortestpath_common_nodes'] == True:
             print('Neo4j must be configured with "cypher.forbid_shortestpath_common_nodes=false"',
                     file=stderr)
             sys.exit(1)
