@@ -119,7 +119,6 @@ from bestpractices import BestPractices
 
 SUPPORTED_PYTHON_VERSIONS = ('2.7',)
 SUPPORTED_PY2NEO_VERSIONS = (3,)
-SUPPORTED_NEO4J_VERSIONS = (3,)
 
 PYTHON_VERSION = ('%s.%s' % sys.version_info[0:2])
 if PYTHON_VERSION not in SUPPORTED_PYTHON_VERSIONS:
@@ -328,9 +327,7 @@ def main():
         raise
     for warn in cryptwarnings:
         CMAdb.log.warning(warn)
-    if CMAdb.cdb.db.neo4j_version[0] not in SUPPORTED_NEO4J_VERSIONS:
-        raise EnvironmentError('Neo4j version %s.%s.%s not supported'
-                               % CMAdb.cdb.db.neo4j_version)
+    cmadb = CMAdb()
     CMAdb.log.info('Listening on: %s' % str(config[CONFIGNAME_CMAINIT]))
     CMAdb.log.info('Requesting return packets sent to: %s' % str(OurAddr))
     CMAdb.log.info('Socket input buffer size:  %d' % io.getrcvbufsize())
@@ -348,14 +345,14 @@ def main():
     jvers = jvmfd.readline()
     jvmfd.close()
     disp = MessageDispatcher(DispatchTarget.dispatchtable)
-    neovers = CMAdb.cdb.db.neo4j_version
+    neovers = cmadb.db.neo4j_version
     neoversstring = (('%s.%s.%s'if len(neovers) == 3 else '%s.%s.%s%s')
                      %   neovers[0:3])
 
     CMAdb.log.info('Starting CMA version %s - licensed under %s'
     %   (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING))
     CMAdb.log.info('Neo4j version %s // py2neo version %s // Python version %s // %s'
-        % (('%s.%s.%s' % CMAdb.cdb.db.neo4j_version)
+            % (('%s.%s.%s' % cmadb.db.neo4j_version[0:3])
         ,   str(py2neo.__version__)
         ,   ('%s.%s.%s' % sys.version_info[0:3])
         ,   jvers))

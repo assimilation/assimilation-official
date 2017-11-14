@@ -31,6 +31,7 @@ from py2neo import DBMS
 from store import Store
 
 
+SUPPORTED_NEO4J_VERSIONS = (3,)
 DEBUG = False
 
 # R0903: Too few public methods
@@ -48,13 +49,13 @@ class CMAdb(object):
     # versions we know we can't work with...
     neo4jblacklist = ['2.0.0']
 
-    @inject.params(db='py2neo.Graph', store='Store', config='Config')
-    def __init__(self, db, store, config):
+    @inject.params(db='py2neo.Graph', store='Store')
+    def __init__(self, db, store):
         self.db = db
         self.io = None
         CMAdb.store = store
-        CMAdb.config = config
         self.dbversion = self.db.neo4j_version
+        CMAdb.dbversion = self.dbversion
         vers = ""
         dot = ""
         for elem in self.dbversion:
@@ -63,12 +64,13 @@ class CMAdb(object):
             vers += '%s%s' % (dot, str(elem))
             dot = '.'
         self.dbversstring = vers
-        if self.dbversstring in CMAdb.neo4jblacklist:
+        if (self.dbversstring in CMAdb.neo4jblacklist
+                or self.dbversion[0] not in SUPPORTED_NEO4J_VERSIONS):
             print("The Assimilation CMA isn't compatible with Neo4j version %s"
                     %   self.dbversstring, file=stderr)
-            sys.exit(1)
+            raise EnvironmentError('Neo4j version %s not supported' % self.dbversstring)
 
-        if DBMS.config.get('cypher.forbid_shortestpath_common_nodes', True):
+        if db.dbms.config.get('cypher.forbid_shortestpath_common_nodes', True):
             print('Neo4j must be configured with "cypher.forbid_shortestpath_common_nodes=false"',
                     file=stderr)
             sys.exit(1)

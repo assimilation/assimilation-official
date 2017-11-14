@@ -355,11 +355,11 @@ class DispatchHBMARTIAN(DispatchTarget):
             martiansrc.status='up'
             martiansrc.reason='HBMARTIAN'
             martiansrc.send_hbmsg(martiansrcaddr, FrameSetTypes.STOPSENDEXPECTHB, (origaddr,))
-            CMAdb.cdb.TheOneRing.join(martiansrc)
+            CMAdb.TheOneRing.join(martiansrc)
             AssimEvent(martiansrc, AssimEvent.OBJUP)
             return
         # OK, it's alive...
-        if CMAdb.cdb.TheOneRing.are_partners(reporter, martiansrc):
+        if CMAdb.TheOneRing.are_partners(reporter, martiansrc):
             if CMAdb.debug:
                 CMAdb.log.debug('DispatchHBMARTIAN: Ignoring msg from %s about %s'
                 %   (reporter, martiansrc))
@@ -401,7 +401,7 @@ class DispatchHBBACKALIVE(DispatchTarget):
                            % (alivesrc, alivesrc.status, alivesrc.reason))
             alivesrc.status='up'
             alivesrc.reason='HBBACKALIVE'
-            CMAdb.cdb.TheOneRing.join(alivesrc)
+            CMAdb.TheOneRing.join(alivesrc)
             AssimEvent(alivesrc, AssimEvent.OBJUP)
 
 

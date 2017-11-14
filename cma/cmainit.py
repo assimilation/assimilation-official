@@ -380,7 +380,6 @@ class CMAinit(object):
     def delete_all(self):
         """Empty everything out of our database - start over!
         """
-        dbvers = self.db.neo4j_version
         qstring = 'match (n) optional match (n)-[r]-() delete n,r'
 
         result = self.db.run(qstring)
