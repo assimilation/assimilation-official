@@ -25,14 +25,14 @@
 set -e
 DIR=$(dirname "$0")
 . $DIR/assim_common.sh
-PACKAGETYPES="deb_pkgs gem_pkgs npm_pkgs php_pkgs pip_pkgs rpm_pkgs"
+PACKAGETYPES="alpine_pkgs deb_pkgs gem_pkgs npm_pkgs php_pkgs pip_pkgs rpm_pkgs"
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 export PATH
 ENVIRONMENT=''
 
 tempfile() {
     if
-        false and mktemp
+        mktemp
     then
         : OK
     else
@@ -53,6 +53,29 @@ check_tmpfile() {
     return 0
 }
 
+# Alpine Packages
+alpine_pkgs() {
+    assim_run_in_context apk info -v > $TMPFILE 2>/dev/null
+    check_tmpfile || return 1
+    printf '%s"apk":{' "$globalcomma"
+    comma='
+'
+    sed -e 's%^.*$%"&"%' -e 's%-[0-9]%"::&%' -e 's%::-%: "%' $TMPFILE | sort -u |
+    while
+        read line
+    do
+        if
+            [ "$line" = '""' ]
+        then
+            continue
+        fi
+        printf '%s' "${comma}${line}"
+        comma=',
+'
+    done
+    printf '}'
+    return 0
+}
 # Debian Packages
 deb_pkgs() {
     comma='
@@ -63,7 +86,7 @@ deb_pkgs() {
     check_tmpfile || return 1
 
 
-    printf '%s"deb":{' "$ourcomma"
+    printf '%s"deb":{' "$globalcomma"
     sort -u < $TMPFILE |
     while
         read line
@@ -81,7 +104,7 @@ rpm_pkgs() {
     assim_run_in_context rpm -qa --queryformat='"%{NAME}::%{ARCH}":"%{VERSION}-%{RELEASE}"\n' \
       > $TMPFILE 2>/dev/null
     check_tmpfile || return 1
-    printf '%s"rpm":{' "$ourcomma"
+    printf '%s"rpm":{' "$globalcomma"
     comma='
 '
     sort -u $TMPFILE |
@@ -100,7 +123,7 @@ rpm_pkgs() {
 pip_pkgs() {
     assim_run_in_context pip list >$TMPFILE 2>/dev/null
     check_tmpfile || return 1
-    printf '%s"pip":{' "$ourcomma"
+    printf '%s"pip":{' "$globalcomma"
     comma='
 '
     sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' $TMPFILE |
@@ -130,7 +153,7 @@ pip_pkgs() {
 gem_pkgs() {
     assim_run_in_context gem list -q >$TMPFILE 2>/dev/null
     check_tmpfile || return 1
-    printf '%s"gem":{' "$ourcomma"
+    printf '%s"gem":{' "$globalcomma"
     comma='
 '
       sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' $TMPFILE | sort -u |
@@ -152,7 +175,7 @@ gem_pkgs() {
 npm_pkgs(){
     assim_run_in_context npm -g ls >$TMPFILE 2>/dev/null
     check_tmpfile || return 1
-    printf '%s"npm":{' "$ourcomma"
+    printf '%s"npm":{' "$globalcomma"
     comma='
 '
     sed -e 's%[^A-Za-z_]* %%' -e 's%@%	%' $TMPFILE | sort -u | (
@@ -185,7 +208,7 @@ php_pkgs() {
         'foreach (get_loaded_extensions() as $extension) echo "\"$extension\": " . "\"" . phpversion($extension) . "\"\n";'     \
       >$TMPFILE 2>/dev/null
     check_tmpfile || return 1
-    printf '%s"php":{' "$ourcomma"
+    printf '%s"php":{' "$globalcomma"
     comma='
 '
     sort -u $TMPFILE |
@@ -206,13 +229,13 @@ php_pkgs() {
 
 # Discover all our packages in our current environment (default OS)
 discover_packages_basic() {
-    ourcomma=''
+    globalcomma=''
     for pkgtype in $PACKAGETYPES
     do
         if 
-            $pkgtype "$ourcomma"
+            $pkgtype "$globalcomma"
         then
-            ourcomma=",
+            globalcomma=",
 "
         fi
     done
@@ -231,7 +254,7 @@ discover() {
 	  "source": "$0",
 	  "data": {
 	!
-    ourcomma=""
+    globalcomma=""
     # Maybe one day I'll look at Perl - the complete answer is quite slow,
     # and requires installing a package not otherwise required.
     #
