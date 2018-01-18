@@ -72,7 +72,7 @@ class Mbox(object):
             line = line.rstrip()
         else:
             line = self.firstline
-            # print('GOT FIRSTLINE2', line)
+            # print('GOT FIRSTLINE2', line, file=stderr)
         if line == '':
             return
         while line is not None:
@@ -80,7 +80,7 @@ class Mbox(object):
             if state == 'init':
                 if line == '':
                     state = 'body'
-                    # print('STARTING BODY...')
+                    # print('STARTING BODY...', file=stderr)
                 elif line.startswith('From '):
                     keywords['fromline'] = line
                 elif line.startswith(' ') or line.startswith('\t'):
@@ -92,7 +92,7 @@ class Mbox(object):
                         keyword = match.group(1).lower()
                         keywords[keyword] = match.group(2)
                     else:
-                        print('OOPS: Line is [%s]' % line)
+                        print('OOPS: Line is [%s]' % line, file=stderr)
             else:
                 if line.startswith('From '):
                     state = 'init'
@@ -106,7 +106,7 @@ class Mbox(object):
             if line == '':
                 break
             line = line.rstrip()
-            # print('GOT LINE3 [%s] state %s' % (line, state))
+            # print('GOT LINE3 [%s] state %s' % (line, state), file=stderr)
 
 
 def parse_email_mbox_gz(url, cls):
@@ -141,7 +141,8 @@ def parse_email_mbox_gz(url, cls):
         except ValueError as err:
             if 'in-reply-to' in headers:
                 continue
-            print('Cannot parse vulnerability: %s in %s [%s]' % (headers['subject'], gz, err))
+            print('Cannot parse vulnerability: %s in %s [%s]' % (headers['subject'], gz, err),
+                  file=stderr)
             # print('EMAIL headers:\n%s' % str(headers), file=stderr)
             # raise
         except NotImplementedError:
@@ -202,7 +203,7 @@ class Announcement(object):
     def __str__(self):
         """
         Convert the parsed announcement to a JSON string - suitable for simple handling.
-        :return:
+        :return: str: output string in JSON format.
         """
         return json.dumps(self.data, indent=4, sort_keys=True)
 
@@ -237,10 +238,11 @@ class CentOSAnnouncement(Announcement):
     KNOWN_WORDS = {'x86_64', 'i386', 'source', 'note'}
     PATCHES = ('x86_64', 'i386', 'source')
     CESA = re.compile('centos errata and security advisory ([^ ]*) +([A-Za-z]*)', re.IGNORECASE)
+    CESA2 = re.compile('centos errata and security advisory ([^ ]*)', re.IGNORECASE)
     UPSTREAM = re.compile('upstream details.*(https://[^ ]*)', re.IGNORECASE)
     NEXTPART = re.compile('----* next part --*$', re.IGNORECASE)
     PKG_PARSE = re.compile('.*\.el([0-9]+)[0-9_.]*.*\.([^.]*)\.rpm$')
-    SRCPKG_PARSE = re.compile('.*\.el([0-9_.]*[0-9])\..*\.src.rpm$')
+    SRCPKG_PARSE = re.compile('.*\.el([0-9_.]*[0-9])\..*src.rpm$')
 
     SPACES_RE = re.compile('[ ]+')
 
@@ -335,8 +337,8 @@ class CentOSAnnouncement(Announcement):
                 word = line[:-1].lower()
                 if word not in self.KNOWN_WORDS:
                     if '>' in word or ' ' in word:
-                        raise ValueError("Email format error")
-                    print("OOPS! Unrecognized section [%s]" % word, file=stderr)
+                        raise ValueError("Email format error [%s" % word)
+                    print("OOPS! Unrecognized section [%s:]" % word, file=stderr)
                 section_name = word
                 if section_name not in sections:
                     sections[section_name] = []
@@ -347,6 +349,11 @@ class CentOSAnnouncement(Announcement):
                 if match:
                     sections['name'] = 'CESA-%s' % match.group(1)
                     sections['importance'] = match.group(2).lower()
+                    continue
+                match = self.CESA2.match(line)
+                if match:
+                    sections['name'] = 'CESA-%s' % match.group(1)
+                    sections['importance'] = 'unknown'
                     continue
                 match = self.UPSTREAM.match(line)
                 if match:
@@ -387,7 +394,7 @@ class CentOSAnnouncement(Announcement):
                                                           }
                 del sections[section_name]
         for sect_name, sect_info in sections.viewitems():
-            # print ('SECT_INFO:', len(sect_info), type(sect_info), sect_info)
+            # print ('SECT_INFO:', len(sect_info), type(sect_info), sect_info, file=stderr)
             if isinstance(sect_info, list) and sect_name != 'urls':
                 if sect_info[-1] == '':
                     del sect_info[-1]
