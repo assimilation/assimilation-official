@@ -35,8 +35,10 @@ from __future__ import print_function
 from sys import stderr
 import os
 import re
+import time
 import json
 import gzip
+from version_utils import rpm
 
 try:
     import io.StringIO as StringIO
@@ -124,7 +126,7 @@ def parse_email_mbox_gz(url, cls):
         raise
     bad_names = cls.KNOWN_BAD_NAMES
     for headers, body in Mbox(mbox_text).emails():
-        headers['announce-source'] = gz
+        headers['announcement-source'] = url
         subject = headers['subject'].lower()
         if 'bugfix' in subject or 'errata' in subject or 'security' not in subject:
             # We only care about security fixes...
@@ -134,14 +136,14 @@ def parse_email_mbox_gz(url, cls):
             # https://lists.centos.org/pipermail/centos-announce/2017-March.txt.gz
             basename = os.path.basename(url).split('.', 1)[0]
             if basename in bad_names and bad_names[basename] == result.data['name']:
-                print('Skipping known bad announcement: %s in %s'
-                      % (bad_names[basename], basename), file=stderr)
+                print('Skipping known bad announcement: %s in %s: %s'
+                      % (bad_names[basename], basename, subject), file=stderr)
                 continue
             yield result
         except ValueError as err:
             if 'in-reply-to' in headers:
                 continue
-            print('Cannot parse vulnerability: %s in %s [%s]' % (headers['subject'], gz, err),
+            print('Cannot parse vulnerability: %s in %s [%s]' % (headers['subject'], url, err),
                   file=stderr)
             # print('EMAIL headers:\n%s' % str(headers), file=stderr)
             # raise
@@ -155,7 +157,9 @@ class Announcement(object):
     """
 
     HREF_RE = re.compile('(.*)< *a[^>]*>([^<>]+)</ *a *>(.*)', re.IGNORECASE)
+    BASE_PACKAGE_RE = re.compile('[A-Za-z_0-9]+(-[A-Za-z_+]+)*')
     KNOWN_BAD_NAMES = {}
+    MBOX_ANNOUNCEMENT_URL_FMT = None
 
     def __init__(self, url, text=None, metadata=None):
         self.url = url
@@ -173,6 +177,10 @@ class Announcement(object):
                 if key in self.data:
                     raise ValueError('Metadata key % overrides discovered key.')
                 self.data[key] = metadata[key]
+        if 'date' in self.data:
+            # Make sorting by date easier later...
+            self.data['epoch_time'] = int(time.mktime(time.strptime(self.data['date'][:-6],
+                                                                    '%a, %d %b %Y %H:%M:%S')))
 
     def _parse_text(self):
         """
@@ -228,6 +236,57 @@ class Announcement(object):
         """
         return self._text
 
+    @staticmethod
+    def check_a_single_url(url):
+        """
+        Return True if this URL is good
+        :param: url: str: URL to check
+        :return: bool: True if we got success on the head operation
+        """
+        try:
+            head = requests.head(url)
+            # print("%d: %s" % (head.status_code, url))
+            return head.status_code in (200, 301)
+        except requests.exceptions.ConnectionError:
+            return False
+
+    def validate_urls(self):
+        """
+        Validate all URLs associated with this vulnerability analysis.
+        :return: (set(), set()) set of good URLs and bad URLs
+        """
+        baddies = set()
+        goodies = set()
+        patches = self.data['patches']
+        for patchinfo in patches.viewvalues():
+            for elem in patchinfo.viewvalues():
+                if elem.startswith('http://') or elem.startswith('https://'):
+                    if elem in goodies or elem in baddies:
+                        continue
+                    if self.check_a_single_url(elem):
+                        goodies.add(elem)
+                    else:
+                        baddies.add(elem)
+        for url in self.data['urls']:
+            if url in goodies or url in baddies:
+                continue
+            if self.check_a_single_url(url):
+                goodies.add(url)
+            else:
+                baddies.add(url)
+        return goodies, baddies
+
+    @staticmethod
+    def rpm_version_info(version_or_package_filename):
+        """
+        Return the RPM version info from the given version or package name
+        :param version_or_package_filename:
+        :return: Package object - whatever rpm.package returns...
+        """
+        return rpm.package(version_or_package_filename[:-4]
+                           if version_or_package_filename.endswith('.rpm')
+                           else version_or_package_filename)
+
 
 class CentOSAnnouncement(Announcement):
     """
@@ -241,24 +300,53 @@ class CentOSAnnouncement(Announcement):
     CESA2 = re.compile('centos errata and security advisory ([^ ]*)', re.IGNORECASE)
     UPSTREAM = re.compile('upstream details.*(https://[^ ]*)', re.IGNORECASE)
     NEXTPART = re.compile('----* next part --*$', re.IGNORECASE)
-    PKG_PARSE = re.compile('.*\.el([0-9]+)[0-9_.]*.*\.([^.]*)\.rpm$')
+    PKG_PARSE = re.compile('.*\.el([0-9]+[0-9_.]*).*\.([^.]*)\.rpm$')
     SRCPKG_PARSE = re.compile('.*\.el([0-9_.]*[0-9])\..*src.rpm$')
+    VERSION_RE = re.compile('-?([0-9][-_0-9.A-Za-z]*)\.el[0-9]')
 
     SPACES_RE = re.compile('[ ]+')
 
     BINARY_BASE_URL = 'http://mirror.centos.org/centos/%s/updates/%s/Packages/%s'
-    INFO_BASE_URL = 'https://centos.pkgs.org/%s/centos-updates-%s/%s.html'
-    SRC_BASE_URL = 'http://vault.centos.org/%s/updates/Source/SPackages/%s'
+    INFO_BASE_URL = 'https://centos.pkgs.org/%s/centos-updates-x86_64/%s.html'
+    SRC_BASE_URL = 'http://vault.centos.org/centos/%s/updates/Source/SPackages/%s'
+    MBOX_ANNOUNCEMENT_URL_FMT = 'https://lists.centos.org/pipermail/centos-announce/%s-%s.txt.gz'
+    # http://vault.centos.org/centos/7/updates/Source/SPackages/
     # https://centos.pkgs.org/6/centos-i386/microcode_ctl-1.17-25.el6.i686.rpm.html
     # https://centos.pkgs.org/6/centos-updates-i386/microcode_ctl-1.17-25.2.el6_9.i686.rpm.html
     # http://vault.centos.org/6.9/updates/Source/SPackages/microcode_ctl-1.17-25.2.el6_9.src.rpm
     # For CentOS 5 and before, we really can't figure this out...
     # http://vault.centos.org/5.11/updates/SRPMS/thunderbird-38.5.0-1.el5.centos.src.rpm
     # http://vault.centos.org/5.11/updates/i386/RPMS/thunderbird-38.5.0-1.el5.centos.i386.rpm
+    # http://mirror.centos.org/centos/6/updates/x86_64/Packages/qemu-guest-agent-0.12.1.2-2.503.el6_9.4.x86_64.rpm
+    # http://mirror.centos.org/centos/6/updates/x86_64/Packages/qemu-guest-agent-0.12.1.2-2.503.el6_9.4.x86_64.rpm
 
     KNOWN_BAD_NAMES = {
-        '2017-February': 'CESA-2017:0294',
+        '2017-January': 'CESA-2017:0001',   # IPA tools
+        '2017-February': 'CESA-2017:0294',  # Kernel update - Incorrect - later corrected...
+        '2017-March': 'CESA-2017:0388',     # IPA tools
+        '2017-June': 'CESA-2017:1430',      # Qemu/kvm patch - doesn't exist
     }
+    UNSUPPORTED = {'7.2', '7.2.1', '7.2.2', '7.2.3', '7.2.4', '7.2.5', '7.2.6', '7.2.7',
+                   '7.3', '7.3.1', '7.3.2', '7.3.3', '7.3.4', '7.3.5', '7.3.6',
+                   '6.8', '6.8.1', '6.8.2', '6.8.3', '6.8.4', '6.8.6', '6.8.7',
+                   '6.7', '6.7.1', '6.7.2', '6.7.3', '6.7.4', '6.7.5',  '6.7.6', '6.7.7',
+                   '6.6', '6.5', '6.4', '6.3', '6.2', '6.1', '6', '5'}
+
+    def compute_arch_osrel(self, package_name):
+        """
+
+        :param package_name: str: name of the package
+        :return: (str, str): (architecture, OS release)
+        """
+        package = self.rpm_version_info(package_name)
+        match = self.PKG_PARSE.match(package_name)
+        if not match:
+            raise ValueError("package [%s] doesn't match [%s]"
+                             % (package_name, self.PKG_PARSE.pattern))
+        osrel = str(match.group(1))
+        if osrel.endswith('.'):
+            osrel = osrel[:-1]
+        return package.arch, osrel  # architecture, os release
 
     def compute_binary_url(self, package):
         """
@@ -266,17 +354,16 @@ class CentOSAnnouncement(Announcement):
         :param package: str: CentOS package name
         :return: str: URL of CentOS package
         """
-        match = self.PKG_PARSE.match(package)
-        if not match:
-            raise ValueError("package [%s] doesn't match [%s]" % (package, self.PKG_PARSE.pattern))
-        rel = match.group(1)
-        arch = match.group(2)
+
+        arch, rel = self.compute_arch_osrel(package)
         if arch == 'i686':
-            arch = 'i386'
+            arch = 'i386' if int(rel[0]) < 7 else 'x86_64'
+        elif arch == 'noarch':
+            arch = 'x86_64'
         intrel = int(rel[0])
         if intrel < 6:
-            raise NotImplementedError('We only support CentOS6 and beyond.')
-        return self.BINARY_BASE_URL % (rel, arch, package)
+            raise NotImplementedError('We only support CentOS6.9 and beyond.')
+        return self.BINARY_BASE_URL % (intrel, arch, package)
 
     def compute_src_url(self, package):
         """
@@ -290,6 +377,9 @@ class CentOSAnnouncement(Announcement):
                              % (package, self.SRCPKG_PARSE.pattern))
         rel = match.group(1)
         rel = rel.replace('_', '.')
+        rel_pieces = rel.split('.')
+        if len(rel_pieces) > 2 and rel_pieces[0] == '6':
+            rel = '.'.join(rel_pieces[0:1])
         return self.SRC_BASE_URL % (rel, package)
 
     def compute_info_url(self, package):
@@ -301,11 +391,8 @@ class CentOSAnnouncement(Announcement):
         match = self.PKG_PARSE.match(package)
         if not match:
             raise ValueError("package [%s] doesn't match [%s]" % (package, self.PKG_PARSE.pattern))
-        rel = match.group(1)
-        arch = match.group(2)
-        if arch == 'i686':
-            arch = 'i386'
-        return self.INFO_BASE_URL % (rel, arch, package)
+        rel = match.group(1)[0]
+        return self.INFO_BASE_URL % (rel, package)
 
     @staticmethod
     def scrape_email_from_archives(url):
@@ -314,8 +401,8 @@ class CentOSAnnouncement(Announcement):
         :param url: str: URL of email archive
         :return: str: contents of plain text archive message
         """
-
-        web_page = requests.get(url).content.split('\n')
+        headers = {'accept-encoding': 'gzip'}
+        web_page = requests.get(url, headers=headers).content.split('\n')
         basic_text = []
         state = 'skip'
         for line in web_page:
@@ -331,6 +418,7 @@ class CentOSAnnouncement(Announcement):
 
     def _parse_text(self):
         sections = {}
+        unsupported = False
         section_name = None
         for line in self._text.split('\n'):
             if line.endswith(':'):
@@ -382,15 +470,40 @@ class CentOSAnnouncement(Announcement):
                     if this_sect[index] == '':
                         break
                     patch = this_sect[index+1]
+                    match = self.BASE_PACKAGE_RE.match(patch)
+                    if not match:
+                        raise ValueError("Unsupported package name:%s: doesn't match %s"
+                                         % (patch, self.BASE_PACKAGE_RE.pattern))
+                    base_package = match.group(0)
                     if patch != "":
+                        arch, osrel = self.compute_arch_osrel(patch)
+                        osrel = osrel.replace('_', '.')
+                        if osrel in self.UNSUPPORTED:
+                            unsupported = True
+                            continue
+                        regex = re.compile('(.*)\.el[0-9_.]*')
+                        package = self.rpm_version_info(patch)
+                        version = ('%s-%s'
+                                   % (package.version, regex.match(package.release).group(1)))
+                        assert package.epoch == '0'
                         if section_name == 'source':
-                            sections['patches'][patch] = {'sha256': this_sect[index],
-                                                          'package': self.compute_src_url(patch)
+                            sections['patches'][patch] = {'arch': 'src',
+                                                          'base_package': base_package,
+                                                          'os': 'centos',
+                                                          'osrel': osrel,
+                                                          'package': self.compute_src_url(patch),
+                                                          'sha256': this_sect[index],
+                                                          'version': version,
                                                           }
                         else:
-                            sections['patches'][patch] = {'sha256': this_sect[index],
-                                                          'package': self.compute_binary_url(patch),
+                            sections['patches'][patch] = {'arch': package.arch,
+                                                          'base_package': base_package,
                                                           'info': self.compute_info_url(patch),
+                                                          'os': 'centos',
+                                                          'osrel': osrel,
+                                                          'package': self.compute_binary_url(patch),
+                                                          'sha256': this_sect[index],
+                                                          'version': version,
                                                           }
                 del sections[section_name]
         for sect_name, sect_info in sections.viewitems():
@@ -403,13 +516,137 @@ class CentOSAnnouncement(Announcement):
         if 'name' not in sections:
             raise ValueError('No vulnerability name in %s.' % self.url)
         if len(sections['patches']) == 0:
+            if unsupported:
+                raise NotImplementedError("Announcement for Unsupported release")
             raise ValueError('No patches in %s', self.url)
         return sections
 
+    @staticmethod
+    def guess_other_urls(url):
+        """
+        We're given a URL that we can't find. Try and figure out other places it might be and
+        return them...
+        :param url: str: URL that gets 404...
+        :return: [str] list of other URLs to try...
+        """
+        results = []
+        if '.el7.centos.1.' in url:
+            mod = '/os/'.join(url.split('/updates/', 1))
+            results.append('.el7.centos.2.'.join(mod.split('.el7.centos.1.', 1)))
+        if '.el7.centos.3.' in url:
+            results.append('/os/'.join(url.split('/updates/', 1)))
+        if '/centos/7/' in url:
+            try1 = '/7.2.1511/'.join(url.split('/centos/7/', 1))
+            results.append(try1)
+            results.append('/vault.centos.org/'.join(try1.split('/mirror.centos.org/', 1)))
+        if '/centos/7.4/' in url:
+            results.append('/7.4.1708/'.join(url.split('/centos/7.4/', 1)))
+        if '/centos/7.4.1/' in url:
+            results.append('/7.4.1708/'.join(url.split('/centos/7.4.1/', 1)))
+        if '/centos/7.4.2/' in url:
+            results.append('/7.4.1608/'.join(url.split('/centos/7.4.2/', 1)))
+            results.append('/7.4.1708/'.join(url.split('/centos/7.4.2/', 1)))
+        if '/centos/7.4.4/' in url:
+            results.append('/7.4.1708/'.join(url.split('/centos/7.4.4/', 1)))
+        if '/centos/7.4.6/' in url:
+            results.append('/7.4.1708/'.join(url.split('/centos/7.4.6/', 1)))
+        if '/centos/7.4.7/updates/' in url and '.el7_4.7.' in url:
+            mod = ('/7.4.1708/os/'.join(url.split('/centos/7.4.7/updates/', 1)))
+            results.append('.el7.'.join(mod.split('.el7_4.7.', 1)))
+        if '/centos/7.4.8/' in url:
+            results.append('/7.4.1708/'.join(url.split('/centos/7.4.8/', 1)))
 
-for year in ('2016', '2017', '2018'):
-    for month in ('January', 'February', 'March', 'April', 'May', 'June', 'July'
-                  'August', 'September', 'October', 'November', 'December'):
-        gz = 'https://lists.centos.org/pipermail/centos-announce/%s-%s.txt.gz' % (year, month)
-        for vulnerability in parse_email_mbox_gz(gz, CentOSAnnouncement):
-            print(vulnerability)
+        return results
+
+
+def analyze_all_mbox_vulnerabilities(years, announcement_cls):
+    """
+    The purpose of this function is to find all the vulnerability emails for
+    the given distribution and the given years and analyze them - returning
+    the set of vulnerability announcements which are still in effect.
+
+    Vulnerability announcements which have been superceded by announcements which affect
+    all the same packages are ignored.
+
+    That is, the remaining announcements have at least one package for which this
+    annoucement gives the latest version (by time).
+
+    It is assumed that the latest version by time will also be the latest by version number.
+
+    Latest also takes into account "latest in this OS release" - but DOES NOT take into account
+    the pecularities of how several releases with different names might still be effectively
+    the same release - and general confusion and inconsistency in naming releases...
+
+    :param years: [str]: List of years to analyze
+    :param announcement_cls: Class to use to analyze (Mailman) Mbox Announcement archives
+    :return: List of key Announcements
+    """
+
+    url_format = announcement_cls.MBOX_ANNOUNCEMENT_URL_FMT
+    mbox_archive_by_date = {}
+    mbox_archive_by_name = {}
+    #
+    # Read in all the 'gz' mbox archives that have been requested...
+    #
+    for year in years:
+        for month in ('January', 'February', 'March', 'April', 'May', 'June', 'July'
+                      'August', 'September', 'October', 'November', 'December'):
+            gz = url_format % (year, month)
+            for vulnerability in parse_email_mbox_gz(gz, announcement_cls):
+                # print(vulnerability)
+                announcement_name = vulnerability.data['name']
+                # Epoch time is when this announcement was created - in UNIX time (seconds)
+                date_key = (vulnerability.data['epoch_time'], announcement_name)
+                mbox_archive_by_date[date_key] = vulnerability
+                mbox_archive_by_name[announcement_name] = vulnerability
+    keys = mbox_archive_by_date.keys()
+    keys.sort(reverse=True)
+    #  print('\n'.join([str(key) for key in keys]))
+    release_patches = {}
+    for _, announcement_name in keys:
+        announcement = mbox_archive_by_name[announcement_name]
+        for patch_name, patch in announcement.data['patches'].viewitems():
+            osrel = patch['osrel'] + '::' + patch['arch']
+            if osrel not in release_patches:
+                release_patches[osrel] = {}
+            base_package = patch['base_package']
+            if base_package in release_patches[osrel]:
+                continue
+            package_url = patch['package']
+            release_patches[osrel][base_package] = (patch_name, announcement_name, package_url)
+    releases = release_patches.keys()
+    releases.sort()
+    current_announcements = {}
+    better_urls = {}
+    unknown = '**Unknown**'
+    for release in releases:
+        #  print("==== %s ============" % release)
+        package_names = release_patches[release].keys()
+        package_names.sort()
+        for package_name in package_names:
+            package_info = release_patches[release][package_name]
+            #  print("%s => %s" % (package_name, release_patches[release][package_name]))
+            patch_name = package_info[0]
+            name = package_info[1]
+            if name not in current_announcements:
+                current_announcements[name] = mbox_archive_by_name[name]
+            if not announcement_cls.check_a_single_url(package_info[2]):
+                better_urls[package_info[2]] = unknown
+                for url in announcement_cls.guess_other_urls(package_info[2]):
+                    if announcement_cls.check_a_single_url(url):
+                        better_urls[package_info[2]] = url
+                        break
+                if better_urls[package_info[2]] == unknown:
+                    print("URL %s for announcement %s not found anywhere."
+                          % (package_info[2], name), file=stderr)
+
+    for announcement in current_announcements.viewvalues():
+        for patch in announcement.data['patches'].viewvalues():
+            url = patch['package']
+            if url in better_urls:
+                patch['package'] = better_urls[url]
+
+    return current_announcements.viewitems()
+
+
+analyze_all_mbox_vulnerabilities((2018, 2017, 2016), CentOSAnnouncement)
