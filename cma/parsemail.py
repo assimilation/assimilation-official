@@ -124,12 +124,15 @@ def parse_email_mbox_gz(url, cls):
         if 'not a gzipped file' in str(io_error).lower():
             return
         raise
+
     bad_names = cls.KNOWN_BAD_NAMES
     for headers, body in Mbox(mbox_text).emails():
         headers['announcement-source'] = url
         subject = headers['subject'].lower()
-        if 'bugfix' in subject or 'errata' in subject or 'security' not in subject:
+        if ('bugfix' in subject or 'errata' in subject or
+                ('security' not in subject and 'usn' not in subject)):
             # We only care about security fixes...
+            print('Skipping %s' % subject)
             continue
         try:
             result = cls(url=url, text=body, metadata=headers)
@@ -158,6 +161,8 @@ class Announcement(object):
 
     HREF_RE = re.compile('(.*)< *a[^>]*>([^<>]+)</ *a *>(.*)', re.IGNORECASE)
     BASE_PACKAGE_RE = re.compile('[A-Za-z_0-9]+(-[A-Za-z_+]+)*')
+    SPACES_RE = re.compile('[ ]+')
+    NEXTPART = re.compile('----* next part --*$', re.IGNORECASE)
     KNOWN_BAD_NAMES = {}
     MBOX_ANNOUNCEMENT_URL_FMT = None
 
@@ -189,16 +194,6 @@ class Announcement(object):
         :return: dict: returns dict suitable for converting to JSON
         """
         raise NotImplementedError("Abstract method _parse_text()")
-
-    @staticmethod
-    def scrape_email_from_archives(url):
-        """
-        Scrapes a single plain text email from email archives
-
-        :param url: URL to find an email archive message
-        :return: dict: returns dict suitable for converting to JSON
-        """
-        raise NotImplementedError("Abstract method scrape_email_from_archives()")
 
     def _get_file(self):
         """
@@ -250,32 +245,6 @@ class Announcement(object):
         except requests.exceptions.ConnectionError:
             return False
 
-    def validate_urls(self):
-        """
-        Validate all URLs associated with this vulnerability analysis.
-        :return: (set(), set()) set of good URLs and bad URLs
-        """
-        baddies = set()
-        goodies = set()
-        patches = self.data['patches']
-        for patchinfo in patches.viewvalues():
-            for elem in patchinfo.viewvalues():
-                if elem.startswith('http://') or elem.startswith('https://'):
-                    if elem in goodies or elem in baddies:
-                        continue
-                    if self.check_a_single_url(elem):
-                        goodies.add(elem)
-                    else:
-                        baddies.add(elem)
-        for url in self.data['urls']:
-            if url in goodies or url in baddies:
-                continue
-            if self.check_a_single_url(url):
-                goodies.add(url)
-            else:
-                baddies.add(url)
-        return goodies, baddies
-
     @staticmethod
     def rpm_version_info(version_or_package_filename):
         """
@@ -286,6 +255,28 @@ class Announcement(object):
         return rpm.package(version_or_package_filename[:-4]
                            if version_or_package_filename.endswith('.rpm')
                            else version_or_package_filename)
+
+    @staticmethod
+    def scrape_email_from_archives(url):
+        """
+        Scrape plain text from email archive file
+        :param url: str: URL of email archive
+        :return: str: contents of plain text archive message
+        """
+        headers = {'accept-encoding': 'gzip'}
+        web_page = requests.get(url, headers=headers).content.split('\n')
+        basic_text = []
+        state = 'skip'
+        for line in web_page:
+            if state == 'skip':
+                if line.startswith('<PRE>'):
+                    state = 'reading'
+            elif line.startswith('</PRE>'):
+                break
+            else:
+                line = Announcement._strip_anchors(line)
+                basic_text.append(line)
+        return '\n'.join(basic_text)
 
 
 class CentOSAnnouncement(Announcement):
@@ -299,12 +290,10 @@ class CentOSAnnouncement(Announcement):
     CESA = re.compile('centos errata and security advisory ([^ ]*) +([A-Za-z]*)', re.IGNORECASE)
     CESA2 = re.compile('centos errata and security advisory ([^ ]*)', re.IGNORECASE)
     UPSTREAM = re.compile('upstream details.*(https://[^ ]*)', re.IGNORECASE)
-    NEXTPART = re.compile('----* next part --*$', re.IGNORECASE)
     PKG_PARSE = re.compile('.*\.el([0-9]+[0-9_.]*).*\.([^.]*)\.rpm$')
     SRCPKG_PARSE = re.compile('.*\.el([0-9_.]*[0-9])\..*src.rpm$')
     VERSION_RE = re.compile('-?([0-9][-_0-9.A-Za-z]*)\.el[0-9]')
 
-    SPACES_RE = re.compile('[ ]+')
 
     BINARY_BASE_URL = 'http://mirror.centos.org/centos/%s/updates/%s/Packages/%s'
     INFO_BASE_URL = 'https://centos.pkgs.org/%s/centos-updates-x86_64/%s.html'
@@ -393,28 +382,6 @@ class CentOSAnnouncement(Announcement):
             raise ValueError("package [%s] doesn't match [%s]" % (package, self.PKG_PARSE.pattern))
         rel = match.group(1)[0]
         return self.INFO_BASE_URL % (rel, package)
-
-    @staticmethod
-    def scrape_email_from_archives(url):
-        """
-        Scrape plain text from email archive file
-        :param url: str: URL of email archive
-        :return: str: contents of plain text archive message
-        """
-        headers = {'accept-encoding': 'gzip'}
-        web_page = requests.get(url, headers=headers).content.split('\n')
-        basic_text = []
-        state = 'skip'
-        for line in web_page:
-            if state == 'skip':
-                if line.startswith('<PRE>'):
-                    state = 'reading'
-            elif line.startswith('</PRE>'):
-                break
-            else:
-                line = Announcement._strip_anchors(line)
-                basic_text.append(line)
-        return '\n'.join(basic_text)
 
     def _parse_text(self):
         sections = {}
@@ -559,6 +526,118 @@ class CentOSAnnouncement(Announcement):
         return results
 
 
+class UbuntuAnnouncement(Announcement):
+    """
+    A class which is capable of parsing Ubuntu vulnerability announcements.
+    """
+    MBOX_ANNOUNCEMENT_URL_FMT = (
+        'https://lists.ubuntu.com/archives/ubuntu-security-announce/%s-%s.txt.gz')
+    UNSUPPORTED = {
+        "ubuntu 13.10",
+        "ubuntu 13.04",
+        "ubuntu 12.10",
+        "ubuntu 12.04 esm",
+    }
+    PATCHES = {
+        "ubuntu 17.10",
+        "ubuntu 17.04",
+        "ubuntu 16.04 lts",
+        "ubuntu 14.04 lts",
+    }
+    PATCHES = PATCHES.union(UNSUPPORTED)
+    KNOWN_WORDS = {
+        "a security issue affects these releases of ubuntu and its derivatives",
+        "summary",
+        "software description",
+        "advisory details",
+        "details",
+        "original advisory details",
+        "update instructions",
+        "references",
+        "package versions",
+        "package information",
+        "please see the following for more information",
+        "mitigations for the ppc64el architecture. original advisory details",
+    }
+    KNOWN_WORDS = KNOWN_WORDS.union(PATCHES)
+
+    PATCHES = ("package information",)
+
+    USN_RE = re.compile('ubuntu security notice (USN-[-A-Za-z0-9]*)', re.IGNORECASE)
+    RELEASE_RE = re.compile('[0-9]+\.[0.9]+')
+
+    def _parse_text(self):
+        """
+        Parses a plain text version of a vulnerability announcement.
+
+        :return: dict: returns dict suitable for converting to JSON
+        """
+        sections = {}
+        unsupported = False
+        section_name = None
+        for line in self._text.split('\n'):
+            if line.endswith(':'):
+                word = line[:-1].lower()
+                if word not in self.KNOWN_WORDS:
+                    if '>' in word or ' ' in word:
+                        raise ValueError("Email format error [%s]" % word)
+                    print("OOPS! Unrecognized section [%s:]" % word, file=stderr)
+                section_name = word
+                if section_name not in sections:
+                    sections[section_name] = []
+            else:
+                if self.NEXTPART.match(line):
+                    break
+                match = self.USN_RE.match(line)
+                if match:
+                    sections['name'] = match.group(1)
+                    section_name = 'introduction'
+                    sections['introduction'] = []
+                if line.startswith('--'):
+                    section_name = 'email-signature'
+                    sections[section_name] = []
+                    continue
+                if section_name is not None:
+                    sections[section_name].append(line)
+                    if line.startswith('http://') or line.startswith('https://'):
+                        if 'urls' not in sections:
+                            sections['urls'] = []
+                        sections['urls'].append(line)
+
+        sections['patches'] = {}
+        for section_name in self.PATCHES:
+            osrel = section_name
+            if osrel in self.UNSUPPORTED:
+                unsupported = True
+                continue
+            if section_name in sections:
+                this_sect = ' '.join(sections[section_name])
+                this_sect = self.SPACES_RE.split(this_sect)
+                for index in range(0, len(this_sect), 2):
+                    if this_sect[index] == '':
+                        break
+                    base_package = this_sect[index]
+                    version = this_sect[index+1]
+                    sections['patches'][base_package + '::' + osrel] = version
+                del sections[section_name]
+        for sect_name, sect_info in sections.viewitems():
+            # print ('SECT_INFO:', len(sect_info), type(sect_info), sect_info, file=stderr)
+            if isinstance(sect_info, list):
+                while len(sect_info) > 1 and sect_info[-1] == '':
+                    del sect_info[-1]
+                while len(sect_info) > 0 and sect_info[0] == '':
+                    del sect_info[0]
+                sections[sect_name] = '\n'.join(sections[sect_name])
+
+        if 'name' not in sections:
+            raise ValueError('No vulnerability name in %s.' % self.url)
+        if len(sections['patches']) == 0:
+            if unsupported:
+                raise NotImplementedError("Announcement for unsupported release")
+            raise ValueError('No patches in %s', self.url)
+        return sections
+
+
 def analyze_all_mbox_vulnerabilities(years, announcement_cls):
     """
     The purpose of this function is to find all the vulnerability emails for
@@ -589,11 +668,12 @@ def analyze_all_mbox_vulnerabilities(years, announcement_cls):
     # Read in all the 'gz' mbox archives that have been requested...
     #
     for year in years:
-        for month in ('January', 'February', 'March', 'April', 'May', 'June', 'July'
+        for month in ('January', 'February', 'March', 'April', 'May', 'June', 'July',
                       'August', 'September', 'October', 'November', 'December'):
             gz = url_format % (year, month)
+            print('GZ: %s' % gz)
             for vulnerability in parse_email_mbox_gz(gz, announcement_cls):
-                # print(vulnerability)
+                print(vulnerability)
                 announcement_name = vulnerability.data['name']
                 # Epoch time is when this announcement was created - in UNIX time (seconds)
                 date_key = (vulnerability.data['epoch_time'], announcement_name)
@@ -650,3 +730,4 @@ def analyze_all_mbox_vulnerabilities(years, announcement_cls):
 
 
 analyze_all_mbox_vulnerabilities((2018, 2017, 2016), CentOSAnnouncement)
+analyze_all_mbox_vulnerabilities((2018,), UbuntuAnnouncement)
