@@ -750,10 +750,10 @@ class Subnet(GraphNode):
         self.name = str(self)
         if self.cidrmask > 128:
             raise ValueError('Illigal CIDR mask')
-        print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s'
-              % (domain, ipaddr, cidrmask, context, net_segment), file=stderr)
-        print('Subnet Created: %s' % str(self), file=stderr)
+        print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s) => %s'
+              % (domain, ipaddr, cidrmask, context, net_segment, str(self)), file=stderr)
         assert context is None or isinstance(context, (str, unicode))
+        assert not str(self).startswith('::/')
 
     @staticmethod
     def str_to_ip_cidr(ipaddr, cidrmask):
@@ -769,10 +769,12 @@ class Subnet(GraphNode):
         ipaddr.setport(0)
         try:
             cidrmask = int(cidrmask)
+            if ipaddr.addrtype() == ADDR_FAMILY_IPV4:
+                ipaddr = ipaddr.toIPv6()
+                cidrmask += 96  # a.k.a. 128-32
         except ValueError:
             # Maybe it's an old-style IPv4 netmask??
             cidrmask = Subnet.v4_netmask_to_cidr(cidrmask)
-        if ipaddr.addrtype() == ADDR_FAMILY_IPV4:
             ipaddr = ipaddr.toIPv6()
             cidrmask += 96  # a.k.a. 128-32
         ipaddr.and_with_cidr(cidrmask)
@@ -962,7 +964,9 @@ class Subnet(GraphNode):
         :param ipaddr: pyNetAddr: Address to test
         :return: True or False
         """
-        base_ip = ipaddr.and_with_cidr(self.cidrmask)
+        base_ip = pyNetAddr(ipaddr).and_with_cidr(self.cidrmask)
+        print("Comparing subnet %s IPaddr %s anded with %s [%s]"
+              % (self._ipaddr, ipaddr, self.cidrmask, base_ip), file=stderr)
         return base_ip == self._ipaddr
 
     def __eq__(self, other):
