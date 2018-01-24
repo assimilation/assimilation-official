@@ -594,19 +594,19 @@ class pySwitchDiscovery(object):
         # The Civic Address location data format uses common street address format, as described
         # in RFC4776.
         if subtype == 5:
-            pySwitchDiscovery._get_med_string(switchinfo, 'hardware-revision', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, 'hardware_revision', tlvptr, tlvlen)
         elif subtype == 6:
-            pySwitchDiscovery._get_med_string(switchinfo, 'firmware-revision', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, 'firmware_revision', tlvptr, tlvlen)
         elif subtype == 7:
-            pySwitchDiscovery._get_med_string(switchinfo, 'software-revision', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, 'software_revision', tlvptr, tlvlen)
         elif subtype == 8:
-            pySwitchDiscovery._get_med_string(switchinfo, 'serial-number', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, 'serial_number', tlvptr, tlvlen)
         elif subtype == 9:
             pySwitchDiscovery._get_med_string(switchinfo, 'manufacturer', tlvptr, tlvlen)
         elif subtype == 10:
             pySwitchDiscovery._get_med_string(switchinfo, 'model', tlvptr, tlvlen)
         elif subtype == 11:
-            pySwitchDiscovery._get_med_string(switchinfo, 'asset-id', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, 'asset_id', tlvptr, tlvlen)
         else:
             print >> sys.stderr, (
                 'Ignored %d bytes of LLDP-MED extensions (subtype %d).' % (tlvlen, subtype))
@@ -1022,6 +1022,8 @@ class pyNetAddr(pyAssimObj):
 
     def toIPv6(self, port=None):
         'Return an equivalent IPv6 address to the one that was given. Guaranteed to be a copy'
+        if str(self) == '127.0.0.1':  # FIXME: Fix C code to not do this, and us to not rely on it!
+            return pyNetAddr('::ffff:127.0.0.1')
         base = self._Cstruct[0]
         while not_this_exact_type(base, NetAddr):
             base = base.baseclass
@@ -1989,10 +1991,18 @@ class pyConfigContext(pyAssimObj):
         for key in self.keys():
             yield key
 
+    def viewitems(self):
+        """
+        Iterate over the (key, value) pairs in the top level dict-like structure
+        :yield: (str(key), value)
+        """
+        for key in self.keys():
+            yield key, self.get(key)
+
     def gettype(self, name):
         '''Return the enumeration type of this particular key
         @todo Convert these enums to python types'''
-        #print >> sys.stderr, 'gettype(%s)' % str(name)
+        # print >> sys.stderr, 'gettype(%s)' % str(name)
         return self._Cstruct[0].gettype(self._Cstruct, str(name))
 
     def get(self, key, alternative=None):
