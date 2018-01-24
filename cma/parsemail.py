@@ -294,7 +294,6 @@ class CentOSAnnouncement(Announcement):
     SRCPKG_PARSE = re.compile('.*\.el([0-9_.]*[0-9])\..*src.rpm$')
     VERSION_RE = re.compile('-?([0-9][-_0-9.A-Za-z]*)\.el[0-9]')
 
-
     BINARY_BASE_URL = 'http://mirror.centos.org/centos/%s/updates/%s/Packages/%s'
     INFO_BASE_URL = 'https://centos.pkgs.org/%s/centos-updates-x86_64/%s.html'
     SRC_BASE_URL = 'http://vault.centos.org/centos/%s/updates/Source/SPackages/%s'
