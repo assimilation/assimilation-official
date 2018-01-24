@@ -271,7 +271,7 @@ class AUDITS(TestCase):
         self.assertTrue(drone is not None)
         # Did the drone's list of addresses get updated?
         ipnodes = [ip for ip in drone.get_owned_ips()]
-        self.assertEqual(len(ipnodes), 2)
+        self.assertEqual(len(ipnodes), 3) # IPv4 loopback, IPv6 loopback and assigned IPv4 address
         ipaddrs = [pyNetAddr(str(ip.ipaddr)) for ip in ipnodes]
         ipnode = ipnodes[0]
         ipnodeaddr = pyNetAddr(ipnode.ipaddr)
@@ -369,6 +369,34 @@ def auditallrings():
     for ring in CMAdb.store.load_cypher_nodes("MATCH (n:Class_HbRing) RETURN n"):
         ring.AUDIT()
 
+def audit_all_subnets():
+    """
+    As of this writing, we should have one subnet per node (for the loopback subnet)
+    and one overall subnet.  Each of the local subnets should be ::1/120 or 127.0.0.1/8
+    (not sure which) And maybe there's even both of them. Not sure which result should happen
+    right now.
+
+    :return: None
+    """
+    query = "MATCH (subnet:Class_Subnet) RETURN DISTINCT subnet"
+    all_subnets = [subnet for subnet in CMAdb.store.load_cypher_nodes(query)]
+    print >> sys.stderr, ('SUBNETS: %s' % str([str(subnet) for subnet in all_subnets]))
+    names = {}
+    for subnet in all_subnets:
+        subnet_str = str(subnet)
+        if subnet_str in names:
+            print >> sys.stderr, ("ERROR: Subnet [%s][%d] duplicates node %d"
+                                  % (subnet_str, subnet.association.node_id, names[subnet]))
+        else:
+            names[subnet_str] = subnet.association.node_id
+
+
+#  def audit_all_network_segments():
+    """
+    As of now, there should be one network segment for each subnet.
+    """
+    pass
+
 ASSIMCLI='assimcli'
 inityet = False
 
@@ -437,6 +465,7 @@ class IOTestIO:
     def recvframesets(self):
         # Audit after each packet is processed - and once before the first packet.
         if DoAudit:
+            audit_all_subnets()
             if self.packetsread < 200 or (self.packetsread % 500) == 0:
                 auditalldrones()
                 auditallrings()
