@@ -431,8 +431,11 @@ class StoreAssociation(object):
         if isinstance(other_node, str):
             other_name = other_node
         else:
-            # print('OTHER_NODE = %s' % other_node, file=stderr)
-            other_name = other_node.variable_name
+            # print('RELATED: OTHER_NODE = %s:%s' % (type(other_node), other_node), file=stderr)
+            if hasattr(other_node, 'variable_name'):
+                other_name = other_node.variable_name
+            else:
+                other_name = other_node.association.variable_name
         cypher = self.cypher_find_match2_clause(other_node) + ' AND '
         cypher += '%s\nRETURN %s' % (match_phrase, other_name)
         return cypher

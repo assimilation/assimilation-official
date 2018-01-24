@@ -1016,7 +1016,7 @@ class NetworkSegment(GraphNode):
 
         GraphNode.__init__(self, domain=domain)
         if name is None:
-            name = uuid.uuid4()
+            name = str(uuid.uuid4())
         self.name = name
 
     @staticmethod

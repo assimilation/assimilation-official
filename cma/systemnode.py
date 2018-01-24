@@ -21,13 +21,15 @@
 #
 ''' This module defines the classes for several of our System nodes ...  '''
 from __future__ import print_function
-import sys, time
+import sys
+from sys import stderr
+import time
 from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
 from AssimCclasses import pyConfigContext
 from graphnodes import RegisterGraphClass, GraphNode, JSONMapNode,  \
-        add_an_array_item, delete_an_array_item, nodeconstructor
+        add_an_array_item, delete_an_array_item
 from cmaconfig import ConfigFile
 from AssimCtypes import CONFIGNAME_TYPE
 from frameinfo import FrameTypes, FrameSetTypes
@@ -185,8 +187,7 @@ class SystemNode(GraphNode):
         should_delnode = True
         # See if it has any remaining references...
         for node in self._store.load_in_related(jsonnode,
-                                                CMAconsts.REL_jsonattr,
-                                                nodeconstructor):
+                                                CMAconsts.REL_jsonattr):
             if node is not self:
                 should_delnode = False
                 break
@@ -298,8 +299,8 @@ class SystemNode(GraphNode):
         :return:
         """
         query = """
-        MATCH(self:class_SystemNode)-[:nicowner]->(nic:class_NICnode)
-        WHERE ID(self) = id AND nic.ifname = $ifname
+        MATCH(self:Class_SystemNode)-[:nicowner]->(nic:Class_NICNode)
+        WHERE ID(self) = $id AND nic.ifname = $ifname
         RETURN nic
         """
         return self.association.store.load_cypher_node(query,
@@ -345,7 +346,7 @@ class ChildSystem(SystemNode):
     def post_db_init(self):
         '''Do post-constructor database updates'''
         if not hasattr(self, '_parentsystem'):
-            for node in CMAdb.store.load_related(self, CMAconsts.REL_parentsys, nodeconstructor):
+            for node in CMAdb.store.load_related(self, CMAconsts.REL_parentsys):
                 self._parentsystem = node
                 break
         if self._selfjson is not None:

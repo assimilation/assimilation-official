@@ -171,7 +171,7 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         ,   argv = argv if argv else None) # Neo4j restriction...
         if monitorclass == 'nagios':
             monnode.nagiospath = self.config['monitoring']['nagiospath']
-        if not Store.is_abstract(monnode):
+        if not monnode.association.is_abstract:
             print >> sys.stderr, ('Previously monitored %s on %s'
             %       (monitortype, drone.designation))
         monnode.activate(monitoredservice, drone)

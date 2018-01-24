@@ -114,7 +114,7 @@ class MessageDispatcher(object):
         for pkttype in CMAdb.net_transaction.post_transaction_packets:
             CMAdb.net_transaction.add_packet(origaddr, pkttype, [])
         if len(CMAdb.net_transaction.post_transaction_packets) > 0:
-            CMAdb.net_transaction.commit_trans(CMAdb.io)
+            CMAdb.net_transaction.commit_trans()
             CMAdb.post_transaction_packets = []
         dispatchend = datetime.now()
         if self.logtimes or CMAdb.debug:

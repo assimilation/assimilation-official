@@ -106,7 +106,7 @@ class BestPractices(DiscoveryListener):
         '''Load JSON for a single JSON ruleset into the database.'''
         rules = store.load_or_create(BPRules, bp_class=bp_class, json=json,
                                            rulesetname=rulesetname)
-        if basedon is None or not Store.is_abstract(rules):
+        if basedon is None:
             return
         parent = store.load(BPRules, bp_class=bp_class, rulesetname=basedon)
         store.relate_new(rules, CMAconsts.REL_basis, parent,

@@ -32,6 +32,7 @@ It is a subclass of the DiscoveryListener class.
 More details are documented in the LinkDiscoveryListener class
 '''
 
+from __future__ import print_function
 import sys
 from consts import CMAconsts
 from store import Store
@@ -44,12 +45,14 @@ from graphnodes import NICNode, IPaddrNode
 from systemnode import SystemNode
 from cmaconfig import ConfigFile
 
+
 def discovery_indicates_link_is_up(devinfo):
     'return True if this link is up-and-operational'
     return ('operstate' in devinfo and 'carrier' in devinfo and 'address' in devinfo
         and str(devinfo['operstate']) == 'up' and str(devinfo['carrier']) == 'True'
         and str(devinfo['address']) != '00-00-00-00-00-00'
         and str(devinfo['address']) != '')
+
 
 @SystemNode.add_json_processor
 class LinkDiscoveryListener(DiscoveryListener):
@@ -122,7 +125,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         #print >> sys.stderr, 'SWITCH JSON:', str(data)
         if 'ChassisId' not in data:
             self.log.warning('Chassis ID missing from discovery data from switch [%s]'
-            %   (str(data)))
+                             % (str(data)))
             return
         chassisid = data['ChassisId']
         attrs = {}
@@ -134,8 +137,8 @@ class LinkDiscoveryListener(DiscoveryListener):
                 value = str(value)
             attrs[key] = value
         attrs['designation'] =  chassisid
-        #### FIXME What should the domain of a switch default to?
-        attrs['domain'] =  drone.domain
+        #  FIXME What should the domain of a switch default to?
+        attrs['domain'] = drone.domain
         switch = self.store.load_or_create(SystemNode, **attrs)
 
         if 'SystemCapabilities' not in data:
@@ -145,8 +148,7 @@ class LinkDiscoveryListener(DiscoveryListener):
             for role in caps.keys():
                 if caps[role]:
                     switch.addrole(role)
-            #switch.addrole([role for role in caps.keys() if caps[role]])
-
+            # switch.addrole([role for role in caps.keys() if caps[role]])
 
         if 'ManagementAddress' in attrs:
             self._process_mgmt_addr(switch, chassisid, attrs)
@@ -162,29 +164,31 @@ class LinkDiscoveryListener(DiscoveryListener):
             # MAC addresses are permitted, but IP addresses are preferred
             chassisaddr = pyNetAddr(chassisid)
             chassistype = chassisaddr.addrtype()
-            if chassistype == ADDR_FAMILY_802: # It might be an IP address instead
-                adminnic = self.store.load_or_create(NICNode, domain=switch.domain
-                ,       macaddr=chassisid, ifname='(adminNIC)')
-                mgmtip = self.store.load_or_create(IPaddrNode, domain=switch.domain
-                ,           cidrmask='unknown', ipaddr=mgmtaddr)
-                if Store.is_abstract(adminnic) or Store.is_abstract(switch):
-                    self.store.relate(switch, CMAconsts.REL_nicowner, adminnic)
-                if Store.is_abstract(mgmtip) or Store.is_abstract(adminnic):
-                    self.store.relate(adminnic, CMAconsts.REL_ipowner, mgmtip)
+            if chassistype == ADDR_FAMILY_802:  # It might be an IP address instead
+                adminnic = self.store.load_or_create(NICNode, domain=switch.domain,
+                                                     macaddr=chassisid,
+                                                     scope='global',
+                                                     ifname='(adminNIC)')
+                mgmtip = self.store.load_or_create(IPaddrNode, domain=switch.domain,
+                                                   cidrmask='unknown', ipaddr=mgmtaddr, subnet=None)
+                self.store.relate_new(switch, CMAconsts.REL_nicowner, adminnic)
+                self.store.relate_new(adminnic, CMAconsts.REL_ipowner, mgmtip)
             else:
                 self.log.info('LLDP ATTRS: %s' % str(attrs))
                 if mgmtnetaddr != chassisaddr:
                     # Not really sure what I should be doing in this case...
-                    self.log.warning(
-                    'Chassis ID [%s] not a MAC addr and not the same as mgmt addr [%s]'
-                    %   (chassisid, mgmtaddr))
+                    self.log.warning('Chassis ID [%s] not a MAC addr'
+                                     'and not the same as mgmt addr [%s]'
+                                     % (chassisid, mgmtaddr))
                     self.log.warning('Chassis ID [%s] != mgmt addr [%s]'
-                    %   (str(mgmtnetaddr), str(chassisaddr)))
+                                     % (str(mgmtnetaddr), str(chassisaddr)))
         elif atype == ADDR_FAMILY_802:
-            mgmtnic = self.store.load_or_create(NICNode, domain=switch.domain
-            ,       macaddr=mgmtaddr, ifname='(ManagementAddress)')
-            if Store.is_abstract(mgmtnic) or Store.is_abstract(switch):
-                self.store.relate(switch, CMAconsts.REL_nicowner, mgmtnic)
+            mgmtnic = self.store.load_or_create(NICNode, domain=switch.domain,
+                                                macaddr=mgmtaddr,
+                                                scope='global',
+                                                ifname='(ManagementAddress)')
+            self.store.relate_new(switch, CMAconsts.REL_nicowner, mgmtnic)
+
     def _process_ports(self, drone, switch, chassisid, ports):
         'Process the ports listed in JSON data from switch discovery'
 
@@ -199,15 +203,20 @@ class LinkDiscoveryListener(DiscoveryListener):
             if 'sourceMAC' in thisport:
                 nicmac = thisport['sourceMAC']
             else:
-                nicmac = chassisid # Hope that works ;-)
-            nicnode = self.store.load_or_create(NICNode, domain=drone.domain
-            ,   macaddr=nicmac, json=str(thisport), ifname=thisport['PortId'], **attrs)
+                nicmac = chassisid  # Hope that works ;-)
+            nicnode = self.store.load_or_create(NICNode, domain=drone.domain,
+                                                macaddr=nicmac,
+                                                scope='global',
+                                                json=str(thisport),
+                                                ifname=thisport['PortId'],
+                                                **attrs)
             self.store.relate(switch, CMAconsts.REL_nicowner, nicnode, {'causes': True})
             try:
                 assert thisport['ConnectsToHost'] == drone.designation
                 matchif = thisport['ConnectsToInterface']
-                niclist = self.store.load_related(drone, CMAconsts.REL_nicowner, NICNode)
+                niclist = self.store.load_related(drone, CMAconsts.REL_nicowner)
                 for dronenic in niclist:
+                    # print("NIClist NIC: %s::%s" % (type(dronenic), dronenic), file=sys.stderr)
                     if dronenic.ifname == matchif:
                         self.store.relate_new(nicnode, CMAconsts.REL_wiredto, dronenic)
                         break

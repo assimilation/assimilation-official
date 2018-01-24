@@ -506,8 +506,6 @@ class Store(object):
             return row[0]
         return []
 
-
-
     def relate(self, subj, rel_type, obj, attrs=None):
         """
         Define a 'rel_type' relationship subj-[:rel_type]->obj
@@ -1027,6 +1025,7 @@ class Store(object):
         cypher = subj.association.cypher_create_node_query()
         cypher += '\n RETURN ID(%s)' % subj.association.variable_name
         # print('CREATE CYPHER: %s' % cypher, file=stderr)
+        self._log.info('CREATE CYPHER: %s' % cypher)
         node_id = self.db_transaction.evaluate(cypher)
         assert node_id is not None
         # print('NODE_ID:', node_id, file=stderr)

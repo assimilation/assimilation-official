@@ -63,7 +63,25 @@ class MonitorAction(GraphNode):
     # pylint: disable=R0913
     def __init__(self, domain, monitorname, monitorclass, monitortype, interval,
                  timeout, warntime=None, provider=None, arglist=None, argv=None):
-        'Create the requested monitoring rule object.'
+        """
+        Create the requested monitoring rule object.
+
+        :param domain: str: The domain to create the rule in
+        :param monitorname: str: the name for this monitoring action - unique to this drone
+        :param monitorclass: str: class of monitoring
+        :param monitortype: str: type of monitoring (within the class)
+        :param interval: int: the number of seconds between invocations
+        :param timeout: int: the timeout for this action - in seconds
+        :param warntime: int: the warning time for this action - in seconds
+        :param provider: str: The provider - if such a thing is meaning for the monitoring class
+        :param arglist: None|list|dict: Fundamentally a dict-like object giving environment vars
+                        variables to introduce to the
+                        if arglist is a list - it must be an even number of elements, the odd
+                        elements are the names, and the even values are their corresponding values
+                        If a dict, then well, it's a dict ;-)
+                        If none, then that's cool too.
+        :param argv:[str]
+        """
         GraphNode.__init__(self, domain)
         self.monitorname = monitorname
         self.monitorclass = monitorclass
@@ -91,10 +109,13 @@ class MonitorAction(GraphNode):
             self.arglist = arglist
         else:
             self._arglist = arglist
-            self.arglist = []
-            for name in self._arglist:
-                self.arglist.append(name)
-                self.arglist.append(str(self._arglist[name]))
+            newargs = []  # Can't do this directly to self.arglist - it's modeled with Neo4j
+            #               restrictions disallowing empty arrays
+            for name, value in self._arglist.viewitems():
+                newargs.append(name)
+                newargs.append(str(value))
+            self.arglist = newargs
+
     def longname(self):
         'Return a long name for the type of monitoring this rule provides'
         if self.provider is not None:

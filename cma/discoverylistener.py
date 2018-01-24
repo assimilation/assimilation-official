@@ -255,6 +255,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 ipname = ipinfo.get('name', ':::INVALID:::')
                 # if ipinfo['scope'] != 'global':
                 #     continue
+                print('PROCESSING IP %s' % ip, file=stderr)
                 iponly, cidrmask = ip.split('/')
                 netaddr = pyNetAddr(iponly).toIPv6()
                 subnet_context = drone.designation if mac.virtual else '__GLOBAL__'
@@ -265,6 +266,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                                             cidrmask=int(cidrmask),
                                             context=subnet_context,
                                             net_segment=net_segments[macaddr])
+                print('Creating/Finding IP %s' % str(netaddr), file=stderr)
                 if subnet is None:
                     subnet = self.store.load_or_create(Subnet,
                                                        domain=drone.domain,
@@ -272,6 +274,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                                                        cidrmask=int(cidrmask),
                                                        context=subnet_context,
                                                        net_segment=net_segments[macaddr])
+                print('Creating/Finding IP %s on subnet [%s]' % (str(netaddr), str(subnet)),
+                      file=stderr)
                 ipnode = self.store.load_or_create(IPaddrNode,
                                                    ipaddr=str(netaddr),
                                                    domain=drone.domain,
@@ -357,8 +361,7 @@ class TCPDiscoveryListener(DiscoveryListener):
 
             newprocs[processproc.processname] = processproc
             newprocmap[procname] = processproc
-            if self.store.is_abstract(processproc):
-                self.store.relate(drone, CMAconsts.REL_hosting, processproc)
+            self.store.relate_new(drone, CMAconsts.REL_hosting, processproc)
             if self.debug:
                 self.log.debug('procinfo(%s) - processproc created=> %s' % (procinfo, processproc))
 
@@ -404,7 +407,8 @@ class TCPDiscoveryListener(DiscoveryListener):
     def _add_clientipportnode(self, drone, ipaddr, servport, processnode):
         """Add the information for a single client IPtcpportNode to the database."""
         servip_name = str(pyNetAddr(ipaddr).toIPv6())
-        servip = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=servip_name)
+        servip = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=servip_name,
+                                           subnet=None)
         ip_port = self.store.load_or_create(IPtcpportNode,
                                             domain=drone.domain,
                                             ipaddr=servip_name,
@@ -441,7 +445,8 @@ class TCPDiscoveryListener(DiscoveryListener):
             # %       (drone, addr))
             # Must not have been discovered yet. Hopefully discovery will come along and
             # fill in the cidrmask, and create the NIC relationship ;-)
-            ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=addr)
+            ipnode = self.store.load_or_create(IPaddrNode, domain=drone.domain, ipaddr=addr,
+                                               subnet=None)
             allourips.append(ipnode)
             self._add_serveripportnodes(drone, addr, port, processnode, allourips)
 
