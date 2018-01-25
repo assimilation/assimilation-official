@@ -1204,7 +1204,7 @@ class TestMonitorBasic(TestCase):
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
 }'''
-        ocf = MonitoringRule.ConstructFromString(ocf_string)
+        ocf = MonitoringRule.construct_from_string(ocf_string)
         self.assertTrue(isinstance(ocf, OCFMonitoringRule))
         lsb_string = '''{
 #       comment
@@ -1215,7 +1215,7 @@ class TestMonitorBasic(TestCase):
             ["$argv[-1]",       "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
 }'''
-        lsb = MonitoringRule.ConstructFromString(lsb_string)
+        lsb = MonitoringRule.construct_from_string(lsb_string)
         self.assertTrue(isinstance(lsb, LSBMonitoringRule))
         #assert_no_dangling_Cclasses()
 
@@ -1241,7 +1241,7 @@ class TestMonitorBasic(TestCase):
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
         }'''
-        MonitoringRule.ConstructFromString(ocf_string)
+        MonitoringRule.construct_from_string(ocf_string)
         lsb_string = '''{
         "class":        "lsb", "type":         "neo4j-service",
         "classconfig": [
@@ -1249,7 +1249,7 @@ class TestMonitorBasic(TestCase):
             ["$argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
         }'''
-        MonitoringRule.ConstructFromString(lsb_string)
+        MonitoringRule.construct_from_string(lsb_string)
         neoprocargs = ("/usr/bin/java", "-cp"
         , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
         "AND SO ON:"
@@ -1389,8 +1389,8 @@ class TestMonitorBasic(TestCase):
         }
       }
     }'''
-        MonitoringRule.ConstructFromString(ocf_string)
-        MonitoringRule.ConstructFromString(nagios_string)
+        MonitoringRule.construct_from_string(ocf_string)
+        MonitoringRule.construct_from_string(nagios_string)
         neoargs = pyConfigContext(neo4j_json)['argv']
         testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoargs
         ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
