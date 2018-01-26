@@ -784,8 +784,6 @@ _netaddr_string_ipv6_new(const char* addrstr)
  *	There is also another variant on the format of the IPv6 portion:
  *
  *	It can be "::ffff:" followed by an IPv4 address in typical IPv4 dotted decimal notation.
- *	@todo make _netaddr_string_ipv6_new() support the special format used for
- *	      IPv6-encapsulated IPv4 addresses.
  *
  */
 	int		len = strlen(addrstr);
@@ -895,19 +893,21 @@ _netaddr_string_ipv6_new(const char* addrstr)
 			,	__FUNCTION__, __LINE__,	*firstbadhexchar);
 			return NULL;
 		}
-			
+
 		if (firstbadhexchar >= lastaddrdigit + 1) {
 			break;
 		}
 	}
-	if (firstbadhexchar != NULL && firstbadhexchar != lastaddrdigit + 1) {
+	// Make sure we didn't exhaust the length, and don't be confused by addresses ending in ::
+	if (firstbadhexchar != NULL && firstbadhexchar != lastaddrdigit + 1
+		&& !(firstbadhexchar == (lastaddrdigit -1) && *firstbadhexchar == ':' && *lastaddrdigit == ':')) {
 		DEBUGMSG5("%s.%d: Not IPv6 format due to excess length.", __FUNCTION__, __LINE__);
 		DEBUGMSG5("%s.%d: firstbadhexchar = %p, lastaddrdigit = %p, diff=%ld"
 		,	__FUNCTION__, __LINE__, firstbadhexchar, lastaddrdigit
 		,	(long)(lastaddrdigit-firstbadhexchar));
 		return NULL;
 	}
-	if (coloncolonindex >= 0 && chunkindex == DIMOF(addrchunks)-1) {
+	if (coloncolonindex >= 0 && chunkindex >= DIMOF(addrchunks)-1) {
 		DEBUGMSG5("%s.%d: Not IPv6 format due to full length with :: present"
 		,	__FUNCTION__, __LINE__);
 		return NULL;
