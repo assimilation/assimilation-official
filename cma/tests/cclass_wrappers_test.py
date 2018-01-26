@@ -278,6 +278,8 @@ class TestpyNetAddr(TestCase):
         self.assertEqual(pyNetAddr('127.0.0.1'), loopv6.toIPv4())
         anyv6 = pyNetAddr('::')
         self.assertEqual('0.0.0.0', str(anyv6.toIPv4()))
+        ipv6_2 = pyNetAddr("fe80::")
+        self.assertEqual(str(ipv6_2), "fe80::")
         # @FIXME: I think the next two should work...
         #self.assertEqual(pyNetAddr('0.0.0.0'), anyv6)
         #self.assertEqual(pyNetAddr('0.0.0.0').toIPv6(), anyv6)
