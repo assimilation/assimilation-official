@@ -388,7 +388,7 @@ def main():
         if opt.foreground:
             print >> sys.stderr, (
             'cma: Starting up traced listener.listen() in foreground; debug=%d' % opt.debug)
-        tracer.run('listener.listen()')
+        tracer.runfunc(listener.listen)
     else:
         if CMAdb.debug:
             CMAdb.log.debug(
