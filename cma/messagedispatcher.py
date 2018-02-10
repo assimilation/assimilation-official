@@ -61,24 +61,32 @@ class MessageDispatcher(object):
         """
         self.dispatchcount += 1
         assert self.io is not None
-        # W0703 == Too general exception catching...
-        # pylint: disable=W0703
+
+        try:
             # The __enter__ functions are called in the order given, but the exits are called in the
             # opposite order they're listed. The exits are what commit the transactions...
             # As a result, the idempotent NetTransaction is committed first...
-
-        with self.store.db.begin(autocommit=False) as self.store.db_transaction,\
-                NetTransaction(self.io, encryption_required=self.encryption_required)\
-                        as CMAdb.net_transaction:
-            # print >> sys.stderr, ('NEW TRANSACTION: %s' % self.store.db_transaction)
-            try:
+            with self.store.db.begin(autocommit=False) as self.store.db_transaction,  \
+                NetTransaction(self.io, encryption_required=self.encryption_required) \
+                    as CMAdb.net_transaction:
                 self._try_dispatch_action(origaddr, frameset)
-            except Exception as e:
-                self._process_exception(e, origaddr, frameset)
-                if (self.dispatchcount % 100) == 1:
-                    self._check_memory_usage()
-                raise e
-        assert self.store.db_transaction.finished
+            if (self.dispatchcount % 100) == 1:
+                self._check_memory_usage()
+        # W0703 == Too general exception catching...
+        # pylint: disable=W0703
+        except Exception as e:
+            CMAdb.log.critical("Got an exception of type %s: %s" % (type(e), e))
+            self._process_exception(e, origaddr, frameset)
+            try:
+                if 'response 404' in str(e):
+                    # Let's at least try it again once and see what happens...
+                    # FIXME: This should probably result in some higher-level recovery action
+                    # We utterly rely on database updates working...
+                    CMAdb.log.info("Retrying 404 database transaction.")
+                    self.store.db_transaction.commit()
+            # pylint: disable=W0703
+            except Exception as e2:
+                CMAdb.log.critical("Database transaction retry failed: %s" % str(e2))
         # print >> sys.stderr, ('TRANSACTIONs COMMITTED!')
         if CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
@@ -87,6 +95,9 @@ class MessageDispatcher(object):
         # We want to ack the packet even in the failed case - retries are unlikely to help
         # and we need to avoid getting stuck in a loop retrying it forever...
         self.io.ackmessage(origaddr, frameset)
+        if not self.store.db_transaction.finished:
+            CMAdb.log.critical('MessageDispatcher: DB transaction NOT committed!')
+            self.store.db_transaction.finish()
 
     # [R0912:MessageDispatcher._try_dispatch_action] Too many branches (13/12)
     # pylint: disable=R0912

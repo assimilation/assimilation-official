@@ -210,9 +210,12 @@ class ArpDiscoveryListener(DiscoveryListener):
             for ip in ip_list:
                 mac_ip_pairs.append((mac, ip))
         segment = NetworkSegment.guess_net_segment(self.store, device.domain, mac_ip_pairs)
+        self.store.log.debug("Guess_net_segment() returned %s" % segment)
         if segment is None:
-            return self.store.load_or_create(NetworkSegment, domain=device.domain)
-        return self.store.load(NetworkSegment, domain=device.domain, name=segment.name)
+            result = self.store.load_or_create(NetworkSegment, domain=device.domain)
+        else:
+            result = self.store.load(NetworkSegment, domain=device.domain, name=segment.name)
+        return result
 
     def fix_net_segment(self, domain, device, net_segment, mac_ip_table):
         """

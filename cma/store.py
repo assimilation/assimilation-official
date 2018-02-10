@@ -351,6 +351,7 @@ class Store(object):
             return obj
         # print('NOT LOADED node[%s]: %s' % (str(clsargs), str(obj)))
         subj = self.callconstructor(cls, clsargs)
+        assert subj is not None
         self.register(subj)
         if AssimEvent.event_observation_enabled:
             AssimEvent(subj, AssimEvent.CREATEOBJ)

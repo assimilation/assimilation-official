@@ -19,7 +19,7 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-''' This module defines the classes for most of our CMA nodes ...  '''
+""" This module defines the classes for most of our CMA nodes ...  """
 # Pylint is nuts here...
 # pylint: disable=C0411
 from __future__ import print_function
@@ -35,9 +35,10 @@ from store_association import StoreAssociation
 
 
 def nodeconstructor(**properties):
-    '''A generic class-like constructor that knows our class name is stored as nodetype
+    """
+    A generic class-like constructor that knows our class name is stored as nodetype
     It's a form of "factory" for our database classes
-    '''
+    """
     # print('Calling nodeconstructor with properties: %s' % (str(properties)), file=stderr)
     realcls = GraphNode.classmap[str(properties['nodetype'])]
     # callconstructor is kinda cool - it figures out how to correctly call the constructor
@@ -46,18 +47,19 @@ def nodeconstructor(**properties):
 
 
 def RegisterGraphClass(classtoregister):
-    '''Register the given class as being a Graph class so we can
+    """
+    Register the given class as being a Graph class so we can
     map the class name to the class object.
     This is intended to be used as a decorator.
-    '''
+    """
     GraphNode.classmap[classtoregister.__name__] = classtoregister
     return classtoregister
 
 
 class GraphNode(object):
-    '''
+    """
     GraphNode is the base class for all our 'normal' graph nodes.
-    '''
+    """
     REESC = re.compile(r'\\')
     REQUOTE = re.compile(r'"')
     classmap = {}
@@ -73,12 +75,14 @@ class GraphNode(object):
 
     @staticmethod
     def factory(**kwargs):
-        'A factory "constructor" function - acts like a universal constructor for GraphNode types'
+        """
+        A factory "constructor" function - acts like a universal constructor for GraphNode types
+        """
         return nodeconstructor(**kwargs)
 
     @staticmethod
     def clean_graphnodes():
-        'Invalidate any persistent objects that might become invalid when resetting the database'
+        """Invalidate any persistent objects that might become invalid when resetting the database"""
         pass
 
     @staticmethod
@@ -92,7 +96,7 @@ class GraphNode(object):
 
     @inject.params(store='Store', log='logging.Logger')
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None, store=None, log=None):
-        'Abstract Graph node base class'
+        """Abstract Graph node base class"""
         self.domain = domain
         self.nodetype = self.__class__.__name__
         self._baseinitfinished = False
@@ -152,13 +156,13 @@ class GraphNode(object):
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of significance'
+        """Return our key attributes in order of significance"""
         raise NotImplementedError('Abstract base class method meta_key_attributes for %s'
                                   % cls.__name__)
 
     @classmethod
     def meta_labels(cls):
-        'Return the default set of labels which should be put on our objects when created'
+        """Return the default set of labels which should be put on our objects when created"""
         labels = []
         classes = [cls]
         classes.extend(cls.__bases__)
@@ -217,27 +221,27 @@ class GraphNode(object):
         return result
 
     def post_db_init(self):
-        '''Set node creation time'''
+        """Set node creation time"""
         if not self._baseinitfinished:
             self._baseinitfinished = True
             self.association.store.add_labels(self, self.meta_labels())
 
     def update_attributes(self, other):
-        'Update our attributes from another node of the same type'
+        """Update our attributes from another node of the same type"""
         if other.nodetype != self.nodetype:
             raise ValueError('Cannot update attributes from incompatible nodes (%s vs %s)'
-            %   (self.nodetype, other.nodetype))
+                             % (self.nodetype, other.nodetype))
         for attr in other.__dict__.keys():
             if not hasattr(self, attr) or getattr(self, attr) != getattr(other, attr):
                 setattr(self, attr, getattr(other, attr))
         return self
 
     def __str__(self):
-        'Default routine for printing GraphNodes'
+        """Default routine for printing GraphNodes"""
         result = '%s({' % self.__class__.__name__
-        comma  = ''
+        comma = ''
         for attr in Store.safe_attrs(self):
-            result += '%s%s = %s'% (comma, attr, str(getattr(self, attr)))
+            result += '%s%s = %s' % (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
         result += '%sobject.__str__ =  "%s"' % (comma, object.__str__(self))
         node_id = self.association.node_id if self.association is not None else 'None(0)'
@@ -249,7 +253,7 @@ class GraphNode(object):
     # pylint R0911: Too many return statements
     # pylint: disable=R0911
     def get(self, attrstring, valueifnotfound=None):
-        'Implement potentially deep attribute value lookups through JSON strings'
+        """Implement potentially deep attribute value lookups through JSON strings"""
         try:
             (prefix, suffix) = attrstring.split('.', 1)
         except ValueError:
@@ -271,8 +275,8 @@ class GraphNode(object):
                     return valueifnotfound
                 try:
                     arraypart = getattr(self, preprefix)
-                    idx = int(idx) # Possible ValueError
-                    arrayvalue = arraypart[idx] # possible IndexError or TypeError
+                    idx = int(idx)  # Possible ValueError
+                    arrayvalue = arraypart[idx]  # possible IndexError or TypeError
                     if suffix is None:
                         return arrayvalue
                 except (TypeError, IndexError, ValueError):
@@ -291,10 +295,10 @@ class GraphNode(object):
         return jsonstruct.deepget(suffix, valueifnotfound)
 
     def JSON(self, includemap=None, excludemap=None):
-        '''Output this object according to JSON rules. We take advantage
+        """Output this object according to JSON rules. We take advantage
         of the fact that Neo4j restricts what kind of objects we can
         have as Node properties.
-        '''
+        """
 
         attrstodump = []
         for attr in Store.safe_attrs(self):
@@ -314,7 +318,7 @@ class GraphNode(object):
 
     @staticmethod
     def _JSONelem(value):
-        'Return the value of an element suitable for JSON output'
+        """Return the value of an element suitable for JSON output"""
         if isinstance(value, str) or isinstance(value, unicode):
             return '"%s"' % GraphNode._JSONesc(value)
         if isinstance(value, bool):
@@ -333,14 +337,15 @@ class GraphNode(object):
 
     @staticmethod
     def _JSONesc(stringthing):
-        'Escape this string according to JSON string escaping rules'
+        """Escape this string according to JSON string escaping rules"""
         stringthing = GraphNode.REESC.sub(r'\\\\', stringthing)
         stringthing = GraphNode.REQUOTE.sub(r'\"', stringthing)
         return stringthing
 
     @staticmethod
     def initclasstypeobj(store, nodetype):
-        '''Initialize things for our "nodetype"
+        """
+        Initialize things for our "nodetype"
         This involves
          - Ensuring that there's an index for this class
          - Caching the class that goes with this nodetype
@@ -348,12 +353,12 @@ class GraphNode(object):
          - updating the store's uniqueindexmap[nodetype]
          - updating the store's classkeymap[nodetype]
          This should eliminate the need to do any of these things for any class.
-        '''
+        """
         ourclass = GraphNode.classmap[nodetype]
 
 
 def add_an_array_item(currarray, itemtoadd):
-    'Function to add an item to an array of strings (like for roles)'
+    """Function to add an item to an array of strings (like for roles)"""
     if currarray is not None and len(currarray) == 1 and currarray[0] == '':
         currarray = []
     if isinstance(itemtoadd, (tuple, list)):
@@ -367,8 +372,9 @@ def add_an_array_item(currarray, itemtoadd):
         currarray.append(itemtoadd)
     return currarray
 
+
 def delete_an_array_item(currarray, itemtodel):
-    'Function to delete an item from an array of strings (like for roles)'
+    """Function to delete an item from an array of strings (like for roles)"""
     if isinstance(itemtodel, (tuple, list)):
         for item in itemtodel:
             currarray = delete_an_array_item(currarray, item)
@@ -383,7 +389,7 @@ def delete_an_array_item(currarray, itemtodel):
 
 @RegisterGraphClass
 class BPRules(GraphNode):
-    '''Class defining best practice rules'''
+    """Class defining best practice rules"""
 
     def __init__(self, bp_class, json, rulesetname):
         GraphNode.__init__(self, domain='metadata')
@@ -393,18 +399,18 @@ class BPRules(GraphNode):
         self._jsonobj = pyConfigContext(json)
 
     def jsonobj(self):
-        'Return the JSON object corresponding to our rules'
+        """Return the JSON object corresponding to our rules"""
         return self._jsonobj
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of significance'
+        """Return our key attributes in order of significance"""
         return ['bp_class', 'rulesetname']
 
 
 @RegisterGraphClass
 class BPRuleSet(GraphNode):
-    '''Class defining best practice rule sets'''
+    """Class defining best practice rule sets"""
     def __init__(self, rulesetname, basisrules=None):
         GraphNode.__init__(self, domain='metadata')
         self.rulesetname = rulesetname
@@ -417,7 +423,7 @@ class BPRuleSet(GraphNode):
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of significance'
+        """Return our key attributes in order of significance"""
         return ['rulesetname']
 
 
@@ -617,7 +623,7 @@ class NICNode(GraphNode):
 
     @staticmethod
     def mac_to_oui(macaddr):
-        'Convert a MAC address to an OUI organization string - or return None'
+        """Convert a MAC address to an OUI organization string - or return None"""
         try:
             # Pylint is confused about the netaddr.EUI.oui.registration return result...
             # pylint: disable=E1101
@@ -1085,9 +1091,9 @@ class NetworkSegment(GraphNode):
 
 @RegisterGraphClass
 class IPtcpportNode(GraphNode):
-    'An object that represents an IP:port combination characterized by the pair'
+    """An object that represents an IP:port combination characterized by the pair"""
     def __init__(self, domain, ipaddr, port=None, protocol='tcp'):
-        'Construct an IPtcpportNode - validating our parameters'
+        """Construct an IPtcpportNode - validating our parameters"""
         GraphNode.__init__(self, domain=domain)
         if isinstance(ipaddr, (str, unicode)):
             ipaddr = pyNetAddr(str(ipaddr))
@@ -1104,11 +1110,11 @@ class IPtcpportNode(GraphNode):
                 ipaddr = ipaddr.toIPv6()
             elif addrtype != ADDR_FAMILY_IPV6:
                 raise ValueError('Invalid network address type [%s] for constructor: %s'
-                %  (addrtype, str(ipaddr)))
+                                 % (addrtype, str(ipaddr)))
             ipaddr.setport(0)
         else:
             raise ValueError('Invalid initial value for IPtcpportNode constructor: %s type(%s)'
-            %   (str(ipaddr), type(ipaddr)))
+                             % (str(ipaddr), type(ipaddr)))
         self.ipaddr = unicode(str(ipaddr))
         self.port = port
         self.protocol = protocol
@@ -1116,24 +1122,25 @@ class IPtcpportNode(GraphNode):
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of significance'
+        """Return our key attributes in order of significance"""
         return ['ipport', 'domain']
 
     def format_ipport(self):
-        '''Format the ip and port into our key field
+        """
+        Format the ip and port into our key field
         Note that we make the port the most significant part of the key - which
         should allow some more interesting queries.
-        '''
+        """
         return '%s_%s_%s' % (self.port, self.protocol, self.ipaddr)
 
 
 @RegisterGraphClass
 class ProcessNode(GraphNode):
-    'A node representing a running process in a host'
+    """A node representing a running process in a host"""
     # R0913: Too many arguments (9/7)
     # pylint: disable=R0913
     def __init__(self, domain, processname, host, pathname, argv, uid, gid, cwd, roles=None,
-            is_monitored=False):
+                 is_monitored=False):
         GraphNode.__init__(self, domain=domain)
         self.host = host
         self.pathname       = pathname
@@ -1147,19 +1154,19 @@ class ProcessNode(GraphNode):
         else:
             self.roles = None
             self.addrole(roles)
-        #self.processname='%s|%s|%s|%s:%s|%s' \
-        #%       (path.basename(pathname), path.dirname(pathname), host, uid, gid, str(argv))
-        #procstring = '%s|%s|%s:%s|%s' \
-        #%       (str(path.dirname(pathname)), str(host), str(uid), str(gid), str(argv))
-        #hashsum = hashlib.sha1()
+        # self.processname='%s|%s|%s|%s:%s|%s' \
+        # %       (path.basename(pathname), path.dirname(pathname), host, uid, gid, str(argv))
+        # procstring = '%s|%s|%s:%s|%s' \
+        # %       (str(path.dirname(pathname)), str(host), str(uid), str(gid), str(argv))
+        # hashsum = hashlib.sha1()
         # E1101: Instance of 'sha1' has no 'update' member (but it does!)
         # pylint: disable=E1101
-        #hashsum.update(procstring)
-        #self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
+        # hashsum.update(procstring)
+        # self.processname = '%s::%s' % (path.basename(pathname), hashsum.hexdigest())
         self.processname = processname
 
     def addrole(self, roles):
-        'Add a role to our ProcessNode'
+        """Add a role to our ProcessNode"""
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the Processnode 'roles' attribute gets marked as dirty...
         self.association.dirty_attrs.add('roles')
@@ -1168,7 +1175,7 @@ class ProcessNode(GraphNode):
         return self.roles
 
     def delrole(self, roles):
-        'Delete a role from our ProcessNode'
+        """Delete a role from our ProcessNode"""
         self.roles = delete_an_array_item(self.roles, roles)
         # Mark our Processnode 'roles' attribute dirty...
         self.association.dirty_attrs.add('roles')
@@ -1178,13 +1185,13 @@ class ProcessNode(GraphNode):
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of significance'
+        """Return our key attributes in order of significance"""
         return ['processname', 'domain']
 
 
 @RegisterGraphClass
 class JSONMapNode(GraphNode):
-    '''A node representing a map object encoded as a JSON string
+    """A node representing a map object encoded as a JSON string
     This has everything to do with performance in Neo4j.
     They don't support maps, and they do a poor (*very* slow) job of supporting large strings.
     The only way I know of to support our JSON-based maps in Neo4j is as large strings.
@@ -1196,7 +1203,7 @@ class JSONMapNode(GraphNode):
     well, and in some cases extremely well. I've actually seen 3M of (unusually verbose)
     JSON discovery data compress down to less than 40K of binary.
     XML blobs are typically more compressible than the average JSON blob.
-    '''
+    """
 
     def __init__(self, json, jhash=None):
         GraphNode.__init__(self, domain='metadata')
@@ -1210,38 +1217,38 @@ class JSONMapNode(GraphNode):
 
     @staticmethod
     def strhash(string):
-        'Return our canonical hash value (< 60 chars long)'
+        """Return our canonical hash value (< 60 chars long)"""
         return hashlib.sha224(string).hexdigest()
 
     def __str__(self):
-        'Convert to string - returning the JSON string itself'
+        """Convert to string - returning the JSON string itself"""
         return self.json
 
     def hash(self):
-        'Return the (sha224) hash of this JSON string'
+        """Return the (sha224) hash of this JSON string"""
         return self.jhash
 
     def map(self):
-        'Return the map (pyConfigContext) that corresponds to our JSON string'
+        """Return the map (pyConfigContext) that corresponds to our JSON string"""
         return self._map
 
     def keys(self):
-        'Return the keys that go with our map'
+        """Return the keys that go with our map"""
         return self.map().keys()
 
     def get(self, key, alternative=None):
-        '''Return value if object contains the given *structured* key - 'alternative' if not.'''
+        """Return value if object contains the given *structured* key - 'alternative' if not."""
         return self.map().deepget(key, alternative)
 
     def deepget(self, key, alternative=None):
-        '''Return value if object contains the given *structured* key - 'alternative' if not.'''
+        """Return value if object contains the given *structured* key - 'alternative' if not."""
         return self.map().deepget(key, alternative)
 
     def __getitem__(self, key):
         return self.map()[key]
 
     def __iter__(self):
-        'Iterate over self.keys() - giving the names of all our *top level* attributes.'
+        """Iterate over self.keys() - giving the names of all our *top level* attributes."""
         for key in self.keys():
             yield key
 
@@ -1253,20 +1260,21 @@ class JSONMapNode(GraphNode):
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of significance'
-        return  ['jhash']
+        """Return our key attributes in order of significance"""
+        return ['jhash']
 
 
 # pylint  R0903: too few public methods. Not appropriate here...
 # pylint: disable=R0903
 class NeoRelationship(object):
-    '''Our encapsulation of a Neo4j Relationship - good for displaying them '''
+    """Our encapsulation of a Neo4j Relationship - good for displaying them """
     def __init__(self, relationship):
-        '''Constructor for our Relationship proxy
+        """
+        Constructor for our Relationship proxy
         Relationship should be a neo4j.Relationship
-        '''
+        """
         self._relationship = relationship
-        self._id = relationship._id
+        self._id = getattr(relationship, '_id')  # Make pylint happy...
         self.type = relationship.type
         self.start_node = getattr(relationship.start_node, '_id')  # Make pylint happy...
         self.end_node = getattr(relationship.end_node, '_id')      # Make pylint happy...
