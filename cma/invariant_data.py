@@ -29,10 +29,12 @@
 
 from __future__ import print_function
 from sys import stderr
+import collections
 import os
 import errno
 import hashlib
 import json
+import dpath
 
 if hasattr(os, 'syncfs'):
     syncfs = os.syncfs
@@ -42,6 +44,22 @@ else:
 
     def syncfs(fd):
         libc.syncfs(fd)
+
+
+def dict_merge(original_dict, merge_dict):
+    """
+    Recursive dict merge. Merges merge_dict into original_dict, updating keys.
+    :param original_dict: dict we're merging into
+    :param merge_dict: dict: dict to be merged into original_dict
+    :return: None
+    """
+    for key, value in merge_dict.items():
+        if (key in original_dict
+            and isinstance(original_dict[key], dict)
+                and isinstance(value, collections.Mapping)):
+            dict_merge(original_dict[key], value)
+        else:
+            original_dict[key] = merge_dict[key]
 
 
 class PersistentInvariantJSON(object):
@@ -169,36 +187,48 @@ class PersistentInvariantJSON(object):
         """
         See if the dict_obj matches the equal item comparison criteria we've been given
 
-
         :param equal_item: (str, []): (field description, comparison description)
-        :param dict_obj: dict: (or dict-like) implements deepget or get
+                                      The field description is according to dpath format
+        :param dict_obj: dict: (or dict-like) object being filtered
         :return: True if the given field is in the list of possible values
         """
-        # FIXME: This implementation is SIGNIFICANTLY inadequate: need something supporting '*', etc
 
         field, value_list = equal_item
-        if isinstance(value_list, (str, unicode, int, float)):
-            value_list = list(value_list)
+        if isinstance(value_list, (str, unicode, int, float, bool)):
+            value_list = (value_list,)
 
-        if hasattr(dict_obj, 'deepget'):
-            field_value = dict_obj.deepget(field)
-        else:
-            field_value = dict_obj.get(field)
-        if field_value is None:
-                return False
-        return field_value in value_list
+        def _filter_match(data):
+            return data in value_list
+
+        return dpath.util.search(dict_obj, field, afilter=_filter_match)
 
     def _equal_set_compare_and(self, equal_sets, dict_obj):
         """
 
-        :param equal_sets:
-        :param dict_obj:
+        :param equal_sets: [(str,[str])]: Query specification
+        :param dict_obj: dict: thing to evaluate this against
         :return:
         """
+        keys = set()
+        biggest_result = {}  # Not used but it makes analyzers happy :-D
         for item in equal_sets:
-            if not self._equal_item_compare(item, dict_obj):
-                return False
-        return True
+            comparison = self._equal_item_compare(item, dict_obj)
+            new_keys = set(comparison.keys())
+            if keys:
+                keys.intersection_update(new_keys)
+                if not keys:
+                    return {}
+                dict_merge(biggest_result, comparison)
+            else:
+                keys = new_keys
+                biggest_result = comparison
+
+        result = {}
+
+        for key in biggest_result.keys():
+            if key not in keys:
+                del biggest_result[key]
+        return biggest_result
 
     def _equal_set_compare_or(self, equal_sets, dict_obj):
         """
@@ -207,10 +237,12 @@ class PersistentInvariantJSON(object):
         :param dict_obj:
         :return:
         """
+        result = []
         for item in equal_sets:
-            if self._equal_item_compare(item, dict_obj):
-                return True
-        return False
+            comparison = self._equal_item_compare(item, dict_obj)
+            if comparison:
+                result.append(comparison)
+        return result
 
     def equality_query(self, equal_sets, ctype='and'):
         """
@@ -219,11 +251,12 @@ class PersistentInvariantJSON(object):
         :param ctype: str: 'and' for and comparision, 'or' otherwise
         :return:
         """
-        comparator = self._equal_set_compare_and if type == 'and' else self._equal_set_compare_or
-        for item in self.viewitems():
+        comparator = self._equal_set_compare_and if ctype == 'and' else self._equal_set_compare_or
+        for key, item in self.viewitems():
             item = item.get(self.query_root)
-            if comparator(equal_sets, item):
-                yield item
+            result = comparator(equal_sets, item)
+            if result:
+                yield key, result
 
     def sync(self):
         """
@@ -492,7 +525,7 @@ class PersistentJSON(object):
         """
         for bucket in self.buckets.viewvalues():
             bucket.sync()
-            if not self.sync_all:
+            if not bucket.sync_all:
                 # In this case, we assume that all our buckets can be synced at once...
                 return
 
@@ -551,6 +584,18 @@ class PersistentJSON(object):
             for key, json_blob in bucket.viewitems():
                 yield (bucket_name, key), json_blob
 
+    def equality_query(self, bucket_name, query, ctype='and'):
+        """
+
+        :param bucket_name: Which bucket to search in
+        :param query: [str,[]]: sets to perform equality operation on...
+        :param ctype:
+        :return:
+        """
+        self._make_bucket(bucket_name)
+        bucket = self.buckets[bucket_name]
+        return bucket.equality_query(query, ctype=ctype)
+
 
 if __name__ == '__main__':
     # This is a pretty crappy test - but it works when you invoke it with the right data ;-)
@@ -563,5 +608,10 @@ if __name__ == '__main__':
             with open(os.path.join(directory, name)) as json_fd:
                 obj.put('fileattrs', json_fd.read())
         obj.sync()  # Make sure all our bits get written to disk...
+        for item in obj.equality_query('fileattrs', (('*/perms/sticky', True),)):
+            print("Found sticky bit:", item)
+        for item in obj.equality_query('fileattrs', (('*/perms/group/write', True),
+                                                     ('*/type', ('d', '-', 'b', 'c'))), ctype='and'):
+            print("Group-Writable non-links:", item)
 
     test_main()
