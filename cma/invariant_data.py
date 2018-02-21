@@ -223,8 +223,6 @@ class PersistentInvariantJSON(object):
                 keys = new_keys
                 biggest_result = comparison
 
-        result = {}
-
         for key in biggest_result.keys():
             if key not in keys:
                 del biggest_result[key]
@@ -452,12 +450,14 @@ class FilesystemJSON(PersistentInvariantJSON):
                 try:
                     syncfs(fd)
                 except OSError as oopsie:
-                    print('ERROR: Cannot sync data in %s' % self._pathname(key), file=stderr)
+                    print('ERROR: Cannot sync data in %s: %s'
+                          % (self._pathname(key), oopsie), file=stderr)
                 os.close(fd)
                 return
             except OSError as oopsie:
                 # This shouldn't happen unless permissions are screwed up...
-                print('ERROR: Cannot open data in %s' % self._pathname(key), file=stderr)
+                print('ERROR: Cannot open data in %s: %s'
+                      % (self._pathname(key), oopsie), file=stderr)
 
 
 class PersistentJSON(object):
@@ -611,7 +611,8 @@ if __name__ == '__main__':
         for item in obj.equality_query('fileattrs', (('*/perms/sticky', True),)):
             print("Found sticky bit:", item)
         for item in obj.equality_query('fileattrs', (('*/perms/group/write', True),
-                                                     ('*/type', ('d', '-', 'b', 'c'))), ctype='and'):
+                                                     ('*/type', ('d', '-', 'b', 'c'))),
+                                       ctype='and'):
             print("Group-Writable non-links:", item)
 
     test_main()
