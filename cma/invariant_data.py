@@ -26,6 +26,13 @@
 # You should have received a copy of the GNU General Public License
 # along with the Assimilation Project software.
 # If not, see http://www.gnu.org/licenses/
+"""
+This file implements invariant JSON storage for the Assimilation project
+The JSON is content-addressible via its hash value, so it's will never change
+with the exception of being deleted...
+We implement a base class and a couple of subclasses for different types of invariant JSON
+storage.
+"""
 
 from __future__ import print_function
 from sys import stderr
@@ -35,6 +42,7 @@ import errno
 import hashlib
 import json
 import dpath
+import sqlite3
 
 if hasattr(os, 'syncfs'):
     syncfs = os.syncfs
@@ -43,6 +51,11 @@ else:
     libc = ctypes.CDLL("libc.so.6")
 
     def syncfs(fd):
+        """
+        Wrapper for libc.syncfs if it's not already defined in our Python OS module...
+        :param fd: file descriptor
+        :return: int: typical system call return code...
+        """
         libc.syncfs(fd)
 
 
@@ -101,7 +114,7 @@ class PersistentInvariantJSON(object):
         :param key:
         :return:
         """
-        result = self.get(key, None)
+        result = self.get(key)
         if result is None:
             raise KeyError("No such key: %s" % key)
 
@@ -206,7 +219,7 @@ class PersistentInvariantJSON(object):
         """
 
         :param equal_sets: [(str,[str])]: Query specification
-        :param dict_obj: dict: thing to evaluate this against
+        param dict_obj: dict: thing to evaluate this against
         :return:
         """
         keys = set()
@@ -392,7 +405,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         A generator which yields each (key, dict-from-JSON) pair in turn...
         :return: generator(str, dict): Generator returning (str, dict) on each next() call...
         """
-        for root, dirs, files in os.walk(self.root_directory, followlinks=False):
+        for root, dirs, files in os.walk(self.root_directory):
             for filename in files:
                 if not self.is_valid_key(filename):
                     print("WARNING: Ignoring file %s." % os.path.join(root, filename), file=stderr)
@@ -460,9 +473,269 @@ class FilesystemJSON(PersistentInvariantJSON):
                       % (self._pathname(key), oopsie), file=stderr)
 
 
+class SQLiteInstance(object):
+    """
+    An Instance of a connection to an SQLite database. Needed by SQLiteJSON
+    """
+    instances = {}  # Key is pathname
+    BEGIN_TRANS = 'BEGIN DEFERRED TRANSACTION;'
+    TABLE_PREFIX = 'HASH_'
+
+    def __init__(self, **initial_args):
+        dbpath = initial_args['pathname']
+        assert dbpath not in SQLiteInstance.instances
+        self.in_transaction = False
+        self.cursor = None
+        self.connection = sqlite3.connect(dbpath, **initial_args)
+        self.json_load = initial_args.get('json_load', json.loads)
+        SQLiteInstance.instances[dbpath] = self
+
+    @staticmethod
+    def instance(**initial_args):
+        """
+
+        :param initial_args:
+        :return:
+        """
+        dbpath = initial_args['pathname']
+        if dbpath in SQLiteInstance.instances:
+            return SQLiteInstance.instances[dbpath]
+        return SQLiteInstance(**initial_args)
+
+    @staticmethod
+    def sanitize(inchars):
+        """
+        Sanitize a string
+
+        :param inchars: str: input characters
+        :return: sanitized string
+        """
+        return ''.join(char for char in inchars if char.isalnum())
+
+    def table_name(self, name):
+        """
+
+        :param name:
+        :return:
+        """
+        return self.TABLE_PREFIX + self.sanitize(name)
+
+    def ensure_transaction(self):
+        """
+        Ensure that we're in a transaction
+        :return: None
+        """
+        if not self.in_transaction:
+            self.cursor = self.connection.cursor()
+            self.cursor.execute(self.BEGIN_TRANS)
+
+    def execute(self, sql_statement, *args):
+        """
+
+        :param sql_statement: str: A single SQL statement
+        :param args: [str]: Arguments to the SQL statement
+        :return: depends on the SQL
+        """
+        self.ensure_transaction()
+        return self.cursor.execute(sql_statement, *args)
+
+    def all_hash_tables(self):
+        """
+        Return the names of all our hash tables (SQlite relations that correspond to hash tables)
+        :return: [str]: Names of all our hash tables...
+        """
+        sql = ("""SELECT name FROM sqlite_master
+                 WHERE type='table' AND name LIKE '%s%%'
+                 ORDER BY name;""" % self.TABLE_PREFIX)
+        self.execute(sql)
+        chopindex = len(self.TABLE_PREFIX)
+        return [row[0][chopindex:] for row in self.cursor.fetchall()]
+
+    def put(self, table, datahash, data):
+        """
+        Insert this data into one of our tables...
+        :param table: str: table name
+        :param datahash: str: hash of data
+        :param data: str: (JSON) data to be inserted
+        :return: whatever cursor.execute returns...
+        """
+
+        insert_command = ('INSERT INTO %s (hash, data) VALUES (?, ?);' % self.table_name(table))
+        return self.execute(insert_command, datahash, data)
+
+    def get(self, table, datahash, default=None):
+        """
+        Get the given value from the given table
+        :param table:
+        :param datahash:
+        :param default:
+        :return:
+        """
+        command = ('SELECT data FROM %s WHERE hash = ?;' % self.table_name(table))
+        self.execute(command, datahash)
+        result = self.cursor.fetchone()
+        return self.json_load(result[0]) if result else default
+
+    def delete(self, table, datahash):
+        """
+        Delete the given hash entry (row) from the given table
+        :param table: str: Table to delete from
+        :param datahash: str: key to delete
+        :return: Whatever sqlite3.cursor.execute returns...
+        """
+        command = ('DELETE FROM %s WHERE hash = ?;' % self.table_name(table))
+        return self.execute(command, datahash)
+
+    def table_contains(self, table, datahash):
+        """
+
+        :param table: str: table to check for the key
+        :param datahash: str: key (hash value)
+        :return: bool: True if present, False otherwise
+        """
+        command = ('SELECT hash FROM %s WHERE hash = ?;' % self.table_name(table))
+        self.execute(command, datahash)
+        result = self.cursor.fetchone()
+        return True if result else False
+
+    def commit(self):
+        """
+        Commit any pending transaction
+        :return:
+        """
+        if not self.in_transaction:
+            return
+        self.in_transaction = False
+        self.cursor = None
+        return self.connection.commit()
+
+    def viewtableitems(self, table):
+        """
+        View all the key,value pairs in this table
+        :return: generator(str, dict)
+        """
+        command = ('SELECT hash, data FROM %s;' % self.table_name(table))
+        self.execute(command)
+        result = self.cursor.fetchone()
+        while result:
+            yield result[0], self.json_load(result[1])
+            result = self.cursor.fetchone()
+
+    def viewtablevalues(self, table):
+        """
+        View all the values in this table
+        :return: generator(dict)
+        """
+        command = ('SELECT data FROM %s;' % self.table_name(table))
+        self.execute(command)
+        result = self.cursor.fetchone()
+        while result:
+            yield self.json_load(result[0])
+            result = self.cursor.fetchone()
+
+    def viewtablekeys(self, table):
+        """
+        View all the keys in this table
+
+        :return: generator(str)
+        """
+        command = ('SELECT hash FROM %s;' % self.table_name(table))
+        self.execute(command)
+        result = self.cursor.fetchone()
+        while result:
+            yield result[0]
+            result = self.cursor.fetchone()
+
+
+class SQLiteJSON(PersistentInvariantJSON):
+    """
+    Class using SQLite to store Invariant JSON.
+    """
+
+    def __init__(self, data_type, **initial_args):
+
+        """
+        SQListeJSON constructor...
+        :param initial_args: a collection of initial arguments for this class or any subclasses
+        """
+
+        PersistentInvariantJSON.__init__(self, data_type, **initial_args)
+        self.delayed_sync = bool(initial_args.get('delayed_sync', True))
+        self.sync_all = bool(initial_args.get('sync_all', True))
+        self.instance = SQLiteInstance.instance(**initial_args)
+        self.data_hash = initial_args.get('data_hash', 'sha224')
+        self.hash = getattr(hashlib, self.data_hash)
+
+    def get(self, key, default=None):
+        """
+
+        :param key:
+        :param default:
+        :return:
+        """
+        return self.instance.get(self.data_type, key)
+
+        pass
+
+    def put(self, value, key=None):
+        """
+
+        :param value:
+        :param key:
+        :return:
+        """
+        if key is None:
+            key = self.hash(value).hexdigest()
+        return self.instance.put(self.data_type, key, value)
+
+    def delete(self, key):
+        """
+        Delete this item from its table
+        :param key: str: hash value to delete
+        :return: Whatever cursor.execute() returns...
+        """
+        return self.instance.delete(self.data_type, key)
+
+    def sync(self):
+        """
+        Commit the transaction -- sync to disk...
+        :return: None
+        """
+        self.instance.commit()
+
+    def viewitems(self):
+        """
+
+        :return:
+        """
+        return self.instance.viewtableitems(self.data_type)
+
+    def viewkeys(self):
+        """
+
+        :return:
+        """
+        return self.instance.viewtablekeys(self.data_type)
+
+    def __contains__(self, key):
+        """
+
+        :param key:
+        :return: bool: True if this key is in the table
+        """
+        return self.instance.table_contains(self.data_type, key)
+
+    def all_hash_types(self):
+        """
+        Return all our known SQLite hash tables...
+        :return: [str] -- all our known hash types
+        """
+        return self.instance.all_hash_tables()
+
+
 class PersistentJSON(object):
     """
-    Class encapsulating all our Filesystem JSON objects
+    Class encapsulating our Invariant JSON objects
     """
 
     def __init__(self, cls, **initial_args):
@@ -475,6 +748,7 @@ class PersistentJSON(object):
         assert issubclass(cls, PersistentInvariantJSON)
         self._initial_args = initial_args
         self.buckets = {}
+        self.queried_all = False
 
     def _make_bucket(self, jsontype):
         """
@@ -483,7 +757,13 @@ class PersistentJSON(object):
         :return: None
         """
         if jsontype not in self.buckets:
-            self.buckets[jsontype] = self.cls(jsontype, **self._initial_args)
+            thing = self.cls(jsontype, **self._initial_args)
+            self.buckets[jsontype] = thing
+            if not self.queried_all:
+                if hasattr(thing, 'all_hash_types'):
+                    for bucket in thing.all_hash_types():
+                        self._make_bucket(bucket)
+            self.queried_all = True
 
     def get(self, jsontype, jsonhash, default=None):
         """
@@ -611,8 +891,7 @@ if __name__ == '__main__':
         for item in obj.equality_query('fileattrs', (('*/perms/sticky', True),)):
             print("Found sticky bit:", item)
         for item in obj.equality_query('fileattrs', (('*/perms/group/write', True),
-                                                     ('*/type', ('d', '-', 'b', 'c'))),
-                                       ctype='and'):
+                                                     ('*/type', ('d', '-', 'b', 'c')))):
             print("Group-Writable non-links:", item)
 
     test_main()
