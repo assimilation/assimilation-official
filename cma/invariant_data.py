@@ -486,9 +486,12 @@ class SQLiteInstance(object):
         assert dbpath not in SQLiteInstance.instances
         self.in_transaction = False
         self.cursor = None
-        self.connection = sqlite3.connect(dbpath, **initial_args)
+        args_to_del = {'delayed_sync', 'pathname', 'audit', 'root_directory'}
+        filtered_args = {key: initial_args[key] for key in initial_args if key not in args_to_del}
+        self.connection = sqlite3.connect(dbpath, **filtered_args)
         self.json_load = initial_args.get('json_load', json.loads)
         SQLiteInstance.instances[dbpath] = self
+        self.hash_tables = set(self.all_hash_tables())
 
     @staticmethod
     def instance(**initial_args):
@@ -528,6 +531,7 @@ class SQLiteInstance(object):
         if not self.in_transaction:
             self.cursor = self.connection.cursor()
             self.cursor.execute(self.BEGIN_TRANS)
+            self.in_transaction = True
 
     def execute(self, sql_statement, *args):
         """
@@ -544,12 +548,25 @@ class SQLiteInstance(object):
         Return the names of all our hash tables (SQlite relations that correspond to hash tables)
         :return: [str]: Names of all our hash tables...
         """
+        self.ensure_transaction()
         sql = ("""SELECT name FROM sqlite_master
                  WHERE type='table' AND name LIKE '%s%%'
                  ORDER BY name;""" % self.TABLE_PREFIX)
         self.execute(sql)
         chopindex = len(self.TABLE_PREFIX)
         return [row[0][chopindex:] for row in self.cursor.fetchall()]
+
+    def create_hash_table(self, table):
+        """
+        Create the given hash table
+
+        :param table: Name of (hash) table to create
+        :return:
+        """
+        self.ensure_transaction()
+        sql = ('CREATE TABLE %s(hash varchar unique, data varchar, integer current default 1);'
+               % self.table_name(table))
+        self.execute(sql)
 
     def put(self, table, datahash, data):
         """
@@ -559,9 +576,12 @@ class SQLiteInstance(object):
         :param data: str: (JSON) data to be inserted
         :return: whatever cursor.execute returns...
         """
+        if table not in self.hash_tables:
+            self.create_hash_table(table)
+            self.hash_tables.add(table)
 
         insert_command = ('INSERT INTO %s (hash, data) VALUES (?, ?);' % self.table_name(table))
-        return self.execute(insert_command, datahash, data)
+        return self.execute(insert_command, (datahash, data))
 
     def get(self, table, datahash, default=None):
         """
@@ -572,7 +592,7 @@ class SQLiteInstance(object):
         :return:
         """
         command = ('SELECT data FROM %s WHERE hash = ?;' % self.table_name(table))
-        self.execute(command, datahash)
+        self.execute(command, (datahash,))
         result = self.cursor.fetchone()
         return self.json_load(result[0]) if result else default
 
@@ -584,7 +604,7 @@ class SQLiteInstance(object):
         :return: Whatever sqlite3.cursor.execute returns...
         """
         command = ('DELETE FROM %s WHERE hash = ?;' % self.table_name(table))
-        return self.execute(command, datahash)
+        return self.execute(command, (datahash,))
 
     def table_contains(self, table, datahash):
         """
@@ -594,7 +614,7 @@ class SQLiteInstance(object):
         :return: bool: True if present, False otherwise
         """
         command = ('SELECT hash FROM %s WHERE hash = ?;' % self.table_name(table))
-        self.execute(command, datahash)
+        self.execute(command, (datahash,))
         result = self.cursor.fetchone()
         return True if result else False
 
@@ -701,6 +721,7 @@ class SQLiteJSON(PersistentInvariantJSON):
         Commit the transaction -- sync to disk...
         :return: None
         """
+        print('COMMIT.', file=stderr)
         self.instance.commit()
 
     def viewitems(self):
@@ -881,17 +902,26 @@ if __name__ == '__main__':
     # This is a pretty crappy test - but it works when you invoke it with the right data ;-)
 
     def test_main():
-        obj = PersistentJSON(cls=FilesystemJSON, root_directory='/tmp/alanr', audit=False,
+        try:
+            os.unlink('/tmp/sqlite')
+        except OSError:
+            pass
+        obj = PersistentJSON(cls=SQLiteJSON, root_directory='/tmp/alanr', audit=False,
+                             pathname='/tmp/sqlite',
                              delayed_sync=True)
         directory = 'pgtests/json_data'
         for name in os.listdir(directory):
             with open(os.path.join(directory, name)) as json_fd:
+                print('putting %s' % name, file=stderr)
                 obj.put('fileattrs', json_fd.read())
+        print('Performing sync.', file=stderr)
         obj.sync()  # Make sure all our bits get written to disk...
+        print('Sync done.', file=stderr)
         for item in obj.equality_query('fileattrs', (('*/perms/sticky', True),)):
-            print("Found sticky bit:", item)
+            print("Found sticky bit:", item, file=stderr)
+        print('Performing second query.', file=stderr)
         for item in obj.equality_query('fileattrs', (('*/perms/group/write', True),
                                                      ('*/type', ('d', '-', 'b', 'c')))):
-            print("Group-Writable non-links:", item)
+            print("Group-Writable non-links:", item, file=stderr)
 
     test_main()
