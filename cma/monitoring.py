@@ -33,7 +33,7 @@ import os, re, time
 from sys import stderr
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
-from graphnodes import GraphNode, RegisterGraphClass
+from graphnodes import GraphNode, registergraphclass
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from assimevent import AssimEvent
 from cmadb import CMAdb
@@ -49,7 +49,7 @@ from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD
 
 # too many instance attributes
 # pylint: disable=R0902
-@RegisterGraphClass
+@registergraphclass
 class MonitorAction(GraphNode):
     """
     Class representing monitoring actions

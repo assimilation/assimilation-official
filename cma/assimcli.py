@@ -372,7 +372,7 @@ def main(argv):
     if len(argv) < 2 or command not in commands:
         usage()
         return 1
-    CMAInjectables.default_CMA_injection_configuration({'NEO4J_READONLY': command not in rwcmds})
+    CMAInjectables.default_cma_injection_configuration({'NEO4J_READONLY': command not in rwcmds})
     if command not in nodbcmds:
         ourstore = dbsetup()
     return commands[command].execute(ourstore, executor_context, sys.argv[narg+1:],

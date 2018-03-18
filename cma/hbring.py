@@ -25,11 +25,11 @@ This file is all about the Rings - we implement rings.
 from sys import stderr
 from cmadb import CMAdb
 from droneinfo import Drone
-from graphnodes import GraphNode, RegisterGraphClass
+from graphnodes import GraphNode, registergraphclass
 from store import Store
 from sys import stderr
 
-@RegisterGraphClass
+@registergraphclass
 class HbRing(GraphNode):
     'Class defining the behavior of a heartbeat ring.'
     SWITCH      =  1

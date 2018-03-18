@@ -150,8 +150,6 @@ if __name__ == "__main__":
         url = ('http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
         CMAinit(None)
         store = Store(neo4j.Graph(url), readonly=True)
-        for classname in GN.GraphNode.classmap:
-            GN.GraphNode.initclasstypeobj(store, classname)
         results = logwatch.lookforall()
         if debug:
             print >> sys.stderr, 'WATCH RESULTS:', results

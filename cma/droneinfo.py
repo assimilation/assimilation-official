@@ -28,7 +28,7 @@ import time, sys
 from cmadb import CMAdb
 from consts import CMAconsts
 from store import Store
-from graphnodes import nodeconstructor, RegisterGraphClass, IPaddrNode, BPRules, \
+from graphnodes import nodeconstructor, registergraphclass, IPaddrNode, BPRules, \
     NICNode
 from systemnode import SystemNode
 from frameinfo import FrameSetTypes, FrameTypes
@@ -38,7 +38,7 @@ from cmaconfig import ConfigFile
 from graphnodes import GraphNode
 
 
-@RegisterGraphClass
+@registergraphclass
 #droneinfo.py:39: [R0904:Drone] Too many public methods (21/20)
 #droneinfo.py:39: [R0902:Drone] Too many instance attributes (11/10)
 # pylint: disable=R0904,R0902

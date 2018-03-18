@@ -573,7 +573,7 @@ def drawing_type_help():
 
 
 if __name__ == '__main__':
-    CMAInjectables.default_CMA_injection_configuration()
+    CMAInjectables.default_cma_injection_configuration()
     validate_drawing_types()
     desc = 'Create illustration from Assimilation graph database'
     desc += '.\nLicensed under the %s' % LONG_LICENSE_STRING

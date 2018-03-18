@@ -30,7 +30,7 @@ about these queries for the client code.
 import os, sys, re
 import collections, operator
 from py2neo import Graph
-from graphnodes import GraphNode, RegisterGraphClass
+from graphnodes import GraphNode, registergraphclass
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import ADDR_FAMILY_IPV6, ADDR_FAMILY_IPV4, ADDR_FAMILY_802
 from assimjson import JSONtree
@@ -39,7 +39,7 @@ from cmadb import CMAdb
 from droneinfo import Drone
 from consts import CMAconsts
 
-@RegisterGraphClass
+@registergraphclass
 class ClientQuery(GraphNode):
     """This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism

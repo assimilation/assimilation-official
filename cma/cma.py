@@ -319,7 +319,7 @@ def main():
     io.setrcvbufsize(10*1024*1024) # No harm in asking - it will get us the best we can get...
     io.setsendbufsize(1024*1024)   # Most of the traffic volume is inbound from discovery
     cmainit.CMAInjectables.set_config(configinfo)
-    cmainit.CMAInjectables.default_CMA_injection_configuration()
+    cmainit.CMAInjectables.default_cma_injection_configuration()
     drop_privileges_permanently(opt.userid)
     try:
         cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))

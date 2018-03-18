@@ -30,7 +30,7 @@ from py2neo import Graph, GraphError
 from store import Store
 from AssimCclasses import pyNetAddr, dump_c_objects
 from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count, proj_class_dump_live_objects
-from graphnodes import GraphNode, RegisterGraphClass, JSONMapNode
+from graphnodes import GraphNode, registergraphclass, JSONMapNode
 from systemnode import SystemNode
 from cmainit import  CMAInjectables, CMAinit
 
@@ -68,7 +68,6 @@ def setup_module(module):
     """Setup for this entire file"""
 
 def assert_no_dangling_Cclasses(doassert=None):
-    return
     FooClass.store.clean_store()
     sys._clear_type_cache()
     if doassert is None:
@@ -116,7 +115,7 @@ class TestCase(object):
         assert_no_dangling_Cclasses()
 
 
-@RegisterGraphClass
+@registergraphclass
 class Person(GraphNode):
     'A Person - or at least an electronic representation of one'
     def __init__(self, firstname, lastname, dateofbirth=None):
@@ -134,7 +133,7 @@ class Person(GraphNode):
         return ['lastname', 'firstname']
 
 
-@RegisterGraphClass
+@registergraphclass
 class aTestSystem(GraphNode):
     'Some kind of semi-intelligent system'
     def __init__(self, designation, domain='global', roles=None):
@@ -162,7 +161,7 @@ class aTestSystem(GraphNode):
         'Return our key attributes in order of significance'
         return ['designation', 'domain']
 
-@RegisterGraphClass
+@registergraphclass
 class aTestDrone(aTestSystem):
     def __init__(self, designation, domain='global', roles=None):
         aTestSystem.__init__(self, designation=designation)
@@ -174,7 +173,7 @@ class aTestDrone(aTestSystem):
         aTestSystem.__init__(self, designation, domain=domain, roles=roles)
 
 
-@RegisterGraphClass
+@registergraphclass
 class aTestIPaddr(GraphNode):
     def __init__(self, ipaddr):
         GraphNode.__init__(self, domain='global')
@@ -189,7 +188,7 @@ class aTestIPaddr(GraphNode):
         'Return our key attributes in order of significance'
         return ['ipaddr']
 
-@RegisterGraphClass
+@registergraphclass
 class aTestNIC(GraphNode):
     def __init__(self, MACaddr):
         GraphNode.__init__(self, domain='global')

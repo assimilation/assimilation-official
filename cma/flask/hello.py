@@ -97,8 +97,6 @@ if __name__ == '__main__':
         neodb = neo4j.Graph(dburl)
         qstore = Store(neodb, None, None)
         print GraphNode.classmap
-        for classname in GraphNode.classmap:
-            GraphNode.initclasstypeobj(qstore, classname)
         print "LOADING TREE!"
         if querypath is None:
             querypath = "/home/alanr/monitor/src/queries"

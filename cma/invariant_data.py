@@ -38,6 +38,7 @@ from __future__ import print_function
 from sys import stderr
 import collections
 import os
+import subprocess
 import errno
 import hashlib
 import json
@@ -278,6 +279,13 @@ class PersistentInvariantJSON(object):
         """
         raise NotImplementedError("Abstract class PersistentInvariantData.sync()")
 
+    def delete_everything(self):
+        """
+        Delete everything from the underlying storage
+        :return:
+        """
+        raise NotImplementedError("Abstract class PersistentInvariantData.delete_everything()")
+
 
 class FilesystemJSON(PersistentInvariantJSON):
     """
@@ -305,6 +313,16 @@ class FilesystemJSON(PersistentInvariantJSON):
         self.sync_all = bool(initial_args.get('sync_all', False))
         if not os.access(self.root_directory, os.W_OK):
             os.mkdir(self.root_directory, self.dirmode)
+
+    def delete_everything(self):
+        """
+        Delete everything for this bucket
+        :return: None
+        """
+        try:
+            subprocess.check_call(['rm', '-fr', self.root_directory])
+        except OSError:
+            pass
 
     def _pathname(self, key):
         """
@@ -347,7 +365,7 @@ class FilesystemJSON(PersistentInvariantJSON):
                     self._doaudit(key, result)
                 return result
         except OSError as oopsie:
-            if oopsie.errno == errno.ENOENT:  # Already exists
+            if oopsie.errno == errno.ENOENT:  # Doesn't exist
                 return default
             raise oopsie
 
@@ -492,6 +510,22 @@ class SQLiteInstance(object):
         self.json_load = initial_args.get('json_load', json.loads)
         SQLiteInstance.instances[dbpath] = self
         self.hash_tables = set(self.all_hash_tables())
+        self.dbpath = dbpath
+        self.filtered_args = filtered_args
+
+    def delete_everything(self):
+        """
+        Delete everything for this SQLite Instance
+        :return: None
+        """
+        self.connection = None
+        try:
+            os.unlink(self.dbpath)
+        except OSError as oopsie:
+            if oopsie.errno != errno.ENOENT:  # Doesn't exist
+                raise
+        self.hash_tables = set()
+        self.connection = sqlite3.connect(self.dbpath, **self.filtered_args)
 
     @staticmethod
     def instance(**initial_args):
@@ -532,6 +566,18 @@ class SQLiteInstance(object):
             self.cursor = self.connection.cursor()
             self.cursor.execute(self.BEGIN_TRANS)
             self.in_transaction = True
+
+    def ensure_table(self, table):
+        """
+        Create a table if it doesn't exist
+        :param table: Table to make sure we have
+        :return:
+        """
+        self.ensure_transaction()
+
+        if table not in self.hash_tables:
+            self.create_hash_table(table)
+            self.hash_tables.add(table)
 
     def execute(self, sql_statement, *args):
         """
@@ -576,10 +622,9 @@ class SQLiteInstance(object):
         :param data: str: (JSON) data to be inserted
         :return: whatever cursor.execute returns...
         """
-        if table not in self.hash_tables:
-            self.create_hash_table(table)
-            self.hash_tables.add(table)
-
+        self.ensure_table(table)
+        if self.table_contains(table, datahash):
+            return True
         insert_command = ('INSERT INTO %s (hash, data) VALUES (?, ?);' % self.table_name(table))
         return self.execute(insert_command, (datahash, data))
 
@@ -591,6 +636,7 @@ class SQLiteInstance(object):
         :param default:
         :return:
         """
+        self.ensure_table(table)
         command = ('SELECT data FROM %s WHERE hash = ?;' % self.table_name(table))
         self.execute(command, (datahash,))
         result = self.cursor.fetchone()
@@ -603,6 +649,7 @@ class SQLiteInstance(object):
         :param datahash: str: key to delete
         :return: Whatever sqlite3.cursor.execute returns...
         """
+        self.ensure_table(table)
         command = ('DELETE FROM %s WHERE hash = ?;' % self.table_name(table))
         return self.execute(command, (datahash,))
 
@@ -613,6 +660,7 @@ class SQLiteInstance(object):
         :param datahash: str: key (hash value)
         :return: bool: True if present, False otherwise
         """
+        self.ensure_table(table)
         command = ('SELECT hash FROM %s WHERE hash = ?;' % self.table_name(table))
         self.execute(command, (datahash,))
         result = self.cursor.fetchone()
@@ -634,6 +682,7 @@ class SQLiteInstance(object):
         View all the key,value pairs in this table
         :return: generator(str, dict)
         """
+        self.ensure_table(table)
         command = ('SELECT hash, data FROM %s;' % self.table_name(table))
         self.execute(command)
         result = self.cursor.fetchone()
@@ -646,6 +695,7 @@ class SQLiteInstance(object):
         View all the values in this table
         :return: generator(dict)
         """
+        self.ensure_table(table)
         command = ('SELECT data FROM %s;' % self.table_name(table))
         self.execute(command)
         result = self.cursor.fetchone()
@@ -659,6 +709,7 @@ class SQLiteInstance(object):
 
         :return: generator(str)
         """
+        self.ensure_table(table)
         command = ('SELECT hash FROM %s;' % self.table_name(table))
         self.execute(command)
         result = self.cursor.fetchone()
@@ -686,6 +737,13 @@ class SQLiteJSON(PersistentInvariantJSON):
         self.data_hash = initial_args.get('data_hash', 'sha224')
         self.hash = getattr(hashlib, self.data_hash)
 
+    def delete_everything(self):
+        """
+        Delete everything for this bucket
+        :return: None
+        """
+        self.instance.delete_everything()
+
     def get(self, key, default=None):
         """
 
@@ -694,8 +752,6 @@ class SQLiteJSON(PersistentInvariantJSON):
         :return:
         """
         return self.instance.get(self.data_type, key)
-
-        pass
 
     def put(self, value, key=None):
         """
@@ -785,6 +841,17 @@ class PersistentJSON(object):
                     for bucket in thing.all_hash_types():
                         self._make_bucket(bucket)
             self.queried_all = True
+
+    def __contains__(self, key):
+        """
+        Standard __contains__ API
+
+        :param key: (str, str): (jsontype, jsonhash) key-pair
+        :return: bool: True if this key exists
+        """
+        jsontype, jsonhash = key
+        self._make_bucket(jsontype)
+        return jsonhash in self.buckets[jsontype]
 
     def get(self, jsontype, jsonhash, default=None):
         """
@@ -896,6 +963,15 @@ class PersistentJSON(object):
         self._make_bucket(bucket_name)
         bucket = self.buckets[bucket_name]
         return bucket.equality_query(query, ctype=ctype)
+
+    def delete_everything(self):
+        """
+        Delete everything from the underlying database
+        :return: None
+        """
+        for bucket in self.buckets:
+            bucket.delete_everything()
+        self.buckets = {}
 
 
 if __name__ == '__main__':

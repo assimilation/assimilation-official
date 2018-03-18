@@ -23,7 +23,12 @@
 # Pylint is nuts here...
 # pylint: disable=C0411
 from __future__ import print_function
-import re, time, hashlib, netaddr, socket, inject
+import re
+import time
+import hashlib
+import netaddr
+import socket
+import inject
 from sys import stderr
 import uuid
 from consts import CMAconsts
@@ -46,7 +51,7 @@ def nodeconstructor(**properties):
     return Store.callconstructor(realcls, properties)
 
 
-def RegisterGraphClass(classtoregister):
+def registergraphclass(classtoregister):
     """
     Register the given class as being a Graph class so we can
     map the class name to the class object.
@@ -71,7 +76,7 @@ class GraphNode(object):
         :param classtoregister:
         :return:
         """
-        return RegisterGraphClass(classtoregister)
+        return registergraphclass(classtoregister)
 
     @staticmethod
     def factory(**kwargs):
@@ -82,7 +87,9 @@ class GraphNode(object):
 
     @staticmethod
     def clean_graphnodes():
-        """Invalidate any persistent objects that might become invalid when resetting the database"""
+        """
+        Invalidate any persistent objects that might become invalid when resetting the database
+        """
         pass
 
     @staticmethod
@@ -103,7 +110,7 @@ class GraphNode(object):
         self._store = store
         self._log = log
         if time_create_ms is None:
-            time_create_ms = int(round(time.time()*1000))
+            time_create_ms = int(round(time.time() * 1000))
         if time_create_iso8601 is None:
             time_create_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
         self.time_create_iso8601 = time_create_iso8601
@@ -136,7 +143,7 @@ class GraphNode(object):
             object.__setattr__(self, name, value)
             return
         if name in ('node_id', 'dirty_attrs'):
-            raise(ValueError('Bad attribute name: %s' % name))
+            raise (ValueError('Bad attribute name: %s' % name))
         if not name.startswith('_') and name != 'association':
             try:
                 if getattr(self, name) == value:
@@ -163,7 +170,6 @@ class GraphNode(object):
     @classmethod
     def meta_labels(cls):
         """Return the default set of labels which should be put on our objects when created"""
-        labels = []
         classes = [cls]
         classes.extend(cls.__bases__)
         labels = []
@@ -266,7 +272,7 @@ class GraphNode(object):
                 # Probably an array index
                 # Note that very similar code exists in AssimCclasses for pyConfigContext
                 #   deepget member function
-                allbutrbracket = prefix[0:len(prefix)-1]
+                allbutrbracket = prefix[0:len(prefix) - 1]
                 try:
                     (preprefix, idx) = allbutrbracket.split('[', 1)
                 except ValueError:
@@ -294,7 +300,7 @@ class GraphNode(object):
             return valueifnotfound
         return jsonstruct.deepget(suffix, valueifnotfound)
 
-    def JSON(self, includemap=None, excludemap=None):
+    def json(self, includemap=None, excludemap=None):
         """Output this object according to JSON rules. We take advantage
         of the fact that Neo4j restricts what kind of objects we can
         have as Node properties.
@@ -311,16 +317,16 @@ class GraphNode(object):
         comma = ''
         attrstodump.sort()
         for attr in attrstodump:
-            ret += '%s"%s": %s' % (comma, attr, GraphNode._JSONelem(getattr(self, attr)))
+            ret += '%s"%s": %s' % (comma, attr, GraphNode._json_elem(getattr(self, attr)))
             comma = ','
         ret += '}'
         return ret
 
     @staticmethod
-    def _JSONelem(value):
+    def _json_elem(value):
         """Return the value of an element suitable for JSON output"""
         if isinstance(value, str) or isinstance(value, unicode):
-            return '"%s"' % GraphNode._JSONesc(value)
+            return '"%s"' % GraphNode._json_escape(value)
         if isinstance(value, bool):
             if value:
                 return 'true'
@@ -329,32 +335,18 @@ class GraphNode(object):
             ret = '['
             comma = ''
             for elem in value:
-                ret += '%s%s' % (comma, GraphNode._JSONelem(elem))
+                ret += '%s%s' % (comma, GraphNode._json_elem(elem))
                 comma = ','
             ret += ']'
             return ret
         return str(value)
 
     @staticmethod
-    def _JSONesc(stringthing):
+    def _json_escape(stringthing):
         """Escape this string according to JSON string escaping rules"""
         stringthing = GraphNode.REESC.sub(r'\\\\', stringthing)
         stringthing = GraphNode.REQUOTE.sub(r'\"', stringthing)
         return stringthing
-
-    @staticmethod
-    def initclasstypeobj(store, nodetype):
-        """
-        Initialize things for our "nodetype"
-        This involves
-         - Ensuring that there's an index for this class
-         - Caching the class that goes with this nodetype
-         - setting up all of our IS_A objects, including the root object if necessary,
-         - updating the store's uniqueindexmap[nodetype]
-         - updating the store's classkeymap[nodetype]
-         This should eliminate the need to do any of these things for any class.
-        """
-        ourclass = GraphNode.classmap[nodetype]
 
 
 def add_an_array_item(currarray, itemtoadd):
@@ -383,11 +375,11 @@ def delete_an_array_item(currarray, itemtodel):
     if itemtodel is not None and itemtodel in currarray:
         currarray = currarray.remove(itemtodel)
     if len(currarray) == 0:
-        currarray = ['']    # Limitation of Neo4j
+        currarray = ['']  # Limitation of Neo4j
     return currarray
 
 
-@RegisterGraphClass
+@registergraphclass
 class BPRules(GraphNode):
     """Class defining best practice rules"""
 
@@ -408,9 +400,10 @@ class BPRules(GraphNode):
         return ['bp_class', 'rulesetname']
 
 
-@RegisterGraphClass
+@registergraphclass
 class BPRuleSet(GraphNode):
     """Class defining best practice rule sets"""
+
     def __init__(self, rulesetname, basisrules=None):
         GraphNode.__init__(self, domain='metadata')
         self.rulesetname = rulesetname
@@ -427,7 +420,7 @@ class BPRuleSet(GraphNode):
         return ['rulesetname']
 
 
-@RegisterGraphClass
+@registergraphclass
 class NICNode(GraphNode):
     """
     An object that represents a NIC - characterized by its MAC address
@@ -540,6 +533,7 @@ class NICNode(GraphNode):
     as we'd like...
 
     """
+
     def __init__(self, domain, macaddr, scope, ifname=None, json=None, net_segment=None):
         """
         Construct a NICNode object from our parameters
@@ -562,7 +556,8 @@ class NICNode(GraphNode):
             self.json = json
             self._json = pyConfigContext(json)
             for attr in ('carrier', 'duplex', 'MTU', 'operstate', 'speed', 'virtual', 'type'
-                         'bridge_id', 'brport_bridge'):
+                                                                                      'bridge_id',
+                         'brport_bridge'):
                 if attr in self._json:
                     setattr(self, attr, self._json[attr])
         if not hasattr(self, 'OUI'):
@@ -581,7 +576,7 @@ class NICNode(GraphNode):
         self.net_segment = net_segment
 
     @staticmethod
-    def find_this_macaddr(store, domain,  macaddr, system=None, net_segment=None):
+    def find_this_macaddr(store, domain, macaddr, system=None, net_segment=None):
         """
         Locate this MAC address taking into account that it might not be unique...
         Please pass the related 'system' if known...
@@ -645,7 +640,7 @@ class NICNode(GraphNode):
         GraphNode.post_db_init(self)
 
 
-@RegisterGraphClass
+@registergraphclass
 class IPaddrNode(GraphNode):
     """An object that represents a v4 or v6 IP address without a port - characterized by its
     IP address. They are always represented in the database in ipv6 format.
@@ -676,7 +671,8 @@ class IPaddrNode(GraphNode):
         else:
             raise ValueError('Invalid address type for IPaddrNode constructor: %s type(%s)'
                              % (str(ipaddr), type(ipaddr)))
-        self.ipaddr = unicode(str(ipaddrout))
+        # self.ipaddr = unicode(str(ipaddrout))
+        self.ipaddr = str(ipaddrout)
         self._ipaddr = ipaddrout
         if subnet is not None:
             if not isinstance(subnet, (str, unicode)):
@@ -712,7 +708,7 @@ class IPaddrNode(GraphNode):
 SUBNET_GLOBAL = '_GLOBAL_'
 
 
-@RegisterGraphClass
+@registergraphclass
 class Subnet(GraphNode):
     """
     A class representing a subnet
@@ -735,6 +731,7 @@ class Subnet(GraphNode):
     If it's a bridge, then it should be the host+bridge name
 
     """
+
     def __init__(self, domain, ipaddr, cidrmask=None, context=SUBNET_GLOBAL, net_segment=None):
         """
         A class defining a subnet. Like every other part of the system, we really only
@@ -855,7 +852,6 @@ class Subnet(GraphNode):
             query += 'subnet.context in $contexts '
         query += 'RETURN subnet'
 
-        result = []
         for subnet in store.load_cypher_nodes(query, {'domain': domain, 'contexts': contexts}):
             if subnet.belongs_on_this_subnet(ipaddr):
                 yield subnet
@@ -876,7 +872,7 @@ class Subnet(GraphNode):
             if j in removed:
                 continue
             subnet = subnets[j]
-            for k in range(j+1, len(subnets)):
+            for k in range(j + 1, len(subnets)):
                 if k in removed:
                     continue
                 other = subnets[k]
@@ -1010,7 +1006,7 @@ class Subnet(GraphNode):
         return ['name', 'context', 'ipaddr', 'cidrmask', 'domain', 'net_segment']
 
 
-@RegisterGraphClass
+@registergraphclass
 class NetworkSegment(GraphNode):
     """
     A Class to represent a network segment.
@@ -1018,6 +1014,7 @@ class NetworkSegment(GraphNode):
      a collection of Subnets (usually one), they have no natural naming conventions
      and no natural names. So we generate a name for each one with a UUID.
     """
+
     def __init__(self, domain, name=None):
 
         GraphNode.__init__(self, domain=domain)
@@ -1078,7 +1075,7 @@ class NetworkSegment(GraphNode):
             if count > max_count:
                 best_segment = segment
                 max_count = count
-        return best_segment if max_count >= int((len(ip_mac_pairs)*fraction) + 0.5) else None
+        return best_segment if max_count >= int((len(ip_mac_pairs) * fraction) + 0.5) else None
 
     @classmethod
     def meta_key_attributes(cls):
@@ -1089,9 +1086,10 @@ class NetworkSegment(GraphNode):
         return ['name']
 
 
-@RegisterGraphClass
+@registergraphclass
 class IPtcpportNode(GraphNode):
     """An object that represents an IP:port combination characterized by the pair"""
+
     def __init__(self, domain, ipaddr, port=None, protocol='tcp'):
         """Construct an IPtcpportNode - validating our parameters"""
         GraphNode.__init__(self, domain=domain)
@@ -1115,7 +1113,8 @@ class IPtcpportNode(GraphNode):
         else:
             raise ValueError('Invalid initial value for IPtcpportNode constructor: %s type(%s)'
                              % (str(ipaddr), type(ipaddr)))
-        self.ipaddr = unicode(str(ipaddr))
+        # self.ipaddr = unicode(str(ipaddr))
+        self.ipaddr = str(ipaddr)
         self.port = port
         self.protocol = protocol
         self.ipport = self.format_ipport()
@@ -1134,21 +1133,22 @@ class IPtcpportNode(GraphNode):
         return '%s_%s_%s' % (self.port, self.protocol, self.ipaddr)
 
 
-@RegisterGraphClass
+@registergraphclass
 class ProcessNode(GraphNode):
     """A node representing a running process in a host"""
+
     # R0913: Too many arguments (9/7)
     # pylint: disable=R0913
     def __init__(self, domain, processname, host, pathname, argv, uid, gid, cwd, roles=None,
                  is_monitored=False):
         GraphNode.__init__(self, domain=domain)
         self.host = host
-        self.pathname       = pathname
-        self.argv           = argv
-        self.uid            = uid
-        self.gid            = gid
-        self.cwd            = cwd
-        self.is_monitored   = is_monitored
+        self.pathname = pathname
+        self.argv = argv
+        self.uid = uid
+        self.gid = gid
+        self.cwd = cwd
+        self.is_monitored = is_monitored
         if roles is None:
             self.roles = ['']
         else:
@@ -1189,12 +1189,11 @@ class ProcessNode(GraphNode):
         return ['processname', 'domain']
 
 
-@RegisterGraphClass
+@registergraphclass
 class JSONMapNode(GraphNode):
     """A node representing a map object encoded as a JSON string
     This has everything to do with performance in Neo4j.
     They don't support maps, and they do a poor (*very* slow) job of supporting large strings.
-    The only way I know of to support our JSON-based maps in Neo4j is as large strings.
     These used to be stored in the Drone nodes themselves, but that meant that every time
     a Drone was transferred to the python code, it transferred *all* of its attributes,
     which means transferring lots and lots of very slow and rarely needed string data.
@@ -1203,17 +1202,51 @@ class JSONMapNode(GraphNode):
     well, and in some cases extremely well. I've actually seen 3M of (unusually verbose)
     JSON discovery data compress down to less than 40K of binary.
     XML blobs are typically more compressible than the average JSON blob.
+
+    Nowadays we are storing the undelying JSON in a separate storage method - outside of Neo4j
+    Too bad we can't store it effectively in Neo4j at the moment :-(
     """
 
-    def __init__(self, json, jhash=None):
+    JSONTYPE_FIELD = 'discovertype'
+
+    @inject.params(persistentjson='PersistentJSON')
+    def __init__(self, json=None, jhash=None, is_current=True, jsontype=None, persistentjson=None):
+        """
+        Constructor for JSONMapNode:
+
+        :param json: str: JSON from this object
+        :param jhash: str: Hash value associated with this json string
+        :param jsontype: str: Type of JSON being stored [Value of JSONTYPE_FIELD in the JSON]
+        :param persistentjson: Object to store big JSON strings
+        """
+        if persistentjson is None or isinstance(persistentjson, str):
+            raise ValueError('Invariant storage object must be specified.')
+        if json is None and (jhash is None or jsontype is None):
+            raise ValueError("json and jhash can't both be None.")
         GraphNode.__init__(self, domain='metadata')
-        self._map = pyConfigContext(json)
-        self.json = str(self._map)
+
+        if json is None:
+            self._map = pyConfigContext(persistentjson.get(jsontype, jhash))
+        else:
+            self._map = pyConfigContext(json)
+            jsontype = self._map.get(self.JSONTYPE_FIELD, 'unknowntype')
+        json = str(self._map)
         # We use sha224 to keep the length under 60 characters (56 to be specific)
-        # This is a performance consideration for the current (2.3) verison of Neo4j
+        # This is a performance consideration for Neo4j
+        # We might run into duplicates as we get somewhere near 2^112 different JSON values
+        # Not a highly likely event ;-) - it's somewhere in the range of 10^33 or so...
+        #
+        # The reason for needing to know which type of JSON we have is because each type
+        # has different indexing needs. So, once we start indexing on the JSON, then we'll
+        # need to know what to index on...
+        #
         if jhash is None:
-            jhash = self.strhash(self.json)
+            jhash = self.strhash(json)
         self.jhash = jhash
+        self.jsontype = jsontype
+        self.is_current = is_current
+        if (jsontype, jhash) not in persistentjson:
+            persistentjson.put(jsontype, jhash, json)
 
     @staticmethod
     def strhash(string):
@@ -1222,7 +1255,7 @@ class JSONMapNode(GraphNode):
 
     def __str__(self):
         """Convert to string - returning the JSON string itself"""
-        return self.json
+        return str(self._map)
 
     def hash(self):
         """Return the (sha224) hash of this JSON string"""
@@ -1268,6 +1301,7 @@ class JSONMapNode(GraphNode):
 # pylint: disable=R0903
 class NeoRelationship(object):
     """Our encapsulation of a Neo4j Relationship - good for displaying them """
+
     def __init__(self, relationship):
         """
         Constructor for our Relationship proxy
@@ -1277,5 +1311,5 @@ class NeoRelationship(object):
         self._id = getattr(relationship, '_id')  # Make pylint happy...
         self.type = relationship.type
         self.start_node = getattr(relationship.start_node, '_id')  # Make pylint happy...
-        self.end_node = getattr(relationship.end_node, '_id')      # Make pylint happy...
+        self.end_node = getattr(relationship.end_node, '_id')  # Make pylint happy...
         self.properties = relationship.properties

@@ -258,9 +258,6 @@ class AssimSysTest(object):
                            SystemTestEnvironment.NEO4JLOGIN,
                            SystemTestEnvironment.NEO4JPASS)
         store = Store(neo4j.Graph(url), readonly=True)
-        for classname in GN.GraphNode.classmap:
-            GN.GraphNode.initclasstypeobj(store, classname)
-
         logger('$(grep MemFree: /proc/meminfo)', hardquote=False)
         tq = QueryTest(store
         ,   '''START drone=node:Drone('*:*') WHERE drone.status = "up" RETURN drone'''

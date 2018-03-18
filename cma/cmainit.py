@@ -267,6 +267,25 @@ class CMAInjectables(object):
         return neodb
 
     @staticmethod
+    @inject.params(config='Config')
+    def setup_json_store(config):
+        """
+        Construct the JSON store that goes with this filename
+        :param config: dict: or dict-like - configuration describing where to put jsonstorage
+        :return: PersistentJSON: JSON store object
+        """
+        from invariant_data import (PersistentJSON, SQLiteJSON)
+        store_filename = config.get('SQLiteFile', '/tmp/assimilation.sqlite')
+        recreate_store = config.get('recreate_json_store', False)
+        if recreate_store:
+            try:
+                os.unlink(store_filename)
+            except OSError:
+                pass
+        return PersistentJSON(cls=SQLiteJSON, audit=False, pathname=store_filename,
+                              delayed_sync=True)
+
+    @staticmethod
     @inject.params(db='py2neo.Graph', log='logging.Logger')
     def setup_store(db, log, readonly=None):
         """Return a Store object for mapping our objects to the database (OGM model)
@@ -286,6 +305,7 @@ class CMAInjectables(object):
         binder.bind_to_constructor('py2neo.Graph', CMAInjectables.setup_db)
         binder.bind_to_constructor('Store', CMAInjectables.setup_store)
         binder.bind_to_provider('Config', CMAInjectables.setup_config)
+        binder.bind_to_constructor('PersistentJSON', CMAInjectables.setup_json_store)
 
     @staticmethod
     def test_config_injection(binder):
@@ -296,10 +316,11 @@ class CMAInjectables(object):
         binder.bind_to_constructor('py2neo.Graph', CMAInjectables.setup_db)
         binder.bind_to_constructor('Store', CMAInjectables.setup_store)
         binder.bind_to_provider('Config', CMAInjectables.setup_config)
+        binder.bind_to_constructor('PersistentJSON', CMAInjectables.setup_json_store)
         return
 
     @staticmethod
-    def default_CMA_injection_configuration(config=None, injectable_config=None):
+    def default_cma_injection_configuration(config=None, injectable_config=None):
         """Do it all in one easy step... -- InjectItAll :-)
         The configuration parameters will be used to configure all our
         injectable objects. Only those listed in CMAInjectables.settings
@@ -322,15 +343,15 @@ class CMAinit(object):
     """
     The CMAinit class
     """
-    #cmainit.py:43: [R0913:CMAinit.__init__] Too many arguments (9/7)
-    #cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
+    # cmainit.py:43: [R0913:CMAinit.__init__] Too many arguments (9/7)
+    # cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
     # pylint: disable=R0914,R0913
     @inject.params(log='logging.Logger', store='Store', db='py2neo.Graph')
     def __init__(self, io, db, store, log, cleanoutdb=False, debug=False,
                  encryption_required=False, use_network=True):
         """Initialize and construct a global database instance
         """
-        #print >> sys.stderr, 'CALLING NEW initglobal'
+        # print >> sys.stderr, 'CALLING NEW initglobal'
         CMAdb.log = log
         CMAdb.debug = debug
         CMAdb.io = io
@@ -347,8 +368,6 @@ class CMAinit(object):
         CMAdb.use_network = use_network
         if not store.readonly:
             from hbring import HbRing
-            for classname in GraphNode.classmap:
-                GraphNode.initclasstypeobj(CMAdb.store, classname)
             from transaction import NetTransaction
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
             # print >> sys.stderr,  'CMAdb:', CMAdb
@@ -377,7 +396,8 @@ class CMAinit(object):
         CMAdb.store = None
         CMAdb.io = None
 
-    def delete_all(self):
+    @inject.params(json='PersistentJSON')
+    def delete_all(self, json=None):
         """Empty everything out of our database - start over!
         """
         qstring = 'match (n) optional match (n)-[r]-() delete n,r'
@@ -387,6 +407,7 @@ class CMAinit(object):
             CMAdb.log.debug('Cypher query to delete all relationships'
                 ' and nonzero nodes executing: %s' % qstring)
             CMAdb.log.debug('Execution results: %s' % str(result))
+        json.delete_everything()
 
 
 

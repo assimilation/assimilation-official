@@ -28,14 +28,14 @@ from consts import CMAconsts
 from store import Store
 from cmadb import CMAdb
 from AssimCclasses import pyConfigContext
-from graphnodes import RegisterGraphClass, GraphNode, JSONMapNode,  \
+from graphnodes import registergraphclass, GraphNode, JSONMapNode,  \
         add_an_array_item, delete_an_array_item
 from cmaconfig import ConfigFile
 from AssimCtypes import CONFIGNAME_TYPE
 from frameinfo import FrameTypes, FrameSetTypes
 
 
-@RegisterGraphClass
+@registergraphclass
 class SystemNode(GraphNode):
     'An object that represents a physical or virtual system (server, switch, etc)'
     HASH_PREFIX = 'JSON__hash__'
@@ -310,7 +310,7 @@ class SystemNode(GraphNode):
                                                        })
 
 
-@RegisterGraphClass
+@registergraphclass
 class ChildSystem(SystemNode):
     'A class representing a Child System (like a VM or a container)'
 
@@ -389,7 +389,7 @@ class ChildSystem(SystemNode):
         return ['uniqueid']
 
 
-@RegisterGraphClass
+@registergraphclass
 class DockerSystem(ChildSystem):
     'A class representing a Docker container'
     DiscoveryPath='docker'
@@ -400,7 +400,7 @@ class DockerSystem(ChildSystem):
         self.runas_group = 'docker'
 
 
-@RegisterGraphClass
+@registergraphclass
 class VagrantSystem(ChildSystem):
     'A class representing a Vagrant VM'
     DiscoveryPath='vagrant'
