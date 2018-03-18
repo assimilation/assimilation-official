@@ -526,6 +526,8 @@ class SQLiteInstance(object):
                 raise
         self.hash_tables = set()
         self.connection = sqlite3.connect(self.dbpath, **self.filtered_args)
+        self.in_transaction = False
+        self.cursor = None
 
     @staticmethod
     def instance(**initial_args):
@@ -969,7 +971,7 @@ class PersistentJSON(object):
         Delete everything from the underlying database
         :return: None
         """
-        for bucket in self.buckets:
+        for bucket in self.buckets.viewvalues():
             bucket.delete_everything()
         self.buckets = {}
 
