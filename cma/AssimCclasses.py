@@ -27,8 +27,10 @@ A collection of classes which wrap our @ref C-Classes and provide Pythonic inter
 to these C-classes.
 '''
 import collections
-import traceback, types
-import sys, gc
+import traceback
+import types
+import sys
+import gc
 import AssimCtypes
 from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_string_buffer, \
     c_char_p, byref, memmove, c_int, badfree,  \

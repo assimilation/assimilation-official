@@ -29,14 +29,11 @@ import os
 import logging
 import logging.handlers
 import random
-import subprocess
 import getent
 import inject
 import py2neo
 import neokit
 from store import Store
-from consts import CMAconsts
-from graphnodes import GraphNode
 from cmadb import CMAdb
 from AssimCtypes import NEO4JCREDFILENAME, CMAUSERID
 
@@ -207,13 +204,17 @@ class CMAInjectables(object):
 
     @staticmethod
     def setup_config():
+        """
+        Return configuration for injection
+        :return:
+        """
         if callable(CMAInjectables.config):
             return CMAInjectables.config()
         return CMAInjectables.config
 
     @staticmethod
-    def setup_test_logging(name=None, address=None, facility=None, level=None):
-        """Set up a perfectly wonderful logging environment for testing (stderr) - or at least try...
+    def setup_test_logging(_name=None, _address=None, _facility=None, _level=None):
+        """Set up a wonderful logging environment for testing (stderr) - or at least try...
         This is perfectly well-suited for being an injector of logging.Logger
         """
         logger = logging.getLogger('testcode')
@@ -347,7 +348,7 @@ class CMAinit(object):
     # cmainit.py:43: [R0914:CMAinit.__init__] Too many local variables (17/15)
     # pylint: disable=R0914,R0913
     @inject.params(log='logging.Logger', store='Store', db='py2neo.Graph')
-    def __init__(self, io, db, store, log, cleanoutdb=False, debug=False,
+    def __init__(self, io, db=None, store=None, log=None, cleanoutdb=False, debug=False,
                  encryption_required=False, use_network=True):
         """Initialize and construct a global database instance
         """

@@ -29,7 +29,6 @@
 """
 This file provides secret management for the Assimilation project.
 """
-import neokit
 import stat
 import os.path
 import pwd
@@ -41,7 +40,8 @@ from AssimCtypes import CRYPTKEYDIR
 class AssimSecret(object):
     """
     This class is for providing secrets for the Assimilation code.
-    These things include credentials for Neo4j, and other credentials the software might need to do its work.
+    These things include credentials for Neo4j, and other credentials the software might need to
+    do its work.
     """
     secret_subclasses = {}
     _secret_info_map = {}
@@ -132,12 +132,14 @@ class AssimSecret(object):
         for secret_name in info_map:
             parameters = info_map[secret_name]
             if 'type' not in parameters:
-                raise ValueError('Secret %s has no secret type in secret information map.' % secret_name)
+                raise ValueError(
+                    'Secret %s has no secret type in secret information map.' % secret_name)
             if parameters['type'].lower() not in AssimSecret.secret_subclasses:
                 secret_type = parameters['type'].lower() + 'secret'
                 if secret_type not in AssimSecret.secret_subclasses:
-                    raise ValueError('Secret %s has an invalid secret type [%s] in secret information map.'
-                                     % (secret_name, parameters['type']))
+                    raise ValueError(
+                        'Secret %s has an invalid secret type [%s] in secret information map.'
+                        % (secret_name, parameters['type']))
         # Must be OK - or at least no egregious errors ;-)
         AssimSecret._secret_info_map = info_map
 
@@ -236,11 +238,11 @@ class FileSecret(AssimSecret):
                     raise OSError('"%s" is readable by other or group' % path_name)
         if FileSecret.uids and stat_buffer.st_uid not in FileSecret.uids:
             raise OSError('user id %s is not a permissible owner for "%s". %s'
-                              % (stat_buffer.st_uid, path_name, str(list(FileSecret.uids))))
+                          % (stat_buffer.st_uid, path_name, str(list(FileSecret.uids))))
         if FileSecret.gids and stat_buffer.st_uid not in FileSecret.gids:
             raise OSError('group id %s is not a permissible owner for "%s". %s'
-                              % (stat_buffer.st_uid, path_name, str(list(FileSecret.gids))))
-        # Well, if we got this far, it must be OK :-)
+                          % (stat_buffer.st_uid, path_name, str(list(FileSecret.gids))))
+            # Well, if we got this far, it must be OK :-)
 
     @staticmethod
     def make_uids(uids):
@@ -321,6 +323,7 @@ class Neo4jSecret(FileSecret):
     """
     Class for the Neo4j password and so on as secrets...
     """
+
     def __init__(self, secret_name, secret_parameters):
 
         if secret_parameters is None:
@@ -331,18 +334,19 @@ class Neo4jSecret(FileSecret):
         self.add_update_function(Neo4jSecret._update_neo4j)
 
     @staticmethod
-    def _update_neo4j(secret_name, secret_parameters):
+    def _update_neo4j(_secret_name, _secret_parameters):
         """
         Tell neo4j to change their password.
 
         FIXME: Actually do this work! :-D
 
-        :param secret_name: str: not used
-        :param secret_parameters: dict: not used
+        :param _secret_name: str: not used
+        :param _secret_parameters: dict: not used
         :return: bool
         """
-        foo = secret_name + str(secret_parameters)
-        return foo is foo
+        # foo = secret_name + str(secret_parameters)
+        # return foo is foo
+        return True
 
     def get(self):
         """
@@ -360,10 +364,11 @@ class Neo4jSecret(FileSecret):
 
 if __name__ == '__main__':
     print("doing stuff")
-    AssimSecret.set_secret_info_map({'secret': {'type': 'file', 'filename': '/home/alanr/secret/secret'},
-                                     'not_secret': {'type': 'file', 'filename': '/home/alanr/secret/not_secret'},
-                                    
-                                     'foobar': {'type': 'file', 'filename': '/home/alanr/secret/foobar'}})
+    AssimSecret.set_secret_info_map(
+        {'secret': {'type': 'file', 'filename': '/home/alanr/secret/secret'},
+         'not_secret': {'type': 'file', 'filename': '/home/alanr/secret/not_secret'},
+
+         'foobar': {'type': 'file', 'filename': '/home/alanr/secret/foobar'}})
     uid_list = ['alanr', 'root', 'sys', 'bin', 'adm']
     FileSecret.set_uids_and_gids(uid_list)
     secret = AssimSecret.factory('secret')

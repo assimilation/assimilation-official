@@ -25,21 +25,13 @@ dispatches them.
 '''
 
 import traceback, os
-import time
 import sys
-from sys import stderr
+# from sys import stderr
 from AssimCclasses import pyReliableUDP, pyPacketDecoder, pyNetAddr, pyCryptFrame
 from AssimCtypes import CMAADDR, CONFIGNAME_CMAINIT
 from frameinfo import FrameSetTypes
 from cmadb import CMAdb
-#try:
-    #gi.repository confuses pylint...
-    #pylint: disable=E0611
-    #from gi.repository import GLib as glib
-#except ImportError:
-    #pylint: disable=F0401
-    #import gobject as glib
-import assimglib as glib # We've replaced gi.repository and gobject with our own 'glib' module
+import assimglib as glib  # We've replaced gi.repository and gobject with our own 'glib' module
 
 
 callback_save = []
@@ -192,7 +184,7 @@ class PacketListener(object):
         CMAdb.log.info('======== End %s PacketListener Exception Traceback ========' % e)
 
     @staticmethod
-    def mainloop_callback(_, cb_condition, listener):
+    def mainloop_callback(_source, cb_condition, listener):
         'Function to be called back by the Python Glib mainloop hooks'
         # make pylint happy
         if cb_condition == glib.IO_IN or cb_condition == glib.IO_PRI:
@@ -215,10 +207,9 @@ class PacketListener(object):
                 cond = 'IO_HUP'
             else:
                 cond = '(0x%08x??)' % (int(cb_condition))
-            CMAdb.log.warning('mainloop_callback: Received Unexpected I/O condition: %s '
-                              % (cond))
+            CMAdb.log.warning('mainloop_callback: Received Unexpected I/O condition: %s' % cond)
             CMAdb.log.warning('mainloop_callback: Called with (%s, %s, %s)'
-                              % (unusedsource, cb_condition, listener))
+                              % (_source, cb_condition, listener))
             return True
         # print >> stderr, 'RETURNING True'
         return True

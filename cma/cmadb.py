@@ -27,12 +27,11 @@ import os
 import sys
 from sys import stderr
 import inject
-from py2neo import DBMS
-from store import Store
 
 
 SUPPORTED_NEO4J_VERSIONS = (3,)
 DEBUG = False
+
 
 # R0903: Too few public methods
 # pylint: disable=R0903
@@ -50,7 +49,7 @@ class CMAdb(object):
     neo4jblacklist = ['2.0.0']
 
     @inject.params(db='py2neo.Graph', store='Store')
-    def __init__(self, db, store):
+    def __init__(self, db=None, store=None):
         self.db = db
         self.io = None
         CMAdb.store = store

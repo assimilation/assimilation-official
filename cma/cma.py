@@ -18,7 +18,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
-'''
+"""
    Design outline:
 
    All incoming network messages come in and get sent to a client who is a dispatcher.
@@ -93,7 +93,7 @@
 # way from that structure...
 #
 ################################################################################
-'''
+"""
 import os
 # This works around a bug in the glib library...
 os.environ['G_SLICE'] = 'always-malloc'

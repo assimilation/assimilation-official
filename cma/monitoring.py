@@ -29,7 +29,9 @@ rules for certain kinds of services automatically.
 
 
 from __future__ import print_function
-import os, re, time
+import os
+import re
+import time
 from sys import stderr
 from AssimCclasses import pyConfigContext
 from frameinfo import FrameTypes, FrameSetTypes
@@ -38,13 +40,14 @@ from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
-from store import Store
-from AssimCtypes import REQCLASSNAMEFIELD, CONFIGNAME_TYPE, REQPROVIDERNAMEFIELD            \
-,   REQENVIRONNAMEFIELD, CONFIGNAME_INSTANCE, REQREASONENUMNAMEFIELD, CONFIGNAME_INTERVAL   \
-,   CONFIGNAME_TIMEOUT , REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD, REQNAGIOSPATH       \
-,   CONFIGNAME_WARNTIME                                                                     \
-,   REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD, REQSTRINGRETNAMEFIELD             \
-,   EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO, EXITED_INVAL
+from AssimCtypes import (CONFIGNAME_TYPE, CONFIGNAME_WARNTIME,
+                         CONFIGNAME_INSTANCE, CONFIGNAME_INTERVAL, CONFIGNAME_TIMEOUT,
+                         REQCLASSNAMEFIELD, REQPROVIDERNAMEFIELD, REQENVIRONNAMEFIELD,
+                         REQREASONENUMNAMEFIELD, REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD,
+                         REQNAGIOSPATH, REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD,
+                         REQSTRINGRETNAMEFIELD,
+                         EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO,
+                         EXITED_INVAL)
 
 
 # too many instance attributes
@@ -112,11 +115,10 @@ class MonitorAction(GraphNode):
             self.arglist = None
             self._arglist = {}
         elif isinstance(arglist, list):
-            listlen = len(arglist)
-            if (listlen % 2) != 0:
+            if (len(arglist) % 2) != 0:
                 raise(ValueError('arglist list must have an even number of elements'))
             self._arglist = {}
-            for j in range(0, listlen, 2):
+            for j in range(0, len(arglist), 2):
                 self._arglist[arglist[j]] = arglist[j+1]
             self.arglist = arglist
         else:
@@ -955,7 +957,7 @@ class NagiosMonitoringRule(MonitoringRule):
                     ,   missinglist
                     )
 if __name__ == '__main__':
-    # pylint: disable=C0413
+    # pylint: disable=C0413,C0411
     import inject
     from cmainit import CMAInjectables
     from graphnodes import ProcessNode

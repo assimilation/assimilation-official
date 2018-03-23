@@ -28,12 +28,12 @@ store_association module - associations between objects, py2neo.Nodes and Stores
 
 """
 from __future__ import print_function
-# import inject
-from AssimCclasses import pyNetAddr
-import py2neo
 from sys import stderr
+import py2neo
+from AssimCclasses import pyNetAddr
 
 
+# pylint: disable=R0904
 class StoreAssociation(object):
     """
     Class to represent the association between an object and a Neo4j Node
@@ -73,7 +73,7 @@ class StoreAssociation(object):
         self.variable_name = self._new_variable_name()
         self.dirty_attrs = set()
         # print ("SELF.KEYS: %s" % self.key_attributes, file=stderr)
-        if False:
+        if False and False:
             for attr in self.key_attributes:
                 # print ("ATTRIBUTE: %s" % attr, file=stderr)
                 if not hasattr(obj, attr):
@@ -246,6 +246,11 @@ class StoreAssociation(object):
 
     @staticmethod
     def _cypher_match_var(var):
+        """
+        Return the name of a variable to use in a MATCH statement
+        :param var:
+        :return:
+        """
         if hasattr(var, 'variable_name'):
             return '(%s:%s)' % (var.variable_name, 'Class_' + var.obj.nodetype)
         else:
@@ -423,7 +428,7 @@ class StoreAssociation(object):
         if other_node is None:
             other_node = 'other'
 
-        var_name, match_phrase = self.cypher_relationship_match_phrase(relationship_type,
+        _, match_phrase = self.cypher_relationship_match_phrase(relationship_type,
                                                                        to_association=other_node,
                                                                        direction=direction,
                                                                        attrs=attrs,
@@ -433,9 +438,9 @@ class StoreAssociation(object):
         else:
             # print('RELATED: OTHER_NODE = %s:%s' % (type(other_node), other_node), file=stderr)
             if hasattr(other_node, 'variable_name'):
-                other_name = other_node.variable_name
+                other_name = getattr(other_node, 'variable_name')
             else:
-                other_name = other_node.association.variable_name
+                other_name = getattr(other_node, 'association').variable_name
         cypher = self.cypher_find_match2_clause(other_node) + ' AND '
         cypher += '%s\nRETURN %s' % (match_phrase, other_name)
         return cypher
@@ -555,7 +560,7 @@ if __name__ == '__main__':
             """
             return ['name', 'hobbithole']
 
-
+    # pylint: disable=R0903
     class Store(object):
         """
         Store pass...
@@ -568,7 +573,7 @@ if __name__ == '__main__':
             """
             pass
 
-
+    # pylint: disable=R0914
     def test_main():
         """
         :return: None
@@ -688,13 +693,13 @@ if __name__ == '__main__':
                                                        direction=StoreAssociation.BOTH,
                                                        attrs={'since': 'years_ago'})
         cypher += "RETURN Hobbit1, Hobbit2"
-        print(cypher)
+        print(cypher, file=stderr)
         graph = py2neo.Graph(password='PASSWORD')
         data = graph.data(cypher)[0]
         print(type(data))
         print(data)
-        frodo_association.node = data['Hobbit1']
-        sam_association.node = data['Hobbit2']
+        # frodo_association.node = data['Hobbit1']
+        # sam_association.node = data['Hobbit2']
         print(frodo_association.node_id)
         print(sam_association.node_id)
     test_main()

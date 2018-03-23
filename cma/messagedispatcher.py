@@ -27,8 +27,8 @@ import os
 import sys
 import traceback
 import gc
-import inject
 from datetime import datetime
+import inject
 from cmadb import CMAdb
 from transaction import NetTransaction
 from dispatchtarget import DispatchTarget
@@ -40,7 +40,7 @@ from AssimCclasses import pyAssimObj, dump_c_objects
 class MessageDispatcher(object):
     'We dispatch incoming messages where they need to go.'
     @inject.params(store='Store')
-    def __init__(self, dispatchtable, store, logtimes=False, encryption_required=True):
+    def __init__(self, dispatchtable, store=None, logtimes=False, encryption_required=True):
         'Constructor for MessageDispatcher - requires a dispatch table as a parameter'
         self.dispatchtable = dispatchtable
         self.default = DispatchTarget()

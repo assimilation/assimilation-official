@@ -23,18 +23,18 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 File containing the JSONtree class
-'''
+"""
 
 import re
 from AssimCclasses import pyConfigContext, pyNetAddr
-from store import Store
 
-# R0903: Too few public methods
+
+# ''R0903: Too few public methods
 # pylint: disable=R0903
 class JSONtree(object):
-    "Class to convert things to JSON strings - that's about all"
+    """Class to convert things to JSON strings - that's about all"""
     REESC = re.compile('\\\\')
     REQUOTE = re.compile('"')
     filterprefixes = ['_', 'JSON__hash__']

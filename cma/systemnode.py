@@ -25,7 +25,6 @@ import sys
 from sys import stderr
 import time
 from consts import CMAconsts
-from store import Store
 from cmadb import CMAdb
 from AssimCclasses import pyConfigContext
 from graphnodes import registergraphclass, GraphNode, JSONMapNode,  \

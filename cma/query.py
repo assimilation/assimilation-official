@@ -27,9 +27,12 @@
 This module provides classes associated with querying - including providing metadata
 about these queries for the client code.
 """
-import os, sys, re
-import collections, operator
-from py2neo import Graph
+import os
+import sys
+import re
+import collections
+import operator
+import inject
 from graphnodes import GraphNode, registergraphclass
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import ADDR_FAMILY_IPV6, ADDR_FAMILY_IPV4, ADDR_FAMILY_802
@@ -39,12 +42,14 @@ from cmadb import CMAdb
 from droneinfo import Drone
 from consts import CMAconsts
 
+
 @registergraphclass
 class ClientQuery(GraphNode):
     """This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism
     """
     node_query_url = "/doquery/GetaNodeById"
+
     def __init__(self, queryname, JSON_metadata=None):
         """Parameters
         ----------
@@ -198,13 +203,13 @@ class ClientQuery(GraphNode):
             rowcount += 1
             if len(result) == 1:
                 if idsonly:
-                    yield '%s"%s/%d"' % (
-                        rowdelim
-                    ,   ClientQuery.node_query_url
-                    ,   Store.id(result[0]))
+                    yield ('%s"%s/%d"' %
+                           (rowdelim,
+                            ClientQuery.node_query_url,
+                            result[0].association.node_id))
                 else:
-                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandJSON
-                    ,   maxJSON=maxJSON))
+                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandJSON,
+                                                  maxJSON=maxJSON))
             else:
                 delim = rowdelim + '{'
                 row = ''
@@ -215,16 +220,13 @@ class ClientQuery(GraphNode):
                 for attr in result._fields:
                     value = getattr(result, attr)
                     if idsonly:
-                        row +=  '%s"%s":"%s"' % (
-                                delim
-                            ,   attr
-                            ,   Store.id(value))
+                        row += '%s"%s":"%s"' % (delim, attr, value.association.node_id)
 
                     else:
-                        row += '%s"%s":%s' % (
-                                delim
-                            ,   attr
-                            ,   str(JSONtree(value, expandJSON=expandJSON, maxJSON=maxJSON)))
+                        row += '%s"%s":%s' % (delim,
+                                              attr,
+                                              str(JSONtree(value, expandJSON=expandJSON,
+                                                           maxJSON=maxJSON)))
                     delim = ','
                 yield row + '}'
             if not elemsonly:
@@ -564,55 +566,59 @@ class ClientQuery(GraphNode):
                 except ValueError as e:
                     print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
 
-    # [R0914:grab_category_scores] Too many local variables (19/15)
-    # pylint: disable=R0914
-    def grab_category_scores(self, categories=None, domains=None, debug=False):
-        """Method to create and return some python Dicts with security scores and totals by category
-        and totals by drone/category
-        Categories is None, a desired category, or a list of desired categories.
-        domains is None, a desired domain, or a list of desired domains.
-        """
-        if domains is None:
-            cypher = """MATCH(drone:Class_Drone) RETURN drone"""
-        else:
-            domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
-            cypher = ("MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone"
-                      % str(list(domains)))
-        if categories is not None:
-            categories = ((categories,) if isinstance(categories, (str, unicode))
-                          else list(categories))
 
-        bpobj = BestPractices(CMAdb.config, CMAdb.io, self._store, self._log, debug=debug)
-        dtype_totals = {}  # scores organized by (domain, category, discovery-type)
-        drone_totals = {}  # scores organized by (domain, category, discovery-type, drone)
-        rule_totals = {}   # scores organized by (domain, category, discovery-type, rule)
+# [R0914:grab_category_scores] Too many local variables (19/15)
+# pylint: disable=R0914
+@inject.params(store='Store')
+def grab_category_scores(categories=None, domains=None, debug=False, store=None):
+    """Method to create and return some python Dicts with security scores and totals by category
+    and totals by drone/category
+    Categories is None, a desired category, or a list of desired categories.
+    domains is None, a desired domain, or a list of desired domains.
+    """
+    if domains is None:
+        cypher = """MATCH(drone:Class_Drone) RETURN drone"""
+    else:
+        domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
+        cypher = ("MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone"
+                  % str(list(domains)))
+    if categories is not None:
+        categories = ((categories,) if isinstance(categories, (str, unicode))
+                      else list(categories))
 
-        for drone in self._store.load_cypher_nodes(cypher):
-            domain = drone.domain
-            designation = drone.designation
-            discoverytypes = drone.bp_discoverytypes_list()
-            for dtype in discoverytypes:
-                dattr = Drone.bp_discoverytype_result_attrname(dtype)
-                statuses = getattr(drone, dattr)
-                for rule_obj in BestPractices.eval_objects[dtype]:
-                    rulesobj = rule_obj.fetch_rules(drone, None, dtype)
-                    _, scores, rulescores = bpobj.compute_scores(drone, rulesobj, statuses)
-                    for category in scores:
-                        if categories and category not in categories:
-                            continue
-                        # Accumulate scores by (domain, category, discovery_type)
-                        setup_dict3(dtype_totals, domain, category, dtype)
-                        dtype_totals[domain][category][dtype] += scores[category]
-                        # Accumulate scores by (domain, category, discovery_type, drone)
-                        setup_dict4(drone_totals, domain, category, dtype, designation)
-                        drone_totals[domain][category][dtype][designation] += scores[category]
-                        # Accumulate scores by (domain, category, discovery_type, ruleid)
-                        for ruleid in rulescores[category]:
-                            setup_dict4(rule_totals, domain, category, dtype, ruleid)
-                            rule_totals[domain][category][dtype][ruleid] \
-                                += rulescores[category][ruleid]
+    bpobj = BestPractices(CMAdb.config, CMAdb.io, debug=debug)
+    dtype_totals = {}  # scores organized by (domain, category, discovery-type)
+    drone_totals = {}  # scores organized by (domain, category, discovery-type, drone)
+    rule_totals = {}   # scores organized by (domain, category, discovery-type, rule)
 
-        return dtype_totals, drone_totals, rule_totals
+    for drone in store.load_cypher_nodes(cypher):
+        domain = drone.domain
+        designation = drone.designation
+        discoverytypes = drone.bp_discoverytypes_list()
+        for dtype in discoverytypes:
+            dattr = Drone.bp_discoverytype_result_attrname(dtype)
+            statuses = getattr(drone, dattr)
+            for rule_obj in BestPractices.eval_objects[dtype]:
+                rulesobj = rule_obj.fetch_rules(drone, None, dtype)
+                _, scores, rulescores = bpobj.compute_scores(drone, rulesobj, statuses)
+                for category in scores:
+                    if categories and category not in categories:
+                        continue
+                    # Accumulate scores by (domain, category, discovery_type)
+                    setup_dict3(dtype_totals, domain, category, dtype)
+                    dtype_totals[domain][category][dtype] += scores[category]
+                    # Accumulate scores by (domain, category, discovery_type, drone)
+                    setup_dict4(drone_totals, domain, category, dtype, designation)
+                    drone_totals[domain][category][dtype][designation] += scores[category]
+                    # Accumulate scores by (domain, category, discovery_type, ruleid)
+                    for ruleid in rulescores[category]:
+                        setup_dict4(rule_totals, domain, category, dtype, ruleid)
+                        rule_totals[domain][category][dtype][ruleid] \
+                            += rulescores[category][ruleid]
+
+    return dtype_totals, drone_totals, rule_totals
+
+
 class QueryExecutor(object):
     """An abstract class which knows which can perform a variety of types of queries
     At the moment that's "python" and "cypher".
@@ -761,7 +767,7 @@ class AllPythonRuleScores(PythonExec):
         # 3:  total score for this discovery type _across all rules
         # 4:  rule id
         # 5:  total score for this rule id
-        sortkeys = operator.itemgetter(1,3,5,2,4,0)
+        sortkeys = operator.itemgetter(1, 3, 5, 2, 4, 0)
         for tup in sorted(yield_rule_scores([], dtype_totals, rule_totals),
                           key=sortkeys, reverse=True):
             yield tup
@@ -774,8 +780,7 @@ class PythonSecRuleScores(PythonExec):
         """We return an iterator which will yield the results of performing
         this query with these parameters.
         """
-        dtype_totals, _drone_totals, rule_totals =grab_category_scores(self.store,
-                                                                      categories='security')
+        dtype_totals, _drone_totals, rule_totals = grab_category_scores(categories='security')
         # 0:  domain
         # 1:  category name
         # 2:  discovery-type
@@ -795,7 +800,7 @@ class PythonHostSecScores(PythonExec):
     PARAMETERS = []
 
     def result_iterator(self, _params):
-        dtype_totals, drone_totals, _rule_totals = grab_category_scores(self.store)
+        dtype_totals, drone_totals, _rule_totals = grab_category_scores()
         # 0:  domain
         # 1:  category name
         # 2:  discovery-type
@@ -813,7 +818,7 @@ class AllPythonHostScores(PythonExec):
     """query executor returning discovery type+host scores for all score types"""
     PARAMETERS = []
     def result_iterator(self, _params):
-        dtype_totals, drone_totals, _rule_totals = grab_category_scores(self.store)
+        dtype_totals, drone_totals, _rule_totals = grab_category_scores()
         # 0:  domain
         # 1:  category name
         # 2:  discovery-type
@@ -829,7 +834,7 @@ class AllPythonTotalScores(PythonExec):
     """query executor returning domain, score-category, total-score"""
     PARAMETERS = []
     def result_iterator(self, _params):
-        dtype_totals, _drone_totals, _rule_totals = grab_category_scores(self.store)
+        dtype_totals, _drone_totals, _rule_totals = grab_category_scores()
         for tup in yield_total_scores(dtype_totals):
             yield tup
 
@@ -1120,17 +1125,16 @@ ClientQuery._validationmethods = {
 }
 
 if __name__ == '__main__':
-    # pylint: disable=C0413
+    # pylint: disable=C0413,C0411
     import inject
     from cmainit import CMAInjectables
     inject.configure_once(CMAInjectables.test_config_injection)
 
-    @inject.params(neodb='py2neo.Graph', qstore='Store')
-    def testcode(neodb, qstore):
+    @inject.params(qstore='Store')
+    def testcode(qstore=None):
         """
 
-        :param neodb: py2neo.Graph
-        :param store: Store
+        :param qstore: Store
         :return: None
         """
         metadata1 = \
@@ -1145,7 +1149,6 @@ if __name__ == '__main__':
             }
         }
         """
-        q1 = ClientQuery('allqueries', metadata1)
 
         metadata2 = \
         """
@@ -1169,7 +1172,6 @@ if __name__ == '__main__':
             }
         }
         """
-        q2 = ClientQuery('allqueries', metadata2)
 
         metadata3 = \
         """
@@ -1242,6 +1244,10 @@ if __name__ == '__main__':
                 "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
             },
         }"""
+        q1 = ClientQuery('allqueries', metadata1)
+        q1.validate_json()
+        q2 = ClientQuery('allqueries', metadata2)
+        q2.validate_json()
         q3 = ClientQuery('ipowners', metadata3)
         q3.validate_json()
         q4 = ClientQuery('subgraph', metadata4)

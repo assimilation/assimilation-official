@@ -34,8 +34,6 @@ More details are documented in the DiscoveryListener class
 import sys, hashlib
 from monitoring import MonitoringRule, MonitorAction
 from systemnode import SystemNode
-from store import Store
-
 from graphnodes import ProcessNode
 from discoverylistener import DiscoveryListener
 from cmaconfig import ConfigFile

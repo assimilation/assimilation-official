@@ -35,7 +35,6 @@ More details are documented in the LinkDiscoveryListener class
 from __future__ import print_function
 import sys
 from consts import CMAconsts
-from store import Store
 from AssimCclasses import pyNetAddr, pyConfigContext
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802
 from AssimCtypes import CONFIGNAME_INSTANCE
@@ -83,7 +82,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         elif jsonobj['discovertype'] == 'netconfig':
             self.processpkt_netconfig(drone, srcaddr, jsonobj)
         else:
-            print >> sys.stderr, 'OOPS! bad packet type [%s]', jsonobj['discovertype']
+            print('OOPS! bad packet type [%s]', jsonobj['discovertype'], file=sys.stderr)
 
     def processpkt_netconfig(self, drone, _unused_srcaddr, jsonobj):
         '''We want to trigger Switch discovery when we hear a 'netconfig' packet
@@ -105,7 +104,7 @@ class LinkDiscoveryListener(DiscoveryListener):
                 params[CONFIGNAME_INSTANCE] = '#SWITCH_' + devname
                 params[CONFIGNAME_DEVNAME] = devname
                 params[CONFIGNAME_SWPROTOS] = ["lldp", "cdp"]
-                #print >> sys.stderr, '***#SWITCH parameters:', params
+                # print('***#SWITCH parameters: %s' % params, file=sys.stderr)
                 discovery_args.append(params)
         if discovery_args:
             drone.request_discovery(discovery_args)
@@ -122,7 +121,7 @@ class LinkDiscoveryListener(DiscoveryListener):
         #           Drop any wiredto relationship between the switch port and us
         #
         data = jsonobj['data']
-        #print >> sys.stderr, 'SWITCH JSON:', str(data)
+        # print('SWITCH JSON: %s' % str(data), file=sys.stderr)
         if 'ChassisId' not in data:
             self.log.warning('Chassis ID missing from discovery data from switch [%s]'
                              % (str(data)))

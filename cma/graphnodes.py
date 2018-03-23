@@ -868,7 +868,8 @@ class Subnet(GraphNode):
         """
         subnets = [s for s in subnet_set]
         removed = set()
-        for j in range(len(subnets)):
+        # pylint: disable=C0200
+        for j, subnet in enumerate(subnets):
             if j in removed:
                 continue
             subnet = subnets[j]
@@ -878,19 +879,19 @@ class Subnet(GraphNode):
                 other = subnets[k]
                 if subnet.equivalent(other):
                     if subnet.context != SUBNET_GLOBAL and other.context == SUBNET_GLOBAL:
-                        subnets.remove(subnet)
                         removed.add(j)
+                        subnet_set.remove(subnet)
                     else:
-                        subnets.remove(other)
                         removed.add(k)
+                        subnet_set.remove(other)
                 # These last two really shouldn't happen...
                 # They are indicative of a network misconfiguration
                 elif subnet.subsumes(other):
-                    subnets.remove(other)
                     removed.add(k)
+                    subnet_set.remove(other)
                 elif other.subsumes(subnet):
-                    subnets.remove(subnet)
                     removed.add(j)
+                    subnet_set.remove(subnet)
 
     def members(self, cls=None):
         """

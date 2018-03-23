@@ -159,8 +159,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             addr = pyNetAddr(iponly)
             if addr.addrtype() != ADDR_FAMILY_IPV4:
                 continue
-            addr = str(addr.toIPv6())
-            pairs.append((macaddr, addr))
+            addr_str = str(addr.toIPv6())
+            pairs.append((macaddr, addr_str))
         return NetworkSegment.guess_net_segment(self.store, system.domain, pairs)
 
     def processpkt(self, drone, _, jsonobj, discoverychanged):

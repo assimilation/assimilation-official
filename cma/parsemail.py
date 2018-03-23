@@ -38,26 +38,28 @@ import re
 import time
 import json
 import gzip
-from version_utils import rpm
 
 try:
     import io.StringIO as StringIO
 except ImportError:
     import StringIO
+from version_utils import rpm
 import requests
 
 
+# pylint: disable=R0903
 class Mbox(object):
     """
     Object to make handle mbox-format messages
     """
-    KEYWORD_RE = re.compile('([^:]*): *(.*)')
+    KEYWORD_RE = re.compile(r'([^:]*): *(.*)')
 
     def __init__(self, msg_string):
         self._msg_string = msg_string
         self._fileobj = StringIO.StringIO(msg_string)
         self.firstline = None
 
+    # pylint: disable=R0912
     def emails(self):
         """
         Yield each email in the mbox in turn...
@@ -290,9 +292,9 @@ class CentOSAnnouncement(Announcement):
     CESA = re.compile('centos errata and security advisory ([^ ]*) +([A-Za-z]*)', re.IGNORECASE)
     CESA2 = re.compile('centos errata and security advisory ([^ ]*)', re.IGNORECASE)
     UPSTREAM = re.compile('upstream details.*(https://[^ ]*)', re.IGNORECASE)
-    PKG_PARSE = re.compile('.*\.el([0-9]+[0-9_.]*).*\.([^.]*)\.rpm$')
-    SRCPKG_PARSE = re.compile('.*\.el([0-9_.]*[0-9])\..*src.rpm$')
-    VERSION_RE = re.compile('-?([0-9][-_0-9.A-Za-z]*)\.el[0-9]')
+    PKG_PARSE = re.compile(r'.*\.el([0-9]+[0-9_.]*).*\.([^.]*)\.rpm$')
+    SRCPKG_PARSE = re.compile(r'.*\.el([0-9_.]*[0-9])\..*src.rpm$')
+    VERSION_RE = re.compile(r'-?([0-9][-_0-9.A-Za-z]*)\.el[0-9]')
 
     BINARY_BASE_URL = 'http://mirror.centos.org/centos/%s/updates/%s/Packages/%s'
     INFO_BASE_URL = 'https://centos.pkgs.org/%s/centos-updates-x86_64/%s.html'
@@ -382,7 +384,13 @@ class CentOSAnnouncement(Announcement):
         rel = match.group(1)[0]
         return self.INFO_BASE_URL % (rel, package)
 
+    # pylint: disable=R0903,R0912,R0914
     def _parse_text(self):
+        """
+        Parse the text...
+
+        :return: dict(str, str): Text divided up by section
+        """
         sections = {}
         unsupported = False
         section_name = None
@@ -442,12 +450,12 @@ class CentOSAnnouncement(Announcement):
                                          % (patch, self.BASE_PACKAGE_RE.pattern))
                     base_package = match.group(0)
                     if patch != "":
-                        arch, osrel = self.compute_arch_osrel(patch)
+                        _arch, osrel = self.compute_arch_osrel(patch)
                         osrel = osrel.replace('_', '.')
                         if osrel in self.UNSUPPORTED:
                             unsupported = True
                             continue
-                        regex = re.compile('(.*)\.el[0-9_.]*')
+                        regex = re.compile(r'(.*)\.el[0-9_.]*')
                         package = self.rpm_version_info(patch)
                         version = ('%s-%s'
                                    % (package.version, regex.match(package.release).group(1)))
@@ -560,11 +568,12 @@ class UbuntuAnnouncement(Announcement):
     }
     KNOWN_WORDS = KNOWN_WORDS.union(PATCHES)
 
-    PATCHES = ("package information",)
+    # PATCHES = ("package information",)
 
     USN_RE = re.compile('ubuntu security notice (USN-[-A-Za-z0-9]*)', re.IGNORECASE)
-    RELEASE_RE = re.compile('[0-9]+\.[0.9]+')
+    RELEASE_RE = re.compile(r'[0-9]+\.[0.9]+')
 
+    # pylint: disable=R0912
     def _parse_text(self):
         """
         Parses a plain text version of a vulnerability announcement.
@@ -637,6 +646,7 @@ class UbuntuAnnouncement(Announcement):
         return sections
 
 
+# pylint: disable=R0912,R0914
 def analyze_all_mbox_vulnerabilities(years, announcement_cls):
     """
     The purpose of this function is to find all the vulnerability emails for

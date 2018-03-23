@@ -194,11 +194,11 @@ class ArpDiscoveryListener(DiscoveryListener):
         self.fix_net_segment(domain=drone.domain, device=device, net_segment=net_segment,
                              mac_ip_table=mac_ip_table)
 
-    def find_net_segment(self, drone, device, mac_ip_table):
+    def find_net_segment(self, _drone, device, mac_ip_table):
         """
         Figure out which network segment this device belongs to or create one if its new...
 
-        :param drone: Drone:  this NIC segment is attached to
+        :param _drone: Drone:  this NIC segment is attached to
         :param device: NICNode: device these ARPs were heard on
         :param mac_ip_table: Table of IPs associated with NICs
         :return: NetworkSegment
@@ -217,6 +217,8 @@ class ArpDiscoveryListener(DiscoveryListener):
             result = self.store.load(NetworkSegment, domain=device.domain, name=segment.name)
         return result
 
+    # pylint - too many local variables
+    # pylint: disable=R0914
     def fix_net_segment(self, domain, device, net_segment, mac_ip_table):
         """
         Fix up the network segment for the MAC/IP pairs on this network segment

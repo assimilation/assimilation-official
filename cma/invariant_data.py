@@ -42,11 +42,10 @@ import subprocess
 import errno
 import hashlib
 import json
-import dpath
 import sqlite3
 
 if hasattr(os, 'syncfs'):
-    syncfs = os.syncfs
+    syncfs = getattr(os, 'syncfs')
 else:
     import ctypes
     libc = ctypes.CDLL("libc.so.6")
@@ -58,6 +57,8 @@ else:
         :return: int: typical system call return code...
         """
         libc.syncfs(fd)
+
+import dpath
 
 
 def dict_merge(original_dict, merge_dict):
@@ -186,7 +187,7 @@ class PersistentInvariantJSON(object):
 
         :return:
         """
-        for key, value in self.viewitems():
+        for _, value in self.viewitems():
             yield value
 
     def __iter__(self):
@@ -212,6 +213,7 @@ class PersistentInvariantJSON(object):
             value_list = (value_list,)
 
         def _filter_match(data):
+            """Return True if data is found in our desired value_list"""
             return data in value_list
 
         return dpath.util.search(dict_obj, field, afilter=_filter_match)
@@ -423,7 +425,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         A generator which yields each (key, dict-from-JSON) pair in turn...
         :return: generator(str, dict): Generator returning (str, dict) on each next() call...
         """
-        for root, dirs, files in os.walk(self.root_directory):
+        for root, _, files in os.walk(self.root_directory):
             for filename in files:
                 if not self.is_valid_key(filename):
                     print("WARNING: Ignoring file %s." % os.path.join(root, filename), file=stderr)
@@ -443,7 +445,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         A generator which yields each key in turn
         :return: generator(str)
         """
-        for root, dirs, files in os.walk(self.root_directory, followlinks=True):
+        for root, _, files in os.walk(self.root_directory, followlinks=True):
             for filename in files:
                 if self.is_valid_key(filename):
                     yield filename
@@ -980,6 +982,10 @@ if __name__ == '__main__':
     # This is a pretty crappy test - but it works when you invoke it with the right data ;-)
 
     def test_main():
+        """
+        Test main program
+        :return: None
+        """
         try:
             os.unlink('/tmp/sqlite')
         except OSError:

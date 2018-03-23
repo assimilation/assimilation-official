@@ -73,6 +73,7 @@ class NetTransaction(object):
         'Constructor for a combined database/network transaction.'
         self.encryption_required = encryption_required
         self._io = io
+        self.tree = None
         self.__enter__()
 
     def __enter__(self):
@@ -81,7 +82,6 @@ class NetTransaction(object):
         :return: None
         """
         self.tree = {'packets': []}  # 'tree' cannot be pyConfigContext: we append to its array
-        self.namespace = {}
         self.created = []
         self.sequence = None
         self.stats = {'lastcommit': timedelta(0), 'totaltime': timedelta(0)}
@@ -234,7 +234,7 @@ class NetTransaction(object):
     def abort_trans(self):
         'Forget everything about this transaction.'
         self.tree = {'packets': []}
-        self.namespace = {}
+
 
 if __name__ == '__main__':
 

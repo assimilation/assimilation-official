@@ -236,7 +236,7 @@ class Store(object):
             del self.weaknoderefs[node_id]
 
     @staticmethod
-    def _get_key_values(cls, clsargs=None, subj=None):
+    def _get_key_values(clsobj, clsargs=None, subj=None):
         """
         Return a dict of key names and values
         :param cls: classtype: resulting class
@@ -245,7 +245,7 @@ class Store(object):
         :return: dict: key name/value pairs
         """
         result = {}
-        for attr in cls.meta_key_attributes():
+        for attr in clsobj.meta_key_attributes():
             if hasattr(subj, attr):
                 result[attr] = getattr(subj, attr)
             else:
@@ -305,7 +305,8 @@ class Store(object):
         # print('LOAD: %s' % (str(clsargs)))
         self._audit_weaknodes_clients()
         subj = self.callconstructor(cls, clsargs)
-        # print('LOAD class %s: constructed obj: %s' % (cls.__name__, object.__str__(subj)), file=stderr)
+        # print('LOAD class %s: constructed obj: %s' % (cls.__name__, object.__str__(subj)),
+        #       file=stderr)
         self._audit_weaknodes_clients()
         key_values = self._get_key_values(cls, subj=subj)
         # print('LOAD class %s: clsargs: %s' % (cls.__name__, str(clsargs)), file=stderr)
@@ -425,11 +426,11 @@ class Store(object):
 
     def load_cypher_node(self, query, params=None):
         """
+        Load a single node as a result of a Cypher query
         :param query: str: Cypher query
         :param params: {str,str}:  parameters for the query
         :return: object: first node resulting form the query
         """
-        'Load a single node as a result of a Cypher query'
         if params is None:
             params = {}
         for node in self.load_cypher_nodes(query, params, maxcount=1):
@@ -591,7 +592,6 @@ class Store(object):
         :return:
         """
         self.separate(subj=subj, rel_type=rel_type, obj=obj, direction='reverse')
-
 
     @staticmethod
     def callconstructor(constructor, kwargs):
@@ -835,7 +835,7 @@ class Store(object):
         :return: GraphNode: or None
         """
         searchset = set()
-        for node_id, weakclient in self.weaknoderefs.viewitems():
+        for weakclient in self.weaknoderefs.viewvalues():
             client = weakclient()
             if client:
                 # print('Weaknodes: node_id: %s Client: %s' % (node_id, object.__str__(client)),
@@ -849,7 +849,7 @@ class Store(object):
         return result
 
     @staticmethod
-    def _find_keys_in_iterable(cls, key_values, searchset, need_node=False):
+    def _find_keys_in_iterable(clsobj, key_values, searchset, need_node=False):
         """
         Search the iterable for a set of keys that matches 'key_values'
 
@@ -858,7 +858,7 @@ class Store(object):
         :param need_node: bool: True if we only want results with node affiliations
         :return: GraphNode
         """
-        class_name = cls.__name__
+        class_name = clsobj.__name__
         for client in searchset:
             if client.__class__.__name__ != class_name:
                 # print('LOOKING: %s is NOT %s'
@@ -957,7 +957,8 @@ class Store(object):
             key_values = self._get_key_values(cls, subj=comparison)
             other = self._find_keys_in_iterable(cls, key_values, sublist)
             if other is not None:
-                print("OOPS: Comparison: %s vs %s" % (object.__str__(comparison), object.__str__(other)), file=stderr)
+                print("OOPS: Comparison: %s vs %s" %
+                      (object.__str__(comparison), object.__str__(other)), file=stderr)
                 print("OOPS: Comparison: %s vs %s" % (comparison, other), file=stderr)
                 print('j=%d: %s' % (j, complete_list), file=stderr)
             assert other is None
@@ -973,7 +974,8 @@ class Store(object):
         assert isinstance(subj, self.graph_node)
         # print('REGISTERING in store %s transaction %s / %s' % (object.__str__(self),
         #                                                        self.db_transaction,
-        #                                                        object.__str__(self.db_transaction)),
+        #                                                        object.__str__(
+        #                                                                     self.db_transaction)),
         #       file=stderr)
         # print('REGISTERING class %s: %s / %s' % (subj.__class__, object.__str__(subj), str(subj)),
         #       file=stderr)
@@ -1080,7 +1082,6 @@ class Store(object):
             if subj.association is not None:
                 subj.association.dirty_attrs = set()
         self.clients = set()
-        self.db_transaction_ops_pending = False
         # Clean out dead node references
         for nodeid in self.weaknoderefs.keys():
             subj = self.weaknoderefs[nodeid]()

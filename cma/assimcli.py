@@ -36,7 +36,6 @@ import inject
 from py2neo import Graph
 from query import ClientQuery
 from consts import CMAconsts
-from store import Store
 from AssimCtypes import QUERYINSTALL_DIR, cryptcurve25519_gen_persistent_keypair,   \
     cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, CMAUSERID, BPINSTALL_DIR,   \
     CMAINITFILE
@@ -325,12 +324,12 @@ class DummyIO(object):
         self.config = config
 
 
-@inject.params(db='py2neo.Graph', store='Store')
-def dbsetup(db=None, store=None):
+@inject.params(db='py2neo.Graph', store='Store', log='logging.Logger')
+def dbsetup(db=None, store=None, log=None):
     """Set up our connection to Neo4j
     """
     assert isinstance(db, Graph)
-    CMAinit(DummyIO(), store=store, use_network=False)
+    CMAinit(DummyIO(), store=store, use_network=False, db=db, log=log)
     CMAdb.store = store
     store.db_transaction = db.begin(autocommit=False)
     return store

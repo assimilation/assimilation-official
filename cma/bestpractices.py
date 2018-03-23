@@ -31,7 +31,10 @@
 This module defines some classes related to evaluating best practices based
 on discovery information
 '''
-import os, logging, sys
+import os
+import logging
+import sys
+import inject
 from droneinfo import Drone
 from consts import CMAconsts
 from graphnodes import BPRules, BPRuleSet
@@ -39,7 +42,6 @@ from systemnode import SystemNode
 from discoverylistener import DiscoveryListener
 from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from AssimCclasses import pyConfigContext
-from store import Store
 from assimevent import AssimEvent
 from assimeventobserver import AssimEventObserver
 
@@ -56,7 +58,8 @@ class BestPractices(DiscoveryListener):
     application = 'os'
     BASEURL = 'http://db.ITBestPractices.info:%d'
 
-    def __init__(self, config, packetio, store, log, debug):
+    @inject.params(store='Store', log='logging.Logger')
+    def __init__(self, config, packetio, store=None, log=None, debug=False):
         'Initialize our BestPractices object'
         DiscoveryListener.__init__(self, config, packetio, store, log, debug)
         if self.__class__ != BestPractices:
@@ -74,7 +77,6 @@ class BestPractices(DiscoveryListener):
                     BestPractices.eval_objects[pkttype]                 \
                         .append(bpcls(config, packetio, store, log, debug))
                 BestPractices.evaled_classes[pkttype][bpcls] = True
-
 
     @staticmethod
     def register(*pkttypes):

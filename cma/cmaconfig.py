@@ -26,7 +26,7 @@
 This file implements things related to Configuration files for the CMA.
 Not quite sure what all it will do, but hey, this comment is slightly better than nothing.
 """
-from __future__ import print_function, absolute_import
+from __future__ import print_function
 # from sys import stderr
 from types import ClassType
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame

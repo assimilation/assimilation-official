@@ -27,21 +27,18 @@ import time, sys
 #import os, traceback
 from cmadb import CMAdb
 from consts import CMAconsts
-from store import Store
-from graphnodes import nodeconstructor, registergraphclass, IPaddrNode, BPRules, \
-    NICNode
+from graphnodes import registergraphclass
 from systemnode import SystemNode
 from frameinfo import FrameSetTypes, FrameTypes
 from AssimCclasses import pyNetAddr, DEFAULT_FSP_QID, pyCryptFrame
 from assimevent import AssimEvent
 from cmaconfig import ConfigFile
-from graphnodes import GraphNode
 
 
-@registergraphclass
-#droneinfo.py:39: [R0904:Drone] Too many public methods (21/20)
-#droneinfo.py:39: [R0902:Drone] Too many instance attributes (11/10)
+# droneinfo.py:39: [R0904:Drone] Too many public methods (21/20)
+# droneinfo.py:39: [R0902:Drone] Too many instance attributes (11/10)
 # pylint: disable=R0904,R0902
+@registergraphclass
 class Drone(SystemNode):
     '''Everything about Drones - endpoints that run our nanoprobes.
 
@@ -52,7 +49,7 @@ class Drone(SystemNode):
     IPownerquery_1 = None
     OwnedIPsQuery = None
     IPownerquery_1_txt = '''MATCH (n:Class_IPaddrNode)<-[:%s]-()<-[:%s]-(drone)
-                            WHERE n.ipaddr = $ipaddr
+                            WHERE n.ipaddr = $ipaddr AND n.domain = $domain
                             RETURN drone LIMIT 1'''
     OwnedIPsQuery_txt = '''MATCH (d:Class_Drone)-[:%s]->()-[:%s]->(ip:Class_IPaddrNode)
                            WHERE ID(d) = $droneid
@@ -106,7 +103,7 @@ class Drone(SystemNode):
         if Drone.IPownerquery_1 is None:
             Drone.IPownerquery_1 = (Drone.IPownerquery_1_txt
                                     % (CMAconsts.REL_ipowner, CMAconsts.REL_nicowner))
-            Drone.OwnedIPsQuery_subtxt = (Drone.OwnedIPsQuery_txt    \
+            Drone.OwnedIPsQuery_subtxt = (Drone.OwnedIPsQuery_txt
                                           % (CMAconsts.REL_nicowner, CMAconsts.REL_ipowner))
             Drone.OwnedIPsQuery = Drone.OwnedIPsQuery_subtxt
         self.set_crypto_identity()
@@ -204,7 +201,8 @@ class Drone(SystemNode):
             print >> sys.stderr, ('IP owner query:\n%s\nparams %s'
             %   (Drone.OwnedIPsQuery_subtxt, str(params)))
 
-        ip_list = [node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, params=params)]
+        ip_list = [node for node in
+                   CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, params=params)]
         # print >> sys.stderr, ("Query returned: %s"
         #                       % str([str(ip) for ip in ip_list]))
         return ip_list
@@ -391,7 +389,7 @@ class Drone(SystemNode):
         return 'Drone(%s)' % self.designation
 
     def find_child_system_from_json(self, jsonobj):
-        '''Locate the child drone that goes with this JSON - or maybe it's us'''
+        """Locate the child drone that goes with this JSON - or maybe it's us"""
         if 'proxy' in jsonobj:
             path = jsonobj['proxy']
             if path == 'local/local':
@@ -402,16 +400,16 @@ class Drone(SystemNode):
         q = '''MATCH (drone)<-[:parentsys*]-(child)
                WHERE ID(drone) = {id} AND child.childpath = {path}
                RETURN child'''
-        store = Store.getstore(self)
+        store = self.association.store
         child = store.load_cypher_node(q, {'id': store.id(self), 'path': path})
         if child is None:
             raise(ValueError('Child system %s from %s [%s] was not found.'
-                %       (path, str(self), str(Store.id(self)))))
+                             % (path, str(self), str(self.association.node_id))))
         return child
 
     @staticmethod
     def find(designation, port=None, domain=None):
-        'Find a drone with the given designation or IP address, or Neo4J node.'
+        """Find a drone with the given designation or IP address, or Neo4J node."""
         desigstr = str(designation)
         if isinstance(designation, Drone):
             designation.set_crypto_identity()
@@ -430,45 +428,40 @@ class Drone(SystemNode):
             desig = designation.toIPv6()
             desig.setport(0)
             desigstr = str(desig)
-            if domain is None:
-                dstr = '*'
-            else:
-                dstr = domain
-            query = '%s:%s' % (str(Store.lucene_escape(desigstr)), dstr)
             # We do everything by IPv6 addresses...
-            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, {'ipaddr': query})
+            drone = CMAdb.store.load_cypher_node(Drone.IPownerquery_1, {'ipaddr': desigstr,
+                                                                        'domain': str(domain)})
             if drone is not None:
                 assert drone.association.node_id is not None
                 drone.set_crypto_identity()
                 return drone
             if CMAdb.debug:
                 CMAdb.log.warn('Could not find IP NetAddr address in Drone.find... %s [%s] [%s]'
-                %   (designation, desigstr, type(designation)))
+                               % (designation, desigstr, type(designation)))
 
         if CMAdb.debug:
             CMAdb.log.debug("DESIGNATION2 (%s) = %s" % (designation, desigstr))
-            CMAdb.log.debug("QUERY (%s) = %s" % (designation, query))
+            CMAdb.log.debug("QUERY (%s) = %s" % (designation, Drone.IPownerquery_1))
             print >> sys.stderr, ("DESIGNATION2 (%s) = %s" % (designation, desigstr))
-            print >> sys.stderr, ("QUERY (%s) = %s" % (designation, query))
+            print >> sys.stderr, ("QUERY (%s) = %s" % (designation, Drone.IPownerquery_1))
         if CMAdb.debug:
             raise RuntimeError('drone.find(%s) (%s) (%s) => returning None' % (
                 str(designation), desigstr, type(designation)))
-                #str(designation), desigstr, type(designation)))
-            #tblist = traceback.extract_stack()
-            ##tblist = traceback.extract_tb(trace, 20)
-            #CMAdb.log.info('======== Begin missing IP Traceback ========')
-            #for tbelem in tblist:
-                #(filename, line, funcname, text) = tbelem
-                #filename = os.path.basename(filename)
-                #CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
-            #CMAdb.log.info('======== End missing IP Traceback ========')
-            #CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
+            # tblist = traceback.extract_stack()
+            # tblist = traceback.extract_tb(trace, 20)
+            # CMAdb.log.info('======== Begin missing IP Traceback ========')
+            # for tbelem in tblist:
+            #     (filename, line, funcname, text) = tbelem
+            #     filename = os.path.basename(filename)
+            #     CMAdb.log.info('%s.%s:%s: %s'% (filename, line, funcname, text))
+            # CMAdb.log.info('======== End missing IP Traceback ========')
+            # CMAdb.log.warn('drone.find(%s) (%s) (%s) => returning None' % (
         return None
 
     @staticmethod
-    def add(designation, reason, status='up', port=None, domain=CMAconsts.globaldomain
-    ,       primary_ip_addr=None):
-        'Add a drone to our set unless it is already there.'
+    def add(designation, reason, status='up', port=None, domain=CMAconsts.globaldomain,
+            primary_ip_addr=None):
+        """Add a drone to our set unless it is already there."""
         drone = CMAdb.store.load_or_create(Drone, domain=domain, designation=designation,
                                            primary_ip_addr=primary_ip_addr,
                                            port=port,
@@ -484,7 +477,7 @@ class Drone(SystemNode):
         if primary_ip_addr is not None and drone.primary_ip_addr != primary_ip_addr:
             # This means they've changed their IP address and/or port since we last saw them...
             CMAdb.log.info('DRONE %s changed IP address from %s to %s'
-                           %    (str(drone), drone.primary_ip_addr, primary_ip_addr))
+                           % (str(drone), drone.primary_ip_addr, primary_ip_addr))
             drone.primary_ip_addr = str(primary_ip_addr)
             if port is None:
                 drone.port = int(primary_ip_addr.port())
