@@ -19,7 +19,7 @@ else
 end
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = #{test_box}
+  config.vm.box = "debian/stretch64"
   config.vm.box_check_update = false
   config.apt_proxy.http = "http://192.168.121.1:3142"
   #config.apt_proxy.http = "http://10.0.2.2:3142"
