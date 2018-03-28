@@ -17,9 +17,3 @@ chmod 777 /tmp/cores
 PARENT=$(/sbin/route -n | grep '^0\.0\.0\.0' | cut -c17-32)
 PARENT=$(echo $PARENT)
 echo '*.*   @@'"${PARENT}:514" > /etc/rsyslog.d/99-remote.conf
-
-# change default route to a non-nat interface
-# for the sake of cma-nanoprobes communication
-route add default gw 172.28.128.1
-gw=$(route -n | awk '$8 == "eth0" && $2 != "0.0.0.0" {print $2}')
-route del default gw $gw

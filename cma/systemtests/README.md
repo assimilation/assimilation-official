@@ -13,7 +13,7 @@ this:
 	module(load="imtcp")
 	input(type="imtcp" port="514")
 
-	if $fromhost-ip startswith '172.17.' or $HOSTNAME == 'cma' or $HOSTNAME startswith 'nanoprobe' then {
+	if $fromhost-ip startswith '172.17.' or $HOSTNAME == 'cma' or $HOSTNAME startswith 'drone' then {
 		/var/log/assim.log
 		stop
 	}
@@ -27,7 +27,7 @@ to the log file. Or just do this:
 The script to start the tests is runtests.sh. Example use for
 vagrant:
 
-	$ sh runtests.sh -l /var/log/assim.log -m vagrant -C cma -N nanoprobe 20
+	$ sh runtests.sh -l /var/log/assim.log -m vagrant -C cma -N drone 20
 
 Example for docker:
 
@@ -45,19 +45,24 @@ Vagrant
 -------
 
 The vagrant's Vagrantfile as well as provisioning shell scripts
-are in the vagrant directory. The base box is Debian stretch. We
+are in the vagrant directory. The base box is Debian Stretch. We
 used this one:
 
 https://app.vagrantup.com/debian/boxes/stretch64
 
+The provider to use is libvirt, so install the vagrant-libvirt
+plugin.
+
+To run the tests as a regular user, add yourself to the following
+groups: kvm libvirt libvirt-qemu.
+
 Before running the tests, copy the cma, nanoprobe, and libsodium
 debian packages to the vagrant directory. They are going to be
-installed in VMs from that directory. By default, vagrant shares
-it with the VMs.
+installed in VMs from that directory.
 
-The VMs are going to be "cma" (for the cma) and "nanoprobe%n"
-(for nanoprobes) where "%n" stands for a nanoprobe number (a
-small integer). The nanoprobe VMs count starts at 1.
+The VMs are going to be "cma" (for the cma) and "drone%n"
+(for drones) where "%n" stands for a drone number (a
+small integer). The drone VMs count starts at 1.
 
 The Vagrantfile contains also configuration for the
 apt-cacher-ng. It is not strictly required, but reduces runtime
@@ -70,3 +75,18 @@ modify the base box name. Best to make copies in another
 directory and then use the "-D" option. It is out of scope for
 this document to describe vagrant, but it should not be very
 difficult.
+
+Vagrant ssh command is quite slow. To access VMs with ssh or pdsh
+do the following:
+
+$ cd vagrant
+$ . mksshconf.sh
+$ ssh -F ssh_config <hostname>
+
+To run commands on all VMs, install pdsh:
+
+$ pdsh date
+drone1: Wed Mar 28 15:30:30 UTC 2018
+cma: Wed Mar 28 15:30:30 UTC 2018
+drone2: Wed Mar 28 15:30:30 UTC 2018
+
