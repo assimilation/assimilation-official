@@ -282,7 +282,7 @@ class VagrantSystem(TestSystem):
         self.imagecount = imagecount
         # need to pass the number of nanoprobe VMs to Vagrant
         os_env = os.environ.copy()
-        os_env['NUM_NANOPROBES'] = str(imagecount)
+        os_env['NUM_DRONES'] = str(imagecount)
         self.v = vagrant.Vagrant(env=os_env, quiet_stdout=False, quiet_stderr=False)
         self.hostname = 'unknown'
         self.ipaddr = 'unknown'
@@ -295,8 +295,8 @@ class VagrantSystem(TestSystem):
         #self.destroy()
 
     def mkname(self, imagename):
-        if imagename == "nanoprobe":
-            self.name = "nanoprobe%d" % TestSystem.nameindex
+        if imagename == "drone":
+            self.name = "drone%d" % TestSystem.nameindex
         else:
             self.name = imagename
 
@@ -388,10 +388,8 @@ class SystemTestEnvironment(object):
         self.logname = logname
         watch = LogWatcher(logname, [])
         watch.setwatch()
-        nanodebug = 1
-        cmadebug = 2
         self.nanodebug = nanodebug
-        self.cmadebug = nanodebug
+        self.cmadebug = cmadebug
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // (java|openjdk) version.*') % self.cma.hostname
@@ -481,8 +479,8 @@ class SystemTestEnvironment(object):
         )
 
         if tcpdump:
-            nano.runinimage(('nohup /usr/sbin/tcpdump -C 10 -U -s 1024 '
-            '-w /tmp/tcpdump udp port 1984>/dev/null 2>&1 &',))
+            nano.runinimage(('/usr/sbin/tcpdump -C 10 -U -s 1024 '
+            '-w /tmp/tcpdump udp port 1984 &',))
         print >> sys.stderr, ('NANOPROBE CONFIG [%s] %s' % (nano.hostname, nano.name))
         nano.runinimage(('rm', '-f', '/etc/default/nanoprobe'))
         for j in range(0, len(lines)):

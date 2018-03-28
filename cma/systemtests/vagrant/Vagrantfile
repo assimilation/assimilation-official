@@ -1,23 +1,30 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = "2"
 
-if ENV['NUM_NANOPROBES']
-	N = ENV['NUM_NANOPROBES'].to_i
+if ENV['NUM_DRONES']
+	N = ENV['NUM_DRONES'].to_i
 else
 	N = 1
 end
 
+if ENV['ASSIM_TEST_BOX']
+	test_box = ENV['ASSIM_TEST_BOX']
+else
+	test_box = "debian/stretch64"
+end
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "debian/stretch64"
+  config.vm.box = #{test_box}
   config.vm.box_check_update = false
-  config.vm.network "private_network", type: "dhcp",
-	  use_dhcp_assigned_default_route: true
-  #config.apt_proxy.http = "http://192.168.121.1:3142"
-  config.apt_proxy.http = "http://10.0.2.2:3142"
+  config.apt_proxy.http = "http://192.168.121.1:3142"
+  #config.apt_proxy.http = "http://10.0.2.2:3142"
   config.apt_proxy.https = "DIRECT"
+  config.vm.provider "libvirt"
   config.vm.define "cma" do |cma|
 	  cma.vm.hostname = "cma"
 	  cma.vm.provision :shell, path: "install_nanoprobe"
@@ -26,10 +33,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 	  config.vm.network :forwarded_port, guest: 7474, host: 17474
   end
   (1..N).each do |i|
-	  config.vm.define "nanoprobe#{i}" do |nanoprobe|
-		  nanoprobe.vm.hostname = "nanoprobe#{i}"
-		  nanoprobe.vm.provision :shell, path: "install_nanoprobe"
-		  nanoprobe.vm.provision :shell, path: "common"
+	  config.vm.define "drone#{i}" do |drone|
+		  drone.vm.hostname = "drone#{i}"
+		  drone.vm.provision :shell, path: "install_nanoprobe"
+		  drone.vm.provision :shell, path: "common"
 	  end
   end
 end

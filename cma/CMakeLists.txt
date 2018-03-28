@@ -27,7 +27,7 @@ install(PROGRAMS
 	arpdiscovery.py AssimCclasses.py assimcli.py assimeventobserver.py assimevent.py
 	assimglib.py assimjson.py bestpractices.py checksumdiscovery.py cmaconfig.py cmadb.py cmainit.py
 	cma.py consts.py discoverylistener.py dispatchtarget.py drawwithdot.py droneinfo.py
-	frameinfo.py graphnodeexpression.py graphnodes.py hbring.py linkdiscovery.py
+	frameinfo.py graphnodeexpression.py graphnodes.py hbring.py invariant_data.py linkdiscovery.py
 	messagedispatcher.py monitoringdiscovery.py monitoring.py packetlistener.py procsysdiscovery.py query.py
 	store_association.py store.py systemnode.py transaction.py 
         COMPONENT cma-component DESTINATION ${DESTDIR}${PYINSTALL})
