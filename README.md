@@ -25,7 +25,7 @@ We like to have a reasonable number of things in the build environment.
 - pkg-config (even for Windows) - http://www.freedesktop.org/wiki/Software/pkg-config
 - valgrind - The 'C' level tests use it - http://valgrind.org/
 - Testify - testing framework from Yelp - https://github.com/Yelp/Testify (<tt>pip install testify</tt>)
-- doxygen (for documentation) - http://doxygen.org/
+- doxygen (for documentation) - http://doxygen.org/. The current documentation can be found [here](https://codedocs.xyz/assimilation/assimilation-official/).
 - dot (for doxygen graphs) - http://www.graphviz.org/
 - Ctypesgen ( for the CMA code) http://code.google.com/p/ctypesgen/ (<tt>pip install ctypesgen</tt>)
 
