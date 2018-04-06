@@ -50,7 +50,7 @@ class TestSystem(object):
 
     def __init__(self, imagename, imagecount=2, cmdargs=None):
         'Constructor for Abstract class TestSystem'
-        self.mkname(imagename)
+        self.mkname()
         TestSystem.nameindex += 1
         if TestSystem.tmpdir is None:
             TestSystem.tmpdir = tempfile.mkdtemp(TestSystem.tmpsuffix
@@ -157,7 +157,7 @@ class DockerSystem(TestSystem):
         "Invoke our destroy operation when we're deleted"
         #self.destroy()
 
-    def mkname(self, imagename):
+    def mkname(self):
         self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
         ,   TestSystem.nameindex)
 
@@ -283,6 +283,7 @@ class VagrantSystem(TestSystem):
         # need to pass the number of nanoprobe VMs to Vagrant
         os_env = os.environ.copy()
         os_env['NUM_DRONES'] = str(imagecount)
+        os_env['ASSIM_TEST_BOX'] = imagename
         self.v = vagrant.Vagrant(env=os_env, quiet_stdout=False, quiet_stderr=False)
         self.hostname = 'unknown'
         self.ipaddr = 'unknown'
@@ -294,11 +295,11 @@ class VagrantSystem(TestSystem):
         "Invoke our destroy operation when we're deleted"
         #self.destroy()
 
-    def mkname(self, imagename):
-        if imagename == "drone":
+    def mkname(self):
+        if TestSystem.nameindex > 0:
             self.name = "drone%d" % TestSystem.nameindex
         else:
-            self.name = imagename
+            self.name = "cma"
 
     def start(self):
         'Start a vagrant instance'

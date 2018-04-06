@@ -27,7 +27,7 @@ to the log file. Or just do this:
 The script to start the tests is runtests.sh. Example use for
 vagrant:
 
-	$ sh runtests.sh -l /var/log/assim.log -m vagrant -C cma -N drone 20
+	$ sh runtests.sh -l /var/log/assim.log -m vagrant -C generic/ubuntu1604 -N debian/stretch64 20
 
 Example for docker:
 
@@ -45,36 +45,40 @@ Vagrant
 -------
 
 The vagrant's Vagrantfile as well as provisioning shell scripts
-are in the vagrant directory. The base box is Debian Stretch. We
-used this one:
+are in the vagrant directory. The scripts were developed on a
+Debian Stretch release. They work for most of Ubuntu releases
+such as xenial or artful. For other Debian/Ubuntu releases minor
+modifications may be necessary.
 
-https://app.vagrantup.com/debian/boxes/stretch64
+The provider is libvirt, so install the vagrant-libvirt plugin.
 
-The provider to use is libvirt, so install the vagrant-libvirt
-plugin.
+The timezone is set with the vagrant-timezone plugin.
 
-To run the tests as a regular user, add yourself to the following
-groups: kvm libvirt libvirt-qemu.
-
-Before running the tests, copy the cma, nanoprobe, and libsodium
-debian packages to the vagrant directory. They are going to be
-installed in VMs from that directory.
-
-The VMs are going to be "cma" (for the cma) and "drone%n"
-(for drones) where "%n" stands for a drone number (a
-small integer). The drone VMs count starts at 1.
-
-The Vagrantfile contains also configuration for the
+The Vagrantfile features also the configuration for
 apt-cacher-ng. It is not strictly required, but reduces runtime
 considerably.
 
-To use other boxes/distributions please modify the Vagrantfile
-and the provisioning scripts accordingly. For other Debian based
-distributions such as Ubuntu, it _should_ be enough just to
-modify the base box name. Best to make copies in another
-directory and then use the "-D" option. It is out of scope for
-this document to describe vagrant, but it should not be very
-difficult.
+To run the tests as a regular user, add the user to the following
+groups: kvm libvirt libvirt-qemu.
+
+Here are the commands you may have to run to setup the
+environment:
+
+$ sudo usermod -a -G kvm,libvirt,libvirt-qemu <user>
+$ sudo apt-get install vagrant-libvirt apt-cacher-ng
+$ vagrant plugin install vagrant-timezone
+
+Before running the tests, copy the cma, nanoprobe, and libsodium
+debian packages to a subdirectories named after test boxes
+provided with "-C" and "-N" options. For instance, for
+debian/stretch64:
+
+$ cd vagrant
+$ mkdir -p debian/stretch64
+
+The VMs are going to be named "cma" (for the cma) and "drone%n"
+(for drones/nanoprobes) where "%n" stands for a drone number (a
+small integer). The drone VMs count starts at 1.
 
 Vagrant ssh command is quite slow. To access VMs with ssh or pdsh
 do the following:
@@ -83,7 +87,7 @@ $ cd vagrant
 $ . mksshconf.sh
 $ ssh -F ssh_config <hostname>
 
-To run commands on all VMs, install pdsh:
+To run commands on all VMs with pdsh:
 
 $ pdsh date
 drone1: Wed Mar 28 15:30:30 UTC 2018
