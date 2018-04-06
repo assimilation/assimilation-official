@@ -19,16 +19,21 @@ else
 end
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "debian/stretch64"
+  config.vm.box = test_box
   config.vm.box_check_update = false
+  if Vagrant.has_plugin?("vagrant-timezone")
+	  config.timezone.value = :host
+  end
   config.apt_proxy.http = "http://192.168.121.1:3142"
   #config.apt_proxy.http = "http://10.0.2.2:3142"
   config.apt_proxy.https = "DIRECT"
   config.vm.provider "libvirt"
+  config.vm.synced_folder test_box, '/vagrant', type: '9p', readonly: true
   config.vm.define "cma" do |cma|
 	  cma.vm.hostname = "cma"
 	  cma.vm.provision :shell, path: "install_nanoprobe"
 	  cma.vm.provision :shell, path: "install_cma"
+	  cma.vm.provision :shell, path: "configure_cma"
 	  cma.vm.provision :shell, path: "common"
 	  config.vm.network :forwarded_port, guest: 7474, host: 17474
   end

@@ -14,19 +14,3 @@ echo "deb http://debian.neo4j.org/repo ${neoversion}/" > /etc/apt/sources.list.d
 apt-get -y update
 apt-get -y install --no-install-recommends neo4j=$NEOREL
 apt-get -y install --no-install-recommends /vagrant/assimilation-cma_*.deb
-
-echo "dbms.connector.http.address=0.0.0.0:7474" >> /etc/neo4j/neo4j.conf
-echo "cypher.forbid_shortestpath_common_nodes=false" >> /etc/neo4j/neo4j.conf
-# py2neo wants the config elsewhere
-mkdir -p /usr/share/neo4j/conf
-ln -s /etc/neo4j/neo4j.conf /usr/share/neo4j/conf
-chown -R neo4j /usr/share/neo4j/conf
-rm -fr /var/lib/neo4j/data/databases/graph.db /var/lib/neo4j/data/dbms/auth
-service neo4j start; sleep 10
-assimcli genkeys
-rm -f "/usr/share/assimilation/crypto.d/#CMA#00001.secret"
-assimcli neo4jpass neo4j2
-service neo4j stop
-
-# create keys tarball for drones
-tar -cf cma_pubkeys.tar /usr/share/assimilation/crypto.d/*CMA*.pub

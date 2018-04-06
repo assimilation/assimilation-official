@@ -219,6 +219,8 @@ def testmain(logname):
         testset = [test for test in AssimSysTest.testset]
 
     # Use cmaimage for nanoimages as default
+    # (this doesn't work because nanoimages is always set to the
+    # default)
     if len(opts.nanoimages) > 0:
         nanoimages=opts.nanoimages.split()
     else:
