@@ -480,8 +480,8 @@ class SystemTestEnvironment(object):
         )
 
         if tcpdump:
-            nano.runinimage(('/usr/sbin/tcpdump -C 10 -U -s 1024 '
-            '-w /tmp/tcpdump udp port 1984 &',))
+            nano.runinimage(('dtach -n tcpdump.sock /usr/sbin/tcpdump -C 10 -U -s 1024 '
+            '-w /tmp/tcpdump udp port 1984 >/dev/null </dev/null 2>&1',))
         print >> sys.stderr, ('NANOPROBE CONFIG [%s] %s' % (nano.hostname, nano.name))
         nano.runinimage(('rm', '-f', '/etc/default/nanoprobe'))
         for j in range(0, len(lines)):
@@ -513,7 +513,8 @@ class SystemTestEnvironment(object):
         self.set_cmaconfig(debug=cmadebug)
         self.cma.startservice(SystemTestEnvironment.CMASERVICE)
         self.set_nanoconfig(self.cma, debug=nanodebug)
-        self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
+        if self.nanocount > 1:
+            self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
         return self.cma
 
     def spawnnanoprobe(self, debug=0):

@@ -182,6 +182,14 @@ def testmain(logname):
     ,   help
     =   'The vagrant directory (only valid with -m vagrant)')
 
+    parser.add_option('-1', '--onedrone'
+    ,   action='store_true'
+    ,   default=False
+    ,   dest='onedrone'
+    ,   help
+    =   '''Run tests with just one drone and without
+        nanoprobe on the CMA system.''')
+
     (opts, args) = parser.parse_args()
     opts.cmadebug = int(opts.cmadebug)
     opts.nanodebug = int(opts.nanodebug)
@@ -195,6 +203,9 @@ def testmain(logname):
     else:
         parser.parse_args(['--help'])
         return 1
+
+    if opts.onedrone:
+        maxdrones = 1
 
     if opts.seed is None:
         # Prepare Random number generator
