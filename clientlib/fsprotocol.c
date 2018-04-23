@@ -88,58 +88,64 @@ DEBUGDECLARATIONS
  *
  */
 enum _FsProtoInput {
-	FSPROTO_GOTSTART	= 0,	///< Received a packet with sequence number 1
-					///< and a valid (new) session id
-	FSPROTO_REQSEND		= 1,	///< Got request to send a packet
-	FSPROTO_GOTCONN_NAK	= 2,	///< Received a CONN_NAK packet
-	FSPROTO_REQSHUTDOWN	= 3,	///< Got request to shut down
-	FSPROTO_RCVSHUTDOWN	= 4,	///< Received a CONNSHUT packet
-	FSPROTO_ACKTIMEOUT	= 5,	///< Timed out waiting for an ACK.
-	FSPROTO_OUTALLDONE	= 6,	///< All output has been ACKed
-	FSPROTO_SHUT_TO		= 7,	///< Got a timeout waiting for a SHUTDOWN
-	FSPROTO_INVAL,			///< End marker -- invalid input
+        FSPROTO_GOTSTART        = 0,    ///< Received a packet with sequence number 1
+                                        ///< and a valid (new) session id
+        FSPROTO_REQSEND         = 1,    ///< Got request to send a packet
+        FSPROTO_GOTCONN_NAK     = 2,    ///< Received a CONN_NAK packet
+        FSPROTO_REQSHUTDOWN     = 3,    ///< Got request to shut down
+        FSPROTO_RCVSHUTDOWN     = 4,    ///< Received a CONNSHUT packet
+        FSPROTO_ACKTIMEOUT      = 5,    ///< Timed out waiting for an ACK.
+        FSPROTO_OUTALLDONE      = 6,    ///< All output has been ACKed
+        FSPROTO_SHUT_TO         = 7,    ///< Got a timeout waiting for a SHUTDOWN
+        FSPROTO_INVAL,                  ///< End marker -- invalid input
 };
-
+/*
+ * State transition matrix for our Finite State Automaton (Machine)
+ */
 static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
-//	    START     REQSEND	  GOTC_NAK   REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE SHUT_TO
-/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_NONE,  FSPR_SHUT2,  FSPR_NONE, FSPR_NONE, FSPR_NONE},
-/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_INIT, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
-/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
+//        START       REQSEND     GOTC_NAK   REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE SHUT_TO
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_NONE,  FSPR_SHUT2, FSPR_NONE, FSPR_NONE,  FSPR_NONE},
+/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_INIT, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,    FSPR_INIT},
+/*UP*/   {FSPR_UP,    FSPR_UP,    FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,    FSPR_UP},
 // SHUT1: No OUTDONE, no CONNSHUT
-/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
+/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3, FSPR_NONE},
 // SHUT2: got CONNSHUT, Waiting for OUTDONE
-/*SHUT2*/{FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*SHUT2*/{FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE,  FSPR_NONE},
 // SHUT3: got OUTDONE, waiting for CONNSHUT
-/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
+/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3, FSPR_NONE},
 };
-#define	A_CLOSE			(1<<0)	///< 0x01 - set cleanup timer
-#define	A_OOPS			(1<<1)	///< 0x02 - this should not happen - complain about it
-#define	A_DEBUG			(1<<2)	///< 0x04 - print state info, etc
-#define	A_SNDNAK		(1<<3)	///< 0x08 Don't appear to be using this action...
-#define	A_SNDSHUT		(1<<4)	///< 0x10 Send CONNSHUT packet
-#define	A_ACKTO			(1<<5)	///< 0x20 - Announce an ACK timeout	- 0x20
-#define	A_ACKME			(1<<6)	///< 0x40 - Ack this packet
-#define	A_TIMER			(1<<7)	///< 0x80 Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
-					///< which will eventually call the FSA with FSPROTO_SHUT_TO
-#define	A_NOTIME		(1<<8)	///< 0x100 Cancel the FSPROTO_SHUT_TO timer
-#define	A_NOSHUT		(1<<9)	///< 0x200 Flush out any pending CONNSHUT packets
+#define A_CLOSE         (1<<0)  ///< 0x01 - set cleanup timer
+#define A_OOPS          (1<<1)  ///< 0x02 - this should not happen - complain about it
+#define A_DEBUG         (1<<2)  ///< 0x04 - print state info, etc
+#define A_SNDNAK        (1<<3)  ///< 0x08 Don't appear to be using this action...
+#define A_SNDSHUT       (1<<4)  ///< 0x10 Send CONNSHUT packet
+#define A_ACKTO         (1<<5)  ///< 0x20 - Announce an ACK timeout 
+#define A_ACKME         (1<<6)  ///< 0x40 - Ack this packet
+#define A_TIMER         (1<<7)  ///< 0x80 Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
+                                ///< which will eventually call the FSA with FSPROTO_SHUT_TO
+#define A_NOTIME         (1<<8) ///< 0x100 Cancel the FSPROTO_SHUT_TO timer
+#define A_NOSHUT         (1<<9) ///< 0x200 Flush out any pending CONNSHUT packets
 
-#define SHUTnTIMER		(A_SNDSHUT|A_TIMER)
-#define	ACKnSHUT		(A_ACKME|SHUTnTIMER)
-#define	ACKnCLOSE		(A_ACKME|A_CLOSE)
-#define	CLOSEnNOTIME		(A_CLOSE|A_NOTIME)
+#define SHUTnTIMER       (A_SNDSHUT|A_TIMER)
+#define ACKnSHUT         (A_ACKME|SHUTnTIMER)
+#define ACKnCLOSE        (A_ACKME|A_CLOSE)
+#define CLOSEnNOTIME     (A_CLOSE|A_NOTIME)
 
+/*
+ * Action matrix for our Finite State Automaton (Machine)
+ * This is exactly parallel to the state transition matrix (nextstates) above
+ */
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
-//	 START REQSEND GOTCONN_NAK REQSHUTDOWN   RCVSHUTDOWN  ACKTIMEOUT      OUTDONE       SHUT_TO
-/*NONE*/ {0,    0,      A_CLOSE,   A_CLOSE,      SHUTnTIMER, A_ACKTO|A_OOPS,   A_OOPS,      A_OOPS},
-/*INIT*/ {0,    0, 	A_CLOSE,   SHUTnTIMER,    ACKnSHUT,  A_CLOSE,            0,         A_OOPS},
-/*UP*/   {0,    0, 	A_CLOSE,   SHUTnTIMER,    ACKnSHUT,  A_ACKTO,            0,         A_OOPS},
+//        START   REQSEND GOTCONN_NAK REQSHUTDOWN  RCVSHUTDOWN ACKTIMEOUT      OUTDONE        SHUT_TO
+/*NONE*/ {0,    0,    A_CLOSE,   A_CLOSE,     SHUTnTIMER, A_ACKTO|A_OOPS,  A_OOPS,       A_OOPS},
+/*INIT*/ {0,    0,    A_CLOSE,   SHUTnTIMER,  ACKnSHUT,   A_CLOSE,         0,            A_OOPS},
+/*UP*/   {0,    0,    A_CLOSE,   SHUTnTIMER,  ACKnSHUT,   A_ACKTO,         0,            A_OOPS},
 //SHUT1: no OUTDONE, no CONNSHUT - only got REQSHUTDOWN
-/*SHUT1*/{0,   A_DEBUG, A_OOPS,    0,             A_ACKME,  A_CLOSE|A_NOTIME,    0,         A_CLOSE},
+/*SHUT1*/{0, A_DEBUG, A_OOPS,    0,           A_ACKME,    CLOSEnNOTIME,    0,            A_CLOSE},
 //SHUT2: got CONNSHUT, Waiting for OUTDONE
-/*SHUT2*/{0,   A_DEBUG, 0,         0,             A_ACKME,  A_CLOSE|A_NOTIME, CLOSEnNOTIME, A_CLOSE},
+/*SHUT2*/{0, A_DEBUG, 0,         0,           A_ACKME,    CLOSEnNOTIME,    CLOSEnNOTIME, A_CLOSE},
 //SHUT3: Got OUTDONE, waiting for CONNSHUT
-/*SHUT3*/{0,   A_DEBUG, A_OOPS,    0,      ACKnCLOSE|A_NOTIME, A_CLOSE|A_NOTIME,  0,        A_CLOSE},
+/*SHUT3*/{0, A_DEBUG, A_OOPS,    0,  ACKnCLOSE|A_NOTIME,  CLOSEnNOTIME,    0,            A_CLOSE},
 };
 
 /// Returns the state name (string) for state - returns static data
@@ -148,13 +154,13 @@ _fsprotocol_fsa_states(FsProtoState state)
 {
 	static char	unknown[32];
 	switch (state) {
-		case	FSPR_NONE:	return "NONE";
-		case	FSPR_INIT:	return "INIT";
-		case	FSPR_UP:	return "UP";
-		case	FSPR_SHUT1:	return "SHUT1";
-		case	FSPR_SHUT2:	return "SHUT2";
-		case	FSPR_SHUT3:	return "SHUT2";
-		case	FSPR_INVALID:	return "INVALID";
+		case	FSPR_NONE:	  return "NONE";    // Not yet opened
+		case	FSPR_INIT:	  return "INIT";    // Starting to open
+		case	FSPR_UP:	  return "UP";      // Fully open - up and running
+		case	FSPR_SHUT1:	  return "SHUT1";   // Got REQSHUTDOWN: No OUTDONE, or CONNSHUT yet
+		case	FSPR_SHUT2:	  return "SHUT2";   // Got CONNSHUT, Waiting for OUTDONE
+		case	FSPR_SHUT3:	  return "SHUT2";   // Got OUTDONE, waiting for CONNSHUT
+		case	FSPR_INVALID: return "INVALID"; // This shouldn't happen
 	}
 	g_snprintf(unknown, sizeof(unknown), "UNKNOWN%d", (int)state);
 	return unknown;
@@ -166,15 +172,15 @@ _fsprotocol_fsa_inputs(FsProtoInput input)
 {
 	static char	unknown[32];
 	switch (input) {
-		case FSPROTO_GOTSTART:		return "GOTSTART";
-		case FSPROTO_REQSEND:		return "REQSEND";
-		case FSPROTO_GOTCONN_NAK:	return "GOTCONN_NAK";
-		case FSPROTO_REQSHUTDOWN:	return "GOTREQSHUTDOWN";
-		case FSPROTO_RCVSHUTDOWN:	return "RCVSHUTDOWN";
-		case FSPROTO_ACKTIMEOUT:	return "ACKTIMEOUT";
-		case FSPROTO_OUTALLDONE:	return "OUTALLDONE";
-		case FSPROTO_SHUT_TO:		return "SHUT_TO";
-		case FSPROTO_INVAL:		return "INVAL";
+		case FSPROTO_GOTSTART:		return "GOTSTART";       // Initializing queues
+		case FSPROTO_REQSEND:		return "REQSEND";        // Got a request to send a packet
+		case FSPROTO_GOTCONN_NAK:	return "GOTCONN_NAK";    // Got a NAK on connection from other end
+		case FSPROTO_REQSHUTDOWN:	return "GOTREQSHUTDOWN"; // Got a local request to shut down connection
+		case FSPROTO_RCVSHUTDOWN:	return "RCVSHUTDOWN";    // Got a remote request to shut down
+		case FSPROTO_ACKTIMEOUT:	return "ACKTIMEOUT";     // Got an ACK timeout
+		case FSPROTO_OUTALLDONE:	return "OUTALLDONE";     // All output is complete - none pending
+		case FSPROTO_SHUT_TO:		return "SHUT_TO";        // Got a shutdown timeout
+		case FSPROTO_INVAL:		    return "INVAL";          // This shouldn't happen
 	}
 	g_snprintf(unknown, sizeof(unknown), "UNKNOWN%d", (int)input);
 	return unknown;
