@@ -228,6 +228,41 @@ _fsprotocol_fsa_actions(unsigned actionmask)
 	return result;
 }
 
+/// Return a string representing our next FSA state for a given state and input
+WINEXPORT const char *
+fsa_protocol_get_nextstate(guint state,   ///< Current FSA state
+                           guint input)   ///< Current FSA input
+{
+        if (state >= FSPR_INVALID || input >= FSPROTO_INVAL) {
+            return ("OUT_OF_RANGE");
+        }
+        return _fsprotocol_fsa_states(nextstates[state][input]);
+}
+
+/// Return a string representing our FSA actions for given a state and input
+WINEXPORT const char *
+fsa_protocol_get_action(guint state,   ///< Current FSA state
+                        guint input)   ///< Current FSA input
+{
+        if (state >= FSPR_INVALID || input >= FSPROTO_INVAL) {
+            return ("OUT_OF_RANGE");
+        }
+        return _fsprotocol_fsa_actions(actions[state][input]);
+}
+
+
+/// Return our maximum state (+1)
+WINEXPORT guint
+fsa_protocol_max_state(void) {
+        return FSPR_INVALID;
+}
+
+/// Return our maximum FSA input (+1)
+WINEXPORT guint
+fsa_protocol_max_input(void) {
+        return FSPROTO_INVAL;
+}
+
 /// Add a (state, input, action) to the history for this particular FSA
 FSTATIC void
 _fsprotocol_fsa_history(FsProtoElem* self,	///< Our FS channel object
