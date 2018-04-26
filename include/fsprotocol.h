@@ -111,8 +111,8 @@ struct _FsProtocol {
 	GList*		unacked;					///< List of FsProtoElems awaiting ACKs
 	GQueue*		ipend;						///< List of FsProtoElems ready to be read
 	guint		window_size;					///< Window size of our connections
-	gint64		rexmit_interval;				///< How often to retransmit - in uS
-	gint64		acktimeout;					///< ACK timeout interval
+	guint64		rexmit_interval;				///< How often to retransmit - in uS
+	guint64		acktimeout;					///< ACK timeout interval
 	guint		_timersrc;					///< gmainloop timer source id
 	FsProtoElem*	(*find)(FsProtocol*,guint16,const NetAddr*);	///< Find connection to given endpoint
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator

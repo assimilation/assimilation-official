@@ -517,16 +517,26 @@ _fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno
 	guint		outqlen = self->outq->_q->length;
 	FsProtocol*	parent = self->parent;
 	gboolean	in_unackedlist = (g_list_find(parent->unacked, self) != NULL);
+	guint64		now = g_get_monotonic_time();
 
 	if (outqlen != 0 && !in_unackedlist) {
 		g_critical("%s:%d: outqlen is %d but not in unacked list"
 		,	function, lineno, outqlen);
-		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
+		DUMP("WARN: previous unacked warning was for this address",
+		     &self->endpoint->baseclass, NULL);
 	}
 	if (outqlen == 0 && in_unackedlist) {
 		g_critical("%s:%d: outqlen is zero but it IS in the unacked list"
 		,	function, lineno);
-		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
+		DUMP("WARN: previous unacked warning was for this address",
+		      &self->endpoint->baseclass, NULL);
+	}
+	// If something is hung, it should start complaining soon...
+	if (in_unackedlist && now > (self->nextrexmit + self->parent->rexmit_interval)) {
+        	g_critical("%s:%d: Overdue retransmissions in FSPE %p", function, lineno, self);
+        	DUMP("WARN: previous overdue warning was for this IP addr",
+        	     &self->endpoint->baseclass, NULL);
+        	self->parent->log_conn(self->parent, self->_qid, self->endpoint);
 	}
 }
 FSTATIC void
