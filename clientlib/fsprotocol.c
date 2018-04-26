@@ -86,6 +86,9 @@ FSTATIC void		_fsprotocol_flush_pending_connshut(FsProtoElem* fspe);
 		(fspe)->parent->unacked = g_list_remove((fspe)->parent->unacked, fspe); \
 }
 #define is_pending(fspe) (g_list_find((fspe)->parent->unacked, fspe) != NULL)
+#define update_nextxmit_time(fspe) { \
+	(fspe)->nextrexmit = g_get_monotonic_time() + (fspe)->parent->rexmit_interval; \
+}
 
 
 DEBUGDECLARATIONS
@@ -1159,7 +1162,6 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 					_fsprotocol_fsa(fspe, FSPROTO_OUTALLDONE, fs);
 				}
 			}else{
-				fspe->nextrexmit = now + self->rexmit_interval;
 				fspe->acktimeout = now + self->acktimeout;
 				TRYXMIT(fspe);
 			}
@@ -1277,7 +1279,7 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 		///@todo: This might be slow if we send a lot of packets to an endpoint
 		/// before getting a response, but that's not very likely.
 		set_pending(fspe);
-		fspe->nextrexmit = now + self->rexmit_interval;
+		update_nextxmit_time(fspe);
 		fspe->acktimeout = now + self->acktimeout;
 	}
 	DEBUGMSG4("%s.%d: calling fspe->outq->enq()", __FUNCTION__, __LINE__);
@@ -1413,6 +1415,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 	lastseq = fspe->lastseqsent;
 	io = parent->io;
 	orig_pending = outq_len(fspe);
+	now = g_get_monotonic_time();
 
 	AUDITFSPE(fspe);
 	// Look for any new packets that might have showed up to send
@@ -1446,20 +1449,19 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 				break;
 			}
 		}
+		update_nextxmit_time(fspe);
 	}
 	AUDITFSPE(fspe);
-	now = g_get_monotonic_time();
 
 	if (fspe->nextrexmit == 0 && !is_outq_empty(fspe)) {
 		// Next retransmission time not yet set...
-		fspe->nextrexmit = now + parent->rexmit_interval;
+		update_nextxmit_time(fspe);
 		AUDITFSPE(fspe);
 	} else if (fspe->nextrexmit != 0 && now > fspe->nextrexmit) {
 		FrameSet*	fs = fspe->outq->qhead(fspe->outq);
 		// It's time to retransmit something.  Hurray!
 		if (NULL != fs) {
-			// Update next retransmission time...
-			fspe->nextrexmit = now + parent->rexmit_interval;
+			update_nextxmit_time(fspe);
 			DUMP3(__FUNCTION__, &fspe->endpoint->baseclass, " Retransmission target");
 			DUMP3(__FUNCTION__, &fs->baseclass, " is frameset being REsent");
 			io->sendaframeset(io, fspe->endpoint, fs);
