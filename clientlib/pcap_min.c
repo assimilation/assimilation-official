@@ -144,14 +144,6 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
 	pcap_set_rfmon(pcdescr, FALSE);
 #endif
 	pcap_setdirection(pcdescr, PCAP_D_IN);
-	// Weird bug - returns -3 and doesn't show an error message...
-	// And pcap_getnonblock also returns -3... Neither should happen AFAIK...
-	errbuf[0] = '\0';
-	if ((rc = pcap_setnonblock(pcdescr, !blocking, errbuf)) < 0 && errbuf[0] != '\0') {
-		g_warning("pcap_setnonblock(%d) failed: [%s] [rc=%d]", !blocking, errbuf, rc);
-		g_warning("Have no idea why this happens - current blocking state is: %d."
-		,	pcap_getnonblock(pcdescr, errbuf));
-	}
 	pcap_set_snaplen(pcdescr, 1500);
 	/// @todo deal with pcap_set_timeout() call here.
 	if (blocking) {
@@ -163,6 +155,13 @@ create_pcap_listener(const char * dev		///<[in] Device name to listen on
       
 	if (pcap_activate(pcdescr) != 0) {
 		g_warning("pcap_activate failed: [%s]", pcap_geterr(pcdescr));
+		goto oopsie;
+	}
+	// Weird bug - returns -3 and doesn't show an error message...
+	// And pcap_getnonblock also returns -3... Neither should happen AFAIK...
+	errbuf[0] = '\0';
+	if ((rc = pcap_setnonblock(pcdescr, !blocking, errbuf)) < 0 ) {
+		g_warning("pcap_setnonblock(%d) failed: [%s] [rc=%d]", !blocking, errbuf, rc);
 		goto oopsie;
 	}
 	if (pcap_compile(pcdescr, prog, expr, FALSE, maskp) < 0) {
