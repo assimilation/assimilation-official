@@ -111,8 +111,8 @@ struct _FsProtocol {
 	GList*		unacked;					///< List of FsProtoElems awaiting ACKs
 	GQueue*		ipend;						///< List of FsProtoElems ready to be read
 	guint		window_size;					///< Window size of our connections
-	gint64		rexmit_interval;				///< How often to retransmit - in uS
-	gint64		acktimeout;					///< ACK timeout interval
+	guint64		rexmit_interval;				///< How often to retransmit - in uS
+	guint64		acktimeout;					///< ACK timeout interval
 	guint		_timersrc;					///< gmainloop timer source id
 	FsProtoElem*	(*find)(FsProtocol*,guint16,const NetAddr*);	///< Find connection to given endpoint
 	FsProtoElem*	(*findbypkt)(FsProtocol*, NetAddr*, FrameSet*);	///< Find connection to given originator
@@ -131,6 +131,10 @@ struct _FsProtocol {
 	void		(*log_conn)(FsProtocol*, guint16, NetAddr*);	///< Log connection information
 };
 WINEXPORT FsProtocol* fsprotocol_new(guint objsize, NetIO* ioobj, guint rexmit_timer_uS);
+WINEXPORT guint fsa_protocol_max_state(void);
+WINEXPORT guint fsa_protocol_max_input(void);
+WINEXPORT const char * fsa_protocol_get_nextstate(guint state, guint input);
+WINEXPORT const char * fsa_protocol_get_action(guint state, guint input);
 #define	DEFAULT_FSP_QID		0				///< Default Queue ID
 #define FSPROTO_WINDOWSIZE	2				///< FsProtocol window size
 #define FSPROTO_REXMITINTERVAL	(2000000)			///< FsProtocol rexmit interval in uS = 2 secs

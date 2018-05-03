@@ -50,7 +50,7 @@ class TestSystem(object):
 
     def __init__(self, imagename, imagecount=2, cmdargs=None):
         'Constructor for Abstract class TestSystem'
-        self.mkname(imagename)
+        self.mkname()
         TestSystem.nameindex += 1
         if TestSystem.tmpdir is None:
             TestSystem.tmpdir = tempfile.mkdtemp(TestSystem.tmpsuffix
@@ -157,7 +157,7 @@ class DockerSystem(TestSystem):
         "Invoke our destroy operation when we're deleted"
         #self.destroy()
 
-    def mkname(self, imagename):
+    def mkname(self):
         self.name = TestSystem.nameformat % (self.__class__.__name__, os.getpid()
         ,   TestSystem.nameindex)
 
@@ -282,7 +282,8 @@ class VagrantSystem(TestSystem):
         self.imagecount = imagecount
         # need to pass the number of nanoprobe VMs to Vagrant
         os_env = os.environ.copy()
-        os_env['NUM_NANOPROBES'] = str(imagecount)
+        os_env['NUM_DRONES'] = str(imagecount)
+        os_env['ASSIM_TEST_BOX'] = imagename
         self.v = vagrant.Vagrant(env=os_env, quiet_stdout=False, quiet_stderr=False)
         self.hostname = 'unknown'
         self.ipaddr = 'unknown'
@@ -294,11 +295,11 @@ class VagrantSystem(TestSystem):
         "Invoke our destroy operation when we're deleted"
         #self.destroy()
 
-    def mkname(self, imagename):
-        if imagename == "nanoprobe":
-            self.name = "nanoprobe%d" % TestSystem.nameindex
+    def mkname(self):
+        if TestSystem.nameindex > 0:
+            self.name = "drone%d" % TestSystem.nameindex
         else:
-            self.name = imagename
+            self.name = "cma"
 
     def start(self):
         'Start a vagrant instance'
@@ -388,10 +389,8 @@ class SystemTestEnvironment(object):
         self.logname = logname
         watch = LogWatcher(logname, [])
         watch.setwatch()
-        nanodebug = 1
-        cmadebug = 2
         self.nanodebug = nanodebug
-        self.cmadebug = nanodebug
+        self.cmadebug = cmadebug
         self.spawncma(nanodebug=nanodebug, cmadebug=cmadebug)
         regex = (' %s .* INFO: Neo4j version .* // py2neo version .*'
                 ' // Python version .* // (java|openjdk) version.*') % self.cma.hostname
@@ -481,8 +480,8 @@ class SystemTestEnvironment(object):
         )
 
         if tcpdump:
-            nano.runinimage(('nohup /usr/sbin/tcpdump -C 10 -U -s 1024 '
-            '-w /tmp/tcpdump udp port 1984>/dev/null 2>&1 &',))
+            nano.runinimage(('dtach -n tcpdump.sock /usr/sbin/tcpdump -C 10 -U -s 1024 '
+            '-w /tmp/tcpdump udp port 1984 >/dev/null </dev/null 2>&1',))
         print >> sys.stderr, ('NANOPROBE CONFIG [%s] %s' % (nano.hostname, nano.name))
         nano.runinimage(('rm', '-f', '/etc/default/nanoprobe'))
         for j in range(0, len(lines)):
@@ -514,7 +513,8 @@ class SystemTestEnvironment(object):
         self.set_cmaconfig(debug=cmadebug)
         self.cma.startservice(SystemTestEnvironment.CMASERVICE)
         self.set_nanoconfig(self.cma, debug=nanodebug)
-        self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
+        if self.nanocount > 1:
+            self.cma.startservice(SystemTestEnvironment.NANOSERVICE)
         return self.cma
 
     def spawnnanoprobe(self, debug=0):

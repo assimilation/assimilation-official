@@ -1,11 +1,24 @@
 /**
  * @file
  * @brief FrameSet queueing class
- * @details This includes code to implement FrameSet queueing for reliable communication
+ * @details This includes code to implement the our reliable protocol over UDP. It relies heavily on glib lists
+ *           and queues, and also on the fsqueue.c functions.
+ *           If you don't understand idioms for using the glib lists and queues, it will slow down your
+ *           understanding this code. In particular g_list, g_slist, g_queue, and g_hash_table functions are all used.
+ *           In addition, it uses a finite state automaton (_fsprotocol_fsa) to manage connection establishment and
+ *           termination.
+ *
+ * g_list - doubly linked lists
+ * g_slist - singly linked lists
+ * g_queue - double-ended queue - can push or pop from either end
+ * g_hash_table - hash tables
+ *
+ * You'll notice that the first half of the code is all about basics and infrastructure for the last half.
+ * The real work gets done by functions like _fsprotocol_xmitifwecan and _fsprotocol_receive.
  *
  * This file is part of the Assimilation Project.
  *
- * @author Copyright &copy; 2012 - Alan Robertson <alanr@unix.sh>
+ * @author Alan Robertson <alanr@unix.sh> - Copyright &copy; 2012-2018 Assimilation Systems Limited
  * @n
  *  The Assimilation software is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -88,58 +101,64 @@ DEBUGDECLARATIONS
  *
  */
 enum _FsProtoInput {
-	FSPROTO_GOTSTART	= 0,	///< Received a packet with sequence number 1
-					///< and a valid (new) session id
-	FSPROTO_REQSEND		= 1,	///< Got request to send a packet
-	FSPROTO_GOTCONN_NAK	= 2,	///< Received a CONN_NAK packet
-	FSPROTO_REQSHUTDOWN	= 3,	///< Got request to shut down
-	FSPROTO_RCVSHUTDOWN	= 4,	///< Received a CONNSHUT packet
-	FSPROTO_ACKTIMEOUT	= 5,	///< Timed out waiting for an ACK.
-	FSPROTO_OUTALLDONE	= 6,	///< All output has been ACKed
-	FSPROTO_SHUT_TO		= 7,	///< Got a timeout waiting for a SHUTDOWN
-	FSPROTO_INVAL,			///< End marker -- invalid input
+        FSPROTO_GOTSTART        = 0,    ///< Received a packet with sequence number 1
+                                        ///< and a valid (new) session id
+        FSPROTO_REQSEND         = 1,    ///< Got request to send a packet
+        FSPROTO_GOTCONN_NAK     = 2,    ///< Received a CONN_NAK packet
+        FSPROTO_REQSHUTDOWN     = 3,    ///< Got request to shut down
+        FSPROTO_RCVSHUTDOWN     = 4,    ///< Received a CONNSHUT packet
+        FSPROTO_ACKTIMEOUT      = 5,    ///< Timed out waiting for an ACK.
+        FSPROTO_OUTALLDONE      = 6,    ///< All output has been ACKed
+        FSPROTO_SHUT_TO         = 7,    ///< Got a timeout waiting for a SHUTDOWN
+        FSPROTO_INVAL,                  ///< End marker -- invalid input
 };
-
+/*
+ * State transition matrix for our Finite State Automaton (Machine)
+ */
 static const FsProtoState nextstates[FSPR_INVALID][FSPROTO_INVAL] = {
-//	    START     REQSEND	  GOTC_NAK   REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE SHUT_TO
-/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_NONE,  FSPR_SHUT2,  FSPR_NONE, FSPR_NONE, FSPR_NONE},
-/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_INIT, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,   FSPR_INIT},
-/*UP*/	 {FSPR_UP,    FSPR_UP,    FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,   FSPR_UP},
+//        START       REQSEND     GOTC_NAK   REQSHUTDOWN RCVSHUT,    ACKTIMEOUT OUTALLDONE SHUT_TO
+/*NONE*/ {FSPR_UP,    FSPR_INIT,  FSPR_NONE, FSPR_NONE,  FSPR_SHUT2, FSPR_NONE, FSPR_NONE,  FSPR_NONE},
+/*INIT*/ {FSPR_INIT,  FSPR_INIT,  FSPR_INIT, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_UP,    FSPR_INIT},
+/*UP*/   {FSPR_UP,    FSPR_UP,    FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_UP,   FSPR_UP,    FSPR_UP},
 // SHUT1: No OUTDONE, no CONNSHUT
-/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
+/*SHUT1*/{FSPR_SHUT1, FSPR_SHUT1, FSPR_NONE, FSPR_SHUT1, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT3, FSPR_NONE},
 // SHUT2: got CONNSHUT, Waiting for OUTDONE
-/*SHUT2*/{FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE, FSPR_NONE},
+/*SHUT2*/{FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_SHUT2, FSPR_SHUT2, FSPR_NONE, FSPR_NONE,  FSPR_NONE},
 // SHUT3: got OUTDONE, waiting for CONNSHUT
-/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3,FSPR_NONE},
+/*SHUT3*/{FSPR_SHUT3, FSPR_SHUT3, FSPR_NONE, FSPR_SHUT3, FSPR_NONE,  FSPR_NONE, FSPR_SHUT3, FSPR_NONE},
 };
-#define	A_CLOSE			(1<<0)	///< 0x01 - set cleanup timer
-#define	A_OOPS			(1<<1)	///< 0x02 - this should not happen - complain about it
-#define	A_DEBUG			(1<<2)	///< 0x04 - print state info, etc
-#define	A_SNDNAK		(1<<3)	///< 0x08 Don't appear to be using this action...
-#define	A_SNDSHUT		(1<<4)	///< 0x10 Send CONNSHUT packet
-#define	A_ACKTO			(1<<5)	///< 0x20 - Announce an ACK timeout	- 0x20
-#define	A_ACKME			(1<<6)	///< 0x40 - Ack this packet
-#define	A_TIMER			(1<<7)	///< 0x80 Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
-					///< which will eventually call the FSA with FSPROTO_SHUT_TO
-#define	A_NOTIME		(1<<8)	///< 0x100 Cancel the FSPROTO_SHUT_TO timer
-#define	A_NOSHUT		(1<<9)	///< 0x200 Flush out any pending CONNSHUT packets
+#define A_CLOSE         (1<<0)  ///< 0x01 - set cleanup timer
+#define A_OOPS          (1<<1)  ///< 0x02 - this should not happen - complain about it
+#define A_DEBUG         (1<<2)  ///< 0x04 - print state info, etc
+#define A_SNDNAK        (1<<3)  ///< 0x08 Don't appear to be using this action...
+#define A_SNDSHUT       (1<<4)  ///< 0x10 Send CONNSHUT packet
+#define A_ACKTO         (1<<5)  ///< 0x20 - Announce an ACK timeout 
+#define A_ACKME         (1<<6)  ///< 0x40 - Ack this packet
+#define A_TIMER         (1<<7)  ///< 0x80 Start the FSPROTO_SHUT_TO timer - calls _fsprotocol_shuttimeout -
+                                ///< which will eventually call the FSA with FSPROTO_SHUT_TO
+#define A_NOTIME         (1<<8) ///< 0x100 Cancel the FSPROTO_SHUT_TO timer
+#define A_NOSHUT         (1<<9) ///< 0x200 Flush out any pending CONNSHUT packets
 
-#define SHUTnTIMER		(A_SNDSHUT|A_TIMER)
-#define	ACKnSHUT		(A_ACKME|SHUTnTIMER)
-#define	ACKnCLOSE		(A_ACKME|A_CLOSE)
-#define	CLOSEnNOTIME		(A_CLOSE|A_NOTIME)
+#define SHUTnTIMER       (A_SNDSHUT|A_TIMER)
+#define ACKnSHUT         (A_ACKME|SHUTnTIMER)
+#define ACKnCLOSE        (A_ACKME|A_CLOSE)
+#define CLOSEnNOTIME     (A_CLOSE|A_NOTIME)
 
+/*
+ * Action matrix for our Finite State Automaton (Machine)
+ * This is exactly parallel to the state transition matrix (nextstates) above
+ */
 static const unsigned actions[FSPR_INVALID][FSPROTO_INVAL] = {
-//	 START REQSEND GOTCONN_NAK REQSHUTDOWN   RCVSHUTDOWN  ACKTIMEOUT      OUTDONE       SHUT_TO
-/*NONE*/ {0,    0,      A_CLOSE,   A_CLOSE,      SHUTnTIMER, A_ACKTO|A_OOPS,   A_OOPS,      A_OOPS},
-/*INIT*/ {0,    0, 	A_CLOSE,   SHUTnTIMER,    ACKnSHUT,  A_CLOSE,            0,         A_OOPS},
-/*UP*/   {0,    0, 	A_CLOSE,   SHUTnTIMER,    ACKnSHUT,  A_ACKTO,            0,         A_OOPS},
+//        START   REQSEND GOTCONN_NAK REQSHUTDOWN  RCVSHUTDOWN ACKTIMEOUT      OUTDONE        SHUT_TO
+/*NONE*/ {0,    0,    A_CLOSE,   A_CLOSE,     SHUTnTIMER, A_ACKTO|A_OOPS,  A_OOPS,       A_OOPS},
+/*INIT*/ {0,    0,    A_CLOSE,   SHUTnTIMER,  ACKnSHUT,   A_CLOSE,         0,            A_OOPS},
+/*UP*/   {0,    0,    A_CLOSE,   SHUTnTIMER,  ACKnSHUT,   A_ACKTO,         0,            A_OOPS},
 //SHUT1: no OUTDONE, no CONNSHUT - only got REQSHUTDOWN
-/*SHUT1*/{0,   A_DEBUG, A_OOPS,    0,             A_ACKME,  A_CLOSE|A_NOTIME,    0,         A_CLOSE},
+/*SHUT1*/{0, A_DEBUG, A_OOPS,    0,           A_ACKME,    CLOSEnNOTIME,    0,            A_CLOSE},
 //SHUT2: got CONNSHUT, Waiting for OUTDONE
-/*SHUT2*/{0,   A_DEBUG, 0,         0,             A_ACKME,  A_CLOSE|A_NOTIME, CLOSEnNOTIME, A_CLOSE},
+/*SHUT2*/{0, A_DEBUG, 0,         0,           A_ACKME,    CLOSEnNOTIME,    CLOSEnNOTIME, A_CLOSE},
 //SHUT3: Got OUTDONE, waiting for CONNSHUT
-/*SHUT3*/{0,   A_DEBUG, A_OOPS,    0,      ACKnCLOSE|A_NOTIME, A_CLOSE|A_NOTIME,  0,        A_CLOSE},
+/*SHUT3*/{0, A_DEBUG, A_OOPS,    0,  ACKnCLOSE|A_NOTIME,  CLOSEnNOTIME,    0,            A_CLOSE},
 };
 
 /// Returns the state name (string) for state - returns static data
@@ -148,13 +167,13 @@ _fsprotocol_fsa_states(FsProtoState state)
 {
 	static char	unknown[32];
 	switch (state) {
-		case	FSPR_NONE:	return "NONE";
-		case	FSPR_INIT:	return "INIT";
-		case	FSPR_UP:	return "UP";
-		case	FSPR_SHUT1:	return "SHUT1";
-		case	FSPR_SHUT2:	return "SHUT2";
-		case	FSPR_SHUT3:	return "SHUT2";
-		case	FSPR_INVALID:	return "INVALID";
+		case	FSPR_NONE:	  return "NONE";    // Not yet opened
+		case	FSPR_INIT:	  return "INIT";    // Starting to open
+		case	FSPR_UP:	  return "UP";      // Fully open - up and running
+		case	FSPR_SHUT1:	  return "SHUT1";   // Got REQSHUTDOWN: No OUTDONE, or CONNSHUT yet
+		case	FSPR_SHUT2:	  return "SHUT2";   // Got CONNSHUT, Waiting for OUTDONE
+		case	FSPR_SHUT3:	  return "SHUT2";   // Got OUTDONE, waiting for CONNSHUT
+		case	FSPR_INVALID: return "INVALID"; // This shouldn't happen
 	}
 	g_snprintf(unknown, sizeof(unknown), "UNKNOWN%d", (int)state);
 	return unknown;
@@ -166,15 +185,15 @@ _fsprotocol_fsa_inputs(FsProtoInput input)
 {
 	static char	unknown[32];
 	switch (input) {
-		case FSPROTO_GOTSTART:		return "GOTSTART";
-		case FSPROTO_REQSEND:		return "REQSEND";
-		case FSPROTO_GOTCONN_NAK:	return "GOTCONN_NAK";
-		case FSPROTO_REQSHUTDOWN:	return "GOTREQSHUTDOWN";
-		case FSPROTO_RCVSHUTDOWN:	return "RCVSHUTDOWN";
-		case FSPROTO_ACKTIMEOUT:	return "ACKTIMEOUT";
-		case FSPROTO_OUTALLDONE:	return "OUTALLDONE";
-		case FSPROTO_SHUT_TO:		return "SHUT_TO";
-		case FSPROTO_INVAL:		return "INVAL";
+		case FSPROTO_GOTSTART:		return "GOTSTART";       // Initializing queues
+		case FSPROTO_REQSEND:		return "REQSEND";        // Got a request to send a packet
+		case FSPROTO_GOTCONN_NAK:	return "GOTCONN_NAK";    // Got a NAK on connection from other end
+		case FSPROTO_REQSHUTDOWN:	return "GOTREQSHUTDOWN"; // Got a local request to shut down connection
+		case FSPROTO_RCVSHUTDOWN:	return "RCVSHUTDOWN";    // Got a remote request to shut down
+		case FSPROTO_ACKTIMEOUT:	return "ACKTIMEOUT";     // Got an ACK timeout
+		case FSPROTO_OUTALLDONE:	return "OUTALLDONE";     // All output is complete - none pending
+		case FSPROTO_SHUT_TO:		return "SHUT_TO";        // Got a shutdown timeout
+		case FSPROTO_INVAL:		    return "INVAL";          // This shouldn't happen
 	}
 	g_snprintf(unknown, sizeof(unknown), "UNKNOWN%d", (int)input);
 	return unknown;
@@ -220,6 +239,41 @@ _fsprotocol_fsa_actions(unsigned actionmask)
 		g_strlcat(result, leftovers, sizeof(result));
 	}
 	return result;
+}
+
+/// Return a string representing our next FSA state for a given state and input
+WINEXPORT const char *
+fsa_protocol_get_nextstate(guint state,   ///< Current FSA state
+                           guint input)   ///< Current FSA input
+{
+        if (state >= FSPR_INVALID || input >= FSPROTO_INVAL) {
+            return ("OUT_OF_RANGE");
+        }
+        return _fsprotocol_fsa_states(nextstates[state][input]);
+}
+
+/// Return a string representing our FSA actions for given a state and input
+WINEXPORT const char *
+fsa_protocol_get_action(guint state,   ///< Current FSA state
+                        guint input)   ///< Current FSA input
+{
+        if (state >= FSPR_INVALID || input >= FSPROTO_INVAL) {
+            return ("OUT_OF_RANGE");
+        }
+        return _fsprotocol_fsa_actions(actions[state][input]);
+}
+
+
+/// Return our maximum state (+1)
+WINEXPORT guint
+fsa_protocol_max_state(void) {
+        return FSPR_INVALID;
+}
+
+/// Return our maximum FSA input (+1)
+WINEXPORT guint
+fsa_protocol_max_input(void) {
+        return FSPROTO_INVAL;
 }
 
 /// Add a (state, input, action) to the history for this particular FSA
@@ -468,7 +522,6 @@ _fsprotocol_flush_pending_connshut(FsProtoElem* fspe)
 #define		TRYXMIT(fspe)	{AUDITFSPE(fspe); _fsprotocol_xmitifwecan(fspe);}
 
 
-
 /// Audit a FsProtoElem object for consistency */
 FSTATIC void
 _fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno)
@@ -476,16 +529,26 @@ _fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno
 	guint		outqlen = self->outq->_q->length;
 	FsProtocol*	parent = self->parent;
 	gboolean	in_unackedlist = (g_list_find(parent->unacked, self) != NULL);
+	guint64		now = g_get_monotonic_time();
 
 	if (outqlen != 0 && !in_unackedlist) {
 		g_critical("%s:%d: outqlen is %d but not in unacked list"
 		,	function, lineno, outqlen);
-		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
+		DUMP("WARN: previous unacked warning was for this address",
+		     &self->endpoint->baseclass, NULL);
 	}
 	if (outqlen == 0 && in_unackedlist) {
 		g_critical("%s:%d: outqlen is zero but it IS in the unacked list"
 		,	function, lineno);
-		DUMP("WARN: previous unacked warning was for this address", &self->endpoint->baseclass, NULL);
+		DUMP("WARN: previous unacked warning was for this address",
+		      &self->endpoint->baseclass, NULL);
+	}
+	// If something is hung, it should start complaining soon...
+	if (in_unackedlist && now > (self->nextrexmit + self->parent->rexmit_interval)) {
+        	g_critical("%s:%d: Overdue retransmissions in FSPE %p", function, lineno, self);
+        	DUMP("WARN: previous overdue warning was for this IP addr",
+        	     &self->endpoint->baseclass, NULL);
+        	self->parent->log_conn(self->parent, self->_qid, self->endpoint);
 	}
 }
 FSTATIC void
@@ -584,8 +647,9 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 }
 
 
-/// Add and return a FsProtoElem connection to our collection of connections...
+/// Construct and add a FsProtoElem connection to our collection of connections...
 /// Note that if it's already there, the existing connection will be returned.
+/// An FsProtoElem object represents a connection between us and our peer on the other end of the link
 FSTATIC FsProtoElem*
 _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 ,		    guint16 qid		///< Queue id for the connection
@@ -681,6 +745,7 @@ _fsprotocol_canclose_immediately(gpointer v_fspe, gpointer unused, gpointer unus
 }
 
 
+/// Return the number of currently active connections
 FSTATIC int
 _fsprotocol_activeconncount(FsProtocol* self)
 {
@@ -711,6 +776,7 @@ _fsprotocol_activeconncount(FsProtocol* self)
 	return count;
 }
 
+/// Return the connection state for the given connection
 FSTATIC FsProtoState
 _fsprotocol_connstate(FsProtocol*self, guint16 qid, const NetAddr* destaddr)
 {
@@ -729,6 +795,7 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 	if (!g_queue_is_empty(self->outq->_q)) {
 		DUMP3("REINIT OF OUTQ", &self->outq->baseclass, __FUNCTION__);
 		self->outq->flush(self->outq);
+		// No longer waiting on any ACKs - takes us off the unACKed list...
 		self->parent->unacked = g_list_remove(self->parent->unacked, self);
 		self->outq->isready = FALSE;
 	}
@@ -778,8 +845,9 @@ _fsprotocol_fspe_closeconn(FsProtoElem* self)
 }
 
 
-
-/// Construct an FsProtocol object
+/// Construct an FsProtocol object - it implements our protocol across all our connections (fspes)
+/// There is usually only one of these in an application.
+/// It is a collection place for all the connection structures (FSPEs)
 WINEXPORT FsProtocol*
 fsprotocol_new(guint objsize		///< Size of object to be constructed
 ,	      NetIO* io			///< Pointer to NetIO for us to reference
@@ -822,7 +890,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->endpoints = g_hash_table_new_full(_fsprotocol_protoelem_hash,_fsprotocol_protoelem_equal
         ,		_fsprotocol_protoelem_destroy, NULL);
 	self->unacked = NULL;
-	self->ipend = g_queue_new();
+	self->ipend = g_queue_new();	// An ordered queue of connections that have data to read
 	self->window_size = FSPROTO_WINDOWSIZE;
 	self->rexmit_interval = FSPROTO_REXMITINTERVAL;
 	self->acktimeout = FSPROTO_ACKTIMEOUTINT;
@@ -866,7 +934,6 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 	// Free up the input pending list
 	g_queue_free(self->ipend);		// No additional 'ref's were taken for this list either
 	self->ipend = NULL;
-
 
 	// Lastly free our base storage
 	FREECLASSOBJ(self);
@@ -939,7 +1006,7 @@ _fsprotocol_outputpending(FsProtocol* self)	///< Our object
 
 /// Read the next available FrameSet from any of our sources
 FSTATIC FrameSet*
-_fsprotocol_read(FsProtocol* self	///< Our object - our very self!
+_fsprotocol_read(FsProtocol* self	///< Our object - our very FsProtocol self!
 ,		 NetAddr** fromaddr)	///< The IP address our result came from
 {
 	GList*	list;	// List of all our FsQueues which have input
@@ -992,6 +1059,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 					del_link = TRUE;
 				}
 			}
+			// We try and enforce a little fairness here - see note below...
 			g_queue_remove(self->ipend, fspe);
 			if (del_link) {
 				fspe->inq->isready = FALSE;
@@ -1044,7 +1112,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	// come from that identity.
 	maybecrypt = g_slist_nth_data(fs->framelist, 1);
 	if (maybecrypt && OBJ_IS_A(maybecrypt, "CryptFrame")) {
-		 keyid = CASTTOCLASS(CryptFrame, maybecrypt)->sender_key_id;
+		keyid = CASTTOCLASS(CryptFrame, maybecrypt)->sender_key_id;
 	}
 	if (keyid) {
 		sender_id = cryptframe_whois_key_id(keyid);
@@ -1093,6 +1161,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				DUMP3("Received bad ACK from", &fspe->endpoint->baseclass, NULL);
 				DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
 			}else if (fspe->outq->_q->length == 0) {
+				// Remove this connection from the list of connections with unacknowledged packets
 				fspe->parent->unacked = g_list_remove(fspe->parent->unacked, fspe);
 				fspe->nextrexmit = 0;
 				TRYXMIT(fspe);
@@ -1151,6 +1220,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		// 
 		// On the other hand, we cannot re-send an ACK that the application hasn't given us yet...
 		// We could wind up here if the app is slow to ACK packets we gave it
+		// Since these are client-level ACKs meaning transaction complete, they might be slow
 		if (seq && fspe->lastacksent) {
 			if (seq->_sessionid == fspe->lastacksent->_sessionid
 			&&	seq->compare(seq, fspe->lastacksent) <= 0) {
@@ -1167,8 +1237,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	// If this queue wasn't shown as ready before - see if it is ready for reading now...
 	if (!fspe->inq->isready) {
 		if (seq == NULL || seq->_reqid == fspe->inq->_nextseqno) {
-			// Now ready to read - put our fspe on the list of fspes with input pending
-			g_queue_push_head(self->ipend, fspe);
+			// Now ready to read - put this channel on the end of the queue of ready-to-read channels
+			// We put it at the end for fairness.
+			g_queue_push_tail(self->ipend, fspe);
 			fspe->inq->isready = TRUE;
 			AUDITIREADY(self);
 		}
@@ -1215,9 +1286,10 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 	_fsprotocol_fsa(fspe, FSPROTO_REQSEND, NULL);
 
 	if (fspe->outq->_q->length == 0) {
-		guint64 now = g_get_monotonic_time();
 		///@todo: This might be slow if we send a lot of packets to an endpoint
-		/// before getting a response, but that's not very likely.
+		///< before getting a response, but that's not very likely.
+		guint64 now = g_get_monotonic_time();
+		// Add this channel to the list of channels that need ACKs
 		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
 		fspe->nextrexmit = now + self->rexmit_interval;
 		fspe->acktimeout = now + self->acktimeout;
@@ -1323,6 +1395,7 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 }
 
 /// Our role in life is to send any packets that need sending.
+/// This is a key role to the output side of the protocol.
 ///
 ///	Find every packet which is eligible to be sent and send it out
 ///
@@ -1387,6 +1460,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			lastseq = fspe->lastseqsent = seq;
 			REF2(lastseq);
 			if (fspe->outq->_q->length >= parent->window_size) {
+				// Can't send any more on this channel until we get some ACKs.
 				break;
 			}
 		}
@@ -1399,8 +1473,8 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 		fspe->nextrexmit = now + parent->rexmit_interval;
 		AUDITFSPE(fspe);
 	} else if (fspe->nextrexmit != 0 && now > fspe->nextrexmit) {
-		FrameSet*	fs = outq->qhead(outq);
 		// It's time to retransmit something.  Hurray!
+		FrameSet*	fs = outq->qhead(outq);
 		if (NULL != fs) {
 			// Update next retransmission time...
 			fspe->nextrexmit = now + parent->rexmit_interval;
@@ -1422,7 +1496,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 
 	// Make sure we remember to check this periodicially for retransmits...
 	if (orig_outstanding == 0 && fspe->outq->_q->length > 0) {
-		// Put 'fspe' on the list of fspe's with unacked packets
+		// Put this connection on the list of connections with unacked packets
 		fspe->parent->unacked = g_list_prepend(fspe->parent->unacked, fspe);
 		// See comment in the _send function regarding eventual efficiency concerns
 	}
