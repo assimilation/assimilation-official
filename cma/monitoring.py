@@ -186,8 +186,8 @@ class MonitorAction(GraphNode):
     def find(name, domain=None):
         """Iterate through a series of MonitorAction nodes matching the criteria"""
         query = MonitorAction.FINDQUERY1 if domain is None else MonitorAction.FINDQUERY2
-        print("FIND MONITOR QUERY: '%s' || name='%s' domain='%s'"
-              % (query, name, domain), file=stderr)
+        # print("FIND MONITOR QUERY: '%s' || name='%s' domain='%s'"
+        #      % (query, name, domain), file=stderr)
         return CMAdb.store.load_cypher_nodes(query, params={'domain': domain, 'name': name})
 
     @staticmethod
