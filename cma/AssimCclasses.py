@@ -1,6 +1,6 @@
 # pylint: disable=C0302
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
-#C0302: too many lines in module
+# C0302: too many lines in module
 #
 #
 # This file is part of the Assimilation Project.
@@ -21,11 +21,11 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-#pylint: disable=C0302,W0212
-'''
+# pylint: disable=C0302,W0212
+"""
 A collection of classes which wrap our @ref C-Classes and provide Pythonic interfaces
 to these C-classes.
-'''
+"""
 import collections
 import traceback
 import types
@@ -91,9 +91,9 @@ from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
 
 
-#pylint: disable=R0903
+# pylint: disable=R0903
 class cClass(object):
-    'Just a handy collection of POINTER() objects'
+    """Just a handy collection of POINTER() objects"""
     def __init__(self):
         pass
     AssimObj = POINTER(AssimCtypes.AssimObj)
@@ -115,16 +115,18 @@ class cClass(object):
     GSList = POINTER(AssimCtypes.GSList)
     CryptCurve25519 = POINTER(AssimCtypes.CryptCurve25519)
 
-#pylint: disable=C0123
+
+# pylint: disable=C0123
 def not_this_exact_type(obj, cls):
-    '''Do return True if this is NOT the given type.
+    """Do return True if this is NOT the given type.
     This is necessary for dealing with Ctypes, but pylint hates this construct
     so we ignore its warning.
-    '''
+    """
     return type(obj) is not cls
 
+
 def CCref(obj):
-    '''
+    """
     Increment the reference count to an AssimObj (_not_ a pyAssimObj)
     Need to call CCref under the following circumstances:
         When we are creating an object that points to another underlying C-class object
@@ -137,25 +139,27 @@ def CCref(obj):
 
     Do not call it when you've constructed a new object that there were no previous pointers
         to.
-    '''
+    """
     base = obj[0]
     while not_this_exact_type(base, AssimObj):
         base = base.baseclass
     base.ref(obj)
 
+
 def CCunref(obj):
-    'Unref an AssimObj object (or subclass)'
+    """Unref an AssimObj object (or subclass)"""
     base = obj[0]
     # This 'hasattr' construct only works because we are the base C-class
     while hasattr(base, 'baseclass'):
         base = base.baseclass
     base.unref(obj)
 
+
 class pySwitchDiscovery(object):
-    '''
+    """
     Class for interpreting switch discovery data via LLDP or CDP
-    Currently only LLDP is fully implemented.
-    '''
+    Currently LLDP is better implemented than CDP.
+    """
     lldpnames = {
         LLDP_TLV_END:           ('END', True),
         LLDP_TLV_CHID:          ('ChassisId', True),
@@ -233,25 +237,25 @@ class pySwitchDiscovery(object):
 
     @staticmethod
     def _decode_netaddr(addrstart, addrlen):
-        'Return an appropriate pyNetAddr object corresponding to the given memory blob'
+        """Return an appropriate pyNetAddr object corresponding to the given memory blob"""
         byte0 = pySwitchDiscovery._byte0(addrstart)
         byte1addr = pySwitchDiscovery._byte1addr(addrstart)
-        Cnetaddr = None
+        c_netaddr = None
         if byte0 == ADDR_FAMILY_IPV6:
             if addrlen != 17:
                 return None
-            Cnetaddr = netaddr_ipv6_new(byte1addr, 0)
+            c_netaddr = netaddr_ipv6_new(byte1addr, 0)
         elif byte0 == ADDR_FAMILY_IPV4:
             if addrlen != 5:
                 return None
-            Cnetaddr = netaddr_ipv4_new(byte1addr, 0)
+            c_netaddr = netaddr_ipv4_new(byte1addr, 0)
         elif byte0 == ADDR_FAMILY_802:
             if addrlen == 7:
-                Cnetaddr = netaddr_mac48_new(byte1addr)
+                c_netaddr = netaddr_mac48_new(byte1addr)
             elif addrlen == 9:
-                Cnetaddr = netaddr_mac64_new(byte1addr)
-        if Cnetaddr is not None:
-            return str(pyNetAddr(None, Cstruct=Cnetaddr))
+                c_netaddr = netaddr_mac64_new(byte1addr)
+        if c_netaddr is not None:
+            return str(pyNetAddr(None, Cstruct=c_netaddr))
         return None
 
     @staticmethod
@@ -259,12 +263,12 @@ class pySwitchDiscovery(object):
         'Return a JSON packet corresponding to the given switch discovery packet'
 
         if is_valid_lldp_packet(pktstart, pktend):
-            #print >> sys.stderr, '>>>>>>>>>>>>>>>LLDP PACKET'
+            # print >> sys.stderr, '>>>>>>>>>>>>>>>LLDP PACKET'
             return pySwitchDiscovery._decode_lldp(host, interface, instance,
                                                   wallclock, pktstart, pktend)
 
         if is_valid_cdp_packet(pktstart, pktend):
-            #print >> sys.stderr, '>>>>>>>>>>>>>>>CDP PACKET'
+            # print >> sys.stderr, '>>>>>>>>>>>>>>>CDP PACKET'
             return pySwitchDiscovery._decode_cdp(host, interface, instance,
                                                  wallclock, pktstart, pktend)
         raise ValueError('Malformed Switch Discovery Packet')
@@ -296,7 +300,7 @@ class pySwitchDiscovery(object):
     @staticmethod
     def _decode_lldp(host, interface, instance, wallclock, pktstart, pktend):
         'Decode LLDP packet into a JSON discovery packet'
-        #print >> sys.stderr, 'DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
+        # print >> sys.stderr, 'DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
         thisportinfo = pyConfigContext(init={
             'ConnectsToHost':       host,
             'ConnectsToInterface':  interface,
@@ -336,7 +340,7 @@ class pySwitchDiscovery(object):
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
             tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
-            #print >> sys.stderr, "EXAMINE:", tlvptr, tlvtype, tlvlen
+            # print >> sys.stderr, "EXAMINE:", tlvptr, tlvtype, tlvlen
             value = None
             if tlvtype not in pySwitchDiscovery.lldpnames:
                 print >> sys.stderr, 'Cannot find tlvtype %d' % tlvtype
@@ -413,7 +417,7 @@ class pySwitchDiscovery(object):
     def _decode_lldp_org_specific(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
         '''Decode LLDP org-specific TLV sets (or not...)'''
         oui = tlv_get_guint24(tlvptr, pktend)
-        #print >> sys.stderr, 'ORG_OUI: 0x%06x' % oui
+        # print >> sys.stderr, 'ORG_OUI: 0x%06x' % oui
         tlv3ptr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
         if oui == 0x0080c2:
             pySwitchDiscovery._decode_lldp_802_1(switchinfo, thisportinfo,
@@ -570,9 +574,9 @@ class pySwitchDiscovery(object):
         mauinfo = pySwitchDiscovery.dot3MauTypes(mau_type)
         for key in mauinfo:
             thisportinfo[key] = mauinfo[key]
-        #print >> sys.stderr, ("Autoneg_status: 0x%02x" % autoneg_status)
-        #print >> sys.stderr, ("pmd_autoneg: %d" % pmd_autoneg)
-        #print >> sys.stderr, ("MAU type: %d" % mau_type)
+        # print >> sys.stderr, ("Autoneg_status: 0x%02x" % autoneg_status)
+        # print >> sys.stderr, ("pmd_autoneg: %d" % pmd_autoneg)
+        # print >> sys.stderr, ("MAU type: %d" % mau_type)
 
     @staticmethod
     def _decode_lldp_med(switchinfo, _thisportinfo, tlvptr, tlvlen, _pktend):
@@ -678,9 +682,9 @@ class pySwitchDiscovery(object):
                 value = string_at(tlvptr, tlvlen-4)
             elif tlvtype == CDP_TLV_CAPS:
                 #bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
-                #print >> sys.stderr, 'CAPBYTES = ', bytez
+                # print >> sys.stderr, 'CAPBYTES = ', bytez
                 caps = pySwitchDiscovery.getNint(tlvptr, 4, pktend)
-                #print >> sys.stderr, ('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen))
+                # print >> sys.stderr, ('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen))
                 value = pySwitchDiscovery.construct_cdp_caps(caps)
             elif tlvtype == CDP_TLV_VERS:
                 value = string_at(tlvptr, tlvlen-4)
@@ -712,7 +716,7 @@ class pySwitchDiscovery(object):
                 value='0x'
                 for offset in range(0, tlvlen):
                     value += ('%02x' % pySwitchDiscovery._byteN(tlvptr, offset))
-                #print >> sys.stderr, 'Ignoring CDP field %s: %s' % (tlvname, value)
+                # print >> sys.stderr, 'Ignoring CDP field %s: %s' % (tlvname, value)
                 value = None
 
             if value is None:
@@ -732,7 +736,7 @@ class pySwitchDiscovery(object):
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
-                #print >> sys.stderr, ('TLVNAME[%s] %s has value "%s" -- len: %d'
+                # print >> sys.stderr, ('TLVNAME[%s] %s has value "%s" -- len: %d'
                 #%   (tlvtype, tlvname, value, len(str(value))))
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
@@ -860,7 +864,7 @@ class pyAssimObj(object):
             self._Cstruct = Cstruct
         else:
             self._Cstruct = cast(assimobj_new(0), cClass.AssimObj)
-        #print 'ASSIMOBJ:init: %s' % (Cstruct)
+        # print 'ASSIMOBJ:init: %s' % (Cstruct)
 
     def cclassname(self):
         "Return the 'C' class name for this object"
@@ -945,16 +949,16 @@ class pyNetAddr(pyAssimObj):
         'Initialize an addrstring from a binary argument'
         alen = len(addrstring)
         addr = create_string_buffer(alen)
-        #print >> sys.stderr, "ADDRTYPE:", type(addr)
-        #print >> sys.stderr, "ADDRSTRINGTYPE:", type(addrstring)
+        # print >> sys.stderr, "ADDRTYPE:", type(addr)
+        # print >> sys.stderr, "ADDRSTRINGTYPE:", type(addrstring)
         for i in range(0, alen):
             asi = addrstring[i]
-            #print >> sys.stderr, "ASI_TYPE: (%s,%s)" % (type(asi), asi)
+            # print >> sys.stderr, "ASI_TYPE: (%s,%s)" % (type(asi), asi)
             if isinstance(asi, (str, unicode)):
                 addr[i] = str(asi)
             else:
                 addr[i] = chr(asi)
-        #print >> sys.stderr, 'ADDR = %s'  % addr
+        # print >> sys.stderr, 'ADDR = %s'  % addr
         if alen == 4:		# ipv4
             NA = netaddr_ipv4_new(addr, port)
         elif alen == 16:	# ipv6
@@ -1205,7 +1209,7 @@ class pyFrame(pyAssimObj):
         else:
             statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" \
             %   (pyclassname, frametype, Cclassname)
-        #print >> sys.stderr, "EVAL:", statement
+        # print >> sys.stderr, "EVAL:", statement
         # We construct the string from our data, so it's trusted data...
         # pylint: disable=W0123
         return eval(statement)
@@ -1627,7 +1631,7 @@ class pyCryptCurve25519(pyCryptFrame):
             cma_ids = pyCryptFrame.get_cma_key_ids()
         if len(cma_ids) != 2:
             warnings.append('Unexpected number of CMA keys.  Expecting 2, but got %d.'
-            %       len(cma_ids))
+                            % len(cma_ids))
         # We want to use the lowest-numbered private key we have access to.
         privatecount = 0
         extras = []
@@ -1644,11 +1648,12 @@ class pyCryptCurve25519(pyCryptFrame):
             raise RuntimeError('FATAL: No CMA private keys to sign with!')
         if privatecount != 1:
             warnings.append('Incorrect number of Private CMA keys.  Expecting 1, but got %d.'
-            %       len(cma_ids))
+                            % len(cma_ids))
             warnings.append('YOU MUST SECURELY HIDE all but one private CMA key.')
             for keyid in extras:
-                warnings.append('SECURELY HIDE *private* key %s' %
-                    pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY))
+                warnings.append('SECURELY HIDE *private* key %s'
+                                % pyCryptCurve25519.key_id_to_filename(keyid,
+                                                                       pyCryptFrame.PRIVATEKEY))
         cryptcurve25519_set_encryption_method()
         return warnings
 
@@ -1697,17 +1702,17 @@ class pyFrameSet(pyAssimObj):
 
     def sender_key_id(self):
         'Return the key_id of the cryptographic sender of this FrameSet'
-        #print >> sys.stderr, 'TYPE(self)', type(self), 'str(self)', str(self), type(self._Cstruct)
+        # print >> sys.stderr, 'TYPE(self)', type(self), 'str(self)', str(self), type(self._Cstruct)
         ret = frameset_sender_key_id(self._Cstruct)
-        #print >> sys.stderr, 'sender_key_id: TYPE(ret)', type(ret), 'ret', ret,     \
+        # print >> sys.stderr, 'sender_key_id: TYPE(ret)', type(ret), 'ret', ret,     \
         #         'raw', ret.raw, 'data', ret.data
-        #print >> sys.stderr, 'sender_key_id: str(ret)', str(ret), type(str(ret)), not ret
-        #print type(ret.raw), ret.raw
+        # print >> sys.stderr, 'sender_key_id: str(ret)', str(ret), type(str(ret)), not ret
+        # print type(ret.raw), ret.raw
         if not ret:
-            #print >> sys.stderr, 'Returning None(!)', self.get_framesettype()
+            # print >> sys.stderr, 'Returning None(!)', self.get_framesettype()
             return None
         pyret = string_at(ret.raw)
-        #print >> sys.stderr, 'PYRET:', type(pyret), 'pyret:', pyret
+        # print >> sys.stderr, 'PYRET:', type(pyret), 'pyret:', pyret
         return pyret
 
     def sender_identity(self):
@@ -1759,14 +1764,14 @@ class pyFrameSet(pyAssimObj):
         while curframe:
             cast(curframe[0].data, struct__GSList._fields_[0][1])
             yieldval =  pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
-            #print >> sys.stderr, ("Constructed frame IS [%s]" % str(yieldval))
+            # print >> sys.stderr, ("Constructed frame IS [%s]" % str(yieldval))
             if not yieldval.isvalid():
                 print >> sys.stderr                                                 \
                 ,  "OOPS! Constructed %d byte frame from iter() is not valid [%s]" \
                 %       (yieldval.framelen(), str(yieldval))
                 raise ValueError("Constructed %d byte frame from iter() is not valid [%s]"
                 %   (yieldval.framelen(), str(yieldval)))
-            #print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+            # print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
             yield yieldval
             curframe = g_slist_next(curframe)
 
@@ -1924,16 +1929,16 @@ class pyConfigContext(pyAssimObj):
     def getarray(self, name):
         'Return the array value associated with "name"'
         curlist = cast(self._Cstruct[0].getarray(self._Cstruct, name), cClass.GSList)
-        #print >> sys.stderr, "CURLIST(initial) = %s" % curlist
+        # print >> sys.stderr, "CURLIST(initial) = %s" % curlist
         ret = []
         while curlist:
-            #print >> sys.stderr, "CURLIST = %s" % curlist
+            # print >> sys.stderr, "CURLIST = %s" % curlist
             #cfgval = pyConfigValue(cast(cClass.ConfigValue, curlist[0].data).get())
             data = cast(curlist[0].data, cClass.ConfigValue)
-            #print >> sys.stderr, "CURLIST->data = %s" % data
+            # print >> sys.stderr, "CURLIST->data = %s" % data
             CCref(data)
             cfgval = pyConfigValue(data).get()
-            #print >> sys.stderr, "CURLIST->data->get() = %s" % cfgval
+            # print >> sys.stderr, "CURLIST->data->get() = %s" % cfgval
             ret.append(cfgval)
             curlist = g_slist_next(curlist)
         return ret
@@ -2077,7 +2082,7 @@ class pyConfigContext(pyAssimObj):
         'Return a value associated with "name"'
         name = str(name)
         ktype = self.gettype(name)
-        #print >> sys.stderr, '************ GETITEM[%s] => %d *********************' % (name, ktype)
+        # print >> sys.stderr, '*********** GETITEM[%s] => %d *********************' % (name, ktype)
         if ktype == CFG_EEXIST:
             traceback.print_stack()
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
@@ -2096,7 +2101,7 @@ class pyConfigContext(pyAssimObj):
         elif ktype == CFG_BOOL:
             return self.getbool(name)
         elif ktype == CFG_ARRAY:
-            #print >> sys.stderr, '************ GETITEM[%s] => getarray(%s) *********************' \
+            # print >> sys.stderr, '*********** GETITEM[%s] => getarray(%s) *********************' \
             #   %   (name, name)
             return self.getarray(name)
         return None
