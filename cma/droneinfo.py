@@ -401,7 +401,7 @@ class Drone(SystemNode):
                WHERE ID(drone) = {id} AND child.childpath = {path}
                RETURN child'''
         store = self.association.store
-        child = store.load_cypher_node(q, {'id': store.id(self), 'path': path})
+        child = store.load_cypher_node(q, {'id': self.association.node_id, 'path': path})
         if child is None:
             raise(ValueError('Child system %s from %s [%s] was not found.'
                              % (path, str(self), str(self.association.node_id))))
