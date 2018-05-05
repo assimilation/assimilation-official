@@ -43,6 +43,7 @@ import errno
 import hashlib
 import json
 import sqlite3
+import string
 
 if hasattr(os, 'syncfs'):
     syncfs = getattr(os, 'syncfs')
@@ -551,7 +552,8 @@ class SQLiteInstance(object):
         :param inchars: str: input characters
         :return: sanitized string
         """
-        return ''.join(char for char in inchars if char.isalnum())
+        sanitize_charset = string.letters + string.digits + '_'
+        return ''.join(char for char in inchars if char in sanitize_charset)
 
     def table_name(self, name):
         """
@@ -581,7 +583,6 @@ class SQLiteInstance(object):
 
         if table not in self.hash_tables:
             self.create_hash_table(table)
-            self.hash_tables.add(table)
 
     def execute(self, sql_statement, *args):
         """
@@ -617,6 +618,7 @@ class SQLiteInstance(object):
         sql = ('CREATE TABLE %s(hash varchar unique, data varchar, integer current default 1);'
                % self.table_name(table))
         self.execute(sql)
+        self.hash_tables.add(table)
 
     def put(self, table, datahash, data):
         """
