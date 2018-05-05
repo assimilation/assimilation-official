@@ -1170,7 +1170,6 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 					_fsprotocol_fsa(fspe, FSPROTO_OUTALLDONE, fs);
 				}
 			}else{
-				fspe->nextrexmit = now + self->rexmit_interval;
 				fspe->acktimeout = now + self->acktimeout;
 				TRYXMIT(fspe);
 			}
