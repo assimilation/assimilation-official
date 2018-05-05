@@ -753,8 +753,8 @@ class Subnet(GraphNode):
         self.name = str(self)
         if self.cidrmask > 128:
             raise ValueError('Illigal CIDR mask')
-        print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s) => %s'
-              % (domain, ipaddr, cidrmask, context, net_segment, str(self)), file=stderr)
+        # print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s) => %s'
+        #       % (domain, ipaddr, cidrmask, context, net_segment, str(self)), file=stderr)
         assert context is None or isinstance(context, (str, unicode))
         assert not str(self).startswith('::/')
 
@@ -968,8 +968,8 @@ class Subnet(GraphNode):
         :return: True or False
         """
         base_ip = pyNetAddr(ipaddr).and_with_cidr(self.cidrmask)
-        print("Comparing subnet %s IPaddr %s anded with %s [%s]"
-              % (self._ipaddr, ipaddr, self.cidrmask, base_ip), file=stderr)
+        # print("Comparing subnet %s IPaddr %s anded with %s [%s]"
+        #       % (self._ipaddr, ipaddr, self.cidrmask, base_ip), file=stderr)
         return base_ip == self._ipaddr
 
     def __eq__(self, other):
