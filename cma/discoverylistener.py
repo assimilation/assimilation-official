@@ -255,7 +255,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 ipname = ipinfo.get('name', ':::INVALID:::')
                 # if ipinfo['scope'] != 'global':
                 #     continue
-                print('PROCESSING IP %s' % ip, file=stderr)
+                # print('PROCESSING IP %s' % ip, file=stderr)
                 iponly, cidrmask = ip.split('/')
                 netaddr = pyNetAddr(iponly).toIPv6()
                 subnet_context = drone.designation if mac.virtual else '__GLOBAL__'
@@ -266,7 +266,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                                             cidrmask=int(cidrmask),
                                             context=subnet_context,
                                             net_segment=net_segments[macaddr])
-                print('Creating/Finding IP %s' % str(netaddr), file=stderr)
+                # print('Creating/Finding IP %s' % str(netaddr), file=stderr)
                 if subnet is None:
                     subnet = self.store.load_or_create(Subnet,
                                                        domain=drone.domain,
@@ -274,8 +274,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                                                        cidrmask=int(cidrmask),
                                                        context=subnet_context,
                                                        net_segment=net_segments[macaddr])
-                print('Creating/Finding IP %s on subnet [%s]' % (str(netaddr), str(subnet)),
-                      file=stderr)
+                # print('Creating/Finding IP %s on subnet [%s]' % (str(netaddr), str(subnet)),
+                #       file=stderr)
                 ipnode = self.store.load_or_create(IPaddrNode,
                                                    ipaddr=str(netaddr),
                                                    domain=drone.domain,
