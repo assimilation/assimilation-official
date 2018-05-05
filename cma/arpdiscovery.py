@@ -210,7 +210,7 @@ class ArpDiscoveryListener(DiscoveryListener):
             for ip in ip_list:
                 mac_ip_pairs.append((mac, ip))
         segment = NetworkSegment.guess_net_segment(self.store, device.domain, mac_ip_pairs)
-        self.store.log.debug("Guess_net_segment() returned %s" % segment)
+        self.log.debug("Guess_net_segment() returned %s" % segment)
         if segment is None:
             result = self.store.load_or_create(NetworkSegment, domain=device.domain)
         else:
@@ -252,20 +252,22 @@ class ArpDiscoveryListener(DiscoveryListener):
         mac_list = []
         ip_list = []
         for mac, ip_list in mac_ip_table.viewitems():
-            mac_list.append(mac)
+            mac_list.append(str(mac))
             for ip in ip_list:
                 mac_ip_pairs.add((mac, ip))
-                ip_list.append(ip)
+                ip_list.append(str(ip))
         parameters = {
             'ipaddrs': ip_list,
             'macaddrs': mac_list,
-            'net_segment': net_segment
+            'net_segment': str(net_segment)
         }
         missing_pairs = mac_ip_pairs
         found_pairs = set()
         found_subnets = set()
         subnet_names = set()
 
+        print('MAC_IP_QUERY:', mac_ip_query, parameters)
+        self.log.info('MAC_IP_QUERY: %s::%s'% (mac_ip_query, str(parameters)))
         for mac, ip in self.store.load_cypher_query(mac_ip_query, parameters):
             if (mac.macaddr, ip.ipaddr) not in missing_pairs:
                 # Could be a mismatched pair or a new/old IP for this same MAC
