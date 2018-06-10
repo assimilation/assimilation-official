@@ -1,0 +1,58 @@
+[leam@shaphan testcode]$ ./test_discovery.sh 
+Discovery test auditd_conf succeeded.
+Discovery test findmnt succeeded.
+Discovery test login_defs succeeded.
+Discovery test mdadm succeeded.
+Discovery test nsswitch succeeded.
+Discovery test pam succeeded.
+Discovery test partitions succeeded.
+Discovery test sshd succeeded.
+Discovery test sudoers succeeded.
+cmp: EOF on /home/leam/lang/git/assimilation-official/testcode/./discovery_output/passwd.pretty
+ERROR: Discovery output passwd was incorrect (has changed).
+Diff -u follows
+--- /home/leam/lang/git/assimilation-official/testcode/./discovery_output/passwd.pretty 2016-04-19 19:16:11.775661088 -0400
++++ /tmp/19677.testout.pretty 2016-04-19 19:16:11.771661116 -0400
+@@ -0,0 +1,41 @@
++{ "data" : { "assimilation" : { "comment" : "Assimilation Collective Management Authority",
++          "gid" : 483,
++          "home" : "/home/assimilation",
++          "placeholder" : "x",
++          "shell" : "/sbin/nologin",
++          "uid" : 491
++        },
++      "mailnull" : { "comment" : "",
++          "gid" : 47,
++          "home" : "/var/spool/mqueue",
++          "placeholder" : "x",
++          "shell" : "/sbin/nologin",
++          "uid" : 47
++        },
++      "memcached" : { "comment" : "Memcached daemon",
++          "gid" : 488,
++          "home" : "/var/run/memcached",
++          "placeholder" : "x",
++          "shell" : "/sbin/nologin",
++          "uid" : 493
++        },
++      "neo4j" : { "comment" : "",
++          "gid" : 484,
++          "home" : "/usr/share/neo4j",
++          "placeholder" : "x",
++          "shell" : "/bin/false",
++          "uid" : 492
++        },
++      "smmsp" : { "comment" : "",
++          "gid" : 51,
++          "home" : "/var/spool/mqueue",
++          "placeholder" : "x",
++          "shell" : "/sbin/nologin",
++          "uid" : 51
++        }
++    },
++  "description" : "passwd information",
++  "discovertype" : "passwd",
++  "host" : "FAKETESTHOST",
++  "source" : "../../discovery_agents/passwd"
++}
+

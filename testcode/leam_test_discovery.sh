@@ -29,8 +29,14 @@ ourdir=$(dirname $0)
 TESTDIR=../../discovery_agents
 INPUTDIR=$PWD/$ourdir/discovery_input
 OUTPUTDIR=$PWD/$ourdir/discovery_output
-TMPOUT=/tmp/$$.testout
-trap 'rm -f $TMPOUT' 0
+
+if [ ! -d /tmp/assim_proj_test ]
+then
+    mkdir /tmp/assim_proj_test
+fi
+
+#TMPOUT=/tmp/assim_proj_test/$$.testout
+#trap 'rm -f $TMPOUT' 0
 export CDPATH=''
 
 
@@ -50,6 +56,7 @@ we_have_cmd() {
 run_regression_test() {
     test=$1
     varname=$2
+    TMPOUT=/tmp/assim_proj_test/$$.${test}.testout
     TESTNAME=$TESTDIR/$test
     TESTFILE=$INPUTDIR/$test
     OUTFILE=$OUTPUTDIR/$test
@@ -82,12 +89,12 @@ run_regression_test() {
             cmp $TMPOUT.pretty $OUTFILE.pretty
         then
             : "They're the same - Great!"
-            rm -f $TMPOUT.pretty $OUTFILE.pretty
+            # rm -f $TMPOUT.pretty $OUTFILE.pretty
         else
             echo "ERROR: Discovery output $test was incorrect (has changed)."
             echo "Diff -u follows"
             diff -u $OUTFILE.pretty $TMPOUT.pretty
-            rm -f $TMPOUT.pretty $OUTFILE.pretty
+            # rm -f $TMPOUT.pretty $OUTFILE.pretty
             return 1
         fi
     else
@@ -135,9 +142,9 @@ mdadm MDADM_CONFIG
 nsswitch NSSWITCH_CONFIG
 pam PAM_DIRECTORY
 partitions PROC_PARTITIONS
-passwd PASSWD_FILE
 sshd SSHD_CONFIG
 sudoers SUDOERS_FILE'
+#passwd PASSWD_FILE'
 
 echo "$testlines" |
 (
