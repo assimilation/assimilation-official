@@ -5,8 +5,8 @@
 #
 # Copyright (C) 2011, 2012 - Alan Robertson <alanr@unix.sh>
 #
-#  The Assimilation software is free software: you can redistribute it and/or modify 
-#  it under the terms of the GNU General Public License as published by
+#  The Assimilation software is free software: you can redistribute it and/or
+#  modify it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
@@ -19,10 +19,13 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+from __future__ import print_function
 _suites = ['all', 'cclass']
-import sys, os
+import os
+import sys
+from sys import stderr
 import traceback
-#traceback.print_exc()
+#traceback.print_exc(, file=stderr)
 sys.path.append("..")
 sys.path.append("../cma")
 os.environ['G_MESSAGES_DEBUG'] =  'all'
@@ -37,7 +40,6 @@ from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
 DEBUG=False
-DEBUG=True
 BROKENDNS=False
 if 'BROKENDNS' in os.environ:
     BROKENDNS=True
@@ -46,9 +48,9 @@ CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
 
 if not CheckForDanglingClasses:
-    print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
+    print('WARNING: Memory Leak Detection disabled.', file=stderr)
 elif not AssertOnDanglingClasses:
-    print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
+    print('WARNING: Memory Leak assertions disabled (detection still enabled).', file=stderr)
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -61,9 +63,9 @@ def assert_no_dangling_Cclasses():
         WorstDanglingCount = count
         if AssertOnDanglingClasses:
             dump_c_objects()
-            raise AssertionError, "Dangling C-class objects - %d still around" % count
+            raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
-            print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
+            print("*****ERROR: Dangling C-class objects - %d still around" % count, file=stderr)
 
 class TestCase(object):
     def assertEqual(self, a, b):
@@ -86,14 +88,14 @@ class TestCase(object):
             return True
 
     def teardown_method(self, method):
-        print '__del__ CALL for %s' % str(method)
+        print('__del__ CALL for %s' % str(method), file=stderr)
         assert_no_dangling_Cclasses()
 
 
 class TestpyNetAddr(TestCase):
     "A pyNetAddr is a network address of some kind... - let's test it"
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyNetAddrTest)"
+        if DEBUG: print("===============test_constructor(pyNetAddrTest)", file=stderr)
         ipv4 = pyNetAddr((1,2,3,4),)
         ipv4b = pyNetAddr((1,2,3,5),)
         mac48 = pyNetAddr((1,2,3,4,5,6),)
@@ -153,7 +155,7 @@ class TestpyNetAddr(TestCase):
         counter = 0
         masks = (128, 44, 48, 64)
         for result in (one, one_mask44, one_mask48, one_mask64):
-            print >> sys.stderr, ('COUNTER:', counter)
+            print('COUNTER:', counter, file=stderr)
             test_data = pyNetAddr(one)
             test_data.and_with_cidr(masks[counter])
             assert test_data == result
@@ -200,7 +202,7 @@ class TestpyNetAddr(TestCase):
 
     def test_ipv6_str(self): 
         'Test the str() function for ipv6 - worth a separate test.'
-        if DEBUG: print >>sys.stderr, "===============test_ipv6_str(pyNetAddrTest)"
+        if DEBUG: print("===============test_ipv6_str(pyNetAddrTest)", file=stderr)
         ipv6 = pyNetAddr((0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),)
         self.assertEqual(str(ipv6),"::")
         ipv6 = pyNetAddr((0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,01),)
@@ -219,7 +221,7 @@ class TestpyNetAddr(TestCase):
 
     def test_ipv4_strinit(self): 
         'Test constructing ipv4 addresses from strings.'
-        if DEBUG: print >>sys.stderr, "===============test_ipv4_strinit(pyNetAddrTest)"
+        if DEBUG: print("===============test_ipv4_strinit(pyNetAddrTest)", file=stderr)
         ipv4 = pyNetAddr('1.2.3.4')
         self.assertEqual(str(ipv4),'1.2.3.4')
         ipv4 = pyNetAddr('1.2.3.5')
@@ -295,7 +297,7 @@ class TestpyNetAddr(TestCase):
         if DEBUG:
             for j in range(1,5):
                 proj_class_incr_debug('NetAddr')
-        if DEBUG: print >>sys.stderr, "===============test_ipv6_strinit(pyNetAddrTest)"
+        if DEBUG: print("===============test_ipv6_strinit(pyNetAddrTest)", file=stderr)
         ipv6 = pyNetAddr('::1')
         self.assertEqual(str(ipv6),'::1')
 
@@ -351,7 +353,7 @@ class TestpyNetAddr(TestCase):
         if DEBUG:
             for j in range(1,5):
                 proj_class_incr_debug('NetAddr')
-        if DEBUG: print >>sys.stderr, "===============test_DNS_strinit(pyNetAddrTest)"
+        if DEBUG: print("===============test_DNS_strinit(pyNetAddrTest)", file=stderr)
         addr1 = pyNetAddr('www.linux-ha.org:80')
         self.assertEqual(addr1.port(), 80)
         try:
@@ -395,13 +397,13 @@ class TestpyFrame(TestCase):
        This base class just has a generic binary blob with no special
        properties.  They are all valid (if they have a value)'''
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyFrameTest)"
+        if DEBUG: print("===============test_constructor(pyFrameTest)", file=stderr)
         pyf = pyFrame(100)
         self.assertEqual(pyf.frametype(), 100)
         self.assertTrue(pyf.isvalid())
 
     def test_setvalue(self): 
-        if DEBUG: print >>sys.stderr, "===============test_setvalue(pyFrameTest)"
+        if DEBUG: print("===============test_setvalue(pyFrameTest)", file=stderr)
         pyf = pyFrame(101)
         pyf.setvalue('fred')
         self.assertTrue(pyf.isvalid())
@@ -412,7 +414,7 @@ class TestpyFrame(TestCase):
 class TestpyAddrFrame(TestCase):
     'An AddrFrame wraps a NetAddr for sending on the wire'
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyAddrFrameTest)"
+        if DEBUG: print("===============test_constructor(pyAddrFrameTest)", file=stderr)
         pyf = pyAddrFrame(200, addrstring=(1,2,3,4))
         self.assertEqual(pyf.frametype(), 200)
         self.assertEqual(pyf.framelen(), 6)
@@ -425,7 +427,7 @@ class TestpyAddrFrame(TestCase):
 class TestpyIpPortFrame1(TestCase):
     'An IpPortFrame wraps a NetAddr (with port!) for sending on the wire'
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, '===============test_constructor(pyIpPortFrameTest1)'
+        if DEBUG: print('===============test_constructor(pyIpPortFrameTest1)', file=stderr)
         addrv4=pyNetAddr('1.2.3.4:1984')
         py4 = pyIpPortFrame(201, addrv4)
         self.assertEqual(py4.frametype(), 201)
@@ -444,7 +446,7 @@ class TestpyIpPortFrame1(TestCase):
 class TestpyIpPortFrame2(TestCase):
     'An AddrFrame wraps a NetAddr *with a port* for sending on the wire'
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyIpAddrFrameTest)"
+        if DEBUG: print("===============test_constructor(pyIpAddrFrameTest)", file=stderr)
         pyf = pyIpPortFrame(200, (1,2,3,4), 1984)
         self.assertEqual(pyf.frametype(), 200)
         self.assertEqual(pyf.framelen(), 8)
@@ -469,7 +471,7 @@ class TestpyIpPortFrame2(TestCase):
 class TestpyIntFrame(TestCase):
     'An IntFrame wraps various sizes of unsigned integers for sending on the wire'
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "========================test_constructor(pyIntFrameTest)"
+        if DEBUG: print("========================test_constructor(pyIntFrameTest)", file=stderr)
         # Test a variety of illegal/unsupported integer sizes
         for size in (5, 6, 7, 9, 10):
             self.assertRaises(ValueError, pyIntFrame, 300+size-1, intbytes=size)
@@ -483,7 +485,7 @@ class TestpyIntFrame(TestCase):
 
     def test_set(self): 
         'Test setting integer values for all the size integers'
-        if DEBUG: print >>sys.stderr, "========================test_set(pyIntFrameTest)"
+        if DEBUG: print("========================test_set(pyIntFrameTest)", file=stderr)
         for size in (1, 2, 3, 4, 8):
             pyf = pyIntFrame(320, initval=0, intbytes=size)
             val = 42 + size
@@ -495,7 +497,7 @@ class TestpyIntFrame(TestCase):
 class TestpyUnknownFrame(TestCase):
     "An unknown frame is one we don't recognize the type of."
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "========================test_constructor(pyUnknownFrameTest)"
+        if DEBUG: print("========================test_constructor(pyUnknownFrameTest)", file=stderr)
         pyf = pyUnknownFrame(400)
         self.assertEqual(pyf.frametype(), 400)
         # All Unknown frames are invalid...
@@ -505,7 +507,7 @@ class TestpyUnknownFrame(TestCase):
 class TestpySeqnoFrame(TestCase):
     'A SeqnoFrame is a frame wrapping an ordered pair for a sequence number'
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "========================test_constructor(pySeqnoFrameTest)"
+        if DEBUG: print("========================test_constructor(pySeqnoFrameTest)", file=stderr)
         pyf = pySeqnoFrame(500)
         self.assertEqual(pyf.frametype(), 500)
         self.assertTrue(pyf.isvalid())
@@ -515,7 +517,7 @@ class TestpySeqnoFrame(TestCase):
 
     def test_reqid(self):
         'reqid is the request id of a sequence number'
-        if DEBUG: print >>sys.stderr, "========================test_reqid(pySeqnoFrameTest)"
+        if DEBUG: print("========================test_reqid(pySeqnoFrameTest)", file=stderr)
         pyf = pySeqnoFrame(502)
         pyf.setreqid(42)
         self.assertEqual(pyf.getreqid(), 42)
@@ -524,7 +526,7 @@ class TestpySeqnoFrame(TestCase):
 
     def test_qid(self):
         'qid is analogous to a port - it is the id of a queue on the other side'
-        if DEBUG: print >>sys.stderr, "========================test_qid(pySeqnoFrameTest)"
+        if DEBUG: print("========================test_qid(pySeqnoFrameTest)", file=stderr)
         pyf = pySeqnoFrame(503)
         pyf.setqid(6)
         self.assertEqual(pyf.getqid(), 6)
@@ -533,7 +535,7 @@ class TestpySeqnoFrame(TestCase):
 
     def test_equal(self):
         'A bit of overkill, but nothing really wrong with it'
-        if DEBUG: print >>sys.stderr, "========================test_equal(pySeqnoFrameTest)"
+        if DEBUG: print("========================test_equal(pySeqnoFrameTest)", file=stderr)
         seqFrame1 = pySeqnoFrame( 504, (1,1))
         seqFrame1b = pySeqnoFrame(505, (1,1))
         seqFrame2 = pySeqnoFrame( 506, (1,2))
@@ -575,7 +577,7 @@ class TestpyCstringFrame(TestCase):
     '''A CstringFrame is a frame which can only hold NUL-terminated C strings.
        The last byte must be the one and only NUL character in a CstringFrame value.'''
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "========================test_constructor(pyCstringFrameTest)"
+        if DEBUG: print("========================test_constructor(pyCstringFrameTest)", file=stderr)
         pyf = pyCstringFrame(600, "Hello, World.")
         self.assertTrue(pyf.isvalid())
         self.assertEqual(str(pyf), '600: CstringFrame(600, "Hello, World.")')
@@ -588,7 +590,7 @@ class TestpyCstringFrame(TestCase):
 class TestpySignFrame(TestCase):
     'A SignFrame is a digital signature frame.'
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "========================test_constructor(pySignFrameTest)"
+        if DEBUG: print("========================test_constructor(pySignFrameTest)", file=stderr)
         pyf = pySignFrame(1) # the 1 determines the type of digital signature
         self.assertTrue(pyf.isvalid())
         self.assertRaises(ValueError, pySignFrame, 935) # Just a random invalid signature type
@@ -605,12 +607,12 @@ class TestpyFrameSet(TestCase):
         return s
 
     def test_constructor(self): 
-        if DEBUG: print >>sys.stderr, "========================test_constructor(TestpyFrameSet)"
+        if DEBUG: print("========================test_constructor(TestpyFrameSet)", file=stderr)
         pyf = pyFrameSet(700) # The 700 is the frameset (message) type
         self.assertEqual(pyf.get_framesettype(), 700)
 
     def test_flags(self): 
-        if DEBUG: print >>sys.stderr, "========================test_flags(TestpyFrameSet)"
+        if DEBUG: print("========================test_flags(TestpyFrameSet)", file=stderr)
         'Flags are bit masks, to be turned on or off. They are 16-bits only.'
         pyf = pyFrameSet(701)
         self.assertEqual(pyf.get_flags(), 0x00)
@@ -629,7 +631,7 @@ class TestpyFrameSet(TestCase):
 
     def test_buildlistforward(self):
         'Build a FrameSet using append and verify that it gets built right'
-        if DEBUG: print >>sys.stderr, "========================test_buildlistforward(TestpyFrameSet)"
+        if DEBUG: print("========================test_buildlistforward(TestpyFrameSet)", file=stderr)
         pyfs = pyFrameSet(702)
         sign = pySignFrame(1) # digital signature frame
         flist = (pyFrame(703), pyAddrFrame(704, (42,42,42,42)), pyIntFrame(705,42),
@@ -676,7 +678,7 @@ class TestpyFrameSet(TestCase):
     def test_buildlistbackwards(self):
         '''Build a FrameSet using prepend and verify that it gets built right.
            Similar to the append testing above, but backwards ;-)'''
-        if DEBUG: print >>sys.stderr, "========================test_buildlistbackwards(TestpyFrameSet)"
+        if DEBUG: print("========================test_buildlistbackwards(TestpyFrameSet)", file=stderr)
         pyfs = pyFrameSet(707)
         sign = pySignFrame(1)
         flist = (pyFrame(708), pyAddrFrame(709, (42,42,42,42)), pyIntFrame(710,42), pyCstringFrame(711, "HhGttG"),
@@ -695,12 +697,12 @@ class TestpyFrameSet(TestCase):
             self.assertEqual(f.frametype(), y.frametype())
             self.assertEqual(type(f), type(y))
             self.assertEqual(f.__class__, y.__class__)
-            if DEBUG: print >>sys.stderr, "Classes are", f.__class__, "lens are", f.framelen(), y.framelen()
+            if DEBUG: print("Classes are", f.__class__, "lens are", f.framelen(), y.framelen(), file=stderr)
             self.assertEqual(f.framelen(), y.framelen())
 
     def test_buildpacket(self):
         'Build a FrameSet, then make it into a packet, and make a frameset list out of the packet'
-        if DEBUG: print >>sys.stderr, "========================test_buildpacket(TestpyFrameSet)"
+        if DEBUG: print("========================test_buildpacket(TestpyFrameSet)", file=stderr)
         pyfs = pyFrameSet(801)
         sign = pySignFrame(1) # digital signature frame
         flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.WALLCLOCK,42), pyCstringFrame(FrameTypes.INTERFACE, "HhGttG"),
@@ -709,20 +711,20 @@ class TestpyFrameSet(TestCase):
                  pySeqnoFrame(FrameTypes.REQID, (42, 424242424242)),
                  pyIpPortFrame(FrameTypes.IPPORT, (1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 1984),
                  pyIntFrame(FrameTypes.CINTVAL,4242, intbytes=3))
-        if DEBUG: print >>sys.stderr, "flist:", flist
+        if DEBUG: print("flist:", flist, file=stderr)
         decoder = pyPacketDecoder()
         for frame in flist:
             pyfs.append(frame)
         pyfs.construct_packet(sign)
-        if DEBUG: print >>sys.stderr, "packet constructed"
+        if DEBUG: print("packet constructed", file=stderr)
         xlist=[]
         for frame in pyfs.iter():
             xlist.append(frame)
-        if DEBUG: print >>sys.stderr, "xlist constructed"
+        if DEBUG: print("xlist constructed", file=stderr)
         pktdata = pyfs.getpacket()
-        if DEBUG: print >>sys.stderr, "getpacket done", pktdata
+        if DEBUG: print("getpacket done", pktdata, file=stderr)
         cp_pyfs = decoder.fslist_from_pktdata(pktdata)
-        if DEBUG: print >>sys.stderr, "decoder done", cp_pyfs
+        if DEBUG: print("decoder done", cp_pyfs, file=stderr)
         fs0 = cp_pyfs[0]
         ylist=[]
         for frame in fs0.iter():
@@ -745,7 +747,7 @@ class TestpyFrameSet(TestCase):
 class TestpyConfigContext(TestCase):
 
     def test_constructor(self):
-        if DEBUG: print >>sys.stderr, "===============test_constructor(pyConfigContextTest)"
+        if DEBUG: print("===============test_constructor(pyConfigContextTest)", file=stderr)
         pyConfigContext()
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),) })
         foo = pyConfigContext(init={'int1': 42, 'str1': 'forty-two', 'bar': pyNetAddr((1,2,3,4),), 'csf': pyCstringFrame(42, '41+1')})
@@ -766,13 +768,13 @@ class TestpyConfigContext(TestCase):
         self.assertEqual(str(foo), '{"bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"str1":"forty-two"}')
 
         foo['isf'] = pyIntFrame(310, initval=42, intbytes=3)
-        if DEBUG: print >>sys.stderr, "test_constructor.18(pyConfigContextTest)"
+        if DEBUG: print("test_constructor.18(pyConfigContextTest)", file=stderr)
         self.assertEqual(str(foo),
         	'{"bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")","int1":42,"isf":"IntFrame(310, 3, 42)","str1":"forty-two"}')
-        if DEBUG: print >>sys.stderr, "test_constructor.19(pyConfigContextTest)"
+        if DEBUG: print("test_constructor.19(pyConfigContextTest)", file=stderr)
 
     def test_string(self):
-        if DEBUG: print >>sys.stderr, "test_string(pyConfigContextTest)"
+        if DEBUG: print("test_string(pyConfigContextTest)", file=stderr)
         foo = pyConfigContext()
         foo['arthur'] = 'dent'
         foo['seven'] = 'ofnine'
@@ -793,7 +795,7 @@ class TestpyConfigContext(TestCase):
         self.assertEqual(str(foo), '{"JeanLuc":"Locutus","arthur":"dent","important":"towel","integer":42,"seven":"7"}')
 
     def test_int(self):
-        if DEBUG: print >>sys.stderr, "test_int(pyConfigContextTest)"
+        if DEBUG: print("test_int(pyConfigContextTest)", file=stderr)
         foo = pyConfigContext()
         foo['arthur'] = 42
         foo['seven'] = 9
@@ -813,7 +815,8 @@ class TestpyConfigContext(TestCase):
         self.assertEqual(str(foo), str(bar))
 
     def test_child_ConfigContext(self):
-        if DEBUG: print >>sys.stderr, "========================test_child_ConfigContext(pyConfigContextTest)"
+        if DEBUG: print("========================test_child_ConfigContext(pyConfigContextTest)",
+                        file=stderr)
         foo = pyConfigContext()
         foo['ford'] = 'prefect'
         baz = pyConfigContext()
@@ -822,24 +825,28 @@ class TestpyConfigContext(TestCase):
         bar = pyConfigContext()
         bar['hhgttg'] = foo
         bar['voyager'] = baz
-        if DEBUG: print >>sys.stderr, "EQUAL TEST"
+        if DEBUG:
+            print("EQUAL TEST")
         self.assertEqual(str(bar), '{"hhgttg":{"ford":"prefect"},"voyager":{"Kathryn":"Janeway","there\'s no place like":"127.0.0.1"}}')
         # We make a new pyConfigContext object from the str() of another one.  Cool!
-        if DEBUG: print >>sys.stderr, "JSON TEST"
+        if DEBUG:
+            print("JSON TEST")
         bar2 = pyConfigContext(str(bar))
-        if DEBUG: print >>sys.stderr, "JSON COMPARE"
+        if DEBUG: print("JSON COMPARE", file=stderr)
         self.assertEqual(str(bar), str(bar2))
         self.assertEqual(bar["voyager"]["Kathryn"], "Janeway")
         self.assertEqual(bar["hhgttg"]["ford"], "prefect")
         self.assertEqual(bar2["voyager"]["Kathryn"], "Janeway")
         self.assertEqual(bar2["hhgttg"]["ford"], "prefect")
-        if DEBUG: print >>sys.stderr, "COMPARE DONE"
+        if DEBUG: print("COMPARE DONE", file=stderr)
         #	However... The pyNetAddr() was turned into a mere string :-( - at least for the moment... Sigh...
-        if DEBUG: print >>sys.stderr, "END OF ========================test_child_ConfigContext(pyConfigContextTest)"
+        if DEBUG:
+            print("END OF ========================test_child_ConfigContext(pyConfigContextTest)",
+                  file=stderr)
 
 
     def test_keys(self):
-        if DEBUG: print >>sys.stderr, "===============test_keys(pyConfigContextTest)"
+        if DEBUG: print("===============test_keys(pyConfigContextTest)", file=stderr)
         foo = pyConfigContext()
         foo['arthur'] = 'dent'
         foo['seven'] = 'ofnine'
@@ -849,14 +856,14 @@ class TestpyConfigContext(TestCase):
         self.assertEqual(str(foo.keys()), "['JeanLuc', 'arthur', 'important', 'integer', 'seven']")
 
     def test_ConfigContext_array(self):
-        if DEBUG: print >>sys.stderr, "===============textConfigContext_array(pyConfigContextTest)"
+        if DEBUG: print("===============textConfigContext_array(pyConfigContextTest)", file=stderr)
         array1str = '{"a":[1,2,3,4,"a",{"b":true},[5,6,7,8,3.14]]}'
         array1config = pyConfigContext(array1str)
         self.assertEqual(array1str, str(array1config))
 
     def test_ConfigContext_array_with_netaddr(self):
         'This problem actually occurred - hence the test case...'
-        if DEBUG: print >>sys.stderr, "===============textConfigContext_array_with_netaddr(pyConfigContextTest)"
+        if DEBUG: print("===============textConfigContext_array_with_netaddr(pyConfigContextTest)", file=stderr)
         array1str = '{"a":["1.2.3.4",1,2,3,4,"a",{"b":true},[5,6,7,8,3.14,"10.10.10.1"],"::1"]}'
         array1str = '{"a":["1.2.3.4"]}'
         array1config = pyConfigContext(array1str)
@@ -865,7 +872,7 @@ class TestpyConfigContext(TestCase):
 
     def test_kitchen_sink(self):
         if DEBUG:
-            print >> sys.stderr, "===============testConfigContext_kitchen_sink(pyConfigContextTest)"
+            print("===============testConfigContext_kitchen_sink(pyConfigContextTest)", file=stderr)
             for j in range(1,5):
                 proj_class_incr_debug('NetAddr')
         strings = [
@@ -884,30 +891,35 @@ class TestpyConfigContext(TestCase):
                     '{"cmdline":["192.168.122.1",false]}',
                   ]
         for s in strings:
-            if DEBUG: print >>sys.stderr, ('Creating pyConfigContext("%s")' % s)
+            if DEBUG: print('Creating pyConfigContext("%s")' % s, file=stderr)
             sc = pyConfigContext(s)
-            if DEBUG: print >>sys.stderr, ('sc.keys() == %s' % sc.keys())
+            if DEBUG: print('sc.keys() == %s' % sc.keys(), file=stderr)
             for key in sc.keys():
                 elemcount=0
-                if DEBUG: print >>sys.stderr, ('Looking at key %s: sc[key] = %s' % (key, sc[key]))
+                if DEBUG: print('Looking at key %s: sc[key] = %s' % (key, sc[key]), file=stderr)
                 for elem in sc[key]:
-                    if DEBUG: print >>sys.stderr, ('Looking at element %s' % str(elem))
+                    if DEBUG: print('Looking at element %s' % str(elem), file=stderr)
                     self.assertNotEqual(str(elem), "")
                     if isinstance(elem, pyAssimObj):
-                        if DEBUG: print '++++++++++++++++++ REFCOUNT(%s): %d' % (str(elem), elem.refcount())
+                        if DEBUG:
+                            print('++++++++++++++++++ REFCOUNT(%s): %d'
+                                  % (str(elem), elem.refcount()), file=stderr)
                         #CCref(elem._Cstruct)
                         self.assertEqual(elem.refcount(), 2)
                         if DEBUG:
                             gc.collect()
-                            print >>sys.stderr, ":::::::::::::GC GARBAGE: %s" % gc.garbage
+                            print(":::::::::::::GC GARBAGE: %s" % gc.garbage, file=stderr)
                         foo=elem._Cstruct[0]
                         while (hasattr(foo, 'baseclass')):
                             foo=foo.baseclass
                         if DEBUG:
-                            print >>sys.stderr, ":::::::::::::GC refcount %d, REFERRERS: %s" % (sys.getrefcount(elem), gc.get_referrers(elem))
-                            print >>sys.stderr, ":::::::::::::FOO: %s" % foo
+                            print(":::::::::::::GC refcount %d, REFERRERS: %s"
+                                  % (sys.getrefcount(elem), gc.get_referrers(elem)), file=stderr)
+                            print(":::::::::::::FOO: %s" % foo, file=stderr)
                         del elem
-                        if DEBUG: print '++++++++++++++++++ REFCOUNT SECOND VERSE: %s' % (foo._refcount)
+                        if DEBUG:
+                            print('++++++++++++++++++ REFCOUNT SECOND VERSE: %s:%s'
+                                  % (foo._refcount), file=stderr)
 
                 elemcount += 1
         if DEBUG:
@@ -952,14 +964,14 @@ class TestpyConfigContext(TestCase):
 class TestpyNetIOudp(TestCase):
 
     def test_constructor(self):
-        if DEBUG: print >>sys.stderr, "========================test_constructor(pyNetIOudpTest)"
+        if DEBUG: print("========================test_constructor(pyNetIOudpTest)", file=stderr)
         config = pyConfigContext(init={'outsig': pySignFrame(1)})
         io = pyNetIOudp(config, pyPacketDecoder())
         self.assertTrue(io.fileno() >  2)
         io.config = None
 
     def test_members(self):
-        if DEBUG: print >>sys.stderr, "========================test_members(pyNetIOudpTest)"
+        if DEBUG: print("========================test_members(pyNetIOudpTest)", file=stderr)
         io = pyNetIOudp(pyConfigContext(init={'outsig': pySignFrame(1)}), pyPacketDecoder())
         self.assertTrue(io.getmaxpktsize() >  65000)
         self.assertTrue(io.getmaxpktsize() <  65535)
@@ -970,7 +982,7 @@ class TestpyNetIOudp(TestCase):
         io.config = None
 
     def test_send(self):
-        if DEBUG: print >>sys.stderr, "========================test_send(pyNetIOudpTest)"
+        if DEBUG: print("========================test_send(pyNetIOudpTest)", file=stderr)
         home = pyNetAddr((127,0,0,1),1984)
         fs = pyFrameSet(801)
         flist = (pyAddrFrame(FrameTypes.IPADDR, (42,42,42,42)), pyIntFrame(FrameTypes.HBWARNTIME,42), pyCstringFrame(FrameTypes.HOSTNAME, "HhGttG"),
@@ -986,7 +998,7 @@ class TestpyNetIOudp(TestCase):
         io.config = None
 
     def test_receiveandsend(self):
-        if DEBUG: print >>sys.stderr, "========================test_receiveandsend(pyNetIOudpTest)"
+        if DEBUG: print("========================test_receiveandsend(pyNetIOudpTest)", file=stderr)
         home = pyNetAddr("::1", 1984)
         anyaddr = pyNetAddr("::",1984)
         fs = pyFrameSet(801)
@@ -1003,7 +1015,7 @@ class TestpyNetIOudp(TestCase):
         io.bindaddr(anyaddr)
         io.sendframesets(home, fs)		# Send a packet with a single frameset containing a bunch of frames
         (addr, framesetlist) = io.recvframesets()	# Receive a packet - with some framesets in it
-        #print >>sys.stderr, 'ADDR: [%s] HOME: [%s]' % (addr, home)
+        #print('ADDR: [%s] HOME: [%s]' % (addr, home, file=stderr)
         self.assertEqual(addr, home)
         self.assertEqual(len(framesetlist), 1)
         ylist = []
@@ -1021,5 +1033,3 @@ class TestpyNetIOudp(TestCase):
            self.assertEqual(TestpyFrameSet.cmpstring(x), TestpyFrameSet.cmpstring(y))
         io.config = None
 
-if __name__ == "__main__":
-    run()

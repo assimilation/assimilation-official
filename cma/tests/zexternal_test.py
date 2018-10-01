@@ -64,17 +64,17 @@ class TestExternal(object):
 
 
     def runacommand(self, argv, sudo=False):
-        print '\n******RUNNING TEST COMMAND %s' % str(argv)
+        print('\n******RUNNING TEST COMMAND %s' % str(argv))
         findcmd(argv)
         if sudo and os.geteuid() != 0:
             argv.insert(0, sudocmd)
-            print 'ARGV: %s' %  str(argv)
+            print('ARGV: %s' %  str(argv))
         start = datetime.datetime.now()
         subprocess.check_call(argv)    # Will raise exception if non-zero exit
         end = datetime.datetime.now()
         diff = end - start
-        print '\nSUCCESS: %s exited with return code 0 in %s' % (str(argv), diff)
-        pass
+        print('\nSUCCESS: %s exited with return code 0 in %s'
+                % (str(argv), diff))
 
     def  test_valgrind(self):
         self.runacommand(['grind.sh',], sudo=True)

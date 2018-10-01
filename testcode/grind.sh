@@ -20,7 +20,7 @@
 #
 #
 HERE=$(dirname $0)
-REPCOUNT=30
+REPCOUNT=15
 G_MESSAGES_DEBUG=all
 G_SLICE=always-malloc
 export G_MESSAGES_DEBUG G_SLICE

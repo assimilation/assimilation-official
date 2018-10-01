@@ -23,6 +23,7 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+from __future__ import print_function
 _suites = ['all', 'events']
 import sys
 sys.path.append("..")
@@ -57,7 +58,7 @@ def makescript(createdscriptname, outfile):
     f = open(createdscriptname, 'w')
     f.write(script % outfile)
     f.close()
-    os.chmod(createdscriptname, 0755)
+    os.chmod(createdscriptname, 0o0755)
 
 class ClientClass:
     def __init__(self):

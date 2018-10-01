@@ -19,6 +19,7 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+from __future__ import print_function
 _suites = ['all']
 import sys, os, subprocess
 import traceback
@@ -26,6 +27,7 @@ import traceback
 sys.path.append("../cma")
 sys.path.append('..')
 os.environ['G_MESSAGES_DEBUG'] =  'all'
+stderr = sys.stderr
 
 from frameinfo import *
 from AssimCclasses import *
@@ -46,9 +48,9 @@ CheckForDanglingClasses = True
 AssertOnDanglingClasses = True
 
 if not CheckForDanglingClasses:
-    print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
+    print('WARNING: Memory Leak Detection disabled.', file=stderr)
 elif not AssertOnDanglingClasses:
-    print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
+    print('WARNING: Memory Leak assertions disabled (detection still enabled).', file=stderr)
 
 def assert_no_dangling_Cclasses():
     global CheckForDanglingClasses
@@ -63,7 +65,7 @@ def assert_no_dangling_Cclasses():
             dump_c_objects()
             raise AssertionError, "Dangling C-class objects - %d still around" % count
         else:
-            print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
+            print( ("*****ERROR: Dangling C-class objects - %d still around" % count), file=stderr)
 
 class TestCase(object):
     def assertEqual(self, a, b):
@@ -86,7 +88,7 @@ class TestCase(object):
             return True
 
     def teardown_method(self, method):
-        print '__del__ CALL for %s' % str(method)
+        print('__del__ CALL for %s' % str(method), file=stderr)
         assert_no_dangling_Cclasses()
 
 def findfile(f):
@@ -102,15 +104,15 @@ def output_json(json):
         process.wait()
 
 def compare_json(lhs, rhs):
-        #print >> sys.stderr, '----> LHS', lhs
-        #print >> sys.stderr, '----> RHS', rhs
+        #print('----> LHS', lhs, file=stderr)
+        #print('----> RHS', rhs, file=stderr)
         lhs = str(pyConfigContext(lhs))
         rhs = str(pyConfigContext(rhs))
         if lhs == rhs:
             return True
-        print 'LHS::::::::::'
+        print('LHS::::::::::')
         output_json(lhs)
-        print 'RHS::::::::::'
+        print('RHS::::::::::')
         output_json(rhs)
         return False
 
@@ -278,12 +280,12 @@ class TestpySwitchDiscovery(TestCase):
         for (f, out) in discovery_files:
             for pcap_entry in pyPcapCapture(findfile(f)):
                 pktstart, pktend, pktlen = pcap_entry
-                #print >> sys.stderr, 'Got %d bytes from %s' % (pktlen, f)
-                #print >> sys.stderr, '----> Got %d bytes from %s' % (pktlen, f)
+                #print('Got %d bytes from %s' % (pktlen, f), file=stderr)
+                #print('----> Got %d bytes from %s' % (pktlen, f), file=stderr)
                 json = self.validate_switch_discovery(f, pktstart, pktend)
-                #print >> sys.stderr, '<---- Done processing %d bytes from %s' % (pktlen, f)
+                #print('<---- Done processing %d bytes from %s' % (pktlen, f), file=stderr)
                 assert compare_json(out, json)
-        print 'Passed %d switch discovery tests' % (len(discovery_files))
+        print('Passed %d switch discovery tests' % (len(discovery_files)))
 
     def not_a_test_output(self):
         files = (
@@ -301,7 +303,7 @@ class TestpySwitchDiscovery(TestCase):
         for f in files:
             for pcap_entry in pyPcapCapture(findfile(f)):
                 pktstart, pktend, pktlen = pcap_entry
-                print ("('%s','''" % f)
+                print("('%s','''" % f)
                 sys.stdout.flush()
                 output_json(self.validate_switch_discovery(f, pktstart, pktend))
                 print("'''),")

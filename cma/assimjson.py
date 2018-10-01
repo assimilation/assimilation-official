@@ -27,6 +27,8 @@
 File containing the JSONtree class
 """
 
+from __future__ import print_function, absolute_import
+import six
 import re
 from AssimCclasses import pyConfigContext, pyNetAddr
 
@@ -47,12 +49,12 @@ class JSONtree(object):
         self.maxJSON = maxJSON
 
     def __str__(self):
-        'Convert our internal tree to JSON.'
+        """Convert our internal tree to JSON."""
         return self._jsonstr(self.tree)
 
     @staticmethod
     def _jsonesc(stringthing):
-        'Escape this string according to JSON string escaping rules'
+        """Escape this string according to JSON string escaping rules"""
         stringthing = JSONtree.REESC.sub('\\\\\\\\', stringthing)
         stringthing = JSONtree.REQUOTE.sub('\\\\"', stringthing)
         return stringthing
@@ -60,7 +62,7 @@ class JSONtree(object):
     # R0911 is too many return statements
     # pylint: disable=R0911
     def _jsonstr(self, thing):
-        'Recursively convert ("pickle") this thing to JSON'
+        """Recursively convert ("pickle") this thing to JSON"""
 
         if isinstance(thing, (list, tuple)):
             ret = ''
@@ -91,10 +93,10 @@ class JSONtree(object):
                 return 'true'
             return 'false'
 
-        if isinstance(thing, (int, long, float, pyConfigContext)):
+        if isinstance(thing, (int, float, pyConfigContext)):
             return str(thing)
 
-        if isinstance(thing, (unicode, str, pyNetAddr)):
+        if isinstance(thing, (six.string_types, pyNetAddr)):
             return '"%s"' % (JSONtree._jsonesc(str(thing)))
 
         if thing is None:
@@ -103,11 +105,10 @@ class JSONtree(object):
         return self._jsonstr_other(thing)
 
     def _jsonstr_other(self, thing):
-        'Do our best to make JSON out of a "normal" python object - the final "other" case'
+        """Do our best to make JSON out of a "normal" python object - the final "other" case"""
         ret = '{'
         comma = ''
-        attrs = thing.__dict__.keys()
-        attrs.sort()
+        attrs = sorted(list(thing.__dict__.keys()))
         if hasattr(thing, 'association') and thing.association.node_id is not None:
             ret += '"_node_id": %s' % thing.association.node_id
             comma = ','

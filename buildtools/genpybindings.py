@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number 
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 #   Genpybindings - generate python bindings for Assimilation C classes
 #
 #   usage: genpybindings.py outfile sourceroot buildddir libdir libfile...
-#   
+#
 #   outfile     name of file to put output into
 #   sourceroot  root of source directory tree
 #   buildroot   root of build (binary) directory tree
@@ -20,16 +20,18 @@
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
 #
-#  The Assimilation software is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  The Assimilation software is distributed in the hope that it will be
+#  useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #
 #  You should have received a copy of the GNU General Public License
-#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#  along with the Assimilation Project software.
+#  If not, see http://www.gnu.org/licenses/
 #
 #
 import os, sys
+import ctypesgencore
 glibpkgname='glib-2.0'
 
 def readcmdline(cmd):
@@ -63,7 +65,7 @@ def findincfile(incdirs, filename):
 def find_cpp():
     'Return a string saying how to find the C preprocessor - along with any necessary arguments'
     # See http://code.google.com/p/ctypesgen/wiki/GettingStarted for Windows details...
-    return '--cpp=gcc -E -DCTYPESGEN -D__signed__=signed'
+    return '--cpp=gcc -E -DCTYPESGEN -D__signed__=signed -U__HAVE_FLOAT32X -U__HAVE_FLOAT64X -DFLT64X_EPSILON=1.08420217248550443400745280086994171e-19'
 
 def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     'Build the ctypesgen command line to execute - and run it'
@@ -120,13 +122,25 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     #print ('Running', cmdline)
     return cmdline
 
+def fixup_outfile(outfile):
+    """
+    This is for Python3 compatibility
+    """
+    return os.system("sed -i 's%except  *\([A-Za-z_][A-Za-z_]*\) *, *%except \1 as %g " + outfile)
+
+
 if len(sys.argv) < 6:
     sys.stderr.write('Usage: %s outfile sourceroot buildroot libdir libfile ...\n' % sys.argv[0])
     raise SystemExit(1)
 
-outfile=sys.argv[1]
-sourceroot=sys.argv[2]
-buildroot=sys.argv[3]
-libdir=sys.argv[4]
-libfiles = sys.argv[5:]
-raise SystemExit(os.system(build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles)))
+outfile = sys.argv[1]
+sourceroot = sys.argv[2]
+buildroot = sys.argv[3]
+libdir = sys.argv[4]
+libfiles  =  sys.argv[5:]
+rc = os.system(build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles))
+if rc != 0:
+    sys.exit(rc)
+else:
+    sys.exit(fixup_outfile(outfile))
+

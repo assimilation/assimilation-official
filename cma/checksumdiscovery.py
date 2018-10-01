@@ -27,7 +27,7 @@
 #
 #
 
-'''
+"""
 Checksum generation/checking code.
 This is the class which wants to perform checksums and also
 wants to hear about checksums as they are computed.
@@ -39,8 +39,8 @@ than we asked for.
 
 If we ask for a file which doesn't exist (like bad JARs in the CLASSPATH),
 then those files won't show up in the results.
-'''
-import sys
+"""
+from __future__ import absolute_import, print_function
 from systemnode import SystemNode
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
@@ -49,14 +49,15 @@ from cmaconfig import ConfigFile
 
 from discoverylistener import DiscoveryListener
 
+
 @SystemNode.add_json_processor
 class TCPDiscoveryChecksumGenerator(DiscoveryListener):
-    'Class for generating checksums based on our tcpdiscovery packets'
+    """Class for generating checksums based on our tcpdiscovery packets"""
     prio = DiscoveryListener.PRI_OPTION
     wantedpackets = ('tcpdiscovery', 'checksum')
 
     def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
-        '''Inform interested rule objects about this change'''
+        """Inform interested rule objects about this change"""
         if not discoverychanged:
             return
         if jsonobj['discovertype'] == 'tcpdiscovery':
@@ -64,11 +65,11 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         elif jsonobj['discovertype'] == 'checksum':
             self.processchecksumpkt(drone, srcaddr, jsonobj)
         else:
-            print >> sys.stderr, ('OOPS! bad packet type [%s]' %
-                                  jsonobj['discovertype'])
+            print(('OOPS! bad packet type [%s]' %
+                                  jsonobj['discovertype']), file=sys.stderr)
 
     def processtcpdiscoverypkt(self, drone, _unused_srcaddr, jsonobj):
-        "Send commands generating checksums for the Systems's net-facing things"
+        """Send commands generating checksums for the Systems's net-facing things"""
         params = ConfigFile.agent_params(self.config, 'discovery', 'checksums',
                                          drone.designation)
         sumcmds = self.config['checksum_cmds']
@@ -77,9 +78,9 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         params['parameters'] = pyConfigContext()
         params[CONFIGNAME_TYPE] = 'checksums'
         params[CONFIGNAME_INSTANCE] = '_auto_checksumdiscovery'
-        data = jsonobj['data'] # The data portion of the JSON message
-        for procname in data.keys():    # List of of process names...
-            procinfo = data[procname]   # (names assigned by the nanoprobe)
+        data = jsonobj['data']  # The data portion of the JSON message
+        for procname in data.keys():  # List of of process names...
+            procinfo = data[procname]  # (names assigned by the nanoprobe)
             if 'exe' not in procinfo:
                 continue
             exename = procinfo.get('exe')
@@ -92,8 +93,8 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
                 cmdline = procinfo.get('cmdline')
                 for j in range(0, len(cmdline)):
                     # The argument following -cp is the ':'-separated CLASSPATH
-                    if cmdline[j] == '-cp' and j < len(cmdline)-1:
-                        jars = cmdline[j+1].split(':')
+                    if cmdline[j] == '-cp' and j < len(cmdline) - 1:
+                        jars = cmdline[j + 1].split(':')
                         for jar in jars:
                             filelist.append(jar)
                         break
@@ -101,24 +102,24 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
         params['parameters']['ASSIM_sumcmds'] = sumcmds
         params['parameters']['ASSIM_filelist'] = filelist
         # Request checksums of all the binaries talking (tcp) over the network
-        print >> sys.stderr, ('REQUESTING CHECKSUM MONITORING OF %d files'
-        %   (len(params['parameters']['ASSIM_filelist'])))
+        print(('REQUESTING CHECKSUM MONITORING OF %d files'
+                              % (len(params['parameters']['ASSIM_filelist']))), file=sys.stderr)
         drone.request_discovery((params,))
 
     def processchecksumpkt(self, drone, _unused_srcaddr, jsonobj):
-        '''Process updated checksums. The value of drone['checksums'] (if any)
+        """Process updated checksums. The value of drone['checksums'] (if any)
         is the _previous_ value of the checksums attribute.
-        '''
-        data = jsonobj['data'] # The data portion of the JSON message
-        print >> sys.stderr, 'PROCESSING CHECKSUM DATA'
-        if ('checksums' in drone):
-            print >> sys.stderr, 'COMPARING CHECKSUM DATA'
+        """
+        data = jsonobj['data']  # The data portion of the JSON message
+        print('PROCESSING CHECKSUM DATA', file=sys.stderr)
+        if 'checksums' in drone:
+            print('COMPARING CHECKSUM DATA', file=sys.stderr)
             olddata = pyConfigContext(drone['checksums'])['data']
             self.compare_checksums(drone, olddata, data)
-        print >> sys.stderr, 'UPDATING CHECKSUM DATA for %d files' % len(data)
+        print('UPDATING CHECKSUM DATA for %d files' % len(data), file=sys.stderr)
 
     def compare_checksums(self, drone, oldobj, newobj):
-        'Compare checksums and complain about those that change'
+        """Compare checksums and complain about those that change"""
         designation = drone.designation
         changes = {}
         for oldfile in oldobj.keys():
@@ -129,7 +130,7 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
             if oldchecksum == newchecksum:
                 continue
             self.log.warning('On system %s: %s had checksum %s which is now %s'
-            %   (designation, oldfile, oldchecksum, newchecksum))
+                             % (designation, oldfile, oldchecksum, newchecksum))
             changes[oldfile] = (oldchecksum, newchecksum)
         extrainfo = {'CHANGETYPE': 'checksums', 'changes': changes}
         AssimEvent(drone, AssimEvent.OBJUPDATE, extrainfo=extrainfo)

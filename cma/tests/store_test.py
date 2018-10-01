@@ -19,6 +19,7 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+from __future__ import print_function
 _suites = ['all', 'cma']
 import sys
 import gc
@@ -33,6 +34,7 @@ from AssimCtypes import ADDR_FAMILY_802, proj_class_live_object_count, proj_clas
 from graphnodes import GraphNode, registergraphclass, JSONMapNode
 from systemnode import SystemNode
 from cmainit import  CMAInjectables, CMAinit
+stderr = sys.stderr
 
 DEBUG=False
 class FooClass:
@@ -47,7 +49,7 @@ class FooClass:
     @staticmethod
     @inject.params(db='py2neo.Graph', log='logging.Logger', store='Store')
     def config_foo(db=None, log=None, store=None):
-        # print "config_foo(%s, %s, %s)" % (db, log, store)
+        # print("config_foo(%s, %s, %s)" % (db, log, store))
         log.warning("config_foo(%s, %s, %s)" % (db, log, store))
         FooClass.db = db
         FooClass.log = log
@@ -58,11 +60,11 @@ class FooClass:
         FooClass.store.db_transaction = FooClass.store.db.begin(autocommit=False)
 
 if not FooClass.CheckForDanglingClasses:
-    print >> sys.stderr, 'WARNING: Memory Leak Detection disabled.'
+    print('WARNING: Memory Leak Detection disabled.', file=stderr)
 elif not FooClass.AssertOnDanglingClasses:
-    print >> sys.stderr, 'WARNING: Memory Leak assertions disabled (detection still enabled).'
+    print('WARNING: Memory Leak assertions disabled (detection still enabled).', file=stderr)
 
-print >> sys.stderr, 'USING PYTHON VERSION %s' % str(sys.version)
+print('USING PYTHON VERSION %s' % str(sys.version), file=stderr)
 
 def setup_module(module):
     """Setup for this entire file"""
@@ -75,19 +77,19 @@ def assert_no_dangling_Cclasses(doassert=None):
     CMAinit.uninit()
     gc.collect()    # For good measure...
     count =  proj_class_live_object_count()
-    #print >>sys.stderr, "CHECKING FOR DANGLING CLASSES (%d)..." % count
+    #print("CHECKING FOR DANGLING CLASSES (%d)..." % count, file=stderr)
     # Avoid cluttering the output up with redundant messages...
     if count > FooClass.WorstDanglingCount and FooClass.CheckForDanglingClasses:
         WorstDanglingCount = count
         if doassert:
-            print >> sys.stderr, 'STARTING OBJECT DUMP'
-            print 'stdout STARTING OBJECT DUMP'
+            print('STARTING OBJECT DUMP', file=stderr)
+            print('stdout STARTING OBJECT DUMP')
             dump_c_objects()
-            print >> sys.stderr, 'OBJECT DUMP COMPLETE'
-            print 'stdout OBJECT DUMP COMPLETE'
+            print('OBJECT DUMP COMPLETE', file=stderr)
+            print('stdout OBJECT DUMP COMPLETE')
             raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
-            print >> sys.stderr,  ("*****ERROR: Dangling C-class objects - %d still around" % count)
+            print("*****ERROR: Dangling C-class objects - %d still around" % count, file=stderr)
 
 
 class TestCase(object):
@@ -111,7 +113,7 @@ class TestCase(object):
             return True
 
     def teardown_method(self, method):
-        # print '__del__ CALL for %s' % str(method)
+        # print('__del__ CALL for %s' % str(method))
         assert_no_dangling_Cclasses()
 
 
@@ -212,21 +214,21 @@ Classes = [Person, aTestSystem, aTestDrone, aTestIPaddr, aTestNIC, SystemNode]
 ##fred = System('Fred')
 ##fred.addroles('server')
 ##fred.addroles(['server', 'switch'])
-##print fred.designation
-##print fred.roles
+##print(fred.designation)
+##print(fred.roles)
 ##
 ##Annika = Person('Annika', 'Hansen')
-##print seven.designation
-##print seven.roles
-##print Annika.firstname, Annika.lastname
+##print(seven.designation)
+##print(seven.roles)
+##print(Annika.firstname, Annika.lastname)
 
 
 def initstore():
     if not FooClass.initialized_yet:
         inject.configure_once(CMAInjectables.test_config_injection)
         FooClass.config_foo()
-        print >> sys.stderr, 'USING NEO4J VERSION %s' % str(FooClass.db.neo4j_version)
-        print >> sys.stderr, 'USING py2neo VERSION %s' % str(py2neo.__version__)
+        print('USING NEO4J VERSION %s' % str(FooClass.db.neo4j_version), file=stderr)
+        print('USING py2neo VERSION %s' % str(py2neo.__version__), file=stderr)
         FooClass.initialized_yet = True
     if FooClass.store.db_transaction and not FooClass.store.db_transaction.finished():
         FooClass.store.db_transaction.finish()
@@ -345,11 +347,11 @@ class TestRelateOps(TestCase):
             prevnode = nic
             count += 1
             ipcount=0
-            # print >> sys.stderr, ('NIC IS %s' % nic)
+            # print('NIC IS %s' % nic, file=stderr)
             for ip in store.load_related(nic, 'ipowner'):
-                # print >> sys.stderr, ('IPaddr is IS %s' % ip)
+                # print('IPaddr is IS %s' % ip, file=stderr)
                 if nic is sevennic1:
-                    # print >> sys.stderr, ('IP IS %s NOT ipaddr1' % ip)
+                    # print('IP IS %s NOT ipaddr1' % ip, file=stderr)
                     self.assertTrue(ip is ipaddr1)
                 else:
                     self.assertTrue(ip is ipaddr2)
@@ -415,8 +417,8 @@ class TestGeneralQuery(TestCase):
         foundaddr1 = False
         foundaddr2 = False
         for row in iterator:
-            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.IPADDR: %s' % row.ipaddr.ipaddr)
-            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.MACADDR: %s' % row.nic.MACaddr)
+            # print('>>>>>>>>>>>>>>>>>>ROW.NIC.IPADDR: %s' % row.ipaddr.ipaddr, file=stderr)
+            # print('>>>>>>>>>>>>>>>>>>ROW.NIC.MACADDR: %s' % row.nic.MACaddr, file=stderr)
             rowcount += 1
             # fields are person, drone, nic and ipaddr
             self.assertTrue(row.person is Annika)
@@ -428,7 +430,7 @@ class TestGeneralQuery(TestCase):
                 self.assertTrue(row.nic is sevennic2)
                 self.assertTrue(row.ipaddr is ipaddr2)
                 foundaddr2 = True
-        # print >> sys.stderr, ('ROWCOUNT: %s', rowcount)
+        # print('ROWCOUNT: %s', rowcount, file=stderr)
         self.assertEqual(rowcount, 2)
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
@@ -473,10 +475,10 @@ class TestDatabaseWrites(TestCase):
         RETURN person, drone, nic, ipaddr
         '''
         store = initstore()
-        #print >> sys.stderr, 'RUNNING create_stuff'
+        #print('RUNNING create_stuff', file=stderr)
         self.create_stuff(store)    # Everything has gone out of scope
                                     # so nothing is cached any more
-        #print >> sys.stderr, 'RUNNING test_create_and_query'
+        #print('RUNNING test_create_and_query', file=stderr)
         iterator = store.load_cypher_query(Qstr)
         rowcount = 0
         foundaddr1 = False
@@ -489,10 +491,10 @@ class TestDatabaseWrites(TestCase):
             self.assertEqual(row.drone.designation, 'SevenOfNine'.lower())
             for role in ('host', 'Drone', 'Borg'):
                 self.assertTrue(role in row.drone.roles)
-            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.IPADDR: %s' % row.ipaddr.ipaddr)
-            # print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>ROW.NIC.MACADDR: %s' % row.nic.MACaddr)
-            # print >> sys.stderr, ('MAC1:', TestDatabaseWrites.mac1)
-            # print >> sys.stderr, ('MAC2:', TestDatabaseWrites.mac2)
+            # print('>>>>>>>>>>>>>>>>>>ROW.NIC.IPADDR: %s' % row.ipaddr.ipaddr, file=stderr)
+            # print('>>>>>>>>>>>>>>>>>>ROW.NIC.MACADDR: %s' % row.nic.MACaddr), file=stderr)
+            # print('MAC1:', TestDatabaseWrites.mac1, file=stderr)
+            # print('MAC2:', TestDatabaseWrites.mac2, file=stderr)
             if pyNetAddr(row.nic.MACaddr) == pyNetAddr(TestDatabaseWrites.mac1):
                 self.assertEqual(pyNetAddr(row.ipaddr.ipaddr), pyNetAddr(TestDatabaseWrites.ip1))
                 foundaddr1 = True
@@ -500,8 +502,8 @@ class TestDatabaseWrites(TestCase):
                 self.assertEqual(pyNetAddr(row.ipaddr.ipaddr), pyNetAddr(TestDatabaseWrites.ip2))
                 self.assertEqual(pyNetAddr(row.nic.MACaddr), pyNetAddr(TestDatabaseWrites.mac2))
                 foundaddr2 = True
-            # print >> sys.stderr, ('GOT A ROW: %s' % str(row))
-        # print >>sys.stderr, ("ROWCOUNT = %s" % rowcount)
+            # print('GOT A ROW: %s' % str(row), file=stderr)
+        # print("ROWCOUNT = %s" % rowcount, file=stderr)
         self.assertEqual(rowcount, 2)
         self.assertTrue(foundaddr1)
         self.assertTrue(foundaddr2)
@@ -522,7 +524,7 @@ class TestSystemNode(TestCase):
         store.commit()
         Store.debug = False
         sysnode = None
-        # print >> sys.stderr, ("COMMIT done")
+        # print("COMMIT done", file=stderr)
         query_string='''MATCH(sys:Class_SystemNode) WHERE sys.nodetype='SystemNode' AND sys.designation=toLower({desig}) RETURN sys'''
         qnode = store.load_cypher_node(query_string, params={'desig': designation})
         assert qnode is not None
@@ -530,7 +532,7 @@ class TestSystemNode(TestCase):
         # print(qnode.keys())
         assert str(qnode['FunkyAttributeab']) == '''{"a":"b"}'''
         assert str(qnode['FunkyAttributecd']) == '''{"c":"d"}'''
-        # print >> sys.stderr,('JSONMAP NODE CLASS attributes: %s' % JSONMapNode.__dict__)
+        # print('JSONMAP NODE CLASS attributes: %s' % JSONMapNode.__dict__)
 
 
 
@@ -555,7 +557,7 @@ if __name__ == "__main__":
             obj.setup_method()
         for item, fun in dict(cls.__dict__).viewitems():
             if item.lower().startswith('test_') and callable(fun):
-                print >> sys.stderr, ('===================RUNNING TEST %s.%s' % (name, item))
+                print('===================RUNNING TEST %s.%s' % (name, item), file=stderr)
                 # print('====================RUNNING TEST %s.%s' % (name, item))
                 fun(obj)
                 test_count += 1
