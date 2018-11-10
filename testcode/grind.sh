@@ -20,6 +20,7 @@
 #
 #
 HERE=$(dirname $0)
+cd $HERE
 REPCOUNT=15
 G_MESSAGES_DEBUG=all
 G_SLICE=always-malloc
