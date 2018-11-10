@@ -69,7 +69,7 @@ test_all_freed(void)
 			g_message("Expected message: \"%s\"", *mptr);
 			fflush(stdout);
 		}
-		g_assert(bad_msg == NULL);
+		g_assert(bad_msg == NULL); // Renders following statements superfluous...
 		free(bad_msg);
 		bad_msg = NULL;
 	}
@@ -133,7 +133,7 @@ test_childprocess_failure(void)
 	ChildProcess*	my_child_is_a_failure;
 	char 	devnull [] = "/dev/null";
 	char* 	argv[] = {devnull, NULL};
-	const char *	expected_failures[] = {"Failed to execute child process \"/dev/null\"", NULL};
+	const char *	expected_failures[] = {"Failed to execute child process ", NULL};
 
 	set_expected_failures(expected_failures);
 
