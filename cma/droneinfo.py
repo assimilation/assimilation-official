@@ -19,10 +19,10 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 We implement the Drone class - which implements all the properties of
 drones as a Python class.
-'''
+"""
 import time, sys
 #import os, traceback
 from cmadb import CMAdb
@@ -40,12 +40,12 @@ from cmaconfig import ConfigFile
 # pylint: disable=R0904,R0902
 @registergraphclass
 class Drone(SystemNode):
-    '''Everything about Drones - endpoints that run our nanoprobes.
+    """Everything about Drones - endpoints that run our nanoprobes.
 
     There are two Cypher queries that get initialized later:
     Drone.IPownerquery_1: Given an IP address, return th SystemNode (probably Drone) 'owning' it.
     Drone.OwnedIPsQuery:  Given a Drone object, return all the IPaddrNodes that it 'owns'
-    '''
+    """
     IPownerquery_1 = None
     OwnedIPsQuery = None
     IPownerquery_1_txt = '''MATCH (n:Class_IPaddrNode)<-[:%s]-()<-[:%s]-(drone)

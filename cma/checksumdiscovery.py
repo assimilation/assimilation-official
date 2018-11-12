@@ -41,6 +41,7 @@ If we ask for a file which doesn't exist (like bad JARs in the CLASSPATH),
 then those files won't show up in the results.
 """
 from __future__ import absolute_import, print_function
+import sys
 from systemnode import SystemNode
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE

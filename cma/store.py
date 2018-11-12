@@ -138,8 +138,9 @@ class Store(object):
         self.readonly = readonly
         self.stats = {}
         self.reset_stats()
-        self.clients = set()
+        self.clients = list()
         self.classes = {}
+        # self.weaknoderefs = weakref.WeakValueDictionary()
         self.weaknoderefs = {}
         self.factory = factory_constructor if factory_constructor else GraphNode.factory
         self.db_transaction = None
@@ -187,13 +188,12 @@ class Store(object):
             print('%10s: %s: %s' % ('node_id', client.association.node_id,
                                     object.__str__(client)), file=outfile)
 
-        for obj_pointer in self.weaknoderefs.viewvalues():
-            obj = obj_pointer()
-            if obj is None:
-                del self.weaknoderefs[obj]
-            elif obj not in self.clients:
+        for obj in self.weaknoderefs.values():
+            obj = obj()
+            if obj and obj not in self.clients:
                 print("WEAK: %s" % obj, file=outfile)
-        self._audit_weaknodes_clients()
+                self._log.debug("WEAK: %s" % obj)
+        # self._audit_weaknodes_clients()
 
     def fmt_dirty_attrs(self):
         """
@@ -239,7 +239,7 @@ class Store(object):
     def _get_key_values(clsobj, clsargs=None, subj=None):
         """
         Return a dict of key names and values
-        :param cls: classtype: resulting class
+        :param clsobj: classtype: resulting class
         :param clsargs: constructor arguments to class
         :param subj: object possibly from a constructor...
         :return: dict: key name/value pairs
@@ -310,7 +310,9 @@ class Store(object):
         self._audit_weaknodes_clients()
         key_values = self._get_key_values(cls, subj=subj)
         # print('LOAD class %s: clsargs: %s' % (cls.__name__, str(clsargs)), file=stderr)
+        # self._log.debug('LOAD class %s: clsargs: %s' % (cls.__name__, str(clsargs)))
         # print('LOAD class %s: key values: %s' % (cls.__name__, str(key_values)), file=stderr)
+        # self._log.debug('LOAD class %s: key values: %s' % (cls.__name__, str(key_values)))
 
         # See if we can find this node in memory somewhere...
         result = self._localsearch(cls, key_values)
@@ -324,8 +326,11 @@ class Store(object):
         try:
             query = subj.association.cypher_find_query()
             # print('LOAD class %s: query: %s' % (cls.__name__, query), file=stderr)
+            # self._log.debug('LOAD class %s: query: %s' % (cls.__name__, query))
             node = self.db.evaluate(query)
-        except py2neo.GraphError:
+            # print('QUERY RETURNED node %s' % node)
+        except py2neo.GraphError as oops:
+            self._log.warning('QUERY RETURNED GraphError %s' % oops)
             return None
         self._audit_weaknodes_clients()
         result = self._construct_obj_from_node(node) if node else None
@@ -345,6 +350,7 @@ class Store(object):
         """
         if self.debug:
             print('LOAD OR CREATE: %s' % (str(clsargs)))
+            self._log.debug('LOAD OR CREATE: %s' % (str(clsargs)))
         obj = self.load(cls, **clsargs)
         if obj is not None:
             if self.debug:
@@ -353,7 +359,9 @@ class Store(object):
         # print('NOT LOADED node[%s]: %s' % (str(clsargs), str(obj)))
         subj = self.callconstructor(cls, clsargs)
         assert subj is not None
+        self._audit_weaknodes_clients()
         self.register(subj)
+        self._audit_weaknodes_clients()
         if AssimEvent.event_observation_enabled:
             AssimEvent(subj, AssimEvent.CREATEOBJ)
         return subj
@@ -778,7 +786,8 @@ class Store(object):
                 subj.association.dirty_attrs.add(attr)
                 assert subj.association.node_id is not None
                 self._audit_weaknodes_clients()
-                self.clients.add(subj)
+                if subj not in self.clients:
+                    self.clients.append(subj)
                 self._audit_weaknodes_clients()
                 remove_subj = False
         if remove_subj and subj in self.clients:
@@ -824,6 +833,7 @@ class Store(object):
         """
 
         # print('SEARCHING FOR class %s with %s' % (cls, key_values), file=stderr)
+        # self._log.debug('LOCALSEARCH: SEARCHING FOR class %s with %s' % (cls, key_values))
         result = self._weaknodes_search(cls, key_values=key_values, need_node=need_node)
         if result:
             return result
@@ -834,14 +844,26 @@ class Store(object):
         Search for a node matching certain (unique) key values already laying around...
         :return: GraphNode: or None
         """
-        searchset = set()
-        for weakclient in self.weaknoderefs.viewvalues():
-            client = weakclient()
+        searchset = []
+        missing_keys = []
+        for node_id, client in self.weaknoderefs.items():
+            # client = self.weaknoderefs[node_id]
+            client = client()
             if client:
-                # print('Weaknodes: node_id: %s Client: %s' % (node_id, object.__str__(client)),
-                #       file=stderr)
-                searchset.add(client)
+                # print('Weaknodes: node_id: %s Client: %s'
+                #       % (node_id, object.__str__(client)), file=stderr)
+                # self._log.debug('Weaknodes: node_id: %s Client: %s'
+                #                 % (client.association.node_id, object.__str__(client)))
+                searchset.append(client)
+            else:
+                self._log.debug('WEAKNODES: Node ID %s IS missing!' % node_id)
+                missing_keys.append(node_id)
+        for item in missing_keys:
+            self._log.debug('WEAKNODES: Deleting missing Node ID %s' % item)
+            del self.weaknoderefs[item]
         # print('Weaknodes: key_values: %s' % str(key_values), file=stderr)
+        # self._log.debug('Weaknodes: key_values: %s' % str(key_values))
+        # self._log.debug('Weaknode_search set: %s' % str(searchset))
         result = self._find_keys_in_iterable(cls, key_values, searchset, need_node=need_node)
         # if result:
         #     print('Found client %s in weaknoderefs %s'
@@ -867,7 +889,7 @@ class Store(object):
             if need_node and client.association.node_id is None:
                 continue
             found = True
-            for attr, value in key_values.viewitems():
+            for attr, value in key_values.items():
                 if not hasattr(client, attr) or getattr(client, attr) != value:
                     found = False
                     break
@@ -893,7 +915,8 @@ class Store(object):
     def _search_for_same_node(self, node):
         """
         See if we already have this node around somewhere...
-        Every node that's still around is in 'weaknoderefs'
+        Every node that's still around is _supposed to be_ in 'weaknoderefs'
+        But there's some evidence that uncollected objects disappear from weaknoderefs...
         :param node:
         :return:
         """
@@ -924,7 +947,9 @@ class Store(object):
             return self._update_obj_from_node(current_obj, node)
 
         node_id = self.neo_node_id(node)
-        assert node_id not in self.weaknoderefs or self.weaknoderefs[node_id]() is None
+        if node_id in self.weaknoderefs:
+            weaknode = self.weaknoderefs[node_id]()
+            assert weaknode is None
         retobj = Store.callconstructor(self.factory, self._node_to_dict(node))
         for attr in clsargs:
             if not hasattr(retobj, attr) or getattr(retobj, attr) is None:
@@ -938,17 +963,23 @@ class Store(object):
 
         :return:
         """
+        self._log.debug('WEAK CLIENTS: %s' % str(self.weaknoderefs.keys()))
         for client in self.clients:
             if client.association.node_id is not None:
-                other = self.weaknoderefs[client.association.node_id]()
-                assert other is client
+                self._log.debug('NODE ID for other: %s' % client.association.node_id)
+                if client.association.node_id in self.weaknoderefs:
+                    other = self.weaknoderefs[client.association.node_id]()
+                    assert other is client
+                else:
+                    # This seems to happen - even though it shouldn't...
+                    self._log.critical('CLIENT %s MISSING FROM WEAKNODES!!'
+                                       % client.association.node_id)
 
         complete_set = self.clients
-        for node_id, weakling in self.weaknoderefs.viewitems():
-            subj = weakling()
-            if subj is not None:
-                complete_set.add(subj)
-                assert subj.association.node_id == node_id
+        for node_id, subj in self.weaknoderefs.items():
+            subj = subj()
+            if subj is not None and subj not in complete_set:
+                complete_set.append(subj)
         complete_list = list(complete_set)
         for j in range(len(complete_list)-1):
             sublist = complete_list[j+1:]
@@ -959,9 +990,12 @@ class Store(object):
             if other is not None:
                 print("OOPS: Comparison: %s vs %s" %
                       (object.__str__(comparison), object.__str__(other)), file=stderr)
+                self._log.critical("OOPS: Comparison: %s vs %s"
+                                   % (object.__str__(comparison), object.__str__(other)))
                 print("OOPS: Comparison: %s vs %s" % (comparison, other), file=stderr)
+                self._log.critical("OOPS: Comparison: %s vs %s" % (comparison, other))
                 print('j=%d: %s' % (j, complete_list), file=stderr)
-            assert other is None
+            # assert other is None
 
     def register(self, subj, node=None):
         """
@@ -981,6 +1015,7 @@ class Store(object):
         #       file=stderr)
         key_values = self._get_key_values(subj.__class__, subj=subj)
         # print ('DOING LOCALSEARCH WITH %s' % key_values, file=stderr)
+        # self._log.debug('DOING LOCALSEARCH WITH %s' % key_values)
         other = self._localsearch(subj.__class__, key_values)
         if other:
             raise RuntimeError('Equivalent Object %s already exists: %s' % (subj, other))
@@ -1005,12 +1040,17 @@ class Store(object):
             print('OOPS! - already here... self.weaknoderefs',
                   weakling, weakling.__dict__, file=stderr)
             self._audit_weaknodes_clients()
+
             raise ValueError('Node id %s already registered' % node_id)
         else:
             if self.debug:
                 print("Registering node %s with node id %d [%s]"
                       % (object.__str__(subj), node_id, subj), file=stderr)
+                self._log.debug("Registering node %s with node id %d [%s]"
+                                % (object.__str__(subj), node_id, subj))
             self.weaknoderefs[node_id] = weakref.ref(subj)
+
+            assert self.weaknoderefs[node_id]() == subj
             self._audit_weaknodes_clients()
         if hasattr(subj, 'post_db_init'):
             # print('POST_DB_INIT...[%s' % type(subj), file=stderr)
@@ -1082,12 +1122,7 @@ class Store(object):
             # print('CLIENT/subj: %s' % subj, file=stderr)
             if subj.association is not None:
                 subj.association.dirty_attrs = set()
-        self.clients = set()
-        # Clean out dead node references
-        for nodeid in self.weaknoderefs.keys():
-            subj = self.weaknoderefs[nodeid]()
-            if subj is None:
-                del self.weaknoderefs[nodeid]
+        self.clients = list()
 
     def clean_store(self):
         """
@@ -1099,13 +1134,15 @@ class Store(object):
         :return: None
         """
         # print('PERFORMING CLEAN_STORE! (for testing only)', file=stderr)
-        for nodeid in self.weaknoderefs:
-            obj = self.weaknoderefs[nodeid]()
+        for obj in self.weaknoderefs.values():
+            obj = obj()
             if obj is not None:
                 obj.association.obj = None
                 obj._association = None
+        # self.weaknoderefs = weakref.WeakValueDictionary()
         self.weaknoderefs = {}
         self.abort()
+
 
 if __name__ == "__main__":
     # pylint: disable=C0413

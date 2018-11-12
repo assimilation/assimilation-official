@@ -118,6 +118,8 @@ class GraphNode(object):
         association = StoreAssociation(self, store=store)
         association.dirty_attrs = set()
         self._association = association
+        store._audit_weaknodes_clients()
+
 
     @property
     def association(self):
@@ -978,8 +980,7 @@ class Subnet(GraphNode):
         :param other: Subnet: The other subnet
         :return: bool: what you'd expect...
         """
-        assert isinstance(other, Subnet)
-        return self.name == other.name
+        return self.name == other.name if isinstance(other, Subnet) else False
 
     def equivalent(self, other):
         """

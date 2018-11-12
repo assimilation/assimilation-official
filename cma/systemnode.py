@@ -19,7 +19,7 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-''' This module defines the classes for several of our System nodes ...  '''
+""" This module defines the classes for several of our System nodes ...  """
 from __future__ import print_function
 import sys
 from sys import stderr

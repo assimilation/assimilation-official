@@ -104,4 +104,7 @@ class TestExternal(object):
 
 
 if __name__ == "__main__":
-    run()
+    te = TestExternal()
+    te.setup_class()
+    te.test_valgrind()
+    # run()

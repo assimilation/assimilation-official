@@ -309,7 +309,7 @@ class ForkExecObserver(FIFOEventObserver):
     def _JSONevent_env(eventobj):
         'Create the environment for our child processes'
         scalars = (six.string_types, int, float, bool, pyNetAddr)
-        print('SCALARS == %s' % str(scalars), file=sys.stderr)
+        # print('SCALARS == %s' % str(scalars), file=sys.stderr)
         aobj = eventobj['associatedobject']
         env = {}
         # Initialize the child environment with our current environment
