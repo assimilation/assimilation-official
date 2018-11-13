@@ -101,6 +101,16 @@ class GraphNode(object):
         """
         return GraphNode.classmap[str(class_name)]
 
+    @staticmethod
+    def node_to_class(neo_node):
+        """
+        Return the class that corresponds to this Py2neo Neo4j Node object
+
+        :param neo_node: py2neo.Neo4j.node
+        :return:
+        """
+        return GraphNode.str_to_class(str(neo_node.properties['nodetype']))
+
     @inject.params(store='Store', log='logging.Logger')
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None, store=None, log=None):
         """Abstract Graph node base class"""

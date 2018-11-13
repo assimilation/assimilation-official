@@ -920,11 +920,19 @@ class Store(object):
         :param node:
         :return:
         """
+        from graphnodes import GraphNode
         node_id = self.neo_node_id(node)
         assert node_id is not None
+        # Weaknoderefs loses items(!)
         if node_id in self.weaknoderefs:
             return self.weaknoderefs[node_id]()
-        return None
+
+        nodeclass = GraphNode.node_to_class(node)
+        key_values = self._get_key_values(nodeclass, node.properties)
+        if self.debug:
+            print ('DOING LOCALSEARCH WITH %s' % key_values, file=stderr)
+            self._log.debug('DOING LOCALSEARCH WITH %s' % key_values)
+        return self._localsearch(nodeclass, key_values)
 
     def _construct_obj_from_node(self, node, clsargs=None):
         """
