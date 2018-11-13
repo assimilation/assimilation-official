@@ -514,6 +514,7 @@ class SQLiteInstance(object):
         SQLiteInstance.instances[dbpath] = self
         self.hash_tables = set(self.all_hash_tables())
         self.dbpath = dbpath
+        self.journal_name = dbpath + '-journal'
         self.filtered_args = filtered_args
 
     def delete_everything(self):
@@ -526,11 +527,18 @@ class SQLiteInstance(object):
             os.unlink(self.dbpath)
         except OSError as oopsie:
             if oopsie.errno != errno.ENOENT:  # Doesn't exist
-                raise
+                raise oopsie
+        try:
+            os.unlink(self.journal_name)
+        except OSError as oopsie:
+            if oopsie.errno != errno.ENOENT:  # Doesn't exist
+                raise oopsie
+
         self.hash_tables = set()
         self.connection = sqlite3.connect(self.dbpath, **self.filtered_args)
         self.in_transaction = False
         self.cursor = None
+
 
     @staticmethod
     def instance(**initial_args):

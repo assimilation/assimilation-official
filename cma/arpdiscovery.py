@@ -204,7 +204,8 @@ class ArpDiscoveryListener(DiscoveryListener):
         :return: NetworkSegment
         """
         if device.net_segment is not None:
-            return self.store.load(NetworkSegment, domain=device.domain, name=device.net_segment)
+            return self.store.load_or_create(NetworkSegment, domain=device.domain,
+                                             name=str(device.net_segment))
         mac_ip_pairs = []
         for mac, ip_list in mac_ip_table.viewitems():
             for ip in ip_list:
@@ -228,6 +229,8 @@ class ArpDiscoveryListener(DiscoveryListener):
         :param mac_ip_table: MAC/IP map - organized by MAC address
         :return: None
         """
+        self.log.debug('FIX_NET_SEGMENT: %s %s %s %s'
+                        % (domain, device, net_segment, mac_ip_table))
         mac_ip_query = """
         MATCH(nic:Class_NICNode)-[:ipowner]->(ip:Class_IPaddrNode)
         WHERE ip.ipaddr in $ipaddrs AND nic.macaddr in $macaddrs
@@ -249,30 +252,34 @@ class ArpDiscoveryListener(DiscoveryListener):
         #   What happens when a MAC address gets a new IP address?
         #
         mac_ip_pairs = set()
-        mac_list = []
-        ip_list = []
-        for mac, ip_list in mac_ip_table.viewitems():
-            mac_list.append(str(mac))
+        mac_set = set()
+        ip_set = set()
+        for mac, ip_list in mac_ip_table.items():
+            self.log.debug('LOOKNG AT (%s,%s)' % (mac, str(ip_list)))
+            mac_set.add(str(mac))
             for ip in ip_list:
                 mac_ip_pairs.add((mac, ip))
-                ip_list.append(str(ip))
+                ip_set.add(str(ip))
         parameters = {
-            'ipaddrs': ip_list,
-            'macaddrs': mac_list,
+            'ipaddrs': sorted(ip_set),
+            'macaddrs': sorted(mac_set),
             'net_segment': str(net_segment)
         }
+        self.log.debug('MAC_IP_QUERY: %s %s' % (mac_ip_query, parameters))
         missing_pairs = mac_ip_pairs
         found_pairs = set()
         found_subnets = set()
         subnet_names = set()
 
-        print('MAC_IP_QUERY:', mac_ip_query, parameters)
+        self.log.info('MAC_IP_QUERY: %s %s' % (mac_ip_query, parameters))
         self.log.info('MAC_IP_QUERY: %s::%s'% (mac_ip_query, str(parameters)))
         for mac, ip in self.store.load_cypher_query(mac_ip_query, parameters):
+            self.log.debug('FIX_NET_SEGMENT: LOOKING AT (%s, %s)' % (mac, ip))
             if (mac.macaddr, ip.ipaddr) not in missing_pairs:
                 # Could be a mismatched pair or a new/old IP for this same MAC
                 continue
             missing_pairs.remove((mac.macaddr, ip.ipaddr))
+            self.log.debug('FIX_NET_SEGMENT: ADDING FOUND PAIRS (%s, %s)' % (mac, ip))
             found_pairs.add((mac, ip))
             mac.net_segment = net_segment
             if ip.subnet is not None and ip.subnet not in subnet_names:
@@ -294,14 +301,19 @@ class ArpDiscoveryListener(DiscoveryListener):
         :param found_subnets: set(Subnet) - list of subnets found on this network segment
         :return: None
         """
+        self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: %s / %s / %s' % (domain, scope, net_segment))
+        self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: PAIRS: %s' % missing_pairs)
         for mac, ip in missing_pairs:
+            self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: PROCESSING (%s, %s)' % (mac, ip))
             # find_this_macaddr is a more "generous" find operation than load_or_create()...
             nic = NICNode.find_this_macaddr(self.store, domain=domain,  macaddr=mac,
                                             net_segment=net_segment)
+            self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: FOUND NICs: %s' % nic)
             if nic is None:
                 nic = self.store.load_or_create(NICNode, domain=domain, macaddr=mac,
-                                                scope=scope, net_segment=net_segment)
+                                                scope=scope, net_segment=str(net_segment))
             subnet = Subnet.find_matching_subnet(ip, found_subnets)
+            self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: FOUND SUBNET: %s' % subnet)
             other_ip = None
             for other_ip in self.store.load_related(nic, CMAconsts.REL_ipowner):
                 if other_ip.ipaddr == ip:
@@ -310,6 +322,7 @@ class ArpDiscoveryListener(DiscoveryListener):
             if other_ip is None or other_ip.ipaddr != ip:
                 ipnode = self.store.load_or_create(IPaddrNode, ipaddr=ip,
                                                    domain=domain, subnet=subnet)
+                self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: IPNODE: %s' % ipnode)
                 self.store.relate(nic, CMAconsts.REL_ipowner, ipnode)
 
     @staticmethod
@@ -323,6 +336,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         :return:
         """
         for ip in ip_list:
-            subnet = Subnet.find_matching_subnet(ip, found_subnets)
-            if subnet is not None:
-                ip.subnet = subnet.name
+            if hasattr(ip, 'subnet') and ip.subnet is not None:
+                subnet = Subnet.find_matching_subnet(ip, found_subnets)
+                if subnet is not None:
+                    ip.subnet = subnet.name

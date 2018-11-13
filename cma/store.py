@@ -859,7 +859,7 @@ class Store(object):
                 self._log.debug('WEAKNODES: Node ID %s IS missing!' % node_id)
                 missing_keys.append(node_id)
         for item in missing_keys:
-            self._log.debug('WEAKNODES: Deleting missing Node ID %s' % item)
+            # self._log.debug('WEAKNODES: Deleting missing Node ID %s' % item)
             del self.weaknoderefs[item]
         # print('Weaknodes: key_values: %s' % str(key_values), file=stderr)
         # self._log.debug('Weaknodes: key_values: %s' % str(key_values))
@@ -963,17 +963,18 @@ class Store(object):
 
         :return:
         """
-        self._log.debug('WEAK CLIENTS: %s' % str(self.weaknoderefs.keys()))
+        # self._log.debug('WEAK CLIENTS: %s' % str(self.weaknoderefs.keys()))
         for client in self.clients:
             if client.association.node_id is not None:
-                self._log.debug('NODE ID for other: %s' % client.association.node_id)
+                # self._log.debug('NODE ID for other: %s' % client.association.node_id)
                 if client.association.node_id in self.weaknoderefs:
                     other = self.weaknoderefs[client.association.node_id]()
                     assert other is client
                 else:
                     # This seems to happen - even though it shouldn't...
-                    self._log.critical('CLIENT %s MISSING FROM WEAKNODES!!'
-                                       % client.association.node_id)
+                    # self._log.critical('CLIENT %s MISSING FROM WEAKNODES!!'
+                    #                    % client.association.node_id)
+                    pass
 
         complete_set = self.clients
         for node_id, subj in self.weaknoderefs.items():
@@ -1017,7 +1018,9 @@ class Store(object):
         # print ('DOING LOCALSEARCH WITH %s' % key_values, file=stderr)
         # self._log.debug('DOING LOCALSEARCH WITH %s' % key_values)
         other = self._localsearch(subj.__class__, key_values)
-        if other:
+        if other is subj:
+            return
+        if other and other is not subj:
             raise RuntimeError('Equivalent Object %s already exists: %s' % (subj, other))
         self._audit_weaknodes_clients()
         # subj.association.node_id = self.neo_node_id(node)

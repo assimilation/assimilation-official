@@ -120,7 +120,6 @@ class GraphNode(object):
         self._association = association
         store._audit_weaknodes_clients()
 
-
     @property
     def association(self):
         """
@@ -601,8 +600,8 @@ class NICNode(GraphNode):
             query += ' AND nic.net_segment = $net_segment'
         parameters = {
             'domain': domain,
-            'macaddr': macaddr,
-            'net_segment': net_segment,
+            'macaddr': str(macaddr),
+            'net_segment': str(net_segment),
             'system_id': system.association.node_id if system is not None else None,
         }
         query += ' RETURN nic'
@@ -928,7 +927,7 @@ class Subnet(GraphNode):
         :return: Subnet or None
         """
         for subnet in subnets:
-            if subnet is not None and subnet.belongs_on_this_subnet(ip, subnet):
+            if subnet is not None and subnet.belongs_on_this_subnet(ip):
                 return subnet
         return None
 
@@ -969,7 +968,13 @@ class Subnet(GraphNode):
         :param ipaddr: pyNetAddr: Address to test
         :return: True or False
         """
-        base_ip = pyNetAddr(ipaddr).and_with_cidr(self.cidrmask)
+        if isinstance(ipaddr, IPaddrNode):
+            ipaddr = ipaddr._ipaddr
+        elif isinstance(ipaddr, pyNetAddr):
+            pass
+        else:
+            ipaddr = pyNetAddr(str(ipaddr))
+        base_ip = ipaddr.and_with_cidr(self.cidrmask)
         # print("Comparing subnet %s IPaddr %s anded with %s [%s]"
         #       % (self._ipaddr, ipaddr, self.cidrmask, base_ip), file=stderr)
         return base_ip == self._ipaddr
@@ -1023,6 +1028,9 @@ class NetworkSegment(GraphNode):
         if name is None:
             name = str(uuid.uuid4())
         self.name = name
+
+    def __str__(self):
+        return '%s::%s' % (self.domain, self.name)
 
     @staticmethod
     def guess_net_segment(store, domain, ip_mac_pairs, fraction=0.5):

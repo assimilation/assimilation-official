@@ -283,6 +283,10 @@ class CMAInjectables(object):
                 os.unlink(store_filename)
             except OSError:
                 pass
+            try:
+                os.unlink(store_filename + '-journal')
+            except OSError:
+                pass
         return PersistentJSON(cls=SQLiteJSON, audit=False, pathname=store_filename,
                               delayed_sync=True)
 
