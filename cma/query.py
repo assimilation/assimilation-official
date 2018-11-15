@@ -129,7 +129,7 @@ class ClientQuery(GraphNode):
         return self._queryobj.parameter_names()
 
     def execute(self, executor_context, idsonly=False, expandJSON=False, maxJSON=0, elemsonly=False
-    ,       **params):
+                , **params):
         'Execute the query and return an iterator that produces sanitized (filtered) results'
         if self._db is None:
             raise ValueError('query must be bound to a Store')
@@ -139,16 +139,15 @@ class ClientQuery(GraphNode):
         for pname in qparams:
             if pname not in params:
                 raise ValueError('Required parameter "%s" for %s query is missing'
-                %    (pname, self.queryname))
+                                 % (pname, self.queryname))
         for pname in params.keys():
             if pname not in qparams:
                 raise ValueError('Excess parameter "%s" supplied for %s query'
-                %    (pname, self.queryname))
+                                 % (pname, self.queryname))
         fixedparams = self.validate_parameters(params)
         resultiter = queryobj.result_iterator(fixedparams)
         return self.filter_json(executor_context, idsonly, expandJSON
-        ,   maxJSON, resultiter, elemsonly)
-
+                                , maxJSON, resultiter, elemsonly)
 
     def supports_cmdline(self, language='en'):
         'Return True if this query supports command line formatting'
@@ -161,7 +160,7 @@ class ClientQuery(GraphNode):
             fmtstring = self._JSON_metadata['cmdline'][language]
         fixedparams = self.validate_parameters(params)
         for json in self.execute(executor_context, expandJSON=True
-        ,           maxJSON=5120, elemsonly=True, **fixedparams):
+                , maxJSON=5120, elemsonly=True, **fixedparams):
             obj = pyConfigContext(json)
             yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
@@ -173,14 +172,14 @@ class ClientQuery(GraphNode):
         result = chunks[0]
         for j in range(1, len(chunks)):
             # Now we split it up into variable-expression, '}' and extrastuff...
-            (variable, extra) = chunks[j].split('}',1)
+            (variable, extra) = chunks[j].split('}', 1)
             result += str(JSONtree(queryresult.deepget(variable, 'undefined')))
             result += extra
         return result
 
     @staticmethod
     def filter_json(executor_context, idsonly, expandJSON, maxJSON
-    ,       resultiter, elemsonly=False):
+                    , resultiter, elemsonly=False):
         """Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
@@ -278,30 +277,29 @@ class ClientQuery(GraphNode):
             langs = pinfo['lang']
             for lang in languages.keys():
                 if lang not in langs:
-                    raise ValueError("Language %s missing from parameter %s"  % param)
+                    raise ValueError("Language %s missing from parameter %s" % param)
             for lang in langs.keys():
                 if lang not in languages:
-                    raise ValueError("Language %s missing from query description %s"  % lang)
+                    raise ValueError("Language %s missing from query description %s" % lang)
             for eachlang in langs.keys():
                 thislang = langs[eachlang]
                 if 'short' not in thislang:
                     raise ValueError("Parameter %s, language %s must include 'short' info"
-                    %       (param, eachlang))
+                                     % (param, eachlang))
                 if 'long' not in thislang:
                     raise ValueError("Parameter %s, language %s must include 'long' info"
-                    %       (param, eachlang))
+                                     % (param, eachlang))
                 if ptype == 'enum' or (ptype == 'list' and pinfo['listtype']['type'] == 'enum'):
                     if 'enumlist' not in thislang:
                         raise ValueError("Parameter %s, language %s must include 'enumlist' info"
-                        %       (param, eachlang))
+                                         % (param, eachlang))
                     enums = thislang['enumlist']
                     elist = pinfo['enumlist'] if ptype == 'enum' else pinfo['listtype']['enumlist']
                     for e in elist:
                         if e not in enums:
                             raise ValueError("Parameter %s, language %s missing enum value %s"
-                            %       (param, eachlang, e))
+                                             % (param, eachlang, e))
         return True
-
 
     def validate_query_parameter_metadata(self, param, pinfo):
         'Validate the paramater metadata for this query'
@@ -309,23 +307,23 @@ class ClientQuery(GraphNode):
             raise ValueError('Parameter %s missing type field' % param)
         ptype = pinfo['type']
         if ptype not in ClientQuery._validationmethods:
-            raise ValueError('Parameter %s has invalid type %s'% (param, ptype))
+            raise ValueError('Parameter %s has invalid type %s' % (param, ptype))
         if 'min' in pinfo and ptype != 'int' and ptype != 'float':
-            raise ValueError('Min only valid on numeric fields [%s]'% param )
+            raise ValueError('Min only valid on numeric fields [%s]' % param)
         if 'max' in pinfo and ptype != 'int' and ptype != 'float':
-            raise ValueError('Max only valid on numeric fields [%s]'% param )
+            raise ValueError('Max only valid on numeric fields [%s]' % param)
         if ptype == 'list':
             if 'listtype' not in pinfo:
-                raise ValueError('List type [%s] requires listtype'% (param))
+                raise ValueError('List type [%s] requires listtype' % (param))
             self.validate_query_parameter_metadata('list', pinfo['listtype'])
         if ptype == 'enum':
             if 'enumlist' not in pinfo:
-                raise ValueError('Enum type [%s] requires enumlist'% (param))
+                raise ValueError('Enum type [%s] requires enumlist' % (param))
             elist = pinfo['enumlist']
             for enum in elist:
                 if not isinstance(enum, str) and not isinstance(enum, unicode):
                     raise ValueError('Enumlist values [%s] must be strings - not %s'
-                    %   (enum, type(enum)))
+                                     % (enum, type(enum)))
 
     def validate_parameters(self, parameters):
         """
@@ -348,8 +346,6 @@ class ClientQuery(GraphNode):
             result[param] = canonvalue
         return result
 
-
-
     @staticmethod
     def _validate_int(name, paraminfo, value):
         'Validate an int value'
@@ -358,12 +354,12 @@ class ClientQuery(GraphNode):
             minval = paraminfo['min']
             if val < minval:
                 raise ValueError('Value of %s [%s] smaller than mininum [%s]'
-                %   (name, val, minval))
+                                 % (name, val, minval))
         if 'max' in paraminfo:
             maxval = paraminfo['max']
             if val > maxval:
                 raise ValueError('Value of %s [%s] larger than maximum [%s]'
-                %   (name, val, maxval))
+                                 % (name, val, maxval))
         return val
 
     @staticmethod
@@ -374,12 +370,12 @@ class ClientQuery(GraphNode):
             minval = paraminfo['min']
             if val < minval:
                 raise ValueError('Value of %s[%s] smaller than mininum [%s]'
-                %   (name, val, minval))
+                                 % (name, val, minval))
         if 'max' in paraminfo:
             maxval = paraminfo['max']
             if val > maxval:
                 raise ValueError('Value of %s [%s] larger than maximum [%s]'
-                %   (name, val, maxval))
+                                 % (name, val, maxval))
         return val
 
     @staticmethod
@@ -476,7 +472,6 @@ class ClientQuery(GraphNode):
         defname = 'NODE_' + nodetype
         return getattr(CMAconsts, defname) if hasattr(CMAconsts, defname) else nodetype
 
-
     @staticmethod
     def _validate_nodetype(name, _paraminfo, value):
         'validate a node type - ignoring case'
@@ -484,7 +479,6 @@ class ClientQuery(GraphNode):
         if ret is not None:
             return ret
         raise ValueError('Value of %s [%s] is not a known node type' % (name, value))
-
 
     @staticmethod
     def _get_reltype(reltype):
@@ -522,10 +516,10 @@ class ClientQuery(GraphNode):
         json = fd.read()
         fd.close()
         if pyConfigContext(json) is None:
-            raise ValueError ('ERROR: Contents of %s is not valid JSON.' % (pathname))
+            raise ValueError('ERROR: Contents of %s is not valid JSON.' % (pathname))
         if queryname is None:
             queryname = os.path.basename(pathname)
-        #print 'LOADING %s as %s' % (pathname, queryname)
+        # print 'LOADING %s as %s' % (pathname, queryname)
         ret = store.load_or_create(ClientQuery, queryname=queryname, JSON_metadata=json)
         ret.JSON_metadata = json
         ret.bind_store(store)
@@ -550,7 +544,7 @@ class ClientQuery(GraphNode):
     def load_tree(store, rootdirname, followlinks=False):
         'Returns a generator that will returns all the Queries in that directory structure'
         tree = os.walk(rootdirname, topdown=True, onerror=None, followlinks=followlinks)
-        rootprefixlen = len(rootdirname)+1
+        rootprefixlen = len(rootdirname) + 1
         for walktuple in tree:
             (dirpath, dirnames, filenames) = walktuple
             dirnames.sort()
@@ -589,7 +583,7 @@ def grab_category_scores(categories=None, domains=None, debug=False, store=None)
     bpobj = BestPractices(CMAdb.config, CMAdb.io, debug=debug)
     dtype_totals = {}  # scores organized by (domain, category, discovery-type)
     drone_totals = {}  # scores organized by (domain, category, discovery-type, drone)
-    rule_totals = {}   # scores organized by (domain, category, discovery-type, rule)
+    rule_totals = {}  # scores organized by (domain, category, discovery-type, rule)
 
     for drone in store.load_cypher_nodes(cypher):
         domain = drone.domain
@@ -684,9 +678,9 @@ class CypherExecutor(QueryExecutor):
         We return None if we are flexible (or don't know) about our expected parameters.
         Return the parameter names our cypher query uses"""
 
-        START       = 1
-        BACKSLASH   = 2
-        GOTDOLLAR   = 3
+        START = 1
+        BACKSLASH = 2
+        GOTDOLLAR = 3
 
         results = []
         paramname = ''
@@ -715,6 +709,7 @@ class CypherExecutor(QueryExecutor):
         this query with these parameters.
         """
         return self.store.load_cypher_query(self.query, params=params)
+
 
 @QueryExecutor.register
 class PythonExec(QueryExecutor):
@@ -751,6 +746,7 @@ class PythonExec(QueryExecutor):
         subclass = PythonExec.EXECUTOR_METHODS[subclassname]
         return subclass(store, metadata)
 
+
 @PythonExec.register
 class AllPythonRuleScores(PythonExec):
     """Return discovery type+rule scores for all discovery types"""
@@ -772,10 +768,12 @@ class AllPythonRuleScores(PythonExec):
                           key=sortkeys, reverse=True):
             yield tup
 
+
 @PythonExec.register
 class PythonSecRuleScores(PythonExec):
     """query executor returning discovery type+rule scores for security scores"""
     PARAMETERS = []
+
     def result_iterator(self, _params):
         """We return an iterator which will yield the results of performing
         this query with these parameters.
@@ -787,7 +785,7 @@ class PythonSecRuleScores(PythonExec):
         # 3:  total score for this discovery type _across all rules
         # 4:  rule id
         # 5:  total score for this rule id
-        sortkeys = operator.itemgetter(1,3,5,2,4,0)
+        sortkeys = operator.itemgetter(1, 3, 5, 2, 4, 0)
         for tup in sorted(yield_rule_scores(['security'], dtype_totals, rule_totals),
                           key=sortkeys, reverse=True):
             yield tup
@@ -807,7 +805,7 @@ class PythonHostSecScores(PythonExec):
         # 3:  total score for this discovery type _across all drones
         # 4:  drone designation (name)
         # 5:  total score for this drone for this discovery type
-        sortkeys = operator.itemgetter(0,3,5,2,4,1)
+        sortkeys = operator.itemgetter(0, 3, 5, 2, 4, 1)
         for tup in sorted(yield_drone_scores([], drone_totals, dtype_totals),
                           key=sortkeys, reverse=True):
             yield tup
@@ -817,6 +815,7 @@ class PythonHostSecScores(PythonExec):
 class AllPythonHostScores(PythonExec):
     """query executor returning discovery type+host scores for all score types"""
     PARAMETERS = []
+
     def result_iterator(self, _params):
         dtype_totals, drone_totals, _rule_totals = grab_category_scores()
         # 0:  domain
@@ -825,14 +824,17 @@ class AllPythonHostScores(PythonExec):
         # 3:  total score for this discovery type _across all drones
         # 4:  drone designation (name)
         # 5:  total score for this drone for this discovery type
-        sortkeys = operator.itemgetter(0,3,5,2,4,1)
+        sortkeys = operator.itemgetter(0, 3, 5, 2, 4, 1)
         for tup in sorted(yield_drone_scores([], drone_totals, dtype_totals),
                           key=sortkeys, reverse=True):
             yield tup
+
+
 @PythonExec.register
 class AllPythonTotalScores(PythonExec):
     """query executor returning domain, score-category, total-score"""
     PARAMETERS = []
+
     def result_iterator(self, _params):
         dtype_totals, _drone_totals, _rule_totals = grab_category_scores()
         for tup in yield_total_scores(dtype_totals):
@@ -861,7 +863,6 @@ def setup_dict4(d, key1, key2, key3, key4):
         d[key1][key2][key3][key4] = 0.0
 
 
-
 def yield_total_scores(dtype_totals, categories=None):
     """Format the total scores by category as a named tuple.
     We output the following fields:
@@ -881,6 +882,7 @@ def yield_total_scores(dtype_totals, categories=None):
                 total += cat_scores[dtype]
             yield TotalScore(domain, category, total)
 
+
 def yield_drone_scores(categories, drone_totals, dtype_totals):
     """Format the drone_totals + dtype_totals as a named tuple
     We output the following fields:
@@ -892,7 +894,7 @@ def yield_drone_scores(categories, drone_totals, dtype_totals):
         5:  total score for this drone for this discovery type
     """
     DroneScore = collections.namedtuple('DroneScore', ['domain', 'category', 'discovery_type',
-                                           'dtype_score', 'drone', 'drone_score'])
+                                                       'dtype_score', 'drone', 'drone_score'])
     for domain in drone_totals:
         for cat in drone_totals[domain]:
             if categories and cat not in categories:
@@ -903,6 +905,7 @@ def yield_drone_scores(categories, drone_totals, dtype_totals):
                     if score > 0:
                         yield DroneScore(domain, cat, dtype, dtype_totals[domain][cat][dtype],
                                          drone, score)
+
 
 def yield_rule_scores(categories, dtype_totals, rule_totals):
     """Format the rule totals + dtype_totals as a CSV-style output
@@ -917,8 +920,8 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
     # rule_totals = # scores organized by (category, discovery-type, rule)
 
     RuleScore = collections.namedtuple('RuleScore',
-                          ['domain', 'category', 'discovery_type', 'dtype_score',
-                           'ruleid', 'ruleid_score'])
+                                       ['domain', 'category', 'discovery_type', 'dtype_score',
+                                        'ruleid', 'ruleid_score'])
     for domain in rule_totals:
         for cat in rule_totals[domain]:
             if categories and cat not in categories:
@@ -929,12 +932,17 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
                     if score > 0:
                         yield RuleScore(domain, cat, dtype, dtype_totals[domain][cat][dtype],
                                         ruleid, score)
+
+
 PackageTuple = collections.namedtuple('PackageTuple',
                                       ['domain', 'drone', 'package', 'version', 'packagetype'])
+
+
 @PythonExec.register
 class PythonPackagePrefixQuery(PythonExec):
     """query executor returning packages matching the given prefix"""
     PARAMETERS = ['prefix']
+
     def result_iterator(self, params):
         prefix = params['prefix']
         # 0:  domain
@@ -943,12 +951,12 @@ class PythonPackagePrefixQuery(PythonExec):
         # 3:  Package Version
         # 4:  Package type
         cypher = (
-        """MATCH (system)-[rel:jsonattr]->(jsonmap)
-        WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
-            AND jsonmap.nodetype = 'JSONMapNode'
-            AND rel.jsonname =~ '^_init_packages.*' AND jsonmap.json CONTAINS '"%s'
-        RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-        """     %   prefix)
+                """MATCH (system)-[rel:jsonattr]->(jsonmap)
+                WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
+                    AND jsonmap.nodetype = 'JSONMapNode'
+                    AND rel.jsonname =~ '^_init_packages.*' AND jsonmap.json CONTAINS '"%s'
+                RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
+                """ % prefix)
         for (drone, json) in self.store.load_cypher_query(cypher):
             jsonobj = pyConfigContext(json)
             # pylint is confused here - jsonobj['data'] _is_ very much iterable...
@@ -965,17 +973,18 @@ class PythonPackagePrefixQuery(PythonExec):
 class PythonAllPackageQuery(PythonExec):
     """query executor returning all packages on all systems"""
     PARAMETERS = []
+
     def result_iterator(self, params):
         # 0:  domain
         # 1:  Drone
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        """MATCH (system)-[rel:jsonattr]->(jsonmap)
-        WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
-            AND rel.jsonname =~ '^_init_packages.*'
-        RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-        """)
+            """MATCH (system)-[rel:jsonattr]->(jsonmap)
+            WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
+                AND rel.jsonname =~ '^_init_packages.*'
+            RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
+            """)
 
         for (drone, json) in self.store.load_cypher_query(cypher):
             jsonobj = pyConfigContext(json)
@@ -987,10 +996,12 @@ class PythonAllPackageQuery(PythonExec):
                     yield PackageTuple(drone.domain, drone, package,
                                        jsondata[pkgtype][package], pkgtype)
 
+
 @PythonExec.register
 class PythonPackageRegexQuery(PythonExec):
     """query executor returning packages matching the given regular expression"""
     PARAMETERS = ['regex']
+
     def result_iterator(self, params):
         regex = params['regex']
         # 0:  domain
@@ -998,10 +1009,10 @@ class PythonPackageRegexQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
-           WHERE rel.jsonname =~ '^_init_packages.*' AND jsonmap.json =~ '.*%s.*.*'
-           RETURN drone, jsonmap.json AS json ORDER BY system.domain, system.designation
-        """ % regex)
+                """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
+                   WHERE rel.jsonname =~ '^_init_packages.*' AND jsonmap.json =~ '.*%s.*.*'
+                   RETURN drone, jsonmap.json AS json ORDER BY system.domain, system.designation
+                """ % regex)
 
         regexobj = re.compile('.*' + regex)
         for (drone, json) in self.store.load_cypher_query(cypher):
@@ -1020,6 +1031,7 @@ class PythonPackageRegexQuery(PythonExec):
 class PythonPackageQuery(PythonExec):
     """query executor returning packages of the given name"""
     PARAMETERS = ['packagename']
+
     def result_iterator(self, params):
         packagename = params['packagename']
         if packagename.find('::') < 0:
@@ -1029,10 +1041,10 @@ class PythonPackageQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         cypher = (
-        """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
-        WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
-        return drone, jsonmap.json as json
-        """     %   packagename)
+                """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
+                WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
+                return drone, jsonmap.json as json
+                """ % packagename)
         for (drone, json) in self.store.load_cypher_query(cypher):
             jsonobj = pyConfigContext(json)
             # pylint is confused here - jsonobj['data'] _is_ very much iterable...
@@ -1044,16 +1056,18 @@ class PythonPackageQuery(PythonExec):
                         yield PackageTuple(drone.domain, drone, package,
                                            jsondata[pkgtype][package], pkgtype)
 
+
 def reltype_expr(reltypes):
     'Create a Cypher query expression for (multiple) relationship types'
     if isinstance(reltypes, (str, unicode)):
         reltypes = (reltypes,)
     relationship_expression = ''
-    delim=''
+    delim = ''
     for reltype in reltypes:
-        relationship_expression  += '%s:%s' % (delim, reltype)
+        relationship_expression += '%s:%s' % (delim, reltype)
         delim = '|'
     return relationship_expression
+
 
 @PythonExec.register
 class PythonDroneSubgraphQuery(PythonExec):
@@ -1071,7 +1085,7 @@ class PythonDroneSubgraphQuery(PythonExec):
 
     def result_iterator(self, params):
         nodetypes = params['nodetypes']
-        reltypes  = params['reltypes']
+        reltypes = params['reltypes']
         designation = params['hostname']
         if isinstance(designation, (str, unicode)):
             designation = [designation]
@@ -1079,9 +1093,10 @@ class PythonDroneSubgraphQuery(PythonExec):
         relstr = reltype_expr(reltypes)
         nodestr = str(nodetypes)
         query = PythonDroneSubgraphQuery.basequery % (designation_s, relstr, nodestr, nodestr)
-        #print >> sys.stderr, 'RUNNING THIS QUERY:', query
+        # print >> sys.stderr, 'RUNNING THIS QUERY:', query
         for row in self.store.load_cypher_query(query):
             yield row
+
 
 @PythonExec.register
 class PythonAllDronesSubgraphQuery(PythonExec):
@@ -1109,26 +1124,28 @@ class PythonAllDronesSubgraphQuery(PythonExec):
 # message W0212: access to protected member of client class
 # pylint: disable=W0212
 ClientQuery._validationmethods = {
-    'int':      ClientQuery._validate_int,
-    'float':    ClientQuery._validate_float,
-    'bool':     ClientQuery._validate_bool,
-    'string':   ClientQuery._validate_string,
-    'enum':     ClientQuery._validate_enum,
-    'ipaddr':   ClientQuery._validate_ipaddr,
-    'list':     ClientQuery._validate_list,
-    'macaddr':  ClientQuery._validate_macaddr,
+    'int': ClientQuery._validate_int,
+    'float': ClientQuery._validate_float,
+    'bool': ClientQuery._validate_bool,
+    'string': ClientQuery._validate_string,
+    'enum': ClientQuery._validate_enum,
+    'ipaddr': ClientQuery._validate_ipaddr,
+    'list': ClientQuery._validate_list,
+    'macaddr': ClientQuery._validate_macaddr,
     'hostname': ClientQuery._validate_hostname,
-    'dnsname':  ClientQuery._validate_dnsname,
-    'regex':    ClientQuery._validate_regex,
+    'dnsname': ClientQuery._validate_dnsname,
+    'regex': ClientQuery._validate_regex,
     'nodetype': ClientQuery._validate_nodetype,
-    'reltype':  ClientQuery._validate_reltype,
+    'reltype': ClientQuery._validate_reltype,
 }
 
 if __name__ == '__main__':
     # pylint: disable=C0413,C0411
     import inject
     from cmainit import CMAInjectables
+
     inject.configure_once(CMAInjectables.test_config_injection)
+
 
     @inject.params(qstore='Store')
     def testcode(qstore=None):
@@ -1138,112 +1155,113 @@ if __name__ == '__main__':
         :return: None
         """
         metadata1 = \
-        """
-        {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
-            "parameters": {},
-            "descriptions": {
-                "en": {
-                    "short":    "list all queries",
-                    "long":     "return a list of all available queries"
+            """
+            {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
+                "parameters": {},
+                "descriptions": {
+                    "en": {
+                        "short":    "list all queries",
+                        "long":     "return a list of all available queries"
+                    }
                 }
             }
-        }
-        """
+            """
 
         metadata2 = \
-        """
-        {   "cypher":   "MATCH(n:Class_ClientQuery) WHERE n.queryname = $queryname RETURN n",
-            "parameters": {
-                "queryname": {
-                    "type": "string",
-                    "lang": {
-                        "en": {
-                            "short":    "query name",
-                            "long":     "Name of query to retrieve"
-                        }
-                    }
-                }
-            },
-            "descriptions": {
-                "en": {
-                    "short":    "Retrieve a query",
-                    "long":     "Retrieve all the information about a query"
-                }
-            }
-        }
-        """
-
-        metadata3 = \
-        """
-        {
-            "cypher": "MATCH (ip:Class_IPaddr)<-[:ipowner]-()<-[:nicowner]-(system)
-                       WHERE ip.ipaddr = $ipaddr
-                       RETURN system",
-
-            "descriptions": {
-                "en": {
-                    "short":    "get system from IP",
-                    "long":     "retrieve the system owning the requested IP"
-                }
-            },
-            "parameters": {
-                "ipaddr": {
-                    "type": "ipaddr",
-                    "lang": {
-                        "en": {
-                            "short":    "IP address",
-                            "long":     "IP (IPv4 or IPv6) address of system of interest"
-                        }
-                    }
-                }
-            }
-        }
-        """
-        metadata4 =  \
-        r""" {
-            "cypher":  "MATCH (start:Class_Drone)
-                        WHERE start.designation = $host
-                        MATCH p = shortestPath( (start)-[*]-(m) )
-                        WHERE m.nodetype IN $nodetypes
-                        UNWIND nodes(p) as n
-                        UNWIND rels(p) as r
-                        RETURN [x in collect(distinct n) WHERE x.nodetype in $nodetypes]] as nodes,
-                       collect(distinct r) as relationships",
-            "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
-            "descriptions": {
-                "en": {
-                    "short":    "return entire graph",
-                    "long":     "retrieve all nodes and all relationships"
-                }
-            },
-            "parameters": {
-                "host": {
-                    "type": "hostname",
-                    "lang": {
-                        "en": {
-                            "short":    "starting host name",
-                            "long":     "name of host to start the query at"
+            """
+            {   "cypher":   "MATCH(n:Class_ClientQuery) WHERE n.queryname = $queryname RETURN n",
+                "parameters": {
+                    "queryname": {
+                        "type": "string",
+                        "lang": {
+                            "en": {
+                                "short":    "query name",
+                                "long":     "Name of query to retrieve"
+                            }
                         }
                     }
                 },
-                "nodetypes": {
-                    "type": "list",
-                    "listtype": {
-                        "type": "nodetype"
-                    },
-                    "lang": {
-                        "en": {
-                            "short":    "node types",
-                            "long":     "set of node types to include in query result",
-                         }
+                "descriptions": {
+                    "en": {
+                        "short":    "Retrieve a query",
+                        "long":     "Retrieve all the information about a query"
                     }
                 }
-            },
-            "cmdline": {
-                "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
-                "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
-            },
-        }"""
+            }
+            """
+
+        metadata3 = \
+            """
+            {
+                "cypher": "MATCH (ip:Class_IPaddr)<-[:ipowner]-()<-[:nicowner]-(system)
+                           WHERE ip.ipaddr = $ipaddr
+                           RETURN system",
+    
+                "descriptions": {
+                    "en": {
+                        "short":    "get system from IP",
+                        "long":     "retrieve the system owning the requested IP"
+                    }
+                },
+                "parameters": {
+                    "ipaddr": {
+                        "type": "ipaddr",
+                        "lang": {
+                            "en": {
+                                "short":    "IP address",
+                                "long":     "IP (IPv4 or IPv6) address of system of interest"
+                            }
+                        }
+                    }
+                }
+            }
+            """
+        metadata4 = \
+            r""" {
+                "cypher":  "MATCH (start:Class_Drone)
+                            WHERE start.designation = $host
+                            MATCH p = shortestPath( (start)-[*]-(m) )
+                            WHERE m.nodetype IN $nodetypes
+                            UNWIND nodes(p) as n
+                            UNWIND rels(p) as r
+                            RETURN [x in collect(distinct n) WHERE x.nodetype in $nodetypes]] as 
+                            nodes,
+                           collect(distinct r) as relationships",
+                "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+                "descriptions": {
+                    "en": {
+                        "short":    "return entire graph",
+                        "long":     "retrieve all nodes and all relationships"
+                    }
+                },
+                "parameters": {
+                    "host": {
+                        "type": "hostname",
+                        "lang": {
+                            "en": {
+                                "short":    "starting host name",
+                                "long":     "name of host to start the query at"
+                            }
+                        }
+                    },
+                    "nodetypes": {
+                        "type": "list",
+                        "listtype": {
+                            "type": "nodetype"
+                        },
+                        "lang": {
+                            "en": {
+                                "short":    "node types",
+                                "long":     "set of node types to include in query result",
+                             }
+                        }
+                    }
+                },
+                "cmdline": {
+                    "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
+                    "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
+                },
+            }"""
         q1 = ClientQuery('allqueries', metadata1)
         q1.validate_json()
         q2 = ClientQuery('allqueries', metadata2)
@@ -1252,7 +1270,6 @@ if __name__ == '__main__':
         q3.validate_json()
         q4 = ClientQuery('subgraph', metadata4)
         q4.validate_json()
-
 
         print "LOADING TREE!"
 
@@ -1277,4 +1294,6 @@ if __name__ == '__main__':
             print s
 
         print "All done!"
+
+
     testcode()

@@ -121,7 +121,7 @@ class TestFoo:
                     client.association.obj = None
             TestFoo.store.abort()
             TestFoo.store.weaknoderefs = {}
-            TestFoo.store.clients = set()
+            TestFoo.store.clients = list()
 
 
 if BuildListOnly:

@@ -40,11 +40,13 @@ class SystemNode(GraphNode):
     HASH_PREFIX = 'JSON__hash__'
     JSONattrnames = '''MATCH (d)-[r:jsonattr]->() WHERE ID(d) = $droneid
                            return r.jsonname as key'''
-    JSONsingleattr = '''MATCH (d)-[r:jsonattr]->(json) WHERE r.jsonname={jsonname} AND
+    JSONsingleattr = '''MATCH (d)-[r:jsonattr]->(json) WHERE r.jsonname=$jsonname AND
                              ID(d) = $droneid
                              RETURN json'''
+    SYSTEMNODES_FROM_JHASH = '''MATCH (sys)-[:jsonattr]->(jsonnode) WHERE json.jhash in $hashlist
+                               RETURN sys'''
 
-    _JSONprocessors = None # This will get updated
+    _JSONprocessors = None  # This will get updated
     debug = False
 
     def __init__(self, domain, designation, roles=None):
