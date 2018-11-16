@@ -548,6 +548,16 @@ class TestSystemNode(TestCase):
         assert results[0] is qnode
         assert len(results) == 1
 
+        # Valset is a set of all our JSONMapNodes
+        valset = set(values)
+        assert len(valset) == 3
+        results = [j for j in SystemNode.find_w_hash_by_json_hashes(store, values)]
+        print('RESULTS: %s' % results)
+        for (node, jhash) in results:
+            assert node is qnode
+            valset.remove(jhash)
+        assert len(valset) == 0
+
 
 # Other things that ought to have tests:
 #   node deletion

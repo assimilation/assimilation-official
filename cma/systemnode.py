@@ -45,6 +45,8 @@ class SystemNode(GraphNode):
                              RETURN json'''
     SYSTEMNODES_FROM_JHASH = '''MATCH (sys)-[:jsonattr]->(json) WHERE json.jhash in $hashlist %s
                                RETURN DISTINCT sys'''
+    SYSTEMNODES_AND_HASH = '''MATCH (sys)-[:jsonattr]->(json) WHERE json.jhash in $hashlist %s
+                               RETURN sys, json'''
 
     _JSONprocessors = None  # This will get updated
     debug = False
@@ -304,24 +306,47 @@ class SystemNode(GraphNode):
         :param where_params: parameters to plug into the where clause
         :return: Generator(SystemNode): system nodes that we found...
         """
-        print('JSON_HASHES: %s' % json_hashes)
         query = SystemNode.SYSTEMNODES_FROM_JHASH % (where_conditions if where_conditions else '')
         parameters = {}
         if isinstance(json_hashes, str) or not isinstance(json_hashes, (list, tuple)):
             json_hashes = (json_hashes,)
         hashes = []
         for item in json_hashes:
-            print('ITEM: %s / %s' % (type(item), item))
             if isinstance(item, JSONMapNode):
                 hashes.append(item.hash())
             else:
                 hashes.append(item)
-        print('HASHES: %s' % hashes)
         if where_params:
             for k, v in where_params.items():
                 parameters[k] = v
         parameters['hashlist'] = hashes
         return store.load_cypher_nodes(query, params=parameters)
+
+    @staticmethod
+    def find_w_hash_by_json_hashes(store, json_hashes, where_conditions=None, where_params=None):
+        """
+        A generator which returns (SystemNodes, hash) found by their associated JSON hashes
+        :param store: Store: Neo4j Store
+        :param json_hashes: [str]: iterable JSON hashes
+        :param where_conditions: str: conditions to append to the where clause query
+        :param where_params: parameters to plug into the where clause
+        :return: Generator(SystemNode, str): system nodes that we found...
+        """
+        query = SystemNode.SYSTEMNODES_AND_HASH % (where_conditions if where_conditions else '')
+        parameters = {}
+        if isinstance(json_hashes, str) or not isinstance(json_hashes, (list, tuple)):
+            json_hashes = (json_hashes,)
+        hashes = []
+        for item in json_hashes:
+            if isinstance(item, JSONMapNode):
+                hashes.append(item.hash())
+            else:
+                hashes.append(item)
+        if where_params:
+            for k, v in where_params.items():
+                parameters[k] = v
+        parameters['hashlist'] = hashes
+        return store.load_cypher_query(query, params=parameters)
 
     def find_nic(self, ifname):
         """
