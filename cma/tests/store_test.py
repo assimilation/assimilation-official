@@ -521,19 +521,32 @@ class TestSystemNode(TestCase):
         sysnode = store.load_or_create(SystemNode, domain="global", designation=designation, roles=['Server', 'Switch'])
         sysnode['FunkyAttributeab'] = '''{"a": "b"}'''
         sysnode['FunkyAttributecd'] = '''{"c": "d"}'''
+        sysnode['FunkyAttributeef'] = '''{"e": "f"}'''
         store.commit()
         Store.debug = False
         sysnode = None
         # print("COMMIT done", file=stderr)
-        query_string='''MATCH(sys:Class_SystemNode) WHERE sys.nodetype='SystemNode' AND sys.designation=toLower({desig}) RETURN sys'''
+        query_string='''MATCH(sys:Class_SystemNode)
+                        WHERE sys.nodetype='SystemNode' AND sys.designation=toLower({desig})
+                        RETURN sys'''
         qnode = store.load_cypher_node(query_string, params={'desig': designation})
         assert qnode is not None
         # print("Qnode: %s" % (qnode.__dict__.keys()))
         # print(qnode.keys())
+        assert len(qnode.keys()) == 3
         assert str(qnode['FunkyAttributeab']) == '''{"a":"b"}'''
         assert str(qnode['FunkyAttributecd']) == '''{"c":"d"}'''
         # print('JSONMAP NODE CLASS attributes: %s' % JSONMapNode.__dict__)
-
+        for key in qnode.keys():
+            qk = qnode[key]
+            # print('KEY: %s qk: %s type(qk:%s) hash(qk:%s)' % (key, qk, type(qk), qk.hash()))
+            # print('SYSTEMNODES: %s' % [j for j in SystemNode.find_by_json_hashes(store, (qk,))][0])
+            ret = [j for j in SystemNode.find_by_json_hashes(store, qk)][0]
+            assert ret is qnode
+        values = [qnode[k] for k in qnode.keys()]
+        results = [j for j in SystemNode.find_by_json_hashes(store, values)]
+        assert results[0] is qnode
+        assert len(results) == 1
 
 
 # Other things that ought to have tests:

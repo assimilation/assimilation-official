@@ -147,7 +147,7 @@ class Store(object):
         # print("RETURNING class %s" % self.__class__.__name__)
         return
 
-    def __foostr__(self):
+    def __str__(self):
         """
 
         :return: str: Store object as a string for debugging
