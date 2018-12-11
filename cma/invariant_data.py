@@ -44,6 +44,7 @@ import hashlib
 import json
 import sqlite3
 import string
+import dpath
 
 if hasattr(os, 'syncfs'):
     syncfs = getattr(os, 'syncfs')
@@ -58,8 +59,6 @@ else:
         :return: int: typical system call return code...
         """
         libc.syncfs(fd)
-
-import dpath
 
 
 def dict_merge(original_dict, merge_dict):
@@ -539,7 +538,6 @@ class SQLiteInstance(object):
         self.in_transaction = False
         self.cursor = None
 
-
     @staticmethod
     def instance(**initial_args):
         """
@@ -623,7 +621,7 @@ class SQLiteInstance(object):
         :return:
         """
         self.ensure_transaction()
-        sql = ('CREATE TABLE %s(hash varchar unique, data varchar, integer current default 1);'
+        sql = ('CREATE TABLE %s(hash varchar unique, integer current default 1, data varchar);'
                % self.table_name(table))
         self.execute(sql)
         self.hash_tables.add(table)
@@ -823,6 +821,94 @@ class SQLiteJSON(PersistentInvariantJSON):
         """
         return self.instance.all_hash_tables()
 
+    @staticmethod
+    def _transform_query_to_sql(query, top_level='data'):
+        """
+        Transforms a query from dpath notation to SQLite JSON query notation
+        :param query: str: query in dpath notation
+        :return: str: query in SQLite JSON notation
+        """
+        xformed = '$' + (query[1:] if query.startswith('*') else query)
+        return "json_extract(result.value, '%s')" % xformed.replace('/', '.')
+
+    @staticmethod
+    def sql_value(value):
+        if isinstance(value, str):
+            return '"%s"' % value
+        elif isinstance(value, (list, tuple)):
+            delim = ''
+            result = '('
+            for item in value:
+                result += "%s%s" % (delim, SQLiteJSON.sql_value(item))
+                delim = ','
+            return result + ')'
+        return str(value)
+
+    @staticmethod
+    def sqlite_parameter(parameter):
+        if isinstance(parameter, bool):
+            return str(int(parameter))
+        elif isinstance(parameter, (list, tuple)):
+            result = '('
+            delim = ''
+            for item in parameter:
+                result += '%s%s' % (delim, SQLiteJSON.sqlite_parameter(item))
+                delim = ', '
+            return result + ')'
+        elif isinstance(parameter, (str, unicode)):
+            return "'%s'" % parameter
+        return str(parameter)
+
+    def equality_query(self, equal_sets, ctype='and'):
+        """
+        Perform an equality query using SQLite JSON...
+        :param equal_sets:
+        :param ctype:
+        :return:
+        """
+        conjunction_word = ' AND ' if ctype.lower() == 'and' else ' OR '
+        # for item in obj.equality_query('fileattrs', (('*/perms/group/write', True),
+        #                                              ('*/type', ('d', '-', 'b', 'c')))):
+        print('EQUAL SETS: %s // %s' % (type(equal_sets), equal_sets))
+        query_string = """
+        SELECT hash, key, value
+        FROM ({TABLE:s}
+        CROSS JOIN json_each(json_extract(data, '$.data'))
+        AS result) WHERE """
+        if isinstance(equal_sets[0], str):
+            equal_sets = (equal_sets,)
+        delimiter = ''
+        operands = []
+        for dpath_expr, compare in equal_sets:
+            expr = self._transform_query_to_sql(dpath_expr)
+            operands.append(self.sqlite_parameter(compare))
+            query_string += ('%s%s %s %s'
+                             % (delimiter, expr,
+                                ('IN' if isinstance(compare, (list, tuple)) else '=='),
+                                self.sqlite_parameter(compare)
+                                )
+                             )
+            delimiter = conjunction_word
+        # query_string += ';'
+        print('QUERYSTR : %s' % query_string)
+        print('query_string: %s::%s' % (type(query_string), query_string))
+        print('operands: %s' % operands)
+        operands=[]
+        return self.sql_query(query_string, operands)
+
+    def sql_query(self, query_string, *parameters):
+        """
+
+        :param query_string:
+        :param parameters: dict: name/value parameters for query
+        :type query_string: str:
+        :type parameters: dict:
+        :return:generator
+        """
+        query = query_string.format(TABLE=self.instance.table_name(self.data_type))
+        print('SQLQUERY:', query)
+        return self.instance.execute(query, *parameters)
+
 
 class PersistentJSON(object):
     """
@@ -978,6 +1064,11 @@ class PersistentJSON(object):
         bucket = self.buckets[bucket_name]
         return bucket.equality_query(query, ctype=ctype)
 
+    def sql_query(self, bucket_name, query, **parameters):
+        self._make_bucket(bucket_name)
+        bucket = self.buckets[bucket_name]
+        return bucket.sql_query(query, **parameters)
+
     def delete_everything(self):
         """
         Delete everything from the underlying database
@@ -1011,6 +1102,26 @@ if __name__ == '__main__':
         print('Performing sync.', file=stderr)
         obj.sync()  # Make sure all our bits get written to disk...
         print('Sync done.', file=stderr)
+        sql_query1 = """
+        SELECT hash, key, value
+        FROM ({TABLE:s}
+        CROSS JOIN json_each(json_extract(data, '$.data'))
+        AS result) WHERE json_extract(result.value, '$.perms.sticky') == 1
+        """
+        sql_query2 = """
+        SELECT hash, key, value
+        FROM ({TABLE:s}
+        CROSS JOIN json_each(json_extract(data,'$.data'))
+        AS result) WHERE json_extract(result.value, '$.perms.group.write') == 1
+                   AND json_extract(result.value, '$.type') IN ("d", "-", "b", "c")
+        """
+        for row in obj.sql_query('fileattrs', sql_query1):
+            print(type(row))
+            print('SQL ROW', row)
+        for row in obj.sql_query('fileattrs', sql_query2):
+            print(type(row))
+            print('SQL ROW', row)
+
         for item in obj.equality_query('fileattrs', (('*/perms/sticky', True),)):
             print("Found sticky bit:", item, file=stderr)
         print('Performing second query.', file=stderr)
