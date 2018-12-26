@@ -83,6 +83,7 @@ class ConfigFile(object):
         'compression_method': {'zlib'},  # Packet compression method
         'compression_threshold': {int, long},  # Threshold for when to start compressing
         'score_severity_map': {str: {'high': float, 'medium': float, 'low': float}},
+        'SQLiteFile': str,
         'discovery': {
             'repeat': {int, long},  # how often to repeat a discovery action
             'warn': {int, long},  # How long to wait when issuing a slow discovery warning
@@ -225,6 +226,7 @@ class ConfigFile(object):
             'score_severity_map': {'security': {'high': 3.0, 'medium': 2.0, 'low': 1.0},
                                    'networking': {'high': 3.0, 'medium': 2.0, 'low': 1.0},
                                    },
+            'SQLiteFile': '/var/lib/assimilation/assim_json.sqlite',
             'discovery': {
                 'repeat': 60,  # Default repeat interval in seconds
                 'warn': 120,  # Default slow discovery warning time

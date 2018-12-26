@@ -550,17 +550,17 @@ class ClientQuery(GraphNode):
                 except ValueError as e:
                     print('%s is invalid: %s' % (path, str(e)), file=stderr)
 
-
-def load_directory(store, directoryname):
-    """Returns a generator that returns all the Queries in that directory"""
-    files = os.listdir(directoryname)
-    files.sort()
-    for filename in files:
-        path = os.path.join(directoryname, filename)
-        try:
-            yield ClientQuery.load_from_file(store, path)
-        except ValueError as e:
-            print('File %s is invalid: %s' % (path, str(e)), file=stderr)
+    @staticmethod
+    def load_directory(store, directoryname):
+        """Returns a generator that returns all the Queries in that directory"""
+        files = os.listdir(directoryname)
+        files.sort()
+        for filename in files:
+            path = os.path.join(directoryname, filename)
+            try:
+                yield ClientQuery.load_from_file(store, path)
+            except ValueError as e:
+                print('File %s is invalid: %s' % (path, str(e)), file=stderr)
 
 
 # [R0914:grab_category_scores] Too many local variables (19/15)
@@ -1140,13 +1140,15 @@ class PythonPackageRegexQuery(PythonJSONtoNodeQuery):
 
 @PythonExec.register
 class PythonPackageQuery(PythonJSONtoNodeQuery):
-    """query executor returning installed packages of the given name"""
+    """
+    query executor returning installed packages of the given name
+    Note that we're looking for an exact match in the relation.
+    That means we have to look for {package-name}::{package-architecture}"
+    """
     PARAMETERS = ['packagename']
 
     def result_iterator(self, params):
         packagename = params['packagename']
-        if packagename.find('::') < 0:
-            packagename += '::'
         # 0:  domain
         # 1:  Drone
         # 2:  Package name

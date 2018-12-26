@@ -277,6 +277,17 @@ class CMAInjectables(object):
         """
         from invariant_data import (PersistentJSON, SQLiteJSON)
         store_filename = config.get('SQLiteFile', '/tmp/assimilation.sqlite')
+        store_dirname = os.path.dirname(store_filename)
+        if not os.path.isdir(store_dirname):
+            try:
+                os.mkdir(store_dirname, 0o750)
+            except OSError as oops:
+                print('Cannot make SQLite directory: %s' % oops)
+                raise oops
+        if not os.access(store_dirname, os.W_OK + os.X_OK + os.R_OK):
+            raise OSError('ERROR: Directory "%s" not is not "rwx" to uid %s'
+                          % (store_dirname, os.geteuid()))
+
         recreate_store = config.get('recreate_json_store', False)
         if recreate_store:
             try:
