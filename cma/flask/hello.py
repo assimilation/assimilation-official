@@ -72,7 +72,7 @@ def doquery(queryname):
         query.validate_parameters(req)
     except ValueError, e:
         return 'Invalid Parameters to %s [%s]' % (queryname, str(e))
-    return Response(query.execute(None, idsonly=False, expandJSON=True, maxJSON=1024, **req)
+    return Response(query.execute(None, idsonly=False, expandjson=True, maxjson=1024, **req)
     ,               mimetype='application/javascript')
 
 if __name__ == '__main__':

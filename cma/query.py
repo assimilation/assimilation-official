@@ -27,8 +27,10 @@
 This module provides classes associated with querying - including providing metadata
 about these queries for the client code.
 """
+from __future__ import print_function
 import os
 import sys
+from sys import stderr
 import re
 import collections
 import operator
@@ -41,6 +43,7 @@ from bestpractices import BestPractices
 from cmadb import CMAdb
 from droneinfo import Drone
 from consts import CMAconsts
+from invariant_data import SQLiteInstance
 
 
 @registergraphclass
@@ -50,10 +53,10 @@ class ClientQuery(GraphNode):
     """
     node_query_url = "/doquery/GetaNodeById"
 
-    def __init__(self, queryname, JSON_metadata=None):
+    def __init__(self, queryname, json_metadata=None):
         """Parameters
         ----------
-        JSON_metadata  - a JSON string containing
+        json_metadata  - a JSON string containing
                 'querytype':    a string denoting our query type - defaults to 'cypher'
                 'cypher':       a string containing our cypher query (if a cypher query)
                 'subtype':      a string giving the query subtype (if applicable)
@@ -86,26 +89,26 @@ class ClientQuery(GraphNode):
         """
 
         self.queryname = queryname
-        self.JSON_metadata = JSON_metadata
+        self.JSON_metadata = json_metadata
         self._store = None
         self._db = None
         self._queryobj = None
-        if JSON_metadata is None:
+        if json_metadata is None:
             self._JSON_metadata = None
         else:
-            self._JSON_metadata = pyConfigContext(JSON_metadata)
+            self._JSON_metadata = pyConfigContext(json_metadata)
             if self._JSON_metadata is None:
-                raise ValueError('Parameter JSON_metadata is invalid [%s]' % JSON_metadata)
+                raise ValueError('Parameter json_metadata is invalid [%s]' % json_metadata)
         GraphNode.__init__(self, domain='metadata')
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of decreasing significance'
+        """Return our key attributes in order of decreasing significance"""
         return ['queryname']
 
     @staticmethod
     def set_node_query_url(node_query_url):
-        'Set the base URL for the query operation that returns a node by node id'
+        """Set the base URL for the query operation that returns a node by node id"""
         ClientQuery.node_query_url = node_query_url
 
     def post_db_init(self):
@@ -115,7 +118,7 @@ class ClientQuery(GraphNode):
             self.validate_json()
 
     def bind_store(self, store):
-        'Connect our query to a database'
+        """Connect our query to a database"""
         db = store.db
         if self._store is not store:
             self._store = store
@@ -125,12 +128,12 @@ class ClientQuery(GraphNode):
         self.validate_json()
 
     def parameter_names(self):
-        'Return the parameter names that go with this query'
+        """Return the parameter names that go with this query"""
         return self._queryobj.parameter_names()
 
-    def execute(self, executor_context, idsonly=False, expandJSON=False, maxJSON=0, elemsonly=False
-                , **params):
-        'Execute the query and return an iterator that produces sanitized (filtered) results'
+    def execute(self, executor_context, idsonly=False, expandjson=False, maxjson=0, elemsonly=False,
+                **params):
+        """Execute the query and return an iterator that produces sanitized (filtered) results"""
         if self._db is None:
             raise ValueError('query must be bound to a Store')
 
@@ -146,21 +149,21 @@ class ClientQuery(GraphNode):
                                  % (pname, self.queryname))
         fixedparams = self.validate_parameters(params)
         resultiter = queryobj.result_iterator(fixedparams)
-        return self.filter_json(executor_context, idsonly, expandJSON
-                                , maxJSON, resultiter, elemsonly)
+        return self.filter_json(executor_context, idsonly, expandjson,
+                                maxjson, resultiter, elemsonly)
 
     def supports_cmdline(self, language='en'):
-        'Return True if this query supports command line formatting'
+        """Return True if this query supports command line formatting"""
         meta = self._JSON_metadata
         return 'cmdline' in meta and language in meta['cmdline']
 
     def cmdline_exec(self, executor_context, language='en', fmtstring=None, **params):
-        'Execute the command line version of the query for the specified language'
+        """Execute the command line version of the query for the specified language"""
         if fmtstring is None:
             fmtstring = self._JSON_metadata['cmdline'][language]
         fixedparams = self.validate_parameters(params)
-        for json in self.execute(executor_context, expandJSON=True
-                , maxJSON=5120, elemsonly=True, **fixedparams):
+        for json in self.execute(executor_context, expandjson=True,
+                                 maxjson=5120, elemsonly=True, **fixedparams):
             obj = pyConfigContext(json)
             yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
@@ -178,8 +181,7 @@ class ClientQuery(GraphNode):
         return result
 
     @staticmethod
-    def filter_json(executor_context, idsonly, expandJSON, maxJSON
-                    , resultiter, elemsonly=False):
+    def filter_json(executor_context, idsonly, expandjson, maxjson, resultiter, elemsonly=False):
         """Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
@@ -207,8 +209,8 @@ class ClientQuery(GraphNode):
                             ClientQuery.node_query_url,
                             result[0].association.node_id))
                 else:
-                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandJSON,
-                                                  maxJSON=maxJSON))
+                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandjson,
+                                                  maxJSON=maxjson))
             else:
                 delim = rowdelim + '{'
                 row = ''
@@ -224,8 +226,8 @@ class ClientQuery(GraphNode):
                     else:
                         row += '%s"%s":%s' % (delim,
                                               attr,
-                                              str(JSONtree(value, expandJSON=expandJSON,
-                                                           maxJSON=maxJSON)))
+                                              str(JSONtree(value, expandJSON=expandjson,
+                                                           maxJSON=maxjson)))
                     delim = ','
                 yield row + '}'
             if not elemsonly:
@@ -246,7 +248,7 @@ class ClientQuery(GraphNode):
             raise ValueError('parameters missing from metadata')
         paramdict = self._JSON_metadata['parameters']
         if 'descriptions' not in self._JSON_metadata:
-            print >> sys.stderr, 'METADATA:', self._JSON_metadata
+            print('METADATA:', self._JSON_metadata, file=stderr)
             raise ValueError('descriptions missing from metadata')
 
         # Validate query descriptions
@@ -302,7 +304,7 @@ class ClientQuery(GraphNode):
         return True
 
     def validate_query_parameter_metadata(self, param, pinfo):
-        'Validate the paramater metadata for this query'
+        """Validate the paramater metadata for this query"""
         if 'type' not in pinfo:
             raise ValueError('Parameter %s missing type field' % param)
         ptype = pinfo['type']
@@ -314,11 +316,11 @@ class ClientQuery(GraphNode):
             raise ValueError('Max only valid on numeric fields [%s]' % param)
         if ptype == 'list':
             if 'listtype' not in pinfo:
-                raise ValueError('List type [%s] requires listtype' % (param))
+                raise ValueError('List type [%s] requires listtype' % param)
             self.validate_query_parameter_metadata('list', pinfo['listtype'])
         if ptype == 'enum':
             if 'enumlist' not in pinfo:
-                raise ValueError('Enum type [%s] requires enumlist' % (param))
+                raise ValueError('Enum type [%s] requires enumlist' % param)
             elist = pinfo['enumlist']
             for enum in elist:
                 if not isinstance(enum, str) and not isinstance(enum, unicode):
@@ -347,24 +349,66 @@ class ClientQuery(GraphNode):
         return result
 
     @staticmethod
-    def _validate_int(name, paraminfo, value):
-        'Validate an int value'
-        val = int(value)
-        if 'min' in paraminfo:
-            minval = paraminfo['min']
-            if val < minval:
-                raise ValueError('Value of %s [%s] smaller than mininum [%s]'
-                                 % (name, val, minval))
-        if 'max' in paraminfo:
-            maxval = paraminfo['max']
-            if val > maxval:
-                raise ValueError('Value of %s [%s] larger than maximum [%s]'
-                                 % (name, val, maxval))
-        return val
+    def _validate_dnsname(_name, _paraminfo, value):
+        """Validate an DNS name value"""
+        value = str(value)
+        return value.lower()
+
+    @staticmethod
+    def _validate_hostname(name, paraminfo, value):
+        """Validate a hostname value"""
+        return ClientQuery._validate_dnsname(name, paraminfo, value)
+
+    @staticmethod
+    def _validate_regex(name, _paraminfo, value):
+        """Validate a regular expression"""
+        try:
+            re.compile(value)
+        except re.error as e:
+            raise ValueError('Value of %s ("%s") is not a valid regular expression [%s]' %
+                             (name, value, str(e)))
+        return value
+
+    @staticmethod
+    def _validate_bool(name, _paraminfo, value):
+        """Validate an Boolean value"""
+        if not isinstance(value, bool):
+            raise ValueError('Value of %s [%s] not a boolean' % (name, value))
+        return value
+
+    @staticmethod
+    def _validate_ipaddr(name, _paraminfo, value):
+        """Validate an IP address value"""
+        ip = pyNetAddr(value)
+        if ip is None:
+            raise ValueError('Value of %s [%s] not a valid IP address' % (name, value))
+        ip.setport(0)
+        if ip.addrtype() == ADDR_FAMILY_IPV6:
+            return str(ip)
+        if ip.addrtype() == ADDR_FAMILY_IPV4:
+            return str(ip.toIPv6())
+        raise ValueError('Value of %s [%s] not an IP address' % (name, value))
+
+    @staticmethod
+    def _validate_macaddr(name, _paraminfo, value):
+        """Validate an MAC address value"""
+        mac = pyNetAddr(value)
+        if mac is None:
+            raise ValueError('value of %s [%s] not a valid MAC address' % (name, value))
+        if mac.addrtype() != ADDR_FAMILY_802:
+            raise ValueError('Value of %s [%s] not a MAC address' % (name, value))
+        return str(mac)
+
+    @staticmethod
+    def _validate_string(_name, _paraminfo, value):
+        """Validate a string value (FIXME: should this always be valid??)"""
+        # FIXME: This should probably make sure no " or ' or [], ;'s - maybe others?
+        # Probably should allow ":"
+        return value
 
     @staticmethod
     def _validate_float(name, paraminfo, value):
-        'Validate an floating point value'
+        """Validate an floating point value"""
         val = float(value)
         if 'min' in paraminfo:
             minval = paraminfo['min']
@@ -379,66 +423,24 @@ class ClientQuery(GraphNode):
         return val
 
     @staticmethod
-    def _validate_string(_name, _paraminfo, value):
-        'Validate a string value (FIXME: should this always be valid??)'
-        # FIXME: This should probably make sure no " or ' or [], ;'s - maybe others?
-        # Probably should allow ":"
-        return value
-
-    @staticmethod
-    def _validate_macaddr(name, _paraminfo, value):
-        'Validate an MAC address value'
-        mac = pyNetAddr(value)
-        if mac is None:
-            raise ValueError('value of %s [%s] not a valid MAC address' % (name, value))
-        if mac.addrtype() != ADDR_FAMILY_802:
-            raise ValueError('Value of %s [%s] not a MAC address' % (name, value))
-        return str(mac)
-
-    @staticmethod
-    def _validate_ipaddr(name, _paraminfo, value):
-        'Validate an IP address value'
-        ip = pyNetAddr(value)
-        if ip is None:
-            raise ValueError('Value of %s [%s] not a valid IP address' % (name, value))
-        ip.setport(0)
-        if ip.addrtype() == ADDR_FAMILY_IPV6:
-            return str(ip)
-        if ip.addrtype() == ADDR_FAMILY_IPV4:
-            return str(ip.toIPv6())
-        raise ValueError('Value of %s [%s] not an IP address' % (name, value))
-
-    @staticmethod
-    def _validate_bool(name, _paraminfo, value):
-        'Validate an Boolean value'
-        if not isinstance(value, bool):
-            raise ValueError('Value of %s [%s] not a boolean' % (name, value))
-        return value
-
-    @staticmethod
-    def _validate_regex(name, _paraminfo, value):
-        'Validate a regular expression'
-        try:
-            re.compile(value)
-        except re.error as e:
-            raise ValueError('Value of %s ("%s") is not a valid regular expression [%s]' %
-                             (name, value, str(e)))
-        return value
-
-    @staticmethod
-    def _validate_hostname(name, paraminfo, value):
-        'Validate a hostname value'
-        return ClientQuery._validate_dnsname(name, paraminfo, value)
-
-    @staticmethod
-    def _validate_dnsname(_name, _paraminfo, value):
-        'Validate an DNS name value'
-        value = str(value)
-        return value.lower()
+    def _validate_int(name, paraminfo, value):
+        """Validate an int value"""
+        val = int(value)
+        if 'min' in paraminfo:
+            minval = paraminfo['min']
+            if val < minval:
+                raise ValueError('Value of %s [%s] smaller than mininum [%s]'
+                                 % (name, val, minval))
+        if 'max' in paraminfo:
+            maxval = paraminfo['max']
+            if val > maxval:
+                raise ValueError('Value of %s [%s] larger than maximum [%s]'
+                                 % (name, val, maxval))
+        return val
 
     @staticmethod
     def _validate_enum(name, paraminfo, value):
-        'Validate an enumeration value'
+        """Validate an enumeration value"""
         if 'enumlist' not in paraminfo:
             raise TypeError("No 'enumlist' for parameter" % name)
         value = value.tolower()
@@ -450,7 +452,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _validate_list(name, paraminfo, listvalue):
-        'Validate a list value'
+        """Validate a list value"""
         if isinstance(listvalue, (str, unicode)):
             listvalue = listvalue.split(',')
         result = []
@@ -461,7 +463,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _get_nodetype(nodetype):
-        'Return the value of a node type - if valid'
+        """Return the value of a node type - if valid"""
         nodetypes = set()
         for attr in dir(CMAconsts):
             if attr.startswith('NODE_') and isinstance(getattr(CMAconsts, attr), (str, unicode)):
@@ -474,7 +476,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _validate_nodetype(name, _paraminfo, value):
-        'validate a node type - ignoring case'
+        """validate a node type - ignoring case"""
         ret = ClientQuery._get_nodetype(value)
         if ret is not None:
             return ret
@@ -482,7 +484,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _get_reltype(reltype):
-        'Return the value of a relationship type - if valid'
+        """Return the value of a relationship type - if valid"""
         reltypes = set()
         for attr in dir(CMAconsts):
             if attr.startswith('REL_') and isinstance(getattr(CMAconsts, attr), (str, unicode)):
@@ -495,7 +497,7 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def _validate_reltype(name, _paraminfo, value):
-        'Validate a relationship type - ignoring case'
+        """Validate a relationship type - ignoring case"""
         ret = ClientQuery._get_reltype(value)
         if ret is not None:
             return ret
@@ -511,12 +513,12 @@ class ClientQuery(GraphNode):
 
     @staticmethod
     def load_from_file(store, pathname, queryname=None):
-        'Load a query with metadata from a file'
+        """Load a query with metadata from a file"""
         fd = open(pathname, 'r')
         json = fd.read()
         fd.close()
         if pyConfigContext(json) is None:
-            raise ValueError('ERROR: Contents of %s is not valid JSON.' % (pathname))
+            raise ValueError('ERROR: Contents of %s is not valid JSON.' % pathname)
         if queryname is None:
             queryname = os.path.basename(pathname)
         # print 'LOADING %s as %s' % (pathname, queryname)
@@ -524,25 +526,13 @@ class ClientQuery(GraphNode):
         ret.JSON_metadata = json
         ret.bind_store(store)
         if not ret.validate_json():
-            print >> sys.stderr, ('ERROR: Contents of %s is not a valid query.' % pathname)
+            print('ERROR: Contents of %s is not a valid query.' % pathname, file=stderr)
 
         return ret
 
     @staticmethod
-    def load_directory(store, directoryname):
-        'Returns a generator that returns all the Queries in that directory'
-        files = os.listdir(directoryname)
-        files.sort()
-        for filename in files:
-            path = os.path.join(directoryname, filename)
-            try:
-                yield ClientQuery.load_from_file(store, path)
-            except ValueError as e:
-                print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
-
-    @staticmethod
     def load_tree(store, rootdirname, followlinks=False):
-        'Returns a generator that will returns all the Queries in that directory structure'
+        """Returns a generator that will returns all the Queries in that directory structure"""
         tree = os.walk(rootdirname, topdown=True, onerror=None, followlinks=followlinks)
         rootprefixlen = len(rootdirname) + 1
         for walktuple in tree:
@@ -558,7 +548,19 @@ class ClientQuery(GraphNode):
                 try:
                     yield ClientQuery.load_from_file(store, path, queryname)
                 except ValueError as e:
-                    print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
+                    print('%s is invalid: %s' % (path, str(e)), file=stderr)
+
+
+def load_directory(store, directoryname):
+    """Returns a generator that returns all the Queries in that directory"""
+    files = os.listdir(directoryname)
+    files.sort()
+    for filename in files:
+        path = os.path.join(directoryname, filename)
+        try:
+            yield ClientQuery.load_from_file(store, path)
+        except ValueError as e:
+            print('File %s is invalid: %s' % (path, str(e)), file=stderr)
 
 
 # [R0914:grab_category_scores] Too many local variables (19/15)
@@ -641,7 +643,7 @@ class QueryExecutor(object):
 
     @staticmethod
     def register(ourclass):
-        'Register this class as a QueryExecutor subclass'
+        """Register this class as a QueryExecutor subclass"""
         QueryExecutor.EXECUTOR_METHODS[ourclass.__name__] = ourclass
         return ourclass
 
@@ -661,10 +663,13 @@ class QueryExecutor(object):
 @QueryExecutor.register
 class CypherExecutor(QueryExecutor):
     """QueryExecutor subclass for Cypher queries"""
+    STATE_START = 1
+    STATE_BACKSLASH = 2
+    STATE_GOTDOLLAR = 3
 
     @staticmethod
     def construct_query(store, metadata):
-        'Call the CypherExecutor constructor'
+        """Call the CypherExecutor constructor"""
         return CypherExecutor(store, metadata)
 
     def __init__(self, store, metadata):
@@ -678,30 +683,26 @@ class CypherExecutor(QueryExecutor):
         We return None if we are flexible (or don't know) about our expected parameters.
         Return the parameter names our cypher query uses"""
 
-        START = 1
-        BACKSLASH = 2
-        GOTDOLLAR = 3
-
         results = []
         paramname = ''
-        state = START
+        state = self.STATE_START
 
         for c in self.metadata['cypher']:
-            if state == START:
+            if state == self.STATE_START:
                 if c == '\\':
-                    state = BACKSLASH
+                    state = self.STATE_BACKSLASH
                 if c == '$':
-                    state = GOTDOLLAR
-            elif state == BACKSLASH:
-                state = START
-            else:  # GOTDOLLAR
+                    state = self.STATE_GOTDOLLAR
+            elif state == self.STATE_BACKSLASH:
+                state = self.STATE_START
+            else:  # STATE_GOTDOLLAR
                 if c.isalnum():
                     paramname += c
                 else:
                     if paramname != '':
                         results.append(paramname)
                         paramname = ''
-                    state = START
+                    state = self.STATE_START
         return results
 
     def result_iterator(self, params):
@@ -737,7 +738,7 @@ class PythonExec(QueryExecutor):
 
     @staticmethod
     def construct_query(store, metadata):
-        'Call the subclass constructor'
+        """Call the subclass constructor"""
         if 'subtype' not in metadata:
             raise ValueError('subtype missing from PythonExec metadata')
         subclassname = metadata['subtype']
@@ -842,7 +843,7 @@ class AllPythonTotalScores(PythonExec):
 
 
 def setup_dict3(d, key1, key2, key3):
-    'Initialize the given subkey (3 layers down)to 0.0'
+    """Initialize the given subkey (3 layers down)to 0.0"""
     if key1 not in d:
         d[key1] = {}
     if key2 not in d[key1]:
@@ -852,7 +853,7 @@ def setup_dict3(d, key1, key2, key3):
 
 
 def setup_dict4(d, key1, key2, key3, key4):
-    'Initialize the given subkey (4 layers down)to 0.0'
+    """Initialize the given subkey (4 layers down)to 0.0"""
     if key1 not in d:
         d[key1] = {}
     if key2 not in d[key1]:
@@ -934,13 +935,152 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
                                         ruleid, score)
 
 
+@PythonExec.register
+class PythonAllDronesSubgraphQuery(PythonExec):
+    """A class to return a subgraph centered around a Drone"""
+    PARAMETERS = ['nodetypes', 'reltypes']
+    basequery = \
+        """MATCH p = shortestPath( (start:Class_Drone)-[%s*]-(m) )
+        WHERE m.nodetype IN %s
+        UNWIND nodes(p) AS n
+        UNWIND rels(p) AS r
+        RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
+        COLLECT(DISTINCT r) AS relationships"""
+
+    def result_iterator(self, params):
+        nodetypes = params['nodetypes']
+        reltypes = params['reltypes']
+        relstr = reltype_expr(reltypes)
+        nodestr = str(nodetypes)
+        query = PythonAllDronesSubgraphQuery.basequery % (relstr, nodestr, nodestr)
+        print('RUNNING THIS QUERY:', query, file=stderr)
+        for row in self.store.load_cypher_query(query):
+            yield row
+
+
 PackageTuple = collections.namedtuple('PackageTuple',
                                       ['domain', 'drone', 'package', 'version', 'packagetype'])
 
 
 @PythonExec.register
-class PythonPackagePrefixQuery(PythonExec):
-    """query executor returning packages matching the given prefix"""
+class PythonAllPackageQuery(PythonExec):
+    """
+    query executor returning all packages on all systems
+    It doesn't need explicitly query against the sqlite JSON data, since we want everything...
+    Instead we get it implictly through the '_init_packages' attribute.
+    """
+    PARAMETERS = []
+
+    def result_iterator(self, params):
+        # 0:  domain
+        # 1:  Drone
+        # 2:  Package name
+        # 3:  Package Version
+        cypher = (
+            """
+            MATCH (system:Class_Drone:Class_ChildSystem)
+            RETURN system ORDER BY system.domain, system.designation
+            """)
+        # Note that Docker and Vagrant classes are subclasses of ChildSystem
+
+        for system in self.store.load_cypher_query(cypher):
+            jsondata = system['_init_packages']['data']
+            assert isinstance(jsondata, pyConfigContext)
+            for pkgtype in jsondata:
+                for package in jsondata[pkgtype]:
+                    yield PackageTuple(system.domain, system, package,
+                                       jsondata[pkgtype][package], pkgtype)
+
+
+class PythonJSONtoNodeQuery(PythonExec):
+    """
+    A class for performing JSON queries that return results joined between Neo4j and SQLite
+    """
+
+    # A query to find things related to certain hash values...
+    cypher_json_query = """
+    MATCH (system:Class_Drone:Class_ChildSystem)-[rel:jsonattr]->(jsonmap:Class_JSONMapNode)
+    WHERE jsonmap.jhash in $hash_values
+    RETURN jsonmap.jhash AS hash, system
+    
+    """
+
+    def result_iterator(self, params):
+        """We return an iterator which will yield the results of performing
+        this query with these parameters.
+        """
+        raise NotImplementedError('PythonExec is an abstract class')
+
+    @inject.params(persistent_json='PersistentJSON')
+    def join_iterator(self, sql_query, params=None, chunk_size=1000, persistent_json=None):
+        """
+        Iterator returning the matched Neo4j object and its matched JSON query portion
+
+        :param sql_query: str: SQLite SQL query yielding wanted JSON nodes
+                               NOTE: first element of returned row must be the hash value.
+        :param params: [str]: List of SQL parameters - or None
+        :param chunk_size: int: How many JSON blobs to query about at a time...
+        :param persistent_json:
+        :return:
+        """
+        hash_table = {}
+        hash_count = 0
+        yield_count = 0
+        params = params if params else []
+
+        for row in persistent_json.sql_query(sql_query, params):
+            hash_table[row[0]] = row[1:]
+            hash_count += 1
+            if len(hash_table) < chunk_size:
+                continue
+
+            hash_values = hash_table.keys()
+            for hash_value, node in self.store.load_cypher_query(self.cypher_json_query,
+                                                                 hash_values=hash_values):
+                yield_count += 1
+                yield node, hash_table[hash_value]
+            hash_table = {}
+
+        hash_values = hash_table.keys()
+        if len(hash_values) > 0:
+            for hash_value, node in self.store.load_cypher_query(self.cypher_json_query,
+                                                                 hash_values=hash_values):
+                yield_count += 1
+                yield node, hash_table[hash_value]
+        if hash_count != yield_count:
+            print('WARNING: JSON join_iterator: hash_count is %d, yield_count is %d.'
+                  % (hash_count, yield_count), file=stderr)
+
+#
+#   The format of package data is as follows:
+#   {
+#       boilerplate-stuff...
+#       "data": {
+#           "package-type":   $ rpm, deb, pip, gem, etc
+#           {
+#               "package_name": "version-string",
+#               "package_name2": "version-string2",
+#               # and so on...
+#           }
+#     }
+#   }
+#
+#   In effect, each package type has its own namespace (which makes sense)
+#   and each package has one version installed in this "system" (Drone or ChildSystem)
+#   See https://www.sqlite.org/json1.html#jeach for an explanation of the json_each and json_tree
+#   functions.
+#
+#   Json_tree is the most useful function for this JSON structure because it's not deep,
+#   and I can access (package-type, package-name, version) as (path, key, atom) when I constrain
+#   atom to be non-NULL. This is _exactly_ what I need...
+#
+
+
+@PythonExec.register
+class PythonPackagePrefixQuery(PythonJSONtoNodeQuery):
+    """
+    query executor returning packages matching the given prefix
+    """
     PARAMETERS = ['prefix']
 
     def result_iterator(self, params):
@@ -950,55 +1090,29 @@ class PythonPackagePrefixQuery(PythonExec):
         # 2:  Package name
         # 3:  Package Version
         # 4:  Package type
-        cypher = (
-                """MATCH (system)-[rel:jsonattr]->(jsonmap)
-                WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
-                    AND jsonmap.nodetype = 'JSONMapNode'
-                    AND rel.jsonname =~ '^_init_packages.*' AND jsonmap.json CONTAINS '"%s'
-                RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-                """ % prefix)
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    if package.startswith(prefix):
-                        yield PackageTuple(drone.domain, drone, package,
-                                           jsondata[pkgtype][package], pkgtype)
+        sql = """
+        SELECT hash, path, key, atom FROM
+          ({table:s}
+            CROSS JOIN json_tree(json_extract(data, '$.data')
+          ) AS result
+        WHERE atom != NULL AND key LIKE '{prefix:s}%'
+        """.format(table=SQLiteInstance.table_name('_packages'), prefix=prefix)
+
+        params = (prefix,)
+        for node, row in self.join_iterator(sql, params=params):
+            print('NODE:', node, 'row', row, file=stderr)
+            packagetype, package, version = row
+            if not package.startswith(prefix):
+                # This could happen f the prefix contains a "_"
+                # I could prevent it, but it's not likely to cause a mismatch...
+                # It's less code to just filter it out...
+                print('PACKAGE %s filtered out for prefix %s' % (package, prefix), file=stderr)
+                continue
+            yield PackageTuple(node.domain, node, package, version, packagetype)
 
 
 @PythonExec.register
-class PythonAllPackageQuery(PythonExec):
-    """query executor returning all packages on all systems"""
-    PARAMETERS = []
-
-    def result_iterator(self, params):
-        # 0:  domain
-        # 1:  Drone
-        # 2:  Package name
-        # 3:  Package Version
-        cypher = (
-            """MATCH (system)-[rel:jsonattr]->(jsonmap)
-            WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
-                AND rel.jsonname =~ '^_init_packages.*'
-            RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-            """)
-
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    yield PackageTuple(drone.domain, drone, package,
-                                       jsondata[pkgtype][package], pkgtype)
-
-
-@PythonExec.register
-class PythonPackageRegexQuery(PythonExec):
+class PythonPackageRegexQuery(PythonJSONtoNodeQuery):
     """query executor returning packages matching the given regular expression"""
     PARAMETERS = ['regex']
 
@@ -1008,28 +1122,25 @@ class PythonPackageRegexQuery(PythonExec):
         # 1:  Drone
         # 2:  Package name
         # 3:  Package Version
-        cypher = (
-                """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
-                   WHERE rel.jsonname =~ '^_init_packages.*' AND jsonmap.json =~ '.*%s.*.*'
-                   RETURN drone, jsonmap.json AS json ORDER BY system.domain, system.designation
-                """ % regex)
+        # 4:  Package type
+        sql = """
+        SELECT hash, path, key, atom FROM
+          ({table:s}
+            CROSS JOIN json_tree(json_extract(data, '$.data')
+          ) AS result
+        WHERE atom != NULL and key REGEXP ?'
+        """.format(table=SQLiteInstance.table_name('_packages'))
 
-        regexobj = re.compile('.*' + regex)
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    if regexobj.match(package):
-                        yield PackageTuple(drone.domain, drone, package,
-                                           jsondata[pkgtype][package], pkgtype)
+        params = (regex,)
+        for node, row in self.join_iterator(sql, params=params):
+            print('NODE:', node, 'row:', row, file=stderr)
+            packagetype, package, version = row
+            yield PackageTuple(node.domain, node, package, version, packagetype)
 
 
 @PythonExec.register
-class PythonPackageQuery(PythonExec):
-    """query executor returning packages of the given name"""
+class PythonPackageQuery(PythonJSONtoNodeQuery):
+    """query executor returning installed packages of the given name"""
     PARAMETERS = ['packagename']
 
     def result_iterator(self, params):
@@ -1040,25 +1151,23 @@ class PythonPackageQuery(PythonExec):
         # 1:  Drone
         # 2:  Package name
         # 3:  Package Version
-        cypher = (
-                """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
-                WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
-                return drone, jsonmap.json as json
-                """ % packagename)
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    if package.startswith(packagename):
-                        yield PackageTuple(drone.domain, drone, package,
-                                           jsondata[pkgtype][package], pkgtype)
+        # 4:  Package type
+        sql = """
+        SELECT hash, path, key, atom FROM
+          ({table:s}
+            CROSS JOIN json_tree(json_extract(data, '$.data')
+          ) AS result
+        WHERE atom != NULL and key == ?'
+        """.format(table=SQLiteInstance.table_name('_packages'))
+        params = (packagename,)
+        for node, row in self.join_iterator(sql, params=params):
+            print('NODE:', node, 'row:', row, file=stderr)
+            packagetype, package, version = row
+            yield PackageTuple(node.domain, node, package, version, packagetype)
 
 
 def reltype_expr(reltypes):
-    'Create a Cypher query expression for (multiple) relationship types'
+    """Create a Cypher query expression for (multiple) relationship types"""
     if isinstance(reltypes, (str, unicode)):
         reltypes = (reltypes,)
     relationship_expression = ''
@@ -1071,7 +1180,7 @@ def reltype_expr(reltypes):
 
 @PythonExec.register
 class PythonDroneSubgraphQuery(PythonExec):
-    'A class to return a subgraph centered around one or more Drones'
+    """A class to return a subgraph centered around one or more Drones"""
     PARAMETERS = ['nodetypes', 'reltypes', 'hostname']
     basequery = \
         """MATCH (start:Class_Drone)
@@ -1093,30 +1202,7 @@ class PythonDroneSubgraphQuery(PythonExec):
         relstr = reltype_expr(reltypes)
         nodestr = str(nodetypes)
         query = PythonDroneSubgraphQuery.basequery % (designation_s, relstr, nodestr, nodestr)
-        # print >> sys.stderr, 'RUNNING THIS QUERY:', query
-        for row in self.store.load_cypher_query(query):
-            yield row
-
-
-@PythonExec.register
-class PythonAllDronesSubgraphQuery(PythonExec):
-    'A class to return a subgraph centered around a Drone'
-    PARAMETERS = ['nodetypes', 'reltypes']
-    basequery = \
-        """MATCH p = shortestPath( (start:Class_Drone)-[%s*]-(m) )
-        WHERE m.nodetype IN %s
-        UNWIND nodes(p) AS n
-        UNWIND rels(p) AS r
-        RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
-        COLLECT(DISTINCT r) AS relationships"""
-
-    def result_iterator(self, params):
-        nodetypes = params['nodetypes']
-        reltypes = params['reltypes']
-        relstr = reltype_expr(reltypes)
-        nodestr = str(nodetypes)
-        query = PythonAllDronesSubgraphQuery.basequery % (relstr, nodestr, nodestr)
-        print >> sys.stderr, 'RUNNING THIS QUERY:', query
+        # print('RUNNING THIS QUERY:', query, file=stderr)
         for row in self.store.load_cypher_query(query):
             yield row
 
@@ -1271,7 +1357,7 @@ if __name__ == '__main__':
         q4 = ClientQuery('subgraph', metadata4)
         q4.validate_json()
 
-        print "LOADING TREE!"
+        print("LOADING TREE!")
 
         dirname = os.path.dirname(sys.argv[0])
         dirname = '.' if dirname == '' else dirname
@@ -1279,21 +1365,20 @@ if __name__ == '__main__':
         qstore.db_transaction = qstore.db.begin(autocommit=False)
         qlist = [q for q in queries]
         qstore.commit()
-        print "%d node TREE LOADED!" % len(qlist)
+        print("%d node TREE LOADED!" % len(qlist))
         qstore.db_transaction = qstore.db.begin(autocommit=False)
         qe2 = qstore.load_or_create(ClientQuery, queryname='list')
         qe2.bind_store(qstore)
         testresult = ''
-        for s in qe2.execute(None, idsonly=False, expandJSON=True):
+        for s in qe2.execute(None, idsonly=False, expandjson=True):
             testresult += s
-        print 'RESULT', testresult
+        print('RESULT', testresult)
         # Test out a command line query
         for s in qe2.cmdline_exec(None):
             if re.match(s, '[	 ]unknown$'):
                 raise RuntimeError('Search result contains unknown: %s' % s)
-            print s
+            print(s)
 
-        print "All done!"
-
+        print("All done!")
 
     testcode()

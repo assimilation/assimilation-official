@@ -209,7 +209,7 @@ class loadbp(object):
             rulesetname = CMAconsts.BASERULESETNAME
 
         qcount = 0
-        for q in BestPractices.load_directory(store, bpdir, rulesetname, basedon):
+        for q in load_directory(store, bpdir, rulesetname, basedon):
             qcount += 1
             q = q
         store.commit()

@@ -401,7 +401,7 @@ class DotGraph(object):
         querymeta = assimcli.query.load_query_object(self.store, queryname)
         print ('QUERYMETA: %s ' % str(querymeta), file=sys.stderr)
         queryiter = querymeta.execute(self.executor_context,
-                                      expandJSON=True, elemsonly=True,
+                                      expandjson=True, elemsonly=True,
                                       **params)
         # Subgraph queries produce a single row, with two elements:
         #   nodes and relationships

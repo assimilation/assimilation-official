@@ -38,6 +38,7 @@ from __future__ import print_function
 from sys import stderr
 import collections
 import os
+import re
 import subprocess
 import errno
 import hashlib
@@ -500,6 +501,7 @@ class SQLiteInstance(object):
     instances = {}  # Key is pathname
     BEGIN_TRANS = 'BEGIN DEFERRED TRANSACTION;'
     TABLE_PREFIX = 'HASH_'
+    regexes = {}
 
     def __init__(self, **initial_args):
         dbpath = initial_args['pathname']
@@ -515,6 +517,14 @@ class SQLiteInstance(object):
         self.dbpath = dbpath
         self.journal_name = dbpath + '-journal'
         self.filtered_args = filtered_args
+        # Provide implementation of function for REGEXP operator
+        self.connection.create_function('regexp', 2, SQLiteInstance.regexp)
+
+    @staticmethod
+    def regexp(expr, item):
+        if expr not in SQLiteInstance.regexes:
+            SQLiteInstance.regexes[expr] = re.compile(expr)
+        return SQLiteInstance.regexes[expr].match(item) is not None
 
     def delete_everything(self):
         """
@@ -561,13 +571,14 @@ class SQLiteInstance(object):
         sanitize_charset = string.letters + string.digits + '_'
         return ''.join(char for char in inchars if char in sanitize_charset)
 
-    def table_name(self, name):
+    @staticmethod
+    def table_name(name):
         """
 
         :param name:
         :return:
         """
-        return self.TABLE_PREFIX + self.sanitize(name)
+        return SQLiteInstance.TABLE_PREFIX + SQLiteInstance.sanitize(name)
 
     def ensure_transaction(self):
         """
@@ -893,7 +904,6 @@ class SQLiteJSON(PersistentInvariantJSON):
         print('QUERYSTR : %s' % query_string)
         print('query_string: %s::%s' % (type(query_string), query_string))
         print('operands: %s' % operands)
-        operands=[]
         return self.sql_query(query_string, operands)
 
     def sql_query(self, query_string, *parameters):
