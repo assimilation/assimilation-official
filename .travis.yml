@@ -9,7 +9,16 @@ script:
   # in future, we'll just pull a pre-built image to speed up build times
   - docker build -f ci/Dockerfiles/$BUILD_ENV.dockerfile -t test_img .
   # use test_img to generate rpm / deb packages (cmake). drop the output in /build_artifacts
-  - docker run -v $TRAVIS_BUILD_DIR:/root/assimilation/src -v /tmp/ba:/build_artifacts test_img touch /build_artifacts/test
+  # path-to-source-directory = /root/assimilation/src
+  # path-to-binary-directory = /root/assimilation/bin
+  # path-to-build-artifacts = /root/assimilation/ba
+  - |
+    docker run \
+    -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
+    -v /tmp/bin:/root/assimilation/bin \
+    -v /tmp/ba:/root/assimilation/ba \
+    test_img \
+    bash -c "cmake ../src && make install"
   # test the new packages in a stock image (install and run tests)
-  - docker run -v /tmp/ba:/packages $STOCK ls -al /packages
+  # - docker run -v /tmp/ba:/packages $STOCK ls -al /packages
   # upload to artifactory
