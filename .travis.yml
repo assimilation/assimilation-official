@@ -1,36 +1,15 @@
-sudo: required
-language: c
+language: minimal
+
 env:
-  global:
-    - BROKENDNS=1
-services:
-  - docker
-install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-netaddr python-demjson openjdk-7-jre
-  - sudo -H pip install --upgrade pip
-  - sudo -H pip install ctypesgen flask getent py2neo==3.1.2 pytest inject
-  - sudo mkdir -p /usr/share/neo4j/lib
-before_script:
-  - docker run -d --publish=7474:7474 --publish=7687:7687 --volume=$HOME/neo4j/data:/data neo4j:3.3.3
-  - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
-    # - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6' # should not need this any more...
+  - BUILD_ENV=ubuntu1804 STOCK=ubuntu:18.04
+  - BUILD_ENV=centos7 STOCK=centos:7
+
 script:
-  - neoauth neo4j neo4j neo4j 2>&1 || true
-  - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
-  - cd $TRAVIS_BUILD_DIR
-  - pwd
-  - cd ..
-  - mkdir root_of_binary_tree
-  - cd root_of_binary_tree
-  - pwd
-  - cmake $TRAVIS_BUILD_DIR
-  - sudo make install
-  - sudo ldconfig /usr/lib/x86_64-linux-gnu/assimilation
-  - sudo cpack
-  - sudo dpkg -i *.deb
-  - sudo /etc/init.d/nanoprobe stop
-  - sudo /etc/init.d/cma stop
-  - sudo assimcli genkeys
-  - make tests # contains sudo commands
-  - cd $TRAVIS_BUILD_DIR
+  # test_img contains all the build prereqs installed
+  # in future, we'll just pull a pre-built image to speed up build times
+  - docker build -f ci/Dockerfiles/$BUILD_ENV.dockerfile -t test_img .
+  # use test_img to generate rpm / deb packages (cmake). drop the output in /build_artifacts
+  - docker run -v $TRAVIS_BUILD_DIR:/root/assimilation/src -v /tmp/ba:/build_artifacts test_img touch /build_artifacts/test
+  # test the new packages in a stock image (install and run tests)
+  - docker run -v /tmp/ba:/packages $STOCK ls -al /packages
+  # upload to artifactory
