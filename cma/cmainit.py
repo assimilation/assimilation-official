@@ -109,7 +109,11 @@ class Neo4jCreds(object):
             newauth = Neo4jCreds.randpass(length)
         if self.DEBUG:
             self._log.debug('Calling %s' % Neo4jCreds.passchange)
+        # /var/lib/neo4j # bin/neo4j-admin
+        # usage: neo4j-admin <command>
+        #     set-initial-password
         server = neokit.GraphServer(home=self.install_dir)
+        print('self.name, self.auth, newauth', self.name, self.auth, newauth)
         rc = server.update_password(self.name, self.auth, newauth)
 
         if rc is not None and rc != 0:

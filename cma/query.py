@@ -983,7 +983,9 @@ class PythonAllPackageQuery(PythonExec):
             """)
         # Note that Docker and Vagrant classes are subclasses of ChildSystem
 
+        print('CYPHER QUERY: %s' % cypher)
         for system in self.store.load_cypher_query(cypher):
+            print('GOT SYSTEM', system)
             jsondata = system['_init_packages']['data']
             assert isinstance(jsondata, pyConfigContext)
             for pkgtype in jsondata:

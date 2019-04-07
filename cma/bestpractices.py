@@ -50,7 +50,7 @@ from assimeventobserver import AssimEventObserver
 class BestPractices(DiscoveryListener):
     """Base class for evaluating discovery changes against best practices rules"""
     prio = DiscoveryListener.PRI_OPTION  # What priority are we?
-    wantedpackets = []  # Used to register ourselves for discovery packets
+    wanted_packets = []  # Used to register ourselves for discovery packets
     eval_objects = {}
     eval_classes = {}
     evaled_classes = {}
@@ -97,8 +97,8 @@ class BestPractices(DiscoveryListener):
     def register_sensitivity(bpcls, pkttype):
         """Register that class 'bpcls' wants to see packet of type 'pkttype'"""
         # print >> sys.stderr, '%s is looking for packet of type %s' % (bpcls, pkttype)
-        if pkttype not in BestPractices.wantedpackets:
-            BestPractices.wantedpackets.append(pkttype)
+        if pkttype not in BestPractices.wanted_packets:
+            BestPractices.wanted_packets.append(pkttype)
             SystemNode.add_json_processor(BestPractices)
         if pkttype not in BestPractices.eval_classes:
             BestPractices.eval_classes[pkttype] = []

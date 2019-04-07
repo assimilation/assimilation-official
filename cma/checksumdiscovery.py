@@ -55,7 +55,7 @@ from discoverylistener import DiscoveryListener
 class TCPDiscoveryChecksumGenerator(DiscoveryListener):
     """Class for generating checksums based on our tcpdiscovery packets"""
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('tcpdiscovery', 'checksum')
+    wanted_packets = ('tcpdiscovery', 'checksum')
 
     def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         """Inform interested rule objects about this change"""

@@ -31,65 +31,64 @@ import six
 import collections
 import traceback
 import types
-import sys
 from sys import stderr
 import gc
 import AssimCtypes
-from AssimCtypes import POINTER, cast, addressof, pointer, string_at, create_string_buffer, \
-    c_char_p, byref, memmove, c_int, badfree, \
-    g_free, GSList, GDestroyNotify, g_slist_length, g_slist_next, struct__GSList, \
-    g_slist_free, \
-    MALLOC, \
-    FRAMETYPE_SIG, \
-    Frame, AssimObj, NetAddr, SeqnoFrame, ReliableUDP, \
-    frame_new, addrframe_new, \
-    nvpairframe_new, frameset_new, frameset_append_frame, frameset_prepend_frame, \
-    seqnoframe_new, cstringframe_new, unknownframe_new, \
-    ipportframe_netaddr_new, ipportframe_ipv4_new, ipportframe_ipv6_new, \
-    frameset_construct_packet, frameset_get_flags, frameset_set_flags, frameset_clear_flags, \
-    frameset_dump, frameset_sender_key_id, frameset_sender_identity, \
-    LLDP_TLV_END, LLDP_TLV_CHID, LLDP_TLV_PID, LLDP_TLV_TTL, LLDP_TLV_PORT_DESCR, \
-    LLDP_TLV_SYS_NAME, LLDP_TLV_SYS_DESCR, LLDP_TLV_SYS_CAPS, LLDP_TLV_MGMT_ADDR, \
-    LLDP_TLV_ORG_SPECIFIC, \
-    LLDP_ORG802_1_VLAN_PVID, LLDP_ORG802_1_VLAN_PORTPROTO, LLDP_ORG802_1_VLAN_NAME, \
-    LLDP_ORG802_1_VLAN_PROTOID, LLDP_ORG802_3_PHY_CONFIG, LLDP_ORG802_3_POWERVIAMDI, \
-    LLDP_ORG802_3_LINKAGG, LLDP_ORG802_3_MTU, \
-    LLDP_PIDTYPE_ALIAS, LLDP_PIDTYPE_IFNAME, LLDP_PIDTYPE_LOCAL, LLDP_CHIDTYPE_ALIAS, \
-    LLDP_CHIDTYPE_IFNAME, LLDP_CHIDTYPE_LOCAL, LLDP_CHIDTYPE_MACADDR, \
-    LLDP_CHIDTYPE_COMPONENT, LLDP_CHIDTYPE_NETADDR, \
-    CDP_TLV_DEVID, CDP_TLV_ADDRESS, CDP_TLV_PORTID, CDP_TLV_CAPS, CDP_TLV_VERS, CDP_TLV_POWER, \
-    CDP_TLV_PLATFORM, CDP_TLV_MTU, CDP_TLV_SYSTEM_NAME, CDP_TLV_MANAGEMENT_ADDR, CDP_TLV_DUPLEX, \
-    CDP_TLV_LOCATION, CDP_TLV_EXT_PORTID, CDP_TLV_NATIVEVLAN, CDP_TLV_VLREPLY, CDP_TLV_VLQUERY, \
-    CDP_TLV_VTPDOMAIN, CDP_TLV_TRUST_BITMAP, CDP_TLV_UNTRUSTED_COS, CDP_TLV_HELLO, \
-    ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802, \
-    is_valid_lldp_packet, is_valid_cdp_packet, \
-    netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new, \
-    proj_class_classname, \
-    assimobj_new, intframe_new, signframe_glib_new, packetdecoder_new, configcontext_new, \
-    configcontext_new_JSON_string, netio_new, netioudp_new, reliableudp_new, \
-    netio_is_dual_ipv4v6_stack, create_setconfig, create_sendexpecthb, \
-    get_lldptlv_type, \
-    get_lldptlv_len, \
-    get_lldptlv_body, \
-    get_lldptlv_first, \
-    get_lldptlv_next, \
-    get_cdptlv_type, \
-    get_cdptlv_len, \
-    get_cdptlv_body, \
-    get_cdptlv_first, \
-    get_cdptlv_next, \
-    pcap_capture_iter_new, pcap_capture_iter_del, pcap_capture_iter_next, \
-    tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64, \
-    CFG_EEXIST, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY, \
-    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME, \
-    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new_string, \
-    cryptframe_associate_identity, cryptframe_set_dest_key_id, cryptframe_whois_key_id, \
-    cryptframe_get_dest_key_id, \
-    cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id, \
-    cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method, \
-    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename, \
-    cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519, \
-    proj_class_live_object_count, proj_class_dump_live_objects
+from AssimCtypes import (POINTER, cast, addressof, pointer, string_at, create_string_buffer,
+    c_char_p, byref, memmove, c_int,
+    g_free, GSList, GDestroyNotify, g_slist_length, g_slist_next, struct__GSList,
+    g_slist_free,
+    MALLOC,
+    FRAMETYPE_SIG,
+    Frame, AssimObj, NetAddr, SeqnoFrame, ReliableUDP,
+    frame_new, addrframe_new,
+    nvpairframe_new, frameset_new, frameset_append_frame, frameset_prepend_frame,
+    seqnoframe_new, cstringframe_new, unknownframe_new,
+    ipportframe_netaddr_new, ipportframe_ipv4_new, ipportframe_ipv6_new,
+    frameset_construct_packet, frameset_get_flags, frameset_set_flags, frameset_clear_flags,
+    frameset_dump, frameset_sender_key_id, frameset_sender_identity,
+    LLDP_TLV_END, LLDP_TLV_CHID, LLDP_TLV_PID, LLDP_TLV_TTL, LLDP_TLV_PORT_DESCR,
+    LLDP_TLV_SYS_NAME, LLDP_TLV_SYS_DESCR, LLDP_TLV_SYS_CAPS, LLDP_TLV_MGMT_ADDR,
+    LLDP_TLV_ORG_SPECIFIC,
+    LLDP_ORG802_1_VLAN_PVID, LLDP_ORG802_1_VLAN_PORTPROTO, LLDP_ORG802_1_VLAN_NAME,
+    LLDP_ORG802_1_VLAN_PROTOID, LLDP_ORG802_3_PHY_CONFIG, LLDP_ORG802_3_POWERVIAMDI,
+    LLDP_ORG802_3_LINKAGG, LLDP_ORG802_3_MTU,
+    LLDP_PIDTYPE_ALIAS, LLDP_PIDTYPE_IFNAME, LLDP_PIDTYPE_LOCAL, LLDP_CHIDTYPE_ALIAS,
+    LLDP_CHIDTYPE_IFNAME, LLDP_CHIDTYPE_LOCAL, LLDP_CHIDTYPE_MACADDR,
+    LLDP_CHIDTYPE_COMPONENT, LLDP_CHIDTYPE_NETADDR,
+    CDP_TLV_DEVID, CDP_TLV_ADDRESS, CDP_TLV_PORTID, CDP_TLV_CAPS, CDP_TLV_VERS, CDP_TLV_POWER,
+    CDP_TLV_PLATFORM, CDP_TLV_MTU, CDP_TLV_SYSTEM_NAME, CDP_TLV_MANAGEMENT_ADDR, CDP_TLV_DUPLEX,
+    CDP_TLV_LOCATION, CDP_TLV_EXT_PORTID, CDP_TLV_NATIVEVLAN, CDP_TLV_VLREPLY, CDP_TLV_VLQUERY,
+    CDP_TLV_VTPDOMAIN, CDP_TLV_TRUST_BITMAP, CDP_TLV_UNTRUSTED_COS, CDP_TLV_HELLO,
+    ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802,
+    is_valid_lldp_packet, is_valid_cdp_packet,
+    netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new,
+    proj_class_classname,
+    assimobj_new, intframe_new, signframe_glib_new, packetdecoder_new, configcontext_new,
+    configcontext_new_JSON_string, netio_new, netioudp_new, reliableudp_new,
+    netio_is_dual_ipv4v6_stack, create_setconfig, create_sendexpecthb,
+    get_lldptlv_type,
+    get_lldptlv_len,
+    get_lldptlv_body,
+    get_lldptlv_first,
+    get_lldptlv_next,
+    get_cdptlv_type,
+    get_cdptlv_len,
+    get_cdptlv_body,
+    get_cdptlv_first,
+    get_cdptlv_next,
+    pcap_capture_iter_new, pcap_capture_iter_del, pcap_capture_iter_next,
+    tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64,
+    CFG_EEXIST, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY,
+    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME,
+    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new_string,
+    cryptframe_associate_identity, cryptframe_set_dest_key_id, cryptframe_whois_key_id,
+    cryptframe_get_dest_key_id,
+    cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,
+    cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,
+    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename,
+    cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519,
+    proj_class_live_object_count, proj_class_dump_live_objects)
 from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
 
@@ -268,12 +267,12 @@ class pySwitchDiscovery(object):
         'Return a JSON packet corresponding to the given switch discovery packet'
 
         if is_valid_lldp_packet(pktstart, pktend):
-            # print >> sys.stderr, '>>>>>>>>>>>>>>>LLDP PACKET'
+            # print('>>>>>>>>>>>>>>>LLDP PACKET', file=stderr)
             return pySwitchDiscovery._decode_lldp(host, interface, instance,
                                                   wallclock, pktstart, pktend)
 
         if is_valid_cdp_packet(pktstart, pktend):
-            # print >> sys.stderr, '>>>>>>>>>>>>>>>CDP PACKET'
+            # print('>>>>>>>>>>>>>>>CDP PACKET', file=stderr)
             return pySwitchDiscovery._decode_cdp(host, interface, instance,
                                                  wallclock, pktstart, pktend)
         raise ValueError('Malformed Switch Discovery Packet')
@@ -305,7 +304,7 @@ class pySwitchDiscovery(object):
     @staticmethod
     def _decode_lldp(host, interface, instance, wallclock, pktstart, pktend):
         """Decode LLDP packet into a JSON discovery packet"""
-        # print >> sys.stderr, 'DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
+        # print('DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<', file=stderr)
         thisportinfo = pyConfigContext(init={
             'ConnectsToHost': host,
             'ConnectsToInterface': interface,
@@ -344,7 +343,7 @@ class pySwitchDiscovery(object):
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
             tlvptr = cast(get_lldptlv_body(this, pktend), cClass.guint8)
-            # print >> sys.stderr, "EXAMINE:", tlvptr, tlvtype, tlvlen
+            # print("EXAMINE:", tlvptr, tlvtype, tlvlen, file=stderr)
             value = None
             if tlvtype not in pySwitchDiscovery.lldpnames:
                 print('Cannot find tlvtype %d' % tlvtype, file=stderr)
@@ -422,7 +421,7 @@ class pySwitchDiscovery(object):
     def _decode_lldp_org_specific(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
         """Decode LLDP org-specific TLV sets (or not...)"""
         oui = tlv_get_guint24(tlvptr, pktend)
-        # print >> sys.stderr, 'ORG_OUI: 0x%06x' % oui
+        # print ('ORG_OUI: 0x%06x' % oui, file=stderr)
         tlv3ptr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
         if oui == 0x0080c2:
             pySwitchDiscovery._decode_lldp_802_1(switchinfo, thisportinfo,
@@ -577,9 +576,9 @@ class pySwitchDiscovery(object):
         mauinfo = pySwitchDiscovery.dot3MauTypes(mau_type)
         for key in mauinfo:
             thisportinfo[key] = mauinfo[key]
-        # print >> sys.stderr, ("Autoneg_status: 0x%02x" % autoneg_status)
-        # print >> sys.stderr, ("pmd_autoneg: %d" % pmd_autoneg)
-        # print >> sys.stderr, ("MAU type: %d" % mau_type)
+        # print("Autoneg_status: 0x%02x" % autoneg_status), file=stderr)
+        # print("pmd_autoneg: %d" % pmd_autoneg), file=stderr)
+        # print("MAU type: %d" % mau_type), file=stderr)
 
     @staticmethod
     def _decode_lldp_med(switchinfo, _thisportinfo, tlvptr, tlvlen, _pktend):
@@ -683,9 +682,9 @@ class pySwitchDiscovery(object):
                 value = string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_CAPS:
                 # bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
-                # print >> sys.stderr, 'CAPBYTES = ', bytez
+                # print('CAPBYTES = ', bytez, file=stderr)
                 caps = pySwitchDiscovery.getNint(tlvptr, 4, pktend)
-                # print >> sys.stderr, ('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen))
+                # print('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen)), file=stderr)
                 value = pySwitchDiscovery.construct_cdp_caps(caps)
             elif tlvtype == CDP_TLV_VERS:
                 value = string_at(tlvptr, tlvlen - 4)
@@ -717,7 +716,7 @@ class pySwitchDiscovery(object):
                 value = '0x'
                 for offset in range(0, tlvlen):
                     value += ('%02x' % pySwitchDiscovery._byteN(tlvptr, offset))
-                # print >> sys.stderr, 'Ignoring CDP field %s: %s' % (tlvname, value)
+                # print('Ignoring CDP field %s: %s' % (tlvname, value), file=stderr)
                 value = None
 
             if value is None:
@@ -737,7 +736,7 @@ class pySwitchDiscovery(object):
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
-                # print >> sys.stderr, ('TLVNAME[%s] %s has value "%s" -- len: %d'
+                # print(('TLVNAME[%s] %s has value "%s" -- len: %d', file=stderr)
                 # %   (tlvtype, tlvname, value, len(str(value))))
         thisportinfo['sourceMAC'] = sourcemac
         return metadata
@@ -950,16 +949,16 @@ class pyNetAddr(pyAssimObj):
         """Initialize an addrstring from a binary argument"""
         alen = len(addrstring)
         addr = create_string_buffer(alen)
-        # print >> sys.stderr, "ADDRTYPE:", type(addr)
-        # print >> sys.stderr, "ADDRSTRINGTYPE:", type(addrstring)
+        # print("ADDRTYPE:", type(addr), file=stderr)
+        # print("ADDRSTRINGTYPE:", type(addrstring), file=stderr)
         for i in range(0, alen):
             asi = addrstring[i]
-            # print >> sys.stderr, "ASI_TYPE: (%s,%s)" % (type(asi), asi)
+            # print("ASI_TYPE: (%s,%s)" % (type(asi), asi), file=stderr)
             if isinstance(asi, six.string_types):
                 addr[i] = str(asi)
             else:
                 addr[i] = chr(asi)
-        # print >> sys.stderr, 'ADDR = %s'  % addr
+        # print('ADDR = %s'  % addr, file=stderr)
         if alen == 4:  # ipv4
             NA = netaddr_ipv4_new(addr, port)
         elif alen == 16:  # ipv6
@@ -1203,15 +1202,15 @@ class pyFrame(pyAssimObj):
         Cclassname = proj_class_classname(frameptr)
         pyclassname = "py" + Cclassname
         if Cclassname == 'NetAddr':
-            statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" \
-                        % (pyclassname, frametype, Cclassname)
+            statement = ("%s(%d, None, Cstruct=cast(frameptr, cClass.%s))"
+                         % (pyclassname, frametype, Cclassname))
         elif Cclassname == Cclassname == 'IpPortFrame':
-            statement = "%s(%d, None, None, Cstruct=cast(frameptr, cClass.%s))" \
-                        % (pyclassname, frametype, Cclassname)
+            statement = ("%s(%d, None, None, Cstruct=cast(frameptr, cClass.%s))"
+                        % (pyclassname, frametype, Cclassname))
         else:
-            statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" \
-                        % (pyclassname, frametype, Cclassname)
-        # print >> sys.stderr, "EVAL:", statement
+            statement = ("%s(%d, Cstruct=cast(frameptr, cClass.%s))"
+                         % (pyclassname, frametype, Cclassname))
+        # print("EVAL:", statement, file=stderr)
         # We construct the string from our data, so it's trusted data...
         # pylint: disable=W0123
         return eval(statement)
@@ -1254,8 +1253,8 @@ class pyAddrFrame(pyFrame):
             assert addrstring is None
             # Allow for prefixed address type - two bytes
             addrlen = Cstruct[0].baseclass.length - 2
-            assert addrlen == 4 or addrlen == 6 or addrlen == 8 or addrlen == 16 \
-                , ("addrlen is %d" % addrlen)
+            assert (addrlen == 4 or addrlen == 6 or addrlen == 8 or addrlen == 16,
+                    ("addrlen is %d" % addrlen))
             addrstr = Cstruct[0].baseclass.value + 2
             addrstring = create_string_buffer(addrlen)
             memmove(addrstring, addrstr, addrlen)
@@ -1271,7 +1270,7 @@ class pyAddrFrame(pyFrame):
         return self._pyNetAddr
 
     def __str__(self):
-        return ("pyAddrFrame(%s, (%s))" \
+        return ("pyAddrFrame(%s, (%s))"
                 % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr)))
 
 
@@ -1458,7 +1457,7 @@ class pySeqnoFrame(pyFrame):
 
     def __str__(self):
         """Convert this pySeqnoFrame to a String"""
-        return ("pySeqNo(%s: (%d, %d))" \
+        return ("pySeqNo(%s: (%d, %d))"
                 % (FrameTypes.get(self.frametype())[1], self.getqid(), self.getreqid()))
 
 
@@ -1723,17 +1722,17 @@ class pyFrameSet(pyAssimObj):
 
     def sender_key_id(self):
         """Return the key_id of the cryptographic sender of this FrameSet"""
-        # print >> sys.stderr, 'TYPE(self)', type(self), 'str(self)', str(self), type(self._Cstruct)
+        # print('TYPE(self)', type(self), 'str(self)', str(self), type(self._Cstruct), file=stderr)
         ret = frameset_sender_key_id(self._Cstruct)
-        # print >> sys.stderr, 'sender_key_id: TYPE(ret)', type(ret), 'ret', ret,     \
-        #         'raw', ret.raw, 'data', ret.data
-        # print >> sys.stderr, 'sender_key_id: str(ret)', str(ret), type(str(ret)), not ret
-        # print type(ret.raw), ret.raw
+        # print('sender_key_id: TYPE(ret)', type(ret), 'ret', ret,
+        #         'raw', ret.raw, 'data', ret.data, file=stderr)
+        # print('sender_key_id: str(ret)', str(ret), type(str(ret)), not ret, file=stderr)
+        # print type(ret.raw), ret.raw, file=stderr)
         if not ret:
-            # print >> sys.stderr, 'Returning None(!)', self.get_framesettype()
+            # print('Returning None(!)', self.get_framesettype(), file=stderr)
             return None
         pyret = string_at(ret.raw)
-        # print >> sys.stderr, 'PYRET:', type(pyret), 'pyret:', pyret
+        # print('PYRET:', type(pyret), 'pyret:', pyret, file=stderr)
         return pyret
 
     def sender_identity(self):
@@ -1785,7 +1784,7 @@ class pyFrameSet(pyAssimObj):
         while curframe:
             cast(curframe[0].data, struct__GSList._fields_[0][1])
             yieldval = pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
-            # print >> sys.stderr, ("Constructed frame IS [%s]" % str(yieldval))
+            # print(("Constructed frame IS [%s]" % str(yieldval)), file=stderr)
             if not yieldval.isvalid():
                 print("OOPS! Constructed %d byte frame from iter() is not valid [%s]"
                       % (yieldval.framelen(), str(yieldval)), file=stderr)
@@ -1949,16 +1948,16 @@ class pyConfigContext(pyAssimObj):
     def getarray(self, name):
         """Return the array value associated with "name\""""
         curlist = cast(self._Cstruct[0].getarray(self._Cstruct, name), cClass.GSList)
-        # print >> sys.stderr, "CURLIST(initial) = %s" % curlist
+        # print("CURLIST(initial) = %s" % curlist, file=stderr)
         ret = []
         while curlist:
-            # print >> sys.stderr, "CURLIST = %s" % curlist
+            # print("CURLIST = %s" % curlist, file=stderr)
             # cfgval = pyConfigValue(cast(cClass.ConfigValue, curlist[0].data).get())
             data = cast(curlist[0].data, cClass.ConfigValue)
-            # print >> sys.stderr, "CURLIST->data = %s" % data
+            # print("CURLIST->data = %s" % data, file=stderr)
             CCref(data)
             cfgval = pyConfigValue(data).get()
-            # print >> sys.stderr, "CURLIST->data->get() = %s" % cfgval
+            # print("CURLIST->data->get() = %s" % cfgval, file=stderr)
             ret.append(cfgval)
             curlist = g_slist_next(curlist)
         return ret
@@ -2029,7 +2028,7 @@ class pyConfigContext(pyAssimObj):
     def gettype(self, name):
         """Return the enumeration type of this particular key
         @todo Convert these enums to python types"""
-        # print >> sys.stderr, 'gettype(%s)' % str(name)
+        # print('gettype(%s)' % str(name), file=stderr)
         return self._Cstruct[0].gettype(self._Cstruct, str(name))
 
     def get(self, key, alternative=None):
@@ -2102,7 +2101,7 @@ class pyConfigContext(pyAssimObj):
         """Return a value associated with "name\""""
         name = str(name)
         ktype = self.gettype(name)
-        # print >> sys.stderr, '*********** GETITEM[%s] => %d *********************' % (name, ktype)
+        # print('*********** GETITEM[%s] => %d *********************' % (name, ktype), file=stderr)
         if ktype == CFG_EEXIST:
             traceback.print_stack()
             raise IndexError("No such value [%s] in [%s]" % (name, str(self)))
@@ -2121,7 +2120,7 @@ class pyConfigContext(pyAssimObj):
         elif ktype == CFG_BOOL:
             return self.getbool(name)
         elif ktype == CFG_ARRAY:
-            # print >> sys.stderr, '*********** GETITEM[%s] => getarray(%s) *********************' \
+            # print('*********** GETITEM[%s] => getarray(%s) *********************' \, file=stderr)
             #   %   (name, name)
             return self.getarray(name)
         return None

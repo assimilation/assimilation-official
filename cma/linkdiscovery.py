@@ -67,7 +67,7 @@ class LinkDiscoveryListener(DiscoveryListener):
     '''
 
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('__LinkDiscovery', 'netconfig')
+    wanted_packets = ('__LinkDiscovery', 'netconfig')
 
     #R0914:684,4:LinkDiscoveryListener.processpkt: Too many local variables (25/15)
     # pylint: disable=R0914

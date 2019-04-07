@@ -56,7 +56,7 @@ class DiscoveryListener(object):
     PRI_LIMIT = PRI_CONTRIB+1
 
     prio = PRI_CONTRIB
-    wantedpackets = None
+    wanted_packets = None
 
     def __init__(self, config, packetio, store, log, debug):
         """Init function for DiscoveryListener"""
@@ -72,9 +72,9 @@ class DiscoveryListener(object):
         return cls.prio
 
     @classmethod
-    def desiredpackets(cls):
+    def desired_packets(cls):
         """Return the set of packets we want to be called for"""
-        return cls.wantedpackets
+        return cls.wanted_packets
 
     def processpkt(self, drone, srcaddr, json, discoverychanged):
         """A desired packet has been received - process it"""
@@ -86,7 +86,7 @@ class MonitoringAgentDiscoveryListener(DiscoveryListener):
     """Class for updating our agent cache when we get new monitoringagents information"""
 
     prio = DiscoveryListener.PRI_CORE
-    wantedpackets = ('monitoringagents',)
+    wanted_packets = ('monitoringagents',)
 
     def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         """Update the _agentcache when we get a new set of available agents"""
@@ -101,7 +101,7 @@ class AuditdConfDiscoveryListener(DiscoveryListener):
     """Class for discovering audit permissions"""
 
     prio = DiscoveryListener.PRI_CORE
-    wantedpackets = ('auditd_conf',)
+    wanted_packets = ('auditd_conf',)
 
     def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         """Request discovery of auditd (log) files and directories.
@@ -132,7 +132,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
     """Class for the (initial) netconfig discovery packet"""
 
     prio = DiscoveryListener.PRI_CORE
-    wantedpackets = ('netconfig',)
+    wanted_packets = ('netconfig',)
 
     @staticmethod
     def determine_scope_from_ifinfo(drone, ifinfo):
@@ -318,7 +318,7 @@ class TCPDiscoveryListener(DiscoveryListener):
     """Class for TCP discovery handling"""
 
     prio = DiscoveryListener.PRI_CORE
-    wantedpackets = ('tcpdiscovery',)
+    wanted_packets = ('tcpdiscovery',)
     netstatipportpat = re.compile('(.*):([^:]*)$')
 
     # disable=R0914 means too many local variables...
@@ -456,7 +456,7 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
     """Listening for subsystem discovery results"""
 
     prio = DiscoveryListener.PRI_CORE
-    wantedpackets = ('vagrant', 'docker')
+    wanted_packets = ('vagrant', 'docker')
 
     def processpkt(self, drone, _, jsonobj, discoverychanged):
         """ Kick off discovery for a Docker or vagrant instance - as though it were a

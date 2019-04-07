@@ -286,7 +286,7 @@ class SystemNode(GraphNode):
                 SystemNode._JSONprocessors.append({})
 
         priority = clstoadd.priority()
-        msgtypes = clstoadd.desiredpackets()
+        msgtypes = clstoadd.desired_packets()
 
         for msgtype in msgtypes:
             if msgtype not in SystemNode._JSONprocessors[priority]:

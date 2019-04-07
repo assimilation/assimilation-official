@@ -87,28 +87,28 @@ class ArpDiscoveryListener(DiscoveryListener):
     #               This is what eventually causes ARP discovery packets to be sent
     # ARP:          Packets resulting from ARP discovery - triggered by
     #               the requests we send above...
-    wantedpackets = ('ARP', 'netconfig')
+    wanted_packets = ('ARP', 'netconfig')
 
-    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
+    def processpkt(self, drone, src_addr, json_obj, discoverychanged):
         """
         Trigger ARP discovery or add ARP data to the database.
 
         :param drone: SystemNode: who discovered this?
-        :param srcaddr: pyNetAddr: address this came from
-        :param jsonobj: dict: discovery JSON as object
+        :param src_addr: pyNetAddr: address this came from
+        :param json_obj: dict: discovery JSON as object
         :param discoverychanged: bool: TRUE if this discovery has changed
         :return: None
         """
         if not discoverychanged:
             return
-        if jsonobj['discovertype'] == 'ARP':
-            self.processpkt_arp(drone, srcaddr, jsonobj)
-        elif jsonobj['discovertype'] == 'netconfig':
-            self.processpkt_netconfig(drone, srcaddr, jsonobj)
+        if json_obj['discovertype'] == 'ARP':
+            self.processpkt_arp(drone, src_addr, json_obj)
+        elif json_obj['discovertype'] == 'netconfig':
+            self.processpkt_netconfig(drone, src_addr, json_obj)
         else:
-            self.log.warning('Unexpected ArpDiscovery packet type [%s]' % jsonobj['discovertype'])
+            self.log.warning('Unexpected ArpDiscovery packet type [%s]' % json_obj['discovertype'])
             print('OOPS! unexpected ArpDiscovery packet type [%s]'
-                  % jsonobj['discovertype'], file=stderr)
+                  % json_obj['discovertype'], file=stderr)
 
     def processpkt_netconfig(self, drone, _unused_srcaddr, jsonobj):
         """
@@ -232,7 +232,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         """
         if self.debug:
             self.log.debug('FIX_NET_SEGMENT: %s %s %s %s'
-                            % (domain, device, net_segment, mac_ip_table))
+                           % (domain, device, net_segment, mac_ip_table))
         mac_ip_query = """
         MATCH(nic:Class_NICNode)-[:ipowner]->(ip:Class_IPaddrNode)
         WHERE ip.ipaddr in $ipaddrs AND nic.macaddr in $macaddrs
@@ -306,7 +306,8 @@ class ArpDiscoveryListener(DiscoveryListener):
         :return: None
         """
         if self.debug:
-            self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: %s / %s / %s' % (domain, scope, net_segment))
+            self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: %s / %s / %s'
+                           % (domain, scope, net_segment))
             self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: PAIRS: %s' % missing_pairs)
         for mac, ip in missing_pairs:
             self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: PROCESSING (%s, %s)' % (mac, ip))
@@ -327,11 +328,11 @@ class ArpDiscoveryListener(DiscoveryListener):
                     other_ip.subnet = subnet
                     break  # Strange... It already exists...
             if other_ip is None or other_ip.ipaddr != ip:
-                ipnode = self.store.load_or_create(IPaddrNode, ipaddr=ip,
-                                                   domain=domain, subnet=subnet)
+                ip_node = self.store.load_or_create(IPaddrNode, ipaddr=ip,
+                                                    domain=domain, subnet=subnet)
                 if self.debug:
-                    self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: IPNODE: %s' % ipnode)
-                self.store.relate(nic, CMAconsts.REL_ipowner, ipnode)
+                    self.log.debug('CREATE_MISSING_MAC_IP_PAIRS: IP_NODE: %s' % ip_node)
+                self.store.relate(nic, CMAconsts.REL_ipowner, ip_node)
 
     @staticmethod
     def fix_ip_subnets(found_subnets, ip_list):

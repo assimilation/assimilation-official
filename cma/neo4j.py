@@ -257,8 +257,7 @@ class NeoDockerServer(NeoServer):
             detach=True,
             name=self.host,
             ports=self.port_map,
-            user='1001:1001',
-            # group_add=[1001],
+            user=self.uid_flag,
             volumes=self.volume_map,
             environment=self.environment_map
         )

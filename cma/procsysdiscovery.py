@@ -43,7 +43,7 @@ from discoverylistener import DiscoveryListener
 class ProcSysDiscovery(DiscoveryListener):
     'Class for discovering the contents of /proc/sys'
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('OS', 'os')
+    wanted_packets = ('OS', 'os')
 
     def processpkt(self, drone, _unused_srcaddr, jsonobj, discoverychanged):
         "Send commands to gather discovery data from /proc/sys"

@@ -42,7 +42,7 @@ from cmaconfig import ConfigFile
 class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
     'Class for generating and activating monitoring from the TCP discovery data'
     prio = DiscoveryListener.PRI_OPTION
-    wantedpackets = ('tcpdiscovery',)
+    wanted_packets = ('tcpdiscovery',)
 
     def processpkt(self, drone, _unused_srcaddr, jsonobj, _discoverychanged):
         '''Send commands to monitor services for this Systems's listening processes
