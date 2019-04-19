@@ -9,5 +9,5 @@ RUN apt-get -y update && apt-get install -y \
   libpcap-dev \
   libsodium-dev \
   && rm -rf /var/lib/apt/lists/*
-RUN pip install ctypesgen
+RUN pip install git+git@github.com:olsonse/ctypesgen#egg=ctypesgen
 WORKDIR /root/assimilation/bin
