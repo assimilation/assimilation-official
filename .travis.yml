@@ -1,15 +1,17 @@
 language: minimal
 
 env:
-  - BUILD_ENV=ubuntu1804 STOCK=ubuntu:18.04
-  - BUILD_ENV=centos7 STOCK=centos:7
+  - BUILD_ENV=ubuntu:18.04
+  - BUILD_ENV=centos:7
 
 script:
-  # test_img contains all the build prereqs installed
-  # in future, we'll just pull a pre-built image to speed up build times
-  - docker build -f ci/Dockerfiles/$BUILD_ENV.dockerfile -t test_img .
-  # use test_img to generate rpm / deb packages (cmake). drop the output in /build_artifacts
+  # $DOCKER should contain all the build prereqs installed
+  - DOCKER=$(echo $BUILD_ENV | tr -d '[:.]')
+  - docker build -f ci/Dockerfiles/$DOCKER.dockerfile -t $DOCKER .
+  # use $DOCKER to build packages through cmake
+  # input:
   # path-to-source-directory = /root/assimilation/src
+  # output:
   # path-to-binary-directory = /root/assimilation/bin
   # path-to-build-artifacts = /root/assimilation/ba
   - |
@@ -17,8 +19,8 @@ script:
     -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
     -v /tmp/bin:/root/assimilation/bin \
     -v /tmp/ba:/root/assimilation/ba \
-    test_img \
-    bash -c "cmake ../src && make install"
+    $DOCKER \
+    bash -c "echo run: \"cmake ../src && make install\" | tee /root/assimilation/ba/output"
   # test the new packages in a stock image (install and run tests)
-  # - docker run -v /tmp/ba:/packages $STOCK ls -al /packages
+  - docker run -v /tmp/ba:/packages $BUILD_ENV cat /packages/output
   # upload to artifactory
