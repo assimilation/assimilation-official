@@ -51,35 +51,32 @@ class NeoServer(object):
     """
     Abstract Neo4j server class
     """
+
     # What volumes does Neo4j export, and what kind of permissions are required for each?
     neo_volumes = {
-        '/conf': 'ro',
-        '/data': 'rw',
-        '/import': 'ro',
-        '/logs':  'rw',
-        '/metrics': 'rw',
-        '/plugins': 'ro',
-        '/ssl': 'ro',
+        "/conf": "ro",
+        "/data": "rw",
+        "/import": "ro",
+        "/logs": "rw",
+        "/metrics": "rw",
+        "/plugins": "ro",
+        "/ssl": "ro",
     }
 
     # Names and in-container values of ports that Neo4j exports...
-    neo_ports = {
-        'http':  7474,
-        'https': 7473,
-        'bolt':  7687
-    }
+    neo_ports = {"http": 7474, "https": 7473, "bolt": 7687}
 
     def start(self):
         """Abstract method to start a server"""
-        raise NotImplementedError('Abstract method start')
+        raise NotImplementedError("Abstract method start")
 
     def stop(self):
         """Abstract method to stop a server"""
-        raise NotImplementedError('Abstract method stop')
+        raise NotImplementedError("Abstract method stop")
 
     def set_initial_password(self, initial_password):
         """Abstract method to supply the initial password"""
-        raise NotImplementedError('Abstract method set_initial_password')
+        raise NotImplementedError("Abstract method set_initial_password")
 
     @staticmethod
     def debug_msg(*args):
@@ -95,24 +92,25 @@ class NeoDockerServer(NeoServer):
     """
     Neo4j in Docker
     """
-    edition_map = {
-        'community':    '',
-        'enterprise':   '-enterprise'
-    }
-    good_versions = {'3'}
 
-    initial_password_command = ['neo4j-admin', 'set-initial-password']
+    edition_map = {"community": "", "enterprise": "-enterprise"}
+    good_versions = {"3"}
 
-    def __init__(self, edition='community',
-                 version='latest',
-                 host='assim_neo4j',
-                 exposed_ports=None,
-                 environment_map=None,
-                 accept_license=False,
-                 root_directory='/var/lib/assimilation/neo4j',
-                 log_directory='/var/log/assim_neo4j',
-                 docker_client=None,
-                 debug=False):
+    initial_password_command = ["neo4j-admin", "set-initial-password"]
+
+    def __init__(
+        self,
+        edition="community",
+        version="latest",
+        host="assim_neo4j",
+        exposed_ports=None,
+        environment_map=None,
+        accept_license=False,
+        root_directory="/var/lib/assimilation/neo4j",
+        log_directory="/var/log/assim_neo4j",
+        docker_client=None,
+        debug=False,
+    ):
         """
 
         :param edition:str: Which Neo4j edition?
@@ -131,83 +129,99 @@ class NeoDockerServer(NeoServer):
         self.debug = debug
         self.environment_map = environment_map if environment_map else {}
         if exposed_ports is None:
-            exposed_ports = {'bolt': None, 'http': None}
+            exposed_ports = {"bolt": None, "http": None}
 
-        self.version_info = version.split('.')
-        if version != 'latest':
+        self.version_info = version.split(".")
+        if version != "latest":
             assert self.version_info[0] in self.good_versions
-        self.image_name = 'neo4j'
+        self.image_name = "neo4j"
 
         edition_suffix = self.edition_map[edition]
-        if edition == 'enterprise' and version == 'latest':
-            self.image_name += ':' + edition
+        if edition == "enterprise" and version == "latest":
+            self.image_name += ":" + edition
         else:
             if edition_suffix:
-                self.image_name += ':' + version + edition_suffix
-        if edition == 'enterprise':
-            self.environment_map['NEO4J_ACCEPT_LICENSE_AGREEMENT'] = (
-                'yes' if accept_license else 'no')
+                self.image_name += ":" + version + edition_suffix
+        if edition == "enterprise":
+            self.environment_map["NEO4J_ACCEPT_LICENSE_AGREEMENT"] = (
+                "yes" if accept_license else "no"
+            )
             assert accept_license
 
         self.host = host
         self.root_directory = root_directory
         self.port_map = {}
         for port_name, external_port in exposed_ports.items():
-            external_port = external_port if external_port else self.neo_ports[port_name]
+            external_port = (
+                external_port if external_port else self.neo_ports[port_name]
+            )
             self.port_map[self.neo_ports[port_name]] = int(external_port)
         self.volume_map = {}
         writable_owners = set()
         writable_groups = set()
         for volume, mode in self.neo_volumes.items():
-            if log_directory and 'log' in volume:
+            if log_directory and "log" in volume:
                 external_dir = log_directory
             else:
                 external_dir = os.path.join(root_directory, volume[1:])
-            self.volume_map[external_dir] = {'bind': volume, 'mode': mode}
-            if mode == 'rw':
+            self.volume_map[external_dir] = {"bind": volume, "mode": mode}
+            if mode == "rw":
                 writable_stat = os.stat(external_dir)
                 writable_owners.add(writable_stat.st_uid)
                 writable_groups.add(writable_stat.st_gid)
         if len(writable_owners) > 1:
-            raise TypeError('Neo4j writable volumes owned by multiple owners: %s' % writable_owners)
+            raise TypeError(
+                "Neo4j writable volumes owned by multiple owners: %s" % writable_owners
+            )
         if len(writable_groups) > 1:
-            print('Neo4j writable volumes grouped to multiple groups: %s' % writable_groups,
-                  file=stderr)
+            print(
+                "Neo4j writable volumes grouped to multiple groups: %s"
+                % writable_groups,
+                file=stderr,
+            )
 
         self.docker_client = docker_client if docker_client else docker.from_env()
         self.container = None
         # We need to run neo4j as the owner of its writable volumes...
         self.uid = list(writable_owners)[0]
         self.gid = list(writable_groups)[0]
-        self.uid_flag = '%d:%d' % (self.uid, self.gid)
+        self.uid_flag = "%d:%d" % (self.uid, self.gid)
 
         if self.debug:
             self.debug_msg(self)
 
     def __str__(self):
-        return (self.__class__.__name__ +
-                '(' + self.image_name + '(' +
-                'name="%s"' % self.host + ', ' +
-                'ports=%s' % self.port_map + ', ' +
-                'env=%s' % self.environment_map + ', ' +
-                'user="%s"' % self.uid_flag + ', ' +
-                'volumes=%s' % self.volume_map +
-                '))')
+        return (
+            self.__class__.__name__
+            + "("
+            + self.image_name
+            + "("
+            + 'name="%s"' % self.host
+            + ", "
+            + "ports=%s" % self.port_map
+            + ", "
+            + "env=%s" % self.environment_map
+            + ", "
+            + 'user="%s"' % self.uid_flag
+            + ", "
+            + "volumes=%s" % self.volume_map
+            + "))"
+        )
 
     @property
     def auth_file_name(self):
         """Return the name of the Neo4j 'auth' file"""
-        return os.path.join(self.root_directory, 'data', 'dbms', 'auth')
+        return os.path.join(self.root_directory, "data", "dbms", "auth")
 
     @property
     def roles_file_name(self):
         """Return the name of the Neo4j 'roles' file"""
-        return os.path.join(self.root_directory, 'data', 'dbms', 'roles')
+        return os.path.join(self.root_directory, "data", "dbms", "roles")
 
     @property
     def databases_directory(self):
         """Return the name of the Neo4j 'databases' directory"""
-        return os.path.join(self.root_directory, 'data', 'databases')
+        return os.path.join(self.root_directory, "data", "databases")
 
     def attributes(self):
         """
@@ -218,26 +232,26 @@ class NeoDockerServer(NeoServer):
             return {}
         assert self.container
 
-        image = self.container.attrs['Config']['Image']
-        if image.startswith('sha'):
+        image = self.container.attrs["Config"]["Image"]
+        if image.startswith("sha"):
             for tag in self.container.image.tags:
-                if 'neo4j' in tag:
+                if "neo4j" in tag:
                     image = tag
                     break
 
-        net_settings = self.container.attrs['NetworkSettings']
+        net_settings = self.container.attrs["NetworkSettings"]
         attrs = {
-            'image': image,
-            'ipaddress': net_settings['IPAddress'],
-            'edition':    'enterprise' if 'enterprise' in image else 'community',
-            'mounts': self.container.attrs['Mounts'],
-            'ports': net_settings['Ports'],
+            "image": image,
+            "ipaddress": net_settings["IPAddress"],
+            "edition": "enterprise" if "enterprise" in image else "community",
+            "mounts": self.container.attrs["Mounts"],
+            "ports": net_settings["Ports"],
             # 'networks': self.container.attrs['Networks'],
         }
-        if net_settings.get('LinkLocalIPv6Address'):
-            attrs['link_local_ipv6_address'] = net_settings['LinkLocalIPv6Address']
-        if net_settings.get('GlobalIPv6Address'):
-            attrs['global_ipv6_address'] = net_settings['GlobalIPv6Address']
+        if net_settings.get("LinkLocalIPv6Address"):
+            attrs["link_local_ipv6_address"] = net_settings["LinkLocalIPv6Address"]
+        if net_settings.get("GlobalIPv6Address"):
+            attrs["global_ipv6_address"] = net_settings["GlobalIPv6Address"]
         return attrs
 
     def start(self, restart_if_running=False):
@@ -259,7 +273,7 @@ class NeoDockerServer(NeoServer):
             ports=self.port_map,
             user=self.uid_flag,
             volumes=self.volume_map,
-            environment=self.environment_map
+            environment=self.environment_map,
         )
         return self.container
 
@@ -285,11 +299,11 @@ class NeoDockerServer(NeoServer):
             try:
                 self.container.kill(15)
             except docker.errors.APIError as oops:
-                if '404' not in str(oops) and '409' not in str(oops):
+                if "404" not in str(oops) and "409" not in str(oops):
                     raise
-            time.sleep(.25)
+            time.sleep(0.25)
 
-    def _getpass(self, name='neo4j'):
+    def _getpass(self, name="neo4j"):
         bad_return = None, None, None
         try:
             with open(self.auth_file_name) as auth_fd:
@@ -297,7 +311,7 @@ class NeoDockerServer(NeoServer):
                     line = auth_fd.readline()
                     if not line:
                         return bad_return
-                    fields = line.split(':', 2)
+                    fields = line.split(":", 2)
                     if fields[0] == name:
                         return fields
         except IOError:
@@ -325,7 +339,7 @@ class NeoDockerServer(NeoServer):
                 pass
 
         if name is not None and not extra:
-            raise TypeError('Initial password already set.')
+            raise TypeError("Initial password already set.")
         command = self.initial_password_command
         command.append(initial_password)
         rc, output = self.container.exec_run(command, user=self.uid_flag)
@@ -345,18 +359,21 @@ class NeoDockerServer(NeoServer):
         self.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     def stupid_docker_test():
         """This is a stupid Neo4j/Docker test..."""
         sys.stdout = sys.stderr  # Good for testing...
         print(NeoDockerServer())
-        print(NeoDockerServer(edition='enterprise', accept_license=True))
-        print(NeoDockerServer(edition='enterprise', version='3.5.0', accept_license=True))
-        neo4j = NeoDockerServer(edition='enterprise', accept_license=True)
-        print('RUNNING:', neo4j)
+        print(NeoDockerServer(edition="enterprise", accept_license=True))
+        print(
+            NeoDockerServer(edition="enterprise", version="3.5.0", accept_license=True)
+        )
+        neo4j = NeoDockerServer(edition="enterprise", accept_license=True)
+        print("RUNNING:", neo4j)
         print(neo4j.start(restart_if_running=True))
         print(neo4j.is_running())
-        print(neo4j.set_initial_password('passw0rd', force=True))
+        print(neo4j.set_initial_password("passw0rd", force=True))
         neo4j.clean_db()
 
     stupid_docker_test()
