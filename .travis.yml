@@ -4,6 +4,14 @@ env:
   - BUILD_ENV=ubuntu:18.04
   - BUILD_ENV=centos:7
 
+install:
+  - |
+    docker run \
+    --env=NEO4J_AUTH=none \
+    --publish=7474:7474 --publish=7687:7687 \
+    --volume=$HOME/neo4j/data:/data \
+    neo4j:3.5.6
+
 script:
   # $DOCKER should contain all the build prereqs installed
   - DOCKER=$(echo $BUILD_ENV | tr -d '[:.]')
