@@ -112,9 +112,10 @@ class NeoDockerServer(NeoServer):
         debug=False,
     ):
         """
+        Create a Neo4j server...
 
-        :param edition:str: Which Neo4j edition?
-        :param version:str: Which Neo4j version?
+        :param edition:str: Which Neo4j edition? (community or enterprise)
+        :param version:str: Which Neo4j version? (default: latest)
         :param host:str: host name / container name for this container
         :param exposed_ports: [str]: List of port names you want exposed
         :param environment_map:{str:str}: Environment variables to pass
@@ -263,8 +264,11 @@ class NeoDockerServer(NeoServer):
         read/write directories
         """
 
-        if restart_if_running:
-            self.stop()
+        if self.is_running():
+            if restart_if_running:
+                self.stop()
+            else:
+                return self.container
         self.container = self.docker_client.containers.run(
             self.image_name,
             auto_remove=True,
@@ -275,12 +279,16 @@ class NeoDockerServer(NeoServer):
             volumes=self.volume_map,
             environment=self.environment_map,
         )
+        time.sleep(5)
+        # @FIXME: This should be a loop waiting for services to become available...
+        print('Neo4j container %s started.' % self.container.short_id, file=stderr)
         return self.container
 
     def is_running(self):
         """
-
-        :return:
+        Return True if this container is running
+        Side effect: set self.container to the docker container object
+        :return:bool: True if the container is running
         """
         try:
             self.container = self.docker_client.containers.get(self.host)
@@ -294,7 +302,7 @@ class NeoDockerServer(NeoServer):
         Stop our docker container - if it's running...
         :return: None
         """
-
+        container_s = str(self.container.short_id)
         while self.is_running():
             try:
                 self.container.kill(15)
@@ -302,8 +310,15 @@ class NeoDockerServer(NeoServer):
                 if "404" not in str(oops) and "409" not in str(oops):
                     raise
             time.sleep(0.25)
+        print('Neo4j container %s now stopped.' % container_s, file=stderr)
 
     def _getpass(self, name="neo4j"):
+        """
+        Return the tuple (username, authentication string, extra stuff) from
+        the docker container's authentication file
+        :param name: username we're looking for
+        :return: Tuple[str, str, str]: name, auth string, extra
+        """
         bad_return = None, None, None
         try:
             with open(self.auth_file_name) as auth_fd:
@@ -314,8 +329,16 @@ class NeoDockerServer(NeoServer):
                     fields = line.split(":", 2)
                     if fields[0] == name:
                         return fields
-        except IOError:
+        except (IOError, ValueError):
             return bad_return
+
+    def is_password_set(self):
+        """
+        Return True if the password is already set
+        :return:bool: True if password already set
+        """
+        name, _, extra = self._getpass()
+        return name is not None and not extra
 
     def set_initial_password(self, initial_password, force=False):
         """
@@ -333,8 +356,10 @@ class NeoDockerServer(NeoServer):
             name = None
         if extra or force:
             try:
+                # Do we need to stop Neo4j before doing this?
                 os.unlink(self.auth_file_name)
                 os.unlink(self.roles_file_name)
+                print('Previous neo4j authorization information deleted.', file=stderr)
             except OSError:
                 pass
 
@@ -343,10 +368,15 @@ class NeoDockerServer(NeoServer):
         command = self.initial_password_command
         command.append(initial_password)
         rc, output = self.container.exec_run(command, user=self.uid_flag)
-        print(output.rstrip())
+        output = output.strip()
+        print(output)
+        if rc != 0:
+            raise RuntimeError('Could not set initial password: %s' % output)
         if force:
             self.start(restart_if_running=True)
-        return rc == 0
+        result = rc == 0
+        print('Initial Neo4j password %sset.' % '' if result else 'NOT ', file=stderr)
+        return result
 
     def clean_db(self):
         """
@@ -354,6 +384,7 @@ class NeoDockerServer(NeoServer):
         This is nice because it cleans out _everything_ - not just nodes and relationships...
         It leaves authentication and other things untouched...
         """
+        print('Emptying out Neo4j database @%s.' % self.container.short_id, file=stderr)
         self.stop()
         shutil.rmtree(self.databases_directory)
         self.start()
@@ -369,11 +400,11 @@ if __name__ == "__main__":
         print(
             NeoDockerServer(edition="enterprise", version="3.5.0", accept_license=True)
         )
-        neo4j = NeoDockerServer(edition="enterprise", accept_license=True)
-        print("RUNNING:", neo4j)
-        print(neo4j.start(restart_if_running=True))
-        print(neo4j.is_running())
-        print(neo4j.set_initial_password("passw0rd", force=True))
+        neo4j = NeoDockerServer(edition="enterprise", version='3.5.6', accept_license=True)
+        print("Now RUNNING:", neo4j)
+        neo4j.start(restart_if_running=False)
+        print('Is Neo4j running?', neo4j.is_running())
+        neo4j.set_initial_password("passw0rd", force=True)
         neo4j.clean_db()
 
     stupid_docker_test()

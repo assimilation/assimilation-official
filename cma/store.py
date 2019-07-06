@@ -259,7 +259,7 @@ class Store(object):
         :param node: py2neo.Node
         :return: int: node id
         """
-        return getattr(py2neo.remote(node), '_id') if node and py2neo.remote(node) else None
+        return node.identity if node else None
 
     def add_labels(self, subj, labels):
         """
@@ -386,7 +386,7 @@ class Store(object):
             print('load_related cypher:', query, file=stderr)
         cursor = self.db.run(query)
         while cursor.forward():
-            yield self._construct_obj_from_node(cursor.current()[0])
+            yield self._construct_obj_from_node(cursor.current[0])
 
     def load_in_related(self, subj, rel_type, obj=None, attrs=None):
         """
@@ -422,7 +422,7 @@ class Store(object):
             print('Starting query %s(%s)' % (querystr, params), file=stderr)
         cursor = self.db.run(querystr, params)
         while cursor.forward():
-            yield self._construct_obj_from_node(cursor.current()[0])
+            yield self._construct_obj_from_node(cursor.current[0])
             count += 1
             if maxcount is not None and count >= maxcount:
                 if debug:
@@ -467,7 +467,7 @@ class Store(object):
         tuple_class = None
         while cursor.forward():
             yieldval = []
-            current = cursor.current()
+            current = cursor.current
             # print('CURRENT.keys[%s]: cursor.current.keys(): %s'
             #       % (type(current), str(current.keys())))
             for elem in current:
@@ -486,12 +486,12 @@ class Store(object):
         :param value: object: Node, relationship, path, list, tuple, scalar value
         :return: object: appropriate value in our world
         """
-        if isinstance(value, py2neo.types.Node):
+        if isinstance(value, py2neo.Node):
             return self._construct_obj_from_node(value)
-        elif isinstance(value, py2neo.types.Relationship):
+        elif isinstance(value, py2neo.Relationship):
             from graphnodes import NeoRelationship
             return NeoRelationship(value)
-        elif isinstance(value, py2neo.types.Path):
+        elif isinstance(value, py2neo.Path):
             return "Sorry, Path values not yet supported"
         elif isinstance(value, (list, tuple)):
             result = []
@@ -928,7 +928,7 @@ class Store(object):
             return self.weaknoderefs[node_id]()
 
         nodeclass = GraphNode.node_to_class(node)
-        key_values = self._get_key_values(nodeclass, node.properties)
+        key_values = self._get_key_values(nodeclass, dict(node))
         if self.debug:
             print ('DOING LOCALSEARCH WITH %s' % key_values, file=stderr)
             self._log.debug('DOING LOCALSEARCH WITH %s' % key_values)

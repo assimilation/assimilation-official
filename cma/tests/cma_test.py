@@ -69,7 +69,7 @@ AssertOnDanglingClasses = True
 
 inject.configure_once(CMAInjectables.test_config_injection)
 
-DEBUG = False
+DEBUG = True
 DoAudit = True
 doHBDEAD = True
 BuildListOnly = False
@@ -585,11 +585,14 @@ class TestTestInfrastructure(TestCase):
             print('Running test_test_eof()', file=stderr)
         AssimEvent.disable_all_observers()
         framesets = []
+        print('Constructing IOTestIO')
         io = IOTestIO(framesets, 0)
+        print('Pre-init IO:', io)
+        print('Calling CMAinit')
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        # print 'IO:', io
-        # print 'CMADB', CMAdb
-        # print 'CMADB.store', CMAdb.store
+        print('IO:', io)
+        print('CMADB', CMAdb)
+        print('CMADB.store', CMAdb.store)
         # just make sure it seems to do the right thing
         (foo, bar) = io.recvframesets()
         assert foo is None

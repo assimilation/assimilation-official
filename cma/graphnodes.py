@@ -109,7 +109,7 @@ class GraphNode(object):
         :param neo_node: py2neo.Neo4j.node
         :return:
         """
-        return GraphNode.str_to_class(str(neo_node.properties['nodetype']))
+        return GraphNode.str_to_class(str(neo_node['nodetype']))
 
     @inject.params(store='Store', log='logging.Logger')
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None, store=None, log=None):
@@ -1332,4 +1332,4 @@ class NeoRelationship(object):
         self.type = relationship.type
         self.start_node = getattr(relationship.start_node, '_id')  # Make pylint happy...
         self.end_node = getattr(relationship.end_node, '_id')  # Make pylint happy...
-        self.properties = relationship.properties
+        self.properties = dict(relationship)

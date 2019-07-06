@@ -227,7 +227,7 @@ def initstore():
     if not FooClass.initialized_yet:
         inject.configure_once(CMAInjectables.test_config_injection)
         FooClass.config_foo()
-        print('USING NEO4J VERSION %s' % str(FooClass.db.neo4j_version), file=stderr)
+        print('USING NEO4J VERSION %s' % str(FooClass.db.database.kernel_version), file=stderr)
         print('USING py2neo VERSION %s' % str(py2neo.__version__), file=stderr)
         FooClass.initialized_yet = True
     if FooClass.store.db_transaction and not FooClass.store.db_transaction.finished():
