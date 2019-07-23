@@ -28,7 +28,12 @@ script:
     -v /tmp/bin:/root/assimilation/bin \
     -v /tmp/ba:/root/assimilation/ba \
     $DOCKER \
-    bash -c "cmake ../src && cpack && ls *.deb"
+    bash -c "cmake ../src && cpack && mv *.deb /root/assimilation/ba"
   # test the new packages in a stock image (install and run tests)
-  #- docker run -v /tmp/ba:/packages $BUILD_ENV
+  - |
+    docker run \
+    -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
+    -v /tmp/ba:/packages \
+    $BUILD_ENV \
+    bash -c "cd /packages && dpkg -i *.deb && cd /root/assimilation/src/cma && testify tests"
   # upload to artifactory
