@@ -35,5 +35,5 @@ script:
     -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
     -v /tmp/ba:/packages \
     $BUILD_ENV \
-    bash -c "apt-get -y update && find /packages -type f -name *.deb -exec apt-get -y install {} \; && cd /root/assimilation/src/cma && testify tests"
+    bash -c "apt-get -y update && apt-get -y install python python-pip && pip install testify && find /packages -type f -name *.deb -exec apt-get -y install {} \; && cd /root/assimilation/src/cma && testify tests"
   # upload to artifactory
