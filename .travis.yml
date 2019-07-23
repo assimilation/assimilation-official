@@ -2,7 +2,7 @@ language: minimal
 
 env:
   - BUILD_ENV=ubuntu:18.04
-  - BUILD_ENV=centos:7
+    #  - BUILD_ENV=centos:7
 
 install:
   - |
@@ -35,5 +35,5 @@ script:
     -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
     -v /tmp/ba:/packages \
     $BUILD_ENV \
-    bash -c "cd /packages && dpkg -i *.deb && cd /root/assimilation/src/cma && testify tests"
+    bash -c "cd /packages && apt-get install *.deb && cd /root/assimilation/src/cma && testify tests"
   # upload to artifactory
