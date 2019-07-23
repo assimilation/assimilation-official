@@ -35,5 +35,5 @@ script:
     -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
     -v /tmp/ba:/packages \
     $BUILD_ENV \
-    bash -c "cd /packages && apt-get install *.deb && cd /root/assimilation/src/cma && testify tests"
+    bash -c "find /packages -type f -name *.deb -exec apt-get install {} \; && cd /root/assimilation/src/cma && testify tests"
   # upload to artifactory
