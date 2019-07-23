@@ -28,8 +28,7 @@ script:
     -v /tmp/bin:/root/assimilation/bin \
     -v /tmp/ba:/root/assimilation/ba \
     $DOCKER \
-    bash -c "cmake ../src && make install | tee /root/assimilation/ba/output"
-    #bash -c "echo run: \"cmake ../src && make install\" | tee /root/assimilation/ba/output"
+    bash -c "cmake ../src && cpack && ls *.deb"
   # test the new packages in a stock image (install and run tests)
-  - docker run -v /tmp/ba:/packages $BUILD_ENV cat /packages/output
+  #- docker run -v /tmp/ba:/packages $BUILD_ENV
   # upload to artifactory
