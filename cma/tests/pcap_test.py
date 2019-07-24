@@ -63,9 +63,9 @@ def assert_no_dangling_Cclasses():
         WorstDanglingCount = count
         if AssertOnDanglingClasses:
             dump_c_objects()
-            raise AssertionError, "Dangling C-class objects - %d still around" % count
+            raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
-            print( ("*****ERROR: Dangling C-class objects - %d still around" % count), file=stderr)
+            print("*****ERROR: Dangling C-class objects - %d still around" % count, file=stderr)
 
 class TestCase(object):
     def assertEqual(self, a, b):

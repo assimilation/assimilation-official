@@ -34,7 +34,7 @@ from testcases import AssimSysTest
 def logit(msg):
     'log things to the system log and to stdout'
     os.system("logger '%s'" %   (msg))
-    print ("%s: %s" % (datetime.datetime.now(), msg))
+    print("%s: %s" % (datetime.datetime.now(), msg))
 
 def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
     'Actually perform the given set of tests the given number of times, etc'
@@ -73,7 +73,7 @@ def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
             logit('Test %d %s RETURNED SOMETHING REALLY WEIRD [%s]'
             %   (itercount, test.__name__, str(ret)))
             testobj.replace_result(AssimSysTest.FAIL)
-        print ''
+        print('')
         if itercount > itermax:
             break
     return summarize_tests()
@@ -217,11 +217,11 @@ def testmain(logname):
         assert len(seed) == 8
     random.Random().seed(seed) # The hash of those 8 bytes is used as the seed
 
-    print '\n'
+    print('\n')
     logit('Iteration count: %d / Number of client systems: %d' % (itercount, maxdrones))
     logit("Random Seed:     %s" % str(seed))
 
-    print '\n'
+    print('\n')
 
     # Set up specific test cases -- if requested
     if len(opts.testcases) > 0:
@@ -254,7 +254,7 @@ def testmain(logname):
     for nano in env.nanoprobes:
         logit('nano: %s %15s %6d %s' % (nano.hostname, nano.ipaddr, nano.pid, nano.name))
 
-    print '\n'
+    print('\n')
     logit('STARTING %d tests on %d nanoprobes + CMA' % (itercount, maxdrones))
     return perform_tests(testset, env, store, itercount, opts.logname)
 

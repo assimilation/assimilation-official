@@ -470,7 +470,7 @@ def make_pid_dir(pidfile, userid):
     if os.path.isdir(piddir):
         # Assume it's been set up suitably
         return
-    os.mkdir(piddir, 0755)
+    os.mkdir(piddir, 0o755)
     userinfo = getent.passwd(userid)
     if userinfo is None:
         raise(OSError('Userid "%s" is unknown.' % userid))
@@ -483,7 +483,7 @@ def make_key_dir(keydir, userid):
     if os.path.isdir(keydir):
         # Assume it's been set up suitably
         return
-    os.mkdir(keydir, 0700)
+    os.mkdir(keydir, 0o700)
     userinfo = getent.passwd(userid)
     if userinfo is None:
         raise(OSError('Userid "%s" is unknown.' % userid))

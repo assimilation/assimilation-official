@@ -26,7 +26,10 @@
 '''
 This file defines classes which perform individual system tests.
 '''
-import sys, time, os
+from __future__ import print_function
+import sys
+import time
+import os
 sys.path.append('..')
 sys.path.append('.')
 from logwatcher import LogWatcher
@@ -42,7 +45,7 @@ from droneinfo import Drone
 
 def logger(s, hardquote=True):
     'Log our single argument to syslog'
-    print >> sys.stderr, ('LOGGER: %s' % str(s))
+    print('LOGGER: %s' % str(s), file=sys.stderr)
     if hardquote:
         s = s.replace("'", "'\\''")
         os.system("logger -s '%s'" % s)
@@ -218,7 +221,7 @@ class AssimSysTest(object):
         else:
             match = watcher.look(timeout=timeout)
         if debug:
-            print >> sys.stderr, ('DEBUG: Match returned %s' % match)
+            print('DEBUG: Match returned %s' % match, file=sys.stderr)
         if match is None:
             logger('ERROR: Test %s timed out waiting for %s [timeout:%s]'
             %   (self.__class__.__name__, str(watcher.unmatched), timeout))
@@ -233,7 +236,7 @@ class AssimSysTest(object):
                 %   (self.__class__.__name__, querystring))
             return self._record(AssimSysTest.SUCCESS)
 
-        print >> sys.stderr, ('DEBUG: query.check() FAILED')
+        print('DEBUG: query.check() FAILED', file=sys.stderr)
         logger('ERROR: Test %s failed query %s' % (self.__class__.__name__, querystring))
         return self._record(AssimSysTest.FAIL)
 
@@ -253,7 +256,7 @@ class AssimSysTest(object):
         CMAinit(None, host=str(sysenv.cma.ipaddr), readonly=True,
                 neologin=SystemTestEnvironment.NEO4JLOGIN, neopass=SystemTestEnvironment.NEO4JPASS)
         url = 'http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474)
-        print >> sys.stderr, 'OPENING Neo4j at URL %s' % url
+        print('OPENING Neo4j at URL %s' % url, file=sys.stderr)
         neo4j.authenticate('%s:7474' % sysenv.cma.ipaddr,
                            SystemTestEnvironment.NEO4JLOGIN,
                            SystemTestEnvironment.NEO4JPASS)
@@ -308,7 +311,7 @@ class KillNanoprobe(AssimSysTest):
             SystemTestEnvironment.NANOSERVICE not in nano.runningservices):
             return self._record(AssimSysTest.SKIPPED)
         regexes = self.nano_kill9_regexes(nano)
-        print >> sys.stderr, 'KILL9_REGEXES ARE:', regexes
+        print('KILL9_REGEXES ARE:', regexes, file=sys.stderr)
         watch = LogWatcher(self.logfilename, regexes, timeout=timeout, debug=debug)
         watch.setwatch()
         qstr =  (   '''START drone=node:Drone('*:*') '''
@@ -585,8 +588,8 @@ if __name__ == "__main__":
             sysenv, ourstore = AssimSysTest.initenviron(logname, maxdrones, debug
             ,       cmadebug=5, nanodebug=3)
         except AssertionError:
-            print 'FAILED initial startup - which is pretty basic'
-            print 'Any chance you have another CMA running??'
+            print('FAILED initial startup - which is pretty basic')
+            print('Any chance you have another CMA running??')
             raise RuntimeError('Another CMA is running(?)')
 
         badregexes=(' ERROR: ', ' CRIT: ', ' CRITICAL: '
@@ -610,7 +613,7 @@ if __name__ == "__main__":
             #print >> sys.stderr, 'Got return of %s from test %s' % (ret, cls.__name__)
             badmatch = badwatch.look(timeout=1)
             if badmatch is not None:
-                print 'OOPS! Got bad results!', badmatch
+                print('OOPS! Got bad results!', badmatch)
                 raise RuntimeError('Test %s said bad words! [%s]' % (cls.__name__, badmatch))
             assert ret == AssimSysTest.SUCCESS or ret == AssimSysTest.SKIPPED
             #assert ret == AssimSysTest.SUCCESS

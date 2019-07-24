@@ -37,7 +37,9 @@ it might make sense to just compile them from text each time and not fool with p
 
 So that's what I'm going to do.
 '''
-import sys, time
+from __future__ import print_function
+import sys
+import time
 
 # pylint -- too few public methods
 # pylint: disable=R0903
@@ -79,7 +81,7 @@ class QueryTest(object):
             time.sleep(delay)
             j += 1
 
-        print ('Rerunning failed query with debug=True')
+        print('Rerunning failed query with debug=True')
         self.checkone(objectlist, validator, minrows, maxrows, debug=True)
         return False
 
@@ -97,25 +99,25 @@ class QueryTest(object):
             debug = self.debug
         finalquerystring = self.querystring.format(*objectlist)
         if debug:
-            print >> sys.stderr, 'Final query string [%s]' % finalquerystring
+            print('Final query string [%s]' % finalquerystring, file=sys.stderr)
         self.store.clean_store()
         rowcount = 0
         for row in self.store.load_cypher_nodes(finalquerystring, self.classfactory, debug=debug):
             rowcount += 1
             if debug:
-                print >> sys.stderr, ("DEBUG: row [%d] is %s" % (rowcount, str(row)))
+                print("DEBUG: row [%d] is %s" % (rowcount, str(row)), file=sys.stderr)
             if validator is not None and not validator(row):
                 if debug:
-                    print >> sys.stderr, ("VALIDATOR [%s] doesn't like row [%d] %s"
-                    %       (validator, rowcount, str(row)))
+                    print("VALIDATOR [%s] doesn't like row [%d] %s"
+                    %       (validator, rowcount, str(row)), file=sys.stderr)
                 return False
         if minrows is not None and rowcount < minrows:
             if debug:
-                print >> sys.stderr, "Too few rows in result [%d]" % rowcount
+                print("Too few rows in result [%d]" % rowcount, file=sys.stderr)
             return False
         if maxrows is not None and rowcount > maxrows:
             if debug:
-                print >> sys.stderr, "Too many rows in result [%d]" % rowcount
+                print("Too many rows in result [%d]" % rowcount, file=sys.stderr)
             return False
         return True
 
@@ -146,23 +148,23 @@ if __name__ == "__main__":
         logwatch = LogWatcher(logname, regexes, timeout=90, returnonlymatch=True)
         logwatch.setwatch()
         sysenv = SystemTestEnvironment(maxdrones)
-        print >> sys.stderr, 'Systems all up and running.'
+        print('Systems all up and running.', file=sys.stderr)
         url = ('http://%s:%d/db/data/' % (sysenv.cma.ipaddr, 7474))
         CMAinit(None)
         store = Store(neo4j.Graph(url), readonly=True)
         results = logwatch.lookforall()
         if debug:
-            print >> sys.stderr, 'WATCH RESULTS:', results
+            print('WATCH RESULTS:', results, file=sys.stderr)
         tq = QueryTest(store
         ,   "START drone=node:Drone('*:*') RETURN drone"
         ,   GN.nodeconstructor, debug=debug)
-        print >> sys.stderr, 'Running Query'
+        print('Running Query', file=sys.stderr)
         if tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1):
-            print 'WOOT! Systems passed query check after initial startup!'
+            print('WOOT! Systems passed query check after initial startup!')
         else:
-            print 'Systems FAILED initial startup query check'
-            print 'Do you have a second CMA running??'
-            print 'Rerunning query with debug=True'
+            print('Systems FAILED initial startup query check')
+            print('Do you have a second CMA running??')
+            print('Rerunning query with debug=True')
             tq.debug = True
             tq.check([None,], minrows=maxdrones+1, maxrows=maxdrones+1)
             return 1
@@ -181,9 +183,9 @@ if __name__ == "__main__":
                 '''WHERE drone.designation = "{0.hostname}" RETURN drone''')
         ,   GN.nodeconstructor, debug=debug)
         if tq.check([nano,], downbyshutdown, maxrows=1):
-            print 'WOOT! Systems passed query check after nano shutdown!'
+            print('WOOT! Systems passed query check after nano shutdown!')
         else:
-            print 'Systems FAILED query check after nano shutdown'
+            print('Systems FAILED query check after nano shutdown')
 
     if os.access('/var/log/syslog', os.R_OK):
         sys.exit(testmain('/var/log/syslog'))

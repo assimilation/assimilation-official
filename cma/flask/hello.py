@@ -70,7 +70,7 @@ def doquery(queryname):
         for arg in argdict:
             req[arg] = str(argdict[arg][0])
         query.validate_parameters(req)
-    except ValueError, e:
+    except ValueError as e:
         return 'Invalid Parameters to %s [%s]' % (queryname, str(e))
     return Response(query.execute(None, idsonly=False, expandjson=True, maxjson=1024, **req)
     ,               mimetype='application/javascript')
@@ -93,11 +93,11 @@ if __name__ == '__main__':
         '''
         if dburl is None:
             dburl = ('http://%s:%d/db/data/' % (dbhost, dbport))
-        print >> sys.stderr, 'CREATING Graph("%s")' % dburl
+        print('CREATING Graph("%s")' % dburl, file=sys.stderr)
         neodb = neo4j.Graph(dburl)
         qstore = Store(neodb, None, None)
-        print GraphNode.classmap
-        print "LOADING TREE!"
+        print(GraphNode.classmap)
+        print("LOADING TREE!")
         if querypath is None:
             querypath = "/home/alanr/monitor/src/queries"
         queries = ClientQuery.load_tree(qstore, querypath)

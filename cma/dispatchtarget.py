@@ -56,8 +56,8 @@ class DispatchTarget(object):
                % (fstype, FrameSetTypes.get(fstype)[0], str(origaddr)))
         for frame in frameset.iter():
             frametype = frame.frametype()
-            print "\tframe type [%s]: [%s]" \
-            %     (FrameTypes.get(frametype)[1], str(frame))
+            print("\tframe type [%s]: [%s]"
+            %     (FrameTypes.get(frametype)[1], str(frame)))
 
     def setconfig(self, io, config):
         'Save away our IO object and our configuration'

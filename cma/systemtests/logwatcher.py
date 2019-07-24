@@ -35,6 +35,7 @@
 This module defines the most excellent LogWatcher class - useful for watching logs
 and curing what ails you ;-)
 '''
+from __future__ import print_function
 import os, re, time
 
 # R0902: too many instance attributes
@@ -111,7 +112,7 @@ class LogWatcher(object):
         'Print out a debug message if requested debugging level is activated'
         if self.debug >= level:
             #os.system("logger -s '%s'" % msg)
-            print 'DEBUG: %s' % msg
+            print('DEBUG: %s' % msg)
 
     # FIXME: many branches (R0912)? -- got it down to 15.  Could do better...
     # pylint: disable=R0912
@@ -259,7 +260,7 @@ if __name__ == "__main__":
         result = watcher.look()
         assert result is None
 
-        print 'No asserts: Test succeded! WOOT!!'
+        print('No asserts: Test succeded! WOOT!!')
 
     if os.access('/var/log/syslog', os.R_OK):
         testlog('/var/log/syslog')
